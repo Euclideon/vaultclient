@@ -1,0 +1,89 @@
+windows_x64_release:
+  stage: build
+  script: "buildscripts\\build.sh Release x64"
+  tags:
+    - windows
+    - vs2015
+
+windows_x64_debug:
+  stage: build
+  script: "buildscripts\\build.sh Debug x64"
+  tags:
+    - windows
+    - vs2015
+
+#linux_deb_gcc_release:
+#  image: gitlab.euclideon.local:4567/docker-images/dev-xenial:v1
+#  stage: build
+#  script: "buildscripts/build.sh Release x64"
+#  tags:
+#    - linux
+#    - docker
+#
+#linux_deb_gcc_debug:
+#  image: gitlab.euclideon.local:4567/docker-images/dev-xenial:v1
+#  stage: build
+#  script: "buildscripts/build.sh Debug x64"
+#  tags:
+#    - linux
+#    - docker
+#
+#linux_deb_clang_release:
+#  image: gitlab.euclideon.local:4567/docker-images/dev-xenial:v1
+#  stage: build
+#  script: "buildscripts/build.sh ReleaseClang x64"
+#  tags:
+#    - linux
+#    - docker
+#
+#linux_deb_clang_debug:
+#  image: gitlab.euclideon.local:4567/docker-images/dev-xenial:v1
+#  stage: build
+#  script: "buildscripts/build.sh DebugClang x64"
+#  tags:
+#    - linux
+#    - docker
+#
+#linux_rpm_gcc_release:
+#  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v1
+#  stage: build
+#  script: "buildscripts/build.sh Release x64"
+#  tags:
+#    - linux
+#    - docker
+#
+#linux_rpm_gcc_debug:
+#  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v1
+#  stage: build
+#  script: "buildscripts/build.sh Debug x64"
+#  tags:
+#    - linux
+#    - docker
+#
+#linux_rpm_clang_release:
+#  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v1
+#  stage: build
+#  script: "buildscripts/build.sh ReleaseClang x64"
+#  tags:
+#    - linux
+#    - docker
+#
+#linux_rpm_clang_debug:
+#  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v1
+#  stage: build
+#  script: "buildscripts/build.sh DebugClang x64"
+#  tags:
+#    - linux
+#    - docker
+#
+#macosx_x64_release:
+#  stage: build
+#  script: "buildscripts/build.sh Release x64"
+#  tags:
+#    - osx
+#
+#macosx_x64_debug:
+#  stage: build
+#  script: "buildscripts/build.sh Debug x64"
+#  tags:
+#    - osx
