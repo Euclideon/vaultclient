@@ -76,14 +76,14 @@ linux_rpm_clang_debug:
     - linux
     - docker
 
-#macosx_x64_release:
-#  stage: build
-#  script: "buildscripts/build.sh Release x64"
-#  tags:
-#    - osx
-#
-#macosx_x64_debug:
-#  stage: build
-#  script: "buildscripts/build.sh Debug x64"
-#  tags:
-#    - osx
+macosx_x64_release:
+  stage: build
+  script: "buildscripts/build.sh Release x64"
+  tags:
+    - osx
+
+macosx_x64_debug:
+  stage: build
+  script: "buildscripts/build.sh Debug x64"
+  tags:
+    - osx

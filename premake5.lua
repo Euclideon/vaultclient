@@ -35,8 +35,13 @@ function injectvaultsdkbin()
 		distroExtension = iif(string.startswith(osname, "ubuntu"), "_deb", "_rpm")
 	end
 
-	if(_OPTIONS["force-vaultsdk"]) then
+	if(os.get() == premake.MACOSX) then
+		links { "vaultSDK.framework" }
+	else
 		links { "vaultSDK" }
+	end
+  
+	if(_OPTIONS["force-vaultsdk"]) then
 		includedirs { "../vaultsdk/src" }
 	else
 		if(os.getenv("VAULTSDK_HOME") == nil) then
@@ -49,7 +54,18 @@ function injectvaultsdkbin()
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/Lib/Windows/vaultSDK.lib", "src/vaultSDK.lib")
 			libdirs { "src" }
 		elseif(os.get() == premake.MACOSX) then
-			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/Lib/osx/libvaultSDK.dylib", "builds/client/bin/libvaultSDK.dylib")
+			os.execute("mkdir -p builds/client/bin")
+
+			-- copy dmg, mount, extract framework, unmount then remove.
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/vaultSDK.dmg", "builds/client/bin/vaultSDK.dmg")
+			os.execute("/usr/bin/hdiutil attach builds/client/bin/vaultSDK.dmg")
+			os.execute("cp -a -f /Volumes/vaultSDK/vaultSDK.framework builds/client/bin/")
+			os.execute("/usr/bin/hdiutil detach /Volumes/vaultSDK")
+			os.execute("rm -r builds/client/bin/vaultSDK.dmg")
+
+			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
+			files { "builds/client/bin/vaultSDK.framework" }
+			libdirs { "builds/client/bin" }
 		else
 			os.execute("mkdir -p builds/client/bin")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/Lib/Linux/libvaultSDK.so", "builds/client/bin/libvaultSDK.so")
@@ -57,8 +73,6 @@ function injectvaultsdkbin()
 			libdirs { "builds/client/bin" }
 		end
 
-		-- Call the Premake APIs
-		links { "vaultSDK" }
 		includedirs { "Include" }
 	end
 end
@@ -94,6 +108,8 @@ solution "vaultClient"
 	flags { "C++11" }
 	pic "On"
 
+	xcodebuildsettings { ["CLANG_CXX_LANGUAGE_STANDARD"] = "c++0x" }
+
 	-- Strings
 	if os.getenv("CI_BUILD_REF_NAME") then
 		defines { "GIT_BRANCH=\"" .. os.getenv("CI_BUILD_REF_NAME") .. "\"" }
@@ -111,9 +127,15 @@ solution "vaultClient"
 	end
 
 	if _OPTIONS["force-vaultsdk"] then
-		dofile "../vaultsdk/cutil/3rdParty/curl/project.lua"
+		if os.get() ~= premake.MACOSX then
+			dofile "../vaultsdk/cutil/3rdParty/curl/project.lua"
+		end
 		dofile "../vaultsdk/cutil/cutil/project.lua"
 		dofile "../vaultsdk/project.lua"
+		xcodebuildsettings { 
+			['INSTALL_PATH'] = "@executable_path/../Frameworks",
+			['SKIP_INSTALL'] = "YES"
+		}
 		targetdir "builds/client/bin"
 		debugdir "builds/client/bin" 
 	end
