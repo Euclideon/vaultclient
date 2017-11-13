@@ -1,0 +1,3 @@
+[submodule "bin/premake"]
+	path = bin/premake
+	url = git@gitlab.euclideon.local:external/premake-bin.git
