@@ -12,12 +12,12 @@ GOTO END
 
 :ONE
  ECHO Creating VS2015 Project...
- premake\premake5.exe vs2015
+ bin\premake\premake5.exe vs2015
  GOTO END
  
 :TWO
  ECHO Creating VS2015 Project (With vaultSDK Repository)...
- premake\premake5.exe vs2015 --force-vaultsdk
+ bin\premake\premake5.exe vs2015 --force-vaultsdk
  GOTO END
 
 :END
