@@ -40,6 +40,7 @@ function injectvaultsdkbin()
 		includedirs { "../vaultsdk/src" }
 	else
 		if(os.get() == premake.WINDOWS) then
+			os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/Lib/Windows/vaultSDK.dll", "builds/client/bin/vaultSDK.dll")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/Lib/Windows/vaultSDK.lib", "src/vaultSDK.lib")
 			libdirs { "src" }
@@ -51,7 +52,7 @@ function injectvaultsdkbin()
 
 		-- Call the Premake APIs
 		links { "vaultSDK" }
-		includedirs { "$(VAULTSDK_HOME)/Include" }
+		includedirs { "Include" }
 	end
 end
 
