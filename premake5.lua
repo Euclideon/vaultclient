@@ -39,6 +39,10 @@ function injectvaultsdkbin()
 		links { "vaultSDK" }
 		includedirs { "../vaultsdk/src" }
 	else
+		if(os.getenv("VAULTSDK_HOME") == nil) then
+			error "VaultSDK not installed correctly. (No VAULTSDK_HOME environment variable set!)"
+		end
+
 		if(os.get() == premake.WINDOWS) then
 			os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/Lib/Windows/vaultSDK.dll", "builds/client/bin/vaultSDK.dll")
