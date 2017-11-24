@@ -51,7 +51,10 @@ function injectvaultsdkbin()
 		elseif(os.get() == premake.MACOSX) then
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/Lib/osx/libvaultSDK.dylib", "builds/client/bin/libvaultSDK.dylib")
 		else
+			os.execute("mkdir -p builds/client/bin")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/Lib/Linux/libvaultSDK.so", "builds/client/bin/libvaultSDK.so")
+			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
+			libdirs { "builds/client/bin" }
 		end
 
 		-- Call the Premake APIs
