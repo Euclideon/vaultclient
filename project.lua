@@ -36,6 +36,9 @@ project "vaultClient"
 
 	filter { "system:not windows" }
 		links { "dl" }
+		
+	filter { "system:linux" }
+		links { "z" }
 
 	filter {}
 
