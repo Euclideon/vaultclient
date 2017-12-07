@@ -66,10 +66,10 @@ else
 			else
 				sharedLibExtension="so"
 				cp -f builds/client/bin/vaultClient /mnt/Resources/Builds/euVault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME/vaultClient
+				if [ $? -ne 0 ]; then exit 1; fi
+				cp -f $VAULTSDK_HOME/Lib/$OSNAME/libvaultSDK.so /mnt/Resources/Builds/euVault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME/libvaultSDK.so
 			fi
-			if [ $? -ne 0 ]; then exit 1; fi
 
-			cp -f $VAULTSDK_HOME/Lib/$OSNAME/libvaultSDK.$sharedLibExtension /mnt/Resources/Builds/euVault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME/libvaultSDK.$sharedLibExtension
 			if [ $? -ne 0 ]; then exit 1; fi
 		fi
 	fi
