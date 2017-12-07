@@ -1,8 +1,7 @@
 project "vaultClient"
 	--Settings
-	filter { "system:not ios", "system:not android" }
-		kind "ConsoleApp"
-	filter { "system:ios OR android" }
+	kind "ConsoleApp"
+	filter { "system:macosx OR ios OR android" }
 		kind "WindowedApp"
 	filter {}
 	

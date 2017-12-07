@@ -44,46 +44,46 @@ linux_deb_clang_debug:
     - linux
     - docker
 
-linux_rpm_gcc_release:
-  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v2
-  stage: build
-  script: "buildscripts/build.sh Release x64"
-  tags:
-    - linux
-    - docker
-
-linux_rpm_gcc_debug:
-  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v2
-  stage: build
-  script: "buildscripts/build.sh Debug x64"
-  tags:
-    - linux
-    - docker
-
-linux_rpm_clang_release:
-  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v2
-  stage: build
-  script: "buildscripts/build.sh ReleaseClang x64"
-  tags:
-    - linux
-    - docker
-
-linux_rpm_clang_debug:
-  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v2
-  stage: build
-  script: "buildscripts/build.sh DebugClang x64"
-  tags:
-    - linux
-    - docker
-
-#macosx_x64_release:
+#linux_rpm_gcc_release:
+#  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v2
 #  stage: build
 #  script: "buildscripts/build.sh Release x64"
 #  tags:
-#    - osx
+#    - linux
+#    - docker
 #
-#macosx_x64_debug:
+#linux_rpm_gcc_debug:
+#  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v2
 #  stage: build
 #  script: "buildscripts/build.sh Debug x64"
 #  tags:
-#    - osx
+#    - linux
+#    - docker
+#
+#linux_rpm_clang_release:
+#  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v2
+#  stage: build
+#  script: "buildscripts/build.sh ReleaseClang x64"
+#  tags:
+#    - linux
+#    - docker
+#
+#linux_rpm_clang_debug:
+#  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v2
+#  stage: build
+#  script: "buildscripts/build.sh DebugClang x64"
+#  tags:
+#    - linux
+#    - docker
+
+macosx_x64_release:
+  stage: build
+  script: "buildscripts/build.sh Release x64"
+  tags:
+    - osx
+
+macosx_x64_debug:
+  stage: build
+  script: "buildscripts/build.sh Debug x64"
+  tags:
+    - osx
