@@ -58,7 +58,7 @@ function injectvaultsdkbin()
 			os.execute("mkdir -p builds/client/bin")
 
 			-- copy dmg, mount, extract framework, unmount then remove.
-			os.copyfile(os.getenv("VAULTSDK_HOME") .. "lib/osx_x64/vaultSDK.dmg", "builds/client/bin/vaultSDK.dmg")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/osx_x64/vaultSDK.dmg", "builds/client/bin/vaultSDK.dmg")
 			os.execute("/usr/bin/hdiutil attach builds/client/bin/vaultSDK.dmg")
 			os.execute("cp -a -f /Volumes/vaultSDK/vaultSDK.framework builds/client/bin/")
 			os.execute("/usr/bin/hdiutil detach /Volumes/vaultSDK")
