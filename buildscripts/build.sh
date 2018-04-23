@@ -6,7 +6,7 @@ git submodule update --init --recursive
 if [ $? -ne 0 ]; then exit 1; fi
 
 if [ $OSTYPE == "msys" ]; then # Windows, MingW
-	export VAULTSDK_HOME="//bne-fs-fs-003.euclideon.local/Resources/Builds/vault/sdk/Pipeline_23795"
+	export VAULTSDK_HOME="//bne-fs-fs-003.euclideon.local/Resources/Builds/vault/sdk/Pipeline_23777"
 	
 	bin/premake/premake5.exe vs2015
 	if [ $? -ne 0 ]; then exit 1; fi
@@ -26,12 +26,12 @@ if [ $OSTYPE == "msys" ]; then # Windows, MingW
 
 		cp -f builds/client/bin/vaultClient.exe //bne-fs-fs-003.euclideon.local/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/Windows/vaultClient.exe
 		if [ $? -ne 0 ]; then exit 1; fi
-		cp -f $VAULTSDK_HOME/Lib/Windows/vaultSDK.dll //bne-fs-fs-003.euclideon.local/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/Windows/vaultSDK.dll
+		cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll //bne-fs-fs-003.euclideon.local/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/Windows/vaultSDK.dll
 		if [ $? -ne 0 ]; then exit 1; fi
 
 	fi
 else
-	export VAULTSDK_HOME="/mnt/Resources/Builds/vault/sdk/Pipeline_23795"
+	export VAULTSDK_HOME="/mnt/Resources/Builds/vault/sdk/Pipeline_23777"
 
 	if [ $OSTYPE == "darwin16" ]; then # OSX, Sierra
 		export OSNAME="OSX"
@@ -67,7 +67,7 @@ else
 				sharedLibExtension="so"
 				cp -f builds/client/bin/vaultClient /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME/vaultClient
 				if [ $? -ne 0 ]; then exit 1; fi
-				cp -f $VAULTSDK_HOME/Lib/$OSNAME/libvaultSDK.so /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME/libvaultSDK.so
+				cp -f $VAULTSDK_HOME/lib/linux_GCC_x64/libvaultSDK.so /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME/libvaultSDK.so
 			fi
 
 			if [ $? -ne 0 ]; then exit 1; fi
