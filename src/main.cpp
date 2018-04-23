@@ -341,7 +341,7 @@ bool Render(RenderingState &renderingState, vaultContainer &vContainer, Renderin
         if (err != vE_Success)
           goto epilogue;
 
-        err = vaultContext_GetLicense(vContainer.pContext, vLF_Basic);
+        err = vaultContext_GetLicense(vContainer.pContext, vaultLT_Basic);
         if (err != vE_Success)
           goto epilogue;
 
@@ -362,7 +362,7 @@ bool Render(RenderingState &renderingState, vaultContainer &vContainer, Renderin
         if (err != vE_Success)
           goto epilogue;
 
-        err = vaultContext_GetLicense(vContainer.pContext, vLF_Basic);
+        err = vaultContext_GetLicense(vContainer.pContext, vaultLT_Basic);
         if (err != vE_Success)
           goto epilogue;
 
@@ -494,7 +494,7 @@ bool Render(RenderingState &renderingState, vaultContainer &vContainer, Renderin
         if (err != vE_Success)
           goto epilogue;
 
-        err = vaultContext_GetLicense(vContainer.pContext, vLF_Basic);
+        err = vaultContext_GetLicense(vContainer.pContext, vaultLT_Basic);
         if (err != vE_Success)
           goto epilogue;
 

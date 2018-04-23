@@ -51,14 +51,14 @@ function injectvaultsdkbin()
 
 		if(os.get() == premake.WINDOWS) then
 			os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
-			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/Lib/Windows/vaultSDK.dll", "builds/client/bin/vaultSDK.dll")
-			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/Lib/Windows/vaultSDK.lib", "src/vaultSDK.lib")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.dll", "builds/client/bin/vaultSDK.dll")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.lib", "src/vaultSDK.lib")
 			libdirs { "src" }
 		elseif(os.get() == premake.MACOSX) then
 			os.execute("mkdir -p builds/client/bin")
 
 			-- copy dmg, mount, extract framework, unmount then remove.
-			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/vaultSDK.dmg", "builds/client/bin/vaultSDK.dmg")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "lib/osx_x64/vaultSDK.dmg", "builds/client/bin/vaultSDK.dmg")
 			os.execute("/usr/bin/hdiutil attach builds/client/bin/vaultSDK.dmg")
 			os.execute("cp -a -f /Volumes/vaultSDK/vaultSDK.framework builds/client/bin/")
 			os.execute("/usr/bin/hdiutil detach /Volumes/vaultSDK")
@@ -69,7 +69,7 @@ function injectvaultsdkbin()
 			libdirs { "builds/client/bin" }
 		else
 			os.execute("mkdir -p builds/client/bin")
-			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/Lib/Linux/libvaultSDK.so", "builds/client/bin/libvaultSDK.so")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/linux_GCC_x64/libvaultSDK.so", "builds/client/bin/libvaultSDK.so")
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			libdirs { "builds/client/bin" }
 		end
