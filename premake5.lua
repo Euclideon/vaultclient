@@ -1,6 +1,6 @@
 function injectudbin()
 	-- Calculate the paths
-	local ud2Location = path.getrelative(_SCRIPT_DIR, _MAIN_SCRIPT_DIR .. iif(_OPTIONS["force-ud2"], "../ud", "../vaultsdk/cutil/udbin"))
+	local ud2Location = path.getrelative(_SCRIPT_DIR, _MAIN_SCRIPT_DIR .. "../vault/ud")
 	local osname = "windows"
 	local distroExtension = ""
 	if os.get() == premake.MACOSX then
@@ -11,7 +11,7 @@ function injectudbin()
 	end
 
 	-- Calculate the libdir location
-	local libPath = iif(_OPTIONS["force-ud2"], "/lib", "/Lib")
+	local libPath = "/lib"
 	local system = "/%{cfg.system}"
 	local shortname = iif(osname == "windows", "_%{cfg.shortname}", "_%{cfg.shortname:gsub('clang', '')}")
 	local compilerExtension = iif(osname == "windows", "", "_%{cfg.toolset or 'gcc'}")
@@ -23,6 +23,7 @@ function injectudbin()
 	includedirs { ud2Location .. "/udPlatform/Include", ud2Location .. "/udPointCloud/Include" }
 	libdirs { ud2Libdir }
 end
+
 
 function injectvaultsdkbin()
 	-- Calculate the paths
@@ -42,7 +43,7 @@ function injectvaultsdkbin()
 	end
   
 	if(_OPTIONS["force-vaultsdk"]) then
-		includedirs { "../vaultsdk/src" }
+		includedirs { "../vault/vaultsdk/src" }
 	else
 		if(os.getenv("VAULTSDK_HOME") == nil) then
 			error "VaultSDK not installed correctly. (No VAULTSDK_HOME environment variable set!)"
@@ -50,14 +51,14 @@ function injectvaultsdkbin()
 
 		if(os.get() == premake.WINDOWS) then
 			os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
-			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/Lib/Windows/vaultSDK.dll", "builds/client/bin/vaultSDK.dll")
-			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/Lib/Windows/vaultSDK.lib", "src/vaultSDK.lib")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.dll", "builds/client/bin/vaultSDK.dll")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.lib", "src/vaultSDK.lib")
 			libdirs { "src" }
 		elseif(os.get() == premake.MACOSX) then
 			os.execute("mkdir -p builds/client/bin")
 
 			-- copy dmg, mount, extract framework, unmount then remove.
-			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/vaultSDK.dmg", "builds/client/bin/vaultSDK.dmg")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/osx_x64/vaultSDK.dmg", "builds/client/bin/vaultSDK.dmg")
 			os.execute("/usr/bin/hdiutil attach builds/client/bin/vaultSDK.dmg")
 			os.execute("cp -a -f /Volumes/vaultSDK/vaultSDK.framework builds/client/bin/")
 			os.execute("/usr/bin/hdiutil detach /Volumes/vaultSDK")
@@ -68,7 +69,7 @@ function injectvaultsdkbin()
 			libdirs { "builds/client/bin" }
 		else
 			os.execute("mkdir -p builds/client/bin")
-			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/Lib/Linux/libvaultSDK.so", "builds/client/bin/libvaultSDK.so")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/linux_GCC_x64/libvaultSDK.so", "builds/client/bin/libvaultSDK.so")
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			libdirs { "builds/client/bin" }
 		end
@@ -128,10 +129,9 @@ solution "vaultClient"
 
 	if _OPTIONS["force-vaultsdk"] then
 		if os.get() ~= premake.MACOSX then
-			dofile "../vaultsdk/cutil/3rdParty/curl/project.lua"
+			dofile "../vault/3rdParty/curl/project.lua"
 		end
-		dofile "../vaultsdk/cutil/cutil/project.lua"
-		dofile "../vaultsdk/project.lua"
+		dofile "../vault/vaultsdk/project.lua"
 		xcodebuildsettings { 
 			['INSTALL_PATH'] = "@executable_path/../Frameworks",
 			['SKIP_INSTALL'] = "YES"

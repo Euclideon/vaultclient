@@ -222,7 +222,7 @@ int main(int /*argc*/, char ** /*args*/)
   if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3) != 0)
     goto epilogue;
 
-  renderingData.pWindow = SDL_CreateWindow("ImGui SDL2+OpenGL3 example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, renderingState.resolution.x, renderingState.resolution.y, SDL_WINDOW_OPENGL);
+  renderingData.pWindow = SDL_CreateWindow("Euclideon Client", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, renderingState.resolution.x, renderingState.resolution.y, SDL_WINDOW_OPENGL);
   if (!renderingData.pWindow)
     goto epilogue;
 
@@ -341,7 +341,7 @@ bool Render(RenderingState &renderingState, vaultContainer &vContainer, Renderin
         if (err != vE_Success)
           goto epilogue;
 
-        err = vaultContext_GetLicense(vContainer.pContext, vLF_Basic);
+        err = vaultContext_GetLicense(vContainer.pContext, vaultLT_Basic);
         if (err != vE_Success)
           goto epilogue;
 
@@ -362,7 +362,7 @@ bool Render(RenderingState &renderingState, vaultContainer &vContainer, Renderin
         if (err != vE_Success)
           goto epilogue;
 
-        err = vaultContext_GetLicense(vContainer.pContext, vLF_Basic);
+        err = vaultContext_GetLicense(vContainer.pContext, vaultLT_Basic);
         if (err != vE_Success)
           goto epilogue;
 
@@ -494,7 +494,7 @@ bool Render(RenderingState &renderingState, vaultContainer &vContainer, Renderin
         if (err != vE_Success)
           goto epilogue;
 
-        err = vaultContext_GetLicense(vContainer.pContext, vLF_Basic);
+        err = vaultContext_GetLicense(vContainer.pContext, vaultLT_Basic);
         if (err != vE_Success)
           goto epilogue;
 
