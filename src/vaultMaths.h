@@ -14,6 +14,9 @@ vaultDouble4 vaultMatrixMul(const vaultMatrix &m, const vaultDouble4 &v);
 vaultMatrix vaultMatrixMul(const vaultMatrix &m1, const vaultMatrix &m2);
 vaultMatrix vaultMatrixAdd(const vaultMatrix &m1, const vaultMatrix &m2);
 vaultMatrix vaultMatrixSub(const vaultMatrix &m1, const vaultMatrix &m2);
+vaultDouble3 udNormalize3(const vaultDouble3 &v);
+vaultDouble4 udNormalize3(const vaultDouble4 &v);
+vaultDouble3 udCross3(const vaultDouble3 &v1, const vaultDouble3 &v2);
 
 template <typename T>
 struct vaultVector2
@@ -152,6 +155,18 @@ struct vaultMatrix
   bool operator ==(const vaultMatrix& rh) const { return memcmp(this, &rh, sizeof(*this)) == 0; }
 };
 
+vaultMatrix  vaultMatrix_LookAt(const vaultDouble3 &from, const vaultDouble3 &at, const vaultDouble3 &up)
+{
+  vaultDouble3 y = udNormalize3(at - from);
+  vaultDouble3 x = udNormalize3(udCross3(y, up));
+  vaultDouble3 z = udCross3(x, y);
+  vaultMatrix r = { { { x.x,    x.y,    x.z,    0,
+    y.x,    y.y,    y.z,    0,
+    z.x,    z.y,    z.z,    0,
+    from.x, from.y, from.z, 1 } } };
+  return r;
+}
+
 vaultMatrix vaultMatrix_Identity()
 {
   vaultMatrix r = { { { double(1),double(0),double(0),double(0),
@@ -272,5 +287,11 @@ vaultMatrix vaultMatrixSub(const vaultMatrix &m1, const vaultMatrix &m2)
 
 vaultDouble3 udNormalize3(const vaultDouble3 &v) { double s = 1.0 / sqrt(v.x*v.x + v.y*v.y + v.z*v.z); vaultDouble3 r = { v.x*s, v.y*s, v.z*s }; return r; }
 vaultDouble4 udNormalize3(const vaultDouble4 &v) { double s = 1.0 / sqrt(v.x*v.x + v.y*v.y + v.z*v.z); vaultDouble4 r = { v.x*s, v.y*s, v.z*s, v.w }; return r; }
+
+vaultDouble3 udCross3(const vaultDouble3 &v1, const vaultDouble3 &v2)
+{
+  vaultDouble3 r = { v1.y*v2.z - v1.z*v2.y, v1.z*v2.x - v1.x*v2.z, v1.x*v2.y - v1.y*v2.x };
+  return r;
+}
 
 #endif // vaultMaths_h__
