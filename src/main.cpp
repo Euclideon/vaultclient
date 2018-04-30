@@ -44,6 +44,7 @@ GL_VERTEX_OUT " vec2 texCoord;                 \n"
 "{                                             \n"
 "  gl_Position = vec4(vertex, 0.0, 1.0);       \n"
 "  texCoord = vertex*vec2(0.5)+vec2(0.5);      \n"
+"  texCoord.y = 1-texCoord.y;                  \n"
 "}                                             \n"
 "";
 
@@ -184,10 +185,10 @@ int main(int /*argc*/, char ** /*args*/)
   vaultContainer vContainer = { };
 
   // default string values.
-  const char *plocalHost = "http://127.0.0.1:80/api/v1/";
+  const char *plocalHost = "http://vau-ubu-pro-001.euclideon.local";
   const char *pUsername = "Name";
   const char *pPassword = "Pass";
-  const char *pModelPath = "R:/ConvertedModels/Axis.uds";
+  const char *pModelPath = "R:\\ConvertedModels\\Aerometrex\\Aerometrix_GoldCoast_Model_1CM.uds";
 
   renderingState.pServerURL = new char[1024];
   renderingState.pUsername = new char[1024];
@@ -437,9 +438,9 @@ bool Render(RenderingState &renderingState, vaultContainer &vContainer, Renderin
     {
       vaultDouble4 translation = renderingState.camMatrix.axis.t;
       renderingState.camMatrix.axis.t = { 0,0,0,1 };
-      renderingState.camMatrix = vaultMatrix_RotationAxis({ 0,0,1 }, renderingState.deltaMousePos.x / 100.0) * renderingState.camMatrix; // rotate on global axis and add back in the position
+      renderingState.camMatrix = vaultMatrix_RotationAxis({ 0,0,-1 }, renderingState.deltaMousePos.x / 100.0) * renderingState.camMatrix; // rotate on global axis and add back in the position
       renderingState.camMatrix.axis.t = translation;
-      renderingState.camMatrix *= vaultMatrix_RotationAxis({ 1,0,0 }, renderingState.deltaMousePos.y / 100.0); // rotate on local axis, since this is the only one there will be no problem
+      renderingState.camMatrix *= vaultMatrix_RotationAxis({ -1,0,0 }, renderingState.deltaMousePos.y / 100.0); // rotate on local axis, since this is the only one there will be no problem
     }
 
     vaultError err = vaultUDRenderView_SetMatrix(vContainer.pContext, vContainer.pRenderView, vUDRVM_Camera, renderingState.camMatrix.a);
