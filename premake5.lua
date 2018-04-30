@@ -83,11 +83,6 @@ newoption {
 	description = "Force the use of the vaultsdk repository"
 }
 
--- Fix bug in Clang toolset
-if premake.tools.clang.cflags.floatingpoint ~= nil then
-	premake.tools.clang.cflags.floatingpoint = { Fast = "-ffast-math", }
-end
-
 solution "vaultClient"
 	-- This hack just makes the VS project and also the makefile output their configurations in the idiomatic order
 	if _ACTION == "gmake" and _OS == "linux" then
@@ -128,9 +123,12 @@ solution "vaultClient"
 	end
 
 	if _OPTIONS["force-vaultsdk"] then
-		if os.get() ~= premake.MACOSX then
+		if os.target() ~= premake.MACOSX then
 			dofile "../vault/3rdParty/curl/project.lua"
 		end
+		dofile "../vault/ud/udPlatform/project.lua"
+		dofile "../vault/ud/udPointCloud/project.lua"
+		dofile "../vault/vaultcore/project.lua"
 		dofile "../vault/vaultsdk/project.lua"
 		xcodebuildsettings { 
 			['INSTALL_PATH'] = "@executable_path/../Frameworks",
