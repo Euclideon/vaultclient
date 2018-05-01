@@ -63,7 +63,6 @@ project "vaultClient"
 
 	-- include common stuff
 	dofile "bin/premake/common-proj.lua"
-	floatingpoint "strict"
 
 	targetdir "builds/client/bin"
 	debugdir "builds/client/bin"
