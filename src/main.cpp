@@ -5,16 +5,23 @@
 #include "vaultMaths.h"
 #include "imgui.h"
 #include "imgui_impl_sdl_gl3.h"
+#include "imgui_dock.h"
 #include "SDL2/SDL.h"
 #include "GL/glew.h"
 
 #include <stdlib.h>
 
-
 struct Float2
 {
   float x, y;
 };
+
+bool fullscreen = false;
+int resx = 1280;
+int resy = 720;
+GLuint framebuffer;
+GLuint texture;
+GLuint depthbuffer;
 
 #define GL_VERSION_HEADER "#version 330 core\n"
 #define GL_VERTEX_IN "in"
@@ -181,7 +188,7 @@ int main(int /*argc*/, char ** /*args*/)
   GLuint fbVboId = (GLuint)-1;
 
   RenderingData renderingData = { NULL, NULL, NULL, (GLuint)-1, (GLuint)-1, (GLint)-1 };
-  RenderingState renderingState = { true, 0, { }, vaultMatrix_Identity(), { 1280, 720 }, PS_Login, NULL, NULL, NULL, NULL };
+  RenderingState renderingState = { true, 0, { }, vaultMatrix_Identity(), { 1280, 800 }, PS_Login, NULL, NULL, NULL, NULL };
   vaultContainer vContainer = { };
 
   // default string values.
@@ -223,7 +230,7 @@ int main(int /*argc*/, char ** /*args*/)
   if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3) != 0)
     goto epilogue;
 
-  renderingData.pWindow = SDL_CreateWindow("Euclideon Client", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, renderingState.resolution.x, renderingState.resolution.y, SDL_WINDOW_OPENGL);
+  renderingData.pWindow = SDL_CreateWindow("Euclideon Client", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, renderingState.resolution.x, renderingState.resolution.y, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
   if (!renderingData.pWindow)
     goto epilogue;
 
@@ -271,8 +278,36 @@ int main(int /*argc*/, char ** /*args*/)
   renderingData.pColorBuffer = new uint32_t[renderingState.resolution.x*renderingState.resolution.y];
   renderingData.pDepthBuffer = new float[renderingState.resolution.x*renderingState.resolution.y];
 
+  glGenFramebuffers(1, &framebuffer);
+  glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+  glGenRenderbuffers(1, &depthbuffer);
+  glBindRenderbuffer(GL_RENDERBUFFER, depthbuffer);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, resx, resy);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthbuffer);
+
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, resx, resy, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
+  GLenum DrawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+  glDrawBuffers(1, DrawBuffers);
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+  {
+    //TODO: Handle this properly
+  }
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  //Get ready...
   NOW = SDL_GetPerformanceCounter();
   LAST = 0;
+
+  ImGui::LoadDock();
 
   while (!done)
   {
@@ -302,6 +337,8 @@ int main(int /*argc*/, char ** /*args*/)
     SDL_GL_SwapWindow(renderingData.pWindow);
   }
 
+  ImGui::SaveDock();
+
 epilogue:
   vaultUDModel_Unload(vContainer.pContext, &vContainer.pModel);
 
@@ -320,9 +357,189 @@ epilogue:
   return 0;
 }
 
+void vcRenderScene(RenderingState &renderingState, vaultContainer &vContainer, RenderingData &renderingData)
+{
+  //Rendering
+  ImVec2 size = ImGui::GetContentRegionAvail();
+  ImGuiIO& io = ImGui::GetIO();
+  ImVec2 cursorPos = ImGui::GetCursorScreenPos();          // "cursor" is where imgui will draw the image
+  ImVec2 mousePos = io.MousePos;
+
+  if (renderingState.resolution.x != size.x || renderingState.resolution.y != size.y) //Resize buffers
+  {
+    renderingState.resolution.x = (uint32_t)size.x;
+    renderingState.resolution.y = (uint32_t)size.y;
+
+    //Resize GPU Targets
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, renderingState.resolution.x, renderingState.resolution.y, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, renderingState.resolution.x, renderingState.resolution.y);
+
+    //Resize CPU Targets
+    delete renderingData.pColorBuffer;
+    delete renderingData.pDepthBuffer;
+
+    renderingData.pColorBuffer = new uint32_t[renderingState.resolution.x*renderingState.resolution.y];
+    renderingData.pDepthBuffer = new float[renderingState.resolution.x*renderingState.resolution.y];
+
+    vaultUDRenderView_Destroy(vContainer.pContext, &vContainer.pRenderView);
+    vaultUDRenderView_Create(vContainer.pContext, &vContainer.pRenderView, vContainer.pRenderer, renderingState.resolution.x, renderingState.resolution.y);
+  }
+
+  bool isHovered = ImGui::IsItemHovered();
+  bool isLeftClicked = ImGui::IsMouseClicked(0, false);
+  bool isRightClicked = ImGui::IsMouseClicked(1, false);
+  bool isFocused = ImGui::IsWindowFocused();
+
+  const Uint8 *pKeysArray = SDL_GetKeyboardState(NULL);
+
+  int forwardMovement = (int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S];
+  int rightMovement = (int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A];
+  int upMovement = (int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F];
+
+  vaultDouble4 direction;
+  if (renderingState.planeMode)
+  {
+    direction = renderingState.camMatrix.axis.y * forwardMovement + renderingState.camMatrix.axis.x * rightMovement + vaultDouble4{ 0, 0, (double)upMovement, 0 }; // don't use the camera orientation
+  }
+  else
+  {
+    direction = renderingState.camMatrix.axis.y * forwardMovement + renderingState.camMatrix.axis.x * rightMovement;
+    direction.z = 0;
+    direction += vaultDouble4{ 0, 0, (double)upMovement, 0 }; // don't use the camera orientation
+  }
+
+  renderingState.camMatrix.axis.t += direction * renderingState.deltaTime;
+
+  if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) && !ImGui::IsMouseHoveringAnyWindow())
+  {
+    vaultDouble4 translation = renderingState.camMatrix.axis.t;
+    renderingState.camMatrix.axis.t = { 0,0,0,1 };
+    renderingState.camMatrix = vaultMatrix_RotationAxis({ 0,0,-1 }, renderingState.deltaMousePos.x / 100.0) * renderingState.camMatrix; // rotate on global axis and add back in the position
+    renderingState.camMatrix.axis.t = translation;
+    renderingState.camMatrix *= vaultMatrix_RotationAxis({ -1,0,0 }, renderingState.deltaMousePos.y / 100.0); // rotate on local axis, since this is the only one there will be no problem
+  }
+
+  vaultError err = vaultUDRenderView_SetMatrix(vContainer.pContext, vContainer.pRenderView, vUDRVM_Camera, renderingState.camMatrix.a);
+  if (err != vE_Success)
+    goto epilogue;
+
+  if (vContainer.pModel != nullptr)
+  {
+    err = vaultUDRenderer_Render(vContainer.pContext, vContainer.pRenderer, vContainer.pRenderView, &vContainer.pModel, 1);
+    if (err != vE_Success)
+      goto epilogue;
+  }
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, renderingData.texId);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, renderingState.resolution.x, renderingState.resolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, renderingData.pColorBuffer);
+  
+  glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+  glViewport(0, 0, renderingState.resolution.x, renderingState.resolution.y);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  glUseProgram(renderingData.udProgramObject);
+  glBindTexture(GL_TEXTURE_2D, renderingData.texId);
+  glBindVertexArray(renderingData.udVAO);
+
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+
+  glBindVertexArray(0);
+  glUseProgram(0);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  ImGui::Image((ImTextureID)((size_t)texture), size, ImVec2(0, 0), ImVec2(1, -1));
+
+epilogue:
+  return;
+}
+
+int vcMainMenuGui()
+{
+  int menuHeight = 0;
+
+  if (ImGui::BeginMainMenuBar())
+  {
+    if (ImGui::BeginMenu("File"))
+    {
+      if (ImGui::MenuItem("New"))
+      {
+
+      }
+
+      if (ImGui::MenuItem("Open", "Ctrl+O"))
+      {
+
+      }
+
+      if (ImGui::BeginMenu("Open Recent"))
+      {
+        //ImGui::MenuItem("fish_hat.h");
+        ImGui::EndMenu();
+      }
+
+      if (ImGui::MenuItem("Quit", "Alt+F4"))
+      {
+
+      }
+
+      ImGui::EndMenu();
+    }
+    if (ImGui::BeginMenu("Edit"))
+    {
+      if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
+      if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
+      ImGui::Separator();
+      if (ImGui::MenuItem("Cut", "CTRL+X")) {}
+      if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+      if (ImGui::MenuItem("Paste", "CTRL+V")) {}
+      ImGui::EndMenu();
+    }
+
+    menuHeight = (int)ImGui::GetWindowSize().y;
+
+    ImGui::EndMainMenuBar();
+  }
+
+  return menuHeight;
+}
+
 bool Render(RenderingState &renderingState, vaultContainer &vContainer, RenderingData &renderingData)
 {
+  static bool showScene = true;
+  static bool show_scene5 = true;
+  static bool show_scene6 = true;
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  vaultError err;
+
   bool result = false;
+
+  int menuHeight = (renderingState.currentState == PS_Login) ? 0 : vcMainMenuGui();
+
+  if (ImGui::GetIO().DisplaySize.y > 0) {
+    ////////////////////////////////////////////////////
+    // Setup root docking window                      //
+    // taking into account menu height and status bar //
+    ////////////////////////////////////////////////////
+    ImVec2 pos = ImVec2(0.f, (float)menuHeight);
+    ImVec2 size = ImGui::GetIO().DisplaySize;
+    size.y -= pos.y;
+    ImGui::RootDock(pos, ImVec2(size.x, size.y - 25.0f));
+
+    // Draw status bar (no docking)
+    ImGui::SetNextWindowSize(ImVec2(size.x, 25.0f), ImGuiSetCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(0, size.y - 6.0f), ImGuiSetCond_Always);
+    ImGui::Begin("statusbar", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoResize);
+    ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
+    ImGui::End();
+  }
 
   if (renderingState.currentState == PS_Login)
   {
@@ -334,7 +551,7 @@ bool Render(RenderingState &renderingState, vaultContainer &vContainer, Renderin
 
       if (ImGui::Button("Login!"))
       {
-        vaultError err = vaultContext_Connect(&vContainer.pContext, renderingState.pServerURL, "ClientSample");
+        err = vaultContext_Connect(&vContainer.pContext, renderingState.pServerURL, "ClientSample");
         if (err != vE_Success)
           goto epilogue;
 
@@ -359,7 +576,7 @@ bool Render(RenderingState &renderingState, vaultContainer &vContainer, Renderin
 
       if (ImGui::Button("Guest Login!"))
       {
-        vaultError err = vaultContext_Connect(&vContainer.pContext, renderingState.pServerURL, "ClientSample");
+        err = vaultContext_Connect(&vContainer.pContext, renderingState.pServerURL, "ClientSample");
         if (err != vE_Success)
           goto epilogue;
 
@@ -381,16 +598,29 @@ bool Render(RenderingState &renderingState, vaultContainer &vContainer, Renderin
 
     ImGui::End();
   }
-  else if (renderingState.currentState == PS_LoadModel)
+  else
   {
-    if (ImGui::Begin("Load Model"))
+    if (ImGui::BeginDock("Scene", &showScene, ImGuiWindowFlags_NoScrollbar))
+      vcRenderScene(renderingState, vContainer, renderingData);
+    ImGui::EndDock();
+
+    if (ImGui::BeginDock("Dummy3", &show_scene5))
+      ImGui::Text("Placeholder!");
+    ImGui::EndDock();
+
+    if (ImGui::BeginDock("StyleEditor", &show_scene6))
+      ImGui::ShowStyleEditor();
+    ImGui::EndDock();
+
+    //Load Model
+    if (ImGui::BeginDock("Load Model"))
     {
       ImGui::InputText("Model Path", renderingState.pModelPath, 1024);
 
       if (ImGui::Button("Load Model!"))
       {
         renderingState.currentState = (ProgramState)(renderingState.currentState + 1);
-        vaultError err = vaultUDModel_Load(vContainer.pContext, &vContainer.pModel, renderingState.pModelPath);
+        err = vaultUDModel_Load(vContainer.pContext, &vContainer.pModel, renderingState.pModelPath);
         if (err != vE_Success)
           goto epilogue;
 
@@ -403,79 +633,9 @@ bool Render(RenderingState &renderingState, vaultContainer &vContainer, Renderin
           goto epilogue;
       }
     }
+    ImGui::EndDock();
 
-    ImGui::End();
-  }
-  else if (renderingState.currentState == PS_Render)
-  {
-    const Uint8 *pKeysArray = SDL_GetKeyboardState(NULL);
-
-    int forwardMovement = (int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S];
-    int rightMovement = (int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A];
-    int upMovement = (int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F];
-
-    vaultDouble4 direction;
-    if (renderingState.planeMode)
-    {
-      direction = renderingState.camMatrix.axis.y * forwardMovement
-        + renderingState.camMatrix.axis.x * rightMovement
-        + vaultDouble4{ 0, 0, (double)upMovement, 0 }; // don't use the camera orientation
-    }
-    else
-    {
-      direction = renderingState.camMatrix.axis.y * forwardMovement
-        + renderingState.camMatrix.axis.x * rightMovement;
-      direction.z = 0;
-      direction += vaultDouble4{ 0, 0, (double)upMovement, 0 }; // don't use the camera orientation
-    }
-
-    //if (direction == vaultDouble4{ })
-      //direction = udNormalize3(direction);
-
-    renderingState.camMatrix.axis.t += direction * renderingState.deltaTime;
-
-    if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) && !ImGui::IsMouseHoveringAnyWindow())
-    {
-      vaultDouble4 translation = renderingState.camMatrix.axis.t;
-      renderingState.camMatrix.axis.t = { 0,0,0,1 };
-      renderingState.camMatrix = vaultMatrix_RotationAxis({ 0,0,-1 }, renderingState.deltaMousePos.x / 100.0) * renderingState.camMatrix; // rotate on global axis and add back in the position
-      renderingState.camMatrix.axis.t = translation;
-      renderingState.camMatrix *= vaultMatrix_RotationAxis({ -1,0,0 }, renderingState.deltaMousePos.y / 100.0); // rotate on local axis, since this is the only one there will be no problem
-    }
-
-    vaultError err = vaultUDRenderView_SetMatrix(vContainer.pContext, vContainer.pRenderView, vUDRVM_Camera, renderingState.camMatrix.a);
-    if (err != vE_Success)
-      goto epilogue;
-
-    err = vaultUDRenderer_Render(vContainer.pContext, vContainer.pRenderer, vContainer.pRenderView, &vContainer.pModel, 1);
-    if (err != vE_Success)
-      goto epilogue;
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, renderingData.texId);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, renderingState.resolution.x, renderingState.resolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, renderingData.pColorBuffer);
-
-    glUseProgram(renderingData.udProgramObject);
-    glBindTexture(GL_TEXTURE_2D, renderingData.texId);
-    glBindVertexArray(renderingData.udVAO);
-
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    glBindVertexArray(0);
-    glUseProgram(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    if (ImGui::Begin("Fly options"))
-    {
-      if (ImGui::RadioButton("PlaneMode", renderingState.planeMode))
-        renderingState.planeMode = true;
-      if (ImGui::RadioButton("HeliMode", !renderingState.planeMode))
-        renderingState.planeMode = false;
-    }
-    ImGui::End();
-
-    if (ImGui::Begin("Client State"))
+    if (ImGui::BeginDock("Settings"))
     {
       if (ImGui::Button("Unload Model"))
       {
@@ -501,9 +661,14 @@ bool Render(RenderingState &renderingState, vaultContainer &vContainer, Renderin
 
         renderingState.currentState = PS_Login;
       }
-    }
 
-    ImGui::End();
+      if (ImGui::RadioButton("PlaneMode", renderingState.planeMode))
+        renderingState.planeMode = true;
+      if (ImGui::RadioButton("HeliMode", !renderingState.planeMode))
+        renderingState.planeMode = false;
+    }
+    ImGui::EndDock();
+
   }
 
   result = true;
