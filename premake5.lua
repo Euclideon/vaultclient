@@ -1,6 +1,6 @@
 function injectudbin()
 	-- Calculate the paths
-	local ud2Location = path.getrelative(_SCRIPT_DIR, _MAIN_SCRIPT_DIR .. "../vault/ud")
+	local ud2Location = path.getrelative(_SCRIPT_DIR, _MAIN_SCRIPT_DIR .. "/../vault/ud")
 	local osname = "windows"
 	local distroExtension = ""
 	if os.get() == premake.MACOSX then
