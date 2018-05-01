@@ -147,7 +147,6 @@ struct RenderingState
 
   bool planeMode;
   double deltaTime;
-  vaultInt2 deltaMousePos;
   vaultMatrix camMatrix;
   vaultUint322 sceneResolution;
 
@@ -319,8 +318,6 @@ int main(int /*argc*/, char ** /*args*/)
     NOW = SDL_GetPerformanceCounter();
     renderingState.deltaTime = double(NOW - LAST) / SDL_GetPerformanceFrequency();
 
-    SDL_GetRelativeMouseState(&renderingState.deltaMousePos.x, &renderingState.deltaMousePos.y);
-
     ImGui_ImplSdlGL3_NewFrame(renderingState.pWindow);
 
     glClearColor(0, 0, 0, 1);
@@ -389,40 +386,84 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
     vaultUDRenderView_SetMatrix(pVaultContainer->pContext, pVaultContainer->pRenderView, vUDRVM_Camera, pRenderingState->camMatrix.a);
   }
 
+  const Uint8 *pKeysArray = SDL_GetKeyboardState(NULL);
+  SDL_Keymod modState = SDL_GetModState();
+
   bool isHovered = ImGui::IsItemHovered();
   bool isLeftClicked = ImGui::IsMouseClicked(0, false);
   bool isRightClicked = ImGui::IsMouseClicked(1, false);
   bool isFocused = ImGui::IsWindowFocused();
+  
+  static bool clickedLeftWhileHovered = false;
+  static bool clickedRightWhileHovered = false;
+  if (isHovered && isLeftClicked)
+    clickedLeftWhileHovered = true;
 
-  const Uint8 *pKeysArray = SDL_GetKeyboardState(NULL);
+  if (isHovered && isRightClicked)
+    clickedRightWhileHovered = true;
 
-  int forwardMovement = (int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S];
-  int rightMovement = (int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A];
-  int upMovement = (int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F];
-
-  vaultDouble4 direction;
-  if (pRenderingState->planeMode)
+  if (isFocused)
   {
-    direction = pRenderingState->camMatrix.axis.y * forwardMovement + pRenderingState->camMatrix.axis.x * rightMovement + vaultDouble4{ 0, 0, (double)upMovement, 0 }; // don't use the camera orientation
-  }
-  else
-  {
-    direction = pRenderingState->camMatrix.axis.y * forwardMovement + pRenderingState->camMatrix.axis.x * rightMovement;
-    direction.z = 0;
-    direction += vaultDouble4{ 0, 0, (double)upMovement, 0 }; // don't use the camera orientation
-  }
+    ImVec2 mouseDelta = io.MouseDelta;
 
-  pRenderingState->camMatrix.axis.t += direction * pRenderingState->deltaTime;
+    if (clickedLeftWhileHovered)
+    {
+      clickedLeftWhileHovered = io.MouseDown[0];
+      if (io.MouseDown[0])
+      {
+        //cam_x -= mouseDelta.x / size.x*cam_width;
+        //cam_y += mouseDelta.y / size.y*cam_height;
+      }
+    }
 
-  if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) && !ImGui::IsMouseHoveringAnyWindow())
-  {
-    vaultDouble4 translation = pRenderingState->camMatrix.axis.t;
-    pRenderingState->camMatrix.axis.t = { 0,0,0,1 };
-    pRenderingState->camMatrix = vaultMatrix_RotationAxis({ 0,0,-1 }, pRenderingState->deltaMousePos.x / 100.0) * pRenderingState->camMatrix; // rotate on global axis and add back in the position
-    pRenderingState->camMatrix.axis.t = translation;
-    pRenderingState->camMatrix *= vaultMatrix_RotationAxis({ -1,0,0 }, pRenderingState->deltaMousePos.y / 100.0); // rotate on local axis, since this is the only one there will be no problem
+    if (clickedRightWhileHovered)
+    {
+      clickedRightWhileHovered = io.MouseDown[1];
+      if (io.MouseDown[1])
+      {
+        float degreesPerPixel = 1.0;
+        //rotateX += degreesPerPixel*mouseDelta.y;
+        //rotateY += degreesPerPixel*mouseDelta.x;
+
+        vaultDouble4 translation = pRenderingState->camMatrix.axis.t;
+        pRenderingState->camMatrix.axis.t = { 0,0,0,1 };
+        pRenderingState->camMatrix = vaultMatrix_RotationAxis({ 0,0,-1 }, mouseDelta.x / 100.0) * pRenderingState->camMatrix; // rotate on global axis and add back in the position
+        pRenderingState->camMatrix.axis.t = translation;
+        pRenderingState->camMatrix *= vaultMatrix_RotationAxis({ -1,0,0 }, mouseDelta.y / 100.0); // rotate on local axis, since this is the only one there will be no problem
+      }
+    }
+
+    float speed = 3; // 3 units per second
+    if ((modState & KMOD_CTRL) > 0)
+      speed *= 0.1; // slow
+
+    if ((modState & KMOD_SHIFT) > 0)
+      speed *= 10.0;  // fast
+
+    float deltaMoveForward = speed * ((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
+    float deltaMoveRight = speed * ((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
+    float deltaMoveUp = speed * ((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
+
+    // Move the camera
+    vaultDouble4 direction;
+    if (pRenderingState->planeMode)
+    {
+      direction = pRenderingState->camMatrix.axis.y * deltaMoveForward + pRenderingState->camMatrix.axis.x * deltaMoveRight + vaultDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
+    }
+    else
+    {
+      direction = pRenderingState->camMatrix.axis.y * deltaMoveForward + pRenderingState->camMatrix.axis.x * deltaMoveRight;
+      direction.z = 0;
+      direction += vaultDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
+    }
+
+    pRenderingState->camMatrix.axis.t += direction * pRenderingState->deltaTime;
+        
+    if (ImGui::IsMouseDoubleClicked(0)) {
+      //fullscreen = !fullscreen;
+    }
   }
-
+  
   vaultError err = vaultUDRenderView_SetMatrix(pVaultContainer->pContext, pVaultContainer->pRenderView, vUDRVM_Camera, pRenderingState->camMatrix.a);
   if (err != vE_Success)
     goto epilogue;
