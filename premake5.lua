@@ -1,6 +1,6 @@
 function injectudbin()
 	-- Calculate the paths
-	local ud2Location = path.getrelative(_SCRIPT_DIR, _MAIN_SCRIPT_DIR .. "../vault/ud")
+	local ud2Location = path.getrelative(_SCRIPT_DIR, _MAIN_SCRIPT_DIR .. "/../vault/ud")
 	local osname = "windows"
 	local distroExtension = ""
 	if os.get() == premake.MACOSX then
@@ -123,7 +123,7 @@ solution "vaultClient"
 	end
 
 	if _OPTIONS["force-vaultsdk"] then
-		if os.target() ~= premake.MACOSX then
+		if os.get() ~= premake.MACOSX then
 			dofile "../vault/3rdParty/curl/project.lua"
 		end
 		dofile "../vault/ud/udPlatform/project.lua"
