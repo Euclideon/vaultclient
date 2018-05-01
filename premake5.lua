@@ -1,6 +1,6 @@
 function injectudbin()
 	-- Calculate the paths
-	local ud2Location = path.getrelative(_SCRIPT_DIR, _MAIN_SCRIPT_DIR .. "../vault/ud")
+	local ud2Location = path.getrelative(_SCRIPT_DIR, _MAIN_SCRIPT_DIR .. "/../vault/ud")
 	local osname = "windows"
 	local distroExtension = ""
 	if os.get() == premake.MACOSX then
@@ -83,11 +83,6 @@ newoption {
 	description = "Force the use of the vaultsdk repository"
 }
 
--- Fix bug in Clang toolset
-if premake.tools.clang.cflags.floatingpoint ~= nil then
-	premake.tools.clang.cflags.floatingpoint = { Fast = "-ffast-math", }
-end
-
 solution "vaultClient"
 	-- This hack just makes the VS project and also the makefile output their configurations in the idiomatic order
 	if _ACTION == "gmake" and _OS == "linux" then
@@ -131,6 +126,9 @@ solution "vaultClient"
 		if os.get() ~= premake.MACOSX then
 			dofile "../vault/3rdParty/curl/project.lua"
 		end
+		dofile "../vault/ud/udPlatform/project.lua"
+		dofile "../vault/ud/udPointCloud/project.lua"
+		dofile "../vault/vaultcore/project.lua"
 		dofile "../vault/vaultsdk/project.lua"
 		xcodebuildsettings { 
 			['INSTALL_PATH'] = "@executable_path/../Frameworks",
