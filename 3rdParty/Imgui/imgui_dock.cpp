@@ -2,6 +2,10 @@
 #define IMGUI_DEFINE_PLACEMENT_NEW
 #include "imgui_internal.h"
 
+#ifdef _WIN64
+#pragma warning( push )  
+#pragma warning( disable : 4996 )  
+#endif
 
 ImVec2 operator+(ImVec2 lhs, ImVec2 rhs) {
     return ImVec2(lhs.x+rhs.x, lhs.y+rhs.y);
@@ -688,8 +692,8 @@ struct DockContext
 				SameLine(0, 15);
 
 				const char* text_end = FindRenderedTextEnd(dock_tab->label);
-				ImVec2 size(CalcTextSize(dock_tab->label, text_end).x, line_height);
-				if (InvisibleButton(dock_tab->label, size))
+				ImVec2 size2(CalcTextSize(dock_tab->label, text_end).x, line_height);
+				if (InvisibleButton(dock_tab->label, size2))
 				{
 					dock_tab->setActive();
 				}
@@ -703,12 +707,12 @@ struct DockContext
 
 				bool hovered = IsItemHovered();
 				ImVec2 pos = GetItemRectMin();
-				size.x += 20 + GetStyle().ItemSpacing.x;
+				size2.x += 20 + GetStyle().ItemSpacing.x;
 				
 				tab_base = pos.y;
 
 				draw_list->AddRectFilled(pos+ImVec2(-8.0f, 0.0),
-										 pos+size,
+										 pos+size2,
 										 hovered ? color_hovered : (dock_tab->active ? color_active : color));
 				draw_list->AddText(pos, text_color, dock_tab->label, text_end);
 
@@ -1123,7 +1127,7 @@ struct DockContext
 				fscanf(fp, "%s %d", str2, &id4);
 				fscanf(fp, "%s %d", str2, &id5);
 
-				m_docks[id]->label = strdup(lab);
+				m_docks[id]->label = _strdup(lab);
 				m_docks[id]->id = ImHash(m_docks[id]->label,0);
 				
 				m_docks[id]->children[0] = getDockByIndex(id1);
@@ -1132,8 +1136,8 @@ struct DockContext
 				m_docks[id]->next_tab = getDockByIndex(id4);
 				m_docks[id]->parent = getDockByIndex(id5);
 				m_docks[id]->status = (Status_)st;
-				m_docks[id]->active = b1;
-				m_docks[id]->opened = b2;
+				m_docks[id]->active = b1 != 0;
+				m_docks[id]->opened = b2 != 0;
 				
 				tryDockToStoredLocation(*m_docks[id]);
 			}
@@ -1152,7 +1156,7 @@ static DockContext g_dock;
 void Print() {
 	for (int i = 0; i < g_dock.m_docks.size(); ++i)
 	{
-		ImGui::Text("i=%d this=0x%.8p state=(%d %d) pos=(%.0f %.0f) size=(%.0f %.0f) children=(%s %s) tabs=(%s %s) parent=%s status=%d  location='%s' label='%s'\n", i, 
+		ImGui::Text("i=%d this=0x%p state=(%d %d) pos=(%.0f %.0f) size=(%.0f %.0f) children=(%s %s) tabs=(%s %s) parent=%s status=%d  location='%s' label='%s'\n", i, 
 					(void*)g_dock.m_docks[i],
 					g_dock.m_docks[i]->active,
 					g_dock.m_docks[i]->opened,
@@ -1223,3 +1227,7 @@ void LoadDock()
 
 
 } // namespace ImGui
+
+#ifdef _WIN64
+#pragma warning( pop )
+#endif

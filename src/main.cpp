@@ -421,10 +421,6 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
       clickedRightWhileHovered = io.MouseDown[1];
       if (io.MouseDown[1])
       {
-        float degreesPerPixel = 1.0;
-        //rotateX += degreesPerPixel*mouseDelta.y;
-        //rotateY += degreesPerPixel*mouseDelta.x;
-
         vaultDouble4 translation = pRenderingState->camMatrix.axis.t;
         pRenderingState->camMatrix.axis.t = { 0,0,0,1 };
         pRenderingState->camMatrix = vaultMatrix_RotationAxis({ 0,0,-1 }, mouseDelta.x / 100.0) * pRenderingState->camMatrix; // rotate on global axis and add back in the position
