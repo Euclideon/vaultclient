@@ -639,6 +639,7 @@ bool vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
 
       if (ImGui::Button("Load Model!"))
       {
+        
         err = vaultUDModel_Load(pVaultContainer->pContext, &pVaultContainer->pModel, pRenderingState->pModelPath);
         if (err != vE_Success)
           goto epilogue;
@@ -648,11 +649,15 @@ bool vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
 
     if (ImGui::BeginDock("Settings"))
     {
-      if (ImGui::Button("Unload Model"))
+      //if pModel is null pointer
+      if (pVaultContainer->pModel != nullptr)
       {
-        err = vaultUDModel_Unload(pVaultContainer->pContext, &pVaultContainer->pModel);
-        if (err != vE_Success)
-          goto epilogue;
+        if (ImGui::Button("Unload Model"))
+        {
+          err = vaultUDModel_Unload(pVaultContainer->pContext, &pVaultContainer->pModel);
+          if (err != vE_Success)
+            goto epilogue;
+        }
       }
 
       if (ImGui::Button("Logout"))
