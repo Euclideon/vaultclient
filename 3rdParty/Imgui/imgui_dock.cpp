@@ -1127,7 +1127,7 @@ struct DockContext
 				fscanf(fp, "%s %d", str2, &id4);
 				fscanf(fp, "%s %d", str2, &id5);
 
-				m_docks[id]->label = _strdup(lab);
+				m_docks[id]->label = ImStrdup(lab);
 				m_docks[id]->id = ImHash(m_docks[id]->label,0);
 				
 				m_docks[id]->children[0] = getDockByIndex(id1);
