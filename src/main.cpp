@@ -357,9 +357,7 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
   //Rendering
   ImVec2 size = ImGui::GetContentRegionAvail();
   ImGuiIO& io = ImGui::GetIO();
-  ImVec2 cursorPos = ImGui::GetCursorScreenPos();          // "cursor" is where imgui will draw the image
-  ImVec2 mousePos = io.MousePos;
-
+  
   if (pRenderingState->sceneResolution.x != size.x || pRenderingState->sceneResolution.y != size.y) //Resize buffers
   {
     pRenderingState->sceneResolution.x = (uint32_t)size.x;
