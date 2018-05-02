@@ -639,10 +639,8 @@ bool vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
 
       if (ImGui::Button("Load Model!"))
       {
-        
-        err = vaultUDModel_Load(pVaultContainer->pContext, &pVaultContainer->pModel, pRenderingState->pModelPath);
-        if (err != vE_Success)
-          goto epilogue;
+        //TODO: error check here
+        vaultUDModel_Load(pVaultContainer->pContext, &pVaultContainer->pModel, pRenderingState->pModelPath);
       }
     }
     ImGui::EndDock();
