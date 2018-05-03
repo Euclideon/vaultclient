@@ -133,6 +133,7 @@ struct vaultContainer
 
 struct RenderingState
 {
+  bool programComplete;
   SDL_Window *pWindow;
 
   uint32_t *pColorBuffer;
@@ -159,7 +160,7 @@ struct RenderingState
   char *pModelPath;
 };
 
-bool vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer);
+void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer);
 
 #undef main
 #ifdef SDL_MAIN_NEEDED
@@ -208,7 +209,6 @@ int main(int /*argc*/, char ** /*args*/)
   memcpy(renderingState.pPassword, pPassword, strlen(pPassword));
   memcpy(renderingState.pModelPath, pModelPath, strlen(pModelPath));
 
-  bool done = false;
   Uint64 NOW;
   Uint64 LAST;
 
@@ -306,13 +306,13 @@ int main(int /*argc*/, char ** /*args*/)
 
   ImGui::LoadDock();
 
-  while (!done)
+  while (!renderingState.programComplete)
   {
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
       ImGui_ImplSdlGL3_ProcessEvent(&event);
-      done = event.type == SDL_QUIT;
+      renderingState.programComplete = (event.type == SDL_QUIT);
     }
 
     LAST = NOW;
@@ -325,8 +325,7 @@ int main(int /*argc*/, char ** /*args*/)
     glClear(GL_COLOR_BUFFER_BIT);
     glViewport(0, 0, renderingState.sceneResolution.x, renderingState.sceneResolution.y);
 
-    if (!vcRender(&renderingState, &vContainer))
-      goto epilogue;
+    vcRender(&renderingState, &vContainer);
 
     ImGui::Render();
     SDL_GL_SwapWindow(renderingState.pWindow);
@@ -496,7 +495,7 @@ epilogue:
   return;
 }
 
-int vcMainMenuGui()
+int vcMainMenuGui(RenderingState *pRenderingState)
 {
   int menuHeight = 0;
 
@@ -521,10 +520,7 @@ int vcMainMenuGui()
       }
 
       if (ImGui::MenuItem("Quit", "Alt+F4"))
-      {
-
-      }
-
+        pRenderingState->programComplete = true;
       ImGui::EndMenu();
     }
 
@@ -536,15 +532,13 @@ int vcMainMenuGui()
   return menuHeight;
 }
 
-bool vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
+void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
 {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   vaultError err;
 
-  bool result = false;
-
-  int menuHeight = (!pRenderingState->hasContext) ? 0 : vcMainMenuGui();
+  int menuHeight = (!pRenderingState->hasContext) ? 0 : vcMainMenuGui(pRenderingState);
 
   if (ImGui::GetIO().DisplaySize.y > 0)
   {
@@ -639,6 +633,9 @@ bool vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
 
       if (ImGui::Button("Load Model!"))
       {
+        if (pVaultContainer->pModel != nullptr)
+          vaultUDModel_Unload(pVaultContainer->pContext, &pVaultContainer->pModel);
+
         //TODO: error check here
         vaultUDModel_Load(pVaultContainer->pContext, &pVaultContainer->pModel, pRenderingState->pModelPath);
       }
@@ -681,11 +678,9 @@ bool vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
         pRenderingState->planeMode = false;
     }
     ImGui::EndDock();
-
   }
 
-  result = true;
-
 epilogue:
-  return result;
+  //TODO: Cleanup
+  return;
 }
