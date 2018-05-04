@@ -8,6 +8,7 @@
 #include "imgui_dock.h"
 #include "SDL2/SDL.h"
 #include "GL/glew.h"
+#include "udPlatform/udMath.h"
 
 #include <stdlib.h>
 
@@ -156,7 +157,7 @@ struct RenderingState
   char *pServerURL;
   char *pUsername;
   char *pPassword;
-        
+
   char *pModelPath;
 };
 
@@ -171,7 +172,7 @@ int main(int /*argc*/, char ** /*args*/)
 {
   SDL_GLContext glcontext = NULL;
   GLint udTextureLocation = -1;
-  
+
   const Float2 fboDataArr[] = { { -1.f,-1.f },{ -1.f,1.f },{ 1,1 },{ -1.f,-1.f },{ 1.f,-1.f },{ 1,1 } };
   GLuint fbVboId = (GLuint)-1;
 
@@ -356,7 +357,7 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
   //Rendering
   ImVec2 size = ImGui::GetContentRegionAvail();
   ImGuiIO& io = ImGui::GetIO();
-  
+
   if (pRenderingState->sceneResolution.x != size.x || pRenderingState->sceneResolution.y != size.y) //Resize buffers
   {
     pRenderingState->sceneResolution.x = (uint32_t)size.x;
@@ -391,7 +392,7 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
   bool isLeftClicked = ImGui::IsMouseClicked(0, false);
   bool isRightClicked = ImGui::IsMouseClicked(1, false);
   bool isFocused = ImGui::IsWindowFocused();
-  
+
   static bool clickedLeftWhileHovered = false;
   static bool clickedRightWhileHovered = false;
   if (isHovered && isLeftClicked)
@@ -452,12 +453,12 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
     }
 
     pRenderingState->camMatrix.axis.t += direction * pRenderingState->deltaTime;
-        
+
     if (ImGui::IsMouseDoubleClicked(0)) {
       //fullscreen = !fullscreen;
     }
   }
-  
+
   vaultError err = vaultUDRenderView_SetMatrix(pVaultContainer->pContext, pVaultContainer->pRenderView, vUDRVM_Camera, pRenderingState->camMatrix.a);
   if (err != vE_Success)
     goto epilogue;
@@ -472,7 +473,7 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, pRenderingState->texId);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pRenderingState->sceneResolution.x, pRenderingState->sceneResolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pRenderingState->pColorBuffer);
-  
+
   glBindFramebuffer(GL_FRAMEBUFFER, pRenderingState->framebuffer);
   glViewport(0, 0, pRenderingState->sceneResolution.x, pRenderingState->sceneResolution.y);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -677,7 +678,7 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
       if (ImGui::Button("Logout"))
       {
         static const char *pErrorMessage = nullptr;
-        
+
         if (pVaultContainer->pModel != nullptr)
         {
           err = vaultUDModel_Unload(pVaultContainer->pContext, &pVaultContainer->pModel);
