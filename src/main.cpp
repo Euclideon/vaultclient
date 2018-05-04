@@ -504,22 +504,6 @@ int vcMainMenuGui(RenderingState *pRenderingState)
   {
     if (ImGui::BeginMenu("File"))
     {
-      if (ImGui::MenuItem("New"))
-      {
-
-      }
-
-      if (ImGui::MenuItem("Open", "Ctrl+O"))
-      {
-
-      }
-
-      if (ImGui::BeginMenu("Open Recent"))
-      {
-        //ImGui::MenuItem("fish_hat.h");
-        ImGui::EndMenu();
-      }
-
       if (ImGui::MenuItem("Quit", "Alt+F4"))
         pRenderingState->programComplete = true;
       ImGui::EndMenu();
@@ -569,13 +553,25 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
       if (ImGui::Button("Login!"))
       {
         err = vaultContext_Connect(&pVaultContainer->pContext, pRenderingState->pServerURL, "ClientSample");
-        if (err == vE_Success)
+        if (err != vE_Success)
+        {
+          pErrorMessage = "Could not connect to server...";
+        }
+        else
         {
           err = vaultContext_Login(pVaultContainer->pContext, pRenderingState->pUsername, pRenderingState->pPassword);
-          if (err == vE_Success)
+          if (err != vE_Success)
+          {
+            pErrorMessage = "Could not log in...";
+          }
+          else
           {
             err = vaultContext_GetLicense(pVaultContainer->pContext, vaultLT_Basic);
-            if (err == vE_Success)
+            if (err != vE_Success)
+            {
+              pErrorMessage = "Could not get license...";
+            }
+            else
             {
               err = vaultUDRenderer_Create(pVaultContainer->pContext, &pVaultContainer->pRenderer);
               if (err == vE_Success)
@@ -585,54 +581,53 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
                   pRenderingState->hasContext = true;
               }
             }
-            else
-            {
-              pErrorMessage = "Could not get license...";
-            }
-          }
-          else
-          {
-            pErrorMessage = "Could not log in...";
           }
         }
-        else
+        
+        if (pErrorMessage != nullptr)
         {
-          pErrorMessage = "Could not connect to server...";
+          ImGui::Text("%s", pErrorMessage);
         }
       }
 
       if (ImGui::Button("Guest Login!"))
       {
         err = vaultContext_Connect(&pVaultContainer->pContext, pRenderingState->pServerURL, "ClientSample");
-        if (err == vE_Success)
-        {
-          err = vaultContext_GetLicense(pVaultContainer->pContext, vaultLT_Basic);
-          if (err == vE_Success)
-          {
-            err = vaultUDRenderer_Create(pVaultContainer->pContext, &pVaultContainer->pRenderer);
-            if (err == vE_Success)
-            {
-              err = vaultUDRenderView_Create(pVaultContainer->pContext, &pVaultContainer->pRenderView, pVaultContainer->pRenderer, pRenderingState->sceneResolution.x, pRenderingState->sceneResolution.y);
-              if (err == vE_Success)
-              {
-                pRenderingState->hasContext = true;
-              }
-            }
-          }
-          else
-          {
-            pErrorMessage = "Could not get license";
-          }
-        }
-        else
+        if (err != vE_Success)
         {
           pErrorMessage = "Could not connect to server...";
         }
-      }
+        else
+        {
+          err = vaultContext_Login(pVaultContainer->pContext, pRenderingState->pUsername, pRenderingState->pPassword);
+          if (err != vE_Success)
+          {
+            pErrorMessage = "Could not log in...";
+          }
+          else
+          {
+            err = vaultContext_GetLicense(pVaultContainer->pContext, vaultLT_Basic);
+            if (err != vE_Success)
+            {
+              pErrorMessage = "Could not get license...";
+            }
+            else
+            {
+              err = vaultUDRenderer_Create(pVaultContainer->pContext, &pVaultContainer->pRenderer);
+              if (err == vE_Success)
+              {
+                err = vaultUDRenderView_Create(pVaultContainer->pContext, &pVaultContainer->pRenderView, pVaultContainer->pRenderer, pRenderingState->sceneResolution.x, pRenderingState->sceneResolution.y);
+                if (err == vE_Success)
+                  pRenderingState->hasContext = true;
+              }
+            }
+          }
+        }
 
-      if (pErrorMessage != nullptr)
-      {
-        ImGui::Text("%s", pErrorMessage);
+        if (pErrorMessage != nullptr)
+        {
+          ImGui::Text("%s", pErrorMessage);
+        }
       }
     }
 
@@ -644,9 +639,9 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
       vcRenderScene(pRenderingState, pVaultContainer);
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("Dummy3"))
-      ImGui::Text("Placeholder!");
-    ImGui::EndDock();
+    //if (ImGui::BeginDock("Dummy3"))
+    //  ImGui::Text("Placeholder!");
+    //ImGui::EndDock();
 
     if (ImGui::BeginDock("StyleEditor"))
       ImGui::ShowStyleEditor();
@@ -670,7 +665,6 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
 
     if (ImGui::BeginDock("Settings"))
     {
-      //if pModel is null pointer
       if (pVaultContainer->pModel != nullptr)
       {
         if (ImGui::Button("Unload Model"))
@@ -688,31 +682,20 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
         if (pVaultContainer->pModel != nullptr)
         {
           err = vaultUDModel_Unload(pVaultContainer->pContext, &pVaultContainer->pModel);
-          if (err == vE_Success)
-          {
-            err = vaultContext_Logout(pVaultContainer->pContext);
-            if (err == vE_Success)
-            {
-              pRenderingState->hasContext = false;
-            }
-          }
-          else
-          {
+          if (err != vE_Success)
             pErrorMessage = "Could not unload model";
-          }
         }
-        else {
+
+        if (pErrorMessage == nullptr)
+        {
           err = vaultContext_Logout(pVaultContainer->pContext);
           if (err == vE_Success)
-          {
             pRenderingState->hasContext = false;
-          }
         }
-        if (pErrorMessage != nullptr)
+        else
         {
           ImGui::Text("%s", pErrorMessage);
         }
-
       }
 
       if (ImGui::RadioButton("PlaneMode", pRenderingState->planeMode))

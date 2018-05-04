@@ -65,8 +65,13 @@ function injectvaultsdkbin()
 			os.execute("rm -r builds/client/bin/vaultSDK.dmg")
 
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
-			files { "builds/client/bin/vaultSDK.framework" }
-			libdirs { "builds/client/bin" }
+			prelinkcommands {
+				"rm -rf %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
+				"mkdir -p %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
+				"cp -af builds/client/bin/vaultSDK.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/",
+			}
+			linkoptions { "-rpath @executable_path/../Frameworks/" }
+			frameworkdirs { "builds/client/bin" }
 		else
 			os.execute("mkdir -p builds/client/bin")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/linux_GCC_x64/libvaultSDK.so", "builds/client/bin/libvaultSDK.so")
