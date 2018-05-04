@@ -682,19 +682,36 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
 
       if (ImGui::Button("Logout"))
       {
-        err = vaultUDModel_Unload(pVaultContainer->pContext, &pVaultContainer->pModel);
-        if (err != vE_Success)
-          goto epilogue;
-
-        err = vaultContext_Logout(pVaultContainer->pContext);
-        if (err != vE_Success)
-          goto epilogue;
-
-        err = vaultContext_GetLicense(pVaultContainer->pContext, vaultLT_Basic);
-        if (err != vE_Success)
-          goto epilogue;
-
-        pRenderingState->hasContext = false;
+        static const char *pErrorMessage = nullptr;
+        
+        if (pVaultContainer->pModel != nullptr)
+        {
+          err = vaultUDModel_Unload(pVaultContainer->pContext, &pVaultContainer->pModel);
+          if (err == vE_Success)
+          {
+            err = vaultContext_Logout(pVaultContainer->pContext);
+            if (err == vE_Success)
+            {
+              pRenderingState->hasContext = false;
+            }
+          }
+          else
+          {
+            pErrorMessage = "Could not unload model";
+          }
+        }
+        else {
+          err = vaultContext_Logout(pVaultContainer->pContext);
+          if (err == vE_Success)
+          {
+            pRenderingState->hasContext = false;
+          }
+        }
+        if (pErrorMessage != nullptr)
+        {
+          ImGui::Text("%s", pErrorMessage);
+        }
+        
       }
 
       if (ImGui::RadioButton("PlaneMode", pRenderingState->planeMode))
