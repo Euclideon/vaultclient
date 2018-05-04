@@ -61,8 +61,16 @@ else
 			if [ $? -ne 0 ]; then exit 1; fi
 
 			if [ $OSTYPE == "darwin16" ]; then # OSX, Sierra
-				sharedLibExtension="dylib"
-				cp -f -R builds/client/bin/vaultClient.app /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME
+				# Make folder to store the framework to build a DMG from
+				mkdir builds/client/bin/packaging
+				if [ $? -ne 0 ]; then exit 1; fi
+				
+				cp -af builds/client/bin/vaultClient.app builds/client/bin/packaging/vaultClient.app
+				if [ $? -ne 0 ]; then exit 1; fi
+				
+				hdiutil create builds/client/bin/vaultClient.dmg -volname "vaultClient" -srcfolder builds/client/bin/packaging
+				
+				cp -f builds/client/bin/vaultClient.dmg /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME
 			else
 				sharedLibExtension="so"
 				cp -f builds/client/bin/vaultClient /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME/vaultClient
