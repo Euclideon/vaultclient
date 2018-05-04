@@ -559,6 +559,8 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
   {
     if (ImGui::Begin("Login"))
     {
+      static const char *pErrorMessage = nullptr;
+      //TODO: complete error checks here
       ImGui::InputText("ServerURL", pRenderingState->pServerURL, 1024);
       ImGui::InputText("Username", pRenderingState->pUsername, 1024);
       ImGui::InputText("Password", pRenderingState->pPassword, 1024);
@@ -566,47 +568,70 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
       if (ImGui::Button("Login!"))
       {
         err = vaultContext_Connect(&pVaultContainer->pContext, pRenderingState->pServerURL, "ClientSample");
-        if (err != vE_Success)
-          goto epilogue;
-
-        err = vaultContext_Login(pVaultContainer->pContext, pRenderingState->pUsername, pRenderingState->pPassword);
-        if (err != vE_Success)
-          goto epilogue;
-
-        err = vaultContext_GetLicense(pVaultContainer->pContext, vaultLT_Basic);
-        if (err != vE_Success)
-          goto epilogue;
-
-        err = vaultUDRenderer_Create(pVaultContainer->pContext, &pVaultContainer->pRenderer);
-        if (err != vE_Success)
-          goto epilogue;
-
-        err = vaultUDRenderView_Create(pVaultContainer->pContext, &pVaultContainer->pRenderView, pVaultContainer->pRenderer, pRenderingState->sceneResolution.x, pRenderingState->sceneResolution.y);
-        if (err != vE_Success)
-          goto epilogue;
-
-        pRenderingState->hasContext = true;
+        if (err == vE_Success)
+        {
+          err = vaultContext_Login(pVaultContainer->pContext, pRenderingState->pUsername, pRenderingState->pPassword);
+          if (err == vE_Success)
+          {
+            err = vaultContext_GetLicense(pVaultContainer->pContext, vaultLT_Basic);
+            if (err == vE_Success)
+            {
+              err = vaultUDRenderer_Create(pVaultContainer->pContext, &pVaultContainer->pRenderer);
+              if (err == vE_Success)
+              {
+                err = vaultUDRenderView_Create(pVaultContainer->pContext, &pVaultContainer->pRenderView, pVaultContainer->pRenderer, pRenderingState->sceneResolution.x, pRenderingState->sceneResolution.y);
+                if (err == vE_Success)
+                  pRenderingState->hasContext = true;
+              }
+            }
+            else
+            {
+              pErrorMessage = "Could not get license...";
+            }
+          }
+          else
+          {
+            pErrorMessage = "Could not log in...";
+          }
+        } 
+        else
+        {
+          pErrorMessage = "Could not connect to server...";
+        }
       }
 
       if (ImGui::Button("Guest Login!"))
       {
         err = vaultContext_Connect(&pVaultContainer->pContext, pRenderingState->pServerURL, "ClientSample");
-        if (err != vE_Success)
-          goto epilogue;
+        if (err == vE_Success)
+        {
+          err = vaultContext_GetLicense(pVaultContainer->pContext, vaultLT_Basic);
+          if (err == vE_Success)
+          {
+            err = vaultUDRenderer_Create(pVaultContainer->pContext, &pVaultContainer->pRenderer);
+            if (err == vE_Success)
+            {
+              err = vaultUDRenderView_Create(pVaultContainer->pContext, &pVaultContainer->pRenderView, pVaultContainer->pRenderer, pRenderingState->sceneResolution.x, pRenderingState->sceneResolution.y);
+              if (err == vE_Success)
+              {
+                pRenderingState->hasContext = true;
+              }
+            }
+          }
+          else
+          {
+            pErrorMessage = "Could not get license";
+          }
+        }
+        else
+        {
+          pErrorMessage = "Could not connect to server...";
+        }
+      }
 
-        err = vaultContext_GetLicense(pVaultContainer->pContext, vaultLT_Basic);
-        if (err != vE_Success)
-          goto epilogue;
-
-        err = vaultUDRenderer_Create(pVaultContainer->pContext, &pVaultContainer->pRenderer);
-        if (err != vE_Success)
-          goto epilogue;
-
-        err = vaultUDRenderView_Create(pVaultContainer->pContext, &pVaultContainer->pRenderView, pVaultContainer->pRenderer, pRenderingState->sceneResolution.x, pRenderingState->sceneResolution.y);
-        if (err != vE_Success)
-          goto epilogue;
-
-        pRenderingState->hasContext = true;
+      if (pErrorMessage != nullptr)
+      {
+        ImGui::Text("%s", pErrorMessage);
       }
     }
 
