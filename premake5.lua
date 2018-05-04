@@ -69,6 +69,7 @@ function injectvaultsdkbin()
 				"rm -rf %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
 				"mkdir -p %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
 				"cp -af builds/client/bin/vaultSDK.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/",
+				"cp -af /Library/Frameworks/SDL2.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/",
 			}
 			linkoptions { "-rpath @executable_path/../Frameworks/" }
 			frameworkdirs { "builds/client/bin" }
