@@ -64,8 +64,8 @@ template <typename T> T udPowerOfTwoAbove(T v) { return udIsPowerOfTwo(v) ? v : 
 template <typename T> T udRoundEven(T t)
 {
   int integer = (int)t;
-  T integerPart = udFloor(t);
-  T fractionalPart = t - integer;
+  T integerPart = (integer < 0 ? udCeil(t) : udFloor(t));
+  T fractionalPart = udAbs(t - integer);
 
   if (fractionalPart > T(0.5) || fractionalPart < T(0.5))
     return udRound(t);

@@ -344,10 +344,8 @@ void udValidateHeap();
 #endif //defined(_MSC_VER)
 
 #if defined(__GNUC__)
-# define UD_GCC_VERSION (GNUC__ * 10000 + __GNUC_MINOR__ * 100  + __GNUC_PATCHLEVEL__)
-# if UD_GCC_VERSION < 50101
-#   pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-# endif // GCC_VERSION < 50101
+# define UD_GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100  + __GNUC_PATCHLEVEL__)
+# pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #endif
 
 

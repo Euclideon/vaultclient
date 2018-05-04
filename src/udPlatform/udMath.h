@@ -397,10 +397,7 @@ struct udMatrix4x4
   union
   {
     T a[16];
-    struct
-    {
-      udVector4<T> c[4];
-    };
+    udVector4<T> c[4];
     struct
     {
       udVector4<T> x;
