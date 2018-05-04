@@ -132,6 +132,17 @@ struct vaultContainer
   vaultUDModel *pModel;
 };
 
+enum vcDocks
+{
+  vcdScene,
+  vcdSettings,
+  vcdSceneExplorer,
+
+  vcdStyling,
+
+  vcdTotalDocks
+};
+
 struct RenderingState
 {
   bool programComplete;
@@ -153,6 +164,7 @@ struct RenderingState
   vaultUint322 sceneResolution;
 
   bool hasContext;
+  bool windowsOpen[vcdTotalDocks];
 
   char *pServerURL;
   char *pUsername;
@@ -229,7 +241,16 @@ int main(int /*argc*/, char ** /*args*/)
   if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3) != 0)
     goto epilogue;
 
-  renderingState.pWindow = SDL_CreateWindow("Euclideon Client", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+  //TODO: Get a STRINGIFY macro in udPlatform somewhere
+#define _STRINGIFY(a) #a
+#define STRINGIFY(a) _STRINGIFY(a)
+#ifdef GIT_BUILD
+#define WINDOW_SUFFIX " (" STRINGIFY(GIT_BUILD) " - " __DATE__ ") "
+#else
+#define WINDOW_SUFFIX " (DEV/DO NOT DISTRIBUTE - " __DATE__ ")"
+#endif
+
+  renderingState.pWindow = SDL_CreateWindow("Euclideon Client" WINDOW_SUFFIX, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
   if (!renderingState.pWindow)
     goto epilogue;
 
@@ -358,6 +379,9 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
   ImVec2 size = ImGui::GetContentRegionAvail();
   ImGuiIO& io = ImGui::GetIO();
 
+  if (size.x == 0 || size.y == 0)
+    return;
+
   if (pRenderingState->sceneResolution.x != size.x || pRenderingState->sceneResolution.y != size.y) //Resize buffers
   {
     pRenderingState->sceneResolution.x = (uint32_t)size.x;
@@ -463,12 +487,12 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
   if (err != vE_Success)
     goto epilogue;
 
+  bool wipeUDBuffers = true;
   if (pVaultContainer->pModel != nullptr)
-  {
-    err = vaultUDRenderer_Render(pVaultContainer->pContext, pVaultContainer->pRenderer, pVaultContainer->pRenderView, &pVaultContainer->pModel, 1);
-    if (err != vE_Success)
-      goto epilogue;
-  }
+    wipeUDBuffers = (vaultUDRenderer_Render(pVaultContainer->pContext, pVaultContainer->pRenderer, pVaultContainer->pRenderView, &pVaultContainer->pModel, 1) != vE_Success);
+
+  if (wipeUDBuffers)
+    memset(pRenderingState->pColorBuffer, 0, sizeof(uint32_t) * pRenderingState->sceneResolution.x * pRenderingState->sceneResolution.y);
 
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, pRenderingState->texId);
@@ -506,6 +530,15 @@ int vcMainMenuGui(RenderingState *pRenderingState)
     {
       if (ImGui::MenuItem("Quit", "Alt+F4"))
         pRenderingState->programComplete = true;
+      ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("View"))
+    {
+      ImGui::MenuItem("Scene", nullptr, &pRenderingState->windowsOpen[vcdScene]);
+      ImGui::MenuItem("Scene Explorer", nullptr, &pRenderingState->windowsOpen[vcdSceneExplorer]);
+      ImGui::MenuItem("Settings", nullptr, &pRenderingState->windowsOpen[vcdSettings]);
+      ImGui::MenuItem("Styling", nullptr, &pRenderingState->windowsOpen[vcdStyling]);
       ImGui::EndMenu();
     }
 
@@ -583,7 +616,7 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
             }
           }
         }
-        
+
         if (pErrorMessage != nullptr)
         {
           ImGui::Text("%s", pErrorMessage);
@@ -635,20 +668,19 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
   }
   else
   {
-    if (ImGui::BeginDock("Scene", nullptr, ImGuiWindowFlags_NoScrollbar))
+    if (ImGui::BeginDock("Scene", &pRenderingState->windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar))
       vcRenderScene(pRenderingState, pVaultContainer);
     ImGui::EndDock();
 
-    //if (ImGui::BeginDock("Dummy3"))
-    //  ImGui::Text("Placeholder!");
-    //ImGui::EndDock();
+    if (ImGui::BeginDock("Scene Explorer", &pRenderingState->windowsOpen[vcdSceneExplorer]))
+      ImGui::Text("Placeholder!");
+    ImGui::EndDock();
 
-    if (ImGui::BeginDock("StyleEditor"))
+    if (ImGui::BeginDock("StyleEditor", &pRenderingState->windowsOpen[vcdStyling]))
       ImGui::ShowStyleEditor();
     ImGui::EndDock();
 
-    //Load Model
-    if (ImGui::BeginDock("Load Model"))
+    if (ImGui::BeginDock("Settings", &pRenderingState->windowsOpen[vcdSettings]))
     {
       ImGui::InputText("Model Path", pRenderingState->pModelPath, 1024);
 
@@ -660,11 +692,7 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
         //TODO: error check here
         vaultUDModel_Load(pVaultContainer->pContext, &pVaultContainer->pModel, pRenderingState->pModelPath);
       }
-    }
-    ImGui::EndDock();
 
-    if (ImGui::BeginDock("Settings"))
-    {
       if (pVaultContainer->pModel != nullptr)
       {
         if (ImGui::Button("Unload Model"))
