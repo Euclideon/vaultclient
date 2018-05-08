@@ -260,6 +260,7 @@ int main(int /*argc*/, char ** /*args*/)
   if (glewInit() != GLEW_OK)
     goto epilogue;
 
+  ImGui::CreateContext();
   if (!ImGui_ImplSdlGL3_Init(renderingState.pWindow))
     goto epilogue;
 
@@ -352,6 +353,7 @@ int main(int /*argc*/, char ** /*args*/)
   }
 
   ImGui::SaveDock();
+  ImGui::DestroyContext();
 
 epilogue:
   vaultUDModel_Unload(vContainer.pContext, &vContainer.pModel);
@@ -416,7 +418,7 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
   const Uint8 *pKeysArray = SDL_GetKeyboardState(NULL);
   SDL_Keymod modState = SDL_GetModState();
 
-  bool isHovered = ImGui::IsItemHovered();
+  bool isHovered = true;// ImGui::IsItemHovered();
   bool isLeftClicked = ImGui::IsMouseClicked(0, false);
   bool isRightClicked = ImGui::IsMouseClicked(1, false);
   bool isFocused = ImGui::IsWindowFocused();
