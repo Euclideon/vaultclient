@@ -483,11 +483,11 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
     }
   }
 
+  bool wipeUDBuffers = true;
   vaultError err = vaultUDRenderView_SetMatrix(pVaultContainer->pContext, pVaultContainer->pRenderView, vUDRVM_Camera, pRenderingState->camMatrix.a);
   if (err != vE_Success)
     goto epilogue;
 
-  bool wipeUDBuffers = true;
   if (pVaultContainer->pModel != nullptr)
     wipeUDBuffers = (vaultUDRenderer_Render(pVaultContainer->pContext, pVaultContainer->pRenderer, pVaultContainer->pRenderView, &pVaultContainer->pModel, 1) != vE_Success);
 
