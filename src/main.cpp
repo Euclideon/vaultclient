@@ -2,7 +2,6 @@
 #include "vaultUDRenderer.h"
 #include "vaultUDRenderView.h"
 #include "vaultUDModel.h"
-#include "vaultMaths.h"
 #include "imgui.h"
 #include "imgui_impl_sdl_gl3.h"
 #include "imgui_dock.h"
@@ -149,8 +148,8 @@ struct RenderingState
 
   bool planeMode;
   double deltaTime;
-  vaultMatrix camMatrix;
-  vaultUint322 sceneResolution;
+  udDouble4x4 camMatrix;
+  udUInt2 sceneResolution;
 
   bool hasContext;
 
@@ -183,8 +182,7 @@ int main(int /*argc*/, char ** /*args*/)
   renderingState.planeMode = true;
   renderingState.sceneResolution.x = 1280;
   renderingState.sceneResolution.y = 720;
-  renderingState.camMatrix = vaultMatrix_Identity();
-
+  renderingState.camMatrix = udDouble4x4::identity();
   renderingState.texId = GL_INVALID_INDEX;
   renderingState.udVAO = GL_INVALID_INDEX;
   renderingState.udProgramObject = GL_INVALID_INDEX;
@@ -420,11 +418,11 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
       clickedRightWhileHovered = io.MouseDown[1];
       if (io.MouseDown[1])
       {
-        vaultDouble4 translation = pRenderingState->camMatrix.axis.t;
+        udDouble4 translation = pRenderingState->camMatrix.axis.t;
         pRenderingState->camMatrix.axis.t = { 0,0,0,1 };
-        pRenderingState->camMatrix = vaultMatrix_RotationAxis({ 0,0,-1 }, mouseDelta.x / 100.0) * pRenderingState->camMatrix; // rotate on global axis and add back in the position
+        pRenderingState->camMatrix = udDouble4x4::rotationAxis({ 0,0,-1 }, mouseDelta.x / 100.0) * pRenderingState->camMatrix; // rotate on global axis and add back in the position
         pRenderingState->camMatrix.axis.t = translation;
-        pRenderingState->camMatrix *= vaultMatrix_RotationAxis({ -1,0,0 }, mouseDelta.y / 100.0); // rotate on local axis, since this is the only one there will be no problem
+        pRenderingState->camMatrix *= udDouble4x4::rotationAxis({ -1,0,0 }, mouseDelta.y / 100.0); // rotate on local axis, since this is the only one there will be no problem
       }
     }
 
@@ -440,16 +438,16 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
     float deltaMoveUp = speed * ((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
 
     // Move the camera
-    vaultDouble4 direction;
+    udDouble4 direction;
     if (pRenderingState->planeMode)
     {
-      direction = pRenderingState->camMatrix.axis.y * deltaMoveForward + pRenderingState->camMatrix.axis.x * deltaMoveRight + vaultDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
+      direction = pRenderingState->camMatrix.axis.y * deltaMoveForward + pRenderingState->camMatrix.axis.x * deltaMoveRight + udDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
     }
     else
     {
       direction = pRenderingState->camMatrix.axis.y * deltaMoveForward + pRenderingState->camMatrix.axis.x * deltaMoveRight;
       direction.z = 0;
-      direction += vaultDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
+      direction += udDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
     }
 
     pRenderingState->camMatrix.axis.t += direction * pRenderingState->deltaTime;
