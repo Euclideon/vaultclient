@@ -404,7 +404,13 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
     //TODO: Error Detection
     vaultUDRenderView_Create(pVaultContainer->pContext, &pVaultContainer->pRenderView, pVaultContainer->pRenderer, pRenderingState->sceneResolution.x, pRenderingState->sceneResolution.y);
     vaultUDRenderView_SetTargets(pVaultContainer->pContext, pVaultContainer->pRenderView, pRenderingState->pColorBuffer, 0, pRenderingState->pDepthBuffer);
-    vaultUDRenderView_SetMatrix(pVaultContainer->pContext, pVaultContainer->pRenderView, vUDRVM_Camera, pRenderingState->camMatrix.a);
+
+    float rad = UD_PIf / 3.f;
+    float aspect = size.x / (float)size.y;
+    float zNear = 0.5f;
+    float zFar = 10000.f;
+    udDouble4x4 projMat = udDouble4x4::perspective(rad, aspect, zNear, zFar);
+    vaultUDRenderView_SetMatrix(pVaultContainer->pContext, pVaultContainer->pRenderView, vUDRVM_Projection, projMat.a);
   }
 
   const Uint8 *pKeysArray = SDL_GetKeyboardState(NULL);
@@ -483,6 +489,7 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
 
   bool wipeUDBuffers = true;
   vaultError err = vaultUDRenderView_SetMatrix(pVaultContainer->pContext, pVaultContainer->pRenderView, vUDRVM_Camera, pRenderingState->camMatrix.a);
+
   if (err != vE_Success)
     goto epilogue;
 
