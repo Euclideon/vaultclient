@@ -377,7 +377,7 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
   ImVec2 size = ImGui::GetContentRegionAvail();
   ImGuiIO& io = ImGui::GetIO();
 
-  if (size.x == 0 || size.y == 0)
+  if (size.x < 1 || size.y < 1)
     return;
 
   if (pRenderingState->sceneResolution.x != size.x || pRenderingState->sceneResolution.y != size.y) //Resize buffers
