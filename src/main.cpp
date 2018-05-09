@@ -587,7 +587,7 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
       //TODO: complete error checks here
       ImGui::InputText("ServerURL", pRenderingState->pServerURL, 1024);
       ImGui::InputText("Username", pRenderingState->pUsername, 1024);
-      ImGui::InputText("Password", pRenderingState->pPassword, 1024);
+      ImGui::InputText("Password", pRenderingState->pPassword, 1024, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_CharsNoBlank);
 
       if (ImGui::Button("Login!"))
       {
