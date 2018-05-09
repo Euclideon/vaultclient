@@ -11,43 +11,31 @@
 
 #include <stdlib.h>
 
-struct Float2
-{
-  float x, y;
-};
+const GLchar* const g_udFragmentShader = R"shader(#version 330 core
+  precision highp float;
+  uniform sampler2D udTexture;
+  in vec2 texCoord;
+  out vec4 fColor;
+  void main ()
+  {
+    vec2 uv = texCoord.xy;
+    vec4 colour = texture2D(udTexture, uv);
+    fColor = vec4(colour.bgr, 1.0);
+  }
+)shader";
 
-#define GL_VERSION_HEADER "#version 330 core\n"
-#define GL_VERTEX_IN "in"
-#define GL_VERTEX_OUT "out"
-#define GL_FRAGMENT_IN "in"
+const GLchar* const g_udVertexShader = R"shader(#version 330 core
+  in vec2 vertex;
+  out vec2 texCoord;
+  void main(void)
+  {
+    gl_Position = vec4(vertex, 0.0, 1.0);
+    texCoord = vertex*vec2(0.5)+vec2(0.5);
+    texCoord.y = 1-texCoord.y;
+  };
+)shader";
 
-const GLchar* const g_udFragmentShader =
-"#version 330 core\n"
-"precision highp float;                        \n"
-"uniform sampler2D udTexture;                  \n"
-"in vec2 texCoord;                \n"
-"out vec4 fColor;                              \n"
-"void main ()                                  \n"
-"{                                             \n"
-"  vec2 uv = texCoord.xy;                      \n"
-"  vec4 colour = texture2D(udTexture, uv);     \n"
-"  fColor = vec4(colour.bgr, 1.0);             \n"
-"}                                             \n"
-"";
-
-const GLchar* const g_udVertexShader =
-"#version 330 core\n"
-"in vec2 vertex;                    \n"
-"out vec2 texCoord;                 \n"
-"void main(void)                               \n"
-"{                                             \n"
-"  gl_Position = vec4(vertex, 0.0, 1.0);       \n"
-"  texCoord = vertex*vec2(0.5)+vec2(0.5);      \n"
-"  texCoord.y = 1-texCoord.y;                  \n"
-"}                                             \n"
-"";
-
-GLuint GenerateFbVBO(const Float2 *pFloats, size_t len)
+GLuint GenerateFbVBO(const udFloat2 *pFloats, size_t len)
 {
   GLuint vboID = 0;
   // Create a new VBO and use the variable id to store the VBO id
@@ -57,7 +45,7 @@ GLuint GenerateFbVBO(const Float2 *pFloats, size_t len)
   glBindBuffer(GL_ARRAY_BUFFER, vboID);
 
   // Upload vertex data to the video device
-  glBufferData(GL_ARRAY_BUFFER, sizeof(Float2) * len, pFloats, GL_STATIC_DRAW); // GL_DYNAMIC_DRAW
+  glBufferData(GL_ARRAY_BUFFER, sizeof(udFloat2) * len, pFloats, GL_STATIC_DRAW); // GL_DYNAMIC_DRAW
 
   // Draw Triangle from VBO - do each time window, view point or data changes
   // Establish its 3 coordinates per vertex with zero stride in this array; necessary here
@@ -138,6 +126,7 @@ enum vcDocks
   vcdSceneExplorer,
 
   vcdStyling,
+  vcdUIDemo,
 
   vcdTotalDocks
 };
@@ -162,6 +151,8 @@ struct RenderingState
   udDouble4x4 camMatrix;
   udUInt2 sceneResolution;
 
+  udDouble4x4 modelMatrix;
+
   bool hasContext;
   bool windowsOpen[vcdTotalDocks];
 
@@ -184,7 +175,7 @@ int main(int /*argc*/, char ** /*args*/)
   SDL_GLContext glcontext = NULL;
   GLint udTextureLocation = -1;
 
-  const Float2 fboDataArr[] = { { -1.f,-1.f },{ -1.f,1.f },{ 1,1 },{ -1.f,-1.f },{ 1.f,-1.f },{ 1,1 } };
+  const udFloat2 fboDataArr[] = { { -1.f,-1.f },{ -1.f,1.f },{ 1,1 },{ -1.f,-1.f },{ 1.f,-1.f },{ 1,1 } };
   GLuint fbVboId = (GLuint)-1;
 
   RenderingState renderingState = {};
@@ -203,7 +194,7 @@ int main(int /*argc*/, char ** /*args*/)
   const char *plocalHost = "http://vau-ubu-pro-001.euclideon.local";
   const char *pUsername = "";
   const char *pPassword = "";
-  const char *pModelPath = "R:\\ConvertedModels\\Aerometrex\\Aerometrix_GoldCoast_Model_1CM.uds";
+  const char *pModelPath = "V:/QA/For Tests/Geoverse MDM/AdelaideCBD_2cm.uds";
 
   renderingState.pServerURL = new char[1024];
   renderingState.pUsername = new char[1024];
@@ -326,6 +317,7 @@ int main(int /*argc*/, char ** /*args*/)
   LAST = 0;
 
   ImGui::LoadDock();
+  ImGui::GetIO().Fonts->AddFontFromFileTTF("NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
 
   while (!renderingState.programComplete)
   {
@@ -545,7 +537,14 @@ int vcMainMenuGui(RenderingState *pRenderingState)
       ImGui::MenuItem("Scene", nullptr, &pRenderingState->windowsOpen[vcdScene]);
       ImGui::MenuItem("Scene Explorer", nullptr, &pRenderingState->windowsOpen[vcdSceneExplorer]);
       ImGui::MenuItem("Settings", nullptr, &pRenderingState->windowsOpen[vcdSettings]);
-      ImGui::MenuItem("Styling", nullptr, &pRenderingState->windowsOpen[vcdStyling]);
+      ImGui::Separator();
+      if (ImGui::BeginMenu("Debug Windows"))
+      {
+        ImGui::MenuItem("Styling", nullptr, &pRenderingState->windowsOpen[vcdStyling]);
+        ImGui::MenuItem("UI Debug Menu", nullptr, &pRenderingState->windowsOpen[vcdUIDemo]);
+        ImGui::EndMenu();
+      }
+
       ImGui::EndMenu();
     }
 
@@ -687,6 +686,10 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
       ImGui::ShowStyleEditor();
     ImGui::EndDock();
 
+    if (ImGui::BeginDock("UIDebugMenu", &pRenderingState->windowsOpen[vcdUIDemo]))
+      ImGui::ShowDemoWindow();
+    ImGui::EndDock();
+
     if (ImGui::BeginDock("Settings", &pRenderingState->windowsOpen[vcdSettings]))
     {
       ImGui::InputText("Model Path", pRenderingState->pModelPath, 1024);
@@ -698,7 +701,13 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
 
         //TODO: error check here
         vaultUDModel_Load(pVaultContainer->pContext, &pVaultContainer->pModel, pRenderingState->pModelPath);
+        vaultUDModel_GetLocalMatrix(pVaultContainer->pContext, pVaultContainer->pModel, pRenderingState->modelMatrix.a);
+        pRenderingState->camMatrix.axis.t = (pRenderingState->modelMatrix * udDouble4::create(0.5, 0.5, 0.5, 1.0));
       }
+
+      udFloat3 modelT = udFloat3::create(pRenderingState->camMatrix.axis.t.toVector3());
+      if (ImGui::InputFloat3("Camera Position", &modelT.x))
+        pRenderingState->camMatrix.axis.t = udDouble4::create(udDouble3::create(modelT), 1.f);
 
       if (pVaultContainer->pModel != nullptr)
       {
