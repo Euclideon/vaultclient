@@ -317,9 +317,7 @@ int main(int /*argc*/, char ** /*args*/)
   LAST = 0;
 
   ImGui::LoadDock();
-
-  ImGuiIO& io = ImGui::GetIO();
-  io.Fonts->AddFontFromFileTTF("NotoSansCJKjp-Regular.otf", 16.0f, NULL, io.Fonts->GetGlyphRangesChinese());
+  ImGui::GetIO().Fonts->AddFontFromFileTTF("NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
 
   while (!renderingState.programComplete)
   {
