@@ -3,8 +3,8 @@
 #include "imgui_internal.h"
 
 #ifdef _WIN64
-#pragma warning( push )  
-#pragma warning( disable : 4996 )  
+#pragma warning( push )
+#pragma warning( disable : 4996 )
 #endif
 
 ImVec2 operator+(ImVec2 lhs, ImVec2 rhs) {
@@ -352,7 +352,7 @@ struct DockContext
 		ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
 								 ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
 								 ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar |
-								 ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_ShowBorders | 
+								 ImGuiWindowFlags_NoScrollWithMouse |
 								 ImGuiWindowFlags_NoBringToFrontOnFocus;
 		Dock* root = getRootDock();
 		if (root)
@@ -476,7 +476,7 @@ struct DockContext
 			ImRect r =
 				on_border ? getSlotRectOnBorder(rect, (Slot_)i) : getSlotRect(rect, (Slot_)i);
 			bool hovered = r.Contains(mouse_pos);
-			
+
 			canvas->AddRectFilled(r.Min, r.Max, hovered ? color_hovered : color);
 			if (!hovered) continue;
 
@@ -708,7 +708,7 @@ struct DockContext
 				bool hovered = IsItemHovered();
 				ImVec2 pos = GetItemRectMin();
 				size2.x += 20 + GetStyle().ItemSpacing.x;
-				
+
 				tab_base = pos.y;
 
 				draw_list->AddRectFilled(pos+ImVec2(-8.0f, 0.0),
@@ -907,7 +907,7 @@ struct DockContext
 	{
 		if (dock.status == Status_Docked) return;
 		if (dock.location[0] == 0) return;
-		
+
 		Dock* tmp = getRootDock();
 		if (!tmp) return;
 
@@ -968,7 +968,7 @@ struct DockContext
 				opened,
 				dock.size,
 				-1.0f,
-				ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_ShowBorders | extra_flags);
+				ImGuiWindowFlags_NoCollapse | extra_flags);
 			m_end_action = EndAction_End;
 			dock.pos = GetWindowPos();
 			dock.size = GetWindowSize();
@@ -1048,7 +1048,7 @@ struct DockContext
 		return -1;
 	}
 
-	
+
 	void save()
 	{
 		FILE *fp = fopen("imgui_dock.layout", "w");
@@ -1076,7 +1076,7 @@ struct DockContext
 		fclose(fp);
 
 	}
-	
+
 
 
 	Dock* getDockByIndex(int idx) { return idx < 0 ? nullptr : m_docks[(int)idx]; }
@@ -1110,7 +1110,7 @@ struct DockContext
 				int st;
 				int b1, b2;
 				char lab[32];
-				
+
 				fscanf(fp, "%s %d", str2, &id);
 				fscanf(fp, "%s %[^\n]s", str2, &lab[0]);
 				fscanf(fp, "%s %f", str2, &m_docks[id]->pos.x);
@@ -1129,7 +1129,7 @@ struct DockContext
 
 				m_docks[id]->label = ImStrdup(lab);
 				m_docks[id]->id = ImHash(m_docks[id]->label,0);
-				
+
 				m_docks[id]->children[0] = getDockByIndex(id1);
 				m_docks[id]->children[1] = getDockByIndex(id2);
 				m_docks[id]->prev_tab = getDockByIndex(id3);
@@ -1138,7 +1138,7 @@ struct DockContext
 				m_docks[id]->status = (Status_)st;
 				m_docks[id]->active = b1 != 0;
 				m_docks[id]->opened = b2 != 0;
-				
+
 				tryDockToStoredLocation(*m_docks[id]);
 			}
 
@@ -1156,7 +1156,7 @@ static DockContext g_dock;
 void Print() {
 	for (int i = 0; i < g_dock.m_docks.size(); ++i)
 	{
-		ImGui::Text("i=%d this=0x%p state=(%d %d) pos=(%.0f %.0f) size=(%.0f %.0f) children=(%s %s) tabs=(%s %s) parent=%s status=%d  location='%s' label='%s'\n", i, 
+		ImGui::Text("i=%d this=0x%p state=(%d %d) pos=(%.0f %.0f) size=(%.0f %.0f) children=(%s %s) tabs=(%s %s) parent=%s status=%d  location='%s' label='%s'\n", i,
 					(void*)g_dock.m_docks[i],
 					g_dock.m_docks[i]->active,
 					g_dock.m_docks[i]->opened,
