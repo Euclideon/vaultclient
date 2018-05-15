@@ -7,7 +7,7 @@ if [ $? -ne 0 ]; then exit 1; fi
 
 if [ $OSTYPE == "msys" ]; then # Windows, MingW
 	export VAULTSDK_HOME="//bne-fs-fs-003.euclideon.local/Resources/Builds/vault/sdk/Pipeline_24006"
-	
+
 	bin/premake/premake5.exe vs2015
 	if [ $? -ne 0 ]; then exit 1; fi
 
@@ -17,15 +17,19 @@ if [ $OSTYPE == "msys" ]; then # Windows, MingW
 	if [ $1 == "Release" ] && ([ $CI_BUILD_REF_NAME == "master" ] || [ -n "$CI_BUILD_TAG" ]); then
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		#NSIS
-		# "cutil/bin/nsis/makensis.exe" buildscripts\windowsinstallerscript.nsi
-
 		# Make sure directory exists
 		mkdir -p //bne-fs-fs-003.euclideon.local/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/Windows
 		if [ $? -ne 0 ]; then exit 1; fi
 
+		cp -f bin/sdl/SDL2.dll //bne-fs-fs-003.euclideon.local/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/Windows/SDL2.dll
+		if [ $? -ne 0 ]; then exit 1; fi
+
 		cp -f builds/client/bin/vaultClient.exe //bne-fs-fs-003.euclideon.local/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/Windows/vaultClient.exe
 		if [ $? -ne 0 ]; then exit 1; fi
+
+		cp -f builds/client/bin/NotoSansCJKjp-Regular.otf //bne-fs-fs-003.euclideon.local/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/Windows/NotoSansCJKjp-Regular.otf
+		if [ $? -ne 0 ]; then exit 1; fi
+
 		cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll //bne-fs-fs-003.euclideon.local/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/Windows/vaultSDK.dll
 		if [ $? -ne 0 ]; then exit 1; fi
 
@@ -64,15 +68,21 @@ else
 				# Make folder to store the framework to build a DMG from
 				mkdir builds/client/bin/packaging
 				if [ $? -ne 0 ]; then exit 1; fi
-				
+
+				cp -af builds/client/bin/NotoSansCJKjp-Regular.otf builds/client/bin/packaging/NotoSansCJKjp-Regular.otf
+				if [ $? -ne 0 ]; then exit 1; fi
+
 				cp -af builds/client/bin/vaultClient.app builds/client/bin/packaging/vaultClient.app
 				if [ $? -ne 0 ]; then exit 1; fi
-				
+
 				hdiutil create builds/client/bin/vaultClient.dmg -volname "vaultClient" -srcfolder builds/client/bin/packaging
-				
+
 				cp -f builds/client/bin/vaultClient.dmg /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME
 			else
 				sharedLibExtension="so"
+				cp -f builds/client/bin/NotoSansCJKjp-Regular.otf /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME/NotoSansCJKjp-Regular.otf
+				if [ $? -ne 0 ]; then exit 1; fi
+
 				cp -f builds/client/bin/vaultClient /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME/vaultClient
 				if [ $? -ne 0 ]; then exit 1; fi
 				cp -f $VAULTSDK_HOME/lib/linux_GCC_x64/libvaultSDK.so /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME/libvaultSDK.so
