@@ -112,6 +112,10 @@ solution "vaultClient"
 
 	xcodebuildsettings { ["CLANG_CXX_LANGUAGE_STANDARD"] = "c++0x" }
 
+	if(os.get() == premake.WINDOWS) then
+		os.copyfile("bin/sdl/SDL2.dll", "builds/client/bin/SDL2.dll")
+	end
+
 	-- Strings
 	if os.getenv("CI_BUILD_REF_NAME") then
 		defines { "GIT_BRANCH=\"" .. os.getenv("CI_BUILD_REF_NAME") .. "\"" }
@@ -136,12 +140,12 @@ solution "vaultClient"
 		dofile "../vault/ud/udPointCloud/project.lua"
 		dofile "../vault/vaultcore/project.lua"
 		dofile "../vault/vaultsdk/project.lua"
-		xcodebuildsettings { 
+		xcodebuildsettings {
 			['INSTALL_PATH'] = "@executable_path/../Frameworks",
 			['SKIP_INSTALL'] = "YES"
 		}
 		targetdir "builds/client/bin"
-		debugdir "builds/client/bin" 
+		debugdir "builds/client/bin"
 	end
 
 	dofile "project.lua"
