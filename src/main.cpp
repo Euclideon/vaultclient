@@ -699,10 +699,13 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
         if (pVaultContainer->pModel != nullptr)
           vaultUDModel_Unload(pVaultContainer->pContext, &pVaultContainer->pModel);
 
-        //TODO: error check here
+        double midPoint[3];
+
         vaultUDModel_Load(pVaultContainer->pContext, &pVaultContainer->pModel, pRenderingState->pModelPath);
         vaultUDModel_GetLocalMatrix(pVaultContainer->pContext, pVaultContainer->pModel, pRenderingState->modelMatrix.a);
-        pRenderingState->camMatrix.axis.t = (pRenderingState->modelMatrix * udDouble4::create(0.5, 0.5, 0.5, 1.0));
+        vaultUDModel_GetModelCenter(pVaultContainer->pContext, pVaultContainer->pModel, midPoint);
+
+        pRenderingState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
       }
 
       udFloat3 modelT = udFloat3::create(pRenderingState->camMatrix.axis.t.toVector3());
