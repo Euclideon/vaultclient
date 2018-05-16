@@ -47,6 +47,7 @@ project "vaultClient"
 		links { "SDL2.lib", "opengl32.lib", "winmm.lib" }
 
 	filter { "system:linux" }
+		linkoptions { "-Wl,-rpath '-Wl,$$ORIGIN'" } -- Check beside the executable for the SDK
 		links { "SDL2", "GL" }
 
 	filter { "system:macosx" }
