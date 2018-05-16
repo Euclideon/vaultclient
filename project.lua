@@ -4,7 +4,7 @@ project "vaultClient"
 	filter { "system:macosx OR ios OR android" }
 		kind "WindowedApp"
 	filter {}
-	
+
 	language "C++"
 	flags { "StaticRuntime", "FatalWarnings", "MultiProcessorCompile" }
 
@@ -19,7 +19,7 @@ project "vaultClient"
 	includedirs { "3rdParty/Imgui" }
 	sysincludedirs { "3rdParty/glew/include" }
 	includedirs { "3rdParty/SDL2-2.0.5/include" }
-	
+
 	defines { "GLEW_STATIC" }
 
 	symbols "On"
@@ -44,8 +44,8 @@ project "vaultClient"
 	filter { "system:windows" }
 		linkoptions( "/LARGEADDRESSAWARE" )
 		libdirs { "3rdParty/SDL2-2.0.5/lib/x64" }
-		links { "SDL2.lib", "opengl32.lib" }
-		
+		links { "SDL2.lib", "opengl32.lib", "winmm.lib" }
+
 	filter { "system:linux" }
 		links { "SDL2", "GL" }
 
@@ -55,7 +55,7 @@ project "vaultClient"
 
 	filter { "system:not windows" }
 		links { "dl" }
-		
+
 	filter { "system:linux" }
 		links { "z" }
 
