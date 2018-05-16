@@ -1,6 +1,8 @@
 #ifndef UDPLATFORM_H
 #define UDPLATFORM_H
 
+#include "udResult.h"
+
 // An abstraction layer for common functions that differ on various platforms
 #include <stdint.h>
 #include <stdlib.h>
@@ -355,5 +357,9 @@ void udValidateHeap();
 
 #define MAKE_FOURCC(a, b, c, d) (  (((uint32_t)(a)) << 0) | (((uint32_t)(b)) << 8) | (((uint32_t)(c)) << 16) | (((uint32_t)(d)) << 24) )
 #define UDARRAYSIZE(_array) ( sizeof(_array) / sizeof((_array)[0]) )
+
+udResult udGetTotalPhysicalMemory(uint64_t *pTotalMemory);
+
+#include "udDebug.h"
 
 #endif // UDPLATFORM_H
