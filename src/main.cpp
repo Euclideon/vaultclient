@@ -24,11 +24,8 @@ out vec4 out_Colour;
 
 void main()
 {
-  vec4 color = texture(u_texture, v_texCoord);
-  float depth = texture(u_depth, v_texCoord).x;
-  //TODO taa
-  out_Colour = color;
-  gl_FragDepth = depth;
+  out_Colour = texture(u_texture, v_texCoord).bgra;
+  gl_FragDepth = texture(u_depth, v_texCoord).x;
 }
 )shader";
 
@@ -237,8 +234,6 @@ int main(int /*argc*/, char ** /*args*/)
   renderingState.camMatrix = udDouble4x4::identity();
   renderingState.texId = GL_INVALID_INDEX;
   renderingState.udProgramObject = GL_INVALID_INDEX;
-
-  glGetError();
 
   // default string values.
   const char *plocalHost = "http://vau-ubu-pro-001.euclideon.local";
