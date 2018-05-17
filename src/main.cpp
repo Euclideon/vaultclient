@@ -12,27 +12,37 @@
 #include <stdlib.h>
 
 const GLchar* const g_udFragmentShader = R"shader(#version 330 core
-  precision highp float;
-  uniform sampler2D udTexture;
-  in vec2 texCoord;
-  out vec4 fColor;
-  void main ()
-  {
-    vec2 uv = texCoord.xy;
-    vec4 colour = texture2D(udTexture, uv);
-    fColor = vec4(colour.bgr, 1.0);
-  }
+
+uniform sampler2D u_texture;
+uniform sampler2D u_depth;
+
+//Input Format
+in vec2 v_texCoord;
+
+//Output Format
+out vec4 out_Colour;
+
+void main()
+{
+  out_Colour = texture(u_texture, v_texCoord).bgra;
+  gl_FragDepth = texture(u_depth, v_texCoord).x;
+}
 )shader";
 
 const GLchar* const g_udVertexShader = R"shader(#version 330 core
-  in vec2 vertex;
-  out vec2 texCoord;
-  void main(void)
-  {
-    gl_Position = vec4(vertex, 0.0, 1.0);
-    texCoord = vertex*vec2(0.5)+vec2(0.5);
-    texCoord.y = 1-texCoord.y;
-  };
+
+//Input format
+layout(location = 0) in vec2 a_position;
+layout(location = 1) in vec2 a_texCoord;
+
+//Output Format
+out vec2 v_texCoord;
+
+void main()
+{
+  gl_Position = vec4(a_position.x, a_position.y, 0.0, 1.0);
+  v_texCoord = a_texCoord;
+}
 )shader";
 
 GLuint GenerateFbVBO(const udFloat2 *pFloats, size_t len)
@@ -131,6 +141,18 @@ enum vcDocks
   vcdTotalDocks
 };
 
+struct vcSimpleVertex
+{
+  udFloat3 Position;
+  udFloat2 UVs;
+};
+
+int qrIndices[6] = { 0, 1, 2, 0, 2, 3 };
+vcSimpleVertex qrSqVertices[4]{ {{-1.f, 1.f, 0.f}, { 0, 0}}, {{ -1.f, -1.f, 0.f }, { 0, 1 }}, { { 1.f, -1.f, 0.f }, { 1, 1 }}, {{ 1.f, 1.f, 0.f }, { 1, 0 }} };
+GLuint qrSqVboID = GL_INVALID_INDEX;
+GLuint qrSqVaoID = GL_INVALID_INDEX;
+GLuint qrSqIboID = GL_INVALID_INDEX;
+
 struct RenderingState
 {
   bool programComplete;
@@ -139,7 +161,6 @@ struct RenderingState
   uint32_t *pColorBuffer;
   float *pDepthBuffer;
   GLuint texId;
-  GLuint udVAO;
   GLint udProgramObject;
 
   GLuint framebuffer;
@@ -165,6 +186,31 @@ struct RenderingState
 
 void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer);
 
+void cuglQR_CreateQuads(vcSimpleVertex *pVerts, int totalVerts, int *pIndices, int totalIndices, GLuint &vboID, GLuint &iboID, GLuint &vaoID)
+{
+  const size_t BufferSize = sizeof(vcSimpleVertex) * totalVerts;
+  const size_t VertexSize = sizeof(vcSimpleVertex);
+
+  glGenVertexArrays(1, &vaoID);
+  glBindVertexArray(vaoID);
+
+  glGenBuffers(1, &vboID);
+  glBindBuffer(GL_ARRAY_BUFFER, vboID);
+  glBufferData(GL_ARRAY_BUFFER, BufferSize, pVerts, GL_DYNAMIC_DRAW);
+
+  glGenBuffers(1, &iboID);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboID);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * totalIndices, pIndices, GL_STATIC_DRAW);
+
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, VertexSize, (GLvoid*)(0 * sizeof(float)));
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, VertexSize, (GLvoid*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+
+  // Unbind
+  glBindVertexArray(0);
+}
+
 #undef main
 #ifdef SDL_MAIN_NEEDED
 int SDL_main(int /*argc*/, char ** /*args*/)
@@ -187,7 +233,6 @@ int main(int /*argc*/, char ** /*args*/)
   renderingState.sceneResolution.y = 720;
   renderingState.camMatrix = udDouble4x4::identity();
   renderingState.texId = GL_INVALID_INDEX;
-  renderingState.udVAO = GL_INVALID_INDEX;
   renderingState.udProgramObject = GL_INVALID_INDEX;
 
   // default string values.
@@ -221,7 +266,9 @@ int main(int /*argc*/, char ** /*args*/)
     goto epilogue;
 
   // Setup window
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
@@ -252,7 +299,7 @@ int main(int /*argc*/, char ** /*args*/)
     goto epilogue;
 
   ImGui::CreateContext();
-  if (!ImGui_ImplSdlGL3_Init(renderingState.pWindow, "#version 330 core"))
+  if (!ImGui_ImplSdlGL3_Init(renderingState.pWindow, "#version 150 core"))
     goto epilogue;
 
   renderingState.udProgramObject = glBuildProgram(glBuildShader(GL_VERTEX_SHADER, g_udVertexShader), glBuildShader(GL_FRAGMENT_SHADER, g_udFragmentShader));
@@ -264,8 +311,8 @@ int main(int /*argc*/, char ** /*args*/)
   udTextureLocation = glGetUniformLocation(renderingState.udProgramObject, "udTexture");
   glUniform1i(udTextureLocation, 0);
 
-  glGenVertexArrays(1, &renderingState.udVAO);
-  glBindVertexArray(renderingState.udVAO);
+
+  cuglQR_CreateQuads(qrSqVertices, 4, qrIndices, 6, qrSqVboID, qrSqIboID, qrSqVaoID);
 
   fbVboId = GenerateFbVBO(fboDataArr, 6);
 
@@ -503,9 +550,18 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
 
   glUseProgram(pRenderingState->udProgramObject);
   glBindTexture(GL_TEXTURE_2D, pRenderingState->texId);
-  glBindVertexArray(pRenderingState->udVAO);
 
-  glDrawArrays(GL_TRIANGLES, 0, 6);
+  ImGui::Text("%d/%d", glGetError(), __LINE__);
+
+  glBindVertexArray(qrSqVaoID);
+  glBindBuffer(GL_ARRAY_BUFFER, qrSqVboID);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, qrSqIboID);
+
+  ImGui::Text("%d/%d", glGetError(), __LINE__);
+
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+  ImGui::Text("%d/%d", glGetError(), __LINE__);
 
   glBindVertexArray(0);
   glUseProgram(0);
