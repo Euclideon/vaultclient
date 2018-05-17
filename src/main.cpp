@@ -252,7 +252,7 @@ int main(int /*argc*/, char ** /*args*/)
     goto epilogue;
 
   ImGui::CreateContext();
-  if (!ImGui_ImplSdlGL3_Init(renderingState.pWindow))
+  if (!ImGui_ImplSdlGL3_Init(renderingState.pWindow, "#version 330 core"))
     goto epilogue;
 
   renderingState.udProgramObject = glBuildProgram(glBuildShader(GL_VERTEX_SHADER, g_udVertexShader), glBuildShader(GL_FRAGMENT_SHADER, g_udFragmentShader));
@@ -584,7 +584,9 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
     if (ImGui::Begin("Login"))
     {
       static const char *pErrorMessage = nullptr;
-      //TODO: complete error checks here
+      if (pErrorMessage != nullptr)
+        ImGui::Text("%s", pErrorMessage);
+
       ImGui::InputText("ServerURL", pRenderingState->pServerURL, 1024);
       ImGui::InputText("Username", pRenderingState->pUsername, 1024);
       ImGui::InputText("Password", pRenderingState->pPassword, 1024, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_CharsNoBlank);
@@ -621,11 +623,6 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
               }
             }
           }
-        }
-
-        if (pErrorMessage != nullptr)
-        {
-          ImGui::Text("%s", pErrorMessage);
         }
       }
 
