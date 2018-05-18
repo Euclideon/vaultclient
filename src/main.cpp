@@ -551,17 +551,11 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
   glUseProgram(pRenderingState->udProgramObject);
   glBindTexture(GL_TEXTURE_2D, pRenderingState->texId);
 
-  ImGui::Text("%d/%d", glGetError(), __LINE__);
-
   glBindVertexArray(qrSqVaoID);
   glBindBuffer(GL_ARRAY_BUFFER, qrSqVboID);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, qrSqIboID);
 
-  ImGui::Text("%d/%d", glGetError(), __LINE__);
-
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-  ImGui::Text("%d/%d", glGetError(), __LINE__);
 
   glBindVertexArray(0);
   glUseProgram(0);
