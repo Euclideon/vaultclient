@@ -11,6 +11,7 @@ project "vaultClient"
 	--Files to include
 	files { "src/**.cpp", "src/**.h", "src/**.c" }
 	files { "3rdParty/Imgui/**.cpp", "3rdParty/Imgui/**.h" }
+	files { "3rdParty/stb/**.h" }
 	files { "project.lua" }
 
 	--This project includes

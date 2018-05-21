@@ -37,4 +37,51 @@ void main()
 }
 )shader";
 
+
+const GLchar* const g_terrainTileFragmentShader = R"shader(#version 330 core
+
+//Input Format
+in vec3 v_colour;
+in vec2 v_uv;
+
+//Output Format
+out vec4 out_Colour;
+
+uniform sampler2D u_texture;
+
+void main()
+{
+  vec4 col = texture(u_texture, v_uv);
+  out_Colour = vec4(col.xyz * v_colour.xyz, 1.0);
+}
+)shader";
+
+const GLchar* const g_terrainTileVertexShader = R"shader(#version 330 core
+
+//Input format
+layout(location = 0) in vec3 a_position;
+
+//Output Format
+out vec3 v_colour;
+out vec2 v_uv;
+
+uniform mat4 u_viewProjection;
+uniform mat4 u_world;
+uniform vec3 u_debugColour;
+
+uniform sampler2D u_texture; // temporary height map
+
+void main()
+{
+  v_uv = vec2(a_position.x, 1.0 - a_position.y);
+  vec4 col = texture(u_texture, v_uv); // todo: this may be a dependent read on device. Todo: pass in uvs as attribute
+  
+  vec4 worldPosition = u_world * vec4(a_position, 1.0);
+  //worldPosition.z = 10.0 * length(col.xyz) / 3.0f;
+  gl_Position = u_viewProjection * worldPosition;
+  v_colour = u_debugColour;
+ 
+}
+)shader";
+
 #endif//vcRenderShaders_h__
