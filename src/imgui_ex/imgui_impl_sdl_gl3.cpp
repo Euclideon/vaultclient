@@ -14,6 +14,7 @@
 
 // CHANGELOG
 // (minor and older changes stripped away, please see git history for details)
+//  2018-05-09: Misc: Fixed clipboard paste memory leak (we didn't call SDL_FreeMemory on the data returned by SDL_GetClipboardText).
 //  2018-03-20: Misc: Setup io.BackendFlags ImGuiBackendFlags_HasMouseCursors flag + honor ImGuiConfigFlags_NoMouseCursorChange flag.
 //  2018-03-06: OpenGL: Added const char* glsl_version parameter to ImGui_ImplSdlGL3_Init() so user can override the GLSL version e.g. "#version 150".
 //  2018-02-23: OpenGL: Create the VAO in the render function so the setup can more easily be used with multiple shared GL context.
@@ -22,7 +23,7 @@
 //  2018-02-06: Misc: Removed call to ImGui::Shutdown() which is not available from 1.60 WIP, user needs to call CreateContext/DestroyContext themselves.
 //  2018-02-06: Inputs: Added mapping for ImGuiKey_Space.
 //  2018-02-05: Misc: Using SDL_GetPerformanceCounter() instead of SDL_GetTicks() to be able to handle very high framerate (1000+ FPS).
-//  2018-02-05: Inputs: Keyboard mapping is using scancodes everywhere instead of a confusing mixture of keycodes and scancodes.
+//  2018-02-05: Inputs: Keyboard mapping is using scancodes everywhere instead of a confusing mixture of keycodes and scancodes. 
 //  2018-01-20: Inputs: Added Horizontal Mouse Wheel support.
 //  2018-01-19: Inputs: When available (SDL 2.0.4+) using SDL_CaptureMouse() to retrieve coordinates outside of client area when dragging. Otherwise (SDL 2.0.3 and before) testing for SDL_WINDOW_INPUT_FOCUS instead of SDL_WINDOW_MOUSE_FOCUS.
 //  2018-01-18: Inputs: Added mapping for ImGuiKey_Insert.
@@ -51,6 +52,7 @@
 static Uint64       g_Time = 0;
 static bool         g_MousePressed[3] = { false, false, false };
 static SDL_Cursor*  g_MouseCursors[ImGuiMouseCursor_COUNT] = { 0 };
+static char*        g_ClipboardTextData = NULL;
 
 // OpenGL data
 static char         g_GlslVersion[32] = "#version 150";
@@ -61,7 +63,7 @@ static int          g_AttribLocationPosition = 0, g_AttribLocationUV = 0, g_Attr
 static unsigned int g_VboHandle = 0,g_ElementsHandle = 0;
 
 // This is the main rendering function that you have to implement and provide to ImGui (via setting up 'RenderDrawListsFn' in the ImGuiIO structure)
-// Note that this implementation is little overcomplicated because we are saving/setting up/restoring every OpenGL state explicitly, in order to be able to run within any OpenGL engine that doesn't do so.
+// Note that this implementation is little overcomplicated because we are saving/setting up/restoring every OpenGL state explicitly, in order to be able to run within any OpenGL engine that doesn't do so. 
 // If text or lines are blurry when integrating ImGui in your engine: in your Render function, try translating your projection matrix by (0.5f,0.5f) or (0.375f,0.375f)
 void ImGui_ImplSdlGL3_RenderDrawData(ImDrawData* draw_data)
 {
@@ -119,7 +121,7 @@ void ImGui_ImplSdlGL3_RenderDrawData(ImDrawData* draw_data)
     glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
     glBindSampler(0, 0); // Rely on combined texture/sampler state.
 
-    // Recreate the VAO every time
+    // Recreate the VAO every time 
     // (This is to easily allow multiple GL contexts. VAO are not shared among GL contexts, and we don't track creation/deletion of windows so we don't have an obvious key to use to cache them.)
     GLuint vao_handle = 0;
     glGenVertexArrays(1, &vao_handle);
@@ -183,7 +185,10 @@ void ImGui_ImplSdlGL3_RenderDrawData(ImDrawData* draw_data)
 
 static const char* ImGui_ImplSdlGL3_GetClipboardText(void*)
 {
-    return SDL_GetClipboardText();
+    if (g_ClipboardTextData) 
+        SDL_free(g_ClipboardTextData);
+    g_ClipboardTextData = SDL_GetClipboardText();
+    return g_ClipboardTextData;
 }
 
 static void ImGui_ImplSdlGL3_SetClipboardText(void*, const char* text)
@@ -364,7 +369,7 @@ bool    ImGui_ImplSdlGL3_Init(SDL_Window* window, const char* glsl_version)
     ImGuiIO& io = ImGui::GetIO();
     io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;   // We can honor GetMouseCursor() values (optional)
 
-    // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array.
+    // Keyboard mapping. ImGui will use those indices to peek into the io.KeysDown[] array.
     io.KeyMap[ImGuiKey_Tab] = SDL_SCANCODE_TAB;
     io.KeyMap[ImGuiKey_LeftArrow] = SDL_SCANCODE_LEFT;
     io.KeyMap[ImGuiKey_RightArrow] = SDL_SCANCODE_RIGHT;
@@ -387,7 +392,6 @@ bool    ImGui_ImplSdlGL3_Init(SDL_Window* window, const char* glsl_version)
     io.KeyMap[ImGuiKey_Y] = SDL_SCANCODE_Y;
     io.KeyMap[ImGuiKey_Z] = SDL_SCANCODE_Z;
 
-    io.RenderDrawListsFn = ImGui_ImplSdlGL3_RenderDrawData;   // Alternatively you can set this to NULL and call ImGui::GetDrawData() after ImGui::Render() to get the same ImDrawData pointer.
     io.SetClipboardTextFn = ImGui_ImplSdlGL3_SetClipboardText;
     io.GetClipboardTextFn = ImGui_ImplSdlGL3_GetClipboardText;
     io.ClipboardUserData = NULL;
@@ -418,6 +422,10 @@ void ImGui_ImplSdlGL3_Shutdown()
     for (ImGuiMouseCursor cursor_n = 0; cursor_n < ImGuiMouseCursor_COUNT; cursor_n++)
         SDL_FreeCursor(g_MouseCursors[cursor_n]);
     memset(g_MouseCursors, 0, sizeof(g_MouseCursors));
+
+    // Destroy last known clipboard data
+    if (g_ClipboardTextData)
+        SDL_free(g_ClipboardTextData);
 
     // Destroy OpenGL objects
     ImGui_ImplSdlGL3_InvalidateDeviceObjects();
@@ -454,7 +462,7 @@ void ImGui_ImplSdlGL3_NewFrame(SDL_Window* window)
     g_MousePressed[0] = g_MousePressed[1] = g_MousePressed[2] = false;
 
     // We need to use SDL_CaptureMouse() to easily retrieve mouse coordinates outside of the client area. This is only supported from SDL 2.0.4 (released Jan 2016)
-#if (SDL_MAJOR_VERSION >= 2) && (SDL_MINOR_VERSION >= 0) && (SDL_PATCHLEVEL >= 4)
+#if (SDL_MAJOR_VERSION >= 2) && (SDL_MINOR_VERSION >= 0) && (SDL_PATCHLEVEL >= 4)   
     if ((SDL_GetWindowFlags(window) & (SDL_WINDOW_MOUSE_FOCUS | SDL_WINDOW_MOUSE_CAPTURE)) != 0)
         io.MousePos = ImVec2((float)mx, (float)my);
     bool any_mouse_button_down = false;
