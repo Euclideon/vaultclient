@@ -923,7 +923,7 @@ epilogue:
 bool vcUnloadModelList(vaultContainer *pVaultContainer)
 {
   vaultError err;
-  for (int i = 0; i < modelList.length; i++)
+  for (int i = 0; i < (int) modelList.length; i++)
   {
     vaultUDModel *pVaultModel;
     pVaultModel = modelList[i].pVaultModel;
