@@ -481,6 +481,11 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
       {
         //cam_x -= mouseDelta.x / size.x*cam_width;
         //cam_y += mouseDelta.y / size.y*cam_height;
+        udDouble4 translation = pRenderingState->camMatrix.axis.t;
+        pRenderingState->camMatrix.axis.t = { 0,0,0,1 };
+        pRenderingState->camMatrix = udDouble4x4::rotationAxis({ 0,0,-1 }, mouseDelta.x / 100.0) * pRenderingState->camMatrix; // rotate on global axis and add back in the position
+        pRenderingState->camMatrix.axis.t = translation;
+        pRenderingState->camMatrix *= udDouble4x4::rotationAxis({ -1,0,0 }, mouseDelta.y / 100.0); // rotate on local axis, since this is the only one there will be no problem
       }
     }
 
@@ -489,11 +494,7 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
       clickedRightWhileHovered = io.MouseDown[1];
       if (io.MouseDown[1])
       {
-        udDouble4 translation = pRenderingState->camMatrix.axis.t;
-        pRenderingState->camMatrix.axis.t = { 0,0,0,1 };
-        pRenderingState->camMatrix = udDouble4x4::rotationAxis({ 0,0,-1 }, mouseDelta.x / 100.0) * pRenderingState->camMatrix; // rotate on global axis and add back in the position
-        pRenderingState->camMatrix.axis.t = translation;
-        pRenderingState->camMatrix *= udDouble4x4::rotationAxis({ -1,0,0 }, mouseDelta.y / 100.0); // rotate on local axis, since this is the only one there will be no problem
+        // do something here on right click
       }
     }
 
