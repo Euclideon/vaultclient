@@ -8,8 +8,11 @@
 #include "SDL2/SDL.h"
 #include "GL/glew.h"
 #include "udPlatform/udMath.h"
+#include "udPlatform/udChunkedArray.h"
+#include "udPlatform/udPlatformUtil.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 const GLchar* const g_udFragmentShader = R"shader(#version 330 core
 
@@ -126,7 +129,7 @@ struct vaultContainer
   vaultContext *pContext;
   vaultUDRenderer *pRenderer;
   vaultUDRenderView *pRenderView;
-  vaultUDModel *pModel;
+ // vaultUDModel *pModel;
 };
 
 enum vcDocks
@@ -184,6 +187,20 @@ struct RenderingState
   char *pModelPath;
 };
 
+static bool isFullscreen;
+static bool F11_Pressed;
+
+struct vcModel{
+  char modelPath[1024];
+  bool modelLoaded;
+  vaultUDModel *pVaultModel;
+};
+udChunkedArray<vcModel> modelList;
+
+static bool lastModelLoaded;
+
+bool vcUnloadModelList(vaultContainer *pVaultContainer);
+
 void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer);
 
 void cuglQR_CreateQuads(vcSimpleVertex *pVerts, int totalVerts, int *pIndices, int totalIndices, GLuint &vboID, GLuint &iboID, GLuint &vaoID)
@@ -220,6 +237,8 @@ int main(int /*argc*/, char ** /*args*/)
 {
   SDL_GLContext glcontext = NULL;
   GLint udTextureLocation = -1;
+  isFullscreen = false; // defaults to not fullscreen
+  F11_Pressed = false;
 
   const udFloat2 fboDataArr[] = { { -1.f,-1.f },{ -1.f,1.f },{ 1,1 },{ -1.f,-1.f },{ 1.f,-1.f },{ 1,1 } };
   GLuint fbVboId = (GLuint)-1;
@@ -234,6 +253,8 @@ int main(int /*argc*/, char ** /*args*/)
   renderingState.camMatrix = udDouble4x4::identity();
   renderingState.texId = GL_INVALID_INDEX;
   renderingState.udProgramObject = GL_INVALID_INDEX;
+  modelList.Init(32);
+  lastModelLoaded = true;
 
   // default string values.
   const char *plocalHost = "http://vau-ubu-pro-001.euclideon.local";
@@ -395,7 +416,8 @@ int main(int /*argc*/, char ** /*args*/)
   ImGui::DestroyContext();
 
 epilogue:
-  vaultUDModel_Unload(vContainer.pContext, &vContainer.pModel);
+  vcUnloadModelList(&vContainer);
+  modelList.Deinit();
 
   vaultUDRenderView_Destroy(vContainer.pContext, &vContainer.pRenderView);
   vaultUDRenderer_Destroy(vContainer.pContext, &vContainer.pRenderer);
@@ -441,6 +463,8 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
 
     pRenderingState->pColorBuffer = new uint32_t[pRenderingState->sceneResolution.x*pRenderingState->sceneResolution.y];
     pRenderingState->pDepthBuffer = new float[pRenderingState->sceneResolution.x*pRenderingState->sceneResolution.y];
+
+
 
     //TODO: Error Detection
     vaultUDRenderView_Create(pVaultContainer->pContext, &pVaultContainer->pRenderView, pVaultContainer->pRenderer, pRenderingState->sceneResolution.x, pRenderingState->sceneResolution.y);
@@ -523,10 +547,6 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
     }
 
     pRenderingState->camMatrix.axis.t += direction * pRenderingState->deltaTime;
-
-    if (ImGui::IsMouseDoubleClicked(0)) {
-      //fullscreen = !fullscreen;
-    }
   }
 
   bool wipeUDBuffers = true;
@@ -535,9 +555,20 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
   if (err != vE_Success)
     goto epilogue;
 
-  if (pVaultContainer->pModel != nullptr)
-    wipeUDBuffers = (vaultUDRenderer_Render(pVaultContainer->pContext, pVaultContainer->pRenderer, pVaultContainer->pRenderView, &pVaultContainer->pModel, 1) != vE_Success);
-
+  if (modelList.length > 0)
+  {
+    vaultUDModel *pModelArray[32];
+    int len = (int) modelList.length;
+    int numValidModels = 0;
+    for (int i = 0; i < len; i++)
+    {
+      pModelArray[numValidModels] = modelList[i].pVaultModel;
+      if (pModelArray[numValidModels] != nullptr)
+        numValidModels++;
+    }
+    if (numValidModels > 0)
+      wipeUDBuffers = (vaultUDRenderer_Render(pVaultContainer->pContext, pVaultContainer->pRenderer, pVaultContainer->pRenderView, pModelArray, numValidModels) != vE_Success);
+  }
   if (wipeUDBuffers)
     memset(pRenderingState->pColorBuffer, 0, sizeof(uint32_t) * pRenderingState->sceneResolution.x * pRenderingState->sceneResolution.y);
 
@@ -615,11 +646,36 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
 
   int menuHeight = (!pRenderingState->hasContext) ? 0 : vcMainMenuGui(pRenderingState);
 
+  const Uint8 *pKeysArray = SDL_GetKeyboardState(NULL); // potential duplicate with one in vcRenderScene
+  if (pKeysArray[SDL_SCANCODE_F11] != 0)
+  {
+    if (!F11_Pressed)
+    {
+      isFullscreen ^= 1;
+      F11_Pressed = true;
+      if (isFullscreen)
+      {
+        printf("Fullscreen\n");
+        SDL_MaximizeWindow(pRenderingState->pWindow);
+      }
+      else
+      {
+        printf("Windowed\n");
+        SDL_RestoreWindow(pRenderingState->pWindow);
+      }
+    }
+  }
+  else
+  {
+    F11_Pressed = false;
+  }
+
   if (ImGui::GetIO().DisplaySize.y > 0)
   {
     ImVec2 pos = ImVec2(0.f, (float)menuHeight);
     ImVec2 size = ImGui::GetIO().DisplaySize;
     size.y -= pos.y;
+
     ImGui::RootDock(pos, ImVec2(size.x, size.y - 25.0f));
 
     // Draw status bar (no docking)
@@ -727,58 +783,59 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
     ImGui::EndDock();
 
     if (ImGui::BeginDock("Scene Explorer", &pRenderingState->windowsOpen[vcdSceneExplorer]))
-      ImGui::Text("Placeholder!");
-    ImGui::EndDock();
-
-    if (ImGui::BeginDock("StyleEditor", &pRenderingState->windowsOpen[vcdStyling]))
-      ImGui::ShowStyleEditor();
-    ImGui::EndDock();
-
-    if (ImGui::BeginDock("UIDebugMenu", &pRenderingState->windowsOpen[vcdUIDemo]))
-      ImGui::ShowDemoWindow();
-    ImGui::EndDock();
-
-    if (ImGui::BeginDock("Settings", &pRenderingState->windowsOpen[vcdSettings]))
     {
       ImGui::InputText("Model Path", pRenderingState->pModelPath, 1024);
 
       if (ImGui::Button("Load Model!"))
       {
-        if (pVaultContainer->pModel != nullptr)
-          vaultUDModel_Unload(pVaultContainer->pContext, &pVaultContainer->pModel);
+        // add models to list
+        if (modelList.length < 32)
+        {
+          vcModel model;
+          model.modelLoaded = true;
+          udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pRenderingState->pModelPath);
+          //if (model.pVaultModel != nullptr)
+          //  vaultUDModel_Unload(pVaultContainer->pContext, &pVaultContainer->pModel);
 
-        double midPoint[3];
+          double midPoint[3];
+          err = vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pRenderingState->pModelPath);
+          if (err == vE_Success)
+          {
+            lastModelLoaded = true;
+            vaultUDModel_GetLocalMatrix(pVaultContainer->pContext, model.pVaultModel, pRenderingState->modelMatrix.a);
+            vaultUDModel_GetModelCenter(pVaultContainer->pContext, model.pVaultModel, midPoint);
+            pRenderingState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
+            modelList.PushBack(model);
+          }
+          else
+          {
+            lastModelLoaded = false;
+          }
 
-        vaultUDModel_Load(pVaultContainer->pContext, &pVaultContainer->pModel, pRenderingState->pModelPath);
-        vaultUDModel_GetLocalMatrix(pVaultContainer->pContext, pVaultContainer->pModel, pRenderingState->modelMatrix.a);
-        vaultUDModel_GetModelCenter(pVaultContainer->pContext, pVaultContainer->pModel, midPoint);
+        }
+        else
+        {
+          //dont load model
+        }
 
-        pRenderingState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
+      }
+      if (!lastModelLoaded)
+      {
+        ImGui::SameLine();
+        ImGui::Text("File not found...");
       }
 
       udFloat3 modelT = udFloat3::create(pRenderingState->camMatrix.axis.t.toVector3());
       if (ImGui::InputFloat3("Camera Position", &modelT.x))
         pRenderingState->camMatrix.axis.t = udDouble4::create(udDouble3::create(modelT), 1.f);
 
-      if (pVaultContainer->pModel != nullptr)
-      {
-        if (ImGui::Button("Unload Model"))
-        {
-          err = vaultUDModel_Unload(pVaultContainer->pContext, &pVaultContainer->pModel);
-          if (err != vE_Success)
-            goto epilogue;
-        }
-      }
-
       if (ImGui::Button("Logout"))
       {
         static const char *pErrorMessage = nullptr;
 
-        if (pVaultContainer->pModel != nullptr)
+        if (!vcUnloadModelList(pVaultContainer))
         {
-          err = vaultUDModel_Unload(pVaultContainer->pContext, &pVaultContainer->pModel);
-          if (err != vE_Success)
-            pErrorMessage = "Could not unload model";
+          pErrorMessage = "Error unloading models from list";
         }
 
         if (pErrorMessage == nullptr)
@@ -797,6 +854,63 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
         pRenderingState->planeMode = true;
       if (ImGui::RadioButton("HeliMode", !pRenderingState->planeMode))
         pRenderingState->planeMode = false;
+
+      if (ImGui::TreeNode("Model List"))
+      {
+        int len = (int) modelList.length;
+
+        static int selection = len;
+        bool selected = false;
+        for (int i = 0; i < len; i++)
+        {
+
+          selected = (i == selection);
+          if (ImGui::Selectable(modelList[i].modelPath, selected, ImGuiSelectableFlags_AllowDoubleClick))
+          {
+            selection = i;
+            if (ImGui::IsMouseDoubleClicked(0))
+            {
+              // move camera to midpoint of selected object
+              double midPoint[3];
+              vaultUDModel_GetModelCenter(pVaultContainer->pContext, modelList[i].pVaultModel, midPoint);
+              pRenderingState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
+            }
+          }
+          ImGui::SameLine();
+
+          char buttonID[32] = "";
+          udSprintf(buttonID, UDARRAYSIZE(buttonID), "UnloadModel%i", i);
+          ImGui::PushID(buttonID);
+          if (ImGui::Button("Unload Model"))
+          {
+            // unload model
+            err = vaultUDModel_Unload(pVaultContainer->pContext, &(modelList[i].pVaultModel));
+            if (err != vE_Success)
+              goto epilogue;
+            modelList.RemoveAt(i);
+            i--;
+            len--;
+          }
+          ImGui::PopID();
+        }
+        ImGui::TreePop();
+      }
+
+      ImGui::EndDock();
+    }
+
+    if (ImGui::BeginDock("StyleEditor", &pRenderingState->windowsOpen[vcdStyling]))
+      ImGui::ShowStyleEditor();
+    ImGui::EndDock();
+
+    if (ImGui::BeginDock("UIDebugMenu", &pRenderingState->windowsOpen[vcdUIDemo]))
+      ImGui::ShowDemoWindow();
+    ImGui::EndDock();
+
+    if (ImGui::BeginDock("Settings", &pRenderingState->windowsOpen[vcdSettings]))
+    {
+      // settings dock
+      ImGui::Text("Put settings here");
     }
     ImGui::EndDock();
   }
@@ -804,4 +918,23 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
 epilogue:
   //TODO: Cleanup
   return;
+}
+
+bool vcUnloadModelList(vaultContainer *pVaultContainer)
+{
+  vaultError err;
+  for (int i = 0; i < modelList.length; i++)
+  {
+    vaultUDModel *pVaultModel;
+    pVaultModel = modelList[i].pVaultModel;
+    err = vaultUDModel_Unload(pVaultContainer->pContext, &pVaultModel);
+    if (err != vE_Success)
+      return false;
+    modelList[i].modelLoaded = false;
+  }
+  while (modelList.length > 0)
+    modelList.PopFront();
+  //modelList.Deinit();
+
+  return true;
 }
