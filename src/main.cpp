@@ -388,6 +388,8 @@ int main(int /*argc*/, char ** /*args*/)
     vcRender(&renderingState, &vContainer);
 
     ImGui::Render();
+    ImGui_ImplSdlGL3_RenderDrawData(ImGui::GetDrawData());
+
     SDL_GL_SwapWindow(renderingState.pWindow);
   }
 
@@ -623,8 +625,8 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
     ImGui::RootDock(pos, ImVec2(size.x, size.y - 25.0f));
 
     // Draw status bar (no docking)
-    ImGui::SetNextWindowSize(ImVec2(size.x, 25.0f), ImGuiSetCond_Always);
-    ImGui::SetNextWindowPos(ImVec2(0, size.y - 6.0f), ImGuiSetCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(size.x, 25.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(0, size.y - 6.0f), ImGuiCond_Always);
     ImGui::Begin("statusbar", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoResize);
     ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
     ImGui::End();

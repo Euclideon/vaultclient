@@ -20,7 +20,7 @@ project "vaultClient"
 	sysincludedirs { "3rdParty/glew/include" }
 	includedirs { "3rdParty/SDL2-2.0.5/include" }
 
-	defines { "GLEW_STATIC" }
+	defines { "GLEW_STATIC", "IMGUI_DISABLE_OBSOLETE_FUNCTIONS" }
 
 	symbols "On"
 	injectvaultsdkbin()
