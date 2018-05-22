@@ -37,7 +37,7 @@ if [ $OSTYPE == "msys" ]; then # Windows, MingW
 else
 	export VAULTSDK_HOME="/mnt/Resources/Builds/vault/sdk/Pipeline_24491"
 
-	if [ $OSTYPE == "darwin16" ]; then # OSX, Sierra
+	if [[ $OSTYPE == "darwin"* ]]; then # OSX
 		export OSNAME="OSX"
 		export BINARYSUFFIX="osx"
 		bin/premake/premake5-osx xcode4
