@@ -356,6 +356,9 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   int menuHeight = (!pProgramState->hasContext) ? 0 : vcMainMenuGui(pProgramState);
 
   //keyboard handling
+#if UDPLATFORM_WINDOWS
+  ImGuiIO& io = ImGui::GetIO(); // for future key commands as well
+#endif
   if (ImGui::IsKeyReleased(SDL_SCANCODE_F11))
   {
     pProgramState->isFullscreen = !pProgramState->isFullscreen;
@@ -364,6 +367,10 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
     else
       SDL_RestoreWindow(pProgramState->pWindow);
   }
+#if UDPLATFORM_WINDOWS
+  if (io.KeyAlt && ImGui::IsKeyPressed(SDL_SCANCODE_F4))
+    pProgramState->programComplete = true;
+#endif
   //end keyboard handling
 
   if (ImGui::GetIO().DisplaySize.y > 0)
