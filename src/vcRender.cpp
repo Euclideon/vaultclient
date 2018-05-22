@@ -205,11 +205,12 @@ epilogue:
 udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, const vcRenderData &renderData)
 {
   udResult result = udR_Success;
+  vaultUDModel **ppModels = nullptr;
 
   if (vaultUDRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vUDRVM_Camera, pRenderContext->viewMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  vaultUDModel **ppModels = udAllocStack(vaultUDModel*, renderData.models.length, udAF_None);
+  ppModels = udAllocStack(vaultUDModel*, renderData.models.length, udAF_None);
 
   for (size_t i = 0; i < renderData.models.length; ++i)
   {
@@ -219,12 +220,11 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, co
   if (vaultUDRenderer_Render(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)renderData.models.length) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  udFreeStack(pModels);
-
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, pRenderContext->udRenderContext.tex.id);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pRenderContext->udRenderContext.pColorBuffer);
 
 epilogue:
+  udFreeStack(pModels);
   return result;
 }
