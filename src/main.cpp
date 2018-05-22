@@ -12,7 +12,6 @@
 #include "udPlatform/udPlatformUtil.h"
 
 #include <stdlib.h>
-#include <stdio.h>
 
 const GLchar* const g_udFragmentShader = R"shader(#version 330 core
 
@@ -129,7 +128,6 @@ struct vaultContainer
   vaultContext *pContext;
   vaultUDRenderer *pRenderer;
   vaultUDRenderView *pRenderView;
- // vaultUDModel *pModel;
 };
 
 enum vcDocks
@@ -160,6 +158,7 @@ struct RenderingState
 {
   bool programComplete;
   SDL_Window *pWindow;
+  bool isFullscreen;
 
   uint32_t *pColorBuffer;
   float *pDepthBuffer;
@@ -187,15 +186,18 @@ struct RenderingState
   char *pModelPath;
 };
 
-static bool isFullscreen;
-static bool F11_Pressed;
-
-struct vcModel{
+struct vcModel
+{
   char modelPath[1024];
   bool modelLoaded;
   vaultUDModel *pVaultModel;
 };
 udChunkedArray<vcModel> modelList;
+
+enum
+{
+  vcMaxModels = 32,
+};
 
 static bool lastModelLoaded;
 
@@ -237,8 +239,6 @@ int main(int /*argc*/, char ** /*args*/)
 {
   SDL_GLContext glcontext = NULL;
   GLint udTextureLocation = -1;
-  isFullscreen = false; // defaults to not fullscreen
-  F11_Pressed = false;
 
   const udFloat2 fboDataArr[] = { { -1.f,-1.f },{ -1.f,1.f },{ 1,1 },{ -1.f,-1.f },{ 1.f,-1.f },{ 1,1 } };
   GLuint fbVboId = (GLuint)-1;
@@ -253,6 +253,7 @@ int main(int /*argc*/, char ** /*args*/)
   renderingState.camMatrix = udDouble4x4::identity();
   renderingState.texId = GL_INVALID_INDEX;
   renderingState.udProgramObject = GL_INVALID_INDEX;
+
   modelList.Init(32);
   lastModelLoaded = true;
 
@@ -464,8 +465,6 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
     pRenderingState->pColorBuffer = new uint32_t[pRenderingState->sceneResolution.x*pRenderingState->sceneResolution.y];
     pRenderingState->pDepthBuffer = new float[pRenderingState->sceneResolution.x*pRenderingState->sceneResolution.y];
 
-
-
     //TODO: Error Detection
     vaultUDRenderView_Create(pVaultContainer->pContext, &pVaultContainer->pRenderView, pVaultContainer->pRenderer, pRenderingState->sceneResolution.x, pRenderingState->sceneResolution.y);
     vaultUDRenderView_SetTargets(pVaultContainer->pContext, pVaultContainer->pRenderView, pRenderingState->pColorBuffer, 0, pRenderingState->pDepthBuffer);
@@ -557,10 +556,9 @@ void vcRenderScene(RenderingState *pRenderingState, vaultContainer *pVaultContai
 
   if (modelList.length > 0)
   {
-    vaultUDModel *pModelArray[32];
-    int len = (int) modelList.length;
+    vaultUDModel *pModelArray[vcMaxModels];
     int numValidModels = 0;
-    for (int i = 0; i < len; i++)
+    for (size_t i = 0; i < modelList.length  && i < vcMaxModels; i++)
     {
       pModelArray[numValidModels] = modelList[i].pVaultModel;
       if (pModelArray[numValidModels] != nullptr)
@@ -646,29 +644,21 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
 
   int menuHeight = (!pRenderingState->hasContext) ? 0 : vcMainMenuGui(pRenderingState);
 
-  const Uint8 *pKeysArray = SDL_GetKeyboardState(NULL); // potential duplicate with one in vcRenderScene
-  if (pKeysArray[SDL_SCANCODE_F11] != 0)
+  //keyboard handling
+  ImGuiIO& io = ImGui::GetIO();
+  if (ImGui::IsKeyReleased(SDL_SCANCODE_F11))
   {
-    if (!F11_Pressed)
+    pRenderingState->isFullscreen != pRenderingState->isFullscreen;
+    if (pRenderingState->isFullscreen)
     {
-      isFullscreen ^= 1;
-      F11_Pressed = true;
-      if (isFullscreen)
-      {
-        printf("Fullscreen\n");
-        SDL_MaximizeWindow(pRenderingState->pWindow);
-      }
-      else
-      {
-        printf("Windowed\n");
-        SDL_RestoreWindow(pRenderingState->pWindow);
-      }
+      SDL_MaximizeWindow(pRenderingState->pWindow);
+    }
+    else
+    {
+      SDL_RestoreWindow(pRenderingState->pWindow);
     }
   }
-  else
-  {
-    F11_Pressed = false;
-  }
+  //end keyboard handling
 
   if (ImGui::GetIO().DisplaySize.y > 0)
   {
@@ -789,13 +779,11 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
       if (ImGui::Button("Load Model!"))
       {
         // add models to list
-        if (modelList.length < 32)
+        if (modelList.length < vcMaxModels)
         {
           vcModel model;
           model.modelLoaded = true;
           udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pRenderingState->pModelPath);
-          //if (model.pVaultModel != nullptr)
-          //  vaultUDModel_Unload(pVaultContainer->pContext, &pVaultContainer->pModel);
 
           double midPoint[3];
           err = vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pRenderingState->pModelPath);
@@ -819,11 +807,9 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
         }
 
       }
+
       if (!lastModelLoaded)
-      {
-        ImGui::SameLine();
         ImGui::Text("File not found...");
-      }
 
       udFloat3 modelT = udFloat3::create(pRenderingState->camMatrix.axis.t.toVector3());
       if (ImGui::InputFloat3("Camera Position", &modelT.x))
@@ -878,7 +864,7 @@ void vcRender(RenderingState *pRenderingState, vaultContainer *pVaultContainer)
           }
           ImGui::SameLine();
 
-          char buttonID[32] = "";
+          char buttonID[vcMaxModels] = "";
           udSprintf(buttonID, UDARRAYSIZE(buttonID), "UnloadModel%i", i);
           ImGui::PushID(buttonID);
           if (ImGui::Button("Unload Model"))
@@ -934,7 +920,6 @@ bool vcUnloadModelList(vaultContainer *pVaultContainer)
   }
   while (modelList.length > 0)
     modelList.PopFront();
-  //modelList.Deinit();
 
   return true;
 }
