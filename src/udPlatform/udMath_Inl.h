@@ -378,15 +378,15 @@ udQuaternion<T> udLerp(const udQuaternion<T> &q1, const udQuaternion<T> &q2, dou
 template <typename T>
 udQuaternion<T> udSlerp(const udQuaternion<T> &q1, const udQuaternion<T> &_q2, double t)
 {
-  const double thetaEpsilon = UD_PI / (180.0 * 100.0); // 1/100 of a degree
-  udQuaternion<T> q2 = _q2;
-
 #if UDASSERT_ON
   const double epsilon = 1.0 / 4096;
+#endif
+  const double thetaEpsilon = UD_PI / (180.0 * 100.0); // 1/100 of a degree
+
+  udQuaternion<T> q2 = _q2;
 
   UDASSERT(udIsUnitLength(q1, epsilon), "q1 is not normalized, magnitude %f\n", udMagQ(q1));
   UDASSERT(udIsUnitLength(q2, epsilon), "q2 is not normalized, magnitude %f\n", udMagQ(q2));
-#endif
 
   double cosHalfTheta = udDotQ(q1, q2); // Dot product of 2 quaterions results in cos(theta/2)
 
@@ -719,10 +719,7 @@ udMatrix4x4<T> udMatrix4x4<T>::rotationYPR(T y, T p, T r, const udVector3<T> &t)
 template <typename T>
 udMatrix4x4<T> udMatrix4x4<T>::rotationQuat(const udQuaternion<T> &q, const udVector3<T> &t)
 {
-#if UDASSERT_ON
   UDASSERT(udIsUnitLength(q, T(1.0 / 4096)), "q is not normalized, magnitude %f\n", udMagQ(q));
-#endif //UDASSERT_ON
-
   //This function makes the assumption the quaternion is normalized
   T qx2 = q.x * q.x;
   T qy2 = q.y * q.y;
@@ -805,10 +802,7 @@ udMatrix4x4<T> udMatrix4x4<T>::lookAt(const udVector3<T> &from, const udVector3<
 template <typename T>
 udQuaternion<T> udQuaternion<T>::create(const udVector3<T> &axis, T rad)
 {
-#if UDASSERT_ON
   UDASSERT(udIsUnitLength(axis, T(1.0 / 4096)), "axis is not normalized, magnitude %f\n", udMag(axis));
-#endif //UDASSERT_ON
-
   T a = rad*T(0.5);
   T s = udSin(a);
   udQuaternion<T> r = { axis.x*s,
