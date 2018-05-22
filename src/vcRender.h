@@ -4,12 +4,21 @@
 #include "vcRenderUtils.h"
 #include "vaultUDRenderer.h"
 #include "vaultUDRenderView.h"
+#include "udPlatform/udChunkedArray.h"
 
 struct vcRenderContext;
 struct vaultContext;
 
+struct vcModel
+{
+  char modelPath[1024];
+  bool modelLoaded;
+  vaultUDModel *pVaultModel;
+};
+
 struct vcRenderData
 {
+  udChunkedArray<vcModel*> models;
   udDouble4x4 cameraMatrix;
 };
 

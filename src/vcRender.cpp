@@ -34,7 +34,7 @@ struct vcRenderContext
 };
 
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
-udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext);
+udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, const vcRenderData &renderData);
 
 udResult vcRender_Init(vcRenderContext **ppRenderContext, const udUInt2 &sceneResolution)
 {
@@ -149,7 +149,7 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
 {
   pRenderContext->viewMatrix = renderData.cameraMatrix;
 
-  vcRender_RenderAndUploadUDToTexture(pRenderContext);
+  vcRender_RenderAndUploadUDToTexture(pRenderContext, renderData);
 
   glClearColor(0, 0, 0, 1);
   glViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
@@ -202,30 +202,29 @@ epilogue:
   return result;
 }
 
-// Temporary while setting up initially.
-// References the model loaded in main.cpp
-extern vaultUDModel *pModel;
-
-udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext)
+udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, const vcRenderData &renderData)
 {
   udResult result = udR_Success;
+  vaultUDModel **ppModels = nullptr;
 
   if (vaultUDRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vUDRVM_Camera, pRenderContext->viewMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (pModel)
+  ppModels = udAllocStack(vaultUDModel*, renderData.models.length, udAF_None);
+
+  for (size_t i = 0; i < renderData.models.length; ++i)
   {
-    if (vaultUDRenderer_Render(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, &pModel, 1) != vE_Success)
-      UD_ERROR_SET(udR_InternalError);
+    ppModels[i] = renderData.models[i]->pVaultModel;
   }
 
-  //if (wipeUDBuffers)
-  //  memset(pRenderContext->udRenderContext.pColorBuffer, 0, sizeof(uint32_t) * pRenderContext->sceneResolution.x * pRenderContext->sceneResolution.y);
+  if (vaultUDRenderer_Render(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)renderData.models.length) != vE_Success)
+    UD_ERROR_SET(udR_InternalError);
 
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, pRenderContext->udRenderContext.tex.id);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pRenderContext->udRenderContext.pColorBuffer);
 
 epilogue:
+  udFreeStack(pModels);
   return result;
 }
