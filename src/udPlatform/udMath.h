@@ -68,7 +68,8 @@ float udATan(float f);
 double udATan(double d);
 float udATan2(float y, float x);
 double udATan2(double y, double x);
-
+float udSinh(float y, float x);
+double udSinh(double y, double x);
 template <typename T>
 T udNormaliseRotation(T rad, T absRange = UD_PI);
 
