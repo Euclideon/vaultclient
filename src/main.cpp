@@ -44,6 +44,7 @@ struct ProgramState
   bool programComplete;
   SDL_Window *pWindow;
   bool isFullscreen;
+  float cameraSpeed;
 
   bool planeMode;
   double deltaTime;
@@ -78,6 +79,7 @@ int main(int /*argc*/, char ** /*args*/)
   vaultContainer vContainer = {};
 
   // default values
+  programState.cameraSpeed = 3;
   programState.planeMode = true;
   programState.sceneResolution.x = 1280;
   programState.sceneResolution.y = 720;
@@ -252,7 +254,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
       }
     }
 
-    float speed = 3; // 3 units per second
+    float speed = pProgramState->cameraSpeed; // 3 units per second default
     if ((modState & KMOD_CTRL) > 0)
       speed *= 0.1; // slow
 
@@ -355,10 +357,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
   int menuHeight = (!pProgramState->hasContext) ? 0 : vcMainMenuGui(pProgramState);
 
-  //keyboard handling
-#if UDPLATFORM_WINDOWS
+  //keyboard/mouse handling
   ImGuiIO& io = ImGui::GetIO(); // for future key commands as well
-#endif
   if (ImGui::IsKeyReleased(SDL_SCANCODE_F11))
   {
     pProgramState->isFullscreen = !pProgramState->isFullscreen;
@@ -371,7 +371,22 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   if (io.KeyAlt && ImGui::IsKeyPressed(SDL_SCANCODE_F4))
     pProgramState->programComplete = true;
 #endif
-  //end keyboard handling
+  if (io.MouseWheel > 0)
+  {
+    //increase speed coefficient
+    pProgramState->cameraSpeed += 0.5f;
+    if (pProgramState->cameraSpeed > 30) // set maximum speed as 10x default
+      pProgramState->cameraSpeed = 30;
+  }
+  if (io.MouseWheel < 0)
+  {
+    //decrease speed coefficient
+    pProgramState->cameraSpeed -= 0.5f;
+    if (pProgramState->cameraSpeed < 0.5f) // set minimum speed as 1/6 default
+      pProgramState->cameraSpeed = 0.5f;
+  }
+
+  //end keyboard/mouse handling
 
   if (ImGui::GetIO().DisplaySize.y > 0)
   {
@@ -602,7 +617,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
     if (ImGui::BeginDock("Settings", &pProgramState->windowsOpen[vcdSettings]))
     {
       // settings dock
-      ImGui::Text("Put settings here");
+      ImGui::SliderFloat("sliderCameraSpeed", &(pProgramState->cameraSpeed), 0.5f, 30.0f, "Camera Speed = %.3f");
     }
     ImGui::EndDock();
   }
