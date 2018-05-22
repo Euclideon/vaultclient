@@ -6,7 +6,7 @@ git submodule update --init --recursive
 if [ $? -ne 0 ]; then exit 1; fi
 
 if [ $OSTYPE == "msys" ]; then # Windows, MingW
-	export VAULTSDK_HOME="//bne-fs-fs-003.euclideon.local/Resources/Builds/vault/sdk/Pipeline_24449"
+	export VAULTSDK_HOME="//bne-fs-fs-003.euclideon.local/Resources/Builds/vault/sdk/Pipeline_24491"
 
 	bin/premake/premake5.exe vs2015
 	if [ $? -ne 0 ]; then exit 1; fi
@@ -35,7 +35,7 @@ if [ $OSTYPE == "msys" ]; then # Windows, MingW
 
 	fi
 else
-	export VAULTSDK_HOME="/mnt/Resources/Builds/vault/sdk/Pipeline_24449"
+	export VAULTSDK_HOME="/mnt/Resources/Builds/vault/sdk/Pipeline_24491"
 
 	if [ $OSTYPE == "darwin16" ]; then # OSX, Sierra
 		export OSNAME="OSX"
