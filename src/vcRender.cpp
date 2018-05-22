@@ -87,8 +87,8 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   if (vaultUDRenderer_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  delete[] pRenderContext->udRenderContext.pColorBuffer;
-  delete[] pRenderContext->udRenderContext.pDepthBuffer;
+  udFree(pRenderContext->udRenderContext.pColorBuffer);
+  udFree(pRenderContext->udRenderContext.pDepthBuffer);
 epilogue:
   udFree(pRenderContext);
   return result;
@@ -97,7 +97,7 @@ epilogue:
 udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vaultContext *pVaultContext)
 {
   udResult result = udR_Success;
-  
+
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
 
   pRenderContext->pVaultContext = pVaultContext;
