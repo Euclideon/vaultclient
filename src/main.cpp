@@ -356,7 +356,6 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   int menuHeight = (!pProgramState->hasContext) ? 0 : vcMainMenuGui(pProgramState);
 
   //keyboard handling
-  ImGuiIO& io = ImGui::GetIO();
   if (ImGui::IsKeyReleased(SDL_SCANCODE_F11))
   {
     pProgramState->isFullscreen = !pProgramState->isFullscreen;
