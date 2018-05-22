@@ -64,7 +64,7 @@ else
 			mkdir -p /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME
 			if [ $? -ne 0 ]; then exit 1; fi
 
-			if [ $OSTYPE == "darwin16" ]; then # OSX, Sierra
+			if [[ $OSTYPE == "darwin"* ]]; then # OSX
 				# Make folder to store the framework to build a DMG from
 				mkdir builds/client/bin/packaging
 				if [ $? -ne 0 ]; then exit 1; fi
