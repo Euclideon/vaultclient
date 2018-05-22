@@ -570,7 +570,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         bool selected = false;
         for (int i = 0; i < len; i++)
         {
-
+          ImGui::Columns(2, NULL, false);
           selected = (i == selection);
           if (ImGui::Selectable(modelList[i].modelPath, selected, ImGuiSelectableFlags_AllowDoubleClick))
           {
@@ -583,7 +583,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
               pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
             }
           }
-          ImGui::SameLine();
+          ImGui::NextColumn();
 
           char buttonID[vcMaxModels] = "";
           udSprintf(buttonID, UDARRAYSIZE(buttonID), "UnloadModel%i", i);
@@ -599,7 +599,9 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
             len--;
           }
           ImGui::PopID();
+          ImGui::NextColumn();
         }
+        ImGui::Columns(1);
         ImGui::TreePop();
       }
 
