@@ -12,12 +12,18 @@
 
 #include <stdlib.h>
 
-vaultUDModel *pModel;
+udChunkedArray<vcModel> modelList;
+
+static bool lastModelLoaded;
+
+enum {
+  vcMaxModels = 32,
+};
+
 
 struct vaultContainer
 {
   vaultContext *pContext;
-
   vcRenderContext *pRenderContext;
 };
 
@@ -57,6 +63,7 @@ struct ProgramState
 };
 
 void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer);
+bool vcUnloadModelList(vaultContainer *pVaultContainer);
 
 #undef main
 #ifdef SDL_MAIN_NEEDED
@@ -284,22 +291,19 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
   if (pProgramState->sceneResolution.x != size.x || pProgramState->sceneResolution.y != size.y) //Resize buffers
     vcRender_ResizeScene(pVaultContainer->pRenderContext, (uint32_t)size.x, (uint32_t)size.y);
 
-  if (modelList.length > 0)
-  {
-    vaultUDModel *pModelArray[vcMaxModels];
-    int numValidModels = 0;
-    for (size_t i = 0; i < modelList.length  && i < vcMaxModels; i++)
-    {
-      pModelArray[numValidModels] = modelList[i].pVaultModel;
-      if (pModelArray[numValidModels] != nullptr)
-        numValidModels++;
-    }
-    if (numValidModels > 0)
-      wipeUDBuffers = (vaultUDRenderer_Render(pVaultContainer->pContext, pVaultContainer->pRenderer, pVaultContainer->pRenderView, pModelArray, numValidModels) != vE_Success);
-  }
   vcRenderData renderData = {};
   renderData.cameraMatrix = pProgramState->camMatrix;
+
+  renderData.models.Init(32);
+
+  for (size_t i = 0; i < modelList.length; ++i)
+  {
+    renderData.models.PushBack(&modelList[i]);
+  }
+
   vcTexture texture = vcRender_RenderScene(pVaultContainer->pRenderContext, renderData);
+
+  renderData.models.Deinit();
 
   ImGui::Image((ImTextureID)((size_t)texture.id), size, ImVec2(0, 0), ImVec2(1, -1));
 }
@@ -355,15 +359,11 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   ImGuiIO& io = ImGui::GetIO();
   if (ImGui::IsKeyReleased(SDL_SCANCODE_F11))
   {
-    pRenderingState->isFullscreen != pRenderingState->isFullscreen;
-    if (pRenderingState->isFullscreen)
-    {
-      SDL_MaximizeWindow(pRenderingState->pWindow);
-    }
+    pProgramState->isFullscreen = !pProgramState->isFullscreen;
+    if (pProgramState->isFullscreen)
+      SDL_MaximizeWindow(pProgramState->pWindow);
     else
-    {
-      SDL_RestoreWindow(pRenderingState->pWindow);
-    }
+      SDL_RestoreWindow(pProgramState->pWindow);
   }
   //end keyboard handling
 
@@ -483,16 +483,16 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         {
           vcModel model;
           model.modelLoaded = true;
-          udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pRenderingState->pModelPath);
+          udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pProgramState->pModelPath);
 
           double midPoint[3];
-          err = vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pRenderingState->pModelPath);
+          err = vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pProgramState->pModelPath);
           if (err == vE_Success)
           {
             lastModelLoaded = true;
-            vaultUDModel_GetLocalMatrix(pVaultContainer->pContext, model.pVaultModel, pRenderingState->modelMatrix.a);
+            vaultUDModel_GetLocalMatrix(pVaultContainer->pContext, model.pVaultModel, pProgramState->modelMatrix.a);
             vaultUDModel_GetModelCenter(pVaultContainer->pContext, model.pVaultModel, midPoint);
-            pRenderingState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
+            pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
             modelList.PushBack(model);
           }
           else
@@ -511,7 +511,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       if (!lastModelLoaded)
         ImGui::Text("File not found...");
 
-      udFloat3 modelT = udFloat3::create(pRenderingState->camMatrix.axis.t.toVector3());
+      udFloat3 modelT = udFloat3::create(pProgramState->camMatrix.axis.t.toVector3());
       if (ImGui::InputFloat3("Camera Position", &modelT.x))
         pProgramState->camMatrix.axis.t = udDouble4::create(udDouble3::create(modelT), 1.f);
 
@@ -559,7 +559,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
               // move camera to midpoint of selected object
               double midPoint[3];
               vaultUDModel_GetModelCenter(pVaultContainer->pContext, modelList[i].pVaultModel, midPoint);
-              pRenderingState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
+              pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
             }
           }
           ImGui::SameLine();
@@ -585,15 +585,15 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::EndDock();
     }
 
-    if (ImGui::BeginDock("StyleEditor", &pRenderingState->windowsOpen[vcdStyling]))
+    if (ImGui::BeginDock("StyleEditor", &pProgramState->windowsOpen[vcdStyling]))
       ImGui::ShowStyleEditor();
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("UIDebugMenu", &pRenderingState->windowsOpen[vcdUIDemo]))
+    if (ImGui::BeginDock("UIDebugMenu", &pProgramState->windowsOpen[vcdUIDemo]))
       ImGui::ShowDemoWindow();
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("Settings", &pRenderingState->windowsOpen[vcdSettings]))
+    if (ImGui::BeginDock("Settings", &pProgramState->windowsOpen[vcdSettings]))
     {
       // settings dock
       ImGui::Text("Put settings here");
