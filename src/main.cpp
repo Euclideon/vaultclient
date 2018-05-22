@@ -363,9 +363,9 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   {
     pProgramState->isFullscreen = !pProgramState->isFullscreen;
     if (pProgramState->isFullscreen)
-      SDL_MaximizeWindow(pProgramState->pWindow);
+      SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
     else
-      SDL_RestoreWindow(pProgramState->pWindow);
+      SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
   }
 #if UDPLATFORM_WINDOWS
   if (io.KeyAlt && ImGui::IsKeyPressed(SDL_SCANCODE_F4))
