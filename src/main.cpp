@@ -358,9 +358,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   int menuHeight = (!pProgramState->hasContext) ? 0 : vcMainMenuGui(pProgramState);
 
   //keyboard/mouse handling
-#if UDPLATFORM_WINDOWS
   ImGuiIO& io = ImGui::GetIO(); // for future key commands as well
-#endif
   if (ImGui::IsKeyReleased(SDL_SCANCODE_F11))
   {
     pProgramState->isFullscreen = !pProgramState->isFullscreen;
@@ -372,7 +370,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 #if UDPLATFORM_WINDOWS
   if (io.KeyAlt && ImGui::IsKeyPressed(SDL_SCANCODE_F4))
     pProgramState->programComplete = true;
-
+#endif
   if (io.MouseWheel > 0)
   {
     //increase speed coefficient
@@ -387,7 +385,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
     if (pProgramState->cameraSpeed < 0.5f) // set minimum speed as 1/6 default
       pProgramState->cameraSpeed = 0.5f;
   }
-#endif
+
   //end keyboard/mouse handling
 
   if (ImGui::GetIO().DisplaySize.y > 0)
@@ -619,7 +617,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
     if (ImGui::BeginDock("Settings", &pProgramState->windowsOpen[vcdSettings]))
     {
       // settings dock
-      ImGui::SliderFloat("CameraSpeedSlider", &(pProgramState->cameraSpeed), 0.5f, 30.0f, "Camera Speed = %.3f");
+      ImGui::SliderFloat("sliderCameraSpeed", &(pProgramState->cameraSpeed), 0.5f, 30.0f, "Camera Speed = %.3f");
     }
     ImGui::EndDock();
   }
