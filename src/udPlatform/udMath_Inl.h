@@ -36,6 +36,8 @@ UDFORCE_INLINE float udATan(float f) { return atanf(f); }
 UDFORCE_INLINE double udATan(double d) { return atan(d); }
 UDFORCE_INLINE float udATan2(float y, float x) { return atan2f(y, x); }
 UDFORCE_INLINE double udATan2(double y, double x) { return atan2(y, x); }
+UDFORCE_INLINE float udSinh(float f) { return sinhf(f); }
+UDFORCE_INLINE double udSinh(double d) { return sinh(d); }
 
 UDFORCE_INLINE float udRound(float f) { return f >= 0.0f ? floorf(f + 0.5f) : ceilf(f - 0.5f); }
 UDFORCE_INLINE double udRound(double d) { return d >= 0.0 ? floor(d + 0.5) : ceil(d - 0.5); }
