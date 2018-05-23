@@ -296,7 +296,7 @@ void vcHandleSceneInput(ProgramState *pProgramState, vcSettings *pSettings)
   }
 }
 
-void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgramState, vcSettings *pSettings)
+void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgramState)
 {
   //Rendering
   ImVec2 size = ImGui::GetContentRegionAvail();
@@ -505,7 +505,7 @@ void vcRenderWindow(ProgramState * pProgramState, vaultContainer * pVaultContain
     if (ImGui::BeginDock("Scene", &pProgramState->windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar))
     {
       vcHandleSceneInput(pProgramState, pSettings);
-      vcRenderSceneWindow(pVaultContainer, pProgramState, pSettings);
+      vcRenderSceneWindow(pVaultContainer, pProgramState);
     }
     ImGui::EndDock();
 
