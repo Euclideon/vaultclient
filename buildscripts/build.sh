@@ -5,9 +5,16 @@ git submodule sync --recursive
 git submodule update --init --recursive
 if [ $? -ne 0 ]; then exit 1; fi
 
-if [ $OSTYPE == "msys" ]; then # Windows, MingW
-	export VAULTSDK_HOME="//bne-fs-fs-003.euclideon.local/Resources/Builds/vault/sdk/Pipeline_24545"
+if [ $OSTYPE == "msys" ]; then # Windows, MinGW
+	export RESOURCES="//bne-fs-fs-003.euclideon.local/Resources"
+else
+	export RESOURCES="/mnt/Resources"
+fi
 
+export DEPLOYDIR="$RESOURCES/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
+export VAULTSDK_HOME="$RESOURCES/Builds/vault/sdk/Pipeline_24545"
+
+if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 	bin/premake/premake5.exe vs2015
 	if [ $? -ne 0 ]; then exit 1; fi
 
@@ -18,25 +25,23 @@ if [ $OSTYPE == "msys" ]; then # Windows, MingW
 		if [ $? -ne 0 ]; then exit 1; fi
 
 		# Make sure directory exists
-		mkdir -p //bne-fs-fs-003.euclideon.local/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/Windows
+		mkdir -p $DEPLOYDIR/Windows
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -f bin/sdl/SDL2.dll //bne-fs-fs-003.euclideon.local/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/Windows/SDL2.dll
+		cp -f bin/sdl/SDL2.dll $DEPLOYDIR/Windows/SDL2.dll
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -f builds/client/bin/vaultClient.exe //bne-fs-fs-003.euclideon.local/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/Windows/vaultClient.exe
+		cp -f builds/client/bin/vaultClient.exe $DEPLOYDIR/Windows/vaultClient.exe
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -f builds/client/bin/NotoSansCJKjp-Regular.otf //bne-fs-fs-003.euclideon.local/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/Windows/NotoSansCJKjp-Regular.otf
+		cp -f builds/client/bin/NotoSansCJKjp-Regular.otf $DEPLOYDIR/Windows/NotoSansCJKjp-Regular.otf
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll //bne-fs-fs-003.euclideon.local/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/Windows/vaultSDK.dll
+		cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll $DEPLOYDIR/Windows/vaultSDK.dll
 		if [ $? -ne 0 ]; then exit 1; fi
 
 	fi
 else
-	export VAULTSDK_HOME="/mnt/Resources/Builds/vault/sdk/Pipeline_24545"
-
 	if [[ $OSTYPE == "darwin"* ]]; then # OSX
 		export OSNAME="OSX"
 		export BINARYSUFFIX="osx"
@@ -61,7 +66,7 @@ else
 		# We build for both GCC and Clang, so need to handle them seperately
 		if [ $1 == "Release" ] ; then
 			# Make sure directory exists
-			mkdir -p /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME
+			mkdir -p $DEPLOYDIR/$OSNAME
 			if [ $? -ne 0 ]; then exit 1; fi
 
 			if [[ $OSTYPE == "darwin"* ]]; then # OSX
@@ -77,15 +82,15 @@ else
 
 				hdiutil create builds/client/bin/vaultClient.dmg -volname "vaultClient" -srcfolder builds/client/bin/packaging
 
-				cp -f builds/client/bin/vaultClient.dmg /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME
+				cp -f builds/client/bin/vaultClient.dmg $DEPLOYDIR/$OSNAME
 			else
 				sharedLibExtension="so"
-				cp -f builds/client/bin/NotoSansCJKjp-Regular.otf /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME/NotoSansCJKjp-Regular.otf
+				cp -f builds/client/bin/NotoSansCJKjp-Regular.otf $DEPLOYDIR/$OSNAME/NotoSansCJKjp-Regular.otf
 				if [ $? -ne 0 ]; then exit 1; fi
 
-				cp -f builds/client/bin/vaultClient /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME/vaultClient
+				cp -f builds/client/bin/vaultClient $DEPLOYDIR/$OSNAME/vaultClient
 				if [ $? -ne 0 ]; then exit 1; fi
-				cp -f $VAULTSDK_HOME/lib/linux_GCC_x64/libvaultSDK.so /mnt/Resources/Builds/vault/client/Pipeline_$CI_PIPELINE_ID/$OSNAME/libvaultSDK.so
+				cp -f $VAULTSDK_HOME/lib/linux_GCC_x64/libvaultSDK.so $DEPLOYDIR/$OSNAME/libvaultSDK.so
 			fi
 
 			if [ $? -ne 0 ]; then exit 1; fi
