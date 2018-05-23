@@ -145,9 +145,11 @@ int main(int /*argc*/, char ** /*args*/)
   if (!glcontext)
     goto epilogue;
 
+#if !UDPLATFORM_OSX
   glewExperimental = GL_TRUE;
   if (glewInit() != GLEW_OK)
     goto epilogue;
+#endif
 
   ImGui::CreateContext();
 
