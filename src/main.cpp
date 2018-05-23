@@ -386,20 +386,11 @@ void vcRenderWindow(ProgramState * pProgramState, vaultContainer * pVaultContain
     pProgramState->programComplete = true;
 #endif
   if (io.MouseWheel > 0)
-  {
-    //increase speed coefficient
     pSettings->cameraSpeed += 0.5f;
-    if (pSettings->cameraSpeed > 30) // set maximum speed as 10x default
-      pSettings->cameraSpeed = 30;
-  }
   if (io.MouseWheel < 0)
-  {
-    //decrease speed coefficient
     pSettings->cameraSpeed -= 0.5f;
-    if (pSettings->cameraSpeed < 0.5f) // set minimum speed as 1/6 default
-      pSettings->cameraSpeed = 0.5f;
-  }
 
+  pSettings->cameraSpeed = udClamp(pSettings->cameraSpeed, vcMinCameraSpeed, vcMaxCameraSpeed);
   //end keyboard/mouse handling
 
   if (ImGui::GetIO().DisplaySize.y > 0)
@@ -633,7 +624,7 @@ void vcRenderWindow(ProgramState * pProgramState, vaultContainer * pVaultContain
     if (ImGui::BeginDock("Settings", &pProgramState->windowsOpen[vcdSettings]))
     {
       // settings dock
-      ImGui::SliderFloat("sliderCameraSpeed", &(pSettings->cameraSpeed), 0.5f, 30.0f, "Camera Speed = %.3f");
+      ImGui::SliderFloat("sliderCameraSpeed", &(pSettings->cameraSpeed), vcMinCameraSpeed, vcMaxCameraSpeed, "Camera Speed = %.3f");
 
       ImGui::SliderFloat("sliderCameraNearPlane", &(pSettings->zNear), vcMinCameraPlane, vcMidCameraPlane, "Camera Near Plane = %.3f", 2.f);
       ImGui::SliderFloat("sliderCameraFarPlane", &(pSettings->zFar), vcMidCameraPlane, vcMaxCameraPlane, "Camera Far Plane = %.3f", 2.f);
