@@ -9,6 +9,7 @@
 #include "udPlatform/udChunkedArray.h"
 #include "udPlatform/udPlatformUtil.h"
 #include "vcRender.h"
+#include "vcSettings.h"
 
 #include <stdlib.h>
 
@@ -44,7 +45,6 @@ struct ProgramState
   bool programComplete;
   SDL_Window *pWindow;
   bool isFullscreen;
-  float cameraSpeed;
 
   bool planeMode;
   double deltaTime;
@@ -61,9 +61,14 @@ struct ProgramState
   char *pPassword;
 
   char *pModelPath;
+
+  vcSettings *pSettings;
 };
 
-void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer);
+vcSettings settings;
+
+void vcHandleSceneInput(ProgramState *pProgramState, vcSettings *pSettings);
+void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer, vcSettings *pSettings);
 bool vcUnloadModelList(vaultContainer *pVaultContainer);
 
 #undef main
@@ -79,11 +84,16 @@ int main(int /*argc*/, char ** /*args*/)
   vaultContainer vContainer = {};
 
   // default values
-  programState.cameraSpeed = 3;
   programState.planeMode = true;
   programState.sceneResolution.x = 1280;
   programState.sceneResolution.y = 720;
   programState.camMatrix = udDouble4x4::identity();
+
+  settings.cameraSpeed = 3.f;
+  settings.zNear = 0.5f;
+  settings.zFar = 10000.f;
+
+  programState.pSettings = &settings;
 
   modelList.Init(32);
   lastModelLoaded = true;
@@ -162,7 +172,7 @@ int main(int /*argc*/, char ** /*args*/)
   NOW = SDL_GetPerformanceCounter();
   LAST = 0;
 
-  if (vcRender_Init(&vContainer.pRenderContext, programState.sceneResolution) != udR_Success)
+  if (vcRender_Init(&vContainer.pRenderContext, programState.pSettings, programState.sceneResolution) != udR_Success)
     goto epilogue;
 
   ImGui::LoadDock();
@@ -183,7 +193,7 @@ int main(int /*argc*/, char ** /*args*/)
 
     ImGui_ImplSdlGL3_NewFrame(programState.pWindow);
 
-    vcRenderWindow(&programState, &vContainer);
+    vcRenderWindow(&programState, &vContainer, programState.pSettings);
 
     ImGui::Render();
     ImGui_ImplSdlGL3_RenderDrawData(ImGui::GetDrawData());
@@ -208,7 +218,7 @@ epilogue:
   return 0;
 }
 
-void vcHandleSceneInput(ProgramState *pProgramState)
+void vcHandleSceneInput(ProgramState *pProgramState, vcSettings *pSettings)
 {
   ImGuiIO& io = ImGui::GetIO();
 
@@ -256,7 +266,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
       }
     }
 
-    float speed = pProgramState->cameraSpeed; // 3 units per second default
+    float speed = pSettings->cameraSpeed; // 3 units per second default
     if ((modState & KMOD_CTRL) > 0)
       speed *= 0.1; // slow
 
@@ -286,7 +296,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
   }
 }
 
-void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgramState)
+void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgramState, vcSettings *pSettings)
 {
   //Rendering
   ImVec2 size = ImGui::GetContentRegionAvail();
@@ -295,7 +305,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
     return;
 
   if (pProgramState->sceneResolution.x != size.x || pProgramState->sceneResolution.y != size.y) //Resize buffers
-    vcRender_ResizeScene(pVaultContainer->pRenderContext, (uint32_t)size.x, (uint32_t)size.y);
+    vcRender_ResizeScene(pVaultContainer->pRenderContext, pProgramState->pSettings, (uint32_t)size.x, (uint32_t)size.y);
 
   vcRenderData renderData = {};
   renderData.cameraMatrix = pProgramState->camMatrix;
@@ -306,6 +316,8 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
   {
     renderData.models.PushBack(&modelList[i]);
   }
+
+
 
   vcTexture texture = vcRender_RenderScene(pVaultContainer->pRenderContext, renderData);
 
@@ -351,7 +363,7 @@ int vcMainMenuGui(ProgramState *pProgramState)
   return menuHeight;
 }
 
-void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer)
+void vcRenderWindow(ProgramState * pProgramState, vaultContainer * pVaultContainer, vcSettings * pSettings)
 {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glClearColor(0, 0, 0, 1);
@@ -378,16 +390,16 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   if (io.MouseWheel > 0)
   {
     //increase speed coefficient
-    pProgramState->cameraSpeed += 0.5f;
-    if (pProgramState->cameraSpeed > 30) // set maximum speed as 10x default
-      pProgramState->cameraSpeed = 30;
+    pSettings->cameraSpeed += 0.5f;
+    if (pSettings->cameraSpeed > 30) // set maximum speed as 10x default
+      pSettings->cameraSpeed = 30;
   }
   if (io.MouseWheel < 0)
   {
     //decrease speed coefficient
-    pProgramState->cameraSpeed -= 0.5f;
-    if (pProgramState->cameraSpeed < 0.5f) // set minimum speed as 1/6 default
-      pProgramState->cameraSpeed = 0.5f;
+    pSettings->cameraSpeed -= 0.5f;
+    if (pSettings->cameraSpeed < 0.5f) // set minimum speed as 1/6 default
+      pSettings->cameraSpeed = 0.5f;
   }
 
   //end keyboard/mouse handling
@@ -492,8 +504,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   {
     if (ImGui::BeginDock("Scene", &pProgramState->windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar))
     {
-      vcHandleSceneInput(pProgramState);
-      vcRenderSceneWindow(pVaultContainer, pProgramState);
+      vcHandleSceneInput(pProgramState, pSettings);
+      vcRenderSceneWindow(pVaultContainer, pProgramState, pSettings);
     }
     ImGui::EndDock();
 
@@ -623,7 +635,10 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
     if (ImGui::BeginDock("Settings", &pProgramState->windowsOpen[vcdSettings]))
     {
       // settings dock
-      ImGui::SliderFloat("sliderCameraSpeed", &(pProgramState->cameraSpeed), 0.5f, 30.0f, "Camera Speed = %.3f");
+      ImGui::SliderFloat("sliderCameraSpeed", &(pSettings->cameraSpeed), 0.5f, 30.0f, "Camera Speed = %.3f");
+
+      ImGui::SliderFloat("sliderCameraNearPlane", &(pSettings->zNear), vcMinCameraPlane, vcMidCameraPlane, "Camera Near Plane = %.3f", 2.f);
+      ImGui::SliderFloat("sliderCameraFarPlane", &(pSettings->zFar), vcMidCameraPlane, vcMaxCameraPlane, "Camera Far Plane = %.3f", 2.f);
     }
     ImGui::EndDock();
   }
