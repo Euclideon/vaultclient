@@ -1,14 +1,20 @@
-function injectudbin()
-	-- Calculate the paths
-	local ud2Location = path.getrelative(_SCRIPT_DIR, _MAIN_SCRIPT_DIR .. "/../vault/ud")
+function getosinfo()
 	local osname = "windows"
 	local distroExtension = ""
-	if os.get() == premake.MACOSX then
-		osname = iif(_OPTIONS["ios"], "ios", "macosx")
-	elseif os.get() ~= premake.WINDOWS then
+	if os.target() == premake.MACOSX then
+		osname = "macosx"
+	elseif os.target() ~= premake.WINDOWS then
 		osname = os.outputof('lsb_release -ir | head -n2 | cut -d ":" -f 2 | tr -d "\n\t" | tr [:upper:] [:lower:] | cut -d "." -f 1')
 		distroExtension = iif(string.startswith(osname, "ubuntu"), "_deb", "_rpm")
 	end
+
+	return osname, distroExtension
+end
+
+function injectudbin()
+	-- Calculate the paths
+	local ud2Location = path.getrelative(_SCRIPT_DIR, _MAIN_SCRIPT_DIR .. "/../vault/ud")
+	local osname, distroExtension = getosinfo()
 
 	-- Calculate the libdir location
 	local libPath = "/lib"
@@ -27,34 +33,27 @@ end
 
 function injectvaultsdkbin()
 	-- Calculate the paths
-	local osname = "windows"
-	local distroExtension = ""
-	if os.get() == premake.MACOSX then
-		osname = iif(_OPTIONS["ios"], "ios", "macosx")
-	elseif os.get() ~= premake.WINDOWS then
-		osname = os.outputof('lsb_release -ir | head -n2 | cut -d ":" -f 2 | tr -d "\n\t" | tr [:upper:] [:lower:] | cut -d "." -f 1')
-		distroExtension = iif(string.startswith(osname, "ubuntu"), "_deb", "_rpm")
-	end
+	local osname, distroExtension = getosinfo()
 
-	if(os.get() == premake.MACOSX) then
+	if os.target() == premake.MACOSX then
 		links { "vaultSDK.framework" }
 	else
 		links { "vaultSDK" }
 	end
   
-	if(_OPTIONS["force-vaultsdk"]) then
+	if _OPTIONS["force-vaultsdk"] then
 		includedirs { "../vault/vaultsdk/src" }
 	else
-		if(os.getenv("VAULTSDK_HOME") == nil) then
+		if os.getenv("VAULTSDK_HOME") == nil then
 			error "VaultSDK not installed correctly. (No VAULTSDK_HOME environment variable set!)"
 		end
 
-		if(os.get() == premake.WINDOWS) then
+		if os.target() == premake.WINDOWS then
 			os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.dll", "builds/client/bin/vaultSDK.dll")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.lib", "src/vaultSDK.lib")
 			libdirs { "src" }
-		elseif(os.get() == premake.MACOSX) then
+		elseif os.target() == premake.MACOSX then
 			os.execute("mkdir -p builds/client/bin")
 
 			-- copy dmg, mount, extract framework, unmount then remove.
@@ -91,13 +90,13 @@ newoption {
 
 solution "vaultClient"
 	-- This hack just makes the VS project and also the makefile output their configurations in the idiomatic order
-	if _ACTION == "gmake" and _OS == "linux" then
+	if _ACTION == "gmake" and os.target() == "linux" then
 		configurations { "Release", "Debug", "ReleaseClang", "DebugClang" }
 		linkgroups "On"
 		filter { "configurations:*Clang" }
 			toolset "clang"
 		filter { }
-	elseif _OS == "macosx" then
+	elseif os.target() == "macosx" then
 		configurations { "Release", "Debug" }
 		toolset "clang"
 	else
@@ -107,12 +106,12 @@ solution "vaultClient"
 	platforms { "x64" }
 	editorintegration "on"
 
-	flags { "C++11" }
+	cppdialect "C++11"
 	pic "On"
 
 	xcodebuildsettings { ["CLANG_CXX_LANGUAGE_STANDARD"] = "c++0x" }
 
-	if(os.get() == premake.WINDOWS) then
+	if os.target() == premake.WINDOWS then
 		os.copyfile("bin/sdl/SDL2.dll", "builds/client/bin/SDL2.dll")
 	end
 
@@ -133,17 +132,19 @@ solution "vaultClient"
 	end
 
 	if _OPTIONS["force-vaultsdk"] then
-		if os.get() ~= premake.MACOSX then
+		if os.target() ~= premake.MACOSX then
 			dofile "../vault/3rdParty/curl/project.lua"
 		end
 		dofile "../vault/ud/udPlatform/project.lua"
 		dofile "../vault/ud/udPointCloud/project.lua"
 		dofile "../vault/vaultcore/project.lua"
 		dofile "../vault/vaultsdk/project.lua"
-		xcodebuildsettings {
-			['INSTALL_PATH'] = "@executable_path/../Frameworks",
-			['SKIP_INSTALL'] = "YES"
-		}
+		filter { "system:macosx" }
+			xcodebuildsettings {
+				['INSTALL_PATH'] = "@executable_path/../Frameworks",
+				['SKIP_INSTALL'] = "YES"
+			}
+		filter {}
 		targetdir "builds/client/bin"
 		debugdir "builds/client/bin"
 	end
