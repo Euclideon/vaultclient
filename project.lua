@@ -16,7 +16,7 @@ project "vaultClient"
 	--This project includes
 	includedirs { "src" }
 	includedirs { "3rdParty/Imgui" }
-	includedirs { "3rdParty/stbi" }
+	includedirs { "3rdParty/stb" }
 	sysincludedirs { "3rdParty/SDL2-2.0.5/include" }
 
 	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS" }

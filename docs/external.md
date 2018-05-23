@@ -5,3 +5,4 @@
 - `cURL` from [GitHub](https://github.com/curl/curl)
 - `libSDL2` from [libsdl](https://libsdl.org)
 - `GLEW` from [SourceForge](http://glew.sourceforge.net/)
+- `Nothings/STB` single header libraries from [GitHub](https://github.com/nothings/stb)
