@@ -42,7 +42,17 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 
 	fi
 else
-	if [[ $OSTYPE == "darwin"* ]]; then # OSX
+	if ([[ $OSTYPE == "darwin"* ]] && [ $3 == "ios" ]); then # iOS
+		export OSNAME="iOS_$2"
+		export BINARYSUFFIX="osx"
+		bin/premake/premake5-osx xcode4 --os=ios
+		if [ $? -ne 0 ]; then exit 1; fi
+		if [ $2 == "x86_64" ]; then # Simulator
+			xcodebuild -project vaultClient.xcodeproj -configuration $1 -arch $2 -sdk iphonesimulator
+		else
+			xcodebuild -project vaultClient.xcodeproj -configuration $1 -arch $2
+		fi
+	elif [[ $OSTYPE == "darwin"* ]]; then # OSX
 		export OSNAME="OSX"
 		export BINARYSUFFIX="osx"
 		bin/premake/premake5-osx xcode4
