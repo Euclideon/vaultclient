@@ -33,10 +33,10 @@ struct vcRenderContext
   udDouble4x4 viewMatrix;
 };
 
-udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
+udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext, vcSettings *pSettings);
 udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, const vcRenderData &renderData);
 
-udResult vcRender_Init(vcRenderContext **ppRenderContext, const udUInt2 &sceneResolution)
+udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings, const udUInt2 &sceneResolution)
 {
   udResult result = udR_Success;
   vcRenderContext *pRenderContext = nullptr;
@@ -63,7 +63,7 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, const udUInt2 &sceneRe
 
   *ppRenderContext = pRenderContext;
 
-  result = vcRender_ResizeScene(pRenderContext, sceneResolution.x, sceneResolution.y);
+  result = vcRender_ResizeScene(pRenderContext, pSettings, sceneResolution.x, sceneResolution.y);
   if (result != udR_Success)
     goto epilogue;
 
@@ -109,7 +109,7 @@ epilogue:
   return result;
 }
 
-udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height)
+udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, vcSettings *pSettings, const uint32_t width, const uint32_t height)
 {
   udResult result = udR_Success;
 
@@ -139,7 +139,7 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
   pRenderContext->udRenderContext.pDepthBuffer = udAllocType(float, pRenderContext->sceneResolution.x*pRenderContext->sceneResolution.y, udAF_Zero);
 
   if (pRenderContext->pVaultContext)
-    vcRender_RecreateUDView(pRenderContext);
+    vcRender_RecreateUDView(pRenderContext, pSettings);
 
 epilogue:
   return result;
@@ -175,13 +175,13 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
   return pRenderContext->texture;
 }
 
-udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext)
+udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext, vcSettings *pSettings)
 {
   udResult result = udR_Success;
   float rad = UD_PIf / 3.f;
   float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
-  float zNear = 0.5f;
-  float zFar = 10000.f;
+  float zNear = pSettings->zNear;
+  float zFar = pSettings->zFar;
   udDouble4x4 projMat = udDouble4x4::perspective(rad, aspect, zNear, zFar);
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
