@@ -87,3 +87,27 @@ macosx_x64_debug:
   script: "buildscripts/build.sh Debug x64"
   tags:
     - osx
+
+ios_x64_release:
+  stage: build
+  script: "buildscripts/build.sh Release x86_64 ios"
+  tags:
+    - osx
+
+ios_x64_debug:
+  stage: build
+  script: "buildscripts/build.sh Debug x86_64 ios"
+  tags:
+    - osx
+
+ios_arm64_release:
+  stage: build
+  script: "buildscripts/build.sh Release arm64 ios"
+  tags:
+    - osx
+
+ios_arm64_debug:
+  stage: build
+  script: "buildscripts/build.sh Debug arm64 ios"
+  tags:
+    - osx
