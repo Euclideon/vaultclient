@@ -1,7 +1,13 @@
 #ifndef vcTexture_h__
 #define vcTexture_h__
 
-#include "GL/glew.h"
+#include "udPlatform/udPlatform.h"
+#if UDPLATFORM_OSX
+# include "OpenGL/gl3.h"
+# include "OpenGL/gl3ext.h"
+#else
+# include "GL/glew.h"
+#endif
 
 #include "udPlatform/udMath.h"
 
@@ -27,7 +33,7 @@ struct vcFramebuffer
 {
   GLuint id;
 
-  vcTexture *pAttachments[1]; 
+  vcTexture *pAttachments[1];
   vcTexture *pDepth; // optional
 };
 

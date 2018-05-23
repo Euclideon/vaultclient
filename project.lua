@@ -11,16 +11,14 @@ project "vaultClient"
 	--Files to include
 	files { "src/**.cpp", "src/**.h", "src/**.c" }
 	files { "3rdParty/Imgui/**.cpp", "3rdParty/Imgui/**.h" }
-	files { "3rdParty/glew/glew.c" }
 	files { "project.lua" }
 
 	--This project includes
 	includedirs { "src" }
 	includedirs { "3rdParty/Imgui" }
-	sysincludedirs { "3rdParty/glew/include" }
 	includedirs { "3rdParty/SDL2-2.0.5/include" }
 
-	defines { "GLEW_STATIC", "IMGUI_DISABLE_OBSOLETE_FUNCTIONS" }
+	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS" }
 
 	symbols "On"
 	injectvaultsdkbin()
@@ -30,16 +28,21 @@ project "vaultClient"
 		optimize "Debug"
 		removeflags { "FatalWarnings" }
 
-	-- Turn off warnings as errors for ImGui.
-	filter { "system:linux" }
-		removeflags { "FatalWarnings" }
-
 	filter { "configurations:Debug", "system:Windows" }
 		ignoredefaultlibraries { "libcmt" }
 
 	filter { "configurations:Release" }
 		optimize "Full"
 		flags { "NoFramePointer", "NoBufferSecurityCheck" }
+
+	filter { "system:linux or windows" }
+		defines { "GLEW_STATIC" }
+		sysincludedirs { "3rdParty/glew/include" }
+		files { "3rdParty/glew/glew.c" }
+
+	-- Turn off warnings as errors for ImGui.
+	filter { "system:linux" }
+		removeflags { "FatalWarnings" }
 
 	filter { "system:windows" }
 		linkoptions( "/LARGEADDRESSAWARE" )
