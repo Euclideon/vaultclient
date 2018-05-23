@@ -62,13 +62,11 @@ struct ProgramState
 
   char *pModelPath;
 
-  vcSettings *pSettings;
+  vcSettings settings;
 };
 
-vcSettings settings;
-
-void vcHandleSceneInput(ProgramState *pProgramState, vcSettings *pSettings);
-void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer, vcSettings *pSettings);
+void vcHandleSceneInput(ProgramState *pProgramState);
+void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer);
 bool vcUnloadModelList(vaultContainer *pVaultContainer);
 
 #undef main
@@ -89,11 +87,9 @@ int main(int /*argc*/, char ** /*args*/)
   programState.sceneResolution.y = 720;
   programState.camMatrix = udDouble4x4::identity();
 
-  settings.cameraSpeed = 3.f;
-  settings.zNear = 0.5f;
-  settings.zFar = 10000.f;
-
-  programState.pSettings = &settings;
+  programState.settings.cameraSpeed = 3.f;
+  programState.settings.zNear = 0.5f;
+  programState.settings.zFar = 10000.f;
 
   modelList.Init(32);
   lastModelLoaded = true;
@@ -172,7 +168,7 @@ int main(int /*argc*/, char ** /*args*/)
   NOW = SDL_GetPerformanceCounter();
   LAST = 0;
 
-  if (vcRender_Init(&vContainer.pRenderContext, programState.pSettings, programState.sceneResolution) != udR_Success)
+  if (vcRender_Init(&vContainer.pRenderContext, &(programState.settings), programState.sceneResolution) != udR_Success)
     goto epilogue;
 
   ImGui::LoadDock();
@@ -193,7 +189,7 @@ int main(int /*argc*/, char ** /*args*/)
 
     ImGui_ImplSdlGL3_NewFrame(programState.pWindow);
 
-    vcRenderWindow(&programState, &vContainer, programState.pSettings);
+    vcRenderWindow(&programState, &vContainer);
 
     ImGui::Render();
     ImGui_ImplSdlGL3_RenderDrawData(ImGui::GetDrawData());
@@ -218,7 +214,7 @@ epilogue:
   return 0;
 }
 
-void vcHandleSceneInput(ProgramState *pProgramState, vcSettings *pSettings)
+void vcHandleSceneInput(ProgramState *pProgramState)
 {
   ImGuiIO& io = ImGui::GetIO();
 
@@ -266,7 +262,7 @@ void vcHandleSceneInput(ProgramState *pProgramState, vcSettings *pSettings)
       }
     }
 
-    float speed = pSettings->cameraSpeed; // 3 units per second default
+    float speed = pProgramState->settings.cameraSpeed; // 3 units per second default
     if ((modState & KMOD_CTRL) > 0)
       speed *= 0.1; // slow
 
@@ -305,7 +301,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
     return;
 
   if (pProgramState->sceneResolution.x != size.x || pProgramState->sceneResolution.y != size.y) //Resize buffers
-    vcRender_ResizeScene(pVaultContainer->pRenderContext, pProgramState->pSettings, (uint32_t)size.x, (uint32_t)size.y);
+    vcRender_ResizeScene(pVaultContainer->pRenderContext, &(pProgramState->settings), (uint32_t)size.x, (uint32_t)size.y);
 
   vcRenderData renderData = {};
   renderData.cameraMatrix = pProgramState->camMatrix;
@@ -361,7 +357,7 @@ int vcMainMenuGui(ProgramState *pProgramState)
   return menuHeight;
 }
 
-void vcRenderWindow(ProgramState * pProgramState, vaultContainer * pVaultContainer, vcSettings * pSettings)
+void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer)
 {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glClearColor(0, 0, 0, 1);
@@ -386,11 +382,11 @@ void vcRenderWindow(ProgramState * pProgramState, vaultContainer * pVaultContain
     pProgramState->programComplete = true;
 #endif
   if (io.MouseWheel > 0)
-    pSettings->cameraSpeed += 0.5f;
+    pProgramState->settings.cameraSpeed *= 1.1f;
   if (io.MouseWheel < 0)
-    pSettings->cameraSpeed -= 0.5f;
+    pProgramState->settings.cameraSpeed /= 1.1f;
 
-  pSettings->cameraSpeed = udClamp(pSettings->cameraSpeed, vcMinCameraSpeed, vcMaxCameraSpeed);
+  pProgramState->settings.cameraSpeed = udClamp(pProgramState->settings.cameraSpeed, vcMinCameraSpeed, vcMaxCameraSpeed);
   //end keyboard/mouse handling
 
   if (ImGui::GetIO().DisplaySize.y > 0)
@@ -493,7 +489,7 @@ void vcRenderWindow(ProgramState * pProgramState, vaultContainer * pVaultContain
   {
     if (ImGui::BeginDock("Scene", &pProgramState->windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar))
     {
-      vcHandleSceneInput(pProgramState, pSettings);
+      vcHandleSceneInput(pProgramState);
       vcRenderSceneWindow(pVaultContainer, pProgramState);
     }
     ImGui::EndDock();
@@ -624,10 +620,10 @@ void vcRenderWindow(ProgramState * pProgramState, vaultContainer * pVaultContain
     if (ImGui::BeginDock("Settings", &pProgramState->windowsOpen[vcdSettings]))
     {
       // settings dock
-      ImGui::SliderFloat("sliderCameraSpeed", &(pSettings->cameraSpeed), vcMinCameraSpeed, vcMaxCameraSpeed, "Camera Speed = %.3f");
+      ImGui::SliderFloat("sliderCameraSpeed", &(pProgramState->settings.cameraSpeed), vcMinCameraSpeed, vcMaxCameraSpeed, "Camera Speed = %.3f", 2.f);
 
-      ImGui::SliderFloat("sliderCameraNearPlane", &(pSettings->zNear), vcMinCameraPlane, vcMidCameraPlane, "Camera Near Plane = %.3f", 2.f);
-      ImGui::SliderFloat("sliderCameraFarPlane", &(pSettings->zFar), vcMidCameraPlane, vcMaxCameraPlane, "Camera Far Plane = %.3f", 2.f);
+      ImGui::SliderFloat("sliderCameraNearPlane", &(pProgramState->settings.zNear), vcMinCameraPlane, vcMidCameraPlane, "Camera Near Plane = %.3f", 2.f);
+      ImGui::SliderFloat("sliderCameraFarPlane", &(pProgramState->settings.zFar), vcMidCameraPlane, vcMaxCameraPlane, "Camera Far Plane = %.3f", 2.f);
     }
     ImGui::EndDock();
   }
