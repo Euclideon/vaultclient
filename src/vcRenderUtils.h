@@ -1,7 +1,13 @@
 #ifndef vcRenderUtils_h__
 #define vcRenderUtils_h__
 
-#include "GL/glew.h"
+#include "udPlatform/udPlatform.h"
+#if UDPLATFORM_OSX
+# include "OpenGL/gl3.h"
+# include "OpenGL/gl3ext.h"
+#else
+# include "GL/glew.h"
+#endif
 
 #include "vcTexture.h"
 #include "udPlatform/udMath.h"
