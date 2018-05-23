@@ -210,7 +210,8 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, co
   if (vaultUDRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vUDRVM_Camera, pRenderContext->viewMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  ppModels = udAllocStack(vaultUDModel*, renderData.models.length, udAF_None);
+  if(renderData.models.length > 0)
+    ppModels = udAllocStack(vaultUDModel*, renderData.models.length, udAF_None);
 
   for (size_t i = 0; i < renderData.models.length; ++i)
   {
