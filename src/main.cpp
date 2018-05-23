@@ -277,6 +277,8 @@ void vcHandleSceneInput(ProgramState *pProgramState)
     {
       direction = pProgramState->camMatrix.axis.y * deltaMoveForward + pProgramState->camMatrix.axis.x * deltaMoveRight;
       direction.z = 0;
+      if(direction.x != 0 || direction.y != 0)
+        direction = udNormalize3(direction) * speed;
       direction += udDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
     }
 
