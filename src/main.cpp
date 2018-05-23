@@ -317,8 +317,6 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
     renderData.models.PushBack(&modelList[i]);
   }
 
-
-
   vcTexture texture = vcRender_RenderScene(pVaultContainer->pRenderContext, renderData);
 
   renderData.models.Deinit();
