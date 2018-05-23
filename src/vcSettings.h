@@ -14,5 +14,7 @@ enum
   vcMidCameraPlane = 100,
   vcMaxCameraPlane = 10000,
 };
+const float vcMinCameraSpeed = 0.5f;
+const float vcMaxCameraSpeed = 30.f;
 
 #endif // ! vcSettings_h__
