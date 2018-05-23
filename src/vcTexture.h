@@ -5,6 +5,9 @@
 #if UDPLATFORM_OSX
 # include "OpenGL/gl3.h"
 # include "OpenGL/gl3ext.h"
+#elif UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+# include "OpenGLES/ES3/gl.h"
+# include "OpenGLES/ES3/glext.h"
 #else
 # include "GL/glew.h"
 #endif
