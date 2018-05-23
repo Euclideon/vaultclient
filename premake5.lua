@@ -1,8 +1,26 @@
+require "ios"
+
+table.insert(premake.option.get("os").allowed, { "ios", "Apple iOS" })
+
+filter { "system:ios", "action:xcode4" }
+  xcodebuildsettings {
+    ['PRODUCT_BUNDLE_IDENTIFIER'] = 'Euclideon Client',
+    ["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = "iPhone Developer",
+    ['IPHONEOS_DEPLOYMENT_TARGET'] = '10.3',
+    ['SDKROOT'] = 'iphoneos',
+    ['ARCHS'] = 'arm64',
+    ['TARGETED_DEVICE_FAMILY'] = "1,2",
+    ['DEVELOPMENT_TEAM'] = "452P989JPT",
+    ['ENABLE_BITCODE'] = "NO",
+  }
+
 function getosinfo()
 	local osname = "windows"
 	local distroExtension = ""
 	if os.target() == premake.MACOSX then
 		osname = "macosx"
+	elseif os.target() == premake.IOS then
+		osname = "ios"
 	elseif os.target() ~= premake.WINDOWS then
 		osname = os.outputof('lsb_release -ir | head -n2 | cut -d ":" -f 2 | tr -d "\n\t" | tr [:upper:] [:lower:] | cut -d "." -f 1')
 		distroExtension = iif(string.startswith(osname, "ubuntu"), "_deb", "_rpm")
@@ -72,6 +90,12 @@ function injectvaultsdkbin()
 			}
 			linkoptions { "-rpath @executable_path/../Frameworks/" }
 			frameworkdirs { "builds/client/bin" }
+		elseif os.target() == premake.IOS then
+			os.execute("mkdir -p builds/client/bin")
+			os.execute("lipo -create " .. os.getenv("VAULTSDK_HOME") .. "/lib/ios_arm64/libvaultSDK.dylib " .. os.getenv("VAULTSDK_HOME") .. "/lib/ios_x64/libvaultSDK.dylib -output builds/client/bin/libvaultSDK.dylib")
+			os.execute("codesign -s - builds/client/bin/libvaultSDK.dylib") -- Is this required?
+			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
+			libdirs { "builds/client/bin" }
 		else
 			os.execute("mkdir -p builds/client/bin")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/linux_GCC_x64/libvaultSDK.so", "builds/client/bin/libvaultSDK.so")
@@ -96,7 +120,7 @@ solution "vaultClient"
 		filter { "configurations:*Clang" }
 			toolset "clang"
 		filter { }
-	elseif os.target() == "macosx" then
+	elseif os.target() == "macosx" or os.target() == "ios" then
 		configurations { "Release", "Debug" }
 		toolset "clang"
 	else

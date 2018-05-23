@@ -16,7 +16,7 @@ project "vaultClient"
 	--This project includes
 	includedirs { "src" }
 	includedirs { "3rdParty/Imgui" }
-	includedirs { "3rdParty/SDL2-2.0.5/include" }
+	sysincludedirs { "3rdParty/SDL2-2.0.5/include" }
 
 	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS" }
 
@@ -57,6 +57,13 @@ project "vaultClient"
 		frameworkdirs { "/Library/Frameworks/" }
 		links { "SDL2.framework", "OpenGL.framework" }
 
+	filter { "system:ios" }
+		files { "Info.plist", "builds/client/bin/libvaultSDK.dylib" }
+		xcodebuildresources { "libvaultSDK" }
+		removefiles { "3rdParty/glew/glew.c" }
+		libdirs { "3rdParty/SDL2-2.0.5/lib/ios" }
+		links { "SDL2", "AudioToolbox.framework", "QuartzCore.framework", "OpenGLES.framework", "CoreGraphics.framework", "UIKit.framework", "Foundation.framework", "CoreAudio.framework", "AVFoundation.framework", "GameController.framework", "CoreMotion.framework" }
+
 	filter { "system:not windows" }
 		links { "dl" }
 
@@ -67,6 +74,10 @@ project "vaultClient"
 
 	-- include common stuff
 	dofile "bin/premake/common-proj.lua"
+
+	filter { "system:ios" }
+		removeflags { "FatalWarnings" }
+	filter {}
 
 	targetdir "builds/client/bin"
 	debugdir "builds/client/bin"
