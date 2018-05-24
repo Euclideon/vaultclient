@@ -215,7 +215,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
   const Uint8 *pKeysArray = SDL_GetKeyboardState(NULL);
   SDL_Keymod modState = SDL_GetModState();
 
-  bool isHovered = true;// ImGui::IsItemHovered();
+  bool isHovered = ImGui::IsItemHovered();
   bool isLeftClicked = ImGui::IsMouseClicked(0, false);
   bool isRightClicked = ImGui::IsMouseClicked(1, false);
   bool isFocused = ImGui::IsWindowFocused();
@@ -492,8 +492,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   {
     if (ImGui::BeginDock("Scene", &pProgramState->windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar))
     {
-      vcHandleSceneInput(pProgramState);
       vcRenderSceneWindow(pVaultContainer, pProgramState);
+      vcHandleSceneInput(pProgramState);
     }
     ImGui::EndDock();
 
