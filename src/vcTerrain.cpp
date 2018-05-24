@@ -3,12 +3,10 @@
 #include "vcQuadTree.h"
 #include "vcTerrainRenderer.h"
 
-float gWorldScale = 1000.0f; // temp world scale until i sort out lat/long coordinates
 
 struct vcTerrain
 {
   bool enabled;
-  vcQuadTree *pQuadTree;
   vcTerrainRenderer *pTerrainRenderer;
 };
 
@@ -25,9 +23,6 @@ udResult vcTerrain_Init(vcTerrain **ppTerrain)
   pTerrain->enabled = true;
   vcTerrainRenderer_Init(&pTerrain->pTerrainRenderer);
 
-  if (vcQuadTree_Init(&pTerrain->pQuadTree) != udR_Success)
-    UD_ERROR_SET(udR_InternalError);
-
   *ppTerrain = pTerrain;
 epilogue:
   return result;
@@ -43,15 +38,13 @@ udResult vcTerrain_Destroy(vcTerrain **ppTerrain)
   *ppTerrain = nullptr;
 
   vcTerrainRenderer_Destroy(&pTerrain->pTerrainRenderer);
-  if (vcQuadTree_Destroy(&pTerrain->pQuadTree) != udR_Success)
-    UD_ERROR_SET(udR_InternalError);
 
 epilogue:
   udFree(pTerrain);
   return result;
 }
 
-void vcTerrain_BuildTerrain(vcTerrain *pTerrain, const udFloat2 &viewLatLong, const float viewSize)
+void vcTerrain_BuildTerrain(vcTerrain *pTerrain, const udDouble2 worldCorners[4], const udInt3 &slippyCoords, const udDouble2 &localViewPos, const double localViewSize)
 {
   if (!pTerrain->enabled)
     return;
@@ -60,12 +53,13 @@ void vcTerrain_BuildTerrain(vcTerrain *pTerrain, const udFloat2 &viewLatLong, co
   vcQuadTreeNode *pNodeList = nullptr;
   int nodeCount = 0;
 
-  // todo: convert from lat, long to local tree space
-  udFloat2 viewLatLongMS = udFloat2::create(viewLatLong);
-  udFloat2 viewSizeMS = udFloat2::create(viewSize);
+  // calculate view in quad tree space [0, 1]
+  udDouble2 worldScale = udDouble2::create(worldCorners[3].x - worldCorners[0].x, worldCorners[0].y - worldCorners[3].y);
+  udFloat2 viewPosMS = udFloat2::create((localViewPos - udDouble2::create(worldCorners[0].x, worldCorners[2].y)) / worldScale);
+  udFloat2 viewSizeMS = udFloat2::create((float)localViewSize);
   
-  vcQuadTree_GenerateNodeList(pTerrain->pQuadTree, &pNodeList, &nodeCount, viewLatLongMS, viewSizeMS, &treeData);
-  vcTerrainRenderer_BuildTiles(pTerrain->pTerrainRenderer, pNodeList, nodeCount, treeData.leafNodeCount);
+  vcQuadTree_GenerateNodeList(&pNodeList, &nodeCount, viewPosMS, viewSizeMS, &treeData);
+  vcTerrainRenderer_BuildTiles(pTerrain->pTerrainRenderer, worldCorners, slippyCoords, pNodeList, nodeCount, treeData.leafNodeCount);
 }
 
 void vcTerrain_Render(vcTerrain *pTerrain, const udDouble4x4 &viewProjection)

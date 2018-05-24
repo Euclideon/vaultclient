@@ -4,17 +4,24 @@
 #include "vcRenderShaders.h"
 #include "vcQuadTree.h"
 #include "udPlatform/udPlatformUtil.h"
+#include "udPlatform/udChunkedArray.h"
 
 // temporary hard codeded
-static const int vertResolution = 128;
+static const int vertResolution = 2;
 static const int indexResolution = vertResolution - 1;
-const char *blankTileTextureFilename = "E:\\Tiles\\UnknownTileTexture.png";
-const char *tilesFilePath = "E:\\Tiles";
+const char *blankTileTextureFilename = "UnknownTileTexture.png";
+const char *tilesFilePath = "T:\\4PeterAdams\\Tiles";
 
 struct vcTile
 {
   vcTexture texture;
   udDouble4x4 world;
+};
+
+struct vcCachedTexture
+{
+  udInt3 id; // each tile has a unique slippy {x,y,z}
+  vcTexture texture;
 };
 
 struct vcTerrainRenderer
@@ -26,6 +33,9 @@ struct vcTerrainRenderer
   GLuint vbo;
   GLuint ibo;
   vcTexture blankTileTexture;
+
+  // cache textures
+  udChunkedArray<vcCachedTexture> cachedTextures;
 
   struct
   {
@@ -41,13 +51,15 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer)
 {
   vcTerrainRenderer *pTerrainRenderer = udAllocType(vcTerrainRenderer, 1, udAF_Zero);
 
+  pTerrainRenderer->cachedTextures.Init(128);
+
   pTerrainRenderer->presentShader.program = vcBuildProgram(vcBuildShader(GL_VERTEX_SHADER, g_terrainTileVertexShader), vcBuildShader(GL_FRAGMENT_SHADER, g_terrainTileFragmentShader));
   pTerrainRenderer->presentShader.uniform_viewProjection = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_viewProjection");
   pTerrainRenderer->presentShader.uniform_world = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_world");
   pTerrainRenderer->presentShader.uniform_texture = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_texture");
   pTerrainRenderer->presentShader.uniform_debugColour = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_debugColour");
 
-  // build our vert/index list
+  // build our vertex/index list
   vcSimpleVertex verts[vertResolution * vertResolution];
   int indices[indexResolution* indexResolution * 6];
   for (int y = 0; y < indexResolution; ++y)
@@ -75,18 +87,22 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer)
       verts[index].Position.x = ((float)(x) / vertResolution) * normalizeVertexPositionScale;
       verts[index].Position.y = ((float)(y) / vertResolution) * normalizeVertexPositionScale;
       verts[index].Position.z = 0.0f;
+
+      verts[index].UVs.x = verts[index].Position.x;
+      verts[index].UVs.y = verts[index].Position.y;
     }
   }
   vcCreateQuads(verts, vertResolution * vertResolution, indices, indexResolution * indexResolution * 6, pTerrainRenderer->vbo, pTerrainRenderer->ibo, pTerrainRenderer->vao);
-
-  pTerrainRenderer->blankTileTexture = vcLoadTextureFromDisk(blankTileTextureFilename, nullptr, nullptr, GL_LINEAR, false, 0, GL_CLAMP_TO_EDGE);
-
+  
+  pTerrainRenderer->blankTileTexture = vcTextureLoadFromDisk(blankTileTextureFilename, nullptr, nullptr, GL_LINEAR, false, 0, GL_CLAMP_TO_EDGE);
   (*ppTerrainRenderer) = pTerrainRenderer;
 }
 
 void vcTerrainRenderer_Destroy(vcTerrainRenderer **ppTerrainRenderer)
 {
   vcTerrainRenderer *pTerrainRenderer = (*ppTerrainRenderer);
+
+  pTerrainRenderer->cachedTextures.Deinit();
 
   glDeleteProgram(pTerrainRenderer->presentShader.program);
   glDeleteBuffers(1, &pTerrainRenderer->vbo);
@@ -96,17 +112,60 @@ void vcTerrainRenderer_Destroy(vcTerrainRenderer **ppTerrainRenderer)
   udFree(*ppTerrainRenderer);
 }
 
-void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, const vcQuadTreeNode *pNodeList, int nodeCount, int leafNodeCount)
+vcCachedTexture* FindTexture(udChunkedArray<vcCachedTexture> &textures, int x, int y, int z)
 {
-  char buff[256];
+  for (size_t i = 0; i < textures.length; ++i)
+  {
+    vcCachedTexture *pTexture = &textures[i];
+    if (pTexture->id.x == x && pTexture->id.y == y && pTexture->id.z == z)
+    {
+      return pTexture;
+    }
+  }
+  return nullptr;
+}
 
-  // for now just throw everything out
-  for (int i = 0; i < pTerrainRenderer->tileCount; ++i)
-    vcDestroyTexture(&pTerrainRenderer->pTiles[i].texture);
+vcTexture AssignTileTexture(vcTerrainRenderer *pTerrainRenderer, int tileX, int tileY, int tileZ)
+{
+  vcTexture resultTexture = pTerrainRenderer->blankTileTexture;
+
+  static char buff[256];
+  vcCachedTexture *pCachedTexture = FindTexture(pTerrainRenderer->cachedTextures, tileX, tileY, tileZ);
+  if (!pCachedTexture)
+  {
+    udSprintf(buff, sizeof(buff), "%s\\%d\\%d\\%d.png", tilesFilePath, tileZ, tileX, tileY);
+    vcTexture loadedTexture = vcTextureLoadFromDisk(buff, nullptr, nullptr, GL_LINEAR, false, 0, GL_CLAMP_TO_EDGE);
+    if (loadedTexture.id != GL_INVALID_INDEX)
+    {
+      // Texture load successful, cache it
+      pTerrainRenderer->cachedTextures.PushBack(&pCachedTexture);
+      pCachedTexture->id.x = tileX;
+      pCachedTexture->id.y = tileY;
+      pCachedTexture->id.z = tileZ;
+      pCachedTexture->texture = loadedTexture;
+      resultTexture = loadedTexture;
+    }
+  }
+  else
+  {
+    // texture is already in cache
+    resultTexture = pCachedTexture->texture;
+  }
+
+  return resultTexture;
+}
+
+void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, const udDouble2 worldCorners[4], const udInt3 &slippyCoords, const vcQuadTreeNode *pNodeList, int nodeCount, int leafNodeCount)
+{
+  udDouble2 worldScale = udDouble2::create(worldCorners[3].x - worldCorners[0].x, worldCorners[0].y - worldCorners[3].y);
+
+  // TODO: for now just throw everything out every frame
   udFree(pTerrainRenderer->pTiles);
 
   pTerrainRenderer->pTiles = udAllocType(vcTile, leafNodeCount, udAF_Zero);
   pTerrainRenderer->tileCount = leafNodeCount;
+
+  int rootGridSize = 1 << slippyCoords.z;
 
   int tileIndex = 0;
   for (int i = 0; i < nodeCount; ++i)
@@ -115,19 +174,19 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, const vcQ
     if (!vcQuadTree_IsLeafNode(pNode))
       continue;
 
-    // just load static tile textures from disk for now
-    int tileZ = pNode->level;
-    int gridSize = 1 << tileZ;
-    int tileX = (int)(pNode->position.x * gridSize);
-    int tileY = (gridSize - 1) - (int)(pNode->position.y * gridSize);
+    int offsetX = slippyCoords.x << pNode->level;
+    int offsetY = ((rootGridSize-1) - slippyCoords.y) << pNode->level; // invert
 
-    udSprintf(buff, sizeof(buff), "%s\\%d\\%d\\%d.png", tilesFilePath, tileZ, tileX, tileY);
+    int tileZ = pNode->level + slippyCoords.z;
+    int gridSizeAtLevel = 1 << pNode->level;
+    int totalGridSize = 1 << tileZ;
+    int tileX = (int)(pNode->position.x * gridSizeAtLevel) + offsetX;
+    int tileY = (totalGridSize - 1) - ((int)(pNode->position.y * gridSizeAtLevel) + offsetY); // invert
 
-    extern float gWorldScale;
+    pTerrainRenderer->pTiles[tileIndex].texture = AssignTileTexture(pTerrainRenderer, tileX, tileY, tileZ);
+
     float nodeSize = pNode->childSize * 2.0f;
-    pTerrainRenderer->pTiles[tileIndex].world = udDouble4x4::scaleUniform(gWorldScale) * udDouble4x4::translation(udDouble3::create(pNode->position.x, pNode->position.y, 0.0)) * udDouble4x4::scaleUniform(nodeSize);
-    pTerrainRenderer->pTiles[tileIndex].texture = vcLoadTextureFromDisk(buff, nullptr, nullptr, GL_LINEAR, false, 0, GL_CLAMP_TO_EDGE);
-
+    pTerrainRenderer->pTiles[tileIndex].world = udDouble4x4::translation(worldCorners[0].x, worldCorners[3].y, 0) * udDouble4x4::scaleNonUniform(worldScale.x, worldScale.y, 1.0) * udDouble4x4::translation(udDouble3::create(pNode->position.x, pNode->position.y, 0.0)) * udDouble4x4::scaleUniform(nodeSize);
     ++tileIndex;
   }
 }
@@ -154,15 +213,10 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
     udFloat4x4 tileWorldF = udFloat4x4::create(pTerrainRenderer->pTiles[i].world);
     glUniformMatrix4fv(pTerrainRenderer->presentShader.uniform_world, 1, GL_FALSE, tileWorldF.a);
 
-    // randomize colours based on depth
-    //srand((int)(pTerrainRenderer->pTiles[i].world.axis.x.x * 1000));
-    //glUniform3f(pTerrainRenderer->presentShader.uniform_debugColour, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, 1.0f);
+    // Unused colour at the moment.
     glUniform3f(pTerrainRenderer->presentShader.uniform_debugColour, 1.0f, 1.0f, 1.0f);
 
-    if (pTerrainRenderer->pTiles[i].texture.id != GL_INVALID_INDEX)
-      glBindTexture(GL_TEXTURE_2D, pTerrainRenderer->pTiles[i].texture.id);
-    else if(pTerrainRenderer->blankTileTexture.id != GL_INVALID_INDEX)
-      glBindTexture(GL_TEXTURE_2D, pTerrainRenderer->blankTileTexture.id);
+    glBindTexture(GL_TEXTURE_2D, pTerrainRenderer->pTiles[i].texture.id);
 
     // TODO: instance me
     glDrawElements(GL_TRIANGLES, indexResolution * indexResolution * 6, GL_UNSIGNED_INT, 0);

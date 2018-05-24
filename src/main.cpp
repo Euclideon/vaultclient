@@ -398,6 +398,8 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
   if (pProgramState->sceneResolution.x != size.x || pProgramState->sceneResolution.y != size.y) //Resize buffers
   {
+    pProgramState->sceneResolution.x = (uint32_t)size.x;
+    pProgramState->sceneResolution.y = (uint32_t)size.y;
     vcRender_ResizeScene(pVaultContainer->pRenderContext, &(pProgramState->settings), (uint32_t)size.x, (uint32_t)size.y);
 
     // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
@@ -684,7 +686,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         ImGui::TreePop();
       }
     }
-    ImGui::EndDock();
+      ImGui::EndDock();
 
     if (ImGui::BeginDock("StyleEditor", &pProgramState->windowsOpen[vcdStyling], ImGuiWindowFlags_ResizeFromAnySide))
       ImGui::ShowStyleEditor();
