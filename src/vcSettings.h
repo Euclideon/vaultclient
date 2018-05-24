@@ -14,12 +14,9 @@ struct vcSettings
   SDL_Surface *pIcon;
 };
 
-enum
-{
-  vcMinCameraPlane = 0,
-  vcMidCameraPlane = 100,
-  vcMaxCameraPlane = 100000,
-};
+const float vcMinCameraPlane = 0.001f;
+const float vcMidCameraPlane = 100.f;
+const float vcMaxCameraPlane = 100000.f;
 
 enum
 {
