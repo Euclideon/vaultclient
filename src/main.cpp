@@ -168,6 +168,8 @@ int main(int /*argc*/, char ** /*args*/)
   ImGui::LoadDock();
   ImGui::GetIO().Fonts->AddFontFromFileTTF("NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
 
+  SDL_EnableScreenSaver();
+
   while (!programState.programComplete)
   {
     SDL_Event event;
