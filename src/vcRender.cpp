@@ -178,11 +178,11 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext, vcSettings *pSettings)
 {
   udResult result = udR_Success;
-  float rad = UD_PIf / 3.f;
+  float fov = pSettings->foV;
   float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
   float zNear = pSettings->zNear;
   float zFar = pSettings->zFar;
-  udDouble4x4 projMat = udDouble4x4::perspective(rad, aspect, zNear, zFar);
+  udDouble4x4 projMat = udDouble4x4::perspective(fov, aspect, zNear, zFar);
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
 
