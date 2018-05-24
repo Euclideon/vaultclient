@@ -394,12 +394,6 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   if (io.KeyAlt && ImGui::IsKeyPressed(SDL_SCANCODE_F4))
     pProgramState->programComplete = true;
 #endif
-  if (io.MouseWheel > 0)
-    pProgramState->settings.cameraSpeed *= 1.1f;
-  if (io.MouseWheel < 0)
-    pProgramState->settings.cameraSpeed /= 1.1f;
-
-  pProgramState->settings.cameraSpeed = udClamp(pProgramState->settings.cameraSpeed, vcMinCameraSpeed, vcMaxCameraSpeed);
   //end keyboard/mouse handling
 
   if (ImGui::GetIO().DisplaySize.y > 0)
