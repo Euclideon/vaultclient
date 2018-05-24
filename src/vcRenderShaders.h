@@ -4,7 +4,7 @@
 #include "vcRenderUtils.h"
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-# define FRAG_HEADER "#version 300 es\nprecision mediump float;\n"
+# define FRAG_HEADER "#version 300 es\nprecision highp float;\n"
 # define VERT_HEADER "#version 300 es\n"
 #else
 # define FRAG_HEADER "#version 330 core\n"
@@ -56,7 +56,7 @@ uniform sampler2D u_texture;
 
 void main()
 {
-  vec4 col = texture(u_texture, v_uv);
+  vec4 col = texture(u_texture, v_uv).bgra;
   out_Colour = vec4(col.xyz * v_colour.xyz, 1.0);
 }
 )shader";
@@ -88,12 +88,10 @@ void main()
 }
 )shader";
 
-const GLchar* const g_vcSkyboxShader = R"shader(#version 330 core
+const GLchar* const g_vcSkyboxShader = FRAG_HEADER R"shader(
 
-#extension GL_NV_shadow_samplers_cube : enable
-
-uniform samplerCube CubemapSampler;
-uniform mat4x4 invSkyboxMatrix;
+uniform samplerCube u_texture;
+uniform mat4 u_inverseViewProjection;
 
 //Input Format
 in vec2 v_texCoord;
@@ -103,15 +101,14 @@ out vec4 out_Colour;
 
 void main()
 {
-  vec2 uv = vec2(v_texCoord.x, 1 - v_texCoord.y);
+  vec2 uv = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
 
   // work out 3D point
-  vec4 point3D = invSkyboxMatrix * vec4(uv * 2 - 1, 1, 1);
+  vec4 point3D = u_inverseViewProjection * vec4(uv * vec2(2.0) - vec2(1.0), 1.0, 1.0);
   point3D.xyz = normalize(point3D.xyz / point3D.w);
-  vec4 c1 = texture(CubemapSampler, point3D.xyz);
+  vec4 c1 = texture(u_texture, point3D.xyz);
 
   out_Colour = c1;
-  //out_Colour = vec4(1,0,0,1);
 }
 )shader";
 

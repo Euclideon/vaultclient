@@ -5,7 +5,7 @@
 #include "udPlatform/udPlatformUtil.h"
 #include "stb_image.h"
 
-vcTexture vcCreateTexture(uint32_t width, uint32_t height, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, GLuint filterMode /*= GL_NEAREST*/, bool hasMipmaps /*= false*/, uint8_t *pPixels /*= nullptr*/, int32_t aniFilter /*= 0*/, int32_t wrapMode /*= GL_REPEAT*/)
+vcTexture vcTextureCreate(uint32_t width, uint32_t height, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, GLuint filterMode /*= GL_NEAREST*/, bool hasMipmaps /*= false*/, uint8_t *pPixels /*= nullptr*/, int32_t aniFilter /*= 0*/, int32_t wrapMode /*= GL_REPEAT*/)
 {
   vcTexture tex;
 
@@ -47,7 +47,7 @@ vcTexture vcCreateTexture(uint32_t width, uint32_t height, vcTextureFormat forma
   return tex;
 }
 
-vcTexture vcCreateDepthTexture(uint32_t width, uint32_t height, vcTextureFormat format /*= vcTextureFormat_D24*/, GLuint filterMode /*= GL_NEAREST*/)
+vcTexture vcTextureCreateDepth(uint32_t width, uint32_t height, vcTextureFormat format /*= vcTextureFormat_D24*/, GLuint filterMode /*= GL_NEAREST*/)
 {
   vcTexture tex;
 
@@ -60,19 +60,21 @@ vcTexture vcCreateDepthTexture(uint32_t width, uint32_t height, vcTextureFormat 
   VERIFY_GL();
 
   GLint internalFormat;
+  GLenum type;
   switch (format)
   {
+  case vcTextureFormat_D32F:
+    internalFormat = GL_DEPTH_COMPONENT32F;
+    type = GL_FLOAT;
+    break;
   case vcTextureFormat_D24: // fall through
   default:
     internalFormat = GL_DEPTH_COMPONENT24;
+    type = GL_UNSIGNED_INT;
   }
 
-  // TODO: Remove this. OpenGL ES is not the same as OpenGL! Read the OpenGL **and** OpenGL ES docs before changing this!
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
-#else
-  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL); // Could use glTexStorage2D but OpenGL 4.2 only, GL_RED and GL_FLOAT are ignored because of NULL
-#endif
+  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_DEPTH_COMPONENT, type, NULL);
+
   glBindTexture(GL_TEXTURE_2D, 0);
   VERIFY_GL();
 
@@ -82,7 +84,7 @@ vcTexture vcCreateDepthTexture(uint32_t width, uint32_t height, vcTextureFormat 
   return tex;
 }
 
-vcFramebuffer vcCreateFramebuffer(vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, int level /*= 0*/)
+vcFramebuffer vcFramebufferCreate(vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, int level /*= 0*/)
 {
   vcFramebuffer fbo;
   GLenum DrawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
@@ -105,7 +107,7 @@ vcFramebuffer vcCreateFramebuffer(vcTexture *pTexture, vcTexture *pDepth /*= nul
 }
 
 
-vcTexture vcLoadTextureFromDisk(const char *filename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, int32_t filterMode /*= GL_LINEAR*/, bool hasMipmaps /*= false*/, int32_t aniFilter /*= 0*/, int32_t wrapMode /*= GL_REPEAT*/)
+vcTexture vcTextureLoadFromDisk(const char *filename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, int32_t filterMode /*= GL_LINEAR*/, bool hasMipmaps /*= false*/, int32_t aniFilter /*= 0*/, int32_t wrapMode /*= GL_REPEAT*/)
 {
   uint32_t width, height, channelCount;
   vcTexture texture = { GL_INVALID_INDEX, vcTextureFormat_Unknown, 0, 0};
@@ -124,7 +126,7 @@ vcTexture vcLoadTextureFromDisk(const char *filename, uint32_t *pWidth /*= nullp
   udFree(pFileData);
 
   if (pData)
-    texture = vcCreateTexture(width, height, vcTextureFormat_RGBA8, filterMode, hasMipmaps, pData, aniFilter, wrapMode);
+    texture = vcTextureCreate(width, height, vcTextureFormat_RGBA8, filterMode, hasMipmaps, pData, aniFilter, wrapMode);
 
   stbi_image_free(pData);
 
@@ -137,12 +139,43 @@ vcTexture vcLoadTextureFromDisk(const char *filename, uint32_t *pWidth /*= nullp
   return texture;
 }
 
-void vcDestroyTexture(vcTexture *pTexture)
+void vcTextureUploadPixels(vcTexture *pTexture, const void *pPixels)
+{
+  GLenum internalFormat;
+  GLenum pixelFormat, pixelType;
+  switch (pTexture->format)
+  {
+    case vcTextureFormat_RGBA8:
+      internalFormat = GL_RGBA;
+      pixelFormat = GL_RGBA;
+      pixelType = GL_UNSIGNED_BYTE;
+      break;
+    case vcTextureFormat_D24:
+      internalFormat = GL_DEPTH_COMPONENT24;
+      pixelFormat = GL_DEPTH_COMPONENT;
+      pixelType = GL_FLOAT;
+      break;
+    case vcTextureFormat_D32F:
+      internalFormat = GL_DEPTH_COMPONENT32F;
+      pixelFormat = GL_DEPTH_COMPONENT;
+      pixelType = GL_FLOAT;
+      break;
+    default:
+      // unknown texture format, do nothing
+      return;
+  }
+
+  glBindTexture(GL_TEXTURE_2D, pTexture->id);
+  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, pTexture->width, pTexture->height, 0, pixelFormat, pixelType, pPixels);
+  glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void vcTextureDestroy(vcTexture *pTexture)
 {
   glDeleteTextures(1, &pTexture->id);
 }
 
-void vcDestroyFramebuffer(vcFramebuffer *pFramebuffer)
+void vcFramebufferDestroy(vcFramebuffer *pFramebuffer)
 {
   glDeleteFramebuffers(1, &pFramebuffer->id);
 }

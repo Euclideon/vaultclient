@@ -14,33 +14,6 @@ struct vcQuadTree
   int capacity;
 };
 
-udResult vcQuadTree_Init(vcQuadTree **ppQuadTree)
-{
-  udResult result = udR_Success;
-  vcQuadTree *pQuadTree = nullptr;
-
-  UD_ERROR_NULL(ppQuadTree, udR_InvalidParameter_);
-
-  pQuadTree = udAllocType(vcQuadTree, 1, udAF_Zero);
-  UD_ERROR_NULL(pQuadTree, udR_MemoryAllocationFailure);
-
-  *ppQuadTree = pQuadTree;
-epilogue:
-  return result;
-}
-
-udResult vcQuadTree_Destroy(vcQuadTree **ppQuadTree)
-{
-  udResult result = udR_Success;
-
-  UD_ERROR_NULL(ppQuadTree, udR_InvalidParameter_);
-
-  udFree(*ppQuadTree);
-  *ppQuadTree = nullptr;
-
-epilogue:
-  return result;
-}
 
 udResult ExpandTreeCapacity(vcQuadTree *pQuadTree)
 {
@@ -64,7 +37,6 @@ udResult ExpandTreeCapacity(vcQuadTree *pQuadTree)
 epilogue:
   return result;
 }
-
 
 void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, const udFloat2 &position, const udFloat2 &halfExtents, int currentDepth, int maxDepth)
 {
@@ -130,32 +102,30 @@ void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, const udFl
 
 int CalculateTreeDepthFromViewDistance(const udFloat2 &halfExtents)
 {
-  return int(udLog2(1.0f / (halfExtents.x * 2.0f * rectToCircleRadius)));
+  return int(udLog2(1.0f / (halfExtents.x * rectToCircleRadius)));
 }
 
-void vcQuadTree_GenerateNodeList(vcQuadTree *pQuadTree, vcQuadTreeNode **ppNodes, int *pNodeCount, const udFloat2 &viewPositionMS, const udFloat2 &viewPositionSizeMS, vcQuadTreeMetaData *pMetaData /*= nullptr*/)
+void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, const udFloat2 &viewPositionMS, const udFloat2 &viewPositionSizeMS, vcQuadTreeMetaData *pMetaData /*= nullptr*/)
 {
-  // completely rebuild tree for now
-  udFree(pQuadTree->pNodes);
-  pQuadTree->pNodes = nullptr;
+  vcQuadTree quadTree = {};
 
   int maxTreeDepth = CalculateTreeDepthFromViewDistance(viewPositionSizeMS);
   int startingCapacity = 50; // hard coded for now - this could be guessed from maxTreeDepth...
-  pQuadTree->capacity = startingCapacity / 2;
-  ExpandTreeCapacity(pQuadTree);
-  pQuadTree->metaData.leafNodeCount = 0;
-  pQuadTree->metaData.maxTreeDepth = maxTreeDepth;
+  quadTree.capacity = startingCapacity / 2;
+  ExpandTreeCapacity(&quadTree);
+  quadTree.metaData.leafNodeCount = 0;
+  quadTree.metaData.maxTreeDepth = maxTreeDepth;
 
   // Initialize root
-  pQuadTree->used = 1;
-  pQuadTree->pNodes[0].parentIndex = INVALID_NODE_INDEX;
-  pQuadTree->pNodes[0].childSize = 0.5f;
+  quadTree.used = 1;
+  quadTree.pNodes[0].parentIndex = INVALID_NODE_INDEX;
+  quadTree.pNodes[0].childSize = 0.5f;
 
-  RecurseGenerateTree(pQuadTree, 0, viewPositionMS, viewPositionSizeMS, 0, pQuadTree->metaData.maxTreeDepth);
+  RecurseGenerateTree(&quadTree, 0, viewPositionMS, viewPositionSizeMS, 0, quadTree.metaData.maxTreeDepth);
   
-  *ppNodes = pQuadTree->pNodes;
-  *pNodeCount = pQuadTree->used;
+  *ppNodes = quadTree.pNodes;
+  *pNodeCount = quadTree.used;
 
   if (pMetaData)
-    memcpy(pMetaData, &pQuadTree->metaData, sizeof(vcQuadTreeMetaData));
+    memcpy(pMetaData, &quadTree.metaData, sizeof(vcQuadTreeMetaData));
 }
