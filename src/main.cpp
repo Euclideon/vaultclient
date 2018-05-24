@@ -409,7 +409,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
   if (!pProgramState->hasContext)
   {
-    if (ImGui::Begin("Login"))
+    if (ImGui::Begin("Login", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
     {
       static const char *pErrorMessage = nullptr;
       if (pErrorMessage != nullptr)
@@ -449,6 +449,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
           }
       }
 
+      ImGui::SameLine();
       if (ImGui::Button("Guest Login!"))
       {
         err = vaultContext_Connect(&pVaultContainer->pContext, pProgramState->pServerURL, "ClientSample");
