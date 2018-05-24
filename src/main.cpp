@@ -90,6 +90,7 @@ int main(int /*argc*/, char ** /*args*/)
   programState.settings.cameraSpeed = 3.f;
   programState.settings.zNear = 0.5f;
   programState.settings.zFar = 10000.f;
+  programState.settings.foV = UD_PIf / 3.f; // 120 degrees
 
   modelList.Init(32);
   lastModelLoaded = true;
@@ -633,6 +634,10 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
       ImGui::SliderFloat("sliderCameraNearPlane", &(pProgramState->settings.zNear), vcMinCameraPlane, vcMidCameraPlane, "Camera Near Plane = %.3f", 2.f);
       ImGui::SliderFloat("sliderCameraFarPlane", &(pProgramState->settings.zFar), vcMidCameraPlane, vcMaxCameraPlane, "Camera Far Plane = %.3f", 2.f);
+
+      float fovDeg = UD_RAD2DEGf(pProgramState->settings.foV);
+      ImGui::SliderFloat("sliderCameraFieldOfView", &fovDeg, vcMinFOV, vcMaxFOV, "Camera Field of View = %.0f");
+      pProgramState->settings.foV = UD_DEG2RADf(fovDeg);
     }
     ImGui::EndDock();
   }
