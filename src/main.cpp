@@ -174,6 +174,8 @@ int main(int /*argc*/, char ** /*args*/)
   ImGui::LoadDock();
   ImGui::GetIO().Fonts->AddFontFromFileTTF("NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
 
+  SDL_EnableScreenSaver();
+
   while (!programState.programComplete)
   {
     SDL_Event event;
@@ -221,7 +223,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
   const Uint8 *pKeysArray = SDL_GetKeyboardState(NULL);
   SDL_Keymod modState = SDL_GetModState();
 
-  bool isHovered = true;// ImGui::IsItemHovered();
+  bool isHovered = ImGui::IsItemHovered();
   bool isLeftClicked = ImGui::IsMouseClicked(0, false);
   bool isRightClicked = ImGui::IsMouseClicked(1, false);
   bool isFocused = ImGui::IsWindowFocused();
@@ -489,8 +491,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   {
     if (ImGui::BeginDock("Scene", &pProgramState->windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar))
     {
-      vcHandleSceneInput(pProgramState);
       vcRenderSceneWindow(pVaultContainer, pProgramState);
+      vcHandleSceneInput(pProgramState);
     }
     ImGui::EndDock();
 
@@ -620,6 +622,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
     if (ImGui::BeginDock("Settings", &pProgramState->windowsOpen[vcdSettings]))
     {
       // settings dock
+      ImGui::ShowStyleSelector("Style");
+
       ImGui::SliderFloat("sliderCameraSpeed", &(pProgramState->settings.cameraSpeed), vcMinCameraSpeed, vcMaxCameraSpeed, "Camera Speed = %.3f", 2.f);
 
       ImGui::SliderFloat("sliderCameraNearPlane", &(pProgramState->settings.zNear), vcMinCameraPlane, vcMidCameraPlane, "Camera Near Plane = %.3f", 2.f);
