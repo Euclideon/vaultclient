@@ -623,6 +623,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
     if (ImGui::BeginDock("Settings", &pProgramState->windowsOpen[vcdSettings]))
     {
       // settings dock
+      ImGui::ShowStyleSelector("Style");
+
       ImGui::SliderFloat("sliderCameraSpeed", &(pProgramState->cameraSpeed), 0.5f, 30.0f, "Camera Speed = %.3f");
     }
     ImGui::EndDock();
