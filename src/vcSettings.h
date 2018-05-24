@@ -1,3 +1,5 @@
+#include "SDL2/SDL.h"
+
 #ifndef vcSettings_h__
 #define vcSettings_h__
 
@@ -8,6 +10,8 @@ struct vcSettings
   float zFar;
 
   float foV;
+
+  SDL_Surface *pIcon;
 };
 
 enum
