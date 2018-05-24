@@ -264,6 +264,16 @@ void vcHandleSceneInput(ProgramState *pProgramState)
       }
     }
 
+    if (isHovered)
+    {
+      if (io.MouseWheel > 0)
+        pProgramState->settings.cameraSpeed *= 1.1f;
+      if (io.MouseWheel < 0)
+        pProgramState->settings.cameraSpeed /= 1.1f;
+
+      pProgramState->settings.cameraSpeed = udClamp(pProgramState->settings.cameraSpeed, vcMinCameraSpeed, vcMaxCameraSpeed);
+    }
+
     float speed = pProgramState->settings.cameraSpeed; // 3 units per second default
     if ((modState & KMOD_CTRL) > 0)
       speed *= 0.1; // slow
@@ -370,7 +380,6 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   int menuHeight = (!pProgramState->hasContext) ? 0 : vcMainMenuGui(pProgramState);
 
   //keyboard/mouse handling
-  ImGuiIO& io = ImGui::GetIO(); // for future key commands as well
   if (ImGui::IsKeyReleased(SDL_SCANCODE_F11))
   {
     pProgramState->isFullscreen = !pProgramState->isFullscreen;
@@ -380,15 +389,11 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
   }
 #if UDPLATFORM_WINDOWS
+  ImGuiIO& io = ImGui::GetIO(); // for future key commands as well
+
   if (io.KeyAlt && ImGui::IsKeyPressed(SDL_SCANCODE_F4))
     pProgramState->programComplete = true;
 #endif
-  if (io.MouseWheel > 0)
-    pProgramState->settings.cameraSpeed *= 1.1f;
-  if (io.MouseWheel < 0)
-    pProgramState->settings.cameraSpeed /= 1.1f;
-
-  pProgramState->settings.cameraSpeed = udClamp(pProgramState->settings.cameraSpeed, vcMinCameraSpeed, vcMaxCameraSpeed);
   //end keyboard/mouse handling
 
   if (ImGui::GetIO().DisplaySize.y > 0)
