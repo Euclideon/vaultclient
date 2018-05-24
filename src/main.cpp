@@ -13,6 +13,9 @@
 
 #include <stdlib.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 udChunkedArray<vcModel> modelList;
 
 static bool lastModelLoaded;
@@ -136,6 +139,31 @@ int main(int /*argc*/, char ** /*args*/)
   programState.pWindow = SDL_CreateWindow("Euclideon Client" WINDOW_SUFFIX, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
   if (!programState.pWindow)
     goto epilogue;
+
+  int iconWidth, iconHeight, iconBytesPerPixel;
+  unsigned char *pData = stbi_load("Vault_Client.png", &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
+  int pitch;
+  pitch = iconWidth * iconBytesPerPixel;
+  pitch = (pitch + 3) & ~3;
+  long Rmask, Gmask, Bmask, Amask;
+
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+  Rmask = 0x000000FF;
+  Gmask = 0x0000FF00;
+  Bmask = 0x00FF0000;
+  Amask = (iconBytesPerPixel == 4) ? 0xFF000000 : 0;
+#else
+  int s = (iconBytesPerPixel == 4) ? 0 : 8;
+  Rmask = 0xFF000000 >> s;
+  Gmask = 0x00FF0000 >> s;
+  Bmask = 0x0000FF00 >> s;
+  Amask = 0x000000FF >> s;
+#endif
+
+  if (pData != nullptr)
+    programState.settings.pIcon = SDL_CreateRGBSurfaceFrom(pData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, Rmask, Gmask, Bmask, Amask);
+
+  SDL_SetWindowIcon(programState.pWindow, programState.settings.pIcon);
 
   glcontext = SDL_GL_CreateContext(programState.pWindow);
   if (!glcontext)
