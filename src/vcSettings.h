@@ -1,4 +1,4 @@
-#ifndef  vcSettings_h__
+#ifndef vcSettings_h__
 #define vcSettings_h__
 
 struct vcSettings
@@ -17,4 +17,4 @@ enum
 const float vcMinCameraSpeed = 0.5f;
 const float vcMaxCameraSpeed = 30.f;
 
-#endif // ! vcSettings_h__
+#endif // !vcSettings_h__
