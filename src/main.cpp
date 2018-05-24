@@ -96,25 +96,13 @@ int main(int /*argc*/, char ** /*args*/)
   lastModelLoaded = true;
 
   // default string values.
-  const char *plocalHost = "http://vau-ubu-pro-001.euclideon.local";
-  const char *pUsername = "";
-  const char *pPassword = "";
-  const char *pModelPath = "V:/QA/For Tests/Geoverse MDM/AdelaideCBD_2cm.uds";
+  programState.pServerURL = udAllocType(char, 1024, udAF_Zero);
+  programState.pUsername = udAllocType(char, 1024, udAF_Zero);
+  programState.pPassword = udAllocType(char, 1024, udAF_Zero);
+  programState.pModelPath = udAllocType(char, 1024, udAF_Zero);
 
-  programState.pServerURL = new char[1024];
-  programState.pUsername = new char[1024];
-  programState.pPassword = new char[1024];
-  programState.pModelPath = new char[1024];
-
-  memset(programState.pServerURL, 0, 1024);
-  memset(programState.pUsername, 0, 1024);
-  memset(programState.pPassword, 0, 1024);
-  memset(programState.pModelPath, 0, 1024);
-
-  memcpy(programState.pServerURL, plocalHost, strlen(plocalHost));
-  memcpy(programState.pUsername, pUsername, strlen(pUsername));
-  memcpy(programState.pPassword, pPassword, strlen(pPassword));
-  memcpy(programState.pModelPath, pModelPath, strlen(pModelPath));
+  udStrcpy(programState.pServerURL, 1024, "http://vau-ubu-pro-001.euclideon.local");
+  udStrcpy(programState.pModelPath, 1024, "V:/QA/For Tests/Geoverse MDM/AdelaideCBD_2cm.uds");
 
   Uint64 NOW;
   Uint64 LAST;
@@ -209,10 +197,10 @@ epilogue:
   vcRender_Destroy(&vContainer.pRenderContext);
   vaultContext_Disconnect(&vContainer.pContext);
 
-  delete[] programState.pServerURL;
-  delete[] programState.pUsername;
-  delete[] programState.pPassword;
-  delete[] programState.pModelPath;
+  udFree(programState.pServerURL);
+  udFree(programState.pUsername);
+  udFree(programState.pPassword);
+  udFree(programState.pModelPath);
 
   return 0;
 }
