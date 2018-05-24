@@ -14,16 +14,16 @@ enum
 {
   vcMinCameraPlane = 0,
   vcMidCameraPlane = 100,
-  vcMaxCameraPlane = 10000,
+  vcMaxCameraPlane = 100000,
 };
 
 enum
 {
-  vcMinFOV = 60,
+  vcMinFOV = 5,
   vcMaxFOV = 120,
 };
 
 const float vcMinCameraSpeed = 0.5f;
-const float vcMaxCameraSpeed = 30.f;
+const float vcMaxCameraSpeed = 250.f;
 
 #endif // !vcSettings_h__
