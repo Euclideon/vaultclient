@@ -162,8 +162,8 @@ int main(int /*argc*/, char ** /*args*/)
 
   if (pData != nullptr)
     programState.settings.pIcon = SDL_CreateRGBSurfaceFrom(pData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, Rmask, Gmask, Bmask, Amask);
-
-  SDL_SetWindowIcon(programState.pWindow, programState.settings.pIcon);
+  if(programState.settings.pIcon != nullptr)
+    SDL_SetWindowIcon(programState.pWindow, programState.settings.pIcon);
 
   glcontext = SDL_GL_CreateContext(programState.pWindow);
   if (!glcontext)
