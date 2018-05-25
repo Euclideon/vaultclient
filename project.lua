@@ -66,6 +66,10 @@ project "vaultClient"
 		libdirs { "3rdParty/SDL2-2.0.5/lib/ios" }
 		links { "SDL2", "AudioToolbox.framework", "QuartzCore.framework", "OpenGLES.framework", "CoreGraphics.framework", "UIKit.framework", "Foundation.framework", "CoreAudio.framework", "AVFoundation.framework", "GameController.framework", "CoreMotion.framework" }
 
+	filter { "system:macosx or ios" }
+		files { "builds/client/bin/NotoSansCJKjp-Regular.otf" }
+		xcodebuildresources { "NotoSans" }
+
 	filter { "system:not windows" }
 		links { "dl" }
 
