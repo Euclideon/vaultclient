@@ -84,9 +84,6 @@ else
 				mkdir builds/client/bin/packaging
 				if [ $? -ne 0 ]; then exit 1; fi
 
-				cp -af builds/client/bin/NotoSansCJKjp-Regular.otf builds/client/bin/packaging/NotoSansCJKjp-Regular.otf
-				if [ $? -ne 0 ]; then exit 1; fi
-
 				cp -af builds/client/bin/vaultClient.app builds/client/bin/packaging/vaultClient.app
 				if [ $? -ne 0 ]; then exit 1; fi
 
