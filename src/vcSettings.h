@@ -10,8 +10,6 @@ struct vcSettings
   float zFar;
 
   float foV;
-
-  SDL_Surface *pIcon;
 };
 
 const float vcMinCameraPlane = 0.001f;
