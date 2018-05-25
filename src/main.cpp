@@ -505,7 +505,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::InputText("Model Path", pProgramState->pModelPath, 1024);
 
       if (ImGui::Button("Load Model!"))
-        vcAddModelToList(pVaultContainer, pProgramState);
+        vcAddModelToList(pVaultContainer, pProgramState, pProgramState->pModelPath);
 
       if (!lastModelLoaded)
         ImGui::Text("Invalid File/Not Found...");
@@ -616,21 +616,25 @@ epilogue:
   return;
 }
 
-void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, char *pFilePath /*= nullptr*/) {
+void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, char *pFilePath) {
   vaultError err;
 
   if (modelList.length < vcMaxModels)
   {
+    if (pFilePath == nullptr)
+    {
+      lastModelLoaded = false;
+      return;
+    }
     vcModel model;
     model.modelLoaded = true;
-    if (pFilePath != nullptr)
-    {
-      pProgramState->pModelPath = pFilePath;
-    }
-    udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pProgramState->pModelPath);
+
+
+    pProgramState->pModelPath = pFilePath;
+    udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
 
     double midPoint[3];
-    err = vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pProgramState->pModelPath);
+    err = vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pFilePath);
     if (err == vE_Success)
     {
       lastModelLoaded = true;
