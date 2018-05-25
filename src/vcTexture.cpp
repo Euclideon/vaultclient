@@ -1,6 +1,10 @@
 
 #include "vcTexture.h"
 #include "vcRenderUtils.h"
+#include "udPlatform/udFile.h"
+#include "udPlatform/udPlatformUtil.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 vcTexture vcCreateTexture(uint32_t width, uint32_t height, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, GLuint filterMode /*= GL_NEAREST*/, bool hasMipmaps /*= false*/, uint8_t *pPixels /*= nullptr*/, int32_t aniFilter /*= 0*/, int32_t wrapMode /*= GL_REPEAT*/)
 {
@@ -94,6 +98,39 @@ vcFramebuffer vcCreateFramebuffer(vcTexture *pTexture, vcTexture *pDepth /*= nul
   fbo.pAttachments[0] = pTexture;
   fbo.pDepth = pDepth;
   return fbo;
+}
+
+
+vcTexture vcLoadTextureFromDisk(const char *filename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, int32_t filterMode /*= GL_LINEAR*/, bool hasMipmaps /*= false*/, int32_t aniFilter /*= 0*/, int32_t wrapMode /*= GL_REPEAT*/)
+{
+  uint32_t width, height, channelCount;
+  vcTexture texture = { GL_INVALID_INDEX, vcTextureFormat_Unknown, 0, 0};
+
+  void *pFileData;
+  int64_t fileLen;
+
+  // If the file doesn't exist, has a file size of 0, or has a file size that exceeds 100MB, return an invalid texture.
+  if (udFileExists(filename, &fileLen) != udR_Success || fileLen == 0 || fileLen > (100 * 1024 * 1024))
+    return texture;
+
+  if (udFile_Load(filename, &pFileData, &fileLen) != udR_Success)
+    return texture;
+
+  uint8_t *pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
+  udFree(pFileData);
+
+  if (pData)
+    texture = vcCreateTexture(width, height, vcTextureFormat_RGBA8, filterMode, hasMipmaps, pData, aniFilter, wrapMode);
+  
+  stbi_image_free(pData);
+
+  if (pWidth != nullptr)
+    *pWidth = width;
+
+  if (pHeight != nullptr)
+    *pHeight = height;
+
+  return texture;
 }
 
 void vcDestroyTexture(vcTexture *pTexture)
