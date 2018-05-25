@@ -141,7 +141,9 @@ int main(int /*argc*/, char ** /*args*/)
     goto epilogue;
 
   int iconWidth, iconHeight, iconBytesPerPixel;
-  unsigned char *pData = stbi_load("Vault_Client.png", &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
+  char *pIconPath;
+  pIconPath = "Vault_Client.png";
+  unsigned char *pData = stbi_load(pIconPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
   int pitch;
   pitch = iconWidth * iconBytesPerPixel;
   pitch = (pitch + 3) & ~3;
@@ -152,10 +154,14 @@ int main(int /*argc*/, char ** /*args*/)
   bMask = 0xFF << 16;
   aMask = (iconBytesPerPixel == 4) ? (0xFF << 24) : 0;
 
+  SDL_Surface *pIcon = nullptr;
   if (pData != nullptr)
-    programState.settings.pIcon = SDL_CreateRGBSurfaceFrom(pData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
-  if(programState.settings.pIcon != nullptr)
-    SDL_SetWindowIcon(programState.pWindow, programState.settings.pIcon);
+    pIcon = SDL_CreateRGBSurfaceFrom(pData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
+  if(pIcon != nullptr)
+    SDL_SetWindowIcon(programState.pWindow, pIcon);
+
+  SDL_free(pIcon);
+  free(pData);
 
   glcontext = SDL_GL_CreateContext(programState.pWindow);
   if (!glcontext)
