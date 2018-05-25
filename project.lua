@@ -37,16 +37,14 @@ project "vaultClient"
 		optimize "Full"
 		flags { "NoFramePointer", "NoBufferSecurityCheck" }
 
-	filter { "system:linux or windows" }
-		defines { "GLEW_STATIC" }
-		sysincludedirs { "3rdParty/glew/include" }
-		files { "3rdParty/glew/glew.c" }
-
 	-- Turn off warnings as errors for ImGui.
 	filter { "system:linux" }
 		removeflags { "FatalWarnings" }
 
 	filter { "system:windows" }
+		defines { "GLEW_STATIC" }
+		sysincludedirs { "3rdParty/glew/include" }
+		files { "3rdParty/glew/glew.c" }
 		linkoptions( "/LARGEADDRESSAWARE" )
 		libdirs { "3rdParty/SDL2-2.0.5/lib/x64" }
 		links { "SDL2.lib", "opengl32.lib", "winmm.lib" }
@@ -54,6 +52,8 @@ project "vaultClient"
 	filter { "system:linux" }
 		linkoptions { "-Wl,-rpath '-Wl,$$ORIGIN'" } -- Check beside the executable for the SDK
 		links { "SDL2", "GL" }
+		includedirs { "3rdParty" }
+		files { "3rdParty/GL/glext.h" }
 
 	filter { "system:macosx" }
 		frameworkdirs { "/Library/Frameworks/" }

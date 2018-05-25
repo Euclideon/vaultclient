@@ -141,7 +141,7 @@ int main(int /*argc*/, char ** /*args*/)
   if (!glcontext)
     goto epilogue;
 
-#if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX
+#if UDPLATFORM_WINDOWS
   glewExperimental = GL_TRUE;
   if (glewInit() != GLEW_OK)
     goto epilogue;
