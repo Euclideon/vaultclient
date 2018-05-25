@@ -145,23 +145,15 @@ int main(int /*argc*/, char ** /*args*/)
   int pitch;
   pitch = iconWidth * iconBytesPerPixel;
   pitch = (pitch + 3) & ~3;
-  long Rmask, Gmask, Bmask, Amask;
+  long rMask, gMask, bMask, aMask;
 
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN
-  Rmask = 0x000000FF;
-  Gmask = 0x0000FF00;
-  Bmask = 0x00FF0000;
-  Amask = (iconBytesPerPixel == 4) ? 0xFF000000 : 0;
-#else
-  int s = (iconBytesPerPixel == 4) ? 0 : 8;
-  Rmask = 0xFF000000 >> s;
-  Gmask = 0x00FF0000 >> s;
-  Bmask = 0x0000FF00 >> s;
-  Amask = 0x000000FF >> s;
-#endif
+  rMask = 0xFF << 0;
+  gMask = 0xFF << 8;
+  bMask = 0xFF << 16;
+  aMask = (iconBytesPerPixel == 4) ? (0xFF << 24) : 0;
 
   if (pData != nullptr)
-    programState.settings.pIcon = SDL_CreateRGBSurfaceFrom(pData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, Rmask, Gmask, Bmask, Amask);
+    programState.settings.pIcon = SDL_CreateRGBSurfaceFrom(pData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
   if(programState.settings.pIcon != nullptr)
     SDL_SetWindowIcon(programState.pWindow, programState.settings.pIcon);
 
