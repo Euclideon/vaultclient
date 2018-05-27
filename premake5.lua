@@ -115,6 +115,16 @@ newoption {
 
 os.copyfile("icons/Vault_Client.png", "builds/client/bin/Vault_Client.png")
 
+if osname ~= "macosx" and osname ~= "ios" then
+	os.mkdir("builds/client/bin/skyboxes")
+	os.copyfile("builds/client/assets/skyboxes/CloudWater_BK.jpg", "builds/client/bin/skyboxes/CloudWater_BK.jpg")
+	os.copyfile("builds/client/assets/skyboxes/CloudWater_DN.jpg", "builds/client/bin/skyboxes/CloudWater_DN.jpg")
+	os.copyfile("builds/client/assets/skyboxes/CloudWater_FR.jpg", "builds/client/bin/skyboxes/CloudWater_FR.jpg")
+	os.copyfile("builds/client/assets/skyboxes/CloudWater_LF.jpg", "builds/client/bin/skyboxes/CloudWater_LF.jpg")
+	os.copyfile("builds/client/assets/skyboxes/CloudWater_RT.jpg", "builds/client/bin/skyboxes/CloudWater_RT.jpg")
+	os.copyfile("builds/client/assets/skyboxes/CloudWater_UP.jpg", "builds/client/bin/skyboxes/CloudWater_UP.jpg")
+end
+
 solution "vaultClient"
 	-- This hack just makes the VS project and also the makefile output their configurations in the idiomatic order
 	if _ACTION == "gmake" and os.target() == "linux" then

@@ -21,6 +21,7 @@ struct vcRenderData
 {
   udChunkedArray<vcModel*> models;
   udDouble4x4 cameraMatrix;
+  GLuint skyboxCubemap;
 };
 
 udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings, const udUInt2 &windowResolution);
@@ -31,5 +32,7 @@ udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vaultContext 
 udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);
 
 vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderData &renderData, GLuint defaultFramebuffer);
+
+void vcRenderSkybox(vcRenderContext *pRenderContext);
 
 #endif//vcRender_h__
