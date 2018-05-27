@@ -26,6 +26,8 @@ enum vcTextureFormat
   vcTextureFormat_RGBA8,
   vcTextureFormat_D24,
 
+  vcTextureFormat_Cubemap,
+
   vcTextureFormat_Count
 };
 
@@ -53,5 +55,7 @@ vcTexture vcLoadTextureFromDisk(const char *filename, uint32_t *pWidth = nullptr
 
 void vcDestroyTexture(vcTexture *pTexture);
 void vcDestroyFramebuffer(vcFramebuffer *pFramebuffer);
+
+vcTexture vcTexture_LoadCubemap(const char *filename);
 
 #endif//vcTexture_h__

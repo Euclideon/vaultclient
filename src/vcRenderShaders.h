@@ -88,4 +88,31 @@ void main()
 }
 )shader";
 
+const GLchar* const g_vcSkyboxShader = R"shader(#version 330 core
+
+#extension GL_NV_shadow_samplers_cube : enable
+
+uniform samplerCube CubemapSampler;
+uniform mat4x4 invSkyboxMatrix;
+
+//Input Format
+in vec2 v_texCoord;
+
+//Output Format
+out vec4 out_Colour;
+
+void main()
+{
+  vec2 uv = vec2(v_texCoord.x, 1 - v_texCoord.y);
+
+  // work out 3D point
+  vec4 point3D = invSkyboxMatrix * vec4(uv * 2 - 1, 1, 1);
+  point3D.xyz = normalize(point3D.xyz / point3D.w);
+  vec4 c1 = texture(CubemapSampler, point3D.xyz);
+
+  out_Colour = c1;
+  //out_Colour = vec4(1,0,0,1);
+}
+)shader";
+
 #endif//vcRenderShaders_h__
