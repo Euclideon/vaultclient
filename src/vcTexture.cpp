@@ -3,7 +3,6 @@
 #include "vcRenderUtils.h"
 #include "udPlatform/udFile.h"
 #include "udPlatform/udPlatformUtil.h"
-#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 vcTexture vcCreateTexture(uint32_t width, uint32_t height, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, GLuint filterMode /*= GL_NEAREST*/, bool hasMipmaps /*= false*/, uint8_t *pPixels /*= nullptr*/, int32_t aniFilter /*= 0*/, int32_t wrapMode /*= GL_REPEAT*/)
