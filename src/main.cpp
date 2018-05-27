@@ -141,9 +141,8 @@ int main(int /*argc*/, char ** /*args*/)
     goto epilogue;
 
   int iconWidth, iconHeight, iconBytesPerPixel;
-  char *pIconPath;
-  pIconPath = "Vault_Client.png";
-  unsigned char *pData = stbi_load(pIconPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
+  char IconPath[] = "Vault_Client.png";
+  unsigned char *pData = stbi_load(IconPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
   int pitch;
   pitch = iconWidth * iconBytesPerPixel;
   pitch = (pitch + 3) & ~3;
