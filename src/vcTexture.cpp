@@ -60,19 +60,17 @@ vcTexture vcCreateDepthTexture(uint32_t width, uint32_t height, vcTextureFormat 
   VERIFY_GL();
 
   GLint internalFormat;
+  GLenum type;
   switch (format)
   {
-  case vcTextureFormat_D24: // fall through
+  case vcTextureFormat_D32F: // fall through
   default:
-    internalFormat = GL_DEPTH_COMPONENT24;
+    internalFormat = GL_DEPTH_COMPONENT32F;
+    type = GL_FLOAT;
   }
 
-  // TODO: Remove this. OpenGL ES is not the same as OpenGL! Read the OpenGL **and** OpenGL ES docs before changing this!
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
-#else
-  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL); // Could use glTexStorage2D but OpenGL 4.2 only, GL_RED and GL_FLOAT are ignored because of NULL
-#endif
+  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_DEPTH_COMPONENT, type, NULL); // Could use glTexStorage2D but OpenGL 4.2 only, GL_RED and GL_FLOAT are ignored because of NULL
+
   glBindTexture(GL_TEXTURE_2D, 0);
   VERIFY_GL();
 
@@ -145,4 +143,66 @@ void vcDestroyTexture(vcTexture *pTexture)
 void vcDestroyFramebuffer(vcFramebuffer *pFramebuffer)
 {
   glDeleteFramebuffers(1, &pFramebuffer->id);
+}
+
+vcTexture vcTexture_LoadCubemap(const char *pFilename)
+{
+  vcTexture tex;
+  udFilename fileName;
+
+  fileName.SetFromFullPath(pFilename);
+
+  tex.format = vcTextureFormat_Cubemap;
+
+  glGenTextures(1, &tex.id);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, tex.id);
+
+  const char* names[] = { "_LF", "_RT", "_FR", "_BK", "_UP", "_DN" };
+  const GLenum types[] = { GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X, GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
+
+  size_t filenameLen = udStrlen(pFilename);
+#if UDPLATFORM_OSX || UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  const char skyboxPath[] = "./";
+#else
+  const char skyboxPath[] = "./skyboxes/";
+#endif
+  size_t pathLen = udStrlen(skyboxPath);
+  char *pFilePath = udStrdup(skyboxPath, filenameLen + 5);
+
+  for (int i = 0; i < 6; i++) // for each face of the cube map
+  {
+    int width, height, depth;
+
+    char fileNameNoExt[256] = "";
+    fileName.ExtractFilenameOnly(fileNameNoExt,UDARRAYSIZE(fileNameNoExt));
+    udSprintf(pFilePath, filenameLen + 5 + pathLen, "%s%s%s%s", skyboxPath, fileNameNoExt, names[i], fileName.GetExt());
+    uint8_t* data = stbi_load(pFilePath, &width, &height, &depth, 0);
+
+    tex.height = height;
+    tex.width = width;
+
+    if (data)
+    {
+      if (depth == 3)
+        glTexImage2D(types[i], 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+      else
+        glTexImage2D(types[i], 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+      stbi_image_free(data);
+    }
+    VERIFY_GL();
+  }
+
+  udFree(pFilePath);
+
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+  UDASSERT(tex.id != GL_INVALID_INDEX, "Didn't load cubemap correctly!");
+  VERIFY_GL();
+
+  return tex;
 }
