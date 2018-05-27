@@ -85,6 +85,14 @@ int main(int /*argc*/, char ** /*args*/)
   ProgramState programState = {};
   vaultContainer vContainer = {};
 
+  // Icon parameters
+  SDL_Surface *pIcon = nullptr;
+  int iconWidth, iconHeight, iconBytesPerPixel;
+  char IconPath[] = "Vault_Client.png";
+  unsigned char *pData = nullptr;
+  int pitch;
+  long rMask, gMask, bMask, aMask;
+
   // default values
   programState.planeMode = true;
   programState.sceneResolution.x = 1280;
@@ -140,20 +148,17 @@ int main(int /*argc*/, char ** /*args*/)
   if (!programState.pWindow)
     goto epilogue;
 
-  int iconWidth, iconHeight, iconBytesPerPixel;
-  char IconPath[] = "Vault_Client.png";
-  unsigned char *pData = stbi_load(IconPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
-  int pitch;
+  pData = stbi_load(IconPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
+
   pitch = iconWidth * iconBytesPerPixel;
   pitch = (pitch + 3) & ~3;
-  long rMask, gMask, bMask, aMask;
+
 
   rMask = 0xFF << 0;
   gMask = 0xFF << 8;
   bMask = 0xFF << 16;
   aMask = (iconBytesPerPixel == 4) ? (0xFF << 24) : 0;
 
-  SDL_Surface *pIcon = nullptr;
   if (pData != nullptr)
     pIcon = SDL_CreateRGBSurfaceFrom(pData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
   if(pIcon != nullptr)
