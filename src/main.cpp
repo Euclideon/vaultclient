@@ -46,6 +46,10 @@ struct ProgramState
   GLuint defaultFramebuffer;
   bool isFullscreen;
 
+  bool onScreenControls;
+  bool onScreenKeys[8];
+
+  bool planeMode;
   double deltaTime;
   udDouble4x4 camMatrix;
   udUInt2 sceneResolution;
@@ -62,6 +66,18 @@ struct ProgramState
   char *pModelPath;
 
   vcSettings settings;
+};
+
+enum
+{
+  OSC_W = 0,
+  OSC_S = 1,
+  OSC_A = 2,
+  OSC_D = 3,
+  OSC_R = 4,
+  OSC_F = 5,
+  OSC_SHIFT = 6,
+  OSC_CTRL = 7,
 };
 
 void vcHandleSceneInput(ProgramState *pProgramState);
@@ -97,9 +113,11 @@ int main(int /*argc*/, char ** /*args*/)
   // TODO: Query device and fill screen
   programState.sceneResolution.x = 1920;
   programState.sceneResolution.y = 1080;
+  programState.onScreenControls = true;
 #else
   programState.sceneResolution.x = 1280;
   programState.sceneResolution.y = 720;
+  programState.onScreenControls = false;
 #endif
   programState.camMatrix = udDouble4x4::identity();
 
@@ -296,10 +314,17 @@ epilogue:
 
 void vcHandleSceneInput(ProgramState *pProgramState)
 {
+  //Setup and default values
   ImGuiIO& io = ImGui::GetIO();
 
   const Uint8 *pKeysArray = SDL_GetKeyboardState(NULL);
   SDL_Keymod modState = SDL_GetModState();
+
+  float deltaMoveForward = 0;
+  float deltaMoveRight = 0;
+  float deltaMoveUp = 0;
+
+  float speed = pProgramState->settings.cameraSpeed; // 3 units per second default
 
   bool isHovered = ImGui::IsItemHovered();
   bool isLeftClicked = ImGui::IsMouseClicked(0, false);
@@ -314,6 +339,22 @@ void vcHandleSceneInput(ProgramState *pProgramState)
   if (isHovered && isRightClicked)
     clickedRightWhileHovered = true;
 
+  if ((modState & KMOD_CTRL) > 0 || pProgramState->onScreenKeys[OSC_SHIFT])
+    speed *= 0.1; // slow
+
+  if ((modState & KMOD_SHIFT) > 0 || pProgramState->onScreenKeys[OSC_CTRL])
+    speed *= 10.0;  // fast
+
+  if (pProgramState->onScreenControls)
+  {
+    if (pProgramState->onScreenKeys[OSC_W])
+      udDebugPrintf("forward received");
+    deltaMoveForward = speed * ((int)pProgramState->onScreenKeys[OSC_W] - (int)pProgramState->onScreenKeys[OSC_S]);
+    deltaMoveRight = speed * ((int)pProgramState->onScreenKeys[OSC_D] - (int)pProgramState->onScreenKeys[OSC_A]);
+    deltaMoveUp = speed * ((int)pProgramState->onScreenKeys[OSC_R] - (int)pProgramState->onScreenKeys[OSC_F]);
+  }
+
+  // when focused
   if (isFocused)
   {
     ImVec2 mouseDelta = io.MouseDelta;
@@ -333,15 +374,6 @@ void vcHandleSceneInput(ProgramState *pProgramState)
       }
     }
 
-    if (clickedRightWhileHovered)
-    {
-      clickedRightWhileHovered = io.MouseDown[1];
-      if (io.MouseDown[1])
-      {
-        // do something here on right click
-      }
-    }
-
     if (isHovered)
     {
       if (io.MouseWheel > 0)
@@ -352,34 +384,27 @@ void vcHandleSceneInput(ProgramState *pProgramState)
       pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
     }
 
-    float speed = pProgramState->settings.camera.moveSpeed; // 3 units per second default
-    if ((modState & KMOD_CTRL) > 0)
-      speed *= 0.1; // slow
-
-    if ((modState & KMOD_SHIFT) > 0)
-      speed *= 10.0;  // fast
-
-    float deltaMoveForward = speed * ((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
-    float deltaMoveRight = speed * ((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
-    float deltaMoveUp = speed * ((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
-
-    // Move the camera
-    udDouble4 direction;
-    if (pProgramState->settings.camera.moveMode == vcCMM_Plane)
-    {
-      direction = pProgramState->camMatrix.axis.y * deltaMoveForward + pProgramState->camMatrix.axis.x * deltaMoveRight + udDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
-    }
-    else
-    {
-      direction = pProgramState->camMatrix.axis.y * deltaMoveForward + pProgramState->camMatrix.axis.x * deltaMoveRight;
-      direction.z = 0;
-      if(direction.x != 0 || direction.y != 0)
-        direction = udNormalize3(direction) * speed;
-      direction += udDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
-    }
-
-    pProgramState->camMatrix.axis.t += direction * pProgramState->deltaTime;
+    deltaMoveForward += speed * ((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
+    deltaMoveRight += speed * ((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
+    deltaMoveUp += speed * ((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
   }
+
+  // Move the camera
+  udDouble4 direction;
+  if (pProgramState->planeMode)
+  {
+    direction = pProgramState->camMatrix.axis.y * deltaMoveForward + pProgramState->camMatrix.axis.x * deltaMoveRight + udDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
+  }
+  else
+  {
+    direction = pProgramState->camMatrix.axis.y * deltaMoveForward + pProgramState->camMatrix.axis.x * deltaMoveRight;
+    direction.z = 0;
+    if (direction.x != 0 || direction.y != 0)
+      direction = udNormalize3(direction) * speed;
+    direction += udDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
+  }
+
+  pProgramState->camMatrix.axis.t += direction * pProgramState->deltaTime;
 }
 
 void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgramState)
@@ -629,10 +654,80 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       if (ImGui::InputFloat3("Camera Position", &modelT.x))
         pProgramState->camMatrix.axis.t = udDouble4::create(udDouble3::create(modelT), 1.f);
 
-
+      ImGui::Columns(7, NULL, false);
       ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
       ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
 
+      ImGui::NextColumn();
+      ImGui::Checkbox("On Screen Controls", &(pProgramState->onScreenControls));
+      memset(pProgramState->onScreenKeys, 0, sizeof(pProgramState->onScreenKeys));
+      if (pProgramState->onScreenControls)
+      {
+        //first row
+        ImGui::NextColumn();
+
+        ImGui::Button("Move Up", ImVec2(80, 80));
+        if(ImGui::IsItemHovered() && ImGui::IsMouseDown(0))
+          pProgramState->onScreenKeys[OSC_R] = true;
+
+        ImGui::NextColumn();
+        ImGui::NextColumn();
+
+        ImGui::Button("Forwards", ImVec2(80, 80));
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDown(0))
+          pProgramState->onScreenKeys[OSC_W] = true;
+
+        ImGui::NextColumn();
+        ImGui::NextColumn();
+
+        ImGui::Button("Faster", ImVec2(80, 80));
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDown(0))
+          pProgramState->onScreenKeys[OSC_SHIFT] = true;
+
+        ImGui::NextColumn();
+        // second row
+        ImGui::NextColumn();
+        ImGui::NextColumn();
+        ImGui::NextColumn();
+
+        ImGui::Button("Move Left", ImVec2(80, 80));
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDown(0))
+          pProgramState->onScreenKeys[OSC_A] = true;
+
+        ImGui::NextColumn();
+        ImGui::NextColumn();
+
+        ImGui::Button("Move Right", ImVec2(80, 80));
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDown(0))
+          pProgramState->onScreenKeys[OSC_D] = true;
+
+        ImGui::NextColumn();
+        ImGui::NextColumn();
+        // third row
+        ImGui::NextColumn();
+        ImGui::NextColumn();
+
+        ImGui::Button("Move Down", ImVec2(80, 80));
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDown(0))
+          pProgramState->onScreenKeys[OSC_F] = true;
+
+        ImGui::NextColumn();
+        ImGui::NextColumn();
+
+        ImGui::Button("Backwards", ImVec2(80, 80));
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDown(0))
+          pProgramState->onScreenKeys[OSC_S] = true;
+
+        ImGui::NextColumn();
+        ImGui::NextColumn();
+
+        ImGui::Button("Slower", ImVec2(80, 80));
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDown(0))
+          pProgramState->onScreenKeys[OSC_CTRL] = true;
+      }
+
+
+      ImGui::Columns(1);
       if (ImGui::TreeNode("Model List"))
       {
         int len = (int) modelList.length;
