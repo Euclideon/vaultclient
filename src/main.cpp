@@ -347,8 +347,6 @@ void vcHandleSceneInput(ProgramState *pProgramState)
 
   if (pProgramState->onScreenControls)
   {
-    if (pProgramState->onScreenKeys[OSC_W])
-      udDebugPrintf("forward received");
     deltaMoveForward = speed * ((int)pProgramState->onScreenKeys[OSC_W] - (int)pProgramState->onScreenKeys[OSC_S]);
     deltaMoveRight = speed * ((int)pProgramState->onScreenKeys[OSC_D] - (int)pProgramState->onScreenKeys[OSC_A]);
     deltaMoveUp = speed * ((int)pProgramState->onScreenKeys[OSC_R] - (int)pProgramState->onScreenKeys[OSC_F]);
