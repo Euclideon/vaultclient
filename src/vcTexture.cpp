@@ -67,7 +67,12 @@ vcTexture vcCreateDepthTexture(uint32_t width, uint32_t height, vcTextureFormat 
     internalFormat = GL_DEPTH_COMPONENT24;
   }
 
+  // TODO: Remove this. OpenGL ES is not the same as OpenGL! Read the OpenGL **and** OpenGL ES docs before changing this!
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
+#else
   glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL); // Could use glTexStorage2D but OpenGL 4.2 only, GL_RED and GL_FLOAT are ignored because of NULL
+#endif
   glBindTexture(GL_TEXTURE_2D, 0);
   VERIFY_GL();
 
@@ -120,7 +125,7 @@ vcTexture vcLoadTextureFromDisk(const char *filename, uint32_t *pWidth /*= nullp
 
   if (pData)
     texture = vcCreateTexture(width, height, vcTextureFormat_RGBA8, filterMode, hasMipmaps, pData, aniFilter, wrapMode);
-  
+
   stbi_image_free(pData);
 
   if (pWidth != nullptr)

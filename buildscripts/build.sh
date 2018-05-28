@@ -12,7 +12,7 @@ else
 fi
 
 export DEPLOYDIR="$RESOURCES/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
-export VAULTSDK_HOME="$RESOURCES/Builds/vault/sdk/Pipeline_24545"
+export VAULTSDK_HOME="$RESOURCES/Builds/vault/sdk/Pipeline_24758"
 
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 	bin/premake/premake5.exe vs2015
@@ -85,9 +85,6 @@ else
 			if [[ $OSTYPE == "darwin"* ]]; then # OSX
 				# Make folder to store the framework to build a DMG from
 				mkdir builds/client/bin/packaging
-				if [ $? -ne 0 ]; then exit 1; fi
-
-				cp -af builds/client/bin/Vault_Client.png builds/client/bin/packaging/Vault_Client.png
 				if [ $? -ne 0 ]; then exit 1; fi
 
 				cp -af builds/client/bin/vaultClient.app builds/client/bin/packaging/vaultClient.app

@@ -5,6 +5,7 @@
 #include "imgui_ex/imgui_impl_sdl_gl3.h"
 #include "imgui_ex/imgui_dock.h"
 #include "SDL2/SDL.h"
+#include "SDL2/SDL_syswm.h"
 #include "udPlatform/udMath.h"
 #include "udPlatform/udChunkedArray.h"
 #include "udPlatform/udPlatformUtil.h"
@@ -47,6 +48,7 @@ struct ProgramState
 {
   bool programComplete;
   SDL_Window *pWindow;
+  GLuint defaultFramebuffer;
   bool isFullscreen;
 
   bool planeMode;
@@ -97,14 +99,28 @@ int main(int /*argc*/, char ** /*args*/)
 
   // default values
   programState.planeMode = true;
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  // TODO: Query device and fill screen
+  programState.sceneResolution.x = 1920;
+  programState.sceneResolution.y = 1080;
+#else
   programState.sceneResolution.x = 1280;
   programState.sceneResolution.y = 720;
+#endif
   programState.camMatrix = udDouble4x4::identity();
 
   programState.settings.cameraSpeed = 3.f;
   programState.settings.zNear = 0.5f;
   programState.settings.zFar = 10000.f;
   programState.settings.foV = UD_PIf / 3.f; // 120 degrees
+
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  // While using the menu is tricky/impossible on iOS, default some windows to be open
+  // TODO: Remove this because it's bad
+  programState.windowsOpen[vcdSettings] = true;
+  programState.windowsOpen[vcdScene] = true;
+  programState.windowsOpen[vcdSceneExplorer] = true;
+#endif
 
   modelList.Init(32);
   lastModelLoaded = true;
@@ -116,7 +132,13 @@ int main(int /*argc*/, char ** /*args*/)
   programState.pModelPath = udAllocType(char, 1024, udAF_Zero);
 
   udStrcpy(programState.pServerURL, 1024, "http://vau-ubu-pro-001.euclideon.local");
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  // Network drives aren't available on iOS
+  // TODO: Something better!
+  udStrcpy(programState.pModelPath, 1024, "http://pfox.euclideon.local:8080/AdelaideCBD_2cm.uds");
+#else
   udStrcpy(programState.pModelPath, 1024, "V:/QA/For Tests/Geoverse MDM/AdelaideCBD_2cm.uds");
+#endif
 
   Uint64 NOW;
   Uint64 LAST;
@@ -126,16 +148,26 @@ int main(int /*argc*/, char ** /*args*/)
     goto epilogue;
 
   // Setup window
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+
+  if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3) != 0)
+    goto epilogue;
+  if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0) != 0)
+    goto epilogue;
+#else
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
   if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3) != 0)
     goto epilogue;
   if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3) != 0)
     goto epilogue;
+#endif
+
+  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
   //TODO: Get a STRINGIFY macro in udPlatform somewhere
 #define _STRINGIFY(a) #a
@@ -146,7 +178,7 @@ int main(int /*argc*/, char ** /*args*/)
 #define WINDOW_SUFFIX " (DEV/DO NOT DISTRIBUTE - " __DATE__ ")"
 #endif
 
-  programState.pWindow = SDL_CreateWindow("Euclideon Client" WINDOW_SUFFIX, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+  programState.pWindow = SDL_CreateWindow("Euclideon Client" WINDOW_SUFFIX, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, programState.sceneResolution.x, programState.sceneResolution.y, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
   if (!programState.pWindow)
     goto epilogue;
 
@@ -173,6 +205,19 @@ int main(int /*argc*/, char ** /*args*/)
   if (!glcontext)
     goto epilogue;
 
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  // Rendering to framebuffer 0 isn't valid when using UIKit in SDL2
+  // so we need to use the framebuffer that SDL2 provides us.
+  {
+    SDL_SysWMinfo wminfo;
+    SDL_VERSION(&wminfo.version);
+    SDL_GetWindowWMInfo(programState.pWindow, &wminfo);
+    programState.defaultFramebuffer = wminfo.info.uikit.framebuffer;
+  }
+#else
+  programState.defaultFramebuffer = 0;
+#endif
+
 #if UDPLATFORM_WINDOWS
   glewExperimental = GL_TRUE;
   if (glewInit() != GLEW_OK)
@@ -183,8 +228,13 @@ int main(int /*argc*/, char ** /*args*/)
 
   glGetError(); // throw out first error
 
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  if (!ImGui_ImplSdlGL3_Init(programState.pWindow, "#version 300 es"))
+    goto epilogue;
+#else
   if (!ImGui_ImplSdlGL3_Init(programState.pWindow, "#version 150 core"))
     goto epilogue;
+#endif
 
   //Get ready...
   NOW = SDL_GetPerformanceCounter();
@@ -192,6 +242,10 @@ int main(int /*argc*/, char ** /*args*/)
 
   if (vcRender_Init(&vContainer.pRenderContext, &(programState.settings), programState.sceneResolution) != udR_Success)
     goto epilogue;
+
+  // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
+  // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, programState.defaultFramebuffer);
 
   ImGui::LoadDock();
   ImGui::GetIO().Fonts->AddFontFromFileTTF("NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
@@ -343,7 +397,13 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
     return;
 
   if (pProgramState->sceneResolution.x != size.x || pProgramState->sceneResolution.y != size.y) //Resize buffers
+  {
     vcRender_ResizeScene(pVaultContainer->pRenderContext, &(pProgramState->settings), (uint32_t)size.x, (uint32_t)size.y);
+
+    // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
+    // this isn't valid on iOS when using UIKit.
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, pProgramState->defaultFramebuffer);
+  }
 
   vcRenderData renderData = {};
   renderData.cameraMatrix = pProgramState->camMatrix;
@@ -355,7 +415,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
     renderData.models.PushBack(&modelList[i]);
   }
 
-  vcTexture texture = vcRender_RenderScene(pVaultContainer->pRenderContext, renderData);
+  vcTexture texture = vcRender_RenderScene(pVaultContainer->pRenderContext, renderData, pProgramState->defaultFramebuffer);
 
   renderData.models.Deinit();
 
@@ -422,7 +482,7 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
 
 void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer)
 {
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, pProgramState->defaultFramebuffer);
   glClearColor(0, 0, 0, 1);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
