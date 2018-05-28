@@ -162,7 +162,7 @@ epilogue:
   return result;
 }
 
-vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderData &renderData)
+vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderData &renderData, GLuint defaultFramebuffer)
 {
   pRenderContext->viewMatrix = renderData.cameraMatrix;
   pRenderContext->viewMatrix.inverse();
@@ -202,7 +202,7 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
   glBindVertexArray(0);
   glUseProgram(0);
   glBindTexture(GL_TEXTURE_2D, 0);
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
   VERIFY_GL();
 
   return pRenderContext->texture;

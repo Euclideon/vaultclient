@@ -3,8 +3,15 @@
 
 #include "vcRenderUtils.h"
 
-const GLchar* const g_udFragmentShader = R"shader(#version 330 core
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+# define FRAG_HEADER "#version 300 es\nprecision mediump float;\n"
+# define VERT_HEADER "#version 300 es\n"
+#else
+# define FRAG_HEADER "#version 330 core\n"
+# define VERT_HEADER "#version 330 core\n"
+#endif
 
+const GLchar* const g_udFragmentShader = FRAG_HEADER R"shader(
 uniform sampler2D u_texture;
 uniform sampler2D u_depth;
 
@@ -21,8 +28,7 @@ void main()
 }
 )shader";
 
-const GLchar* const g_udVertexShader = R"shader(#version 330 core
-
+const GLchar* const g_udVertexShader = VERT_HEADER R"shader(
 //Input format
 layout(location = 0) in vec2 a_position;
 layout(location = 1) in vec2 a_texCoord;
@@ -38,8 +44,7 @@ void main()
 )shader";
 
 
-const GLchar* const g_terrainTileFragmentShader = R"shader(#version 330 core
-
+const GLchar* const g_terrainTileFragmentShader = FRAG_HEADER R"shader(
 //Input Format
 in vec3 v_colour;
 in vec2 v_uv;
@@ -56,8 +61,7 @@ void main()
 }
 )shader";
 
-const GLchar* const g_terrainTileVertexShader = R"shader(#version 330 core
-
+const GLchar* const g_terrainTileVertexShader = VERT_HEADER R"shader(
 //Input format
 layout(location = 0) in vec3 a_position;
 
@@ -75,12 +79,12 @@ void main()
 {
   v_uv = vec2(a_position.x, 1.0 - a_position.y);
   vec4 col = texture(u_texture, v_uv); // todo: this may be a dependent read on device. Todo: pass in uvs as attribute
-  
+
   vec4 worldPosition = u_world * vec4(a_position, 1.0);
   //worldPosition.z = 10.0 * length(col.xyz) / 3.0f;
   gl_Position = u_viewProjection * worldPosition;
   v_colour = u_debugColour;
- 
+
 }
 )shader";
 
