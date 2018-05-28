@@ -58,7 +58,7 @@ function injectvaultsdkbin()
 	else
 		links { "vaultSDK" }
 	end
-  
+
 	if _OPTIONS["force-vaultsdk"] then
 		includedirs { "../vault/vaultsdk/src" }
 	else
@@ -111,6 +111,8 @@ newoption {
 	trigger     = "force-vaultsdk",
 	description = "Force the use of the vaultsdk repository"
 }
+
+os.copyfile("icons/Vault_Client.png", "builds/client/bin/Vault_Client.png")
 
 solution "vaultClient"
 	-- This hack just makes the VS project and also the makefile output their configurations in the idiomatic order
