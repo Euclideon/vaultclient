@@ -93,9 +93,10 @@ function injectvaultsdkbin()
 		elseif os.target() == premake.IOS then
 			os.execute("mkdir -p builds/client/bin")
 			os.execute("lipo -create " .. os.getenv("VAULTSDK_HOME") .. "/lib/ios_arm64/libvaultSDK.dylib " .. os.getenv("VAULTSDK_HOME") .. "/lib/ios_x64/libvaultSDK.dylib -output builds/client/bin/libvaultSDK.dylib")
-			os.execute("codesign -s - builds/client/bin/libvaultSDK.dylib") -- Is this required?
+			os.execute("codesign -s T6Q3JCVW77 builds/client/bin/libvaultSDK.dylib") -- Is this required? Should this move to VaultSDK?
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			libdirs { "builds/client/bin" }
+			linkoptions { "-rpath @executable_path/" }
 		else
 			os.execute("mkdir -p builds/client/bin")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/linux_GCC_x64/libvaultSDK.so", "builds/client/bin/libvaultSDK.so")
