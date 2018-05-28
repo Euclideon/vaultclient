@@ -68,7 +68,7 @@ struct ProgramState
   vcSettings settings;
 };
 
-enum
+enum onScreenControlKeys
 {
   OSC_W = 0,
   OSC_S = 1,
@@ -388,20 +388,15 @@ void vcHandleSceneInput(ProgramState *pProgramState)
   }
 
   // Move the camera
-  udDouble4 direction;
-  if (pProgramState->planeMode)
+  udDouble4 direction = pProgramState->camMatrix.axis.y * deltaMoveForward + pProgramState->camMatrix.axis.x * deltaMoveRight;
+  if (!pProgramState->planeMode)
   {
-    direction = pProgramState->camMatrix.axis.y * deltaMoveForward + pProgramState->camMatrix.axis.x * deltaMoveRight + udDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
-  }
-  else
-  {
-    direction = pProgramState->camMatrix.axis.y * deltaMoveForward + pProgramState->camMatrix.axis.x * deltaMoveRight;
     direction.z = 0;
     if (direction.x != 0 || direction.y != 0)
       direction = udNormalize3(direction) * speed;
-    direction += udDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
-  }
 
+  }
+  direction += udDouble4{ 0, 0, (double)deltaMoveUp, 0 };
   pProgramState->camMatrix.axis.t += direction * pProgramState->deltaTime;
 }
 
