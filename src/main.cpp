@@ -618,7 +618,7 @@ epilogue:
 }
 
 void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, char *pFilePath) {
-  vaultError err;
+
   lastModelLoaded = false;
   if (pFilePath == nullptr)
     return;
@@ -639,7 +639,6 @@ void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramSta
       pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
       modelList.PushBack(model);
     }
-
   }
   return;
 }
