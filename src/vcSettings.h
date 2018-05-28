@@ -1,3 +1,5 @@
+#include "SDL2/SDL.h"
+
 #ifndef vcSettings_h__
 #define vcSettings_h__
 
@@ -10,12 +12,9 @@ struct vcSettings
   float foV;
 };
 
-enum
-{
-  vcMinCameraPlane = 0,
-  vcMidCameraPlane = 100,
-  vcMaxCameraPlane = 100000,
-};
+const float vcMinCameraPlane = 0.001f;
+const float vcMidCameraPlane = 100.f;
+const float vcMaxCameraPlane = 100000.f;
 
 enum
 {

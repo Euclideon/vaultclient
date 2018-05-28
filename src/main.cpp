@@ -13,6 +13,9 @@
 
 #include <stdlib.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 udChunkedArray<vcModel> modelList;
 
 static bool lastModelLoaded;
@@ -82,6 +85,14 @@ int main(int /*argc*/, char ** /*args*/)
   ProgramState programState = {};
   vaultContainer vContainer = {};
 
+  // Icon parameters
+  SDL_Surface *pIcon = nullptr;
+  int iconWidth, iconHeight, iconBytesPerPixel;
+  char IconPath[] = "Vault_Client.png";
+  unsigned char *pData = nullptr;
+  int pitch;
+  long rMask, gMask, bMask, aMask;
+
   // default values
   programState.planeMode = true;
   programState.sceneResolution.x = 1280;
@@ -137,11 +148,30 @@ int main(int /*argc*/, char ** /*args*/)
   if (!programState.pWindow)
     goto epilogue;
 
+  pData = stbi_load(IconPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
+
+  pitch = iconWidth * iconBytesPerPixel;
+  pitch = (pitch + 3) & ~3;
+
+
+  rMask = 0xFF << 0;
+  gMask = 0xFF << 8;
+  bMask = 0xFF << 16;
+  aMask = (iconBytesPerPixel == 4) ? (0xFF << 24) : 0;
+
+  if (pData != nullptr)
+    pIcon = SDL_CreateRGBSurfaceFrom(pData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
+  if(pIcon != nullptr)
+    SDL_SetWindowIcon(programState.pWindow, pIcon);
+
+  SDL_free(pIcon);
+  free(pData);
+
   glcontext = SDL_GL_CreateContext(programState.pWindow);
   if (!glcontext)
     goto epilogue;
 
-#if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX
+#if UDPLATFORM_WINDOWS
   glewExperimental = GL_TRUE;
   if (glewInit() != GLEW_OK)
     goto epilogue;

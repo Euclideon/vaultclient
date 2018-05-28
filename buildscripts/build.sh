@@ -37,6 +37,9 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 		cp -f builds/client/bin/NotoSansCJKjp-Regular.otf $DEPLOYDIR/Windows/NotoSansCJKjp-Regular.otf
 		if [ $? -ne 0 ]; then exit 1; fi
 
+		cp -f builds/client/bin/Vault_Client.png $DEPLOYDIR/Windows/Vault_Client.png
+		if [ $? -ne 0 ]; then exit 1; fi
+
 		cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll $DEPLOYDIR/Windows/vaultSDK.dll
 		if [ $? -ne 0 ]; then exit 1; fi
 
@@ -84,6 +87,9 @@ else
 				mkdir builds/client/bin/packaging
 				if [ $? -ne 0 ]; then exit 1; fi
 
+				cp -af builds/client/bin/Vault_Client.png builds/client/bin/packaging/Vault_Client.png
+				if [ $? -ne 0 ]; then exit 1; fi
+
 				cp -af builds/client/bin/vaultClient.app builds/client/bin/packaging/vaultClient.app
 				if [ $? -ne 0 ]; then exit 1; fi
 
@@ -93,6 +99,9 @@ else
 			else
 				sharedLibExtension="so"
 				cp -f builds/client/bin/NotoSansCJKjp-Regular.otf $DEPLOYDIR/$OSNAME/NotoSansCJKjp-Regular.otf
+				if [ $? -ne 0 ]; then exit 1; fi
+
+				cp -f builds/client/bin/Vault_Client.png $DEPLOYDIR/$OSNAME/Vault_Client.png
 				if [ $? -ne 0 ]; then exit 1; fi
 
 				cp -f builds/client/bin/vaultClient $DEPLOYDIR/$OSNAME/vaultClient
