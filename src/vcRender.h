@@ -30,6 +30,6 @@ udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vaultContext 
 
 udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, vcSettings *pSettings, const uint32_t width, const uint32_t height);
 
-vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderData &renderData);
+vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderData &renderData, GLuint defaultFramebuffer);
 
 #endif//vcRender_h__
