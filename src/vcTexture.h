@@ -8,6 +8,11 @@
 #elif UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
 # include "OpenGLES/ES3/gl.h"
 # include "OpenGLES/ES3/glext.h"
+#elif UDPLATFORM_LINUX
+# define GL_GLEXT_PROTOTYPES 1
+# include "GL/gl.h"
+# include "GL/glu.h"
+# include "GL/glext.h"
 #else
 # include "GL/glew.h"
 #endif
