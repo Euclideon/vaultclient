@@ -176,8 +176,9 @@ int main(int /*argc*/, char ** /*args*/)
 
       if (event.type == SDL_DROPFILE && programState.hasContext)
       {
-        vcAddModelToList(&vContainer, &programState, udStrdup(event.drop.file));
-        SDL_free(event.drop.file);
+        udFree(programState.pModelPath);
+        programState.pModelPath = udStrdup(event.drop.file);
+        vcAddModelToList(&vContainer, &programState, programState.pModelPath);
       }
 
       programState.programComplete = (event.type == SDL_QUIT);
@@ -618,24 +619,19 @@ epilogue:
 
 void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, char *pFilePath) {
   vaultError err;
+  lastModelLoaded = false;
+  if (pFilePath == nullptr)
+    return;
 
   if (modelList.length < vcMaxModels)
   {
-    if (pFilePath == nullptr)
-    {
-      lastModelLoaded = false;
-      return;
-    }
     vcModel model;
     model.modelLoaded = true;
 
-
-    pProgramState->pModelPath = pFilePath;
     udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
 
     double midPoint[3];
-    err = vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pFilePath);
-    if (err == vE_Success)
+    if(vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pFilePath) == vE_Success)
     {
       lastModelLoaded = true;
       vaultUDModel_GetLocalMatrix(pVaultContainer->pContext, model.pVaultModel, pProgramState->modelMatrix.a);
@@ -643,15 +639,7 @@ void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramSta
       pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
       modelList.PushBack(model);
     }
-    else
-    {
-      lastModelLoaded = false;
-    }
 
-  }
-  else
-  {
-    //dont load model
   }
   return;
 }
