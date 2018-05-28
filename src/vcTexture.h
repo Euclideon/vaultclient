@@ -8,6 +8,11 @@
 #elif UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
 # include "OpenGLES/ES3/gl.h"
 # include "OpenGLES/ES3/glext.h"
+#elif UDPLATFORM_LINUX
+# define GL_GLEXT_PROTOTYPES 1
+# include "GL/gl.h"
+# include "GL/glu.h"
+# include "GL/glext.h"
 #else
 # include "GL/glew.h"
 #endif
@@ -41,8 +46,11 @@ struct vcFramebuffer
 };
 
 vcTexture vcCreateTexture(uint32_t width, uint32_t height, vcTextureFormat format = vcTextureFormat_RGBA8, GLuint filterMode = GL_NEAREST, bool hasMipmaps = false, uint8_t *pPixels = nullptr, int32_t aniFilter = 0, int32_t wrapMode = GL_REPEAT);
-vcFramebuffer vcCreateFramebuffer(vcTexture *pTexture, vcTexture *pDepth = nullptr, int level = 0);
 vcTexture vcCreateDepthTexture(uint32_t width, uint32_t height, vcTextureFormat format = vcTextureFormat_D24, GLuint filterMode = GL_NEAREST);
+vcFramebuffer vcCreateFramebuffer(vcTexture *pTexture, vcTexture *pDepth = nullptr, int level = 0);
+
+vcTexture vcLoadTextureFromDisk(const char *filename, uint32_t *pWidth = nullptr, uint32_t *pHeight = nullptr, int32_t filterMode = GL_LINEAR, bool hasMipmaps = false, int32_t aniFilter = 0, int32_t wrapMode = GL_REPEAT);
+
 void vcDestroyTexture(vcTexture *pTexture);
 void vcDestroyFramebuffer(vcFramebuffer *pFramebuffer);
 

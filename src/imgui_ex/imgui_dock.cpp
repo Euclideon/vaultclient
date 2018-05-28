@@ -1047,7 +1047,7 @@ struct DockContext
 			Dock& dock = *m_docks[i];
 
 			fprintf(fp, "index    %d\n", i);
-			fprintf(fp, "label    %s\n", dock.parent ? (dock.label[0] == '\0' ? "DOCK" : dock.label) : "ROOT"),
+      fprintf(fp, "label    %s\n", (dock.label[0] == '\0' ? "DOCK" : dock.label));
 			fprintf(fp, "x        %d\n", (int)dock.pos.x);
 			fprintf(fp, "y        %d\n", (int)dock.pos.y);
 			fprintf(fp, "size_x   %d\n", (int)dock.size.x);

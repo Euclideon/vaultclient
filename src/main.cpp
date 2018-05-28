@@ -13,6 +13,9 @@
 
 #include <stdlib.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 udChunkedArray<vcModel> modelList;
 
 static bool lastModelLoaded;
@@ -67,8 +70,9 @@ struct ProgramState
 
 void vcHandleSceneInput(ProgramState *pProgramState);
 void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer);
+int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer);
 
-void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, char *pFilePath = nullptr);
+void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, char *pFilePath);
 bool vcUnloadModelList(vaultContainer *pVaultContainer);
 
 #undef main
@@ -82,6 +86,14 @@ int main(int /*argc*/, char ** /*args*/)
 
   ProgramState programState = {};
   vaultContainer vContainer = {};
+
+  // Icon parameters
+  SDL_Surface *pIcon = nullptr;
+  int iconWidth, iconHeight, iconBytesPerPixel;
+  char IconPath[] = "Vault_Client.png";
+  unsigned char *pData = nullptr;
+  int pitch;
+  long rMask, gMask, bMask, aMask;
 
   // default values
   programState.planeMode = true;
@@ -138,11 +150,30 @@ int main(int /*argc*/, char ** /*args*/)
   if (!programState.pWindow)
     goto epilogue;
 
+  pData = stbi_load(IconPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
+
+  pitch = iconWidth * iconBytesPerPixel;
+  pitch = (pitch + 3) & ~3;
+
+
+  rMask = 0xFF << 0;
+  gMask = 0xFF << 8;
+  bMask = 0xFF << 16;
+  aMask = (iconBytesPerPixel == 4) ? (0xFF << 24) : 0;
+
+  if (pData != nullptr)
+    pIcon = SDL_CreateRGBSurfaceFrom(pData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
+  if(pIcon != nullptr)
+    SDL_SetWindowIcon(programState.pWindow, pIcon);
+
+  SDL_free(pIcon);
+  free(pData);
+
   glcontext = SDL_GL_CreateContext(programState.pWindow);
   if (!glcontext)
     goto epilogue;
 
-#if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX
+#if UDPLATFORM_WINDOWS
   glewExperimental = GL_TRUE;
   if (glewInit() != GLEW_OK)
     goto epilogue;
@@ -331,20 +362,41 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
   ImGui::Image((ImTextureID)((size_t)texture.id), size, ImVec2(0, 0), ImVec2(1, -1));
 }
 
-int vcMainMenuGui(ProgramState *pProgramState)
+int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
 {
   int menuHeight = 0;
+  vaultError err;
 
   if (ImGui::BeginMainMenuBar())
   {
-    if (ImGui::BeginMenu("File"))
+    if (ImGui::BeginMenu("System"))
     {
+      if (ImGui::MenuItem("Logout"))
+      {
+        static const char *pErrorMessage = nullptr;
+
+        if (!vcUnloadModelList(pVaultContainer))
+        {
+          pErrorMessage = "Error unloading models!";
+        }
+
+        if (pErrorMessage == nullptr)
+        {
+          err = vaultContext_Logout(pVaultContainer->pContext);
+          if (err == vE_Success)
+            pProgramState->hasContext = false;
+        }
+        else
+        {
+          ImGui::OpenPopup("Logout Error");
+        }
+      }
       if (ImGui::MenuItem("Quit", "Alt+F4"))
         pProgramState->programComplete = true;
       ImGui::EndMenu();
     }
 
-    if (ImGui::BeginMenu("View"))
+    if (ImGui::BeginMenu("Windows"))
     {
       ImGui::MenuItem("Scene", nullptr, &pProgramState->windowsOpen[vcdScene]);
       ImGui::MenuItem("Scene Explorer", nullptr, &pProgramState->windowsOpen[vcdSceneExplorer]);
@@ -376,7 +428,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
   vaultError err;
 
-  int menuHeight = (!pProgramState->hasContext) ? 0 : vcMainMenuGui(pProgramState);
+  int menuHeight = (!pProgramState->hasContext) ? 0 : vcMainMenuGui(pProgramState, pVaultContainer);
 
   //keyboard/mouse handling
   if (ImGui::IsKeyReleased(SDL_SCANCODE_F11))
@@ -494,17 +546,25 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   }
   else
   {
-    if (ImGui::BeginDock("Scene", &pProgramState->windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar))
+    if (ImGui::BeginPopupModal("Logout Error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+      ImGui::Text("Error logging out! (0x00)");
+      if (ImGui::Button("OK", ImVec2(120, 0)))
+        ImGui::CloseCurrentPopup();
+      ImGui::SetItemDefaultFocus();
+      ImGui::EndPopup();
+    }
+
+    if (ImGui::BeginDock("Scene", &pProgramState->windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ResizeFromAnySide))
     {
       vcRenderSceneWindow(pVaultContainer, pProgramState);
       vcHandleSceneInput(pProgramState);
     }
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("Scene Explorer", &pProgramState->windowsOpen[vcdSceneExplorer]))
+    if (ImGui::BeginDock("Scene Explorer", &pProgramState->windowsOpen[vcdSceneExplorer], ImGuiWindowFlags_ResizeFromAnySide))
     {
       ImGui::InputText("Model Path", pProgramState->pModelPath, 1024);
-
       if (ImGui::Button("Load Model!"))
         vcAddModelToList(pVaultContainer, pProgramState, pProgramState->pModelPath);
 
@@ -515,26 +575,6 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       if (ImGui::InputFloat3("Camera Position", &modelT.x))
         pProgramState->camMatrix.axis.t = udDouble4::create(udDouble3::create(modelT), 1.f);
 
-      if (ImGui::Button("Logout"))
-      {
-        static const char *pErrorMessage = nullptr;
-
-        if (!vcUnloadModelList(pVaultContainer))
-        {
-          pErrorMessage = "Error unloading models from list";
-        }
-
-        if (pErrorMessage == nullptr)
-        {
-          err = vaultContext_Logout(pVaultContainer->pContext);
-          if (err == vE_Success)
-            pProgramState->hasContext = false;
-        }
-        else
-        {
-          ImGui::Text("%s", pErrorMessage);
-        }
-      }
 
       if (ImGui::RadioButton("PlaneMode", pProgramState->planeMode))
         pProgramState->planeMode = true;
@@ -587,26 +627,34 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::EndDock();
     }
 
-    if (ImGui::BeginDock("StyleEditor", &pProgramState->windowsOpen[vcdStyling]))
+    if (ImGui::BeginDock("StyleEditor", &pProgramState->windowsOpen[vcdStyling], ImGuiWindowFlags_ResizeFromAnySide))
       ImGui::ShowStyleEditor();
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("UIDebugMenu", &pProgramState->windowsOpen[vcdUIDemo]))
+    if (ImGui::BeginDock("UIDebugMenu", &pProgramState->windowsOpen[vcdUIDemo], ImGuiWindowFlags_ResizeFromAnySide))
       ImGui::ShowDemoWindow();
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("Settings", &pProgramState->windowsOpen[vcdSettings]))
+    if (ImGui::BeginDock("Settings", &pProgramState->windowsOpen[vcdSettings], ImGuiWindowFlags_ResizeFromAnySide))
     {
-      // settings dock
-      ImGui::ShowStyleSelector("Style");
+      static int styleIndex = 1; // dark
+      if (ImGui::Combo("Style", &styleIndex, "Classic\0Dark\0Light\0"))
+      {
+        switch (styleIndex)
+        {
+        case 0: ImGui::StyleColorsClassic(); break;
+        case 1: ImGui::StyleColorsDark(); break;
+        case 2: ImGui::StyleColorsLight(); break;
+        }
+      }
 
-      ImGui::SliderFloat("sliderCameraSpeed", &(pProgramState->settings.cameraSpeed), vcMinCameraSpeed, vcMaxCameraSpeed, "Camera Speed = %.3f", 2.f);
+      ImGui::SliderFloat("Camera Speed", &(pProgramState->settings.cameraSpeed), vcMinCameraSpeed, vcMaxCameraSpeed, "Camera Speed = %.3f", 2.f);
 
-      ImGui::SliderFloat("sliderCameraNearPlane", &(pProgramState->settings.zNear), vcMinCameraPlane, vcMidCameraPlane, "Camera Near Plane = %.3f", 2.f);
-      ImGui::SliderFloat("sliderCameraFarPlane", &(pProgramState->settings.zFar), vcMidCameraPlane, vcMaxCameraPlane, "Camera Far Plane = %.3f", 2.f);
+      ImGui::SliderFloat("Camera Near Plane", &(pProgramState->settings.zNear), vcMinCameraPlane, vcMidCameraPlane, "Camera Near Plane = %.3f", 2.f);
+      ImGui::SliderFloat("Camera Far Plane", &(pProgramState->settings.zFar), vcMidCameraPlane, vcMaxCameraPlane, "Camera Far Plane = %.3f", 2.f);
 
       float fovDeg = UD_RAD2DEGf(pProgramState->settings.foV);
-      ImGui::SliderFloat("sliderCameraFieldOfView", &fovDeg, vcMinFOV, vcMaxFOV, "Camera Field of View = %.0f");
+      ImGui::SliderFloat("Camera Field Of View", &fovDeg, vcMinFOV, vcMaxFOV, "Camera Field of View = %.0f");
       pProgramState->settings.foV = UD_DEG2RADf(fovDeg);
     }
     ImGui::EndDock();

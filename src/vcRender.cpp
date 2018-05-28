@@ -1,6 +1,7 @@
 
 #include "vcRender.h"
 #include "vcRenderShaders.h"
+#include "vcTerrain.h"
 
 int qrIndices[6] = { 0, 1, 2, 0, 2, 3 };
 vcSimpleVertex qrSqVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
@@ -31,9 +32,13 @@ struct vcRenderContext
   vcUDRenderContext udRenderContext;
 
   udDouble4x4 viewMatrix;
+  udDouble4x4 projectionMatrix;
+  udDouble4x4 viewProjectionMatrix;
+
+  vcTerrain *pTerrain;
 };
 
-udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext, vcSettings *pSettings);
+udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
 udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, const vcRenderData &renderData);
 
 udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings, const udUInt2 &sceneResolution)
@@ -47,9 +52,12 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   pRenderContext = udAllocType(vcRenderContext, 1, udAF_Zero);
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
 
+  if (vcTerrain_Init(&pRenderContext->pTerrain) != udR_Success)
+    UD_ERROR_SET(udR_InternalError);
+
   pRenderContext->udRenderContext.programObject = vcBuildProgram(vcBuildShader(GL_VERTEX_SHADER, g_udVertexShader), vcBuildShader(GL_FRAGMENT_SHADER, g_udFragmentShader));
   if (pRenderContext->udRenderContext.programObject == -1)
-    goto epilogue;
+    UD_ERROR_SET(udR_InternalError);
 
   glUseProgram(pRenderContext->udRenderContext.programObject);
   udTextureLocation = glGetUniformLocation(pRenderContext->udRenderContext.programObject, "u_texture");
@@ -81,6 +89,9 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   pRenderContext = *ppRenderContext;
   *ppRenderContext = nullptr;
 
+  if (vcTerrain_Destroy(&pRenderContext->pTerrain) != udR_Success)
+    UD_ERROR_SET(udR_InternalError);
+
   if (vaultUDRenderView_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderView) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
@@ -89,6 +100,7 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
+
 epilogue:
   udFree(pRenderContext);
   return result;
@@ -112,6 +124,10 @@ epilogue:
 udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, vcSettings *pSettings, const uint32_t width, const uint32_t height)
 {
   udResult result = udR_Success;
+  float fov = pSettings->foV;
+  float aspect = width / (float)height;
+  float zNear = pSettings->zNear;
+  float zFar = pSettings->zFar;
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
   UD_ERROR_IF(width == 0, udR_InvalidParameter_);
@@ -119,6 +135,7 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, vcSettings *pSett
 
   pRenderContext->sceneResolution.x = width;
   pRenderContext->sceneResolution.y = height;
+  pRenderContext->projectionMatrix = udDouble4x4::perspective(fov, aspect, zNear, zFar);
 
   //Resize GPU Targets
   vcDestroyTexture(&pRenderContext->udRenderContext.tex);
@@ -139,7 +156,7 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, vcSettings *pSett
   pRenderContext->udRenderContext.pDepthBuffer = udAllocType(float, pRenderContext->sceneResolution.x*pRenderContext->sceneResolution.y, udAF_Zero);
 
   if (pRenderContext->pVaultContext)
-    vcRender_RecreateUDView(pRenderContext, pSettings);
+    vcRender_RecreateUDView(pRenderContext);
 
 epilogue:
   return result;
@@ -148,8 +165,13 @@ epilogue:
 vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderData &renderData)
 {
   pRenderContext->viewMatrix = renderData.cameraMatrix;
+  pRenderContext->viewMatrix.inverse();
+  pRenderContext->viewProjectionMatrix = pRenderContext->projectionMatrix * pRenderContext->viewMatrix;
 
   vcRender_RenderAndUploadUDToTexture(pRenderContext, renderData);
+
+  glDepthMask(GL_TRUE);
+  glDepthFunc(GL_LESS);
 
   glClearColor(0, 0, 0, 1);
   glViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
@@ -166,6 +188,17 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
 
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+  {
+    // for now just rebuild terrain every frame
+    extern float gWorldScale;
+    float depthToHeightScalar = 1.0f; // temp 'zoom level' mechanic
+    udFloat2 fakeLatLong = udFloat2::create(float(renderData.cameraMatrix.axis.t.x) / gWorldScale, float(renderData.cameraMatrix.axis.t.y) / gWorldScale);
+    float fakeViewSize = udMax(0.0f, float(renderData.cameraMatrix.axis.t.z) / (gWorldScale * depthToHeightScalar));
+    vcTerrain_BuildTerrain(pRenderContext->pTerrain, fakeLatLong, fakeViewSize);
+
+    vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->viewProjectionMatrix);
+  }
+
   glBindVertexArray(0);
   glUseProgram(0);
   glBindTexture(GL_TEXTURE_2D, 0);
@@ -175,14 +208,9 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
   return pRenderContext->texture;
 }
 
-udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext, vcSettings *pSettings)
+udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext)
 {
   udResult result = udR_Success;
-  float fov = pSettings->foV;
-  float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
-  float zNear = pSettings->zNear;
-  float zFar = pSettings->zFar;
-  udDouble4x4 projMat = udDouble4x4::perspective(fov, aspect, zNear, zFar);
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
 
@@ -195,7 +223,7 @@ udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext, vcSettings *pS
   if (vaultUDRenderView_SetTargets(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, pRenderContext->udRenderContext.pColorBuffer, 0, pRenderContext->udRenderContext.pDepthBuffer) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vaultUDRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vUDRVM_Projection, projMat.a) != vE_Success)
+  if (vaultUDRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vUDRVM_Projection, pRenderContext->projectionMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
 epilogue:
@@ -207,7 +235,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, co
   udResult result = udR_Success;
   vaultUDModel **ppModels = nullptr;
 
-  if (vaultUDRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vUDRVM_Camera, pRenderContext->viewMatrix.a) != vE_Success)
+  if (vaultUDRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vUDRVM_View, pRenderContext->viewMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
   if(renderData.models.length > 0)
