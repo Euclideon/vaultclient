@@ -1,5 +1,6 @@
 
 #include "vcRenderUtils.h"
+#include "udPlatform/udFile.h"
 
 void vcCreateQuads(vcSimpleVertex *pVerts, int totalVerts, int *pIndices, int totalIndices, GLuint &vboID, GLuint &iboID, GLuint &vaoID)
 {
