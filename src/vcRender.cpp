@@ -213,11 +213,6 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext)
 {
   udResult result = udR_Success;
-  float fov = pRenderContext->pSettings->camera.fieldOfView;
-  float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
-  float zNear = pRenderContext->pSettings->camera.nearPlane;
-  float zFar = pRenderContext->pSettings->camera.farPlane;
-  udDouble4x4 projMat = udDouble4x4::perspective(fov, aspect, zNear, zFar);
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
 
