@@ -69,7 +69,7 @@ bool vcGIS_LocalZoneToLatLong(uint16_t epsgCode, udDouble3 localSpace, udDouble3
   e = (udPow(params.a, 2) - udPow(b, 2)) / udPow(b, 2);
   n0 = params.f / (2 - params.f);
 
-  for (int i = 0; i < 6; ++i)
+  for (int i = 0; i < UDARRAYSIZE(n); ++i)
     n[i] = udPow(n0, i);
 
   A = (params.a / (n[1] + 1)) * (1 + 1 / 4 * n[2] + 1 / 64 * n[4] + 1 / 256 * n[6] + 25 / 16384 * n[8]);
