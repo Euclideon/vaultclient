@@ -408,7 +408,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
   vcRenderData renderData = {};
   renderData.cameraMatrix = pProgramState->camMatrix;
-
+  renderData.srid = pProgramState->currentSRID;
   renderData.models.Init(32);
 
   for (size_t i = 0; i < modelList.length; ++i)
@@ -432,6 +432,19 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
       ImGui::Separator();
       ImGui::Text("SRID: %d", pProgramState->currentSRID);
+
+      if (pProgramState->currentSRID != 0)
+      {
+        udDouble3 ll;
+        vcGIS_LocalZoneToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &ll);
+        const char *pUTMCode = vcGIS_LatLongToUTM(ll.x, ll.y);
+        ImGui::Text(pUTMCode);
+        udFree(pUTMCode);
+
+        udDouble2 latlongIRL = vcGIS_UTMToLatLong(54, 's', pProgramState->camMatrix.axis.t.x, pProgramState->camMatrix.axis.t.y);
+        ImGui::Text("IBM: %f %f", latlongIRL.x, latlongIRL.y);
+        ImGui::Text("EUC: %f %f", ll.x, ll.y);
+      }
 
       ImGui::Separator();
       if (ImGui::IsMousePosValid())

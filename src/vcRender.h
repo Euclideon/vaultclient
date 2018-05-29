@@ -21,6 +21,8 @@ struct vcModel
 
 struct vcRenderData
 {
+  uint16_t srid;
+
   udChunkedArray<vcModel*> models;
   udDouble4x4 cameraMatrix;
 };
