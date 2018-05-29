@@ -1,5 +1,6 @@
 #include "vcGIS.h"
-struct vcGIS_EPSGParameters
+
+struct vcGIS_SRIDParameters
 {
   int zone;
   double meridian;
@@ -10,15 +11,15 @@ struct vcGIS_EPSGParameters
   double k;
 };
 
-bool vcGIS_PopulateEPSGParameters(vcGIS_EPSGParameters *pParams, uint16_t epsgCode)
+bool vcGIS_PopulateSRIDParameters(vcGIS_SRIDParameters *pParams, uint16_t sridCode)
 {
   if (pParams == nullptr)
     return false;
 
-  if (epsgCode > 32600 && epsgCode < 32661)
+  if (sridCode > 32600 && sridCode < 32661)
   {
     // WGS84 Northern Hemisphere
-    pParams->zone = epsgCode - 32600;
+    pParams->zone = sridCode - 32600;
     pParams->meridian = pParams->zone * 6 - 183;
     pParams->falseNorthing = 0;
     pParams->falseEasting = 500000;
@@ -26,10 +27,10 @@ bool vcGIS_PopulateEPSGParameters(vcGIS_EPSGParameters *pParams, uint16_t epsgCo
     pParams->a = 6378137;
     pParams->k = 0.9996;
   }
-  else if (epsgCode > 32700 && epsgCode < 32761)
+  else if (sridCode > 32700 && sridCode < 32761)
   {
     // WGS84 Southern Hemisphere
-    pParams->zone = epsgCode - 32700;
+    pParams->zone = sridCode - 32700;
     pParams->meridian = pParams->zone * 6 - 183;
     pParams->falseNorthing = 10000000;
     pParams->falseEasting = 500000;
@@ -37,10 +38,10 @@ bool vcGIS_PopulateEPSGParameters(vcGIS_EPSGParameters *pParams, uint16_t epsgCo
     pParams->a = 6378137;
     pParams->k = 0.9996;
   }
-  else if (epsgCode > 26900 && epsgCode < 26924)
+  else if (sridCode > 26900 && sridCode < 26924)
   {
     // NAD83 Northern Hemisphere
-    pParams->zone = epsgCode - 26900;
+    pParams->zone = sridCode - 26900;
     pParams->meridian = pParams->zone * 6 - 183;
     pParams->falseNorthing = 0;
     pParams->falseEasting = 500000;
@@ -48,10 +49,10 @@ bool vcGIS_PopulateEPSGParameters(vcGIS_EPSGParameters *pParams, uint16_t epsgCo
     pParams->a = 6378137;
     pParams->k = 0.9996;
   }
-  else if (epsgCode > 28347 && epsgCode < 28357)
+  else if (sridCode > 28347 && sridCode < 28357)
   {
     // GDA94 Southern Hemisphere (for MGA)
-    pParams->zone = epsgCode - 28300;
+    pParams->zone = sridCode - 28300;
     pParams->meridian = pParams->zone * 6 - 183;
     pParams->falseNorthing = 10000000;
     pParams->falseEasting = 500000;
@@ -67,9 +68,8 @@ bool vcGIS_PopulateEPSGParameters(vcGIS_EPSGParameters *pParams, uint16_t epsgCo
   return true;
 }
 
-bool vcGIS_LocalZoneToLatLong(uint16_t epsgCode, udDouble3 localSpace, udDouble3 *pLatLong)
+bool vcGIS_LocalZoneToLatLong(uint16_t sridCode, udDouble3 localSpace, udDouble3 *pLatLong)
 {
-
   double x, y;
   double b, e; // ellipse parameters
   double n0, zeta, eta, chi;
@@ -80,9 +80,10 @@ bool vcGIS_LocalZoneToLatLong(uint16_t epsgCode, udDouble3 localSpace, udDouble3
   double northing = localSpace[1];
   double n[9];
 
-  vcGIS_EPSGParameters params;
+  vcGIS_SRIDParameters params;
 
-  vcGIS_PopulateEPSGParameters(&params, epsgCode);
+  if (!vcGIS_PopulateSRIDParameters(&params, sridCode))
+    return false;
 
   x = easting - params.falseEasting;
   y = northing - params.falseNorthing;
@@ -128,9 +129,9 @@ bool vcGIS_LocalZoneToLatLong(uint16_t epsgCode, udDouble3 localSpace, udDouble3
   return true;
 }
 
-bool vcGIS_LatLongToLocalZone(uint16_t epsgCode, udDouble3 latLong, udDouble3 *pLocalSpace)
+bool vcGIS_LatLongToLocalZone(uint16_t sridCode, udDouble3 latLong, udDouble3 *pLocalSpace)
 {
-  udUnused(epsgCode);
+  udUnused(sridCode);
   udUnused(latLong);
   udUnused(pLocalSpace);
 

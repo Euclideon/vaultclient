@@ -11,6 +11,7 @@
 #include "udPlatform/udPlatformUtil.h"
 #include "vcRender.h"
 #include "vcSettings.h"
+#include "vcGIS.h"
 
 #include <stdlib.h>
 
@@ -54,7 +55,7 @@ struct ProgramState
   udDouble4x4 camMatrix;
   udUInt2 sceneResolution;
 
-  udDouble4x4 modelMatrix;
+  uint16_t currentSRID;
 
   bool hasContext;
   bool windowsOpen[vcdTotalDocks];
@@ -74,6 +75,8 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer);
 
 void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, char *pFilePath);
 bool vcUnloadModelList(vaultContainer *pVaultContainer);
+
+bool vcModel_MoveToModelProjection(vaultContainer *pVaultContainer, ProgramState *pProgramState, vcModel *pModel);
 
 #undef main
 #ifdef SDL_MAIN_NEEDED
@@ -184,7 +187,6 @@ int main(int /*argc*/, char ** /*args*/)
 
   pitch = iconWidth * iconBytesPerPixel;
   pitch = (pitch + 3) & ~3;
-
 
   rMask = 0xFF << 0;
   gMask = 0xFF << 8;
@@ -390,6 +392,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 {
   //Rendering
   ImVec2 size = ImGui::GetContentRegionAvail();
+  ImVec2 windowPos = ImVec2(ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y);
 
   if (size.x < 1 || size.y < 1)
     return;
@@ -418,6 +421,26 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
   renderData.models.Deinit();
 
   ImGui::Image((ImTextureID)((size_t)texture.id), size, ImVec2(0, 0), ImVec2(1, -1));
+
+  {
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + size.x - 5.f, windowPos.y + 5.f), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+    ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
+
+    if (ImGui::Begin("SceneOverlay", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+    {
+      ImGui::Text("Scene Info Overlay");
+
+      ImGui::Separator();
+      ImGui::Text("SRID: %d", pProgramState->currentSRID);
+
+      ImGui::Separator();
+      if (ImGui::IsMousePosValid())
+        ImGui::Text("Mouse Position: (%.1f,%.1f)", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
+      else
+        ImGui::Text("Mouse Position: <invalid>");
+    }
+    ImGui::End();
+  }
 }
 
 int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
@@ -434,9 +457,7 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
         static const char *pErrorMessage = nullptr;
 
         if (!vcUnloadModelList(pVaultContainer))
-        {
           pErrorMessage = "Error unloading models!";
-        }
 
         if (pErrorMessage == nullptr)
         {
@@ -629,17 +650,21 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       if (!lastModelLoaded)
         ImGui::Text("Invalid File/Not Found...");
 
-      udFloat3 modelT = udFloat3::create(pProgramState->camMatrix.axis.t.toVector3());
-      if (ImGui::InputFloat3("Camera Position", &modelT.x))
-        pProgramState->camMatrix.axis.t = udDouble4::create(udDouble3::create(modelT), 1.f);
+      ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &pProgramState->camMatrix.axis.t.toVector3().x, 3);
 
+      if (pProgramState->currentSRID != 0)
+      {
+        udDouble3 latLong;
+        vcGIS_LocalZoneToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &latLong);
+        ImGui::InputScalarN("Lat/Long", ImGuiDataType_Double, &latLong.x, 2);
+      }
 
       ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
       ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
 
       if (ImGui::TreeNode("Model List"))
       {
-        int len = (int) modelList.length;
+        int len = (int)modelList.length;
 
         static int selection = len;
         bool selected = false;
@@ -651,12 +676,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
           {
             selection = i;
             if (ImGui::IsMouseDoubleClicked(0))
-            {
-              // move camera to midpoint of selected object
-              double midPoint[3];
-              vaultUDModel_GetModelCenter(pVaultContainer->pContext, modelList[i].pVaultModel, midPoint);
-              pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
-            }
+              vcModel_MoveToModelProjection(pVaultContainer, pProgramState, &modelList[i]); //Move to the selected model
           }
           ImGui::NextColumn();
 
@@ -686,9 +706,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::ShowStyleEditor();
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("UIDebugMenu", &pProgramState->windowsOpen[vcdUIDemo], ImGuiWindowFlags_ResizeFromAnySide))
+    if (pProgramState->windowsOpen[vcdUIDemo])
       ImGui::ShowDemoWindow();
-    ImGui::EndDock();
 
     if (ImGui::BeginDock("Settings", &pProgramState->windowsOpen[vcdSettings], ImGuiWindowFlags_ResizeFromAnySide))
     {
@@ -720,30 +739,29 @@ epilogue:
   return;
 }
 
-void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, char *pFilePath) {
-
-  lastModelLoaded = false;
+void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, char *pFilePath)
+{
   if (pFilePath == nullptr)
     return;
 
   if (modelList.length < vcMaxModels)
   {
-    vcModel model;
+    vcModel model = {};
     model.modelLoaded = true;
 
     udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
 
-    double midPoint[3];
     if(vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pFilePath) == vE_Success)
     {
-      lastModelLoaded = true;
-      vaultUDModel_GetLocalMatrix(pVaultContainer->pContext, model.pVaultModel, pProgramState->modelMatrix.a);
-      vaultUDModel_GetModelCenter(pVaultContainer->pContext, model.pVaultModel, midPoint);
-      pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
+      const char *pMetadata;
+      if (vaultUDModel_GetMetadata(pVaultContainer->pContext, model.pVaultModel, &pMetadata) == vE_Success)
+        model.metadata.Parse(pMetadata);
+
+      vcModel_MoveToModelProjection(pVaultContainer, pProgramState, &model);
+
       modelList.PushBack(model);
     }
   }
-  return;
 }
 
 bool vcUnloadModelList(vaultContainer *pVaultContainer)
@@ -760,6 +778,34 @@ bool vcUnloadModelList(vaultContainer *pVaultContainer)
   }
   while (modelList.length > 0)
     modelList.PopFront();
+
+  return true;
+}
+
+bool vcModel_MoveToModelProjection(vaultContainer *pVaultContainer, ProgramState *pProgramState, vcModel *pModel)
+{
+  if (pVaultContainer == nullptr || pProgramState == nullptr || pModel == nullptr)
+    return false;
+
+  double midPoint[3];
+  vaultUDModel_GetModelCenter(pVaultContainer->pContext, pModel->pVaultModel, midPoint);
+  pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
+
+  const char *pSRID = pModel->metadata.Get("ProjectionID").AsString();
+  const char *pWKT = pModel->metadata.Get("ProjectionWKT").AsString();
+
+  if (pSRID != nullptr)
+  {
+    pSRID = udStrchr(pSRID, ":");
+    if (pSRID != nullptr)
+      pProgramState->currentSRID = (uint16_t)udStrAtou(&pSRID[1]);
+    else
+      pProgramState->currentSRID = 0;
+  }
+  else if (pWKT != nullptr)
+  {
+    // Not sure?
+  }
 
   return true;
 }
