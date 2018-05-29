@@ -397,7 +397,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
   if (pProgramState->sceneResolution.x != size.x || pProgramState->sceneResolution.y != size.y) //Resize buffers
   {
-    vcRender_ResizeScene(pVaultContainer->pRenderContext, &(pProgramState->settings), (uint32_t)size.x, (uint32_t)size.y);
+    vcRender_ResizeScene(pVaultContainer->pRenderContext, (uint32_t)size.x, (uint32_t)size.y);
 
     // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
     // this isn't valid on iOS when using UIKit.

@@ -36,6 +36,7 @@ struct vcRenderContext
   udDouble4x4 viewProjectionMatrix;
 
   vcTerrain *pTerrain;
+  vcSettings *pSettings;
 };
 
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
@@ -71,7 +72,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
 
   *ppRenderContext = pRenderContext;
 
-  result = vcRender_ResizeScene(pRenderContext, pSettings, sceneResolution.x, sceneResolution.y);
+  pRenderContext->pSettings = pSettings;
+  result = vcRender_ResizeScene(pRenderContext, sceneResolution.x, sceneResolution.y);
   if (result != udR_Success)
     goto epilogue;
 
@@ -121,13 +123,13 @@ epilogue:
   return result;
 }
 
-udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, vcSettings *pSettings, const uint32_t width, const uint32_t height)
+udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height)
 {
   udResult result = udR_Success;
-  float fov = pSettings->foV;
+  float fov = pRenderContext->pSettings->camera.fieldOfView;
   float aspect = width / (float)height;
-  float zNear = pSettings->zNear;
-  float zFar = pSettings->zFar;
+  float zNear = pRenderContext->pSettings->camera.nearPlane;
+  float zFar = pRenderContext->pSettings->camera.farPlane;
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
   UD_ERROR_IF(width == 0, udR_InvalidParameter_);
@@ -211,10 +213,10 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext)
 {
   udResult result = udR_Success;
-  float fov = pSettings->camera.fieldOfView;
+  float fov = pRenderContext->pSettings->camera.fieldOfView;
   float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
-  float zNear = pSettings->camera.nearPlane;
-  float zFar = pSettings->camera.farPlane;
+  float zNear = pRenderContext->pSettings->camera.nearPlane;
+  float zFar = pRenderContext->pSettings->camera.farPlane;
   udDouble4x4 projMat = udDouble4x4::perspective(fov, aspect, zNear, zFar);
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
