@@ -9,4 +9,7 @@ bool vcGIS_LatLongToLocalZone(uint16_t sridCode, udDouble3 latLong, udDouble3 *p
 bool vcGIS_LatLongToSlippyTileIDs(udInt2 *pTileIDs, udDouble2 latLong, int zoomLevel);
 bool vcGIS_SlippyTileIDsToLatLong(udDouble2 *pLatLong, udInt2 tileID, int zoomLevel);
 
+const char* vcGIS_LatLongToUTM(double latitude, double longitude);
+udDouble2 vcGIS_UTMToLatLong(int zone, char latZone, double easting, double northing);
+
 #endif // !vcGIS_h__

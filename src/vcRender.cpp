@@ -1,5 +1,5 @@
-
 #include "vcRender.h"
+
 #include "vcRenderShaders.h"
 #include "vcTerrain.h"
 
@@ -190,6 +190,7 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
 
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+  if (renderData.srid != 0)
   {
     // for now just rebuild terrain every frame
     extern float gWorldScale;
