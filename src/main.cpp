@@ -683,9 +683,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         ImGui::Columns(1);
         ImGui::TreePop();
       }
-
-      ImGui::EndDock();
     }
+    ImGui::EndDock();
 
     if (ImGui::BeginDock("StyleEditor", &pProgramState->windowsOpen[vcdStyling], ImGuiWindowFlags_ResizeFromAnySide))
       ImGui::ShowStyleEditor();
