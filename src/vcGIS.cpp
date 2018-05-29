@@ -69,7 +69,7 @@ bool vcGIS_LocalZoneToLatLong(uint16_t epsgCode, udDouble3 localSpace, udDouble3
   e = (udPow(params.a, 2) - udPow(b, 2)) / udPow(b, 2);
   n0 = params.f / (2 - params.f);
 
-  for (int i = 0; i < UDARRAYSIZE(n); ++i)
+  for (size_t i = 0; i < UDARRAYSIZE(n); ++i)
     n[i] = udPow(n0, i);
 
   A = (params.a / (n[1] + 1)) * (1 + 1 / 4 * n[2] + 1 / 64 * n[4] + 1 / 256 * n[6] + 25 / 16384 * n[8]);
@@ -87,14 +87,14 @@ bool vcGIS_LocalZoneToLatLong(uint16_t epsgCode, udDouble3 localSpace, udDouble3
     7 / 3 * n[2] - 8 / 5 * n[3],
     56 / 15 * n[3] };
 
-  for (int j = 0; j < 3; ++j)
+  for (size_t j = 0; j < 3; ++j)
   {
     zetad -= beta[j] * udSin(2*j*zeta)*udCosh(2*j*eta);
     etad -= beta[j] * udCos(2*j*zeta)*udSinh(2*j*eta);
   }
   chi = udASin(udSin(zetad) / udCosh(etad));
   lats = 0;
-  for (int j = 0; j < 3; ++j)
+  for (size_t j = 0; j < 3; ++j)
     lats += delta[j] * udSin(2*j*chi);
   latitude = chi + lats;
   longitude = udATan2(udSinh(etad), udCos(zetad));
