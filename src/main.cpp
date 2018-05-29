@@ -622,12 +622,19 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
     if (ImGui::BeginDock("Scene Explorer", &pProgramState->windowsOpen[vcdSceneExplorer], ImGuiWindowFlags_ResizeFromAnySide))
     {
+      bool modelListFull = modelList.length == vcMaxModels;
+
       ImGui::InputText("Model Path", pProgramState->pModelPath, 1024);
       if (ImGui::Button("Load Model!"))
         vcAddModelToList(pVaultContainer, pProgramState, pProgramState->pModelPath);
 
       if (!lastModelLoaded)
-        ImGui::Text("Invalid File/Not Found...");
+      {
+        if (!modelListFull)
+          ImGui::Text("Invalid File/Not Found...");
+        else
+          ImGui::Text("Maximum Models already loaded!");
+      }
 
       udFloat3 modelT = udFloat3::create(pProgramState->camMatrix.axis.t.toVector3());
       if (ImGui::InputFloat3("Camera Position", &modelT.x))
@@ -670,6 +677,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
             if (err != vE_Success)
               goto epilogue;
             modelList.RemoveAt(i);
+            lastModelLoaded = true;
             i--;
             len--;
           }
