@@ -50,12 +50,13 @@ bool vcGIS_LocalZoneToLatLong(uint16_t epsgCode, udDouble3 localSpace, udDouble3
 
   double x, y;
   double b, e; // ellipse parameters
-  double n0, mu, B;
-  double c, c2, v, t4, t5;
+  double n0, zeta, eta, chi;
+  double zetad, etad, lats;
+  double A;
   double latitude, longitude;
   double easting = localSpace[0];
   double northing = localSpace[1];
-  double n[5];
+  double n[9];
 
   vcGIS_EPSGParameters params;
 
@@ -68,27 +69,36 @@ bool vcGIS_LocalZoneToLatLong(uint16_t epsgCode, udDouble3 localSpace, udDouble3
   e = (udPow(params.a, 2) - udPow(b, 2)) / udPow(b, 2);
   n0 = params.f / (2 - params.f);
 
-  for (int i = 0; i < 5; ++i)
+  for (int i = 0; i < (int)UDARRAYSIZE(n); ++i)
     n[i] = udPow(n0, i);
 
-  double D[] = { 0, 0, 3 / 2 * n[1] - 27 / 32 * n[3], 0, 21 / 16 * n[2] - 55 / 32 * n[4], 0, 151 / 96 * n[3], 0, 1097 / 512 * n[4] };
-  double d = 0;
-  for (int i = 2; i < 9; i += 2)
-    d += D[i];
+  A = (params.a / (n[1] + 1)) * (1 + 1 / 4 * n[2] + 1 / 64 * n[4] + 1 / 256 * n[6] + 25 / 16384 * n[8]);
 
-  B = b*(1 + n[1] + 5 / 4 * n[2] + 5 / 4 * n[3]);
+  zeta = y / (params.k*A);
+  eta = x / (params.k*A);
+  zetad = zeta;
+  etad = eta;
 
-  mu = UD_PI * x / (2 * (UD_PI / 2) * B *params.k);
+  double beta[] = { 1 / 2 * n[1] - 2 / 3 * n[2] + 37 / 96 * n[3] - 1 / 360 * n[4] - 81 / 512 * n[5],
+    1 / 48 * n[2] + 1 / 15 * n[3] - 437 / 1440 * n[4] + 46 / 105 * n[5],
+    17 / 480 * n[3] - 37 / 840 * n[4] - 209 / 4480 * n[5] };
 
-  c = udCos(mu + d);
-  c2 = udPow(c, 2);
-  v = params.a*udSqrt((1 + e) / (1 + e*udPow(c,2)));
-  x = x / (params.k*v);
-  t4 = udATan2(udSinh(x), c);
-  t5 = udATan(udTan(mu + d)*udCos(t4));
+  double delta[] = { 2 * n[1] - 2 / 3 * n[2],
+    7 / 3 * n[2] - 8 / 5 * n[3],
+    56 / 15 * n[3] };
 
-  latitude = (1 + e*c2)*(t5 - e / 24 * udPow(x,4) * udTan(mu + d)*(9 - 10 * c2)) - e*(mu + d)*c2;
-  longitude = t4 - e / 60 * udPow(x, 3) * c *(10 - (4 * udPow(x, 2)) / c2 + udPow(x, 2) * c2);
+  for (int j = 0; j < 3; ++j)
+  {
+    zetad -= beta[j] * udSin(2*j*zeta)*udCosh(2*j*eta);
+    etad -= beta[j] * udCos(2*j*zeta)*udSinh(2*j*eta);
+  }
+  chi = udASin(udSin(zetad) / udCosh(etad));
+  lats = 0;
+  for (int j = 0; j < 3; ++j)
+    lats += delta[j] * udSin(2*j*chi);
+  latitude = chi + lats;
+  longitude = udATan2(udSinh(etad), udCos(zetad));
+
 
   pLatLong->x = UD_RAD2DEG(latitude);
   pLatLong->y = params.meridian + UD_RAD2DEG(longitude);
