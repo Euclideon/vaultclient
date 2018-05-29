@@ -37,6 +37,28 @@ bool vcGIS_PopulateEPSGParameters(vcGIS_EPSGParameters *pParams, uint16_t epsgCo
     pParams->a = 6378137;
     pParams->k = 0.9996;
   }
+  else if (epsgCode > 26900 && epsgCode < 26924)
+  {
+    // NAD83 Northern Hemisphere
+    pParams->zone = epsgCode - 26900;
+    pParams->meridian = pParams->zone * 6 - 183;
+    pParams->falseNorthing = 0;
+    pParams->falseEasting = 500000;
+    pParams->f = 1 / 298.257222101;
+    pParams->a = 6378137;
+    pParams->k = 0.9996;
+  }
+  else if (epsgCode > 28347 && epsgCode < 28357)
+  {
+    // GDA94 Southern Hemisphere (for MGA)
+    pParams->zone = epsgCode - 28300;
+    pParams->meridian = pParams->zone * 6 - 183;
+    pParams->falseNorthing = 10000000;
+    pParams->falseEasting = 500000;
+    pParams->f = 1 / 298.257222101;
+    pParams->a = 6378137;
+    pParams->k = 0.9996;
+  }
   else
   {
     return false;
