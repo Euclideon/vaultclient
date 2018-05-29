@@ -6,6 +6,7 @@
 #include "vaultUDRenderView.h"
 #include "udPlatform/udChunkedArray.h"
 #include "vcSettings.h"
+#include "udPlatform/udValue.h"
 
 struct vcRenderContext;
 struct vaultContext;
@@ -15,6 +16,7 @@ struct vcModel
   char modelPath[1024];
   bool modelLoaded;
   vaultUDModel *pVaultModel;
+  udValue metadata;
 };
 
 struct vcRenderData
