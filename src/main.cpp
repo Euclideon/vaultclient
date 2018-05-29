@@ -622,7 +622,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
     if (ImGui::BeginDock("Scene Explorer", &pProgramState->windowsOpen[vcdSceneExplorer], ImGuiWindowFlags_ResizeFromAnySide))
     {
-      bool modelListFull = modelList.length == vcMaxModels;
+      bool modelListFull = (modelList.length == vcMaxModels);
 
       ImGui::InputText("Model Path", pProgramState->pModelPath, 1024);
       if (ImGui::Button("Load Model!"))
