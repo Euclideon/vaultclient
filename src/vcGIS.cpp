@@ -56,7 +56,7 @@ bool vcGIS_LocalZoneToLatLong(uint16_t epsgCode, udDouble3 localSpace, udDouble3
   double latitude, longitude;
   double easting = localSpace[0];
   double northing = localSpace[1];
-  double n[5];
+  double n[9];
 
   vcGIS_EPSGParameters params;
 
