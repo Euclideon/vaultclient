@@ -28,7 +28,7 @@ udResult vcRender_Destroy(vcRenderContext **pRenderContext);
 
 udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vaultContext *pVaultContext);
 
-udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, vcSettings *pSettings, const uint32_t width, const uint32_t height);
+udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);
 
 vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderData &renderData, GLuint defaultFramebuffer);
 

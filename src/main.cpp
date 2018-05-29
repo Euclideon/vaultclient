@@ -25,7 +25,6 @@ enum {
   vcMaxModels = 32,
 };
 
-
 struct vaultContainer
 {
   vaultContext *pContext;
@@ -51,7 +50,6 @@ struct ProgramState
   GLuint defaultFramebuffer;
   bool isFullscreen;
 
-  bool planeMode;
   double deltaTime;
   udDouble4x4 camMatrix;
   udUInt2 sceneResolution;
@@ -98,7 +96,7 @@ int main(int /*argc*/, char ** /*args*/)
   long rMask, gMask, bMask, aMask;
 
   // default values
-  programState.planeMode = true;
+  programState.settings.camera.moveMode = vcCMM_Plane;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   // TODO: Query device and fill screen
   programState.sceneResolution.x = 1920;
@@ -109,10 +107,10 @@ int main(int /*argc*/, char ** /*args*/)
 #endif
   programState.camMatrix = udDouble4x4::identity();
 
-  programState.settings.cameraSpeed = 3.f;
-  programState.settings.zNear = 0.5f;
-  programState.settings.zFar = 10000.f;
-  programState.settings.foV = UD_PIf / 3.f; // 120 degrees
+  programState.settings.camera.moveSpeed = 3.f;
+  programState.settings.camera.nearPlane = 0.5f;
+  programState.settings.camera.farPlane = 10000.f;
+  programState.settings.camera.fieldOfView = UD_PIf / 3.f; // 120 degrees
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   // While using the menu is tricky/impossible on iOS, default some windows to be open
@@ -351,14 +349,14 @@ void vcHandleSceneInput(ProgramState *pProgramState)
     if (isHovered)
     {
       if (io.MouseWheel > 0)
-        pProgramState->settings.cameraSpeed *= 1.1f;
+        pProgramState->settings.camera.moveSpeed *= 1.1f;
       if (io.MouseWheel < 0)
-        pProgramState->settings.cameraSpeed /= 1.1f;
+        pProgramState->settings.camera.moveSpeed /= 1.1f;
 
-      pProgramState->settings.cameraSpeed = udClamp(pProgramState->settings.cameraSpeed, vcMinCameraSpeed, vcMaxCameraSpeed);
+      pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
     }
 
-    float speed = pProgramState->settings.cameraSpeed; // 3 units per second default
+    float speed = pProgramState->settings.camera.moveSpeed; // 3 units per second default
     if ((modState & KMOD_CTRL) > 0)
       speed *= 0.1; // slow
 
@@ -371,7 +369,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
 
     // Move the camera
     udDouble4 direction;
-    if (pProgramState->planeMode)
+    if (pProgramState->settings.camera.moveMode == vcCMM_Plane)
     {
       direction = pProgramState->camMatrix.axis.y * deltaMoveForward + pProgramState->camMatrix.axis.x * deltaMoveRight + udDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
     }
@@ -398,7 +396,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
   if (pProgramState->sceneResolution.x != size.x || pProgramState->sceneResolution.y != size.y) //Resize buffers
   {
-    vcRender_ResizeScene(pVaultContainer->pRenderContext, &(pProgramState->settings), (uint32_t)size.x, (uint32_t)size.y);
+    vcRender_ResizeScene(pVaultContainer->pRenderContext, (uint32_t)size.x, (uint32_t)size.y);
 
     // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
     // this isn't valid on iOS when using UIKit.
@@ -636,10 +634,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         pProgramState->camMatrix.axis.t = udDouble4::create(udDouble3::create(modelT), 1.f);
 
 
-      if (ImGui::RadioButton("PlaneMode", pProgramState->planeMode))
-        pProgramState->planeMode = true;
-      if (ImGui::RadioButton("HeliMode", !pProgramState->planeMode))
-        pProgramState->planeMode = false;
+      ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
+      ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
 
       if (ImGui::TreeNode("Model List"))
       {
@@ -707,14 +703,14 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         }
       }
 
-      ImGui::SliderFloat("Camera Speed", &(pProgramState->settings.cameraSpeed), vcMinCameraSpeed, vcMaxCameraSpeed, "Camera Speed = %.3f", 2.f);
+      ImGui::SliderFloat("Camera Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "Camera Speed = %.3f", 2.f);
 
-      ImGui::SliderFloat("Camera Near Plane", &(pProgramState->settings.zNear), vcMinCameraPlane, vcMidCameraPlane, "Camera Near Plane = %.3f", 2.f);
-      ImGui::SliderFloat("Camera Far Plane", &(pProgramState->settings.zFar), vcMidCameraPlane, vcMaxCameraPlane, "Camera Far Plane = %.3f", 2.f);
+      ImGui::SliderFloat("Camera Near Plane", &(pProgramState->settings.camera.nearPlane), vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "Camera Near Plane = %.3f", 2.f);
+      ImGui::SliderFloat("Camera Far Plane", &(pProgramState->settings.camera.farPlane), vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "Camera Far Plane = %.3f", 2.f);
 
-      float fovDeg = UD_RAD2DEGf(pProgramState->settings.foV);
-      ImGui::SliderFloat("Camera Field Of View", &fovDeg, vcMinFOV, vcMaxFOV, "Camera Field of View = %.0f");
-      pProgramState->settings.foV = UD_DEG2RADf(fovDeg);
+      float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
+      ImGui::SliderFloat("Camera Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "Camera Field of View = %.0f");
+      pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(fovDeg);
     }
     ImGui::EndDock();
   }
