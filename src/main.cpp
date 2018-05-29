@@ -50,7 +50,6 @@ struct ProgramState
   GLuint defaultFramebuffer;
   bool isFullscreen;
 
-  bool planeMode;
   double deltaTime;
   udDouble4x4 camMatrix;
   udUInt2 sceneResolution;
@@ -97,7 +96,7 @@ int main(int /*argc*/, char ** /*args*/)
   long rMask, gMask, bMask, aMask;
 
   // default values
-  programState.planeMode = true;
+  programState.settings.camera.moveMode = vcCMM_Plane;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   // TODO: Query device and fill screen
   programState.sceneResolution.x = 1920;
@@ -354,7 +353,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
       if (io.MouseWheel < 0)
         pProgramState->settings.camera.moveSpeed /= 1.1f;
 
-      pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_Camera_MinMoveSpeed, vcSL_Camera_MaxMoveSpeed);
+      pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
     }
 
     float speed = pProgramState->settings.camera.moveSpeed; // 3 units per second default
@@ -370,7 +369,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
 
     // Move the camera
     udDouble4 direction;
-    if (pProgramState->planeMode)
+    if (pProgramState->settings.camera.moveMode == vcCMM_Plane)
     {
       direction = pProgramState->camMatrix.axis.y * deltaMoveForward + pProgramState->camMatrix.axis.x * deltaMoveRight + udDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
     }
@@ -635,10 +634,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         pProgramState->camMatrix.axis.t = udDouble4::create(udDouble3::create(modelT), 1.f);
 
 
-      if (ImGui::RadioButton("PlaneMode", pProgramState->planeMode))
-        pProgramState->planeMode = true;
-      if (ImGui::RadioButton("HeliMode", !pProgramState->planeMode))
-        pProgramState->planeMode = false;
+      ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
+      ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
 
       if (ImGui::TreeNode("Model List"))
       {
@@ -706,7 +703,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         }
       }
 
-      ImGui::SliderFloat("Camera Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_Camera_MinMoveSpeed, vcSL_Camera_MaxMoveSpeed, "Camera Speed = %.3f", 2.f);
+      ImGui::SliderFloat("Camera Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "Camera Speed = %.3f", 2.f);
 
       ImGui::SliderFloat("Camera Near Plane", &(pProgramState->settings.camera.nearPlane), vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "Camera Near Plane = %.3f", 2.f);
       ImGui::SliderFloat("Camera Far Plane", &(pProgramState->settings.camera.farPlane), vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "Camera Far Plane = %.3f", 2.f);
