@@ -93,7 +93,7 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer)
     }
   }
   vcCreateQuads(verts, vertResolution * vertResolution, indices, indexResolution * indexResolution * 6, pTerrainRenderer->vbo, pTerrainRenderer->ibo, pTerrainRenderer->vao);
-  
+
   pTerrainRenderer->blankTileTexture = vcTextureLoadFromDisk(blankTileTextureFilename, nullptr, nullptr, GL_LINEAR, false, 0, GL_CLAMP_TO_EDGE);
   (*ppTerrainRenderer) = pTerrainRenderer;
 }

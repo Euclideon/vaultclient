@@ -6,6 +6,7 @@
 #include "vaultUDRenderView.h"
 #include "udPlatform/udChunkedArray.h"
 #include "vcSettings.h"
+#include "udPlatform/udValue.h"
 
 struct vcRenderContext;
 struct vaultContext;
@@ -15,10 +16,13 @@ struct vcModel
   char modelPath[1024];
   bool modelLoaded;
   vaultUDModel *pVaultModel;
+  udValue metadata;
 };
 
 struct vcRenderData
 {
+  uint16_t srid;
+
   udChunkedArray<vcModel*> models;
   udDouble4x4 cameraMatrix;
   GLuint skyboxCubemap;
@@ -29,7 +33,7 @@ udResult vcRender_Destroy(vcRenderContext **pRenderContext);
 
 udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vaultContext *pVaultContext);
 
-udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, vcSettings *pSettings, const uint32_t width, const uint32_t height);
+udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);
 
 vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderData &renderData, GLuint defaultFramebuffer);
 
