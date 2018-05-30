@@ -431,9 +431,9 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
       if (pProgramState->currentSRID != 0)
       {
-        udDouble3 ll;
-        vcGIS_LocalZoneToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &ll);
-        ImGui::Text("LATLONG: %f %f", ll.x, ll.y);
+        udDouble3 cameraLatLong;
+        vcGIS_LocalZoneToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &cameraLatLong);
+        ImGui::Text("LAT/LONG: %f %f", cameraLatLong.x, cameraLatLong.y);
       }
 
       ImGui::Separator();
