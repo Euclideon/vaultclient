@@ -9,7 +9,7 @@ struct vcTerrainRenderer;
 void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer);
 void vcTerrainRenderer_Destroy(vcTerrainRenderer **ppTerrainRenderer);
 
-void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, const udDouble2 worldCorners[4], const udInt3 &slippyCoords, const vcQuadTreeNode *pNodeList, int nodeCount, int leafNodeCount);
+void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, const udDouble3 worldCorners[4], const udInt3 &slippyCoords, const vcQuadTreeNode *pNodeList, int nodeCount, int leafNodeCount);
 void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDouble4x4 &viewProjection);
 
 #endif//vcTerrainRenderer_h__

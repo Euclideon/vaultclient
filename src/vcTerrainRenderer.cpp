@@ -155,7 +155,7 @@ vcTexture AssignTileTexture(vcTerrainRenderer *pTerrainRenderer, int tileX, int 
   return resultTexture;
 }
 
-void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, const udDouble2 worldCorners[4], const udInt3 &slippyCoords, const vcQuadTreeNode *pNodeList, int nodeCount, int leafNodeCount)
+void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, const udDouble3 worldCorners[4], const udInt3 &slippyCoords, const vcQuadTreeNode *pNodeList, int nodeCount, int leafNodeCount)
 {
   udDouble2 worldScale = udDouble2::create(worldCorners[3].x - worldCorners[0].x, worldCorners[0].y - worldCorners[3].y);
 
@@ -196,6 +196,7 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
   if (pTerrainRenderer->tileCount == 0)
     return;
 
+  glDisable(GL_CULL_FACE);
   glUseProgram(pTerrainRenderer->presentShader.program);
 
   udFloat4x4 viewProjectionF = udFloat4x4::create(viewProjection);
