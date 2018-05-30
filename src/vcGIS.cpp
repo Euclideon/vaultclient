@@ -80,27 +80,16 @@ bool vcGIS_LocalZoneToLatLong(uint16_t sridCode, udDouble3 localSpace, udDouble3
   double arc;
   double mu;
   double ei;
-  double ca;
-  double cb;
-  double cc;
-  double cd;
-  double n0;
-  double r0;
-  double _a1;
+  double ca, cb, cc, cd;
+  double n0, r0, t0;
+  double _a1, _a2;
   double dd0;
-  double t0;
   double Q0;
-  double lof1;
-  double lof2;
-  double lof3;
-  double _a2;
+  double lof1, lof2, lof3;
   double phi1;
-  double fact1;
-  double fact2;
-  double fact3;
-  double fact4;
+  double fact1, fact2, fact3, fact4;
   double zoneCM;
-  double _a3;
+
   double easting = localSpace[0];
   double northing = localSpace[1];
 
@@ -109,68 +98,54 @@ bool vcGIS_LocalZoneToLatLong(uint16_t sridCode, udDouble3 localSpace, udDouble3
   if (!vcGIS_PopulateSRIDParameters(&params, sridCode))
     return false;
 
-  double a = params.a;
-  double b = a*(1 - params.f);
-  double e = udSqrt((udPow(a,2)-udPow(b,2))/udPow(a,2));
-  double e1sq = (udPow(a, 2) - udPow(b, 2)) / udPow(b, 2);
-  double k0 = params.k;
-
-  double latitude = 0.0;
-  double longitude = 0.0;
+  double b = params.a * (1 - params.f);
+  double e = udSqrt((udPow(params.a, 2) - udPow(b, 2)) / udPow(params.a, 2));
+  double e1sq = (udPow(params.a, 2) - udPow(b, 2)) / udPow(b, 2);
 
   if (params.hemisphere == 'S')
     northing = params.falseNorthing - northing;
 
   // Set Variables
-  arc = northing / k0;
-  mu = arc / (a * (1 - udPow(e, 2) / 4.0 - 3 * udPow(e, 4) / 64.0 - 5 * udPow(e, 6) / 256.0));
+  arc = northing / params.k;
+  mu = arc / (params.a * (1 - udPow(e, 2) / 4.0 - 3 * udPow(e, 4) / 64.0 - 5 * udPow(e, 6) / 256.0));
 
   ei = (1 - udPow((1 - e * e), (1 / 2.0))) / (1 + udPow((1 - e * e), (1 / 2.0)));
 
   ca = 3 * ei / 2 - 27 * udPow(ei, 3) / 32.0;
-
   cb = 21 * udPow(ei, 2) / 16 - 55 * udPow(ei, 4) / 32;
   cc = 151 * udPow(ei, 3) / 96;
   cd = 1097 * udPow(ei, 4) / 512;
+
   phi1 = mu + ca * udSin(2 * mu) + cb * udSin(4 * mu) + cc * udSin(6 * mu) + cd * udSin(8 * mu);
-
-  n0 = a / udPow((1 - udPow((e * udSin(phi1)), 2)), (1 / 2.0));
-
-  r0 = a * (1 - e * e) / udPow((1 - udPow((e * udSin(phi1)), 2)), (3 / 2.0));
-  fact1 = n0 * udTan(phi1) / r0;
-
+  n0 = params.a / udPow((1 - udPow((e * udSin(phi1)), 2)), (1 / 2.0));
+  r0 = params.a * (1 - e * e) / udPow((1 - udPow((e * udSin(phi1)), 2)), (3 / 2.0));
   _a1 = 500000 - easting;
-  dd0 = _a1 / (n0 * k0);
-  fact2 = dd0 * dd0 / 2;
-
+  dd0 = _a1 / (n0 * params.k);
   t0 = udPow(udTan(phi1), 2);
   Q0 = e1sq * udPow(udCos(phi1), 2);
-  fact3 = (5 + 3 * t0 + 10 * Q0 - 4 * Q0 * Q0 - 9 * e1sq) * udPow(dd0, 4) / 24;
 
+  fact1 = n0 * udTan(phi1) / r0;
+  fact2 = dd0 * dd0 / 2;
+  fact3 = (5 + 3 * t0 + 10 * Q0 - 4 * Q0 * Q0 - 9 * e1sq) * udPow(dd0, 4) / 24;
   fact4 = (61 + 90 * t0 + 298 * Q0 + 45 * t0 * t0 - 252 * e1sq - 3 * Q0 * Q0) * udPow(dd0, 6) / 720;
 
-  //
-  lof1 = _a1 / (n0 * k0);
+  lof1 = _a1 / (n0 * params.k);
   lof2 = (1 + 2 * t0 + Q0) * udPow(dd0, 3) / 6.0;
   lof3 = (5 - 2 * Q0 + 28 * t0 - 3 * udPow(Q0, 2) + 8 * e1sq + 24 * udPow(t0, 2)) * udPow(dd0, 5) / 120;
   _a2 = (lof1 - lof2 + lof3) / udCos(phi1);
-  _a3 = _a2 * 180 / UD_PI;
 
-  // Processing
-  latitude = 180 * (phi1 - fact1 * (fact2 + fact3 + fact4)) / UD_PI;
+  // Latitude
+  pLatLong->x = 180 * (phi1 - fact1 * (fact2 + fact3 + fact4)) / UD_PI;
+  if (params.hemisphere == 'S')
+    pLatLong->x = -pLatLong->x;
 
+  // Longitude
   if (params.zone > 0)
     zoneCM = 6 * params.zone - 183.0;
   else
     zoneCM = 3.0;
 
-  longitude = zoneCM - _a3;
-  if (params.hemisphere == 'S')
-    latitude = -latitude;
-
-
-  pLatLong->x = latitude;
-  pLatLong->y = longitude;
+  pLatLong->y = zoneCM - UD_RAD2DEG(_a2);
 
   return true;
 }
@@ -186,7 +161,7 @@ bool vcGIS_LatLongToLocalZone(uint16_t sridCode, udDouble3 latLong, udDouble3 *p
     return false;
 
   double a = params.a;
-  double b = a*(1 - params.f);
+  double b = a * (1 - params.f);
 
   double k0 = params.k;
 
@@ -228,9 +203,9 @@ bool vcGIS_LatLongToLocalZone(uint16_t sridCode, udDouble3 latLong, udDouble3 *p
   nu = equatorialRadius / udPow(1 - udPow(e * udSin(latitude), 2), (1 / 2.0));
 
   double var1 = params.zone;
-
   double var2 = (6 * var1) - 183;
   double var3 = longitude - var2;
+
   p = var3 * 3600 / 10000;
 
   S = A0 * latitude - B0 * udSin(2 * latitude) + C0 * udSin(4 * latitude) - D0 * udSin(6 * latitude) + E0 * udSin(8 * latitude);
