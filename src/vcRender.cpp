@@ -46,6 +46,7 @@ struct vcRenderContext
 
   udDouble4x4 viewMatrix;
   udDouble4x4 projectionMatrix;
+  udDouble4x4 skyboxProjMatrix;
   udDouble4x4 viewProjectionMatrix;
 
   vcTerrain *pTerrain;
@@ -164,6 +165,7 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
   pRenderContext->sceneResolution.x = width;
   pRenderContext->sceneResolution.y = height;
   pRenderContext->projectionMatrix = udDouble4x4::perspective(fov, aspect, zNear, zFar);
+  pRenderContext->skyboxProjMatrix = udDouble4x4::perspective(fov, aspect, 0.5f, 10000.f);
 
   //Resize GPU Targets
   vcDestroyTexture(&pRenderContext->udRenderContext.tex);
@@ -303,16 +305,18 @@ epilogue:
 
 void vcRenderSkybox(vcRenderContext *pRenderContext)
 {
-  udFloat4x4 viewMatrixF = udFloat4x4::create(pRenderContext->viewProjectionMatrix);
-  viewMatrixF.axis.t = udFloat4::create(0, 0, 0, 1);
-  viewMatrixF.inverse();
+  udFloat4x4 viewMatrixF = udFloat4x4::create(pRenderContext->viewMatrix);
+  udFloat4x4 projectionMatrixF = udFloat4x4::create(pRenderContext->skyboxProjMatrix);
+  udFloat4x4 viewProjMatrixF = projectionMatrixF * viewMatrixF;
+  viewProjMatrixF.axis.t = udFloat4::create(0, 0, 0, 1);
+  viewProjMatrixF.inverse();
 
   glUseProgram(pRenderContext->skyboxProgramObject);
 
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_CUBE_MAP, pRenderContext->skyboxCubeMapTexture.id);
   glUniform1i(vcSbCubemapSamplerLocation, 0);
-  glUniformMatrix4fv(vcSbMatrixLocation, 1, false, viewMatrixF.a);
+  glUniformMatrix4fv(vcSbMatrixLocation, 1, false, viewProjMatrixF.a);
 
   glDepthRangef(1.0f, 1.0f);
   glEnable(GL_DEPTH_TEST);
