@@ -437,10 +437,6 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
       {
         udDouble3 ll;
         vcGIS_LocalZoneToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &ll);
-        const char *pUTMCode = vcGIS_LatLongToUTM(ll.x, ll.y);
-        ImGui::Text("%s", pUTMCode);
-        udFree(pUTMCode);
-
         ImGui::Text("LATLONG: %f %f", ll.x, ll.y);
       }
 
