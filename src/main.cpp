@@ -22,10 +22,6 @@ udChunkedArray<vcModel> modelList;
 
 static bool lastModelLoaded;
 
-enum {
-  vcMaxModels = 32,
-};
-
 struct vaultContainer
 {
   vaultContext *pContext;
@@ -687,7 +683,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
           }
           ImGui::NextColumn();
 
-          char buttonID[vcMaxModels] = "";
+          char buttonID[32] = "";
           udSprintf(buttonID, UDARRAYSIZE(buttonID), "UnloadModel%i", i);
           ImGui::PushID(buttonID);
           if (ImGui::Button("Unload Model"))
@@ -697,6 +693,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
             if (err != vE_Success)
               goto epilogue;
             modelList.RemoveAt(i);
+            lastModelLoaded = true;
             i--;
             len--;
           }
@@ -751,23 +748,20 @@ void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramSta
   if (pFilePath == nullptr)
     return;
 
-  if (modelList.length < vcMaxModels)
+  vcModel model = {};
+  model.modelLoaded = true;
+
+  udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
+
+  if(vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pFilePath) == vE_Success)
   {
-    vcModel model = {};
-    model.modelLoaded = true;
+    const char *pMetadata;
+    if (vaultUDModel_GetMetadata(pVaultContainer->pContext, model.pVaultModel, &pMetadata) == vE_Success)
+      model.metadata.Parse(pMetadata);
 
-    udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
+    vcModel_MoveToModelProjection(pVaultContainer, pProgramState, &model);
 
-    if(vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pFilePath) == vE_Success)
-    {
-      const char *pMetadata;
-      if (vaultUDModel_GetMetadata(pVaultContainer->pContext, model.pVaultModel, &pMetadata) == vE_Success)
-        model.metadata.Parse(pMetadata);
-
-      vcModel_MoveToModelProjection(pVaultContainer, pProgramState, &model);
-
-      modelList.PushBack(model);
-    }
+    modelList.PushBack(model);
   }
 }
 
