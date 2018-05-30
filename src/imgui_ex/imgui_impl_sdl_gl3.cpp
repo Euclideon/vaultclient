@@ -313,7 +313,7 @@ bool ImGui_ImplSdlGL3_CreateDeviceObjects()
 
     const GLchar* fragment_shader =
 #if TARGET_OS_IPHONE
-        "precision mediump float;\n"
+        "precision highp float;\n"
 #endif
         "uniform sampler2D Texture;\n"
         "in vec2 Frag_UV;\n"
