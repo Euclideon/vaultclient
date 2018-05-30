@@ -16,6 +16,7 @@ struct vcModel
   char modelPath[1024];
   bool modelLoaded;
   bool modelVisible;
+  bool modelSelected;
   vaultUDModel *pVaultModel;
   udValue metadata;
 };

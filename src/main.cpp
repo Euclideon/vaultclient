@@ -18,7 +18,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-udChunkedArray<vcModel> modelList;
+udChunkedArray<vcModel> vcModelList;
 
 static bool lastModelLoaded;
 
@@ -152,7 +152,7 @@ int main(int /*argc*/, char ** /*args*/)
   programState.windowsOpen[vcdSceneExplorer] = true;
 #endif
 
-  modelList.Init(32);
+  vcModelList.Init(32);
   lastModelLoaded = true;
 
   // default string values.
@@ -322,7 +322,7 @@ int main(int /*argc*/, char ** /*args*/)
 
 epilogue:
   vcUnloadModelList(&vContainer);
-  modelList.Deinit();
+  vcModelList.Deinit();
   vcRender_Destroy(&vContainer.pRenderContext);
   vaultContext_Disconnect(&vContainer.pContext);
 
@@ -453,9 +453,9 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
   renderData.srid = pProgramState->currentSRID;
   renderData.models.Init(32);
 
-  for (size_t i = 0; i < modelList.length; ++i)
+  for (size_t i = 0; i < vcModelList.length; ++i)
   {
-    renderData.models.PushBack(&modelList[i]);
+    renderData.models.PushBack(&vcModelList[i]);
   }
 
   vcTexture texture = vcRender_RenderScene(pVaultContainer->pRenderContext, renderData, pProgramState->defaultFramebuffer);
@@ -759,7 +759,6 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         { "", 50 }, // unload column
         { "", 1 } // Null Column at end
       };
-      static bool modelSelection[vcMaxModels] = {};
 
       ImGui::Columns(UDARRAYSIZE(headers), "ModelTableColumns", true);
       ImGui::Separator();
@@ -773,32 +772,39 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         offset += headers[i].size;
         ImGui::NextColumn();
       }
+
       ImGui::Separator();
       // Table Contents
 
-      for (size_t i = 0; i < modelList.length; i++)
+      for (size_t i = 0; i < vcModelList.length; ++i)
       {
         // Column 1 - Model
         char modelLabelID[32] = "";
         udSprintf(modelLabelID, UDARRAYSIZE(modelLabelID), "ModelLabel%i", i);
         ImGui::PushID(modelLabelID);
-        if (ImGui::Selectable(modelList[i].modelPath, modelSelection[i]))
+        if (ImGui::Selectable(vcModelList[i].modelPath, vcModelList[i].modelSelected))
         {
           if ((modState & KMOD_CTRL) == 0)
-            memset(modelSelection, false, sizeof(modelSelection));
-          modelSelection[i] = !modelSelection[i];
+          {
+            for (size_t j = 0; j < vcModelList.length; ++j)
+            {
+              vcModelList[j].modelSelected = false;
+            }
+          }
+
+          vcModelList[i].modelSelected = true;
         }
 
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
         {
           double midPoint[3];
-          vaultUDModel_GetModelCenter(pVaultContainer->pContext, modelList[i].pVaultModel, midPoint);
+          vaultUDModel_GetModelCenter(pVaultContainer->pContext, vcModelList[i].pVaultModel, midPoint);
           pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
         }
 
-        ImVec2 textSize = ImGui::CalcTextSize(modelList[i].modelPath);
+        ImVec2 textSize = ImGui::CalcTextSize(vcModelList[i].modelPath);
         if (ImGui::IsItemHovered() && (textSize.x >= headers[i].size))
-          ImGui::SetTooltip("%s", modelList[i].modelPath);
+          ImGui::SetTooltip("%s", vcModelList[i].modelPath);
 
         ImGui::PopID();
         ImGui::NextColumn();
@@ -809,16 +815,17 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         if (ImGui::Button("Goto"))
         {
           double midPoint[3];
-          vaultUDModel_GetModelCenter(pVaultContainer->pContext, modelList[i].pVaultModel, midPoint);
+          vaultUDModel_GetModelCenter(pVaultContainer->pContext, vcModelList[i].pVaultModel, midPoint);
           pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
         }
+
         ImGui::PopID();
         ImGui::NextColumn();
         // Column 3 - Visible
         char checkboxID[32] = "";
         udSprintf(checkboxID, UDARRAYSIZE(checkboxID), "ModelVisibleCheckbox%i", i);
         ImGui::PushID(checkboxID);
-        ImGui::Checkbox("", &(modelList[i].modelVisible));
+        ImGui::Checkbox("", &(vcModelList[i].modelVisible));
         ImGui::PopID();
         ImGui::NextColumn();
         // Column 4
@@ -828,23 +835,22 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         if (ImGui::Button("X"))
         {
           // unload model
-          err = vaultUDModel_Unload(pVaultContainer->pContext, &(modelList[i].pVaultModel));
+          err = vaultUDModel_Unload(pVaultContainer->pContext, &(vcModelList[i].pVaultModel));
           if (err != vE_Success)
             goto epilogue;
-          modelList.RemoveAt(i);
 
-          for (size_t j = i; j < vcMaxModels; j++)
-            modelSelection[j] = modelSelection[j + 1];
-          modelSelection[vcMaxModels - 1] = false;
+          vcModelList.RemoveAt(i);
 
           lastModelLoaded = true;
           i--;
         }
+
         ImGui::PopID();
         ImGui::NextColumn();
         // Null Column
         ImGui::NextColumn();
       }
+
       ImGui::Columns(1);
       // End Models
     }
@@ -894,6 +900,8 @@ void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramSta
 
   vcModel model = {};
   model.modelLoaded = true;
+  model.modelVisible = true;
+  model.modelSelected = false;
 
   udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
 
@@ -905,24 +913,24 @@ void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramSta
 
     vcModel_MoveToModelProjection(pVaultContainer, pProgramState, &model);
 
-    modelList.PushBack(model);
+    vcModelList.PushBack(model);
   }
 }
 
 bool vcUnloadModelList(vaultContainer *pVaultContainer)
 {
   vaultError err;
-  for (int i = 0; i < (int) modelList.length; i++)
+  for (int i = 0; i < (int) vcModelList.length; i++)
   {
     vaultUDModel *pVaultModel;
-    pVaultModel = modelList[i].pVaultModel;
+    pVaultModel = vcModelList[i].pVaultModel;
     err = vaultUDModel_Unload(pVaultContainer->pContext, &pVaultModel);
     if (err != vE_Success)
       return false;
-    modelList[i].modelLoaded = false;
+    vcModelList[i].modelLoaded = false;
   }
-  while (modelList.length > 0)
-    modelList.PopFront();
+  while (vcModelList.length > 0)
+    vcModelList.PopFront();
 
   return true;
 }
