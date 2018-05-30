@@ -11,6 +11,7 @@
 #include "udPlatform/udPlatformUtil.h"
 #include "vcRender.h"
 #include "vcSettings.h"
+#include "vcGIS.h"
 
 #include <stdlib.h>
 
@@ -20,11 +21,6 @@
 udChunkedArray<vcModel> modelList;
 
 static bool lastModelLoaded;
-
-enum {
-  vcMaxModels = 32,
-};
-
 
 struct vaultContainer
 {
@@ -51,12 +47,11 @@ struct ProgramState
   GLuint defaultFramebuffer;
   bool isFullscreen;
 
-  bool planeMode;
   double deltaTime;
   udDouble4x4 camMatrix;
   udUInt2 sceneResolution;
 
-  udDouble4x4 modelMatrix;
+  uint16_t currentSRID;
 
   bool hasContext;
   bool windowsOpen[vcdTotalDocks];
@@ -76,6 +71,8 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer);
 
 void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, char *pFilePath);
 bool vcUnloadModelList(vaultContainer *pVaultContainer);
+
+bool vcModel_MoveToModelProjection(vaultContainer *pVaultContainer, ProgramState *pProgramState, vcModel *pModel);
 
 #undef main
 #ifdef SDL_MAIN_NEEDED
@@ -98,7 +95,7 @@ int main(int /*argc*/, char ** /*args*/)
   long rMask, gMask, bMask, aMask;
 
   // default values
-  programState.planeMode = true;
+  programState.settings.camera.moveMode = vcCMM_Plane;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   // TODO: Query device and fill screen
   programState.sceneResolution.x = 1920;
@@ -109,10 +106,10 @@ int main(int /*argc*/, char ** /*args*/)
 #endif
   programState.camMatrix = udDouble4x4::identity();
 
-  programState.settings.cameraSpeed = 3.f;
-  programState.settings.zNear = 0.5f;
-  programState.settings.zFar = 10000.f;
-  programState.settings.foV = UD_PIf / 3.f; // 120 degrees
+  programState.settings.camera.moveSpeed = 3.f;
+  programState.settings.camera.nearPlane = 0.5f;
+  programState.settings.camera.farPlane = 10000.f;
+  programState.settings.camera.fieldOfView = UD_PIf / 3.f; // 120 degrees
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   // While using the menu is tricky/impossible on iOS, default some windows to be open
@@ -186,7 +183,6 @@ int main(int /*argc*/, char ** /*args*/)
 
   pitch = iconWidth * iconBytesPerPixel;
   pitch = (pitch + 3) & ~3;
-
 
   rMask = 0xFF << 0;
   gMask = 0xFF << 8;
@@ -351,14 +347,14 @@ void vcHandleSceneInput(ProgramState *pProgramState)
     if (isHovered)
     {
       if (io.MouseWheel > 0)
-        pProgramState->settings.cameraSpeed *= 1.1f;
+        pProgramState->settings.camera.moveSpeed *= 1.1f;
       if (io.MouseWheel < 0)
-        pProgramState->settings.cameraSpeed /= 1.1f;
+        pProgramState->settings.camera.moveSpeed /= 1.1f;
 
-      pProgramState->settings.cameraSpeed = udClamp(pProgramState->settings.cameraSpeed, vcMinCameraSpeed, vcMaxCameraSpeed);
+      pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
     }
 
-    float speed = pProgramState->settings.cameraSpeed; // 3 units per second default
+    float speed = pProgramState->settings.camera.moveSpeed; // 3 units per second default
     if ((modState & KMOD_CTRL) > 0)
       speed *= 0.1; // slow
 
@@ -371,7 +367,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
 
     // Move the camera
     udDouble4 direction;
-    if (pProgramState->planeMode)
+    if (pProgramState->settings.camera.moveMode == vcCMM_Plane)
     {
       direction = pProgramState->camMatrix.axis.y * deltaMoveForward + pProgramState->camMatrix.axis.x * deltaMoveRight + udDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
     }
@@ -392,15 +388,14 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 {
   //Rendering
   ImVec2 size = ImGui::GetContentRegionAvail();
+  ImVec2 windowPos = ImVec2(ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y);
 
   if (size.x < 1 || size.y < 1)
     return;
 
   if (pProgramState->sceneResolution.x != size.x || pProgramState->sceneResolution.y != size.y) //Resize buffers
   {
-    pProgramState->sceneResolution.x = (uint32_t)size.x;
-    pProgramState->sceneResolution.y = (uint32_t)size.y;
-    vcRender_ResizeScene(pVaultContainer->pRenderContext, &(pProgramState->settings), (uint32_t)size.x, (uint32_t)size.y);
+    vcRender_ResizeScene(pVaultContainer->pRenderContext, (uint32_t)size.x, (uint32_t)size.y);
 
     // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
     // this isn't valid on iOS when using UIKit.
@@ -409,7 +404,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
   vcRenderData renderData = {};
   renderData.cameraMatrix = pProgramState->camMatrix;
-
+  renderData.srid = pProgramState->currentSRID;
   renderData.models.Init(32);
 
   for (size_t i = 0; i < modelList.length; ++i)
@@ -422,6 +417,33 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
   renderData.models.Deinit();
 
   ImGui::Image((ImTextureID)((size_t)texture.id), size, ImVec2(0, 0), ImVec2(1, -1));
+
+  {
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + size.x - 5.f, windowPos.y + 5.f), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+    ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
+
+    if (ImGui::Begin("SceneOverlay", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+    {
+      ImGui::Text("Scene Info Overlay");
+
+      ImGui::Separator();
+      ImGui::Text("SRID: %d", pProgramState->currentSRID);
+
+      if (pProgramState->currentSRID != 0)
+      {
+        udDouble3 ll;
+        vcGIS_LocalZoneToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &ll);
+        ImGui::Text("LATLONG: %f %f", ll.x, ll.y);
+      }
+
+      ImGui::Separator();
+      if (ImGui::IsMousePosValid())
+        ImGui::Text("Mouse Position: (%.1f,%.1f)", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
+      else
+        ImGui::Text("Mouse Position: <invalid>");
+    }
+    ImGui::End();
+  }
 }
 
 int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
@@ -438,9 +460,7 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
         static const char *pErrorMessage = nullptr;
 
         if (!vcUnloadModelList(pVaultContainer))
-        {
           pErrorMessage = "Error unloading models!";
-        }
 
         if (pErrorMessage == nullptr)
         {
@@ -633,19 +653,21 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       if (!lastModelLoaded)
         ImGui::Text("Invalid File/Not Found...");
 
-      udFloat3 modelT = udFloat3::create(pProgramState->camMatrix.axis.t.toVector3());
-      if (ImGui::InputFloat3("Camera Position", &modelT.x))
-        pProgramState->camMatrix.axis.t = udDouble4::create(udDouble3::create(modelT), 1.f);
+      ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &pProgramState->camMatrix.axis.t.toVector3().x, 3);
 
+      if (pProgramState->currentSRID != 0)
+      {
+        udDouble3 latLong;
+        vcGIS_LocalZoneToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &latLong);
+        ImGui::InputScalarN("Lat/Long", ImGuiDataType_Double, &latLong.x, 2);
+      }
 
-      if (ImGui::RadioButton("PlaneMode", pProgramState->planeMode))
-        pProgramState->planeMode = true;
-      if (ImGui::RadioButton("HeliMode", !pProgramState->planeMode))
-        pProgramState->planeMode = false;
+      ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
+      ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
 
       if (ImGui::TreeNode("Model List"))
       {
-        int len = (int) modelList.length;
+        int len = (int)modelList.length;
 
         static int selection = len;
         bool selected = false;
@@ -657,16 +679,11 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
           {
             selection = i;
             if (ImGui::IsMouseDoubleClicked(0))
-            {
-              // move camera to midpoint of selected object
-              double midPoint[3];
-              vaultUDModel_GetModelCenter(pVaultContainer->pContext, modelList[i].pVaultModel, midPoint);
-              pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
-            }
+              vcModel_MoveToModelProjection(pVaultContainer, pProgramState, &modelList[i]); //Move to the selected model
           }
           ImGui::NextColumn();
 
-          char buttonID[vcMaxModels] = "";
+          char buttonID[32] = "";
           udSprintf(buttonID, UDARRAYSIZE(buttonID), "UnloadModel%i", i);
           ImGui::PushID(buttonID);
           if (ImGui::Button("Unload Model"))
@@ -676,6 +693,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
             if (err != vE_Success)
               goto epilogue;
             modelList.RemoveAt(i);
+            lastModelLoaded = true;
             i--;
             len--;
           }
@@ -692,9 +710,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::ShowStyleEditor();
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("UIDebugMenu", &pProgramState->windowsOpen[vcdUIDemo], ImGuiWindowFlags_ResizeFromAnySide))
+    if (pProgramState->windowsOpen[vcdUIDemo])
       ImGui::ShowDemoWindow();
-    ImGui::EndDock();
 
     if (ImGui::BeginDock("Settings", &pProgramState->windowsOpen[vcdSettings], ImGuiWindowFlags_ResizeFromAnySide))
     {
@@ -709,14 +726,14 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         }
       }
 
-      ImGui::SliderFloat("Camera Speed", &(pProgramState->settings.cameraSpeed), vcMinCameraSpeed, vcMaxCameraSpeed, "Camera Speed = %.3f", 2.f);
+      ImGui::SliderFloat("Camera Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "Camera Speed = %.3f", 2.f);
 
-      ImGui::SliderFloat("Camera Near Plane", &(pProgramState->settings.zNear), vcMinCameraPlane, vcMidCameraPlane, "Camera Near Plane = %.3f", 2.f);
-      ImGui::SliderFloat("Camera Far Plane", &(pProgramState->settings.zFar), vcMidCameraPlane, vcMaxCameraPlane, "Camera Far Plane = %.3f", 2.f);
+      ImGui::SliderFloat("Camera Near Plane", &(pProgramState->settings.camera.nearPlane), vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "Camera Near Plane = %.3f", 2.f);
+      ImGui::SliderFloat("Camera Far Plane", &(pProgramState->settings.camera.farPlane), vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "Camera Far Plane = %.3f", 2.f);
 
-      float fovDeg = UD_RAD2DEGf(pProgramState->settings.foV);
-      ImGui::SliderFloat("Camera Field Of View", &fovDeg, vcMinFOV, vcMaxFOV, "Camera Field of View = %.0f");
-      pProgramState->settings.foV = UD_DEG2RADf(fovDeg);
+      float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
+      ImGui::SliderFloat("Camera Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "Camera Field of View = %.0f");
+      pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(fovDeg);
     }
     ImGui::EndDock();
   }
@@ -726,30 +743,26 @@ epilogue:
   return;
 }
 
-void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, char *pFilePath) {
-
-  lastModelLoaded = false;
+void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, char *pFilePath)
+{
   if (pFilePath == nullptr)
     return;
 
-  if (modelList.length < vcMaxModels)
+  vcModel model = {};
+  model.modelLoaded = true;
+
+  udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
+
+  if(vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pFilePath) == vE_Success)
   {
-    vcModel model;
-    model.modelLoaded = true;
+    const char *pMetadata;
+    if (vaultUDModel_GetMetadata(pVaultContainer->pContext, model.pVaultModel, &pMetadata) == vE_Success)
+      model.metadata.Parse(pMetadata);
 
-    udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
+    vcModel_MoveToModelProjection(pVaultContainer, pProgramState, &model);
 
-    double midPoint[3];
-    if(vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pFilePath) == vE_Success)
-    {
-      lastModelLoaded = true;
-      vaultUDModel_GetLocalMatrix(pVaultContainer->pContext, model.pVaultModel, pProgramState->modelMatrix.a);
-      vaultUDModel_GetModelCenter(pVaultContainer->pContext, model.pVaultModel, midPoint);
-      pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
-      modelList.PushBack(model);
-    }
+    modelList.PushBack(model);
   }
-  return;
 }
 
 bool vcUnloadModelList(vaultContainer *pVaultContainer)
@@ -766,6 +779,38 @@ bool vcUnloadModelList(vaultContainer *pVaultContainer)
   }
   while (modelList.length > 0)
     modelList.PopFront();
+
+  return true;
+}
+
+bool vcModel_MoveToModelProjection(vaultContainer *pVaultContainer, ProgramState *pProgramState, vcModel *pModel)
+{
+  if (pVaultContainer == nullptr || pProgramState == nullptr || pModel == nullptr)
+    return false;
+
+  double midPoint[3];
+  vaultUDModel_GetModelCenter(pVaultContainer->pContext, pModel->pVaultModel, midPoint);
+  pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
+
+  const char *pSRID = pModel->metadata.Get("ProjectionID").AsString();
+  const char *pWKT = pModel->metadata.Get("ProjectionWKT").AsString();
+
+  if (pSRID != nullptr)
+  {
+    pSRID = udStrchr(pSRID, ":");
+    if (pSRID != nullptr)
+      pProgramState->currentSRID = (uint16_t)udStrAtou(&pSRID[1]);
+    else
+      pProgramState->currentSRID = 0;
+  }
+  else if (pWKT != nullptr)
+  {
+    // Not sure?
+  }
+  else //No SRID available so set back to no projection
+  {
+    pProgramState->currentSRID = 0;
+  }
 
   return true;
 }

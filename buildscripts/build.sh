@@ -12,7 +12,7 @@ else
 fi
 
 export DEPLOYDIR="$RESOURCES/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
-export VAULTSDK_HOME="$RESOURCES/Builds/vault/sdk/Pipeline_24758"
+export VAULTSDK_HOME="$RESOURCES/Builds/vault/sdk/Pipeline_24882"
 
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 	bin/premake/premake5.exe vs2015
@@ -38,6 +38,9 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 		if [ $? -ne 0 ]; then exit 1; fi
 
 		cp -f builds/client/bin/Vault_Client.png $DEPLOYDIR/Windows/Vault_Client.png
+		if [ $? -ne 0 ]; then exit 1; fi
+		
+		cp -rf builds/client/assets/skyboxes $DEPLOYDIR/Windows/skyboxes
 		if [ $? -ne 0 ]; then exit 1; fi
 
 		cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll $DEPLOYDIR/Windows/vaultSDK.dll
@@ -99,6 +102,9 @@ else
 				if [ $? -ne 0 ]; then exit 1; fi
 
 				cp -f builds/client/bin/Vault_Client.png $DEPLOYDIR/$OSNAME/Vault_Client.png
+				if [ $? -ne 0 ]; then exit 1; fi
+				
+				cp -rf builds/client/assets/skyboxes $DEPLOYDIR/$OSNAME/skyboxes
 				if [ $? -ne 0 ]; then exit 1; fi
 
 				cp -f builds/client/bin/vaultClient $DEPLOYDIR/$OSNAME/vaultClient

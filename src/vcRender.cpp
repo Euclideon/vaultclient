@@ -1,5 +1,5 @@
-
 #include "vcRender.h"
+
 #include "vcRenderShaders.h"
 #include "vcTerrain.h"
 
@@ -8,6 +8,15 @@ vcSimpleVertex qrSqVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 
 GLuint qrSqVboID = GL_INVALID_INDEX;
 GLuint qrSqVaoID = GL_INVALID_INDEX;
 GLuint qrSqIboID = GL_INVALID_INDEX;
+
+GLuint vcSbVboID = GL_INVALID_INDEX;
+GLuint vcSbVaoID = GL_INVALID_INDEX;
+
+GLint udTextureLocation = -1;
+GLint udDepthLocation = -1;
+
+GLint vcSbCubemapSamplerLocation = -1;
+GLint vcSbMatrixLocation = -1;
 
 struct vcUDRenderContext
 {
@@ -38,6 +47,9 @@ struct vcRenderContext
 
   vcUDRenderContext udRenderContext;
 
+  GLint skyboxProgramObject;
+  vcTexture skyboxCubeMapTexture;
+
   udDouble4x4 viewMatrix;
   udDouble4x4 projectionMatrix;
   udDouble4x4 viewProjectionMatrix;
@@ -52,6 +64,7 @@ struct vcRenderContext
   } skyboxShader;
   vcTexture skyboxCubeMapTexture;
 
+  vcSettings *pSettings;
 };
 
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
@@ -77,6 +90,7 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   pRenderContext->skyboxShader.program = vcBuildProgram(vcBuildShader(GL_VERTEX_SHADER, g_udVertexShader), vcBuildShader(GL_FRAGMENT_SHADER, g_vcSkyboxShader));
   if (pRenderContext->skyboxShader.program == GL_INVALID_INDEX)
     goto epilogue;
+  glUniform1i(udDepthLocation, 1);
 
   pRenderContext->skyboxCubeMapTexture = vcTexture_LoadCubemap("CloudWater.jpg");
 
@@ -96,7 +110,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
 
   *ppRenderContext = pRenderContext;
 
-  result = vcRender_ResizeScene(pRenderContext, pSettings, sceneResolution.x, sceneResolution.y);
+  pRenderContext->pSettings = pSettings;
+  result = vcRender_ResizeScene(pRenderContext, sceneResolution.x, sceneResolution.y);
   if (result != udR_Success)
     goto epilogue;
 
@@ -152,13 +167,13 @@ epilogue:
   return result;
 }
 
-udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, vcSettings *pSettings, const uint32_t width, const uint32_t height)
+udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height)
 {
   udResult result = udR_Success;
-  float fov = pSettings->foV;
+  float fov = pRenderContext->pSettings->camera.fieldOfView;
   float aspect = width / (float)height;
-  float zNear = pSettings->zNear;
-  float zFar = pSettings->zFar;
+  float zNear = pRenderContext->pSettings->camera.nearPlane;
+  float zFar = pRenderContext->pSettings->camera.farPlane;
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
   UD_ERROR_IF(width == 0, udR_InvalidParameter_);
@@ -214,6 +229,7 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glUseProgram(pRenderContext->udRenderContext.presentShader.program);
+  glUniform1i(udTextureLocation, 0);
 
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, pRenderContext->udRenderContext.colour.id);
@@ -229,9 +245,9 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
 
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
   
-  // Temporary removal on other platforms
+  if (renderData.srid != 0)
+  {  // Temporary removal on other platforms
 #if UDPLATFORM_WINDOWS
-  {
     udDouble2 worldCorners[4]; // [nw, ne, sw, se]
     worldCorners[0] = udDouble2::create(458165.282578363, 7006945.91708292);
     worldCorners[1] = udDouble2::create(527733.641370281, 7006945.91708292);
@@ -239,14 +255,15 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
     worldCorners[3] = udDouble2::create(527733.641370281, 6937822.42495275);
     udInt3 slippyCoords = udInt3::create(473, 296, 9);
 
+
     udDouble2 localViewPos = udDouble2::create(renderData.cameraMatrix.axis.t.x, renderData.cameraMatrix.axis.t.y);
     double localViewSize = (1.0 / (1 << 20)) + renderData.cameraMatrix.axis.t.z / 100000.0;
 
     // for now just rebuild terrain every frame
     vcTerrain_BuildTerrain(pRenderContext->pTerrain, worldCorners, slippyCoords, localViewPos, localViewSize);
     vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->viewProjectionMatrix);
-  }
 #endif
+  }
 
   vcRenderSkybox(pRenderContext);
 
@@ -302,6 +319,11 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, co
 
   vcTextureUploadPixels(&pRenderContext->udRenderContext.colour, pRenderContext->udRenderContext.pColorBuffer);
   vcTextureUploadPixels(&pRenderContext->udRenderContext.depth, pRenderContext->udRenderContext.pDepthBuffer);
+
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, pRenderContext->udRenderContext.depth.id);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, pRenderContext->udRenderContext.pDepthBuffer);
+
 
 epilogue:
   udFreeStack(pModels);
