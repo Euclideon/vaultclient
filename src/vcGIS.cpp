@@ -11,6 +11,7 @@ struct vcGIS_SRIDParameters
   double f;
   double a;
   double k;
+  char hemisphere;
 };
 
 bool vcGIS_PopulateSRIDParameters(vcGIS_SRIDParameters *pParams, uint16_t sridCode)
@@ -28,6 +29,7 @@ bool vcGIS_PopulateSRIDParameters(vcGIS_SRIDParameters *pParams, uint16_t sridCo
     pParams->f = 1 / 298.257223563;
     pParams->a = 6378137;
     pParams->k = 0.9996;
+    pParams->hemisphere = 'N';
   }
   else if (sridCode > 32700 && sridCode < 32761)
   {
@@ -39,6 +41,7 @@ bool vcGIS_PopulateSRIDParameters(vcGIS_SRIDParameters *pParams, uint16_t sridCo
     pParams->f = 1 / 298.257223563;
     pParams->a = 6378137;
     pParams->k = 0.9996;
+    pParams->hemisphere = 'S';
   }
   else if (sridCode > 26900 && sridCode < 26924)
   {
@@ -50,6 +53,7 @@ bool vcGIS_PopulateSRIDParameters(vcGIS_SRIDParameters *pParams, uint16_t sridCo
     pParams->f = 1 / 298.257222101;
     pParams->a = 6378137;
     pParams->k = 0.9996;
+    pParams->hemisphere = 'N';
   }
   else if (sridCode > 28347 && sridCode < 28357)
   {
@@ -61,6 +65,7 @@ bool vcGIS_PopulateSRIDParameters(vcGIS_SRIDParameters *pParams, uint16_t sridCo
     pParams->f = 1 / 298.257222101;
     pParams->a = 6378137;
     pParams->k = 0.9996;
+    pParams->hemisphere = 'S';
   }
   else
   {
@@ -72,61 +77,100 @@ bool vcGIS_PopulateSRIDParameters(vcGIS_SRIDParameters *pParams, uint16_t sridCo
 
 bool vcGIS_LocalZoneToLatLong(uint16_t sridCode, udDouble3 localSpace, udDouble3 *pLatLong)
 {
-  double x, y;
-  double b, e; // ellipse parameters
-  double n0, zeta, eta, chi;
-  double zetad, etad, lats;
-  double A;
-  double latitude, longitude;
+  double arc;
+  double mu;
+  double ei;
+  double ca;
+  double cb;
+  double cc;
+  double cd;
+  double n0;
+  double r0;
+  double _a1;
+  double dd0;
+  double t0;
+  double Q0;
+  double lof1;
+  double lof2;
+  double lof3;
+  double _a2;
+  double phi1;
+  double fact1;
+  double fact2;
+  double fact3;
+  double fact4;
+  double zoneCM;
+  double _a3;
   double easting = localSpace[0];
   double northing = localSpace[1];
-  double n[9];
 
   vcGIS_SRIDParameters params;
 
   if (!vcGIS_PopulateSRIDParameters(&params, sridCode))
     return false;
 
-  x = easting - params.falseEasting;
-  y = northing - params.falseNorthing;
+  double a = params.a;
+  double b = a*(1 - params.f);
+  double e = udSqrt((udPow(a,2)-udPow(b,2))/udPow(a,2));
+  double e1sq = (udPow(a, 2) - udPow(b, 2)) / udPow(b, 2);
+  double k0 = params.k;
 
-  b = params.a*(1 - params.f);
-  e = (udPow(params.a, 2) - udPow(b, 2)) / udPow(b, 2);
-  n0 = params.f / (2 - params.f);
+  double latitude = 0.0;
+  double longitude = 0.0;
 
-  for (int i = 0; i < (int)UDARRAYSIZE(n); ++i)
-    n[i] = udPow(n0, i);
+  if (params.hemisphere == 'S')
+    northing = params.falseNorthing - northing;
 
-  A = (params.a / (n[1] + 1)) * (1 + 1 / 4 * n[2] + 1 / 64 * n[4] + 1 / 256 * n[6] + 25 / 16384 * n[8]);
+  // Set Variables
+  arc = northing / k0;
+  mu = arc / (a * (1 - udPow(e, 2) / 4.0 - 3 * udPow(e, 4) / 64.0 - 5 * udPow(e, 6) / 256.0));
 
-  zeta = y / (params.k*A);
-  eta = x / (params.k*A);
-  zetad = zeta;
-  etad = eta;
+  ei = (1 - udPow((1 - e * e), (1 / 2.0))) / (1 + udPow((1 - e * e), (1 / 2.0)));
 
-  double beta[] = { 1 / 2 * n[1] - 2 / 3 * n[2] + 37 / 96 * n[3] - 1 / 360 * n[4] - 81 / 512 * n[5],
-    1 / 48 * n[2] + 1 / 15 * n[3] - 437 / 1440 * n[4] + 46 / 105 * n[5],
-    17 / 480 * n[3] - 37 / 840 * n[4] - 209 / 4480 * n[5] };
+  ca = 3 * ei / 2 - 27 * udPow(ei, 3) / 32.0;
 
-  double delta[] = { 2 * n[1] - 2 / 3 * n[2],
-    7 / 3 * n[2] - 8 / 5 * n[3],
-    56 / 15 * n[3] };
+  cb = 21 * udPow(ei, 2) / 16 - 55 * udPow(ei, 4) / 32;
+  cc = 151 * udPow(ei, 3) / 96;
+  cd = 1097 * udPow(ei, 4) / 512;
+  phi1 = mu + ca * udSin(2 * mu) + cb * udSin(4 * mu) + cc * udSin(6 * mu) + cd * udSin(8 * mu);
 
-  for (int j = 0; j < 3; ++j)
-  {
-    zetad -= beta[j] * udSin(2*j*zeta)*udCosh(2*j*eta);
-    etad -= beta[j] * udCos(2*j*zeta)*udSinh(2*j*eta);
-  }
-  chi = udASin(udSin(zetad) / udCosh(etad));
-  lats = 0;
-  for (int j = 0; j < 3; ++j)
-    lats += delta[j] * udSin(2*j*chi);
-  latitude = chi + lats;
-  longitude = udATan2(udSinh(etad), udCos(zetad));
+  n0 = a / udPow((1 - udPow((e * udSin(phi1)), 2)), (1 / 2.0));
+
+  r0 = a * (1 - e * e) / udPow((1 - udPow((e * udSin(phi1)), 2)), (3 / 2.0));
+  fact1 = n0 * udTan(phi1) / r0;
+
+  _a1 = 500000 - easting;
+  dd0 = _a1 / (n0 * k0);
+  fact2 = dd0 * dd0 / 2;
+
+  t0 = udPow(udTan(phi1), 2);
+  Q0 = e1sq * udPow(udCos(phi1), 2);
+  fact3 = (5 + 3 * t0 + 10 * Q0 - 4 * Q0 * Q0 - 9 * e1sq) * udPow(dd0, 4) / 24;
+
+  fact4 = (61 + 90 * t0 + 298 * Q0 + 45 * t0 * t0 - 252 * e1sq - 3 * Q0 * Q0) * udPow(dd0, 6) / 720;
+
+  //
+  lof1 = _a1 / (n0 * k0);
+  lof2 = (1 + 2 * t0 + Q0) * udPow(dd0, 3) / 6.0;
+  lof3 = (5 - 2 * Q0 + 28 * t0 - 3 * udPow(Q0, 2) + 8 * e1sq + 24 * udPow(t0, 2)) * udPow(dd0, 5) / 120;
+  _a2 = (lof1 - lof2 + lof3) / udCos(phi1);
+  _a3 = _a2 * 180 / UD_PI;
+
+  // Processing
+  latitude = 180 * (phi1 - fact1 * (fact2 + fact3 + fact4)) / UD_PI;
+
+  if (params.zone > 0)
+    zoneCM = 6 * params.zone - 183.0;
+  else
+    zoneCM = 3.0;
+
+  longitude = zoneCM - _a3;
+  if (params.hemisphere == 'S')
+    latitude = -latitude;
 
 
-  pLatLong->x = UD_RAD2DEG(latitude);
-  pLatLong->y = params.meridian + UD_RAD2DEG(longitude);
+  pLatLong->x = latitude;
+  pLatLong->y = longitude;
 
   return true;
 }
@@ -264,7 +308,7 @@ char getHemisphere(char latZone)
 {
   const char southernHemisphere[] = "ACDEFGHJKLM";
 
-  //Paul Fox added this check; very incorrect!
+  //Paul Fox added this check; very incorrect! ???
   if (latZone == 'n' || latZone == 's')
     return 'A' + (latZone - 'a');
 

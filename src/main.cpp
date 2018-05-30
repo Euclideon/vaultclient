@@ -441,7 +441,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
         ImGui::Text(pUTMCode);
         udFree(pUTMCode);
 
-        udDouble2 latlongIRL = vcGIS_UTMToLatLong(54, 's', pProgramState->camMatrix.axis.t.x, pProgramState->camMatrix.axis.t.y);
+        udDouble2 latlongIRL = vcGIS_UTMToLatLong(56, 's', pProgramState->camMatrix.axis.t.x, pProgramState->camMatrix.axis.t.y);
         ImGui::Text("IBM: %f %f", latlongIRL.x, latlongIRL.y);
         ImGui::Text("EUC: %f %f", ll.x, ll.y);
       }
