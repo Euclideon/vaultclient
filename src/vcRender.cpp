@@ -9,6 +9,15 @@ GLuint qrSqVboID = GL_INVALID_INDEX;
 GLuint qrSqVaoID = GL_INVALID_INDEX;
 GLuint qrSqIboID = GL_INVALID_INDEX;
 
+GLuint vcSbVboID = GL_INVALID_INDEX;
+GLuint vcSbVaoID = GL_INVALID_INDEX;
+
+GLint udTextureLocation = -1;
+GLint udDepthLocation = -1;
+
+GLint vcSbCubemapSamplerLocation = -1;
+GLint vcSbMatrixLocation = -1;
+
 struct vcUDRenderContext
 {
   vaultUDRenderer *pRenderer;
@@ -16,6 +25,7 @@ struct vcUDRenderContext
   uint32_t *pColorBuffer;
   float *pDepthBuffer;
   vcTexture tex;
+  vcTexture depth;
   GLint programObject;
 };
 
@@ -30,6 +40,9 @@ struct vcRenderContext
   vcTexture depthbuffer;
 
   vcUDRenderContext udRenderContext;
+
+  GLint skyboxProgramObject;
+  vcTexture skyboxCubeMapTexture;
 
   udDouble4x4 viewMatrix;
   udDouble4x4 projectionMatrix;
@@ -46,7 +59,6 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
 {
   udResult result = udR_Success;
   vcRenderContext *pRenderContext = nullptr;
-  GLint udTextureLocation = -1;
 
   UD_ERROR_NULL(ppRenderContext, udR_InvalidParameter_);
 
@@ -60,9 +72,23 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   if (pRenderContext->udRenderContext.programObject == -1)
     UD_ERROR_SET(udR_InternalError);
 
+  pRenderContext->skyboxProgramObject = vcBuildProgram(vcBuildShader(GL_VERTEX_SHADER, g_udVertexShader), vcBuildShader(GL_FRAGMENT_SHADER, g_vcSkyboxShader));
+  if (pRenderContext->skyboxProgramObject == -1)
+    goto epilogue;
+
+  pRenderContext->skyboxCubeMapTexture = vcTexture_LoadCubemap("CloudWater.jpg");
+
+  glUseProgram(pRenderContext->skyboxProgramObject);
+  vcSbCubemapSamplerLocation = glGetUniformLocation(pRenderContext->skyboxProgramObject, "CubemapSampler");
+  vcSbMatrixLocation = glGetUniformLocation(pRenderContext->skyboxProgramObject, "invSkyboxMatrix");
+  glUseProgram(0);
+
+  //
   glUseProgram(pRenderContext->udRenderContext.programObject);
   udTextureLocation = glGetUniformLocation(pRenderContext->udRenderContext.programObject, "u_texture");
+  udDepthLocation = glGetUniformLocation(pRenderContext->udRenderContext.programObject, "u_depth");
   glUniform1i(udTextureLocation, 0);
+  glUniform1i(udDepthLocation, 1);
 
   vcCreateQuads(qrSqVertices, 4, qrIndices, 6, qrSqVboID, qrSqIboID, qrSqVaoID);
   VERIFY_GL();
@@ -141,13 +167,15 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
 
   //Resize GPU Targets
   vcDestroyTexture(&pRenderContext->udRenderContext.tex);
-  pRenderContext->udRenderContext.tex = pRenderContext->udRenderContext.tex = vcCreateTexture(pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, vcTextureFormat_RGBA8, GL_LINEAR);
+  vcDestroyTexture(&pRenderContext->udRenderContext.depth);
+  pRenderContext->udRenderContext.tex = vcCreateTexture(pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, vcTextureFormat_RGBA8, GL_LINEAR);
+  pRenderContext->udRenderContext.depth = vcCreateTexture(pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, vcTextureFormat_D32F, GL_NEAREST);
 
   vcDestroyTexture(&pRenderContext->texture);
   vcDestroyTexture(&pRenderContext->depthbuffer);
   vcDestroyFramebuffer(&pRenderContext->framebuffer);
   pRenderContext->texture = vcCreateTexture(width, height, vcTextureFormat_RGBA8, GL_NEAREST);
-  pRenderContext->depthbuffer = vcCreateDepthTexture(width, height, vcTextureFormat_D24, GL_NEAREST);
+  pRenderContext->depthbuffer = vcCreateDepthTexture(width, height, vcTextureFormat_D32F, GL_NEAREST);
   pRenderContext->framebuffer = vcCreateFramebuffer(&pRenderContext->texture, &pRenderContext->depthbuffer);
 
   //Resize CPU Targets
@@ -182,7 +210,13 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glUseProgram(pRenderContext->udRenderContext.programObject);
+  glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, pRenderContext->udRenderContext.tex.id);
+  glUniform1i(udTextureLocation, 0);
+
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, pRenderContext->udRenderContext.depth.id);
+  glUniform1i(udDepthLocation, 1);
 
   glBindVertexArray(qrSqVaoID);
   glBindBuffer(GL_ARRAY_BUFFER, qrSqVboID);
@@ -200,6 +234,8 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
 
     vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->viewProjectionMatrix);
   }
+
+  vcRenderSkybox(pRenderContext);
 
   glBindVertexArray(0);
   glUseProgram(0);
@@ -255,7 +291,39 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, co
   glBindTexture(GL_TEXTURE_2D, pRenderContext->udRenderContext.tex.id);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pRenderContext->udRenderContext.pColorBuffer);
 
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, pRenderContext->udRenderContext.depth.id);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, pRenderContext->udRenderContext.pDepthBuffer);
+
+
 epilogue:
   udFreeStack(pModels);
   return result;
+}
+
+void vcRenderSkybox(vcRenderContext *pRenderContext)
+{
+  udFloat4x4 viewMatrixF = udFloat4x4::create(pRenderContext->viewProjectionMatrix);
+  viewMatrixF.axis.t = udFloat4::create(0, 0, 0, 1);
+  viewMatrixF.inverse();
+
+  glUseProgram(pRenderContext->skyboxProgramObject);
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, pRenderContext->skyboxCubeMapTexture.id);
+  glUniform1i(vcSbCubemapSamplerLocation, 0);
+  glUniformMatrix4fv(vcSbMatrixLocation, 1, false, viewMatrixF.a);
+
+  glDepthRangef(1.0f, 1.0f);
+  glEnable(GL_DEPTH_TEST);
+  glDepthMask(GL_TRUE);
+  glDepthFunc(GL_LEQUAL);
+  glBindVertexArray(qrSqVaoID);
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+  glDepthMask(GL_TRUE);
+  glDepthFunc(GL_LESS);
+  glDepthRangef(0.0f, 1.0f);
+
+  glBindVertexArray(0);
+  glUseProgram(0);
 }

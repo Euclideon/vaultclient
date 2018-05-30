@@ -78,7 +78,7 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer)
     }
   }
   vcCreateQuads(verts, vertResolution * vertResolution, indices, indexResolution * indexResolution * 6, pTerrainRenderer->vbo, pTerrainRenderer->ibo, pTerrainRenderer->vao);
-  
+
   pTerrainRenderer->blankTileTexture = vcLoadTextureFromDisk(blankTileTextureFilename, nullptr, nullptr, GL_LINEAR, false, 0, GL_CLAMP_TO_EDGE);
 
   (*ppTerrainRenderer) = pTerrainRenderer;
@@ -120,7 +120,7 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, const vcQ
     int gridSize = 1 << tileZ;
     int tileX = (int)(pNode->position.x * gridSize);
     int tileY = (gridSize - 1) - (int)(pNode->position.y * gridSize);
-    
+
     udSprintf(buff, sizeof(buff), "%s\\%d\\%d\\%d.png", tilesFilePath, tileZ, tileX, tileY);
 
     extern float gWorldScale;
@@ -161,7 +161,7 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
 
     if (pTerrainRenderer->pTiles[i].texture.id != GL_INVALID_INDEX)
       glBindTexture(GL_TEXTURE_2D, pTerrainRenderer->pTiles[i].texture.id);
-    else
+    else if(pTerrainRenderer->blankTileTexture.id != GL_INVALID_INDEX)
       glBindTexture(GL_TEXTURE_2D, pTerrainRenderer->blankTileTexture.id);
 
     // TODO: instance me
