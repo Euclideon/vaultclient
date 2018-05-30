@@ -2,6 +2,7 @@
 
 #include "vcRenderShaders.h"
 #include "vcTerrain.h"
+#include "vcGIS.h"
 
 int qrIndices[6] = { 0, 1, 2, 0, 2, 3 };
 vcSimpleVertex qrSqVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
@@ -38,6 +39,7 @@ struct vcUDRenderContext
 struct vcRenderContext
 {
   vaultContext *pVaultContext;
+  vcSettings *pSettings;
 
   udUInt2 sceneResolution;
 
@@ -46,9 +48,6 @@ struct vcRenderContext
   vcTexture depthbuffer;
 
   vcUDRenderContext udRenderContext;
-
-  GLint skyboxProgramObject;
-  vcTexture skyboxCubeMapTexture;
 
   udDouble4x4 viewMatrix;
   udDouble4x4 projectionMatrix;
@@ -63,8 +62,6 @@ struct vcRenderContext
     GLint uniform_inverseViewProjection;
   } skyboxShader;
   vcTexture skyboxCubeMapTexture;
-
-  vcSettings *pSettings;
 };
 
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
@@ -244,23 +241,55 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, qrSqIboID);
 
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-  
-  if (renderData.srid != 0)
-  {  // Temporary removal on other platforms
-#if UDPLATFORM_WINDOWS
-    udDouble2 worldCorners[4]; // [nw, ne, sw, se]
-    worldCorners[0] = udDouble2::create(458165.282578363, 7006945.91708292);
-    worldCorners[1] = udDouble2::create(527733.641370281, 7006945.91708292);
-    worldCorners[2] = udDouble2::create(458165.282578363, 6937822.42495275);
-    worldCorners[3] = udDouble2::create(527733.641370281, 6937822.42495275);
-    udInt3 slippyCoords = udInt3::create(473, 296, 9);
 
+  if (renderData.srid != 0)
+  {
+#if UDPLATFORM_WINDOWS
+    udDouble3 localCamPos = renderData.cameraMatrix.axis.t.toVector3();
+
+    // Corners [nw, ne, sw, se]
+    udDouble3 localCorners[4];
+    udInt2 slippyCorners[4];
+
+    int currentZoom = 21;
+
+    // Cardinal Limits
+    localCorners[0] = localCamPos + udDouble3::create(-pRenderContext->pSettings->camera.farPlane, +pRenderContext->pSettings->camera.farPlane, 0);
+    localCorners[1] = localCamPos + udDouble3::create(+pRenderContext->pSettings->camera.farPlane, +pRenderContext->pSettings->camera.farPlane, 0);
+    localCorners[2] = localCamPos + udDouble3::create(-pRenderContext->pSettings->camera.farPlane, -pRenderContext->pSettings->camera.farPlane, 0);
+    localCorners[3] = localCamPos + udDouble3::create(+pRenderContext->pSettings->camera.farPlane, -pRenderContext->pSettings->camera.farPlane, 0);
+
+    for (int i = 0; i < 4; ++i)
+    {
+      udDouble3 latLongCoord;
+      localCorners[i].z = 0;
+
+      vcGIS_LocalZoneToLatLong(renderData.srid, localCorners[i], &latLongCoord);
+      vcGIS_LatLongToSlippyTileIDs(&slippyCorners[i], { latLongCoord.y, latLongCoord.x }, currentZoom);
+    }
+
+    while (currentZoom > 0 && (slippyCorners[0] != slippyCorners[1] || slippyCorners[1] != slippyCorners[2] || slippyCorners[2] != slippyCorners[3]))
+    {
+      --currentZoom;
+
+      for (int i = 0; i < 4; ++i)
+        slippyCorners[i] /= 2;
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+      udDouble2 latLong;
+      vcGIS_SlippyTileIDsToLatLong(&latLong, slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
+      vcGIS_LatLongToLocalZone(renderData.srid, udDouble3::create(latLong.y, latLong.x, 0.f), &localCorners[i]);
+
+      localCorners[i].z = 0;
+    }
 
     udDouble2 localViewPos = udDouble2::create(renderData.cameraMatrix.axis.t.x, renderData.cameraMatrix.axis.t.y);
     double localViewSize = (1.0 / (1 << 20)) + renderData.cameraMatrix.axis.t.z / 100000.0;
 
     // for now just rebuild terrain every frame
-    vcTerrain_BuildTerrain(pRenderContext->pTerrain, worldCorners, slippyCoords, localViewPos, localViewSize);
+    vcTerrain_BuildTerrain(pRenderContext->pTerrain, localCorners, udInt3::create(slippyCorners[0], currentZoom), localViewPos, localViewSize);
     vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->viewProjectionMatrix);
 #endif
   }
