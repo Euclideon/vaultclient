@@ -10,6 +10,5 @@ bool vcGIS_LatLongToSlippyTileIDs(udInt2 *pTileIDs, udDouble2 latLong, int zoomL
 bool vcGIS_SlippyTileIDsToLatLong(udDouble2 *pLatLong, udInt2 tileID, int zoomLevel);
 
 const char* vcGIS_LatLongToUTM(double latitude, double longitude);
-udDouble2 vcGIS_UTMToLatLong(int zone, char latZone, double easting, double northing);
 
 #endif // !vcGIS_h__
