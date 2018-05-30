@@ -188,7 +188,6 @@ bool vcGIS_LatLongToLocalZone(uint16_t sridCode, udDouble3 latLong, udDouble3 *p
   double a = params.a;
   double b = a*(1 - params.f);
 
-
   double k0 = params.k;
 
   // Lat Lon to UTM variables
@@ -228,12 +227,7 @@ bool vcGIS_LatLongToLocalZone(uint16_t sridCode, udDouble3 latLong, udDouble3 *p
   rho = equatorialRadius * (1 - e * e) / udPow(1 - udPow(e * udSin(latitude), 2), 3 / 2.0);
   nu = equatorialRadius / udPow(1 - udPow(e * udSin(latitude), 2), (1 / 2.0));
 
-  double var1;
-
-  if (longitude < 0.0)
-    var1 = ((int)((180 + longitude) / 6.0)) + 1;
-  else
-    var1 = ((int)(longitude / 6)) + 31;
+  double var1 = params.zone;
 
   double var2 = (6 * var1) - 183;
   double var3 = longitude - var2;
@@ -249,47 +243,35 @@ bool vcGIS_LatLongToLocalZone(uint16_t sridCode, udDouble3 latLong, udDouble3 *p
 
   A6 = (udPow(p * sin1, 6) * nu * udSin(latitude) * udPow(udCos(latitude), 5) / 720) * (61 - 58 * udPow(udTan(latitude), 2) + udPow(udTan(latitude), 4) + 270 * e1sq * udPow(udCos(latitude), 2) - 330 * e1sq * udPow(udSin(latitude), 2)) * k0 * (1E+24);
 
-  //LONG ZONE
-  double longZone = 0;
-  if (longitude < 0.0)
-    longZone = ((180.0 + longitude) / 6) + 1;
-  else
-    longZone = (longitude / 6) + 31;
-
-  //EASTING
-  double easting = params.falseEasting + (K4 * p + K5 * udPow(p, 3));
-
   //NORTHING
   double northing = K1 + K2 * p * p + K3 * udPow(p, 4);
   if (latitude < 0.0)
     northing = params.falseNorthing + northing;
 
-  pLocalSpace->x = easting;
+  pLocalSpace->x = params.falseEasting + (K4 * p + K5 * udPow(p, 3));
   pLocalSpace->y = northing;
 
   return false;
 }
 
-bool vcGIS_LatLongToSlippyTileIDs(udInt2 *pTileIDs, udDouble2 latLong, int zoomLevel)
+bool vcGIS_LatLongToSlippyTileIDs(udInt2 *pTileIDs, udDouble2 longLat, int zoomLevel)
 {
   if (pTileIDs == nullptr)
     return false;
 
-  pTileIDs->x = (int)udFloor((latLong.x + 180.0) / 360.0 * udPow(2.0, zoomLevel)); // Long
-  pTileIDs->y = (int)(udFloor((1.0 - udLogN(udTan(latLong.y * UD_PI / 180.0) + 1.0 / udCos(latLong.y * UD_PI / 180.0)) / UD_PI) / 2.0 * udPow(2.0, zoomLevel))); //Lat
+  pTileIDs->x = (int)udFloor((longLat.x + 180.0) / 360.0 * udPow(2.0, zoomLevel)); // Long
+  pTileIDs->y = (int)(udFloor((1.0 - udLogN(udTan(longLat.y * UD_PI / 180.0) + 1.0 / udCos(longLat.y * UD_PI / 180.0)) / UD_PI) / 2.0 * udPow(2.0, zoomLevel))); //Lat
 
   return true;
 }
 
-bool vcGIS_SlippyTileIDsToLatLong(udDouble2 *pLatLong, udInt2 tileID, int zoomLevel)
+bool vcGIS_SlippyTileIDsToLatLong(udDouble2 *pLongLat, udInt2 tileID, int zoomLevel)
 {
-  if (pLatLong == nullptr)
+  if (pLongLat == nullptr)
     return false;
 
-  double n = UD_PI - 2.0 * UD_PI * tileID.y / udPow(2.0, zoomLevel);
-
-  pLatLong->x = tileID.x / udPow(2.0, zoomLevel) * 360.0 - 180;
-  pLatLong->y = 180.0 / UD_PI * udATan(0.5 * (exp(n) - exp(-n)));
+  pLongLat->x = tileID.x / udPow(2.0, zoomLevel) * 360.0 - 180; // Long
+  pLongLat->y = 180.0 / UD_PI * udATan(udSinh(UD_PI * (1 - 2 * tileID.y / (udPow(2.0, zoomLevel))))); // Lat
 
   return true;
 }
