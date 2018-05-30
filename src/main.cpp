@@ -21,10 +21,6 @@ udChunkedArray<vcModel> modelList;
 
 static bool lastModelLoaded;
 
-enum {
-  vcMaxModels = 32,
-};
-
 struct vaultContainer
 {
   vaultContext *pContext;
@@ -622,19 +618,12 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
     if (ImGui::BeginDock("Scene Explorer", &pProgramState->windowsOpen[vcdSceneExplorer], ImGuiWindowFlags_ResizeFromAnySide))
     {
-      bool modelListFull = (modelList.length == vcMaxModels);
-
       ImGui::InputText("Model Path", pProgramState->pModelPath, 1024);
       if (ImGui::Button("Load Model!"))
         vcAddModelToList(pVaultContainer, pProgramState, pProgramState->pModelPath);
 
       if (!lastModelLoaded)
-      {
-        if (!modelListFull)
-          ImGui::Text("Invalid File/Not Found...");
-        else
-          ImGui::Text("Maximum Models already loaded!");
-      }
+        ImGui::Text("Invalid File/Not Found...");
 
       udFloat3 modelT = udFloat3::create(pProgramState->camMatrix.axis.t.toVector3());
       if (ImGui::InputFloat3("Camera Position", &modelT.x))
@@ -667,7 +656,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
           }
           ImGui::NextColumn();
 
-          char buttonID[vcMaxModels] = "";
+          char buttonID[32] = "";
           udSprintf(buttonID, UDARRAYSIZE(buttonID), "UnloadModel%i", i);
           ImGui::PushID(buttonID);
           if (ImGui::Button("Unload Model"))
@@ -734,23 +723,21 @@ void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramSta
   if (pFilePath == nullptr)
     return;
 
-  if (modelList.length < vcMaxModels)
+  vcModel model;
+  model.modelLoaded = true;
+
+  udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
+
+  double midPoint[3];
+  if(vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pFilePath) == vE_Success)
   {
-    vcModel model;
-    model.modelLoaded = true;
-
-    udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
-
-    double midPoint[3];
-    if(vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pFilePath) == vE_Success)
-    {
-      lastModelLoaded = true;
-      vaultUDModel_GetLocalMatrix(pVaultContainer->pContext, model.pVaultModel, pProgramState->modelMatrix.a);
-      vaultUDModel_GetModelCenter(pVaultContainer->pContext, model.pVaultModel, midPoint);
-      pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
-      modelList.PushBack(model);
-    }
+    lastModelLoaded = true;
+    vaultUDModel_GetLocalMatrix(pVaultContainer->pContext, model.pVaultModel, pProgramState->modelMatrix.a);
+    vaultUDModel_GetModelCenter(pVaultContainer->pContext, model.pVaultModel, midPoint);
+    pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
+    modelList.PushBack(model);
   }
+
   return;
 }
 
