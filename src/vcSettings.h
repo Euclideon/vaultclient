@@ -42,7 +42,7 @@ const float vcSL_CameraMinMoveSpeed = 0.5f;
 const float vcSL_CameraMaxMoveSpeed = 250.f;
 
 const float vcSL_CameraFieldOfViewMin = 5;
-const float vcSL_CameraFieldOfViewMax = 120;
+const float vcSL_CameraFieldOfViewMax = 100;
 
 // Settings Functions
 bool vcSettings_Load(vcSettings *pSettings);

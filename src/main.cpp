@@ -118,7 +118,7 @@ int main(int /*argc*/, char ** /*args*/)
   programState.settings.camera.moveSpeed = 3.f;
   programState.settings.camera.nearPlane = 0.5f;
   programState.settings.camera.farPlane = 10000.f;
-  programState.settings.camera.fieldOfView = UD_PIf / 3.f; // 120 degrees
+  programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   // While using the menu is tricky/impossible on iOS, default some windows to be open
