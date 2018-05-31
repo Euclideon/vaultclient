@@ -75,7 +75,7 @@ bool vcGIS_PopulateSRIDParameters(vcGIS_SRIDParameters *pParams, uint16_t sridCo
   return true;
 }
 
-bool vcGIS_LocalZoneToLatLong(uint16_t sridCode, udDouble3 localSpace, udDouble3 *pLatLong)
+bool vcGIS_LocalToLatLong(uint16_t sridCode, udDouble3 localCoords, udDouble3 *pLatLong)
 {
   double arc;
   double mu;
@@ -90,8 +90,8 @@ bool vcGIS_LocalZoneToLatLong(uint16_t sridCode, udDouble3 localSpace, udDouble3
   double fact1, fact2, fact3, fact4;
   double zoneCM;
 
-  double easting = localSpace[0];
-  double northing = localSpace[1];
+  double easting = localCoords[0];
+  double northing = localCoords[1];
 
   vcGIS_SRIDParameters params;
 
@@ -150,7 +150,7 @@ bool vcGIS_LocalZoneToLatLong(uint16_t sridCode, udDouble3 localSpace, udDouble3
   return true;
 }
 
-bool vcGIS_LatLongToLocalZone(uint16_t sridCode, udDouble3 latLong, udDouble3 *pLocalSpace)
+bool vcGIS_LatLongToLocal(uint16_t sridCode, udDouble3 latLong, udDouble3 *pLocalCoords)
 {
   double latitude = latLong[0];
   double longitude = latLong[1];
@@ -223,34 +223,56 @@ bool vcGIS_LatLongToLocalZone(uint16_t sridCode, udDouble3 latLong, udDouble3 *p
   if (latitude < 0.0)
     northing = params.falseNorthing + northing;
 
-  pLocalSpace->x = params.falseEasting + (K4 * p + K5 * udPow(p, 3));
-  pLocalSpace->y = northing;
+  pLocalCoords->x = params.falseEasting + (K4 * p + K5 * udPow(p, 3));
+  pLocalCoords->y = northing;
 
   return false;
 }
 
-bool vcGIS_LatLongToSlippyTileIDs(udInt2 *pTileIDs, udDouble2 longLat, int zoomLevel)
+bool vcGIS_LatLongToSlippy(udInt2 *pSlippyCoords, udDouble3 latLong, int zoomLevel)
 {
-  if (pTileIDs == nullptr)
+  if (pSlippyCoords == nullptr)
     return false;
 
-  pTileIDs->x = (int)udFloor((longLat.x + 180.0) / 360.0 * udPow(2.0, zoomLevel)); // Long
-  pTileIDs->y = (int)(udFloor((1.0 - udLogN(udTan(longLat.y * UD_PI / 180.0) + 1.0 / udCos(longLat.y * UD_PI / 180.0)) / UD_PI) / 2.0 * udPow(2.0, zoomLevel))); //Lat
+  pSlippyCoords->x = (int)udFloor((latLong.y + 180.0) / 360.0 * udPow(2.0, zoomLevel)); // Long
+  pSlippyCoords->y = (int)(udFloor((1.0 - udLogN(udTan(latLong.x * UD_PI / 180.0) + 1.0 / udCos(latLong.x * UD_PI / 180.0)) / UD_PI) / 2.0 * udPow(2.0, zoomLevel))); //Lat
 
   return true;
 }
 
-bool vcGIS_SlippyTileIDsToLatLong(udDouble2 *pLongLat, udInt2 tileID, int zoomLevel)
+bool vcGIS_SlippyToLatLong(udDouble3 *pLatLong, udInt2 slippyCoords, int zoomLevel)
 {
-  if (pLongLat == nullptr)
+  if (pLatLong == nullptr)
     return false;
 
-  pLongLat->x = tileID.x / udPow(2.0, zoomLevel) * 360.0 - 180; // Long
-  pLongLat->y = 180.0 / UD_PI * udATan(udSinh(UD_PI * (1 - 2 * tileID.y / (udPow(2.0, zoomLevel))))); // Lat
+  pLatLong->x = 180.0 / UD_PI * udATan(udSinh(UD_PI * (1 - 2 * slippyCoords.y / (udPow(2.0, zoomLevel))))); // Lat
+  pLatLong->y = slippyCoords.x / udPow(2.0, zoomLevel) * 360.0 - 180; // Long
+  pLatLong->z = 0;
 
   return true;
 }
 
+bool vcGIS_LocalToSlippy(int16_t sridCode, udInt2 *pSlippyCoords, udDouble3 localCoords, int zoomLevel)
+{
+  udDouble3 latLong;
+  bool success = true;
+
+  success &= vcGIS_LocalToLatLong(sridCode, localCoords, &latLong);
+  success &= vcGIS_LatLongToSlippy(pSlippyCoords, latLong, zoomLevel);
+
+  return success;
+}
+
+bool vcGIS_SlippyToLocal(int16_t sridCode, udDouble3 *pLocalCoords, udInt2 slippyCoords, int zoomLevel)
+{
+  udDouble3 latLong;
+  bool success = true;
+
+  success &= vcGIS_SlippyToLatLong(&latLong, slippyCoords, zoomLevel);
+  success &= vcGIS_LatLongToLocal(sridCode, latLong, pLocalCoords);
+
+  return success;
+}
 
 
 //////////////////////////////// IBM IMPLEMENTATION FROM https://www.ibm.com/developerworks/library/j-coordconvert/index.html

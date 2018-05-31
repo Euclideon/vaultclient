@@ -54,7 +54,7 @@ vcFramebuffer vcFramebufferCreate(vcTexture *pTexture, vcTexture *pDepth = nullp
 
 vcTexture vcTextureLoadFromDisk(const char *filename, uint32_t *pWidth = nullptr, uint32_t *pHeight = nullptr, int32_t filterMode = GL_LINEAR, bool hasMipmaps = false, int32_t aniFilter = 0, int32_t wrapMode = GL_REPEAT);
 
-void vcTextureUploadPixels(vcTexture *pTexture, const void *pPixels);
+void vcTextureUploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height);
 
 void vcTextureDestroy(vcTexture *pTexture);
 void vcFramebufferDestroy(vcFramebuffer *pFramebuffer);
