@@ -65,11 +65,11 @@ struct ProgramState
   bool hasContext;
   bool windowsOpen[vcdTotalDocks];
 
-  char *pServerURL;
-  char *pUsername;
-  char *pPassword;
+  char serverURL[vcMaxPathLength];
+  char username[vcMaxPathLength];
+  char password[vcMaxPathLength];
 
-  char *pModelPath;
+  char modelPath[vcMaxPathLength];
 
   struct
   {
@@ -94,8 +94,7 @@ bool vcUnloadModelList(vaultContainer *pVaultContainer);
 
 bool vcModel_MoveToModelProjection(vaultContainer *pVaultContainer, ProgramState *pProgramState, vcModel *pModel);
 
-#undef main
-#ifdef SDL_MAIN_NEEDED
+#if defined(SDL_MAIN_NEEDED) || defined(SDL_MAIN_AVAILABLE)
 int SDL_main(int /*argc*/, char ** /*args*/)
 #else
 int main(int /*argc*/, char ** /*args*/)
@@ -163,18 +162,13 @@ int main(int /*argc*/, char ** /*args*/)
   lastModelLoaded = true;
 
   // default string values.
-  programState.pServerURL = udAllocType(char, 1024, udAF_Zero);
-  programState.pUsername = udAllocType(char, 1024, udAF_Zero);
-  programState.pPassword = udAllocType(char, 1024, udAF_Zero);
-  programState.pModelPath = udAllocType(char, 1024, udAF_Zero);
-
-  udStrcpy(programState.pServerURL, 1024, "http://vau-ubu-pro-001.euclideon.local");
+  udStrcpy(programState.serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   // Network drives aren't available on iOS
   // TODO: Something better!
-  udStrcpy(programState.pModelPath, 1024, "http://pfox.euclideon.local:8080/AdelaideCBD_2cm.uds");
+  udStrcpy(programState.modelPath, vcMaxPathLength, "http://pfox.euclideon.local:8080/AdelaideCBD_2cm.uds");
 #else
-  udStrcpy(programState.pModelPath, 1024, "V:/QA/For Tests/Geoverse MDM/AdelaideCBD_2cm.uds");
+  udStrcpy(programState.modelPath, vcMaxPathLength, "V:/QA/For Tests/Geoverse MDM/AdelaideCBD_2cm.uds");
 #endif
 
   programState.settings.maptiles.mapEnabled = true;
@@ -308,11 +302,7 @@ int main(int /*argc*/, char ** /*args*/)
       ImGui_ImplSdlGL3_ProcessEvent(&event);
 
       if (event.type == SDL_DROPFILE && programState.hasContext)
-      {
-        udFree(programState.pModelPath);
-        programState.pModelPath = udStrdup(event.drop.file);
-        vcAddModelToList(&vContainer, &programState, programState.pModelPath);
-      }
+        vcAddModelToList(&vContainer, &programState, event.drop.file);
 
       programState.programComplete = (event.type == SDL_QUIT);
     }
@@ -343,11 +333,6 @@ epilogue:
 #if UDPLATFORM_OSX
   SDL_free(pBasePath);
 #endif
-
-  udFree(programState.pServerURL);
-  udFree(programState.pUsername);
-  udFree(programState.pPassword);
-  udFree(programState.pModelPath);
 
   return 0;
 }
@@ -676,20 +661,20 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       if (pErrorMessage != nullptr)
         ImGui::Text("%s", pErrorMessage);
 
-      ImGui::InputText("ServerURL", pProgramState->pServerURL, 1024);
-      ImGui::InputText("Username", pProgramState->pUsername, 1024);
-      ImGui::InputText("Password", pProgramState->pPassword, 1024, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_CharsNoBlank);
+      ImGui::InputText("ServerURL", pProgramState->serverURL, vcMaxPathLength);
+      ImGui::InputText("Username", pProgramState->username, vcMaxPathLength);
+      ImGui::InputText("Password", pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_CharsNoBlank);
 
       if (ImGui::Button("Login!"))
       {
-        err = vaultContext_Connect(&pVaultContainer->pContext, pProgramState->pServerURL, "ClientSample");
+        err = vaultContext_Connect(&pVaultContainer->pContext, pProgramState->serverURL, "ClientSample");
         if (err != vE_Success)
         {
           pErrorMessage = "Could not connect to server...";
         }
         else
         {
-          err = vaultContext_Login(pVaultContainer->pContext, pProgramState->pUsername, pProgramState->pPassword);
+          err = vaultContext_Login(pVaultContainer->pContext, pProgramState->username, pProgramState->password);
           if (err != vE_Success)
           {
             pErrorMessage = "Could not log in...";
@@ -708,42 +693,6 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
               }
             }
           }
-      }
-
-      ImGui::SameLine();
-      if (ImGui::Button("Guest Login!"))
-      {
-        err = vaultContext_Connect(&pVaultContainer->pContext, pProgramState->pServerURL, "ClientSample");
-        if (err != vE_Success)
-        {
-          pErrorMessage = "Could not connect to server...";
-        }
-        else
-        {
-          err = vaultContext_Login(pVaultContainer->pContext, pProgramState->pUsername, pProgramState->pPassword);
-          if (err != vE_Success)
-          {
-            pErrorMessage = "Could not log in...";
-          }
-          else
-          {
-            err = vaultContext_GetLicense(pVaultContainer->pContext, vaultLT_Basic);
-            if (err != vE_Success)
-            {
-              pErrorMessage = "Could not get license...";
-            }
-            else
-            {
-              vcRender_SetVaultContext(pVaultContainer->pRenderContext, pVaultContainer->pContext);
-              pProgramState->hasContext = true;
-              }
-            }
-          }
-
-        if (pErrorMessage != nullptr)
-        {
-          ImGui::Text("%s", pErrorMessage);
-        }
       }
     }
 
@@ -769,9 +718,9 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
     if (ImGui::BeginDock("Scene Explorer", &pProgramState->windowsOpen[vcdSceneExplorer], ImGuiWindowFlags_ResizeFromAnySide))
     {
-      ImGui::InputText("Model Path", pProgramState->pModelPath, 1024);
+      ImGui::InputText("Model Path", pProgramState->modelPath, vcMaxPathLength);
       if (ImGui::Button("Load Model!"))
-        vcAddModelToList(pVaultContainer, pProgramState, pProgramState->pModelPath);
+        vcAddModelToList(pVaultContainer, pProgramState, pProgramState->modelPath);
 
       if (!lastModelLoaded)
         ImGui::Text("Invalid File/Not Found...");
