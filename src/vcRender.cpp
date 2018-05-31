@@ -365,7 +365,7 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_CUBE_MAP, pRenderContext->skyboxCubeMapTexture.id);
   glUniform1i(pRenderContext->skyboxShader.uniform_texture, 0);
-  glUniformMatrix4fv(pRenderContext->skyboxShader.uniform_inverseViewProjection, 1, false, viewMatrixF.a);
+  glUniformMatrix4fv(pRenderContext->skyboxShader.uniform_inverseViewProjection, 1, false, viewProjMatrixF.a);
 
   // Draw the skybox only at the far plane, where there is no geometry.
   // Drawing skybox here (after 'opaque' geometry) saves a bit on fill rate.
