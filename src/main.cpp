@@ -102,6 +102,10 @@ int main(int /*argc*/, char ** /*args*/)
 #endif
 {
   SDL_GLContext glcontext = NULL;
+  uint32_t windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  windowFlags |= SDL_WINDOW_FULLSCREEN;
+#endif
 
   ProgramState programState = {};
   vaultContainer vContainer = {};
@@ -216,7 +220,7 @@ int main(int /*argc*/, char ** /*args*/)
 #define WINDOW_SUFFIX " (DEV/DO NOT DISTRIBUTE - " __DATE__ ")"
 #endif
 
-  programState.pWindow = SDL_CreateWindow("Euclideon Client" WINDOW_SUFFIX, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, programState.sceneResolution.x, programState.sceneResolution.y, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+  programState.pWindow = SDL_CreateWindow("Euclideon Client" WINDOW_SUFFIX, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, programState.sceneResolution.x, programState.sceneResolution.y, windowFlags);
   if (!programState.pWindow)
     goto epilogue;
 
@@ -285,7 +289,9 @@ int main(int /*argc*/, char ** /*args*/)
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, programState.defaultFramebuffer);
 
   ImGui::LoadDock();
-#if UDPLATFORM_OSX
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(ASSETDIR "/NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
+#elif UDPLATFORM_OSX
   udSprintf(fontPath, 1024, "%s%s", pBasePath, "NotoSansCJKjp-Regular.otf");
   ImGui::GetIO().Fonts->AddFontFromFileTTF(fontPath, 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
 #else
@@ -395,7 +401,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
 
 
 
-    if (clickedLeftWhileHovered)
+    if (clickedLeftWhileHovered && !isLeftClicked)
     {
       clickedLeftWhileHovered = io.MouseDown[0];
       if (io.MouseDown[0])
