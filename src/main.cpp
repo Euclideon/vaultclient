@@ -739,13 +739,11 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
       ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &pProgramState->camMatrix.axis.t.toVector3().x, 3);
 
-      ImGui::Columns(2, NULL, false);
       ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
+      ImGui::SameLine();
       ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
 
-      ImGui::NextColumn();
       ImGui::Checkbox("On Screen Controls", &(pProgramState->onScreenControls));
-      ImGui::Columns(1);
 
       if (ImGui::TreeNode("Model List"))
       {
