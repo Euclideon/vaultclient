@@ -914,7 +914,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::SliderFloat("Far Plane", &(pProgramState->settings.camera.farPlane), vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "%.3fm", 2.f);
 
       float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
-      ImGui::SliderFloat("Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f°");
+      ImGui::SliderFloat("Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f Degrees");
       pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(fovDeg);
 
 
@@ -931,7 +931,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         const char* blendModes[] = { "Hybrid", "Overlay" };
         if (ImGui::BeginCombo("Blending", blendModes[pProgramState->settings.maptiles.blendMode]))
         {
-          for (int n = 0; n < UDARRAYSIZE(blendModes); n++)
+          for (size_t n = 0; n < UDARRAYSIZE(blendModes); ++n)
           {
             bool isSelected = (pProgramState->settings.maptiles.blendMode == n);
 
