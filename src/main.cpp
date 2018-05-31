@@ -47,6 +47,8 @@ struct ProgramState
   GLuint defaultFramebuffer;
   bool isFullscreen;
 
+  bool onScreenControls;
+
   double deltaTime;
   udDouble4x4 camMatrix;
   udUInt2 sceneResolution;
@@ -62,8 +64,19 @@ struct ProgramState
 
   char *pModelPath;
 
+  struct
+  {
+    int vertical;
+    int forward;
+    int right;
+  } moveDirection;
+
   vcSettings settings;
 };
+
+#if UDPLATFORM_OSX
+char *pBasePath = nullptr;
+#endif
 
 void vcHandleSceneInput(ProgramState *pProgramState);
 void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer);
@@ -89,7 +102,19 @@ int main(int /*argc*/, char ** /*args*/)
   // Icon parameters
   SDL_Surface *pIcon = nullptr;
   int iconWidth, iconHeight, iconBytesPerPixel;
-  char IconPath[] = "Vault_Client.png";
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  char IconPath[] = ASSETDIR "Vault_Client.png";
+#elif UDPLATFORM_OSX
+  pBasePath = SDL_GetBasePath();
+  if (pBasePath == nullptr)
+    pBasePath = SDL_strdup("./");
+
+  char fontPath[1024] = "";
+  char IconPath[1024] = "";
+  udSprintf(IconPath, 1024, "%s%s", pBasePath, "Vault_Client.png");
+#else
+  char IconPath[] = ASSETDIR "icons/Vault_Client.png";
+#endif
   unsigned char *pData = nullptr;
   int pitch;
   long rMask, gMask, bMask, aMask;
@@ -100,16 +125,18 @@ int main(int /*argc*/, char ** /*args*/)
   // TODO: Query device and fill screen
   programState.sceneResolution.x = 1920;
   programState.sceneResolution.y = 1080;
+  programState.onScreenControls = true;
 #else
   programState.sceneResolution.x = 1280;
   programState.sceneResolution.y = 720;
+  programState.onScreenControls = false;
 #endif
   programState.camMatrix = udDouble4x4::identity();
 
   programState.settings.camera.moveSpeed = 3.f;
   programState.settings.camera.nearPlane = 0.5f;
   programState.settings.camera.farPlane = 10000.f;
-  programState.settings.camera.fieldOfView = UD_PIf / 3.f; // 120 degrees
+  programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   // While using the menu is tricky/impossible on iOS, default some windows to be open
@@ -244,7 +271,12 @@ int main(int /*argc*/, char ** /*args*/)
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, programState.defaultFramebuffer);
 
   ImGui::LoadDock();
-  ImGui::GetIO().Fonts->AddFontFromFileTTF("NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
+#if UDPLATFORM_OSX
+  udSprintf(fontPath, 1024, "%s%s", pBasePath, "NotoSansCJKjp-Regular.otf");
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(fontPath, 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
+#else
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(ASSETDIR "fonts/NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
+#endif
 
   SDL_EnableScreenSaver();
 
@@ -288,6 +320,10 @@ epilogue:
   vcRender_Destroy(&vContainer.pRenderContext);
   vaultContext_Disconnect(&vContainer.pContext);
 
+#if UDPLATFORM_OSX
+  SDL_free(pBasePath);
+#endif
+
   udFree(programState.pServerURL);
   udFree(programState.pUsername);
   udFree(programState.pPassword);
@@ -298,10 +334,13 @@ epilogue:
 
 void vcHandleSceneInput(ProgramState *pProgramState)
 {
+  //Setup and default values
   ImGuiIO& io = ImGui::GetIO();
 
   const Uint8 *pKeysArray = SDL_GetKeyboardState(NULL);
   SDL_Keymod modState = SDL_GetModState();
+
+  float speed = pProgramState->settings.camera.moveSpeed; // 3 units per second default
 
   bool isHovered = ImGui::IsItemHovered();
   bool isLeftClicked = ImGui::IsMouseClicked(0, false);
@@ -316,9 +355,31 @@ void vcHandleSceneInput(ProgramState *pProgramState)
   if (isHovered && isRightClicked)
     clickedRightWhileHovered = true;
 
+  if ((modState & KMOD_CTRL) > 0)
+    speed *= 0.1; // slow
+
+  if ((modState & KMOD_SHIFT) > 0)
+    speed *= 10.0;  // fast
+
+  // when focused
   if (isFocused)
   {
     ImVec2 mouseDelta = io.MouseDelta;
+
+    if (pProgramState->onScreenControls)
+    {
+      pProgramState->moveDirection.forward += ((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
+      pProgramState->moveDirection.right += ((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
+      pProgramState->moveDirection.vertical += ((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
+    }
+    else
+    {
+      pProgramState->moveDirection.forward = ((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
+      pProgramState->moveDirection.right = ((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
+      pProgramState->moveDirection.vertical = ((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
+    }
+
+
 
     if (clickedLeftWhileHovered)
     {
@@ -335,15 +396,6 @@ void vcHandleSceneInput(ProgramState *pProgramState)
       }
     }
 
-    if (clickedRightWhileHovered)
-    {
-      clickedRightWhileHovered = io.MouseDown[1];
-      if (io.MouseDown[1])
-      {
-        // do something here on right click
-      }
-    }
-
     if (isHovered)
     {
       if (io.MouseWheel > 0)
@@ -353,35 +405,23 @@ void vcHandleSceneInput(ProgramState *pProgramState)
 
       pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
     }
-
-    float speed = pProgramState->settings.camera.moveSpeed; // 3 units per second default
-    if ((modState & KMOD_CTRL) > 0)
-      speed *= 0.1; // slow
-
-    if ((modState & KMOD_SHIFT) > 0)
-      speed *= 10.0;  // fast
-
-    float deltaMoveForward = speed * ((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
-    float deltaMoveRight = speed * ((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
-    float deltaMoveUp = speed * ((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
-
-    // Move the camera
-    udDouble4 direction;
-    if (pProgramState->settings.camera.moveMode == vcCMM_Plane)
-    {
-      direction = pProgramState->camMatrix.axis.y * deltaMoveForward + pProgramState->camMatrix.axis.x * deltaMoveRight + udDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
-    }
-    else
-    {
-      direction = pProgramState->camMatrix.axis.y * deltaMoveForward + pProgramState->camMatrix.axis.x * deltaMoveRight;
-      direction.z = 0;
-      if(direction.x != 0 || direction.y != 0)
-        direction = udNormalize3(direction) * speed;
-      direction += udDouble4{ 0, 0, (double)deltaMoveUp, 0 }; // don't use the camera orientation
-    }
-
-    pProgramState->camMatrix.axis.t += direction * pProgramState->deltaTime;
   }
+
+  // Move the camera
+  udDouble4 direction = pProgramState->camMatrix.axis.y * speed * pProgramState->moveDirection.forward + pProgramState->camMatrix.axis.x * speed * pProgramState->moveDirection.right;
+  if (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)
+  {
+    direction.z = 0;
+    if (direction.x != 0 || direction.y != 0)
+      direction = udNormalize3(direction) * speed;
+
+  }
+  direction += udDouble4{ 0, 0, (double) (pProgramState->moveDirection.vertical * speed), 0 };
+  pProgramState->camMatrix.axis.t += direction * pProgramState->deltaTime;
+
+  pProgramState->moveDirection.vertical = 0;
+  pProgramState->moveDirection.forward = 0;
+  pProgramState->moveDirection.right = 0;
 }
 
 void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgramState)
@@ -443,6 +483,50 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
         ImGui::Text("Mouse Position: <invalid>");
     }
     ImGui::End();
+  }
+
+  // On Screen Controls Overlay
+  {
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + 5.f, windowPos.y + size.y - 5.f), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+    ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
+
+    if (pProgramState->onScreenControls)
+    {
+      if (ImGui::Begin("OnScreenControls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+      {
+        ImGui::Text("Controls");
+
+        ImGui::Separator();
+
+        ImGui::Columns(3, NULL, false);
+
+        ImGui::SetColumnWidth(0, 50);
+        ImGui::SetColumnWidth(1, 25);
+        ImGui::SetColumnWidth(2, 50);
+
+        ImGui::PushID("oscUDSlider");
+        ImGui::VSliderInt("",ImVec2(25,100), &(pProgramState->moveDirection.vertical), -1, 1, "U/D");
+        ImGui::PopID();
+
+        ImGui::NextColumn();
+        ImGui::NextColumn();
+
+        ImGui::PushID("oscFBSlider");
+        ImGui::VSliderInt("", ImVec2(25,100), &(pProgramState->moveDirection.forward), -1, 1, "F/B");
+        ImGui::PopID();
+
+        ImGui::Columns(1);
+
+        ImGui::PushID("oscLRSlider");
+        ImGui::PushItemWidth(100);
+        ImGui::SliderInt("", &(pProgramState->moveDirection.right), -1, 1, "L/R");
+        ImGui::PopItemWidth();
+        ImGui::PopID();
+        //ImGui::Text("V:%i/F:%i/R:%i", pProgramState->moveDirection.vertical, pProgramState->moveDirection.forward, pProgramState->moveDirection.right); // display code for actual values
+      }
+      ImGui::End();
+    }
+
   }
 }
 
@@ -655,15 +739,13 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
       ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &pProgramState->camMatrix.axis.t.toVector3().x, 3);
 
-      if (pProgramState->currentSRID != 0)
-      {
-        udDouble3 latLong;
-        vcGIS_LocalZoneToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &latLong);
-        ImGui::InputScalarN("Lat/Long", ImGuiDataType_Double, &latLong.x, 2);
-      }
-
+      ImGui::Columns(2, NULL, false);
       ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
       ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
+
+      ImGui::NextColumn();
+      ImGui::Checkbox("On Screen Controls", &(pProgramState->onScreenControls));
+      ImGui::Columns(1);
 
       if (ImGui::TreeNode("Model List"))
       {

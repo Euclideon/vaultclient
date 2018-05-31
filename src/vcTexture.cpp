@@ -1,6 +1,7 @@
 
 #include "vcTexture.h"
 #include "vcRenderUtils.h"
+#include "vcSettings.h"
 #include "udPlatform/udFile.h"
 #include "udPlatform/udPlatformUtil.h"
 #include "stb_image.h"
@@ -161,10 +162,20 @@ vcTexture vcTexture_LoadCubemap(const char *pFilename)
   const GLenum types[] = { GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X, GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
 
   size_t filenameLen = udStrlen(pFilename);
-#if UDPLATFORM_OSX || UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  const char skyboxPath[] = "./";
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  const char skyboxPath[] = ASSETDIR;
+#elif UDPLATFORM_OSX
+
+  char *pSkyboxPath;
+  char *pBaseDir = SDL_GetBasePath();
+  if (pBaseDir)
+    pSkyboxPath = pBaseDir;
+  else
+    pSkyboxPath = SDL_strdup("./");
+  char skyboxPath[1024] = "";
+  udSprintf(skyboxPath, 1024, "%s", pSkyboxPath);
 #else
-  const char skyboxPath[] = "./skyboxes/";
+  const char skyboxPath[] = ASSETDIR "skyboxes/";
 #endif
   size_t pathLen = udStrlen(skyboxPath);
   char *pFilePath = udStrdup(skyboxPath, filenameLen + 5);
@@ -202,6 +213,10 @@ vcTexture vcTexture_LoadCubemap(const char *pFilename)
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
   VERIFY_GL();
+
+#if UDPLATFORM_OSX
+  SDL_free(pBaseDir);
+#endif
 
   return tex;
 }
