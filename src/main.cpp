@@ -48,7 +48,6 @@ struct ProgramState
 
   bool onScreenControls;
 
-  bool planeMode;
   double deltaTime;
   udDouble4x4 camMatrix;
   udUInt2 sceneResolution;
@@ -408,7 +407,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
 
   // Move the camera
   udDouble4 direction = pProgramState->camMatrix.axis.y * speed * pProgramState->moveDirection.forward + pProgramState->camMatrix.axis.x * speed * pProgramState->moveDirection.right;
-  if (!pProgramState->planeMode)
+  if (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)
   {
     direction.z = 0;
     if (direction.x != 0 || direction.y != 0)
