@@ -28,22 +28,19 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 		mkdir -p $DEPLOYDIR/Windows
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -f bin/sdl/SDL2.dll $DEPLOYDIR/Windows/SDL2.dll
+		mkdir -p $DEPLOYDIR/Windows/bin
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -f builds/client/bin/vaultClient.exe $DEPLOYDIR/Windows/vaultClient.exe
+		cp -f bin/sdl/SDL2.dll $DEPLOYDIR/Windows/bin/SDL2.dll
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -f builds/client/bin/NotoSansCJKjp-Regular.otf $DEPLOYDIR/Windows/NotoSansCJKjp-Regular.otf
+		cp -f builds/client/bin/vaultClient.exe $DEPLOYDIR/Windows/bin/vaultClient.exe
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -f builds/client/bin/Vault_Client.png $DEPLOYDIR/Windows/Vault_Client.png
-		if [ $? -ne 0 ]; then exit 1; fi
-		
-		cp -rf builds/client/assets/skyboxes $DEPLOYDIR/Windows/skyboxes
+		cp -rf builds/client/assets/ $DEPLOYDIR/Windows/assets
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll $DEPLOYDIR/Windows/vaultSDK.dll
+		cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll $DEPLOYDIR/Windows/bin/vaultSDK.dll
 		if [ $? -ne 0 ]; then exit 1; fi
 
 	fi
@@ -98,18 +95,12 @@ else
 				cp -f builds/client/bin/vaultClient.dmg $DEPLOYDIR/$OSNAME
 			else
 				sharedLibExtension="so"
-				cp -f builds/client/bin/NotoSansCJKjp-Regular.otf $DEPLOYDIR/$OSNAME/NotoSansCJKjp-Regular.otf
+				cp -rf builds/client/assets/ $DEPLOYDIR/$OSNAME/assets
 				if [ $? -ne 0 ]; then exit 1; fi
 
-				cp -f builds/client/bin/Vault_Client.png $DEPLOYDIR/$OSNAME/Vault_Client.png
+				cp -f builds/client/bin/vaultClient $DEPLOYDIR/$OSNAME/bin/vaultClient
 				if [ $? -ne 0 ]; then exit 1; fi
-				
-				cp -rf builds/client/assets/skyboxes $DEPLOYDIR/$OSNAME/skyboxes
-				if [ $? -ne 0 ]; then exit 1; fi
-
-				cp -f builds/client/bin/vaultClient $DEPLOYDIR/$OSNAME/vaultClient
-				if [ $? -ne 0 ]; then exit 1; fi
-				cp -f $VAULTSDK_HOME/lib/linux_GCC_x64/libvaultSDK.so $DEPLOYDIR/$OSNAME/libvaultSDK.so
+				cp -f $VAULTSDK_HOME/lib/linux_GCC_x64/libvaultSDK.so $DEPLOYDIR/$OSNAME/bin/libvaultSDK.so
 			fi
 
 			if [ $? -ne 0 ]; then exit 1; fi

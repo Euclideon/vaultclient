@@ -74,6 +74,10 @@ struct ProgramState
   vcSettings settings;
 };
 
+#if UDPLATFORM_OSX
+char *pBasePath = nullptr;
+#endif
+
 void vcHandleSceneInput(ProgramState *pProgramState);
 void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer);
 int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer);
@@ -96,7 +100,19 @@ int main(int /*argc*/, char ** /*args*/)
   // Icon parameters
   SDL_Surface *pIcon = nullptr;
   int iconWidth, iconHeight, iconBytesPerPixel;
-  char IconPath[] = "Vault_Client.png";
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  char IconPath[] = ASSETDIR "Vault_Client.png";
+#elif UDPLATFORM_OSX
+  pBasePath = SDL_GetBasePath();
+  if (pBasePath == nullptr)
+    pBasePath = SDL_strdup("./");
+
+  char fontPath[1024] = "";
+  char IconPath[1024] = "";
+  udSprintf(IconPath, 1024, "%s%s", pBasePath, "Vault_Client.png");
+#else
+  char IconPath[] = ASSETDIR "icons/Vault_Client.png";
+#endif
   unsigned char *pData = nullptr;
   int pitch;
   long rMask, gMask, bMask, aMask;
@@ -254,7 +270,12 @@ int main(int /*argc*/, char ** /*args*/)
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, programState.defaultFramebuffer);
 
   ImGui::LoadDock();
-  ImGui::GetIO().Fonts->AddFontFromFileTTF("NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
+#if UDPLATFORM_OSX
+  udSprintf(fontPath, 1024, "%s%s", pBasePath, "NotoSansCJKjp-Regular.otf");
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(fontPath, 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
+#else
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(ASSETDIR "fonts/NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
+#endif
 
   SDL_EnableScreenSaver();
 
@@ -297,6 +318,10 @@ epilogue:
   modelList.Deinit();
   vcRender_Destroy(&vContainer.pRenderContext);
   vaultContext_Disconnect(&vContainer.pContext);
+
+#if UDPLATFORM_OSX
+  SDL_free(pBasePath);
+#endif
 
   udFree(programState.pServerURL);
   udFree(programState.pUsername);
