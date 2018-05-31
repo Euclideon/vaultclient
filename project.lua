@@ -60,14 +60,14 @@ project "vaultClient"
 		links { "SDL2.framework", "OpenGL.framework" }
 
 	filter { "system:ios" }
-		files { "Info.plist", "builds/client/bin/libvaultSDK.dylib" }
+		files { "Info.plist", "builds/libvaultSDK.dylib" }
 		xcodebuildresources { "libvaultSDK" }
 		removefiles { "3rdParty/glew/glew.c" }
 		libdirs { "3rdParty/SDL2-2.0.5/lib/ios" }
 		links { "SDL2", "AudioToolbox.framework", "QuartzCore.framework", "OpenGLES.framework", "CoreGraphics.framework", "UIKit.framework", "Foundation.framework", "CoreAudio.framework", "AVFoundation.framework", "GameController.framework", "CoreMotion.framework" }
 
 	filter { "system:macosx or ios" }
-		files { "builds/client/assets/fonts/NotoSansCJKjp-Regular.otf", "builds/client/assets/icons/Vault_Client.png", "builds/client/assets/skyboxes/CloudWater_*.jpg" }
+		files { "builds/assets/fonts/NotoSansCJKjp-Regular.otf", "builds/assets/icons/Vault_Client.png", "builds/assets/skyboxes/CloudWater_*.jpg" }
 		xcodebuildresources { "NotoSans", "Vault_Client", "CloudWater" }
 
 	filter { "system:not windows" }
@@ -85,5 +85,5 @@ project "vaultClient"
 		removeflags { "FatalWarnings" }
 	filter {}
 
-	targetdir "builds/client/bin"
-	debugdir "builds/client/bin"
+	targetdir "builds"
+	debugdir "builds"

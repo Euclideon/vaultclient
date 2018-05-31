@@ -68,40 +68,40 @@ function injectvaultsdkbin()
 
 		if os.target() == premake.WINDOWS then
 			os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
-			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.dll", "builds/client/bin/vaultSDK.dll")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.dll", "builds/vaultSDK.dll")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.lib", "src/vaultSDK.lib")
 			libdirs { "src" }
 		elseif os.target() == premake.MACOSX then
-			os.execute("mkdir -p builds/client/bin")
+			os.execute("mkdir -p builds")
 
 			-- copy dmg, mount, extract framework, unmount then remove.
-			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/osx_x64/vaultSDK.dmg", "builds/client/bin/vaultSDK.dmg")
-			os.execute("/usr/bin/hdiutil attach builds/client/bin/vaultSDK.dmg")
-			os.execute("cp -a -f /Volumes/vaultSDK/vaultSDK.framework builds/client/bin/")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/osx_x64/vaultSDK.dmg", "builds/vaultSDK.dmg")
+			os.execute("/usr/bin/hdiutil attach builds/vaultSDK.dmg")
+			os.execute("cp -a -f /Volumes/vaultSDK/vaultSDK.framework builds/")
 			os.execute("/usr/bin/hdiutil detach /Volumes/vaultSDK")
-			os.execute("rm -r builds/client/bin/vaultSDK.dmg")
+			os.execute("rm -r builds/vaultSDK.dmg")
 
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			prelinkcommands {
 				"rm -rf %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
 				"mkdir -p %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
-				"cp -af builds/client/bin/vaultSDK.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/",
+				"cp -af builds/vaultSDK.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/",
 				"cp -af /Library/Frameworks/SDL2.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/",
 			}
 			linkoptions { "-rpath @executable_path/../Frameworks/" }
-			frameworkdirs { "builds/client/bin" }
+			frameworkdirs { "builds" }
 		elseif os.target() == premake.IOS then
-			os.execute("mkdir -p builds/client/bin")
-			os.execute("lipo -create " .. os.getenv("VAULTSDK_HOME") .. "/lib/ios_arm64/libvaultSDK.dylib " .. os.getenv("VAULTSDK_HOME") .. "/lib/ios_x64/libvaultSDK.dylib -output builds/client/bin/libvaultSDK.dylib")
-			os.execute("codesign -s T6Q3JCVW77 builds/client/bin/libvaultSDK.dylib") -- Is this required? Should this move to VaultSDK?
+			os.execute("mkdir -p builds")
+			os.execute("lipo -create " .. os.getenv("VAULTSDK_HOME") .. "/lib/ios_arm64/libvaultSDK.dylib " .. os.getenv("VAULTSDK_HOME") .. "/lib/ios_x64/libvaultSDK.dylib -output builds/libvaultSDK.dylib")
+			os.execute("codesign -s T6Q3JCVW77 builds/libvaultSDK.dylib") -- Is this required? Should this move to VaultSDK?
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
-			libdirs { "builds/client/bin" }
+			libdirs { "builds" }
 			linkoptions { "-rpath @executable_path/" }
 		else
-			os.execute("mkdir -p builds/client/bin")
-			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/linux_GCC_x64/libvaultSDK.so", "builds/client/bin/libvaultSDK.so")
+			os.execute("mkdir -p builds")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/linux_GCC_x64/libvaultSDK.so", "builds/libvaultSDK.so")
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
-			libdirs { "builds/client/bin" }
+			libdirs { "builds" }
 		end
 
 		includedirs { "Include" }
@@ -112,16 +112,6 @@ newoption {
 	trigger     = "force-vaultsdk",
 	description = "Force the use of the vaultsdk repository"
 }
-
-os.copyfile("icons/Vault_Client.png", "builds/client/bin/Vault_Client.png")
-
-os.mkdir("builds/client/bin/skyboxes")
-os.copyfile("builds/client/assets/skyboxes/CloudWater_BK.jpg", "builds/client/bin/skyboxes/CloudWater_BK.jpg")
-os.copyfile("builds/client/assets/skyboxes/CloudWater_DN.jpg", "builds/client/bin/skyboxes/CloudWater_DN.jpg")
-os.copyfile("builds/client/assets/skyboxes/CloudWater_FR.jpg", "builds/client/bin/skyboxes/CloudWater_FR.jpg")
-os.copyfile("builds/client/assets/skyboxes/CloudWater_LF.jpg", "builds/client/bin/skyboxes/CloudWater_LF.jpg")
-os.copyfile("builds/client/assets/skyboxes/CloudWater_RT.jpg", "builds/client/bin/skyboxes/CloudWater_RT.jpg")
-os.copyfile("builds/client/assets/skyboxes/CloudWater_UP.jpg", "builds/client/bin/skyboxes/CloudWater_UP.jpg")
 
 solution "vaultClient"
 	-- This hack just makes the VS project and also the makefile output their configurations in the idiomatic order
@@ -147,7 +137,7 @@ solution "vaultClient"
 	xcodebuildsettings { ["CLANG_CXX_LANGUAGE_STANDARD"] = "c++0x" }
 
 	if os.target() == premake.WINDOWS then
-		os.copyfile("bin/sdl/SDL2.dll", "builds/client/bin/SDL2.dll")
+		os.copyfile("bin/sdl/SDL2.dll", "builds/SDL2.dll")
 	end
 
 	-- Strings
@@ -180,8 +170,8 @@ solution "vaultClient"
 				['SKIP_INSTALL'] = "YES"
 			}
 		filter {}
-		targetdir "builds/client/bin"
-		debugdir "builds/client/bin"
+		targetdir "builds"
+		debugdir "builds"
 	end
 
 	dofile "project.lua"
