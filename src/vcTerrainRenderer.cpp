@@ -43,7 +43,7 @@ struct vcTerrainRenderer
   struct vcTerrainCache
   {
     volatile bool keepLoading;
-    udThread *pThread[4];
+    udThread *pThread;
     udSemaphore *pSemaphore;
     udMutex *pMutex;
     udChunkedArray<vcCachedTexture*> textureLoadList;
@@ -121,10 +121,7 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer, vcSettings *p
   pTerrainRenderer->cache.keepLoading = true;
   pTerrainRenderer->cache.textures.Init(128);
   pTerrainRenderer->cache.textureLoadList.Init(16);
-  udThread_Create(&pTerrainRenderer->cache.pThread[0], (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
-  udThread_Create(&pTerrainRenderer->cache.pThread[1], (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
-  udThread_Create(&pTerrainRenderer->cache.pThread[2], (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
-  udThread_Create(&pTerrainRenderer->cache.pThread[3], (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
+  udThread_Create(&pTerrainRenderer->cache.pThread, (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
 
   pTerrainRenderer->presentShader.program = vcBuildProgram(vcBuildShader(GL_VERTEX_SHADER, g_terrainTileVertexShader), vcBuildShader(GL_FRAGMENT_SHADER, g_terrainTileFragmentShader));
   pTerrainRenderer->presentShader.uniform_viewProjection = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_viewProjection");
@@ -176,7 +173,23 @@ void vcTerrainRenderer_Destroy(vcTerrainRenderer **ppTerrainRenderer)
 {
   vcTerrainRenderer *pTerrainRenderer = (*ppTerrainRenderer);
 
+  pTerrainRenderer->cache.keepLoading = false;
+  udIncrementSemaphore(pTerrainRenderer->cache.pSemaphore);
+
+  udThread_Join(pTerrainRenderer->cache.pThread);
+  udThread_Destroy(&pTerrainRenderer->cache.pThread);
+
+  udDestroyMutex(&pTerrainRenderer->cache.pMutex);
+  udDestroySemaphore(&pTerrainRenderer->cache.pSemaphore);
+
+  for (int i = 0; i < pTerrainRenderer->cache.textures.length; ++i)
+  {
+    udFree(pTerrainRenderer->cache.textures[i].pData);
+    vcTextureDestroy(&pTerrainRenderer->cache.textures[i].texture);
+  }
+
   pTerrainRenderer->cache.textures.Deinit();
+  pTerrainRenderer->cache.textureLoadList.Deinit();
 
   glDeleteProgram(pTerrainRenderer->presentShader.program);
   glDeleteBuffers(1, &pTerrainRenderer->vbo);
