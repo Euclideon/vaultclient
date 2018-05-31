@@ -56,6 +56,8 @@ const float vcSL_CameraMaxMoveSpeed = 250.f;
 const float vcSL_CameraFieldOfViewMin = 5;
 const float vcSL_CameraFieldOfViewMax = 100;
 
+const float vcSL_OSCPixelRatio = 100.f;
+
 // Settings Functions
 bool vcSettings_Load(vcSettings *pSettings);
 bool vcSettings_Save(vcSettings *pSettings);

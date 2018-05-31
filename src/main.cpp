@@ -65,9 +65,9 @@ struct ProgramState
 
   struct
   {
-    int vertical;
-    int forward;
-    int right;
+    float vertical;
+    float forward;
+    float right;
   }moveDirection;
 
   vcSettings settings;
@@ -366,15 +366,15 @@ void vcHandleSceneInput(ProgramState *pProgramState)
 
     if (pProgramState->onScreenControls)
     {
-      pProgramState->moveDirection.forward += ((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
-      pProgramState->moveDirection.right += ((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
-      pProgramState->moveDirection.vertical += ((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
+      pProgramState->moveDirection.forward += (float)((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
+      pProgramState->moveDirection.right += (float)((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
+      pProgramState->moveDirection.vertical += (float)((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
     }
     else
     {
-      pProgramState->moveDirection.forward = ((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
-      pProgramState->moveDirection.right = ((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
-      pProgramState->moveDirection.vertical = ((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
+      pProgramState->moveDirection.forward = (float) ((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
+      pProgramState->moveDirection.right = (float)((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
+      pProgramState->moveDirection.vertical = (float)((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
     }
 
 
@@ -463,37 +463,55 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
     if (pProgramState->onScreenControls)
     {
-      if (ImGui::Begin("OnScreenControls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+      if (ImGui::Begin("OnScreenControls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
       {
+        ImGui::SetWindowSize(ImVec2(175, 150));
         ImGui::Text("Controls");
 
         ImGui::Separator();
 
-        ImGui::Columns(3, NULL, false);
+
+        ImGui::Columns(2, NULL, false);
 
         ImGui::SetColumnWidth(0, 50);
-        ImGui::SetColumnWidth(1, 25);
-        ImGui::SetColumnWidth(2, 50);
 
         ImGui::PushID("oscUDSlider");
-        ImGui::VSliderInt("",ImVec2(25,100), &(pProgramState->moveDirection.vertical), -1, 1, "U/D");
+        int vertTemp = (int)pProgramState->moveDirection.vertical;
+        ImGui::VSliderInt("",ImVec2(40,100), &vertTemp, -1, 1, "U/D");
+        pProgramState->moveDirection.vertical = (float)vertTemp;
         ImGui::PopID();
 
         ImGui::NextColumn();
-        ImGui::NextColumn();
 
-        ImGui::PushID("oscFBSlider");
-        ImGui::VSliderInt("", ImVec2(25,100), &(pProgramState->moveDirection.forward), -1, 1, "F/B");
-        ImGui::PopID();
+        ImGuiIO &io = ImGui::GetIO();
+
+        ImGui::Button("Move Camera",ImVec2(100,100));
+        if (ImGui::IsItemActive())
+        {
+          // Draw a line between the button and the mouse cursor
+          ImDrawList* draw_list = ImGui::GetWindowDrawList();
+          draw_list->PushClipRectFullScreen();
+          draw_list->AddLine(io.MouseClickedPos[0], io.MousePos, ImGui::GetColorU32(ImGuiCol_Button), 4.0f);
+          draw_list->PopClipRect();
+
+          ImVec2 value_raw = ImGui::GetMouseDragDelta(0, 0.0f);
+
+          pProgramState->moveDirection.forward = -1.f * value_raw.y / vcSL_OSCPixelRatio;
+          pProgramState->moveDirection.right = value_raw.x / vcSL_OSCPixelRatio;
+
+          if (pProgramState->moveDirection.forward > 1.f)
+            pProgramState->moveDirection.forward = 1.f;
+          else if (pProgramState->moveDirection.forward < -1.f)
+            pProgramState->moveDirection.forward = -1.f;
+
+          if (pProgramState->moveDirection.right> 1.f)
+            pProgramState->moveDirection.right = 1.f;
+          else if (pProgramState->moveDirection.right< -1.f)
+            pProgramState->moveDirection.right = -1.f;
+
+        }
 
         ImGui::Columns(1);
-
-        ImGui::PushID("oscLRSlider");
-        ImGui::PushItemWidth(100);
-        ImGui::SliderInt("", &(pProgramState->moveDirection.right), -1, 1, "L/R");
-        ImGui::PopItemWidth();
-        ImGui::PopID();
-        //ImGui::Text("V:%i/F:%i/R:%i", pProgramState->moveDirection.vertical, pProgramState->moveDirection.forward, pProgramState->moveDirection.right); // display code for actual values
       }
       ImGui::End();
     }
