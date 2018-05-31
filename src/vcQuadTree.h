@@ -19,12 +19,7 @@ struct vcQuadTreeNode
   int level;
 };
 
-struct vcQuadTree;
-
-udResult vcQuadTree_Init(vcQuadTree **ppQuadTree);
-udResult vcQuadTree_Destroy(vcQuadTree **ppQuadTree);
-
-void vcQuadTree_GenerateNodeList(vcQuadTree *pQuadTree, vcQuadTreeNode **ppNodes, int *pNodeCount, const udFloat2 &viewPositionMS, const udFloat2 &viewPositionSizeMS, vcQuadTreeMetaData *pMetaData = nullptr);
+void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, const udFloat2 &viewPositionMS, const udFloat2 &viewPositionSizeMS, vcQuadTreeMetaData *pMetaData = nullptr);
 
 inline bool vcQuadTree_IsLeafNode(const vcQuadTreeNode *pNode)
 {
