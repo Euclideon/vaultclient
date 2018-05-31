@@ -750,6 +750,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::SameLine();
       ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
 
+      ImGui::Checkbox("On Screen Controls", &pProgramState->onScreenControls);
+
       // Models
       vcColumnHeader headers[] =
       {
