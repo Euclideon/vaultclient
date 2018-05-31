@@ -98,12 +98,16 @@ void vcTerrainRenderer_LoadThread(void *pThreadData)
 
       uint8_t *pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
 
+      if (pData == nullptr)
+        goto epilogue;
+
       pNextTexture->pData = udMemDup(pData, sizeof(uint32_t)*width*height, 0, udAF_None);
 
       pNextTexture->texture.width = width;
       pNextTexture->texture.height = height;
       pNextTexture->texture.format = vcTextureFormat_RGBA8;
 
+epilogue:
       udFree(pFileData);
       stbi_image_free(pData);
     }
