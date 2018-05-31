@@ -14,6 +14,7 @@
 #include "vcGIS.h"
 
 #include <stdlib.h>
+#include "udPlatform/udFile.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -105,6 +106,8 @@ int main(int /*argc*/, char ** /*args*/)
   ProgramState programState = {};
   vaultContainer vContainer = {};
 
+  udFile_RegisterHTTP();
+
   // Icon parameters
   SDL_Surface *pIcon = nullptr;
   int iconWidth, iconHeight, iconBytesPerPixel;
@@ -169,6 +172,11 @@ int main(int /*argc*/, char ** /*args*/)
 #else
   udStrcpy(programState.pModelPath, 1024, "V:/QA/For Tests/Geoverse MDM/AdelaideCBD_2cm.uds");
 #endif
+
+  programState.settings.maptiles.mapEnabled = true;
+  programState.settings.maptiles.mapHeight = 0.f;
+  programState.settings.maptiles.transparency = 1.f;
+  udStrcpy(programState.settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox.euclideon.local:8123");
 
   Uint64 NOW;
   Uint64 LAST;
@@ -478,7 +486,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
       if (pProgramState->currentSRID != 0)
       {
         udDouble3 cameraLatLong;
-        vcGIS_LocalZoneToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &cameraLatLong);
+        vcGIS_LocalToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &cameraLatLong);
         ImGui::Text("LAT/LONG: %f %f", cameraLatLong.x, cameraLatLong.y);
       }
 
@@ -874,7 +882,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::Columns(1);
       // End Models
     }
-    ImGui::EndDock();
+      ImGui::EndDock();
 
     if (ImGui::BeginDock("StyleEditor", &pProgramState->windowsOpen[vcdStyling], ImGuiWindowFlags_ResizeFromAnySide))
       ImGui::ShowStyleEditor();
@@ -885,6 +893,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
     if (ImGui::BeginDock("Settings", &pProgramState->windowsOpen[vcdSettings], ImGuiWindowFlags_ResizeFromAnySide))
     {
+      ImGui::Text("UI Settings");
+
       static int styleIndex = 1; // dark
       if (ImGui::Combo("Style", &styleIndex, "Classic\0Dark\0Light\0"))
       {
@@ -896,14 +906,46 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         }
       }
 
-      ImGui::SliderFloat("Camera Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "Camera Speed = %.3f", 2.f);
+      ImGui::Separator();
+      ImGui::Text("Camera");
 
-      ImGui::SliderFloat("Camera Near Plane", &(pProgramState->settings.camera.nearPlane), vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "Camera Near Plane = %.3f", 2.f);
-      ImGui::SliderFloat("Camera Far Plane", &(pProgramState->settings.camera.farPlane), vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "Camera Far Plane = %.3f", 2.f);
+      ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f);
+      ImGui::SliderFloat("Near Plane", &(pProgramState->settings.camera.nearPlane), vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f);
+      ImGui::SliderFloat("Far Plane", &(pProgramState->settings.camera.farPlane), vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "%.3fm", 2.f);
 
       float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
-      ImGui::SliderFloat("Camera Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "Camera Field of View = %.0f");
+      ImGui::SliderFloat("Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f Degrees");
       pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(fovDeg);
+
+
+      ImGui::Separator();
+
+      ImGui::Checkbox("Map Tiles", &pProgramState->settings.maptiles.mapEnabled);
+
+      if (pProgramState->settings.maptiles.mapEnabled)
+      {
+        ImGui::InputText("Tile Server", pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength);
+
+        ImGui::SliderFloat("Map Height", &pProgramState->settings.maptiles.mapHeight, -1000.f, 1000.f, "%.3fm", 2.f);
+
+        const char* blendModes[] = { "Hybrid", "Overlay" };
+        if (ImGui::BeginCombo("Blending", blendModes[pProgramState->settings.maptiles.blendMode]))
+        {
+          for (size_t n = 0; n < UDARRAYSIZE(blendModes); ++n)
+          {
+            bool isSelected = (pProgramState->settings.maptiles.blendMode == n);
+
+            if (ImGui::Selectable(blendModes[n], isSelected))
+              pProgramState->settings.maptiles.blendMode = (vcMapTileBlendMode)n;
+
+            if (isSelected)
+              ImGui::SetItemDefaultFocus();
+          }
+          ImGui::EndCombo();
+        }
+
+        ImGui::SliderFloat("Transparency", &pProgramState->settings.maptiles.transparency, 0.f, 1.f, "%.3f");
+      }
     }
     ImGui::EndDock();
   }

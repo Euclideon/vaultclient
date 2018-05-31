@@ -21,6 +21,17 @@ enum vcCameraMoveMode
   vcCMM_Helicopter,
 };
 
+enum vcMapTileBlendMode
+{
+  vcMTBM_Hybrid,
+  vcMTBM_Overlay,
+};
+
+enum
+{
+  vcMaxPathLength = 512,
+};
+
 struct vcSettings
 {
   const char *pUserDirectory; // Where settings, cache files etc live
@@ -41,6 +52,17 @@ struct vcSettings
     float fieldOfView;
     vcCameraMoveMode moveMode;
   } camera;
+
+  struct
+  {
+    bool mapEnabled;
+
+    float mapHeight;
+    char tileServerAddress[vcMaxPathLength];
+
+    vcMapTileBlendMode blendMode;
+    float transparency;
+  } maptiles;
 };
 
 // Settings Limits (vcSL prefix)
