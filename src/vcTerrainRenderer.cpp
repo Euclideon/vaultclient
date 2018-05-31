@@ -182,7 +182,7 @@ void vcTerrainRenderer_Destroy(vcTerrainRenderer **ppTerrainRenderer)
   udDestroyMutex(&pTerrainRenderer->cache.pMutex);
   udDestroySemaphore(&pTerrainRenderer->cache.pSemaphore);
 
-  for (int i = 0; i < pTerrainRenderer->cache.textures.length; ++i)
+  for (size_t i = 0; i < pTerrainRenderer->cache.textures.length; ++i)
   {
     udFree(pTerrainRenderer->cache.textures[i].pData);
     vcTextureDestroy(&pTerrainRenderer->cache.textures[i].texture);
