@@ -3,14 +3,13 @@
 #include "vcRenderUtils.h"
 #include "vcRenderShaders.h"
 #include "vcQuadTree.h"
+#include "vcSettings.h"
 #include "udPlatform/udPlatformUtil.h"
 #include "udPlatform/udChunkedArray.h"
 
 // temporary hard codeded
 static const int vertResolution = 2;
 static const int indexResolution = vertResolution - 1;
-const char *blankTileTextureFilename = "UnknownTileTexture.png";
-const char *tilesFilePath = "T:\\4PeterAdams\\Tiles";
 
 struct vcTile
 {
@@ -32,7 +31,8 @@ struct vcTerrainRenderer
   GLuint vao;
   GLuint vbo;
   GLuint ibo;
-  vcTexture blankTileTexture;
+
+  vcSettings *pSettings;
 
   // cache textures
   udChunkedArray<vcCachedTexture> cachedTextures;
@@ -47,9 +47,11 @@ struct vcTerrainRenderer
   } presentShader;
 };
 
-void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer)
+void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer, vcSettings *pSettings)
 {
   vcTerrainRenderer *pTerrainRenderer = udAllocType(vcTerrainRenderer, 1, udAF_Zero);
+
+  pTerrainRenderer->pSettings = pSettings;
 
   pTerrainRenderer->cachedTextures.Init(128);
 
@@ -92,9 +94,8 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer)
       verts[index].UVs.y = verts[index].Position.y;
     }
   }
-  vcCreateQuads(verts, vertResolution * vertResolution, indices, indexResolution * indexResolution * 6, pTerrainRenderer->vbo, pTerrainRenderer->ibo, pTerrainRenderer->vao);
 
-  pTerrainRenderer->blankTileTexture = vcTextureLoadFromDisk(blankTileTextureFilename, nullptr, nullptr, GL_LINEAR, false, 0, GL_CLAMP_TO_EDGE);
+  vcCreateQuads(verts, vertResolution * vertResolution, indices, indexResolution * indexResolution * 6, pTerrainRenderer->vbo, pTerrainRenderer->ibo, pTerrainRenderer->vao);
   (*ppTerrainRenderer) = pTerrainRenderer;
 }
 
@@ -125,15 +126,15 @@ vcCachedTexture* FindTexture(udChunkedArray<vcCachedTexture> &textures, int x, i
   return nullptr;
 }
 
-vcTexture AssignTileTexture(vcTerrainRenderer *pTerrainRenderer, int tileX, int tileY, int tileZ)
+vcTexture* AssignTileTexture(vcTerrainRenderer *pTerrainRenderer, int tileX, int tileY, int tileZ)
 {
-  vcTexture resultTexture = pTerrainRenderer->blankTileTexture;
+  vcTexture *pResultTexture = nullptr;
 
   static char buff[256];
   vcCachedTexture *pCachedTexture = FindTexture(pTerrainRenderer->cachedTextures, tileX, tileY, tileZ);
   if (!pCachedTexture)
   {
-    udSprintf(buff, sizeof(buff), "%s\\%d\\%d\\%d.png", tilesFilePath, tileZ, tileX, tileY);
+    udSprintf(buff, sizeof(buff), "%s/%d/%d/%d.png", pTerrainRenderer->pSettings->maptiles.tileServerAddress, tileZ, tileX, tileY);
     vcTexture loadedTexture = vcTextureLoadFromDisk(buff, nullptr, nullptr, GL_LINEAR, false, 0, GL_CLAMP_TO_EDGE);
     if (loadedTexture.id != GL_INVALID_INDEX)
     {
@@ -143,16 +144,16 @@ vcTexture AssignTileTexture(vcTerrainRenderer *pTerrainRenderer, int tileX, int 
       pCachedTexture->id.y = tileY;
       pCachedTexture->id.z = tileZ;
       pCachedTexture->texture = loadedTexture;
-      resultTexture = loadedTexture;
+      pResultTexture = &loadedTexture;
     }
   }
   else
   {
     // texture is already in cache
-    resultTexture = pCachedTexture->texture;
+    pResultTexture = &pCachedTexture->texture;
   }
 
-  return resultTexture;
+  return pResultTexture;
 }
 
 void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, const udDouble3 worldCorners[4], const udInt3 &slippyCoords, const vcQuadTreeNode *pNodeList, int nodeCount, int leafNodeCount)
@@ -183,7 +184,12 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, const udD
     int tileX = (int)(pNode->position.x * gridSizeAtLevel) + offsetX;
     int tileY = (totalGridSize - 1) - ((int)(pNode->position.y * gridSizeAtLevel) + offsetY); // invert
 
-    pTerrainRenderer->pTiles[tileIndex].texture = AssignTileTexture(pTerrainRenderer, tileX, tileY, tileZ);
+    vcTexture *pTexture = AssignTileTexture(pTerrainRenderer, tileX, tileY, tileZ);
+
+    if (pTexture == nullptr)
+      continue;
+
+    pTerrainRenderer->pTiles[tileIndex].texture = *pTexture;
 
     float nodeSize = pNode->childSize * 2.0f;
     pTerrainRenderer->pTiles[tileIndex].world = udDouble4x4::translation(worldCorners[0].x, worldCorners[3].y, 0) * udDouble4x4::scaleNonUniform(worldScale.x, worldScale.y, 1.0) * udDouble4x4::translation(udDouble3::create(pNode->position.x, pNode->position.y, 0.0)) * udDouble4x4::scaleUniform(nodeSize);

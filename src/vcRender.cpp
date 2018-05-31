@@ -77,7 +77,7 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   pRenderContext = udAllocType(vcRenderContext, 1, udAF_Zero);
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
 
-  if (vcTerrain_Init(&pRenderContext->pTerrain) != udR_Success)
+  if (vcTerrain_Init(&pRenderContext->pTerrain, pSettings) != udR_Success)
     UD_ERROR_SET(udR_InternalError);
 
   pRenderContext->udRenderContext.presentShader.program = vcBuildProgram(vcBuildShader(GL_VERTEX_SHADER, g_udVertexShader), vcBuildShader(GL_FRAGMENT_SHADER, g_udFragmentShader));
@@ -286,7 +286,7 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
     }
 
     udDouble2 localViewPos = udDouble2::create(renderData.cameraMatrix.axis.t.x, renderData.cameraMatrix.axis.t.y);
-    double localViewSize = (1.0 / (1 << 20)) + renderData.cameraMatrix.axis.t.z / 100000.0;
+    double localViewSize = (1.0 / (1 << 19)) + renderData.cameraMatrix.axis.t.z / 100000.0;
 
     // for now just rebuild terrain every frame
     vcTerrain_BuildTerrain(pRenderContext->pTerrain, localCorners, udInt3::create(slippyCorners[0], currentZoom), localViewPos, localViewSize);

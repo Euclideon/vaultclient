@@ -116,10 +116,6 @@ vcTexture vcTextureLoadFromDisk(const char *filename, uint32_t *pWidth /*= nullp
   void *pFileData;
   int64_t fileLen;
 
-  // If the file doesn't exist, has a file size of 0, or has a file size that exceeds 100MB, return an invalid texture.
-  if (udFileExists(filename, &fileLen) != udR_Success || fileLen == 0 || fileLen > (100 * 1024 * 1024))
-    return texture;
-
   if (udFile_Load(filename, &pFileData, &fileLen) != udR_Success)
     return texture;
 

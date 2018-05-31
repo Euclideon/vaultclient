@@ -14,6 +14,7 @@
 #include "vcGIS.h"
 
 #include <stdlib.h>
+#include "udPlatform/udFile.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -86,6 +87,8 @@ int main(int /*argc*/, char ** /*args*/)
   ProgramState programState = {};
   vaultContainer vContainer = {};
 
+  udFile_RegisterHTTP();
+
   // Icon parameters
   SDL_Surface *pIcon = nullptr;
   int iconWidth, iconHeight, iconBytesPerPixel;
@@ -136,6 +139,10 @@ int main(int /*argc*/, char ** /*args*/)
 #else
   udStrcpy(programState.pModelPath, 1024, "V:/QA/For Tests/Geoverse MDM/AdelaideCBD_2cm.uds");
 #endif
+
+  programState.settings.maptiles.mapEnabled = true;
+  programState.settings.maptiles.mapHeight = 0.f;
+  udStrcpy(programState.settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox:8123");
 
   Uint64 NOW;
   Uint64 LAST;
