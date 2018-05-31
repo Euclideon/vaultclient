@@ -275,19 +275,24 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, co
 {
   udResult result = udR_Success;
   vaultUDModel **ppModels = nullptr;
+  int numVisibleModels = 0;
 
   if (vaultUDRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vUDRVM_View, pRenderContext->viewMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if(renderData.models.length > 0)
+  if (renderData.models.length > 0)
     ppModels = udAllocStack(vaultUDModel*, renderData.models.length, udAF_None);
 
   for (size_t i = 0; i < renderData.models.length; ++i)
   {
-    ppModels[i] = renderData.models[i]->pVaultModel;
+    if (renderData.models[i]->modelVisible)
+    {
+      ppModels[numVisibleModels] = renderData.models[i]->pVaultModel;
+      ++numVisibleModels;
+    }
   }
 
-  if (vaultUDRenderer_Render(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)renderData.models.length) != vE_Success)
+  if (vaultUDRenderer_Render(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)numVisibleModels) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
   glActiveTexture(GL_TEXTURE0);
