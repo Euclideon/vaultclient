@@ -9,6 +9,11 @@ enum vcCameraMoveMode
   vcCMM_Helicopter,
 };
 
+enum
+{
+  vcMaxPathLength = 512,
+};
+
 struct vcSettings
 {
   const char *pUserDirectory; // Where settings, cache files etc live
@@ -29,6 +34,13 @@ struct vcSettings
     float fieldOfView;
     vcCameraMoveMode moveMode;
   } camera;
+
+  struct
+  {
+    bool mapEnabled;
+    float mapHeight;
+    char tileServerAddress[vcMaxPathLength];
+  } maptiles;
 };
 
 // Settings Limits (vcSL prefix)

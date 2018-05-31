@@ -10,7 +10,7 @@ struct vcTerrain
   vcTerrainRenderer *pTerrainRenderer;
 };
 
-udResult vcTerrain_Init(vcTerrain **ppTerrain)
+udResult vcTerrain_Init(vcTerrain **ppTerrain, vcSettings *pSettings)
 {
   udResult result = udR_Success;
   vcTerrain *pTerrain = nullptr;
@@ -21,7 +21,7 @@ udResult vcTerrain_Init(vcTerrain **ppTerrain)
   UD_ERROR_IF(pTerrain == nullptr, udR_MemoryAllocationFailure);
 
   pTerrain->enabled = true;
-  vcTerrainRenderer_Init(&pTerrain->pTerrainRenderer);
+  vcTerrainRenderer_Init(&pTerrain->pTerrainRenderer, pSettings);
 
   *ppTerrain = pTerrain;
 epilogue:
