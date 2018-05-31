@@ -67,7 +67,7 @@ project "vaultClient"
 		links { "SDL2", "AudioToolbox.framework", "QuartzCore.framework", "OpenGLES.framework", "CoreGraphics.framework", "UIKit.framework", "Foundation.framework", "CoreAudio.framework", "AVFoundation.framework", "GameController.framework", "CoreMotion.framework" }
 
 	filter { "system:macosx or ios" }
-		files { "builds/client/bin/NotoSansCJKjp-Regular.otf", "builds/client/bin/Vault_Client.png", "builds/client/bin/skyboxes/CloudWater_*.jpg" }
+		files { "builds/client/assets/fonts/NotoSansCJKjp-Regular.otf", "builds/client/assets/icons/Vault_Client.png", "builds/client/assets/skyboxes/CloudWater_*.jpg" }
 		xcodebuildresources { "NotoSans", "Vault_Client", "CloudWater" }
 
 	filter { "system:not windows" }
