@@ -6,6 +6,10 @@
 #include "vcSettings.h"
 #include "udPlatform/udPlatformUtil.h"
 #include "udPlatform/udChunkedArray.h"
+#include "udPlatform/udThread.h"
+#include "udPlatform/udFile.h"
+
+#include "stb_image.h"
 
 // temporary hard codeded
 static const int vertResolution = 2;
@@ -21,6 +25,7 @@ struct vcCachedTexture
 {
   udInt3 id; // each tile has a unique slippy {x,y,z}
   vcTexture texture;
+  void *pData;
 };
 
 struct vcTerrainRenderer
@@ -35,7 +40,15 @@ struct vcTerrainRenderer
   vcSettings *pSettings;
 
   // cache textures
-  udChunkedArray<vcCachedTexture> cachedTextures;
+  struct vcTerrainCache
+  {
+    volatile bool keepLoading;
+    udThread *pThread[4];
+    udSemaphore *pSemaphore;
+    udMutex *pMutex;
+    udChunkedArray<vcCachedTexture*> textureLoadList;
+    udChunkedArray<vcCachedTexture> textures;
+  } cache;
 
   struct
   {
@@ -44,8 +57,58 @@ struct vcTerrainRenderer
     GLint uniform_viewProjection;
     GLint uniform_texture;
     GLint uniform_debugColour;
+
+    GLint uniform_mapHeight;
+    GLint uniform_opacity;
   } presentShader;
 };
+
+void vcTerrainRenderer_LoadThread(void *pThreadData)
+{
+  vcTerrainRenderer *pRenderer = (vcTerrainRenderer*)pThreadData;
+  vcTerrainRenderer::vcTerrainCache *pCache = &pRenderer->cache;
+
+  while (pCache->keepLoading)
+  {
+    int loadStatus = udWaitSemaphore(pCache->pSemaphore, 1000);
+
+    if (loadStatus != 0)
+      continue;
+
+    while (pCache->textureLoadList.length > 0 && pCache->keepLoading)
+    {
+      vcCachedTexture *pNextTexture;
+
+      udLockMutex(pCache->pMutex);
+      bool gotData = pCache->textureLoadList.PopFront(&pNextTexture);
+      udReleaseMutex(pCache->pMutex);
+
+      if (!gotData)
+        continue;
+
+      char buff[256];
+      udSprintf(buff, sizeof(buff), "%s/%d/%d/%d.png", pRenderer->pSettings->maptiles.tileServerAddress, pNextTexture->id.z, pNextTexture->id.x, pNextTexture->id.y);
+
+      void *pFileData;
+      int64_t fileLen;
+      int width, height, channelCount;
+
+      if (udFile_Load(buff, &pFileData, &fileLen) != udR_Success)
+        continue;
+
+      uint8_t *pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
+
+      pNextTexture->pData = udMemDup(pData, sizeof(uint32_t)*width*height, 0, udAF_None);
+
+      pNextTexture->texture.width = width;
+      pNextTexture->texture.height = height;
+      pNextTexture->texture.format = vcTextureFormat_RGBA8;
+
+      udFree(pFileData);
+      stbi_image_free(pData);
+    }
+  }
+}
 
 void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer, vcSettings *pSettings)
 {
@@ -53,13 +116,23 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer, vcSettings *p
 
   pTerrainRenderer->pSettings = pSettings;
 
-  pTerrainRenderer->cachedTextures.Init(128);
+  pTerrainRenderer->cache.pSemaphore = udCreateSemaphore();
+  pTerrainRenderer->cache.pMutex = udCreateMutex();
+  pTerrainRenderer->cache.keepLoading = true;
+  pTerrainRenderer->cache.textures.Init(128);
+  pTerrainRenderer->cache.textureLoadList.Init(16);
+  udThread_Create(&pTerrainRenderer->cache.pThread[0], (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
+  udThread_Create(&pTerrainRenderer->cache.pThread[1], (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
+  udThread_Create(&pTerrainRenderer->cache.pThread[2], (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
+  udThread_Create(&pTerrainRenderer->cache.pThread[3], (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
 
   pTerrainRenderer->presentShader.program = vcBuildProgram(vcBuildShader(GL_VERTEX_SHADER, g_terrainTileVertexShader), vcBuildShader(GL_FRAGMENT_SHADER, g_terrainTileFragmentShader));
   pTerrainRenderer->presentShader.uniform_viewProjection = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_viewProjection");
   pTerrainRenderer->presentShader.uniform_world = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_world");
   pTerrainRenderer->presentShader.uniform_texture = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_texture");
   pTerrainRenderer->presentShader.uniform_debugColour = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_debugColour");
+  pTerrainRenderer->presentShader.uniform_mapHeight = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_mapHeight");
+  pTerrainRenderer->presentShader.uniform_opacity = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_opacity");
 
   // build our vertex/index list
   vcSimpleVertex verts[vertResolution * vertResolution];
@@ -103,7 +176,7 @@ void vcTerrainRenderer_Destroy(vcTerrainRenderer **ppTerrainRenderer)
 {
   vcTerrainRenderer *pTerrainRenderer = (*ppTerrainRenderer);
 
-  pTerrainRenderer->cachedTextures.Deinit();
+  pTerrainRenderer->cache.textures.Deinit();
 
   glDeleteProgram(pTerrainRenderer->presentShader.program);
   glDeleteBuffers(1, &pTerrainRenderer->vbo);
@@ -130,27 +203,43 @@ vcTexture* AssignTileTexture(vcTerrainRenderer *pTerrainRenderer, int tileX, int
 {
   vcTexture *pResultTexture = nullptr;
 
-  static char buff[256];
-  vcCachedTexture *pCachedTexture = FindTexture(pTerrainRenderer->cachedTextures, tileX, tileY, tileZ);
+  vcCachedTexture *pCachedTexture = FindTexture(pTerrainRenderer->cache.textures, tileX, tileY, tileZ);
   if (!pCachedTexture)
   {
-    udSprintf(buff, sizeof(buff), "%s/%d/%d/%d.png", pTerrainRenderer->pSettings->maptiles.tileServerAddress, tileZ, tileX, tileY);
-    vcTexture loadedTexture = vcTextureLoadFromDisk(buff, nullptr, nullptr, GL_LINEAR, false, 0, GL_CLAMP_TO_EDGE);
-    if (loadedTexture.id != GL_INVALID_INDEX)
-    {
-      // Texture load successful, cache it
-      pTerrainRenderer->cachedTextures.PushBack(&pCachedTexture);
-      pCachedTexture->id.x = tileX;
-      pCachedTexture->id.y = tileY;
-      pCachedTexture->id.z = tileZ;
-      pCachedTexture->texture = loadedTexture;
-      pResultTexture = &loadedTexture;
-    }
+    udLockMutex(pTerrainRenderer->cache.pMutex);
+
+    // Texture needs to be loaded, cache it
+    pTerrainRenderer->cache.textures.PushBack(&pCachedTexture);
+
+    pCachedTexture->pData = nullptr;
+    pCachedTexture->id.x = tileX;
+    pCachedTexture->id.y = tileY;
+    pCachedTexture->id.z = tileZ;
+
+    pCachedTexture->texture = vcTextureCreate(1, 1, vcTextureFormat_RGBA8, GL_LINEAR, false, nullptr, 0, GL_CLAMP_TO_EDGE);
+
+    pTerrainRenderer->cache.textureLoadList.PushBack(pCachedTexture);
+    udIncrementSemaphore(pTerrainRenderer->cache.pSemaphore);
+
+    udReleaseMutex(pTerrainRenderer->cache.pMutex);
   }
   else
   {
-    // texture is already in cache
     pResultTexture = &pCachedTexture->texture;
+
+    // texture is already in cache but might not be loaded yet
+    if (pCachedTexture->pData != nullptr || pCachedTexture->texture.width == 1 || pCachedTexture->texture.height == 1)
+    {
+      if (pCachedTexture->pData != nullptr)
+      {
+        vcTextureUploadPixels(&pCachedTexture->texture, pCachedTexture->pData, pCachedTexture->texture.width, pCachedTexture->texture.height);
+        udFree(pCachedTexture->pData);
+      }
+      else
+      {
+        pResultTexture = nullptr;
+      }
+    }
   }
 
   return pResultTexture;
@@ -215,6 +304,18 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
   glActiveTexture(GL_TEXTURE0);
   glUniform1i(pTerrainRenderer->presentShader.uniform_texture, 0);
 
+  glUniform1f(pTerrainRenderer->presentShader.uniform_mapHeight, pTerrainRenderer->pSettings->maptiles.mapHeight);
+  glUniform1f(pTerrainRenderer->presentShader.uniform_opacity, pTerrainRenderer->pSettings->maptiles.transparency);
+
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
+  {
+    glDepthMask(GL_FALSE);
+    glDisable(GL_DEPTH_TEST);
+  }
+
   for (int i = 0; i < pTerrainRenderer->tileCount; ++i)
   {
     udFloat4x4 tileWorldF = udFloat4x4::create(pTerrainRenderer->pTiles[i].world);
@@ -229,6 +330,14 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
     glDrawElements(GL_TRIANGLES, indexResolution * indexResolution * 6, GL_UNSIGNED_INT, 0);
     VERIFY_GL();
   }
+
+  if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
+  {
+    glDepthMask(GL_TRUE);
+    glEnable(GL_DEPTH_TEST);
+  }
+
+  glDisable(GL_BLEND);
 
   glBindVertexArray(0);
   glUseProgram(0);

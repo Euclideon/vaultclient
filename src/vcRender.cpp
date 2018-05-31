@@ -242,9 +242,10 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
 
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-  if (renderData.srid != 0)
+  vcRenderSkybox(pRenderContext);
+
+  if (renderData.srid != 0 && pRenderContext->pSettings->maptiles.mapEnabled)
   {
-#if UDPLATFORM_WINDOWS
     udDouble3 localCamPos = renderData.cameraMatrix.axis.t.toVector3();
 
     // Corners [nw, ne, sw, se]
@@ -260,13 +261,7 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
     localCorners[3] = localCamPos + udDouble3::create(+pRenderContext->pSettings->camera.farPlane, -pRenderContext->pSettings->camera.farPlane, 0);
 
     for (int i = 0; i < 4; ++i)
-    {
-      udDouble3 latLongCoord;
-      localCorners[i].z = 0;
-
-      vcGIS_LocalZoneToLatLong(renderData.srid, localCorners[i], &latLongCoord);
-      vcGIS_LatLongToSlippyTileIDs(&slippyCorners[i], { latLongCoord.y, latLongCoord.x }, currentZoom);
-    }
+      vcGIS_LocalToSlippy(renderData.srid, &slippyCorners[i], localCorners[i], currentZoom);
 
     while (currentZoom > 0 && (slippyCorners[0] != slippyCorners[1] || slippyCorners[1] != slippyCorners[2] || slippyCorners[2] != slippyCorners[3]))
     {
@@ -277,13 +272,7 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
     }
 
     for (int i = 0; i < 4; ++i)
-    {
-      udDouble2 latLong;
-      vcGIS_SlippyTileIDsToLatLong(&latLong, slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
-      vcGIS_LatLongToLocalZone(renderData.srid, udDouble3::create(latLong.y, latLong.x, 0.f), &localCorners[i]);
-
-      localCorners[i].z = 0;
-    }
+      vcGIS_SlippyToLocal(renderData.srid, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
     udDouble2 localViewPos = udDouble2::create(renderData.cameraMatrix.axis.t.x, renderData.cameraMatrix.axis.t.y);
     double localViewSize = (1.0 / (1 << 19)) + renderData.cameraMatrix.axis.t.z / 100000.0;
@@ -291,10 +280,7 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
     // for now just rebuild terrain every frame
     vcTerrain_BuildTerrain(pRenderContext->pTerrain, localCorners, udInt3::create(slippyCorners[0], currentZoom), localViewPos, localViewSize);
     vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->viewProjectionMatrix);
-#endif
   }
-
-  vcRenderSkybox(pRenderContext);
 
   glBindVertexArray(0);
   glUseProgram(0);
@@ -346,8 +332,8 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, co
   if (vaultUDRenderer_Render(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)renderData.models.length) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  vcTextureUploadPixels(&pRenderContext->udRenderContext.colour, pRenderContext->udRenderContext.pColorBuffer);
-  vcTextureUploadPixels(&pRenderContext->udRenderContext.depth, pRenderContext->udRenderContext.pDepthBuffer);
+  vcTextureUploadPixels(&pRenderContext->udRenderContext.colour, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+  vcTextureUploadPixels(&pRenderContext->udRenderContext.depth, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, pRenderContext->udRenderContext.depth.id);

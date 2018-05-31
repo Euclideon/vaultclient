@@ -136,7 +136,7 @@ vcTexture vcTextureLoadFromDisk(const char *filename, uint32_t *pWidth /*= nullp
   return texture;
 }
 
-void vcTextureUploadPixels(vcTexture *pTexture, const void *pPixels)
+void vcTextureUploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height)
 {
   GLenum internalFormat;
   GLenum pixelFormat, pixelType;
@@ -161,6 +161,9 @@ void vcTextureUploadPixels(vcTexture *pTexture, const void *pPixels)
       // unknown texture format, do nothing
       return;
   }
+
+  pTexture->width = width;
+  pTexture->height = height;
 
   glBindTexture(GL_TEXTURE_2D, pTexture->id);
   glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, pTexture->width, pTexture->height, 0, pixelFormat, pixelType, pPixels);

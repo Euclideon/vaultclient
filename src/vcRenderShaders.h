@@ -52,12 +52,13 @@ in vec2 v_uv;
 //Output Format
 out vec4 out_Colour;
 
+uniform float u_opacity;
 uniform sampler2D u_texture;
 
 void main()
 {
   vec4 col = texture(u_texture, v_uv).bgra;
-  out_Colour = vec4(col.xyz * v_colour.xyz, 1.0);
+  out_Colour = vec4(col.xyz * v_colour.xyz, u_opacity);
 }
 )shader";
 
@@ -73,6 +74,8 @@ uniform mat4 u_viewProjection;
 uniform mat4 u_world;
 uniform vec3 u_debugColour;
 
+uniform float u_mapHeight;
+
 uniform sampler2D u_texture; // temporary height map
 
 void main()
@@ -81,10 +84,10 @@ void main()
   vec4 col = texture(u_texture, v_uv); // todo: this may be a dependent read on device. Todo: pass in uvs as attribute
 
   vec4 worldPosition = u_world * vec4(a_position, 1.0);
-  //worldPosition.z = 10.0 * length(col.xyz) / 3.0f;
+  //worldPosition.z = 10.0 * length(col.xyz) / 3.0;
+  worldPosition.z = u_mapHeight;
   gl_Position = u_viewProjection * worldPosition;
   v_colour = u_debugColour;
-
 }
 )shader";
 
