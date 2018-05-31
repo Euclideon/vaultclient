@@ -176,7 +176,7 @@ int main(int /*argc*/, char ** /*args*/)
   programState.settings.maptiles.mapEnabled = true;
   programState.settings.maptiles.mapHeight = 0.f;
   programState.settings.maptiles.transparency = 1.f;
-  udStrcpy(programState.settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox:8123");
+  udStrcpy(programState.settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox.euclideon.local:8123");
 
   Uint64 NOW;
   Uint64 LAST;
