@@ -12,6 +12,7 @@ struct vcGIS_SRIDParameters
   double a;
   double k;
   char hemisphere;
+  int zoneWidth;
 };
 
 bool vcGIS_PopulateSRIDParameters(vcGIS_SRIDParameters *pParams, uint16_t sridCode)
@@ -30,6 +31,7 @@ bool vcGIS_PopulateSRIDParameters(vcGIS_SRIDParameters *pParams, uint16_t sridCo
     pParams->a = 6378137;
     pParams->k = 0.9996;
     pParams->hemisphere = 'N';
+    pParams->zoneWidth = 6;
   }
   else if (sridCode > 32700 && sridCode < 32761)
   {
@@ -42,6 +44,7 @@ bool vcGIS_PopulateSRIDParameters(vcGIS_SRIDParameters *pParams, uint16_t sridCo
     pParams->a = 6378137;
     pParams->k = 0.9996;
     pParams->hemisphere = 'S';
+    pParams->zoneWidth = 6;
   }
   else if (sridCode > 26900 && sridCode < 26924)
   {
@@ -54,6 +57,7 @@ bool vcGIS_PopulateSRIDParameters(vcGIS_SRIDParameters *pParams, uint16_t sridCo
     pParams->a = 6378137;
     pParams->k = 0.9996;
     pParams->hemisphere = 'N';
+    pParams->zoneWidth = 8;
   }
   else if (sridCode > 28347 && sridCode < 28357)
   {
@@ -66,6 +70,7 @@ bool vcGIS_PopulateSRIDParameters(vcGIS_SRIDParameters *pParams, uint16_t sridCo
     pParams->a = 6378137;
     pParams->k = 0.9996;
     pParams->hemisphere = 'S';
+    pParams->zoneWidth = 6;
   }
   else
   {
@@ -141,7 +146,7 @@ bool vcGIS_LocalToLatLong(uint16_t sridCode, udDouble3 localCoords, udDouble3 *p
 
   // Longitude
   if (params.zone > 0)
-    zoneCM = 6 * params.zone - 183.0;
+    zoneCM = params.zoneWidth  * params.zone - 183.0;
   else
     zoneCM = 3.0;
 
@@ -203,7 +208,7 @@ bool vcGIS_LatLongToLocal(uint16_t sridCode, udDouble3 latLong, udDouble3 *pLoca
   nu = equatorialRadius / udPow(1 - udPow(e * udSin(latitude), 2), (1 / 2.0));
 
   double var1 = params.zone;
-  double var2 = (6 * var1) - 183;
+  double var2 = (params.zoneWidth * var1) - 183;
   double var3 = longitude - var2;
 
   p = var3 * 3600 / 10000;
