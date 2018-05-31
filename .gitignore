@@ -146,5 +146,5 @@ Makefile
 /*.VC.opendb
 /*.VC.db
 /.vs/config
-/builds/client/bin/imgui.ini
-/builds/client/bin/imgui_dock.layout
+/builds/imgui.ini
+/builds/imgui_dock.layout

@@ -28,19 +28,16 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 		mkdir -p $DEPLOYDIR/Windows
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		mkdir -p $DEPLOYDIR/Windows/bin
+		cp -f bin/sdl/SDL2.dll $DEPLOYDIR/Windows/SDL2.dll
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -f bin/sdl/SDL2.dll $DEPLOYDIR/Windows/bin/SDL2.dll
+		cp -f builds/vaultClient.exe $DEPLOYDIR/Windows/vaultClient.exe
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -f builds/client/bin/vaultClient.exe $DEPLOYDIR/Windows/bin/vaultClient.exe
+		cp -rf builds/assets/ $DEPLOYDIR/Windows/assets
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -rf builds/client/assets/ $DEPLOYDIR/Windows/assets
-		if [ $? -ne 0 ]; then exit 1; fi
-
-		cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll $DEPLOYDIR/Windows/bin/vaultSDK.dll
+		cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll $DEPLOYDIR/Windows/vaultSDK.dll
 		if [ $? -ne 0 ]; then exit 1; fi
 
 	fi
@@ -84,23 +81,23 @@ else
 
 			if [[ $OSTYPE == "darwin"* ]]; then # OSX
 				# Make folder to store the framework to build a DMG from
-				mkdir builds/client/bin/packaging
+				mkdir builds/packaging
 				if [ $? -ne 0 ]; then exit 1; fi
 
-				cp -af builds/client/bin/vaultClient.app builds/client/bin/packaging/vaultClient.app
+				cp -af builds/vaultClient.app builds/packaging/vaultClient.app
 				if [ $? -ne 0 ]; then exit 1; fi
 
-				hdiutil create builds/client/bin/vaultClient.dmg -volname "vaultClient" -srcfolder builds/client/bin/packaging
+				hdiutil create builds/vaultClient.dmg -volname "vaultClient" -srcfolder builds/packaging
 
-				cp -f builds/client/bin/vaultClient.dmg $DEPLOYDIR/$OSNAME
+				cp -f builds/vaultClient.dmg $DEPLOYDIR/$OSNAME
 			else
 				sharedLibExtension="so"
-				cp -rf builds/client/assets/ $DEPLOYDIR/$OSNAME/assets
+				cp -rf builds/assets/ $DEPLOYDIR/$OSNAME/assets
 				if [ $? -ne 0 ]; then exit 1; fi
 
-				cp -f builds/client/bin/vaultClient $DEPLOYDIR/$OSNAME/bin/vaultClient
+				cp -f builds/vaultClient $DEPLOYDIR/$OSNAME/vaultClient
 				if [ $? -ne 0 ]; then exit 1; fi
-				cp -f $VAULTSDK_HOME/lib/linux_GCC_x64/libvaultSDK.so $DEPLOYDIR/$OSNAME/bin/libvaultSDK.so
+				cp -f $VAULTSDK_HOME/lib/linux_GCC_x64/libvaultSDK.so $DEPLOYDIR/$OSNAME/libvaultSDK.so
 			fi
 
 			if [ $? -ne 0 ]; then exit 1; fi
