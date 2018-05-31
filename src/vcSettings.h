@@ -5,13 +5,13 @@
 #define vcSettings_h__
 
 #if UDPLATFORM_WINDOWS
-#define ASSETDIR "../assets/"
+#define ASSETDIR "assets/"
 #elif UDPLATFORM_OSX
 #define ASSETDIR "./Resources/"
 #elif UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
 #define ASSETDIR "./"
 #elif UDPLATFORM_LINUX
-#define ASSETDIR "../assets/"
+#define ASSETDIR "assets/"
 #elif UDPLATFORM_ANDROID
 #define ASSETDIR "./" // TBD
 #endif
