@@ -53,12 +53,10 @@ struct vcTerrainRenderer
   struct
   {
     GLuint program;
-    GLint uniform_world;
-    GLint uniform_viewProjection;
+    GLint uniform_worldViewProjection;
     GLint uniform_texture;
     GLint uniform_debugColour;
 
-    GLint uniform_mapHeight;
     GLint uniform_opacity;
   } presentShader;
 };
@@ -130,11 +128,9 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer, vcSettings *p
     udThread_Create(&pTerrainRenderer->cache.pThreads[i], (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
 
   pTerrainRenderer->presentShader.program = vcBuildProgram(vcBuildShader(GL_VERTEX_SHADER, g_terrainTileVertexShader), vcBuildShader(GL_FRAGMENT_SHADER, g_terrainTileFragmentShader));
-  pTerrainRenderer->presentShader.uniform_viewProjection = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_viewProjection");
-  pTerrainRenderer->presentShader.uniform_world = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_world");
+  pTerrainRenderer->presentShader.uniform_worldViewProjection = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_worldViewProjection");
   pTerrainRenderer->presentShader.uniform_texture = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_texture");
   pTerrainRenderer->presentShader.uniform_debugColour = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_debugColour");
-  pTerrainRenderer->presentShader.uniform_mapHeight = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_mapHeight");
   pTerrainRenderer->presentShader.uniform_opacity = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_opacity");
 
   // build our vertex/index list
@@ -318,16 +314,15 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, const udD
   }
 }
 
-void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDouble4x4 &viewProjection)
+void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDouble4x4 &viewProj)
 {
   if (pTerrainRenderer->tileCount == 0)
     return;
 
+  udDouble4x4 mapHeightTranslation = udDouble4x4::translation(0, 0, pTerrainRenderer->pSettings->maptiles.mapHeight);
+
   glDisable(GL_CULL_FACE);
   glUseProgram(pTerrainRenderer->presentShader.program);
-
-  udFloat4x4 viewProjectionF = udFloat4x4::create(viewProjection);
-  glUniformMatrix4fv(pTerrainRenderer->presentShader.uniform_viewProjection, 1, GL_FALSE, viewProjectionF.a);
 
   glBindVertexArray(pTerrainRenderer->vao);
   glBindBuffer(GL_ARRAY_BUFFER, pTerrainRenderer->vbo);
@@ -336,7 +331,6 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
   glActiveTexture(GL_TEXTURE0);
   glUniform1i(pTerrainRenderer->presentShader.uniform_texture, 0);
 
-  glUniform1f(pTerrainRenderer->presentShader.uniform_mapHeight, pTerrainRenderer->pSettings->maptiles.mapHeight);
   glUniform1f(pTerrainRenderer->presentShader.uniform_opacity, pTerrainRenderer->pSettings->maptiles.transparency);
 
   glEnable(GL_BLEND);
@@ -350,8 +344,8 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
 
   for (int i = 0; i < pTerrainRenderer->tileCount; ++i)
   {
-    udFloat4x4 tileWorldF = udFloat4x4::create(pTerrainRenderer->pTiles[i].world);
-    glUniformMatrix4fv(pTerrainRenderer->presentShader.uniform_world, 1, GL_FALSE, tileWorldF.a);
+    udFloat4x4 tileWVP = udFloat4x4::create(viewProj * mapHeightTranslation * pTerrainRenderer->pTiles[i].world);
+    glUniformMatrix4fv(pTerrainRenderer->presentShader.uniform_worldViewProjection, 1, GL_FALSE, tileWVP.a);
 
 
     glUniform3f(pTerrainRenderer->presentShader.uniform_debugColour, 1.0f, 1.0f, 1.0f);
