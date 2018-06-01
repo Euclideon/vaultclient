@@ -23,6 +23,57 @@ udChunkedArray<vcModel> vcModelList;
 
 static bool lastModelLoaded;
 
+const char *pProjectsJSON = R"projects(
+{
+  "projects": [
+    {
+      "name": "Adelaide, South Australia",
+      "models": [ "AdelaideCBD_2cm.uds" ]
+    },
+    {
+      "name": "Juneau, Alaska",
+      "models": [ "AK_Juneau.uds" ]
+    },
+    {
+      "name": "Ben's Bike (CAD)",
+      "models": [ "BenBike-0001.uds" ]
+    },
+    {
+      "name": "Engine (CAD)",
+      "models": [ "engine_Assem_lit_1mm.uds" ]
+    },
+    {
+      "name": "Japanese House",
+      "models": [ "Japanese%20House/furniture/Low_table.uds", "Japanese%20House/furniture/Rocking_Chair.uds", "Japanese%20House/furniture/sofa_L_cushion.uds", "Japanese%20House/furniture/Table_Chair.uds", "Japanese%20House/ssf/mirror.uds" ]
+    },
+    {
+      "name": "Mt Morgan",
+      "models": [ "Mt_Morgan_Range_Data/Grid_721_22549_0.uds", "Mt_Morgan_Range_Data/Grid_722_22546_0.uds", "Mt_Morgan_Range_Data/Grid_722_22546_1.uds", "Mt_Morgan_Range_Data/Grid_722_22547_0.uds", "Mt_Morgan_Range_Data/Grid_722_22547_1.uds", "Mt_Morgan_Range_Data/Grid_722_22548_0.uds", "Mt_Morgan_Range_Data/Grid_722_22549_0.uds", "Mt_Morgan_Range_Data/Grid_722_22550_0.uds", "Mt_Morgan_Range_Data/Grid_723_22545_0.uds", "Mt_Morgan_Range_Data/Grid_723_22545_1.uds", "Mt_Morgan_Range_Data/Grid_723_22546_0.uds", "Mt_Morgan_Range_Data/Grid_723_22546_1.uds", "Mt_Morgan_Range_Data/Grid_723_22547_0.uds", "Mt_Morgan_Range_Data/Grid_723_22548_0.uds", "Mt_Morgan_Range_Data/Grid_723_22549_0.uds", "Mt_Morgan_Range_Data/Grid_723_22550_0.uds", "Mt_Morgan_Range_Data/Grid_724_22545_0.uds", "Mt_Morgan_Range_Data/Grid_724_22545_1.uds", "Mt_Morgan_Range_Data/Grid_724_22546_0.uds" ]
+    },
+    {
+      "name": "Saint Peterskirche",
+      "models": [ "Peterskirche(SolidScan)_cleaned.ssf" ]
+    },
+    {
+      "name": "Manhatten",
+      "models": [ "plw_manhatten_full_5cm3.uds" ]
+    },
+    {
+      "name": "Quarry",
+      "models": [ "Quarry_FullResolution.uds" ]
+    },
+    {
+      "name": "Uluru",
+      "models": [ "Uluru-AyersRock_7cm.uds" ]
+    },
+    {
+      "name": "Wien",
+      "models": [ "Wien_LOD4.uds" ]
+    }
+  ]
+}
+)projects";
+
 struct vcColumnHeader
 {
   const char* pLabel;
@@ -79,6 +130,7 @@ struct ProgramState
   } moveDirection;
 
   vcSettings settings;
+  udValue projects;
 };
 
 #if UDPLATFORM_OSX
@@ -89,9 +141,8 @@ void vcHandleSceneInput(ProgramState *pProgramState);
 void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer);
 int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer);
 
-void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, char *pFilePath);
-bool vcUnloadModelList(vaultContainer *pVaultContainer);
-
+void vcModel_AddToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, const char *pFilePath);
+bool vcModel_UnloadList(vaultContainer *pVaultContainer);
 bool vcModel_MoveToModelProjection(vaultContainer *pVaultContainer, ProgramState *pProgramState, vcModel *pModel);
 
 #if defined(SDL_MAIN_NEEDED) || defined(SDL_MAIN_AVAILABLE)
@@ -271,6 +322,8 @@ int main(int /*argc*/, char ** /*args*/)
     goto epilogue;
 #endif
 
+  programState.projects.Parse(pProjectsJSON);
+
   //Get ready...
   NOW = SDL_GetPerformanceCounter();
   LAST = 0;
@@ -302,7 +355,7 @@ int main(int /*argc*/, char ** /*args*/)
       ImGui_ImplSdlGL3_ProcessEvent(&event);
 
       if (event.type == SDL_DROPFILE && programState.hasContext)
-        vcAddModelToList(&vContainer, &programState, event.drop.file);
+        vcModel_AddToList(&vContainer, &programState, event.drop.file);
 
       programState.programComplete = (event.type == SDL_QUIT);
     }
@@ -325,7 +378,7 @@ int main(int /*argc*/, char ** /*args*/)
   ImGui::DestroyContext();
 
 epilogue:
-  vcUnloadModelList(&vContainer);
+  vcModel_UnloadList(&vContainer);
   vcModelList.Deinit();
   vcRender_Destroy(&vContainer.pRenderContext);
   vaultContext_Disconnect(&vContainer.pContext);
@@ -566,7 +619,7 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
       {
         static const char *pErrorMessage = nullptr;
 
-        if (!vcUnloadModelList(pVaultContainer))
+        if (!vcModel_UnloadList(pVaultContainer))
           pErrorMessage = "Error unloading models!";
 
         if (pErrorMessage == nullptr)
@@ -599,6 +652,30 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
       }
 
       ImGui::EndMenu();
+    }
+
+    udValueArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
+    if (pProjectList != nullptr)
+    {
+      if (ImGui::BeginMenu("Projects", pProjectList->length > 0))
+      {
+        for (size_t i = 0; i < pProjectList->length; ++i)
+        {
+          if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr))
+          {
+            vcModel_UnloadList(pVaultContainer);
+
+            for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
+            {
+              char buffer[vcMaxPathLength];
+              udSprintf(buffer, vcMaxPathLength, "%s/%s", pProgramState->settings.server.resourceBase, pProjectList->GetElement(i)->Get("models[%d]", j).AsString());
+              vcModel_AddToList(pVaultContainer, pProgramState, buffer);
+            }
+          }
+        }
+
+        ImGui::EndMenu();
+      }
     }
 
     menuHeight = (int)ImGui::GetWindowSize().y;
@@ -697,6 +774,42 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
     }
 
     ImGui::End();
+
+    if (ImGui::Begin("_DEVSERVER", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
+    {
+      ImGui::Text("Vault Server: %s", pProgramState->serverURL);
+      ImGui::Text("Resource Location: %s", pProgramState->settings.server.resourceBase);
+      ImGui::Text("Tile Server: %s", pProgramState->settings.maptiles.tileServerAddress);
+
+      ImGui::Separator();
+
+      if (ImGui::Button("Use 'pfox'"))
+      {
+        udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
+        udStrcpy(pProgramState->settings.server.resourceBase, vcMaxPathLength, "http://pfox:8080");
+        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox:8123");
+      }
+
+      ImGui::SameLine();
+
+      if (ImGui::Button("Use 'pfox-vpn'"))
+      {
+        udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
+        udStrcpy(pProgramState->settings.server.resourceBase, vcMaxPathLength, "http://pfox-vpn:8080");
+        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox-vpn:8123");
+      }
+
+      ImGui::SameLine();
+
+      if (ImGui::Button("Use Dan Conference"))
+      {
+        udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://192.168.1.1");
+        udStrcpy(pProgramState->settings.server.resourceBase, vcMaxPathLength, "http://192.168.1.1:8080");
+        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://192.168.1.1:8123");
+      }
+    }
+
+    ImGui::End();
   }
   else
   {
@@ -720,7 +833,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
     {
       ImGui::InputText("Model Path", pProgramState->modelPath, vcMaxPathLength);
       if (ImGui::Button("Load Model!"))
-        vcAddModelToList(pVaultContainer, pProgramState, pProgramState->modelPath);
+        vcModel_AddToList(pVaultContainer, pProgramState, pProgramState->modelPath);
 
       if (!lastModelLoaded)
         ImGui::Text("Invalid File/Not Found...");
@@ -910,7 +1023,7 @@ epilogue:
   return;
 }
 
-void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, char *pFilePath)
+void vcModel_AddToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, const char *pFilePath)
 {
   if (pFilePath == nullptr)
     return;
@@ -934,7 +1047,7 @@ void vcAddModelToList(vaultContainer *pVaultContainer, ProgramState *pProgramSta
   }
 }
 
-bool vcUnloadModelList(vaultContainer *pVaultContainer)
+bool vcModel_UnloadList(vaultContainer *pVaultContainer)
 {
   vaultError err;
   for (int i = 0; i < (int) vcModelList.length; i++)

@@ -55,6 +55,11 @@ struct vcSettings
 
   struct
   {
+    char resourceBase[vcMaxPathLength]; // Could be any of: http://uds.domain.local or /mnt/uds or R:/
+  } server;
+
+  struct
+  {
     bool mapEnabled;
 
     float mapHeight;
