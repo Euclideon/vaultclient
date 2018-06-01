@@ -43,6 +43,8 @@ void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, const udFl
   if (currentDepth >= maxDepth)
   {
     pQuadTree->metaData.leafNodeCount++;
+    pQuadTree->pNodes[currentNodeIndex].isVisible = true;
+    pQuadTree->metaData.visibleNodeCount++;
     return;
   }
 
@@ -96,6 +98,7 @@ void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, const udFl
     {
       // don't divide the child, it is now a leaf node
       pQuadTree->metaData.leafNodeCount++;
+      pCurrentNode->isVisible = false; // but its not visible
     }
   }
 }
@@ -105,16 +108,21 @@ int CalculateTreeDepthFromViewDistance(const udFloat2 &halfExtents)
   return int(udLog2(1.0f / (halfExtents.x * rectToCircleRadius)));
 }
 
-void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, const udFloat2 &viewPositionMS, const udFloat2 &viewPositionSizeMS, vcQuadTreeMetaData *pMetaData /*= nullptr*/)
+void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, int realRootDepth, const udFloat2 &viewPositionMS, const udFloat2 &viewPositionSizeMS, vcQuadTreeMetaData *pMetaData /*= nullptr*/)
 {
   vcQuadTree quadTree = {};
 
-  int maxTreeDepth = CalculateTreeDepthFromViewDistance(viewPositionSizeMS);
+  int maxLocalTreeDepth = CalculateTreeDepthFromViewDistance(viewPositionSizeMS);
+  
+  maxLocalTreeDepth = udMin(19, maxLocalTreeDepth + realRootDepth) - realRootDepth; // cap real depth at level 19 (we don't have access to these tiles yet)
+  maxLocalTreeDepth = udMax(0, maxLocalTreeDepth); // and just for safety because 'CalculateTreeDepthFromViewDistance()' is relatively untested
+
   int startingCapacity = 50; // hard coded for now - this could be guessed from maxTreeDepth...
   quadTree.capacity = startingCapacity / 2;
   ExpandTreeCapacity(&quadTree);
   quadTree.metaData.leafNodeCount = 0;
-  quadTree.metaData.maxTreeDepth = maxTreeDepth;
+  quadTree.metaData.visibleNodeCount = 0;
+  quadTree.metaData.maxTreeDepth = maxLocalTreeDepth;
 
   // Initialize root
   quadTree.used = 1;
