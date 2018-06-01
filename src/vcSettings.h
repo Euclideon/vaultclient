@@ -27,6 +27,18 @@ enum vcMapTileBlendMode
   vcMTBM_Overlay,
 };
 
+enum vcDocks
+{
+  vcdScene,
+  vcdSettings,
+  vcdSceneExplorer,
+
+  vcdStyling,
+  vcdUIDemo,
+
+  vcdTotalDocks
+};
+
 enum
 {
   vcMaxPathLength = 512,
@@ -34,14 +46,19 @@ enum
 
 struct vcSettings
 {
-  const char *pUserDirectory; // Where settings, cache files etc live
+  bool noLocalStorage; //If set to true; cannot save or load from local storage
+  const char *pSaveFilePath;
 
   struct
   {
-    //uint32_t width;
-    //uint32_t height;
-    //bool maximized;
-    //bool fullscreen;
+    int xpos;
+    int ypos;
+    int width;
+    int height;
+    bool maximized;
+    bool fullscreen;
+
+    bool windowsOpen[vcdTotalDocks];
   } window;
 
   struct
@@ -77,8 +94,10 @@ const float vcSL_CameraNearPlaneMax = 100.f;
 const float vcSL_CameraFarPlaneMin = vcSL_CameraNearPlaneMax;
 const float vcSL_CameraFarPlaneMax = 100000;
 
+const float vcSL_CameraNearFarPlaneRatioMax = 10000.f;
+
 const float vcSL_CameraMinMoveSpeed = 0.5f;
-const float vcSL_CameraMaxMoveSpeed = 250.f;
+const float vcSL_CameraMaxMoveSpeed = 2500.f;
 
 const float vcSL_CameraFieldOfViewMin = 5;
 const float vcSL_CameraFieldOfViewMax = 100;
@@ -86,7 +105,7 @@ const float vcSL_CameraFieldOfViewMax = 100;
 const float vcSL_OSCPixelRatio = 100.f;
 
 // Settings Functions
-bool vcSettings_Load(vcSettings *pSettings);
+bool vcSettings_Load(vcSettings *pSettings, bool forceReset = false);
 bool vcSettings_Save(vcSettings *pSettings);
 
 #endif // !vcSettings_h__
