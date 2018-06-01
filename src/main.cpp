@@ -757,7 +757,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         col1Size = minMaxColumnSize[0][1];
       if (col1Size < minMaxColumnSize[0][0])
         col1Size = minMaxColumnSize[0][0];
-      headers[0].size = col1Size;
+      headers[0].size = (float) col1Size;
 
 
       ImGui::Columns(UDARRAYSIZE(headers), "ModelTableColumns", true);
