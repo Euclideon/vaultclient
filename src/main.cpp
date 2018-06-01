@@ -113,6 +113,10 @@ struct ProgramState
 
   uint16_t currentSRID;
 
+  unsigned char *pIconData;
+  unsigned char *pEucWatermarkData;
+  vcTexture watermarkTexture;
+
   bool hasContext;
   bool windowsOpen[vcdTotalDocks];
 
@@ -167,18 +171,21 @@ int main(int /*argc*/, char ** /*args*/)
   int iconWidth, iconHeight, iconBytesPerPixel;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   char IconPath[] = ASSETDIR "Vault_Client.png";
+  char EucWatermarkPath[] = ASSETDIR "EuclideonClientWM.png";
 #elif UDPLATFORM_OSX
   pBasePath = SDL_GetBasePath();
   if (pBasePath == nullptr)
     pBasePath = SDL_strdup("./");
 
-  char fontPath[1024] = "";
-  char IconPath[1024] = "";
-  udSprintf(IconPath, 1024, "%s%s", pBasePath, "Vault_Client.png");
+  char fontPath[vcMaxPathLength] = "";
+  char IconPath[vcMaxPathLength] = "";
+  char EucWatermarkPath[vcMaxPathLength] = "";
+  udSprintf(IconPath, vcMaxPathLength, "%s%s", pBasePath, "Vault_Client.png");
+  udSprintf(EucWatermarkPath, vcMaxPathLength, "%s%s", pBasePath, "EuclideonClientWM.png");
 #else
   char IconPath[] = ASSETDIR "icons/Vault_Client.png";
+  char EucWatermarkPath[] = ASSETDIR "icons/EuclideonClientWM.png";
 #endif
-  unsigned char *pData = nullptr;
   int pitch;
   long rMask, gMask, bMask, aMask;
 
@@ -269,7 +276,7 @@ int main(int /*argc*/, char ** /*args*/)
   if (!programState.pWindow)
     goto epilogue;
 
-  pData = stbi_load(IconPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
+  programState.pIconData = stbi_load(IconPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
 
   pitch = iconWidth * iconBytesPerPixel;
   pitch = (pitch + 3) & ~3;
@@ -279,13 +286,12 @@ int main(int /*argc*/, char ** /*args*/)
   bMask = 0xFF << 16;
   aMask = (iconBytesPerPixel == 4) ? (0xFF << 24) : 0;
 
-  if (pData != nullptr)
-    pIcon = SDL_CreateRGBSurfaceFrom(pData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
+  if (programState.pIconData != nullptr)
+    pIcon = SDL_CreateRGBSurfaceFrom(programState.pIconData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
   if(pIcon != nullptr)
     SDL_SetWindowIcon(programState.pWindow, pIcon);
 
   SDL_free(pIcon);
-  free(pData);
 
   glcontext = SDL_GL_CreateContext(programState.pWindow);
   if (!glcontext)
@@ -314,6 +320,13 @@ int main(int /*argc*/, char ** /*args*/)
 
   glGetError(); // throw out first error
 
+  // setup watermark for background
+
+  programState.pEucWatermarkData = stbi_load(EucWatermarkPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0); // reusing the variables for width etc
+
+  programState.watermarkTexture = vcTextureCreate(iconWidth, iconHeight, vcTextureFormat_RGBA8);
+  vcTextureUploadPixels(&programState.watermarkTexture, programState.pEucWatermarkData, iconWidth, iconHeight);
+
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   if (!ImGui_ImplSdlGL3_Init(programState.pWindow, "#version 300 es"))
     goto epilogue;
@@ -339,7 +352,7 @@ int main(int /*argc*/, char ** /*args*/)
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   ImGui::GetIO().Fonts->AddFontFromFileTTF(ASSETDIR "/NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
 #elif UDPLATFORM_OSX
-  udSprintf(fontPath, 1024, "%s%s", pBasePath, "NotoSansCJKjp-Regular.otf");
+  udSprintf(fontPath, vcMaxPathLength, "%s%s", pBasePath, "NotoSansCJKjp-Regular.otf");
   ImGui::GetIO().Fonts->AddFontFromFileTTF(fontPath, 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
 #else
   ImGui::GetIO().Fonts->AddFontFromFileTTF(ASSETDIR "fonts/NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
@@ -378,6 +391,8 @@ int main(int /*argc*/, char ** /*args*/)
   ImGui::DestroyContext();
 
 epilogue:
+  vcTextureDestroy(&programState.watermarkTexture);
+  free(programState.pIconData);
   vcModel_UnloadList(&vContainer);
   vcModelList.Deinit();
   vcRender_Destroy(&vContainer.pRenderContext);
@@ -706,33 +721,46 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
     else
       SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
   }
-#if UDPLATFORM_WINDOWS
-  ImGuiIO& io = ImGui::GetIO(); // for future key commands as well
 
+  ImGuiIO& io = ImGui::GetIO(); // for future key commands as well
+  ImVec2 size = io.DisplaySize;
+
+#if UDPLATFORM_WINDOWS
   if (io.KeyAlt && ImGui::IsKeyPressed(SDL_SCANCODE_F4))
     pProgramState->programComplete = true;
 #endif
+
   //end keyboard/mouse handling
 
   if (ImGui::GetIO().DisplaySize.y > 0)
   {
     ImVec2 pos = ImVec2(0.f, (float)menuHeight);
-    ImVec2 size = ImGui::GetIO().DisplaySize;
     size.y -= pos.y;
 
     ImGui::RootDock(pos, ImVec2(size.x, size.y - 25.0f));
 
-    // Draw status bar (no docking)
-    ImGui::SetNextWindowSize(ImVec2(size.x, 25.0f), ImGuiCond_Always);
-    ImGui::SetNextWindowPos(ImVec2(0, size.y - 6.0f), ImGuiCond_Always);
-    ImGui::Begin("statusbar", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoResize);
-    ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
-    ImGui::End();
+    if (menuHeight != 0)
+    {
+      // Draw status bar (no docking)
+      ImGui::SetNextWindowSize(ImVec2(size.x, 25.0f), ImGuiCond_Always);
+      ImGui::SetNextWindowPos(ImVec2(0, size.y - 6.0f), ImGuiCond_Always);
+      ImGui::Begin("statusbar", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoResize);
+      ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
+      ImGui::End();
+    }
   }
 
   if (!pProgramState->hasContext)
   {
-    if (ImGui::Begin("Login", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
+    ImGui::SetNextWindowBgAlpha(0.f);
+    ImGui::SetNextWindowPos(ImVec2(size.x-5,size.y-5), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
+
+    ImGui::Begin("Lolol", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
+    ImGui::Image((ImTextureID)((size_t)pProgramState->watermarkTexture.id), ImVec2(512, 512), ImVec2(0, 0), ImVec2(1, 1));
+    ImGui::End();
+
+    ImGui::SetNextWindowSize(ImVec2(500, 150));
+    if (ImGui::Begin("Login", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
     {
       static const char *pErrorMessage = nullptr;
       if (pErrorMessage != nullptr)
