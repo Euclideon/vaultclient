@@ -43,7 +43,7 @@ struct vcTerrainRenderer
   struct vcTerrainCache
   {
     volatile bool keepLoading;
-    udThread *pThread;
+    udThread *pThreads[4];
     udSemaphore *pSemaphore;
     udMutex *pMutex;
     udChunkedArray<vcCachedTexture*> textureLoadList;
@@ -125,7 +125,9 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer, vcSettings *p
   pTerrainRenderer->cache.keepLoading = true;
   pTerrainRenderer->cache.textures.Init(128);
   pTerrainRenderer->cache.textureLoadList.Init(16);
-  udThread_Create(&pTerrainRenderer->cache.pThread, (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
+
+  for (size_t i = 0; i < UDARRAYSIZE(vcTerrainRenderer::vcTerrainCache::pThreads); ++i)
+    udThread_Create(&pTerrainRenderer->cache.pThreads[i], (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
 
   pTerrainRenderer->presentShader.program = vcBuildProgram(vcBuildShader(GL_VERTEX_SHADER, g_terrainTileVertexShader), vcBuildShader(GL_FRAGMENT_SHADER, g_terrainTileFragmentShader));
   pTerrainRenderer->presentShader.uniform_viewProjection = glGetUniformLocation(pTerrainRenderer->presentShader.program, "u_viewProjection");
@@ -180,8 +182,11 @@ void vcTerrainRenderer_Destroy(vcTerrainRenderer **ppTerrainRenderer)
   pTerrainRenderer->cache.keepLoading = false;
   udIncrementSemaphore(pTerrainRenderer->cache.pSemaphore);
 
-  udThread_Join(pTerrainRenderer->cache.pThread);
-  udThread_Destroy(&pTerrainRenderer->cache.pThread);
+  for (size_t i = 0; i < UDARRAYSIZE(vcTerrainRenderer::vcTerrainCache::pThreads); ++i)
+  {
+    udThread_Join(pTerrainRenderer->cache.pThreads[i]);
+    udThread_Destroy(&pTerrainRenderer->cache.pThreads[i]);
+  }
 
   udDestroyMutex(&pTerrainRenderer->cache.pMutex);
   udDestroySemaphore(&pTerrainRenderer->cache.pSemaphore);
