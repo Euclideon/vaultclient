@@ -657,7 +657,7 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
     udValueArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
     if (pProjectList != nullptr)
     {
-      if (ImGui::BeginMenu("Projects", pProjectList->length > 0))
+      if (ImGui::BeginMenu("Projects", pProjectList->length > 0 && !udStrEqual(pProgramState->settings.server.resourceBase, "")))
       {
         for (size_t i = 0; i < pProjectList->length; ++i)
         {
@@ -775,7 +775,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
     ImGui::End();
 
-    if (ImGui::Begin("_DEVSERVER", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
+    if (ImGui::Begin("_DEVSERVER", nullptr, ImGuiWindowFlags_NoCollapse))
     {
       ImGui::Text("Vault Server: %s", pProgramState->serverURL);
       ImGui::Text("Resource Location: %s", pProgramState->settings.server.resourceBase);
@@ -786,8 +786,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       if (ImGui::Button("Use 'pfox'"))
       {
         udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
-        udStrcpy(pProgramState->settings.server.resourceBase, vcMaxPathLength, "http://pfox:8080");
-        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox:8123");
+        udStrcpy(pProgramState->settings.server.resourceBase, vcMaxPathLength, "http://pfox.euclideon.local:8080");
+        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox.euclideon.local:8123");
       }
 
       ImGui::SameLine();
@@ -795,8 +795,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       if (ImGui::Button("Use 'pfox-vpn'"))
       {
         udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
-        udStrcpy(pProgramState->settings.server.resourceBase, vcMaxPathLength, "http://pfox-vpn:8080");
-        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox-vpn:8123");
+        udStrcpy(pProgramState->settings.server.resourceBase, vcMaxPathLength, "http://pfox-vpn.euclideon.local:8080");
+        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox-vpn.euclideon.local:8123");
       }
 
       ImGui::SameLine();
@@ -806,6 +806,27 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://192.168.1.1");
         udStrcpy(pProgramState->settings.server.resourceBase, vcMaxPathLength, "http://192.168.1.1:8080");
         udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://192.168.1.1:8123");
+      }
+
+      ImGui::SameLine();
+      static bool custom = false;
+      ImGui::Checkbox("Custom", &custom);
+      if (custom)
+      {
+        static int ipBlocks[] = { 192, 168, 1, 1 };
+        bool changed = false;
+
+        changed |= ImGui::SliderInt("1", &ipBlocks[0], 0, 255);
+        changed |= ImGui::SliderInt("2", &ipBlocks[1], 0, 255);
+        changed |= ImGui::SliderInt("3", &ipBlocks[2], 0, 255);
+        changed |= ImGui::SliderInt("4", &ipBlocks[3], 0, 255);
+
+        if (changed)
+        {
+          udSprintf(pProgramState->serverURL, vcMaxPathLength, "http://%d.%d.%d.%d", ipBlocks[0], ipBlocks[1], ipBlocks[2], ipBlocks[3]);
+          udSprintf(pProgramState->settings.server.resourceBase, vcMaxPathLength, "http://%d.%d.%d.%d:8080", ipBlocks[0], ipBlocks[1], ipBlocks[2], ipBlocks[3]);
+          udSprintf(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://%d.%d.%d.%d:8123", ipBlocks[0], ipBlocks[1], ipBlocks[2], ipBlocks[3]);
+        }
       }
     }
 
@@ -1036,6 +1057,7 @@ void vcModel_AddToList(vaultContainer *pVaultContainer, ProgramState *pProgramSt
   model.modelLoaded = true;
   model.modelVisible = true;
   model.modelSelected = false;
+  model.pMetadata = udAllocType(udValue, 1, udAF_Zero);
 
   udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
 
@@ -1043,7 +1065,7 @@ void vcModel_AddToList(vaultContainer *pVaultContainer, ProgramState *pProgramSt
   {
     const char *pMetadata;
     if (vaultUDModel_GetMetadata(pVaultContainer->pContext, model.pVaultModel, &pMetadata) == vE_Success)
-      model.metadata.Parse(pMetadata);
+      model.pMetadata->Parse(pMetadata);
 
     vcModel_MoveToModelProjection(pVaultContainer, pProgramState, &model);
 
@@ -1059,6 +1081,8 @@ bool vcModel_UnloadList(vaultContainer *pVaultContainer)
     vaultUDModel *pVaultModel;
     pVaultModel = vcModelList[i].pVaultModel;
     err = vaultUDModel_Unload(pVaultContainer->pContext, &pVaultModel);
+    vcModelList[i].pMetadata->Destroy();
+    udFree(vcModelList[i].pMetadata);
     if (err != vE_Success)
       return false;
     vcModelList[i].modelLoaded = false;
@@ -1078,8 +1102,8 @@ bool vcModel_MoveToModelProjection(vaultContainer *pVaultContainer, ProgramState
   vaultUDModel_GetModelCenter(pVaultContainer->pContext, pModel->pVaultModel, midPoint);
   pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
 
-  const char *pSRID = pModel->metadata.Get("ProjectionID").AsString();
-  const char *pWKT = pModel->metadata.Get("ProjectionWKT").AsString();
+  const char *pSRID = pModel->pMetadata->Get("ProjectionID").AsString();
+  const char *pWKT = pModel->pMetadata->Get("ProjectionWKT").AsString();
 
   if (pSRID != nullptr)
   {
