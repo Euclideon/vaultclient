@@ -8,6 +8,7 @@ struct vcQuadTreeMetaData
   int maxTreeDepth;
   int memUsageMB; // node usage
   int leafNodeCount;
+  int visibleNodeCount;
 };
 
 struct vcQuadTreeNode
@@ -17,9 +18,10 @@ struct vcQuadTreeNode
   float childSize;
   udFloat2 position; // origin of the node (bottom left corner)
   int level;
+  bool isVisible;
 };
 
-void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, const udFloat2 &viewPositionMS, const udFloat2 &viewPositionSizeMS, vcQuadTreeMetaData *pMetaData = nullptr);
+void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, int realRootDepth, const udFloat2 &viewPositionMS, const udFloat2 &viewPositionSizeMS, vcQuadTreeMetaData *pMetaData = nullptr);
 
 inline bool vcQuadTree_IsLeafNode(const vcQuadTreeNode *pNode)
 {
