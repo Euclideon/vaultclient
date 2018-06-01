@@ -2,9 +2,9 @@
 #define UDVALUE_INL_H
 
 inline udValue::udValue()           { Clear(); }
-inline udValue::udValue(int64_t v)  { type = T_Int64;  u.i64Val = v; }
-inline udValue::udValue(double v)   { type = T_Double; u.dVal   = v; }
-inline void udValue::Clear()        { type = T_Void;   u.i64Val = 0; } // Clear the value without freeing
+inline udValue::udValue(int64_t v)  { type = T_Int64;  u.i64Val = v; dPrec = 0; }
+inline udValue::udValue(double v)   { type = T_Double; u.dVal   = v; dPrec = 0; }
+inline void udValue::Clear()        { type = T_Void;   u.i64Val = 0; dPrec = 0; } // Clear the value without freeing
 inline udValue::~udValue()          { Destroy(); }
 
 // Set the value

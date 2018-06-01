@@ -60,6 +60,7 @@ udResultInfo udResultInfoArray[] =
   RESULTINFO(udR_EventNotHandled),
   RESULTINFO(udR_DatabaseError),
   RESULTINFO(udR_NotAllowed),
+  RESULTINFO(udR_InvalidLicense),
 };
 
 UDCOMPILEASSERT(sizeof(udResultInfoArray) == (udR_Count*sizeof(udResultInfoArray[0])), "Result code not entered in strings table");

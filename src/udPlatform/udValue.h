@@ -108,7 +108,7 @@ public:
   inline void Set(double v);
 
   // Set to a more complex type requiring memory allocation
-  udResult SetString(const char *pStr);
+  udResult SetString(const char *pStr, size_t charCount = 0); // non-zero charCount specifies maximum characters copied
   udResult SetArray(); // A dynamic array of udValues, whose types can change per element
   udResult SetObject();
 
@@ -194,6 +194,7 @@ protected:
     udValueArray *pArray;
     udValueObject *pObject;
   } u;
+  uint8_t dPrec; // Number of digits precision of the double value (0 = default, otherwise set when parsed)
   Type type;
 };
 

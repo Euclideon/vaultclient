@@ -122,12 +122,12 @@
 # endif
 #include <Windows.h>
 #include <Intrin.h>
-inline int32_t udInterlockedPreIncrement(volatile int32_t *p)  { return _InterlockedIncrement((long*)p); }
-inline int32_t udInterlockedPostIncrement(volatile int32_t *p) { return _InterlockedIncrement((long*)p) - 1; }
-inline int32_t udInterlockedPreDecrement(volatile int32_t *p) { return _InterlockedDecrement((long*)p); }
-inline int32_t udInterlockedPostDecrement(volatile int32_t *p) { return _InterlockedDecrement((long*)p) + 1; }
-inline int32_t udInterlockedExchange(volatile int32_t *dest, int32_t exchange) { return _InterlockedExchange((volatile long*)dest, exchange); }
-inline int32_t udInterlockedCompareExchange(volatile int32_t *dest, int32_t exchange, int32_t comparand) { return _InterlockedCompareExchange((volatile long*)dest, exchange, comparand); }
+inline int32_t udInterlockedPreIncrement(volatile int32_t *p)  { return (int32_t)_InterlockedIncrement((long*)p); }
+inline int32_t udInterlockedPostIncrement(volatile int32_t *p) { return (int32_t)_InterlockedIncrement((long*)p) - 1; }
+inline int32_t udInterlockedPreDecrement(volatile int32_t *p) { return (int32_t)_InterlockedDecrement((long*)p); }
+inline int32_t udInterlockedPostDecrement(volatile int32_t *p) { return (int32_t)_InterlockedDecrement((long*)p) + 1; }
+inline int32_t udInterlockedExchange(volatile int32_t *dest, int32_t exchange) { return (int32_t)_InterlockedExchange((volatile long*)dest, exchange); }
+inline int32_t udInterlockedCompareExchange(volatile int32_t *dest, int32_t exchange, int32_t comparand) { return (int32_t)_InterlockedCompareExchange((volatile long*)dest, exchange, comparand); }
 # if UD_32BIT
 template <typename T>
 inline void *udInterlockedExchangePointer(T * volatile* dest, void *exchange) { return (void*)_InterlockedExchange((volatile long*)dest, (long)exchange); }
@@ -146,12 +146,12 @@ inline void *udInterlockedCompareExchangePointer(T * volatile* dest, void *excha
 #elif UDPLATFORM_LINUX || UDPLATFORM_NACL || UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS || UDPLATFORM_ANDROID
 #include <unistd.h>
 #include <sched.h>
-inline long udInterlockedPreIncrement(volatile int32_t *p)  { return __sync_add_and_fetch(p, 1); }
-inline long udInterlockedPostIncrement(volatile int32_t *p) { return __sync_fetch_and_add(p, 1); }
-inline long udInterlockedPreDecrement(volatile int32_t *p)  { return __sync_add_and_fetch(p, -1); }
-inline long udInterlockedPostDecrement(volatile int32_t *p) { return __sync_fetch_and_add(p, -1); }
-inline long udInterlockedExchange(volatile int32_t *dest, int32_t exchange) { return __sync_lock_test_and_set(dest, exchange); }
-inline long udInterlockedCompareExchange(volatile int32_t *dest, int32_t exchange, int32_t comparand) { return __sync_val_compare_and_swap(dest, comparand, exchange); }
+inline int32_t udInterlockedPreIncrement(volatile int32_t *p)  { return __sync_add_and_fetch(p, 1); }
+inline int32_t udInterlockedPostIncrement(volatile int32_t *p) { return __sync_fetch_and_add(p, 1); }
+inline int32_t udInterlockedPreDecrement(volatile int32_t *p)  { return __sync_add_and_fetch(p, -1); }
+inline int32_t udInterlockedPostDecrement(volatile int32_t *p) { return __sync_fetch_and_add(p, -1); }
+inline int32_t udInterlockedExchange(volatile int32_t *dest, int32_t exchange) { return __sync_lock_test_and_set(dest, exchange); }
+inline int32_t udInterlockedCompareExchange(volatile int32_t *dest, int32_t exchange, int32_t comparand) { return __sync_val_compare_and_swap(dest, comparand, exchange); }
 template <typename T>
 inline void *udInterlockedExchangePointer(T * volatile* dest, void *exchange) { return __sync_lock_test_and_set((void * volatile*)dest, exchange); }
 template <typename T>

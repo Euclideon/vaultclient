@@ -2,6 +2,7 @@
 #include "udPlatformUtil.h"
 #include "udFile.h"
 #include "udMath.h"
+#include "udValue.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1307,8 +1308,8 @@ udResult udURL::SetURL(const char *pURLText)
   m_pScheme = s_udStrEmptyString;
   m_pDomain = s_udStrEmptyString;
   m_pPath = s_udStrEmptyString;
-  static const char specialChars[]   = { ' ',  '#',   '%',   '+',   '?',   }; // Made for extending later, not wanting to encode any more than we need to
-  static const char *pSpecialSubs[] = { "%20", "%23", "%25", "%2B", "%3F", };
+  static const char specialChars[]   = { ' ',  '#',   '%',   '+',   '?',   '\0', }; // Made for extending later, not wanting to encode any more than we need to
+  static const char *pSpecialSubs[] = { "%20", "%23", "%25", "%2B", "%3F", "", };
 
   if (pURLText)
   {
@@ -1977,4 +1978,170 @@ udResult udSprintf(const char **ppDest, const char *pFormat, ...)
   *ppDest = pStr;
 
   return udR_Success;
+}
+
+// ****************************************************************************
+// Author: Dave Pevreal, May 2018
+udResult udParseWKT(udValue *pValue, const char *pString, int *pCharCount)
+{
+  udResult result = udR_Success;;
+  size_t idLen;
+  udValue temp;
+  int tempCharCount = 0;
+  int parameterNumber = 0;
+  const char *pStartString = pString;
+
+  UD_ERROR_NULL(pValue, udR_InvalidParameter_);
+  UD_ERROR_NULL(pString, udR_InvalidParameter_);
+
+  pString = udStrSkipWhiteSpace(pString);
+  while (*pString && *pString != ']')
+  {
+    g_udBreakOnError = false;
+    udResult parseResult = temp.Parse(pString, &tempCharCount);
+    g_udBreakOnError = true;
+    if (parseResult == udR_Success)
+    {
+      if (!parameterNumber && temp.IsString())
+        pValue->Set(&temp, "name");
+      else
+        pValue->Set(&temp, "values[]");
+      ++parameterNumber;
+      pString += tempCharCount;
+    }
+    else
+    {
+      // Assume an object identifier, or an unquoted constant
+      udStrchr(pString, "[],", &idLen);
+      if (pString[idLen] == '[')
+      {
+        temp.Set("type = '%.*s'", idLen, pString);
+        result = udParseWKT(&temp, pString + idLen + 1, &tempCharCount);
+        UD_ERROR_HANDLE();
+        pValue->Set(&temp, "values[]", idLen, pString);
+        pString += idLen + 1 + tempCharCount;
+      }
+      else // Any non-parsable is now considered a string, eg AXIS["Easting",EAST] parses as AXIS["Easting","EAST"]
+      {
+        pValue->Set("values[] = '%.*s'", idLen, pString);
+        ++parameterNumber;
+        pString += idLen;
+      }
+    }
+    if (*pString == ',')
+      ++pString;
+    pString = udStrSkipWhiteSpace(pString);
+  }
+  if (*pString == ']')
+    ++pString;
+  if (pCharCount)
+    *pCharCount = int(pString - pStartString);
+
+epilogue:
+  return result;
+}
+
+
+// ----------------------------------------------------------------------------
+// Author: Dave Pevreal, May 2018
+static udResult GetWKTElementStr(const char **ppOutput, const udValue &value)
+{
+  udResult result;
+  const char *pElementSeperator = ""; // Changed to "," after first element is written
+  const char *pStr = nullptr;
+  const char *pElementStr = nullptr;
+  const char *pTemp = nullptr;
+  const char *pTypeStr;
+  const char *pNameStr;
+  size_t valuesCount;
+
+  pTypeStr = value.Get("type").AsString();
+  UD_ERROR_NULL(pTypeStr, udR_ParseError);
+  pNameStr = value.Get("name").AsString();
+  valuesCount = value.Get("values").ArrayLength();
+  UD_ERROR_CHECK(udSprintf(&pStr, "%s[", pTypeStr));
+  if (pNameStr)
+  {
+    pTemp = pStr;
+    pStr = nullptr;
+    UD_ERROR_CHECK(udSprintf(&pStr, "%s\"%s\"", pTemp, pNameStr));
+    udFree(pTemp);
+    pElementSeperator = ",";
+  }
+  for (size_t i = 0; i < valuesCount; ++i)
+  {
+    pTemp = pStr;
+    pStr = nullptr;
+    const udValue &arrayValue = value.Get("values[%d]", i);
+    if (arrayValue.IsObject())
+      UD_ERROR_CHECK(GetWKTElementStr(&pElementStr, arrayValue));
+    else if (arrayValue.IsString() && i == 0 && udStrEqual(pTypeStr, "AXIS")) // Special case for AXIS, output second string unquoted
+      UD_ERROR_CHECK(udSprintf(&pElementStr, "%s", arrayValue.AsString()));
+    else if (arrayValue.IsString())
+      UD_ERROR_CHECK(udSprintf(&pElementStr, "\"%s\"", arrayValue.AsString()));
+    else
+      UD_ERROR_CHECK(arrayValue.ToString(&pElementStr));
+    UD_ERROR_CHECK(udSprintf(&pStr, "%s%s%s", pTemp, pElementSeperator, pElementStr));
+    udFree(pTemp);
+    udFree(pElementStr);
+    pElementSeperator = ",";
+  }
+  // Put the closing brace on
+  pTemp = pStr;
+  pStr = nullptr;
+  UD_ERROR_CHECK(udSprintf(&pStr, "%s]", pTemp));
+
+  // Transfer ownership
+  *ppOutput = pStr;
+  pStr = nullptr;
+  result = udR_Success;
+
+epilogue:
+  udFree(pStr);
+  udFree(pElementStr);
+  udFree(pTemp);
+  return result;
+}
+
+// ****************************************************************************
+// Author: Dave Pevreal, May 2018
+udResult udExportWKT(const char **ppOutput, const udValue *pValue)
+{
+  udResult result;
+  const char *pStr = nullptr;
+  const char *pElementStr = nullptr;
+  const char *pTemp = nullptr;
+  size_t elemCount;
+
+  UD_ERROR_NULL(ppOutput, udR_InvalidParameter_);
+  UD_ERROR_NULL(pValue, udR_InvalidParameter_);
+
+  elemCount = pValue->Get("values").ArrayLength();
+  for (size_t i = 0; i < elemCount; ++i)
+  {
+    UD_ERROR_CHECK(GetWKTElementStr(&pElementStr, pValue->Get("values[%d]", i)));
+    if (!pStr)
+    {
+      pStr = pElementStr;
+      pElementStr = nullptr;
+    }
+    else
+    {
+      pTemp = pStr;
+      pStr = nullptr;
+      UD_ERROR_CHECK(udSprintf(&pStr, "%s%s", pTemp, pElementStr));
+    }
+    udFree(pElementStr);
+    udFree(pTemp);
+  }
+  // Transfer ownership
+  *ppOutput = pStr;
+  pStr = nullptr;
+  result = udR_Success;
+
+epilogue:
+  udFree(pStr);
+  udFree(pElementStr);
+  udFree(pTemp);
+  return result;
 }
