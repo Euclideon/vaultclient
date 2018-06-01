@@ -662,8 +662,10 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
       if (ImGui::MenuItem("Restore Defaults", nullptr))
         vcSettings_LoadSettings(pProgramState, true);
 
+#if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX
       if (ImGui::MenuItem("Quit", "Alt+F4"))
         pProgramState->programComplete = true;
+#endif
 
       ImGui::EndMenu();
     }
@@ -1175,6 +1177,7 @@ void vcSettings_LoadSettings(ProgramState *pProgramState, bool forceDefaults)
 {
   if (vcSettings_Load(&pProgramState->settings, forceDefaults))
   {
+#if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX
     if (pProgramState->settings.window.fullscreen)
       SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
     else
@@ -1187,5 +1190,6 @@ void vcSettings_LoadSettings(ProgramState *pProgramState, bool forceDefaults)
 
     SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
     SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
+#endif
   }
 }
