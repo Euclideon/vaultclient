@@ -70,10 +70,7 @@ layout(location = 0) in vec3 a_position;
 out vec3 v_colour;
 out vec2 v_uv;
 
-uniform mat4 u_viewProjection;
-uniform mat4 u_world;
-
-uniform float u_mapHeight;
+uniform mat4 u_worldViewProjection;
 
 uniform sampler2D u_texture; // temporary height map
 
@@ -82,10 +79,7 @@ void main()
   v_uv = vec2(a_position.x, 1.0 - a_position.y);
   vec4 col = texture(u_texture, v_uv); // todo: this may be a dependent read on device. Todo: pass in uvs as attribute
 
-  vec4 worldPosition = u_world * vec4(a_position, 1.0);
-  //worldPosition.z = 10.0 * length(col.xyz) / 3.0;
-  worldPosition.z = u_mapHeight;
-  gl_Position = u_viewProjection * worldPosition;
+  gl_Position = u_worldViewProjection * vec4(a_position, 1.0);
 }
 )shader";
 
