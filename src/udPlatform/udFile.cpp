@@ -228,7 +228,7 @@ udResult udFile_Read(udFile *pFile, void *pBuffer, size_t bufferLength, int64_t 
 
   ++pFile->requestsInFlight;
   pFile->msAccumulator -= udGetTimeMs();
-  result = pFile->fpRead(pFile, pBuffer, bufferLength, offset, &actualRead, pFile->fpBlockPipedRequest ? pPipelinedRequest : nullptr);
+    result = pFile->fpRead(pFile, pBuffer, bufferLength, offset, &actualRead, pFile->fpBlockPipedRequest ? pPipelinedRequest : nullptr);
   pFile->filePos = offset + actualRead;
 
   // Save off the actualRead in the request for the case where the handler doesn't support piped requests

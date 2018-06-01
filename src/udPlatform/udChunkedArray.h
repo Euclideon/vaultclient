@@ -33,14 +33,16 @@ struct udChunkedArray
   void RemoveAt(size_t index);                   // Remove the element at index, moving all elements after to fill the gap.
   void RemoveSwapLast(size_t index);             // Remove the element at index, swapping with the last element to ensure array is contiguous
 
-  udResult ToArray(T *pArray, size_t arrayLength, size_t startIndex = 0, size_t count = 0); // Copy elements to an array supplied by caller
-  udResult ToArray(T **ppArray, size_t startIndex = 0, size_t count = 0);                   // Copy elements to an array allocated and returned to caller
+  udResult ToArray(T *pArray, size_t arrayLength, size_t startIndex = 0, size_t count = 0) const; // Copy elements to an array supplied by caller
+  udResult ToArray(T **ppArray, size_t startIndex = 0, size_t count = 0) const;                   // Copy elements to an array allocated and returned to caller
 
   udResult GrowBack(size_t numberOfNewElements); // Push back a number of new elements, zeroing the memory
   udResult ReserveBack(size_t newCapacity);      // Reserve memory for a given number of elements without changing 'length'  NOTE: Does not reduce in size
   udResult AddChunks(size_t numberOfNewChunks);  // Add a given number of chunks capacity without changing 'length'
 
-  size_t GetElementRunLength(size_t index) const;// At element index, return the number of elements including index that follow in the same chunk (ie can be indexed directly)
+  // At element index, return the number of elements including index that follow in the same chunk (ie can be indexed directly)
+  // Optionally, if elementsBehind is true, returns the the number of elements BEHIND index in the same chunk instead
+  size_t GetElementRunLength(size_t index, bool elementsBehind = false) const;
   size_t ChunkElementCount() const               { return chunkElementCount; }
   size_t ElementSize() const                     { return sizeof(T); }
 
@@ -554,18 +556,21 @@ inline void udChunkedArray<T>::RemoveSwapLast(size_t index)
 // --------------------------------------------------------------------------
 // Author: Dave Pevreal, May 2018
 template <typename T>
-inline udResult udChunkedArray<T>::ToArray(T *pArray, size_t arrayLength, size_t startIndex, size_t count)
+inline udResult udChunkedArray<T>::ToArray(T *pArray, size_t arrayLength, size_t startIndex, size_t count) const
 {
   udResult result;
 
   if (count == 0)
     count = length - startIndex;
   UD_ERROR_IF(startIndex >= length, udR_OutOfRange);
+  UD_ERROR_IF((startIndex + count) > length, udR_OutOfRange);
   UD_ERROR_NULL(pArray, udR_InvalidParameter_);
   UD_ERROR_IF(arrayLength < count, udR_BufferTooSmall);
   while (count)
   {
-    size_t runLen = udMin(count, GetElementRunLength(startIndex));
+    size_t runLen = GetElementRunLength(startIndex);
+    if (runLen > count)
+      runLen = count;
     memcpy(pArray, GetElement(startIndex), runLen * sizeof(T));
     pArray += runLen;
     startIndex += runLen;
@@ -580,7 +585,7 @@ epilogue:
 // --------------------------------------------------------------------------
 // Author: Dave Pevreal, May 2018
 template <typename T>
-udResult udChunkedArray<T>::ToArray(T **ppArray, size_t startIndex, size_t count)
+udResult udChunkedArray<T>::ToArray(T **ppArray, size_t startIndex, size_t count) const
 {
   udResult result;
   T *pArray = nullptr;
@@ -607,45 +612,64 @@ epilogue:
 }
 
 // --------------------------------------------------------------------------
-// Author: Bryce Kiefer, November 2015
+// Author: Dave Pevreal, May 2018
 template <typename T>
 inline udResult udChunkedArray<T>::Insert(size_t index, const T *pData)
 {
   UDASSERT(index <= length, "Index out of bounds");
 
-  // Make room for new element
-  udResult result = GrowBack(1);
-  if (result != udR_Success)
-    return result;
-
-  // TODO: This should be changed to a per-chunk loop,
-  // using memmove to move all but the last element, and a
-  // memcpy from the previous chunk for the (now first)
-  // element of each chunk
-
-  // Move each element at and after the insertion point to the right by one
-  for (size_t i = length - 1; i > index; --i)
+  if (inset != 0 && (index + inset) < chunkElementCount)
   {
-    memcpy(&ppChunks[i / chunkElementCount][i % chunkElementCount], &ppChunks[(i - 1) / chunkElementCount][(i - 1) % chunkElementCount], sizeof(T));
+    // Special case: if inserting into the first chunk and there's an inset,
+    // move everything before the index back one and decrement the inset
+    if (index > 0)
+      memmove(&ppChunks[0][inset - 1], &ppChunks[0][inset], index * sizeof(T));
+    --inset;
+    ++length;
+  }
+  else
+  {
+    // Make room for new element
+    udResult result = GrowBack(1);
+    if (result != udR_Success)
+      return result;
+
+    size_t i = length - 1;
+    while (i > index)
+    {
+      size_t backRunLen = GetElementRunLength(i, true);
+      if ((i - backRunLen) < index)
+        backRunLen = i - index;
+      T *pRun = GetElement(i - backRunLen);
+      memmove(pRun + 1, pRun, backRunLen * sizeof(T));
+      i -= backRunLen;
+      if (i > index)
+      {
+        memcpy(pRun, GetElement(i), sizeof(T));
+        --i;
+      }
+    }
   }
 
   // Copy the new element into the insertion point if it exists
-  if (pData != nullptr)
-    memcpy(&ppChunks[index / chunkElementCount][index % chunkElementCount], pData, sizeof(T));
+  if (pData)
+    memcpy(GetElement(index), pData, sizeof(T));
 
-  return result;
+  return udR_Success;
 }
 
 // --------------------------------------------------------------------------
 // Author: Dave Pevreal, November 2017
 template <typename T>
-inline size_t udChunkedArray<T>::GetElementRunLength(size_t index) const
+inline size_t udChunkedArray<T>::GetElementRunLength(size_t index, bool elementsBehind) const
 {
   if (index < length)
   {
-    index += inset;
-    size_t runLength = chunkElementCount - (index % chunkElementCount);
-    return (runLength > length - index) ? length - index : runLength;
+    size_t indexInChunk = ((index + inset) % chunkElementCount);
+    if (elementsBehind)
+      return ((index + inset) >= chunkElementCount) ? indexInChunk : (indexInChunk - inset);
+    size_t runLength = chunkElementCount - indexInChunk;
+    return (runLength > (length - index)) ? (length - index) : runLength;
   }
   return 0;
 }

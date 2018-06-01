@@ -2,6 +2,7 @@
 #include "udPlatform.h"
 
 #define CONTENT_MEMBER "content"
+#define DEFAULT_DOUBLE_TOSTRING_PRECISION 6  // This is the printf default
 
 const udValue udValue::s_void;
 const size_t udValue::s_udValueTypeSize[T_Count] =
@@ -104,14 +105,15 @@ void udValue::Destroy()
 
   type = T_Void;
   u.i64Val = 0;
+  dPrec = 0;
 }
 
 // ****************************************************************************
 // Author: Dave Pevreal, April 2017
-udResult udValue::SetString(const char *pStr)
+udResult udValue::SetString(const char *pStr, size_t charCount)
 {
   Destroy();
-  u.pStr = udStrdup(pStr);
+  u.pStr = (charCount) ? udStrndup(pStr, charCount) : udStrdup(pStr);
   if (u.pStr)
   {
     type = T_String;
@@ -942,7 +944,9 @@ udResult udValue::Parse(const char *pString, int *pCharCount, int *pLineNumber)
     {
       if (pString[charCount] == '.')
       {
+        int integralCharCount = charCount;
         u.dVal = udStrAtof64(pString, &charCount);
+        dPrec = (uint8_t)(charCount - (integralCharCount+1));
         type = T_Double;
       }
       else
@@ -995,7 +999,7 @@ udResult udValue::ToString(const char **ppStr, int indent, const char *pPre, con
     case T_Void:    result = udSprintf(ppStr, "%*s%snull%s",     indent, "", pPre, pPost); break;
     case T_Bool:    result = udSprintf(ppStr, "%*s%s%s%s%s%s",   indent, "", pPre, pQuote, u.bVal ? "true" : "false", pQuote, pPost); break;
     case T_Int64:   result = udSprintf(ppStr, "%*s%s%s%lld%s%s", indent, "", pPre, pQuote, u.i64Val, pQuote, pPost); break;
-    case T_Double:  result = udSprintf(ppStr, "%*s%s%s%lf%s%s",  indent, "", pPre, pQuote, u.dVal, pQuote, pPost); break;
+    case T_Double:  result = udSprintf(ppStr, "%*s%s%s%.*lf%s%s",  indent, "", pPre, pQuote, dPrec ? dPrec : DEFAULT_DOUBLE_TOSTRING_PRECISION, u.dVal, pQuote, pPost); break;
     case T_String:
       if (escape == 1) // JSON level escape (just backslashes)
       {
