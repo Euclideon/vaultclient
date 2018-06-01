@@ -184,8 +184,8 @@ int main(int /*argc*/, char ** /*args*/)
   char IconPath[] = ASSETDIR "icons/Vault_Client.png";
   char EucWatermarkPath[] = ASSETDIR "icons/EuclideonClientWM.png";
 #endif
-  unsigned char *pIconData;
-  unsigned char *pEucWatermarkData;
+  unsigned char *pIconData = nullptr;
+  unsigned char *pEucWatermarkData = nullptr;
   int pitch;
   long rMask, gMask, bMask, aMask;
 
