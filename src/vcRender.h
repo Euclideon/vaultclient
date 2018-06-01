@@ -18,7 +18,7 @@ struct vcModel
   bool modelVisible;
   bool modelSelected;
   vaultUDModel *pVaultModel;
-  udValue metadata;
+  udValue *pMetadata;
 };
 
 struct vcRenderData
