@@ -113,8 +113,6 @@ struct ProgramState
 
   uint16_t currentSRID;
 
-  unsigned char *pIconData;
-  unsigned char *pEucWatermarkData;
   vcTexture watermarkTexture;
 
   bool hasContext;
@@ -186,6 +184,8 @@ int main(int /*argc*/, char ** /*args*/)
   char IconPath[] = ASSETDIR "icons/Vault_Client.png";
   char EucWatermarkPath[] = ASSETDIR "icons/EuclideonClientWM.png";
 #endif
+  unsigned char *pIconData;
+  unsigned char *pEucWatermarkData;
   int pitch;
   long rMask, gMask, bMask, aMask;
 
@@ -276,7 +276,7 @@ int main(int /*argc*/, char ** /*args*/)
   if (!programState.pWindow)
     goto epilogue;
 
-  programState.pIconData = stbi_load(IconPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
+  pIconData = stbi_load(IconPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
 
   pitch = iconWidth * iconBytesPerPixel;
   pitch = (pitch + 3) & ~3;
@@ -286,8 +286,8 @@ int main(int /*argc*/, char ** /*args*/)
   bMask = 0xFF << 16;
   aMask = (iconBytesPerPixel == 4) ? (0xFF << 24) : 0;
 
-  if (programState.pIconData != nullptr)
-    pIcon = SDL_CreateRGBSurfaceFrom(programState.pIconData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
+  if (pIconData != nullptr)
+    pIcon = SDL_CreateRGBSurfaceFrom(pIconData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
   if(pIcon != nullptr)
     SDL_SetWindowIcon(programState.pWindow, pIcon);
 
@@ -322,10 +322,10 @@ int main(int /*argc*/, char ** /*args*/)
 
   // setup watermark for background
 
-  programState.pEucWatermarkData = stbi_load(EucWatermarkPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0); // reusing the variables for width etc
+  pEucWatermarkData = stbi_load(EucWatermarkPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0); // reusing the variables for width etc
 
   programState.watermarkTexture = vcTextureCreate(iconWidth, iconHeight, vcTextureFormat_RGBA8);
-  vcTextureUploadPixels(&programState.watermarkTexture, programState.pEucWatermarkData, iconWidth, iconHeight);
+  vcTextureUploadPixels(&programState.watermarkTexture, pEucWatermarkData, iconWidth, iconHeight);
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   if (!ImGui_ImplSdlGL3_Init(programState.pWindow, "#version 300 es"))
@@ -392,7 +392,8 @@ int main(int /*argc*/, char ** /*args*/)
 
 epilogue:
   vcTextureDestroy(&programState.watermarkTexture);
-  free(programState.pIconData);
+  free(pIconData);
+  free(pEucWatermarkData);
   vcModel_UnloadList(&vContainer);
   vcModelList.Deinit();
   vcRender_Destroy(&vContainer.pRenderContext);
