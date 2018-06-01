@@ -734,14 +734,31 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::Checkbox("On Screen Controls", &pProgramState->onScreenControls);
 
       // Models
+
+      int minMaxColumnSize[][2] =
+      {
+        {50,500},
+        {40,40},
+        {35,35},
+        {1,1}
+      };
+
       vcColumnHeader headers[] =
       {
         { "Model List", 400 },
-        { "Goto", 50 },
-        { "Visible", 50 },
-        { "", 50 }, // unload column
+        { "Show", 40 },
+        { "", 35 }, // unload column
         { "", 1 } // Null Column at end
       };
+
+      int col1Size = (int)ImGui::GetContentRegionAvailWidth();
+      col1Size -= 40 + 35; // subtract size of two buttons
+      if (col1Size > minMaxColumnSize[0][1])
+        col1Size = minMaxColumnSize[0][1];
+      if (col1Size < minMaxColumnSize[0][0])
+        col1Size = minMaxColumnSize[0][0];
+      headers[0].size = col1Size;
+
 
       ImGui::Columns(UDARRAYSIZE(headers), "ModelTableColumns", true);
       ImGui::Separator();
@@ -791,31 +808,18 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
         ImGui::PopID();
         ImGui::NextColumn();
-        // Column 2 - Goto button
-        char gotoButtonID[32] = "";
-        udSprintf(gotoButtonID, UDARRAYSIZE(gotoButtonID), "GotoButton%i", i);
-        ImGui::PushID(gotoButtonID);
-        if (ImGui::Button("Goto"))
-        {
-          double midPoint[3];
-          vaultUDModel_GetModelCenter(pVaultContainer->pContext, vcModelList[i].pVaultModel, midPoint);
-          pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
-        }
-
-        ImGui::PopID();
-        ImGui::NextColumn();
-        // Column 3 - Visible
+        // Column 2 - Visible
         char checkboxID[32] = "";
         udSprintf(checkboxID, UDARRAYSIZE(checkboxID), "ModelVisibleCheckbox%i", i);
         ImGui::PushID(checkboxID);
         ImGui::Checkbox("", &(vcModelList[i].modelVisible));
         ImGui::PopID();
         ImGui::NextColumn();
-        // Column 4
+        // Column 3 - Unload Model
         char unloadModelID[32] = "";
         udSprintf(unloadModelID, UDARRAYSIZE(unloadModelID), "UnloadModelButton%i", i);
         ImGui::PushID(unloadModelID);
-        if (ImGui::Button("X"))
+        if (ImGui::Button("X",ImVec2(20,20)))
         {
           // unload model
           err = vaultUDModel_Unload(pVaultContainer->pContext, &(vcModelList[i].pVaultModel));
