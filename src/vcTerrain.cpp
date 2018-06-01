@@ -58,8 +58,8 @@ void vcTerrain_BuildTerrain(vcTerrain *pTerrain, const udDouble3 worldCorners[4]
   udFloat2 viewPosMS = udFloat2::create((localViewPos - udDouble2::create(worldCorners[0].x, worldCorners[2].y)) / worldScale);
   udFloat2 viewSizeMS = udFloat2::create((float)localViewSize);
 
-  vcQuadTree_GenerateNodeList(&pNodeList, &nodeCount, viewPosMS, viewSizeMS, &treeData);
-  vcTerrainRenderer_BuildTiles(pTerrain->pTerrainRenderer, worldCorners, slippyCoords, pNodeList, nodeCount, treeData.leafNodeCount);
+  vcQuadTree_GenerateNodeList(&pNodeList, &nodeCount, slippyCoords.z, viewPosMS, viewSizeMS, &treeData);
+  vcTerrainRenderer_BuildTiles(pTerrain->pTerrainRenderer, worldCorners, slippyCoords, pNodeList, nodeCount, treeData.visibleNodeCount);
 }
 
 void vcTerrain_Render(vcTerrain *pTerrain, const udDouble4x4 &viewProjection)
