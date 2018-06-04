@@ -21,8 +21,8 @@ GLint vcSbMatrixLocation = -1;
 
 struct vcUDRenderContext
 {
-  vaultUDRenderer *pRenderer;
-  vaultUDRenderView *pRenderView;
+  vdkRenderContext *pRenderer;
+  vdkRenderView *pRenderView;
   uint32_t *pColorBuffer;
   float *pDepthBuffer;
   vcTexture colour;
@@ -38,7 +38,7 @@ struct vcUDRenderContext
 
 struct vcRenderContext
 {
-  vaultContext *pVaultContext;
+  vdkContext *pVaultContext;
   vcSettings *pSettings;
 
   udUInt2 sceneResolution;
@@ -130,10 +130,10 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   if (vcTerrain_Destroy(&pRenderContext->pTerrain) != udR_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vaultUDRenderView_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderView) != vE_Success)
+  if (vdkRenderView_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderView) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vaultUDRenderer_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)
+  if (vdkRenderContext_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
@@ -150,7 +150,7 @@ epilogue:
   return result;
 }
 
-udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vaultContext *pVaultContext)
+udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vdkContext *pVaultContext)
 {
   udResult result = udR_Success;
 
@@ -158,7 +158,7 @@ udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vaultContext 
 
   pRenderContext->pVaultContext = pVaultContext;
 
-  if (vaultUDRenderer_Create(pVaultContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)
+  if (vdkRenderContext_Create(pVaultContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
 epilogue:
@@ -299,16 +299,16 @@ udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext)
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
 
-  if (pRenderContext->udRenderContext.pRenderView && vaultUDRenderView_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderView) != vE_Success)
+  if (pRenderContext->udRenderContext.pRenderView && vdkRenderView_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderView) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vaultUDRenderView_Create(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderView, pRenderContext->udRenderContext.pRenderer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y) != vE_Success)
+  if (vdkRenderView_Create(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderView, pRenderContext->udRenderContext.pRenderer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vaultUDRenderView_SetTargets(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, pRenderContext->udRenderContext.pColorBuffer, 0, pRenderContext->udRenderContext.pDepthBuffer) != vE_Success)
+  if (vdkRenderView_SetTargets(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, pRenderContext->udRenderContext.pColorBuffer, 0, pRenderContext->udRenderContext.pDepthBuffer) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vaultUDRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vUDRVM_Projection, pRenderContext->projectionMatrix.a) != vE_Success)
+  if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->projectionMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
 epilogue:
@@ -318,14 +318,14 @@ epilogue:
 udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, const vcRenderData &renderData)
 {
   udResult result = udR_Success;
-  vaultUDModel **ppModels = nullptr;
+  vdkModel **ppModels = nullptr;
   int numVisibleModels = 0;
 
-  if (vaultUDRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vUDRVM_View, pRenderContext->viewMatrix.a) != vE_Success)
+  if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->viewMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
   if (renderData.models.length > 0)
-    ppModels = udAllocStack(vaultUDModel*, renderData.models.length, udAF_None);
+    ppModels = udAllocStack(vdkModel*, renderData.models.length, udAF_None);
 
   for (size_t i = 0; i < renderData.models.length; ++i)
   {
@@ -336,7 +336,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, co
     }
   }
 
-  if (vaultUDRenderer_Render(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)numVisibleModels) != vE_Success)
+  if (vdkRenderContext_Render(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)numVisibleModels) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
   vcTextureUploadPixels(&pRenderContext->udRenderContext.colour, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
