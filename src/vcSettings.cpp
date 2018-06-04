@@ -179,6 +179,9 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     udValue data;
     data.Parse(pSavedData);
 
+    // Misc Settings
+    pSettings->showFPS = data.Get("showFPS").AsBool(false);
+
     // Windows
     pSettings->window.xpos = data.Get("window.position.x").AsInt(SDL_WINDOWPOS_CENTERED);
     pSettings->window.ypos = data.Get("window.position.y").AsInt(SDL_WINDOWPOS_CENTERED);
@@ -227,6 +230,10 @@ bool vcSettings_Save(vcSettings *pSettings)
   ImGui::GetIO().WantSaveIniSettings = false;
 
   udValue data;
+
+  // Misc Settings
+  if (pSettings->showFPS) // This hides the option if its false
+    data.Set("showFPS = true");
 
   // Windows
   data.Set("window.position.x = %d", pSettings->window.xpos);
