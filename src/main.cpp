@@ -1,6 +1,6 @@
-#include "vaultContext.h"
-#include "vaultUDRenderer.h"
-#include "vaultUDModel.h"
+#include "vdkContext.h"
+#include "vdkRenderContext.h"
+#include "vdkModel.h"
 #include "imgui.h"
 #include "imgui_ex/imgui_impl_sdl_gl3.h"
 #include "imgui_ex/imgui_dock.h"
@@ -82,7 +82,7 @@ struct vcColumnHeader
 
 struct vaultContainer
 {
-  vaultContext *pContext;
+  vdkContext *pContext;
   vcRenderContext *pRenderContext;
 };
 
@@ -406,7 +406,7 @@ epilogue:
   vcModel_UnloadList(&vContainer);
   vcModelList.Deinit();
   vcRender_Destroy(&vContainer.pRenderContext);
-  vaultContext_Disconnect(&vContainer.pContext);
+  vdkContext_Disconnect(&vContainer.pContext);
 
 #if UDPLATFORM_OSX
   SDL_free(pBasePath);
@@ -634,7 +634,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
 {
   int menuHeight = 0;
-  vaultError err;
+  vdkError err;
 
   if (ImGui::BeginMainMenuBar())
   {
@@ -649,7 +649,7 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
 
         if (pErrorMessage == nullptr)
         {
-          err = vaultContext_Logout(pVaultContainer->pContext);
+          err = vdkContext_Logout(pVaultContainer->pContext);
           if (err == vE_Success)
             pProgramState->hasContext = false;
         }
@@ -724,7 +724,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   glClearColor(0, 0, 0, 1);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  vaultError err;
+  vdkError err;
   SDL_Keymod modState = SDL_GetModState();
 
   int menuHeight = (!pProgramState->hasContext) ? 0 : vcMainMenuGui(pProgramState, pVaultContainer);
@@ -789,21 +789,21 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
       if (ImGui::Button("Login!"))
       {
-        err = vaultContext_Connect(&pVaultContainer->pContext, pProgramState->serverURL, "ClientSample");
+        err = vdkContext_Connect(&pVaultContainer->pContext, pProgramState->serverURL, "ClientSample");
         if (err != vE_Success)
         {
           pErrorMessage = "Could not connect to server...";
         }
         else
         {
-          err = vaultContext_Login(pVaultContainer->pContext, pProgramState->username, pProgramState->password);
+          err = vdkContext_Login(pVaultContainer->pContext, pProgramState->username, pProgramState->password);
           if (err != vE_Success)
           {
             pErrorMessage = "Could not log in...";
           }
           else
           {
-            err = vaultContext_GetLicense(pVaultContainer->pContext, vaultLT_Basic);
+            err = vdkContext_GetLicense(pVaultContainer->pContext, vdkLT_Basic);
             if (err != vE_Success)
             {
               pErrorMessage = "Could not get license...";
@@ -977,7 +977,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
         {
           double midPoint[3];
-          vaultUDModel_GetModelCenter(pVaultContainer->pContext, vcModelList[i].pVaultModel, midPoint);
+          vdkModel_GetModelCenter(pVaultContainer->pContext, vcModelList[i].pVaultModel, midPoint);
           pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
         }
 
@@ -1001,7 +1001,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         if (ImGui::Button("X",ImVec2(20,20)))
         {
           // unload model
-          err = vaultUDModel_Unload(pVaultContainer->pContext, &(vcModelList[i].pVaultModel));
+          err = vdkModel_Unload(pVaultContainer->pContext, &(vcModelList[i].pVaultModel));
           if (err != vE_Success)
             goto epilogue;
 
@@ -1109,10 +1109,10 @@ void vcModel_AddToList(vaultContainer *pVaultContainer, ProgramState *pProgramSt
 
   udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
 
-  if(vaultUDModel_Load(pVaultContainer->pContext, &model.pVaultModel, pFilePath) == vE_Success)
+  if(vdkModel_Load(pVaultContainer->pContext, &model.pVaultModel, pFilePath) == vE_Success)
   {
     const char *pMetadata;
-    if (vaultUDModel_GetMetadata(pVaultContainer->pContext, model.pVaultModel, &pMetadata) == vE_Success)
+    if (vdkModel_GetMetadata(pVaultContainer->pContext, model.pVaultModel, &pMetadata) == vE_Success)
       model.pMetadata->Parse(pMetadata);
 
     vcModel_MoveToModelProjection(pVaultContainer, pProgramState, &model);
@@ -1123,12 +1123,12 @@ void vcModel_AddToList(vaultContainer *pVaultContainer, ProgramState *pProgramSt
 
 bool vcModel_UnloadList(vaultContainer *pVaultContainer)
 {
-  vaultError err;
+  vdkError err;
   for (int i = 0; i < (int) vcModelList.length; i++)
   {
-    vaultUDModel *pVaultModel;
+    vdkModel *pVaultModel;
     pVaultModel = vcModelList[i].pVaultModel;
-    err = vaultUDModel_Unload(pVaultContainer->pContext, &pVaultModel);
+    err = vdkModel_Unload(pVaultContainer->pContext, &pVaultModel);
     vcModelList[i].pMetadata->Destroy();
     udFree(vcModelList[i].pMetadata);
     if (err != vE_Success)
@@ -1147,7 +1147,7 @@ bool vcModel_MoveToModelProjection(vaultContainer *pVaultContainer, ProgramState
     return false;
 
   double midPoint[3];
-  vaultUDModel_GetModelCenter(pVaultContainer->pContext, pModel->pVaultModel, midPoint);
+  vdkModel_GetModelCenter(pVaultContainer->pContext, pModel->pVaultModel, midPoint);
   pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
 
   const char *pSRID = pModel->pMetadata->Get("ProjectionID").AsString();
