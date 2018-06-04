@@ -44,7 +44,7 @@ epilogue:
   return result;
 }
 
-void vcTerrain_BuildTerrain(vcTerrain *pTerrain, const udDouble3 worldCorners[4], const udInt3 &slippyCoords, const udDouble2 &localViewPos, const double localViewSize)
+void vcTerrain_BuildTerrain(vcTerrain *pTerrain, int16_t srid, const udDouble3 worldCorners[4], const udInt3 &slippyCoords, const udDouble3 &localViewPos, const double localViewSize)
 {
   if (!pTerrain->enabled)
     return;
@@ -55,19 +55,19 @@ void vcTerrain_BuildTerrain(vcTerrain *pTerrain, const udDouble3 worldCorners[4]
 
   // calculate view in quad tree space [0, 1]
   udDouble2 worldScale = udDouble2::create(worldCorners[3].x - worldCorners[0].x, worldCorners[0].y - worldCorners[3].y);
-  udFloat2 viewPosMS = udFloat2::create((localViewPos - udDouble2::create(worldCorners[0].x, worldCorners[2].y)) / worldScale);
+  udFloat2 viewPosMS = udFloat2::create((localViewPos.toVector2() - udDouble2::create(worldCorners[0].x, worldCorners[2].y)) / worldScale);
   udFloat2 viewSizeMS = udFloat2::create((float)localViewSize);
 
   vcQuadTree_GenerateNodeList(&pNodeList, &nodeCount, slippyCoords.z, viewPosMS, viewSizeMS, &treeData);
-  vcTerrainRenderer_BuildTiles(pTerrain->pTerrainRenderer, worldCorners, slippyCoords, pNodeList, nodeCount, treeData.visibleNodeCount);
+  vcTerrainRenderer_BuildTiles(pTerrain->pTerrainRenderer, srid, slippyCoords, localViewPos, pNodeList, nodeCount, treeData.visibleNodeCount);
 }
 
-void vcTerrain_Render(vcTerrain *pTerrain, const udDouble4x4 &viewProjection)
+void vcTerrain_Render(vcTerrain *pTerrain, const udDouble4x4 &viewProj)
 {
   if (!pTerrain->enabled)
     return;
 
-  vcTerrainRenderer_Render(pTerrain->pTerrainRenderer, viewProjection);
+  vcTerrainRenderer_Render(pTerrain->pTerrainRenderer, viewProj);
 }
 
 void vcTerrain_SetEnabled(vcTerrain *pTerrain, bool enabled)
