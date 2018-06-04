@@ -70,8 +70,7 @@ vcTexture vcTextureCreateDepth(uint32_t width, uint32_t height, vcTextureFormat 
     break;
   case vcTextureFormat_D24: // fall through
   default:
-    internalFormat = GL_DEPTH_COMPONENT32F;
-    type = GL_FLOAT;
+    internalFormat = GL_DEPTH_COMPONENT24; 
     type = GL_UNSIGNED_INT;
   }
 

@@ -57,7 +57,7 @@ uniform vec3 u_debugColour;
 
 void main()
 {
-  vec4 col = texture(u_texture, v_uv).bgra;
+  vec4 col = texture(u_texture, v_uv);
   out_Colour = vec4(col.xyz * u_debugColour.xyz, u_opacity);
 }
 )shader";
@@ -65,21 +65,30 @@ void main()
 const GLchar* const g_terrainTileVertexShader = VERT_HEADER R"shader(
 //Input format
 layout(location = 0) in vec3 a_position;
+layout(location = 1) in vec2 a_uv;
 
 //Output Format
 out vec3 v_colour;
 out vec2 v_uv;
 
-uniform mat4 u_worldViewProjection;
-
-uniform sampler2D u_texture; // temporary height map
+uniform mat4 u_worldViewProjection0;
+uniform mat4 u_worldViewProjection1;
+uniform mat4 u_worldViewProjection2;
+uniform mat4 u_worldViewProjection3;
 
 void main()
 {
-  v_uv = vec2(a_position.x, 1.0 - a_position.y);
-  vec4 col = texture(u_texture, v_uv); // todo: this may be a dependent read on device. Todo: pass in uvs as attribute
+  vec4 finalClipPos = vec4(0.0);
 
-  gl_Position = u_worldViewProjection * vec4(a_position, 1.0);
+  // corner id is stored in the x component of the position attribute
+  // note: could have precision issues on some devices
+  finalClipPos += float(a_position.x == 0.0) * u_worldViewProjection0 * vec4(0.0, 0.0, 0.0, 1.0);
+  finalClipPos += float(a_position.x == 1.0) * u_worldViewProjection1 * vec4(0.0, 0.0, 0.0, 1.0);
+  finalClipPos += float(a_position.x == 2.0) * u_worldViewProjection2 * vec4(0.0, 0.0, 0.0, 1.0);
+  finalClipPos += float(a_position.x == 4.0) * u_worldViewProjection3 * vec4(0.0, 0.0, 0.0, 1.0);
+
+  v_uv = a_uv;
+  gl_Position = finalClipPos;
 }
 )shader";
 

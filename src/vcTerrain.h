@@ -9,8 +9,8 @@ struct vcSettings;
 udResult vcTerrain_Init(vcTerrain **ppTerrain, vcSettings *pSettings);
 udResult vcTerrain_Destroy(vcTerrain **ppTerrain);
 
-void vcTerrain_BuildTerrain(vcTerrain *pTerrain, const udDouble3 worldCorners[4], const udInt3 &slippyCoords, const udDouble2 &localViewPos, const double localViewSize);
-void vcTerrain_Render(vcTerrain *pTerrain, const udDouble4x4 &viewProjection);
+void vcTerrain_BuildTerrain(vcTerrain *pTerrain, int16_t srid, const udDouble3 worldCorners[4], const udInt3 &slippyCoords, const udDouble3 &localViewPos, const double localViewSize);
+void vcTerrain_Render(vcTerrain *pTerrain, const udDouble4x4 &viewProj);
 
 void vcTerrain_SetEnabled(vcTerrain *pTerrain, bool enabled);
 
