@@ -757,7 +757,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
   if (pProgramState->hasContext)
   {
-    int menuHeight = vcMainMenuGui(pProgramState, pVaultContainer);
+    float menuHeight = (float)vcMainMenuGui(pProgramState, pVaultContainer);
     ImGui::RootDock(ImVec2(0, menuHeight), ImVec2(size.x, size.y - menuHeight));
   }
   else
