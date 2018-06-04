@@ -44,7 +44,7 @@ const char *pProjectsJSON = R"projects(
     },
     {
       "name": "Japanese House",
-      "models": [ "Japanese%20House/furniture/Low_table.uds", "Japanese%20House/furniture/Rocking_Chair.uds", "Japanese%20House/furniture/sofa_L_cushion.uds", "Japanese%20House/furniture/Table_Chair.uds", "Japanese%20House/ssf/mirror.uds" ]
+      "models": [ "Japanese House/furniture/Low_table.uds", "Japanese House/furniture/Rocking_Chair.uds", "Japanese House/furniture/sofa_L_cushion.uds", "Japanese House/furniture/Table_Chair.uds", "Japanese House/ssf/mirror.uds" ]
     },
     {
       "name": "Mt Morgan",
@@ -86,24 +86,11 @@ struct vaultContainer
   vcRenderContext *pRenderContext;
 };
 
-enum vcDocks
-{
-  vcdScene,
-  vcdSettings,
-  vcdSceneExplorer,
-
-  vcdStyling,
-  vcdUIDemo,
-
-  vcdTotalDocks
-};
-
 struct ProgramState
 {
   bool programComplete;
   SDL_Window *pWindow;
   GLuint defaultFramebuffer;
-  bool isFullscreen;
 
   bool onScreenControls;
 
@@ -116,7 +103,6 @@ struct ProgramState
   vcTexture watermarkTexture;
 
   bool hasContext;
-  bool windowsOpen[vcdTotalDocks];
 
   char serverURL[vcMaxPathLength];
   char username[vcMaxPathLength];
@@ -142,6 +128,8 @@ char *pBasePath = nullptr;
 void vcHandleSceneInput(ProgramState *pProgramState);
 void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer);
 int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer);
+
+void vcSettings_LoadSettings(ProgramState *pProgramState, bool forceDefaults);
 
 void vcModel_AddToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, const char *pFilePath);
 bool vcModel_UnloadList(vaultContainer *pVaultContainer);
@@ -207,14 +195,6 @@ int main(int /*argc*/, char ** /*args*/)
   programState.settings.camera.nearPlane = 0.5f;
   programState.settings.camera.farPlane = 10000.f;
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
-
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  // While using the menu is tricky/impossible on iOS, default some windows to be open
-  // TODO: Remove this because it's bad
-  programState.windowsOpen[vcdSettings] = true;
-  programState.windowsOpen[vcdScene] = true;
-  programState.windowsOpen[vcdSceneExplorer] = true;
-#endif
 
   vcModelList.Init(32);
   lastModelLoaded = true;
@@ -317,6 +297,7 @@ int main(int /*argc*/, char ** /*args*/)
 #endif
 
   ImGui::CreateContext();
+  vcSettings_LoadSettings(&programState, false);
 
   glGetError(); // throw out first error
 
@@ -348,7 +329,6 @@ int main(int /*argc*/, char ** /*args*/)
   // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, programState.defaultFramebuffer);
 
-  ImGui::LoadDock();
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   ImGui::GetIO().Fonts->AddFontFromFileTTF(ASSETDIR "/NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
 #elif UDPLATFORM_OSX
@@ -365,12 +345,38 @@ int main(int /*argc*/, char ** /*args*/)
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-      ImGui_ImplSdlGL3_ProcessEvent(&event);
-
-      if (event.type == SDL_DROPFILE && programState.hasContext)
-        vcModel_AddToList(&vContainer, &programState, event.drop.file);
-
-      programState.programComplete = (event.type == SDL_QUIT);
+      if (!ImGui_ImplSdlGL3_ProcessEvent(&event))
+      {
+        if (event.type == SDL_WINDOWEVENT)
+        {
+          if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+          {
+            programState.settings.window.width = event.window.data1;
+            programState.settings.window.height = event.window.data2;
+          }
+          else if (event.window.event == SDL_WINDOWEVENT_MOVED)
+          {
+            programState.settings.window.xpos = event.window.data1;
+            programState.settings.window.ypos = event.window.data2;
+          }
+          else if (event.window.event == SDL_WINDOWEVENT_MAXIMIZED)
+          {
+            programState.settings.window.maximized = true;
+          }
+          else if (event.window.event == SDL_WINDOWEVENT_RESTORED)
+          {
+            programState.settings.window.maximized = false;
+          }
+        }
+        else if (event.type == SDL_DROPFILE && programState.hasContext)
+        {
+          vcModel_AddToList(&vContainer, &programState, event.drop.file);
+        }
+        else if (event.type == SDL_QUIT)
+        {
+          programState.programComplete = true;
+        }
+      }
     }
 
     LAST = NOW;
@@ -385,9 +391,12 @@ int main(int /*argc*/, char ** /*args*/)
     ImGui_ImplSdlGL3_RenderDrawData(ImGui::GetDrawData());
 
     SDL_GL_SwapWindow(programState.pWindow);
+
+    if (ImGui::GetIO().WantSaveIniSettings)
+      vcSettings_Save(&programState.settings);
   }
 
-  ImGui::SaveDock();
+  vcSettings_Save(&programState.settings);
   ImGui::DestroyContext();
 
 epilogue:
@@ -649,21 +658,28 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
           ImGui::OpenPopup("Logout Error");
         }
       }
+
+      if (ImGui::MenuItem("Restore Defaults", nullptr))
+        vcSettings_LoadSettings(pProgramState, true);
+
+#if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX
       if (ImGui::MenuItem("Quit", "Alt+F4"))
         pProgramState->programComplete = true;
+#endif
+
       ImGui::EndMenu();
     }
 
     if (ImGui::BeginMenu("Windows"))
     {
-      ImGui::MenuItem("Scene", nullptr, &pProgramState->windowsOpen[vcdScene]);
-      ImGui::MenuItem("Scene Explorer", nullptr, &pProgramState->windowsOpen[vcdSceneExplorer]);
-      ImGui::MenuItem("Settings", nullptr, &pProgramState->windowsOpen[vcdSettings]);
+      ImGui::MenuItem("Scene", nullptr, &pProgramState->settings.window.windowsOpen[vcdScene]);
+      ImGui::MenuItem("Scene Explorer", nullptr, &pProgramState->settings.window.windowsOpen[vcdSceneExplorer]);
+      ImGui::MenuItem("Settings", nullptr, &pProgramState->settings.window.windowsOpen[vcdSettings]);
       ImGui::Separator();
       if (ImGui::BeginMenu("Debug Windows"))
       {
-        ImGui::MenuItem("Styling", nullptr, &pProgramState->windowsOpen[vcdStyling]);
-        ImGui::MenuItem("UI Debug Menu", nullptr, &pProgramState->windowsOpen[vcdUIDemo]);
+        ImGui::MenuItem("Styling", nullptr, &pProgramState->settings.window.windowsOpen[vcdStyling]);
+        ImGui::MenuItem("UI Debug Menu", nullptr, &pProgramState->settings.window.windowsOpen[vcdUIDemo]);
         ImGui::EndMenu();
       }
 
@@ -716,8 +732,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   //keyboard/mouse handling
   if (ImGui::IsKeyReleased(SDL_SCANCODE_F11))
   {
-    pProgramState->isFullscreen = !pProgramState->isFullscreen;
-    if (pProgramState->isFullscreen)
+    pProgramState->settings.window.fullscreen = !pProgramState->settings.window.fullscreen;
+    if (pProgramState->settings.window.fullscreen)
       SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
     else
       SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
@@ -872,14 +888,14 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::EndPopup();
     }
 
-    if (ImGui::BeginDock("Scene", &pProgramState->windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ResizeFromAnySide))
+    if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ResizeFromAnySide))
     {
       vcRenderSceneWindow(pVaultContainer, pProgramState);
       vcHandleSceneInput(pProgramState);
     }
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("Scene Explorer", &pProgramState->windowsOpen[vcdSceneExplorer], ImGuiWindowFlags_ResizeFromAnySide))
+    if (ImGui::BeginDock("Scene Explorer", &pProgramState->settings.window.windowsOpen[vcdSceneExplorer], ImGuiWindowFlags_ResizeFromAnySide))
     {
       ImGui::InputText("Model Path", pProgramState->modelPath, vcMaxPathLength);
       if (ImGui::Button("Load Model!"))
@@ -1006,14 +1022,14 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
     }
       ImGui::EndDock();
 
-    if (ImGui::BeginDock("StyleEditor", &pProgramState->windowsOpen[vcdStyling], ImGuiWindowFlags_ResizeFromAnySide))
+    if (ImGui::BeginDock("StyleEditor", &pProgramState->settings.window.windowsOpen[vcdStyling], ImGuiWindowFlags_ResizeFromAnySide))
       ImGui::ShowStyleEditor();
     ImGui::EndDock();
 
-    if (pProgramState->windowsOpen[vcdUIDemo])
+    if (pProgramState->settings.window.windowsOpen[vcdUIDemo])
       ImGui::ShowDemoWindow();
 
-    if (ImGui::BeginDock("Settings", &pProgramState->windowsOpen[vcdSettings], ImGuiWindowFlags_ResizeFromAnySide))
+    if (ImGui::BeginDock("Settings", &pProgramState->settings.window.windowsOpen[vcdSettings], ImGuiWindowFlags_ResizeFromAnySide))
     {
       ImGui::Text("UI Settings");
 
@@ -1032,8 +1048,11 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::Text("Camera");
 
       ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f);
-      ImGui::SliderFloat("Near Plane", &(pProgramState->settings.camera.nearPlane), vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f);
-      ImGui::SliderFloat("Far Plane", &(pProgramState->settings.camera.farPlane), vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "%.3fm", 2.f);
+      if (ImGui::SliderFloat("Near Plane", &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))
+        pProgramState->settings.camera.farPlane = udMin(pProgramState->settings.camera.farPlane, pProgramState->settings.camera.nearPlane * vcSL_CameraNearFarPlaneRatioMax);
+
+      if (ImGui::SliderFloat("Far Plane", &pProgramState->settings.camera.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "%.3fm", 2.f))
+        pProgramState->settings.camera.nearPlane = udMax(pProgramState->settings.camera.nearPlane, pProgramState->settings.camera.farPlane / vcSL_CameraNearFarPlaneRatioMax);
 
       float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
       ImGui::SliderFloat("Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f Degrees");
@@ -1152,4 +1171,25 @@ bool vcModel_MoveToModelProjection(vaultContainer *pVaultContainer, ProgramState
   }
 
   return true;
+}
+
+void vcSettings_LoadSettings(ProgramState *pProgramState, bool forceDefaults)
+{
+  if (vcSettings_Load(&pProgramState->settings, forceDefaults))
+  {
+#if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX
+    if (pProgramState->settings.window.fullscreen)
+      SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    else
+      SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
+
+    if (pProgramState->settings.window.maximized)
+      SDL_MaximizeWindow(pProgramState->pWindow);
+    else
+      SDL_RestoreWindow(pProgramState->pWindow);
+
+    SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
+    SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
+#endif
+  }
 }
