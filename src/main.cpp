@@ -604,9 +604,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
         ImGui::SetColumnWidth(0, 50);
 
         ImGui::PushID("oscUDSlider");
-        int vertTemp = (int)pProgramState->camera.moveDirection.vertical;
-        ImGui::VSliderInt("",ImVec2(40,100), &vertTemp, -1, 1, "U/D");
-        pProgramState->camera.moveDirection.vertical = (float)vertTemp;
+        ImGui::VSliderFloat("",ImVec2(40,100), &pProgramState->camera.moveDirection.vertical, -1, 1, "U/D");
         ImGui::PopID();
 
         ImGui::NextColumn();
