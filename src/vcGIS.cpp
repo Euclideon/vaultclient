@@ -24,53 +24,54 @@ bool vcGIS_PopulateSRIDParameters(vcGIS_SRIDParameters *pParams, uint16_t sridCo
   {
     // WGS84 Northern Hemisphere
     pParams->zone = sridCode - 32600;
-    pParams->meridian = pParams->zone * 6 - 183;
+    pParams->zoneWidth = 6;
+    pParams->meridian = pParams->zone * pParams->zoneWidth - 183;
     pParams->falseNorthing = 0;
     pParams->falseEasting = 500000;
     pParams->f = 1 / 298.257223563;
     pParams->a = 6378137;
     pParams->k = 0.9996;
     pParams->hemisphere = 'N';
-    pParams->zoneWidth = 6;
+
   }
   else if (sridCode > 32700 && sridCode < 32761)
   {
     // WGS84 Southern Hemisphere
     pParams->zone = sridCode - 32700;
-    pParams->meridian = pParams->zone * 6 - 183;
+    pParams->zoneWidth = 6;
+    pParams->meridian = pParams->zone * pParams->zoneWidth - 183;
     pParams->falseNorthing = 10000000;
     pParams->falseEasting = 500000;
     pParams->f = 1 / 298.257223563;
     pParams->a = 6378137;
     pParams->k = 0.9996;
     pParams->hemisphere = 'S';
-    pParams->zoneWidth = 6;
   }
   else if (sridCode > 26900 && sridCode < 26924)
   {
     // NAD83 Northern Hemisphere
     pParams->zone = sridCode - 26900;
-    pParams->meridian = pParams->zone * 6 - 183;
+    pParams->zoneWidth = 8;
+    pParams->meridian = pParams->zone * pParams->zoneWidth - 183;
     pParams->falseNorthing = 0;
     pParams->falseEasting = 500000;
     pParams->f = 1 / 298.257222101;
     pParams->a = 6378137;
     pParams->k = 0.9996;
     pParams->hemisphere = 'N';
-    pParams->zoneWidth = 8;
   }
   else if (sridCode > 28347 && sridCode < 28357)
   {
     // GDA94 Southern Hemisphere (for MGA)
     pParams->zone = sridCode - 28300;
-    pParams->meridian = pParams->zone * 6 - 183;
+    pParams->zoneWidth = 6;
+    pParams->meridian = pParams->zone * pParams->zoneWidth - 183;
     pParams->falseNorthing = 10000000;
     pParams->falseEasting = 500000;
     pParams->f = 1 / 298.257222101;
     pParams->a = 6378137;
     pParams->k = 0.9996;
     pParams->hemisphere = 'S';
-    pParams->zoneWidth = 6;
   }
   else
   {
@@ -146,7 +147,7 @@ bool vcGIS_LocalToLatLong(uint16_t sridCode, udDouble3 localCoords, udDouble3 *p
 
   // Longitude
   if (params.zone > 0)
-    zoneCM = params.zoneWidth  * params.zone - 183.0;
+    zoneCM = params.meridian;
   else
     zoneCM = 3.0;
 
