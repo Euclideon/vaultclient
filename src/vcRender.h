@@ -31,7 +31,7 @@ struct vcRenderData
   GLuint skyboxCubemap;
 };
 
-udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings, const udUInt2 &windowResolution);
+udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &windowResolution);
 udResult vcRender_Destroy(vcRenderContext **pRenderContext);
 
 udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vdkContext *pVaultContext);

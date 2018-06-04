@@ -9,6 +9,7 @@
 #include "udPlatform/udMath.h"
 #include "udPlatform/udChunkedArray.h"
 #include "udPlatform/udPlatformUtil.h"
+#include "vcCamera.h"
 #include "vcRender.h"
 #include "vcSettings.h"
 #include "vcGIS.h"
@@ -94,6 +95,8 @@ struct ProgramState
 
   bool onScreenControls;
 
+  vcCamera camera;
+
   double deltaTime;
   udDouble4x4 camMatrix;
   udUInt2 sceneResolution;
@@ -110,12 +113,7 @@ struct ProgramState
 
   char modelPath[vcMaxPathLength];
 
-  struct
-  {
-    float vertical;
-    float forward;
-    float right;
-  } moveDirection;
+
 
   vcSettings settings;
   udValue projects;
@@ -178,7 +176,7 @@ int main(int /*argc*/, char ** /*args*/)
   long rMask, gMask, bMask, aMask;
 
   // default values
-  programState.settings.camera.moveMode = vcCMM_Plane;
+  programState.settings.cameraSettings.moveMode = vcCMM_Plane;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   // TODO: Query device and fill screen
   programState.sceneResolution.x = 1920;
@@ -190,11 +188,12 @@ int main(int /*argc*/, char ** /*args*/)
   programState.onScreenControls = false;
 #endif
   programState.camMatrix = udDouble4x4::identity();
+  vcCamera_Create(&programState.camera);
 
-  programState.settings.camera.moveSpeed = 3.f;
-  programState.settings.camera.nearPlane = 0.5f;
-  programState.settings.camera.farPlane = 10000.f;
-  programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
+  programState.settings.cameraSettings.moveSpeed = 3.f;
+  programState.settings.cameraSettings.nearPlane = 0.5f;
+  programState.settings.cameraSettings.farPlane = 10000.f;
+  programState.settings.cameraSettings.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
   vcModelList.Init(32);
   lastModelLoaded = true;
@@ -322,7 +321,7 @@ int main(int /*argc*/, char ** /*args*/)
   NOW = SDL_GetPerformanceCounter();
   LAST = 0;
 
-  if (vcRender_Init(&vContainer.pRenderContext, &(programState.settings), programState.sceneResolution) != udR_Success)
+  if (vcRender_Init(&vContainer.pRenderContext, &(programState.settings), &programState.camera, programState.sceneResolution) != udR_Success)
     goto epilogue;
 
   // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
@@ -423,7 +422,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
   const Uint8 *pKeysArray = SDL_GetKeyboardState(NULL);
   SDL_Keymod modState = SDL_GetModState();
 
-  float speed = pProgramState->settings.camera.moveSpeed; // 3 units per second default
+  float speed = pProgramState->settings.cameraSettings.moveSpeed; // 3 units per second default
 
   bool isHovered = ImGui::IsItemHovered();
   bool isLeftClicked = ImGui::IsMouseClicked(0, false);
@@ -451,15 +450,15 @@ void vcHandleSceneInput(ProgramState *pProgramState)
 
     if (pProgramState->onScreenControls)
     {
-      pProgramState->moveDirection.forward += (float)((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
-      pProgramState->moveDirection.right += (float)((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
-      pProgramState->moveDirection.vertical += (float)((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
+      pProgramState->camera.moveDirection.forward += (float)((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
+      pProgramState->camera.moveDirection.right += (float)((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
+      pProgramState->camera.moveDirection.vertical += (float)((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
     }
     else
     {
-      pProgramState->moveDirection.forward = (float) ((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
-      pProgramState->moveDirection.right = (float)((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
-      pProgramState->moveDirection.vertical = (float)((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
+      pProgramState->camera.moveDirection.forward = (float) ((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
+      pProgramState->camera.moveDirection.right = (float)((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
+      pProgramState->camera.moveDirection.vertical = (float)((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
     }
 
 
@@ -469,42 +468,47 @@ void vcHandleSceneInput(ProgramState *pProgramState)
       clickedLeftWhileHovered = io.MouseDown[0];
       if (io.MouseDown[0])
       {
-        //cam_x -= mouseDelta.x / size.x*cam_width;
-        //cam_y += mouseDelta.y / size.y*cam_height;
-        udDouble4 translation = pProgramState->camMatrix.axis.t;
-        pProgramState->camMatrix.axis.t = { 0,0,0,1 };
-        pProgramState->camMatrix = udDouble4x4::rotationAxis({ 0,0,-1 }, mouseDelta.x / 100.0) * pProgramState->camMatrix; // rotate on global axis and add back in the position
-        pProgramState->camMatrix.axis.t = translation;
-        pProgramState->camMatrix *= udDouble4x4::rotationAxis({ -1,0,0 }, mouseDelta.y / 100.0); // rotate on local axis, since this is the only one there will be no problem
+        float yawAmount = -mouseDelta.x / 100.f;
+        float pitchAmount = -mouseDelta.y / 100.f;
+        float rollAmount = 0.f;
+
+        pProgramState->camera.yprRotation += udDouble3::create(yawAmount, pitchAmount, rollAmount);
+        pProgramState->camera.yprRotation.y = udClamp(pProgramState->camera.yprRotation.y, (double) -UD_PI/2, (double) UD_PI/2);
       }
     }
 
     if (isHovered)
     {
       if (io.MouseWheel > 0)
-        pProgramState->settings.camera.moveSpeed *= 1.1f;
+        pProgramState->settings.cameraSettings.moveSpeed *= 1.1f;
       if (io.MouseWheel < 0)
-        pProgramState->settings.camera.moveSpeed /= 1.1f;
+        pProgramState->settings.cameraSettings.moveSpeed /= 1.1f;
 
-      pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
+      pProgramState->settings.cameraSettings.moveSpeed = udClamp(pProgramState->settings.cameraSettings.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
     }
   }
 
   // Move the camera
-  udDouble4 direction = pProgramState->camMatrix.axis.y * speed * pProgramState->moveDirection.forward + pProgramState->camMatrix.axis.x * speed * pProgramState->moveDirection.right;
-  if (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)
+
+  udDouble3 addPos = udDouble3::create(pProgramState->camera.moveDirection.right, pProgramState->camera.moveDirection.forward, 0);
+
+  addPos = (udDouble4x4::rotationYPR(pProgramState->camera.yprRotation) * udDouble4::create(addPos, 1)).toVector3();
+  if (pProgramState->settings.cameraSettings.moveMode == vcCMM_Helicopter)
   {
-    direction.z = 0;
-    if (direction.x != 0 || direction.y != 0)
-      direction = udNormalize3(direction) * speed;
-
+    addPos.z = 0;
+    if (addPos.x != 0 || addPos.y != 0)
+      addPos = udNormalize3(addPos);
   }
-  direction += udDouble4{ 0, 0, (double) (pProgramState->moveDirection.vertical * speed), 0 };
-  pProgramState->camMatrix.axis.t += direction * pProgramState->deltaTime;
+  addPos.z += pProgramState->camera.moveDirection.vertical;
+  addPos *= speed * pProgramState->deltaTime;
 
-  pProgramState->moveDirection.vertical = 0;
-  pProgramState->moveDirection.forward = 0;
-  pProgramState->moveDirection.right = 0;
+  pProgramState->camera.position += addPos;
+
+  pProgramState->camMatrix = vcCamera_GetMatrix(&pProgramState->camera);
+
+  pProgramState->camera.moveDirection.vertical = 0;
+  pProgramState->camera.moveDirection.forward = 0;
+  pProgramState->camera.moveDirection.right = 0;
 }
 
 void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgramState)
@@ -595,9 +599,9 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
         ImGui::SetColumnWidth(0, 50);
 
         ImGui::PushID("oscUDSlider");
-        int vertTemp = (int)pProgramState->moveDirection.vertical;
+        int vertTemp = (int)pProgramState->camera.moveDirection.vertical;
         ImGui::VSliderInt("",ImVec2(40,100), &vertTemp, -1, 1, "U/D");
-        pProgramState->moveDirection.vertical = (float)vertTemp;
+        pProgramState->camera.moveDirection.vertical = (float)vertTemp;
         ImGui::PopID();
 
         ImGui::NextColumn();
@@ -615,18 +619,18 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
           ImVec2 value_raw = ImGui::GetMouseDragDelta(0, 0.0f);
 
-          pProgramState->moveDirection.forward = -1.f * value_raw.y / vcSL_OSCPixelRatio;
-          pProgramState->moveDirection.right = value_raw.x / vcSL_OSCPixelRatio;
+          pProgramState->camera.moveDirection.forward = -1.f * value_raw.y / vcSL_OSCPixelRatio;
+          pProgramState->camera.moveDirection.right = value_raw.x / vcSL_OSCPixelRatio;
 
-          if (pProgramState->moveDirection.forward > 1.f)
-            pProgramState->moveDirection.forward = 1.f;
-          else if (pProgramState->moveDirection.forward < -1.f)
-            pProgramState->moveDirection.forward = -1.f;
+          if (pProgramState->camera.moveDirection.forward > 1.f)
+            pProgramState->camera.moveDirection.forward = 1.f;
+          else if (pProgramState->camera.moveDirection.forward < -1.f)
+            pProgramState->camera.moveDirection.forward = -1.f;
 
-          if (pProgramState->moveDirection.right> 1.f)
-            pProgramState->moveDirection.right = 1.f;
-          else if (pProgramState->moveDirection.right< -1.f)
-            pProgramState->moveDirection.right = -1.f;
+          if (pProgramState->camera.moveDirection.right> 1.f)
+            pProgramState->camera.moveDirection.right = 1.f;
+          else if (pProgramState->camera.moveDirection.right< -1.f)
+            pProgramState->camera.moveDirection.right = -1.f;
 
         }
 
@@ -902,11 +906,11 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       if (!lastModelLoaded)
         ImGui::Text("Invalid File/Not Found...");
 
-      ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &pProgramState->camMatrix.axis.t.toVector3().x, 3);
+      ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &pProgramState->camera.position.x, 3);
 
-      ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
+      ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.cameraSettings.moveMode, vcCMM_Plane);
       ImGui::SameLine();
-      ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
+      ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.cameraSettings.moveMode, vcCMM_Helicopter);
 
       ImGui::Checkbox("On Screen Controls", &pProgramState->onScreenControls);
 
@@ -1050,7 +1054,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
       float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
       ImGui::SliderFloat("Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f Degrees");
-      pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(fovDeg);
+      pProgramState->settings.cameraSettings.fieldOfView = UD_DEG2RADf(fovDeg);
 
 
       ImGui::Separator();
@@ -1142,7 +1146,7 @@ bool vcModel_MoveToModelProjection(vaultContainer *pVaultContainer, ProgramState
 
   double midPoint[3];
   vdkModel_GetModelCenter(pVaultContainer->pContext, pModel->pVaultModel, midPoint);
-  pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
+  pProgramState->camera.position = udDouble3::create(midPoint[0], midPoint[1], midPoint[2]);
 
   const char *pSRID = pModel->pMetadata->Get("ProjectionID").AsString();
   const char *pWKT = pModel->pMetadata->Get("ProjectionWKT").AsString();
