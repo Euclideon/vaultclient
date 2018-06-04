@@ -97,6 +97,9 @@ struct ProgramState
 
   vcCamera *pCamera;
 
+  size_t numSelectedModels;
+  size_t prevSelectedModel;
+
   double deltaTime;
   udDouble4x4 camMatrix;
   udUInt2 sceneResolution;
@@ -890,7 +893,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       {
         { "Model List", 400 },
         { "Show", 40 },
-        { "", 35 }, // unload column
+        { "Del", 35 }, // unload column
         { "", 1 } // Null Column at end
       };
 
@@ -933,16 +936,32 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
             {
               vcModelList[j].modelSelected = false;
             }
+            pProgramState->numSelectedModels = 0;
+          }
+          if (modState & KMOD_SHIFT)
+          {
+            size_t startInd = udMin(i, pProgramState->prevSelectedModel);
+            size_t endInd = udMax(i, pProgramState->prevSelectedModel);
+            for (size_t j = startInd; j <= endInd; ++j)
+            {
+              vcModelList[j].modelSelected = true;
+              pProgramState->numSelectedModels++;
+            }
+          }
+          else
+          {
+            vcModelList[i].modelSelected = !vcModelList[i].modelSelected;
+            pProgramState->numSelectedModels += vcModelList[i].modelSelected ? 1 : 0;
           }
 
-          vcModelList[i].modelSelected = true;
+          pProgramState->prevSelectedModel = i;
         }
 
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
           vcModel_MoveToModelProjection(pVaultContainer, pProgramState, &vcModelList[i]);
 
         ImVec2 textSize = ImGui::CalcTextSize(vcModelList[i].modelPath);
-        if (ImGui::IsItemHovered() && (textSize.x >= headers[i].size))
+        if (ImGui::IsItemHovered() && (textSize.x >= headers[0].size))
           ImGui::SetTooltip("%s", vcModelList[i].modelPath);
 
         ImGui::PopID();
@@ -951,7 +970,14 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         char checkboxID[32] = "";
         udSprintf(checkboxID, UDARRAYSIZE(checkboxID), "ModelVisibleCheckbox%i", i);
         ImGui::PushID(checkboxID);
-        ImGui::Checkbox("", &(vcModelList[i].modelVisible));
+        if (ImGui::Checkbox("", &(vcModelList[i].modelVisible)) && vcModelList[i].modelSelected && pProgramState->numSelectedModels > 1)
+        {
+          for (size_t j = 0; j < vcModelList.length; ++j)
+          {
+            if (vcModelList[j].modelSelected)
+              vcModelList[j].modelVisible = vcModelList[i].modelVisible;
+          }
+        }
         ImGui::PopID();
         ImGui::NextColumn();
         // Column 3 - Unload Model
@@ -960,15 +986,38 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         ImGui::PushID(unloadModelID);
         if (ImGui::Button("X",ImVec2(20,20)))
         {
-          // unload model
-          err = vdkModel_Unload(pVaultContainer->pContext, &(vcModelList[i].pVaultModel));
-          if (err != vE_Success)
-            goto epilogue;
+          if (pProgramState->numSelectedModels > 1 && vcModelList[i].modelSelected) // if multiple selected and removed
+          {
+            //unload selected models
+            for (size_t j = 0; j < vcModelList.length; ++j)
+            {
+              if (vcModelList[j].modelSelected)
+              {
+                //unload model
+                err = vdkModel_Unload(pVaultContainer->pContext, &(vcModelList[j].pVaultModel));
+                if (err != vE_Success)
+                  goto epilogue;
 
-          vcModelList.RemoveAt(i);
+                vcModelList.RemoveAt(j);
 
-          lastModelLoaded = true;
-          i--;
+                lastModelLoaded = true;
+                j--;
+              }
+            }
+            i = (pProgramState->numSelectedModels > i) ? 0 : (i - pProgramState->numSelectedModels);
+          }
+          else
+          {
+            // unload model
+            err = vdkModel_Unload(pVaultContainer->pContext, &(vcModelList[i].pVaultModel));
+            if (err != vE_Success)
+              goto epilogue;
+
+            vcModelList.RemoveAt(i);
+
+            lastModelLoaded = true;
+            i--;
+          }
         }
 
         ImGui::PopID();
