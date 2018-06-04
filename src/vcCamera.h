@@ -29,6 +29,8 @@ struct vcCameraSettings
   float nearPlane;
   float farPlane;
   float fieldOfView;
+  bool invertX;
+  bool invertY;
   vcCameraMoveMode moveMode;
 };
 

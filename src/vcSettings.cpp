@@ -195,11 +195,13 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->window.windowsOpen[vcdSceneExplorer] = data.Get("frames.explorer").AsBool(true);
 
     // Camera
-    pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
-    pSettings->camera.nearPlane = data.Get("camera.nearPlane").AsFloat(0.5f);
-    pSettings->camera.farPlane = data.Get("camera.farPlane").AsFloat(10000.f);
-    pSettings->camera.fieldOfView = data.Get("camera.fieldOfView").AsFloat(UD_DEG2RADf(50.f));
-    pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
+    pSettings->cameraSettings.moveSpeed = data.Get("cameraSettings.moveSpeed").AsFloat(10.f);
+    pSettings->cameraSettings.nearPlane = data.Get("cameraSettings.nearPlane").AsFloat(0.5f);
+    pSettings->cameraSettings.farPlane = data.Get("cameraSettings.farPlane").AsFloat(10000.f);
+    pSettings->cameraSettings.fieldOfView = data.Get("cameraSettings.fieldOfView").AsFloat(UD_DEG2RADf(50.f));
+    pSettings->cameraSettings.invertX = data.Get("cameraSettings.invertX").AsBool(false);
+    pSettings->cameraSettings.invertY = data.Get("cameraSettings.invertY").AsBool(true);
+    pSettings->cameraSettings.moveMode = (vcCameraMoveMode)data.Get("cameraSettings.moveMode").AsInt(0);
 
     // Map Tiles
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
@@ -248,11 +250,13 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("frames.explorer = %s", pSettings->window.windowsOpen[vcdSceneExplorer] ? "true" : "false");
 
   // Camera
-  data.Set("camera.moveSpeed = %f", pSettings->camera.moveSpeed);
-  data.Set("camera.nearPlane = %f", pSettings->camera.nearPlane);
-  data.Set("camera.farPlane = %f", pSettings->camera.farPlane);
-  data.Set("camera.fieldOfView = %f", pSettings->camera.fieldOfView);
-  data.Set("camera.moveMode = %d", pSettings->camera.moveMode);
+  data.Set("cameraSettings.moveSpeed = %f", pSettings->cameraSettings.moveSpeed);
+  data.Set("cameraSettings.nearPlane = %f", pSettings->cameraSettings.nearPlane);
+  data.Set("cameraSettings.farPlane = %f", pSettings->cameraSettings.farPlane);
+  data.Set("cameraSettings.fieldOfView = %f", pSettings->cameraSettings.fieldOfView);
+  data.Set("cameraSettings.invertX = %i", pSettings->cameraSettings.invertX ? 1 : 0);
+  data.Set("cameraSettings.invertY = %i", pSettings->cameraSettings.invertY ? 1 : 0);
+  data.Set("cameraSettings.moveMode = %d", pSettings->cameraSettings.moveMode);
 
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");

@@ -469,8 +469,13 @@ void vcHandleSceneInput(ProgramState *pProgramState)
       if (io.MouseDown[0])
       {
         float yawAmount = -mouseDelta.x / 100.f;
-        float pitchAmount = -mouseDelta.y / 100.f;
+        float pitchAmount = mouseDelta.y / 100.f;
         float rollAmount = 0.f;
+
+        if (pProgramState->settings.cameraSettings.invertX)
+          yawAmount *= -1;
+        if (pProgramState->settings.cameraSettings.invertY)
+          pitchAmount *= -1;
 
         pProgramState->camera.yprRotation += udDouble3::create(yawAmount, pitchAmount, rollAmount);
         pProgramState->camera.yprRotation.y = udClamp(pProgramState->camera.yprRotation.y, (double) -UD_PI/2, (double) UD_PI/2);
@@ -908,12 +913,6 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
       ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &pProgramState->camera.position.x, 3);
 
-      ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.cameraSettings.moveMode, vcCMM_Plane);
-      ImGui::SameLine();
-      ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.cameraSettings.moveMode, vcCMM_Helicopter);
-
-      ImGui::Checkbox("On Screen Controls", &pProgramState->onScreenControls);
-
       // Models
 
       int minMaxColumnSize[][2] =
@@ -1045,14 +1044,24 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::Separator();
       ImGui::Text("Camera");
 
-      ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f);
-      if (ImGui::SliderFloat("Near Plane", &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))
-        pProgramState->settings.camera.farPlane = udMin(pProgramState->settings.camera.farPlane, pProgramState->settings.camera.nearPlane * vcSL_CameraNearFarPlaneRatioMax);
+      ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.cameraSettings.moveMode, vcCMM_Plane);
+      ImGui::SameLine();
+      ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.cameraSettings.moveMode, vcCMM_Helicopter);
+      ImGui::SameLine();
+      ImGui::Checkbox("On Screen Controls", &pProgramState->onScreenControls);
 
-      if (ImGui::SliderFloat("Far Plane", &pProgramState->settings.camera.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "%.3fm", 2.f))
-        pProgramState->settings.camera.nearPlane = udMax(pProgramState->settings.camera.nearPlane, pProgramState->settings.camera.farPlane / vcSL_CameraNearFarPlaneRatioMax);
+      ImGui::Checkbox("Invert X-axis", &pProgramState->settings.cameraSettings.invertX);
+      ImGui::SameLine();
+      ImGui::Checkbox("Invert Y-axis", &pProgramState->settings.cameraSettings.invertY);
 
-      float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
+      ImGui::SliderFloat("Move Speed", &(pProgramState->settings.cameraSettings.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f);
+      if (ImGui::SliderFloat("Near Plane", &pProgramState->settings.cameraSettings.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))
+        pProgramState->settings.cameraSettings.farPlane = udMin(pProgramState->settings.cameraSettings.farPlane, pProgramState->settings.cameraSettings.nearPlane * vcSL_CameraNearFarPlaneRatioMax);
+
+      if (ImGui::SliderFloat("Far Plane", &pProgramState->settings.cameraSettings.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "%.3fm", 2.f))
+        pProgramState->settings.cameraSettings.nearPlane = udMax(pProgramState->settings.cameraSettings.nearPlane, pProgramState->settings.cameraSettings.farPlane / vcSL_CameraNearFarPlaneRatioMax);
+
+      float fovDeg = UD_RAD2DEGf(pProgramState->settings.cameraSettings.fieldOfView);
       ImGui::SliderFloat("Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f Degrees");
       pProgramState->settings.cameraSettings.fieldOfView = UD_DEG2RADf(fovDeg);
 
