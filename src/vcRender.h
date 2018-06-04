@@ -1,15 +1,16 @@
 #ifndef vcRender_h__
 #define vcRender_h__
 
-#include "vcRenderUtils.h"
-#include "vaultUDRenderer.h"
-#include "vaultUDRenderView.h"
 #include "udPlatform/udChunkedArray.h"
-#include "vcSettings.h"
 #include "udPlatform/udValue.h"
 
+#include "vdkRenderContext.h"
+#include "vdkRenderView.h"
+
+#include "vcRenderUtils.h"
+#include "vcSettings.h"
+
 struct vcRenderContext;
-struct vaultContext;
 
 struct vcModel
 {
@@ -17,7 +18,7 @@ struct vcModel
   bool modelLoaded;
   bool modelVisible;
   bool modelSelected;
-  vaultUDModel *pVaultModel;
+  vdkModel *pVaultModel;
   udValue *pMetadata;
 };
 
@@ -33,7 +34,7 @@ struct vcRenderData
 udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings, const udUInt2 &windowResolution);
 udResult vcRender_Destroy(vcRenderContext **pRenderContext);
 
-udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vaultContext *pVaultContext);
+udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vdkContext *pVaultContext);
 
 udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);
 
