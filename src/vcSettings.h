@@ -48,6 +48,9 @@ struct vcSettings
 {
   bool noLocalStorage; //If set to true; cannot save or load from local storage
   const char *pSaveFilePath;
+  char resourceBase[vcMaxPathLength]; // Could be any of: http://uds.domain.local or /mnt/uds or R:/
+
+  bool showFPS;
 
   struct
   {
@@ -69,11 +72,6 @@ struct vcSettings
     float fieldOfView;
     vcCameraMoveMode moveMode;
   } camera;
-
-  struct
-  {
-    char resourceBase[vcMaxPathLength]; // Could be any of: http://uds.domain.local or /mnt/uds or R:/
-  } server;
 
   struct
   {

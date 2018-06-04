@@ -547,16 +547,23 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
     if (ImGui::Begin("SceneOverlay", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
     {
-      ImGui::Text("Scene Info Overlay");
-
-      ImGui::Separator();
-      ImGui::Text("SRID: %d", pProgramState->currentSRID);
-
       if (pProgramState->currentSRID != 0)
       {
         udDouble3 cameraLatLong;
         vcGIS_LocalToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &cameraLatLong);
+
+        ImGui::Text("SRID: %d", pProgramState->currentSRID);
         ImGui::Text("LAT/LONG: %f %f", cameraLatLong.x, cameraLatLong.y);
+      }
+      else
+      {
+        ImGui::Text("Not Geolocated");
+      }
+
+      if (pProgramState->settings.showFPS)
+      {
+        ImGui::Separator();
+        ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
       }
 
       ImGui::Separator();
@@ -676,10 +683,11 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
       ImGui::MenuItem("Scene Explorer", nullptr, &pProgramState->settings.window.windowsOpen[vcdSceneExplorer]);
       ImGui::MenuItem("Settings", nullptr, &pProgramState->settings.window.windowsOpen[vcdSettings]);
       ImGui::Separator();
-      if (ImGui::BeginMenu("Debug Windows"))
+      if (ImGui::BeginMenu("Debug"))
       {
         ImGui::MenuItem("Styling", nullptr, &pProgramState->settings.window.windowsOpen[vcdStyling]);
         ImGui::MenuItem("UI Debug Menu", nullptr, &pProgramState->settings.window.windowsOpen[vcdUIDemo]);
+        ImGui::MenuItem("Show FPS", nullptr, &pProgramState->settings.showFPS);
         ImGui::EndMenu();
       }
 
@@ -689,7 +697,7 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
     udValueArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
     if (pProjectList != nullptr)
     {
-      if (ImGui::BeginMenu("Projects", pProjectList->length > 0 && !udStrEqual(pProgramState->settings.server.resourceBase, "")))
+      if (ImGui::BeginMenu("Projects", pProjectList->length > 0 && !udStrEqual(pProgramState->settings.resourceBase, "")))
       {
         for (size_t i = 0; i < pProjectList->length; ++i)
         {
@@ -700,7 +708,7 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
             for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
             {
               char buffer[vcMaxPathLength];
-              udSprintf(buffer, vcMaxPathLength, "%s/%s", pProgramState->settings.server.resourceBase, pProjectList->GetElement(i)->Get("models[%d]", j).AsString());
+              udSprintf(buffer, vcMaxPathLength, "%s/%s", pProgramState->settings.resourceBase, pProjectList->GetElement(i)->Get("models[%d]", j).AsString());
               vcModel_AddToList(pVaultContainer, pProgramState, buffer);
             }
           }
@@ -727,8 +735,6 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
   vdkError err;
   SDL_Keymod modState = SDL_GetModState();
 
-  int menuHeight = (!pProgramState->hasContext) ? 0 : vcMainMenuGui(pProgramState, pVaultContainer);
-
   //keyboard/mouse handling
   if (ImGui::IsKeyReleased(SDL_SCANCODE_F11))
   {
@@ -749,22 +755,14 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
   //end keyboard/mouse handling
 
-  if (ImGui::GetIO().DisplaySize.y > 0)
+  if (pProgramState->hasContext)
   {
-    ImVec2 pos = ImVec2(0.f, (float)menuHeight);
-    size.y -= pos.y;
-
-    ImGui::RootDock(pos, ImVec2(size.x, size.y - 25.0f));
-
-    if (menuHeight != 0)
-    {
-      // Draw status bar (no docking)
-      ImGui::SetNextWindowSize(ImVec2(size.x, 25.0f), ImGuiCond_Always);
-      ImGui::SetNextWindowPos(ImVec2(0, size.y - 6.0f), ImGuiCond_Always);
-      ImGui::Begin("statusbar", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoResize);
-      ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
-      ImGui::End();
-    }
+    int menuHeight = vcMainMenuGui(pProgramState, pVaultContainer);
+    ImGui::RootDock(ImVec2(0, menuHeight), ImVec2(size.x, size.y - menuHeight));
+  }
+  else
+  {
+    ImGui::RootDock(ImVec2(0, 0), ImVec2(size.x, size.y));
   }
 
   if (!pProgramState->hasContext)
@@ -823,7 +821,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
     if (ImGui::Begin("_DEVSERVER", nullptr, ImGuiWindowFlags_NoCollapse))
     {
       ImGui::Text("Vault Server: %s", pProgramState->serverURL);
-      ImGui::Text("Resource Location: %s", pProgramState->settings.server.resourceBase);
+      ImGui::Text("Resource Location: %s", pProgramState->settings.resourceBase);
       ImGui::Text("Tile Server: %s", pProgramState->settings.maptiles.tileServerAddress);
 
       ImGui::Separator();
@@ -831,7 +829,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       if (ImGui::Button("Use 'pfox'"))
       {
         udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
-        udStrcpy(pProgramState->settings.server.resourceBase, vcMaxPathLength, "http://pfox.euclideon.local:8080");
+        udStrcpy(pProgramState->settings.resourceBase, vcMaxPathLength, "http://pfox.euclideon.local:8080");
         udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox.euclideon.local:8123");
       }
 
@@ -840,7 +838,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       if (ImGui::Button("Use 'pfox-vpn'"))
       {
         udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
-        udStrcpy(pProgramState->settings.server.resourceBase, vcMaxPathLength, "http://pfox-vpn.euclideon.local:8080");
+        udStrcpy(pProgramState->settings.resourceBase, vcMaxPathLength, "http://pfox-vpn.euclideon.local:8080");
         udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox-vpn.euclideon.local:8123");
       }
 
@@ -849,7 +847,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       if (ImGui::Button("Use Dan Conference"))
       {
         udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://192.168.1.1");
-        udStrcpy(pProgramState->settings.server.resourceBase, vcMaxPathLength, "http://192.168.1.1:8080");
+        udStrcpy(pProgramState->settings.resourceBase, vcMaxPathLength, "http://192.168.1.1:8080");
         udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://192.168.1.1:8123");
       }
 
@@ -869,7 +867,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         if (changed)
         {
           udSprintf(pProgramState->serverURL, vcMaxPathLength, "http://%d.%d.%d.%d", ipBlocks[0], ipBlocks[1], ipBlocks[2], ipBlocks[3]);
-          udSprintf(pProgramState->settings.server.resourceBase, vcMaxPathLength, "http://%d.%d.%d.%d:8080", ipBlocks[0], ipBlocks[1], ipBlocks[2], ipBlocks[3]);
+          udSprintf(pProgramState->settings.resourceBase, vcMaxPathLength, "http://%d.%d.%d.%d:8080", ipBlocks[0], ipBlocks[1], ipBlocks[2], ipBlocks[3]);
           udSprintf(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://%d.%d.%d.%d:8123", ipBlocks[0], ipBlocks[1], ipBlocks[2], ipBlocks[3]);
         }
       }
