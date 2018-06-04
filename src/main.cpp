@@ -975,11 +975,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         }
 
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
-        {
-          double midPoint[3];
-          vdkModel_GetModelCenter(pVaultContainer->pContext, vcModelList[i].pVaultModel, midPoint);
-          pProgramState->camMatrix.axis.t = udDouble4::create(midPoint[0], midPoint[1], midPoint[2], 1.0);
-        }
+          vcModel_MoveToModelProjection(pVaultContainer, pProgramState, &vcModelList[i]);
 
         ImVec2 textSize = ImGui::CalcTextSize(vcModelList[i].modelPath);
         if (ImGui::IsItemHovered() && (textSize.x >= headers[i].size))
