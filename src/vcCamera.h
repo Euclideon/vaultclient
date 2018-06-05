@@ -22,14 +22,14 @@ struct vcCameraSettings
   vcCameraMoveMode moveMode;
 };
 
-void vcCamera_Init(vcCamera **ppCamera);
-void vcCamera_DeInit(vcCamera **ppCamera);
+void vcCamera_Create(vcCamera **ppCamera);
+void vcCamera_Destroy(vcCamera **ppCamera);
 
 // Get camera matrix
 udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera);
 
 // Applies movement instruction for next frame
-void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 yprRotation, udDouble3 frvVector);
+void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset);
 
 // Moves based on buffers
 void vcCamera_Update(vcCamera *pCamera, vcCameraSettings *pCamSettings, double deltaTime, float speedModifier = 1.f);
