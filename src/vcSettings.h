@@ -61,7 +61,7 @@ struct vcSettings
     bool windowsOpen[vcdTotalDocks];
   } window;
 
-  vcCameraSettings cameraSettings;
+  vcCameraSettings camera;
 
   struct
   {

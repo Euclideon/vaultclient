@@ -170,10 +170,10 @@ epilogue:
 udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height)
 {
   udResult result = udR_Success;
-  float fov = pRenderContext->pSettings->cameraSettings.fieldOfView;
+  float fov = pRenderContext->pSettings->camera.fieldOfView;
   float aspect = width / (float)height;
-  float zNear = pRenderContext->pSettings->cameraSettings.nearPlane;
-  float zFar = pRenderContext->pSettings->cameraSettings.farPlane;
+  float zNear = pRenderContext->pSettings->camera.nearPlane;
+  float zFar = pRenderContext->pSettings->camera.farPlane;
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
   UD_ERROR_IF(width == 0, udR_InvalidParameter_);
@@ -259,10 +259,10 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
     int currentZoom = 21;
 
     // Cardinal Limits
-    localCorners[0] = localCamPos + udDouble3::create(-pRenderContext->pSettings->cameraSettings.farPlane, +pRenderContext->pSettings->cameraSettings.farPlane, 0);
-    localCorners[1] = localCamPos + udDouble3::create(+pRenderContext->pSettings->cameraSettings.farPlane, +pRenderContext->pSettings->cameraSettings.farPlane, 0);
-    localCorners[2] = localCamPos + udDouble3::create(-pRenderContext->pSettings->cameraSettings.farPlane, -pRenderContext->pSettings->cameraSettings.farPlane, 0);
-    localCorners[3] = localCamPos + udDouble3::create(+pRenderContext->pSettings->cameraSettings.farPlane, -pRenderContext->pSettings->cameraSettings.farPlane, 0);
+    localCorners[0] = localCamPos + udDouble3::create(-pRenderContext->pSettings->camera.farPlane, +pRenderContext->pSettings->camera.farPlane, 0);
+    localCorners[1] = localCamPos + udDouble3::create(+pRenderContext->pSettings->camera.farPlane, +pRenderContext->pSettings->camera.farPlane, 0);
+    localCorners[2] = localCamPos + udDouble3::create(-pRenderContext->pSettings->camera.farPlane, -pRenderContext->pSettings->camera.farPlane, 0);
+    localCorners[3] = localCamPos + udDouble3::create(+pRenderContext->pSettings->camera.farPlane, -pRenderContext->pSettings->camera.farPlane, 0);
 
     for (int i = 0; i < 4; ++i)
       vcGIS_LocalToSlippy(renderData.srid, &slippyCorners[i], localCorners[i], currentZoom);
