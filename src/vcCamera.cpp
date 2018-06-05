@@ -13,7 +13,7 @@ void vcCamera_Init(vcCamera *pCamera)
 
 void vcCamera_DeInit(vcCamera *pCamera)
 {
-
+  udUnused(pCamera);
 }
 
 udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera)
