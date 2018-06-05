@@ -131,6 +131,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer);
 
 void vcSettings_LoadSettings(ProgramState *pProgramState, bool forceDefaults);
+bool vcLogout(ProgramState *pProgramState, vaultContainer *pVaultContainer);
 
 void vcModel_AddToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, const char *pFilePath);
 bool vcModel_UnloadList(vaultContainer *pVaultContainer);
@@ -648,7 +649,6 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
 {
   int menuHeight = 0;
-  vdkError err;
 
   if (ImGui::BeginMainMenuBar())
   {
@@ -656,21 +656,8 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
     {
       if (ImGui::MenuItem("Logout"))
       {
-        static const char *pErrorMessage = nullptr;
-
-        if (!vcModel_UnloadList(pVaultContainer))
-          pErrorMessage = "Error unloading models!";
-
-        if (pErrorMessage == nullptr)
-        {
-          err = vdkContext_Logout(pVaultContainer->pContext);
-          if (err == vE_Success)
-            pProgramState->hasContext = false;
-        }
-        else
-        {
+        if(!vcLogout(pProgramState, pVaultContainer))
           ImGui::OpenPopup("Logout Error");
-        }
       }
 
       if (ImGui::MenuItem("Restore Defaults", nullptr))
@@ -859,6 +846,16 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       }
 
       ImGui::SameLine();
+
+      if (ImGui::Button("Local"))
+      {
+        udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
+        udStrcpy(pProgramState->settings.resourceBase, vcMaxPathLength, "http://127.0.0.1:8080");
+        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://127.0.0.1:8123");
+      }
+
+      ImGui::SameLine();
+
       static bool custom = false;
       ImGui::Checkbox("Custom", &custom);
       if (custom)
@@ -1293,4 +1290,20 @@ void vcSettings_LoadSettings(ProgramState *pProgramState, bool forceDefaults)
     SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
 #endif
   }
+}
+
+
+bool vcLogout(ProgramState *pProgramState, vaultContainer *pVaultContainer)
+{
+  bool success = true;
+
+  success &= vcModel_UnloadList(pVaultContainer);
+  success &= vcRender_ClearCache(pVaultContainer->pRenderContext);
+
+  pProgramState->currentSRID = 0;
+
+  success = success && vdkContext_Logout(pVaultContainer->pContext) == vE_Success;
+  pProgramState->hasContext = !success;
+
+  return success;
 }

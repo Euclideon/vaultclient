@@ -14,4 +14,6 @@ void vcTerrain_Render(vcTerrain *pTerrain, const udDouble4x4 &viewProj);
 
 void vcTerrain_SetEnabled(vcTerrain *pTerrain, bool enabled);
 
+bool vcTerrain_ClearCache(vcTerrain *pTerrain);
+
 #endif//vcTerrain_h__
