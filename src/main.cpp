@@ -573,8 +573,13 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
         ImGui::SetColumnWidth(0, 50);
 
+        double forward = 0;
+        double right = 0;
+        float vertical = 0;
+
         ImGui::PushID("oscUDSlider");
-        ImGui::VSliderFloat("",ImVec2(40,100), &pProgramState->camera.moveDirection.vertical, -1, 1, "U/D"); // this bypasses the vcCamera_Apply, but it is fine
+
+        ImGui::VSliderFloat("",ImVec2(40,100), &vertical, -1, 1, "U/D");
         ImGui::PopID();
 
         ImGui::NextColumn();
@@ -592,12 +597,10 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
           ImVec2 value_raw = ImGui::GetMouseDragDelta(0, 0.0f);
 
-          double forward = -1.f * value_raw.y / vcSL_OSCPixelRatio;
-          double right = value_raw.x / vcSL_OSCPixelRatio;
-
-          vcCamera_Apply(&pProgramState->camera, &pProgramState->settings.camera, udDouble3::zero(), udDouble3::create(forward, right, 0));
+          forward = -1.f * value_raw.y / vcSL_OSCPixelRatio;
+          right = value_raw.x / vcSL_OSCPixelRatio;
         }
-
+        vcCamera_Apply(&pProgramState->camera, &pProgramState->settings.camera, udDouble3::zero(), udDouble3::create(forward, right, (double) vertical));
         ImGui::Columns(1);
       }
       ImGui::End();
