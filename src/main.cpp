@@ -576,7 +576,9 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
         ImGui::PushID("oscUDSlider");
 
-        ImGui::VSliderFloat("",ImVec2(40,100), &vertical, -1, 1, "U/D");
+        if(ImGui::VSliderFloat("",ImVec2(40,100), &vertical, -1, 1, "U/D"))
+          vertical = udClamp(vertical, 1.f, 1.f);
+
         ImGui::PopID();
 
         ImGui::NextColumn();
@@ -1016,15 +1018,23 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::Checkbox("Invert Y-axis", &pProgramState->settings.camera.invertY);
 
       ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f);
+      pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
+
       if (ImGui::SliderFloat("Near Plane", &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))
+      {
+        pProgramState->settings.camera.nearPlane = udClamp(pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax);
         pProgramState->settings.camera.farPlane = udMin(pProgramState->settings.camera.farPlane, pProgramState->settings.camera.nearPlane * vcSL_CameraNearFarPlaneRatioMax);
+      }
 
       if (ImGui::SliderFloat("Far Plane", &pProgramState->settings.camera.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "%.3fm", 2.f))
+      {
+        pProgramState->settings.camera.farPlane = udClamp(pProgramState->settings.camera.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax);
         pProgramState->settings.camera.nearPlane = udMax(pProgramState->settings.camera.nearPlane, pProgramState->settings.camera.farPlane / vcSL_CameraNearFarPlaneRatioMax);
+      }
 
       float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
       ImGui::SliderFloat("Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f Degrees");
-      pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(fovDeg);
+      pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg,vcSL_CameraFieldOfViewMin,vcSL_CameraFieldOfViewMax));
 
 
       ImGui::Separator();
@@ -1036,6 +1046,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         ImGui::InputText("Tile Server", pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength);
 
         ImGui::SliderFloat("Map Height", &pProgramState->settings.maptiles.mapHeight, -1000.f, 1000.f, "%.3fm", 2.f);
+        pProgramState->settings.maptiles.mapHeight = udClamp(pProgramState->settings.maptiles.mapHeight, -1000.f, 1000.f);
 
         const char* blendModes[] = { "Hybrid", "Overlay" };
         if (ImGui::BeginCombo("Blending", blendModes[pProgramState->settings.maptiles.blendMode]))
@@ -1054,6 +1065,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         }
 
         ImGui::SliderFloat("Transparency", &pProgramState->settings.maptiles.transparency, 0.f, 1.f, "%.3f");
+        pProgramState->settings.maptiles.transparency = udClamp(pProgramState->settings.maptiles.transparency, 0.f, 1.f);
       }
     }
     ImGui::EndDock();
