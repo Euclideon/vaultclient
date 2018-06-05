@@ -17,16 +17,16 @@ struct vcCamera
 
   struct
   {
-    float vertical;
-    float forward;
-    float right;
+    double vertical;
+    double forward;
+    double right;
   } moveDirection; // buffer for movement
 
   struct
   {
-    float yaw;
-    float pitch;
-    float roll;
+    double yaw;
+    double pitch;
+    double roll;
   } yprDirection; // buffer for rotation
 };
 
