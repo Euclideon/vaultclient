@@ -4,13 +4,12 @@ struct vcCamera
 {
   udDouble3 position;
   udDouble3 yprRotation;
-  udQuaternion<double> orientation;
 
   udDouble3 moveOffset; // right, forward, vertical
   udDouble3 rotationOffset; // yaw, pitch, roll
 };
 
-void vcCamera_Init(vcCamera **ppCamera)
+void vcCamera_Create(vcCamera **ppCamera)
 {
   if (ppCamera == nullptr)
     return;
@@ -18,7 +17,6 @@ void vcCamera_Init(vcCamera **ppCamera)
   vcCamera *pCamera = udAllocType(vcCamera, 1, udAF_None);
   pCamera->position = udDouble3::zero();
   pCamera->yprRotation = udDouble3::zero();
-  pCamera->orientation = udQuaternion<double>::identity();
 
   pCamera->moveOffset = udDouble3::zero();
   pCamera->rotationOffset = udDouble3::zero();
@@ -26,7 +24,7 @@ void vcCamera_Init(vcCamera **ppCamera)
   *ppCamera = pCamera;
 }
 
-void vcCamera_DeInit(vcCamera **ppCamera)
+void vcCamera_Destroy(vcCamera **ppCamera)
 {
   if(ppCamera != nullptr)
     udFree(*ppCamera);
@@ -34,9 +32,9 @@ void vcCamera_DeInit(vcCamera **ppCamera)
 
 udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera)
 {
-  pCamera->orientation = udQuaternion<double>::create(pCamera->yprRotation);
-  udDouble3 lookPos = pCamera->position + pCamera->orientation.apply(udDouble3::create(0, 1, 0));
-  return udDouble4x4::lookAt(pCamera->position, lookPos, pCamera->orientation.apply(udDouble3::create(0, 0, 1)));
+  udQuaternion<double> orientation = udQuaternion<double>::create(pCamera->yprRotation);
+  udDouble3 lookPos = pCamera->position + orientation.apply(udDouble3::create(0, 1, 0));
+  return udDouble4x4::lookAt(pCamera->position, lookPos, orientation.apply(udDouble3::create(0, 0, 1)));
 }
 
 void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset)

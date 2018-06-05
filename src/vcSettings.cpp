@@ -200,7 +200,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->camera.farPlane = data.Get("camera.farPlane").AsFloat(10000.f);
     pSettings->camera.fieldOfView = data.Get("camera.fieldOfView").AsFloat(UD_DEG2RADf(50.f));
     pSettings->camera.invertX = data.Get("camera.invertX").AsBool(false);
-    pSettings->camera.invertY = data.Get("camera.invertY").AsBool(true);
+    pSettings->camera.invertY = data.Get("camera.invertY").AsBool(false);
     pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
 
     // Map Tiles

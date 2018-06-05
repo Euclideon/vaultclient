@@ -188,7 +188,7 @@ int main(int /*argc*/, char ** /*args*/)
   programState.onScreenControls = false;
 #endif
   programState.camMatrix = udDouble4x4::identity();
-  vcCamera_Init(&programState.pCamera);
+  vcCamera_Create(&programState.pCamera);
 
   programState.settings.camera.moveSpeed = 3.f;
   programState.settings.camera.nearPlane = 0.5f;
@@ -399,7 +399,7 @@ int main(int /*argc*/, char ** /*args*/)
   ImGui::DestroyContext();
 
 epilogue:
-  vcCamera_DeInit(&programState.pCamera);
+  vcCamera_Destroy(&programState.pCamera);
   vcTextureDestroy(&programState.watermarkTexture);
   free(pIconData);
   free(pEucWatermarkData);
@@ -424,13 +424,9 @@ void vcHandleSceneInput(ProgramState *pProgramState)
   SDL_Keymod modState = SDL_GetModState();
 
   float speedModifier = 1.f;
-  float forward = 0;
-  float right = 0;
-  float vertical = 0;
 
-  float yawAmount = 0.f;
-  float pitchAmount = 0.f;
-  float rollAmount = 0.f;
+  udDouble3 moveOffset = udDouble3::zero();
+  udDouble3 rotationOffset = udDouble3::zero();
 
   bool isHovered = ImGui::IsItemHovered();
   bool isLeftClicked = ImGui::IsMouseClicked(0, false);
@@ -456,18 +452,18 @@ void vcHandleSceneInput(ProgramState *pProgramState)
   {
     ImVec2 mouseDelta = io.MouseDelta;
 
-    forward += (float)((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
-    right += (float)((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
-    vertical += (float)((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
+    moveOffset.y += (float)((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
+    moveOffset.x += (float)((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
+    moveOffset.z += (float)((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
 
     if (clickedLeftWhileHovered && !isLeftClicked)
     {
       clickedLeftWhileHovered = io.MouseDown[0];
       if (io.MouseDown[0])
       {
-        yawAmount = -mouseDelta.x / 100.f;
-        pitchAmount = mouseDelta.y / 100.f;
-        rollAmount = 0.f;
+        rotationOffset.x = -mouseDelta.x / 100.f;
+        rotationOffset.y = -mouseDelta.y / 100.f;
+        rotationOffset.z = 0.f;
       }
     }
 
@@ -482,7 +478,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
     }
   }
 
-  vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, udDouble3::create(yawAmount, pitchAmount, rollAmount), udDouble3::create(right, forward, vertical));
+  vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, rotationOffset, moveOffset);
   vcCamera_Update(pProgramState->pCamera, &pProgramState->settings.camera, pProgramState->deltaTime, speedModifier);
   pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera);
 }
