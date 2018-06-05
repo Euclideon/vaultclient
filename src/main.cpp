@@ -95,7 +95,7 @@ struct ProgramState
 
   bool onScreenControls;
 
-  vcCamera camera;
+  vcCamera *pCamera;
 
   double deltaTime;
   udDouble4x4 camMatrix;
@@ -188,7 +188,7 @@ int main(int /*argc*/, char ** /*args*/)
   programState.onScreenControls = false;
 #endif
   programState.camMatrix = udDouble4x4::identity();
-  vcCamera_Init(&programState.camera);
+  vcCamera_Init(&programState.pCamera);
 
   programState.settings.camera.moveSpeed = 3.f;
   programState.settings.camera.nearPlane = 0.5f;
@@ -321,7 +321,7 @@ int main(int /*argc*/, char ** /*args*/)
   NOW = SDL_GetPerformanceCounter();
   LAST = 0;
 
-  if (vcRender_Init(&vContainer.pRenderContext, &(programState.settings), &programState.camera, programState.sceneResolution) != udR_Success)
+  if (vcRender_Init(&vContainer.pRenderContext, &(programState.settings), programState.pCamera, programState.sceneResolution) != udR_Success)
     goto epilogue;
 
   // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
@@ -399,7 +399,7 @@ int main(int /*argc*/, char ** /*args*/)
   ImGui::DestroyContext();
 
 epilogue:
-  vcCamera_DeInit(&programState.camera);
+  vcCamera_DeInit(&programState.pCamera);
   vcTextureDestroy(&programState.watermarkTexture);
   free(pIconData);
   free(pEucWatermarkData);
@@ -482,9 +482,9 @@ void vcHandleSceneInput(ProgramState *pProgramState)
     }
   }
 
-  vcCamera_Apply(&pProgramState->camera, &pProgramState->settings.camera, udDouble3::create(yawAmount, pitchAmount, rollAmount), udDouble3::create(forward, right, vertical));
-  vcCamera_Update(&pProgramState->camera, &pProgramState->settings.camera, pProgramState->deltaTime, speedModifier);
-  pProgramState->camMatrix = vcCamera_GetMatrix(&pProgramState->camera);
+  vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, udDouble3::create(yawAmount, pitchAmount, rollAmount), udDouble3::create(right, forward, vertical));
+  vcCamera_Update(pProgramState->pCamera, &pProgramState->settings.camera, pProgramState->deltaTime, speedModifier);
+  pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera);
 }
 
 void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgramState)
@@ -601,7 +601,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
           forward = -1.f * value_raw.y / vcSL_OSCPixelRatio;
           right = value_raw.x / vcSL_OSCPixelRatio;
         }
-        vcCamera_Apply(&pProgramState->camera, &pProgramState->settings.camera, udDouble3::zero(), udDouble3::create(forward, right, (double) vertical));
+        vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, udDouble3::zero(), udDouble3::create(right, forward, (double) vertical));
         ImGui::Columns(1);
       }
       ImGui::End();
@@ -874,7 +874,9 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       if (!lastModelLoaded)
         ImGui::Text("Invalid File/Not Found...");
 
-      ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &pProgramState->camera.position.x, 3);
+      udDouble3 cameraPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
+      ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &cameraPosition.x, 3);
+      vcCamera_SetPosition(pProgramState->pCamera, cameraPosition);
 
       // Models
 
@@ -1118,7 +1120,7 @@ bool vcModel_MoveToModelProjection(vaultContainer *pVaultContainer, ProgramState
 
   double midPoint[3];
   vdkModel_GetModelCenter(pVaultContainer->pContext, pModel->pVaultModel, midPoint);
-  pProgramState->camera.position = udDouble3::create(midPoint[0], midPoint[1], midPoint[2]);
+  vcCamera_SetPosition(pProgramState->pCamera, udDouble3::create(midPoint[0], midPoint[1], midPoint[2]));
 
   const char *pSRID = pModel->pMetadata->Get("ProjectionID").AsString();
   const char *pWKT = pModel->pMetadata->Get("ProjectionWKT").AsString();
