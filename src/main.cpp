@@ -188,7 +188,7 @@ int main(int /*argc*/, char ** /*args*/)
   programState.onScreenControls = false;
 #endif
   programState.camMatrix = udDouble4x4::identity();
-  vcCamera_Create(&programState.camera);
+  vcCamera_Init(&programState.camera);
 
   programState.settings.camera.moveSpeed = 3.f;
   programState.settings.camera.nearPlane = 0.5f;
@@ -399,6 +399,7 @@ int main(int /*argc*/, char ** /*args*/)
   ImGui::DestroyContext();
 
 epilogue:
+  vcCamera_DeInit(&programState.camera);
   vcTextureDestroy(&programState.watermarkTexture);
   free(pIconData);
   free(pEucWatermarkData);

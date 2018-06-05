@@ -1,7 +1,6 @@
 #include "vcCamera.h"
-#include "udPlatform/udMath.h"
 
-void vcCamera_Create(vcCamera * pCamera)
+void vcCamera_Init(vcCamera *pCamera)
 {
   pCamera->position = udDouble3::zero();
   pCamera->yprRotation = udDouble3::zero();
@@ -12,7 +11,12 @@ void vcCamera_Create(vcCamera * pCamera)
   pCamera->moveDirection.vertical = 0.f;
 }
 
-udDouble4x4 vcCamera_GetMatrix(vcCamera * pCamera)
+void vcCamera_DeInit(vcCamera *pCamera)
+{
+
+}
+
+udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera)
 {
   pCamera->orientation = udQuaternion<double>::create(pCamera->yprRotation);
   udDouble3 lookPos = pCamera->position + pCamera->orientation.apply(udDouble3::create(0, 1, 0));
