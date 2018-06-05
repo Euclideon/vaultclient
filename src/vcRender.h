@@ -45,4 +45,6 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &re
 
 void vcRenderSkybox(vcRenderContext *pRenderContext);
 
+bool vcRender_ClearCache(vcRenderContext *pRenderContext);
+
 #endif//vcRender_h__

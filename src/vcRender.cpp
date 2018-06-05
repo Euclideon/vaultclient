@@ -388,3 +388,8 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
   glBindVertexArray(0);
   glUseProgram(0);
 }
+
+bool vcRender_ClearCache(vcRenderContext *pRenderContext)
+{
+  return vcTerrain_ClearCache(pRenderContext->pTerrain);
+}

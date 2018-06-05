@@ -74,3 +74,9 @@ void vcTerrain_SetEnabled(vcTerrain *pTerrain, bool enabled)
 {
   pTerrain->enabled = enabled;
 }
+
+bool vcTerrain_ClearCache(vcTerrain *pTerrain)
+{
+  vcTerrainRenderer_ClearCache(pTerrain->pTerrainRenderer);
+  return true;
+}
