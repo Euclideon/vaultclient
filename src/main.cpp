@@ -1017,8 +1017,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::SameLine();
       ImGui::Checkbox("Invert Y-axis", &pProgramState->settings.camera.invertY);
 
-      ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f);
-      pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
+      if(ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f))
+        pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
 
       if (ImGui::SliderFloat("Near Plane", &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))
       {
@@ -1033,8 +1033,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       }
 
       float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
-      ImGui::SliderFloat("Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f Degrees");
-      pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg,vcSL_CameraFieldOfViewMin,vcSL_CameraFieldOfViewMax));
+      if(ImGui::SliderFloat("Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f Degrees"))
+        pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg,vcSL_CameraFieldOfViewMin,vcSL_CameraFieldOfViewMax));
 
 
       ImGui::Separator();
@@ -1046,7 +1046,6 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         ImGui::InputText("Tile Server", pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength);
 
         ImGui::SliderFloat("Map Height", &pProgramState->settings.maptiles.mapHeight, -1000.f, 1000.f, "%.3fm", 2.f);
-        pProgramState->settings.maptiles.mapHeight = udClamp(pProgramState->settings.maptiles.mapHeight, -1000.f, 1000.f);
 
         const char* blendModes[] = { "Hybrid", "Overlay" };
         if (ImGui::BeginCombo("Blending", blendModes[pProgramState->settings.maptiles.blendMode]))
@@ -1064,8 +1063,8 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
           ImGui::EndCombo();
         }
 
-        ImGui::SliderFloat("Transparency", &pProgramState->settings.maptiles.transparency, 0.f, 1.f, "%.3f");
-        pProgramState->settings.maptiles.transparency = udClamp(pProgramState->settings.maptiles.transparency, 0.f, 1.f);
+        if(ImGui::SliderFloat("Transparency", &pProgramState->settings.maptiles.transparency, 0.f, 1.f, "%.3f"))
+          pProgramState->settings.maptiles.transparency = udClamp(pProgramState->settings.maptiles.transparency, 0.f, 1.f);
       }
     }
     ImGui::EndDock();
