@@ -1,5 +1,7 @@
 #include "SDL2/SDL.h"
 #include "udPlatform/udPlatform.h"
+#include "udPlatform/udMath.h"
+#include "vcCamera.h"
 
 #ifndef vcSettings_h__
 #define vcSettings_h__
@@ -15,11 +17,6 @@
 #elif UDPLATFORM_ANDROID
 #define ASSETDIR "./" // TBD
 #endif
-enum vcCameraMoveMode
-{
-  vcCMM_Plane,
-  vcCMM_Helicopter,
-};
 
 enum vcMapTileBlendMode
 {
@@ -64,14 +61,7 @@ struct vcSettings
     bool windowsOpen[vcdTotalDocks];
   } window;
 
-  struct
-  {
-    float moveSpeed;
-    float nearPlane;
-    float farPlane;
-    float fieldOfView;
-    vcCameraMoveMode moveMode;
-  } camera;
+  vcCameraSettings camera;
 
   struct
   {

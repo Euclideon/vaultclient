@@ -40,6 +40,7 @@ struct vcRenderContext
 {
   vdkContext *pVaultContext;
   vcSettings *pSettings;
+  vcCamera *pCamera;
 
   udUInt2 sceneResolution;
 
@@ -68,7 +69,7 @@ struct vcRenderContext
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
 udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, const vcRenderData &renderData);
 
-udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings, const udUInt2 &sceneResolution)
+udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &sceneResolution)
 {
   udResult result = udR_Success;
   vcRenderContext *pRenderContext = nullptr;
@@ -109,6 +110,7 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   *ppRenderContext = pRenderContext;
 
   pRenderContext->pSettings = pSettings;
+  pRenderContext->pCamera = pCamera;
   result = vcRender_ResizeScene(pRenderContext, sceneResolution.x, sceneResolution.y);
   if (result != udR_Success)
     goto epilogue;
