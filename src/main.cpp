@@ -523,7 +523,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + size.x - 5.f, windowPos.y + 5.f), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
-    if (ImGui::Begin("SceneOverlay", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+    if (ImGui::Begin("Geographic Information", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
     {
       if (pProgramState->currentSRID != 0)
       {
@@ -549,6 +549,26 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
         ImGui::Text("Mouse Position: (%.1f,%.1f)", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
       else
         ImGui::Text("Mouse Position: <invalid>");
+    }
+    ImGui::End();
+  }
+
+  // On Screen Camera Settings
+  {
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + 5.f, windowPos.y + 5.f), ImGuiCond_Always, ImVec2(0.f, 0.f));
+    ImGui::SetNextWindowBgAlpha(0.3f);
+    if (ImGui::Begin("Camera Settings", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize))
+    {
+      udDouble3 cameraPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
+      ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &cameraPosition.x, 3);
+      vcCamera_SetPosition(pProgramState->pCamera, cameraPosition);
+
+      ImGui::RadioButton("PlaneMode##2", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
+      ImGui::SameLine();
+      ImGui::RadioButton("HeliMode##2", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
+
+      if (ImGui::SliderFloat("Move Speed##2", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f))
+        pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
     }
     ImGui::End();
   }
@@ -874,10 +894,6 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       if (!lastModelLoaded)
         ImGui::Text("Invalid File/Not Found...");
 
-      udDouble3 cameraPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
-      ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &cameraPosition.x, 3);
-      vcCamera_SetPosition(pProgramState->pCamera, cameraPosition);
-
       // Models
 
       int minMaxColumnSize[][2] =
@@ -1055,18 +1071,10 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::Separator();
       ImGui::Text("Camera");
 
-      ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
-      ImGui::SameLine();
-      ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
-      ImGui::SameLine();
       ImGui::Checkbox("On Screen Controls", &pProgramState->onScreenControls);
 
       ImGui::Checkbox("Invert X-axis", &pProgramState->settings.camera.invertX);
-      ImGui::SameLine();
       ImGui::Checkbox("Invert Y-axis", &pProgramState->settings.camera.invertY);
-
-      if(ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f))
-        pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
 
       if (ImGui::SliderFloat("Near Plane", &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))
       {
