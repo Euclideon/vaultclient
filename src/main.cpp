@@ -481,8 +481,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
     }
   }
 
-  vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, rotationOffset, moveOffset);
-  vcCamera_Update(pProgramState->pCamera, &pProgramState->settings.camera, pProgramState->deltaTime, speedModifier);
+  vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, rotationOffset, moveOffset, pProgramState->deltaTime, speedModifier);
   pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera);
 }
 
@@ -580,7 +579,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
         ImGui::PushID("oscUDSlider");
 
         if(ImGui::VSliderFloat("",ImVec2(40,100), &vertical, -1, 1, "U/D"))
-          vertical = udClamp(vertical, 1.f, 1.f);
+          vertical = udClamp(vertical, -1.f, 1.f);
 
         ImGui::PopID();
 
@@ -602,7 +601,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
           forward = -1.f * value_raw.y / vcSL_OSCPixelRatio;
           right = value_raw.x / vcSL_OSCPixelRatio;
         }
-        vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, udDouble3::zero(), udDouble3::create(right, forward, (double) vertical));
+        vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, udDouble3::zero(), udDouble3::create(right, forward, (double) vertical),pProgramState->deltaTime);
         ImGui::Columns(1);
       }
       ImGui::End();
