@@ -202,34 +202,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->camera.invertX = data.Get("camera.invertX").AsBool(false);
     pSettings->camera.invertY = data.Get("camera.invertY").AsBool(false);
     pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
-
-    {
-      // Camera Lens identification
-      pSettings->lensIndex = 8; // custom FoV
-      if (pSettings->camera.fieldOfView == vcLens7mm)
-        pSettings->lensIndex = 0;
-
-      if (pSettings->camera.fieldOfView == vcLens11mm)
-        pSettings->lensIndex = 1;
-
-      if (pSettings->camera.fieldOfView == vcLens15mm)
-        pSettings->lensIndex = 2;
-
-      if (pSettings->camera.fieldOfView == vcLens24mm)
-        pSettings->lensIndex = 3;
-
-      if (pSettings->camera.fieldOfView == vcLens30mm)
-        pSettings->lensIndex = 4;
-
-      if (pSettings->camera.fieldOfView == vcLens50mm)
-        pSettings->lensIndex = 5;
-
-      if (pSettings->camera.fieldOfView == vcLens70mm)
-        pSettings->lensIndex = 6;
-
-      if (pSettings->camera.fieldOfView == vcLens100mm)
-        pSettings->lensIndex = 7;
-    }
+    pSettings->camera.lensIndex = data.Get("camera.lensId").AsInt(vcLS_Custom);
 
     // Map Tiles
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
@@ -282,9 +255,10 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.nearPlane = %f", pSettings->camera.nearPlane);
   data.Set("camera.farPlane = %f", pSettings->camera.farPlane);
   data.Set("camera.fieldOfView = %f", pSettings->camera.fieldOfView);
-  data.Set("camera.invertX = %i", pSettings->camera.invertX ? 1 : 0);
-  data.Set("camera.invertY = %i", pSettings->camera.invertY ? 1 : 0);
+  data.Set("camera.invertX = %s", pSettings->camera.invertX ? "true" : "false");
+  data.Set("camera.invertY = %s", pSettings->camera.invertY ? "true" : "false");
   data.Set("camera.moveMode = %d", pSettings->camera.moveMode);
+  data.Set("camera.lensId = %i", pSettings->camera.lensIndex);
 
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");

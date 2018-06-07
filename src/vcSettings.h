@@ -63,8 +63,6 @@ struct vcSettings
 
   vcCameraSettings camera;
 
-  int lensIndex;
-
   struct
   {
     bool mapEnabled;
@@ -104,6 +102,19 @@ const float vcLens30mm =  1.05615f;
 const float vcLens50mm =  0.67335f;
 const float vcLens70mm =  0.48996f;
 const float vcLens100mm = 0.34649f;
+
+enum vcLensSizes
+{
+  vcLS_Custom = 0,
+  vcLS_7mm,
+  vcLS_11mm,
+  vcLS_15mm,
+  vcLS_24mm,
+  vcLS_30mm,
+  vcLS_50mm,
+  vcLS_70mm,
+  vcLS_100mm,
+};
 
 // Settings Functions
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset = false);

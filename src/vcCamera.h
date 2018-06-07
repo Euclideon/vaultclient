@@ -19,6 +19,7 @@ struct vcCameraSettings
   float fieldOfView;
   bool invertX;
   bool invertY;
+  int lensIndex;
   vcCameraMoveMode moveMode;
 };
 
