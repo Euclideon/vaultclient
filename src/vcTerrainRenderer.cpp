@@ -18,14 +18,14 @@ static const int indexResolution = vertResolution - 1;
 
 struct vcTile
 {
-  vcTexture texture;
+  vcTexture pTexture;
   udDouble4x4 world[4]; // each tile corner has different world transform
 };
 
 struct vcCachedTexture
 {
   udInt3 id; // each tile has a unique slippy {x,y,z}
-  vcTexture texture;
+  vcTexture *pTexture;
   void *pData;
 
   double priority; // lower is better. (distanceSqr to camera)
@@ -98,10 +98,10 @@ void vcTerrainRenderer_LoadThread(void *pThreadData)
         // TODO: frustum plane approach for correct AABB frustum detection
         udDouble4 tileCenter = pRenderer->latestViewProjectionMatrix * udDouble4::create(pCache->textureLoadList[i]->tilePosition.x, pCache->textureLoadList[i]->tilePosition.y, 0.0, 1.0);
         bool hasHigherPriority = pNextTexture ? (pCache->textureLoadList[i]->priority <= pNextTexture->priority) : true;
-        bool isInFrustum = tileCenter.x >= -tileCenter.w && tileCenter.x <= tileCenter.w && 
+        bool isInFrustum = tileCenter.x >= -tileCenter.w && tileCenter.x <= tileCenter.w &&
           tileCenter.y >= -tileCenter.w && tileCenter.y <= tileCenter.w &&
           tileCenter.z >= -tileCenter.w && tileCenter.z <= tileCenter.w;
-        
+
         // as soon as we detect a tile inside the frustum, only consider other tiles
         // also in that frustum.
         bool isBetter = isInFrustum ? (!hasFrustumPriority || hasHigherPriority) : (!hasFrustumPriority && hasHigherPriority);
@@ -117,7 +117,7 @@ void vcTerrainRenderer_LoadThread(void *pThreadData)
       {
         udReleaseMutex(pCache->pMutex);
         break;
-      } 
+      }
 
       pCache->textureLoadList.RemoveSwapLast(best);
 
@@ -128,7 +128,7 @@ void vcTerrainRenderer_LoadThread(void *pThreadData)
       void *pFileData;
       int64_t fileLen;
       int width, height, channelCount;
-      
+
       if (udFile_Load(buff, &pFileData, &fileLen) != udR_Success)
         continue;
 
@@ -142,9 +142,9 @@ void vcTerrainRenderer_LoadThread(void *pThreadData)
 
       pNextTexture->pData = udMemDup(pData, sizeof(uint32_t)*width*height, 0, udAF_None);
 
-      pNextTexture->texture.width = width;
-      pNextTexture->texture.height = height;
-      pNextTexture->texture.format = vcTextureFormat_RGBA8;
+      pNextTexture->pTexture->width = width;
+      pNextTexture->pTexture->height = height;
+      pNextTexture->pTexture->format = vcTextureFormat_RGBA8;
 
 epilogue:
       udFree(pFileData);
@@ -235,7 +235,7 @@ void vcTerrainRenderer_Destroy(vcTerrainRenderer **ppTerrainRenderer)
   for (size_t i = 0; i < pTerrainRenderer->cache.textures.length; ++i)
   {
     udFree(pTerrainRenderer->cache.textures[i].pData);
-    vcTextureDestroy(&pTerrainRenderer->cache.textures[i].texture);
+    vcTexture_Destroy(&pTerrainRenderer->cache.textures[i].pTexture);
   }
 
   pTerrainRenderer->cache.textures.Deinit();
@@ -275,7 +275,7 @@ vcTexture* AssignTileTexture(vcTerrainRenderer *pTerrainRenderer, const udInt3 &
     pCachedTexture->pData = nullptr;
     pCachedTexture->id = slippyCoord;
 
-    pCachedTexture->texture = vcTextureCreate(1, 1, vcTextureFormat_RGBA8, GL_LINEAR, false, nullptr, 0, GL_CLAMP_TO_EDGE);
+    vcTexture_Create(&pCachedTexture->pTexture, 1, 1, vcTextureFormat_RGBA8, GL_LINEAR, false, nullptr, 0, GL_CLAMP_TO_EDGE);
 
     pCachedTexture->priority = distToCameraSqr;
     pCachedTexture->tilePosition = tileCenterPosition;
@@ -284,14 +284,14 @@ vcTexture* AssignTileTexture(vcTerrainRenderer *pTerrainRenderer, const udInt3 &
   }
   else
   {
-    pResultTexture = &pCachedTexture->texture;
+    pResultTexture = pCachedTexture->pTexture;
 
     // texture is already in cache but might not be loaded yet
-    if (pCachedTexture->pData != nullptr || pCachedTexture->texture.width == 1 || pCachedTexture->texture.height == 1)
+    if (pCachedTexture->pData != nullptr || pCachedTexture->pTexture->width == 1 || pCachedTexture->pTexture->height == 1)
     {
       if (pCachedTexture->pData != nullptr)
       {
-        vcTextureUploadPixels(&pCachedTexture->texture, pCachedTexture->pData, pCachedTexture->texture.width, pCachedTexture->texture.height);
+        vcTexture_UploadPixels(pCachedTexture->pTexture, pCachedTexture->pData, pCachedTexture->pTexture->width, pCachedTexture->pTexture->height);
         udFree(pCachedTexture->pData);
       }
       else
@@ -339,15 +339,15 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
     {
       vcGIS_SlippyToLocal(srid, &localCorners[t], udInt2::create(slippyTileCoord.x + (t % 2), slippyTileCoord.y + (t / 2)), slippyTileCoord.z);
       pTerrainRenderer->pTiles[tileIndex].world[t] = udDouble4x4::translation(localCorners[t].x, localCorners[t].y, 0.0);
-    }    
+    }
     udDouble3 tileCenterPosition = (localCorners[1] + localCorners[2]) * 0.5;
 
     double distToCameraSqr = udMagSq2(cameraLocalPosition.toVector2() - tileCenterPosition.toVector2());
     vcTexture *pTexture = AssignTileTexture(pTerrainRenderer, slippyTileCoord, tileCenterPosition, distToCameraSqr);
 
-    pTerrainRenderer->pTiles[tileIndex].texture.id = GL_INVALID_INDEX;
+    pTerrainRenderer->pTiles[tileIndex].pTexture.id = GL_INVALID_INDEX;
     if (pTexture != nullptr)
-      pTerrainRenderer->pTiles[tileIndex].texture = *pTexture;
+      pTerrainRenderer->pTiles[tileIndex].pTexture = *pTexture;
 
     ++tileIndex;
   }
@@ -395,7 +395,7 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
 
   for (int i = 0; i < pTerrainRenderer->tileCount; ++i)
   {
-    if (pTerrainRenderer->pTiles[i].texture.id == GL_INVALID_INDEX)
+    if (pTerrainRenderer->pTiles[i].pTexture.id == GL_INVALID_INDEX)
       continue;
 
     for (int t = 0; t < 4; ++t)
@@ -411,7 +411,7 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
     glUniform3f(pTerrainRenderer->presentShader.uniform_debugColour, 1.0f, 1.0f, 1.0f);
 #endif
 
-    glBindTexture(GL_TEXTURE_2D, pTerrainRenderer->pTiles[i].texture.id);
+    glBindTexture(GL_TEXTURE_2D, pTerrainRenderer->pTiles[i].pTexture.id);
 
     // TODO: instance me
     glDrawElements(GL_TRIANGLES, indexResolution * indexResolution * 6, GL_UNSIGNED_INT, 0);
@@ -442,7 +442,7 @@ void vcTerrainRenderer_ClearCache(vcTerrainRenderer *pTerrainRenderer)
   for (size_t i = 0; i < pTerrainRenderer->cache.textures.length; ++i)
   {
     udFree(pTerrainRenderer->cache.textures[i].pData);
-    vcTextureDestroy(&pTerrainRenderer->cache.textures[i].texture);
+    vcTexture_Destroy(&pTerrainRenderer->cache.textures[i].pTexture);
   }
 
   udFree(pTerrainRenderer->pTiles);

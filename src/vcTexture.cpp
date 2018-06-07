@@ -6,12 +6,15 @@
 #include "udPlatform/udPlatformUtil.h"
 #include "stb_image.h"
 
-vcTexture vcTextureCreate(uint32_t width, uint32_t height, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, GLuint filterMode /*= GL_NEAREST*/, bool hasMipmaps /*= false*/, uint8_t *pPixels /*= nullptr*/, int32_t aniFilter /*= 0*/, int32_t wrapMode /*= GL_REPEAT*/)
+bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, GLuint filterMode /*= GL_NEAREST*/, bool hasMipmaps /*= false*/, uint8_t *pPixels /*= nullptr*/, int32_t aniFilter /*= 0*/, int32_t wrapMode /*= GL_REPEAT*/)
 {
-  vcTexture tex;
+  if (ppTexture == nullptr || width == 0 || height == 0)
+    return false;
 
-  glGenTextures(1, &tex.id);
-  glBindTexture(GL_TEXTURE_2D, tex.id);
+  vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
+
+  glGenTextures(1, &pTexture->id);
+  glBindTexture(GL_TEXTURE_2D, pTexture->id);
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filterMode);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, hasMipmaps ? GL_LINEAR_MIPMAP_LINEAR : filterMode);
@@ -42,18 +45,23 @@ vcTexture vcTextureCreate(uint32_t width, uint32_t height, vcTextureFormat forma
   glBindTexture(GL_TEXTURE_2D, 0);
   VERIFY_GL();
 
-  tex.format = format;
-  tex.width = width;
-  tex.height = height;
-  return tex;
+  pTexture->format = format;
+  pTexture->width = width;
+  pTexture->height = height;
+
+  *ppTexture = pTexture;
+  return true;
 }
 
-vcTexture vcTextureCreateDepth(uint32_t width, uint32_t height, vcTextureFormat format /*= vcTextureFormat_D24*/, GLuint filterMode /*= GL_NEAREST*/)
+bool vcTexture_CreateDepth(vcTexture **ppTexture, uint32_t width, uint32_t height, vcTextureFormat format /*= vcTextureFormat_D24*/, GLuint filterMode /*= GL_NEAREST*/)
 {
-  vcTexture tex;
+  if (ppTexture == nullptr || width == 0 || height == 0)
+    return false;
 
-  glGenTextures(1, &tex.id);
-  glBindTexture(GL_TEXTURE_2D, tex.id);
+  vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
+
+  glGenTextures(1, &pTexture->id);
+  glBindTexture(GL_TEXTURE_2D, pTexture->id);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filterMode);
@@ -70,7 +78,7 @@ vcTexture vcTextureCreateDepth(uint32_t width, uint32_t height, vcTextureFormat 
     break;
   case vcTextureFormat_D24: // fall through
   default:
-    internalFormat = GL_DEPTH_COMPONENT24; 
+    internalFormat = GL_DEPTH_COMPONENT24;
     type = GL_UNSIGNED_INT;
   }
 
@@ -79,51 +87,34 @@ vcTexture vcTextureCreateDepth(uint32_t width, uint32_t height, vcTextureFormat 
   glBindTexture(GL_TEXTURE_2D, 0);
   VERIFY_GL();
 
-  tex.format = format;
-  tex.width = width;
-  tex.height = height;
-  return tex;
+  pTexture->format = format;
+  pTexture->width = width;
+  pTexture->height = height;
+
+  *ppTexture = pTexture;
+
+  return true;
 }
 
-vcFramebuffer vcFramebufferCreate(vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, int level /*= 0*/)
+bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, int32_t filterMode /*= GL_LINEAR*/, bool hasMipmaps /*= false*/, int32_t aniFilter /*= 0*/, int32_t wrapMode /*= GL_REPEAT*/)
 {
-  vcFramebuffer fbo;
-  GLenum DrawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+  if (ppTexture == nullptr || pFilename == nullptr)
+    return false;
 
-  glGenFramebuffers(1, &fbo.id);
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo.id);
-
-  if (pDepth)
-    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, pDepth->id, 0);
-
-  glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pTexture->id, level);
-  glDrawBuffers(1, DrawBuffers);
-
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-  VERIFY_GL();
-
-  fbo.pAttachments[0] = pTexture;
-  fbo.pDepth = pDepth;
-  return fbo;
-}
-
-
-vcTexture vcTextureLoadFromDisk(const char *filename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, int32_t filterMode /*= GL_LINEAR*/, bool hasMipmaps /*= false*/, int32_t aniFilter /*= 0*/, int32_t wrapMode /*= GL_REPEAT*/)
-{
   uint32_t width, height, channelCount;
-  vcTexture texture = { GL_INVALID_INDEX, vcTextureFormat_Unknown, 0, 0};
+  vcTexture *pTexture = nullptr;
 
   void *pFileData;
   int64_t fileLen;
 
-  if (udFile_Load(filename, &pFileData, &fileLen) != udR_Success)
-    return texture;
+  if (udFile_Load(pFilename, &pFileData, &fileLen) != udR_Success)
+    return false;
 
   uint8_t *pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
   udFree(pFileData);
 
   if (pData)
-    texture = vcTextureCreate(width, height, vcTextureFormat_RGBA8, filterMode, hasMipmaps, pData, aniFilter, wrapMode);
+    vcTexture_Create(&pTexture, width, height, vcTextureFormat_RGBA8, filterMode, hasMipmaps, pData, aniFilter, wrapMode);
 
   stbi_image_free(pData);
 
@@ -133,10 +124,12 @@ vcTexture vcTextureLoadFromDisk(const char *filename, uint32_t *pWidth /*= nullp
   if (pHeight != nullptr)
     *pHeight = height;
 
-  return texture;
+  *ppTexture = pTexture;
+
+  return (pTexture != nullptr);
 }
 
-void vcTextureUploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height)
+void vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height)
 {
   GLenum internalFormat;
   GLenum pixelFormat, pixelType;
@@ -170,27 +163,24 @@ void vcTextureUploadPixels(vcTexture *pTexture, const void *pPixels, int width, 
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void vcTextureDestroy(vcTexture *pTexture)
+void vcTexture_Destroy(vcTexture **ppTexture)
 {
-  glDeleteTextures(1, &pTexture->id);
+  if (ppTexture == nullptr || *ppTexture == nullptr)
+    return;
+
+  glDeleteTextures(1, &(*ppTexture)->id);
+  udFree(*ppTexture);
 }
 
-void vcFramebufferDestroy(vcFramebuffer *pFramebuffer)
+bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
 {
-  glDeleteFramebuffers(1, &pFramebuffer->id);
-}
+  vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
+  udFilename fileName(pFilename);
 
-vcTexture vcTexture_LoadCubemap(const char *pFilename)
-{
-  vcTexture tex;
-  udFilename fileName;
+  pTexture->format = vcTextureFormat_Cubemap;
 
-  fileName.SetFromFullPath(pFilename);
-
-  tex.format = vcTextureFormat_Cubemap;
-
-  glGenTextures(1, &tex.id);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, tex.id);
+  glGenTextures(1, &pTexture->id);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, pTexture->id);
 
   const char* names[] = { "_LF", "_RT", "_FR", "_BK", "_UP", "_DN" };
   const GLenum types[] = { GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X, GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
@@ -223,8 +213,8 @@ vcTexture vcTexture_LoadCubemap(const char *pFilename)
     udSprintf(pFilePath, filenameLen + 5 + pathLen, "%s%s%s%s", skyboxPath, fileNameNoExt, names[i], fileName.GetExt());
     uint8_t* data = stbi_load(pFilePath, &width, &height, &depth, 0);
 
-    tex.height = height;
-    tex.width = width;
+    pTexture->height = height;
+    pTexture->width = width;
 
     if (data)
     {
@@ -253,5 +243,6 @@ vcTexture vcTexture_LoadCubemap(const char *pFilename)
   SDL_free(pBaseDir);
 #endif
 
-  return tex;
+  *ppTexture = pTexture;
+  return true;
 }
