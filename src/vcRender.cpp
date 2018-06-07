@@ -278,11 +278,11 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderDa
     for (int i = 0; i < 4; ++i)
       vcGIS_SlippyToLocal(renderData.srid, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
-    udDouble2 localViewPos = udDouble2::create(renderData.cameraMatrix.axis.t.x, renderData.cameraMatrix.axis.t.y);
-    double localViewSize = (1.0 / (1 << 19)) + udAbs(renderData.cameraMatrix.axis.t.z - pRenderContext->pSettings->maptiles.mapHeight) / 50000.0;
+    udDouble3 localViewPos = renderData.cameraMatrix.axis.t.toVector3();
+    double localViewSize = (1.0 / (1 << 19)) + udAbs(renderData.cameraMatrix.axis.t.z - pRenderContext->pSettings->maptiles.mapHeight) / 70000.0;
 
     // for now just rebuild terrain every frame
-    vcTerrain_BuildTerrain(pRenderContext->pTerrain, localCorners, udInt3::create(slippyCorners[0], currentZoom), localViewPos, localViewSize);
+    vcTerrain_BuildTerrain(pRenderContext->pTerrain, renderData.srid, localCorners, udInt3::create(slippyCorners[0], currentZoom), localViewPos, localViewSize);
     vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->viewProjectionMatrix);
   }
 
@@ -343,11 +343,6 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, co
 
   vcTextureUploadPixels(&pRenderContext->udRenderContext.colour, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
   vcTextureUploadPixels(&pRenderContext->udRenderContext.depth, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
-
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, pRenderContext->udRenderContext.depth.id);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, pRenderContext->udRenderContext.pDepthBuffer);
-
 
 epilogue:
   udFreeStack(pModels);

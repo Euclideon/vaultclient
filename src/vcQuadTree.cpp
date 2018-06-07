@@ -86,7 +86,7 @@ void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, const udFl
     // far down we should traverse this child, if any
     udFloat2 p0 = closestPoint;
     udFloat2 p1 = position;
-    float r1 = halfExtents.x * rectToCircleRadius * pQuadTree->metaData.maxTreeDepth; // this value calculation isn't correct i dont think...
+    float r1 = halfExtents.x * 2.0f * rectToCircleRadius * pQuadTree->metaData.maxTreeDepth; // this value calculation isn't correct i dont think...
     float overlap = r1 - udMag2(p0 - p1);
 
     if (overlap > 0)
@@ -108,11 +108,11 @@ int CalculateTreeDepthFromViewDistance(const udFloat2 &halfExtents)
   return int(udLog2(1.0f / (halfExtents.x * rectToCircleRadius)));
 }
 
-void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, int realRootDepth, const udFloat2 &viewPositionMS, const udFloat2 &viewPositionSizeMS, vcQuadTreeMetaData *pMetaData /*= nullptr*/)
+void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, int realRootDepth, const udFloat2 &viewPositionMS, const udFloat2 &viewSizeMS, vcQuadTreeMetaData *pMetaData /*= nullptr*/)
 {
   vcQuadTree quadTree = {};
 
-  int maxLocalTreeDepth = CalculateTreeDepthFromViewDistance(viewPositionSizeMS);
+  int maxLocalTreeDepth = CalculateTreeDepthFromViewDistance(viewSizeMS);
   
   maxLocalTreeDepth = udMin(19, maxLocalTreeDepth + realRootDepth) - realRootDepth; // cap real depth at level 19 (we don't have access to these tiles yet)
   maxLocalTreeDepth = udMax(0, maxLocalTreeDepth); // and just for safety because 'CalculateTreeDepthFromViewDistance()' is relatively untested
@@ -129,7 +129,7 @@ void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, int 
   quadTree.pNodes[0].parentIndex = INVALID_NODE_INDEX;
   quadTree.pNodes[0].childSize = 0.5f;
 
-  RecurseGenerateTree(&quadTree, 0, viewPositionMS, viewPositionSizeMS, 0, quadTree.metaData.maxTreeDepth);
+  RecurseGenerateTree(&quadTree, 0, viewPositionMS, viewSizeMS, 0, quadTree.metaData.maxTreeDepth);
   
   *ppNodes = quadTree.pNodes;
   *pNodeCount = quadTree.used;

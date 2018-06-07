@@ -993,7 +993,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
             {
               if (vcModelList[j].modelSelected)
               {
-                //unload model
+                // unload model
                 err = vdkModel_Unload(pVaultContainer->pContext, &(vcModelList[j].pVaultModel));
                 if (err != vE_Success)
                   goto epilogue;
