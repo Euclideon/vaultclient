@@ -26,6 +26,9 @@ struct vcRenderData
 {
   uint16_t srid;
 
+  udInt2 mouse;
+  udDouble3 worldMousePos;
+
   udChunkedArray<vcModel*> models;
   udDouble4x4 cameraMatrix;
   GLuint skyboxCubemap;
@@ -38,7 +41,7 @@ udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vdkContext *p
 
 udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);
 
-vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderData &renderData, GLuint defaultFramebuffer);
+vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, GLuint defaultFramebuffer);
 
 void vcRenderSkybox(vcRenderContext *pRenderContext);
 
