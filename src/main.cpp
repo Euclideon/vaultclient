@@ -508,6 +508,10 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
   renderData.srid = pProgramState->currentSRID;
   renderData.models.Init(32);
 
+  ImGuiIO &io = ImGui::GetIO();
+  renderData.mouse.x = (uint32_t)io.MousePos.x;
+  renderData.mouse.y = (uint32_t)io.MousePos.y;
+
   for (size_t i = 0; i < vcModelList.length; ++i)
   {
     renderData.models.PushBack(&vcModelList[i]);
@@ -546,9 +550,18 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
       ImGui::Separator();
       if (ImGui::IsMousePosValid())
+      {
         ImGui::Text("Mouse Position: (%.1f,%.1f)", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
+        ImGui::Text("World Pos: (%f,%f,%f)", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
+
+        udDouble3 mousePointInLatLong;
+        vcGIS_LocalToLatLong(pProgramState->currentSRID, renderData.worldMousePos, &mousePointInLatLong);
+        ImGui::Text("World Pos: (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
+      }
       else
+      {
         ImGui::Text("Mouse Position: <invalid>");
+      }
     }
 
     ImGui::End();
@@ -607,9 +620,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
         ImGui::NextColumn();
 
-        ImGuiIO &io = ImGui::GetIO();
-
-        ImGui::Button("Move Camera",ImVec2(100,100));
+        ImGui::Button("Move Camera", ImVec2(100,100));
         if (ImGui::IsItemActive())
         {
           // Draw a line between the button and the mouse cursor
