@@ -87,3 +87,26 @@ void vcCamera_SetPosition(vcCamera *pCamera, udDouble3 position)
   if(pCamera != nullptr)
     pCamera->position = position;
 }
+
+#define LENSNAME(x) #x+5
+
+const char *lensNameArray[] =
+{
+  LENSNAME(vcLS_Custom),
+  LENSNAME(vcLS_7mm),
+  LENSNAME(vcLS_11mm),
+  LENSNAME(vcLS_15mm),
+  LENSNAME(vcLS_24mm),
+  LENSNAME(vcLS_30mm),
+  LENSNAME(vcLS_50mm),
+  LENSNAME(vcLS_70mm),
+  LENSNAME(vcLS_100mm),
+};
+
+UDCOMPILEASSERT(UDARRAYSIZE(lensNameArray) == vcLS_TotalLenses, "Lens Name not in Strings");
+
+
+const char* const* vcCamera_GetLensNames()
+{
+  return lensNameArray;
+}
