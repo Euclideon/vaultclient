@@ -1081,10 +1081,28 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         pProgramState->settings.camera.nearPlane = udMax(pProgramState->settings.camera.nearPlane, pProgramState->settings.camera.farPlane / vcSL_CameraNearFarPlaneRatioMax);
       }
 
-      float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
-      if(ImGui::SliderFloat("Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f Degrees"))
-        pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg,vcSL_CameraFieldOfViewMin,vcSL_CameraFieldOfViewMax));
-
+      const char *pLensOptions = " 7mm\0 11mm\0 15mm\0 24mm\0 30mm\0 50mm\0 70mm\0 100mm\0 Custom FoV\0";
+      if (ImGui::Combo("Camera Lens (fov)", &pProgramState->settings.lensIndex, pLensOptions))
+      {
+        switch (pProgramState->settings.lensIndex)
+        {
+        case 0: pProgramState->settings.camera.fieldOfView = vcLens7mm; break;
+        case 1: pProgramState->settings.camera.fieldOfView = vcLens11mm; break;
+        case 2: pProgramState->settings.camera.fieldOfView = vcLens15mm; break;
+        case 3: pProgramState->settings.camera.fieldOfView = vcLens24mm; break;
+        case 4: pProgramState->settings.camera.fieldOfView = vcLens30mm; break;
+        case 5: pProgramState->settings.camera.fieldOfView = vcLens50mm; break;
+        case 6: pProgramState->settings.camera.fieldOfView = vcLens70mm; break;
+        case 7: pProgramState->settings.camera.fieldOfView = vcLens100mm; break;
+        case 8: /*Custom FoV*/ break;
+        }
+      }
+      if (pProgramState->settings.lensIndex == 8)
+      {
+        float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
+        if (ImGui::SliderFloat("Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f Degrees"))
+          pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
+      }
 
       ImGui::Separator();
 

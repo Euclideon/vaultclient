@@ -203,6 +203,34 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->camera.invertY = data.Get("camera.invertY").AsBool(false);
     pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
 
+    {
+      // Camera Lens identification
+      pSettings->lensIndex = 8; // custom FoV
+      if (pSettings->camera.fieldOfView == vcLens7mm)
+        pSettings->lensIndex = 0;
+
+      if (pSettings->camera.fieldOfView == vcLens11mm)
+        pSettings->lensIndex = 1;
+
+      if (pSettings->camera.fieldOfView == vcLens15mm)
+        pSettings->lensIndex = 2;
+
+      if (pSettings->camera.fieldOfView == vcLens24mm)
+        pSettings->lensIndex = 3;
+
+      if (pSettings->camera.fieldOfView == vcLens30mm)
+        pSettings->lensIndex = 4;
+
+      if (pSettings->camera.fieldOfView == vcLens50mm)
+        pSettings->lensIndex = 5;
+
+      if (pSettings->camera.fieldOfView == vcLens70mm)
+        pSettings->lensIndex = 6;
+
+      if (pSettings->camera.fieldOfView == vcLens100mm)
+        pSettings->lensIndex = 7;
+    }
+
     // Map Tiles
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
     pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(1);
