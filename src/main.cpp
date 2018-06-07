@@ -550,6 +550,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
       else
         ImGui::Text("Mouse Position: <invalid>");
     }
+
     ImGui::End();
   }
 
@@ -563,13 +564,14 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
       ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &cameraPosition.x, 3);
       vcCamera_SetPosition(pProgramState->pCamera, cameraPosition);
 
-      ImGui::RadioButton("PlaneMode##2", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
+      ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
       ImGui::SameLine();
-      ImGui::RadioButton("HeliMode##2", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
+      ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
 
-      if (ImGui::SliderFloat("Move Speed##2", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f))
+      if (ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f))
         pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
     }
+
     ImGui::End();
   }
 
@@ -621,9 +623,11 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
           forward = -1.f * value_raw.y / vcSL_OSCPixelRatio;
           right = value_raw.x / vcSL_OSCPixelRatio;
         }
+
         vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, udDouble3::zero(), udDouble3::create(right, forward, (double) vertical),pProgramState->deltaTime);
         ImGui::Columns(1);
       }
+
       ImGui::End();
     }
 
@@ -802,9 +806,9 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
             {
               vcRender_SetVaultContext(pVaultContainer->pRenderContext, pVaultContainer->pContext);
               pProgramState->hasContext = true;
-              }
             }
           }
+        }
       }
     }
 
@@ -874,6 +878,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::Text("Error logging out! (0x00)");
       if (ImGui::Button("OK", ImVec2(120, 0)))
         ImGui::CloseCurrentPopup();
+
       ImGui::SetItemDefaultFocus();
       ImGui::EndPopup();
     }
@@ -883,6 +888,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       vcRenderSceneWindow(pVaultContainer, pProgramState);
       vcHandleSceneInput(pProgramState);
     }
+
     ImGui::EndDock();
 
     if (ImGui::BeginDock("Scene Explorer", &pProgramState->settings.window.windowsOpen[vcdSceneExplorer], ImGuiWindowFlags_ResizeFromAnySide))
@@ -914,10 +920,13 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
       int col1Size = (int)ImGui::GetContentRegionAvailWidth();
       col1Size -= 40 + 35; // subtract size of two buttons
+
       if (col1Size > minMaxColumnSize[0][1])
         col1Size = minMaxColumnSize[0][1];
+
       if (col1Size < minMaxColumnSize[0][0])
         col1Size = minMaxColumnSize[0][0];
+
       headers[0].size = (float) col1Size;
 
 
@@ -951,8 +960,10 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
             {
               vcModelList[j].modelSelected = false;
             }
+
             pProgramState->numSelectedModels = 0;
           }
+
           if (modState & KMOD_SHIFT)
           {
             size_t startInd = udMin(i, pProgramState->prevSelectedModel);
@@ -993,6 +1004,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
               vcModelList[j].modelVisible = vcModelList[i].modelVisible;
           }
         }
+
         ImGui::PopID();
         ImGui::NextColumn();
         // Column 3 - Unload Model
@@ -1019,6 +1031,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
                 j--;
               }
             }
+
             i = (pProgramState->numSelectedModels > i) ? 0 : (i - pProgramState->numSelectedModels);
           }
           else
@@ -1044,10 +1057,12 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
       ImGui::Columns(1);
       // End Models
     }
-      ImGui::EndDock();
+
+    ImGui::EndDock();
 
     if (ImGui::BeginDock("StyleEditor", &pProgramState->settings.window.windowsOpen[vcdStyling], ImGuiWindowFlags_ResizeFromAnySide))
       ImGui::ShowStyleEditor();
+
     ImGui::EndDock();
 
     if (pProgramState->settings.window.windowsOpen[vcdUIDemo])
@@ -1122,6 +1137,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
           break;
         }
       }
+
       if (pProgramState->settings.camera.lensIndex == vcLS_Custom)
       {
         float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
@@ -1152,6 +1168,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
             if (isSelected)
               ImGui::SetItemDefaultFocus();
           }
+
           ImGui::EndCombo();
         }
 
@@ -1159,6 +1176,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
           pProgramState->settings.maptiles.transparency = udClamp(pProgramState->settings.maptiles.transparency, 0.f, 1.f);
       }
     }
+
     ImGui::EndDock();
   }
 
@@ -1206,6 +1224,7 @@ bool vcModel_UnloadList(vaultContainer *pVaultContainer)
       return false;
     vcModelList[i].modelLoaded = false;
   }
+
   while (vcModelList.length > 0)
     vcModelList.PopFront();
 
