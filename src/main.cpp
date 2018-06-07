@@ -1081,23 +1081,24 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         pProgramState->settings.camera.nearPlane = udMax(pProgramState->settings.camera.nearPlane, pProgramState->settings.camera.farPlane / vcSL_CameraNearFarPlaneRatioMax);
       }
 
-      const char *pLensOptions = " 7mm\0 11mm\0 15mm\0 24mm\0 30mm\0 50mm\0 70mm\0 100mm\0 Custom FoV\0";
-      if (ImGui::Combo("Camera Lens (fov)", &pProgramState->settings.lensIndex, pLensOptions))
+      const char *pLensOptions = " Custom FoV\0 7mm\0 11mm\0 15mm\0 24mm\0 30mm\0 50mm\0 70mm\0 100mm\0";
+      if (ImGui::Combo("Camera Lens (fov)", &pProgramState->settings.camera.lensIndex, pLensOptions))
       {
-        switch (pProgramState->settings.lensIndex)
+        switch (pProgramState->settings.camera.lensIndex)
         {
-        case 0: pProgramState->settings.camera.fieldOfView = vcLens7mm; break;
-        case 1: pProgramState->settings.camera.fieldOfView = vcLens11mm; break;
-        case 2: pProgramState->settings.camera.fieldOfView = vcLens15mm; break;
-        case 3: pProgramState->settings.camera.fieldOfView = vcLens24mm; break;
-        case 4: pProgramState->settings.camera.fieldOfView = vcLens30mm; break;
-        case 5: pProgramState->settings.camera.fieldOfView = vcLens50mm; break;
-        case 6: pProgramState->settings.camera.fieldOfView = vcLens70mm; break;
-        case 7: pProgramState->settings.camera.fieldOfView = vcLens100mm; break;
-        case 8: /*Custom FoV*/ break;
+        case vcLS_Custom: /*Custom FoV*/ break;
+        case vcLS_7mm: pProgramState->settings.camera.fieldOfView = vcLens7mm; break;
+        case vcLS_11mm: pProgramState->settings.camera.fieldOfView = vcLens11mm; break;
+        case vcLS_15mm: pProgramState->settings.camera.fieldOfView = vcLens15mm; break;
+        case vcLS_24mm: pProgramState->settings.camera.fieldOfView = vcLens24mm; break;
+        case vcLS_30mm: pProgramState->settings.camera.fieldOfView = vcLens30mm; break;
+        case vcLS_50mm: pProgramState->settings.camera.fieldOfView = vcLens50mm; break;
+        case vcLS_70mm: pProgramState->settings.camera.fieldOfView = vcLens70mm; break;
+        case vcLS_100mm: pProgramState->settings.camera.fieldOfView = vcLens100mm; break;
+
         }
       }
-      if (pProgramState->settings.lensIndex == 8)
+      if (pProgramState->settings.camera.lensIndex == vcLS_Custom)
       {
         float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
         if (ImGui::SliderFloat("Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f Degrees"))
