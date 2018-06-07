@@ -67,7 +67,7 @@ struct vcRenderContext
 };
 
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
-udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, const vcRenderData &renderData);
+udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vcRenderData &renderData);
 
 udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &sceneResolution)
 {
@@ -211,7 +211,7 @@ epilogue:
   return result;
 }
 
-vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, const vcRenderData &renderData, GLuint defaultFramebuffer)
+vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, GLuint defaultFramebuffer)
 {
   pRenderContext->viewMatrix = renderData.cameraMatrix;
   pRenderContext->viewMatrix.inverse();
@@ -317,7 +317,7 @@ epilogue:
   return result;
 }
 
-udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, const vcRenderData &renderData)
+udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   udResult result = udR_Success;
   vdkModel **ppModels = nullptr;
@@ -338,8 +338,18 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, co
     }
   }
 
-  if (vdkRenderContext_Render(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)numVisibleModels) != vE_Success)
+  vdkRenderPicking picking;
+  picking.x = renderData.mouse.x;
+  picking.y = renderData.mouse.y;
+
+  if (vdkRenderContext_RenderAdv(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)numVisibleModels, &picking) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
+
+  if (picking.hit != 0)
+  {
+    // More to be done here
+    renderData.worldMousePos = udDouble3::create(picking.pointCenter[0], picking.pointCenter[1], picking.pointCenter[2]);
+  }
 
   vcTextureUploadPixels(&pRenderContext->udRenderContext.colour, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
   vcTextureUploadPixels(&pRenderContext->udRenderContext.depth, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
