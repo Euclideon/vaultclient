@@ -4,9 +4,6 @@ struct vcCamera
 {
   udDouble3 position;
   udDouble3 yprRotation;
-
-  udDouble3 moveOffset; // right, forward, vertical
-  udDouble3 rotationOffset; // yaw, pitch, roll
 };
 
 void vcCamera_Create(vcCamera **ppCamera)
@@ -17,9 +14,6 @@ void vcCamera_Create(vcCamera **ppCamera)
   vcCamera *pCamera = udAllocType(vcCamera, 1, udAF_None);
   pCamera->position = udDouble3::zero();
   pCamera->yprRotation = udDouble3::zero();
-
-  pCamera->moveOffset = udDouble3::zero();
-  pCamera->rotationOffset = udDouble3::zero();
 
   *ppCamera = pCamera;
 }
@@ -37,29 +31,21 @@ udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera)
   return udDouble4x4::lookAt(pCamera->position, lookPos, orientation.apply(udDouble3::create(0, 0, 1)));
 }
 
-void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset)
+void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, float speedModifier /* = 1.f*/)
 {
-  pCamera->moveOffset += moveOffset;
+  float speed = pCamSettings->moveSpeed * speedModifier;
 
-  pCamera->moveOffset = udClamp(pCamera->moveOffset, udDouble3::create(-1, -1, -1), udDouble3::create(1, 1, 1)); // clamp in case 2 similarly mapped movement buttons are pressed
+  udDouble3 addPos = udClamp(moveOffset, udDouble3::create(-1, -1, -1), udDouble3::create(1, 1, 1)); // clamp in case 2 similarly mapped movement buttons are pressed
+  double vertPos = addPos.z;addPos.z = 0;
+  addPos.z = 0;
 
   if (pCamSettings->invertX)
     rotationOffset.x *= -1;
   if (pCamSettings->invertY)
     rotationOffset.y *= -1;
 
-  pCamera->rotationOffset += rotationOffset;
-}
-
-void vcCamera_Update(vcCamera *pCamera, vcCameraSettings *pCamSettings, double deltaTime, float speedModifier /* = 1.f*/)
-{
-  pCamera->yprRotation += pCamera->rotationOffset;
+  pCamera->yprRotation += rotationOffset;
   pCamera->yprRotation.y = udClamp(pCamera->yprRotation.y, (double)-UD_PI / 2, (double)UD_PI / 2);
-
-  float speed = pCamSettings->moveSpeed * speedModifier;
-
-  udDouble3 addPos = pCamera->moveOffset;
-  addPos.z = 0;
 
   addPos = (udDouble4x4::rotationYPR(pCamera->yprRotation) * udDouble4::create(addPos, 1)).toVector3();
   if (pCamSettings->moveMode == vcCMM_Helicopter)
@@ -68,13 +54,10 @@ void vcCamera_Update(vcCamera *pCamera, vcCameraSettings *pCamSettings, double d
     if (addPos.x != 0 || addPos.y != 0)
       addPos = udNormalize3(addPos);
   }
-  addPos.z += pCamera->moveOffset.z;
+  addPos.z += vertPos;
   addPos *= speed * deltaTime;
 
   pCamera->position += addPos;
-
-  pCamera->moveOffset = udDouble3::zero();
-  pCamera->rotationOffset = udDouble3::zero();
 }
 
 udDouble3 vcCamera_GetPosition(vcCamera *pCamera)
