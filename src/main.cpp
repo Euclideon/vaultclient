@@ -13,6 +13,9 @@
 #include "vcRender.h"
 #include "vcGIS.h"
 
+#include "gl/vcGLState.h"
+#include "gl/vcFramebuffer.h"
+
 #include <stdlib.h>
 #include "udPlatform/udFile.h"
 
@@ -246,42 +249,21 @@ int main(int /*argc*/, char ** /*args*/)
   if (!glcontext)
     goto epilogue;
 
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  // Rendering to framebuffer 0 isn't valid when using UIKit in SDL2
-  // so we need to use the framebuffer that SDL2 provides us.
-  {
-    SDL_SysWMinfo wminfo;
-    SDL_VERSION(&wminfo.version);
-    SDL_GetWindowWMInfo(programState.pWindow, &wminfo);
-    programState.defaultFramebuffer = wminfo.info.uikit.framebuffer;
-  }
-#else
-  programState.defaultFramebuffer = 0;
-#endif
-
-#if UDPLATFORM_WINDOWS
-  glewExperimental = GL_TRUE;
-  if (glewInit() != GLEW_OK)
+  if (!vcGLState_Init(programState.pWindow, &programState.pDefaultFramebuffer))
     goto epilogue;
-#endif
 
   ImGui::CreateContext();
   vcSettings_LoadSettings(&programState, false);
 
-  glGetError(); // throw out first error
-
   // setup watermark for background
-
   pEucWatermarkData = stbi_load(EucWatermarkPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0); // reusing the variables for width etc
-
-  vcTexture_Create(&programState.pWatermarkTexture, iconWidth, iconHeight, vcTextureFormat_RGBA8);
-  vcTexture_UploadPixels(programState.pWatermarkTexture, pEucWatermarkData, iconWidth, iconHeight);
+  vcTexture_Create(&programState.pWatermarkTexture, iconWidth, iconHeight, pEucWatermarkData);
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  if (!ImGui_ImplSdlGL3_Init(programState.pWindow, "#version 300 es"))
+  if (!ImGuiGL_Init(programState.pWindow, "#version 300 es"))
     goto epilogue;
 #else
-  if (!ImGui_ImplSdlGL3_Init(programState.pWindow, "#version 150 core"))
+  if (!ImGuiGL_Init(programState.pWindow, "#version 150 core"))
     goto epilogue;
 #endif
 
@@ -296,7 +278,7 @@ int main(int /*argc*/, char ** /*args*/)
 
   // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
   // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, programState.defaultFramebuffer);
+  vcFramebuffer_Bind(programState.pDefaultFramebuffer);
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   ImGui::GetIO().Fonts->AddFontFromFileTTF(ASSETDIR "/NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
@@ -314,7 +296,7 @@ int main(int /*argc*/, char ** /*args*/)
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-      if (!ImGui_ImplSdlGL3_ProcessEvent(&event))
+      if (!ImGuiGL_ProcessSDLEvent(&event))
       {
         if (event.type == SDL_WINDOWEVENT)
         {
@@ -356,14 +338,15 @@ int main(int /*argc*/, char ** /*args*/)
     NOW = SDL_GetPerformanceCounter();
     programState.deltaTime = double(NOW - LAST) / SDL_GetPerformanceFrequency();
 
-    ImGui_ImplSdlGL3_NewFrame(programState.pWindow);
+    ImGuiGL_NewFrame(programState.pWindow);
 
+    vcGLState_ResetState(true);
     vcRenderWindow(&programState);
 
     ImGui::Render();
-    ImGui_ImplSdlGL3_RenderDrawData(ImGui::GetDrawData());
+    ImGuiGL_RenderDrawData(ImGui::GetDrawData());
 
-    SDL_GL_SwapWindow(programState.pWindow);
+    vcGLState_Present(programState.pWindow);
 
     if (ImGui::GetIO().WantSaveIniSettings)
       vcSettings_Save(&programState.settings);
@@ -381,6 +364,8 @@ epilogue:
   vcModelList.Deinit();
   vcRender_Destroy(&programState.pRenderContext);
   vdkContext_Disconnect(&programState.pContext);
+
+  vcGLState_Deinit();
 
 #if UDPLATFORM_OSX
   SDL_free(pBasePath);
@@ -416,7 +401,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
     // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
     // this isn't valid on iOS when using UIKit.
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, pProgramState->defaultFramebuffer);
+    vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
 
   vcRenderData renderData = {};
@@ -433,10 +418,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
     renderData.models.PushBack(&vcModelList[i]);
   }
 
-  vcTexture *pTexture = vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->defaultFramebuffer);
+  vcTexture *pTexture = vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
 
   renderData.models.Deinit();
 
+  ImGui::Image(pTexture, size, ImVec2(0, 0), ImVec2(1, -1));
   {
     pProgramState->worldMousePos = renderData.worldMousePos;
     pProgramState->pickingSuccess = renderData.pickingSuccess;
@@ -663,9 +649,8 @@ int vcMainMenuGui(vcState *pProgramState)
 
 void vcRenderWindow(vcState *pProgramState)
 {
-  glBindFramebuffer(GL_FRAMEBUFFER, pProgramState->defaultFramebuffer);
-  glClearColor(0, 0, 0, 1);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+  vcFramebuffer_Clear(pProgramState->pDefaultFramebuffer, 0xFF000000);
 
   vdkError err;
   SDL_Keymod modState = SDL_GetModState();
@@ -1342,7 +1327,7 @@ void vcSettings_LoadSettings(vcState *pProgramState, bool forceDefaults)
       SDL_RestoreWindow(pProgramState->pWindow);
 
     SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
-    SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
+    //SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
 #endif
   }
 }

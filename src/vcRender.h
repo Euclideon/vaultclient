@@ -6,9 +6,10 @@
 #include "vdkRenderContext.h"
 #include "vdkRenderView.h"
 
-#include "vcRenderUtils.h"
+#include "gl/vcMesh.h"
 
 struct vcRenderContext;
+struct vcTexture;
 
 struct vcModel
 {
@@ -30,7 +31,7 @@ struct vcRenderData
 
   udChunkedArray<vcModel*> models;
   udDouble4x4 cameraMatrix;
-  GLuint skyboxCubemap;
+  vcTexture *pSkyboxCubemap;
 };
 
 udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &windowResolution);
@@ -40,7 +41,7 @@ udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vdkContext *p
 
 udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);
 
-vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, GLuint defaultFramebuffer);
+vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer);
 
 void vcRenderSkybox(vcRenderContext *pRenderContext);
 

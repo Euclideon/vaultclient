@@ -4,16 +4,12 @@
 #include "udPlatform/udMath.h"
 #include "vcTexture.h"
 
-struct vcFramebuffer
-{
-  GLuint id;
-
-  vcTexture *pAttachments[1];
-  vcTexture *pDepth; // optional
-};
+struct vcFramebuffer;
 
 bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth = nullptr, int level = 0);
 void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer);
 
+bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer);
+bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour);
 
 #endif //vcFramebuffer_h__

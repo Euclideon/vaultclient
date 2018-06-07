@@ -113,6 +113,17 @@ newoption {
 	description = "Force the use of the vaultsdk repository"
 }
 
+newoption {
+   trigger     = "gfxapi",
+   value       = "API",
+   description = "Choose a particular 3D API for rendering",
+   default     = "opengl",
+   allowed = {
+      { "opengl", "OpenGL" },
+      { "d3d11", "Direct3D 11 (Windows only)" }
+   }
+}
+
 solution "vaultClient"
 	-- This hack just makes the VS project and also the makefile output their configurations in the idiomatic order
 	if _ACTION == "gmake" and os.target() == "linux" then

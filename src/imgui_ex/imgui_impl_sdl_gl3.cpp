@@ -1,44 +1,10 @@
-// ImGui SDL2 binding with OpenGL3
-// (SDL is a cross-platform general purpose library for handling windows, inputs, OpenGL/Vulkan graphics context creation, etc.)
-// (GL3W is a helper library to access OpenGL functions since there is no standard header to access modern OpenGL functions easily. Alternatives are GLEW, Glad, etc.)
+// ImGui SDL2 Rendering; Based on the ImGui1.6.1 GL3 Demo
 
-// Implemented features:
-//  [X] User texture binding. Cast 'GLuint' OpenGL texture identifier as void*/ImTextureID. Read the FAQ about ImTextureID in imgui.cpp.
-// Missing features:
-//  [ ] SDL2 handling of IME under Windows appears to be broken and it explicitly disable the regular Windows IME. You can restore Windows IME by compiling SDL with SDL_DISABLE_WINDOWS_IME.
+#include "gl/vcGLState.h"
+#include "gl/vcRenderShaders.h"
+#include "gl/vcShader.h"
 
-// You can copy and use unmodified imgui_impl_* files in your project. See main.cpp for an example of using this.
-// If you use this binding you'll need to call 4 functions: ImGui_ImplXXXX_Init(), ImGui_ImplXXXX_NewFrame(), ImGui::Render() and ImGui_ImplXXXX_Shutdown().
-// If you are new to ImGui, see examples/README.txt and documentation at the top of imgui.cpp.
-// https://github.com/ocornut/imgui
-
-// CHANGELOG
-// (minor and older changes stripped away, please see git history for details)
-//  2018-05-09: Misc: Fixed clipboard paste memory leak (we didn't call SDL_FreeMemory on the data returned by SDL_GetClipboardText).
-//  2018-03-20: Misc: Setup io.BackendFlags ImGuiBackendFlags_HasMouseCursors flag + honor ImGuiConfigFlags_NoMouseCursorChange flag.
-//  2018-03-06: OpenGL: Added const char* glsl_version parameter to ImGui_ImplSdlGL3_Init() so user can override the GLSL version e.g. "#version 150".
-//  2018-02-23: OpenGL: Create the VAO in the render function so the setup can more easily be used with multiple shared GL context.
-//  2018-02-16: Inputs: Added support for mouse cursors, honoring ImGui::GetMouseCursor() value.
-//  2018-02-16: Misc: Obsoleted the io.RenderDrawListsFn callback and exposed ImGui_ImplSdlGL3_RenderDrawData() in the .h file so you can call it yourself.
-//  2018-02-06: Misc: Removed call to ImGui::Shutdown() which is not available from 1.60 WIP, user needs to call CreateContext/DestroyContext themselves.
-//  2018-02-06: Inputs: Added mapping for ImGuiKey_Space.
-//  2018-02-05: Misc: Using SDL_GetPerformanceCounter() instead of SDL_GetTicks() to be able to handle very high framerate (1000+ FPS).
-//  2018-02-05: Inputs: Keyboard mapping is using scancodes everywhere instead of a confusing mixture of keycodes and scancodes.
-//  2018-01-20: Inputs: Added Horizontal Mouse Wheel support.
-//  2018-01-19: Inputs: When available (SDL 2.0.4+) using SDL_CaptureMouse() to retrieve coordinates outside of client area when dragging. Otherwise (SDL 2.0.3 and before) testing for SDL_WINDOW_INPUT_FOCUS instead of SDL_WINDOW_MOUSE_FOCUS.
-//  2018-01-18: Inputs: Added mapping for ImGuiKey_Insert.
-//  2018-01-07: OpenGL: Changed GLSL shader version from 330 to 150.
-//  2017-09-01: OpenGL: Save and restore current bound sampler. Save and restore current polygon mode.
-//  2017-08-25: Inputs: MousePos set to -FLT_MAX,-FLT_MAX when mouse is unavailable/missing (instead of -1,-1).
-//  2017-05-01: OpenGL: Fixed save and restore of current blend func state.
-//  2017-05-01: OpenGL: Fixed save and restore of current GL_ACTIVE_TEXTURE.
-//  2016-10-15: Misc: Added a void* user_data parameter to Clipboard function handlers.
-//  2016-09-05: OpenGL: Fixed save and restore of current scissor rectangle.
-//  2016-07-29: OpenGL: Explicitly setting GL_UNPACK_ROW_LENGTH to reduce issues because SDL changes it. (#752)
-
-#if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
-#define _CRT_SECURE_NO_WARNINGS
-#endif
+#include "udPlatform/udPlatformUtil.h"
 
 #include "imgui.h"
 #include "imgui_impl_sdl_gl3.h"
@@ -47,22 +13,10 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
 
-#if defined(__APPLE__)
-# include "TargetConditionals.h"
-# if TARGET_OS_IPHONE
-#  include "OpenGLES/ES3/gl.h"
-#  include "OpenGLES/ES3/glext.h"
-# else
-#  include "OpenGL/gl3.h"
-#  include "OpenGL/gl3ext.h"
-# endif
-#elif defined(__linux__)
-# define GL_GLEXT_PROTOTYPES 1
-# include "GL/gl.h"
-# include "GL/glu.h"
-# include "GL/glext.h"
-#else
-# include <GL/glew.h>    // This example is using gl3w to access OpenGL functions (because it is small). You may use glew/glad/glLoadGen/etc. whatever already works for you.
+#if GRAPHICS_API_OPENGL
+#include "gl/opengl/vcOpenGL.h"
+#elif GRAPHICS_API_D3D11
+#include "gl/directx11/vcD3D11.h"
 #endif
 
 // SDL data
@@ -71,142 +25,344 @@ static bool         g_MousePressed[3] = { false, false, false };
 static SDL_Cursor*  g_MouseCursors[ImGuiMouseCursor_COUNT] = { 0 };
 static char*        g_ClipboardTextData = NULL;
 
-// OpenGL data
+vcTexture fontTexture = {};
+vcShader *pImGuiShader;
+
+// GL data
+#if GRAPHICS_API_OPENGL
 static char         g_GlslVersion[32] = "#version 150";
 static GLuint       g_FontTexture = 0;
 static int          g_ShaderHandle = 0, g_VertHandle = 0, g_FragHandle = 0;
 static int          g_AttribLocationTex = 0, g_AttribLocationProjMtx = 0;
 static int          g_AttribLocationPosition = 0, g_AttribLocationUV = 0, g_AttribLocationColor = 0;
 static unsigned int g_VboHandle = 0,g_ElementsHandle = 0;
+#elif GRAPHICS_API_D3D11
+static ID3D11Buffer*            g_pVB = NULL;
+static ID3D11Buffer*            g_pIB = NULL;
+static ID3D11Buffer*            g_pVertexConstantBuffer = NULL;
+static ID3D11RasterizerState*   g_pRasterizerState = NULL;
+static ID3D11BlendState*        g_pBlendState = NULL;
+static ID3D11DepthStencilState* g_pDepthStencilState = NULL;
+static int                      g_VertexBufferSize = 5000, g_IndexBufferSize = 10000;
+
+struct VERTEX_CONSTANT_BUFFER
+{
+  float        mvp[4][4];
+};
+#endif
 
 // This is the main rendering function that you have to implement and provide to ImGui (via setting up 'RenderDrawListsFn' in the ImGuiIO structure)
 // Note that this implementation is little overcomplicated because we are saving/setting up/restoring every OpenGL state explicitly, in order to be able to run within any OpenGL engine that doesn't do so.
 // If text or lines are blurry when integrating ImGui in your engine: in your Render function, try translating your projection matrix by (0.5f,0.5f) or (0.375f,0.375f)
-void ImGui_ImplSdlGL3_RenderDrawData(ImDrawData* draw_data)
+void ImGuiGL_RenderDrawData(ImDrawData* draw_data)
 {
-    // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
-    ImGuiIO& io = ImGui::GetIO();
-    int fb_width = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
-    int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
-    if (fb_width == 0 || fb_height == 0)
-        return;
-    draw_data->ScaleClipRects(io.DisplayFramebufferScale);
+#if GRAPHICS_API_OPENGL
+  // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
+  ImGuiIO& io = ImGui::GetIO();
+  int fb_width = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
+  int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
+  if (fb_width == 0 || fb_height == 0)
+    return;
+  draw_data->ScaleClipRects(io.DisplayFramebufferScale);
 
-    // Backup GL state
-    GLenum last_active_texture; glGetIntegerv(GL_ACTIVE_TEXTURE, (GLint*)&last_active_texture);
-    glActiveTexture(GL_TEXTURE0);
-    GLint last_program; glGetIntegerv(GL_CURRENT_PROGRAM, &last_program);
-    GLint last_texture; glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
-    GLint last_sampler; glGetIntegerv(GL_SAMPLER_BINDING, &last_sampler);
-    GLint last_array_buffer; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
-    GLint last_element_array_buffer; glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &last_element_array_buffer);
-    GLint last_vertex_array; glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
+  // Backup GL state
+  GLenum last_active_texture; glGetIntegerv(GL_ACTIVE_TEXTURE, (GLint*)&last_active_texture);
+  glActiveTexture(GL_TEXTURE0);
+  GLint last_program; glGetIntegerv(GL_CURRENT_PROGRAM, &last_program);
+  GLint last_texture; glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
+  GLint last_sampler; glGetIntegerv(GL_SAMPLER_BINDING, &last_sampler);
+  GLint last_array_buffer; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
+  GLint last_element_array_buffer; glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &last_element_array_buffer);
+  GLint last_vertex_array; glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
 #if !TARGET_OS_IPHONE
-    GLint last_polygon_mode[2]; glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode);
+  GLint last_polygon_mode[2]; glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode);
 #endif
-    GLint last_viewport[4]; glGetIntegerv(GL_VIEWPORT, last_viewport);
-    GLint last_scissor_box[4]; glGetIntegerv(GL_SCISSOR_BOX, last_scissor_box);
-    GLenum last_blend_src_rgb; glGetIntegerv(GL_BLEND_SRC_RGB, (GLint*)&last_blend_src_rgb);
-    GLenum last_blend_dst_rgb; glGetIntegerv(GL_BLEND_DST_RGB, (GLint*)&last_blend_dst_rgb);
-    GLenum last_blend_src_alpha; glGetIntegerv(GL_BLEND_SRC_ALPHA, (GLint*)&last_blend_src_alpha);
-    GLenum last_blend_dst_alpha; glGetIntegerv(GL_BLEND_DST_ALPHA, (GLint*)&last_blend_dst_alpha);
-    GLenum last_blend_equation_rgb; glGetIntegerv(GL_BLEND_EQUATION_RGB, (GLint*)&last_blend_equation_rgb);
-    GLenum last_blend_equation_alpha; glGetIntegerv(GL_BLEND_EQUATION_ALPHA, (GLint*)&last_blend_equation_alpha);
-    GLboolean last_enable_blend = glIsEnabled(GL_BLEND);
-    GLboolean last_enable_cull_face = glIsEnabled(GL_CULL_FACE);
-    GLboolean last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
-    GLboolean last_enable_scissor_test = glIsEnabled(GL_SCISSOR_TEST);
+  GLint last_viewport[4]; glGetIntegerv(GL_VIEWPORT, last_viewport);
+  GLint last_scissor_box[4]; glGetIntegerv(GL_SCISSOR_BOX, last_scissor_box);
+  GLenum last_blend_src_rgb; glGetIntegerv(GL_BLEND_SRC_RGB, (GLint*)&last_blend_src_rgb);
+  GLenum last_blend_dst_rgb; glGetIntegerv(GL_BLEND_DST_RGB, (GLint*)&last_blend_dst_rgb);
+  GLenum last_blend_src_alpha; glGetIntegerv(GL_BLEND_SRC_ALPHA, (GLint*)&last_blend_src_alpha);
+  GLenum last_blend_dst_alpha; glGetIntegerv(GL_BLEND_DST_ALPHA, (GLint*)&last_blend_dst_alpha);
+  GLenum last_blend_equation_rgb; glGetIntegerv(GL_BLEND_EQUATION_RGB, (GLint*)&last_blend_equation_rgb);
+  GLenum last_blend_equation_alpha; glGetIntegerv(GL_BLEND_EQUATION_ALPHA, (GLint*)&last_blend_equation_alpha);
+  GLboolean last_enable_blend = glIsEnabled(GL_BLEND);
+  GLboolean last_enable_cull_face = glIsEnabled(GL_CULL_FACE);
+  GLboolean last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
+  GLboolean last_enable_scissor_test = glIsEnabled(GL_SCISSOR_TEST);
 
-    // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
-    glEnable(GL_BLEND);
-    glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_SCISSOR_TEST);
+  // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
+  glEnable(GL_BLEND);
+  glBlendEquation(GL_FUNC_ADD);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDisable(GL_CULL_FACE);
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_SCISSOR_TEST);
 #if !TARGET_OS_IPHONE
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 #endif
 
-    // Setup viewport, orthographic projection matrix
-    glViewport(0, 0, (GLsizei)fb_width, (GLsizei)fb_height);
-    const float ortho_projection[4][4] =
-    {
-        { 2.0f/io.DisplaySize.x, 0.0f,                   0.0f, 0.0f },
-        { 0.0f,                  2.0f/-io.DisplaySize.y, 0.0f, 0.0f },
-        { 0.0f,                  0.0f,                  -1.0f, 0.0f },
-        {-1.0f,                  1.0f,                   0.0f, 1.0f },
-    };
-    glUseProgram(g_ShaderHandle);
-    glUniform1i(g_AttribLocationTex, 0);
-    glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
-    glBindSampler(0, 0); // Rely on combined texture/sampler state.
+  // Setup viewport, orthographic projection matrix
+  glViewport(0, 0, (GLsizei)fb_width, (GLsizei)fb_height);
+  const float ortho_projection[4][4] =
+  {
+      { 2.0f / io.DisplaySize.x, 0.0f,                   0.0f, 0.0f },
+      { 0.0f,                  2.0f / -io.DisplaySize.y, 0.0f, 0.0f },
+      { 0.0f,                  0.0f,                  -1.0f, 0.0f },
+      {-1.0f,                  1.0f,                   0.0f, 1.0f },
+  };
+  glUseProgram(g_ShaderHandle);
+  glUniform1i(g_AttribLocationTex, 0);
+  glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
+  glBindSampler(0, 0); // Rely on combined texture/sampler state.
 
-    // Recreate the VAO every time
-    // (This is to easily allow multiple GL contexts. VAO are not shared among GL contexts, and we don't track creation/deletion of windows so we don't have an obvious key to use to cache them.)
-    GLuint vao_handle = 0;
-    glGenVertexArrays(1, &vao_handle);
-    glBindVertexArray(vao_handle);
+  // Recreate the VAO every time
+  // (This is to easily allow multiple GL contexts. VAO are not shared among GL contexts, and we don't track creation/deletion of windows so we don't have an obvious key to use to cache them.)
+  GLuint vao_handle = 0;
+  glGenVertexArrays(1, &vao_handle);
+  glBindVertexArray(vao_handle);
+  glBindBuffer(GL_ARRAY_BUFFER, g_VboHandle);
+  glEnableVertexAttribArray(g_AttribLocationPosition);
+  glEnableVertexAttribArray(g_AttribLocationUV);
+  glEnableVertexAttribArray(g_AttribLocationColor);
+  glVertexAttribPointer(g_AttribLocationPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, pos));
+  glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, uv));
+  glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, col));
+
+  // Draw
+  for (int n = 0; n < draw_data->CmdListsCount; n++)
+  {
+    const ImDrawList* cmd_list = draw_data->CmdLists[n];
+    const ImDrawIdx* idx_buffer_offset = 0;
+
     glBindBuffer(GL_ARRAY_BUFFER, g_VboHandle);
-    glEnableVertexAttribArray(g_AttribLocationPosition);
-    glEnableVertexAttribArray(g_AttribLocationUV);
-    glEnableVertexAttribArray(g_AttribLocationColor);
-    glVertexAttribPointer(g_AttribLocationPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, pos));
-    glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, uv));
-    glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, col));
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)cmd_list->VtxBuffer.Size * sizeof(ImDrawVert), (const GLvoid*)cmd_list->VtxBuffer.Data, GL_STREAM_DRAW);
 
-    // Draw
-    for (int n = 0; n < draw_data->CmdListsCount; n++)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_ElementsHandle);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx), (const GLvoid*)cmd_list->IdxBuffer.Data, GL_STREAM_DRAW);
+
+    for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
     {
-        const ImDrawList* cmd_list = draw_data->CmdLists[n];
-        const ImDrawIdx* idx_buffer_offset = 0;
-
-        glBindBuffer(GL_ARRAY_BUFFER, g_VboHandle);
-        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)cmd_list->VtxBuffer.Size * sizeof(ImDrawVert), (const GLvoid*)cmd_list->VtxBuffer.Data, GL_STREAM_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_ElementsHandle);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx), (const GLvoid*)cmd_list->IdxBuffer.Data, GL_STREAM_DRAW);
-
-        for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
-        {
-            const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
-            if (pcmd->UserCallback)
-            {
-                pcmd->UserCallback(cmd_list, pcmd);
-            }
-            else
-            {
-                glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
-                glScissor((int)pcmd->ClipRect.x, (int)(fb_height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
-                glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, idx_buffer_offset);
-            }
-            idx_buffer_offset += pcmd->ElemCount;
-        }
+      const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
+      if (pcmd->UserCallback)
+      {
+        pcmd->UserCallback(cmd_list, pcmd);
+      }
+      else
+      {
+        glBindTexture(GL_TEXTURE_2D, ((vcTexture*)pcmd->TextureId)->id);
+        glScissor((int)pcmd->ClipRect.x, (int)(fb_height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
+        glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, idx_buffer_offset);
+      }
+      idx_buffer_offset += pcmd->ElemCount;
     }
-    glDeleteVertexArrays(1, &vao_handle);
+  }
+  glDeleteVertexArrays(1, &vao_handle);
 
-    // Restore modified GL state
-    glUseProgram(last_program);
-    glBindTexture(GL_TEXTURE_2D, last_texture);
-    glBindSampler(0, last_sampler);
-    glActiveTexture(last_active_texture);
-    glBindVertexArray(last_vertex_array);
-    glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, last_element_array_buffer);
-    glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
-    glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha, last_blend_dst_alpha);
-    if (last_enable_blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
-    if (last_enable_cull_face) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
-    if (last_enable_depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
-    if (last_enable_scissor_test) glEnable(GL_SCISSOR_TEST); else glDisable(GL_SCISSOR_TEST);
+  // Restore modified GL state
+  glUseProgram(last_program);
+  glBindTexture(GL_TEXTURE_2D, last_texture);
+  glBindSampler(0, last_sampler);
+  glActiveTexture(last_active_texture);
+  glBindVertexArray(last_vertex_array);
+  glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, last_element_array_buffer);
+  glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
+  glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha, last_blend_dst_alpha);
+  if (last_enable_blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+  if (last_enable_cull_face) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+  if (last_enable_depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+  if (last_enable_scissor_test) glEnable(GL_SCISSOR_TEST); else glDisable(GL_SCISSOR_TEST);
 #if !TARGET_OS_IPHONE
-    glPolygonMode(GL_FRONT_AND_BACK, (GLenum)last_polygon_mode[0]);
+  glPolygonMode(GL_FRONT_AND_BACK, (GLenum)last_polygon_mode[0]);
 #endif
-    glViewport(last_viewport[0], last_viewport[1], (GLsizei)last_viewport[2], (GLsizei)last_viewport[3]);
-    glScissor(last_scissor_box[0], last_scissor_box[1], (GLsizei)last_scissor_box[2], (GLsizei)last_scissor_box[3]);
+  glViewport(last_viewport[0], last_viewport[1], (GLsizei)last_viewport[2], (GLsizei)last_viewport[3]);
+  glScissor(last_scissor_box[0], last_scissor_box[1], (GLsizei)last_scissor_box[2], (GLsizei)last_scissor_box[3]);
+#elif GRAPHICS_API_D3D11
+  ID3D11DeviceContext* ctx = g_pd3dDeviceContext;
+
+  // Create and grow vertex/index buffers if needed
+  if (!g_pVB || g_VertexBufferSize < draw_data->TotalVtxCount)
+  {
+    if (g_pVB) { g_pVB->Release(); g_pVB = NULL; }
+    g_VertexBufferSize = draw_data->TotalVtxCount + 5000;
+    D3D11_BUFFER_DESC desc;
+    memset(&desc, 0, sizeof(D3D11_BUFFER_DESC));
+    desc.Usage = D3D11_USAGE_DYNAMIC;
+    desc.ByteWidth = g_VertexBufferSize * sizeof(ImDrawVert);
+    desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    desc.MiscFlags = 0;
+    if (g_pd3dDevice->CreateBuffer(&desc, NULL, &g_pVB) < 0)
+      return;
+  }
+  if (!g_pIB || g_IndexBufferSize < draw_data->TotalIdxCount)
+  {
+    if (g_pIB) { g_pIB->Release(); g_pIB = NULL; }
+    g_IndexBufferSize = draw_data->TotalIdxCount + 10000;
+    D3D11_BUFFER_DESC desc;
+    memset(&desc, 0, sizeof(D3D11_BUFFER_DESC));
+    desc.Usage = D3D11_USAGE_DYNAMIC;
+    desc.ByteWidth = g_IndexBufferSize * sizeof(ImDrawIdx);
+    desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    if (g_pd3dDevice->CreateBuffer(&desc, NULL, &g_pIB) < 0)
+      return;
+  }
+
+  // Copy and convert all vertices into a single contiguous buffer
+  D3D11_MAPPED_SUBRESOURCE vtx_resource, idx_resource;
+  if (ctx->Map(g_pVB, 0, D3D11_MAP_WRITE_DISCARD, 0, &vtx_resource) != S_OK)
+    return;
+  if (ctx->Map(g_pIB, 0, D3D11_MAP_WRITE_DISCARD, 0, &idx_resource) != S_OK)
+    return;
+  ImDrawVert* vtx_dst = (ImDrawVert*)vtx_resource.pData;
+  ImDrawIdx* idx_dst = (ImDrawIdx*)idx_resource.pData;
+  for (int n = 0; n < draw_data->CmdListsCount; n++)
+  {
+    const ImDrawList* cmd_list = draw_data->CmdLists[n];
+    memcpy(vtx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
+    memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+    vtx_dst += cmd_list->VtxBuffer.Size;
+    idx_dst += cmd_list->IdxBuffer.Size;
+  }
+  ctx->Unmap(g_pVB, 0);
+  ctx->Unmap(g_pIB, 0);
+
+  // Setup orthographic projection matrix into our constant buffer
+  {
+    D3D11_MAPPED_SUBRESOURCE mapped_resource;
+    if (ctx->Map(g_pVertexConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resource) != S_OK)
+      return;
+    VERTEX_CONSTANT_BUFFER* constant_buffer = (VERTEX_CONSTANT_BUFFER*)mapped_resource.pData;
+    float L = 0.0f;
+    float R = ImGui::GetIO().DisplaySize.x;
+    float B = ImGui::GetIO().DisplaySize.y;
+    float T = 0.0f;
+    float mvp[4][4] =
+    {
+      { 2.0f / (R - L),   0.0f,           0.0f,       0.0f },
+      { 0.0f,         2.0f / (T - B),     0.0f,       0.0f },
+      { 0.0f,         0.0f,           0.5f,       0.0f },
+      { (R + L) / (L - R),  (T + B) / (B - T),    0.5f,       1.0f },
+    };
+    memcpy(&constant_buffer->mvp, mvp, sizeof(mvp));
+    ctx->Unmap(g_pVertexConstantBuffer, 0);
+  }
+
+  // Backup DX state that will be modified to restore it afterwards (unfortunately this is very ugly looking and verbose. Close your eyes!)
+  struct BACKUP_DX11_STATE
+  {
+    UINT                        ScissorRectsCount, ViewportsCount;
+    D3D11_RECT                  ScissorRects[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
+    D3D11_VIEWPORT              Viewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
+    ID3D11RasterizerState*      RS;
+    ID3D11BlendState*           BlendState;
+    FLOAT                       BlendFactor[4];
+    UINT                        SampleMask;
+    UINT                        StencilRef;
+    ID3D11DepthStencilState*    DepthStencilState;
+    ID3D11ShaderResourceView*   PSShaderResource;
+    ID3D11SamplerState*         PSSampler;
+    ID3D11PixelShader*          PS;
+    ID3D11VertexShader*         VS;
+    UINT                        PSInstancesCount, VSInstancesCount;
+    ID3D11ClassInstance*        PSInstances[256], *VSInstances[256];   // 256 is max according to PSSetShader documentation
+    D3D11_PRIMITIVE_TOPOLOGY    PrimitiveTopology;
+    ID3D11Buffer*               IndexBuffer, *VertexBuffer, *VSConstantBuffer;
+    UINT                        IndexBufferOffset, VertexBufferStride, VertexBufferOffset;
+    DXGI_FORMAT                 IndexBufferFormat;
+    ID3D11InputLayout*          InputLayout;
+  };
+  BACKUP_DX11_STATE old;
+  old.ScissorRectsCount = old.ViewportsCount = D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
+  ctx->RSGetScissorRects(&old.ScissorRectsCount, old.ScissorRects);
+  ctx->RSGetViewports(&old.ViewportsCount, old.Viewports);
+  ctx->RSGetState(&old.RS);
+  ctx->OMGetBlendState(&old.BlendState, old.BlendFactor, &old.SampleMask);
+  ctx->OMGetDepthStencilState(&old.DepthStencilState, &old.StencilRef);
+  ctx->PSGetShaderResources(0, 1, &old.PSShaderResource);
+  ctx->PSGetSamplers(0, 1, &old.PSSampler);
+  old.PSInstancesCount = old.VSInstancesCount = 256;
+  ctx->PSGetShader(&old.PS, old.PSInstances, &old.PSInstancesCount);
+  ctx->VSGetShader(&old.VS, old.VSInstances, &old.VSInstancesCount);
+  ctx->VSGetConstantBuffers(0, 1, &old.VSConstantBuffer);
+  ctx->IAGetPrimitiveTopology(&old.PrimitiveTopology);
+  ctx->IAGetIndexBuffer(&old.IndexBuffer, &old.IndexBufferFormat, &old.IndexBufferOffset);
+  ctx->IAGetVertexBuffers(0, 1, &old.VertexBuffer, &old.VertexBufferStride, &old.VertexBufferOffset);
+  ctx->IAGetInputLayout(&old.InputLayout);
+
+  // Setup viewport
+  D3D11_VIEWPORT vp;
+  memset(&vp, 0, sizeof(D3D11_VIEWPORT));
+  vp.Width = ImGui::GetIO().DisplaySize.x;
+  vp.Height = ImGui::GetIO().DisplaySize.y;
+  vp.MinDepth = 0.0f;
+  vp.MaxDepth = 1.0f;
+  vp.TopLeftX = vp.TopLeftY = 0.0f;
+  ctx->RSSetViewports(1, &vp);
+
+  // Bind shader and vertex buffers
+  unsigned int stride = sizeof(ImDrawVert);
+  unsigned int offset = 0;
+  ctx->IASetVertexBuffers(0, 1, &g_pVB, &stride, &offset);
+  ctx->IASetIndexBuffer(g_pIB, sizeof(ImDrawIdx) == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT, 0);
+  ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+  vcShader_Bind(pImGuiShader);
+  ctx->VSSetConstantBuffers(0, 1, &g_pVertexConstantBuffer);
+  ctx->PSSetSamplers(0, 1, &fontTexture.pSampler);
+
+  // Setup render state
+  const float blend_factor[4] = { 0.f, 0.f, 0.f, 0.f };
+  ctx->OMSetBlendState(g_pBlendState, blend_factor, 0xffffffff);
+  ctx->OMSetDepthStencilState(g_pDepthStencilState, 0);
+  ctx->RSSetState(g_pRasterizerState);
+
+  // Render command lists
+  int vtx_offset = 0;
+  int idx_offset = 0;
+  for (int n = 0; n < draw_data->CmdListsCount; n++)
+  {
+    const ImDrawList* cmd_list = draw_data->CmdLists[n];
+    for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
+    {
+      const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
+      if (pcmd->UserCallback)
+      {
+        pcmd->UserCallback(cmd_list, pcmd);
+      }
+      else
+      {
+        const D3D11_RECT r = { (LONG)pcmd->ClipRect.x, (LONG)pcmd->ClipRect.y, (LONG)pcmd->ClipRect.z, (LONG)pcmd->ClipRect.w };
+        ctx->PSSetShaderResources(0, 1, &((vcTexture*)pcmd->TextureId)->pTextureView);
+        ctx->RSSetScissorRects(1, &r);
+        ctx->DrawIndexed(pcmd->ElemCount, idx_offset, vtx_offset);
+      }
+      idx_offset += pcmd->ElemCount;
+    }
+    vtx_offset += cmd_list->VtxBuffer.Size;
+  }
+
+  // Restore modified DX state
+  ctx->RSSetScissorRects(old.ScissorRectsCount, old.ScissorRects);
+  ctx->RSSetViewports(old.ViewportsCount, old.Viewports);
+  ctx->RSSetState(old.RS); if (old.RS) old.RS->Release();
+  ctx->OMSetBlendState(old.BlendState, old.BlendFactor, old.SampleMask); if (old.BlendState) old.BlendState->Release();
+  ctx->OMSetDepthStencilState(old.DepthStencilState, old.StencilRef); if (old.DepthStencilState) old.DepthStencilState->Release();
+  ctx->PSSetShaderResources(0, 1, &old.PSShaderResource); if (old.PSShaderResource) old.PSShaderResource->Release();
+  ctx->PSSetSamplers(0, 1, &old.PSSampler); if (old.PSSampler) old.PSSampler->Release();
+  ctx->PSSetShader(old.PS, old.PSInstances, old.PSInstancesCount); if (old.PS) old.PS->Release();
+  for (UINT i = 0; i < old.PSInstancesCount; i++) if (old.PSInstances[i]) old.PSInstances[i]->Release();
+  ctx->VSSetShader(old.VS, old.VSInstances, old.VSInstancesCount); if (old.VS) old.VS->Release();
+  ctx->VSSetConstantBuffers(0, 1, &old.VSConstantBuffer); if (old.VSConstantBuffer) old.VSConstantBuffer->Release();
+  for (UINT i = 0; i < old.VSInstancesCount; i++) if (old.VSInstances[i]) old.VSInstances[i]->Release();
+  ctx->IASetPrimitiveTopology(old.PrimitiveTopology);
+  ctx->IASetIndexBuffer(old.IndexBuffer, old.IndexBufferFormat, old.IndexBufferOffset); if (old.IndexBuffer) old.IndexBuffer->Release();
+  ctx->IASetVertexBuffers(0, 1, &old.VertexBuffer, &old.VertexBufferStride, &old.VertexBufferOffset); if (old.VertexBuffer) old.VertexBuffer->Release();
+  ctx->IASetInputLayout(old.InputLayout); if (old.InputLayout) old.InputLayout->Release();
+#endif
 }
 
-static const char* ImGui_ImplSdlGL3_GetClipboardText(void*)
+static const char* ImGuiGL_GetClipboardText(void*)
 {
     if (g_ClipboardTextData)
         SDL_free(g_ClipboardTextData);
@@ -214,7 +370,7 @@ static const char* ImGui_ImplSdlGL3_GetClipboardText(void*)
     return g_ClipboardTextData;
 }
 
-static void ImGui_ImplSdlGL3_SetClipboardText(void*, const char* text)
+static void ImGuiGL_SetClipboardText(void*, const char* text)
 {
     SDL_SetClipboardText(text);
 }
@@ -223,7 +379,7 @@ static void ImGui_ImplSdlGL3_SetClipboardText(void*, const char* text)
 // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
 // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
 // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
-bool ImGui_ImplSdlGL3_ProcessEvent(SDL_Event* event)
+bool ImGuiGL_ProcessSDLEvent(SDL_Event* event)
 {
     ImGuiIO& io = ImGui::GetIO();
     switch (event->type)
@@ -264,33 +420,93 @@ bool ImGui_ImplSdlGL3_ProcessEvent(SDL_Event* event)
     return false;
 }
 
-void ImGui_ImplSdlGL3_CreateFontsTexture()
+void ImGuiGL_CreateFontsTexture()
 {
-    // Build texture atlas
-    ImGuiIO& io = ImGui::GetIO();
-    unsigned char* pixels;
-    int width, height;
-    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits for OpenGL3 demo because it is more likely to be compatible with user's existing shader.
+#if GRAPHICS_API_OPENGL
+  // Build texture atlas
+  ImGuiIO& io = ImGui::GetIO();
+  unsigned char* pixels;
+  int width, height;
+  io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits for OpenGL3 demo because it is more likely to be compatible with user's existing shader.
 
-    // Upload texture to graphics system
-    GLint last_texture;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
-    glGenTextures(1, &g_FontTexture);
-    glBindTexture(GL_TEXTURE_2D, g_FontTexture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+  // Upload texture to graphics system
+  GLint last_texture;
+  glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
+  glGenTextures(1, &g_FontTexture);
+  glBindTexture(GL_TEXTURE_2D, g_FontTexture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
-    // Store our identifier
-    io.Fonts->TexID = (void *)(intptr_t)g_FontTexture;
+  // Store our identifier
+  fontTexture.id = g_FontTexture;
+  io.Fonts->TexID = &fontTexture;
 
-    // Restore state
-    glBindTexture(GL_TEXTURE_2D, last_texture);
+  // Restore state
+  glBindTexture(GL_TEXTURE_2D, last_texture);
+#elif GRAPHICS_API_D3D11
+  // Build texture atlas
+  ImGuiIO& io = ImGui::GetIO();
+  unsigned char* pixels;
+  int width, height;
+  io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+
+  // Upload texture to graphics system
+  {
+    D3D11_TEXTURE2D_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    desc.Width = width;
+    desc.Height = height;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+    desc.CPUAccessFlags = 0;
+
+    ID3D11Texture2D *pTexture = NULL;
+    D3D11_SUBRESOURCE_DATA subResource;
+    subResource.pSysMem = pixels;
+    subResource.SysMemPitch = desc.Width * 4;
+    subResource.SysMemSlicePitch = 0;
+    g_pd3dDevice->CreateTexture2D(&desc, &subResource, &pTexture);
+
+    // Create texture view
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+    ZeroMemory(&srvDesc, sizeof(srvDesc));
+    srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = desc.MipLevels;
+    srvDesc.Texture2D.MostDetailedMip = 0;
+    g_pd3dDevice->CreateShaderResourceView(pTexture, &srvDesc, &fontTexture.pTextureView);
+    pTexture->Release();
+  }
+
+  // Store our identifier
+  io.Fonts->TexID = &fontTexture;
+
+  // Create texture sampler
+  {
+    D3D11_SAMPLER_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    desc.MipLODBias = 0.f;
+    desc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+    desc.MinLOD = 0.f;
+    desc.MaxLOD = 0.f;
+    g_pd3dDevice->CreateSamplerState(&desc, &fontTexture.pSampler);
+  }
+#endif
 }
 
-bool ImGui_ImplSdlGL3_CreateDeviceObjects()
+bool ImGuiGL_CreateDeviceObjects()
 {
+#if GRAPHICS_API_OPENGL
     // Backup GL state
     GLint last_texture, last_array_buffer, last_vertex_array;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
@@ -347,7 +563,7 @@ bool ImGui_ImplSdlGL3_CreateDeviceObjects()
     glGenBuffers(1, &g_VboHandle);
     glGenBuffers(1, &g_ElementsHandle);
 
-    ImGui_ImplSdlGL3_CreateFontsTexture();
+    ImGuiGL_CreateFontsTexture();
 
     // Restore modified GL state
     glBindTexture(GL_TEXTURE_2D, last_texture);
@@ -355,10 +571,86 @@ bool ImGui_ImplSdlGL3_CreateDeviceObjects()
     glBindVertexArray(last_vertex_array);
 
     return true;
+#elif GRAPHICS_API_D3D11
+  if (g_pd3dDevice == nullptr)
+    return false;
+
+  if (fontTexture.pSampler != nullptr)
+    ImGuiGL_InvalidateDeviceObjects();
+
+  // By using D3DCompile() from <d3dcompiler.h> / d3dcompiler.lib, we introduce a dependency to a given version of d3dcompiler_XX.dll (see D3DCOMPILER_DLL_A)
+  // If you would like to use this DX11 sample code but remove this dependency you can:
+  //  1) compile once, save the compiled shader blobs into a file or source code and pass them to CreateVertexShader()/CreatePixelShader() [preferred solution]
+  //  2) use code to detect any version of the DLL and grab a pointer to D3DCompile from the DLL.
+  // See https://github.com/ocornut/imgui/pull/638 for sources and details.
+
+  // Create the vertex shader
+  {
+    vcShaderVertexInputTypes layout[] = { vcSVIT_Position2, vcSVIT_TextureCoords2, vcSVIT_ColourBGRA };
+    vcShader_CreateFromText(&pImGuiShader, g_ImGuiVertexShader, g_ImGuiFragmentShader, layout, UDARRAYSIZE(layout));
+
+    // Create the constant buffer
+    {
+      D3D11_BUFFER_DESC desc;
+      desc.ByteWidth = sizeof(VERTEX_CONSTANT_BUFFER);
+      desc.Usage = D3D11_USAGE_DYNAMIC;
+      desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+      desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+      desc.MiscFlags = 0;
+      g_pd3dDevice->CreateBuffer(&desc, NULL, &g_pVertexConstantBuffer);
+    }
+  }
+
+  // Create the blending setup
+  {
+    D3D11_BLEND_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    desc.AlphaToCoverageEnable = false;
+    desc.RenderTarget[0].BlendEnable = true;
+    desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+    desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    g_pd3dDevice->CreateBlendState(&desc, &g_pBlendState);
+  }
+
+  // Create the rasterizer state
+  {
+    D3D11_RASTERIZER_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    desc.FillMode = D3D11_FILL_SOLID;
+    desc.CullMode = D3D11_CULL_NONE;
+    desc.ScissorEnable = true;
+    desc.DepthClipEnable = true;
+    g_pd3dDevice->CreateRasterizerState(&desc, &g_pRasterizerState);
+  }
+
+  // Create depth-stencil State
+  {
+    D3D11_DEPTH_STENCIL_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    desc.DepthEnable = false;
+    desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+    desc.StencilEnable = false;
+    desc.FrontFace.StencilFailOp = desc.FrontFace.StencilDepthFailOp = desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    desc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+    desc.BackFace = desc.FrontFace;
+    g_pd3dDevice->CreateDepthStencilState(&desc, &g_pDepthStencilState);
+  }
+
+  ImGuiGL_CreateFontsTexture();
+
+  return true;
+#endif
 }
 
-void    ImGui_ImplSdlGL3_InvalidateDeviceObjects()
+void ImGuiGL_InvalidateDeviceObjects()
 {
+#if GRAPHICS_API_OPENGL
     if (g_VboHandle) glDeleteBuffers(1, &g_VboHandle);
     if (g_ElementsHandle) glDeleteBuffers(1, &g_ElementsHandle);
     g_VboHandle = g_ElementsHandle = 0;
@@ -380,16 +672,56 @@ void    ImGui_ImplSdlGL3_InvalidateDeviceObjects()
         ImGui::GetIO().Fonts->TexID = 0;
         g_FontTexture = 0;
     }
+#elif GRAPHICS_API_D3D11
+  if (!g_pd3dDevice)
+    return;
+
+  if (fontTexture.pSampler)
+  {
+    fontTexture.pSampler->Release();
+    fontTexture.pSampler = NULL;
+  }
+
+  if (fontTexture.pTextureView) // We copied g_pFontTextureView to io.Fonts->TexID so let's clear that as well.
+  {
+    fontTexture.pTextureView->Release();
+    fontTexture.pTextureView = NULL;
+    ImGui::GetIO().Fonts->TexID = NULL;
+  }
+
+  if (g_pIB)
+  {
+    g_pIB->Release();
+    g_pIB = NULL;
+  }
+
+  if (g_pVB)
+  {
+    g_pVB->Release();
+    g_pVB = NULL;
+  }
+
+  if (g_pBlendState) { g_pBlendState->Release(); g_pBlendState = NULL; }
+  if (g_pDepthStencilState) { g_pDepthStencilState->Release(); g_pDepthStencilState = NULL; }
+  if (g_pRasterizerState) { g_pRasterizerState->Release(); g_pRasterizerState = NULL; }
+  if (g_pVertexConstantBuffer) { g_pVertexConstantBuffer->Release(); g_pVertexConstantBuffer = NULL; }
+
+  vcShader_DestroyShader(&pImGuiShader);
+#endif
 }
 
-bool    ImGui_ImplSdlGL3_Init(SDL_Window* window, const char* glsl_version)
+bool ImGuiGL_Init(SDL_Window *pWindow, const char *glsl_version)
 {
+#if GRAPHICS_API_OPENGL
     // Store GL version string so we can refer to it later in case we recreate shaders.
     if (glsl_version == NULL)
         glsl_version = "#version 150";
     IM_ASSERT((int)strlen(glsl_version) + 2 < IM_ARRAYSIZE(g_GlslVersion));
-    strcpy(g_GlslVersion, glsl_version);
-    strcat(g_GlslVersion, "\n");
+    udStrcpy(g_GlslVersion, IM_ARRAYSIZE(g_GlslVersion), glsl_version);
+    udStrcat(g_GlslVersion, IM_ARRAYSIZE(g_GlslVersion), "\n");
+#else
+  udUnused(glsl_version);
+#endif
 
     // Setup back-end capabilities flags
     ImGuiIO& io = ImGui::GetIO();
@@ -418,8 +750,8 @@ bool    ImGui_ImplSdlGL3_Init(SDL_Window* window, const char* glsl_version)
     io.KeyMap[ImGuiKey_Y] = SDL_SCANCODE_Y;
     io.KeyMap[ImGuiKey_Z] = SDL_SCANCODE_Z;
 
-    io.SetClipboardTextFn = ImGui_ImplSdlGL3_SetClipboardText;
-    io.GetClipboardTextFn = ImGui_ImplSdlGL3_GetClipboardText;
+    io.SetClipboardTextFn = ImGuiGL_SetClipboardText;
+    io.GetClipboardTextFn = ImGuiGL_GetClipboardText;
     io.ClipboardUserData = NULL;
 
     g_MouseCursors[ImGuiMouseCursor_Arrow] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
@@ -433,16 +765,16 @@ bool    ImGui_ImplSdlGL3_Init(SDL_Window* window, const char* glsl_version)
 #ifdef _WIN32
     SDL_SysWMinfo wmInfo;
     SDL_VERSION(&wmInfo.version);
-    SDL_GetWindowWMInfo(window, &wmInfo);
+    SDL_GetWindowWMInfo(pWindow, &wmInfo);
     io.ImeWindowHandle = wmInfo.info.win.window;
 #else
-    (void)window;
+    (void)pWindow;
 #endif
 
     return true;
 }
 
-void ImGui_ImplSdlGL3_Shutdown()
+void ImGuiGL_Shutdown()
 {
     // Destroy SDL mouse cursors
     for (ImGuiMouseCursor cursor_n = 0; cursor_n < ImGuiMouseCursor_COUNT; cursor_n++)
@@ -454,17 +786,22 @@ void ImGui_ImplSdlGL3_Shutdown()
         SDL_free(g_ClipboardTextData);
 
     // Destroy OpenGL objects
-    ImGui_ImplSdlGL3_InvalidateDeviceObjects();
+    ImGuiGL_InvalidateDeviceObjects();
 }
 
-void ImGui_ImplSdlGL3_NewFrame(SDL_Window* window)
+void ImGuiGL_NewFrame(SDL_Window* window)
 {
+#if GRAPHICS_API_OPENGL
     if (!g_FontTexture)
-        ImGui_ImplSdlGL3_CreateDeviceObjects();
+        ImGuiGL_CreateDeviceObjects();
+#elif GRAPHICS_API_D3D11
+    if (!fontTexture.pSampler)
+      ImGuiGL_CreateDeviceObjects();
+#endif
 
     ImGuiIO& io = ImGui::GetIO();
 
-    // Setup display size (every frame to accommodate for window resizing)
+    // Setup display size (every frame to accommodate for pWindow resizing)
     int w, h;
     int display_w, display_h;
     SDL_GetWindowSize(window, &w, &h);
@@ -499,7 +836,7 @@ void ImGui_ImplSdlGL3_NewFrame(SDL_Window* window)
     if (!any_mouse_button_down && (SDL_GetWindowFlags(window) & SDL_WINDOW_MOUSE_CAPTURE) != 0)
         SDL_CaptureMouse(SDL_FALSE);
 #else
-    if ((SDL_GetWindowFlags(window) & SDL_WINDOW_INPUT_FOCUS) != 0)
+    if ((SDL_GetWindowFlags(pWindow) & SDL_WINDOW_INPUT_FOCUS) != 0)
         io.MousePos = ImVec2((float)mx, (float)my);
 #endif
 
