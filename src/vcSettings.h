@@ -63,6 +63,8 @@ struct vcSettings
 
   vcCameraSettings camera;
 
+  int lensIndex;
+
   struct
   {
     bool mapEnabled;
@@ -91,6 +93,17 @@ const float vcSL_CameraFieldOfViewMin = 5;
 const float vcSL_CameraFieldOfViewMax = 100;
 
 const float vcSL_OSCPixelRatio = 100.f;
+
+// Lens Sizes
+// - Using formula 2*atan(35/(2*lens)) in radians
+const float vcLens7mm =   2.38058f;
+const float vcLens11mm =  2.01927f;
+const float vcLens15mm =  1.72434f;
+const float vcLens24mm =  1.26007f;
+const float vcLens30mm =  1.05615f;
+const float vcLens50mm =  0.67335f;
+const float vcLens70mm =  0.48996f;
+const float vcLens100mm = 0.34649f;
 
 // Settings Functions
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset = false);
