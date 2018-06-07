@@ -28,11 +28,11 @@ void vcCamera_Destroy(vcCamera **ppCamera);
 // Get camera matrix
 udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera);
 
-// Applies movement instruction for next frame
-void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset);
+// Applies movement to camera
+void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, float speedModifier = 1.f);
 
 // Moves based on buffers
-void vcCamera_Update(vcCamera *pCamera, vcCameraSettings *pCamSettings, double deltaTime, float speedModifier = 1.f);
+//void vcCamera_Update(vcCamera *pCamera, vcCameraSettings *pCamSettings, double deltaTime, float speedModifier = 1.f);
 
 
 //udDouble3 vcCamera_GetPosition(vcCamera *pCamera);
