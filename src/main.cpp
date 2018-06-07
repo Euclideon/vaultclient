@@ -1,3 +1,5 @@
+#include "vcState.h"
+
 #include "vdkContext.h"
 #include "vdkRenderContext.h"
 #include "vdkModel.h"
@@ -6,12 +8,9 @@
 #include "imgui_ex/imgui_dock.h"
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
-#include "udPlatform/udMath.h"
 #include "udPlatform/udChunkedArray.h"
-#include "udPlatform/udPlatformUtil.h"
 #include "vcCamera.h"
 #include "vcRender.h"
-#include "vcSettings.h"
 #include "vcGIS.h"
 
 #include <stdlib.h>
@@ -81,61 +80,20 @@ struct vcColumnHeader
   float size;
 };
 
-struct vaultContainer
-{
-  vdkContext *pContext;
-  vcRenderContext *pRenderContext;
-};
-
-struct ProgramState
-{
-  bool programComplete;
-  SDL_Window *pWindow;
-  GLuint defaultFramebuffer;
-
-  bool onScreenControls;
-
-  vcCamera *pCamera;
-
-  size_t numSelectedModels;
-  size_t prevSelectedModel;
-
-  double deltaTime;
-  udDouble4x4 camMatrix;
-  udUInt2 sceneResolution;
-
-  uint16_t currentSRID;
-
-  vcTexture watermarkTexture;
-
-  bool hasContext;
-
-  char serverURL[vcMaxPathLength];
-  char username[vcMaxPathLength];
-  char password[vcMaxPathLength];
-
-  char modelPath[vcMaxPathLength];
-
-
-
-  vcSettings settings;
-  udValue projects;
-};
-
 #if UDPLATFORM_OSX
 char *pBasePath = nullptr;
 #endif
 
-void vcHandleSceneInput(ProgramState *pProgramState);
-void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer);
-int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer);
+void vcHandleSceneInput(vcState *pProgramState);
+void vcRenderWindow(vcState *pProgramState);
+int vcMainMenuGui(vcState *pProgramState);
 
-void vcSettings_LoadSettings(ProgramState *pProgramState, bool forceDefaults);
-bool vcLogout(ProgramState *pProgramState, vaultContainer *pVaultContainer);
+void vcSettings_LoadSettings(vcState *pProgramState, bool forceDefaults);
+bool vcLogout(vcState *pProgramState);
 
-void vcModel_AddToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, const char *pFilePath);
-bool vcModel_UnloadList(vaultContainer *pVaultContainer);
-bool vcModel_MoveToModelProjection(vaultContainer *pVaultContainer, ProgramState *pProgramState, vcModel *pModel);
+void vcModel_AddToList(vcState *pProgramState, const char *pFilePath);
+bool vcModel_UnloadList(vcState *pProgramState);
+bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel);
 
 #if defined(SDL_MAIN_NEEDED) || defined(SDL_MAIN_AVAILABLE)
 int SDL_main(int /*argc*/, char ** /*args*/)
@@ -149,8 +107,7 @@ int main(int /*argc*/, char ** /*args*/)
   windowFlags |= SDL_WINDOW_FULLSCREEN;
 #endif
 
-  ProgramState programState = {};
-  vaultContainer vContainer = {};
+  vcState programState = {};
 
   udFile_RegisterHTTP();
 
@@ -308,8 +265,8 @@ int main(int /*argc*/, char ** /*args*/)
 
   pEucWatermarkData = stbi_load(EucWatermarkPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0); // reusing the variables for width etc
 
-  programState.watermarkTexture = vcTextureCreate(iconWidth, iconHeight, vcTextureFormat_RGBA8);
-  vcTextureUploadPixels(&programState.watermarkTexture, pEucWatermarkData, iconWidth, iconHeight);
+  vcTexture_Create(&programState.pWatermarkTexture, iconWidth, iconHeight, vcTextureFormat_RGBA8);
+  vcTexture_UploadPixels(programState.pWatermarkTexture, pEucWatermarkData, iconWidth, iconHeight);
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   if (!ImGui_ImplSdlGL3_Init(programState.pWindow, "#version 300 es"))
@@ -325,7 +282,7 @@ int main(int /*argc*/, char ** /*args*/)
   NOW = SDL_GetPerformanceCounter();
   LAST = 0;
 
-  if (vcRender_Init(&vContainer.pRenderContext, &(programState.settings), programState.pCamera, programState.sceneResolution) != udR_Success)
+  if (vcRender_Init(&(programState.pRenderContext), &(programState.settings), programState.pCamera, programState.sceneResolution) != udR_Success)
     goto epilogue;
 
   // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
@@ -373,7 +330,7 @@ int main(int /*argc*/, char ** /*args*/)
         }
         else if (event.type == SDL_DROPFILE && programState.hasContext)
         {
-          vcModel_AddToList(&vContainer, &programState, event.drop.file);
+          vcModel_AddToList(&programState, event.drop.file);
         }
         else if (event.type == SDL_QUIT)
         {
@@ -388,7 +345,7 @@ int main(int /*argc*/, char ** /*args*/)
 
     ImGui_ImplSdlGL3_NewFrame(programState.pWindow);
 
-    vcRenderWindow(&programState, &vContainer);
+    vcRenderWindow(&programState);
 
     ImGui::Render();
     ImGui_ImplSdlGL3_RenderDrawData(ImGui::GetDrawData());
@@ -404,13 +361,13 @@ int main(int /*argc*/, char ** /*args*/)
 
 epilogue:
   vcCamera_Destroy(&programState.pCamera);
-  vcTextureDestroy(&programState.watermarkTexture);
+  vcTexture_Destroy(&programState.pWatermarkTexture);
   free(pIconData);
   free(pEucWatermarkData);
-  vcModel_UnloadList(&vContainer);
+  vcModel_UnloadList(&programState);
   vcModelList.Deinit();
-  vcRender_Destroy(&vContainer.pRenderContext);
-  vdkContext_Disconnect(&vContainer.pContext);
+  vcRender_Destroy(&programState.pRenderContext);
+  vdkContext_Disconnect(&programState.pContext);
 
 #if UDPLATFORM_OSX
   SDL_free(pBasePath);
@@ -419,7 +376,7 @@ epilogue:
   return 0;
 }
 
-void vcHandleSceneInput(ProgramState *pProgramState)
+void vcHandleSceneInput(vcState *pProgramState)
 {
   //Setup and default values
   ImGuiIO& io = ImGui::GetIO();
@@ -486,7 +443,7 @@ void vcHandleSceneInput(ProgramState *pProgramState)
   pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera);
 }
 
-void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgramState)
+void vcRenderSceneWindow(vcState *pProgramState)
 {
   //Rendering
   ImVec2 size = ImGui::GetContentRegionAvail();
@@ -497,7 +454,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
 
   if (pProgramState->sceneResolution.x != size.x || pProgramState->sceneResolution.y != size.y) //Resize buffers
   {
-    vcRender_ResizeScene(pVaultContainer->pRenderContext, (uint32_t)size.x, (uint32_t)size.y);
+    vcRender_ResizeScene(pProgramState->pRenderContext, (uint32_t)size.x, (uint32_t)size.y);
 
     // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
     // this isn't valid on iOS when using UIKit.
@@ -518,11 +475,11 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
     renderData.models.PushBack(&vcModelList[i]);
   }
 
-  vcTexture texture = vcRender_RenderScene(pVaultContainer->pRenderContext, renderData, pProgramState->defaultFramebuffer);
+  vcTexture *pTexture = vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->defaultFramebuffer);
 
   renderData.models.Deinit();
 
-  ImGui::Image((ImTextureID)((size_t)texture.id), size, ImVec2(0, 0), ImVec2(1, -1));
+  ImGui::Image((ImTextureID)((size_t)pTexture->id), size, ImVec2(0, 0), ImVec2(1, -1));
 
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + size.x - 5.f, windowPos.y + 5.f), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
@@ -646,7 +603,7 @@ void vcRenderSceneWindow(vaultContainer *pVaultContainer, ProgramState *pProgram
   }
 }
 
-int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
+int vcMainMenuGui(vcState *pProgramState)
 {
   int menuHeight = 0;
 
@@ -656,7 +613,7 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
     {
       if (ImGui::MenuItem("Logout"))
       {
-        if(!vcLogout(pProgramState, pVaultContainer))
+        if(!vcLogout(pProgramState))
           ImGui::OpenPopup("Logout Error");
       }
 
@@ -697,13 +654,13 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
         {
           if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr))
           {
-            vcModel_UnloadList(pVaultContainer);
+            vcModel_UnloadList(pProgramState);
 
             for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
             {
               char buffer[vcMaxPathLength];
               udSprintf(buffer, vcMaxPathLength, "%s/%s", pProgramState->settings.resourceBase, pProjectList->GetElement(i)->Get("models[%d]", j).AsString());
-              vcModel_AddToList(pVaultContainer, pProgramState, buffer);
+              vcModel_AddToList(pProgramState, buffer);
             }
           }
         }
@@ -720,7 +677,7 @@ int vcMainMenuGui(ProgramState *pProgramState, vaultContainer *pVaultContainer)
   return menuHeight;
 }
 
-void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer)
+void vcRenderWindow(vcState *pProgramState)
 {
   glBindFramebuffer(GL_FRAMEBUFFER, pProgramState->defaultFramebuffer);
   glClearColor(0, 0, 0, 1);
@@ -751,7 +708,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
   if (pProgramState->hasContext)
   {
-    float menuHeight = (float)vcMainMenuGui(pProgramState, pVaultContainer);
+    float menuHeight = (float)vcMainMenuGui(pProgramState);
     ImGui::RootDock(ImVec2(0, menuHeight), ImVec2(size.x, size.y - menuHeight));
   }
   else
@@ -765,7 +722,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
     ImGui::SetNextWindowPos(ImVec2(size.x-5,size.y-5), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
 
     ImGui::Begin("Watermark", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
-    ImGui::Image((ImTextureID)((size_t)pProgramState->watermarkTexture.id), ImVec2(512, 512), ImVec2(0, 0), ImVec2(1, 1));
+    ImGui::Image((ImTextureID)((size_t)pProgramState->pWatermarkTexture->id), ImVec2(512, 512), ImVec2(0, 0), ImVec2(1, 1));
     ImGui::End();
 
     ImGui::SetNextWindowSize(ImVec2(500, 150));
@@ -781,28 +738,28 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
       if (ImGui::Button("Login!"))
       {
-        err = vdkContext_Connect(&pVaultContainer->pContext, pProgramState->serverURL, "ClientSample");
+        err = vdkContext_Connect(&pProgramState->pContext, pProgramState->serverURL, "ClientSample");
         if (err != vE_Success)
         {
           pErrorMessage = "Could not connect to server...";
         }
         else
         {
-          err = vdkContext_Login(pVaultContainer->pContext, pProgramState->username, pProgramState->password);
+          err = vdkContext_Login(pProgramState->pContext, pProgramState->username, pProgramState->password);
           if (err != vE_Success)
           {
             pErrorMessage = "Could not log in...";
           }
           else
           {
-            err = vdkContext_GetLicense(pVaultContainer->pContext, vdkLT_Basic);
+            err = vdkContext_GetLicense(pProgramState->pContext, vdkLT_Basic);
             if (err != vE_Success)
             {
               pErrorMessage = "Could not get license...";
             }
             else
             {
-              vcRender_SetVaultContext(pVaultContainer->pRenderContext, pVaultContainer->pContext);
+              vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pContext);
               pProgramState->hasContext = true;
             }
           }
@@ -893,7 +850,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
 
     if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ResizeFromAnySide))
     {
-      vcRenderSceneWindow(pVaultContainer, pProgramState);
+      vcRenderSceneWindow(pProgramState);
       vcHandleSceneInput(pProgramState);
     }
 
@@ -903,7 +860,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
     {
       ImGui::InputText("Model Path", pProgramState->modelPath, vcMaxPathLength);
       if (ImGui::Button("Load Model!"))
-        vcModel_AddToList(pVaultContainer, pProgramState, pProgramState->modelPath);
+        vcModel_AddToList(pProgramState, pProgramState->modelPath);
 
       if (!lastModelLoaded)
         ImGui::Text("Invalid File/Not Found...");
@@ -992,7 +949,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
         }
 
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
-          vcModel_MoveToModelProjection(pVaultContainer, pProgramState, &vcModelList[i]);
+          vcModel_MoveToModelProjection(pProgramState, &vcModelList[i]);
 
         ImVec2 textSize = ImGui::CalcTextSize(vcModelList[i].modelPath);
         if (ImGui::IsItemHovered() && (textSize.x >= headers[0].size))
@@ -1029,7 +986,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
               if (vcModelList[j].modelSelected)
               {
                 // unload model
-                err = vdkModel_Unload(pVaultContainer->pContext, &(vcModelList[j].pVaultModel));
+                err = vdkModel_Unload(pProgramState->pContext, &(vcModelList[j].pVaultModel));
                 if (err != vE_Success)
                   goto epilogue;
 
@@ -1045,7 +1002,7 @@ void vcRenderWindow(ProgramState *pProgramState, vaultContainer *pVaultContainer
           else
           {
             // unload model
-            err = vdkModel_Unload(pVaultContainer->pContext, &(vcModelList[i].pVaultModel));
+            err = vdkModel_Unload(pProgramState->pContext, &(vcModelList[i].pVaultModel));
             if (err != vE_Success)
               goto epilogue;
 
@@ -1193,7 +1150,7 @@ epilogue:
   return;
 }
 
-void vcModel_AddToList(vaultContainer *pVaultContainer, ProgramState *pProgramState, const char *pFilePath)
+void vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
 {
   if (pFilePath == nullptr)
     return;
@@ -1206,26 +1163,26 @@ void vcModel_AddToList(vaultContainer *pVaultContainer, ProgramState *pProgramSt
 
   udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
 
-  if(vdkModel_Load(pVaultContainer->pContext, &model.pVaultModel, pFilePath) == vE_Success)
+  if(vdkModel_Load(pProgramState->pContext, &model.pVaultModel, pFilePath) == vE_Success)
   {
     const char *pMetadata;
-    if (vdkModel_GetMetadata(pVaultContainer->pContext, model.pVaultModel, &pMetadata) == vE_Success)
+    if (vdkModel_GetMetadata(pProgramState->pContext, model.pVaultModel, &pMetadata) == vE_Success)
       model.pMetadata->Parse(pMetadata);
 
-    vcModel_MoveToModelProjection(pVaultContainer, pProgramState, &model);
+    vcModel_MoveToModelProjection(pProgramState, &model);
 
     vcModelList.PushBack(model);
   }
 }
 
-bool vcModel_UnloadList(vaultContainer *pVaultContainer)
+bool vcModel_UnloadList(vcState *pProgramState)
 {
   vdkError err;
   for (int i = 0; i < (int) vcModelList.length; i++)
   {
     vdkModel *pVaultModel;
     pVaultModel = vcModelList[i].pVaultModel;
-    err = vdkModel_Unload(pVaultContainer->pContext, &pVaultModel);
+    err = vdkModel_Unload(pProgramState->pContext, &pVaultModel);
     vcModelList[i].pMetadata->Destroy();
     udFree(vcModelList[i].pMetadata);
     if (err != vE_Success)
@@ -1239,13 +1196,13 @@ bool vcModel_UnloadList(vaultContainer *pVaultContainer)
   return true;
 }
 
-bool vcModel_MoveToModelProjection(vaultContainer *pVaultContainer, ProgramState *pProgramState, vcModel *pModel)
+bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel)
 {
-  if (pVaultContainer == nullptr || pProgramState == nullptr || pModel == nullptr)
+  if (pProgramState == nullptr || pModel == nullptr)
     return false;
 
   double midPoint[3];
-  vdkModel_GetModelCenter(pVaultContainer->pContext, pModel->pVaultModel, midPoint);
+  vdkModel_GetModelCenter(pProgramState->pContext, pModel->pVaultModel, midPoint);
   vcCamera_SetPosition(pProgramState->pCamera, udDouble3::create(midPoint[0], midPoint[1], midPoint[2]));
 
   const char *pSRID = pModel->pMetadata->Get("ProjectionID").AsString();
@@ -1271,7 +1228,7 @@ bool vcModel_MoveToModelProjection(vaultContainer *pVaultContainer, ProgramState
   return true;
 }
 
-void vcSettings_LoadSettings(ProgramState *pProgramState, bool forceDefaults)
+void vcSettings_LoadSettings(vcState *pProgramState, bool forceDefaults)
 {
   if (vcSettings_Load(&pProgramState->settings, forceDefaults))
   {
@@ -1293,16 +1250,16 @@ void vcSettings_LoadSettings(ProgramState *pProgramState, bool forceDefaults)
 }
 
 
-bool vcLogout(ProgramState *pProgramState, vaultContainer *pVaultContainer)
+bool vcLogout(vcState *pProgramState)
 {
   bool success = true;
 
-  success &= vcModel_UnloadList(pVaultContainer);
-  success &= vcRender_ClearCache(pVaultContainer->pRenderContext);
+  success &= vcModel_UnloadList(pProgramState);
+  success &= vcRender_ClearCache(pProgramState->pRenderContext);
 
   pProgramState->currentSRID = 0;
 
-  success = success && vdkContext_Logout(pVaultContainer->pContext) == vE_Success;
+  success = success && vdkContext_Logout(pProgramState->pContext) == vE_Success;
   pProgramState->hasContext = !success;
 
   return success;

@@ -40,25 +40,14 @@ struct vcTexture
   GLuint width, height;
 };
 
-struct vcFramebuffer
-{
-  GLuint id;
+bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, vcTextureFormat format = vcTextureFormat_RGBA8, GLuint filterMode = GL_NEAREST, bool hasMipmaps = false, uint8_t *pPixels = nullptr, int32_t aniFilter = 0, int32_t wrapMode = GL_REPEAT);
+bool vcTexture_CreateDepth(vcTexture **ppTexture, uint32_t width, uint32_t height, vcTextureFormat format = vcTextureFormat_D24, GLuint filterMode = GL_NEAREST);
 
-  vcTexture *pAttachments[1];
-  vcTexture *pDepth; // optional
-};
+bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth = nullptr, uint32_t *pHeight = nullptr, int32_t filterMode = GL_LINEAR, bool hasMipmaps = false, int32_t aniFilter = 0, int32_t wrapMode = GL_REPEAT);
+bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename);
 
-vcTexture vcTextureCreate(uint32_t width, uint32_t height, vcTextureFormat format = vcTextureFormat_RGBA8, GLuint filterMode = GL_NEAREST, bool hasMipmaps = false, uint8_t *pPixels = nullptr, int32_t aniFilter = 0, int32_t wrapMode = GL_REPEAT);
-vcTexture vcTextureCreateDepth(uint32_t width, uint32_t height, vcTextureFormat format = vcTextureFormat_D24, GLuint filterMode = GL_NEAREST);
-vcFramebuffer vcFramebufferCreate(vcTexture *pTexture, vcTexture *pDepth = nullptr, int level = 0);
+void vcTexture_Destroy(vcTexture **ppTexture);
 
-vcTexture vcTextureLoadFromDisk(const char *filename, uint32_t *pWidth = nullptr, uint32_t *pHeight = nullptr, int32_t filterMode = GL_LINEAR, bool hasMipmaps = false, int32_t aniFilter = 0, int32_t wrapMode = GL_REPEAT);
-
-void vcTextureUploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height);
-
-void vcTextureDestroy(vcTexture *pTexture);
-void vcFramebufferDestroy(vcFramebuffer *pFramebuffer);
-
-vcTexture vcTexture_LoadCubemap(const char *filename);
+void vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height);
 
 #endif//vcTexture_h__
