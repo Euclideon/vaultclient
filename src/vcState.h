@@ -12,11 +12,10 @@ struct SDL_Window;
 
 struct vdkContext;
 
+struct vcFramebuffer;
 struct vcRenderContext;
 struct vcCamera;
 struct vcTexture;
-
-typedef unsigned int GLuint;
 
 enum vcPopupTriggerID
 {
@@ -29,7 +28,7 @@ struct vcState
 {
   bool programComplete;
   SDL_Window *pWindow;
-  GLuint defaultFramebuffer;
+  vcFramebuffer *pDefaultFramebuffer;
 
   bool onScreenControls;
 

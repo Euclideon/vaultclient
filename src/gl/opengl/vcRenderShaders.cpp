@@ -1,7 +1,5 @@
-#ifndef vcRenderShaders_h__
-#define vcRenderShaders_h__
-
-#include "vcRenderUtils.h"
+#include "gl/vcRenderShaders.h"
+#include "udPlatform/udPlatformUtil.h"
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
 # define FRAG_HEADER "#version 300 es\nprecision highp float;\n"
@@ -11,7 +9,7 @@
 # define VERT_HEADER "#version 330 core\n"
 #endif
 
-const GLchar* const g_udFragmentShader = FRAG_HEADER R"shader(
+const char* const g_udFragmentShader = FRAG_HEADER R"shader(
 uniform sampler2D u_texture;
 uniform sampler2D u_depth;
 
@@ -28,7 +26,7 @@ void main()
 }
 )shader";
 
-const GLchar* const g_udVertexShader = VERT_HEADER R"shader(
+const char* const g_udVertexShader = VERT_HEADER R"shader(
 //Input format
 layout(location = 0) in vec2 a_position;
 layout(location = 1) in vec2 a_texCoord;
@@ -44,7 +42,7 @@ void main()
 )shader";
 
 
-const GLchar* const g_terrainTileFragmentShader = FRAG_HEADER R"shader(
+const char* const g_terrainTileFragmentShader = FRAG_HEADER R"shader(
 //Input Format
 in vec2 v_uv;
 
@@ -62,7 +60,7 @@ void main()
 }
 )shader";
 
-const GLchar* const g_terrainTileVertexShader = VERT_HEADER R"shader(
+const char* const g_terrainTileVertexShader = VERT_HEADER R"shader(
 //Input format
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_uv;
@@ -92,7 +90,7 @@ void main()
 }
 )shader";
 
-const GLchar* const g_vcSkyboxShader = FRAG_HEADER R"shader(
+const char* const g_vcSkyboxFragmentShader = FRAG_HEADER R"shader(
 
 uniform samplerCube u_texture;
 uniform mat4 u_inverseViewProjection;
@@ -115,5 +113,3 @@ void main()
   out_Colour = c1;
 }
 )shader";
-
-#endif//vcRenderShaders_h__

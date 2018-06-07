@@ -1,4 +1,5 @@
-#include "vcFramebuffer.h"
+#include "gl/vcFramebuffer.h"
+#include "vcOpenGL.h"
 
 bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, int level /*= 0*/)
 {
@@ -30,4 +31,22 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
 
   glDeleteFramebuffers(1, &(*ppFramebuffer)->id);
   udFree(*ppFramebuffer);
+}
+
+bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer)
+{
+  if (pFramebuffer == nullptr || pFramebuffer->id == GL_INVALID_INDEX)
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  else
+    glBindFramebuffer(GL_FRAMEBUFFER, pFramebuffer->id);
+
+  return true;
+}
+
+bool vcFramebuffer_Clear(vcFramebuffer * /*pFramebuffer*/, uint32_t colour)
+{
+  glClearColor(((colour >> 16) & 0xFF) / 255.f, ((colour >> 8) & 0xFF) / 255.f, (colour & 0xFF) / 255.f, ((colour >> 24) & 0xFF) / 255.f);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  return true;
 }
