@@ -153,6 +153,8 @@ bool vcGIS_LocalToLatLong(uint16_t sridCode, udDouble3 localCoords, udDouble3 *p
 
   pLatLong->y = zoneCM - UD_RAD2DEG(_a2);
 
+  pLatLong->z = localCoords.z;
+
   return true;
 }
 
