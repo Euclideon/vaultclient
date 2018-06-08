@@ -388,6 +388,9 @@ void vcHandleSceneInput(vcState *pProgramState)
 
   udDouble3 moveOffset = udDouble3::zero();
   udDouble3 rotationOffset = udDouble3::zero();
+  static udDouble3 orbitPos = udDouble3::zero();
+  static udDoubleQuat storedOrbitQuat = udDoubleQuat::identity();
+  static udDouble3 storedDeltaAngle = udDouble3::zero();
 
   bool isHovered = ImGui::IsItemHovered();
   bool isLeftClicked = ImGui::IsMouseClicked(0, false);
@@ -417,6 +420,15 @@ void vcHandleSceneInput(vcState *pProgramState)
     moveOffset.x += (float)((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
     moveOffset.z += (float)((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
 
+    if (pProgramState->settings.camera.moveMode == vcCMM_Orbit && isLeftClicked)
+    {
+      orbitPos = pProgramState->worldMousePos;
+      storedOrbitQuat = vcCamera_GetStoredOrbitQuaternion(pProgramState->pCamera, orbitPos);
+      storedDeltaAngle = vcCamera_CreateStoredRotation(pProgramState->pCamera, orbitPos);
+
+      udDebugPrintf("%f,%f,%f\n", storedDeltaAngle.x, storedDeltaAngle.y, storedDeltaAngle.z);
+    }
+
     if (clickedLeftWhileHovered && !isLeftClicked)
     {
       clickedLeftWhileHovered = io.MouseDown[0];
@@ -425,6 +437,11 @@ void vcHandleSceneInput(vcState *pProgramState)
         rotationOffset.x = -mouseDelta.x / 100.f;
         rotationOffset.y = -mouseDelta.y / 100.f;
         rotationOffset.z = 0.f;
+        if (pProgramState->settings.camera.moveMode == vcCMM_Orbit)
+        {
+          vcCamera_Orbit(pProgramState->pCamera, &pProgramState->settings.camera, orbitPos, storedOrbitQuat, rotationOffset.x, rotationOffset.y);
+          //udDebugPrintf("%f,%f,%f\n", storedOrbitQuat.eulerAngles().x, storedOrbitQuat.eulerAngles().y, storedOrbitQuat.eulerAngles().z);
+        }
       }
     }
 
@@ -441,6 +458,8 @@ void vcHandleSceneInput(vcState *pProgramState)
       pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
     }
   }
+  if (pProgramState->settings.camera.moveMode == vcCMM_Orbit)
+
 
   vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, rotationOffset, moveOffset, pProgramState->deltaTime, speedModifier);
   pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera);
@@ -546,6 +565,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
       ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
       ImGui::SameLine();
       ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
+      ImGui::SameLine();
+      ImGui::RadioButton("OrbitMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Orbit);
 
       if (ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f))
         pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
