@@ -428,6 +428,9 @@ void vcHandleSceneInput(vcState *pProgramState)
       }
     }
 
+    if (isRightClicked)
+      pProgramState->currentMeasurePoint = pProgramState->worldMousePos;
+
     if (isHovered)
     {
       if (io.MouseWheel > 0)
@@ -488,17 +491,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
     if (ImGui::Begin("Geographic Information", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
     {
       if (pProgramState->currentSRID != 0)
-      {
-        udDouble3 cameraLatLong;
-        vcGIS_LocalToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &cameraLatLong);
-
         ImGui::Text("SRID: %d", pProgramState->currentSRID);
-        ImGui::Text("LAT/LONG: %f %f", cameraLatLong.x, cameraLatLong.y);
-      }
       else
-      {
         ImGui::Text("Not Geolocated");
-      }
 
       if (pProgramState->settings.showFPS)
       {
@@ -510,11 +505,18 @@ void vcRenderSceneWindow(vcState *pProgramState)
       if (ImGui::IsMousePosValid())
       {
         ImGui::Text("Mouse Position: (%.1f,%.1f)", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
-        ImGui::Text("World Pos: (%f,%f,%f)", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
+        ImGui::Text("Mouse World Pos (x/y/z): (%f,%f,%f)", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
 
         udDouble3 mousePointInLatLong;
-        vcGIS_LocalToLatLong(pProgramState->currentSRID, renderData.worldMousePos, &mousePointInLatLong);
-        ImGui::Text("World Pos: (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
+        pProgramState->worldMousePos = renderData.worldMousePos;
+
+        if (pProgramState->worldMousePos != udDouble3::zero())
+          vcGIS_LocalToLatLong(pProgramState->currentSRID, renderData.worldMousePos, &mousePointInLatLong);
+        else
+          mousePointInLatLong = udDouble3::zero();
+
+        ImGui::Text("Mouse World Pos (L/L): (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
+        ImGui::Text("Selected Pos (x/y/z): (%f,%f,%f)", pProgramState->currentMeasurePoint.x, pProgramState->currentMeasurePoint.y, pProgramState->currentMeasurePoint.z);
       }
       else
       {
@@ -532,9 +534,15 @@ void vcRenderSceneWindow(vcState *pProgramState)
     if (ImGui::Begin("Camera Settings", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize))
     {
       udDouble3 cameraPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
-      ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &cameraPosition.x, 3);
-      vcCamera_SetPosition(pProgramState->pCamera, cameraPosition);
+      if(ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &cameraPosition.x, 3))
+        vcCamera_SetPosition(pProgramState->pCamera, cameraPosition);
 
+      if (pProgramState->currentSRID != 0)
+      {
+        udDouble3 cameraLatLong;
+        vcGIS_LocalToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &cameraLatLong);
+        ImGui::Text("Lat: %.7f, Long: %.7f, Alt: %.2fm", cameraLatLong.x, cameraLatLong.y, cameraLatLong.z);
+      }
       ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
       ImGui::SameLine();
       ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
