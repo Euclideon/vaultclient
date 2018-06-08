@@ -1,14 +1,12 @@
 #ifndef vcRender_h__
 #define vcRender_h__
 
-#include "udPlatform/udChunkedArray.h"
-#include "udPlatform/udValue.h"
+#include "vcState.h"
 
 #include "vdkRenderContext.h"
 #include "vdkRenderView.h"
 
 #include "vcRenderUtils.h"
-#include "vcSettings.h"
 
 struct vcRenderContext;
 
@@ -41,8 +39,10 @@ udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vdkContext *p
 
 udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);
 
-vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, GLuint defaultFramebuffer);
+vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, GLuint defaultFramebuffer);
 
 void vcRenderSkybox(vcRenderContext *pRenderContext);
+
+bool vcRender_ClearCache(vcRenderContext *pRenderContext);
 
 #endif//vcRender_h__
