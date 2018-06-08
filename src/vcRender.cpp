@@ -3,6 +3,7 @@
 #include "vcRenderShaders.h"
 #include "vcTerrain.h"
 #include "vcGIS.h"
+#include "vcFramebuffer.h"
 
 int qrIndices[6] = { 0, 1, 2, 0, 2, 3 };
 vcSimpleVertex qrSqVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
@@ -25,8 +26,8 @@ struct vcUDRenderContext
   vdkRenderView *pRenderView;
   uint32_t *pColorBuffer;
   float *pDepthBuffer;
-  vcTexture colour;
-  vcTexture depth;
+  vcTexture *pColourTex;
+  vcTexture *pDepthTex;
 
   struct
   {
@@ -44,9 +45,9 @@ struct vcRenderContext
 
   udUInt2 sceneResolution;
 
-  vcFramebuffer framebuffer;
-  vcTexture texture;
-  vcTexture depthbuffer;
+  vcFramebuffer *pFramebuffer;
+  vcTexture *pTexture;
+  vcTexture *pDepthTexture;
 
   vcUDRenderContext udRenderContext;
 
@@ -63,7 +64,7 @@ struct vcRenderContext
     GLint uniform_texture;
     GLint uniform_inverseViewProjection;
   } skyboxShader;
-  vcTexture skyboxCubeMapTexture;
+  vcTexture *pSkyboxCubeMapTexture;
 };
 
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
@@ -91,7 +92,7 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
     goto epilogue;
   glUniform1i(udDepthLocation, 1);
 
-  pRenderContext->skyboxCubeMapTexture = vcTexture_LoadCubemap("CloudWater.jpg");
+  vcTexture_LoadCubemap(&pRenderContext->pSkyboxCubeMapTexture, "CloudWater.jpg");
 
   glUseProgram(pRenderContext->skyboxShader.program);
   pRenderContext->skyboxShader.uniform_texture = glGetUniformLocation(pRenderContext->skyboxShader.program, "u_texture");
@@ -142,11 +143,11 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
 
 epilogue:
-  vcTextureDestroy(&pRenderContext->udRenderContext.colour);
-  vcTextureDestroy(&pRenderContext->udRenderContext.depth);
-  vcTextureDestroy(&pRenderContext->texture);
-  vcTextureDestroy(&pRenderContext->depthbuffer);
-  vcFramebufferDestroy(&pRenderContext->framebuffer);
+  vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
+  vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
+  vcTexture_Destroy(&pRenderContext->pTexture);
+  vcTexture_Destroy(&pRenderContext->pDepthTexture);
+  vcFramebuffer_Destroy(&pRenderContext->pFramebuffer);
 
   udFree(pRenderContext);
   return result;
@@ -185,17 +186,17 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
   pRenderContext->skyboxProjMatrix = udDouble4x4::perspective(fov, aspect, 0.5f, 10000.f);
 
   //Resize GPU Targets
-  vcTextureDestroy(&pRenderContext->udRenderContext.colour);
-  vcTextureDestroy(&pRenderContext->udRenderContext.depth);
-  pRenderContext->udRenderContext.colour = vcTextureCreate(pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, vcTextureFormat_RGBA8, GL_NEAREST);
-  pRenderContext->udRenderContext.depth = vcTextureCreateDepth(pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, vcTextureFormat_D32F, GL_NEAREST);
+  vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
+  vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
+  vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, vcTextureFormat_RGBA8, GL_NEAREST);
+  vcTexture_CreateDepth(&pRenderContext->udRenderContext.pDepthTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, vcTextureFormat_D32F, GL_NEAREST);
 
-  vcTextureDestroy(&pRenderContext->texture);
-  vcTextureDestroy(&pRenderContext->depthbuffer);
-  vcFramebufferDestroy(&pRenderContext->framebuffer);
-  pRenderContext->texture = vcTextureCreate(width, height, vcTextureFormat_RGBA8, GL_NEAREST);
-  pRenderContext->depthbuffer = vcTextureCreateDepth(width, height, vcTextureFormat_D32F, GL_NEAREST);
-  pRenderContext->framebuffer = vcFramebufferCreate(&pRenderContext->texture, &pRenderContext->depthbuffer);
+  vcTexture_Destroy(&pRenderContext->pTexture);
+  vcTexture_Destroy(&pRenderContext->pDepthTexture);
+  vcFramebuffer_Destroy(&pRenderContext->pFramebuffer);
+  vcTexture_Create(&pRenderContext->pTexture, width, height, vcTextureFormat_RGBA8, GL_NEAREST);
+  vcTexture_CreateDepth(&pRenderContext->pDepthTexture, width, height, vcTextureFormat_D32F, GL_NEAREST);
+  vcFramebuffer_Create(&pRenderContext->pFramebuffer, pRenderContext->pTexture, pRenderContext->pDepthTexture);
 
   //Resize CPU Targets
   udFree(pRenderContext->udRenderContext.pColorBuffer);
@@ -211,7 +212,7 @@ epilogue:
   return result;
 }
 
-vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, GLuint defaultFramebuffer)
+vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, GLuint defaultFramebuffer)
 {
   pRenderContext->viewMatrix = renderData.cameraMatrix;
   pRenderContext->viewMatrix.inverse();
@@ -226,18 +227,18 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &re
   glClearColor(0, 0, 0, 1);
   glViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
-  glBindFramebuffer(GL_FRAMEBUFFER, pRenderContext->framebuffer.id);
+  glBindFramebuffer(GL_FRAMEBUFFER, pRenderContext->pFramebuffer->id);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glUseProgram(pRenderContext->udRenderContext.presentShader.program);
   glUniform1i(udTextureLocation, 0);
 
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, pRenderContext->udRenderContext.colour.id);
+  glBindTexture(GL_TEXTURE_2D, pRenderContext->udRenderContext.pColourTex->id);
   glUniform1i(pRenderContext->udRenderContext.presentShader.uniform_texture, 0);
 
   glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, pRenderContext->udRenderContext.depth.id);
+  glBindTexture(GL_TEXTURE_2D, pRenderContext->udRenderContext.pDepthTex->id);
   glUniform1i(pRenderContext->udRenderContext.presentShader.uniform_depth, 1);
 
   glBindVertexArray(qrSqVaoID);
@@ -292,7 +293,7 @@ vcTexture vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &re
   glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
   VERIFY_GL();
 
-  return pRenderContext->texture;
+  return pRenderContext->pTexture;
 }
 
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext)
@@ -351,8 +352,8 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
     renderData.worldMousePos = udDouble3::create(picking.pointCenter[0], picking.pointCenter[1], picking.pointCenter[2]);
   }
 
-  vcTextureUploadPixels(&pRenderContext->udRenderContext.colour, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
-  vcTextureUploadPixels(&pRenderContext->udRenderContext.depth, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+  vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+  vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
 epilogue:
   udFreeStack(pModels);
@@ -370,7 +371,7 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
   glUseProgram(pRenderContext->skyboxShader.program);
 
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, pRenderContext->skyboxCubeMapTexture.id);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, pRenderContext->pSkyboxCubeMapTexture->id);
   glUniform1i(pRenderContext->skyboxShader.uniform_texture, 0);
   glUniformMatrix4fv(pRenderContext->skyboxShader.uniform_inverseViewProjection, 1, false, viewProjMatrixF.a);
 
@@ -387,4 +388,9 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
 
   glBindVertexArray(0);
   glUseProgram(0);
+}
+
+bool vcRender_ClearCache(vcRenderContext *pRenderContext)
+{
+  return vcTerrain_ClearCache(pRenderContext->pTerrain);
 }
