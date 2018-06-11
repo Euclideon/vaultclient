@@ -435,7 +435,7 @@ void vcHandleSceneInput(vcState *pProgramState)
         rotationOffset.z = 0.f;
         if (pProgramState->settings.camera.moveMode == vcCMM_Orbit)
         {
-          vcCamera_Orbit(pProgramState->pCamera, &pProgramState->settings.camera, orbitPos, storedDeltaAngle, rotationOffset.x, rotationOffset.y);
+          vcCamera_Orbit(pProgramState->pCamera, orbitPos, storedDeltaAngle, rotationOffset.x, rotationOffset.y);
         }
       }
     }
@@ -481,7 +481,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.srid = pProgramState->currentSRID;
   renderData.models.Init(32);
 
-  vcRender_SetWindowOffset(pProgramState->pRenderContext, udInt2::create(windowPos.x, windowPos.y));
+  vcRender_SetWindowOffset(pProgramState->pRenderContext, udInt2::create((int)windowPos.x, (int)windowPos.y));
 
   ImGuiIO &io = ImGui::GetIO();
   renderData.mouse.x = (uint32_t)io.MousePos.x;

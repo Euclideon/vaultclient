@@ -175,7 +175,6 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
   udResult result = udR_Success;
   float fov = pRenderContext->pSettings->camera.fieldOfView;
   float aspect = width / (float)height;
-  pRenderContext->pSettings->camera.aspect = aspect;
   float zNear = pRenderContext->pSettings->camera.nearPlane;
   float zFar = pRenderContext->pSettings->camera.farPlane;
 

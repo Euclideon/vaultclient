@@ -43,7 +43,7 @@ udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPositi
   return udDouble3::create(yaw, pitch, 0);
 }
 
-void vcCamera_Orbit(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 orbitPosition, udDouble3 storedRotation, double dx, double dy)
+void vcCamera_Orbit(vcCamera *pCamera, udDouble3 orbitPosition, udDouble3 storedRotation, double dx, double dy)
 {
   udDouble3 toPoint = orbitPosition - pCamera->position;
   double distanceToPoint = udMag3(toPoint);
