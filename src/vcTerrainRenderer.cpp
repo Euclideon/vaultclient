@@ -295,7 +295,10 @@ vcTexture* AssignTileTexture(vcTerrainRenderer *pTerrainRenderer, const udInt3 &
   }
 
   if (pCachedTexture != nullptr)
+  {
+    pResultTexture = pCachedTexture->pTexture;
     pCachedTexture->isVisible = true;
+  }
 
   return pResultTexture;
 }
@@ -315,7 +318,7 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
   int rootGridSize = 1 << slippyCoords.z;
 
   int tileIndex = 0;
-  for (int i = 0; i <= nodeCount; ++i)
+  for (int i = 0; i < nodeCount; ++i)
   {
     const vcQuadTreeNode *pNode = &pNodeList[i];
     if (!vcQuadTree_IsLeafNode(pNode) || !pNode->isVisible)
@@ -323,12 +326,13 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
 
     int gridSizeAtLevel = 1 << pNode->level;
 
-    udInt2 offset = udInt2::create(slippyCoords.x << pNode->level, ((rootGridSize - 1) - slippyCoords.y) << pNode->level); // y-inverted
-    udInt3 slippyTileCoord = udInt3::create(0, 0, pNode->level + slippyCoords.z);
-    int totalGridSize = 1 << slippyTileCoord.z;
-    slippyTileCoord.x = (int)(pNode->position.x * gridSizeAtLevel) + offset.x;
-    slippyTileCoord.y = (totalGridSize - 1) - ((int)(pNode->position.y * gridSizeAtLevel) + offset.y); // y-inverted
-
+    //udInt2 offset = udInt2::create(slippyCoords.x << pNode->level, ((rootGridSize - 1) - slippyCoords.y) << pNode->level); // y-inverted
+    //udInt3 slippyTileCoord = udInt3::create(0, 0, pNode->level + slippyCoords.z);
+    //int totalGridSize = 1 << slippyTileCoord.z;
+    //slippyTileCoord.x = (int)(pNode->position.x * gridSizeAtLevel) + offset.x;
+    //slippyTileCoord.y = (totalGridSize - 1) - ((int)(pNode->position.y * gridSizeAtLevel) + offset.y); // y-inverted
+    
+    udInt3 slippyTileCoord = udInt3::create(pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->level + slippyCoords.z);
     udDouble3 localCorners[4]; // nw, ne, sw, se
     for (int t = 0; t < 4; ++t)
     {
@@ -346,6 +350,7 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
 
     ++tileIndex;
   }
+  
   udReleaseMutex(pTerrainRenderer->cache.pMutex);
 }
 
@@ -377,12 +382,12 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
 
   if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
-    vcGLState_SetDepthMode(false, false);
+    vcGLState_SetDepthMode(vcGLSDM_None, false);
 
   for (int i = 0; i < pTerrainRenderer->tileCount; ++i)
   {
-    if (pTerrainRenderer->pTiles[i].pTexture == nullptr)
-      continue;
+    //if (pTerrainRenderer->pTiles[i].pTexture == nullptr)
+    //  continue;
 
     for (int t = 0; t < 4; ++t)
     {
@@ -390,19 +395,19 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
       vcShader_SetUniform(pTerrainRenderer->presentShader.uniform_worldViewProjection[t], tileWV);
     }
 
-#if 0
+#if 1
     srand(i);
-    vcShader_SetUniform(pTerrainRenderer->presentShader.uniform_debugColour, udFloat3::Create(float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX));
+    vcShader_SetUniform(pTerrainRenderer->presentShader.uniform_debugColour, udFloat3::create(float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX));
 #else
     vcShader_SetUniform(pTerrainRenderer->presentShader.uniform_debugColour, udFloat3::create(1.0f));
 #endif
 
-    vcShader_BindTexture(pTerrainRenderer->presentShader.pProgram, pTerrainRenderer->pTiles[i].pTexture, 0);
+    //vcShader_BindTexture(pTerrainRenderer->presentShader.pProgram, pTerrainRenderer->pTiles[i].pTexture, 0);
     vcMesh_RenderTriangles(pTerrainRenderer->pMesh, IndexResolution * IndexResolution * 2); // 2 because 2tris per quad
   }
 
   if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
-    vcGLState_SetDepthMode(true, true);
+    vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true);
 
   vcGLState_SetBlendMode(vcGLSBM_None);
 

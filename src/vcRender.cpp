@@ -211,7 +211,7 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
   pRenderContext->viewMatrix.inverse();
   pRenderContext->viewProjectionMatrix = pRenderContext->projectionMatrix * pRenderContext->viewMatrix;
 
-  vcGLState_SetDepthMode(true, true);
+  vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true);
 
   vcRender_RenderAndUploadUDToTexture(pRenderContext, renderData);
 
@@ -227,7 +227,7 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
 
   vcMesh_RenderTriangles(pRenderContext->pSkyboxMesh, 2);
 
-  vcRenderSkybox(pRenderContext);
+  //vcRenderSkybox(pRenderContext);
 
   if (renderData.srid != 0 && pRenderContext->pSettings->maptiles.mapEnabled)
   {
@@ -357,13 +357,11 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
 
   // Draw the skybox only at the far plane, where there is no geometry.
   // Drawing skybox here (after 'opaque' geometry) saves a bit on fill rate.
-  //glDepthRangef(1.0f, 1.0f);
-  //glDepthFunc(GL_LEQUAL);
+  vcGLState_SetDepthRange(1.0f, 1.0f);
 
   //vcMesh_RenderTriangles(pRenderContext->pSkyboxMesh, 2);
 
-  //glDepthFunc(GL_LESS);
-  //glDepthRangef(0.0f, 1.0f);
+  vcGLState_SetDepthRange(0.0f, 1.0f);
 
   vcShader_Bind(nullptr);
 }

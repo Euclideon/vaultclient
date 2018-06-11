@@ -39,6 +39,20 @@ enum vcGLStateBlendMode
   vcGLSBM_Multiplicative, // source fragment * destination fragment
 };
 
+enum vcGLStateDepthMode
+{
+  vcGLSDM_None,
+
+  vcGLSDM_Less,
+  vcGLSDM_LessOrEqual,
+  vcGLSDM_Equal,
+  vcGLSDM_GreaterOrEqual,
+  vcGLSDM_Greater,
+
+  vcGLSDM_NotEqual,
+  vcGLSDM_Always
+};
+
 struct vcGLState
 {
   vcGLStateFillMode fillMode;
@@ -46,7 +60,8 @@ struct vcGLState
   bool isFrontCCW;
 
   bool doDepthWrite;
-  bool doDepthCompare;
+  vcGLStateDepthMode depthReadMode;
+  udFloat2 depthRange;
 
   vcGLStateBlendMode blendMode;
 };
@@ -62,7 +77,8 @@ bool vcGLState_ResetState(bool force = false);
 
 bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMode, bool isFrontCCW = true, bool force = false);
 bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force = false);
-bool vcGLState_SetDepthMode(bool doDepthCompare, bool doDepthWrite, bool force = false);
+bool vcGLState_SetDepthMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite, bool force = false);
+bool vcGLState_SetDepthRange(float minDepth, float maxDepth, bool force = false);
 
 bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height);
 

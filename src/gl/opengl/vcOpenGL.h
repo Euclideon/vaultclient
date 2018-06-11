@@ -20,8 +20,8 @@
 
 #ifndef VERIFY_GL
 #ifdef _DEBUG
-//#define VERIFY_GL() if (int glError = glGetError()) { /*cuDebugLog("GLError %d: (%s)\n", glError, msg);*/ __debugbreak(); }
-#define VERIFY_GL()
+#define VERIFY_GL() if (int glError = glGetError()) { /*cuDebugLog("GLError %d: (%s)\n", glError, msg);*/ __debugbreak(); }
+//#define VERIFY_GL()
 #else
 #define VERIFY_GL()
 #endif
