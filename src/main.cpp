@@ -767,6 +767,9 @@ void vcRenderWindow(vcState *pProgramState)
             }
             else
             {
+              //Context Login successful
+              vcRender_CreateTerrain(pProgramState->pRenderContext, &pProgramState->settings);
+
               vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pContext);
               pProgramState->hasContext = true;
             }
@@ -1263,7 +1266,7 @@ bool vcLogout(vcState *pProgramState)
   bool success = true;
 
   success &= vcModel_UnloadList(pProgramState);
-  success &= vcRender_ClearCache(pProgramState->pRenderContext);
+  success &= (vcRender_DestroyTerrain(pProgramState->pRenderContext) == udR_Success);
 
   pProgramState->currentSRID = 0;
 

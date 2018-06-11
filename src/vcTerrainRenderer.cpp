@@ -218,6 +218,9 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer, vcSettings *p
 
 void vcTerrainRenderer_Destroy(vcTerrainRenderer **ppTerrainRenderer)
 {
+  if (ppTerrainRenderer == nullptr || *ppTerrainRenderer == nullptr)
+    return;
+
   vcTerrainRenderer *pTerrainRenderer = (*ppTerrainRenderer);
 
   pTerrainRenderer->cache.keepLoading = false;
