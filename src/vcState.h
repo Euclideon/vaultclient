@@ -39,6 +39,9 @@ struct vcState
 
   vcTexture *pWatermarkTexture;
 
+  udDouble3 worldMousePos;
+  udDouble3 currentMeasurePoint;
+
   bool hasContext;
   vdkContext *pContext;
   vcRenderContext *pRenderContext;
