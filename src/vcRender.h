@@ -43,7 +43,8 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
 
 void vcRenderSkybox(vcRenderContext *pRenderContext);
 
-bool vcRender_ClearCache(vcRenderContext *pRenderContext);
+udResult vcRender_CreateTerrain(vcRenderContext *pRenderContext, vcSettings *pSettings);
+udResult vcRender_DestroyTerrain(vcRenderContext *pRenderContext);
 
 void vcRender_SetWindowOffset(vcRenderContext *pRenderContext, udInt2 windowPos);
 
