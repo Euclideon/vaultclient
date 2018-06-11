@@ -783,8 +783,17 @@ void vcRenderWindow(vcState *pProgramState)
             }
             else
             {
-              vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pContext);
-              pProgramState->hasContext = true;
+              //Context Login successful
+              if (vcRender_CreateTerrain(pProgramState->pRenderContext, &pProgramState->settings) != udR_Success)
+              {
+                pErrorMessage = "Could not create terrain...";
+              }
+              else
+              {
+                //terrain creation successful
+                vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pContext);
+                pProgramState->hasContext = true;
+              }
             }
           }
         }
@@ -1279,7 +1288,7 @@ bool vcLogout(vcState *pProgramState)
   bool success = true;
 
   success &= vcModel_UnloadList(pProgramState);
-  success &= vcRender_ClearCache(pProgramState->pRenderContext);
+  success &= (vcRender_DestroyTerrain(pProgramState->pRenderContext) == udR_Success);
 
   pProgramState->currentSRID = 0;
 
