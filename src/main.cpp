@@ -389,7 +389,6 @@ void vcHandleSceneInput(vcState *pProgramState)
   udDouble3 moveOffset = udDouble3::zero();
   udDouble3 rotationOffset = udDouble3::zero();
   static udDouble3 orbitPos = udDouble3::zero();
-  static udDoubleQuat storedOrbitQuat = udDoubleQuat::identity();
   static udDouble3 storedDeltaAngle = udDouble3::zero();
 
   bool isHovered = ImGui::IsItemHovered();
@@ -423,10 +422,7 @@ void vcHandleSceneInput(vcState *pProgramState)
     if (pProgramState->settings.camera.moveMode == vcCMM_Orbit && isLeftClicked)
     {
       orbitPos = pProgramState->worldMousePos;
-      storedOrbitQuat = vcCamera_GetStoredOrbitQuaternion(pProgramState->pCamera, orbitPos);
       storedDeltaAngle = vcCamera_CreateStoredRotation(pProgramState->pCamera, orbitPos);
-
-      udDebugPrintf("%f,%f,%f\n", storedDeltaAngle.x, storedDeltaAngle.y, storedDeltaAngle.z);
     }
 
     if (clickedLeftWhileHovered && !isLeftClicked)
@@ -439,8 +435,7 @@ void vcHandleSceneInput(vcState *pProgramState)
         rotationOffset.z = 0.f;
         if (pProgramState->settings.camera.moveMode == vcCMM_Orbit)
         {
-          vcCamera_Orbit(pProgramState->pCamera, &pProgramState->settings.camera, orbitPos, storedOrbitQuat, rotationOffset.x, rotationOffset.y);
-          //udDebugPrintf("%f,%f,%f\n", storedOrbitQuat.eulerAngles().x, storedOrbitQuat.eulerAngles().y, storedOrbitQuat.eulerAngles().z);
+          vcCamera_Orbit(pProgramState->pCamera, &pProgramState->settings.camera, orbitPos, storedDeltaAngle, rotationOffset.x, rotationOffset.y);
         }
       }
     }
@@ -458,8 +453,6 @@ void vcHandleSceneInput(vcState *pProgramState)
       pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
     }
   }
-  if (pProgramState->settings.camera.moveMode == vcCMM_Orbit)
-
 
   vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, rotationOffset, moveOffset, pProgramState->deltaTime, speedModifier);
   pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera);
@@ -487,6 +480,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.cameraMatrix = pProgramState->camMatrix;
   renderData.srid = pProgramState->currentSRID;
   renderData.models.Init(32);
+
+  vcRender_SetWindowOffset(pProgramState->pRenderContext, udInt2::create(windowPos.x, windowPos.y));
 
   ImGuiIO &io = ImGui::GetIO();
   renderData.mouse.x = (uint32_t)io.MousePos.x;

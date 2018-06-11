@@ -49,6 +49,8 @@ struct vcRenderContext
   vcTexture *pTexture;
   vcTexture *pDepthTexture;
 
+  udInt2 windowOffset;
+
   vcUDRenderContext udRenderContext;
 
   udDouble4x4 viewMatrix;
@@ -173,6 +175,7 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
   udResult result = udR_Success;
   float fov = pRenderContext->pSettings->camera.fieldOfView;
   float aspect = width / (float)height;
+  pRenderContext->pSettings->camera.aspect = aspect;
   float zNear = pRenderContext->pSettings->camera.nearPlane;
   float zFar = pRenderContext->pSettings->camera.farPlane;
 
@@ -324,6 +327,8 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   vdkModel **ppModels = nullptr;
   int numVisibleModels = 0;
 
+
+
   if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->viewMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
@@ -340,8 +345,8 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   }
 
   vdkRenderPicking picking;
-  picking.x = renderData.mouse.x;
-  picking.y = renderData.mouse.y;
+  picking.x = renderData.mouse.x - pRenderContext->windowOffset.x;
+  picking.y = renderData.mouse.y - pRenderContext->windowOffset.y;
 
   if (vdkRenderContext_RenderAdv(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)numVisibleModels, &picking) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
@@ -393,4 +398,9 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
 bool vcRender_ClearCache(vcRenderContext *pRenderContext)
 {
   return vcTerrain_ClearCache(pRenderContext->pTerrain);
+}
+
+void vcRender_SetWindowOffset(vcRenderContext *pRenderContext, udInt2 windowPos)
+{
+  pRenderContext->windowOffset = windowPos;
 }
