@@ -80,9 +80,6 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   pRenderContext = udAllocType(vcRenderContext, 1, udAF_Zero);
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
 
-  if (vcTerrain_Init(&pRenderContext->pTerrain, pSettings) != udR_Success)
-    UD_ERROR_SET(udR_InternalError);
-
   pRenderContext->udRenderContext.presentShader.program = vcBuildProgram(vcBuildShader(GL_VERTEX_SHADER, g_udVertexShader), vcBuildShader(GL_FRAGMENT_SHADER, g_udFragmentShader));
   if (pRenderContext->udRenderContext.presentShader.program == GL_INVALID_INDEX)
     UD_ERROR_SET(udR_InternalError);
@@ -390,7 +387,26 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
   glUseProgram(0);
 }
 
-bool vcRender_ClearCache(vcRenderContext *pRenderContext)
+udResult vcRender_CreateTerrain(vcRenderContext *pRenderContext, vcSettings *pSettings)
 {
-  return vcTerrain_ClearCache(pRenderContext->pTerrain);
+  if (pRenderContext == nullptr || pSettings == nullptr)
+    return udR_InvalidParameter_;
+
+  udResult result = udR_Success;
+
+  UD_ERROR_NULL(&pRenderContext, udR_InvalidParameter_);
+
+  if (vcTerrain_Init(&pRenderContext->pTerrain, pSettings) != udR_Success)
+    UD_ERROR_SET(udR_InternalError);
+
+epilogue:
+  return result;
+}
+
+udResult vcRender_DestroyTerrain(vcRenderContext *pRenderContext)
+{
+  if (pRenderContext->pTerrain == nullptr)
+    return udR_Success;
+  else
+    return vcTerrain_Destroy(&(pRenderContext->pTerrain));
 }
