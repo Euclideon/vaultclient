@@ -388,8 +388,6 @@ void vcHandleSceneInput(vcState *pProgramState)
 
   udDouble3 moveOffset = udDouble3::zero();
   udDouble3 rotationOffset = udDouble3::zero();
-  static udDouble3 orbitPos = udDouble3::zero();
-  static udDouble3 storedDeltaAngle = udDouble3::zero();
 
   bool isHovered = ImGui::IsItemHovered();
   bool isLeftClicked = ImGui::IsMouseClicked(0, false);
@@ -421,8 +419,8 @@ void vcHandleSceneInput(vcState *pProgramState)
 
     if (pProgramState->settings.camera.moveMode == vcCMM_Orbit && isLeftClicked)
     {
-      orbitPos = pProgramState->worldMousePos;
-      storedDeltaAngle = vcCamera_CreateStoredRotation(pProgramState->pCamera, orbitPos);
+      pProgramState->orbitPos = pProgramState->worldMousePos;
+      pProgramState->storedDeltaAngle = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->orbitPos);
     }
 
     if (clickedLeftWhileHovered && !isLeftClicked)
@@ -434,9 +432,7 @@ void vcHandleSceneInput(vcState *pProgramState)
         rotationOffset.y = -mouseDelta.y / 100.f;
         rotationOffset.z = 0.f;
         if (pProgramState->settings.camera.moveMode == vcCMM_Orbit)
-        {
-          vcCamera_Orbit(pProgramState->pCamera, orbitPos, storedDeltaAngle, rotationOffset.x, rotationOffset.y);
-        }
+          vcCamera_Orbit(pProgramState->pCamera, pProgramState->orbitPos, pProgramState->storedDeltaAngle, rotationOffset.x, rotationOffset.y);
       }
     }
 
