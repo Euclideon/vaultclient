@@ -58,11 +58,15 @@ void vcTerrain_BuildTerrain(vcTerrain *pTerrain, int16_t srid, const udDouble3 w
   int nodeCount = 0;
 
   // calculate view in quad tree space [0, 1]
-  udDouble2 worldScale = udDouble2::create(worldCorners[3].x - worldCorners[0].x, worldCorners[0].y - worldCorners[3].y);
-  udFloat2 viewPosMS = udFloat2::create((localViewPos.toVector2() - udDouble2::create(worldCorners[0].x, worldCorners[2].y)) / worldScale);
+  float maxX = udMax(worldCorners[3].x, worldCorners[1].x);
+  float minX = udMin(worldCorners[0].x, worldCorners[2].x);
+  float maxY = udMax(worldCorners[0].y, worldCorners[1].y);
+  float minY = udMin(worldCorners[2].y, worldCorners[3].y);
+  udDouble2 worldScale = udDouble2::create(maxX - minX, maxY - minY);
+  udFloat2 viewPosMS = udFloat2::create((localViewPos.toVector2() - udDouble2::create(minX, minY)) / worldScale);
   udFloat2 viewSizeMS = udFloat2::create((float)localViewSize);
 
-  vcQuadTree_GenerateNodeList(&pNodeList, &nodeCount, slippyCoords.z, viewPosMS, viewSizeMS, &treeData);
+  vcQuadTree_GenerateNodeList(&pNodeList, &nodeCount, srid, slippyCoords, localViewPos, viewSizeMS, &treeData);
   vcTerrainRenderer_BuildTiles(pTerrain->pTerrainRenderer, srid, slippyCoords, localViewPos, pNodeList, nodeCount, treeData.visibleNodeCount);
 }
 

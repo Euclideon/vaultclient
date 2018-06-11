@@ -1253,6 +1253,7 @@ void vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
       model.pMetadata->Parse(pMetadata);
 
     vcModel_MoveToModelProjection(pProgramState, &model);
+    pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera); // eh?
 
     vcModelList.PushBack(model);
   }

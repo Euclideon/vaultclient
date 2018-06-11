@@ -46,7 +46,7 @@ bool vcGLState_ApplyState(vcGLState *pState)
 
   success &= vcGLState_SetFaceMode(pState->fillMode, pState->cullMode, pState->isFrontCCW);
   success &= vcGLState_SetBlendMode(pState->blendMode);
-  success &= vcGLState_SetDepthMode(true, true);
+  success &= vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true);
 
   return success;
 }
@@ -55,7 +55,7 @@ bool vcGLState_ResetState(bool force /*= false*/)
 {
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back, true, force);
   vcGLState_SetBlendMode(vcGLSBM_None, force);
-  vcGLState_SetDepthMode(true, true, force);
+  vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true, force);
 
   return true;
 }
@@ -126,16 +126,35 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
   return true;
 }
 
-bool vcGLState_SetDepthMode(bool doDepthCompare, bool doDepthWrite, bool force /*= false*/)
+bool vcGLState_SetDepthMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite, bool force /*= false*/)
 {
-  if (s_internalState.doDepthCompare != doDepthCompare || force)
+  if (s_internalState.depthReadMode != depthReadMode || force)
   {
-    if (doDepthCompare)
-      glEnable(GL_DEPTH_TEST);
-    else
+    if (depthReadMode == vcGLSDM_None)
+    {
       glDisable(GL_DEPTH_TEST);
+    }
+    else
+    {
+      glEnable(GL_DEPTH_TEST);
 
-    s_internalState.doDepthCompare = doDepthCompare;
+      if (depthReadMode == vcGLSDM_Less)
+        glDepthFunc(GL_LESS);
+      else if (depthReadMode == vcGLSDM_LessOrEqual)
+        glDepthFunc(GL_LEQUAL);
+      else if (depthReadMode == vcGLSDM_Equal)
+        glDepthFunc(GL_EQUAL);
+      else if (depthReadMode == vcGLSDM_GreaterOrEqual)
+        glDepthFunc(GL_GEQUAL);
+      else if (depthReadMode == vcGLSDM_Greater)
+        glDepthFunc(GL_GREATER);
+      else if (depthReadMode == vcGLSDM_NotEqual)
+        glDepthFunc(GL_NOTEQUAL);
+      else if (depthReadMode == vcGLSDM_Always)
+        glDepthFunc(GL_ALWAYS);
+    }     
+
+    s_internalState.depthReadMode = depthReadMode;
   }
 
   if (s_internalState.doDepthWrite != doDepthWrite || force)
@@ -146,6 +165,19 @@ bool vcGLState_SetDepthMode(bool doDepthCompare, bool doDepthWrite, bool force /
       glDepthMask(GL_FALSE);
 
     s_internalState.doDepthWrite = doDepthWrite;
+  }
+
+  return true;
+}
+
+bool vcGLState_SetDepthRange(float minDepth, float maxDepth, bool force /*= false*/)
+{
+  if ((s_internalState.depthRange.x != minDepth || s_internalState.depthRange.y != maxDepth) || force)
+  {
+    glDepthRangef(minDepth, maxDepth);
+
+    s_internalState.depthRange.x = minDepth;
+    s_internalState.depthRange.y = maxDepth;
   }
 
   return true;

@@ -15,13 +15,12 @@ struct vcQuadTreeNode
 {
   uint32_t parentIndex;
   int childMask; // [1, 2, 4, 8] for each corner [bottom left, bottom right, top left, top right]
-  float childSize;
-  udFloat2 position; // origin of the node (bottom left corner)
+  udInt2 slippyPosition;; // sw, se, nw, ne
   int level;
   bool isVisible;
 };
 
-void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, int realRootDepth, const udFloat2 &viewPositionMS, const udFloat2 &viewPositionSizeMS, vcQuadTreeMetaData *pMetaData = nullptr);
+void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, uint16_t srid, const udInt3 &slippyCoords, const udDouble3 &localViewPos, const udFloat2 &viewPositionSizeMS, vcQuadTreeMetaData *pMetaData = nullptr);
 
 inline bool vcQuadTree_IsLeafNode(const vcQuadTreeNode *pNode)
 {
