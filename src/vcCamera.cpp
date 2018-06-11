@@ -31,60 +31,43 @@ udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera)
   return udDouble4x4::lookAt(pCamera->position, lookPos, orientation.apply(udDouble3::create(0, 0, 1)));
 }
 
-udDoubleQuat vcCamera_GetStoredOrbitQuaternion(vcCamera *pCamera, udDouble3 orbitPosition)
-{
-  udDouble3 toPoint = udNormalize(orbitPosition - pCamera->position);
-
-  udQuaternion<double> orientation = udQuaternion<double>::create(pCamera->yprRotation);
-  udDouble3 forward = udNormalize(orientation.apply(udDouble3::create(0, 1, 0)));
-
-  udDouble3 storedAxis = udNormalize3(udCross3(toPoint, forward));
-  double storedAngle = udACos(udDot3(toPoint, forward));
-
-  return udDoubleQuat::create(storedAxis, storedAngle);
-}
-
 udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPosition)
 {
-  udDouble3 toPoint = udNormalize3(orbitPosition - pCamera->position);
-
+  udDouble3 toPoint = pCamera->position - orbitPosition;
   udQuaternion<double> orientation = udQuaternion<double>::create(pCamera->yprRotation);
-  udDouble3 forward = udNormalize(orientation.apply(udDouble3::create(0, 1, 0)));
+  udDouble3 converted = orientation.inverse().apply(toPoint); // convert the point into relative to camera space
 
-  udDouble3 storedAxis = udNormalize3(udCross3(toPoint, forward));
-  double storedAngle = udACos(udDot3(toPoint, forward));
+  double pitch = -1 * udATan(converted.z / converted.y);
+  double yaw = udATan(converted.x / converted.y);
 
-  udDoubleQuat storedRotationQuat = udDoubleQuat::create(storedAxis, storedAngle);
-  udDebugPrintf("--%f\n", storedAngle);
-  udDouble3 deltaAngle = storedRotationQuat.eulerAngles() - orientation.eulerAngles();
-
-  return deltaAngle;
+  return udDouble3::create(yaw, pitch, 0);
 }
 
-void vcCamera_Orbit(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 orbitPosition, udDoubleQuat storedRotation, double dx, double dy)
+void vcCamera_Orbit(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 orbitPosition, udDouble3 storedRotation, double dx, double dy)
 {
   udDouble3 toPoint = orbitPosition - pCamera->position;
   double distanceToPoint = udMag3(toPoint);
   if (distanceToPoint == 0)
     return; // cant rotate around same point with same method
 
-  udQuaternion<double> orientation = udQuaternion<double>::create(pCamera->yprRotation);
+  udQuaternion<double> orientation = udQuaternion<double>::create(pCamera->yprRotation - storedRotation);
   udDouble3 up = orientation.apply(udDouble3::create(0, 0, 1));
   udDouble3 right = orientation.apply(udDouble3::create(1, 0, 0));
   udDouble3 forward = orientation.apply(udDouble3::create(0, 1, 0));
 
-  pCamera->position += distanceToPoint * udSin(dx) * right;
-  pCamera->position += distanceToPoint * udSin(dy) * up;
-  pCamera->position += distanceToPoint * (udSin(dx) * udTan(dx/2) + udSin(dy) * udTan(dy/2)) *  forward;
+  udDouble3 addPos = distanceToPoint * udSin(dx) * right;
+  addPos += distanceToPoint * udSin(dx) * udTan(dx / 2) *  forward;
+  addPos.z = 0;
+
+  addPos += distanceToPoint * dy * forward;
+  pCamera->position += addPos;
 
   if (pCamera->position - orbitPosition != udDouble3::zero() && (dx != 0 || dy != 0))
   {
     pCamera->yprRotation = udDouble4x4::lookAt(pCamera->position, orbitPosition, up).extractYPR();
-
-    //pCamera->yprRotation += storedRotation.eulerAngles();
+    pCamera->yprRotation += storedRotation;
+    pCamera->yprRotation.z = 0;
   }
-
-  pCamera->yprRotation.z = 0;
 }
 
 void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, float speedModifier /* = 1.f*/)

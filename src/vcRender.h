@@ -45,4 +45,6 @@ void vcRenderSkybox(vcRenderContext *pRenderContext);
 
 bool vcRender_ClearCache(vcRenderContext *pRenderContext);
 
+void vcRender_SetWindowOffset(vcRenderContext *pRenderContext, udInt2 windowPos);
+
 #endif//vcRender_h__
