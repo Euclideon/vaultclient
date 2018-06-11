@@ -44,12 +44,11 @@ struct vcRenderContext
   vcCamera *pCamera;
 
   udUInt2 sceneResolution;
+  udInt2 windowOffset;
 
   vcFramebuffer *pFramebuffer;
   vcTexture *pTexture;
   vcTexture *pDepthTexture;
-
-  udInt2 windowOffset;
 
   vcUDRenderContext udRenderContext;
 
@@ -322,8 +321,6 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   udResult result = udR_Success;
   vdkModel **ppModels = nullptr;
   int numVisibleModels = 0;
-
-
 
   if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->viewMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
