@@ -393,6 +393,9 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
 
 udResult vcRender_CreateTerrain(vcRenderContext *pRenderContext, vcSettings *pSettings)
 {
+  if (pRenderContext == nullptr || pSettings == nullptr)
+    return udR_InvalidParameter_;
+
   udResult result = udR_Success;
 
   UD_ERROR_NULL(&pRenderContext, udR_InvalidParameter_);
