@@ -30,6 +30,9 @@ epilogue:
 
 udResult vcTerrain_Destroy(vcTerrain **ppTerrain)
 {
+  if (ppTerrain == nullptr || *ppTerrain == nullptr)
+    return udR_Success;
+
   udResult result = udR_Success;
   vcTerrain *pTerrain = nullptr;
 
@@ -37,7 +40,8 @@ udResult vcTerrain_Destroy(vcTerrain **ppTerrain)
   pTerrain = *ppTerrain;
   *ppTerrain = nullptr;
 
-  vcTerrainRenderer_Destroy(&pTerrain->pTerrainRenderer);
+  if (pTerrain->pTerrainRenderer != nullptr)
+    vcTerrainRenderer_Destroy(&pTerrain->pTerrainRenderer);
 
 epilogue:
   udFree(pTerrain);

@@ -784,16 +784,10 @@ void vcRenderWindow(vcState *pProgramState)
             else
             {
               //Context Login successful
-              if (vcRender_CreateTerrain(pProgramState->pRenderContext, &pProgramState->settings) != udR_Success)
-              {
-                pErrorMessage = "Could not create terrain...";
-              }
-              else
-              {
-                //terrain creation successful
-                vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pContext);
-                pProgramState->hasContext = true;
-              }
+              vcRender_CreateTerrain(pProgramState->pRenderContext, &pProgramState->settings);
+
+              vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pContext);
+              pProgramState->hasContext = true;
             }
           }
         }
