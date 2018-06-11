@@ -432,7 +432,7 @@ void vcHandleSceneInput(vcState *pProgramState)
         rotationOffset.y = -mouseDelta.y / 100.f;
         rotationOffset.z = 0.f;
         if (pProgramState->settings.camera.moveMode == vcCMM_Orbit)
-          vcCamera_Orbit(pProgramState->pCamera, pProgramState->orbitPos, pProgramState->storedDeltaAngle, rotationOffset.x, rotationOffset.y);
+          vcCamera_Orbit(pProgramState->pCamera, pProgramState->orbitPos, pProgramState->storedDeltaAngle, rotationOffset);
       }
     }
 
