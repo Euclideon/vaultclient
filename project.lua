@@ -42,7 +42,7 @@ project "vaultClient"
 	filter { "system:windows" }
 		defines { "GLEW_STATIC" }
 		sysincludedirs { "3rdParty/glew/include" }
-		files { "3rdParty/glew/glew.c" }
+		files { "3rdParty/glew/glew.c", "src/**.rc" }
 		linkoptions( "/LARGEADDRESSAWARE" )
 		libdirs { "3rdParty/SDL2-2.0.5/lib/x64" }
 		links { "SDL2.lib", "SDL2main.lib", "opengl32.lib", "winmm.lib", "ws2_32" }
