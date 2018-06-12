@@ -50,10 +50,7 @@ void vcSettings_LoadDocks(udValue &settings)
     g_dock.m_docks[i]->size.x = dock.Get("size.x").AsFloat();
     g_dock.m_docks[i]->size.y = dock.Get("size.y").AsFloat();
 
-    if (dock.Get("location").AsDouble() != -1)
-      udStrcpy(g_dock.m_docks[i]->location, sizeof(g_dock.m_docks[i]->location), dock.Get("location").AsString());
-    else
-      udStrcpy(g_dock.m_docks[i]->location, sizeof(g_dock.m_docks[i]->location), "");
+    udStrcpy(g_dock.m_docks[i]->location, sizeof(g_dock.m_docks[i]->location), dock.Get("location").AsString(""));
 
     g_dock.tryDockToStoredLocation(*g_dock.m_docks[i]);
   }
@@ -65,20 +62,22 @@ void vcSettings_SaveDocks(udValue &settings)
   for (int i = 0; i < g_dock.m_docks.size(); ++i)
   {
     ImGui::DockContext::Dock& dock = *g_dock.m_docks[i];
-    bool dockIsValidRoot = true;
+    bool dockIsValidRoot = (g_dock.getDockIndex(dock.parent) == -1);
 
-    dockIsValidRoot &= (g_dock.getDockIndex(dock.parent) == -1);
-    dockIsValidRoot &= (g_dock.getDockIndex(dock.children[0]) >= 0 && g_dock.getDockIndex(dock.children[1]) >= 0) || udStrlen(dock.label) > 0;
+    if ((!dock.children[0] || !dock.children[1]) && udStrlen(dock.label) == 0) // if either of the children are nullptr and the label has a length of 0
+      dockIsValidRoot = false; // is a root dock with no children, do not save
 
     if (dockIsValidRoot)
       dockIndex += vcSettings_RecursiveSaveDock(settings, &dock, dockIndex, -1);
   }
 }
 
-int getChildDockCount(ImGui::DockContext::Dock *pDock)
+int getChildDockCount(ImGui::DockContext::Dock *pDock) // includes next_tab's as children
 {
   if (pDock)
-    return (pDock->children[0] ? 1 + getChildDockCount(pDock->children[0]) : 0) + (pDock->children[1] ? 1 + getChildDockCount(pDock->children[1]) : 0) + (pDock->next_tab ? 1 + getChildDockCount(pDock->next_tab) : 0);
+    return (pDock->children[0] ? 1 + getChildDockCount(pDock->children[0]) : 0)
+    + (pDock->children[1] ? 1 + getChildDockCount(pDock->children[1]) : 0)
+    + (pDock->next_tab ? 1 + getChildDockCount(pDock->next_tab) : 0);
   else
     return 0;
 }
@@ -128,7 +127,8 @@ int vcSettings_RecursiveSaveDock(udValue &settings, ImGui::DockContext::Dock *pP
   dockJ.Set("size.y = %f", g_dock.m_docks[i]->size.y);
 
   g_dock.fillLocation(dock);
-  dockJ.Set("location = '%s'", udStrlen(dock.location) ? g_dock.m_docks[i]->location : "-1");
+  if(udStrlen(dock.location))
+    dockJ.Set("location = '%s'", g_dock.m_docks[i]->location);
 
   settings.Set(&dockJ, "docks[]");
 
