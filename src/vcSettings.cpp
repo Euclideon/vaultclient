@@ -67,14 +67,11 @@ void vcSettings_SaveDocks(udValue &settings)
     ImGui::DockContext::Dock& dock = *g_dock.m_docks[i];
     bool dockIsValidRoot = true;
 
-    //dockIsValidRoot &= udStrEqual(dock.label, "ROOT");
     dockIsValidRoot &= (g_dock.getDockIndex(dock.parent) == -1);
     dockIsValidRoot &= (g_dock.getDockIndex(dock.children[0]) >= 0 && g_dock.getDockIndex(dock.children[1]) >= 0) || udStrlen(dock.label) > 0;
 
     if (dockIsValidRoot)
-    {
       dockIndex += vcSettings_RecursiveSaveDock(settings, &dock, dockIndex, -1);
-    }
   }
 }
 
@@ -108,11 +105,9 @@ int vcSettings_RecursiveSaveDock(udValue &settings, ImGui::DockContext::Dock *pP
     nextNewIndex = dock.next_tab ? dockIndex + 1 : -1;
   }
 
-
   int child1Index = g_dock.getDockIndex(g_dock.m_docks[i]->children[0]);
   int child2Index = g_dock.getDockIndex(g_dock.m_docks[i]->children[1]);
 
-  int prevIndex = g_dock.getDockIndex(g_dock.m_docks[i]->prev_tab);
   int nextIndex = g_dock.getDockIndex(g_dock.m_docks[i]->next_tab);
 
   dockJ.Set("label = '%s'", dock.parent ? (dock.label[0] == '\0' ? "DOCK" : dock.label) : (dock.label[0] == '\0' ? "ROOT" : dock.label));
@@ -143,10 +138,8 @@ int vcSettings_RecursiveSaveDock(udValue &settings, ImGui::DockContext::Dock *pP
     numChildren += vcSettings_RecursiveSaveDock(settings, g_dock.m_docks[child2Index], dockIndex + numChildren + 1, dockIndex);
   }
 
-  if (nextNewIndex >= 0)
-  {
+  if (nextIndex >= 0)
     numChildren += vcSettings_RecursiveSaveDock(settings, g_dock.m_docks[nextIndex], dockIndex + 1, parentIndex, dockIndex);
-  }
 
   return numChildren+1;
 }
