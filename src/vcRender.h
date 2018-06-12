@@ -46,6 +46,4 @@ void vcRenderSkybox(vcRenderContext *pRenderContext);
 udResult vcRender_CreateTerrain(vcRenderContext *pRenderContext, vcSettings *pSettings);
 udResult vcRender_DestroyTerrain(vcRenderContext *pRenderContext);
 
-void vcRender_SetWindowOffset(vcRenderContext *pRenderContext, udInt2 windowPos);
-
 #endif//vcRender_h__
