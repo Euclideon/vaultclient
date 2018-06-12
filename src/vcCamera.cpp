@@ -47,11 +47,14 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3
   pCamera->yprRotation += rotationOffset;
   pCamera->yprRotation.y = udClamp(pCamera->yprRotation.y, (double)-UD_PI / 2, (double)UD_PI / 2);
 
-  addPos = (udDouble4x4::rotationYPR(pCamera->yprRotation) * udDouble4::create(addPos, 1)).toVector3();
+  if(pCamSettings->moveMode == vcCMM_Plane)
+    addPos = (udDouble4x4::rotationYPR(pCamera->yprRotation) * udDouble4::create(addPos, 1)).toVector3();
+
   if (pCamSettings->moveMode == vcCMM_Helicopter)
   {
-    addPos.z = 0;
-    if (addPos.x != 0 || addPos.y != 0)
+    addPos = (udDouble4x4::rotationYPR(udDouble3::create(pCamera->yprRotation.x, 0, 0)) * udDouble4::create(addPos, 1)).toVector3();
+    addPos.z = 0; // might be unnecessary now
+    if (addPos.x != 0.0 || addPos.y != 0.0)
       addPos = udNormalize3(addPos);
   }
   addPos.z += vertPos;
