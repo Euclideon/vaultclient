@@ -9,6 +9,8 @@
 extern ImGui::DockContext g_dock;
 const char *pDefaultSettings = R"config({"window":{"width":1280,"height":720,"maximized":false,"fullscreen":false},"frames":{"scene":true,"settings":true,"explorer":true},"camera":{"moveSpeed":10,"nearPlane":0.5,"farPlane":10000,"fieldOfView":0.872665,"moveMode":0},"maptiles":{"enabled":true,"blendMode":0,"transparency":1.0,"mapHeight":0.0},"docks":[{"label":"ROOT","child":[1,2],"prev":-1,"next":-1,"parent":-1,"status":0,"active":true,"open":false,"position":{"x":0,"y":22},"size":{"x":1280,"y":673},"location":"-1"},{"label":"Scene","child":[-1,-1],"prev":-1,"next":-1,"parent":0,"status":0,"active":true,"open":true,"position":{"x":0,"y":22},"size":{"x":976,"y":673},"location":"1"},{"label":"DOCK","child":[3,4],"prev":-1,"next":-1,"parent":0,"status":0,"active":true,"open":false,"position":{"x":976,"y":22},"size":{"x":304,"y":673},"location":"0"},{"label":"Scene Explorer","child":[-1,-1],"prev":-1,"next":-1,"parent":2,"status":0,"active":true,"open":true,"position":{"x":976,"y":22},"size":{"x":304,"y":442},"location":"20"},{"label":"Settings","child":[-1,-1],"prev":-1,"next":-1,"parent":2,"status":0,"active":true,"open":true,"position":{"x":976,"y":464},"size":{"x":304,"y":231},"location":"30"}]})config";
 
+int vcSettings_RecursiveSaveDock(udValue &settings, ImGui::DockContext::Dock *pParentDock, int dockIndex, int parentIndex);
+
 void vcSettings_LoadDocks(udValue &settings)
 {
   for (int i = 0; i < g_dock.m_docks.size(); ++i)
@@ -48,42 +50,89 @@ void vcSettings_LoadDocks(udValue &settings)
     g_dock.m_docks[i]->size.x = dock.Get("size.x").AsFloat();
     g_dock.m_docks[i]->size.y = dock.Get("size.y").AsFloat();
 
-    udStrcpy(g_dock.m_docks[i]->location, sizeof(g_dock.m_docks[i]->location), dock.Get("location").AsString());
+    if (dock.Get("location").AsDouble() != -1)
+      udStrcpy(g_dock.m_docks[i]->location, sizeof(g_dock.m_docks[i]->location), dock.Get("location").AsString());
+    else
+      udStrcpy(g_dock.m_docks[i]->location, sizeof(g_dock.m_docks[i]->location), "");
+
     g_dock.tryDockToStoredLocation(*g_dock.m_docks[i]);
   }
 }
 
 void vcSettings_SaveDocks(udValue &settings)
 {
+  int dockIndex = 0;
   for (int i = 0; i < g_dock.m_docks.size(); ++i)
   {
-    udValue dockJ;
-    dockJ.SetObject();
-
     ImGui::DockContext::Dock& dock = *g_dock.m_docks[i];
+    bool dockIsValidRoot = true;
 
-    dockJ.Set("label = '%s'", dock.parent ? (dock.label[0] == '\0' ? "DOCK" : dock.label) : "ROOT");
+    //dockIsValidRoot &= udStrEqual(dock.label, "ROOT");
+    dockIsValidRoot &= (g_dock.getDockIndex(dock.parent) == -1);
+    dockIsValidRoot &= (g_dock.getDockIndex(dock.children[0]) >= 0 && g_dock.getDockIndex(dock.children[1]) >= 0) || udStrlen(dock.label) > 0;
 
-    dockJ.Set("child[0] = %d", g_dock.getDockIndex(g_dock.m_docks[i]->children[0]));
-    dockJ.Set("child[1] = %d", g_dock.getDockIndex(g_dock.m_docks[i]->children[1]));
-    dockJ.Set("prev = %d", g_dock.getDockIndex(g_dock.m_docks[i]->prev_tab));
-    dockJ.Set("next = %d", g_dock.getDockIndex(g_dock.m_docks[i]->next_tab));
-    dockJ.Set("parent = %d", g_dock.getDockIndex(g_dock.m_docks[i]->parent));
-
-    dockJ.Set("status = %d", g_dock.m_docks[i]->status);
-    dockJ.Set("active = %s", g_dock.m_docks[i]->active ? "true" : "false");
-    dockJ.Set("open = %s", g_dock.m_docks[i]->opened ? "true" : "false");
-
-    dockJ.Set("position.x = %f", g_dock.m_docks[i]->pos.x);
-    dockJ.Set("position.y = %f", g_dock.m_docks[i]->pos.y);
-    dockJ.Set("size.x = %f", g_dock.m_docks[i]->size.x);
-    dockJ.Set("size.y = %f", g_dock.m_docks[i]->size.y);
-
-    g_dock.fillLocation(dock);
-    dockJ.Set("location = '%s'", udStrlen(dock.location) ? g_dock.m_docks[i]->location : "-1");
-
-    settings.Set(&dockJ, "docks[]");
+    if (dockIsValidRoot)
+    {
+      dockIndex += vcSettings_RecursiveSaveDock(settings, &dock, dockIndex, -1);
+    }
   }
+}
+
+int getChildDockCount(ImGui::DockContext::Dock *pDock)
+{
+  if (pDock)
+    return (pDock->children[0] ? 1 + getChildDockCount(pDock->children[0]) : 0) + (pDock->children[1] ? 1 + getChildDockCount(pDock->children[1]) : 0);
+  else
+    return 0;
+}
+
+int vcSettings_RecursiveSaveDock(udValue &settings, ImGui::DockContext::Dock *pParentDock, int dockIndex, int parentIndex)
+{
+  int numChildren = 0;
+  udValue dockJ;
+  dockJ.SetObject();
+
+  ImGui::DockContext::Dock &dock = *pParentDock;
+
+  int i = g_dock.getDockIndex(pParentDock);
+
+
+  int child1NewIndex = dock.children[0] ? dockIndex + 1 : -1;
+  int child2NewIndex = dock.children[1] ? dockIndex + 2 + getChildDockCount(dock.children[0]) : -1;
+
+
+  int child1Index = g_dock.getDockIndex(g_dock.m_docks[i]->children[0]);
+  int child2Index = g_dock.getDockIndex(g_dock.m_docks[i]->children[1]);
+
+  dockJ.Set("label = '%s'", dock.parent ? (dock.label[0] == '\0' ? "DOCK" : dock.label) : (dock.label[0] == '\0' ? "ROOT" : dock.label));
+
+  dockJ.Set("child[0] = %d", child1NewIndex);
+  dockJ.Set("child[1] = %d", child2NewIndex);
+  dockJ.Set("prev = %d", g_dock.getDockIndex(g_dock.m_docks[i]->prev_tab));
+  dockJ.Set("next = %d", g_dock.getDockIndex(g_dock.m_docks[i]->next_tab));
+  dockJ.Set("parent = %d", parentIndex);
+
+  dockJ.Set("status = %d", g_dock.m_docks[i]->status);
+  dockJ.Set("active = %s", g_dock.m_docks[i]->active ? "true" : "false");
+  dockJ.Set("open = %s", g_dock.m_docks[i]->opened ? "true" : "false");
+
+  dockJ.Set("position.x = %f", g_dock.m_docks[i]->pos.x);
+  dockJ.Set("position.y = %f", g_dock.m_docks[i]->pos.y);
+  dockJ.Set("size.x = %f", g_dock.m_docks[i]->size.x);
+  dockJ.Set("size.y = %f", g_dock.m_docks[i]->size.y);
+
+  g_dock.fillLocation(dock);
+  dockJ.Set("location = '%s'", udStrlen(dock.location) ? g_dock.m_docks[i]->location : "-1");
+
+  settings.Set(&dockJ, "docks[]");
+
+  if (child1Index >= 0 && child2Index >= 0)
+  {
+    numChildren += vcSettings_RecursiveSaveDock(settings, g_dock.m_docks[child1Index], dockIndex + 1, dockIndex);
+    numChildren += vcSettings_RecursiveSaveDock(settings, g_dock.m_docks[child2Index], dockIndex + numChildren + 1, dockIndex);
+  }
+
+  return numChildren+1;
 }
 
 void vcSettings_InitializePrefPath(vcSettings *pSettings)
