@@ -417,6 +417,12 @@ void vcHandleSceneInput(vcState *pProgramState)
     moveOffset.x += (float)((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
     moveOffset.z += (float)((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
 
+    if (pProgramState->settings.camera.moveMode == vcCMM_Orbit && isLeftClicked)
+    {
+      pProgramState->orbitPos = pProgramState->worldMousePos;
+      pProgramState->storedDeltaAngle = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->orbitPos);
+    }
+
     if (clickedLeftWhileHovered && !isLeftClicked)
     {
       clickedLeftWhileHovered = io.MouseDown[0];
@@ -425,6 +431,8 @@ void vcHandleSceneInput(vcState *pProgramState)
         rotationOffset.x = -mouseDelta.x / 100.f;
         rotationOffset.y = -mouseDelta.y / 100.f;
         rotationOffset.z = 0.f;
+        if (pProgramState->settings.camera.moveMode == vcCMM_Orbit)
+          vcCamera_Orbit(pProgramState->pCamera, pProgramState->orbitPos, pProgramState->storedDeltaAngle, rotationOffset);
       }
     }
 
@@ -470,8 +478,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.models.Init(32);
 
   ImGuiIO &io = ImGui::GetIO();
-  renderData.mouse.x = (uint32_t)io.MousePos.x;
-  renderData.mouse.y = (uint32_t)io.MousePos.y;
+  renderData.mouse.x = (uint32_t)(io.MousePos.x - windowPos.x);
+  renderData.mouse.y = (uint32_t)(io.MousePos.y - windowPos.y);
 
   for (size_t i = 0; i < vcModelList.length; ++i)
   {
@@ -546,6 +554,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
       ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
       ImGui::SameLine();
       ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
+      ImGui::SameLine();
+      ImGui::RadioButton("OrbitMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Orbit);
 
       if (ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f))
         pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
