@@ -290,11 +290,11 @@ vcTexture* AssignTileTexture(vcTerrainRenderer *pTerrainRenderer, const udInt3 &
   }
   else if (pCachedTexture->pData != nullptr) // texture is already in cache but might not be loaded yet
   {
-    vcTexture_UploadPixels(pCachedTexture->pTexture, pCachedTexture->pData, pCachedTexture->width, pCachedTexture->height);
+    vcTexture_Create(&pCachedTexture->pTexture, pCachedTexture->width, pCachedTexture->height, pCachedTexture->pData, vcTextureFormat_RGBA8, vcTFM_Linear);
     udFree(pCachedTexture->pData);
   }
 
-  if (pCachedTexture != nullptr)
+  if (pCachedTexture != nullptr && pCachedTexture->pTexture != nullptr)
   {
     pResultTexture = pCachedTexture->pTexture;
     pCachedTexture->isVisible = true;
@@ -315,7 +315,7 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
   for (size_t i = 0; i < pTerrainRenderer->cache.textureLoadList.length; ++i)
     pTerrainRenderer->cache.textureLoadList[i]->isVisible = false;
 
-  int rootGridSize = 1 << slippyCoords.z;
+  //int rootGridSize = 1 << slippyCoords.z;
 
   int tileIndex = 0;
   for (int i = 0; i < nodeCount; ++i)
@@ -324,14 +324,14 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
     if (!vcQuadTree_IsLeafNode(pNode) || !pNode->isVisible)
       continue;
 
-    int gridSizeAtLevel = 1 << pNode->level;
+    //int gridSizeAtLevel = 1 << pNode->level;
 
     //udInt2 offset = udInt2::create(slippyCoords.x << pNode->level, ((rootGridSize - 1) - slippyCoords.y) << pNode->level); // y-inverted
     //udInt3 slippyTileCoord = udInt3::create(0, 0, pNode->level + slippyCoords.z);
     //int totalGridSize = 1 << slippyTileCoord.z;
     //slippyTileCoord.x = (int)(pNode->position.x * gridSizeAtLevel) + offset.x;
     //slippyTileCoord.y = (totalGridSize - 1) - ((int)(pNode->position.y * gridSizeAtLevel) + offset.y); // y-inverted
-    
+
     udInt3 slippyTileCoord = udInt3::create(pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->level + slippyCoords.z);
     udDouble3 localCorners[4]; // nw, ne, sw, se
     for (int t = 0; t < 4; ++t)
@@ -350,7 +350,7 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
 
     ++tileIndex;
   }
-  
+
   udReleaseMutex(pTerrainRenderer->cache.pMutex);
 }
 
@@ -402,7 +402,7 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
     vcShader_SetUniform(pTerrainRenderer->presentShader.uniform_debugColour, udFloat3::create(1.0f));
 #endif
 
-    //vcShader_BindTexture(pTerrainRenderer->presentShader.pProgram, pTerrainRenderer->pTiles[i].pTexture, 0);
+    vcShader_BindTexture(pTerrainRenderer->presentShader.pProgram, pTerrainRenderer->pTiles[i].pTexture, 0);
     vcMesh_RenderTriangles(pTerrainRenderer->pMesh, IndexResolution * IndexResolution * 2); // 2 because 2tris per quad
   }
 

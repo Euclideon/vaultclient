@@ -7,7 +7,7 @@
 #include "udPlatform/udPlatformUtil.h"
 #include "stb_image.h"
 
-bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, int32_t aniFilter /*= 0*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/)
+bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags /*flags = vcTCF_None*/)
 {
   if (ppTexture == nullptr || width == 0 || height == 0)
     return false;
@@ -21,14 +21,6 @@ bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, co
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, hasMipmaps ? GL_LINEAR_MIPMAP_LINEAR : vcTFMToGL[filterMode]);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, vcTWMToGL[wrapMode]);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, vcTWMToGL[wrapMode]);
-
-  if (aniFilter > 0)
-  {
-    float aniso;
-    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso);
-    aniso = udMin((float)aniFilter, aniso);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
-  }
 
   GLenum internalFormat;
   GLenum pixelFormat, pixelType;
@@ -119,7 +111,7 @@ bool vcTexture_CreateDepth(vcTexture **ppTexture, uint32_t width, uint32_t heigh
   return true;
 }
 
-bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, int32_t aniFilter /*= 0*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/)
+bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/)
 {
   if (ppTexture == nullptr || pFilename == nullptr)
     return false;
@@ -137,7 +129,7 @@ bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, 
   udFree(pFileData);
 
   if (pData)
-    vcTexture_Create(&pTexture, width, height, pData, vcTextureFormat_RGBA8, filterMode, hasMipmaps, aniFilter, wrapMode);
+    vcTexture_Create(&pTexture, width, height, pData, vcTextureFormat_RGBA8, filterMode, hasMipmaps, wrapMode, flags);
 
   stbi_image_free(pData);
 

@@ -122,7 +122,7 @@ bool vcGLState_ApplyState(vcGLState *pState)
 
   success &= vcGLState_SetFaceMode(pState->fillMode, pState->cullMode, pState->isFrontCCW);
   success &= vcGLState_SetBlendMode(pState->blendMode);
-  success &= vcGLState_SetDepthMode(true, true);
+  success &= vcGLState_SetDepthMode(pState->depthReadMode, pState->doDepthWrite);
 
   return success;
 }
@@ -131,7 +131,7 @@ bool vcGLState_ResetState(bool force /*= false*/)
 {
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back, true, force);
   vcGLState_SetBlendMode(vcGLSBM_None, force);
-  vcGLState_SetDepthMode(true, true, force);
+  vcGLState_SetDepthMode(vcGLSDM_Less, true, force);
 
   return true;
 }
@@ -216,9 +216,9 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
   return true;
 }
 
-bool vcGLState_SetDepthMode(bool doDepthCompare, bool doDepthWrite, bool force /*= false*/)
+bool vcGLState_SetDepthMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite, bool force /*= false*/)
 {
-  if (s_internalState.doDepthCompare != doDepthCompare || s_internalState.doDepthWrite != doDepthWrite || force)
+  if (s_internalState.depthReadMode != depthReadMode || s_internalState.doDepthWrite != doDepthWrite || force)
   {
     D3D11_DEPTH_STENCIL_DESC desc;
     ZeroMemory(&desc, sizeof(desc));
@@ -230,10 +230,22 @@ bool vcGLState_SetDepthMode(bool doDepthCompare, bool doDepthWrite, bool force /
     desc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
     desc.BackFace = desc.FrontFace;
 
-    if (doDepthCompare)
-      desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
-    else
+    if (depthReadMode == vcGLSDM_None)
       desc.DepthFunc = D3D11_COMPARISON_NEVER;
+    else if (depthReadMode == vcGLSDM_Less)
+      desc.DepthFunc = D3D11_COMPARISON_LESS;
+    else if (depthReadMode == vcGLSDM_LessOrEqual)
+      desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+    else if (depthReadMode == vcGLSDM_Equal)
+      desc.DepthFunc = D3D11_COMPARISON_EQUAL;
+    else if (depthReadMode == vcGLSDM_GreaterOrEqual)
+      desc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+    else if (depthReadMode == vcGLSDM_Greater)
+      desc.DepthFunc = D3D11_COMPARISON_GREATER;
+    else if (depthReadMode == vcGLSDM_NotEqual)
+      desc.DepthFunc = D3D11_COMPARISON_NOT_EQUAL;
+    else if (depthReadMode == vcGLSDM_Always)
+      desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
 
     if (doDepthWrite)
       desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -244,7 +256,7 @@ bool vcGLState_SetDepthMode(bool doDepthCompare, bool doDepthWrite, bool force /
       g_pDepthStencilState->Release();
     g_pd3dDevice->CreateDepthStencilState(&desc, &g_pDepthStencilState);
 
-    s_internalState.doDepthCompare = doDepthCompare;
+    s_internalState.depthReadMode = depthReadMode;
     s_internalState.doDepthWrite = doDepthWrite;
   }
 
@@ -253,7 +265,7 @@ bool vcGLState_SetDepthMode(bool doDepthCompare, bool doDepthWrite, bool force /
   return true;
 }
 
-bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height)
+bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, float minDepth /*= 0.f*/, float maxDepth /*= 1.f*/)
 {
   if (x < 0 || y < 0 || width < 1 || height < 1)
     return false;
@@ -263,8 +275,8 @@ bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height)
   viewport.TopLeftY = (float)y;
   viewport.Width = (float)width;
   viewport.Height = (float)height;
-  viewport.MinDepth = 0.f;
-  viewport.MaxDepth = 1.f;
+  viewport.MinDepth = minDepth;
+  viewport.MaxDepth = maxDepth;
 
   g_pd3dDeviceContext->RSSetViewports(1, &viewport);
 

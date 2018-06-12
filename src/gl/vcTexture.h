@@ -33,10 +33,17 @@ enum vcTextureWrapMode
   vcTWM_Total
 };
 
+enum vcTextureCreationFlags
+{
+  vcTCF_None,
+  vcTCF_Dynamic = 1, // Texture gets reuploaded every frame
+  vcTCF_RenderTarget = 2, // This texture needs to be able to be turned into a render target
+};
+
 struct vcTexture;
 
-bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format = vcTextureFormat_RGBA8, vcTextureFilterMode filterMode = vcTFM_Nearest, bool hasMipmaps = false, int32_t aniFilter = 0, vcTextureWrapMode wrapMode = vcTWM_Repeat);
-bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth = nullptr, uint32_t *pHeight = nullptr, vcTextureFilterMode filterMode = vcTFM_Linear, bool hasMipmaps = false, int32_t aniFilter = 0, vcTextureWrapMode wrapMode = vcTWM_Repeat);
+bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format = vcTextureFormat_RGBA8, vcTextureFilterMode filterMode = vcTFM_Nearest, bool hasMipmaps = false, vcTextureWrapMode wrapMode = vcTWM_Repeat, vcTextureCreationFlags flags = vcTCF_None);
+bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth = nullptr, uint32_t *pHeight = nullptr, vcTextureFilterMode filterMode = vcTFM_Linear, bool hasMipmaps = false, vcTextureWrapMode wrapMode = vcTWM_Repeat, vcTextureCreationFlags flags = vcTCF_None);
 bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename);
 
 void vcTexture_Destroy(vcTexture **ppTexture);

@@ -78,9 +78,8 @@ bool vcGLState_ResetState(bool force = false);
 bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMode, bool isFrontCCW = true, bool force = false);
 bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force = false);
 bool vcGLState_SetDepthMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite, bool force = false);
-bool vcGLState_SetDepthRange(float minDepth, float maxDepth, bool force = false);
 
-bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height);
+bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, float minDepth = 0.f, float maxDepth = 1.f);
 
 bool vcGLState_Present(SDL_Window *pWindow);
 

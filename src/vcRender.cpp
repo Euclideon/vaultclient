@@ -8,6 +8,8 @@
 #include "vcTerrain.h"
 #include "vcGIS.h"
 
+#include "gl/opengl/vcOpenGL.h"
+
 const int qrIndices[6] = { 0, 1, 2, 0, 2, 3 };
 const vcSimpleVertex qrSqVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
 
@@ -180,14 +182,14 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
   //Resize GPU Targets
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
   vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
-  vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pColorBuffer);
-  vcTexture_Create(&pRenderContext->udRenderContext.pDepthTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pDepthBuffer, vcTextureFormat_D32F);
+  vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pColorBuffer, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_Dynamic);
+  vcTexture_Create(&pRenderContext->udRenderContext.pDepthTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pDepthBuffer, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_Dynamic);
 
   vcTexture_Destroy(&pRenderContext->pTexture);
   vcTexture_Destroy(&pRenderContext->pDepthTexture);
   vcFramebuffer_Destroy(&pRenderContext->pFramebuffer);
-  vcTexture_Create(&pRenderContext->pTexture, width, height, nullptr, vcTextureFormat_RGBA8);
-  vcTexture_Create(&pRenderContext->pDepthTexture, width, height, nullptr, vcTextureFormat_D32F);
+  vcTexture_Create(&pRenderContext->pTexture, width, height, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget);
+  vcTexture_Create(&pRenderContext->pDepthTexture, width, height, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget);
   vcFramebuffer_Create(&pRenderContext->pFramebuffer, pRenderContext->pTexture, pRenderContext->pDepthTexture);
 
   if (pRenderContext->pVaultContext)
@@ -218,7 +220,7 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
   vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
   vcFramebuffer_Bind(pRenderContext->pFramebuffer);
-  vcFramebuffer_Clear(pRenderContext->pFramebuffer, 0xFF000000);
+  vcFramebuffer_Clear(pRenderContext->pFramebuffer, 0xFFFF8080);
 
   vcShader_Bind(pRenderContext->udRenderContext.presentShader.pProgram);
 
@@ -227,7 +229,7 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
 
   vcMesh_RenderTriangles(pRenderContext->pSkyboxMesh, 2);
 
-  //vcRenderSkybox(pRenderContext);
+  vcRenderSkybox(pRenderContext);
 
   if (renderData.srid != 0 && pRenderContext->pSettings->maptiles.mapEnabled)
   {
@@ -351,17 +353,20 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
   viewProjMatrixF.inverse();
 
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);
+  VERIFY_GL();
 
   vcShader_BindTexture(pRenderContext->skyboxShader.pProgram, pRenderContext->pSkyboxCubeMapTexture, 0, pRenderContext->skyboxShader.uniform_texture);
   vcShader_SetUniform(pRenderContext->skyboxShader.uniform_inverseViewProjection, viewProjMatrixF);
+  VERIFY_GL();
 
   // Draw the skybox only at the far plane, where there is no geometry.
   // Drawing skybox here (after 'opaque' geometry) saves a bit on fill rate.
-  vcGLState_SetDepthRange(1.0f, 1.0f);
+  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 1.0f, 1.0f);
+  VERIFY_GL();
 
-  //vcMesh_RenderTriangles(pRenderContext->pSkyboxMesh, 2);
+  vcMesh_RenderTriangles(pRenderContext->pSkyboxMesh, 2);
 
-  vcGLState_SetDepthRange(0.0f, 1.0f);
+  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 0.0f, 1.0f);
 
   vcShader_Bind(nullptr);
 }

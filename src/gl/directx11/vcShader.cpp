@@ -169,9 +169,13 @@ bool vcShader_Bind(vcShader *pShader)
 
 bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderUniform *pSamplerUniform /*= nullptr*/)
 {
+  if (pTexture == nullptr)
+    return false;
+
   udUnused(pShader);
   udUnused(pSamplerUniform);
 
+  g_pd3dDeviceContext->PSSetShaderResources(samplerIndex, 1, &pTexture->pTextureView);
   g_pd3dDeviceContext->PSSetSamplers(samplerIndex, 1, &pTexture->pSampler);
 
   return true;
@@ -179,24 +183,36 @@ bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t sampl
 
 bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, udFloat3 vector)
 {
+  udUnused(pShaderUniform);
+  udUnused(vector);
+
   //glUniform3f(pShaderUniform->id, vector.x, vector.y, vector.z);
   return true;
 }
 
 bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, udFloat4x4 matrix)
 {
+  udUnused(pShaderUniform);
+  udUnused(matrix);
+
   //glUniformMatrix4fv(pShaderUniform->id, 1, GL_FALSE, matrix.a);
   return true;
 }
 
 bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, float floatVal)
 {
+  udUnused(pShaderUniform);
+  udUnused(floatVal);
+
   //glUniform1f(pShaderUniform->id, floatVal);
   return true;
 }
 
 bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, int32_t intVal)
 {
+  udUnused(pShaderUniform);
+  udUnused(intVal);
+
   //glUniform1i(pShaderUniform->id, intVal);
   return true;
 }

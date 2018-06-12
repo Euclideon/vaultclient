@@ -185,4 +185,4 @@ solution "vaultClient"
 		debugdir "builds"
 	end
 
-	dofile "project.lua"
+		dofile "project.lua"

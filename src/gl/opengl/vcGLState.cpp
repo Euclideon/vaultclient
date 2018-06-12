@@ -152,7 +152,7 @@ bool vcGLState_SetDepthMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite,
         glDepthFunc(GL_NOTEQUAL);
       else if (depthReadMode == vcGLSDM_Always)
         glDepthFunc(GL_ALWAYS);
-    }     
+    }
 
     s_internalState.depthReadMode = depthReadMode;
   }
@@ -170,24 +170,12 @@ bool vcGLState_SetDepthMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite,
   return true;
 }
 
-bool vcGLState_SetDepthRange(float minDepth, float maxDepth, bool force /*= false*/)
-{
-  if ((s_internalState.depthRange.x != minDepth || s_internalState.depthRange.y != maxDepth) || force)
-  {
-    glDepthRangef(minDepth, maxDepth);
-
-    s_internalState.depthRange.x = minDepth;
-    s_internalState.depthRange.y = maxDepth;
-  }
-
-  return true;
-}
-
-bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height)
+bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, float minDepth /*= 0.f*/, float maxDepth /*= 1.f*/)
 {
   if (x < 0 || y < 0 || width < 1 || height < 1)
     return false;
 
+  glDepthRangef(minDepth, maxDepth);
   glViewport(x, y, width, height);
 
   return true;
