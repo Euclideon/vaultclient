@@ -478,8 +478,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.models.Init(32);
 
   ImGuiIO &io = ImGui::GetIO();
-  renderData.mouse.x = (uint32_t)io.MousePos.x - windowPos.x;
-  renderData.mouse.y = (uint32_t)io.MousePos.y - windowPos.y;
+  renderData.mouse.x = (uint32_t) (io.MousePos.x - windowPos.x);
+  renderData.mouse.y = (uint32_t) (io.MousePos.y - windowPos.y);
 
   for (size_t i = 0; i < vcModelList.length; ++i)
   {

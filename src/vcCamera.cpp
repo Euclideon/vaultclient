@@ -33,12 +33,11 @@ udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera)
 
 udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPosition)
 {
-  udDouble3 toPoint = pCamera->position - orbitPosition;
   udQuaternion<double> orientation = udQuaternion<double>::create(pCamera->yprRotation);
-  udDouble3 converted = orientation.inverse().apply(toPoint); // convert the point into relative to camera space
+  udDouble3 orbitToCamera = orientation.inverse().apply(pCamera->position - orbitPosition); // convert the point into camera space
 
-  double pitch = -1 * udATan(converted.z / converted.y);
-  double yaw = udATan(converted.x / converted.y);
+  double pitch = -udATan(orbitToCamera.z / orbitToCamera.y);
+  double yaw = udATan(orbitToCamera.x / orbitToCamera.y);
 
   return udDouble3::create(yaw, pitch, 0.0);
 }
