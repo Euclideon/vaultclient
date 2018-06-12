@@ -9,7 +9,7 @@
 extern ImGui::DockContext g_dock;
 const char *pDefaultSettings = R"config({"window":{"width":1280,"height":720,"maximized":false,"fullscreen":false},"frames":{"scene":true,"settings":true,"explorer":true},"camera":{"moveSpeed":10,"nearPlane":0.5,"farPlane":10000,"fieldOfView":0.872665,"moveMode":0},"maptiles":{"enabled":true,"blendMode":0,"transparency":1.0,"mapHeight":0.0},"docks":[{"label":"ROOT","child":[1,2],"prev":-1,"next":-1,"parent":-1,"status":0,"active":true,"open":false,"position":{"x":0,"y":22},"size":{"x":1280,"y":673},"location":"-1"},{"label":"Scene","child":[-1,-1],"prev":-1,"next":-1,"parent":0,"status":0,"active":true,"open":true,"position":{"x":0,"y":22},"size":{"x":976,"y":673},"location":"1"},{"label":"DOCK","child":[3,4],"prev":-1,"next":-1,"parent":0,"status":0,"active":true,"open":false,"position":{"x":976,"y":22},"size":{"x":304,"y":673},"location":"0"},{"label":"Scene Explorer","child":[-1,-1],"prev":-1,"next":-1,"parent":2,"status":0,"active":true,"open":true,"position":{"x":976,"y":22},"size":{"x":304,"y":442},"location":"20"},{"label":"Settings","child":[-1,-1],"prev":-1,"next":-1,"parent":2,"status":0,"active":true,"open":true,"position":{"x":976,"y":464},"size":{"x":304,"y":231},"location":"30"}]})config";
 
-int vcSettings_RecursiveSaveDock(udValue &settings, ImGui::DockContext::Dock *pParentDock, int dockIndex, int parentIndex);
+int vcSettings_RecursiveSaveDock(udValue &settings, ImGui::DockContext::Dock *pParentDock, int dockIndex, int parentIndex, int prevIndexIn = -1);
 
 void vcSettings_LoadDocks(udValue &settings)
 {
@@ -81,12 +81,12 @@ void vcSettings_SaveDocks(udValue &settings)
 int getChildDockCount(ImGui::DockContext::Dock *pDock)
 {
   if (pDock)
-    return (pDock->children[0] ? 1 + getChildDockCount(pDock->children[0]) : 0) + (pDock->children[1] ? 1 + getChildDockCount(pDock->children[1]) : 0);
+    return (pDock->children[0] ? 1 + getChildDockCount(pDock->children[0]) : 0) + (pDock->children[1] ? 1 + getChildDockCount(pDock->children[1]) : 0) + (pDock->next_tab ? 1 + getChildDockCount(pDock->next_tab) : 0);
   else
     return 0;
 }
 
-int vcSettings_RecursiveSaveDock(udValue &settings, ImGui::DockContext::Dock *pParentDock, int dockIndex, int parentIndex)
+int vcSettings_RecursiveSaveDock(udValue &settings, ImGui::DockContext::Dock *pParentDock, int dockIndex, int parentIndex, int prevIndexIn /* = -1*/)
 {
   int numChildren = 0;
   udValue dockJ;
@@ -100,16 +100,27 @@ int vcSettings_RecursiveSaveDock(udValue &settings, ImGui::DockContext::Dock *pP
   int child1NewIndex = dock.children[0] ? dockIndex + 1 : -1;
   int child2NewIndex = dock.children[1] ? dockIndex + 2 + getChildDockCount(dock.children[0]) : -1;
 
+  int prevNewIndex = dock.prev_tab ? prevIndexIn : -1;
+  int nextNewIndex = -1;
+  if (child1NewIndex == -1 && child2NewIndex == -1) // cant have next tab and children, so else is unnecessary
+  {
+    // has no children
+    nextNewIndex = dock.next_tab ? dockIndex + 1 : -1;
+  }
+
 
   int child1Index = g_dock.getDockIndex(g_dock.m_docks[i]->children[0]);
   int child2Index = g_dock.getDockIndex(g_dock.m_docks[i]->children[1]);
+
+  int prevIndex = g_dock.getDockIndex(g_dock.m_docks[i]->prev_tab);
+  int nextIndex = g_dock.getDockIndex(g_dock.m_docks[i]->next_tab);
 
   dockJ.Set("label = '%s'", dock.parent ? (dock.label[0] == '\0' ? "DOCK" : dock.label) : (dock.label[0] == '\0' ? "ROOT" : dock.label));
 
   dockJ.Set("child[0] = %d", child1NewIndex);
   dockJ.Set("child[1] = %d", child2NewIndex);
-  dockJ.Set("prev = %d", g_dock.getDockIndex(g_dock.m_docks[i]->prev_tab));
-  dockJ.Set("next = %d", g_dock.getDockIndex(g_dock.m_docks[i]->next_tab));
+  dockJ.Set("prev = %d", prevNewIndex);
+  dockJ.Set("next = %d", nextNewIndex);
   dockJ.Set("parent = %d", parentIndex);
 
   dockJ.Set("status = %d", g_dock.m_docks[i]->status);
@@ -130,6 +141,11 @@ int vcSettings_RecursiveSaveDock(udValue &settings, ImGui::DockContext::Dock *pP
   {
     numChildren += vcSettings_RecursiveSaveDock(settings, g_dock.m_docks[child1Index], dockIndex + 1, dockIndex);
     numChildren += vcSettings_RecursiveSaveDock(settings, g_dock.m_docks[child2Index], dockIndex + numChildren + 1, dockIndex);
+  }
+
+  if (nextNewIndex >= 0)
+  {
+    numChildren += vcSettings_RecursiveSaveDock(settings, g_dock.m_docks[nextIndex], dockIndex + 1, parentIndex, dockIndex);
   }
 
   return numChildren+1;
