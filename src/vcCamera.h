@@ -7,6 +7,7 @@ enum vcCameraMoveMode
 {
   vcCMM_Plane,
   vcCMM_Helicopter,
+  vcCMM_Orbit,
 };
 
 struct vcCamera;
@@ -54,6 +55,9 @@ void vcCamera_Destroy(vcCamera **ppCamera);
 
 // Get camera matrix
 udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera);
+
+udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPosition);
+void vcCamera_Orbit(vcCamera *pCamera, udDouble3 orbitPosition, udDouble3 storedRotation, udDouble3 deltaRotation);
 
 // Applies movement to camera
 void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, float speedModifier = 1.f);

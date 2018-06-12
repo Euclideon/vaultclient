@@ -42,6 +42,9 @@ struct vcState
   udDouble3 worldMousePos;
   udDouble3 currentMeasurePoint;
 
+  udDouble3 orbitPos;
+  udDouble3 storedDeltaAngle;
+
   bool hasContext;
   vdkContext *pContext;
   vcRenderContext *pRenderContext;
