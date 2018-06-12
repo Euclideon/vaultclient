@@ -1,13 +1,27 @@
-windows_x64_release:
+windows_x64_release_opengl:
   stage: build
-  script: "buildscripts\\build.sh Release x64"
+  script: "buildscripts\\build.sh Release x64 --gfxapi=opengl"
   tags:
     - windows
     - vs2015
 
-windows_x64_debug:
+windows_x64_debug_opengl:
   stage: build
-  script: "buildscripts\\build.sh Debug x64"
+  script: "buildscripts\\build.sh Debug x64 --gfxapi=opengl"
+  tags:
+    - windows
+    - vs2015
+
+windows_x64_release_d3d11:
+  stage: build
+  script: "buildscripts\\build.sh Release x64 --gfxapi=d3d11"
+  tags:
+    - windows
+    - vs2015
+
+windows_x64_debug_d3d11:
+  stage: build
+  script: "buildscripts\\build.sh Debug x64 --gfxapi=d3d11"
   tags:
     - windows
     - vs2015

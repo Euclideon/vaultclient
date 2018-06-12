@@ -111,18 +111,31 @@ bool vcShader_Bind(vcShader *pShader)
   else
     glUseProgram(pShader->programID);
 
+  VERIFY_GL();
+
   return true;
 }
 
 bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderUniform *pSamplerUniform /*= nullptr*/)
 {
+  if (pTexture == nullptr || pTexture->id == GL_INVALID_INDEX)
+    return false;
+
   udUnused(pShader);
 
   glActiveTexture(GL_TEXTURE0 + samplerIndex);
-  glBindTexture(GL_TEXTURE_2D, pTexture->id);
+  VERIFY_GL();
+
+  if (pTexture->format == vcTextureFormat_Cubemap)
+    glBindTexture(GL_TEXTURE_CUBE_MAP, pTexture->id);
+  else
+    glBindTexture(GL_TEXTURE_2D, pTexture->id);
+  VERIFY_GL();
 
   if (pSamplerUniform != nullptr)
     vcShader_SetUniform(pSamplerUniform, samplerIndex);
+
+  VERIFY_GL();
 
   return true;
 }

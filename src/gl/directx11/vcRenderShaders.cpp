@@ -8,15 +8,25 @@ const char* const g_udFragmentShader = R"shader(
     float2 uv : TEXCOORD0;
   };
 
+  struct PS_OUTPUT {
+    float4 Color0 : COLOR0;
+    float Depth0 : DEPTH0;
+  };
+
   sampler sampler0;
   Texture2D texture0;
 
-  float4 main(PS_INPUT input) : SV_Target
+  sampler sampler1;
+  Texture2D texture1;
+
+  PS_OUTPUT main(PS_INPUT input) : SV_Target
   {
-    float4 out_col = texture0.Sample(sampler0, input.uv);
-    return out_col;
-    //out_Colour = texture(u_texture, v_texCoord).bgra;
-    //gl_FragDepth = texture(u_depth, v_texCoord).x;
+    PS_OUTPUT output;
+
+    output.Color0 = texture0.Sample(sampler0, input.uv).bgra;
+    output.Depth0 = texture1.Sample(sampler1, input.uv).x;
+
+    return output;
   }
 )shader";
 
@@ -47,73 +57,84 @@ const char* const g_terrainTileFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
+    float3 colour : COLOR0;
     float2 uv : TEXCOORD0;
   };
 
-  //Output Format
-  out vec4 out_Colour;
-
   uniform float u_opacity;
   uniform sampler2D u_texture;
-  uniform vec3 u_debugColour;
+  uniform float3 u_debugColour;
 
   float4 main(PS_INPUT input) : SV_Target
   {
-    float4 col = texture0.Sample(sampler0, input.uv);
-    out_Colour = vec4(col.xyz * u_debugColour.xyz, u_opacity);
+    //float4 col = texture0.Sample(sampler0, input.uv);
+    //return float4(col.xyz * u_debugColour.xyz, u_opacity);
+
+    return float4(1.0, 0.0, 1.0, 1.0);
   }
 )shader";
 
 const char* const g_terrainTileVertexShader = R"shader(
-  //Input format
-  layout(location = 0) in vec3 a_position;
-  layout(location = 1) in vec2 a_uv;
-
-  //Output Format
-  out vec3 v_colour;
-  out vec2 v_uv;
-
-  uniform mat4 u_worldViewProjection0;
-  uniform mat4 u_worldViewProjection1;
-  uniform mat4 u_worldViewProjection2;
-  uniform mat4 u_worldViewProjection3;
-
-  void main()
+  struct VS_INPUT
   {
-    vec4 finalClipPos = vec4(0.0);
+    float3 pos : POSITION;
+    float2 uv  : TEXCOORD0;
+  };
+
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float3 colour : COLOR0;
+    float2 uv : TEXCOORD0;
+  };
+
+  uniform float4x4 u_worldViewProjection0;
+  uniform float4x4 u_worldViewProjection1;
+  uniform float4x4 u_worldViewProjection2;
+  uniform float4x4 u_worldViewProjection3;
+
+  PS_INPUT main(VS_INPUT input)
+  {
+    PS_INPUT output;
+
+    float4 finalClipPos = float4(0.0, 0.0, 0.0, 0.0);
 
     // corner id is stored in the x component of the position attribute
     // note: could have precision issues on some devices
-    finalClipPos += float(a_position.x == 0.0) * u_worldViewProjection0 * vec4(0.0, 0.0, 0.0, 1.0);
-    finalClipPos += float(a_position.x == 1.0) * u_worldViewProjection1 * vec4(0.0, 0.0, 0.0, 1.0);
-    finalClipPos += float(a_position.x == 2.0) * u_worldViewProjection2 * vec4(0.0, 0.0, 0.0, 1.0);
-    finalClipPos += float(a_position.x == 4.0) * u_worldViewProjection3 * vec4(0.0, 0.0, 0.0, 1.0);
 
-    v_uv = a_uv;
-    gl_Position = finalClipPos;
+    if (input.pos.x == 0.0)
+      finalClipPos = float4(0.0, 0.0, 0.0, 1.0) * u_worldViewProjection0;
+    else if (input.pos.x == 1.0)
+      finalClipPos = float4(0.0, 0.0, 0.0, 1.0) * u_worldViewProjection1;
+    else if (input.pos.x == 2.0)
+      finalClipPos = float4(0.0, 0.0, 0.0, 1.0) * u_worldViewProjection2;
+    else if (input.pos.x == 4.0)
+      finalClipPos = float4(0.0, 0.0, 0.0, 1.0) * u_worldViewProjection3;
+
+    output.uv = input.uv;
+    output.pos = finalClipPos;
   }
 )shader";
 
 const char* const g_vcSkyboxFragmentShader = R"shader(
-  uniform samplerCube u_texture;
-  uniform mat4 u_inverseViewProjection;
-
-  //Input Format
-  in vec2 v_texCoord;
-
-  //Output Format
-  out vec4 out_Colour;
-
-  void main()
+  struct PS_INPUT
   {
-    vec2 uv = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
+    float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD0;
+  };
+
+  sampler sampler0;
+  Texture2DArray u_texture;
+  //uniform float4x4 u_inverseViewProjection;
+
+  float4 main(PS_INPUT input) : SV_Target
+  {
+    float2 uv = float2(input.uv.x, 1.0 - input.uv.y);
 
     // work out 3D point
-    vec4 point3D = u_inverseViewProjection * vec4(uv * vec2(2.0) - vec2(1.0), 1.0, 1.0);
+    float4 point3D = /*u_inverseViewProjection */ float4(uv * float2(2.0, 2.0) - float2(1.0, 1.0), 1.0, 1.0);
     point3D.xyz = normalize(point3D.xyz / point3D.w);
-    vec4 c1 = texture(u_texture, point3D.xyz);
-
-    out_Colour = c1;
+    return u_texture.Sample(sampler0, point3D.xyz);
   }
 )shader";
 

@@ -4,21 +4,27 @@
 bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, int level /*= 0*/)
 {
   vcFramebuffer *pFramebuffer = udAllocType(vcFramebuffer, 1, udAF_Zero);
-  /*GLenum DrawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
 
-  glGenFramebuffers(1, &pFramebuffer->id);
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, pFramebuffer->id);
+  D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
+  memset(&renderTargetViewDesc, 0, sizeof(D3D11_RENDER_TARGET_VIEW_DESC));
 
-  if (pDepth)
-    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, pDepth->id, 0);
+  renderTargetViewDesc.Format = pTexture->d3dFormat;
+  renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+  renderTargetViewDesc.Texture2D.MipSlice = level;
 
-  glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pTexture->id, level);
-  glDrawBuffers(1, DrawBuffers);
+  // Create the render target view.
+  g_pd3dDevice->CreateRenderTargetView(pTexture->pTextureD3D, &renderTargetViewDesc, &pFramebuffer->pRenderTargetView);
 
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+  if (pDepth != nullptr)
+  {
+    D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
+    memset(&dsvDesc, 0, sizeof(D3D11_DEPTH_STENCIL_VIEW_DESC));
+    dsvDesc.Format = ((pDepth->format == vcTextureFormat_D32F) ? DXGI_FORMAT_D32_FLOAT : DXGI_FORMAT_D24_UNORM_S8_UINT);
+    dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    dsvDesc.Texture2D.MipSlice = 0;
 
-  pFramebuffer->pAttachments[0] = pTexture;
-  pFramebuffer->pDepth = pDepth;*/
+    g_pd3dDevice->CreateDepthStencilView(pDepth->pTextureD3D, &dsvDesc, &pFramebuffer->pDepthStencilView);
+  }
 
   *ppFramebuffer = pFramebuffer;
   return true;
@@ -29,7 +35,8 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
   if (ppFramebuffer == nullptr || *ppFramebuffer == nullptr)
     return;
 
-  //glDeleteFramebuffers(1, &(*ppFramebuffer)->id);
+  //TODO: This
+
   udFree(*ppFramebuffer);
 }
 
@@ -38,7 +45,7 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer)
   if (pFramebuffer == nullptr || pFramebuffer->pRenderTargetView == nullptr)
     return false;
 
-  g_pd3dDeviceContext->OMSetRenderTargets(1, &pFramebuffer->pRenderTargetView, NULL);
+  g_pd3dDeviceContext->OMSetRenderTargets(1, &pFramebuffer->pRenderTargetView, pFramebuffer->pDepthStencilView);
 
   return true;
 }

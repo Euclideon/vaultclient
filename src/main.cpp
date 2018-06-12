@@ -402,6 +402,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
     // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
     // this isn't valid on iOS when using UIKit.
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+
+    pProgramState->sceneResolution.x = (uint32_t)size.x;
+    pProgramState->sceneResolution.y = (uint32_t)size.y;
   }
 
   vcRenderData renderData = {};

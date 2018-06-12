@@ -23,8 +23,13 @@ struct vcTexture
 {
   ID3D11SamplerState *pSampler;
   ID3D11ShaderResourceView *pTextureView;
+  ID3D11Texture2D *pTextureD3D;
+
+  DXGI_FORMAT d3dFormat;
 
   bool isDynamic;
+  bool isRenderTarget;
+
   vcTextureFormat format;
   int width, height;
 };
@@ -32,9 +37,7 @@ struct vcTexture
 struct vcFramebuffer
 {
   ID3D11RenderTargetView *pRenderTargetView;
-
-  //vcTexture *pAttachments[1];
-  //vcTexture *pDepth; // optional
+  ID3D11DepthStencilView *pDepthStencilView;
 };
 
 struct vcShader

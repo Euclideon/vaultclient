@@ -23,6 +23,7 @@ void vcShader_DestroyShader(vcShader **ppShader);
 bool vcShader_GetUniformIndex(vcShaderUniform **ppUniform, vcShader *pShader, const char *pUniformName);
 
 bool vcShader_Bind(vcShader *pShader); // nullptr to unbind shader
+
 bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderUniform *pSamplerUniform = nullptr);
 
 bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, udFloat3 vector);

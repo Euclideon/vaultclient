@@ -15,7 +15,7 @@ export DEPLOYDIR="$RESOURCES/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
 export VAULTSDK_HOME="$RESOURCES/Builds/vault/sdk/Pipeline_25281"
 
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
-	bin/premake/premake5.exe vs2015
+	bin/premake/premake5.exe vs2015 $3
 	if [ $? -ne 0 ]; then exit 1; fi
 
 	"C:/Program Files (x86)/MSBuild/14.0/Bin/amd64/MSBuild.exe" vaultClient.sln //p:Configuration=$1 //p:Platform=$2 //v:m //m

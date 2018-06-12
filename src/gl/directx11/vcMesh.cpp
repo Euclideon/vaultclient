@@ -49,16 +49,23 @@ bool vcMesh_CreateSimple(vcMesh **ppMesh, const vcSimpleVertex *pVerts, int tota
   g_pd3dDeviceContext->Unmap(pMesh->pVBO, 0);
   g_pd3dDeviceContext->Unmap(pMesh->pIBO, 0);
 
+  pMesh->vertexCount = totalVerts;
+  pMesh->indexCount = totalIndices;
+
   *ppMesh = pMesh;
   result = true;
 
 epilogue:
   if (!result)
   {
+    if (pMesh->pVBO)
+      pMesh->pVBO->Release();
 
+    if (pMesh->pIBO)
+      pMesh->pIBO->Release();
   }
 
-  return true;
+  return result;
 }
 
 void vcMesh_Destroy(vcMesh **ppMesh)
