@@ -477,11 +477,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.srid = pProgramState->currentSRID;
   renderData.models.Init(32);
 
-  vcRender_SetWindowOffset(pProgramState->pRenderContext, udInt2::create((int)windowPos.x, (int)windowPos.y));
-
   ImGuiIO &io = ImGui::GetIO();
-  renderData.mouse.x = (uint32_t)io.MousePos.x;
-  renderData.mouse.y = (uint32_t)io.MousePos.y;
+  renderData.mouse.x = (uint32_t)io.MousePos.x - windowPos.x;
+  renderData.mouse.y = (uint32_t)io.MousePos.y - windowPos.y;
 
   for (size_t i = 0; i < vcModelList.length; ++i)
   {

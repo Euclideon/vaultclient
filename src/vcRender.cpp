@@ -44,7 +44,6 @@ struct vcRenderContext
   vcCamera *pCamera;
 
   udUInt2 sceneResolution;
-  udInt2 windowOffset;
 
   vcFramebuffer *pFramebuffer;
   vcTexture *pTexture;
@@ -338,8 +337,8 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   }
 
   vdkRenderPicking picking;
-  picking.x = renderData.mouse.x - pRenderContext->windowOffset.x;
-  picking.y = renderData.mouse.y - pRenderContext->windowOffset.y;
+  picking.x = renderData.mouse.x;
+  picking.y = renderData.mouse.y;
 
   if (vdkRenderContext_RenderAdv(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)numVisibleModels, &picking) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
@@ -410,9 +409,4 @@ udResult vcRender_DestroyTerrain(vcRenderContext *pRenderContext)
     return udR_Success;
   else
     return vcTerrain_Destroy(&(pRenderContext->pTerrain));
-}
-
-void vcRender_SetWindowOffset(vcRenderContext *pRenderContext, udInt2 windowPos)
-{
-  pRenderContext->windowOffset = windowPos;
 }
