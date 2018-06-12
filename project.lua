@@ -54,11 +54,12 @@ project "vaultClient"
 		files { "3rdParty/GL/glext.h" }
 
 	filter { "system:macosx" }
+		files { "macOS-Info.plist", "icons/macOSAppIcons.icns" }
 		frameworkdirs { "/Library/Frameworks/" }
 		links { "SDL2.framework", "OpenGL.framework" }
 
 	filter { "system:ios" }
-		files { "Info.plist", "builds/libvaultSDK.dylib" }
+		files { "iOS-Info.plist", "builds/libvaultSDK.dylib" }
 		xcodebuildresources { "libvaultSDK" }
 		removefiles { "3rdParty/glew/glew.c" }
 		libdirs { "3rdParty/SDL2-2.0.5/lib/ios" }
