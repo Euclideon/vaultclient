@@ -739,9 +739,11 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::SetNextWindowBgAlpha(0.f);
     ImGui::SetNextWindowPos(ImVec2(size.x-5,size.y-5), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
 
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f, 0.f, 0.f, 0.f));
     ImGui::Begin("Watermark", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
     ImGui::Image((ImTextureID)((size_t)pProgramState->pWatermarkTexture->id), ImVec2(512, 512), ImVec2(0, 0), ImVec2(1, 1));
     ImGui::End();
+    ImGui::PopStyleColor();
 
     ImGui::SetNextWindowSize(ImVec2(500, 150));
     if (ImGui::Begin("Login", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
