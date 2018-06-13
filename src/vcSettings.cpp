@@ -72,12 +72,12 @@ void vcSettings_SaveDocks(udValue &settings)
   }
 }
 
-int getChildDockCount(ImGui::DockContext::Dock *pDock) // includes next_tab's as children
+int vcSettings_GetChildDockCount(ImGui::DockContext::Dock *pDock) // includes next_tab's as children
 {
   if (pDock)
-    return (pDock->children[0] ? 1 + getChildDockCount(pDock->children[0]) : 0)
-    + (pDock->children[1] ? 1 + getChildDockCount(pDock->children[1]) : 0)
-    + (pDock->next_tab ? 1 + getChildDockCount(pDock->next_tab) : 0);
+    return (pDock->children[0] ? 1 + vcSettings_GetChildDockCount(pDock->children[0]) : 0)
+    + (pDock->children[1] ? 1 + vcSettings_GetChildDockCount(pDock->children[1]) : 0)
+    + (pDock->next_tab ? 1 + vcSettings_GetChildDockCount(pDock->next_tab) : 0);
   else
     return 0;
 }
@@ -94,7 +94,7 @@ int vcSettings_RecursiveSaveDock(udValue &settings, ImGui::DockContext::Dock *pP
 
 
   int child1NewIndex = dock.children[0] ? dockIndex + 1 : -1;
-  int child2NewIndex = dock.children[1] ? dockIndex + 2 + getChildDockCount(dock.children[0]) : -1;
+  int child2NewIndex = dock.children[1] ? dockIndex + 2 + vcSettings_GetChildDockCount(dock.children[0]) : -1;
 
   int prevNewIndex = dock.prev_tab ? prevIndexIn : -1;
   int nextNewIndex = -1;
