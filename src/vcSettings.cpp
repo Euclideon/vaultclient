@@ -198,11 +198,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
     pSettings->camera.nearPlane = data.Get("camera.nearPlane").AsFloat(0.5f);
     pSettings->camera.farPlane = data.Get("camera.farPlane").AsFloat(10000.f);
-    pSettings->camera.fieldOfView = data.Get("camera.fieldOfView").AsFloat(UD_DEG2RADf(50.f));
+    pSettings->camera.fieldOfView = data.Get("camera.fieldOfView").AsFloat(vcLens30mm);
     pSettings->camera.invertX = data.Get("camera.invertX").AsBool(false);
     pSettings->camera.invertY = data.Get("camera.invertY").AsBool(false);
     pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
-    pSettings->camera.lensIndex = data.Get("camera.lensId").AsInt(vcLS_Custom);
+    pSettings->camera.lensIndex = data.Get("camera.lensId").AsInt(vcLS_30mm);
 
     // Map Tiles
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
