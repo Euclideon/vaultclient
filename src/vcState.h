@@ -18,6 +18,14 @@ struct vcTexture;
 
 typedef unsigned int GLuint;
 
+enum
+{
+  vcPopup_Screenshot, // placeholder
+  vcPopup_ModelProperties,
+
+  vcPopupCount
+};
+
 struct vcState
 {
   bool programComplete;
@@ -26,10 +34,19 @@ struct vcState
 
   bool onScreenControls;
 
+  bool popupTrigger[vcPopupCount];
+
   vcCamera *pCamera;
 
   size_t numSelectedModels;
   size_t prevSelectedModel;
+
+  struct
+  {
+    udValue *pMetadata;
+    size_t id;
+    vcTexture *pWatermarkTexture;
+  } modelProperties;
 
   double deltaTime;
   udDouble4x4 camMatrix;

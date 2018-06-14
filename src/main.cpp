@@ -971,6 +971,17 @@ void vcRenderWindow(vcState *pProgramState)
           pProgramState->prevSelectedModel = i;
         }
 
+        if (ImGui::BeginPopupContextItem(modelLabelID)) // When used after an item that has an ID (here the Button), we can skip providing an ID to BeginPopupContextItem().
+        {
+          if (ImGui::Selectable("Properties", false))
+          {
+            pProgramState->popupTrigger[vcPopup_ModelProperties] = true;
+            pProgramState->modelProperties.id = i;
+            ImGui::CloseCurrentPopup();
+          }
+          ImGui::EndPopup();
+        }
+
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
           vcModel_MoveToModelProjection(pProgramState, &vcModelList[i]);
 
@@ -1166,6 +1177,91 @@ void vcRenderWindow(vcState *pProgramState)
     }
 
     ImGui::EndDock();
+
+    //Handle in context popups
+
+    if (pProgramState->popupTrigger[vcPopup_ModelProperties])
+    {
+      ImGui::OpenPopup("Model Properties");
+
+      pProgramState->modelProperties.pMetadata = vcModelList[pProgramState->modelProperties.id].pMetadata;
+
+      const char *pWatermark = pProgramState->modelProperties.pMetadata->Get("Watermark").AsString("");
+      if (udStrlen(pWatermark) > 0)
+      {
+        uint8_t *pImage = nullptr;
+        size_t imageLen = 0;
+        udBase64Decode(&pImage, &imageLen, pWatermark);
+
+        int x, y, n;
+        unsigned char *pImageData = stbi_load_from_memory(pImage, imageLen, &x, &y, &n, 0);
+        vcTexture_Create(&pProgramState->modelProperties.pWatermarkTexture, x, y, vcTextureFormat_RGBA8);
+        vcTexture_UploadPixels(pProgramState->modelProperties.pWatermarkTexture, pImageData, x, y);
+      }
+
+      ImGui::SetNextWindowSize(ImVec2(400, 600));
+
+      pProgramState->popupTrigger[vcPopup_ModelProperties] = false;
+    }
+
+    if (ImGui::BeginPopupModal("Model Properties"))
+    {
+      ImGui::Text("File:");
+
+      ImGui::TextWrapped("  %s", vcModelList[pProgramState->modelProperties.id].modelPath);
+
+      ImGui::Separator();
+
+      if (pProgramState->modelProperties.pMetadata == nullptr)
+      {
+        ImGui::Text("No model information found.");
+      }
+      else
+      {
+        for (size_t i = 0; i < pProgramState->modelProperties.pMetadata->MemberCount(); ++i)
+        {
+          const char *pMemberName = pProgramState->modelProperties.pMetadata->GetMemberName(i);
+
+          if(!udStrEqual(pMemberName, "ProjectionWKT") && !udStrEqual(pMemberName, "Watermark"))
+            ImGui::TextWrapped("%s -> %s", pMemberName, pProgramState->modelProperties.pMetadata->GetMember(i)->AsString(""));
+        }
+
+        ImGui::Separator();
+
+        if (pProgramState->modelProperties.pWatermarkTexture != nullptr)
+        {
+          ImGui::Text("Watermark");
+
+          ImVec2 imageSize = ImVec2(pProgramState->modelProperties.pWatermarkTexture->width, pProgramState->modelProperties.pWatermarkTexture->height);
+          ImVec2 imageLimits = ImVec2(ImGui::GetContentRegionAvailWidth(), 100);
+
+          if (imageSize.y > imageLimits.y)
+          {
+            imageSize.x *= imageLimits.y / imageSize.y;
+            imageSize.y = imageLimits.y;
+          }
+
+          if (imageSize.x > imageLimits.x)
+          {
+            imageSize.y *= imageLimits.x / imageSize.x;
+            imageSize.x = imageLimits.x;
+          }
+
+          ImGui::Image((ImTextureID)pProgramState->modelProperties.pWatermarkTexture->id, imageSize);
+          ImGui::Separator();
+        }
+      }
+
+      if (ImGui::Button("Close"))
+      {
+        if(pProgramState->modelProperties.pWatermarkTexture != nullptr)
+          vcTexture_Destroy(&pProgramState->modelProperties.pWatermarkTexture);
+
+        ImGui::CloseCurrentPopup();
+      }
+
+      ImGui::EndPopup();
+    }
   }
 
 epilogue:
