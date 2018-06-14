@@ -42,39 +42,63 @@ udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPositi
   return udDouble3::create(yaw, pitch, 0.0);
 }
 
-void vcCamera_Orbit(vcCamera *pCamera, udDouble3 orbitPosition, udDouble3 storedRotation, udDouble3 deltaRotation)
-{
-  double distanceToPoint = udMag3(orbitPosition - pCamera->position);
-  if (distanceToPoint == 0.0)
-    return; // cant rotate around same point with same method
-
-  udQuaternion<double> orientation = udQuaternion<double>::create(pCamera->yprRotation - storedRotation);
-  udDouble3 up = orientation.apply(udDouble3::create(0.0, 0.0, 1.0));
-  udDouble3 right = orientation.apply(udDouble3::create(1.0, 0.0, 0.0));
-  udDouble3 forward = orientation.apply(udDouble3::create(0.0, 1.0, 0.0));
-
-  udDouble3 addPos = distanceToPoint * udSin(deltaRotation.x) * (right + udTan(deltaRotation.x / 2.0) *  forward);
-  addPos.z = 0.0;
-
-  addPos += distanceToPoint * deltaRotation.y * forward;
-  pCamera->position += addPos;
-
-  if (deltaRotation.x != 0.0 || deltaRotation.y != 0.0)
-  {
-    pCamera->yprRotation = udDouble4x4::lookAt(pCamera->position, orbitPosition, up).extractYPR();
-    pCamera->yprRotation += storedRotation;
-    pCamera->yprRotation.z = 0.0;
-  }
-}
-
 void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, float speedModifier /* = 1.f*/)
 {
+  vcCamera_Apply(pCamera, pCamSettings, rotationOffset, moveOffset, deltaTime, false, udDouble3::zero(), udDouble3::zero(), speedModifier);
+}
+
+void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, bool orbitActive, udDouble3 orbitPosition, udDouble3 storedRotation, float speedModifier /* = 1.f*/)
+{
+  // Translation
   float speed = pCamSettings->moveSpeed * speedModifier;
+  double distanceToPoint = udMag3(orbitPosition - pCamera->position);
+  udDoubleQuat orientation;
+  udDouble3 addPosOrbit = udDouble3::zero();
 
   udDouble3 addPos = udClamp(moveOffset, udDouble3::create(-1, -1, -1), udDouble3::create(1, 1, 1)); // clamp in case 2 similarly mapped movement buttons are pressed
   double vertPos = addPos.z;
   addPos.z = 0.0;
 
+  if (pCamSettings->moveMode == vcCMM_Plane || (pCamSettings->moveMode == vcCMM_Orbit && !orbitActive))
+    addPos = (udDouble4x4::rotationYPR(pCamera->yprRotation) * udDouble4::create(addPos, 1)).toVector3();
+
+  if (pCamSettings->moveMode == vcCMM_Helicopter)
+  {
+    addPos = (udDouble4x4::rotationYPR(udDouble3::create(pCamera->yprRotation.x, 0.0, 0.0)) * udDouble4::create(addPos, 1)).toVector3();
+    addPos.z = 0.0; // might be unnecessary now
+    if (addPos.x != 0.0 || addPos.y != 0.0)
+      addPos = udNormalize3(addPos);
+  }
+
+  if (pCamSettings->moveMode == vcCMM_Orbit && orbitActive && distanceToPoint != 0.0)
+  {
+    if (rotationOffset.x != 0.0 || rotationOffset.y != 0.0)
+      orientation = udDoubleQuat::create(pCamera->yprRotation - storedRotation);
+    else
+      orientation = udDoubleQuat::create(pCamera->yprRotation);
+
+    udDouble3 right = orientation.apply(udDouble3::create(1.0, 0.0, 0.0));
+    udDouble3 forward = orientation.apply(udDouble3::create(0.0, 1.0, 0.0));
+
+    addPos /= 50.0;
+    addPosOrbit = distanceToPoint * udSin(rotationOffset.x + addPos.x) * (right + udTan((rotationOffset.x + addPos.x) / 2.0) * forward);
+    addPosOrbit.z = 0;
+
+    if (addPos.y == 0.0)
+      addPosOrbit += distanceToPoint * rotationOffset.y * forward;
+    else
+      addPosOrbit += distanceToPoint * (rotationOffset.y + addPos.y) * udDoubleQuat::create(pCamera->yprRotation - storedRotation).apply(udDouble3::create(0.0, 1.0, 0.0));
+
+    addPos = udDouble3::zero();
+  }
+
+  addPos.z += vertPos;
+  addPos *= speed * deltaTime;
+  addPos += addPosOrbit;
+
+  pCamera->position += addPos;
+
+  // Rotation
   if (pCamSettings->moveMode != vcCMM_Orbit)
   {
     if (pCamSettings->invertX)
@@ -86,20 +110,20 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3
     pCamera->yprRotation.y = udClamp(pCamera->yprRotation.y, (double)-UD_PI / 2.0, (double)UD_PI / 2.0);
   }
 
-  if(pCamSettings->moveMode == vcCMM_Plane)
-    addPos = (udDouble4x4::rotationYPR(pCamera->yprRotation) * udDouble4::create(addPos, 1)).toVector3();
-
-  if (pCamSettings->moveMode == vcCMM_Helicopter)
+  if (pCamSettings->moveMode == vcCMM_Orbit && orbitActive && distanceToPoint != 0.0)
   {
-    addPos = (udDouble4x4::rotationYPR(udDouble3::create(pCamera->yprRotation.x, 0.0, 0.0)) * udDouble4::create(addPos, 1)).toVector3();
-    addPos.z = 0.0; // might be unnecessary now
-    if (addPos.x != 0.0 || addPos.y != 0.0)
-      addPos = udNormalize3(addPos);
-  }
-  addPos.z += vertPos;
-  addPos *= speed * deltaTime;
+    udDouble3 nanProtection = pCamera->yprRotation;
+    pCamera->yprRotation = udDouble4x4::lookAt(pCamera->position, orbitPosition, orientation.apply(udDouble3::create(0.0, 0.0, 1.0))).extractYPR();
+    pCamera->yprRotation += storedRotation;
 
-  pCamera->position += addPos;
+    if (pCamera->yprRotation.y > UD_PI / 2.0)
+      pCamera->yprRotation.y -= UD_2PI; // euler vs +/-
+
+    pCamera->yprRotation.z = 0.0;
+
+    if (isnan(pCamera->yprRotation.x) || isnan(pCamera->yprRotation.y))
+      pCamera->yprRotation = nanProtection;
+  }
 }
 
 udDouble3 vcCamera_GetPosition(vcCamera *pCamera)
@@ -111,6 +135,12 @@ void vcCamera_SetPosition(vcCamera *pCamera, udDouble3 position)
 {
   if(pCamera != nullptr)
     pCamera->position = position;
+}
+
+void vcCamera_SetRotation(vcCamera *pCamera, udDouble3 yprRotation)
+{
+  if (pCamera != nullptr)
+    pCamera->yprRotation = yprRotation;
 }
 
 #define LENSNAME(x) #x+5
