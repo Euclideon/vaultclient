@@ -9,7 +9,22 @@
 extern ImGui::DockContext g_dock;
 const char *pDefaultSettings = R"config({"window":{"width":1280,"height":720,"maximized":false,"fullscreen":false},"frames":{"scene":true,"settings":true,"explorer":true},"camera":{"moveSpeed":10,"nearPlane":0.5,"farPlane":10000,"fieldOfView":0.872665,"moveMode":0},"maptiles":{"enabled":true,"blendMode":0,"transparency":1.0,"mapHeight":0.0},"docks":[{"label":"ROOT","child":[1,2],"prev":-1,"next":-1,"parent":-1,"status":0,"active":true,"open":false,"position":{"x":0,"y":22},"size":{"x":1280,"y":673},"location":"-1"},{"label":"Scene","child":[-1,-1],"prev":-1,"next":-1,"parent":0,"status":0,"active":true,"open":true,"position":{"x":0,"y":22},"size":{"x":976,"y":673},"location":"1"},{"label":"DOCK","child":[3,4],"prev":-1,"next":-1,"parent":0,"status":0,"active":true,"open":false,"position":{"x":976,"y":22},"size":{"x":304,"y":673},"location":"0"},{"label":"Scene Explorer","child":[-1,-1],"prev":-1,"next":-1,"parent":2,"status":0,"active":true,"open":true,"position":{"x":976,"y":22},"size":{"x":304,"y":442},"location":"20"},{"label":"Settings","child":[-1,-1],"prev":-1,"next":-1,"parent":2,"status":0,"active":true,"open":true,"position":{"x":976,"y":464},"size":{"x":304,"y":231},"location":"30"}]})config";
 
-int vcSettings_RecursiveSaveDock(udValue &settings, ImGui::DockContext::Dock *pParentDock, int dockIndex, int parentIndex, int prevIndexIn = -1);
+void vcSettings_RecursiveLoadDock(const udValue &parentDock, int parentIndex, int newIndex, int prevIndex = -1);
+void vcSettings_RecursiveSaveDock(udValue &parentJSON, ImGui::DockContext::Dock *pParentDock, const char *pParentString);
+
+int vcSettings_GetDockChildrenCount(const udValue &dock)
+{
+  int numChildren = 0;
+  if (dock.Get("child").ArrayLength() > 0) // has children
+  {
+    numChildren += 1 + vcSettings_GetDockChildrenCount(dock.Get("child[0]"));
+    numChildren += 1 + vcSettings_GetDockChildrenCount(dock.Get("child[1]"));
+  }
+  if (dock.Get("next").MemberCount() > 0) // has next_tab
+    numChildren += 1 + vcSettings_GetDockChildrenCount(dock.Get("next"));
+
+  return numChildren;
+}
 
 void vcSettings_LoadDocks(udValue &settings)
 {
@@ -20,7 +35,14 @@ void vcSettings_LoadDocks(udValue &settings)
   }
   g_dock.m_docks.clear();
 
-  int totalDocks = (int)settings.Get("docks").ArrayLength();
+  int numRootDocks = (int)settings.Get("docks").ArrayLength();
+
+
+  int totalDocks = 0;
+  for (int i = 0; i < numRootDocks; ++i)
+  {
+    totalDocks += 1 + vcSettings_GetDockChildrenCount(settings.Get("docks[%d]", i));
+  }
 
   for (int i = 0; i < totalDocks; i++)
   {
@@ -29,31 +51,56 @@ void vcSettings_LoadDocks(udValue &settings)
     g_dock.m_docks.push_back(new_dock);
   }
 
-  for (int i = 0; i < totalDocks; i++)
+  int dockCounter = 0;
+  for (int i = 0; i < numRootDocks; ++i)
   {
-    const udValue &dock = settings.Get("docks[%d]", i);
+    vcSettings_RecursiveLoadDock(settings.Get("docks[%d]", i), -1, dockCounter);
 
-    g_dock.m_docks[i]->label = ImStrdup(dock.Get("label").AsString());
-    g_dock.m_docks[i]->id = ImHash(g_dock.m_docks[i]->label, 0);
-
-    g_dock.m_docks[i]->children[0] = g_dock.getDockByIndex(dock.Get("child[0]").AsInt());
-    g_dock.m_docks[i]->children[1] = g_dock.getDockByIndex(dock.Get("child[1]").AsInt());
-    g_dock.m_docks[i]->prev_tab = g_dock.getDockByIndex(dock.Get("prev").AsInt());
-    g_dock.m_docks[i]->next_tab = g_dock.getDockByIndex(dock.Get("next").AsInt());
-    g_dock.m_docks[i]->parent = g_dock.getDockByIndex(dock.Get("parent").AsInt());
-    g_dock.m_docks[i]->status = (ImGui::DockContext::Status_)dock.Get("status").AsInt();
-    g_dock.m_docks[i]->active = dock.Get("active").AsBool();
-    g_dock.m_docks[i]->opened = dock.Get("open").AsBool();
-
-    g_dock.m_docks[i]->pos.x = dock.Get("position.x").AsFloat();
-    g_dock.m_docks[i]->pos.y = dock.Get("position.y").AsFloat();
-    g_dock.m_docks[i]->size.x = dock.Get("size.x").AsFloat();
-    g_dock.m_docks[i]->size.y = dock.Get("size.y").AsFloat();
-
-    udStrcpy(g_dock.m_docks[i]->location, sizeof(g_dock.m_docks[i]->location), dock.Get("location").AsString(""));
-
-    g_dock.tryDockToStoredLocation(*g_dock.m_docks[i]);
+    dockCounter += 1 + vcSettings_GetDockChildrenCount(settings.Get("docks[%d]", i));
   }
+}
+
+void vcSettings_RecursiveLoadDock(const udValue &parentDock, int parentIndex, int newIndex, int prevIndex/* = -1*/)
+{
+
+  g_dock.m_docks[newIndex]->label = ImStrdup(parentDock.Get("label").AsString());
+  g_dock.m_docks[newIndex]->id = ImHash(g_dock.m_docks[newIndex]->label, 0);
+
+  if (parentDock.Get("child").ArrayLength() > 0) // has children
+  {
+    vcSettings_RecursiveLoadDock(parentDock.Get("child[0]"), newIndex, newIndex + 1);
+
+    g_dock.m_docks[newIndex]->children[0] = g_dock.getDockByIndex(newIndex + 1);
+
+    vcSettings_RecursiveLoadDock(parentDock.Get("child[1]"), newIndex, newIndex + 2 + vcSettings_GetDockChildrenCount(parentDock.Get("child[0]")));
+
+    g_dock.m_docks[newIndex]->children[1] = g_dock.getDockByIndex(newIndex + 2 + vcSettings_GetDockChildrenCount(parentDock.Get("child[0]")));
+  }
+
+  if (prevIndex != -1)
+    g_dock.m_docks[newIndex]->prev_tab = g_dock.getDockByIndex(prevIndex);
+
+  if (parentDock.Get("next").MemberCount() > 0) // has next_tab
+  {
+    vcSettings_RecursiveLoadDock(parentDock.Get("next"), parentIndex, newIndex + 1, newIndex);
+
+    g_dock.m_docks[newIndex]->next_tab = g_dock.getDockByIndex(newIndex + 1);
+  }
+
+  g_dock.m_docks[newIndex]->parent = g_dock.getDockByIndex(parentIndex);
+
+  g_dock.m_docks[newIndex]->status = (ImGui::DockContext::Status_)parentDock.Get("status").AsInt();
+  g_dock.m_docks[newIndex]->active = parentDock.Get("active").AsBool();
+  g_dock.m_docks[newIndex]->opened = parentDock.Get("open").AsBool();
+
+  g_dock.m_docks[newIndex]->pos.x = parentDock.Get("position.x").AsFloat();
+  g_dock.m_docks[newIndex]->pos.y = parentDock.Get("position.y").AsFloat();
+  g_dock.m_docks[newIndex]->size.x = parentDock.Get("size.x").AsFloat();
+  g_dock.m_docks[newIndex]->size.y = parentDock.Get("size.y").AsFloat();
+
+  udStrcpy(g_dock.m_docks[newIndex]->location, sizeof(g_dock.m_docks[newIndex]->location), parentDock.Get("location").AsString(""));
+
+  g_dock.tryDockToStoredLocation(*g_dock.m_docks[newIndex]);
 }
 
 void vcSettings_SaveDocks(udValue &settings)
@@ -68,80 +115,44 @@ void vcSettings_SaveDocks(udValue &settings)
       dockIsValidRoot = false; // is a root dock with no children, do not save
 
     if (dockIsValidRoot)
-      dockIndex += vcSettings_RecursiveSaveDock(settings, &dock, dockIndex, -1);
+      vcSettings_RecursiveSaveDock(settings, &dock, "docks[]");
   }
 }
 
-int vcSettings_GetChildDockCount(ImGui::DockContext::Dock *pDock) // includes next_tab's as children
+void vcSettings_RecursiveSaveDock(udValue &parentJSON, ImGui::DockContext::Dock *pParentDock, const char *pParentString)
 {
-  if (pDock)
-    return (pDock->children[0] ? 1 + vcSettings_GetChildDockCount(pDock->children[0]) : 0)
-    + (pDock->children[1] ? 1 + vcSettings_GetChildDockCount(pDock->children[1]) : 0)
-    + (pDock->next_tab ? 1 + vcSettings_GetChildDockCount(pDock->next_tab) : 0);
-  else
-    return 0;
-}
-
-int vcSettings_RecursiveSaveDock(udValue &settings, ImGui::DockContext::Dock *pParentDock, int dockIndex, int parentIndex, int prevIndexIn /* = -1*/)
-{
-  int numChildren = 0;
-  udValue dockJ;
-  dockJ.SetObject();
+  udValue dockJSON;
+  dockJSON.SetObject();
 
   ImGui::DockContext::Dock &dock = *pParentDock;
 
   int i = g_dock.getDockIndex(pParentDock);
 
+  dockJSON.Set("label = '%s'", dock.parent ? (dock.label[0] == '\0' ? "DOCK" : dock.label) : (dock.label[0] == '\0' ? "ROOT" : dock.label));
 
-  int child1NewIndex = dock.children[0] ? dockIndex + 1 : -1;
-  int child2NewIndex = dock.children[1] ? dockIndex + 2 + vcSettings_GetChildDockCount(dock.children[0]) : -1;
+  dockJSON.Set("status = %d", g_dock.m_docks[i]->status);
+  dockJSON.Set("active = %s", g_dock.m_docks[i]->active ? "true" : "false");
+  dockJSON.Set("open = %s", g_dock.m_docks[i]->opened ? "true" : "false");
 
-  int prevNewIndex = dock.prev_tab ? prevIndexIn : -1;
-  int nextNewIndex = -1;
-  if (child1NewIndex == -1 && child2NewIndex == -1) // cant have next tab and children, so else is unnecessary
-  {
-    // has no children
-    nextNewIndex = dock.next_tab ? dockIndex + 1 : -1;
-  }
-
-  int child1Index = g_dock.getDockIndex(g_dock.m_docks[i]->children[0]);
-  int child2Index = g_dock.getDockIndex(g_dock.m_docks[i]->children[1]);
-
-  int nextIndex = g_dock.getDockIndex(g_dock.m_docks[i]->next_tab);
-
-  dockJ.Set("label = '%s'", dock.parent ? (dock.label[0] == '\0' ? "DOCK" : dock.label) : (dock.label[0] == '\0' ? "ROOT" : dock.label));
-
-  dockJ.Set("child[0] = %d", child1NewIndex);
-  dockJ.Set("child[1] = %d", child2NewIndex);
-  dockJ.Set("prev = %d", prevNewIndex);
-  dockJ.Set("next = %d", nextNewIndex);
-  dockJ.Set("parent = %d", parentIndex);
-
-  dockJ.Set("status = %d", g_dock.m_docks[i]->status);
-  dockJ.Set("active = %s", g_dock.m_docks[i]->active ? "true" : "false");
-  dockJ.Set("open = %s", g_dock.m_docks[i]->opened ? "true" : "false");
-
-  dockJ.Set("position.x = %f", g_dock.m_docks[i]->pos.x);
-  dockJ.Set("position.y = %f", g_dock.m_docks[i]->pos.y);
-  dockJ.Set("size.x = %f", g_dock.m_docks[i]->size.x);
-  dockJ.Set("size.y = %f", g_dock.m_docks[i]->size.y);
+  dockJSON.Set("position.x = %f", g_dock.m_docks[i]->pos.x);
+  dockJSON.Set("position.y = %f", g_dock.m_docks[i]->pos.y);
+  dockJSON.Set("size.x = %f", g_dock.m_docks[i]->size.x);
+  dockJSON.Set("size.y = %f", g_dock.m_docks[i]->size.y);
 
   g_dock.fillLocation(dock);
   if(udStrlen(dock.location))
-    dockJ.Set("location = '%s'", g_dock.m_docks[i]->location);
+    dockJSON.Set("location = '%s'", g_dock.m_docks[i]->location);
 
-  settings.Set(&dockJ, "docks[]");
+  if (dock.children[0])
+    vcSettings_RecursiveSaveDock(dockJSON, dock.children[0], "child[0]");
 
-  if (child1Index >= 0 && child2Index >= 0)
-  {
-    numChildren += vcSettings_RecursiveSaveDock(settings, g_dock.m_docks[child1Index], dockIndex + 1, dockIndex);
-    numChildren += vcSettings_RecursiveSaveDock(settings, g_dock.m_docks[child2Index], dockIndex + numChildren + 1, dockIndex);
-  }
+  if (dock.children[1])
+    vcSettings_RecursiveSaveDock(dockJSON, dock.children[1], "child[1]");
 
-  if (nextIndex >= 0)
-    numChildren += vcSettings_RecursiveSaveDock(settings, g_dock.m_docks[nextIndex], dockIndex + 1, parentIndex, dockIndex);
+  if (dock.next_tab)
+    vcSettings_RecursiveSaveDock(dockJSON, dock.next_tab, "next");
 
-  return numChildren+1;
+  parentJSON.Set(&dockJSON, pParentString);
 }
 
 void vcSettings_InitializePrefPath(vcSettings *pSettings)
