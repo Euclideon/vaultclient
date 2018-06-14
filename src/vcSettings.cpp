@@ -256,11 +256,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
     pSettings->camera.nearPlane = data.Get("camera.nearPlane").AsFloat(0.5f);
     pSettings->camera.farPlane = data.Get("camera.farPlane").AsFloat(10000.f);
-    pSettings->camera.fieldOfView = data.Get("camera.fieldOfView").AsFloat(UD_DEG2RADf(50.f));
+    pSettings->camera.fieldOfView = data.Get("camera.fieldOfView").AsFloat(vcLens30mm);
+    pSettings->camera.lensIndex = data.Get("camera.lensId").AsInt(vcLS_30mm);
     pSettings->camera.invertX = data.Get("camera.invertX").AsBool(false);
     pSettings->camera.invertY = data.Get("camera.invertY").AsBool(false);
     pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
-    pSettings->camera.lensIndex = data.Get("camera.lensId").AsInt(vcLS_Custom);
 
     // Map Tiles
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
@@ -313,10 +313,10 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.nearPlane = %f", pSettings->camera.nearPlane);
   data.Set("camera.farPlane = %f", pSettings->camera.farPlane);
   data.Set("camera.fieldOfView = %f", pSettings->camera.fieldOfView);
+  data.Set("camera.lensId = %i", pSettings->camera.lensIndex);
   data.Set("camera.invertX = %s", pSettings->camera.invertX ? "true" : "false");
   data.Set("camera.invertY = %s", pSettings->camera.invertY ? "true" : "false");
   data.Set("camera.moveMode = %d", pSettings->camera.moveMode);
-  data.Set("camera.lensId = %i", pSettings->camera.lensIndex);
 
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");
