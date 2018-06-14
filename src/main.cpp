@@ -971,7 +971,7 @@ void vcRenderWindow(vcState *pProgramState)
           pProgramState->prevSelectedModel = i;
         }
 
-        if (ImGui::BeginPopupContextItem(modelLabelID)) // When used after an item that has an ID (here the Button), we can skip providing an ID to BeginPopupContextItem().
+        if (ImGui::BeginPopupContextItem(modelLabelID))
         {
           if (ImGui::Selectable("Properties", false))
           {
