@@ -1193,10 +1193,10 @@ void vcRenderWindow(vcState *pProgramState)
         size_t imageLen = 0;
         udBase64Decode(&pImage, &imageLen, pWatermark);
 
-        int x, y, n;
-        unsigned char *pImageData = stbi_load_from_memory(pImage, imageLen, &x, &y, &n, 0);
-        vcTexture_Create(&pProgramState->modelProperties.pWatermarkTexture, x, y, vcTextureFormat_RGBA8);
-        vcTexture_UploadPixels(pProgramState->modelProperties.pWatermarkTexture, pImageData, x, y);
+        int imageWidth, imageHeight, imageChannels;
+        unsigned char *pImageData = stbi_load_from_memory(pImage, (int) imageLen, &imageWidth, &imageHeight, &imageChannels, 0);
+        vcTexture_Create(&pProgramState->modelProperties.pWatermarkTexture, imageWidth, imageHeight, vcTextureFormat_RGBA8);
+        vcTexture_UploadPixels(pProgramState->modelProperties.pWatermarkTexture, pImageData, imageWidth, imageHeight);
       }
 
       ImGui::SetNextWindowSize(ImVec2(400, 600));
@@ -1204,7 +1204,7 @@ void vcRenderWindow(vcState *pProgramState)
       pProgramState->popupTrigger[vcPopup_ModelProperties] = false;
     }
 
-    if (ImGui::BeginPopupModal("Model Properties"))
+    if (ImGui::BeginPopupModal("Model Properties", NULL, ImGuiWindowFlags_ResizeFromAnySide))
     {
       ImGui::Text("File:");
 
@@ -1232,8 +1232,8 @@ void vcRenderWindow(vcState *pProgramState)
         {
           ImGui::Text("Watermark");
 
-          ImVec2 imageSize = ImVec2(pProgramState->modelProperties.pWatermarkTexture->width, pProgramState->modelProperties.pWatermarkTexture->height);
-          ImVec2 imageLimits = ImVec2(ImGui::GetContentRegionAvailWidth(), 100);
+          ImVec2 imageSize = ImVec2((float)pProgramState->modelProperties.pWatermarkTexture->width, (float)pProgramState->modelProperties.pWatermarkTexture->height);
+          ImVec2 imageLimits = ImVec2(ImGui::GetContentRegionAvailWidth(), 100.f);
 
           if (imageSize.y > imageLimits.y)
           {
@@ -1247,7 +1247,7 @@ void vcRenderWindow(vcState *pProgramState)
             imageSize.x = imageLimits.x;
           }
 
-          ImGui::Image((ImTextureID)pProgramState->modelProperties.pWatermarkTexture->id, imageSize);
+          ImGui::Image((ImTextureID)(size_t)pProgramState->modelProperties.pWatermarkTexture->id, imageSize);
           ImGui::Separator();
         }
       }
