@@ -37,7 +37,6 @@ void vcSettings_LoadDocks(udValue &settings)
 
   int numRootDocks = (int)settings.Get("docks").ArrayLength();
 
-
   int totalDocks = 0;
   for (int i = 0; i < numRootDocks; ++i)
   {
@@ -105,7 +104,6 @@ void vcSettings_RecursiveLoadDock(const udValue &parentDock, int parentIndex, in
 
 void vcSettings_SaveDocks(udValue &settings)
 {
-  int dockIndex = 0;
   for (int i = 0; i < g_dock.m_docks.size(); ++i)
   {
     ImGui::DockContext::Dock& dock = *g_dock.m_docks[i];
