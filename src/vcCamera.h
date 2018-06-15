@@ -57,17 +57,13 @@ void vcCamera_Destroy(vcCamera **ppCamera);
 udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera);
 
 udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPosition);
-void vcCamera_Orbit(vcCamera *pCamera, udDouble3 orbitPosition, udDouble3 storedRotation, udDouble3 deltaRotation);
 
 // Applies movement to camera
 void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, float speedModifier = 1.f);
+void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, bool orbitActive, udDouble3 orbitPosition, udDouble3 storedRotation, float speedModifier = 1.f);
 
-// Moves based on buffers
-//void vcCamera_Update(vcCamera *pCamera, vcCameraSettings *pCamSettings, double deltaTime, float speedModifier = 1.f);
-
-
-//udDouble3 vcCamera_GetPosition(vcCamera *pCamera);
 void vcCamera_SetPosition(vcCamera *pCamera, udDouble3 position);
+void vcCamera_SetRotation(vcCamera *pCamera, udDouble3 yprRotation);
 
 const char* const* vcCamera_GetLensNames();
 
