@@ -20,7 +20,7 @@ struct vcQuadTreeNode
   bool isVisible;
 };
 
-void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, uint16_t srid, const udInt3 &slippyCoords, const udDouble3 &localViewPos, const udFloat2 &viewPositionSizeMS, vcQuadTreeMetaData *pMetaData = nullptr);
+void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, uint16_t srid, const udInt3 &slippyCoords, const udDouble3 &cameraPosition, const udDouble2 &cameraViewSizeRatio, const double visibleFarPlane, vcQuadTreeMetaData *pMetaData = nullptr);
 
 inline bool vcQuadTree_IsLeafNode(const vcQuadTreeNode *pNode)
 {

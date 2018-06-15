@@ -3,7 +3,7 @@
 
 #define INVALID_NODE_INDEX uint32_t(-1)
 
-const float rectToCircleRadius = udSqrt(2.0f); // distance from center-to-edge vs. distance center-to-corner of 2d rect
+const double rectToCircleRadius = udSqrt(2.0); // distance from center-to-edge vs. distance center-to-corner of 2d rect
 
 struct vcQuadTree
 {
@@ -38,7 +38,7 @@ epilogue:
   return result;
 }
 
-void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, uint16_t srid, const udInt3 slippyCoords, const udDouble3 &position, const udFloat2 &halfExtents, int currentDepth, int maxDepth)
+void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, uint16_t srid, const udInt3 slippyCoords, const udDouble3 &position, const udDouble2 &halfExtents, const double visibleFarPlane, int currentDepth, int maxDepth)
 {
   if (currentDepth >= maxDepth)
   {
@@ -82,37 +82,70 @@ void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, uint16_t s
     pQuadTree->pNodes[childIndex].slippyPosition.x += (i % 2);
     pQuadTree->pNodes[childIndex].slippyPosition.y += (i / 2);
 
-    udDouble3 localCorners[4];
-    for (int t = 0; t < 4; ++t)
+    bool descendChild = false;
+    bool tileVisible = false;
+    int maxChildDepth = maxDepth;
+
+    udInt2 pViewSlippyCoords;
+    vcGIS_LocalToSlippy(srid, &pViewSlippyCoords, position, slippyCoords.z + pQuadTree->pNodes[childIndex].level);
+    
+    udInt2 slippyManhattanDist = udInt2::create(udAbs(pViewSlippyCoords.x - pQuadTree->pNodes[childIndex].slippyPosition.x),
+      udAbs(pViewSlippyCoords.y - pQuadTree->pNodes[childIndex].slippyPosition.y));
+    
+
+    if (udMagSq2(slippyManhattanDist) == 0) // simple case, view point is entirely inside (effectively tests if we're 'inside' the region)
     {
-      vcGIS_SlippyToLocal(srid, &localCorners[t], udInt2::create(pQuadTree->pNodes[childIndex].slippyPosition.x + (t % 2), pQuadTree->pNodes[childIndex].slippyPosition.y + (t / 2)), slippyCoords.z + pQuadTree->pNodes[childIndex].level);
-    }
-
-    // TODO: interpolate along edge
-    bool insideQuadrant = position.x >= localCorners[0].x && position.x <= localCorners[1].x && position.y >= localCorners[2].y && position.y <= localCorners[0].y;
-    // get closest point on child quadrant to view center
-    //udFloat2 minBox = pQuadTree->pNodes[childIndex].position;
-   // udFloat2 maxBox = pQuadTree->pNodes[childIndex].position + udFloat2::create(pCurrentNode->childSize);
-    //udFloat2 closestPoint = udClamp(position, minBox, maxBox);
-    //
-    //// distance check closest point with view center to determine how
-    //// far down we should traverse this child, if any
-    //udFloat2 p0 = closestPoint;
-    //udFloat2 p1 = position;
-    //
-    ////float r1 = halfExtents.x * 2.0f * rectToCircleRadius * pQuadTree->metaData.maxTreeDepth; // this value calculation isn't correct i dont think...
-    //float overlap = udMag2(p0 - p1);//r1 - udMag2(p0 - p1);
-
-
-   // if (overlap == 0.0f)
-    //if (position.x >= minBox.x && position.x <= maxBox.x && position.y >= minBox.y && position.y <= maxBox.y)
-    //if ((slippyCoords.x << pQuadTree->pNodes[childIndex].level) == pQuadTree->pNodes[childIndex].slippyPosition.x && (slippyCoords.y << pQuadTree->pNodes[childIndex].level) == pQuadTree->pNodes[childIndex].slippyPosition.y)
-    if (insideQuadrant)
-    {
-      int maxChildDepth = maxDepth;// udMin(maxDepth, int(currentDepth + udCeil((overlap / r1) * (pQuadTree->metaData.maxTreeDepth - currentDepth))));
-      RecurseGenerateTree(pQuadTree, childIndex, srid, slippyCoords, position, halfExtents, currentDepth + 1, maxChildDepth);
+      descendChild = true;
     }
     else
+    {
+      // more complicated 'closest-point-to-edges' distance checking is needed
+      udDouble2 localCorners2D[4];
+      
+      for (int t = 0; t < 4; ++t)
+      {
+        udDouble3 localCorners;
+        vcGIS_SlippyToLocal(srid, &localCorners, udInt2::create(pQuadTree->pNodes[childIndex].slippyPosition.x + (t % 2), pQuadTree->pNodes[childIndex].slippyPosition.y + (t / 2)), slippyCoords.z + pQuadTree->pNodes[childIndex].level);
+        localCorners2D[t] = localCorners.toVector2();
+      }
+
+      double minDist = 0.0;
+      static const udInt2 edgePairs[] =
+      {
+        udInt2::create(0, 1), // top
+        udInt2::create(0, 2), // left
+        udInt2::create(2, 3), // bottom
+        udInt2::create(1, 3), // right
+      };
+
+      udDouble2 p0 = position.toVector2();
+
+      // test each edge to find minimum distance to quadrant shape
+      for (int e = 0; e < 4; ++e)
+      {
+        udDouble2 p1 = localCorners2D[edgePairs[e].x];
+        udDouble2 p2 = localCorners2D[edgePairs[e].y];
+
+        udDouble2 edge = p2 - p1;
+        double r = udDot2(edge, (p0 - p1));
+        r /= udPow(udMag2(edge), 2.0);
+
+        udDouble2 closestPointOnEdge = (p1 + udClamp(r, 0.0, 1.0) * edge);
+        double distToEdge = udMag2(closestPointOnEdge - p0);
+        minDist = minDist == 0 ? distToEdge : udMin(minDist, distToEdge);
+      }
+
+      double normalizedViewDistance = minDist / visibleFarPlane;
+
+      descendChild = normalizedViewDistance < (1.0 / (1 << currentDepth)); // depth is a factor in determining whether we should descend this child
+      tileVisible = normalizedViewDistance < 1.0;
+    }
+
+    if (descendChild)
+    {
+      RecurseGenerateTree(pQuadTree, childIndex, srid, slippyCoords, position, halfExtents, visibleFarPlane, currentDepth + 1, maxChildDepth);
+    }
+    else if (tileVisible)
     {
       // don't divide the child, it is now a leaf node
       pQuadTree->metaData.leafNodeCount++;
@@ -123,16 +156,17 @@ void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, uint16_t s
   }
 }
 
-int CalculateTreeDepthFromViewDistance(const udFloat2 &halfExtents)
+
+int CalculateTreeDepthFromViewDistance(const udDouble2 &halfExtents)
 {
-  return int(udLog2(1.0f / (halfExtents.x * rectToCircleRadius)));
+  return int(udLog2(1.0 / (halfExtents.x * rectToCircleRadius)));
 }
 
-void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, uint16_t srid, const udInt3 &slippyCoords, const udDouble3 &localViewPos, const udFloat2 &viewSizeMS, vcQuadTreeMetaData *pMetaData /*= nullptr*/)
+void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, uint16_t srid, const udInt3 &slippyCoords, const udDouble3 &cameraPosition, const udDouble2 &cameraViewSizeRatio, const double visibleFarPlane, vcQuadTreeMetaData *pMetaData /*= nullptr*/)
 {
   vcQuadTree quadTree = {};
 
-  int maxLocalTreeDepth = CalculateTreeDepthFromViewDistance(viewSizeMS);
+  int maxLocalTreeDepth = CalculateTreeDepthFromViewDistance(cameraViewSizeRatio);
   
   maxLocalTreeDepth = udMin(19, maxLocalTreeDepth + slippyCoords.z) - slippyCoords.z; // cap real depth at level 19 (we don't have access to these tiles yet)
   maxLocalTreeDepth = udMax(0, maxLocalTreeDepth); // and just for safety because 'CalculateTreeDepthFromViewDistance()' is relatively untested
@@ -148,9 +182,8 @@ void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, uint
   quadTree.used = 1;
   quadTree.pNodes[0].parentIndex = INVALID_NODE_INDEX;
   quadTree.pNodes[0].slippyPosition = slippyCoords.toVector2();
-  //quadTree.pNodes[0].childSize = 0.5f;
 
-  RecurseGenerateTree(&quadTree, 0, srid, slippyCoords, localViewPos, viewSizeMS, 0, quadTree.metaData.maxTreeDepth);
+  RecurseGenerateTree(&quadTree, 0, srid, slippyCoords, cameraPosition, cameraViewSizeRatio, visibleFarPlane, 0, quadTree.metaData.maxTreeDepth);
 
   *ppNodes = quadTree.pNodes;
   *pNodeCount = quadTree.used;

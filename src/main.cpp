@@ -27,6 +27,10 @@
 #  include <stdio.h>
 #endif
 
+#ifndef GIT_BUILD
+bool gDebugDetachCamera = false;
+#endif
+
 udChunkedArray<vcModel> vcModelList;
 
 static bool lastModelLoaded;
