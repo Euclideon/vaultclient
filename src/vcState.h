@@ -44,9 +44,9 @@ struct vcState
   struct
   {
     udValue *pMetadata;
-    size_t id;
+    size_t index;
     vcTexture *pWatermarkTexture;
-  } modelProperties;
+  } selectedModelProperties;
 
   double deltaTime;
   udDouble4x4 camMatrix;

@@ -976,7 +976,7 @@ void vcRenderWindow(vcState *pProgramState)
           if (ImGui::Selectable("Properties", false))
           {
             pProgramState->popupTrigger[vcPopup_ModelProperties] = true;
-            pProgramState->modelProperties.id = i;
+            pProgramState->selectedModelProperties.index = i;
             ImGui::CloseCurrentPopup();
           }
           ImGui::EndPopup();
@@ -1184,10 +1184,10 @@ void vcRenderWindow(vcState *pProgramState)
     {
       ImGui::OpenPopup("Model Properties");
 
-      pProgramState->modelProperties.pMetadata = vcModelList[pProgramState->modelProperties.id].pMetadata;
+      pProgramState->selectedModelProperties.pMetadata = vcModelList[pProgramState->selectedModelProperties.index].pMetadata;
 
-      const char *pWatermark = pProgramState->modelProperties.pMetadata->Get("Watermark").AsString("");
-      if (udStrlen(pWatermark) > 0)
+      const char *pWatermark = pProgramState->selectedModelProperties.pMetadata->Get("Watermark").AsString();
+      if (pWatermark)
       {
         uint8_t *pImage = nullptr;
         size_t imageLen = 0;
@@ -1195,8 +1195,7 @@ void vcRenderWindow(vcState *pProgramState)
 
         int imageWidth, imageHeight, imageChannels;
         unsigned char *pImageData = stbi_load_from_memory(pImage, (int) imageLen, &imageWidth, &imageHeight, &imageChannels, 0);
-        vcTexture_Create(&pProgramState->modelProperties.pWatermarkTexture, imageWidth, imageHeight, vcTextureFormat_RGBA8);
-        vcTexture_UploadPixels(pProgramState->modelProperties.pWatermarkTexture, pImageData, imageWidth, imageHeight);
+        vcTexture_Create(&pProgramState->selectedModelProperties.pWatermarkTexture, imageWidth, imageHeight, vcTextureFormat_RGBA8, GL_NEAREST, false, pImageData);
       }
 
       ImGui::SetNextWindowSize(ImVec2(400, 600));
@@ -1208,31 +1207,33 @@ void vcRenderWindow(vcState *pProgramState)
     {
       ImGui::Text("File:");
 
-      ImGui::TextWrapped("  %s", vcModelList[pProgramState->modelProperties.id].modelPath);
+      ImGui::TextWrapped("  %s", vcModelList[pProgramState->selectedModelProperties.index].modelPath);
 
       ImGui::Separator();
 
-      if (pProgramState->modelProperties.pMetadata == nullptr)
+      if (pProgramState->selectedModelProperties.pMetadata == nullptr)
       {
         ImGui::Text("No model information found.");
       }
       else
       {
-        for (size_t i = 0; i < pProgramState->modelProperties.pMetadata->MemberCount(); ++i)
+        for (size_t i = 0; i < pProgramState->selectedModelProperties.pMetadata->MemberCount(); ++i)
         {
-          const char *pMemberName = pProgramState->modelProperties.pMetadata->GetMemberName(i);
+          const char *pMemberName = pProgramState->selectedModelProperties.pMetadata->GetMemberName(i);
 
-          if(!udStrEqual(pMemberName, "ProjectionWKT") && !udStrEqual(pMemberName, "Watermark"))
-            ImGui::TextWrapped("%s -> %s", pMemberName, pProgramState->modelProperties.pMetadata->GetMember(i)->AsString(""));
+          if (udStrEqual(pMemberName, "ProjectionWKT") || udStrEqual(pMemberName, "Watermark"))
+            continue;
+
+          ImGui::TextWrapped("%s -> %s", pMemberName, pProgramState->selectedModelProperties.pMetadata->GetMember(i)->AsString(""));
         }
 
         ImGui::Separator();
 
-        if (pProgramState->modelProperties.pWatermarkTexture != nullptr)
+        if (pProgramState->selectedModelProperties.pWatermarkTexture != nullptr)
         {
           ImGui::Text("Watermark");
 
-          ImVec2 imageSize = ImVec2((float)pProgramState->modelProperties.pWatermarkTexture->width, (float)pProgramState->modelProperties.pWatermarkTexture->height);
+          ImVec2 imageSize = ImVec2((float)pProgramState->selectedModelProperties.pWatermarkTexture->width, (float)pProgramState->selectedModelProperties.pWatermarkTexture->height);
           ImVec2 imageLimits = ImVec2(ImGui::GetContentRegionAvailWidth(), 100.f);
 
           if (imageSize.y > imageLimits.y)
@@ -1247,15 +1248,15 @@ void vcRenderWindow(vcState *pProgramState)
             imageSize.x = imageLimits.x;
           }
 
-          ImGui::Image((ImTextureID)(size_t)pProgramState->modelProperties.pWatermarkTexture->id, imageSize);
+          ImGui::Image((ImTextureID)(size_t)pProgramState->selectedModelProperties.pWatermarkTexture->id, imageSize);
           ImGui::Separator();
         }
       }
 
       if (ImGui::Button("Close"))
       {
-        if(pProgramState->modelProperties.pWatermarkTexture != nullptr)
-          vcTexture_Destroy(&pProgramState->modelProperties.pWatermarkTexture);
+        if(pProgramState->selectedModelProperties.pWatermarkTexture != nullptr)
+          vcTexture_Destroy(&pProgramState->selectedModelProperties.pWatermarkTexture);
 
         ImGui::CloseCurrentPopup();
       }
