@@ -352,8 +352,8 @@ int main(int /*argc*/, char ** /*args*/)
 
     SDL_GL_SwapWindow(programState.pWindow);
 
-    //if (ImGui::GetIO().WantSaveIniSettings)
-    //  vcSettings_Save(&programState.settings);
+    if (ImGui::GetIO().WantSaveIniSettings)
+      vcSettings_Save(&programState.settings);
   }
 
   vcSettings_Save(&programState.settings);
