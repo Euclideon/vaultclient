@@ -31,6 +31,7 @@ struct vcRenderData
 
   udChunkedArray<vcModel*> models;
   udDouble4x4 cameraMatrix;
+  vcCameraSettings *pCameraSettings;
   vcTexture *pSkyboxCubemap;
 };
 

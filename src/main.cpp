@@ -257,13 +257,13 @@ int main(int /*argc*/, char ** /*args*/)
 
   // setup watermark for background
   pEucWatermarkData = stbi_load(EucWatermarkPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0); // reusing the variables for width etc
-  vcTexture_Create(&programState.pWatermarkTexture, iconWidth, iconHeight, pEucWatermarkData);
+  vcTexture_Create(&programState.pWatermarkTexture, iconWidth, iconHeight, pEucWatermarkData, vcTextureFormat_BGRA8);
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  if (!ImGuiGL_Init(programState.pWindow, "#version 300 es"))
+  if (!ImGuiGL_Init(programState.pWindow))
     goto epilogue;
 #else
-  if (!ImGuiGL_Init(programState.pWindow, "#version 150 core"))
+  if (!ImGuiGL_Init(programState.pWindow))
     goto epilogue;
 #endif
 
@@ -409,6 +409,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   vcRenderData renderData = {};
   renderData.cameraMatrix = pProgramState->camMatrix;
+  renderData.pCameraSettings = &pProgramState->settings.camera;
   renderData.srid = pProgramState->currentSRID;
   renderData.models.Init(32);
 

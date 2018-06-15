@@ -9,6 +9,7 @@ enum vcTextureFormat
   vcTextureFormat_Unknown,
 
   vcTextureFormat_RGBA8,
+  vcTextureFormat_BGRA8,
   vcTextureFormat_D24,
   vcTextureFormat_D32F,
 

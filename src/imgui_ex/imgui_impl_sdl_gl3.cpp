@@ -30,11 +30,9 @@ vcShader *pImGuiShader;
 
 // GL data
 #if GRAPHICS_API_OPENGL
-static char         g_GlslVersion[32] = "#version 150";
 static GLuint       g_FontTexture = 0;
-static int          g_ShaderHandle = 0, g_VertHandle = 0, g_FragHandle = 0;
-static int          g_AttribLocationTex = 0, g_AttribLocationProjMtx = 0;
-static int          g_AttribLocationPosition = 0, g_AttribLocationUV = 0, g_AttribLocationColor = 0;
+static vcShaderUniform          *g_pAttribLocationTex, *g_pAttribLocationProjMtx;
+static vcShaderUniform          *g_pAttribLocationPosition, *g_pAttribLocationUV, *g_pAttribLocationColor;
 static unsigned int g_VboHandle = 0,g_ElementsHandle = 0;
 #elif GRAPHICS_API_D3D11
 static ID3D11Buffer*            g_pVB = NULL;
@@ -103,17 +101,16 @@ void ImGuiGL_RenderDrawData(ImDrawData* draw_data)
 
   // Setup viewport, orthographic projection matrix
   glViewport(0, 0, (GLsizei)fb_width, (GLsizei)fb_height);
-  const float ortho_projection[4][4] =
-  {
-      { 2.0f / io.DisplaySize.x, 0.0f,                   0.0f, 0.0f },
-      { 0.0f,                  2.0f / -io.DisplaySize.y, 0.0f, 0.0f },
-      { 0.0f,                  0.0f,                  -1.0f, 0.0f },
-      {-1.0f,                  1.0f,                   0.0f, 1.0f },
-  };
-  glUseProgram(g_ShaderHandle);
-  glUniform1i(g_AttribLocationTex, 0);
-  glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
-  glBindSampler(0, 0); // Rely on combined texture/sampler state.
+  const udFloat4x4 ortho_projection = udFloat4x4::create(
+       2.0f / io.DisplaySize.x, 0.0f,                     0.0f, 0.0f ,
+       0.0f,                    2.0f / -io.DisplaySize.y, 0.0f, 0.0f ,
+       0.0f,                    0.0f,                    -1.0f, 0.0f ,
+      -1.0f,                    1.0f,                     0.0f, 1.0f
+  );
+
+  vcShader_Bind(pImGuiShader);
+  vcShader_SetUniform(g_pAttribLocationTex, 0);
+  vcShader_SetUniform(g_pAttribLocationProjMtx, ortho_projection);
 
   // Recreate the VAO every time
   // (This is to easily allow multiple GL contexts. VAO are not shared among GL contexts, and we don't track creation/deletion of windows so we don't have an obvious key to use to cache them.)
@@ -121,12 +118,13 @@ void ImGuiGL_RenderDrawData(ImDrawData* draw_data)
   glGenVertexArrays(1, &vao_handle);
   glBindVertexArray(vao_handle);
   glBindBuffer(GL_ARRAY_BUFFER, g_VboHandle);
-  glEnableVertexAttribArray(g_AttribLocationPosition);
-  glEnableVertexAttribArray(g_AttribLocationUV);
-  glEnableVertexAttribArray(g_AttribLocationColor);
-  glVertexAttribPointer(g_AttribLocationPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, pos));
-  glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, uv));
-  glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, col));
+
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, pos));
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, uv));
+  glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, col));
 
   // Draw
   for (int n = 0; n < draw_data->CmdListsCount; n++)
@@ -513,52 +511,14 @@ bool ImGuiGL_CreateDeviceObjects()
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
 
-    const GLchar *vertex_shader =
-        "uniform mat4 ProjMtx;\n"
-        "in vec2 Position;\n"
-        "in vec2 UV;\n"
-        "in vec4 Color;\n"
-        "out vec2 Frag_UV;\n"
-        "out vec4 Frag_Color;\n"
-        "void main()\n"
-        "{\n"
-        "	Frag_UV = UV;\n"
-        "	Frag_Color = Color;\n"
-        "	gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
-        "}\n";
+    vcShaderVertexInputTypes layout[] = { vcSVIT_Position2, vcSVIT_TextureCoords2, vcSVIT_ColourBGRA };
+    vcShader_CreateFromText(&pImGuiShader, g_ImGuiVertexShader, g_ImGuiFragmentShader, layout, UDARRAYSIZE(layout));
 
-    const GLchar* fragment_shader =
-#if TARGET_OS_IPHONE
-        "precision highp float;\n"
-#endif
-        "uniform sampler2D Texture;\n"
-        "in vec2 Frag_UV;\n"
-        "in vec4 Frag_Color;\n"
-        "out vec4 Out_Color;\n"
-        "void main()\n"
-        "{\n"
-        "	Out_Color = Frag_Color * texture( Texture, Frag_UV.st);\n"
-        "}\n";
-
-    const GLchar* vertex_shader_with_version[2] = { g_GlslVersion, vertex_shader };
-    const GLchar* fragment_shader_with_version[2] = { g_GlslVersion, fragment_shader };
-
-    g_ShaderHandle = glCreateProgram();
-    g_VertHandle = glCreateShader(GL_VERTEX_SHADER);
-    g_FragHandle = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(g_VertHandle, 2, vertex_shader_with_version, NULL);
-    glShaderSource(g_FragHandle, 2, fragment_shader_with_version, NULL);
-    glCompileShader(g_VertHandle);
-    glCompileShader(g_FragHandle);
-    glAttachShader(g_ShaderHandle, g_VertHandle);
-    glAttachShader(g_ShaderHandle, g_FragHandle);
-    glLinkProgram(g_ShaderHandle);
-
-    g_AttribLocationTex = glGetUniformLocation(g_ShaderHandle, "Texture");
-    g_AttribLocationProjMtx = glGetUniformLocation(g_ShaderHandle, "ProjMtx");
-    g_AttribLocationPosition = glGetAttribLocation(g_ShaderHandle, "Position");
-    g_AttribLocationUV = glGetAttribLocation(g_ShaderHandle, "UV");
-    g_AttribLocationColor = glGetAttribLocation(g_ShaderHandle, "Color");
+    vcShader_GetUniformIndex(&g_pAttribLocationTex, pImGuiShader, "Texture");
+    vcShader_GetUniformIndex(&g_pAttribLocationProjMtx, pImGuiShader, "ProjMtx");
+    vcShader_GetUniformIndex(&g_pAttribLocationPosition, pImGuiShader, "Position");
+    vcShader_GetUniformIndex(&g_pAttribLocationUV, pImGuiShader, "UV");
+    vcShader_GetUniformIndex(&g_pAttribLocationColor, pImGuiShader, "Color");
 
     glGenBuffers(1, &g_VboHandle);
     glGenBuffers(1, &g_ElementsHandle);
@@ -655,16 +615,7 @@ void ImGuiGL_InvalidateDeviceObjects()
     if (g_ElementsHandle) glDeleteBuffers(1, &g_ElementsHandle);
     g_VboHandle = g_ElementsHandle = 0;
 
-    if (g_ShaderHandle && g_VertHandle) glDetachShader(g_ShaderHandle, g_VertHandle);
-    if (g_VertHandle) glDeleteShader(g_VertHandle);
-    g_VertHandle = 0;
-
-    if (g_ShaderHandle && g_FragHandle) glDetachShader(g_ShaderHandle, g_FragHandle);
-    if (g_FragHandle) glDeleteShader(g_FragHandle);
-    g_FragHandle = 0;
-
-    if (g_ShaderHandle) glDeleteProgram(g_ShaderHandle);
-    g_ShaderHandle = 0;
+    vcShader_DestroyShader(&pImGuiShader);
 
     if (g_FontTexture)
     {
@@ -710,18 +661,8 @@ void ImGuiGL_InvalidateDeviceObjects()
 #endif
 }
 
-bool ImGuiGL_Init(SDL_Window *pWindow, const char *glsl_version)
+bool ImGuiGL_Init(SDL_Window *pWindow)
 {
-#if GRAPHICS_API_OPENGL
-    // Store GL version string so we can refer to it later in case we recreate shaders.
-    if (glsl_version == NULL)
-        glsl_version = "#version 150";
-    IM_ASSERT((int)strlen(glsl_version) + 2 < IM_ARRAYSIZE(g_GlslVersion));
-    udStrcpy(g_GlslVersion, IM_ARRAYSIZE(g_GlslVersion), glsl_version);
-    udStrcat(g_GlslVersion, IM_ARRAYSIZE(g_GlslVersion), "\n");
-#else
-  udUnused(glsl_version);
-#endif
 
     // Setup back-end capabilities flags
     ImGuiIO& io = ImGui::GetIO();
