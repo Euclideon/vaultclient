@@ -312,40 +312,31 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
   for (size_t i = 0; i < pTerrainRenderer->cache.textureLoadList.length; ++i)
     pTerrainRenderer->cache.textureLoadList[i]->isVisible = false;
 
-  //int rootGridSize = 1 << slippyCoords.z;
+  int visibleTileIndex = 0;
 
-  int tileIndex = 0;
   for (int i = 0; i < nodeCount; ++i)
   {
     const vcQuadTreeNode *pNode = &pNodeList[i];
     if (!vcQuadTree_IsLeafNode(pNode) || !pNode->isVisible)
       continue;
 
-    //int gridSizeAtLevel = 1 << pNode->level;
-
-    //udInt2 offset = udInt2::create(slippyCoords.x << pNode->level, ((rootGridSize - 1) - slippyCoords.y) << pNode->level); // y-inverted
-    //udInt3 slippyTileCoord = udInt3::create(0, 0, pNode->level + slippyCoords.z);
-    //int totalGridSize = 1 << slippyTileCoord.z;
-    //slippyTileCoord.x = (int)(pNode->position.x * gridSizeAtLevel) + offset.x;
-    //slippyTileCoord.y = (totalGridSize - 1) - ((int)(pNode->position.y * gridSizeAtLevel) + offset.y); // y-inverted
-
     udInt3 slippyTileCoord = udInt3::create(pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->level + slippyCoords.z);
     udDouble3 localCorners[4]; // nw, ne, sw, se
     for (int t = 0; t < 4; ++t)
     {
       vcGIS_SlippyToLocal(srid, &localCorners[t], udInt2::create(slippyTileCoord.x + (t % 2), slippyTileCoord.y + (t / 2)), slippyTileCoord.z);
-      pTerrainRenderer->pTiles[tileIndex].world[t] = udDouble4x4::translation(localCorners[t].x, localCorners[t].y, 0.0);
+      pTerrainRenderer->pTiles[visibleTileIndex].world[t] = udDouble4x4::translation(localCorners[t].x, localCorners[t].y, 0.0);
     }
     udDouble3 tileCenterPosition = (localCorners[1] + localCorners[2]) * 0.5;
 
     double distToCameraSqr = udMagSq2(cameraLocalPosition.toVector2() - tileCenterPosition.toVector2());
     vcTexture *pTexture = AssignTileTexture(pTerrainRenderer, slippyTileCoord, tileCenterPosition, distToCameraSqr);
 
-    pTerrainRenderer->pTiles[tileIndex].pTexture = nullptr;
+    pTerrainRenderer->pTiles[visibleTileIndex].pTexture = nullptr;
     if (pTexture != nullptr)
-      pTerrainRenderer->pTiles[tileIndex].pTexture = pTexture;
+      pTerrainRenderer->pTiles[visibleTileIndex].pTexture = pTexture;
 
-    ++tileIndex;
+    ++visibleTileIndex;
   }
 
   udReleaseMutex(pTerrainRenderer->cache.pMutex);
@@ -382,17 +373,18 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
 
   for (int i = 0; i < pTerrainRenderer->tileCount; ++i)
   {
-    if (pTerrainRenderer->pTiles[i].pTexture == nullptr)
+    vcTile *pTile = &pTerrainRenderer->pTiles[i];
+    if (pTile->pTexture == nullptr)
       continue;
 
     for (int t = 0; t < 4; ++t)
     {
-      udFloat4x4 tileWV = udFloat4x4::create(viewProj * mapHeightTranslation * pTerrainRenderer->pTiles[i].world[t]);
+      udFloat4x4 tileWV = udFloat4x4::create(viewProj * mapHeightTranslation * pTile->world[t]);
       pTerrainRenderer->presentShader.everyObject.worldViewProjections[t] = tileWV;
     }
 
 #if UD_DEBUG
-    srand(i);
+    srand(i); 
     pTerrainRenderer->presentShader.everyObject.colour = udFloat4::create(float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, pTerrainRenderer->pSettings->maptiles.transparency);
 #endif
 

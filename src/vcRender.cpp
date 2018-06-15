@@ -10,6 +10,10 @@
 
 #include "gl/opengl/vcOpenGL.h"
 
+#ifndef GIT_BUILD
+udDouble4x4 gRealCameraMatrix = udDouble4x4::identity();
+#endif
+
 const int qrIndices[6] = { 0, 1, 2, 0, 2, 3 };
 const vcSimpleVertex qrSqVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
 
@@ -206,6 +210,7 @@ epilogue:
   return result;
 }
 
+
 vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
 {
   float fov = pRenderContext->pSettings->camera.fieldOfView;
@@ -240,7 +245,16 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
 
   if (renderData.srid != 0 && pRenderContext->pSettings->maptiles.mapEnabled)
   {
-    udDouble3 localCamPos = renderData.cameraMatrix.axis.t.toVector3();
+    udDouble4x4 cameraMatrix = renderData.cameraMatrix;
+
+#ifndef GIT_BUILD
+    extern bool gDebugDetachCamera;
+    if (!gDebugDetachCamera)
+      gRealCameraMatrix = renderData.cameraMatrix;
+    
+    cameraMatrix = gRealCameraMatrix;
+#endif
+    udDouble3 localCamPos = cameraMatrix.axis.t.toVector3();
 
     // Corners [nw, ne, sw, se]
     udDouble3 localCorners[4];
@@ -268,11 +282,8 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
     for (int i = 0; i < 4; ++i)
       vcGIS_SlippyToLocal(renderData.srid, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
-    udDouble3 localViewPos = renderData.cameraMatrix.axis.t.toVector3();
-    double localViewSize = (1.0 / (1 << 19)) + udAbs(renderData.cameraMatrix.axis.t.z - pRenderContext->pSettings->maptiles.mapHeight) / 70000.0;
-
     // for now just rebuild terrain every frame
-    vcTerrain_BuildTerrain(pRenderContext->pTerrain, renderData.srid, localCorners, udInt3::create(slippyCorners[0], currentZoom), localViewPos, localViewSize);
+    vcTerrain_BuildTerrain(pRenderContext->pTerrain, renderData.srid, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos);
     vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->viewProjectionMatrix);
   }
 
