@@ -388,6 +388,7 @@ void vcHandleSceneInput(vcState *pProgramState)
 
   udDouble3 moveOffset = udDouble3::zero();
   udDouble3 rotationOffset = udDouble3::zero();
+  bool isOrbitActive = false;
 
   bool isHovered = ImGui::IsItemHovered();
   bool isLeftClicked = ImGui::IsMouseClicked(0, false);
@@ -431,8 +432,8 @@ void vcHandleSceneInput(vcState *pProgramState)
         rotationOffset.x = -mouseDelta.x / 100.f;
         rotationOffset.y = -mouseDelta.y / 100.f;
         rotationOffset.z = 0.f;
-        if (pProgramState->settings.camera.moveMode == vcCMM_Orbit)
-          vcCamera_Orbit(pProgramState->pCamera, pProgramState->orbitPos, pProgramState->storedDeltaAngle, rotationOffset);
+
+        isOrbitActive = true;
       }
     }
 
@@ -450,7 +451,11 @@ void vcHandleSceneInput(vcState *pProgramState)
     }
   }
 
-  vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, rotationOffset, moveOffset, pProgramState->deltaTime, speedModifier);
+  if(pProgramState->settings.camera.moveMode == vcCMM_Orbit)
+    vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, rotationOffset, moveOffset, pProgramState->deltaTime, isOrbitActive, pProgramState->orbitPos, pProgramState->storedDeltaAngle, speedModifier);
+  else
+    vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, rotationOffset, moveOffset, pProgramState->deltaTime, speedModifier);
+
   pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera);
 }
 
@@ -523,7 +528,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
         else
           mousePointInLatLong = udDouble3::zero();
 
-        ImGui::Text("Mouse World Pos (L/L): (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
+        if(pProgramState->currentSRID != 0)
+          ImGui::Text("Mouse World Pos (L/L): (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
+
         ImGui::Text("Selected Pos (x/y/z): (%f,%f,%f)", pProgramState->currentMeasurePoint.x, pProgramState->currentMeasurePoint.y, pProgramState->currentMeasurePoint.z);
       }
       else
@@ -544,6 +551,10 @@ void vcRenderSceneWindow(vcState *pProgramState)
       udDouble3 cameraPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
       if(ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &cameraPosition.x, 3))
         vcCamera_SetPosition(pProgramState->pCamera, cameraPosition);
+
+      udDouble3 cameraRotation = vcCamera_GetMatrix(pProgramState->pCamera).extractYPR();
+      if (ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &cameraRotation.x, 3))
+        vcCamera_SetRotation(pProgramState->pCamera, cameraRotation);
 
       if (pProgramState->currentSRID != 0)
       {
