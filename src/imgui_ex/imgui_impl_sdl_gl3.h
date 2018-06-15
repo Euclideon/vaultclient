@@ -15,7 +15,7 @@
 struct SDL_Window;
 typedef union SDL_Event SDL_Event;
 
-IMGUI_API bool        ImGuiGL_Init(SDL_Window* window, const char* glsl_version = NULL);
+IMGUI_API bool        ImGuiGL_Init(SDL_Window* window);
 IMGUI_API void        ImGuiGL_Shutdown();
 IMGUI_API void        ImGuiGL_NewFrame(SDL_Window* window);
 IMGUI_API void        ImGuiGL_RenderDrawData(ImDrawData* draw_data);

@@ -310,6 +310,9 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->viewMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
+  if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->projectionMatrix.a) != vE_Success)
+    UD_ERROR_SET(udR_InternalError);
+
   if (renderData.models.length > 0)
     ppModels = udAllocStack(vdkModel*, renderData.models.length, udAF_None);
 

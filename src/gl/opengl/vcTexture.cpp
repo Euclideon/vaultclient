@@ -34,6 +34,11 @@ bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, co
     pixelFormat = GL_RGBA;
     pixelType = GL_UNSIGNED_BYTE;
     break;
+  case vcTextureFormat_BGRA8:
+    internalFormat = GL_RGBA8;
+    type = GL_UNSIGNED_BYTE;
+    glFormat = GL_RGBA;
+    break;
   case vcTextureFormat_D24:
     internalFormat = GL_DEPTH_COMPONENT24;
     pixelFormat = GL_DEPTH_COMPONENT;
