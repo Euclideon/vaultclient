@@ -59,8 +59,9 @@ project "vaultClient"
 		links { "SDL2.framework", "OpenGL.framework" }
 
 	filter { "system:ios" }
-		files { "iOS-Info.plist", "builds/libvaultSDK.dylib" }
-		xcodebuildresources { "libvaultSDK" }
+		files { "iOS-Info.plist", "builds/libvaultSDK.dylib", "icons/Images.xcassets" }
+		xcodebuildresources { "libvaultSDK", "Images.xcassets" }
+		xcodebuildsettings { ["ASSETCATALOG_COMPILER_APPICON_NAME"] = "AppIcon" }
 		removefiles { "3rdParty/glew/glew.c" }
 		libdirs { "3rdParty/SDL2-2.0.5/lib/ios" }
 		links { "SDL2", "AudioToolbox.framework", "QuartzCore.framework", "OpenGLES.framework", "CoreGraphics.framework", "UIKit.framework", "Foundation.framework", "CoreAudio.framework", "AVFoundation.framework", "GameController.framework", "CoreMotion.framework" }
