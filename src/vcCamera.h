@@ -11,6 +11,7 @@ enum vcCameraMoveMode
 };
 
 struct vcCamera;
+struct vcState;
 
 struct vcCameraSettings
 {
@@ -61,6 +62,8 @@ udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPositi
 // Applies movement to camera
 void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, float speedModifier = 1.f);
 void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, bool orbitActive, udDouble3 orbitPosition, udDouble3 storedRotation, float speedModifier = 1.f);
+
+void vcCamera_TravelZoomPath(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcState *pProgramState, double deltaTime);
 
 void vcCamera_SetPosition(vcCamera *pCamera, udDouble3 position);
 void vcCamera_SetRotation(vcCamera *pCamera, udDouble3 yprRotation);
