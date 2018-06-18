@@ -418,6 +418,9 @@ void vcHandleSceneInput(vcState *pProgramState)
     moveOffset.x += (float)((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
     moveOffset.z += (float)((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
 
+    if (moveOffset != udDouble3::zero() || isLeftClicked || isRightClicked) // if input detected
+      pProgramState->zoomPath.isZooming = false;
+
     if (pProgramState->settings.camera.moveMode == vcCMM_Orbit && isLeftClicked)
     {
       pProgramState->orbitPos = pProgramState->worldMousePos;
@@ -437,6 +440,17 @@ void vcHandleSceneInput(vcState *pProgramState)
       }
     }
 
+    if (ImGui::IsMouseDoubleClicked(0))
+    {
+      if (pProgramState->worldMousePos != udDouble3::zero())
+      {
+        pProgramState->zoomPath.isZooming = true;
+        pProgramState->zoomPath.startPos = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
+        pProgramState->zoomPath.endPos = pProgramState->worldMousePos;
+        pProgramState->zoomPath.progress = 0.0;
+      }
+    }
+
     if (isRightClicked)
       pProgramState->currentMeasurePoint = pProgramState->worldMousePos;
 
@@ -450,6 +464,9 @@ void vcHandleSceneInput(vcState *pProgramState)
       pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
     }
   }
+
+  if (pProgramState->zoomPath.isZooming)
+    vcCamera_TravelZoomPath(pProgramState->pCamera, &pProgramState->settings.camera, pProgramState, pProgramState->deltaTime);
 
   if(pProgramState->settings.camera.moveMode == vcCMM_Orbit)
     vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, rotationOffset, moveOffset, pProgramState->deltaTime, isOrbitActive, pProgramState->orbitPos, pProgramState->storedDeltaAngle, speedModifier);
@@ -553,7 +570,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
         vcCamera_SetPosition(pProgramState->pCamera, cameraPosition);
 
       udDouble3 cameraRotation = vcCamera_GetMatrix(pProgramState->pCamera).extractYPR();
-      if (ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &cameraRotation.x, 3))
+      if (ImGui::InputScalarN("Camera Rotation", ImGuiDataType_Double, &cameraRotation.x, 3))
         vcCamera_SetRotation(pProgramState->pCamera, cameraRotation);
 
       if (pProgramState->currentSRID != 0)
