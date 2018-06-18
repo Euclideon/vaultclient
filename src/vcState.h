@@ -20,7 +20,6 @@ typedef unsigned int GLuint;
 
 enum
 {
-  vcPopup_Screenshot, // placeholder
   vcPopup_ModelProperties,
 
   vcPopupCount
