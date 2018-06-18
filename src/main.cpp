@@ -19,6 +19,13 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#if UDPLATFORM_WINDOWS && !defined(NDEBUG)
+//#  define _CRT_SECURE_NO_WARNINGS
+//#  define _CRTDBG_MAP_ALLOC
+#  include <crtdbg.h>
+#  include <stdio.h>
+#endif
+
 udChunkedArray<vcModel> vcModelList;
 
 static bool lastModelLoaded;
@@ -101,6 +108,11 @@ int SDL_main(int /*argc*/, char ** /*args*/)
 int main(int /*argc*/, char ** /*args*/)
 #endif
 {
+#if UDPLATFORM_WINDOWS && !defined(NDEBUG)
+  _CrtMemState m1, m2, diff;
+  _CrtMemCheckpoint(&m1);
+#endif //UDPLATFORM_WINDOWS && !defined(NDEBUG)
+
   SDL_GLContext glcontext = NULL;
   uint32_t windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
@@ -372,6 +384,15 @@ epilogue:
 #if UDPLATFORM_OSX
   SDL_free(pBasePath);
 #endif
+
+#if UDPLATFORM_WINDOWS && !defined(NDEBUG)
+  _CrtMemCheckpoint(&m2);
+  if (_CrtMemDifference(&diff, &m1, &m2) && diff.lCounts[_NORMAL_BLOCK] > 0)
+  {
+    _CrtMemDumpAllObjectsSince(&m1);
+    printf("%s\n", "Memory leaks found");
+  }
+#endif //UDPLATFORM_WINDOWS && !defined(NDEBUG)
 
   return 0;
 }
@@ -1178,7 +1199,7 @@ void vcRenderWindow(vcState *pProgramState)
 
     ImGui::EndDock();
 
-    //Handle in context popups
+    //Handle popups produced when vdkContext exists
 
     if (pProgramState->popupTrigger[vcPopup_ModelProperties])
     {
@@ -1191,11 +1212,15 @@ void vcRenderWindow(vcState *pProgramState)
       {
         uint8_t *pImage = nullptr;
         size_t imageLen = 0;
-        udBase64Decode(&pImage, &imageLen, pWatermark);
+        if (udBase64Decode(&pImage, &imageLen, pWatermark) == udR_Success)
+        {
+          int imageWidth, imageHeight, imageChannels;
+          unsigned char *pImageData = stbi_load_from_memory(pImage, (int)imageLen, &imageWidth, &imageHeight, &imageChannels, 0);
+          vcTexture_Create(&pProgramState->selectedModelProperties.pWatermarkTexture, imageWidth, imageHeight, vcTextureFormat_RGBA8, GL_NEAREST, false, pImageData);
+          STBI_FREE(pImageData);
+        }
 
-        int imageWidth, imageHeight, imageChannels;
-        unsigned char *pImageData = stbi_load_from_memory(pImage, (int) imageLen, &imageWidth, &imageHeight, &imageChannels, 0);
-        vcTexture_Create(&pProgramState->selectedModelProperties.pWatermarkTexture, imageWidth, imageHeight, vcTextureFormat_RGBA8, GL_NEAREST, false, pImageData);
+        udFree(pImage);
       }
 
       ImGui::SetNextWindowSize(ImVec2(400, 600));
