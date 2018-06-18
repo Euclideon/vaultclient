@@ -1,4 +1,5 @@
 #include "vcCamera.h"
+#include "vcState.h"
 
 struct vcCamera
 {
@@ -124,6 +125,32 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3
     if (isnan(pCamera->yprRotation.x) || isnan(pCamera->yprRotation.y))
       pCamera->yprRotation = nanProtection;
   }
+}
+
+void vcCamera_TravelZoomPath(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcState *pProgramState, double deltaTime)
+{
+  if (pCamera == nullptr || pCamSettings == nullptr || pProgramState == nullptr)
+    return;
+
+  udDouble3 travelVector = pProgramState->zoomPath.endPos - pProgramState->zoomPath.startPos;
+  travelVector *= 0.9; //stop short by 1/10th the distance
+
+  double travelProgress = 0;
+
+  pProgramState->zoomPath.progress += deltaTime/2; // 2 second travel time
+  if (pProgramState->zoomPath.progress > 1.0)
+  {
+    pProgramState->zoomPath.progress = 1.0;
+    pProgramState->zoomPath.isZooming = false;
+  }
+
+  double t = pProgramState->zoomPath.progress;
+  if (t < 0.5)
+    travelProgress = 4 * t * t * t; // cubic
+  else
+    travelProgress = (t - 1)*(2 * t - 2)*(2 * t - 2) + 1; // cubic
+
+  pCamera->position = pProgramState->zoomPath.startPos + travelVector * travelProgress;
 }
 
 udDouble3 vcCamera_GetPosition(vcCamera *pCamera)
