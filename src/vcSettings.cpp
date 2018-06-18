@@ -7,7 +7,54 @@
 #include "imgui_ex/imgui_dock_internal.h"
 
 extern ImGui::DockContext g_dock;
-const char *pDefaultSettings = R"config({"window":{"width":1280,"height":720,"maximized":false,"fullscreen":false},"frames":{"scene":true,"settings":true,"explorer":true},"camera":{"moveSpeed":10,"nearPlane":0.5,"farPlane":10000,"fieldOfView":0.872665,"moveMode":0},"maptiles":{"enabled":true,"blendMode":0,"transparency":1.0,"mapHeight":0.0},"docks":[{"label":"ROOT","child":[1,2],"prev":-1,"next":-1,"parent":-1,"status":0,"active":true,"open":false,"position":{"x":0,"y":22},"size":{"x":1280,"y":673},"location":"-1"},{"label":"Scene","child":[-1,-1],"prev":-1,"next":-1,"parent":0,"status":0,"active":true,"open":true,"position":{"x":0,"y":22},"size":{"x":976,"y":673},"location":"1"},{"label":"DOCK","child":[3,4],"prev":-1,"next":-1,"parent":0,"status":0,"active":true,"open":false,"position":{"x":976,"y":22},"size":{"x":304,"y":673},"location":"0"},{"label":"Scene Explorer","child":[-1,-1],"prev":-1,"next":-1,"parent":2,"status":0,"active":true,"open":true,"position":{"x":976,"y":22},"size":{"x":304,"y":442},"location":"20"},{"label":"Settings","child":[-1,-1],"prev":-1,"next":-1,"parent":2,"status":0,"active":true,"open":true,"position":{"x":976,"y":464},"size":{"x":304,"y":231},"location":"30"}]})config";
+const char *pDefaultSettings = R"config({"window":{"position":{"x":805240832,"y":805240832},"width":1280,"height":720,"maximized":false,"fullscreen":false},"frames":{"scene":true,"settings":true,"explorer":true},"camera":{"moveSpeed":10.000000,"nearPlane":0.500000,"farPlane":10000.000000,"fieldOfView":0.872665,"lensId":5,"invertX":false,"invertY":false,"moveMode":0},"maptiles":{"enabled":true,"blendMode":0,"transparency":1.000000,"mapHeight":0.000000},"rootDocks":[{"label":"ROOT","status":0,"active":true,"open":false,"position":{"x":0.000000,"y":22.000000},"size":{"x":1280.000000,"y":698.000000},"child":[{"label":"Scene","status":0,"active":true,"open":true,"position":{"x":0.000000,"y":22.000000},"size":{"x":976.000000,"y":698.000000},"location":"1"},{"label":"DOCK","status":0,"active":true,"open":false,"position":{"x":976.000000,"y":22.000000},"size":{"x":304.000000,"y":698.000000},"location":"0","child":[{"label":"Scene Explorer","status":0,"active":true,"open":true,"position":{"x":976.000000,"y":22.000000},"size":{"x":304.000000,"y":288.000000},"location":"20"},{"label":"Settings","status":0,"active":true,"open":true,"position":{"x":976.000000,"y":310.000000},"size":{"x":304.000000,"y":410.000000},"location":"30"}]}]},{"label":"StyleEditor","status":1,"active":true,"open":false,"position":{"x":0.000000,"y":0.000000},"size":{"x":1280.000000,"y":720.000000}}]})config";
+
+void vcSettings_RecursiveLoadDock(const udValue &parentDock, int parentIndex, bool isNextTab = false)
+{
+  ImGui::DockContext::Dock *new_dock = (ImGui::DockContext::Dock*)ImGui::MemAlloc(sizeof(ImGui::DockContext::Dock));
+  IM_PLACEMENT_NEW(new_dock) ImGui::DockContext::Dock();
+  g_dock.m_docks.push_back(new_dock);
+
+  int newIndex = g_dock.m_docks.size()-1;
+
+  g_dock.m_docks[newIndex]->label = ImStrdup(parentDock.Get("label").AsString());
+  g_dock.m_docks[newIndex]->id = ImHash(g_dock.m_docks[newIndex]->label, 0);
+
+  if (parentDock.Get("child").ArrayLength() > 0) // has children
+  {
+    vcSettings_RecursiveLoadDock(parentDock.Get("child[0]"), newIndex);
+    g_dock.m_docks[newIndex]->children[0] = g_dock.getDockByIndex(newIndex + 1);
+
+    int child1Index = g_dock.m_docks.size();
+    vcSettings_RecursiveLoadDock(parentDock.Get("child[1]"), newIndex);
+    g_dock.m_docks[newIndex]->children[1] = g_dock.getDockByIndex(child1Index);
+  }
+
+  if (isNextTab)
+    g_dock.m_docks[newIndex]->prev_tab = g_dock.getDockByIndex(newIndex - 1); // must be previous value
+
+  if (parentDock.Get("next").MemberCount() > 0) // has next_tab
+  {
+    vcSettings_RecursiveLoadDock(parentDock.Get("next"), parentIndex, true);
+
+    g_dock.m_docks[newIndex]->next_tab = g_dock.getDockByIndex(newIndex + 1); // as tab cannot have children
+  }
+
+  g_dock.m_docks[newIndex]->parent = g_dock.getDockByIndex(parentIndex);
+
+  g_dock.m_docks[newIndex]->status = (ImGui::DockContext::Status_)parentDock.Get("status").AsInt();
+  g_dock.m_docks[newIndex]->active = parentDock.Get("active").AsBool();
+  g_dock.m_docks[newIndex]->opened = parentDock.Get("open").AsBool();
+
+  g_dock.m_docks[newIndex]->pos.x = parentDock.Get("position.x").AsFloat();
+  g_dock.m_docks[newIndex]->pos.y = parentDock.Get("position.y").AsFloat();
+  g_dock.m_docks[newIndex]->size.x = parentDock.Get("size.x").AsFloat();
+  g_dock.m_docks[newIndex]->size.y = parentDock.Get("size.y").AsFloat();
+
+  udStrcpy(g_dock.m_docks[newIndex]->location, sizeof(g_dock.m_docks[newIndex]->location), parentDock.Get("location").AsString(""));
+
+  g_dock.tryDockToStoredLocation(*g_dock.m_docks[newIndex]);
+}
 
 void vcSettings_LoadDocks(udValue &settings)
 {
@@ -18,71 +65,60 @@ void vcSettings_LoadDocks(udValue &settings)
   }
   g_dock.m_docks.clear();
 
-  int totalDocks = (int)settings.Get("docks").ArrayLength();
+  int numRootDocks = (int)settings.Get("rootDocks").ArrayLength();
 
-  for (int i = 0; i < totalDocks; i++)
+  for (int i = 0; i < numRootDocks; ++i)
   {
-    ImGui::DockContext::Dock *new_dock = (ImGui::DockContext::Dock*)ImGui::MemAlloc(sizeof(ImGui::DockContext::Dock));
-    IM_PLACEMENT_NEW(new_dock) ImGui::DockContext::Dock();
-    g_dock.m_docks.push_back(new_dock);
+    vcSettings_RecursiveLoadDock(settings.Get("rootDocks[%d]", i), -1);
   }
+}
 
-  for (int i = 0; i < totalDocks; i++)
-  {
-    const udValue &dock = settings.Get("docks[%d]", i);
+void vcSettings_RecursiveSaveDock(udValue &parentJSON, ImGui::DockContext::Dock *pParentDock, const char *pParentString)
+{
+  udValue dockJSON;
+  dockJSON.SetObject();
 
-    g_dock.m_docks[i]->label = ImStrdup(dock.Get("label").AsString());
-    g_dock.m_docks[i]->id = ImHash(g_dock.m_docks[i]->label, 0);
+  ImGui::DockContext::Dock &dock = *pParentDock;
 
-    g_dock.m_docks[i]->children[0] = g_dock.getDockByIndex(dock.Get("child[0]").AsInt());
-    g_dock.m_docks[i]->children[1] = g_dock.getDockByIndex(dock.Get("child[1]").AsInt());
-    g_dock.m_docks[i]->prev_tab = g_dock.getDockByIndex(dock.Get("prev").AsInt());
-    g_dock.m_docks[i]->next_tab = g_dock.getDockByIndex(dock.Get("next").AsInt());
-    g_dock.m_docks[i]->parent = g_dock.getDockByIndex(dock.Get("parent").AsInt());
-    g_dock.m_docks[i]->status = (ImGui::DockContext::Status_)dock.Get("status").AsInt();
-    g_dock.m_docks[i]->active = dock.Get("active").AsBool();
-    g_dock.m_docks[i]->opened = dock.Get("open").AsBool();
+  dockJSON.Set("label = '%s'", dock.parent ? (dock.label[0] == '\0' ? "DOCK" : dock.label) : (dock.label[0] == '\0' ? "ROOT" : dock.label));
 
-    g_dock.m_docks[i]->pos.x = dock.Get("position.x").AsFloat();
-    g_dock.m_docks[i]->pos.y = dock.Get("position.y").AsFloat();
-    g_dock.m_docks[i]->size.x = dock.Get("size.x").AsFloat();
-    g_dock.m_docks[i]->size.y = dock.Get("size.y").AsFloat();
+  dockJSON.Set("status = %d", dock.status);
+  dockJSON.Set("active = %s", dock.active ? "true" : "false");
+  dockJSON.Set("open = %s", dock.opened ? "true" : "false");
 
-    udStrcpy(g_dock.m_docks[i]->location, sizeof(g_dock.m_docks[i]->location), dock.Get("location").AsString());
-    g_dock.tryDockToStoredLocation(*g_dock.m_docks[i]);
-  }
+  dockJSON.Set("position.x = %f", dock.pos.x);
+  dockJSON.Set("position.y = %f", dock.pos.y);
+  dockJSON.Set("size.x = %f", dock.size.x);
+  dockJSON.Set("size.y = %f", dock.size.y);
+
+  g_dock.fillLocation(dock);
+  if(udStrlen(dock.location))
+    dockJSON.Set("location = '%s'", dock.location);
+
+  if (dock.children[0])
+    vcSettings_RecursiveSaveDock(dockJSON, dock.children[0], "child[0]");
+
+  if (dock.children[1])
+    vcSettings_RecursiveSaveDock(dockJSON, dock.children[1], "child[1]");
+
+  if (dock.next_tab)
+    vcSettings_RecursiveSaveDock(dockJSON, dock.next_tab, "next");
+
+  parentJSON.Set(&dockJSON, pParentString);
 }
 
 void vcSettings_SaveDocks(udValue &settings)
 {
   for (int i = 0; i < g_dock.m_docks.size(); ++i)
   {
-    udValue dockJ;
-    dockJ.SetObject();
-
     ImGui::DockContext::Dock& dock = *g_dock.m_docks[i];
+    bool dockIsValidRoot = (g_dock.getDockIndex(dock.parent) == -1);
 
-    dockJ.Set("label = '%s'", dock.parent ? (dock.label[0] == '\0' ? "DOCK" : dock.label) : "ROOT");
+    if ((!dock.children[0] || !dock.children[1]) && udStrlen(dock.label) == 0) // if either of the children are nullptr and the label has a length of 0
+      dockIsValidRoot = false; // is a root dock with no children, do not save
 
-    dockJ.Set("child[0] = %d", g_dock.getDockIndex(g_dock.m_docks[i]->children[0]));
-    dockJ.Set("child[1] = %d", g_dock.getDockIndex(g_dock.m_docks[i]->children[1]));
-    dockJ.Set("prev = %d", g_dock.getDockIndex(g_dock.m_docks[i]->prev_tab));
-    dockJ.Set("next = %d", g_dock.getDockIndex(g_dock.m_docks[i]->next_tab));
-    dockJ.Set("parent = %d", g_dock.getDockIndex(g_dock.m_docks[i]->parent));
-
-    dockJ.Set("status = %d", g_dock.m_docks[i]->status);
-    dockJ.Set("active = %s", g_dock.m_docks[i]->active ? "true" : "false");
-    dockJ.Set("open = %s", g_dock.m_docks[i]->opened ? "true" : "false");
-
-    dockJ.Set("position.x = %f", g_dock.m_docks[i]->pos.x);
-    dockJ.Set("position.y = %f", g_dock.m_docks[i]->pos.y);
-    dockJ.Set("size.x = %f", g_dock.m_docks[i]->size.x);
-    dockJ.Set("size.y = %f", g_dock.m_docks[i]->size.y);
-
-    g_dock.fillLocation(dock);
-    dockJ.Set("location = '%s'", udStrlen(dock.location) ? g_dock.m_docks[i]->location : "-1");
-
-    settings.Set(&dockJ, "docks[]");
+    if (dockIsValidRoot)
+      vcSettings_RecursiveSaveDock(settings, &dock, "rootDocks[]");
   }
 }
 
@@ -179,6 +215,12 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     udValue data;
     data.Parse(pSavedData);
 
+    if (data.Get("docks").IsArray())
+    {
+      vcSettings_Load(pSettings, true);
+      goto epilogue;
+    }
+
     // Misc Settings
     pSettings->showFPS = data.Get("showFPS").AsBool(false);
 
@@ -214,6 +256,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     vcSettings_LoadDocks(data);
   }
 
+epilogue:
   if (pSavedData != pDefaultSettings)
     udFree(pSavedData);
 
