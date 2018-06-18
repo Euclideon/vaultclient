@@ -7,10 +7,9 @@
 #include "imgui_ex/imgui_dock_internal.h"
 
 extern ImGui::DockContext g_dock;
-const char *pDefaultSettings = R"config({"window":{"position":{"x":805240832,"y":805240832},"width":1280,"height":720,"maximized":false,"fullscreen":false},"frames":{"scene":true,"settings":true,"explorer":true},"camera":{"moveSpeed":10.000000,"nearPlane":0.500000,"farPlane":10000.000000,"fieldOfView":0.872665,"lensId":5,"invertX":false,"invertY":false,"moveMode":0},"maptiles":{"enabled":true,"blendMode":0,"transparency":1.000000,"mapHeight":0.000000},"docks":[{"label":"ROOT","status":0,"active":true,"open":false,"position":{"x":0.000000,"y":22.000000},"size":{"x":1280.000000,"y":698.000000},"child":[{"label":"Scene","status":0,"active":true,"open":true,"position":{"x":0.000000,"y":22.000000},"size":{"x":976.000000,"y":698.000000},"location":"1"},{"label":"DOCK","status":0,"active":true,"open":false,"position":{"x":976.000000,"y":22.000000},"size":{"x":304.000000,"y":698.000000},"location":"0","child":[{"label":"Scene Explorer","status":0,"active":true,"open":true,"position":{"x":976.000000,"y":22.000000},"size":{"x":304.000000,"y":288.000000},"location":"20"},{"label":"Settings","status":0,"active":true,"open":true,"position":{"x":976.000000,"y":310.000000},"size":{"x":304.000000,"y":410.000000},"location":"30"}]}]},{"label":"StyleEditor","status":1,"active":true,"open":false,"position":{"x":0.000000,"y":0.000000},"size":{"x":1280.000000,"y":720.000000}}]})config";
+const char *pDefaultSettings = R"config({"window":{"position":{"x":805240832,"y":805240832},"width":1280,"height":720,"maximized":false,"fullscreen":false},"frames":{"scene":true,"settings":true,"explorer":true},"camera":{"moveSpeed":10.000000,"nearPlane":0.500000,"farPlane":10000.000000,"fieldOfView":0.872665,"lensId":5,"invertX":false,"invertY":false,"moveMode":0},"maptiles":{"enabled":true,"blendMode":0,"transparency":1.000000,"mapHeight":0.000000},"rootDocks":[{"label":"ROOT","status":0,"active":true,"open":false,"position":{"x":0.000000,"y":22.000000},"size":{"x":1280.000000,"y":698.000000},"child":[{"label":"Scene","status":0,"active":true,"open":true,"position":{"x":0.000000,"y":22.000000},"size":{"x":976.000000,"y":698.000000},"location":"1"},{"label":"DOCK","status":0,"active":true,"open":false,"position":{"x":976.000000,"y":22.000000},"size":{"x":304.000000,"y":698.000000},"location":"0","child":[{"label":"Scene Explorer","status":0,"active":true,"open":true,"position":{"x":976.000000,"y":22.000000},"size":{"x":304.000000,"y":288.000000},"location":"20"},{"label":"Settings","status":0,"active":true,"open":true,"position":{"x":976.000000,"y":310.000000},"size":{"x":304.000000,"y":410.000000},"location":"30"}]}]},{"label":"StyleEditor","status":1,"active":true,"open":false,"position":{"x":0.000000,"y":0.000000},"size":{"x":1280.000000,"y":720.000000}}]})config";
 
-void vcSettings_RecursiveLoadDock(const udValue &parentDock, int parentIndex, bool isNextTab = false);
-void vcSettings_RecursiveLoadDock(const udValue &parentDock, int parentIndex, bool isNextTab/* = false*/)
+void vcSettings_RecursiveLoadDock(const udValue &parentDock, int parentIndex, bool isNextTab = false)
 {
   ImGui::DockContext::Dock *new_dock = (ImGui::DockContext::Dock*)ImGui::MemAlloc(sizeof(ImGui::DockContext::Dock));
   IM_PLACEMENT_NEW(new_dock) ImGui::DockContext::Dock();
@@ -66,11 +65,11 @@ void vcSettings_LoadDocks(udValue &settings)
   }
   g_dock.m_docks.clear();
 
-  int numRootDocks = (int)settings.Get("docks").ArrayLength();
+  int numRootDocks = (int)settings.Get("rootDocks").ArrayLength();
 
   for (int i = 0; i < numRootDocks; ++i)
   {
-    vcSettings_RecursiveLoadDock(settings.Get("docks[%d]", i), -1);
+    vcSettings_RecursiveLoadDock(settings.Get("rootDocks[%d]", i), -1);
   }
 }
 
@@ -119,7 +118,7 @@ void vcSettings_SaveDocks(udValue &settings)
       dockIsValidRoot = false; // is a root dock with no children, do not save
 
     if (dockIsValidRoot)
-      vcSettings_RecursiveSaveDock(settings, &dock, "docks[]");
+      vcSettings_RecursiveSaveDock(settings, &dock, "rootDocks[]");
   }
 }
 
@@ -216,6 +215,12 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     udValue data;
     data.Parse(pSavedData);
 
+    if (data.Get("docks").IsArray())
+    {
+      vcSettings_Load(pSettings, true);
+      goto epilogue;
+    }
+
     // Misc Settings
     pSettings->showFPS = data.Get("showFPS").AsBool(false);
 
@@ -251,6 +256,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     vcSettings_LoadDocks(data);
   }
 
+epilogue:
   if (pSavedData != pDefaultSettings)
     udFree(pSavedData);
 
