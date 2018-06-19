@@ -44,7 +44,7 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
   // Create Device
   UINT createDeviceFlags = 0;
-  //createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+  createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
   D3D_FEATURE_LEVEL featureLevel;
   const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
   if (D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext) != S_OK)
@@ -293,5 +293,18 @@ bool vcGLState_Present(SDL_Window * /*pWindow*/)
     return false;
 
   g_pSwapChain->Present(1, 0); // Present with vsync
+  return true;
+}
+
+bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
+{
+  g_defaultFramebuffer.pRenderTargetView->Release();
+  g_pSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+
+  ID3D11Texture2D* pBackBuffer;
+  g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
+  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.pRenderTargetView);
+  pBackBuffer->Release();
+
   return true;
 }

@@ -257,7 +257,7 @@ int main(int /*argc*/, char ** /*args*/)
 
   // setup watermark for background
   pEucWatermarkData = stbi_load(EucWatermarkPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0); // reusing the variables for width etc
-  vcTexture_Create(&programState.pWatermarkTexture, iconWidth, iconHeight, pEucWatermarkData, vcTextureFormat_BGRA8);
+  vcTexture_Create(&programState.pWatermarkTexture, iconWidth, iconHeight, pEucWatermarkData);
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   if (!ImGuiGL_Init(programState.pWindow))
@@ -304,6 +304,7 @@ int main(int /*argc*/, char ** /*args*/)
           {
             programState.settings.window.width = event.window.data1;
             programState.settings.window.height = event.window.data2;
+            vcGLState_ResizeBackBuffer(event.window.data1, event.window.data2);
           }
           else if (event.window.event == SDL_WINDOWEVENT_MOVED)
           {
@@ -426,7 +427,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   renderData.models.Deinit();
 
-  ImGui::Image(pTexture, size, ImVec2(0, 0), ImVec2(1, -1));
+  ImGui::Image(pTexture, size);
   {
     pProgramState->worldMousePos = renderData.worldMousePos;
     pProgramState->pickingSuccess = renderData.pickingSuccess;
@@ -696,7 +697,7 @@ void vcRenderWindow(vcState *pProgramState)
 
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f, 0.f, 0.f, 0.f));
     ImGui::Begin("Watermark", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
-    ImGui::Image((ImTextureID)((size_t)pProgramState->pWatermarkTexture->id), ImVec2(301, 161), ImVec2(0, 0), ImVec2(1, 1));
+    ImGui::Image(pProgramState->pWatermarkTexture, ImVec2(301, 161), ImVec2(0, 0), ImVec2(1, 1));
     ImGui::End();
     ImGui::PopStyleColor();
 

@@ -21,7 +21,7 @@ out vec4 out_Colour;
 
 void main()
 {
-  out_Colour = texture(u_texture, v_texCoord).bgra;
+  out_Colour = texture(u_texture, v_texCoord);
   gl_FragDepth = texture(u_depth, v_texCoord).x;
 }
 )shader";
@@ -93,7 +93,10 @@ void main()
 const char* const g_vcSkyboxFragmentShader = FRAG_HEADER R"shader(
 
 uniform samplerCube u_texture;
-uniform mat4 u_inverseViewProjection;
+layout (std140) uniform u_EF_Skybox
+{
+  mat4 u_inverseViewProjection;
+};
 
 //Input Format
 in vec2 v_texCoord;

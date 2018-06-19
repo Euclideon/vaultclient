@@ -1,5 +1,6 @@
 #include "gl/vcShader.h"
 #include "vcOpenGL.h"
+#include "udPlatform/udPlatformUtil.h"
 
 GLint vcBuildShader(GLenum type, const GLchar *shaderCode)
 {
@@ -91,7 +92,7 @@ bool vcShader_GetUniformIndex(vcShaderUniform **ppUniform, vcShader *pShader, co
   GLuint uID = glGetUniformLocation(pShader->programID, pUniformName);
 
   if (uID == GL_INVALID_INDEX)
-    return false;
+      return false;
 
   vcShaderUniform *pUniform = udAllocType(vcShaderUniform, 1, udAF_Zero);
   pUniform->id = uID;
@@ -137,6 +138,63 @@ bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t sampl
 
   VERIFY_GL();
 
+  return true;
+}
+
+bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pShader, const char *pBufferName, const size_t bufferSize)
+{
+  //TODO: null checks
+  GLuint uboBindingIndex = GL_INVALID_INDEX;
+  for (int i = 0; i < pShader->numBufferObjects; ++i)
+  {
+    if (udStrEqual(pShader->bufferObjects[i].name, pBufferName))
+    {
+      uboBindingIndex = i;
+      break;
+    }
+  }
+
+  if (uboBindingIndex == GL_INVALID_INDEX)
+  {
+    glGenBuffers(1, &pShader->bufferObjects[pShader->numBufferObjects].id);
+    glBindBuffer(GL_UNIFORM_BUFFER, pShader->bufferObjects[pShader->numBufferObjects].id);
+    glBufferData(GL_UNIFORM_BUFFER, bufferSize, NULL, GL_STATIC_DRAW); // assign memory
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    udStrcpy(pShader->bufferObjects[pShader->numBufferObjects].name, 32, pBufferName);
+    *ppBuffer = &pShader->bufferObjects[pShader->numBufferObjects];
+    uboBindingIndex = pShader->numBufferObjects;
+    pShader->numBufferObjects++;
+  }
+  else
+  {
+    *ppBuffer = &pShader->bufferObjects[uboBindingIndex];
+  }
+
+  unsigned int blockIndex = glGetUniformBlockIndex(pShader->programID, pBufferName);
+  glUniformBlockBinding(pShader->programID, blockIndex, uboBindingIndex); // bind shader block index to binding point of uniform buffer object
+
+  glBindBufferBase(GL_UNIFORM_BUFFER, uboBindingIndex, pShader->bufferObjects[uboBindingIndex].id);
+
+  return true;
+}
+
+bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuffer, void *pData, const size_t bufferSize)
+{
+  if (pShader == nullptr || pBuffer == nullptr || pData == nullptr || bufferSize == 0)
+    return false;
+
+  glBindBuffer(GL_UNIFORM_BUFFER, pBuffer->id);
+  GLvoid *pGPU = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
+  memcpy(pGPU, pData, bufferSize);
+  glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+  return true;
+}
+
+bool vcShader_ReleaseConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuffer)
+{
+  //TODO
   return true;
 }
 

@@ -40,12 +40,21 @@ struct vcFramebuffer
   ID3D11DepthStencilView *pDepthStencilView;
 };
 
+struct vcShaderConstantBuffer
+{
+  ID3D11Buffer *pBuffer;
+  char bufferName[32];
+};
+
 struct vcShader
 {
   ID3D11VertexShader *pVertexShader;
   ID3D11PixelShader* pPixelShader;
 
   ID3D11InputLayout *pLayout;
+
+  vcShaderConstantBuffer bufferObjects[16];
+  unsigned int numBufferObjects;
 };
 
 struct vcShaderUniform

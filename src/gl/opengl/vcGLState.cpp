@@ -190,3 +190,10 @@ bool vcGLState_Present(SDL_Window *pWindow)
   SDL_GL_SwapWindow(pWindow);
   return true;
 }
+
+bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
+{
+  udUnused(width);
+  udUnused(height);
+  return true;
+}

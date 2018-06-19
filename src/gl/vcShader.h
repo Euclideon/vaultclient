@@ -5,6 +5,7 @@
 
 struct vcShader;
 struct vcShaderUniform;
+struct vcShaderConstantBuffer;
 struct vcTexture;
 
 enum vcShaderVertexInputTypes
@@ -17,6 +18,11 @@ enum vcShaderVertexInputTypes
   vcSVIT_TotalTypes
 };
 
+struct vcShader_Buffer_Skybox
+{
+  udFloat4x4 skyboxViewProjMatrixF;
+};
+
 bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcShaderVertexInputTypes *pInputTypes, uint32_t totalInputs);
 void vcShader_DestroyShader(vcShader **ppShader);
 
@@ -25,6 +31,10 @@ bool vcShader_GetUniformIndex(vcShaderUniform **ppUniform, vcShader *pShader, co
 bool vcShader_Bind(vcShader *pShader); // nullptr to unbind shader
 
 bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderUniform *pSamplerUniform = nullptr);
+
+bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pShader, const char *pBufferName, const size_t bufferSize);
+bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuffer, void *pData, const size_t bufferSize);
+bool vcShader_ReleaseConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuffer);
 
 bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, udFloat3 vector);
 bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, udFloat4x4 matrix);
