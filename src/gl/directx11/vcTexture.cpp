@@ -92,7 +92,10 @@ bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, co
     sampDesc.AddressV = vcTWMToD3D[wrapMode];
     sampDesc.AddressW = vcTWMToD3D[wrapMode];
     sampDesc.MipLODBias = 0.f;
-    sampDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+    sampDesc.MaxAnisotropy = 1;
+    sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    for(int i = 0; i < 4; ++i)
+      sampDesc.BorderColor[i] = 1.f;
     sampDesc.MinLOD = 0.f;
     sampDesc.MaxLOD = 0.f;
     g_pd3dDevice->CreateSamplerState(&sampDesc, &pTexture->pSampler);

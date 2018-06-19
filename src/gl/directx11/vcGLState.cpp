@@ -280,6 +280,10 @@ bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, 
 
   g_pd3dDeviceContext->RSSetViewports(1, &viewport);
 
+  //Reset the scissor back to the full viewport
+  D3D11_RECT scissorRect = { (LONG)0, (LONG)0, (LONG)width, (LONG)height };
+  g_pd3dDeviceContext->RSSetScissorRects(1, &scissorRect);
+
   return true;
 }
 
