@@ -46,9 +46,17 @@ struct vcFramebuffer
   vcTexture *pDepth; // optional
 };
 
+struct vcShaderConstantBuffer
+{
+  GLuint id;
+  char name[32];
+};
+
 struct vcShader
 {
   GLuint programID;
+  vcShaderConstantBuffer bufferObjects[16];
+  unsigned int numBufferObjects;
 };
 
 struct vcShaderUniform

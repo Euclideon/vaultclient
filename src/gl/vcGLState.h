@@ -83,4 +83,6 @@ bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, 
 
 bool vcGLState_Present(SDL_Window *pWindow);
 
+bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height);
+
 #endif // vcGLState_h__

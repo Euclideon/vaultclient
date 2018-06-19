@@ -181,6 +181,74 @@ bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t sampl
   return true;
 }
 
+bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pShader, const char *pBufferName, const size_t bufferSize)
+{
+  unsigned int bufferIndex = -1;
+  for (int i = 0; i < pShader->numBufferObjects; ++i)
+  {
+    if (udStrEqual(pShader->bufferObjects[i].bufferName, pBufferName))
+    {
+      bufferIndex = i;
+      break;
+    }
+  }
+
+  if (bufferIndex >= 16) // not found
+  {
+    pShader->bufferObjects[pShader->numBufferObjects].pBuffer = nullptr;
+
+    udStrcpy(pShader->bufferObjects[pShader->numBufferObjects].bufferName, 32, pBufferName);
+
+    *ppBuffer = &pShader->bufferObjects[pShader->numBufferObjects];
+    bufferIndex = pShader->numBufferObjects;
+    pShader->numBufferObjects++;
+  }
+  else
+  {
+    *ppBuffer = &pShader->bufferObjects[bufferIndex];
+  }
+
+  vcShaderConstantBuffer *pBuffer = *ppBuffer;
+
+  // Buffer Description
+  D3D11_BUFFER_DESC cbDesc;
+  cbDesc.ByteWidth = (UINT)bufferSize;
+  cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+  cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+  cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+  cbDesc.MiscFlags = 0;
+  cbDesc.StructureByteStride = 0;
+
+  if (g_pd3dDevice->CreateBuffer(&cbDesc, NULL, &pBuffer->pBuffer))
+    return false;
+
+  g_pd3dDeviceContext->PSSetConstantBuffers(0, 1, &pBuffer->pBuffer);
+
+  *ppBuffer = pBuffer;
+  return true;
+}
+
+bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuffer, void *pData, const size_t bufferSize)
+{
+  //TODO null checks
+  D3D11_MAPPED_SUBRESOURCE mapped_resource;
+  if (g_pd3dDeviceContext->Map(pBuffer->pBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resource) != S_OK)
+    return false;
+
+  vcShader_Buffer_Skybox *pConstantBuffer = (vcShader_Buffer_Skybox*)mapped_resource.pData;
+
+  memcpy(&pConstantBuffer->skyboxViewProjMatrixF, pData, bufferSize);
+  g_pd3dDeviceContext->Unmap(pBuffer->pBuffer, 0);
+
+  return true;
+}
+
+bool vcShader_ReleaseConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuffer)
+{
+  //TODO
+  return true;
+}
+
 bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, udFloat3 vector)
 {
   udUnused(pShaderUniform);

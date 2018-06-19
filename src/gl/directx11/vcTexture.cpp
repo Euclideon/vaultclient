@@ -26,6 +26,10 @@ bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, co
     texFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
     pixelBytes = 4;
     break;
+  case vcTextureFormat_BGRA8:
+    texFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+    pixelBytes = 4;
+    break;
   case vcTextureFormat_D24:
     texFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
     pixelBytes = 4;
@@ -246,9 +250,10 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
   D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
   ZeroMemory(&srvDesc, sizeof(srvDesc));
   srvDesc.Format = desc.Format;
-  srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-  srvDesc.Texture2D.MipLevels = desc.MipLevels;
-  srvDesc.Texture2D.MostDetailedMip = 0;
+  srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+  srvDesc.Texture2DArray.MipLevels = desc.MipLevels;
+  srvDesc.Texture2DArray.MostDetailedMip = 0;
+  srvDesc.Texture2DArray.ArraySize = desc.ArraySize;
 
   g_pd3dDevice->CreateShaderResourceView(pTextureD3D, &srvDesc, &pTexture->pTextureView);
 

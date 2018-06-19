@@ -36,8 +36,8 @@ bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, co
     break;
   case vcTextureFormat_BGRA8:
     internalFormat = GL_RGBA8;
-    type = GL_UNSIGNED_BYTE;
-    glFormat = GL_RGBA;
+    type = GL_UNSIGNED_INT_8_8_8_8_REV;
+    glFormat = GL_BGRA;
     break;
   case vcTextureFormat_D24:
     internalFormat = GL_DEPTH_COMPONENT24;
@@ -151,35 +151,39 @@ bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, 
 
 void vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height)
 {
-  GLenum internalFormat;
-  GLenum pixelFormat, pixelType;
+  GLint internalFormat = GL_INVALID_ENUM;
+  GLenum type = GL_INVALID_ENUM;
+  GLint glFormat = GL_INVALID_ENUM;
+
   switch (pTexture->format)
   {
-    case vcTextureFormat_RGBA8:
-      internalFormat = GL_RGBA;
-      pixelFormat = GL_RGBA;
-      pixelType = GL_UNSIGNED_BYTE;
-      break;
-    case vcTextureFormat_D24:
-      internalFormat = GL_DEPTH_COMPONENT24;
-      pixelFormat = GL_DEPTH_COMPONENT;
-      pixelType = GL_FLOAT;
-      break;
-    case vcTextureFormat_D32F:
-      internalFormat = GL_DEPTH_COMPONENT32F;
-      pixelFormat = GL_DEPTH_COMPONENT;
-      pixelType = GL_FLOAT;
-      break;
-    default:
-      // unknown texture format, do nothing
-      return;
+  case vcTextureFormat_RGBA8:
+    internalFormat = GL_RGBA8;
+    type = GL_UNSIGNED_INT_8_8_8_8_REV;
+    glFormat = GL_RGBA;
+    break;
+  case vcTextureFormat_BGRA8:
+    internalFormat = GL_RGBA8;
+    type = GL_UNSIGNED_INT_8_8_8_8_REV;
+    glFormat = GL_BGRA;
+    break;
+  case vcTextureFormat_D32F:
+    internalFormat = GL_DEPTH_COMPONENT32F;
+    type = GL_FLOAT;
+    glFormat = GL_DEPTH_COMPONENT;
+    break;
+  case vcTextureFormat_D24: // fall through
+    internalFormat = GL_DEPTH_COMPONENT24;
+    type = GL_UNSIGNED_INT;
+    glFormat = GL_DEPTH_COMPONENT;
+    break;
   }
 
   pTexture->width = width;
   pTexture->height = height;
 
   glBindTexture(GL_TEXTURE_2D, pTexture->id);
-  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, pTexture->width, pTexture->height, 0, pixelFormat, pixelType, pPixels);
+  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, pTexture->width, pTexture->height, 0, glFormat, type, pPixels);
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 

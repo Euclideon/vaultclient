@@ -13,6 +13,11 @@
 const int qrIndices[6] = { 0, 1, 2, 0, 2, 3 };
 const vcSimpleVertex qrSqVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
 
+enum
+{
+  vcRender_SceneSizeIncrement = 32 // directX framebuffer can only be certain increments
+};
+
 struct vcUDRenderContext
 {
   vdkRenderContext *pRenderer;
@@ -55,7 +60,9 @@ struct vcRenderContext
   {
     vcShader *pProgram;
     vcShaderUniform *uniform_texture;
-    vcShaderUniform *uniform_inverseViewProjection;
+    vcShaderConstantBuffer *uniform_MatrixBlock;
+
+    struct vcShader_Buffer_Skybox shader_data;
   } skyboxShader;
 
   vcMesh *pSkyboxMesh;
@@ -82,7 +89,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
 
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);
   vcShader_GetUniformIndex(&pRenderContext->skyboxShader.uniform_texture, pRenderContext->skyboxShader.pProgram, "u_texture");
-  vcShader_GetUniformIndex(&pRenderContext->skyboxShader.uniform_inverseViewProjection, pRenderContext->skyboxShader.pProgram, "u_inverseViewProjection");
+
+  vcShader_GetConstantBuffer(&pRenderContext->skyboxShader.uniform_MatrixBlock, pRenderContext->skyboxShader.pProgram, "u_EF_Skybox", sizeof(pRenderContext->skyboxShader.shader_data));
 
   vcShader_Bind(pRenderContext->udRenderContext.presentShader.pProgram);
   vcShader_GetUniformIndex(&pRenderContext->udRenderContext.presentShader.uniform_texture, pRenderContext->udRenderContext.presentShader.pProgram, "u_texture");
@@ -163,12 +171,15 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
   float zNear = pRenderContext->pSettings->camera.nearPlane;
   float zFar = pRenderContext->pSettings->camera.farPlane;
 
+  uint32_t widthIncr = width + (width % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - width % vcRender_SceneSizeIncrement : 0);
+  uint32_t heightIncr = height + (height % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - height % vcRender_SceneSizeIncrement : 0);
+
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
   UD_ERROR_IF(width == 0, udR_InvalidParameter_);
   UD_ERROR_IF(height == 0, udR_InvalidParameter_);
 
-  pRenderContext->sceneResolution.x = width;
-  pRenderContext->sceneResolution.y = height;
+  pRenderContext->sceneResolution.x = widthIncr;
+  pRenderContext->sceneResolution.y = heightIncr;
   pRenderContext->projectionMatrix = udDouble4x4::perspective(fov, aspect, zNear, zFar);
   pRenderContext->skyboxProjMatrix = udDouble4x4::perspective(fov, aspect, 0.5f, 10000.f);
 
@@ -182,14 +193,14 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
   //Resize GPU Targets
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
   vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
-  vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pColorBuffer, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_Dynamic);
+  vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pColorBuffer, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_Dynamic);
   vcTexture_Create(&pRenderContext->udRenderContext.pDepthTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pDepthBuffer, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_Dynamic);
 
   vcTexture_Destroy(&pRenderContext->pTexture);
   vcTexture_Destroy(&pRenderContext->pDepthTexture);
   vcFramebuffer_Destroy(&pRenderContext->pFramebuffer);
-  vcTexture_Create(&pRenderContext->pTexture, width, height, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget);
-  vcTexture_Create(&pRenderContext->pDepthTexture, width, height, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget);
+  vcTexture_Create(&pRenderContext->pTexture, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget);
+  vcTexture_Create(&pRenderContext->pDepthTexture, widthIncr, heightIncr, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget);
   vcFramebuffer_Create(&pRenderContext->pFramebuffer, pRenderContext->pTexture, pRenderContext->pDepthTexture);
 
   if (pRenderContext->pVaultContext)
@@ -354,12 +365,13 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
   udFloat4x4 viewProjMatrixF = projectionMatrixF * viewMatrixF;
   viewProjMatrixF.axis.t = udFloat4::create(0, 0, 0, 1);
   viewProjMatrixF.inverse();
+  pRenderContext->skyboxShader.shader_data.skyboxViewProjMatrixF = viewProjMatrixF;
 
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);
   VERIFY_GL();
 
   vcShader_BindTexture(pRenderContext->skyboxShader.pProgram, pRenderContext->pSkyboxCubeMapTexture, 0, pRenderContext->skyboxShader.uniform_texture);
-  vcShader_SetUniform(pRenderContext->skyboxShader.uniform_inverseViewProjection, viewProjMatrixF);
+  vcShader_BindConstantBuffer(pRenderContext->skyboxShader.pProgram, pRenderContext->skyboxShader.uniform_MatrixBlock, &pRenderContext->skyboxShader.shader_data, sizeof(pRenderContext->skyboxShader.shader_data));
   VERIFY_GL();
 
   // Draw the skybox only at the far plane, where there is no geometry.
