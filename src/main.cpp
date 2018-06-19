@@ -115,8 +115,8 @@ int main(int /*argc*/, char ** /*args*/)
   SDL_Surface *pIcon = nullptr;
   int iconWidth, iconHeight, iconBytesPerPixel;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  char IconPath[] = ASSETDIR "Vault_Client.png";
-  char EucWatermarkPath[] = ASSETDIR "EuclideonClientWM.png";
+  char IconPath[] = ASSETDIR "EuclideonClientIcon.png";
+  char EucWatermarkPath[] = ASSETDIR "EuclideonLogo.png";
 #elif UDPLATFORM_OSX
   pBasePath = SDL_GetBasePath();
   if (pBasePath == nullptr)
@@ -125,11 +125,11 @@ int main(int /*argc*/, char ** /*args*/)
   char fontPath[vcMaxPathLength] = "";
   char IconPath[vcMaxPathLength] = "";
   char EucWatermarkPath[vcMaxPathLength] = "";
-  udSprintf(IconPath, vcMaxPathLength, "%s%s", pBasePath, "Vault_Client.png");
-  udSprintf(EucWatermarkPath, vcMaxPathLength, "%s%s", pBasePath, "EuclideonClientWM.png");
+  udSprintf(IconPath, vcMaxPathLength, "%s%s", pBasePath, "EuclideonClientIcon.png");
+  udSprintf(EucWatermarkPath, vcMaxPathLength, "%s%s", pBasePath, "EuclideonLogo.png");
 #else
-  char IconPath[] = ASSETDIR "icons/Vault_Client.png";
-  char EucWatermarkPath[] = ASSETDIR "icons/EuclideonClientWM.png";
+  char IconPath[] = ASSETDIR "icons/EuclideonClientIcon.png";
+  char EucWatermarkPath[] = ASSETDIR "icons/EuclideonLogo.png";
 #endif
   unsigned char *pIconData = nullptr;
   unsigned char *pEucWatermarkData = nullptr;
@@ -769,7 +769,7 @@ void vcRenderWindow(vcState *pProgramState)
 
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f, 0.f, 0.f, 0.f));
     ImGui::Begin("Watermark", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
-    ImGui::Image((ImTextureID)((size_t)pProgramState->pWatermarkTexture->id), ImVec2(512, 512), ImVec2(0, 0), ImVec2(1, 1));
+    ImGui::Image((ImTextureID)((size_t)pProgramState->pWatermarkTexture->id), ImVec2(301, 161), ImVec2(0, 0), ImVec2(1, 1));
     ImGui::End();
     ImGui::PopStyleColor();
 
