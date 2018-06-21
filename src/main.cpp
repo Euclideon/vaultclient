@@ -20,8 +20,6 @@
 #include "stb_image.h"
 
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
-//#  define _CRT_SECURE_NO_WARNINGS
-//#  define _CRTDBG_MAP_ALLOC
 #  include <crtdbg.h>
 #  include <stdio.h>
 #endif

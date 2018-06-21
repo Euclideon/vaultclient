@@ -18,7 +18,7 @@ struct vcTexture;
 
 typedef unsigned int GLuint;
 
-enum
+enum vcPopupTriggerID
 {
   vcPopup_ModelProperties,
 
