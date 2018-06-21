@@ -19,6 +19,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#if UDPLATFORM_WINDOWS && !defined(NDEBUG)
+#  include <crtdbg.h>
+#  include <stdio.h>
+#endif
+
 udChunkedArray<vcModel> vcModelList;
 
 static bool lastModelLoaded;
@@ -101,6 +106,11 @@ int SDL_main(int /*argc*/, char ** /*args*/)
 int main(int /*argc*/, char ** /*args*/)
 #endif
 {
+#if UDPLATFORM_WINDOWS && !defined(NDEBUG)
+  _CrtMemState m1, m2, diff;
+  _CrtMemCheckpoint(&m1);
+#endif //UDPLATFORM_WINDOWS && !defined(NDEBUG)
+
   SDL_GLContext glcontext = NULL;
   uint32_t windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
@@ -372,6 +382,15 @@ epilogue:
 #if UDPLATFORM_OSX
   SDL_free(pBasePath);
 #endif
+
+#if UDPLATFORM_WINDOWS && !defined(NDEBUG)
+  _CrtMemCheckpoint(&m2);
+  if (_CrtMemDifference(&diff, &m1, &m2) && diff.lCounts[_NORMAL_BLOCK] > 0)
+  {
+    _CrtMemDumpAllObjectsSince(&m1);
+    printf("%s\n", "Memory leaks found");
+  }
+#endif //UDPLATFORM_WINDOWS && !defined(NDEBUG)
 
   return 0;
 }
@@ -999,6 +1018,17 @@ void vcRenderWindow(vcState *pProgramState)
           pProgramState->prevSelectedModel = i;
         }
 
+        if (ImGui::BeginPopupContextItem(modelLabelID))
+        {
+          if (ImGui::Selectable("Properties", false))
+          {
+            pProgramState->popupTrigger[vcPopup_ModelProperties] = true;
+            pProgramState->selectedModelProperties.index = i;
+            ImGui::CloseCurrentPopup();
+          }
+          ImGui::EndPopup();
+        }
+
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
           vcModel_MoveToModelProjection(pProgramState, &vcModelList[i]);
 
@@ -1194,6 +1224,96 @@ void vcRenderWindow(vcState *pProgramState)
     }
 
     ImGui::EndDock();
+
+    //Handle popups produced when vdkContext exists
+
+    if (pProgramState->popupTrigger[vcPopup_ModelProperties])
+    {
+      ImGui::OpenPopup("Model Properties");
+
+      pProgramState->selectedModelProperties.pMetadata = vcModelList[pProgramState->selectedModelProperties.index].pMetadata;
+
+      const char *pWatermark = pProgramState->selectedModelProperties.pMetadata->Get("Watermark").AsString();
+      if (pWatermark)
+      {
+        uint8_t *pImage = nullptr;
+        size_t imageLen = 0;
+        if (udBase64Decode(&pImage, &imageLen, pWatermark) == udR_Success)
+        {
+          int imageWidth, imageHeight, imageChannels;
+          unsigned char *pImageData = stbi_load_from_memory(pImage, (int)imageLen, &imageWidth, &imageHeight, &imageChannels, 0);
+          vcTexture_Create(&pProgramState->selectedModelProperties.pWatermarkTexture, imageWidth, imageHeight, vcTextureFormat_RGBA8, GL_NEAREST, false, pImageData);
+          STBI_FREE(pImageData);
+        }
+
+        udFree(pImage);
+      }
+
+      ImGui::SetNextWindowSize(ImVec2(400, 600));
+
+      pProgramState->popupTrigger[vcPopup_ModelProperties] = false;
+    }
+
+    if (ImGui::BeginPopupModal("Model Properties", NULL, ImGuiWindowFlags_ResizeFromAnySide))
+    {
+      ImGui::Text("File:");
+
+      ImGui::TextWrapped("  %s", vcModelList[pProgramState->selectedModelProperties.index].modelPath);
+
+      ImGui::Separator();
+
+      if (pProgramState->selectedModelProperties.pMetadata == nullptr)
+      {
+        ImGui::Text("No model information found.");
+      }
+      else
+      {
+        for (size_t i = 0; i < pProgramState->selectedModelProperties.pMetadata->MemberCount(); ++i)
+        {
+          const char *pMemberName = pProgramState->selectedModelProperties.pMetadata->GetMemberName(i);
+
+          if (udStrEqual(pMemberName, "ProjectionWKT") || udStrEqual(pMemberName, "Watermark"))
+            continue;
+
+          ImGui::TextWrapped("%s -> %s", pMemberName, pProgramState->selectedModelProperties.pMetadata->GetMember(i)->AsString(""));
+        }
+
+        ImGui::Separator();
+
+        if (pProgramState->selectedModelProperties.pWatermarkTexture != nullptr)
+        {
+          ImGui::Text("Watermark");
+
+          ImVec2 imageSize = ImVec2((float)pProgramState->selectedModelProperties.pWatermarkTexture->width, (float)pProgramState->selectedModelProperties.pWatermarkTexture->height);
+          ImVec2 imageLimits = ImVec2(ImGui::GetContentRegionAvailWidth(), 100.f);
+
+          if (imageSize.y > imageLimits.y)
+          {
+            imageSize.x *= imageLimits.y / imageSize.y;
+            imageSize.y = imageLimits.y;
+          }
+
+          if (imageSize.x > imageLimits.x)
+          {
+            imageSize.y *= imageLimits.x / imageSize.x;
+            imageSize.x = imageLimits.x;
+          }
+
+          ImGui::Image((ImTextureID)(size_t)pProgramState->selectedModelProperties.pWatermarkTexture->id, imageSize);
+          ImGui::Separator();
+        }
+      }
+
+      if (ImGui::Button("Close"))
+      {
+        if(pProgramState->selectedModelProperties.pWatermarkTexture != nullptr)
+          vcTexture_Destroy(&pProgramState->selectedModelProperties.pWatermarkTexture);
+
+        ImGui::CloseCurrentPopup();
+      }
+
+      ImGui::EndPopup();
+    }
   }
 
 epilogue:

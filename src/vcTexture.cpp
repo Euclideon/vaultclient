@@ -29,15 +29,31 @@ bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, vc
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
   }
 
-  GLint internalFormat;
+  GLenum internalFormat;
+  GLenum pixelFormat, pixelType;
   switch (format)
   {
-  case vcTextureFormat_RGBA8: // fall through
+  case vcTextureFormat_RGBA8:
+    internalFormat = GL_RGBA;
+    pixelFormat = GL_RGBA;
+    pixelType = GL_UNSIGNED_BYTE;
+    break;
+  case vcTextureFormat_D24:
+    internalFormat = GL_DEPTH_COMPONENT24;
+    pixelFormat = GL_DEPTH_COMPONENT;
+    pixelType = GL_FLOAT;
+    break;
+  case vcTextureFormat_D32F:
+    internalFormat = GL_DEPTH_COMPONENT32F;
+    pixelFormat = GL_DEPTH_COMPONENT;
+    pixelType = GL_FLOAT;
+    break;
   default:
-    internalFormat = GL_RGBA8;
+    // unknown texture format, do nothing
+    return false;
   }
 
-  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, pPixels);
+  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, pixelFormat, pixelType, pPixels);
 
   if (hasMipmaps)
     glGenerateMipmap(GL_TEXTURE_2D);
