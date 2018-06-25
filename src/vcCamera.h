@@ -7,7 +7,22 @@ enum vcCameraMoveMode
 {
   vcCMM_Plane,
   vcCMM_Helicopter,
-  vcCMM_Orbit,
+};
+
+enum vcCameraPivotMode
+{
+  vcCPM_Tumble,
+  vcCPM_Orbit,
+  vcCPM_Pan,
+
+  vcCPM_Err,
+};
+
+enum vcControlMode
+{
+  vcCM_Normal,
+  vcCM_Zoom,
+  vcCM_Measure,
 };
 
 struct vcCamera;
@@ -23,6 +38,7 @@ struct vcCameraSettings
   bool invertY;
   int lensIndex;
   vcCameraMoveMode moveMode;
+  vcCameraPivotMode pivotBind[3]; // bindings for camera settings
 };
 
 // Lens Sizes
@@ -60,8 +76,8 @@ udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera);
 udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPosition);
 
 // Applies movement to camera
-void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, float speedModifier = 1.f);
-void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, bool orbitActive, udDouble3 orbitPosition, udDouble3 storedRotation, float speedModifier = 1.f);
+void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraPivotMode pivotMode, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, float speedModifier = 1.f);
+void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraPivotMode pivotMode, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, bool orbitActive, udDouble3 orbitPosition, udDouble3 storedRotation, float speedModifier = 1.f);
 
 void vcCamera_TravelZoomPath(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcState *pProgramState, double deltaTime);
 
