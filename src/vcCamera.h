@@ -31,6 +31,7 @@ enum vcInputState
   vcCIS_None,
   vcCIS_Orbiting,
   vcCIS_MovingToPoint,
+  vcCIS_CommandZooming,
   vcCIS_PinchZooming,
 
   vcCIS_Count
@@ -47,6 +48,8 @@ struct vcCameraInput
   udDouble3 startPosition;
   udDouble3 storedRotation;
   double progress;
+
+  float previousFoV;
 };
 
 struct vcCameraSettings
@@ -88,6 +91,8 @@ enum vcLensSizes
   vcLS_TotalLenses
 };
 
+const char** vcCamera_GetLensNames();
+
 void vcCamera_Create(vcCamera **ppCamera);
 void vcCamera_Destroy(vcCamera **ppCamera);
 
@@ -103,8 +108,6 @@ void vcCamera_TravelZoomPath(vcCamera *pCamera, vcCameraSettings *pCamSettings, 
 
 void vcCamera_SetPosition(vcCamera *pCamera, udDouble3 position);
 void vcCamera_SetRotation(vcCamera *pCamera, udDouble3 yprRotation);
-
-const char* const* vcCamera_GetLensNames();
 
 void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 *pMoveOffset, udDouble3 *pRotationOffset);
 

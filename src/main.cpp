@@ -412,9 +412,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   if (pProgramState->sceneResolution.x != size.x || pProgramState->sceneResolution.y != size.y) //Resize buffers
   {
-    vcRender_ResizeScene(pProgramState->pRenderContext, (uint32_t)size.x, (uint32_t)size.y);
+    pProgramState->sceneResolution = udUInt2::create((uint32_t)size.x, (uint32_t)size.y);
+    vcRender_ResizeScene(pProgramState->pRenderContext, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y);
 
-    pProgramState->sceneResolution = udUInt2::create(size.x, size.y);
     // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
     // this isn't valid on iOS when using UIKit.
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, pProgramState->defaultFramebuffer);
@@ -439,6 +439,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.models.Deinit();
 
   {
+    pProgramState->worldMousePos = renderData.worldMousePos;
+    pProgramState->pickingSuccess = renderData.pickingSuccess;
+
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + size.x - 5.f, windowPos.y + 5.f), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
@@ -459,19 +462,16 @@ void vcRenderSceneWindow(vcState *pProgramState)
       if (ImGui::IsMousePosValid())
       {
         ImGui::Text("Mouse Position: (%.1f,%.1f)", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
-        ImGui::Text("Mouse World Pos (x/y/z): (%f,%f,%f)", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
-
-        udDouble3 mousePointInLatLong;
-        pProgramState->worldMousePos = renderData.worldMousePos;
-        pProgramState->pickingSuccess = renderData.pickingSuccess;
-
         if (pProgramState->pickingSuccess)
-          vcGIS_LocalToLatLong(pProgramState->currentSRID, renderData.worldMousePos, &mousePointInLatLong);
-        else
-          mousePointInLatLong = udDouble3::zero();
+        {
+          ImGui::Text("Mouse World Pos (x/y/z): (%f,%f,%f)", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
 
-        if(pProgramState->currentSRID != 0)
-          ImGui::Text("Mouse World Pos (L/L): (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
+          udDouble3 mousePointInLatLong;
+          vcGIS_LocalToLatLong(pProgramState->currentSRID, renderData.worldMousePos, &mousePointInLatLong);
+
+          if (pProgramState->currentSRID != 0)
+            ImGui::Text("Mouse World Pos (L/L): (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
+        }
 
         ImGui::Text("Selected Pos (x/y/z): (%f,%f,%f)", pProgramState->currentMeasurePoint.x, pProgramState->currentMeasurePoint.y, pProgramState->currentMeasurePoint.z);
       }
@@ -510,6 +510,18 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
       if (ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f))
         pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
+
+      switch (pProgramState->cameraInput.controlMode)
+      {
+      case vcCM_Normal:
+        break;
+      case vcCM_Zoom:
+        ImGui::Text("Zoom - Press <Shift> to change FoV - Press <Ctrl> to Reset FoV - Press <ESC> to cancel");
+        break;
+      case vcCM_Measure:
+        ImGui::Text("Measure - Press <ESC> to cancel");
+        break;
+      }
     }
 
     ImGui::End();
