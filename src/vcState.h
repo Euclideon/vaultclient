@@ -57,6 +57,8 @@ struct vcState
 
   udDouble3 worldMousePos;
   udDouble3 currentMeasurePoint;
+  bool pickingSuccess;
+  bool measureMode;
 
   struct
   {
@@ -68,6 +70,7 @@ struct vcState
 
   udDouble3 orbitPos;
   udDouble3 storedDeltaAngle;
+  bool isOrbitActive;
 
   bool hasContext;
   vdkContext *pContext;

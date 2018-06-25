@@ -211,6 +211,14 @@ epilogue:
 
 vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, GLuint defaultFramebuffer)
 {
+  float fov = pRenderContext->pSettings->camera.fieldOfView;
+  float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
+  float zNear = pRenderContext->pSettings->camera.nearPlane;
+  float zFar = pRenderContext->pSettings->camera.farPlane;
+
+  pRenderContext->projectionMatrix = udDouble4x4::perspective(fov, aspect, zNear, zFar);
+  pRenderContext->skyboxProjMatrix = udDouble4x4::perspective(fov, aspect, 0.5f, 10000.f);
+
   pRenderContext->viewMatrix = renderData.cameraMatrix;
   pRenderContext->viewMatrix.inverse();
   pRenderContext->viewProjectionMatrix = pRenderContext->projectionMatrix * pRenderContext->viewMatrix;
@@ -321,6 +329,9 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   vdkModel **ppModels = nullptr;
   int numVisibleModels = 0;
 
+  if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->projectionMatrix.a) != vE_Success)
+    UD_ERROR_SET(udR_InternalError);
+
   if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->viewMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
@@ -347,6 +358,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   {
     // More to be done here
     renderData.worldMousePos = udDouble3::create(picking.pointCenter[0], picking.pointCenter[1], picking.pointCenter[2]);
+    renderData.pickingSuccess = true;
   }
 
   vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
