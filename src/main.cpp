@@ -89,7 +89,6 @@ struct vcColumnHeader
 char *pBasePath = nullptr;
 #endif
 
-void vcHandleSceneInput(vcState *pProgramState, udDouble3 *pMoveOffset, udDouble3 *pRotationOffset);
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
@@ -338,10 +337,10 @@ int main(int /*argc*/, char ** /*args*/)
             programState.settings.window.maximized = false;
           }
         }
-        //else if (event.type = SDL_MULTIGESTURE)
-        //{
-        //  //todo: pinch to zoom
-        //}
+        else if (event.type == SDL_MULTIGESTURE)
+        {
+          //todo: pinch to zoom
+        }
         else if (event.type == SDL_DROPFILE && programState.hasContext)
         {
           vcModel_AddToList(&programState, event.drop.file);
@@ -397,277 +396,6 @@ epilogue:
 #endif //UDPLATFORM_WINDOWS && !defined(NDEBUG)
 
   return 0;
-}
-
-void vcHandleSceneInput(vcState *pProgramState, udDouble3 *pMoveOffset, udDouble3 *pRotationOffset)
-{
-  ImGuiIO &io = ImGui::GetIO();
-  ImVec2 size = ImVec2(pProgramState->sceneResolution.x, pProgramState->sceneResolution.y);
-  ImVec2 windowPos = ImVec2(ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y);
-
-  ImVec2 mousePos = io.MousePos;
-
-  udDouble3 moveOffset = udDouble3::zero();
-  udDouble3 rotationOffset = udDouble3::zero();
-
-  udDouble3 addPos = udDouble3::zero();
-
-  // bring in values
-  moveOffset.x += pMoveOffset->x;
-  moveOffset.y += pMoveOffset->y;
-  moveOffset.z += pMoveOffset->z;
-
-  rotationOffset.x += pRotationOffset->x;
-  rotationOffset.y += pRotationOffset->y;
-  rotationOffset.z += pRotationOffset->z;
-
-  // motion parameters
-
-  bool isPinchZoomActive = false;
-
-
-  float speedModifier = 1.f;
-
-  bool isHovered = ImGui::IsItemHovered();
-  static bool isFocused = false;
-
-  bool isLeftClicked = ImGui::IsMouseClicked(0, false);
-  bool isRightClicked = ImGui::IsMouseClicked(1, false);
-  bool isMiddleClicked = ImGui::IsMouseClicked(2, false);
-
-  bool isLeftDoubleClicked = ImGui::IsMouseDoubleClicked(0);
-  bool isRightDoubleClicked = ImGui::IsMouseDoubleClicked(1);
-  bool isMiddleDoubleClicked = ImGui::IsMouseDoubleClicked(2);
-
-  static bool clickedLeftWhileHovered = false;
-  static bool clickedRightWhileHovered = false;
-  static bool clickedMiddleWhileHovered = false;
-
-  if (isHovered && isLeftClicked)
-  {
-    clickedLeftWhileHovered = true;
-    isFocused = true;
-  }
-
-  if (isHovered && isRightClicked)
-  {
-    clickedRightWhileHovered = true;
-    isFocused = true;
-  }
-
-  if (isHovered && isMiddleClicked)
-  {
-    clickedMiddleWhileHovered = true;
-    isFocused = true;
-  }
-
-  if (!isHovered && (isLeftClicked || isRightClicked || isMiddleClicked))
-    isFocused = false;
-
-  if (io.KeyCtrl)
-    speedModifier *= 0.1f;
-
-  if (io.KeyShift)
-    speedModifier *= 10.f;
-
-  if (isFocused)
-  {
-    ImVec2 mouseDelta = io.MouseDelta;
-
-    addPos.y += io.KeysDown[SDL_SCANCODE_W] - io.KeysDown[SDL_SCANCODE_S];
-    addPos.x += io.KeysDown[SDL_SCANCODE_D] - io.KeysDown[SDL_SCANCODE_A];
-    addPos.z += io.KeysDown[SDL_SCANCODE_R] - io.KeysDown[SDL_SCANCODE_F];
-
-    //TODO: Add keyboard controls for switching movemodes
-
-    if (moveOffset != udDouble3::zero() || addPos != udDouble3::zero() || isLeftClicked || isRightClicked || isMiddleClicked) // if input is detected
-      pProgramState->zoomPath.isZooming = false;
-
-    // Single Clicking
-
-    if (isLeftClicked)
-    {
-      switch (pProgramState->settings.camera.pivotBind[0])
-      {
-      case vcCPM_Orbit:
-        if (pProgramState->pickingSuccess)
-        {
-          pProgramState->orbitPos = pProgramState->worldMousePos;
-          pProgramState->storedDeltaAngle = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->orbitPos);
-          pProgramState->isOrbitActive = true;
-        }
-        break;
-      default:
-        break;
-      }
-    }
-
-    if (isRightClicked)
-    {
-      //TODO: measure mode
-      switch (pProgramState->settings.camera.pivotBind[1])
-      {
-      case vcCPM_Orbit:
-        if (pProgramState->pickingSuccess)
-        {
-          pProgramState->orbitPos = pProgramState->worldMousePos;
-          pProgramState->storedDeltaAngle = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->orbitPos);
-          pProgramState->isOrbitActive = true;
-        }
-        break;
-      default:
-        break;
-      }
-    }
-
-    if (isMiddleClicked)
-    {
-      switch (pProgramState->settings.camera.pivotBind[2])
-      {
-      case vcCPM_Orbit:
-        if (pProgramState->pickingSuccess)
-        {
-          pProgramState->orbitPos = pProgramState->worldMousePos;
-          pProgramState->storedDeltaAngle = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->orbitPos);
-          pProgramState->isOrbitActive = true;
-        }
-        break;
-      default:
-        break;
-      }
-    }
-
-    // Click and Hold
-
-    if (clickedLeftWhileHovered && !isLeftClicked)
-    {
-      clickedLeftWhileHovered = io.MouseDown[0];
-      if (io.MouseDown[0])
-      {
-        switch (pProgramState->settings.camera.pivotBind[0])
-        {
-        case vcCPM_Pan:
-          moveOffset.x += -mouseDelta.x / 10.0;
-          moveOffset.z += -mouseDelta.y / 10.0; // TODO: calibrate
-          break;
-        default:
-          rotationOffset.x = -mouseDelta.x / 100.0;
-          rotationOffset.y = -mouseDelta.y / 100.0;
-          rotationOffset.z = 0.0;
-          break;
-        }
-      }
-      else
-      {
-        pProgramState->isOrbitActive = false;
-      }
-    }
-
-    if (clickedRightWhileHovered && !isRightClicked)
-    {
-      clickedRightWhileHovered = io.MouseDown[1];
-      if (io.MouseDown[1])
-      {
-        switch (pProgramState->settings.camera.pivotBind[1])
-        {
-        case vcCPM_Pan:
-          moveOffset.x += -mouseDelta.x / 10.0;
-          moveOffset.z += -mouseDelta.y / 10.0; // TODO: calibrate
-          break;
-        default:
-          rotationOffset.x = -mouseDelta.x / 100.0;
-          rotationOffset.y = -mouseDelta.y / 100.0;
-          rotationOffset.z = 0.0;
-          break;
-        }
-      }
-      else
-      {
-        pProgramState->isOrbitActive = false;
-      }
-    }
-
-    if (clickedMiddleWhileHovered && !isMiddleClicked)
-    {
-      clickedMiddleWhileHovered = io.MouseDown[2];
-      if (io.MouseDown[2])
-      {
-        switch (pProgramState->settings.camera.pivotBind[2])
-        {
-        case vcCPM_Pan:
-          moveOffset.x += -mouseDelta.x / 10.0;
-          moveOffset.z += -mouseDelta.y / 10.0; // TODO: calibrate
-          break;
-        default:
-          rotationOffset.x = -mouseDelta.x / 100.0;
-          rotationOffset.y = -mouseDelta.y / 100.0;
-          rotationOffset.z = 0.0;
-          break;
-        }
-      }
-      else
-      {
-        pProgramState->isOrbitActive = false;
-      }
-    }
-
-    // Double Clicking
-
-    if (isLeftDoubleClicked)
-    {
-      if (pProgramState->pickingSuccess)
-      {
-        pProgramState->zoomPath.isZooming = true;
-        pProgramState->zoomPath.startPos = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
-        pProgramState->zoomPath.endPos = pProgramState->worldMousePos;
-        pProgramState->zoomPath.progress = 0.0;
-      }
-    }
-
-    // Mouse Wheel
-    if (io.MouseWheel > 0)
-    {
-      // TODO: Move closer to point
-    }
-    else if (io.MouseWheel < 0)
-    {
-      // TODO: Move away from point
-    }
-  }
-
-  moveOffset += addPos;
-
-  // set pivot to send to apply function
-  vcCameraPivotMode applicationPivotMode = vcCPM_Err; // this is broken atm, future problem
-  if (io.MouseDown[0] && !io.MouseDown[1] && !io.MouseDown[2])
-    applicationPivotMode = pProgramState->settings.camera.pivotBind[0];
-
-  if (!io.MouseDown[0] && io.MouseDown[1] && !io.MouseDown[2])
-    applicationPivotMode = pProgramState->settings.camera.pivotBind[1];
-
-  if (!io.MouseDown[0] && !io.MouseDown[1] && io.MouseDown[2])
-    applicationPivotMode = pProgramState->settings.camera.pivotBind[2];
-
-  // Apply movement and rotation
-  if (pProgramState->zoomPath.isZooming)
-    vcCamera_TravelZoomPath(pProgramState->pCamera, &pProgramState->settings.camera, pProgramState, pProgramState->deltaTime);
-
-  if (pProgramState->isOrbitActive)
-    vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, applicationPivotMode, rotationOffset, moveOffset, pProgramState->deltaTime, pProgramState->isOrbitActive, pProgramState->orbitPos, pProgramState->storedDeltaAngle, speedModifier);
-  else
-    vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, applicationPivotMode, rotationOffset, moveOffset, pProgramState->deltaTime, speedModifier);
-
-
-  // Set outputs
-  pMoveOffset->x += moveOffset.x;
-  pMoveOffset->y += moveOffset.y;
-  pMoveOffset->z += moveOffset.z;
-
-  pRotationOffset->x += rotationOffset.x;
-  pRotationOffset->y += rotationOffset.y;
-  pRotationOffset->z += rotationOffset.z;
-
-  pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera);
 }
 
 void vcRenderSceneWindow(vcState *pProgramState)
@@ -845,7 +573,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
     ImGui::Image((ImTextureID)((size_t)pTexture->id), size, ImVec2(0, 0), ImVec2(1, -1));
 
-    vcHandleSceneInput(pProgramState, &moveOffset, &rotationOffset);
+    vcCamera_HandleSceneInput(pProgramState, &moveOffset, &rotationOffset);
   }
 }
 
@@ -1318,16 +1046,18 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::Checkbox("Invert Y-axis", &pProgramState->settings.camera.invertY);
 
       ImGui::Text("Mouse Pivot Bindings");
+      const char *mouseModes[] = { "Tumble", "Orbit", "Pan" };
+
       int mouseBindingIndex = pProgramState->settings.camera.pivotBind[0];
-      ImGui::Combo("Left", &mouseBindingIndex, "Tumble\0Orbit\0Pan");
+      ImGui::Combo("Left", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
       pProgramState->settings.camera.pivotBind[0] = (vcCameraPivotMode)mouseBindingIndex;
 
       mouseBindingIndex = pProgramState->settings.camera.pivotBind[2];
-      ImGui::Combo("Middle", &mouseBindingIndex, "Tumble\0Orbit\0Pan");
+      ImGui::Combo("Middle", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
       pProgramState->settings.camera.pivotBind[2] = (vcCameraPivotMode)mouseBindingIndex;
 
       mouseBindingIndex = pProgramState->settings.camera.pivotBind[1];
-      ImGui::Combo("Right", &mouseBindingIndex, "Tumble\0Orbit\0Pan");
+      ImGui::Combo("Right", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
       pProgramState->settings.camera.pivotBind[1] = (vcCameraPivotMode)mouseBindingIndex;
 
       ImGui::Text("Viewport");
