@@ -61,8 +61,6 @@ struct vcRenderContext
     vcShader *pProgram;
     vcShaderUniform *uniform_texture;
     vcShaderConstantBuffer *uniform_MatrixBlock;
-
-    struct vcShader_Buffer_Skybox shader_data;
   } skyboxShader;
 
   vcMesh *pSkyboxMesh;
@@ -88,14 +86,9 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   vcTexture_LoadCubemap(&pRenderContext->pSkyboxCubeMapTexture, "CloudWater.jpg");
 
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);
-  vcShader_GetUniformIndex(&pRenderContext->skyboxShader.uniform_texture, pRenderContext->skyboxShader.pProgram, "u_texture");
-
-  vcShader_GetConstantBuffer(&pRenderContext->skyboxShader.uniform_MatrixBlock, pRenderContext->skyboxShader.pProgram, "u_EF_Skybox", sizeof(pRenderContext->skyboxShader.shader_data));
+  vcShader_GetConstantBuffer(&pRenderContext->skyboxShader.uniform_MatrixBlock, pRenderContext->skyboxShader.pProgram, "u_EveryFrame", sizeof(udFloat4x4));
 
   vcShader_Bind(pRenderContext->udRenderContext.presentShader.pProgram);
-  vcShader_GetUniformIndex(&pRenderContext->udRenderContext.presentShader.uniform_texture, pRenderContext->udRenderContext.presentShader.pProgram, "u_texture");
-  vcShader_GetUniformIndex(&pRenderContext->udRenderContext.presentShader.uniform_depth, pRenderContext->udRenderContext.presentShader.pProgram, "u_depth");
-
   vcMesh_CreateSimple(&pRenderContext->pSkyboxMesh, qrSqVertices, 4, qrIndices, 6);
 
   vcShader_Bind(nullptr);
@@ -365,18 +358,17 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
   udFloat4x4 viewProjMatrixF = projectionMatrixF * viewMatrixF;
   viewProjMatrixF.axis.t = udFloat4::create(0, 0, 0, 1);
   viewProjMatrixF.inverse();
-  pRenderContext->skyboxShader.shader_data.skyboxViewProjMatrixF = viewProjMatrixF;
+
+  // Draw the skybox only at the far plane, where there is no geometry.
+  // Drawing skybox here (after 'opaque' geometry) saves a bit on fill rate.
+  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 1.0f, 1.0f);
+  VERIFY_GL();
 
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);
   VERIFY_GL();
 
   vcShader_BindTexture(pRenderContext->skyboxShader.pProgram, pRenderContext->pSkyboxCubeMapTexture, 0, pRenderContext->skyboxShader.uniform_texture);
-  vcShader_BindConstantBuffer(pRenderContext->skyboxShader.pProgram, pRenderContext->skyboxShader.uniform_MatrixBlock, &pRenderContext->skyboxShader.shader_data, sizeof(pRenderContext->skyboxShader.shader_data));
-  VERIFY_GL();
-
-  // Draw the skybox only at the far plane, where there is no geometry.
-  // Drawing skybox here (after 'opaque' geometry) saves a bit on fill rate.
-  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 1.0f, 1.0f);
+  vcShader_BindConstantBuffer(pRenderContext->skyboxShader.pProgram, pRenderContext->skyboxShader.uniform_MatrixBlock, &viewProjMatrixF, sizeof(udDouble4x4));
   VERIFY_GL();
 
   vcMesh_RenderTriangles(pRenderContext->pSkyboxMesh, 2);

@@ -1158,8 +1158,10 @@ void vcRenderWindow(vcState *pProgramState)
         if (udBase64Decode(&pImage, &imageLen, pWatermark) == udR_Success)
         {
           int imageWidth, imageHeight, imageChannels;
-          unsigned char *pImageData = stbi_load_from_memory(pImage, (int)imageLen, &imageWidth, &imageHeight, &imageChannels, 0);
-          vcTexture_Create(&pProgramState->selectedModelProperties.pWatermarkTexture, imageWidth, imageHeight, vcTextureFormat_RGBA8, GL_NEAREST, false, pImageData);
+          unsigned char *pImageData = stbi_load_from_memory(pImage, (int)imageLen, &imageWidth, &imageHeight, &imageChannels, 4);
+          pProgramState->selectedModelProperties.watermarkWidth = imageWidth;
+          pProgramState->selectedModelProperties.watermarkHeight = imageHeight;
+          vcTexture_Create(&pProgramState->selectedModelProperties.pWatermarkTexture, imageWidth, imageHeight, pImageData, vcTextureFormat_RGBA8, vcTFM_Nearest, false);
           STBI_FREE(pImageData);
         }
 
@@ -1201,7 +1203,7 @@ void vcRenderWindow(vcState *pProgramState)
         {
           ImGui::Text("Watermark");
 
-          ImVec2 imageSize = ImVec2((float)pProgramState->selectedModelProperties.pWatermarkTexture->width, (float)pProgramState->selectedModelProperties.pWatermarkTexture->height);
+          ImVec2 imageSize = ImVec2((float)pProgramState->selectedModelProperties.watermarkWidth, (float)pProgramState->selectedModelProperties.watermarkHeight);
           ImVec2 imageLimits = ImVec2(ImGui::GetContentRegionAvailWidth(), 100.f);
 
           if (imageSize.y > imageLimits.y)
@@ -1216,7 +1218,7 @@ void vcRenderWindow(vcState *pProgramState)
             imageSize.x = imageLimits.x;
           }
 
-          ImGui::Image((ImTextureID)(size_t)pProgramState->selectedModelProperties.pWatermarkTexture->id, imageSize);
+          ImGui::Image((ImTextureID)(size_t)pProgramState->selectedModelProperties.pWatermarkTexture, imageSize);
           ImGui::Separator();
         }
       }

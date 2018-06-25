@@ -20,7 +20,7 @@
 
 #ifndef VERIFY_GL
 #ifdef _DEBUG
-#define VERIFY_GL() if (int glError = glGetError()) { /*cuDebugLog("GLError %d: (%s)\n", glError, msg);*/ __debugbreak(); }
+#define VERIFY_GL() if (int glError = glGetError()) { udDebugPrintf("GLError %d: (%s)\n", glError, glewGetErrorString(glError)); __debugbreak(); }
 //#define VERIFY_GL()
 #else
 #define VERIFY_GL()
@@ -49,6 +49,7 @@ struct vcFramebuffer
 struct vcShaderConstantBuffer
 {
   GLuint id;
+  GLuint bindPoint;
   char name[32];
 };
 
@@ -56,7 +57,7 @@ struct vcShader
 {
   GLuint programID;
   vcShaderConstantBuffer bufferObjects[16];
-  unsigned int numBufferObjects;
+  int numBufferObjects;
 };
 
 struct vcShaderUniform

@@ -5,6 +5,59 @@
 #include <d3dcompiler.h>
 #include <D3D11Shader.h>
 
+bool vsShader_InternalReflectShaderConstantBuffers(ID3D10Blob *pBlob, int type, vcShaderConstantBuffer *pBuffers, int *pNextBuffer)
+{
+  if (pBuffers == nullptr || pNextBuffer == nullptr)
+    return false;
+
+  ID3D11ShaderReflection *pReflection = NULL;
+  D3DReflect(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&pReflection);
+
+  D3D11_SHADER_DESC desc;
+  pReflection->GetDesc(&desc);
+
+  // Find Uniform Buffers
+  for (uint32_t i = 0; i < desc.ConstantBuffers; ++i)
+  {
+    uint32_t register_index = 0;
+    ID3D11ShaderReflectionConstantBuffer *pBuffer = NULL;
+    pBuffer = pReflection->GetConstantBufferByIndex(i);
+
+    D3D11_SHADER_BUFFER_DESC bdesc;
+    pBuffer->GetDesc(&bdesc);
+
+    for (uint32_t k = 0; k < desc.BoundResources; ++k)
+    {
+      D3D11_SHADER_INPUT_BIND_DESC ibdesc;
+      pReflection->GetResourceBindingDesc(k, &ibdesc);
+
+      if (!udStrcmp(ibdesc.Name, bdesc.Name))
+        register_index = ibdesc.BindPoint;
+    }
+
+    int index = (*pNextBuffer)++;
+
+    //register_index, bdesc.Name, pBuffer, &bdesc;
+    //mShaderBuffers.push_back(shaderbuffer);
+
+    udStrcpy(pBuffers[index].bufferName, sizeof(vcShaderConstantBuffer::bufferName), bdesc.Name);
+    pBuffers[index].expectedSize = bdesc.Size;
+    pBuffers[index].type = type;
+
+    D3D11_BUFFER_DESC bufferdesc;
+    bufferdesc.ByteWidth = bdesc.Size;
+    bufferdesc.Usage = D3D11_USAGE_DYNAMIC;
+    bufferdesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bufferdesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    bufferdesc.MiscFlags = 0;
+    g_pd3dDevice->CreateBuffer(&bufferdesc, NULL, &pBuffers[index].pBuffer);
+  }
+
+  pReflection->Release();
+
+  return true;
+}
+
 bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcShaderVertexInputTypes *pInputTypes, uint32_t totalInputs)
 {
   if (ppShader == nullptr || pVertexShader == nullptr || pFragmentShader == nullptr || pInputTypes == nullptr)
@@ -58,12 +111,10 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
       pVertexLayout[i] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 12;
       break;
-
     case vcSVIT_TextureCoords2:
       pVertexLayout[i] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 8;
       break;
-
     case vcSVIT_ColourBGRA:
       pVertexLayout[i] = { "COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 4;
@@ -74,45 +125,8 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   if (g_pd3dDevice->CreateInputLayout(pVertexLayout, totalInputs, pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &pShader->pLayout) != S_OK)
     return false;
 
-  ID3D11ShaderReflection *pReflection = NULL;
-  D3DReflect(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&pReflection);
-
-  D3D11_SHADER_DESC desc;
-  pReflection->GetDesc(&desc);
-
-  // Find Uniform Buffers
-  for (uint32_t i = 0; i < desc.ConstantBuffers; ++i)
-  {
-    unsigned int register_index = 0;
-    ID3D11ShaderReflectionConstantBuffer *pBuffer = NULL;
-    pBuffer = pReflection->GetConstantBufferByIndex(i);
-
-    D3D11_SHADER_BUFFER_DESC bdesc;
-    pBuffer->GetDesc(&bdesc);
-
-    for (unsigned int k = 0; k < desc.BoundResources; ++k)
-    {
-      D3D11_SHADER_INPUT_BIND_DESC ibdesc;
-      pReflection->GetResourceBindingDesc(k, &ibdesc);
-
-      if (!udStrcmp(ibdesc.Name, bdesc.Name))
-        register_index = ibdesc.BindPoint;
-    }
-
-    //register_index, bdesc.Name, pBuffer, &bdesc;
-    //mShaderBuffers.push_back(shaderbuffer);
-  }
-
-  // Create the constant buffer
-  //{
-  //  D3D11_BUFFER_DESC desc;
-  //  desc.ByteWidth = sizeof(VERTEX_CONSTANT_BUFFER);
-  //  desc.Usage = D3D11_USAGE_DYNAMIC;
-  //  desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-  //  desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-  //  desc.MiscFlags = 0;
-  //  g_pd3dDevice->CreateBuffer(&desc, NULL, &g_pVertexConstantBuffer);
-  //}
+  vsShader_InternalReflectShaderConstantBuffers(pVSBlob, 0, pShader->bufferObjects, &pShader->numBufferObjects);
+  vsShader_InternalReflectShaderConstantBuffers(pPSBlob, 1, pShader->bufferObjects, &pShader->numBufferObjects);
 
   pVSBlob->Release();
   pPSBlob->Release();
@@ -127,30 +141,14 @@ void vcShader_DestroyShader(vcShader **ppShader)
   if (ppShader == nullptr || *ppShader == nullptr)
     return;
 
+  for (int i = 0; i < (*ppShader)->numBufferObjects; ++i)
+    (*ppShader)->bufferObjects[i].pBuffer->Release();
+
   (*ppShader)->pLayout->Release();
   (*ppShader)->pPixelShader->Release();
   (*ppShader)->pVertexShader->Release();
 
-  //glDeleteProgram((*ppShader)->programID);
   udFree(*ppShader);
-}
-
-bool vcShader_GetUniformIndex(vcShaderUniform **ppUniform, vcShader *pShader, const char *pUniformName)
-{
-  if (ppUniform == nullptr || pShader == nullptr || pUniformName == nullptr)
-    return false;
-
-  //GLuint uID = glGetUniformLocation(pShader->programID, pUniformName);
-  //
-  //if (uID == GL_INVALID_INDEX)
-  //  return false;
-
-  vcShaderUniform *pUniform = udAllocType(vcShaderUniform, 1, udAF_Zero);
-  //pUniform->id = uID;
-
-  *ppUniform = pUniform;
-
-  return true;
 }
 
 bool vcShader_Bind(vcShader *pShader)
@@ -161,7 +159,6 @@ bool vcShader_Bind(vcShader *pShader)
   g_pd3dDeviceContext->IASetInputLayout(pShader->pLayout);
 
   g_pd3dDeviceContext->VSSetShader(pShader->pVertexShader, NULL, 0);
-  //g_pd3dDeviceContext->VSSetConstantBuffers(0, 1, &g_pVertexConstantBuffer);
   g_pd3dDeviceContext->PSSetShader(pShader->pPixelShader, NULL, 0);
 
   return true;
@@ -183,104 +180,48 @@ bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t sampl
 
 bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pShader, const char *pBufferName, const size_t bufferSize)
 {
-  unsigned int bufferIndex = -1;
+  if (ppBuffer == nullptr || pShader == nullptr || pBufferName == nullptr || bufferSize == 0)
+    return false;
+
+  *ppBuffer = nullptr;
+
   for (int i = 0; i < pShader->numBufferObjects; ++i)
   {
-    if (udStrEqual(pShader->bufferObjects[i].bufferName, pBufferName))
+    if (udStrEqual(pShader->bufferObjects[i].bufferName, pBufferName) && bufferSize == pShader->bufferObjects[i].expectedSize)
     {
-      bufferIndex = i;
+      *ppBuffer = &pShader->bufferObjects[i];
       break;
     }
   }
 
-  if (bufferIndex >= 16) // not found
-  {
-    pShader->bufferObjects[pShader->numBufferObjects].pBuffer = nullptr;
-
-    udStrcpy(pShader->bufferObjects[pShader->numBufferObjects].bufferName, 32, pBufferName);
-
-    *ppBuffer = &pShader->bufferObjects[pShader->numBufferObjects];
-    bufferIndex = pShader->numBufferObjects;
-    pShader->numBufferObjects++;
-  }
-  else
-  {
-    *ppBuffer = &pShader->bufferObjects[bufferIndex];
-  }
-
-  vcShaderConstantBuffer *pBuffer = *ppBuffer;
-
-  // Buffer Description
-  D3D11_BUFFER_DESC cbDesc;
-  cbDesc.ByteWidth = (UINT)bufferSize;
-  cbDesc.Usage = D3D11_USAGE_DYNAMIC;
-  cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-  cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-  cbDesc.MiscFlags = 0;
-  cbDesc.StructureByteStride = 0;
-
-  if (g_pd3dDevice->CreateBuffer(&cbDesc, NULL, &pBuffer->pBuffer))
-    return false;
-
-  g_pd3dDeviceContext->PSSetConstantBuffers(0, 1, &pBuffer->pBuffer);
-
-  *ppBuffer = pBuffer;
-  return true;
+  return (*ppBuffer != nullptr);
 }
 
-bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuffer, void *pData, const size_t bufferSize)
+bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuffer, const void *pData, const size_t bufferSize)
 {
-  //TODO null checks
+  if (pShader == nullptr || pBuffer == nullptr || pData == nullptr || bufferSize == 0)
+    return false;
+
   D3D11_MAPPED_SUBRESOURCE mapped_resource;
   if (g_pd3dDeviceContext->Map(pBuffer->pBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resource) != S_OK)
     return false;
 
-  vcShader_Buffer_Skybox *pConstantBuffer = (vcShader_Buffer_Skybox*)mapped_resource.pData;
-
-  memcpy(&pConstantBuffer->skyboxViewProjMatrixF, pData, bufferSize);
+  memcpy(mapped_resource.pData, pData, bufferSize);
   g_pd3dDeviceContext->Unmap(pBuffer->pBuffer, 0);
+
+  if (pBuffer->type == 0)
+    g_pd3dDeviceContext->VSSetConstantBuffers(0, 1, &pBuffer->pBuffer);
+  else
+    g_pd3dDeviceContext->PSSetConstantBuffers(0, 1, &pBuffer->pBuffer);
 
   return true;
 }
 
 bool vcShader_ReleaseConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuffer)
 {
+  if (pShader == nullptr || pBuffer == nullptr)
+    return false;
+
   //TODO
-  return true;
-}
-
-bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, udFloat3 vector)
-{
-  udUnused(pShaderUniform);
-  udUnused(vector);
-
-  //glUniform3f(pShaderUniform->id, vector.x, vector.y, vector.z);
-  return true;
-}
-
-bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, udFloat4x4 matrix)
-{
-  udUnused(pShaderUniform);
-  udUnused(matrix);
-
-  //glUniformMatrix4fv(pShaderUniform->id, 1, GL_FALSE, matrix.a);
-  return true;
-}
-
-bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, float floatVal)
-{
-  udUnused(pShaderUniform);
-  udUnused(floatVal);
-
-  //glUniform1f(pShaderUniform->id, floatVal);
-  return true;
-}
-
-bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, int32_t intVal)
-{
-  udUnused(pShaderUniform);
-  udUnused(intVal);
-
-  //glUniform1i(pShaderUniform->id, intVal);
   return true;
 }

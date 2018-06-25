@@ -64,11 +64,13 @@ struct vcTerrainRenderer
   struct
   {
     vcShader *pProgram;
-    vcShaderUniform *uniform_worldViewProjection[4];
-    vcShaderUniform *uniform_texture;
-    vcShaderUniform *uniform_debugColour;
+    vcShaderConstantBuffer *pConstantBuffer;
 
-    vcShaderUniform *uniform_opacity;
+    struct
+    {
+      udFloat4x4 worldViewProjections[4];
+      udFloat4 colour; // Colour Multiply
+    } everyObject;
   } presentShader;
 };
 
@@ -172,14 +174,7 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer, vcSettings *p
     udThread_Create(&pTerrainRenderer->cache.pThreads[i], (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
 
   vcShader_CreateFromText(&pTerrainRenderer->presentShader.pProgram, g_terrainTileVertexShader, g_terrainTileFragmentShader, vcSimpleVertex::LayoutType, UDARRAYSIZE(vcSimpleVertex::LayoutType));
-  vcShader_GetUniformIndex(&pTerrainRenderer->presentShader.uniform_texture, pTerrainRenderer->presentShader.pProgram, "u_texture");
-  vcShader_GetUniformIndex(&pTerrainRenderer->presentShader.uniform_debugColour, pTerrainRenderer->presentShader.pProgram, "u_debugColour");
-  vcShader_GetUniformIndex(&pTerrainRenderer->presentShader.uniform_opacity, pTerrainRenderer->presentShader.pProgram, "u_opacity");
-
-  vcShader_GetUniformIndex(&pTerrainRenderer->presentShader.uniform_worldViewProjection[0], pTerrainRenderer->presentShader.pProgram, "u_worldViewProjection0");
-  vcShader_GetUniformIndex(&pTerrainRenderer->presentShader.uniform_worldViewProjection[1], pTerrainRenderer->presentShader.pProgram, "u_worldViewProjection1");
-  vcShader_GetUniformIndex(&pTerrainRenderer->presentShader.uniform_worldViewProjection[2], pTerrainRenderer->presentShader.pProgram, "u_worldViewProjection2");
-  vcShader_GetUniformIndex(&pTerrainRenderer->presentShader.uniform_worldViewProjection[3], pTerrainRenderer->presentShader.pProgram, "u_worldViewProjection3");
+  vcShader_GetConstantBuffer(&pTerrainRenderer->presentShader.pConstantBuffer, pTerrainRenderer->presentShader.pProgram, "u_EveryObject", sizeof(pTerrainRenderer->presentShader.everyObject));
 
   // build our vertex/index list
   vcSimpleVertex verts[VertResolution * VertResolution];
@@ -376,32 +371,30 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
 
   vcShader_Bind(pTerrainRenderer->presentShader.pProgram);
 
-  vcShader_SetUniform(pTerrainRenderer->presentShader.uniform_texture, 0);
-  vcShader_SetUniform(pTerrainRenderer->presentShader.uniform_opacity, pTerrainRenderer->pSettings->maptiles.transparency);
-
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
 
   if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
     vcGLState_SetDepthMode(vcGLSDM_None, false);
 
+  pTerrainRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTerrainRenderer->pSettings->maptiles.transparency);
+
   for (int i = 0; i < pTerrainRenderer->tileCount; ++i)
   {
-    //if (pTerrainRenderer->pTiles[i].pTexture == nullptr)
-    //  continue;
+    if (pTerrainRenderer->pTiles[i].pTexture == nullptr)
+      continue;
 
     for (int t = 0; t < 4; ++t)
     {
       udFloat4x4 tileWV = udFloat4x4::create(viewProj * mapHeightTranslation * pTerrainRenderer->pTiles[i].world[t]);
-      vcShader_SetUniform(pTerrainRenderer->presentShader.uniform_worldViewProjection[t], tileWV);
+      pTerrainRenderer->presentShader.everyObject.worldViewProjections[t] = tileWV;
     }
 
-#if 1
+#if UD_DEBUG
     srand(i);
-    vcShader_SetUniform(pTerrainRenderer->presentShader.uniform_debugColour, udFloat3::create(float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX));
-#else
-    vcShader_SetUniform(pTerrainRenderer->presentShader.uniform_debugColour, udFloat3::create(1.0f));
+    pTerrainRenderer->presentShader.everyObject.colour = udFloat4::create(float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, pTerrainRenderer->pSettings->maptiles.transparency);
 #endif
 
+    vcShader_BindConstantBuffer(pTerrainRenderer->presentShader.pProgram, pTerrainRenderer->presentShader.pConstantBuffer, &pTerrainRenderer->presentShader.everyObject, sizeof(vcTerrainRenderer::presentShader.everyObject));
     vcShader_BindTexture(pTerrainRenderer->presentShader.pProgram, pTerrainRenderer->pTiles[i].pTexture, 0);
     vcMesh_RenderTriangles(pTerrainRenderer->pMesh, IndexResolution * IndexResolution * 2); // 2 because 2tris per quad
   }
@@ -417,7 +410,6 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
 
 void vcTerrainRenderer_ClearCache(vcTerrainRenderer *pTerrainRenderer)
 {
-  // TODO: pfox confirm this will work
   udLockMutex(pTerrainRenderer->cache.pMutex);
   pTerrainRenderer->cache.textureLoadList.Clear();
   udReleaseMutex(pTerrainRenderer->cache.pMutex);

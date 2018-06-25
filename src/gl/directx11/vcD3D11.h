@@ -42,6 +42,8 @@ struct vcFramebuffer
 
 struct vcShaderConstantBuffer
 {
+  int type; // 0 = VSConstantBuffer, 1 = PSConstantBuffer
+  int expectedSize;
   ID3D11Buffer *pBuffer;
   char bufferName[32];
 };
@@ -54,7 +56,7 @@ struct vcShader
   ID3D11InputLayout *pLayout;
 
   vcShaderConstantBuffer bufferObjects[16];
-  unsigned int numBufferObjects;
+  int numBufferObjects;
 };
 
 struct vcShaderUniform

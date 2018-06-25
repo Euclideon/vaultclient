@@ -10,6 +10,7 @@ GLint vcBuildShader(GLenum type, const GLchar *shaderCode)
   glShaderSource(shaderObject, 1, &shaderCode, &shaderCodeLen);
   glCompileShader(shaderObject);
   glGetShaderiv(shaderObject, GL_COMPILE_STATUS, &compiled);
+
   if (!compiled)
   {
     GLint blen = 1024;
@@ -19,6 +20,7 @@ GLint vcBuildShader(GLenum type, const GLchar *shaderCode)
     {
       GLchar* compiler_log = (GLchar*)udAlloc(blen);
       glGetShaderInfoLog(shaderObject, blen, &slen, compiler_log);
+      udDebugPrintf("%s", compiler_log);
       udFree(compiler_log);
     }
     return -1;
@@ -47,6 +49,7 @@ GLint vcBuildProgram(GLint vertexShader, GLint fragmentShader)
     {
       GLchar* linker_log = (GLchar*)udAlloc(blen);
       glGetProgramInfoLog(programObject, blen, &slen, linker_log);
+      udDebugPrintf("%s", linker_log);
       udFree(linker_log);
     }
     return -1;
@@ -84,24 +87,6 @@ void vcShader_DestroyShader(vcShader **ppShader)
   udFree(*ppShader);
 }
 
-bool vcShader_GetUniformIndex(vcShaderUniform **ppUniform, vcShader *pShader, const char *pUniformName)
-{
-  if (ppUniform == nullptr || pShader == nullptr || pUniformName == nullptr || pShader->programID == GL_INVALID_INDEX)
-    return false;
-
-  GLuint uID = glGetUniformLocation(pShader->programID, pUniformName);
-
-  if (uID == GL_INVALID_INDEX)
-      return false;
-
-  vcShaderUniform *pUniform = udAllocType(vcShaderUniform, 1, udAF_Zero);
-  pUniform->id = uID;
-
-  *ppUniform = pUniform;
-
-  return true;
-}
-
 bool vcShader_Bind(vcShader *pShader)
 {
   if (pShader != nullptr && pShader->programID == GL_INVALID_INDEX)
@@ -117,7 +102,7 @@ bool vcShader_Bind(vcShader *pShader)
   return true;
 }
 
-bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderUniform *pSamplerUniform /*= nullptr*/)
+bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderUniform * /*pSamplerUniform = nullptr*/)
 {
   if (pTexture == nullptr || pTexture->id == GL_INVALID_INDEX)
     return false;
@@ -133,8 +118,8 @@ bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t sampl
     glBindTexture(GL_TEXTURE_2D, pTexture->id);
   VERIFY_GL();
 
-  if (pSamplerUniform != nullptr)
-    vcShader_SetUniform(pSamplerUniform, samplerIndex);
+  //if (pSamplerUniform != nullptr)
+  //  vcShader_SetUniform(pSamplerUniform, samplerIndex);
 
   VERIFY_GL();
 
@@ -143,81 +128,60 @@ bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t sampl
 
 bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pShader, const char *pBufferName, const size_t bufferSize)
 {
-  //TODO: null checks
-  GLuint uboBindingIndex = GL_INVALID_INDEX;
+  if (ppBuffer == nullptr || pShader == nullptr || pBufferName == nullptr || bufferSize == 0)
+    return false;
+
+  *ppBuffer = nullptr;
+
   for (int i = 0; i < pShader->numBufferObjects; ++i)
   {
     if (udStrEqual(pShader->bufferObjects[i].name, pBufferName))
     {
-      uboBindingIndex = i;
+      *ppBuffer = &pShader->bufferObjects[i];
       break;
     }
   }
 
-  if (uboBindingIndex == GL_INVALID_INDEX)
+  if (*ppBuffer == nullptr)
   {
-    glGenBuffers(1, &pShader->bufferObjects[pShader->numBufferObjects].id);
-    glBindBuffer(GL_UNIFORM_BUFFER, pShader->bufferObjects[pShader->numBufferObjects].id);
-    glBufferData(GL_UNIFORM_BUFFER, bufferSize, NULL, GL_STATIC_DRAW); // assign memory
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    uint32_t blockIndex = glGetUniformBlockIndex(pShader->programID, pBufferName);
 
-    udStrcpy(pShader->bufferObjects[pShader->numBufferObjects].name, 32, pBufferName);
-    *ppBuffer = &pShader->bufferObjects[pShader->numBufferObjects];
-    uboBindingIndex = pShader->numBufferObjects;
-    pShader->numBufferObjects++;
+    if (blockIndex != GL_INVALID_INDEX)
+    {
+      glUniformBlockBinding(pShader->programID, blockIndex, pShader->numBufferObjects);
+      glBindBufferBase(GL_UNIFORM_BUFFER, pShader->numBufferObjects, pShader->bufferObjects[pShader->numBufferObjects].id);
+
+      glGenBuffers(1, &pShader->bufferObjects[pShader->numBufferObjects].id);
+      glBindBuffer(GL_UNIFORM_BUFFER, pShader->bufferObjects[pShader->numBufferObjects].id);
+      glBufferData(GL_UNIFORM_BUFFER, bufferSize, NULL, GL_DYNAMIC_DRAW);
+      glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+      udStrcpy(pShader->bufferObjects[pShader->numBufferObjects].name, 32, pBufferName);
+      pShader->bufferObjects[pShader->numBufferObjects].bindPoint = pShader->numBufferObjects;
+      *ppBuffer = &pShader->bufferObjects[pShader->numBufferObjects];
+      ++pShader->numBufferObjects;
+    }
   }
-  else
-  {
-    *ppBuffer = &pShader->bufferObjects[uboBindingIndex];
-  }
 
-  unsigned int blockIndex = glGetUniformBlockIndex(pShader->programID, pBufferName);
-  glUniformBlockBinding(pShader->programID, blockIndex, uboBindingIndex); // bind shader block index to binding point of uniform buffer object
-
-  glBindBufferBase(GL_UNIFORM_BUFFER, uboBindingIndex, pShader->bufferObjects[uboBindingIndex].id);
-
-  return true;
+  return ((*ppBuffer) != nullptr);
 }
 
-bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuffer, void *pData, const size_t bufferSize)
+bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuffer, const void *pData, const size_t bufferSize)
 {
   if (pShader == nullptr || pBuffer == nullptr || pData == nullptr || bufferSize == 0)
     return false;
 
-  glBindBuffer(GL_UNIFORM_BUFFER, pBuffer->id);
-  GLvoid *pGPU = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
-  memcpy(pGPU, pData, bufferSize);
-  glUnmapBuffer(GL_UNIFORM_BUFFER);
+  //glBindBuffer(GL_UNIFORM_BUFFER, pBuffer->id);
+  glBindBufferBase(GL_UNIFORM_BUFFER, pBuffer->bindPoint, pBuffer->id);
+  glBufferData(GL_UNIFORM_BUFFER, bufferSize, pData, GL_DYNAMIC_DRAW);
+
+  VERIFY_GL();
 
   return true;
 }
 
-bool vcShader_ReleaseConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuffer)
+bool vcShader_ReleaseConstantBuffer(vcShader * /*pShader*/, vcShaderConstantBuffer * /*pBuffer*/)
 {
   //TODO
-  return true;
-}
-
-bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, udFloat3 vector)
-{
-  glUniform3f(pShaderUniform->id, vector.x, vector.y, vector.z);
-  return true;
-}
-
-bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, udFloat4x4 matrix)
-{
-  glUniformMatrix4fv(pShaderUniform->id, 1, GL_FALSE, matrix.a);
-  return true;
-}
-
-bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, float floatVal)
-{
-  glUniform1f(pShaderUniform->id, floatVal);
-  return true;
-}
-
-bool vcShader_SetUniform(vcShaderUniform *pShaderUniform, int32_t intVal)
-{
-  glUniform1i(pShaderUniform->id, intVal);
   return true;
 }
