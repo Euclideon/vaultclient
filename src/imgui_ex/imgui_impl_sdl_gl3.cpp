@@ -31,8 +31,7 @@ vcShader *pImGuiShader;
 // GL data
 #if GRAPHICS_API_OPENGL
 static GLuint       g_FontTexture = 0;
-static vcShaderUniform          *g_pAttribLocationTex, *g_pAttribLocationProjMtx;
-static vcShaderUniform          *g_pAttribLocationPosition, *g_pAttribLocationUV, *g_pAttribLocationColor;
+static vcShaderConstantBuffer *g_pAttribLocationProjMtx;
 static unsigned int g_VboHandle = 0,g_ElementsHandle = 0;
 #elif GRAPHICS_API_D3D11
 static ID3D11Buffer*            g_pVB = NULL;
@@ -109,8 +108,7 @@ void ImGuiGL_RenderDrawData(ImDrawData* draw_data)
   );
 
   vcShader_Bind(pImGuiShader);
-  vcShader_SetUniform(g_pAttribLocationTex, 0);
-  vcShader_SetUniform(g_pAttribLocationProjMtx, ortho_projection);
+  vcShader_BindConstantBuffer(pImGuiShader, g_pAttribLocationProjMtx, &ortho_projection, sizeof(udFloat4x4));
 
   // Recreate the VAO every time
   // (This is to easily allow multiple GL contexts. VAO are not shared among GL contexts, and we don't track creation/deletion of windows so we don't have an obvious key to use to cache them.)
@@ -514,11 +512,7 @@ bool ImGuiGL_CreateDeviceObjects()
     vcShaderVertexInputTypes layout[] = { vcSVIT_Position2, vcSVIT_TextureCoords2, vcSVIT_ColourBGRA };
     vcShader_CreateFromText(&pImGuiShader, g_ImGuiVertexShader, g_ImGuiFragmentShader, layout, UDARRAYSIZE(layout));
 
-    vcShader_GetUniformIndex(&g_pAttribLocationTex, pImGuiShader, "Texture");
-    vcShader_GetUniformIndex(&g_pAttribLocationProjMtx, pImGuiShader, "ProjMtx");
-    vcShader_GetUniformIndex(&g_pAttribLocationPosition, pImGuiShader, "Position");
-    vcShader_GetUniformIndex(&g_pAttribLocationUV, pImGuiShader, "UV");
-    vcShader_GetUniformIndex(&g_pAttribLocationColor, pImGuiShader, "Color");
+    vcShader_GetConstantBuffer(&g_pAttribLocationProjMtx, pImGuiShader, "u_EveryFrame", sizeof(udFloat4x4));
 
     glGenBuffers(1, &g_VboHandle);
     glGenBuffers(1, &g_ElementsHandle);

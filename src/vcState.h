@@ -45,6 +45,8 @@ struct vcState
     udValue *pMetadata;
     size_t index;
     vcTexture *pWatermarkTexture;
+    int32_t watermarkWidth;
+    int32_t watermarkHeight;
   } selectedModelProperties;
 
   double deltaTime;

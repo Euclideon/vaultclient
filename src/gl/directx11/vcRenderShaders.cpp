@@ -57,20 +57,16 @@ const char* const g_terrainTileFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
-    float3 colour : COLOR0;
+    float4 colour : COLOR0;
     float2 uv : TEXCOORD0;
   };
 
-  uniform float u_opacity;
-  uniform sampler2D u_texture;
-  uniform float3 u_debugColour;
+  sampler sampler0;
+  Texture2D texture0;
 
   float4 main(PS_INPUT input) : SV_Target
   {
-    //float4 col = texture0.Sample(sampler0, input.uv);
-    //return float4(col.xyz * u_debugColour.xyz, u_opacity);
-
-    return float4(1.0, 0.0, 1.0, 1.0);
+    return texture0.Sample(sampler0, input.uv) * input.colour;
   }
 )shader";
 
@@ -84,35 +80,41 @@ const char* const g_terrainTileVertexShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
-    float3 colour : COLOR0;
+    float4 colour : COLOR0;
     float2 uv : TEXCOORD0;
   };
 
-  uniform float4x4 u_worldViewProjection0;
-  uniform float4x4 u_worldViewProjection1;
-  uniform float4x4 u_worldViewProjection2;
-  uniform float4x4 u_worldViewProjection3;
+  cbuffer u_EveryObject : register(b0)
+  {
+    float4x4 u_worldViewProjection0;
+    float4x4 u_worldViewProjection1;
+    float4x4 u_worldViewProjection2;
+    float4x4 u_worldViewProjection3;
+    float4 u_colour;
+  };
 
   PS_INPUT main(VS_INPUT input)
   {
     PS_INPUT output;
 
-    float4 finalClipPos = float4(0.0, 0.0, 0.0, 0.0);
+    float4 finalClipPos = float4(0.f, 0.f, 0.f, 0.f);
 
     // corner id is stored in the x component of the position attribute
     // note: could have precision issues on some devices
 
-    if (input.pos.x == 0.0)
-      finalClipPos = float4(0.0, 0.0, 0.0, 1.0) * u_worldViewProjection0;
-    else if (input.pos.x == 1.0)
-      finalClipPos = float4(0.0, 0.0, 0.0, 1.0) * u_worldViewProjection1;
-    else if (input.pos.x == 2.0)
-      finalClipPos = float4(0.0, 0.0, 0.0, 1.0) * u_worldViewProjection2;
-    else if (input.pos.x == 4.0)
-      finalClipPos = float4(0.0, 0.0, 0.0, 1.0) * u_worldViewProjection3;
+    if (input.pos.x == 0.f)
+      finalClipPos = mul(u_worldViewProjection0, float4(0.f, 0.f, 0.f, 1.f));
+    else if (input.pos.x == 1.f)
+      finalClipPos = mul(u_worldViewProjection1, float4(0.f, 0.f, 0.f, 1.f));
+    else if (input.pos.x == 2.f)
+      finalClipPos = mul(u_worldViewProjection2, float4(0.f, 0.f, 0.f, 1.f));
+    else if (input.pos.x == 4.f)
+      finalClipPos = mul(u_worldViewProjection3, float4(0.f, 0.f, 0.f, 1.f));
 
+    output.colour = u_colour;
     output.uv = input.uv;
     output.pos = finalClipPos;
+    return output;
   }
 )shader";
 
@@ -123,14 +125,13 @@ const char* const g_vcSkyboxFragmentShader = R"shader(
     float2 uv : TEXCOORD0;
   };
 
-  cbuffer u_EF_Skybox : register(b0)
+  cbuffer u_EveryFrame : register(b0)
   {
     float4x4 u_inverseViewProjection;
   };
 
   sampler sampler0;
   Texture2DArray u_texture;
-  //uniform float4x4 u_inverseViewProjection;
 
   float4 main(PS_INPUT input) : SV_Target
   {
@@ -189,7 +190,7 @@ const char* const g_vcSkyboxFragmentShader = R"shader(
       }
     }
 
-    return u_texture.Sample(sampler0, float3((coords.xy + 1.f)/2.f, coords.z));
+    return u_texture.Sample(sampler0, float3((coords.xy + 1.f) / 2.f, coords.z));
   }
 )shader";
 

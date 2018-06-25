@@ -44,6 +44,7 @@ void main()
 
 const char* const g_terrainTileFragmentShader = FRAG_HEADER R"shader(
 //Input Format
+int vec4 v_colour;
 in vec2 v_uv;
 
 //Output Format
@@ -66,13 +67,17 @@ layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_uv;
 
 //Output Format
-out vec3 v_colour;
+out vec4 v_colour;
 out vec2 v_uv;
 
-uniform mat4 u_worldViewProjection0;
-uniform mat4 u_worldViewProjection1;
-uniform mat4 u_worldViewProjection2;
-uniform mat4 u_worldViewProjection3;
+layout (std140) uniform u_EveryObject
+{
+  mat4 u_worldViewProjection0;
+  mat4 u_worldViewProjection1;
+  mat4 u_worldViewProjection2;
+  mat4 u_worldViewProjection3;
+  vec4 u_colour;
+}
 
 void main()
 {
@@ -86,6 +91,7 @@ void main()
   finalClipPos += float(a_position.x == 4.0) * u_worldViewProjection3 * vec4(0.0, 0.0, 0.0, 1.0);
 
   v_uv = a_uv;
+  v_colour = u_colour;
   gl_Position = finalClipPos;
 }
 )shader";
@@ -93,7 +99,7 @@ void main()
 const char* const g_vcSkyboxFragmentShader = FRAG_HEADER R"shader(
 
 uniform samplerCube u_texture;
-layout (std140) uniform u_EF_Skybox
+layout (std140) uniform u_EveryFrame
 {
   mat4 u_inverseViewProjection;
 };
@@ -118,8 +124,10 @@ void main()
 )shader";
 
 const char* const g_ImGuiVertexShader = VERT_HEADER R"shader(
-
-uniform mat4 ProjMtx;
+layout (std140) uniform u_EveryFrame
+{
+  mat4 ProjMtx;
+};
 
 in vec2 Position;
 in vec2 UV;
