@@ -107,16 +107,11 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 *pMoveOffset, u
 
   bool isBtnClicked[3] = { ImGui::IsMouseClicked(0, false), ImGui::IsMouseClicked(1, false), ImGui::IsMouseClicked(2, false) };
   bool isBtnDoubleClicked[3] = { ImGui::IsMouseDoubleClicked(0), ImGui::IsMouseDoubleClicked(1), ImGui::IsMouseDoubleClicked(2) };
-  static bool clickedBtnWhileHovered[3] = { false, false, false };
+  bool isBtnHeld[3] = { ImGui::IsMouseDown(0), ImGui::IsMouseDown(1), ImGui::IsMouseDown(2) };
+  bool isBtnReleased[3] = { ImGui::IsMouseReleased(0), ImGui::IsMouseReleased(1), ImGui::IsMouseReleased(2) };
 
-  for (int i = 0; i < 3; ++i)
-  {
-    if (isHovered && isBtnClicked[i])
-    {
-      clickedBtnWhileHovered[i] = true;
-      isFocused = true;
-    }
-  }
+  if (isHovered && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
+    isFocused = true;
 
   if (!isHovered && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
     isFocused = false;
@@ -202,29 +197,26 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 *pMoveOffset, u
 
         // Click and Hold
 
-        if (clickedBtnWhileHovered[i] && !isBtnClicked[i])
+        if (isBtnHeld[i] && !isBtnClicked[i])
         {
-          clickedBtnWhileHovered[i] = io.MouseDown[i];
-          if (io.MouseDown[i])
+          switch (pProgramState->settings.camera.pivotBind[i])
           {
-            switch (pProgramState->settings.camera.pivotBind[i])
-            {
-            case vcCPM_Pan:
-              moveOffset.x += -mouseDelta.x / 10.0;
-              moveOffset.z += -mouseDelta.y / 10.0; // TODO: fix Pan
-              break;
-            default:
-              rotationOffset.x = -mouseDelta.x / 100.0;
-              rotationOffset.y = -mouseDelta.y / 100.0;
-              rotationOffset.z = 0.0;
-              break;
-            }
+          case vcCPM_Pan:
+            moveOffset.x += -mouseDelta.x / 10.0;
+            moveOffset.z += -mouseDelta.y / 10.0; // TODO: fix Pan
+            break;
+          default:
+            rotationOffset.x = -mouseDelta.x / 100.0;
+            rotationOffset.y = -mouseDelta.y / 100.0;
+            rotationOffset.z = 0.0;
+            break;
           }
-          else
-          {
-            if (pProgramState->cameraInput.inputState == vcCIS_Orbiting)
-              pProgramState->cameraInput.inputState = vcCIS_None;
-          }
+        }
+
+        if(isBtnReleased[i] && pProgramState->settings.camera.pivotBind[i] == vcCPM_Orbit)
+        {
+          if (pProgramState->cameraInput.inputState == vcCIS_Orbiting)
+            pProgramState->cameraInput.inputState = vcCIS_None;
         }
 
         // Double Clicking
@@ -252,26 +244,22 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 *pMoveOffset, u
         }
       }
 
-      if (clickedBtnWhileHovered[0] && !isBtnClicked[0])
+      if (isBtnHeld[0] && !isBtnClicked[0])
       {
-        clickedBtnWhileHovered[0] = io.MouseDown[0];
-        if (io.MouseDown[0])
+        if (!io.KeyShift)
         {
-          if (!io.KeyShift)
-          {
-            rotationOffset.x = 0.0;
-            rotationOffset.y = -mouseDelta.y / 100.0;
-            rotationOffset.z = 0.0;
-          }
-          else
-          {
-            pProgramState->settings.camera.fieldOfView = (float)udClamp(pProgramState->settings.camera.fieldOfView + mouseDelta.y / 100.0, vcSL_CameraFieldOfViewMin / 180 * UD_PI, vcSL_CameraFieldOfViewMax / 180 * UD_PI);
-          }
+          rotationOffset.x = 0.0;
+          rotationOffset.y = -mouseDelta.y / 100.0;
+          rotationOffset.z = 0.0;
         }
         else
         {
-          pProgramState->cameraInput.inputState = vcCIS_None;
+          pProgramState->settings.camera.fieldOfView = (float)udClamp(pProgramState->settings.camera.fieldOfView + mouseDelta.y / 100.0, vcSL_CameraFieldOfViewMin / 180 * UD_PI, vcSL_CameraFieldOfViewMax / 180 * UD_PI);
         }
+      }
+      if (isBtnReleased[0])
+      {
+        pProgramState->cameraInput.inputState = vcCIS_None;
       }
     }
     break;
