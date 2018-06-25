@@ -34,6 +34,7 @@ struct vcState
   bool onScreenControls;
 
   bool popupTrigger[vcPopupCount];
+  vcControlMode controlMode;
 
   vcCamera *pCamera;
 
@@ -60,17 +61,7 @@ struct vcState
   bool pickingSuccess;
   bool measureMode;
 
-  struct
-  {
-    udDouble3 startPos;
-    udDouble3 endPos;
-    double progress;
-    bool isZooming;
-  } zoomPath;
-
-  udDouble3 orbitPos;
-  udDouble3 storedDeltaAngle;
-  bool isOrbitActive;
+  vcCameraInput cameraInput;
 
   bool hasContext;
   vdkContext *pContext;

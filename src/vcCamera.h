@@ -14,8 +14,6 @@ enum vcCameraPivotMode
   vcCPM_Tumble,
   vcCPM_Orbit,
   vcCPM_Pan,
-
-  vcCPM_Err,
 };
 
 enum vcControlMode
@@ -27,6 +25,29 @@ enum vcControlMode
 
 struct vcCamera;
 struct vcState;
+
+enum vcInputState
+{
+  vcCIS_None,
+  vcCIS_Orbiting,
+  vcCIS_MovingToPoint,
+  vcCIS_PinchZooming,
+
+  vcCIS_Count
+};
+
+struct vcCameraInput
+{
+  vcControlMode controlMode;
+  bool isFocused;
+
+  vcInputState inputState;
+
+  udDouble3 focusPoint;
+  udDouble3 startPosition;
+  udDouble3 storedRotation;
+  double progress;
+};
 
 struct vcCameraSettings
 {
@@ -76,8 +97,7 @@ udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera);
 udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPosition);
 
 // Applies movement to camera
-void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraPivotMode pivotMode, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, float speedModifier = 1.f);
-void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraPivotMode pivotMode, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, bool orbitActive, udDouble3 orbitPosition, udDouble3 storedRotation, float speedModifier = 1.f);
+void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraInput *pCamInput, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, float speedModifier = 1.f);
 
 void vcCamera_TravelZoomPath(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcState *pProgramState, double deltaTime);
 
@@ -85,5 +105,7 @@ void vcCamera_SetPosition(vcCamera *pCamera, udDouble3 position);
 void vcCamera_SetRotation(vcCamera *pCamera, udDouble3 yprRotation);
 
 const char* const* vcCamera_GetLensNames();
+
+void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 *pMoveOffset, udDouble3 *pRotationOffset);
 
 #endif//vcCamera_h__
