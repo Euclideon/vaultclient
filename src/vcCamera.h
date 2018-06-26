@@ -33,6 +33,7 @@ enum vcInputState
   vcCIS_MovingToPoint,
   vcCIS_CommandZooming,
   vcCIS_PinchZooming,
+  vcCIS_Panning,
 
   vcCIS_Count
 };
@@ -45,11 +46,14 @@ struct vcCameraInput
   vcInputState inputState;
 
   udDouble3 focusPoint;
-  udDouble3 startPosition;
-  udDouble3 storedRotation;
+  udDouble3 startPosition; // for zoom to
+  udDouble3 storedRotation; // for orbiting
   double progress;
 
-  float previousFoV;
+  vcCameraPivotMode currentPivotMode;
+
+  udDouble3 keyboardInput;
+  udDouble3 mouseInput;
 };
 
 struct vcCameraSettings
@@ -102,13 +106,11 @@ udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera);
 udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPosition);
 
 // Applies movement to camera
-void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraInput *pCamInput, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, float speedModifier = 1.f);
-
-void vcCamera_TravelZoomPath(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcState *pProgramState, double deltaTime);
+void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraInput *pCamInput, double deltaTime, float speedModifier = 1.f);
 
 void vcCamera_SetPosition(vcCamera *pCamera, udDouble3 position);
 void vcCamera_SetRotation(vcCamera *pCamera, udDouble3 yprRotation);
 
-void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 *pMoveOffset, udDouble3 *pRotationOffset);
+void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove);
 
 #endif//vcCamera_h__
