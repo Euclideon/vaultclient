@@ -405,7 +405,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
   ImVec2 windowPos = ImVec2(ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y);
 
   udDouble3 moveOffset = udDouble3::zero();
-  udDouble3 rotationOffset = udDouble3::zero();
 
   if (size.x < 1 || size.y < 1)
     return;
