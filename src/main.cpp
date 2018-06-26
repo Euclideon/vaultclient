@@ -515,7 +515,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       case vcCM_Normal:
         break;
       case vcCM_Zoom:
-        ImGui::Text("Zoom - Press <Shift> to change FoV - Press <Ctrl> to Reset FoV - Press <ESC> to cancel");
+        ImGui::Text("Zoom - Press <ESC> to cancel");
         break;
       case vcCM_Measure:
         ImGui::Text("Measure - Press <ESC> to cancel");
@@ -575,7 +575,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
         moveOffset += udDouble3::create(right, forward, (double)vertical);
 
-        //vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, udDouble3::zero(), udDouble3::create(right, forward, (double) vertical),pProgramState->deltaTime);
         ImGui::Columns(1);
       }
 
