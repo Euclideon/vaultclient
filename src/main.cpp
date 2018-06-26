@@ -339,7 +339,7 @@ int main(int /*argc*/, char ** /*args*/)
         }
         else if (event.type == SDL_MULTIGESTURE)
         {
-          //todo: pinch to zoom
+          // TODO: pinch to zoom
         }
         else if (event.type == SDL_DROPFILE && programState.hasContext)
         {
@@ -487,7 +487,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   // On Screen Camera Settings
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + 5.f, windowPos.y + 5.f), ImGuiCond_Always, ImVec2(0.f, 0.f));
-    ImGui::SetNextWindowBgAlpha(0.3f);
+    ImGui::SetNextWindowBgAlpha(0.5f);
     if (ImGui::Begin("Camera Settings", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize))
     {
       udDouble3 cameraPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
@@ -585,7 +585,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
     ImGui::Image((ImTextureID)((size_t)pTexture->id), size, ImVec2(0, 0), ImVec2(1, -1));
 
-    vcCamera_HandleSceneInput(pProgramState, &moveOffset, &rotationOffset);
+    vcCamera_HandleSceneInput(pProgramState, moveOffset);
   }
 }
 
