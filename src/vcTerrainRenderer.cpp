@@ -65,6 +65,7 @@ struct vcTerrainRenderer
   {
     vcShader *pProgram;
     vcShaderConstantBuffer *pConstantBuffer;
+    vcShaderSampler *uniform_texture;
 
     struct
     {
@@ -175,6 +176,7 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer, vcSettings *p
 
   vcShader_CreateFromText(&pTerrainRenderer->presentShader.pProgram, g_terrainTileVertexShader, g_terrainTileFragmentShader, vcSimpleVertex::LayoutType, UDARRAYSIZE(vcSimpleVertex::LayoutType));
   vcShader_GetConstantBuffer(&pTerrainRenderer->presentShader.pConstantBuffer, pTerrainRenderer->presentShader.pProgram, "u_EveryObject", sizeof(pTerrainRenderer->presentShader.everyObject));
+  vcShader_GetSamplerIndex(&pTerrainRenderer->presentShader.uniform_texture, pTerrainRenderer->presentShader.pProgram, "u_texture");
 
   // build our vertex/index list
   vcSimpleVertex verts[VertResolution * VertResolution];

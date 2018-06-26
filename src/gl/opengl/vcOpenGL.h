@@ -60,7 +60,7 @@ struct vcShader
   int numBufferObjects;
 };
 
-struct vcShaderUniform
+struct vcShaderSampler
 {
   GLuint id;
 };

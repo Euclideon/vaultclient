@@ -44,20 +44,18 @@ void main()
 
 const char* const g_terrainTileFragmentShader = FRAG_HEADER R"shader(
 //Input Format
-int vec4 v_colour;
+in vec4 v_colour;
 in vec2 v_uv;
 
 //Output Format
 out vec4 out_Colour;
 
-uniform float u_opacity;
 uniform sampler2D u_texture;
-uniform vec3 u_debugColour;
 
 void main()
 {
   vec4 col = texture(u_texture, v_uv);
-  out_Colour = vec4(col.xyz * u_debugColour.xyz, u_opacity);
+  out_Colour = vec4(col.xyz, 1.f) * v_colour;
 }
 )shader";
 
@@ -77,7 +75,7 @@ layout (std140) uniform u_EveryObject
   mat4 u_worldViewProjection2;
   mat4 u_worldViewProjection3;
   vec4 u_colour;
-}
+};
 
 void main()
 {

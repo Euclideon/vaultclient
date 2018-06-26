@@ -30,8 +30,8 @@ struct vcUDRenderContext
   struct
   {
     vcShader *pProgram;
-    vcShaderUniform *uniform_texture;
-    vcShaderUniform *uniform_depth;
+    vcShaderSampler *uniform_texture;
+    vcShaderSampler *uniform_depth;
   } presentShader;
 };
 
@@ -59,7 +59,7 @@ struct vcRenderContext
   struct
   {
     vcShader *pProgram;
-    vcShaderUniform *uniform_texture;
+    vcShaderSampler *uniform_texture;
     vcShaderConstantBuffer *uniform_MatrixBlock;
   } skyboxShader;
 
@@ -86,10 +86,13 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   vcTexture_LoadCubemap(&pRenderContext->pSkyboxCubeMapTexture, "CloudWater.jpg");
 
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);
+  vcShader_GetSamplerIndex(&pRenderContext->skyboxShader.uniform_texture, pRenderContext->skyboxShader.pProgram, "u_texture");
   vcShader_GetConstantBuffer(&pRenderContext->skyboxShader.uniform_MatrixBlock, pRenderContext->skyboxShader.pProgram, "u_EveryFrame", sizeof(udFloat4x4));
 
   vcShader_Bind(pRenderContext->udRenderContext.presentShader.pProgram);
   vcMesh_CreateSimple(&pRenderContext->pSkyboxMesh, qrSqVertices, 4, qrIndices, 6);
+  vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.presentShader.uniform_texture, pRenderContext->udRenderContext.presentShader.pProgram, "u_texture");
+  vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.presentShader.uniform_depth, pRenderContext->udRenderContext.presentShader.pProgram, "u_depth");
 
   vcShader_Bind(nullptr);
 
