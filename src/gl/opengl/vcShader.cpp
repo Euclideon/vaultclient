@@ -102,7 +102,7 @@ bool vcShader_Bind(vcShader *pShader)
   return true;
 }
 
-bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderUniform * /*pSamplerUniform = nullptr*/)
+bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderSampler *pSampler/* = nullptr*/)
 {
   if (pTexture == nullptr || pTexture->id == GL_INVALID_INDEX)
     return false;
@@ -118,8 +118,8 @@ bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t sampl
     glBindTexture(GL_TEXTURE_2D, pTexture->id);
   VERIFY_GL();
 
-  //if (pSamplerUniform != nullptr)
-  //  vcShader_SetUniform(pSamplerUniform, samplerIndex);
+  if (pSampler != nullptr)
+    glUniform1i(pSampler->id, samplerIndex);
 
   VERIFY_GL();
 
@@ -183,5 +183,23 @@ bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuf
 bool vcShader_ReleaseConstantBuffer(vcShader * /*pShader*/, vcShaderConstantBuffer * /*pBuffer*/)
 {
   //TODO
+  return true;
+}
+
+bool vcShader_GetSamplerIndex(vcShaderSampler **ppSampler, vcShader *pShader, const char *pSamplerName)
+{
+  if (ppSampler == nullptr || pShader == nullptr || pSamplerName == nullptr || pShader->programID == GL_INVALID_INDEX)
+    return false;
+
+  GLuint uID = glGetUniformLocation(pShader->programID, pSamplerName);
+
+  if (uID == GL_INVALID_INDEX)
+    return false;
+
+  vcShaderSampler *pSampler = udAllocType(vcShaderSampler, 1, udAF_Zero);
+  pSampler->id = uID;
+
+  *ppSampler = pSampler;
+
   return true;
 }
