@@ -245,9 +245,9 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->camera.invertX = data.Get("camera.invertX").AsBool(false);
     pSettings->camera.invertY = data.Get("camera.invertY").AsBool(false);
     pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
-    pSettings->camera.pivotBind[0] = (vcCameraPivotMode)data.Get("camera.pivotBind[0]").AsInt(vcCPM_Tumble);
-    pSettings->camera.pivotBind[1] = (vcCameraPivotMode)data.Get("camera.pivotBind[1]").AsInt(vcCPM_Pan);
-    pSettings->camera.pivotBind[2] = (vcCameraPivotMode)data.Get("camera.pivotBind[2]").AsInt(vcCPM_Orbit);
+    pSettings->camera.cameraMouseBindings[0] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[0]").AsInt(vcCPM_Tumble);
+    pSettings->camera.cameraMouseBindings[1] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[1]").AsInt(vcCPM_Pan);
+    pSettings->camera.cameraMouseBindings[2] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[2]").AsInt(vcCPM_Orbit);
 
     // Map Tiles
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
@@ -305,7 +305,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.invertX = %s", pSettings->camera.invertX ? "true" : "false");
   data.Set("camera.invertY = %s", pSettings->camera.invertY ? "true" : "false");
   data.Set("camera.moveMode = %d", pSettings->camera.moveMode);
-  data.Set("camera.pivotBind = [%d, %d, %d]", pSettings->camera.pivotBind[0], pSettings->camera.pivotBind[1], pSettings->camera.pivotBind[2]);
+  data.Set("camera.cameraMouseBindings = [%d, %d, %d]", pSettings->camera.cameraMouseBindings[0], pSettings->camera.cameraMouseBindings[1], pSettings->camera.cameraMouseBindings[2]);
 
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");

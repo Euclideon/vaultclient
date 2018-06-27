@@ -66,7 +66,7 @@ struct vcCameraSettings
   bool invertY;
   int lensIndex;
   vcCameraMoveMode moveMode;
-  vcCameraPivotMode pivotBind[3]; // bindings for camera settings
+  vcCameraPivotMode cameraMouseBindings[3]; // bindings for camera settings
 };
 
 // Lens Sizes

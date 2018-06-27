@@ -172,7 +172,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
         // Single Clicking
         if (isBtnClicked[i])
         {
-          switch (pProgramState->settings.camera.pivotBind[i])
+          switch (pProgramState->settings.camera.cameraMouseBindings[i])
           {
           case vcCPM_Orbit:
             if (pProgramState->pickingSuccess)
@@ -208,13 +208,13 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
           mouseInput.z = 0.0;
         }
 
-        if(isBtnReleased[i] && pProgramState->settings.camera.pivotBind[i] == vcCPM_Orbit)
+        if(isBtnReleased[i] && pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Orbit)
         {
           if (pProgramState->cameraInput.inputState == vcCIS_Orbiting)
             pProgramState->cameraInput.inputState = vcCIS_None;
         }
 
-        if (isBtnReleased[i] && pProgramState->settings.camera.pivotBind[i] == vcCPM_Pan)
+        if (isBtnReleased[i] && pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Pan)
         {
           if (pProgramState->cameraInput.inputState == vcCIS_Panning)
             pProgramState->cameraInput.inputState = vcCIS_None;
@@ -279,13 +279,13 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
   // set pivot to send to apply function
   pProgramState->cameraInput.currentPivotMode = vcCPM_Tumble;
   if (io.MouseDown[0] && !io.MouseDown[1] && !io.MouseDown[2])
-    pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.pivotBind[0];
+    pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.cameraMouseBindings[0];
 
   if (!io.MouseDown[0] && io.MouseDown[1] && !io.MouseDown[2])
-    pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.pivotBind[1];
+    pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.cameraMouseBindings[1];
 
   if (!io.MouseDown[0] && !io.MouseDown[1] && io.MouseDown[2])
-    pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.pivotBind[2];
+    pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.cameraMouseBindings[2];
 
   if (pProgramState->cameraInput.currentPivotMode != vcCPM_Orbit && pProgramState->cameraInput.inputState == vcCIS_Orbiting)
     pProgramState->cameraInput.inputState = vcCIS_None;
