@@ -49,6 +49,8 @@ struct vcSettings
 
   bool showFPS;
 
+  int styleIndex;
+
   struct
   {
     int xpos;
