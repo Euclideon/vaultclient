@@ -7,10 +7,12 @@
 #include "udPlatform/udPlatformUtil.h"
 #include "stb_image.h"
 
-bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags /*flags = vcTCF_None*/)
+udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags /*flags = vcTCF_None*/)
 {
   if (ppTexture == nullptr || width == 0 || height == 0)
-    return false;
+    return udR_InvalidParameter_;
+
+  udResult result = udR_Success;
 
   vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
 
@@ -36,7 +38,7 @@ bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, co
     break;
   case vcTextureFormat_BGRA8:
     internalFormat = GL_RGBA8;
-    type = GL_UNSIGNED_INT_8_8_8_8_REV;
+    type = GL_UNSIGNED_BYTE;
     glFormat = GL_BGRA;
     break;
   case vcTextureFormat_D24:
@@ -98,6 +100,8 @@ bool vcTexture_CreateDepth(vcTexture **ppTexture, uint32_t width, uint32_t heigh
     type = GL_UNSIGNED_INT;
     glFormat = GL_DEPTH_COMPONENT;
     break;
+  default:
+    UD_ERROR_SET(udR_InvalidParameter_);
   }
 
   glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, glFormat, type, pPixels);
@@ -113,7 +117,15 @@ bool vcTexture_CreateDepth(vcTexture **ppTexture, uint32_t width, uint32_t heigh
   pTexture->height = height;
 
   *ppTexture = pTexture;
-  return true;
+
+  pTexture = nullptr;
+
+epilogue:
+  if (pTexture != nullptr)
+    vcTexture_Destroy(&pTexture);
+
+  return result;
+
 }
 
 bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/)
@@ -149,8 +161,14 @@ bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, 
   return (pTexture != nullptr);
 }
 
-void vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height)
+udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height)
 {
+  if (pTexture == nullptr || pPixels == nullptr || width == 0 || height == 0)
+    return udR_InvalidParameter_;
+
+  udResult result = udR_Success;
+
+
   GLint internalFormat = GL_INVALID_ENUM;
   GLenum type = GL_INVALID_ENUM;
   GLint glFormat = GL_INVALID_ENUM;
@@ -159,12 +177,12 @@ void vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width,
   {
   case vcTextureFormat_RGBA8:
     internalFormat = GL_RGBA8;
-    type = GL_UNSIGNED_INT_8_8_8_8_REV;
+    type = GL_UNSIGNED_BYTE;
     glFormat = GL_RGBA;
     break;
   case vcTextureFormat_BGRA8:
     internalFormat = GL_RGBA8;
-    type = GL_UNSIGNED_INT_8_8_8_8_REV;
+    type = GL_UNSIGNED_BYTE;
     glFormat = GL_BGRA;
     break;
   case vcTextureFormat_D32F:
@@ -177,6 +195,8 @@ void vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width,
     type = GL_UNSIGNED_INT;
     glFormat = GL_DEPTH_COMPONENT;
     break;
+  default:
+    UD_ERROR_SET(udR_InvalidParameter_);
   }
 
   pTexture->width = width;
@@ -185,6 +205,9 @@ void vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width,
   glBindTexture(GL_TEXTURE_2D, pTexture->id);
   glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, pTexture->width, pTexture->height, 0, glFormat, type, pPixels);
   glBindTexture(GL_TEXTURE_2D, 0);
+
+epilogue:
+  return result;
 }
 
 void vcTexture_Destroy(vcTexture **ppTexture)

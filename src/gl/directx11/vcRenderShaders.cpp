@@ -24,7 +24,7 @@ const char* const g_udFragmentShader = R"shader(
     PS_OUTPUT output;
 
     output.Color0 = texture0.Sample(sampler0, input.uv);
-    output.Depth0 = texture1.Sample(sampler1, input.uv).x;
+    output.Depth0 = texture1.Sample(sampler1, input.uv).x * 2.0 - 1;
 
     return output;
   }

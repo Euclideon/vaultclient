@@ -431,7 +431,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   renderData.models.Deinit();
 
-  ImGui::Image(pTexture, size);
+  {
+    pProgramState->worldMousePos = renderData.worldMousePos;
+    pProgramState->pickingSuccess = renderData.pickingSuccess;
   {
     pProgramState->worldMousePos = renderData.worldMousePos;
     pProgramState->pickingSuccess = renderData.pickingSuccess;
@@ -575,8 +577,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
       ImGui::End();
     }
-
-    ImGui::Image((ImTextureID)((size_t)pTexture->id), size, ImVec2(0, 0), ImVec2(1, -1));
+#if GRAPHICS_API_OPENGL
+    ImGui::Image(pTexture, size, ImVec2(0, 0), ImVec2(1, -1));
+#else
+    ImGui::Image(pTexture, size);
+#endif
 
     vcCamera_HandleSceneInput(pProgramState, moveOffset);
   }

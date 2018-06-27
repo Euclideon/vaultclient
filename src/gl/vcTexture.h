@@ -43,12 +43,12 @@ enum vcTextureCreationFlags
 
 struct vcTexture;
 
-bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format = vcTextureFormat_RGBA8, vcTextureFilterMode filterMode = vcTFM_Nearest, bool hasMipmaps = false, vcTextureWrapMode wrapMode = vcTWM_Repeat, vcTextureCreationFlags flags = vcTCF_None);
+udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format = vcTextureFormat_RGBA8, vcTextureFilterMode filterMode = vcTFM_Nearest, bool hasMipmaps = false, vcTextureWrapMode wrapMode = vcTWM_Repeat, vcTextureCreationFlags flags = vcTCF_None);
 bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth = nullptr, uint32_t *pHeight = nullptr, vcTextureFilterMode filterMode = vcTFM_Linear, bool hasMipmaps = false, vcTextureWrapMode wrapMode = vcTWM_Repeat, vcTextureCreationFlags flags = vcTCF_None);
 bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename);
 
 void vcTexture_Destroy(vcTexture **ppTexture);
 
-void vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height);
+udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height);
 
 #endif//vcTexture_h__

@@ -84,7 +84,7 @@ void vcTerrainRenderer_LoadThread(void *pThreadData)
   {
     int loadStatus = udWaitSemaphore(pCache->pSemaphore, 1000);
 
-    if (loadStatus != 0)
+    if (loadStatus != 0 && pCache->textureLoadList.length == 0)
       continue;
 
     while (pCache->textureLoadList.length > 0 && pCache->keepLoading)
@@ -174,7 +174,7 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer, vcSettings *p
   for (size_t i = 0; i < UDARRAYSIZE(vcTerrainRenderer::vcTerrainCache::pThreads); ++i)
     udThread_Create(&pTerrainRenderer->cache.pThreads[i], (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
 
-  vcShader_CreateFromText(&pTerrainRenderer->presentShader.pProgram, g_terrainTileVertexShader, g_terrainTileFragmentShader, vcSimpleVertex::LayoutType, UDARRAYSIZE(vcSimpleVertex::LayoutType));
+  vcShader_CreateFromText(&pTerrainRenderer->presentShader.pProgram, g_terrainTileVertexShader, g_terrainTileFragmentShader, vcSimpleVertexLayout, UDARRAYSIZE(vcSimpleVertexLayout));
   vcShader_GetConstantBuffer(&pTerrainRenderer->presentShader.pConstantBuffer, pTerrainRenderer->presentShader.pProgram, "u_EveryObject", sizeof(pTerrainRenderer->presentShader.everyObject));
   vcShader_GetSamplerIndex(&pTerrainRenderer->presentShader.uniform_texture, pTerrainRenderer->presentShader.pProgram, "u_texture");
 
@@ -292,10 +292,9 @@ vcTexture* AssignTileTexture(vcTerrainRenderer *pTerrainRenderer, const udInt3 &
   }
 
   if (pCachedTexture != nullptr && pCachedTexture->pTexture != nullptr)
-  {
     pResultTexture = pCachedTexture->pTexture;
-    pCachedTexture->isVisible = true;
-  }
+
+  pCachedTexture->isVisible = true;
 
   return pResultTexture;
 }
@@ -367,7 +366,7 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
 
   if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
-    vcGLState_SetDepthMode(vcGLSDM_None, false);
+    vcGLState_SetDepthMode(vcGLSDM_Always, false);
 
   pTerrainRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTerrainRenderer->pSettings->maptiles.transparency);
 
@@ -384,7 +383,7 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
     }
 
 #if UD_DEBUG
-    srand(i); 
+    srand(i);
     pTerrainRenderer->presentShader.everyObject.colour = udFloat4::create(float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, pTerrainRenderer->pSettings->maptiles.transparency);
 #endif
 

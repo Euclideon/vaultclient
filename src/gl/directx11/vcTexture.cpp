@@ -7,10 +7,12 @@
 #include "udPlatform/udPlatformUtil.h"
 #include "stb_image.h"
 
-bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/)
+udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/)
 {
   if (ppTexture == nullptr || width == 0 || height == 0)
-    return false;
+    return udR_InvalidParameter_;
+
+  udResult result = udR_Success;
 
   vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
 
@@ -41,6 +43,8 @@ bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, co
       texFormat = DXGI_FORMAT_R32_FLOAT;
     pixelBytes = 4;
     break;
+  default:
+    UD_ERROR_SET(udR_InvalidParameter_);
   }
 
   UINT bindFlags = 0;
@@ -111,7 +115,14 @@ bool vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, co
   pTexture->height = height;
 
   *ppTexture = pTexture;
-  return true;
+
+  pTexture = nullptr;
+
+epilogue:
+  if (pTexture != nullptr)
+    vcTexture_Destroy(&pTexture);
+
+  return result;
 }
 
 bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/)
@@ -147,15 +158,20 @@ bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, 
   return (pTexture != nullptr);
 }
 
-void vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height)
+udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height)
 {
   if (pTexture == nullptr || !pTexture->isDynamic || pTexture->width != width || pTexture->height != height || pTexture->pTextureD3D == nullptr)
-    return;
+    return udR_InvalidParameter_;
+
+  udResult result = udR_Success;
 
   D3D11_MAPPED_SUBRESOURCE mappedResource;
-  g_pd3dDeviceContext->Map(pTexture->pTextureD3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+  UD_ERROR_IF(g_pd3dDeviceContext->Map(pTexture->pTextureD3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource) != S_OK, udR_InternalError);
   memcpy(mappedResource.pData, pPixels, width * height * 4);
   g_pd3dDeviceContext->Unmap(pTexture->pTextureD3D, 0);
+
+epilogue:
+  return result;
 }
 
 void vcTexture_Destroy(vcTexture **ppTexture)
