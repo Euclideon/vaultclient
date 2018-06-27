@@ -84,8 +84,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   pRenderContext = udAllocType(vcRenderContext, 1, udAF_Zero);
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcSimpleVertex::LayoutType, UDARRAYSIZE(vcSimpleVertex::LayoutType)), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShader.pProgram, g_udVertexShader, g_vcSkyboxFragmentShader, vcSimpleVertex::LayoutType, UDARRAYSIZE(vcSimpleVertex::LayoutType)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcSimpleVertexLayout, UDARRAYSIZE(vcSimpleVertexLayout)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShader.pProgram, g_udVertexShader, g_vcSkyboxFragmentShader, vcSimpleVertexLayout, UDARRAYSIZE(vcSimpleVertexLayout)), udR_InternalError);
 
   vcTexture_LoadCubemap(&pRenderContext->pSkyboxCubeMapTexture, "CloudWater.jpg");
 
@@ -251,7 +251,7 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
     extern bool gDebugDetachCamera;
     if (!gDebugDetachCamera)
       gRealCameraMatrix = renderData.cameraMatrix;
-    
+
     cameraMatrix = gRealCameraMatrix;
 #endif
     udDouble3 localCamPos = cameraMatrix.axis.t.toVector3();
@@ -328,7 +328,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->viewMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->projectionMatrix.a) != vE_Success)
+  if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->viewMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
   if (renderData.models.length > 0)
@@ -398,8 +398,6 @@ udResult vcRender_CreateTerrain(vcRenderContext *pRenderContext, vcSettings *pSe
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
-
-  UD_ERROR_NULL(&pRenderContext, udR_InvalidParameter_);
 
   if (vcTerrain_Init(&pRenderContext->pTerrain, pSettings) != udR_Success)
     UD_ERROR_SET(udR_InternalError);

@@ -62,6 +62,11 @@ bool vcGLState_ResetState(bool force /*= false*/)
 
 bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMode, bool isFrontCCW /*= true*/, bool force /*= false*/)
 {
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  if (fillMode != vcGLSFM_Solid)
+    return false;
+#endif
+
   if (s_internalState.cullMode != cullMode || force)
   {
     if (cullMode == vcGLSCM_None)
@@ -79,11 +84,13 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
 
   if (s_internalState.fillMode != fillMode || force)
   {
+#if !UDPLATFORM_IOS && !UDPLATFORM_IOS_SIMULATOR
+
     if (fillMode == vcGLSFM_Solid)
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     else
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
+#endif
     s_internalState.fillMode = fillMode;
   }
 

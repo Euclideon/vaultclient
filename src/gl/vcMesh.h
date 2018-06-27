@@ -10,9 +10,9 @@ struct vcSimpleVertex
 {
   udFloat3 Position;
   udFloat2 UVs;
-
-  static constexpr vcShaderVertexInputTypes LayoutType[] = { vcSVIT_Position3, vcSVIT_TextureCoords2 };
 };
+
+const vcShaderVertexInputTypes vcSimpleVertexLayout[] = { vcSVIT_Position3, vcSVIT_TextureCoords2 };
 
 bool vcMesh_CreateSimple(vcMesh **ppMesh, const vcSimpleVertex *pVerts, int totalVerts, const int *pIndices, int totalIndices);
 void vcMesh_Destroy(vcMesh **ppMesh);
