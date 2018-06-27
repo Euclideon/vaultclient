@@ -71,8 +71,6 @@ struct vcCameraSettings
 
 // Lens Sizes
 // - Using formula 2*atan(35/(2*lens)) in radians
-const float vcLens7mm = 2.38058f;
-const float vcLens11mm = 2.01927f;
 const float vcLens15mm = 1.72434f;
 const float vcLens24mm = 1.26007f;
 const float vcLens30mm = 1.05615f;
@@ -83,8 +81,6 @@ const float vcLens100mm = 0.34649f;
 enum vcLensSizes
 {
   vcLS_Custom = 0,
-  vcLS_7mm,
-  vcLS_11mm,
   vcLS_15mm,
   vcLS_24mm,
   vcLS_30mm,
