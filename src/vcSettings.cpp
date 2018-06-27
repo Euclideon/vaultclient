@@ -223,6 +223,14 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
 
     // Misc Settings
     pSettings->showFPS = data.Get("showFPS").AsBool(false);
+    pSettings->styleIndex = data.Get("style").AsInt(1); // dark style by default
+
+    switch (pSettings->styleIndex)
+    {
+    case 0: ImGui::StyleColorsClassic(); break;
+    case 1: ImGui::StyleColorsDark(); break;
+    case 2: ImGui::StyleColorsLight(); break;
+    }
 
     // Windows
     pSettings->window.xpos = data.Get("window.position.x").AsInt(SDL_WINDOWPOS_CENTERED);
@@ -283,6 +291,8 @@ bool vcSettings_Save(vcSettings *pSettings)
   // Misc Settings
   if (pSettings->showFPS) // This hides the option if its false
     data.Set("showFPS = true");
+
+  data.Set("style = %i", pSettings->styleIndex);
 
   // Windows
   data.Set("window.position.x = %d", pSettings->window.xpos);

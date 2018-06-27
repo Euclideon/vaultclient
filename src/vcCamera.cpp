@@ -14,8 +14,6 @@ struct vcCamera
 const char *lensNameArray[] =
 {
   LENSNAME(vcLS_Custom),
-  LENSNAME(vcLS_7mm),
-  LENSNAME(vcLS_11mm),
   LENSNAME(vcLS_15mm),
   LENSNAME(vcLS_24mm),
   LENSNAME(vcLS_30mm),
