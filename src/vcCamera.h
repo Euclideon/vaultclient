@@ -7,11 +7,54 @@ enum vcCameraMoveMode
 {
   vcCMM_Plane,
   vcCMM_Helicopter,
-  vcCMM_Orbit,
+};
+
+enum vcCameraPivotMode
+{
+  vcCPM_Tumble,
+  vcCPM_Orbit,
+  vcCPM_Pan,
+};
+
+enum vcControlMode
+{
+  vcCM_Normal,
+  vcCM_Zoom,
+  vcCM_Measure,
 };
 
 struct vcCamera;
 struct vcState;
+
+enum vcInputState
+{
+  vcCIS_None,
+  vcCIS_Orbiting,
+  vcCIS_MovingToPoint,
+  vcCIS_CommandZooming,
+  vcCIS_PinchZooming,
+  vcCIS_Panning,
+
+  vcCIS_Count
+};
+
+struct vcCameraInput
+{
+  vcControlMode controlMode;
+  bool isFocused;
+
+  vcInputState inputState;
+
+  udDouble3 focusPoint;
+  udDouble3 startPosition; // for zoom to
+  udDouble3 storedRotation; // for orbiting
+  double progress;
+
+  vcCameraPivotMode currentPivotMode;
+
+  udDouble3 keyboardInput;
+  udDouble3 mouseInput;
+};
 
 struct vcCameraSettings
 {
@@ -23,6 +66,7 @@ struct vcCameraSettings
   bool invertY;
   int lensIndex;
   vcCameraMoveMode moveMode;
+  vcCameraPivotMode cameraMouseBindings[3]; // bindings for camera settings
 };
 
 // Lens Sizes
@@ -51,6 +95,8 @@ enum vcLensSizes
   vcLS_TotalLenses
 };
 
+const char** vcCamera_GetLensNames();
+
 void vcCamera_Create(vcCamera **ppCamera);
 void vcCamera_Destroy(vcCamera **ppCamera);
 
@@ -60,14 +106,11 @@ udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera);
 udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPosition);
 
 // Applies movement to camera
-void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, float speedModifier = 1.f);
-void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, udDouble3 rotationOffset, udDouble3 moveOffset, double deltaTime, bool orbitActive, udDouble3 orbitPosition, udDouble3 storedRotation, float speedModifier = 1.f);
-
-void vcCamera_TravelZoomPath(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcState *pProgramState, double deltaTime);
+void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraInput *pCamInput, double deltaTime, float speedModifier = 1.f);
 
 void vcCamera_SetPosition(vcCamera *pCamera, udDouble3 position);
 void vcCamera_SetRotation(vcCamera *pCamera, udDouble3 yprRotation);
 
-const char* const* vcCamera_GetLensNames();
+void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove);
 
 #endif//vcCamera_h__

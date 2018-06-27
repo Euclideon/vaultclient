@@ -89,7 +89,6 @@ struct vcColumnHeader
 char *pBasePath = nullptr;
 #endif
 
-void vcHandleSceneInput(vcState *pProgramState);
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
@@ -338,6 +337,10 @@ int main(int /*argc*/, char ** /*args*/)
             programState.settings.window.maximized = false;
           }
         }
+        else if (event.type == SDL_MULTIGESTURE)
+        {
+          // TODO: pinch to zoom
+        }
         else if (event.type == SDL_DROPFILE && programState.hasContext)
         {
           vcModel_AddToList(&programState, event.drop.file);
@@ -395,118 +398,21 @@ epilogue:
   return 0;
 }
 
-void vcHandleSceneInput(vcState *pProgramState)
-{
-  //Setup and default values
-  ImGuiIO& io = ImGui::GetIO();
-
-  const Uint8 *pKeysArray = SDL_GetKeyboardState(NULL);
-  SDL_Keymod modState = SDL_GetModState();
-
-  float speedModifier = 1.f;
-
-  udDouble3 moveOffset = udDouble3::zero();
-  udDouble3 rotationOffset = udDouble3::zero();
-  bool isOrbitActive = false;
-
-  bool isHovered = ImGui::IsItemHovered();
-  bool isLeftClicked = ImGui::IsMouseClicked(0, false);
-  bool isRightClicked = ImGui::IsMouseClicked(1, false);
-  bool isFocused = ImGui::IsWindowFocused();
-
-  static bool clickedLeftWhileHovered = false;
-  static bool clickedRightWhileHovered = false;
-  if (isHovered && isLeftClicked)
-    clickedLeftWhileHovered = true;
-
-  if (isHovered && isRightClicked)
-    clickedRightWhileHovered = true;
-
-  if ((modState & KMOD_CTRL) > 0)
-    speedModifier *= 0.1; // slow
-
-  if ((modState & KMOD_SHIFT) > 0)
-    speedModifier *= 10.0;  // fast
-
-  // when focused
-  if (isFocused)
-  {
-    ImVec2 mouseDelta = io.MouseDelta;
-
-    moveOffset.y += (float)((int)pKeysArray[SDL_SCANCODE_W] - (int)pKeysArray[SDL_SCANCODE_S]);
-    moveOffset.x += (float)((int)pKeysArray[SDL_SCANCODE_D] - (int)pKeysArray[SDL_SCANCODE_A]);
-    moveOffset.z += (float)((int)pKeysArray[SDL_SCANCODE_R] - (int)pKeysArray[SDL_SCANCODE_F]);
-
-    if (moveOffset != udDouble3::zero() || isLeftClicked || isRightClicked) // if input detected
-      pProgramState->zoomPath.isZooming = false;
-
-    if (pProgramState->settings.camera.moveMode == vcCMM_Orbit && isLeftClicked)
-    {
-      pProgramState->orbitPos = pProgramState->worldMousePos;
-      pProgramState->storedDeltaAngle = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->orbitPos);
-    }
-
-    if (clickedLeftWhileHovered && !isLeftClicked)
-    {
-      clickedLeftWhileHovered = io.MouseDown[0];
-      if (io.MouseDown[0])
-      {
-        rotationOffset.x = -mouseDelta.x / 100.f;
-        rotationOffset.y = -mouseDelta.y / 100.f;
-        rotationOffset.z = 0.f;
-
-        isOrbitActive = true;
-      }
-    }
-
-    if (ImGui::IsMouseDoubleClicked(0))
-    {
-      if (pProgramState->worldMousePos != udDouble3::zero())
-      {
-        pProgramState->zoomPath.isZooming = true;
-        pProgramState->zoomPath.startPos = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
-        pProgramState->zoomPath.endPos = pProgramState->worldMousePos;
-        pProgramState->zoomPath.progress = 0.0;
-      }
-    }
-
-    if (isRightClicked)
-      pProgramState->currentMeasurePoint = pProgramState->worldMousePos;
-
-    if (isHovered)
-    {
-      if (io.MouseWheel > 0)
-        pProgramState->settings.camera.moveSpeed *= 1.1f;
-      if (io.MouseWheel < 0)
-        pProgramState->settings.camera.moveSpeed /= 1.1f;
-
-      pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
-    }
-  }
-
-  if (pProgramState->zoomPath.isZooming)
-    vcCamera_TravelZoomPath(pProgramState->pCamera, &pProgramState->settings.camera, pProgramState, pProgramState->deltaTime);
-
-  if(pProgramState->settings.camera.moveMode == vcCMM_Orbit)
-    vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, rotationOffset, moveOffset, pProgramState->deltaTime, isOrbitActive, pProgramState->orbitPos, pProgramState->storedDeltaAngle, speedModifier);
-  else
-    vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, rotationOffset, moveOffset, pProgramState->deltaTime, speedModifier);
-
-  pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera);
-}
-
 void vcRenderSceneWindow(vcState *pProgramState)
 {
   //Rendering
   ImVec2 size = ImGui::GetContentRegionAvail();
   ImVec2 windowPos = ImVec2(ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y);
 
+  udDouble3 moveOffset = udDouble3::zero();
+
   if (size.x < 1 || size.y < 1)
     return;
 
   if (pProgramState->sceneResolution.x != size.x || pProgramState->sceneResolution.y != size.y) //Resize buffers
   {
-    vcRender_ResizeScene(pProgramState->pRenderContext, (uint32_t)size.x, (uint32_t)size.y);
+    pProgramState->sceneResolution = udUInt2::create((uint32_t)size.x, (uint32_t)size.y);
+    vcRender_ResizeScene(pProgramState->pRenderContext, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y);
 
     // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
     // this isn't valid on iOS when using UIKit.
@@ -531,9 +437,10 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   renderData.models.Deinit();
 
-  ImGui::Image((ImTextureID)((size_t)pTexture->id), size, ImVec2(0, 0), ImVec2(1, -1));
-
   {
+    pProgramState->worldMousePos = renderData.worldMousePos;
+    pProgramState->pickingSuccess = renderData.pickingSuccess;
+
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + size.x - 5.f, windowPos.y + 5.f), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
@@ -554,18 +461,16 @@ void vcRenderSceneWindow(vcState *pProgramState)
       if (ImGui::IsMousePosValid())
       {
         ImGui::Text("Mouse Position: (%.1f,%.1f)", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
-        ImGui::Text("Mouse World Pos (x/y/z): (%f,%f,%f)", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
+        if (pProgramState->pickingSuccess)
+        {
+          ImGui::Text("Mouse World Pos (x/y/z): (%f,%f,%f)", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
 
-        udDouble3 mousePointInLatLong;
-        pProgramState->worldMousePos = renderData.worldMousePos;
-
-        if (pProgramState->worldMousePos != udDouble3::zero())
+          udDouble3 mousePointInLatLong;
           vcGIS_LocalToLatLong(pProgramState->currentSRID, renderData.worldMousePos, &mousePointInLatLong);
-        else
-          mousePointInLatLong = udDouble3::zero();
 
-        if(pProgramState->currentSRID != 0)
-          ImGui::Text("Mouse World Pos (L/L): (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
+          if (pProgramState->currentSRID != 0)
+            ImGui::Text("Mouse World Pos (L/L): (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
+        }
 
         ImGui::Text("Selected Pos (x/y/z): (%f,%f,%f)", pProgramState->currentMeasurePoint.x, pProgramState->currentMeasurePoint.y, pProgramState->currentMeasurePoint.z);
       }
@@ -581,7 +486,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   // On Screen Camera Settings
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + 5.f, windowPos.y + 5.f), ImGuiCond_Always, ImVec2(0.f, 0.f));
-    ImGui::SetNextWindowBgAlpha(0.3f);
+    ImGui::SetNextWindowBgAlpha(0.5f);
     if (ImGui::Begin("Camera Settings", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize))
     {
       udDouble3 cameraPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
@@ -598,14 +503,24 @@ void vcRenderSceneWindow(vcState *pProgramState)
         vcGIS_LocalToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &cameraLatLong);
         ImGui::Text("Lat: %.7f, Long: %.7f, Alt: %.2fm", cameraLatLong.x, cameraLatLong.y, cameraLatLong.z);
       }
-      ImGui::RadioButton("PlaneMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
+      ImGui::RadioButton("Plane", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
       ImGui::SameLine();
-      ImGui::RadioButton("HeliMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
-      ImGui::SameLine();
-      ImGui::RadioButton("OrbitMode", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Orbit);
+      ImGui::RadioButton("Heli", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
 
       if (ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f))
         pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
+
+      switch (pProgramState->cameraInput.controlMode)
+      {
+      case vcCM_Normal:
+        break;
+      case vcCM_Zoom:
+        ImGui::Text("Zoom - Press <ESC> to cancel");
+        break;
+      case vcCM_Measure:
+        ImGui::Text("Measure - Press <ESC> to cancel");
+        break;
+      }
     }
 
     ImGui::End();
@@ -658,13 +573,17 @@ void vcRenderSceneWindow(vcState *pProgramState)
           right = value_raw.x / vcSL_OSCPixelRatio;
         }
 
-        vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, udDouble3::zero(), udDouble3::create(right, forward, (double) vertical),pProgramState->deltaTime);
+        moveOffset += udDouble3::create(right, forward, (double)vertical);
+
         ImGui::Columns(1);
       }
 
       ImGui::End();
     }
 
+    ImGui::Image((ImTextureID)((size_t)pTexture->id), size, ImVec2(0, 0), ImVec2(1, -1));
+
+    vcCamera_HandleSceneInput(pProgramState, moveOffset);
   }
 }
 
@@ -921,7 +840,6 @@ void vcRenderWindow(vcState *pProgramState)
     if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ResizeFromAnySide))
     {
       vcRenderSceneWindow(pProgramState);
-      vcHandleSceneInput(pProgramState);
     }
 
     ImGui::EndDock();
@@ -1137,6 +1055,22 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::Checkbox("Invert X-axis", &pProgramState->settings.camera.invertX);
       ImGui::Checkbox("Invert Y-axis", &pProgramState->settings.camera.invertY);
 
+      ImGui::Text("Mouse Pivot Bindings");
+      const char *mouseModes[] = { "Tumble", "Orbit", "Pan" };
+
+      int mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[0];
+      ImGui::Combo("Left", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
+      pProgramState->settings.camera.cameraMouseBindings[0] = (vcCameraPivotMode)mouseBindingIndex;
+
+      mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[2];
+      ImGui::Combo("Middle", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
+      pProgramState->settings.camera.cameraMouseBindings[2] = (vcCameraPivotMode)mouseBindingIndex;
+
+      mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[1];
+      ImGui::Combo("Right", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
+      pProgramState->settings.camera.cameraMouseBindings[1] = (vcCameraPivotMode)mouseBindingIndex;
+
+      ImGui::Text("Viewport");
       if (ImGui::SliderFloat("Near Plane", &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))
       {
         pProgramState->settings.camera.nearPlane = udClamp(pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax);
