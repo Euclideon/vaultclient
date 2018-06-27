@@ -26,6 +26,7 @@ struct vcRenderData
 
   udInt2 mouse;
   udDouble3 worldMousePos;
+  bool pickingSuccess;
 
   udChunkedArray<vcModel*> models;
   udDouble4x4 cameraMatrix;
