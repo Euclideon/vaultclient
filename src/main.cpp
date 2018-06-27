@@ -1058,17 +1058,17 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::Text("Mouse Pivot Bindings");
       const char *mouseModes[] = { "Tumble", "Orbit", "Pan" };
 
-      int mouseBindingIndex = pProgramState->settings.camera.pivotBind[0];
+      int mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[0];
       ImGui::Combo("Left", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
-      pProgramState->settings.camera.pivotBind[0] = (vcCameraPivotMode)mouseBindingIndex;
+      pProgramState->settings.camera.cameraMouseBindings[0] = (vcCameraPivotMode)mouseBindingIndex;
 
-      mouseBindingIndex = pProgramState->settings.camera.pivotBind[2];
+      mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[2];
       ImGui::Combo("Middle", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
-      pProgramState->settings.camera.pivotBind[2] = (vcCameraPivotMode)mouseBindingIndex;
+      pProgramState->settings.camera.cameraMouseBindings[2] = (vcCameraPivotMode)mouseBindingIndex;
 
-      mouseBindingIndex = pProgramState->settings.camera.pivotBind[1];
+      mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[1];
       ImGui::Combo("Right", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
-      pProgramState->settings.camera.pivotBind[1] = (vcCameraPivotMode)mouseBindingIndex;
+      pProgramState->settings.camera.cameraMouseBindings[1] = (vcCameraPivotMode)mouseBindingIndex;
 
       ImGui::Text("Viewport");
       if (ImGui::SliderFloat("Near Plane", &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))
