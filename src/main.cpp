@@ -1036,10 +1036,9 @@ void vcRenderWindow(vcState *pProgramState)
     {
       ImGui::Text("UI Settings");
 
-      static int styleIndex = 1; // dark
-      if (ImGui::Combo("Style", &styleIndex, "Classic\0Dark\0Light\0"))
+      if (ImGui::Combo("Style", &pProgramState->settings.styleIndex, "Classic\0Dark\0Light\0"))
       {
-        switch (styleIndex)
+        switch (pProgramState->settings.styleIndex)
         {
         case 0: ImGui::StyleColorsClassic(); break;
         case 1: ImGui::StyleColorsDark(); break;
@@ -1090,12 +1089,6 @@ void vcRenderWindow(vcState *pProgramState)
         {
         case vcLS_Custom:
           /*Custom FoV*/
-          break;
-        case vcLS_7mm:
-          pProgramState->settings.camera.fieldOfView = vcLens7mm;
-          break;
-        case vcLS_11mm:
-          pProgramState->settings.camera.fieldOfView = vcLens11mm;
           break;
         case vcLS_15mm:
           pProgramState->settings.camera.fieldOfView = vcLens15mm;
