@@ -350,7 +350,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
     if (distanceToPoint != 0.0)
     {
-      if (pCamInput->mouseInput.x != 0.0 || pCamInput->mouseInput.y != 0.0)
+      if (pCamInput->mouseInput.x != 0.0 || pCamInput->mouseInput.y != 0.0 || pCamInput->keyboardInput.x != 0.0)
         orientation = udDoubleQuat::create(pCamera->yprRotation - pCamInput->storedRotation);
       else
         orientation = udDoubleQuat::create(pCamera->yprRotation);
@@ -374,6 +374,8 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
         forwardMove *= distanceToPoint / udMag3(forwardMove); // clamp it so that you dont overshoot
 
       addPosOrbit += forwardMove;
+
+      addPosOrbit.z += addPos.z * 50.0 * pCamSettings->moveSpeed * speedModifier * deltaTime;
 
       pCamera->position += addPosOrbit;
 
