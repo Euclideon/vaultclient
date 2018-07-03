@@ -28,18 +28,23 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 		mkdir -p $DEPLOYDIR/Windows
 		if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -f bin/sdl/SDL2.dll $DEPLOYDIR/Windows/SDL2.dll
-		if [ $? -ne 0 ]; then exit 1; fi
+		# D3D copies only EXE, OpenGL copies everything else
+		if [ $3 == "--gfxapi=d3d11" ]; then
+			cp -f builds/vaultClient.exe $DEPLOYDIR/Windows/vaultClient_d3d11.exe
+			if [ $? -ne 0 ]; then exit 1; fi
+		else
+			cp -f bin/sdl/SDL2.dll $DEPLOYDIR/Windows/SDL2.dll
+			if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -f builds/vaultClient.exe $DEPLOYDIR/Windows/vaultClient.exe
-		if [ $? -ne 0 ]; then exit 1; fi
+			cp -f builds/vaultClient.exe $DEPLOYDIR/Windows/vaultClient.exe
+			if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -rf builds/assets/ $DEPLOYDIR/Windows/assets
-		if [ $? -ne 0 ]; then exit 1; fi
+			cp -rf builds/assets/ $DEPLOYDIR/Windows/assets
+			if [ $? -ne 0 ]; then exit 1; fi
 
-		cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll $DEPLOYDIR/Windows/vaultSDK.dll
-		if [ $? -ne 0 ]; then exit 1; fi
-
+			cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll $DEPLOYDIR/Windows/vaultSDK.dll
+			if [ $? -ne 0 ]; then exit 1; fi
+		fi
 	fi
 else
 	if ([[ $OSTYPE == "darwin"* ]] && [ $3 == "ios" ]); then # iOS
