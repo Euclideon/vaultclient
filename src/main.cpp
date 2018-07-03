@@ -434,9 +434,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
   {
     pProgramState->worldMousePos = renderData.worldMousePos;
     pProgramState->pickingSuccess = renderData.pickingSuccess;
-  {
-    pProgramState->worldMousePos = renderData.worldMousePos;
-    pProgramState->pickingSuccess = renderData.pickingSuccess;
 
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + size.x - 5.f, windowPos.y + 5.f), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
