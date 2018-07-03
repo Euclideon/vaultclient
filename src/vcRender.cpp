@@ -218,11 +218,12 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
   float zNear = pRenderContext->pSettings->camera.nearPlane;
   float zFar = pRenderContext->pSettings->camera.farPlane;
 
+  pRenderContext->viewMatrix = renderData.cameraMatrix;
+  pRenderContext->viewMatrix.inverse();
+
   pRenderContext->projectionMatrix = udDouble4x4::perspective(fov, aspect, zNear, zFar);
   pRenderContext->skyboxProjMatrix = udDouble4x4::perspective(fov, aspect, 0.5f, 10000.f);
 
-  pRenderContext->viewMatrix = renderData.cameraMatrix;
-  pRenderContext->viewMatrix.inverse();
   pRenderContext->viewProjectionMatrix = pRenderContext->projectionMatrix * pRenderContext->viewMatrix;
 
   vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true);
@@ -323,9 +324,6 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   int numVisibleModels = 0;
 
   if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->projectionMatrix.a) != vE_Success)
-    UD_ERROR_SET(udR_InternalError);
-
-  if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->viewMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
   if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->viewMatrix.a) != vE_Success)

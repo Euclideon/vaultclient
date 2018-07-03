@@ -24,72 +24,22 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, vcTWMToGL[wrapMode]);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, vcTWMToGL[wrapMode]);
 
-  GLenum internalFormat;
-  GLenum pixelFormat, pixelType;
-  GLenum type;
-  GLint glFormat;
+  GLint internalFormat = GL_INVALID_ENUM;
+  GLenum type = GL_INVALID_ENUM;
+  GLint glFormat = GL_INVALID_ENUM;
 
   switch (format)
   {
   case vcTextureFormat_RGBA8:
-    internalFormat = GL_RGBA;
-    pixelFormat = GL_RGBA;
-    pixelType = GL_UNSIGNED_BYTE;
+    internalFormat = GL_RGBA8;
+    type = GL_UNSIGNED_BYTE;
+    glFormat = GL_RGBA;
     break;
   case vcTextureFormat_BGRA8:
     internalFormat = GL_RGBA8;
     type = GL_UNSIGNED_BYTE;
     glFormat = GL_BGRA;
     break;
-  case vcTextureFormat_D24:
-    internalFormat = GL_DEPTH_COMPONENT24;
-    pixelFormat = GL_DEPTH_COMPONENT;
-    pixelType = GL_FLOAT;
-    break;
-  case vcTextureFormat_D32F:
-    internalFormat = GL_DEPTH_COMPONENT32F;
-    pixelFormat = GL_DEPTH_COMPONENT;
-    pixelType = GL_FLOAT;
-    break;
-    // unknown texture format, do nothing
-    return false;
-  }
-
-  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, pixelFormat, pixelType, pPixels);
-
-  if (hasMipmaps)
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-  glBindTexture(GL_TEXTURE_2D, 0);
-  VERIFY_GL();
-
-  pTexture->format = format;
-  pTexture->width = width;
-  pTexture->height = height;
-
-  *ppTexture = pTexture;
-  return true;
-}
-
-bool vcTexture_CreateDepth(vcTexture **ppTexture, uint32_t width, uint32_t height, vcTextureFormat format /*= vcTextureFormat_D24*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/)
-{
-  if (ppTexture == nullptr || width == 0 || height == 0)
-    return false;
-
-  vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
-
-  glGenTextures(1, &pTexture->id);
-  glBindTexture(GL_TEXTURE_2D, pTexture->id);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, vcTFMToGL[filterMode]);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, vcTFMToGL[filterMode]);
-  VERIFY_GL();
-
-  GLint internalFormat;
-  GLenum type;
-  switch (format)
-  {
   case vcTextureFormat_D32F:
     internalFormat = GL_DEPTH_COMPONENT32F;
     type = GL_FLOAT;
