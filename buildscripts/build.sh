@@ -30,7 +30,7 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 
 		# D3D copies only EXE, OpenGL copies everything else
 		if [ $3 == "--gfxapi=d3d11" ]; then
-			cp -f builds/vaultClient.exe $DEPLOYDIR/Windows/vaultClient_d3d11.exe
+			cp -f builds/vaultClient_d3d11.exe $DEPLOYDIR/Windows/vaultClient_d3d11.exe
 			if [ $? -ne 0 ]; then exit 1; fi
 		else
 			cp -f bin/sdl/SDL2.dll $DEPLOYDIR/Windows/SDL2.dll
