@@ -1,9 +1,9 @@
 #include "vcModel.h"
 
-void vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
+bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
 {
   if (pFilePath == nullptr)
-    return;
+    return false;
 
   vcModel model = {};
   model.modelLoaded = true;
@@ -23,7 +23,10 @@ void vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
     pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera); // eh?
 
     pProgramState->vcModelList.PushBack(model);
+    return true;
   }
+
+  return false;
 }
 
 bool vcModel_UnloadList(vcState *pProgramState)

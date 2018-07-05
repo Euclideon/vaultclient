@@ -17,7 +17,7 @@ struct vcModel
 
 #include "vcState.h"
 
-void vcModel_AddToList(vcState *pProgramState, const char *pFilePath);
+bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath);
 bool vcModel_UnloadList(vcState *pProgramState);
 bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel);
 

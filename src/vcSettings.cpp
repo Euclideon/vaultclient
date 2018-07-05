@@ -245,6 +245,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->window.windowsOpen[vcdScene] = data.Get("frames.scene").AsBool(true);
     pSettings->window.windowsOpen[vcdSettings] = data.Get("frames.settings").AsBool(true);
     pSettings->window.windowsOpen[vcdSceneExplorer] = data.Get("frames.explorer").AsBool(true);
+    pSettings->window.windowsOpen[vcdConvert] = data.Get("frames.convert").AsBool(false);
 
     // Camera
     pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
@@ -346,6 +347,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("frames.scene = %s", pSettings->window.windowsOpen[vcdScene] ? "true" : "false");
   data.Set("frames.settings = %s", pSettings->window.windowsOpen[vcdSettings] ? "true" : "false");
   data.Set("frames.explorer = %s", pSettings->window.windowsOpen[vcdSceneExplorer] ? "true" : "false");
+  data.Set("frames.convert = %s", pSettings->window.windowsOpen[vcdConvert] ? "true" : "false");
 
   // Camera
   data.Set("camera.moveSpeed = %f", pSettings->camera.moveSpeed);
