@@ -26,22 +26,26 @@ UDFORCE_INLINE float udSin(float f) { return sinf(f); }
 UDFORCE_INLINE double udSin(double d) { return sin(d); }
 UDFORCE_INLINE float udCos(float f) { return cosf(f); }
 UDFORCE_INLINE double udCos(double d) { return cos(d); }
+UDFORCE_INLINE float udSinh(float f) { return sinhf(f); }
+UDFORCE_INLINE double udSinh(double d) { return sinh(d); }
+UDFORCE_INLINE float udCosh(float f) { return coshf(f); }
+UDFORCE_INLINE double udCosh(double d) { return cosh(d); }
 UDFORCE_INLINE float udTan(float f) { return tanf(f); }
 UDFORCE_INLINE double udTan(double d) { return tan(d); }
 UDFORCE_INLINE float udASin(float f) { return asinf(f); }
 UDFORCE_INLINE double udASin(double d) { return asin(d); }
 UDFORCE_INLINE float udACos(float f) { return acosf(f); }
 UDFORCE_INLINE double udACos(double d) { return acos(d); }
+UDFORCE_INLINE float udASinh(float f) { return asinhf(f); }
+UDFORCE_INLINE double udASinh(double d) { return asinh(d); }
+UDFORCE_INLINE float udACosh(float f) { return acosf(f); }
+UDFORCE_INLINE double udACosh(double d) { return acosh(d); }
 UDFORCE_INLINE float udATan(float f) { return atanf(f); }
 UDFORCE_INLINE double udATan(double d) { return atan(d); }
 UDFORCE_INLINE float udATanh(float f) { return atanhf(f); }
 UDFORCE_INLINE double udATanh(double d) { return atanh(d); }
 UDFORCE_INLINE float udATan2(float y, float x) { return atan2f(y, x); }
 UDFORCE_INLINE double udATan2(double y, double x) { return atan2(y, x); }
-UDFORCE_INLINE float udSinh(float f) { return sinhf(f); }
-UDFORCE_INLINE double udSinh(double d) { return sinh(d); }
-UDFORCE_INLINE float udCosh(float f) { return coshf(f); }
-UDFORCE_INLINE double udCosh(double d) { return cosh(d); }
 
 UDFORCE_INLINE float udRound(float f) { return f >= 0.0f ? floorf(f + 0.5f) : ceilf(f - 0.5f); }
 UDFORCE_INLINE double udRound(double d) { return d >= 0.0 ? floor(d + 0.5) : ceil(d - 0.5); }
@@ -93,10 +97,16 @@ template <typename T> T            udMax(T a, T b) { return (a > b) ? a : b; }
 template <typename T> udVector2<T> udMin(const udVector2<T> &v1, const udVector2<T> &v2) { udVector2<T> r = { v1.x<v2.x?v1.x:v2.x, v1.y<v2.y?v1.y:v2.y }; return r; }
 template <typename T> udVector3<T> udMin(const udVector3<T> &v1, const udVector3<T> &v2) { udVector3<T> r = { v1.x<v2.x?v1.x:v2.x, v1.y<v2.y?v1.y:v2.y, v1.z<v2.z?v1.z:v2.z }; return r; }
 template <typename T> udVector4<T> udMin(const udVector4<T> &v1, const udVector4<T> &v2) { udVector4<T> r = { v1.x<v2.x?v1.x:v2.x, v1.y<v2.y?v1.y:v2.y, v1.z<v2.z?v1.z:v2.z, v1.w<v2.w?v1.w:v2.w }; return r; }
+template <typename T> T            udMinElement(const udVector2<T> &v) { return udMin(v.x, v.y); }
+template <typename T> T            udMinElement(const udVector3<T> &v) { return udMin(udMin(v.x, v.y), v.z); }
+template <typename T> T            udMinElement(const udVector4<T> &v) { return udMin(udMin(v.x, v.y), udMin(v.z, v.w)); }
 template <typename T> T            udMin(T a, T b) { return (a < b) ? a : b; }
 template <typename T> udVector2<T> udMax(const udVector2<T> &v1, const udVector2<T> &v2) { udVector2<T> r = { v1.x>v2.x?v1.x:v2.x, v1.y>v2.y?v1.y:v2.y }; return r; }
 template <typename T> udVector3<T> udMax(const udVector3<T> &v1, const udVector3<T> &v2) { udVector3<T> r = { v1.x>v2.x?v1.x:v2.x, v1.y>v2.y?v1.y:v2.y, v1.z>v2.z?v1.z:v2.z }; return r; }
 template <typename T> udVector4<T> udMax(const udVector4<T> &v1, const udVector4<T> &v2) { udVector4<T> r = { v1.x>v2.x?v1.x:v2.x, v1.y>v2.y?v1.y:v2.y, v1.z>v2.z?v1.z:v2.z, v1.w>v2.w?v1.w:v2.w }; return r; }
+template <typename T> T            udMaxElement(const udVector2<T> &v) { return udMax(v.x, v.y); }
+template <typename T> T            udMaxElement(const udVector3<T> &v) { return udMax(udMax(v.x, v.y), v.z); }
+template <typename T> T            udMaxElement(const udVector4<T> &v) { return udMax(udMax(v.x, v.y), udMax(v.z, v.w)); }
 template <typename T> T            udClamp(T v, T _min, T _max) { return v<_min?_min:(v>_max?_max:v); }
 template <typename T> udVector2<T> udClamp(const udVector2<T> &v, const udVector2<T> &_min, const udVector2<T> &_max) { udVector2<T> r = { v.x<_min.x?_min.x:(v.x>_max.x?_max.x:v.x), v.y<_min.y?_min.y:(v.y>_max.y?_max.y:v.y) }; return r; }
 template <typename T> udVector3<T> udClamp(const udVector3<T> &v, const udVector3<T> &_min, const udVector3<T> &_max) { udVector3<T> r = { v.x<_min.x?_min.x:(v.x>_max.x?_max.x:v.x), v.y<_min.y?_min.y:(v.y>_max.y?_max.y:v.y), v.z<_min.z?_min.z:(v.z>_max.z?_max.z:v.z) }; return r; }

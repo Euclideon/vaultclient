@@ -3,6 +3,8 @@
 
 #include "udPlatform/udMath.h"
 
+bool vcGIS_AcceptableSRID(uint16_t sridCode);
+
 bool vcGIS_LocalToLatLong(uint16_t sridCode, udDouble3 localCoords, udDouble3 *pLatLong);
 bool vcGIS_LatLongToLocal(uint16_t sridCode, udDouble3 latLong, udDouble3 *pLocalCoords);
 
