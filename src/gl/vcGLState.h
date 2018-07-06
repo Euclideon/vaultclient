@@ -64,6 +64,9 @@ struct vcGLState
   udFloat2 depthRange;
 
   vcGLStateBlendMode blendMode;
+
+  udInt4 viewportZone;
+  udInt4 scissorZone;
 };
 
 struct SDL_Window;
@@ -84,5 +87,7 @@ bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, 
 bool vcGLState_Present(SDL_Window *pWindow);
 
 bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height);
+
+void vcGLState_Scissor(int left, int top, int right, int bottom);
 
 #endif // vcGLState_h__

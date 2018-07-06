@@ -203,16 +203,16 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer, vcSettings *p
     for (int x = 0; x < VertResolution; ++x)
     {
       int index = y * VertResolution + x;
-      verts[index].Position.x = float(index ? (1 << (index-1)) : 0);
-      verts[index].Position.y = 0.0f;
-      verts[index].Position.z = 0.0f;
+      verts[index].position.x = float(index ? (1 << (index-1)) : 0);
+      verts[index].position.y = 0.0f;
+      verts[index].position.z = 0.0f;
 
-      verts[index].UVs.x = ((float)(x) / VertResolution) * normalizeVertexPositionScale;
-      verts[index].UVs.y = ((float)(y) / VertResolution) * normalizeVertexPositionScale;
+      verts[index].uv.x = ((float)(x) / VertResolution) * normalizeVertexPositionScale;
+      verts[index].uv.y = ((float)(y) / VertResolution) * normalizeVertexPositionScale;
     }
   }
 
-  vcMesh_CreateSimple(&pTerrainRenderer->pMesh, verts, VertResolution * VertResolution, indices, IndexResolution * IndexResolution * 6);
+  vcMesh_Create(&pTerrainRenderer->pMesh, vcSimpleVertexLayout, 2, verts, VertResolution * VertResolution, indices, IndexResolution * IndexResolution * 6);
   (*ppTerrainRenderer) = pTerrainRenderer;
 }
 
