@@ -446,10 +446,14 @@ void vcRenderSceneWindow(vcState *pProgramState)
       else
         ImGui::Text("Not Geolocated");
 
-      if (pProgramState->settings.showFPS)
+      if (pProgramState->settings.showDebugOptions)
       {
         ImGui::Separator();
         ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
+
+        int newSRID = pProgramState->currentSRID;
+        if (ImGui::InputInt("Override SRID", &newSRID) && vcGIS_AcceptableSRID((uint16_t)newSRID))
+          pProgramState->currentSRID = (uint16_t)newSRID;
       }
 
       ImGui::Separator();
@@ -620,7 +624,7 @@ int vcMainMenuGui(vcState *pProgramState)
       {
         ImGui::MenuItem("Styling", nullptr, &pProgramState->settings.window.windowsOpen[vcdStyling]);
         ImGui::MenuItem("UI Debug Menu", nullptr, &pProgramState->settings.window.windowsOpen[vcdUIDemo]);
-        ImGui::MenuItem("Show FPS", nullptr, &pProgramState->settings.showFPS);
+        ImGui::MenuItem("Show FPS", nullptr, &pProgramState->settings.showDebugOptions);
         ImGui::EndMenu();
       }
 
@@ -835,9 +839,7 @@ void vcRenderWindow(vcState *pProgramState)
     }
 
     if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ResizeFromAnySide))
-    {
       vcRenderSceneWindow(pProgramState);
-    }
 
     ImGui::EndDock();
 
@@ -1144,6 +1146,9 @@ void vcRenderWindow(vcState *pProgramState)
 
         if(ImGui::SliderFloat("Transparency", &pProgramState->settings.maptiles.transparency, 0.f, 1.f, "%.3f"))
           pProgramState->settings.maptiles.transparency = udClamp(pProgramState->settings.maptiles.transparency, 0.f, 1.f);
+
+        if (ImGui::Button("Set to Camera Height"))
+          pProgramState->settings.maptiles.mapHeight = (float)pProgramState->camMatrix.axis.t.z;
       }
     }
 
