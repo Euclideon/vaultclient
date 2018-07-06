@@ -73,7 +73,13 @@ struct vcMesh
   ID3D11Buffer *pVertexConstantBuffer;
 
   uint32_t vertexCount;
+  uint32_t maxVertexCount;
   uint32_t indexCount;
+  uint32_t maxIndexCount;
+
+  D3D11_USAGE drawType;
+  int indexBytes;
+  uint32_t vertexSize;
 };
 
 static const D3D11_FILTER vcTFMToD3D[] = { D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_FILTER_MIN_MAG_MIP_LINEAR }; // Filter Mode
