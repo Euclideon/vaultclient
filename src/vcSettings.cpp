@@ -222,7 +222,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     }
 
     // Misc Settings
-    pSettings->showFPS = data.Get("showFPS").AsBool(false);
+    pSettings->showDebugOptions = data.Get("showDebugOptions").AsBool(false);
     pSettings->styleIndex = data.Get("style").AsInt(1); // dark style by default
 
     switch (pSettings->styleIndex)
@@ -289,8 +289,8 @@ bool vcSettings_Save(vcSettings *pSettings)
   udValue data;
 
   // Misc Settings
-  if (pSettings->showFPS) // This hides the option if its false
-    data.Set("showFPS = true");
+  if (pSettings->showDebugOptions) // This hides the option if its false
+    data.Set("showDebugOptions = true");
 
   data.Set("style = %i", pSettings->styleIndex);
 

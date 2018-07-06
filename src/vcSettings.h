@@ -47,7 +47,7 @@ struct vcSettings
   const char *pSaveFilePath;
   char resourceBase[vcMaxPathLength]; // Could be any of: http://uds.domain.local or /mnt/uds or R:/
 
-  bool showFPS;
+  bool showDebugOptions;
 
   int styleIndex;
 

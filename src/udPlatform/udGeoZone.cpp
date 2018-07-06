@@ -134,6 +134,23 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
     SetSpheroid(pZone);
     SetUTMZoneBounds(pZone, false);
   }
+  else if (sridCode >= 3942 && sridCode <= 3950)
+  {
+    // France Conic Conformal zones
+    pZone->zone = sridCode - 3942;
+    pZone->meridian = 3.0;
+    pZone->parallel = 42.0 + pZone->zone; //49.0;
+    pZone->firstParallel = pZone->parallel - 0.75; //48.25;
+    pZone->secondParallel = pZone->parallel + 0.75; //49.75;
+    pZone->falseNorthing = 1200000 + 1000000 * pZone->zone;
+    pZone->falseEasting = 1700000;
+    pZone->scaleFactor = 1.0;
+    pZone->flattening = 1 / 298.257222101;
+    pZone->semiMajorAxis = 6378137.0;
+    SetSpheroid(pZone);
+    pZone->latLongBoundMin = udDouble2::create(pZone->parallel - 1.0, -2.0);
+    pZone->latLongBoundMax = udDouble2::create(pZone->parallel + 1.0, 10.00);
+  }
   else //unordered codes
   {
     switch (sridCode)
@@ -161,21 +178,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       pZone->secondParallel = 38.3;
       pZone->falseNorthing = 0.0;
       pZone->falseEasting = 500000;
-      pZone->scaleFactor = 1.0;
-      pZone->flattening = 1 / 298.257222101;
-      pZone->semiMajorAxis = 6378137.0;
-      SetSpheroid(pZone);
-      pZone->latLongBoundMin = udDouble2::create(37.88, -79.49);
-      pZone->latLongBoundMax = udDouble2::create(39.72, -74.98);
-      break;
-    case 3949: // France Conic Conformal zone 8
-      pZone->zone = sridCode;
-      pZone->meridian = 3.0;
-      pZone->parallel = 49.0;
-      pZone->firstParallel = 48.25;
-      pZone->secondParallel = 49.75;
-      pZone->falseNorthing = 8200000;
-      pZone->falseEasting = 1700000;
       pZone->scaleFactor = 1.0;
       pZone->flattening = 1 / 298.257222101;
       pZone->semiMajorAxis = 6378137.0;
