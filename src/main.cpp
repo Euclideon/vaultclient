@@ -4,7 +4,8 @@
 #include "vdkRenderContext.h"
 #include "vdkModel.h"
 #include "imgui.h"
-#include "imgui_ex/imgui_impl_sdl_gl3.h"
+#include "imgui_ex/imgui_impl_sdl.h"
+#include "imgui_ex/imgui_impl_gl.h"
 #include "imgui_ex/imgui_dock.h"
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
@@ -285,12 +286,12 @@ int main(int /*argc*/, char ** /*args*/)
   vcFramebuffer_Bind(programState.pDefaultFramebuffer);
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(ASSETDIR "/NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(ASSETDIR "/NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChineseFull());
 #elif UDPLATFORM_OSX
   udSprintf(fontPath, vcMaxPathLength, "%s%s", pBasePath, "NotoSansCJKjp-Regular.otf");
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(fontPath, 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(fontPath, 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChineseFull());
 #else
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(ASSETDIR "fonts/NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChinese());
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(ASSETDIR "fonts/NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChineseFull());
 #endif
 
   SDL_EnableScreenSaver();
@@ -300,7 +301,7 @@ int main(int /*argc*/, char ** /*args*/)
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-      if (!ImGuiGL_ProcessSDLEvent(&event))
+      if (!ImGui_ImplSDL2_ProcessEvent(&event))
       {
         if (event.type == SDL_WINDOWEVENT)
         {

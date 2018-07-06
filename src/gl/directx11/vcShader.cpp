@@ -58,7 +58,7 @@ bool vsShader_InternalReflectShaderConstantBuffers(ID3D10Blob *pBlob, int type, 
   return true;
 }
 
-bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcShaderVertexInputTypes *pInputTypes, uint32_t totalInputs)
+bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs)
 {
   if (ppShader == nullptr || pVertexShader == nullptr || pFragmentShader == nullptr || pInputTypes == nullptr)
     return false;
@@ -103,19 +103,19 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   {
     switch (pInputTypes[i])
     {
-    case vcSVIT_Position2:
+    case vcVLT_Position2:
       pVertexLayout[i] = { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 8;
       break;
-    case vcSVIT_Position3:
+    case vcVLT_Position3:
       pVertexLayout[i] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 12;
       break;
-    case vcSVIT_TextureCoords2:
+    case vcVLT_TextureCoords2:
       pVertexLayout[i] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 8;
       break;
-    case vcSVIT_ColourBGRA:
+    case vcVLT_ColourBGRA:
       pVertexLayout[i] = { "COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 4;
       break;

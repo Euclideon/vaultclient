@@ -28,6 +28,7 @@
 
 #include "gl/vcGLState.h"
 #include "gl/vcTexture.h"
+#include "gl/vcMesh.h"
 
 struct vcTexture
 {
@@ -72,6 +73,10 @@ struct vcMesh
 
   uint32_t vertexCount;
   uint32_t indexCount;
+
+  GLenum drawType;
+  GLenum indexType;
+  int indexBytes;
 };
 
 static const GLuint vcTFMToGL[] = { GL_NEAREST, GL_LINEAR }; // Filter Mode

@@ -195,7 +195,7 @@ const char* const g_vcSkyboxFragmentShader = R"shader(
 )shader";
 
 const char* const g_ImGuiVertexShader = R"vert(
-  cbuffer vertexBuffer : register(b0)
+  cbuffer u_EveryFrame : register(b0)
   {
     float4x4 ProjectionMatrix;
   };
