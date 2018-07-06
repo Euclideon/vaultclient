@@ -61,7 +61,7 @@ GLint vcBuildProgram(GLint vertexShader, GLint fragmentShader)
   return programObject;
 }
 
-bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcShaderVertexInputTypes * /*pInputTypes*/, uint32_t /*totalInputs*/)
+bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes * /*pInputTypes*/, uint32_t /*totalInputs*/)
 {
   if (ppShader == nullptr || pVertexShader == nullptr || pFragmentShader == nullptr)
     return false;
