@@ -32,6 +32,7 @@
 
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
+#include "udPlatform/udPlatform.h"
 
 // SDL
 // (the multi-viewports feature requires SDL features supported from SDL 2.0.5+)
@@ -39,7 +40,12 @@
 #include <SDL2/SDL_syswm.h>
 #define SDL_HAS_WARP_MOUSE_GLOBAL           SDL_VERSION_ATLEAST(2,0,4)
 
+#if UDPLATFORM_WINDOWS ||  UDPLATFORM_OSX || UDPLATFORM_LINUX
 #define SDL_HAS_CAPTURE_MOUSE               SDL_VERSION_ATLEAST(2,0,4)
+#else
+#define SDL_HAS_CAPTURE_MOUSE               0
+#endif
+
 #define SDL_HAS_VULKAN                      SDL_VERSION_ATLEAST(2,0,6)
 #define SDL_HAS_MOUSE_FOCUS_CLICKTHROUGH    SDL_VERSION_ATLEAST(2,0,5)
 //#if !SDL_HAS_VULKAN
