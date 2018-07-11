@@ -739,7 +739,7 @@ void vcRenderWindow(vcState *pProgramState)
           }
           else
           {
-            err = vdkContext_GetLicense(pProgramState->pContext, vdkLT_Basic);
+            err = vdkContext_GetLicense(pProgramState->pContext, vdkLT_Render);
             if (err != vE_Success)
             {
               pErrorMessage = "Could not get license...";
