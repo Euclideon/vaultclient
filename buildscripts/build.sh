@@ -12,7 +12,7 @@ else
 fi
 
 export DEPLOYDIR="$RESOURCES/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
-export VAULTSDK_HOME="$RESOURCES/Builds/vault/sdk/Pipeline_26320"
+export VAULTSDK_HOME="$RESOURCES/Builds/vault/sdk/Pipeline_26694"
 
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 	bin/premake/premake5.exe vs2015 $3
