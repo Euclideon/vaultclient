@@ -441,10 +441,13 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
     if (ImGui::Begin("Geographic Information", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
     {
-      if (pProgramState->currentSRID != 0)
+      bool validSRID = vcGIS_AcceptableSRID(pProgramState->currentSRID);
+      if (pProgramState->currentSRID != 0 && validSRID)
         ImGui::Text("SRID: %d", pProgramState->currentSRID);
-      else
+      else if (pProgramState->currentSRID == 0)
         ImGui::Text("Not Geolocated");
+      else
+        ImGui::Text("Unsupported SRID: %d", pProgramState->currentSRID);
 
       if (pProgramState->settings.showDebugOptions)
       {
@@ -464,11 +467,12 @@ void vcRenderSceneWindow(vcState *pProgramState)
         {
           ImGui::Text("Mouse World Pos (x/y/z): (%f,%f,%f)", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
 
-          udDouble3 mousePointInLatLong;
-          vcGIS_LocalToLatLong(pProgramState->currentSRID, renderData.worldMousePos, &mousePointInLatLong);
-
-          if (pProgramState->currentSRID != 0)
+          if (pProgramState->currentSRID != 0 && validSRID)
+          {
+            udDouble3 mousePointInLatLong;
+            vcGIS_LocalToLatLong(pProgramState->currentSRID, renderData.worldMousePos, &mousePointInLatLong);
             ImGui::Text("Mouse World Pos (L/L): (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
+          }
         }
 
         ImGui::Text("Selected Pos (x/y/z): (%f,%f,%f)", pProgramState->currentMeasurePoint.x, pProgramState->currentMeasurePoint.y, pProgramState->currentMeasurePoint.z);
