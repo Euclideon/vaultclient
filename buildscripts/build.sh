@@ -15,11 +15,22 @@ export DEPLOYDIR="$RESOURCES/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
 export VAULTSDK_HOME="$RESOURCES/Builds/vault/sdk/Pipeline_26694"
 
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
+	export CERT_THUMBPRINT="bbee8d60b45735badf16f76e049b966981bd2751"
+
 	bin/premake/premake5.exe vs2015 $3
 	if [ $? -ne 0 ]; then exit 1; fi
 
 	"C:/Program Files (x86)/MSBuild/14.0/Bin/amd64/MSBuild.exe" vaultClient.sln //p:Configuration=$1 //p:Platform=$2 //v:m //m
 	if [ $? -ne 0 ]; then exit 1; fi
+
+	# Sign binaries
+	if [ $3 == "--gfxapi=d3d11" ]; then
+		"C:/Program Files (x86)/Windows Kits/8.1/bin/x64/signtool.exe" sign //v //d "Euclideon Client" //sha1 $CERT_THUMBPRINT //t http://timestamp.digicert.com builds\\vaultClient_d3d11.exe
+		if [ $? -ne 0 ]; then exit 1; fi
+	else
+		"C:/Program Files (x86)/Windows Kits/8.1/bin/x64/signtool.exe" sign //v //d "Euclideon Client" //sha1 $CERT_THUMBPRINT //t http://timestamp.digicert.com builds\\vaultClient.exe
+		if [ $? -ne 0 ]; then exit 1; fi
+	fi
 
 	if [ $1 == "Release" ] && ([ $CI_BUILD_REF_NAME == "master" ] || [ -n "$CI_BUILD_TAG" ]); then
 		if [ $? -ne 0 ]; then exit 1; fi
