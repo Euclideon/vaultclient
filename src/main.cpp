@@ -40,48 +40,24 @@ const char *pProjectsJSON = R"projects(
 {
   "projects": [
     {
-      "name": "Adelaide, South Australia",
+      "name": "Adelaide, South Australia (Internal Only)",
       "models": [ "AdelaideCBD_2cm.uds" ]
     },
     {
-      "name": "Juneau, Alaska",
+      "name": "Juneau, Alaska (Internal Only)",
       "models": [ "AK_Juneau.uds" ]
     },
     {
-      "name": "Ben's Bike (CAD)",
-      "models": [ "BenBike-0001.uds" ]
+      "name": "Queensland (Internal Only)",
+      "models": [ "BruceHwy_All-32756-DEBUG.uds", "Brisbane_30cm.uds" ]
     },
     {
-      "name": "Engine (CAD)",
-      "models": [ "engine_Assem_lit_1mm.uds" ]
+      "name": "SNCF (Internal Only)",
+      "models": [ "150128-0-L.uds", "Geoverse_Aiglepierre5mm.uds" ]
     },
     {
-      "name": "Japanese House",
-      "models": [ "Japanese House/furniture/Low_table.uds", "Japanese House/furniture/Rocking_Chair.uds", "Japanese House/furniture/sofa_L_cushion.uds", "Japanese House/furniture/Table_Chair.uds", "Japanese House/ssf/mirror.uds" ]
-    },
-    {
-      "name": "Mt Morgan",
-      "models": [ "Mt_Morgan_Range_Data/Grid_721_22549_0.uds", "Mt_Morgan_Range_Data/Grid_722_22546_0.uds", "Mt_Morgan_Range_Data/Grid_722_22546_1.uds", "Mt_Morgan_Range_Data/Grid_722_22547_0.uds", "Mt_Morgan_Range_Data/Grid_722_22547_1.uds", "Mt_Morgan_Range_Data/Grid_722_22548_0.uds", "Mt_Morgan_Range_Data/Grid_722_22549_0.uds", "Mt_Morgan_Range_Data/Grid_722_22550_0.uds", "Mt_Morgan_Range_Data/Grid_723_22545_0.uds", "Mt_Morgan_Range_Data/Grid_723_22545_1.uds", "Mt_Morgan_Range_Data/Grid_723_22546_0.uds", "Mt_Morgan_Range_Data/Grid_723_22546_1.uds", "Mt_Morgan_Range_Data/Grid_723_22547_0.uds", "Mt_Morgan_Range_Data/Grid_723_22548_0.uds", "Mt_Morgan_Range_Data/Grid_723_22549_0.uds", "Mt_Morgan_Range_Data/Grid_723_22550_0.uds", "Mt_Morgan_Range_Data/Grid_724_22545_0.uds", "Mt_Morgan_Range_Data/Grid_724_22545_1.uds", "Mt_Morgan_Range_Data/Grid_724_22546_0.uds" ]
-    },
-    {
-      "name": "Saint Peterskirche",
-      "models": [ "Peterskirche(SolidScan)_cleaned.ssf" ]
-    },
-    {
-      "name": "Manhatten",
-      "models": [ "plw_manhatten_full_5cm3.uds" ]
-    },
-    {
-      "name": "Quarry",
-      "models": [ "Quarry_FullResolution.uds" ]
-    },
-    {
-      "name": "Uluru",
+      "name": "Uluru (Internal Only)",
       "models": [ "Uluru-AyersRock_7cm.uds" ]
-    },
-    {
-      "name": "Wien",
-      "models": [ "Wien_LOD4.uds" ]
     }
   ]
 }
@@ -189,7 +165,7 @@ int main(int /*argc*/, char ** /*args*/)
   programState.settings.maptiles.mapEnabled = true;
   programState.settings.maptiles.mapHeight = 0.f;
   programState.settings.maptiles.transparency = 1.f;
-  udStrcpy(programState.settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox.euclideon.local:8123");
+  udStrcpy(programState.settings.maptiles.tileServerAddress, vcMaxPathLength, "http://10.4.0.151:8123");
 
   Uint64 NOW;
   Uint64 LAST;
@@ -775,7 +751,7 @@ void vcRenderWindow(vcState *pProgramState)
       {
         udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
         udStrcpy(pProgramState->settings.resourceBase, vcMaxPathLength, "http://pfox.euclideon.local:8080");
-        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox.euclideon.local:8123");
+        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://10.4.0.151:8123");
       }
 
       ImGui::SameLine();
@@ -784,7 +760,7 @@ void vcRenderWindow(vcState *pProgramState)
       {
         udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
         udStrcpy(pProgramState->settings.resourceBase, vcMaxPathLength, "http://pfox-vpn.euclideon.local:8080");
-        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://pfox-vpn.euclideon.local:8123");
+        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://10.4.0.151:8123");
       }
 
       ImGui::SameLine();
