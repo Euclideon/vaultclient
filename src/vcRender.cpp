@@ -244,7 +244,7 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
 
   vcRenderSkybox(pRenderContext);
 
-  if (renderData.srid != 0 && pRenderContext->pSettings->maptiles.mapEnabled)
+  if (vcGIS_AcceptableSRID(renderData.srid) && pRenderContext->pSettings->maptiles.mapEnabled)
   {
     udDouble4x4 cameraMatrix = renderData.cameraMatrix;
 
