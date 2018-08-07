@@ -476,7 +476,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       if (ImGui::InputScalarN("Camera Rotation", ImGuiDataType_Double, &cameraRotation.x, 3))
         vcCamera_SetRotation(pProgramState->pCamera, cameraRotation);
 
-      if (pProgramState->currentSRID != 0)
+      if (pProgramState->currentSRID != 0 && vcGIS_AcceptableSRID(pProgramState->currentSRID))
       {
         udDouble3 cameraLatLong;
         vcGIS_LocalToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &cameraLatLong);
