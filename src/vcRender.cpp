@@ -46,6 +46,7 @@ struct vcRenderContext
   vcCamera *pCamera;
 
   udUInt2 sceneResolution;
+  udUInt2 originalSceneResolution;
 
   vcFramebuffer *pFramebuffer;
   vcTexture *pTexture;
@@ -180,6 +181,8 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
 
   pRenderContext->sceneResolution.x = widthIncr;
   pRenderContext->sceneResolution.y = heightIncr;
+  pRenderContext->originalSceneResolution.x = width;
+  pRenderContext->originalSceneResolution.y = height;
   pRenderContext->projectionMatrix = udDouble4x4::perspective(fov, aspect, zNear, zFar);
   pRenderContext->skyboxProjMatrix = udDouble4x4::perspective(fov, aspect, 0.5f, 10000.f);
 
@@ -342,8 +345,8 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   }
 
   vdkRenderPicking picking;
-  picking.x = renderData.mouse.x;
-  picking.y = renderData.mouse.y;
+  picking.x = (uint32_t)((float)renderData.mouse.x / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
+  picking.y = (uint32_t)((float)renderData.mouse.y / (float)pRenderContext->originalSceneResolution.y * (float)pRenderContext->sceneResolution.y);
 
   if (vdkRenderContext_RenderAdv(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)numVisibleModels, &picking) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
