@@ -468,13 +468,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
     ImGui::SetNextWindowBgAlpha(0.5f);
     if (ImGui::Begin("Camera Settings", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize))
     {
-      udDouble3 cameraPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
-      if(ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &cameraPosition.x, 3))
-        vcCamera_SetPosition(pProgramState->pCamera, cameraPosition);
-
-      udDouble3 cameraRotation = vcCamera_GetMatrix(pProgramState->pCamera).extractYPR();
-      if (ImGui::InputScalarN("Camera Rotation", ImGuiDataType_Double, &cameraRotation.x, 3))
-        vcCamera_SetRotation(pProgramState->pCamera, cameraRotation);
+      ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &pProgramState->pCamera->position.x, 3);
+      ImGui::InputScalarN("Camera Rotation", ImGuiDataType_Double, &pProgramState->pCamera->yprRotation.x, 3);
 
       if (pProgramState->currentSRID != 0 && vcGIS_AcceptableSRID(pProgramState->currentSRID))
       {
@@ -1286,7 +1281,7 @@ bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel)
 
   double midPoint[3];
   vdkModel_GetModelCenter(pProgramState->pContext, pModel->pVaultModel, midPoint);
-  vcCamera_SetPosition(pProgramState->pCamera, udDouble3::create(midPoint[0], midPoint[1], midPoint[2]));
+  pProgramState->pCamera->position = udDouble3::create(midPoint[0], midPoint[1], midPoint[2]);
 
   const char *pSRID = pModel->pMetadata->Get("ProjectionID").AsString();
   const char *pWKT = pModel->pMetadata->Get("ProjectionWKT").AsString();

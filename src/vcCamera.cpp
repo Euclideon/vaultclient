@@ -3,12 +3,6 @@
 
 #include "imgui.h"
 
-struct vcCamera
-{
-  udDouble3 position;
-  udDouble3 yprRotation;
-};
-
 #define LENSNAME(x) #x+5
 
 const char *lensNameArray[] =
@@ -63,25 +57,6 @@ udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPositi
   double yaw = udATan(orbitToCamera.x / orbitToCamera.y);
 
   return udDouble3::create(yaw, pitch, 0.0);
-}
-
-
-
-udDouble3 vcCamera_GetPosition(vcCamera *pCamera)
-{
-  return pCamera->position;
-}
-
-void vcCamera_SetPosition(vcCamera *pCamera, udDouble3 position)
-{
-  if(pCamera != nullptr)
-    pCamera->position = position;
-}
-
-void vcCamera_SetRotation(vcCamera *pCamera, udDouble3 yprRotation)
-{
-  if (pCamera != nullptr)
-    pCamera->yprRotation = yprRotation;
 }
 
 void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
