@@ -23,7 +23,13 @@ enum vcControlMode
   vcCM_Measure,
 };
 
-struct vcCamera;
+
+struct vcCamera
+{
+  udDouble3 position;
+  udDouble3 yprRotation;
+};
+
 struct vcState;
 
 enum vcInputState
@@ -103,9 +109,6 @@ udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPositi
 
 // Applies movement to camera
 void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraInput *pCamInput, double deltaTime, float speedModifier = 1.f);
-
-void vcCamera_SetPosition(vcCamera *pCamera, udDouble3 position);
-void vcCamera_SetRotation(vcCamera *pCamera, udDouble3 yprRotation);
 
 void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove);
 
