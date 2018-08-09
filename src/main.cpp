@@ -154,18 +154,13 @@ int main(int /*argc*/, char ** /*args*/)
 
   // default string values.
   udStrcpy(programState.serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  // Network drives aren't available on iOS
-  // TODO: Something better!
-  udStrcpy(programState.modelPath, vcMaxPathLength, "http://pfox.euclideon.local:8080/AdelaideCBD_2cm.uds");
-#else
-  udStrcpy(programState.modelPath, vcMaxPathLength, "V:/QA/For Tests/Geoverse MDM/AdelaideCBD_2cm.uds");
-#endif
+  udStrcpy(programState.modelPath, vcMaxPathLength, "http://10.4.0.151/AdelaideCBD_2cm.uds");
 
   programState.settings.maptiles.mapEnabled = true;
   programState.settings.maptiles.mapHeight = 0.f;
   programState.settings.maptiles.transparency = 1.f;
   udStrcpy(programState.settings.maptiles.tileServerAddress, vcMaxPathLength, "http://10.4.0.151:8123");
+  udStrcpy(programState.settings.resourceBase, vcMaxPathLength, "http://10.4.0.151");
 
   Uint64 NOW;
   Uint64 LAST;
@@ -726,73 +721,6 @@ void vcRenderWindow(vcState *pProgramState)
               pProgramState->hasContext = true;
             }
           }
-        }
-      }
-    }
-
-    ImGui::End();
-
-    if (ImGui::Begin("_DEVSERVER", nullptr, ImGuiWindowFlags_NoCollapse))
-    {
-      ImGui::Text("Vault Server: %s", pProgramState->serverURL);
-      ImGui::Text("Resource Location: %s", pProgramState->settings.resourceBase);
-      ImGui::Text("Tile Server: %s", pProgramState->settings.maptiles.tileServerAddress);
-
-      ImGui::Separator();
-
-      if (ImGui::Button("Use 'pfox'"))
-      {
-        udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
-        udStrcpy(pProgramState->settings.resourceBase, vcMaxPathLength, "http://pfox.euclideon.local:8080");
-        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://10.4.0.151:8123");
-      }
-
-      ImGui::SameLine();
-
-      if (ImGui::Button("Use 'pfox-vpn'"))
-      {
-        udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
-        udStrcpy(pProgramState->settings.resourceBase, vcMaxPathLength, "http://pfox-vpn.euclideon.local:8080");
-        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://10.4.0.151:8123");
-      }
-
-      ImGui::SameLine();
-
-      if (ImGui::Button("Use Dan Conference"))
-      {
-        udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://192.168.1.1");
-        udStrcpy(pProgramState->settings.resourceBase, vcMaxPathLength, "http://192.168.1.1:8080");
-        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://192.168.1.1:8123");
-      }
-
-      ImGui::SameLine();
-
-      if (ImGui::Button("Local"))
-      {
-        udStrcpy(pProgramState->serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
-        udStrcpy(pProgramState->settings.resourceBase, vcMaxPathLength, "http://127.0.0.1:8080");
-        udStrcpy(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://127.0.0.1:8123");
-      }
-
-      ImGui::SameLine();
-
-      static bool custom = false;
-      ImGui::Checkbox("Custom", &custom);
-      if (custom)
-      {
-        static int ipBlocks[] = { 192, 168, 1, 1 };
-        bool changed = false;
-
-        changed |= ImGui::SliderInt("1", &ipBlocks[0], 0, 255);
-        changed |= ImGui::SliderInt("2", &ipBlocks[1], 0, 255);
-        changed |= ImGui::SliderInt("3", &ipBlocks[2], 0, 255);
-        changed |= ImGui::SliderInt("4", &ipBlocks[3], 0, 255);
-
-        if (changed)
-        {
-          udSprintf(pProgramState->serverURL, vcMaxPathLength, "http://%d.%d.%d.%d", ipBlocks[0], ipBlocks[1], ipBlocks[2], ipBlocks[3]);
-          udSprintf(pProgramState->settings.resourceBase, vcMaxPathLength, "http://%d.%d.%d.%d:8080", ipBlocks[0], ipBlocks[1], ipBlocks[2], ipBlocks[3]);
-          udSprintf(pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, "http://%d.%d.%d.%d:8123", ipBlocks[0], ipBlocks[1], ipBlocks[2], ipBlocks[3]);
         }
       }
     }
