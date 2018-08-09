@@ -415,7 +415,43 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
   case vcCIS_Panning:
   {
-    // TODO:
+    // Regular keyboard input
+    udDouble3 addPos = udClamp(pCamInput->keyboardInput, udDouble3::create(-1, -1, -1), udDouble3::create(1, 1, 1)); // clamp in case 2 similarly mapped movement buttons are pressed
+    double vertPos = addPos.z;
+    addPos.z = 0.0;
+
+    if (pCamSettings->moveMode == vcCMM_Plane)
+      addPos = (udDouble4x4::rotationYPR(pCamera->yprRotation) * udDouble4::create(addPos, 1)).toVector3();
+
+    if (pCamSettings->moveMode == vcCMM_Helicopter)
+    {
+      addPos = (udDouble4x4::rotationYPR(udDouble3::create(pCamera->yprRotation.x, 0.0, 0.0)) * udDouble4::create(addPos, 1)).toVector3();
+      addPos.z = 0.0; // might be unnecessary now
+      if (addPos.x != 0.0 || addPos.y != 0.0)
+        addPos = udNormalize3(addPos);
+    }
+
+    addPos.z += vertPos;
+    addPos *= pCamSettings->moveSpeed * speedModifier * deltaTime;
+
+    pCamera->position += addPos;
+
+    // Mouse input
+    if (pCamSettings->invertX)
+      pCamInput->mouseInput.x *= -1.0;
+    if (pCamSettings->invertY)
+      pCamInput->mouseInput.y *= -1.0;
+
+    addPos = pCamInput->mouseInput;
+
+    addPos *= pCamSettings->moveSpeed * speedModifier * deltaTime;
+
+    // Swap y and z - input is in screen space (XY), position is in UD space (XZ)
+    double temp = -addPos.y; // Invert to match x
+    addPos.y = addPos.z;
+    addPos.z = temp;
+
+    pCamera->position += udDoubleQuat::create(pCamera->yprRotation).apply(addPos);
   }
   break;
 
