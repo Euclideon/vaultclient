@@ -488,6 +488,17 @@ void vcRenderSceneWindow(vcState *pProgramState)
         ImGui::Text("Measure - Press <ESC> to cancel");
         break;
       }
+
+      ImGui::Separator();
+
+      const char *visualizationModes[] = { "Colour", "Intensity", "Classification" };
+      ImGui::Combo("Display Mode", (int*)&pProgramState->settings.visualization.mode, visualizationModes, UDARRAYSIZE(visualizationModes));
+
+      if (pProgramState->settings.visualization.mode == vcVM_Intensity)
+      {
+        ImGui::SliderInt("Min Intensity", &pProgramState->settings.visualization.minIntensity, 0, pProgramState->settings.visualization.maxIntensity);
+        ImGui::SliderInt("Max Intensity", &pProgramState->settings.visualization.maxIntensity, pProgramState->settings.visualization.minIntensity, 65535);
+      }
     }
 
     ImGui::End();
