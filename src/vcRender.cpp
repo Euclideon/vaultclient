@@ -332,6 +332,19 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->viewMatrix.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
+  switch (pRenderContext->pSettings->visualization.mode)
+  {
+  case vcVM_Intensity:
+    vdkRenderContext_ShowIntensity(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->pSettings->visualization.minIntensity, pRenderContext->pSettings->visualization.maxIntensity);
+    break;
+  case vcVM_Classification:
+    vdkRenderContext_ShowClassification(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, nullptr, 0);
+    break;
+  default: //Includes vcVM_Colour
+    vdkRenderContext_ShowColor(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer);
+    break;
+  }
+
   if (renderData.models.length > 0)
     ppModels = udAllocStack(vdkModel*, renderData.models.length, udAF_None);
 

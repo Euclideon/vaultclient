@@ -257,6 +257,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->camera.cameraMouseBindings[1] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[1]").AsInt(vcCPM_Pan);
     pSettings->camera.cameraMouseBindings[2] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[2]").AsInt(vcCPM_Orbit);
 
+    // Visualization
+    pSettings->visualization.mode = (vcVisualizatationMode)data.Get("visualization.mode").AsInt(0);
+    pSettings->visualization.minIntensity = data.Get("visualization.minIntensity").AsInt(0);
+    pSettings->visualization.maxIntensity = data.Get("visualization.maxIntensity").AsInt(65535);
+
     // Map Tiles
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
     pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(1);
@@ -316,6 +321,11 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.invertY = %s", pSettings->camera.invertY ? "true" : "false");
   data.Set("camera.moveMode = %d", pSettings->camera.moveMode);
   data.Set("camera.cameraMouseBindings = [%d, %d, %d]", pSettings->camera.cameraMouseBindings[0], pSettings->camera.cameraMouseBindings[1], pSettings->camera.cameraMouseBindings[2]);
+
+  // Visualization
+  data.Set("visualization.mode = %d", pSettings->visualization.mode);
+  data.Set("visualization.minIntensity = %d", pSettings->visualization.minIntensity);
+  data.Set("visualization.maxIntensity = %d", pSettings->visualization.maxIntensity);
 
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");

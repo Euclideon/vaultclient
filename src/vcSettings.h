@@ -36,6 +36,15 @@ enum vcDocks
   vcdTotalDocks
 };
 
+enum vcVisualizatationMode
+{
+  vcVM_Colour,
+  vcVM_Intensity,
+  vcVM_Classification,
+
+  vcVM_TotalModes
+};
+
 enum
 {
   vcMaxPathLength = 512,
@@ -62,6 +71,13 @@ struct vcSettings
 
     bool windowsOpen[vcdTotalDocks];
   } window;
+
+  struct
+  {
+    vcVisualizatationMode mode;
+    int minIntensity;
+    int maxIntensity;
+  } visualization;
 
   vcCameraSettings camera;
 
