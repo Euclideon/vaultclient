@@ -496,8 +496,15 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
       if (pProgramState->settings.visualization.mode == vcVM_Intensity)
       {
-        ImGui::SliderInt("Min Intensity", &pProgramState->settings.visualization.minIntensity, 0, pProgramState->settings.visualization.maxIntensity);
-        ImGui::SliderInt("Max Intensity", &pProgramState->settings.visualization.maxIntensity, pProgramState->settings.visualization.minIntensity, 65535);
+        // Temporary until https://github.com/ocornut/imgui/issues/467 is resolved, then use commented out code below
+        float temp[] = { (float)pProgramState->settings.visualization.minIntensity, (float)pProgramState->settings.visualization.maxIntensity };
+        ImGui::SliderFloat("Min Intensity", &temp[0], 0.f, temp[1], "%.0f");
+        ImGui::SliderFloat("Max Intensity", &temp[1], temp[0], 65535.f, "%.0f");
+        pProgramState->settings.visualization.minIntensity = (int)temp[0];
+        pProgramState->settings.visualization.maxIntensity = (int)temp[1];
+
+        //ImGui::SliderInt("Min Intensity", &pProgramState->settings.visualization.minIntensity, 0, pProgramState->settings.visualization.maxIntensity);
+        //ImGui::SliderInt("Max Intensity", &pProgramState->settings.visualization.maxIntensity, pProgramState->settings.visualization.minIntensity, 65535);
       }
     }
 
