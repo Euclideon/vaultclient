@@ -565,11 +565,12 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
       ImGui::End();
     }
+    ImVec2 uv0 = ImVec2(0, 0);
+    ImVec2 uv1 = ImVec2(1, 1);
 #if GRAPHICS_API_OPENGL
-    ImGui::Image(pTexture, size, ImVec2(0, 0), ImVec2(1, -1));
-#else
-    ImGui::Image(pTexture, size);
+    uv1.y = -1;
 #endif
+    ImGui::ImageButton(pTexture, size, uv0, uv1, 0);
 
     vcCamera_HandleSceneInput(pProgramState, moveOffset);
   }
@@ -757,7 +758,7 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::EndPopup();
     }
 
-    if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ResizeFromAnySide))
+    if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ResizeFromAnySide | ImGuiWindowFlags_NoBringToFrontOnFocus))
       vcRenderSceneWindow(pProgramState);
 
     ImGui::EndDock();
