@@ -13,16 +13,114 @@ const char* const g_udFragmentShader = FRAG_HEADER R"shader(
 uniform sampler2D u_texture;
 uniform sampler2D u_depth;
 
+layout (std140) uniform u_params
+{
+  vec4 u_screenParams;  // sampleStepX, sampleStepSizeY, near plane, far plane
+  mat4 u_inverseViewProjection;
+
+  // outlining
+  vec4 u_outlineColour;
+  vec4 u_outlineParams;   // outlineWidth, edge threshold, (unused), (unused)
+
+  // colour by height
+  vec4 u_colourizeHeightColourMin;
+  vec4 u_colourizeHeightColourMax;
+  vec4 u_colourizeHeightParams; // min world height, max world height, (unused), (unused)
+
+  // colour by depth
+  vec4 u_colourizeDepthColour;
+  vec4 u_colourizeDepthParams; // min distance, max distance, (unused), (unused)
+
+  // contours
+  vec4 u_contourColour;
+  vec4 u_contourParams; // contour distance, contour band height, (unused), (unused)
+};
+
 //Input Format
 in vec2 v_texCoord;
 
 //Output Format
 out vec4 out_Colour;
 
+float linearizeDepth(float depth)
+{
+  float nearPlane = u_screenParams.z;
+  float farPlane = u_screenParams.w;
+  return (2 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
+}
+
+float getNormalizedPosition(float v, float min, float max)
+{
+  return clamp((v - min) / (max - min), 0.0, 1.0);
+}
+
+vec3 edgeHighlight(vec3 col, vec2 uv, float depth)
+{
+  vec3 sampleOffsets = vec3(u_screenParams.xy, 0);
+  float edgeOutlineThreshold = u_outlineParams.y;
+
+  float ld0 = linearizeDepth(depth);
+  float ld1 = linearizeDepth(texture(u_depth, uv + sampleOffsets.xz).x);
+  float ld2 = linearizeDepth(texture(u_depth, uv - sampleOffsets.xz).x);
+  float ld3 = linearizeDepth(texture(u_depth, uv + sampleOffsets.zy).x);
+  float ld4 = linearizeDepth(texture(u_depth, uv - sampleOffsets.zy).x);
+  
+  float isEdge = 1.0 - step(ld0 - ld1, edgeOutlineThreshold) * step(ld0 - ld2, edgeOutlineThreshold) * step(ld0 - ld3, edgeOutlineThreshold) * step(ld0 - ld4, edgeOutlineThreshold);
+  
+  vec3 edgeColour = mix(col.xyz, u_outlineColour.xyz, u_outlineColour.w);
+  return mix(col.xyz, edgeColour, isEdge);
+}
+
+vec3 contourColour(vec3 col, vec3 fragWorldPosition)
+{
+  float contourDistance = u_contourParams.x;
+  float contourBandHeight = u_contourParams.y;
+
+  float isCountour = step(contourBandHeight, mod(fragWorldPosition.z, contourDistance));
+  vec3 contourColour = mix(col.xyz, u_contourColour.xyz, u_contourColour.w);
+  return mix(contourColour, col.xyz, isCountour);
+}
+
+vec3 colourizeByHeight(vec3 col, vec3 fragWorldPosition)
+{  
+  vec2 worldColourMinMax = u_colourizeHeightParams.xy;
+
+  float minMaxColourStrength = getNormalizedPosition(fragWorldPosition.z, worldColourMinMax.x, worldColourMinMax.y);
+  
+  vec3 minColour = mix(col.xyz, u_colourizeHeightColourMin.xyz, u_colourizeHeightColourMin.w);
+  vec3 maxColour = mix( col.xyz, u_colourizeHeightColourMax.xyz,u_colourizeHeightColourMax.w);
+  return mix(minColour, maxColour, minMaxColourStrength);
+}
+
+vec3 colourizeByDepth(vec3 col, float depth)
+{
+  float farPlane = u_screenParams.w;
+  float linearDepth = linearizeDepth(depth) * farPlane;
+  vec2 depthColourMinMax = u_colourizeDepthParams.xy;
+
+  float depthColourStrength = getNormalizedPosition(linearDepth, depthColourMinMax.x, depthColourMinMax.y);
+  return mix(col.xyz, u_colourizeDepthColour.xyz, depthColourStrength * u_colourizeDepthColour.w);
+}
+
 void main()
 {
-  out_Colour = texture(u_texture, v_texCoord);
-  gl_FragDepth = texture(u_depth, v_texCoord).x;
+  vec4 col = texture(u_texture, v_texCoord);
+  float depth = texture(u_depth, v_texCoord).x;
+
+  vec4 fragWorldPosition = u_inverseViewProjection * vec4(vec2(v_texCoord.x, 1.0 - v_texCoord.y) * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
+  fragWorldPosition /= fragWorldPosition.w;
+
+  col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
+  col.xyz = colourizeByDepth(col.xyz, depth);
+
+  float edgeOutlineWidth = u_outlineParams.x;
+  if (edgeOutlineWidth > 0)
+    col.xyz = edgeHighlight(col.xyz, v_texCoord, depth);
+
+  col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
+
+  out_Colour = col;
+  gl_FragDepth = depth;
 }
 )shader";
 
@@ -40,7 +138,6 @@ void main()
   v_texCoord = a_texCoord;
 }
 )shader";
-
 
 const char* const g_terrainTileFragmentShader = FRAG_HEADER R"shader(
 //Input Format

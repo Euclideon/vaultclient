@@ -44,8 +44,6 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
 
 vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer);
 
-void vcRenderSkybox(vcRenderContext *pRenderContext);
-
 udResult vcRender_CreateTerrain(vcRenderContext *pRenderContext, vcSettings *pSettings);
 udResult vcRender_DestroyTerrain(vcRenderContext *pRenderContext);
 
