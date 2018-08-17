@@ -13,19 +13,117 @@ const char* const g_udFragmentShader = R"shader(
     float Depth0 : SV_Depth;
   };
 
+  cbuffer u_params : register(b0)
+  {
+    float4 u_screenParams;  // sampleStepX, sampleStepSizeY, near plane, far plane
+    float4x4 u_inverseViewProjection;
+    
+    // outlining
+    float4 u_outlineColour;
+    float4 u_outlineParams;   // outlineWidth, threshold, (unused), (unused)
+    
+    // colour by height
+    float4 u_colourizeHeightColourMin;
+    float4 u_colourizeHeightColourMax;
+    float4 u_colourizeHeightParams; // min world height, max world height, (unused), (unused)
+    
+    // colour by depth
+    float4 u_colourizeDepthColour;
+    float4 u_colourizeDepthParams; // min distance, max distance, (unused), (unused)
+
+    // contours
+    float4 u_contourColour;
+    float4 u_contourParams; // contour distance, contour band height, (unused), (unused)
+  };
+
   sampler sampler0;
   Texture2D texture0;
 
   sampler sampler1;
   Texture2D texture1;
 
+  float linearizeDepth(float depth)
+  {
+    float nearPlane = u_screenParams.z;
+    float farPlane = u_screenParams.w;
+    return (2 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
+  }
+
+  float getNormalizedPosition(float v, float min, float max)
+  {
+    return clamp((v - min) / (max - min), 0.0, 1.0);
+  }
+
+  float3 edgeHighlight(float3 col, float2 uv, float depth)
+  {
+    float3 sampleOffsets = float3(u_screenParams.xy, 0);
+    float edgeOutlineThreshold = u_outlineParams.y;
+
+    float ld0 = linearizeDepth(depth);
+    float ld1 = linearizeDepth(texture1.Sample(sampler1, uv + sampleOffsets.xz).x);
+    float ld2 = linearizeDepth(texture1.Sample(sampler1, uv - sampleOffsets.xz).x);
+    float ld3 = linearizeDepth(texture1.Sample(sampler1, uv + sampleOffsets.zy).x);
+    float ld4 = linearizeDepth(texture1.Sample(sampler1, uv - sampleOffsets.zy).x);
+    
+    float isEdge = 1.0 - step(ld0 - ld1, edgeOutlineThreshold) * step(ld0 - ld2, edgeOutlineThreshold) * step(ld0 - ld3, edgeOutlineThreshold) * step(ld0 - ld4, edgeOutlineThreshold);
+
+    float3 edgeColour = lerp(col.xyz, u_outlineColour.xyz, u_outlineColour.w);
+    return lerp(col.xyz, edgeColour, isEdge);
+  }
+
+  float3 contourColour(float3 col, float3 fragWorldPosition)
+  {
+    float contourDistance = u_contourParams.x;
+    float contourBandHeight = u_contourParams.y;
+  
+    float isCountour = step(contourBandHeight, fmod(fragWorldPosition.z, contourDistance));
+    float3 contourColour = lerp(col.xyz, u_contourColour.xyz, u_contourColour.w);
+    return lerp(contourColour, col.xyz, isCountour);
+  }
+
+  float3 colourizeByHeight(float3 col, float3 fragWorldPosition)
+  { 
+    float2 worldColourMinMax = u_colourizeHeightParams.xy;
+
+    float minMaxColourStrength = getNormalizedPosition(fragWorldPosition.z, worldColourMinMax.x, worldColourMinMax.y);
+    
+    float3 minColour = lerp(col.xyz, u_colourizeHeightColourMin.xyz, u_colourizeHeightColourMin.w);
+    float3 maxColour = lerp( col.xyz, u_colourizeHeightColourMax.xyz,u_colourizeHeightColourMax.w);
+    return lerp(minColour, maxColour, minMaxColourStrength);
+  }
+
+  float3 colourizeByDepth(float3 col, float depth)
+  {
+    float farPlane = u_screenParams.w;
+    float linearDepth = linearizeDepth(depth) * farPlane;   
+    float2 depthColourMinMax = u_colourizeDepthParams.xy;
+
+    float depthColourStrength = getNormalizedPosition(linearDepth, depthColourMinMax.x, depthColourMinMax.y);
+
+    return lerp(col.xyz, u_colourizeDepthColour.xyz, depthColourStrength * u_colourizeDepthColour.w);
+  }
+
   PS_OUTPUT main(PS_INPUT input)
   {
     PS_OUTPUT output;
 
-    output.Color0 = texture0.Sample(sampler0, input.uv);
-    output.Depth0 = texture1.Sample(sampler1, input.uv).x * 2.0 - 1;
+    float4 col = texture0.Sample(sampler0, input.uv);
+    float depth = texture1.Sample(sampler1, input.uv).x;
 
+    float4 fragWorldPosition = mul(u_inverseViewProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0));
+    fragWorldPosition /= fragWorldPosition.w;
+
+    col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
+    col.xyz = colourizeByDepth(col.xyz, depth);
+   
+    float edgeOutlineWidth = u_outlineParams.x;
+    if (edgeOutlineWidth > 0)
+      col.xyz = edgeHighlight(col.xyz, input.uv, depth);
+
+    col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
+
+    output.Color0 = col; 
+    output.Depth0 = depth * 2.0 - 1;
     return output;
   }
 )shader";
