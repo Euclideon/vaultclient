@@ -79,6 +79,42 @@ struct vcSettings
     int maxIntensity;
   } visualization;
 
+  struct
+  {
+    struct
+    {
+      bool enable;
+      int width;
+      float threshold;
+      udFloat4 colour;
+    } edgeOutlines;
+
+    struct
+    {
+      bool enable;
+      udFloat4 minColour;
+      udFloat4 maxColour;
+      float startHeight;
+      float endHeight;
+    } colourByHeight;
+
+    struct
+    {
+      bool enable;
+      udFloat4 colour;
+      float startDepth;
+      float endDepth;
+    } colourByDepth;
+
+    struct
+    {
+      bool enable;
+      udFloat4 colour;
+      float distances;
+      float bandHeight;
+    } contours;
+  } postVisualization;
+
   vcCameraSettings camera;
 
   struct
