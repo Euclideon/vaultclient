@@ -36,6 +36,31 @@ struct vcUDRenderContext
     vcShader *pProgram;
     vcShaderSampler *uniform_texture;
     vcShaderSampler *uniform_depth;
+    vcShaderConstantBuffer *uniform_params;
+
+    struct
+    {
+      udFloat4 screenParams;  // sampleStepX, sampleStepSizeY, near plane, far plane
+      udFloat4x4 inverseViewProjection;
+
+      // outlining
+      udFloat4 outlineColour;
+      udFloat4 outlineParams;   // outlineWidth, threshold, (unused), (unused)
+
+      // colour by height
+      udFloat4 colourizeHeightColourMin;
+      udFloat4 colourizeHeightColourMax;
+      udFloat4 colourizeHeightParams; // min world height, max world height, (unused), (unused)
+
+      // colour by depth
+      udFloat4 colourizeDepthColour;
+      udFloat4 colourizeDepthParams; // min depth, max depth, (unused), (unused)
+
+      // contours
+      udFloat4 contourColour;
+      udFloat4 contourParams; // contour distance, contour band height, (unused), (unused)
+    } params;
+
   } presentShader;
 };
 
@@ -58,6 +83,7 @@ struct vcRenderContext
   udDouble4x4 projectionMatrix;
   udDouble4x4 skyboxProjMatrix;
   udDouble4x4 viewProjectionMatrix;
+  udDouble4x4 inverseViewProjectionMatrix;
 
   vcTerrain *pTerrain;
 
@@ -68,7 +94,7 @@ struct vcRenderContext
     vcShaderConstantBuffer *uniform_MatrixBlock;
   } skyboxShader;
 
-  vcMesh *pSkyboxMesh;
+  vcMesh *pScreenQuadMesh;
   vcTexture *pSkyboxCubeMapTexture;
 };
 
@@ -88,6 +114,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcSimpleVertexLayout, UDARRAYSIZE(vcSimpleVertexLayout)), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShader.pProgram, g_udVertexShader, g_vcSkyboxFragmentShader, vcSimpleVertexLayout, UDARRAYSIZE(vcSimpleVertexLayout)), udR_InternalError);
 
+  vcMesh_Create(&pRenderContext->pScreenQuadMesh, vcSimpleVertexLayout, 2, qrSqVertices, 4, qrIndices, 6, vcMF_Dynamic);
+
   vcTexture_LoadCubemap(&pRenderContext->pSkyboxCubeMapTexture, "CloudWater.jpg");
 
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);
@@ -95,9 +123,9 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   vcShader_GetConstantBuffer(&pRenderContext->skyboxShader.uniform_MatrixBlock, pRenderContext->skyboxShader.pProgram, "u_EveryFrame", sizeof(udFloat4x4));
 
   vcShader_Bind(pRenderContext->udRenderContext.presentShader.pProgram);
-  vcMesh_Create(&pRenderContext->pSkyboxMesh, vcSimpleVertexLayout, 2, qrSqVertices, 4, qrIndices, 6, vcMF_Dynamic);
   vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.presentShader.uniform_texture, pRenderContext->udRenderContext.presentShader.pProgram, "u_texture");
   vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.presentShader.uniform_depth, pRenderContext->udRenderContext.presentShader.pProgram, "u_depth");
+  vcShader_GetConstantBuffer(&pRenderContext->udRenderContext.presentShader.uniform_params, pRenderContext->udRenderContext.presentShader.pProgram, "u_params", sizeof(pRenderContext->udRenderContext.presentShader.params));
 
   vcShader_Bind(nullptr);
 
@@ -213,6 +241,94 @@ epilogue:
   return result;
 }
 
+void vcRenderSkybox(vcRenderContext *pRenderContext)
+{
+  // Draw the skybox only at the far plane, where there is no geometry.
+  // Drawing skybox here (after 'opaque' geometry) saves a bit on fill rate.
+
+  udFloat4x4 viewMatrixF = udFloat4x4::create(pRenderContext->viewMatrix);
+  udFloat4x4 projectionMatrixF = udFloat4x4::create(pRenderContext->skyboxProjMatrix);
+  udFloat4x4 inverseViewProjMatrixF = projectionMatrixF * viewMatrixF;
+  inverseViewProjMatrixF.axis.t = udFloat4::create(0, 0, 0, 1);
+  inverseViewProjMatrixF.inverse();
+
+  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 1.0f, 1.0f);
+  VERIFY_GL();
+
+  vcShader_Bind(pRenderContext->skyboxShader.pProgram);
+  VERIFY_GL();
+
+  vcShader_BindTexture(pRenderContext->skyboxShader.pProgram, pRenderContext->pSkyboxCubeMapTexture, 0, pRenderContext->skyboxShader.uniform_texture);
+  vcShader_BindConstantBuffer(pRenderContext->skyboxShader.pProgram, pRenderContext->skyboxShader.uniform_MatrixBlock, &inverseViewProjMatrixF, sizeof(udDouble4x4));
+  VERIFY_GL();
+
+  vcMesh_RenderTriangles(pRenderContext->pScreenQuadMesh, 2);
+
+  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 0.0f, 1.0f);
+
+  vcShader_Bind(nullptr);
+}
+
+void vcPresentUD(vcRenderContext *pRenderContext)
+{
+  // TODO: Hook these variables up to UI
+
+  // TODO: Not sure if you want to have UI button to enable/disable these effects
+  bool enableEdgeOutlines = false;
+  bool enableColourByHeight = false;
+  bool enableColourByDepth = false;
+  bool enableContours = false;
+
+  // edge outlines
+  int outlineWidth = 1;
+  float outlineEdgeThreshold = 0.001f;
+  udFloat4 outlineColour = udFloat4::create(1.0f, 1.0f, 1.0f, enableEdgeOutlines ? 1.0f : 0.0f);
+
+  // colour by height
+  udFloat4 colourByHeightMinColour = udFloat4::create(0.0f, 0.0f, 1.0f, enableColourByHeight ? 1.0f : 0.0f);
+  udFloat4 colourByHeightMaxColour = udFloat4::create(0.0f, 1.0f, 0.0f, enableColourByHeight ? 1.0f : 0.0f);
+  float colourByHeightStartHeight = 30.0f;
+  float colourByHeightEndHeight = 50.0f;
+
+  // colour by depth
+  udFloat4 colourByDepthColour = udFloat4::create(1.0f, 0.0f, 0.0f, enableColourByDepth ? 1.0f : 0.0f);
+  float colourByDepthStart = 100.0f;
+  float colourByDepthEnd = 1000.0f;
+
+  // contours
+  udFloat4 contourColour = udFloat4::create(0.0f, 0.0f, 0.0f, enableContours ? 1.0f : 0.0f);
+  float contourDistances = 50.0;
+  float contourBandHeight = 1.0;
+
+  pRenderContext->udRenderContext.presentShader.params.inverseViewProjection = udFloat4x4::create(pRenderContext->inverseViewProjectionMatrix);
+  pRenderContext->udRenderContext.presentShader.params.screenParams.x = outlineWidth * (1.0f / pRenderContext->pSettings->window.width);
+  pRenderContext->udRenderContext.presentShader.params.screenParams.y = outlineWidth * (1.0f / pRenderContext->pSettings->window.height);
+  pRenderContext->udRenderContext.presentShader.params.screenParams.z = pRenderContext->pSettings->camera.nearPlane;
+  pRenderContext->udRenderContext.presentShader.params.screenParams.w = pRenderContext->pSettings->camera.farPlane;
+  pRenderContext->udRenderContext.presentShader.params.outlineColour = outlineColour;
+  pRenderContext->udRenderContext.presentShader.params.outlineParams.x = (float)outlineWidth;
+  pRenderContext->udRenderContext.presentShader.params.outlineParams.y = outlineEdgeThreshold;
+  pRenderContext->udRenderContext.presentShader.params.colourizeHeightColourMin = colourByHeightMinColour;
+  pRenderContext->udRenderContext.presentShader.params.colourizeHeightColourMax = colourByHeightMaxColour;
+  pRenderContext->udRenderContext.presentShader.params.colourizeHeightParams.x = colourByHeightStartHeight;
+  pRenderContext->udRenderContext.presentShader.params.colourizeHeightParams.y = colourByHeightEndHeight;
+  pRenderContext->udRenderContext.presentShader.params.colourizeDepthColour = colourByDepthColour;
+  pRenderContext->udRenderContext.presentShader.params.colourizeDepthParams.x = colourByDepthStart;
+  pRenderContext->udRenderContext.presentShader.params.colourizeDepthParams.y = colourByDepthEnd;
+  pRenderContext->udRenderContext.presentShader.params.contourColour = contourColour;
+  pRenderContext->udRenderContext.presentShader.params.contourParams.x = contourDistances;
+  pRenderContext->udRenderContext.presentShader.params.contourParams.y = contourBandHeight;
+
+  vcShader_Bind(pRenderContext->udRenderContext.presentShader.pProgram);
+
+  vcShader_BindTexture(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.pColourTex, 0, pRenderContext->udRenderContext.presentShader.uniform_texture);
+  vcShader_BindTexture(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.pDepthTex, 1, pRenderContext->udRenderContext.presentShader.uniform_depth);
+  vcShader_BindConstantBuffer(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.presentShader.uniform_params, &pRenderContext->udRenderContext.presentShader.params, sizeof(pRenderContext->udRenderContext.presentShader.params));
+
+  vcMesh_RenderTriangles(pRenderContext->pScreenQuadMesh, 2);
+
+  vcShader_Bind(nullptr);
+}
 
 vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
 {
@@ -228,6 +344,7 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
   pRenderContext->skyboxProjMatrix = udDouble4x4::perspective(fov, aspect, 0.5f, 10000.f);
 
   pRenderContext->viewProjectionMatrix = pRenderContext->projectionMatrix * pRenderContext->viewMatrix;
+  pRenderContext->inverseViewProjectionMatrix = udInverse(pRenderContext->viewProjectionMatrix);
 
   vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true);
 
@@ -238,12 +355,7 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
   vcFramebuffer_Bind(pRenderContext->pFramebuffer);
   vcFramebuffer_Clear(pRenderContext->pFramebuffer, 0xFFFF8080);
 
-  vcShader_Bind(pRenderContext->udRenderContext.presentShader.pProgram);
-
-  vcShader_BindTexture(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.pColourTex, 0, pRenderContext->udRenderContext.presentShader.uniform_texture);
-  vcShader_BindTexture(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.pDepthTex, 1, pRenderContext->udRenderContext.presentShader.uniform_depth);
-
-  vcMesh_RenderTriangles(pRenderContext->pSkyboxMesh, 2);
+  vcPresentUD(pRenderContext);
 
   vcRenderSkybox(pRenderContext);
 
@@ -377,33 +489,6 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
 epilogue:
   udFreeStack(pModels);
   return result;
-}
-
-void vcRenderSkybox(vcRenderContext *pRenderContext)
-{
-  udFloat4x4 viewMatrixF = udFloat4x4::create(pRenderContext->viewMatrix);
-  udFloat4x4 projectionMatrixF = udFloat4x4::create(pRenderContext->skyboxProjMatrix);
-  udFloat4x4 viewProjMatrixF = projectionMatrixF * viewMatrixF;
-  viewProjMatrixF.axis.t = udFloat4::create(0, 0, 0, 1);
-  viewProjMatrixF.inverse();
-
-  // Draw the skybox only at the far plane, where there is no geometry.
-  // Drawing skybox here (after 'opaque' geometry) saves a bit on fill rate.
-  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 1.0f, 1.0f);
-  VERIFY_GL();
-
-  vcShader_Bind(pRenderContext->skyboxShader.pProgram);
-  VERIFY_GL();
-
-  vcShader_BindTexture(pRenderContext->skyboxShader.pProgram, pRenderContext->pSkyboxCubeMapTexture, 0, pRenderContext->skyboxShader.uniform_texture);
-  vcShader_BindConstantBuffer(pRenderContext->skyboxShader.pProgram, pRenderContext->skyboxShader.uniform_MatrixBlock, &viewProjMatrixF, sizeof(udDouble4x4));
-  VERIFY_GL();
-
-  vcMesh_RenderTriangles(pRenderContext->pSkyboxMesh, 2);
-
-  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 0.0f, 1.0f);
-
-  vcShader_Bind(nullptr);
 }
 
 udResult vcRender_CreateTerrain(vcRenderContext *pRenderContext, vcSettings *pSettings)
