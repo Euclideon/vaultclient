@@ -46,7 +46,7 @@ float linearizeDepth(float depth)
 {
   float nearPlane = u_screenParams.z;
   float farPlane = u_screenParams.w;
-  return (2 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
+  return (2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
 }
 
 float getNormalizedPosition(float v, float min, float max)
@@ -56,7 +56,7 @@ float getNormalizedPosition(float v, float min, float max)
 
 vec3 edgeHighlight(vec3 col, vec2 uv, float depth)
 {
-  vec3 sampleOffsets = vec3(u_screenParams.xy, 0);
+  vec3 sampleOffsets = vec3(u_screenParams.xy, 0.0);
   float edgeOutlineThreshold = u_outlineParams.y;
 
   float ld0 = linearizeDepth(depth);
@@ -114,7 +114,7 @@ void main()
   col.xyz = colourizeByDepth(col.xyz, depth);
 
   float edgeOutlineWidth = u_outlineParams.x;
-  if (edgeOutlineWidth > 0)
+  if (edgeOutlineWidth > 0.0)
     col.xyz = edgeHighlight(col.xyz, v_texCoord, depth);
 
   col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);

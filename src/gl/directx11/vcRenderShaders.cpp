@@ -46,7 +46,7 @@ const char* const g_udFragmentShader = R"shader(
   {
     float nearPlane = u_screenParams.z;
     float farPlane = u_screenParams.w;
-    return (2 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
+    return (2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
   }
 
   float getNormalizedPosition(float v, float min, float max)
@@ -56,7 +56,7 @@ const char* const g_udFragmentShader = R"shader(
 
   float3 edgeHighlight(float3 col, float2 uv, float depth)
   {
-    float3 sampleOffsets = float3(u_screenParams.xy, 0);
+    float3 sampleOffsets = float3(u_screenParams.xy, 0.0);
     float edgeOutlineThreshold = u_outlineParams.y;
 
     float ld0 = linearizeDepth(depth);
@@ -117,7 +117,7 @@ const char* const g_udFragmentShader = R"shader(
     col.xyz = colourizeByDepth(col.xyz, depth);
    
     float edgeOutlineWidth = u_outlineParams.x;
-    if (edgeOutlineWidth > 0)
+    if (edgeOutlineWidth > 0.0)
       col.xyz = edgeHighlight(col.xyz, input.uv, depth);
 
     col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
