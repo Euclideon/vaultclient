@@ -271,34 +271,36 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
 
 void vcPresentUD(vcRenderContext *pRenderContext)
 {
-  // TODO: Hook these variables up to UI
-
-  // TODO: Not sure if you want to have UI button to enable/disable these effects
-  bool enableEdgeOutlines = false;
-  bool enableColourByHeight = false;
-  bool enableColourByDepth = false;
-  bool enableContours = false;
-
   // edge outlines
-  int outlineWidth = 1;
-  float outlineEdgeThreshold = 0.001f;
-  udFloat4 outlineColour = udFloat4::create(1.0f, 1.0f, 1.0f, enableEdgeOutlines ? 1.0f : 0.0f);
+  int outlineWidth = pRenderContext->pSettings->postVisualization.edgeOutlines.width;
+  float outlineEdgeThreshold = pRenderContext->pSettings->postVisualization.edgeOutlines.threshold;
+  udFloat4 outlineColour = pRenderContext->pSettings->postVisualization.edgeOutlines.colour;
+  if (!pRenderContext->pSettings->postVisualization.edgeOutlines.enable)
+    outlineColour.w = 0.0f;
 
   // colour by height
-  udFloat4 colourByHeightMinColour = udFloat4::create(0.0f, 0.0f, 1.0f, enableColourByHeight ? 1.0f : 0.0f);
-  udFloat4 colourByHeightMaxColour = udFloat4::create(0.0f, 1.0f, 0.0f, enableColourByHeight ? 1.0f : 0.0f);
-  float colourByHeightStartHeight = 30.0f;
-  float colourByHeightEndHeight = 50.0f;
+  udFloat4 colourByHeightMinColour = pRenderContext->pSettings->postVisualization.colourByHeight.minColour;
+  if (!pRenderContext->pSettings->postVisualization.colourByHeight.enable)
+    colourByHeightMinColour.w = 0.f;
+  udFloat4 colourByHeightMaxColour = pRenderContext->pSettings->postVisualization.colourByHeight.maxColour;
+  if (!pRenderContext->pSettings->postVisualization.colourByHeight.enable)
+    colourByHeightMaxColour.w = 0.f;
+  float colourByHeightStartHeight = pRenderContext->pSettings->postVisualization.colourByHeight.startHeight;
+  float colourByHeightEndHeight = pRenderContext->pSettings->postVisualization.colourByHeight.endHeight;
 
   // colour by depth
-  udFloat4 colourByDepthColour = udFloat4::create(1.0f, 0.0f, 0.0f, enableColourByDepth ? 1.0f : 0.0f);
-  float colourByDepthStart = 100.0f;
-  float colourByDepthEnd = 1000.0f;
+  udFloat4 colourByDepthColour = pRenderContext->pSettings->postVisualization.colourByDepth.colour;
+  if (!pRenderContext->pSettings->postVisualization.colourByDepth.enable)
+    colourByDepthColour.w = 0.f;
+  float colourByDepthStart = pRenderContext->pSettings->postVisualization.colourByDepth.startDepth;
+  float colourByDepthEnd = pRenderContext->pSettings->postVisualization.colourByDepth.endDepth;
 
   // contours
-  udFloat4 contourColour = udFloat4::create(0.0f, 0.0f, 0.0f, enableContours ? 1.0f : 0.0f);
-  float contourDistances = 50.0;
-  float contourBandHeight = 1.0;
+  udFloat4 contourColour = pRenderContext->pSettings->postVisualization.contours.colour;
+  if (!pRenderContext->pSettings->postVisualization.contours.enable)
+    contourColour.w = 0.f;
+  float contourDistances = pRenderContext->pSettings->postVisualization.contours.distances;
+  float contourBandHeight = pRenderContext->pSettings->postVisualization.contours.bandHeight;
 
   pRenderContext->udRenderContext.presentShader.params.inverseViewProjection = udFloat4x4::create(pRenderContext->inverseViewProjectionMatrix);
   pRenderContext->udRenderContext.presentShader.params.screenParams.x = outlineWidth * (1.0f / pRenderContext->pSettings->window.width);
