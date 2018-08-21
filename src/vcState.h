@@ -20,6 +20,7 @@ struct vcTexture;
 enum vcPopupTriggerID
 {
   vcPopup_ModelProperties,
+  vcPopup_About,
 
   vcPopupCount
 };
