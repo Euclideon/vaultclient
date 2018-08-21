@@ -7,7 +7,10 @@
 #include "udPlatform/udPlatformUtil.h"
 #include "stb_image.h"
 
-udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags /*flags = vcTCF_None*/)
+// WIP store device limit
+float gMaxAnisotropicLevel = -1.0f;
+
+udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags /*flags = vcTCF_None*/, uint32_t aniFilter /* = 0 */)
 {
   if (ppTexture == nullptr || width == 0 || height == 0)
     return udR_InvalidParameter_;
@@ -23,6 +26,15 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, hasMipmaps ? GL_LINEAR_MIPMAP_NEAREST : vcTFMToGL[filterMode]);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, vcTWMToGL[wrapMode]);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, vcTWMToGL[wrapMode]);
+
+  if (aniFilter > 0)
+  {
+    if (gMaxAnisotropicLevel == -1.0f) // read once
+      glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &gMaxAnisotropicLevel);
+
+    float realAniso = udMin((float)aniFilter, gMaxAnisotropicLevel);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, realAniso);
+  }
 
   GLint internalFormat = GL_INVALID_ENUM;
   GLenum type = GL_INVALID_ENUM;
@@ -167,6 +179,7 @@ void vcTexture_Destroy(vcTexture **ppTexture)
 
   glDeleteTextures(1, &(*ppTexture)->id);
   udFree(*ppTexture);
+  *ppTexture = nullptr;
 }
 
 bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)

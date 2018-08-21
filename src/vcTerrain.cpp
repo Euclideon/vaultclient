@@ -71,15 +71,15 @@ void vcTerrain_BuildTerrain(vcTerrain *pTerrain, int16_t srid, const udDouble3 w
   };
   
   vcQuadTree_GenerateNodeList(&pNodeList, &nodeCount, createInfo, &treeData);
-  vcTerrainRenderer_BuildTiles(pTerrain->pTerrainRenderer, srid, slippyCoords, cameraWorldPos, pNodeList, nodeCount, treeData.leafNodeCount);
+  vcTerrainRenderer_BuildTiles(pTerrain->pTerrainRenderer, srid, slippyCoords, cameraWorldPos, pNodeList, nodeCount);
 }
 
-void vcTerrain_Render(vcTerrain *pTerrain, const udDouble4x4 &viewProj)
+void vcTerrain_Render(vcTerrain *pTerrain, const udDouble4x4 &view, const udDouble4x4 &proj)
 {
   if (!pTerrain->enabled)
     return;
 
-  vcTerrainRenderer_Render(pTerrain->pTerrainRenderer, viewProj);
+  vcTerrainRenderer_Render(pTerrain->pTerrainRenderer, view, proj);
 }
 
 void vcTerrain_SetEnabled(vcTerrain *pTerrain, bool enabled)
