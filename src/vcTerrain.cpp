@@ -55,17 +55,24 @@ void vcTerrain_BuildTerrain(vcTerrain *pTerrain, int16_t srid, const udDouble3 w
   if (!pTerrain->enabled)
     return;
 
-  // What percent of the quad tree is visible, based off the root slippy level (currentZoom)
-  const static double approximateCameraToSeaLevelDescent = 70000.0; // TODO: arbitrary number - this needs to be investigated further
-  double slippyCornersViewSize = udMag3(worldCorners[1] - worldCorners[2]);
-  double visibleQuadTreeSize = (pTerrain->pSettings->camera.farPlane / slippyCornersViewSize) * udAbs(cameraWorldPos.z - pTerrain->pSettings->maptiles.mapHeight) / approximateCameraToSeaLevelDescent;
-
   vcQuadTreeMetaData treeData;
   vcQuadTreeNode *pNodeList = nullptr;
   int nodeCount = 0;
 
-  vcQuadTree_GenerateNodeList(&pNodeList, &nodeCount, srid, slippyCoords, cameraWorldPos, udDouble2::create(visibleQuadTreeSize), pTerrain->pSettings->camera.farPlane, &treeData);
-  vcTerrainRenderer_BuildTiles(pTerrain->pTerrainRenderer, srid, slippyCoords, cameraWorldPos, pNodeList, nodeCount, treeData.visibleNodeCount);}
+  double slippyCornersViewSize = udMag3(worldCorners[1] - worldCorners[2]) * 0.5;
+  vcQuadTreeCreateInfo createInfo =
+  {
+    srid, 
+    slippyCoords, 
+    cameraWorldPos, 
+    slippyCornersViewSize, 
+    (double)pTerrain->pSettings->camera.farPlane,
+    pTerrain->pSettings->maptiles.mapHeight
+  };
+  
+  vcQuadTree_GenerateNodeList(&pNodeList, &nodeCount, createInfo, &treeData);
+  vcTerrainRenderer_BuildTiles(pTerrain->pTerrainRenderer, srid, slippyCoords, cameraWorldPos, pNodeList, nodeCount, treeData.leafNodeCount);
+}
 
 void vcTerrain_Render(vcTerrain *pTerrain, const udDouble4x4 &viewProj)
 {

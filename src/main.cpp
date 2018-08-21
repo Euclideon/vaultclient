@@ -49,7 +49,7 @@ const char *pProjectsJSON = R"projects(
     },
     {
       "name": "Queensland (Internal Only)",
-      "models": [ "BruceHwy_All-32756-DEBUG.uds", "Brisbane_30cm.uds" ]
+      "models": [ "BruceHwy.uds", "Brisbane_30cm.uds" ]
     },
     {
       "name": "SNCF (Internal Only)",
