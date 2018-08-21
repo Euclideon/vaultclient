@@ -7,10 +7,16 @@
 #include "udPlatform/udPlatformUtil.h"
 #include "stb_image.h"
 
-udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/)
+#define MAX_MIP_LEVELS 4
+
+udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, uint32_t aniFilter /*= 0*/)
 {
   if (ppTexture == nullptr || width == 0 || height == 0)
     return udR_InvalidParameter_;
+
+  // only allow mip maps for certain formats
+  if (format != vcTextureFormat_RGBA8)
+    hasMipmaps = false;
 
   udResult result = udR_Success;
 
@@ -60,7 +66,7 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   ZeroMemory(&desc, sizeof(desc));
   desc.Width = width;
   desc.Height = height;
-  desc.MipLevels = hasMipmaps ? 4 : 1; // 4 choose by random
+  desc.MipLevels = hasMipmaps ? MAX_MIP_LEVELS : 1;
   desc.ArraySize = 1;
   desc.Format = texFormat;
   desc.SampleDesc.Count = 1;
@@ -68,18 +74,67 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   desc.BindFlags = bindFlags;
   desc.CPUAccessFlags = (pTexture->isDynamic ? D3D11_CPU_ACCESS_WRITE : 0);
 
-  D3D11_SUBRESOURCE_DATA subResource;
+  D3D11_SUBRESOURCE_DATA subResource[MAX_MIP_LEVELS];
   D3D11_SUBRESOURCE_DATA *pSubData = nullptr;
 
   if (pPixels != nullptr)
   {
-    subResource.pSysMem = pPixels;
-    subResource.SysMemPitch = desc.Width * pixelBytes;
-    subResource.SysMemSlicePitch = 0;
-    pSubData = &subResource;
+    subResource[0].pSysMem = pPixels;
+    subResource[0].SysMemPitch = desc.Width * pixelBytes;
+    subResource[0].SysMemSlicePitch = 0;
+    pSubData = subResource;
+  }
+
+  // Manually generate MAX_MIP_LEVELS levels of mip maps
+  if (hasMipmaps)
+  {
+    const void *pLastPixels = pPixels;
+    uint32_t lastWidth = width;
+    uint32_t lastHeight = height;
+
+    for (int i = 1; i < MAX_MIP_LEVELS; ++i)
+    {
+      lastWidth >>= 1;
+      lastHeight >>= 1;
+      uint32_t *pMippedPixels = udAllocType(uint32_t, lastWidth  * lastHeight, udAF_Zero);
+
+      for (uint32_t y = 0; y < lastHeight; ++y)
+      {
+        for (uint32_t x = 0; x < lastWidth; ++x)
+        {
+          uint8_t r = 0, g = 0, b = 0, a = 0;
+
+          // 4x4 bilinear sampling
+          for (int s = 0; s < 4; ++s)
+          {
+            uint32_t sample = ((uint32_t*)pLastPixels)[(y * 2 + s / 2) * lastWidth * 2 + (x * 2 + s % 2)];
+            r += ((sample >> 0) & 0xff) >> 2;
+            g += ((sample >> 8) & 0xff) >> 2;
+            b += ((sample >> 16) & 0xff) >> 2;
+            a += ((sample >> 24) & 0xff) >> 2;
+          }
+          pMippedPixels[y * lastWidth + x] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
+        }
+      }
+
+      subResource[i].pSysMem = pMippedPixels;
+      subResource[i].SysMemPitch = lastWidth * pixelBytes;
+      subResource[i].SysMemSlicePitch = 0;
+
+      pLastPixels = pMippedPixels;
+    }
   }
 
   g_pd3dDevice->CreateTexture2D(&desc, pSubData, &pTexture->pTextureD3D);
+
+  // Free mip map memory
+  if (hasMipmaps)
+  {
+    for (int i = 1; i < MAX_MIP_LEVELS; ++i)
+    {
+      udFree(subResource[i].pSysMem);
+    }
+  }
 
   // Create texture view (if desired)
   if ((bindFlags & D3D11_BIND_SHADER_RESOURCE) == D3D11_BIND_SHADER_RESOURCE)
@@ -93,19 +148,21 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
 
     g_pd3dDevice->CreateShaderResourceView(pTexture->pTextureD3D, &srvDesc, &pTexture->pTextureView);
 
+    UINT maxAnisotropic = udMin(aniFilter, (uint32_t)D3D11_DEFAULT_MAX_ANISOTROPY);
+
     D3D11_SAMPLER_DESC sampDesc;
     ZeroMemory(&sampDesc, sizeof(sampDesc));
-    sampDesc.Filter = vcTFMToD3D[filterMode];
+    sampDesc.Filter = maxAnisotropic == 0 ? vcTFMToD3D[filterMode] : D3D11_FILTER_ANISOTROPIC;
     sampDesc.AddressU = vcTWMToD3D[wrapMode];
     sampDesc.AddressV = vcTWMToD3D[wrapMode];
     sampDesc.AddressW = vcTWMToD3D[wrapMode];
-    sampDesc.MipLODBias = 0.f;
-    sampDesc.MaxAnisotropy = 1;
+    sampDesc.MipLODBias = 1.f;
+    sampDesc.MaxAnisotropy = maxAnisotropic;
     sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    for(int i = 0; i < 4; ++i)
+    for (int i = 0; i < 4; ++i)
       sampDesc.BorderColor[i] = 1.f;
     sampDesc.MinLOD = 0.f;
-    sampDesc.MaxLOD = 0.f;
+    sampDesc.MaxLOD = hasMipmaps ? 4.0f : 0.f;
     g_pd3dDevice->CreateSamplerState(&sampDesc, &pTexture->pSampler);
   }
 
@@ -189,6 +246,7 @@ void vcTexture_Destroy(vcTexture **ppTexture)
     (*ppTexture)->pTextureView->Release();
 
   udFree(*ppTexture);
+  *ppTexture = nullptr;
 }
 
 bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
@@ -226,7 +284,7 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
     int width, height, depth;
 
     char fileNameNoExt[256] = "";
-    fileName.ExtractFilenameOnly(fileNameNoExt,UDARRAYSIZE(fileNameNoExt));
+    fileName.ExtractFilenameOnly(fileNameNoExt, UDARRAYSIZE(fileNameNoExt));
     udSprintf(pFilePath, filenameLen + 5 + pathLen, "%s%s%s%s", skyboxPath, fileNameNoExt, names[i], fileName.GetExt());
     pFacePixels[i] = stbi_load(pFilePath, &width, &height, &depth, 4);
 

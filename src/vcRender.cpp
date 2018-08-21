@@ -402,7 +402,7 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
 
     // for now just rebuild terrain every frame
     vcTerrain_BuildTerrain(pRenderContext->pTerrain, renderData.srid, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos);
-    vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->viewProjectionMatrix);
+    vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->viewMatrix, pRenderContext->projectionMatrix);
   }
 
   vcShader_Bind(nullptr);
