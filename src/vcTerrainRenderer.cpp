@@ -287,7 +287,7 @@ vcTexture* AssignTileTexture(vcTerrainRenderer *pTerrainRenderer, const udInt3 &
   }
   else if (pCachedTexture->pData != nullptr) // texture is already in cache but might not be loaded yet
   {
-    vcTexture_Create(&pCachedTexture->pTexture, pCachedTexture->width, pCachedTexture->height, pCachedTexture->pData, vcTextureFormat_RGBA8, vcTFM_Linear);
+    vcTexture_Create(&pCachedTexture->pTexture, pCachedTexture->width, pCachedTexture->height, pCachedTexture->pData, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Clamp);
     udFree(pCachedTexture->pData);
   }
 
@@ -357,8 +357,6 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
   printf("visibleTiles=%d: totalLoad=%zu\n", visibleCount, pTerrainRenderer->cache.textureLoadList.length);
 #endif
 
-  udDouble4x4 mapHeightTranslation = udDouble4x4::translation(0, 0, pTerrainRenderer->pSettings->maptiles.mapHeight);
-
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   vcShader_Bind(pTerrainRenderer->presentShader.pProgram);
@@ -370,6 +368,9 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
 
   pTerrainRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTerrainRenderer->pSettings->maptiles.transparency);
 
+  udDouble4x4 mapHeightTranslation = udDouble4x4::translation(0, 0, pTerrainRenderer->pSettings->maptiles.mapHeight);
+  udDouble4x4 viewProjWithMapTranslation = viewProj * mapHeightTranslation;
+
   for (int i = 0; i < pTerrainRenderer->tileCount; ++i)
   {
     vcTile *pTile = &pTerrainRenderer->pTiles[i];
@@ -378,7 +379,7 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
 
     for (int t = 0; t < 4; ++t)
     {
-      udFloat4x4 tileWV = udFloat4x4::create(viewProj * mapHeightTranslation * pTile->world[t]);
+      udFloat4x4 tileWV = udFloat4x4::create(viewProjWithMapTranslation * pTile->world[t]);
       pTerrainRenderer->presentShader.everyObject.worldViewProjections[t] = tileWV;
     }
 
