@@ -768,7 +768,6 @@ size_t udStrMatchBrace(const char *pLine, char escapeChar)
   return offset;
 }
 
-
 // *********************************************************************
 // Author: Dave Pevreal, April 2017
 const char *udStrSkipWhiteSpace(const char *pLine, int *pCharCount, int *pLineNumber)
@@ -788,6 +787,28 @@ const char *udStrSkipWhiteSpace(const char *pLine, int *pCharCount, int *pLineNu
   return pLine + charCount;
 }
 
+// *********************************************************************
+// Author: Dave Pevreal, July 2018
+const char *udStrSkipToEOL(const char *pLine, int *pCharCount, int *pLineNumber)
+{
+  int charCount = 0;
+  // Skip to NUL, \r or \n
+  while (pLine[charCount] != '\0' && pLine[charCount] != '\r' && pLine[charCount] != '\n')
+    ++charCount;
+  // Do a check for \r\n combination
+  if (pLine[charCount] == '\r' && pLine[charCount + 1] == '\n')
+    ++charCount;
+  // If not a NUL, skip over the EOL character (whatever it may have been)
+  if (pLine[charCount] != '\0')
+  {
+    ++charCount;
+    if (pLineNumber)
+      ++*pLineNumber;
+  }
+  if (pCharCount)
+    *pCharCount = charCount;
+  return pLine + charCount;
+}
 
 // *********************************************************************
 // Author: Dave Pevreal, April 2016
@@ -1516,13 +1537,25 @@ epilogue:
 }
 
 #define SMALLSTRING_BUFFER_COUNT 32
-#define SMALLSTRING_BUFFER_SIZE 32
-static char s_smallStringBuffers[SMALLSTRING_BUFFER_COUNT][SMALLSTRING_BUFFER_SIZE]; // 32 cycling buffers of 32 characters, which is enough for biggest 64-bit integer
+#define SMALLSTRING_BUFFER_SIZE 64
+static char s_smallStringBuffers[SMALLSTRING_BUFFER_COUNT][SMALLSTRING_BUFFER_SIZE]; // 32 cycling buffers of 64 characters
 static int32_t s_smallStringBufferIndex = 0;  // Cycling index, always and with (SMALLSTRING_BUFFER_COUNT-1) to get buffer index
 
 // ****************************************************************************
+// Author: Dave Pevreal, May 2018
+const char *udTempStr(const char *pFormat, ...)
+{
+  char *pBuf = s_smallStringBuffers[udInterlockedPostIncrement(&s_smallStringBufferIndex) & (SMALLSTRING_BUFFER_COUNT - 1)];
+  va_list args;
+  va_start(args, pFormat);
+  udSprintfVA(pBuf, SMALLSTRING_BUFFER_SIZE, pFormat, args);
+  va_end(args);
+  return pBuf;
+}
+
+// ****************************************************************************
 // Author: Dave Pevreal, October 2015
-const char *udCommaInt(int64_t n)
+const char *udTempStr_CommaInt(int64_t n)
 {
   char *pBuf = s_smallStringBuffers[udInterlockedPostIncrement(&s_smallStringBufferIndex) & (SMALLSTRING_BUFFER_COUNT-1)];
   uint64_t v = (uint64_t)n;
@@ -1558,19 +1591,44 @@ const char *udCommaInt(int64_t n)
 
 // ****************************************************************************
 // Author: Dave Pevreal, May 2018
-const char *udSecondsToString(int seconds, bool trimHours)
+const char *udTempStr_ElapsedTime(int seconds, bool trimHours)
 {
-  char *pBuf = s_smallStringBuffers[udInterlockedPostIncrement(&s_smallStringBufferIndex) & (SMALLSTRING_BUFFER_COUNT - 1)];
   int hours = seconds / (60 * 60);
   int minutes = (seconds / 60) % 60;
   int secs = seconds % 60;
-  udSprintf(pBuf, SMALLSTRING_BUFFER_SIZE, "%d:%02d:%02d", hours, minutes, secs);
+  const char *pBuf = udTempStr("%d:%02d:%02d", hours, minutes, secs);
   if (trimHours && !hours)
     pBuf += 2; // Skip leading 0: when hours is zero
   return pBuf;
 }
 
+// ****************************************************************************
+// Author: Dave Pevreal, May 2018
+const char *udTempStr_HumanMeasurement(double measurement)
+{
+  static const char *pSuffixStrings[] = { "m", "cm", "mm" };
+  static double suffixMult[] = { 1, 100, 1000 };
+  size_t suffixIndex = 0;
+  while ((suffixIndex + 1) < UDARRAYSIZE(pSuffixStrings) && (measurement * suffixMult[suffixIndex]) < 1.0)
+    ++suffixIndex;
 
+  // Generate float scale to 6 decimal places
+  char temp[32];
+  int charCount = udStrFtoa(temp, sizeof(temp), measurement * suffixMult[suffixIndex], 6);
+
+  // Trim unnecessary trailing zeros or decimal point for human friendly number
+  while (charCount > 1)
+  {
+    char c = temp[--charCount];
+    if (c == '0' || c == '.')
+      temp[charCount] = 0;
+    if (c != '0')
+      break;
+  }
+  return udTempStr("%s%s", temp, pSuffixStrings[suffixIndex]);
+}
+
+// ----------------------------------------------------------------------------
 struct udFindDirData : public udFindDir
 {
 #if UDPLATFORM_WINDOWS
@@ -1770,6 +1828,23 @@ udResult udCreateDir(const char *pFolder)
     ret = udR_Failure_;
 
   return ret;
+}
+
+// ****************************************************************************
+// Author: Dave Pevreal, August 2018
+udResult udRemoveDir(const char *pFolder)
+{
+#if UDPLATFORM_WINDOWS
+  // Returns 0 on fail
+  if (RemoveDirectoryW(udOSString(pFolder)) == 0)
+    return udR_Failure_;
+#else
+  // Returns -1 on fail
+  if (rmdir(pFolder) != 0)
+    return udR_Failure_;
+#endif
+
+  return udR_Success;
 }
 
 // ****************************************************************************

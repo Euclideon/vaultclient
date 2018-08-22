@@ -7,6 +7,10 @@
 
 class udValue;
 
+#define UDNAMEASSTRING(s) #s
+#define UDSTRINGIFY(s) UDNAMEASSTRING(s)
+
+
 // *********************************************************************
 // Some simple utility template functions
 // *********************************************************************
@@ -130,6 +134,8 @@ int udStrTokenSplit(char *pLine, const char *pDelimiters, char *pTokenArray[], i
 size_t udStrMatchBrace(const char *pLine, char escapeChar = 0);
 // Helper to skip white space (space,8,10,13), optionally incrementing a line number appropriately
 const char *udStrSkipWhiteSpace(const char *pLine, int *pCharCount = nullptr, int *pLineNumber = nullptr);
+// Helper to skip to the end of line or null character, optionally incrementing a line number appropriately
+const char *udStrSkipToEOL(const char *pLine, int *pCharCount = nullptr, int *pLineNumber = nullptr);
 // In-place remove all non-quoted white space (newlines, spaces, tabs), returns new length
 size_t udStrStripWhiteSpace(char *pLine);
 // Return new string with \ char before any chars in pCharList, optionally freeing pStr
@@ -230,8 +236,12 @@ inline uint32_t udCountBits8(uint8_t a_number)
 
 
 // *********************************************************************
-// Create (or optionally update) a standard 32-bit CRC
+// Create (or optionally update) a standard 32-bit CRC (polynomial 0xedb88320)
 uint32_t udCrc(const void *pBuffer, size_t length, uint32_t updateCrc = 0);
+
+// Create (or optionally update) a iSCSI standard 32-bit CRC (polynomial 0x1edc6f41)
+uint32_t udCrc32c(const void *pBuffer, size_t length, uint32_t updateCrc = 0);
+
 
 // *********************************************************************
 // Simple base64 decoder, output can be same memory as input
@@ -374,13 +384,26 @@ udResult udLoadBMP(const char *pFilename, int *pWidth, int *pHeight, uint32_t **
 
 // *********************************************************************
 // Some helper functions that make use of internal cycling buffers for convenience (threadsafe)
+// The caller has the responsibility not to hold the pointer or do stupid
+// things with these functions. They are generally useful for passing a
+// string directly to a function, the buffer can be overwritten.
+// Do not assume the buffer can be used beyond the string null terminator
 // *********************************************************************
 
-// Give back pretty version (ie with commas) of an int (returns one of 32 cycing static buffers)
-const char *udCommaInt(int64_t n);
+// Create a temporary small string using one of a number of cycling static buffers
+const char *udTempStr(const char *pFormat, ...);
 
-// Give back a H:MM:SS format string, optionally trimming to MM:SS if hours is zero
-const char *udSecondsToString(int seconds, bool trimHours = true);
+// Give back pretty version (ie with commas) of an int using one of a number of cycling static buffers
+const char *udTempStr_CommaInt(int64_t n);
+inline const char *udCommaInt(int64_t n) { return udTempStr_CommaInt(n); } // DEPRECATED NAME
+
+// Give back a H:MM:SS format string, optionally trimming to MM:SS if hours is zero using one of a number of cycling static buffers
+const char *udTempStr_ElapsedTime(int seconds, bool trimHours = true);
+inline const char *udSecondsToString(int seconds, bool trimHours = true) { return udTempStr_ElapsedTime(seconds, trimHours); } // DEPRECATED NAME
+
+// Return a human readable measurement string such as 1cm for 0.01, 2mm for 0.002 etc using one of a number of cycling static buffers
+const char *udTempStr_HumanMeasurement(double measurement);
+
 
 // *********************************************************************
 // Directory iteration for OS file system only
@@ -407,6 +430,9 @@ udResult udCloseDir(udFindDir **ppFindDir);
 
 // Create a folder
 udResult udCreateDir(const char *pFolder);
+
+// Removes a folder
+udResult udRemoveDir(const char *pFolder);
 
 // Write a formatted string to the buffer
 int udSprintf(char *pDest, size_t destlength, const char *pFormat, ...);
