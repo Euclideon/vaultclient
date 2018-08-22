@@ -30,7 +30,6 @@ enum vcDocks
   vcdSettings,
   vcdSceneExplorer,
 
-  vcdStyling,
   vcdUIDemo,
 
   vcdTotalDocks
@@ -68,6 +67,7 @@ struct vcSettings
     int height;
     bool maximized;
     bool fullscreen;
+    bool touchscreenFriendly;
 
     bool windowsOpen[vcdTotalDocks];
   } window;

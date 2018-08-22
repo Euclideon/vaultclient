@@ -839,7 +839,6 @@ int vcMainMenuGui(vcState *pProgramState)
       ImGui::Separator();
       if (ImGui::BeginMenu("Debug"))
       {
-        ImGui::MenuItem("Styling", nullptr, &pProgramState->settings.window.windowsOpen[vcdStyling]);
         ImGui::MenuItem("UI Debug Menu", nullptr, &pProgramState->settings.window.windowsOpen[vcdUIDemo]);
         ImGui::MenuItem("Show FPS", nullptr, &pProgramState->settings.showDebugOptions);
         ImGui::EndMenu();
@@ -1173,132 +1172,137 @@ void vcRenderWindow(vcState *pProgramState)
 
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("StyleEditor", &pProgramState->settings.window.windowsOpen[vcdStyling], ImGuiWindowFlags_ResizeFromAnySide))
-      ImGui::ShowStyleEditor();
-
-    ImGui::EndDock();
-
     if (pProgramState->settings.window.windowsOpen[vcdUIDemo])
       ImGui::ShowDemoWindow();
 
     if (ImGui::BeginDock("Settings", &pProgramState->settings.window.windowsOpen[vcdSettings], ImGuiWindowFlags_ResizeFromAnySide))
     {
-      ImGui::Text("UI Settings");
-
-      if (ImGui::Combo("Style", &pProgramState->settings.styleIndex, "Classic\0Dark\0Light\0"))
+      if (ImGui::CollapsingHeader("Appearance##Settings"))
       {
-        switch (pProgramState->settings.styleIndex)
+        if (ImGui::Combo("Theme", &pProgramState->settings.styleIndex, "Classic\0Dark\0Light\0"))
         {
-        case 0: ImGui::StyleColorsClassic(); break;
-        case 1: ImGui::StyleColorsDark(); break;
-        case 2: ImGui::StyleColorsLight(); break;
-        }
-      }
-
-      ImGui::Separator();
-      ImGui::Text("Camera");
-
-      ImGui::Checkbox("On Screen Controls", &pProgramState->onScreenControls);
-
-      ImGui::Checkbox("Invert X-axis", &pProgramState->settings.camera.invertX);
-      ImGui::Checkbox("Invert Y-axis", &pProgramState->settings.camera.invertY);
-
-      ImGui::Text("Mouse Pivot Bindings");
-      const char *mouseModes[] = { "Tumble", "Orbit", "Pan" };
-
-      int mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[0];
-      ImGui::Combo("Left", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
-      pProgramState->settings.camera.cameraMouseBindings[0] = (vcCameraPivotMode)mouseBindingIndex;
-
-      mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[2];
-      ImGui::Combo("Middle", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
-      pProgramState->settings.camera.cameraMouseBindings[2] = (vcCameraPivotMode)mouseBindingIndex;
-
-      mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[1];
-      ImGui::Combo("Right", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
-      pProgramState->settings.camera.cameraMouseBindings[1] = (vcCameraPivotMode)mouseBindingIndex;
-
-      ImGui::Text("Viewport");
-      if (ImGui::SliderFloat("Near Plane", &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))
-      {
-        pProgramState->settings.camera.nearPlane = udClamp(pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax);
-        pProgramState->settings.camera.farPlane = udMin(pProgramState->settings.camera.farPlane, pProgramState->settings.camera.nearPlane * vcSL_CameraNearFarPlaneRatioMax);
-      }
-
-      if (ImGui::SliderFloat("Far Plane", &pProgramState->settings.camera.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "%.3fm", 2.f))
-      {
-        pProgramState->settings.camera.farPlane = udClamp(pProgramState->settings.camera.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax);
-        pProgramState->settings.camera.nearPlane = udMax(pProgramState->settings.camera.nearPlane, pProgramState->settings.camera.farPlane / vcSL_CameraNearFarPlaneRatioMax);
-      }
-
-      //const char *pLensOptions = " Custom FoV\0 7mm\0 11mm\0 15mm\0 24mm\0 30mm\0 50mm\0 70mm\0 100mm\0";
-      if (ImGui::Combo("Camera Lens (fov)", &pProgramState->settings.camera.lensIndex, vcCamera_GetLensNames(), vcLS_TotalLenses))
-      {
-        switch (pProgramState->settings.camera.lensIndex)
-        {
-        case vcLS_Custom:
-          /*Custom FoV*/
-          break;
-        case vcLS_15mm:
-          pProgramState->settings.camera.fieldOfView = vcLens15mm;
-          break;
-        case vcLS_24mm:
-          pProgramState->settings.camera.fieldOfView = vcLens24mm;
-          break;
-        case vcLS_30mm:
-          pProgramState->settings.camera.fieldOfView = vcLens30mm;
-          break;
-        case vcLS_50mm:
-          pProgramState->settings.camera.fieldOfView = vcLens50mm;
-          break;
-        case vcLS_70mm:
-          pProgramState->settings.camera.fieldOfView = vcLens70mm;
-          break;
-        case vcLS_100mm:
-          pProgramState->settings.camera.fieldOfView = vcLens100mm;
-          break;
-        }
-      }
-
-      if (pProgramState->settings.camera.lensIndex == vcLS_Custom)
-      {
-        float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
-        if (ImGui::SliderFloat("Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f Degrees"))
-          pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
-      }
-
-      ImGui::Separator();
-
-      ImGui::Checkbox("Map Tiles", &pProgramState->settings.maptiles.mapEnabled);
-
-      if (pProgramState->settings.maptiles.mapEnabled)
-      {
-        ImGui::InputText("Tile Server", pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength);
-
-        ImGui::SliderFloat("Map Height", &pProgramState->settings.maptiles.mapHeight, -1000.f, 1000.f, "%.3fm", 2.f);
-
-        const char* blendModes[] = { "Hybrid", "Overlay" };
-        if (ImGui::BeginCombo("Blending", blendModes[pProgramState->settings.maptiles.blendMode]))
-        {
-          for (size_t n = 0; n < UDARRAYSIZE(blendModes); ++n)
+          switch (pProgramState->settings.styleIndex)
           {
-            bool isSelected = (pProgramState->settings.maptiles.blendMode == n);
+          case 0: ImGui::StyleColorsClassic(); break;
+          case 1: ImGui::StyleColorsDark(); break;
+          case 2: ImGui::StyleColorsLight(); break;
+          }
+        }
+      }
 
-            if (ImGui::Selectable(blendModes[n], isSelected))
-              pProgramState->settings.maptiles.blendMode = (vcMapTileBlendMode)n;
+      if (ImGui::CollapsingHeader("Input & Controls##Settings"))
+      {
+        ImGui::Checkbox("On Screen Controls", &pProgramState->onScreenControls);
 
-            if (isSelected)
-              ImGui::SetItemDefaultFocus();
+        if (ImGui::Checkbox("Touch Friendly UI", &pProgramState->settings.window.touchscreenFriendly))
+        {
+          ImGuiStyle& style = ImGui::GetStyle();
+          style.TouchExtraPadding = pProgramState->settings.window.touchscreenFriendly ? ImVec2(4, 4) : ImVec2();
+        }
+
+        ImGui::Checkbox("Invert X-axis", &pProgramState->settings.camera.invertX);
+        ImGui::Checkbox("Invert Y-axis", &pProgramState->settings.camera.invertY);
+
+        ImGui::Text("Mouse Pivot Bindings");
+        const char *mouseModes[] = { "Tumble", "Orbit", "Pan" };
+
+        int mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[0];
+        ImGui::Combo("Left", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
+        pProgramState->settings.camera.cameraMouseBindings[0] = (vcCameraPivotMode)mouseBindingIndex;
+
+        mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[2];
+        ImGui::Combo("Middle", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
+        pProgramState->settings.camera.cameraMouseBindings[2] = (vcCameraPivotMode)mouseBindingIndex;
+
+        mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[1];
+        ImGui::Combo("Right", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
+        pProgramState->settings.camera.cameraMouseBindings[1] = (vcCameraPivotMode)mouseBindingIndex;
+      }
+
+      if (ImGui::CollapsingHeader("Viewport##Settings"))
+      {
+        if (ImGui::SliderFloat("Near Plane", &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))
+        {
+          pProgramState->settings.camera.nearPlane = udClamp(pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax);
+          pProgramState->settings.camera.farPlane = udMin(pProgramState->settings.camera.farPlane, pProgramState->settings.camera.nearPlane * vcSL_CameraNearFarPlaneRatioMax);
+        }
+
+        if (ImGui::SliderFloat("Far Plane", &pProgramState->settings.camera.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "%.3fm", 2.f))
+        {
+          pProgramState->settings.camera.farPlane = udClamp(pProgramState->settings.camera.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax);
+          pProgramState->settings.camera.nearPlane = udMax(pProgramState->settings.camera.nearPlane, pProgramState->settings.camera.farPlane / vcSL_CameraNearFarPlaneRatioMax);
+        }
+
+        //const char *pLensOptions = " Custom FoV\0 7mm\0 11mm\0 15mm\0 24mm\0 30mm\0 50mm\0 70mm\0 100mm\0";
+        if (ImGui::Combo("Camera Lens (fov)", &pProgramState->settings.camera.lensIndex, vcCamera_GetLensNames(), vcLS_TotalLenses))
+        {
+          switch (pProgramState->settings.camera.lensIndex)
+          {
+          case vcLS_Custom:
+            /*Custom FoV*/
+            break;
+          case vcLS_15mm:
+            pProgramState->settings.camera.fieldOfView = vcLens15mm;
+            break;
+          case vcLS_24mm:
+            pProgramState->settings.camera.fieldOfView = vcLens24mm;
+            break;
+          case vcLS_30mm:
+            pProgramState->settings.camera.fieldOfView = vcLens30mm;
+            break;
+          case vcLS_50mm:
+            pProgramState->settings.camera.fieldOfView = vcLens50mm;
+            break;
+          case vcLS_70mm:
+            pProgramState->settings.camera.fieldOfView = vcLens70mm;
+            break;
+          case vcLS_100mm:
+            pProgramState->settings.camera.fieldOfView = vcLens100mm;
+            break;
+          }
+        }
+
+        if (pProgramState->settings.camera.lensIndex == vcLS_Custom)
+        {
+          float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
+          if (ImGui::SliderFloat("Field Of View", &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f Degrees"))
+            pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
+        }
+      }
+
+      if (ImGui::CollapsingHeader("Maps & Elevation##Settings"))
+      {
+        ImGui::Checkbox("Map Tiles", &pProgramState->settings.maptiles.mapEnabled);
+
+        if (pProgramState->settings.maptiles.mapEnabled)
+        {
+          ImGui::InputText("Tile Server", pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength);
+
+          ImGui::SliderFloat("Map Height", &pProgramState->settings.maptiles.mapHeight, -1000.f, 1000.f, "%.3fm", 2.f);
+
+          const char* blendModes[] = { "Hybrid", "Overlay" };
+          if (ImGui::BeginCombo("Blending", blendModes[pProgramState->settings.maptiles.blendMode]))
+          {
+            for (size_t n = 0; n < UDARRAYSIZE(blendModes); ++n)
+            {
+              bool isSelected = (pProgramState->settings.maptiles.blendMode == n);
+
+              if (ImGui::Selectable(blendModes[n], isSelected))
+                pProgramState->settings.maptiles.blendMode = (vcMapTileBlendMode)n;
+
+              if (isSelected)
+                ImGui::SetItemDefaultFocus();
+            }
+
+            ImGui::EndCombo();
           }
 
-          ImGui::EndCombo();
+          if (ImGui::SliderFloat("Transparency", &pProgramState->settings.maptiles.transparency, 0.f, 1.f, "%.3f"))
+            pProgramState->settings.maptiles.transparency = udClamp(pProgramState->settings.maptiles.transparency, 0.f, 1.f);
+
+          if (ImGui::Button("Set to Camera Height"))
+            pProgramState->settings.maptiles.mapHeight = (float)pProgramState->camMatrix.axis.t.z;
         }
-
-        if(ImGui::SliderFloat("Transparency", &pProgramState->settings.maptiles.transparency, 0.f, 1.f, "%.3f"))
-          pProgramState->settings.maptiles.transparency = udClamp(pProgramState->settings.maptiles.transparency, 0.f, 1.f);
-
-        if (ImGui::Button("Set to Camera Height"))
-          pProgramState->settings.maptiles.mapHeight = (float)pProgramState->camMatrix.axis.t.z;
       }
     }
 
