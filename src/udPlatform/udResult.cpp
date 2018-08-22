@@ -31,6 +31,7 @@ udResultInfo udResultInfoArray[] =
   RESULTINFO(udR_RenderAlreadyInProgress),
   RESULTINFO(udR_BufferTooSmall),
   RESULTINFO(udR_VersionMismatch),
+  RESULTINFO(udR_FormatVariationNotSupported),
   RESULTINFO(udR_ObjectTypeMismatch),
   RESULTINFO(udR_NodeLimitExceeded),
   RESULTINFO(udR_BlockLimitExceeded),

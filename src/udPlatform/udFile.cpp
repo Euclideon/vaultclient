@@ -8,6 +8,12 @@
 #include "udPlatformUtil.h"
 #include "udMath.h"
 
+#if UDPLATFORM_WINDOWS
+# include <ShlObj.h>
+#else
+# include <pwd.h>
+#endif
+
 #define MAX_HANDLERS 16
 #define CONTENT_LOAD_CHUNK_SIZE 65536 // When loading an entire file of unknown size, read in chunks of this many bytes
 
@@ -122,6 +128,7 @@ udResult udFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags fla
 {
   UDTRACE();
   udResult result = udR_OpenFailure;
+  const char *pNewFilename = nullptr;
   if (ppFile == nullptr || pFilename == nullptr)
   {
     result = udR_InvalidParameter_;
@@ -132,15 +139,21 @@ udResult udFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags fla
   if (pFileLengthInBytes)
     *pFileLengthInBytes = 0;
 
+  // TODO: Figure out how to only do this for the FILE handler requires that
+  //       pFilenameCopy isn't set to `udStrdup(pFilename)`
+  if (udFile_TranslatePath(&pNewFilename, pFilename) != udR_Success)
+    pNewFilename = udStrdup(pFilename);
+
   for (int i = s_handlersCount - 1; i >= 0; --i)
   {
     udFileHandler *pHandler = s_handlers + i;
-    if (udStrBeginsWith(pFilename, pHandler->prefix))
+    if (udStrBeginsWith(pNewFilename, pHandler->prefix))
     {
-      result = pHandler->fpOpen(ppFile, pFilename, flags);
+      result = pHandler->fpOpen(ppFile, pNewFilename, flags);
       if (result == udR_Success)
       {
-        (*ppFile)->pFilenameCopy = udStrdup(pFilename);
+        (*ppFile)->pFilenameCopy = pNewFilename;
+        pNewFilename = nullptr;
         (*ppFile)->flagsCopy = flags;
         if (pFileLengthInBytes)
           *pFileLengthInBytes = (*ppFile)->fileLength;
@@ -150,6 +163,7 @@ udResult udFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags fla
   }
 
 epilogue:
+  udFree(pNewFilename);
   return result;
 }
 
@@ -355,6 +369,51 @@ udResult udFile_Close(udFile **ppFile)
   {
     return udR_CloseFailure;
   }
+}
+
+
+// ****************************************************************************
+// Author: Samuel Surtees, July 2018
+udResult udFile_TranslatePath(const char **ppNewPath, const char *pPath)
+{
+  udResult result = udR_ObjectNotFound;
+  UD_ERROR_NULL(ppNewPath, udR_InvalidParameter_);
+  UD_ERROR_NULL(pPath, udR_InvalidParameter_);
+
+  // TODO: Process environment variables when passed in via `%env%` and `$env`
+  {
+#if UDPLATFORM_WINDOWS
+    PWSTR pHomeDirW = nullptr;
+    UD_ERROR_IF(SHGetKnownFolderPath(FOLDERID_Profile, 0, NULL, &pHomeDirW) != S_OK, udR_ObjectNotFound);
+    udOSString temp(pHomeDirW);
+    const char *pHomeDir = temp;
+
+    if (pHomeDirW)
+      CoTaskMemFree(pHomeDirW);
+#else
+    struct passwd *pPw = getpwuid(getuid());
+    UD_ERROR_NULL(pPw, udR_ObjectNotFound);
+    const char *pHomeDir = pPw->pw_dir;
+#endif
+    size_t homeDirLength = udStrlen(pHomeDir);
+
+    if (pPath[0] == '~' && (pPath[1] == '\0' || pPath[1] == '\\' || pPath[1] == '/'))
+    {
+      size_t filenameLength = udStrlen(pPath);
+      size_t newSize = homeDirLength + (filenameLength - 1) + 1;
+      char *pTemp = udAllocType(char, newSize, udAF_None);
+      UD_ERROR_NULL(pTemp, udR_MemoryAllocationFailure);
+
+      udStrcpy(pTemp, newSize, pHomeDir);
+      udStrcat(pTemp, newSize, pPath + 1);
+
+      result = udR_Success;
+      *ppNewPath = pTemp;
+    }
+  }
+
+epilogue:
+  return result;
 }
 
 
