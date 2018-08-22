@@ -36,33 +36,6 @@ udChunkedArray<vcModel> vcModelList;
 
 static bool lastModelLoaded;
 
-const char *pProjectsJSON = R"projects(
-{
-  "projects": [
-    {
-      "name": "Adelaide, South Australia (Internal Only)",
-      "models": [ "AdelaideCBD_2cm.uds" ]
-    },
-    {
-      "name": "Juneau, Alaska (Internal Only)",
-      "models": [ "AK_Juneau.uds" ]
-    },
-    {
-      "name": "Queensland (Internal Only)",
-      "models": [ "BruceHwy.uds", "Brisbane_30cm.uds" ]
-    },
-    {
-      "name": "SNCF (Internal Only)",
-      "models": [ "150128-0-L.uds", "Geoverse_Aiglepierre5mm.uds" ]
-    },
-    {
-      "name": "Uluru (Internal Only)",
-      "models": [ "Uluru-AyersRock_7cm.uds" ]
-    }
-  ]
-}
-)projects";
-
 struct vc3rdPartyLicenseText
 {
   const char *pName;
@@ -425,8 +398,6 @@ int main(int /*argc*/, char ** /*args*/)
   if (!ImGuiGL_Init(programState.pWindow))
     goto epilogue;
 #endif
-
-  programState.projects.Parse(pProjectsJSON);
 
   //Get ready...
   NOW = SDL_GetPerformanceCounter();
@@ -848,27 +819,24 @@ int vcMainMenuGui(vcState *pProgramState)
     }
 
     udValueArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
-    if (pProjectList != nullptr)
+    if (ImGui::BeginMenu("Projects", pProjectList != nullptr && pProjectList->length > 0 && !udStrEqual(pProgramState->settings.resourceBase, "")))
     {
-      if (ImGui::BeginMenu("Projects", pProjectList->length > 0 && !udStrEqual(pProgramState->settings.resourceBase, "")))
+      for (size_t i = 0; i < pProjectList->length; ++i)
       {
-        for (size_t i = 0; i < pProjectList->length; ++i)
+        if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr))
         {
-          if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr))
-          {
-            vcModel_UnloadList(pProgramState);
+          vcModel_UnloadList(pProgramState);
 
-            for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
-            {
-              char buffer[vcMaxPathLength];
-              udSprintf(buffer, vcMaxPathLength, "%s/%s", pProgramState->settings.resourceBase, pProjectList->GetElement(i)->Get("models[%d]", j).AsString());
-              vcModel_AddToList(pProgramState, buffer);
-            }
+          for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
+          {
+            char buffer[vcMaxPathLength];
+            udSprintf(buffer, vcMaxPathLength, "%s/%s", pProgramState->settings.resourceBase, pProjectList->GetElement(i)->Get("models[%d]", j).AsString());
+            vcModel_AddToList(pProgramState, buffer);
           }
         }
-
-        ImGui::EndMenu();
       }
+
+      ImGui::EndMenu();
     }
 
     menuHeight = (int)ImGui::GetWindowSize().y;
@@ -964,8 +932,15 @@ void vcRenderWindow(vcState *pProgramState)
             {
               //Context Login successful
               vcRender_CreateTerrain(pProgramState->pRenderContext, &pProgramState->settings);
-
               vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pContext);
+
+              void *pProjData = nullptr;
+              if (udFile_Load(udTempStr("%s/api/dev/projects", pProgramState->serverURL), &pProjData) == udR_Success)
+              {
+                pProgramState->projects.Parse((char*)pProjData);
+                udFree(pProjData);
+              }
+
               pProgramState->hasContext = true;
             }
           }
