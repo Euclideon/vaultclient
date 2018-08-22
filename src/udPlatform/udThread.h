@@ -14,13 +14,16 @@ enum udThreadCreateFlags { udTCF_None }; // For future expansion
 typedef uint32_t(udThreadStart)(void *data);
 
 // Create a thread object
-udResult udThread_Create(udThread **ppThread, udThreadStart *pThreadStarter, void *pThreadData, udThreadCreateFlags flags = udTCF_None);
+udResult udThread_Create(udThread **ppThread, udThreadStart *pThreadStarter, void *pThreadData, udThreadCreateFlags flags = udTCF_None, const char *pThreadName = nullptr);
 
 // Set the thread priority
 void udThread_SetPriority(udThread *pThread, udThreadPriority priority);
 
 // Destroy a thread, this should be called after the thread has exited (udThread_Join can be used to assist)
 void udThread_Destroy(udThread **ppThreadHandle);
+
+// Destroy cached threads
+void udThread_DestroyCached();
 
 // Wait for a thread to complete
 udResult udThread_Join(udThread *pThread, int waitMs = UDTHREAD_WAIT_INFINITE);

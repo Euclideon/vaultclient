@@ -86,6 +86,10 @@ udResult udFile_Release(udFile *pFile);
 // Close the file (sets the udFile pointer to null)
 udResult udFile_Close(udFile **ppFile);
 
+// Translate special path identifiers to correct locations ('~' to '/home/<username>' or 'C:\Users\<username>')
+// (*ppNewPath) needs to be freed by the caller
+udResult udFile_TranslatePath(const char **ppNewPath, const char *pPath);
+
 // Optional handlers (optional as it requires networking libraries, WS2_32.lib on Windows platform)
 udResult udFile_RegisterHTTP();
 

@@ -1,13 +1,43 @@
 #include "udThread.h"
 
-#if !UDPLATFORM_WINDOWS
+#if UDPLATFORM_WINDOWS
+//
+// SetThreadName function taken from https://docs.microsoft.com/en-us/visualstudio/debugger/how-to-set-a-thread-name-in-native-code
+// Usage: SetThreadName ((DWORD)-1, "MainThread");
+//
+#include <windows.h>
+const DWORD MS_VC_EXCEPTION = 0x406D1388;
+#pragma pack(push,8)
+typedef struct tagTHREADNAME_INFO
+{
+  DWORD dwType; // Must be 0x1000.
+  LPCSTR szName; // Pointer to name (in user addr space).
+  DWORD dwThreadID; // Thread ID (-1=caller thread).
+  DWORD dwFlags; // Reserved for future use, must be zero.
+} THREADNAME_INFO;
+#pragma pack(pop)
+static void SetThreadName(DWORD dwThreadID, const char* threadName)
+{
+  THREADNAME_INFO info;
+  info.dwType = 0x1000;
+  info.szName = threadName;
+  info.dwThreadID = dwThreadID;
+  info.dwFlags = 0;
+#pragma warning(push)
+#pragma warning(disable: 6320 6322)
+  __try {
+    RaiseException(MS_VC_EXCEPTION, 0, sizeof(info) / sizeof(ULONG_PTR), (ULONG_PTR*)&info);
+  }
+  __except (EXCEPTION_EXECUTE_HANDLER) {
+  }
+#pragma warning(pop)
+}
+#else
 #include <sched.h>
 #include <pthread.h>
 #include <errno.h>
 #include <semaphore.h>
-#endif
 
-#if !UDPLATFORM_WINDOWS
 void udThread_MsToTimespec(struct timespec *pTimespec, int waitMs)
 {
   if (pTimespec == nullptr)
@@ -106,11 +136,12 @@ static uint32_t udThread_Bootstrap(udThread *pThread)
 
 
 // ****************************************************************************
-udResult udThread_Create(udThread **ppThread, udThreadStart *pThreadStarter, void *pThreadData, udThreadCreateFlags /*flags*/)
+udResult udThread_Create(udThread **ppThread, udThreadStart *pThreadStarter, void *pThreadData, udThreadCreateFlags /*flags*/, const char *pThreadName)
 {
   udResult result;
   udThread *pThread = nullptr;
   int slotIndex;
+  udUnused(pThreadName);
 
   UD_ERROR_NULL(pThreadStarter, udR_InvalidParameter_);
   for (slotIndex = 0; pThread == nullptr && slotIndex < MAX_CACHED_THREADS; ++slotIndex)
@@ -118,8 +149,6 @@ udResult udThread_Create(udThread **ppThread, udThreadStart *pThreadStarter, voi
     pThread = const_cast<udThread*>(s_pCachedThreads[slotIndex]);
     if (udInterlockedCompareExchangePointer(&s_pCachedThreads[slotIndex], nullptr, pThread) != pThread)
       pThread = nullptr;
-    else
-      UDASSERT(s_pCachedThreads[slotIndex] == nullptr, "exchange failed");
   }
   if (pThread)
   {
@@ -144,6 +173,13 @@ udResult udThread_Create(udThread **ppThread, udThreadStart *pThreadStarter, voi
     pthread_create(&pThread->t, NULL, (PTHREAD_START_ROUTINE)udThread_Bootstrap, pThread);
 #endif
   }
+#if UDPLATFORM_WINDOWS
+  if (pThreadName)
+    SetThreadName(GetThreadId(pThread->handle), pThreadName);
+#elif (UDPLATFORM_LINUX || UDPLATFORM_ANDROID)
+  if (pThreadName)
+    pthread_setname_np(pThread->t, pThreadName);
+#endif
 
   if (ppThread)
   {
@@ -199,6 +235,29 @@ void udThread_Destroy(udThread **ppThread)
 #endif
       udFree(pThread);
     }
+  }
+}
+
+// ****************************************************************************
+// Author: Dave Pevreal, July 2018
+void udThread_DestroyCached()
+{
+  while (1)
+  {
+    bool anyThreadsLeft = false;
+    for (int slotIndex = 0; slotIndex < MAX_CACHED_THREADS; ++slotIndex)
+    {
+      volatile udThread *pThread = s_pCachedThreads[slotIndex];
+      if (pThread && pThread->pCacheSemaphore)
+      {
+        udIncrementSemaphore(pThread->pCacheSemaphore);
+        anyThreadsLeft = true;
+      }
+    }
+    if (anyThreadsLeft)
+      udYield();
+    else
+      break;
   }
 }
 
@@ -376,7 +435,7 @@ bool udSleepSemaphore_Internal(udSemaphore *pSemaphore, int waitMs)
 // Author: Samuel Surtees, August 2017
 void udDestroySemaphore(udSemaphore **ppSemaphore)
 {
-  if (ppSemaphore == nullptr)
+  if (ppSemaphore == nullptr || *ppSemaphore == nullptr)
     return;
 
   udSemaphore *pSemaphore = (*(udSemaphore*volatile*)ppSemaphore);
