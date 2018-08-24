@@ -642,69 +642,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
         ImGui::Text("Measure - Press <ESC> to cancel");
         break;
       }
-
-      ImGui::Separator();
-
-      const char *visualizationModes[] = { "Colour", "Intensity", "Classification" };
-      ImGui::Combo("Display Mode", (int*)&pProgramState->settings.visualization.mode, visualizationModes, UDARRAYSIZE(visualizationModes));
-
-      if (pProgramState->settings.visualization.mode == vcVM_Intensity)
-      {
-        // Temporary until https://github.com/ocornut/imgui/issues/467 is resolved, then use commented out code below
-        float temp[] = { (float)pProgramState->settings.visualization.minIntensity, (float)pProgramState->settings.visualization.maxIntensity };
-        ImGui::SliderFloat("Min Intensity", &temp[0], 0.f, temp[1], "%.0f");
-        ImGui::SliderFloat("Max Intensity", &temp[1], temp[0], 65535.f, "%.0f");
-        pProgramState->settings.visualization.minIntensity = (int)temp[0];
-        pProgramState->settings.visualization.maxIntensity = (int)temp[1];
-
-        //ImGui::SliderInt("Min Intensity", &pProgramState->settings.visualization.minIntensity, 0, pProgramState->settings.visualization.maxIntensity);
-        //ImGui::SliderInt("Max Intensity", &pProgramState->settings.visualization.maxIntensity, pProgramState->settings.visualization.minIntensity, 65535);
-      }
-
-      // Post visualization - Edge Highlighting
-      ImGui::Checkbox("Enable Edge Highlighting", &pProgramState->settings.postVisualization.edgeOutlines.enable);
-      if (pProgramState->settings.postVisualization.edgeOutlines.enable)
-      {
-        ImGui::SliderInt("Edge Highlighting Width", &pProgramState->settings.postVisualization.edgeOutlines.width, 1, 100);
-
-        // TODO: Make this less awful. 0-100 would make more sense than 0.0001 to 0.001.
-        ImGui::SliderFloat("Edge Highlighting Threshold", &pProgramState->settings.postVisualization.edgeOutlines.threshold, 0.0001f, 0.001f, "%.5f");
-        ImGui::ColorEdit4("Edge Highlighting Colour", &pProgramState->settings.postVisualization.edgeOutlines.colour.x);
-      }
-
-      // Post visualization - Colour by Height
-      ImGui::Checkbox("Enable Colour by Height", &pProgramState->settings.postVisualization.colourByHeight.enable);
-      if (pProgramState->settings.postVisualization.colourByHeight.enable)
-      {
-        ImGui::ColorEdit4("Colour by Height Start Colour", &pProgramState->settings.postVisualization.colourByHeight.minColour.x);
-        ImGui::ColorEdit4("Colour by Height End Colour", &pProgramState->settings.postVisualization.colourByHeight.maxColour.x);
-
-        // TODO: Set min/max to the bounds of the model? Currently set to 0m -> 1km with accuracy of 1mm
-        ImGui::SliderFloat("Colour by Height Start Height", &pProgramState->settings.postVisualization.colourByHeight.startHeight, 0.f, 1000.f, "%.3f");
-        ImGui::SliderFloat("Colour by Height End Height", &pProgramState->settings.postVisualization.colourByHeight.endHeight, 0.f, 1000.f, "%.3f");
-      }
-
-      // Post visualization - Colour by Depth
-      ImGui::Checkbox("Enable Colour by Depth", &pProgramState->settings.postVisualization.colourByDepth.enable);
-      if (pProgramState->settings.postVisualization.colourByDepth.enable)
-      {
-        ImGui::ColorEdit4("Colour by Depth Colour", &pProgramState->settings.postVisualization.colourByDepth.colour.x);
-
-        // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
-        ImGui::SliderFloat("Colour by Depth Start Depth", &pProgramState->settings.postVisualization.colourByDepth.startDepth, 0.f, 1000.f, "%.3f");
-        ImGui::SliderFloat("Colour by Depth End Depth", &pProgramState->settings.postVisualization.colourByDepth.endDepth, 0.f, 1000.f, "%.3f");
-      }
-
-      // Post visualization - Contours
-      ImGui::Checkbox("Enable Contours", &pProgramState->settings.postVisualization.contours.enable);
-      if (pProgramState->settings.postVisualization.contours.enable)
-      {
-        ImGui::ColorEdit4("Contours Colour", &pProgramState->settings.postVisualization.contours.colour.x);
-
-        // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
-        ImGui::SliderFloat("Contours Distances", &pProgramState->settings.postVisualization.contours.distances, 0.f, 1000.f, "%.3f");
-        ImGui::SliderFloat("Contours Band Height", &pProgramState->settings.postVisualization.contours.bandHeight, 0.f, 1000.f, "%.3f");
-      }
     }
 
     ImGui::End();
@@ -1277,6 +1214,70 @@ void vcRenderWindow(vcState *pProgramState)
 
           if (ImGui::Button("Set to Camera Height"))
             pProgramState->settings.maptiles.mapHeight = (float)pProgramState->camMatrix.axis.t.z;
+        }
+      }
+
+      if (ImGui::CollapsingHeader("Visualization##Settings"))
+      {
+        const char *visualizationModes[] = { "Colour", "Intensity", "Classification" };
+        ImGui::Combo("Display Mode", (int*)&pProgramState->settings.visualization.mode, visualizationModes, UDARRAYSIZE(visualizationModes));
+
+        if (pProgramState->settings.visualization.mode == vcVM_Intensity)
+        {
+          // Temporary until https://github.com/ocornut/imgui/issues/467 is resolved, then use commented out code below
+          float temp[] = { (float)pProgramState->settings.visualization.minIntensity, (float)pProgramState->settings.visualization.maxIntensity };
+          ImGui::SliderFloat("Min Intensity", &temp[0], 0.f, temp[1], "%.0f");
+          ImGui::SliderFloat("Max Intensity", &temp[1], temp[0], 65535.f, "%.0f");
+          pProgramState->settings.visualization.minIntensity = (int)temp[0];
+          pProgramState->settings.visualization.maxIntensity = (int)temp[1];
+
+          //ImGui::SliderInt("Min Intensity", &pProgramState->settings.visualization.minIntensity, 0, pProgramState->settings.visualization.maxIntensity);
+          //ImGui::SliderInt("Max Intensity", &pProgramState->settings.visualization.maxIntensity, pProgramState->settings.visualization.minIntensity, 65535);
+        }
+
+        // Post visualization - Edge Highlighting
+        ImGui::Checkbox("Enable Edge Highlighting", &pProgramState->settings.postVisualization.edgeOutlines.enable);
+        if (pProgramState->settings.postVisualization.edgeOutlines.enable)
+        {
+          ImGui::SliderInt("Edge Highlighting Width", &pProgramState->settings.postVisualization.edgeOutlines.width, 1, 100);
+
+          // TODO: Make this less awful. 0-100 would make more sense than 0.0001 to 0.001.
+          ImGui::SliderFloat("Edge Highlighting Threshold", &pProgramState->settings.postVisualization.edgeOutlines.threshold, 0.0001f, 0.001f, "%.5f");
+          ImGui::ColorEdit4("Edge Highlighting Colour", &pProgramState->settings.postVisualization.edgeOutlines.colour.x);
+        }
+
+        // Post visualization - Colour by Height
+        ImGui::Checkbox("Enable Colour by Height", &pProgramState->settings.postVisualization.colourByHeight.enable);
+        if (pProgramState->settings.postVisualization.colourByHeight.enable)
+        {
+          ImGui::ColorEdit4("Colour by Height Start Colour", &pProgramState->settings.postVisualization.colourByHeight.minColour.x);
+          ImGui::ColorEdit4("Colour by Height End Colour", &pProgramState->settings.postVisualization.colourByHeight.maxColour.x);
+
+          // TODO: Set min/max to the bounds of the model? Currently set to 0m -> 1km with accuracy of 1mm
+          ImGui::SliderFloat("Colour by Height Start Height", &pProgramState->settings.postVisualization.colourByHeight.startHeight, 0.f, 1000.f, "%.3f");
+          ImGui::SliderFloat("Colour by Height End Height", &pProgramState->settings.postVisualization.colourByHeight.endHeight, 0.f, 1000.f, "%.3f");
+        }
+
+        // Post visualization - Colour by Depth
+        ImGui::Checkbox("Enable Colour by Depth", &pProgramState->settings.postVisualization.colourByDepth.enable);
+        if (pProgramState->settings.postVisualization.colourByDepth.enable)
+        {
+          ImGui::ColorEdit4("Colour by Depth Colour", &pProgramState->settings.postVisualization.colourByDepth.colour.x);
+
+          // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
+          ImGui::SliderFloat("Colour by Depth Start Depth", &pProgramState->settings.postVisualization.colourByDepth.startDepth, 0.f, 1000.f, "%.3f");
+          ImGui::SliderFloat("Colour by Depth End Depth", &pProgramState->settings.postVisualization.colourByDepth.endDepth, 0.f, 1000.f, "%.3f");
+        }
+
+        // Post visualization - Contours
+        ImGui::Checkbox("Enable Contours", &pProgramState->settings.postVisualization.contours.enable);
+        if (pProgramState->settings.postVisualization.contours.enable)
+        {
+          ImGui::ColorEdit4("Contours Colour", &pProgramState->settings.postVisualization.contours.colour.x);
+
+          // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
+          ImGui::SliderFloat("Contours Distances", &pProgramState->settings.postVisualization.contours.distances, 0.f, 1000.f, "%.3f");
+          ImGui::SliderFloat("Contours Band Height", &pProgramState->settings.postVisualization.contours.bandHeight, 0.f, 1000.f, "%.3f");
         }
       }
     }
