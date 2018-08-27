@@ -66,7 +66,7 @@ struct vcState
   vcCameraInput cameraInput;
 
   bool hasContext;
-  vdkContext *pContext;
+  vdkContext *pVDKContext;
   vcRenderContext *pRenderContext;
 
   char serverURL[vcMaxPathLength];
