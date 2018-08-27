@@ -998,6 +998,16 @@ void vcRenderWindow(vcState *pProgramState)
 
         if (ImGui::BeginPopupContextItem(modelLabelID))
         {
+          if (ImGui::Checkbox("Flip Y/Z Up", &vcModelList[i].flipYZ)) //Technically this is a rotation around X actually...
+          {
+            udDouble4x4 matrix;
+            vdkModel_GetWorldMatrix(pProgramState->pVDKContext, vcModelList[i].pVaultModel, matrix.a);
+            udDouble4 rowz = -matrix.axis.y;
+            matrix.axis.y = matrix.axis.z;
+            matrix.axis.z = rowz;
+            vdkModel_SetWorldMatrix(pProgramState->pVDKContext, vcModelList[i].pVaultModel, matrix.a);
+          }
+
           if (ImGui::Selectable("Properties", false))
           {
             pProgramState->popupTrigger[vcPopup_ModelProperties] = true;
