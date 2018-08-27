@@ -172,7 +172,6 @@ const char* const g_terrainTileVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
-    float2 uv  : TEXCOORD0;
   };
 
   struct PS_INPUT
@@ -197,10 +196,10 @@ const char* const g_terrainTileVertexShader = R"shader(
     PS_INPUT output;
 
     // note: could have precision issues on some devices
-    float4 finalClipPos = mul(u_projection, u_eyePositions[int(input.pos.x)]);
+    float4 finalClipPos = mul(u_projection, u_eyePositions[int(input.pos.z)]);
 
     output.colour = u_colour;
-    output.uv = input.uv;
+    output.uv = input.pos.xy;
     output.pos = finalClipPos;
     return output;
   }

@@ -158,8 +158,7 @@ void main()
 
 const char* const g_terrainTileVertexShader = VERT_HEADER R"shader(
 //Input format
-layout(location = 0) in vec3 a_index;
-layout(location = 1) in vec2 a_uv;
+layout(location = 0) in vec3 a_uv;
 
 //Output Format
 out vec4 v_colour;
@@ -178,9 +177,9 @@ layout (std140) uniform u_EveryObject
 void main()
 {
   // TODO: could have precision issues on some devices
-  vec4 finalClipPos = u_projection * u_eyePositions[int(a_index.x)];
+  vec4 finalClipPos = u_projection * u_eyePositions[int(a_uv.z)];
 
-  v_uv = a_uv;
+  v_uv = a_uv.xy;
   v_colour = u_colour;
   gl_Position = finalClipPos;
 }

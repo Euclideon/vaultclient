@@ -17,32 +17,33 @@
 
 #include "stb_image.h"
 
-// This should match GPU struct size
-#define VERTEX_RESOLUTION 3
-#define INDEX_RESOLUTION (VERTEX_RESOLUTION - 1)
+enum
+{
+  TileVertexResolution = 3, // This should match GPU struct size
+  TileIndexResolution = (TileVertexResolution - 1),
+  MaxSlippyLevel = 21,
+};
 
-#define MAX_SLIPPY_LEVEL 21
-
-vcTexture *gEmptyTileTexture = nullptr;
-
-// How many slippy levels we descend using VERTEX_RESOLUTION as index
+// How many slippy levels we descend using TileVertexResolution as index
 int gSlippyLayerDescendAmount[] =
 {
   0, 0, 0, 1, 1, 2, 2, 2, 2, 3,
 };
 
 // Describes how to collapse the mesh's vertex positions
-int gSubTilePositionIndexes[5][9] =
+int gSubTilePositionIndexes[5][TileVertexResolution * TileVertexResolution] =
 {
   // full tile
-  { 0, 1, 2, 3, 4, 5, 6, 7, 8 },
+  { 
+    0, 1, 2, 
+    3, 4, 5, 
+    6, 7, 8 
+  },
 
   // bottom left (collapses top right corner)
   {
-    0,
-    1, 1,
-    3,
-    4, 4,
+    0, 1, 1,
+    3, 4, 4,
     4, 4, 4,
   },
 
@@ -62,17 +63,18 @@ int gSubTilePositionIndexes[5][9] =
 
   // top right (collapses bottom left corner)
   {
-    4, 4, 4, 4, 4,
-    5, 7, 7, 8
+    4, 4, 4, 
+    4, 4, 5, 
+    7, 7, 8
   }
 };
 
 struct vcTileVertex
 {
-  udFloat3 index;
   udFloat2 uv;
+  float index;
 };
-const vcVertexLayoutTypes vcTileVertexLayout[] = { vcVLT_Position3, vcVLT_TextureCoords2 };
+const vcVertexLayoutTypes vcTileVertexLayout[] = { vcVLT_Position3 };
 
 struct vcTile
 {
@@ -81,7 +83,7 @@ struct vcTile
   udInt3 slippyCoord;
 
   vcTexture *pTexture;
-  udDouble3 worldPosition[VERTEX_RESOLUTION * VERTEX_RESOLUTION]; // each vertex has a unique world position
+  udDouble3 worldPosition[TileVertexResolution * TileVertexResolution]; // each vertex has a unique world position
 
   vcTile *pParent;
   int childMaskInParent; // what region this tile occupies in its parent
@@ -113,6 +115,8 @@ struct vcTerrainRenderer
   vcMesh *pFullTileMesh;
   vcMesh *pSubTileMesh[4];
 
+  vcTexture *pEmptyTileTexture;
+
   // cache textures
   struct vcTerrainCache
   {
@@ -133,7 +137,7 @@ struct vcTerrainRenderer
     struct
     {
       udFloat4x4 projectionMatrix;
-      udFloat4 eyePositions[VERTEX_RESOLUTION * VERTEX_RESOLUTION];
+      udFloat4 eyePositions[TileVertexResolution * TileVertexResolution];
       udFloat4 colour; // Colour Multiply
     } everyObject;
   } presentShader;
@@ -226,33 +230,32 @@ epilogue:
 
 void vcTerrainRenderer_BuildMeshVertices(vcTileVertex *pVerts, int *pIndicies, udFloat2 minUV, udFloat2 maxUV)
 {
-  for (int y = 0; y < INDEX_RESOLUTION; ++y)
+  for (int y = 0; y < TileIndexResolution; ++y)
   {
-    for (int x = 0; x < INDEX_RESOLUTION; ++x)
+    for (int x = 0; x < TileIndexResolution; ++x)
     {
-      int index = y * INDEX_RESOLUTION + x;
-      int vertIndex = y * VERTEX_RESOLUTION + x;
-      pIndicies[index * 6 + 0] = vertIndex + VERTEX_RESOLUTION;
+      int index = y * TileIndexResolution + x;
+      int vertIndex = y * TileVertexResolution + x;
+      pIndicies[index * 6 + 0] = vertIndex + TileVertexResolution;
       pIndicies[index * 6 + 1] = vertIndex + 1;
       pIndicies[index * 6 + 2] = vertIndex;
 
-      pIndicies[index * 6 + 3] = vertIndex + VERTEX_RESOLUTION;
-      pIndicies[index * 6 + 4] = vertIndex + VERTEX_RESOLUTION + 1;
+      pIndicies[index * 6 + 3] = vertIndex + TileVertexResolution;
+      pIndicies[index * 6 + 4] = vertIndex + TileVertexResolution + 1;
       pIndicies[index * 6 + 5] = vertIndex + 1;
     }
   }
 
-  float normalizeVertexPositionScale = float(VERTEX_RESOLUTION) / (VERTEX_RESOLUTION - 1); // ensure verts are [0, 1]
-  for (int y = 0; y < VERTEX_RESOLUTION; ++y)
+  float normalizeVertexPositionScale = float(TileVertexResolution) / (TileVertexResolution - 1); // ensure verts are [0, 1]
+  for (int y = 0; y < TileVertexResolution; ++y)
   {
-    for (int x = 0; x < VERTEX_RESOLUTION; ++x)
+    for (int x = 0; x < TileVertexResolution; ++x)
     {
-      uint32_t index = y * VERTEX_RESOLUTION + x;
-      pVerts[index].index.x = (float)index;
-      pVerts[index].index.y = pVerts[index].index.z = 0.0f;
+      uint32_t index = y * TileVertexResolution + x;
+      pVerts[index].index = (float)index;
 
-      float normX = ((float)(x) / VERTEX_RESOLUTION) * normalizeVertexPositionScale;
-      float normY = ((float)(y) / VERTEX_RESOLUTION) * normalizeVertexPositionScale;
+      float normX = ((float)(x) / TileVertexResolution) * normalizeVertexPositionScale;
+      float normY = ((float)(y) / TileVertexResolution) * normalizeVertexPositionScale;
       pVerts[index].uv.x = minUV.x + normX * (maxUV.x - minUV.x);
       pVerts[index].uv.y = minUV.y + normY * (maxUV.y - minUV.y);
 
@@ -284,19 +287,16 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer, vcSettings *p
   vcShader_GetSamplerIndex(&pTerrainRenderer->presentShader.uniform_texture, pTerrainRenderer->presentShader.pProgram, "u_texture");
 
   // build meshes
-  vcTileVertex verts[VERTEX_RESOLUTION * VERTEX_RESOLUTION];
-  int indicies[INDEX_RESOLUTION * INDEX_RESOLUTION * 6];
+  vcTileVertex verts[TileVertexResolution * TileVertexResolution];
+  int indicies[TileIndexResolution * TileIndexResolution * 6];
   vcTerrainRenderer_BuildMeshVertices(verts, indicies, udFloat2::create(0.0f, 0.0f), udFloat2::create(1.0f, 1.0f));
 
-  vcMesh_Create(&pTerrainRenderer->pFullTileMesh, vcTileVertexLayout, UDARRAYSIZE(vcTileVertexLayout), verts, VERTEX_RESOLUTION * VERTEX_RESOLUTION, indicies, INDEX_RESOLUTION * INDEX_RESOLUTION * 6);
+  vcMesh_Create(&pTerrainRenderer->pFullTileMesh, vcTileVertexLayout, UDARRAYSIZE(vcTileVertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6);
   for (int i = 0; i < 4; ++i)
-    vcMesh_Create(&pTerrainRenderer->pSubTileMesh[i], vcTileVertexLayout, UDARRAYSIZE(vcTileVertexLayout), verts, VERTEX_RESOLUTION * VERTEX_RESOLUTION, indicies, INDEX_RESOLUTION * INDEX_RESOLUTION * 6);
+    vcMesh_Create(&pTerrainRenderer->pSubTileMesh[i], vcTileVertexLayout, UDARRAYSIZE(vcTileVertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6);
 
-  if (!gEmptyTileTexture)
-  {
-    uint32_t grayPixel = 0xf3f3f3ff;
-    vcTexture_Create(&gEmptyTileTexture, 1, 1, &grayPixel);
-  }
+  uint32_t grayPixel = 0xf3f3f3ff;
+  vcTexture_Create(&pTerrainRenderer->pEmptyTileTexture, 1, 1, &grayPixel);
 
   (*ppTerrainRenderer) = pTerrainRenderer;
 }
@@ -339,13 +339,12 @@ void vcTerrainRenderer_Destroy(vcTerrainRenderer **ppTerrainRenderer)
   for (int i = 0; i < 4; ++i)
     vcMesh_Destroy(&pTerrainRenderer->pSubTileMesh[i]);
 
+  vcTexture_Destroy(&pTerrainRenderer->pEmptyTileTexture);
   udFree(*ppTerrainRenderer);
-
-  vcTexture_Destroy(&gEmptyTileTexture);
 }
 
 
-vcTile *FindTile(vcTerrainRenderer *pTerrainRenderer, const udInt3 &slippy)
+vcTile *vcTerrainRenderer_FindTile(vcTerrainRenderer *pTerrainRenderer, const udInt3 &slippy)
 {
   for (int i = 0; i < pTerrainRenderer->tileCount; ++i)
   {
@@ -357,21 +356,21 @@ vcTile *FindTile(vcTerrainRenderer *pTerrainRenderer, const udInt3 &slippy)
 }
 
 
-vcTile *FindParentOfTile(vcTerrainRenderer *pTerrainRenderer, const vcTile *pTile)
+vcTile *vcTerrainRenderer_FindParentOfTile(vcTerrainRenderer *pTerrainRenderer, const vcTile *pTile)
 {
   udInt3 parentSlippy = udInt3::create(pTile->slippyCoord.x >> 1, pTile->slippyCoord.y >> 1, pTile->slippyCoord.z - 1);
-  return FindTile(pTerrainRenderer, parentSlippy);
+  return vcTerrainRenderer_FindTile(pTerrainRenderer, parentSlippy);
 }
 
 
-vcTile *FindChildOfTile(vcTerrainRenderer *pTerrainRenderer, const vcTile *pTile, const udInt2 &childOffset)
+vcTile *vcTerrainRenderer_FindChildOfTile(vcTerrainRenderer *pTerrainRenderer, const vcTile *pTile, const udInt2 &childOffset)
 {
   udInt3 childSlippy = udInt3::create((pTile->slippyCoord.x << 1) + childOffset.x, (pTile->slippyCoord.y << 1) + childOffset.y, pTile->slippyCoord.z + 1);
-  return FindTile(pTerrainRenderer, childSlippy);
+  return vcTerrainRenderer_FindTile(pTerrainRenderer, childSlippy);
 }
 
 
-vcTile *FindEmptyTileSlot(vcTerrainRenderer *pTerrainRenderer)
+vcTile *vcTerrainRenderer_FindEmptyTileSlot(vcTerrainRenderer *pTerrainRenderer)
 {
   for (int i = 0; i < pTerrainRenderer->tileCount; ++i)
   {
@@ -383,12 +382,12 @@ vcTile *FindEmptyTileSlot(vcTerrainRenderer *pTerrainRenderer)
 }
 
 
-vcTile *FindOrCreateNewTile(vcTerrainRenderer *pTerrainRenderer, const udInt3 &slippy)
+vcTile *vcTerrainRenderer_FindOrCreateNewTile(vcTerrainRenderer *pTerrainRenderer, const udInt3 &slippy)
 {
-  vcTile *pTile = FindTile(pTerrainRenderer, slippy);
+  vcTile *pTile = vcTerrainRenderer_FindTile(pTerrainRenderer, slippy);
   if (!pTile)
   {
-    pTile = FindEmptyTileSlot(pTerrainRenderer);
+    pTile = vcTerrainRenderer_FindEmptyTileSlot(pTerrainRenderer);
     if (pTile)
       memset(pTile, 0, sizeof(vcTile));
   }
@@ -493,7 +492,7 @@ void vcTerrainRenderer_FreeUnusedTiles(vcTerrainRenderer *pTerrainRenderer)
       // inform children that their parent has been removed
       for (int c = 0; c < 4; ++c)
       {
-        vcTile *pChild = FindChildOfTile(pTerrainRenderer, pTile, udInt2::create(c % 2, c / 2));
+        vcTile *pChild = vcTerrainRenderer_FindChildOfTile(pTerrainRenderer, pTile, udInt2::create(c % 2, c / 2));
         if (pChild)
           pChild->pParent = nullptr;
       }
@@ -526,18 +525,18 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
 
     udInt3 slippyTileCoord = udInt3::create(pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->level + slippyCoords.z);
 
-    vcTile *pTile = FindOrCreateNewTile(pTerrainRenderer, slippyTileCoord);
+    vcTile *pTile = vcTerrainRenderer_FindOrCreateNewTile(pTerrainRenderer, slippyTileCoord);
     pTile->childMaskInParent = pNode->childMaskInParent;
     pTile->isUsed = true;
 
     // Ensure we never go past level MAX_SLIPPY_LEVEL
-    int slippyLayerDescendAmount = udMin((MAX_SLIPPY_LEVEL - slippyTileCoord.z), gSlippyLayerDescendAmount[VERTEX_RESOLUTION]);
+    int slippyLayerDescendAmount = udMin((MaxSlippyLevel - slippyTileCoord.z), gSlippyLayerDescendAmount[TileVertexResolution]);
 
-    udDouble3 localCorners[VERTEX_RESOLUTION * VERTEX_RESOLUTION];
-    for (int t = 0; t < VERTEX_RESOLUTION * VERTEX_RESOLUTION; ++t)
+    udDouble3 localCorners[TileVertexResolution * TileVertexResolution];
+    for (int t = 0; t < TileVertexResolution * TileVertexResolution; ++t)
     {
-      udInt2 slippySampleCoord = udInt2::create((slippyTileCoord.x * (1 << slippyLayerDescendAmount)) + (t % VERTEX_RESOLUTION),
-        (slippyTileCoord.y * (1 << slippyLayerDescendAmount)) + (t / VERTEX_RESOLUTION));
+      udInt2 slippySampleCoord = udInt2::create((slippyTileCoord.x * (1 << slippyLayerDescendAmount)) + (t % TileVertexResolution),
+        (slippyTileCoord.y * (1 << slippyLayerDescendAmount)) + (t / TileVertexResolution));
       vcGIS_SlippyToLocal(srid, &localCorners[t], slippySampleCoord, slippyTileCoord.z + slippyLayerDescendAmount);
       pTile->worldPosition[t] = udDouble3::create(localCorners[t].x, localCorners[t].y, 0.0);
     }
@@ -547,7 +546,7 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
     pTile->pTexture = AssignTileTexture(pTerrainRenderer, pTile, tileCenterPosition, distToCameraSqr);
 
     // Inform parent to use it's texture if this tile has none
-    pTile->pParent = FindParentOfTile(pTerrainRenderer, pTile);
+    pTile->pParent = vcTerrainRenderer_FindParentOfTile(pTerrainRenderer, pTile);
     if ((pTile->pTexture == nullptr) && pTile->pParent && pTile->pParent->pTexture)
       pTile->pParent->waitingForChildLoadMask |= pNode->childMaskInParent;
 
@@ -563,14 +562,14 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
 
 void vcTerrainRenderer_DrawTile(vcTerrainRenderer *pTerrainRenderer, vcTile *pTile, vcMesh *pMesh, const udDouble4x4 &view, const int subTileIndexes[])
 {
-  for (int t = 0; t < VERTEX_RESOLUTION * VERTEX_RESOLUTION; ++t)
+  for (int t = 0; t < TileVertexResolution * TileVertexResolution; ++t)
   {
     udFloat4 eyeSpaceVertexPosition = udFloat4::create(view * udDouble4::create(pTile->worldPosition[subTileIndexes[t]], 1.0));
     pTerrainRenderer->presentShader.everyObject.eyePositions[t] = eyeSpaceVertexPosition;
   }
 
   vcShader_BindConstantBuffer(pTerrainRenderer->presentShader.pProgram, pTerrainRenderer->presentShader.pConstantBuffer, &pTerrainRenderer->presentShader.everyObject, sizeof(vcTerrainRenderer::presentShader.everyObject));
-  vcMesh_RenderTriangles(pMesh, INDEX_RESOLUTION * INDEX_RESOLUTION * 2); // 2 tris per quad
+  vcMesh_RenderTriangles(pMesh, TileIndexResolution * TileIndexResolution * 2); // 2 tris per quad
 }
 
 
@@ -621,7 +620,7 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
     pTerrainRenderer->presentShader.everyObject.colour = udFloat4::create(float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, pTerrainRenderer->pSettings->maptiles.transparency);
 #endif
 
-    vcTexture *pTexture = pTile->pTexture ? pTile->pTexture : gEmptyTileTexture;
+    vcTexture *pTexture = pTile->pTexture ? pTile->pTexture : pTerrainRenderer->pEmptyTileTexture;
     vcShader_BindTexture(pTerrainRenderer->presentShader.pProgram, pTexture, 0);
 
     // Split tile and draw sub-regions

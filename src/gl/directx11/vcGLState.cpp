@@ -19,6 +19,8 @@ ID3D11BlendState *g_pBlendState = nullptr;
 ID3D11DepthStencilState *g_pDepthStencilState = nullptr;
 int g_VertexBufferSize = 5000, g_IndexBufferSize = 10000;
 
+int32_t g_maxAnisotropy = 0;
+
 bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 {
   SDL_SysWMinfo windowInfo;
@@ -72,6 +74,8 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   s_internalState.fillMode = vcGLSFM_Solid;
   s_internalState.cullMode = vcGLSCM_Back;
   s_internalState.isFrontCCW = true;
+
+  g_maxAnisotropy = D3D11_DEFAULT_MAX_ANISOTROPY;
 
   return vcGLState_ResetState(true);
 }
@@ -322,4 +326,9 @@ void vcGLState_Scissor(int left, int top, int right, int bottom)
     g_pd3dDeviceContext->RSSetScissorRects(1, &r);
     s_internalState.scissorZone = newScissor;
   }
+}
+
+int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel)
+{
+  return udMin(desiredAniLevel, g_maxAnisotropy);
 }
