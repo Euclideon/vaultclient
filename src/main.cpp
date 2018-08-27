@@ -494,7 +494,7 @@ epilogue:
   vcModel_UnloadList(&programState);
   vcModelList.Deinit();
   vcRender_Destroy(&programState.pRenderContext);
-  vdkContext_Disconnect(&programState.pContext);
+  vdkContext_Disconnect(&programState.pVDKContext);
 
   vcGLState_Deinit();
 
@@ -846,21 +846,21 @@ void vcRenderWindow(vcState *pProgramState)
 
       if (ImGui::Button("Login!"))
       {
-        err = vdkContext_Connect(&pProgramState->pContext, pProgramState->serverURL, "ClientSample");
+        err = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->serverURL, "ClientSample");
         if (err != vE_Success)
         {
           pErrorMessage = "Could not connect to server...";
         }
         else
         {
-          err = vdkContext_Login(pProgramState->pContext, pProgramState->username, pProgramState->password);
+          err = vdkContext_Login(pProgramState->pVDKContext, pProgramState->username, pProgramState->password);
           if (err != vE_Success)
           {
             pErrorMessage = "Could not log in...";
           }
           else
           {
-            err = vdkContext_GetLicense(pProgramState->pContext, vdkLT_Render);
+            err = vdkContext_GetLicense(pProgramState->pVDKContext, vdkLT_Render);
             if (err != vE_Success)
             {
               pErrorMessage = "Could not get license...";
@@ -869,7 +869,7 @@ void vcRenderWindow(vcState *pProgramState)
             {
               //Context Login successful
               vcRender_CreateTerrain(pProgramState->pRenderContext, &pProgramState->settings);
-              vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pContext);
+              vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pVDKContext);
 
               void *pProjData = nullptr;
               if (udFile_Load(udTempStr("%s/api/dev/projects", pProgramState->serverURL), &pProjData) == udR_Success)
@@ -1045,7 +1045,7 @@ void vcRenderWindow(vcState *pProgramState)
               if (vcModelList[j].modelSelected)
               {
                 // unload model
-                err = vdkModel_Unload(pProgramState->pContext, &(vcModelList[j].pVaultModel));
+                err = vdkModel_Unload(pProgramState->pVDKContext, &(vcModelList[j].pVaultModel));
                 if (err != vE_Success)
                   goto epilogue;
 
@@ -1061,7 +1061,7 @@ void vcRenderWindow(vcState *pProgramState)
           else
           {
             // unload model
-            err = vdkModel_Unload(pProgramState->pContext, &(vcModelList[i].pVaultModel));
+            err = vdkModel_Unload(pProgramState->pVDKContext, &(vcModelList[i].pVaultModel));
             if (err != vE_Success)
               goto epilogue;
 
@@ -1428,10 +1428,10 @@ void vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
 
   udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
 
-  if(vdkModel_Load(pProgramState->pContext, &model.pVaultModel, pFilePath) == vE_Success)
+  if(vdkModel_Load(pProgramState->pVDKContext, &model.pVaultModel, pFilePath) == vE_Success)
   {
     const char *pMetadata;
-    if (vdkModel_GetMetadata(pProgramState->pContext, model.pVaultModel, &pMetadata) == vE_Success)
+    if (vdkModel_GetMetadata(pProgramState->pVDKContext, model.pVaultModel, &pMetadata) == vE_Success)
       model.pMetadata->Parse(pMetadata);
 
     vcModel_MoveToModelProjection(pProgramState, &model);
@@ -1448,7 +1448,7 @@ bool vcModel_UnloadList(vcState *pProgramState)
   {
     vdkModel *pVaultModel;
     pVaultModel = vcModelList[i].pVaultModel;
-    err = vdkModel_Unload(pProgramState->pContext, &pVaultModel);
+    err = vdkModel_Unload(pProgramState->pVDKContext, &pVaultModel);
     vcModelList[i].pMetadata->Destroy();
     udFree(vcModelList[i].pMetadata);
     if (err != vE_Success)
@@ -1468,7 +1468,7 @@ bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel)
     return false;
 
   double midPoint[3];
-  vdkModel_GetModelCenter(pProgramState->pContext, pModel->pVaultModel, midPoint);
+  vdkModel_GetModelCenter(pProgramState->pVDKContext, pModel->pVaultModel, midPoint);
   pProgramState->pCamera->position = udDouble3::create(midPoint[0], midPoint[1], midPoint[2]);
 
   const char *pSRID = pModel->pMetadata->Get("ProjectionID").AsString();
@@ -1525,7 +1525,7 @@ bool vcLogout(vcState *pProgramState)
 
   pProgramState->currentSRID = 0;
 
-  success = success && vdkContext_Logout(pProgramState->pContext) == vE_Success;
+  success = success && vdkContext_Logout(pProgramState->pVDKContext) == vE_Success;
   pProgramState->hasContext = !success;
 
   return success;
