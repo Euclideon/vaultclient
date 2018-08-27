@@ -17,6 +17,7 @@ struct vcModel
   bool modelLoaded;
   bool modelVisible;
   bool modelSelected;
+  bool flipYZ;
   vdkModel *pVaultModel;
   udValue *pMetadata;
 };
