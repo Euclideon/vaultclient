@@ -572,14 +572,17 @@ void vcRenderSceneWindow(vcState *pProgramState)
       else
         ImGui::Text("Unsupported SRID: %d", pProgramState->currentSRID);
 
-      if (pProgramState->settings.showDebugOptions)
+      if (pProgramState->settings.showAdvancedGIS)
       {
-        ImGui::Separator();
-        ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
-
         int newSRID = pProgramState->currentSRID;
         if (ImGui::InputInt("Override SRID", &newSRID) && vcGIS_AcceptableSRID((uint16_t)newSRID))
           pProgramState->currentSRID = (uint16_t)newSRID;
+      }
+
+      if (pProgramState->settings.showDiagnosticInfo)
+      {
+        ImGui::Separator();
+        ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
       }
 
       ImGui::Separator();
@@ -745,13 +748,6 @@ int vcMainMenuGui(vcState *pProgramState)
       ImGui::MenuItem("Scene Explorer", nullptr, &pProgramState->settings.window.windowsOpen[vcdSceneExplorer]);
       ImGui::MenuItem("Settings", nullptr, &pProgramState->settings.window.windowsOpen[vcdSettings]);
       ImGui::Separator();
-      if (ImGui::BeginMenu("Debug"))
-      {
-        ImGui::MenuItem("UI Debug Menu", nullptr, &pProgramState->settings.window.windowsOpen[vcdUIDemo]);
-        ImGui::MenuItem("Show FPS", nullptr, &pProgramState->settings.showDebugOptions);
-        ImGui::EndMenu();
-      }
-
       ImGui::EndMenu();
     }
 
@@ -1094,9 +1090,6 @@ void vcRenderWindow(vcState *pProgramState)
 
     ImGui::EndDock();
 
-    if (pProgramState->settings.window.windowsOpen[vcdUIDemo])
-      ImGui::ShowDemoWindow();
-
     if (ImGui::BeginDock("Settings", &pProgramState->settings.window.windowsOpen[vcdSettings], ImGuiWindowFlags_ResizeFromAnySide))
     {
       if (ImGui::CollapsingHeader("Appearance##Settings"))
@@ -1110,6 +1103,9 @@ void vcRenderWindow(vcState *pProgramState)
           case 2: ImGui::StyleColorsLight(); break;
           }
         }
+
+        ImGui::Checkbox("Show Diagnostic Information", &pProgramState->settings.showDiagnosticInfo);
+        ImGui::Checkbox("Show Advanced GIS Settings", &pProgramState->settings.showAdvancedGIS);
       }
 
       if (ImGui::CollapsingHeader("Input & Controls##Settings"))
