@@ -7,6 +7,7 @@
 #include "udPlatform/udValue.h"
 
 #include "vcSettings.h"
+#include "vcModel.h"
 
 struct SDL_Window;
 
@@ -37,6 +38,9 @@ struct vcState
   vcControlMode controlMode;
 
   vcCamera *pCamera;
+
+  udChunkedArray<vcModel> vcModelList;
+  bool lastModelLoaded;
 
   size_t numSelectedModels;
   size_t prevSelectedModel;

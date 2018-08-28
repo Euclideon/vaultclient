@@ -10,10 +10,6 @@
 
 #include "gl/opengl/vcOpenGL.h"
 
-#ifndef GIT_BUILD
-udDouble4x4 gRealCameraMatrix = udDouble4x4::identity();
-#endif
-
 const int qrIndices[6] = { 0, 1, 2, 0, 2, 3 };
 const vcSimpleVertex qrSqVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
 
@@ -366,8 +362,9 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
     udDouble4x4 cameraMatrix = renderData.cameraMatrix;
 
 #ifndef GIT_BUILD
-    extern bool gDebugDetachCamera;
-    if (!gDebugDetachCamera)
+    static bool debugDetachCamera = false;
+    static udDouble4x4 gRealCameraMatrix = udDouble4x4::identity();
+    if (!debugDetachCamera)
       gRealCameraMatrix = renderData.cameraMatrix;
 
     cameraMatrix = gRealCameraMatrix;
