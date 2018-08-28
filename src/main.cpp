@@ -1,23 +1,20 @@
 #include "vcState.h"
 
+#include "vcRender.h"
+#include "vcGIS.h"
+#include "gl/vcGLState.h"
+#include "gl/vcFramebuffer.h"
+
 #include "vdkContext.h"
-#include "vdkRenderContext.h"
-#include "vdkModel.h"
+
 #include "imgui.h"
 #include "imgui_ex/imgui_impl_sdl.h"
 #include "imgui_ex/imgui_impl_gl.h"
 #include "imgui_ex/imgui_dock.h"
+
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
-#include "udPlatform/udChunkedArray.h"
-#include "vcCamera.h"
-#include "vcRender.h"
-#include "vcGIS.h"
 
-#include "gl/vcGLState.h"
-#include "gl/vcFramebuffer.h"
-
-#include <stdlib.h>
 #include "udPlatform/udFile.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -223,11 +220,7 @@ int vcMainMenuGui(vcState *pProgramState);
 void vcSettings_LoadSettings(vcState *pProgramState, bool forceDefaults);
 bool vcLogout(vcState *pProgramState);
 
-#if defined(SDL_MAIN_NEEDED) || defined(SDL_MAIN_AVAILABLE)
-int SDL_main(int /*argc*/, char ** /*args*/)
-#else
 int main(int /*argc*/, char ** /*args*/)
-#endif
 {
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
   _CrtMemState m1, m2, diff;
@@ -248,19 +241,26 @@ int main(int /*argc*/, char ** /*args*/)
   SDL_Surface *pIcon = nullptr;
   int iconWidth, iconHeight, iconBytesPerPixel;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  char FontPath[] = ASSETDIR "/NotoSansCJKjp-Regular.otf";
   char IconPath[] = ASSETDIR "EuclideonClientIcon.png";
   char EucWatermarkPath[] = ASSETDIR "EuclideonLogo.png";
 #elif UDPLATFORM_OSX
-  char *pBasePath = SDL_GetBasePath();
-  if (pBasePath == nullptr)
-    pBasePath = SDL_strdup("./");
-
-  char fontPath[vcMaxPathLength] = "";
+  char FontPath[vcMaxPathLength] = "";
   char IconPath[vcMaxPathLength] = "";
   char EucWatermarkPath[vcMaxPathLength] = "";
-  udSprintf(IconPath, vcMaxPathLength, "%s%s", pBasePath, "EuclideonClientIcon.png");
-  udSprintf(EucWatermarkPath, vcMaxPathLength, "%s%s", pBasePath, "EuclideonLogo.png");
+
+  {
+    char *pBasePath = SDL_GetBasePath();
+    if (pBasePath == nullptr)
+      pBasePath = SDL_strdup("./");
+
+    udSprintf(FontPath, vcMaxPathLength, "%s%s", pBasePath, "NotoSansCJKjp-Regular.otf");
+    udSprintf(IconPath, vcMaxPathLength, "%s%s", pBasePath, "EuclideonClientIcon.png");
+    udSprintf(EucWatermarkPath, vcMaxPathLength, "%s%s", pBasePath, "EuclideonLogo.png");
+    SDL_free(pBasePath);
+  }
 #else
+  char FontPath[] = ASSETDIR "fonts/NotoSansCJKjp-Regular.otf";
   char IconPath[] = ASSETDIR "icons/EuclideonClientIcon.png";
   char EucWatermarkPath[] = ASSETDIR "icons/EuclideonLogo.png";
 #endif
@@ -331,11 +331,8 @@ int main(int /*argc*/, char ** /*args*/)
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-  //TODO: Get a STRINGIFY macro in udPlatform somewhere
-#define _STRINGIFY(a) #a
-#define STRINGIFY(a) _STRINGIFY(a)
 #ifdef GIT_BUILD
-#define WINDOW_SUFFIX " (" STRINGIFY(GIT_BUILD) " - " __DATE__ ") "
+#define WINDOW_SUFFIX " (" UDSTRINGIFY(GIT_BUILD) " - " __DATE__ ") "
 #else
 #define WINDOW_SUFFIX " (DEV/DO NOT DISTRIBUTE - " __DATE__ ")"
 #endif
@@ -375,13 +372,8 @@ int main(int /*argc*/, char ** /*args*/)
   pEucWatermarkData = stbi_load(EucWatermarkPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0); // reusing the variables for width etc
   vcTexture_Create(&programState.pWatermarkTexture, iconWidth, iconHeight, pEucWatermarkData);
 
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   if (!ImGuiGL_Init(programState.pWindow))
     goto epilogue;
-#else
-  if (!ImGuiGL_Init(programState.pWindow))
-    goto epilogue;
-#endif
 
   //Get ready...
   NOW = SDL_GetPerformanceCounter();
@@ -394,14 +386,7 @@ int main(int /*argc*/, char ** /*args*/)
   // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
   vcFramebuffer_Bind(programState.pDefaultFramebuffer);
 
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(ASSETDIR "/NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChineseFull());
-#elif UDPLATFORM_OSX
-  udSprintf(fontPath, vcMaxPathLength, "%s%s", pBasePath, "NotoSansCJKjp-Regular.otf");
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(fontPath, 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChineseFull());
-#else
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(ASSETDIR "fonts/NotoSansCJKjp-Regular.otf", 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChineseFull());
-#endif
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChineseFull());
 
   SDL_EnableScreenSaver();
 
@@ -481,10 +466,6 @@ epilogue:
   vdkContext_Disconnect(&programState.pVDKContext);
 
   vcGLState_Deinit();
-
-#if UDPLATFORM_OSX
-  SDL_free(pBasePath);
-#endif
 
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
   _CrtMemCheckpoint(&m2);
