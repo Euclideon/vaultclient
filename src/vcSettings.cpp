@@ -222,7 +222,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     }
 
     // Misc Settings
-    pSettings->showDebugOptions = data.Get("showDebugOptions").AsBool(false);
+    pSettings->showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
+    pSettings->showAdvancedGIS = data.Get("showAdvGISOptions").AsBool(false);
     pSettings->styleIndex = data.Get("style").AsInt(1); // dark style by default
 
     switch (pSettings->styleIndex)
@@ -325,8 +326,11 @@ bool vcSettings_Save(vcSettings *pSettings)
   udValue data;
 
   // Misc Settings
-  if (pSettings->showDebugOptions) // This hides the option if its false
-    data.Set("showDebugOptions = true");
+  if (pSettings->showDiagnosticInfo) // This hides the option if its false
+    data.Set("showDiagnosticInfo = true");
+
+  if (pSettings->showAdvancedGIS)
+    data.Set("showAdvancedGISOptions = true");
 
   data.Set("style = %i", pSettings->styleIndex);
 
