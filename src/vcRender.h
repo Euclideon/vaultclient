@@ -2,6 +2,7 @@
 #define vcRender_h__
 
 #include "vcState.h"
+#include "vcModel.h"
 
 #include "vdkRenderContext.h"
 #include "vdkRenderView.h"
@@ -10,17 +11,6 @@
 
 struct vcRenderContext;
 struct vcTexture;
-
-struct vcModel
-{
-  char modelPath[1024];
-  bool modelLoaded;
-  bool modelVisible;
-  bool modelSelected;
-  bool flipYZ;
-  vdkModel *pVaultModel;
-  udValue *pMetadata;
-};
 
 struct vcRenderData
 {

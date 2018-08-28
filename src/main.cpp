@@ -28,14 +28,6 @@
 #  include <stdio.h>
 #endif
 
-#ifndef GIT_BUILD
-bool gDebugDetachCamera = false;
-#endif
-
-udChunkedArray<vcModel> vcModelList;
-
-static bool lastModelLoaded;
-
 struct vc3rdPartyLicenseText
 {
   const char *pName;
@@ -225,19 +217,11 @@ struct vcColumnHeader
   float size;
 };
 
-#if UDPLATFORM_OSX
-char *pBasePath = nullptr;
-#endif
-
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
 void vcSettings_LoadSettings(vcState *pProgramState, bool forceDefaults);
 bool vcLogout(vcState *pProgramState);
-
-void vcModel_AddToList(vcState *pProgramState, const char *pFilePath);
-bool vcModel_UnloadList(vcState *pProgramState);
-bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel);
 
 #if defined(SDL_MAIN_NEEDED) || defined(SDL_MAIN_AVAILABLE)
 int SDL_main(int /*argc*/, char ** /*args*/)
@@ -267,7 +251,7 @@ int main(int /*argc*/, char ** /*args*/)
   char IconPath[] = ASSETDIR "EuclideonClientIcon.png";
   char EucWatermarkPath[] = ASSETDIR "EuclideonLogo.png";
 #elif UDPLATFORM_OSX
-  pBasePath = SDL_GetBasePath();
+  char *pBasePath = SDL_GetBasePath();
   if (pBasePath == nullptr)
     pBasePath = SDL_strdup("./");
 
@@ -305,8 +289,8 @@ int main(int /*argc*/, char ** /*args*/)
   programState.settings.camera.farPlane = 10000.f;
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
-  vcModelList.Init(32);
-  lastModelLoaded = true;
+  programState.vcModelList.Init(32);
+  programState.lastModelLoaded = true;
 
   // default string values.
   udStrcpy(programState.serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
@@ -492,7 +476,7 @@ epilogue:
   free(pIconData);
   free(pEucWatermarkData);
   vcModel_UnloadList(&programState);
-  vcModelList.Deinit();
+  programState.vcModelList.Deinit();
   vcRender_Destroy(&programState.pRenderContext);
   vdkContext_Disconnect(&programState.pVDKContext);
 
@@ -545,9 +529,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.mouse.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.y = (uint32_t)(io.MousePos.y - windowPos.y);
 
-  for (size_t i = 0; i < vcModelList.length; ++i)
+  for (size_t i = 0; i < pProgramState->vcModelList.length; ++i)
   {
-    renderData.models.PushBack(&vcModelList[i]);
+    renderData.models.PushBack(&pProgramState->vcModelList[i]);
   }
 
   vcTexture *pTexture = vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
@@ -906,7 +890,7 @@ void vcRenderWindow(vcState *pProgramState)
       if (ImGui::Button("Load Model!"))
         vcModel_AddToList(pProgramState, pProgramState->modelPath);
 
-      if (!lastModelLoaded)
+      if (!pProgramState->lastModelLoaded)
         ImGui::Text("Invalid File/Not Found...");
 
       // Models
@@ -955,19 +939,19 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::Separator();
       // Table Contents
 
-      for (size_t i = 0; i < vcModelList.length; ++i)
+      for (size_t i = 0; i < pProgramState->vcModelList.length; ++i)
       {
         // Column 1 - Model
         char modelLabelID[32] = "";
         udSprintf(modelLabelID, UDARRAYSIZE(modelLabelID), "ModelLabel%i", i);
         ImGui::PushID(modelLabelID);
-        if (ImGui::Selectable(vcModelList[i].modelPath, vcModelList[i].modelSelected))
+        if (ImGui::Selectable(pProgramState->vcModelList[i].modelPath, pProgramState->vcModelList[i].modelSelected))
         {
           if ((modState & KMOD_CTRL) == 0)
           {
-            for (size_t j = 0; j < vcModelList.length; ++j)
+            for (size_t j = 0; j < pProgramState->vcModelList.length; ++j)
             {
-              vcModelList[j].modelSelected = false;
+              pProgramState->vcModelList[j].modelSelected = false;
             }
 
             pProgramState->numSelectedModels = 0;
@@ -979,14 +963,14 @@ void vcRenderWindow(vcState *pProgramState)
             size_t endInd = udMax(i, pProgramState->prevSelectedModel);
             for (size_t j = startInd; j <= endInd; ++j)
             {
-              vcModelList[j].modelSelected = true;
+              pProgramState->vcModelList[j].modelSelected = true;
               pProgramState->numSelectedModels++;
             }
           }
           else
           {
-            vcModelList[i].modelSelected = !vcModelList[i].modelSelected;
-            pProgramState->numSelectedModels += vcModelList[i].modelSelected ? 1 : 0;
+            pProgramState->vcModelList[i].modelSelected = !pProgramState->vcModelList[i].modelSelected;
+            pProgramState->numSelectedModels += pProgramState->vcModelList[i].modelSelected ? 1 : 0;
           }
 
           pProgramState->prevSelectedModel = i;
@@ -994,14 +978,14 @@ void vcRenderWindow(vcState *pProgramState)
 
         if (ImGui::BeginPopupContextItem(modelLabelID))
         {
-          if (ImGui::Checkbox("Flip Y/Z Up", &vcModelList[i].flipYZ)) //Technically this is a rotation around X actually...
+          if (ImGui::Checkbox("Flip Y/Z Up", &pProgramState->vcModelList[i].flipYZ)) //Technically this is a rotation around X actually...
           {
             udDouble4x4 matrix;
-            vdkModel_GetWorldMatrix(pProgramState->pVDKContext, vcModelList[i].pVaultModel, matrix.a);
+            vdkModel_GetWorldMatrix(pProgramState->pVDKContext, pProgramState->vcModelList[i].pVaultModel, matrix.a);
             udDouble4 rowz = -matrix.axis.y;
             matrix.axis.y = matrix.axis.z;
             matrix.axis.z = rowz;
-            vdkModel_SetWorldMatrix(pProgramState->pVDKContext, vcModelList[i].pVaultModel, matrix.a);
+            vdkModel_SetWorldMatrix(pProgramState->pVDKContext, pProgramState->vcModelList[i].pVaultModel, matrix.a);
           }
 
           if (ImGui::Selectable("Properties", false))
@@ -1014,11 +998,11 @@ void vcRenderWindow(vcState *pProgramState)
         }
 
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
-          vcModel_MoveToModelProjection(pProgramState, &vcModelList[i]);
+          vcModel_MoveToModelProjection(pProgramState, &pProgramState->vcModelList[i]);
 
-        ImVec2 textSize = ImGui::CalcTextSize(vcModelList[i].modelPath);
+        ImVec2 textSize = ImGui::CalcTextSize(pProgramState->vcModelList[i].modelPath);
         if (ImGui::IsItemHovered() && (textSize.x >= headers[0].size))
-          ImGui::SetTooltip("%s", vcModelList[i].modelPath);
+          ImGui::SetTooltip("%s", pProgramState->vcModelList[i].modelPath);
 
         ImGui::PopID();
         ImGui::NextColumn();
@@ -1026,12 +1010,12 @@ void vcRenderWindow(vcState *pProgramState)
         char checkboxID[32] = "";
         udSprintf(checkboxID, UDARRAYSIZE(checkboxID), "ModelVisibleCheckbox%i", i);
         ImGui::PushID(checkboxID);
-        if (ImGui::Checkbox("", &(vcModelList[i].modelVisible)) && vcModelList[i].modelSelected && pProgramState->numSelectedModels > 1)
+        if (ImGui::Checkbox("", &(pProgramState->vcModelList[i].modelVisible)) && pProgramState->vcModelList[i].modelSelected && pProgramState->numSelectedModels > 1)
         {
-          for (size_t j = 0; j < vcModelList.length; ++j)
+          for (size_t j = 0; j < pProgramState->vcModelList.length; ++j)
           {
-            if (vcModelList[j].modelSelected)
-              vcModelList[j].modelVisible = vcModelList[i].modelVisible;
+            if (pProgramState->vcModelList[j].modelSelected)
+              pProgramState->vcModelList[j].modelVisible = pProgramState->vcModelList[i].modelVisible;
           }
         }
 
@@ -1043,21 +1027,21 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::PushID(unloadModelID);
         if (ImGui::Button("X",ImVec2(20,20)))
         {
-          if (pProgramState->numSelectedModels > 1 && vcModelList[i].modelSelected) // if multiple selected and removed
+          if (pProgramState->numSelectedModels > 1 && pProgramState->vcModelList[i].modelSelected) // if multiple selected and removed
           {
             //unload selected models
-            for (size_t j = 0; j < vcModelList.length; ++j)
+            for (size_t j = 0; j < pProgramState->vcModelList.length; ++j)
             {
-              if (vcModelList[j].modelSelected)
+              if (pProgramState->vcModelList[j].modelSelected)
               {
                 // unload model
-                err = vdkModel_Unload(pProgramState->pVDKContext, &(vcModelList[j].pVaultModel));
+                err = vdkModel_Unload(pProgramState->pVDKContext, &(pProgramState->vcModelList[j].pVaultModel));
                 if (err != vE_Success)
                   goto epilogue;
 
-                vcModelList.RemoveAt(j);
+                pProgramState->vcModelList.RemoveAt(j);
 
-                lastModelLoaded = true;
+                pProgramState->lastModelLoaded = true;
                 j--;
               }
             }
@@ -1067,13 +1051,13 @@ void vcRenderWindow(vcState *pProgramState)
           else
           {
             // unload model
-            err = vdkModel_Unload(pProgramState->pVDKContext, &(vcModelList[i].pVaultModel));
+            err = vdkModel_Unload(pProgramState->pVDKContext, &(pProgramState->vcModelList[i].pVaultModel));
             if (err != vE_Success)
               goto epilogue;
 
-            vcModelList.RemoveAt(i);
+            pProgramState->vcModelList.RemoveAt(i);
 
-            lastModelLoaded = true;
+            pProgramState->lastModelLoaded = true;
             i--;
           }
         }
@@ -1296,7 +1280,7 @@ void vcRenderWindow(vcState *pProgramState)
     {
       ImGui::OpenPopup("Model Properties");
 
-      pProgramState->selectedModelProperties.pMetadata = vcModelList[pProgramState->selectedModelProperties.index].pMetadata;
+      pProgramState->selectedModelProperties.pMetadata = pProgramState->vcModelList[pProgramState->selectedModelProperties.index].pMetadata;
 
       const char *pWatermark = pProgramState->selectedModelProperties.pMetadata->Get("Watermark").AsString();
       if (pWatermark)
@@ -1325,7 +1309,7 @@ void vcRenderWindow(vcState *pProgramState)
     {
       ImGui::Text("File:");
 
-      ImGui::TextWrapped("  %s", vcModelList[pProgramState->selectedModelProperties.index].modelPath);
+      ImGui::TextWrapped("  %s", pProgramState->vcModelList[pProgramState->selectedModelProperties.index].modelPath);
 
       ImGui::Separator();
 
@@ -1419,85 +1403,6 @@ void vcRenderWindow(vcState *pProgramState)
 epilogue:
   //TODO: Cleanup
   return;
-}
-
-void vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
-{
-  if (pFilePath == nullptr)
-    return;
-
-  vcModel model = {};
-  model.modelLoaded = true;
-  model.modelVisible = true;
-  model.modelSelected = false;
-  model.pMetadata = udAllocType(udValue, 1, udAF_Zero);
-
-  udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
-
-  if(vdkModel_Load(pProgramState->pVDKContext, &model.pVaultModel, pFilePath) == vE_Success)
-  {
-    const char *pMetadata;
-    if (vdkModel_GetMetadata(pProgramState->pVDKContext, model.pVaultModel, &pMetadata) == vE_Success)
-      model.pMetadata->Parse(pMetadata);
-
-    vcModel_MoveToModelProjection(pProgramState, &model);
-    pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera); // eh?
-
-    vcModelList.PushBack(model);
-  }
-}
-
-bool vcModel_UnloadList(vcState *pProgramState)
-{
-  vdkError err;
-  for (int i = 0; i < (int) vcModelList.length; i++)
-  {
-    vdkModel *pVaultModel;
-    pVaultModel = vcModelList[i].pVaultModel;
-    err = vdkModel_Unload(pProgramState->pVDKContext, &pVaultModel);
-    vcModelList[i].pMetadata->Destroy();
-    udFree(vcModelList[i].pMetadata);
-    if (err != vE_Success)
-      return false;
-    vcModelList[i].modelLoaded = false;
-  }
-
-  while (vcModelList.length > 0)
-    vcModelList.PopFront();
-
-  return true;
-}
-
-bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel)
-{
-  if (pProgramState == nullptr || pModel == nullptr)
-    return false;
-
-  double midPoint[3];
-  vdkModel_GetModelCenter(pProgramState->pVDKContext, pModel->pVaultModel, midPoint);
-  pProgramState->pCamera->position = udDouble3::create(midPoint[0], midPoint[1], midPoint[2]);
-
-  const char *pSRID = pModel->pMetadata->Get("ProjectionID").AsString();
-  const char *pWKT = pModel->pMetadata->Get("ProjectionWKT").AsString();
-
-  if (pSRID != nullptr)
-  {
-    pSRID = udStrchr(pSRID, ":");
-    if (pSRID != nullptr)
-      pProgramState->currentSRID = (uint16_t)udStrAtou(&pSRID[1]);
-    else
-      pProgramState->currentSRID = 0;
-  }
-  else if (pWKT != nullptr)
-  {
-    // Not sure?
-  }
-  else //No SRID available so set back to no projection
-  {
-    pProgramState->currentSRID = 0;
-  }
-
-  return true;
 }
 
 void vcSettings_LoadSettings(vcState *pProgramState, bool forceDefaults)
