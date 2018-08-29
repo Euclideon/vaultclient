@@ -139,6 +139,8 @@ void vcConvert_ShowUI(vcState *pProgramState)
   vcConvertItem *pSelectedJob = nullptr;
   vdkConvertItemInfo itemInfo;
   char tempBuffer[256];
+  char outputName[vcMaxPathLength];
+  char tempDirectory[vcMaxPathLength];
 
   // Convert Jobs
   ImGui::Text("Convert Jobs");
@@ -192,8 +194,13 @@ void vcConvert_ShowUI(vcState *pProgramState)
   ImGui::Text("Convert Settings");
   ImGui::Separator();
 
-  ImGui::Text("Output Name: %s", pSelectedJob->pConvertInfo->pOutputName);
-  ImGui::Text("TempDirectory: %s", pSelectedJob->pConvertInfo->pTempFilesPrefix);
+  udSprintf(outputName, UDARRAYSIZE(outputName), "%s", pSelectedJob->pConvertInfo->pOutputName);
+  if (ImGui::InputText("Output Name", outputName, UDARRAYSIZE(outputName)))
+    vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pSelectedJob->pConvertContext, outputName);
+
+  udSprintf(tempDirectory, UDARRAYSIZE(tempDirectory), "%s", pSelectedJob->pConvertInfo->pTempFilesPrefix);
+  if (ImGui::InputText("Temp Directory", tempDirectory, UDARRAYSIZE(tempDirectory)))
+    vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pSelectedJob->pConvertContext, tempDirectory);
 
   ImGui::Separator();
 
