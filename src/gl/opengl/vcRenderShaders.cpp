@@ -223,6 +223,43 @@ void main()
 }
 )shader";
 
+
+const char* const g_PositionNormalFragmentShader = FRAG_HEADER R"shader(
+  //Input Format
+  in vec4 v_colour;
+
+  //Output Format
+  out vec4 out_Colour;
+
+  void main()
+  {
+    out_Colour = v_colour;
+  }
+)shader";
+
+const char* const g_PositionNormalVertexShader = VERT_HEADER R"shader(
+  //Input Format
+  layout(location = 0) in vec3 a_pos;
+  layout(location = 1) in vec3 a_normal;
+
+  //Output Format
+  out vec4 v_colour;
+
+  layout (std140) uniform u_EveryObject
+  {
+    mat4 u_projection;
+    vec3 u_eyePosition;
+    vec3 u_sunDirection;
+    float _padding;
+  };
+
+  void main()
+  {
+    gl_Position = u_projection * vec4(a_pos, 1.0);
+    v_colour = vec4((a_normal * 0.5) + 0.5, 1.0);
+  }
+)shader";
+
 const char* const g_ImGuiVertexShader = VERT_HEADER R"shader(
 layout (std140) uniform u_EveryFrame
 {

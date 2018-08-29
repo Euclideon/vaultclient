@@ -119,6 +119,10 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
       pVertexLayout[i] = { "COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 4;
       break;
+    case vcVLT_Normal3:
+      pVertexLayout[i] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+      accumlatedOffset += 12;
+      break;
     }
   }
 

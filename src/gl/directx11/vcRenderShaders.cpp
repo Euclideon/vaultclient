@@ -134,7 +134,7 @@ const char* const g_udFragmentShader = R"shader(
     col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
 
     output.Color0 = float4(col.xyz, 1.0);// UD always opaque
-    output.Depth0 = depth * 2.0 - 1;
+    output.Depth0 = depth;;
     return output;
   }
 )shader";
@@ -213,6 +213,53 @@ const char* const g_terrainTileVertexShader = R"shader(
     output.colour = u_colour;
     output.uv = input.pos.xy;
     output.pos = finalClipPos;
+    return output;
+  }
+)shader";
+
+
+
+const char* const g_PositionNormalFragmentShader = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float4 colour : COLOR0;
+  };
+
+  float4 main(PS_INPUT input) : SV_Target
+  {
+    return input.colour;
+  }
+)shader";
+
+const char* const g_PositionNormalVertexShader = R"shader(
+  struct VS_INPUT
+  {
+    float3 pos : POSITION;
+    float3 normal : NORMAL;
+  };
+
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float4 colour : COLOR0;
+  };
+
+  cbuffer u_EveryObject : register(b0)
+  {
+    float4x4 u_projection;
+    float3 u_eyePosition;
+    float3 u_sunDirection;
+    float _padding;
+  };
+
+  PS_INPUT main(VS_INPUT input)
+  {
+    PS_INPUT output;
+
+    output.pos = mul(u_projection, float4(input.pos, 1.0));
+    output.colour = float4((input.normal * 0.5) + 0.5, 1.0);
+
     return output;
   }
 )shader";

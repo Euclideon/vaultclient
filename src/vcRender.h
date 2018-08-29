@@ -3,6 +3,7 @@
 
 #include "vcState.h"
 #include "vcModel.h"
+#include "vcCompass.h"
 
 #include "vdkRenderContext.h"
 #include "vdkRenderView.h"
@@ -18,6 +19,7 @@ struct vcRenderData
 
   udInt2 mouse;
   udDouble3 worldMousePos;
+  udDouble3 *pWorldAnchorPos; // If this is not nullptr, this is the point to highlight
   bool pickingSuccess;
 
   udChunkedArray<vcModel*> models;
