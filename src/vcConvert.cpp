@@ -167,7 +167,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
         float currentFileProgress = perItemAmount * itemInfo.pointsRead / itemInfo.pointsCount;
         float completedFileProgress = perItemAmount * pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem;
 
-        ImGui::ProgressBar(currentFileProgress + completedFileProgress, ImVec2(-1, 0), udTempStr("Reading File %llu/%llu...", pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem+1, pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalItems));
+        ImGui::ProgressBar(currentFileProgress + completedFileProgress, ImVec2(-1, 0), udTempStr("Reading File %s/%s...", udCommaInt(pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem+1), udCommaInt(pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalItems)));
       }
       else
       {
@@ -242,7 +242,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   ImGui::Separator();
   if (pSelectedJob->pConvertInfo->totalItems > 0)
   {
-    if (ImGui::TreeNodeEx(pSelectedJob->pConvertInfo, 0, "Input Files (%d files)", pSelectedJob->pConvertInfo->totalItems))
+    if (ImGui::TreeNodeEx(pSelectedJob->pConvertInfo, 0, "Input Files (%s files)", udCommaInt(pSelectedJob->pConvertInfo->totalItems)))
     {
       if (pSelectedJob->status == vcCQS_Preparing && ImGui::Button("Remove All Files"))
       {
@@ -261,7 +261,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
         if (pSelectedJob->status == vcCQS_Preparing)
         {
-          ImGui::Text("Points: %llu", itemInfo.pointsCount);
+          ImGui::Text("Points: %s", udCommaInt(itemInfo.pointsCount));
 
           ImGui::NextColumn();
 
