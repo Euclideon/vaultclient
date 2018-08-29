@@ -158,34 +158,28 @@ void main()
 
 const char* const g_terrainTileVertexShader = VERT_HEADER R"shader(
 //Input format
-layout(location = 0) in vec3 a_position;
-layout(location = 1) in vec2 a_uv;
+layout(location = 0) in vec3 a_uv;
 
 //Output Format
 out vec4 v_colour;
 out vec2 v_uv;
 
+// This should match CPU struct size
+#define VERTEX_COUNT 3
+
 layout (std140) uniform u_EveryObject
 {
-  mat4 u_worldViewProjection0;
-  mat4 u_worldViewProjection1;
-  mat4 u_worldViewProjection2;
-  mat4 u_worldViewProjection3;
+  mat4 u_projection;
+  vec4 u_eyePositions[VERTEX_COUNT * VERTEX_COUNT];
   vec4 u_colour;
 };
 
 void main()
 {
-  vec4 finalClipPos = vec4(0.0);
+  // TODO: could have precision issues on some devices
+  vec4 finalClipPos = u_projection * u_eyePositions[int(a_uv.z)];
 
-  // corner id is stored in the x component of the position attribute
-  // note: could have precision issues on some devices
-  finalClipPos += float(a_position.x == 0.0) * u_worldViewProjection0 * vec4(0.0, 0.0, 0.0, 1.0);
-  finalClipPos += float(a_position.x == 1.0) * u_worldViewProjection1 * vec4(0.0, 0.0, 0.0, 1.0);
-  finalClipPos += float(a_position.x == 2.0) * u_worldViewProjection2 * vec4(0.0, 0.0, 0.0, 1.0);
-  finalClipPos += float(a_position.x == 4.0) * u_worldViewProjection3 * vec4(0.0, 0.0, 0.0, 1.0);
-
-  v_uv = a_uv;
+  v_uv = a_uv.xy;
   v_colour = u_colour;
   gl_Position = finalClipPos;
 }

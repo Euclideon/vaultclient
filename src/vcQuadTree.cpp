@@ -12,6 +12,12 @@ const double tileToCameraCullAngle = UD_DEG2RAD(0.55);
 // Higher value results in more aggressive lodding of tiles.
 #define TILE_DISTANCE_CULL_RATE 1.0
 
+// Cap depth at level 19 (system doesn't have access to these tiles yet)
+enum
+{
+  MaxVisibleLevel = 19,
+};
+
 struct vcQuadTree
 {
   vcQuadTreeMetaData metaData;
@@ -79,6 +85,7 @@ void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, uint16_t s
 
     int childIndex = childrenIndex[i];
     pQuadTree->pNodes[childIndex].parentIndex = currentNodeIndex;
+    pQuadTree->pNodes[childIndex].childMaskInParent = 1 << i;
     pQuadTree->pNodes[childIndex].level = currentDepth + 1;
 
     pQuadTree->pNodes[childIndex].slippyPosition = pCurrentNode->slippyPosition * 2;
@@ -178,7 +185,7 @@ void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, cons
   quadTree.capacity = startingCapacity >> 1;
   ExpandTreeCapacity(&quadTree);
   quadTree.metaData.leafNodeCount = 0;
-  quadTree.metaData.maxTreeDepth = udMax(0, 19 - createInfo.slippyCoords.z); // cap depth at level 19 (we don't have access to these tiles yet)
+  quadTree.metaData.maxTreeDepth = udMax(0, MaxVisibleLevel - createInfo.slippyCoords.z);
 
   // Initialize root
   quadTree.used = 1;

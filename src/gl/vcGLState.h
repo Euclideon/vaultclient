@@ -90,4 +90,6 @@ bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height);
 
 void vcGLState_Scissor(int left, int top, int right, int bottom);
 
+int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel);
+
 #endif // vcGLState_h__
