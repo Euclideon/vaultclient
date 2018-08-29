@@ -138,8 +138,12 @@ void vcConvert_AddEmptyJob(vcState *pProgramState, vcConvertItem **ppNextItem)
 void vcConvert_ShowUI(vcState *pProgramState)
 {
   vcConvertItem *pSelectedJob = nullptr;
-
+  vdkConvertItemInfo itemInfo;
   char tempBuffer[256];
+
+  // Convert Jobs
+  ImGui::Text("Convert Jobs");
+  ImGui::Separator();
 
   for (size_t i = 0; i < pProgramState->pConvertContext->jobs.length; ++i)
   {
@@ -156,9 +160,19 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       //The two sections below are 50% each (hence the 0.5f's)
       if (pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem != pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalItems)
-        ImGui::ProgressBar(0.5f * pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem / pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalItems, ImVec2(-1, 0), "Reading...");
+      {
+        vdkConvert_GetItemInfo(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[i]->pConvertContext, pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem, &itemInfo);
+
+        float perItemAmount = 0.5f / pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalItems;
+        float currentFileProgress = perItemAmount * itemInfo.pointsRead / itemInfo.pointsCount;
+        float completedFileProgress = perItemAmount * pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem;
+
+        ImGui::ProgressBar(currentFileProgress + completedFileProgress, ImVec2(-1, 0), udTempStr("Reading File %llu/%llu...", pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem+1, pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalItems));
+      }
       else
-        ImGui::ProgressBar(0.5f + 0.5f * (pProgramState->pConvertContext->jobs[i]->pConvertInfo->outputPointCount + pProgramState->pConvertContext->jobs[i]->pConvertInfo->discardedPointCount) / pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalPointsRead, ImVec2(-1, 0), "Writing...");
+      {
+        ImGui::ProgressBar(0.5f + 0.5f * (pProgramState->pConvertContext->jobs[i]->pConvertInfo->outputPointCount + pProgramState->pConvertContext->jobs[i]->pConvertInfo->discardedPointCount) / pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalPointsRead, ImVec2(-1, 0), udTempStr("Writing Points %s/%s", udCommaInt(pProgramState->pConvertContext->jobs[i]->pConvertInfo->outputPointCount + pProgramState->pConvertContext->jobs[i]->pConvertInfo->discardedPointCount), udCommaInt(pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalPointsRead)));
+      }
     }
   }
 
@@ -167,11 +181,12 @@ void vcConvert_ShowUI(vcState *pProgramState)
   else
     pSelectedJob = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem];
 
+  // Options pane --------------------------------
+  ImGui::Separator();
+  ImGui::Separator();
   ImGui::Separator();
 
-  // Options pane --------------------------------
-  ImGui::Text("New Convert");
-
+  ImGui::Text("Convert Settings");
   ImGui::Separator();
 
   ImGui::Text("Output Name: %s", pSelectedJob->pConvertInfo->pOutputName);
@@ -227,60 +242,68 @@ void vcConvert_ShowUI(vcState *pProgramState)
   ImGui::Separator();
   if (pSelectedJob->pConvertInfo->totalItems > 0)
   {
-    if(ImGui::CollapsingHeader(udTempStr("Input Files (%d files)##ConvertInputFiles", pSelectedJob->pConvertInfo->totalItems)))
+    if (ImGui::TreeNodeEx(pSelectedJob->pConvertInfo, 0, "Input Files (%d files)", pSelectedJob->pConvertInfo->totalItems))
     {
-      if (pSelectedJob->status == vcCQS_Preparing)
+      if (pSelectedJob->status == vcCQS_Preparing && ImGui::Button("Remove All Files"))
       {
-        if (ImGui::Button("Remove All Files"))
+        while (pSelectedJob->pConvertInfo->totalItems > 0)
+          vdkConvert_RemoveItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, 0);
+      }
+
+      ImGui::Columns(3, NULL, true);
+
+      for (size_t i = 0; i < pSelectedJob->pConvertInfo->totalItems; ++i)
+      {
+        vdkConvert_GetItemInfo(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i, &itemInfo);
+
+        ImGui::Text(itemInfo.pFilename);
+        ImGui::NextColumn();
+
+        if (pSelectedJob->status == vcCQS_Preparing)
         {
-          while (pSelectedJob->pConvertInfo->totalItems > 0)
-            vdkConvert_RemoveItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, 0);
-        }
+          ImGui::Text("Points: %llu", itemInfo.pointsCount);
 
-        for (size_t i = 0; i < pSelectedJob->pConvertInfo->totalItems; ++i)
-        {
-          vdkConvertItemInfo itemInfo;
-          vdkConvert_GetItemInfo(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i, &itemInfo);
+          ImGui::NextColumn();
 
-          char tempBuffer[1024];
-          udSprintf(tempBuffer, UDARRAYSIZE(tempBuffer), "%s##convertNext", itemInfo.pFilename);
-
-          if (ImGui::CollapsingHeader(tempBuffer))
+          if (ImGui::Button(udTempStr("Remove##convertitemremove_%llu", i)))
           {
-            ImGui::Text("Points: %llu", itemInfo.pointsCount);
-
-            if (ImGui::Button("Remove"))
-            {
-              vdkConvert_RemoveItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i);
-              --i;
-              continue;
-            }
+            vdkConvert_RemoveItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i);
+            --i;
           }
         }
-      }
-      else
-      {
-
-
-        for (size_t i = 0; i < pSelectedJob->pConvertInfo->totalItems; ++i)
+        else
         {
-          vdkConvertItemInfo itemInfo;
-          vdkConvert_GetItemInfo(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i, &itemInfo);
-
           if (pSelectedJob->pConvertInfo->currentInputItem > i) // Already read
-            ImGui::Text("%s (Read %spts)", itemInfo.pFilename, udCommaInt(itemInfo.pointsRead));
+          {
+            ImGui::Text("Read %spts", udCommaInt(itemInfo.pointsRead));
+            ImGui::NextColumn();
+            ImGui::ProgressBar(1.f);
+          }
           else if (pSelectedJob->pConvertInfo->currentInputItem < i) // Pending read
-            ImGui::Text("%s (%spts estimated)", itemInfo.pFilename, udCommaInt(itemInfo.pointsCount));
+          {
+            ImGui::Text("%spts estimate", udCommaInt(itemInfo.pointsCount));
+            ImGui::NextColumn();
+            ImGui::ProgressBar(0.f);
+          }
           else // Currently reading
-            ImGui::Text("%s (Reading... %s/%spts)", itemInfo.pFilename, udCommaInt(itemInfo.pointsRead), udCommaInt(itemInfo.pointsCount));
+          {
+            ImGui::Text("Reading... %s/%spts", udCommaInt(itemInfo.pointsRead), udCommaInt(itemInfo.pointsCount));
+            ImGui::NextColumn();
+            ImGui::ProgressBar(1.f * itemInfo.pointsRead / itemInfo.pointsCount);
+          }
         }
+
+        ImGui::NextColumn();
       }
+
+      ImGui::Columns(1);
+
+      ImGui::TreePop();
     }
 
-    ImGui::Separator();
-
-    if (ImGui::Button("Begin Convert"))
+    if (pSelectedJob->status == vcCQS_Preparing && ImGui::Button("Begin Convert"))
     {
+      ImGui::Separator();
       pSelectedJob->status = vcCQS_Queued;
       udIncrementSemaphore(pProgramState->pConvertContext->pSemaphore);
     }
