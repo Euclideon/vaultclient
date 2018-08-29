@@ -256,7 +256,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
       {
         vdkConvert_GetItemInfo(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i, &itemInfo);
 
-        ImGui::Text(itemInfo.pFilename);
+        ImGui::Text("%s", itemInfo.pFilename);
         ImGui::NextColumn();
 
         if (pSelectedJob->status == vcCQS_Preparing)
