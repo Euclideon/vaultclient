@@ -9,6 +9,7 @@ enum vcVertexLayoutTypes
   vcVLT_Position3, //Vec3
   vcVLT_TextureCoords2, //Vec2
   vcVLT_ColourBGRA, //uint32_t
+  vcVLT_Normal3, //Vec3
 
   vcVLT_TotalTypes
 };

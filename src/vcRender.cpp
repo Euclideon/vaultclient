@@ -7,6 +7,7 @@
 
 #include "vcTerrain.h"
 #include "vcGIS.h"
+#include "vcCompass.h"
 
 const int qrIndices[6] = { 0, 1, 2, 0, 2, 3 };
 const vcSimpleVertex qrSqVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
@@ -80,6 +81,7 @@ struct vcRenderContext
   udDouble4x4 inverseViewProjectionMatrix;
 
   vcTerrain *pTerrain;
+  vcCompass *pCompass;
 
   struct
   {
@@ -111,6 +113,7 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   vcMesh_Create(&pRenderContext->pScreenQuadMesh, vcSimpleVertexLayout, 2, qrSqVertices, 4, qrIndices, 6, vcMF_Dynamic);
 
   vcTexture_LoadCubemap(&pRenderContext->pSkyboxCubeMapTexture, "CloudWater.jpg");
+  UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
 
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);
   vcShader_GetSamplerIndex(&pRenderContext->skyboxShader.uniform_texture, pRenderContext->skyboxShader.pProgram, "u_texture");
@@ -166,6 +169,7 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   vcMesh_Destroy(&pRenderContext->pScreenQuadMesh);
 
   vcTexture_Destroy(&pRenderContext->pSkyboxCubeMapTexture);
+  UD_ERROR_CHECK(vcCompass_Destroy(&pRenderContext->pCompass));
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
@@ -335,6 +339,13 @@ void vcPresentUD(vcRenderContext *pRenderContext)
 
 void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
+  vcGLState_SetDepthMode(vcGLSDM_Always, false);
+
+  vcCompass_Render(pRenderContext->pCompass, pRenderContext->projectionMatrix * pRenderContext->viewMatrix * udDouble4x4::translation(renderData.pWorldAnchorPos ? *renderData.pWorldAnchorPos : renderData.worldMousePos));
+
+  vcGLState_ResetState();
+
   if (renderData.pGISSpace->isProjected && pRenderContext->pSettings->maptiles.mapEnabled)
   {
     udDouble4x4 cameraMatrix = renderData.cameraMatrix;
@@ -409,6 +420,15 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
   vcPresentUD(pRenderContext);
   vcRenderSkybox(pRenderContext);
   vcRenderTerrain(pRenderContext, renderData);
+
+  if (pRenderContext->pSettings->presentation.showCompass)
+  {
+    udDouble4x4 cameraRotation = udDouble4x4::rotationYPR(renderData.cameraMatrix.extractYPR());
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
+    vcGLState_SetDepthMode(vcGLSDM_Always, false);
+    vcCompass_Render(pRenderContext->pCompass, udDouble4x4::perspective(fov, aspect, 0.01, 2.0) * udDouble4x4::translation(fov * 0.45 * aspect, 1.0, -fov * 0.45) * udDouble4x4::scaleUniform(fov / 20.0) * udInverse(cameraRotation));
+    vcGLState_ResetState();
+  }
 
   vcShader_Bind(nullptr);
 
