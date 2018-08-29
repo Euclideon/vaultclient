@@ -66,6 +66,7 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
     case vcVLT_ColourBGRA:
       glVertexAttribPointer(i, 4, GL_UNSIGNED_BYTE, GL_TRUE, vertexSize, (GLvoid*)accumulatedOffset);
       accumulatedOffset += 1 * sizeof(uint32_t);
+      break;
     case vcVLT_TotalTypes:
       break; // never reaches here due to error set above
     }

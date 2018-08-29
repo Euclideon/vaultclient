@@ -24,7 +24,8 @@ struct vcQuadTreeNode
 {
   uint32_t parentIndex;
   int childMask; // [1, 2, 4, 8] for each corner [bottom left, bottom right, top left, top right]
-  udInt2 slippyPosition;; // sw, se, nw, ne
+  int childMaskInParent; // [1, 2, 4, 8] for each corner [bottom left, bottom right, top left, top right]
+  udInt2 slippyPosition;
   int level;
   bool isVisible;
 };

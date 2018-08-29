@@ -4,6 +4,7 @@
 
 static vcGLState s_internalState;
 vcFramebuffer g_defaultFramebuffer;
+int32_t g_maxAnisotropy = 0;
 
 bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 {
@@ -14,6 +15,8 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 #endif
 
   glGetError(); // throw out first error
+
+  glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &g_maxAnisotropy);
 
   memset(&g_defaultFramebuffer, 0, sizeof(vcFramebuffer));
 
@@ -216,4 +219,9 @@ void vcGLState_Scissor(int left, int top, int right, int bottom)
     glScissor(newScissor.x, newScissor.y, newScissor.z, newScissor.w);
     s_internalState.scissorZone = newScissor;
   }
+}
+
+int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel)
+{
+  return udMin(desiredAniLevel, g_maxAnisotropy);
 }

@@ -172,7 +172,6 @@ const char* const g_terrainTileVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
-    float2 uv  : TEXCOORD0;
   };
 
   struct PS_INPUT
@@ -182,12 +181,13 @@ const char* const g_terrainTileVertexShader = R"shader(
     float2 uv : TEXCOORD0;
   };
 
+  // This should match CPU struct size
+  #define VERTEX_COUNT 3
+
   cbuffer u_EveryObject : register(b0)
   {
-    float4x4 u_worldViewProjection0;
-    float4x4 u_worldViewProjection1;
-    float4x4 u_worldViewProjection2;
-    float4x4 u_worldViewProjection3;
+    float4x4 u_projection;
+    float4 u_eyePositions[VERTEX_COUNT * VERTEX_COUNT];
     float4 u_colour;
   };
 
@@ -195,22 +195,11 @@ const char* const g_terrainTileVertexShader = R"shader(
   {
     PS_INPUT output;
 
-    float4 finalClipPos = float4(0.f, 0.f, 0.f, 0.f);
-
-    // corner id is stored in the x component of the position attribute
     // note: could have precision issues on some devices
-
-    if (input.pos.x == 0.f)
-      finalClipPos = mul(u_worldViewProjection0, float4(0.f, 0.f, 0.f, 1.f));
-    else if (input.pos.x == 1.f)
-      finalClipPos = mul(u_worldViewProjection1, float4(0.f, 0.f, 0.f, 1.f));
-    else if (input.pos.x == 2.f)
-      finalClipPos = mul(u_worldViewProjection2, float4(0.f, 0.f, 0.f, 1.f));
-    else if (input.pos.x == 4.f)
-      finalClipPos = mul(u_worldViewProjection3, float4(0.f, 0.f, 0.f, 1.f));
+    float4 finalClipPos = mul(u_projection, u_eyePositions[int(input.pos.z)]);
 
     output.colour = u_colour;
-    output.uv = input.uv;
+    output.uv = input.pos.xy;
     output.pos = finalClipPos;
     return output;
   }
