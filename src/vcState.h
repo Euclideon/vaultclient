@@ -17,6 +17,7 @@ struct vcFramebuffer;
 struct vcRenderContext;
 struct vcCamera;
 struct vcTexture;
+struct vcConvertContext;
 
 enum vcPopupTriggerID
 {
@@ -72,6 +73,7 @@ struct vcState
   bool hasContext;
   vdkContext *pVDKContext;
   vcRenderContext *pRenderContext;
+  vcConvertContext *pConvertContext;
 
   char serverURL[vcMaxPathLength];
   char username[vcMaxPathLength];
