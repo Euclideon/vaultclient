@@ -55,9 +55,7 @@ uint32_t vcConvert_Thread(void *pVoidState)
 
   while (pConvertContext->threadRunning)
   {
-    int loadStatus = udWaitSemaphore(pConvertContext->pSemaphore, 1000);
-
-    if (loadStatus != 0)
+    if (udWaitSemaphore(pConvertContext->pSemaphore, 1000) != 0)
       continue;
 
     // Convert Here
@@ -123,9 +121,10 @@ void vcConvert_Deinit(vcState *pProgramState)
 
 void vcConvert_AddEmptyJob(vcState *pProgramState, vcConvertItem **ppNextItem)
 {
+  vcConvertItem *pNextItem = udAllocType(vcConvertItem, 1, udAF_Zero);
+
   udLockMutex(pProgramState->pConvertContext->pMutex);
 
-  vcConvertItem *pNextItem = udAllocType(vcConvertItem, 1, udAF_Zero);
   pProgramState->pConvertContext->jobs.PushBack(pNextItem);
   vdkConvert_CreateContext(pProgramState->pVDKContext, &pNextItem->pConvertContext);
   vdkConvert_GetInfo(pProgramState->pVDKContext, pNextItem->pConvertContext, &pNextItem->pConvertInfo);
@@ -157,13 +156,14 @@ void vcConvert_ShowUI(vcState *pProgramState)
     if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
     {
       ImGui::SameLine();
+      const float progressRatio = 0.7f; // How much reading is compared to writing (0.8 would be 80% of the progress is writing)
 
       //The two sections below are 50% each (hence the 0.5f's)
       if (pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem != pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalItems)
       {
         vdkConvert_GetItemInfo(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[i]->pConvertContext, pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem, &itemInfo);
 
-        float perItemAmount = 0.5f / pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalItems;
+        float perItemAmount = progressRatio / pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalItems;
         float currentFileProgress = perItemAmount * itemInfo.pointsRead / itemInfo.pointsCount;
         float completedFileProgress = perItemAmount * pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem;
 
@@ -171,7 +171,10 @@ void vcConvert_ShowUI(vcState *pProgramState)
       }
       else
       {
-        ImGui::ProgressBar(0.5f + 0.5f * (pProgramState->pConvertContext->jobs[i]->pConvertInfo->outputPointCount + pProgramState->pConvertContext->jobs[i]->pConvertInfo->discardedPointCount) / pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalPointsRead, ImVec2(-1, 0), udTempStr("Writing Points %s/%s", udCommaInt(pProgramState->pConvertContext->jobs[i]->pConvertInfo->outputPointCount + pProgramState->pConvertContext->jobs[i]->pConvertInfo->discardedPointCount), udCommaInt(pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalPointsRead)));
+        uint64_t pointsWritten = (pProgramState->pConvertContext->jobs[i]->pConvertInfo->outputPointCount + pProgramState->pConvertContext->jobs[i]->pConvertInfo->discardedPointCount);
+        uint64_t pointsTotal = pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalPointsRead;
+
+        ImGui::ProgressBar(progressRatio + (1.f - progressRatio) * pointsWritten / pointsTotal, ImVec2(-1, 0), udTempStr("Writing Points %s/%s", udCommaInt(pointsWritten), udCommaInt(pointsTotal)));
       }
     }
   }
@@ -195,7 +198,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   ImGui::Separator();
 
   if (pSelectedJob->status == vcCQS_Preparing)
-    ImGui::CheckboxFlags("Skip errors where possible", (uint32_t*)&pSelectedJob->pConvertInfo->ignoreParseErrors, 1);
+    ImGui::CheckboxFlags("Continue processing after corrupt/incomplete data (where possible)", (uint32_t*)&pSelectedJob->pConvertInfo->ignoreParseErrors, 1);
 
   // Resolution
   ImGui::Text("Point resolution: %.6f", pSelectedJob->pConvertInfo->pointResolution);
