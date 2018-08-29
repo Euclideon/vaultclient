@@ -29,6 +29,7 @@ enum vcDocks
   vcdScene,
   vcdSettings,
   vcdSceneExplorer,
+  vcdConvert,
 
   vcdTotalDocks
 };

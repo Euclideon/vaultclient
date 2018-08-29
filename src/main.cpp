@@ -14,6 +14,7 @@
 
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
+#include "vcConvert.h"
 
 #include "udPlatform/udFile.h"
 
@@ -302,6 +303,8 @@ int main(int /*argc*/, char ** /*args*/)
   udStrcpy(programState.settings.maptiles.tileServerAddress, vcMaxPathLength, "http://10.4.0.151:8123");
   udStrcpy(programState.settings.resourceBase, vcMaxPathLength, "http://10.4.0.151");
 
+  vcConvert_Init(&programState);
+
   Uint64 NOW;
   Uint64 LAST;
 
@@ -425,7 +428,9 @@ int main(int /*argc*/, char ** /*args*/)
         }
         else if (event.type == SDL_DROPFILE && programState.hasContext)
         {
-          vcModel_AddToList(&programState, event.drop.file);
+          if (!vcModel_AddToList(&programState, event.drop.file))
+            vcConvert_AddFile(&programState, event.drop.file);
+          //TODO: Display a message here that the file couldn't be opened...
         }
         else if (event.type == SDL_QUIT)
         {
@@ -456,6 +461,7 @@ int main(int /*argc*/, char ** /*args*/)
   ImGui::DestroyContext();
 
 epilogue:
+  vcConvert_Deinit(&programState);
   vcCamera_Destroy(&programState.pCamera);
   vcTexture_Destroy(&programState.pWatermarkTexture);
   free(pIconData);
@@ -690,7 +696,7 @@ int vcMainMenuGui(vcState *pProgramState)
     {
       if (ImGui::MenuItem("Logout"))
       {
-        if(!vcLogout(pProgramState))
+        if (!vcLogout(pProgramState))
           ImGui::OpenPopup("Logout Error");
       }
 
@@ -712,6 +718,7 @@ int vcMainMenuGui(vcState *pProgramState)
       ImGui::MenuItem("Scene", nullptr, &pProgramState->settings.window.windowsOpen[vcdScene]);
       ImGui::MenuItem("Scene Explorer", nullptr, &pProgramState->settings.window.windowsOpen[vcdSceneExplorer]);
       ImGui::MenuItem("Settings", nullptr, &pProgramState->settings.window.windowsOpen[vcdSettings]);
+      ImGui::MenuItem("Convert", nullptr, &pProgramState->settings.window.windowsOpen[vcdConvert]);
       ImGui::Separator();
       ImGui::EndMenu();
     }
@@ -786,7 +793,7 @@ void vcRenderWindow(vcState *pProgramState)
   if (!pProgramState->hasContext)
   {
     ImGui::SetNextWindowBgAlpha(0.f);
-    ImGui::SetNextWindowPos(ImVec2(size.x-5,size.y-5), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
+    ImGui::SetNextWindowPos(ImVec2(size.x - 5, size.y - 5), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
 
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f, 0.f, 0.f, 0.f));
     ImGui::Begin("Watermark", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
@@ -901,7 +908,7 @@ void vcRenderWindow(vcState *pProgramState)
       if (col1Size < minMaxColumnSize[0][0])
         col1Size = minMaxColumnSize[0][0];
 
-      headers[0].size = (float) col1Size;
+      headers[0].size = (float)col1Size;
 
 
       ImGui::Columns(UDARRAYSIZE(headers), "ModelTableColumns", true);
@@ -1006,7 +1013,7 @@ void vcRenderWindow(vcState *pProgramState)
         char unloadModelID[32] = "";
         udSprintf(unloadModelID, UDARRAYSIZE(unloadModelID), "UnloadModelButton%i", i);
         ImGui::PushID(unloadModelID);
-        if (ImGui::Button("X",ImVec2(20,20)))
+        if (ImGui::Button("X", ImVec2(20, 20)))
         {
           if (pProgramState->numSelectedModels > 1 && pProgramState->vcModelList[i].modelSelected) // if multiple selected and removed
           {
@@ -1052,6 +1059,12 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::Columns(1);
       // End Models
     }
+
+    ImGui::EndDock();
+
+
+    if (ImGui::BeginDock("Convert", &pProgramState->settings.window.windowsOpen[vcdConvert], ImGuiWindowFlags_ResizeFromAnySide))
+      vcConvert_ShowUI(pProgramState);
 
     ImGui::EndDock();
 
@@ -1338,7 +1351,7 @@ void vcRenderWindow(vcState *pProgramState)
 
       if (ImGui::Button("Close"))
       {
-        if(pProgramState->selectedModelProperties.pWatermarkTexture != nullptr)
+        if (pProgramState->selectedModelProperties.pWatermarkTexture != nullptr)
           vcTexture_Destroy(&pProgramState->selectedModelProperties.pWatermarkTexture);
 
         ImGui::CloseCurrentPopup();

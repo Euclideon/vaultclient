@@ -159,6 +159,8 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   if (vdkRenderContext_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
+  vcTexture_Destroy(&pRenderContext->pSkyboxCubeMapTexture);
+
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
 
