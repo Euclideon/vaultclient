@@ -1,4 +1,5 @@
 #include "vcModel.h"
+#include "udPlatform/udGeoZone.h"
 
 bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
 {
@@ -23,6 +24,9 @@ bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
     pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera); // eh?
 
     pProgramState->vcModelList.PushBack(model);
+
+    vcModel_UpdateMatrix(pProgramState, nullptr); // Set all model matrices
+
     return true;
   }
 
@@ -76,4 +80,36 @@ bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel)
   }
 
   return vcGIS_ChangeSpace(&pProgramState->gis, newSRID);
+}
+
+void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel)
+{
+  if (!pModel)
+  {
+    for (size_t i = 0; i < pProgramState->vcModelList.length; ++i)
+      vcModel_UpdateMatrix(pProgramState, &pProgramState->vcModelList[i]);
+  }
+  else
+  {
+    udDouble4x4 matrix;
+    vdkModel_GetLocalMatrix(pProgramState->pVDKContext, pModel->pVaultModel, matrix.a);
+    if (pModel->flipYZ)
+    {
+      udDouble4 rowz = -matrix.axis.y;
+      matrix.axis.y = matrix.axis.z;
+      matrix.axis.z = rowz;
+    }
+
+    // Handle transforming into the camera's GeoZone
+    // TODO: Store the srid and zone at load time
+    const char *pSRID = udStrchr(pModel->pMetadata->Get("ProjectionID").AsString(), ":");
+    udGeoZone fromZone, newZone;
+    if (pSRID && udGeoZone_SetFromSRID(&fromZone, udStrAtoi(pSRID + 1)) == udR_Success)
+    {
+      udGeoZone_SetFromSRID(&newZone, pProgramState->currentSRID);
+      matrix = udGeoZone_TransformMatrix(matrix, fromZone, newZone);
+    }
+
+    vdkModel_SetWorldMatrix(pProgramState->pVDKContext, pModel->pVaultModel, matrix.a);
+  }
 }
