@@ -101,7 +101,7 @@ void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, uint16_t s
 
     udInt2 slippyManhattanDist = udInt2::create(udAbs(pViewSlippyCoords.x - pQuadTree->pNodes[childIndex].slippyPosition.x),
       udAbs(pViewSlippyCoords.y - pQuadTree->pNodes[childIndex].slippyPosition.y));
-    
+
     double quadTreeDistanceToTile = 0.0;
     udDouble3 distanceTestPoint = position;
     distanceTestPoint.z -= quadTreeHeightOffset; // relative height
@@ -156,7 +156,7 @@ void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, uint16_t s
       }
 
       quadTreeDistanceToTile = minDist / quadTreeWorldSize;
-     
+
       double tileToCameraAngle = udSin(distanceTestPoint.z / minDist);
       tileVisible = minDist < visibleDistance && tileToCameraAngle >= tileToCameraCullAngle;
     }
@@ -199,4 +199,9 @@ void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, cons
 
   if (pMetaData)
     memcpy(pMetaData, &quadTree.metaData, sizeof(vcQuadTreeMetaData));
+}
+
+void vcQuadTree_DestroyNodeList(vcQuadTreeNode **ppNodes, int /*nodeCount*/)
+{
+  udFree(*ppNodes);
 }

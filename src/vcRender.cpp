@@ -153,11 +153,19 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   if (vcTerrain_Destroy(&pRenderContext->pTerrain) != udR_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vdkRenderView_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderView) != vE_Success)
-    UD_ERROR_SET(udR_InternalError);
+  if (pRenderContext->pVaultContext != nullptr)
+  {
+    if (vdkRenderView_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderView) != vE_Success)
+      UD_ERROR_SET(udR_InternalError);
 
-  if (vdkRenderContext_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)
-    UD_ERROR_SET(udR_InternalError);
+    if (vdkRenderContext_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)
+      UD_ERROR_SET(udR_InternalError);
+  }
+
+  vcShader_DestroyShader(&pRenderContext->udRenderContext.presentShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->skyboxShader.pProgram);
+
+  vcMesh_Destroy(&pRenderContext->pScreenQuadMesh);
 
   vcTexture_Destroy(&pRenderContext->pSkyboxCubeMapTexture);
 

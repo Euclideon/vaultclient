@@ -418,6 +418,7 @@ static udResult udFileHandler_HTTPClose(udFile **ppFile)
 #endif
       if (pFile->pMutex)
         udDestroyMutex(&pFile->pMutex);
+      pFile->url.~udURL();
       udFree(pFile);
     }
   }

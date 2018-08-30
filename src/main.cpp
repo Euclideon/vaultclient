@@ -226,6 +226,7 @@ int main(int /*argc*/, char ** /*args*/)
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
   _CrtMemState m1, m2, diff;
   _CrtMemCheckpoint(&m1);
+  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF);
 #endif //UDPLATFORM_WINDOWS && !defined(NDEBUG)
 
   SDL_GLContext glcontext = NULL;
@@ -458,9 +459,12 @@ int main(int /*argc*/, char ** /*args*/)
   }
 
   vcSettings_Save(&programState.settings);
+  ImGui::ShutdownDock();
   ImGui::DestroyContext();
 
 epilogue:
+  programState.projects.Destroy();
+  ImGuiGL_DestroyDeviceObjects();
   vcConvert_Deinit(&programState);
   vcCamera_Destroy(&programState.pCamera);
   vcTexture_Destroy(&programState.pWatermarkTexture);
@@ -479,6 +483,7 @@ epilogue:
   {
     _CrtMemDumpAllObjectsSince(&m1);
     printf("%s\n", "Memory leaks found");
+    return 1;
   }
 #endif //UDPLATFORM_WINDOWS && !defined(NDEBUG)
 

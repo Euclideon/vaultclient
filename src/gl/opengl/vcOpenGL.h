@@ -53,16 +53,18 @@ struct vcShaderConstantBuffer
   char name[32];
 };
 
+struct vcShaderSampler
+{
+  GLuint id;
+};
+
 struct vcShader
 {
   GLuint programID;
   vcShaderConstantBuffer bufferObjects[16];
   int numBufferObjects;
-};
-
-struct vcShaderSampler
-{
-  GLuint id;
+  vcShaderSampler samplerIndexes[16];
+  int numSamplerIndexes;
 };
 
 struct vcMesh
