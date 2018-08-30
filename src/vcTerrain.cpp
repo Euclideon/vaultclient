@@ -62,16 +62,17 @@ void vcTerrain_BuildTerrain(vcTerrain *pTerrain, int16_t srid, const udDouble3 w
   double slippyCornersViewSize = udMag3(worldCorners[1] - worldCorners[2]) * 0.5;
   vcQuadTreeCreateInfo createInfo =
   {
-    srid, 
-    slippyCoords, 
-    cameraWorldPos, 
-    slippyCornersViewSize, 
+    srid,
+    slippyCoords,
+    cameraWorldPos,
+    slippyCornersViewSize,
     (double)pTerrain->pSettings->camera.farPlane,
     pTerrain->pSettings->maptiles.mapHeight
   };
-  
+
   vcQuadTree_GenerateNodeList(&pNodeList, &nodeCount, createInfo, &treeData);
   vcTerrainRenderer_BuildTiles(pTerrain->pTerrainRenderer, srid, slippyCoords, cameraWorldPos, pNodeList, nodeCount);
+  vcQuadTree_DestroyNodeList(&pNodeList, nodeCount);
 }
 
 void vcTerrain_Render(vcTerrain *pTerrain, const udDouble4x4 &view, const udDouble4x4 &proj)
