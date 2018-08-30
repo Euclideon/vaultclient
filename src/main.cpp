@@ -568,7 +568,10 @@ void vcRenderSceneWindow(vcState *pProgramState)
       {
         int newSRID = pProgramState->gis.SRID;
         if (ImGui::InputInt("Override SRID", &newSRID) && vcGIS_AcceptableSRID((vcSRID)newSRID))
-          vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position);
+        {
+          if (vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position))
+            vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
+        }
       }
 
       if (pProgramState->settings.showDiagnosticInfo)
@@ -975,14 +978,7 @@ void vcRenderWindow(vcState *pProgramState)
         if (ImGui::BeginPopupContextItem(modelLabelID))
         {
           if (ImGui::Checkbox("Flip Y/Z Up", &pProgramState->vcModelList[i].flipYZ)) //Technically this is a rotation around X actually...
-          {
-            udDouble4x4 matrix;
-            vdkModel_GetWorldMatrix(pProgramState->pVDKContext, pProgramState->vcModelList[i].pVaultModel, matrix.a);
-            udDouble4 rowz = -matrix.axis.y;
-            matrix.axis.y = matrix.axis.z;
-            matrix.axis.z = rowz;
-            vdkModel_SetWorldMatrix(pProgramState->pVDKContext, pProgramState->vcModelList[i].pVaultModel, matrix.a);
-          }
+            vcModel_UpdateMatrix(pProgramState, &pProgramState->vcModelList[i]);
 
           if (ImGui::Selectable("Properties", false))
           {
