@@ -43,9 +43,9 @@
 #define SDL_HAS_CAPTURE_MOUSE               SDL_VERSION_ATLEAST(2,0,4)
 #define SDL_HAS_VULKAN                      SDL_VERSION_ATLEAST(2,0,6)
 #define SDL_HAS_MOUSE_FOCUS_CLICKTHROUGH    SDL_VERSION_ATLEAST(2,0,5)
-#if !SDL_HAS_VULKAN
-static const Uint32 SDL_WINDOW_VULKAN = 0x10000000;
-#endif
+//#if !SDL_HAS_VULKAN
+//static const Uint32 SDL_WINDOW_VULKAN = 0x10000000;
+//#endif
 
 // Data
 static SDL_Window*  g_Window = NULL;
