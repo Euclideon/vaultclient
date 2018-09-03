@@ -108,6 +108,7 @@ struct vcTerrainRenderer
   vcTile *pTiles;
   int tileCount;
   int tileCapacity;
+  int activeTiles;
 
   udDouble4x4 latestViewProjectionMatrix;
 
@@ -509,6 +510,7 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
     pTerrainRenderer->pTiles[i].isLeaf = false;
     pTerrainRenderer->pTiles[i].waitingForChildLoadMask = 0;
   }
+  pTerrainRenderer->activeTiles = 0;
 
   // invalidate all streaming textures
   udLockMutex(pTerrainRenderer->cache.pMutex);
@@ -522,6 +524,7 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
     const vcQuadTreeNode *pNode = &pNodeList[i];
     if (!vcQuadTree_IsLeafNode(pNode) || !pNode->isVisible)
       continue;
+    ++pTerrainRenderer->activeTiles;
 
     udInt3 slippyTileCoord = udInt3::create(pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->level + slippyCoords.z);
 
@@ -554,7 +557,7 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
   }
 
   udReleaseMutex(pTerrainRenderer->cache.pMutex);
-
+  
   vcTerrainRenderer_FreeUnusedTiles(pTerrainRenderer);
   vcTerrainRenderer_CleanUpEmptyTiles(pTerrainRenderer);
 }

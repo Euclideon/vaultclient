@@ -408,7 +408,7 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
       vcGIS_SlippyToLocal(renderData.srid, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
     // for now just rebuild terrain every frame
-    vcTerrain_BuildTerrain(pRenderContext->pTerrain, renderData.srid, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos);
+    vcTerrain_BuildTerrain(pRenderContext->pTerrain, renderData.srid, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pRenderContext->viewProjectionMatrix);
     vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->viewMatrix, pRenderContext->projectionMatrix);
   }
 
