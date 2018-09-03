@@ -31,6 +31,7 @@ struct vcQuadTreeNode
 };
 
 void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, const vcQuadTreeCreateInfo &createInfo, vcQuadTreeMetaData *pMetaData = nullptr);
+void vcQuadTree_DestroyNodeList(vcQuadTreeNode **ppNodes, int nodeCount);
 
 inline bool vcQuadTree_IsLeafNode(const vcQuadTreeNode *pNode)
 {

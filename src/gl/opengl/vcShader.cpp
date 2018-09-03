@@ -191,12 +191,16 @@ bool vcShader_GetSamplerIndex(vcShaderSampler **ppSampler, vcShader *pShader, co
   if (ppSampler == nullptr || pShader == nullptr || pSamplerName == nullptr || pShader->programID == GL_INVALID_INDEX)
     return false;
 
+  if (pShader->numSamplerIndexes >= (int)UDARRAYSIZE(pShader->samplerIndexes))
+    return false;
+
   GLuint uID = glGetUniformLocation(pShader->programID, pSamplerName);
 
   if (uID == GL_INVALID_INDEX)
     return false;
 
-  vcShaderSampler *pSampler = udAllocType(vcShaderSampler, 1, udAF_Zero);
+  vcShaderSampler *pSampler = &pShader->samplerIndexes[pShader->numSamplerIndexes];
+  pShader->numSamplerIndexes++;
   pSampler->id = uID;
 
   *ppSampler = pSampler;
