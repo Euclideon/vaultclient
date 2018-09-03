@@ -18,7 +18,7 @@ project "vaultClient"
 	includedirs { "src" }
 	includedirs { "3rdParty/Imgui" }
 	includedirs { "3rdParty/stb" }
-	sysincludedirs { "3rdParty/SDL2-2.0.5/include" }
+	sysincludedirs { "3rdParty/SDL2-2.0.8/include" }
 
 	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS" }
 
@@ -46,7 +46,7 @@ project "vaultClient"
 		sysincludedirs { "3rdParty/glew/include" }
 		files { "3rdParty/glew/glew.c", "src/**.rc" }
 		linkoptions( "/LARGEADDRESSAWARE" )
-		libdirs { "3rdParty/SDL2-2.0.5/lib/x64" }
+		libdirs { "3rdParty/SDL2-2.0.8/lib/x64" }
 		links { "SDL2.lib", "SDL2main.lib", "opengl32.lib", "winmm.lib", "ws2_32" }
 
 	filter { "system:linux" }
@@ -65,7 +65,7 @@ project "vaultClient"
 		xcodebuildresources { "libvaultSDK", "Images.xcassets" }
 		xcodebuildsettings { ["ASSETCATALOG_COMPILER_APPICON_NAME"] = "AppIcon" }
 		removefiles { "3rdParty/glew/glew.c" }
-		libdirs { "3rdParty/SDL2-2.0.5/lib/ios" }
+		libdirs { "3rdParty/SDL2-2.0.8/lib/ios" }
 		links { "SDL2", "AudioToolbox.framework", "QuartzCore.framework", "OpenGLES.framework", "CoreGraphics.framework", "UIKit.framework", "Foundation.framework", "CoreAudio.framework", "AVFoundation.framework", "GameController.framework", "CoreMotion.framework" }
 
 	filter { "system:macosx or ios" }
