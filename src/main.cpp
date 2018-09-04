@@ -370,6 +370,7 @@ int main(int /*argc*/, char ** /*args*/)
     goto epilogue;
 
   ImGui::CreateContext();
+  ImGui::GetIO().ConfigResizeWindowsFromEdges = true; // Fix for ImGuiWindowFlags_ResizeFromAnySide being removed
   vcSettings_LoadSettings(&programState, false);
 
   // setup watermark for background
@@ -872,12 +873,12 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::EndPopup();
     }
 
-    if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_ResizeFromAnySide | ImGuiWindowFlags_NoBringToFrontOnFocus))
+    if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
       vcRenderSceneWindow(pProgramState);
 
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("Scene Explorer", &pProgramState->settings.window.windowsOpen[vcdSceneExplorer], ImGuiWindowFlags_ResizeFromAnySide))
+    if (ImGui::BeginDock("Scene Explorer", &pProgramState->settings.window.windowsOpen[vcdSceneExplorer]))
     {
       ImGui::InputText("Model Path", pProgramState->modelPath, vcMaxPathLength);
       if (ImGui::Button("Load Model!"))
@@ -1068,12 +1069,12 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::EndDock();
 
 
-    if (ImGui::BeginDock("Convert", &pProgramState->settings.window.windowsOpen[vcdConvert], ImGuiWindowFlags_ResizeFromAnySide))
+    if (ImGui::BeginDock("Convert", &pProgramState->settings.window.windowsOpen[vcdConvert]))
       vcConvert_ShowUI(pProgramState);
 
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("Settings", &pProgramState->settings.window.windowsOpen[vcdSettings], ImGuiWindowFlags_ResizeFromAnySide))
+    if (ImGui::BeginDock("Settings", &pProgramState->settings.window.windowsOpen[vcdSettings]))
     {
       if (ImGui::CollapsingHeader("Appearance##Settings"))
       {
@@ -1304,7 +1305,7 @@ void vcRenderWindow(vcState *pProgramState)
       pProgramState->popupTrigger[vcPopup_ModelProperties] = false;
     }
 
-    if (ImGui::BeginPopupModal("Model Properties", NULL, ImGuiWindowFlags_ResizeFromAnySide))
+    if (ImGui::BeginPopupModal("Model Properties", NULL))
     {
       ImGui::Text("File:");
 
