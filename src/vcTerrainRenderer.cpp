@@ -34,10 +34,10 @@ int gSlippyLayerDescendAmount[] =
 int gSubTilePositionIndexes[5][TileVertexResolution * TileVertexResolution] =
 {
   // full tile
-  { 
-    0, 1, 2, 
-    3, 4, 5, 
-    6, 7, 8 
+  {
+    0, 1, 2,
+    3, 4, 5,
+    6, 7, 8
   },
 
   // bottom left (collapses top right corner)
@@ -49,7 +49,7 @@ int gSubTilePositionIndexes[5][TileVertexResolution * TileVertexResolution] =
 
   // bottom right (collapses top left corner)
   {
-    1, 1, 2, 
+    1, 1, 2,
     4, 4, 5,
     5, 5, 5
   },
@@ -63,8 +63,8 @@ int gSubTilePositionIndexes[5][TileVertexResolution * TileVertexResolution] =
 
   // top right (collapses bottom left corner)
   {
-    4, 4, 4, 
-    4, 4, 5, 
+    4, 4, 4,
+    4, 4, 5,
     7, 7, 8
   }
 };
@@ -405,7 +405,7 @@ vcTile *vcTerrainRenderer_FindOrCreateNewTile(vcTerrainRenderer *pTerrainRendere
       memset(pTerrainRenderer->pTiles + pTerrainRenderer->tileCount, 0, sizeof(vcTile) * (pTerrainRenderer->tileCapacity - pTerrainRenderer->tileCount));
     }
 
-    pTile = &pTerrainRenderer->pTiles[pTerrainRenderer->tileCount - 1];   
+    pTile = &pTerrainRenderer->pTiles[pTerrainRenderer->tileCount - 1];
   }
 
   pTile->slippyCoord = slippy;
@@ -596,7 +596,7 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
 
   vcShader_Bind(pTerrainRenderer->presentShader.pProgram);
 
-  vcGLState_SetBlendMode(vcGLSBM_Interpolative);
+  vcGLState_SetBlendMode(vcGLSBM_AdditiveSrcInterpolativeDst);
 
   if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
     vcGLState_SetDepthMode(vcGLSDM_Always, false);
@@ -632,13 +632,13 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
       for (int c = 0; c < 4; ++c)
       {
         if (pTile->waitingForChildLoadMask & (1 << c))
-        {               
+        {
           vcTerrainRenderer_DrawTile(pTerrainRenderer, pTile, pTerrainRenderer->pSubTileMesh[c], viewWithMapTranslation, gSubTilePositionIndexes[c + 1]);
         }
       }
     }
     else
-    {   
+    {
       // draw the full tile
       vcTerrainRenderer_DrawTile(pTerrainRenderer, pTile, pTerrainRenderer->pFullTileMesh, viewWithMapTranslation, gSubTilePositionIndexes[0]);
     }

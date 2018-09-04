@@ -64,9 +64,9 @@ vec3 edgeHighlight(vec3 col, vec2 uv, float depth)
   float ld2 = linearizeDepth(texture(u_depth, uv - sampleOffsets.xz).x);
   float ld3 = linearizeDepth(texture(u_depth, uv + sampleOffsets.zy).x);
   float ld4 = linearizeDepth(texture(u_depth, uv - sampleOffsets.zy).x);
-  
+
   float isEdge = 1.0 - step(ld0 - ld1, edgeOutlineThreshold) * step(ld0 - ld2, edgeOutlineThreshold) * step(ld0 - ld3, edgeOutlineThreshold) * step(ld0 - ld4, edgeOutlineThreshold);
-  
+
   vec3 edgeColour = mix(col.xyz, u_outlineColour.xyz, u_outlineColour.w);
   return mix(col.xyz, edgeColour, isEdge);
 }
@@ -82,11 +82,11 @@ vec3 contourColour(vec3 col, vec3 fragWorldPosition)
 }
 
 vec3 colourizeByHeight(vec3 col, vec3 fragWorldPosition)
-{  
+{
   vec2 worldColourMinMax = u_colourizeHeightParams.xy;
 
   float minMaxColourStrength = getNormalizedPosition(fragWorldPosition.z, worldColourMinMax.x, worldColourMinMax.y);
-  
+
   vec3 minColour = mix(col.xyz, u_colourizeHeightColourMin.xyz, u_colourizeHeightColourMin.w);
   vec3 maxColour = mix( col.xyz, u_colourizeHeightColourMax.xyz,u_colourizeHeightColourMax.w);
   return mix(minColour, maxColour, minMaxColourStrength);
@@ -119,7 +119,7 @@ void main()
 
   col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
 
-  out_Colour = col;
+  out_Colour = vec4(col.xyz, 1.0); // UD always opaque
   gl_FragDepth = depth;
 }
 )shader";
@@ -152,7 +152,7 @@ uniform sampler2D u_texture;
 void main()
 {
   vec4 col = texture(u_texture, v_uv);
-  out_Colour = vec4(col.xyz, 1.f) * v_colour;
+  out_Colour = vec4(col.xyz * v_colour.xyz, 1.0) * v_colour.w;
 }
 )shader";
 
