@@ -1370,11 +1370,20 @@ void vcRenderWindow(vcState *pProgramState)
     {
       ImGui::OpenPopup("About");
       pProgramState->popupTrigger[vcPopup_About] = false;
+      ImGui::SetNextWindowSize(ImVec2(500, 600));
     }
 
-    if (ImGui::BeginPopupModal("About", NULL))
+    if (ImGui::BeginPopupModal("About"))
     {
+      ImGui::Columns(2, NULL, false);
+      ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
       ImGui::Text("Euclideon Client");
+
+      ImGui::NextColumn();
+      if (ImGui::Button("Close", ImVec2(-1, 0)))
+        ImGui::CloseCurrentPopup();
+
+      ImGui::Columns(1);
 
       ImGui::Separator();
 
@@ -1382,19 +1391,13 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::Spacing();
       ImGui::Spacing();
 
-      ImGui::BeginChild("Licenses", ImVec2(500, 500));
+      ImGui::BeginChild("Licenses");
       for (int i = 0; i < (int)UDARRAYSIZE(licenses); i++)
       {
         ImGui::Text("%s\n%s", licenses[i].pName, licenses[i].pLicense);
+        ImGui::Separator();
       }
       ImGui::EndChild();
-      ImGui::Spacing();
-      ImGui::Spacing();
-
-      ImGui::Separator();
-
-      if (ImGui::Button("Close"))
-        ImGui::CloseCurrentPopup();
 
       ImGui::EndPopup();
     }
