@@ -125,7 +125,7 @@ const char* const g_udFragmentShader = R"shader(
     col.xyz = colourizeByDepth(col.xyz, depth);
 
     float edgeOutlineWidth = u_outlineParams.x;
-    if (edgeOutlineWidth > 0.0)
+    if (edgeOutlineWidth > 0.0 && u_outlineColour.w > 0)
     {
       float4 edgeResult = edgeHighlight(col.xyz, input.uv, depth);
       col.xyz = edgeResult.xyz;
@@ -134,7 +134,7 @@ const char* const g_udFragmentShader = R"shader(
     col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
 
     output.Color0 = float4(col.xyz, 1.0);// UD always opaque
-    output.Depth0 = depth;;
+    output.Depth0 = depth * 2.0 - 1.0;
     return output;
   }
 )shader";
@@ -223,12 +223,21 @@ const char* const g_PositionNormalFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
-    float4 colour : COLOR0;
+    float3 normal : COLOR0;
+    float4 colour : COLOR1;
+    float3 sunDirection : COLOR2;
+    float4 fragClipPosition : COLOR3;
   };
 
   float4 main(PS_INPUT input) : SV_Target
   {
-    return input.colour;
+    float3 fakeEyeVector = normalize(input.fragClipPosition.xyz / input.fragClipPosition.w);
+    float3 worldNormal = input.normal * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
+    float ndotl = 0.5 + 0.5 * -dot(input.sunDirection, worldNormal);
+    float edotr = max(0.0, dot(fakeEyeVector, worldNormal));
+    edotr = pow(edotr, 60.0);
+    float3 sheenColour = float3(1.0, 1.0, 0.9);
+    return float4(input.colour.a * (ndotl * input.colour.xyz + edotr * sheenColour), 1.0);
   }
 )shader";
 
@@ -242,13 +251,16 @@ const char* const g_PositionNormalVertexShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
-    float4 colour : COLOR0;
+    float3 normal : COLOR0;
+    float4 colour : COLOR1;
+    float3 sunDirection : COLOR2;
+    float4 fragClipPosition : COLOR3;
   };
 
   cbuffer u_EveryObject : register(b0)
   {
-    float4x4 u_projection;
-    float3 u_eyePosition;
+    float4x4 u_worldViewProjectionMatrix;
+    float4 u_colour;
     float3 u_sunDirection;
     float _padding;
   };
@@ -257,9 +269,11 @@ const char* const g_PositionNormalVertexShader = R"shader(
   {
     PS_INPUT output;
 
-    output.pos = mul(u_projection, float4(input.pos, 1.0));
-    output.colour = float4((input.normal * 0.5) + 0.5, 1.0);
-
+    output.pos = mul(u_worldViewProjectionMatrix, float4(input.pos, 1.0));
+    output.normal = (input.normal * 0.5) + 0.5;
+    output.colour = u_colour;
+    output.sunDirection = u_sunDirection;
+    output.fragClipPosition = output.pos;
     return output;
   }
 )shader";
