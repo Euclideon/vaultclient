@@ -138,7 +138,12 @@ bool ImGui_ImplSDL2_ProcessEvent(SDL_Event* event)
         {
             int key = event->key.keysym.scancode;
             IM_ASSERT(key >= 0 && key < IM_ARRAYSIZE(io.KeysDown));
-            io.KeysDown[key] = (event->type == SDL_KEYDOWN);
+
+            if (key != SDL_SCANCODE_BACKSPACE)
+              io.KeysDown[key] = (event->type == SDL_KEYDOWN);
+            else
+              io.KeysDown[key] = io.KeysDown[key] || (event->type == SDL_KEYDOWN);
+
             io.KeyShift = ((SDL_GetModState() & KMOD_SHIFT) != 0);
             io.KeyCtrl = ((SDL_GetModState() & KMOD_CTRL) != 0);
             io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
@@ -332,4 +337,13 @@ void ImGui_ImplSDL2_NewFrame(SDL_Window* window)
 
     ImGui_ImplSDL2_UpdateMousePosAndButtons();
     ImGui_ImplSDL2_UpdateMouseCursor();
+
+    if (SDL_HasScreenKeyboardSupport() == SDL_TRUE)
+    {
+      bool isKeyboardOpen = (SDL_IsScreenKeyboardShown(window) == SDL_TRUE);
+      if (io.WantTextInput && !isKeyboardOpen)
+        SDL_StartTextInput();
+      else if (!io.WantTextInput && isKeyboardOpen)
+        SDL_StopTextInput();
+    }
 }
