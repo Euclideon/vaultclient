@@ -17,16 +17,16 @@ const char* const g_udFragmentShader = R"shader(
   {
     float4 u_screenParams;  // sampleStepX, sampleStepSizeY, near plane, far plane
     float4x4 u_inverseViewProjection;
-    
+
     // outlining
     float4 u_outlineColour;
     float4 u_outlineParams;   // outlineWidth, threshold, (unused), (unused)
-    
+
     // colour by height
     float4 u_colourizeHeightColourMin;
     float4 u_colourizeHeightColourMax;
     float4 u_colourizeHeightParams; // min world height, max world height, (unused), (unused)
-    
+
     // colour by depth
     float4 u_colourizeDepthColour;
     float4 u_colourizeDepthParams; // min distance, max distance, (unused), (unused)
@@ -64,7 +64,7 @@ const char* const g_udFragmentShader = R"shader(
     float ld2 = linearizeDepth(texture1.Sample(sampler1, uv - sampleOffsets.xz).x);
     float ld3 = linearizeDepth(texture1.Sample(sampler1, uv + sampleOffsets.zy).x);
     float ld4 = linearizeDepth(texture1.Sample(sampler1, uv - sampleOffsets.zy).x);
-    
+
     float isEdge = 1.0 - step(ld0 - ld1, edgeOutlineThreshold) * step(ld0 - ld2, edgeOutlineThreshold) * step(ld0 - ld3, edgeOutlineThreshold) * step(ld0 - ld4, edgeOutlineThreshold);
 
     float3 edgeColour = lerp(col.xyz, u_outlineColour.xyz, u_outlineColour.w);
@@ -75,18 +75,18 @@ const char* const g_udFragmentShader = R"shader(
   {
     float contourDistance = u_contourParams.x;
     float contourBandHeight = u_contourParams.y;
-  
+
     float isCountour = step(contourBandHeight, fmod(fragWorldPosition.z, contourDistance));
     float3 contourColour = lerp(col.xyz, u_contourColour.xyz, u_contourColour.w);
     return lerp(contourColour, col.xyz, isCountour);
   }
 
   float3 colourizeByHeight(float3 col, float3 fragWorldPosition)
-  { 
+  {
     float2 worldColourMinMax = u_colourizeHeightParams.xy;
 
     float minMaxColourStrength = getNormalizedPosition(fragWorldPosition.z, worldColourMinMax.x, worldColourMinMax.y);
-    
+
     float3 minColour = lerp(col.xyz, u_colourizeHeightColourMin.xyz, u_colourizeHeightColourMin.w);
     float3 maxColour = lerp( col.xyz, u_colourizeHeightColourMax.xyz,u_colourizeHeightColourMax.w);
     return lerp(minColour, maxColour, minMaxColourStrength);
@@ -95,7 +95,7 @@ const char* const g_udFragmentShader = R"shader(
   float3 colourizeByDepth(float3 col, float depth)
   {
     float farPlane = u_screenParams.w;
-    float linearDepth = linearizeDepth(depth) * farPlane;   
+    float linearDepth = linearizeDepth(depth) * farPlane;
     float2 depthColourMinMax = u_colourizeDepthParams.xy;
 
     float depthColourStrength = getNormalizedPosition(linearDepth, depthColourMinMax.x, depthColourMinMax.y);
@@ -115,14 +115,14 @@ const char* const g_udFragmentShader = R"shader(
 
     col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
     col.xyz = colourizeByDepth(col.xyz, depth);
-   
+
     float edgeOutlineWidth = u_outlineParams.x;
     if (edgeOutlineWidth > 0.0)
       col.xyz = edgeHighlight(col.xyz, input.uv, depth);
 
     col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
 
-    output.Color0 = col; 
+    output.Color0 = float4(col.xyz, 1.0);// UD always opaque
     output.Depth0 = depth * 2.0 - 1;
     return output;
   }
@@ -164,7 +164,8 @@ const char* const g_terrainTileFragmentShader = R"shader(
 
   float4 main(PS_INPUT input) : SV_Target
   {
-    return texture0.Sample(sampler0, input.uv) * input.colour;
+    float4 col = texture0.Sample(sampler0, input.uv);
+    return float4(col.xyz * input.colour.xyz, 1.0) * input.colour.w;
   }
 )shader";
 
