@@ -16,14 +16,6 @@ enum vcCameraPivotMode
   vcCPM_Pan,
 };
 
-enum vcControlMode
-{
-  vcCM_Normal,
-  vcCM_Zoom,
-  vcCM_Measure,
-};
-
-
 struct vcCamera
 {
   udDouble3 position;
@@ -46,7 +38,6 @@ enum vcInputState
 
 struct vcCameraInput
 {
-  vcControlMode controlMode;
   bool isFocused;
 
   vcInputState inputState;

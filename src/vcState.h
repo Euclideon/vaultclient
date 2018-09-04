@@ -36,7 +36,6 @@ struct vcState
   bool onScreenControls;
 
   bool popupTrigger[vcPopupCount];
-  vcControlMode controlMode;
 
   vcCamera *pCamera;
 
