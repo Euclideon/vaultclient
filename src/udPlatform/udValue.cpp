@@ -379,10 +379,36 @@ const char *udValue::AsString(const char *pDefaultValue) const
 }
 
 // ****************************************************************************
-// Author: Dave Pevreal, May 2017
-udDouble3 udValue::AsDouble3() const
+// Author: Dave Pevreal, August 2018
+udFloat3 udValue::AsFloat3(const udFloat3 &defaultValue) const
 {
-  udDouble3 ret = udDouble3::zero();
+  udFloat3 ret = defaultValue;
+  if (type == T_Array && u.pArray->length >= ret.ElementCount)
+  {
+    for (size_t i = 0; i < ret.ElementCount; ++i)
+      ret[i] = u.pArray->GetElement(i)->AsFloat();
+  }
+  return ret;
+}
+
+// ****************************************************************************
+// Author: Dave Pevreal, August 2018
+udFloat4 udValue::AsFloat4(const udFloat4 &defaultValue) const
+{
+  udFloat4 ret = defaultValue;
+  if (type == T_Array && u.pArray->length >= ret.ElementCount)
+  {
+    for (size_t i = 0; i < ret.ElementCount; ++i)
+      ret[i] = u.pArray->GetElement(i)->AsFloat();
+  }
+  return ret;
+}
+
+// ****************************************************************************
+// Author: Dave Pevreal, May 2017
+udDouble3 udValue::AsDouble3(const udDouble3 &defaultValue) const
+{
+  udDouble3 ret = defaultValue;
   if (type == T_Array && u.pArray->length >= ret.ElementCount)
   {
     for (size_t i = 0; i < ret.ElementCount; ++i)
@@ -393,9 +419,9 @@ udDouble3 udValue::AsDouble3() const
 
 // ****************************************************************************
 // Author: Dave Pevreal, May 2017
-udDouble4 udValue::AsDouble4() const
+udDouble4 udValue::AsDouble4(const udDouble4 &defaultValue) const
 {
-  udDouble4 ret = udDouble4::zero();
+  udDouble4 ret = defaultValue;
   if (type == T_Array && u.pArray->length >= ret.ElementCount)
   {
     for (size_t i = 0; i < ret.ElementCount; ++i)
@@ -406,9 +432,9 @@ udDouble4 udValue::AsDouble4() const
 
 // ****************************************************************************
 // Author: Dave Pevreal, May 2017
-udQuaternion<double> udValue::AsQuaternion() const
+udQuaternion<double> udValue::AsQuaternion(const udQuaternion<double> &defaultValue) const
 {
-  udQuaternion<double> ret = udQuaternion<double>::identity();
+  udQuaternion<double> ret = defaultValue;
   if (type == T_Array && u.pArray->length >= ret.ElementCount)
   {
     for (size_t i = 0; i < ret.ElementCount; ++i)
@@ -419,9 +445,9 @@ udQuaternion<double> udValue::AsQuaternion() const
 
 // ****************************************************************************
 // Author: Dave Pevreal, May 2017
-udDouble4x4 udValue::AsDouble4x4() const
+udDouble4x4 udValue::AsDouble4x4(const udDouble4x4 &defaultValue) const
 {
-  udDouble4x4 ret = udDouble4x4::identity();
+  udDouble4x4 ret = defaultValue;
   switch (ArrayLength())
   {
     case 9:
@@ -977,7 +1003,11 @@ udResult udValue::Parse(const char *pString, int *pCharCount, int *pLineNumber)
     }
     else
     {
-      UD_ERROR_SET(udR_ParseError);
+      // Don't flag an error when nothing to parse
+      if ((totalCharCount + charCount) == 0)
+        UD_ERROR_SET_NO_BREAK(udR_ParseError);
+      else
+        UD_ERROR_SET(udR_ParseError);
     }
     totalCharCount += charCount;
   }
@@ -1228,7 +1258,7 @@ udResult udValue::ExportXML(const char *pKey, udValue::LineList *pLines, int ind
         }
 
         // Create opening tag, optionally self-closing it if there's nothing else to add to it
-        result = udSprintf(&pStr, "%*s<%s%s", indent, "", pKeyText, (!attributeCount && !subObjectCount && !pContentString) ? "/>" : "");
+        result = udSprintf(&pStr, "%*s<%s%s", indent, "", pKeyText, (!attributeCount && !subObjectCount && !pContentString) ? "/>" : (!attributeCount) ? ">" : "");
         UD_ERROR_HANDLE();
         // Export all the attributes to a separate list to be combined to a single line
         LineList attributeLines;

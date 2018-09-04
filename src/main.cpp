@@ -921,7 +921,7 @@ void vcRenderWindow(vcState *pProgramState)
       headers[0].size = (float)col1Size;
 
 
-      ImGui::Columns(UDARRAYSIZE(headers), "ModelTableColumns", true);
+      ImGui::Columns((int)udLengthOf(headers), "ModelTableColumns", true);
       ImGui::Separator();
 
       float offset = 0.f;
@@ -1113,15 +1113,15 @@ void vcRenderWindow(vcState *pProgramState)
         const char *mouseModes[] = { "Tumble", "Orbit", "Pan" };
 
         int mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[0];
-        ImGui::Combo("Left", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
+        ImGui::Combo("Left", &mouseBindingIndex, mouseModes, (int)udLengthOf(mouseModes));
         pProgramState->settings.camera.cameraMouseBindings[0] = (vcCameraPivotMode)mouseBindingIndex;
 
         mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[2];
-        ImGui::Combo("Middle", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
+        ImGui::Combo("Middle", &mouseBindingIndex, mouseModes, (int)udLengthOf(mouseModes));
         pProgramState->settings.camera.cameraMouseBindings[2] = (vcCameraPivotMode)mouseBindingIndex;
 
         mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[1];
-        ImGui::Combo("Right", &mouseBindingIndex, mouseModes, UDARRAYSIZE(mouseModes));
+        ImGui::Combo("Right", &mouseBindingIndex, mouseModes, (int)udLengthOf(mouseModes));
         pProgramState->settings.camera.cameraMouseBindings[1] = (vcCameraPivotMode)mouseBindingIndex;
       }
 
@@ -1214,7 +1214,7 @@ void vcRenderWindow(vcState *pProgramState)
       if (ImGui::CollapsingHeader("Visualization##Settings"))
       {
         const char *visualizationModes[] = { "Colour", "Intensity", "Classification" };
-        ImGui::Combo("Display Mode", (int*)&pProgramState->settings.visualization.mode, visualizationModes, UDARRAYSIZE(visualizationModes));
+        ImGui::Combo("Display Mode", (int*)&pProgramState->settings.visualization.mode, visualizationModes, (int)udLengthOf(visualizationModes));
 
         if (pProgramState->settings.visualization.mode == vcVM_Intensity)
         {

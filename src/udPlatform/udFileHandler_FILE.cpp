@@ -113,12 +113,9 @@ udResult udFileHandler_FILEOpen(udFile **ppFile, const char *pFilename, udFileOp
   if (!(flags & udFOF_FastOpen)) // With FastOpen flag, just don't open the file, let the first read do that
   {
     pFile->pCrtFile = OpenWithFlags(pFilename, flags);
+    // File open failures shouldn't trigger breakpoints with BREAK_ON_ERROR defined.
     if (!pFile->pCrtFile)
-    {
-      // Do this the manual way so that file open failures don't trigger breakpoints with BREAK_ON_ERROR defined.
-      result = udR_OpenFailure;
-      goto epilogue;
-    }
+      UD_ERROR_SET_NO_BREAK(udR_OpenFailure);
   }
 
   if (flags & udFOF_Multithread)

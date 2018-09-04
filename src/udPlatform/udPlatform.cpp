@@ -2,209 +2,21 @@
 #include "udThread.h"
 #include <stdlib.h>
 #include <string.h>
-#if __MEMORY_DEBUG__
-# if defined(_MSC_VER)
-#   pragma warning(disable:4530) //  C++ exception handler used, but unwind semantics are not enabled.
-# endif
-#include <map>
 
-size_t gAddressToBreakOnAllocation = (size_t)-1;
-size_t gAllocationCount = 0;
-size_t gAllocationCountToBreakOn = (size_t)-1;
-size_t gAddressToBreakOnFree = (size_t)-1;
-
-struct MemTrack
-{
-  void *pMemory;
-  size_t size;
-  const char *pFile;
-  int line;
-  size_t allocationNumber;
-};
-
-typedef std::map<size_t, MemTrack> MemTrackMap;
-
-static MemTrackMap *pMemoryTrackingMap;
-
-static udMutex *pMemoryTrackingMutex;
-
-// ----------------------------------------------------------------------------
-// Author: David Ely
-void udValidateHeap()
-{
 #if UDPLATFORM_WINDOWS
-  UDASSERT(_heapchk() == _HEAPOK, "Heap not valid");
-#endif // UDPLATFORM_WINDOWS
-}
-
-// ----------------------------------------------------------------------------
-// Author: David Ely
-void udMemoryDebugTrackingInit()
-{
-  if (pMemoryTrackingMutex)
-  {
-    return;
-  }
-#if UDPLATFORM_LINUX || UDPLATFORM_NACL || UDPLATFORM_OSX
-  {
-    pthread_mutex_t *mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
-    if (mutex)
-    {
-      pthread_mutex_init(mutex, NULL);
-    }
-    pMemoryTrackingMutex = (udMutex*)mutex;
-  }
-#else
-  pMemoryTrackingMutex = udCreateMutex();
+# include <crtdbg.h>
 #endif
-  if (!pMemoryTrackingMutex)
-  {
-    PRINT_ERROR_STRING("Failed to create memory tracking mutex\n");
-  }
 
-  if (!pMemoryTrackingMap)
-  {
-    pMemoryTrackingMap = new MemTrackMap;
-  }
-}
-
-// ----------------------------------------------------------------------------
-// Author: David Ely
-void udMemoryDebugTrackingDeinit()
-{
-  UDASSERT(pMemoryTrackingMap, "pMemoryTrackingMap is NULL");
-
-  udLockMutex(pMemoryTrackingMutex);
-
-  delete pMemoryTrackingMap;
-  pMemoryTrackingMap = NULL;
-
-  udReleaseMutex(pMemoryTrackingMutex);
-
-#if UDPLATFORM_LINUX || UDPLATFORM_NACL || UDPLATFORM_OSX
-  pthread_mutex_t *mutex = (pthread_mutex_t *)pMemoryTrackingMutex;
-  pthread_mutex_destroy(mutex);
-  free(pMemoryTrackingMutex);
-  pMemoryTrackingMutex = nullptr;
-#else
-  udDestroyMutex(&pMemoryTrackingMutex);
-#endif
-}
-
-// ----------------------------------------------------------------------------
-// Author: David Ely
-void udMemoryOutputLeaks()
-{
-  if (pMemoryTrackingMap)
-  {
-    udScopeLock scopeLock(pMemoryTrackingMutex);
-
-    if (pMemoryTrackingMap->size() > 0)
-    {
-      udDebugPrintf("%d Allocations\n", uint32_t(gAllocationCount));
-
-      udDebugPrintf("%d Memory leaks detected\n", pMemoryTrackingMap->size());
-      for (MemTrackMap::iterator memIt = pMemoryTrackingMap->begin(); memIt != pMemoryTrackingMap->end(); ++memIt)
-      {
-        const MemTrack &track = memIt->second;
-        udDebugPrintf("%s(%d): Allocation %d Address 0x%p, size %u\n", track.pFile, track.line, (void*)track.allocationNumber, track.pMemory, track.size);
-      }
-    }
-    else
-    {
-      udDebugPrintf("All tracked allocations freed\n");
-    }
-  }
-}
-
-// ----------------------------------------------------------------------------
-// Author: David Ely
-void udMemoryOutputAllocInfo(void *pAlloc)
-{
-  udScopeLock scopeLock(pMemoryTrackingMutex);
-
-  const MemTrack &track = (*pMemoryTrackingMap)[size_t(pAlloc)];
-  udDebugPrintf("%s(%d): Allocation 0x%p Address 0x%p, size %u\n", track.pFile, track.line, (void*)track.allocationNumber, track.pMemory, track.size);
-}
-
-static void DebugTrackMemoryAlloc(void *pMemory, size_t size, const char * pFile, int line)
-{
-  if (gAddressToBreakOnAllocation == (uint64_t)pMemory || gAllocationCount == gAllocationCountToBreakOn)
-  {
-    udDebugPrintf("Allocation 0x%p address 0x%p, at File %s, line %d", (void*)gAllocationCount, pMemory, pFile, line);
-    __debugbreak();
-  }
-
-  if (pMemoryTrackingMutex)
-  {
-    udScopeLock scopeLock(pMemoryTrackingMutex);
-    MemTrack track = { pMemory, size, pFile, line, gAllocationCount };
-
-    if (pMemoryTrackingMap->find(size_t(pMemory)) != pMemoryTrackingMap->end())
-    {
-      udDebugPrintf("Tracked allocation already exists %p at File %s, line %d", pMemory, pFile, line);
-      __debugbreak();
-    }
-
-    (*pMemoryTrackingMap)[size_t(pMemory)] = track;
-    ++gAllocationCount;
-  }
-}
-
-// ----------------------------------------------------------------------------
-// Author: David Ely
-static void DebugTrackMemoryFree(void *pMemory, const char * pFile, int line)
-{
-  if (gAddressToBreakOnFree == (uint64_t)pMemory)
-  {
-    udDebugPrintf("Allocation 0x%p address 0x%p, at File %s, line %d", (void*)gAllocationCount, pMemory, pFile, line);
-    __debugbreak();
-  }
-
-  if (pMemoryTrackingMutex)
-  {
-    udScopeLock scopelock(pMemoryTrackingMutex);
-
-    MemTrackMap::iterator it = pMemoryTrackingMap->find(size_t(pMemory));
-    if (it == pMemoryTrackingMap->end())
-    {
-      udDebugPrintf("Error freeing address %p at File %s, line %d, did not find a matching allocation", pMemory, pFile, line);
-      //__debugbreak();
-      goto epilogue;
-    }
-    UDASSERT(it->second.pMemory == (pMemory), "Pointers didn't match");
-    pMemoryTrackingMap->erase(it);
-  }
-
-epilogue:
-  return;
-}
-
-void udMemoryDebugLogMemoryStats()
-{
-  udDebugPrintf("Memory Stats\n");
-
-  size_t totalMemory = 0;
-  for (MemTrackMap::iterator memIt = pMemoryTrackingMap->begin(); memIt != pMemoryTrackingMap->end(); ++memIt)
-  {
-    const MemTrack &track = memIt->second;
-    totalMemory += track.size;
-  }
-
-  udDebugPrintf("Total allocated Memory %llu\n", totalMemory);
-}
-
-#else
-# define DebugTrackMemoryAlloc(pMemory, size, pFile, line)
-# define DebugTrackMemoryFree(pMemory, pFile, line)
-#endif // __MEMORY_DEBUG__
+#define __BREAK_ON_MEMORY_ALLOCATION_FAILURE 0
+#define DebugTrackMemoryAlloc(pMemory, size, pFile, line) udUnused(pMemory); udUnused(size); udUnused(pFile); udUnused(line);
+#define DebugTrackMemoryFree(pMemory, pFile, line) udUnused(pMemory); udUnused(pFile); udUnused(line);
 
 
 // ----------------------------------------------------------------------------
 // Author: Bryce Kiefer, March 2017
-void *_udMemDup(const void *pMemory, size_t size, size_t additionalBytes, udAllocationFlags flags IF_MEMORY_DEBUG(const char * pFile, int line))
+void *_udMemDup(const void *pMemory, size_t size, size_t additionalBytes, udAllocationFlags flags, const char *pFile, int line)
 {
-  void *pDuplicated = _udAlloc(size + additionalBytes, udAF_None IF_MEMORY_DEBUG(pFile, line));
+  void *pDuplicated = _udAlloc(size + additionalBytes, udAF_None, pFile, line);
   memcpy(pDuplicated, pMemory, size);
 
   if (flags & udAF_Zero)
@@ -216,10 +28,10 @@ void *_udMemDup(const void *pMemory, size_t size, size_t additionalBytes, udAllo
 #define UD_DEFAULT_ALIGNMENT (8)
 // ----------------------------------------------------------------------------
 // Author: David Ely
-void *_udAlloc(size_t size, udAllocationFlags flags IF_MEMORY_DEBUG(const char * pFile, int line))
+void *_udAlloc(size_t size, udAllocationFlags flags, const char *pFile, int line)
 {
 #if defined(_MSC_VER)
-  void *pMemory = (flags & udAF_Zero) ? _aligned_recalloc(nullptr, size, 1, UD_DEFAULT_ALIGNMENT) : _aligned_malloc(size, UD_DEFAULT_ALIGNMENT);
+  void *pMemory = (flags & udAF_Zero) ? _aligned_recalloc_dbg(nullptr, size, 1, UD_DEFAULT_ALIGNMENT, pFile, line) : _aligned_malloc_dbg(size, UD_DEFAULT_ALIGNMENT, pFile, line);
 #else
   void *pMemory = (flags & udAF_Zero) ? calloc(size, 1) : malloc(size);
 #endif // defined(_MSC_VER)
@@ -238,10 +50,10 @@ void *_udAlloc(size_t size, udAllocationFlags flags IF_MEMORY_DEBUG(const char *
 
 // ----------------------------------------------------------------------------
 // Author: David Ely
-void *_udAllocAligned(size_t size, size_t alignment, udAllocationFlags flags IF_MEMORY_DEBUG(const char * pFile, int line))
+void *_udAllocAligned(size_t size, size_t alignment, udAllocationFlags flags, const char *pFile, int line)
 {
 #if defined(_MSC_VER)
-  void *pMemory =  (flags & udAF_Zero) ? _aligned_recalloc(nullptr, size, 1, alignment) : _aligned_malloc(size, alignment);
+  void *pMemory =  (flags & udAF_Zero) ? _aligned_recalloc_dbg(nullptr, size, 1, alignment, pFile, line) : _aligned_malloc_dbg(size, alignment, pFile, line);
 
 #if __BREAK_ON_MEMORY_ALLOCATION_FAILURE
   if (!pMemory)
@@ -278,16 +90,11 @@ void *_udAllocAligned(size_t size, size_t alignment, udAllocationFlags flags IF_
 
 // ----------------------------------------------------------------------------
 // Author: David Ely
-void *_udRealloc(void *pMemory, size_t size IF_MEMORY_DEBUG(const char * pFile, int line))
+void *_udRealloc(void *pMemory, size_t size, const char *pFile, int line)
 {
-#if __MEMORY_DEBUG__
-  if (pMemory)
-  {
-    DebugTrackMemoryFree(pMemory, pFile, line);
-  }
-#endif
+  DebugTrackMemoryFree(pMemory, pFile, line);
 #if defined(_MSC_VER)
-  pMemory =  _aligned_realloc(pMemory, size, UD_DEFAULT_ALIGNMENT);
+  pMemory =  _aligned_realloc_dbg(pMemory, size, UD_DEFAULT_ALIGNMENT, pFile, line);
 #else
   pMemory = realloc(pMemory, size);
 #endif // defined(_MSC_VER)
@@ -307,17 +114,11 @@ void *_udRealloc(void *pMemory, size_t size IF_MEMORY_DEBUG(const char * pFile, 
 
 // ----------------------------------------------------------------------------
 // Author: David Ely
-void *_udReallocAligned(void *pMemory, size_t size, size_t alignment IF_MEMORY_DEBUG(const char * pFile, int line))
+void *_udReallocAligned(void *pMemory, size_t size, size_t alignment, const char *pFile, int line)
 {
-#if __MEMORY_DEBUG__
-  if (pMemory)
-  {
-    DebugTrackMemoryFree(pMemory, pFile, line);
-  }
-#endif
-
+  DebugTrackMemoryFree(pMemory, pFile, line);
 #if defined(_MSC_VER)
-  pMemory = _aligned_realloc(pMemory, size, alignment);
+  pMemory = _aligned_realloc_dbg(pMemory, size, alignment, pFile, line);
 #if __BREAK_ON_MEMORY_ALLOCATION_FAILURE
   if (!pMemory)
   {
@@ -330,15 +131,15 @@ void *_udReallocAligned(void *pMemory, size_t size, size_t alignment IF_MEMORY_D
 #elif defined(__GNUC__)
   if (!pMemory)
   {
-    pMemory = udAllocAligned(size, alignment, udAF_None IF_MEMORY_DEBUG(pFile, line));
+    pMemory = _udAllocAligned(size, alignment, udAF_None, pFile, line);
   }
   else
   {
-    void *pNewMem = udAllocAligned(size, alignment, udAF_None IF_MEMORY_DEBUG(pFile, line));
+    void *pNewMem = _udAllocAligned(size, alignment, udAF_None, pFile, line);
 
     size_t *pSize = (size_t*)((uint8_t*)pMemory - sizeof(size_t));
     memcpy(pNewMem, pMemory, *pSize);
-    udFree(pMemory IF_MEMORY_DEBUG(pFile, line));
+    _udFree(pMemory, pFile, line);
 
     return pNewMem;
   }
@@ -351,11 +152,11 @@ void *_udReallocAligned(void *pMemory, size_t size, size_t alignment IF_MEMORY_D
 
 // ----------------------------------------------------------------------------
 // Author: David Ely
-void _udFreeInternal(void * pMemory IF_MEMORY_DEBUG(const char * pFile, int line))
+void _udFreeInternal(void * pMemory, const char *pFile, int line)
 {
   DebugTrackMemoryFree(pMemory, pFile, line);
 #if defined(_MSC_VER)
-  _aligned_free(pMemory);
+  _aligned_free_dbg(pMemory);
 #else
   free(pMemory);
 #endif // defined(_MSC_VER)

@@ -3,6 +3,7 @@
 #include "udFile.h"
 #include "udMath.h"
 #include "udValue.h"
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1480,39 +1481,31 @@ error:
 // Author: Dave Pevreal, August 2014
 udResult udLoadBMP(const char *pFilename, int *pWidth, int *pHeight, uint32_t **ppColorData)
 {
-  if (!pFilename || !pWidth || !pHeight || !ppColorData)
-    return udR_InvalidParameter_;
+  udResult result;
   udBMPHeader header = { 0 };
   udFile *pFile = nullptr;
   uint8_t *pColors = nullptr;
   uint8_t *pLine = nullptr;
   int paddedLineSize;
-  udResult result;
 
-  result = udFile_Open(&pFile, pFilename, udFOF_Read);
-  if (result != udR_Success)
-    goto epilogue;
-  result = udFile_Read(pFile, &header, sizeof(header));
-  if (result != udR_Success)
-    goto epilogue;
+  UD_ERROR_NULL(pFilename, udR_InvalidParameter_);
+  UD_ERROR_NULL(ppColorData, udR_InvalidParameter_);
+  UD_ERROR_IF(!pWidth || !pHeight, udR_InvalidParameter_);
+
+  UD_ERROR_CHECK(udFile_Open(&pFile, pFilename, udFOF_Read));
+  UD_ERROR_CHECK(udFile_Read(pFile, &header, sizeof(header)));
 
   *pWidth = header.biWidth;
   *pHeight = header.biHeight;
   paddedLineSize = (*pWidth * 3 + 3) & ~3;
   pColors = udAllocType(uint8_t, *pWidth * *pHeight * 4, udAF_None);
+  UD_ERROR_NULL(pColors, udR_MemoryAllocationFailure);
   pLine = udAllocType(uint8_t, paddedLineSize, udAF_None);
-  if (!pColors || !pLine)
-  {
-    result = udR_MemoryAllocationFailure;
-    goto epilogue;
-  }
+  UD_ERROR_NULL(pLine, udR_MemoryAllocationFailure);
 
   for (int y = *pHeight - 1; y >= 0 ; --y)
   {
-    result = udFile_Read(pFile, pLine, paddedLineSize);
-    if (result != udR_Success)
-      goto epilogue;
-
+    UD_ERROR_CHECK(udFile_Read(pFile, pLine, paddedLineSize));
     uint8_t *p = pColors + y * *pWidth * 4;
     for (int x = 0; x < *pWidth; ++x)
     {
@@ -1703,11 +1696,7 @@ udResult udOpenDir(udFindDir **ppFindDir, const char *pFolder)
   udFindDirData *pFindData = nullptr;
 
   pFindData = udAllocType(udFindDirData, 1, udAF_Zero);
-  if (!pFindData)
-  {
-    result = udR_MemoryAllocationFailure;
-    goto epilogue;
-  }
+  UD_ERROR_NULL(pFindData, udR_MemoryAllocationFailure);
 
 #if UDPLATFORM_WINDOWS
   {
@@ -1715,31 +1704,18 @@ udResult udOpenDir(udFindDir **ppFindDir, const char *pFolder)
     fn.SetFolder(pFolder);
     fn.SetFilenameWithExt("*.*");
     pFindData->hFind = FindFirstFileW(udOSString(fn.GetPath()), &pFindData->findFileData);
-    if (pFindData->hFind == INVALID_HANDLE_VALUE)
-    {
-      result = udR_OpenFailure;
-      goto epilogue;
-    }
+    UD_ERROR_IF(pFindData->hFind == INVALID_HANDLE_VALUE, udR_OpenFailure);
     pFindData->SetMembers();
   }
 #elif UDPLATFORM_LINUX || UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS || UDPLATFORM_ANDROID
   pFindData->pDir = opendir(pFolder);
-  if (!pFindData->pDir)
-  {
-    result = udR_OpenFailure;
-    goto epilogue;
-  }
+  UD_ERROR_NULL(pFindData->pDir, udR_OpenFailure);
   pFindData->pDirent = readdir(pFindData->pDir);
-  if (!pFindData->pDirent)
-  {
-    result = udR_ObjectNotFound;
-    goto epilogue;
-  }
+  UD_ERROR_NULL(pFindData->pDirent, udR_ObjectNotFound);
   pFindData->SetMembers();
 #elif UDPLATFORM_NACL
   // TODO: See if this implementation is required
-  result = udR_ObjectNotFound;
-  goto epilogue;
+  UD_ERROR_SET(udR_ObjectNotFound);
 #else
   #error "Unsupported Platform"
 #endif
@@ -1765,17 +1741,13 @@ udResult udReadDir(udFindDir *pFindDir)
 #if UDPLATFORM_WINDOWS
   udFindDirData *pFindData = static_cast<udFindDirData *>(pFindDir);
   if (!FindNextFileW(pFindData->hFind, &pFindData->findFileData))
-  {
     return udR_ObjectNotFound;
-  }
   pFindData->SetMembers();
 #elif UDPLATFORM_LINUX || UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS || UDPLATFORM_ANDROID
   udFindDirData *pFindData = static_cast<udFindDirData *>(pFindDir);
   pFindData->pDirent = readdir(pFindData->pDir);
   if (!pFindData->pDirent)
-  {
     return udR_ObjectNotFound;
-  }
   pFindData->SetMembers();
 #elif UDPLATFORM_NACL
   // Do nothing
