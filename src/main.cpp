@@ -470,6 +470,8 @@ int main(int /*argc*/, char ** /*args*/)
 
     if (ImGui::GetIO().WantSaveIniSettings)
       vcSettings_Save(&programState.settings);
+
+    ImGui::GetIO().KeysDown[SDL_SCANCODE_BACKSPACE] = false;
   }
 
   vcSettings_Save(&programState.settings);
