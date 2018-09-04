@@ -209,7 +209,13 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
       desc.RenderTarget[0].SrcBlend = D3D11_BLEND_DEST_COLOR;
       desc.RenderTarget[0].DestBlend = D3D11_BLEND_ZERO;
     }
-
+    else if (blendMode == vcGLSBM_AdditiveSrcInterpolativeDst)
+    {
+      desc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+      desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+      desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+      desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+    }
     g_pd3dDevice->CreateBlendState(&desc, &g_pBlendState);
 
     s_internalState.blendMode = blendMode;

@@ -128,6 +128,8 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
         glBlendFunc(GL_ONE, GL_ONE);
       else if (blendMode == vcGLSBM_Multiplicative)
         glBlendFunc(GL_DST_COLOR, GL_ZERO);
+      else if (blendMode == vcGLSBM_AdditiveSrcInterpolativeDst)
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     }
 
     s_internalState.blendMode = blendMode;
