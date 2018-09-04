@@ -299,13 +299,13 @@ int main(int /*argc*/, char ** /*args*/)
 
   // default string values.
   udStrcpy(programState.serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
-  udStrcpy(programState.modelPath, vcMaxPathLength, "http://10.4.0.151/AdelaideCBD_2cm.uds");
+  udStrcpy(programState.modelPath, vcMaxPathLength, "http://vau-win-van-001.euclideon.local/AdelaideCBD_2cm.uds");
 
   programState.settings.maptiles.mapEnabled = true;
   programState.settings.maptiles.mapHeight = 0.f;
   programState.settings.maptiles.transparency = 1.f;
   udStrcpy(programState.settings.maptiles.tileServerAddress, vcMaxPathLength, "http://10.4.0.151:8123");
-  udStrcpy(programState.settings.resourceBase, vcMaxPathLength, "http://10.4.0.151");
+  udStrcpy(programState.settings.resourceBase, vcMaxPathLength, "http://vau-win-van-001.euclideon.local");
 
   vcConvert_Init(&programState);
 
