@@ -35,6 +35,11 @@
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
 
+#ifdef _WIN32
+#include <Windows.h>
+#include <imm.h>
+#endif
+
 // SDL
 // (the multi-viewports feature requires SDL features supported from SDL 2.0.5+)
 #include <SDL2/SDL.h>
@@ -65,6 +70,32 @@ static const char* ImGui_ImplSDL2_GetClipboardText(void*)
 static void ImGui_ImplSDL2_SetClipboardText(void*, const char* text)
 {
     SDL_SetClipboardText(text);
+}
+
+static void ImGui_ImplSDL2_ImeSetInputScreenPos(int x, int y)
+{
+  SDL_Rect rect = { x, y, 0, 0 };
+  SDL_SetTextInputRect(&rect);
+}
+
+SDL_Window* ImGui_ImplSDL2_CreateWindow(const char* title, int x, int y, int w, int h, ImU32 flags)
+{
+  SDL_Window* window = SDL_CreateWindow(title, x, y, w, h, (Uint32)(flags | SDL_WINDOW_HIDDEN));
+
+  if (window)
+  {
+#ifdef _WIN32
+    SDL_SysWMinfo wmInfo;
+    SDL_VERSION(&wmInfo.version);
+    SDL_GetWindowWMInfo(window, &wmInfo);
+    ImmAssociateContext((HWND)wmInfo.info.win.window, 0);
+#endif
+
+    if (!(flags & SDL_WINDOW_HIDDEN))
+      SDL_ShowWindow(window);
+  }
+
+  return window;
 }
 
 // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
@@ -108,6 +139,20 @@ bool ImGui_ImplSDL2_ProcessEvent(SDL_Event* event)
             io.KeySuper = ((SDL_GetModState() & KMOD_GUI) != 0);
             return true;
         }
+    case SDL_WINDOWEVENT:
+      if (event->window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
+      {
+        SDL_Window* window = SDL_GetWindowFromID(event->window.windowID);
+        if (window)
+        {
+#ifdef _WIN32
+          SDL_SysWMinfo wmInfo;
+          SDL_VERSION(&wmInfo.version);
+          SDL_GetWindowWMInfo(window, &wmInfo);
+          ImmAssociateContextEx((HWND)wmInfo.info.win.window, 0, IACE_DEFAULT);
+#endif
+        }
+      }
     }
     return false;
 }
@@ -147,6 +192,7 @@ static bool    ImGui_ImplSDL2_Init(SDL_Window* window)
     io.SetClipboardTextFn = ImGui_ImplSDL2_SetClipboardText;
     io.GetClipboardTextFn = ImGui_ImplSDL2_GetClipboardText;
     io.ClipboardUserData = NULL;
+    io.ImeSetInputScreenPosFn = ImGui_ImplSDL2_ImeSetInputScreenPos;
 
     g_MouseCursors[ImGuiMouseCursor_Arrow] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
     g_MouseCursors[ImGuiMouseCursor_TextInput] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);
