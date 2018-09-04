@@ -122,7 +122,7 @@ void main()
   col.xyz = colourizeByDepth(col.xyz, depth);
 
   float edgeOutlineWidth = u_outlineParams.x;
-  if (edgeOutlineWidth > 0.0)
+  if (edgeOutlineWidth > 0.0 && u_outlineColour.w > 0)
   {
     vec4 edgeResult = edgeHighlight(col.xyz, v_texCoord, depth);
     col.xyz = edgeResult.xyz;
@@ -227,13 +227,23 @@ void main()
 const char* const g_PositionNormalFragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec4 v_colour;
+  in vec3 v_normal;
+  in vec4 v_fragClipPosition;
+  in vec3 v_sunDirection;
 
   //Output Format
   out vec4 out_Colour;
 
   void main()
   {
-    out_Colour = v_colour;
+    // fake a reflection vector
+    vec3 fakeEyeVector = normalize(v_fragClipPosition.xyz / v_fragClipPosition.w);
+    vec3 worldNormal = normalize(v_normal * vec3(2.0) - vec3(1.0));
+    float ndotl = 0.5 + 0.5 * -dot(v_sunDirection, worldNormal);
+    float edotr = max(0.0, dot(fakeEyeVector, worldNormal));
+    edotr = pow(edotr, 60.0);
+    vec3 sheenColour = vec3(1.0, 1.0, 0.9);
+    out_Colour = vec4(v_colour.a * (ndotl * v_colour.xyz + edotr * sheenColour), 1.0);
   }
 )shader";
 
@@ -244,19 +254,26 @@ const char* const g_PositionNormalVertexShader = VERT_HEADER R"shader(
 
   //Output Format
   out vec4 v_colour;
+  out vec3 v_normal;
+  out vec4 v_fragClipPosition;
+  out vec3 v_sunDirection;
 
   layout (std140) uniform u_EveryObject
   {
-    mat4 u_projection;
-    vec3 u_eyePosition;
+    mat4 u_viewProjectionMatrix;
+    vec4 u_colour;
     vec3 u_sunDirection;
     float _padding;
   };
 
   void main()
   {
-    gl_Position = u_projection * vec4(a_pos, 1.0);
-    v_colour = vec4((a_normal * 0.5) + 0.5, 1.0);
+    gl_Position = u_viewProjectionMatrix * vec4(a_pos, 1.0);
+
+    v_normal = ((a_normal * 0.5) + 0.5);
+    v_colour = u_colour;
+    v_sunDirection = u_sunDirection;
+    v_fragClipPosition = gl_Position;
   }
 )shader";
 

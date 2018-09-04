@@ -339,12 +339,20 @@ void vcPresentUD(vcRenderContext *pRenderContext)
 
 void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
-  vcGLState_SetDepthMode(vcGLSDM_Always, false);
+  // world compass
+  {
+    udDouble4x4 mvp = pRenderContext->viewProjectionMatrix * udDouble4x4::translation(renderData.pWorldAnchorPos ? *renderData.pWorldAnchorPos : renderData.worldMousePos);
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
+    vcGLState_SetDepthMode(vcGLSDM_Less, false);
+    vcCompass_Render(pRenderContext->pCompass, mvp);
 
-  vcCompass_Render(pRenderContext->pCompass, pRenderContext->projectionMatrix * pRenderContext->viewMatrix * udDouble4x4::translation(renderData.pWorldAnchorPos ? *renderData.pWorldAnchorPos : renderData.worldMousePos));
+    // Render again, this time highlighting any occlusion
+    vcGLState_SetBlendMode(vcGLSBM_Additive);
+    vcGLState_SetDepthMode(vcGLSDM_Greater, false);
+    vcCompass_Render(pRenderContext->pCompass, mvp, udDouble4::create(0.0, 0.15, 1.0, 0.5));
 
-  vcGLState_ResetState();
+    vcGLState_ResetState();
+  }
 
   if (renderData.pGISSpace->isProjected && pRenderContext->pSettings->maptiles.mapEnabled)
   {
