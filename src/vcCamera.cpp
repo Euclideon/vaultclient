@@ -91,45 +91,16 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
   if (io.KeyShift)
     speedModifier *= 10.f;
 
-  if (isFocused)
+  if (!ImGui::GetIO().WantCaptureKeyboard || isFocused)
   {
-    ImVec2 mouseDelta = io.MouseDelta;
-
     keyboardInput.y += io.KeysDown[SDL_SCANCODE_W] - io.KeysDown[SDL_SCANCODE_S];
     keyboardInput.x += io.KeysDown[SDL_SCANCODE_D] - io.KeysDown[SDL_SCANCODE_A];
     keyboardInput.z += io.KeysDown[SDL_SCANCODE_R] - io.KeysDown[SDL_SCANCODE_F];
+  }
 
-    // keyboard controls for switching control modes
-    switch (pProgramState->cameraInput.controlMode)
-    {
-    case vcCM_Normal:
-      if (ImGui::IsKeyPressed(SDL_SCANCODE_Z, false))
-      {
-        pProgramState->cameraInput.controlMode = vcCM_Zoom;
-      }
-
-      if (ImGui::IsKeyPressed(SDL_SCANCODE_M, false))
-        pProgramState->cameraInput.controlMode = vcCM_Measure;
-
-      break;
-    case vcCM_Zoom:
-      if (ImGui::IsKeyPressed(SDL_SCANCODE_ESCAPE, false))
-      {
-        pProgramState->cameraInput.controlMode = vcCM_Normal;
-        pProgramState->cameraInput.inputState = vcCIS_None;
-      }
-
-      break;
-    case vcCM_Measure:
-      if (ImGui::IsKeyPressed(SDL_SCANCODE_ESCAPE, false))
-      {
-        pProgramState->cameraInput.controlMode = vcCM_Normal;
-        pProgramState->cameraInput.inputState = vcCIS_None;
-      }
-
-      break;
-    }
-
+  if (isFocused)
+  {
+    ImVec2 mouseDelta = io.MouseDelta;
 
     if (keyboardInput != udDouble3::zero() || keyboardInput != udDouble3::zero() || isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]) // if input is detected, TODO: add proper any input detection
     {
@@ -137,115 +108,92 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
         pProgramState->cameraInput.inputState = vcCIS_None;
     }
 
-    switch(pProgramState->cameraInput.controlMode)
+    for (int i = 0; i < 3; ++i)
     {
-    case vcCM_Normal:
-      for (int i = 0; i < 3; ++i)
+      // Single Clicking
+      if (isBtnClicked[i])
       {
-        // Single Clicking
-        if (isBtnClicked[i])
+        switch (pProgramState->settings.camera.cameraMouseBindings[i])
         {
-          switch (pProgramState->settings.camera.cameraMouseBindings[i])
-          {
-          case vcCPM_Orbit:
-            if (pProgramState->pickingSuccess)
-            {
-              pProgramState->cameraInput.focusPoint = pProgramState->worldMousePos;
-              pProgramState->cameraInput.storedRotation = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->cameraInput.focusPoint);
-              pProgramState->cameraInput.inputState = vcCIS_Orbiting;
-            }
-            break;
-          case vcCPM_Tumble:
-            break;
-          case vcCPM_Pan:
-            if (pProgramState->pickingSuccess)
-            {
-              pProgramState->cameraInput.focusPoint = pProgramState->worldMousePos;
-
-            }
-            else
-            {
-              //TODO
-            }
-            pProgramState->cameraInput.inputState = vcCIS_Panning;
-            break;
-          }
-        }
-
-        // Click and Hold
-
-        if (isBtnHeld[i] && !isBtnClicked[i])
-        {
-          mouseInput.x = -mouseDelta.x / 100.0;
-          mouseInput.y = -mouseDelta.y / 100.0;
-          mouseInput.z = 0.0;
-        }
-
-        if(isBtnReleased[i] && pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Orbit)
-        {
-          if (pProgramState->cameraInput.inputState == vcCIS_Orbiting)
-            pProgramState->cameraInput.inputState = vcCIS_None;
-        }
-
-        if (isBtnReleased[i] && pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Pan)
-        {
-          if (pProgramState->cameraInput.inputState == vcCIS_Panning)
-            pProgramState->cameraInput.inputState = vcCIS_None;
-        }
-
-        // Double Clicking
-        if (i == 0 && isBtnDoubleClicked[i]) // if left double clicked
-        {
+        case vcCPM_Orbit:
           if (pProgramState->pickingSuccess)
           {
-            pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
-            pProgramState->cameraInput.startPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
             pProgramState->cameraInput.focusPoint = pProgramState->worldMousePos;
-            pProgramState->cameraInput.progress = 0.0;
+            pProgramState->cameraInput.storedRotation = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->cameraInput.focusPoint);
+            pProgramState->cameraInput.inputState = vcCIS_Orbiting;
           }
-        }
-      }
-      break;
-    case vcCM_Zoom:
-    {
-      if (isBtnClicked[0])
-      {
-        if (pProgramState->pickingSuccess)
-        {
-          pProgramState->cameraInput.focusPoint = pProgramState->worldMousePos;
-          pProgramState->cameraInput.storedRotation = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->cameraInput.focusPoint);
-          pProgramState->cameraInput.inputState = vcCIS_CommandZooming;
+          break;
+        case vcCPM_Tumble:
+          pProgramState->cameraInput.inputState = vcCIS_None;
+          break;
+        case vcCPM_Pan:
+          if (pProgramState->pickingSuccess)
+            pProgramState->cameraInput.focusPoint = pProgramState->worldMousePos;
+          pProgramState->cameraInput.inputState = vcCIS_Panning;
+          break;
         }
       }
 
-      if (isBtnHeld[0] && !isBtnClicked[0])
+      // Click and Hold
+
+      if (isBtnHeld[i] && !isBtnClicked[i])
       {
-        mouseInput.x = 0.0;
+        mouseInput.x = -mouseDelta.x / 100.0;
         mouseInput.y = -mouseDelta.y / 100.0;
         mouseInput.z = 0.0;
       }
 
-      if (isBtnReleased[0])
+      if(isBtnReleased[i] && pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Orbit)
       {
-        pProgramState->cameraInput.inputState = vcCIS_None;
+        if (pProgramState->cameraInput.inputState == vcCIS_Orbiting)
+          pProgramState->cameraInput.inputState = vcCIS_None;
       }
-    }
-    break;
-    case vcCM_Measure:
-    {
-      // TODO: Measuring
-    }
-    break;
+
+      if (isBtnReleased[i] && pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Pan)
+      {
+        if (pProgramState->cameraInput.inputState == vcCIS_Panning)
+          pProgramState->cameraInput.inputState = vcCIS_None;
+      }
+
+      // Double Clicking
+      if (i == 0 && isBtnDoubleClicked[i]) // if left double clicked
+      {
+        if (pProgramState->pickingSuccess)
+        {
+          pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
+          pProgramState->cameraInput.startPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
+          pProgramState->cameraInput.focusPoint = pProgramState->worldMousePos;
+          pProgramState->cameraInput.progress = 0.0;
+        }
+      }
     }
 
     // Mouse Wheel
-    if (io.MouseWheel > 0)
+    const double timeout = 0.25; // How long you have to stop scrolling the scroll wheel before the point unlocks
+    static double previousLockTime = 0.0;
+    double currentTime = ImGui::GetTime();
+
+    if (io.MouseWheel != 0)
     {
-      // TODO: Move closer to point
+      if (previousLockTime < currentTime - timeout && pProgramState->pickingSuccess && pProgramState->cameraInput.inputState == vcCIS_None)
+      {
+        pProgramState->cameraInput.focusPoint = pProgramState->worldMousePos;
+        pProgramState->cameraInput.inputState = vcCIS_CommandZooming;
+      }
+
+      if (pProgramState->cameraInput.inputState == vcCIS_CommandZooming)
+      {
+        pProgramState->cameraInput.storedRotation = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->cameraInput.focusPoint);
+
+        mouseInput.x = 0.0;
+        mouseInput.y = io.MouseWheel / 10.f;
+        mouseInput.z = 0.0;
+        previousLockTime = currentTime;
+      }
     }
-    else if (io.MouseWheel < 0)
+    else if (pProgramState->cameraInput.inputState == vcCIS_CommandZooming && previousLockTime < currentTime - timeout)
     {
-      // TODO: Move away from point
+      pProgramState->cameraInput.inputState = vcCIS_None;
     }
   }
 
@@ -398,11 +346,8 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
   case vcCIS_CommandZooming:
   {
     double distanceToPoint = udMag3(pCamInput->focusPoint - pCamera->position);
-
     udDouble3 towards = udNormalize3(pCamInput->focusPoint - pCamera->position);
-
     udDouble3 addPos = distanceToPoint * pCamInput->mouseInput.y * towards;
-
     pCamera->position += addPos;
   }
   break;
