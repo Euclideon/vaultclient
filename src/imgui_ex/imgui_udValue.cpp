@@ -30,7 +30,7 @@ void vcImGuiValueTree(const char *pMemberName, const udValue *pMember)
 {
   if (pMember->IsArray())
   {
-    if (ImGui::TreeNode(pMember, "%s [%llu items]", pMemberName, pMember->ArrayLength()))
+    if (ImGui::TreeNode(pMember, "%s [%zu items]", pMemberName, pMember->ArrayLength()))
     {
       vcImGuiValueTreeArray(pMember);
       ImGui::TreePop();
