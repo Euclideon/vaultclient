@@ -213,7 +213,7 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
     int width, height, depth;
 
     char fileNameNoExt[256] = "";
-    fileName.ExtractFilenameOnly(fileNameNoExt,UDARRAYSIZE(fileNameNoExt));
+    fileName.ExtractFilenameOnly(fileNameNoExt, (int)udLengthOf(fileNameNoExt));
     udSprintf(pFilePath, filenameLen + 5 + pathLen, "%s%s%s%s", skyboxPath, fileNameNoExt, names[i], fileName.GetExt());
     uint8_t* data = stbi_load(pFilePath, &width, &height, &depth, 0);
 

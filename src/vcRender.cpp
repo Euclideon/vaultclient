@@ -107,8 +107,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   pRenderContext = udAllocType(vcRenderContext, 1, udAF_Zero);
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcSimpleVertexLayout, UDARRAYSIZE(vcSimpleVertexLayout)), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShader.pProgram, g_udVertexShader, g_vcSkyboxFragmentShader, vcSimpleVertexLayout, UDARRAYSIZE(vcSimpleVertexLayout)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcSimpleVertexLayout, (int)udLengthOf(vcSimpleVertexLayout)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShader.pProgram, g_udVertexShader, g_vcSkyboxFragmentShader, vcSimpleVertexLayout, (int)udLengthOf(vcSimpleVertexLayout)), udR_InternalError);
 
   vcMesh_Create(&pRenderContext->pScreenQuadMesh, vcSimpleVertexLayout, 2, qrSqVertices, 4, qrIndices, 6, vcMF_Dynamic);
 

@@ -138,15 +138,17 @@ public:
   bool AsBool(bool defaultValue = false) const;
   int AsInt(int defaultValue = 0) const;
   int64_t AsInt64(int64_t defaultValue = 0) const;
-  float AsFloat(float defaultValue = 0) const;
-  double AsDouble(double defaultValue = 0) const;
+  float AsFloat(float defaultValue = 0.f) const;
+  double AsDouble(double defaultValue = 0.0) const;
   const char *AsString(const char *pDefaultValue = nullptr) const; // Returns "true"/"false" for bools, pDefaultValue for any other non-string
 
-  // Some convenience accessors that expect the udValue to be a array of numbers, returning zero/identity on failure
-  udDouble3 AsDouble3() const;
-  udDouble4 AsDouble4() const;
-  udQuaternion<double> AsQuaternion() const;
-  udDouble4x4 AsDouble4x4() const;
+  // Some convenience accessors that expect the udValue to be a array of numbers
+  udFloat3 AsFloat3(const udFloat3 &defaultValue = udFloat3::zero()) const;
+  udFloat4 AsFloat4(const udFloat4 &defaultValue = udFloat4::zero()) const;
+  udDouble3 AsDouble3(const udDouble3 &defaultValue = udDouble3::zero()) const;
+  udDouble4 AsDouble4(const udDouble4 &defaultValue = udDouble4::zero()) const;
+  udQuaternion<double> AsQuaternion(const udQuaternion<double> &defaultValue = udQuaternion<double>::identity()) const;
+  udDouble4x4 AsDouble4x4(const udDouble4x4 &defaultValue = udDouble4x4::identity()) const;
 
   inline udValueArray *AsArray() const;
   inline udValueObject *AsObject() const;

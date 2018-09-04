@@ -65,17 +65,9 @@ udResult udFile_GetPerformance(udFile *pFile, udFilePerformance *pPerformance);
 
 // Seek and read some data
 udResult udFile_Read(udFile *pFile, void *pBuffer, size_t bufferLength, int64_t seekOffset = 0, udFileSeekWhence seekWhence = udFSW_SeekCur, size_t *pActualRead = nullptr, int64_t *pFilePos = nullptr, udFilePipelinedRequest *pPipelinedRequest = nullptr);
-inline udResult udFile_SeekRead(udFile *pFile, void *pBuffer, size_t bufferLength, int64_t seekOffset = 0, udFileSeekWhence seekWhence = udFSW_SeekCur, size_t *pActualRead = nullptr, int64_t *pFilePos = nullptr, udFilePipelinedRequest *pPipelinedRequest = nullptr)
-{
-  return udFile_Read(pFile, pBuffer, bufferLength, seekOffset, seekWhence, pActualRead, pFilePos, pPipelinedRequest);
-}
 
 // Seek and write some data
 udResult udFile_Write(udFile *pFile, const void *pBuffer, size_t bufferLength, int64_t seekOffset = 0, udFileSeekWhence seekWhence = udFSW_SeekCur, size_t *pActualWritten = nullptr, int64_t *pFilePos = nullptr);
-inline udResult udFile_SeekWrite(udFile *pFile, const void *pBuffer, size_t bufferLength, int64_t seekOffset = 0, udFileSeekWhence seekWhence = udFSW_SeekCur, size_t *pActualWritten = nullptr, int64_t *pFilePos = nullptr)
-{
-  return udFile_Write(pFile, pBuffer, bufferLength, seekOffset, seekWhence, pActualWritten, pFilePos);
-}
 
 // Receive the data for a piped request, returning an error if attempting to receive pipelined requests out of order
 udResult udFile_BlockForPipelinedRequest(udFile *pFile, udFilePipelinedRequest *pPipelinedRequest, size_t *pActualRead = nullptr);

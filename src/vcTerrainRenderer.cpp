@@ -280,10 +280,10 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer, vcSettings *p
   pTerrainRenderer->cache.textures.Init(128);
   pTerrainRenderer->cache.textureLoadList.Init(16);
 
-  for (size_t i = 0; i < UDARRAYSIZE(vcTerrainRenderer::vcTerrainCache::pThreads); ++i)
+  for (size_t i = 0; i < udLengthOf(pTerrainRenderer->cache.pThreads); ++i)
     udThread_Create(&pTerrainRenderer->cache.pThreads[i], (udThreadStart*)vcTerrainRenderer_LoadThread, pTerrainRenderer);
 
-  vcShader_CreateFromText(&pTerrainRenderer->presentShader.pProgram, g_terrainTileVertexShader, g_terrainTileFragmentShader, vcSimpleVertexLayout, UDARRAYSIZE(vcSimpleVertexLayout));
+  vcShader_CreateFromText(&pTerrainRenderer->presentShader.pProgram, g_terrainTileVertexShader, g_terrainTileFragmentShader, vcSimpleVertexLayout, (int)udLengthOf(vcSimpleVertexLayout));
   vcShader_GetConstantBuffer(&pTerrainRenderer->presentShader.pConstantBuffer, pTerrainRenderer->presentShader.pProgram, "u_EveryObject", sizeof(pTerrainRenderer->presentShader.everyObject));
   vcShader_GetSamplerIndex(&pTerrainRenderer->presentShader.uniform_texture, pTerrainRenderer->presentShader.pProgram, "u_texture");
 
@@ -292,9 +292,9 @@ void vcTerrainRenderer_Init(vcTerrainRenderer **ppTerrainRenderer, vcSettings *p
   int indicies[TileIndexResolution * TileIndexResolution * 6];
   vcTerrainRenderer_BuildMeshVertices(verts, indicies, udFloat2::create(0.0f, 0.0f), udFloat2::create(1.0f, 1.0f));
 
-  vcMesh_Create(&pTerrainRenderer->pFullTileMesh, vcTileVertexLayout, UDARRAYSIZE(vcTileVertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6);
+  vcMesh_Create(&pTerrainRenderer->pFullTileMesh, vcTileVertexLayout, (int)udLengthOf(vcTileVertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6);
   for (int i = 0; i < 4; ++i)
-    vcMesh_Create(&pTerrainRenderer->pSubTileMesh[i], vcTileVertexLayout, UDARRAYSIZE(vcTileVertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6);
+    vcMesh_Create(&pTerrainRenderer->pSubTileMesh[i], vcTileVertexLayout, (int)udLengthOf(vcTileVertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6);
 
   uint32_t grayPixel = 0xf3f3f3ff;
   vcTexture_Create(&pTerrainRenderer->pEmptyTileTexture, 1, 1, &grayPixel);
@@ -313,7 +313,7 @@ void vcTerrainRenderer_Destroy(vcTerrainRenderer **ppTerrainRenderer)
   pTerrainRenderer->cache.keepLoading = false;
   udIncrementSemaphore(pTerrainRenderer->cache.pSemaphore);
 
-  for (size_t i = 0; i < UDARRAYSIZE(vcTerrainRenderer::vcTerrainCache::pThreads); ++i)
+  for (size_t i = 0; i < udLengthOf(pTerrainRenderer->cache.pThreads); ++i)
   {
     udThread_Join(pTerrainRenderer->cache.pThreads[i]);
     udThread_Destroy(&pTerrainRenderer->cache.pThreads[i]);
@@ -557,7 +557,7 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
   }
 
   udReleaseMutex(pTerrainRenderer->cache.pMutex);
-  
+
   vcTerrainRenderer_FreeUnusedTiles(pTerrainRenderer);
   vcTerrainRenderer_CleanUpEmptyTiles(pTerrainRenderer);
 }
