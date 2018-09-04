@@ -83,29 +83,21 @@ inline udResult udChunkedArray<T>::Init(size_t a_chunkElementCount)
     ptrArraySize = ptrArrayInc;
 
   ppChunks = udAllocType(T*, ptrArraySize, udAF_Zero);
-  if (!ppChunks)
-  {
-    result = udR_MemoryAllocationFailure;
-    goto epilogue;
-  }
+  UD_ERROR_NULL(ppChunks, udR_MemoryAllocationFailure);
 
   for (; c < chunkCount; ++c)
   {
     ppChunks[c] = udAllocType(T, chunkElementCount, udAF_None);
-    if (!ppChunks[c])
-    {
-      result = udR_MemoryAllocationFailure;
-      goto epilogue;
-    }
+    UD_ERROR_NULL(ppChunks[c], udR_MemoryAllocationFailure);
   }
 
-  return result;
 epilogue:
-
-  for (size_t i = 0; i < c; ++i)
-    udFree(ppChunks[i]);
-
-  udFree(ppChunks);
+  if (result != udR_Success)
+  {
+    for (size_t i = 0; i < c; ++i)
+      udFree(ppChunks[i]);
+    udFree(ppChunks);
+  }
 
   return result;
 }

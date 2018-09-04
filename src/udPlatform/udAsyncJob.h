@@ -1,4 +1,5 @@
 #include "udResult.h"
+#include "udThread.h"
 
 // A simple interface to allow function calls to be easily made optionally background calls with one additional parameter
 

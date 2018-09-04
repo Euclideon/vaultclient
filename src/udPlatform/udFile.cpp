@@ -36,28 +36,21 @@ static int s_handlersCount = 1;
 udResult udFile_Load(const char *pFilename, void **ppMemory, int64_t *pFileLengthInBytes)
 {
   UDTRACE();
-  if (!pFilename || !ppMemory)
-    return udR_InvalidParameter_;
+  udResult result;
   udFile *pFile = nullptr;
   char *pMemory = nullptr;
   int64_t length = 0;
   size_t actualRead;
 
-  udResult result = udFile_Open(&pFile, pFilename, udFOF_Read, &length); // NOTE: Length can be zero. Chrome does this on cached files.
-  if (result != udR_Success)
-    goto epilogue;
+  UD_ERROR_NULL(pFilename, udR_InvalidParameter_);
+  UD_ERROR_NULL(ppMemory, udR_InvalidParameter_);
+  UD_ERROR_CHECK(udFile_Open(&pFile, pFilename, udFOF_Read, &length)); // NOTE: Length can be zero. Chrome does this on cached files.
 
   if (length)
   {
     pMemory = (char*)udAlloc((size_t)length + 1); // Note always allocating 1 extra byte
-    result = udFile_Read(pFile, pMemory, (size_t)length, 0, udFSW_SeekCur, &actualRead);
-    if (result != udR_Success)
-      goto epilogue;
-    if (actualRead != (size_t)length)
-    {
-      result = udR_ReadFailure;
-      goto epilogue;
-    }
+    UD_ERROR_CHECK(udFile_Read(pFile, pMemory, (size_t)length, 0, udFSW_SeekCur, &actualRead));
+    UD_ERROR_IF(actualRead != (size_t)length, udR_ReadFailure);
   }
   else
   {
@@ -68,41 +61,35 @@ udResult udFile_Load(const char *pFilename, void **ppMemory, int64_t *pFileLengt
     {
       if (alreadyRead > (size_t)length)
         length += CONTENT_LOAD_CHUNK_SIZE;
-      result = udR_MemoryAllocationFailure;
       void *pNewMem = udRealloc(pMemory, (size_t)length + 1); // Note always allocating 1 extra byte
-      if (!pNewMem)
-        goto epilogue;
+      UD_ERROR_NULL(pNewMem, udR_MemoryAllocationFailure);
       pMemory = (char*)pNewMem;
 
       attemptRead = (size_t)length + 1 - alreadyRead; // Note attempt to read 1 extra byte so EOF is detected
-      result = udFile_Read(pFile, pMemory + alreadyRead, attemptRead, 0, udFSW_SeekCur, &actualRead);
-      if (result != udR_Success)
-        goto epilogue;
+      UD_ERROR_CHECK(udFile_Read(pFile, pMemory + alreadyRead, attemptRead, 0, udFSW_SeekCur, &actualRead));
     }
     UDASSERT((size_t)length >= alreadyRead, "Logic error in read loop");
     if ((size_t)length != alreadyRead)
     {
       length = alreadyRead;
       void *pNewMem = udRealloc(pMemory, (size_t)length + 1);
-      if (!pNewMem)
-        goto epilogue;
+      UD_ERROR_NULL(pNewMem, udR_MemoryAllocationFailure);
       pMemory = (char*)pNewMem;
     }
   }
   pMemory[length] = 0; // A nul-terminator for text files
 
-  if (result != udR_Success)
-    goto epilogue;
+  if (pFileLengthInBytes) // Pass length back if requested
+    *pFileLengthInBytes = length;
 
   // Success, pass the memory back to the caller
   *ppMemory = pMemory;
   pMemory = nullptr;
-
-  if (pFileLengthInBytes) // Pass length back if requested
-    *pFileLengthInBytes = length;
+  result = udR_Success;
 
 epilogue:
-  udFile_Close(&pFile);
+  if (pFile)
+    udFile_Close(&pFile);
   udFree(pMemory);
   return result;
 }
@@ -127,13 +114,10 @@ epilogue:
 udResult udFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags flags, int64_t *pFileLengthInBytes)
 {
   UDTRACE();
-  udResult result = udR_OpenFailure;
+  udResult result;
   const char *pNewFilename = nullptr;
-  if (ppFile == nullptr || pFilename == nullptr)
-  {
-    result = udR_InvalidParameter_;
-    goto epilogue;
-  }
+  UD_ERROR_NULL(ppFile, udR_InvalidParameter_);
+  UD_ERROR_NULL(pFilename, udR_InvalidParameter_);
 
   *ppFile = nullptr;
   if (pFileLengthInBytes)
@@ -142,7 +126,10 @@ udResult udFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags fla
   // TODO: Figure out how to only do this for the FILE handler requires that
   //       pFilenameCopy isn't set to `udStrdup(pFilename)`
   if (udFile_TranslatePath(&pNewFilename, pFilename) != udR_Success)
+  {
     pNewFilename = udStrdup(pFilename);
+    UD_ERROR_NULL(pNewFilename, udR_MemoryAllocationFailure);
+  }
 
   for (int i = s_handlersCount - 1; i >= 0; --i)
   {
@@ -157,10 +144,13 @@ udResult udFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags fla
         (*ppFile)->flagsCopy = flags;
         if (pFileLengthInBytes)
           *pFileLengthInBytes = (*ppFile)->fileLength;
-        goto epilogue;
+        // Successfully opened
+        UD_ERROR_SET(udR_Success);
       }
     }
   }
+  // Getting here indicates no handler succeeded
+  result = udR_OpenFailure;
 
 epilogue:
   udFree(pNewFilename);

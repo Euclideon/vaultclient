@@ -200,13 +200,10 @@ protected:
 
 #define UDALIGN_POWEROF2(x,b) (((x)+(b)-1) & -(b))
 
-#define __MEMORY_DEBUG__  0
-#define __BREAK_ON_MEMORY_ALLOCATION_FAILURE 0
-
-#if __MEMORY_DEBUG__
-# define IF_MEMORY_DEBUG(x,y) ,x,y
+#ifdef __MEMORY_DEBUG__
+# define IF_MEMORY_DEBUG(x,y) x,y
 #else
-# define IF_MEMORY_DEBUG(x,y)
+# define IF_MEMORY_DEBUG(x,y) nullptr,0
 #endif //  __MEMORY_DEBUG__
 
 
@@ -249,41 +246,41 @@ enum udAllocationFlags
 // Inline of operator to allow flags to be combined and retain type-safety
 inline udAllocationFlags operator|(udAllocationFlags a, udAllocationFlags b) { return (udAllocationFlags)(int(a) | int(b)); }
 
-void *_udMemDup(const void *pMemory, size_t size, size_t additionalBytes, udAllocationFlags flags IF_MEMORY_DEBUG(const char * pFile = __FILE__, int  line = __LINE__));
-#define udMemDup(pMemory, size, additionalBytes, flags) _udMemDup(pMemory, size, additionalBytes, flags IF_MEMORY_DEBUG(__FILE__, __LINE__))
+void *_udMemDup(const void *pMemory, size_t size, size_t additionalBytes, udAllocationFlags flags, const char *pFile, int line);
+#define udMemDup(pMemory, size, additionalBytes, flags) _udMemDup(pMemory, size, additionalBytes, flags, IF_MEMORY_DEBUG(__FILE__, __LINE__))
 
-void *_udAlloc(size_t size, udAllocationFlags flags = udAF_None IF_MEMORY_DEBUG(const char * pFile = __FILE__, int  line = __LINE__));
-#define udAlloc(size) _udAlloc(size, udAF_None IF_MEMORY_DEBUG(__FILE__, __LINE__))
+void *_udAlloc(size_t size, udAllocationFlags flags, const char *pFile, int line);
+#define udAlloc(size) _udAlloc(size, udAF_None, IF_MEMORY_DEBUG(__FILE__, __LINE__))
 
-void *_udAllocAligned(size_t size, size_t alignment, udAllocationFlags flags IF_MEMORY_DEBUG(const char * pFile = __FILE__, int  line = __LINE__));
-#define udAllocAligned(size, alignment, flags) _udAllocAligned(size, alignment, flags IF_MEMORY_DEBUG(__FILE__, __LINE__))
+void *_udAllocAligned(size_t size, size_t alignment, udAllocationFlags flags, const char *pFile, int line);
+#define udAllocAligned(size, alignment, flags) _udAllocAligned(size, alignment, flags, IF_MEMORY_DEBUG(__FILE__, __LINE__))
 
-#define udAllocFlags(size, flags) _udAlloc(size, flags IF_MEMORY_DEBUG(__FILE__, __LINE__))
-#define udAllocType(type, count, flags) (type*)_udAlloc(sizeof(type) * (count), flags IF_MEMORY_DEBUG(__FILE__, __LINE__))
+#define udAllocFlags(size, flags) _udAlloc(size, flags, IF_MEMORY_DEBUG(__FILE__, __LINE__))
+#define udAllocType(type, count, flags) (type*)_udAlloc(sizeof(type) * (count), flags, IF_MEMORY_DEBUG(__FILE__, __LINE__))
 
-void *_udRealloc(void *pMemory, size_t size IF_MEMORY_DEBUG(const char * pFile = __FILE__, int  line = __LINE__));
-#define udRealloc(pMemory, size) _udRealloc(pMemory, size IF_MEMORY_DEBUG(__FILE__, __LINE__))
-#define udReallocType(pMemory, type, count) (type*)_udRealloc(pMemory, sizeof(type) * (count) IF_MEMORY_DEBUG(__FILE__, __LINE__))
+void *_udRealloc(void *pMemory, size_t size, const char *pFile, int line);
+#define udRealloc(pMemory, size) _udRealloc(pMemory, size, IF_MEMORY_DEBUG(__FILE__, __LINE__))
+#define udReallocType(pMemory, type, count) (type*)_udRealloc(pMemory, sizeof(type) * (count), IF_MEMORY_DEBUG(__FILE__, __LINE__))
 
-void *_udReallocAligned(void *pMemory, size_t size, size_t alignment IF_MEMORY_DEBUG(const char * pFile = __FILE__, int  line = __LINE__));
-#define udReallocAligned(pMemory, size, alignment) _udReallocAligned(pMemory, size, alignment IF_MEMORY_DEBUG(__FILE__, __LINE__))
+void *_udReallocAligned(void *pMemory, size_t size, size_t alignment, const char *pFile, int line);
+#define udReallocAligned(pMemory, size, alignment) _udReallocAligned(pMemory, size, alignment, IF_MEMORY_DEBUG(__FILE__, __LINE__))
 
-void _udFreeInternal(void *pMemory IF_MEMORY_DEBUG(const char * pFile, int line));
+void _udFreeInternal(void *pMemory, const char *pFile, int line);
 template <typename T>
-void _udFree(T *&pMemory IF_MEMORY_DEBUG(const char * pFile = __FILE__, int  line = __LINE__))
+void _udFree(T *&pMemory, const char *pFile, int line)
 {
   void *pActualPtr = (void*)pMemory;
   if (pActualPtr && udInterlockedCompareExchangePointer((void**)&pMemory, NULL, pActualPtr) == pActualPtr)
   {
-    _udFreeInternal((void*)pActualPtr IF_MEMORY_DEBUG(pFile, line));
+    _udFreeInternal((void*)pActualPtr, pFile, line);
   }
 }
-#define udFree(pMemory) _udFree(pMemory IF_MEMORY_DEBUG(__FILE__, __LINE__))
+#define udFree(pMemory) _udFree(pMemory, IF_MEMORY_DEBUG(__FILE__, __LINE__))
 
 // A secure free will overwrite the memory (to the size specified) with a random 32-bit
 // constant. For example cryptographic functions use this to overwrite key data before freeing
 template <typename T>
-void _udFreeSecure(T *&pMemory, size_t size IF_MEMORY_DEBUG(const char * pFile = __FILE__, int  line = __LINE__))
+void _udFreeSecure(T *&pMemory, size_t size, const char *pFile, int line)
 {
   void *pActualPtr = (void*)pMemory;
   if (pActualPtr && udInterlockedCompareExchangePointer((void**)&pMemory, NULL, pActualPtr) == pActualPtr)
@@ -297,30 +294,22 @@ void _udFreeSecure(T *&pMemory, size_t size IF_MEMORY_DEBUG(const char * pFile =
     // Fill the last odd bytes
     while (i < size)
       ((uint8_t*)pActualPtr)[i++] = (uint8_t)randVal;
-    _udFreeInternal((void*)pActualPtr IF_MEMORY_DEBUG(pFile, line));
+    _udFreeInternal((void*)pActualPtr, pFile, line);
   }
 }
-#define udFreeSecure(pMemory, size) _udFreeSecure(pMemory, size IF_MEMORY_DEBUG(__FILE__, __LINE__))
+#define udFreeSecure(pMemory, size) _udFreeSecure(pMemory, size, IF_MEMORY_DEBUG(__FILE__, __LINE__))
 
 // Wrapper for alloca with flags. Note flags is OR'd with udAF_None to avoid a cppcat warning
 #define udAllocStack(type, count, flags)   ((flags & udAF_Zero) ? (type*)udSetZero(alloca(sizeof(type) * count), sizeof(type) * count) : (type*)alloca(sizeof(type) * count))
 #define udFreeStack(pMemory)
 
-#if __MEMORY_DEBUG__
-void udMemoryDebugTrackingInit();
-void udMemoryOutputLeaks();
-void udMemoryOutputAllocInfo(void *pAlloc);
-void udMemoryDebugTrackingDeinit();
-void udMemoryDebugLogMemoryStats();
-void udValidateHeap();
-#else
-# define udMemoryDebugTrackingInit()
-# define udMemoryOutputLeaks()
+// TODO: Remove these
+#define udMemoryDebugTrackingInit()
+#define udMemoryOutputLeaks()
 #define udMemoryOutputAllocInfo(pAlloc)
 #define udMemoryDebugTrackingDeinit()
 #define udMemoryDebugLogMemoryStats()
 #define udValidateHeap()
-#endif // __MEMORY_DEBUG__
 
 #if UDPLATFORM_WINDOWS
 # define udMemoryBarrier() MemoryBarrier()
@@ -356,7 +345,9 @@ void udValidateHeap();
 #endif
 
 #define MAKE_FOURCC(a, b, c, d) (  (((uint32_t)(a)) << 0) | (((uint32_t)(b)) << 8) | (((uint32_t)(c)) << 16) | (((uint32_t)(d)) << 24) )
-#define UDARRAYSIZE(_array) ( sizeof(_array) / sizeof((_array)[0]) )
+
+template <typename T, size_t N> constexpr size_t udLengthOf(T(&)[N]) { return N; }
+#define UDARRAYSIZE udLengthOf
 
 udResult udGetTotalPhysicalMemory(uint64_t *pTotalMemory);
 
