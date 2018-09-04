@@ -271,6 +271,9 @@ int main(int /*argc*/, char ** /*args*/)
   int pitch;
   long rMask, gMask, bMask, aMask;
 
+  const float FontSize = 16.f;
+  ImFontConfig fontCfg = ImFontConfig();
+
   // default values
   programState.settings.camera.moveMode = vcCMM_Plane;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
@@ -391,7 +394,17 @@ int main(int /*argc*/, char ** /*args*/)
   // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
   vcFramebuffer_Bind(programState.pDefaultFramebuffer);
 
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, 16.0f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesChineseFull());
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize);
+
+#if 1 // If load additional fonts
+  fontCfg.MergeMode = true;
+
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesKorean());
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesJapanese());
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesChineseFull());
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesThai());
+#endif
 
   SDL_EnableScreenSaver();
 
