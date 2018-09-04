@@ -11,6 +11,7 @@ struct vcQuadTreeCreateInfo
   double quadTreeWorldSize;
   double visibleDistance;
   double quadTreeHeightOffset;
+  udDouble4x4 viewProjectionMatrix;
 };
 
 struct vcQuadTreeMetaData
@@ -30,8 +31,13 @@ struct vcQuadTreeNode
   bool isVisible;
 };
 
-void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, const vcQuadTreeCreateInfo &createInfo, vcQuadTreeMetaData *pMetaData = nullptr);
-void vcQuadTree_DestroyNodeList(vcQuadTreeNode **ppNodes, int nodeCount);
+struct vcQuadTree;
+
+udResult vcQuadTree_Init(vcQuadTree **ppQuadTree);
+udResult vcQuadTree_Destroy(vcQuadTree **ppQuadTree);
+
+udResult vcQuadTree_GenerateNodeList(vcQuadTree *pQuadTree, const vcQuadTreeCreateInfo &createInfo, vcQuadTreeMetaData *pMetaData = nullptr);
+udResult vcQuadTree_GetNodeList(vcQuadTree *pQuadTree, vcQuadTreeNode **ppNodes, int *pNodeCount);
 
 inline bool vcQuadTree_IsLeafNode(const vcQuadTreeNode *pNode)
 {
