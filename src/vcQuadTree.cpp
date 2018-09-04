@@ -21,14 +21,20 @@ enum
 struct vcQuadTree
 {
   vcQuadTreeMetaData metaData;
+  udDouble4x4 viewProjectionMatrix;
+  uint16_t srid;
+  udInt3 slippyCoords;
+  udDouble3 cameraWorldPosition;
+  double quadTreeWorldSize;
+  double visibleDistance;
+  double quadTreeHeightOffset;
 
   vcQuadTreeNode *pNodes;
   int used;
   int capacity;
 };
 
-
-udResult ExpandTreeCapacity(vcQuadTree *pQuadTree)
+udResult vcQuadTree_ExpandTreeCapacity(vcQuadTree *pQuadTree)
 {
   udResult result = udR_Success;
   vcQuadTreeNode *pNewNodeMemory = nullptr;
@@ -51,9 +57,50 @@ epilogue:
   return result;
 }
 
-void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, uint16_t srid, const udInt3 slippyCoords, const udDouble3 &position, double quadTreeWorldSize, double visibleDistance, double quadTreeHeightOffset, int currentDepth, int maxDepth)
+udResult vcQuadTree_Init(vcQuadTree **ppQuadTree)
 {
-  if (currentDepth >= maxDepth)
+  udResult result = udR_Success;
+  vcQuadTree *pQuadTree = nullptr;
+  UD_ERROR_NULL(ppQuadTree, udR_InvalidParameter_);
+
+  pQuadTree = udAllocType(vcQuadTree, 1, udAF_Zero);
+  UD_ERROR_IF(!pQuadTree, udR_MemoryAllocationFailure);
+
+  pQuadTree->capacity = 50;
+  UD_ERROR_CHECK(vcQuadTree_ExpandTreeCapacity(pQuadTree));
+
+  *ppQuadTree = pQuadTree;
+  pQuadTree = nullptr;
+
+epilogue:
+  if (pQuadTree)
+    vcQuadTree_Destroy(&pQuadTree);
+
+  return result;
+}
+
+udResult vcQuadTree_Destroy(vcQuadTree **ppQuadTree)
+{
+  if (ppQuadTree == nullptr || *ppQuadTree == nullptr)
+    return udR_InvalidParameter_;
+
+  udFree((*ppQuadTree)->pNodes);
+  udFree(*ppQuadTree);
+  *ppQuadTree = nullptr;
+
+  return udR_Success;
+}
+
+bool vcQuadTree_IsPointVisible(const udDouble4x4 &viewProjectionMatrix, const udDouble3 &point)
+{
+  udDouble4 clipPos = viewProjectionMatrix * udDouble4::create(point, 1.0);
+  clipPos /= clipPos.w;
+  return (clipPos.x >= -1.0 && clipPos.x <= 1.0 && clipPos.y >= -1.0 && clipPos.y <= 1.0 && clipPos.z >= -1.0 && clipPos.z <= 1.0);
+}
+
+void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, int currentDepth)
+{
+  if (currentDepth >= pQuadTree->metaData.maxTreeDepth)
   {
     pQuadTree->metaData.leafNodeCount++;
     pQuadTree->pNodes[currentNodeIndex].isVisible = true;
@@ -61,7 +108,7 @@ void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, uint16_t s
   }
 
   if (pQuadTree->used + 4 >= pQuadTree->capacity)
-    ExpandTreeCapacity(pQuadTree);
+    vcQuadTree_ExpandTreeCapacity(pQuadTree);
 
   int childrenIndex[] =
   {
@@ -94,36 +141,26 @@ void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, uint16_t s
 
     bool descendChild = false;
     bool tileVisible = false;
-    int maxChildDepth = maxDepth;
 
     udInt2 pViewSlippyCoords;
-    vcGIS_LocalToSlippy(srid, &pViewSlippyCoords, position, slippyCoords.z + pQuadTree->pNodes[childIndex].level);
+    vcGIS_LocalToSlippy(pQuadTree->srid, &pViewSlippyCoords, pQuadTree->cameraWorldPosition, pQuadTree->slippyCoords.z + pQuadTree->pNodes[childIndex].level);
 
     udInt2 slippyManhattanDist = udInt2::create(udAbs(pViewSlippyCoords.x - pQuadTree->pNodes[childIndex].slippyPosition.x),
       udAbs(pViewSlippyCoords.y - pQuadTree->pNodes[childIndex].slippyPosition.y));
 
     double quadTreeDistanceToTile = 0.0;
-    udDouble3 distanceTestPoint = position;
-    distanceTestPoint.z -= quadTreeHeightOffset; // relative height
+    udDouble3 distanceTestPoint = pQuadTree->cameraWorldPosition;
+    distanceTestPoint.z -= pQuadTree->quadTreeHeightOffset; // relative height
 
     if (udMagSq2(slippyManhattanDist) == 0) // simple case, view point is entirely inside
     {
       // TODO: tile heights (DEM)
-      quadTreeDistanceToTile = udAbs(distanceTestPoint.z / quadTreeWorldSize);
+      quadTreeDistanceToTile = udAbs(distanceTestPoint.z / pQuadTree->quadTreeWorldSize);
       tileVisible = true;
     }
     else
     {
       // more complicated 'closest-point-to-edges' distance checking is needed
-      udDouble2 localCorners2D[4];
-
-      for (int t = 0; t < 4; ++t)
-      {
-        udDouble3 localCorners;
-        vcGIS_SlippyToLocal(srid, &localCorners, udInt2::create(pQuadTree->pNodes[childIndex].slippyPosition.x + (t % 2), pQuadTree->pNodes[childIndex].slippyPosition.y + (t / 2)), slippyCoords.z + pQuadTree->pNodes[childIndex].level);
-        localCorners2D[t] = localCorners.toVector2();
-      }
-
       static const udInt2 edgePairs[] =
       {
         udInt2::create(0, 1), // top
@@ -132,7 +169,15 @@ void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, uint16_t s
         udInt2::create(1, 3), // right
       };
 
-      double minDist = 0.0;
+      double closestEdgeFudgedDistance = 0.0;
+
+      udDouble2 localCorners2D[4];
+      for (int t = 0; t < 4; ++t)
+      {
+        udDouble3 localCorners;
+        vcGIS_SlippyToLocal(pQuadTree->srid, &localCorners, udInt2::create(pQuadTree->pNodes[childIndex].slippyPosition.x + (t % 2), pQuadTree->pNodes[childIndex].slippyPosition.y + (t / 2)), pQuadTree->slippyCoords.z + pQuadTree->pNodes[childIndex].level);
+        localCorners2D[t] = localCorners.toVector2();
+      }
 
       // test each edge to find minimum distance to quadrant shape (2d)
       for (int e = 0; e < 4; ++e)
@@ -150,25 +195,38 @@ void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, uint16_t s
 
         double distToEdge = udMag3(closestPointOnEdge - distanceTestPoint);
         double horizontalDist = udMag2(closestPointOnEdge.toVector2() - distanceTestPoint.toVector2());
-
         double fudgedDistance = distToEdge + horizontalDist * TILE_DISTANCE_CULL_RATE; // horizontal distance has more influence
-        minDist = minDist == 0 ? fudgedDistance : udMin(minDist, fudgedDistance);
+        closestEdgeFudgedDistance = closestEdgeFudgedDistance == 0 ? fudgedDistance : udMin(closestEdgeFudgedDistance, fudgedDistance);
       }
 
-      quadTreeDistanceToTile = minDist / quadTreeWorldSize;
+      quadTreeDistanceToTile = closestEdgeFudgedDistance / pQuadTree->quadTreeWorldSize;
 
-      double tileToCameraAngle = udSin(distanceTestPoint.z / minDist);
-      tileVisible = minDist < visibleDistance && tileToCameraAngle >= tileToCameraCullAngle;
+      // AABB vs Frustum visibility detection
+      // Corners
+      for (int p = 0; p < 4; ++p)
+      {
+        tileVisible = tileVisible || vcQuadTree_IsPointVisible(pQuadTree->viewProjectionMatrix, udDouble3::create(localCorners2D[p], pQuadTree->quadTreeHeightOffset));
+      }
+
+      // Corner mid points
+      for (int p = 0; p < 4; ++p)
+      {
+        udDouble2 p1 = localCorners2D[edgePairs[p].x];
+        udDouble2 p2 = localCorners2D[edgePairs[p].y];      
+        tileVisible = tileVisible || vcQuadTree_IsPointVisible(pQuadTree->viewProjectionMatrix, udDouble3::create((p1 + p2) * 0.5, pQuadTree->quadTreeHeightOffset));
+      }
+
+      double tileToCameraAngle = udSin(distanceTestPoint.z / closestEdgeFudgedDistance);
+      tileVisible = tileVisible && tileToCameraAngle >= tileToCameraCullAngle;
     }
 
     descendChild = quadTreeDistanceToTile < (1.0 / (1 << currentDepth));
 
     if (descendChild)
     {
-      RecurseGenerateTree(pQuadTree, childIndex, srid, slippyCoords, position, quadTreeWorldSize, visibleDistance, quadTreeHeightOffset, currentDepth + 1, maxChildDepth);
+      vcQuadTree_RecurseGenerateTree(pQuadTree, childIndex, currentDepth + 1);
     }
-
-    if (tileVisible && !descendChild)
+    else if (tileVisible)
     {
       // don't divide the child, it is now a leaf node
       pQuadTree->metaData.leafNodeCount++;
@@ -177,31 +235,50 @@ void RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, uint16_t s
   }
 }
 
-void vcQuadTree_GenerateNodeList(vcQuadTreeNode **ppNodes, int *pNodeCount, const vcQuadTreeCreateInfo &createInfo, vcQuadTreeMetaData *pMetaData /*= nullptr*/)
+udResult vcQuadTree_GenerateNodeList(vcQuadTree *pQuadTree, const vcQuadTreeCreateInfo &createInfo, vcQuadTreeMetaData *pMetaData /*= nullptr*/)
 {
-  vcQuadTree quadTree = {};
+  udResult result = udR_Success;
 
-  int startingCapacity = 50; // arbitrary
-  quadTree.capacity = startingCapacity >> 1;
-  ExpandTreeCapacity(&quadTree);
-  quadTree.metaData.leafNodeCount = 0;
-  quadTree.metaData.maxTreeDepth = udMax(0, MaxVisibleLevel - createInfo.slippyCoords.z);
+  UD_ERROR_NULL(pQuadTree, udR_InvalidParameter_);
 
-  // Initialize root
-  quadTree.used = 1;
-  quadTree.pNodes[0].parentIndex = INVALID_NODE_INDEX;
-  quadTree.pNodes[0].slippyPosition = createInfo.slippyCoords.toVector2();
+  // Clear memory
+  memset(pQuadTree->pNodes, 0, sizeof(vcQuadTreeNode) * pQuadTree->capacity);
 
-  RecurseGenerateTree(&quadTree, 0, createInfo.srid, createInfo.slippyCoords, createInfo.cameraPosition, createInfo.quadTreeWorldSize, createInfo.visibleDistance, createInfo.quadTreeHeightOffset, 0, quadTree.metaData.maxTreeDepth);
+  pQuadTree->viewProjectionMatrix = createInfo.viewProjectionMatrix;
+  pQuadTree->srid = createInfo.srid;
+  pQuadTree->slippyCoords = createInfo.slippyCoords;
+  pQuadTree->cameraWorldPosition = createInfo.cameraPosition;
+  pQuadTree->quadTreeWorldSize = createInfo.quadTreeWorldSize;
+  pQuadTree->visibleDistance = createInfo.visibleDistance;
+  pQuadTree->quadTreeHeightOffset = createInfo.quadTreeHeightOffset;
 
-  *ppNodes = quadTree.pNodes;
-  *pNodeCount = quadTree.used;
+  pQuadTree->metaData.leafNodeCount = 0;
+  pQuadTree->metaData.maxTreeDepth = udMax(0, MaxVisibleLevel - createInfo.slippyCoords.z);
+
+  // initialize root
+  pQuadTree->used = 1;
+  pQuadTree->pNodes[0].parentIndex = INVALID_NODE_INDEX;
+  pQuadTree->pNodes[0].slippyPosition = createInfo.slippyCoords.toVector2();
+
+  vcQuadTree_RecurseGenerateTree(pQuadTree, 0, 0);
 
   if (pMetaData)
-    memcpy(pMetaData, &quadTree.metaData, sizeof(vcQuadTreeMetaData));
+    memcpy(pMetaData, &pQuadTree->metaData, sizeof(vcQuadTreeMetaData));
+
+epilogue:
+  return result;
 }
 
-void vcQuadTree_DestroyNodeList(vcQuadTreeNode **ppNodes, int /*nodeCount*/)
+udResult vcQuadTree_GetNodeList(vcQuadTree *pQuadTree, vcQuadTreeNode **ppNodes, int *pNodeCount)
 {
-  udFree(*ppNodes);
+  udResult result = udR_Success;
+  UD_ERROR_NULL(pQuadTree, udR_InvalidParameter_);
+  UD_ERROR_NULL(ppNodes, udR_InvalidParameter_);
+  UD_ERROR_NULL(pNodeCount, udR_InvalidParameter_);
+
+  *ppNodes = pQuadTree->pNodes;
+  *pNodeCount = pQuadTree->used;
+
+epilogue:
+  return result;
 }
