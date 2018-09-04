@@ -626,17 +626,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
       if (ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f))
         pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
 
-      switch (pProgramState->cameraInput.controlMode)
-      {
-      case vcCM_Normal:
-        break;
-      case vcCM_Zoom:
-        ImGui::Text("Zoom - Press <ESC> to cancel");
-        break;
-      case vcCM_Measure:
-        ImGui::Text("Measure - Press <ESC> to cancel");
-        break;
-      }
     }
 
     ImGui::End();
