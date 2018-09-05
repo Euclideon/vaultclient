@@ -568,7 +568,10 @@ void vcRenderSceneWindow(vcState *pProgramState)
       {
         int newSRID = pProgramState->gis.SRID;
         if (ImGui::InputInt("Override SRID", &newSRID) && vcGIS_AcceptableSRID((vcSRID)newSRID))
-          vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position);
+        {
+          if (vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position))
+            vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
+        }
       }
 
       if (pProgramState->settings.showDiagnosticInfo)
@@ -975,16 +978,41 @@ void vcRenderWindow(vcState *pProgramState)
         if (ImGui::BeginPopupContextItem(modelLabelID))
         {
           if (ImGui::Checkbox("Flip Y/Z Up", &pProgramState->vcModelList[i].flipYZ)) //Technically this is a rotation around X actually...
+            vcModel_UpdateMatrix(pProgramState, &pProgramState->vcModelList[i]);
+
+          ImGui::Separator();
+
+          if (ImGui::Selectable("Use Projection"))
           {
-            udDouble4x4 matrix;
-            vdkModel_GetWorldMatrix(pProgramState->pVDKContext, pProgramState->vcModelList[i].pVaultModel, matrix.a);
-            udDouble4 rowz = -matrix.axis.y;
-            matrix.axis.y = matrix.axis.z;
-            matrix.axis.z = rowz;
-            vdkModel_SetWorldMatrix(pProgramState->pVDKContext, pProgramState->vcModelList[i].pVaultModel, matrix.a);
+            vcSRID newSRID = vcModel_GetSRID(pProgramState, &pProgramState->vcModelList[i]);
+
+            if (vcGIS_ChangeSpace(&pProgramState->gis, newSRID, &pProgramState->pCamera->position))
+              vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
           }
 
-          if (ImGui::Selectable("Properties", false))
+          if (ImGui::Selectable("Move To"))
+          {
+            udGeoZone fromZone;
+
+            uint16_t modelSRID = vcModel_GetSRID(pProgramState, &pProgramState->vcModelList[i]);
+            udDouble3 localSpaceCenter = vcModel_GetMidPointLocalSpace(pProgramState, &pProgramState->vcModelList[i]);
+
+            if (pProgramState->gis.isProjected && modelSRID != pProgramState->gis.SRID)
+            {
+              // Transform the camera position. Don't do the entire matrix as it may lead to inaccuracy/de-normalised camera
+              if (udGeoZone_SetFromSRID(&fromZone, modelSRID) == udR_Success)
+                localSpaceCenter = udGeoZone_TransformPoint(localSpaceCenter, fromZone, pProgramState->gis.zone);
+            }
+
+            pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
+            pProgramState->cameraInput.startPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
+            pProgramState->cameraInput.focusPoint = localSpaceCenter;
+            pProgramState->cameraInput.progress = 0.0;
+          }
+
+          ImGui::Separator();
+
+          if (ImGui::Selectable("Properties"))
           {
             pProgramState->popupTrigger[vcPopup_ModelProperties] = true;
             pProgramState->selectedModelProperties.index = i;
