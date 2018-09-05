@@ -62,22 +62,18 @@ bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel)
   const char *pSRID = pModel->pMetadata->Get("ProjectionID").AsString();
   const char *pWKT = pModel->pMetadata->Get("ProjectionWKT").AsString();
 
+  vcSRID newSRID = 0;
+
   if (pSRID != nullptr)
   {
     pSRID = udStrchr(pSRID, ":");
     if (pSRID != nullptr)
-      pProgramState->currentSRID = (uint16_t)udStrAtou(&pSRID[1]);
-    else
-      pProgramState->currentSRID = 0;
+      newSRID = (uint16_t)udStrAtou(&pSRID[1]);
   }
   else if (pWKT != nullptr)
   {
-    // Not sure?
-  }
-  else //No SRID available so set back to no projection
-  {
-    pProgramState->currentSRID = 0;
+    // TODO: Implement this properly
   }
 
-  return true;
+  return vcGIS_ChangeSpace(&pProgramState->gis, newSRID);
 }

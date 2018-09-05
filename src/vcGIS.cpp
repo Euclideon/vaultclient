@@ -3,31 +3,32 @@
 #include "udPlatform/udPlatformUtil.h"
 #include "udPlatform/udGeoZone.h"
 
-bool vcGIS_AcceptableSRID(uint16_t sridCode)
+bool vcGIS_AcceptableSRID(vcSRID sridCode)
 {
   udGeoZone zone;
   return (udGeoZone_SetFromSRID(&zone, sridCode) == udR_Success);
 }
 
-bool vcGIS_LocalToLatLong(uint16_t sridCode, udDouble3 localCoords, udDouble3 *pLatLong)
+bool vcGIS_ChangeSpace(vcGISSpace *pSpace, vcSRID newSRID, udDouble3 *pCameraPosition /*= nullptr*/)
 {
-  udGeoZone zone;
+  udGeoZone newZone;
+  bool currentlyProjected = pSpace->isProjected;
 
-  if (udGeoZone_SetFromSRID(&zone, sridCode) != udR_Success)
+  pSpace->SRID = newSRID;
+  pSpace->isProjected = false;
+
+  if (newSRID == 0)
+    return true;
+
+  if (udGeoZone_SetFromSRID(&newZone, newSRID) != udR_Success)
     return false;
 
-  *pLatLong = udGeoZone_ToLatLong(zone, localCoords);
-  return true;
-}
+  if (currentlyProjected && pCameraPosition != nullptr)
+    *pCameraPosition = udGeoZone_TransformPoint(*pCameraPosition, pSpace->zone, newZone);
 
-bool vcGIS_LatLongToLocal(uint16_t sridCode, udDouble3 latLong, udDouble3 *pLocalCoords)
-{
-  udGeoZone zone;
+  pSpace->isProjected = true;
+  pSpace->zone = newZone;
 
-  if (udGeoZone_SetFromSRID(&zone, sridCode) != udR_Success)
-    return false;
-
-  *pLocalCoords = udGeoZone_ToCartesian(zone, latLong);
   return true;
 }
 
@@ -54,24 +55,22 @@ bool vcGIS_SlippyToLatLong(udDouble3 *pLatLong, udInt2 slippyCoords, int zoomLev
   return true;
 }
 
-bool vcGIS_LocalToSlippy(int16_t sridCode, udInt2 *pSlippyCoords, udDouble3 localCoords, int zoomLevel)
+bool vcGIS_LocalToSlippy(vcGISSpace *pSpace, udInt2 *pSlippyCoords, udDouble3 localCoords, int zoomLevel)
 {
-  udDouble3 latLong;
-  bool success = true;
+  if (!pSpace->isProjected)
+    return false;
 
-  success &= vcGIS_LocalToLatLong(sridCode, localCoords, &latLong);
-  success &= vcGIS_LatLongToSlippy(pSlippyCoords, latLong, zoomLevel);
-
-  return success;
+  return vcGIS_LatLongToSlippy(pSlippyCoords, udGeoZone_ToLatLong(pSpace->zone, localCoords), zoomLevel);
 }
 
-bool vcGIS_SlippyToLocal(int16_t sridCode, udDouble3 *pLocalCoords, udInt2 slippyCoords, int zoomLevel)
+bool vcGIS_SlippyToLocal(vcGISSpace *pSpace, udDouble3 *pLocalCoords, udInt2 slippyCoords, int zoomLevel)
 {
-  udDouble3 latLong;
-  bool success = true;
+  if (!pSpace->isProjected)
+    return false;
 
-  success &= vcGIS_SlippyToLatLong(&latLong, slippyCoords, zoomLevel);
-  success &= vcGIS_LatLongToLocal(sridCode, latLong, pLocalCoords);
+  udDouble3 latLong;
+  bool success = vcGIS_SlippyToLatLong(&latLong, slippyCoords, zoomLevel);
+  *pLocalCoords = udGeoZone_ToCartesian(pSpace->zone, latLong);
 
   return success;
 }

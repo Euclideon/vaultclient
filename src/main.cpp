@@ -531,7 +531,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   vcRenderData renderData = {};
   renderData.cameraMatrix = pProgramState->camMatrix;
   renderData.pCameraSettings = &pProgramState->settings.camera;
-  renderData.srid = pProgramState->currentSRID;
+  renderData.pGISSpace = &pProgramState->gis;
   renderData.models.Init(32);
 
   ImGuiIO &io = ImGui::GetIO();
@@ -557,19 +557,18 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
     if (ImGui::Begin("Geographic Information", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
     {
-      bool validSRID = vcGIS_AcceptableSRID(pProgramState->currentSRID);
-      if (pProgramState->currentSRID != 0 && validSRID)
-        ImGui::Text("SRID: %d", pProgramState->currentSRID);
-      else if (pProgramState->currentSRID == 0)
+      if (pProgramState->gis.SRID != 0 && pProgramState->gis.isProjected)
+        ImGui::Text("SRID: %d", pProgramState->gis.SRID);
+      else if (pProgramState->gis.SRID == 0)
         ImGui::Text("Not Geolocated");
       else
-        ImGui::Text("Unsupported SRID: %d", pProgramState->currentSRID);
+        ImGui::Text("Unsupported SRID: %d", pProgramState->gis.SRID);
 
       if (pProgramState->settings.showAdvancedGIS)
       {
-        int newSRID = pProgramState->currentSRID;
-        if (ImGui::InputInt("Override SRID", &newSRID) && vcGIS_AcceptableSRID((uint16_t)newSRID))
-          pProgramState->currentSRID = (uint16_t)newSRID;
+        int newSRID = pProgramState->gis.SRID;
+        if (ImGui::InputInt("Override SRID", &newSRID) && vcGIS_AcceptableSRID((vcSRID)newSRID))
+          vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position);
       }
 
       if (pProgramState->settings.showDiagnosticInfo)
@@ -586,10 +585,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
         {
           ImGui::Text("Mouse World Pos (x/y/z): (%f,%f,%f)", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
 
-          if (pProgramState->currentSRID != 0 && validSRID)
+          if (pProgramState->gis.isProjected)
           {
-            udDouble3 mousePointInLatLong;
-            vcGIS_LocalToLatLong(pProgramState->currentSRID, renderData.worldMousePos, &mousePointInLatLong);
+            udDouble3 mousePointInLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, renderData.worldMousePos);
             ImGui::Text("Mouse World Pos (L/L): (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
           }
         }
@@ -614,10 +612,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
       ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &pProgramState->pCamera->position.x, 3);
       ImGui::InputScalarN("Camera Rotation", ImGuiDataType_Double, &pProgramState->pCamera->yprRotation.x, 3);
 
-      if (pProgramState->currentSRID != 0 && vcGIS_AcceptableSRID(pProgramState->currentSRID))
+      if (pProgramState->gis.isProjected)
       {
-        udDouble3 cameraLatLong;
-        vcGIS_LocalToLatLong(pProgramState->currentSRID, pProgramState->camMatrix.axis.t.toVector3(), &cameraLatLong);
+        udDouble3 cameraLatLong = udGeoZone_ToCartesian(pProgramState->gis.zone, pProgramState->camMatrix.axis.t.toVector3());
         ImGui::Text("Lat: %.7f, Long: %.7f, Alt: %.2fm", cameraLatLong.x, cameraLatLong.y, cameraLatLong.z);
       }
       ImGui::RadioButton("Plane", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
@@ -1433,7 +1430,7 @@ bool vcLogout(vcState *pProgramState)
   success &= vcModel_UnloadList(pProgramState);
   success &= (vcRender_DestroyTerrain(pProgramState->pRenderContext) == udR_Success);
 
-  pProgramState->currentSRID = 0;
+  memset(&pProgramState->gis, 0, sizeof(vcGISSpace));
 
   success = success && vdkContext_Logout(pProgramState->pVDKContext) == vE_Success;
   pProgramState->hasContext = !success;

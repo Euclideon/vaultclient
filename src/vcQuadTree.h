@@ -3,9 +3,11 @@
 
 #include "udPlatform/udMath.h"
 
+struct vcGISSpace;
+
 struct vcQuadTreeCreateInfo
 {
-  int16_t srid;
+  vcGISSpace *pSpace;
   udInt3 slippyCoords;
   udDouble3 cameraPosition;
   double quadTreeWorldSize;
