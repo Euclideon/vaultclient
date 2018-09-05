@@ -367,7 +367,7 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
 
   vcRenderSkybox(pRenderContext);
 
-  if (vcGIS_AcceptableSRID(renderData.srid) && pRenderContext->pSettings->maptiles.mapEnabled)
+  if (renderData.pGISSpace->isProjected && pRenderContext->pSettings->maptiles.mapEnabled)
   {
     udDouble4x4 cameraMatrix = renderData.cameraMatrix;
 
@@ -394,7 +394,7 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
     localCorners[3] = localCamPos + udDouble3::create(+pRenderContext->pSettings->camera.farPlane, -pRenderContext->pSettings->camera.farPlane, 0);
 
     for (int i = 0; i < 4; ++i)
-      vcGIS_LocalToSlippy(renderData.srid, &slippyCorners[i], localCorners[i], currentZoom);
+      vcGIS_LocalToSlippy(renderData.pGISSpace, &slippyCorners[i], localCorners[i], currentZoom);
 
     while (currentZoom > 0 && (slippyCorners[0] != slippyCorners[1] || slippyCorners[1] != slippyCorners[2] || slippyCorners[2] != slippyCorners[3]))
     {
@@ -405,10 +405,10 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
     }
 
     for (int i = 0; i < 4; ++i)
-      vcGIS_SlippyToLocal(renderData.srid, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
+      vcGIS_SlippyToLocal(renderData.pGISSpace, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
     // for now just rebuild terrain every frame
-    vcTerrain_BuildTerrain(pRenderContext->pTerrain, renderData.srid, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pRenderContext->viewProjectionMatrix);
+    vcTerrain_BuildTerrain(pRenderContext->pTerrain, renderData.pGISSpace, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pRenderContext->viewProjectionMatrix);
     vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->viewMatrix, pRenderContext->projectionMatrix);
   }
 

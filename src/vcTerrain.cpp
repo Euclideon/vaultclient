@@ -59,7 +59,7 @@ epilogue:
   return result;
 }
 
-void vcTerrain_BuildTerrain(vcTerrain *pTerrain, int16_t srid, const udDouble3 worldCorners[4], const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const udDouble4x4 &viewProjectionMatrix)
+void vcTerrain_BuildTerrain(vcTerrain *pTerrain, vcGISSpace *pSpace, const udDouble3 worldCorners[4], const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const udDouble4x4 &viewProjectionMatrix)
 {
   if (!pTerrain->enabled)
     return;
@@ -71,7 +71,7 @@ void vcTerrain_BuildTerrain(vcTerrain *pTerrain, int16_t srid, const udDouble3 w
   double slippyCornersViewSize = udMag3(worldCorners[1] - worldCorners[2]) * 0.5;
   vcQuadTreeCreateInfo createInfo =
   {
-    srid,
+    pSpace,
     slippyCoords,
     cameraWorldPos,
     slippyCornersViewSize,
@@ -83,7 +83,7 @@ void vcTerrain_BuildTerrain(vcTerrain *pTerrain, int16_t srid, const udDouble3 w
   vcQuadTree_GenerateNodeList(pTerrain->pQuadTree, createInfo, &treeData);
   vcQuadTree_GetNodeList(pTerrain->pQuadTree, &pNodeList, &nodeCount);
 
-  vcTerrainRenderer_BuildTiles(pTerrain->pTerrainRenderer, srid, slippyCoords, cameraWorldPos, pNodeList, nodeCount);
+  vcTerrainRenderer_BuildTiles(pTerrain->pTerrainRenderer, pSpace, slippyCoords, cameraWorldPos, pNodeList, nodeCount);
 }
 
 void vcTerrain_Render(vcTerrain *pTerrain, const udDouble4x4 &view, const udDouble4x4 &proj)
