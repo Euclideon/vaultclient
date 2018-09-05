@@ -2,16 +2,26 @@
 #define vcGIS_h__
 
 #include "udPlatform/udMath.h"
+#include "udPlatform/udGeoZone.h"
 
-bool vcGIS_AcceptableSRID(uint16_t sridCode);
+typedef uint16_t vcSRID;
 
-bool vcGIS_LocalToLatLong(uint16_t sridCode, udDouble3 localCoords, udDouble3 *pLatLong);
-bool vcGIS_LatLongToLocal(uint16_t sridCode, udDouble3 latLong, udDouble3 *pLocalCoords);
+struct vcGISSpace
+{
+  bool isProjected; // Is the camera currently in a GIS projected space
+  vcSRID SRID;
+  udGeoZone zone;
+};
+
+bool vcGIS_AcceptableSRID(vcSRID sridCode);
+
+// Changes pSpace from its current zone to the new zone, pCameraPosition if set gets moved to the new zone
+bool vcGIS_ChangeSpace(vcGISSpace *pSpace, vcSRID newSRID, udDouble3 *pCameraPosition = nullptr);
 
 bool vcGIS_LatLongToSlippy(udInt2 *pSlippyCoords, udDouble3 latLong, int zoomLevel);
 bool vcGIS_SlippyToLatLong(udDouble3 *pLatLong, udInt2 slippyCoords, int zoomLevel);
 
-bool vcGIS_LocalToSlippy(int16_t sridCode, udInt2 *pSlippyCoords, udDouble3 localCoords, int zoomLevel);
-bool vcGIS_SlippyToLocal(int16_t sridCode, udDouble3 *pLocalCoords, udInt2 slippyCoords, int zoomLevel);
+bool vcGIS_LocalToSlippy(vcGISSpace *pSpace, udInt2 *pSlippyCoords, udDouble3 localCoords, int zoomLevel);
+bool vcGIS_SlippyToLocal(vcGISSpace *pSpace, udDouble3 *pLocalCoords, udInt2 slippyCoords, int zoomLevel);
 
 #endif // !vcGIS_h__
