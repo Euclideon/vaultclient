@@ -54,21 +54,29 @@ const char* const g_udFragmentShader = R"shader(
     return clamp((v - min) / (max - min), 0.0, 1.0);
   }
 
-  float3 edgeHighlight(float3 col, float2 uv, float depth)
+  // depth is packed into .w component
+  float4 edgeHighlight(float3 col, float2 uv, float depth)
   {
     float3 sampleOffsets = float3(u_screenParams.xy, 0.0);
     float edgeOutlineThreshold = u_outlineParams.y;
+    float farPlane = u_screenParams.w;
 
-    float ld0 = linearizeDepth(depth);
-    float ld1 = linearizeDepth(texture1.Sample(sampler1, uv + sampleOffsets.xz).x);
-    float ld2 = linearizeDepth(texture1.Sample(sampler1, uv - sampleOffsets.xz).x);
-    float ld3 = linearizeDepth(texture1.Sample(sampler1, uv + sampleOffsets.zy).x);
-    float ld4 = linearizeDepth(texture1.Sample(sampler1, uv - sampleOffsets.zy).x);
+    float d1 = texture1.Sample(sampler1, uv + sampleOffsets.xz).x;
+    float d2 = texture1.Sample(sampler1, uv - sampleOffsets.xz).x;
+    float d3 = texture1.Sample(sampler1, uv + sampleOffsets.zy).x;
+    float d4 = texture1.Sample(sampler1, uv - sampleOffsets.zy).x;
 
-    float isEdge = 1.0 - step(ld0 - ld1, edgeOutlineThreshold) * step(ld0 - ld2, edgeOutlineThreshold) * step(ld0 - ld3, edgeOutlineThreshold) * step(ld0 - ld4, edgeOutlineThreshold);
+    float wd0 = linearizeDepth(depth) * farPlane;
+    float wd1 = linearizeDepth(d1) * farPlane;
+    float wd2 = linearizeDepth(d2) * farPlane;
+    float wd3 = linearizeDepth(d3) * farPlane;
+    float wd4 = linearizeDepth(d4) * farPlane;
+
+    float isEdge = 1.0 - step(wd0 - wd1, edgeOutlineThreshold) * step(wd0 - wd2, edgeOutlineThreshold) * step(wd0 - wd3, edgeOutlineThreshold) * step(wd0 - wd4, edgeOutlineThreshold);
 
     float3 edgeColour = lerp(col.xyz, u_outlineColour.xyz, u_outlineColour.w);
-    return lerp(col.xyz, edgeColour, isEdge);
+    float minDepth = min(min(min(d1, d2), d3), d4);
+    return float4(lerp(col.xyz, edgeColour, isEdge), lerp(depth, minDepth, isEdge));
   }
 
   float3 contourColour(float3 col, float3 fragWorldPosition)
@@ -118,8 +126,11 @@ const char* const g_udFragmentShader = R"shader(
 
     float edgeOutlineWidth = u_outlineParams.x;
     if (edgeOutlineWidth > 0.0)
-      col.xyz = edgeHighlight(col.xyz, input.uv, depth);
-
+    {
+      float4 edgeResult = edgeHighlight(col.xyz, input.uv, depth);
+      col.xyz = edgeResult.xyz;
+      depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
+    }
     col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
 
     output.Color0 = float4(col.xyz, 1.0);// UD always opaque
