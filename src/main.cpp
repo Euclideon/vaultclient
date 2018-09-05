@@ -11,6 +11,7 @@
 #include "imgui_ex/imgui_impl_sdl.h"
 #include "imgui_ex/imgui_impl_gl.h"
 #include "imgui_ex/imgui_dock.h"
+#include "imgui_ex/imgui_udValue.h"
 
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
@@ -1323,16 +1324,7 @@ void vcRenderWindow(vcState *pProgramState)
       }
       else
       {
-        for (size_t i = 0; i < pProgramState->selectedModelProperties.pMetadata->MemberCount(); ++i)
-        {
-          const char *pMemberName = pProgramState->selectedModelProperties.pMetadata->GetMemberName(i);
-
-          if (udStrEqual(pMemberName, "ProjectionWKT") || udStrEqual(pMemberName, "Watermark"))
-            continue;
-
-          ImGui::TextWrapped("%s -> %s", pMemberName, pProgramState->selectedModelProperties.pMetadata->GetMember(i)->AsString(""));
-        }
-
+        vcImGuiValueTreeObject(pProgramState->selectedModelProperties.pMetadata);
         ImGui::Separator();
 
         if (pProgramState->selectedModelProperties.pWatermarkTexture != nullptr)
