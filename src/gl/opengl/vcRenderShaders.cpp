@@ -54,21 +54,29 @@ float getNormalizedPosition(float v, float min, float max)
   return clamp((v - min) / (max - min), 0.0, 1.0);
 }
 
-vec3 edgeHighlight(vec3 col, vec2 uv, float depth)
+// depth is packed into .w component
+vec4 edgeHighlight(vec3 col, vec2 uv, float depth)
 {
   vec3 sampleOffsets = vec3(u_screenParams.xy, 0.0);
   float edgeOutlineThreshold = u_outlineParams.y;
+  float farPlane = u_screenParams.w;
 
-  float ld0 = linearizeDepth(depth);
-  float ld1 = linearizeDepth(texture(u_depth, uv + sampleOffsets.xz).x);
-  float ld2 = linearizeDepth(texture(u_depth, uv - sampleOffsets.xz).x);
-  float ld3 = linearizeDepth(texture(u_depth, uv + sampleOffsets.zy).x);
-  float ld4 = linearizeDepth(texture(u_depth, uv - sampleOffsets.zy).x);
+  float d1 = texture(u_depth, uv + sampleOffsets.xz).x;
+  float d2 = texture(u_depth, uv - sampleOffsets.xz).x;
+  float d3 = texture(u_depth, uv + sampleOffsets.zy).x;
+  float d4 = texture(u_depth, uv - sampleOffsets.zy).x;
 
-  float isEdge = 1.0 - step(ld0 - ld1, edgeOutlineThreshold) * step(ld0 - ld2, edgeOutlineThreshold) * step(ld0 - ld3, edgeOutlineThreshold) * step(ld0 - ld4, edgeOutlineThreshold);
+  float wd0 = linearizeDepth(depth) * farPlane;
+  float wd1 = linearizeDepth(d1) * farPlane;
+  float wd2 = linearizeDepth(d2) * farPlane;
+  float wd3 = linearizeDepth(d3) * farPlane;
+  float wd4 = linearizeDepth(d4) * farPlane;
+
+  float isEdge = 1.0 - step(wd0 - wd1, edgeOutlineThreshold) * step(wd0 - wd2, edgeOutlineThreshold) * step(wd0 - wd3, edgeOutlineThreshold) * step(wd0 - wd4, edgeOutlineThreshold);
 
   vec3 edgeColour = mix(col.xyz, u_outlineColour.xyz, u_outlineColour.w);
-  return mix(col.xyz, edgeColour, isEdge);
+  float minDepth = min(min(min(d1, d2), d3), d4);
+  return vec4(mix(col.xyz, edgeColour, isEdge), mix(depth, minDepth, isEdge));
 }
 
 vec3 contourColour(vec3 col, vec3 fragWorldPosition)
@@ -115,8 +123,11 @@ void main()
 
   float edgeOutlineWidth = u_outlineParams.x;
   if (edgeOutlineWidth > 0.0)
-    col.xyz = edgeHighlight(col.xyz, v_texCoord, depth);
-
+  {
+    vec4 edgeResult = edgeHighlight(col.xyz, v_texCoord, depth);
+    col.xyz = edgeResult.xyz;
+    depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
+  }
   col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
 
   out_Colour = vec4(col.xyz, 1.0); // UD always opaque
