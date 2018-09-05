@@ -589,6 +589,7 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
   for (size_t i = 0; i < pTerrainRenderer->cache.textureLoadList.length; ++i)
     visibleCount += pTerrainRenderer->cache.textureLoadList[i]->isVisible ? 1 : 0;
 
+  printf("Active: %d, Total: %d, Capacity: %d\n", pTerrainRenderer->activeTiles, pTerrainRenderer->tileCount, pTerrainRenderer->tileCapacity);
   printf("visibleTiles=%d: totalLoad=%zu\n", visibleCount, pTerrainRenderer->cache.textureLoadList.length);
 #endif
 
@@ -600,6 +601,8 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
 
   if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
     vcGLState_SetDepthMode(vcGLSDM_Always, false);
+  else if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Underlay)
+    vcGLState_SetViewportDepthRange(1.0f, 1.0f);
 
   pTerrainRenderer->presentShader.everyObject.projectionMatrix = udFloat4x4::create(proj);
   pTerrainRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTerrainRenderer->pSettings->maptiles.transparency);
@@ -646,6 +649,8 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
 
   if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
     vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true);
+  else if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Underlay)
+    vcGLState_SetViewportDepthRange(0.0f, 1.0f);
 
   vcGLState_SetBlendMode(vcGLSBM_None);
 

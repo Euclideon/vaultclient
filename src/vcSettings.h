@@ -22,6 +22,7 @@ enum vcMapTileBlendMode
 {
   vcMTBM_Hybrid,
   vcMTBM_Overlay,
+  vcMTBM_Underlay,
 };
 
 enum vcDocks

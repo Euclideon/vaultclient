@@ -338,35 +338,8 @@ void vcPresentUD(vcRenderContext *pRenderContext)
   vcShader_Bind(nullptr);
 }
 
-vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
+void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-  float fov = pRenderContext->pSettings->camera.fieldOfView;
-  float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
-  float zNear = pRenderContext->pSettings->camera.nearPlane;
-  float zFar = pRenderContext->pSettings->camera.farPlane;
-
-  pRenderContext->viewMatrix = renderData.cameraMatrix;
-  pRenderContext->viewMatrix.inverse();
-
-  pRenderContext->projectionMatrix = udDouble4x4::perspective(fov, aspect, zNear, zFar);
-  pRenderContext->skyboxProjMatrix = udDouble4x4::perspective(fov, aspect, 0.5f, 10000.f);
-
-  pRenderContext->viewProjectionMatrix = pRenderContext->projectionMatrix * pRenderContext->viewMatrix;
-  pRenderContext->inverseViewProjectionMatrix = udInverse(pRenderContext->viewProjectionMatrix);
-
-  vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true);
-
-  vcRender_RenderAndUploadUDToTexture(pRenderContext, renderData);
-
-  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
-
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer);
-  vcFramebuffer_Clear(pRenderContext->pFramebuffer, 0xFFFF8080);
-
-  vcPresentUD(pRenderContext);
-
-  vcRenderSkybox(pRenderContext);
-
   if (renderData.pGISSpace->isProjected && pRenderContext->pSettings->maptiles.mapEnabled)
   {
     udDouble4x4 cameraMatrix = renderData.cameraMatrix;
@@ -411,6 +384,36 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
     vcTerrain_BuildTerrain(pRenderContext->pTerrain, renderData.pGISSpace, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pRenderContext->viewProjectionMatrix);
     vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->viewMatrix, pRenderContext->projectionMatrix);
   }
+}
+
+vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
+{
+  float fov = pRenderContext->pSettings->camera.fieldOfView;
+  float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
+  float zNear = pRenderContext->pSettings->camera.nearPlane;
+  float zFar = pRenderContext->pSettings->camera.farPlane;
+
+  pRenderContext->viewMatrix = renderData.cameraMatrix;
+  pRenderContext->viewMatrix.inverse();
+
+  pRenderContext->projectionMatrix = udDouble4x4::perspective(fov, aspect, zNear, zFar);
+  pRenderContext->skyboxProjMatrix = udDouble4x4::perspective(fov, aspect, 0.5f, 10000.f);
+
+  pRenderContext->viewProjectionMatrix = pRenderContext->projectionMatrix * pRenderContext->viewMatrix;
+  pRenderContext->inverseViewProjectionMatrix = udInverse(pRenderContext->viewProjectionMatrix);
+
+  vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true);
+
+  vcRender_RenderAndUploadUDToTexture(pRenderContext, renderData);
+
+  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer);
+  vcFramebuffer_Clear(pRenderContext->pFramebuffer, 0xFFFF8080);
+
+  vcPresentUD(pRenderContext);
+  vcRenderSkybox(pRenderContext);
+  vcRenderTerrain(pRenderContext, renderData);
 
   vcShader_Bind(nullptr);
 
