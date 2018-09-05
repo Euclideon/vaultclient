@@ -83,10 +83,10 @@ struct vcMesh
 };
 
 static const D3D11_FILTER vcTFMToD3D[] = { D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_FILTER_MIN_MAG_MIP_LINEAR }; // Filter Mode
-UDCOMPILEASSERT(UDARRAYSIZE(vcTFMToD3D) == vcTFM_Total, "TextureFilterModes not equal size");
+UDCOMPILEASSERT(udLengthOf(vcTFMToD3D) == vcTFM_Total, "TextureFilterModes not equal size");
 
 static const D3D11_TEXTURE_ADDRESS_MODE vcTWMToD3D[] = { D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_CLAMP }; // Wrap Mode
-UDCOMPILEASSERT(UDARRAYSIZE(vcTWMToD3D) == vcTFM_Total, "TextureFilterModes not equal size");
+UDCOMPILEASSERT(udLengthOf(vcTWMToD3D) == vcTFM_Total, "TextureFilterModes not equal size");
 
 extern ID3D11Device *g_pd3dDevice;
 extern ID3D11DeviceContext *g_pd3dDeviceContext;

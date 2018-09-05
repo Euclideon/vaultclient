@@ -12,7 +12,7 @@ struct vcNormalVertex
 
 const vcVertexLayoutTypes vcNormalVertexLayout[] = { vcVLT_Position3, vcVLT_Normal3 };
 
-const vcNormalVertex compassVerts[] = {
+const float compassVertsFltArray[][6] = {
   { 0.75239136f, -0.07410408f, -0.00738901f, 0.7709f, -0.0759f, 0.6324f },
   { 0.76629227f, -0.0754732f, -0.0245f, 0.7709f, -0.0759f, 0.6324f },
   { 0.77f, 2e-08f, -0.0245f, 0.7747f, 0.0000f, 0.6324f },
@@ -4349,6 +4349,7 @@ const vcNormalVertex compassVerts[] = {
   { 0.04327835f, 1.26260078f, -0.02013009f, 0.0000f, -0.0000f, 1.0000f },
   { 0.04045685f, 1.26273712f, -0.02013009f, 0.0000f, -0.0000f, 1.0000f },
 };
+const vcNormalVertex *pCompassVerts = (vcNormalVertex*)compassVertsFltArray;
 const uint16_t compassFaces[] = {
   0, 1, 2, 2, 3, 0, 4, 5, 1, 1, 0, 4, 6, 7, 5, 5, 4, 6, 8, 9, 7,
   7, 6, 8, 10, 11, 9, 9, 8, 10, 12, 13, 11, 11, 10, 12, 14, 15, 13, 13, 12, 14,
