@@ -8,6 +8,7 @@
 
 #include "vcSettings.h"
 #include "vcModel.h"
+#include "vcGIS.h"
 
 struct SDL_Window;
 
@@ -58,7 +59,7 @@ struct vcState
   udDouble4x4 camMatrix;
   udUInt2 sceneResolution;
 
-  uint16_t currentSRID;
+  vcGISSpace gis;
 
   vcTexture *pWatermarkTexture;
 

@@ -502,7 +502,7 @@ void vcTerrainRenderer_FreeUnusedTiles(vcTerrainRenderer *pTerrainRenderer)
 }
 
 
-void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t srid, const udInt3 &slippyCoords, const udDouble3 &cameraLocalPosition, const vcQuadTreeNode *pNodeList, int nodeCount)
+void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, vcGISSpace *pSpace, const udInt3 &slippyCoords, const udDouble3 &cameraLocalPosition, const vcQuadTreeNode *pNodeList, int nodeCount)
 {
   // Invalidate tiles
   for (int i = 0; i < pTerrainRenderer->tileCount; ++i)
@@ -540,7 +540,7 @@ void vcTerrainRenderer_BuildTiles(vcTerrainRenderer *pTerrainRenderer, int16_t s
     {
       udInt2 slippySampleCoord = udInt2::create((slippyTileCoord.x * (1 << slippyLayerDescendAmount)) + (t % TileVertexResolution),
         (slippyTileCoord.y * (1 << slippyLayerDescendAmount)) + (t / TileVertexResolution));
-      vcGIS_SlippyToLocal(srid, &localCorners[t], slippySampleCoord, slippyTileCoord.z + slippyLayerDescendAmount);
+      vcGIS_SlippyToLocal(pSpace, &localCorners[t], slippySampleCoord, slippyTileCoord.z + slippyLayerDescendAmount);
       pTile->worldPosition[t] = udDouble3::create(localCorners[t].x, localCorners[t].y, 0.0);
     }
 

@@ -22,7 +22,7 @@ struct vcQuadTree
 {
   vcQuadTreeMetaData metaData;
   udDouble4x4 viewProjectionMatrix;
-  uint16_t srid;
+  vcGISSpace *pSpace;
   udInt3 slippyCoords;
   udDouble3 cameraWorldPosition;
   double quadTreeWorldSize;
@@ -143,7 +143,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex,
     bool tileVisible = false;
 
     udInt2 pViewSlippyCoords;
-    vcGIS_LocalToSlippy(pQuadTree->srid, &pViewSlippyCoords, pQuadTree->cameraWorldPosition, pQuadTree->slippyCoords.z + pQuadTree->pNodes[childIndex].level);
+    vcGIS_LocalToSlippy(pQuadTree->pSpace, &pViewSlippyCoords, pQuadTree->cameraWorldPosition, pQuadTree->slippyCoords.z + pQuadTree->pNodes[childIndex].level);
 
     udInt2 slippyManhattanDist = udInt2::create(udAbs(pViewSlippyCoords.x - pQuadTree->pNodes[childIndex].slippyPosition.x),
       udAbs(pViewSlippyCoords.y - pQuadTree->pNodes[childIndex].slippyPosition.y));
@@ -175,7 +175,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex,
       for (int t = 0; t < 4; ++t)
       {
         udDouble3 localCorners;
-        vcGIS_SlippyToLocal(pQuadTree->srid, &localCorners, udInt2::create(pQuadTree->pNodes[childIndex].slippyPosition.x + (t % 2), pQuadTree->pNodes[childIndex].slippyPosition.y + (t / 2)), pQuadTree->slippyCoords.z + pQuadTree->pNodes[childIndex].level);
+        vcGIS_SlippyToLocal(pQuadTree->pSpace, &localCorners, udInt2::create(pQuadTree->pNodes[childIndex].slippyPosition.x + (t % 2), pQuadTree->pNodes[childIndex].slippyPosition.y + (t / 2)), pQuadTree->slippyCoords.z + pQuadTree->pNodes[childIndex].level);
         localCorners2D[t] = localCorners.toVector2();
       }
 
@@ -212,7 +212,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex,
       for (int p = 0; p < 4; ++p)
       {
         udDouble2 p1 = localCorners2D[edgePairs[p].x];
-        udDouble2 p2 = localCorners2D[edgePairs[p].y];      
+        udDouble2 p2 = localCorners2D[edgePairs[p].y];
         tileVisible = tileVisible || vcQuadTree_IsPointVisible(pQuadTree->viewProjectionMatrix, udDouble3::create((p1 + p2) * 0.5, pQuadTree->quadTreeHeightOffset));
       }
 
@@ -245,7 +245,7 @@ udResult vcQuadTree_GenerateNodeList(vcQuadTree *pQuadTree, const vcQuadTreeCrea
   memset(pQuadTree->pNodes, 0, sizeof(vcQuadTreeNode) * pQuadTree->capacity);
 
   pQuadTree->viewProjectionMatrix = createInfo.viewProjectionMatrix;
-  pQuadTree->srid = createInfo.srid;
+  pQuadTree->pSpace = createInfo.pSpace;
   pQuadTree->slippyCoords = createInfo.slippyCoords;
   pQuadTree->cameraWorldPosition = createInfo.cameraPosition;
   pQuadTree->quadTreeWorldSize = createInfo.quadTreeWorldSize;

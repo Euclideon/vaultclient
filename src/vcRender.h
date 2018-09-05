@@ -14,7 +14,7 @@ struct vcTexture;
 
 struct vcRenderData
 {
-  uint16_t srid;
+  vcGISSpace *pGISSpace;
 
   udInt2 mouse;
   udDouble3 worldMousePos;
