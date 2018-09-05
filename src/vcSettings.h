@@ -139,7 +139,7 @@ const float vcSL_CameraFarPlaneMax = 1000000.f;
 const float vcSL_CameraNearFarPlaneRatioMax = 10000.f;
 
 const float vcSL_CameraMinMoveSpeed = 0.5f;
-const float vcSL_CameraMaxMoveSpeed = 2500.f;
+const float vcSL_CameraMaxMoveSpeed = 10000.f;
 
 const float vcSL_CameraFieldOfViewMin = 5;
 const float vcSL_CameraFieldOfViewMax = 100;

@@ -623,7 +623,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       ImGui::SameLine();
       ImGui::RadioButton("Heli", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
 
-      if (ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 2.f))
+      if (ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
         pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
 
     }
