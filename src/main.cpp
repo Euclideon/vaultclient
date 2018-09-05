@@ -1236,7 +1236,7 @@ void vcRenderWindow(vcState *pProgramState)
           ImGui::SliderInt("Edge Highlighting Width", &pProgramState->settings.postVisualization.edgeOutlines.width, 1, 100);
 
           // TODO: Make this less awful. 0-100 would make more sense than 0.0001 to 0.001.
-          ImGui::SliderFloat("Edge Highlighting Threshold", &pProgramState->settings.postVisualization.edgeOutlines.threshold, 0.0001f, 0.001f, "%.5f");
+          ImGui::SliderFloat("Edge Highlighting Threshold", &pProgramState->settings.postVisualization.edgeOutlines.threshold, 0.001f, 10.0f, "%.3f");
           ImGui::ColorEdit4("Edge Highlighting Colour", &pProgramState->settings.postVisualization.edgeOutlines.colour.x);
         }
 
