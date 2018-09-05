@@ -84,6 +84,7 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force = false);
 bool vcGLState_SetDepthMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite, bool force = false);
 
 bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, float minDepth = 0.f, float maxDepth = 1.f);
+bool vcGLState_SetViewportDepthRange(float minDepth, float maxDepth);
 
 bool vcGLState_Present(SDL_Window *pWindow);
 

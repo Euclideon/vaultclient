@@ -1212,7 +1212,7 @@ void vcRenderWindow(vcState *pProgramState)
 
           ImGui::SliderFloat("Map Height", &pProgramState->settings.maptiles.mapHeight, -1000.f, 1000.f, "%.3fm", 2.f);
 
-          const char* blendModes[] = { "Hybrid", "Overlay" };
+          const char* blendModes[] = { "Hybrid", "Overlay", "Underlay" };
           if (ImGui::BeginCombo("Blending", blendModes[pProgramState->settings.maptiles.blendMode]))
           {
             for (size_t n = 0; n < UDARRAYSIZE(blendModes); ++n)
