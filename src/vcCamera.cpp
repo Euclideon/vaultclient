@@ -322,7 +322,10 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
   case vcCIS_MovingToPoint:
   {
     udDouble3 travelVector = pCamInput->focusPoint - pCamInput->startPosition;
-    travelVector *= 0.9; //stop short by 1/10th the distance
+
+    double length = udMag3(travelVector);
+
+    travelVector *= udMax(0.9, (length-100.0) / length); // gets to either 90% or within 100m
 
     double travelProgress = 0;
 
