@@ -35,13 +35,12 @@ struct vcState
   vcFramebuffer *pDefaultFramebuffer;
 
   bool onScreenControls;
-
   bool popupTrigger[vcPopupCount];
 
   vcCamera *pCamera;
 
+  udChunkedArray<const char *> loadList;
   udChunkedArray<vcModel> vcModelList;
-  bool lastModelLoaded;
 
   size_t numSelectedModels;
   size_t prevSelectedModel;
