@@ -222,13 +222,23 @@ int vcMainMenuGui(vcState *pProgramState);
 void vcSettings_LoadSettings(vcState *pProgramState, bool forceDefaults);
 bool vcLogout(vcState *pProgramState);
 
-int main(int /*argc*/, char ** /*args*/)
+int main(int argc, char **args)
 {
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
   _CrtMemState m1, m2, diff;
   _CrtMemCheckpoint(&m1);
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF);
 #endif //UDPLATFORM_WINDOWS && !defined(NDEBUG)
+
+#if UDPLATFORM_WINDOWS
+  if (argc > 1)
+  {
+    udFilename currentPath(args[0]);
+    char cPathBuffer[256];
+    currentPath.ExtractFolder(cPathBuffer, (int)udLengthOf(cPathBuffer));
+    SetCurrentDirectoryA(cPathBuffer);
+  }
+#endif //UDPLATFORM_WINDOWS
 
   SDL_GLContext glcontext = NULL;
   uint32_t windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
@@ -296,7 +306,10 @@ int main(int /*argc*/, char ** /*args*/)
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
   programState.vcModelList.Init(32);
-  programState.lastModelLoaded = true;
+  programState.loadList.Init(32);
+
+  for (int i = 0; i < argc; ++i)
+    programState.loadList.PushBack(args[i]);
 
   // default string values.
   udStrcpy(programState.serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
@@ -617,7 +630,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
       if (pProgramState->gis.isProjected)
       {
-        udDouble3 cameraLatLong = udGeoZone_ToCartesian(pProgramState->gis.zone, pProgramState->camMatrix.axis.t.toVector3());
+        udDouble3 cameraLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->camMatrix.axis.t.toVector3());
         ImGui::Text("Lat: %.7f, Long: %.7f, Alt: %.2fm", cameraLatLong.x, cameraLatLong.y, cameraLatLong.z);
       }
       ImGui::RadioButton("Plane", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
@@ -858,6 +871,13 @@ void vcRenderWindow(vcState *pProgramState)
               }
 
               pProgramState->hasContext = true;
+
+              while (pProgramState->loadList.length > 0)
+              {
+                const char *pNextLoad;
+                pProgramState->loadList.PopFront(&pNextLoad);
+                vcModel_AddToList(pProgramState, pNextLoad);
+              }
             }
           }
         }
@@ -888,9 +908,6 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::InputText("Model Path", pProgramState->modelPath, vcMaxPathLength);
       if (ImGui::Button("Load Model!"))
         vcModel_AddToList(pProgramState, pProgramState->modelPath);
-
-      if (!pProgramState->lastModelLoaded)
-        ImGui::Text("Invalid File/Not Found...");
 
       // Models
 
@@ -1064,8 +1081,6 @@ void vcRenderWindow(vcState *pProgramState)
                   goto epilogue;
 
                 pProgramState->vcModelList.RemoveAt(j);
-
-                pProgramState->lastModelLoaded = true;
                 j--;
               }
             }
@@ -1080,8 +1095,6 @@ void vcRenderWindow(vcState *pProgramState)
               goto epilogue;
 
             pProgramState->vcModelList.RemoveAt(i);
-
-            pProgramState->lastModelLoaded = true;
             i--;
           }
         }
