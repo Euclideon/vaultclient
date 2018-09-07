@@ -315,6 +315,43 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
     udGeoZone_SetSpheroid(pZone);
     udGeoZone_SetUTMZoneBounds(pZone, false);
   }
+  else if (sridCode >= 2443 && sridCode <= 2461)
+  {
+    // JGD2000 / Japan Plane Rectangular CS I through XIX
+
+    const udDouble2 jprcsRegions[] = { // Meridian, Latitude Of Origin
+      { 129.5, 33.0 },
+      { 131.0, 33.0 },
+      { 132.0 + 1.0 / 6.0, 36.0 },
+      { 133.5, 33.0 },
+      { 134.0 + 1.0 / 3.0, 36.0 },
+      { 136.0, 36.0 },
+      { 137.0 + 1.0 / 6.0, 36.0 },
+      { 138.5, 36.0 },
+      { 139.0 + 5.0 / 6.0, 36.0 },
+      { 140.0 + 5.0 / 6.0, 40.0 },
+      { 140.25, 44.0 },
+      { 142.25, 44.0 },
+      { 144.25, 44.0 },
+      { 142.0, 26.0 },
+      { 127.5, 26.0 },
+      { 124.0, 26.0 },
+      { 131.0, 26.0 },
+      { 136.0, 20.0 },
+      { 154.0, 26.0 }
+    };
+
+    pZone->zone = sridCode - 2443;
+    pZone->meridian = jprcsRegions[pZone->zone].x;
+    pZone->parallel = jprcsRegions[pZone->zone].y;
+    pZone->falseNorthing = 0;
+    pZone->falseEasting = 0;
+    pZone->scaleFactor = 0.9999;
+    pZone->flattening = 1 / 298.257222101;
+    pZone->semiMajorAxis = 6378137.0;
+    udGeoZone_SetSpheroid(pZone);
+    udGeoZone_SetUTMZoneBounds(pZone, false);
+  }
   else if (sridCode >= 3942 && sridCode <= 3950)
   {
     // France Conic Conformal zones
@@ -410,6 +447,21 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       udGeoZone_SetSpheroid(pZone);
       pZone->latLongBoundMin = udDouble2::create(32.51, -118.14);
       pZone->latLongBoundMax = udDouble2::create(34.08, -114.43);
+      break;
+    case 3112: // GDA94 / Geoscience Australia Lambert
+      pZone->zone = sridCode;
+      pZone->meridian = 134;
+      pZone->parallel = 0;
+      pZone->firstParallel = -18;
+      pZone->secondParallel = -36;
+      pZone->falseNorthing = 0;
+      pZone->falseEasting = 0;
+      pZone->scaleFactor = 1.0;
+      pZone->flattening = 1 / 298.257222101;
+      pZone->semiMajorAxis = 6378137.0;
+      udGeoZone_SetSpheroid(pZone);
+      pZone->latLongBoundMin = udDouble2::create(-45, 108.0000);
+      pZone->latLongBoundMax = udDouble2::create(-10, 155.0000);
       break;
     case 27700: // OSGB 1936 / British National Grid
       pZone->datum = udGZGD_OSGB36;
@@ -580,8 +632,11 @@ udDouble3 udGeoZone_ToLatLong(const udGeoZone &zone, const udDouble3 &position, 
     double n = (udLogN(m1) - udLogN(m2)) / (udLogN(t1) - udLogN(t2));
     double F = m1 / (n * udPow(t1, n));
     double p0 = zone.semiMajorAxis * F *  udPow(tOrigin, n);
-    double p = udSqrt(x * x + (p0 - y) * (p0 - y));
-    double theta = udATan2(x, p0 - y);
+    double p = udSqrt(x * x + (p0 - y) * (p0 - y)); // This is r' in the EPSG specs- it must have the same sign as n
+    if (n < 0)
+      p = -p;
+
+    double theta = udATan(x / (p0 - y));
     double t = udPow(p / (zone.semiMajorAxis * F), 1 / n);
     double phi = UD_HALF_PI - 2.0 * udATan(t);
     for (int i = 0; i < 5; ++i)
