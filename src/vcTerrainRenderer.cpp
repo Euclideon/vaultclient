@@ -571,7 +571,7 @@ void vcTerrainRenderer_DrawTile(vcTerrainRenderer *pTerrainRenderer, vcTile *pTi
     pTerrainRenderer->presentShader.everyObject.eyePositions[t] = eyeSpaceVertexPosition;
   }
 
-  vcShader_BindConstantBuffer(pTerrainRenderer->presentShader.pProgram, pTerrainRenderer->presentShader.pConstantBuffer, &pTerrainRenderer->presentShader.everyObject, sizeof(vcTerrainRenderer::presentShader.everyObject));
+  vcShader_BindConstantBuffer(pTerrainRenderer->presentShader.pProgram, pTerrainRenderer->presentShader.pConstantBuffer, &pTerrainRenderer->presentShader.everyObject, sizeof(pTerrainRenderer->presentShader.everyObject));
   vcMesh_RenderTriangles(pMesh, TileIndexResolution * TileIndexResolution * 2); // 2 tris per quad
 }
 

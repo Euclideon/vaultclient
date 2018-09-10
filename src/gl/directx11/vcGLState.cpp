@@ -52,7 +52,7 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
     return false;
 
   // Get Default Framebuffer
-  memset(&g_defaultFramebuffer, 0, sizeof(vcFramebuffer));
+  memset(&g_defaultFramebuffer, 0, sizeof(g_defaultFramebuffer));
 
   ID3D11Texture2D* pBackBuffer;
   g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);

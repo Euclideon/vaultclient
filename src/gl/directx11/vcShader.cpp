@@ -40,7 +40,7 @@ bool vsShader_InternalReflectShaderConstantBuffers(ID3D10Blob *pBlob, int type, 
     //register_index, bdesc.Name, pBuffer, &bdesc;
     //mShaderBuffers.push_back(shaderbuffer);
 
-    udStrcpy(pBuffers[index].bufferName, sizeof(vcShaderConstantBuffer::bufferName), bdesc.Name);
+    udStrcpy(pBuffers[index].bufferName, sizeof(pBuffers[index].bufferName), bdesc.Name);
     pBuffers[index].expectedSize = bdesc.Size;
     pBuffers[index].type = type;
 
