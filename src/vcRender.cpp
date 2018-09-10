@@ -8,8 +8,6 @@
 #include "vcTerrain.h"
 #include "vcGIS.h"
 
-#include "gl/opengl/vcOpenGL.h"
-
 const int qrIndices[6] = { 0, 1, 2, 0, 2, 3 };
 const vcSimpleVertex qrSqVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
 
@@ -259,14 +257,11 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
   inverseViewProjMatrixF.inverse();
 
   vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 1.0f, 1.0f);
-  VERIFY_GL();
 
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);
-  VERIFY_GL();
 
   vcShader_BindTexture(pRenderContext->skyboxShader.pProgram, pRenderContext->pSkyboxCubeMapTexture, 0, pRenderContext->skyboxShader.uniform_texture);
-  vcShader_BindConstantBuffer(pRenderContext->skyboxShader.pProgram, pRenderContext->skyboxShader.uniform_MatrixBlock, &inverseViewProjMatrixF, sizeof(udDouble4x4));
-  VERIFY_GL();
+  vcShader_BindConstantBuffer(pRenderContext->skyboxShader.pProgram, pRenderContext->skyboxShader.uniform_MatrixBlock, &inverseViewProjMatrixF, sizeof(udFloat4x4));
 
   vcMesh_RenderTriangles(pRenderContext->pScreenQuadMesh, 2);
 
