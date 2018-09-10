@@ -67,7 +67,7 @@ void ImGuiGL_RenderDrawData(ImDrawData* draw_data)
   );
 
   vcShader_Bind(pImGuiShader);
-  vcShader_BindConstantBuffer(pImGuiShader, g_pAttribLocationProjMtx, &ortho_projection, sizeof(udFloat4x4));
+  vcShader_BindConstantBuffer(pImGuiShader, g_pAttribLocationProjMtx, &ortho_projection, sizeof(ortho_projection));
   vcShader_GetSamplerIndex(&pImGuiSampler, pImGuiShader, "Texture");
 
   if(draw_data->CmdListsCount != 0 && pImGuiMesh == nullptr)

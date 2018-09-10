@@ -6,7 +6,7 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
   vcFramebuffer *pFramebuffer = udAllocType(vcFramebuffer, 1, udAF_Zero);
 
   D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
-  memset(&renderTargetViewDesc, 0, sizeof(D3D11_RENDER_TARGET_VIEW_DESC));
+  memset(&renderTargetViewDesc, 0, sizeof(renderTargetViewDesc));
 
   renderTargetViewDesc.Format = pTexture->d3dFormat;
   renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
@@ -18,7 +18,7 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
   if (pDepth != nullptr)
   {
     D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
-    memset(&dsvDesc, 0, sizeof(D3D11_DEPTH_STENCIL_VIEW_DESC));
+    memset(&dsvDesc, 0, sizeof(dsvDesc));
     dsvDesc.Format = ((pDepth->format == vcTextureFormat_D32F) ? DXGI_FORMAT_D32_FLOAT : DXGI_FORMAT_D24_UNORM_S8_UINT);
     dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
     dsvDesc.Texture2D.MipSlice = 0;

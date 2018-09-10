@@ -261,7 +261,7 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);
 
   vcShader_BindTexture(pRenderContext->skyboxShader.pProgram, pRenderContext->pSkyboxCubeMapTexture, 0, pRenderContext->skyboxShader.uniform_texture);
-  vcShader_BindConstantBuffer(pRenderContext->skyboxShader.pProgram, pRenderContext->skyboxShader.uniform_MatrixBlock, &inverseViewProjMatrixF, sizeof(udFloat4x4));
+  vcShader_BindConstantBuffer(pRenderContext->skyboxShader.pProgram, pRenderContext->skyboxShader.uniform_MatrixBlock, &inverseViewProjMatrixF, sizeof(inverseViewProjMatrixF));
 
   vcMesh_RenderTriangles(pRenderContext->pScreenQuadMesh, 2);
 

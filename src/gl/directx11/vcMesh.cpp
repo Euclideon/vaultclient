@@ -20,7 +20,7 @@ udResult vcMeshInternal_RecreateBuffer(ID3D11Buffer **ppBuffer, D3D11_USAGE draw
   D3D11_SUBRESOURCE_DATA initialData;
   D3D11_SUBRESOURCE_DATA *pSubData = nullptr;
 
-  memset(&desc, 0, sizeof(D3D11_BUFFER_DESC));
+  memset(&desc, 0, sizeof(desc));
   desc.Usage = drawType;
   desc.ByteWidth = bufferSize * unitSize;
   desc.BindFlags = bindFlag;
