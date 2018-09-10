@@ -206,7 +206,13 @@ bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuf
   if (g_pd3dDeviceContext->Map(pBuffer->pBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resource) != S_OK)
     return false;
 
-  memcpy(mapped_resource.pData, pData, bufferSize);
+  if (mapped_resource.RowPitch == bufferSize)
+    memcpy(mapped_resource.pData, pData, bufferSize);
+#if UD_DEBUG
+  else
+    __debugbreak(); // If this is hit please confirm your upload sizes
+#endif
+
   g_pd3dDeviceContext->Unmap(pBuffer->pBuffer, 0);
 
   if (pBuffer->type == 0)
