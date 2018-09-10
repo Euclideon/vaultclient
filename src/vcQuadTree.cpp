@@ -263,7 +263,7 @@ udResult vcQuadTree_GenerateNodeList(vcQuadTree *pQuadTree, const vcQuadTreeCrea
   vcQuadTree_RecurseGenerateTree(pQuadTree, 0, 0);
 
   if (pMetaData)
-    memcpy(pMetaData, &pQuadTree->metaData, sizeof(vcQuadTreeMetaData));
+    memcpy(pMetaData, &pQuadTree->metaData, sizeof(pQuadTree->metaData));
 
 epilogue:
   return result;
