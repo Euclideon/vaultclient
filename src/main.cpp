@@ -308,7 +308,7 @@ int main(int argc, char **args)
   programState.vcModelList.Init(32);
   programState.loadList.Init(32);
 
-  for (int i = 0; i < argc; ++i)
+  for (int i = 1; i < argc; ++i)
     programState.loadList.PushBack(args[i]);
 
   // default string values.
