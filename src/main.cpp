@@ -236,7 +236,7 @@ int main(int argc, char **args)
     udFilename currentPath(args[0]);
     char cPathBuffer[256];
     currentPath.ExtractFolder(cPathBuffer, (int)udLengthOf(cPathBuffer));
-    SetCurrentDirectoryA(cPathBuffer);
+    SetCurrentDirectoryW(udOSString(cPathBuffer));
   }
 #endif //UDPLATFORM_WINDOWS
 
