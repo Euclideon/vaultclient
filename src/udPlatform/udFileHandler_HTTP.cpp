@@ -12,6 +12,7 @@
 
 #include "udPlatformUtil.h"
 #include "udFileHandler.h"
+#include "udMath.h"
 #if UDPLATFORM_WINDOWS
 # include <winsock2.h>
 #define snprintf _snprintf
@@ -219,12 +220,13 @@ static udResult udFileHandler_HTTPRecvGET(udFile_HTTP *pFile, void *pBuffer, siz
       UD_ERROR_SET(udR_SocketError);
     }
 
-    bytesReceived -= (int)headerLength;
+    // Some servers send more data after the content, we should throw it out
+    bytesReceived = udMin((int64_t)bytesReceived - (int64_t)headerLength, contentLength);
     memcpy(pBuffer, pFile->recvBuffer + headerLength, bytesReceived);
 
     while (bytesReceived < (size_t)contentLength)
     {
-      recvCode = recv(pFile->sock, ((char*)pBuffer) + bytesReceived, int(bufferLength - bytesReceived), 0);
+      recvCode = recv(pFile->sock, ((char*)pBuffer) + bytesReceived, udMin(int(bufferLength - bytesReceived), int(contentLength - bytesReceived)), 0);
       if (recvCode == SOCKET_ERROR)
         UD_ERROR_SET(udR_SocketError);
       bytesReceived += recvCode;
