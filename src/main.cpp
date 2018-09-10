@@ -1471,7 +1471,7 @@ bool vcLogout(vcState *pProgramState)
   success &= vcModel_UnloadList(pProgramState);
   success &= (vcRender_DestroyTerrain(pProgramState->pRenderContext) == udR_Success);
 
-  memset(&pProgramState->gis, 0, sizeof(vcGISSpace));
+  memset(&pProgramState->gis, 0, sizeof(pProgramState->gis));
 
   success = success && vdkContext_Logout(pProgramState->pVDKContext) == vE_Success;
   pProgramState->hasContext = !success;
