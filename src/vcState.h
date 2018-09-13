@@ -63,9 +63,7 @@ struct vcState
   vcTexture *pWatermarkTexture;
 
   udDouble3 worldMousePos;
-  udDouble3 currentMeasurePoint;
   bool pickingSuccess;
-  bool measureMode;
 
   vcCameraInput cameraInput;
 
