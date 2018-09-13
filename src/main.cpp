@@ -547,6 +547,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.pGISSpace = &pProgramState->gis;
   renderData.models.Init(32);
 
+  if (pProgramState->cameraInput.inputState == vcCIS_Orbiting)
+    renderData.pWorldAnchorPos = &pProgramState->cameraInput.focusPoint;
+
   ImGuiIO &io = ImGui::GetIO();
   renderData.mouse.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.y = (uint32_t)(io.MousePos.y - windowPos.y);
@@ -577,7 +580,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       else
         ImGui::Text("Unsupported SRID: %d", pProgramState->gis.SRID);
 
-      if (pProgramState->settings.showAdvancedGIS)
+      if (pProgramState->settings.presentation.showAdvancedGIS)
       {
         int newSRID = pProgramState->gis.SRID;
         if (ImGui::InputInt("Override SRID", &newSRID) && vcGIS_AcceptableSRID((vcSRID)newSRID))
@@ -587,32 +590,32 @@ void vcRenderSceneWindow(vcState *pProgramState)
         }
       }
 
-      if (pProgramState->settings.showDiagnosticInfo)
+      if (pProgramState->settings.presentation.showDiagnosticInfo)
       {
         ImGui::Separator();
         ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
-      }
 
-      ImGui::Separator();
-      if (ImGui::IsMousePosValid())
-      {
-        ImGui::Text("Mouse Position: (%.1f,%.1f)", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
-        if (pProgramState->pickingSuccess)
+        ImGui::Separator();
+        if (ImGui::IsMousePosValid())
         {
-          ImGui::Text("Mouse World Pos (x/y/z): (%f,%f,%f)", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
+          ImGui::Text("Mouse Position: (%.1f,%.1f)", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
+          if (pProgramState->pickingSuccess)
+          {
+            ImGui::Text("Mouse World Pos (x/y/z): (%f,%f,%f)", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
 
           if (pProgramState->gis.isProjected)
-          {
+            {
             udDouble3 mousePointInLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, renderData.worldMousePos);
-            ImGui::Text("Mouse World Pos (L/L): (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
+              ImGui::Text("Mouse World Pos (L/L): (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
+            }
           }
-        }
 
-        ImGui::Text("Selected Pos (x/y/z): (%f,%f,%f)", pProgramState->currentMeasurePoint.x, pProgramState->currentMeasurePoint.y, pProgramState->currentMeasurePoint.z);
-      }
-      else
-      {
-        ImGui::Text("Mouse Position: <invalid>");
+          ImGui::Text("Selected Pos (x/y/z): (%f,%f,%f)", pProgramState->currentMeasurePoint.x, pProgramState->currentMeasurePoint.y, pProgramState->currentMeasurePoint.z);
+        }
+        else
+        {
+          ImGui::Text("Mouse Position: <invalid>");
+        }
       }
     }
 
@@ -640,7 +643,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       if (ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
         pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
 
-    }
+      }
 
     ImGui::End();
   }
@@ -1121,9 +1124,9 @@ void vcRenderWindow(vcState *pProgramState)
     {
       if (ImGui::CollapsingHeader("Appearance##Settings"))
       {
-        if (ImGui::Combo("Theme", &pProgramState->settings.styleIndex, "Classic\0Dark\0Light\0"))
+        if (ImGui::Combo("Theme", &pProgramState->settings.presentation.styleIndex, "Classic\0Dark\0Light\0"))
         {
-          switch (pProgramState->settings.styleIndex)
+          switch (pProgramState->settings.presentation.styleIndex)
           {
           case 0: ImGui::StyleColorsClassic(); break;
           case 1: ImGui::StyleColorsDark(); break;
@@ -1131,8 +1134,9 @@ void vcRenderWindow(vcState *pProgramState)
           }
         }
 
-        ImGui::Checkbox("Show Diagnostic Information", &pProgramState->settings.showDiagnosticInfo);
-        ImGui::Checkbox("Show Advanced GIS Settings", &pProgramState->settings.showAdvancedGIS);
+        ImGui::Checkbox("Show Diagnostic Information", &pProgramState->settings.presentation.showDiagnosticInfo);
+        ImGui::Checkbox("Show On Screen Compass", &pProgramState->settings.presentation.showCompass);
+        ImGui::Checkbox("Show Advanced GIS Settings", &pProgramState->settings.presentation.showAdvancedGIS);
       }
 
       if (ImGui::CollapsingHeader("Input & Controls##Settings"))
