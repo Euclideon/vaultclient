@@ -598,23 +598,16 @@ void vcRenderSceneWindow(vcState *pProgramState)
         ImGui::Separator();
         if (ImGui::IsMousePosValid())
         {
-          ImGui::Text("Mouse Position: (%.1f,%.1f)", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
           if (pProgramState->pickingSuccess)
           {
             ImGui::Text("Mouse World Pos (x/y/z): (%f,%f,%f)", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
 
-          if (pProgramState->gis.isProjected)
+            if (pProgramState->gis.isProjected)
             {
-            udDouble3 mousePointInLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, renderData.worldMousePos);
+              udDouble3 mousePointInLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, renderData.worldMousePos);
               ImGui::Text("Mouse World Pos (L/L): (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
             }
           }
-
-          ImGui::Text("Selected Pos (x/y/z): (%f,%f,%f)", pProgramState->currentMeasurePoint.x, pProgramState->currentMeasurePoint.y, pProgramState->currentMeasurePoint.z);
-        }
-        else
-        {
-          ImGui::Text("Mouse Position: <invalid>");
         }
       }
     }
@@ -635,6 +628,15 @@ void vcRenderSceneWindow(vcState *pProgramState)
       {
         udDouble3 cameraLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->camMatrix.axis.t.toVector3());
         ImGui::Text("Lat: %.7f, Long: %.7f, Alt: %.2fm", cameraLatLong.x, cameraLatLong.y, cameraLatLong.z);
+
+        if (pProgramState->gis.zone.latLongBoundMin != pProgramState->gis.zone.latLongBoundMax)
+        {
+          udDouble2 &minBound = pProgramState->gis.zone.latLongBoundMin;
+          udDouble2 &maxBound = pProgramState->gis.zone.latLongBoundMax;
+
+          if (cameraLatLong.x < minBound.x || cameraLatLong.y < minBound.y || cameraLatLong.x > maxBound.x || cameraLatLong.y > maxBound.y)
+            ImGui::TextColored(ImVec4(1, 0, 0, 1), "Camera is outside recommended limits of this GeoZone");
+        }
       }
       ImGui::RadioButton("Plane", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
       ImGui::SameLine();
