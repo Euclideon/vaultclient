@@ -61,6 +61,7 @@ struct vcSettings
     bool showDiagnosticInfo;
     bool showAdvancedGIS;
     bool showCompass;
+    bool limitFPSInBackground;
   } presentation;
 
   struct
