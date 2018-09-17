@@ -60,6 +60,7 @@ udResultInfo udResultInfoArray[] =
 
   RESULTINFO(udR_EventNotHandled),
   RESULTINFO(udR_DatabaseError),
+  RESULTINFO(udR_ServerError),
   RESULTINFO(udR_NotAllowed),
   RESULTINFO(udR_InvalidLicense),
 };

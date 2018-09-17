@@ -9,11 +9,11 @@ extern int g_udLastErrorLine;
 
 // Some helper macros that assume an exit path label "epilogue" and a local variable "result"
 
-#define UD_ERROR_IF(cond, code)     do { if (cond)                      { result = code; if (result) { g_udLastErrorFilename = __FILE__; g_udLastErrorLine = __LINE__; if (UD_ERROR_BREAK_ON_ERROR && g_udBreakOnError) { __debugbreak(); } } goto epilogue; } } while(0)
-#define UD_ERROR_NULL(ptr, code)    do { if (ptr == nullptr)            { result = code; if (result) { g_udLastErrorFilename = __FILE__; g_udLastErrorLine = __LINE__; if (UD_ERROR_BREAK_ON_ERROR && g_udBreakOnError) { __debugbreak(); } } goto epilogue; } } while(0)
-#define UD_ERROR_CHECK(funcCall)    do { result = funcCall;                              if (result) { g_udLastErrorFilename = __FILE__; g_udLastErrorLine = __LINE__; if (UD_ERROR_BREAK_ON_ERROR && g_udBreakOnError) { __debugbreak(); }   goto epilogue; } } while(0)
-#define UD_ERROR_HANDLE()           do {                                                 if (result) { g_udLastErrorFilename = __FILE__; g_udLastErrorLine = __LINE__; if (UD_ERROR_BREAK_ON_ERROR && g_udBreakOnError) { __debugbreak(); }   goto epilogue; } } while(0)
-#define UD_ERROR_SET(code)          do { result = code;                                  if (result) { g_udLastErrorFilename = __FILE__; g_udLastErrorLine = __LINE__; if (UD_ERROR_BREAK_ON_ERROR && g_udBreakOnError) { __debugbreak(); } } goto epilogue;   } while(0)
+#define UD_ERROR_IF(cond, code)     do { if (cond)                      { result = code; if (result) { g_udLastErrorFilename = __FILE__; g_udLastErrorLine = __LINE__; if (g_udBreakOnError && UD_ERROR_BREAK_ON_ERROR) { __debugbreak(); } } goto epilogue; } } while(0)
+#define UD_ERROR_NULL(ptr, code)    do { if (ptr == nullptr)            { result = code; if (result) { g_udLastErrorFilename = __FILE__; g_udLastErrorLine = __LINE__; if (g_udBreakOnError && UD_ERROR_BREAK_ON_ERROR) { __debugbreak(); } } goto epilogue; } } while(0)
+#define UD_ERROR_CHECK(funcCall)    do { result = funcCall;                              if (result) { g_udLastErrorFilename = __FILE__; g_udLastErrorLine = __LINE__; if (g_udBreakOnError && UD_ERROR_BREAK_ON_ERROR) { __debugbreak(); }   goto epilogue; } } while(0)
+#define UD_ERROR_HANDLE()           do {                                                 if (result) { g_udLastErrorFilename = __FILE__; g_udLastErrorLine = __LINE__; if (g_udBreakOnError && UD_ERROR_BREAK_ON_ERROR) { __debugbreak(); }   goto epilogue; } } while(0)
+#define UD_ERROR_SET(code)          do { result = code;                                  if (result) { g_udLastErrorFilename = __FILE__; g_udLastErrorLine = __LINE__; if (g_udBreakOnError && UD_ERROR_BREAK_ON_ERROR) { __debugbreak(); } } goto epilogue;   } while(0)
 #define UD_ERROR_SET_NO_BREAK(code) do { result = code;                                  if (result) { g_udLastErrorFilename = __FILE__; g_udLastErrorLine = __LINE__;                                                                      } goto epilogue;   } while(0)
 
 
@@ -63,6 +63,7 @@ enum udResult
 
   udR_EventNotHandled,
   udR_DatabaseError,
+  udR_ServerError,
   udR_NotAllowed,
   udR_InvalidLicense,
 
