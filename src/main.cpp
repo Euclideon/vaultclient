@@ -595,7 +595,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     if (ImGui::Begin("Geographic Information", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar))
     {
       if (pProgramState->gis.SRID != 0 && pProgramState->gis.isProjected)
-        ImGui::Text("SRID: %d", pProgramState->gis.SRID);
+        ImGui::Text("%s (SRID: %d)", pProgramState->gis.zone.zoneName, pProgramState->gis.SRID);
       else if (pProgramState->gis.SRID == 0)
         ImGui::Text("Not Geolocated");
       else
