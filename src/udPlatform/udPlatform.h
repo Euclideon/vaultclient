@@ -148,8 +148,8 @@ inline void *udInterlockedCompareExchangePointer(T * volatile* dest, void *excha
 #include <sched.h>
 inline int32_t udInterlockedPreIncrement(volatile int32_t *p)  { return __sync_add_and_fetch(p, 1); }
 inline int32_t udInterlockedPostIncrement(volatile int32_t *p) { return __sync_fetch_and_add(p, 1); }
-inline int32_t udInterlockedPreDecrement(volatile int32_t *p)  { return __sync_add_and_fetch(p, -1); }
-inline int32_t udInterlockedPostDecrement(volatile int32_t *p) { return __sync_fetch_and_add(p, -1); }
+inline int32_t udInterlockedPreDecrement(volatile int32_t *p)  { return __sync_sub_and_fetch(p, 1); }
+inline int32_t udInterlockedPostDecrement(volatile int32_t *p) { return __sync_fetch_and_sub(p, 1); }
 inline int32_t udInterlockedExchange(volatile int32_t *dest, int32_t exchange) { return __sync_lock_test_and_set(dest, exchange); }
 inline int32_t udInterlockedCompareExchange(volatile int32_t *dest, int32_t exchange, int32_t comparand) { return __sync_val_compare_and_swap(dest, comparand, exchange); }
 template <typename T>
@@ -168,10 +168,10 @@ inline void *udInterlockedCompareExchangePointer(T * volatile* dest, void *excha
 #error Unknown platform
 #endif
 // Helpers to perform various interlocked functions based on the platform-wrapped primitives
-inline long udInterlockedAdd(volatile int32_t *p, int32_t amount) { int32_t prev, after; do { prev = *p; after = prev + amount; } while (udInterlockedCompareExchange(p, after, prev) != prev); return after; }
+inline int32_t udInterlockedAdd(volatile int32_t *p, int32_t amount) { int32_t prev, after; do { prev = *p; after = prev + amount; } while (udInterlockedCompareExchange(p, after, prev) != prev); return after; }
 inline ptrdiff_t udInterlockedAddPtrDiff(volatile ptrdiff_t *p, ptrdiff_t amount) { ptrdiff_t prev, after; do { prev = *p; after = prev + amount; } while (udInterlockedCompareExchangePointer((void*volatile*)p, (void*)after, (void*)prev) != (void*)prev); return after; }
-inline long udInterlockedMin(volatile int32_t *dest, int32_t newValue) { for (;;) { int32_t oldValue = *dest; if (oldValue < newValue) return oldValue; if (udInterlockedCompareExchange(dest, newValue, oldValue) == oldValue) return newValue; } }
-inline long udInterlockedMax(volatile int32_t *dest, int32_t newValue) { for (;;) { int32_t oldValue = *dest; if (oldValue > newValue) return oldValue; if (udInterlockedCompareExchange(dest, newValue, oldValue) == oldValue) return newValue; } }
+inline int32_t udInterlockedMin(volatile int32_t *dest, int32_t newValue) { for (;;) { int32_t oldValue = *dest; if (oldValue < newValue) return oldValue; if (udInterlockedCompareExchange(dest, newValue, oldValue) == oldValue) return newValue; } }
+inline int32_t udInterlockedMax(volatile int32_t *dest, int32_t newValue) { for (;;) { int32_t oldValue = *dest; if (oldValue > newValue) return oldValue; if (udInterlockedCompareExchange(dest, newValue, oldValue) == oldValue) return newValue; } }
 
 class udInterlockedInt32
 {
@@ -328,20 +328,8 @@ void _udFreeSecure(T *&pMemory, size_t size, const char *pFile, int line)
 # define __FUNC_NAME__ "unknown"
 #endif
 
-
-// Disabled Warnings
-#if defined(_MSC_VER)
-#pragma warning(disable:4127) // conditional expression is constant
-#endif //defined(_MSC_VER)
-
 #if defined(__GNUC__)
 # define UD_GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100  + __GNUC_PATCHLEVEL__)
-# pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-#endif
-
-
-#if defined(__clang__)
-#pragma clang diagnostic ignored "-Wmissing-field-initializers"
 #endif
 
 #define MAKE_FOURCC(a, b, c, d) (  (((uint32_t)(a)) << 0) | (((uint32_t)(b)) << 8) | (((uint32_t)(c)) << 16) | (((uint32_t)(d)) << 24) )

@@ -397,6 +397,9 @@ const char *udTempStr(const char *pFormat, ...);
 const char *udTempStr_CommaInt(int64_t n);
 inline const char *udCommaInt(int64_t n) { return udTempStr_CommaInt(n); } // DEPRECATED NAME
 
+// Give back a double whose trailing zeroes are trimmed if possible (0 will trim decimal point also if possible)
+const char *udTempStr_TrimDouble(double v, int maxDecimalPlaces, int minDecimalPlaces = 0, bool undoRounding = false);
+
 // Give back a H:MM:SS format string, optionally trimming to MM:SS if hours is zero using one of a number of cycling static buffers
 const char *udTempStr_ElapsedTime(int seconds, bool trimHours = true);
 inline const char *udSecondsToString(int seconds, bool trimHours = true) { return udTempStr_ElapsedTime(seconds, trimHours); } // DEPRECATED NAME
@@ -437,7 +440,7 @@ udResult udRemoveDir(const char *pFolder);
 // Write a formatted string to the buffer
 int udSprintf(char *pDest, size_t destlength, const char *pFormat, ...);
 int udSprintfVA(char *pDest, size_t destlength, const char *pFormat, va_list args);
-// Create an allocated string to fit the output
+// Create an allocated string to fit the output, *ppDest will be freed if non-null, and may be an argument to the string
 udResult udSprintf(const char **ppDest, const char *pFormat, ...);
 
 // *********************************************************************

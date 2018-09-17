@@ -322,40 +322,85 @@ udResult udThread_Join(udThread *pThread, int waitMs)
   return udR_Success;
 }
 
+#if UDPLATFORM_OSX || UDPLATFORM_IOS
+# define UD_USE_PLATFORM_SEMAPHORE 0
+# define UD_UNSUPPORTED_PLATFORM_SEMAPHORE 1
+#else
+# define UD_USE_PLATFORM_SEMAPHORE 0
+# define UD_UNSUPPORTED_PLATFORM_SEMAPHORE 0
+#endif
+#define UD_GENERIC_SEMAPHORE_DUPLICATE_CODE 1
+
 struct udSemaphore
 {
-#if UDPLATFORM_WINDOWS
+#if UD_USE_PLATFORM_SEMAPHORE
+# if UDPLATFORM_WINDOWS
+  HANDLE handle;
+# elif UD_UNSUPPORTED_PLATFORM_SEMAPHORE
+#  error "Unsupported platform."
+# else
+  sem_t handle;
+# endif
+#else
+# if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
+#  if UDPLATFORM_WINDOWS
   CRITICAL_SECTION criticalSection;
   CONDITION_VARIABLE condition;
-#else
+#  else
   pthread_mutex_t mutex;
   pthread_cond_t condition;
-#endif
+#  endif
+# else
+  udMutex *pMutex;
+  udConditionVariable *pCondition;
+# endif
 
   volatile int count;
   volatile int refCount;
+#endif
 };
 
 // ****************************************************************************
 // Author: Samuel Surtees, August 2017
 udSemaphore *udCreateSemaphore()
 {
+  udResult result;
   udSemaphore *pSemaphore = udAllocType(udSemaphore, 1, udAF_None);
-
-#if UDPLATFORM_WINDOWS
+  UD_ERROR_NULL(pSemaphore, udR_MemoryAllocationFailure);
+#if UD_USE_PLATFORM_SEMAPHORE
+# if UDPLATFORM_WINDOWS
+  pSemaphore->handle = CreateSemaphore(NULL, 0, 0x7fffffff, NULL);
+  UD_ERROR_NULL(pSemaphore, udR_Failure_);
+# elif UD_UNSUPPORTED_PLATFORM_SEMAPHORE
+#  error "Unsupported platform."
+# else
+  UD_ERROR_IF(sem_init(&pSemaphore->handle, 0, 0) == -1, udR_Failure_);
+# endif
+#else
+# if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
+#  if UDPLATFORM_WINDOWS
   InitializeCriticalSection(&pSemaphore->criticalSection);
   InitializeConditionVariable(&pSemaphore->condition);
-#else
+#  else
   pthread_mutex_init(&(pSemaphore->mutex), NULL);
   pthread_cond_init(&(pSemaphore->condition), NULL);
-#endif
+#  endif
+# else
+  pSemaphore->pMutex = udCreateMutex();
+  pSemaphore->pCondition = udCreateConditionVariable();
+# endif
 
   pSemaphore->count = 0;
   pSemaphore->refCount = 1;
+#endif
 
+  result = udR_Success;
+
+epilogue:
   return pSemaphore;
 }
 
+#if !UD_USE_PLATFORM_SEMAPHORE
 // ----------------------------------------------------------------------------
 // Author: Samuel Surtees, August 2017
 void udDestroySemaphore_Internal(udSemaphore *pSemaphore)
@@ -363,17 +408,23 @@ void udDestroySemaphore_Internal(udSemaphore *pSemaphore)
   if (pSemaphore == nullptr)
     return;
 
-#if UDPLATFORM_WINDOWS
+#if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
+# if UDPLATFORM_WINDOWS
   DeleteCriticalSection(&pSemaphore->criticalSection);
   // CONDITION_VARIABLE doesn't have a delete/destroy function
-#else
+# else
   pthread_mutex_destroy(&pSemaphore->mutex);
   pthread_cond_destroy(&pSemaphore->condition);
+# endif
+#else
+  udDestroyMutex(&pSemaphore->pMutex);
+  udDestroyConditionVariable(&pSemaphore->pCondition);
 #endif
 
   udFree(pSemaphore);
 }
 
+#if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
 // ----------------------------------------------------------------------------
 // Author: Samuel Surtees, August 2017
 void udLockSemaphore_Internal(udSemaphore *pSemaphore)
@@ -430,6 +481,8 @@ bool udSleepSemaphore_Internal(udSemaphore *pSemaphore, int waitMs)
   return (retVal == 0);
 #endif
 }
+#endif // UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
+#endif // !UD_USE_PLATFORM_SEMAPHORE
 
 // ****************************************************************************
 // Author: Samuel Surtees, August 2017
@@ -442,7 +495,21 @@ void udDestroySemaphore(udSemaphore **ppSemaphore)
   if (udInterlockedCompareExchangePointer(ppSemaphore, nullptr, pSemaphore) != pSemaphore)
     return;
 
+#if UD_USE_PLATFORM_SEMAPHORE
+# if UDPLATFORM_WINDOWS
+  CloseHandle(pSemaphore->handle);
+# elif UD_UNSUPPORTED_PLATFORM_SEMAPHORE
+#  error "Unsupported platform."
+# else
+  sem_destroy(&pSemaphore->handle);
+# endif
+  udFree(pSemaphore);
+#else
+# if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
   udLockSemaphore_Internal(pSemaphore);
+# else
+  udLockMutex(pSemaphore->pMutex);
+# endif
   if (udInterlockedPreDecrement(&pSemaphore->refCount) == 0)
   {
     udDestroySemaphore_Internal(pSemaphore);
@@ -453,16 +520,38 @@ void udDestroySemaphore(udSemaphore **ppSemaphore)
     for (int i = 0; i < refCount; ++i)
     {
       ++(pSemaphore->count);
+# if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
       udWakeSemaphore_Internal(pSemaphore);
+# else
+      udSignalConditionVariable(pSemaphore->pCondition);
+# endif
     }
+# if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
     udUnlockSemaphore_Internal(pSemaphore);
+# else
+    udReleaseMutex(pSemaphore->pMutex);
+# endif
   }
+#endif
 }
 
 // ****************************************************************************
 // Author: Samuel Surtees, August 2017
 void udIncrementSemaphore(udSemaphore *pSemaphore, int count)
 {
+#if UD_USE_PLATFORM_SEMAPHORE
+  if (pSemaphore == nullptr)
+    return;
+
+# if UDPLATFORM_WINDOWS
+  ReleaseSemaphore(pSemaphore->handle, count, nullptr);
+# elif UD_UNSUPPORTED_PLATFORM_SEMAPHORE
+#  error "Unsupported platform."
+# else
+  while (count-- > 0)
+    sem_post(&pSemaphore->handle);
+# endif
+#else
   // Exit the function if the refCount is 0 - It's being destroyed!
   if (pSemaphore == nullptr || pSemaphore->refCount == 0)
     return;
@@ -470,31 +559,76 @@ void udIncrementSemaphore(udSemaphore *pSemaphore, int count)
   udInterlockedPreIncrement(&pSemaphore->refCount);
   while (count-- > 0)
   {
+# if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
     udLockSemaphore_Internal(pSemaphore);
     ++(pSemaphore->count);
     udWakeSemaphore_Internal(pSemaphore);
     udUnlockSemaphore_Internal(pSemaphore);
+# else
+    udLockMutex(pSemaphore->pMutex);
+    ++(pSemaphore->count);
+    udSignalConditionVariable(pSemaphore->pCondition);
+    udReleaseMutex(pSemaphore->pMutex);
+# endif
   }
   udInterlockedPreDecrement(&pSemaphore->refCount);
+#endif
 }
 
 // ****************************************************************************
 // Author: Samuel Surtees, August 2017
 int udWaitSemaphore(udSemaphore *pSemaphore, int waitMs)
 {
+#if UD_USE_PLATFORM_SEMAPHORE
+  if (pSemaphore == nullptr)
+    return -1;
+
+# if UDPLATFORM_WINDOWS
+  return WaitForSingleObject(pSemaphore->handle, waitMs);
+# elif UD_UNSUPPORTED_PLATFORM_SEMAPHORE
+#  error "Unsupported platform."
+# else
+  if (waitMs == UDTHREAD_WAIT_INFINITE)
+  {
+    return sem_wait(&pSemaphore->handle);
+  }
+  else
+  {
+    struct  timespec ts;
+    if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
+      return -1;
+
+    ts.tv_sec += waitMs / 1000;
+    ts.tv_nsec += long(waitMs % 1000) * 1000000L;
+
+    ts.tv_sec += (ts.tv_nsec / 1000000000L);
+    ts.tv_nsec %= 1000000000L;
+
+    return sem_timedwait(&pSemaphore->handle, &ts);
+  }
+# endif
+#else
   // Exit the function if the refCount is 0 - It's being destroyed!
   if (pSemaphore == nullptr || pSemaphore->refCount == 0)
     return -1;
 
   udInterlockedPreIncrement(&pSemaphore->refCount);
+# if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
   udLockSemaphore_Internal(pSemaphore);
+# else
+  udLockMutex(pSemaphore->pMutex);
+# endif
   bool retVal;
   if (waitMs == UDTHREAD_WAIT_INFINITE)
   {
     retVal = true;
     while (pSemaphore->count == 0)
     {
+# if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
       retVal = udSleepSemaphore_Internal(pSemaphore, waitMs);
+# else
+      retVal = (udWaitConditionVariable(pSemaphore->pCondition, pSemaphore->pMutex, waitMs) == 0);
+# endif
 
       // If something went wrong, exit the loop
       if (!retVal)
@@ -506,7 +640,11 @@ int udWaitSemaphore(udSemaphore *pSemaphore, int waitMs)
   }
   else
   {
+# if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
     retVal = udSleepSemaphore_Internal(pSemaphore, waitMs);
+# else
+    retVal = (udWaitConditionVariable(pSemaphore->pCondition, pSemaphore->pMutex, waitMs) == 0);
+# endif
 
     if (retVal)
     {
@@ -525,11 +663,16 @@ int udWaitSemaphore(udSemaphore *pSemaphore, int waitMs)
   }
   else
   {
+# if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
     udUnlockSemaphore_Internal(pSemaphore);
+# else
+    udReleaseMutex(pSemaphore->pMutex);
+# endif
 
     // 0 is success, not 0 is failure
     return !retVal;
   }
+#endif
 }
 
 // ****************************************************************************
