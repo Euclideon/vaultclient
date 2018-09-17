@@ -1243,7 +1243,6 @@ udResult udValue::ExportXML(const char *pKey, udValue::LineList *pLines, int ind
       {
         udValueObject *pObject = AsObject();
         int subObjectCount = 0, attributeCount = 0;
-        const char *pTempStr;
 
         // First, find out how many simple attributes are present versus subobjects (exported as children)
         for (size_t i = 0; i < pObject->length; ++i)
@@ -1279,21 +1278,16 @@ udResult udValue::ExportXML(const char *pKey, udValue::LineList *pLines, int ind
             --attributeCount;
             // Combine the element onto the tag line, appending a closing or self-closing tag as required
             // Complicated a little by injecting the content string if required
-            result = udSprintf(&pTempStr, "%s %s%s", pStr, pAttrText,
+            result = udSprintf(&pStr, "%s %s%s", pStr, pAttrText,
                                 attributeCount ? "" : ((subObjectCount || pContentString) ? ">" : "/>"));
             udFree(pAttrText);
             UD_ERROR_HANDLE();
-            udFree(pStr);
-            pStr = pTempStr;
-            pTempStr = nullptr;
 
             // Append ">pContentString</close> if no subojects following
             if (!attributeCount && !subObjectCount && pContentString)
             {
-              result = udSprintf(&pTempStr, "%s%s</%s>", pStr, pContentString, pKey);
+              result = udSprintf(&pStr, "%s%s</%s>", pStr, pContentString, pKey);
               UD_ERROR_HANDLE();
-              udFree(pStr);
-              pStr = pTempStr;
             }
           }
         }

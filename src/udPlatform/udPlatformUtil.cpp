@@ -1425,7 +1425,8 @@ struct udBMPHeader
 // Author: Dave Pevreal, August 2014
 udResult udSaveBMP(const char *pFilename, int width, int height, uint32_t *pColorData, int pitchInBytes)
 {
-  udBMPHeader header = { 0 };
+  udBMPHeader header;
+  memset(&header, 0, sizeof(header));
   if (!pitchInBytes)
     pitchInBytes = width * 4;
 
@@ -1482,7 +1483,8 @@ error:
 udResult udLoadBMP(const char *pFilename, int *pWidth, int *pHeight, uint32_t **ppColorData)
 {
   udResult result;
-  udBMPHeader header = { 0 };
+  udBMPHeader header;
+  memset(&header, 0, sizeof(header));
   udFile *pFile = nullptr;
   uint8_t *pColors = nullptr;
   uint8_t *pLine = nullptr;
@@ -1532,17 +1534,51 @@ epilogue:
 #define SMALLSTRING_BUFFER_COUNT 32
 #define SMALLSTRING_BUFFER_SIZE 64
 static char s_smallStringBuffers[SMALLSTRING_BUFFER_COUNT][SMALLSTRING_BUFFER_SIZE]; // 32 cycling buffers of 64 characters
-static int32_t s_smallStringBufferIndex = 0;  // Cycling index, always and with (SMALLSTRING_BUFFER_COUNT-1) to get buffer index
+static volatile int32_t s_smallStringBufferIndex = 0;  // Cycling index, always and with (SMALLSTRING_BUFFER_COUNT-1) to get buffer index
 
 // ****************************************************************************
 // Author: Dave Pevreal, May 2018
 const char *udTempStr(const char *pFormat, ...)
 {
-  char *pBuf = s_smallStringBuffers[udInterlockedPostIncrement(&s_smallStringBufferIndex) & (SMALLSTRING_BUFFER_COUNT - 1)];
+  int32_t bufIndex = udInterlockedPostIncrement(&s_smallStringBufferIndex) & (SMALLSTRING_BUFFER_COUNT - 1);
+  size_t bufferSize = SMALLSTRING_BUFFER_SIZE;
+
+retry:
+  UDASSERT(bufIndex < SMALLSTRING_BUFFER_COUNT, "buffer index out of range");
+  UDASSERT(bufIndex * SMALLSTRING_BUFFER_SIZE + bufferSize <= (int)sizeof(s_smallStringBuffers), "bufferSize would lead to overrun");
+  char *pBuf = s_smallStringBuffers[bufIndex];
   va_list args;
   va_start(args, pFormat);
-  udSprintfVA(pBuf, SMALLSTRING_BUFFER_SIZE, pFormat, args);
+  int charCount = udSprintfVA(pBuf, bufferSize, pFormat, args);
   va_end(args);
+
+  if (charCount >= (int)bufferSize-1 && bufferSize < (SMALLSTRING_BUFFER_COUNT * SMALLSTRING_BUFFER_SIZE))
+  {
+    // The output buffer wasn't big enough, so look for a series of contiguous buffers
+    // To keep things simple, attempt to undo the allocation done on the first line of the function
+    int previous = bufIndex | (s_smallStringBufferIndex & ~(SMALLSTRING_BUFFER_COUNT - 1));
+    // Reset to previous iff current value is exactly previous + 1
+    udInterlockedCompareExchange(&s_smallStringBufferIndex, previous, previous + 1);
+
+    int requiredBufferCount = udMin(SMALLSTRING_BUFFER_COUNT, (charCount + SMALLSTRING_BUFFER_SIZE) / SMALLSTRING_BUFFER_SIZE);
+    bufferSize = requiredBufferCount * SMALLSTRING_BUFFER_SIZE;
+    // Try to allocate a number of sequential buffers, understanding that another thread can allocate one also
+    while ((((bufIndex = s_smallStringBufferIndex) & (SMALLSTRING_BUFFER_COUNT - 1)) + requiredBufferCount) <= SMALLSTRING_BUFFER_COUNT)
+    {
+      if (udInterlockedCompareExchange(&s_smallStringBufferIndex, bufIndex + requiredBufferCount, bufIndex) == bufIndex)
+      {
+        // The bufIndex has upper bits set for the compareExchange, clear them before retrying
+        bufIndex &= (SMALLSTRING_BUFFER_COUNT - 1);
+        goto retry;
+      }
+    }
+    // We need to wrap and hopefully no other thread is still using their string.
+    if (requiredBufferCount > (s_smallStringBufferIndex & (SMALLSTRING_BUFFER_COUNT - 1)))
+      udDebugPrintf("Warning: very long string (%d chars) created using udTempStr - NOT THREADSAFE\n", charCount + 1);
+    s_smallStringBufferIndex = requiredBufferCount;
+    bufIndex = 0;
+    goto retry;
+  }
   return pBuf;
 }
 
@@ -1579,6 +1615,32 @@ const char *udTempStr_CommaInt(int64_t n)
   } while (digitCount);
   pBuf[i++] = 0;
 
+  return pBuf;
+}
+
+// ****************************************************************************
+// Author: Dave Pevreal, September 2018
+const char *udTempStr_TrimDouble(double v, int maxDecimalPlaces, int minDecimalPlaces, bool undoRounding)
+{
+  char *pBuf = s_smallStringBuffers[udInterlockedPostIncrement(&s_smallStringBufferIndex) & (SMALLSTRING_BUFFER_COUNT - 1)];
+  udStrFtoa(pBuf, SMALLSTRING_BUFFER_SIZE, v, maxDecimalPlaces + (undoRounding ? 1 : 0));
+  size_t pointIndex;
+  if (udStrchr(pBuf, ".", &pointIndex))
+  {
+    size_t i = udStrlen(pBuf) - 1;
+    // If requested, truncate the last decimal place (to undo rounding)
+    if (undoRounding && i > pointIndex)
+      pBuf[i--] = '\0';
+    for (; i > (pointIndex + minDecimalPlaces); --i)
+    {
+      if (pBuf[i] == '0')
+        pBuf[i] = '\0';
+      else
+        break;
+    }
+    if (minDecimalPlaces == 0 && pBuf[pointIndex + 1] == '\0')
+      pBuf[pointIndex] = '\0';
+  }
   return pBuf;
 }
 
@@ -1657,19 +1719,23 @@ struct udFindDirData : public udFindDir
 udResult udFileExists(const char *pFilename, int64_t *pFileLengthInBytes)
 {
 #if UD_32BIT
-  struct stat st = { 0 };
-  if (stat(pFilename, &st) == 0)
+# define UD_STAT_STRUCT stat
+# define UD_STAT_FUNC stat
 #elif UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS
   // Apple made these 64bit and deprecated the 64bit variants
-  struct stat st = { 0 };
-  if (stat(pFilename, &st) == 0)
+# define UD_STAT_STRUCT stat
+# define UD_STAT_FUNC stat
 #elif UDPLATFORM_WINDOWS
-  struct _stat64 st = { 0 };
-  if (_wstat64(udOSString(pFilename), &st) == 0)
+# define UD_STAT_STRUCT _stat64
+# define UD_STAT_FUNC _wstat64
 #else
-  struct stat64 st = { 0 };
-  if (stat64(pFilename, &st) == 0)
+# define UD_STAT_STRUCT stat64
+# define UD_STAT_FUNC stat64
 #endif
+
+  struct UD_STAT_STRUCT st;
+  memset(&st, 0, sizeof(st));
+  if (UD_STAT_FUNC(udOSString(pFilename), &st) == 0)
   {
     if (pFileLengthInBytes)
       *pFileLengthInBytes = (int64_t)st.st_size;
@@ -1679,6 +1745,9 @@ udResult udFileExists(const char *pFilename, int64_t *pFileLengthInBytes)
   {
     return udR_ObjectNotFound;
   }
+
+#undef UD_STAT_STRUCT
+#undef UD_STAT_FUNC
 }
 
 // ****************************************************************************
@@ -2022,6 +2091,7 @@ udResult udSprintf(const char **ppDest, const char *pFormat, ...)
   va_start(ap, pFormat);
   udSprintfVA(pStr, length + 1, pFormat, ap);
   va_end(ap);
+  udFree(*ppDest);
   *ppDest = pStr;
 
   return udR_Success;
@@ -2097,7 +2167,6 @@ static udResult GetWKTElementStr(const char **ppOutput, const udValue &value)
   const char *pElementSeperator = ""; // Changed to "," after first element is written
   const char *pStr = nullptr;
   const char *pElementStr = nullptr;
-  const char *pTemp = nullptr;
   const char *pTypeStr;
   const char *pNameStr;
   size_t valuesCount;
@@ -2109,16 +2178,11 @@ static udResult GetWKTElementStr(const char **ppOutput, const udValue &value)
   UD_ERROR_CHECK(udSprintf(&pStr, "%s[", pTypeStr));
   if (pNameStr)
   {
-    pTemp = pStr;
-    pStr = nullptr;
-    UD_ERROR_CHECK(udSprintf(&pStr, "%s\"%s\"", pTemp, pNameStr));
-    udFree(pTemp);
+    UD_ERROR_CHECK(udSprintf(&pStr, "%s\"%s\"", pStr, pNameStr));
     pElementSeperator = ",";
   }
   for (size_t i = 0; i < valuesCount; ++i)
   {
-    pTemp = pStr;
-    pStr = nullptr;
     const udValue &arrayValue = value.Get("values[%d]", i);
     if (arrayValue.IsObject())
       UD_ERROR_CHECK(GetWKTElementStr(&pElementStr, arrayValue));
@@ -2128,15 +2192,12 @@ static udResult GetWKTElementStr(const char **ppOutput, const udValue &value)
       UD_ERROR_CHECK(udSprintf(&pElementStr, "\"%s\"", arrayValue.AsString()));
     else
       UD_ERROR_CHECK(arrayValue.ToString(&pElementStr));
-    UD_ERROR_CHECK(udSprintf(&pStr, "%s%s%s", pTemp, pElementSeperator, pElementStr));
-    udFree(pTemp);
+    UD_ERROR_CHECK(udSprintf(&pStr, "%s%s%s", pStr, pElementSeperator, pElementStr));
     udFree(pElementStr);
     pElementSeperator = ",";
   }
   // Put the closing brace on
-  pTemp = pStr;
-  pStr = nullptr;
-  UD_ERROR_CHECK(udSprintf(&pStr, "%s]", pTemp));
+  UD_ERROR_CHECK(udSprintf(&pStr, "%s]", pStr));
 
   // Transfer ownership
   *ppOutput = pStr;
@@ -2146,7 +2207,6 @@ static udResult GetWKTElementStr(const char **ppOutput, const udValue &value)
 epilogue:
   udFree(pStr);
   udFree(pElementStr);
-  udFree(pTemp);
   return result;
 }
 
