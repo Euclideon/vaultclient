@@ -231,7 +231,7 @@ int main(int argc, char **args)
 #endif //UDPLATFORM_WINDOWS && !defined(NDEBUG)
 
 #if UDPLATFORM_WINDOWS
-  if (argc > 1)
+  if (argc > 0)
   {
     udFilename currentPath(args[0]);
     char cPathBuffer[256];
@@ -284,6 +284,8 @@ int main(int argc, char **args)
 
   const float FontSize = 16.f;
   ImFontConfig fontCfg = ImFontConfig();
+
+  const char *pNextLoad = nullptr;
 
   // default values
   programState.settings.camera.moveMode = vcCMM_Plane;
@@ -457,9 +459,7 @@ int main(int argc, char **args)
         }
         else if (event.type == SDL_DROPFILE && programState.hasContext)
         {
-          if (!vcModel_AddToList(&programState, event.drop.file))
-            vcConvert_AddFile(&programState, event.drop.file);
-          //TODO: Display a message here that the file couldn't be opened...
+          programState.loadList.PushBack(udStrdup(event.drop.file));
         }
         else if (event.type == SDL_QUIT)
         {
@@ -471,6 +471,11 @@ int main(int argc, char **args)
     LAST = NOW;
     NOW = SDL_GetPerformanceCounter();
     programState.deltaTime = double(NOW - LAST) / SDL_GetPerformanceFrequency();
+
+    if ((SDL_GetWindowFlags(programState.pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0 && programState.settings.presentation.limitFPSInBackground)
+      udSleep((uint32_t)udMax(250.0 - programState.deltaTime, 0.0)); // 4 FPS cap when not focussed
+    else
+      udSleep((uint32_t)udMax(16.667 - programState.deltaTime, 0.0)); // 60FPS cap
 
     ImGuiGL_NewFrame(programState.pWindow);
 
@@ -486,6 +491,22 @@ int main(int argc, char **args)
       vcSettings_Save(&programState.settings);
 
     ImGui::GetIO().KeysDown[SDL_SCANCODE_BACKSPACE] = false;
+
+    // Load next file in the load list (if there is one)
+    if (programState.loadList.length > 0)
+    {
+      pNextLoad = nullptr;
+      programState.loadList.PopFront(&pNextLoad);
+
+      //TODO: Display a message here that the file couldn't be opened...
+      if (!vcModel_AddToList(&programState, pNextLoad))
+        vcConvert_AddFile(&programState, pNextLoad);
+
+      udFree(pNextLoad);
+    }
+
+    // Framerate Cap
+
   }
 
   vcSettings_Save(&programState.settings);
@@ -571,7 +592,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
-    if (ImGui::Begin("Geographic Information", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+    if (ImGui::Begin("Geographic Information", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar))
     {
       if (pProgramState->gis.SRID != 0 && pProgramState->gis.isProjected)
         ImGui::Text("SRID: %d", pProgramState->gis.SRID);
@@ -593,7 +614,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       if (pProgramState->settings.presentation.showDiagnosticInfo)
       {
         ImGui::Separator();
-        ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
+        ImGui::Text("FPS: %.3f (%.2fms)", 1.f / pProgramState->deltaTime, pProgramState->deltaTime * 1000.f);
 
         ImGui::Separator();
         if (ImGui::IsMousePosValid())
@@ -619,13 +640,22 @@ void vcRenderSceneWindow(vcState *pProgramState)
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + 5.f, windowPos.y + 5.f), ImGuiCond_Always, ImVec2(0.f, 0.f));
     ImGui::SetNextWindowBgAlpha(0.5f);
-    if (ImGui::Begin("Camera Settings", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize))
+    if (ImGui::Begin("Camera Settings", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
     {
       ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &pProgramState->pCamera->position.x, 3);
       ImGui::InputScalarN("Camera Rotation", ImGuiDataType_Double, &pProgramState->pCamera->yprRotation.x, 3);
 
+      if (ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
+        pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
+
+      ImGui::RadioButton("Plane", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
+      ImGui::SameLine();
+      ImGui::RadioButton("Heli", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
+
       if (pProgramState->gis.isProjected)
       {
+        ImGui::Separator();
+
         udDouble3 cameraLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->camMatrix.axis.t.toVector3());
         ImGui::Text("Lat: %.7f, Long: %.7f, Alt: %.2fm", cameraLatLong.x, cameraLatLong.y, cameraLatLong.z);
 
@@ -638,14 +668,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
             ImGui::TextColored(ImVec4(1, 0, 0, 1), "Camera is outside recommended limits of this GeoZone");
         }
       }
-      ImGui::RadioButton("Plane", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
-      ImGui::SameLine();
-      ImGui::RadioButton("Heli", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
-
-      if (ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
-        pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
-
-      }
+    }
 
     ImGui::End();
   }
@@ -673,16 +696,12 @@ void vcRenderSceneWindow(vcState *pProgramState)
         double right = 0;
         float vertical = 0;
 
-        ImGui::PushID("oscUDSlider");
-
-        if(ImGui::VSliderFloat("",ImVec2(40,100), &vertical, -1, 1, "U/D"))
+        if (ImGui::VSliderFloat("##oscUDSlider", ImVec2(40, 100), &vertical, -1, 1, "U/D"))
           vertical = udClamp(vertical, -1.f, 1.f);
-
-        ImGui::PopID();
 
         ImGui::NextColumn();
 
-        ImGui::Button("Move Camera", ImVec2(100,100));
+        ImGui::Button("Move Camera", ImVec2(100, 100));
         if (ImGui::IsItemActive())
         {
           // Draw a line between the button and the mouse cursor
@@ -765,13 +784,27 @@ int vcMainMenuGui(vcState *pProgramState)
           {
             char buffer[vcMaxPathLength];
             udSprintf(buffer, vcMaxPathLength, "%s/%s", pProgramState->settings.resourceBase, pProjectList->GetElement(i)->Get("models[%d]", j).AsString());
-            vcModel_AddToList(pProgramState, buffer);
+
+            pProgramState->loadList.PushBack(udStrdup(buffer));
           }
         }
       }
 
       ImGui::EndMenu();
     }
+
+    char endBarInfo[256] = {};
+
+    if (pProgramState->loadList.length > 0)
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("(%llu Files Queued) / ", pProgramState->loadList.length));
+
+    if ((SDL_GetWindowFlags(pProgramState->pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0)
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), "Inactive / ");
+
+    udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("FPS: %.3f", 1.f / pProgramState->deltaTime));
+
+    ImGui::SameLine(ImGui::GetContentRegionMax().x - ImGui::CalcTextSize(endBarInfo).x - 5);
+    ImGui::Text("%s", endBarInfo);
 
     menuHeight = (int)ImGui::GetWindowSize().y;
 
@@ -876,13 +909,6 @@ void vcRenderWindow(vcState *pProgramState)
               }
 
               pProgramState->hasContext = true;
-
-              while (pProgramState->loadList.length > 0)
-              {
-                const char *pNextLoad;
-                pProgramState->loadList.PopFront(&pNextLoad);
-                vcModel_AddToList(pProgramState, pNextLoad);
-              }
             }
           }
         }
@@ -912,7 +938,7 @@ void vcRenderWindow(vcState *pProgramState)
     {
       ImGui::InputText("Model Path", pProgramState->modelPath, vcMaxPathLength);
       if (ImGui::Button("Load Model!"))
-        vcModel_AddToList(pProgramState, pProgramState->modelPath);
+        pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
 
       // Models
 
@@ -1139,6 +1165,7 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::Checkbox("Show Diagnostic Information", &pProgramState->settings.presentation.showDiagnosticInfo);
         ImGui::Checkbox("Show On Screen Compass", &pProgramState->settings.presentation.showCompass);
         ImGui::Checkbox("Show Advanced GIS Settings", &pProgramState->settings.presentation.showAdvancedGIS);
+        ImGui::Checkbox("Limit FPS In Background", &pProgramState->settings.presentation.limitFPSInBackground);
       }
 
       if (ImGui::CollapsingHeader("Input & Controls##Settings"))
