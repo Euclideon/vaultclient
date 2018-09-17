@@ -222,10 +222,12 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     }
 
     // Misc Settings
+    pSettings->presentation.styleIndex = data.Get("style").AsInt(1); // dark style by default
+
     pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvGISOptions").AsBool(false);
     pSettings->presentation.showCompass = data.Get("showCompass").AsBool(true);
-    pSettings->presentation.styleIndex = data.Get("style").AsInt(1); // dark style by default
+    pSettings->presentation.limitFPSInBackground = data.Get("limitFPSInBackground").AsBool(true);
 
     switch (pSettings->presentation.styleIndex)
     {
@@ -328,13 +330,13 @@ bool vcSettings_Save(vcSettings *pSettings)
   udValue data;
 
   // Misc Settings
-  if (pSettings->presentation.showDiagnosticInfo) // This hides the option if its false
-    data.Set("showDiagnosticInfo = true");
+  data.Set("style = %i", pSettings->presentation.styleIndex);
 
+  data.Set("showDiagnosticInfo = %s", pSettings->presentation.showDiagnosticInfo ? "true" : "false");
   data.Set("showAdvancedGISOptions = %s", pSettings->presentation.showAdvancedGIS ? "true" : "false");
   data.Set("showCompass = %s", pSettings->presentation.showCompass ? "true" : "false");
+  data.Set("limitFPSInBackground = %s", pSettings->presentation.limitFPSInBackground ? "true" : "false");
 
-  data.Set("style = %i", pSettings->presentation.styleIndex);
 
   // Windows
   data.Set("window.position.x = %d", pSettings->window.xpos);
