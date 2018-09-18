@@ -22,7 +22,7 @@ enum vcConvertQueueStatus
 
 const char *statusNames[] =
 {
-  "Preparing",
+  "Awaiting User Input",
   "Queued",
   "Running",
   "Completed"
@@ -101,6 +101,18 @@ void vcConvert_Init(vcState *pProgramState)
   udThread_Create(&pProgramState->pConvertContext->pThread, vcConvert_Thread, pProgramState);
 }
 
+void vcConvert_RemoveJob(vcState *pProgramState, size_t index)
+{
+  udLockMutex(pProgramState->pConvertContext->pMutex);
+
+  vcConvertItem *pItem = pProgramState->pConvertContext->jobs[index];
+  pProgramState->pConvertContext->jobs.RemoveAt(index);
+  vdkConvert_DestroyContext(pProgramState->pVDKContext, &pItem->pConvertContext);
+  udFree(pItem);
+
+  udReleaseMutex(pProgramState->pConvertContext->pMutex);
+}
+
 void vcConvert_Deinit(vcState *pProgramState)
 {
   if (pProgramState->pConvertContext == nullptr)
@@ -114,6 +126,9 @@ void vcConvert_Deinit(vcState *pProgramState)
   udDestroyMutex(&pProgramState->pConvertContext->pMutex);
   udDestroySemaphore(&pProgramState->pConvertContext->pSemaphore);
   udThread_Destroy(&pProgramState->pConvertContext->pThread);
+
+  while (pProgramState->pConvertContext->jobs.length > 0)
+    vcConvert_RemoveJob(pProgramState, 0);
 
   pProgramState->pConvertContext->jobs.Deinit();
   udFree(pProgramState->pConvertContext);
@@ -150,9 +165,30 @@ void vcConvert_ShowUI(vcState *pProgramState)
   {
     bool selected = (pProgramState->pConvertContext->selectedItem == i);
 
+    udSprintf(tempBuffer, UDARRAYSIZE(tempBuffer), "X##convertjob_%llu", i);
+    if (ImGui::Button(tempBuffer, ImVec2(20, 20)))
+    {
+      if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
+      {
+        // TODO: Handle terminating a conversion
+      }
+      else
+      {
+        vcConvert_RemoveJob(pProgramState, i);
+        --i;
+      }
+      continue;
+    }
+    float buttonWidth = ImGui::GetItemRectSize().x;
+    ImGui::SameLine();
+
     udSprintf(tempBuffer, UDARRAYSIZE(tempBuffer), "%s (%s)##convertjob_%llu", pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName, statusNames[pProgramState->pConvertContext->jobs[i]->status], i);
 
-    if (ImGui::Selectable(tempBuffer, &selected))
+    ImVec2 selectablePos = ImVec2(ImGui::GetContentRegionMax().x - buttonWidth - ImGui::GetStyle().ItemSpacing.x * 2, 0);
+    if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
+      selectablePos.x -= ImGui::GetContentRegionMax().x / 2.f;
+
+    if (ImGui::Selectable(tempBuffer, selected, ImGuiSelectableFlags_None, selectablePos))
       pProgramState->pConvertContext->selectedItem = i;
 
     if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
