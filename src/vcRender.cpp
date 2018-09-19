@@ -260,7 +260,7 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
   inverseViewProjMatrixF.axis.t = udFloat4::create(0, 0, 0, 1);
   inverseViewProjMatrixF.inverse();
 
-  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 1.0f, 1.0f);
+  vcGLState_SetViewportDepthRange(1.0f, 1.0f);
 
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);
 
@@ -269,7 +269,7 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
 
   vcMesh_RenderTriangles(pRenderContext->pScreenQuadMesh, 2);
 
-  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, 0.0f, 1.0f);
+  vcGLState_SetViewportDepthRange(0.0f, 1.0f);
 
   vcShader_Bind(nullptr);
 }
