@@ -50,6 +50,7 @@ udResult vcCompass_Destroy(vcCompass **ppCompass)
     return udR_InvalidParameter_;
 
   vcMesh_Destroy(&(*ppCompass)->pMesh);
+  vcShader_DestroyShader(&(*ppCompass)->pShader);
   udFree((*ppCompass));
 
   return udR_Success;

@@ -151,12 +151,12 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   pRenderContext = *ppRenderContext;
   *ppRenderContext = nullptr;
 
-  if (vcTerrain_Destroy(&pRenderContext->pTerrain) != udR_Success)
+  if (pRenderContext->pTerrain != nullptr && vcTerrain_Destroy(&pRenderContext->pTerrain) != udR_Success)
     UD_ERROR_SET(udR_InternalError);
 
   if (pRenderContext->pVaultContext != nullptr)
   {
-    if (vdkRenderView_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderView) != vE_Success)
+    if (pRenderContext->udRenderContext.pRenderView != nullptr && vdkRenderView_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderView) != vE_Success)
       UD_ERROR_SET(udR_InternalError);
 
     if (vdkRenderContext_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)

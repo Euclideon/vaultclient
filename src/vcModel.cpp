@@ -10,13 +10,13 @@ bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
   model.modelLoaded = true;
   model.modelVisible = true;
   model.modelSelected = false;
-  model.pMetadata = udAllocType(udValue, 1, udAF_Zero);
 
   udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
 
   if (vdkModel_Load(pProgramState->pVDKContext, &model.pVaultModel, pFilePath) == vE_Success)
   {
     const char *pMetadata;
+    model.pMetadata = udAllocType(udValue, 1, udAF_Zero);
     if (vdkModel_GetMetadata(pProgramState->pVDKContext, model.pVaultModel, &pMetadata) == vE_Success)
       model.pMetadata->Parse(pMetadata);
 
