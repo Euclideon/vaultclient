@@ -521,10 +521,12 @@ epilogue:
   vcTexture_Destroy(&programState.pWatermarkTexture);
   free(pIconData);
   free(pEucWatermarkData);
+  for (size_t i = 0; i < programState.loadList.length; i++)
+    udFree(programState.loadList[i]);
+  programState.loadList.Deinit();
   vcModel_UnloadList(&programState);
   programState.vcModelList.Deinit();
   vcRender_Destroy(&programState.pRenderContext);
-  vdkContext_Disconnect(&programState.pVDKContext);
 
   vcGLState_Deinit();
 
@@ -534,6 +536,15 @@ epilogue:
   {
     _CrtMemDumpAllObjectsSince(&m1);
     printf("%s\n", "Memory leaks found");
+
+    // You've hit this because you've introduced a memory leak!
+    // If you need help, define __MEMORY_DEBUG__ in the premake5.lua just before:
+    // if _OPTIONS["force-vaultsdk"] then
+    // This will emit filenames of what is leaking to assist in tracking down what's leaking.
+    // Additionally, you can set _CrtSetBreakAlloc(<allocationNumber>);
+    // back up where the initial checkpoint is made.
+    __debugbreak();
+
     return 1;
   }
 #endif //UDPLATFORM_WINDOWS && !defined(NDEBUG)
@@ -876,40 +887,35 @@ void vcRenderWindow(vcState *pProgramState)
 
       if (ImGui::Button("Login!"))
       {
-        err = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->serverURL, "ClientSample");
+        err = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->serverURL, "ClientSample", pProgramState->username, pProgramState->password);
         if (err != vE_Success)
         {
           pErrorMessage = "Could not connect to server...";
         }
         else
         {
-          err = vdkContext_Login(pProgramState->pVDKContext, pProgramState->username, pProgramState->password);
+          err = vdkContext_GetLicense(pProgramState->pVDKContext, vdkLT_Render);
           if (err != vE_Success)
           {
-            pErrorMessage = "Could not log in...";
+            vdkContext_Disconnect(&pProgramState->pVDKContext);
+            pErrorMessage = "Could not get license...";
           }
           else
           {
-            err = vdkContext_GetLicense(pProgramState->pVDKContext, vdkLT_Render);
-            if (err != vE_Success)
-            {
-              pErrorMessage = "Could not get license...";
-            }
-            else
-            {
-              //Context Login successful
-              vcRender_CreateTerrain(pProgramState->pRenderContext, &pProgramState->settings);
-              vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pVDKContext);
+            //Context Login successful
+            memset(pProgramState->password, 0, sizeof(pProgramState->password));
 
-              void *pProjData = nullptr;
-              if (udFile_Load(udTempStr("%s/api/dev/projects", pProgramState->serverURL), &pProjData) == udR_Success)
-              {
-                pProgramState->projects.Parse((char*)pProjData);
-                udFree(pProjData);
-              }
+            vcRender_CreateTerrain(pProgramState->pRenderContext, &pProgramState->settings);
+            vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pVDKContext);
 
-              pProgramState->hasContext = true;
+            void *pProjData = nullptr;
+            if (udFile_Load(udTempStr("%s/api/dev/projects", pProgramState->serverURL), &pProjData) == udR_Success)
+            {
+              pProgramState->projects.Parse((char*)pProjData);
+              udFree(pProjData);
             }
+
+            pProgramState->hasContext = true;
           }
         }
       }
@@ -1506,7 +1512,7 @@ bool vcLogout(vcState *pProgramState)
 
   memset(&pProgramState->gis, 0, sizeof(pProgramState->gis));
 
-  success = success && vdkContext_Logout(pProgramState->pVDKContext) == vE_Success;
+  success = success && vdkContext_Disconnect(&pProgramState->pVDKContext) == vE_Success;
   pProgramState->hasContext = !success;
 
   return success;
