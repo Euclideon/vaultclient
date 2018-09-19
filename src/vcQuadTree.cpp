@@ -22,6 +22,7 @@ struct vcQuadTree
 {
   vcQuadTreeMetaData metaData;
   udDouble4x4 viewProjectionMatrix;
+  udDouble4 frustumPlanes[6];
   vcGISSpace *pSpace;
   udInt3 slippyCoords;
   udDouble3 cameraWorldPosition;
@@ -91,11 +92,25 @@ udResult vcQuadTree_Destroy(vcQuadTree **ppQuadTree)
   return udR_Success;
 }
 
-bool vcQuadTree_IsPointVisible(const udDouble4x4 &viewProjectionMatrix, const udDouble3 &point)
+// ----------------------------------------------------------------------------
+// Author Dave Pevreal, July 2017
+// Returns -1=outside, 0=inside, >0=partial (bits of planes crossed)
+static int vcQuadTree_FrustumTest(udDouble4 frustumPlanes[6], const udDouble3 &boundCenter, const udDouble3 &boundExtents)
 {
-  udDouble4 clipPos = viewProjectionMatrix * udDouble4::create(point, 1.0);
-  clipPos /= clipPos.w;
-  return (clipPos.x >= -1.0 && clipPos.x <= 1.0 && clipPos.y >= -1.0 && clipPos.y <= 1.0 && clipPos.z >= -1.0 && clipPos.z <= 1.0);
+  int partial = 0;
+
+  for (int i = 0; i < 6; ++i)
+  {
+    double distToCenter = udDot4(udDouble4::create(boundCenter, 1.0), frustumPlanes[i]);
+    //optimized for case where boxExtents are all same: udFloat radiusBoxAtPlane = udDot3(boxExtents, udAbs(udVec3(curPlane)));
+    double radiusBoxAtPlane = udDot3(boundExtents, udAbs(frustumPlanes[i].toVector3()));
+    if (distToCenter < -radiusBoxAtPlane)
+      return -1; // Box is entirely behind at least one plane
+    else if (distToCenter <= radiusBoxAtPlane) // If spanned (not entirely infront)
+      partial |= (1 << i);
+  }
+
+  return partial;
 }
 
 void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex, int currentDepth)
@@ -172,11 +187,14 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex,
       double closestEdgeFudgedDistance = 0.0;
 
       udDouble2 localCorners2D[4];
+      udDouble3 localMin, localMax;
       for (int t = 0; t < 4; ++t)
       {
-        udDouble3 localCorners;
-        vcGIS_SlippyToLocal(pQuadTree->pSpace, &localCorners, udInt2::create(pQuadTree->pNodes[childIndex].slippyPosition.x + (t % 2), pQuadTree->pNodes[childIndex].slippyPosition.y + (t / 2)), pQuadTree->slippyCoords.z + pQuadTree->pNodes[childIndex].level);
-        localCorners2D[t] = localCorners.toVector2();
+        udDouble3 localCorner;
+        vcGIS_SlippyToLocal(pQuadTree->pSpace, &localCorner, udInt2::create(pQuadTree->pNodes[childIndex].slippyPosition.x + (t % 2), pQuadTree->pNodes[childIndex].slippyPosition.y + (t / 2)), pQuadTree->slippyCoords.z + pQuadTree->pNodes[childIndex].level);
+        localCorners2D[t] = localCorner.toVector2();
+        localMin = (t == 0) ? localCorner : udMin(localMin, localCorner);
+        localMax = (t == 0) ? localCorner : udMax(localMax, localCorner);
       }
 
       // test each edge to find minimum distance to quadrant shape (2d)
@@ -201,20 +219,12 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex,
 
       quadTreeDistanceToTile = closestEdgeFudgedDistance / pQuadTree->quadTreeWorldSize;
 
-      // AABB vs Frustum visibility detection
-      // Corners
-      for (int p = 0; p < 4; ++p)
-      {
-        tileVisible = tileVisible || vcQuadTree_IsPointVisible(pQuadTree->viewProjectionMatrix, udDouble3::create(localCorners2D[p], pQuadTree->quadTreeHeightOffset));
-      }
-
-      // Corner mid points
-      for (int p = 0; p < 4; ++p)
-      {
-        udDouble2 p1 = localCorners2D[edgePairs[p].x];
-        udDouble2 p2 = localCorners2D[edgePairs[p].y];
-        tileVisible = tileVisible || vcQuadTree_IsPointVisible(pQuadTree->viewProjectionMatrix, udDouble3::create((p1 + p2) * 0.5, pQuadTree->quadTreeHeightOffset));
-      }
+      // TODO: This assumes a unit cube, and does not take into account
+      // the distortion of the quadrants, occassionally yielding false
+      // positives.
+      udDouble3 center = (localMax + localMin) * 0.5;
+      udDouble3 extents = (localMax - localMin) * 0.5;
+      tileVisible = vcQuadTree_FrustumTest(pQuadTree->frustumPlanes, center, extents) > -1;
 
       double tileToCameraAngle = udSin(distanceTestPoint.z / closestEdgeFudgedDistance);
       tileVisible = tileVisible && tileToCameraAngle >= tileToCameraCullAngle;
@@ -235,9 +245,11 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex,
   }
 }
 
+
 udResult vcQuadTree_GenerateNodeList(vcQuadTree *pQuadTree, const vcQuadTreeCreateInfo &createInfo, vcQuadTreeMetaData *pMetaData /*= nullptr*/)
 {
   udResult result = udR_Success;
+  udDouble4x4 transposedViewProjection = udDouble4x4::identity();
 
   UD_ERROR_NULL(pQuadTree, udR_InvalidParameter_);
 
@@ -254,6 +266,19 @@ udResult vcQuadTree_GenerateNodeList(vcQuadTree *pQuadTree, const vcQuadTreeCrea
 
   pQuadTree->metaData.leafNodeCount = 0;
   pQuadTree->metaData.maxTreeDepth = udMax(0, MaxVisibleLevel - createInfo.slippyCoords.z);
+
+  // extract frustum planes
+  transposedViewProjection = udTranspose(pQuadTree->viewProjectionMatrix);
+  pQuadTree->frustumPlanes[0] = transposedViewProjection.c[3] + transposedViewProjection.c[0]; // Left
+  pQuadTree->frustumPlanes[1] = transposedViewProjection.c[3] - transposedViewProjection.c[0]; // Right
+  pQuadTree->frustumPlanes[2] = transposedViewProjection.c[3] + transposedViewProjection.c[1]; // Bottom
+  pQuadTree->frustumPlanes[3] = transposedViewProjection.c[3] - transposedViewProjection.c[1]; // Top
+  pQuadTree->frustumPlanes[4] = transposedViewProjection.c[3] + transposedViewProjection.c[2]; // Near
+  pQuadTree->frustumPlanes[5] = transposedViewProjection.c[3] - transposedViewProjection.c[2]; // Far
+
+  // Normalize the planes
+  for (int j = 0; j < 6; ++j)
+    pQuadTree->frustumPlanes[j] /= udMag3(pQuadTree->frustumPlanes[j]);
 
   // initialize root
   pQuadTree->used = 1;
