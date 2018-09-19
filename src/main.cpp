@@ -281,6 +281,7 @@ int main(int argc, char **args)
   unsigned char *pEucWatermarkData = nullptr;
   int pitch;
   long rMask, gMask, bMask, aMask;
+  double frametimeMS = 16.667; // 60 FPS cap
 
   const float FontSize = 16.f;
   ImFontConfig fontCfg = ImFontConfig();
@@ -472,10 +473,11 @@ int main(int argc, char **args)
     NOW = SDL_GetPerformanceCounter();
     programState.deltaTime = double(NOW - LAST) / SDL_GetPerformanceFrequency();
 
+    frametimeMS = 16.667;
     if ((SDL_GetWindowFlags(programState.pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0 && programState.settings.presentation.limitFPSInBackground)
-      udSleep((uint32_t)udMax(250.0 - programState.deltaTime, 0.0)); // 4 FPS cap when not focussed
-    else
-      udSleep((uint32_t)udMax(16.667 - programState.deltaTime, 0.0)); // 60FPS cap
+      frametimeMS = 250.0; // 4 FPS cap when not focused
+
+    udSleep((uint32_t)udMax(frametimeMS - programState.deltaTime * 1000.0, 0.0));
 
     ImGuiGL_NewFrame(programState.pWindow);
 
