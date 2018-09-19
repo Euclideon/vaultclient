@@ -134,7 +134,7 @@ bool vcGLState_ResetState(bool force /*= false*/)
 {
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back, true, force);
   vcGLState_SetBlendMode(vcGLSBM_None, force);
-  vcGLState_SetDepthMode(vcGLSDM_Less, true, force);
+  vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true, force);
 
   return true;
 }
