@@ -141,7 +141,7 @@ solution "vaultClient"
 
 	platforms { "x64" }
 	editorintegration "on"
-
+	startproject "vaultClient"
 	cppdialect "C++11"
 	pic "On"
 
