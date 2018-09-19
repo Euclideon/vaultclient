@@ -49,7 +49,7 @@ bool vcGLState_ApplyState(vcGLState *pState)
 
   success &= vcGLState_SetFaceMode(pState->fillMode, pState->cullMode, pState->isFrontCCW);
   success &= vcGLState_SetBlendMode(pState->blendMode);
-  success &= vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true);
+  success &= vcGLState_SetDepthMode(pState->depthReadMode, pState->doDepthWrite);
 
   return success;
 }
