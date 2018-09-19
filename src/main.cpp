@@ -311,7 +311,7 @@ int main(int argc, char **args)
   programState.loadList.Init(32);
 
   for (int i = 1; i < argc; ++i)
-    programState.loadList.PushBack(args[i]);
+    programState.loadList.PushBack(udStrdup(args[i]));
 
   // default string values.
   udStrcpy(programState.serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
