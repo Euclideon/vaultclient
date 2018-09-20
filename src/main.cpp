@@ -833,7 +833,6 @@ void vcRenderWindow(vcState *pProgramState)
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   vcFramebuffer_Clear(pProgramState->pDefaultFramebuffer, 0xFF000000);
 
-  vdkError err;
   SDL_Keymod modState = SDL_GetModState();
 
   //keyboard/mouse handling
@@ -1082,12 +1081,7 @@ void vcRenderWindow(vcState *pProgramState)
             {
               if (pProgramState->vcModelList[j].modelSelected)
               {
-                // unload model
-                err = vdkModel_Unload(pProgramState->pVDKContext, &(pProgramState->vcModelList[j].pVaultModel));
-                if (err != vE_Success)
-                  goto epilogue;
-
-                pProgramState->vcModelList.RemoveAt(j);
+                vcModel_RemoveFromList(pProgramState, j);
                 j--;
               }
             }
@@ -1096,12 +1090,7 @@ void vcRenderWindow(vcState *pProgramState)
           }
           else
           {
-            // unload model
-            err = vdkModel_Unload(pProgramState->pVDKContext, &(pProgramState->vcModelList[i].pVaultModel));
-            if (err != vE_Success)
-              goto epilogue;
-
-            pProgramState->vcModelList.RemoveAt(i);
+            vcModel_RemoveFromList(pProgramState, i);
             i--;
           }
         }
@@ -1445,10 +1434,6 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::EndPopup();
     }
   }
-
-epilogue:
-  //TODO: Cleanup
-  return;
 }
 
 void vcSettings_LoadSettings(vcState *pProgramState, bool forceDefaults)
