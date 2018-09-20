@@ -220,6 +220,7 @@ void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
 void vcSettings_LoadSettings(vcState *pProgramState, bool forceDefaults);
+void vcLogin(vcState *pProgramState);
 bool vcLogout(vcState *pProgramState);
 
 int main(int argc, char **args)
@@ -876,51 +877,18 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::End();
     ImGui::PopStyleColor();
 
-    ImGui::SetNextWindowSize(ImVec2(500, 150));
+    ImGui::SetNextWindowSize(ImVec2(500, 160));
     if (ImGui::Begin("Login", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
     {
-      static const char *pErrorMessage = nullptr;
-      if (pErrorMessage != nullptr)
-        ImGui::Text("%s", pErrorMessage);
+      if (pProgramState->pLoginErrorMessage != nullptr)
+        ImGui::Text("%s", pProgramState->pLoginErrorMessage);
 
       ImGui::InputText("ServerURL", pProgramState->serverURL, vcMaxPathLength);
       ImGui::InputText("Username", pProgramState->username, vcMaxPathLength);
       ImGui::InputText("Password", pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_CharsNoBlank);
 
       if (ImGui::Button("Login!"))
-      {
-        err = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->serverURL, "ClientSample", pProgramState->username, pProgramState->password);
-        if (err != vE_Success)
-        {
-          pErrorMessage = "Could not connect to server...";
-        }
-        else
-        {
-          err = vdkContext_GetLicense(pProgramState->pVDKContext, vdkLT_Render);
-          if (err != vE_Success)
-          {
-            vdkContext_Disconnect(&pProgramState->pVDKContext);
-            pErrorMessage = "Could not get license...";
-          }
-          else
-          {
-            //Context Login successful
-            memset(pProgramState->password, 0, sizeof(pProgramState->password));
-
-            vcRender_CreateTerrain(pProgramState->pRenderContext, &pProgramState->settings);
-            vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pVDKContext);
-
-            void *pProjData = nullptr;
-            if (udFile_Load(udTempStr("%s/api/dev/projects", pProgramState->serverURL), &pProjData) == udR_Success)
-            {
-              pProgramState->projects.Parse((char*)pProjData);
-              udFree(pProjData);
-            }
-
-            pProgramState->hasContext = true;
-          }
-        }
-      }
+        vcLogin(pProgramState);
     }
 
     ImGui::End();
@@ -1504,6 +1472,37 @@ void vcSettings_LoadSettings(vcState *pProgramState, bool forceDefaults)
   }
 }
 
+void vcLogin(vcState *pProgramState)
+{
+  if (vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->serverURL, "ClientSample", pProgramState->username, pProgramState->password) != vE_Success)
+  {
+    pProgramState->pLoginErrorMessage = "Could not connect to server...";
+    return;
+  }
+
+  if (vdkContext_GetLicense(pProgramState->pVDKContext, vdkLT_Render) != vE_Success)
+  {
+    vdkContext_Disconnect(&pProgramState->pVDKContext);
+    pProgramState->pLoginErrorMessage = "Could not get license...";
+    return;
+  }
+
+  //Context Login successful
+  memset(pProgramState->password, 0, sizeof(pProgramState->password));
+
+  vcRender_CreateTerrain(pProgramState->pRenderContext, &pProgramState->settings);
+  vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pVDKContext);
+
+  void *pProjData = nullptr;
+  if (udFile_Load(udTempStr("%s/api/dev/projects", pProgramState->serverURL), &pProjData) == udR_Success)
+  {
+    pProgramState->projects.Parse((char*)pProjData);
+    udFree(pProjData);
+  }
+
+  pProgramState->pLoginErrorMessage = nullptr;
+  pProgramState->hasContext = true;
+}
 
 bool vcLogout(vcState *pProgramState)
 {
