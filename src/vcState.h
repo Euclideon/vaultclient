@@ -75,6 +75,7 @@ struct vcState
   char serverURL[vcMaxPathLength];
   char username[vcMaxPathLength];
   char password[vcMaxPathLength];
+  const char *pLoginErrorMessage;
 
   char modelPath[vcMaxPathLength];
 
