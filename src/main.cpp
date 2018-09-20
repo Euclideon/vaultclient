@@ -494,8 +494,8 @@ int main(int argc, char **args)
 
     ImGui::GetIO().KeysDown[SDL_SCANCODE_BACKSPACE] = false;
 
-    // Load next file in the load list (if there is one)
-    if (programState.loadList.length > 0)
+    // Load next file in the load list (if there is one and the user has a context)
+    if (programState.loadList.length > 0 && programState.hasContext)
     {
       pNextLoad = nullptr;
       programState.loadList.PopFront(&pNextLoad);
