@@ -25,6 +25,38 @@
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
 #  include <crtdbg.h>
 #  include <stdio.h>
+
+# undef main
+# define main ClientMain
+int main(int argc, char **args);
+
+int SDL_main(int argc, char **args)
+{
+  _CrtMemState m1, m2, diff;
+  _CrtMemCheckpoint(&m1);
+  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF);
+
+  int ret = main(argc, args);
+
+  _CrtMemCheckpoint(&m2);
+  if (_CrtMemDifference(&diff, &m1, &m2) && diff.lCounts[_NORMAL_BLOCK] > 0)
+  {
+    _CrtMemDumpAllObjectsSince(&m1);
+    printf("%s\n", "Memory leaks found");
+
+    // You've hit this because you've introduced a memory leak!
+    // If you need help, define __MEMORY_DEBUG__ in the premake5.lua just before:
+    // if _OPTIONS["force-vaultsdk"] then
+    // This will emit filenames of what is leaking to assist in tracking down what's leaking.
+    // Additionally, you can set _CrtSetBreakAlloc(<allocationNumber>);
+    // back up where the initial checkpoint is made.
+    __debugbreak();
+
+    ret = 1;
+  }
+
+  return ret;
+}
 #endif
 
 struct vc3rdPartyLicenseText
@@ -225,12 +257,6 @@ bool vcLogout(vcState *pProgramState);
 
 int main(int argc, char **args)
 {
-#if UDPLATFORM_WINDOWS && !defined(NDEBUG)
-  _CrtMemState m1, m2, diff;
-  _CrtMemCheckpoint(&m1);
-  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF);
-#endif //UDPLATFORM_WINDOWS && !defined(NDEBUG)
-
 #if UDPLATFORM_WINDOWS
   if (argc > 0)
   {
@@ -532,25 +558,6 @@ epilogue:
   vcRender_Destroy(&programState.pRenderContext);
 
   vcGLState_Deinit();
-
-#if UDPLATFORM_WINDOWS && !defined(NDEBUG)
-  _CrtMemCheckpoint(&m2);
-  if (_CrtMemDifference(&diff, &m1, &m2) && diff.lCounts[_NORMAL_BLOCK] > 0)
-  {
-    _CrtMemDumpAllObjectsSince(&m1);
-    printf("%s\n", "Memory leaks found");
-
-    // You've hit this because you've introduced a memory leak!
-    // If you need help, define __MEMORY_DEBUG__ in the premake5.lua just before:
-    // if _OPTIONS["force-vaultsdk"] then
-    // This will emit filenames of what is leaking to assist in tracking down what's leaking.
-    // Additionally, you can set _CrtSetBreakAlloc(<allocationNumber>);
-    // back up where the initial checkpoint is made.
-    __debugbreak();
-
-    return 1;
-  }
-#endif //UDPLATFORM_WINDOWS && !defined(NDEBUG)
 
   return 0;
 }
