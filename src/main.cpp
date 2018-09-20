@@ -7,6 +7,8 @@
 
 #include "vdkContext.h"
 
+#include <chrono>
+
 #include "imgui.h"
 #include "imgui_ex/imgui_impl_sdl.h"
 #include "imgui_ex/imgui_impl_gl.h"
@@ -342,9 +344,6 @@ int main(int argc, char **args)
     programState.loadList.PushBack(udStrdup(args[i]));
 
   // default string values.
-  udStrcpy(programState.serverURL, vcMaxPathLength, "http://vau-ubu-pro-001.euclideon.local");
-  udStrcpy(programState.modelPath, vcMaxPathLength, "http://vau-win-van-001.euclideon.local/AdelaideCBD_2cm.uds");
-
   programState.settings.maptiles.mapEnabled = true;
   programState.settings.maptiles.mapHeight = 0.f;
   programState.settings.maptiles.transparency = 1.f;
@@ -635,9 +634,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
       if (pProgramState->settings.presentation.showDiagnosticInfo)
       {
         ImGui::Separator();
-        ImGui::Text("FPS: %.3f (%.2fms)", 1.f / pProgramState->deltaTime, pProgramState->deltaTime * 1000.f);
-
-        ImGui::Separator();
         if (ImGui::IsMousePosValid())
         {
           if (pProgramState->pickingSuccess)
@@ -814,7 +810,7 @@ int vcMainMenuGui(vcState *pProgramState)
       ImGui::EndMenu();
     }
 
-    char endBarInfo[256] = {};
+    char endBarInfo[512] = {};
 
     if (pProgramState->loadList.length > 0)
       udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("(%llu Files Queued) / ", pProgramState->loadList.length));
@@ -822,7 +818,22 @@ int vcMainMenuGui(vcState *pProgramState)
     if ((SDL_GetWindowFlags(pProgramState->pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0)
       udStrcat(endBarInfo, udLengthOf(endBarInfo), "Inactive / ");
 
-    udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("FPS: %.3f", 1.f / pProgramState->deltaTime));
+    if (pProgramState->settings.presentation.showDiagnosticInfo)
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("FPS: %.3f (%.2fms) / ", 1.f / pProgramState->deltaTime, pProgramState->deltaTime * 1000.f));
+
+    int64_t currentTime = std::chrono::system_clock::now().time_since_epoch().count() / std::chrono::system_clock::period::den;
+
+    for (int i = 0; i < vdkLT_Total; ++i)
+    {
+      vdkLicenseInfo info = {};
+      vdkError result = vdkContext_CheckLicense(pProgramState->pVDKContext, (vdkLicenseType)i, &info);
+      if (result == vE_Success)
+        udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License - %s - %llus / ", i==vdkLT_Render ? "Render" : "Convert", info.licenseKey, (info.expiresTimestamp - currentTime)));
+      else if (result == vE_Pending)
+        udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License - Queued (%d) / ", i == vdkLT_Render ? "Render" : "Convert", info.queuePosition));
+    }
+
+    udStrcat(endBarInfo, udLengthOf(endBarInfo), "[Username]");
 
     ImGui::SameLine(ImGui::GetContentRegionMax().x - ImGui::CalcTextSize(endBarInfo).x - 5);
     ImGui::Text("%s", endBarInfo);
@@ -889,11 +900,28 @@ void vcRenderWindow(vcState *pProgramState)
       if (pProgramState->pLoginErrorMessage != nullptr)
         ImGui::Text("%s", pProgramState->pLoginErrorMessage);
 
-      ImGui::InputText("ServerURL", pProgramState->serverURL, vcMaxPathLength);
-      ImGui::InputText("Username", pProgramState->username, vcMaxPathLength);
-      ImGui::InputText("Password", pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_CharsNoBlank);
+      bool tryLogin = false;
 
-      if (ImGui::Button("Login!"))
+      // Server URL
+      tryLogin |= ImGui::InputText("ServerURL", pProgramState->settings.loginInfo.serverURL, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+      if (!pProgramState->settings.loginInfo.rememberServer)
+        ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
+      ImGui::SameLine();
+      ImGui::Checkbox("Remember##rememberServerURL", &pProgramState->settings.loginInfo.rememberServer);
+
+      // Username
+      tryLogin |= ImGui::InputText("Username", pProgramState->settings.loginInfo.username, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+      if (pProgramState->settings.loginInfo.rememberServer && !pProgramState->settings.loginInfo.rememberUsername)
+        ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
+      ImGui::SameLine();
+      ImGui::Checkbox("Remember##rememberUsername", &pProgramState->settings.loginInfo.rememberUsername);
+
+      // Password
+      tryLogin |= ImGui::InputText("Password", pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue);
+      if (pProgramState->settings.loginInfo.rememberServer && pProgramState->settings.loginInfo.rememberUsername)
+        ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
+
+      if (ImGui::Button("Login!") || tryLogin)
         vcLogin(pProgramState);
     }
 
@@ -918,7 +946,8 @@ void vcRenderWindow(vcState *pProgramState)
 
     if (ImGui::BeginDock("Scene Explorer", &pProgramState->settings.window.windowsOpen[vcdSceneExplorer]))
     {
-      ImGui::InputText("Model Path", pProgramState->modelPath, vcMaxPathLength);
+      ImGui::InputText("", pProgramState->modelPath, vcMaxPathLength);
+      ImGui::SameLine();
       if (ImGui::Button("Load Model!"))
         pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
 
@@ -1466,31 +1495,36 @@ void vcSettings_LoadSettings(vcState *pProgramState, bool forceDefaults)
 
 void vcLogin(vcState *pProgramState)
 {
-  if (vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->serverURL, "ClientSample", pProgramState->username, pProgramState->password) != vE_Success)
-  {
-    pProgramState->pLoginErrorMessage = "Could not connect to server...";
-    return;
-  }
+  vdkError result;
 
-  if (vdkContext_GetLicense(pProgramState->pVDKContext, vdkLT_Render) != vE_Success)
-  {
-    vdkContext_Disconnect(&pProgramState->pVDKContext);
-    pProgramState->pLoginErrorMessage = "Could not get license...";
-    return;
-  }
+  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "ClientSample", pProgramState->settings.loginInfo.username, pProgramState->password);
+  if (result == vE_ConnectionFailed)
+    pProgramState->pLoginErrorMessage = "Could not connect to server.";
+  else if (result == vE_NotAllowed)
+    pProgramState->pLoginErrorMessage = "Username or Password incorrect.";
+  else if (result != vE_Success)
+    pProgramState->pLoginErrorMessage = "Unknown error occurred, please try again later.";
 
-  //Context Login successful
-  memset(pProgramState->password, 0, sizeof(pProgramState->password));
+  if (result != vE_Success)
+    return;
 
   vcRender_CreateTerrain(pProgramState->pRenderContext, &pProgramState->settings);
   vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pVDKContext);
 
   void *pProjData = nullptr;
-  if (udFile_Load(udTempStr("%s/api/dev/projects", pProgramState->serverURL), &pProjData) == udR_Success)
+  if (udFile_Load(udTempStr("%s/api/dev/projects", pProgramState->settings.loginInfo.serverURL), &pProjData) == udR_Success)
   {
     pProgramState->projects.Parse((char*)pProjData);
     udFree(pProjData);
   }
+
+  //Context Login successful
+  memset(pProgramState->password, 0, sizeof(pProgramState->password));
+  if (!pProgramState->settings.loginInfo.rememberServer)
+    memset(pProgramState->settings.loginInfo.serverURL, 0, sizeof(pProgramState->settings.loginInfo.serverURL));
+
+  if (!pProgramState->settings.loginInfo.rememberUsername)
+    memset(pProgramState->settings.loginInfo.username, 0, sizeof(pProgramState->settings.loginInfo.username));
 
   pProgramState->pLoginErrorMessage = nullptr;
   pProgramState->hasContext = true;
