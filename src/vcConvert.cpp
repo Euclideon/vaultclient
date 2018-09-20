@@ -16,6 +16,7 @@ enum vcConvertQueueStatus
   vcCQS_Queued,
   vcCQS_Running,
   vcCQS_Completed,
+  vcCQS_Cancelled,
 
   vcCQS_Count
 };
@@ -25,7 +26,8 @@ const char *statusNames[] =
   "Awaiting User Input",
   "Queued",
   "Running",
-  "Completed"
+  "Completed",
+  "Cancelled"
 };
 
 UDCOMPILEASSERT(UDARRAYSIZE(statusNames) == vcCQS_Count, "Not Enough Status Names");
@@ -77,6 +79,47 @@ uint32_t vcConvert_Thread(void *pVoidState)
 
       if (pItem == nullptr)
         break;
+
+      if (udFileExists(pItem->pConvertInfo->pOutputName) == udR_Success)
+      {
+        const SDL_MessageBoxButtonData buttons[] = {
+          { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "No" },
+          { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Yes" },
+        };
+
+        SDL_MessageBoxColorScheme colorScheme = {
+          { /* .colors (.r, .g, .b) */
+            /* [SDL_MESSAGEBOX_COLOR_BACKGROUND] */
+            { 255, 0, 0 },
+            /* [SDL_MESSAGEBOX_COLOR_TEXT] */
+            { 0, 255, 0 },
+            /* [SDL_MESSAGEBOX_COLOR_BUTTON_BORDER] */
+            { 255, 255, 0 },
+            /* [SDL_MESSAGEBOX_COLOR_BUTTON_BACKGROUND] */
+            { 0, 0, 255 },
+            /* [SDL_MESSAGEBOX_COLOR_BUTTON_SELECTED] */
+            { 255, 0, 255 }
+          }
+        };
+
+        SDL_MessageBoxData messageboxdata = {
+          SDL_MESSAGEBOX_INFORMATION, /* .flags */
+          NULL, /* .pWindow */
+          "File Exists", /* .title */
+          udTempStr("The file \"%s\" already exists.\nDo you want to override the file?", pItem->pConvertInfo->pOutputName), /* .message */
+          SDL_arraysize(buttons), /* .numbuttons */
+          buttons, /* .buttons */
+          &colorScheme /* .colorScheme */
+        };
+
+        // Skip this item if the user declines to override
+        int buttonid = 0;
+        if (SDL_ShowMessageBox(&messageboxdata, &buttonid) != 0 || buttonid == 0)
+        {
+          pItem->status = vcCQS_Cancelled;
+          continue;
+        }
+      }
 
       vdkConvert_DoConvert(pProgramState->pVDKContext, pItem->pConvertContext);
       pItem->status = vcCQS_Completed;
@@ -175,6 +218,10 @@ void vcConvert_ShowUI(vcState *pProgramState)
       else
       {
         vcConvert_RemoveJob(pProgramState, i);
+
+        if (pProgramState->pConvertContext->selectedItem >= i && pProgramState->pConvertContext->selectedItem != 0)
+          --pProgramState->pConvertContext->selectedItem;
+
         --i;
       }
       continue;
