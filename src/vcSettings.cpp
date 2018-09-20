@@ -250,6 +250,15 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->window.windowsOpen[vcdSceneExplorer] = data.Get("frames.explorer").AsBool(true);
     pSettings->window.windowsOpen[vcdConvert] = data.Get("frames.convert").AsBool(false);
 
+    // Login Info
+    pSettings->loginInfo.rememberServer = data.Get("login.rememberServer").AsBool(false);
+    if (pSettings->loginInfo.rememberServer)
+      udStrcpy(pSettings->loginInfo.serverURL, sizeof(pSettings->loginInfo.serverURL), data.Get("login.serverURL").AsString());
+
+    pSettings->loginInfo.rememberUsername = data.Get("login.rememberUsername").AsBool(false);
+    if (pSettings->loginInfo.rememberUsername)
+      udStrcpy(pSettings->loginInfo.username, sizeof(pSettings->loginInfo.username), data.Get("login.username").AsString());
+
     // Camera
     pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
     pSettings->camera.nearPlane = data.Get("camera.nearPlane").AsFloat(0.5f);
@@ -328,6 +337,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   ImGui::GetIO().WantSaveIniSettings = false;
 
   udValue data;
+  udValue tempNode;
 
   // Misc Settings
   data.Set("style = %i", pSettings->presentation.styleIndex);
@@ -336,7 +346,6 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("showAdvancedGISOptions = %s", pSettings->presentation.showAdvancedGIS ? "true" : "false");
   data.Set("showCompass = %s", pSettings->presentation.showCompass ? "true" : "false");
   data.Set("limitFPSInBackground = %s", pSettings->presentation.limitFPSInBackground ? "true" : "false");
-
 
   // Windows
   data.Set("window.position.x = %d", pSettings->window.xpos);
@@ -351,6 +360,21 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("frames.settings = %s", pSettings->window.windowsOpen[vcdSettings] ? "true" : "false");
   data.Set("frames.explorer = %s", pSettings->window.windowsOpen[vcdSceneExplorer] ? "true" : "false");
   data.Set("frames.convert = %s", pSettings->window.windowsOpen[vcdConvert] ? "true" : "false");
+
+  // Login Info
+  data.Set("login.rememberServer = %s", pSettings->loginInfo.rememberServer ? "true" : "false");
+  if (pSettings->loginInfo.rememberServer)
+  {
+    tempNode.SetString(pSettings->loginInfo.serverURL);
+    data.Set(&tempNode, "login.serverURL");
+  }
+
+  data.Set("login.rememberUsername = %s", pSettings->loginInfo.rememberUsername ? "true" : "false");
+  if (pSettings->loginInfo.rememberUsername)
+  {
+    tempNode.SetString(pSettings->loginInfo.username);
+    data.Set(&tempNode, "login.username");
+  }
 
   // Camera
   data.Set("camera.moveSpeed = %f", pSettings->camera.moveSpeed);
