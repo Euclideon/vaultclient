@@ -1,5 +1,8 @@
 #include "vcModel.h"
+
 #include "udPlatform/udGeoZone.h"
+
+#include "vdkModel.h"
 
 bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
 {
@@ -33,25 +36,24 @@ bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
   return false;
 }
 
+bool vcModel_RemoveFromList(vcState *pProgramState, size_t index)
+{
+  vdkModel *pVaultModel = pProgramState->vcModelList[index].pVaultModel;
+  vdkError err = vdkModel_Unload(pProgramState->pVDKContext, &pVaultModel);
+  pProgramState->vcModelList[index].pMetadata->Destroy();
+  udFree(pProgramState->vcModelList[index].pMetadata);
+  pProgramState->vcModelList[index].modelLoaded = false;
+  pProgramState->vcModelList.RemoveAt(index);
+  return err == vE_Success;
+}
+
 bool vcModel_UnloadList(vcState *pProgramState)
 {
-  vdkError err;
-  for (int i = 0; i < (int)pProgramState->vcModelList.length; i++)
-  {
-    vdkModel *pVaultModel;
-    pVaultModel = pProgramState->vcModelList[i].pVaultModel;
-    err = vdkModel_Unload(pProgramState->pVDKContext, &pVaultModel);
-    pProgramState->vcModelList[i].pMetadata->Destroy();
-    udFree(pProgramState->vcModelList[i].pMetadata);
-    if (err != vE_Success)
-      return false;
-    pProgramState->vcModelList[i].modelLoaded = false;
-  }
-
+  bool success = true;
   while (pProgramState->vcModelList.length > 0)
-    pProgramState->vcModelList.PopFront();
+    success = (vcModel_RemoveFromList(pProgramState, 0) && success);
 
-  return true;
+  return success;
 }
 
 void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel)
