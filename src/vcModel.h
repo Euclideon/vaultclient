@@ -2,9 +2,10 @@
 #define vcModel_h__
 
 #include "udPlatform/udValue.h"
-#include "vdkModel.h"
 
 #include "vcGIS.h"
+
+struct vdkModel;
 
 struct vcModel
 {
@@ -20,6 +21,7 @@ struct vcModel
 #include "vcState.h"
 
 bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath);
+bool vcModel_RemoveFromList(vcState *pProgramState, size_t index);
 bool vcModel_UnloadList(vcState *pProgramState);
 void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel);
 
