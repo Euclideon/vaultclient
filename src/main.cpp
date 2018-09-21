@@ -588,17 +588,15 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.pGISSpace = &pProgramState->gis;
   renderData.models.Init(32);
 
-  if (pProgramState->cameraInput.inputState == vcCIS_Orbiting)
-    renderData.pWorldAnchorPos = &pProgramState->cameraInput.focusPoint;
+  if (pProgramState->cameraInput.isUsingAnchorPoint)
+    renderData.pWorldAnchorPos = &pProgramState->cameraInput.worldAnchorPoint;
 
   ImGuiIO &io = ImGui::GetIO();
   renderData.mouse.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.y = (uint32_t)(io.MousePos.y - windowPos.y);
 
   for (size_t i = 0; i < pProgramState->vcModelList.length; ++i)
-  {
     renderData.models.PushBack(&pProgramState->vcModelList[i]);
-  }
 
   vcTexture *pTexture = vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
 
@@ -660,7 +658,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     if (ImGui::Begin("Camera Settings", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
     {
       ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &pProgramState->pCamera->position.x, 3);
-      ImGui::InputScalarN("Camera Rotation", ImGuiDataType_Double, &pProgramState->pCamera->yprRotation.x, 3);
+      ImGui::InputScalarN("Camera Rotation", ImGuiDataType_Double, &pProgramState->pCamera->eulerRotation.x, 3);
 
       if (ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
         pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
@@ -1070,7 +1068,7 @@ void vcRenderWindow(vcState *pProgramState)
 
             pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
             pProgramState->cameraInput.startPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
-            pProgramState->cameraInput.focusPoint = localSpaceCenter;
+            pProgramState->cameraInput.worldAnchorPoint = localSpaceCenter;
             pProgramState->cameraInput.progress = 0.0;
           }
 
