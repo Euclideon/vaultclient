@@ -223,6 +223,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex,
       // the distortion of the quadrants, occassionally yielding false
       // positives.
       udDouble3 center = (localMax + localMin) * 0.5;
+      center.z += pQuadTree->quadTreeHeightOffset;
       udDouble3 extents = (localMax - localMin) * 0.5;
       tileVisible = vcQuadTree_FrustumTest(pQuadTree->frustumPlanes, center, extents) > -1;
 
