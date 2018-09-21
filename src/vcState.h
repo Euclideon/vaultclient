@@ -72,8 +72,6 @@ struct vcState
   vcRenderContext *pRenderContext;
   vcConvertContext *pConvertContext;
 
-  char serverURL[vcMaxPathLength];
-  char username[vcMaxPathLength];
   char password[vcMaxPathLength];
   const char *pLoginErrorMessage;
 
