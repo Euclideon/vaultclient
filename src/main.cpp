@@ -904,22 +904,25 @@ void vcRenderWindow(vcState *pProgramState)
 
       // Server URL
       tryLogin |= ImGui::InputText("ServerURL", pProgramState->settings.loginInfo.serverURL, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
-      if (!pProgramState->settings.loginInfo.rememberServer)
+      if (pProgramState->pLoginErrorMessage == nullptr && !pProgramState->settings.loginInfo.rememberServer)
         ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
       ImGui::SameLine();
       ImGui::Checkbox("Remember##rememberServerURL", &pProgramState->settings.loginInfo.rememberServer);
 
       // Username
       tryLogin |= ImGui::InputText("Username", pProgramState->settings.loginInfo.username, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
-      if (pProgramState->settings.loginInfo.rememberServer && !pProgramState->settings.loginInfo.rememberUsername)
+      if (pProgramState->pLoginErrorMessage == nullptr && pProgramState->settings.loginInfo.rememberServer && !pProgramState->settings.loginInfo.rememberUsername)
         ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
       ImGui::SameLine();
       ImGui::Checkbox("Remember##rememberUsername", &pProgramState->settings.loginInfo.rememberUsername);
 
       // Password
       tryLogin |= ImGui::InputText("Password", pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue);
-      if (pProgramState->settings.loginInfo.rememberServer && pProgramState->settings.loginInfo.rememberUsername)
+      if (pProgramState->pLoginErrorMessage == nullptr && pProgramState->settings.loginInfo.rememberServer && pProgramState->settings.loginInfo.rememberUsername)
         ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
+
+      if (pProgramState->pLoginErrorMessage == nullptr)
+        pProgramState->pLoginErrorMessage = "Please enter your credentials...";
 
       if (ImGui::Button("Login!") || tryLogin)
         vcLogin(pProgramState);
