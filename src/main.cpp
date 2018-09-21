@@ -826,11 +826,13 @@ int vcMainMenuGui(vcState *pProgramState)
     for (int i = 0; i < vdkLT_Total; ++i)
     {
       vdkLicenseInfo info = {};
-      vdkError result = vdkContext_CheckLicense(pProgramState->pVDKContext, (vdkLicenseType)i, &info);
-      if (result == vE_Success)
-        udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License - %s - %llus / ", i==vdkLT_Render ? "Render" : "Convert", info.licenseKey, (info.expiresTimestamp - currentTime)));
-      else if (result == vE_Pending)
-        udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License - Queued (%d) / ", i == vdkLT_Render ? "Render" : "Convert", info.queuePosition));
+      if (vdkContext_GetLicenseInfo(pProgramState->pVDKContext, (vdkLicenseType)i, &info) == vE_Success)
+      {
+        if (info.queuePosition < 0)
+          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License - %s (%llusecs) / ", i == vdkLT_Render ? "Render" : "Convert", info.licenseKey, (info.expiresTimestamp - currentTime)));
+        else
+          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License - Queued (%d) / ", i == vdkLT_Render ? "Render" : "Convert", info.queuePosition));
+      }
     }
 
     udStrcat(endBarInfo, udLengthOf(endBarInfo), "[Username]");
