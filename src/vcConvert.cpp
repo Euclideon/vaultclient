@@ -116,7 +116,7 @@ uint32_t vcConvert_Thread(void *pVoidState)
         int buttonid = 0;
         if (SDL_ShowMessageBox(&messageboxdata, &buttonid) != 0 || buttonid == 0)
         {
-          pItem->status = vcCQS_Cancelled;
+          pItem->status = vcCQS_Preparing;
           continue;
         }
       }
@@ -214,6 +214,10 @@ void vcConvert_ShowUI(vcState *pProgramState)
       if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
       {
         // TODO: Handle terminating a conversion
+      }
+      else if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Queued)
+      {
+        pProgramState->pConvertContext->jobs[i]->status = vcCQS_Preparing;
       }
       else
       {
@@ -407,10 +411,17 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
 {
   vcConvertItem *pSelectedJob = nullptr;
 
-  for (size_t i = 0; i < pProgramState->pConvertContext->jobs.length; ++i)
+  if (pProgramState->pConvertContext->selectedItem < pProgramState->pConvertContext->jobs.length)
   {
-    if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Preparing)
-      pSelectedJob = pProgramState->pConvertContext->jobs[i];
+    pSelectedJob = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem];
+    if (pSelectedJob->status != vcCQS_Preparing)
+      pSelectedJob = nullptr;
+  }
+
+  for (size_t i = pProgramState->pConvertContext->jobs.length; i > 0 && pSelectedJob == nullptr; --i)
+  {
+    if (pProgramState->pConvertContext->jobs[i - 1]->status == vcCQS_Preparing)
+      pSelectedJob = pProgramState->pConvertContext->jobs[i - 1];
   }
 
   if (pSelectedJob == nullptr)
