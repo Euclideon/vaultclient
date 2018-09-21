@@ -2,6 +2,7 @@
 #define vcCamera_h__
 
 #include "udPlatform/udMath.h"
+#include "vcMath.h"
 
 enum vcCameraMoveMode
 {
@@ -19,7 +20,7 @@ enum vcCameraPivotMode
 struct vcCamera
 {
   udDouble3 position;
-  udDouble3 yprRotation;
+  udDouble3 eulerRotation;
 };
 
 struct vcState;
@@ -38,11 +39,11 @@ enum vcInputState
 
 struct vcCameraInput
 {
-  bool isFocused;
-
   vcInputState inputState;
 
-  udDouble3 focusPoint;
+  bool isUsingAnchorPoint;
+  udDouble3 worldAnchorPoint;
+
   udDouble3 startPosition; // for zoom to
   udDouble3 storedRotation; // for orbiting
   double progress;

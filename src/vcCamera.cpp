@@ -30,7 +30,7 @@ void vcCamera_Create(vcCamera **ppCamera)
 
   vcCamera *pCamera = udAllocType(vcCamera, 1, udAF_None);
   pCamera->position = udDouble3::zero();
-  pCamera->yprRotation = udDouble3::zero();
+  pCamera->eulerRotation = udDouble3::zero();
 
   *ppCamera = pCamera;
 }
@@ -43,14 +43,14 @@ void vcCamera_Destroy(vcCamera **ppCamera)
 
 udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera)
 {
-  udQuaternion<double> orientation = udQuaternion<double>::create(pCamera->yprRotation);
+  udQuaternion<double> orientation = udQuaternion<double>::create(pCamera->eulerRotation);
   udDouble3 lookPos = pCamera->position + orientation.apply(udDouble3::create(0.0, 1.0, 0.0));
   return udDouble4x4::lookAt(pCamera->position, lookPos, orientation.apply(udDouble3::create(0.0, 0.0, 1.0)));
 }
 
 udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPosition)
 {
-  udQuaternion<double> orientation = udQuaternion<double>::create(pCamera->yprRotation);
+  udQuaternion<double> orientation = udQuaternion<double>::create(pCamera->eulerRotation);
   udDouble3 orbitToCamera = orientation.inverse().apply(pCamera->position - orbitPosition); // convert the point into camera space
 
   double pitch = -udATan(orbitToCamera.z / orbitToCamera.y);
@@ -104,7 +104,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
 
     if (keyboardInput != udDouble3::zero() || keyboardInput != udDouble3::zero() || isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]) // if input is detected, TODO: add proper any input detection
     {
-      if(pProgramState->cameraInput.inputState == vcCIS_MovingToPoint)
+      if (pProgramState->cameraInput.inputState == vcCIS_MovingToPoint)
         pProgramState->cameraInput.inputState = vcCIS_None;
     }
 
@@ -118,8 +118,9 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
         case vcCPM_Orbit:
           if (pProgramState->pickingSuccess)
           {
-            pProgramState->cameraInput.focusPoint = pProgramState->worldMousePos;
-            pProgramState->cameraInput.storedRotation = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->cameraInput.focusPoint);
+            pProgramState->cameraInput.isUsingAnchorPoint = true;
+            pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
+            pProgramState->cameraInput.storedRotation = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->cameraInput.worldAnchorPoint);
             pProgramState->cameraInput.inputState = vcCIS_Orbiting;
           }
           break;
@@ -128,7 +129,10 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
           break;
         case vcCPM_Pan:
           if (pProgramState->pickingSuccess)
-            pProgramState->cameraInput.focusPoint = pProgramState->worldMousePos;
+          {
+            pProgramState->cameraInput.isUsingAnchorPoint = true;
+            pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
+          }
           pProgramState->cameraInput.inputState = vcCIS_Panning;
           break;
         }
@@ -143,15 +147,12 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
         mouseInput.z = 0.0;
       }
 
-      if(isBtnReleased[i] && pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Orbit)
+      if (isBtnReleased[i])
       {
-        if (pProgramState->cameraInput.inputState == vcCIS_Orbiting)
+        if (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Orbit && pProgramState->cameraInput.inputState == vcCIS_Orbiting)
           pProgramState->cameraInput.inputState = vcCIS_None;
-      }
 
-      if (isBtnReleased[i] && pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Pan)
-      {
-        if (pProgramState->cameraInput.inputState == vcCIS_Panning)
+        if (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Pan && pProgramState->cameraInput.inputState == vcCIS_Panning)
           pProgramState->cameraInput.inputState = vcCIS_None;
       }
 
@@ -162,7 +163,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
         {
           pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
           pProgramState->cameraInput.startPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
-          pProgramState->cameraInput.focusPoint = pProgramState->worldMousePos;
+          pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
           pProgramState->cameraInput.progress = 0.0;
         }
       }
@@ -177,13 +178,14 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
     {
       if (previousLockTime < currentTime - timeout && pProgramState->pickingSuccess && pProgramState->cameraInput.inputState == vcCIS_None)
       {
-        pProgramState->cameraInput.focusPoint = pProgramState->worldMousePos;
+        pProgramState->cameraInput.isUsingAnchorPoint = true;
+        pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
         pProgramState->cameraInput.inputState = vcCIS_CommandZooming;
       }
 
       if (pProgramState->cameraInput.inputState == vcCIS_CommandZooming)
       {
-        pProgramState->cameraInput.storedRotation = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->cameraInput.focusPoint);
+        pProgramState->cameraInput.storedRotation = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->cameraInput.worldAnchorPoint);
 
         mouseInput.x = 0.0;
         mouseInput.y = io.MouseWheel / 10.f;
@@ -221,6 +223,9 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
 
   vcCamera_Apply(pProgramState->pCamera, &pProgramState->settings.camera, &pProgramState->cameraInput, pProgramState->deltaTime, speedModifier);
 
+  if (pProgramState->cameraInput.inputState == vcCIS_None)
+    pProgramState->cameraInput.isUsingAnchorPoint = false;
+
   // Set outputs
   pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera);
 }
@@ -238,11 +243,11 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     // Translation
 
     if (pCamSettings->moveMode == vcCMM_Plane)
-      addPos = (udDouble4x4::rotationYPR(pCamera->yprRotation) * udDouble4::create(addPos, 1)).toVector3();
+      addPos = (udDouble4x4::rotationYPR(pCamera->eulerRotation) * udDouble4::create(addPos, 1)).toVector3();
 
     if (pCamSettings->moveMode == vcCMM_Helicopter)
     {
-      addPos = (udDouble4x4::rotationYPR(udDouble3::create(pCamera->yprRotation.x, 0.0, 0.0)) * udDouble4::create(addPos, 1)).toVector3();
+      addPos = (udDouble4x4::rotationYPR(udDouble3::create(pCamera->eulerRotation.x, 0.0, 0.0)) * udDouble4::create(addPos, 1)).toVector3();
       addPos.z = 0.0; // might be unnecessary now
       if (addPos.x != 0.0 || addPos.y != 0.0)
         addPos = udNormalize3(addPos);
@@ -254,74 +259,48 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     pCamera->position += addPos;
 
     // Rotation
-
     if (pCamSettings->invertX)
       pCamInput->mouseInput.x *= -1.0;
     if (pCamSettings->invertY)
       pCamInput->mouseInput.y *= -1.0;
 
-    pCamera->yprRotation += pCamInput->mouseInput;
-    pCamera->yprRotation.y = udClamp(pCamera->yprRotation.y, (double)-UD_PI / 2.0, (double)UD_PI / 2.0);
+    pCamera->eulerRotation += pCamInput->mouseInput;
+    pCamera->eulerRotation.y = udClamp(pCamera->eulerRotation.y, (double)-UD_PI / 2.0, (double)UD_PI / 2.0);
   }
   break;
 
   case vcCIS_Orbiting:
   {
-    double distanceToPoint = udMag3(pCamInput->focusPoint - pCamera->position);
-    udDoubleQuat orientation;
-    udDouble3 addPosOrbit = udDouble3::zero();
+    double distanceToPoint = udMag3(pCamInput->worldAnchorPoint - pCamera->position);
 
     if (distanceToPoint != 0.0)
     {
-      if (pCamInput->mouseInput.x != 0.0 || pCamInput->mouseInput.y != 0.0 || pCamInput->keyboardInput.x != 0.0)
-        orientation = udDoubleQuat::create(pCamera->yprRotation - pCamInput->storedRotation);
-      else
-        orientation = udDoubleQuat::create(pCamera->yprRotation);
+      udRay<double> transform;
+      transform.position = pCamera->position;
+      transform.orientation = udDoubleQuat::create(pCamera->eulerRotation);
 
-      udDouble3 right = orientation.apply(udDouble3::create(1.0, 0.0, 0.0));
-      udDouble3 forward = orientation.apply(udDouble3::create(0.0, 1.0, 0.0));
+      transform = udRotateAround(transform, pCamInput->worldAnchorPoint, { 0, 0, 1 }, pCamInput->mouseInput.x);
+      transform = udRotateAround(transform, pCamInput->worldAnchorPoint, transform.orientation.apply({ 1, 0, 0 }), -pCamInput->mouseInput.y);
 
-      udDouble3 addPos = udClamp(pCamInput->keyboardInput, udDouble3::create(-1, -1, -1), udDouble3::create(1, 1, 1)); // clamp in case 2 similarly mapped movement buttons are pressed
+      udDouble3 euler = transform.orientation.eulerAngles();
 
-      addPos /= 50.0;
-      addPosOrbit = distanceToPoint * udSin(pCamInput->mouseInput.x + addPos.x) * (right + udTan((pCamInput->mouseInput.x + addPos.x) / 2.0) * forward);
-      addPosOrbit.z = 0;
+      // Only apply if not flipped over the top
+      if (euler.z < UD_HALF_PI && euler.z > -UD_HALF_PI)
+      {
+        pCamera->position = transform.position;
+        pCamera->eulerRotation = euler;
+        pCamera->eulerRotation.z = 0;
 
-      udDouble3 forwardMove;
-      if (addPos.y == 0.0)
-        forwardMove = distanceToPoint * pCamInput->mouseInput.y * forward;
-      else
-        forwardMove = distanceToPoint * (pCamInput->mouseInput.y + addPos.y) * udDoubleQuat::create(pCamera->yprRotation - pCamInput->storedRotation).apply(udDouble3::create(0.0, 1.0, 0.0));
-
-      if (udMag3(forwardMove) > distanceToPoint)
-        forwardMove *= distanceToPoint / udMag3(forwardMove); // clamp it so that you dont overshoot
-
-      addPosOrbit += forwardMove;
-
-      addPosOrbit.z += addPos.z * 50.0 * pCamSettings->moveSpeed * speedModifier * deltaTime;
-
-      pCamera->position += addPosOrbit;
-
-      // Rotation
-
-      udDouble3 nanProtection = pCamera->yprRotation;
-      pCamera->yprRotation = udDouble4x4::lookAt(pCamera->position, pCamInput->focusPoint, orientation.apply(udDouble3::create(0.0, 0.0, 1.0))).extractYPR();
-      pCamera->yprRotation += pCamInput->storedRotation;
-
-      if (pCamera->yprRotation.y > UD_PI / 2.0)
-        pCamera->yprRotation.y -= UD_2PI; // euler vs +/-
-
-      pCamera->yprRotation.z = 0.0;
-
-      if (isnan(pCamera->yprRotation.x) || isnan(pCamera->yprRotation.y))
-        pCamera->yprRotation = nanProtection;
+        if (pCamera->eulerRotation.y > UD_PI)
+          pCamera->eulerRotation.y -= UD_2PI;
+      }
     }
   }
   break;
 
   case vcCIS_MovingToPoint:
   {
-    udDouble3 travelVector = pCamInput->focusPoint - pCamInput->startPosition;
+    udDouble3 travelVector = pCamInput->worldAnchorPoint - pCamInput->startPosition;
 
     double length = udMag3(travelVector);
 
@@ -348,8 +327,8 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
   case vcCIS_CommandZooming:
   {
-    double distanceToPoint = udMag3(pCamInput->focusPoint - pCamera->position);
-    udDouble3 towards = udNormalize3(pCamInput->focusPoint - pCamera->position);
+    double distanceToPoint = udMag3(pCamInput->worldAnchorPoint - pCamera->position);
+    udDouble3 towards = udNormalize3(pCamInput->worldAnchorPoint - pCamera->position);
     udDouble3 addPos = distanceToPoint * pCamInput->mouseInput.y * towards;
     pCamera->position += addPos;
   }
@@ -369,11 +348,11 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     addPos.z = 0.0;
 
     if (pCamSettings->moveMode == vcCMM_Plane)
-      addPos = (udDouble4x4::rotationYPR(pCamera->yprRotation) * udDouble4::create(addPos, 1)).toVector3();
+      addPos = (udDouble4x4::rotationYPR(pCamera->eulerRotation) * udDouble4::create(addPos, 1)).toVector3();
 
     if (pCamSettings->moveMode == vcCMM_Helicopter)
     {
-      addPos = (udDouble4x4::rotationYPR(udDouble3::create(pCamera->yprRotation.x, 0.0, 0.0)) * udDouble4::create(addPos, 1)).toVector3();
+      addPos = (udDouble4x4::rotationYPR(udDouble3::create(pCamera->eulerRotation.x, 0.0, 0.0)) * udDouble4::create(addPos, 1)).toVector3();
       addPos.z = 0.0; // might be unnecessary now
       if (addPos.x != 0.0 || addPos.y != 0.0)
         addPos = udNormalize3(addPos);
@@ -399,7 +378,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     addPos.y = addPos.z;
     addPos.z = temp;
 
-    pCamera->position += udDoubleQuat::create(pCamera->yprRotation).apply(addPos);
+    pCamera->position += udDoubleQuat::create(pCamera->eulerRotation).apply(addPos);
   }
   break;
 
