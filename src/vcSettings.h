@@ -79,6 +79,15 @@ struct vcSettings
 
   struct
   {
+    bool rememberServer;
+    char serverURL[vcMaxPathLength];
+
+    bool rememberUsername;
+    char username[vcMaxPathLength];
+  } loginInfo;
+
+  struct
+  {
     vcVisualizatationMode mode;
     int minIntensity;
     int maxIntensity;

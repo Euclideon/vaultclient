@@ -469,15 +469,14 @@ epilogue:
 
 udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-  udResult result = udR_Success;
+  if (pRenderContext == nullptr)
+    return udR_InvalidParameter_;
+
   vdkModel **ppModels = nullptr;
   int numVisibleModels = 0;
 
-  if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->projectionMatrix.a) != vE_Success)
-    UD_ERROR_SET(udR_InternalError);
-
-  if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->viewMatrix.a) != vE_Success)
-    UD_ERROR_SET(udR_InternalError);
+  vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->projectionMatrix.a);
+  vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->viewMatrix.a);
 
   switch (pRenderContext->pSettings->visualization.mode)
   {
@@ -508,22 +507,27 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   picking.x = (uint32_t)((float)renderData.mouse.x / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
   picking.y = (uint32_t)((float)renderData.mouse.y / (float)pRenderContext->originalSceneResolution.y * (float)pRenderContext->sceneResolution.y);
 
-  if (vdkRenderContext_RenderAdv(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)numVisibleModels, &picking) != vE_Success)
-    UD_ERROR_SET(udR_InternalError);
+  vdkError result = vdkRenderContext_RenderAdv(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)numVisibleModels, &picking);
 
-  if (picking.hit != 0)
+  if (result == vE_Success)
   {
-    // More to be done here
-    renderData.worldMousePos = udDouble3::create(picking.pointCenter[0], picking.pointCenter[1], picking.pointCenter[2]);
-    renderData.pickingSuccess = true;
+    if (picking.hit != 0)
+    {
+      // More to be done here
+      renderData.worldMousePos = udDouble3::create(picking.pointCenter[0], picking.pointCenter[1], picking.pointCenter[2]);
+      renderData.pickingSuccess = true;
+    }
+
+    vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+    vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+  }
+  else
+  {
+    //TODO: Clear the buffers
   }
 
-  vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
-  vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
-
-epilogue:
   udFreeStack(pModels);
-  return result;
+  return udR_Success;
 }
 
 udResult vcRender_CreateTerrain(vcRenderContext *pRenderContext, vcSettings *pSettings)
