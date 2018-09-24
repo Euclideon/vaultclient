@@ -47,11 +47,9 @@ struct vcState
 
   struct
   {
-    udValue *pMetadata;
     size_t index;
+    udValue *pMetadata;
     vcTexture *pWatermarkTexture;
-    int32_t watermarkWidth;
-    int32_t watermarkHeight;
   } selectedModelProperties;
 
   double deltaTime;
@@ -60,7 +58,8 @@ struct vcState
 
   vcGISSpace gis;
 
-  vcTexture *pWatermarkTexture;
+  vcTexture *pCompanyLogo;
+  vcTexture *pSceneWatermark;
 
   udDouble3 worldMousePos;
   bool pickingSuccess;

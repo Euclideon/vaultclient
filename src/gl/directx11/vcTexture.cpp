@@ -369,3 +369,17 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
   *ppTexture = pTexture;
   return true;
 }
+
+udResult vcTexture_GetSize(vcTexture *pTexture, int *pWidth, int *pHeight)
+{
+  if (pTexture == nullptr)
+    return udR_InvalidParameter_;
+
+  if (pWidth != nullptr)
+    *pWidth = pTexture->width;
+
+  if (pHeight != nullptr)
+    *pHeight = pTexture->height;
+
+  return udR_Success;
+}
