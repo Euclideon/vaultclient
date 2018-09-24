@@ -778,7 +778,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     ImGui::SetNextWindowBgAlpha(0.5f);
 
     if (ImGui::Begin("MapCopyright", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
-      ImGui::Text(u8"Map Data © OpenStreetMap contributors");
+      ImGui::Text("Map Data \xC2\xA9 OpenStreetMap contributors");
     ImGui::End();
   }
 
