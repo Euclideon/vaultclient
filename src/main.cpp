@@ -421,7 +421,7 @@ int main(int argc, char **args)
 
   // setup watermark for background
   pEucWatermarkData = stbi_load(EucWatermarkPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0); // reusing the variables for width etc
-  vcTexture_Create(&programState.pWatermarkTexture, iconWidth, iconHeight, pEucWatermarkData);
+  vcTexture_Create(&programState.pCompanyLogo, iconWidth, iconHeight, pEucWatermarkData);
 
   if (!ImGuiGL_Init(programState.pWindow))
     goto epilogue;
@@ -546,7 +546,7 @@ epilogue:
   ImGuiGL_DestroyDeviceObjects();
   vcConvert_Deinit(&programState);
   vcCamera_Destroy(&programState.pCamera);
-  vcTexture_Destroy(&programState.pWatermarkTexture);
+  vcTexture_Destroy(&programState.pCompanyLogo);
   free(pIconData);
   free(pEucWatermarkData);
   for (size_t i = 0; i < programState.loadList.length; i++)
@@ -564,6 +564,7 @@ epilogue:
 void vcRenderSceneWindow(vcState *pProgramState)
 {
   //Rendering
+  udInt2 sizei;
   ImVec2 size = ImGui::GetContentRegionAvail();
   ImVec2 windowPos = ImVec2(ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y);
 
@@ -601,6 +602,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   vcTexture *pTexture = vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
 
   renderData.models.Deinit();
+  pProgramState->pSceneWatermark = renderData.pWatermarkTexture;
 
   {
     pProgramState->worldMousePos = renderData.worldMousePos;
@@ -689,64 +691,77 @@ void vcRenderSceneWindow(vcState *pProgramState)
   }
 
   // On Screen Controls Overlay
+  float bottomLeftOffset = 5.f;
+  if (pProgramState->onScreenControls)
   {
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + 5.f, windowPos.y + size.y - 5.f), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + size.y - 5.f), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
-    if (pProgramState->onScreenControls)
+    if (ImGui::Begin("OnScreenControls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
     {
-      if (ImGui::Begin("OnScreenControls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+      ImGui::SetWindowSize(ImVec2(175, 150));
+      ImGui::Text("Controls");
+
+      ImGui::Separator();
+
+
+      ImGui::Columns(2, NULL, false);
+
+      ImGui::SetColumnWidth(0, 50);
+
+      double forward = 0;
+      double right = 0;
+      float vertical = 0;
+
+      if (ImGui::VSliderFloat("##oscUDSlider", ImVec2(40, 100), &vertical, -1, 1, "U/D"))
+        vertical = udClamp(vertical, -1.f, 1.f);
+
+      ImGui::NextColumn();
+
+      ImGui::Button("Move Camera", ImVec2(100, 100));
+      if (ImGui::IsItemActive())
       {
-        ImGui::SetWindowSize(ImVec2(175, 150));
-        ImGui::Text("Controls");
+        // Draw a line between the button and the mouse cursor
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        draw_list->PushClipRectFullScreen();
+        draw_list->AddLine(io.MouseClickedPos[0], io.MousePos, ImGui::GetColorU32(ImGuiCol_Button), 4.0f);
+        draw_list->PopClipRect();
 
-        ImGui::Separator();
+        ImVec2 value_raw = ImGui::GetMouseDragDelta(0, 0.0f);
 
-
-        ImGui::Columns(2, NULL, false);
-
-        ImGui::SetColumnWidth(0, 50);
-
-        double forward = 0;
-        double right = 0;
-        float vertical = 0;
-
-        if (ImGui::VSliderFloat("##oscUDSlider", ImVec2(40, 100), &vertical, -1, 1, "U/D"))
-          vertical = udClamp(vertical, -1.f, 1.f);
-
-        ImGui::NextColumn();
-
-        ImGui::Button("Move Camera", ImVec2(100, 100));
-        if (ImGui::IsItemActive())
-        {
-          // Draw a line between the button and the mouse cursor
-          ImDrawList* draw_list = ImGui::GetWindowDrawList();
-          draw_list->PushClipRectFullScreen();
-          draw_list->AddLine(io.MouseClickedPos[0], io.MousePos, ImGui::GetColorU32(ImGuiCol_Button), 4.0f);
-          draw_list->PopClipRect();
-
-          ImVec2 value_raw = ImGui::GetMouseDragDelta(0, 0.0f);
-
-          forward = -1.f * value_raw.y / vcSL_OSCPixelRatio;
-          right = value_raw.x / vcSL_OSCPixelRatio;
-        }
-
-        moveOffset += udDouble3::create(right, forward, (double)vertical);
-
-        ImGui::Columns(1);
+        forward = -1.f * value_raw.y / vcSL_OSCPixelRatio;
+        right = value_raw.x / vcSL_OSCPixelRatio;
       }
 
-      ImGui::End();
-    }
-    ImVec2 uv0 = ImVec2(0, 0);
-    ImVec2 uv1 = ImVec2(1, 1);
-#if GRAPHICS_API_OPENGL
-    uv1.y = -1;
-#endif
-    ImGui::ImageButton(pTexture, size, uv0, uv1, 0);
+      moveOffset += udDouble3::create(right, forward, (double)vertical);
 
-    vcCamera_HandleSceneInput(pProgramState, moveOffset);
+      ImGui::Columns(1);
+
+      bottomLeftOffset += ImGui::GetWindowWidth() + 5.f;
+    }
+
+    ImGui::End();
   }
+
+  if (pProgramState->pSceneWatermark != nullptr) // Watermark
+  {
+    vcTexture_GetSize(pProgramState->pSceneWatermark, &sizei.x, &sizei.y);
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + size.y - 5.f), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+    ImGui::SetNextWindowBgAlpha(0.2f);
+
+    if (ImGui::Begin("ModelWatermark", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+      ImGui::Image(pProgramState->pSceneWatermark, ImVec2((float)sizei.x, (float)sizei.y));
+    ImGui::End();
+  }
+
+  ImVec2 uv0 = ImVec2(0, 0);
+  ImVec2 uv1 = ImVec2(1, 1);
+#if GRAPHICS_API_OPENGL
+  uv1.y = -1;
+#endif
+  ImGui::ImageButton(pTexture, size, uv0, uv1, 0);
+
+  vcCamera_HandleSceneInput(pProgramState, moveOffset);
 }
 
 int vcMainMenuGui(vcState *pProgramState)
@@ -890,7 +905,7 @@ void vcRenderWindow(vcState *pProgramState)
 
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f, 0.f, 0.f, 0.f));
     ImGui::Begin("Watermark", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
-    ImGui::Image(pProgramState->pWatermarkTexture, ImVec2(301, 161), ImVec2(0, 0), ImVec2(1, 1));
+    ImGui::Image(pProgramState->pCompanyLogo, ImVec2(301, 161), ImVec2(0, 0), ImVec2(1, 1));
     ImGui::End();
     ImGui::PopStyleColor();
 
@@ -1361,25 +1376,7 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::OpenPopup("Model Properties");
 
       pProgramState->selectedModelProperties.pMetadata = pProgramState->vcModelList[pProgramState->selectedModelProperties.index].pMetadata;
-
-      const char *pWatermark = pProgramState->selectedModelProperties.pMetadata->Get("Watermark").AsString();
-      if (pWatermark)
-      {
-        uint8_t *pImage = nullptr;
-        size_t imageLen = 0;
-        if (udBase64Decode(&pImage, &imageLen, pWatermark) == udR_Success)
-        {
-          int imageWidth, imageHeight, imageChannels;
-          unsigned char *pImageData = stbi_load_from_memory(pImage, (int)imageLen, &imageWidth, &imageHeight, &imageChannels, 4);
-          pProgramState->selectedModelProperties.watermarkWidth = imageWidth;
-          pProgramState->selectedModelProperties.watermarkHeight = imageHeight;
-          vcTexture_Create(&pProgramState->selectedModelProperties.pWatermarkTexture, imageWidth, imageHeight, pImageData, vcTextureFormat_RGBA8, vcTFM_Nearest, false);
-          STBI_FREE(pImageData);
-        }
-
-        udFree(pImage);
-      }
-
+      pProgramState->selectedModelProperties.pWatermarkTexture = pProgramState->vcModelList[pProgramState->selectedModelProperties.index].pWatermark;
       ImGui::SetNextWindowSize(ImVec2(400, 600));
 
       pProgramState->popupTrigger[vcPopup_ModelProperties] = false;
@@ -1406,7 +1403,10 @@ void vcRenderWindow(vcState *pProgramState)
         {
           ImGui::Text("Watermark");
 
-          ImVec2 imageSize = ImVec2((float)pProgramState->selectedModelProperties.watermarkWidth, (float)pProgramState->selectedModelProperties.watermarkHeight);
+          udInt2 imageSizei;
+          vcTexture_GetSize(pProgramState->selectedModelProperties.pWatermarkTexture, &imageSizei.x, &imageSizei.y);
+
+          ImVec2 imageSize = ImVec2((float)imageSizei.x, (float)imageSizei.y);
           ImVec2 imageLimits = ImVec2(ImGui::GetContentRegionAvailWidth(), 100.f);
 
           if (imageSize.y > imageLimits.y)
@@ -1427,12 +1427,7 @@ void vcRenderWindow(vcState *pProgramState)
       }
 
       if (ImGui::Button("Close"))
-      {
-        if (pProgramState->selectedModelProperties.pWatermarkTexture != nullptr)
-          vcTexture_Destroy(&pProgramState->selectedModelProperties.pWatermarkTexture);
-
         ImGui::CloseCurrentPopup();
-      }
 
       ImGui::EndPopup();
     }

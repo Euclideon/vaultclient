@@ -497,12 +497,25 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   if (renderData.models.length > 0)
     ppModels = udAllocStack(vdkModel*, renderData.models.length, udAF_None);
 
+  double maxDist = pRenderContext->pSettings->camera.farPlane;
+  renderData.pWatermarkTexture = nullptr;
+
   for (size_t i = 0; i < renderData.models.length; ++i)
   {
     if (renderData.models[i]->modelVisible)
     {
       ppModels[numVisibleModels] = renderData.models[i]->pVaultModel;
       ++numVisibleModels;
+
+      if (renderData.models[i]->pWatermark != nullptr)
+      {
+        double cameraDist = udMag((pRenderContext->viewMatrix * renderData.models[i]->worldMatrix * udDouble4::create(0.5, 0.5, 0.5, 1.0)).toVector3());
+        if (cameraDist < maxDist)
+        {
+          maxDist = cameraDist;
+          renderData.pWatermarkTexture = renderData.models[i]->pWatermark;
+        }
+      }
     }
   }
 
