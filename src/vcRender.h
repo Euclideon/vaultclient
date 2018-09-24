@@ -21,6 +21,7 @@ struct vcRenderData
   udDouble3 worldMousePos;
   udDouble3 *pWorldAnchorPos; // If this is not nullptr, this is the point to highlight
   bool pickingSuccess;
+  vcTexture *pWatermarkTexture;
 
   udChunkedArray<vcModel*> models;
   udDouble4x4 cameraMatrix;

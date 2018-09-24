@@ -50,5 +50,6 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename);
 void vcTexture_Destroy(vcTexture **ppTexture);
 
 udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height);
+udResult vcTexture_GetSize(vcTexture *pTexture, int *pWidth, int *pHeight);
 
 #endif//vcTexture_h__
