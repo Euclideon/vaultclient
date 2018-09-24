@@ -1,11 +1,11 @@
 #ifndef vcModel_h__
 #define vcModel_h__
 
-#include "udPlatform/udValue.h"
-
 #include "vcGIS.h"
 
 struct vdkModel;
+class udValue;
+struct vcTexture;
 
 struct vcModel
 {
@@ -14,8 +14,10 @@ struct vcModel
   bool modelVisible;
   bool modelSelected;
   bool flipYZ;
+  udDouble4x4 worldMatrix;
   vdkModel *pVaultModel;
   udValue *pMetadata;
+  vcTexture *pWatermark;
 };
 
 #include "vcState.h"

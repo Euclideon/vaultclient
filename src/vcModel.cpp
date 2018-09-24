@@ -1,8 +1,13 @@
 #include "vcModel.h"
 
 #include "udPlatform/udGeoZone.h"
+#include "udPlatform/udValue.h"
+
+#include "gl/vcTexture.h"
 
 #include "vdkModel.h"
+
+#include "stb_image.h"
 
 bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
 {
@@ -21,7 +26,25 @@ bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
     const char *pMetadata;
     model.pMetadata = udAllocType(udValue, 1, udAF_Zero);
     if (vdkModel_GetMetadata(pProgramState->pVDKContext, model.pVaultModel, &pMetadata) == vE_Success)
+    {
       model.pMetadata->Parse(pMetadata);
+
+      const char *pWatermark = model.pMetadata->Get("Watermark").AsString();
+      if (pWatermark)
+      {
+        uint8_t *pImage = nullptr;
+        size_t imageLen = 0;
+        if (udBase64Decode(&pImage, &imageLen, pWatermark) == udR_Success)
+        {
+          int imageWidth, imageHeight, imageChannels;
+          unsigned char *pImageData = stbi_load_from_memory(pImage, (int)imageLen, &imageWidth, &imageHeight, &imageChannels, 4);
+          vcTexture_Create(&model.pWatermark, imageWidth, imageHeight, pImageData, vcTextureFormat_RGBA8, vcTFM_Nearest, false);
+          free(pImageData);
+        }
+
+        udFree(pImage);
+      }
+    }
 
     vcModel_MoveToModelProjection(pProgramState, &model);
     pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera); // eh?
@@ -40,6 +63,10 @@ bool vcModel_RemoveFromList(vcState *pProgramState, size_t index)
 {
   vdkModel *pVaultModel = pProgramState->vcModelList[index].pVaultModel;
   vdkError err = vdkModel_Unload(pProgramState->pVDKContext, &pVaultModel);
+
+  if (pProgramState->vcModelList[index].pWatermark != nullptr)
+    vcTexture_Destroy(&pProgramState->vcModelList[index].pWatermark);
+
   pProgramState->vcModelList[index].pMetadata->Destroy();
   udFree(pProgramState->vcModelList[index].pMetadata);
   pProgramState->vcModelList[index].modelLoaded = false;
@@ -86,6 +113,7 @@ void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel)
     }
 
     vdkModel_SetWorldMatrix(pProgramState->pVDKContext, pModel->pVaultModel, matrix.a);
+    pModel->worldMatrix = matrix;
   }
 }
 
