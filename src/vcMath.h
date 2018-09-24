@@ -12,7 +12,6 @@ udRay<T> udRotateAround(udRay<T> ray, udVector3<T> center, udVector3<T> axis, T 
 {
   udRay<T> r;
 
-  udVector3<T> pos = ray.position;
   udQuaternion<T> rotation = udQuaternion<T>::create(axis, angle);
 
   udVector3<T> direction = ray.position - center; // find current direction relative to center
