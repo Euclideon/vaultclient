@@ -442,11 +442,26 @@ int main(int argc, char **args)
 #if 1 // If load additional fonts
   fontCfg.MergeMode = true;
 
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesKorean());
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesJapanese());
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesChineseFull());
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesThai());
+  static ImWchar characterRanges[] =
+  {
+    0x0020, 0x00FF, // Basic Latin + Latin Supplement
+    0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
+    0x0E00, 0x0E7F, // Thai
+    0x2010, 0x205E, // Punctuations
+    0x2DE0, 0x2DFF, // Cyrillic Extended-A
+    0x3000, 0x30FF, // Punctuations, Hiragana, Katakana
+    0x3131, 0x3163, // Korean alphabets
+    0x31F0, 0x31FF, // Katakana Phonetic Extensions
+    0x4e00, 0x9FAF, // CJK Ideograms
+    0xA640, 0xA69F, // Cyrillic Extended-B
+    0xAC00, 0xD79D, // Korean characters
+    0xFF00, 0xFFEF, // Half-width characters
+    0
+  };
+
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize, &fontCfg, characterRanges);
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesJapanese()); // Still need to load Japanese seperately
+
 #endif
 
   SDL_EnableScreenSaver();
@@ -608,7 +623,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     pProgramState->worldMousePos = renderData.worldMousePos;
     pProgramState->pickingSuccess = renderData.pickingSuccess;
 
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + size.x - 5.f, windowPos.y + 5.f), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + size.x, windowPos.y), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
@@ -655,7 +670,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   // On Screen Camera Settings
   {
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + 5.f, windowPos.y + 5.f), ImGuiCond_Always, ImVec2(0.f, 0.f));
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x, windowPos.y), ImGuiCond_Always, ImVec2(0.f, 0.f));
     ImGui::SetNextWindowBgAlpha(0.5f);
     if (ImGui::Begin("Camera Settings", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
     {
@@ -691,10 +706,10 @@ void vcRenderSceneWindow(vcState *pProgramState)
   }
 
   // On Screen Controls Overlay
-  float bottomLeftOffset = 5.f;
+  float bottomLeftOffset = 0.f;
   if (pProgramState->onScreenControls)
   {
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + size.y - 5.f), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + size.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
     if (ImGui::Begin("OnScreenControls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
@@ -737,7 +752,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
       ImGui::Columns(1);
 
-      bottomLeftOffset += ImGui::GetWindowWidth() + 5.f;
+      bottomLeftOffset += ImGui::GetWindowWidth();
     }
 
     ImGui::End();
@@ -745,14 +760,28 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   if (pProgramState->pSceneWatermark != nullptr) // Watermark
   {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     vcTexture_GetSize(pProgramState->pSceneWatermark, &sizei.x, &sizei.y);
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + size.y - 5.f), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
-    ImGui::SetNextWindowBgAlpha(0.2f);
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + size.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+    ImGui::SetNextWindowBgAlpha(0.5f);
 
     if (ImGui::Begin("ModelWatermark", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
       ImGui::Image(pProgramState->pSceneWatermark, ImVec2((float)sizei.x, (float)sizei.y));
     ImGui::End();
+    ImGui::PopStyleVar();
   }
+
+
+  if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected)
+  {
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + size.x, windowPos.y + size.y), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
+    ImGui::SetNextWindowBgAlpha(0.5f);
+
+    if (ImGui::Begin("MapCopyright", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+      ImGui::Text("Map Data \xC2\xA9 OpenStreetMap contributors");
+    ImGui::End();
+  }
+
 
   ImVec2 uv0 = ImVec2(0, 0);
   ImVec2 uv1 = ImVec2(1, 1);
@@ -842,9 +871,9 @@ int vcMainMenuGui(vcState *pProgramState)
       if (vdkContext_GetLicenseInfo(pProgramState->pVDKContext, (vdkLicenseType)i, &info) == vE_Success)
       {
         if (info.queuePosition < 0)
-          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License - %s (%llusecs) / ", i == vdkLT_Render ? "Render" : "Convert", info.licenseKey, (info.expiresTimestamp - currentTime)));
+          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License (%llusecs) / ", i == vdkLT_Render ? "Render" : "Convert", (info.expiresTimestamp - currentTime)));
         else
-          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License - Queued (%d) / ", i == vdkLT_Render ? "Render" : "Convert", info.queuePosition));
+          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License (%d in Queue) / ", i == vdkLT_Render ? "Render" : "Convert", info.queuePosition));
       }
     }
 
