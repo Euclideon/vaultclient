@@ -763,6 +763,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     vcTexture_GetSize(pProgramState->pSceneWatermark, &sizei.x, &sizei.y);
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + size.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+    ImGui::SetNextWindowSize(ImVec2((float)sizei.x, (float)sizei.y));
     ImGui::SetNextWindowBgAlpha(0.5f);
 
     if (ImGui::Begin("ModelWatermark", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
