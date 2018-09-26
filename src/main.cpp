@@ -310,7 +310,7 @@ int main(int argc, char **args)
   unsigned char *pEucWatermarkData = nullptr;
   int pitch;
   long rMask, gMask, bMask, aMask;
-  double frametimeMS = 16.667; // 60 FPS cap
+  double frametimeMS = 0.0;
 
   const float FontSize = 16.f;
   ImFontConfig fontCfg = ImFontConfig();
@@ -415,6 +415,8 @@ int main(int argc, char **args)
   if (!vcGLState_Init(programState.pWindow, &programState.pDefaultFramebuffer))
     goto epilogue;
 
+  SDL_GL_SetSwapInterval(0); // disable v-sync
+
   ImGui::CreateContext();
   ImGui::GetIO().ConfigResizeWindowsFromEdges = true; // Fix for ImGuiWindowFlags_ResizeFromAnySide being removed
   vcSettings_LoadSettings(&programState, false);
@@ -514,11 +516,13 @@ int main(int argc, char **args)
     NOW = SDL_GetPerformanceCounter();
     programState.deltaTime = double(NOW - LAST) / SDL_GetPerformanceFrequency();
 
-    frametimeMS = 16.667;
+    frametimeMS = 0.03333333; // 30 FPS cap
     if ((SDL_GetWindowFlags(programState.pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0 && programState.settings.presentation.limitFPSInBackground)
-      frametimeMS = 250.0; // 4 FPS cap when not focused
+      frametimeMS = 0.250; // 4 FPS cap when not focused
 
-    udSleep((uint32_t)udMax(frametimeMS - programState.deltaTime * 1000.0, 0.0));
+    uint32_t sleepMS = (uint32_t)udMax((frametimeMS - programState.deltaTime) * 1000.0, 0.0);
+    udSleep(sleepMS);
+    programState.deltaTime += sleepMS * 0.001; // adjust delta
 
     ImGuiGL_NewFrame(programState.pWindow);
 
