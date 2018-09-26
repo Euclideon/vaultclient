@@ -7,7 +7,7 @@ const double rectToCircleRadius = udSqrt(2.0); // distance from center-to-edge v
 // In addition to distance culling, tiles which are not visible due to
 // the angle at which the camera is viewing them are also culled.
 // 0.55 degrees and below is *roughly* where we want the 'horizon' culling to occur
-const double tileToCameraCullAngle = UD_DEG2RAD(0.55);
+const double tileToCameraCullAngle = UD_DEG2RAD(0.2);
 
 // Higher value results in more aggressive lodding of tiles.
 #define TILE_DISTANCE_CULL_RATE 1.0
