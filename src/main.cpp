@@ -311,6 +311,7 @@ int main(int argc, char **args)
   int pitch;
   long rMask, gMask, bMask, aMask;
   double frametimeMS = 0.0;
+  uint32_t sleepMS = 0;
 
   const float FontSize = 16.f;
   ImFontConfig fontCfg = ImFontConfig();
@@ -520,7 +521,7 @@ int main(int argc, char **args)
     if ((SDL_GetWindowFlags(programState.pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0 && programState.settings.presentation.limitFPSInBackground)
       frametimeMS = 0.250; // 4 FPS cap when not focused
 
-    uint32_t sleepMS = (uint32_t)udMax((frametimeMS - programState.deltaTime) * 1000.0, 0.0);
+    sleepMS = (uint32_t)udMax((frametimeMS - programState.deltaTime) * 1000.0, 0.0);
     udSleep(sleepMS);
     programState.deltaTime += sleepMS * 0.001; // adjust delta
 
