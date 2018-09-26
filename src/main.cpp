@@ -992,11 +992,6 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::EndPopup();
     }
 
-    if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
-      vcRenderSceneWindow(pProgramState);
-
-    ImGui::EndDock();
-
     if (ImGui::BeginDock("Scene Explorer", &pProgramState->settings.window.windowsOpen[vcdSceneExplorer]))
     {
       ImGui::InputText("", pProgramState->modelPath, vcMaxPathLength);
@@ -1193,13 +1188,14 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::Columns(1);
       // End Models
     }
-
     ImGui::EndDock();
 
+    if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
+      vcRenderSceneWindow(pProgramState);
+    ImGui::EndDock();
 
     if (ImGui::BeginDock("Convert", &pProgramState->settings.window.windowsOpen[vcdConvert]))
       vcConvert_ShowUI(pProgramState);
-
     ImGui::EndDock();
 
     if (ImGui::BeginDock("Settings", &pProgramState->settings.window.windowsOpen[vcdSettings]))
