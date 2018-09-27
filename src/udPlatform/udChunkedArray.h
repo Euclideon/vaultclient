@@ -626,20 +626,18 @@ inline udResult udChunkedArray<T>::Insert(size_t index, const T *pData)
     if (result != udR_Success)
       return result;
 
-    size_t i = length - 1;
-    while (i > index)
+    for (size_t dst = length - 1; dst > index; )
     {
-      size_t backRunLen = GetElementRunLength(i, true);
-      if ((i - backRunLen) < index)
-        backRunLen = i - index;
-      T *pRun = GetElement(i - backRunLen);
-      memmove(pRun + 1, pRun, backRunLen * sizeof(T));
-      i -= backRunLen;
-      if (i > index)
-      {
-        memcpy(pRun, GetElement(i), sizeof(T));
-        --i;
-      }
+      size_t src = dst - 1;
+      size_t srcBackRunLen = GetElementRunLength(src, true);
+      size_t dstBackRunLen = GetElementRunLength(dst, true);
+      if ((src - srcBackRunLen) < index)
+        srcBackRunLen = src - index;
+      size_t runLen = ((dstBackRunLen < srcBackRunLen) ? dstBackRunLen : srcBackRunLen) + 1;
+      T *pSrc = GetElement(src - runLen + 1);
+      T *pDst = GetElement(dst - runLen + 1);
+      memmove(pDst, pSrc, runLen * sizeof(T));
+      dst -= runLen;
     }
   }
 

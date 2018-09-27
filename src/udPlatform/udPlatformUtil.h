@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-class udValue;
+class udJSON;
 
 #define UDNAMEASSTRING(s) #s
 #define UDSTRINGIFY(s) UDNAMEASSTRING(s)
@@ -447,14 +447,14 @@ udResult udSprintf(const char **ppDest, const char *pFormat, ...);
 // Geospatial helper functions
 // *********************************************************************
 
-// Parse a WKT string to a udValue, each WKT element is parsed as an object
+// Parse a WKT string to a udJSON, each WKT element is parsed as an object
 // with element 'type' defining the type string, if the first parameter of
 // the element is a string it is assigned to the element 'name', all other
 // parameters are stored in an array element 'values'
-udResult udParseWKT(udValue *pValue, const char *pWKTString, int *pCharCount = nullptr);
+udResult udParseWKT(udJSON *pValue, const char *pWKTString, int *pCharCount = nullptr);
 
 // Export a previously parsed WKT back to WKT format
-udResult udExportWKT(const char **ppOutput, const udValue *pValue);
+udResult udExportWKT(const char **ppOutput, const udJSON *pValue);
 
 
 #endif // UDPLATFORM_UTIL_H

@@ -330,6 +330,9 @@ void _udFreeSecure(T *&pMemory, size_t size, const char *pFile, int line)
 
 #if defined(__GNUC__)
 # define UD_GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100  + __GNUC_PATCHLEVEL__)
+# if UD_GCC_VERSION < 50000
+#  pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+# endif
 #endif
 
 #define MAKE_FOURCC(a, b, c, d) (  (((uint32_t)(a)) << 0) | (((uint32_t)(b)) << 8) | (((uint32_t)(c)) << 16) | (((uint32_t)(d)) << 24) )

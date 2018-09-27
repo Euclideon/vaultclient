@@ -202,7 +202,7 @@ static void udGeoZone_SetSpheroid(udGeoZone *pZone)
     if (ellipsoidID < udGZE_Count)
     {
       const udGeoZoneEllipsoidInfo &ellipsoidInfo = g_udGZ_StdEllipsoids[ellipsoidID];
-      pZone->semiMajorAxis = ellipsoidInfo.semiMajorAxis;
+      pZone->semiMajorAxis = ellipsoidInfo.semiMajorAxis / pZone->unitMetreScale;
       pZone->flattening = ellipsoidInfo.flattening;
     }
   }
@@ -302,8 +302,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
     pZone->falseNorthing = 10000000;
     pZone->falseEasting = 500000;
     pZone->scaleFactor = 0.9996;
-    pZone->flattening = 1 / 298.257223563;
-    pZone->semiMajorAxis = 6378137.0;
     udGeoZone_SetSpheroid(pZone);
     udGeoZone_SetUTMZoneBounds(pZone, false);
   }
@@ -319,8 +317,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
     pZone->falseNorthing = 0;
     pZone->falseEasting = 500000;
     pZone->scaleFactor = 0.9996;
-    pZone->flattening = 1 / 298.257222101;
-    pZone->semiMajorAxis = 6378137.0;
     udGeoZone_SetSpheroid(pZone);
     udGeoZone_SetUTMZoneBounds(pZone, true);
   }
@@ -336,8 +332,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
     pZone->falseNorthing = 10000000;
     pZone->falseEasting = 500000;
     pZone->scaleFactor = 0.9996;
-    pZone->flattening = 1 / 298.257222101;
-    pZone->semiMajorAxis = 6378137.0;
     udGeoZone_SetSpheroid(pZone);
     udGeoZone_SetUTMZoneBounds(pZone, false);
   }
@@ -379,8 +373,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
     pZone->falseNorthing = 0;
     pZone->falseEasting = 0;
     pZone->scaleFactor = 0.9999;
-    pZone->flattening = 1 / 298.257222101;
-    pZone->semiMajorAxis = 6378137.0;
     udGeoZone_SetSpheroid(pZone);
     udGeoZone_SetUTMZoneBounds(pZone, false);
   }
@@ -398,8 +390,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
     pZone->falseNorthing = 1200000 + 1000000 * pZone->zone;
     pZone->falseEasting = 1700000;
     pZone->scaleFactor = 1.0;
-    pZone->flattening = 1 / 298.257222101;
-    pZone->semiMajorAxis = 6378137.0;
     udGeoZone_SetSpheroid(pZone);
     pZone->latLongBoundMin = udDouble2::create(pZone->parallel - 1.0, -2.0); // Longitude here not perfect, differs greatly in different zones
     pZone->latLongBoundMax = udDouble2::create(pZone->parallel + 1.0, 10.00);
@@ -408,12 +398,27 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
   {
     switch (sridCode)
     {
+    case 2230: // NAD83 / California zone 6 (ftUS)
+      pZone->datum = udGZGD_NAD83;
+      pZone->projection = udGZPT_LambertConformalConic2SP;
+      pZone->unitMetreScale = 0.3048006096012192;
+      udStrcpy(pZone->zoneName, udLengthOf(pZone->zoneName), "California zone 6 (ftUS)");
+      pZone->meridian = -116.25;
+      pZone->parallel = 32.0 + 1.0 / 6.0;
+      pZone->firstParallel = 33.0 + 53.0 / 60.0;
+      pZone->secondParallel = 32.0 + 47.0 / 60.0;
+      pZone->falseNorthing = 1640416.667;
+      pZone->falseEasting = 6561666.667;
+      pZone->scaleFactor = 1.0;
+      udGeoZone_SetSpheroid(pZone);
+      pZone->latLongBoundMin = udDouble2::create(23.81, -172.54);
+      pZone->latLongBoundMax = udDouble2::create(86.46, -47.74);
+      break;
     case 2238: // NAD83 / Florida North (ftUS)
       pZone->datum = udGZGD_NAD83;
       pZone->projection = udGZPT_LambertConformalConic2SP;
       pZone->unitMetreScale = 0.3048006096012192;
       udStrcpy(pZone->zoneName, udLengthOf(pZone->zoneName), "Florida North (ftUS)");
-      pZone->zone = sridCode;
       pZone->meridian = -84.5;
       pZone->parallel = 29.0;
       pZone->firstParallel = 30.75;
@@ -421,8 +426,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       pZone->falseNorthing = 0.0;
       pZone->falseEasting = 1968500.0;
       pZone->scaleFactor = 1.0;
-      pZone->flattening = 1 / 298.257222101;
-      pZone->semiMajorAxis = 6378137.0;
       udGeoZone_SetSpheroid(pZone);
       pZone->latLongBoundMin = udDouble2::create(29.28, -87.64);
       pZone->latLongBoundMax = udDouble2::create(31.0, -82.05);
@@ -432,7 +435,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       pZone->projection = udGZPT_LambertConformalConic2SP;
       pZone->unitMetreScale = 0.3048006096012192;
       udStrcpy(pZone->zoneName, udLengthOf(pZone->zoneName), "Maryland (ftUS)");
-      pZone->zone = sridCode;
       pZone->meridian = -77.0;
       pZone->parallel = 37.0 + 2.0 / 3.0;
       pZone->firstParallel = 39.45;
@@ -440,8 +442,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       pZone->falseNorthing = 0.0;
       pZone->falseEasting = 1312333.333;
       pZone->scaleFactor = 1.0;
-      pZone->flattening = 1 / 298.257222101;
-      pZone->semiMajorAxis = 6378137.0;
       udGeoZone_SetSpheroid(pZone);
       pZone->latLongBoundMin = udDouble2::create(37.88, -79.49);
       pZone->latLongBoundMax = udDouble2::create(39.72, -74.98);
@@ -451,7 +451,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       pZone->projection = udGZPT_LambertConformalConic2SP;
       pZone->unitMetreScale = 0.3048006096012192;
       udStrcpy(pZone->zoneName, udLengthOf(pZone->zoneName), "Massachusetts Island (ftUS)");
-      pZone->zone = sridCode;
       pZone->meridian = -70.5;
       pZone->parallel = 41.0;
       pZone->firstParallel = 41.0 + 145.0 / 300.0;
@@ -459,8 +458,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       pZone->falseNorthing = 0.0;
       pZone->falseEasting = 1640416.667;
       pZone->scaleFactor = 1.0;
-      pZone->flattening = 1 / 298.257222101;
-      pZone->semiMajorAxis = 6378137.0;
       udGeoZone_SetSpheroid(pZone);
       pZone->latLongBoundMin = udDouble2::create(41.2, -70.87);
       pZone->latLongBoundMax = udDouble2::create(41.51, -69.9);
@@ -470,7 +467,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       pZone->projection = udGZPT_LambertConformalConic2SP;
       pZone->unitMetreScale = 0.3048006096012192;
       udStrcpy(pZone->zoneName, udLengthOf(pZone->zoneName), "Washington North (ftUS)");
-      pZone->zone = sridCode;
       pZone->meridian = -120 - 25.0 / 30.0;
       pZone->parallel = 47.0;
       pZone->firstParallel = 48.0 + 22.0 / 30.0;;
@@ -478,8 +474,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       pZone->falseNorthing = 0.0;
       pZone->falseEasting = 1640416.667;
       pZone->scaleFactor = 1.0;
-      pZone->flattening = 1 / 298.257222101;
-      pZone->semiMajorAxis = 6378137.0;
       udGeoZone_SetSpheroid(pZone);
       pZone->latLongBoundMin = udDouble2::create(47.08, -124.75);
       pZone->latLongBoundMax = udDouble2::create(49.0, -117.03);
@@ -488,7 +482,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       pZone->datum = udGZGD_NAD83_HARN;
       pZone->projection = udGZPT_LambertConformalConic2SP;
       udStrcpy(pZone->zoneName, udLengthOf(pZone->zoneName), "California zone 6");
-      pZone->zone = sridCode;
       pZone->meridian = -116.25;
       pZone->parallel = 32.0 + 1.0 / 6.0;
       pZone->firstParallel = 33.0 + 265.0 / 300.0;
@@ -496,8 +489,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       pZone->falseNorthing = 500000.0;
       pZone->falseEasting = 2000000.0;
       pZone->scaleFactor = 1.0;
-      pZone->flattening = 1 / 298.257222101;
-      pZone->semiMajorAxis = 6378137.0;
       udGeoZone_SetSpheroid(pZone);
       pZone->latLongBoundMin = udDouble2::create(32.51, -118.14);
       pZone->latLongBoundMax = udDouble2::create(34.08, -114.43);
@@ -506,7 +497,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       pZone->datum = udGZGD_GDA94;
       pZone->projection = udGZPT_LambertConformalConic2SP;
       udStrcpy(pZone->zoneName, udLengthOf(pZone->zoneName), "Geoscience Australia Lambert");
-      pZone->zone = sridCode;
       pZone->meridian = 134;
       pZone->parallel = 0;
       pZone->firstParallel = -18;
@@ -514,8 +504,6 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       pZone->falseNorthing = 0;
       pZone->falseEasting = 0;
       pZone->scaleFactor = 1.0;
-      pZone->flattening = 1 / 298.257222101;
-      pZone->semiMajorAxis = 6378137.0;
       udGeoZone_SetSpheroid(pZone);
       pZone->latLongBoundMin = udDouble2::create(-45, 108.0000);
       pZone->latLongBoundMax = udDouble2::create(-10, 155.0000);
@@ -524,14 +512,11 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       pZone->datum = udGZGD_OSGB36;
       pZone->projection = udGZPT_TransverseMercator;
       udStrcpy(pZone->zoneName, udLengthOf(pZone->zoneName), "British National Grid");
-      pZone->zone = sridCode;
       pZone->meridian = -2;
       pZone->parallel = 49.0;
       pZone->falseNorthing = -100000;
       pZone->falseEasting = 400000;
       pZone->scaleFactor = 0.9996012717;
-      pZone->flattening = 1 / 299.3249646;
-      pZone->semiMajorAxis = 6377563.396;
       udGeoZone_SetSpheroid(pZone);
       pZone->latLongBoundMin = udDouble2::create(-7.5600, 49.9600);
       pZone->latLongBoundMax = udDouble2::create(1.7800, 60.8400);

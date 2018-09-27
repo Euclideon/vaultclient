@@ -4,7 +4,7 @@
 #include "udPlatform/udPlatformUtil.h"
 #include "udPlatform/udMath.h"
 #include "udPlatform/udChunkedArray.h"
-#include "udPlatform/udValue.h"
+#include "udPlatform/udJSON.h"
 
 #include "vcSettings.h"
 #include "vcModel.h"
@@ -48,7 +48,7 @@ struct vcState
   struct
   {
     size_t index;
-    udValue *pMetadata;
+    udJSON *pMetadata;
     vcTexture *pWatermarkTexture;
   } selectedModelProperties;
 
@@ -78,7 +78,7 @@ struct vcState
   char modelPath[vcMaxPathLength];
 
   vcSettings settings;
-  udValue projects;
+  udJSON projects;
 };
 
 #endif // !vcState_h__

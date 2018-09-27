@@ -1,10 +1,10 @@
 #ifndef imgui_udValue_h__
 #define imgui_udValue_h__
 
-class udValue;
+class udJSON;
 
-void vcImGuiValueTree(const char *pMemberName, const udValue *pMember);
-void vcImGuiValueTreeObject(const udValue *pMember);
-void vcImGuiValueTreeArray(const udValue *pMember);
+void vcImGuiValueTree(const char *pMemberName, const udJSON *pMember);
+void vcImGuiValueTreeObject(const udJSON *pMember);
+void vcImGuiValueTreeArray(const udJSON *pMember);
 
 #endif // imgui_udValue_h__
