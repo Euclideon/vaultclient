@@ -6,6 +6,7 @@
 #include "gl/vcFramebuffer.h"
 
 #include "vdkContext.h"
+#include "vdkServerAPI.h"
 
 #include <chrono>
 
@@ -883,7 +884,7 @@ int vcMainMenuGui(vcState *pProgramState)
       }
     }
 
-    udStrcat(endBarInfo, udLengthOf(endBarInfo), "[Username]");
+    udStrcat(endBarInfo, udLengthOf(endBarInfo), pProgramState->username);
 
     ImGui::SameLine(ImGui::GetContentRegionMax().x - ImGui::CalcTextSize(endBarInfo).x - 5);
     ImGui::Text("%s", endBarInfo);
@@ -1342,13 +1343,10 @@ void vcRenderWindow(vcState *pProgramState)
         {
           // Temporary until https://github.com/ocornut/imgui/issues/467 is resolved, then use commented out code below
           float temp[] = { (float)pProgramState->settings.visualization.minIntensity, (float)pProgramState->settings.visualization.maxIntensity };
-          ImGui::SliderFloat("Min Intensity", &temp[0], 0.f, temp[1], "%.0f");
-          ImGui::SliderFloat("Max Intensity", &temp[1], temp[0], 65535.f, "%.0f");
+          ImGui::SliderFloat("Min Intensity", &temp[0], 0.f, temp[1], "%.0f", 4.f);
+          ImGui::SliderFloat("Max Intensity", &temp[1], temp[0], 65535.f, "%.0f", 4.f);
           pProgramState->settings.visualization.minIntensity = (int)temp[0];
           pProgramState->settings.visualization.maxIntensity = (int)temp[1];
-
-          //ImGui::SliderInt("Min Intensity", &pProgramState->settings.visualization.minIntensity, 0, pProgramState->settings.visualization.maxIntensity);
-          //ImGui::SliderInt("Max Intensity", &pProgramState->settings.visualization.maxIntensity, pProgramState->settings.visualization.minIntensity, 65535);
         }
 
         // Post visualization - Edge Highlighting
@@ -1527,10 +1525,12 @@ void vcLogin(vcState *pProgramState)
   vdkError result;
 
   result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "ClientSample", pProgramState->settings.loginInfo.username, pProgramState->password);
-  if (result == vE_ConnectionFailed)
+  if (result == vE_ConnectionFailure)
     pProgramState->pLoginErrorMessage = "Could not connect to server.";
   else if (result == vE_NotAllowed)
     pProgramState->pLoginErrorMessage = "Username or Password incorrect.";
+  else if (result == vE_OutOfSync)
+    pProgramState->pLoginErrorMessage = "Your clock doesn't match the remote server clock.";
   else if (result != vE_Success)
     pProgramState->pLoginErrorMessage = "Unknown error occurred, please try again later.";
 
@@ -1540,12 +1540,19 @@ void vcLogin(vcState *pProgramState)
   vcRender_CreateTerrain(pProgramState->pRenderContext, &pProgramState->settings);
   vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pVDKContext);
 
-  void *pProjData = nullptr;
-  if (udFile_Load(udTempStr("%s/api/dev/projects", pProgramState->settings.loginInfo.serverURL), &pProjData) == udR_Success)
+  const char *pProjData = nullptr;
+  if (vdkServerAPI_Query(pProgramState->pVDKContext, "dev/projects", nullptr, &pProjData) == vE_Success)
+    pProgramState->projects.Parse(pProjData);
+  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pProjData);
+
+  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/session/info", nullptr, &pProjData) == vE_Success)
   {
-    pProgramState->projects.Parse((char*)pProjData);
-    udFree(pProjData);
+    udValue info;
+    info.Parse(pProjData);
+    udStrcpy(pProgramState->username, udLengthOf(pProgramState->username), info.Get("user.realname").AsString("Guest"));
   }
+  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pProjData);
+
 
   //Context Login successful
   memset(pProgramState->password, 0, sizeof(pProgramState->password));
@@ -1566,6 +1573,7 @@ bool vcLogout(vcState *pProgramState)
   success &= vcModel_UnloadList(pProgramState);
   success &= (vcRender_DestroyTerrain(pProgramState->pRenderContext) == udR_Success);
 
+  pProgramState->projects.Destroy();
   memset(&pProgramState->gis, 0, sizeof(pProgramState->gis));
 
   success = success && vdkContext_Disconnect(&pProgramState->pVDKContext) == vE_Success;

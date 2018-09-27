@@ -57,6 +57,7 @@ struct vcState
   udUInt2 sceneResolution;
 
   vcGISSpace gis;
+  char username[64];
 
   vcTexture *pCompanyLogo;
   vcTexture *pSceneWatermark;
