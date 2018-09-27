@@ -1,5 +1,6 @@
 #include "vcModel.h"
 
+#include "udPlatform/udPlatformUtil.h"
 #include "udPlatform/udGeoZone.h"
 #include "udPlatform/udJSON.h"
 
@@ -44,6 +45,39 @@ bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
 
         udFree(pImage);
       }
+
+
+      vcSRID srid = 0;
+      udJSON tempNode;
+
+      const char *pSRID = model.pMetadata->Get("ProjectionID").AsString();
+      if (pSRID != nullptr)
+      {
+        pSRID = udStrchr(pSRID, ":");
+        if (pSRID != nullptr)
+          srid = udStrAtou(&pSRID[1]);
+      }
+
+      const char *pWKT = model.pMetadata->Get("ProjectionWKT").AsString();
+      if (pWKT != nullptr && udParseWKT(&tempNode, pWKT) == udR_Success)
+      {
+        for (size_t i = 0; i < tempNode.Get("values").ArrayLength(); ++i)
+        {
+          if (udStrEquali(tempNode.Get("values[%llu].type", i).AsString(), "AUTHORITY"))
+          {
+            srid = tempNode.Get("values[%llu].values[0]", i).AsInt();
+            break;
+          }
+        }
+
+        model.pMetadata->Set(&tempNode, "ProjectionWKT");
+      }
+
+      if (srid != 0)
+      {
+        model.pZone = udAllocType(udGeoZone, 1, udAF_Zero);
+        udGeoZone_SetFromSRID(model.pZone, srid);
+      }
     }
 
     vcModel_MoveToModelProjection(pProgramState, &model);
@@ -69,6 +103,7 @@ bool vcModel_RemoveFromList(vcState *pProgramState, size_t index)
 
   pProgramState->vcModelList[index].pMetadata->Destroy();
   udFree(pProgramState->vcModelList[index].pMetadata);
+  udFree(pProgramState->vcModelList[index].pZone);
   pProgramState->vcModelList[index].modelLoaded = false;
   pProgramState->vcModelList.RemoveAt(index);
   return err == vE_Success;
@@ -103,14 +138,8 @@ void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel)
     }
 
     // Handle transforming into the camera's GeoZone
-    if (pProgramState->gis.isProjected)
-    {
-      uint16_t modelSRID = vcModel_GetSRID(pProgramState, pModel);
-      udGeoZone fromZone;
-
-      if (pProgramState->gis.SRID != modelSRID && modelSRID != 0 && udGeoZone_SetFromSRID(&fromZone, modelSRID) == udR_Success)
-        matrix = udGeoZone_TransformMatrix(matrix, fromZone, pProgramState->gis.zone);
-    }
+    if (pProgramState->gis.isProjected && pModel->pZone != nullptr && pProgramState->gis.SRID != pModel->pZone->srid)
+      matrix = udGeoZone_TransformMatrix(matrix, *pModel->pZone, pProgramState->gis.zone);
 
     vdkModel_SetWorldMatrix(pProgramState->pVDKContext, pModel->pVaultModel, matrix.a);
     pModel->worldMatrix = matrix;
@@ -122,7 +151,7 @@ bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel)
   if (pProgramState == nullptr || pModel == nullptr)
     return false;
 
-  if (vcGIS_ChangeSpace(&pProgramState->gis, vcModel_GetSRID(pProgramState, pModel)))
+  if (pModel->pZone != nullptr && vcGIS_ChangeSpace(&pProgramState->gis, pModel->pZone->srid))
     vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
 
   pProgramState->pCamera->position = vcModel_GetMidPointLocalSpace(pProgramState, pModel);
@@ -138,26 +167,4 @@ udDouble3 vcModel_GetMidPointLocalSpace(vcState *pProgramState, vcModel *pModel)
     vdkModel_GetModelCenter(pProgramState->pVDKContext, pModel->pVaultModel, &midPoint.x);
 
   return midPoint;
-}
-
-uint16_t vcModel_GetSRID(vcState * /*pProgramState*/, vcModel *pModel)
-{
-  if (pModel == nullptr || pModel->pMetadata == nullptr)
-    return 0;
-
-  const char *pSRID = pModel->pMetadata->Get("ProjectionID").AsString();
-  const char *pWKT = pModel->pMetadata->Get("ProjectionWKT").AsString();
-
-  if (pSRID != nullptr)
-  {
-    pSRID = udStrchr(pSRID, ":");
-    if (pSRID != nullptr)
-      return (vcSRID)udStrAtou(&pSRID[1]);
-  }
-  else if (pWKT != nullptr)
-  {
-    // Not sure?
-  }
-
-  return 0;
 }

@@ -1090,27 +1090,19 @@ void vcRenderWindow(vcState *pProgramState)
 
           ImGui::Separator();
 
-          if (ImGui::Selectable("Use Projection"))
+          if (pProgramState->vcModelList[i].pZone != nullptr && ImGui::Selectable("Use Projection"))
           {
-            vcSRID newSRID = vcModel_GetSRID(pProgramState, &pProgramState->vcModelList[i]);
-
-            if (vcGIS_ChangeSpace(&pProgramState->gis, newSRID, &pProgramState->pCamera->position))
+            if (vcGIS_ChangeSpace(&pProgramState->gis, pProgramState->vcModelList[i].pZone->srid, &pProgramState->pCamera->position))
               vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
           }
 
           if (ImGui::Selectable("Move To"))
           {
-            udGeoZone fromZone;
-
-            uint16_t modelSRID = vcModel_GetSRID(pProgramState, &pProgramState->vcModelList[i]);
             udDouble3 localSpaceCenter = vcModel_GetMidPointLocalSpace(pProgramState, &pProgramState->vcModelList[i]);
 
-            if (pProgramState->gis.isProjected && modelSRID != pProgramState->gis.SRID)
-            {
-              // Transform the camera position. Don't do the entire matrix as it may lead to inaccuracy/de-normalised camera
-              if (udGeoZone_SetFromSRID(&fromZone, modelSRID) == udR_Success)
-                localSpaceCenter = udGeoZone_TransformPoint(localSpaceCenter, fromZone, pProgramState->gis.zone);
-            }
+            // Transform the camera position. Don't do the entire matrix as it may lead to inaccuracy/de-normalised camera
+            if (pProgramState->gis.isProjected && pProgramState->vcModelList[i].pZone != nullptr && pProgramState->vcModelList[i].pZone->srid != pProgramState->gis.SRID)
+              localSpaceCenter = udGeoZone_TransformPoint(localSpaceCenter, *pProgramState->vcModelList[i].pZone, pProgramState->gis.zone);
 
             pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
             pProgramState->cameraInput.startPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
@@ -1399,7 +1391,6 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::EndDock();
 
     //Handle popups produced when vdkContext exists
-
     if (pProgramState->popupTrigger[vcPopup_ModelProperties])
     {
       ImGui::OpenPopup("Model Properties");

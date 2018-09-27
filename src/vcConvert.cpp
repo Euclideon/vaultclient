@@ -1,6 +1,7 @@
 #include "vcConvert.h"
 
 #include "imgui.h"
+#include "stb_image.h"
 #include "vdkConvert.h"
 
 #include "udPlatform/udMath.h"
@@ -9,14 +10,17 @@
 #include "udPlatform/udDebug.h"
 
 #include "vcState.h"
+#include "gl/vcTexture.h"
 
 enum vcConvertQueueStatus
 {
   vcCQS_Preparing,
   vcCQS_Queued,
+  vcCQS_QueuedPendingLicense,
   vcCQS_Running,
   vcCQS_Completed,
   vcCQS_Cancelled,
+  vcCQS_Failed,
 
   vcCQS_Count
 };
@@ -25,9 +29,11 @@ const char *statusNames[] =
 {
   "Awaiting User Input",
   "Queued",
+  "Waiting For Convert License",
   "Running",
   "Completed",
-  "Cancelled"
+  "Cancelled",
+  "Failed"
 };
 
 UDCOMPILEASSERT(UDARRAYSIZE(statusNames) == vcCQS_Count, "Not Enough Status Names");
@@ -37,6 +43,14 @@ struct vcConvertItem
   vdkConvertContext *pConvertContext;
   const vdkConvertInfo *pConvertInfo;
   vcConvertQueueStatus status;
+
+  struct
+  {
+    bool isDirty;
+    vcTexture *pTexture;
+    int width;
+    int height;
+  } watermark;
 };
 
 struct vcConvertContext
@@ -68,7 +82,7 @@ uint32_t vcConvert_Thread(void *pVoidState)
       udLockMutex(pConvertContext->pMutex);
       for (size_t i = 0; i < pConvertContext->jobs.length; ++i)
       {
-        if (pConvertContext->jobs[i]->status == vcCQS_Queued)
+        if (pConvertContext->jobs[i]->status == vcCQS_Queued || pConvertContext->jobs[i]->status == vcCQS_QueuedPendingLicense)
         {
           pItem = pConvertContext->jobs[i];
           pItem->status = vcCQS_Running;
@@ -121,8 +135,19 @@ uint32_t vcConvert_Thread(void *pVoidState)
         }
       }
 
-      vdkConvert_DoConvert(pProgramState->pVDKContext, pItem->pConvertContext);
-      pItem->status = vcCQS_Completed;
+      vdkError conversionStatus = vdkConvert_DoConvert(pProgramState->pVDKContext, pItem->pConvertContext);
+
+      if (conversionStatus == vE_InvalidLicense || conversionStatus == vE_Pending)
+        pItem->status = vcCQS_QueuedPendingLicense;
+      else if (conversionStatus == vE_Cancelled)
+        pItem->status = vcCQS_Cancelled;
+      else if (conversionStatus != vE_Success)
+        pItem->status = vcCQS_Failed;
+      else // succeeded
+        pItem->status = vcCQS_Completed;
+
+      if (pItem->status == vcCQS_QueuedPendingLicense)
+        udSleep(1000); // Sleep for a second before trying again
     }
   }
 
@@ -149,6 +174,7 @@ void vcConvert_RemoveJob(vcState *pProgramState, size_t index)
   udLockMutex(pProgramState->pConvertContext->pMutex);
 
   vcConvertItem *pItem = pProgramState->pConvertContext->jobs[index];
+  vcTexture_Destroy(&pItem->watermark.pTexture);
   pProgramState->pConvertContext->jobs.RemoveAt(index);
   vdkConvert_DestroyContext(pProgramState->pVDKContext, &pItem->pConvertContext);
   udFree(pItem);
@@ -213,7 +239,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
     {
       if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
       {
-        // TODO: Handle terminating a conversion
+        vdkConvert_Cancel(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[i]->pConvertContext);
       }
       else if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Queued)
       {
@@ -336,6 +362,31 @@ void vcConvert_ShowUI(vcState *pProgramState)
       vdkConvert_SetSRID(pProgramState->pVDKContext, pSelectedJob->pConvertContext, 1, srid);
   }
 
+  if (pSelectedJob->watermark.isDirty || pSelectedJob->watermark.pTexture != nullptr)
+  {
+    ImGui::Separator();
+
+    if (pSelectedJob->watermark.isDirty)
+    {
+      vcTexture_Destroy(&pSelectedJob->watermark.pTexture);
+      uint8_t *pData = nullptr;
+      size_t dataSize = 0;
+      if (udBase64Decode(&pData, &dataSize, pSelectedJob->pConvertInfo->pWatermark) == udR_Success)
+      {
+        int comp;
+        stbi_uc *pImg = stbi_load_from_memory(pData, (int)dataSize, &pSelectedJob->watermark.width, &pSelectedJob->watermark.height, &comp, 4);
+
+        vcTexture_Create(&pSelectedJob->watermark.pTexture, pSelectedJob->watermark.width, pSelectedJob->watermark.height, pImg);
+
+        stbi_image_free(pImg);
+      }
+
+      udFree(pData);
+    }
+
+    ImGui::Image(pSelectedJob->watermark.pTexture, ImVec2((float)pSelectedJob->watermark.width, (float)pSelectedJob->watermark.height));
+  }
+
   ImGui::Separator();
   if (pSelectedJob->pConvertInfo->totalItems > 0)
   {
@@ -429,6 +480,14 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
 
   if (vdkConvert_AddItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
   {
+    pProgramState->settings.window.windowsOpen[vcdConvert] = true;
+    return true;
+  }
+
+  // Long shot but maybe a watermark?
+  if (vdkConvert_AddWatermark(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
+  {
+    pSelectedJob->watermark.isDirty = true;
     pProgramState->settings.window.windowsOpen[vcdConvert] = true;
     return true;
   }

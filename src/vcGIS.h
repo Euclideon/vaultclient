@@ -4,7 +4,7 @@
 #include "udPlatform/udMath.h"
 #include "udPlatform/udGeoZone.h"
 
-typedef uint16_t vcSRID;
+typedef int32_t vcSRID;
 
 struct vcGISSpace
 {
