@@ -4,7 +4,7 @@
 #include "vcGIS.h"
 
 struct vdkModel;
-class udValue;
+class udJSON;
 struct vcTexture;
 
 struct vcModel
@@ -16,7 +16,7 @@ struct vcModel
   bool flipYZ;
   udDouble4x4 worldMatrix;
   vdkModel *pVaultModel;
-  udValue *pMetadata;
+  udJSON *pMetadata;
   vcTexture *pWatermark;
 };
 

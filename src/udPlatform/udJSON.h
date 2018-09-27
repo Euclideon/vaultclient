@@ -1,5 +1,5 @@
-#ifndef UDVALUE_H
-#define UDVALUE_H
+#ifndef UDJSON_H
+#define UDJSON_H
 
 #include "udPlatform.h"
 #include "udPlatformUtil.h"
@@ -30,7 +30,7 @@
  *
  * Syntax to create:
  *
- * udValue v;
+ * udJSON v;
  * v.Set("Settings.ProjectsPath = '%s'", "C:/Temp/");
  * v.Set("Settings.ImportAtFullScale = %s", "true");
  * v.Set("Settings.TerrainIndex = %d", 2);
@@ -59,25 +59,21 @@
  *
  * Export:
  * const char *pExportString = nullptr;
- * v.Export(&pExportString, udVEO_JSON | udVEO_StripWhiteSpace); // or udVEO_XML
+ * v.Export(&pExportString, udJEO_JSON); // or udJEO_XML
  * .. write string or whatever ..
  * udFree(pExportString);
  * v.Destroy(); // To destroy object before waiting to go out of scope
  */
 
-enum udValueExportOption { udVEO_JSON = 0, udVEO_XML = 1, udVEO_StripWhiteSpace = 2 };
-static inline udValueExportOption operator|(udValueExportOption a, udValueExportOption b) { return (udValueExportOption)(int(a) | int(b)); }
+enum udJSONExportOption { udJEO_JSON = 0, udJEO_XML = 1, udJEO_FormatWhiteSpace = 2 };
+static inline udJSONExportOption operator|(udJSONExportOption a, udJSONExportOption b) { return (udJSONExportOption)(int(a) | int(b)); }
 
-class udValue;
-struct udValueKVPair;
-typedef udChunkedArray<udValue> udValueArray;
-typedef udChunkedArray<udValueKVPair> udValueObject;
-struct udValueSignatureContext;
+class udJSON;
+struct udJSONKVPair;
+typedef udChunkedArray<udJSON> udJSONArray;
+typedef udChunkedArray<udJSONKVPair> udJSONObject;
 
-// Create a signature context that is EITHER asymmetric or symmetric, to sign or verify
-udResult udValueCreateSignatureContext(const char *pAsymmetricKeyPair, const void *pSymmetric, size_t symmetricLen);
-
-class udValue
+class udJSON
 {
 public:
   enum Type
@@ -92,14 +88,14 @@ public:
     T_Count
   };
 
-  static const udValue s_void;
-  static const size_t s_udValueTypeSize[T_Count];
-  inline udValue();
-  inline udValue(int64_t v);
-  inline udValue(double v);
+  static const udJSON s_void;
+  static const size_t s_udJSONTypeSize[T_Count];
+  inline udJSON();
+  inline udJSON(int64_t v);
+  inline udJSON(double v);
   inline void Clear();
   void Destroy();     // Free any memory associated, expects object to be constructed
-  inline ~udValue();
+  inline ~udJSON();
 
   // Set the value
   inline void SetVoid();
@@ -109,7 +105,7 @@ public:
 
   // Set to a more complex type requiring memory allocation
   udResult SetString(const char *pStr, size_t charCount = 0); // non-zero charCount specifies maximum characters copied
-  udResult SetArray(); // A dynamic array of udValues, whose types can change per element
+  udResult SetArray(); // A dynamic array of JSON elements, whose types can change per element
   udResult SetObject();
 
   // Some convenience helpers to create an array of doubles
@@ -130,9 +126,9 @@ public:
   inline size_t ArrayLength() const;  // Get the length of the array (always 1 for an object)
   inline size_t MemberCount() const;  // Get the number of members for an object (zero for all other types)
   inline const char *GetMemberName(size_t index) const;  // Get the name of a member (null if out of range or not an object)
-  inline const udValue *GetMember(size_t index) const;  // Get the member value (null if out of range or not an object)
-  const udValue *FindMember(const char *pMemberName, size_t *pIndex = nullptr) const; // Get a member of an object
-  bool IsEqualTo(const udValue &other) const;
+  inline const udJSON *GetMember(size_t index) const;  // Get the member value (null if out of range or not an object)
+  const udJSON *FindMember(const char *pMemberName, size_t *pIndex = nullptr) const; // Get a member of an object
+  bool IsEqualTo(const udJSON &other) const;
 
   // Get the value as a specific type, unless object is udVT_Void in which case defaultValue is returned
   bool AsBool(bool defaultValue = false) const;
@@ -142,7 +138,7 @@ public:
   double AsDouble(double defaultValue = 0.0) const;
   const char *AsString(const char *pDefaultValue = nullptr) const; // Returns "true"/"false" for bools, pDefaultValue for any other non-string
 
-  // Some convenience accessors that expect the udValue to be a array of numbers
+  // Some convenience accessors that expect the udJSON to be a array of numbers
   udFloat3 AsFloat3(const udFloat3 &defaultValue = udFloat3::zero()) const;
   udFloat4 AsFloat4(const udFloat4 &defaultValue = udFloat4::zero()) const;
   udDouble3 AsDouble3(const udDouble3 &defaultValue = udDouble3::zero()) const;
@@ -150,8 +146,8 @@ public:
   udQuaternion<double> AsQuaternion(const udQuaternion<double> &defaultValue = udQuaternion<double>::identity()) const;
   udDouble4x4 AsDouble4x4(const udDouble4x4 &defaultValue = udDouble4x4::identity()) const;
 
-  inline udValueArray *AsArray() const;
-  inline udValueObject *AsObject() const;
+  inline udJSONArray *AsArray() const;
+  inline udJSONObject *AsObject() const;
 
   // Create (allocate) a string representing the value, caller is responsible for freeing
   // TODO: Add enum to allow caller to specify JSON or XML escaping
@@ -163,20 +159,20 @@ public:
 
   // Get a pointer to a key's value, this pointer is valid as long as the key remains, ppValue may be null if just testing existence
   // Allowed operators are . and [] to dereference (eg "instances[%d].%s", (int)instanceIndex, (char*)pInstanceKeyName)
-  udResult Get(udValue **ppValue, const char *pKeyExpression, ...);
-  const udValue &Get(const char *pKeyExpression, ...) const;
+  udResult Get(udJSON **ppValue, const char *pKeyExpression, ...);
+  const udJSON &Get(const char *pKeyExpression, ...) const;
 
   // Set a new key/value pair to the store, overwriting a existing key, using = operator in the expression
   // Allowed operators are . and [] to dereference and for version without pValue, = to assign value (eg "obj.value = %d", 5)
   // Set with null for pValue or nothing following the = will remove the key
-  udResult Set(udValue *pValue, const char *pKeyExpression, ...);
+  udResult Set(udJSON *pValue, const char *pKeyExpression, ...);
   udResult Set(const char *pKeyExpression, ...);
 
   // Parse a string an assign the type/value, supporting string, integer and float/double, JSON or XML
   udResult Parse(const char *pString, int *pCharCount = nullptr, int *pLineNumber = nullptr);
 
-  // Export to a JSON/XML string depending on content
-  udResult Export(const char **ppText, udValueExportOption option = udVEO_JSON) const;
+  // Export to a JSON/XML string
+  udResult Export(const char **ppText, udJSONExportOption option = udJEO_JSON) const;
 
 protected:
   typedef udChunkedArray<const char*> LineList;
@@ -193,20 +189,20 @@ protected:
     bool bVal;
     int64_t i64Val;
     double dVal;
-    udValueArray *pArray;
-    udValueObject *pObject;
+    udJSONArray *pArray;
+    udJSONObject *pObject;
   } u;
   uint8_t dPrec; // Number of digits precision of the double value (0 = default, otherwise set when parsed)
   Type type;
 };
 
 
-struct udValueKVPair
+struct udJSONKVPair
 {
   const char *pKey;
-  udValue value;
+  udJSON value;
 };
 
-#include "udValue_Inl.h"
+#include "udJSON_Inl.h"
 
-#endif // UDVALUE_H
+#endif // UDJSON_H

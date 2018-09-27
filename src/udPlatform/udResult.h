@@ -66,6 +66,9 @@ enum udResult
   udR_ServerError,
   udR_NotAllowed,
   udR_InvalidLicense,
+  udR_Pending,
+  udR_Cancelled,
+  udR_OutOfSync,
 
   udR_Count,
 

@@ -837,7 +837,7 @@ int vcMainMenuGui(vcState *pProgramState)
       ImGui::EndMenu();
     }
 
-    udValueArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
+    udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
     if (ImGui::BeginMenu("Projects", pProjectList != nullptr && pProjectList->length > 0 && !udStrEqual(pProgramState->settings.resourceBase, "")))
     {
       for (size_t i = 0; i < pProjectList->length; ++i)
@@ -1547,7 +1547,7 @@ void vcLogin(vcState *pProgramState)
 
   if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/session/info", nullptr, &pProjData) == vE_Success)
   {
-    udValue info;
+    udJSON info;
     info.Parse(pProjData);
     udStrcpy(pProgramState->username, udLengthOf(pProgramState->username), info.Get("user.realname").AsString("Guest"));
   }

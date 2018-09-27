@@ -1,14 +1,14 @@
 #include "imgui_udValue.h"
 
-#include "udPlatform/udValue.h"
+#include "udPlatform/udJSON.h"
 #include "imgui.h"
 
-void vcImGuiValueTreeArray(const udValue *pValue)
+void vcImGuiValueTreeArray(const udJSON *pValue)
 {
   if (!pValue->IsArray())
     return;
 
-  udValueArray *pArray = pValue->AsArray();
+  udJSONArray *pArray = pValue->AsArray();
   char buffer[16];
 
   for (size_t i = 0; i < pArray->length; ++i)
@@ -18,7 +18,7 @@ void vcImGuiValueTreeArray(const udValue *pValue)
   }
 }
 
-void vcImGuiValueTreeObject(const udValue *pValue)
+void vcImGuiValueTreeObject(const udJSON *pValue)
 {
   for (size_t i = 0; i < pValue->MemberCount(); ++i)
   {
@@ -26,7 +26,7 @@ void vcImGuiValueTreeObject(const udValue *pValue)
   }
 }
 
-void vcImGuiValueTree(const char *pMemberName, const udValue *pMember)
+void vcImGuiValueTree(const char *pMemberName, const udJSON *pMember)
 {
   if (pMember->IsArray())
   {
@@ -44,7 +44,7 @@ void vcImGuiValueTree(const char *pMemberName, const udValue *pMember)
       ImGui::TreePop();
     }
   }
-  else if (pMember->IsString() || pMember->GetType() == udValue::Type::T_Bool)
+  else if (pMember->IsString() || pMember->GetType() == udJSON::Type::T_Bool)
   {
     ImGui::BulletText("[%s] \"%s\"", pMemberName, pMember->AsString());
   }

@@ -1,7 +1,7 @@
 #include "vcModel.h"
 
 #include "udPlatform/udGeoZone.h"
-#include "udPlatform/udValue.h"
+#include "udPlatform/udJSON.h"
 
 #include "gl/vcTexture.h"
 
@@ -24,7 +24,7 @@ bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
   if (vdkModel_Load(pProgramState->pVDKContext, &model.pVaultModel, pFilePath) == vE_Success)
   {
     const char *pMetadata;
-    model.pMetadata = udAllocType(udValue, 1, udAF_Zero);
+    model.pMetadata = udAllocType(udJSON, 1, udAF_Zero);
     if (vdkModel_GetMetadata(pProgramState->pVDKContext, model.pVaultModel, &pMetadata) == vE_Success)
     {
       model.pMetadata->Parse(pMetadata);
