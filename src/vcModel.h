@@ -18,6 +18,8 @@ struct vcModel
   vdkModel *pVaultModel;
   udJSON *pMetadata;
   vcTexture *pWatermark;
+
+  udGeoZone *pZone; // nullptr if not geolocated
 };
 
 #include "vcState.h"
@@ -30,6 +32,5 @@ void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel);
 bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel);
 
 udDouble3 vcModel_GetMidPointLocalSpace(vcState *pProgramState, vcModel *pModel);
-vcSRID vcModel_GetSRID(vcState *pProgramState, vcModel *pModel);
 
 #endif //vcModel_h__
