@@ -96,6 +96,9 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
     keyboardInput.y += io.KeysDown[SDL_SCANCODE_W] - io.KeysDown[SDL_SCANCODE_S];
     keyboardInput.x += io.KeysDown[SDL_SCANCODE_D] - io.KeysDown[SDL_SCANCODE_A];
     keyboardInput.z += io.KeysDown[SDL_SCANCODE_R] - io.KeysDown[SDL_SCANCODE_F];
+
+    if (io.KeysDown[SDL_SCANCODE_SPACE] && io.KeysDownDuration[SDL_SCANCODE_SPACE] == 0.0)
+      pProgramState->settings.camera.moveMode = ((pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter);
   }
 
   if (isFocused)
@@ -280,7 +283,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
       transform.orientation = udDoubleQuat::create(pCamera->eulerRotation);
 
       transform = udRotateAround(transform, pCamInput->worldAnchorPoint, { 0, 0, 1 }, pCamInput->mouseInput.x);
-      transform = udRotateAround(transform, pCamInput->worldAnchorPoint, transform.orientation.apply({ 1, 0, 0 }), -pCamInput->mouseInput.y);
+      transform = udRotateAround(transform, pCamInput->worldAnchorPoint, transform.orientation.apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
 
       udDouble3 euler = transform.orientation.eulerAngles();
 

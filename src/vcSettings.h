@@ -144,7 +144,7 @@ struct vcSettings
 };
 
 // Settings Limits (vcSL prefix)
-const float vcSL_CameraNearPlaneMin = 0.001f;
+const float vcSL_CameraNearPlaneMin = 0.01f;
 const float vcSL_CameraNearPlaneMax = 1000.f;
 
 const float vcSL_CameraFarPlaneMin = vcSL_CameraNearPlaneMax;
