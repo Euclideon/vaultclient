@@ -1,7 +1,6 @@
 project "vaultClient"
 	--Settings
 	kind "WindowedApp"
-	filter {}
 
 	language "C++"
 	flags { "StaticRuntime", "FatalWarnings", "MultiProcessorCompile" }
@@ -27,6 +26,7 @@ project "vaultClient"
 
 	-- filters
 	filter { "configurations:Debug" }
+		kind "ConsoleApp"
 		optimize "Debug"
 		removeflags { "FatalWarnings" }
 
