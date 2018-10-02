@@ -509,7 +509,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
 
       if (renderData.models[i]->pWatermark != nullptr)
       {
-        double cameraDist = udMag((pRenderContext->viewMatrix * renderData.models[i]->worldMatrix * udDouble4::create(0.5, 0.5, 0.5, 1.0)).toVector3());
+        double cameraDist = udMag(udClosestPointOnOOBB(udDouble3::zero(), pRenderContext->viewMatrix * renderData.models[i]->worldMatrix));
         if (cameraDist < maxDist)
         {
           maxDist = cameraDist;
