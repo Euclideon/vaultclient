@@ -78,12 +78,15 @@ uint32_t vcConvert_Thread(void *pVoidState)
     while (true)
     {
       vcConvertItem *pItem = nullptr;
+      bool wasPending = false;
 
       udLockMutex(pConvertContext->pMutex);
       for (size_t i = 0; i < pConvertContext->jobs.length; ++i)
       {
         if (pConvertContext->jobs[i]->status == vcCQS_Queued || pConvertContext->jobs[i]->status == vcCQS_QueuedPendingLicense)
         {
+          wasPending = (pConvertContext->jobs[i]->status == vcCQS_QueuedPendingLicense);
+
           pItem = pConvertContext->jobs[i];
           pItem->status = vcCQS_Running;
           break;
@@ -94,7 +97,11 @@ uint32_t vcConvert_Thread(void *pVoidState)
       if (pItem == nullptr)
         break;
 
-      if (udFileExists(pItem->pConvertInfo->pOutputName) == udR_Success)
+      // If the file exists, and we weren't in the pending license state.
+      // If the item was pending a license state, we already checked if the
+      // user wanted to override the file. We know this because if the user
+      // clicks No, the status is set to Pending and won't be processed again.
+      if (!wasPending && udFileExists(pItem->pConvertInfo->pOutputName) == udR_Success)
       {
         const SDL_MessageBoxButtonData buttons[] = {
           { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "No" },
