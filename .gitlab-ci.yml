@@ -1,3 +1,7 @@
+stages:
+ - build
+ - package
+
 windows_x64_release_opengl:
   stage: build
   script: "buildscripts\\build.sh Release x64 --gfxapi=opengl"
@@ -125,3 +129,13 @@ ios_arm64_debug:
   script: "buildscripts/build.sh Debug arm64 ios"
   tags:
     - osx
+
+package_windows:
+  stage: package
+  script: "buildscripts\\package.sh"
+  only:
+    - master
+    - tags
+  tags:
+    - windows
+    - vs2015
