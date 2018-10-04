@@ -48,8 +48,7 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 	fi
 else
 	if ([[ $OSTYPE == "darwin"* ]] && [ $3 == "ios" ]); then # iOS
-		export OSNAME="iOS_$2"
-		export BINARYSUFFIX="osx"
+		export OSNAME="iOS"
 		bin/premake/premake5-osx xcode4 --os=ios
 		if [ $2 == "x86_64" ]; then # Simulator
 			xcodebuild -project vaultClient.xcodeproj -configuration $1 -arch $2 -sdk iphonesimulator
@@ -57,18 +56,11 @@ else
 			xcodebuild -project vaultClient.xcodeproj -configuration $1 -arch $2
 		fi
 	elif [[ $OSTYPE == "darwin"* ]]; then # OSX
-		export OSNAME="OSX"
-		export BINARYSUFFIX="osx"
+		export OSNAME="macOS"
 		bin/premake/premake5-osx xcode4
 		xcodebuild -project vaultClient.xcodeproj -configuration $1
 	else
 		export OSNAME="Linux"
-		if [ $1 == "Release" ]; then
-			export BINARYSUFFIX="linux_GCC"
-		else
-			export BINARYSUFFIX="linux_Clang"
-		fi
-
 		bin/premake/premake5 gmake
 		make config=$(echo ${1}_${2} | tr [:upper:] [:lower:]) -j4
 	fi
@@ -124,22 +116,24 @@ else
 		hdiutil convert "builds/vaultClient.temp.dmg" -format UDZO -imagekey zlib-level=9 -o "builds/vaultClient.dmg"
 		rm -f builds/vaultClient.temp.dmg
 		rm -rf builds/packaging
+	else
+		pushd builds
+		tar -zcvf ../vaultClient-$OSNAME.tar.gz *
+		popd
 	fi
 
 	if ([ $CI_BUILD_REF_NAME == "master" ] || [ -n "$CI_BUILD_TAG" ]); then
 		# We build for both GCC and Clang, so need to handle them seperately
 		if [ $1 == "Release" ] ; then
 			# Make sure directory exists
-			mkdir -p $DEPLOYDIR/$OSNAME
+			mkdir -p $DEPLOYDIR
 
-			if ([[ $OSTYPE == "darwin"* ]] && [ $3 == "ios" ]); then # iOS
-				cp -f builds/vaultClient.dmg $DEPLOYDIR/$OSNAME
-			elif [[ $OSTYPE == "darwin"* ]]; then # OSX
-				cp -f builds/vaultClient.dmg $DEPLOYDIR/$OSNAME
+			if [[ $OSTYPE == "darwin"* ]]; then # iOS or macOS
+				if ([ $2 == "arm64" ] || [ $2 == "x64" ]); then # Don't deploy simulator builds of iOS
+					cp -f builds/vaultClient.dmg $DEPLOYDIR/vaultClient-$OSNAME.dmg
+				fi
 			else
-				cp -rf builds/assets/ $DEPLOYDIR/$OSNAME/assets
-				cp -f builds/vaultClient $DEPLOYDIR/$OSNAME/vaultClient
-				cp -f $VAULTSDK_HOME/lib/linux_GCC_x64/libvaultSDK.so $DEPLOYDIR/$OSNAME/libvaultSDK.so
+				cp -f vaultClient-$OSNAME.tar.gz $DEPLOYDIR/vaultClient-$OSNAME.tar.gz
 			fi
 		fi
 	fi
