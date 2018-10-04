@@ -877,8 +877,10 @@ int vcMainMenuGui(vcState *pProgramState)
       vdkLicenseInfo info = {};
       if (vdkContext_GetLicenseInfo(pProgramState->pVDKContext, (vdkLicenseType)i, &info) == vE_Success)
       {
-        if (info.queuePosition < 0)
+        if (info.queuePosition < 0 && (uint64_t)currentTime < info.expiresTimestamp)
           udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License (%llusecs) / ", i == vdkLT_Render ? "Render" : "Convert", (info.expiresTimestamp - currentTime)));
+        else if (info.queuePosition)
+          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License (expired) / ", i == vdkLT_Render ? "Render" : "Convert"));
         else
           udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License (%d in Queue) / ", i == vdkLT_Render ? "Render" : "Convert", info.queuePosition));
       }
