@@ -879,7 +879,7 @@ int vcMainMenuGui(vcState *pProgramState)
       {
         if (info.queuePosition < 0 && (uint64_t)currentTime < info.expiresTimestamp)
           udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License (%llusecs) / ", i == vdkLT_Render ? "Render" : "Convert", (info.expiresTimestamp - currentTime)));
-        else if (info.queuePosition)
+        else if (info.queuePosition < 0)
           udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License (expired) / ", i == vdkLT_Render ? "Render" : "Convert"));
         else
           udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License (%d in Queue) / ", i == vdkLT_Render ? "Render" : "Convert", info.queuePosition));
