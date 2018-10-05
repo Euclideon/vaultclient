@@ -312,6 +312,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(1);
     pSettings->maptiles.transparency = data.Get("maptiles.transparency").AsFloat(1.f);
     pSettings->maptiles.mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
+    udStrcpy(pSettings->maptiles.tileServerAddress, sizeof(pSettings->maptiles.tileServerAddress), data.Get("maptiles.serverURL").AsString("http://20.188.211.58"));
 
     // Docks
     vcSettings_LoadDocks(data);
@@ -427,6 +428,9 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("maptiles.blendMode = %d", pSettings->maptiles.blendMode);
   data.Set("maptiles.transparency = %f", pSettings->maptiles.transparency);
   data.Set("maptiles.mapHeight = %f", pSettings->maptiles.mapHeight);
+
+  tempNode.SetString(pSettings->maptiles.tileServerAddress);
+  data.Set(&tempNode, "maptiles.serverURL");
 
   // Docks
   vcSettings_SaveDocks(data);
