@@ -429,6 +429,9 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("maptiles.transparency = %f", pSettings->maptiles.transparency);
   data.Set("maptiles.mapHeight = %f", pSettings->maptiles.mapHeight);
 
+  tempNode.SetString(pSettings->maptiles.tileServerAddress);
+  data.Set(&tempNode, "maptiles.serverURL");
+
   // Docks
   vcSettings_SaveDocks(data);
 
