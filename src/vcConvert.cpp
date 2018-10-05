@@ -271,6 +271,8 @@ void vcConvert_ShowUI(vcState *pProgramState)
     ImVec2 selectablePos = ImVec2(ImGui::GetContentRegionMax().x - buttonWidth - ImGui::GetStyle().ItemSpacing.x * 2, 0);
     if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
       selectablePos.x -= ImGui::GetContentRegionMax().x / 2.f;
+    else if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Completed)
+      selectablePos.x -= ImGui::GetContentRegionMax().x * 0.2f;
 
     if (ImGui::Selectable(tempBuffer, selected, ImGuiSelectableFlags_None, selectablePos))
       pProgramState->pConvertContext->selectedItem = i;
@@ -280,7 +282,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
       ImGui::SameLine();
       const float progressRatio = 0.7f; // How much reading is compared to writing (0.8 would be 80% of the progress is writing)
 
-      //The two sections below are 50% each (hence the 0.5f's)
       if (pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem != pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalItems)
       {
         vdkConvert_GetItemInfo(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[i]->pConvertContext, pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem, &itemInfo);
@@ -298,6 +299,12 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
         ImGui::ProgressBar(progressRatio + (1.f - progressRatio) * pointsWritten / pointsTotal, ImVec2(-1, 0), udTempStr("Writing Points %s/%s", udCommaInt(pointsWritten), udCommaInt(pointsTotal)));
       }
+    }
+    else if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Completed)
+    {
+      ImGui::SameLine();
+      if (ImGui::Button(udTempStr("Add to Scene##vcConvLoad_%llu", i), ImVec2(-1, 0)))
+        pProgramState->loadList.PushBack(udStrdup(pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName));
     }
   }
 
