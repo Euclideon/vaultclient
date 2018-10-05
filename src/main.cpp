@@ -345,13 +345,6 @@ int main(int argc, char **args)
   for (int i = 1; i < argc; ++i)
     programState.loadList.PushBack(udStrdup(args[i]));
 
-  // default string values.
-  programState.settings.maptiles.mapEnabled = true;
-  programState.settings.maptiles.mapHeight = 0.f;
-  programState.settings.maptiles.transparency = 1.f;
-  udStrcpy(programState.settings.maptiles.tileServerAddress, vcMaxPathLength, "http://10.4.0.151:8123");
-  udStrcpy(programState.settings.resourceBase, vcMaxPathLength, "http://vau-win-van-001.euclideon.local");
-
   vcConvert_Init(&programState);
 
   Uint64 NOW;
@@ -838,7 +831,7 @@ int vcMainMenuGui(vcState *pProgramState)
     }
 
     udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
-    if (ImGui::BeginMenu("Projects", pProjectList != nullptr && pProjectList->length > 0 && !udStrEqual(pProgramState->settings.resourceBase, "")))
+    if (ImGui::BeginMenu("Projects", pProjectList != nullptr && pProjectList->length > 0))
     {
       for (size_t i = 0; i < pProjectList->length; ++i)
       {
@@ -847,12 +840,7 @@ int vcMainMenuGui(vcState *pProgramState)
           vcModel_UnloadList(pProgramState);
 
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
-          {
-            char buffer[vcMaxPathLength];
-            udSprintf(buffer, vcMaxPathLength, "%s/%s", pProgramState->settings.resourceBase, pProjectList->GetElement(i)->Get("models[%d]", j).AsString());
-
-            pProgramState->loadList.PushBack(udStrdup(buffer));
-          }
+            pProgramState->loadList.PushBack(udStrdup(pProjectList->GetElement(i)->Get("models[%d]", j).AsString()));
         }
       }
 
