@@ -623,6 +623,9 @@ int main(int argc, char **args)
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
+  // Stop window from being minimized while fullscreened and focus is lost
+  SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
+
 #ifdef GIT_BUILD
 #define WINDOW_SUFFIX " (" UDSTRINGIFY(GIT_BUILD) " - " __DATE__ ") "
 #else
