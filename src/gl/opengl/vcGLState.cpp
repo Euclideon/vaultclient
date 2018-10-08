@@ -35,6 +35,8 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
   *ppDefaultFramebuffer = &g_defaultFramebuffer;
 
+  glEnable(GL_SCISSOR_TEST);
+
   return vcGLState_ResetState(true);
 }
 
@@ -192,6 +194,9 @@ bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, 
 
   s_internalState.viewportZone = udInt4::create(x, y, width, height);
 
+  //Reset the scissor back to the full viewport
+  glScissor(x, y, width, height);
+
   return true;
 }
 
@@ -218,7 +223,7 @@ bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
 
 void vcGLState_Scissor(int left, int top, int right, int bottom)
 {
-  udInt4 newScissor = udInt4::create(left, s_internalState.viewportZone.z - bottom, right - left, bottom - top);
+  udInt4 newScissor = udInt4::create(left, s_internalState.viewportZone.w - bottom, right - left, bottom - top);
 
   if (s_internalState.scissorZone != newScissor)
   {
