@@ -48,17 +48,6 @@ udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera)
   return udDouble4x4::lookAt(pCamera->position, lookPos, orientation.apply(udDouble3::create(0.0, 0.0, 1.0)));
 }
 
-udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPosition)
-{
-  udQuaternion<double> orientation = udQuaternion<double>::create(pCamera->eulerRotation);
-  udDouble3 orbitToCamera = orientation.inverse().apply(pCamera->position - orbitPosition); // convert the point into camera space
-
-  double pitch = -udATan(orbitToCamera.z / orbitToCamera.y);
-  double yaw = udATan(orbitToCamera.x / orbitToCamera.y);
-
-  return udDouble3::create(yaw, pitch, 0.0);
-}
-
 void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
 {
   ImGuiIO &io = ImGui::GetIO();
@@ -123,7 +112,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
           {
             pProgramState->cameraInput.isUsingAnchorPoint = true;
             pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
-            pProgramState->cameraInput.storedRotation = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->cameraInput.worldAnchorPoint);
             pProgramState->cameraInput.inputState = vcCIS_Orbiting;
           }
           break;
@@ -188,8 +176,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove)
 
       if (pProgramState->cameraInput.inputState == vcCIS_CommandZooming)
       {
-        pProgramState->cameraInput.storedRotation = vcCamera_CreateStoredRotation(pProgramState->pCamera, pProgramState->cameraInput.worldAnchorPoint);
-
         mouseInput.x = 0.0;
         mouseInput.y = io.MouseWheel / 10.f;
         mouseInput.z = 0.0;
