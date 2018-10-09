@@ -469,6 +469,31 @@ void vcConvert_ShowUI(vcState *pProgramState)
       pSelectedJob->status = vcCQS_Queued;
       udIncrementSemaphore(pProgramState->pConvertContext->pSemaphore);
     }
+    else if (pSelectedJob->status == vcCQS_Completed && ImGui::Button("Reset"))
+    {
+      ImGui::Separator();
+      vdkConvertContext *pConvertContext = nullptr;
+      const vdkConvertInfo *pConvertInfo = nullptr;
+      vdkConvert_CreateContext(pProgramState->pVDKContext, &pConvertContext);
+      vdkConvert_GetInfo(pProgramState->pVDKContext, pConvertContext, &pConvertInfo);
+
+      for (size_t i = 0; i < pSelectedJob->pConvertInfo->totalItems; i++)
+      {
+        vdkConvert_GetItemInfo(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i, &itemInfo);
+        vdkConvert_AddItem(pProgramState->pVDKContext, pConvertContext, itemInfo.pFilename);
+      }
+
+      vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pConvertContext, pSelectedJob->pConvertInfo->pOutputName);
+      vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pConvertContext, pSelectedJob->pConvertInfo->pTempFilesPrefix);
+      vdkConvert_SetPointResolution(pProgramState->pVDKContext, pConvertContext, pSelectedJob->pConvertInfo->overrideResolution != 0, pSelectedJob->pConvertInfo->pointResolution);
+      vdkConvert_SetSRID(pProgramState->pVDKContext, pConvertContext, pSelectedJob->pConvertInfo->overrideSRID != 0, pSelectedJob->pConvertInfo->srid);
+
+      vdkConvert_DestroyContext(pProgramState->pVDKContext, &pSelectedJob->pConvertContext);
+
+      pSelectedJob->pConvertContext = pConvertContext;
+      pSelectedJob->pConvertInfo = pConvertInfo;
+      pSelectedJob->status = vcCQS_Preparing;
+    }
   }
 }
 
