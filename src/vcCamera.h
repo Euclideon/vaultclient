@@ -45,7 +45,6 @@ struct vcCameraInput
   udDouble3 worldAnchorPoint;
 
   udDouble3 startPosition; // for zoom to
-  udDouble3 storedRotation; // for orbiting
   double progress;
 
   vcCameraPivotMode currentPivotMode;
@@ -96,8 +95,6 @@ void vcCamera_Destroy(vcCamera **ppCamera);
 
 // Get camera matrix
 udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera);
-
-udDouble3 vcCamera_CreateStoredRotation(vcCamera *pCamera, udDouble3 orbitPosition);
 
 // Applies movement to camera
 void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraInput *pCamInput, double deltaTime, float speedModifier = 1.f);
