@@ -327,12 +327,12 @@ bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
   return true;
 }
 
-void vcGLState_Scissor(int left, int top, int right, int bottom)
+void vcGLState_Scissor(int left, int top, int right, int bottom, bool force /*= false*/)
 {
   udInt4 newScissor = udInt4::create(left, top, right, bottom);
   const D3D11_RECT r = { (LONG)left, (LONG)top, (LONG)right, (LONG)bottom };
 
-  if (newScissor != s_internalState.scissorZone)
+  if (newScissor != s_internalState.scissorZone || force)
   {
     g_pd3dDeviceContext->RSSetScissorRects(1, &r);
     s_internalState.scissorZone = newScissor;
