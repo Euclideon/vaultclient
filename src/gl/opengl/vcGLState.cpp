@@ -194,8 +194,7 @@ bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, 
 
   s_internalState.viewportZone = udInt4::create(x, y, width, height);
 
-  //Reset the scissor back to the full viewport
-  glScissor(x, y, width, height);
+  vcGLState_Scissor(s_internalState.viewportZone.x, s_internalState.viewportZone.y, s_internalState.viewportZone.z, s_internalState.viewportZone.w);
 
   return true;
 }
@@ -221,11 +220,11 @@ bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
   return true;
 }
 
-void vcGLState_Scissor(int left, int top, int right, int bottom)
+void vcGLState_Scissor(int left, int top, int right, int bottom, bool force /*= false*/)
 {
   udInt4 newScissor = udInt4::create(left, s_internalState.viewportZone.w - bottom, right - left, bottom - top);
 
-  if (s_internalState.scissorZone != newScissor)
+  if (s_internalState.scissorZone != newScissor || force)
   {
     glScissor(newScissor.x, newScissor.y, newScissor.z, newScissor.w);
     s_internalState.scissorZone = newScissor;
