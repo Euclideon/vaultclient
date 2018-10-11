@@ -10,6 +10,7 @@ project "vaultClient"
 	files { "3rdParty/Imgui/**.cpp", "3rdParty/Imgui/**.h" }
 	files { "3rdParty/stb/**.h" }
 	files { "project.lua" }
+	files { "docs/**.md" }
 
 	removefiles { "src/gl/*/*" }
 
