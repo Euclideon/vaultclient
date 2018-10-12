@@ -227,7 +227,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex,
       udDouble3 extents = (localMax - localMin) * 0.5;
       tileVisible = vcQuadTree_FrustumTest(pQuadTree->frustumPlanes, center, extents) > -1;
 
-      double tileToCameraAngle = udSin(distanceTestPoint.z / closestEdgeFudgedDistance);
+      double tileToCameraAngle = udAbs(udSin(distanceTestPoint.z / closestEdgeFudgedDistance));
       tileVisible = tileVisible && tileToCameraAngle >= tileToCameraCullAngle;
     }
 
