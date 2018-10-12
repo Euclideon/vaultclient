@@ -1140,6 +1140,7 @@ int vcMainMenuGui(vcState *pProgramState)
 void vcRenderWindow(vcState *pProgramState)
 {
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+  vcGLState_SetViewport(0, 0, pProgramState->settings.window.width, pProgramState->settings.window.height);
   vcFramebuffer_Clear(pProgramState->pDefaultFramebuffer, 0xFF000000);
 
   SDL_Keymod modState = SDL_GetModState();
