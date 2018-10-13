@@ -706,7 +706,8 @@ namespace ImGui
           if (dock_tab->active && close_button)
           {
             SameLine();
-            tab_closed = InvisibleButton("close", ImVec2(16, 16));
+            ImFormatString(tmp, IM_ARRAYSIZE(tmp), "close%d", (int)dock_tab->id);
+            tab_closed = InvisibleButton(tmp, ImVec2(16, 16));
 
             ImVec2 center = ((GetItemRectMin() + GetItemRectMax()) * 0.5f);
             draw_list->AddLine(center + ImVec2(-3.5f, -3.5f), center + ImVec2(3.5f, 3.5f), text_color);
@@ -715,7 +716,8 @@ namespace ImGui
           else {
             if (!dock_tab->active && close_button) {
               SameLine();
-              InvisibleButton("close", ImVec2(16, 16));
+              ImFormatString(tmp, IM_ARRAYSIZE(tmp), "close%d", (int)dock_tab->id);
+              InvisibleButton(tmp, ImVec2(16, 16));
 
               ImVec2 center = ((GetItemRectMin() + GetItemRectMax()) * 0.5f);
               draw_list->AddLine(center + ImVec2(-3.5f, -3.5f), center + ImVec2(3.5f, 3.5f), text_color_disabled);
