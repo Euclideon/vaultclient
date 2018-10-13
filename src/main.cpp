@@ -818,6 +818,7 @@ epilogue:
   programState.loadList.Deinit();
   vcModel_UnloadList(&programState);
   programState.vcModelList.Deinit();
+  vcLogout(&programState);
   vcRender_Destroy(&programState.pRenderContext);
 
   vcGLState_Deinit();
