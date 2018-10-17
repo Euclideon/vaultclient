@@ -1179,11 +1179,11 @@ int vcMainMenuGui(vcState *pProgramState)
     {
       ImGui::SameLine(ImGui::GetContentRegionMax().x - 20);
       if (pProgramState->lastServerResponse + 30 > currentTime)
-        ImGui::TextColored(ImVec4(0.f, 1.f, 0.f, 1.f), u8"\x25CF");
+        ImGui::TextColored(ImVec4(0.f, 1.f, 0.f, 1.f), "\xE2\x97\x8F");
       else if (pProgramState->lastServerResponse + 60 > currentTime)
-        ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), u8"\x25CF");
+        ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x97\x8F");
       else
-        ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), u8"\x25CF");
+        ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x97\x8F");
       if (ImGui::IsItemHovered())
       {
         ImGui::BeginTooltip();
