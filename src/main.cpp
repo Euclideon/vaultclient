@@ -505,6 +505,43 @@ void vcSettings_LoadSettings(vcState *pProgramState, bool forceDefaults);
 void vcLogin(vcState *pProgramState);
 bool vcLogout(vcState *pProgramState);
 
+int64_t vcMain_GetCurrentTime()
+{
+  return std::chrono::system_clock::now().time_since_epoch().count() / std::chrono::system_clock::period::den;
+}
+
+vdkError vcMain_UpdateSessionInfo(vcState *pProgramState)
+{
+  const char *pSessionRawData = nullptr;
+  udJSON info;
+
+  pProgramState->lastServerAttempt = vcMain_GetCurrentTime();
+  vdkError response = vdkServerAPI_Query(pProgramState->pVDKContext, "v1/session/info", nullptr, &pSessionRawData);
+
+  if (response == vE_Success)
+  {
+    if (info.Parse(pSessionRawData) == udR_Success)
+    {
+      if (info.Get("success").AsBool() == true)
+      {
+        udStrcpy(pProgramState->username, udLengthOf(pProgramState->username), info.Get("user.realname").AsString("Guest"));
+        pProgramState->lastServerResponse = vcMain_GetCurrentTime();
+      }
+      else
+      {
+        response = vE_NotAllowed;
+      }
+    }
+    else
+    {
+      response = vE_Failure;
+    }
+  }
+  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pSessionRawData);
+
+  return response;
+}
+
 int main(int argc, char **args)
 {
 #if UDPLATFORM_WINDOWS
@@ -695,6 +732,7 @@ int main(int argc, char **args)
     0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
     0x0E00, 0x0E7F, // Thai
     0x2010, 0x205E, // Punctuations
+    0x25A0, 0x25FF, // Geometric Shapes
     0x2DE0, 0x2DFF, // Cyrillic Extended-A
     0x3000, 0x30FF, // Punctuations, Hiragana, Katakana
     0x3131, 0x3163, // Korean alphabets
@@ -784,21 +822,28 @@ int main(int argc, char **args)
 
     ImGui::GetIO().KeysDown[SDL_SCANCODE_BACKSPACE] = false;
 
-    // Load next file in the load list (if there is one and the user has a context)
-    if (programState.loadList.length > 0 && programState.hasContext)
+    if (programState.hasContext)
     {
-      pNextLoad = nullptr;
-      programState.loadList.PopFront(&pNextLoad);
+      // Load next file in the load list (if there is one and the user has a context)
+      if (programState.loadList.length > 0)
+      {
+        pNextLoad = nullptr;
+        programState.loadList.PopFront(&pNextLoad);
 
-      //TODO: Display a message here that the file couldn't be opened...
-      if (!vcModel_AddToList(&programState, pNextLoad))
-        vcConvert_AddFile(&programState, pNextLoad);
+        //TODO: Display a message here that the file couldn't be opened...
+        if (!vcModel_AddToList(&programState, pNextLoad))
+          vcConvert_AddFile(&programState, pNextLoad);
 
-      udFree(pNextLoad);
+        udFree(pNextLoad);
+      }
+
+      // Ping the server every 30 seconds
+      if (vcMain_GetCurrentTime() > programState.lastServerAttempt + 30)
+      {
+        if (vcMain_UpdateSessionInfo(&programState) == vE_NotAllowed)
+          vcLogout(&programState);
+      }
     }
-
-    // Framerate Cap
-
   }
 
   vcSettings_Save(&programState.settings);
@@ -1109,7 +1154,7 @@ int vcMainMenuGui(vcState *pProgramState)
     if (pProgramState->settings.presentation.showDiagnosticInfo)
       udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("FPS: %.3f (%.2fms) / ", 1.f / pProgramState->deltaTime, pProgramState->deltaTime * 1000.f));
 
-    int64_t currentTime = std::chrono::system_clock::now().time_since_epoch().count() / std::chrono::system_clock::period::den;
+    int64_t currentTime = vcMain_GetCurrentTime();
 
     for (int i = 0; i < vdkLT_Total; ++i)
     {
@@ -1127,8 +1172,25 @@ int vcMainMenuGui(vcState *pProgramState)
 
     udStrcat(endBarInfo, udLengthOf(endBarInfo), pProgramState->username);
 
-    ImGui::SameLine(ImGui::GetContentRegionMax().x - ImGui::CalcTextSize(endBarInfo).x - 5);
+    ImGui::SameLine(ImGui::GetContentRegionMax().x - ImGui::CalcTextSize(endBarInfo).x - 25);
     ImGui::Text("%s", endBarInfo);
+
+    // Connection status indicator
+    {
+      ImGui::SameLine(ImGui::GetContentRegionMax().x - 20);
+      if (pProgramState->lastServerResponse + 30 > currentTime)
+        ImGui::TextColored(ImVec4(0.f, 1.f, 0.f, 1.f), "\xE2\x97\x8F");
+      else if (pProgramState->lastServerResponse + 60 > currentTime)
+        ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x97\x8F");
+      else
+        ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x97\x8F");
+      if (ImGui::IsItemHovered())
+      {
+        ImGui::BeginTooltip();
+        ImGui::Text("Connection Status");
+        ImGui::EndTooltip();
+      }
+    }
 
     menuHeight = (int)ImGui::GetWindowSize().y;
 
@@ -1780,14 +1842,7 @@ void vcLogin(vcState *pProgramState)
     pProgramState->projects.Parse(pProjData);
   vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pProjData);
 
-  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/session/info", nullptr, &pProjData) == vE_Success)
-  {
-    udJSON info;
-    info.Parse(pProjData);
-    udStrcpy(pProgramState->username, udLengthOf(pProgramState->username), info.Get("user.realname").AsString("Guest"));
-  }
-  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pProjData);
-
+  vcMain_UpdateSessionInfo(pProgramState);
 
   //Context Login successful
   memset(pProgramState->password, 0, sizeof(pProgramState->password));
