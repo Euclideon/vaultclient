@@ -68,6 +68,8 @@ struct vcState
   vcCameraInput cameraInput;
 
   bool hasContext;
+  int64_t lastServerAttempt;
+  int64_t lastServerResponse;
   vdkContext *pVDKContext;
   vcRenderContext *pRenderContext;
   vcConvertContext *pConvertContext;
