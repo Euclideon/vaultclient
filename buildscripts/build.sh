@@ -7,13 +7,13 @@ git submodule sync --recursive
 git submodule update --init --recursive
 
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
-	export RESOURCES="//bne-fs-fs-003.euclideon.local/Resources"
+	export DEV="//bne-fs-fs-003.euclideon.local/Dev"
 else
-	export RESOURCES="/mnt/Resources"
+	export DEV="/mnt/Dev"
 fi
 
-export DEPLOYDIR="$RESOURCES/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
-export VAULTSDK_HOME="$RESOURCES/Builds/vault/sdk/Pipeline_29690"
+export DEPLOYDIR="$DEV/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
+export VAULTSDK_HOME="$DEV/Builds/vault/sdk/Pipeline_29690"
 
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 	export CERT_THUMBPRINT="bbee8d60b45735badf16f76e049b966981bd2751"
