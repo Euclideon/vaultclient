@@ -7,12 +7,12 @@ git submodule sync --recursive
 git submodule update --init --recursive
 
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
-	export RESOURCES="//bne-fs-fs-003.euclideon.local/Resources"
+	export DEV="//bne-fs-fs-003.euclideon.local/Dev"
 else
-	export RESOURCES="/mnt/Resources"
+	export DEV="/mnt/Dev"
 fi
 
-export DEPLOYDIR="$RESOURCES/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
+export DEPLOYDIR="$DEV/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
 
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 	# Copy pre-package directory locally
