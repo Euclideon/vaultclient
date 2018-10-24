@@ -37,10 +37,6 @@ project "vaultClient"
 		optimize "Full"
 		flags { "NoFramePointer", "NoBufferSecurityCheck" }
 
-	-- Turn off warnings as errors for ImGui.
-	filter { "system:linux" }
-		removeflags { "FatalWarnings" }
-
 	filter { "system:windows" }
 		defines { "GLEW_STATIC" }
 		sysincludedirs { "3rdParty/glew/include" }
