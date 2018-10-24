@@ -1468,7 +1468,7 @@ void vcRenderWindow(vcState *pProgramState)
         }
         else if (pProgramState->vcModelList[i].loadStatus == vcMLS_Loading)
         {
-          ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), loadingChars[currentLoadingChar % udLengthOf(loadingChars)]); // Yellow Spinning clock
+          ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", loadingChars[currentLoadingChar % udLengthOf(loadingChars)]); // Yellow Spinning clock
           ImGui::SameLine();
 
           if (ImGui::IsItemHovered())
