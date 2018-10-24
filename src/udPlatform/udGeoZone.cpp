@@ -305,13 +305,13 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
     udGeoZone_SetSpheroid(pZone);
     udGeoZone_SetUTMZoneBounds(pZone, false);
   }
-  else if (sridCode >= 25828 && sridCode <= 25838)
+  else if (sridCode >= 26901 && sridCode <= 26923)
   {
-    // ETRS89 / UTM zones
-    pZone->datum = udGZGD_ETRS89;
+    // NAD83 Northern Hemisphere
+    pZone->datum = udGZGD_NAD83;
     pZone->projection = udGZPT_TransverseMercator;
-    pZone->zone = sridCode - 25800;
-    udSprintf(pZone->zoneName, udLengthOf(pZone->zoneName), "UTM zone %dN%s", pZone->zone, ((sridCode == 25838) ? " (deprecated)" : ""));
+    pZone->zone = sridCode - 26900;
+    udSprintf(pZone->zoneName, udLengthOf(pZone->zoneName), "UTM zone %dN", pZone->zone);
     pZone->meridian = pZone->zone * 6 - 183;
     pZone->parallel = 0.0;
     pZone->falseNorthing = 0;
@@ -320,13 +320,13 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
     udGeoZone_SetSpheroid(pZone);
     udGeoZone_SetUTMZoneBounds(pZone, true);
   }
-  else if (sridCode >= 26901 && sridCode <= 26923)
+  else if (sridCode >= 25828 && sridCode <= 25838)
   {
-    // NAD83 Northern Hemisphere
-    pZone->datum = udGZGD_NAD83;
+    // ETRS89 / UTM zones
+    pZone->datum = udGZGD_ETRS89;
     pZone->projection = udGZPT_TransverseMercator;
-    pZone->zone = sridCode - 26900;
-    udSprintf(pZone->zoneName, udLengthOf(pZone->zoneName), "UTM zone %dN", pZone->zone);
+    pZone->zone = sridCode - 25800;
+    udSprintf(pZone->zoneName, udLengthOf(pZone->zoneName), "UTM zone %dN%s", pZone->zone, ((sridCode == 25838) ? " (deprecated)" : ""));
     pZone->meridian = pZone->zone * 6 - 183;
     pZone->parallel = 0.0;
     pZone->falseNorthing = 0;
