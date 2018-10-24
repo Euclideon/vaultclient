@@ -13,7 +13,7 @@ else
 fi
 
 export DEPLOYDIR="$DEV/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
-export VAULTSDK_HOME="$DEV/Builds/vault/sdk/Pipeline_29690"
+export VAULTSDK_HOME="$DEV/Builds/vault/sdk/Pipeline_30042"
 
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 	export CERT_THUMBPRINT="bbee8d60b45735badf16f76e049b966981bd2751"

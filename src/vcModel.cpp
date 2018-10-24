@@ -8,49 +8,32 @@
 
 #include "vdkModel.h"
 
-#include "stb_image.h"
-
-bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
+struct vcModelLoadInfo
 {
-  if (pFilePath == nullptr)
-    return false;
+  vcState *pProgramState;
+  vcModel *pModel;
+};
 
-  vcModel model = {};
-  model.modelLoaded = true;
-  model.modelVisible = true;
-  model.modelSelected = false;
+void vcModel_LoadModel(void *pLoadInfoPtr)
+{
+  vcModelLoadInfo *pLoadInfo = (vcModelLoadInfo*)pLoadInfoPtr;
 
-  udStrcpy(model.modelPath, UDARRAYSIZE(model.modelPath), pFilePath);
+  int32_t status = udInterlockedCompareExchange(&pLoadInfo->pModel->loadStatus, vcMLS_Loading, vcMLS_Pending);
 
-  if (vdkModel_Load(pProgramState->pVDKContext, &model.pVaultModel, pFilePath) == vE_Success)
+  if (status == vcMLS_Pending && vdkModel_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->pVDKModel, pLoadInfo->pModel->path) == vE_Success)
   {
     const char *pMetadata;
-    model.pMetadata = udAllocType(udJSON, 1, udAF_Zero);
-    if (vdkModel_GetMetadata(pProgramState->pVDKContext, model.pVaultModel, &pMetadata) == vE_Success)
+    pLoadInfo->pModel->pMetadata = udAllocType(udJSON, 1, udAF_Zero);
+    if (vdkModel_GetMetadata(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->pVDKModel, &pMetadata) == vE_Success)
     {
-      model.pMetadata->Parse(pMetadata);
+      pLoadInfo->pModel->pMetadata->Parse(pMetadata);
 
-      const char *pWatermark = model.pMetadata->Get("Watermark").AsString();
-      if (pWatermark)
-      {
-        uint8_t *pImage = nullptr;
-        size_t imageLen = 0;
-        if (udBase64Decode(&pImage, &imageLen, pWatermark) == udR_Success)
-        {
-          int imageWidth, imageHeight, imageChannels;
-          unsigned char *pImageData = stbi_load_from_memory(pImage, (int)imageLen, &imageWidth, &imageHeight, &imageChannels, 4);
-          vcTexture_Create(&model.pWatermark, imageWidth, imageHeight, pImageData, vcTextureFormat_RGBA8, vcTFM_Nearest, false);
-          free(pImageData);
-        }
-
-        udFree(pImage);
-      }
-
+      pLoadInfo->pModel->hasWatermark = pLoadInfo->pModel->pMetadata->Get("Watermark").IsString();
 
       vcSRID srid = 0;
       udJSON tempNode;
 
-      const char *pSRID = model.pMetadata->Get("ProjectionID").AsString();
+      const char *pSRID = pLoadInfo->pModel->pMetadata->Get("ProjectionID").AsString();
       if (pSRID != nullptr)
       {
         pSRID = udStrchr(pSRID, ":");
@@ -58,8 +41,8 @@ bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
           srid = udStrAtou(&pSRID[1]);
       }
 
-      const char *pWKT = model.pMetadata->Get("ProjectionWKT").AsString();
-      if (pWKT != nullptr && udParseWKT(&tempNode, pWKT) == udR_Success)
+      const char *pWKT = pLoadInfo->pModel->pMetadata->Get("ProjectionWKT").AsString();
+      if (srid == 0 && pWKT != nullptr && udParseWKT(&tempNode, pWKT) == udR_Success)
       {
         for (size_t i = 0; i < tempNode.Get("values").ArrayLength(); ++i)
         {
@@ -70,52 +53,85 @@ bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
           }
         }
 
-        model.pMetadata->Set(&tempNode, "ProjectionWKT");
+        pLoadInfo->pModel->pMetadata->Set(&tempNode, "ProjectionWKT");
       }
 
       if (srid != 0)
       {
-        model.pZone = udAllocType(udGeoZone, 1, udAF_Zero);
-        udGeoZone_SetFromSRID(model.pZone, srid);
+        pLoadInfo->pModel->pZone = udAllocType(udGeoZone, 1, udAF_Zero);
+        udGeoZone_SetFromSRID(pLoadInfo->pModel->pZone, srid);
       }
     }
 
-    vcModel_MoveToModelProjection(pProgramState, &model);
-    pProgramState->camMatrix = vcCamera_GetMatrix(pProgramState->pCamera); // eh?
+    vcModel_UpdateMatrix(pLoadInfo->pProgramState, nullptr); // Set all model matrices
+    pLoadInfo->pModel->loadStatus = vcMLS_Loaded;
+  }
+  else
+  {
+    pLoadInfo->pModel->loadStatus = vcMLS_Failed;
+  }
+}
 
-    pProgramState->vcModelList.PushBack(model);
+void vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
+{
+  if (pFilePath == nullptr)
+    return;
 
-    vcModel_UpdateMatrix(pProgramState, nullptr); // Set all model matrices
+  vcModel *pModel = nullptr;
 
-    return true;
+  if (pProgramState->vcModelList.PushBack(&pModel) == udR_Success)
+  {
+    memset(pModel, 0, sizeof(vcModel));
+
+    vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
+    if (pLoadInfo != nullptr)
+    {
+      // Prepare the model
+      udStrcpy(pModel->path, sizeof(pModel->path), pFilePath);
+      pModel->visible = true;
+
+      // Prepare the load info
+      pLoadInfo->pModel = pModel;
+      pLoadInfo->pProgramState = pProgramState;
+
+      // Queue for load
+      vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModel_LoadModel, pLoadInfo);
+    }
+    else
+    {
+      pModel->loadStatus = vcMLS_Failed;
+    }
+  }
+}
+
+void vcModel_RemoveFromList(vcState *pProgramState, size_t index)
+{
+  if (pProgramState->vcModelList[index].loadStatus == vcMLS_Pending)
+    udInterlockedCompareExchange(&pProgramState->vcModelList[index].loadStatus, vcMLS_Unloaded, vcMLS_Pending);
+
+  while (pProgramState->vcModelList[index].loadStatus == vcMLS_Loading)
+    udYield(); // Spin until other thread stops processing
+
+  if (pProgramState->vcModelList[index].loadStatus == vcMLS_Loaded)
+  {
+    vdkModel_Unload(pProgramState->pVDKContext, &pProgramState->vcModelList[index].pVDKModel);
+
+    if (pProgramState->vcModelList[index].pWatermark != nullptr)
+      vcTexture_Destroy(&pProgramState->vcModelList[index].pWatermark);
+
+    pProgramState->vcModelList[index].pMetadata->Destroy();
+    udFree(pProgramState->vcModelList[index].pMetadata);
+    udFree(pProgramState->vcModelList[index].pZone);
   }
 
-  return false;
-}
-
-bool vcModel_RemoveFromList(vcState *pProgramState, size_t index)
-{
-  vdkModel *pVaultModel = pProgramState->vcModelList[index].pVaultModel;
-  vdkError err = vdkModel_Unload(pProgramState->pVDKContext, &pVaultModel);
-
-  if (pProgramState->vcModelList[index].pWatermark != nullptr)
-    vcTexture_Destroy(&pProgramState->vcModelList[index].pWatermark);
-
-  pProgramState->vcModelList[index].pMetadata->Destroy();
-  udFree(pProgramState->vcModelList[index].pMetadata);
-  udFree(pProgramState->vcModelList[index].pZone);
-  pProgramState->vcModelList[index].modelLoaded = false;
+  pProgramState->vcModelList[index].loadStatus = vcMLS_Unloaded;
   pProgramState->vcModelList.RemoveAt(index);
-  return err == vE_Success;
 }
 
-bool vcModel_UnloadList(vcState *pProgramState)
+void vcModel_UnloadList(vcState *pProgramState)
 {
-  bool success = true;
   while (pProgramState->vcModelList.length > 0)
-    success = (vcModel_RemoveFromList(pProgramState, 0) && success);
-
-  return success;
+    vcModel_RemoveFromList(pProgramState, 0);
 }
 
 void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel)
@@ -128,7 +144,7 @@ void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel)
   else
   {
     udDouble4x4 matrix;
-    vdkModel_GetLocalMatrix(pProgramState->pVDKContext, pModel->pVaultModel, matrix.a);
+    vdkModel_GetLocalMatrix(pProgramState->pVDKContext, pModel->pVDKModel, matrix.a);
 
     if (pModel->flipYZ)
     {
@@ -141,7 +157,7 @@ void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel)
     if (pProgramState->gis.isProjected && pModel->pZone != nullptr && pProgramState->gis.SRID != pModel->pZone->srid)
       matrix = udGeoZone_TransformMatrix(matrix, *pModel->pZone, pProgramState->gis.zone);
 
-    vdkModel_SetWorldMatrix(pProgramState->pVDKContext, pModel->pVaultModel, matrix.a);
+    vdkModel_SetWorldMatrix(pProgramState->pVDKContext, pModel->pVDKModel, matrix.a);
     pModel->worldMatrix = matrix;
   }
 }
@@ -164,7 +180,7 @@ udDouble3 vcModel_GetMidPointLocalSpace(vcState *pProgramState, vcModel *pModel)
   udDouble3 midPoint = udDouble3::zero();
 
   if (pModel != nullptr)
-    vdkModel_GetModelCenter(pProgramState->pVDKContext, pModel->pVaultModel, &midPoint.x);
+    vdkModel_GetModelCenter(pProgramState->pVDKContext, pModel->pVDKModel, &midPoint.x);
 
   return midPoint;
 }
