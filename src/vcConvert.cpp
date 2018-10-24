@@ -44,6 +44,12 @@ struct vcConvertItem
   const vdkConvertInfo *pConvertInfo;
   vcConvertQueueStatus status;
 
+  enum { vcCI_MetadataMaxLength = 256 };
+  char author[vcCI_MetadataMaxLength];
+  char comment[vcCI_MetadataMaxLength];
+  char copyright[vcCI_MetadataMaxLength];
+  char license[vcCI_MetadataMaxLength];
+
   struct
   {
     bool isDirty;
@@ -376,9 +382,11 @@ void vcConvert_ShowUI(vcState *pProgramState)
       vdkConvert_SetSRID(pProgramState->pVDKContext, pSelectedJob->pConvertContext, 1, srid);
   }
 
+  ImGui::Separator();
+  ImGui::Text("Metadata");
+
   if (pSelectedJob->watermark.isDirty || pSelectedJob->watermark.pTexture != nullptr)
   {
-    ImGui::Separator();
 
     if (pSelectedJob->watermark.isDirty)
     {
@@ -400,6 +408,15 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
     ImGui::Image(pSelectedJob->watermark.pTexture, ImVec2((float)pSelectedJob->watermark.width, (float)pSelectedJob->watermark.height));
   }
+  else
+  {
+    ImGui::Text("No watermark. Drop a file on the editor to add one");
+  }
+
+  ImGui::InputText("Author", pSelectedJob->author, udLengthOf(pSelectedJob->author));
+  ImGui::InputText("Comment", pSelectedJob->comment, udLengthOf(pSelectedJob->comment));
+  ImGui::InputText("Copyright", pSelectedJob->copyright, udLengthOf(pSelectedJob->copyright));
+  ImGui::InputText("License", pSelectedJob->license, udLengthOf(pSelectedJob->license));
 
   ImGui::Separator();
   if (pSelectedJob->pConvertInfo->totalItems > 0)

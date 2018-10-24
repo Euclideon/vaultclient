@@ -8,6 +8,7 @@
 #include "vcTerrain.h"
 #include "vcGIS.h"
 #include "vcCompass.h"
+#include "stb_image.h"
 
 const int qrIndices[6] = { 0, 1, 2, 0, 2, 3 };
 const vcSimpleVertex qrSqVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
@@ -126,6 +127,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
 
   vcShader_Bind(nullptr);
 
+  vcRender_CreateTerrain(pRenderContext, pSettings);
+
   *ppRenderContext = pRenderContext;
 
   pRenderContext->pSettings = pSettings;
@@ -173,6 +176,8 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
+
+  vcRender_DestroyTerrain(pRenderContext);
 
 epilogue:
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
@@ -502,24 +507,44 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
 
   for (size_t i = 0; i < renderData.models.length; ++i)
   {
-    if (renderData.models[i]->modelVisible)
+    if (renderData.models[i]->visible && renderData.models[i]->loadStatus == vcMLS_Loaded)
     {
-      ppModels[numVisibleModels] = renderData.models[i]->pVaultModel;
+      ppModels[numVisibleModels] = renderData.models[i]->pVDKModel;
       ++numVisibleModels;
 
-      if (renderData.models[i]->pWatermark != nullptr)
+      if (renderData.models[i]->hasWatermark)
       {
         double cameraDist = udMag(udClosestPointOnOOBB(udDouble3::zero(), pRenderContext->viewMatrix * renderData.models[i]->worldMatrix));
         if (cameraDist < maxDist)
         {
           maxDist = cameraDist;
+
+          if (renderData.models[i]->pWatermark == nullptr) // Load the watermark
+          {
+            const char *pWatermarkStr = renderData.models[i]->pMetadata->Get("Watermark").AsString();
+            if (pWatermarkStr)
+            {
+              uint8_t *pImage = nullptr;
+              size_t imageLen = 0;
+              if (udBase64Decode(&pImage, &imageLen, pWatermarkStr) == udR_Success)
+              {
+                int imageWidth, imageHeight, imageChannels;
+                unsigned char *pImageData = stbi_load_from_memory(pImage, (int)imageLen, &imageWidth, &imageHeight, &imageChannels, 4);
+                vcTexture_Create(&renderData.models[i]->pWatermark, imageWidth, imageHeight, pImageData, vcTextureFormat_RGBA8, vcTFM_Nearest, false);
+                free(pImageData);
+              }
+
+              udFree(pImage);
+            }
+          }
+
           renderData.pWatermarkTexture = renderData.models[i]->pWatermark;
         }
       }
     }
   }
 
-  vdkRenderPicking picking;
+  vdkRenderPicking picking = {};
   picking.x = (uint32_t)((float)renderData.mouse.x / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
   picking.y = (uint32_t)((float)renderData.mouse.y / (float)pRenderContext->originalSceneResolution.y * (float)pRenderContext->sceneResolution.y);
 
