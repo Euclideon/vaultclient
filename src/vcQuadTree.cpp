@@ -2,7 +2,6 @@
 #include "vcGIS.h"
 
 #define INVALID_NODE_INDEX uint32_t(-1)
-const double rectToCircleRadius = udSqrt(2.0); // distance from center-to-edge vs. distance center-to-corner of 2d rect
 
 // In addition to distance culling, tiles which are not visible due to
 // the angle at which the camera is viewing them are also culled.
