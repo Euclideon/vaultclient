@@ -97,13 +97,17 @@ udResult udFileHandler_FILEOpen(udFile **ppFile, const char *pFilename, udFileOp
   UDTRACE();
   udFile_FILE *pFile = nullptr;
   udResult result;
+  bool existsFailed = false;
 
   pFile = udAllocType(udFile_FILE, 1, udAF_Zero);
   UD_ERROR_NULL(pFile, udR_MemoryAllocationFailure);
 
   result = udFileExists(pFilename, &pFile->fileLength);
   if (result != udR_Success)
+  {
+    existsFailed = true;
     pFile->fileLength = 0;
+  }
 
   pFile->fpRead = udFileHandler_FILESeekRead;
   pFile->fpWrite = udFileHandler_FILESeekWrite;
@@ -116,6 +120,12 @@ udResult udFileHandler_FILEOpen(udFile **ppFile, const char *pFilename, udFileOp
     // File open failures shouldn't trigger breakpoints with BREAK_ON_ERROR defined.
     if (!pFile->pCrtFile)
       UD_ERROR_SET_NO_BREAK(udR_OpenFailure);
+    if (existsFailed && (flags & udFOF_Read) != 0)
+    {
+      fseeko(pFile->pCrtFile, 0, SEEK_END);
+      pFile->fileLength = ftello(pFile->pCrtFile);
+      fseeko(pFile->pCrtFile, 0, SEEK_SET);
+    }
   }
 
   if (flags & udFOF_Multithread)

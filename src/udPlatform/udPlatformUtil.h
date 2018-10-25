@@ -88,39 +88,39 @@ int udDaysUntilExpired(int maxDays, const char **ppExpireDateStr); // Return the
 //    with a valid destination (eg udStrcat) will leave the
 //    the destination unaltered.
 // *********************************************************************
-size_t udStrcpy(char *dest, size_t destLen, const char *src);
-size_t udStrncpy(char *dest, size_t destLen, const char *src, size_t maxChars);
-size_t udStrcat(char *dest, size_t destLen, const char *src);
-size_t udStrlen(const char *str);
+size_t udStrcpy(char *pDest, size_t destLen, const char *pSrc);
+size_t udStrncpy(char *pDest, size_t destLen, const char *pSrc, size_t maxChars);
+size_t udStrcat(char *pDest, size_t destLen, const char *pSrc);
+size_t udStrlen(const char *pStr);
 
 
 // *********************************************************************
 // String maniplulation functions, NULL-safe
 // *********************************************************************
 // udStrdup behaves much like strdup, optionally allocating additional characters and replicating NULL
-char *udStrdup(const char *s, size_t additionalChars = 0);
+char *udStrdup(const char *pStr, size_t additionalChars = 0);
 // udStrndup behaves much like strndup, optionally allocating additional characters and replicating NULL
-char *udStrndup(const char *s, size_t maxChars, size_t additionalChars = 0);
+char *udStrndup(const char *pStr, size_t maxChars, size_t additionalChars = 0);
 // udStrchr behaves much like strchr, optionally also providing the index
 // of the find, which will be the length if not found (ie when null is returned)
-const char *udStrchr(const char *s, const char *pCharList, size_t *pIndex = nullptr, size_t *pCharListIndex = nullptr);
+const char *udStrchr(const char *pStr, const char *pCharList, size_t *pIndex = nullptr, size_t *pCharListIndex = nullptr);
 // udStrrchr behaves much like strrchr, optionally also providing the index
 // of the find, which will be the length if not found (ie when null is returned)
-const char *udStrrchr(const char *s, const char *pCharList, size_t *pIndex = nullptr);
+const char *udStrrchr(const char *pStr, const char *pCharList, size_t *pIndex = nullptr);
 // udStrstr behaves much like strstr, though the length of s can be supplied for safety
 // (zero indicates assume nul-terminated). Optionally the function can provide the index
 // of the find, which will be the length if not found (ie when null is returned)
-const char *udStrstr(const char *s, size_t sLen, const char *pSubString, size_t *pIndex = nullptr);
+const char *udStrstr(const char *pStr, size_t sLen, const char *pSubString, size_t *pIndex = nullptr);
 // udStrAtoi behaves much like atoi, optionally giving the number of characters parsed
 // and the radix of 2 - 36 can be supplied to parse numbers such as hex(16) or binary(2)
 // No overflow testing is performed at this time
-int32_t udStrAtoi(const char *s, int *pCharCount = nullptr, int radix = 10);
-uint32_t udStrAtou(const char *s, int *pCharCount = nullptr, int radix = 10);
-int64_t udStrAtoi64(const char *s, int *pCharCount = nullptr, int radix = 10);
-uint64_t udStrAtou64(const char *s, int *pCharCount = nullptr, int radix = 10);
+int32_t udStrAtoi(const char *pStr, int *pCharCount = nullptr, int radix = 10);
+uint32_t udStrAtou(const char *pStr, int *pCharCount = nullptr, int radix = 10);
+int64_t udStrAtoi64(const char *pStr, int *pCharCount = nullptr, int radix = 10);
+uint64_t udStrAtou64(const char *pStr, int *pCharCount = nullptr, int radix = 10);
 // udStrAtof behaves much like atol, but much faster and optionally gives the number of characters parsed
-float udStrAtof(const char *s, int *pCharCount = nullptr);
-double udStrAtof64(const char *s, int *pCharCount = nullptr);
+float udStrAtof(const char *pStr, int *pCharCount = nullptr);
+double udStrAtof64(const char *pStr, int *pCharCount = nullptr);
 // udStr*toa convert numbers to ascii, returning the number of characters required
 int udStrUtoa(char *pStr, int strLen, uint64_t value, int radix = 10, int minChars = 1);
 int udStrItoa(char *pStr, int strLen, int32_t value, int radix = 10, int minChars = 1);
@@ -144,14 +144,16 @@ const char *udStrEscape(const char *pStr, const char *pCharList, bool freeOrigin
 // *********************************************************************
 // String comparison functions that can be relied upon, NULL-safe
 // *********************************************************************
-int udStrcmp(const char *s1, const char *s2);
-int udStrcmpi(const char *s1, const char *s2);
-int udStrncmp(const char *s1, const char *s2, size_t maxChars);
-int udStrncmpi(const char *s1, const char *s2, size_t maxChars);
-bool udStrBeginsWith(const char *s, const char *prefix);
-bool udStrBeginsWithi(const char *s, const char *prefix);
-inline bool udStrEqual(const char *s1, const char *s2) { return udStrcmp(s1, s2) == 0; }
-inline bool udStrEquali(const char *s1, const char *s2) { return udStrcmpi(s1, s2) == 0; }
+int udStrcmp(const char *pStr1, const char *pStr2);
+int udStrcmpi(const char *pStr1, const char *pStr2);
+int udStrncmp(const char *pStr1, const char *pStr2, size_t maxChars);
+int udStrncmpi(const char *pStr1, const char *pStr2, size_t maxChars);
+bool udStrBeginsWith(const char *pStr, const char *pPrefix);
+bool udStrBeginsWithi(const char *pStr, const char *pPrefix);
+bool udStrEndsWith(const char *pStr, const char *pSuffix);
+bool udStrEndsWithi(const char *pStr, const char *pSuffix);
+inline bool udStrEqual(const char *pStr1, const char *pStr2) { return udStrcmp(pStr1, pStr2) == 0; }
+inline bool udStrEquali(const char *pStr1, const char *pStr2) { return udStrcmpi(pStr1, pStr2) == 0; }
 
 #if UDPLATFORM_WINDOWS
 // *********************************************************************
@@ -164,11 +166,11 @@ public:
   udOSString(const wchar_t *pString);
   ~udOSString();
 
-  operator const wchar_t *() { return m_pWide; }
-  operator const char *() { return m_pUTF8; }
-  void *m_pAllocation;
-  wchar_t *m_pWide;
-  char *m_pUTF8;
+  operator const wchar_t *() { return pWide; }
+  operator const char *() { return pUTF8; }
+  void *pAllocation;
+  wchar_t *pWide;
+  char *pUTF8;
 };
 #else
 # define udOSString(p) p
@@ -285,7 +287,7 @@ public:
   enum { MaxPath = 260 };
 
   //Cast operator for convenience
-  operator const char *() { return m_path; }
+  operator const char *() { return path; }
 
   //
   // Set methods: (set all or part of the internal fully pathed filename, return false if path too long)
@@ -305,9 +307,9 @@ public:
   //    GetPath             - Get the complete path (eg pass to fopen)
   //    GetFilenameWithExt  - Get the filename and extension, without the path
   //    GetExt              - Get just the extension (starting with the dot)
-  const char *GetPath() const            { return m_path; }
-  const char *GetFilenameWithExt() const { return m_path + m_filenameIndex; }
-  const char *GetExt() const             { return m_path + m_extensionIndex; }
+  const char *GetPath() const            { return path; }
+  const char *GetFilenameWithExt() const { return path + filenameIndex; }
+  const char *GetExt() const             { return path + extensionIndex; }
 
   //
   // Extract methods: (take portions from within the full path to a user supplied buffer, returning size required)
@@ -319,17 +321,17 @@ public:
 
   //
   // Test methods: to determine what is present in the filename
-  bool HasFilename() const              { return m_path[m_filenameIndex] != 0; }
-  bool HasExt() const                   { return m_path[m_extensionIndex] != 0; }
+  bool HasFilename() const              { return path[filenameIndex] != 0; }
+  bool HasExt() const                   { return path[extensionIndex] != 0; }
 
   // Temporary function to output debug info until unit tests are done to prove reliability
   void Debug();
 
 protected:
   void CalculateIndices();
-  int m_filenameIndex;      // Index to starting character of filename
-  int m_extensionIndex;     // Index to starting character of extension
-  char m_path[MaxPath];         // Buffer for the path, set to 260 characters
+  int filenameIndex;      // Index to starting character of filename
+  int extensionIndex;     // Index to starting character of extension
+  char path[MaxPath];         // Buffer for the path, set to 260 characters
 };
 
 
@@ -342,20 +344,20 @@ class udURL
 public:
   udURL(const char *pURLText = nullptr) { Construct(); SetURL(pURLText); }
   ~udURL() { SetURL(nullptr); }
-  void Construct() { m_pURLText = nullptr; }
+  void Construct() { pURLText = nullptr; }
 
   udResult SetURL(const char *pURLText);
-  const char *GetScheme()         { return m_pScheme; }
-  const char *GetDomain()         { return m_pDomain; }
-  int GetPort()                   { return m_port; }
-  const char *GetPathWithQuery()  { return m_pPath; }
+  const char *GetScheme()         { return pScheme; }
+  const char *GetDomain()         { return pDomain; }
+  int GetPort()                   { return port; }
+  const char *GetPathWithQuery()  { return pPath; }
 
 protected:
-  char *m_pURLText;
-  const char *m_pScheme;
-  const char *m_pDomain;
-  const char *m_pPath;
-  int m_port;
+  char *pURLText;
+  const char *pScheme;
+  const char *pDomain;
+  const char *pPath;
+  int port;
 };
 
 struct udRenderCounters
