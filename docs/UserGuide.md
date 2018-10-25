@@ -13,8 +13,13 @@
 2. Open the DMG and drag the "Euclideon Vault Client" icon onto the provided "Applications" icon
 4. Run the "Euclient Vault Client" application from "Applications"
 
-#### Ubuntu, CentOS & Other Linux Distributions
-- ???
+#### Debian Linux Distributions (Requires Desktop Environment)
+1. Use your package manager to install the following:
+    - SDL2 (Minimum version 2.0.5)
+    - libCURL (latest)
+2. Download the latest tar.gz that has been approved for use from your Euclideon Vault Server provider.
+3. Unpack the entire contents of the tar.gz
+4. Run `vaultClient`
 
 #### iOS / Android
 - The iOS and Android builds are not currently publicly available.
@@ -33,19 +38,49 @@ After running the application you should see a login screen as below.
 After logging in you should see the full user interface:
 ![User Interface](images/afterlogin.png)
 
+---
+
 ## User Interface
 
-![Model Loaded](images/modelloaded.png)
+![Interface Numbers](images/interfacenumbered.png)
 
-### Loading UDS Models
+### 1. Scene Viewport
+???
+
+### 2. Menu
+???
+
+### 3. Scene Explorer
+This pane shows you the assets currently in your scene.
+
+#### Loading UDS Models
 There are a number of ways to add models to the scene.
+
+![Model Loaded](images/modelloaded.png)
 
 1. Drag and Drop: On devices with folder exploring you can drag a file from your file exporer and drop it in the Euclideon Vault Client window to add the model to the scene.
 2. Direct URI loading: You can type a url or path into the input box beside "Load Model" in the "Scene Explorer" tab and then click the "Load Model" button.
 3. If you have access to projects on the server you will be able to click the "Projects" button in the menu and select a project to load. Projects are defined from the Vault Server you're connected to.
 
-### Converting Pointclouds to UDS
+### 4. Settings
+???
+
+### 5. Watermark
+???
+
+### 6. Camera Information
+???
+
+### 7. GIS / Scene Info
+???
+
+### 8. Copyright Info & Compass
+???
+
+### 9. Convert Tab
 Converting pointclouds to the UDS file format can be done from within the Euclideon Vault Client as well. Loading a supported pointcloud format will open the "Convert" window if it isn't already open. A quick 'pre-parse' is done to detect the file format, supported attributes etc. by loading the start of the file, this stage also does an estimate of the total number of points the file has.
+
+> If you aren't able to find the convert tab, it can be opened from the `Windows > Convert` flag.
 
 ![Convert Window](images/convertpane.png)
 
@@ -79,10 +114,13 @@ The "X" button beside the convert job in the "Convert Jobs" section allows you t
 
 > We do not recommend running multiple converts at the same time. Converting is a memory and processor intensive process so it's almost always faster to have 1 convert running at a time. Euclideon Vault Client helps with this by allowing you to queue multiple jobs to run one after another.
 
-### Settings
-???
+---
 
 ## Technical Information
+
+### Requirements
+
+???
 
 ### Settings On Disk
 Where the settings file is stored depends on your OS.
@@ -91,3 +129,7 @@ Where the settings file is stored depends on your OS.
 - Linux: `???`
 - iOS: `???`
 - Android: `???`
+
+## FAQs
+
+???
