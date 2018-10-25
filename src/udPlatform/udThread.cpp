@@ -619,10 +619,33 @@ int udWaitSemaphore(udSemaphore *pSemaphore, int waitMs)
   udLockMutex(pSemaphore->pMutex);
 # endif
   bool retVal;
-  if (waitMs == UDTHREAD_WAIT_INFINITE)
+  if (pSemaphore->count > 0)
   {
     retVal = true;
-    while (pSemaphore->count == 0)
+    pSemaphore->count--;
+  }
+  else
+  {
+    if (waitMs == UDTHREAD_WAIT_INFINITE)
+    {
+      retVal = true;
+      while (pSemaphore->count == 0)
+      {
+# if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
+        retVal = udSleepSemaphore_Internal(pSemaphore, waitMs);
+# else
+        retVal = (udWaitConditionVariable(pSemaphore->pCondition, pSemaphore->pMutex, waitMs) == 0);
+# endif
+
+        // If something went wrong, exit the loop
+        if (!retVal)
+          break;
+      }
+
+      if (retVal)
+        pSemaphore->count--;
+    }
+    else
     {
 # if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
       retVal = udSleepSemaphore_Internal(pSemaphore, waitMs);
@@ -630,29 +653,14 @@ int udWaitSemaphore(udSemaphore *pSemaphore, int waitMs)
       retVal = (udWaitConditionVariable(pSemaphore->pCondition, pSemaphore->pMutex, waitMs) == 0);
 # endif
 
-      // If something went wrong, exit the loop
-      if (!retVal)
-        break;
-    }
-
-    if (retVal)
-      pSemaphore->count--;
-  }
-  else
-  {
-# if UD_GENERIC_SEMAPHORE_DUPLICATE_CODE
-    retVal = udSleepSemaphore_Internal(pSemaphore, waitMs);
-# else
-    retVal = (udWaitConditionVariable(pSemaphore->pCondition, pSemaphore->pMutex, waitMs) == 0);
-# endif
-
-    if (retVal)
-    {
-      // Check for spurious wake-up
-      if (pSemaphore->count > 0)
-        pSemaphore->count--;
-      else
-        retVal = false;
+      if (retVal)
+      {
+        // Check for spurious wake-up
+        if (pSemaphore->count > 0)
+          pSemaphore->count--;
+        else
+          retVal = false;
+      }
     }
   }
 

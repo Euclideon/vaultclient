@@ -236,66 +236,65 @@ size_t udStrncpy(char *dest, size_t destLen, const char *src, size_t maxChars)
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-size_t udStrcat(char *dest, size_t destLen, const char *src)
+size_t udStrcat(char *pDest, size_t destLen, const char *pSrc)
 {
-  if (dest == NULL)
-    return 0;
-  if (src == NULL) // Special case, handle a NULL source as an empty string
-    src = s_udStrEmptyString;
-  size_t destChars = strlen(dest); // Note: Not including terminator
-  size_t srcChars = strlen(src);
+  if (!pDest) return 0;
+  if (!pSrc) pSrc = s_udStrEmptyString;
+
+  size_t destChars = strlen(pDest); // Note: Not including terminator
+  size_t srcChars = strlen(pSrc);
   if ((destChars + srcChars + 1) > destLen)
     return 0;
-  strcat(dest, src);
+  strcat(pDest, pSrc);
   return destChars + srcChars + 1;
 }
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-int udStrcmp(const char *s1, const char *s2)
+int udStrcmp(const char *pStr1, const char *pStr2)
 {
-  if (!s1) s1 = s_udStrEmptyString;
-  if (!s2) s2 = s_udStrEmptyString;
+  if (!pStr1) pStr1 = s_udStrEmptyString;
+  if (!pStr2) pStr2 = s_udStrEmptyString;
 
   int result;
   do
   {
-    result = *s1 - *s2;
-  } while (!result && *s1++ && *s2++);
+    result = *pStr1 - *pStr2;
+  } while (!result && *pStr1++ && *pStr2++);
 
   return result;
 }
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-int udStrcmpi(const char *s1, const char *s2)
+int udStrcmpi(const char *pStr1, const char *pStr2)
 {
-  if (!s1) s1 = s_udStrEmptyString;
-  if (!s2) s2 = s_udStrEmptyString;
+  if (!pStr1) pStr1 = s_udStrEmptyString;
+  if (!pStr2) pStr2 = s_udStrEmptyString;
 
   int result;
   do
   {
-    result = tolower(*s1) - tolower(*s2);
-  } while (!result && *s1++ && *s2++);
+    result = tolower(*pStr1) - tolower(*pStr2);
+  } while (!result && *pStr1++ && *pStr2++);
 
   return result;
 }
 
 // *********************************************************************
 // Author: Samuel Surtees, April 2017
-int udStrncmp(const char *s1, const char *s2, size_t maxChars)
+int udStrncmp(const char *pStr1, const char *pStr2, size_t maxChars)
 {
-  if (!s1) s1 = s_udStrEmptyString;
-  if (!s2) s2 = s_udStrEmptyString;
+  if (!pStr1) pStr1 = s_udStrEmptyString;
+  if (!pStr2) pStr2 = s_udStrEmptyString;
 
   int result = 0;
   if (maxChars)
   {
     do
     {
-      result = *s1 - *s2;
-    } while (!result && *s1++ && *s2++ && --maxChars);
+      result = *pStr1 - *pStr2;
+    } while (!result && *pStr1++ && *pStr2++ && --maxChars);
   }
 
   return result;
@@ -303,18 +302,18 @@ int udStrncmp(const char *s1, const char *s2, size_t maxChars)
 
 // *********************************************************************
 // Author: Samuel Surtees, April 2017
-int udStrncmpi(const char *s1, const char *s2, size_t maxChars)
+int udStrncmpi(const char *pStr1, const char *pStr2, size_t maxChars)
 {
-  if (!s1) s1 = s_udStrEmptyString;
-  if (!s2) s2 = s_udStrEmptyString;
+  if (!pStr1) pStr1 = s_udStrEmptyString;
+  if (!pStr2) pStr2 = s_udStrEmptyString;
 
   int result = 0;
   if (maxChars)
   {
     do
     {
-      result = tolower(*s1) - tolower(*s2);
-    } while (!result && *s1++ && *s2++ && --maxChars);
+      result = tolower(*pStr1) - tolower(*pStr2);
+    } while (!result && *pStr1++ && *pStr2++ && --maxChars);
   }
 
   return result;
@@ -322,12 +321,12 @@ int udStrncmpi(const char *s1, const char *s2, size_t maxChars)
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-size_t udStrlen(const char *str)
+size_t udStrlen(const char *pStr)
 {
-  if (!str) str = s_udStrEmptyString;
+  if (!pStr) pStr = s_udStrEmptyString;
 
   size_t len = 0;
-  while (*str++)
+  while (*pStr++)
     ++len;
 
   return len;
@@ -335,14 +334,14 @@ size_t udStrlen(const char *str)
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-bool udStrBeginsWith(const char *s, const char *prefix)
+bool udStrBeginsWith(const char *pStr, const char *pPrefix)
 {
-  if (!s) s = s_udStrEmptyString;
-  if (!prefix) prefix = s_udStrEmptyString;
+  if (!pStr) pStr = s_udStrEmptyString;
+  if (!pPrefix) pPrefix = s_udStrEmptyString;
 
-  while (*prefix)
+  while (*pPrefix)
   {
-    if (*s++ != *prefix++)
+    if (*pStr++ != *pPrefix++)
       return false;
   }
   return true;
@@ -350,31 +349,58 @@ bool udStrBeginsWith(const char *s, const char *prefix)
 
 // *********************************************************************
 // Author: Samuel Surtees, April 2017
-bool udStrBeginsWithi(const char *s, const char *prefix)
+bool udStrBeginsWithi(const char *pStr, const char *pPrefix)
 {
-  if (!s) s = s_udStrEmptyString;
-  if (!prefix) prefix = s_udStrEmptyString;
+  if (!pStr) pStr = s_udStrEmptyString;
+  if (!pPrefix) pPrefix = s_udStrEmptyString;
 
-  while (*prefix)
+  while (*pPrefix)
   {
-    if (tolower(*s++) != tolower(*prefix++))
+    if (tolower(*pStr++) != tolower(*pPrefix++))
       return false;
   }
   return true;
 }
 
+// *********************************************************************
+// Author: Dave Pevreal, August 2018
+bool udStrEndsWith(const char *pStr, const char *pSuffix)
+{
+  if (!pStr) pStr = s_udStrEmptyString;
+  if (!pSuffix) pSuffix = s_udStrEmptyString;
+  size_t sLen = udStrlen(pStr);
+  size_t suffixLen = udStrlen(pSuffix);
+
+  if (sLen < suffixLen)
+    return false;
+  return udStrcmp(pStr + sLen - suffixLen, pSuffix) == 0;
+}
+
+// *********************************************************************
+// Author: Dave Pevreal, August 2018
+bool udStrEndsWithi(const char *pStr, const char *pSuffix)
+{
+  if (!pStr) pStr = s_udStrEmptyString;
+  if (!pSuffix) pSuffix = s_udStrEmptyString;
+  size_t sLen = udStrlen(pStr);
+  size_t suffixLen = udStrlen(pSuffix);
+
+  if (sLen < suffixLen)
+    return false;
+  return udStrcmpi(pStr + sLen - suffixLen, pSuffix) == 0;
+}
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-char *udStrdup(const char *s, size_t additionalChars)
+char *udStrdup(const char *pStr, size_t additionalChars)
 {
-  if (!s && !additionalChars) return nullptr; // This allows us to duplicate null's as null's
-  if (!s) s = s_udStrEmptyString;
+  if (!pStr && !additionalChars) return nullptr; // This allows us to duplicate null's as null's
+  if (!pStr) pStr = s_udStrEmptyString;
 
-  size_t len = udStrlen(s) + 1;
+  size_t len = udStrlen(pStr) + 1;
   char *pDup = udAllocType(char, len + additionalChars, udAF_None);
   if(pDup)
-    memcpy(pDup, s, len);
+    memcpy(pDup, pStr, len);
 
   return pDup;
 }
@@ -382,18 +408,18 @@ char *udStrdup(const char *s, size_t additionalChars)
 
 // *********************************************************************
 // Author: Dave Pevreal, May 2017
-char *udStrndup(const char *s, size_t maxChars, size_t additionalChars)
+char *udStrndup(const char *pStr, size_t maxChars, size_t additionalChars)
 {
-  if (!s && !additionalChars) return nullptr; // This allows us to duplicate null's as null's
-  if (!s) s = s_udStrEmptyString;
-  // Find minimum of maxChars and udStrlen(s) without using udStrlen which can be slow
+  if (!pStr && !additionalChars) return nullptr; // This allows us to duplicate null's as null's
+  if (!pStr) pStr = s_udStrEmptyString;
+  // Find minimum of maxChars and udStrlen(pStr) without using udStrlen which can be slow
   size_t len = 0;
-  while (len < maxChars && s[len])
+  while (len < maxChars && pStr[len])
     ++len;
   char *pDup = udAllocType(char, len + 1 + additionalChars, udAF_None);
   if (pDup)
   {
-    memcpy(pDup, s, len);
+    memcpy(pDup, pStr, len);
     pDup[len] = 0;
   }
 
@@ -403,26 +429,26 @@ char *udStrndup(const char *s, size_t maxChars, size_t additionalChars)
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-const char *udStrchr(const char *s, const char *pCharList, size_t *pIndex, size_t *pCharListIndex)
+const char *udStrchr(const char *pStr, const char *pCharList, size_t *pIndex, size_t *pCharListIndex)
 {
-  if (!s) s = s_udStrEmptyString;
+  if (!pStr) pStr = s_udStrEmptyString;
   if (!pCharList) pCharList = s_udStrEmptyString;
 
   size_t index;
   size_t listLen = udStrlen(pCharList);
 
-  for (index = 0; s[index]; ++index)
+  for (index = 0; pStr[index]; ++index)
   {
     for (size_t i = 0; i < listLen; ++i)
     {
-      if (s[index] == pCharList[i])
+      if (pStr[index] == pCharList[i])
       {
         // Found, set index if required and return a pointer to the found character
         if (pIndex)
           *pIndex = index;
         if (pCharListIndex)
           *pCharListIndex = i;
-        return s + index;
+        return pStr + index;
       }
     }
   }
@@ -435,24 +461,24 @@ const char *udStrchr(const char *s, const char *pCharList, size_t *pIndex, size_
 
 // *********************************************************************
 // Author: Samuel Surtees, May 2015
-const char *udStrrchr(const char *s, const char *pCharList, size_t *pIndex)
+const char *udStrrchr(const char *pStr, const char *pCharList, size_t *pIndex)
 {
-  if (!s) s = s_udStrEmptyString;
+  if (!pStr) pStr = s_udStrEmptyString;
   if (!pCharList) pCharList = s_udStrEmptyString;
 
-  size_t sLen = udStrlen(s);
+  size_t sLen = udStrlen(pStr);
   size_t listLen = udStrlen(pCharList);
 
   for (ptrdiff_t index = sLen - 1; index >= 0; --index)
   {
     for (size_t i = 0; i < listLen; ++i)
     {
-      if (s[index] == pCharList[i])
+      if (pStr[index] == pCharList[i])
       {
         // Found, set index if required and return a pointer to the found character
         if (pIndex)
           *pIndex = index;
-        return s + index;
+        return pStr + index;
       }
     }
   }
@@ -465,16 +491,16 @@ const char *udStrrchr(const char *s, const char *pCharList, size_t *pIndex)
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-const char *udStrstr(const char *s, size_t sLen, const char *pSubString, size_t *pIndex)
+const char *udStrstr(const char *pStr, size_t sLen, const char *pSubString, size_t *pIndex)
 {
-  if (!s) s = s_udStrEmptyString;
+  if (!pStr) pStr = s_udStrEmptyString;
   if (!pSubString) pSubString = s_udStrEmptyString;
   size_t i;
   size_t subStringIndex = 0;
 
-  for (i = 0; s[i] && (!sLen || i < sLen); ++i)
+  for (i = 0; pStr[i] && (!sLen || i < sLen); ++i)
   {
-    if (s[i] == pSubString[subStringIndex])
+    if (pStr[i] == pSubString[subStringIndex])
     {
       if (pSubString[++subStringIndex] == 0)
       {
@@ -482,7 +508,7 @@ const char *udStrstr(const char *s, size_t sLen, const char *pSubString, size_t 
         i = i + 1 - subStringIndex;
         if (pIndex)
           *pIndex = i;
-        return s + i;
+        return pStr + i;
       }
     }
     else
@@ -503,12 +529,12 @@ const char *udStrstr(const char *s, size_t sLen, const char *pSubString, size_t 
 udOSString::udOSString(const char *pString)
 {
   size_t len = udStrlen(pString) + 1;
-  m_pUTF8 = const_cast<char*>(pString);
-  m_pWide = udAllocType(wchar_t, len, udAF_None);
-  m_pAllocation = m_pWide;
+  pUTF8 = const_cast<char*>(pString);
+  pWide = udAllocType(wchar_t, len, udAF_None);
+  pAllocation = pWide;
 
-  if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, pString, -1, m_pWide, (int)len) == 0)
-    *m_pWide = 0;
+  if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, pString, -1, pWide, (int)len) == 0)
+    *pWide = 0;
 }
 
 // *********************************************************************
@@ -517,19 +543,19 @@ udOSString::udOSString(const wchar_t *pString)
 {
   size_t len = wcslen(pString) + 1;
   size_t allocSize = len * 4;
-  m_pUTF8 = udAllocType(char, allocSize, udAF_None);
-  m_pWide = const_cast<wchar_t*>(pString);
-  m_pAllocation = m_pUTF8;
+  pUTF8 = udAllocType(char, allocSize, udAF_None);
+  pWide = const_cast<wchar_t*>(pString);
+  pAllocation = pUTF8;
 
-  if (WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, pString, -1, m_pUTF8, (int)allocSize, nullptr, nullptr) == 0)
-    *m_pUTF8 = 0;
+  if (WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, pString, -1, pUTF8, (int)allocSize, nullptr, nullptr) == 0)
+    *pUTF8 = 0;
 }
 
 // *********************************************************************
 // Author: Dave Pevreal, June 2015
 udOSString::~udOSString()
 {
-  udFree(m_pAllocation);
+  udFree(pAllocation);
 }
 #endif // UDPLATFORM_WINDOWS
 
@@ -567,39 +593,39 @@ int udStrTokenSplit(char *pLine, const char *pDelimiters, char *pTokenArray[], i
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-int32_t udStrAtoi(const char *s, int *pCharCount, int radix)
+int32_t udStrAtoi(const char *pStr, int *pCharCount, int radix)
 {
-  return (int32_t)udStrAtoi64(s, pCharCount, radix);
+  return (int32_t)udStrAtoi64(pStr, pCharCount, radix);
 }
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-uint32_t udStrAtou(const char *s, int *pCharCount, int radix)
+uint32_t udStrAtou(const char *pStr, int *pCharCount, int radix)
 {
-  return (uint32_t)udStrAtou64(s, pCharCount, radix);
+  return (uint32_t)udStrAtou64(pStr, pCharCount, radix);
 }
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-int64_t udStrAtoi64(const char *s, int *pCharCount, int radix)
+int64_t udStrAtoi64(const char *pStr, int *pCharCount, int radix)
 {
   int64_t result = 0;
   int charCount = 0;
   int digitCount = 0;
   bool negate = false;
 
-  if (s && radix >= 2 && radix <= 36)
+  if (pStr && radix >= 2 && radix <= 36)
   {
-    while (s[charCount] == ' ' || s[charCount] == '\t')
+    while (pStr[charCount] == ' ' || pStr[charCount] == '\t')
       ++charCount;
-    if (s[charCount] == '+')
+    if (pStr[charCount] == '+')
       ++charCount;
-    if (s[charCount] == '-')
+    if (pStr[charCount] == '-')
     {
       negate = true;
       ++charCount;
     }
-    result = (int64_t)udStrAtou64(s + charCount, &digitCount, radix);
+    result = (int64_t)udStrAtou64(pStr + charCount, &digitCount, radix);
     if (negate)
       result = -result;
   }
@@ -610,23 +636,23 @@ int64_t udStrAtoi64(const char *s, int *pCharCount, int radix)
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-uint64_t udStrAtou64(const char *s, int *pCharCount, int radix)
+uint64_t udStrAtou64(const char *pStr, int *pCharCount, int radix)
 {
   uint64_t result = 0;
   int charCount = 0;
-  if (s && radix >= 2 && radix <= 36)
+  if (pStr && radix >= 2 && radix <= 36)
   {
-    while (s[charCount] == ' ' || s[charCount] == '\t')
+    while (pStr[charCount] == ' ' || pStr[charCount] == '\t')
       ++charCount;
-    for (; s[charCount]; ++charCount)
+    for (; pStr[charCount]; ++charCount)
     {
       int nextValue = radix; // A sentinal to force end of processing
-      if (s[charCount] >= '0' && s[charCount] <= '9')
-        nextValue = s[charCount] - '0';
-      else if (s[charCount] >= 'a' && s[charCount] < ('a' + radix - 10))
-        nextValue = 10 + (s[charCount] - 'a');
-      else if (s[charCount] >= 'A' && s[charCount] < ('A' + radix - 10))
-        nextValue = 10 + (s[charCount] - 'A');
+      if (pStr[charCount] >= '0' && pStr[charCount] <= '9')
+        nextValue = pStr[charCount] - '0';
+      else if (pStr[charCount] >= 'a' && pStr[charCount] < ('a' + radix - 10))
+        nextValue = 10 + (pStr[charCount] - 'a');
+      else if (pStr[charCount] >= 'A' && pStr[charCount] < ('A' + radix - 10))
+        nextValue = 10 + (pStr[charCount] - 'A');
 
       if (nextValue >= radix)
         break;
@@ -851,22 +877,22 @@ const char *udStrEscape(const char *pStr, const char *pCharList, bool freeOrigin
   pEscStr = udAllocType(char, allocLen, udAF_None);
   if (pEscStr)
   {
-    const char *s = pStr;
+    const char *pSource = pStr;
     size_t escLen = 0;
-    while (*s)
+    while (*pSource)
     {
       size_t index;
-      udStrchr(s, pCharList, &index);
+      udStrchr(pSource, pCharList, &index);
       UDASSERT(escLen + index < allocLen, "AllocLen calculation wrong (1)");
-      memcpy(pEscStr + escLen, s, index);
+      memcpy(pEscStr + escLen, pSource, index);
       escLen += index;
-      if (s[index])
+      if (pSource[index])
       {
         UDASSERT(escLen + 2 < allocLen, "AllocLen calculation wrong (2)");
         pEscStr[escLen++] = '\\';
-        pEscStr[escLen++] = s[index++];
+        pEscStr[escLen++] = pSource[index++];
       }
-      s += index;
+      pSource += index;
     }
     UDASSERT(escLen + 1 == allocLen, "AllocLen calculation wrong (3)");
     pEscStr[escLen++] = 0;
@@ -878,39 +904,39 @@ const char *udStrEscape(const char *pStr, const char *pCharList, bool freeOrigin
 
 // *********************************************************************
 // Author: Dave Pevreal, August 2014
-float udStrAtof(const char *s, int *pCharCount)
+float udStrAtof(const char *pStr, int *pCharCount)
 {
-  if (!s) s = s_udStrEmptyString;
+  if (!pStr) pStr = s_udStrEmptyString;
   int charCount = 0;
   int tmpCharCount = 0;
 
   float negate = 1.0f;
-  while (s[charCount] == ' ' || s[charCount] == '\t')
+  while (pStr[charCount] == ' ' || pStr[charCount] == '\t')
     ++charCount;
 
   // Process negation separately
-  if (s[charCount] == '-')
+  if (pStr[charCount] == '-')
   {
     negate = -1.0f;
     ++charCount;
   }
 
-  float result = (float)udStrAtoi(s + charCount, &tmpCharCount);
+  float result = (float)udStrAtoi(pStr + charCount, &tmpCharCount);
   charCount += tmpCharCount;
-  if (s[charCount] == '.')
+  if (pStr[charCount] == '.')
   {
     ++charCount;
-    int32_t fraction = udStrAtoi(s + charCount, &tmpCharCount);
+    int32_t fraction = udStrAtoi(pStr + charCount, &tmpCharCount);
     charCount += tmpCharCount;
     if (result >= 0.f)
       result += fraction / powf(10.f, (float)tmpCharCount);
     else
       result -= fraction / powf(10.f, (float)tmpCharCount);
   }
-  if (s[charCount] == 'e' || s[charCount] == 'E')
+  if (pStr[charCount] == 'e' || pStr[charCount] == 'E')
   {
     ++charCount;
-    float e = (float)udStrAtoi(s + charCount, &tmpCharCount);
+    float e = (float)udStrAtoi(pStr + charCount, &tmpCharCount);
     charCount += tmpCharCount;
     result *= powf(10, e);
   }
@@ -922,39 +948,39 @@ float udStrAtof(const char *s, int *pCharCount)
 
 // *********************************************************************
 // Author: Dave Pevreal, August 2014
-double udStrAtof64(const char *s, int *pCharCount)
+double udStrAtof64(const char *pStr, int *pCharCount)
 {
-  if (!s) s = s_udStrEmptyString;
+  if (!pStr) pStr = s_udStrEmptyString;
   int charCount = 0;
   int tmpCharCount = 0;
 
   double negate = 1.0f;
-  while (s[charCount] == ' ' || s[charCount] == '\t')
+  while (pStr[charCount] == ' ' || pStr[charCount] == '\t')
     ++charCount;
 
   // Process negation separately
-  if (s[charCount] == '-')
+  if (pStr[charCount] == '-')
   {
     negate = -1.0f;
     ++charCount;
   }
 
-  double result = (double)udStrAtoi64(s + charCount, &tmpCharCount);
+  double result = (double)udStrAtoi64(pStr + charCount, &tmpCharCount);
   charCount += tmpCharCount;
-  if (s[charCount] == '.')
+  if (pStr[charCount] == '.')
   {
     ++charCount;
-    int64_t fraction = udStrAtoi64(s + charCount, &tmpCharCount);
+    int64_t fraction = udStrAtoi64(pStr + charCount, &tmpCharCount);
     charCount += tmpCharCount;
     if (result >= 0.0)
       result += fraction / pow(10.0, (double)tmpCharCount);
     else
       result -= fraction / pow(10.0, (double)tmpCharCount);
   }
-  if (s[charCount] == 'e' || s[charCount] == 'E')
+  if (pStr[charCount] == 'e' || pStr[charCount] == 'E')
   {
     ++charCount;
-    double e = (double)udStrAtoi64(s + charCount, &tmpCharCount);
+    double e = (double)udStrAtoi64(pStr + charCount, &tmpCharCount);
     charCount += tmpCharCount;
     result *= pow(10, e);
   }
@@ -1173,17 +1199,17 @@ int udGetHardwareThreadCount()
 // *********************************************************************
 bool udFilename::SetFromFullPath(const char *pFormat, ...)
 {
-  *m_path = 0;
-  m_filenameIndex = 0;
-  m_extensionIndex = 0;
+  *path = 0;
+  filenameIndex = 0;
+  extensionIndex = 0;
   if (pFormat)
   {
     va_list args;
     va_start(args, pFormat);
-    int len = udSprintfVA(m_path, sizeof(m_path), pFormat, args);
+    int len = udSprintfVA(path, sizeof(path), pFormat, args);
     va_end(args);
     CalculateIndices();
-    if (len > (int)sizeof(m_path))
+    if (len > (int)sizeof(path))
       return false;
   }
   return true;
@@ -1191,15 +1217,15 @@ bool udFilename::SetFromFullPath(const char *pFormat, ...)
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-bool udFilename::SetFolder(const char *folder)
+bool udFilename::SetFolder(const char *pFolder)
 {
   char newPath[MaxPath];
-  size_t i = udStrcpy(newPath, sizeof(m_path), folder);
+  size_t i = udStrcpy(newPath, sizeof(path), pFolder);
   if (!i)
     return false;
 
-  // If the m_path doesn't have a trailing seperator, look for one so we can
-  // append one already being used. That is c:\m_path\ or c:/m_path/
+  // If the path doesn't have a trailing seperator, look for one so we can
+  // append one already being used. That is c:\path\ or c:/path/
   if (i > 2 && newPath[i-2] != '/' && newPath[i-2] != '\\' && newPath[i-2] != ':')
   {
     for (--i; i > 0; --i)
@@ -1227,12 +1253,12 @@ bool udFilename::SetFolder(const char *folder)
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-bool udFilename::SetFilenameNoExt(const char *filenameOnlyComponent)
+bool udFilename::SetFilenameNoExt(const char *pFilenameOnlyComponent)
 {
   char newPath[MaxPath];
 
   ExtractFolder(newPath, sizeof(newPath));
-  if (!udStrcat(newPath, sizeof(newPath), filenameOnlyComponent))
+  if (!udStrcat(newPath, sizeof(newPath), pFilenameOnlyComponent))
     return false;
   if (!udStrcat(newPath, sizeof(newPath), GetExt()))
     return false;
@@ -1241,48 +1267,48 @@ bool udFilename::SetFilenameNoExt(const char *filenameOnlyComponent)
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-bool udFilename::SetFilenameWithExt(const char *filenameWithExtension)
+bool udFilename::SetFilenameWithExt(const char *pFilenameWithExtension)
 {
   char newPath[MaxPath];
 
   ExtractFolder(newPath, sizeof(newPath));
-  if (!udStrcat(newPath, sizeof(newPath), filenameWithExtension))
+  if (!udStrcat(newPath, sizeof(newPath), pFilenameWithExtension))
     return false;
   return SetFromFullPath(newPath);
 }
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-bool udFilename::SetExtension(const char *extComponent)
+bool udFilename::SetExtension(const char *pExtComponent)
 {
   char newPath[MaxPath];
 
-  if (!udStrcpy(newPath, sizeof(newPath), m_path))
+  if (!udStrcpy(newPath, sizeof(newPath), path))
     return false;
-  newPath[m_extensionIndex] = 0; // Truncate the extension
-  if (!udStrcat(newPath, sizeof(newPath), extComponent))
+  newPath[extensionIndex] = 0; // Truncate the extension
+  if (!udStrcat(newPath, sizeof(newPath), pExtComponent))
     return false;
   return SetFromFullPath(newPath);
 }
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-int udFilename::ExtractFolder(char *folder, int folderLen)
+int udFilename::ExtractFolder(char *pFolder, int folderLen)
 {
-  int folderChars = m_filenameIndex;
-  if (folder != NULL)
-    udStrncpy(folder, folderLen, m_path, folderChars);
+  int folderChars = filenameIndex;
+  if (pFolder)
+    udStrncpy(pFolder, folderLen, path, folderChars);
   return folderChars + 1;
 }
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-int udFilename::ExtractFilenameOnly(char *filename, int filenameLen)
+int udFilename::ExtractFilenameOnly(char *pFilename, int filenameLen)
 {
-  int filenameChars = m_extensionIndex - m_filenameIndex;
-  if (filename != NULL)
+  int filenameChars = extensionIndex - filenameIndex;
+  if (pFilename)
   {
-    udStrncpy(filename, filenameLen, m_path + m_filenameIndex, filenameChars);
+    udStrncpy(pFilename, filenameLen, path + filenameIndex, filenameChars);
   }
   return filenameChars + 1;
 }
@@ -1291,21 +1317,21 @@ int udFilename::ExtractFilenameOnly(char *filename, int filenameLen)
 // Author: Dave Pevreal, March 2014
 void udFilename::CalculateIndices()
 {
-  int len = (int)strlen(m_path);
+  int len = (int)strlen(path);
   // Set filename and extension indices to null terminator as a sentinal
-  m_filenameIndex = -1;
-  m_extensionIndex = len; // If no extension, point extension to nul terminator
+  filenameIndex = -1;
+  extensionIndex = len; // If no extension, point extension to nul terminator
 
-  for (--len; len > 0 && (m_filenameIndex == -1 || m_extensionIndex == -1); --len)
+  for (--len; len > 0 && (filenameIndex == -1 || extensionIndex == -1); --len)
   {
-    if (m_path[m_extensionIndex] == 0 && m_path[len] == '.') // Last period
-      m_extensionIndex = len;
-    if (m_filenameIndex == -1 && (m_path[len] == '/' || m_path[len] == '\\' || m_path[len] == ':'))
-      m_filenameIndex = len + 1;
+    if (path[extensionIndex] == 0 && path[len] == '.') // Last period
+      extensionIndex = len;
+    if (filenameIndex == -1 && (path[len] == '/' || path[len] == '\\' || path[len] == ':'))
+      filenameIndex = len + 1;
   }
   // If no path indicators were found the filename is the beginning of the path
-  if (m_filenameIndex == -1)
-    m_filenameIndex = 0;
+  if (filenameIndex == -1)
+    filenameIndex = 0;
 }
 
 
@@ -1318,25 +1344,25 @@ void udFilename::Debug()
 
   ExtractFolder(folder, sizeof(folder));
   ExtractFilenameOnly(name, sizeof(name));
-  udDebugPrintf("folder<%s> name<%s> ext<%s> filename<%s> -> %s\n", folder, name, GetExt(), GetFilenameWithExt(), m_path);
+  udDebugPrintf("folder<%s> name<%s> ext<%s> filename<%s> -> %s\n", folder, name, GetExt(), GetFilenameWithExt(), path);
 }
 
 
 // *********************************************************************
 // Author: Dave Pevreal, March 2014
-udResult udURL::SetURL(const char *pURLText)
+udResult udURL::SetURL(const char *pURL)
 {
-  udFree(m_pURLText);
-  m_pScheme = s_udStrEmptyString;
-  m_pDomain = s_udStrEmptyString;
-  m_pPath = s_udStrEmptyString;
+  udFree(pURLText);
+  pScheme = s_udStrEmptyString;
+  pDomain = s_udStrEmptyString;
+  pPath = s_udStrEmptyString;
   static const char specialChars[]   = { ' ',  '#',   '%',   '+',   '?',   '\0', }; // Made for extending later, not wanting to encode any more than we need to
   static const char *pSpecialSubs[] = { "%20", "%23", "%25", "%2B", "%3F", "", };
 
-  if (pURLText)
+  if (pURL)
   {
     // Take a copy of the entire string
-    char *p = m_pURLText = udStrdup(pURLText, udStrlen(pURLText) * 3 + 2); // Add an extra chars for nul terminate domain, and URL encoding switches for every character (worst case)
+    char *p = pURLText = udStrdup(pURL, udStrlen(pURL) * 3 + 2); // Add an extra chars for nul terminate domain, and URL encoding switches for every character (worst case)
     if (!pURLText)
       return udR_MemoryAllocationFailure;
 
@@ -1347,7 +1373,7 @@ udResult udURL::SetURL(const char *pURLText)
 
     if (p[i] == ':') // Test in case of malformed url (potentially allowing a default scheme such as 'http'
     {
-      m_pScheme = p;
+      pScheme = p;
       p[i] = 0; // null terminate the scheme
       p = p + i + 1;
       // Skip over the // at start of domain (if present)
@@ -1356,21 +1382,21 @@ udResult udURL::SetURL(const char *pURLText)
     }
 
     // Isolate the domain - this is slightly painful because ipv6 has colons
-    m_pDomain = p;
+    pDomain = p;
     udStrchr(p, p[0] == '[' ? "/]" : "/:", &i); // Find the character that breaks the domain, but don't search past a slash
     if (p[0] == '[' && p[i] == ']') ++i; // Skip over closing bracket of ipv6 address
     if (p[i] == ':')
     {
       // A colon is present, so decode the port number
       int portChars;
-      m_port = udStrAtoi(&p[i+1], &portChars);
+      port = udStrAtoi(&p[i+1], &portChars);
       p[i] = 0; // null terminate the domain
       i += portChars + 1;
     }
     else
     {
-      // Otherwise let's assume port 80. TODO: Default port should be based on the scheme
-      m_port = 80;
+      // Otherwise assume port 443 for https, or 80 for anything else (should be http)
+      port = udStrEqual(pScheme, "https") ? 443 : 80;
       // Because no colon character exists to terminate the domain, move it forward by 1 byte
       if (p[i] != 0)
       {
@@ -1381,7 +1407,7 @@ udResult udURL::SetURL(const char *pURLText)
     p += i;
 
     // Finally, the path is the last component (for now, unless the class is extended to support splitting the query string too)
-    m_pPath = p;
+    pPath = p;
 
     // Now, find any "special" URL characters in the path and encode them
     while ((p = (char*)udStrchr(p, specialChars, nullptr, &charListIndex)) != nullptr)
