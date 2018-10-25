@@ -501,17 +501,15 @@ struct vcColumnHeader
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
-void vcSettings_LoadSettings(vcState *pProgramState, bool forceDefaults);
-void vcLogin(vcState *pProgramState);
-bool vcLogout(vcState *pProgramState);
-
 int64_t vcMain_GetCurrentTime()
 {
   return std::chrono::system_clock::now().time_since_epoch().count() / std::chrono::system_clock::period::den;
 }
 
-vdkError vcMain_UpdateSessionInfo(vcState *pProgramState)
+void vcMain_UpdateSessionInfo(void *pProgramStatePtr)
 {
+  vcState *pProgramState = (vcState*)pProgramStatePtr;
+
   const char *pSessionRawData = nullptr;
   udJSON info;
 
@@ -537,9 +535,85 @@ vdkError vcMain_UpdateSessionInfo(vcState *pProgramState)
       response = vE_Failure;
     }
   }
-  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pSessionRawData);
 
-  return response;
+  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pSessionRawData);
+}
+
+void vcLogin(void *pProgramStatePtr)
+{
+  vdkError result;
+  vcState *pProgramState = (vcState*)pProgramStatePtr;
+
+  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "ClientSample", pProgramState->settings.loginInfo.username, pProgramState->password);
+  if (result == vE_ConnectionFailure)
+    pProgramState->pLoginErrorMessage = "Could not connect to server.";
+  else if (result == vE_NotAllowed)
+    pProgramState->pLoginErrorMessage = "Username or Password incorrect.";
+  else if (result == vE_OutOfSync)
+    pProgramState->pLoginErrorMessage = "Your clock doesn't match the remote server clock.";
+  else if (result == vE_SecurityFailure)
+    pProgramState->pLoginErrorMessage = "Could not open a secure channel to the server.";
+  else if (result == vE_ServerFailure)
+    pProgramState->pLoginErrorMessage = "Unable to negotiate with server, please confirm the server address";
+  else if (result != vE_Success)
+    pProgramState->pLoginErrorMessage = "Unknown error occurred, please try again later.";
+
+  if (result != vE_Success)
+    return;
+
+  vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pVDKContext);
+
+  const char *pProjData = nullptr;
+  if (vdkServerAPI_Query(pProgramState->pVDKContext, "dev/projects", nullptr, &pProjData) == vE_Success)
+    pProgramState->projects.Parse(pProjData);
+  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pProjData);
+
+  vcMain_UpdateSessionInfo(pProgramState);
+
+  //Context Login successful
+  memset(pProgramState->password, 0, sizeof(pProgramState->password));
+  if (!pProgramState->settings.loginInfo.rememberServer)
+    memset(pProgramState->settings.loginInfo.serverURL, 0, sizeof(pProgramState->settings.loginInfo.serverURL));
+
+  if (!pProgramState->settings.loginInfo.rememberUsername)
+    memset(pProgramState->settings.loginInfo.username, 0, sizeof(pProgramState->settings.loginInfo.username));
+
+  pProgramState->pLoginErrorMessage = nullptr;
+  pProgramState->hasContext = true;
+}
+
+void vcLogout(vcState *pProgramState)
+{
+  pProgramState->hasContext = false;
+
+  if (pProgramState->pVDKContext != nullptr)
+  {
+    vcModel_UnloadList(pProgramState);
+    pProgramState->projects.Destroy();
+    memset(&pProgramState->gis, 0, sizeof(pProgramState->gis));
+    vdkContext_Disconnect(&pProgramState->pVDKContext);
+  }
+}
+
+void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
+{
+  if (vcSettings_Load(&pProgramState->settings, forceDefaults))
+  {
+#if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX
+    if (pProgramState->settings.window.fullscreen)
+      SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    else
+      SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
+
+    if (pProgramState->settings.window.maximized)
+      SDL_MaximizeWindow(pProgramState->pWindow);
+    else
+      SDL_RestoreWindow(pProgramState->pWindow);
+
+    SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
+    //SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
+#endif
+  }
 }
 
 int main(int argc, char **args)
@@ -601,6 +675,7 @@ int main(int argc, char **args)
   const float FontSize = 16.f;
   ImFontConfig fontCfg = ImFontConfig();
 
+  bool continueLoading = false;
   const char *pNextLoad = nullptr;
 
   // default values
@@ -629,6 +704,7 @@ int main(int argc, char **args)
   for (int i = 1; i < argc; ++i)
     programState.loadList.PushBack(udStrdup(args[i]));
 
+  vWorkerThread_StartThreads(&programState.pWorkerPool);
   vcConvert_Init(&programState);
 
   Uint64 NOW;
@@ -701,7 +777,7 @@ int main(int argc, char **args)
 
   ImGui::CreateContext();
   ImGui::GetIO().ConfigResizeWindowsFromEdges = true; // Fix for ImGuiWindowFlags_ResizeFromAnySide being removed
-  vcSettings_LoadSettings(&programState, false);
+  vcMain_LoadSettings(&programState, false);
 
   // setup watermark for background
   pEucWatermarkData = stbi_load(EucWatermarkPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0); // reusing the variables for width etc
@@ -733,6 +809,7 @@ int main(int argc, char **args)
     0x0E00, 0x0E7F, // Thai
     0x2010, 0x205E, // Punctuations
     0x25A0, 0x25FF, // Geometric Shapes
+    0x26A0, 0x26A1, // Exclamation in Triangle
     0x2DE0, 0x2DFF, // Cyrillic Extended-A
     0x3000, 0x30FF, // Punctuations, Hiragana, Katakana
     0x3131, 0x3163, // Korean alphabets
@@ -825,24 +902,32 @@ int main(int argc, char **args)
     if (programState.hasContext)
     {
       // Load next file in the load list (if there is one and the user has a context)
-      if (programState.loadList.length > 0)
+      do
       {
+        continueLoading = false;
         pNextLoad = nullptr;
-        programState.loadList.PopFront(&pNextLoad);
 
-        //TODO: Display a message here that the file couldn't be opened...
-        if (!vcModel_AddToList(&programState, pNextLoad))
-          vcConvert_AddFile(&programState, pNextLoad);
+        if (programState.loadList.PopFront(&pNextLoad))
+        {
+          udFilename loadFile(pNextLoad);
 
-        udFree(pNextLoad);
-      }
+          if (udStrEquali(loadFile.GetExt(), ".uds") || udStrEquali(loadFile.GetExt(), ".ssf") || udStrEquali(loadFile.GetExt(), ".udm") || udStrEquali(loadFile.GetExt(), ".udg"))
+          {
+            vcModel_AddToList(&programState, pNextLoad);
+            continueLoading = true;
+          }
+          else
+          {
+            vcConvert_AddFile(&programState, pNextLoad);
+          }
+
+          udFree(pNextLoad);
+        }
+      } while (continueLoading);
 
       // Ping the server every 30 seconds
       if (vcMain_GetCurrentTime() > programState.lastServerAttempt + 30)
-      {
-        if (vcMain_UpdateSessionInfo(&programState) == vE_NotAllowed)
-          vcLogout(&programState);
-      }
+        vWorkerThread_AddTask(programState.pWorkerPool, vcMain_UpdateSessionInfo, &programState, false);
     }
   }
 
@@ -867,6 +952,8 @@ epilogue:
   vcRender_Destroy(&programState.pRenderContext);
 
   vcGLState_Deinit();
+
+  vWorkerThread_Shutdown(&programState.pWorkerPool);
 
   return 0;
 }
@@ -1098,13 +1185,10 @@ int vcMainMenuGui(vcState *pProgramState)
     if (ImGui::BeginMenu("System"))
     {
       if (ImGui::MenuItem("Logout"))
-      {
-        if (!vcLogout(pProgramState))
-          ImGui::OpenPopup("Logout Error");
-      }
+        vcLogout(pProgramState);
 
       if (ImGui::MenuItem("Restore Defaults", nullptr))
-        vcSettings_LoadSettings(pProgramState, true);
+        vcMain_LoadSettings(pProgramState, true);
 
       ImGui::MenuItem("About", nullptr, &pProgramState->popupTrigger[vcPopup_About]);
 
@@ -1129,6 +1213,11 @@ int vcMainMenuGui(vcState *pProgramState)
     udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
     if (ImGui::BeginMenu("Projects", pProjectList != nullptr && pProjectList->length > 0))
     {
+      if (ImGui::MenuItem("New Scene", nullptr, nullptr))
+        vcModel_UnloadList(pProgramState);
+
+      ImGui::Separator();
+
       for (size_t i = 0; i < pProjectList->length; ++i)
       {
         if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr))
@@ -1136,7 +1225,7 @@ int vcMainMenuGui(vcState *pProgramState)
           vcModel_UnloadList(pProgramState);
 
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
-            pProgramState->loadList.PushBack(udStrdup(pProjectList->GetElement(i)->Get("models[%d]", j).AsString()));
+            vcModel_AddToList(pProgramState, pProjectList->GetElement(i)->Get("models[%d]", j).AsString());
         }
       }
 
@@ -1249,54 +1338,57 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::End();
     ImGui::PopStyleColor();
 
-    ImGui::SetNextWindowSize(ImVec2(500, 160));
-    if (ImGui::Begin("Login", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
+    if (udStrEqual(pProgramState->pLoginErrorMessage, "Pending"))
     {
-      if (pProgramState->pLoginErrorMessage != nullptr)
-        ImGui::Text("%s", pProgramState->pLoginErrorMessage);
+      ImGui::SetNextWindowSize(ImVec2(500, 160));
+      if (ImGui::Begin("Login##LoginWaiting", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
+        ImGui::Text("Checking with server...");
+      ImGui::End();
+    }
+    else
+    {
+      ImGui::SetNextWindowSize(ImVec2(500, 160));
+      if (ImGui::Begin("Login", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
+      {
+        if (pProgramState->pLoginErrorMessage != nullptr)
+          ImGui::Text("%s", pProgramState->pLoginErrorMessage);
 
-      bool tryLogin = false;
+        bool tryLogin = false;
 
-      // Server URL
-      tryLogin |= ImGui::InputText("ServerURL", pProgramState->settings.loginInfo.serverURL, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
-      if (pProgramState->pLoginErrorMessage == nullptr && !pProgramState->settings.loginInfo.rememberServer)
-        ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
-      ImGui::SameLine();
-      ImGui::Checkbox("Remember##rememberServerURL", &pProgramState->settings.loginInfo.rememberServer);
+        // Server URL
+        tryLogin |= ImGui::InputText("ServerURL", pProgramState->settings.loginInfo.serverURL, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+        if (pProgramState->pLoginErrorMessage == nullptr && !pProgramState->settings.loginInfo.rememberServer)
+          ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
+        ImGui::SameLine();
+        ImGui::Checkbox("Remember##rememberServerURL", &pProgramState->settings.loginInfo.rememberServer);
 
-      // Username
-      tryLogin |= ImGui::InputText("Username", pProgramState->settings.loginInfo.username, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
-      if (pProgramState->pLoginErrorMessage == nullptr && pProgramState->settings.loginInfo.rememberServer && !pProgramState->settings.loginInfo.rememberUsername)
-        ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
-      ImGui::SameLine();
-      ImGui::Checkbox("Remember##rememberUsername", &pProgramState->settings.loginInfo.rememberUsername);
+        // Username
+        tryLogin |= ImGui::InputText("Username", pProgramState->settings.loginInfo.username, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+        if (pProgramState->pLoginErrorMessage == nullptr && pProgramState->settings.loginInfo.rememberServer && !pProgramState->settings.loginInfo.rememberUsername)
+          ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
+        ImGui::SameLine();
+        ImGui::Checkbox("Remember##rememberUsername", &pProgramState->settings.loginInfo.rememberUsername);
 
-      // Password
-      tryLogin |= ImGui::InputText("Password", pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
-      if (pProgramState->pLoginErrorMessage == nullptr && pProgramState->settings.loginInfo.rememberServer && pProgramState->settings.loginInfo.rememberUsername)
-        ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
+        // Password
+        tryLogin |= ImGui::InputText("Password", pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
+        if (pProgramState->pLoginErrorMessage == nullptr && pProgramState->settings.loginInfo.rememberServer && pProgramState->settings.loginInfo.rememberUsername)
+          ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
 
-      if (pProgramState->pLoginErrorMessage == nullptr)
-        pProgramState->pLoginErrorMessage = "Please enter your credentials...";
+        if (pProgramState->pLoginErrorMessage == nullptr)
+          pProgramState->pLoginErrorMessage = "Please enter your credentials...";
 
-      if (ImGui::Button("Login!") || tryLogin)
-        vcLogin(pProgramState);
+        if (ImGui::Button("Login!") || tryLogin)
+        {
+          pProgramState->pLoginErrorMessage = "Pending";
+          vWorkerThread_AddTask(pProgramState->pWorkerPool, vcLogin, pProgramState, false);
+        }
+      }
+      ImGui::End();
     }
 
-    ImGui::End();
   }
   else
   {
-    if (ImGui::BeginPopupModal("Logout Error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-    {
-      ImGui::Text("Error logging out! (0x00)");
-      if (ImGui::Button("OK", ImVec2(120, 0)))
-        ImGui::CloseCurrentPopup();
-
-      ImGui::SetItemDefaultFocus();
-      ImGui::EndPopup();
-    }
-
     if (ImGui::BeginDock("Scene Explorer", &pProgramState->settings.window.windowsOpen[vcdSceneExplorer]))
     {
       ImGui::InputText("", pProgramState->modelPath, vcMaxPathLength);
@@ -1340,7 +1432,6 @@ void vcRenderWindow(vcState *pProgramState)
       float offset = 0.f;
       for (size_t i = 0; i < UDARRAYSIZE(headers); ++i)
       {
-
         ImGui::Text("%s", headers[i].pLabel);
         ImGui::SetColumnOffset(-1, offset);
         offset += headers[i].size;
@@ -1356,14 +1447,56 @@ void vcRenderWindow(vcState *pProgramState)
         char modelLabelID[32] = "";
         udSprintf(modelLabelID, UDARRAYSIZE(modelLabelID), "ModelLabel%i", i);
         ImGui::PushID(modelLabelID);
-        if (ImGui::Selectable(pProgramState->vcModelList[i].modelPath, pProgramState->vcModelList[i].modelSelected))
+
+        const char *loadingChars[] = { "\xE2\x96\xB2", "\xE2\x96\xB6", "\xE2\x96\xBC", "\xE2\x97\x80" };
+        static uint8_t currentLoadingChar = 0;
+
+        if (i == 0)
+          ++currentLoadingChar;
+
+        if (pProgramState->vcModelList[i].loadStatus == vcMLS_Pending)
+        {
+          ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Yellow Exclamation in Triangle
+          ImGui::SameLine();
+
+          if (ImGui::IsItemHovered())
+          {
+            ImGui::BeginTooltip();
+            ImGui::Text("Pending");
+            ImGui::EndTooltip();
+          }
+        }
+        else if (pProgramState->vcModelList[i].loadStatus == vcMLS_Loading)
+        {
+          ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", loadingChars[currentLoadingChar % udLengthOf(loadingChars)]); // Yellow Spinning clock
+          ImGui::SameLine();
+
+          if (ImGui::IsItemHovered())
+          {
+            ImGui::BeginTooltip();
+            ImGui::Text("Loading");
+            ImGui::EndTooltip();
+          }
+        }
+        else if (pProgramState->vcModelList[i].loadStatus == vcMLS_Failed)
+        {
+          ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Red Exclamation in Triangle
+          ImGui::SameLine();
+
+          if (ImGui::IsItemHovered())
+          {
+            ImGui::BeginTooltip();
+            ImGui::Text("Failed");
+            ImGui::EndTooltip();
+          }
+        }
+
+        if (ImGui::Selectable(pProgramState->vcModelList[i].path, pProgramState->vcModelList[i].selected))
         {
           if ((modState & KMOD_CTRL) == 0)
           {
             for (size_t j = 0; j < pProgramState->vcModelList.length; ++j)
-            {
-              pProgramState->vcModelList[j].modelSelected = false;
-            }
+              pProgramState->vcModelList[j].selected = false;
 
             pProgramState->numSelectedModels = 0;
           }
@@ -1374,14 +1507,14 @@ void vcRenderWindow(vcState *pProgramState)
             size_t endInd = udMax(i, pProgramState->prevSelectedModel);
             for (size_t j = startInd; j <= endInd; ++j)
             {
-              pProgramState->vcModelList[j].modelSelected = true;
+              pProgramState->vcModelList[j].selected = true;
               pProgramState->numSelectedModels++;
             }
           }
           else
           {
-            pProgramState->vcModelList[i].modelSelected = !pProgramState->vcModelList[i].modelSelected;
-            pProgramState->numSelectedModels += pProgramState->vcModelList[i].modelSelected ? 1 : 0;
+            pProgramState->vcModelList[i].selected = !pProgramState->vcModelList[i].selected;
+            pProgramState->numSelectedModels += (pProgramState->vcModelList[i].selected ? 1 : 0);
           }
 
           pProgramState->prevSelectedModel = i;
@@ -1428,9 +1561,9 @@ void vcRenderWindow(vcState *pProgramState)
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
           vcModel_MoveToModelProjection(pProgramState, &pProgramState->vcModelList[i]);
 
-        ImVec2 textSize = ImGui::CalcTextSize(pProgramState->vcModelList[i].modelPath);
+        ImVec2 textSize = ImGui::CalcTextSize(pProgramState->vcModelList[i].path);
         if (ImGui::IsItemHovered() && (textSize.x >= headers[0].size))
-          ImGui::SetTooltip("%s", pProgramState->vcModelList[i].modelPath);
+          ImGui::SetTooltip("%s", pProgramState->vcModelList[i].path);
 
         ImGui::PopID();
         ImGui::NextColumn();
@@ -1438,12 +1571,12 @@ void vcRenderWindow(vcState *pProgramState)
         char checkboxID[32] = "";
         udSprintf(checkboxID, UDARRAYSIZE(checkboxID), "ModelVisibleCheckbox%i", i);
         ImGui::PushID(checkboxID);
-        if (ImGui::Checkbox("", &(pProgramState->vcModelList[i].modelVisible)) && pProgramState->vcModelList[i].modelSelected && pProgramState->numSelectedModels > 1)
+        if (ImGui::Checkbox("", &(pProgramState->vcModelList[i].visible)) && pProgramState->vcModelList[i].selected && pProgramState->numSelectedModels > 1)
         {
           for (size_t j = 0; j < pProgramState->vcModelList.length; ++j)
           {
-            if (pProgramState->vcModelList[j].modelSelected)
-              pProgramState->vcModelList[j].modelVisible = pProgramState->vcModelList[i].modelVisible;
+            if (pProgramState->vcModelList[j].selected)
+              pProgramState->vcModelList[j].visible = pProgramState->vcModelList[i].visible;
           }
         }
 
@@ -1455,12 +1588,12 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::PushID(unloadModelID);
         if (ImGui::Button("X", ImVec2(20, 20)))
         {
-          if (pProgramState->numSelectedModels > 1 && pProgramState->vcModelList[i].modelSelected) // if multiple selected and removed
+          if (pProgramState->numSelectedModels > 1 && pProgramState->vcModelList[i].selected) // if multiple selected and removed
           {
             //unload selected models
             for (size_t j = 0; j < pProgramState->vcModelList.length; ++j)
             {
-              if (pProgramState->vcModelList[j].modelSelected)
+              if (pProgramState->vcModelList[j].selected)
               {
                 vcModel_RemoveFromList(pProgramState, j);
                 j--;
@@ -1710,7 +1843,7 @@ void vcRenderWindow(vcState *pProgramState)
     {
       ImGui::Text("File:");
 
-      ImGui::TextWrapped("  %s", pProgramState->vcModelList[pProgramState->selectedModelProperties.index].modelPath);
+      ImGui::TextWrapped("  %s", pProgramState->vcModelList[pProgramState->selectedModelProperties.index].path);
 
       ImGui::Separator();
 
@@ -1794,80 +1927,4 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::EndPopup();
     }
   }
-}
-
-void vcSettings_LoadSettings(vcState *pProgramState, bool forceDefaults)
-{
-  if (vcSettings_Load(&pProgramState->settings, forceDefaults))
-  {
-#if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX
-    if (pProgramState->settings.window.fullscreen)
-      SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
-    else
-      SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
-
-    if (pProgramState->settings.window.maximized)
-      SDL_MaximizeWindow(pProgramState->pWindow);
-    else
-      SDL_RestoreWindow(pProgramState->pWindow);
-
-    SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
-    //SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
-#endif
-  }
-}
-
-void vcLogin(vcState *pProgramState)
-{
-  vdkError result;
-
-  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "ClientSample", pProgramState->settings.loginInfo.username, pProgramState->password);
-  if (result == vE_ConnectionFailure)
-    pProgramState->pLoginErrorMessage = "Could not connect to server.";
-  else if (result == vE_NotAllowed)
-    pProgramState->pLoginErrorMessage = "Username or Password incorrect.";
-  else if (result == vE_OutOfSync)
-    pProgramState->pLoginErrorMessage = "Your clock doesn't match the remote server clock.";
-  else if (result != vE_Success)
-    pProgramState->pLoginErrorMessage = "Unknown error occurred, please try again later.";
-
-  if (result != vE_Success)
-    return;
-
-  vcRender_CreateTerrain(pProgramState->pRenderContext, &pProgramState->settings);
-  vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pVDKContext);
-
-  const char *pProjData = nullptr;
-  if (vdkServerAPI_Query(pProgramState->pVDKContext, "dev/projects", nullptr, &pProjData) == vE_Success)
-    pProgramState->projects.Parse(pProjData);
-  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pProjData);
-
-  vcMain_UpdateSessionInfo(pProgramState);
-
-  //Context Login successful
-  memset(pProgramState->password, 0, sizeof(pProgramState->password));
-  if (!pProgramState->settings.loginInfo.rememberServer)
-    memset(pProgramState->settings.loginInfo.serverURL, 0, sizeof(pProgramState->settings.loginInfo.serverURL));
-
-  if (!pProgramState->settings.loginInfo.rememberUsername)
-    memset(pProgramState->settings.loginInfo.username, 0, sizeof(pProgramState->settings.loginInfo.username));
-
-  pProgramState->pLoginErrorMessage = nullptr;
-  pProgramState->hasContext = true;
-}
-
-bool vcLogout(vcState *pProgramState)
-{
-  bool success = true;
-
-  success &= vcModel_UnloadList(pProgramState);
-  success &= (vcRender_DestroyTerrain(pProgramState->pRenderContext) == udR_Success);
-
-  pProgramState->projects.Destroy();
-  memset(&pProgramState->gis, 0, sizeof(pProgramState->gis));
-
-  success = success && vdkContext_Disconnect(&pProgramState->pVDKContext) == vE_Success;
-  pProgramState->hasContext = !success;
-
-  return success;
 }
