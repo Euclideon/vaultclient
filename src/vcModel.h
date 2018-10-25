@@ -7,26 +7,40 @@ struct vdkModel;
 class udJSON;
 struct vcTexture;
 
+enum vcModelLoadStatus
+{
+  vcMLS_Pending,
+  vcMLS_Loading,
+  vcMLS_Loaded,
+  vcMLS_Failed,
+  vcMLS_Unloaded,
+
+  VCMLS_Count
+};
+
 struct vcModel
 {
-  char modelPath[1024];
-  bool modelLoaded;
-  bool modelVisible;
-  bool modelSelected;
+  char path[1024];
+  volatile int32_t loadStatus;
+  bool visible;
+  bool selected;
+
   bool flipYZ;
   udDouble4x4 worldMatrix;
-  vdkModel *pVaultModel;
+  vdkModel *pVDKModel;
   udJSON *pMetadata;
-  vcTexture *pWatermark;
+
+  bool hasWatermark; // True if the model has a watermark (might not be loaded)
+  vcTexture *pWatermark; // If the watermark is loaded, it will be here
 
   udGeoZone *pZone; // nullptr if not geolocated
 };
 
 #include "vcState.h"
 
-bool vcModel_AddToList(vcState *pProgramState, const char *pFilePath);
-bool vcModel_RemoveFromList(vcState *pProgramState, size_t index);
-bool vcModel_UnloadList(vcState *pProgramState);
+void vcModel_AddToList(vcState *pProgramState, const char *pFilePath);
+void vcModel_RemoveFromList(vcState *pProgramState, size_t index);
+void vcModel_UnloadList(vcState *pProgramState);
 void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel);
 
 bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel);

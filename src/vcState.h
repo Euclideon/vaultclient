@@ -6,6 +6,8 @@
 #include "udPlatform/udChunkedArray.h"
 #include "udPlatform/udJSON.h"
 
+#include "vCore/vWorkerThread.h"
+
 #include "vcSettings.h"
 #include "vcModel.h"
 #include "vcGIS.h"
@@ -41,6 +43,7 @@ struct vcState
 
   udChunkedArray<const char *> loadList;
   udChunkedArray<vcModel> vcModelList;
+  vWorkerThreadPool *pWorkerPool;
 
   size_t numSelectedModels;
   size_t prevSelectedModel;
