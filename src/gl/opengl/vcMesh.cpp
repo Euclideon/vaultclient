@@ -95,6 +95,9 @@ epilogue:
 
 void vcMesh_Destroy(vcMesh **ppMesh)
 {
+  if (ppMesh == nullptr || *ppMesh == nullptr)
+    return;
+
   glDeleteBuffers(1, &(*ppMesh)->vbo);
   glDeleteBuffers(1, &(*ppMesh)->ibo);
   glDeleteVertexArrays(1, &(*ppMesh)->vao);
