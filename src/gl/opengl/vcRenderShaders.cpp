@@ -5,8 +5,8 @@
 # define FRAG_HEADER "#version 300 es\nprecision highp float;\n"
 # define VERT_HEADER "#version 300 es\n"
 #else
-# define FRAG_HEADER "#version 330 core\n"
-# define VERT_HEADER "#version 330 core\n"
+# define FRAG_HEADER "#version 330 core\n#extension GL_ARB_explicit_attrib_location : enable\n"
+# define VERT_HEADER "#version 330 core\n#extension GL_ARB_explicit_attrib_location : enable\n"
 #endif
 
 const char* const g_udFragmentShader = FRAG_HEADER R"shader(
