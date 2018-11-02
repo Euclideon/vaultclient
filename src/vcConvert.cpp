@@ -413,10 +413,17 @@ void vcConvert_ShowUI(vcState *pProgramState)
     ImGui::Text("No watermark. Drop a file on the editor to add one");
   }
 
-  ImGui::InputText("Author", pSelectedJob->author, udLengthOf(pSelectedJob->author));
-  ImGui::InputText("Comment", pSelectedJob->comment, udLengthOf(pSelectedJob->comment));
-  ImGui::InputText("Copyright", pSelectedJob->copyright, udLengthOf(pSelectedJob->copyright));
-  ImGui::InputText("License", pSelectedJob->license, udLengthOf(pSelectedJob->license));
+  if (ImGui::InputText("Author", pSelectedJob->author, udLengthOf(pSelectedJob->author)))
+    vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "Author", pSelectedJob->author);
+
+  if (ImGui::InputText("Comment", pSelectedJob->comment, udLengthOf(pSelectedJob->comment)))
+    vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "Comment", pSelectedJob->comment);
+
+  if (ImGui::InputText("Copyright", pSelectedJob->copyright, udLengthOf(pSelectedJob->copyright)))
+    vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "Copyright", pSelectedJob->copyright);
+
+  if (ImGui::InputText("License", pSelectedJob->license, udLengthOf(pSelectedJob->license)))
+    vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "License", pSelectedJob->license);
 
   ImGui::Separator();
   if (pSelectedJob->pConvertInfo->totalItems > 0)
