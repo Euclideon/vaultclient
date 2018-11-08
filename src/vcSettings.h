@@ -61,6 +61,8 @@ struct vcSettings
     bool showAdvancedGIS;
     bool showCompass;
     bool limitFPSInBackground;
+
+    int pointMode;
   } presentation;
 
   struct
@@ -139,6 +141,8 @@ struct vcSettings
 
     vcMapTileBlendMode blendMode;
     float transparency;
+
+    bool mouseInteracts;
   } maptiles;
 };
 

@@ -19,6 +19,7 @@
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
 #include "vcConvert.h"
+#include "vcVersion.h"
 
 #include "udPlatform/udFile.h"
 
@@ -739,13 +740,7 @@ int main(int argc, char **args)
   // Stop window from being minimized while fullscreened and focus is lost
   SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 
-#ifdef GIT_BUILD
-#define WINDOW_SUFFIX " (" UDSTRINGIFY(GIT_BUILD) " - " __DATE__ ") "
-#else
-#define WINDOW_SUFFIX " (DEV/DO NOT DISTRIBUTE - " __DATE__ ")"
-#endif
-
-  programState.pWindow = ImGui_ImplSDL2_CreateWindow("Euclideon Client" WINDOW_SUFFIX, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, programState.sceneResolution.x, programState.sceneResolution.y, windowFlags);
+  programState.pWindow = ImGui_ImplSDL2_CreateWindow(VCVERSION_WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, programState.sceneResolution.x, programState.sceneResolution.y, windowFlags);
   if (!programState.pWindow)
     goto epilogue;
 
@@ -902,6 +897,7 @@ int main(int argc, char **args)
     if (programState.hasContext)
     {
       // Load next file in the load list (if there is one and the user has a context)
+      bool firstLoad = true;
       do
       {
         continueLoading = false;
@@ -913,7 +909,7 @@ int main(int argc, char **args)
 
           if (udStrEquali(loadFile.GetExt(), ".uds") || udStrEquali(loadFile.GetExt(), ".ssf") || udStrEquali(loadFile.GetExt(), ".udm") || udStrEquali(loadFile.GetExt(), ".udg"))
           {
-            vcModel_AddToList(&programState, pNextLoad);
+            vcModel_AddToList(&programState, pNextLoad, firstLoad);
             continueLoading = true;
           }
           else
@@ -923,6 +919,8 @@ int main(int argc, char **args)
 
           udFree(pNextLoad);
         }
+
+        firstLoad = false;
       } while (continueLoading);
 
       // Ping the server every 30 seconds
@@ -1027,6 +1025,10 @@ void vcRenderSceneWindow(vcState *pProgramState)
           if (vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position))
             vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
         }
+
+        static udDouble4 translateOffset = udDouble4::zero();
+        if (ImGui::InputScalarN("Translate Offset", ImGuiDataType_Double, &translateOffset.x, 4, 0, 0, "%.5f"))
+          vcModel_UpdateMatrix(pProgramState, nullptr, translateOffset); // Update all models to new zone
       }
 
       ImGui::Separator();
@@ -1243,7 +1245,7 @@ int vcMainMenuGui(vcState *pProgramState)
 
     int64_t currentTime = vcMain_GetCurrentTime();
 
-    for (int i = 0; i < vdkLT_Total; ++i)
+    for (int i = 0; i < vdkLT_Count; ++i)
     {
       vdkLicenseInfo info = {};
       if (vdkContext_GetLicenseInfo(pProgramState->pVDKContext, (vdkLicenseType)i, &info) == vE_Success)
@@ -1656,6 +1658,8 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::Checkbox("Show On Screen Compass", &pProgramState->settings.presentation.showCompass);
         ImGui::Checkbox("Show Advanced GIS Settings", &pProgramState->settings.presentation.showAdvancedGIS);
         ImGui::Checkbox("Limit FPS In Background", &pProgramState->settings.presentation.limitFPSInBackground);
+
+        ImGui::Combo("Voxel Shape", &pProgramState->settings.presentation.pointMode, "Rectangles\0Cubes\0");
       }
 
       if (ImGui::CollapsingHeader("Input & Controls##Settings"))
@@ -1742,6 +1746,8 @@ void vcRenderWindow(vcState *pProgramState)
 
         if (pProgramState->settings.maptiles.mapEnabled)
         {
+          ImGui::Checkbox("Mouse can lock to maps", &pProgramState->settings.maptiles.mouseInteracts);
+
           ImGui::InputText("Tile Server", pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength);
 
           ImGui::SliderFloat("Map Height", &pProgramState->settings.maptiles.mapHeight, -1000.f, 1000.f, "%.3fm", 2.f);
