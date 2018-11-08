@@ -7,7 +7,7 @@ struct udRay
   udQuaternion<T> orientation;
 
   // static members
-  static udRay<T> create(const udVector3<T> &position, const udQuaternion<T> &orientation) { udPlane<T> r = { position, normal }; return r; }
+  static udRay<T> create(const udVector3<T> &position, const udQuaternion<T> &orientation) { udRay<T> r = { position, orientation }; return r; }
   template <typename U>
   static udRay<T> create(const udRay<U> &_v) { udRay<T> r = { udVector3<T>::create(_v.position), udQuaternion<T>::create(_v.orientation) }; return r; }
 };
