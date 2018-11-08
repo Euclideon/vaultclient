@@ -79,6 +79,7 @@ struct vcState
 
   char password[vcMaxPathLength];
   const char *pLoginErrorMessage;
+  const char *pReleaseNotes; //Only loaded when requested
 
   char modelPath[vcMaxPathLength];
 

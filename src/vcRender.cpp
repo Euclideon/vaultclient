@@ -424,6 +424,20 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
   pRenderContext->viewProjectionMatrix = pRenderContext->projectionMatrix * pRenderContext->viewMatrix;
   pRenderContext->inverseViewProjectionMatrix = udInverse(pRenderContext->viewProjectionMatrix);
 
+  // Calculate the mouse ray
+  {
+    udDouble2 mousePos = udDouble2::create(((double)renderData.mouse.x / pRenderContext->sceneResolution.x) * 2.0 - 1.0, 1.0 - ((double)renderData.mouse.y / pRenderContext->sceneResolution.y) * 2.0);
+
+    udDouble4 mouseNear = (pRenderContext->inverseViewProjectionMatrix * udDouble4::create(mousePos, 0.f, 1.0));
+    udDouble4 mouseFar = (pRenderContext->inverseViewProjectionMatrix * udDouble4::create(mousePos, 1.f, 1.0));
+
+    mouseNear /= mouseNear.w;
+    mouseFar /= mouseFar.w;
+
+    renderData.worldMouseRay.position = mouseNear.toVector3();
+    renderData.worldMouseRay.orientation = udQuaternionFromMatrix(udDouble4x4::lookAt(udDouble3::zero(), udNormalize3(mouseFar - mouseNear).toVector3(), renderData.cameraMatrix.axis.z.toVector3()));
+  }
+
   vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true);
 
   vcRender_RenderAndUploadUDToTexture(pRenderContext, renderData);

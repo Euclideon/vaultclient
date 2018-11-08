@@ -5,6 +5,23 @@ struct udRay
 {
   udVector3<T> position;
   udQuaternion<T> orientation;
+
+  // static members
+  static udRay<T> create(const udVector3<T> &position, const udQuaternion<T> &orientation) { udPlane<T> r = { position, normal }; return r; }
+  template <typename U>
+  static udRay<T> create(const udRay<U> &_v) { udRay<T> r = { udVector3<T>::create(_v.position), udQuaternion<T>::create(_v.orientation) }; return r; }
+};
+
+template <typename T>
+struct udPlane
+{
+  udVector3<T> point;
+  udVector3<T> normal;
+
+  // static members
+  static udPlane<T> create(const udVector3<T> &position, const udVector3<T> &normal) { udPlane<T> r = { position, normal }; return r; }
+  template <typename U>
+  static udPlane<T> create(const udPlane<U> &_v) { udPlane<T> r = { udVector3<T>::create(_v.point), udVector3<T>::create(_v.normal) }; return r; }
 };
 
 template <typename T>
@@ -128,4 +145,31 @@ static udVector3<T> udClosestPointOnOOBB(const udVector3<T> &point, const udMatr
   udExtractTransform(oobbMatrix, origin, scale, rotation);
   udVector3<T> localPoint = udInverse(rotation).apply(point - origin);
   return origin + rotation.apply(udClamp(localPoint, udDouble3::zero(), scale));
+}
+
+template <typename T>
+static udResult udIntersect(const udPlane<T> &plane, const udRay<T> &ray, udVector3<T> *pPointInterception = nullptr, T *pIntersectionDistance = nullptr)
+{
+  udResult result = udR_Success;
+
+  udVector3<T> rayDir = ray.orientation.apply({ 0, 1, 0 });
+  udVector3<T> planeRay = plane.point - ray.position;
+
+  T denom = udDot(plane.normal, rayDir);
+  T distance = 0;
+
+  UD_ERROR_IF(denom == T(0), udR_Failure_); // Parallel to the ray
+
+  distance = udDot(planeRay, plane.normal) / denom;
+
+  UD_ERROR_IF(distance < 0, udR_Failure_); // Behind the ray
+
+  if (pPointInterception)
+    *pPointInterception = ray.position + rayDir * distance;
+
+  if (pIntersectionDistance)
+    *pIntersectionDistance = distance;
+
+epilogue:
+  return result;
 }

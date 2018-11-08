@@ -11,6 +11,7 @@ project "vaultClient"
 	files { "3rdParty/stb/**.h" }
 	files { "project.lua" }
 	files { "docs/**.md" }
+	files { "builds/releasenotes.md" }
 
 	removefiles { "src/gl/*/*" }
 
