@@ -17,6 +17,12 @@ enum vcCameraPivotMode
   vcCPM_Pan,
 };
 
+enum vcCameraScrollWheelMode
+{
+  vcCSWM_Dolly,
+  vcCSWM_ChangeMoveSpeed
+};
+
 struct vcCamera
 {
   udDouble3 position;
@@ -51,6 +57,7 @@ struct vcCameraInput
 
   udDouble3 keyboardInput;
   udDouble3 mouseInput;
+  udRay<double> mouseRay;
 };
 
 struct vcCameraSettings
@@ -64,6 +71,7 @@ struct vcCameraSettings
   int lensIndex;
   vcCameraMoveMode moveMode;
   vcCameraPivotMode cameraMouseBindings[3]; // bindings for camera settings
+  vcCameraScrollWheelMode scrollWheelMode;
 };
 
 // Lens Sizes
@@ -99,6 +107,6 @@ udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera);
 // Applies movement to camera
 void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraInput *pCamInput, double deltaTime, float speedModifier = 1.f);
 
-void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove);
+void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udRay<double> mouseRay);
 
 #endif//vcCamera_h__
