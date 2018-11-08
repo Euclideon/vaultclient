@@ -228,6 +228,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvGISOptions").AsBool(false);
     pSettings->presentation.showCompass = data.Get("showCompass").AsBool(true);
     pSettings->presentation.limitFPSInBackground = data.Get("limitFPSInBackground").AsBool(true);
+    pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
 
     switch (pSettings->presentation.styleIndex)
     {
@@ -313,6 +314,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(1);
     pSettings->maptiles.transparency = data.Get("maptiles.transparency").AsFloat(1.f);
     pSettings->maptiles.mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
+    pSettings->maptiles.mouseInteracts = data.Get("maptiles.mouseInteracts").AsBool(true);
     udStrcpy(pSettings->maptiles.tileServerAddress, sizeof(pSettings->maptiles.tileServerAddress), data.Get("maptiles.serverURL").AsString("http://20.188.211.58"));
 
     // Docks
@@ -348,6 +350,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("showAdvancedGISOptions = %s", pSettings->presentation.showAdvancedGIS ? "true" : "false");
   data.Set("showCompass = %s", pSettings->presentation.showCompass ? "true" : "false");
   data.Set("limitFPSInBackground = %s", pSettings->presentation.limitFPSInBackground ? "true" : "false");
+  data.Set("pointMode = %d", pSettings->presentation.pointMode);
 
   // Windows
   data.Set("window.position.x = %d", pSettings->window.xpos);
@@ -430,6 +433,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("maptiles.blendMode = %d", pSettings->maptiles.blendMode);
   data.Set("maptiles.transparency = %f", pSettings->maptiles.transparency);
   data.Set("maptiles.mapHeight = %f", pSettings->maptiles.mapHeight);
+  data.Set("maptiles.mouseInteracts = %s", pSettings->maptiles.mouseInteracts ? "true" : "false");
 
   tempNode.SetString(pSettings->maptiles.tileServerAddress);
   data.Set(&tempNode, "maptiles.serverURL");

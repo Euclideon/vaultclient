@@ -11,13 +11,19 @@ Version 0.1.1 (Incoming)
   - Fixed issue with invert X and invert Y not affecting orbit mode
   - Fixed a number of minor memory leaks
   - Fixed an issue where background workers would occasionally get distracted and stop working
-  - Added scroll wheel binding so users of Geoverse MDM can use the scroll wheel to set move speed
+  - Fixed an issue where models with no attribute channels converted using convert were unable to be loaded in Geoverse MDM
+  - When loading models you will now move to the location of the first file in the batch
+  - Added new settings
+    - Point Mode for different voxel modes, currently only supporting Rectangles and Cubes (EVA-169)
+    - Allow mouse Interaction with map (when enabled, the mouse ray will intersect with the map; allowing orbit & pan to work on the map)
+    - Added scroll wheel binding so users of Geoverse MDM can use the scroll wheel to set move speed
   - Doubled the max far plane to near plane ratio (now 20000) (EVA-396)
-  - Added release notes (EVA-405)
+  - Added release notes (EVA-405)4
   - Various improvements fixed via a VDK update
     - CSV total points are updated at end of processing (EVA-362)
     - Improved error detection during initial connection process
     - UDS files are unlocked in the OS after being removed from the scene (Resolves EVA-382)
+  - Changed our version numbering system, now [Major].[Minor].[Revision].[BuildID]
 
 Version 0.1.0
   - Initial Public Release
