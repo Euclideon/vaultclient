@@ -936,6 +936,7 @@ int main(int argc, char **args)
   ImGui::DestroyContext();
 
 epilogue:
+  udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
   ImGuiGL_DestroyDeviceObjects();
   vcConvert_Deinit(&programState);
@@ -1028,20 +1029,17 @@ void vcRenderSceneWindow(vcState *pProgramState)
         }
       }
 
-      if (pProgramState->settings.presentation.showDiagnosticInfo)
+      ImGui::Separator();
+      if (ImGui::IsMousePosValid())
       {
-        ImGui::Separator();
-        if (ImGui::IsMousePosValid())
+        if (pProgramState->pickingSuccess)
         {
-          if (pProgramState->pickingSuccess)
-          {
-            ImGui::Text("Mouse World Pos (x/y/z): (%f,%f,%f)", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
+          ImGui::Text("Mouse Point (Projected): %.2f, %.2f, %.2f", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
 
-            if (pProgramState->gis.isProjected)
-            {
-              udDouble3 mousePointInLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, renderData.worldMousePos);
-              ImGui::Text("Mouse World Pos (L/L): (%f,%f)", mousePointInLatLong.x, mousePointInLatLong.y);
-            }
+          if (pProgramState->gis.isProjected)
+          {
+            udDouble3 mousePointInLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, renderData.worldMousePos);
+            ImGui::Text("Mouse Point (WGS84): %.6f, %.6f", mousePointInLatLong.x, mousePointInLatLong.y);
           }
         }
       }
@@ -1173,7 +1171,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 #endif
   ImGui::ImageButton(pTexture, size, uv0, uv1, 0);
 
-  vcCamera_HandleSceneInput(pProgramState, moveOffset);
+  vcCamera_HandleSceneInput(pProgramState, moveOffset, renderData.worldMouseRay);
 }
 
 int vcMainMenuGui(vcState *pProgramState)
@@ -1386,6 +1384,18 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::End();
     }
 
+    ImGui::SetNextWindowPos(ImVec2(size.x, 0), ImGuiCond_Always, ImVec2(1.f, 0.f));
+    ImGui::SetNextWindowSize(ImVec2(600, size.y - 200), ImGuiCond_Always);
+    ImGui::SetNextWindowCollapsed(true, ImGuiCond_Appearing);
+    if (ImGui::Begin("Release Notes", nullptr, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+    {
+      if (pProgramState->pReleaseNotes == nullptr)
+        udFile_Load("releasenotes.md", (void**)&pProgramState->pReleaseNotes);
+
+      if (pProgramState->pReleaseNotes != nullptr)
+        ImGui::TextWrapped("%s", pProgramState->pReleaseNotes);
+    }
+    ImGui::End();
   }
   else
   {
@@ -1663,18 +1673,16 @@ void vcRenderWindow(vcState *pProgramState)
 
         ImGui::Text("Mouse Pivot Bindings");
         const char *mouseModes[] = { "Tumble", "Orbit", "Pan" };
+        const char *scrollwheelModes[] = { "Dolly", "Change Move Speed" };
 
-        int mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[0];
-        ImGui::Combo("Left", &mouseBindingIndex, mouseModes, (int)udLengthOf(mouseModes));
-        pProgramState->settings.camera.cameraMouseBindings[0] = (vcCameraPivotMode)mouseBindingIndex;
+        // Checks so the casts below are safe
+        UDCOMPILEASSERT(sizeof(pProgramState->settings.camera.cameraMouseBindings[0]) == sizeof(int), "Bindings is no longer sizeof(int)");
+        UDCOMPILEASSERT(sizeof(pProgramState->settings.camera.scrollWheelMode) == sizeof(int), "ScrollWheel is no longer sizeof(int)");
 
-        mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[2];
-        ImGui::Combo("Middle", &mouseBindingIndex, mouseModes, (int)udLengthOf(mouseModes));
-        pProgramState->settings.camera.cameraMouseBindings[2] = (vcCameraPivotMode)mouseBindingIndex;
-
-        mouseBindingIndex = pProgramState->settings.camera.cameraMouseBindings[1];
-        ImGui::Combo("Right", &mouseBindingIndex, mouseModes, (int)udLengthOf(mouseModes));
-        pProgramState->settings.camera.cameraMouseBindings[1] = (vcCameraPivotMode)mouseBindingIndex;
+        ImGui::Combo("Left", (int*)&pProgramState->settings.camera.cameraMouseBindings[0], mouseModes, (int)udLengthOf(mouseModes));
+        ImGui::Combo("Middle", (int*)&pProgramState->settings.camera.cameraMouseBindings[2], mouseModes, (int)udLengthOf(mouseModes));
+        ImGui::Combo("Right", (int*)&pProgramState->settings.camera.cameraMouseBindings[1], mouseModes, (int)udLengthOf(mouseModes));
+        ImGui::Combo("Scroll Wheel", (int*)&pProgramState->settings.camera.scrollWheelMode, scrollwheelModes, (int)udLengthOf(scrollwheelModes));
       }
 
       if (ImGui::CollapsingHeader("Viewport##Settings"))
