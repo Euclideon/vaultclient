@@ -1675,6 +1675,10 @@ void vcRenderWindow(vcState *pProgramState)
         const char *mouseModes[] = { "Tumble", "Orbit", "Pan" };
         const char *scrollwheelModes[] = { "Dolly", "Change Move Speed" };
 
+        // Checks so the casts below are safe
+        UDCOMPILEASSERT(sizeof(pProgramState->settings.camera.cameraMouseBindings[0]) == sizeof(int), "Bindings is no longer sizeof(int)");
+        UDCOMPILEASSERT(sizeof(pProgramState->settings.camera.scrollWheelMode) == sizeof(int), "ScrollWheel is no longer sizeof(int)");
+
         ImGui::Combo("Left", (int*)&pProgramState->settings.camera.cameraMouseBindings[0], mouseModes, (int)udLengthOf(mouseModes));
         ImGui::Combo("Middle", (int*)&pProgramState->settings.camera.cameraMouseBindings[2], mouseModes, (int)udLengthOf(mouseModes));
         ImGui::Combo("Right", (int*)&pProgramState->settings.camera.cameraMouseBindings[1], mouseModes, (int)udLengthOf(mouseModes));
