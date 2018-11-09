@@ -1,6 +1,6 @@
 Euclideon Vault Client Version History
 
-Version 0.1.1 (WIP)
+Version 0.1.1 (Incoming)
   - Improved camera panning to move based on hovered point (EVA-289)
   - UDS, UDG, SSF and UDM files are immediately added to scene and then processed in the background
   - Login and Keep alive are handled in the background with better error messages (EVA-388)
