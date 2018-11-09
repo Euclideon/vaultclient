@@ -271,6 +271,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->camera.cameraMouseBindings[0] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[0]").AsInt(vcCPM_Tumble);
     pSettings->camera.cameraMouseBindings[1] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[1]").AsInt(vcCPM_Pan);
     pSettings->camera.cameraMouseBindings[2] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[2]").AsInt(vcCPM_Orbit);
+    pSettings->camera.scrollWheelMode = (vcCameraScrollWheelMode)data.Get("camera.scrollwheelBinding").AsInt(vcCSWM_Dolly);
 
     // Visualization
     pSettings->visualization.mode = (vcVisualizatationMode)data.Get("visualization.mode").AsInt(0);
@@ -387,6 +388,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.invertY = %s", pSettings->camera.invertY ? "true" : "false");
   data.Set("camera.moveMode = %d", pSettings->camera.moveMode);
   data.Set("camera.cameraMouseBindings = [%d, %d, %d]", pSettings->camera.cameraMouseBindings[0], pSettings->camera.cameraMouseBindings[1], pSettings->camera.cameraMouseBindings[2]);
+  data.Set("camera.scrollwheelBinding = %d", pSettings->camera.scrollWheelMode);
 
   // Visualization
   data.Set("visualization.mode = %d", pSettings->visualization.mode);
