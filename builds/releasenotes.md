@@ -18,7 +18,7 @@ Version 0.1.1 (Incoming)
     - Allow mouse Interaction with map (when enabled, the mouse ray will intersect with the map; allowing orbit & pan to work on the map)
     - Added scroll wheel binding so users of Geoverse MDM can use the scroll wheel to set move speed
   - Doubled the max far plane to near plane ratio (now 20000) (EVA-396)
-  - Added release notes (EVA-405)4
+  - Added release notes (EVA-405)
   - Various improvements fixed via a VDK update
     - CSV total points are updated at end of processing (EVA-362)
     - Improved error detection during initial connection process
