@@ -38,10 +38,10 @@ struct vcModel
 
 #include "vcState.h"
 
-void vcModel_AddToList(vcState *pProgramState, const char *pFilePath);
+void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpToModelOnLoad = true);
 void vcModel_RemoveFromList(vcState *pProgramState, size_t index);
 void vcModel_UnloadList(vcState *pProgramState);
-void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel);
+void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel, udDouble4 offsetT = udDouble4::zero());
 
 bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel);
 

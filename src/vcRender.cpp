@@ -405,6 +405,22 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
     // for now just rebuild terrain every frame
     vcTerrain_BuildTerrain(pRenderContext->pTerrain, renderData.pGISSpace, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pRenderContext->viewProjectionMatrix);
     vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->viewMatrix, pRenderContext->projectionMatrix);
+
+    if (pRenderContext->pSettings->maptiles.mouseInteracts)
+    {
+      udPlane<double> mapPlane = udPlane<double>::create({ 0, 0, pRenderContext->pSettings->maptiles.mapHeight }, { 0, 0, 1 });
+
+      udDouble3 hitPoint;
+      double hitDistance;
+      if (udIntersect(mapPlane, renderData.worldMouseRay, &hitPoint, &hitDistance) == udR_Success)
+      {
+        if (hitDistance < pRenderContext->pSettings->camera.farPlane && (!renderData.pickingSuccess || hitDistance < udMag3(renderData.worldMousePos - localCamPos)))
+        {
+          renderData.pickingSuccess = true;
+          renderData.worldMousePos = hitPoint;
+        }
+      }
+    }
   }
 }
 
@@ -512,6 +528,8 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
     vdkRenderContext_ShowColor(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer);
     break;
   }
+
+  vdkRenderContext_SetPointMode(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, (vdkRenderContextPointMode)pRenderContext->pSettings->presentation.pointMode);
 
   if (renderData.models.length > 0)
     ppModels = udAllocStack(vdkModel*, renderData.models.length, udAF_None);
