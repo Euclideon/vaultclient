@@ -160,6 +160,9 @@ solution "vaultClient"
 	end
 
 	-- Numbers
+	if os.getenv("CI_COMMIT_TAG") then
+		defines { "GIT_TAG=" .. os.getenv("CI_PIPELINE_ID") }
+	end
 	if os.getenv("CI_PIPELINE_ID") then
 		defines { "GIT_BUILD=" .. os.getenv("CI_PIPELINE_ID") }
 	end

@@ -10,6 +10,7 @@
 
 struct vcModelLoadInfo
 {
+  bool jumpToLocation;
   vcState *pProgramState;
   vcModel *pModel;
 };
@@ -63,7 +64,10 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
       }
     }
 
-    vcModel_UpdateMatrix(pLoadInfo->pProgramState, nullptr); // Set all model matrices
+    if (pLoadInfo->jumpToLocation)
+      vcModel_MoveToModelProjection(pLoadInfo->pProgramState, pLoadInfo->pModel);
+    else
+      vcModel_UpdateMatrix(pLoadInfo->pProgramState, nullptr); // Set all model matrices
     pLoadInfo->pModel->loadStatus = vcMLS_Loaded;
   }
   else
@@ -72,7 +76,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
   }
 }
 
-void vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
+void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpToModelOnLoad /*= true*/)
 {
   if (pFilePath == nullptr)
     return;
@@ -93,6 +97,7 @@ void vcModel_AddToList(vcState *pProgramState, const char *pFilePath)
       // Prepare the load info
       pLoadInfo->pModel = pModel;
       pLoadInfo->pProgramState = pProgramState;
+      pLoadInfo->jumpToLocation = jumpToModelOnLoad;
 
       // Queue for load
       vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModel_LoadModel, pLoadInfo);
@@ -134,12 +139,12 @@ void vcModel_UnloadList(vcState *pProgramState)
     vcModel_RemoveFromList(pProgramState, 0);
 }
 
-void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel)
+void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel, udDouble4 offsetT)
 {
   if (!pModel)
   {
     for (size_t i = 0; i < pProgramState->vcModelList.length; ++i)
-      vcModel_UpdateMatrix(pProgramState, &pProgramState->vcModelList[i]);
+      vcModel_UpdateMatrix(pProgramState, &pProgramState->vcModelList[i], offsetT);
   }
   else
   {
@@ -152,6 +157,8 @@ void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel)
       matrix.axis.y = matrix.axis.z;
       matrix.axis.z = rowz;
     }
+
+    matrix = udDouble4x4::rotationZ(offsetT.w, offsetT.toVector3()) * matrix;
 
     // Handle transforming into the camera's GeoZone
     if (pProgramState->gis.isProjected && pModel->pZone != nullptr && pProgramState->gis.SRID != pModel->pZone->srid)
