@@ -13,6 +13,7 @@ enum vcModelLoadStatus
   vcMLS_Loading,
   vcMLS_Loaded,
   vcMLS_Failed,
+  vcMLS_OpenFailure,
   vcMLS_Unloaded,
 
   VCMLS_Count
