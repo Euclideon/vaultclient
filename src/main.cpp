@@ -1103,7 +1103,7 @@ void vcRenderWindow(vcState *pProgramState)
             ImGui::EndTooltip();
           }
         }
-        else if (pProgramState->vcModelList[i].loadStatus == vcMLS_Failed)
+        else if (pProgramState->vcModelList[i].loadStatus == vcMLS_Failed || pProgramState->vcModelList[i].loadStatus == vcMLS_OpenFailure)
         {
           ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Red Exclamation in Triangle
           ImGui::SameLine();
@@ -1111,7 +1111,10 @@ void vcRenderWindow(vcState *pProgramState)
           if (ImGui::IsItemHovered())
           {
             ImGui::BeginTooltip();
-            ImGui::Text("Failed");
+            if (pProgramState->vcModelList[i].loadStatus == vcMLS_OpenFailure)
+              ImGui::Text("Could not open the model, perhaps it is missing or you don't have permission to access it.");
+            else
+              ImGui::Text("Failed to load model");
             ImGui::EndTooltip();
           }
         }
