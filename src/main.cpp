@@ -140,6 +140,20 @@ void vcLogin(void *pProgramStatePtr)
     pProgramState->projects.Parse(pProjData);
   vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pProjData);
 
+  const char *pPackageData = nullptr;
+  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/packages/latest", "{ \"packagename\": \"EuclideonClient\", \"packagevariant\": \"Windows\" }", &pPackageData) == vE_Success)
+  {
+    pProgramState->packageInfo.Parse(pPackageData);
+    if (pProgramState->packageInfo.Get("success").AsBool())
+    {
+      if (pProgramState->packageInfo.Get("package.versionnumber").AsInt() <= VCVERSION_BUILD_NUMBER || VCVERSION_BUILD_NUMBER == 0)
+        pProgramState->packageInfo.Destroy();
+      else
+        pProgramState->popupTrigger[vcPopup_NewVersionAvailable] = true;
+    }
+  }
+  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pPackageData);
+
   vcMain_UpdateSessionInfo(pProgramState);
 
   //Context Login successful
@@ -773,10 +787,10 @@ int vcMainMenuGui(vcState *pProgramState)
 
     if (ImGui::BeginMenu("Windows"))
     {
-      ImGui::MenuItem("Scene", nullptr, &pProgramState->settings.window.windowsOpen[vcdScene]);
-      ImGui::MenuItem("Scene Explorer", nullptr, &pProgramState->settings.window.windowsOpen[vcdSceneExplorer]);
-      ImGui::MenuItem("Settings", nullptr, &pProgramState->settings.window.windowsOpen[vcdSettings]);
-      ImGui::MenuItem("Convert", nullptr, &pProgramState->settings.window.windowsOpen[vcdConvert]);
+      ImGui::MenuItem("Scene", nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Scene]);
+      ImGui::MenuItem("Scene Explorer", nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]);
+      ImGui::MenuItem("Settings", nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Settings]);
+      ImGui::MenuItem("Convert", nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Convert]);
       ImGui::Separator();
       ImGui::EndMenu();
     }
@@ -810,6 +824,9 @@ int vcMainMenuGui(vcState *pProgramState)
 
     if ((SDL_GetWindowFlags(pProgramState->pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0)
       udStrcat(endBarInfo, udLengthOf(endBarInfo), "Inactive / ");
+
+    if (pProgramState->packageInfo.Get("success").AsBool())
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("Update Available [%s] / ", pProgramState->packageInfo.Get("package.versionstring").AsString()));
 
     if (pProgramState->settings.presentation.showDiagnosticInfo)
       udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("FPS: %.3f (%.2fms) / ", 1.f / pProgramState->deltaTime, pProgramState->deltaTime * 1000.f));
@@ -991,7 +1008,7 @@ void vcRenderWindow(vcState *pProgramState)
   }
   else
   {
-    if (ImGui::BeginDock("Scene Explorer", &pProgramState->settings.window.windowsOpen[vcdSceneExplorer]))
+    if (ImGui::BeginDock("Scene Explorer", &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
     {
       ImGui::InputText("", pProgramState->modelPath, vcMaxPathLength);
       ImGui::SameLine();
@@ -1222,15 +1239,15 @@ void vcRenderWindow(vcState *pProgramState)
     }
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcdScene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
+    if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
       vcRenderSceneWindow(pProgramState);
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("Convert", &pProgramState->settings.window.windowsOpen[vcdConvert]))
+    if (ImGui::BeginDock("Convert", &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
       vcConvert_ShowUI(pProgramState);
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("Settings", &pProgramState->settings.window.windowsOpen[vcdSettings]))
+    if (ImGui::BeginDock("Settings", &pProgramState->settings.window.windowsOpen[vcDocks_Settings]))
     {
       if (ImGui::CollapsingHeader("Appearance##Settings"))
       {
@@ -1244,11 +1261,15 @@ void vcRenderWindow(vcState *pProgramState)
           }
         }
 
+        // Checks so the casts below are safe
+        UDCOMPILEASSERT(sizeof(pProgramState->settings.presentation.mouseAnchor) == sizeof(int), "MouseAnchor is no longer sizeof(int)");
+
         ImGui::Checkbox("Show Diagnostic Information", &pProgramState->settings.presentation.showDiagnosticInfo);
-        ImGui::Checkbox("Show On Screen Compass", &pProgramState->settings.presentation.showCompass);
         ImGui::Checkbox("Show Advanced GIS Settings", &pProgramState->settings.presentation.showAdvancedGIS);
         ImGui::Checkbox("Limit FPS In Background", &pProgramState->settings.presentation.limitFPSInBackground);
 
+        ImGui::Checkbox("Show Compass On Screen", &pProgramState->settings.presentation.showCompass);
+        ImGui::Combo("Mouse Anchor Style", (int*)&pProgramState->settings.presentation.mouseAnchor, "None\0Orbit\0Compass\0");
         ImGui::Combo("Voxel Shape", &pProgramState->settings.presentation.pointMode, "Rectangles\0Cubes\0");
       }
 
@@ -1506,6 +1527,11 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
       ImGui::Text("Euclideon Client");
 
+      ImGui::Text("Version: %s", VCVERSION_PRODUCT_STRING);
+
+      if (pProgramState->packageInfo.Get("success").AsBool())
+        ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "Update Available to %s in your Vault Server.", pProgramState->packageInfo.Get("package.versionstring").AsString());
+
       ImGui::NextColumn();
       if (ImGui::Button("Close", ImVec2(-1, 0)))
         ImGui::CloseCurrentPopup();
@@ -1526,6 +1552,39 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::TextUnformatted(ThirdPartyLicenses[i].pLicense);
         ImGui::Separator();
       }
+      ImGui::EndChild();
+
+      ImGui::EndPopup();
+    }
+
+    if (pProgramState->popupTrigger[vcPopup_NewVersionAvailable])
+    {
+      ImGui::OpenPopup("New Version Available");
+      pProgramState->popupTrigger[vcPopup_NewVersionAvailable] = false;
+      ImGui::SetNextWindowSize(ImVec2(500, 600));
+    }
+
+    if (ImGui::BeginPopupModal("New Version Available"))
+    {
+      ImGui::Columns(2, NULL, false);
+      ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
+      ImGui::Text("Euclideon Client");
+
+      ImGui::Text("Current Version: %s", VCVERSION_PRODUCT_STRING);
+      ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "New Version: %s", pProgramState->packageInfo.Get("package.versionstring").AsString());
+
+      ImGui::Text("Please visit the Vault server in your browser to download the package.");
+
+      ImGui::NextColumn();
+      if (ImGui::Button("Close", ImVec2(-1, 0)))
+        ImGui::CloseCurrentPopup();
+
+      ImGui::Columns(1);
+
+      ImGui::Separator();
+
+      ImGui::BeginChild("Release Notes");
+      ImGui::TextUnformatted(pProgramState->packageInfo.Get("package.releasenotes").AsString());
       ImGui::EndChild();
 
       ImGui::EndPopup();

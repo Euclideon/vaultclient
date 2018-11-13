@@ -226,6 +226,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
 
     pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvGISOptions").AsBool(false);
+    pSettings->presentation.mouseAnchor = (vcAnchorStyle)data.Get("mouseAnchor").AsInt(vcAS_Orbit);
     pSettings->presentation.showCompass = data.Get("showCompass").AsBool(true);
     pSettings->presentation.limitFPSInBackground = data.Get("limitFPSInBackground").AsBool(true);
     pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
@@ -246,10 +247,10 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->window.fullscreen = data.Get("window.fullscreen").AsBool(false);
     pSettings->window.touchscreenFriendly = data.Get("window.touchscreenFriendly").AsBool(false);
 
-    pSettings->window.windowsOpen[vcdScene] = data.Get("frames.scene").AsBool(true);
-    pSettings->window.windowsOpen[vcdSettings] = data.Get("frames.settings").AsBool(true);
-    pSettings->window.windowsOpen[vcdSceneExplorer] = data.Get("frames.explorer").AsBool(true);
-    pSettings->window.windowsOpen[vcdConvert] = data.Get("frames.convert").AsBool(false);
+    pSettings->window.windowsOpen[vcDocks_Scene] = data.Get("frames.scene").AsBool(true);
+    pSettings->window.windowsOpen[vcDocks_Settings] = data.Get("frames.settings").AsBool(true);
+    pSettings->window.windowsOpen[vcDocks_SceneExplorer] = data.Get("frames.explorer").AsBool(true);
+    pSettings->window.windowsOpen[vcDocks_Convert] = data.Get("frames.convert").AsBool(false);
 
     // Login Info
     pSettings->loginInfo.rememberServer = data.Get("login.rememberServer").AsBool(false);
@@ -348,6 +349,7 @@ bool vcSettings_Save(vcSettings *pSettings)
 
   data.Set("showDiagnosticInfo = %s", pSettings->presentation.showDiagnosticInfo ? "true" : "false");
   data.Set("showAdvancedGISOptions = %s", pSettings->presentation.showAdvancedGIS ? "true" : "false");
+  data.Set("mouseAnchor = %d", pSettings->presentation.mouseAnchor);
   data.Set("showCompass = %s", pSettings->presentation.showCompass ? "true" : "false");
   data.Set("limitFPSInBackground = %s", pSettings->presentation.limitFPSInBackground ? "true" : "false");
   data.Set("pointMode = %d", pSettings->presentation.pointMode);
@@ -361,10 +363,10 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("window.fullscreen = %s", pSettings->window.fullscreen ? "true" : "false");
   data.Set("window.touchscreenFriendly = %s", pSettings->window.touchscreenFriendly ? "true" : "false");
 
-  data.Set("frames.scene = %s", pSettings->window.windowsOpen[vcdScene] ? "true" : "false");
-  data.Set("frames.settings = %s", pSettings->window.windowsOpen[vcdSettings] ? "true" : "false");
-  data.Set("frames.explorer = %s", pSettings->window.windowsOpen[vcdSceneExplorer] ? "true" : "false");
-  data.Set("frames.convert = %s", pSettings->window.windowsOpen[vcdConvert] ? "true" : "false");
+  data.Set("frames.scene = %s", pSettings->window.windowsOpen[vcDocks_Scene] ? "true" : "false");
+  data.Set("frames.settings = %s", pSettings->window.windowsOpen[vcDocks_Settings] ? "true" : "false");
+  data.Set("frames.explorer = %s", pSettings->window.windowsOpen[vcDocks_SceneExplorer] ? "true" : "false");
+  data.Set("frames.convert = %s", pSettings->window.windowsOpen[vcDocks_Convert] ? "true" : "false");
 
   // Login Info
   data.Set("login.rememberServer = %s", pSettings->loginInfo.rememberServer ? "true" : "false");
