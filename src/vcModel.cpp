@@ -21,58 +21,67 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
   int32_t status = udInterlockedCompareExchange(&pLoadInfo->pModel->loadStatus, vcMLS_Loading, vcMLS_Pending);
 
-  if (status == vcMLS_Pending && vdkModel_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->pVDKModel, pLoadInfo->pModel->path) == vE_Success)
+  if (status == vcMLS_Pending)
   {
-    const char *pMetadata;
-    pLoadInfo->pModel->pMetadata = udAllocType(udJSON, 1, udAF_Zero);
-    if (vdkModel_GetMetadata(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->pVDKModel, &pMetadata) == vE_Success)
+    vdkError modelStatus = vdkModel_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->pVDKModel, pLoadInfo->pModel->path);
+    if (modelStatus == vE_Success)
     {
-      pLoadInfo->pModel->pMetadata->Parse(pMetadata);
+      const char *pMetadata;
+      pLoadInfo->pModel->pMetadata = udAllocType(udJSON, 1, udAF_Zero);
 
-      pLoadInfo->pModel->hasWatermark = pLoadInfo->pModel->pMetadata->Get("Watermark").IsString();
-
-      vcSRID srid = 0;
-      udJSON tempNode;
-
-      const char *pSRID = pLoadInfo->pModel->pMetadata->Get("ProjectionID").AsString();
-      if (pSRID != nullptr)
+      if (vdkModel_GetMetadata(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->pVDKModel, &pMetadata) == vE_Success)
       {
-        pSRID = udStrchr(pSRID, ":");
+        pLoadInfo->pModel->pMetadata->Parse(pMetadata);
+
+        pLoadInfo->pModel->hasWatermark = pLoadInfo->pModel->pMetadata->Get("Watermark").IsString();
+
+        vcSRID srid = 0;
+        udJSON tempNode;
+
+        const char *pSRID = pLoadInfo->pModel->pMetadata->Get("ProjectionID").AsString();
         if (pSRID != nullptr)
-          srid = udStrAtou(&pSRID[1]);
-      }
-
-      const char *pWKT = pLoadInfo->pModel->pMetadata->Get("ProjectionWKT").AsString();
-      if (srid == 0 && pWKT != nullptr && udParseWKT(&tempNode, pWKT) == udR_Success)
-      {
-        for (size_t i = 0; i < tempNode.Get("values").ArrayLength(); ++i)
         {
-          if (udStrEquali(tempNode.Get("values[%llu].type", i).AsString(), "AUTHORITY"))
-          {
-            srid = tempNode.Get("values[%llu].values[0]", i).AsInt();
-            break;
-          }
+          pSRID = udStrchr(pSRID, ":");
+          if (pSRID != nullptr)
+            srid = udStrAtou(&pSRID[1]);
         }
 
-        pLoadInfo->pModel->pMetadata->Set(&tempNode, "ProjectionWKT");
+        const char *pWKT = pLoadInfo->pModel->pMetadata->Get("ProjectionWKT").AsString();
+        if (srid == 0 && pWKT != nullptr && udParseWKT(&tempNode, pWKT) == udR_Success)
+        {
+          for (size_t i = 0; i < tempNode.Get("values").ArrayLength(); ++i)
+          {
+            if (udStrEquali(tempNode.Get("values[%llu].type", i).AsString(), "AUTHORITY"))
+            {
+              srid = tempNode.Get("values[%llu].values[0]", i).AsInt();
+              break;
+            }
+          }
+
+          pLoadInfo->pModel->pMetadata->Set(&tempNode, "ProjectionWKT");
+        }
+
+        if (srid != 0)
+        {
+          pLoadInfo->pModel->pZone = udAllocType(udGeoZone, 1, udAF_Zero);
+          udGeoZone_SetFromSRID(pLoadInfo->pModel->pZone, srid);
+        }
       }
 
-      if (srid != 0)
-      {
-        pLoadInfo->pModel->pZone = udAllocType(udGeoZone, 1, udAF_Zero);
-        udGeoZone_SetFromSRID(pLoadInfo->pModel->pZone, srid);
-      }
+      if (pLoadInfo->jumpToLocation)
+        vcModel_MoveToModelProjection(pLoadInfo->pProgramState, pLoadInfo->pModel);
+      else
+        vcModel_UpdateMatrix(pLoadInfo->pProgramState, nullptr); // Set all model matrices
+      pLoadInfo->pModel->loadStatus = vcMLS_Loaded;
     }
-
-    if (pLoadInfo->jumpToLocation)
-      vcModel_MoveToModelProjection(pLoadInfo->pProgramState, pLoadInfo->pModel);
+    else if (modelStatus == vE_OpenFailure)
+    {
+      pLoadInfo->pModel->loadStatus = vcMLS_OpenFailure;
+    }
     else
-      vcModel_UpdateMatrix(pLoadInfo->pProgramState, nullptr); // Set all model matrices
-    pLoadInfo->pModel->loadStatus = vcMLS_Loaded;
-  }
-  else
-  {
-    pLoadInfo->pModel->loadStatus = vcMLS_Failed;
+    {
+      pLoadInfo->pModel->loadStatus = vcMLS_Failed;
+    }
   }
 }
 
