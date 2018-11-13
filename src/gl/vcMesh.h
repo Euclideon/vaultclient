@@ -21,6 +21,6 @@ void vcMesh_Destroy(vcMesh **ppMesh);
 
 udResult vcMesh_UploadData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, int totalTypes, const void* pVerts, int totalVerts, const void *pIndices, int totalIndices);
 
-bool vcMesh_RenderTriangles(vcMesh *pMesh, uint32_t triangleCount, uint32_t startTriangle = 0);
+bool vcMesh_RenderTriangles(vcMesh *pMesh, uint32_t triangleCount = 0, uint32_t startTriangle = 0);
 
 #endif // vcMesh_h__

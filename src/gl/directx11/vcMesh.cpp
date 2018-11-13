@@ -156,8 +156,11 @@ epilogue:
 
 bool vcMesh_RenderTriangles(vcMesh *pMesh, uint32_t numTriangles, uint32_t startIndex)
 {
-  if (pMesh == nullptr || numTriangles == 0 || pMesh->indexCount < (numTriangles + startIndex) * 3)
+  if (pMesh == nullptr || pMesh->indexCount < (numTriangles + startIndex) * 3 || (numTriangles == 0 && startIndex != 0))
     return false;
+
+  if (numTriangles == 0)
+    numTriangles = (pMesh->indexCount / 3);
 
   unsigned int stride = pMesh->vertexSize;
   unsigned int offset = 0;

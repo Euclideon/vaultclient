@@ -543,7 +543,7 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
 
   if (vdkConvert_AddItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
   {
-    pProgramState->settings.window.windowsOpen[vcdConvert] = true;
+    pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
     return true;
   }
 
@@ -551,7 +551,7 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
   if (vdkConvert_AddWatermark(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
   {
     pSelectedJob->watermark.isDirty = true;
-    pProgramState->settings.window.windowsOpen[vcdConvert] = true;
+    pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
     return true;
   }
 

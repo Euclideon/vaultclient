@@ -26,6 +26,7 @@ enum vcPopupTriggerID
 {
   vcPopup_ModelProperties,
   vcPopup_About,
+  vcPopup_NewVersionAvailable,
 
   vcPopupCount
 };
@@ -85,6 +86,7 @@ struct vcState
 
   vcSettings settings;
   udJSON projects;
+  udJSON packageInfo;
 };
 
 #endif // !vcState_h__
