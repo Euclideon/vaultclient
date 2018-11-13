@@ -970,12 +970,18 @@ void vcRenderWindow(vcState *pProgramState)
           pProgramState->pLoginErrorMessage = "Pending";
           vWorkerThread_AddTask(pProgramState->pWorkerPool, vcLogin, pProgramState, false);
         }
+
+        if (SDL_GetModState() & KMOD_CAPS)
+        {
+          ImGui::SameLine();
+          ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "Caps Lock is Enabled!");
+        }
       }
       ImGui::End();
     }
 
     ImGui::SetNextWindowPos(ImVec2(size.x, 0), ImGuiCond_Always, ImVec2(1.f, 0.f));
-    ImGui::SetNextWindowSize(ImVec2(600, size.y - 200), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(800, size.y - 200), ImGuiCond_Always);
     ImGui::SetNextWindowCollapsed(true, ImGuiCond_Appearing);
     if (ImGui::Begin("Release Notes", nullptr, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
     {
