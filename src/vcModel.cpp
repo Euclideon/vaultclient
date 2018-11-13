@@ -174,7 +174,7 @@ bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel)
   if (pProgramState == nullptr || pModel == nullptr)
     return false;
 
-  if (pModel->pZone != nullptr && vcGIS_ChangeSpace(&pProgramState->gis, pModel->pZone->srid))
+  if ((pModel->pZone != nullptr && vcGIS_ChangeSpace(&pProgramState->gis, pModel->pZone->srid)) || (pModel->pZone == nullptr && vcGIS_ChangeSpace(&pProgramState->gis, 0)))
     vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
 
   pProgramState->pCamera->position = vcModel_GetMidPointLocalSpace(pProgramState, pModel);
