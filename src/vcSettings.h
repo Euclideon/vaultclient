@@ -23,16 +23,18 @@ enum vcMapTileBlendMode
   vcMTBM_Hybrid,
   vcMTBM_Overlay,
   vcMTBM_Underlay,
+
+  vcMTBM_Count
 };
 
 enum vcDocks
 {
-  vcdScene,
-  vcdSettings,
-  vcdSceneExplorer,
-  vcdConvert,
+  vcDocks_Scene,
+  vcDocks_Settings,
+  vcDocks_SceneExplorer,
+  vcDocks_Convert,
 
-  vcdTotalDocks
+  vcDocks_Count
 };
 
 enum vcVisualizatationMode
@@ -41,7 +43,16 @@ enum vcVisualizatationMode
   vcVM_Intensity,
   vcVM_Classification,
 
-  vcVM_TotalModes
+  vcVM_Count
+};
+
+enum vcAnchorStyle
+{
+  vcAS_None,
+  vcAS_Orbit,
+  vcAS_Compass,
+
+  vcAS_Count
 };
 
 enum
@@ -59,7 +70,10 @@ struct vcSettings
     int styleIndex;
     bool showDiagnosticInfo;
     bool showAdvancedGIS;
+
+    vcAnchorStyle mouseAnchor;
     bool showCompass;
+
     bool limitFPSInBackground;
 
     int pointMode;
@@ -75,7 +89,7 @@ struct vcSettings
     bool fullscreen;
     bool touchscreenFriendly;
 
-    bool windowsOpen[vcdTotalDocks];
+    bool windowsOpen[vcDocks_Count];
   } window;
 
   struct

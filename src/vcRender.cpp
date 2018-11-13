@@ -82,7 +82,7 @@ struct vcRenderContext
   udDouble4x4 inverseViewProjectionMatrix;
 
   vcTerrain *pTerrain;
-  vcCompass *pCompass;
+  vcAnchor *pCompass;
 
   struct
   {
@@ -344,24 +344,6 @@ void vcPresentUD(vcRenderContext *pRenderContext)
 
 void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-  // world compass
-  {
-    if (renderData.pickingSuccess || (renderData.pWorldAnchorPos != nullptr))
-    {
-      udDouble4x4 mvp = pRenderContext->viewProjectionMatrix * udDouble4x4::translation(renderData.pWorldAnchorPos ? *renderData.pWorldAnchorPos : renderData.worldMousePos);
-      vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
-      vcGLState_SetDepthMode(vcGLSDM_Less, false);
-      vcCompass_Render(pRenderContext->pCompass, mvp);
-
-      // Render again, this time highlighting any occlusion
-      vcGLState_SetBlendMode(vcGLSBM_Additive);
-      vcGLState_SetDepthMode(vcGLSDM_Greater, false);
-      vcCompass_Render(pRenderContext->pCompass, mvp, udDouble4::create(0.0, 0.15, 1.0, 0.5));
-
-      vcGLState_ResetState();
-    }
-  }
-
   if (renderData.pGISSpace->isProjected && pRenderContext->pSettings->maptiles.mapEnabled)
   {
     udDouble4x4 cameraMatrix = renderData.cameraMatrix;
@@ -467,12 +449,27 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
   vcRenderSkybox(pRenderContext);
   vcRenderTerrain(pRenderContext, renderData);
 
+  if (pRenderContext->pSettings->presentation.mouseAnchor != vcAS_None && (renderData.pickingSuccess || (renderData.pWorldAnchorPos != nullptr)))
+  {
+    udDouble4x4 mvp = pRenderContext->viewProjectionMatrix * udDouble4x4::translation(renderData.pWorldAnchorPos ? *renderData.pWorldAnchorPos : renderData.worldMousePos);
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
+    vcGLState_SetDepthMode(vcGLSDM_Less, false);
+    vcCompass_Render(pRenderContext->pCompass, pRenderContext->pSettings->presentation.mouseAnchor, mvp);
+
+    // Render again, this time highlighting any occlusion
+    vcGLState_SetBlendMode(vcGLSBM_Additive);
+    vcGLState_SetDepthMode(vcGLSDM_Greater, false);
+    vcCompass_Render(pRenderContext->pCompass, pRenderContext->pSettings->presentation.mouseAnchor, mvp, udDouble4::create(0.0, 0.15, 1.0, 0.5));
+
+    vcGLState_ResetState();
+  }
+
   if (pRenderContext->pSettings->presentation.showCompass)
   {
     udDouble4x4 cameraRotation = udDouble4x4::rotationYPR(renderData.cameraMatrix.extractYPR());
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     vcGLState_SetDepthMode(vcGLSDM_Always, false);
-    vcCompass_Render(pRenderContext->pCompass, udDouble4x4::perspective(fov, aspect, 0.01, 2.0) * udDouble4x4::translation(fov * 0.45 * aspect, 1.0, -fov * 0.45) * udDouble4x4::scaleUniform(fov / 20.0) * udInverse(cameraRotation));
+    vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspective(fov, aspect, 0.01, 2.0) * udDouble4x4::translation(fov * 0.45 * aspect, 1.0, -fov * 0.45) * udDouble4x4::scaleUniform(fov / 20.0) * udInverse(cameraRotation));
     vcGLState_ResetState();
   }
 
