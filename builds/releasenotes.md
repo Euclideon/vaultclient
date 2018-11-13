@@ -10,6 +10,7 @@ Version 0.1.1
   - Model load status is now displayed in the UI (pending, loading & failure)
   - Added standard metadata tags from Geoverse Convert (Author, Comment, Copyright and License)
   - Added a clear scene option to project menu (EVA-143 & EVA-384)
+  - Added a warning when caps lock is enabled on the login screen (EVA-390)
   - Fixed issue with invert X and invert Y not affecting orbit mode
   - Fixed a number of minor memory leaks
   - Fixed an issue where background workers would occasionally get distracted and stop working
