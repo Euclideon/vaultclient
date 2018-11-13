@@ -453,13 +453,16 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
   {
     udDouble4x4 mvp = pRenderContext->viewProjectionMatrix * udDouble4x4::translation(renderData.pWorldAnchorPos ? *renderData.pWorldAnchorPos : renderData.worldMousePos);
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
-    vcGLState_SetDepthMode(vcGLSDM_Less, false);
-    vcCompass_Render(pRenderContext->pCompass, pRenderContext->pSettings->presentation.mouseAnchor, mvp);
 
-    // Render again, this time highlighting any occlusion
+    // Render highlighting any occlusion
     vcGLState_SetBlendMode(vcGLSBM_Additive);
     vcGLState_SetDepthMode(vcGLSDM_Greater, false);
     vcCompass_Render(pRenderContext->pCompass, pRenderContext->pSettings->presentation.mouseAnchor, mvp, udDouble4::create(0.0, 0.15, 1.0, 0.5));
+
+    // Render non-occluded
+    vcGLState_SetBlendMode(vcGLSBM_Interpolative);
+    vcGLState_SetDepthMode(vcGLSDM_Less, true);
+    vcCompass_Render(pRenderContext->pCompass, pRenderContext->pSettings->presentation.mouseAnchor, mvp);
 
     vcGLState_ResetState();
   }
