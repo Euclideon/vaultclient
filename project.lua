@@ -68,7 +68,7 @@ project "vaultClient"
 
 	filter { "system:macosx or ios" }
 		files { "builds/assets/fonts/NotoSansCJKjp-Regular.otf", "builds/assets/icons/EuclideonClientIcon.png", "builds/assets/icons/EuclideonLogo.png", "builds/assets/skyboxes/CloudWater_*.jpg", "builds/releasenotes.md" }
-		xcodebuildresources { "NotoSans", "EuclideonClientIcon", "EuclideonLogo", "CloudWater", "ReleaseNotes" }
+		xcodebuildresources { "NotoSans", "EuclideonClientIcon", "EuclideonLogo", "CloudWater", "releasenotes" }
 
 	filter { "system:not windows" }
 		links { "dl" }
