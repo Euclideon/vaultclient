@@ -53,6 +53,7 @@ struct vcConvertItem
   struct
   {
     bool isDirty;
+    const char *pFilename;
     vcTexture *pTexture;
     int width;
     int height;
@@ -188,6 +189,7 @@ void vcConvert_RemoveJob(vcState *pProgramState, size_t index)
 
   vcConvertItem *pItem = pProgramState->pConvertContext->jobs[index];
   vcTexture_Destroy(&pItem->watermark.pTexture);
+  udFree(pItem->watermark.pFilename);
   pProgramState->pConvertContext->jobs.RemoveAt(index);
   vdkConvert_DestroyContext(pProgramState->pVDKContext, &pItem->pConvertContext);
   udFree(pItem);
@@ -512,6 +514,13 @@ void vcConvert_ShowUI(vcState *pProgramState)
       vdkConvert_SetPointResolution(pProgramState->pVDKContext, pConvertContext, pSelectedJob->pConvertInfo->overrideResolution != 0, pSelectedJob->pConvertInfo->pointResolution);
       vdkConvert_SetSRID(pProgramState->pVDKContext, pConvertContext, pSelectedJob->pConvertInfo->overrideSRID != 0, pSelectedJob->pConvertInfo->srid);
 
+      vdkConvert_AddWatermark(pProgramState->pVDKContext, pConvertContext, pSelectedJob->watermark.pFilename);
+
+      vdkConvert_SetMetadata(pProgramState->pVDKContext, pConvertContext, "Author", pSelectedJob->author);
+      vdkConvert_SetMetadata(pProgramState->pVDKContext, pConvertContext, "Comment", pSelectedJob->comment);
+      vdkConvert_SetMetadata(pProgramState->pVDKContext, pConvertContext, "Copyright", pSelectedJob->copyright);
+      vdkConvert_SetMetadata(pProgramState->pVDKContext, pConvertContext, "License", pSelectedJob->license);
+
       vdkConvert_DestroyContext(pProgramState->pVDKContext, &pSelectedJob->pConvertContext);
 
       pSelectedJob->pConvertContext = pConvertContext;
@@ -550,6 +559,8 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
   // Long shot but maybe a watermark?
   if (vdkConvert_AddWatermark(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
   {
+    udFree(pSelectedJob->watermark.pFilename);
+    pSelectedJob->watermark.pFilename = udStrdup(pFilename);
     pSelectedJob->watermark.isDirty = true;
     pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
     return true;
