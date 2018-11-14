@@ -45,13 +45,53 @@ After logging in you should see the full user interface:
 ![Interface Numbers](images/interfacenumbered.png)
 
 ### 1. Scene Viewport
-???
+The scene viewport displays your scene (the Scene Explorer (see below) explains how to add things to the scene).
 
-### 2. Menu
-???
+#### Moving around the viewport
+> TIP: These settings are configurable in the [Input & Controls](#input-&-controls) settings menu
+
+Mouse Controls:
+- Holding the left mouse button down and moving the mouse will "tumble" (Turning without moving) the camera.
+- Holding the right mouse button down on a point in the scene (not the skybox) will begin "panning" (moving the camera, but not turning it) the camera. It will keep the originally hovered point _under the mouse cursor_.
+- Holding the middle mouse button down on a point in the scene (not the skybox) will begin "orbitting" (keeping the camera the same distance from the point by turning and moving the camera) the selected point. It will keep the originally hovered point _at the same place on the screen_.
+- The scroll wheel will "dolly" (move the camera in and out) from the hovered point (not the skybox).
+  > TIP: If you prefer scroll wheel to change the move speed like Euclideon Geoverse MDM does, that option is available in the settings as well.
+
+Keyboard Controls (with the "Scene" window focussed):
+- `W` and `S` strafe the camera forward and backward at the current Camera Move Speed
+- `A` and `D` strafe the camera left and right at the current Camera Move Speed
+- `R` and `F` strafe the camera up and down at the current Camera Move Speed
+- `Spacebar` swaps between "Plane" and "Heli" modes
+
+### 2. Menu & Status Bar
+The menu bar consists of 2 sections, the left section with menu drop downs and the right section with status information.
+
+#### System Menu
+The system menu has a number of system related functions.
+
+- "Logout" terminates your current session with the server. This is a security feature to prevent attackers from hijacking your session. It also takes you back to the login screen in case you want to change users or servers.
+  > TIP: Logout does not unlock your current licenses for use by other users, they must still time out.
+- "Restore Defaults" resets _all_ settings back to how they were when you ran Euclideon Vault Client the first time.
+- "About" displays a popup with the version and license information for the current version of Client.
+- "Quit" logs you out and then closes the program.
+
+#### Windows
+The windows menu allows you to show or hide various windows in the Euclideon Vault Client application.
+
+#### Projects
+The projects menu has a new scene button and if additional projects are available to your user, it will show those projects here as well.
+
+- "New Scene" will remove all items from your Scene
+
+#### Status Bar
+The status bar shows a lot of useful information (not all of it will always be available).
+
+- Number of files queued to load "([n] Files Queued),
 
 ### 3. Scene Explorer
 This pane shows you the assets currently in your scene.
+
+> TIP: If you ever want to quickly clear the current scene, the "Projects" menu has a "New Scene" button that will remove everything from the scene.
 
 #### Loading UDS Models
 There are a number of ways to add models to the scene.
@@ -63,6 +103,9 @@ There are a number of ways to add models to the scene.
 3. If you have access to projects on the server you will be able to click the "Projects" button in the menu and select a project to load. Projects are defined from the Vault Server you're connected to.
 
 ### 4. Settings
+
+> TIP: If you ever change a setting and can't recall what you've changed, you can reset _all_ settings by going to the "System" menu and selecting "Restore Default"
+
 ???
 
 ### 5. Watermark
