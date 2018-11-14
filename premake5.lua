@@ -165,6 +165,7 @@ solution "vaultClient"
 	end
 	if os.getenv("CI_PIPELINE_ID") then
 		defines { "GIT_BUILD=" .. os.getenv("CI_PIPELINE_ID") }
+		xcodebuildsettings { ["INFOPLIST_PREPROCESSOR_DEFINITIONS"] = "GIT_BUILD=" .. os.getenv("CI_PIPELINE_ID") }
 	end
 	if os.getenv("UNIXTIME") then
 		defines { "BUILD_TIME=" .. os.getenv("UNIXTIME") }
