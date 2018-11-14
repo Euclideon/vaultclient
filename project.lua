@@ -57,6 +57,10 @@ project "vaultClient"
 		files { "macOS-Info.plist", "icons/macOSAppIcons.icns" }
 		frameworkdirs { "/Library/Frameworks/" }
 		links { "SDL2.framework", "OpenGL.framework" }
+		xcodebuildsettings {
+			["INFOPLIST_PREFIX_HEADER"] = "src/vcVersion.h",
+			["INFOPLIST_PREPROCESS"] = "YES",
+		}
 
 	filter { "system:ios" }
 		files { "iOS-Info.plist", "builds/libvaultSDK.dylib", "icons/Images.xcassets" }
