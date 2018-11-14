@@ -572,7 +572,7 @@ void vcTerrainRenderer_DrawTile(vcTerrainRenderer *pTerrainRenderer, vcTile *pTi
   }
 
   vcShader_BindConstantBuffer(pTerrainRenderer->presentShader.pProgram, pTerrainRenderer->presentShader.pConstantBuffer, &pTerrainRenderer->presentShader.everyObject, sizeof(pTerrainRenderer->presentShader.everyObject));
-  vcMesh_RenderTriangles(pMesh, TileIndexResolution * TileIndexResolution * 2); // 2 tris per quad
+  vcMesh_Render(pMesh, TileIndexResolution * TileIndexResolution * 2); // 2 tris per quad
 }
 
 

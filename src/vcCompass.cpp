@@ -75,7 +75,7 @@ udResult vcCompass_Render(vcAnchor *pCompass, vcAnchorStyle anchorStyle, const u
 
   UD_ERROR_IF(!vcShader_Bind(pCompass->pShader), udR_InternalError);
   UD_ERROR_IF(!vcShader_BindConstantBuffer(pCompass->pShader, pCompass->pShaderConstantBuffer, &pCompass->shaderBuffer, sizeof(vcAnchor::shaderBuffer)), udR_InputExhausted);
-  UD_ERROR_IF(!vcMesh_RenderTriangles(pCompass->meshes[anchorStyle]), udR_InternalError);
+  UD_ERROR_IF(!vcMesh_Render(pCompass->meshes[anchorStyle]), udR_InternalError);
 
   result = udR_Success;
 

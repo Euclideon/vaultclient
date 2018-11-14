@@ -4,6 +4,7 @@
 #include "gl/vcFramebuffer.h"
 #include "gl/vcShader.h"
 #include "gl/vcGLState.h"
+#include "gl/vcFenceRenderer.h"
 
 #include "vcTerrain.h"
 #include "vcGIS.h"
@@ -272,7 +273,7 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
   vcShader_BindTexture(pRenderContext->skyboxShader.pProgram, pRenderContext->pSkyboxCubeMapTexture, 0, pRenderContext->skyboxShader.uniform_texture);
   vcShader_BindConstantBuffer(pRenderContext->skyboxShader.pProgram, pRenderContext->skyboxShader.uniform_MatrixBlock, &inverseViewProjMatrixF, sizeof(inverseViewProjMatrixF));
 
-  vcMesh_RenderTriangles(pRenderContext->pScreenQuadMesh, 2);
+  vcMesh_Render(pRenderContext->pScreenQuadMesh, 2);
 
   vcGLState_SetViewportDepthRange(0.0f, 1.0f);
 
@@ -337,7 +338,7 @@ void vcPresentUD(vcRenderContext *pRenderContext)
   vcShader_BindTexture(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.pDepthTex, 1, pRenderContext->udRenderContext.presentShader.uniform_depth);
   vcShader_BindConstantBuffer(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.presentShader.uniform_params, &pRenderContext->udRenderContext.presentShader.params, sizeof(pRenderContext->udRenderContext.presentShader.params));
 
-  vcMesh_RenderTriangles(pRenderContext->pScreenQuadMesh, 2);
+  vcMesh_Render(pRenderContext->pScreenQuadMesh, 2);
 
   vcShader_Bind(nullptr);
 }
@@ -406,6 +407,20 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
   }
 }
 
+
+void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
+{
+  udUnused(renderData);
+  udUnused(pRenderContext);
+
+  vcGLState_SetBlendMode(vcGLSBM_AdditiveSrcInterpolativeDst);
+  vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, false);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+
+  // Draw fences here
+  //vcFenceRenderer_Render(pFenceRenderer, pRenderContext->viewProjectionMatrix, renderData.deltaTime);
+}
+
 vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
 {
   float fov = pRenderContext->pSettings->camera.fieldOfView;
@@ -448,6 +463,7 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
   vcPresentUD(pRenderContext);
   vcRenderSkybox(pRenderContext);
   vcRenderTerrain(pRenderContext, renderData);
+  vcRenderPolygons(pRenderContext, renderData);
 
   if (pRenderContext->pSettings->presentation.mouseAnchor != vcAS_None && (renderData.pickingSuccess || (renderData.pWorldAnchorPos != nullptr)))
   {

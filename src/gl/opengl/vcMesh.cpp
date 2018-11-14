@@ -3,7 +3,8 @@
 
 udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, int totalTypes, const void* pVerts, int currentVerts, const void *pIndices, int currentIndices, vcMeshFlags flags/* = vcMF_None*/)
 {
-  if (ppMesh == nullptr || pMeshLayout == nullptr || totalTypes == 0 || pVerts == nullptr || currentVerts == 0)
+  bool invalidIndexSetup = ((flags & vcMF_NoIndexBuffer) == 0) && ((pIndices == nullptr && currentIndices > 0) || currentIndices == 0);
+  if (ppMesh == nullptr || pMeshLayout == nullptr || totalTypes == 0 || pVerts == nullptr || currentVerts == 0 || invalidIndexSetup)
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
@@ -16,7 +17,6 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
     pMesh->drawType = GL_STREAM_DRAW;
   else
     pMesh->drawType = GL_STATIC_DRAW;
-
 
   glGenVertexArrays(1, &pMesh->vao);
   glBindVertexArray(pMesh->vao);
@@ -62,6 +62,10 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
     case vcVLT_TextureCoords2:
       glVertexAttribPointer(i, 2, GL_FLOAT, GL_FALSE, vertexSize, (GLvoid*)accumulatedOffset);
       accumulatedOffset += 2 * sizeof(float);
+      break;
+    case vcVLT_RibbonInfo4:
+      glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, vertexSize, (GLvoid*)accumulatedOffset);
+      accumulatedOffset += 4 * sizeof(float);
       break;
     case vcVLT_ColourBGRA:
       glVertexAttribPointer(i, 4, GL_UNSIGNED_BYTE, GL_TRUE, vertexSize, (GLvoid*)accumulatedOffset);
@@ -131,27 +135,37 @@ udResult vcMesh_UploadData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, in
   return result;
 }
 
-bool vcMesh_RenderTriangles(vcMesh *pMesh, uint32_t numTriangles, uint32_t startIndex)
+bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t startElement /* = 0*/, vcMeshRenderMode renderMode /*= vcMRM_Triangles*/)
 {
-  if (pMesh == nullptr || pMesh->indexCount < (numTriangles + startIndex) * 3 || (numTriangles == 0 && startIndex != 0))
+  if (pMesh == nullptr || (pMesh->indexBytes > 0 && pMesh->indexCount < (elementCount + startElement) * 3) || (elementCount == 0 && startElement != 0))
     return false;
 
-  if (numTriangles == 0)
-    numTriangles = (pMesh->indexCount / 3);
-
-  VERIFY_GL();
+  if (elementCount == 0)
+    elementCount = (pMesh->indexCount / 3);
 
   glBindVertexArray(pMesh->vao);
-  VERIFY_GL();
   glBindBuffer(GL_ARRAY_BUFFER, pMesh->vbo);
-  VERIFY_GL();
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pMesh->ibo);
-  VERIFY_GL();
+
+  GLenum glRenderMode = GL_TRIANGLES;
+  int elementsPerPrimitive = 3;
+  switch (renderMode)
+  {
+  case vcMRM_TriangleStrip:
+    glRenderMode = GL_TRIANGLE_STRIP;
+    elementsPerPrimitive = 1;
+    break;
+  case vcMRM_Triangles: // fall through
+  default:
+    glRenderMode = GL_TRIANGLES;
+    elementsPerPrimitive = 3;
+    break;
+  }
 
   if(pMesh->indexType != GL_NONE)
-    glDrawElements(GL_TRIANGLES, numTriangles * 3, pMesh->indexType, (void*)(size_t)(startIndex * 3 * pMesh->indexBytes));
+    glDrawElements(glRenderMode, elementCount * elementsPerPrimitive, pMesh->indexType, (void*)(size_t)(startElement * elementsPerPrimitive * pMesh->indexBytes));
   else
-    glDrawArrays(GL_TRIANGLES, startIndex * 3, numTriangles * 3);
+    glDrawArrays(glRenderMode, startElement * elementsPerPrimitive, elementCount * elementsPerPrimitive);
 
   VERIFY_GL();
 
