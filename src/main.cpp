@@ -565,6 +565,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   }
 
   vcRenderData renderData = {};
+  renderData.deltaTime = pProgramState->deltaTime;
   renderData.cameraMatrix = pProgramState->camMatrix;
   renderData.pCameraSettings = &pProgramState->settings.camera;
   renderData.pGISSpace = &pProgramState->gis;
