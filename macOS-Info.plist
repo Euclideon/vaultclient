@@ -4,5 +4,11 @@
 <dict>
 	<key>CFBundleIconFile</key>
 	<string>macOSAppIcons.icns</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2018 Euclideon Pty Ltd</string>
+	<key>CFBundleShortVersionString</key>
+	<string>VCVERSION_VERSION_ARRAY_MAC</string>
+	<key>CFBundleVersion</key>
+	<string>VCVERSION_BUILD_NUMBER</string>
 </dict>
 </plist>
