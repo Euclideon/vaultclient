@@ -1,5 +1,8 @@
 Euclideon Vault Client Version History
 
+Version 0.1.2 (In Development)
+  - No Changes Yet
+
 Version 0.1.1
   - Now has UI to show when a new version is available
   - Improved camera panning to move based on hovered point (EVA-289)
