@@ -23,16 +23,22 @@ enum vcFenceRendererImageMode
   vcRRIM_Solid,
 };
 
+struct vcFenceRendererConfig
+{
+  vcFenceRendererVisualMode visualMode;
+  vcFenceRendererImageMode imageMode;
+  udFloat4 bottomColour;
+  udFloat4 topColour;
+  float ribbonWidth;
+  float textureRepeatScale;
+  float textureScrollSpeed;
+};
+
 udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer);
 udResult vcFenceRenderer_Destroy(vcFenceRenderer **ppFenceRenderer);
 
 udResult vcFenceRenderer_SetPoints(vcFenceRenderer *pFenceRenderer, udFloat3 *pPoints, int pointCount);
-void vcFenceRenderer_SetVisualMode(vcFenceRenderer *pFenceRenderer, vcFenceRendererVisualMode visualMode);
-void vcFenceRenderer_SetImageMode(vcFenceRenderer *pFenceRenderer, vcFenceRendererImageMode imageMode);
-void vcFenceRenderer_SetColours(vcFenceRenderer *pFenceRenderer, const udFloat4 &bottomColour, const udFloat4 &topColour);
-void vcFenceRenderer_SetWidth(vcFenceRenderer *pFenceRenderer, float ribbonWidth);
-void vcFenceRenderer_SetTextureRepeatScale(vcFenceRenderer *pFenceRenderer, float textureRepeatScale);
-void vcFenceRenderer_SetTextureScrollSpeed(vcFenceRenderer *pFenceRenderer, float textureScrollSpeed);
+udResult vcFenceRenderer_SetConfig(vcFenceRenderer *pFenceRenderer, const vcFenceRendererConfig &config);
 
 bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &viewProjectionMatrix, double deltaTime);
 
