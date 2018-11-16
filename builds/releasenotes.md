@@ -1,7 +1,7 @@
 Euclideon Vault Client Version History
 
 Version 0.1.2 (In Development)
-  - No Changes Yet
+  - Changed the rotation of the camera in the UI to display in degrees (EVA-424)
 
 Version 0.1.1
   - Now has UI to show when a new version is available
