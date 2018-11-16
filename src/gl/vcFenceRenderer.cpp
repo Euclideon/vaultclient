@@ -13,14 +13,9 @@ struct vcFenceRenderer
   int pointCount;
   udFloat3 *pCachedPoints;
 
-  vcFenceRendererVisualMode visualMode;
-  vcFenceRendererImageMode imageMode;
-  float ribbonWidth;
-  float textureRepeatScale;
-  float textureScrollSpeed;
   double totalTimePassed;
-  udFloat4 bottomColour;
-  udFloat4 topColour;
+  float ribbonWidth;
+  vcFenceRendererConfig config;
 
   struct
   {
@@ -45,14 +40,12 @@ struct vcFenceRenderer
   } renderShader;
 };
 
-#pragma pack(push,1)
 struct vcRibbonVertex
 {
   udFloat3 position;
   udFloat2 uv;
   udFloat4 ribbonInfo; // xyz: expand vector; z: pair id (0 or 1)
 };
-#pragma pack(pop)
 const vcVertexLayoutTypes vcRibbonVertexLayout[] = { vcVLT_Position3, vcVLT_TextureCoords2, vcVLT_RibbonInfo4 };
 
 static int gRefCount = 0;
@@ -97,13 +90,13 @@ udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer)
   UD_ERROR_NULL(pFenceRenderer, udR_MemoryAllocationFailure);
 
   // defaults
-  pFenceRenderer->ribbonWidth = 0.5f;
-  pFenceRenderer->textureRepeatScale = 1.0f;
-  pFenceRenderer->textureScrollSpeed = 1.0f;
-  pFenceRenderer->bottomColour = udFloat4::create(1.0f);
-  pFenceRenderer->topColour = udFloat4::create(1.0f);
-  pFenceRenderer->imageMode = vcRRIM_Solid;
-  pFenceRenderer->visualMode = vcRRVM_Fence;
+  pFenceRenderer->config.ribbonWidth = 0.5f;
+  pFenceRenderer->config.textureRepeatScale = 1.0f;
+  pFenceRenderer->config.textureScrollSpeed = 1.0f;
+  pFenceRenderer->config.bottomColour = udFloat4::create(1.0f);
+  pFenceRenderer->config.topColour = udFloat4::create(1.0f);
+  pFenceRenderer->config.imageMode = vcRRIM_Solid;
+  pFenceRenderer->config.visualMode = vcRRVM_Fence;
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pFenceRenderer->renderShader.pProgram, g_FenceVertexShader, g_FenceFragmentShader, vcRibbonVertexLayout, (int)udLengthOf(vcRibbonVertexLayout)), udR_InternalError);
   vcShader_Bind(pFenceRenderer->renderShader.pProgram);
@@ -140,60 +133,37 @@ udResult vcFenceRenderer_Destroy(vcFenceRenderer **ppFenceRenderer)
   return udR_Success;
 }
 
-void vcFenceRenderer_SetVisualMode(vcFenceRenderer *pFenceRenderer, vcFenceRendererVisualMode visualMode)
+udResult vcFenceRenderer_SetConfig(vcFenceRenderer *pFenceRenderer, const vcFenceRendererConfig &config)
 {
-  pFenceRenderer->visualMode = visualMode;
-}
+  udResult result = udR_Success;
 
-void vcFenceRenderer_SetImageMode(vcFenceRenderer *pFenceRenderer, vcFenceRendererImageMode imageMode)
-{
-  pFenceRenderer->imageMode = imageMode;
-}
-
-void vcFenceRenderer_SetColours(vcFenceRenderer *pFenceRenderer, const udFloat4 &bottomColour, const udFloat4 &topColour)
-{
-  pFenceRenderer->bottomColour = bottomColour;
-  pFenceRenderer->topColour = topColour;
-}
-
-void vcFenceRenderer_SetWidth(vcFenceRenderer *pFenceRenderer, float ribbonWidth)
-{
   float oldWidth = pFenceRenderer->ribbonWidth;
-  pFenceRenderer->ribbonWidth = ribbonWidth;
+  pFenceRenderer->config = config;
 
   // need to rebuild verts on width change
-  if (pFenceRenderer->pointCount > 0 && ((oldWidth - ribbonWidth) > UD_EPSILON))
+  if (pFenceRenderer->pointCount > 0 && ((oldWidth - pFenceRenderer->config.ribbonWidth) > UD_EPSILON))
   {
-    vcFenceRenderer_SetPoints(pFenceRenderer, pFenceRenderer->pCachedPoints, pFenceRenderer->pointCount);
+    UD_ERROR_SET(vcFenceRenderer_SetPoints(pFenceRenderer, pFenceRenderer->pCachedPoints, pFenceRenderer->pointCount));
   }
+
+epilogue:
+  return result;
 }
 
-void vcFenceRenderer_SetTextureRepeatScale(vcFenceRenderer *pFenceRenderer, float textureRepeatScale)
+udFloat3 vcFenceRenderer_CreateEndJointExpandVector(const udFloat3 &previous, const udFloat3 &center, float width)
 {
-  pFenceRenderer->textureRepeatScale = textureRepeatScale;
+  return udCross(udNormalize(center - previous), udFloat3::create(0, 0, 1)) * width * 0.5f;
 }
 
-void vcFenceRenderer_SetTextureScrollSpeed(vcFenceRenderer *pFenceRenderer, float textureScrollSpeed)
+udFloat3 vcFenceRenderer_CreateStartJointExpandVector(const udFloat3 &center, const udFloat3 &next, float width)
 {
-  pFenceRenderer->textureScrollSpeed = textureScrollSpeed;
+  return udCross(udNormalize(next - center), udFloat3::create(0, 0, 1)) * width * 0.5f;
 }
 
-udFloat3 vcFenceRenderer_CreateEndJointExpandVector(const udFloat3 &A, const udFloat3 &B, float width)
+udFloat3 vcFenceRenderer_CreateSegmentJointExpandVector(const udFloat3 &previous, const udFloat3 &center, const udFloat3 &next, float width, bool *pJointFlipped)
 {
-  return udCross(udNormalize(B - A), udFloat3::create(0, 0, 1)) * width * 0.5f;
-}
-
-udFloat3 vcFenceRenderer_CreateStartJointExpandVector(const udFloat3 &B, const udFloat3 &C, float width)
-{
-  return udCross(udNormalize(C - B), udFloat3::create(0, 0, 1)) * width * 0.5f;
-}
-
-udFloat3 vcFenceRenderer_CreateSegmentJointExpandVector(const udFloat3 &A, const udFloat3 &B, const udFloat3 &C, float width, bool &jointFlipped)
-{
-  jointFlipped = false;
-
-  udFloat3 v1 = udNormalize(B - A);
-  udFloat3 v2 = udNormalize(C - B);
+  udFloat3 v1 = udNormalize(center - previous);
+  udFloat3 v2 = udNormalize(next - center);
   float d = udDot(v1, v2);
   float theta = udACos(d);
 
@@ -202,11 +172,9 @@ udFloat3 vcFenceRenderer_CreateSegmentJointExpandVector(const udFloat3 &A, const
 
   // determine sign of angle
   udFloat3 cross = udCross(v1, v2);
-  if (udDot(udFloat3::create(0, 0, 1), cross) < 0)
-  {
-    jointFlipped = true;
+  *pJointFlipped = udDot(udFloat3::create(0, 0, 1), cross) < 0;
+  if (*pJointFlipped)
     theta *= -1;
-  }
 
   if (d == 1.0f) // straight edge case
   {
@@ -218,8 +186,8 @@ udFloat3 vcFenceRenderer_CreateSegmentJointExpandVector(const udFloat3 &A, const
   float u = width / (2.0f * udSin(theta));
   float v = width / (2.0f * udSin(theta));
 
-  udFloat3 u0 = ((A - B) / udMag(A - B)) * u;
-  udFloat3 v0 = ((C - B) / udMag(C - B)) * v;
+  udFloat3 u0 = ((previous - center) / udMag(previous - center)) * u;
+  udFloat3 v0 = ((next - center) / udMag(next - center)) * v;
 
   return -(u0 + v0);
 }
@@ -237,7 +205,6 @@ udResult vcFenceRenderer_SetPoints(vcFenceRenderer *pFenceRenderer, udFloat3 *pP
   float currentUV = 0;
   float previousDist0 = 0;
   float previousDist1 = 0;
-  size_t vertBufferSize = 0;
   udFloat3 p0 = udFloat3::zero();
   float uv0 = 0.0f;
   float uv1 = 0.0f;
@@ -246,13 +213,15 @@ udResult vcFenceRenderer_SetPoints(vcFenceRenderer *pFenceRenderer, udFloat3 *pP
 
   UD_ERROR_IF(pointCount < 2, udR_InvalidParameter_);
 
-  vertBufferSize = sizeof(udFloat3) * pointCount;
   if (pFenceRenderer->pointCount != pointCount)
-    pFenceRenderer->pCachedPoints = (udFloat3*)udRealloc(pFenceRenderer->pCachedPoints, vertBufferSize);
+  {
+    udFree(pFenceRenderer->pCachedPoints);
+    pFenceRenderer->pCachedPoints = udAllocType(udFloat3, pointCount, udAF_Zero);
+    UD_ERROR_NULL(pFenceRenderer->pCachedPoints, udR_MemoryAllocationFailure);
+  }
 
-  UD_ERROR_NULL(pFenceRenderer->pCachedPoints, udR_MemoryAllocationFailure);
-  memcpy(pFenceRenderer->pCachedPoints, pPoints, vertBufferSize);
   pFenceRenderer->pointCount = pointCount;
+  memcpy(pFenceRenderer->pCachedPoints, pPoints, sizeof(udFloat3) * pointCount);
 
   vertCount = pointCount * 2 + udMax(pointCount - 2, 0) * 2;
   pVerts = udAllocType(vcRibbonVertex, vertCount, udAF_Zero);
@@ -295,7 +264,7 @@ udResult vcFenceRenderer_SetPoints(vcFenceRenderer *pFenceRenderer, udFloat3 *pP
   // middle segments
   for (int i = 1; i < pointCount - 1; ++i)
   {
-    p0 = vcFenceRenderer_CreateSegmentJointExpandVector(pPoints[i - 1], pPoints[i], pPoints[i + 1], pFenceRenderer->ribbonWidth, jointFlipped);
+    p0 = vcFenceRenderer_CreateSegmentJointExpandVector(pPoints[i - 1], pPoints[i], pPoints[i + 1], pFenceRenderer->ribbonWidth, &jointFlipped);
 
     udFloat3 pLeft = pPoints[i] + p0;
     udFloat3 pRight = pPoints[i] - p0;
@@ -374,12 +343,12 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
   pFenceRenderer->renderShader.params.viewProjection = udFloat4x4::create(viewProjectionMatrix);
   pFenceRenderer->renderShader.params.time = (float)pFenceRenderer->totalTimePassed;
   pFenceRenderer->renderShader.params.width = pFenceRenderer->ribbonWidth;
-  pFenceRenderer->renderShader.params.textureRepeatScale = pFenceRenderer->textureRepeatScale;
-  pFenceRenderer->renderShader.params.textureScrollSpeed = pFenceRenderer->textureScrollSpeed;
-  pFenceRenderer->renderShader.params.bottomColour = pFenceRenderer->bottomColour;
-  pFenceRenderer->renderShader.params.topColour = pFenceRenderer->topColour;
+  pFenceRenderer->renderShader.params.textureRepeatScale = pFenceRenderer->config.textureRepeatScale;
+  pFenceRenderer->renderShader.params.textureScrollSpeed = pFenceRenderer->config.textureScrollSpeed;
+  pFenceRenderer->renderShader.params.bottomColour = pFenceRenderer->config.bottomColour;
+  pFenceRenderer->renderShader.params.topColour = pFenceRenderer->config.topColour;
 
-  switch (pFenceRenderer->visualMode)
+  switch (pFenceRenderer->config.visualMode)
   {
   case vcRRVM_Fence:
     pFenceRenderer->renderShader.params.orientation = 0.0f;
@@ -393,7 +362,7 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
   vcShader_Bind(pFenceRenderer->renderShader.pProgram);
 
   vcTexture *pDisplayTexture = nullptr;
-  switch (pFenceRenderer->imageMode)
+  switch (pFenceRenderer->config.imageMode)
   {
     case vcRRIM_Glow:
       pDisplayTexture = gGlowTexture;
