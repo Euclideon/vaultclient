@@ -312,3 +312,56 @@ void main()
   Out_Color = Frag_Color * texture(Texture, Frag_UV.st);
 }
 )shader";
+
+const char* const g_FenceVertexShader = VERT_HEADER R"shader(
+layout (std140) uniform u_params
+{
+  mat4 u_viewProjectionMatrix;
+  vec4 u_bottomColour;
+  vec4 u_topColour;
+
+  float u_orientation;
+  float u_width;
+  float u_textureRepeatScale;
+  float u_textureScrollSpeed;
+  float u_time;
+
+  vec3 _padding;
+};
+
+layout(location = 0) in vec3 a_position;
+layout(location = 1) in vec2 a_uv;
+layout(location = 2) in vec4 a_ribbonInfo; // xyz: expand vector; z: pair id (0 or 1)
+
+out vec2 v_uv;
+out vec4 v_colour;
+
+void main()
+{
+  // fence horizontal UV pos packed into Y channel
+  v_uv = vec2(mix(a_uv.y, a_uv.x, u_orientation) * u_textureRepeatScale - u_time * u_textureScrollSpeed, a_ribbonInfo.w);
+  v_colour = mix(u_bottomColour, u_topColour, a_ribbonInfo.w);
+
+  // fence or flat
+  vec3 worldPosition = a_position + mix(vec3(0, 0, a_ribbonInfo.w) * u_width, a_ribbonInfo.xyz, u_orientation);
+
+  gl_Position = u_viewProjectionMatrix * vec4(worldPosition, 1.0);
+}
+)shader";
+
+const char* const g_FenceFragmentShader = FRAG_HEADER R"shader(
+  //Input Format
+  in vec2 v_uv;
+  in vec4 v_colour;
+
+  //Output Format
+  out vec4 out_Colour;
+
+  uniform sampler2D u_texture;
+
+  void main()
+  {
+    vec4 texCol = texture(u_texture, v_uv);
+    out_Colour = vec4(texCol.xyz * v_colour.xyz, 1.0) * texCol.w * v_colour.w;
+  }
+)shader";

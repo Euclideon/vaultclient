@@ -18,6 +18,9 @@ uint32_t vcLayout_GetSize(const vcVertexLayoutTypes *pLayout, int numTypes)
     case vcVLT_TextureCoords2:
       accumlatedOffset += 8;
       break;
+    case vcVLT_RibbonInfo4:
+      accumlatedOffset += 16;
+      break;
     case vcVLT_ColourBGRA:
       accumlatedOffset += 4;
       break;
