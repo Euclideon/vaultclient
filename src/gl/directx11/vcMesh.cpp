@@ -45,7 +45,8 @@ epilogue:
 
 udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, int totalTypes, const void* pVerts, int currentVerts, const void *pIndices, int currentIndices, vcMeshFlags flags/* = vcMF_None*/)
 {
-  if (ppMesh == nullptr || pMeshLayout == nullptr || totalTypes == 0 || pVerts == nullptr || currentVerts == 0 || (((flags & vcMF_NoIndexBuffer) == 0) && (((pIndices == nullptr) && (currentIndices > 0)) || currentIndices == 0)))
+  bool invalidIndexSetup = ((flags & vcMF_NoIndexBuffer) == 0) && ((pIndices == nullptr && currentIndices > 0) || currentIndices == 0);
+  if (ppMesh == nullptr || pMeshLayout == nullptr || totalTypes == 0 || pVerts == nullptr || currentVerts == 0 || invalidIndexSetup)
     return udR_InvalidParameter_;
 
   udResult result = udR_Failure_;
@@ -154,13 +155,13 @@ epilogue:
   return result;
 }
 
-bool vcMesh_RenderTriangles(vcMesh *pMesh, uint32_t numTriangles, uint32_t startIndex)
+bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t startElement /* = 0*/, vcMeshRenderMode renderMode /*= vcMRM_Triangles*/)
 {
-  if (pMesh == nullptr || pMesh->indexCount < (numTriangles + startIndex) * 3 || (numTriangles == 0 && startIndex != 0))
+  if (pMesh == nullptr || (pMesh->indexBytes > 0 && pMesh->indexCount < (elementCount + startElement) * 3) || (elementCount == 0 && startElement != 0))
     return false;
 
-  if (numTriangles == 0)
-    numTriangles = (pMesh->indexCount / 3);
+  if (elementCount == 0)
+    elementCount = (pMesh->indexCount / 3);
 
   unsigned int stride = pMesh->vertexSize;
   unsigned int offset = 0;
@@ -171,9 +172,27 @@ bool vcMesh_RenderTriangles(vcMesh *pMesh, uint32_t numTriangles, uint32_t start
   else if(pMesh->indexBytes == 2)
     g_pd3dDeviceContext->IASetIndexBuffer(pMesh->pIBO, DXGI_FORMAT_R16_UINT, 0);
 
-  g_pd3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+  D3D11_PRIMITIVE_TOPOLOGY d3dRenderMode = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+  int elementsPerPrimitive = 3;
+  switch (renderMode)
+  {
+  case vcMRM_TriangleStrip:
+    d3dRenderMode = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+    elementsPerPrimitive = 1;
+    break;
+  case vcMRM_Triangles: // fall through
+  default:
+    d3dRenderMode = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    elementsPerPrimitive = 3;
+    break;
+  }
 
-  g_pd3dDeviceContext->DrawIndexed(numTriangles * 3, startIndex * 3, 0);
+  g_pd3dDeviceContext->IASetPrimitiveTopology(d3dRenderMode);
+
+  if (pMesh->indexCount == 0)
+    g_pd3dDeviceContext->Draw(elementCount * elementsPerPrimitive, startElement * elementsPerPrimitive);
+  else
+    g_pd3dDeviceContext->DrawIndexed(elementCount * elementsPerPrimitive, startElement * elementsPerPrimitive, 0);
 
   return true;
 }

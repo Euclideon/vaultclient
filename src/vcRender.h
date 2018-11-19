@@ -17,6 +17,8 @@ struct vcRenderData
 {
   vcGISSpace *pGISSpace;
 
+  double deltaTime;
+
   udInt2 mouse;
   udDouble3 worldMousePos;
   udRay<double> worldMouseRay; // Gets calcuated during the render

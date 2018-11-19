@@ -93,7 +93,7 @@ void ImGuiGL_RenderDrawData(ImDrawData* draw_data)
       {
         vcGLState_Scissor((int)(pcmd->ClipRect.x - pos.x), (int)(pcmd->ClipRect.y - pos.y), (int)(pcmd->ClipRect.z - pos.x), (int)(pcmd->ClipRect.w - pos.y));
         vcShader_BindTexture(pImGuiShader, (vcTexture*)pcmd->TextureId, 0, pImGuiSampler);
-        vcMesh_RenderTriangles(pImGuiMesh, pcmd->ElemCount / 3, totalDrawn / 3);
+        vcMesh_Render(pImGuiMesh, pcmd->ElemCount / 3, totalDrawn / 3);
       }
       totalDrawn += pcmd->ElemCount;
     }
