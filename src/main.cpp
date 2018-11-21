@@ -1190,7 +1190,7 @@ void vcRenderWindow(vcState *pProgramState)
 
           if (ImGui::Selectable("Move To"))
           {
-            udDouble3 localSpaceCenter = vcModel_GetMidPointLocalSpace(pProgramState, &pProgramState->vcModelList[i]);
+            udDouble3 localSpaceCenter = vcModel_GetMidPoint(&pProgramState->vcModelList[i]);
 
             // Transform the camera position. Don't do the entire matrix as it may lead to inaccuracy/de-normalised camera
             if (pProgramState->gis.isProjected && pProgramState->vcModelList[i].pZone != nullptr && pProgramState->vcModelList[i].pZone->srid != pProgramState->gis.SRID)
