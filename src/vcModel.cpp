@@ -35,6 +35,11 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
         pLoadInfo->pModel->hasWatermark = pLoadInfo->pModel->pMetadata->Get("Watermark").IsString();
 
+        pLoadInfo->pModel->meterScale = pLoadInfo->pModel->pMetadata->Get("info.meterScale").AsDouble(1.0);
+        pLoadInfo->pModel->pivot = pLoadInfo->pModel->pMetadata->Get("info.pivot").AsDouble3();
+        pLoadInfo->pModel->boundsMin = pLoadInfo->pModel->pMetadata->Get("info.bounds.min").AsDouble3();
+        pLoadInfo->pModel->boundsMax = pLoadInfo->pModel->pMetadata->Get("info.bounds.max").AsDouble3();
+
         vcSRID srid = 0;
         udJSON tempNode;
 
@@ -186,17 +191,17 @@ bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel)
   if ((pModel->pZone != nullptr && vcGIS_ChangeSpace(&pProgramState->gis, pModel->pZone->srid)) || (pModel->pZone == nullptr && vcGIS_ChangeSpace(&pProgramState->gis, 0)))
     vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
 
-  pProgramState->pCamera->position = vcModel_GetMidPointLocalSpace(pProgramState, pModel);
+  pProgramState->pCamera->position = vcModel_GetMidPoint(pModel);
 
   return true;
 }
 
-udDouble3 vcModel_GetMidPointLocalSpace(vcState *pProgramState, vcModel *pModel)
+udDouble3 vcModel_GetMidPoint(vcModel *pModel)
 {
   udDouble3 midPoint = udDouble3::zero();
 
   if (pModel != nullptr)
-    vdkModel_GetModelCenter(pProgramState->pVDKContext, pModel->pVDKModel, &midPoint.x);
+    midPoint = (pModel->worldMatrix * udDouble4::create(pModel->pivot, 1.0)).toVector3();
 
   return midPoint;
 }
