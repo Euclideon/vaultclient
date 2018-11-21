@@ -14,7 +14,6 @@ struct vcFenceRenderer
   udFloat3 *pCachedPoints;
 
   double totalTimePassed;
-  float ribbonWidth;
   vcFenceRendererConfig config;
 
   struct
@@ -90,7 +89,7 @@ udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer)
   UD_ERROR_NULL(pFenceRenderer, udR_MemoryAllocationFailure);
 
   // defaults
-  pFenceRenderer->config.ribbonWidth = 0.5f;
+  pFenceRenderer->config.ribbonWidth = 1.f;
   pFenceRenderer->config.textureRepeatScale = 1.0f;
   pFenceRenderer->config.textureScrollSpeed = 1.0f;
   pFenceRenderer->config.bottomColour = udFloat4::create(1.0f);
@@ -137,7 +136,7 @@ udResult vcFenceRenderer_SetConfig(vcFenceRenderer *pFenceRenderer, const vcFenc
 {
   udResult result = udR_Success;
 
-  float oldWidth = pFenceRenderer->ribbonWidth;
+  float oldWidth = pFenceRenderer->config.ribbonWidth;
   pFenceRenderer->config = config;
 
   // need to rebuild verts on width change
@@ -197,7 +196,7 @@ udResult vcFenceRenderer_SetPoints(vcFenceRenderer *pFenceRenderer, udFloat3 *pP
   udResult result = udR_Success;
 
   int layoutCount = (int)UDARRAYSIZE(vcRibbonVertexLayout);
-  float widthSquared = pFenceRenderer->ribbonWidth * pFenceRenderer->ribbonWidth;
+  float widthSquared = pFenceRenderer->config.ribbonWidth * pFenceRenderer->config.ribbonWidth;
   vcRibbonVertex *pVerts = nullptr;
   float uvFenceOffset = 0;
   int vertIndex = 0;
@@ -256,7 +255,7 @@ udResult vcFenceRenderer_SetPoints(vcFenceRenderer *pFenceRenderer, udFloat3 *pP
   vertIndex = 0;
 
   // start segment
-  p0 = vcFenceRenderer_CreateStartJointExpandVector(pPoints[0], pPoints[1], pFenceRenderer->ribbonWidth);
+  p0 = vcFenceRenderer_CreateStartJointExpandVector(pPoints[0], pPoints[1], pFenceRenderer->config.ribbonWidth);
   pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(p0, 0.0f);
   pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(-p0, 1.0f);
   vertIndex += 2;
@@ -264,7 +263,7 @@ udResult vcFenceRenderer_SetPoints(vcFenceRenderer *pFenceRenderer, udFloat3 *pP
   // middle segments
   for (int i = 1; i < pointCount - 1; ++i)
   {
-    p0 = vcFenceRenderer_CreateSegmentJointExpandVector(pPoints[i - 1], pPoints[i], pPoints[i + 1], pFenceRenderer->ribbonWidth, &jointFlipped);
+    p0 = vcFenceRenderer_CreateSegmentJointExpandVector(pPoints[i - 1], pPoints[i], pPoints[i + 1], pFenceRenderer->config.ribbonWidth, &jointFlipped);
 
     udFloat3 pLeft = pPoints[i] + p0;
     udFloat3 pRight = pPoints[i] - p0;
@@ -307,7 +306,7 @@ udResult vcFenceRenderer_SetPoints(vcFenceRenderer *pFenceRenderer, udFloat3 *pP
   }
 
   // end segment
-  p0 = vcFenceRenderer_CreateEndJointExpandVector(pPoints[pointCount - 2], pPoints[pointCount - 1], pFenceRenderer->ribbonWidth);
+  p0 = vcFenceRenderer_CreateEndJointExpandVector(pPoints[pointCount - 2], pPoints[pointCount - 1], pFenceRenderer->config.ribbonWidth);
   pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(p0, 0.0f);
   pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(-p0, 1.0f);
 
@@ -342,7 +341,7 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
 
   pFenceRenderer->renderShader.params.viewProjection = udFloat4x4::create(viewProjectionMatrix);
   pFenceRenderer->renderShader.params.time = (float)pFenceRenderer->totalTimePassed;
-  pFenceRenderer->renderShader.params.width = pFenceRenderer->ribbonWidth;
+  pFenceRenderer->renderShader.params.width = pFenceRenderer->config.ribbonWidth;
   pFenceRenderer->renderShader.params.textureRepeatScale = pFenceRenderer->config.textureRepeatScale;
   pFenceRenderer->renderShader.params.textureScrollSpeed = pFenceRenderer->config.textureScrollSpeed;
   pFenceRenderer->renderShader.params.bottomColour = pFenceRenderer->config.bottomColour;
