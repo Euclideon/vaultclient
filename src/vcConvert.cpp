@@ -430,6 +430,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   ImGui::Separator();
   if (pSelectedJob->pConvertInfo->totalItems > 0)
   {
+    ImGui::SetNextTreeNodeOpen(true, ImGuiCond_FirstUseEver);
     if (ImGui::TreeNodeEx(pSelectedJob->pConvertInfo, 0, "Input Files (%s files)", udCommaInt(pSelectedJob->pConvertInfo->totalItems)))
     {
       if (pSelectedJob->status == vcCQS_Preparing && ImGui::Button("Remove All Files"))

@@ -99,6 +99,9 @@ struct vcSettings
 
     bool rememberUsername;
     char username[vcMaxPathLength];
+
+    char proxy[vcMaxPathLength];
+    bool ignoreCertificateVerification;
   } loginInfo;
 
   struct
