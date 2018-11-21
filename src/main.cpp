@@ -7,6 +7,7 @@
 
 #include "vdkContext.h"
 #include "vdkServerAPI.h"
+#include "vdkConfig.h"
 
 #include <chrono>
 
@@ -185,6 +186,8 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
 {
   if (vcSettings_Load(&pProgramState->settings, forceDefaults))
   {
+    vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
+
 #if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX
     if (pProgramState->settings.window.fullscreen)
       SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
@@ -943,8 +946,8 @@ void vcRenderWindow(vcState *pProgramState)
     }
     else
     {
-      ImGui::SetNextWindowSize(ImVec2(500, 160));
-      if (ImGui::Begin("Login", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
+      ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
+      if (ImGui::Begin("Login", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
       {
         if (pProgramState->pLoginErrorMessage != nullptr)
           ImGui::Text("%s", pProgramState->pLoginErrorMessage);
@@ -983,6 +986,22 @@ void vcRenderWindow(vcState *pProgramState)
         {
           ImGui::SameLine();
           ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "Caps Lock is Enabled!");
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::TreeNode("Advanced Connection Settings"))
+        {
+          if (ImGui::InputText("Proxy Address", pProgramState->settings.loginInfo.proxy, vcMaxPathLength))
+            vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
+
+          if (ImGui::Checkbox("Ignore Certificate Verification", &pProgramState->settings.loginInfo.ignoreCertificateVerification))
+            vdkConfig_IgnoreCertificateVerification(pProgramState->settings.loginInfo.ignoreCertificateVerification);
+
+          if (pProgramState->settings.loginInfo.ignoreCertificateVerification)
+            ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "THIS IS A DANGEROUS SETTING, ONLY SET THIS ON REQUEST FROM YOUR SYSTEM ADMINISTRATOR");
+
+          ImGui::TreePop();
         }
       }
       ImGui::End();

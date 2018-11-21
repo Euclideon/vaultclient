@@ -33,6 +33,13 @@ After running the application you should see a login screen as below.
 - `Username` is the username you were given (or entered while registering). If you weren't provided with a username you may be able to register for one by visiting the server URL in your browser*
 - `Password` is your account password
 
+There are additional settings in the "Advanced Connection Settings" dropdown.
+
+- `Proxy Address` is the address for your internet proxy (this is provided by your system administrator). It can additionally include the port number and protocol. Examples include: `192.168.0.1`, `169.123.123.1:80` or `https://10.4.0.1:8081`. Leaving this blank will attempt auto-detection.
+- `Ignore Certificate Verification` will disable verification of the PEER and HOST certificate authorities. This setting should *ONLY* be used when instructed by your system administrator and only when errors are occuring during the login process. It will weaken the security between your computer and the Euclideon Vault Server.
+
+> NOTE: `Ignore Certificate Verification` will not be saved due to the security risk associated. You will need to enable this setting each time you open the application.
+
 *`Remember` will store the value you enter here for future use so you don't have to enter it every time.
 
 After logging in you should see the full user interface:
@@ -57,7 +64,7 @@ Mouse Controls:
 - The scroll wheel will "dolly" (move the camera in and out) from the hovered point (not the skybox).
   > TIP: If you prefer scroll wheel to change the move speed like Euclideon Geoverse MDM does, that option is available in the settings as well.
 
-Keyboard Controls (with the "Scene" window focussed):
+Default Keyboard Controls (with the "Scene" window focussed):
 - `W` and `S` strafe the camera forward and backward at the current Camera Move Speed
 - `A` and `D` strafe the camera left and right at the current Camera Move Speed
 - `R` and `F` strafe the camera up and down at the current Camera Move Speed
