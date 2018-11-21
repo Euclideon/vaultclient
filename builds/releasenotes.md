@@ -2,6 +2,7 @@ Euclideon Vault Client Version History
 
 Version 0.1.2 (In Development)
   - Changed the rotation of the camera in the UI to display in degrees (EVA-424)
+  - Added proxy support and added option to ignore peer and host certificate verification (EVA-391)
 
 Version 0.1.1
   - Now has UI to show when a new version is available
