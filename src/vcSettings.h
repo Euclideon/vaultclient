@@ -95,8 +95,12 @@ struct vcSettings
   struct
   {
     vcVisualizatationMode mode;
+
     int minIntensity;
     int maxIntensity;
+
+    bool useCustomClassificationColours;
+    uint32_t customClassificationColors[256];
   } visualization;
 
   struct
