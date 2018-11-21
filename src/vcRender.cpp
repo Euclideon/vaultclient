@@ -75,6 +75,7 @@ struct vcRenderContext
   vcTexture *pDepthTexture;
 
   vcUDRenderContext udRenderContext;
+  vcFenceRenderer *pDiagnosticFences;
 
   udDouble4x4 viewMatrix;
   udDouble4x4 projectionMatrix;
@@ -129,6 +130,7 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   vcShader_Bind(nullptr);
 
   vcRender_CreateTerrain(pRenderContext, pSettings);
+  vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences);
 
   *ppRenderContext = pRenderContext;
 
@@ -179,6 +181,7 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
 
   vcRender_DestroyTerrain(pRenderContext);
+  vcFenceRenderer_Destroy(&pRenderContext->pDiagnosticFences);
 
 epilogue:
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
@@ -413,12 +416,14 @@ void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
   udUnused(renderData);
   udUnused(pRenderContext);
 
+  vcGLState_ResetState();
   vcGLState_SetBlendMode(vcGLSBM_AdditiveSrcInterpolativeDst);
   vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, false);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   // Draw fences here
-  //vcFenceRenderer_Render(pFenceRenderer, pRenderContext->viewProjectionMatrix, renderData.deltaTime);
+  if (pRenderContext->pSettings->presentation.showDiagnosticInfo)
+    vcFenceRenderer_Render(pRenderContext->pDiagnosticFences, pRenderContext->viewProjectionMatrix, renderData.deltaTime);
 }
 
 vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
@@ -590,6 +595,25 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
         }
       }
     }
+  }
+
+  if (pRenderContext->pSettings->presentation.showDiagnosticInfo && renderData.models.length > 0)
+  {
+    udFloat3 corners[10];
+
+    corners[0] = udFloat3::create((renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMin.x, renderData.models[0]->boundsMin.y, renderData.models[0]->boundsMin.z, 1.0)).toVector3());
+    corners[1] = udFloat3::create((renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMin.x, renderData.models[0]->boundsMax.y, renderData.models[0]->boundsMin.z, 1.0)).toVector3());
+    corners[2] = udFloat3::create((renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMax.x, renderData.models[0]->boundsMax.y, renderData.models[0]->boundsMin.z, 1.0)).toVector3());
+    corners[3] = udFloat3::create((renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMax.x, renderData.models[0]->boundsMin.y, renderData.models[0]->boundsMin.z, 1.0)).toVector3());
+    corners[4] = corners[0];
+
+    corners[5] = udFloat3::create((renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMin.x, renderData.models[0]->boundsMin.y, renderData.models[0]->boundsMax.z, 1.0)).toVector3());
+    corners[6] = udFloat3::create((renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMin.x, renderData.models[0]->boundsMax.y, renderData.models[0]->boundsMax.z, 1.0)).toVector3());
+    corners[7] = udFloat3::create((renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMax.x, renderData.models[0]->boundsMax.y, renderData.models[0]->boundsMax.z, 1.0)).toVector3());
+    corners[8] = udFloat3::create((renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMax.x, renderData.models[0]->boundsMin.y, renderData.models[0]->boundsMax.z, 1.0)).toVector3());
+    corners[9] = corners[5];
+
+    vcFenceRenderer_SetPoints(pRenderContext->pDiagnosticFences, corners, (int)udLengthOf(corners));
   }
 
   vdkRenderPicking picking = {};
