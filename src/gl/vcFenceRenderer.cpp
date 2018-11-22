@@ -10,8 +10,9 @@ struct vcFenceRenderer
   vcMesh *pMesh;
   int vertCount;
 
-  int pointCount;
-  udFloat3 *pCachedPoints;
+  size_t pointCount;
+  udDouble3 *pCachedPoints;
+  udDouble4x4 fenceOriginOffset;
 
   double totalTimePassed;
   vcFenceRendererConfig config;
@@ -89,7 +90,7 @@ udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer)
   UD_ERROR_NULL(pFenceRenderer, udR_MemoryAllocationFailure);
 
   // defaults
-  pFenceRenderer->config.ribbonWidth = 1.f;
+  pFenceRenderer->config.ribbonWidth = 250.f;
   pFenceRenderer->config.textureRepeatScale = 1.0f;
   pFenceRenderer->config.textureScrollSpeed = 1.0f;
   pFenceRenderer->config.bottomColour = udFloat4::create(1.0f);
@@ -142,7 +143,7 @@ udResult vcFenceRenderer_SetConfig(vcFenceRenderer *pFenceRenderer, const vcFenc
   // need to rebuild verts on width change
   if (pFenceRenderer->pointCount > 0 && ((oldWidth - pFenceRenderer->config.ribbonWidth) > UD_EPSILON))
   {
-    UD_ERROR_SET(vcFenceRenderer_SetPoints(pFenceRenderer, pFenceRenderer->pCachedPoints, pFenceRenderer->pointCount));
+    UD_ERROR_SET(vcFenceRenderer_SetPoints(pFenceRenderer, pFenceRenderer->pCachedPoints, pFenceRenderer->pointCount, false));
   }
 
 epilogue:
@@ -191,7 +192,7 @@ udFloat3 vcFenceRenderer_CreateSegmentJointExpandVector(const udFloat3 &previous
   return -(u0 + v0);
 }
 
-udResult vcFenceRenderer_SetPoints(vcFenceRenderer *pFenceRenderer, udFloat3 *pPoints, int pointCount)
+udResult vcFenceRenderer_SetPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *pPoints, size_t pointCount, bool recalculateCachedPoints /*= true*/)
 {
   udResult result = udR_Success;
 
@@ -204,7 +205,10 @@ udResult vcFenceRenderer_SetPoints(vcFenceRenderer *pFenceRenderer, udFloat3 *pP
   float currentUV = 0;
   float previousDist0 = 0;
   float previousDist1 = 0;
-  udFloat3 p0 = udFloat3::zero();
+  udFloat3 expandVector = udFloat3::zero();
+  udFloat3 prev = udFloat3::zero();
+  udFloat3 current = udFloat3::zero();
+  udFloat3 next = udFloat3::zero();
   float uv0 = 0.0f;
   float uv1 = 0.0f;
   float maxUV = 0.0f;
@@ -215,37 +219,48 @@ udResult vcFenceRenderer_SetPoints(vcFenceRenderer *pFenceRenderer, udFloat3 *pP
   if (pFenceRenderer->pointCount != pointCount)
   {
     udFree(pFenceRenderer->pCachedPoints);
-    pFenceRenderer->pCachedPoints = udAllocType(udFloat3, pointCount, udAF_Zero);
+    pFenceRenderer->pCachedPoints = udAllocType(udDouble3, pointCount, udAF_Zero);
     UD_ERROR_NULL(pFenceRenderer->pCachedPoints, udR_MemoryAllocationFailure);
   }
 
   pFenceRenderer->pointCount = pointCount;
-  memcpy(pFenceRenderer->pCachedPoints, pPoints, sizeof(udFloat3) * pointCount);
 
-  vertCount = pointCount * 2 + udMax(pointCount - 2, 0) * 2;
+  if (recalculateCachedPoints)
+  {
+    // Reposition all the points around an origin point
+    pFenceRenderer->fenceOriginOffset = udDouble4x4::translation(pPoints[0]);
+    for (size_t i = 0; i < pointCount; ++i)
+    {
+      pFenceRenderer->pCachedPoints[i] = pPoints[i] -pPoints[0];
+    }
+  }
+
+  vertCount = int(pointCount * 2 + udMax<size_t>(pointCount - 2, 0) * 2);
   pVerts = udAllocType(vcRibbonVertex, vertCount, udAF_Zero);
   UD_ERROR_NULL(pVerts, udR_MemoryAllocationFailure);
   pFenceRenderer->vertCount = vertCount;
 
-  for (int i = 0; i < pointCount; ++i)
+  for (size_t i = 0; i < pointCount; ++i)
   {
     if (i > 0)
-      uvFenceOffset += udMag3(pPoints[i] - pPoints[i - 1]);
+      uvFenceOffset += float(udMag3(pFenceRenderer->pCachedPoints[i] - pFenceRenderer->pCachedPoints[i - 1]));
 
-    pVerts[vertIndex + 0].position = pPoints[i];
+    udFloat3 point = udFloat3::create(pFenceRenderer->pCachedPoints[i]);
+
+    pVerts[vertIndex + 0].position = point;
     pVerts[vertIndex + 0].uv = udFloat2::create(0, uvFenceOffset);
 
-    pVerts[vertIndex + 1].position = pPoints[i];
+    pVerts[vertIndex + 1].position = point;
     pVerts[vertIndex + 1].uv = udFloat2::create(0, uvFenceOffset);
 
     vertIndex += 2;
 
     if (i > 0 && i < pointCount - 1) // middle segments
     {
-      pVerts[vertIndex + 0].position = pPoints[i];
+      pVerts[vertIndex + 0].position = point;
       pVerts[vertIndex + 0].uv = udFloat2::create(0, uvFenceOffset);
 
-      pVerts[vertIndex + 1].position = pPoints[i];
+      pVerts[vertIndex + 1].position = point;
       pVerts[vertIndex + 1].uv = udFloat2::create(0, uvFenceOffset);
 
       vertIndex += 2;
@@ -255,31 +270,37 @@ udResult vcFenceRenderer_SetPoints(vcFenceRenderer *pFenceRenderer, udFloat3 *pP
   vertIndex = 0;
 
   // start segment
-  p0 = vcFenceRenderer_CreateStartJointExpandVector(pPoints[0], pPoints[1], pFenceRenderer->config.ribbonWidth);
-  pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(p0, 0.0f);
-  pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(-p0, 1.0f);
+  current = udFloat3::create(pFenceRenderer->pCachedPoints[0]);
+  next = udFloat3::create(pFenceRenderer->pCachedPoints[1]);
+  expandVector = vcFenceRenderer_CreateStartJointExpandVector(current, next, pFenceRenderer->config.ribbonWidth);
+  pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(expandVector, 0.0f);
+  pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(-expandVector, 1.0f);
   vertIndex += 2;
 
   // middle segments
-  for (int i = 1; i < pointCount - 1; ++i)
+  for (size_t i = 1; i < pointCount - 1; ++i)
   {
-    p0 = vcFenceRenderer_CreateSegmentJointExpandVector(pPoints[i - 1], pPoints[i], pPoints[i + 1], pFenceRenderer->config.ribbonWidth, &jointFlipped);
+    prev = udFloat3::create(pFenceRenderer->pCachedPoints[i - 1]);
+    current = udFloat3::create(pFenceRenderer->pCachedPoints[i]);
+    next = udFloat3::create(pFenceRenderer->pCachedPoints[i + 1]);
 
-    udFloat3 pLeft = pPoints[i] + p0;
-    udFloat3 pRight = pPoints[i] - p0;
+    expandVector = vcFenceRenderer_CreateSegmentJointExpandVector(prev, current, next, pFenceRenderer->config.ribbonWidth, &jointFlipped);
 
-    udFloat3 pPrevLeft = pPoints[i - 1] + pVerts[vertIndex - 2].ribbonInfo.toVector3();
-    udFloat3 pPrevRight = pPoints[i - 1] + pVerts[vertIndex - 1].ribbonInfo.toVector3();
+    udFloat3 pLeft = current + expandVector;
+    udFloat3 pRight = current - expandVector;
+
+    udFloat3 pPrevLeft = prev + pVerts[vertIndex - 2].ribbonInfo.toVector3();
+    udFloat3 pPrevRight = prev + pVerts[vertIndex - 1].ribbonInfo.toVector3();
 
     // distance between (expanded) verts
     uv0 = udMag3(pLeft - pPrevLeft);
     uv1 = udMag3(pRight - pPrevRight);
 
     // duplicate positions
-    pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(p0, 0.0f);
-    pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(-p0, 1.0f);
-    pVerts[vertIndex + 2].ribbonInfo = udFloat4::create(p0, 0.0f);
-    pVerts[vertIndex + 3].ribbonInfo = udFloat4::create(-p0, 1.0f);
+    pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(expandVector, 0.0f);
+    pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(-expandVector, 1.0f);
+    pVerts[vertIndex + 2].ribbonInfo = udFloat4::create(expandVector, 0.0f);
+    pVerts[vertIndex + 3].ribbonInfo = udFloat4::create(-expandVector, 1.0f);
 
     // calculate UVs
     float hyp = udMag3(pLeft - pRight);
@@ -306,12 +327,14 @@ udResult vcFenceRenderer_SetPoints(vcFenceRenderer *pFenceRenderer, udFloat3 *pP
   }
 
   // end segment
-  p0 = vcFenceRenderer_CreateEndJointExpandVector(pPoints[pointCount - 2], pPoints[pointCount - 1], pFenceRenderer->config.ribbonWidth);
-  pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(p0, 0.0f);
-  pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(-p0, 1.0f);
+  prev = udFloat3::create(pFenceRenderer->pCachedPoints[pointCount - 2]);
+  current = udFloat3::create(pFenceRenderer->pCachedPoints[pointCount - 1]);
+  expandVector = vcFenceRenderer_CreateEndJointExpandVector(prev, current, pFenceRenderer->config.ribbonWidth);
+  pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(expandVector, 0.0f);
+  pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(-expandVector, 1.0f);
 
-  uv0 = udMag3((pPoints[pointCount - 1] + pVerts[vertIndex + 0].ribbonInfo.toVector3()) - (pPoints[pointCount - 2] + pVerts[vertIndex - 2].ribbonInfo.toVector3()));
-  uv1 = udMag3((pPoints[pointCount - 1] + pVerts[vertIndex + 1].ribbonInfo.toVector3()) - (pPoints[pointCount - 2] + pVerts[vertIndex - 1].ribbonInfo.toVector3()));
+  uv0 = udMag3((current + pVerts[vertIndex + 0].ribbonInfo.toVector3()) - (prev + pVerts[vertIndex - 2].ribbonInfo.toVector3()));
+  uv1 = udMag3((current + pVerts[vertIndex + 1].ribbonInfo.toVector3()) - (prev + pVerts[vertIndex - 1].ribbonInfo.toVector3()));
 
   maxUV = udMax(uv0, uv1);
   pVerts[vertIndex + 0].uv.x = currentUV + maxUV;
@@ -339,7 +362,7 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
 
   pFenceRenderer->totalTimePassed += deltaTime;
 
-  pFenceRenderer->renderShader.params.viewProjection = udFloat4x4::create(viewProjectionMatrix);
+  pFenceRenderer->renderShader.params.viewProjection = udFloat4x4::create(viewProjectionMatrix * pFenceRenderer->fenceOriginOffset);
   pFenceRenderer->renderShader.params.time = (float)pFenceRenderer->totalTimePassed;
   pFenceRenderer->renderShader.params.width = pFenceRenderer->config.ribbonWidth;
   pFenceRenderer->renderShader.params.textureRepeatScale = pFenceRenderer->config.textureRepeatScale;
