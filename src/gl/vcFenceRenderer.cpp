@@ -448,7 +448,8 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
     pFenceRenderer->renderShader.everyObjectParams.modelViewProjection = udFloat4x4::create(viewProjectionMatrix * pSegment->fenceOriginOffset);
     vcShader_BindConstantBuffer(pFenceRenderer->renderShader.pProgram, pFenceRenderer->renderShader.uniform_everyObject, &pFenceRenderer->renderShader.everyObjectParams, sizeof(pFenceRenderer->renderShader.everyObjectParams));
 
-    success = success && (udR_Success == vcMesh_Render(pSegment->pMesh, pSegment->vertCount, 0, vcMRM_TriangleStrip));
+    if (vcMesh_Render(pSegment->pMesh, pSegment->vertCount, 0, vcMRM_TriangleStrip) != udR_Success)
+      success = false;
   }
 
   return success;
