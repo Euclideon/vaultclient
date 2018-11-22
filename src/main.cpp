@@ -84,7 +84,7 @@ void vcMain_UpdateSessionInfo(void *pProgramStatePtr)
   vcState *pProgramState = (vcState*)pProgramStatePtr;
   vdkError response = vdkContext_KeepAlive(pProgramState->pVDKContext);
 
-  if (response != udR_Success)
+  if (response != vE_Success)
     pProgramState->forceLogout = true;
   else
     pProgramState->lastServerResponse = vcMain_GetCurrentTime();
@@ -390,7 +390,7 @@ int main(int argc, char **args)
 
   ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize);
 
-#if 0 // If load additional fonts
+#if 1 // If load additional fonts
   fontCfg.MergeMode = true;
 
   static ImWchar characterRanges[] =

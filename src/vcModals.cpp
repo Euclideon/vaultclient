@@ -18,7 +18,10 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
     ImGui::Text("You were logged out.");
 
     if (ImGui::Button("Close", ImVec2(-1, 0)))
+    {
       ImGui::CloseCurrentPopup();
+      pProgramState->openModals &= ~(1 << vcMT_LoggedOut);
+    }
 
     ImGui::EndPopup();
   }
@@ -150,7 +153,10 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
 
     ImGui::NextColumn();
     if (ImGui::Button("Close", ImVec2(-1, 0)))
+    {
       ImGui::CloseCurrentPopup();
+      pProgramState->openModals &= ~(1 << vcMT_NewVersionAvailable);
+    }
 
     ImGui::Columns(1);
 
@@ -181,5 +187,5 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawAbout(pProgramState);
   vcModals_DrawNewVersionAvailable(pProgramState);
 
-  pProgramState->openModals = 0;
+  pProgramState->openModals &= ((1 << vcMT_NewVersionAvailable) | (1 << vcMT_LoggedOut));
 }
