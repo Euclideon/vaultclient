@@ -597,23 +597,30 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
     }
   }
 
-  if (pRenderContext->pSettings->presentation.showDiagnosticInfo && renderData.models.length > 0)
+
+  if ( pRenderContext->pSettings->presentation.showDiagnosticInfo && renderData.models.length > 0)
   {
-    udDouble3 corners[10];
+    // temporary counter to allow model info to stream in
+    static int added = 0;
+    added++;
+    if (added == 60)
+    {
+      udDouble3 corners[10];
 
-    corners[0] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMin.x, renderData.models[0]->boundsMin.y, renderData.models[0]->boundsMin.z, 1.0)).toVector3();
-    corners[1] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMin.x, renderData.models[0]->boundsMax.y, renderData.models[0]->boundsMin.z, 1.0)).toVector3();
-    corners[2] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMax.x, renderData.models[0]->boundsMax.y, renderData.models[0]->boundsMin.z, 1.0)).toVector3();
-    corners[3] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMax.x, renderData.models[0]->boundsMin.y, renderData.models[0]->boundsMin.z, 1.0)).toVector3();
-    corners[4] = corners[0];
+      corners[0] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMin.x, renderData.models[0]->boundsMin.y, renderData.models[0]->boundsMin.z, 1.0)).toVector3();
+      corners[1] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMin.x, renderData.models[0]->boundsMax.y, renderData.models[0]->boundsMin.z, 1.0)).toVector3();
+      corners[2] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMax.x, renderData.models[0]->boundsMax.y, renderData.models[0]->boundsMin.z, 1.0)).toVector3();
+      corners[3] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMax.x, renderData.models[0]->boundsMin.y, renderData.models[0]->boundsMin.z, 1.0)).toVector3();
+      corners[4] = corners[0];
 
-    corners[5] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMin.x, renderData.models[0]->boundsMin.y, renderData.models[0]->boundsMax.z, 1.0)).toVector3();
-    corners[6] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMin.x, renderData.models[0]->boundsMax.y, renderData.models[0]->boundsMax.z, 1.0)).toVector3();
-    corners[7] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMax.x, renderData.models[0]->boundsMax.y, renderData.models[0]->boundsMax.z, 1.0)).toVector3();
-    corners[8] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMax.x, renderData.models[0]->boundsMin.y, renderData.models[0]->boundsMax.z, 1.0)).toVector3();
-    corners[9] = corners[5];
+      corners[5] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMin.x, renderData.models[0]->boundsMin.y, renderData.models[0]->boundsMax.z, 1.0)).toVector3();
+      corners[6] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMin.x, renderData.models[0]->boundsMax.y, renderData.models[0]->boundsMax.z, 1.0)).toVector3();
+      corners[7] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMax.x, renderData.models[0]->boundsMax.y, renderData.models[0]->boundsMax.z, 1.0)).toVector3();
+      corners[8] = (renderData.models[0]->worldMatrix * udDouble4::create(renderData.models[0]->boundsMax.x, renderData.models[0]->boundsMin.y, renderData.models[0]->boundsMax.z, 1.0)).toVector3();
+      corners[9] = corners[5];
 
-    vcFenceRenderer_SetPoints(pRenderContext->pDiagnosticFences, corners, (int)udLengthOf(corners));
+      vcFenceRenderer_AddPoints(pRenderContext->pDiagnosticFences, corners, (int)udLengthOf(corners));
+    }
   }
 
   vdkRenderPicking picking = {};
