@@ -234,7 +234,7 @@ const char* const g_PositionNormalFragmentShader = R"shader(
     float3 fakeEyeVector = normalize(input.fragClipPosition.xyz / input.fragClipPosition.w);
     float3 worldNormal = input.normal * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
     float ndotl = 0.5 + 0.5 * -dot(input.sunDirection, worldNormal);
-    float edotr = max(0.0, dot(fakeEyeVector, worldNormal));
+    float edotr = max(0.0, -dot(-fakeEyeVector, worldNormal));
     edotr = pow(edotr, 60.0);
     float3 sheenColour = float3(1.0, 1.0, 0.9);
     return float4(input.colour.a * (ndotl * input.colour.xyz + edotr * sheenColour), 1.0);
