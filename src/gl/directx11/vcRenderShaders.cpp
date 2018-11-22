@@ -404,9 +404,8 @@ const char* const g_ImGuiFragmentShader = R"frag(
 
 
 const char* const g_FenceVertexShader = R"shader(
-  cbuffer u_params : register(b0)
+  cbuffer u_EveryFrame : register(b0)
   {
-    float4x4 u_viewProjectionMatrix;
     float4 u_bottomColour;
     float4 u_topColour;
 
@@ -417,6 +416,11 @@ const char* const g_FenceVertexShader = R"shader(
     float u_time;
 
     float3 _padding;
+  };
+
+  cbuffer u_EveryObject : register(b1)
+  {
+    float4x4 u_modelViewProjectionMatrix;
   };
 
   struct VS_INPUT
@@ -442,7 +446,7 @@ const char* const g_FenceVertexShader = R"shader(
     output.colour = lerp(u_bottomColour, u_topColour, input.ribbonInfo.w);
 
     float3 worldPosition = input.pos + lerp(float3(0, 0, input.ribbonInfo.w) * u_width, input.ribbonInfo.xyz, u_orientation);
-    output.pos = mul(u_viewProjectionMatrix, float4(worldPosition, 1.0));
+    output.pos = mul(u_modelViewProjectionMatrix, float4(worldPosition, 1.0));
     return output;
   }
 )shader";

@@ -44,6 +44,8 @@ struct vcShaderConstantBuffer
 {
   int type; // 0 = VSConstantBuffer, 1 = PSConstantBuffer
   int expectedSize;
+  uint32_t registerSlot;
+
   ID3D11Buffer *pBuffer;
   char bufferName[32];
 };
