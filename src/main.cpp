@@ -21,7 +21,7 @@
 #include "SDL2/SDL_syswm.h"
 #include "vcConvert.h"
 #include "vcVersion.h"
-#include "vcThirdPartyLicenses.h"
+#include "vcModals.h"
 
 #include "udPlatform/udFile.h"
 
@@ -82,34 +82,12 @@ int64_t vcMain_GetCurrentTime()
 void vcMain_UpdateSessionInfo(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
+  vdkError response = vdkContext_KeepAlive(pProgramState->pVDKContext);
 
-  const char *pSessionRawData = nullptr;
-  udJSON info;
-
-  pProgramState->lastServerAttempt = vcMain_GetCurrentTime();
-  vdkError response = vdkServerAPI_Query(pProgramState->pVDKContext, "v1/session/info", nullptr, &pSessionRawData);
-
-  if (response == vE_Success)
-  {
-    if (info.Parse(pSessionRawData) == udR_Success)
-    {
-      if (info.Get("success").AsBool() == true)
-      {
-        udStrcpy(pProgramState->username, udLengthOf(pProgramState->username), info.Get("user.realname").AsString("Guest"));
-        pProgramState->lastServerResponse = vcMain_GetCurrentTime();
-      }
-      else
-      {
-        response = vE_NotAllowed;
-      }
-    }
-    else
-    {
-      response = vE_Failure;
-    }
-  }
-
-  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pSessionRawData);
+  if (response != udR_Success)
+    pProgramState->forceLogout = true;
+  else
+    pProgramState->lastServerResponse = vcMain_GetCurrentTime();
 }
 
 void vcLogin(void *pProgramStatePtr)
@@ -150,12 +128,39 @@ void vcLogin(void *pProgramStatePtr)
       if (pProgramState->packageInfo.Get("package.versionnumber").AsInt() <= VCVERSION_BUILD_NUMBER || VCVERSION_BUILD_NUMBER == 0)
         pProgramState->packageInfo.Destroy();
       else
-        pProgramState->popupTrigger[vcPopup_NewVersionAvailable] = true;
+        vcModals_OpenModal(pProgramState, vcMT_NewVersionAvailable);
     }
   }
   vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pPackageData);
 
-  vcMain_UpdateSessionInfo(pProgramState);
+  // Update username
+  {
+    const char *pSessionRawData = nullptr;
+    udJSON info;
+
+    vdkError response = vdkServerAPI_Query(pProgramState->pVDKContext, "v1/session/info", nullptr, &pSessionRawData);
+    if (response == vE_Success)
+    {
+      if (info.Parse(pSessionRawData) == udR_Success)
+      {
+        if (info.Get("success").AsBool() == true)
+        {
+          udStrcpy(pProgramState->username, udLengthOf(pProgramState->username), info.Get("user.realname").AsString("Guest"));
+          pProgramState->lastServerResponse = vcMain_GetCurrentTime();
+        }
+        else
+        {
+          response = vE_NotAllowed;
+        }
+      }
+      else
+      {
+        response = vE_Failure;
+      }
+    }
+
+    vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pSessionRawData);
+  }
 
   //Context Login successful
   memset(pProgramState->password, 0, sizeof(pProgramState->password));
@@ -172,6 +177,7 @@ void vcLogin(void *pProgramStatePtr)
 void vcLogout(vcState *pProgramState)
 {
   pProgramState->hasContext = false;
+  pProgramState->forceLogout = false;
 
   if (pProgramState->pVDKContext != nullptr)
   {
@@ -179,6 +185,8 @@ void vcLogout(vcState *pProgramState)
     pProgramState->projects.Destroy();
     memset(&pProgramState->gis, 0, sizeof(pProgramState->gis));
     vdkContext_Disconnect(&pProgramState->pVDKContext);
+
+    vcModals_OpenModal(pProgramState, vcMT_LoggedOut);
   }
 }
 
@@ -382,7 +390,7 @@ int main(int argc, char **args)
 
   ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize);
 
-#if 1 // If load additional fonts
+#if 0 // If load additional fonts
   fontCfg.MergeMode = true;
 
   static ImWchar characterRanges[] =
@@ -513,7 +521,16 @@ int main(int argc, char **args)
 
       // Ping the server every 30 seconds
       if (vcMain_GetCurrentTime() > programState.lastServerAttempt + 30)
+      {
+        programState.lastServerAttempt = vcMain_GetCurrentTime();
         vWorkerThread_AddTask(programState.pWorkerPool, vcMain_UpdateSessionInfo, &programState, false);
+      }
+
+      if (programState.forceLogout)
+      {
+        vcLogout(&programState);
+        vcModals_OpenModal(&programState, vcMT_LoggedOut);
+      }
     }
   }
 
@@ -535,12 +552,12 @@ epilogue:
   programState.loadList.Deinit();
   vcModel_UnloadList(&programState);
   programState.vcModelList.Deinit();
-  vcLogout(&programState);
   vcRender_Destroy(&programState.pRenderContext);
 
-  vcGLState_Deinit();
+  vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
+  vcLogout(&programState);
 
-  vWorkerThread_Shutdown(&programState.pWorkerPool);
+  vcGLState_Deinit();
 
   return 0;
 }
@@ -786,7 +803,11 @@ int vcMainMenuGui(vcState *pProgramState)
       if (ImGui::MenuItem("Restore Defaults", nullptr))
         vcMain_LoadSettings(pProgramState, true);
 
-      ImGui::MenuItem("About", nullptr, &pProgramState->popupTrigger[vcPopup_About]);
+      if (ImGui::MenuItem("About"))
+        vcModals_OpenModal(pProgramState, vcMT_About);
+
+      if (ImGui::MenuItem("Release Notes"))
+        vcModals_OpenModal(pProgramState, vcMT_ReleaseNotes);
 
 #if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX
       if (ImGui::MenuItem("Quit", "Alt+F4"))
@@ -1007,37 +1028,20 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::End();
     }
 
-    ImGui::SetNextWindowPos(ImVec2(size.x, 0), ImGuiCond_Always, ImVec2(1.f, 0.f));
-    ImGui::SetNextWindowSize(ImVec2(800, size.y - 200), ImGuiCond_Always);
-    ImGui::SetNextWindowCollapsed(true, ImGuiCond_Appearing);
-    if (ImGui::Begin("Release Notes", nullptr, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+    ImGui::SetNextWindowBgAlpha(0.f);
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f, 0.f, 0.f, 0.f));
+    ImGui::SetNextWindowPos(ImVec2(0, size.y), ImGuiCond_Always, ImVec2(0, 1));
+    if (ImGui::Begin("LoginScreenPopups", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
     {
-      if (pProgramState->pReleaseNotes == nullptr)
-      {
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-        char ReleaseNotesPath[] = ASSETDIR "/releasenotes.md";
-#elif UDPLATFORM_OSX
-        char ReleaseNotesPath[vcMaxPathLength] = "";
+      if (ImGui::Button("Release Notes"))
+        vcModals_OpenModal(pProgramState, vcMT_ReleaseNotes);
 
-        {
-          char *pBasePath = SDL_GetBasePath();
-          if (pBasePath == nullptr)
-            pBasePath = SDL_strdup("./");
-
-          udSprintf(ReleaseNotesPath, vcMaxPathLength, "%s%s", pBasePath, "releasenotes.md");
-          SDL_free(pBasePath);
-        }
-#else
-        char ReleaseNotesPath[] = "releasenotes.md";
-#endif
-
-        udFile_Load(ReleaseNotesPath, (void**)&pProgramState->pReleaseNotes);
-      }
-
-      if (pProgramState->pReleaseNotes != nullptr)
-        ImGui::TextWrapped("%s", pProgramState->pReleaseNotes);
+      ImGui::SameLine();
+      if (ImGui::Button("About"))
+        vcModals_OpenModal(pProgramState, vcMT_About);
     }
     ImGui::End();
+    ImGui::PopStyleColor();
   }
   else
   {
@@ -1206,8 +1210,8 @@ void vcRenderWindow(vcState *pProgramState)
 
           if (ImGui::Selectable("Properties"))
           {
-            pProgramState->popupTrigger[vcPopup_ModelProperties] = true;
             pProgramState->selectedModelProperties.index = i;
+            vcModals_OpenModal(pProgramState, vcMT_ModelProperties);
             ImGui::CloseCurrentPopup();
           }
           ImGui::EndPopup();
@@ -1488,20 +1492,17 @@ void vcRenderWindow(vcState *pProgramState)
 
     ImGui::EndDock();
 
-    //Handle popups produced when vdkContext exists
-    if (pProgramState->popupTrigger[vcPopup_ModelProperties])
+    if (vcModals_IsOpening(pProgramState, vcMT_ModelProperties))
     {
       ImGui::OpenPopup("Model Properties");
-
-      pProgramState->selectedModelProperties.pMetadata = pProgramState->vcModelList[pProgramState->selectedModelProperties.index].pMetadata;
-      pProgramState->selectedModelProperties.pWatermarkTexture = pProgramState->vcModelList[pProgramState->selectedModelProperties.index].pWatermark;
       ImGui::SetNextWindowSize(ImVec2(400, 600));
-
-      pProgramState->popupTrigger[vcPopup_ModelProperties] = false;
     }
 
     if (ImGui::BeginPopupModal("Model Properties", NULL))
     {
+      pProgramState->selectedModelProperties.pMetadata = pProgramState->vcModelList[pProgramState->selectedModelProperties.index].pMetadata;
+      pProgramState->selectedModelProperties.pWatermarkTexture = pProgramState->vcModelList[pProgramState->selectedModelProperties.index].pWatermark;
+
       ImGui::Text("File:");
 
       ImGui::TextWrapped("  %s", pProgramState->vcModelList[pProgramState->selectedModelProperties.index].path);
@@ -1549,81 +1550,7 @@ void vcRenderWindow(vcState *pProgramState)
 
       ImGui::EndPopup();
     }
-
-    if (pProgramState->popupTrigger[vcPopup_About])
-    {
-      ImGui::OpenPopup("About");
-      pProgramState->popupTrigger[vcPopup_About] = false;
-      ImGui::SetNextWindowSize(ImVec2(500, 600));
-    }
-
-    if (ImGui::BeginPopupModal("About"))
-    {
-      ImGui::Columns(2, NULL, false);
-      ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-      ImGui::Text("Euclideon Client");
-
-      ImGui::Text("Version: %s", VCVERSION_PRODUCT_STRING);
-
-      if (pProgramState->packageInfo.Get("success").AsBool())
-        ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "Update Available to %s in your Vault Server.", pProgramState->packageInfo.Get("package.versionstring").AsString());
-
-      ImGui::NextColumn();
-      if (ImGui::Button("Close", ImVec2(-1, 0)))
-        ImGui::CloseCurrentPopup();
-
-      ImGui::Columns(1);
-
-      ImGui::Separator();
-
-      ImGui::Text("3rd Party License Information");
-      ImGui::Spacing();
-      ImGui::Spacing();
-
-      ImGui::BeginChild("Licenses");
-      for (int i = 0; i < (int)UDARRAYSIZE(ThirdPartyLicenses); i++)
-      {
-        // ImGui::Text has a limitation of 3072 bytes.
-        ImGui::TextUnformatted(ThirdPartyLicenses[i].pName);
-        ImGui::TextUnformatted(ThirdPartyLicenses[i].pLicense);
-        ImGui::Separator();
-      }
-      ImGui::EndChild();
-
-      ImGui::EndPopup();
-    }
-
-    if (pProgramState->popupTrigger[vcPopup_NewVersionAvailable])
-    {
-      ImGui::OpenPopup("New Version Available");
-      pProgramState->popupTrigger[vcPopup_NewVersionAvailable] = false;
-      ImGui::SetNextWindowSize(ImVec2(500, 600));
-    }
-
-    if (ImGui::BeginPopupModal("New Version Available"))
-    {
-      ImGui::Columns(2, NULL, false);
-      ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-      ImGui::Text("Euclideon Client");
-
-      ImGui::Text("Current Version: %s", VCVERSION_PRODUCT_STRING);
-      ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "New Version: %s", pProgramState->packageInfo.Get("package.versionstring").AsString());
-
-      ImGui::Text("Please visit the Vault server in your browser to download the package.");
-
-      ImGui::NextColumn();
-      if (ImGui::Button("Close", ImVec2(-1, 0)))
-        ImGui::CloseCurrentPopup();
-
-      ImGui::Columns(1);
-
-      ImGui::Separator();
-
-      ImGui::BeginChild("Release Notes");
-      ImGui::TextUnformatted(pProgramState->packageInfo.Get("package.releasenotes").AsString());
-      ImGui::EndChild();
-
-      ImGui::EndPopup();
-    }
   }
+
+  vcModals_DrawModals(pProgramState);
 }
