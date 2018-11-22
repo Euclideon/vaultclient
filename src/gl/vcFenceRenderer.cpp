@@ -105,7 +105,7 @@ udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer)
   pFenceRenderer->pSegments = new std::vector<vcFenceSegment>();
 
   // defaults
-  pFenceRenderer->config.ribbonWidth = 250.f;
+  pFenceRenderer->config.ribbonWidth = 2.5f;
   pFenceRenderer->config.textureRepeatScale = 1.0f;
   pFenceRenderer->config.textureScrollSpeed = 1.0f;
   pFenceRenderer->config.bottomColour = udFloat4::create(1.0f);
