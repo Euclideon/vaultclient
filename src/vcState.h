@@ -22,15 +22,6 @@ struct vcCamera;
 struct vcTexture;
 struct vcConvertContext;
 
-enum vcPopupTriggerID
-{
-  vcPopup_ModelProperties,
-  vcPopup_About,
-  vcPopup_NewVersionAvailable,
-
-  vcPopupCount
-};
-
 struct vcState
 {
   bool programComplete;
@@ -38,7 +29,7 @@ struct vcState
   vcFramebuffer *pDefaultFramebuffer;
 
   bool onScreenControls;
-  bool popupTrigger[vcPopupCount];
+  int openModals; // This is controlled inside vcModals.cpp
 
   vcCamera *pCamera;
 
@@ -72,6 +63,7 @@ struct vcState
   vcCameraInput cameraInput;
 
   bool hasContext;
+  bool forceLogout;
   int64_t lastServerAttempt;
   int64_t lastServerResponse;
   vdkContext *pVDKContext;
