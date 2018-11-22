@@ -314,9 +314,8 @@ void main()
 )shader";
 
 const char* const g_FenceVertexShader = VERT_HEADER R"shader(
-layout (std140) uniform u_params
+layout (std140) uniform u_EveryFrame
 {
-  mat4 u_viewProjectionMatrix;
   vec4 u_bottomColour;
   vec4 u_topColour;
 
@@ -327,6 +326,11 @@ layout (std140) uniform u_params
   float u_time;
 
   vec3 _padding;
+};
+
+layout (std140) uniform u_EveryObject
+{
+  mat4 u_modelViewProjectionMatrix;
 };
 
 layout(location = 0) in vec3 a_position;
@@ -345,7 +349,7 @@ void main()
   // fence or flat
   vec3 worldPosition = a_position + mix(vec3(0, 0, a_ribbonInfo.w) * u_width, a_ribbonInfo.xyz, u_orientation);
 
-  gl_Position = u_viewProjectionMatrix * vec4(worldPosition, 1.0);
+  gl_Position = u_modelViewProjectionMatrix * vec4(worldPosition, 1.0);
 }
 )shader";
 

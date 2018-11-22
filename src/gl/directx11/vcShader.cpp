@@ -43,6 +43,7 @@ bool vsShader_InternalReflectShaderConstantBuffers(ID3D10Blob *pBlob, int type, 
     udStrcpy(pBuffers[index].bufferName, sizeof(pBuffers[index].bufferName), bdesc.Name);
     pBuffers[index].expectedSize = bdesc.Size;
     pBuffers[index].type = type;
+    pBuffers[index].registerSlot = register_index;
 
     D3D11_BUFFER_DESC bufferdesc;
     bufferdesc.ByteWidth = bdesc.Size;
@@ -224,9 +225,9 @@ bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuf
   g_pd3dDeviceContext->Unmap(pBuffer->pBuffer, 0);
 
   if (pBuffer->type == 0)
-    g_pd3dDeviceContext->VSSetConstantBuffers(0, 1, &pBuffer->pBuffer);
+    g_pd3dDeviceContext->VSSetConstantBuffers(pBuffer->registerSlot, 1, &pBuffer->pBuffer);
   else
-    g_pd3dDeviceContext->PSSetConstantBuffers(0, 1, &pBuffer->pBuffer);
+    g_pd3dDeviceContext->PSSetConstantBuffers(pBuffer->registerSlot, 1, &pBuffer->pBuffer);
 
   return true;
 }
