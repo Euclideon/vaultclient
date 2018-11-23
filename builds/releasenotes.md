@@ -1,12 +1,14 @@
 Euclideon Vault Client Version History
 
-Version 0.1.2 (In Development)
+Version 0.1.2
   - Seperated the project codes for Vault Server / Vault Development kit (EVA) from the Euclideon Vault Client codes (EVC)
   - Changed the rotation of the camera in the UI to display in degrees (EVC-70)
   - Added proxy support and added option to ignore peer and host certificate verification (EVA-391)
   - Added outlines to the first model in the scene when the diagnostic information is enabled (EVC-243)
   - Fixed an issue where the temp or output directories not being available caused convert to hand indefinately (EVC-115)
   - Fixed some bundling issues that prevented macOS 0.1.1 being released (EVC-153, EVC-88)
+  - Fixed an issue with some convert settings being lost after reset (EVC-112)
+  - Fixed some issues related to sessions not being kept alive correctly, leaving Client in a mixed state where its partially logged out (EVA-54, EVC-282)
 
 Version 0.1.1
   - Now has UI to show when a new version is available
