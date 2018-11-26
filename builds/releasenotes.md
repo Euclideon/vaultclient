@@ -1,7 +1,7 @@
 Euclideon Vault Client Version History
 
 Version 0.2.0 (In Progress)
-  - Started work on projects
+  - Fixed some size issues with some of the modals (EVC-285)
 
 Version 0.1.2
   - Seperated the project codes for Vault Server / Vault Development kit (EVA) from the Euclideon Vault Client codes (EVC)
