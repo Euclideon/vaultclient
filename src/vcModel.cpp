@@ -56,8 +56,6 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
         {
           if (udParseWKT(&tempNode, pWKT) == udR_Success)
           {
-            pLoadInfo->pModel->pMetadata->Set(&tempNode, "ProjectionWKT");
-
             for (size_t i = 0; i < tempNode.Get("values").ArrayLength() && srid == 0; ++i)
             {
               if (udStrEquali(tempNode.Get("values[%llu].type", i).AsString(), "AUTHORITY"))
@@ -66,6 +64,8 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
                 break;
               }
             }
+
+            pLoadInfo->pModel->pMetadata->Set(&tempNode, "ProjectionWKT");
           }
         }
 

@@ -155,7 +155,7 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
     ImGui::Separator();
 
     ImGui::BeginChild("Release Notes");
-    ImGui::TextWrapped(pProgramState->packageInfo.Get("package.releasenotes").AsString());
+    ImGui::TextWrapped("%s", pProgramState->packageInfo.Get("package.releasenotes").AsString());
     ImGui::EndChild();
 
     ImGui::EndPopup();
