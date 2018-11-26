@@ -30,12 +30,9 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
 void vcModals_DrawReleaseNotes(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_ReleaseNotes))
-  {
     ImGui::OpenPopup("Release Notes");
-    ImGui::SetNextWindowSize(ImVec2(500, 600));
-  }
 
-  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Once);
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal("Release Notes"))
   {
     ImGui::Columns(2, NULL, false);
@@ -92,12 +89,9 @@ void vcModals_DrawReleaseNotes(vcState *pProgramState)
 void vcModals_DrawAbout(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_About))
-  {
     ImGui::OpenPopup("About");
-    ImGui::SetNextWindowSize(ImVec2(500, 600));
-  }
 
-  ImGui::SetNextWindowSize(ImVec2(500, 600), ImGuiCond_Appearing);
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal("About"))
   {
     ImGui::Columns(2, NULL, false);
@@ -135,11 +129,9 @@ void vcModals_DrawAbout(vcState *pProgramState)
 void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_NewVersionAvailable))
-  {
     ImGui::OpenPopup("New Version Available");
-    ImGui::SetNextWindowSize(ImVec2(500, 600));
-  }
 
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal("New Version Available"))
   {
     ImGui::Columns(2, NULL, false);
@@ -163,7 +155,7 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
     ImGui::Separator();
 
     ImGui::BeginChild("Release Notes");
-    ImGui::TextUnformatted(pProgramState->packageInfo.Get("package.releasenotes").AsString());
+    ImGui::TextWrapped("%s", pProgramState->packageInfo.Get("package.releasenotes").AsString());
     ImGui::EndChild();
 
     ImGui::EndPopup();

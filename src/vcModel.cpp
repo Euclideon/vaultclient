@@ -52,18 +52,21 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
         }
 
         const char *pWKT = pLoadInfo->pModel->pMetadata->Get("ProjectionWKT").AsString();
-        if (srid == 0 && pWKT != nullptr && udParseWKT(&tempNode, pWKT) == udR_Success)
+        if (pWKT != nullptr)
         {
-          for (size_t i = 0; i < tempNode.Get("values").ArrayLength(); ++i)
+          if (udParseWKT(&tempNode, pWKT) == udR_Success)
           {
-            if (udStrEquali(tempNode.Get("values[%llu].type", i).AsString(), "AUTHORITY"))
+            for (size_t i = 0; i < tempNode.Get("values").ArrayLength() && srid == 0; ++i)
             {
-              srid = tempNode.Get("values[%llu].values[0]", i).AsInt();
-              break;
+              if (udStrEquali(tempNode.Get("values[%llu].type", i).AsString(), "AUTHORITY"))
+              {
+                srid = tempNode.Get("values[%llu].values[0]", i).AsInt();
+                break;
+              }
             }
-          }
 
-          pLoadInfo->pModel->pMetadata->Set(&tempNode, "ProjectionWKT");
+            pLoadInfo->pModel->pMetadata->Set(&tempNode, "ProjectionWKT");
+          }
         }
 
         if (srid != 0)
