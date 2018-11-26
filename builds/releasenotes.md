@@ -1,5 +1,8 @@
 Euclideon Vault Client Version History
 
+Version 0.2.0 (In Progress)
+  - Started work on projects
+
 Version 0.1.2
   - Seperated the project codes for Vault Server / Vault Development kit (EVA) from the Euclideon Vault Client codes (EVC)
   - Changed the rotation of the camera in the UI to display in degrees (EVC-70)
