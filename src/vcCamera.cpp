@@ -267,6 +267,19 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
     pCamera->eulerRotation += pCamInput->mouseInput;
     pCamera->eulerRotation.y = udClamp(pCamera->eulerRotation.y, (double)-UD_PI / 2.0, (double)UD_PI / 2.0);
+
+    while (pCamera->eulerRotation.x > (double)UD_PI)
+      pCamera->eulerRotation.x -= (double)UD_PI;
+    while (pCamera->eulerRotation.x < (double)-UD_PI)
+      pCamera->eulerRotation.x += (double)UD_PI;
+    while (pCamera->eulerRotation.x >(double)UD_PI)
+      pCamera->eulerRotation.y -= (double)UD_PI;
+    while (pCamera->eulerRotation.x < (double)-UD_PI)
+      pCamera->eulerRotation.y += (double)UD_PI;
+    while (pCamera->eulerRotation.x >(double)UD_PI)
+      pCamera->eulerRotation.z -= (double)UD_PI;
+    while (pCamera->eulerRotation.x < (double)-UD_PI)
+      pCamera->eulerRotation.z += (double)UD_PI;
   }
   break;
 
