@@ -312,7 +312,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
     {
       ImGui::SameLine();
       if (ImGui::Button(udTempStr("Add to Scene##vcConvLoad_%llu", i), ImVec2(-1, 0)))
-        pProgramState->loadList.PushBack(udStrdup(pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName));
+        pProgramState->loadList.push_back(udStrdup(pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName));
     }
   }
 

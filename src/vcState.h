@@ -12,6 +12,8 @@
 #include "vcModel.h"
 #include "vcGIS.h"
 
+#include <vector>
+
 struct SDL_Window;
 
 struct vdkContext;
@@ -33,8 +35,8 @@ struct vcState
 
   vcCamera *pCamera;
 
-  udChunkedArray<const char *> loadList;
-  udChunkedArray<vcModel> vcModelList;
+  std::vector<const char *> loadList;
+  std::vector<vcModel*> vcModelList;
   vWorkerThreadPool *pWorkerPool;
 
   size_t numSelectedModels;
