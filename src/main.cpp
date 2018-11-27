@@ -498,7 +498,8 @@ int main(int argc, char **args)
       {
         continueLoading = false;
 
-        if (programState.loadList.size() > 0) {
+        if (programState.loadList.size() > 0)
+        {
           pNextLoad = programState.loadList[0];
           programState.loadList.erase(programState.loadList.begin()); // TODO: Proper Exception Handling
 
@@ -607,7 +608,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
     renderData.models.PushBack(pProgramState->vcModelList[i]);
 
   vcTexture *pTexture = vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
-  // !!! What happens to vcModelList pointer member pushed onto renderData.models if Deinit()
   renderData.models.Deinit();
   pProgramState->pSceneWatermark = renderData.pWatermarkTexture;
 

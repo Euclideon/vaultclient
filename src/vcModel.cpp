@@ -96,8 +96,8 @@ void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpT
     return;
 
   vcModel *pModel = udAllocType(vcModel, 1, udAF_Zero);
-  // TODO: Proper Exception Handling
-  pProgramState->vcModelList.push_back(pModel);
+
+  pProgramState->vcModelList.push_back(pModel); // TODO: Proper Exception Handling
   {
     vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
     if (pLoadInfo != nullptr)
