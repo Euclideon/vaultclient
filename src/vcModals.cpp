@@ -162,6 +162,29 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
   }
 }
 
+// !!!
+void vcModals_DrawTileServer(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_TileServer))
+  {
+    ImGui::OpenPopup("TileServer");
+    ImGui::SetNextWindowSize(ImVec2(200, 200));
+  }
+
+  ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal("TileServer"))
+  {
+    ImGui::InputText("string", buf, IM_ARRAYSIZE(buf));
+    if (ImGui::Button("Close", ImVec2(-1, 0)))
+      ImGui::CloseCurrentPopup();
+
+    ImGui::Image()
+
+    ImGui::EndPopup();
+  }
+}
+
+
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 {
   pProgramState->openModals |= (1 << type);

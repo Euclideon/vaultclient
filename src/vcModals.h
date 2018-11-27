@@ -8,6 +8,7 @@ enum vcModalTypes
   vcMT_ReleaseNotes,
   vcMT_About,
   vcMT_NewVersionAvailable,
+  vcMT_TileServer,
 
   // These ones are unhandled by the DrawModals
   vcMT_ModelProperties,
