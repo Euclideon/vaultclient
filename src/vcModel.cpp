@@ -98,12 +98,10 @@ void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpT
   if (pFilePath == nullptr)
     return;
 
-  vcModel *pModel = nullptr;
+  vcModel *pModel = udAllocType(vcModel, 1, udAF_Zero);
 
-  if (pProgramState->vcModelList.PushBack(&pModel) == udR_Success)
+  pProgramState->vcModelList.push_back(pModel); // TODO: Proper Exception Handling
   {
-    memset(pModel, 0, sizeof(vcModel));
-
     vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
     if (pLoadInfo != nullptr)
     {
@@ -128,31 +126,33 @@ void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpT
 
 void vcModel_RemoveFromList(vcState *pProgramState, size_t index)
 {
-  if (pProgramState->vcModelList[index].loadStatus == vcMLS_Pending)
-    udInterlockedCompareExchange(&pProgramState->vcModelList[index].loadStatus, vcMLS_Unloaded, vcMLS_Pending);
+  if (pProgramState->vcModelList[index]->loadStatus == vcMLS_Pending)
+    udInterlockedCompareExchange(&pProgramState->vcModelList[index]->loadStatus, vcMLS_Unloaded, vcMLS_Pending);
 
-  while (pProgramState->vcModelList[index].loadStatus == vcMLS_Loading)
+  while (pProgramState->vcModelList[index]->loadStatus == vcMLS_Loading)
     udYield(); // Spin until other thread stops processing
 
-  if (pProgramState->vcModelList[index].loadStatus == vcMLS_Loaded)
+  if (pProgramState->vcModelList[index]->loadStatus == vcMLS_Loaded)
   {
-    vdkModel_Unload(pProgramState->pVDKContext, &pProgramState->vcModelList[index].pVDKModel);
+    vdkModel_Unload(pProgramState->pVDKContext, &pProgramState->vcModelList[index]->pVDKModel);
 
-    if (pProgramState->vcModelList[index].pWatermark != nullptr)
-      vcTexture_Destroy(&pProgramState->vcModelList[index].pWatermark);
+    if (pProgramState->vcModelList[index]->pWatermark != nullptr)
+      vcTexture_Destroy(&pProgramState->vcModelList[index]->pWatermark);
 
-    pProgramState->vcModelList[index].pMetadata->Destroy();
-    udFree(pProgramState->vcModelList[index].pMetadata);
-    udFree(pProgramState->vcModelList[index].pZone);
+    pProgramState->vcModelList[index]->pMetadata->Destroy();
+    udFree(pProgramState->vcModelList[index]->pMetadata);
+    udFree(pProgramState->vcModelList[index]->pZone);
   }
 
-  pProgramState->vcModelList[index].loadStatus = vcMLS_Unloaded;
-  pProgramState->vcModelList.RemoveAt(index);
+  pProgramState->vcModelList[index]->loadStatus = vcMLS_Unloaded;
+
+  udFree(pProgramState->vcModelList.at(index));
+  pProgramState->vcModelList.erase(pProgramState->vcModelList.begin() + index);
 }
 
 void vcModel_UnloadList(vcState *pProgramState)
 {
-  while (pProgramState->vcModelList.length > 0)
+  while (pProgramState->vcModelList.size() > 0)
     vcModel_RemoveFromList(pProgramState, 0);
 }
 
@@ -160,8 +160,8 @@ void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel, udDouble4 off
 {
   if (!pModel)
   {
-    for (size_t i = 0; i < pProgramState->vcModelList.length; ++i)
-      vcModel_UpdateMatrix(pProgramState, &pProgramState->vcModelList[i], offsetT);
+    for (size_t i = 0; i < pProgramState->vcModelList.size(); ++i)
+      vcModel_UpdateMatrix(pProgramState, pProgramState->vcModelList[i], offsetT);
   }
   else
   {

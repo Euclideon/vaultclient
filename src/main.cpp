@@ -295,11 +295,11 @@ int main(int argc, char **args)
   programState.settings.camera.farPlane = 10000.f;
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
-  programState.vcModelList.Init(32);
-  programState.loadList.Init(32);
+  programState.loadList.reserve(udMax(64, argc));
+  programState.vcModelList.reserve(64);
 
   for (int i = 1; i < argc; ++i)
-    programState.loadList.PushBack(udStrdup(args[i]));
+    programState.loadList.push_back(udStrdup(args[i]));
 
   vWorkerThread_StartThreads(&programState.pWorkerPool);
   vcConvert_Init(&programState);
@@ -454,7 +454,7 @@ int main(int argc, char **args)
         }
         else if (event.type == SDL_DROPFILE && programState.hasContext)
         {
-          programState.loadList.PushBack(udStrdup(event.drop.file));
+          programState.loadList.push_back(udStrdup(event.drop.file));
         }
         else if (event.type == SDL_QUIT)
         {
@@ -497,23 +497,28 @@ int main(int argc, char **args)
       do
       {
         continueLoading = false;
-        pNextLoad = nullptr;
 
-        if (programState.loadList.PopFront(&pNextLoad))
+        if (programState.loadList.size() > 0)
         {
-          udFilename loadFile(pNextLoad);
+          pNextLoad = programState.loadList[0];
+          programState.loadList.erase(programState.loadList.begin()); // TODO: Proper Exception Handling
 
-          if (udStrEquali(loadFile.GetExt(), ".uds") || udStrEquali(loadFile.GetExt(), ".ssf") || udStrEquali(loadFile.GetExt(), ".udm") || udStrEquali(loadFile.GetExt(), ".udg"))
+          if (pNextLoad != nullptr)
           {
-            vcModel_AddToList(&programState, pNextLoad, firstLoad);
-            continueLoading = true;
-          }
-          else
-          {
-            vcConvert_AddFile(&programState, pNextLoad);
-          }
+            udFilename loadFile(pNextLoad);
 
-          udFree(pNextLoad);
+            if (udStrEquali(loadFile.GetExt(), ".uds") || udStrEquali(loadFile.GetExt(), ".ssf") || udStrEquali(loadFile.GetExt(), ".udm") || udStrEquali(loadFile.GetExt(), ".udg"))
+            {
+              vcModel_AddToList(&programState, pNextLoad, firstLoad);
+              continueLoading = true;
+            }
+            else
+            {
+              vcConvert_AddFile(&programState, pNextLoad);
+            }
+
+            udFree(pNextLoad);
+          }
         }
 
         firstLoad = false;
@@ -547,11 +552,11 @@ epilogue:
   vcTexture_Destroy(&programState.pCompanyLogo);
   free(pIconData);
   free(pEucWatermarkData);
-  for (size_t i = 0; i < programState.loadList.length; i++)
+  for (size_t i = 0; i < programState.loadList.size(); i++)
     udFree(programState.loadList[i]);
-  programState.loadList.Deinit();
+  programState.loadList.~vector();
   vcModel_UnloadList(&programState);
-  programState.vcModelList.Deinit();
+  programState.vcModelList.~vector();
   vcRender_Destroy(&programState.pRenderContext);
 
   vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
@@ -598,11 +603,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.mouse.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.y = (uint32_t)(io.MousePos.y - windowPos.y);
 
-  for (size_t i = 0; i < pProgramState->vcModelList.length; ++i)
-    renderData.models.PushBack(&pProgramState->vcModelList[i]);
+
+  for (size_t i = 0; i < pProgramState->vcModelList.size(); ++i)
+    renderData.models.PushBack(pProgramState->vcModelList[i]);
 
   vcTexture *pTexture = vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
-
   renderData.models.Deinit();
   pProgramState->pSceneWatermark = renderData.pWatermarkTexture;
 
@@ -851,8 +856,8 @@ int vcMainMenuGui(vcState *pProgramState)
 
     char endBarInfo[512] = {};
 
-    if (pProgramState->loadList.length > 0)
-      udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("(%llu Files Queued) / ", pProgramState->loadList.length));
+    if (pProgramState->loadList.size() > 0)
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("(%llu Files Queued) / ", pProgramState->loadList.size()));
 
     if ((SDL_GetWindowFlags(pProgramState->pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0)
       udStrcat(endBarInfo, udLengthOf(endBarInfo), "Inactive / ");
@@ -1050,7 +1055,7 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::InputText("", pProgramState->modelPath, vcMaxPathLength);
       ImGui::SameLine();
       if (ImGui::Button("Load Model!"))
-        pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
+        pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
 
       // Models
 
@@ -1097,7 +1102,7 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::Separator();
       // Table Contents
 
-      for (size_t i = 0; i < pProgramState->vcModelList.length; ++i)
+      for (size_t i = 0; i < pProgramState->vcModelList.size(); ++i)
       {
         // Column 1 - Model
         char modelLabelID[32] = "";
@@ -1110,7 +1115,7 @@ void vcRenderWindow(vcState *pProgramState)
         if (i == 0)
           ++currentLoadingChar;
 
-        if (pProgramState->vcModelList[i].loadStatus == vcMLS_Pending)
+        if (pProgramState->vcModelList[i]->loadStatus == vcMLS_Pending)
         {
           ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Yellow Exclamation in Triangle
           ImGui::SameLine();
@@ -1122,7 +1127,7 @@ void vcRenderWindow(vcState *pProgramState)
             ImGui::EndTooltip();
           }
         }
-        else if (pProgramState->vcModelList[i].loadStatus == vcMLS_Loading)
+        else if (pProgramState->vcModelList[i]->loadStatus == vcMLS_Loading)
         {
           ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", loadingChars[currentLoadingChar % udLengthOf(loadingChars)]); // Yellow Spinning clock
           ImGui::SameLine();
@@ -1134,7 +1139,7 @@ void vcRenderWindow(vcState *pProgramState)
             ImGui::EndTooltip();
           }
         }
-        else if (pProgramState->vcModelList[i].loadStatus == vcMLS_Failed || pProgramState->vcModelList[i].loadStatus == vcMLS_OpenFailure)
+        else if (pProgramState->vcModelList[i]->loadStatus == vcMLS_Failed || pProgramState->vcModelList[i]->loadStatus == vcMLS_OpenFailure)
         {
           ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Red Exclamation in Triangle
           ImGui::SameLine();
@@ -1142,7 +1147,7 @@ void vcRenderWindow(vcState *pProgramState)
           if (ImGui::IsItemHovered())
           {
             ImGui::BeginTooltip();
-            if (pProgramState->vcModelList[i].loadStatus == vcMLS_OpenFailure)
+            if (pProgramState->vcModelList[i]->loadStatus == vcMLS_OpenFailure)
               ImGui::Text("Could not open the model, perhaps it is missing or you don't have permission to access it.");
             else
               ImGui::Text("Failed to load model");
@@ -1150,12 +1155,12 @@ void vcRenderWindow(vcState *pProgramState)
           }
         }
 
-        if (ImGui::Selectable(pProgramState->vcModelList[i].path, pProgramState->vcModelList[i].selected))
+        if (ImGui::Selectable(pProgramState->vcModelList[i]->path, pProgramState->vcModelList[i]->selected))
         {
           if ((modState & KMOD_CTRL) == 0)
           {
-            for (size_t j = 0; j < pProgramState->vcModelList.length; ++j)
-              pProgramState->vcModelList[j].selected = false;
+            for (size_t j = 0; j < pProgramState->vcModelList.size(); ++j)
+              pProgramState->vcModelList[j]->selected = false;
 
             pProgramState->numSelectedModels = 0;
           }
@@ -1166,14 +1171,14 @@ void vcRenderWindow(vcState *pProgramState)
             size_t endInd = udMax(i, pProgramState->prevSelectedModel);
             for (size_t j = startInd; j <= endInd; ++j)
             {
-              pProgramState->vcModelList[j].selected = true;
+              pProgramState->vcModelList[j]->selected = true;
               pProgramState->numSelectedModels++;
             }
           }
           else
           {
-            pProgramState->vcModelList[i].selected = !pProgramState->vcModelList[i].selected;
-            pProgramState->numSelectedModels += (pProgramState->vcModelList[i].selected ? 1 : 0);
+            pProgramState->vcModelList[i]->selected = !pProgramState->vcModelList[i]->selected;
+            pProgramState->numSelectedModels += (pProgramState->vcModelList[i]->selected ? 1 : 0);
           }
 
           pProgramState->prevSelectedModel = i;
@@ -1181,24 +1186,24 @@ void vcRenderWindow(vcState *pProgramState)
 
         if (ImGui::BeginPopupContextItem(modelLabelID))
         {
-          if (ImGui::Checkbox("Flip Y/Z Up", &pProgramState->vcModelList[i].flipYZ)) //Technically this is a rotation around X actually...
-            vcModel_UpdateMatrix(pProgramState, &pProgramState->vcModelList[i]);
+          if (ImGui::Checkbox("Flip Y/Z Up", &pProgramState->vcModelList[i]->flipYZ)) //Technically this is a rotation around X actually...
+            vcModel_UpdateMatrix(pProgramState, pProgramState->vcModelList[i]);
 
           ImGui::Separator();
 
-          if (pProgramState->vcModelList[i].pZone != nullptr && ImGui::Selectable("Use Projection"))
+          if (pProgramState->vcModelList[i]->pZone != nullptr && ImGui::Selectable("Use Projection"))
           {
-            if (vcGIS_ChangeSpace(&pProgramState->gis, pProgramState->vcModelList[i].pZone->srid, &pProgramState->pCamera->position))
+            if (vcGIS_ChangeSpace(&pProgramState->gis, pProgramState->vcModelList[i]->pZone->srid, &pProgramState->pCamera->position))
               vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
           }
 
           if (ImGui::Selectable("Move To"))
           {
-            udDouble3 localSpaceCenter = vcModel_GetMidPoint(&pProgramState->vcModelList[i]);
+            udDouble3 localSpaceCenter = vcModel_GetMidPoint(pProgramState->vcModelList[i]);
 
             // Transform the camera position. Don't do the entire matrix as it may lead to inaccuracy/de-normalised camera
-            if (pProgramState->gis.isProjected && pProgramState->vcModelList[i].pZone != nullptr && pProgramState->vcModelList[i].pZone->srid != pProgramState->gis.SRID)
-              localSpaceCenter = udGeoZone_TransformPoint(localSpaceCenter, *pProgramState->vcModelList[i].pZone, pProgramState->gis.zone);
+            if (pProgramState->gis.isProjected && pProgramState->vcModelList[i]->pZone != nullptr && pProgramState->vcModelList[i]->pZone->srid != pProgramState->gis.SRID)
+              localSpaceCenter = udGeoZone_TransformPoint(localSpaceCenter, *pProgramState->vcModelList[i]->pZone, pProgramState->gis.zone);
 
             pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
             pProgramState->cameraInput.startPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
@@ -1218,11 +1223,11 @@ void vcRenderWindow(vcState *pProgramState)
         }
 
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
-          vcModel_MoveToModelProjection(pProgramState, &pProgramState->vcModelList[i]);
+          vcModel_MoveToModelProjection(pProgramState, pProgramState->vcModelList[i]);
 
-        ImVec2 textSize = ImGui::CalcTextSize(pProgramState->vcModelList[i].path);
+        ImVec2 textSize = ImGui::CalcTextSize(pProgramState->vcModelList[i]->path);
         if (ImGui::IsItemHovered() && (textSize.x >= headers[0].size))
-          ImGui::SetTooltip("%s", pProgramState->vcModelList[i].path);
+          ImGui::SetTooltip("%s", pProgramState->vcModelList[i]->path);
 
         ImGui::PopID();
         ImGui::NextColumn();
@@ -1230,12 +1235,12 @@ void vcRenderWindow(vcState *pProgramState)
         char checkboxID[32] = "";
         udSprintf(checkboxID, UDARRAYSIZE(checkboxID), "ModelVisibleCheckbox%i", i);
         ImGui::PushID(checkboxID);
-        if (ImGui::Checkbox("", &(pProgramState->vcModelList[i].visible)) && pProgramState->vcModelList[i].selected && pProgramState->numSelectedModels > 1)
+        if (ImGui::Checkbox("", &(pProgramState->vcModelList[i]->visible)) && pProgramState->vcModelList[i]->selected && pProgramState->numSelectedModels > 1)
         {
-          for (size_t j = 0; j < pProgramState->vcModelList.length; ++j)
+          for (size_t j = 0; j < pProgramState->vcModelList.size(); ++j)
           {
-            if (pProgramState->vcModelList[j].selected)
-              pProgramState->vcModelList[j].visible = pProgramState->vcModelList[i].visible;
+            if (pProgramState->vcModelList[j]->selected)
+              pProgramState->vcModelList[j]->visible = pProgramState->vcModelList[i]->visible;
           }
         }
 
@@ -1247,12 +1252,12 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::PushID(unloadModelID);
         if (ImGui::Button("X", ImVec2(20, 20)))
         {
-          if (pProgramState->numSelectedModels > 1 && pProgramState->vcModelList[i].selected) // if multiple selected and removed
+          if (pProgramState->numSelectedModels > 1 && pProgramState->vcModelList[i]->selected) // if multiple selected and removed
           {
             //unload selected models
-            for (size_t j = 0; j < pProgramState->vcModelList.length; ++j)
+            for (size_t j = 0; j < pProgramState->vcModelList.size(); ++j)
             {
-              if (pProgramState->vcModelList[j].selected)
+              if (pProgramState->vcModelList[j]->selected)
               {
                 vcModel_RemoveFromList(pProgramState, j);
                 j--;
@@ -1500,12 +1505,12 @@ void vcRenderWindow(vcState *pProgramState)
 
     if (ImGui::BeginPopupModal("Model Properties", NULL))
     {
-      pProgramState->selectedModelProperties.pMetadata = pProgramState->vcModelList[pProgramState->selectedModelProperties.index].pMetadata;
-      pProgramState->selectedModelProperties.pWatermarkTexture = pProgramState->vcModelList[pProgramState->selectedModelProperties.index].pWatermark;
+      pProgramState->selectedModelProperties.pMetadata = pProgramState->vcModelList[pProgramState->selectedModelProperties.index]->pMetadata;
+      pProgramState->selectedModelProperties.pWatermarkTexture = pProgramState->vcModelList[pProgramState->selectedModelProperties.index]->pWatermark;
 
       ImGui::Text("File:");
 
-      ImGui::TextWrapped("  %s", pProgramState->vcModelList[pProgramState->selectedModelProperties.index].path);
+      ImGui::TextWrapped("  %s", pProgramState->vcModelList[pProgramState->selectedModelProperties.index]->path);
 
       ImGui::Separator();
 

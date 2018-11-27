@@ -604,7 +604,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
 
     for (size_t i = 0; i < renderData.models.length; ++i)
     {
-      if (renderData.models[0]->loadStatus != vcMLS_Loaded)
+      if (renderData.models[i]->loadStatus != vcMLS_Loaded)
         continue;
 
       udDouble3 corners[10];
