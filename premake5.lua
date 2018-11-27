@@ -179,6 +179,11 @@ solution "vaultClient"
 		dofile "../vault/ud/udPointCloud/project.lua"
 		dofile "../vault/vaultcore/project.lua"
 		dofile "../vault/vaultsdk/project.lua"
+
+		if os.target() ~= premake.IOS and os.target() ~= premake.ANDROID then
+			dofile "vcConvertCMD/project.lua"
+		end
+
 		filter { "system:macosx" }
 			xcodebuildsettings {
 				['INSTALL_PATH'] = "@executable_path/../Frameworks",
