@@ -196,9 +196,25 @@ void main()
 }
 )shader";
 
+
+const char* const g_vcSkyboxVertexShader = VERT_HEADER R"shader(
+//Input format
+layout(location = 0) in vec2 a_position;
+layout(location = 1) in vec2 a_texCoord;
+
+//Output Format
+out vec2 v_texCoord;
+
+void main()
+{
+  gl_Position = vec4(a_position.x, a_position.y, 0.0, 1.0);
+  v_texCoord = vec2(a_texCoord.x, 1.0 - a_texCoord.y);
+}
+)shader";
+
 const char* const g_vcSkyboxFragmentShader = FRAG_HEADER R"shader(
 
-uniform samplerCube u_texture;
+uniform sampler2D u_texture;
 layout (std140) uniform u_EveryFrame
 {
   mat4 u_inverseViewProjection;
@@ -210,14 +226,20 @@ in vec2 v_texCoord;
 //Output Format
 out vec4 out_Colour;
 
+#define PI 3.14159265359
+
+vec2 directionToLatLong(vec3 dir)
+{
+  vec2 longlat = vec2(atan(dir.x, dir.y) + PI, acos(dir.z));
+  return longlat / vec2(2.0 * PI, PI);
+}
+
 void main()
 {
-  vec2 uv = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
-
   // work out 3D point
-  vec4 point3D = u_inverseViewProjection * vec4(uv * vec2(2.0) - vec2(1.0), 1.0, 1.0);
+  vec4 point3D = u_inverseViewProjection * vec4(v_texCoord * vec2(2.0) - vec2(1.0), 1.0, 1.0);
   point3D.xyz = normalize(point3D.xyz / point3D.w);
-  vec4 c1 = texture(u_texture, point3D.xyz);
+  vec4 c1 = texture(u_texture, directionToLatLong(point3D.xyz));
 
   out_Colour = c1;
 }

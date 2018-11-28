@@ -278,6 +278,28 @@ const char* const g_PositionNormalVertexShader = R"shader(
   }
 )shader";
 
+const char* const g_vcSkyboxVertexShader = R"shader(
+  struct VS_INPUT
+  {
+    float3 pos : POSITION;
+    float2 uv  : TEXCOORD0;
+  };
+
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD0;
+  };
+
+  PS_INPUT main(VS_INPUT input)
+  {
+    PS_INPUT output;
+    output.pos = float4(input.pos.xy, 0.f, 1.f);
+    output.uv  = float2(input.uv.x, 1.0 - input.uv.y);
+    return output;
+  }
+)shader";
+
 const char* const g_vcSkyboxFragmentShader = R"shader(
   struct PS_INPUT
   {
@@ -291,66 +313,22 @@ const char* const g_vcSkyboxFragmentShader = R"shader(
   };
 
   sampler sampler0;
-  Texture2DArray u_texture;
+  Texture2D u_texture;
+
+  #define PI 3.14159265359
+
+  float2 directionToLatLong(float3 dir)
+  {
+    float2 longlat = float2(atan2(dir.x, dir.y) + PI, acos(dir.z));
+    return longlat / float2(2.0 * PI, PI);
+  }
 
   float4 main(PS_INPUT input) : SV_Target
   {
-    float2 uv = float2(input.uv.x, 1.0 - input.uv.y);
-
     // work out 3D point
-    float4 point3D = mul(u_inverseViewProjection, float4(uv * float2(2.0, 2.0) - float2(1.0, 1.0), 1.0, 1.0));
+    float4 point3D = mul(u_inverseViewProjection, float4(input.uv * float2(2.0, 2.0) - float2(1.0, 1.0), 1.0, 1.0));
     point3D.xyz = normalize(point3D.xyz / point3D.w);
-
-    float3 absolutes = float3(abs(point3D.x), abs(point3D.y), abs(point3D.z));
-
-    float3 coords = float3(0.f, 0.f, 0.f);
-
-    if( absolutes.x > absolutes.y && absolutes.x > absolutes.z)
-    {
-      if(point3D.x > 0)
-      {
-        coords.z = 0.f;
-        coords.x = -point3D.z / absolutes.x;
-        coords.y = point3D.y / absolutes.x; // correct
-      }
-      else
-      {
-        coords.z = 1.f;
-        coords.x = point3D.z / absolutes.x;
-        coords.y = point3D.y / absolutes.x; // correct
-      }
-    }
-    else if(absolutes.y > absolutes.x && absolutes.y > absolutes.z)
-    {
-      if(point3D.y > 0)
-      {
-        coords.z = 3.f;
-        coords.x = point3D.x / absolutes.y;
-        coords.y = -point3D.z / absolutes.y;
-      }
-      else
-      {
-        coords.z = 2.f;
-        coords.x = point3D.x / absolutes.y;
-        coords.y = point3D.z / absolutes.y;
-      }
-    }
-    else
-    {
-      if(point3D.z > 0)
-      {
-        coords.z = 4.f;
-        coords.xy = point3D.xy / absolutes.z;
-      }
-      else
-      {
-        coords.z = 5.f;
-        coords.x = -point3D.x / absolutes.z;
-        coords.y = point3D.y / absolutes.z;
-      }
-    }
-
-    return u_texture.Sample(sampler0, float3((coords.xy + 1.f) / 2.f, coords.z));
+    return u_texture.Sample(sampler0, directionToLatLong(point3D.xyz));
   }
 )shader";
 
