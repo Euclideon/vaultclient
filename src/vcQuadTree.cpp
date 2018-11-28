@@ -139,19 +139,19 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex,
   // 1 == bottom right
   // 2 == top left
   // 3 == top right
-  for (int i = 0; i < 4; ++i)
+  for (int childQuadrant = 0; childQuadrant < 4; ++childQuadrant)
   {
     vcQuadTreeNode *pCurrentNode = &pQuadTree->pNodes[currentNodeIndex];
-    pCurrentNode->childMask |= 1 << i;
+    pCurrentNode->childMask |= 1 << childQuadrant;
 
-    int childIndex = childrenIndex[i];
+    int childIndex = childrenIndex[childQuadrant];
     pQuadTree->pNodes[childIndex].parentIndex = currentNodeIndex;
-    pQuadTree->pNodes[childIndex].childMaskInParent = 1 << i;
+    pQuadTree->pNodes[childIndex].childMaskInParent = 1 << childQuadrant;
     pQuadTree->pNodes[childIndex].level = currentDepth + 1;
 
     pQuadTree->pNodes[childIndex].slippyPosition = pCurrentNode->slippyPosition * 2;
-    pQuadTree->pNodes[childIndex].slippyPosition.x += (i % 2);
-    pQuadTree->pNodes[childIndex].slippyPosition.y += (i / 2);
+    pQuadTree->pNodes[childIndex].slippyPosition.x += (childQuadrant % 2);
+    pQuadTree->pNodes[childIndex].slippyPosition.y += (childQuadrant / 2);
 
     bool descendChild = false;
     bool tileVisible = false;
@@ -183,17 +183,18 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, int currentNodeIndex,
         udInt2::create(1, 3), // right
       };
 
+      // Not true distance, XY plane distance has more weighting
       double closestEdgeFudgedDistance = 0.0;
 
       udDouble2 localCorners2D[4];
       udDouble3 localMin, localMax;
-      for (int t = 0; t < 4; ++t)
+      for (int edge = 0; edge < 4; ++edge)
       {
         udDouble3 localCorner;
-        vcGIS_SlippyToLocal(pQuadTree->pSpace, &localCorner, udInt2::create(pQuadTree->pNodes[childIndex].slippyPosition.x + (t % 2), pQuadTree->pNodes[childIndex].slippyPosition.y + (t / 2)), pQuadTree->slippyCoords.z + pQuadTree->pNodes[childIndex].level);
-        localCorners2D[t] = localCorner.toVector2();
-        localMin = (t == 0) ? localCorner : udMin(localMin, localCorner);
-        localMax = (t == 0) ? localCorner : udMax(localMax, localCorner);
+        vcGIS_SlippyToLocal(pQuadTree->pSpace, &localCorner, udInt2::create(pQuadTree->pNodes[childIndex].slippyPosition.x + (edge % 2), pQuadTree->pNodes[childIndex].slippyPosition.y + (edge / 2)), pQuadTree->slippyCoords.z + pQuadTree->pNodes[childIndex].level);
+        localCorners2D[edge] = localCorner.toVector2();
+        localMin = (edge == 0) ? localCorner : udMin(localMin, localCorner);
+        localMax = (edge == 0) ? localCorner : udMax(localMax, localCorner);
       }
 
       // test each edge to find minimum distance to quadrant shape (2d)
