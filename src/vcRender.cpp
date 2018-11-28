@@ -94,7 +94,7 @@ struct vcRenderContext
   } skyboxShader;
 
   vcMesh *pScreenQuadMesh;
-  vcTexture *pSkyboxCubeMapTexture;
+  vcTexture *pSkyboxTexture;
 };
 
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
@@ -111,11 +111,11 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcSimpleVertexLayout, (int)udLengthOf(vcSimpleVertexLayout)), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShader.pProgram, g_udVertexShader, g_vcSkyboxFragmentShader, vcSimpleVertexLayout, (int)udLengthOf(vcSimpleVertexLayout)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShader.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShader, vcSimpleVertexLayout, (int)udLengthOf(vcSimpleVertexLayout)), udR_InternalError);
 
   vcMesh_Create(&pRenderContext->pScreenQuadMesh, vcSimpleVertexLayout, 2, qrSqVertices, 4, qrIndices, 6, vcMF_Dynamic);
 
-  vcTexture_LoadCubemap(&pRenderContext->pSkyboxCubeMapTexture, "CloudWater.jpg");
+  vcTexture_CreateFromFilename(&pRenderContext->pSkyboxTexture, ASSETDIR "skyboxes/WaterClouds.jpg", nullptr, nullptr, vcTFM_Linear);
   UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
 
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);
@@ -174,7 +174,7 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
 
   vcMesh_Destroy(&pRenderContext->pScreenQuadMesh);
 
-  vcTexture_Destroy(&pRenderContext->pSkyboxCubeMapTexture);
+  vcTexture_Destroy(&pRenderContext->pSkyboxTexture);
   UD_ERROR_CHECK(vcCompass_Destroy(&pRenderContext->pCompass));
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
@@ -273,7 +273,7 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
 
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);
 
-  vcShader_BindTexture(pRenderContext->skyboxShader.pProgram, pRenderContext->pSkyboxCubeMapTexture, 0, pRenderContext->skyboxShader.uniform_texture);
+  vcShader_BindTexture(pRenderContext->skyboxShader.pProgram, pRenderContext->pSkyboxTexture, 0, pRenderContext->skyboxShader.uniform_texture);
   vcShader_BindConstantBuffer(pRenderContext->skyboxShader.pProgram, pRenderContext->skyboxShader.uniform_MatrixBlock, &inverseViewProjMatrixF, sizeof(inverseViewProjMatrixF));
 
   vcMesh_Render(pRenderContext->pScreenQuadMesh, 2);
