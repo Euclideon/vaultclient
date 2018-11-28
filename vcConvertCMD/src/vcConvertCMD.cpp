@@ -8,8 +8,34 @@
 
 #define CONVERTCMD_VERSION "0.2.0"
 
-// ----------------------------------------------------------------------------
-// Author: Dave Pevreal, February 2018
+void vcConvertCMD_ShowOptions()
+{
+  printf("Usage: vcConvertCMD [vault server] [username] [password] [options] -i inputfile [-i anotherInputFile] -o outputfile.uds\n");
+  printf("   -resolution <res>   - override the resolution (0.01 = 1cm, 0.001 = 1mm)\n");
+  printf("   -srid <sridCode>    - override the srid code for geolocation\n");
+  printf("   -pause              - Require enter key to be pressed before exiting\n");
+  printf("   -pauseOnError       - If any error occurs, require enter key to be pressed before exiting\n");
+}
+
+struct vcConvertData
+{
+  vdkContext *pContext;
+  vdkConvertContext *pConvertContext;
+
+  bool ended;
+  vdkError response;
+};
+
+uint32_t vcConvertCMD_DoConvert(void *pDataPtr)
+{
+  vcConvertData *pConvData = (vcConvertData*)pDataPtr;
+
+  pConvData->response = vdkConvert_DoConvert(pConvData->pContext, pConvData->pConvertContext);
+  pConvData->ended = true;
+
+  return 0;
+}
+
 int main(int argc, const char **ppArgv)
 {
   udMemoryDebugTrackingInit();
@@ -17,22 +43,55 @@ int main(int argc, const char **ppArgv)
   bool autoOverwrite = false;
   bool pause = false;
   bool pauseOnError = false;
-  vdkError convResult = vE_Success;
+
+  vdkError result = vE_Success;
 
   vdkContext *pContext = nullptr;
   const vdkConvertInfo *pInfo = nullptr;
   vdkConvertContext *pModel = nullptr;
 
-  vdkContext_Connect(&pContext, ppArgv[1], "vdkConvertCMD", ppArgv[2], ppArgv[3]);
+  printf("vcConvertCMD %s\n", CONVERTCMD_VERSION);
+
+  if (argc < 4)
+  {
+    vcConvertCMD_ShowOptions();
+    exit(1);
+  }
+
+  result = vdkContext_Connect(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], ppArgv[3]);
+  if (result == vE_ConnectionFailure)
+    printf("Could not connect to server.");
+  else if (result == vE_NotAllowed)
+    printf("Username or Password incorrect.");
+  else if (result == vE_OutOfSync)
+    printf("Your clock doesn't match the remote server clock.");
+  else if (result == vE_SecurityFailure)
+    printf("Could not open a secure channel to the server.");
+  else if (result == vE_ServerFailure)
+    printf("Unable to negotiate with server, please confirm the server address");
+  else if (result != vE_Success)
+    printf("Unknown error occurred (Error=%d), please try again later.", result);
+
+  if (result != vE_Success)
+    exit(2);
 
   vdkConvertItemInfo itemInfo;
 
-  vdkConvert_CreateContext(pContext, &pModel);
+  result = vdkConvert_CreateContext(pContext, &pModel);
+  if (result != vE_Success)
+  {
+    printf("Could not created render context");
+    exit(3);
+  }
+
+  result = vdkContext_RequestLicense(pContext, vdkLT_Convert);
+  if (result != vE_Success)
+  {
+    printf("No licenses available");
+    exit(4);
+  }
 
   vdkConvert_GetInfo(pContext, pModel, &pInfo);
-
-  vdkConvert_SetOutputFilename(pContext, pModel, "Converted");
-  vdkConvert_SetTempDirectory(pContext, pModel, "TempData");
 
   for (int i = 4; i < argc; )
   {
@@ -58,12 +117,6 @@ int main(int argc, const char **ppArgv)
         cmdlineError = true;
       i += 2;
     }
-    /*else if (udStrEquali(ppArgv[i], "-licence"))
-    {
-      if (conv.SetLicence(ppArgv[i + 1]) != udR_Success)
-        cmdlineError = true;
-      i += 2;
-    }*/
     else if (udStrEquali(ppArgv[i], "-i"))
     {
 #if UDPLATFORM_WINDOWS
@@ -75,15 +128,17 @@ int main(int argc, const char **ppArgv)
         do
         {
           foundFile.SetFilenameWithExt(fd.cFileName);
-          convResult = vdkConvert_AddItem(pContext, pModel, foundFile.GetPath());
-          if (convResult != vE_Success)
-            printf("Unable to convert %s:\n", foundFile.GetPath());
+          result = vdkConvert_AddItem(pContext, pModel, foundFile.GetPath());
+          if (result != vE_Success)
+            printf("Unable to convert %s [Error:%d]:\n", foundFile.GetPath(), result);
         } while (FindNextFileA(h, &fd));
         FindClose(h);
       }
       else
       {
-        vdkConvert_AddItem(pContext, pModel, ppArgv[i + 1]);
+        result = vdkConvert_AddItem(pContext, pModel, ppArgv[i + 1]);
+        if (result != vE_Success)
+          printf("Unable to convert %s [Error:%d]:\n", ppArgv[i + 1], result);
       }
       i += 2;
 #else //Non-Windows
@@ -110,14 +165,6 @@ int main(int argc, const char **ppArgv)
     }
     else if (udStrEquali(ppArgv[i], "-o"))
     {
-      const char *pExpireDateStr = nullptr;
-      const int maxDays = 60;
-      int days = udDaysUntilExpired(maxDays, &pExpireDateStr);
-      if (days <= 0)
-        exit(printf("Build expired on %s\n", pExpireDateStr));
-      if (days <= 7)
-        printf("WARNING: build will expire in %d days on %s\n", days, pExpireDateStr);
-
       // -O implies automatic overwrite, -o does a check
       autoOverwrite = udStrEqual(ppArgv[i], "-O");
       vdkConvert_SetOutputFilename(pContext, pModel, ppArgv[i + 1]);
@@ -134,16 +181,7 @@ int main(int argc, const char **ppArgv)
 
   if (cmdlineError || pInfo->totalItems == 0)
   {
-    printf("vcConvertCMD %s\n", CONVERTCMD_VERSION);
-    printf("Usage: vcConvertCMD [options] -i inputfile [-i anotherInputFile] -o outputfile.uds\n");
-    printf("   input file types supported: .las, .uds\n");
-    printf("   -resolution <res>   - override the resolution (0.01 = 1cm, 0.001 = 1mm)\n");
-    printf("   -srid <sridCode>    - override the srid code for geolocation\n");
-    printf("   -nopalette          - Store the color attribute as lossless 24-bit rather than compressing to a palette per block\n");
-    printf("   -uniquelod          - disables level of detail blending (matching Geoverse Convert result - not recommended)\n");
-    printf("   -fastReconvert      - A fast mode when reconverting a single color-only UDS\n");
-    printf("   -pause              - Require enter key to be pressed before exiting\n");
-    printf("   -pauseOnError       - If any error occurs, require enter key to be pressed before exiting\n");
+    vcConvertCMD_ShowOptions();
   }
   else
   {
@@ -154,52 +192,60 @@ int main(int argc, const char **ppArgv)
       if (answer != 'y' && answer != 'Y' && answer != '\n')
         exit(printf("Exiting\n"));
     }
+
 #if UDPLATFORM_WINDOWS
     SetThreadExecutionState(ES_AWAYMODE_REQUIRED | ES_CONTINUOUS);
 #endif
 
-    for (size_t i = 0; i < pInfo->totalItems; ++i)
-    {
-      vdkConvert_GetItemInfo(pContext, pModel, i, &itemInfo);
+    vcConvertData convdata = {};
+    convdata.pContext = pContext;
+    convdata.pConvertContext = pModel;
 
-      udFilename fn(itemInfo.pFilename);
+    printf("Converting--\n");
+    printf("\tOutput: %s\n", pInfo->pOutputName);
+    printf("\tTemp: %s\n", pInfo->pTempFilesPrefix);
+    printf("\t# Inputs: %llu\n\n", pInfo->totalItems);
+
+    udThread_Create(nullptr, vcConvertCMD_DoConvert, &convdata);
+
+    while (!convdata.ended)
+    {
+      uint64_t currentItem = pInfo->currentInputItem; // Just copying this for thread safety
+
+      if (currentItem < pInfo->totalItems)
+      {
+        vdkConvert_GetItemInfo(pContext, pModel, currentItem, &itemInfo);
+        printf("[%llu/%llu] %s: %s/%s    \r", currentItem +1, pInfo->totalItems, itemInfo.pFilename, udTempStr_CommaInt(itemInfo.pointsRead), udTempStr_CommaInt(itemInfo.pointsCount));
+      }
+      else
+      {
+        printf("sourcePoints: %s, uniquePoints: %s, discardedPoints: %s, outputPoints: %s\r", udCommaInt(pInfo->sourcePointCount), udCommaInt(pInfo->uniquePointCount), udCommaInt(pInfo->discardedPointCount), udCommaInt(pInfo->outputPointCount));
+      }
+
+      udSleep(100);
     }
 
-    convResult = vdkConvert_DoConvert(pContext, pModel);
+    printf("\n--\nConversion Ended!\n--\n");
+    result = convdata.response;
 
-    if (pInfo->pTempFilesPrefix)
-      udCreateDir(pInfo->pTempFilesPrefix);
-    printf("Converting: srid=%d attributes=", pInfo->srid);
-    for (size_t i = 0; i < pInfo->totalItems; ++i)
-    {
-      vdkConvert_GetItemInfo(pContext, pModel, i, &itemInfo);
-      printf("%s%s", i > 0 ? "," : "", itemInfo.pFilename);
-    }
-    printf("\n");
-    size_t inputFilesRead = 0;
-    for (; inputFilesRead < pInfo->currentInputItem; ++inputFilesRead)
+    for (size_t inputFilesRead = 0; inputFilesRead < pInfo->currentInputItem; ++inputFilesRead)
     {
       vdkConvert_GetItemInfo(pContext, pModel, inputFilesRead, &itemInfo);
       printf("%s: %s/%s points read         \n", itemInfo.pFilename, udCommaInt(itemInfo.pointsRead), udCommaInt(itemInfo.pointsCount));
     }
-    if (pInfo->currentInputItem < pInfo->totalItems)
-    {
-      printf("%s: %s/%s    \r", itemInfo.pFilename, udTempStr_CommaInt(itemInfo.pointsRead), udTempStr_CommaInt(itemInfo.pointsCount));
-    }
-    else
-      printf("sourcePoints: %s, uniquePoints: %s, discardedPoints: %s, outputPoints: %s\r",
-        udCommaInt(pInfo->sourcePointCount), udCommaInt(pInfo->uniquePointCount), udCommaInt(pInfo->discardedPointCount), udCommaInt(pInfo->outputPointCount));
+
     printf("\nOutput Filesize: %s\nPeak disk usage: %s\nTemp files: %s (%d)\n", udCommaInt(pInfo->outputFileSize), udCommaInt(pInfo->peakDiskUsage), udCommaInt(pInfo->peakTempFileUsage), pInfo->peakTempFileCount);
 
     if (pInfo->pTempFilesPrefix)
       udRemoveDir(pInfo->pTempFilesPrefix);
 
-    printf("\nComplete.\n");
 #if UDPLATFORM_WINDOWS
     SetThreadExecutionState(ES_CONTINUOUS);
 #endif
   }
+
   udThread_DestroyCached();
+
 #if __MEMORY_DEBUG__
   udSleep(2000); // Need to give threads a chance to exit
   udMemoryOutputLeaks();
@@ -207,13 +253,12 @@ int main(int argc, const char **ppArgv)
 
   udMemoryDebugTrackingDeinit();
 
-  if (pause || (pauseOnError && convResult != vE_Success))
+  if (pause || (pauseOnError && result != vE_Success))
   {
     printf("Press enter...");
     getchar();
   }
 
   vdkConvert_DestroyContext(pContext, &pModel);
-
   vdkContext_Disconnect(&pContext);
 }
