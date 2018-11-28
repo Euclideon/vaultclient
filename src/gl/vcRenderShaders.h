@@ -6,6 +6,7 @@ extern const char* const g_udVertexShader;
 extern const char* const g_terrainTileFragmentShader;
 extern const char* const g_terrainTileVertexShader;
 extern const char* const g_vcSkyboxFragmentShader;
+extern const char* const g_vcSkyboxVertexShader;
 extern const char* const g_FenceVertexShader;
 extern const char* const g_FenceFragmentShader;
 
