@@ -60,7 +60,7 @@ function injectvaultsdkbin()
 	end
 
 	if _OPTIONS["force-vaultsdk"] then
-		includedirs { "../vault/vaultsdk/src" }
+		includedirs { "%{wks.location}/../vault/vaultsdk/src" }
 	else
 		if os.getenv("VAULTSDK_HOME") == nil then
 			error "VaultSDK not installed correctly. (No VAULTSDK_HOME environment variable set!)"
@@ -179,6 +179,11 @@ solution "vaultClient"
 		dofile "../vault/ud/udPointCloud/project.lua"
 		dofile "../vault/vaultcore/project.lua"
 		dofile "../vault/vaultsdk/project.lua"
+
+		if os.target() ~= premake.IOS and os.target() ~= premake.ANDROID then
+			dofile "vcConvertCMD/project.lua"
+		end
+
 		filter { "system:macosx" }
 			xcodebuildsettings {
 				['INSTALL_PATH'] = "@executable_path/../Frameworks",
