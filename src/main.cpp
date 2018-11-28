@@ -544,6 +544,7 @@ int main(int argc, char **args)
   ImGui::DestroyContext();
 
 epilogue:
+  vcGIS_ClearCache();
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
   ImGuiGL_DestroyDeviceObjects();
