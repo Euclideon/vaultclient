@@ -3,6 +3,38 @@
 #include "udPlatform/udPlatformUtil.h"
 #include "udPlatform/udGeoZone.h"
 
+#include <unordered_map>
+
+struct SlippyGISResult
+{
+  udDouble3 result;
+  bool calculated;
+};
+static std::unordered_map<uint64_t, SlippyGISResult> gSlippyGISCache;
+
+static inline bool vcGIS_GetCachedResult(const vcGISSpace *pSpace, udDouble3 *pLocalCoords, const udInt2 &slippyCoords, const int zoomLevel)
+{
+  uint64_t hashKey = uint64_t(zoomLevel) << 50 | uint64_t(slippyCoords.x) << 25 | uint64_t(slippyCoords.y) << 0;
+  SlippyGISResult *pResult = &gSlippyGISCache[hashKey];
+
+  bool success = true;
+  if (!pResult->calculated)
+  {
+    udDouble3 latLong;
+    success = vcGIS_SlippyToLatLong(&latLong, slippyCoords, zoomLevel);
+    pResult->result = udGeoZone_ToCartesian(pSpace->zone, latLong);
+    pResult->calculated = true;
+  }
+
+  *pLocalCoords = pResult->result;
+  return success;
+}
+
+void vcGIS_ClearCache()
+{
+  gSlippyGISCache.clear();
+}
+
 bool vcGIS_AcceptableSRID(vcSRID sridCode)
 {
   udGeoZone zone;
@@ -55,7 +87,7 @@ bool vcGIS_SlippyToLatLong(udDouble3 *pLatLong, udInt2 slippyCoords, int zoomLev
   return true;
 }
 
-bool vcGIS_LocalToSlippy(vcGISSpace *pSpace, udInt2 *pSlippyCoords, udDouble3 localCoords, int zoomLevel)
+bool vcGIS_LocalToSlippy(const vcGISSpace *pSpace, udInt2 *pSlippyCoords, const udDouble3 &localCoords, const int zoomLevel)
 {
   if (!pSpace->isProjected)
     return false;
@@ -63,14 +95,10 @@ bool vcGIS_LocalToSlippy(vcGISSpace *pSpace, udInt2 *pSlippyCoords, udDouble3 lo
   return vcGIS_LatLongToSlippy(pSlippyCoords, udGeoZone_ToLatLong(pSpace->zone, localCoords), zoomLevel);
 }
 
-bool vcGIS_SlippyToLocal(vcGISSpace *pSpace, udDouble3 *pLocalCoords, udInt2 slippyCoords, int zoomLevel)
+bool vcGIS_SlippyToLocal(const vcGISSpace *pSpace, udDouble3 *pLocalCoords, const udInt2 &slippyCoords, const int zoomLevel)
 {
   if (!pSpace->isProjected)
     return false;
 
-  udDouble3 latLong;
-  bool success = vcGIS_SlippyToLatLong(&latLong, slippyCoords, zoomLevel);
-  *pLocalCoords = udGeoZone_ToCartesian(pSpace->zone, latLong);
-
-  return success;
+  return vcGIS_GetCachedResult(pSpace, pLocalCoords, slippyCoords, zoomLevel);
 }

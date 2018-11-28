@@ -13,6 +13,8 @@ struct vcGISSpace
   udGeoZone zone;
 };
 
+void vcGIS_ClearCache();
+
 bool vcGIS_AcceptableSRID(vcSRID sridCode);
 
 // Changes pSpace from its current zone to the new zone, pCameraPosition if set gets moved to the new zone
@@ -21,7 +23,7 @@ bool vcGIS_ChangeSpace(vcGISSpace *pSpace, vcSRID newSRID, udDouble3 *pCameraPos
 bool vcGIS_LatLongToSlippy(udInt2 *pSlippyCoords, udDouble3 latLong, int zoomLevel);
 bool vcGIS_SlippyToLatLong(udDouble3 *pLatLong, udInt2 slippyCoords, int zoomLevel);
 
-bool vcGIS_LocalToSlippy(vcGISSpace *pSpace, udInt2 *pSlippyCoords, udDouble3 localCoords, int zoomLevel);
-bool vcGIS_SlippyToLocal(vcGISSpace *pSpace, udDouble3 *pLocalCoords, udInt2 slippyCoords, int zoomLevel);
+bool vcGIS_LocalToSlippy(const vcGISSpace *pSpace, udInt2 *pSlippyCoords, const udDouble3 &localCoords, const int zoomLevel);
+bool vcGIS_SlippyToLocal(const vcGISSpace *pSpace, udDouble3 *pLocalCoords, const udInt2 &slippyCoords, const int zoomLevel);
 
 #endif // !vcGIS_h__
