@@ -37,7 +37,7 @@
 // - Multi view
 // - display rotation/translation/scale infos in local/world space and not only local
 // - finish local/world matrix application
-// - OPERATION as bitmask
+// - ImGuizmoOperation as bitmask
 //
 // -------------------------------------------------------------------------------------------
 // Example
@@ -50,64 +50,34 @@
 #define IMGUI_API
 #endif
 
+#include "udPlatform/udMath.h"
+
 namespace ImGuizmo
 {
-	// call inside your own window and before Manipulate() in order to draw gizmo to that window.
-	IMGUI_API void SetDrawlist();
+	IMGUI_API void SetDrawlist(); // call inside your own window and before Manipulate() in order to draw gizmo to that window.
 
-	// call BeginFrame right after ImGui_XXXX_NewFrame();
-	IMGUI_API void BeginFrame();
-
-	// return true if mouse cursor is over any gizmo control (axis, plan or screen component)
-	IMGUI_API bool IsOver();
-
-	// return true if mouse IsOver or if the gizmo is in moving state
-	IMGUI_API bool IsUsing();
-
-	// enable/disable the gizmo. Stay in the state until next call to Enable.
-	// gizmo is rendered with gray half transparent color when disabled
-	IMGUI_API void Enable(bool enable);
-
-	// helper functions for manualy editing translation/rotation/scale with an input float
-	// translation, rotation and scale float points to 3 floats each
-	// Angles are in degrees (more suitable for human editing)
-	// example:
-	// float matrixTranslation[3], matrixRotation[3], matrixScale[3];
-	// ImGuizmo::DecomposeMatrixToComponents(gizmoMatrix.m16, matrixTranslation, matrixRotation, matrixScale);
-	// ImGui::InputFloat3("Tr", matrixTranslation, 3);
-	// ImGui::InputFloat3("Rt", matrixRotation, 3);
-	// ImGui::InputFloat3("Sc", matrixScale, 3);
-	// ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, gizmoMatrix.m16);
-	//
-	// These functions have some numerical stability issues for now. Use with caution.
-	IMGUI_API void DecomposeMatrixToComponents(const double *matrix, double *translation, double *rotation, double *scale);
-	IMGUI_API void RecomposeMatrixFromComponents(const double *translation, const double *rotation, const double *scale, double *matrix);
+	IMGUI_API void BeginFrame(); // call BeginFrame right after ImGui_XXXX_NewFrame();
+	IMGUI_API bool IsOver(); // return true if mouse cursor is over any gizmo control (axis, plan or screen component)
+	IMGUI_API bool IsUsing(); // return true if mouse IsOver or if the gizmo is in moving state
 
 	IMGUI_API void SetRect(float x, float y, float width, float height);
-	// default is false
-	IMGUI_API void SetOrthographic(bool isOrthographic);
-
-	// Render a cube with face color corresponding to face normal. Usefull for debug/tests
-	IMGUI_API void DrawCube(const float *view, const float *projection, const float *matrix);
-	IMGUI_API void DrawGrid(const float *view, const float *projection, const float *matrix, const float gridSize);
 
 	// call it when you want a gizmo
 	// Needs view and projection matrices.
 	// matrix parameter is the source matrix (where will be gizmo be drawn) and might be transformed by the function. Return deltaMatrix is optional
 	// translation is applied in world space
-	enum OPERATION
+	enum ImGuizmoOperation
 	{
-		TRANSLATE,
-		ROTATE,
-		SCALE,
-		BOUNDS,
+		igoTranslate,
+		igoRotate,
+		igoScale,
 	};
 
-	enum MODE
+	enum ImGuizmoSpace
 	{
-		LOCAL,
-		WORLD
+		igsLocal,
+		igsWorld
 	};
 
-	IMGUI_API void Manipulate(const double *view, const double *projection, OPERATION operation, MODE mode, double *matrix, double *deltaMatrix = 0, double *snap = 0, double *localBounds = NULL, double *boundsSnap = NULL);
+	IMGUI_API void Manipulate(const udDouble4x4 &view, const udDouble4x4 &projection, ImGuizmoOperation operation, ImGuizmoSpace mode, udDouble4x4 *pMatrix, udDouble4x4 *deltaMatrix = 0, double snap = 0.0);
 };
