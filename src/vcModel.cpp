@@ -18,6 +18,8 @@ struct vcModelLoadInfo
 void vcModel_LoadModel(void *pLoadInfoPtr)
 {
   vcModelLoadInfo *pLoadInfo = (vcModelLoadInfo*)pLoadInfoPtr;
+  if (pLoadInfo->pProgramState->programComplete)
+    return;
 
   int32_t status = udInterlockedCompareExchange(&pLoadInfo->pModel->loadStatus, vcMLS_Loading, vcMLS_Pending);
 
