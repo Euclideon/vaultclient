@@ -38,7 +38,6 @@ uint32_t vcConvertCMD_DoConvert(void *pDataPtr)
 
 int main(int argc, const char **ppArgv)
 {
-  udMemoryDebugTrackingInit();
   bool cmdlineError = false;
   bool autoOverwrite = false;
   bool pause = false;
@@ -244,15 +243,6 @@ int main(int argc, const char **ppArgv)
 #endif
   }
 
-  udThread_DestroyCached();
-
-#if __MEMORY_DEBUG__
-  udSleep(2000); // Need to give threads a chance to exit
-  udMemoryOutputLeaks();
-#endif
-
-  udMemoryDebugTrackingDeinit();
-
   if (pause || (pauseOnError && result != vE_Success))
   {
     printf("Press enter...");
@@ -261,4 +251,6 @@ int main(int argc, const char **ppArgv)
 
   vdkConvert_DestroyContext(pContext, &pModel);
   vdkContext_Disconnect(&pContext);
+
+  return 0;
 }
