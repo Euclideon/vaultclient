@@ -61,6 +61,9 @@ struct vcState
 
   udDouble3 worldMousePos;
   bool pickingSuccess;
+  udRay<double> previousWorldMouseRay;
+  udDouble3 previousWorldMousePos;
+  bool previousPickingSuccess;
 
   vcCameraInput cameraInput;
 
