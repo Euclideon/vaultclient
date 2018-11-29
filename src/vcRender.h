@@ -40,7 +40,8 @@ udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vdkContext *p
 
 udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);
 
-vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer);
+vcTexture* vcRender_GetSceneTexture(vcRenderContext *pRenderContext);
+void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer);
 
 udResult vcRender_CreateTerrain(vcRenderContext *pRenderContext, vcSettings *pSettings);
 udResult vcRender_DestroyTerrain(vcRenderContext *pRenderContext);
