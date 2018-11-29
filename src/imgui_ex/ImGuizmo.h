@@ -50,7 +50,7 @@
 #define IMGUI_API
 #endif
 
-#include "udPlatform/udMath.h"
+#include "vcMath.h"
 
 namespace ImGuizmo
 {
@@ -79,5 +79,5 @@ namespace ImGuizmo
 		igsWorld
 	};
 
-	IMGUI_API void Manipulate(const udDouble4x4 &view, const udDouble4x4 &projection, ImGuizmoOperation operation, ImGuizmoSpace mode, udDouble4x4 *pMatrix, udDouble4x4 *deltaMatrix = 0, double snap = 0.0);
+	IMGUI_API void Manipulate(const udDouble4x4 &view, const udDouble4x4 &projection, ImGuizmoOperation operation, ImGuizmoSpace mode, udDouble4x4 *pMatrix, const udRay<double> &mouseRay, udDouble4x4 *deltaMatrix = 0, double snap = 0.0);
 };
