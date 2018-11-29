@@ -568,55 +568,14 @@ epilogue:
   return 0;
 }
 
-void vcRenderSceneWindow(vcState *pProgramState)
+
+void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
 {
-  //Rendering
-  udInt2 sizei;
-  ImVec2 size = ImGui::GetContentRegionAvail();
-  ImVec2 windowPos = ImVec2(ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y);
-
-  udDouble3 moveOffset = udDouble3::zero();
-
-  if (size.x < 1 || size.y < 1)
-    return;
-
-  if (pProgramState->sceneResolution.x != size.x || pProgramState->sceneResolution.y != size.y) //Resize buffers
-  {
-    pProgramState->sceneResolution = udUInt2::create((uint32_t)size.x, (uint32_t)size.y);
-    vcRender_ResizeScene(pProgramState->pRenderContext, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y);
-
-    // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
-    // this isn't valid on iOS when using UIKit.
-    vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
-  }
-
-  vcRenderData renderData = {};
-  renderData.deltaTime = pProgramState->deltaTime;
-  renderData.cameraMatrix = pProgramState->camMatrix;
-  renderData.pCameraSettings = &pProgramState->settings.camera;
-  renderData.pGISSpace = &pProgramState->gis;
-  renderData.models.Init(32);
-
-  if (pProgramState->cameraInput.isUsingAnchorPoint)
-    renderData.pWorldAnchorPos = &pProgramState->cameraInput.worldAnchorPoint;
-
   ImGuiIO &io = ImGui::GetIO();
-  renderData.mouse.x = (uint32_t)(io.MousePos.x - windowPos.x);
-  renderData.mouse.y = (uint32_t)(io.MousePos.y - windowPos.y);
-
-
-  for (size_t i = 0; i < pProgramState->vcModelList.size(); ++i)
-    renderData.models.PushBack(pProgramState->vcModelList[i]);
-
-  vcTexture *pTexture = vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
-  renderData.models.Deinit();
-  pProgramState->pSceneWatermark = renderData.pWatermarkTexture;
+  float bottomLeftOffset = 0.f;
 
   {
-    pProgramState->worldMousePos = renderData.worldMousePos;
-    pProgramState->pickingSuccess = renderData.pickingSuccess;
-
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + size.x, windowPos.y), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
@@ -648,11 +607,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
       {
         if (pProgramState->pickingSuccess)
         {
-          ImGui::Text("Mouse Point (Projected): %.2f, %.2f, %.2f", renderData.worldMousePos.x, renderData.worldMousePos.y, renderData.worldMousePos.z);
+          ImGui::Text("Mouse Point (Projected): %.2f, %.2f, %.2f", pProgramState->worldMousePos.x, pProgramState->worldMousePos.y, pProgramState->worldMousePos.z);
 
           if (pProgramState->gis.isProjected)
           {
-            udDouble3 mousePointInLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, renderData.worldMousePos);
+            udDouble3 mousePointInLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->worldMousePos);
             ImGui::Text("Mouse Point (WGS84): %.6f, %.6f", mousePointInLatLong.x, mousePointInLatLong.y);
           }
         }
@@ -707,10 +666,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
   }
 
   // On Screen Controls Overlay
-  float bottomLeftOffset = 0.f;
   if (pProgramState->onScreenControls)
   {
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + size.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
     if (ImGui::Begin("OnScreenControls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
@@ -749,7 +707,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
         right = value_raw.x / vcSL_OSCPixelRatio;
       }
 
-      moveOffset += udDouble3::create(right, forward, (double)vertical);
+      *pCameraMoveOffset += udDouble3::create(right, forward, (double)vertical);
 
       ImGui::Columns(1);
 
@@ -761,9 +719,10 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   if (pProgramState->pSceneWatermark != nullptr) // Watermark
   {
+    udInt2 sizei = udInt2::zero();
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     vcTexture_GetSize(pProgramState->pSceneWatermark, &sizei.x, &sizei.y);
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + size.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
     ImGui::SetNextWindowSize(ImVec2((float)sizei.x, (float)sizei.y));
     ImGui::SetNextWindowBgAlpha(0.5f);
 
@@ -773,26 +732,84 @@ void vcRenderSceneWindow(vcState *pProgramState)
     ImGui::PopStyleVar();
   }
 
-
   if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected)
   {
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + size.x, windowPos.y + size.y), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
     ImGui::SetNextWindowBgAlpha(0.5f);
 
     if (ImGui::Begin("MapCopyright", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
       ImGui::Text("Map Data \xC2\xA9 OpenStreetMap contributors");
     ImGui::End();
   }
+}
 
+void vcRenderSceneWindow(vcState *pProgramState)
+{
+  //Rendering
+  ImGuiIO &io = ImGui::GetIO();
+  ImVec2 windowSize = ImGui::GetContentRegionAvail();
+  ImVec2 windowPos = ImVec2(ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y);
+
+  if (windowSize.x < 1 || windowSize.y < 1)
+    return;
+
+  vcRenderData renderData = {};
+  renderData.models.Init(32);
+  renderData.mouse.x = (uint32_t)(io.MousePos.x - windowPos.x);
+  renderData.mouse.y = (uint32_t)(io.MousePos.y - windowPos.y);
+
+  udDouble3 cameraMoveOffset = udDouble3::zero();
+
+  if (pProgramState->sceneResolution.x != windowSize.x || pProgramState->sceneResolution.y != windowSize.y) //Resize buffers
+  {
+    pProgramState->sceneResolution = udUInt2::create((uint32_t)windowSize.x, (uint32_t)windowSize.y);
+    vcRender_ResizeScene(pProgramState->pRenderContext, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y);
+
+    // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
+    // this isn't valid on iOS when using UIKit.
+    vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+  }
+
+  // use some data from previous frame
+  pProgramState->worldMousePos = pProgramState->previousWorldMousePos;
+  pProgramState->pickingSuccess = pProgramState->previousPickingSuccess;
+  renderData.worldMouseRay = pProgramState->previousWorldMouseRay;
+  if (pProgramState->cameraInput.isUsingAnchorPoint)
+    renderData.pWorldAnchorPos = &pProgramState->cameraInput.worldAnchorPoint;
+
+  vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
 
   ImVec2 uv0 = ImVec2(0, 0);
   ImVec2 uv1 = ImVec2(1, 1);
 #if GRAPHICS_API_OPENGL
   uv1.y = -1;
 #endif
-  ImGui::ImageButton(pTexture, size, uv0, uv1, 0);
 
-  vcCamera_HandleSceneInput(pProgramState, moveOffset, renderData.worldMouseRay);
+  {
+    // Actual rendering to this texture is deferred
+    vcTexture *pSceneTexture = vcRender_GetSceneTexture(pProgramState->pRenderContext);
+    ImGui::ImageButton(pSceneTexture, windowSize, uv0, uv1, 0);
+
+    // Camera update has to be here because it depends on previous ImGui state
+    vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, renderData.worldMouseRay);
+  }
+
+  renderData.deltaTime = pProgramState->deltaTime;
+  renderData.pGISSpace = &pProgramState->gis;
+  renderData.cameraMatrix = pProgramState->camMatrix;
+  renderData.pCameraSettings = &pProgramState->settings.camera;
+
+  for (size_t i = 0; i < pProgramState->vcModelList.size(); ++i)
+    renderData.models.PushBack(pProgramState->vcModelList[i]);
+
+  // Render scene to texture
+  vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
+  renderData.models.Deinit();
+
+  pProgramState->previousWorldMousePos = renderData.worldMousePos;
+  pProgramState->previousPickingSuccess = renderData.pickingSuccess;
+  pProgramState->previousWorldMouseRay = renderData.worldMouseRay;
+  pProgramState->pSceneWatermark = renderData.pWatermarkTexture;
 }
 
 int vcMainMenuGui(vcState *pProgramState)

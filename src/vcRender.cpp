@@ -426,7 +426,13 @@ void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
     vcFenceRenderer_Render(pRenderContext->pDiagnosticFences, pRenderContext->viewProjectionMatrix, renderData.deltaTime);
 }
 
-vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
+
+vcTexture* vcRender_GetSceneTexture(vcRenderContext *pRenderContext)
+{
+  return pRenderContext->pTexture;
+}
+
+void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
 {
   float fov = pRenderContext->pSettings->camera.fieldOfView;
   float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
@@ -500,8 +506,6 @@ vcTexture* vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &r
   vcShader_Bind(nullptr);
 
   vcFramebuffer_Bind(pDefaultFramebuffer);
-
-  return pRenderContext->pTexture;
 }
 
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext)
