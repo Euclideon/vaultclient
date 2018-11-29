@@ -4,6 +4,7 @@
 #include "vcGIS.h"
 #include "gl/vcGLState.h"
 #include "gl/vcFramebuffer.h"
+#include "legacy/vcUDP.h"
 
 #include "vdkContext.h"
 #include "vdkServerAPI.h"
@@ -511,6 +512,13 @@ int main(int argc, char **args)
             {
               vcModel_AddToList(&programState, pNextLoad, firstLoad);
               continueLoading = true;
+            }
+            else if (udStrEquali(loadFile.GetExt(), ".udp"))
+            {
+              if (firstLoad)
+                vcModel_UnloadList(&programState);
+
+              vcUDP_Load(&programState, pNextLoad);
             }
             else
             {
