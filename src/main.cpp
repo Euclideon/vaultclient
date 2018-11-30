@@ -197,11 +197,6 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
     vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
 
 #if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX
-    if (pProgramState->settings.window.fullscreen)
-      SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
-    else
-      SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
-
     if (pProgramState->settings.window.maximized)
       SDL_MaximizeWindow(pProgramState->pWindow);
     else
@@ -436,8 +431,11 @@ int main(int argc, char **args)
           }
           else if (event.window.event == SDL_WINDOWEVENT_MOVED)
           {
-            programState.settings.window.xpos = event.window.data1;
-            programState.settings.window.ypos = event.window.data2;
+            if (!programState.settings.window.fullscreen)
+            {
+              programState.settings.window.xpos = event.window.data1;
+              programState.settings.window.ypos = event.window.data2;
+            }
           }
           else if (event.window.event == SDL_WINDOWEVENT_MAXIMIZED)
           {
