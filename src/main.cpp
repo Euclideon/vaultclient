@@ -352,7 +352,7 @@ int main(int argc, char **args)
 
   if (pIconData != nullptr)
     pIcon = SDL_CreateRGBSurfaceFrom(pIconData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
-  if(pIcon != nullptr)
+  if (pIcon != nullptr)
     SDL_SetWindowIcon(programState.pWindow, pIcon);
 
   SDL_free(pIcon);
