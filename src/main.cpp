@@ -238,30 +238,6 @@ int main(int argc, char **args)
   // Icon parameters
   SDL_Surface *pIcon = nullptr;
   int iconWidth, iconHeight, iconBytesPerPixel;
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  char FontPath[] = ASSETDIR "/NotoSansCJKjp-Regular.otf";
-  char IconPath[] = ASSETDIR "EuclideonClientIcon.png";
-  char EucWatermarkPath[] = ASSETDIR "EuclideonLogo.png";
-#elif UDPLATFORM_OSX
-  char FontPath[vcMaxPathLength] = "";
-  char IconPath[vcMaxPathLength] = "";
-  char EucWatermarkPath[vcMaxPathLength] = "";
-
-  {
-    char *pBasePath = SDL_GetBasePath();
-    if (pBasePath == nullptr)
-      pBasePath = SDL_strdup("./");
-
-    udSprintf(FontPath, vcMaxPathLength, "%s%s", pBasePath, "NotoSansCJKjp-Regular.otf");
-    udSprintf(IconPath, vcMaxPathLength, "%s%s", pBasePath, "EuclideonClientIcon.png");
-    udSprintf(EucWatermarkPath, vcMaxPathLength, "%s%s", pBasePath, "EuclideonLogo.png");
-    SDL_free(pBasePath);
-  }
-#else
-  char FontPath[] = ASSETDIR "fonts/NotoSansCJKjp-Regular.otf";
-  char IconPath[] = ASSETDIR "icons/EuclideonClientIcon.png";
-  char EucWatermarkPath[] = ASSETDIR "icons/EuclideonLogo.png";
-#endif
   unsigned char *pIconData = nullptr;
   unsigned char *pEucWatermarkData = nullptr;
   int pitch;
@@ -271,6 +247,7 @@ int main(int argc, char **args)
 
   const float FontSize = 16.f;
   ImFontConfig fontCfg = ImFontConfig();
+  const char *pFontPath = nullptr;
 
   bool continueLoading = false;
   const char *pNextLoad = nullptr;
@@ -340,7 +317,7 @@ int main(int argc, char **args)
   if (!programState.pWindow)
     goto epilogue;
 
-  pIconData = stbi_load(IconPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
+  pIconData = stbi_load(vcSettings_GetAssetPath("assets/icons/EuclideonClientIcon.png"), &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
 
   pitch = iconWidth * iconBytesPerPixel;
   pitch = (pitch + 3) & ~3;
@@ -371,7 +348,7 @@ int main(int argc, char **args)
   vcMain_LoadSettings(&programState, false);
 
   // setup watermark for background
-  pEucWatermarkData = stbi_load(EucWatermarkPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0); // reusing the variables for width etc
+  pEucWatermarkData = stbi_load(vcSettings_GetAssetPath("assets/icons/EuclideonLogo.png"), &iconWidth, &iconHeight, &iconBytesPerPixel, 0); // reusing the variables for width etc
   vcTexture_Create(&programState.pCompanyLogo, iconWidth, iconHeight, pEucWatermarkData);
 
   if (!ImGuiGL_Init(programState.pWindow))
@@ -388,7 +365,8 @@ int main(int argc, char **args)
   // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
   vcFramebuffer_Bind(programState.pDefaultFramebuffer);
 
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize);
+  pFontPath = vcSettings_GetAssetPath("assets/fonts/NotoSansCJKjp-Regular.otf");
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize);
 
 #if 1 // If load additional fonts
   fontCfg.MergeMode = true;
@@ -412,10 +390,12 @@ int main(int argc, char **args)
     0
   };
 
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize, &fontCfg, characterRanges);
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(FontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesJapanese()); // Still need to load Japanese seperately
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize, &fontCfg, characterRanges);
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesJapanese()); // Still need to load Japanese seperately
 
 #endif
+  // No longer need the udTempStr after this point.
+  pFontPath = nullptr;
 
   SDL_EnableScreenSaver();
 

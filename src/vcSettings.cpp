@@ -462,3 +462,28 @@ bool vcSettings_Save(vcSettings *pSettings)
 
   return success;
 }
+
+const char *vcSettings_GetAssetPath(const char *pFilename)
+{
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  udFilename filename(pFilename);
+  char buffer[vcMaxPathLength];
+  filename.ExtractFilenameOnly(buffer, (int)udLengthOf(buffer));
+  return udTempStr("./%s", buffer);
+#elif UDPLATFORM_OSX
+  char *pBasePath = SDL_GetBasePath();
+  if (pBasePath == nullptr)
+    pBasePath = SDL_strdup("./");
+
+  udFilename filename(pFilename);
+  char buffer[vcMaxPathLength];
+  filename.ExtractFilenameOnly(buffer, (int)udLengthOf(buffer));
+
+  const char *pOutput = udTempStr("%s%s", pBasePath, buffer);
+  SDL_free(pBasePath);
+
+  return pOutput;
+#else
+  return udTempStr("%s", pFilename);
+#endif
+}

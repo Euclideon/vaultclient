@@ -50,26 +50,7 @@ void vcModals_DrawReleaseNotes(vcState *pProgramState)
     ImGui::Separator();
 
     if (pProgramState->pReleaseNotes == nullptr)
-    {
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-      char ReleaseNotesPath[] = ASSETDIR "/releasenotes.md";
-#elif UDPLATFORM_OSX
-      char ReleaseNotesPath[vcMaxPathLength] = "";
-
-      {
-        char *pBasePath = SDL_GetBasePath();
-        if (pBasePath == nullptr)
-          pBasePath = SDL_strdup("./");
-
-        udSprintf(ReleaseNotesPath, vcMaxPathLength, "%s%s", pBasePath, "releasenotes.md");
-        SDL_free(pBasePath);
-      }
-#else
-      char ReleaseNotesPath[] = "releasenotes.md";
-#endif
-
-      udFile_Load(ReleaseNotesPath, (void**)&pProgramState->pReleaseNotes);
-    }
+      udFile_Load(vcSettings_GetAssetPath("releasenotes.md"), (void**)&pProgramState->pReleaseNotes);
 
     if (pProgramState->pReleaseNotes != nullptr)
     {
