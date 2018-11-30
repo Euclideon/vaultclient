@@ -369,6 +369,7 @@ int main(int argc, char **args)
   ImGui::CreateContext();
   ImGui::GetIO().ConfigResizeWindowsFromEdges = true; // Fix for ImGuiWindowFlags_ResizeFromAnySide being removed
   vcMain_LoadSettings(&programState, false);
+  vcModals_SetTileImage(&programState);
 
   // setup watermark for background
   pEucWatermarkData = stbi_load(EucWatermarkPath, &iconWidth, &iconHeight, &iconBytesPerPixel, 0); // reusing the variables for width etc
@@ -559,6 +560,7 @@ epilogue:
   vcModel_UnloadList(&programState);
   programState.vcModelList.~vector();
   vcRender_Destroy(&programState.pRenderContext);
+  vcTexture_Destroy(&programState.pTileServerIcon);
 
   vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
   vcLogout(&programState);
@@ -1423,6 +1425,9 @@ void vcRenderWindow(vcState *pProgramState)
           ImGui::Checkbox("Mouse can lock to maps", &pProgramState->settings.maptiles.mouseInteracts);
 
           ImGui::InputText("Tile Server", pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength);
+          if (ImGui::IsItemActive()) {
+            vcModals_OpenModal(pProgramState, vcMT_TileServer);
+          }
 
           ImGui::SliderFloat("Map Height", &pProgramState->settings.maptiles.mapHeight, -1000.f, 1000.f, "%.3fm", 2.f);
 
