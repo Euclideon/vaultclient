@@ -167,17 +167,18 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
 void vcModals_SetTileImage(vcState *pProgramState)
 {
   size_t urlLen = udStrlen(pProgramState->settings.maptiles.tileServerAddress);
-  if (urlLen > 0) {
-    if (pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] == '/')
-      pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] = '\0';
+  if (urlLen == 0)
+    return;
 
-    vcTexture_Destroy(&pProgramState->pTileServerIcon);
-    const char *svrSuffix = "/0/0/0.";
-    char buf[256];
-    udSprintf(buf, sizeof(buf), "%s%s%s", pProgramState->settings.maptiles.tileServerAddress, svrSuffix, pProgramState->settings.maptiles.tileServerExtension);
+  if (pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] == '/')
+    pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] = '\0';
 
-    vcTexture_CreateFromFilename(&pProgramState->pTileServerIcon, buf);
-  }
+  vcTexture_Destroy(&pProgramState->pTileServerIcon);
+  const char *svrSuffix = "/0/0/0.";
+  char buf[256];
+  udSprintf(buf, sizeof(buf), "%s%s%s", pProgramState->settings.maptiles.tileServerAddress, svrSuffix, pProgramState->settings.maptiles.tileServerExtension);
+
+  vcTexture_CreateFromFilename(&pProgramState->pTileServerIcon, buf);
 }
 
 void vcModals_DrawTileServer(vcState *pProgramState)
@@ -189,26 +190,23 @@ void vcModals_DrawTileServer(vcState *pProgramState)
       vcModals_SetTileImage(pProgramState);
   }
 
-  if(!ImGui::IsItemFocused())
-    ImGui::CloseCurrentPopup();
-
   ImGui::SetNextWindowSize(ImVec2(300, 342), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal("Tile Server"))
   {
     const char *pItems[] = { "png", "jpg" };
-    static int current_item = -1;
-    if (current_item == -1)
+    static int s_currentItem = -1;
+    if (s_currentItem == -1)
     {
       for (int i = 0; i < (int)udLengthOf(pItems); ++i)
       {
         if (udStrEquali(pItems[i], pProgramState->settings.maptiles.tileServerExtension))
-          current_item = i;
+          s_currentItem = i;
       }
     }
 
-    if (ImGui::Combo("Image Format", &current_item, pItems, (int)udLengthOf(pItems)))
+    if (ImGui::Combo("Image Format", &s_currentItem, pItems, (int)udLengthOf(pItems)))
     {
-      udStrcpy(pProgramState->settings.maptiles.tileServerExtension, 4, pItems[current_item]);
+      udStrcpy(pProgramState->settings.maptiles.tileServerExtension, 4, pItems[s_currentItem]);
       vcModals_SetTileImage(pProgramState);
     }
 
