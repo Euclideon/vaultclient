@@ -244,7 +244,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->window.width = data.Get("window.width").AsInt(1280);
     pSettings->window.height = data.Get("window.height").AsInt(720);
     pSettings->window.maximized = data.Get("window.maximized").AsBool(false);
-    pSettings->window.fullscreen = data.Get("window.fullscreen").AsBool(false);
     pSettings->window.touchscreenFriendly = data.Get("window.touchscreenFriendly").AsBool(false);
 
     pSettings->window.windowsOpen[vcDocks_Scene] = data.Get("frames.scene").AsBool(true);
@@ -362,7 +361,6 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("window.width = %d", pSettings->window.width);
   data.Set("window.height = %d", pSettings->window.height);
   data.Set("window.maximized = %s", pSettings->window.maximized ? "true" : "false");
-  data.Set("window.fullscreen = %s", pSettings->window.fullscreen ? "true" : "false");
   data.Set("window.touchscreenFriendly = %s", pSettings->window.touchscreenFriendly ? "true" : "false");
 
   data.Set("frames.scene = %s", pSettings->window.windowsOpen[vcDocks_Scene] ? "true" : "false");
