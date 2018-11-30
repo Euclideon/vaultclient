@@ -166,22 +166,27 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
 void vcModals_SetTileImage(vcState *pProgramState)
 {
   size_t urlLen = udStrlen(pProgramState->settings.maptiles.tileServerAddress);
-  if (pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] == '/')
-    pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] = '\0';
+  if (urlLen > 0) {
+    if (pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] == '/')
+      pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] = '\0';
 
-  vcTexture_Destroy(&pProgramState->pTileServerIcon);
-  const char *svrSuffix = "/0/0/0.";
-  char buf[256];
-  udSprintf(buf, sizeof(buf), "%s%s%s", pProgramState->settings.maptiles.tileServerAddress, svrSuffix, pProgramState->settings.maptiles.tileServerExtension);
+    vcTexture_Destroy(&pProgramState->pTileServerIcon);
+    const char *svrSuffix = "/0/0/0.";
+    char buf[256];
+    udSprintf(buf, sizeof(buf), "%s%s%s", pProgramState->settings.maptiles.tileServerAddress, svrSuffix, pProgramState->settings.maptiles.tileServerExtension);
 
-  if (!vcTexture_CreateFromFilename(&pProgramState->pTileServerIcon, buf))
-    printf("Error fetching or creating texture from url: %s",buf);
+    vcTexture_CreateFromFilename(&pProgramState->pTileServerIcon, buf);
+  }
 }
 
 void vcModals_DrawTileServer(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_TileServer))
+  {
     ImGui::OpenPopup("Tile Server");
+    if (pProgramState->pTileServerIcon == nullptr)
+      vcModals_SetTileImage(pProgramState);
+  }
 
   if(!ImGui::IsItemFocused())
     ImGui::CloseCurrentPopup();
@@ -199,17 +204,20 @@ void vcModals_DrawTileServer(vcState *pProgramState)
           current_item = i;
       }
     }
+
     if (ImGui::Combo("Image Format", &current_item, pItems, (int)udLengthOf(pItems)))
     {
       udStrcpy(pProgramState->settings.maptiles.tileServerExtension, 4, pItems[current_item]);
       vcModals_SetTileImage(pProgramState);
     }
+
     if (ImGui::InputText("Tile Server", pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue))
       vcModals_SetTileImage(pProgramState);
-
     ImGui::SetItemDefaultFocus();
 
-    if (pProgramState->pTileServerIcon != nullptr)
+    if (pProgramState->pTileServerIcon == nullptr)
+      ImGui::TextColored(ImVec4(255, 0, 0, 255), "Error fetching or creating texture from url");
+    else
       ImGui::Image((ImTextureID)pProgramState->pTileServerIcon, ImVec2(200, 200), ImVec2(0, 0), ImVec2(1, 1));
 
     if (ImGui::Button("Close", ImVec2(-1, 0)))
