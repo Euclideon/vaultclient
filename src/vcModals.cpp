@@ -170,7 +170,7 @@ void vcModals_SetTileImage(vcState *pProgramState)
     pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] = '\0';
 
   vcTexture_Destroy(&pProgramState->pTileServerIcon);
-  char *svrSuffix = "/0/0/0.";
+  const char *svrSuffix = "/0/0/0.";
   char buf[256];
   udSprintf(buf, sizeof(buf), "%s%s%s", pProgramState->settings.maptiles.tileServerAddress, svrSuffix, pProgramState->settings.maptiles.tileServerExtension);
 
