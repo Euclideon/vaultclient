@@ -198,7 +198,7 @@ void vcTerrainRenderer_LoadThread(void *pThreadData)
       pCache->textureLoadList.RemoveSwapLast(best);
 
       char buff[256];
-      udSprintf(buff, sizeof(buff), "%s/%d/%d/%d.png", pRenderer->pSettings->maptiles.tileServerAddress, pNextTexture->id.z, pNextTexture->id.x, pNextTexture->id.y);
+      udSprintf(buff, sizeof(buff), "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pNextTexture->id.z, pNextTexture->id.x, pNextTexture->id.y, pRenderer->pSettings->maptiles.tileServerExtension);
       udReleaseMutex(pCache->pMutex);
 
       void *pFileData;
