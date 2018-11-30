@@ -6,18 +6,6 @@
 #ifndef vcSettings_h__
 #define vcSettings_h__
 
-#if UDPLATFORM_WINDOWS
-#define ASSETDIR "assets/"
-#elif UDPLATFORM_OSX
-#define ASSETDIR "./Resources/"
-#elif UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-#define ASSETDIR "./"
-#elif UDPLATFORM_LINUX
-#define ASSETDIR "assets/"
-#elif UDPLATFORM_ANDROID
-#define ASSETDIR "./" // TBD
-#endif
-
 enum vcMapTileBlendMode
 {
   vcMTBM_Hybrid,
@@ -183,5 +171,8 @@ const float vcSL_OSCPixelRatio = 100.f;
 // Settings Functions
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset = false);
 bool vcSettings_Save(vcSettings *pSettings);
+
+// Uses udTempStr internally.
+const char *vcSettings_GetAssetPath(const char *pFilename);
 
 #endif // !vcSettings_h__

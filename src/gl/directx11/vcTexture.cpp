@@ -259,27 +259,6 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
 
   const char* names[] = { "_LF", "_RT", "_FR", "_BK", "_UP", "_DN" };
   pTexture->format = vcTextureFormat_Cubemap;
-
-  size_t filenameLen = udStrlen(pFilename);
-
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  const char skyboxPath[] = ASSETDIR;
-#elif UDPLATFORM_OSX
-  char *pSkyboxPath;
-  char *pBaseDir = SDL_GetBasePath();
-  if (pBaseDir)
-    pSkyboxPath = pBaseDir;
-  else
-    pSkyboxPath = SDL_strdup("./");
-  char skyboxPath[1024] = "";
-  udSprintf(skyboxPath, 1024, "%s", pSkyboxPath);
-#else
-  const char skyboxPath[] = ASSETDIR "skyboxes/";
-#endif
-
-  size_t pathLen = udStrlen(skyboxPath);
-  char *pFilePath = udStrdup(skyboxPath, filenameLen + 5);
-
   uint8_t *pFacePixels[6];
 
   for (int i = 0; i < 6; i++) // for each face of the cube map
@@ -288,8 +267,7 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
 
     char fileNameNoExt[256] = "";
     fileName.ExtractFilenameOnly(fileNameNoExt, (int)udLengthOf(fileNameNoExt));
-    udSprintf(pFilePath, filenameLen + 5 + pathLen, "%s%s%s%s", skyboxPath, fileNameNoExt, names[i], fileName.GetExt());
-    pFacePixels[i] = stbi_load(pFilePath, &width, &height, &depth, 4);
+    pFacePixels[i] = stbi_load(vcSettings_GetAssetPath(udTempStr("assets/skyboxes/%s%s%s", fileNameNoExt, names[i], fileName.GetExt())), &width, &height, &depth, 4);
 
     pTexture->height = height;
     pTexture->width = width;
@@ -359,8 +337,6 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
   {
     stbi_image_free(pFacePixels[i]);
   }
-
-  udFree(pFilePath);
 
 #if UDPLATFORM_OSX
   SDL_free(pBaseDir);
