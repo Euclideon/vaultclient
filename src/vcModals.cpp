@@ -189,7 +189,7 @@ void vcModals_DrawTileServer(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(300, 320), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal("Tile Server"))
   {
-    char *pItems[] = { "png", "jpg" };
+    const char *pItems[] = { "png", "jpg" };
     static int current_item = -1;
     if (current_item == -1)
     {
