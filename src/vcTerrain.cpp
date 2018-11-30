@@ -98,3 +98,8 @@ void vcTerrain_SetEnabled(vcTerrain *pTerrain, bool enabled)
 {
   pTerrain->enabled = enabled;
 }
+
+void vcTerrain_ClearTiles(vcTerrain *pTerrain)
+{
+  vcTerrainRenderer_ClearCache(pTerrain->pTerrainRenderer);
+}

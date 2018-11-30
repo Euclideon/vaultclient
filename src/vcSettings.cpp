@@ -318,6 +318,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->maptiles.mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
     pSettings->maptiles.mouseInteracts = data.Get("maptiles.mouseInteracts").AsBool(true);
     udStrcpy(pSettings->maptiles.tileServerAddress, sizeof(pSettings->maptiles.tileServerAddress), data.Get("maptiles.serverURL").AsString("http://20.188.211.58"));
+    udStrcpy(pSettings->maptiles.tileServerExtension, sizeof(pSettings->maptiles.tileServerExtension), data.Get("maptiles.imgExtension").AsString("png"));
 
     // Docks
     vcSettings_LoadDocks(data);
@@ -442,6 +443,8 @@ bool vcSettings_Save(vcSettings *pSettings)
 
   tempNode.SetString(pSettings->maptiles.tileServerAddress);
   data.Set(&tempNode, "maptiles.serverURL");
+  tempNode.SetString(pSettings->maptiles.tileServerExtension);
+  data.Set(&tempNode, "maptiles.imgExtension");
 
   // Docks
   vcSettings_SaveDocks(data);

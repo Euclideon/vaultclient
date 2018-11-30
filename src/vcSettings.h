@@ -143,6 +143,7 @@ struct vcSettings
 
     float mapHeight;
     char tileServerAddress[vcMaxPathLength];
+    char tileServerExtension[4];
 
     vcMapTileBlendMode blendMode;
     float transparency;

@@ -325,7 +325,7 @@ int main(int argc, char **args)
 
   if (pIconData != nullptr)
     pIcon = SDL_CreateRGBSurfaceFrom(pIconData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
-  if(pIcon != nullptr)
+  if (pIcon != nullptr)
     SDL_SetWindowIcon(programState.pWindow, pIcon);
 
   SDL_free(pIcon);
@@ -545,6 +545,7 @@ epilogue:
   vcModel_UnloadList(&programState);
   programState.vcModelList.~vector();
   vcRender_Destroy(&programState.pRenderContext);
+  vcTexture_Destroy(&programState.pTileServerIcon);
 
   vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
   vcLogout(&programState);
@@ -1405,7 +1406,8 @@ void vcRenderWindow(vcState *pProgramState)
         {
           ImGui::Checkbox("Mouse can lock to maps", &pProgramState->settings.maptiles.mouseInteracts);
 
-          ImGui::InputText("Tile Server", pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength);
+          if (ImGui::Button("Tile Server",ImVec2(-1,0)))
+            vcModals_OpenModal(pProgramState, vcMT_TileServer);
 
           ImGui::SliderFloat("Map Height", &pProgramState->settings.maptiles.mapHeight, -1000.f, 1000.f, "%.3fm", 2.f);
 

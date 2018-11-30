@@ -8,6 +8,7 @@ enum vcModalTypes
   vcMT_ReleaseNotes,
   vcMT_About,
   vcMT_NewVersionAvailable,
+  vcMT_TileServer,
 
   // These ones are unhandled by the DrawModals
   vcMT_ModelProperties,
@@ -19,6 +20,8 @@ struct vcState;
 
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type);
 bool vcModals_IsOpening(vcState *pProgramState, vcModalTypes type);
+
+void vcModals_DrawTileServer(vcState *pProgramState);
 
 void vcModals_DrawModals(vcState *pProgramState);
 
