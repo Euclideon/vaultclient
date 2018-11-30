@@ -84,6 +84,8 @@ struct vcState
   vcSettings settings;
   udJSON projects;
   udJSON packageInfo;
+
+  vcTexture *pTileServerIcon;
 };
 
 #endif // !vcState_h__

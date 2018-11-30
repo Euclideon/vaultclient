@@ -3,6 +3,8 @@
 #include "vcState.h"
 #include "vcVersion.h"
 #include "vcThirdPartyLicenses.h"
+#include "gl/vcTexture.h"
+#include "vcRender.h"
 
 #include "udPlatform/udFile.h"
 
@@ -143,6 +145,73 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
   }
 }
 
+void vcModals_SetTileImage(vcState *pProgramState)
+{
+  size_t urlLen = udStrlen(pProgramState->settings.maptiles.tileServerAddress);
+  if (urlLen == 0)
+    return;
+
+  if (pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] == '/')
+    pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] = '\0';
+
+  vcTexture_Destroy(&pProgramState->pTileServerIcon);
+  const char *svrSuffix = "/0/0/0.";
+  char buf[256];
+  udSprintf(buf, sizeof(buf), "%s%s%s", pProgramState->settings.maptiles.tileServerAddress, svrSuffix, pProgramState->settings.maptiles.tileServerExtension);
+
+  vcTexture_CreateFromFilename(&pProgramState->pTileServerIcon, buf);
+}
+
+void vcModals_DrawTileServer(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_TileServer))
+  {
+    ImGui::OpenPopup("Tile Server");
+    if (pProgramState->pTileServerIcon == nullptr)
+      vcModals_SetTileImage(pProgramState);
+  }
+
+  ImGui::SetNextWindowSize(ImVec2(300, 342), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal("Tile Server"))
+  {
+    const char *pItems[] = { "png", "jpg" };
+    static int s_currentItem = -1;
+    if (s_currentItem == -1)
+    {
+      for (int i = 0; i < (int)udLengthOf(pItems); ++i)
+      {
+        if (udStrEquali(pItems[i], pProgramState->settings.maptiles.tileServerExtension))
+          s_currentItem = i;
+      }
+    }
+
+    if (ImGui::Combo("Image Format", &s_currentItem, pItems, (int)udLengthOf(pItems)))
+    {
+      udStrcpy(pProgramState->settings.maptiles.tileServerExtension, 4, pItems[s_currentItem]);
+      vcModals_SetTileImage(pProgramState);
+    }
+
+    if (ImGui::InputText("Tile Server", pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue))
+      vcModals_SetTileImage(pProgramState);
+    ImGui::SetItemDefaultFocus();
+
+    if (ImGui::Button("Load", ImVec2(-1, 0)))
+      vcModals_SetTileImage(pProgramState);
+
+    if (pProgramState->pTileServerIcon == nullptr)
+      ImGui::TextColored(ImVec4(255, 0, 0, 255), "Error fetching or creating texture from url");
+    else
+      ImGui::Image((ImTextureID)pProgramState->pTileServerIcon, ImVec2(200, 200), ImVec2(0, 0), ImVec2(1, 1));
+
+    if (ImGui::Button("Close", ImVec2(-1, 0)))
+    {
+      ImGui::CloseCurrentPopup();
+      vcRender_ClearTiles(pProgramState->pRenderContext);
+    }
+    ImGui::EndPopup();
+  }
+}
+
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 {
   pProgramState->openModals |= (1 << type);
@@ -159,6 +228,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawReleaseNotes(pProgramState);
   vcModals_DrawAbout(pProgramState);
   vcModals_DrawNewVersionAvailable(pProgramState);
+  vcModals_DrawTileServer(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_NewVersionAvailable) | (1 << vcMT_LoggedOut));
 }

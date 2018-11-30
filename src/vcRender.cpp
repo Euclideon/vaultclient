@@ -674,6 +674,11 @@ udResult vcRender_DestroyTerrain(vcRenderContext *pRenderContext)
 {
   if (pRenderContext->pTerrain == nullptr)
     return udR_Success;
-  else
-    return vcTerrain_Destroy(&(pRenderContext->pTerrain));
+
+  return vcTerrain_Destroy(&(pRenderContext->pTerrain));
+}
+
+void vcRender_ClearTiles(vcRenderContext *pRenderContext)
+{
+  vcTerrain_ClearTiles(pRenderContext->pTerrain);
 }
