@@ -193,7 +193,7 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     static int current_item = -1;
     if (current_item == -1)
     {
-      for (int i = 0; i < udLengthOf(pItems); ++i)
+      for (int i = 0; i < (int)udLengthOf(pItems); ++i)
       {
         if (udStrEquali(pItems[i], pProgramState->settings.maptiles.tileServerExtension))
           current_item = i;
