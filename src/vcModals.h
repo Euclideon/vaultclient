@@ -21,7 +21,6 @@ struct vcState;
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type);
 bool vcModals_IsOpening(vcState *pProgramState, vcModalTypes type);
 
-void vcModals_SetTileImage(vcState *pProgramState);
 void vcModals_DrawTileServer(vcState *pProgramState);
 
 void vcModals_DrawModals(vcState *pProgramState);
