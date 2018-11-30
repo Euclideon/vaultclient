@@ -189,33 +189,13 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
   const char* names[] = { "_LF", "_RT", "_FR", "_BK", "_UP", "_DN" };
   const GLenum types[] = { GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X, GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
 
-  size_t filenameLen = udStrlen(pFilename);
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  const char skyboxPath[] = ASSETDIR;
-#elif UDPLATFORM_OSX
-
-  char *pSkyboxPath;
-  char *pBaseDir = SDL_GetBasePath();
-  if (pBaseDir)
-    pSkyboxPath = pBaseDir;
-  else
-    pSkyboxPath = SDL_strdup("./");
-  char skyboxPath[1024] = "";
-  udSprintf(skyboxPath, 1024, "%s", pSkyboxPath);
-#else
-  const char skyboxPath[] = ASSETDIR "skyboxes/";
-#endif
-  size_t pathLen = udStrlen(skyboxPath);
-  char *pFilePath = udStrdup(skyboxPath, filenameLen + 5);
-
   for (int i = 0; i < 6; i++) // for each face of the cube map
   {
     int width, height, depth;
 
     char fileNameNoExt[256] = "";
     fileName.ExtractFilenameOnly(fileNameNoExt, (int)udLengthOf(fileNameNoExt));
-    udSprintf(pFilePath, filenameLen + 5 + pathLen, "%s%s%s%s", skyboxPath, fileNameNoExt, names[i], fileName.GetExt());
-    uint8_t* data = stbi_load(pFilePath, &width, &height, &depth, 0);
+    uint8_t* data = stbi_load(vcSettings_GetAssetPath(udTempStr("assets/skyboxes/%s%s%s", fileNameNoExt, names[i], fileName.GetExt())), &width, &height, &depth, 0);
 
     pTexture->height = height;
     pTexture->width = width;
@@ -232,8 +212,6 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
     VERIFY_GL();
   }
 
-  udFree(pFilePath);
-
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -241,10 +219,6 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
   VERIFY_GL();
-
-#if UDPLATFORM_OSX
-  SDL_free(pBaseDir);
-#endif
 
   if (pTexture->id == GL_INVALID_INDEX)
   {
