@@ -4,6 +4,7 @@
 #include "vcVersion.h"
 #include "vcThirdPartyLicenses.h"
 #include "gl/vcTexture.h"
+#include "vcRender.h"
 
 #include "udPlatform/udFile.h"
 
@@ -191,7 +192,7 @@ void vcModals_DrawTileServer(vcState *pProgramState)
   if(!ImGui::IsItemFocused())
     ImGui::CloseCurrentPopup();
 
-  ImGui::SetNextWindowSize(ImVec2(300, 320), ImGuiCond_Appearing);
+  ImGui::SetNextWindowSize(ImVec2(300, 342), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal("Tile Server"))
   {
     const char *pItems[] = { "png", "jpg" };
@@ -215,14 +216,19 @@ void vcModals_DrawTileServer(vcState *pProgramState)
       vcModals_SetTileImage(pProgramState);
     ImGui::SetItemDefaultFocus();
 
+    if (ImGui::Button("Load", ImVec2(-1, 0)))
+      vcModals_SetTileImage(pProgramState);
+
     if (pProgramState->pTileServerIcon == nullptr)
       ImGui::TextColored(ImVec4(255, 0, 0, 255), "Error fetching or creating texture from url");
     else
       ImGui::Image((ImTextureID)pProgramState->pTileServerIcon, ImVec2(200, 200), ImVec2(0, 0), ImVec2(1, 1));
 
     if (ImGui::Button("Close", ImVec2(-1, 0)))
+    {
       ImGui::CloseCurrentPopup();
-
+      vcRender_ClearTiles(pProgramState->pRenderContext);
+    }
     ImGui::EndPopup();
   }
 }

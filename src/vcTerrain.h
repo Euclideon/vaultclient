@@ -14,5 +14,6 @@ void vcTerrain_BuildTerrain(vcTerrain *pTerrain, vcGISSpace *pSpace, const udDou
 void vcTerrain_Render(vcTerrain *pTerrain, const udDouble4x4 &view, const udDouble4x4 &proj);
 
 void vcTerrain_SetEnabled(vcTerrain *pTerrain, bool enabled);
+void vcTerrain_ClearTiles(vcTerrain *pTerrain);
 
 #endif//vcTerrain_h__
