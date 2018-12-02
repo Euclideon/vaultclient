@@ -26,6 +26,8 @@ struct vcConvertData
   vdkError response;
 };
 
+const char *pFileExtension = ".uds";
+
 uint32_t vcConvertCMD_DoConvert(void *pDataPtr)
 {
   vcConvertData *pConvData = (vcConvertData*)pDataPtr;
@@ -166,7 +168,14 @@ int main(int argc, const char **ppArgv)
     {
       // -O implies automatic overwrite, -o does a check
       autoOverwrite = udStrEqual(ppArgv[i], "-O");
-      vdkConvert_SetOutputFilename(pContext, pModel, ppArgv[i + 1]);
+
+      char buf[512];
+      if (!udStrEndsWithi(ppArgv[i + 1], pFileExtension))
+        udSprintf(buf, sizeof(buf), "%s%s", ppArgv[i + 1], pFileExtension);
+      else
+        udStrcpy(buf, sizeof(buf), ppArgv[i + 1]);
+
+      vdkConvert_SetOutputFilename(pContext, pModel, buf);
 
       i += 2;
     }
