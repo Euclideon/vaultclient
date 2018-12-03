@@ -13,8 +13,6 @@ project "vaultClient"
 	files { "docs/**.md" }
 	files { "builds/releasenotes.md" }
 
-	removefiles { "src/gl/*/*" }
-
 	--This project includes
 	includedirs { "src" }
 	includedirs { "3rdParty/Imgui" }
@@ -81,14 +79,24 @@ project "vaultClient"
 		links { "z" }
 
 	filter { "options:gfxapi=opengl" }
-		files { "src/gl/opengl/*" }
 		defines { "GRAPHICS_API_OPENGL=1" }
 
+	filter { "options:not gfxapi=opengl"}
+		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = { "src/gl/opengl/*" } }
+
+	filter { "options:not gfxapi=opengl", "files:src/gl/opengl/*", "system:not macosx" }
+		flags { "ExcludeFromBuild" }
+
 	filter { "options:gfxapi=d3d11" }
-		files { "src/gl/directx11/*" }
 		libdirs { "$(DXSDK_DIR)/Lib/x64;" }
 		links { "d3d11.lib", "d3dcompiler.lib", "dxgi.lib", "dxguid.lib" }
 		defines { "GRAPHICS_API_D3D11=1" }
+
+	filter { "options:not gfxapi=d3d11"}
+		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = { "src/gl/directx11/*" } }
+
+	filter { "options:not gfxapi=d3d11", "files:src/gl/directx11/*", "system:not macosx" }
+		flags { "ExcludeFromBuild" }
 
 	-- include common stuff
 	dofile "bin/premake/common-proj.lua"
