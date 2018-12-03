@@ -682,3 +682,9 @@ void vcRender_ClearTiles(vcRenderContext *pRenderContext)
 {
   vcTerrain_ClearTiles(pRenderContext->pTerrain);
 }
+
+
+void vcRender_ClearPoints(vcRenderContext *pRenderContext)
+{
+  vcFenceRenderer_ClearPoints(pRenderContext->pDiagnosticFences);
+}

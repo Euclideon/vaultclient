@@ -46,5 +46,6 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
 udResult vcRender_CreateTerrain(vcRenderContext *pRenderContext, vcSettings *pSettings);
 udResult vcRender_DestroyTerrain(vcRenderContext *pRenderContext);
 void vcRender_ClearTiles(vcRenderContext *pRenderContext);
+void vcRender_ClearPoints(vcRenderContext *pRenderContext);
 
 #endif//vcRender_h__
