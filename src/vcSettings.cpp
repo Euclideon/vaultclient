@@ -2,6 +2,7 @@
 
 #include "udPlatform/udJSON.h"
 #include "udPlatform/udPlatformUtil.h"
+#include "udPlatform/udFileHandler.h"
 
 #include "imgui.h"
 #include "imgui_ex/imgui_dock_internal.h"
@@ -487,4 +488,15 @@ const char *vcSettings_GetAssetPath(const char *pFilename)
 #else
   return udTempStr("%s", pFilename);
 #endif
+}
+
+udResult vcSettings_FileHandlerAssetOpen(udFile **ppFile, const char *pFilename, udFileOpenFlags flags)
+{
+  size_t fileStart = 8; // length of asset://
+  return udFile_Open(ppFile, vcSettings_GetAssetPath(pFilename + fileStart), flags);
+}
+
+udResult vcSettings_RegisterAssetFileHandler()
+{
+  return udFile_RegisterHandler(vcSettings_FileHandlerAssetOpen, "asset://");
 }
