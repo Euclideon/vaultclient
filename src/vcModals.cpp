@@ -168,7 +168,7 @@ bool vcModals_SetTileImage(vcState *pProgramState)
 {
   size_t urlLen = udStrlen(pProgramState->settings.maptiles.tileServerAddress);
   if (urlLen == 0)
-    return;
+    return false;
 
   if (pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] == '/')
     pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] = '\0';
