@@ -164,7 +164,7 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
   }
 }
 
-void vcModals_SetTileImage(vcState *pProgramState)
+bool vcModals_SetTileImage(vcState *pProgramState)
 {
   size_t urlLen = udStrlen(pProgramState->settings.maptiles.tileServerAddress);
   if (urlLen == 0)
@@ -178,7 +178,7 @@ void vcModals_SetTileImage(vcState *pProgramState)
   char buf[256];
   udSprintf(buf, sizeof(buf), "%s%s%s", pProgramState->settings.maptiles.tileServerAddress, svrSuffix, pProgramState->settings.maptiles.tileServerExtension);
 
-  vcTexture_CreateFromFilename(&pProgramState->pTileServerIcon, buf);
+  return vcTexture_CreateFromFilename(&pProgramState->pTileServerIcon, buf);
 }
 
 void vcModals_DrawTileServer(vcState *pProgramState)
@@ -216,8 +216,7 @@ void vcModals_DrawTileServer(vcState *pProgramState)
 
     if (ImGui::Button("Load", ImVec2(-1, 0)))
     {
-      vcModals_SetTileImage(pProgramState);
-      if (pProgramState->pTileServerIcon != nullptr)
+      if (vcModals_SetTileImage(pProgramState))
       {
         ImGui::CloseCurrentPopup();
         vcRender_ClearTiles(pProgramState->pRenderContext);
