@@ -47,7 +47,7 @@
 #include <SDL2/SDL_syswm.h>
 
 #if UDPLATFORM_WINDOWS ||  UDPLATFORM_OSX || UDPLATFORM_LINUX
-#define SDL_HAS_CAPTURE_MOUSE               SDL_VERSION_ATLEAST(2,0,4)
+#define SDL_HAS_CAPTURE_MOUSE               SDL_VERSION_ATLEAST(2,0,5)
 #else
 #define SDL_HAS_CAPTURE_MOUSE               0
 #endif
