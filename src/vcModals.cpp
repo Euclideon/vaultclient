@@ -215,7 +215,14 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     ImGui::SetItemDefaultFocus();
 
     if (ImGui::Button("Load", ImVec2(-1, 0)))
+    {
       vcModals_SetTileImage(pProgramState);
+      if (pProgramState->pTileServerIcon != nullptr)
+      {
+        ImGui::CloseCurrentPopup();
+        vcRender_ClearTiles(pProgramState->pRenderContext);
+      }
+    }
 
     if (pProgramState->pTileServerIcon == nullptr)
       ImGui::TextColored(ImVec4(255, 0, 0, 255), "Error fetching or creating texture from url");
