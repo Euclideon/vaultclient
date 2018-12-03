@@ -232,6 +232,7 @@ int main(int argc, char **args)
 
   vcState programState = {};
 
+  vcSettings_RegisterAssetFileHandler();
   udFile_RegisterHTTP();
 
   // Icon parameters

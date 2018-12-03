@@ -72,8 +72,8 @@ void vcFenceRenderer_Init()
   gRefCount++;
   if (gRefCount == 1)
   {
-    vcTexture_CreateFromFilename(&gArrowTexture, vcSettings_GetAssetPath("assets/textures/fenceArrow.png"), nullptr, nullptr, vcTFM_Linear, true);
-    vcTexture_CreateFromFilename(&gGlowTexture, vcSettings_GetAssetPath("assets/textures/fenceGlow.png"), nullptr, nullptr, vcTFM_Linear, true);
+    vcTexture_CreateFromFilename(&gArrowTexture, "asset://assets/textures/fenceArrow.png", nullptr, nullptr, vcTFM_Linear, true);
+    vcTexture_CreateFromFilename(&gGlowTexture, "asset://assets/textures/fenceGlow.png", nullptr, nullptr, vcTFM_Linear, true);
 
     static const uint32_t solidPixels[] = { 0xffffffff };
     vcTexture_Create(&gSolidTexture, 1, 1, solidPixels);
