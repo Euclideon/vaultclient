@@ -9,7 +9,6 @@
 #include "vdkRenderView.h"
 
 #include "gl/vcMesh.h"
-#include "gl/vcFenceRenderer.h"
 
 struct vcRenderContext;
 struct vcTexture;
