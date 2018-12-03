@@ -115,7 +115,7 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
 
   vcMesh_Create(&pRenderContext->pScreenQuadMesh, vcSimpleVertexLayout, 2, qrSqVertices, 4, qrIndices, 6, vcMF_Dynamic);
 
-  vcTexture_CreateFromFilename(&pRenderContext->pSkyboxTexture, vcSettings_GetAssetPath("assets/skyboxes/WaterClouds.jpg"), nullptr, nullptr, vcTFM_Linear);
+  vcTexture_CreateFromFilename(&pRenderContext->pSkyboxTexture, "asset://assets/skyboxes/WaterClouds.jpg", nullptr, nullptr, vcTFM_Linear);
   UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
 
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);

@@ -52,7 +52,7 @@ void vcModals_DrawReleaseNotes(vcState *pProgramState)
     ImGui::Separator();
 
     if (pProgramState->pReleaseNotes == nullptr)
-      udFile_Load(vcSettings_GetAssetPath("releasenotes.md"), (void**)&pProgramState->pReleaseNotes);
+      udFile_Load("asset://releasenotes.md", (void**)&pProgramState->pReleaseNotes);
 
     if (pProgramState->pReleaseNotes != nullptr)
     {
