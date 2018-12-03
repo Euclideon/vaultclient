@@ -181,8 +181,11 @@ void vcLogout(vcState *pProgramState)
 
   if (pProgramState->pVDKContext != nullptr)
   {
+    pProgramState->modelPath[0] = '\0';
     vcModel_UnloadList(pProgramState);
     pProgramState->projects.Destroy();
+    vcRender_ClearPoints(pProgramState->pRenderContext);
+
     memset(&pProgramState->gis, 0, sizeof(pProgramState->gis));
     vdkContext_Disconnect(&pProgramState->pVDKContext);
 
