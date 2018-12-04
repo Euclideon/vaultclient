@@ -91,6 +91,10 @@ struct vcState
     vcGizmoOperation operation;
     vcGizmoCoordinateSystem coordinateSystem;
   } gizmo;
+
+  void *pImageData = nullptr;
+  int64_t imageSize = -1;
+  bool tileError = false;
 };
 
 #endif // !vcState_h__
