@@ -680,11 +680,17 @@ udResult vcRender_DestroyTerrain(vcRenderContext *pRenderContext)
 
 void vcRender_ClearTiles(vcRenderContext *pRenderContext)
 {
+  if (pRenderContext == nullptr)
+    return;
+
   vcTerrain_ClearTiles(pRenderContext->pTerrain);
 }
 
 
 void vcRender_ClearPoints(vcRenderContext *pRenderContext)
 {
+  if (pRenderContext == nullptr)
+    return;
+
   vcFenceRenderer_ClearPoints(pRenderContext->pDiagnosticFences);
 }
