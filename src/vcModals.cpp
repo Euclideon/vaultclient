@@ -10,6 +10,9 @@
 
 #include "imgui.h"
 
+#include "stb_image.h"
+
+
 void vcModals_DrawLoggedOut(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_LoggedOut))
@@ -145,21 +148,25 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
   }
 }
 
-bool vcModals_SetTileImage(vcState *pProgramState)
+void vcModals_SetTileImage(void *pProgramState)
 {
-  size_t urlLen = udStrlen(pProgramState->settings.maptiles.tileServerAddress);
+  vcState *programState = (vcState*)pProgramState;
+  size_t urlLen = udStrlen(programState->settings.maptiles.tileServerAddress);
   if (urlLen == 0)
-    return false;
+    return;
 
-  if (pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] == '/')
-    pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] = '\0';
+  if (programState->settings.maptiles.tileServerAddress[urlLen - 1] == '/')
+    programState->settings.maptiles.tileServerAddress[urlLen - 1] = '\0';
 
-  vcTexture_Destroy(&pProgramState->pTileServerIcon);
+  vcTexture_Destroy(&programState->pTileServerIcon);
   const char *svrSuffix = "/0/0/0.";
   char buf[256];
-  udSprintf(buf, sizeof(buf), "%s%s%s", pProgramState->settings.maptiles.tileServerAddress, svrSuffix, pProgramState->settings.maptiles.tileServerExtension);
+  udSprintf(buf, sizeof(buf), "%s%s%s", programState->settings.maptiles.tileServerAddress, svrSuffix, programState->settings.maptiles.tileServerExtension);
 
-  return vcTexture_CreateFromFilename(&pProgramState->pTileServerIcon, buf);
+  if (udFile_Load(buf, &programState->pImageData, &programState->imageSize) != udR_Success)
+    programState->tileError = true;
+  else
+    programState->tileError = false;
 }
 
 void vcModals_DrawTileServer(vcState *pProgramState)
@@ -168,7 +175,10 @@ void vcModals_DrawTileServer(vcState *pProgramState)
   {
     ImGui::OpenPopup("Tile Server");
     if (pProgramState->pTileServerIcon == nullptr)
-      vcModals_SetTileImage(pProgramState);
+    {
+      pProgramState->imageSize = -1;
+      vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModals_SetTileImage, pProgramState, false);
+    }
   }
 
   ImGui::SetNextWindowSize(ImVec2(300, 342), ImGuiCond_Appearing);
@@ -188,25 +198,45 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     if (ImGui::Combo("Image Format", &s_currentItem, pItems, (int)udLengthOf(pItems)))
     {
       udStrcpy(pProgramState->settings.maptiles.tileServerExtension, 4, pItems[s_currentItem]);
-      vcModals_SetTileImage(pProgramState);
+      pProgramState->imageSize = -1;
+      vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModals_SetTileImage, pProgramState, false);
     }
 
     if (ImGui::InputText("Tile Server", pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue))
-      vcModals_SetTileImage(pProgramState);
+    {
+      pProgramState->imageSize = -1;
+      vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModals_SetTileImage, pProgramState, false);
+    }
     ImGui::SetItemDefaultFocus();
 
     if (ImGui::Button("Load", ImVec2(-1, 0)))
     {
-      if (vcModals_SetTileImage(pProgramState))
+      pProgramState->imageSize = -1;
+      vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModals_SetTileImage, pProgramState, false);
+
+      if (pProgramState->pTileServerIcon != nullptr)
       {
         ImGui::CloseCurrentPopup();
         vcRender_ClearTiles(pProgramState->pRenderContext);
       }
     }
+    uint32_t width, height, channelCount;
 
-    if (pProgramState->pTileServerIcon == nullptr)
+    if (pProgramState->imageSize != -1)
+    {
+      uint8_t *pData = stbi_load_from_memory((stbi_uc*)pProgramState->pImageData, (int)pProgramState->imageSize, (int*)&width, (int*)&height, (int*)&channelCount, 4);
+      udFree(pProgramState->pImageData);
+
+      if (pData)
+        vcTexture_Create(&pProgramState->pTileServerIcon, width, height, pData, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Repeat, vcTCF_None, 0);
+
+      stbi_image_free(pData);
+      pProgramState->imageSize = -1;
+    }
+
+    if (pProgramState->tileError)
       ImGui::TextColored(ImVec4(255, 0, 0, 255), "Error fetching or creating texture from url");
-    else
+    else if (pProgramState->pTileServerIcon != nullptr)
       ImGui::Image((ImTextureID)pProgramState->pTileServerIcon, ImVec2(200, 200), ImVec2(0, 0), ImVec2(1, 1));
 
     if (ImGui::Button("Close", ImVec2(-1, 0)))
