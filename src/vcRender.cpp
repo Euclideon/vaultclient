@@ -499,7 +499,7 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
     udDouble4x4 cameraRotation = udDouble4x4::rotationYPR(renderData.cameraMatrix.extractYPR());
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     vcGLState_SetDepthMode(vcGLSDM_Always, false);
-    vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspective(fov, aspect, 0.01, 2.0) * udDouble4x4::translation(fov * 0.45 * aspect, 1.0, -fov * 0.45) * udDouble4x4::scaleUniform(fov / 20.0) * udInverse(cameraRotation));
+    vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspective(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udInverse(cameraRotation));
     vcGLState_ResetState();
   }
 
