@@ -28,9 +28,12 @@ uint32_t vWorkerThread_DoWork(void *pPoolPtr)
       continue;
 
     pThreadData->isActive = true;
-    currentTask.pFunction(currentTask.pDataBlock);
+    if (currentTask.pFunction)
+      currentTask.pFunction(currentTask.pDataBlock);
 
-    if (currentTask.freeDataBlock)
+    if (currentTask.pPostFunction)
+      vSafeDeque_PushBack(pPool->pQueuedPostTasks, currentTask);
+    else if (currentTask.freeDataBlock)
       udFree(currentTask.pDataBlock);
 
     pThreadData->isActive = false;
@@ -51,6 +54,7 @@ void vWorkerThread_StartThreads(vWorkerThreadPool **ppPool, uint8_t maxWorkers)
   pPool->pSemaphore = udCreateSemaphore();
 
   vSafeDeque_Create(&pPool->pQueuedTasks, 32);
+  vSafeDeque_Create(&pPool->pQueuedPostTasks, 32);
 
   pPool->isRunning = true;
   pPool->totalThreads = udMax(uint8_t(1), maxWorkers);
@@ -87,21 +91,41 @@ void vWorkerThread_Shutdown(vWorkerThreadPool **ppPool, bool waitForCompletion)
       udFree(currentTask.pDataBlock);
   }
 
+  while (vSafeDeque_PopFront(pPool->pQueuedPostTasks, &currentTask) == udR_Success)
+  {
+    if (currentTask.freeDataBlock)
+      udFree(currentTask.pDataBlock);
+  }
+
   vSafeDeque_Destroy(&pPool->pQueuedTasks);
+  vSafeDeque_Destroy(&pPool->pQueuedPostTasks);
   udDestroySemaphore(&pPool->pSemaphore);
 
   udFree(pPool->pThreadData);
   udFree(*ppPool);
 }
 
-void vWorkerThread_AddTask(vWorkerThreadPool *pPool, vWorkerThreadCallback *pFunc, void *pUserData /*= nullptr*/, bool clearMemory /*= true*/)
+void vWorkerThread_DoPostWork(vWorkerThreadPool *pPool)
 {
-  if (pPool == nullptr || pPool->pQueuedTasks == nullptr || pPool->pSemaphore == nullptr)
+  vWorkerThreadTask currentTask;
+  while (vSafeDeque_PopFront(pPool->pQueuedPostTasks, &currentTask) == udR_Success)
+  {
+    currentTask.pPostFunction(currentTask.pDataBlock);
+
+    if (currentTask.freeDataBlock)
+      udFree(currentTask.pDataBlock);
+  }
+}
+
+void vWorkerThread_AddTask(vWorkerThreadPool *pPool, vWorkerThreadCallback *pFunc, void *pUserData /*= nullptr*/, bool clearMemory /*= true*/, vWorkerThreadCallback *pPostFunc /*= nullptr*/)
+{
+  if (pPool == nullptr)
     return;
 
   vWorkerThreadTask tempTask;
 
   tempTask.pFunction = pFunc;
+  tempTask.pPostFunction = pPostFunc;
   tempTask.pDataBlock = pUserData;
   tempTask.freeDataBlock = clearMemory;
 
