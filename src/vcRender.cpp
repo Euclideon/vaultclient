@@ -422,7 +422,6 @@ vcTexture* vcRender_GetSceneTexture(vcRenderContext *pRenderContext)
 
 void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
 {
-  float fov = pRenderContext->pSettings->camera.fieldOfView;
   float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
 
   vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true);
