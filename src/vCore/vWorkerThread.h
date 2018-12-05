@@ -15,6 +15,7 @@ struct udThread;
 struct vWorkerThreadTask
 {
   vWorkerThreadCallback *pFunction;
+  vWorkerThreadCallback *pPostFunction; // run on main thread
   void *pDataBlock;
   bool freeDataBlock;
 };
@@ -30,6 +31,7 @@ struct vWorkerThreadData
 struct vWorkerThreadPool
 {
   vSafeDeque<vWorkerThreadTask> *pQueuedTasks;
+  vSafeDeque<vWorkerThreadTask> *pQueuedPostTasks;
 
   udSemaphore *pSemaphore;
   volatile int32_t runningThreads;
@@ -45,7 +47,9 @@ struct vWorkerThreadPool
 void vWorkerThread_StartThreads(vWorkerThreadPool **ppPool, uint8_t maxThreads = 4);
 void vWorkerThread_Shutdown(vWorkerThreadPool **ppPool, bool waitForCompletion = true);
 
+void vWorkerThread_DoPostWork(vWorkerThreadPool *pPool);
+
 // Adds a function to run on a background thread, optionally with userdata. If clearMemory is true, it will call udFree on pUserData after running
-void vWorkerThread_AddTask(vWorkerThreadPool *pPool, vWorkerThreadCallback *pFunc, void *pUserData = nullptr, bool clearMemory = true);
+void vWorkerThread_AddTask(vWorkerThreadPool *pPool, vWorkerThreadCallback *pFunc, void *pUserData = nullptr, bool clearMemory = true, vWorkerThreadCallback *pPostFunction = nullptr);
 
 #endif // vWorkerThread_h__
