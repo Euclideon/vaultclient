@@ -50,7 +50,6 @@ struct vcState
   } selectedModelProperties;
 
   double deltaTime;
-  udDouble4x4 camMatrix;
   udUInt2 sceneResolution;
 
   vcGISSpace gis;
@@ -61,7 +60,6 @@ struct vcState
 
   udDouble3 worldMousePos;
   bool pickingSuccess;
-  udRay<double> previousWorldMouseRay;
   udDouble3 previousWorldMousePos;
   bool previousPickingSuccess;
 
