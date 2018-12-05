@@ -792,13 +792,13 @@ void vcRenderSceneWindow(vcState *pProgramState)
       static ImGuizmo::ImGuizmoOperation mCurrentGizmoOperation(ImGuizmo::igoRotate);
       static ImGuizmo::ImGuizmoSpace mCurrentGizmoMode(ImGuizmo::igsWorld);
 
-      if (ImGui::GetIO().KeysDown[5]) // 'b' key
+      if (ImGui::GetIO().KeysDown[SDL_SCANCODE_B])
         mCurrentGizmoOperation = ImGuizmo::igoTranslate;
-      if (ImGui::GetIO().KeysDown[17]) // 'n' key
+      if (ImGui::GetIO().KeysDown[SDL_SCANCODE_N])
         mCurrentGizmoOperation = ImGuizmo::igoRotate;
-      if (ImGui::GetIO().KeysDown[16]) // 'm' Key
+      if (ImGui::GetIO().KeysDown[SDL_SCANCODE_M])
         mCurrentGizmoOperation = ImGuizmo::igoScale;
-      if (ImGui::GetIO().KeysDown[6]) // 'c' Key
+      if (ImGui::GetIO().KeysDown[SDL_SCANCODE_C])
         mCurrentGizmoMode = ((mCurrentGizmoMode == ImGuizmo::igsWorld) ? ImGuizmo::igsLocal : ImGuizmo::igsWorld);
 
       udDouble4x4 delta = udDouble4x4::identity();

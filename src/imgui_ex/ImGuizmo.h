@@ -57,8 +57,8 @@ namespace ImGuizmo
 	IMGUI_API void SetDrawlist(); // call inside your own window and before Manipulate() in order to draw gizmo to that window.
 
 	IMGUI_API void BeginFrame(); // call BeginFrame right after ImGui_XXXX_NewFrame();
-	IMGUI_API bool IsOver(); // return true if mouse cursor is over any gizmo control (axis, plan or screen component)
-	IMGUI_API bool IsUsing(); // return true if mouse IsOver or if the gizmo is in moving state
+	IMGUI_API bool IsHovered(); // return true if mouse cursor is over any gizmo control (axis, plan or screen component)
+	IMGUI_API bool IsActive(); // return true if mouse IsHovered or if the gizmo is in moving state
 
 	IMGUI_API void SetRect(float x, float y, float width, float height);
 
