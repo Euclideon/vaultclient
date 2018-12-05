@@ -521,6 +521,8 @@ int main(int argc, char **args)
         vWorkerThread_AddTask(programState.pWorkerPool, vcMain_UpdateSessionInfo, &programState, false);
       }
 
+      vWorkerThread_DoPostWork(programState.pWorkerPool);
+
       if (programState.forceLogout)
       {
         vcLogout(&programState);
