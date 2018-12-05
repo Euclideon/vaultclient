@@ -92,9 +92,8 @@ struct vcState
     vcGizmoCoordinateSystem coordinateSystem;
   } gizmo;
 
-  void *pImageData = nullptr;
-  int64_t imageSize = -1;
-  bool tileError = false;
+  volatile void *pImageData = nullptr;
+  volatile int64_t imageSize = -1;
 };
 
 #endif // !vcState_h__
