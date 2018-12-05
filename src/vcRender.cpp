@@ -77,12 +77,6 @@ struct vcRenderContext
   vcUDRenderContext udRenderContext;
   vcFenceRenderer *pDiagnosticFences;
 
-  udDouble4x4 viewMatrix;
-  udDouble4x4 projectionMatrix;
-  udDouble4x4 skyboxProjMatrix;
-  udDouble4x4 viewProjectionMatrix;
-  udDouble4x4 inverseViewProjectionMatrix;
-
   vcTerrain *pTerrain;
   vcAnchor *pCompass;
 
@@ -212,10 +206,6 @@ epilogue:
 udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height)
 {
   udResult result = udR_Success;
-  float fov = pRenderContext->pSettings->camera.fieldOfView;
-  float aspect = width / (float)height;
-  float zNear = pRenderContext->pSettings->camera.nearPlane;
-  float zFar = pRenderContext->pSettings->camera.farPlane;
 
   uint32_t widthIncr = width + (width % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - width % vcRender_SceneSizeIncrement : 0);
   uint32_t heightIncr = height + (height % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - height % vcRender_SceneSizeIncrement : 0);
@@ -228,8 +218,6 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
   pRenderContext->sceneResolution.y = heightIncr;
   pRenderContext->originalSceneResolution.x = width;
   pRenderContext->originalSceneResolution.y = height;
-  pRenderContext->projectionMatrix = udDouble4x4::perspective(fov, aspect, zNear, zFar);
-  pRenderContext->skyboxProjMatrix = udDouble4x4::perspective(fov, aspect, 0.5f, 10000.f);
 
   //Resize CPU Targets
   udFree(pRenderContext->udRenderContext.pColorBuffer);
@@ -263,8 +251,8 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
   // Draw the skybox only at the far plane, where there is no geometry.
   // Drawing skybox here (after 'opaque' geometry) saves a bit on fill rate.
 
-  udFloat4x4 viewMatrixF = udFloat4x4::create(pRenderContext->viewMatrix);
-  udFloat4x4 projectionMatrixF = udFloat4x4::create(pRenderContext->skyboxProjMatrix);
+  udFloat4x4 viewMatrixF = udFloat4x4::create(pRenderContext->pCamera->matrices.view);
+  udFloat4x4 projectionMatrixF = udFloat4x4::create(pRenderContext->pCamera->matrices.projectionNear);
   udFloat4x4 inverseViewProjMatrixF = projectionMatrixF * viewMatrixF;
   inverseViewProjMatrixF.axis.t = udFloat4::create(0, 0, 0, 1);
   inverseViewProjMatrixF.inverse();
@@ -316,7 +304,7 @@ void vcPresentUD(vcRenderContext *pRenderContext)
   float contourDistances = pRenderContext->pSettings->postVisualization.contours.distances;
   float contourBandHeight = pRenderContext->pSettings->postVisualization.contours.bandHeight;
 
-  pRenderContext->udRenderContext.presentShader.params.inverseViewProjection = udFloat4x4::create(pRenderContext->inverseViewProjectionMatrix);
+  pRenderContext->udRenderContext.presentShader.params.inverseViewProjection = udFloat4x4::create(pRenderContext->pCamera->matrices.inverseViewProjection);
   pRenderContext->udRenderContext.presentShader.params.screenParams.x = outlineWidth * (1.0f / pRenderContext->pSettings->window.width);
   pRenderContext->udRenderContext.presentShader.params.screenParams.y = outlineWidth * (1.0f / pRenderContext->pSettings->window.height);
   pRenderContext->udRenderContext.presentShader.params.screenParams.z = pRenderContext->pSettings->camera.nearPlane;
@@ -350,13 +338,13 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   if (renderData.pGISSpace->isProjected && pRenderContext->pSettings->maptiles.mapEnabled)
   {
-    udDouble4x4 cameraMatrix = renderData.cameraMatrix;
+    udDouble4x4 cameraMatrix = pRenderContext->pCamera->matrices.camera;
 
 #ifndef GIT_BUILD
     static bool debugDetachCamera = false;
     static udDouble4x4 gRealCameraMatrix = udDouble4x4::identity();
     if (!debugDetachCamera)
-      gRealCameraMatrix = renderData.cameraMatrix;
+      gRealCameraMatrix = pRenderContext->pCamera->matrices.camera;
 
     cameraMatrix = gRealCameraMatrix;
 #endif
@@ -389,8 +377,8 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
       vcGIS_SlippyToLocal(renderData.pGISSpace, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
     // for now just rebuild terrain every frame
-    vcTerrain_BuildTerrain(pRenderContext->pTerrain, renderData.pGISSpace, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pRenderContext->viewProjectionMatrix);
-    vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->viewMatrix, pRenderContext->projectionMatrix);
+    vcTerrain_BuildTerrain(pRenderContext->pTerrain, renderData.pGISSpace, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pRenderContext->pCamera->matrices.viewProjection);
+    vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->pCamera->matrices.view, pRenderContext->pCamera->matrices.projection);
 
     if (pRenderContext->pSettings->maptiles.mouseInteracts)
     {
@@ -398,7 +386,7 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
 
       udDouble3 hitPoint;
       double hitDistance;
-      if (udIntersect(mapPlane, renderData.worldMouseRay, &hitPoint, &hitDistance) == udR_Success)
+      if (udIntersect(mapPlane, pRenderContext->pCamera->worldMouseRay, &hitPoint, &hitDistance) == udR_Success)
       {
         if (hitDistance < pRenderContext->pSettings->camera.farPlane && (!renderData.pickingSuccess || hitDistance < udMag3(renderData.worldMousePos - localCamPos)))
         {
@@ -423,7 +411,7 @@ void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
 
   // Draw fences here
   if (pRenderContext->pSettings->presentation.showDiagnosticInfo)
-    vcFenceRenderer_Render(pRenderContext->pDiagnosticFences, pRenderContext->viewProjectionMatrix, renderData.deltaTime);
+    vcFenceRenderer_Render(pRenderContext->pDiagnosticFences, pRenderContext->pCamera->matrices.viewProjection, renderData.deltaTime);
 }
 
 
@@ -436,31 +424,6 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
 {
   float fov = pRenderContext->pSettings->camera.fieldOfView;
   float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
-  float zNear = pRenderContext->pSettings->camera.nearPlane;
-  float zFar = pRenderContext->pSettings->camera.farPlane;
-
-  pRenderContext->viewMatrix = renderData.cameraMatrix;
-  pRenderContext->viewMatrix.inverse();
-
-  pRenderContext->projectionMatrix = udDouble4x4::perspective(fov, aspect, zNear, zFar);
-  pRenderContext->skyboxProjMatrix = udDouble4x4::perspective(fov, aspect, 0.5f, 10000.f);
-
-  pRenderContext->viewProjectionMatrix = pRenderContext->projectionMatrix * pRenderContext->viewMatrix;
-  pRenderContext->inverseViewProjectionMatrix = udInverse(pRenderContext->viewProjectionMatrix);
-
-  // Calculate the mouse ray
-  {
-    udDouble2 mousePos = udDouble2::create(((double)renderData.mouse.x / pRenderContext->sceneResolution.x) * 2.0 - 1.0, 1.0 - ((double)renderData.mouse.y / pRenderContext->sceneResolution.y) * 2.0);
-
-    udDouble4 mouseNear = (pRenderContext->inverseViewProjectionMatrix * udDouble4::create(mousePos, 0.f, 1.0));
-    udDouble4 mouseFar = (pRenderContext->inverseViewProjectionMatrix * udDouble4::create(mousePos, 1.f, 1.0));
-
-    mouseNear /= mouseNear.w;
-    mouseFar /= mouseFar.w;
-
-    renderData.worldMouseRay.position = mouseNear.toVector3();
-    renderData.worldMouseRay.orientation = udQuaternionFromMatrix(udDouble4x4::lookAt(udDouble3::zero(), udNormalize3(mouseFar - mouseNear).toVector3(), renderData.cameraMatrix.axis.z.toVector3()));
-  }
 
   vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true);
 
@@ -478,7 +441,7 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
 
   if (pRenderContext->pSettings->presentation.mouseAnchor != vcAS_None && (renderData.pickingSuccess || (renderData.pWorldAnchorPos != nullptr)))
   {
-    udDouble4x4 mvp = pRenderContext->viewProjectionMatrix * udDouble4x4::translation(renderData.pWorldAnchorPos ? *renderData.pWorldAnchorPos : renderData.worldMousePos);
+    udDouble4x4 mvp = pRenderContext->pCamera->matrices.viewProjection * udDouble4x4::translation(renderData.pWorldAnchorPos ? *renderData.pWorldAnchorPos : renderData.worldMousePos);
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 
     // Render highlighting any occlusion
@@ -496,7 +459,7 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
 
   if (pRenderContext->pSettings->presentation.showCompass)
   {
-    udDouble4x4 cameraRotation = udDouble4x4::rotationYPR(renderData.cameraMatrix.extractYPR());
+    udDouble4x4 cameraRotation = udDouble4x4::rotationYPR(pRenderContext->pCamera->matrices.camera.extractYPR());
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     vcGLState_SetDepthMode(vcGLSDM_Always, false);
     vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspective(fov, aspect, 0.01, 2.0) * udDouble4x4::translation(fov * 0.45 * aspect, 1.0, -fov * 0.45) * udDouble4x4::scaleUniform(fov / 20.0) * udInverse(cameraRotation));
@@ -523,7 +486,7 @@ udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext)
   if (vdkRenderView_SetTargets(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, pRenderContext->udRenderContext.pColorBuffer, 0, pRenderContext->udRenderContext.pDepthBuffer) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->projectionMatrix.a) != vE_Success)
+  if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->pCamera->matrices.projection.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
 epilogue:
@@ -538,8 +501,8 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   vdkModel **ppModels = nullptr;
   int numVisibleModels = 0;
 
-  vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->projectionMatrix.a);
-  vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->viewMatrix.a);
+  vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->pCamera->matrices.projection.a);
+  vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->pCamera->matrices.view.a);
 
   switch (pRenderContext->pSettings->visualization.mode)
   {
@@ -571,7 +534,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
 
       if (renderData.models[i]->hasWatermark)
       {
-        double cameraDist = udMag(udClosestPointOnOOBB(udDouble3::zero(), pRenderContext->viewMatrix * renderData.models[i]->worldMatrix));
+        double cameraDist = udMag(udClosestPointOnOOBB(udDouble3::zero(), pRenderContext->pCamera->matrices.view * renderData.models[i]->worldMatrix));
         if (cameraDist < maxDist)
         {
           maxDist = cameraDist;

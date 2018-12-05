@@ -21,14 +21,12 @@ struct vcRenderData
 
   udInt2 mouse;
   udDouble3 worldMousePos;
-  udRay<double> worldMouseRay; // Gets calcuated during the render
 
   udDouble3 *pWorldAnchorPos; // If this is not nullptr, this is the point to highlight
   bool pickingSuccess;
   vcTexture *pWatermarkTexture;
 
   udChunkedArray<vcModel*> models;
-  udDouble4x4 cameraMatrix;
   vcCameraSettings *pCameraSettings;
   vcTexture *pSkyboxCubemap;
 };
