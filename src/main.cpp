@@ -264,7 +264,6 @@ int main(int argc, char **args)
   programState.sceneResolution.y = 720;
   programState.onScreenControls = false;
 #endif
-  programState.camMatrix = udDouble4x4::identity();
   vcCamera_Create(&programState.pCamera);
 
   programState.settings.camera.moveSpeed = 3.f;
@@ -638,7 +637,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       {
         ImGui::Separator();
 
-        udDouble3 cameraLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->camMatrix.axis.t.toVector3());
+        udDouble3 cameraLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->pCamera->matrices.camera.axis.t.toVector3());
         ImGui::Text("Lat: %.7f, Long: %.7f, Alt: %.2fm", cameraLatLong.x, cameraLatLong.y, cameraLatLong.z);
 
         if (pProgramState->gis.zone.latLongBoundMin != pProgramState->gis.zone.latLongBoundMax)
@@ -763,7 +762,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
   // use some data from previous frame
   pProgramState->worldMousePos = pProgramState->previousWorldMousePos;
   pProgramState->pickingSuccess = pProgramState->previousPickingSuccess;
-  renderData.worldMouseRay = pProgramState->previousWorldMouseRay;
   if (pProgramState->cameraInput.isUsingAnchorPoint)
     renderData.pWorldAnchorPos = &pProgramState->cameraInput.worldAnchorPoint;
 
@@ -781,12 +779,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
     ImGui::ImageButton(pSceneTexture, windowSize, uv0, uv1, 0);
 
     // Camera update has to be here because it depends on previous ImGui state
-    vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, renderData.worldMouseRay);
+    vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create(windowSize.x, windowSize.y), udFloat2::create((float)renderData.mouse.x, (float)renderData.mouse.y));
   }
 
   renderData.deltaTime = pProgramState->deltaTime;
   renderData.pGISSpace = &pProgramState->gis;
-  renderData.cameraMatrix = pProgramState->camMatrix;
   renderData.pCameraSettings = &pProgramState->settings.camera;
 
   for (size_t i = 0; i < pProgramState->vcModelList.size(); ++i)
@@ -798,7 +795,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   pProgramState->previousWorldMousePos = renderData.worldMousePos;
   pProgramState->previousPickingSuccess = renderData.pickingSuccess;
-  pProgramState->previousWorldMouseRay = renderData.worldMouseRay;
   pProgramState->pSceneWatermark = renderData.pWatermarkTexture;
 }
 
@@ -1214,7 +1210,7 @@ void vcRenderWindow(vcState *pProgramState)
               localSpaceCenter = udGeoZone_TransformPoint(localSpaceCenter, *pProgramState->vcModelList[i]->pZone, pProgramState->gis.zone);
 
             pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
-            pProgramState->cameraInput.startPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
+            pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
             pProgramState->cameraInput.worldAnchorPoint = localSpaceCenter;
             pProgramState->cameraInput.progress = 0.0;
           }
@@ -1438,7 +1434,7 @@ void vcRenderWindow(vcState *pProgramState)
             pProgramState->settings.maptiles.transparency = udClamp(pProgramState->settings.maptiles.transparency, 0.f, 1.f);
 
           if (ImGui::Button("Set to Camera Height"))
-            pProgramState->settings.maptiles.mapHeight = (float)pProgramState->camMatrix.axis.t.z;
+            pProgramState->settings.maptiles.mapHeight = (float)pProgramState->pCamera->position.z;
         }
       }
 

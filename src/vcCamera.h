@@ -27,6 +27,20 @@ struct vcCamera
 {
   udDouble3 position;
   udDouble3 eulerRotation;
+
+  udRay<double> worldMouseRay;
+
+  struct
+  {
+    udDouble4x4 camera;
+    udDouble4x4 view;
+
+    udDouble4x4 projection;
+    udDouble4x4 projectionNear; // Used for skybox
+
+    udDouble4x4 viewProjection;
+    udDouble4x4 inverseViewProjection;
+  } matrices;
 };
 
 struct vcState;
@@ -57,7 +71,6 @@ struct vcCameraInput
 
   udDouble3 keyboardInput;
   udDouble3 mouseInput;
-  udRay<double> mouseRay;
 };
 
 struct vcCameraSettings
@@ -101,12 +114,7 @@ const char** vcCamera_GetLensNames();
 void vcCamera_Create(vcCamera **ppCamera);
 void vcCamera_Destroy(vcCamera **ppCamera);
 
-// Get camera matrix
-udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera);
-
 // Applies movement to camera
-void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraInput *pCamInput, double deltaTime, float speedModifier = 1.f);
-
-void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udRay<double> mouseRay);
+void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos);
 
 #endif//vcCamera_h__

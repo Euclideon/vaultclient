@@ -1,15 +1,19 @@
+#ifndef vcMath_h__
+#define vcMath_h__
+
 #include "udPlatform/udMath.h"
 
 template <typename T>
 struct udRay
 {
   udVector3<T> position;
-  udQuaternion<T> orientation;
+  udVector3<T> direction;
 
   // static members
-  static udRay<T> create(const udVector3<T> &position, const udQuaternion<T> &orientation) { udRay<T> r = { position, orientation }; return r; }
+  static udRay<T> create(const udVector3<T> &position, const udVector3<T> &direction) { udRay<T> r = { position, direction }; return r; }
+
   template <typename U>
-  static udRay<T> create(const udRay<U> &_v) { udRay<T> r = { udVector3<T>::create(_v.position), udQuaternion<T>::create(_v.orientation) }; return r; }
+  static udRay<T> create(const udRay<U> &_v) { udRay<T> r = { udVector3<T>::create(_v.position), udVector3<T>::create(_v.direction) }; return r; }
 };
 
 template <typename T>
@@ -33,7 +37,7 @@ udRay<T> udRotateAround(udRay<T> ray, udVector3<T> center, udVector3<T> axis, T 
 
   udVector3<T> direction = ray.position - center; // find current direction relative to center
   r.position = center + rotation.apply(direction); // define new position
-  r.orientation = rotation * ray.orientation; // rotate object to keep looking at the center
+  r.direction = udMath_DirFromEuler((rotation * udQuaternion<T>::create(udMath_DirToEuler(ray.direction))).eulerAngles()); // rotate object to keep looking at the center
 
   return r;
 }
@@ -137,6 +141,32 @@ static void udExtractTransform(const udMatrix4x4<T> &matrix, udVector3<T> &posit
 }
 
 template <typename T>
+static udVector3<T> udMath_DirFromEuler(const udVector3<T> &ypr)
+{
+  udVector3<T> r;
+
+  r.x = udCos(ypr.x) * udCos(ypr.y);
+  r.y = udSin(ypr.x) * udCos(ypr.y);
+  r.z = udSin(ypr.y);
+
+  return r;
+}
+
+template <typename T>
+static udVector3<T> udMath_DirToEuler(const udVector3<T> &direction)
+{
+  udVector3<T> r;
+
+  udVector3<T> dir = udNormalize(direction);
+
+  r.x = udATan2(dir.y, dir.x);
+  r.y = udASin(dir.z);
+  r.z = 0; // No Roll
+
+  return r;
+}
+
+template <typename T>
 static udVector3<T> udClosestPointOnOOBB(const udVector3<T> &point, const udMatrix4x4<T> &oobbMatrix)
 {
   udVector3<T> origin = udVector3<T>::zero();
@@ -152,7 +182,7 @@ static udResult udIntersect(const udPlane<T> &plane, const udRay<T> &ray, udVect
 {
   udResult result = udR_Success;
 
-  udVector3<T> rayDir = ray.orientation.apply({ 0, 1, 0 });
+  udVector3<T> rayDir = ray.direction;
   udVector3<T> planeRay = plane.point - ray.position;
 
   T denom = udDot(plane.normal, rayDir);
@@ -173,3 +203,5 @@ static udResult udIntersect(const udPlane<T> &plane, const udRay<T> &ray, udVect
 epilogue:
   return result;
 }
+
+#endif //vcMath_h__
