@@ -9,6 +9,7 @@
 #include "vdkContext.h"
 #include "vdkServerAPI.h"
 #include "vdkConfig.h"
+#include "vdkModel.h"
 
 #include <chrono>
 
@@ -17,6 +18,7 @@
 #include "imgui_ex/imgui_impl_gl.h"
 #include "imgui_ex/imgui_dock.h"
 #include "imgui_ex/imgui_udValue.h"
+#include "imgui_ex/ImGuizmo.h"
 
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
@@ -458,6 +460,7 @@ int main(int argc, char **args)
     programState.deltaTime += sleepMS * 0.001; // adjust delta
 
     ImGuiGL_NewFrame(programState.pWindow);
+    ImGuizmo::BeginFrame();
 
     vcGLState_ResetState(true);
     vcRenderWindow(&programState);
@@ -780,6 +783,30 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
     // Camera update has to be here because it depends on previous ImGui state
     vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create(windowSize.x, windowSize.y), udFloat2::create((float)renderData.mouse.x, (float)renderData.mouse.y));
+
+    if (pProgramState->numSelectedModels == 1)
+    {
+      ImGuizmo::SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
+      ImGuizmo::SetDrawlist();
+
+      static ImGuizmo::ImGuizmoOperation mCurrentGizmoOperation(ImGuizmo::igoRotate);
+      static ImGuizmo::ImGuizmoSpace mCurrentGizmoMode(ImGuizmo::igsWorld);
+
+      if (ImGui::GetIO().KeysDown[SDL_SCANCODE_B])
+        mCurrentGizmoOperation = ImGuizmo::igoTranslate;
+      if (ImGui::GetIO().KeysDown[SDL_SCANCODE_N])
+        mCurrentGizmoOperation = ImGuizmo::igoRotate;
+      if (ImGui::GetIO().KeysDown[SDL_SCANCODE_M])
+        mCurrentGizmoOperation = ImGuizmo::igoScale;
+      if (ImGui::GetIO().KeysDown[SDL_SCANCODE_C])
+        mCurrentGizmoMode = ((mCurrentGizmoMode == ImGuizmo::igsWorld) ? ImGuizmo::igsLocal : ImGuizmo::igsWorld);
+
+      udDouble4x4 delta = udDouble4x4::identity();
+      ImGuizmo::Manipulate(pProgramState->pCamera->matrices.view, pProgramState->pCamera->matrices.projection, mCurrentGizmoOperation, mCurrentGizmoMode, &pProgramState->vcModelList[pProgramState->prevSelectedModel]->worldMatrix, pProgramState->pCamera->worldMouseRay, &delta);
+
+      if (!(delta == udDouble4x4::identity()))
+        vdkModel_SetWorldMatrix(pProgramState->pVDKContext, pProgramState->vcModelList[pProgramState->prevSelectedModel]->pVDKModel, pProgramState->vcModelList[pProgramState->prevSelectedModel]->worldMatrix.a);
+    }
   }
 
   renderData.deltaTime = pProgramState->deltaTime;

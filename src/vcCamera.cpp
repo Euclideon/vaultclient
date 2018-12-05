@@ -2,6 +2,7 @@
 #include "vcState.h"
 
 #include "imgui.h"
+#include "imgui_ex/ImGuizmo.h"
 
 #define LENSNAME(x) #x+5
 
@@ -240,7 +241,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
   float speedModifier = 1.f;
 
-  bool isHovered = ImGui::IsItemHovered();
+  bool isHovered = ImGui::IsItemHovered() && !ImGuizmo::IsHovered();
   static bool isFocused = false;
 
   bool isBtnClicked[3] = { ImGui::IsMouseClicked(0, false), ImGui::IsMouseClicked(1, false), ImGui::IsMouseClicked(2, false) };
