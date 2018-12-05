@@ -253,14 +253,14 @@ namespace ImGuizmo
     ImGui::PopStyleColor(2);
   }
 
-  bool IsUsing()
+  bool IsActive()
   {
     return gContext.mbUsing;
   }
 
-  bool IsOver()
+  bool IsHovered()
   {
-    return (GetMoveType(NULL) != NONE) || GetRotateType() != NONE || GetScaleType() != NONE || IsUsing();
+    return (GetMoveType(NULL) != NONE) || GetRotateType() != NONE || GetScaleType() != NONE || IsActive();
   }
 
   static void ComputeContext(const udDouble4x4 &view, const udDouble4x4 &projection, const udDouble4x4 &matrix, ImGuizmoSpace mode)
