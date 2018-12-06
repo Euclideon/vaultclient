@@ -591,10 +591,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           if (vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position))
             vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
         }
-
-        static udDouble4 translateOffset = udDouble4::zero();
-        if (ImGui::InputScalarN("Translate Offset", ImGuiDataType_Double, &translateOffset.x, 4, 0, 0, "%.5f"))
-          vcModel_UpdateMatrix(pProgramState, nullptr, translateOffset); // Update all models to new zone
       }
 
       ImGui::Separator();
