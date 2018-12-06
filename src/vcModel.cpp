@@ -14,9 +14,13 @@ struct vcModelLoadInfo
   vcState *pProgramState;
   vcModel *pModel;
 
-  udDouble3 *pPosition;
-  udDouble3 *pRotation;
-  double scale;
+  bool usePosition;
+  udDouble3 position;
+
+  bool useRotation;
+  udDouble3 rotation;
+
+  double scale; // Always uses this one
 };
 
 void vcModel_LoadModel(void *pLoadInfoPtr)
@@ -92,13 +96,13 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
       udDouble3 translate = pLoadInfo->pModel->baseMatrix.axis.t.toVector3();
       udDouble3 ypr = udDouble3::zero();
 
-      if (pLoadInfo->pRotation)
-        ypr = *pLoadInfo->pRotation;
+      if (pLoadInfo->useRotation)
+        ypr = pLoadInfo->rotation;
 
-      if (pLoadInfo->pPosition)
-        translate = *pLoadInfo->pPosition;
+      if (pLoadInfo->usePosition)
+        translate = pLoadInfo->position;
 
-      if (ypr != udDouble3::zero() || pLoadInfo->scale != 1.0 || pLoadInfo->pPosition != nullptr)
+      if (ypr != udDouble3::zero() || pLoadInfo->scale != 1.0 || pLoadInfo->usePosition)
         pLoadInfo->pModel->baseMatrix = udDouble4x4::translation(translate) * udDouble4x4::translation(pLoadInfo->pModel->pivot) * udDouble4x4::rotationYPR(ypr) * udDouble4x4::scaleNonUniform(scaleFactor) * udDouble4x4::translation(-pLoadInfo->pModel->pivot);
 
       if (pLoadInfo->jumpToLocation)
@@ -140,8 +144,18 @@ void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpT
       pLoadInfo->pProgramState = pProgramState;
       pLoadInfo->jumpToLocation = jumpToModelOnLoad;
 
-      pLoadInfo->pPosition = pOverridePosition;
-      pLoadInfo->pRotation = pOverrideYPR;
+      if (pOverridePosition)
+      {
+        pLoadInfo->usePosition = true;
+        pLoadInfo->position = *pOverridePosition;
+      }
+
+      if (pOverrideYPR)
+      {
+        pLoadInfo->useRotation = true;
+        pLoadInfo->rotation = *pOverrideYPR;
+      }
+
       pLoadInfo->scale = scale;
 
       // Queue for load
