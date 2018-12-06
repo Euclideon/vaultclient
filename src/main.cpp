@@ -591,10 +591,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           if (vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position))
             vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
         }
-
-        static udDouble4 translateOffset = udDouble4::zero();
-        if (ImGui::InputScalarN("Translate Offset", ImGuiDataType_Double, &translateOffset.x, 4, 0, 0, "%.5f"))
-          vcModel_UpdateMatrix(pProgramState, nullptr, translateOffset); // Update all models to new zone
       }
 
       ImGui::Separator();
@@ -1230,7 +1226,7 @@ void vcRenderWindow(vcState *pProgramState)
 
           if (ImGui::Selectable("Move To"))
           {
-            udDouble3 localSpaceCenter = vcModel_GetMidPoint(pProgramState->vcModelList[i]);
+            udDouble3 localSpaceCenter = vcModel_GetPivotPointWorldSpace(pProgramState->vcModelList[i]);
 
             // Transform the camera position. Don't do the entire matrix as it may lead to inaccuracy/de-normalised camera
             if (pProgramState->gis.isProjected && pProgramState->vcModelList[i]->pZone != nullptr && pProgramState->vcModelList[i]->pZone->srid != pProgramState->gis.SRID)

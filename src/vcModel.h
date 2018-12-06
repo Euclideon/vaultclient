@@ -26,8 +26,10 @@ struct vcModel
   bool visible;
   bool selected;
 
-  bool flipYZ;
+  udDouble4x4 baseMatrix; // This is the 'local' matrix at load time
   udDouble4x4 worldMatrix;
+  bool flipYZ;
+
   vdkModel *pVDKModel;
   udJSON *pMetadata;
 
@@ -44,13 +46,13 @@ struct vcModel
 
 #include "vcState.h"
 
-void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpToModelOnLoad = true);
+void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpToModelOnLoad = true, udDouble3 *pOverridePosition = nullptr, udDouble3 *pOverrideYPR = nullptr, double scale = 1.0);
 void vcModel_RemoveFromList(vcState *pProgramState, size_t index);
 void vcModel_UnloadList(vcState *pProgramState);
-void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel, udDouble4 offsetT = udDouble4::zero());
+
+void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel);
 
 bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel);
-
-udDouble3 vcModel_GetMidPoint(vcModel *pModel);
+udDouble3 vcModel_GetPivotPointWorldSpace(vcModel *pModel);
 
 #endif //vcModel_h__
