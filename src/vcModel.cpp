@@ -13,6 +13,14 @@ struct vcModelLoadInfo
   bool jumpToLocation;
   vcState *pProgramState;
   vcModel *pModel;
+
+  bool usePosition;
+  udDouble3 position;
+
+  bool useRotation;
+  udDouble3 rotation;
+
+  double scale; // Always uses this one
 };
 
 void vcModel_LoadModel(void *pLoadInfoPtr)
@@ -26,6 +34,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
   if (status == vcMLS_Pending)
   {
     vdkError modelStatus = vdkModel_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->pVDKModel, pLoadInfo->pModel->path);
+
     if (modelStatus == vE_Success)
     {
       const char *pMetadata;
@@ -78,10 +87,26 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
         }
       }
 
+      vdkModel_GetLocalMatrix(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->pVDKModel, pLoadInfo->pModel->baseMatrix.a);
+
+      udDouble3 scaleFactor = udDouble3::create(udMag3(pLoadInfo->pModel->baseMatrix.axis.x), udMag3(pLoadInfo->pModel->baseMatrix.axis.y), udMag3(pLoadInfo->pModel->baseMatrix.axis.z)) * pLoadInfo->scale;
+      udDouble3 translate = pLoadInfo->pModel->baseMatrix.axis.t.toVector3();
+      udDouble3 ypr = udDouble3::zero();
+
+      if (pLoadInfo->useRotation)
+        ypr = pLoadInfo->rotation;
+
+      if (pLoadInfo->usePosition)
+        translate = pLoadInfo->position;
+
+      if (pLoadInfo->useRotation || pLoadInfo->usePosition || pLoadInfo->scale != 1.0)
+        pLoadInfo->pModel->baseMatrix = udDouble4x4::translation(translate) * udDouble4x4::translation(pLoadInfo->pModel->pivot) * udDouble4x4::rotationYPR(ypr) * udDouble4x4::scaleNonUniform(scaleFactor) * udDouble4x4::translation(-pLoadInfo->pModel->pivot);
+
       if (pLoadInfo->jumpToLocation)
         vcModel_MoveToModelProjection(pLoadInfo->pProgramState, pLoadInfo->pModel);
       else
         vcModel_UpdateMatrix(pLoadInfo->pProgramState, nullptr); // Set all model matrices
+
       pLoadInfo->pModel->loadStatus = vcMLS_Loaded;
     }
     else if (modelStatus == vE_OpenFailure)
@@ -95,7 +120,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
   }
 }
 
-void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpToModelOnLoad /*= true*/)
+void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpToModelOnLoad /*= true*/, udDouble3 *pOverridePosition /*= nullptr*/, udDouble3 *pOverrideYPR /*= nullptr*/, double scale /*= 1.0*/)
 {
   if (pFilePath == nullptr)
     return;
@@ -115,6 +140,20 @@ void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpT
       pLoadInfo->pModel = pModel;
       pLoadInfo->pProgramState = pProgramState;
       pLoadInfo->jumpToLocation = jumpToModelOnLoad;
+
+      if (pOverridePosition)
+      {
+        pLoadInfo->usePosition = true;
+        pLoadInfo->position = *pOverridePosition;
+      }
+
+      if (pOverrideYPR)
+      {
+        pLoadInfo->useRotation = true;
+        pLoadInfo->rotation = *pOverrideYPR;
+      }
+
+      pLoadInfo->scale = scale;
 
       // Queue for load
       vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModel_LoadModel, pLoadInfo);
@@ -158,17 +197,16 @@ void vcModel_UnloadList(vcState *pProgramState)
     vcModel_RemoveFromList(pProgramState, 0);
 }
 
-void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel, udDouble4 offsetT)
+void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel)
 {
   if (!pModel)
   {
     for (size_t i = 0; i < pProgramState->vcModelList.size(); ++i)
-      vcModel_UpdateMatrix(pProgramState, pProgramState->vcModelList[i], offsetT);
+      vcModel_UpdateMatrix(pProgramState, pProgramState->vcModelList[i]);
   }
   else
   {
-    udDouble4x4 matrix;
-    vdkModel_GetLocalMatrix(pProgramState->pVDKContext, pModel->pVDKModel, matrix.a);
+    udDouble4x4 matrix = pModel->baseMatrix;
 
     if (pModel->flipYZ)
     {
@@ -176,8 +214,6 @@ void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel, udDouble4 off
       matrix.axis.y = matrix.axis.z;
       matrix.axis.z = rowz;
     }
-
-    matrix = udDouble4x4::rotationZ(offsetT.w, offsetT.toVector3()) * matrix;
 
     // Handle transforming into the camera's GeoZone
     if (pProgramState->gis.isProjected && pModel->pZone != nullptr && pProgramState->gis.SRID != pModel->pZone->srid)
@@ -196,12 +232,12 @@ bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel)
   if ((pModel->pZone != nullptr && vcGIS_ChangeSpace(&pProgramState->gis, pModel->pZone->srid)) || (pModel->pZone == nullptr && vcGIS_ChangeSpace(&pProgramState->gis, 0)))
     vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
 
-  pProgramState->pCamera->position = vcModel_GetMidPoint(pModel);
+  pProgramState->pCamera->position = vcModel_GetPivotPointWorldSpace(pModel);
 
   return true;
 }
 
-udDouble3 vcModel_GetMidPoint(vcModel *pModel)
+udDouble3 vcModel_GetPivotPointWorldSpace(vcModel *pModel)
 {
   udDouble3 midPoint = udDouble3::zero();
 
