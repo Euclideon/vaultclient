@@ -180,10 +180,6 @@ solution "vaultClient"
 		dofile "../vault/vaultcore/project.lua"
 		dofile "../vault/vaultsdk/project.lua"
 
-		if os.target() ~= premake.IOS and os.target() ~= premake.ANDROID then
-			dofile "vcConvertCMD/project.lua"
-		end
-
 		filter { "system:macosx" }
 			xcodebuildsettings {
 				['INSTALL_PATH'] = "@executable_path/../Frameworks",
@@ -194,4 +190,8 @@ solution "vaultClient"
 		debugdir "builds"
 	end
 
-		dofile "project.lua"
+	if os.target() ~= premake.IOS and os.target() ~= premake.ANDROID then
+		dofile "vcConvertCMD/project.lua"
+	end
+
+	dofile "project.lua"

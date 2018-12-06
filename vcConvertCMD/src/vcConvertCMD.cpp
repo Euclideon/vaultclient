@@ -4,9 +4,15 @@
 #include "vdkConvert.h"
 #include "vdkContext.h"
 #include "udFile.h"
-#include "stdio.h"
 
-#define CONVERTCMD_VERSION "0.2.0"
+#include <stdio.h>
+#include <inttypes.h>
+
+#ifdef GIT_BUILD
+#  define CONVERTCMD_VERSION "0.2.0." UDSTRINGIFY(GIT_BUILD)
+#else
+#  define CONVERTCMD_VERSION "0.2.0.DEVELOPER BUILD / DO NOT DISTRIBUTE"
+#endif
 
 void vcConvertCMD_ShowOptions()
 {
@@ -144,11 +150,9 @@ int main(int argc, const char **ppArgv)
       ++i; // Skip "-i"
       do
       {
-        convResult = vdkConvert_AddItem(pContext, pModel, ppArgv[i++]);
-        if (convResult != vE_Success)
-        {
+        result = vdkConvert_AddItem(pContext, pModel, ppArgv[i++]);
+        if (result != vE_Success)
           printf("Unable to convert %s:\n", ppArgv[i]);
-        }
       } while (i < argc && ppArgv[i][0] != '-'); // Continue until another option is seen
 #endif
     }
@@ -203,7 +207,7 @@ int main(int argc, const char **ppArgv)
     printf("Converting--\n");
     printf("\tOutput: %s\n", pInfo->pOutputName);
     printf("\tTemp: %s\n", pInfo->pTempFilesPrefix);
-    printf("\t# Inputs: %llu\n\n", pInfo->totalItems);
+    printf("\t# Inputs: %" PRIu64 "\n\n", pInfo->totalItems);
 
     udThread_Create(nullptr, vcConvertCMD_DoConvert, &convdata);
 
@@ -214,7 +218,7 @@ int main(int argc, const char **ppArgv)
       if (currentItem < pInfo->totalItems)
       {
         vdkConvert_GetItemInfo(pContext, pModel, currentItem, &itemInfo);
-        printf("[%llu/%llu] %s: %s/%s    \r", currentItem +1, pInfo->totalItems, itemInfo.pFilename, udTempStr_CommaInt(itemInfo.pointsRead), udTempStr_CommaInt(itemInfo.pointsCount));
+        printf("[%" PRIu64 "/%" PRIu64 "] %s: %s/%s    \r", currentItem +1, pInfo->totalItems, itemInfo.pFilename, udTempStr_CommaInt(itemInfo.pointsRead), udTempStr_CommaInt(itemInfo.pointsCount));
       }
       else
       {
