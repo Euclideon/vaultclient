@@ -89,9 +89,6 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
       vdkModel_GetLocalMatrix(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->pVDKModel, pLoadInfo->pModel->baseMatrix.a);
 
-      if (pLoadInfo->scale != 1.0)
-        __debugbreak();
-
       udDouble3 scaleFactor = udDouble3::create(udMag3(pLoadInfo->pModel->baseMatrix.axis.x), udMag3(pLoadInfo->pModel->baseMatrix.axis.y), udMag3(pLoadInfo->pModel->baseMatrix.axis.z)) * pLoadInfo->scale;
       udDouble3 translate = pLoadInfo->pModel->baseMatrix.axis.t.toVector3();
       udDouble3 ypr = udDouble3::zero();
@@ -102,7 +99,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
       if (pLoadInfo->usePosition)
         translate = pLoadInfo->position;
 
-      if (ypr != udDouble3::zero() || pLoadInfo->scale != 1.0 || pLoadInfo->usePosition)
+      if (pLoadInfo->useRotation || pLoadInfo->usePosition || pLoadInfo->scale != 1.0)
         pLoadInfo->pModel->baseMatrix = udDouble4x4::translation(translate) * udDouble4x4::translation(pLoadInfo->pModel->pivot) * udDouble4x4::rotationYPR(ypr) * udDouble4x4::scaleNonUniform(scaleFactor) * udDouble4x4::translation(-pLoadInfo->pModel->pivot);
 
       if (pLoadInfo->jumpToLocation)

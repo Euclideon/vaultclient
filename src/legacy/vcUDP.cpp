@@ -57,19 +57,20 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
           {
             const udJSON &datasetData = datasets.Get("[%zu].DataEntry", j);
 
-            const char *pName = nullptr;
+            //const char *pName = nullptr;
             const char *pPath = nullptr;
             const char *pLocation = nullptr;
             const char *pAngleX = nullptr;
             const char *pAngleY = nullptr;
             const char *pAngleZ = nullptr;
+            const char *pScale = nullptr;
 
             for (size_t k = 0; k < datasetData.ArrayLength(); k++)
             {
-              if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Name"))
-                pName = datasetData.Get("[%zu].content", k).AsString();
-              else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Path"))
+              if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Path"))
                 pPath = datasetData.Get("[%zu].content", k).AsString();
+              //else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Name"))
+              //  pName = datasetData.Get("[%zu].content", k).AsString();
               else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Location"))
                 pLocation = datasetData.Get("[%zu].content", k).AsString();
               else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "AngleX"))
@@ -78,6 +79,8 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
                 pAngleY = datasetData.Get("[%zu].content", k).AsString();
               else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "AngleZ"))
                 pAngleZ = datasetData.Get("[%zu].content", k).AsString();
+              else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Scale"))
+                pScale = datasetData.Get("[%zu].content", k).AsString();
             }
 
             if (pPath != nullptr)
@@ -91,15 +94,18 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
 
               if (pLocation != nullptr)
               {
-                //TODO: Handle the SRID that lives here as well for some reason
+                //Code copied from Geoverse MDM
+                int epsgCode = 0;
 
-                int offset = 0;
-                int offset2 = 0;
-                position.x = udStrAtof64(pLocation, &offset);
-                position.y = udStrAtof64(&pLocation[offset + 1], &offset2);
-                position.z = udStrAtof64(&pLocation[offset + offset2 + 2]);
+#if UDPLATFORM_WINDOWS && 0
+                int count = sscanf_s(pLocation, "%lf, %lf, %lf, %d", &position.x, &position.y, &position.z, &epsgCode);
+#else
+                int count = sscanf(pLocation, "%lf, %lf, %lf, %d", &position.x, &position.y, &position.z, &epsgCode);
+#endif
+                if (count == 4)
+                  pPosition = &position;
 
-                pPosition = &position;
+                udUnused(epsgCode); //TODO: Use this
               }
 
               if (pAngleX != nullptr || pAngleY != nullptr || pAngleZ != nullptr) // At least one of the angles is set
@@ -115,6 +121,9 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
 
                 pYPR = &ypr;
               }
+
+              if (pScale != nullptr)
+                scale = udStrAtof64(pScale);
 
               vcUDP_AddModel(pProgramState, pFilename, pPath, firstLoad, pPosition, pYPR, scale);
               firstLoad = false;
