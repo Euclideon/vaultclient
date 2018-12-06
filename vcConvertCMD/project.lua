@@ -1,4 +1,4 @@
-project "vcConvertCMD"
+project "vaultConvertCMD"
 	--Settings
 	kind "ConsoleApp"
 
@@ -29,6 +29,6 @@ project "vcConvertCMD"
 
 	filter {}
 
-	targetdir "builds"
-	debugdir "builds"
+	targetdir "../builds"
+	debugdir "../builds"
 
