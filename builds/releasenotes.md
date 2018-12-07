@@ -2,6 +2,7 @@ Euclideon Vault Client Version History
 
 Version 0.2.0 (In Progress)
   - Fixed some size issues with some of the modals (EVC-285)
+  - Vault Convert CMD is packaged with Vault Client for the Windows and Ubuntu builds (EVC-304)
   - Various tile system optimizations and improvements (EVC-251)
   - Fixed an issue with the wrapping of the camera (EVC-299)
   - Full screen is no longer tracked in the settings to prevent issues with multiple monitor configurations (EVC-9)

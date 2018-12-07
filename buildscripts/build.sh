@@ -24,9 +24,10 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 
 	# Sign binaries
 	if [ $3 == "--gfxapi=d3d11" ]; then
-		"C:/Program Files (x86)/Windows Kits/8.1/bin/x64/signtool.exe" sign //v //d "Euclideon Client" //sha1 $CERT_THUMBPRINT //t http://timestamp.digicert.com builds\\vaultClient_d3d11.exe
+		"C:/Program Files (x86)/Windows Kits/8.1/bin/x64/signtool.exe" sign //v //d "Euclideon Vault Client" //sha1 $CERT_THUMBPRINT //t http://timestamp.digicert.com builds\\vaultClient_d3d11.exe
 	else
-		"C:/Program Files (x86)/Windows Kits/8.1/bin/x64/signtool.exe" sign //v //d "Euclideon Client" //sha1 $CERT_THUMBPRINT //t http://timestamp.digicert.com builds\\vaultClient.exe
+		"C:/Program Files (x86)/Windows Kits/8.1/bin/x64/signtool.exe" sign //v //d "Euclideon Vault Client" //sha1 $CERT_THUMBPRINT //t http://timestamp.digicert.com builds\\vaultClient.exe
+		"C:/Program Files (x86)/Windows Kits/8.1/bin/x64/signtool.exe" sign //v //d "Euclideon Vault Convert CMD" //sha1 $CERT_THUMBPRINT //t http://timestamp.digicert.com builds\\vaultConvertCMD.exe
 	fi
 
 	if [ $1 == "Release" ] && ([ $CI_BUILD_REF_NAME == "master" ] || [ -n "$CI_BUILD_TAG" ]); then
@@ -39,6 +40,7 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 		else
 			cp -f bin/sdl/SDL2.dll $DEPLOYDIR/Windows/SDL2.dll
 			cp -f builds/vaultClient.exe $DEPLOYDIR/Windows/vaultClient_OpenGL.exe
+			cp -f builds/vaultConvertCMD.exe $DEPLOYDIR/Windows/vaultConvertCMD.exe
 			cp -rf builds/assets/ $DEPLOYDIR/Windows/assets
 			cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll $DEPLOYDIR/Windows/vaultSDK.dll
 			cp -f builds/releasenotes.md $DEPLOYDIR/Windows/releasenotes.md
