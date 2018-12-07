@@ -2,6 +2,16 @@ Euclideon Vault Client Version History
 
 Version 0.2.0 (In Progress)
   - Fixed some size issues with some of the modals (EVC-285)
+  - Various tile system optimizations and improvements (EVC-251)
+  - Fixed an issue with the wrapping of the camera (EVC-299)
+  - Full screen is no longer tracked in the settings to prevent issues with multiple monitor configurations (EVC-9)
+  - Significant improvements to how the build in assets are handled internally (EVC-286)
+  - Basic Geoverse MDM project (UDP file) support (EVC-287)
+  - Proper wizard for changing the tile server and added support for JPG tiles (EVC-290 & EVC-206)
+  - Fixed an issue with the mouse position being incorrect on Linux (EVC-27)
+  - Better clearing of internal state during logout to prevent information leaking between sessions (EVC-283, EVC-284 & EVC-292)
+  - Swapped the names of the DirectX and OpenGL builds on Windows to better clarify that the DirectX version is the more supported one (EVC-281)
+  - The compass is no longer affected by FOV as this was causing confusion for some users (EVC-62)
 
 Version 0.1.2
   - Seperated the project codes for Vault Server / Vault Development kit (EVA) from the Euclideon Vault Client codes (EVC)
