@@ -241,7 +241,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
   float speedModifier = 1.f;
 
-  bool isHovered = ImGui::IsItemHovered() && !ImGuizmo::IsHovered();
+  bool isHovered = ImGui::IsItemHovered() && !vcGizmo_IsHovered();
   static bool isFocused = false;
 
   bool isBtnClicked[3] = { ImGui::IsMouseClicked(0, false), ImGui::IsMouseClicked(1, false), ImGui::IsMouseClicked(2, false) };

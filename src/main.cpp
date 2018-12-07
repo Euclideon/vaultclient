@@ -460,7 +460,7 @@ int main(int argc, char **args)
     programState.deltaTime += sleepMS * 0.001; // adjust delta
 
     ImGuiGL_NewFrame(programState.pWindow);
-    ImGuizmo::BeginFrame();
+    vcGizmo_BeginFrame();
 
     vcGLState_ResetState(true);
     vcRenderWindow(&programState);
@@ -782,23 +782,20 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
     if (pProgramState->numSelectedModels == 1)
     {
-      ImGuizmo::SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
-      ImGuizmo::SetDrawlist();
-
-      static ImGuizmo::ImGuizmoOperation mCurrentGizmoOperation(ImGuizmo::igoRotate);
-      static ImGuizmo::ImGuizmoSpace mCurrentGizmoMode(ImGuizmo::igsWorld);
+      vcGizmo_SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
+      vcGizmo_SetDrawList();
 
       if (ImGui::GetIO().KeysDown[SDL_SCANCODE_B])
-        mCurrentGizmoOperation = ImGuizmo::igoTranslate;
+        pProgramState->gizmo.operation = vcGO_Translate;
       if (ImGui::GetIO().KeysDown[SDL_SCANCODE_N])
-        mCurrentGizmoOperation = ImGuizmo::igoRotate;
+        pProgramState->gizmo.operation = vcGO_Rotate;
       if (ImGui::GetIO().KeysDown[SDL_SCANCODE_M])
-        mCurrentGizmoOperation = ImGuizmo::igoScale;
+        pProgramState->gizmo.operation = vcGO_Scale;
       if (ImGui::GetIO().KeysDown[SDL_SCANCODE_C])
-        mCurrentGizmoMode = ((mCurrentGizmoMode == ImGuizmo::igsWorld) ? ImGuizmo::igsLocal : ImGuizmo::igsWorld);
+        pProgramState->gizmo.coordinateSystem = ((pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene);
 
       udDouble4x4 delta = udDouble4x4::identity();
-      ImGuizmo::Manipulate(pProgramState->pCamera->matrices.view, pProgramState->pCamera->matrices.projection, mCurrentGizmoOperation, mCurrentGizmoMode, &pProgramState->vcModelList[pProgramState->prevSelectedModel]->worldMatrix, pProgramState->pCamera->worldMouseRay, &delta);
+      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->vcModelList[pProgramState->prevSelectedModel]->worldMatrix, &delta);
 
       if (!(delta == udDouble4x4::identity()))
         vdkModel_SetWorldMatrix(pProgramState->pVDKContext, pProgramState->vcModelList[pProgramState->prevSelectedModel]->pVDKModel, pProgramState->vcModelList[pProgramState->prevSelectedModel]->worldMatrix.a);
