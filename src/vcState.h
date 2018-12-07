@@ -11,6 +11,7 @@
 #include "vcSettings.h"
 #include "vcModel.h"
 #include "vcGIS.h"
+#include "imgui_ex/ImGuizmo.h"
 
 #include <vector>
 
@@ -84,6 +85,12 @@ struct vcState
   udJSON packageInfo;
 
   vcTexture *pTileServerIcon;
+
+  struct
+  {
+    vcGizmoOperation operation;
+    vcGizmoCoordinateSystem coordinateSystem;
+  } gizmo;
 };
 
 #endif // !vcState_h__
