@@ -187,8 +187,8 @@ solution "vaultClient"
 				['SKIP_INSTALL'] = "YES"
 			}
 		filter {}
-		targetdir "builds"
-		debugdir "builds"
+		targetdir "%{wks.location}/builds"
+		debugdir "%{wks.location}/builds"
 	end
 
 	if os.target() ~= premake.IOS and os.target() ~= premake.ANDROID then
