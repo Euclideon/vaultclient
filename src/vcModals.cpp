@@ -10,6 +10,8 @@
 
 #include "imgui.h"
 
+#include "stb_image.h"
+
 void vcModals_DrawLoggedOut(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_LoggedOut))
@@ -108,7 +110,6 @@ void vcModals_DrawAbout(vcState *pProgramState)
   }
 }
 
-
 void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_NewVersionAvailable))
@@ -145,21 +146,45 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
   }
 }
 
-bool vcModals_SetTileImage(vcState *pProgramState)
+void vcModals_SetTileImage(void *pProgramStatePtr)
 {
+  vcState *pProgramState = (vcState*)pProgramStatePtr;
+
+  char buf[256];
+  udSprintf(buf, udLengthOf(buf), "%s/0/0/0.%s", pProgramState->settings.maptiles.tileServerAddress, pProgramState->settings.maptiles.tileServerExtension);
+
+  int64_t imageSize;
+  void *pLocalData = nullptr;
+
+  if (udFile_Load(buf, &pLocalData, &imageSize) != udR_Success)
+    imageSize = -2;
+
+  pProgramState->tileModal.loadStatus = imageSize;
+  udFree(pProgramState->tileModal.pImageData);
+  udInterlockedExchangePointer(&pProgramState->tileModal.pImageData, pLocalData);
+}
+
+inline bool vcModals_TileThread(vcState *pProgramState)
+{
+  if (pProgramState->tileModal.loadStatus == -1)
+    return false; // Avoid the thread starting if its already running
+
+  pProgramState->tileModal.loadStatus = -1; // Loading
+  vcTexture_Destroy(&pProgramState->tileModal.pServerIcon);
+
   size_t urlLen = udStrlen(pProgramState->settings.maptiles.tileServerAddress);
   if (urlLen == 0)
-    return false;
+  {
+    pProgramState->tileModal.loadStatus = -2;
+    return true;
+  }
 
   if (pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] == '/')
     pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] = '\0';
 
-  vcTexture_Destroy(&pProgramState->pTileServerIcon);
-  const char *svrSuffix = "/0/0/0.";
-  char buf[256];
-  udSprintf(buf, sizeof(buf), "%s%s%s", pProgramState->settings.maptiles.tileServerAddress, svrSuffix, pProgramState->settings.maptiles.tileServerExtension);
+  vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModals_SetTileImage, pProgramState, false);
 
-  return vcTexture_CreateFromFilename(&pProgramState->pTileServerIcon, buf);
+  return true;
 }
 
 void vcModals_DrawTileServer(vcState *pProgramState)
@@ -167,15 +192,34 @@ void vcModals_DrawTileServer(vcState *pProgramState)
   if (pProgramState->openModals & (1 << vcMT_TileServer))
   {
     ImGui::OpenPopup("Tile Server");
-    if (pProgramState->pTileServerIcon == nullptr)
-      vcModals_SetTileImage(pProgramState);
+    if (pProgramState->tileModal.pServerIcon == nullptr)
+      vcModals_TileThread(pProgramState);
   }
 
   ImGui::SetNextWindowSize(ImVec2(300, 342), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal("Tile Server"))
   {
-    const char *pItems[] = { "png", "jpg" };
+    // If there is loaded data, we turn it into a texture:
+    if (pProgramState->tileModal.loadStatus > 0)
+    {
+      if (pProgramState->tileModal.pServerIcon != nullptr)
+        vcTexture_Destroy(&pProgramState->tileModal.pServerIcon);
+
+      uint32_t width, height, channelCount;
+      uint8_t *pData = stbi_load_from_memory((stbi_uc*)pProgramState->tileModal.pImageData, (int)pProgramState->tileModal.loadStatus, (int*)&width, (int*)&height, (int*)&channelCount, 4);
+      udFree(pProgramState->tileModal.pImageData);
+
+      if (pData)
+        vcTexture_Create(&pProgramState->tileModal.pServerIcon, width, height, pData, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Repeat, vcTCF_None, 0);
+
+      stbi_image_free(pData);
+      pProgramState->tileModal.loadStatus = 0;
+    }
+
+    static bool s_isDirty = false;
     static int s_currentItem = -1;
+
+    const char *pItems[] = { "png", "jpg" };
     if (s_currentItem == -1)
     {
       for (int i = 0; i < (int)udLengthOf(pItems); ++i)
@@ -185,35 +229,35 @@ void vcModals_DrawTileServer(vcState *pProgramState)
       }
     }
 
+    if (ImGui::InputText("Tile Server", pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength))
+      s_isDirty = true;
+
     if (ImGui::Combo("Image Format", &s_currentItem, pItems, (int)udLengthOf(pItems)))
     {
-      udStrcpy(pProgramState->settings.maptiles.tileServerExtension, 4, pItems[s_currentItem]);
-      vcModals_SetTileImage(pProgramState);
+      udStrcpy(pProgramState->settings.maptiles.tileServerExtension, udLengthOf(pProgramState->settings.maptiles.tileServerExtension), pItems[s_currentItem]);
+      vcModals_TileThread(pProgramState);
+      s_isDirty = true;
     }
 
-    if (ImGui::InputText("Tile Server", pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue))
-      vcModals_SetTileImage(pProgramState);
+    if (s_isDirty)
+      s_isDirty = !vcModals_TileThread(pProgramState);
+
     ImGui::SetItemDefaultFocus();
 
-    if (ImGui::Button("Load", ImVec2(-1, 0)))
-    {
-      if (vcModals_SetTileImage(pProgramState))
-      {
-        ImGui::CloseCurrentPopup();
-        vcRender_ClearTiles(pProgramState->pRenderContext);
-      }
-    }
+    if (pProgramState->tileModal.loadStatus == -1)
+      ImGui::Text("Loading... Please Wait");
+    else if (pProgramState->tileModal.loadStatus == -2)
+      ImGui::TextColored(ImVec4(255, 0, 0, 255), "Error fetching texture from url");
+    else if (pProgramState->tileModal.pServerIcon != nullptr)
+      ImGui::Image((ImTextureID)pProgramState->tileModal.pServerIcon, ImVec2(200, 200), ImVec2(0, 0), ImVec2(1, 1));
 
-    if (pProgramState->pTileServerIcon == nullptr)
-      ImGui::TextColored(ImVec4(255, 0, 0, 255), "Error fetching or creating texture from url");
-    else
-      ImGui::Image((ImTextureID)pProgramState->pTileServerIcon, ImVec2(200, 200), ImVec2(0, 0), ImVec2(1, 1));
-
-    if (ImGui::Button("Close", ImVec2(-1, 0)))
+    if (pProgramState->tileModal.loadStatus != -1 && ImGui::Button("Close", ImVec2(-1, 0)))
     {
       ImGui::CloseCurrentPopup();
+      udFree(pProgramState->tileModal.pImageData);
       vcRender_ClearTiles(pProgramState->pRenderContext);
     }
+
     ImGui::EndPopup();
   }
 }

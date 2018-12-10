@@ -84,13 +84,18 @@ struct vcState
   udJSON projects;
   udJSON packageInfo;
 
-  vcTexture *pTileServerIcon;
-
   struct
   {
     vcGizmoOperation operation;
     vcGizmoCoordinateSystem coordinateSystem;
   } gizmo;
+
+  struct
+  {
+    vcTexture *pServerIcon;
+    volatile void *pImageData;
+    volatile int64_t loadStatus; // >0 is the size of pImageData
+  } tileModal;
 };
 
 #endif // !vcState_h__
