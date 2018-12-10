@@ -60,6 +60,8 @@ struct vcGizmoContext
   ImDrawList* ImGuiDrawList;
 
   vcGizmoCoordinateSystem mMode;
+  vcGizmoAllowedControls allowedControls;
+
   vcCamera camera;
 
   udDouble4x4 mModel;
@@ -252,9 +254,11 @@ bool vcGizmo_IsHovered()
   return (vcGizmo_GetMoveType(NULL) != vcGMT_None) || vcGizmo_GetRotateType() != vcGMT_None || vcGizmo_GetScaleType() != vcGMT_None || vcGizmo_IsActive();
 }
 
-static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &matrix, vcGizmoCoordinateSystem mode)
+static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &matrix, vcGizmoCoordinateSystem mode, vcGizmoAllowedControls allowedControls)
 {
   sGizmoContext.mMode = mode;
+  sGizmoContext.allowedControls = allowedControls;
+
   sGizmoContext.camera = *pCamera;
 
   if (mode == vcGCS_Local)
@@ -291,26 +295,41 @@ static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &m
 
 static void vcGizmo_ComputeColors(ImU32 *colors, int type, vcGizmoOperation operation)
 {
+  // Presets all the colours to a disabled colour; that way if they aren't otherwise set below they are disabled
+  for (int i = 0; i < 7; i++)
+    colors[i] = 0x99999999;
+
   switch (operation)
   {
   case vcGO_Translate:
-    colors[0] = (type == vcGMT_MoveScreen) ? sSelectionColor : 0xFFFFFFFF;
-    for (int i = 0; i < 3; i++)
+    if (sGizmoContext.allowedControls & vcGAC_Translation)
     {
-      colors[i + 1] = (type == (int)(vcGMT_MoveX + i)) ? sSelectionColor : sDirectionColor[i];
-      colors[i + 4] = (type == (int)(vcGMT_MoveYZ + i)) ? sSelectionColor : sPlaneColors[i];
-      colors[i + 4] = (type == vcGMT_MoveScreen) ? sSelectionColor : colors[i + 4];
+      colors[0] = (type == vcGMT_MoveScreen) ? sSelectionColor : 0xFFFFFFFF;
+      for (int i = 0; i < 3; i++)
+      {
+        colors[i + 1] = (type == (int)(vcGMT_MoveX + i)) ? sSelectionColor : sDirectionColor[i];
+        colors[i + 4] = (type == (int)(vcGMT_MoveYZ + i)) ? sSelectionColor : sPlaneColors[i];
+        colors[i + 4] = (type == vcGMT_MoveScreen) ? sSelectionColor : colors[i + 4];
+      }
     }
     break;
   case vcGO_Rotate:
-    colors[0] = (type == vcGMT_RotateScreen) ? sSelectionColor : 0xFFFFFFFF;
-    for (int i = 0; i < 3; i++)
-      colors[i + 1] = (type == (int)(vcGMT_RotateX + i)) ? sSelectionColor : sDirectionColor[i];
+    if (sGizmoContext.allowedControls & vcGAC_Rotation)
+    {
+      colors[0] = (type == vcGMT_RotateScreen) ? sSelectionColor : 0xFFFFFFFF;
+      for (int i = 0; i < 3; i++)
+        colors[i + 1] = (type == (int)(vcGMT_RotateX + i)) ? sSelectionColor : sDirectionColor[i];
+    }
     break;
   case vcGO_Scale:
-    colors[0] = (type == vcGMT_ScaleXYZ) ? sSelectionColor : 0xFFFFFFFF;
-    for (int i = 0; i < 3; i++)
-      colors[i + 1] = (type == (int)(vcGMT_ScaleX + i)) ? sSelectionColor : sDirectionColor[i];
+    if (sGizmoContext.allowedControls & vcGAC_ScaleUniform)
+      colors[0] = (type == vcGMT_ScaleXYZ) ? sSelectionColor : 0xFFFFFFFF;
+
+    if (sGizmoContext.allowedControls & vcGAC_ScaleNonUniform)
+    {
+      for (int i = 0; i < 3; i++)
+        colors[i + 1] = (type == (int)(vcGMT_ScaleX + i)) ? sSelectionColor : sDirectionColor[i];
+    }
     break;
   }
 }
@@ -513,7 +532,7 @@ static void vcGizmo_DrawScaleGizmo(int type)
   // draw screen cirle
   drawList->AddCircleFilled(sGizmoContext.mScreenSquareCenter, 6.f, colors[0], 32);
 
-  if (sGizmoContext.mbUsing)
+  if (sGizmoContext.mbUsing && type != vcGMT_None)
   {
     ImVec2 destinationPosOnScreen = vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t, sGizmoContext.camera.matrices.viewProjection);
 
@@ -616,38 +635,37 @@ static bool vcGizmo_CanActivate()
   return false;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-
 static int vcGizmo_GetScaleType()
 {
   ImGuiIO& io = ImGui::GetIO();
   int type = vcGMT_None;
 
-  // screen
-  if (io.MousePos.x >= sGizmoContext.mScreenSquareMin.x && io.MousePos.x <= sGizmoContext.mScreenSquareMax.x &&
-    io.MousePos.y >= sGizmoContext.mScreenSquareMin.y && io.MousePos.y <= sGizmoContext.mScreenSquareMax.y)
+  // Check Uniform Scale
+  if ((sGizmoContext.allowedControls & vcGAC_ScaleUniform) && io.MousePos.x >= sGizmoContext.mScreenSquareMin.x && io.MousePos.x <= sGizmoContext.mScreenSquareMax.x && io.MousePos.y >= sGizmoContext.mScreenSquareMin.y && io.MousePos.y <= sGizmoContext.mScreenSquareMax.y)
     type = vcGMT_ScaleXYZ;
 
-  // compute
-  for (unsigned int i = 0; i < 3 && type == vcGMT_None; i++)
+  // Check Non-Uniform scale
+  if (sGizmoContext.allowedControls & vcGAC_ScaleNonUniform)
   {
-    udDouble3 dirPlaneX, dirPlaneY, dirAxis;
-    bool belowAxisLimit, belowPlaneLimit;
-    vcGizmo_ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
+    for (unsigned int i = 0; i < 3 && type == vcGMT_None; i++)
+    {
+      udDouble3 dirPlaneX, dirPlaneY, dirAxis;
+      bool belowAxisLimit, belowPlaneLimit;
+      vcGizmo_ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
 
-    udDouble3 posOnPlane;
-    if (udIntersect(udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), dirAxis), sGizmoContext.camera.worldMouseRay, &posOnPlane) != udR_Success)
-      continue;
+      udDouble3 posOnPlane;
+      if (udIntersect(udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), dirAxis), sGizmoContext.camera.worldMouseRay, &posOnPlane) != udR_Success)
+        continue;
 
-    const ImVec2 posOnPlanScreen = vcGizmo_WorldToScreen(posOnPlane, sGizmoContext.camera.matrices.viewProjection);
-    const ImVec2 axisStartOnScreen = vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t.toVector3() + dirAxis * sGizmoContext.mScreenFactor * 0.1f, sGizmoContext.camera.matrices.viewProjection);
-    const ImVec2 axisEndOnScreen = vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t.toVector3() + dirAxis * sGizmoContext.mScreenFactor, sGizmoContext.camera.matrices.viewProjection);
+      const ImVec2 posOnPlanScreen = vcGizmo_WorldToScreen(posOnPlane, sGizmoContext.camera.matrices.viewProjection);
+      const ImVec2 axisStartOnScreen = vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t.toVector3() + dirAxis * sGizmoContext.mScreenFactor * 0.1f, sGizmoContext.camera.matrices.viewProjection);
+      const ImVec2 axisEndOnScreen = vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t.toVector3() + dirAxis * sGizmoContext.mScreenFactor, sGizmoContext.camera.matrices.viewProjection);
 
-    udDouble4 closestPointOnAxis = vcGizmo_PointOnSegment(vcGizmo_MakeVect(posOnPlanScreen), vcGizmo_MakeVect(axisStartOnScreen), vcGizmo_MakeVect(axisEndOnScreen));
+      udDouble4 closestPointOnAxis = vcGizmo_PointOnSegment(vcGizmo_MakeVect(posOnPlanScreen), vcGizmo_MakeVect(axisStartOnScreen), vcGizmo_MakeVect(axisEndOnScreen));
 
-    if (udMag3(closestPointOnAxis - vcGizmo_MakeVect(posOnPlanScreen)) < 12.0) // pixel size
-      type = vcGMT_ScaleX + i;
+      if (udMag3(closestPointOnAxis - vcGizmo_MakeVect(posOnPlanScreen)) < 12.0) // pixel size
+        type = vcGMT_ScaleX + i;
+    }
   }
   return type;
 }
@@ -657,35 +675,38 @@ static int vcGizmo_GetRotateType()
   ImGuiIO& io = ImGui::GetIO();
   int type = vcGMT_None;
 
-  udDouble2 deltaScreen = { io.MousePos.x - sGizmoContext.mScreenSquareCenter.x, io.MousePos.y - sGizmoContext.mScreenSquareCenter.y };
-  double dist = udMag(deltaScreen);
-  if (dist >= (sGizmoContext.mRadiusSquareCenter - 1.0f) && dist < (sGizmoContext.mRadiusSquareCenter + 1.0f))
-    type = vcGMT_RotateScreen;
-
-  const udDouble3 planeNormals[] = { sGizmoContext.mModel.axis.x.toVector3(), sGizmoContext.mModel.axis.y.toVector3(), sGizmoContext.mModel.axis.z.toVector3() };
-
-  for (unsigned int i = 0; i < 3 && type == vcGMT_None; i++)
+  if (sGizmoContext.allowedControls & vcGAC_Rotation)
   {
-    // pickup plan
-    udPlane<double> pickupPlane = udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), planeNormals[i]);
+    udDouble2 deltaScreen = { io.MousePos.x - sGizmoContext.mScreenSquareCenter.x, io.MousePos.y - sGizmoContext.mScreenSquareCenter.y };
+    double dist = udMag(deltaScreen);
+    if (dist >= (sGizmoContext.mRadiusSquareCenter - 1.0f) && dist < (sGizmoContext.mRadiusSquareCenter + 1.0f))
+      type = vcGMT_RotateScreen;
 
-    udDouble3 localPos;
-    if (udIntersect(pickupPlane, sGizmoContext.camera.worldMouseRay, &localPos) != udR_Success)
-      continue;
-    localPos -= pickupPlane.point;
+    const udDouble3 planeNormals[] = { sGizmoContext.mModel.axis.x.toVector3(), sGizmoContext.mModel.axis.y.toVector3(), sGizmoContext.mModel.axis.z.toVector3() };
 
-    if (udDot(sGizmoContext.camera.worldMouseRay.direction, udNormalize3(localPos)) > FLT_EPSILON)
-      continue;
+    for (unsigned int i = 0; i < 3 && type == vcGMT_None; i++)
+    {
+      // pickup plan
+      udPlane<double> pickupPlane = udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), planeNormals[i]);
 
-    udDouble4 idealPosOnCircle = sGizmoContext.mModelInverse * udDouble4::create(udNormalize3(localPos), 0);
-    ImVec2 idealPosOnCircleScreen = vcGizmo_WorldToScreen(idealPosOnCircle * sGizmoContext.mScreenFactor, sGizmoContext.mMVP);
+      udDouble3 localPos;
+      if (udIntersect(pickupPlane, sGizmoContext.camera.worldMouseRay, &localPos) != udR_Success)
+        continue;
+      localPos -= pickupPlane.point;
 
-    ImVec2 distanceOnScreen = idealPosOnCircleScreen - io.MousePos;
+      if (udDot(sGizmoContext.camera.worldMouseRay.direction, udNormalize3(localPos)) > FLT_EPSILON)
+        continue;
 
-    double distance = udMag3(vcGizmo_MakeVect(distanceOnScreen));
+      udDouble4 idealPosOnCircle = sGizmoContext.mModelInverse * udDouble4::create(udNormalize3(localPos), 0);
+      ImVec2 idealPosOnCircleScreen = vcGizmo_WorldToScreen(idealPosOnCircle * sGizmoContext.mScreenFactor, sGizmoContext.mMVP);
 
-    if (distance < 8.0) // pixel size
-      type = vcGMT_RotateX + i;
+      ImVec2 distanceOnScreen = idealPosOnCircleScreen - io.MousePos;
+
+      double distance = udMag3(vcGizmo_MakeVect(distanceOnScreen));
+
+      if (distance < 8.0) // pixel size
+        type = vcGMT_RotateX + i;
+    }
   }
 
   return type;
@@ -696,42 +717,45 @@ static int vcGizmo_GetMoveType(udDouble4 *gizmoHitProportion)
   ImGuiIO& io = ImGui::GetIO();
   int type = vcGMT_None;
 
-  // screen
-  if (io.MousePos.x >= sGizmoContext.mScreenSquareMin.x && io.MousePos.x <= sGizmoContext.mScreenSquareMax.x &&
-    io.MousePos.y >= sGizmoContext.mScreenSquareMin.y && io.MousePos.y <= sGizmoContext.mScreenSquareMax.y)
-    type = vcGMT_MoveScreen;
-
-  // compute
-  for (unsigned int i = 0; i < 3 && type == vcGMT_None; i++)
+  if (sGizmoContext.allowedControls & vcGAC_Translation)
   {
-    udDouble3 dirPlaneX, dirPlaneY, dirAxis;
-    bool belowAxisLimit, belowPlaneLimit;
-    vcGizmo_ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
-    dirAxis = (sGizmoContext.mModel * udDouble4::create(dirAxis, 0)).toVector3();
-    dirPlaneX = (sGizmoContext.mModel * udDouble4::create(dirPlaneX, 0)).toVector3();
-    dirPlaneY = (sGizmoContext.mModel * udDouble4::create(dirPlaneY, 0)).toVector3();
+    // screen
+    if (io.MousePos.x >= sGizmoContext.mScreenSquareMin.x && io.MousePos.x <= sGizmoContext.mScreenSquareMax.x && io.MousePos.y >= sGizmoContext.mScreenSquareMin.y && io.MousePos.y <= sGizmoContext.mScreenSquareMax.y)
+      type = vcGMT_MoveScreen;
 
-    udDouble3 posOnPlane;
-    if (udIntersect(udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), dirAxis), sGizmoContext.camera.worldMouseRay, &posOnPlane) != udR_Success)
-      continue;
+    // compute
+    for (unsigned int i = 0; i < 3 && type == vcGMT_None; i++)
+    {
+      udDouble3 dirPlaneX, dirPlaneY, dirAxis;
+      bool belowAxisLimit, belowPlaneLimit;
+      vcGizmo_ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
+      dirAxis = (sGizmoContext.mModel * udDouble4::create(dirAxis, 0)).toVector3();
+      dirPlaneX = (sGizmoContext.mModel * udDouble4::create(dirPlaneX, 0)).toVector3();
+      dirPlaneY = (sGizmoContext.mModel * udDouble4::create(dirPlaneY, 0)).toVector3();
 
-    const ImVec2 posOnPlanScreen = vcGizmo_WorldToScreen(posOnPlane, sGizmoContext.camera.matrices.viewProjection);
-    const ImVec2 axisStartOnScreen = vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t.toVector3() + dirAxis * sGizmoContext.mScreenFactor * 0.1f, sGizmoContext.camera.matrices.viewProjection);
-    const ImVec2 axisEndOnScreen = vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t.toVector3() + dirAxis * sGizmoContext.mScreenFactor, sGizmoContext.camera.matrices.viewProjection);
+      udDouble3 posOnPlane;
+      if (udIntersect(udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), dirAxis), sGizmoContext.camera.worldMouseRay, &posOnPlane) != udR_Success)
+        continue;
 
-    udDouble4 closestPointOnAxis = vcGizmo_PointOnSegment(vcGizmo_MakeVect(posOnPlanScreen), vcGizmo_MakeVect(axisStartOnScreen), vcGizmo_MakeVect(axisEndOnScreen));
+      const ImVec2 posOnPlanScreen = vcGizmo_WorldToScreen(posOnPlane, sGizmoContext.camera.matrices.viewProjection);
+      const ImVec2 axisStartOnScreen = vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t.toVector3() + dirAxis * sGizmoContext.mScreenFactor * 0.1f, sGizmoContext.camera.matrices.viewProjection);
+      const ImVec2 axisEndOnScreen = vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t.toVector3() + dirAxis * sGizmoContext.mScreenFactor, sGizmoContext.camera.matrices.viewProjection);
 
-    if (udMag3(closestPointOnAxis - vcGizmo_MakeVect(posOnPlanScreen)) < 12.0) // pixel size
-      type = vcGMT_MoveX + i;
+      udDouble4 closestPointOnAxis = vcGizmo_PointOnSegment(vcGizmo_MakeVect(posOnPlanScreen), vcGizmo_MakeVect(axisStartOnScreen), vcGizmo_MakeVect(axisEndOnScreen));
 
-    const double dx = udDot(dirPlaneX, ((posOnPlane - sGizmoContext.mModel.axis.t.toVector3()) * (1.0 / sGizmoContext.mScreenFactor)));
-    const double dy = udDot(dirPlaneY, ((posOnPlane - sGizmoContext.mModel.axis.t.toVector3()) * (1.0 / sGizmoContext.mScreenFactor)));
-    if (belowPlaneLimit && dx >= sQuadUV[0] && dx <= sQuadUV[4] && dy >= sQuadUV[1] && dy <= sQuadUV[3])
-      type = vcGMT_MoveYZ + i;
+      if (udMag3(closestPointOnAxis - vcGizmo_MakeVect(posOnPlanScreen)) < 12.0) // pixel size
+        type = vcGMT_MoveX + i;
 
-    if (gizmoHitProportion)
-      *gizmoHitProportion = vcGizmo_MakeVect(dx, dy, 0.0);
+      const double dx = udDot(dirPlaneX, ((posOnPlane - sGizmoContext.mModel.axis.t.toVector3()) * (1.0 / sGizmoContext.mScreenFactor)));
+      const double dy = udDot(dirPlaneY, ((posOnPlane - sGizmoContext.mModel.axis.t.toVector3()) * (1.0 / sGizmoContext.mScreenFactor)));
+      if (belowPlaneLimit && dx >= sQuadUV[0] && dx <= sQuadUV[4] && dy >= sQuadUV[1] && dy <= sQuadUV[3])
+        type = vcGMT_MoveYZ + i;
+
+      if (gizmoHitProportion)
+        *gizmoHitProportion = vcGizmo_MakeVect(dx, dy, 0.0);
+    }
   }
+
   return type;
 }
 
@@ -988,12 +1012,15 @@ static void vcGizmo_HandleRotation(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix
   }
 }
 
-void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcGizmoCoordinateSystem mode, udDouble4x4 *pMatrix, udDouble4x4 *deltaMatrix /*= 0*/, double snap /*= 0.0*/)
+void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcGizmoCoordinateSystem mode, udDouble4x4 *pMatrix, udDouble4x4 *pDeltaMatrix, vcGizmoAllowedControls allowedControls, double snap /*= 0.0*/)
 {
-  vcGizmo_ComputeContext(pCamera, *pMatrix, mode);
+  if (pMatrix == nullptr)
+    return; // Can't have a gizmo for nullptr matrix
 
-  if (deltaMatrix)
-    deltaMatrix->identity();
+  vcGizmo_ComputeContext(pCamera, *pMatrix, mode, allowedControls);
+
+  if (pDeltaMatrix)
+    pDeltaMatrix->identity();
 
   // behind camera
   udDouble4 camSpacePosition = sGizmoContext.mMVP * udDouble4::create(0, 0, 0, 1);
@@ -1004,15 +1031,15 @@ void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcG
   switch (operation)
   {
   case vcGO_Rotate:
-    vcGizmo_HandleRotation(pMatrix, deltaMatrix, type, snap);
+    vcGizmo_HandleRotation(pMatrix, pDeltaMatrix, type, snap);
     vcGizmo_DrawRotationGizmo(type);
     break;
   case vcGO_Translate:
-    vcGizmo_HandleTranslation(pMatrix, deltaMatrix, type, snap);
+    vcGizmo_HandleTranslation(pMatrix, pDeltaMatrix, type, snap);
     vcGizmo_DrawTranslationGizmo(type);
     break;
   case vcGO_Scale:
-    vcGizmo_HandleScale(pMatrix, deltaMatrix, type, snap);
+    vcGizmo_HandleScale(pMatrix, pDeltaMatrix, type, snap);
     vcGizmo_DrawScaleGizmo(type);
     break;
   }
