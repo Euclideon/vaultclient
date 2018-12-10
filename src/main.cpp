@@ -553,7 +553,7 @@ epilogue:
   vcModel_UnloadList(&programState);
   programState.vcModelList.~vector();
   vcRender_Destroy(&programState.pRenderContext);
-  vcTexture_Destroy(&programState.pTileServerIcon);
+  vcTexture_Destroy(&programState.tileModal.pServerIcon);
 
   vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
   vcLogout(&programState);
