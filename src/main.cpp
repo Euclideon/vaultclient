@@ -795,7 +795,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
         pProgramState->gizmo.coordinateSystem = ((pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene);
 
       udDouble4x4 delta = udDouble4x4::identity();
-      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->vcModelList[pProgramState->prevSelectedModel]->worldMatrix, &delta);
+      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->vcModelList[pProgramState->prevSelectedModel]->worldMatrix, &delta, vcGAC_AllUniform);
 
       if (!(delta == udDouble4x4::identity()))
         vdkModel_SetWorldMatrix(pProgramState->pVDKContext, pProgramState->vcModelList[pProgramState->prevSelectedModel]->pVDKModel, pProgramState->vcModelList[pProgramState->prevSelectedModel]->worldMatrix.a);
@@ -1284,7 +1284,7 @@ void vcRenderWindow(vcState *pProgramState)
               if (pProgramState->vcModelList[j]->selected)
               {
                 vcModel_RemoveFromList(pProgramState, j);
-                j--;
+                --j;
               }
             }
 
@@ -1293,7 +1293,8 @@ void vcRenderWindow(vcState *pProgramState)
           else
           {
             vcModel_RemoveFromList(pProgramState, i);
-            i--;
+            pProgramState->numSelectedModels = 0;
+            --i;
           }
         }
 
