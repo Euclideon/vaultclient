@@ -212,6 +212,7 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
     //SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
 #endif
   }
+  ImGui::CaptureDefaults();
 }
 
 int main(int argc, char **args)
@@ -540,6 +541,12 @@ int main(int argc, char **args)
       {
         vcLogout(&programState);
         vcModals_OpenModal(&programState, vcMT_LoggedOut);
+      }
+
+      if (programState.firstRun)
+      {
+        ImGui::CaptureDefaults();
+        programState.firstRun = false;
       }
     }
   }
