@@ -64,6 +64,7 @@ struct vcGizmoContext
   vcGizmoAllowedControls allowedControls;
 
   vcCamera camera;
+  udDouble3 pivot;
 
   udDouble4x4 mModel;
   udDouble4x4 mModelInverse;
@@ -256,12 +257,13 @@ bool vcGizmo_IsHovered()
   return (vcGizmo_GetMoveType() != vcGMT_None) || vcGizmo_GetRotateType() != vcGMT_None || vcGizmo_GetScaleType() != vcGMT_None || vcGizmo_IsActive();
 }
 
-static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &matrix, vcGizmoCoordinateSystem mode, vcGizmoAllowedControls allowedControls)
+static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &matrix, vcGizmoCoordinateSystem mode, vcGizmoAllowedControls allowedControls, udDouble3 pivot)
 {
   sGizmoContext.mMode = mode;
   sGizmoContext.allowedControls = allowedControls;
 
   sGizmoContext.camera = *pCamera;
+  sGizmoContext.pivot = pivot;
 
   if (mode == vcGCS_Local)
   {
@@ -1015,7 +1017,7 @@ static void vcGizmo_HandleRotation(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix
   }
 }
 
-void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcGizmoCoordinateSystem mode, udDouble4x4 *pMatrix, udDouble4x4 *pDeltaMatrix, vcGizmoAllowedControls allowedControls, double snap /*= 0.0*/)
+void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcGizmoCoordinateSystem mode, udDouble4x4 *pMatrix, udDouble4x4 *pDeltaMatrix, vcGizmoAllowedControls allowedControls, udDouble3 pivot /*= udDouble3::zero()*/, double snap /*= 0.0*/)
 {
   if (pMatrix == nullptr)
     return; // Can't have a gizmo for nullptr matrix
@@ -1023,13 +1025,13 @@ void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcG
   if (operation == vcGO_Scale)
     mode = vcGCS_Local;
 
-  vcGizmo_ComputeContext(pCamera, *pMatrix, mode, allowedControls);
+  vcGizmo_ComputeContext(pCamera, *pMatrix, mode, allowedControls, pivot);
 
   if (pDeltaMatrix)
     pDeltaMatrix->identity();
 
   // behind camera
-  udDouble4 camSpacePosition = sGizmoContext.mMVP * udDouble4::create(0, 0, 0, 1);
+  udDouble4 camSpacePosition = sGizmoContext.mMVP * udDouble4::create(pivot, 1);
   if (camSpacePosition.z < 0.001f)
     return;
 
