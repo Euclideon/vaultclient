@@ -1293,9 +1293,10 @@ void vcRenderWindow(vcState *pProgramState)
           else
           {
             vcModel_RemoveFromList(pProgramState, i);
-            pProgramState->numSelectedModels = 0;
             --i;
           }
+
+          pProgramState->numSelectedModels = 0;
         }
 
         ImGui::PopID();
