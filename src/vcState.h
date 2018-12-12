@@ -58,6 +58,7 @@ struct vcState
 
   vcTexture *pCompanyLogo;
   vcTexture *pSceneWatermark;
+  vcTexture *pUITexture;
 
   udDouble3 worldMousePos;
   bool pickingSuccess;

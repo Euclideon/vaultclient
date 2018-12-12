@@ -56,6 +56,8 @@ struct vcSettings
   struct
   {
     int styleIndex;
+    bool showCameraInfo;
+    bool showProjectionInfo;
     bool showDiagnosticInfo;
     bool showAdvancedGIS;
 
