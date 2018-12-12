@@ -44,8 +44,6 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
 vcTexture* vcRender_GetSceneTexture(vcRenderContext *pRenderContext);
 void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer);
 
-udResult vcRender_CreateTerrain(vcRenderContext *pRenderContext, vcSettings *pSettings);
-udResult vcRender_DestroyTerrain(vcRenderContext *pRenderContext);
 void vcRender_ClearTiles(vcRenderContext *pRenderContext);
 void vcRender_ClearPoints(vcRenderContext *pRenderContext);
 

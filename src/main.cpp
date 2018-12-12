@@ -602,7 +602,6 @@ epilogue:
   for (size_t i = 0; i < 256; ++i)
     if (programState.settings.visualization.customClassificationColorLabels[i] != nullptr)
       udFree(programState.settings.visualization.customClassificationColorLabels[i]);
-  vcGIS_ClearCache();
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
   ImGuiGL_DestroyDeviceObjects();
@@ -672,10 +671,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         if (ImGui::InputInt(vcString::Get("OverrideSRID"), &newSRID) && vcGIS_AcceptableSRID((vcSRID)newSRID))
         {
           if (vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position))
-          {
             vcScene_UpdateItemToCurrentProjection(pProgramState, nullptr); // Update all models to new zone
-            vcGIS_ClearCache();
-          }
         }
       }
     }

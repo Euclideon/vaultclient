@@ -162,7 +162,7 @@ const char* const g_udVertexShader = R"shader(
 )shader";
 
 
-const char* const g_terrainTileFragmentShader = R"shader(
+const char* const g_tileFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -180,7 +180,7 @@ const char* const g_terrainTileFragmentShader = R"shader(
   }
 )shader";
 
-const char* const g_terrainTileVertexShader = R"shader(
+const char* const g_tileVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
@@ -194,7 +194,7 @@ const char* const g_terrainTileVertexShader = R"shader(
   };
 
   // This should match CPU struct size
-  #define VERTEX_COUNT 3
+  #define VERTEX_COUNT 2
 
   cbuffer u_EveryObject : register(b0)
   {

@@ -1,6 +1,7 @@
 #include "vcScene.h"
 
 #include "vcState.h"
+#include "vcRender.h"
 
 void vcSceneItem::AddItem(vcState *pProgramState)
 {
@@ -81,6 +82,8 @@ void vcScene_RemoveAll(vcState *pProgramState)
   while (pProgramState->sceneExplorer.pItems->children.size() > 0)
     vcScene_RemoveItem(pProgramState, pProgramState->sceneExplorer.pItems, 0);
   pProgramState->sceneExplorer.selectedItems.clear();
+
+  vcRender_ClearTiles(pProgramState->pRenderContext);
 }
 
 void vcScene_RemoveSelected(vcState *pProgramState, vcFolder *pFolder)
