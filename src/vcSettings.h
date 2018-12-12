@@ -65,6 +65,22 @@ enum vcSettingCategory
   vcSC_All
 };
 
+enum vcTileRendererMapQuality
+{
+  vcTRMQ_Low,
+  vcTRMQ_Medium,
+  vcTRMQ_High,
+
+  vcTRMQ_Total,
+};
+
+enum vcTileRendererFlags
+{
+  vcTRF_None = 0,
+
+  vcTRF_OnlyRequestVisibleTiles = 0x1,
+};
+
 struct vcSettings
 {
   bool noLocalStorage; //If set to true; cannot save or load from local storage
@@ -167,6 +183,9 @@ struct vcSettings
   struct
   {
     bool mapEnabled;
+
+    vcTileRendererMapQuality mapQuality;
+    vcTileRendererFlags mapOptions;
 
     float mapHeight;
     char tileServerAddress[vcMaxPathLength];

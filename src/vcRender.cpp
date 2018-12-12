@@ -6,7 +6,7 @@
 #include "gl/vcGLState.h"
 #include "gl/vcFenceRenderer.h"
 
-#include "vcTerrain.h"
+#include "vcTileRenderer.h"
 #include "vcGIS.h"
 #include "vcCompass.h"
 #include "stb_image.h"
@@ -78,7 +78,7 @@ struct vcRenderContext
   vcUDRenderContext udRenderContext;
   vcFenceRenderer *pDiagnosticFences;
 
-  vcTerrain *pTerrain;
+  vcTileRenderer *pTileRenderer;
   vcAnchor *pCompass;
 
   struct
@@ -124,8 +124,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
 
   vcShader_Bind(nullptr);
 
-  vcRender_CreateTerrain(pRenderContext, pSettings);
-  vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences);
+  UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, pSettings));
+  UD_ERROR_CHECK(vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences));
 
   *ppRenderContext = pRenderContext;
 
@@ -152,9 +152,6 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   pRenderContext = *ppRenderContext;
   *ppRenderContext = nullptr;
 
-  if (pRenderContext->pTerrain != nullptr && vcTerrain_Destroy(&pRenderContext->pTerrain) != udR_Success)
-    UD_ERROR_SET(udR_InternalError);
-
   if (pRenderContext->pVaultContext != nullptr)
   {
     if (pRenderContext->udRenderContext.pRenderView != nullptr && vdkRenderView_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderView) != vE_Success)
@@ -175,8 +172,8 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
 
-  vcRender_DestroyTerrain(pRenderContext);
-  vcFenceRenderer_Destroy(&pRenderContext->pDiagnosticFences);
+  UD_ERROR_CHECK(vcTileRenderer_Destroy(&pRenderContext->pTileRenderer));
+  UD_ERROR_CHECK(vcFenceRenderer_Destroy(&pRenderContext->pDiagnosticFences));
 
 epilogue:
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
@@ -340,6 +337,7 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
   if (renderData.pGISSpace->isProjected && pRenderContext->pSettings->maptiles.mapEnabled)
   {
     udDouble4x4 cameraMatrix = pRenderContext->pCamera->matrices.camera;
+    udDouble4x4 viewProjection = pRenderContext->pCamera->matrices.viewProjection;
 
 #ifndef GIT_BUILD
     static bool debugDetachCamera = false;
@@ -348,6 +346,7 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
       gRealCameraMatrix = pRenderContext->pCamera->matrices.camera;
 
     cameraMatrix = gRealCameraMatrix;
+    viewProjection = pRenderContext->pCamera->matrices.projection * udInverse(cameraMatrix);
 #endif
     udDouble3 localCamPos = cameraMatrix.axis.t.toVector3();
 
@@ -377,9 +376,8 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
     for (int i = 0; i < 4; ++i)
       vcGIS_SlippyToLocal(renderData.pGISSpace, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
-    // for now just rebuild terrain every frame
-    vcTerrain_BuildTerrain(pRenderContext->pTerrain, renderData.pGISSpace, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pRenderContext->pCamera->matrices.viewProjection);
-    vcTerrain_Render(pRenderContext->pTerrain, pRenderContext->pCamera->matrices.view, pRenderContext->pCamera->matrices.projection);
+    vcTileRenderer_Update(pRenderContext->pTileRenderer, renderData.pGISSpace, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, viewProjection);
+    vcTileRenderer_Render(pRenderContext->pTileRenderer, pRenderContext->pCamera->matrices.view, pRenderContext->pCamera->matrices.projection);
 
     if (pRenderContext->pSettings->maptiles.mouseInteracts)
     {
@@ -680,34 +678,12 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   return udR_Success;
 }
 
-udResult vcRender_CreateTerrain(vcRenderContext *pRenderContext, vcSettings *pSettings)
-{
-  if (pRenderContext == nullptr || pSettings == nullptr)
-    return udR_InvalidParameter_;
-
-  udResult result = udR_Success;
-
-  if (vcTerrain_Init(&pRenderContext->pTerrain, pSettings) != udR_Success)
-    UD_ERROR_SET(udR_InternalError);
-
-epilogue:
-  return result;
-}
-
-udResult vcRender_DestroyTerrain(vcRenderContext *pRenderContext)
-{
-  if (pRenderContext->pTerrain == nullptr)
-    return udR_Success;
-
-  return vcTerrain_Destroy(&(pRenderContext->pTerrain));
-}
-
 void vcRender_ClearTiles(vcRenderContext *pRenderContext)
 {
   if (pRenderContext == nullptr)
     return;
 
-  vcTerrain_ClearTiles(pRenderContext->pTerrain);
+  vcTileRenderer_ClearTiles(pRenderContext->pTileRenderer);
 }
 
 

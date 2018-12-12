@@ -150,7 +150,7 @@ void main()
 }
 )shader";
 
-const char* const g_terrainTileFragmentShader = FRAG_HEADER R"shader(
+const char* const g_tileFragmentShader = FRAG_HEADER R"shader(
 //Input Format
 in vec4 v_colour;
 in vec2 v_uv;
@@ -167,7 +167,7 @@ void main()
 }
 )shader";
 
-const char* const g_terrainTileVertexShader = VERT_HEADER R"shader(
+const char* const g_tileVertexShader = VERT_HEADER R"shader(
 //Input format
 layout(location = 0) in vec3 a_uv;
 
@@ -176,7 +176,7 @@ out vec4 v_colour;
 out vec2 v_uv;
 
 // This should match CPU struct size
-#define VERTEX_COUNT 3
+#define VERTEX_COUNT 2
 
 layout (std140) uniform u_EveryObject
 {
