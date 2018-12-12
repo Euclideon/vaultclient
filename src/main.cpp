@@ -98,7 +98,7 @@ void vcLogin(void *pProgramStatePtr)
   vdkError result;
   vcState *pProgramState = (vcState*)pProgramStatePtr;
 
-  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "ClientSample", pProgramState->settings.loginInfo.username, pProgramState->password);
+  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "EuclideonClient", pProgramState->settings.loginInfo.username, pProgramState->password);
   if (result == vE_ConnectionFailure)
     pProgramState->pLoginErrorMessage = "Could not connect to server.";
   else if (result == vE_NotAllowed)
@@ -369,9 +369,9 @@ int main(int argc, char **args)
   pFontPath = vcSettings_GetAssetPath("assets/fonts/NotoSansCJKjp-Regular.otf");
   ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize);
 
-#if 1 // If load additional fonts
   fontCfg.MergeMode = true;
 
+#if UD_RELEASE // Load all glyphs for supported languages
   static ImWchar characterRanges[] =
   {
     0x0020, 0x00FF, // Basic Latin + Latin Supplement
@@ -393,8 +393,19 @@ int main(int argc, char **args)
 
   ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize, &fontCfg, characterRanges);
   ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesJapanese()); // Still need to load Japanese seperately
+#else // Debug; Only load required Glyphs
+  static ImWchar characterRanges[] =
+  {
+    0x0020, 0x00FF, // Basic Latin + Latin Supplement
+    0x2010, 0x205E, // Punctuations
+    0x25A0, 0x25FF, // Geometric Shapes
+    0x26A0, 0x26A1, // Exclamation in Triangle
+    0
+  };
 
+  ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize, &fontCfg, characterRanges);
 #endif
+
   // No longer need the udTempStr after this point.
   pFontPath = nullptr;
 
