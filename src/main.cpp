@@ -68,6 +68,40 @@ int SDL_main(int argc, char **args)
 }
 #endif
 
+enum vcIcon
+{
+  vcIcon_Translate = 0,
+  vcIcon_Rotate = 1,
+  vcIcon_Scale = 2,
+  vcIcon_ShowCameraSettings = 3,
+  vcIcon_LockAltitude = 4,
+  vcIcon_ShowGeospatialInfo = 5,
+  vcIcon_MeasureLine = 6,
+  vcIcon_MeasureArea = 7,
+  vcIcon_MeasureVolume = 8,
+  vcIcon_UseLocalSpace = 9,
+
+  vcIcon_AddPointCloud = 10,
+  vcIcon_AddPointOfInterest = 11,
+  vcIcon_AddAreaOfInterest = 12,
+  vcIcon_AddLines = 13,
+
+  //Reserved = 14 - 19
+
+  vcIcon_FilterSphere = 20,
+  vcIcon_FilterBox = 21,
+  vcIcon_FilterCylinder = 22,
+  vcIcon_FilterCrossSection = 23,
+
+  //Reserved = 24 - 29
+
+  vcIcon_ShowColour = 30,
+  vcIcon_ShowIntensity = 31,
+  vcIcon_ShowClassification = 32
+
+  //Reserved = 33 +
+};
+
 struct vcColumnHeader
 {
   const char* pLabel;
@@ -545,6 +579,7 @@ epilogue:
   vcConvert_Deinit(&programState);
   vcCamera_Destroy(&programState.pCamera);
   vcTexture_Destroy(&programState.pCompanyLogo);
+  vcTexture_Destroy(&programState.pUITexture);
   free(pIconData);
   free(pEucWatermarkData);
   for (size_t i = 0; i < programState.loadList.size(); i++)
@@ -563,12 +598,35 @@ epilogue:
   return 0;
 }
 
+bool vcMain_MenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char *pKeyCode, const vcIcon buttonIndex, bool selected = false)
+{
+  const float buttonUVSize = 24.f / 256.f;
+  const ImVec4 DefaultBGColor = ImVec4(0, 0, 0, 0);
+  const ImVec4 EnabledColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
+
+  float buttonX = (buttonIndex % 10) * buttonUVSize;
+  float buttonY = (buttonIndex / 10) * buttonUVSize;
+
+  ImGui::PushID(pButtonName);
+  bool retVal = ImGui::ImageButton(pUITexture, ImVec2(24, 24), ImVec2(buttonX, buttonY), ImVec2(buttonX + buttonUVSize, buttonY + buttonUVSize), 2, selected ? EnabledColor : DefaultBGColor);
+  if (ImGui::IsItemHovered())
+  {
+    if (pKeyCode == nullptr)
+      ImGui::SetTooltip("%s", pButtonName);
+    else
+      ImGui::SetTooltip("%s [%s]", pButtonName, pKeyCode);
+  }
+  ImGui::PopID();
+
+  return retVal;
+}
 
 void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
 {
   ImGuiIO &io = ImGui::GetIO();
   float bottomLeftOffset = 0.f;
 
+  if (pProgramState->settings.presentation.showProjectionInfo || pProgramState->settings.presentation.showAdvancedGIS)
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
@@ -576,12 +634,30 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
     if (ImGui::Begin("Geographic Information", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar))
     {
-      if (pProgramState->gis.SRID != 0 && pProgramState->gis.isProjected)
-        ImGui::Text("%s (SRID: %d)", pProgramState->gis.zone.zoneName, pProgramState->gis.SRID);
-      else if (pProgramState->gis.SRID == 0)
-        ImGui::Text("Not Geolocated");
-      else
-        ImGui::Text("Unsupported SRID: %d", pProgramState->gis.SRID);
+      if (pProgramState->settings.presentation.showProjectionInfo)
+      {
+        if (pProgramState->gis.SRID != 0 && pProgramState->gis.isProjected)
+          ImGui::Text("%s (SRID: %d)", pProgramState->gis.zone.zoneName, pProgramState->gis.SRID);
+        else if (pProgramState->gis.SRID == 0)
+          ImGui::Text("Not Geolocated");
+        else
+          ImGui::Text("Unsupported SRID: %d", pProgramState->gis.SRID);
+
+        ImGui::Separator();
+        if (ImGui::IsMousePosValid())
+        {
+          if (pProgramState->pickingSuccess)
+          {
+            ImGui::Text("Mouse Point (Projected): %.2f, %.2f, %.2f", pProgramState->worldMousePos.x, pProgramState->worldMousePos.y, pProgramState->worldMousePos.z);
+
+            if (pProgramState->gis.isProjected)
+            {
+              udDouble3 mousePointInLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->worldMousePos);
+              ImGui::Text("Mouse Point (WGS84): %.6f, %.6f", mousePointInLatLong.x, mousePointInLatLong.y);
+            }
+          }
+        }
+      }
 
       if (pProgramState->settings.presentation.showAdvancedGIS)
       {
@@ -590,21 +666,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         {
           if (vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position))
             vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
-        }
-      }
-
-      ImGui::Separator();
-      if (ImGui::IsMousePosValid())
-      {
-        if (pProgramState->pickingSuccess)
-        {
-          ImGui::Text("Mouse Point (Projected): %.2f, %.2f, %.2f", pProgramState->worldMousePos.x, pProgramState->worldMousePos.y, pProgramState->worldMousePos.z);
-
-          if (pProgramState->gis.isProjected)
-          {
-            udDouble3 mousePointInLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->worldMousePos);
-            ImGui::Text("Mouse Point (WGS84): %.6f, %.6f", mousePointInLatLong.x, mousePointInLatLong.y);
-          }
         }
       }
     }
@@ -618,34 +679,76 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::SetNextWindowBgAlpha(0.5f);
     if (ImGui::Begin("Camera Settings", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
     {
-      ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &pProgramState->pCamera->position.x, 3);
+      if (pProgramState->pUITexture == nullptr)
+      {
+        vcTexture_CreateFromFilename(&pProgramState->pUITexture, "asset://assets/textures/uiDark24.png");
+      }
+      else
+      {
+        const float MBtn_Gap = 10.f;
+        const float MBtn_Padding = 2.f;
 
-      pProgramState->pCamera->eulerRotation = UD_RAD2DEG(pProgramState->pCamera->eulerRotation);
+        // Basic Settings
+        if (vcMain_MenuBarButton(pProgramState->pUITexture, "Lock Altitude", "Space", vcIcon_LockAltitude, (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)))
+          pProgramState->settings.camera.moveMode = (pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter;
+        ImGui::SameLine(0.f, MBtn_Padding);
 
-      ImGui::InputScalarN("Camera Rotation", ImGuiDataType_Double, &pProgramState->pCamera->eulerRotation.x, 3);
-      pProgramState->pCamera->eulerRotation = UD_DEG2RAD(pProgramState->pCamera->eulerRotation);
+        if (vcMain_MenuBarButton(pProgramState->pUITexture, "Show Camera Information", nullptr, vcIcon_ShowCameraSettings, pProgramState->settings.presentation.showCameraInfo))
+          pProgramState->settings.presentation.showCameraInfo = !pProgramState->settings.presentation.showCameraInfo;
+        ImGui::SameLine(0.f, MBtn_Padding);
 
-      if (ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
-        pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
+        if (vcMain_MenuBarButton(pProgramState->pUITexture, "Show Projection Information", nullptr, vcIcon_ShowGeospatialInfo, pProgramState->settings.presentation.showProjectionInfo))
+          pProgramState->settings.presentation.showProjectionInfo = !pProgramState->settings.presentation.showProjectionInfo;
+        ImGui::SameLine(0.f, MBtn_Gap);
 
-      ImGui::RadioButton("Plane", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Plane);
-      ImGui::SameLine();
-      ImGui::RadioButton("Heli", (int*)&pProgramState->settings.camera.moveMode, vcCMM_Helicopter);
+        // Gizmo Settings
+        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_B] || vcMain_MenuBarButton(pProgramState->pUITexture, "Gizmo Translate", "B", vcIcon_Translate, (pProgramState->gizmo.operation == vcGO_Translate)))
+          pProgramState->gizmo.operation = vcGO_Translate;
+        ImGui::SameLine(0.f, MBtn_Padding);
 
-      if (pProgramState->gis.isProjected)
+        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_N] || vcMain_MenuBarButton(pProgramState->pUITexture, "Gizmo Rotate", "N", vcIcon_Rotate, (pProgramState->gizmo.operation == vcGO_Rotate)))
+          pProgramState->gizmo.operation = vcGO_Rotate;
+        ImGui::SameLine(0.f, MBtn_Padding);
+
+        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_M] || vcMain_MenuBarButton(pProgramState->pUITexture, "Gizmo Scale", "M", vcIcon_Scale, (pProgramState->gizmo.operation == vcGO_Scale)))
+          pProgramState->gizmo.operation = vcGO_Scale;
+        ImGui::SameLine(0.f, MBtn_Padding);
+
+        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_C] || vcMain_MenuBarButton(pProgramState->pUITexture, "Gizmo Local Space", "C", vcIcon_UseLocalSpace, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)))
+          pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
+        //ImGui::SameLine(0.f, MBtn_Padding);
+
+      }
+
+      if (pProgramState->settings.presentation.showCameraInfo)
       {
         ImGui::Separator();
 
-        udDouble3 cameraLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->pCamera->matrices.camera.axis.t.toVector3());
-        ImGui::Text("Lat: %.7f, Long: %.7f, Alt: %.2fm", cameraLatLong.x, cameraLatLong.y, cameraLatLong.z);
+        ImGui::InputScalarN("Camera Position", ImGuiDataType_Double, &pProgramState->pCamera->position.x, 3);
 
-        if (pProgramState->gis.zone.latLongBoundMin != pProgramState->gis.zone.latLongBoundMax)
+        pProgramState->pCamera->eulerRotation = UD_RAD2DEG(pProgramState->pCamera->eulerRotation);
+
+        ImGui::InputScalarN("Camera Rotation", ImGuiDataType_Double, &pProgramState->pCamera->eulerRotation.x, 3);
+        pProgramState->pCamera->eulerRotation = UD_DEG2RAD(pProgramState->pCamera->eulerRotation);
+
+        if (ImGui::SliderFloat("Move Speed", &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
+          pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
+
+        if (pProgramState->gis.isProjected)
         {
-          udDouble2 &minBound = pProgramState->gis.zone.latLongBoundMin;
-          udDouble2 &maxBound = pProgramState->gis.zone.latLongBoundMax;
+          ImGui::Separator();
 
-          if (cameraLatLong.x < minBound.x || cameraLatLong.y < minBound.y || cameraLatLong.x > maxBound.x || cameraLatLong.y > maxBound.y)
-            ImGui::TextColored(ImVec4(1, 0, 0, 1), "Camera is outside recommended limits of this GeoZone");
+          udDouble3 cameraLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->pCamera->matrices.camera.axis.t.toVector3());
+          ImGui::Text("Lat: %.7f, Long: %.7f, Alt: %.2fm", cameraLatLong.x, cameraLatLong.y, cameraLatLong.z);
+
+          if (pProgramState->gis.zone.latLongBoundMin != pProgramState->gis.zone.latLongBoundMax)
+          {
+            udDouble2 &minBound = pProgramState->gis.zone.latLongBoundMin;
+            udDouble2 &maxBound = pProgramState->gis.zone.latLongBoundMax;
+
+            if (cameraLatLong.x < minBound.x || cameraLatLong.y < minBound.y || cameraLatLong.x > maxBound.x || cameraLatLong.y > maxBound.y)
+              ImGui::TextColored(ImVec4(1, 0, 0, 1), "Camera is outside recommended limits of this GeoZone");
+          }
         }
       }
     }
@@ -784,15 +887,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
     {
       vcGizmo_SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
       vcGizmo_SetDrawList();
-
-      if (ImGui::GetIO().KeysDown[SDL_SCANCODE_B])
-        pProgramState->gizmo.operation = vcGO_Translate;
-      if (ImGui::GetIO().KeysDown[SDL_SCANCODE_N])
-        pProgramState->gizmo.operation = vcGO_Rotate;
-      if (ImGui::GetIO().KeysDown[SDL_SCANCODE_M])
-        pProgramState->gizmo.operation = vcGO_Scale;
-      if (ImGui::GetIO().KeysDown[SDL_SCANCODE_C])
-        pProgramState->gizmo.coordinateSystem = ((pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene);
 
       udDouble4x4 delta = udDouble4x4::identity();
       vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->vcModelList[pProgramState->prevSelectedModel]->worldMatrix, &delta, vcGAC_AllUniform);
