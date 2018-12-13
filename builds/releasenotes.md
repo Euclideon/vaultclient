@@ -1,6 +1,7 @@
 Euclideon Vault Client Version History
 
 Version 0.2.0 (In Progress)
+  - Added a menu bar for frequently changed settings (EVC-298)
   - Fixed some size issues with some of the modals (EVC-285)
   - Vault Convert CMD is packaged with Vault Client for the Windows and Ubuntu builds (EVC-304)
   - Various tile system optimizations and improvements (EVC-251)
@@ -13,6 +14,7 @@ Version 0.2.0 (In Progress)
   - Better clearing of internal state during logout to prevent information leaking between sessions (EVC-283, EVC-284 & EVC-292)
   - Swapped the names of the DirectX and OpenGL builds on Windows to better clarify that the DirectX version is the more supported one (EVC-281)
   - The compass is no longer affected by FOV as this was causing confusion for some users (EVC-62)
+  - Added Gizmos to move items around in the scene (EVC-288, EVC-297 & EVC-294)
 
 Version 0.1.2
   - Seperated the project codes for Vault Server / Vault Development kit (EVA) from the Euclideon Vault Client codes (EVC)
