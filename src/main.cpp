@@ -1536,10 +1536,10 @@ void vcRenderWindow(vcState *pProgramState)
             vcMain_U32ColorPicker("10. Rail", &pProgramState->settings.visualization.customClassificationColors[10], ImGuiColorEditFlags_NoAlpha);
             vcMain_U32ColorPicker("11. Road Surface", &pProgramState->settings.visualization.customClassificationColors[11], ImGuiColorEditFlags_NoAlpha);
             vcMain_U32ColorPicker("12. Reserved", &pProgramState->settings.visualization.customClassificationColors[12], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("13. Wire – Guard / Shield", &pProgramState->settings.visualization.customClassificationColors[13], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("14. Wire – Conductor / Phase", &pProgramState->settings.visualization.customClassificationColors[14], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("13. Wire Guard / Shield", &pProgramState->settings.visualization.customClassificationColors[13], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("14. Wire Conductor / Phase", &pProgramState->settings.visualization.customClassificationColors[14], ImGuiColorEditFlags_NoAlpha);
             vcMain_U32ColorPicker("15. Transmission Tower", &pProgramState->settings.visualization.customClassificationColors[15], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("16. Wire - Structure Connector", &pProgramState->settings.visualization.customClassificationColors[16], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("16. Wire Structure Connector", &pProgramState->settings.visualization.customClassificationColors[16], ImGuiColorEditFlags_NoAlpha);
             vcMain_U32ColorPicker("17. Bridge Deck", &pProgramState->settings.visualization.customClassificationColors[17], ImGuiColorEditFlags_NoAlpha);
             vcMain_U32ColorPicker("18. High Noise", &pProgramState->settings.visualization.customClassificationColors[18], ImGuiColorEditFlags_NoAlpha);
 
@@ -1552,7 +1552,7 @@ void vcRenderWindow(vcState *pProgramState)
 
             if (ImGui::TreeNode("64 - 255 User definable"))
             {
-              for (int i = 64; i < 255; ++i)
+              for (int i = 64; i <= 255; ++i)
                 vcMain_U32ColorPicker(udTempStr("%d. User Defined", i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
               ImGui::TreePop();
             }
