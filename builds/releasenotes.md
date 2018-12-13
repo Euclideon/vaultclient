@@ -15,6 +15,8 @@ Version 0.2.0 (In Progress)
   - Swapped the names of the DirectX and OpenGL builds on Windows to better clarify that the DirectX version is the more supported one (EVC-281)
   - The compass is no longer affected by FOV as this was causing confusion for some users (EVC-62)
   - Added Gizmos to move items around in the scene (EVC-288, EVC-297 & EVC-294)
+  - Updated VDK also provides a number of minor improvements
+    - Fixed an issue that caused a user to rejoin the queue every time it requested a license while already in queue
 
 Version 0.1.2
   - Seperated the project codes for Vault Server / Vault Development kit (EVA) from the Euclideon Vault Client codes (EVC)
