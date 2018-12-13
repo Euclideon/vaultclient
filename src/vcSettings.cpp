@@ -289,7 +289,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     {
       const udJSONArray *pColors = data.Get("visualization.classificationColours").AsArray();
 
-      for (int i = 0; i < pColors->length; ++i)
+      for (size_t i = 0; i < pColors->length; ++i)
         pSettings->visualization.customClassificationColors[i] = pColors->GetElement(i)->AsInt(GeoverseClassificationColours[i]);
     }
 
