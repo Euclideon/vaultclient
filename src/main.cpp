@@ -600,15 +600,17 @@ epilogue:
 
 bool vcMain_MenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char *pKeyCode, const vcIcon buttonIndex, bool selected = false)
 {
-  const float buttonUVSize = 24.f / 256.f;
+  const float buttonSize = 24.f;
+  const float textureRelativeButtonSize = 256.f;
+  const float buttonUVSize = buttonSize / textureRelativeButtonSize;
   const ImVec4 DefaultBGColor = ImVec4(0, 0, 0, 0);
   const ImVec4 EnabledColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
 
-  float buttonX = (buttonIndex % 10) * buttonUVSize;
-  float buttonY = (buttonIndex / 10) * buttonUVSize;
+  float buttonX = (buttonIndex % (int)(textureRelativeButtonSize / buttonSize)) * buttonUVSize;
+  float buttonY = (buttonIndex / (int)(textureRelativeButtonSize / buttonSize)) * buttonUVSize;
 
   ImGui::PushID(pButtonName);
-  bool retVal = ImGui::ImageButton(pUITexture, ImVec2(24, 24), ImVec2(buttonX, buttonY), ImVec2(buttonX + buttonUVSize, buttonY + buttonUVSize), 2, selected ? EnabledColor : DefaultBGColor);
+  bool retVal = ImGui::ImageButton(pUITexture, ImVec2(buttonSize, buttonSize), ImVec2(buttonX, buttonY), ImVec2(buttonX + buttonUVSize, buttonY + buttonUVSize), 2, selected ? EnabledColor : DefaultBGColor);
   if (ImGui::IsItemHovered())
   {
     if (pKeyCode == nullptr)
