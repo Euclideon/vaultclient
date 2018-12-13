@@ -34,4 +34,9 @@ namespace ImGui
   {
     g_dock.end();
   }
+
+  void CaptureDefaults()
+  {
+    g_dock.captureDefaults();
+  }
 } // namespace ImGui
