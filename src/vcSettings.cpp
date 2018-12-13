@@ -7,6 +7,8 @@
 #include "imgui.h"
 #include "imgui_ex/imgui_dock_internal.h"
 
+#include "vcClassificationColours.h"
+
 extern ImGui::DockContext g_dock;
 const char *pDefaultSettings = R"config({"window":{"position":{"x":805240832,"y":805240832},"width":1280,"height":720,"maximized":false,"fullscreen":false},"frames":{"scene":true,"settings":true,"explorer":true},"camera":{"moveSpeed":10.000000,"nearPlane":0.500000,"farPlane":10000.000000,"fieldOfView":0.872665,"lensId":5,"invertX":false,"invertY":false,"moveMode":0},"maptiles":{"enabled":true,"blendMode":0,"transparency":1.000000,"mapHeight":0.000000},"rootDocks":[{"label":"ROOT","status":0,"active":true,"open":false,"position":{"x":0.000000,"y":22.000000},"size":{"x":1280.000000,"y":698.000000},"child":[{"label":"Scene","status":0,"active":true,"open":true,"position":{"x":0.000000,"y":22.000000},"size":{"x":976.000000,"y":698.000000},"location":"1"},{"label":"DOCK","status":0,"active":true,"open":false,"position":{"x":976.000000,"y":22.000000},"size":{"x":304.000000,"y":698.000000},"location":"0","child":[{"label":"Scene Explorer","status":0,"active":true,"open":true,"position":{"x":976.000000,"y":22.000000},"size":{"x":304.000000,"y":288.000000},"location":"20"},{"label":"Settings","status":0,"active":true,"open":true,"position":{"x":976.000000,"y":310.000000},"size":{"x":304.000000,"y":410.000000},"location":"30"}]}]},{"label":"StyleEditor","status":1,"active":true,"open":false,"position":{"x":0.000000,"y":0.000000},"size":{"x":1280.000000,"y":720.000000}}]})config";
 
@@ -284,6 +286,15 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->visualization.minIntensity = data.Get("visualization.minIntensity").AsInt(0);
     pSettings->visualization.maxIntensity = data.Get("visualization.maxIntensity").AsInt(65535);
 
+    memcpy(pSettings->visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pSettings->visualization.customClassificationColors));
+    if (data.Get("visualization.classificationColours").IsArray())
+    {
+      const udJSONArray *pColors = data.Get("visualization.classificationColours").AsArray();
+
+      for (size_t i = 0; i < pColors->length; ++i)
+        pSettings->visualization.customClassificationColors[i] = pColors->GetElement(i)->AsInt(GeoverseClassificationColours[i]);
+    }
+
     // Post visualization - Edge Highlighting
     pSettings->postVisualization.edgeOutlines.enable = data.Get("postVisualization.edgeOutlines.enabled").AsBool(false);
     pSettings->postVisualization.edgeOutlines.width = data.Get("postVisualization.edgeOutlines.width").AsInt(1);
@@ -408,6 +419,16 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("visualization.mode = %d", pSettings->visualization.mode);
   data.Set("visualization.minIntensity = %d", pSettings->visualization.minIntensity);
   data.Set("visualization.maxIntensity = %d", pSettings->visualization.maxIntensity);
+
+  int uniqueColoursEnd = 255;
+  for (; uniqueColoursEnd >= 0; --uniqueColoursEnd) // Loop from the end so we only write
+  {
+    if (pSettings->visualization.customClassificationColors[uniqueColoursEnd] != GeoverseClassificationColours[uniqueColoursEnd])
+      break;
+  }
+
+  for (int i = 0; i <= uniqueColoursEnd; ++i)
+    data.Set("visualization.classificationColours[] = %u", pSettings->visualization.customClassificationColors[i]);
 
   // Post visualization - Edge Highlighting
   data.Set("postVisualization.edgeOutlines.enabled = %s", pSettings->postVisualization.edgeOutlines.enable ? "true" : "false");

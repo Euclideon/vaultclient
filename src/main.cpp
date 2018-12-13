@@ -25,6 +25,7 @@
 #include "vcConvert.h"
 #include "vcVersion.h"
 #include "vcModals.h"
+#include "vcClassificationColours.h"
 
 #include "udPlatform/udFile.h"
 
@@ -1045,6 +1046,32 @@ int vcMainMenuGui(vcState *pProgramState)
   return menuHeight;
 }
 
+bool vcMain_U32ColorPicker(const char *pLabel, uint32_t *pColor, ImGuiColorEditFlags flags)
+{
+  float colors[4];
+
+  colors[0] = ((((*pColor) >> 16) & 0xFF) / 255.f); // Blue
+  colors[1] = ((((*pColor) >> 8) & 0xFF) / 255.f); // Green
+  colors[2] = ((((*pColor) >> 0) & 0xFF) / 255.f); // Red
+  colors[3] = ((((*pColor) >> 24) & 0xFF) / 255.f); // Alpha
+
+  if (ImGui::ColorEdit4(pLabel, colors, flags))
+  {
+    uint32_t val = 0;
+
+    val |= ((int)(colors[0] * 255) << 16); // Blue
+    val |= ((int)(colors[1] * 255) << 8); // Green
+    val |= ((int)(colors[2] * 255) << 0); // Red
+    val |= ((int)(colors[3] * 255) << 24); // Alpha
+
+    *pColor = val;
+
+    return true;
+  }
+
+  return false;
+}
+
 void vcRenderWindow(vcState *pProgramState)
 {
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
@@ -1580,6 +1607,52 @@ void vcRenderWindow(vcState *pProgramState)
           ImGui::SliderFloat("Max Intensity", &temp[1], temp[0], 65535.f, "%.0f", 4.f);
           pProgramState->settings.visualization.minIntensity = (int)temp[0];
           pProgramState->settings.visualization.maxIntensity = (int)temp[1];
+        }
+
+        if (pProgramState->settings.visualization.mode == vcVM_Classification)
+        {
+          ImGui::Checkbox("Show Custom Classification Color Table", &pProgramState->settings.visualization.useCustomClassificationColours);
+
+          if (pProgramState->settings.visualization.useCustomClassificationColours)
+          {
+            ImGui::SameLine();
+            if (ImGui::Button("Restore Defaults##RestoreClassificationColors"))
+              memcpy(pProgramState->settings.visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pProgramState->settings.visualization.customClassificationColors));
+
+            vcMain_U32ColorPicker("0. Never Classified", &pProgramState->settings.visualization.customClassificationColors[0], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("1. Unclassified", &pProgramState->settings.visualization.customClassificationColors[1], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("2. Ground", &pProgramState->settings.visualization.customClassificationColors[2], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("3. Low Vegetation", &pProgramState->settings.visualization.customClassificationColors[3], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("4. Medium Vegetation", &pProgramState->settings.visualization.customClassificationColors[4], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("5. High Vegetation", &pProgramState->settings.visualization.customClassificationColors[5], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("6. Building", &pProgramState->settings.visualization.customClassificationColors[6], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("7. Low Point / Noise", &pProgramState->settings.visualization.customClassificationColors[7], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("8. Key Point / Reserved", &pProgramState->settings.visualization.customClassificationColors[8], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("9. Water", &pProgramState->settings.visualization.customClassificationColors[9], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("10. Rail", &pProgramState->settings.visualization.customClassificationColors[10], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("11. Road Surface", &pProgramState->settings.visualization.customClassificationColors[11], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("12. Reserved", &pProgramState->settings.visualization.customClassificationColors[12], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("13. Wire Guard / Shield", &pProgramState->settings.visualization.customClassificationColors[13], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("14. Wire Conductor / Phase", &pProgramState->settings.visualization.customClassificationColors[14], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("15. Transmission Tower", &pProgramState->settings.visualization.customClassificationColors[15], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("16. Wire Structure Connector", &pProgramState->settings.visualization.customClassificationColors[16], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("17. Bridge Deck", &pProgramState->settings.visualization.customClassificationColors[17], ImGuiColorEditFlags_NoAlpha);
+            vcMain_U32ColorPicker("18. High Noise", &pProgramState->settings.visualization.customClassificationColors[18], ImGuiColorEditFlags_NoAlpha);
+
+            if (ImGui::TreeNode("19 - 63 Reserved"))
+            {
+              for (int i = 19; i < 64; ++i)
+                vcMain_U32ColorPicker(udTempStr("%d. Reserved", i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+              ImGui::TreePop();
+            }
+
+            if (ImGui::TreeNode("64 - 255 User definable"))
+            {
+              for (int i = 64; i <= 255; ++i)
+                vcMain_U32ColorPicker(udTempStr("%d. User Defined", i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+              ImGui::TreePop();
+            }
+          }
         }
 
         // Post visualization - Edge Highlighting
