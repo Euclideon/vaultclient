@@ -97,6 +97,8 @@ struct vcState
     volatile void *pImageData;
     volatile int64_t loadStatus; // >0 is the size of pImageData
   } tileModal;
+
+  bool firstRun = true;
 };
 
 #endif // !vcState_h__

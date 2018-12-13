@@ -182,6 +182,10 @@ namespace ImGui
         setChildrenPosSize(_pos, _size);
       }
 
+      void setDefaultSize(const ImVec2& _size)
+      {
+        defaultSize = _size;
+      }
 
       ImU32 id;
       char* label;
@@ -190,6 +194,7 @@ namespace ImGui
       Dock* parent;
       ImVec2 pos;
       ImVec2 size;
+      ImVec2 defaultSize;
       bool active;
       Status_ status;
       bool opened;
@@ -211,6 +216,12 @@ namespace ImGui
 
     ~DockContext() {}
 
+
+    void captureDefaults()
+    {
+      for (int i = 0; i < m_docks.size(); ++i)
+        m_docks[i]->setDefaultSize(m_docks[i]->size);
+    }
 
     Dock& getDock(const char* label, bool opened)
     {
@@ -602,6 +613,8 @@ namespace ImGui
           container->~Dock();
           MemFree(container);
         }
+        // !!! Min size seems to be 16x16 regardless of contents
+        dock.setPosSize(ImVec2(0, 0), dock.defaultSize);
       }
       if (dock.prev_tab) dock.prev_tab->next_tab = dock.next_tab;
       if (dock.next_tab) dock.next_tab->prev_tab = dock.prev_tab;
