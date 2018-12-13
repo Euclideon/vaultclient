@@ -509,7 +509,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
     vdkRenderContext_ShowIntensity(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->pSettings->visualization.minIntensity, pRenderContext->pSettings->visualization.maxIntensity);
     break;
   case vcVM_Classification:
-    vdkRenderContext_ShowClassification(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, nullptr, 0);
+    vdkRenderContext_ShowClassification(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, (int*)pRenderContext->pSettings->visualization.customClassificationColors, (int)udLengthOf(pRenderContext->pSettings->visualization.customClassificationColors));
     break;
   default: //Includes vcVM_Colour
     vdkRenderContext_ShowColor(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer);
