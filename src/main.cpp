@@ -213,9 +213,9 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
 #endif
     switch (pProgramState->settings.presentation.styleIndex)
     {
-      case 0: ImGui::StyleColorsDark(); ++pProgramState->settings.presentation.styleIndex; break;
-      case 1: ImGui::StyleColorsDark(); break;
-      case 2: ImGui::StyleColorsLight(); break;
+    case 0: ImGui::StyleColorsDark(); ++pProgramState->settings.presentation.styleIndex; break;
+    case 1: ImGui::StyleColorsDark(); break;
+    case 2: ImGui::StyleColorsLight(); break;
     }
   }
 }
@@ -1326,25 +1326,15 @@ void vcRenderWindow(vcState *pProgramState)
     {
       if (ImGui::CollapsingHeader("Appearance##Settings"))
       {
-        const char *styles[] = { "", "Dark", "Light" };
-        if (ImGui::BeginCombo("Theme", styles[pProgramState->settings.presentation.styleIndex]))
+        int styleIndex = pProgramState->settings.presentation.styleIndex - 1;
+        if (ImGui::Combo("Theme", &styleIndex, "Dark\0Light\0"))
         {
-          for (int n = 1; n < IM_ARRAYSIZE(styles); ++n)
+          pProgramState->settings.presentation.styleIndex = styleIndex + 1;
+          switch (styleIndex)
           {
-            bool is_selected = (udStrEqual(styles[n],styles[pProgramState->settings.presentation.styleIndex]));
-            if (ImGui::Selectable(styles[n], is_selected))
-            {
-              pProgramState->settings.presentation.styleIndex = n;
-              switch (pProgramState->settings.presentation.styleIndex)
-              {
-              case 1: ImGui::StyleColorsDark(); break;
-              case 2: ImGui::StyleColorsLight(); break;
-              }
-            }
-            if (is_selected)
-              ImGui::SetItemDefaultFocus();
+          case 0: ImGui::StyleColorsDark(); break;
+          case 1: ImGui::StyleColorsLight(); break;
           }
-          ImGui::EndCombo();
         }
 
         // Checks so the casts below are safe
