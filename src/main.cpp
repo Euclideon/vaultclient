@@ -686,7 +686,10 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         if (ImGui::InputInt("Override SRID", &newSRID) && vcGIS_AcceptableSRID((vcSRID)newSRID))
         {
           if (vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position))
+          {
             vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
+            vcGIS_ClearCache();
+          }
         }
       }
     }
