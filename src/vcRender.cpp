@@ -592,7 +592,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
     udInt2 slippyMin, slippyMax;
     vcGIS_LatLongToSlippy(&slippyMin, udDouble3::create(renderData.pGISSpace->zone.latLongBoundMin, 0), 21);
     vcGIS_LatLongToSlippy(&slippyMax, udDouble3::create(renderData.pGISSpace->zone.latLongBoundMax, 0), 21);
-    udDouble3 localMin, localMax, localHeight;
+    udDouble3 localMin, localMax;
     vcGIS_SlippyToLocal(renderData.pGISSpace, &localMin, slippyMin, 21);
     vcGIS_SlippyToLocal(renderData.pGISSpace, &localMax, slippyMax, 21);
 
