@@ -125,7 +125,7 @@ const char* const g_udFragmentShader = R"shader(
     col.xyz = colourizeByDepth(col.xyz, depth);
 
     float edgeOutlineWidth = u_outlineParams.x;
-    if (edgeOutlineWidth > 0.0 && u_outlineColour.w > 0)
+    if (edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
     {
       float4 edgeResult = edgeHighlight(col.xyz, input.uv, depth);
       col.xyz = edgeResult.xyz;
