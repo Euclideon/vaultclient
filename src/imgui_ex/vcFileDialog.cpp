@@ -88,7 +88,7 @@ bool vcFileDialog_ListFolder(const char *pFolderPath, char *pLoadPath, size_t lo
       if (ImGui::TreeNode(pDir->pFilename))
       {
         udSprintf(fullPath, udLengthOf(fullPath), "%s/%s", pFolderPath, pDir->pFilename);
-        vcFileDialog_ListFolder(fullPath, pLoadPath, loadPathLen, ppExtensions, extensionCount);
+        clicked |= vcFileDialog_ListFolder(fullPath, pLoadPath, loadPathLen, ppExtensions, extensionCount);
         ImGui::TreePop();
       }
     }
