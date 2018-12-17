@@ -16,8 +16,9 @@ project "vaultConvertCMD"
 
 	injectvaultsdkbin()
 
-	configuration { "windows" }
+	filter { "system:windows" }
 		links { "ws2_32.lib", "winmm.lib" }
+		files { "src/**.rc" }
 
 	filter { "system:macosx" }
 		frameworkdirs { "/Library/Frameworks/" }
