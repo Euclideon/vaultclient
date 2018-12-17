@@ -494,19 +494,14 @@ const char *vcSettings_GetAssetPath(const char *pFilename)
 {
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   udFilename filename(pFilename);
-  char buffer[vcMaxPathLength];
-  filename.ExtractFilenameOnly(buffer, (int)udLengthOf(buffer));
-  return udTempStr("./%s", buffer);
+  return udTempStr("./%s", filename.GetFilenameWithExt());
 #elif UDPLATFORM_OSX
   char *pBasePath = SDL_GetBasePath();
   if (pBasePath == nullptr)
     pBasePath = SDL_strdup("./");
 
   udFilename filename(pFilename);
-  char buffer[vcMaxPathLength];
-  filename.ExtractFilenameOnly(buffer, (int)udLengthOf(buffer));
-
-  const char *pOutput = udTempStr("%s%s", pBasePath, buffer);
+  const char *pOutput = udTempStr("%s%s", pBasePath, filename.GetFilenameWithExt());
   SDL_free(pBasePath);
 
   return pOutput;
