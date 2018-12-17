@@ -22,7 +22,7 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
   {
     ImGui::Text("You were logged out.");
 
-    if (ImGui::Button("Close", ImVec2(-1, 0)))
+    if (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
       ImGui::CloseCurrentPopup();
       pProgramState->openModals &= ~(1 << vcMT_LoggedOut);
@@ -47,7 +47,7 @@ void vcModals_DrawReleaseNotes(vcState *pProgramState)
     ImGui::Text("Current Version: %s", VCVERSION_PRODUCT_STRING);
 
     ImGui::NextColumn();
-    if (ImGui::Button("Close", ImVec2(-1, 0)))
+    if (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::Columns(1);
@@ -90,7 +90,7 @@ void vcModals_DrawAbout(vcState *pProgramState)
       ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "Update Available to %s in your Vault Server.", pProgramState->packageInfo.Get("package.versionstring").AsString());
 
     ImGui::NextColumn();
-    if (ImGui::Button("Close", ImVec2(-1, 0)))
+    if (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::Columns(1);
@@ -129,7 +129,7 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
     ImGui::Text("Please visit the Vault server in your browser to download the package.");
 
     ImGui::NextColumn();
-    if (ImGui::Button("Close", ImVec2(-1, 0)))
+    if (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
       ImGui::CloseCurrentPopup();
       pProgramState->openModals &= ~(1 << vcMT_NewVersionAvailable);
@@ -252,7 +252,7 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     else if (pProgramState->tileModal.pServerIcon != nullptr)
       ImGui::Image((ImTextureID)pProgramState->tileModal.pServerIcon, ImVec2(200, 200), ImVec2(0, 0), ImVec2(1, 1));
 
-    if (pProgramState->tileModal.loadStatus != -1 && ImGui::Button("Close", ImVec2(-1, 0)))
+    if (pProgramState->tileModal.loadStatus != -1 && (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE]))
     {
       ImGui::CloseCurrentPopup();
       udFree(pProgramState->tileModal.pImageData);
@@ -282,7 +282,7 @@ void vcModals_DrawAddUDS(vcState *pProgramState)
 
     ImGui::SameLine();
 
-    if (ImGui::Button("Cancel", ImVec2(100.f, 0)))
+    if (ImGui::Button("Cancel", ImVec2(100.f, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::Separator();
@@ -307,7 +307,7 @@ void vcModals_DrawNotImplemented(vcState *pProgramState)
   {
     ImGui::Text("Sorry, this functionality is not yet available.");
 
-    if (ImGui::Button("Close", ImVec2(-1, 0)))
+    if (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::EndPopup();
