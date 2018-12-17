@@ -19,6 +19,7 @@
 #include "imgui_ex/imgui_dock.h"
 #include "imgui_ex/imgui_udValue.h"
 #include "imgui_ex/ImGuizmo.h"
+#include "imgui_ex/vcMenuButtons.h"
 
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
@@ -68,40 +69,6 @@ int SDL_main(int argc, char **args)
   return ret;
 }
 #endif
-
-enum vcIcon
-{
-  vcIcon_Translate = 0,
-  vcIcon_Rotate = 1,
-  vcIcon_Scale = 2,
-  vcIcon_ShowCameraSettings = 3,
-  vcIcon_LockAltitude = 4,
-  vcIcon_ShowGeospatialInfo = 5,
-  vcIcon_MeasureLine = 6,
-  vcIcon_MeasureArea = 7,
-  vcIcon_MeasureVolume = 8,
-  vcIcon_UseLocalSpace = 9,
-
-  vcIcon_AddPointCloud = 10,
-  vcIcon_AddPointOfInterest = 11,
-  vcIcon_AddAreaOfInterest = 12,
-  vcIcon_AddLines = 13,
-
-  //Reserved = 14 - 19
-
-  vcIcon_FilterSphere = 20,
-  vcIcon_FilterBox = 21,
-  vcIcon_FilterCylinder = 22,
-  vcIcon_FilterCrossSection = 23,
-
-  //Reserved = 24 - 29
-
-  vcIcon_ShowColour = 30,
-  vcIcon_ShowIntensity = 31,
-  vcIcon_ShowClassification = 32
-
-  //Reserved = 33 +
-};
 
 struct vcColumnHeader
 {
@@ -623,31 +590,6 @@ epilogue:
   return 0;
 }
 
-bool vcMain_MenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char *pKeyCode, const vcIcon buttonIndex, bool selected = false)
-{
-  const float buttonSize = 24.f;
-  const float textureRelativeButtonSize = 256.f;
-  const float buttonUVSize = buttonSize / textureRelativeButtonSize;
-  const ImVec4 DefaultBGColor = ImVec4(0, 0, 0, 0);
-  const ImVec4 EnabledColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
-
-  float buttonX = (buttonIndex % (int)(textureRelativeButtonSize / buttonSize)) * buttonUVSize;
-  float buttonY = (buttonIndex / (int)(textureRelativeButtonSize / buttonSize)) * buttonUVSize;
-
-  ImGui::PushID(pButtonName);
-  bool retVal = ImGui::ImageButton(pUITexture, ImVec2(buttonSize, buttonSize), ImVec2(buttonX, buttonY), ImVec2(buttonX + buttonUVSize, buttonY + buttonUVSize), 2, selected ? EnabledColor : DefaultBGColor);
-  if (ImGui::IsItemHovered())
-  {
-    if (pKeyCode == nullptr)
-      ImGui::SetTooltip("%s", pButtonName);
-    else
-      ImGui::SetTooltip("%s [%s]", pButtonName, pKeyCode);
-  }
-  ImGui::PopID();
-
-  return retVal;
-}
-
 void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
 {
   ImGuiIO &io = ImGui::GetIO();
@@ -715,38 +657,28 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       }
       else
       {
-        const float MBtn_Gap = 10.f;
-        const float MBtn_Padding = 2.f;
-
         // Basic Settings
-        if (vcMain_MenuBarButton(pProgramState->pUITexture, "Lock Altitude", "Space", vcIcon_LockAltitude, (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)))
+        if (vcMenuBarButton(pProgramState->pUITexture, "Lock Altitude", "Space", vcMBBI_LockAltitude, vcMBBG_FirstItem, (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)))
           pProgramState->settings.camera.moveMode = (pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter;
-        ImGui::SameLine(0.f, MBtn_Padding);
 
-        if (vcMain_MenuBarButton(pProgramState->pUITexture, "Show Camera Information", nullptr, vcIcon_ShowCameraSettings, pProgramState->settings.presentation.showCameraInfo))
+        if (vcMenuBarButton(pProgramState->pUITexture, "Show Camera Information", nullptr, vcMBBI_ShowCameraSettings, vcMBBG_SameGroup, pProgramState->settings.presentation.showCameraInfo))
           pProgramState->settings.presentation.showCameraInfo = !pProgramState->settings.presentation.showCameraInfo;
-        ImGui::SameLine(0.f, MBtn_Padding);
 
-        if (vcMain_MenuBarButton(pProgramState->pUITexture, "Show Projection Information", nullptr, vcIcon_ShowGeospatialInfo, pProgramState->settings.presentation.showProjectionInfo))
+        if (vcMenuBarButton(pProgramState->pUITexture, "Show Projection Information", nullptr, vcMBBI_ShowGeospatialInfo, vcMBBG_SameGroup, pProgramState->settings.presentation.showProjectionInfo))
           pProgramState->settings.presentation.showProjectionInfo = !pProgramState->settings.presentation.showProjectionInfo;
-        ImGui::SameLine(0.f, MBtn_Gap);
 
         // Gizmo Settings
-        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_B] || vcMain_MenuBarButton(pProgramState->pUITexture, "Gizmo Translate", "B", vcIcon_Translate, (pProgramState->gizmo.operation == vcGO_Translate)))
+        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_B] || vcMenuBarButton(pProgramState->pUITexture, "Gizmo Translate", "B", vcMBBI_Translate, vcMBBG_NewGroup, (pProgramState->gizmo.operation == vcGO_Translate)))
           pProgramState->gizmo.operation = vcGO_Translate;
-        ImGui::SameLine(0.f, MBtn_Padding);
 
-        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_N] || vcMain_MenuBarButton(pProgramState->pUITexture, "Gizmo Rotate", "N", vcIcon_Rotate, (pProgramState->gizmo.operation == vcGO_Rotate)))
+        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_N] || vcMenuBarButton(pProgramState->pUITexture, "Gizmo Rotate", "N", vcMBBI_Rotate, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Rotate)))
           pProgramState->gizmo.operation = vcGO_Rotate;
-        ImGui::SameLine(0.f, MBtn_Padding);
 
-        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_M] || vcMain_MenuBarButton(pProgramState->pUITexture, "Gizmo Scale", "M", vcIcon_Scale, (pProgramState->gizmo.operation == vcGO_Scale)))
+        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_M] || vcMenuBarButton(pProgramState->pUITexture, "Gizmo Scale", "M", vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)))
           pProgramState->gizmo.operation = vcGO_Scale;
-        ImGui::SameLine(0.f, MBtn_Padding);
 
-        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_C] || vcMain_MenuBarButton(pProgramState->pUITexture, "Gizmo Local Space", "C", vcIcon_UseLocalSpace, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)))
+        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_C] || vcMenuBarButton(pProgramState->pUITexture, "Gizmo Local Space", "C", vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)))
           pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
-        //ImGui::SameLine(0.f, MBtn_Padding);
 
       }
 
