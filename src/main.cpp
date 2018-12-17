@@ -246,6 +246,12 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
     SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
     //SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
 #endif
+    switch (pProgramState->settings.presentation.styleIndex)
+    {
+    case 0: ImGui::StyleColorsDark(); ++pProgramState->settings.presentation.styleIndex; break;
+    case 1: ImGui::StyleColorsDark(); break;
+    case 2: ImGui::StyleColorsLight(); break;
+    }
   }
   ImGui::CaptureDefaults();
 }
@@ -1466,13 +1472,14 @@ void vcRenderWindow(vcState *pProgramState)
     {
       if (ImGui::CollapsingHeader("Appearance##Settings"))
       {
-        if (ImGui::Combo("Theme", &pProgramState->settings.presentation.styleIndex, "Classic\0Dark\0Light\0"))
+        int styleIndex = pProgramState->settings.presentation.styleIndex - 1;
+        if (ImGui::Combo("Theme", &styleIndex, "Dark\0Light\0"))
         {
-          switch (pProgramState->settings.presentation.styleIndex)
+          pProgramState->settings.presentation.styleIndex = styleIndex + 1;
+          switch (styleIndex)
           {
-          case 0: ImGui::StyleColorsClassic(); break;
-          case 1: ImGui::StyleColorsDark(); break;
-          case 2: ImGui::StyleColorsLight(); break;
+          case 0: ImGui::StyleColorsDark(); break;
+          case 1: ImGui::StyleColorsLight(); break;
           }
         }
 
