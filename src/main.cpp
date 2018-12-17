@@ -1158,10 +1158,21 @@ void vcRenderWindow(vcState *pProgramState)
   {
     if (ImGui::BeginDock("Scene Explorer", &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
     {
-      ImGui::InputText("", pProgramState->modelPath, vcMaxPathLength);
-      ImGui::SameLine();
-      if (ImGui::Button("Load Model!"))
-        pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
+      // Menu Bar
+      if (vcMenuBarButton(pProgramState->pUITexture, "Add UDS", nullptr, vcMBBI_AddPointCloud, vcMBBG_FirstItem))
+        vcModals_OpenModal(pProgramState, vcMT_AddUDS);
+
+      if (vcMenuBarButton(pProgramState->pUITexture, "Add Point of Interest", nullptr, vcMBBI_AddPointOfInterest, vcMBBG_SameGroup))
+        vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
+
+      if (vcMenuBarButton(pProgramState->pUITexture, "Add Area of Interest", nullptr, vcMBBI_AddAreaOfInterest, vcMBBG_SameGroup))
+        vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
+
+      if (vcMenuBarButton(pProgramState->pUITexture, "Add Lines", nullptr, vcMBBI_AddLines, vcMBBG_SameGroup))
+        vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
+
+      if (vcMenuBarButton(pProgramState->pUITexture, "Add Folder", nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
+        vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
 
       // Models
 
