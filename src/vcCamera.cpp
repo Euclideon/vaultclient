@@ -116,7 +116,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
       pCamInput->mouseInput.y *= -1.0;
 
     pCamera->eulerRotation += pCamInput->mouseInput;
-    pCamera->eulerRotation.y = udClamp(pCamera->eulerRotation.y, -UD_PI / 2.0, UD_PI / 2.0);
+    pCamera->eulerRotation.y = udClamp(pCamera->eulerRotation.y, -UD_HALF_PI, UD_HALF_PI);
 
     while (pCamera->eulerRotation.x > UD_PI)
       pCamera->eulerRotation.x -= UD_2PI;
@@ -150,13 +150,17 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
         pCamInput->mouseInput.y *= -1.0;
 
       transform = udRotateAround(transform, pCamInput->worldAnchorPoint, { 0, 0, 1 }, pCamInput->mouseInput.x);
+      udRay<double> temp = transform;
+
       transform = udRotateAround(transform, pCamInput->worldAnchorPoint, udDoubleQuat::create(udMath_DirToEuler(transform.direction)).apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
+      if ((transform.direction.y > 0 && temp.direction.y < 0) || (transform.direction.y < 0 && temp.direction.y > 0) || (transform.direction.x > 0 && temp.direction.x < 0) || (transform.direction.x < 0 && temp.direction.x > 0))
+        transform = temp;
 
       udDouble3 euler = udMath_DirToEuler(transform.direction);
 
       // Only apply if not flipped over the top
       // eulerAngles() returns values between 0 and UD_2PI, a value of UD_PI will indicate a flip
-      if (euler.z < UD_HALF_PI || euler.z >(UD_HALF_PI + UD_PI))
+      if (euler.y < UD_HALF_PI || euler.y >(UD_HALF_PI + UD_PI))
       {
         pCamera->position = transform.position;
         pCamera->eulerRotation = euler;
