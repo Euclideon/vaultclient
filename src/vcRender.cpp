@@ -10,6 +10,7 @@
 #include "vcGIS.h"
 #include "vcCompass.h"
 #include "stb_image.h"
+#include <vector>
 
 const int qrIndices[6] = { 0, 1, 2, 0, 2, 3 };
 const vcSimpleVertex qrSqVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
@@ -588,6 +589,48 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
       corners[9] = corners[5];
 
       vcFenceRenderer_AddPoints(pRenderContext->pDiagnosticFences, corners, (int)udLengthOf(corners));
+    }
+    float z = 0;
+    if (pRenderContext->pSettings->maptiles.mapEnabled)
+      z = pRenderContext->pSettings->maptiles.mapHeight;
+
+    udInt2 slippyCurrent;
+    udDouble3 localCurrent;
+
+    double xRange = renderData.pGISSpace->zone.latLongBoundMax.x - renderData.pGISSpace->zone.latLongBoundMin.x;
+    double yRange = renderData.pGISSpace->zone.latLongBoundMax.y - renderData.pGISSpace->zone.latLongBoundMin.y;
+
+    if (xRange > 0 || yRange > 0)
+    {
+      std::vector<udDouble3> corners;
+
+      for (int i = 0; i < yRange; ++i)
+      {
+        vcGIS_LatLongToSlippy(&slippyCurrent, udDouble3::create(renderData.pGISSpace->zone.latLongBoundMin.x, renderData.pGISSpace->zone.latLongBoundMin.y + i, 0), 21);
+        vcGIS_SlippyToLocal(renderData.pGISSpace, &localCurrent, slippyCurrent, 21);
+        corners.push_back(udDouble3::create(localCurrent.x, localCurrent.y, z));
+      }
+      for (int i = 0; i < xRange; ++i)
+      {
+        vcGIS_LatLongToSlippy(&slippyCurrent, udDouble3::create(renderData.pGISSpace->zone.latLongBoundMin.x + i, renderData.pGISSpace->zone.latLongBoundMax.y, 0), 21);
+        vcGIS_SlippyToLocal(renderData.pGISSpace, &localCurrent, slippyCurrent, 21);
+        corners.push_back(udDouble3::create(localCurrent.x, localCurrent.y, z));
+      }
+      for (int i = 0; i < yRange; ++i)
+      {
+        vcGIS_LatLongToSlippy(&slippyCurrent, udDouble3::create(renderData.pGISSpace->zone.latLongBoundMax.x, renderData.pGISSpace->zone.latLongBoundMax.y - i, 0), 21);
+        vcGIS_SlippyToLocal(renderData.pGISSpace, &localCurrent, slippyCurrent, 21);
+        corners.push_back(udDouble3::create(localCurrent.x, localCurrent.y, z));
+      }
+      for (int i = 0; i < xRange; ++i)
+      {
+        vcGIS_LatLongToSlippy(&slippyCurrent, udDouble3::create(renderData.pGISSpace->zone.latLongBoundMax.x - i, renderData.pGISSpace->zone.latLongBoundMin.y, 0), 21);
+        vcGIS_SlippyToLocal(renderData.pGISSpace, &localCurrent, slippyCurrent, 21);
+        corners.push_back(udDouble3::create(localCurrent.x, localCurrent.y, z));
+      }
+      corners.push_back(udDouble3::create(corners[0]));
+
+      vcFenceRenderer_AddPoints(pRenderContext->pDiagnosticFences, &corners[0], corners.size());
     }
   }
 
