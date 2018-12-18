@@ -591,6 +591,9 @@ int main(int argc, char **args)
   ImGui::DestroyContext();
 
 epilogue:
+  for (size_t i = 0; i < 256; ++i)
+    if (programState.settings.visualization.customClassificationColorLabels[i] != nullptr)
+      udFree(programState.settings.visualization.customClassificationColorLabels[i]);
   vcGIS_ClearCache();
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
@@ -1656,7 +1659,33 @@ void vcRenderWindow(vcState *pProgramState)
             if (ImGui::TreeNode("64 - 255 User definable"))
             {
               for (int i = 64; i <= 255; ++i)
-                vcMain_U32ColorPicker(udTempStr("%d. User Defined", i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+              {
+                char buttonID[12], inputID[3];
+                if (pProgramState->settings.visualization.customClassificationColorLabels[i] == nullptr)
+                  vcMain_U32ColorPicker(udTempStr("%d. User Defined", i, pProgramState->settings.visualization.customClassificationColorLabels[i]), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+                else
+                  vcMain_U32ColorPicker(udTempStr("%d. %s", i, pProgramState->settings.visualization.customClassificationColorLabels[i]), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+                udSprintf(buttonID, 12, "Rename##%d", i);
+                udSprintf(inputID, 3, "##I%d", i);
+                ImGui::SameLine();
+                if (ImGui::Button(buttonID))
+                {
+                  pProgramState->renaming = i;
+                  pProgramState->renameText[0] = '\0';
+                }
+                if (pProgramState->renaming == i)
+                {
+                  ImGui::InputText(inputID, pProgramState->renameText, 30, ImGuiInputTextFlags_AutoSelectAll);
+                  ImGui::SameLine();
+                  if (ImGui::Button("Set"))
+                  {
+                    if (pProgramState->settings.visualization.customClassificationColorLabels[i] != nullptr)
+                      udFree(pProgramState->settings.visualization.customClassificationColorLabels[i]);
+                    pProgramState->settings.visualization.customClassificationColorLabels[i] = udStrdup(pProgramState->renameText);
+                    pProgramState->renaming = -1;
+                  }
+                }
+              }
               ImGui::TreePop();
             }
           }

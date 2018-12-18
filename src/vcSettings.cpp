@@ -294,6 +294,17 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
       for (size_t i = 0; i < pColors->length; ++i)
         pSettings->visualization.customClassificationColors[i] = pColors->GetElement(i)->AsInt(GeoverseClassificationColours[i]);
     }
+    if (data.Get("visualization.classificationColourLabels").IsArray())
+    {
+      const udJSONArray *pColorLabels = data.Get("visualization.classificationColourLabels").AsArray();
+
+      for (size_t i = 0; i < pColorLabels->length; ++i)
+      {
+        int digits = 3;
+        const char *buf = pColorLabels->GetElement(i)->AsString();
+        pSettings->visualization.customClassificationColorLabels[udStrAtoi(buf, &digits)] = udStrdup(buf + digits);
+      }
+    }
 
     // Post visualization - Edge Highlighting
     pSettings->postVisualization.edgeOutlines.enable = data.Get("postVisualization.edgeOutlines.enabled").AsBool(false);
@@ -429,6 +440,9 @@ bool vcSettings_Save(vcSettings *pSettings)
 
   for (int i = 0; i <= uniqueColoursEnd; ++i)
     data.Set("visualization.classificationColours[] = %u", pSettings->visualization.customClassificationColors[i]);
+  for (int i = 64; i < 256; ++i)
+    if (pSettings->visualization.customClassificationColorLabels[i] != nullptr)
+      data.Set("visualization.classificationColourLabels[] = '%03d%s'", i, pSettings->visualization.customClassificationColorLabels[i]);
 
   // Post visualization - Edge Highlighting
   data.Set("postVisualization.edgeOutlines.enabled = %s", pSettings->postVisualization.edgeOutlines.enable ? "true" : "false");
