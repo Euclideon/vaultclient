@@ -81,6 +81,9 @@ struct vcState
 
   char modelPath[vcMaxPathLength];
 
+  int renaming = -1;
+  char renameText[30];
+
   vcSettings settings;
   udJSON projects;
   udJSON packageInfo;
