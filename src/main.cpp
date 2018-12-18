@@ -1438,7 +1438,7 @@ void vcRenderWindow(vcState *pProgramState)
 
         ImGui::Checkbox("Show Compass On Screen", &pProgramState->settings.presentation.showCompass);
         ImGui::Combo("Mouse Anchor Style", (int*)&pProgramState->settings.presentation.mouseAnchor, "None\0Orbit\0Compass\0");
-        ImGui::Combo("Voxel Shape", &pProgramState->settings.presentation.pointMode, "Rectangles\0Cubes\0");
+        ImGui::Combo("Voxel Shape", &pProgramState->settings.presentation.pointMode, "Rectangles\0Cubes\0Points\0");
       }
 
       if (ImGui::CollapsingHeader("Input & Controls##Settings"))
