@@ -124,9 +124,12 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
     ImGui::Text("Euclideon Client");
 
     ImGui::Text("Current Version: %s", VCVERSION_PRODUCT_STRING);
-    ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "New Version: %s", pProgramState->packageInfo.Get("package.versionstring").AsString());
 
-    ImGui::Text("Please visit the Vault server in your browser to download the package.");
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 1.f, 0.5f, 1.f));
+    ImGui::TextWrapped("New Version: %s", pProgramState->packageInfo.Get("package.versionstring").AsString());
+    ImGui::PopStyleColor();
+
+    ImGui::TextWrapped("Please visit the Vault server in your browser to download the package.");
 
     ImGui::NextColumn();
     if (ImGui::Button("Close", ImVec2(-1, 0)))
