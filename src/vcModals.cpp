@@ -9,6 +9,7 @@
 #include "udPlatform/udFile.h"
 
 #include "imgui.h"
+#include "imgui_ex/vcFileDialog.h"
 
 #include "stb_image.h"
 
@@ -262,6 +263,57 @@ void vcModals_DrawTileServer(vcState *pProgramState)
   }
 }
 
+void vcModals_DrawAddUDS(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_AddUDS))
+    ImGui::OpenPopup("Add UDS To Scene");
+
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal("Add UDS To Scene"))
+  {
+    ImGui::InputText("Path/URL:", pProgramState->modelPath, vcMaxPathLength);
+    ImGui::SameLine();
+
+    if (ImGui::Button("Load!", ImVec2(100.f, 0)))
+    {
+      pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Cancel", ImVec2(100.f, 0)))
+      ImGui::CloseCurrentPopup();
+
+    ImGui::Separator();
+
+    const char *fileExtensions[] = { ".uds", ".ssf", ".udg" };
+    if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
+    {
+      pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::EndPopup();
+  }
+}
+
+void vcModals_DrawNotImplemented(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_NotYetImplemented))
+    ImGui::OpenPopup("Not Implemented");
+
+  if (ImGui::BeginPopupModal("Not Implemented", nullptr, ImGuiWindowFlags_NoResize))
+  {
+    ImGui::Text("Sorry, this functionality is not yet available.");
+
+    if (ImGui::Button("Close", ImVec2(-1, 0)))
+      ImGui::CloseCurrentPopup();
+
+    ImGui::EndPopup();
+  }
+}
+
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 {
   pProgramState->openModals |= (1 << type);
@@ -279,6 +331,8 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawAbout(pProgramState);
   vcModals_DrawNewVersionAvailable(pProgramState);
   vcModals_DrawTileServer(pProgramState);
+  vcModals_DrawAddUDS(pProgramState);
+  vcModals_DrawNotImplemented(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_NewVersionAvailable) | (1 << vcMT_LoggedOut));
 }

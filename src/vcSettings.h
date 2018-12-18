@@ -103,6 +103,7 @@ struct vcSettings
 
     bool useCustomClassificationColours;
     uint32_t customClassificationColors[256];
+    const char *customClassificationColorLabels[256];
   } visualization;
 
   struct

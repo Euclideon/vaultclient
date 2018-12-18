@@ -19,6 +19,7 @@
 #include "imgui_ex/imgui_dock.h"
 #include "imgui_ex/imgui_udValue.h"
 #include "imgui_ex/ImGuizmo.h"
+#include "imgui_ex/vcMenuButtons.h"
 
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
@@ -68,40 +69,6 @@ int SDL_main(int argc, char **args)
   return ret;
 }
 #endif
-
-enum vcIcon
-{
-  vcIcon_Translate = 0,
-  vcIcon_Rotate = 1,
-  vcIcon_Scale = 2,
-  vcIcon_ShowCameraSettings = 3,
-  vcIcon_LockAltitude = 4,
-  vcIcon_ShowGeospatialInfo = 5,
-  vcIcon_MeasureLine = 6,
-  vcIcon_MeasureArea = 7,
-  vcIcon_MeasureVolume = 8,
-  vcIcon_UseLocalSpace = 9,
-
-  vcIcon_AddPointCloud = 10,
-  vcIcon_AddPointOfInterest = 11,
-  vcIcon_AddAreaOfInterest = 12,
-  vcIcon_AddLines = 13,
-
-  //Reserved = 14 - 19
-
-  vcIcon_FilterSphere = 20,
-  vcIcon_FilterBox = 21,
-  vcIcon_FilterCylinder = 22,
-  vcIcon_FilterCrossSection = 23,
-
-  //Reserved = 24 - 29
-
-  vcIcon_ShowColour = 30,
-  vcIcon_ShowIntensity = 31,
-  vcIcon_ShowClassification = 32
-
-  //Reserved = 33 +
-};
 
 struct vcColumnHeader
 {
@@ -246,6 +213,12 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
     SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
     //SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
 #endif
+    switch (pProgramState->settings.presentation.styleIndex)
+    {
+    case 0: ImGui::StyleColorsDark(); ++pProgramState->settings.presentation.styleIndex; break;
+    case 1: ImGui::StyleColorsDark(); break;
+    case 2: ImGui::StyleColorsLight(); break;
+    }
   }
   ImGui::CaptureDefaults();
 }
@@ -591,6 +564,9 @@ int main(int argc, char **args)
   ImGui::DestroyContext();
 
 epilogue:
+  for (size_t i = 0; i < 256; ++i)
+    if (programState.settings.visualization.customClassificationColorLabels[i] != nullptr)
+      udFree(programState.settings.visualization.customClassificationColorLabels[i]);
   vcGIS_ClearCache();
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
@@ -615,31 +591,6 @@ epilogue:
   vcGLState_Deinit();
 
   return 0;
-}
-
-bool vcMain_MenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char *pKeyCode, const vcIcon buttonIndex, bool selected = false)
-{
-  const float buttonSize = 24.f;
-  const float textureRelativeButtonSize = 256.f;
-  const float buttonUVSize = buttonSize / textureRelativeButtonSize;
-  const ImVec4 DefaultBGColor = ImVec4(0, 0, 0, 0);
-  const ImVec4 EnabledColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
-
-  float buttonX = (buttonIndex % (int)(textureRelativeButtonSize / buttonSize)) * buttonUVSize;
-  float buttonY = (buttonIndex / (int)(textureRelativeButtonSize / buttonSize)) * buttonUVSize;
-
-  ImGui::PushID(pButtonName);
-  bool retVal = ImGui::ImageButton(pUITexture, ImVec2(buttonSize, buttonSize), ImVec2(buttonX, buttonY), ImVec2(buttonX + buttonUVSize, buttonY + buttonUVSize), 2, selected ? EnabledColor : DefaultBGColor);
-  if (ImGui::IsItemHovered())
-  {
-    if (pKeyCode == nullptr)
-      ImGui::SetTooltip("%s", pButtonName);
-    else
-      ImGui::SetTooltip("%s [%s]", pButtonName, pKeyCode);
-  }
-  ImGui::PopID();
-
-  return retVal;
 }
 
 void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
@@ -686,7 +637,10 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         if (ImGui::InputInt("Override SRID", &newSRID) && vcGIS_AcceptableSRID((vcSRID)newSRID))
         {
           if (vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position))
+          {
             vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
+            vcGIS_ClearCache();
+          }
         }
       }
     }
@@ -706,38 +660,28 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       }
       else
       {
-        const float MBtn_Gap = 10.f;
-        const float MBtn_Padding = 2.f;
-
         // Basic Settings
-        if (vcMain_MenuBarButton(pProgramState->pUITexture, "Lock Altitude", "Space", vcIcon_LockAltitude, (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)))
+        if (vcMenuBarButton(pProgramState->pUITexture, "Lock Altitude", "Space", vcMBBI_LockAltitude, vcMBBG_FirstItem, (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)))
           pProgramState->settings.camera.moveMode = (pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter;
-        ImGui::SameLine(0.f, MBtn_Padding);
 
-        if (vcMain_MenuBarButton(pProgramState->pUITexture, "Show Camera Information", nullptr, vcIcon_ShowCameraSettings, pProgramState->settings.presentation.showCameraInfo))
+        if (vcMenuBarButton(pProgramState->pUITexture, "Show Camera Information", nullptr, vcMBBI_ShowCameraSettings, vcMBBG_SameGroup, pProgramState->settings.presentation.showCameraInfo))
           pProgramState->settings.presentation.showCameraInfo = !pProgramState->settings.presentation.showCameraInfo;
-        ImGui::SameLine(0.f, MBtn_Padding);
 
-        if (vcMain_MenuBarButton(pProgramState->pUITexture, "Show Projection Information", nullptr, vcIcon_ShowGeospatialInfo, pProgramState->settings.presentation.showProjectionInfo))
+        if (vcMenuBarButton(pProgramState->pUITexture, "Show Projection Information", nullptr, vcMBBI_ShowGeospatialInfo, vcMBBG_SameGroup, pProgramState->settings.presentation.showProjectionInfo))
           pProgramState->settings.presentation.showProjectionInfo = !pProgramState->settings.presentation.showProjectionInfo;
-        ImGui::SameLine(0.f, MBtn_Gap);
 
         // Gizmo Settings
-        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_B] || vcMain_MenuBarButton(pProgramState->pUITexture, "Gizmo Translate", "B", vcIcon_Translate, (pProgramState->gizmo.operation == vcGO_Translate)))
+        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_B] || vcMenuBarButton(pProgramState->pUITexture, "Gizmo Translate", "B", vcMBBI_Translate, vcMBBG_NewGroup, (pProgramState->gizmo.operation == vcGO_Translate)))
           pProgramState->gizmo.operation = vcGO_Translate;
-        ImGui::SameLine(0.f, MBtn_Padding);
 
-        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_N] || vcMain_MenuBarButton(pProgramState->pUITexture, "Gizmo Rotate", "N", vcIcon_Rotate, (pProgramState->gizmo.operation == vcGO_Rotate)))
+        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_N] || vcMenuBarButton(pProgramState->pUITexture, "Gizmo Rotate", "N", vcMBBI_Rotate, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Rotate)))
           pProgramState->gizmo.operation = vcGO_Rotate;
-        ImGui::SameLine(0.f, MBtn_Padding);
 
-        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_M] || vcMain_MenuBarButton(pProgramState->pUITexture, "Gizmo Scale", "M", vcIcon_Scale, (pProgramState->gizmo.operation == vcGO_Scale)))
+        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_M] || vcMenuBarButton(pProgramState->pUITexture, "Gizmo Scale", "M", vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)))
           pProgramState->gizmo.operation = vcGO_Scale;
-        ImGui::SameLine(0.f, MBtn_Padding);
 
-        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_C] || vcMain_MenuBarButton(pProgramState->pUITexture, "Gizmo Local Space", "C", vcIcon_UseLocalSpace, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)))
+        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_C] || vcMenuBarButton(pProgramState->pUITexture, "Gizmo Local Space", "C", vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)))
           pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
-        //ImGui::SameLine(0.f, MBtn_Padding);
 
       }
 
@@ -1217,10 +1161,21 @@ void vcRenderWindow(vcState *pProgramState)
   {
     if (ImGui::BeginDock("Scene Explorer", &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
     {
-      ImGui::InputText("", pProgramState->modelPath, vcMaxPathLength);
-      ImGui::SameLine();
-      if (ImGui::Button("Load Model!"))
-        pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
+      // Menu Bar
+      if (vcMenuBarButton(pProgramState->pUITexture, "Add UDS", nullptr, vcMBBI_AddPointCloud, vcMBBG_FirstItem))
+        vcModals_OpenModal(pProgramState, vcMT_AddUDS);
+
+      if (vcMenuBarButton(pProgramState->pUITexture, "Add Point of Interest", nullptr, vcMBBI_AddPointOfInterest, vcMBBG_SameGroup))
+        vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
+
+      if (vcMenuBarButton(pProgramState->pUITexture, "Add Area of Interest", nullptr, vcMBBI_AddAreaOfInterest, vcMBBG_SameGroup))
+        vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
+
+      if (vcMenuBarButton(pProgramState->pUITexture, "Add Lines", nullptr, vcMBBI_AddLines, vcMBBG_SameGroup))
+        vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
+
+      if (vcMenuBarButton(pProgramState->pUITexture, "Add Folder", nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
+        vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
 
       // Models
 
@@ -1463,13 +1418,14 @@ void vcRenderWindow(vcState *pProgramState)
     {
       if (ImGui::CollapsingHeader("Appearance##Settings"))
       {
-        if (ImGui::Combo("Theme", &pProgramState->settings.presentation.styleIndex, "Classic\0Dark\0Light\0"))
+        int styleIndex = pProgramState->settings.presentation.styleIndex - 1;
+        if (ImGui::Combo("Theme", &styleIndex, "Dark\0Light\0"))
         {
-          switch (pProgramState->settings.presentation.styleIndex)
+          pProgramState->settings.presentation.styleIndex = styleIndex + 1;
+          switch (styleIndex)
           {
-          case 0: ImGui::StyleColorsClassic(); break;
-          case 1: ImGui::StyleColorsDark(); break;
-          case 2: ImGui::StyleColorsLight(); break;
+          case 0: ImGui::StyleColorsDark(); break;
+          case 1: ImGui::StyleColorsLight(); break;
           }
         }
 
@@ -1656,7 +1612,33 @@ void vcRenderWindow(vcState *pProgramState)
             if (ImGui::TreeNode("64 - 255 User definable"))
             {
               for (int i = 64; i <= 255; ++i)
-                vcMain_U32ColorPicker(udTempStr("%d. User Defined", i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+              {
+                char buttonID[12], inputID[3];
+                if (pProgramState->settings.visualization.customClassificationColorLabels[i] == nullptr)
+                  vcMain_U32ColorPicker(udTempStr("%d. User Defined", i, pProgramState->settings.visualization.customClassificationColorLabels[i]), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+                else
+                  vcMain_U32ColorPicker(udTempStr("%d. %s", i, pProgramState->settings.visualization.customClassificationColorLabels[i]), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+                udSprintf(buttonID, 12, "Rename##%d", i);
+                udSprintf(inputID, 3, "##I%d", i);
+                ImGui::SameLine();
+                if (ImGui::Button(buttonID))
+                {
+                  pProgramState->renaming = i;
+                  pProgramState->renameText[0] = '\0';
+                }
+                if (pProgramState->renaming == i)
+                {
+                  ImGui::InputText(inputID, pProgramState->renameText, 30, ImGuiInputTextFlags_AutoSelectAll);
+                  ImGui::SameLine();
+                  if (ImGui::Button("Set"))
+                  {
+                    if (pProgramState->settings.visualization.customClassificationColorLabels[i] != nullptr)
+                      udFree(pProgramState->settings.visualization.customClassificationColorLabels[i]);
+                    pProgramState->settings.visualization.customClassificationColorLabels[i] = udStrdup(pProgramState->renameText);
+                    pProgramState->renaming = -1;
+                  }
+                }
+              }
               ImGui::TreePop();
             }
           }
