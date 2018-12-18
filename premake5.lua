@@ -4,7 +4,7 @@ table.insert(premake.option.get("os").allowed, { "ios", "Apple iOS" })
 
 filter { "system:ios", "action:xcode4" }
   xcodebuildsettings {
-    ['PRODUCT_BUNDLE_IDENTIFIER'] = 'Euclideon Client',
+    ['PRODUCT_BUNDLE_IDENTIFIER'] = 'Euclideon Vault Client',
     ["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = "iPhone Developer",
     ['IPHONEOS_DEPLOYMENT_TARGET'] = '10.3',
     ['SDKROOT'] = 'iphoneos',

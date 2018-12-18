@@ -121,7 +121,7 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
   {
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-    ImGui::Text("Euclideon Client");
+    ImGui::Text("Euclideon Vault Client");
 
     ImGui::Text("Current Version: %s", VCVERSION_PRODUCT_STRING);
     ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "New Version: %s", pProgramState->packageInfo.Get("package.versionstring").AsString());

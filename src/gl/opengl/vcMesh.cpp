@@ -162,7 +162,7 @@ bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t start
     break;
   }
 
-  if(pMesh->indexType != GL_NONE)
+  if (pMesh->indexType != GL_NONE)
     glDrawElements(glRenderMode, elementCount * elementsPerPrimitive, pMesh->indexType, (void*)(size_t)(startElement * elementsPerPrimitive * pMesh->indexBytes));
   else
     glDrawArrays(glRenderMode, startElement * elementsPerPrimitive, elementCount * elementsPerPrimitive);
