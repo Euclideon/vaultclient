@@ -122,7 +122,7 @@ void main()
   col.xyz = colourizeByDepth(col.xyz, depth);
 
   float edgeOutlineWidth = u_outlineParams.x;
-  if (edgeOutlineWidth > 0.0 && u_outlineColour.w > 0)
+  if (edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
   {
     vec4 edgeResult = edgeHighlight(col.xyz, v_texCoord, depth);
     col.xyz = edgeResult.xyz;
