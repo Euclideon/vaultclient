@@ -18,7 +18,7 @@ project "vaultConvertCMD"
 
 	filter { "system:windows" }
 		links { "ws2_32.lib", "winmm.lib" }
-		files { "src/**.rc" }
+		files { "**.rc" }
 
 	filter { "system:macosx" }
 		frameworkdirs { "/Library/Frameworks/" }
