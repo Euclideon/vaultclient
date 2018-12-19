@@ -1020,6 +1020,9 @@ void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcG
   if (pMatrix == nullptr)
     return; // Can't have a gizmo for nullptr matrix
 
+  if (operation == vcGO_Scale)
+    mode = vcGCS_Local;
+
   vcGizmo_ComputeContext(pCamera, *pMatrix, mode, allowedControls);
 
   if (pDeltaMatrix)
