@@ -1699,7 +1699,7 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::SetNextWindowSize(ImVec2(400, 600));
     }
 
-    if (ImGui::BeginPopupModal("Model Properties", NULL))
+    if (ImGui::BeginPopupModal("Model Properties", NULL, ImGuiWindowFlags_HorizontalScrollbar))
     {
       pProgramState->selectedModelProperties.pMetadata = pProgramState->vcModelList[pProgramState->selectedModelProperties.index]->pMetadata;
       pProgramState->selectedModelProperties.pWatermarkTexture = pProgramState->vcModelList[pProgramState->selectedModelProperties.index]->pWatermark;
