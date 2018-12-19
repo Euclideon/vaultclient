@@ -462,7 +462,20 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
     udDouble4x4 cameraRotation = udDouble4x4::rotationYPR(pRenderContext->pCamera->matrices.camera.extractYPR());
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     vcGLState_SetDepthMode(vcGLSDM_Always, false);
-    vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspective(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udInverse(cameraRotation));
+
+    if (!renderData.pGISSpace->isProjected)
+    {
+      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspective(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udInverse(cameraRotation));
+    }
+    else
+    {
+      udDouble3 currentLatLong = udGeoZone_ToLatLong(renderData.pGISSpace->zone, pRenderContext->pCamera->position);
+      currentLatLong.x = udClamp(currentLatLong.x, -90.0, 89.0);
+      udDouble3 norther = udGeoZone_ToCartesian(renderData.pGISSpace->zone, udDouble3::create(currentLatLong.x + 1.0, currentLatLong.y, currentLatLong.z));
+      udDouble4x4 north = udDouble4x4::lookAt(pRenderContext->pCamera->position, norther);
+      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspective(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udDouble4x4::rotationYPR(north.extractYPR()) * udInverse(cameraRotation));
+    }
+
     vcGLState_ResetState();
   }
 
