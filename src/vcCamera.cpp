@@ -77,7 +77,7 @@ void vcCamera_Create(vcCamera **ppCamera)
 
 void vcCamera_Destroy(vcCamera **ppCamera)
 {
-  if(ppCamera != nullptr)
+  if (ppCamera != nullptr)
     udFree(*ppCamera);
 }
 

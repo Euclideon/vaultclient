@@ -167,9 +167,9 @@ bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t start
   unsigned int offset = 0;
   g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &pMesh->pVBO, &stride, &offset);
 
-  if(pMesh->indexBytes == 4)
+  if (pMesh->indexBytes == 4)
     g_pd3dDeviceContext->IASetIndexBuffer(pMesh->pIBO, DXGI_FORMAT_R32_UINT, 0);
-  else if(pMesh->indexBytes == 2)
+  else if (pMesh->indexBytes == 2)
     g_pd3dDeviceContext->IASetIndexBuffer(pMesh->pIBO, DXGI_FORMAT_R16_UINT, 0);
 
   D3D11_PRIMITIVE_TOPOLOGY d3dRenderMode = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;

@@ -95,7 +95,7 @@ void vcSettings_RecursiveSaveDock(udJSON &parentJSON, ImGui::DockContext::Dock *
   dockJSON.Set("size.y = %f", dock.size.y);
 
   g_dock.fillLocation(dock);
-  if(udStrlen(dock.location))
+  if (udStrlen(dock.location))
     dockJSON.Set("location = '%s'", dock.location);
 
   if (dock.children[0])

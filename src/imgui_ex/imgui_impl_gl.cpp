@@ -70,7 +70,7 @@ void ImGuiGL_RenderDrawData(ImDrawData* draw_data)
   vcShader_BindConstantBuffer(pImGuiShader, g_pAttribLocationProjMtx, &ortho_projection, sizeof(ortho_projection));
   vcShader_GetSamplerIndex(&pImGuiSampler, pImGuiShader, "Texture");
 
-  if(draw_data->CmdListsCount != 0 && pImGuiMesh == nullptr)
+  if (draw_data->CmdListsCount != 0 && pImGuiMesh == nullptr)
     vcMesh_Create(&pImGuiMesh, vcImGuiVertexLayout, 3, draw_data->CmdLists[0]->VtxBuffer.Data, draw_data->CmdLists[0]->VtxBuffer.Size, draw_data->CmdLists[0]->IdxBuffer.Data, draw_data->CmdLists[0]->IdxBuffer.Size, vcMF_Dynamic | vcMF_IndexShort);
 
   // Draw
