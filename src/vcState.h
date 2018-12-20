@@ -38,7 +38,7 @@ struct vcState
   vcCamera *pCamera;
 
   std::vector<const char*> loadList;
-  std::vector<vcModel*> vcModelList;
+  std::vector<vcSceneItem*> sceneList;
   vWorkerThreadPool *pWorkerPool;
 
   size_t numSelectedModels;
@@ -48,7 +48,6 @@ struct vcState
   {
     size_t index;
     udJSON *pMetadata;
-    vcTexture *pWatermarkTexture;
   } selectedModelProperties;
 
   double deltaTime;

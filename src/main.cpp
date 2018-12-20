@@ -190,7 +190,7 @@ void vcLogout(vcState *pProgramState)
   if (pProgramState->pVDKContext != nullptr)
   {
     pProgramState->modelPath[0] = '\0';
-    vcModel_UnloadList(pProgramState);
+    vcScene_RemoveAll(pProgramState);
     pProgramState->projects.Destroy();
     vcRender_ClearPoints(pProgramState->pRenderContext);
 
@@ -286,7 +286,7 @@ int main(int argc, char **args)
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
   programState.loadList.reserve(udMax(64, argc));
-  programState.vcModelList.reserve(64);
+  programState.sceneList.reserve(64);
 
   for (int i = 1; i < argc; ++i)
     programState.loadList.push_back(udStrdup(args[i]));
@@ -523,7 +523,7 @@ int main(int argc, char **args)
             else if (udStrEquali(loadFile.GetExt(), ".udp"))
             {
               if (firstLoad)
-                vcModel_UnloadList(&programState);
+                vcScene_RemoveAll(&programState);
 
               vcUDP_Load(&programState, pNextLoad);
             }
@@ -583,8 +583,8 @@ epilogue:
   for (size_t i = 0; i < programState.loadList.size(); i++)
     udFree(programState.loadList[i]);
   programState.loadList.~vector();
-  vcModel_UnloadList(&programState);
-  programState.vcModelList.~vector();
+  vcScene_RemoveAll(&programState);
+  programState.sceneList.~vector();
   vcRender_Destroy(&programState.pRenderContext);
   vcTexture_Destroy(&programState.tileModal.pServerIcon);
 
@@ -641,7 +641,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         {
           if (vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position))
           {
-            vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
+            vcScene_UpdateItemToCurrentProjection(pProgramState, nullptr); // Update all models to new zone
             vcGIS_ClearCache();
           }
         }
@@ -856,7 +856,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       vcGizmo_SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
       vcGizmo_SetDrawList();
 
-      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, pProgramState->vcModelList[pProgramState->prevSelectedModel]->pWorldMatrix, nullptr, vcGAC_AllUniform);
+      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, pProgramState->sceneList[pProgramState->prevSelectedModel]->pWorldMatrix, nullptr, vcGAC_AllUniform);
     }
   }
 
@@ -864,8 +864,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.pGISSpace = &pProgramState->gis;
   renderData.pCameraSettings = &pProgramState->settings.camera;
 
-  for (size_t i = 0; i < pProgramState->vcModelList.size(); ++i)
-    renderData.models.PushBack(pProgramState->vcModelList[i]);
+  for (size_t i = 0; i < pProgramState->sceneList.size(); ++i)
+  {
+    if (pProgramState->sceneList[i]->type == vcSOT_PointCloud)
+      renderData.models.PushBack((vcModel*)pProgramState->sceneList[i]);
+  }
 
   // Render scene to texture
   vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
@@ -918,7 +921,7 @@ int vcMainMenuGui(vcState *pProgramState)
     if (ImGui::BeginMenu("Projects", pProjectList != nullptr && pProjectList->length > 0))
     {
       if (ImGui::MenuItem("New Scene", nullptr, nullptr))
-        vcModel_UnloadList(pProgramState);
+        vcScene_RemoveAll(pProgramState);
 
       ImGui::Separator();
 
@@ -926,7 +929,7 @@ int vcMainMenuGui(vcState *pProgramState)
       {
         if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr))
         {
-          vcModel_UnloadList(pProgramState);
+          vcScene_RemoveAll(pProgramState);
 
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
             vcModel_AddToList(pProgramState, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
@@ -1022,13 +1025,13 @@ bool vcMain_U32ColorPicker(const char *pLabel, uint32_t *pColor, ImGuiColorEditF
   return false;
 }
 
-void vcMain_ShowLoadStatusIndicator(vcModelLoadStatus loadStatus, bool sameLine = true)
+void vcMain_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine = true)
 {
   const char *loadingChars[] = { "\xE2\x96\xB2", "\xE2\x96\xB6", "\xE2\x96\xBC", "\xE2\x97\x80" };
   int64_t currentLoadingChar = vcMain_GetCurrentTime(10);
 
   // Load Status (if any)
-  if (loadStatus == vcMLS_Pending)
+  if (loadStatus == vcSLS_Pending)
   {
     ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Yellow Exclamation in Triangle
     if (ImGui::IsItemHovered())
@@ -1037,7 +1040,7 @@ void vcMain_ShowLoadStatusIndicator(vcModelLoadStatus loadStatus, bool sameLine 
     if (sameLine)
       ImGui::SameLine();
   }
-  else if (loadStatus == vcMLS_Loading)
+  else if (loadStatus == vcSLS_Loading)
   {
     ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", loadingChars[currentLoadingChar % udLengthOf(loadingChars)]); // Yellow Spinning clock
     if (ImGui::IsItemHovered())
@@ -1046,12 +1049,12 @@ void vcMain_ShowLoadStatusIndicator(vcModelLoadStatus loadStatus, bool sameLine 
     if (sameLine)
       ImGui::SameLine();
   }
-  else if (loadStatus == vcMLS_Failed || loadStatus == vcMLS_OpenFailure)
+  else if (loadStatus == vcSLS_Failed || loadStatus == vcSLS_OpenFailure)
   {
     ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Red Exclamation in Triangle
     if (ImGui::IsItemHovered())
     {
-      if (loadStatus == vcMLS_OpenFailure)
+      if (loadStatus == vcSLS_OpenFailure)
         ImGui::SetTooltip("%s", "Could not open the model, perhaps it is missing or you don't have permission to access it.");
       else
         ImGui::SetTooltip("%s", "Failed to load model");
@@ -1115,7 +1118,10 @@ void vcRenderWindow(vcState *pProgramState)
     {
       ImGui::SetNextWindowSize(ImVec2(500, 160));
       if (ImGui::Begin("Login##LoginWaiting", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
+      {
+        vcMain_ShowLoadStatusIndicator(vcSLS_Loading);
         ImGui::Text("Checking with server...");
+      }
       ImGui::End();
     }
     else
@@ -1224,20 +1230,20 @@ void vcRenderWindow(vcState *pProgramState)
           {
             size_t removed = 0;
 
-            for (size_t iter = 0; iter < pProgramState->vcModelList.size(); ++iter)
+            for (size_t iter = 0; iter < pProgramState->sceneList.size(); ++iter)
             {
               size_t index = iter - removed;
 
-              if (pProgramState->vcModelList[index]->selected)
+              if (pProgramState->sceneList[index]->selected)
               {
-                vcModel_RemoveFromList(pProgramState, index);
+                vcScene_RemoveItem(pProgramState, index);
                 ++removed;
               }
             }
           }
           else
           {
-            vcModel_RemoveFromList(pProgramState, pProgramState->prevSelectedModel);
+            vcScene_RemoveItem(pProgramState, pProgramState->prevSelectedModel);
           }
 
           pProgramState->numSelectedModels = 0;
@@ -1248,21 +1254,21 @@ void vcRenderWindow(vcState *pProgramState)
       // Tree view for the scene
       ImGui::Separator();
 
-      for (size_t i = 0; i < pProgramState->vcModelList.size(); ++i)
+      for (size_t i = 0; i < pProgramState->sceneList.size(); ++i)
       {
-        vcMain_ShowLoadStatusIndicator((vcModelLoadStatus)pProgramState->vcModelList[i]->loadStatus);
+        vcMain_ShowLoadStatusIndicator((vcSceneLoadStatus)pProgramState->sceneList[i]->loadStatus);
 
         // Visibility
-        ImGui::Checkbox(udTempStr("##ModelVisible%zu", i), &pProgramState->vcModelList[i]->visible);
+        ImGui::Checkbox(udTempStr("##SXIVisible%zu", i), &pProgramState->sceneList[i]->visible);
         ImGui::SameLine();
 
         // The actual model
-        if (ImGui::Selectable(pProgramState->vcModelList[i]->path, pProgramState->vcModelList[i]->selected))
+        if (ImGui::Selectable(pProgramState->sceneList[i]->pName, pProgramState->sceneList[i]->selected))
         {
           if ((modState & KMOD_CTRL) == 0)
           {
-            for (size_t j = 0; j < pProgramState->vcModelList.size(); ++j)
-              pProgramState->vcModelList[j]->selected = false;
+            for (size_t j = 0; j < pProgramState->sceneList.size(); ++j)
+              pProgramState->sceneList[j]->selected = false;
 
             pProgramState->numSelectedModels = 0;
           }
@@ -1273,14 +1279,14 @@ void vcRenderWindow(vcState *pProgramState)
             size_t endInd = udMax(i, pProgramState->prevSelectedModel);
             for (size_t j = startInd; j <= endInd; ++j)
             {
-              pProgramState->vcModelList[j]->selected = true;
+              pProgramState->sceneList[j]->selected = true;
               pProgramState->numSelectedModels++;
             }
           }
           else
           {
-            pProgramState->vcModelList[i]->selected = !pProgramState->vcModelList[i]->selected;
-            pProgramState->numSelectedModels += (pProgramState->vcModelList[i]->selected ? 1 : 0);
+            pProgramState->sceneList[i]->selected = !pProgramState->sceneList[i]->selected;
+            pProgramState->numSelectedModels += (pProgramState->sceneList[i]->selected ? 1 : 0);
           }
 
           pProgramState->prevSelectedModel = i;
@@ -1288,24 +1294,30 @@ void vcRenderWindow(vcState *pProgramState)
 
         if (ImGui::BeginPopupContextItem(udTempStr("ModelContextMenu_%zu", i)))
         {
-          if (ImGui::Checkbox("Flip Y/Z Up", &pProgramState->vcModelList[i]->flipYZ)) //Technically this is a rotation around X actually...
-            vcModel_UpdateMatrix(pProgramState, pProgramState->vcModelList[i]);
+          if (ImGui::Selectable("Flip Y/Z Up")) //Technically this is a rotation around X actually...
+          {
+            udDouble4 rowz = -(*pProgramState->sceneList[i]->pWorldMatrix).axis.y;
+            (*pProgramState->sceneList[i]->pWorldMatrix).axis.y = (*pProgramState->sceneList[i]->pWorldMatrix).axis.z;
+            (*pProgramState->sceneList[i]->pWorldMatrix).axis.z = rowz;
+
+            vcScene_UpdateItemToCurrentProjection(pProgramState, pProgramState->sceneList[i]);
+          }
 
           ImGui::Separator();
 
-          if (pProgramState->vcModelList[i]->pZone != nullptr && ImGui::Selectable("Use Projection"))
+          if (pProgramState->sceneList[i]->pZone != nullptr && ImGui::Selectable("Use Projection"))
           {
-            if (vcGIS_ChangeSpace(&pProgramState->gis, pProgramState->vcModelList[i]->pZone->srid, &pProgramState->pCamera->position))
-              vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
+            if (vcGIS_ChangeSpace(&pProgramState->gis, pProgramState->sceneList[i]->pZone->srid, &pProgramState->pCamera->position))
+              vcScene_UpdateItemToCurrentProjection(pProgramState, nullptr); // Update all models to new zone
           }
 
           if (ImGui::Selectable("Move To"))
           {
-            udDouble3 localSpaceCenter = vcModel_GetPivotPointWorldSpace(pProgramState->vcModelList[i]);
+            udDouble3 localSpaceCenter = vcScene_GetItemWorldSpacePivotPoint(pProgramState->sceneList[i]);
 
             // Transform the camera position. Don't do the entire matrix as it may lead to inaccuracy/de-normalised camera
-            if (pProgramState->gis.isProjected && pProgramState->vcModelList[i]->pZone != nullptr && pProgramState->vcModelList[i]->pZone->srid != pProgramState->gis.SRID)
-              localSpaceCenter = udGeoZone_TransformPoint(localSpaceCenter, *pProgramState->vcModelList[i]->pZone, pProgramState->gis.zone);
+            if (pProgramState->gis.isProjected && pProgramState->sceneList[i]->pZone != nullptr && pProgramState->sceneList[i]->pZone->srid != pProgramState->gis.SRID)
+              localSpaceCenter = udGeoZone_TransformPoint(localSpaceCenter, *pProgramState->sceneList[i]->pZone, pProgramState->gis.zone);
 
             pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
             pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
@@ -1325,10 +1337,10 @@ void vcRenderWindow(vcState *pProgramState)
         }
 
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
-          vcModel_MoveToModelProjection(pProgramState, pProgramState->vcModelList[i]);
+          vcScene_UseProjectFromItem(pProgramState, pProgramState->sceneList[i]);
 
         if (ImGui::IsItemHovered())
-          ImGui::SetTooltip("%s", pProgramState->vcModelList[i]->path);
+          ImGui::SetTooltip("%s", pProgramState->sceneList[i]->pName);
 
       }
     }
@@ -1629,14 +1641,19 @@ void vcRenderWindow(vcState *pProgramState)
 
     if (ImGui::BeginPopupModal("Model Properties", NULL, ImGuiWindowFlags_HorizontalScrollbar))
     {
-      pProgramState->selectedModelProperties.pMetadata = pProgramState->vcModelList[pProgramState->selectedModelProperties.index]->pMetadata;
-      pProgramState->selectedModelProperties.pWatermarkTexture = pProgramState->vcModelList[pProgramState->selectedModelProperties.index]->pWatermark;
+      pProgramState->selectedModelProperties.pMetadata = pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pMetadata;
 
-      ImGui::Text("File:");
+      if (pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pName)
+      {
+        ImGui::TextWrapped("Name: %s", pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pPath);
+        ImGui::Separator();
+      }
 
-      ImGui::TextWrapped("  %s", pProgramState->vcModelList[pProgramState->selectedModelProperties.index]->path);
-
-      ImGui::Separator();
+      if (pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pPath)
+      {
+        ImGui::TextWrapped("Path: %s", pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pPath);
+        ImGui::Separator();
+      }
 
       if (pProgramState->selectedModelProperties.pMetadata == nullptr)
       {
@@ -1646,32 +1663,6 @@ void vcRenderWindow(vcState *pProgramState)
       {
         vcImGuiValueTreeObject(pProgramState->selectedModelProperties.pMetadata);
         ImGui::Separator();
-
-        if (pProgramState->selectedModelProperties.pWatermarkTexture != nullptr)
-        {
-          ImGui::Text("Watermark");
-
-          udInt2 imageSizei;
-          vcTexture_GetSize(pProgramState->selectedModelProperties.pWatermarkTexture, &imageSizei.x, &imageSizei.y);
-
-          ImVec2 imageSize = ImVec2((float)imageSizei.x, (float)imageSizei.y);
-          ImVec2 imageLimits = ImVec2(ImGui::GetContentRegionAvailWidth(), 100.f);
-
-          if (imageSize.y > imageLimits.y)
-          {
-            imageSize.x *= imageLimits.y / imageSize.y;
-            imageSize.y = imageLimits.y;
-          }
-
-          if (imageSize.x > imageLimits.x)
-          {
-            imageSize.y *= imageLimits.x / imageSize.x;
-            imageSize.x = imageLimits.x;
-          }
-
-          ImGui::Image((ImTextureID)(size_t)pProgramState->selectedModelProperties.pWatermarkTexture, imageSize);
-          ImGui::Separator();
-        }
       }
 
       if (ImGui::Button("Close"))
