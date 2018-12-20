@@ -2,8 +2,9 @@
 #define vcModel_h__
 
 #include "vcGIS.h"
+#include "vdkRenderContext.h"
 
-struct vdkModel;
+struct vdkPointCloud;
 class udJSON;
 struct vcTexture;
 
@@ -26,11 +27,11 @@ struct vcModel
   bool visible;
   bool selected;
 
-  udDouble4x4 baseMatrix; // This is the 'local' matrix at load time
-  udDouble4x4 worldMatrix;
+  udDouble4x4 storedMatrix; // This is the 'local' matrix at load time
+  udDouble4x4 *pWorldMatrix; // This points to the matrix in renderInstance to avoid having to copy it
   bool flipYZ;
 
-  vdkModel *pVDKModel;
+  vdkRenderInstance renderInstance;
   udJSON *pMetadata;
 
   double meterScale;

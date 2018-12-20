@@ -498,7 +498,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   if (pRenderContext == nullptr)
     return udR_InvalidParameter_;
 
-  vdkModel **ppModels = nullptr;
+  vdkRenderInstance *pModels = nullptr;
   int numVisibleModels = 0;
 
   vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->pCamera->matrices.projection.a);
@@ -520,7 +520,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   vdkRenderContext_SetPointMode(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, (vdkRenderContextPointMode)pRenderContext->pSettings->presentation.pointMode);
 
   if (renderData.models.length > 0)
-    ppModels = udAllocStack(vdkModel*, renderData.models.length, udAF_None);
+    pModels = udAllocStack(vdkRenderInstance, renderData.models.length, udAF_None);
 
   double maxDist = pRenderContext->pSettings->camera.farPlane;
   renderData.pWatermarkTexture = nullptr;
@@ -529,12 +529,13 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   {
     if (renderData.models[i]->visible && renderData.models[i]->loadStatus == vcMLS_Loaded)
     {
-      ppModels[numVisibleModels] = renderData.models[i]->pVDKModel;
+      // Copy to the contiguous array
+      memcpy(&pModels[numVisibleModels], &renderData.models[i]->renderInstance, sizeof(renderData.models[i]->renderInstance));
       ++numVisibleModels;
 
       if (renderData.models[i]->hasWatermark)
       {
-        double cameraDist = udMag(udClosestPointOnOOBB(udDouble3::zero(), pRenderContext->pCamera->matrices.view * renderData.models[i]->worldMatrix));
+        double cameraDist = udMag(udClosestPointOnOOBB(udDouble3::zero(), pRenderContext->pCamera->matrices.view * *renderData.models[i]->pWorldMatrix));
         if (cameraDist < maxDist)
         {
           maxDist = cameraDist;
@@ -576,20 +577,21 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
 
       udDouble3 corners[10];
 
-      corners[0] = (renderData.models[i]->worldMatrix * udDouble4::create(renderData.models[i]->boundsMin.x, renderData.models[i]->boundsMin.y, renderData.models[i]->boundsMin.z, 1.0)).toVector3();
-      corners[1] = (renderData.models[i]->worldMatrix * udDouble4::create(renderData.models[i]->boundsMin.x, renderData.models[i]->boundsMax.y, renderData.models[i]->boundsMin.z, 1.0)).toVector3();
-      corners[2] = (renderData.models[i]->worldMatrix * udDouble4::create(renderData.models[i]->boundsMax.x, renderData.models[i]->boundsMax.y, renderData.models[i]->boundsMin.z, 1.0)).toVector3();
-      corners[3] = (renderData.models[i]->worldMatrix * udDouble4::create(renderData.models[i]->boundsMax.x, renderData.models[i]->boundsMin.y, renderData.models[i]->boundsMin.z, 1.0)).toVector3();
+      corners[0] = (*renderData.models[i]->pWorldMatrix * udDouble4::create(renderData.models[i]->boundsMin.x, renderData.models[i]->boundsMin.y, renderData.models[i]->boundsMin.z, 1.0)).toVector3();
+      corners[1] = (*renderData.models[i]->pWorldMatrix * udDouble4::create(renderData.models[i]->boundsMin.x, renderData.models[i]->boundsMax.y, renderData.models[i]->boundsMin.z, 1.0)).toVector3();
+      corners[2] = (*renderData.models[i]->pWorldMatrix * udDouble4::create(renderData.models[i]->boundsMax.x, renderData.models[i]->boundsMax.y, renderData.models[i]->boundsMin.z, 1.0)).toVector3();
+      corners[3] = (*renderData.models[i]->pWorldMatrix * udDouble4::create(renderData.models[i]->boundsMax.x, renderData.models[i]->boundsMin.y, renderData.models[i]->boundsMin.z, 1.0)).toVector3();
       corners[4] = corners[0];
 
-      corners[5] = (renderData.models[i]->worldMatrix * udDouble4::create(renderData.models[i]->boundsMin.x, renderData.models[i]->boundsMin.y, renderData.models[i]->boundsMax.z, 1.0)).toVector3();
-      corners[6] = (renderData.models[i]->worldMatrix * udDouble4::create(renderData.models[i]->boundsMin.x, renderData.models[i]->boundsMax.y, renderData.models[i]->boundsMax.z, 1.0)).toVector3();
-      corners[7] = (renderData.models[i]->worldMatrix * udDouble4::create(renderData.models[i]->boundsMax.x, renderData.models[i]->boundsMax.y, renderData.models[i]->boundsMax.z, 1.0)).toVector3();
-      corners[8] = (renderData.models[i]->worldMatrix * udDouble4::create(renderData.models[i]->boundsMax.x, renderData.models[i]->boundsMin.y, renderData.models[i]->boundsMax.z, 1.0)).toVector3();
+      corners[5] = (*renderData.models[i]->pWorldMatrix * udDouble4::create(renderData.models[i]->boundsMin.x, renderData.models[i]->boundsMin.y, renderData.models[i]->boundsMax.z, 1.0)).toVector3();
+      corners[6] = (*renderData.models[i]->pWorldMatrix * udDouble4::create(renderData.models[i]->boundsMin.x, renderData.models[i]->boundsMax.y, renderData.models[i]->boundsMax.z, 1.0)).toVector3();
+      corners[7] = (*renderData.models[i]->pWorldMatrix * udDouble4::create(renderData.models[i]->boundsMax.x, renderData.models[i]->boundsMax.y, renderData.models[i]->boundsMax.z, 1.0)).toVector3();
+      corners[8] = (*renderData.models[i]->pWorldMatrix * udDouble4::create(renderData.models[i]->boundsMax.x, renderData.models[i]->boundsMin.y, renderData.models[i]->boundsMax.z, 1.0)).toVector3();
       corners[9] = corners[5];
 
       vcFenceRenderer_AddPoints(pRenderContext->pDiagnosticFences, corners, (int)udLengthOf(corners));
     }
+
     float z = 0;
     if (pRenderContext->pSettings->maptiles.mapEnabled)
       z = pRenderContext->pSettings->maptiles.mapHeight;
@@ -638,7 +640,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   picking.x = (uint32_t)((float)renderData.mouse.x / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
   picking.y = (uint32_t)((float)renderData.mouse.y / (float)pRenderContext->originalSceneResolution.y * (float)pRenderContext->sceneResolution.y);
 
-  vdkError result = vdkRenderContext_RenderAdv(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, ppModels, (int)numVisibleModels, &picking);
+  vdkError result = vdkRenderContext_RenderAdv(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, pModels, numVisibleModels, &picking);
 
   if (result == vE_Success)
   {
