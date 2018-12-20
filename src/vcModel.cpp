@@ -6,7 +6,7 @@
 
 #include "gl/vcTexture.h"
 
-#include "vdkModel.h"
+#include "vdkPointCloud.h"
 
 struct vcModelLoadInfo
 {
@@ -33,14 +33,14 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
   if (status == vcMLS_Pending)
   {
-    vdkError modelStatus = vdkModel_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->pVDKModel, pLoadInfo->pModel->path);
+    vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->renderInstance.pPointCloud, pLoadInfo->pModel->path);
 
     if (modelStatus == vE_Success)
     {
       const char *pMetadata;
       pLoadInfo->pModel->pMetadata = udAllocType(udJSON, 1, udAF_Zero);
 
-      if (vdkModel_GetMetadata(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->pVDKModel, &pMetadata) == vE_Success)
+      if (vdkPointCloud_GetMetadata(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->renderInstance.pPointCloud, &pMetadata) == vE_Success)
       {
         pLoadInfo->pModel->pMetadata->Parse(pMetadata);
 
@@ -87,10 +87,10 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
         }
       }
 
-      vdkModel_GetLocalMatrix(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->pVDKModel, pLoadInfo->pModel->baseMatrix.a);
+      vdkPointCloud_GetStoredMatrix(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->renderInstance.pPointCloud, pLoadInfo->pModel->storedMatrix.a);
 
-      udDouble3 scaleFactor = udDouble3::create(udMag3(pLoadInfo->pModel->baseMatrix.axis.x), udMag3(pLoadInfo->pModel->baseMatrix.axis.y), udMag3(pLoadInfo->pModel->baseMatrix.axis.z)) * pLoadInfo->scale;
-      udDouble3 translate = pLoadInfo->pModel->baseMatrix.axis.t.toVector3();
+      udDouble3 scaleFactor = udDouble3::create(udMag3(pLoadInfo->pModel->storedMatrix.axis.x), udMag3(pLoadInfo->pModel->storedMatrix.axis.y), udMag3(pLoadInfo->pModel->storedMatrix.axis.z)) * pLoadInfo->scale;
+      udDouble3 translate = pLoadInfo->pModel->storedMatrix.axis.t.toVector3();
       udDouble3 ypr = udDouble3::zero();
 
       if (pLoadInfo->useRotation)
@@ -100,7 +100,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
         translate = pLoadInfo->position;
 
       if (pLoadInfo->useRotation || pLoadInfo->usePosition || pLoadInfo->scale != 1.0)
-        pLoadInfo->pModel->baseMatrix = udDouble4x4::translation(translate) * udDouble4x4::translation(pLoadInfo->pModel->pivot) * udDouble4x4::rotationYPR(ypr) * udDouble4x4::scaleNonUniform(scaleFactor) * udDouble4x4::translation(-pLoadInfo->pModel->pivot);
+        pLoadInfo->pModel->storedMatrix = udDouble4x4::translation(translate) * udDouble4x4::translation(pLoadInfo->pModel->pivot) * udDouble4x4::rotationYPR(ypr) * udDouble4x4::scaleNonUniform(scaleFactor) * udDouble4x4::translation(-pLoadInfo->pModel->pivot);
 
       if (pLoadInfo->jumpToLocation)
         vcModel_MoveToModelProjection(pLoadInfo->pProgramState, pLoadInfo->pModel);
@@ -135,6 +135,7 @@ void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpT
       // Prepare the model
       udStrcpy(pModel->path, sizeof(pModel->path), pFilePath);
       pModel->visible = true;
+      pModel->pWorldMatrix = (udDouble4x4*)pModel->renderInstance.matrix;
 
       // Prepare the load info
       pLoadInfo->pModel = pModel;
@@ -175,7 +176,7 @@ void vcModel_RemoveFromList(vcState *pProgramState, size_t index)
 
   if (pProgramState->vcModelList[index]->loadStatus == vcMLS_Loaded)
   {
-    vdkModel_Unload(pProgramState->pVDKContext, &pProgramState->vcModelList[index]->pVDKModel);
+    vdkPointCloud_Unload(pProgramState->pVDKContext, &pProgramState->vcModelList[index]->renderInstance.pPointCloud);
 
     if (pProgramState->vcModelList[index]->pWatermark != nullptr)
       vcTexture_Destroy(&pProgramState->vcModelList[index]->pWatermark);
@@ -206,7 +207,7 @@ void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel)
   }
   else
   {
-    udDouble4x4 matrix = pModel->baseMatrix;
+    udDouble4x4 matrix = pModel->storedMatrix;
 
     if (pModel->flipYZ)
     {
@@ -219,8 +220,7 @@ void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel)
     if (pProgramState->gis.isProjected && pModel->pZone != nullptr && pProgramState->gis.SRID != pModel->pZone->srid)
       matrix = udGeoZone_TransformMatrix(matrix, *pModel->pZone, pProgramState->gis.zone);
 
-    vdkModel_SetWorldMatrix(pProgramState->pVDKContext, pModel->pVDKModel, matrix.a);
-    pModel->worldMatrix = matrix;
+    *pModel->pWorldMatrix = matrix;
   }
 }
 
@@ -242,7 +242,7 @@ udDouble3 vcModel_GetPivotPointWorldSpace(vcModel *pModel)
   udDouble3 midPoint = udDouble3::zero();
 
   if (pModel != nullptr)
-    midPoint = (pModel->worldMatrix * udDouble4::create(pModel->pivot, 1.0)).toVector3();
+    midPoint = (*pModel->pWorldMatrix * udDouble4::create(pModel->pivot, 1.0)).toVector3();
 
   return midPoint;
 }
