@@ -65,6 +65,7 @@ struct vcCameraInput
   udDouble3 worldAnchorPoint;
 
   udDouble3 startPosition; // for zoom to
+  udDoubleQuat startAngle;
   double progress;
 
   vcCameraPivotMode currentPivotMode;
