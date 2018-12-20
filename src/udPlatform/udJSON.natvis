@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="udJSON">
+    <DisplayString Condition="type == 1">{u.bVal}</DisplayString>
+    <DisplayString Condition="type == 2">{u.i64Val}</DisplayString>
+    <DisplayString Condition="type == 3">{u.dVal}</DisplayString>
+    <DisplayString Condition="type == 4">{u.pStr,s}</DisplayString>
+    <Expand HideRawView="true">
+      <ExpandedItem Condition="type == 5">*u.pArray</ExpandedItem>
+      <CustomListItems Condition="type == 6">
+        <Variable Name="i" InitialValue="0"/>
+        <Loop>
+          <Item Name="{(*u.pObject)[i].pKey,sb}">(*u.pObject)[i].value</Item>
+          <Exec>i++</Exec>
+          <Break Condition="i >= u.pObject->length"/>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+</AutoVisualizer>
