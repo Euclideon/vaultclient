@@ -1221,24 +1221,32 @@ void vcRenderWindow(vcState *pProgramState)
 
       if (vcMenuBarButton(pProgramState->pUITexture, "Remove Selected", "Delete", vcMBBI_Remove, vcMBBG_NewGroup) || ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE])
       {
-        // if multiple selected and removed
-        if (pProgramState->numSelectedModels > 1)
+        if (pProgramState->numSelectedModels != 0) // Indented check for clarity
         {
-          for (size_t i = 0; i < pProgramState->vcModelList.size(); ++i)
+          // if multiple selected and removed
+          if (pProgramState->numSelectedModels > 1)
           {
-            if (pProgramState->vcModelList[i]->selected)
+            size_t removed = 0;
+
+            for (size_t iter = 0; iter < pProgramState->vcModelList.size(); ++iter)
             {
-              vcModel_RemoveFromList(pProgramState, i);
-              --i;
+              size_t index = iter - removed;
+
+              if (pProgramState->vcModelList[index]->selected)
+              {
+                vcModel_RemoveFromList(pProgramState, index);
+                ++removed;
+              }
             }
           }
-        }
-        else
-        {
-          vcModel_RemoveFromList(pProgramState, pProgramState->prevSelectedModel);
-        }
+          else
+          {
+            vcModel_RemoveFromList(pProgramState, pProgramState->prevSelectedModel);
+          }
 
-        pProgramState->numSelectedModels = 0;
+          pProgramState->numSelectedModels = 0;
+          pProgramState->prevSelectedModel = 0;
+        }
       }
 
       // Tree view for the scene
@@ -1249,7 +1257,7 @@ void vcRenderWindow(vcState *pProgramState)
         vcMain_ShowLoadStatusIndicator((vcModelLoadStatus)pProgramState->vcModelList[i]->loadStatus);
 
         // Visibility
-        ImGui::Checkbox(udTempStr("##ModelVisible%d", i), &pProgramState->vcModelList[i]->visible);
+        ImGui::Checkbox(udTempStr("##ModelVisible%zu", i), &pProgramState->vcModelList[i]->visible);
         ImGui::SameLine();
 
         // The actual model
