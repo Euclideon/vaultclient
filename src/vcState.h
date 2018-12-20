@@ -11,6 +11,7 @@
 #include "vcSettings.h"
 #include "vcModel.h"
 #include "vcGIS.h"
+
 #include "imgui_ex/ImGuizmo.h"
 
 #include <vector>
@@ -36,7 +37,7 @@ struct vcState
 
   vcCamera *pCamera;
 
-  std::vector<const char *> loadList;
+  std::vector<const char*> loadList;
   std::vector<vcModel*> vcModelList;
   vWorkerThreadPool *pWorkerPool;
 
