@@ -31,14 +31,14 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
   if (status == vcSLS_Pending)
   {
-    vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->renderInstance.pPointCloud, pLoadInfo->pModel->path);
+    vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->pPointCloud, pLoadInfo->pModel->path);
 
     if (modelStatus == vE_Success)
     {
       const char *pMetadata;
       pLoadInfo->pModel->pMetadata = udAllocType(udJSON, 1, udAF_Zero);
 
-      if (vdkPointCloud_GetMetadata(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->renderInstance.pPointCloud, &pMetadata) == vE_Success)
+      if (vdkPointCloud_GetMetadata(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->pPointCloud, &pMetadata) == vE_Success)
       {
         pLoadInfo->pModel->pMetadata->Parse(pMetadata);
 
@@ -85,10 +85,10 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
         }
       }
 
-      vdkPointCloud_GetStoredMatrix(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->renderInstance.pPointCloud, pLoadInfo->pModel->storedMatrix.a);
+      vdkPointCloud_GetStoredMatrix(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->pPointCloud, pLoadInfo->pModel->sceneMatrix.a);
 
-      udDouble3 scaleFactor = udDouble3::create(udMag3(pLoadInfo->pModel->storedMatrix.axis.x), udMag3(pLoadInfo->pModel->storedMatrix.axis.y), udMag3(pLoadInfo->pModel->storedMatrix.axis.z)) * pLoadInfo->scale;
-      udDouble3 translate = pLoadInfo->pModel->storedMatrix.axis.t.toVector3();
+      udDouble3 scaleFactor = udDouble3::create(udMag3(pLoadInfo->pModel->sceneMatrix.axis.x), udMag3(pLoadInfo->pModel->sceneMatrix.axis.y), udMag3(pLoadInfo->pModel->sceneMatrix.axis.z)) * pLoadInfo->scale;
+      udDouble3 translate = pLoadInfo->pModel->sceneMatrix.axis.t.toVector3();
       udDouble3 ypr = udDouble3::zero();
 
       if (pLoadInfo->useRotation)
@@ -98,9 +98,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
         translate = pLoadInfo->position;
 
       if (pLoadInfo->useRotation || pLoadInfo->usePosition || pLoadInfo->scale != 1.0)
-        pLoadInfo->pModel->storedMatrix = udDouble4x4::translation(translate) * udDouble4x4::translation(pLoadInfo->pModel->pivot) * udDouble4x4::rotationYPR(ypr) * udDouble4x4::scaleNonUniform(scaleFactor) * udDouble4x4::translation(-pLoadInfo->pModel->pivot);
-
-      memcpy(pLoadInfo->pModel->renderInstance.matrix, pLoadInfo->pModel->storedMatrix.a, sizeof(pLoadInfo->pModel->storedMatrix));
+        pLoadInfo->pModel->sceneMatrix = udDouble4x4::translation(translate) * udDouble4x4::translation(pLoadInfo->pModel->pivot) * udDouble4x4::rotationYPR(ypr) * udDouble4x4::scaleNonUniform(scaleFactor) * udDouble4x4::translation(-pLoadInfo->pModel->pivot);
 
       if (pLoadInfo->jumpToLocation)
         vcScene_UseProjectFromItem(pLoadInfo->pProgramState, pLoadInfo->pModel);
@@ -124,7 +122,7 @@ void vcModel_Cleanup(vcState *pProgramState, vcSceneItem *pBaseItem)
 {
   vcModel *pModel = (vcModel*)pBaseItem;
 
-  vdkPointCloud_Unload(pProgramState->pVDKContext, &pModel->renderInstance.pPointCloud);
+  vdkPointCloud_Unload(pProgramState->pVDKContext, &pModel->pPointCloud);
 
   if (pModel->pWatermark != nullptr)
     vcTexture_Destroy(&pModel->pWatermark);
@@ -144,7 +142,6 @@ void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpT
   pModel->pPath = pModel->path;
   pModel->pName = pModel->path;
   pModel->type = vcSOT_PointCloud;
-  pModel->pWorldMatrix = (udDouble4x4*)pModel->renderInstance.matrix;
   pModel->pCleanupFunc = vcModel_Cleanup;
 
   udStrcpy(pModel->typeStr, sizeof(pModel->typeStr), "UDS");
