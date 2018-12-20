@@ -929,7 +929,7 @@ int vcMainMenuGui(vcState *pProgramState)
           vcModel_UnloadList(pProgramState);
 
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
-            vcModel_AddToList(pProgramState, pProjectList->GetElement(i)->Get("models[%d]", j).AsString());
+            vcModel_AddToList(pProgramState, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
         }
       }
 
@@ -939,7 +939,7 @@ int vcMainMenuGui(vcState *pProgramState)
     char endBarInfo[512] = {};
 
     if (pProgramState->loadList.size() > 0)
-      udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("(%llu Files Queued) / ", pProgramState->loadList.size()));
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("(%zu Files Queued) / ", pProgramState->loadList.size()));
 
     if ((SDL_GetWindowFlags(pProgramState->pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0)
       udStrcat(endBarInfo, udLengthOf(endBarInfo), "Inactive / ");
@@ -958,11 +958,11 @@ int vcMainMenuGui(vcState *pProgramState)
       if (vdkContext_GetLicenseInfo(pProgramState->pVDKContext, (vdkLicenseType)i, &info) == vE_Success)
       {
         if (info.queuePosition < 0 && (uint64_t)currentTime < info.expiresTimestamp)
-          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License (%llusecs) / ", i == vdkLT_Render ? "Render" : "Convert", (info.expiresTimestamp - currentTime)));
+          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License (%" PRIu64 "secs) / ", i == vdkLT_Render ? "Render" : "Convert", (info.expiresTimestamp - currentTime)));
         else if (info.queuePosition < 0)
           udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License (expired) / ", i == vdkLT_Render ? "Render" : "Convert"));
         else
-          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License (%d in Queue) / ", i == vdkLT_Render ? "Render" : "Convert", info.queuePosition));
+          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s License (%" PRId64 " in Queue) / ", i == vdkLT_Render ? "Render" : "Convert", info.queuePosition));
       }
     }
 
@@ -1286,7 +1286,7 @@ void vcRenderWindow(vcState *pProgramState)
           pProgramState->prevSelectedModel = i;
         }
 
-        if (ImGui::BeginPopupContextItem(udTempStr("ModelContextMenu_%d", i)))
+        if (ImGui::BeginPopupContextItem(udTempStr("ModelContextMenu_%zu", i)))
         {
           if (ImGui::Checkbox("Flip Y/Z Up", &pProgramState->vcModelList[i]->flipYZ)) //Technically this is a rotation around X actually...
             vcModel_UpdateMatrix(pProgramState, pProgramState->vcModelList[i]);
@@ -1543,7 +1543,7 @@ void vcRenderWindow(vcState *pProgramState)
               {
                 char buttonID[12], inputID[3];
                 if (pProgramState->settings.visualization.customClassificationColorLabels[i] == nullptr)
-                  vcMain_U32ColorPicker(udTempStr("%d. User Defined", i, pProgramState->settings.visualization.customClassificationColorLabels[i]), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+                  vcMain_U32ColorPicker(udTempStr("%d. User Defined", i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
                 else
                   vcMain_U32ColorPicker(udTempStr("%d. %s", i, pProgramState->settings.visualization.customClassificationColorLabels[i]), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
                 udSprintf(buttonID, 12, "Rename##%d", i);

@@ -175,7 +175,10 @@ static udResult udFileHandler_FILESeekRead(udFile *pFile, void *pBuffer, size_t 
   }
 
   fseeko(pFILE->pCrtFile, seekOffset, SEEK_SET);
-  actualRead = bufferLength ? fread(pBuffer, 1, bufferLength, pFILE->pCrtFile) : 0;
+  if (pFILE->fileLength && seekOffset >= pFILE->fileLength)
+    actualRead = 0;
+  else
+    actualRead = bufferLength ? fread(pBuffer, 1, bufferLength, pFILE->pCrtFile) : 0;
   if (pActualRead)
     *pActualRead = actualRead;
   UD_ERROR_IF(ferror(pFILE->pCrtFile) != 0, udR_ReadFailure);

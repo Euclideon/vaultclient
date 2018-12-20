@@ -102,14 +102,12 @@ template <typename T> udVector3<T> udAbs(const udVector3<T> &v);
 template <typename T> udVector4<T> udAbs(const udVector4<T> &v);
 template <typename T> udQuaternion<T> udAbs(const udQuaternion<T> &q);
 
-template <typename T> T            udMax(T a, T b);
 template <typename T> udVector2<T> udMax(const udVector2<T> &v1, const udVector2<T> &v2);
 template <typename T> udVector3<T> udMax(const udVector3<T> &v1, const udVector3<T> &v2);
 template <typename T> udVector4<T> udMax(const udVector4<T> &v1, const udVector4<T> &v2);
 template <typename T> T            udMaxElement(const udVector2<T> &v);
 template <typename T> T            udMaxElement(const udVector3<T> &v);
 template <typename T> T            udMaxElement(const udVector4<T> &v);
-template <typename T> T            udMin(T a, T b);
 template <typename T> udVector2<T> udMin(const udVector2<T> &v1, const udVector2<T> &v2);
 template <typename T> udVector3<T> udMin(const udVector3<T> &v1, const udVector3<T> &v2);
 template <typename T> udVector4<T> udMin(const udVector4<T> &v1, const udVector4<T> &v2);
@@ -410,6 +408,7 @@ udQuaternion<T> operator *(U f, const udQuaternion<T> &q) { return q * f; }
 template <typename T>
 struct udMatrix4x4
 {
+  enum { ElementCount = 16 };
   union
   {
     T a[16];

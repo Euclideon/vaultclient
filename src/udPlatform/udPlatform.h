@@ -5,6 +5,8 @@
 
 // An abstraction layer for common functions that differ on various platforms
 #include <stdint.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <stdlib.h>
 
 #if defined(_WIN64) || defined(__amd64__) || defined (__arm64__) || defined (__aarch64__)
@@ -17,7 +19,7 @@
 # define UD_WORD_MAX    0x7fffffffffffffffLL
   typedef signed long long udIWord;
   typedef unsigned long long udUWord;
-#elif defined(_WIN32) || defined(__i386__)  || defined(__arm__) || defined(__native_client__)
+#elif defined(_WIN32) || defined(__i386__)  || defined(__arm__) || defined(__native_client__) || defined(EMSCRIPTEN)
    //32-bit code
 # define UD_64BIT (0)
 # define UD_32BIT (1)
@@ -36,6 +38,14 @@
 # include <limits.h>
 # define UDPLATFORM_NACL 1
 # define USE_GLES
+#elif defined(EMSCRIPTEN)
+# include <stddef.h>
+# include <limits.h>
+# include <memory.h>
+# define UDPLATFORM_EMSCRIPTEN 1
+# if not defined(__EMSCRIPTEN_PTHREADS__)
+#  error "PTHREADS are not being used!"
+# endif
 #elif defined(_MSC_VER) || defined(__MINGW32__)
 # include <memory.h>
 # define UDPLATFORM_WINDOWS 1
@@ -93,6 +103,10 @@
 # define UDPLATFORM_NACL 0
 #endif
 
+#ifndef UDPLATFORM_EMSCRIPTEN
+# define UDPLATFORM_EMSCRIPTEN 0
+#endif
+
 #if defined(_DEBUG)
 # define UD_DEBUG   1
 # define UD_RELEASE 0
@@ -105,7 +119,7 @@
 # define udU64L(x) x##ULL
 # define udI64L(x) x##LL
 # define UDFORCE_INLINE __forceinline
-#elif UDPLATFORM_NACL
+#elif UDPLATFORM_NACL || UDPLATFORM_EMSCRIPTEN
 # define udU64L(x) x##ULL
 # define udI64L(x) x##LL
 # define UDFORCE_INLINE inline
@@ -143,7 +157,7 @@ inline void *udInterlockedCompareExchangePointer(T * volatile* dest, void *excha
 # define udYield() SwitchToThread()
 # define UDTHREADLOCAL __declspec(thread)
 
-#elif UDPLATFORM_LINUX || UDPLATFORM_NACL || UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS || UDPLATFORM_ANDROID
+#elif UDPLATFORM_LINUX || UDPLATFORM_NACL || UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS || UDPLATFORM_ANDROID || UDPLATFORM_EMSCRIPTEN
 #include <unistd.h>
 #include <sched.h>
 inline int32_t udInterlockedPreIncrement(volatile int32_t *p)  { return __sync_add_and_fetch(p, 1); }
@@ -167,6 +181,12 @@ inline void *udInterlockedCompareExchangePointer(T * volatile* dest, void *excha
 #else
 #error Unknown platform
 #endif
+
+#ifndef UDUTIL_H
+template <typename T> T udMax(T a, T b) { return (a > b) ? a : b; }
+template <typename T> T udMin(T a, T b) { return (a < b) ? a : b; }
+#endif // !UDUTIL_H
+
 // Helpers to perform various interlocked functions based on the platform-wrapped primitives
 inline int32_t udInterlockedAdd(volatile int32_t *p, int32_t amount) { int32_t prev, after; do { prev = *p; after = prev + amount; } while (udInterlockedCompareExchange(p, after, prev) != prev); return after; }
 inline ptrdiff_t udInterlockedAddPtrDiff(volatile ptrdiff_t *p, ptrdiff_t amount) { ptrdiff_t prev, after; do { prev = *p; after = prev + amount; } while (udInterlockedCompareExchangePointer((void*volatile*)p, (void*)after, (void*)prev) != (void*)prev); return after; }
@@ -225,7 +245,7 @@ protected:
 #endif //!defined(_MSC_VER)
 
 
-#if UDPLATFORM_LINUX || UDPLATFORM_NACL
+#if UDPLATFORM_LINUX || UDPLATFORM_NACL || UDPLATFORM_EMSCRIPTEN
 #include <alloca.h>
 #endif
 
@@ -333,6 +353,12 @@ void _udFreeSecure(T *&pMemory, size_t size, const char *pFile, int line)
 # if UD_GCC_VERSION < 50000
 #  pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 # endif
+#endif
+
+#if defined(__GNUC__)
+# define UD_PRINTF_FORMAT_FUNC(fmtIndex) __attribute((format(printf, fmtIndex, fmtIndex + 1)))
+#else
+# define UD_PRINTF_FORMAT_FUNC(fmtIndex)
 #endif
 
 #define MAKE_FOURCC(a, b, c, d) (  (((uint32_t)(a)) << 0) | (((uint32_t)(b)) << 8) | (((uint32_t)(c)) << 16) | (((uint32_t)(d)) << 24) )
