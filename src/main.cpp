@@ -9,7 +9,7 @@
 #include "vdkContext.h"
 #include "vdkServerAPI.h"
 #include "vdkConfig.h"
-#include "vdkModel.h"
+#include "vdkPointCloud.h"
 
 #include <chrono>
 
@@ -856,11 +856,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       vcGizmo_SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
       vcGizmo_SetDrawList();
 
-      udDouble4x4 delta = udDouble4x4::identity();
-      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->vcModelList[pProgramState->prevSelectedModel]->worldMatrix, &delta, vcGAC_AllUniform);
-
-      if (!(delta == udDouble4x4::identity()))
-        vdkModel_SetWorldMatrix(pProgramState->pVDKContext, pProgramState->vcModelList[pProgramState->prevSelectedModel]->pVDKModel, pProgramState->vcModelList[pProgramState->prevSelectedModel]->worldMatrix.a);
+      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, pProgramState->vcModelList[pProgramState->prevSelectedModel]->pWorldMatrix, nullptr, vcGAC_AllUniform);
     }
   }
 
