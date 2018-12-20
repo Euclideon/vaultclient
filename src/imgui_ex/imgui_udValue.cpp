@@ -13,7 +13,7 @@ void vcImGuiValueTreeArray(const udJSON *pValue)
 
   for (size_t i = 0; i < pArray->length; ++i)
   {
-    udSprintf(buffer, udLengthOf(buffer), "Item %llu", i);
+    udSprintf(buffer, udLengthOf(buffer), "Item %zu", i);
     vcImGuiValueTree(buffer, pArray->GetElement(i));
   }
 }

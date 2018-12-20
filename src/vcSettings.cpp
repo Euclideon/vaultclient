@@ -107,7 +107,7 @@ void vcSettings_RecursiveSaveDock(udJSON &parentJSON, ImGui::DockContext::Dock *
   if (dock.next_tab)
     vcSettings_RecursiveSaveDock(dockJSON, dock.next_tab, "next");
 
-  parentJSON.Set(&dockJSON, pParentString);
+  parentJSON.Set(&dockJSON, "%s", pParentString);
 }
 
 void vcSettings_SaveDocks(udJSON &settings)

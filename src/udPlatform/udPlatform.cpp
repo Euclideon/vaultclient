@@ -75,13 +75,15 @@ void *_udAllocAligned(size_t size, size_t alignment, udAllocationFlags flags, co
   int err = posix_memalign(&pMemory, alignment, size + alignment);
   if (err != 0)
   {
-	  return nullptr;
+    return nullptr;
   }
 
   if (flags & udAF_Zero)
   {
     memset(pMemory, 0, size);
   }
+#else
+# error "Unsupported platform!"
 #endif
   DebugTrackMemoryAlloc(pMemory, size, pFile, line);
 
@@ -143,6 +145,8 @@ void *_udReallocAligned(void *pMemory, size_t size, size_t alignment, const char
 
     return pNewMem;
   }
+#else
+# error "Unsupported platform!"
 #endif
   DebugTrackMemoryAlloc(pMemory, size, pFile, line);
 

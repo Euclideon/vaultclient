@@ -1189,11 +1189,11 @@ int udGetHardwareThreadCount()
     }
     return hardwareThreadCount;
   }
-#elif UDPLATFORM_LINUX || UDPLATFORM_NACL || UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS
-  return sysconf(_SC_NPROCESSORS_ONLN);
-#endif
 
   return 1;
+#else
+  return sysconf(_SC_NPROCESSORS_ONLN);
+#endif
 }
 
 // *********************************************************************
@@ -1724,7 +1724,7 @@ struct udFindDirData : public udFindDir
     pFilename = utf8Filename;
     isDirectory = !!(findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
   }
-#elif UDPLATFORM_LINUX || UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS || UDPLATFORM_ANDROID
+#elif UDPLATFORM_LINUX || UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS || UDPLATFORM_ANDROID || UDPLATFORM_EMSCRIPTEN
   DIR *pDir;
   struct dirent *pDirent;
 
@@ -1802,7 +1802,7 @@ udResult udOpenDir(udFindDir **ppFindDir, const char *pFolder)
     UD_ERROR_IF(pFindData->hFind == INVALID_HANDLE_VALUE, udR_OpenFailure);
     pFindData->SetMembers();
   }
-#elif UDPLATFORM_LINUX || UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS || UDPLATFORM_ANDROID
+#elif UDPLATFORM_LINUX || UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS || UDPLATFORM_ANDROID || UDPLATFORM_EMSCRIPTEN
   pFindData->pDir = opendir(pFolder);
   UD_ERROR_NULL(pFindData->pDir, udR_OpenFailure);
   pFindData->pDirent = readdir(pFindData->pDir);
@@ -1838,7 +1838,7 @@ udResult udReadDir(udFindDir *pFindDir)
   if (!FindNextFileW(pFindData->hFind, &pFindData->findFileData))
     return udR_ObjectNotFound;
   pFindData->SetMembers();
-#elif UDPLATFORM_LINUX || UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS || UDPLATFORM_ANDROID
+#elif UDPLATFORM_LINUX || UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS || UDPLATFORM_ANDROID || UDPLATFORM_EMSCRIPTEN
   udFindDirData *pFindData = static_cast<udFindDirData *>(pFindDir);
   pFindData->pDirent = readdir(pFindData->pDir);
   if (!pFindData->pDirent)
@@ -1863,7 +1863,7 @@ udResult udCloseDir(udFindDir **ppFindDir)
   udFindDirData *pFindData = static_cast<udFindDirData *>(*ppFindDir);
   if (pFindData->hFind != INVALID_HANDLE_VALUE)
     FindClose(pFindData->hFind);
-#elif UDPLATFORM_LINUX || UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS || UDPLATFORM_ANDROID
+#elif UDPLATFORM_LINUX || UDPLATFORM_OSX || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_IOS || UDPLATFORM_ANDROID || UDPLATFORM_EMSCRIPTEN
   udFindDirData *pFindData = static_cast<udFindDirData *>(*ppFindDir);
   if (pFindData->pDir)
     closedir(pFindData->pDir);
@@ -2158,15 +2158,15 @@ udResult udParseWKT(udJSON *pValue, const char *pString, int *pCharCount)
       udStrchr(pString, "[],", &idLen);
       if (pString[idLen] == '[')
       {
-        temp.Set("type = '%.*s'", idLen, pString);
+        temp.Set("type = '%.*s'", (int)idLen, pString);
         result = udParseWKT(&temp, pString + idLen + 1, &tempCharCount);
         UD_ERROR_HANDLE();
-        pValue->Set(&temp, "values[]", idLen, pString);
+        pValue->Set(&temp, "values[]");
         pString += idLen + 1 + tempCharCount;
       }
       else // Any non-parsable is now considered a string, eg AXIS["Easting",EAST] parses as AXIS["Easting","EAST"]
       {
-        pValue->Set("values[] = '%.*s'", idLen, pString);
+        pValue->Set("values[] = '%.*s'", (int)idLen, pString);
         ++parameterNumber;
         pString += idLen;
       }
@@ -2209,7 +2209,7 @@ static udResult GetWKTElementStr(const char **ppOutput, const udJSON &value)
   }
   for (size_t i = 0; i < valuesCount; ++i)
   {
-    const udJSON &arrayValue = value.Get("values[%d]", i);
+    const udJSON &arrayValue = value.Get("values[%d]", (int)i);
     if (arrayValue.IsObject())
       UD_ERROR_CHECK(GetWKTElementStr(&pElementStr, arrayValue));
     else if (arrayValue.IsString() && i == 0 && udStrEqual(pTypeStr, "AXIS")) // Special case for AXIS, output second string unquoted
@@ -2252,7 +2252,7 @@ udResult udExportWKT(const char **ppOutput, const udJSON *pValue)
   elemCount = pValue->Get("values").ArrayLength();
   for (size_t i = 0; i < elemCount; ++i)
   {
-    UD_ERROR_CHECK(GetWKTElementStr(&pElementStr, pValue->Get("values[%d]", i)));
+    UD_ERROR_CHECK(GetWKTElementStr(&pElementStr, pValue->Get("values[%d]", (int)i)));
     if (!pStr)
     {
       pStr = pElementStr;

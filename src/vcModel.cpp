@@ -69,9 +69,9 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
           {
             for (size_t i = 0; i < tempNode.Get("values").ArrayLength() && srid == 0; ++i)
             {
-              if (udStrEquali(tempNode.Get("values[%llu].type", i).AsString(), "AUTHORITY"))
+              if (udStrEquali(tempNode.Get("values[%zu].type", i).AsString(), "AUTHORITY"))
               {
-                srid = tempNode.Get("values[%llu].values[0]", i).AsInt();
+                srid = tempNode.Get("values[%zu].values[0]", i).AsInt();
                 break;
               }
             }

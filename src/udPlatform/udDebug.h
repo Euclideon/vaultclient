@@ -5,7 +5,7 @@
 #include "udResult.h"
 
 // Outputs a string to debug console
-void udDebugPrintf(const char *format, ...);
+UD_PRINTF_FORMAT_FUNC(1) void udDebugPrintf(const char *format, ...);
 
 // Optional, set this pointer to redirect debug printfs
 extern void (*gpudDebugPrintfOutputCallback)(const char *pString);
@@ -15,7 +15,7 @@ class udTrace
 public:
   udTrace(const char *, int traceLevel);
   ~udTrace();
-  static void Message(const char *pFormat, ...); // Print a message at the indentation level of the current trace
+  UD_PRINTF_FORMAT_FUNC(1) static void Message(const char *pFormat, ...); // Print a message at the indentation level of the current trace
   static void ShowCallstack();
 
   const char *functionName;
@@ -34,9 +34,9 @@ inline void udTrace_Variable(const char *pName, const T *value, int line)     { 
 inline void udTrace_Variable(const char *pName, udResult value, int line)     { udTrace::Message("%s = udR_%s (line#=%d)", pName, udResultAsString(value), line); }
 inline void udTrace_Variable(const char *pName, const char *value, int line)  { udTrace::Message("%s = '%s' (line#=%d)", pName, value, line); }
 inline void udTrace_Variable(const char *pName, int value, int line)          { udTrace::Message("%s = %d/0x%x (int, line#=%d)", pName, value, value, line); }
-inline void udTrace_Variable(const char *pName, int64_t value, int line)      { udTrace::Message("%s = %lld/0x%llx (int64, line#=%d)", pName, value, value, line); }
+inline void udTrace_Variable(const char *pName, int64_t value, int line)      { udTrace::Message("%s = %" PRId64 "/0x%" PRIx64 " (int64, line#=%d)", pName, value, value, line); }
 inline void udTrace_Variable(const char *pName, unsigned value, int line)     { udTrace::Message("%s = %u/0x%x (int, line#=%d)", pName, value, value, line); }
-inline void udTrace_Variable(const char *pName, uint64_t value, int line)     { udTrace::Message("%s = %llu/0x%llx (int64, line#=%d)", pName, value, value, line); }
+inline void udTrace_Variable(const char *pName, uint64_t value, int line)     { udTrace::Message("%s = %" PRIu64 "/0x%" PRIx64 " (int64, line#=%d)", pName, value, value, line); }
 inline void udTrace_Variable(const char *pName, float value, int line)        { udTrace::Message("%s = %f (float, line#=%d)", pName, value, line); }
 inline void udTrace_Variable(const char *pName, double value, int line)       { udTrace::Message("%s = %lf (double line#=%d)", pName, value, line); }
 inline void udTrace_Variable(const char *pName, bool value, int line)         { udTrace::Message("%s = %s (line#=%d)", pName, value ? "true" : "false", line); }

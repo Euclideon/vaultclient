@@ -93,14 +93,12 @@ template <typename T> udVector3<T> udAbs(const udVector3<T> &v) { udVector3<T> r
 template <typename T> udVector4<T> udAbs(const udVector4<T> &v) { udVector4<T> r = { v.x<T(0)?-v.x:v.x, v.y<T(0)?-v.y:v.y, v.z<T(0)?-v.z:v.z, v.w<T(0)?-v.w:v.w }; return r; }
 template <typename T> udQuaternion<T> udAbs(const udQuaternion<T> &q) { udQuaternion<T> r = { q.x<T(0) ? -q.x : q.x, q.y<T(0) ? -q.y : q.y, q.z<T(0) ? -q.z : q.z, q.w<T(0) ? -q.w : q.w }; return r; }
 
-template <typename T> T            udMax(T a, T b) { return (a > b) ? a : b; }
 template <typename T> udVector2<T> udMin(const udVector2<T> &v1, const udVector2<T> &v2) { udVector2<T> r = { v1.x<v2.x?v1.x:v2.x, v1.y<v2.y?v1.y:v2.y }; return r; }
 template <typename T> udVector3<T> udMin(const udVector3<T> &v1, const udVector3<T> &v2) { udVector3<T> r = { v1.x<v2.x?v1.x:v2.x, v1.y<v2.y?v1.y:v2.y, v1.z<v2.z?v1.z:v2.z }; return r; }
 template <typename T> udVector4<T> udMin(const udVector4<T> &v1, const udVector4<T> &v2) { udVector4<T> r = { v1.x<v2.x?v1.x:v2.x, v1.y<v2.y?v1.y:v2.y, v1.z<v2.z?v1.z:v2.z, v1.w<v2.w?v1.w:v2.w }; return r; }
 template <typename T> T            udMinElement(const udVector2<T> &v) { return udMin(v.x, v.y); }
 template <typename T> T            udMinElement(const udVector3<T> &v) { return udMin(udMin(v.x, v.y), v.z); }
 template <typename T> T            udMinElement(const udVector4<T> &v) { return udMin(udMin(v.x, v.y), udMin(v.z, v.w)); }
-template <typename T> T            udMin(T a, T b) { return (a < b) ? a : b; }
 template <typename T> udVector2<T> udMax(const udVector2<T> &v1, const udVector2<T> &v2) { udVector2<T> r = { v1.x>v2.x?v1.x:v2.x, v1.y>v2.y?v1.y:v2.y }; return r; }
 template <typename T> udVector3<T> udMax(const udVector3<T> &v1, const udVector3<T> &v2) { udVector3<T> r = { v1.x>v2.x?v1.x:v2.x, v1.y>v2.y?v1.y:v2.y, v1.z>v2.z?v1.z:v2.z }; return r; }
 template <typename T> udVector4<T> udMax(const udVector4<T> &v1, const udVector4<T> &v2) { udVector4<T> r = { v1.x>v2.x?v1.x:v2.x, v1.y>v2.y?v1.y:v2.y, v1.z>v2.z?v1.z:v2.z, v1.w>v2.w?v1.w:v2.w }; return r; }

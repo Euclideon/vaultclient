@@ -5,7 +5,9 @@ extern bool g_udBreakOnError;      // Set to true normally, unset and reset arou
 extern const char *g_udLastErrorFilename;
 extern int g_udLastErrorLine;
 
-#define UD_ERROR_BREAK_ON_ERROR 0  // Set to 1 to have the debugger break on error
+#if !defined(UD_ERROR_BREAK_ON_ERROR)
+# define UD_ERROR_BREAK_ON_ERROR 0  // Set to 1 to have the debugger break on error
+#endif
 
 // Some helper macros that assume an exit path label "epilogue" and a local variable "result"
 
@@ -69,6 +71,7 @@ enum udResult
   udR_Pending,
   udR_Cancelled,
   udR_OutOfSync,
+  udR_SessionExpired,
 
   udR_Count,
 
