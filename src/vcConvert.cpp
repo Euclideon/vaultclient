@@ -249,7 +249,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   {
     bool selected = (pProgramState->pConvertContext->selectedItem == i);
 
-    udSprintf(tempBuffer, UDARRAYSIZE(tempBuffer), "X##convertjob_%llu", i);
+    udSprintf(tempBuffer, UDARRAYSIZE(tempBuffer), "X##convertjob_%zu", i);
     if (ImGui::Button(tempBuffer, ImVec2(20, 20)))
     {
       if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
@@ -274,7 +274,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
     float buttonWidth = ImGui::GetItemRectSize().x;
     ImGui::SameLine();
 
-    udSprintf(tempBuffer, UDARRAYSIZE(tempBuffer), "%s (%s)##convertjob_%llu", pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName, statusNames[pProgramState->pConvertContext->jobs[i]->status], i);
+    udSprintf(tempBuffer, UDARRAYSIZE(tempBuffer), "%s (%s)##convertjob_%zu", pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName, statusNames[pProgramState->pConvertContext->jobs[i]->status], i);
 
     ImVec2 selectablePos = ImVec2(ImGui::GetContentRegionMax().x - buttonWidth - ImGui::GetStyle().ItemSpacing.x * 2, 0);
     if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
@@ -311,7 +311,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
     else if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Completed)
     {
       ImGui::SameLine();
-      if (ImGui::Button(udTempStr("Add to Scene##vcConvLoad_%llu", i), ImVec2(-1, 0)))
+      if (ImGui::Button(udTempStr("Add to Scene##vcConvLoad_%zu", i), ImVec2(-1, 0)))
         pProgramState->loadList.push_back(udStrdup(pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName));
     }
   }
@@ -454,7 +454,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
           ImGui::NextColumn();
 
-          if (ImGui::Button(udTempStr("Remove##convertitemremove_%llu", i)))
+          if (ImGui::Button(udTempStr("Remove##convertitemremove_%zu", i)))
           {
             vdkConvert_RemoveItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i);
             --i;

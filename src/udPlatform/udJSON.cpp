@@ -20,6 +20,9 @@ const size_t udJSON::s_udJSONTypeSize[T_Count] =
 static const char *s_pXMLEscStrings[] = { "&apos;", "&amp;" , "&quot;", "&lt;", "&gt;"};
 static const char *s_xmlEscChars = "\'&\"<>";
 
+static const char *s_pJSONEscStrings[] = { "\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t" };
+static const char *s_jsonEscChars = "\\\"\b\f\n\r\t";
+
 // ----------------------------------------------------------------------------
 // Author: Dave Pevreal, April 2017
 // Very small expression parsing helper
@@ -1030,27 +1033,34 @@ udResult udJSON::ToString(const char **ppStr, int indent, const char *pPre, cons
   {
     case T_Void:    result = udSprintf(ppStr, "%*s%snull%s",     indent, "", pPre, pPost); break;
     case T_Bool:    result = udSprintf(ppStr, "%*s%s%s%s%s%s",   indent, "", pPre, pQuote, u.bVal ? "true" : "false", pQuote, pPost); break;
-    case T_Int64:   result = udSprintf(ppStr, "%*s%s%s%lld%s%s", indent, "", pPre, pQuote, u.i64Val, pQuote, pPost); break;
+    case T_Int64:   result = udSprintf(ppStr, "%*s%s%s%" PRId64 "%s%s", indent, "", pPre, pQuote, u.i64Val, pQuote, pPost); break;
     case T_Double:  result = udSprintf(ppStr, "%*s%s%s%.*lf%s%s",  indent, "", pPre, pQuote, dPrec ? dPrec : DEFAULT_DOUBLE_TOSTRING_PRECISION, u.dVal, pQuote, pPost); break;
     case T_String:
-      if (escape == 1) // JSON level escape (just backslashes)
+      if (escape == 1 || escape == 2) // JSON or XML escape
       {
-        pEscaped = const_cast<char*>(udStrEscape(u.pStr, "\"\\", false)); // Escape quotes and slashes
-        UD_ERROR_NULL(pEscaped, udR_MemoryAllocationFailure);
-      }
-      else if (escape == 2) // XML escapes
-      {
+        const char *pEscChars = s_jsonEscChars;
+        const char **pEscStrings = s_pJSONEscStrings;
+        int offset = 0;
+
+        if (escape == 2) //XML
+        {
+          pEscChars = s_xmlEscChars;
+          pEscStrings = s_pXMLEscStrings;
+
+          // NOTE: xmlEscChars are +1 in places to ignore the &apos; (single quote)
+          offset = 1;
+        }
+
         size_t newSize = udStrlen(u.pStr) + 1;
         size_t strCharIndex = 0; // Index in the string of the special character
         size_t escCharIndex = 0; // Index in the escaped character list string
         const char *p = u.pStr;
         do
         {
-          // NOTE: xmlEscChars are +1 in places to ignore the &apos; (single quote)
-          udStrchr(p, s_xmlEscChars+1, &strCharIndex, &escCharIndex);
+          udStrchr(p, pEscChars + offset, &strCharIndex, &escCharIndex);
           if (p[strCharIndex])
           {
-            newSize += udStrlen(s_pXMLEscStrings[1+escCharIndex]) - 1;
+            newSize += udStrlen(pEscStrings[offset+escCharIndex]) - 1;
             ++strCharIndex; // Skip the actual character we just escaped
           }
           p += strCharIndex;
@@ -1062,13 +1072,13 @@ udResult udJSON::ToString(const char **ppStr, int indent, const char *pPre, cons
         p = u.pStr;
         do
         {
-          udStrchr(p, s_xmlEscChars+1, &strCharIndex, &escCharIndex);
+          udStrchr(p, pEscChars + offset, &strCharIndex, &escCharIndex);
           memcpy(pEscaped + newSize, p, strCharIndex);
           newSize += strCharIndex;
           if (p[strCharIndex])
           {
-            size_t l = udStrlen(s_pXMLEscStrings[1+escCharIndex]);
-            memcpy(pEscaped + newSize, s_pXMLEscStrings[1+escCharIndex], l);
+            size_t l = udStrlen(pEscStrings[offset+escCharIndex]);
+            memcpy(pEscaped + newSize, pEscStrings[offset+escCharIndex], l);
             newSize += l;
             ++strCharIndex; // Skip the actual character we just escaped
           }
@@ -1218,7 +1228,7 @@ udResult udJSON::ExportXML(const char *pKey, udJSON::LineList *pLines, int inden
           {
             case T_Void:    result = udSprintf(&pStr, "%*s<%s></%s>",     indent, "", pKey, pKey); break;
             case T_Bool:    result = udSprintf(&pStr, "%*s<%s>%s</%s>",   indent, "", pKey, pValue->u.bVal ? "true" : "false", pKey); break;
-            case T_Int64:   result = udSprintf(&pStr, "%*s<%s>%lld</%s>", indent, "", pKey, pValue->u.i64Val, pKey); break;
+            case T_Int64:   result = udSprintf(&pStr, "%*s<%s>%" PRId64 "</%s>", indent, "", pKey, pValue->u.i64Val, pKey); break;
             case T_Double:  result = udSprintf(&pStr, "%*s<%s>%lf</%s>",  indent, "", pKey, pValue->u.dVal, pKey); break;
             case T_String:  result = udSprintf(&pStr, "%*s<%s>%s</%s>", indent, "", pKey, pValue->u.pStr, pKey); break;
             case T_Array:
