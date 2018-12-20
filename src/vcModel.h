@@ -12,7 +12,7 @@ struct vcModel : public vcSceneItem
 {
   char path[1024];
 
-  vdkRenderInstance renderInstance;
+  vdkPointCloud *pPointCloud;
 
   double meterScale;
   udDouble3 boundsMin;

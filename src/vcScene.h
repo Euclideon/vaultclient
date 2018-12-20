@@ -42,8 +42,7 @@ struct vcSceneItem
   vcSceneItemType type;
   char typeStr[8];
 
-  udDouble4x4 storedMatrix; // This is the 'local' matrix at load time
-  udDouble4x4 *pWorldMatrix; // This points to either the stored matrix or another local set matrix
+  udDouble4x4 sceneMatrix; // This is the matrix used to render into the current projection
   udDouble3 pivot; // The point in local space that the object is anchored around (for scaling and rotating)
 
   udJSON *pMetadata; // This points to a metadata (if it exists)

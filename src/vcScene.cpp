@@ -43,13 +43,14 @@ void vcScene_UpdateItemToCurrentProjection(vcState *pProgramState, vcSceneItem *
   }
   else
   {
-    udDouble4x4 matrix = *pModel->pWorldMatrix;
-
     // Handle transforming into the camera's GeoZone
     if (pProgramState->gis.isProjected && pModel->pZone != nullptr && pProgramState->gis.SRID != pModel->pZone->srid)
-      matrix = udGeoZone_TransformMatrix(matrix, *pModel->pZone, pProgramState->gis.zone);
+    {
+      pModel->sceneMatrix = udGeoZone_TransformMatrix(pModel->sceneMatrix, *pModel->pZone, pProgramState->gis.zone);
 
-    *pModel->pWorldMatrix = matrix;
+      // This is not ideal as it will gather drift
+      memcpy(pModel->pZone, &pProgramState->gis.zone, sizeof(pProgramState->gis.zone));
+    }
   }
 }
 
@@ -71,7 +72,7 @@ udDouble3 vcScene_GetItemWorldSpacePivotPoint(vcSceneItem *pModel)
   udDouble3 midPoint = udDouble3::zero();
 
   if (pModel != nullptr)
-    midPoint = (*pModel->pWorldMatrix * udDouble4::create(pModel->pivot, 1.0)).toVector3();
+    midPoint = (pModel->sceneMatrix * udDouble4::create(pModel->pivot, 1.0)).toVector3();
 
   return midPoint;
 }

@@ -856,7 +856,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       vcGizmo_SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
       vcGizmo_SetDrawList();
 
-      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, pProgramState->sceneList[pProgramState->prevSelectedModel]->pWorldMatrix, nullptr, vcGAC_AllUniform);
+      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->sceneList[pProgramState->prevSelectedModel]->sceneMatrix, nullptr, vcGAC_AllUniform);
     }
   }
 
@@ -1296,9 +1296,9 @@ void vcRenderWindow(vcState *pProgramState)
         {
           if (ImGui::Selectable("Flip Y/Z Up")) //Technically this is a rotation around X actually...
           {
-            udDouble4 rowz = -(*pProgramState->sceneList[i]->pWorldMatrix).axis.y;
-            (*pProgramState->sceneList[i]->pWorldMatrix).axis.y = (*pProgramState->sceneList[i]->pWorldMatrix).axis.z;
-            (*pProgramState->sceneList[i]->pWorldMatrix).axis.z = rowz;
+            udDouble4 rowz = -pProgramState->sceneList[i]->sceneMatrix.axis.y;
+            pProgramState->sceneList[i]->sceneMatrix.axis.y = pProgramState->sceneList[i]->sceneMatrix.axis.z;
+            pProgramState->sceneList[i]->sceneMatrix.axis.z = rowz;
 
             vcScene_UpdateItemToCurrentProjection(pProgramState, pProgramState->sceneList[i]);
           }
