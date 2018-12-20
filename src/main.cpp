@@ -79,9 +79,9 @@ struct vcColumnHeader
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
-int64_t vcMain_GetCurrentTime()
+int64_t vcMain_GetCurrentTime(int fractionSec = 1) // This gives 1/fractionSec factions since epoch, 5=200ms, 10=100ms etc.
 {
-  return std::chrono::system_clock::now().time_since_epoch().count() / std::chrono::system_clock::period::den;
+  return std::chrono::system_clock::now().time_since_epoch().count() * fractionSec / std::chrono::system_clock::period::den;
 }
 
 void vcMain_UpdateSessionInfo(void *pProgramStatePtr)
@@ -183,6 +183,9 @@ void vcLogout(vcState *pProgramState)
 {
   pProgramState->hasContext = false;
   pProgramState->forceLogout = false;
+
+  pProgramState->numSelectedModels = 0;
+  pProgramState->prevSelectedModel = 0;
 
   if (pProgramState->pVDKContext != nullptr)
   {
@@ -671,16 +674,16 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           pProgramState->settings.presentation.showProjectionInfo = !pProgramState->settings.presentation.showProjectionInfo;
 
         // Gizmo Settings
-        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_B] || vcMenuBarButton(pProgramState->pUITexture, "Gizmo Translate", "B", vcMBBI_Translate, vcMBBG_NewGroup, (pProgramState->gizmo.operation == vcGO_Translate)))
+        if (vcMenuBarButton(pProgramState->pUITexture, "Gizmo Translate", "B", vcMBBI_Translate, vcMBBG_NewGroup, (pProgramState->gizmo.operation == vcGO_Translate)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_B])
           pProgramState->gizmo.operation = vcGO_Translate;
 
-        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_N] || vcMenuBarButton(pProgramState->pUITexture, "Gizmo Rotate", "N", vcMBBI_Rotate, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Rotate)))
+        if (vcMenuBarButton(pProgramState->pUITexture, "Gizmo Rotate", "N", vcMBBI_Rotate, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Rotate)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_N])
           pProgramState->gizmo.operation = vcGO_Rotate;
 
-        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_M] || vcMenuBarButton(pProgramState->pUITexture, "Gizmo Scale", "M", vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)))
+        if (vcMenuBarButton(pProgramState->pUITexture, "Gizmo Scale", "M", vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_M])
           pProgramState->gizmo.operation = vcGO_Scale;
 
-        if (ImGui::GetIO().KeysDown[SDL_SCANCODE_C] || vcMenuBarButton(pProgramState->pUITexture, "Gizmo Local Space", "C", vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)))
+        if (vcMenuBarButton(pProgramState->pUITexture, "Gizmo Local Space", "C", vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_C])
           pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
       }
@@ -1023,6 +1026,46 @@ bool vcMain_U32ColorPicker(const char *pLabel, uint32_t *pColor, ImGuiColorEditF
   return false;
 }
 
+void vcMain_ShowLoadStatusIndicator(vcModelLoadStatus loadStatus, bool sameLine = true)
+{
+  const char *loadingChars[] = { "\xE2\x96\xB2", "\xE2\x96\xB6", "\xE2\x96\xBC", "\xE2\x97\x80" };
+  int64_t currentLoadingChar = vcMain_GetCurrentTime(10);
+
+  // Load Status (if any)
+  if (loadStatus == vcMLS_Pending)
+  {
+    ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Yellow Exclamation in Triangle
+    if (ImGui::IsItemHovered())
+      ImGui::SetTooltip("%s", "Pending");
+
+    if (sameLine)
+      ImGui::SameLine();
+  }
+  else if (loadStatus == vcMLS_Loading)
+  {
+    ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", loadingChars[currentLoadingChar % udLengthOf(loadingChars)]); // Yellow Spinning clock
+    if (ImGui::IsItemHovered())
+      ImGui::SetTooltip("%s", "Loading");
+
+    if (sameLine)
+      ImGui::SameLine();
+  }
+  else if (loadStatus == vcMLS_Failed || loadStatus == vcMLS_OpenFailure)
+  {
+    ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Red Exclamation in Triangle
+    if (ImGui::IsItemHovered())
+    {
+      if (loadStatus == vcMLS_OpenFailure)
+        ImGui::SetTooltip("%s", "Could not open the model, perhaps it is missing or you don't have permission to access it.");
+      else
+        ImGui::SetTooltip("%s", "Failed to load model");
+    }
+
+    if (sameLine)
+      ImGui::SameLine();
+  }
+}
+
 void vcRenderWindow(vcState *pProgramState)
 {
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
@@ -1161,8 +1204,7 @@ void vcRenderWindow(vcState *pProgramState)
   {
     if (ImGui::BeginDock("Scene Explorer", &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
     {
-      // Menu Bar
-      if (vcMenuBarButton(pProgramState->pUITexture, "Add UDS", nullptr, vcMBBI_AddPointCloud, vcMBBG_FirstItem))
+      if (vcMenuBarButton(pProgramState->pUITexture, "Add UDS", "Ctrl+U", vcMBBI_AddPointCloud, vcMBBG_FirstItem) || (ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeysDown[SDL_SCANCODE_U]))
         vcModals_OpenModal(pProgramState, vcMT_AddUDS);
 
       if (vcMenuBarButton(pProgramState->pUITexture, "Add Point of Interest", nullptr, vcMBBI_AddPointOfInterest, vcMBBG_SameGroup))
@@ -1177,104 +1219,48 @@ void vcRenderWindow(vcState *pProgramState)
       if (vcMenuBarButton(pProgramState->pUITexture, "Add Folder", nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
         vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
 
-      // Models
-
-      int minMaxColumnSize[][2] =
+      if (vcMenuBarButton(pProgramState->pUITexture, "Remove Selected", "Delete", vcMBBI_Remove, vcMBBG_NewGroup) || ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE])
       {
-        {50,500},
-        {40,40},
-        {35,35},
-        {1,1}
-      };
+        if (pProgramState->numSelectedModels != 0) // Indented check for clarity
+        {
+          // if multiple selected and removed
+          if (pProgramState->numSelectedModels > 1)
+          {
+            size_t removed = 0;
 
-      vcColumnHeader headers[] =
-      {
-        { "Model List", 400 },
-        { "Show", 40 },
-        { "Del", 35 }, // unload column
-        { "", 1 } // Null Column at end
-      };
+            for (size_t iter = 0; iter < pProgramState->vcModelList.size(); ++iter)
+            {
+              size_t index = iter - removed;
 
-      int col1Size = (int)ImGui::GetContentRegionAvailWidth();
-      col1Size -= 40 + 35; // subtract size of two buttons
+              if (pProgramState->vcModelList[index]->selected)
+              {
+                vcModel_RemoveFromList(pProgramState, index);
+                ++removed;
+              }
+            }
+          }
+          else
+          {
+            vcModel_RemoveFromList(pProgramState, pProgramState->prevSelectedModel);
+          }
 
-      if (col1Size > minMaxColumnSize[0][1])
-        col1Size = minMaxColumnSize[0][1];
-
-      if (col1Size < minMaxColumnSize[0][0])
-        col1Size = minMaxColumnSize[0][0];
-
-      headers[0].size = (float)col1Size;
-
-
-      ImGui::Columns((int)udLengthOf(headers), "ModelTableColumns", true);
-      ImGui::Separator();
-
-      float offset = 0.f;
-      for (size_t i = 0; i < UDARRAYSIZE(headers); ++i)
-      {
-        ImGui::Text("%s", headers[i].pLabel);
-        ImGui::SetColumnOffset(-1, offset);
-        offset += headers[i].size;
-        ImGui::NextColumn();
+          pProgramState->numSelectedModels = 0;
+          pProgramState->prevSelectedModel = 0;
+        }
       }
 
+      // Tree view for the scene
       ImGui::Separator();
-      // Table Contents
 
       for (size_t i = 0; i < pProgramState->vcModelList.size(); ++i)
       {
-        // Column 1 - Model
-        char modelLabelID[32] = "";
-        udSprintf(modelLabelID, UDARRAYSIZE(modelLabelID), "ModelLabel%i", i);
-        ImGui::PushID(modelLabelID);
+        vcMain_ShowLoadStatusIndicator((vcModelLoadStatus)pProgramState->vcModelList[i]->loadStatus);
 
-        const char *loadingChars[] = { "\xE2\x96\xB2", "\xE2\x96\xB6", "\xE2\x96\xBC", "\xE2\x97\x80" };
-        static uint8_t currentLoadingChar = 0;
+        // Visibility
+        ImGui::Checkbox(udTempStr("##ModelVisible%zu", i), &pProgramState->vcModelList[i]->visible);
+        ImGui::SameLine();
 
-        if (i == 0)
-          ++currentLoadingChar;
-
-        if (pProgramState->vcModelList[i]->loadStatus == vcMLS_Pending)
-        {
-          ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Yellow Exclamation in Triangle
-          ImGui::SameLine();
-
-          if (ImGui::IsItemHovered())
-          {
-            ImGui::BeginTooltip();
-            ImGui::Text("Pending");
-            ImGui::EndTooltip();
-          }
-        }
-        else if (pProgramState->vcModelList[i]->loadStatus == vcMLS_Loading)
-        {
-          ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", loadingChars[currentLoadingChar % udLengthOf(loadingChars)]); // Yellow Spinning clock
-          ImGui::SameLine();
-
-          if (ImGui::IsItemHovered())
-          {
-            ImGui::BeginTooltip();
-            ImGui::Text("Loading");
-            ImGui::EndTooltip();
-          }
-        }
-        else if (pProgramState->vcModelList[i]->loadStatus == vcMLS_Failed || pProgramState->vcModelList[i]->loadStatus == vcMLS_OpenFailure)
-        {
-          ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Red Exclamation in Triangle
-          ImGui::SameLine();
-
-          if (ImGui::IsItemHovered())
-          {
-            ImGui::BeginTooltip();
-            if (pProgramState->vcModelList[i]->loadStatus == vcMLS_OpenFailure)
-              ImGui::Text("Could not open the model, perhaps it is missing or you don't have permission to access it.");
-            else
-              ImGui::Text("Failed to load model");
-            ImGui::EndTooltip();
-          }
-        }
-
+        // The actual model
         if (ImGui::Selectable(pProgramState->vcModelList[i]->path, pProgramState->vcModelList[i]->selected))
         {
           if ((modState & KMOD_CTRL) == 0)
@@ -1304,7 +1290,7 @@ void vcRenderWindow(vcState *pProgramState)
           pProgramState->prevSelectedModel = i;
         }
 
-        if (ImGui::BeginPopupContextItem(modelLabelID))
+        if (ImGui::BeginPopupContextItem(udTempStr("ModelContextMenu_%d", i)))
         {
           if (ImGui::Checkbox("Flip Y/Z Up", &pProgramState->vcModelList[i]->flipYZ)) //Technically this is a rotation around X actually...
             vcModel_UpdateMatrix(pProgramState, pProgramState->vcModelList[i]);
@@ -1345,64 +1331,10 @@ void vcRenderWindow(vcState *pProgramState)
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
           vcModel_MoveToModelProjection(pProgramState, pProgramState->vcModelList[i]);
 
-        ImVec2 textSize = ImGui::CalcTextSize(pProgramState->vcModelList[i]->path);
-        if (ImGui::IsItemHovered() && (textSize.x >= headers[0].size))
+        if (ImGui::IsItemHovered())
           ImGui::SetTooltip("%s", pProgramState->vcModelList[i]->path);
 
-        ImGui::PopID();
-        ImGui::NextColumn();
-        // Column 2 - Visible
-        char checkboxID[32] = "";
-        udSprintf(checkboxID, UDARRAYSIZE(checkboxID), "ModelVisibleCheckbox%i", i);
-        ImGui::PushID(checkboxID);
-        if (ImGui::Checkbox("", &(pProgramState->vcModelList[i]->visible)) && pProgramState->vcModelList[i]->selected && pProgramState->numSelectedModels > 1)
-        {
-          for (size_t j = 0; j < pProgramState->vcModelList.size(); ++j)
-          {
-            if (pProgramState->vcModelList[j]->selected)
-              pProgramState->vcModelList[j]->visible = pProgramState->vcModelList[i]->visible;
-          }
-        }
-
-        ImGui::PopID();
-        ImGui::NextColumn();
-        // Column 3 - Unload Model
-        char unloadModelID[32] = "";
-        udSprintf(unloadModelID, UDARRAYSIZE(unloadModelID), "UnloadModelButton%i", i);
-        ImGui::PushID(unloadModelID);
-        if (ImGui::Button("X", ImVec2(20, 20)))
-        {
-          if (pProgramState->numSelectedModels > 1 && pProgramState->vcModelList[i]->selected) // if multiple selected and removed
-          {
-            //unload selected models
-            for (size_t j = 0; j < pProgramState->vcModelList.size(); ++j)
-            {
-              if (pProgramState->vcModelList[j]->selected)
-              {
-                vcModel_RemoveFromList(pProgramState, j);
-                --j;
-              }
-            }
-
-            i = (pProgramState->numSelectedModels > i) ? 0 : (i - pProgramState->numSelectedModels);
-          }
-          else
-          {
-            vcModel_RemoveFromList(pProgramState, i);
-            --i;
-          }
-
-          pProgramState->numSelectedModels = 0;
-        }
-
-        ImGui::PopID();
-        ImGui::NextColumn();
-        // Null Column
-        ImGui::NextColumn();
       }
-
-      ImGui::Columns(1);
-      // End Models
     }
     ImGui::EndDock();
 

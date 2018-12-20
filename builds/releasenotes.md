@@ -15,6 +15,10 @@ Version 0.2.0 (In Progress)
   - Swapped the names of the DirectX and OpenGL builds on Windows to better clarify that the DirectX version is the more supported one (EVC-281)
   - The compass is no longer affected by FOV as this was causing confusion for some users (EVC-62)
   - Added Gizmos to move items around in the scene (EVC-288, EVC-297 & EVC-294)
+  - Lots more of the UI has hotkeys now, see the control buttons for what they are bound to by default
+    - Modals can be closed with Escape as expected
+  - The load indicator has been slowed down and now only ticks a few times a second
+  - Removed unnessecary columns from the scene explorer in favour of the more standard tree view system
   - Updated VDK also provides a number of minor improvements
     - Fixed an issue that caused a user to rejoin the queue every time it requested a license while already in queue
 

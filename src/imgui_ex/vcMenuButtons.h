@@ -19,8 +19,9 @@ enum vcMenuBarButtonIcon
   vcMBBI_AddAreaOfInterest = 12,
   vcMBBI_AddLines = 13,
   vcMBBI_AddFolder = 14,
+  vcMBBI_Remove = 15,
 
-  //Reserved = 15 - 19
+  // Reserved 16-19
 
   vcMBBI_FilterSphere = 20,
   vcMBBI_FilterBox = 21,
