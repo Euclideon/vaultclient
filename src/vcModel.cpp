@@ -1,9 +1,7 @@
 #include "vcModel.h"
 
-#include "udPlatform/udPlatformUtil.h"
-#include "udPlatform/udGeoZone.h"
-#include "udPlatform/udJSON.h"
-
+#include "vcScene.h"
+#include "vcState.h"
 #include "gl/vcTexture.h"
 
 #include "vdkPointCloud.h"
@@ -29,9 +27,9 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
   if (pLoadInfo->pProgramState->programComplete)
     return;
 
-  int32_t status = udInterlockedCompareExchange(&pLoadInfo->pModel->loadStatus, vcMLS_Loading, vcMLS_Pending);
+  int32_t status = udInterlockedCompareExchange(&pLoadInfo->pModel->loadStatus, vcSLS_Loading, vcSLS_Pending);
 
-  if (status == vcMLS_Pending)
+  if (status == vcSLS_Pending)
   {
     vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->renderInstance.pPointCloud, pLoadInfo->pModel->path);
 
@@ -102,22 +100,34 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
       if (pLoadInfo->useRotation || pLoadInfo->usePosition || pLoadInfo->scale != 1.0)
         pLoadInfo->pModel->storedMatrix = udDouble4x4::translation(translate) * udDouble4x4::translation(pLoadInfo->pModel->pivot) * udDouble4x4::rotationYPR(ypr) * udDouble4x4::scaleNonUniform(scaleFactor) * udDouble4x4::translation(-pLoadInfo->pModel->pivot);
 
-      if (pLoadInfo->jumpToLocation)
-        vcModel_MoveToModelProjection(pLoadInfo->pProgramState, pLoadInfo->pModel);
-      else
-        vcModel_UpdateMatrix(pLoadInfo->pProgramState, nullptr); // Set all model matrices
+      memcpy(pLoadInfo->pModel->renderInstance.matrix, pLoadInfo->pModel->storedMatrix.a, sizeof(pLoadInfo->pModel->storedMatrix));
 
-      pLoadInfo->pModel->loadStatus = vcMLS_Loaded;
+      if (pLoadInfo->jumpToLocation)
+        vcScene_UseProjectFromItem(pLoadInfo->pProgramState, pLoadInfo->pModel);
+      else
+        vcScene_UpdateItemToCurrentProjection(pLoadInfo->pProgramState, nullptr); // Set all model matrices
+
+      pLoadInfo->pModel->loadStatus = vcSLS_Loaded;
     }
     else if (modelStatus == vE_OpenFailure)
     {
-      pLoadInfo->pModel->loadStatus = vcMLS_OpenFailure;
+      pLoadInfo->pModel->loadStatus = vcSLS_OpenFailure;
     }
     else
     {
-      pLoadInfo->pModel->loadStatus = vcMLS_Failed;
+      pLoadInfo->pModel->loadStatus = vcSLS_Failed;
     }
   }
+}
+
+void vcModel_Cleanup(vcState *pProgramState, vcSceneItem *pBaseItem)
+{
+  vcModel *pModel = (vcModel*)pBaseItem;
+
+  vdkPointCloud_Unload(pProgramState->pVDKContext, &pModel->renderInstance.pPointCloud);
+
+  if (pModel->pWatermark != nullptr)
+    vcTexture_Destroy(&pModel->pWatermark);
 }
 
 void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpToModelOnLoad /*= true*/, udDouble3 *pOverridePosition /*= nullptr*/, udDouble3 *pOverrideYPR /*= nullptr*/, double scale /*= 1.0*/)
@@ -127,122 +137,48 @@ void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpT
 
   vcModel *pModel = udAllocType(vcModel, 1, udAF_Zero);
 
-  pProgramState->vcModelList.push_back(pModel); // TODO: Proper Exception Handling
+  // Prepare the model
+  udStrcpy(pModel->path, sizeof(pModel->path), pFilePath);
+  pModel->visible = true;
+
+  pModel->pPath = pModel->path;
+  pModel->pName = pModel->path;
+  pModel->type = vcSOT_PointCloud;
+  pModel->pWorldMatrix = (udDouble4x4*)pModel->renderInstance.matrix;
+  pModel->pCleanupFunc = vcModel_Cleanup;
+
+  udStrcpy(pModel->typeStr, sizeof(pModel->typeStr), "UDS");
+
+  // Add it to the load queue
+  pProgramState->sceneList.push_back(pModel); // TODO: Proper Exception Handling
+
+  vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
+  if (pLoadInfo != nullptr)
   {
-    vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
-    if (pLoadInfo != nullptr)
+    // Prepare the load info
+    pLoadInfo->pModel = pModel;
+    pLoadInfo->pProgramState = pProgramState;
+    pLoadInfo->jumpToLocation = jumpToModelOnLoad;
+
+    if (pOverridePosition)
     {
-      // Prepare the model
-      udStrcpy(pModel->path, sizeof(pModel->path), pFilePath);
-      pModel->visible = true;
-      pModel->pWorldMatrix = (udDouble4x4*)pModel->renderInstance.matrix;
-
-      // Prepare the load info
-      pLoadInfo->pModel = pModel;
-      pLoadInfo->pProgramState = pProgramState;
-      pLoadInfo->jumpToLocation = jumpToModelOnLoad;
-
-      if (pOverridePosition)
-      {
-        pLoadInfo->usePosition = true;
-        pLoadInfo->position = *pOverridePosition;
-      }
-
-      if (pOverrideYPR)
-      {
-        pLoadInfo->useRotation = true;
-        pLoadInfo->rotation = *pOverrideYPR;
-      }
-
-      pLoadInfo->scale = scale;
-
-      // Queue for load
-      vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModel_LoadModel, pLoadInfo);
+      pLoadInfo->usePosition = true;
+      pLoadInfo->position = *pOverridePosition;
     }
-    else
+
+    if (pOverrideYPR)
     {
-      pModel->loadStatus = vcMLS_Failed;
+      pLoadInfo->useRotation = true;
+      pLoadInfo->rotation = *pOverrideYPR;
     }
-  }
-}
 
-void vcModel_RemoveFromList(vcState *pProgramState, size_t index)
-{
-  if (pProgramState->vcModelList[index]->loadStatus == vcMLS_Pending)
-    udInterlockedCompareExchange(&pProgramState->vcModelList[index]->loadStatus, vcMLS_Unloaded, vcMLS_Pending);
+    pLoadInfo->scale = scale;
 
-  while (pProgramState->vcModelList[index]->loadStatus == vcMLS_Loading)
-    udYield(); // Spin until other thread stops processing
-
-  if (pProgramState->vcModelList[index]->loadStatus == vcMLS_Loaded)
-  {
-    vdkPointCloud_Unload(pProgramState->pVDKContext, &pProgramState->vcModelList[index]->renderInstance.pPointCloud);
-
-    if (pProgramState->vcModelList[index]->pWatermark != nullptr)
-      vcTexture_Destroy(&pProgramState->vcModelList[index]->pWatermark);
-
-    pProgramState->vcModelList[index]->pMetadata->Destroy();
-    udFree(pProgramState->vcModelList[index]->pMetadata);
-    udFree(pProgramState->vcModelList[index]->pZone);
-  }
-
-  pProgramState->vcModelList[index]->loadStatus = vcMLS_Unloaded;
-
-  udFree(pProgramState->vcModelList.at(index));
-  pProgramState->vcModelList.erase(pProgramState->vcModelList.begin() + index);
-}
-
-void vcModel_UnloadList(vcState *pProgramState)
-{
-  while (pProgramState->vcModelList.size() > 0)
-    vcModel_RemoveFromList(pProgramState, 0);
-}
-
-void vcModel_UpdateMatrix(vcState *pProgramState, vcModel *pModel)
-{
-  if (!pModel)
-  {
-    for (size_t i = 0; i < pProgramState->vcModelList.size(); ++i)
-      vcModel_UpdateMatrix(pProgramState, pProgramState->vcModelList[i]);
+    // Queue for load
+    vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModel_LoadModel, pLoadInfo);
   }
   else
   {
-    udDouble4x4 matrix = pModel->storedMatrix;
-
-    if (pModel->flipYZ)
-    {
-      udDouble4 rowz = -matrix.axis.y;
-      matrix.axis.y = matrix.axis.z;
-      matrix.axis.z = rowz;
-    }
-
-    // Handle transforming into the camera's GeoZone
-    if (pProgramState->gis.isProjected && pModel->pZone != nullptr && pProgramState->gis.SRID != pModel->pZone->srid)
-      matrix = udGeoZone_TransformMatrix(matrix, *pModel->pZone, pProgramState->gis.zone);
-
-    *pModel->pWorldMatrix = matrix;
+    pModel->loadStatus = vcSLS_Failed;
   }
-}
-
-bool vcModel_MoveToModelProjection(vcState *pProgramState, vcModel *pModel)
-{
-  if (pProgramState == nullptr || pModel == nullptr)
-    return false;
-
-  if ((pModel->pZone != nullptr && vcGIS_ChangeSpace(&pProgramState->gis, pModel->pZone->srid)) || (pModel->pZone == nullptr && vcGIS_ChangeSpace(&pProgramState->gis, 0)))
-    vcModel_UpdateMatrix(pProgramState, nullptr); // Update all models to new zone
-
-  pProgramState->pCamera->position = vcModel_GetPivotPointWorldSpace(pModel);
-
-  return true;
-}
-
-udDouble3 vcModel_GetPivotPointWorldSpace(vcModel *pModel)
-{
-  udDouble3 midPoint = udDouble3::zero();
-
-  if (pModel != nullptr)
-    midPoint = (*pModel->pWorldMatrix * udDouble4::create(pModel->pivot, 1.0)).toVector3();
-
-  return midPoint;
 }

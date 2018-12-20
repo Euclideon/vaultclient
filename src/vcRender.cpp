@@ -540,7 +540,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
 
   for (size_t i = 0; i < renderData.models.length; ++i)
   {
-    if (renderData.models[i]->visible && renderData.models[i]->loadStatus == vcMLS_Loaded)
+    if (renderData.models[i]->visible && renderData.models[i]->loadStatus == vcSLS_Loaded)
     {
       // Copy to the contiguous array
       memcpy(&pModels[numVisibleModels], &renderData.models[i]->renderInstance, sizeof(renderData.models[i]->renderInstance));
@@ -585,7 +585,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
 
     for (size_t i = 0; i < renderData.models.length; ++i)
     {
-      if (renderData.models[i]->loadStatus != vcMLS_Loaded)
+      if (renderData.models[i]->loadStatus != vcSLS_Loaded)
         continue;
 
       udDouble3 corners[10];
