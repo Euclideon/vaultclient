@@ -9,7 +9,7 @@
 #include "vCore/vWorkerThread.h"
 
 #include "vcSettings.h"
-#include "vcModel.h"
+#include "vcScene.h"
 #include "vcGIS.h"
 
 #include "imgui_ex/ImGuizmo.h"

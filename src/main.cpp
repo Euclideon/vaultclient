@@ -1256,11 +1256,11 @@ void vcRenderWindow(vcState *pProgramState)
 
       for (size_t i = 0; i < pProgramState->sceneList.size(); ++i)
       {
-        vcMain_ShowLoadStatusIndicator((vcSceneLoadStatus)pProgramState->sceneList[i]->loadStatus);
-
         // Visibility
         ImGui::Checkbox(udTempStr("##SXIVisible%zu", i), &pProgramState->sceneList[i]->visible);
         ImGui::SameLine();
+
+        vcMain_ShowLoadStatusIndicator((vcSceneLoadStatus)pProgramState->sceneList[i]->loadStatus);
 
         // The actual model
         if (ImGui::Selectable(pProgramState->sceneList[i]->pName, pProgramState->sceneList[i]->selected))
@@ -1321,6 +1321,7 @@ void vcRenderWindow(vcState *pProgramState)
 
             pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
             pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
+            pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
             pProgramState->cameraInput.worldAnchorPoint = localSpaceCenter;
             pProgramState->cameraInput.progress = 0.0;
           }

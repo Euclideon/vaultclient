@@ -14,7 +14,7 @@ project "vaultClient"
 	files { "builds/releasenotes.md" }
 
 	--This project includes
-	includedirs { "src" }
+	includedirs { "src", "src/scene" }
 	includedirs { "3rdParty/Imgui" }
 	includedirs { "3rdParty/stb" }
 
