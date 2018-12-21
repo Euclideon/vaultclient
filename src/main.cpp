@@ -1143,7 +1143,28 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::Checkbox("Remember##rememberUsername", &pProgramState->settings.loginInfo.rememberUsername);
 
         // Password
-        tryLogin |= ImGui::InputText("Password", pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
+        ImVec2 buttonSize;
+        if (pProgramState->passFocus)
+        {
+          ImGui::Button("Show");
+          ImGui::SameLine(0, 0);
+          buttonSize = ImGui::GetItemRectSize();
+        }
+        if (ImGui::IsItemActive() && pProgramState->passFocus)
+          tryLogin |= ImGui::InputText("Password", pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+        else
+          tryLogin |= ImGui::InputText("Password", pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
+
+        if (pProgramState->passFocus && ImGui::IsMouseClicked(0))
+        {
+          ImVec2 minPos = ImGui::GetItemRectMin();
+          ImVec2 maxPos = ImGui::GetItemRectMax();
+          if (io.MouseClickedPos->x < minPos.x - buttonSize.x || io.MouseClickedPos->x > maxPos.x || io.MouseClickedPos->y < minPos.y || io.MouseClickedPos->y > maxPos.y)
+            pProgramState->passFocus = false;
+        }
+        if (!pProgramState->passFocus && udStrlen(pProgramState->password) == 0)
+          pProgramState->passFocus = true;
+
         if (pProgramState->pLoginErrorMessage == nullptr && pProgramState->settings.loginInfo.rememberServer && pProgramState->settings.loginInfo.rememberUsername)
           ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
 
