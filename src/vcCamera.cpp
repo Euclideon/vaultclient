@@ -200,7 +200,6 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     else
       travelProgress = (t - 1)*(2 * t - 2)*(2 * t - 2) + 1; // cubic
 
-    udDouble3 lookVector = moveVector;
     pCamera->position = pCamInput->startPosition + moveVector * travelProgress;
 
     udDouble3 targetEuler = udMath_DirToEuler(udNormalize(pCamInput->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest)));

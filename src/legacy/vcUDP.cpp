@@ -167,7 +167,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
               int32_t epsgCode = 0;
 
               uint16_t size = (uint16_t)udStrAtou(pFontSize);
-              uint32_t colour = (uint32_t)udStrAtoi(pColour); //These are stored with negatives in MDM for some reason
+              uint32_t colour = (uint32_t)udStrAtoi(pColour); //These are stored as int (with negatives) in MDM
 
 #if UDPLATFORM_WINDOWS
               int count = sscanf_s(pGeoLocation, "%lf, %lf, %lf, %d", &position.x, &position.y, &position.z, &epsgCode);
