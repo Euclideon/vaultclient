@@ -1,0 +1,49 @@
+#include "vcPOI.h"
+
+#include "vcScene.h"
+#include "vcState.h"
+
+void vcPOI_Cleanup(vcState * /*pProgramState*/, vcSceneItem *pBaseItem)
+{
+  vcPOI *pPOI = (vcPOI*)pBaseItem;
+  udFree(pPOI->pName);
+}
+
+void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid)
+{
+  vcPOI *pPOI = udAllocType(vcPOI, 1, udAF_Zero);
+  pPOI->visible = true;
+
+  pPOI->pName = udStrdup(pName);
+  pPOI->type = vcSOT_PointOfInterest;
+  pPOI->pCleanupFunc = vcPOI_Cleanup;
+
+  pPOI->nameColour = nameColour;
+  pPOI->namePt = namePt;
+
+  memcpy(&pPOI->line, pLine, sizeof(pPOI->line));
+
+  pPOI->sceneMatrix = udDouble4x4::translation(pLine->pPoints[0]);
+
+  if (srid != 0)
+  {
+    pPOI->pZone = udAllocType(udGeoZone, 1, udAF_Zero);
+    udGeoZone_SetFromSRID(pPOI->pZone, srid);
+  }
+
+  udStrcpy(pPOI->typeStr, sizeof(pPOI->typeStr), "POI");
+  pPOI->loadStatus = vcSLS_Loaded;
+
+  pProgramState->sceneList.push_back(pPOI);
+}
+
+void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid)
+{
+  vcLineInfo temp;
+  temp.numPoints = 1;
+  temp.pPoints = &position;
+  temp.lineWidth = 1;
+  temp.lineColour = 0xFFFFFFFF;
+
+  vcPOI_AddToList(pProgramState, pName, nameColour, namePt, &temp, srid);
+}

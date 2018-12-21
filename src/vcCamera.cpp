@@ -175,11 +175,15 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
   case vcCIS_MovingToPoint:
   {
-    udDouble3 travelVector = pCamInput->worldAnchorPoint - pCamInput->startPosition;
+    udDouble3 moveVector = pCamInput->worldAnchorPoint - pCamInput->startPosition;
 
-    double length = udMag3(travelVector);
+    if (pCamSettings->moveMode == vcCMM_Helicopter)
+      moveVector.z = 0;
 
-    travelVector *= udMax(0.9, (length - 100.0) / length); // gets to either 90% or within 100m
+    double length = udMag3(moveVector);
+    double closest = udMax(0.9, (length - 100.0) / length); // gets to either 90% or within 100m
+
+    moveVector *= closest;
 
     double travelProgress = 0;
 
@@ -196,7 +200,15 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     else
       travelProgress = (t - 1)*(2 * t - 2)*(2 * t - 2) + 1; // cubic
 
-    pCamera->position = pCamInput->startPosition + travelVector * travelProgress;
+    pCamera->position = pCamInput->startPosition + moveVector * travelProgress;
+
+    udDouble3 targetEuler = udMath_DirToEuler(udNormalize(pCamInput->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest)));
+    targetEuler.x -= UD_HALF_PI; // Need to correct for North being 0
+
+    pCamera->eulerRotation = udSlerp(pCamInput->startAngle, udDoubleQuat::create(targetEuler), travelProgress).eulerAngles();
+
+    if (pCamera->eulerRotation.y > UD_PI)
+      pCamera->eulerRotation.y -= UD_2PI;
   }
   break;
 
@@ -339,6 +351,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
         {
           pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
           pProgramState->cameraInput.startPosition = vcCamera_GetMatrix(pProgramState->pCamera).axis.t.toVector3();
+          pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
           pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
           pProgramState->cameraInput.progress = 0.0;
         }
