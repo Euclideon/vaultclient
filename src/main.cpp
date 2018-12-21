@@ -1,11 +1,5 @@
 #include "vcState.h"
 
-#include "vcRender.h"
-#include "vcGIS.h"
-#include "gl/vcGLState.h"
-#include "gl/vcFramebuffer.h"
-#include "legacy/vcUDP.h"
-
 #include "vdkContext.h"
 #include "vdkServerAPI.h"
 #include "vdkConfig.h"
@@ -23,10 +17,19 @@
 
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
+
 #include "vcConvert.h"
 #include "vcVersion.h"
 #include "vcModals.h"
+#include "vcGIS.h"
 #include "vcClassificationColours.h"
+#include "vcPOI.h"
+#include "vcRender.h"
+
+#include "gl/vcGLState.h"
+#include "gl/vcFramebuffer.h"
+
+#include "legacy/vcUDP.h"
 
 #include "udPlatform/udFile.h"
 
@@ -823,6 +826,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   vcRenderData renderData = {};
   renderData.models.Init(32);
+  renderData.fences.Init(32);
   renderData.mouse.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.y = (uint32_t)(io.MousePos.y - windowPos.y);
 
@@ -876,12 +880,22 @@ void vcRenderSceneWindow(vcState *pProgramState)
   for (size_t i = 0; i < pProgramState->sceneList.size(); ++i)
   {
     if (pProgramState->sceneList[i]->type == vcSOT_PointCloud)
+    {
       renderData.models.PushBack((vcModel*)pProgramState->sceneList[i]);
+    }
+    else if (pProgramState->sceneList[i]->type == vcSOT_PointOfInterest)
+    {
+      vcPOI* pPOI = (vcPOI*)pProgramState->sceneList[i];
+
+      if (pPOI->pFence != nullptr)
+        renderData.fences.PushBack(pPOI->pFence);
+    }
   }
 
   // Render scene to texture
   vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
   renderData.models.Deinit();
+  renderData.fences.Deinit();
 
   pProgramState->previousWorldMousePos = renderData.worldMousePos;
   pProgramState->previousPickingSuccess = renderData.pickingSuccess;
