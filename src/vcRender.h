@@ -9,6 +9,7 @@
 #include "vdkRenderView.h"
 
 #include "gl/vcMesh.h"
+#include "gl/vcFenceRenderer.h"
 
 struct vcRenderContext;
 struct vcTexture;
@@ -27,6 +28,8 @@ struct vcRenderData
   vcTexture *pWatermarkTexture;
 
   udChunkedArray<vcModel*> models;
+  udChunkedArray<vcFenceRenderer*> fences;
+
   vcCameraSettings *pCameraSettings;
   vcTexture *pSkyboxCubemap;
 };

@@ -2,11 +2,15 @@
 
 #include "vcScene.h"
 #include "vcState.h"
+#include "gl/vcFenceRenderer.h"
 
 void vcPOI_Cleanup(vcState * /*pProgramState*/, vcSceneItem *pBaseItem)
 {
   vcPOI *pPOI = (vcPOI*)pBaseItem;
   udFree(pPOI->pName);
+
+  if (pPOI->line.numPoints > 1)
+    vcFenceRenderer_Destroy(&pPOI->pFence);
 }
 
 void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid)
@@ -24,6 +28,30 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
   memcpy(&pPOI->line, pLine, sizeof(pPOI->line));
 
   pPOI->sceneMatrix = udDouble4x4::translation(pLine->pPoints[0]);
+
+  if (pLine->numPoints > 1)
+  {
+    vcFenceRenderer_Create(&pPOI->pFence);
+
+    //TODO: Find or add a math helper for this
+    udFloat4 colours; // RBGA
+    colours.x = ((((pLine->lineColour) >> 16) & 0xFF) / 255.f); // Red
+    colours.y = ((((pLine->lineColour) >> 8) & 0xFF) / 255.f); // Green
+    colours.z = ((((pLine->lineColour) >> 0) & 0xFF) / 255.f); // Blue
+    colours.w = ((((pLine->lineColour) >> 24) & 0xFF) / 255.f); // Alpha
+
+    vcFenceRendererConfig config;
+    config.visualMode = vcRRVM_Fence;
+    config.imageMode = vcRRIM_Arrow;
+    config.bottomColour = colours;
+    config.topColour = colours;
+    config.ribbonWidth = (float)pLine->lineWidth;
+    config.textureScrollSpeed = 1.f;
+    config.textureRepeatScale = 1.f;
+
+    vcFenceRenderer_SetConfig(pPOI->pFence, config);
+    vcFenceRenderer_AddPoints(pPOI->pFence, pLine->pPoints, pLine->numPoints);
+  }
 
   if (srid != 0)
   {

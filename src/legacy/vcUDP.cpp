@@ -26,6 +26,17 @@ void vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char
   vcModel_AddToList(pProgramState, file, firstLoad, pPosition, pYPR, scale);
 }
 
+bool vcUDP_ReadGeolocation(const char *pStr, udDouble3 &position, int &epsg)
+{
+#if UDPLATFORM_WINDOWS
+  int count = sscanf_s(pStr, "%lf, %lf, %lf, %d", &position.x, &position.y, &position.z, &epsg);
+#else
+  int count = sscanf(pStr, "%lf, %lf, %lf, %d", &position.x, &position.y, &position.z, &epsg);
+#endif
+
+  return (count == 4);
+}
+
 void vcUDP_Load(vcState *pProgramState, const char *pFilename)
 {
   udResult result;
@@ -100,6 +111,8 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
                 //Code copied from Geoverse MDM
                 int epsgCode = 0;
 
+                vcUDP_ReadGeolocation(pLocation, position, epsgCode);
+
 #if UDPLATFORM_WINDOWS
                 int count = sscanf_s(pLocation, "%lf, %lf, %lf, %d", &position.x, &position.y, &position.z, &epsgCode);
 #else
@@ -169,20 +182,70 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
               uint16_t size = (uint16_t)udStrAtou(pFontSize);
               uint32_t colour = (uint32_t)udStrAtoi(pColour); //These are stored as int (with negatives) in MDM
 
-#if UDPLATFORM_WINDOWS
-              int count = sscanf_s(pGeoLocation, "%lf, %lf, %lf, %d", &position.x, &position.y, &position.z, &epsgCode);
-#else
-              int count = sscanf(pGeoLocation, "%lf, %lf, %lf, %d", &position.x, &position.y, &position.z, &epsgCode);
-#endif
-
-              if (count == 4)
+              if (vcUDP_ReadGeolocation(pGeoLocation, position, epsgCode))
                 vcPOI_AddToList(pProgramState, pName, colour, size, position, epsgCode);
-              firstLoad = false;
             }
           }
         }
       }
-      // TODO: Add bookmark, label support here.
+      else if (udStrEqual(dataBlocks.Get("[%zu].Name", i).AsString(), "PolygonGroup"))
+      {
+        const udJSON &polygons = dataBlocks.Get("[%zu].DataBlock", i);
+        for (size_t j = 0; j < polygons.ArrayLength(); j++)
+        {
+          if (udStrEqual(polygons.Get("[%zu].Name", j).AsString(), "PolygonData"))
+          {
+            const udJSON &polygonData = polygons.Get("[%zu].DataEntry", j);
+            const udJSONArray *pNodeList = nullptr;
+
+            const char *pName = nullptr;
+            uint32_t colour = 0;
+            bool isClosed = false;
+
+            for (size_t k = 0; k < polygonData.ArrayLength(); k++)
+            {
+              if (udStrEqual(polygonData.Get("[%zu].Name", k).AsString(), "PolygonName"))
+                pName = polygonData.Get("[%zu].content", k).AsString();
+              else if (udStrEqual(polygonData.Get("[%zu].Name", k).AsString(), "PolygonIsClosed"))
+                isClosed = (polygonData.Get("[%zu].content", k).AsInt() == 1);
+              else if (udStrEqual(polygonData.Get("[%zu].Name", k).AsString(), "PolygonColour"))
+                colour = (uint32_t)polygonData.Get("[%zu].content", k).AsInt(); // Stored as int in file, needs to be uint in vc
+              else if (udStrEqual(polygonData.Get("[%zu].Name", k).AsString(), "Nodes"))
+                pNodeList = polygonData.Get("[%zu].GeoLocationArray", k).AsArray();
+            }
+
+            if (pName != nullptr && pNodeList != nullptr)
+            {
+              int32_t epsgCode = 0;
+              vcLineInfo info;
+
+              memset(&info, 0, sizeof(info));
+
+              info.pPoints = udAllocType(udDouble3, pNodeList->length + (isClosed ? 1 : 0), udAF_None);
+              info.numPoints = 0;
+
+              info.lineWidth = 1;
+              info.lineColour = colour;
+
+              for (size_t k = 0; k < pNodeList->length; ++k)
+              {
+                if (vcUDP_ReadGeolocation(pNodeList->GetElement(k)->AsString(""), info.pPoints[info.numPoints], epsgCode))
+                  ++info.numPoints;
+              }
+
+              // If its closed, we need to readd the first point at the end
+              if (isClosed && pNodeList->length > 0 && vcUDP_ReadGeolocation(pNodeList->GetElement(0)->AsString(""), info.pPoints[info.numPoints], epsgCode))
+                ++info.numPoints;
+
+              if (info.numPoints > 0)
+                vcPOI_AddToList(pProgramState, pName, colour, 1.0, &info, epsgCode);
+
+              udFree(info.pPoints);
+            }
+          }
+        }
+      }
+      // TODO: Add bookmark support here.
     }
   }
 
