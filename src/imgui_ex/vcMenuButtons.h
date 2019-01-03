@@ -32,9 +32,11 @@ enum vcMenuBarButtonIcon
 
   vcMBBI_ShowColour = 30,
   vcMBBI_ShowIntensity = 31,
-  vcMBBI_ShowClassification = 32
+  vcMBBI_ShowClassification = 32,
 
-  //Reserved = 33 +
+  vcMBBI_FullScreen = 33
+
+  //Reserved = 34 +
 };
 
 enum vcMenuBarButtonGap
