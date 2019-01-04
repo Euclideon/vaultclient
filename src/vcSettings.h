@@ -79,6 +79,8 @@ struct vcSettings
     bool fullscreen;
     bool touchscreenFriendly;
 
+    bool presentationMode = false;
+
     bool windowsOpen[vcDocks_Count];
   } window;
 
