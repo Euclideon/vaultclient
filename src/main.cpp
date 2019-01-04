@@ -440,7 +440,7 @@ int main(int argc, char **args)
           }
           else if (event.window.event == SDL_WINDOWEVENT_MOVED)
           {
-            if (!programState.settings.window.fullscreen)
+            if (!programState.settings.window.fullscreen && !programState.settings.window.presentationMode)
             {
               programState.settings.window.xpos = event.window.data1;
               programState.settings.window.ypos = event.window.data2;
@@ -683,9 +683,18 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         if (vcMenuBarButton(pProgramState->pUITexture, "Gizmo Scale", "M", vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_M])
           pProgramState->gizmo.operation = vcGO_Scale;
 
-        if (vcMenuBarButton(pProgramState->pUITexture, "Gizmo Local Space", "C", vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_C])
+        if (vcMenuBarButton(pProgramState->pUITexture, "Gizmo Local Space", "C", vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)) || ImGui::IsKeyPressed(SDL_SCANCODE_C, false))
           pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
+        // Fullscreen
+        if (vcMenuBarButton(pProgramState->pUITexture, "Fullscreen", "F", vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode) || ImGui::IsKeyPressed(SDL_SCANCODE_F, false))
+        {
+          pProgramState->settings.window.presentationMode = !pProgramState->settings.window.presentationMode;
+          if (pProgramState->settings.window.presentationMode)
+            SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+          else
+            SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
+        }
       }
 
       if (pProgramState->settings.presentation.showCameraInfo)
@@ -1368,9 +1377,27 @@ void vcRenderWindow(vcState *pProgramState)
     }
     ImGui::EndDock();
 
-    if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
-      vcRenderSceneWindow(pProgramState);
-    ImGui::EndDock();
+    if (!pProgramState->settings.window.presentationMode)
+    {
+      if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
+        vcRenderSceneWindow(pProgramState);
+      ImGui::EndDock();
+    }
+    else
+    {
+      // Dummy scene dock, otherwise the docks get shuffled around
+      if (ImGui::BeginDock("Scene", &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
+        ImGui::Dummy(ImVec2((float)pProgramState->sceneResolution.x, (float)pProgramState->sceneResolution.y));
+      ImGui::EndDock();
+
+      ImGui::SetNextWindowSize(size);
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2,2));
+      ImGui::SetNextWindowPos(ImVec2(0,0));
+      if (ImGui::Begin("Scene", &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration))
+        vcRenderSceneWindow(pProgramState);
+      ImGui::End();
+      ImGui::PopStyleVar();
+    }
 
     if (ImGui::BeginDock("Convert", &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
       vcConvert_ShowUI(pProgramState);
