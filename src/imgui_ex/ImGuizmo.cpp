@@ -929,12 +929,13 @@ static void vcGizmo_HandleScale(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix, i
       // compute matrix & delta
       udDouble4x4 deltaMatrixScale = udDouble4x4::scaleNonUniform(sGizmoContext.mScale * sGizmoContext.mScaleValueOrigin);
 
-      udDouble4x4 res = sGizmoContext.mModel * deltaMatrixScale;
+      udDouble4x4 res = sGizmoContext.mModel * /*udDouble4x4::translation(-(sGizmoContext.mTranslationPlane.point - sGizmoContext.camera.gizmoPivotPoint)) **/ deltaMatrixScale /** udDouble4x4::translation(sGizmoContext.mTranslationPlane.point - sGizmoContext.camera.gizmoPivotPoint)*/;
       *(udDouble4x4*)matrix = res;
 
       if (deltaMatrix)
       {
-        deltaMatrixScale = udDouble4x4::scaleNonUniform(sGizmoContext.mScale);
+        deltaMatrixScale = /*udDouble4x4::translation(-(sGizmoContext.mTranslationPlane.point - sGizmoContext.camera.gizmoPivotPoint)) * */udDouble4x4::scaleNonUniform(sGizmoContext.mScale)/* * udDouble4x4::translation(sGizmoContext.mTranslationPlane.point - sGizmoContext.camera.gizmoPivotPoint)*/;
+
         memcpy(deltaMatrix, deltaMatrixScale.a, sizeof(double) * 16);
       }
 
@@ -991,7 +992,7 @@ static void vcGizmo_HandleRotation(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix
 
     udDouble4 rotationAxisLocalSpace = udNormalize3(sGizmoContext.mModelInverse * udDouble4::create(sGizmoContext.mTranslationPlane.normal, 0.0));
 
-    udDouble4x4 deltaRotation = udDouble4x4::rotationAxis(rotationAxisLocalSpace.toVector3(), sGizmoContext.mRotationAngle - sGizmoContext.mRotationAngleOrigin);
+    udDouble4x4 deltaRotation = udDouble4x4::translation(-(sGizmoContext.mTranslationPlane.point - sGizmoContext.camera.gizmoPivotPoint)) * udDouble4x4::rotationAxis(rotationAxisLocalSpace.toVector3(), sGizmoContext.mRotationAngle - sGizmoContext.mRotationAngleOrigin) * udDouble4x4::translation(sGizmoContext.mTranslationPlane.point - sGizmoContext.camera.gizmoPivotPoint);
     sGizmoContext.mRotationAngleOrigin = sGizmoContext.mRotationAngle;
 
     if (applyRotationLocally)
