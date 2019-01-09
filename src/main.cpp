@@ -687,7 +687,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
         // Fullscreen
-        if (vcMenuBarButton(pProgramState->pUITexture, "Fullscreen", "F", vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode) || ImGui::IsKeyPressed(SDL_SCANCODE_F, false))
+        if (vcMenuBarButton(pProgramState->pUITexture, "Fullscreen", "F5", vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode) || ImGui::IsKeyPressed(SDL_SCANCODE_F5, false))
         {
           pProgramState->settings.window.presentationMode = !pProgramState->settings.window.presentationMode;
           if (pProgramState->settings.window.presentationMode)
