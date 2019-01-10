@@ -1325,6 +1325,12 @@ void vcRenderWindow(vcState *pProgramState)
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
         vcFolder_AddToList(pProgramState, "Folder");
 
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("ImportCSV"), nullptr, vcMBBI_LoadCSV, vcMBBG_SameGroup))
+        vcModals_OpenModal(pProgramState, vcMT_AddCSV);
+
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("ExportCSV"), nullptr, vcMBBI_SaveCSV, vcMBBG_SameGroup))
+        vcModals_OpenModal(pProgramState, vcMT_SaveCSV);
+
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("Remove"), vcString::Get("DeleteKey"), vcMBBI_Remove, vcMBBG_NewGroup) || ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE])
         vcScene_RemoveSelected(pProgramState);
 
@@ -1751,6 +1757,35 @@ void vcRenderWindow(vcState *pProgramState)
       }
     }
     ImGui::EndDock();
+
+    if (pProgramState->currentError != vE_Success)
+    {
+      ImGui::OpenPopup("Error");
+      ImGui::SetNextWindowSize(ImVec2(250, 60));
+    }
+
+    if (ImGui::BeginPopupModal("Error", NULL, ImGuiWindowFlags_NoDecoration))
+    {
+      const char *pMessage;
+
+      switch (pProgramState->currentError)
+      {
+      case vE_Failure: pMessage = vcString::Get("Failure"); break;
+      case vE_OpenFailure: pMessage = vcString::Get("OpenFailure"); break;
+      case vE_ReadFailure: pMessage = vcString::Get("ReadFailure"); break;
+      case vE_WriteFailure: pMessage = vcString::Get("WriteFailure"); break;
+      default: pMessage = vcString::Get("Failure"); break;
+      }
+
+      ImGui::TextWrapped("%s", pMessage);
+
+      if (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+      {
+        pProgramState->currentError = vE_Success;
+        ImGui::CloseCurrentPopup();
+      }
+      ImGui::EndPopup();
+    }
   }
   vcModals_DrawModals(pProgramState);
 }

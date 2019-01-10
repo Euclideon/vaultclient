@@ -85,7 +85,15 @@ bool vcFileDialog_ListFolder(const char *pFolderPath, char *pLoadPath, size_t lo
 
     if (pDir->isDirectory)
     {
-      if (ImGui::TreeNode(pDir->pFilename))
+      bool opened = ImGui::TreeNode(pDir->pFilename);
+
+      if (ImGui::IsItemClicked())
+      {
+        udSprintf(fullPath, udLengthOf(fullPath), "%s/%s", pFolderPath, pDir->pFilename);
+        udStrcpy(pLoadPath, loadPathLen, fullPath);
+      }
+
+      if (opened)
       {
         udSprintf(fullPath, udLengthOf(fullPath), "%s/%s", pFolderPath, pDir->pFilename);
         clicked |= vcFileDialog_ListFolder(fullPath, pLoadPath, loadPathLen, ppExtensions, extensionCount);
