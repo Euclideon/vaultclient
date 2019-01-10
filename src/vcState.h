@@ -12,6 +12,7 @@
 #include "vcScene.h"
 #include "vcGIS.h"
 #include "vcFolder.h"
+#include "vdkError.h"
 
 #include "imgui_ex/ImGuizmo.h"
 
@@ -115,6 +116,7 @@ struct vcState
   } image;
 
   bool firstRun;
+  vdkError currentError;
   int64_t lastEventTime;
   bool showUI;
 };
