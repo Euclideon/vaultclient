@@ -9,7 +9,7 @@ void vcPOI_Cleanup(vcState * /*pProgramState*/, vcSceneItem *pBaseItem)
   vcPOI *pPOI = (vcPOI*)pBaseItem;
   udFree(pPOI->pName);
 
-  if (pPOI->line.numPoints > 1)
+  if (pPOI->pFence != nullptr)
     vcFenceRenderer_Destroy(&pPOI->pFence);
 }
 
@@ -34,7 +34,7 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
     vcFenceRenderer_Create(&pPOI->pFence);
 
     //TODO: Find or add a math helper for this
-    udFloat4 colours; // RBGA
+    udFloat4 colours; // RGBA
     colours.x = ((((pLine->lineColour) >> 16) & 0xFF) / 255.f); // Red
     colours.y = ((((pLine->lineColour) >> 8) & 0xFF) / 255.f); // Green
     colours.z = ((((pLine->lineColour) >> 0) & 0xFF) / 255.f); // Blue
