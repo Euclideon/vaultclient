@@ -108,17 +108,9 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
 
               if (pLocation != nullptr)
               {
-                //Code copied from Geoverse MDM
                 int epsgCode = 0;
 
-                vcUDP_ReadGeolocation(pLocation, position, epsgCode);
-
-#if UDPLATFORM_WINDOWS
-                int count = sscanf_s(pLocation, "%lf, %lf, %lf, %d", &position.x, &position.y, &position.z, &epsgCode);
-#else
-                int count = sscanf(pLocation, "%lf, %lf, %lf, %d", &position.x, &position.y, &position.z, &epsgCode);
-#endif
-                if (count == 4)
+                if (vcUDP_ReadGeolocation(pLocation, position, epsgCode))
                   pPosition = &position;
 
                 udUnused(epsgCode); //TODO: Use this
