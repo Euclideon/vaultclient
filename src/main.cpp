@@ -114,6 +114,8 @@ void vcLogin(void *pProgramStatePtr)
     pProgramState->pLoginErrorMessage = "Could not open a secure channel to the server.";
   else if (result == vE_ServerFailure)
     pProgramState->pLoginErrorMessage = "Unable to negotiate with server, please confirm the server address";
+  else if (result == vE_ProxyError)
+    pProgramState->pLoginErrorMessage = "Unable to negotiate with proxy server, please confirm the proxy server address";
   else if (result != vE_Success)
     pProgramState->pLoginErrorMessage = "Unknown error occurred, please try again later.";
 
