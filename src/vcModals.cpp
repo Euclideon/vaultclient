@@ -60,7 +60,7 @@ void vcModals_DrawReleaseNotes(vcState *pProgramState)
     if (pProgramState->pReleaseNotes != nullptr)
     {
       ImGui::BeginChild("ReleaseNotes");
-      ImGui::TextWrapped("%s", pProgramState->pReleaseNotes);
+      ImGui::TextUnformatted(pProgramState->pReleaseNotes);
       ImGui::EndChild();
     }
     else
@@ -143,7 +143,7 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
     ImGui::Separator();
 
     ImGui::BeginChild("Release Notes");
-    ImGui::TextWrapped("%s", pProgramState->packageInfo.Get("package.releasenotes").AsString());
+    ImGui::TextUnformatted(pProgramState->packageInfo.Get("package.releasenotes").AsString(""));
     ImGui::EndChild();
 
     ImGui::EndPopup();
