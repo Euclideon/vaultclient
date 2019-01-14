@@ -103,6 +103,8 @@ struct vcState
   } tileModal;
 
   bool firstRun = true;
+  int64_t lastEventTime;
+  bool showUI = false;
 };
 
 #endif // !vcState_h__
