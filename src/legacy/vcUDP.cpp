@@ -49,7 +49,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
   if (xml.Get("DataBlock").IsObject() && udStrEqual(xml.Get("DataBlock.Name").AsString(), "ProjectData"))
   {
     const udJSON &dataEntries = xml.Get("DataBlock.DataEntry");
-    for (size_t i = 0; i < dataEntries.ArrayLength(); i++)
+    for (size_t i = 0; i < dataEntries.ArrayLength(); ++i)
     {
       const char *pName = dataEntries.Get("[%zu].Name", i).AsString();
       if (udStrEqual(pName, "AbsoluteModelPath"))
@@ -60,12 +60,12 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
     }
 
     const udJSON &dataBlocks = xml.Get("DataBlock.DataBlock");
-    for (size_t i = 0; i < dataBlocks.ArrayLength(); i++)
+    for (size_t i = 0; i < dataBlocks.ArrayLength(); ++i)
     {
       if (udStrEqual(dataBlocks.Get("[%zu].Name", i).AsString(), "DataSetGroup"))
       {
         const udJSON &datasets = dataBlocks.Get("[%zu].DataBlock", i);
-        for (size_t j = 0; j < datasets.ArrayLength(); j++)
+        for (size_t j = 0; j < datasets.ArrayLength(); ++j)
         {
           if (udStrEqual(datasets.Get("[%zu].Name", j).AsString(), "DataSetData"))
           {
@@ -79,7 +79,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
             const char *pAngleZ = nullptr;
             const char *pScale = nullptr;
 
-            for (size_t k = 0; k < datasetData.ArrayLength(); k++)
+            for (size_t k = 0; k < datasetData.ArrayLength(); ++k)
             {
               if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Path"))
                 pPath = datasetData.Get("[%zu].content", k).AsString();
@@ -142,7 +142,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
       else if (udStrEqual(dataBlocks.Get("[%zu].Name", i).AsString(), "LabelGroup"))
       {
         const udJSON &labels = dataBlocks.Get("[%zu].DataBlock", i);
-        for (size_t j = 0; j < labels.ArrayLength(); j++)
+        for (size_t j = 0; j < labels.ArrayLength(); ++j)
         {
           if (udStrEqual(labels.Get("[%zu].Name", j).AsString(), "Label"))
           {
@@ -154,7 +154,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
             const char *pColour = nullptr;
             const char *pFontSize = nullptr;
 
-            for (size_t k = 0; k < labelData.ArrayLength(); k++)
+            for (size_t k = 0; k < labelData.ArrayLength(); ++k)
             {
               if (udStrEqual(labelData.Get("[%zu].Name", k).AsString(), "Name"))
                 pName = labelData.Get("[%zu].content", k).AsString();
@@ -183,7 +183,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
       else if (udStrEqual(dataBlocks.Get("[%zu].Name", i).AsString(), "PolygonGroup"))
       {
         const udJSON &polygons = dataBlocks.Get("[%zu].DataBlock", i);
-        for (size_t j = 0; j < polygons.ArrayLength(); j++)
+        for (size_t j = 0; j < polygons.ArrayLength(); ++j)
         {
           if (udStrEqual(polygons.Get("[%zu].Name", j).AsString(), "PolygonData"))
           {
@@ -194,12 +194,12 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
             uint32_t colour = 0;
             bool isClosed = false;
 
-            for (size_t k = 0; k < polygonData.ArrayLength(); k++)
+            for (size_t k = 0; k < polygonData.ArrayLength(); ++k)
             {
               if (udStrEqual(polygonData.Get("[%zu].Name", k).AsString(), "PolygonName"))
                 pName = polygonData.Get("[%zu].content", k).AsString();
               else if (udStrEqual(polygonData.Get("[%zu].Name", k).AsString(), "PolygonIsClosed"))
-                isClosed = (polygonData.Get("[%zu].content", k).AsInt() == 1);
+                isClosed = polygonData.Get("[%zu].content", k).AsBool();
               else if (udStrEqual(polygonData.Get("[%zu].Name", k).AsString(), "PolygonColour"))
                 colour = (uint32_t)polygonData.Get("[%zu].content", k).AsInt(); // Stored as int in file, needs to be uint in vc
               else if (udStrEqual(polygonData.Get("[%zu].Name", k).AsString(), "Nodes"))
