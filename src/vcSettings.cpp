@@ -235,6 +235,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
     pSettings->presentation.showCompass = data.Get("showCompass").AsBool(true);
     pSettings->presentation.limitFPSInBackground = data.Get("limitFPSInBackground").AsBool(true);
     pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
+    pSettings->responsiveUI = (vcPresentationMode)data.Get("responsiveUI").AsInt(vcPM_Hide);
 
     switch (pSettings->presentation.styleIndex)
     {
@@ -382,6 +383,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("showCompass = %s", pSettings->presentation.showCompass ? "true" : "false");
   data.Set("limitFPSInBackground = %s", pSettings->presentation.limitFPSInBackground ? "true" : "false");
   data.Set("pointMode = %d", pSettings->presentation.pointMode);
+  data.Set("responsiveUI = %d", pSettings->responsiveUI);
 
   // Windows
   data.Set("window.position.x = %d", pSettings->window.xpos);
