@@ -196,7 +196,7 @@ static double vcGizmo_GetParallelogram(const udDouble3& ptO, const udDouble3& pt
   return surface;
 }
 
-inline udDouble4 vcGizmo_PointOnSegment(const udDouble4 & point, const udDouble4 & vertPos1, const udDouble4 & vertPos2)
+inline udDouble4 vcGizmo_PointOnSegment(const udDouble4 &point, const udDouble4 &vertPos1, const udDouble4 &vertPos2)
 {
   udDouble4 c = point - vertPos1;
   udDouble4 V = udNormalize3(vertPos2 - vertPos1);
@@ -267,7 +267,7 @@ static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &m
 
   if (mode == vcGCS_Local)
   {
-    sGizmoContext.mModel = matrix;
+    sGizmoContext.mModel = (matrix * udDouble4x4::translation(sGizmoContext.pivot));
 
     sGizmoContext.mModel.axis.x = udNormalize3(sGizmoContext.mModel.axis.x);
     sGizmoContext.mModel.axis.y = udNormalize3(sGizmoContext.mModel.axis.y);
@@ -275,7 +275,7 @@ static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &m
   }
   else
   {
-    sGizmoContext.mModel = udDouble4x4::translation(matrix.axis.t.toVector3());
+    sGizmoContext.mModel = udDouble4x4::translation((matrix * udDouble4x4::translation(sGizmoContext.pivot)).axis.t.toVector3());
   }
 
   sGizmoContext.mModelSource = matrix;
