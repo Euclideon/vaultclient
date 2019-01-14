@@ -95,6 +95,18 @@ void vcMain_UpdateSessionInfo(void *pProgramStatePtr)
     pProgramState->lastServerResponse = vcMain_GetCurrentTime();
 }
 
+void vcMain_PresentationMode(vcState *pProgramState)
+{
+  pProgramState->settings.window.presentationMode = !pProgramState->settings.window.presentationMode;
+  if (pProgramState->settings.window.presentationMode)
+    SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+  else
+    SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
+
+  if (pProgramState->settings.responsiveUI == vcPM_Responsive)
+    pProgramState->lastEventTime = vcMain_GetCurrentTime();
+}
+
 void vcLogin(void *pProgramStatePtr)
 {
   vdkError result;
@@ -285,6 +297,12 @@ int main(int argc, char **args)
   programState.settings.camera.farPlane = 10000.f;
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
+  programState.settings.hideIntervalSeconds = 3;
+  programState.showUI = true;
+  programState.firstRun = true;
+  programState.passFocus = true;
+  programState.renaming = -1;
+
   programState.loadList.reserve(udMax(64, argc));
   programState.sceneList.reserve(64);
 
@@ -440,7 +458,7 @@ int main(int argc, char **args)
           }
           else if (event.window.event == SDL_WINDOWEVENT_MOVED)
           {
-            if (!programState.settings.window.fullscreen && !programState.settings.window.presentationMode)
+            if (!programState.settings.window.presentationMode)
             {
               programState.settings.window.xpos = event.window.data1;
               programState.settings.window.ypos = event.window.data2;
@@ -598,6 +616,9 @@ epilogue:
 
 void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
 {
+  if (pProgramState->settings.window.presentationMode && (pProgramState->settings.responsiveUI == vcPM_Hide || !pProgramState->showUI))
+    return;
+
   ImGuiIO &io = ImGui::GetIO();
   float bottomLeftOffset = 0.f;
 
@@ -687,14 +708,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
         // Fullscreen
-        if (vcMenuBarButton(pProgramState->pUITexture, "Fullscreen", "F5", vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode) || ImGui::IsKeyPressed(SDL_SCANCODE_F5, false))
-        {
-          pProgramState->settings.window.presentationMode = !pProgramState->settings.window.presentationMode;
-          if (pProgramState->settings.window.presentationMode)
-            SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
-          else
-            SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
-        }
+        if (vcMenuBarButton(pProgramState->pUITexture, "Fullscreen", "F5", vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode))
+          vcMain_PresentationMode(pProgramState);
       }
 
       if (pProgramState->settings.presentation.showCameraInfo)
@@ -838,6 +853,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
 
+  if (ImGui::IsKeyPressed(SDL_SCANCODE_F5, false))
+    vcMain_PresentationMode(pProgramState);
+  if (pProgramState->settings.responsiveUI == vcPM_Show)
+    pProgramState->showUI = true;
+
   // use some data from previous frame
   pProgramState->worldMousePos = pProgramState->previousWorldMousePos;
   pProgramState->pickingSuccess = pProgramState->previousPickingSuccess;
@@ -890,6 +910,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
 int vcMainMenuGui(vcState *pProgramState)
 {
+  if (pProgramState->settings.window.presentationMode)
+    return 0;
+
   int menuHeight = 0;
 
   if (ImGui::BeginMainMenuBar())
@@ -1081,19 +1104,21 @@ void vcRenderWindow(vcState *pProgramState)
   vcFramebuffer_Clear(pProgramState->pDefaultFramebuffer, 0xFF000000);
 
   SDL_Keymod modState = SDL_GetModState();
-
-  //keyboard/mouse handling
-  if (ImGui::IsKeyReleased(SDL_SCANCODE_F11))
-  {
-    pProgramState->settings.window.fullscreen = !pProgramState->settings.window.fullscreen;
-    if (pProgramState->settings.window.fullscreen)
-      SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
-    else
-      SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
-  }
-
-  ImGuiIO& io = ImGui::GetIO(); // for future key commands as well
+  ImGuiIO &io = ImGui::GetIO(); // for future key commands as well
   ImVec2 size = io.DisplaySize;
+
+  if (pProgramState->settings.responsiveUI == vcPM_Responsive)
+  {
+    if (io.MouseDelta.x != 0.0 || io.MouseDelta.y != 0.0)
+    {
+      pProgramState->lastEventTime = vcMain_GetCurrentTime();
+      pProgramState->showUI = true;
+    }
+    else if ((vcMain_GetCurrentTime() - pProgramState->lastEventTime) > pProgramState->settings.hideIntervalSeconds)
+    {
+      pProgramState->showUI = false;
+    }
+  }
 
 #if UDPLATFORM_WINDOWS
   if (io.KeyAlt && ImGui::IsKeyPressed(SDL_SCANCODE_F4))
@@ -1391,10 +1416,12 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::EndDock();
 
       ImGui::SetNextWindowSize(size);
-      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2,2));
-      ImGui::SetNextWindowPos(ImVec2(0,0));
-      if (ImGui::Begin("Scene", &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration))
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
+      ImGui::SetNextWindowPos(ImVec2(0, 0));
+
+      if (ImGui::Begin("Scene", &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
         vcRenderSceneWindow(pProgramState);
+
       ImGui::End();
       ImGui::PopStyleVar();
     }
@@ -1426,6 +1453,10 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::Checkbox("Limit FPS In Background", &pProgramState->settings.presentation.limitFPSInBackground);
 
         ImGui::Checkbox("Show Compass On Screen", &pProgramState->settings.presentation.showCompass);
+
+        if (ImGui::Combo("Presentation UI", (int*)&pProgramState->settings.responsiveUI, "Hide\0Show\0Responsive\0"))
+          pProgramState->showUI = false;
+
         ImGui::Combo("Mouse Anchor Style", (int*)&pProgramState->settings.presentation.mouseAnchor, "None\0Orbit\0Compass\0");
         ImGui::Combo("Voxel Shape", &pProgramState->settings.presentation.pointMode, "Rectangles\0Cubes\0Points\0");
       }
