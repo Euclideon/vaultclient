@@ -871,7 +871,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       vcGizmo_SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
       vcGizmo_SetDrawList();
 
-      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->sceneList[pProgramState->prevSelectedModel]->sceneMatrix, nullptr, vcGAC_AllUniform);
+      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->sceneList[pProgramState->prevSelectedModel]->sceneMatrix, nullptr, vcGAC_AllUniform, pProgramState->sceneList[pProgramState->prevSelectedModel]->pivot);
     }
   }
 
