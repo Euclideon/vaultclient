@@ -20,7 +20,7 @@ void *_udMemDup(const void *pMemory, size_t size, size_t additionalBytes, udAllo
   memcpy(pDuplicated, pMemory, size);
 
   if (flags & udAF_Zero)
-    memset((char*)pMemory + size, 0, additionalBytes);
+    memset((char*)pDuplicated + size, 0, additionalBytes);
 
   return pDuplicated;
 }
