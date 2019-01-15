@@ -177,6 +177,9 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
   {
     udDouble3 moveVector = pCamInput->worldAnchorPoint - pCamInput->startPosition;
 
+    if (moveVector == udDouble3::zero())
+      break;
+
     if (pCamSettings->moveMode == vcCMM_Helicopter)
       moveVector.z = 0;
 
