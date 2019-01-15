@@ -82,7 +82,4 @@ udResult udFile_Close(udFile **ppFile);
 // (*ppNewPath) needs to be freed by the caller
 udResult udFile_TranslatePath(const char **ppNewPath, const char *pPath);
 
-// Optional handlers (optional as it requires networking libraries, WS2_32.lib on Windows platform)
-udResult udFile_RegisterHTTP();
-
 #endif // UDFILE_H
