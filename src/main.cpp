@@ -25,6 +25,7 @@
 #include "vcClassificationColours.h"
 #include "vcPOI.h"
 #include "vcRender.h"
+#include "vcWebFile.h"
 
 #include "gl/vcGLState.h"
 #include "gl/vcFramebuffer.h"
@@ -252,7 +253,7 @@ int main(int argc, char **args)
   vcState programState = {};
 
   vcSettings_RegisterAssetFileHandler();
-  udFile_RegisterHTTP();
+  vcWebFile_RegisterFileHandlers();
 
   // Icon parameters
   SDL_Surface *pIcon = nullptr;
