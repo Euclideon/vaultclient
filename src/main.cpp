@@ -1284,8 +1284,25 @@ void vcRenderWindow(vcState *pProgramState)
       // Tree view for the scene
       ImGui::Separator();
 
-      for (size_t i = 0; i < pProgramState->sceneList.size(); ++i)
+      static size_t draggedIndex = 0;
+      static size_t drawSeperatorBefore = SIZE_MAX;
+      size_t hovered = SIZE_MAX;
+
+      size_t i = 0;
+
+      if (!ImGui::IsMouseDragging())
+        drawSeperatorBefore = SIZE_MAX;
+
+      for (i = 0; i < pProgramState->sceneList.size(); ++i)
       {
+        // This block is also after the loop
+        if (drawSeperatorBefore == i)
+        {
+          ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.f, 1.f, 0.f, 1.f)); // RGBA
+          ImGui::Separator();
+          ImGui::PopStyleColor();
+        }
+
         // Visibility
         ImGui::Checkbox(udTempStr("##SXIVisible%zu", i), &pProgramState->sceneList[i]->visible);
         ImGui::SameLine();
@@ -1327,6 +1344,49 @@ void vcRenderWindow(vcState *pProgramState)
           }
 
           pProgramState->prevSelectedModel = i;
+        }
+
+        if (ImGui::BeginDragDropSource())
+        {
+          draggedIndex = i;
+          ImGui::SetDragDropPayload("SceneItem", &pProgramState->sceneList[i], sizeof(vcSceneItem*), ImGuiCond_Once);
+          ImGui::Text("%s", pProgramState->sceneList[i]->pName);
+          ImGui::EndDragDropSource();
+        }
+
+        if (ImGui::BeginDragDropTarget())
+        {
+          const ImGuiPayload *pPayload;
+
+          pPayload = ImGui::AcceptDragDropPayload("SceneItem", ImGuiDragDropFlags_AcceptBeforeDelivery | ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+
+          if (pPayload != nullptr)
+          {
+            ImVec2 minPos = ImGui::GetItemRectMin();
+            ImVec2 maxPos = ImGui::GetItemRectMax();
+            ImVec2 mousePos = ImGui::GetMousePos();
+
+            if (udAbs(mousePos.y - minPos.y) < udAbs(mousePos.y - maxPos.y))
+              drawSeperatorBefore = i;
+            else
+              drawSeperatorBefore = i + 1;
+
+            hovered = i;
+          }
+
+          pPayload = ImGui::AcceptDragDropPayload("SceneItem", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+          if (pPayload != nullptr)
+          {
+            if (draggedIndex < drawSeperatorBefore)
+              --drawSeperatorBefore;
+
+            pProgramState->sceneList.erase(pProgramState->sceneList.begin() + draggedIndex);
+            pProgramState->sceneList.insert(pProgramState->sceneList.begin() + drawSeperatorBefore, *(vcSceneItem**)pPayload->Data);
+
+            drawSeperatorBefore = SIZE_MAX;
+          }
+
+          ImGui::EndDragDropTarget();
         }
 
         if (ImGui::BeginPopupContextItem(udTempStr("ModelContextMenu_%zu", i)))
@@ -1372,6 +1432,17 @@ void vcRenderWindow(vcState *pProgramState)
           ImGui::PopID();
           ImGui::Unindent();
         }
+      }
+
+      if (hovered == SIZE_MAX)
+        drawSeperatorBefore = SIZE_MAX;
+
+      // This block is also in the loop above
+      if (drawSeperatorBefore == i)
+      {
+        ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.f, 1.f, 0.f, 1.f)); // RGBA
+        ImGui::Separator();
+        ImGui::PopStyleColor();
       }
     }
     ImGui::EndDock();
