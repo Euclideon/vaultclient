@@ -2,7 +2,12 @@
 
 #include "vcScene.h"
 #include "vcState.h"
+
 #include "gl/vcTexture.h"
+
+#include "imgui.h"
+#include "imgui_ex/imgui_udValue.h"
+#include "imgui_ex/vcImGuiSimpleWidgets.h"
 
 #include "vdkPointCloud.h"
 
@@ -31,7 +36,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
   if (status == vcSLS_Pending)
   {
-    vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->pPointCloud, pLoadInfo->pModel->path);
+    vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->pPointCloud, pLoadInfo->pModel->pPath);
 
     if (modelStatus == vE_Success)
     {
@@ -118,17 +123,29 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
   }
 }
 
+void vcModel_ShowImGui(vcState * /*pProgramState*/, vcSceneItem *pBaseItem)
+{
+  vcIGSW_InputTextWithResize("Model Name", &pBaseItem->pName, &pBaseItem->nameBufferLength);
+  ImGui::TextWrapped("Path: %s", pBaseItem->pPath);
+
+  if (pBaseItem->pMetadata != nullptr)
+    vcImGuiValueTreeObject(pBaseItem->pMetadata);
+}
+
 void vcModel_Cleanup(vcState *pProgramState, vcSceneItem *pBaseItem)
 {
   vcModel *pModel = (vcModel*)pBaseItem;
 
   vdkPointCloud_Unload(pProgramState->pVDKContext, &pModel->pPointCloud);
 
+  udFree(pModel->pName);
+  udFree(pModel->pPath);
+
   if (pModel->pWatermark != nullptr)
     vcTexture_Destroy(&pModel->pWatermark);
 }
 
-void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpToModelOnLoad /*= true*/, udDouble3 *pOverridePosition /*= nullptr*/, udDouble3 *pOverrideYPR /*= nullptr*/, double scale /*= 1.0*/)
+void vcModel_AddToList(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad /*= true*/, udDouble3 *pOverridePosition /*= nullptr*/, udDouble3 *pOverrideYPR /*= nullptr*/, double scale /*= 1.0*/)
 {
   if (pFilePath == nullptr)
     return;
@@ -136,12 +153,22 @@ void vcModel_AddToList(vcState *pProgramState, const char *pFilePath, bool jumpT
   vcModel *pModel = udAllocType(vcModel, 1, udAF_Zero);
 
   // Prepare the model
-  udStrcpy(pModel->path, sizeof(pModel->path), pFilePath);
-  pModel->visible = true;
+  pModel->pPath = udStrdup(pFilePath);
 
-  pModel->pPath = pModel->path;
-  pModel->pName = pModel->path;
+  if (pName == nullptr)
+  {
+    udFilename udfilename(pFilePath);
+    pModel->pName = udStrdup(udfilename.GetFilenameWithExt());
+  }
+  else
+  {
+    pModel->pName = udStrdup(pName);
+  }
+
+  pModel->visible = true;
   pModel->type = vcSOT_PointCloud;
+
+  pModel->pImGuiFunc = vcModel_ShowImGui;
   pModel->pCleanupFunc = vcModel_Cleanup;
 
   udStrcpy(pModel->typeStr, sizeof(pModel->typeStr), "UDS");
