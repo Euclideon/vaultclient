@@ -129,6 +129,8 @@ struct vcSettings
     char username[vcMaxPathLength];
 
     char proxy[vcMaxPathLength];
+    bool autoDetectProxy;
+    char autoDetectProxyURL[vcMaxPathLength];
     bool ignoreCertificateVerification;
   } loginInfo;
 
