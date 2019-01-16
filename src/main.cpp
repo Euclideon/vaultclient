@@ -14,6 +14,7 @@
 #include "imgui_ex/imgui_udValue.h"
 #include "imgui_ex/ImGuizmo.h"
 #include "imgui_ex/vcMenuButtons.h"
+#include "imgui_ex/vcImGuiSimpleWidgets.h"
 
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
@@ -526,7 +527,7 @@ int main(int argc, char **args)
 
             if (udStrEquali(loadFile.GetExt(), ".uds") || udStrEquali(loadFile.GetExt(), ".ssf") || udStrEquali(loadFile.GetExt(), ".udm") || udStrEquali(loadFile.GetExt(), ".udg"))
             {
-              vcModel_AddToList(&programState, pNextLoad, firstLoad);
+              vcModel_AddToList(&programState, nullptr, pNextLoad, firstLoad);
               continueLoading = true;
             }
             else if (udStrEquali(loadFile.GetExt(), ".udp"))
@@ -964,7 +965,7 @@ int vcMainMenuGui(vcState *pProgramState)
           vcScene_RemoveAll(pProgramState);
 
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
-            vcModel_AddToList(pProgramState, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
+            vcModel_AddToList(pProgramState, nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
         }
       }
 
@@ -1029,32 +1030,6 @@ int vcMainMenuGui(vcState *pProgramState)
   }
 
   return menuHeight;
-}
-
-bool vcMain_U32ColorPicker(const char *pLabel, uint32_t *pColor, ImGuiColorEditFlags flags)
-{
-  float colors[4];
-
-  colors[0] = ((((*pColor) >> 16) & 0xFF) / 255.f); // Blue
-  colors[1] = ((((*pColor) >> 8) & 0xFF) / 255.f); // Green
-  colors[2] = ((((*pColor) >> 0) & 0xFF) / 255.f); // Red
-  colors[3] = ((((*pColor) >> 24) & 0xFF) / 255.f); // Alpha
-
-  if (ImGui::ColorEdit4(pLabel, colors, flags))
-  {
-    uint32_t val = 0;
-
-    val |= ((int)(colors[0] * 255) << 16); // Blue
-    val |= ((int)(colors[1] * 255) << 8); // Green
-    val |= ((int)(colors[2] * 255) << 0); // Red
-    val |= ((int)(colors[3] * 255) << 24); // Alpha
-
-    *pColor = val;
-
-    return true;
-  }
-
-  return false;
 }
 
 void vcMain_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine = true)
@@ -1265,7 +1240,7 @@ void vcRenderWindow(vcState *pProgramState)
         vcModals_OpenModal(pProgramState, vcMT_AddUDS);
 
       if (vcMenuBarButton(pProgramState->pUITexture, "Add Point of Interest", nullptr, vcMBBI_AddPointOfInterest, vcMBBG_SameGroup))
-        vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
+        vcPOI_AddToList(pProgramState, "Point of Interest", 0xFFFFFFFF, 14, udDouble3::zero(), 0);
 
       if (vcMenuBarButton(pProgramState->pUITexture, "Add Area of Interest", nullptr, vcMBBI_AddAreaOfInterest, vcMBBG_SameGroup))
         vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
@@ -1315,6 +1290,13 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::Checkbox(udTempStr("##SXIVisible%zu", i), &pProgramState->sceneList[i]->visible);
         ImGui::SameLine();
 
+        if (pProgramState->sceneList[i]->pImGuiFunc != nullptr)
+        {
+          if (ImGui::ArrowButton(udTempStr("##SXIExpanded%zu", i), pProgramState->sceneList[i]->expanded ? ImGuiDir_Down : ImGuiDir_Right))
+            pProgramState->sceneList[i]->expanded = !pProgramState->sceneList[i]->expanded;
+          ImGui::SameLine();
+        }
+
         vcMain_ShowLoadStatusIndicator((vcSceneLoadStatus)pProgramState->sceneList[i]->loadStatus);
 
         // The actual model
@@ -1349,17 +1331,6 @@ void vcRenderWindow(vcState *pProgramState)
 
         if (ImGui::BeginPopupContextItem(udTempStr("ModelContextMenu_%zu", i)))
         {
-          if (ImGui::Selectable("Flip Y/Z Up")) //Technically this is a rotation around X actually...
-          {
-            udDouble4 rowz = -pProgramState->sceneList[i]->sceneMatrix.axis.y;
-            pProgramState->sceneList[i]->sceneMatrix.axis.y = pProgramState->sceneList[i]->sceneMatrix.axis.z;
-            pProgramState->sceneList[i]->sceneMatrix.axis.z = rowz;
-
-            vcScene_UpdateItemToCurrentProjection(pProgramState, pProgramState->sceneList[i]);
-          }
-
-          ImGui::Separator();
-
           if (pProgramState->sceneList[i]->pZone != nullptr && ImGui::Selectable("Use Projection"))
           {
             if (vcGIS_ChangeSpace(&pProgramState->gis, pProgramState->sceneList[i]->pZone->srid, &pProgramState->pCamera->position))
@@ -1381,14 +1352,6 @@ void vcRenderWindow(vcState *pProgramState)
             pProgramState->cameraInput.progress = 0.0;
           }
 
-          ImGui::Separator();
-
-          if (ImGui::Selectable("Properties"))
-          {
-            pProgramState->selectedModelProperties.index = i;
-            vcModals_OpenModal(pProgramState, vcMT_ModelProperties);
-            ImGui::CloseCurrentPopup();
-          }
           ImGui::EndPopup();
         }
 
@@ -1398,6 +1361,17 @@ void vcRenderWindow(vcState *pProgramState)
         if (ImGui::IsItemHovered())
           ImGui::SetTooltip("%s", pProgramState->sceneList[i]->pName);
 
+        // Show additional settings from ImGui
+        if (pProgramState->sceneList[i]->expanded)
+        {
+          ImGui::Indent();
+          ImGui::PushID(udTempStr("SXIExpanded%zu", i));
+
+          pProgramState->sceneList[i]->pImGuiFunc(pProgramState, pProgramState->sceneList[i]);
+
+          ImGui::PopID();
+          ImGui::Unindent();
+        }
       }
     }
     ImGui::EndDock();
@@ -1600,30 +1574,30 @@ void vcRenderWindow(vcState *pProgramState)
             if (ImGui::Button("Restore Defaults##RestoreClassificationColors"))
               memcpy(pProgramState->settings.visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pProgramState->settings.visualization.customClassificationColors));
 
-            vcMain_U32ColorPicker("0. Never Classified", &pProgramState->settings.visualization.customClassificationColors[0], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("1. Unclassified", &pProgramState->settings.visualization.customClassificationColors[1], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("2. Ground", &pProgramState->settings.visualization.customClassificationColors[2], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("3. Low Vegetation", &pProgramState->settings.visualization.customClassificationColors[3], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("4. Medium Vegetation", &pProgramState->settings.visualization.customClassificationColors[4], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("5. High Vegetation", &pProgramState->settings.visualization.customClassificationColors[5], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("6. Building", &pProgramState->settings.visualization.customClassificationColors[6], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("7. Low Point / Noise", &pProgramState->settings.visualization.customClassificationColors[7], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("8. Key Point / Reserved", &pProgramState->settings.visualization.customClassificationColors[8], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("9. Water", &pProgramState->settings.visualization.customClassificationColors[9], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("10. Rail", &pProgramState->settings.visualization.customClassificationColors[10], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("11. Road Surface", &pProgramState->settings.visualization.customClassificationColors[11], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("12. Reserved", &pProgramState->settings.visualization.customClassificationColors[12], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("13. Wire Guard / Shield", &pProgramState->settings.visualization.customClassificationColors[13], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("14. Wire Conductor / Phase", &pProgramState->settings.visualization.customClassificationColors[14], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("15. Transmission Tower", &pProgramState->settings.visualization.customClassificationColors[15], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("16. Wire Structure Connector", &pProgramState->settings.visualization.customClassificationColors[16], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("17. Bridge Deck", &pProgramState->settings.visualization.customClassificationColors[17], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker("18. High Noise", &pProgramState->settings.visualization.customClassificationColors[18], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("0. Never Classified", &pProgramState->settings.visualization.customClassificationColors[0], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("1. Unclassified", &pProgramState->settings.visualization.customClassificationColors[1], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("2. Ground", &pProgramState->settings.visualization.customClassificationColors[2], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("3. Low Vegetation", &pProgramState->settings.visualization.customClassificationColors[3], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("4. Medium Vegetation", &pProgramState->settings.visualization.customClassificationColors[4], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("5. High Vegetation", &pProgramState->settings.visualization.customClassificationColors[5], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("6. Building", &pProgramState->settings.visualization.customClassificationColors[6], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("7. Low Point / Noise", &pProgramState->settings.visualization.customClassificationColors[7], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("8. Key Point / Reserved", &pProgramState->settings.visualization.customClassificationColors[8], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("9. Water", &pProgramState->settings.visualization.customClassificationColors[9], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("10. Rail", &pProgramState->settings.visualization.customClassificationColors[10], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("11. Road Surface", &pProgramState->settings.visualization.customClassificationColors[11], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("12. Reserved", &pProgramState->settings.visualization.customClassificationColors[12], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("13. Wire Guard / Shield", &pProgramState->settings.visualization.customClassificationColors[13], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("14. Wire Conductor / Phase", &pProgramState->settings.visualization.customClassificationColors[14], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("15. Transmission Tower", &pProgramState->settings.visualization.customClassificationColors[15], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("16. Wire Structure Connector", &pProgramState->settings.visualization.customClassificationColors[16], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("17. Bridge Deck", &pProgramState->settings.visualization.customClassificationColors[17], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32("18. High Noise", &pProgramState->settings.visualization.customClassificationColors[18], ImGuiColorEditFlags_NoAlpha);
 
             if (ImGui::TreeNode("19 - 63 Reserved"))
             {
               for (int i = 19; i < 64; ++i)
-                vcMain_U32ColorPicker(udTempStr("%d. Reserved", i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+                vcIGSW_ColorPickerU32(udTempStr("%d. Reserved", i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
               ImGui::TreePop();
             }
 
@@ -1633,9 +1607,9 @@ void vcRenderWindow(vcState *pProgramState)
               {
                 char buttonID[12], inputID[3];
                 if (pProgramState->settings.visualization.customClassificationColorLabels[i] == nullptr)
-                  vcMain_U32ColorPicker(udTempStr("%d. User Defined", i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+                  vcIGSW_ColorPickerU32(udTempStr("%d. User Defined", i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
                 else
-                  vcMain_U32ColorPicker(udTempStr("%d. %s", i, pProgramState->settings.visualization.customClassificationColorLabels[i]), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+                  vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, pProgramState->settings.visualization.customClassificationColorLabels[i]), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
                 udSprintf(buttonID, 12, "Rename##%d", i);
                 udSprintf(inputID, 3, "##I%d", i);
                 ImGui::SameLine();
@@ -1710,44 +1684,6 @@ void vcRenderWindow(vcState *pProgramState)
     }
 
     ImGui::EndDock();
-
-    if (vcModals_IsOpening(pProgramState, vcMT_ModelProperties))
-    {
-      ImGui::OpenPopup("Model Properties");
-      ImGui::SetNextWindowSize(ImVec2(400, 600));
-    }
-
-    if (ImGui::BeginPopupModal("Model Properties", NULL, ImGuiWindowFlags_HorizontalScrollbar))
-    {
-      pProgramState->selectedModelProperties.pMetadata = pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pMetadata;
-
-      if (pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pName)
-      {
-        ImGui::TextWrapped("Name: %s", pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pPath);
-        ImGui::Separator();
-      }
-
-      if (pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pPath)
-      {
-        ImGui::TextWrapped("Path: %s", pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pPath);
-        ImGui::Separator();
-      }
-
-      if (pProgramState->selectedModelProperties.pMetadata == nullptr)
-      {
-        ImGui::Text("No model information found.");
-      }
-      else
-      {
-        vcImGuiValueTreeObject(pProgramState->selectedModelProperties.pMetadata);
-        ImGui::Separator();
-      }
-
-      if (ImGui::Button("Close"))
-        ImGui::CloseCurrentPopup();
-
-      ImGui::EndPopup();
-    }
   }
 
   vcModals_DrawModals(pProgramState);
