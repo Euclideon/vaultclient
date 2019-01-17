@@ -6,7 +6,7 @@
 #include "vcModel.h"
 #include "vcPOI.h"
 
-void vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char *pModelFilename, bool firstLoad, udDouble3 *pPosition, udDouble3 *pYPR, double scale)
+void vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char *pModelName, const char *pModelFilename, bool firstLoad, udDouble3 *pPosition, udDouble3 *pYPR, double scale)
 {
   // If the model filename is nullptr there's nothing to load
   if (pModelFilename == nullptr)
@@ -23,7 +23,7 @@ void vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char
   else
     file.SetFromFullPath(pModelFilename);
 
-  vcModel_AddToList(pProgramState, file, firstLoad, pPosition, pYPR, scale);
+  vcModel_AddToList(pProgramState, pModelName, file, firstLoad, pPosition, pYPR, scale);
 }
 
 bool vcUDP_ReadGeolocation(const char *pStr, udDouble3 &position, int &epsg)
@@ -54,7 +54,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
       const char *pName = dataEntries.Get("[%zu].Name", i).AsString();
       if (udStrEqual(pName, "AbsoluteModelPath"))
       {
-        vcUDP_AddModel(pProgramState, pFilename, dataEntries.Get("[%zu].content", i).AsString(), firstLoad, nullptr, nullptr, 1.0);
+        vcUDP_AddModel(pProgramState, pFilename, nullptr, dataEntries.Get("[%zu].content", i).AsString(), firstLoad, nullptr, nullptr, 1.0);
         firstLoad = false;
       }
     }
@@ -71,7 +71,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
           {
             const udJSON &datasetData = datasets.Get("[%zu].DataEntry", j);
 
-            //const char *pName = nullptr;
+            const char *pName = nullptr;
             const char *pPath = nullptr;
             const char *pLocation = nullptr;
             const char *pAngleX = nullptr;
@@ -83,8 +83,8 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
             {
               if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Path"))
                 pPath = datasetData.Get("[%zu].content", k).AsString();
-              //else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Name"))
-              //  pName = datasetData.Get("[%zu].content", k).AsString();
+              else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Name"))
+                pName = datasetData.Get("[%zu].content", k).AsString();
               else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Location"))
                 pLocation = datasetData.Get("[%zu].content", k).AsString();
               else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "AngleX"))
@@ -133,7 +133,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
               if (pScale != nullptr)
                 scale = udStrAtof64(pScale);
 
-              vcUDP_AddModel(pProgramState, pFilename, pPath, firstLoad, pPosition, pYPR, scale);
+              vcUDP_AddModel(pProgramState, pFilename, pName, pPath, firstLoad, pPosition, pYPR, scale);
               firstLoad = false;
             }
           }

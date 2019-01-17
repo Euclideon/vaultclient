@@ -44,12 +44,6 @@ struct vcState
   size_t numSelectedModels;
   size_t prevSelectedModel;
 
-  struct
-  {
-    size_t index;
-    udJSON *pMetadata;
-  } selectedModelProperties;
-
   double deltaTime;
   udUInt2 sceneResolution;
 

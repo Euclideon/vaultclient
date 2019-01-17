@@ -31,13 +31,14 @@ enum vcSceneItemType
   vcSOT_Count
 };
 
-typedef void (udSceneItem_CleanupFunc)(vcState *pProgramState, vcSceneItem *pBaseItem);
+typedef void (udSceneItemBasicCallback)(vcState *pProgramState, vcSceneItem *pBaseItem);
 
 struct vcSceneItem
 {
   volatile int32_t loadStatus;
   bool visible;
   bool selected;
+  bool expanded;
 
   vcSceneItemType type;
   char typeStr[8];
@@ -48,10 +49,13 @@ struct vcSceneItem
   udJSON *pMetadata; // This points to a metadata (if it exists)
   udGeoZone *pZone; // nullptr if not geolocated
 
-  const char *pName;
   const char *pPath;
 
-  udSceneItem_CleanupFunc *pCleanupFunc; // Only calls this is its 'completed' loading and is 'vcSLS_Loaded'; this is called before other cleanup operations
+  char *pName;
+  size_t nameBufferLength;
+
+  udSceneItemBasicCallback *pImGuiFunc; // This is used to help with exposing item specific UI
+  udSceneItemBasicCallback *pCleanupFunc; // Only calls this is its 'completed' loading and is 'vcSLS_Loaded'; this is called before other cleanup operations
 };
 
 void vcScene_RemoveItem(vcState *pProgramState, size_t index);

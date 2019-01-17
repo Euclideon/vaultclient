@@ -325,11 +325,6 @@ void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
   pProgramState->openModals |= (1 << type);
 }
 
-bool vcModals_IsOpening(vcState *pProgramState, vcModalTypes type)
-{
-  return ((pProgramState->openModals & (1 << type)) != 0);
-}
-
 void vcModals_DrawModals(vcState *pProgramState)
 {
   vcModals_DrawLoggedOut(pProgramState);
