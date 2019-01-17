@@ -5,6 +5,8 @@
 #include "vcThirdPartyLicenses.h"
 #include "gl/vcTexture.h"
 #include "vcRender.h"
+#include "vcStrings.h"
+#include "vCore/vStringFormat.h"
 
 #include "udPlatform/udFile.h"
 
@@ -16,13 +18,13 @@
 void vcModals_DrawLoggedOut(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_LoggedOut))
-    ImGui::OpenPopup("Logged Out");
+    ImGui::OpenPopup(pStrLoggedOut);
 
-  if (ImGui::BeginPopupModal("Logged Out", nullptr, ImGuiWindowFlags_NoResize))
+  if (ImGui::BeginPopupModal(pStrLoggedOut, nullptr, ImGuiWindowFlags_NoResize))
   {
-    ImGui::Text("You were logged out.");
+    ImGui::Text("%s", pStrLogged);
 
-    if (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    if (ImGui::Button(pStrClose, ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
       ImGui::CloseCurrentPopup();
       pProgramState->openModals &= ~(1 << vcMT_LoggedOut);
@@ -35,19 +37,19 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
 void vcModals_DrawReleaseNotes(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_ReleaseNotes))
-    ImGui::OpenPopup("Release Notes");
+    ImGui::OpenPopup(pStrMenuReleaseNotes);
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal("Release Notes"))
+  if (ImGui::BeginPopupModal(pStrMenuReleaseNotes))
   {
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-    ImGui::Text("Euclideon Vault Client Release Notes");
+    ImGui::Text("%s %s", pStrAppName, pStrReleaseNotes);
 
-    ImGui::Text("Current Version: %s", VCVERSION_PRODUCT_STRING);
+    ImGui::Text("%s: %s", pStrCurrentVersion, VCVERSION_PRODUCT_STRING);
 
     ImGui::NextColumn();
-    if (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    if (ImGui::Button(pStrClose, ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::Columns(1);
@@ -59,13 +61,13 @@ void vcModals_DrawReleaseNotes(vcState *pProgramState)
 
     if (pProgramState->pReleaseNotes != nullptr)
     {
-      ImGui::BeginChild("ReleaseNotes");
+      ImGui::BeginChild(pStrReleaseShort);
       ImGui::TextUnformatted(pProgramState->pReleaseNotes);
       ImGui::EndChild();
     }
     else
     {
-      ImGui::Text("Unable to load release notes from package.");
+      ImGui::Text("%s", pStrReleaseNotesFail);
     }
 
     ImGui::EndPopup();
@@ -75,29 +77,30 @@ void vcModals_DrawReleaseNotes(vcState *pProgramState)
 void vcModals_DrawAbout(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_About))
-    ImGui::OpenPopup("About");
+    ImGui::OpenPopup(pStrMenuAbout);
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal("About"))
+  if (ImGui::BeginPopupModal(pStrMenuAbout))
   {
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-    ImGui::Text("Euclideon Vault Client Third Party License Information");
+    ImGui::Text("%s %s", pStrAppName, pStr3rdPartyLic);
 
-    ImGui::Text("Version: %s", VCVERSION_PRODUCT_STRING);
+    ImGui::Text("%s: %s", pStrVersion, VCVERSION_PRODUCT_STRING);
+
 
     if (pProgramState->packageInfo.Get("success").AsBool())
-      ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "Update Available to %s in your Vault Server.", pProgramState->packageInfo.Get("package.versionstring").AsString());
+      ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "%s", pStrPackageUpdate);
 
     ImGui::NextColumn();
-    if (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    if (ImGui::Button(pStrClose, ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::Columns(1);
 
     ImGui::Separator();
 
-    ImGui::BeginChild("Licenses");
+    ImGui::BeginChild(pStrLicenses);
     for (int i = 0; i < (int)UDARRAYSIZE(ThirdPartyLicenses); i++)
     {
       // ImGui::Text has a limitation of 3072 bytes.
@@ -114,25 +117,25 @@ void vcModals_DrawAbout(vcState *pProgramState)
 void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_NewVersionAvailable))
-    ImGui::OpenPopup("New Version Available");
+    ImGui::OpenPopup(pStrNewVersionAvailable);
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal("New Version Available"))
+  if (ImGui::BeginPopupModal(pStrNewVersionAvailable))
   {
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-    ImGui::Text("Euclideon Vault Client");
+    ImGui::Text("%s", pStrAppName);
 
-    ImGui::Text("Current Version: %s", VCVERSION_PRODUCT_STRING);
+    ImGui::Text("%s: %s", pStrCurrentVersion, VCVERSION_PRODUCT_STRING);
 
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 1.f, 0.5f, 1.f));
-    ImGui::TextWrapped("New Version: %s", pProgramState->packageInfo.Get("package.versionstring").AsString());
+    ImGui::TextWrapped("%s: %s", pStrNewVersion, pProgramState->packageInfo.Get("package.versionstring").AsString());
     ImGui::PopStyleColor();
 
-    ImGui::TextWrapped("Please visit the Vault server in your browser to download the package.");
+    ImGui::TextWrapped("%s", pStrDownloadPrompt);
 
     ImGui::NextColumn();
-    if (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    if (ImGui::Button(pStrClose, ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
       ImGui::CloseCurrentPopup();
       pProgramState->openModals &= ~(1 << vcMT_NewVersionAvailable);
@@ -142,7 +145,7 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
 
     ImGui::Separator();
 
-    ImGui::BeginChild("Release Notes");
+    ImGui::BeginChild(pStrMenuReleaseNotes);
     ImGui::TextUnformatted(pProgramState->packageInfo.Get("package.releasenotes").AsString(""));
     ImGui::EndChild();
 
@@ -195,13 +198,13 @@ void vcModals_DrawTileServer(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_TileServer))
   {
-    ImGui::OpenPopup("Tile Server");
+    ImGui::OpenPopup(pStrTileServer);
     if (pProgramState->tileModal.pServerIcon == nullptr)
       vcModals_TileThread(pProgramState);
   }
 
   ImGui::SetNextWindowSize(ImVec2(300, 342), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal("Tile Server"))
+  if (ImGui::BeginPopupModal(pStrTileServer))
   {
     // If there is loaded data, we turn it into a texture:
     if (pProgramState->tileModal.loadStatus > 0)
@@ -233,10 +236,10 @@ void vcModals_DrawTileServer(vcState *pProgramState)
       }
     }
 
-    if (ImGui::InputText("Tile Server", pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength))
+    if (ImGui::InputText(pStrTileServer, pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength))
       s_isDirty = true;
 
-    if (ImGui::Combo("Image Format", &s_currentItem, pItems, (int)udLengthOf(pItems)))
+    if (ImGui::Combo(pStrImageFormat, &s_currentItem, pItems, (int)udLengthOf(pItems)))
     {
       udStrcpy(pProgramState->settings.maptiles.tileServerExtension, udLengthOf(pProgramState->settings.maptiles.tileServerExtension), pItems[s_currentItem]);
       vcModals_TileThread(pProgramState);
@@ -249,13 +252,13 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     ImGui::SetItemDefaultFocus();
 
     if (pProgramState->tileModal.loadStatus == -1)
-      ImGui::Text("Loading... Please Wait");
+      ImGui::Text("%s", pStrLoadingWait);
     else if (pProgramState->tileModal.loadStatus == -2)
-      ImGui::TextColored(ImVec4(255, 0, 0, 255), "Error fetching texture from url");
+      ImGui::TextColored(ImVec4(255, 0, 0, 255), "%s", pStrErrorFetching);
     else if (pProgramState->tileModal.pServerIcon != nullptr)
       ImGui::Image((ImTextureID)pProgramState->tileModal.pServerIcon, ImVec2(200, 200), ImVec2(0, 0), ImVec2(1, 1));
 
-    if (pProgramState->tileModal.loadStatus != -1 && (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE]))
+    if (pProgramState->tileModal.loadStatus != -1 && (ImGui::Button(pStrClose, ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE]))
     {
       ImGui::CloseCurrentPopup();
       udFree(pProgramState->tileModal.pImageData);
@@ -269,15 +272,15 @@ void vcModals_DrawTileServer(vcState *pProgramState)
 void vcModals_DrawAddUDS(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_AddUDS))
-    ImGui::OpenPopup("Add UDS To Scene");
+    ImGui::OpenPopup(pStrSceneAddUDS);
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal("Add UDS To Scene"))
+  if (ImGui::BeginPopupModal(pStrSceneAddUDS))
   {
-    ImGui::InputText("Path/URL:", pProgramState->modelPath, vcMaxPathLength);
+    ImGui::InputText(pStrPathURL, pProgramState->modelPath, vcMaxPathLength);
     ImGui::SameLine();
 
-    if (ImGui::Button("Load!", ImVec2(100.f, 0)))
+    if (ImGui::Button(pStrLoad, ImVec2(100.f, 0)))
     {
       pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
       ImGui::CloseCurrentPopup();
@@ -285,7 +288,7 @@ void vcModals_DrawAddUDS(vcState *pProgramState)
 
     ImGui::SameLine();
 
-    if (ImGui::Button("Cancel", ImVec2(100.f, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    if (ImGui::Button(pStrCancel, ImVec2(100.f, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::Separator();
@@ -304,13 +307,13 @@ void vcModals_DrawAddUDS(vcState *pProgramState)
 void vcModals_DrawNotImplemented(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_NotYetImplemented))
-    ImGui::OpenPopup("Not Implemented");
+    ImGui::OpenPopup(pStrNotImplemented);
 
-  if (ImGui::BeginPopupModal("Not Implemented", nullptr, ImGuiWindowFlags_NoResize))
+  if (ImGui::BeginPopupModal(pStrNotImplemented, nullptr, ImGuiWindowFlags_NoResize))
   {
-    ImGui::Text("Sorry, this functionality is not yet available.");
+    ImGui::Text("%s", pStrNotAvailable);
 
-    if (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    if (ImGui::Button(pStrClose, ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::EndPopup();
