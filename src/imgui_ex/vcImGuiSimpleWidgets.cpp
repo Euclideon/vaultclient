@@ -18,16 +18,18 @@ int vcIGSW_ResizeString(ImGuiInputTextCallbackData *pData)
     vcIGSWResizeContainer *pInfo = (vcIGSWResizeContainer*)pData->UserData;
 
     size_t expectedBufSize = (size_t)pData->BufSize;
+    size_t currentBufSize = *pInfo->pBufferSize;
 
-    if (expectedBufSize <= *pInfo->pBufferSize)
+    if (expectedBufSize <= currentBufSize)
       return 0; // We don't need to resize right now
 
-    size_t newSize = udMin(expectedBufSize * 2, (size_t)32); // Doubles until only adding 32 bytes
+    size_t additionalBytes = expectedBufSize - currentBufSize;
+    additionalBytes = udMin(additionalBytes * 2, additionalBytes + 64); // Gives double the amount requested until the amount requested is more than 32
 
-    char *pNewStr = (char*)udMemDup(*pInfo->ppBuffer, *pInfo->pBufferSize, newSize, udAF_Zero);
+    char *pNewStr = (char*)udMemDup(*pInfo->ppBuffer, currentBufSize, additionalBytes, udAF_Zero);
     udFree(*pInfo->ppBuffer);
     *pInfo->ppBuffer = pNewStr;
-    *pInfo->pBufferSize = *pInfo->pBufferSize + newSize;
+    *pInfo->pBufferSize = currentBufSize + additionalBytes;
 
     pData->Buf = pNewStr;
   }
