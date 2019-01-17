@@ -2,7 +2,11 @@
 
 #include "vcScene.h"
 #include "vcState.h"
+
 #include "gl/vcFenceRenderer.h"
+
+#include "imgui.h"
+#include "imgui_ex/vcImGuiSimpleWidgets.h"
 
 void vcPOI_Cleanup(vcState * /*pProgramState*/, vcSceneItem *pBaseItem)
 {
@@ -13,6 +17,14 @@ void vcPOI_Cleanup(vcState * /*pProgramState*/, vcSceneItem *pBaseItem)
     vcFenceRenderer_Destroy(&pPOI->pFence);
 }
 
+void vcPOI_ShowImGui(vcState * /*pProgramState*/, vcSceneItem *pBaseItem)
+{
+  vcPOI *pPOI = (vcPOI*)pBaseItem;
+
+  vcIGSW_InputTextWithResize("Label Name", &pPOI->pName, &pPOI->nameBufferLength);
+  vcIGSW_ColorPickerU32("Label Colour", &pPOI->nameColour, ImGuiColorEditFlags_None);
+}
+
 void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid)
 {
   vcPOI *pPOI = udAllocType(vcPOI, 1, udAF_Zero);
@@ -20,7 +32,9 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
 
   pPOI->pName = udStrdup(pName);
   pPOI->type = vcSOT_PointOfInterest;
+
   pPOI->pCleanupFunc = vcPOI_Cleanup;
+  pPOI->pImGuiFunc = vcPOI_ShowImGui;
 
   pPOI->nameColour = nameColour;
   pPOI->namePt = namePt;

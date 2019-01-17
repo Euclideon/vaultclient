@@ -14,6 +14,7 @@
 #include "imgui_ex/imgui_udValue.h"
 #include "imgui_ex/ImGuizmo.h"
 #include "imgui_ex/vcMenuButtons.h"
+#include "imgui_ex/vcImGuiSimpleWidgets.h"
 
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
@@ -531,7 +532,7 @@ int main(int argc, char **args)
 
             if (udStrEquali(loadFile.GetExt(), ".uds") || udStrEquali(loadFile.GetExt(), ".ssf") || udStrEquali(loadFile.GetExt(), ".udm") || udStrEquali(loadFile.GetExt(), ".udg"))
             {
-              vcModel_AddToList(&programState, pNextLoad, firstLoad);
+              vcModel_AddToList(&programState, nullptr, pNextLoad, firstLoad);
               continueLoading = true;
             }
             else if (udStrEquali(loadFile.GetExt(), ".udp"))
@@ -970,7 +971,7 @@ int vcMainMenuGui(vcState *pProgramState)
           vcScene_RemoveAll(pProgramState);
 
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
-            vcModel_AddToList(pProgramState, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
+            vcModel_AddToList(pProgramState, nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
         }
       }
 
@@ -1035,32 +1036,6 @@ int vcMainMenuGui(vcState *pProgramState)
   }
 
   return menuHeight;
-}
-
-bool vcMain_U32ColorPicker(const char *pLabel, uint32_t *pColor, ImGuiColorEditFlags flags)
-{
-  float colors[4];
-
-  colors[0] = ((((*pColor) >> 16) & 0xFF) / 255.f); // Blue
-  colors[1] = ((((*pColor) >> 8) & 0xFF) / 255.f); // Green
-  colors[2] = ((((*pColor) >> 0) & 0xFF) / 255.f); // Red
-  colors[3] = ((((*pColor) >> 24) & 0xFF) / 255.f); // Alpha
-
-  if (ImGui::ColorEdit4(pLabel, colors, flags))
-  {
-    uint32_t val = 0;
-
-    val |= ((int)(colors[0] * 255) << 16); // Blue
-    val |= ((int)(colors[1] * 255) << 8); // Green
-    val |= ((int)(colors[2] * 255) << 0); // Red
-    val |= ((int)(colors[3] * 255) << 24); // Alpha
-
-    *pColor = val;
-
-    return true;
-  }
-
-  return false;
 }
 
 void vcMain_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine = true)
@@ -1271,7 +1246,7 @@ void vcRenderWindow(vcState *pProgramState)
         vcModals_OpenModal(pProgramState, vcMT_AddUDS);
 
       if (vcMenuBarButton(pProgramState->pUITexture, pStrAddPOI, nullptr, vcMBBI_AddPointOfInterest, vcMBBG_SameGroup))
-        vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
+        vcPOI_AddToList(pProgramState, "Point of Interest", 0xFFFFFFFF, 14, udDouble3::zero(), 0);
 
       if (vcMenuBarButton(pProgramState->pUITexture, pStrAddAOI, nullptr, vcMBBI_AddAreaOfInterest, vcMBBG_SameGroup))
         vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
@@ -1321,6 +1296,13 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::Checkbox(udTempStr("##SXIVisible%zu", i), &pProgramState->sceneList[i]->visible);
         ImGui::SameLine();
 
+        if (pProgramState->sceneList[i]->pImGuiFunc != nullptr)
+        {
+          if (ImGui::ArrowButton(udTempStr("##SXIExpanded%zu", i), pProgramState->sceneList[i]->expanded ? ImGuiDir_Down : ImGuiDir_Right))
+            pProgramState->sceneList[i]->expanded = !pProgramState->sceneList[i]->expanded;
+          ImGui::SameLine();
+        }
+
         vcMain_ShowLoadStatusIndicator((vcSceneLoadStatus)pProgramState->sceneList[i]->loadStatus);
 
         // The actual model
@@ -1355,17 +1337,6 @@ void vcRenderWindow(vcState *pProgramState)
 
         if (ImGui::BeginPopupContextItem(udTempStr("ModelContextMenu_%zu", i)))
         {
-          if (ImGui::Selectable(pStrAxisFlip)) //Technically this is a rotation around X actually...
-          {
-            udDouble4 rowz = -pProgramState->sceneList[i]->sceneMatrix.axis.y;
-            pProgramState->sceneList[i]->sceneMatrix.axis.y = pProgramState->sceneList[i]->sceneMatrix.axis.z;
-            pProgramState->sceneList[i]->sceneMatrix.axis.z = rowz;
-
-            vcScene_UpdateItemToCurrentProjection(pProgramState, pProgramState->sceneList[i]);
-          }
-
-          ImGui::Separator();
-
           if (pProgramState->sceneList[i]->pZone != nullptr && ImGui::Selectable(pStrUseProjection))
           {
             if (vcGIS_ChangeSpace(&pProgramState->gis, pProgramState->sceneList[i]->pZone->srid, &pProgramState->pCamera->position))
@@ -1387,14 +1358,6 @@ void vcRenderWindow(vcState *pProgramState)
             pProgramState->cameraInput.progress = 0.0;
           }
 
-          ImGui::Separator();
-
-          if (ImGui::Selectable(pStrProperties))
-          {
-            pProgramState->selectedModelProperties.index = i;
-            vcModals_OpenModal(pProgramState, vcMT_ModelProperties);
-            ImGui::CloseCurrentPopup();
-          }
           ImGui::EndPopup();
         }
 
@@ -1404,6 +1367,17 @@ void vcRenderWindow(vcState *pProgramState)
         if (ImGui::IsItemHovered())
           ImGui::SetTooltip("%s", pProgramState->sceneList[i]->pName);
 
+        // Show additional settings from ImGui
+        if (pProgramState->sceneList[i]->expanded)
+        {
+          ImGui::Indent();
+          ImGui::PushID(udTempStr("SXIExpanded%zu", i));
+
+          pProgramState->sceneList[i]->pImGuiFunc(pProgramState, pProgramState->sceneList[i]);
+
+          ImGui::PopID();
+          ImGui::Unindent();
+        }
       }
     }
     ImGui::EndDock();
@@ -1607,30 +1581,30 @@ void vcRenderWindow(vcState *pProgramState)
             if (ImGui::Button(pStrRestoreColorsID))
               memcpy(pProgramState->settings.visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pProgramState->settings.visualization.customClassificationColors));
 
-            vcMain_U32ColorPicker(pStrColorNeverClassified, &pProgramState->settings.visualization.customClassificationColors[0], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorUnclassified, &pProgramState->settings.visualization.customClassificationColors[1], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorGround, &pProgramState->settings.visualization.customClassificationColors[2], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorLowVegetation, &pProgramState->settings.visualization.customClassificationColors[3], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorMediumVegetation, &pProgramState->settings.visualization.customClassificationColors[4], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorHighVegetation, &pProgramState->settings.visualization.customClassificationColors[5], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorBuilding, &pProgramState->settings.visualization.customClassificationColors[6], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorLowPoint, &pProgramState->settings.visualization.customClassificationColors[7], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorKeyPoint, &pProgramState->settings.visualization.customClassificationColors[8], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorWater, &pProgramState->settings.visualization.customClassificationColors[9], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorRail, &pProgramState->settings.visualization.customClassificationColors[10], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorRoadSurface, &pProgramState->settings.visualization.customClassificationColors[11], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorReserved, &pProgramState->settings.visualization.customClassificationColors[12], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorWireGuard, &pProgramState->settings.visualization.customClassificationColors[13], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorWireConductor, &pProgramState->settings.visualization.customClassificationColors[14], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorTransmissionTower, &pProgramState->settings.visualization.customClassificationColors[15], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorWireStructureConnector, &pProgramState->settings.visualization.customClassificationColors[16], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorBridgeDeck, &pProgramState->settings.visualization.customClassificationColors[17], ImGuiColorEditFlags_NoAlpha);
-            vcMain_U32ColorPicker(pStrColorHighNoise, &pProgramState->settings.visualization.customClassificationColors[18], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorNeverClassified, &pProgramState->settings.visualization.customClassificationColors[0], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorUnclassified, &pProgramState->settings.visualization.customClassificationColors[1], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorGround, &pProgramState->settings.visualization.customClassificationColors[2], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorLowVegetation, &pProgramState->settings.visualization.customClassificationColors[3], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorMediumVegetation, &pProgramState->settings.visualization.customClassificationColors[4], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorHighVegetation, &pProgramState->settings.visualization.customClassificationColors[5], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorBuilding, &pProgramState->settings.visualization.customClassificationColors[6], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorLowPoint, &pProgramState->settings.visualization.customClassificationColors[7], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorKeyPoint, &pProgramState->settings.visualization.customClassificationColors[8], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorWater, &pProgramState->settings.visualization.customClassificationColors[9], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorRail, &pProgramState->settings.visualization.customClassificationColors[10], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorRoadSurface, &pProgramState->settings.visualization.customClassificationColors[11], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorReserved, &pProgramState->settings.visualization.customClassificationColors[12], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorWireGuard, &pProgramState->settings.visualization.customClassificationColors[13], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorWireConductor, &pProgramState->settings.visualization.customClassificationColors[14], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorTransmissionTower, &pProgramState->settings.visualization.customClassificationColors[15], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorWireStructureConnector, &pProgramState->settings.visualization.customClassificationColors[16], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorBridgeDeck, &pProgramState->settings.visualization.customClassificationColors[17], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(pStrColorHighNoise, &pProgramState->settings.visualization.customClassificationColors[18], ImGuiColorEditFlags_NoAlpha);
 
             if (ImGui::TreeNode(pStrColorReservedColors))
             {
               for (int i = 19; i < 64; ++i)
-                vcMain_U32ColorPicker(udTempStr("%d. %s", i, pStrReserved), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+                vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, pStrReserved), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
               ImGui::TreePop();
             }
 
@@ -1640,9 +1614,9 @@ void vcRenderWindow(vcState *pProgramState)
               {
                 char buttonID[12], inputID[3];
                 if (pProgramState->settings.visualization.customClassificationColorLabels[i] == nullptr)
-                  vcMain_U32ColorPicker(udTempStr("%d. %s", i, pStrUserDefined), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+                  vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, pStrUserDefined), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
                 else
-                  vcMain_U32ColorPicker(udTempStr("%d. %s", i, pProgramState->settings.visualization.customClassificationColorLabels[i]), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+                  vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, pProgramState->settings.visualization.customClassificationColorLabels[i]), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
                 udSprintf(buttonID, 12, "%s##%d", pStrRename, i);
                 udSprintf(inputID, 3, "##I%d", i);
                 ImGui::SameLine();
@@ -1717,44 +1691,6 @@ void vcRenderWindow(vcState *pProgramState)
     }
 
     ImGui::EndDock();
-
-    if (vcModals_IsOpening(pProgramState, vcMT_ModelProperties))
-    {
-      ImGui::OpenPopup(pStrModelProperties);
-      ImGui::SetNextWindowSize(ImVec2(400, 600));
-    }
-
-    if (ImGui::BeginPopupModal(pStrModelProperties, NULL, ImGuiWindowFlags_HorizontalScrollbar))
-    {
-      pProgramState->selectedModelProperties.pMetadata = pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pMetadata;
-
-      if (pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pName)
-      {
-        ImGui::TextWrapped("%s: %s", pStrName, pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pPath);
-        ImGui::Separator();
-      }
-
-      if (pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pPath)
-      {
-        ImGui::TextWrapped("%s: %s", pStrPath, pProgramState->sceneList[pProgramState->selectedModelProperties.index]->pPath);
-        ImGui::Separator();
-      }
-
-      if (pProgramState->selectedModelProperties.pMetadata == nullptr)
-      {
-        ImGui::Text("%s", pStrNoModelInfo);
-      }
-      else
-      {
-        vcImGuiValueTreeObject(pProgramState->selectedModelProperties.pMetadata);
-        ImGui::Separator();
-      }
-
-      if (ImGui::Button(pStrClose))
-        ImGui::CloseCurrentPopup();
-
-      ImGui::EndPopup();
-    }
   }
 
   vcModals_DrawModals(pProgramState);
