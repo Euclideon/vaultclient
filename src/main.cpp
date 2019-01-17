@@ -1305,7 +1305,9 @@ void vcRenderWindow(vcState *pProgramState)
         if (drawSeperatorBefore == i)
         {
           ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.f, 1.f, 0.f, 1.f)); // RGBA
+          ImVec2 pos = ImGui::GetCursorPos();
           ImGui::Separator();
+          ImGui::SetCursorPos(pos);
           ImGui::PopStyleColor();
         }
 
