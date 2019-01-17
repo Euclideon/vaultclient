@@ -55,7 +55,7 @@ struct vcSceneItem
   size_t nameBufferLength;
 
   udSceneItemBasicCallback *pImGuiFunc; // This is used to help with exposing item specific UI
-  udSceneItemBasicCallback *pCleanupFunc; // Only calls this is its 'completed' loading and is 'vcSLS_Loaded'; this is called before other cleanup operations
+  udSceneItemBasicCallback *pCleanupFunc; // Only calls this if its 'completed' loading and is 'vcSLS_Loaded'; note: this is called before other cleanup operations
 };
 
 void vcScene_RemoveItem(vcState *pProgramState, size_t index);
