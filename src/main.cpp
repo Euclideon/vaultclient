@@ -1325,7 +1325,7 @@ void vcRenderWindow(vcState *pProgramState)
         vcMain_ShowLoadStatusIndicator((vcSceneLoadStatus)pProgramState->sceneList[i]->loadStatus);
 
         // The actual model
-        if (ImGui::Selectable(pProgramState->sceneList[i]->pName, pProgramState->sceneList[i]->selected))
+        if (ImGui::Selectable(udTempStr("%s##SXIName%zu", pProgramState->sceneList[i]->pName, i), pProgramState->sceneList[i]->selected))
         {
           if ((modState & KMOD_CTRL) == 0)
           {
