@@ -31,7 +31,7 @@ windows_x64_debug_d3d11:
     - vs2015
 
 linux_deb_gcc_release:
-  image: gitlab.euclideon.local:4567/docker-images/dev-xenial:v5
+  image: gitlab.euclideon.com:4567/docker-images/dev-xenial:v5
   stage: build
   script: "buildscripts/build.sh Release x64"
   tags:
@@ -39,7 +39,7 @@ linux_deb_gcc_release:
     - docker
 
 linux_deb_gcc_debug:
-  image: gitlab.euclideon.local:4567/docker-images/dev-xenial:v5
+  image: gitlab.euclideon.com:4567/docker-images/dev-xenial:v5
   stage: build
   script: "buildscripts/build.sh Debug x64"
   tags:
@@ -47,7 +47,7 @@ linux_deb_gcc_debug:
     - docker
 
 linux_deb_clang_release:
-  image: gitlab.euclideon.local:4567/docker-images/dev-xenial:v5
+  image: gitlab.euclideon.com:4567/docker-images/dev-xenial:v5
   stage: build
   script: "buildscripts/build.sh ReleaseClang x64"
   tags:
@@ -55,7 +55,7 @@ linux_deb_clang_release:
     - docker
 
 linux_deb_clang_debug:
-  image: gitlab.euclideon.local:4567/docker-images/dev-xenial:v5
+  image: gitlab.euclideon.com:4567/docker-images/dev-xenial:v5
   stage: build
   script: "buildscripts/build.sh DebugClang x64"
   tags:
@@ -63,7 +63,7 @@ linux_deb_clang_debug:
     - docker
 
 #linux_rpm_gcc_release:
-#  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v3
+#  image: gitlab.euclideon.com:4567/docker-images/dev-centos7:v3
 #  stage: build
 #  script: "buildscripts/build.sh Release x64"
 #  tags:
@@ -71,7 +71,7 @@ linux_deb_clang_debug:
 #    - docker
 #
 #linux_rpm_gcc_debug:
-#  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v3
+#  image: gitlab.euclideon.com:4567/docker-images/dev-centos7:v3
 #  stage: build
 #  script: "buildscripts/build.sh Debug x64"
 #  tags:
@@ -79,7 +79,7 @@ linux_deb_clang_debug:
 #    - docker
 #
 #linux_rpm_clang_release:
-#  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v3
+#  image: gitlab.euclideon.com:4567/docker-images/dev-centos7:v3
 #  stage: build
 #  script: "buildscripts/build.sh ReleaseClang x64"
 #  tags:
@@ -87,7 +87,7 @@ linux_deb_clang_debug:
 #    - docker
 #
 #linux_rpm_clang_debug:
-#  image: gitlab.euclideon.local:4567/docker-images/dev-centos7:v3
+#  image: gitlab.euclideon.com:4567/docker-images/dev-centos7:v3
 #  stage: build
 #  script: "buildscripts/build.sh DebugClang x64"
 #  tags:
