@@ -18,13 +18,13 @@
 void vcModals_DrawLoggedOut(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_LoggedOut))
-    ImGui::OpenPopup(pStrLoggedOut);
+    ImGui::OpenPopup(vcString::Get("LoggedOut"));
 
-  if (ImGui::BeginPopupModal(pStrLoggedOut, nullptr, ImGuiWindowFlags_NoResize))
+  if (ImGui::BeginPopupModal(vcString::Get("LoggedOut"), nullptr, ImGuiWindowFlags_NoResize))
   {
-    ImGui::Text("%s", pStrLogged);
+    ImGui::Text("%s", vcString::Get("Logged"));
 
-    if (ImGui::Button(pStrClose, ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    if (ImGui::Button(vcString::Get("Close"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
       ImGui::CloseCurrentPopup();
       pProgramState->openModals &= ~(1 << vcMT_LoggedOut);
@@ -37,19 +37,19 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
 void vcModals_DrawReleaseNotes(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_ReleaseNotes))
-    ImGui::OpenPopup(pStrMenuReleaseNotes);
+    ImGui::OpenPopup(vcString::Get("MenuReleaseNotes"));
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(pStrMenuReleaseNotes))
+  if (ImGui::BeginPopupModal(vcString::Get("MenuReleaseNotes")))
   {
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-    ImGui::Text("%s %s", pStrAppName, pStrReleaseNotes);
+    ImGui::Text("%s %s", vcString::Get("AppName"), vcString::Get("ReleaseNotes"));
 
-    ImGui::Text("%s: %s", pStrCurrentVersion, VCVERSION_PRODUCT_STRING);
+    ImGui::Text("%s: %s", vcString::Get("CurrentVersion"), VCVERSION_PRODUCT_STRING);
 
     ImGui::NextColumn();
-    if (ImGui::Button(pStrClose, ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    if (ImGui::Button(vcString::Get("Close"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::Columns(1);
@@ -61,13 +61,13 @@ void vcModals_DrawReleaseNotes(vcState *pProgramState)
 
     if (pProgramState->pReleaseNotes != nullptr)
     {
-      ImGui::BeginChild(pStrReleaseShort);
+      ImGui::BeginChild(vcString::Get("ReleaseShort"));
       ImGui::TextUnformatted(pProgramState->pReleaseNotes);
       ImGui::EndChild();
     }
     else
     {
-      ImGui::Text("%s", pStrReleaseNotesFail);
+      ImGui::Text("%s", vcString::Get("ReleaseNotesFail"));
     }
 
     ImGui::EndPopup();
@@ -77,30 +77,30 @@ void vcModals_DrawReleaseNotes(vcState *pProgramState)
 void vcModals_DrawAbout(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_About))
-    ImGui::OpenPopup(pStrMenuAbout);
+    ImGui::OpenPopup(vcString::Get("MenuAbout"));
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(pStrMenuAbout))
+  if (ImGui::BeginPopupModal(vcString::Get("MenuAbout")))
   {
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-    ImGui::Text("%s %s", pStrAppName, pStr3rdPartyLic);
+    ImGui::Text("%s %s", vcString::Get("AppName"), vcString::Get("3rdPartyLic"));
 
-    ImGui::Text("%s: %s", pStrVersion, VCVERSION_PRODUCT_STRING);
+    ImGui::Text("%s: %s", vcString::Get("Version"), VCVERSION_PRODUCT_STRING);
 
 
     if (pProgramState->packageInfo.Get("success").AsBool())
-      ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "%s", pStrPackageUpdate);
+      ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "%s", vcString::Get("PackageUpdate"));
 
     ImGui::NextColumn();
-    if (ImGui::Button(pStrClose, ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    if (ImGui::Button(vcString::Get("Close"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::Columns(1);
 
     ImGui::Separator();
 
-    ImGui::BeginChild(pStrLicenses);
+    ImGui::BeginChild(vcString::Get("Licenses"));
     for (int i = 0; i < (int)UDARRAYSIZE(ThirdPartyLicenses); i++)
     {
       // ImGui::Text has a limitation of 3072 bytes.
@@ -117,25 +117,25 @@ void vcModals_DrawAbout(vcState *pProgramState)
 void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_NewVersionAvailable))
-    ImGui::OpenPopup(pStrNewVersionAvailable);
+    ImGui::OpenPopup(vcString::Get("NewVersionAvailable"));
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(pStrNewVersionAvailable))
+  if (ImGui::BeginPopupModal(vcString::Get("NewVersionAvailable")))
   {
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-    ImGui::Text("%s", pStrAppName);
+    ImGui::Text("%s", vcString::Get("AppName"));
 
-    ImGui::Text("%s: %s", pStrCurrentVersion, VCVERSION_PRODUCT_STRING);
+    ImGui::Text("%s: %s", vcString::Get("CurrentVersion"), VCVERSION_PRODUCT_STRING);
 
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 1.f, 0.5f, 1.f));
-    ImGui::TextWrapped("%s: %s", pStrNewVersion, pProgramState->packageInfo.Get("package.versionstring").AsString());
+    ImGui::TextWrapped("%s: %s", vcString::Get("NewVersion"), pProgramState->packageInfo.Get("package.versionstring").AsString());
     ImGui::PopStyleColor();
 
-    ImGui::TextWrapped("%s", pStrDownloadPrompt);
+    ImGui::TextWrapped("%s", vcString::Get("DownloadPrompt"));
 
     ImGui::NextColumn();
-    if (ImGui::Button(pStrClose, ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    if (ImGui::Button(vcString::Get("Close"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
       ImGui::CloseCurrentPopup();
       pProgramState->openModals &= ~(1 << vcMT_NewVersionAvailable);
@@ -145,7 +145,7 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
 
     ImGui::Separator();
 
-    ImGui::BeginChild(pStrMenuReleaseNotes);
+    ImGui::BeginChild(vcString::Get("MenuReleaseNotes"));
     ImGui::TextUnformatted(pProgramState->packageInfo.Get("package.releasenotes").AsString(""));
     ImGui::EndChild();
 
@@ -198,13 +198,13 @@ void vcModals_DrawTileServer(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_TileServer))
   {
-    ImGui::OpenPopup(pStrTileServer);
+    ImGui::OpenPopup(vcString::Get("TileServer"));
     if (pProgramState->tileModal.pServerIcon == nullptr)
       vcModals_TileThread(pProgramState);
   }
 
   ImGui::SetNextWindowSize(ImVec2(300, 342), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(pStrTileServer))
+  if (ImGui::BeginPopupModal(vcString::Get("TileServer")))
   {
     // If there is loaded data, we turn it into a texture:
     if (pProgramState->tileModal.loadStatus > 0)
@@ -236,10 +236,10 @@ void vcModals_DrawTileServer(vcState *pProgramState)
       }
     }
 
-    if (ImGui::InputText(pStrTileServer, pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength))
+    if (ImGui::InputText(vcString::Get("TileServer"), pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength))
       s_isDirty = true;
 
-    if (ImGui::Combo(pStrImageFormat, &s_currentItem, pItems, (int)udLengthOf(pItems)))
+    if (ImGui::Combo(vcString::Get("ImageFormat"), &s_currentItem, pItems, (int)udLengthOf(pItems)))
     {
       udStrcpy(pProgramState->settings.maptiles.tileServerExtension, udLengthOf(pProgramState->settings.maptiles.tileServerExtension), pItems[s_currentItem]);
       vcModals_TileThread(pProgramState);
@@ -252,13 +252,13 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     ImGui::SetItemDefaultFocus();
 
     if (pProgramState->tileModal.loadStatus == -1)
-      ImGui::Text("%s", pStrLoadingWait);
+      ImGui::Text("%s", vcString::Get("LoadingWait"));
     else if (pProgramState->tileModal.loadStatus == -2)
-      ImGui::TextColored(ImVec4(255, 0, 0, 255), "%s", pStrErrorFetching);
+      ImGui::TextColored(ImVec4(255, 0, 0, 255), "%s", vcString::Get("ErrorFetching"));
     else if (pProgramState->tileModal.pServerIcon != nullptr)
       ImGui::Image((ImTextureID)pProgramState->tileModal.pServerIcon, ImVec2(200, 200), ImVec2(0, 0), ImVec2(1, 1));
 
-    if (pProgramState->tileModal.loadStatus != -1 && (ImGui::Button(pStrClose, ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE]))
+    if (pProgramState->tileModal.loadStatus != -1 && (ImGui::Button(vcString::Get("Close"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE]))
     {
       ImGui::CloseCurrentPopup();
       udFree(pProgramState->tileModal.pImageData);
@@ -272,15 +272,15 @@ void vcModals_DrawTileServer(vcState *pProgramState)
 void vcModals_DrawAddUDS(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_AddUDS))
-    ImGui::OpenPopup(pStrSceneAddUDS);
+    ImGui::OpenPopup(vcString::Get("SceneAddUDS"));
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(pStrSceneAddUDS))
+  if (ImGui::BeginPopupModal(vcString::Get("SceneAddUDS")))
   {
-    ImGui::InputText(pStrPathURL, pProgramState->modelPath, vcMaxPathLength);
+    ImGui::InputText(vcString::Get("PathURL"), pProgramState->modelPath, vcMaxPathLength);
     ImGui::SameLine();
 
-    if (ImGui::Button(pStrLoad, ImVec2(100.f, 0)))
+    if (ImGui::Button(vcString::Get("Load"), ImVec2(100.f, 0)))
     {
       pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
       ImGui::CloseCurrentPopup();
@@ -288,7 +288,7 @@ void vcModals_DrawAddUDS(vcState *pProgramState)
 
     ImGui::SameLine();
 
-    if (ImGui::Button(pStrCancel, ImVec2(100.f, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    if (ImGui::Button(vcString::Get("Cancel"), ImVec2(100.f, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::Separator();
@@ -307,13 +307,13 @@ void vcModals_DrawAddUDS(vcState *pProgramState)
 void vcModals_DrawNotImplemented(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_NotYetImplemented))
-    ImGui::OpenPopup(pStrNotImplemented);
+    ImGui::OpenPopup(vcString::Get("NotImplemented"));
 
-  if (ImGui::BeginPopupModal(pStrNotImplemented, nullptr, ImGuiWindowFlags_NoResize))
+  if (ImGui::BeginPopupModal(vcString::Get("NotImplemented"), nullptr, ImGuiWindowFlags_NoResize))
   {
-    ImGui::Text("%s", pStrNotAvailable);
+    ImGui::Text("%s", vcString::Get("NotAvailable"));
 
-    if (ImGui::Button(pStrClose, ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    if (ImGui::Button(vcString::Get("Close"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::EndPopup();
