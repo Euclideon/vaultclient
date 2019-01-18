@@ -3,21 +3,12 @@
 #include "udPlatform/udFile.h"
 #include "udPlatform/udJSON.h"
 
+#include <string>
 #include <unordered_map>
 
 namespace vcString
 {
   static std::unordered_map<std::string, const char*> gStringTable;
-
-  const char* Get(const char *pKey)
-  {
-    const char *pValue = gStringTable[pKey];
-
-    if (pValue == nullptr)
-      return "!MISSING";
-    else
-      return pValue;
-  }
 
   // pValue needs to be already duplicated before calling this function
   void Set(const char *pKey, const char *pValue)
@@ -28,6 +19,22 @@ namespace vcString
       udFree(pExistingValue);
 
     gStringTable[pKey] = pValue;
+  }
+
+  const char* Get(const char *pKey)
+  {
+    const char *pValue = gStringTable[pKey];
+
+    if (pValue == nullptr)
+    {
+      // Caches the mising string-
+      gStringTable[pKey] = vStringFormat("{MISSING/{0}}", pKey);
+      return gStringTable[pKey];
+    }
+    else
+    {
+      return pValue;
+    }
   }
 
   vdkError LoadTable(vcState *pProgramState, const char *pFilename)
