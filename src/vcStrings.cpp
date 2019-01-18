@@ -268,16 +268,16 @@ const char *pStrInactiveSlash;
 
 const char *pStrPackageUpdate;
 
-vdkError vcStrings_LoadStrings(vcState *pProgramState, const char *pFilename = "English.json")
+vdkError vcStrings_LoadStrings(vcState *pProgramState, const char *pFilename)
 {
   char *pPos;
-  if (udFile_Load(pFilename, (void **)&pPos) != udR_Success)
-    return vE_OpenFailure;
+  if (pFilename == nullptr || udFile_Load(pFilename, (void **)&pPos) != udR_Success)
+    pPos = udStrdup(""); // So this can be free'd later
 
   udJSON strings;
 
   if (strings.Parse(pPos) != udR_Success)
-    return vE_InvalidParameter;
+    strings.SetObject();
 
   udFree(pPos);
 
