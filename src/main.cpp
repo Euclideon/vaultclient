@@ -436,7 +436,7 @@ int main(int argc, char **args)
 
   SDL_EnableScreenSaver();
 
-  vcStrings_LoadStrings(&programState, "Strings.json");
+  vcStrings_LoadStrings(&programState, "asset://assets/lang/enAU.json");
 
   while (!programState.programComplete)
   {
