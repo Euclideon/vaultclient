@@ -271,7 +271,7 @@ extern const char *pStrInactiveSlash;
 
 extern const char *pStrPackageUpdate;
 
-vdkError vcStrings_LoadStrings(vcState *pProgramState, const char *pFilename);
+vdkError vcStrings_LoadStrings(vcState *pProgramState, const char *pFilename = nullptr);
 void vcStrings_FreeStrings();
 
 #endif //vcStrings_h__
