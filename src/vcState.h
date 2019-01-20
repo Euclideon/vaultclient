@@ -44,12 +44,6 @@ struct vcState
   size_t numSelectedModels;
   size_t prevSelectedModel;
 
-  struct
-  {
-    size_t index;
-    udJSON *pMetadata;
-  } selectedModelProperties;
-
   double deltaTime;
   udUInt2 sceneResolution;
 
@@ -103,6 +97,8 @@ struct vcState
   } tileModal;
 
   bool firstRun = true;
+  int64_t lastEventTime;
+  bool showUI = false;
 };
 
 #endif // !vcState_h__

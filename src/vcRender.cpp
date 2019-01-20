@@ -413,6 +413,9 @@ void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
   // Draw fences here
   if (pRenderContext->pSettings->presentation.showDiagnosticInfo)
     vcFenceRenderer_Render(pRenderContext->pDiagnosticFences, pRenderContext->pCamera->matrices.viewProjection, renderData.deltaTime);
+
+  for (size_t i = 0; i < renderData.fences.length; ++i)
+    vcFenceRenderer_Render(renderData.fences[i], pRenderContext->pCamera->matrices.viewProjection, renderData.deltaTime);
 }
 
 

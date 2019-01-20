@@ -48,6 +48,13 @@ enum
   vcMaxPathLength = 512,
 };
 
+enum vcPresentationMode
+{
+  vcPM_Hide,
+  vcPM_Show,
+  vcPM_Responsive
+};
+
 struct vcSettings
 {
   bool noLocalStorage; //If set to true; cannot save or load from local storage
@@ -76,7 +83,6 @@ struct vcSettings
     int width;
     int height;
     bool maximized;
-    bool fullscreen;
     bool touchscreenFriendly;
 
     bool presentationMode = false;
@@ -159,6 +165,9 @@ struct vcSettings
 
     bool mouseInteracts;
   } maptiles;
+
+  vcPresentationMode responsiveUI;
+  int hideIntervalSeconds;
 };
 
 // Settings Limits (vcSL prefix)
