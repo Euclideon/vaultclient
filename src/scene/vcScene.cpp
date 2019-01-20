@@ -32,6 +32,7 @@ void vcScene_RemoveAll(vcState *pProgramState)
 {
   while (pProgramState->sceneList.size() > 0)
     vcScene_RemoveItem(pProgramState, 0);
+  pProgramState->numSelectedModels = 0;
 }
 
 void vcScene_UpdateItemToCurrentProjection(vcState *pProgramState, vcSceneItem *pModel)
