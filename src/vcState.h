@@ -99,8 +99,6 @@ struct vcState
   bool firstRun;
   int64_t lastEventTime;
   bool showUI;
-  int64_t lastEventTime;
-  bool showUI = false;
 };
 
 #endif // !vcState_h__
