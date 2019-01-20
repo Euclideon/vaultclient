@@ -7,6 +7,7 @@
 struct vdkPointCloud;
 struct vcTexture;
 struct vcState;
+struct vcFenceRenderer;
 
 struct vcLineInfo
 {
@@ -21,6 +22,8 @@ struct vcPOI : public vcSceneItem
   vcLineInfo line;
   uint32_t nameColour;
   double namePt;
+
+  vcFenceRenderer *pFence;
 };
 
 void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid);

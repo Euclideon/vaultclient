@@ -12,17 +12,12 @@ enum vcModalTypes
   vcMT_AddUDS,
   vcMT_NotYetImplemented,
 
-  // These ones are unhandled by the DrawModals
-  vcMT_ModelProperties,
-
   vcMT_Count
 };
 
 struct vcState;
 
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type);
-bool vcModals_IsOpening(vcState *pProgramState, vcModalTypes type);
-
 void vcModals_DrawModals(vcState *pProgramState);
 
 #endif //vcModals_h__

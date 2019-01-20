@@ -4,6 +4,7 @@
 // Stored as g_udGZ_StdTransforms FROM WGS84 to the given datum
 struct udGeoZoneGeodeticDatumDescriptor
 {
+  const char *pFullName;
   const char *pShortName;
   const char *pDatumName;
   udGeoZoneEllipsoid ellipsoid;
@@ -31,27 +32,29 @@ const udGeoZoneEllipsoidInfo g_udGZ_StdEllipsoids[udGZE_Count] = {
   { "GRS 1980",           6378137.000, 1.0 / 298.257222101, 7019 }, // udGZE_GRS80
   { "International 1924", 6378388.000, 1.0 / 297.00,        7022 }, // udGZE_Intl1924
   { "WGS 72",             6378135.000, 1.0 / 298.26,        7043 }, // udGZE_WGS72
+  { "CGCS2000",           6378137.000, 1.0 / 298.257222101, 1024 }, // udGZE_CGCS2000
 };
 
 // Data for table gathered from https://github.com/chrisveness/geodesy/blob/master/latlon-ellipsoidal.js
 // and cross referenced with http://epsg.io/
 const udGeoZoneGeodeticDatumDescriptor g_udGZ_GeodeticDatumDescriptors[udGZGD_Count] = {
-  // Short  name   Datum name                                    Ellipsoid index      // ToWGS84 parameters                                            epsg  auth
-  { "WGS 84",      "WGS_1984",                                   udGZE_WGS84,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4326, 6326 },
-  { "ED50",        "European_Datum_1950",                        udGZE_Intl1924,      { -87.0, -98.0, -121.0, 0.0, 0.0, 0.0, 0.0 },                    4230, 6320 },
-  { "ETRS89",      "European_Terrestrial_Reference_System_1989", udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4258, 6258 },
-  { "TM75",        "Geodetic_Datum_of_1965",                     udGZE_AiryModified,  { 482.5, -130.6, 564.6, -1.042, -0.214, -0.631, 8.15 },          4300, 6300 },
-  { "NAD27",       "North_American_Datum_1927",                  udGZE_Clarke1866,    { -8.0, 160.0, 176.0, 0.0, 0.0, 0.0, 0.0 },                      4267, 6267 },
-  { "NAD83",       "North_American_Datum_1983",                  udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4269, 6269 },
-  { "NTF",         "Nouvelle_Triangulation_Francaise",           udGZE_Clarke1880IGN, { -168.0, -60.0, 320.0, 0.0, 0.0, 0.0, 0.0 },                    4275, 6275 },
-  { "OSGB 1936",   "OSGB_1936",                                  udGZE_Airy1830,      { 446.448, -125.157, 542.06, 0.1502, 0.247, 0.8421, -20.4894 },  4277, 6277 },
-  { "PD / 83",     "Potsdam_Datum_83",                           udGZE_Bessel1841,    { 582.0, 105.0, 414.0, -1.04, -0.35, 3.08, 8.3 },                4746, 6746 },
-  { "Tokyo",       "Tokyo",                                      udGZE_Bessel1841,    { -146.414, 507.337, 680.507, 0.0, 0.0, 0.0, 0.0 },              7414, 6301 },
-  { "WGS 72",      "WGS_1972",                                   udGZE_WGS72,         { 0.0, 0.0, 4.5, 0.0, 0.0, 0.554, 0.2263 },                      4322, 6322 },
-  { "JGD2000",     "Japanese_Geodetic_Datum_2000",               udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4612, 6612 },
-  { "GDA94",       "Geocentric_Datum_of_Australia_1994",         udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4283, 6283 },
-  { "RGF93",       "Reseau_Geodesique_Francais_1993",            udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4171, 6171 },
-  { "NAD83(HARN)", "NAD83_High_Accuracy_Reference_Network",      udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4152, 6152 },
+  // Full Name,                              Short  name    Datum name                                    Ellipsoid index      // ToWGS84 parameters                                            epsg  auth
+  { "WGS 84",                                "WGS 84",      "WGS_1984",                                   udGZE_WGS84,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4326, 6326 },
+  { "ED50",                                  "ED50",        "European_Datum_1950",                        udGZE_Intl1924,      { -87.0, -98.0, -121.0, 0.0, 0.0, 0.0, 0.0 },                    4230, 6320 },
+  { "ETRS89",                                "ETRS89",      "European_Terrestrial_Reference_System_1989", udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4258, 6258 },
+  { "TM75",                                  "TM75",        "Geodetic_Datum_of_1965",                     udGZE_AiryModified,  { 482.5, -130.6, 564.6, -1.042, -0.214, -0.631, 8.15 },          4300, 6300 },
+  { "NAD27",                                 "NAD27",       "North_American_Datum_1927",                  udGZE_Clarke1866,    { -8.0, 160.0, 176.0, 0.0, 0.0, 0.0, 0.0 },                      4267, 6267 },
+  { "NAD83",                                 "NAD83",       "North_American_Datum_1983",                  udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4269, 6269 },
+  { "NTF",                                   "NTF",         "Nouvelle_Triangulation_Francaise",           udGZE_Clarke1880IGN, { -168.0, -60.0, 320.0, 0.0, 0.0, 0.0, 0.0 },                    4275, 6275 },
+  { "OSGB 1936",                             "OSGB 1936",   "OSGB_1936",                                  udGZE_Airy1830,      { 446.448, -125.157, 542.06, 0.1502, 0.247, 0.8421, -20.4894 },  4277, 6277 },
+  { "PD / 83",                               "PD / 83",     "Potsdam_Datum_83",                           udGZE_Bessel1841,    { 582.0, 105.0, 414.0, -1.04, -0.35, 3.08, 8.3 },                4746, 6746 },
+  { "Tokyo",                                 "Tokyo",       "Tokyo",                                      udGZE_Bessel1841,    { -146.414, 507.337, 680.507, 0.0, 0.0, 0.0, 0.0 },              7414, 6301 },
+  { "WGS 72",                                "WGS 72",      "WGS_1972",                                   udGZE_WGS72,         { 0.0, 0.0, 4.5, 0.0, 0.0, 0.554, 0.2263 },                      4322, 6322 },
+  { "JGD2000",                               "JGD2000",     "Japanese_Geodetic_Datum_2000",               udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4612, 6612 },
+  { "GDA94",                                 "GDA94",       "Geocentric_Datum_of_Australia_1994",         udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4283, 6283 },
+  { "RGF93",                                 "RGF93",       "Reseau_Geodesique_Francais_1993",            udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4171, 6171 },
+  { "NAD83(HARN)",                           "NAD83(HARN)", "NAD83_High_Accuracy_Reference_Network",      udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4152, 6152 },
+  { "China Geodetic Coordinate System 2000", "CGCS2000",    "China_2000",                                 udGZE_CGCS2000,      { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4490, 1043 }
 };
 
 udDouble3 udGeoZone_LatLongToGeocentric(udDouble3 latLong, const udGeoZoneEllipsoidInfo &ellipsoid)
@@ -304,6 +307,46 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
     pZone->scaleFactor = 0.9996;
     udGeoZone_SetSpheroid(pZone);
     udGeoZone_SetUTMZoneBounds(pZone, false);
+  }
+  else if (sridCode >= 4534 && sridCode <= 4554)
+  {
+    const udDouble4 cgcsRegions[] = {
+      { 73.62, 35.81, 76.5, 40.65 },
+      { 76.5, 31.03, 79.5, 41.83 },
+      { 79.5, 29.95, 82.51, 45.88 },
+      { 82.5, 28.26, 85.5, 47.23 },
+      { 85.5, 27.8, 88.5, 49.18 },
+      { 88.49, 27.32, 91.51, 48.42 },
+      { 91.5, 27.71, 94.5, 45.13 },
+      { 94.5, 28.23, 97.51, 44.5 },
+      { 97.5, 21.43, 100.5, 42.76 },
+      { 100.5, 21.13, 103.5, 42.69 },
+      { 103.5, 22.5, 106.5, 42.21 },
+      { 106.5, 18.19, 109.5, 42.47 },
+      { 109.5, 18.11, 112.5, 45.11 },
+      { 112.5, 21.52, 115.5, 45.45 },
+      { 115.5, 22.6, 118.5, 49.88 },
+      { 118.5, 24.43, 121.5, 53.33 },
+      { 121.5, 28.22, 124.5, 53.56 },
+      { 124.5, 40.19, 127.5, 53.2 },
+      { 127.5, 41.37, 130.5, 50.25 },
+      { 130.5, 42.42, 133.5, 48.88 },
+      { 133.5, 45.85, 134.77, 48.4 }
+    };
+
+    // China_2000
+    pZone->datum = udGZGD_CGCS2000;
+    pZone->projection = udGZPT_TransverseMercator;
+    pZone->zone = sridCode - 4534;
+    udSprintf(pZone->zoneName, udLengthOf(pZone->zoneName), "3-degree Gauss-Kruger CM %dE", 75 + (pZone->zone * 3));
+    pZone->meridian = 75 + (pZone->zone * 3);
+    pZone->parallel = 0.0;
+    pZone->falseNorthing = 0;
+    pZone->falseEasting = 500000;
+    pZone->scaleFactor = 1;
+    udGeoZone_SetSpheroid(pZone);
+    pZone->latLongBoundMin = udDouble2::create(cgcsRegions[pZone->zone].x, cgcsRegions[pZone->zone].y);
+    pZone->latLongBoundMax = udDouble2::create(cgcsRegions[pZone->zone].z, cgcsRegions[pZone->zone].w);
   }
   else if (sridCode >= 26901 && sridCode <= 26923)
   {
@@ -568,7 +611,7 @@ udResult udGeoZone_GetWellKnownText(const char **ppWKT, const udGeoZone &zone)
   pDesc = &g_udGZ_GeodeticDatumDescriptors[zone.datum];
   pEllipsoid = &g_udGZ_StdEllipsoids[pDesc->ellipsoid];
   // If the ellipsoid isn't WGS84, then provide parameters to get to WGS84
-  if (pDesc->ellipsoid != udGZE_WGS84)
+  if (pDesc->ellipsoid != udGZE_WGS84 && zone.datum != udGZGD_CGCS2000)
   {
     udSprintf(&pWKTToWGS84, ",TOWGS84[%s,%s,%s,%s,%s,%s,%s]",
       udTempStr_TrimDouble(pDesc->paramsHelmert7[0], 3),
@@ -583,7 +626,7 @@ udResult udGeoZone_GetWellKnownText(const char **ppWKT, const udGeoZone &zone)
   udSprintf(&pWKTSpheroid, "SPHEROID[\"%s\",%s,%s,AUTHORITY[\"EPSG\",\"%d\"]]", pEllipsoid->pName, udTempStr_TrimDouble(pEllipsoid->semiMajorAxis, 9), udTempStr_TrimDouble(1.0 / pEllipsoid->flattening, 9), pEllipsoid->authorityEpsg);
   udSprintf(&pWKTDatum, "DATUM[\"%s\",%s%s,AUTHORITY[\"EPSG\",\"%d\"]", pDesc->pDatumName, pWKTSpheroid, pWKTToWGS84 ? pWKTToWGS84 : "", pDesc->authority);
   udSprintf(&pWKTGeoGCS, "GEOGCS[\"%s\",%s],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AUTHORITY[\"EPSG\",\"%d\"]]",
-    pDesc->pShortName, pWKTDatum, pDesc->epsg);
+    pDesc->pFullName, pWKTDatum, pDesc->epsg);
 
   // We only handle metres and us feet, each of which have their own fixed authority code
   if (zone.unitMetreScale == 1.0)
@@ -609,8 +652,8 @@ udResult udGeoZone_GetWellKnownText(const char **ppWKT, const udGeoZone &zone)
                                 udTempStr_TrimDouble(zone.falseEasting, 3), udTempStr_TrimDouble(zone.falseNorthing, 3), pWKTUnit);
   }
 
-  // JGD2000 doesn't provide axis information
-  if (zone.datum != udGZGD_JGD2000)
+  // JGD2000 and CGCS2000 doesn't provide axis information
+  if (zone.datum != udGZGD_JGD2000 && zone.datum != udGZGD_CGCS2000)
   {
     // Generally transverse mercator projections have one style, lambert another, except for 3112
     if (zone.projection == udGZPT_TransverseMercator || zone.srid == 3112)

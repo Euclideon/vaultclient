@@ -14,6 +14,7 @@ enum udGeoZoneEllipsoid
   udGZE_GRS80,          //EPSG:7019
   udGZE_Intl1924,       //EPSG:7022 (Same numbers as Hayford)
   udGZE_WGS72,          //EPSG:7043
+  udGZE_CGCS2000,       //EPSG:1024
 
   udGZE_Count
 };
@@ -35,6 +36,7 @@ enum udGeoZoneGeodeticDatum
   udGZGD_GDA94,      //EPSG:4283
   udGZGD_RGF93,      //EPSG:4171
   udGZGD_NAD83_HARN, //EPSG:4152
+  udGZGD_CGCS2000,   //EPSG:4490
 
   udGZGD_Count
 };

@@ -2,25 +2,32 @@ Euclideon Vault Client Version History
 
 Version 0.2.0 (In Progress)
   - Added a menu bar for frequently changed settings (EVC-298)
-  - Fixed some size issues with some of the modals (EVC-285)
+    - Added keyboard shortcuts for those settings as well (EVC-238)
+  - Fixed some size issues with some of the modals (EVC-285) and added support for pressing ESC to close them
   - Vault Convert CMD is packaged with Vault Client for the Windows and Ubuntu builds (EVC-304)
-  - Various tile system optimizations and improvements (EVC-251)
   - Fixed an issue with the wrapping of the camera (EVC-299)
   - Full screen is no longer tracked in the settings to prevent issues with multiple monitor configurations (EVC-9)
   - Significant improvements to how the build in assets are handled internally (EVC-286)
-  - Basic Geoverse MDM project (UDP file) support (EVC-287)
-  - Proper wizard for changing the tile server and added support for JPG tiles (EVC-290 & EVC-206)
+  - Basic Geoverse MDM project (UDP file) importing (EVC-287)
+  - Proper wizard for changing the tile server and added support for JPG tiles (EVC-290 & EVC-206) also optimized the tile system (EVC-251)
   - Fixed an issue with the mouse position being incorrect on Linux (EVC-27)
   - Better clearing of internal state during logout to prevent information leaking between sessions (EVC-283, EVC-284 & EVC-292)
-  - Swapped the names of the DirectX and OpenGL builds on Windows to better clarify that the DirectX version is the more supported one (EVC-281)
+  - Swapped the names of the DirectX and OpenGL builds on Windows to better clarify that the DirectX version is the better supported version (EVC-281)
   - The compass is no longer affected by FOV as this was causing confusion for some users (EVC-62)
   - Added Gizmos to move items around in the scene (EVC-288, EVC-297 & EVC-294)
-  - Lots more of the UI has hotkeys now, see the control buttons for what they are bound to by default
-    - Modals can be closed with Escape as expected
   - The load indicator has been slowed down and now only ticks a few times a second
   - Removed unnessecary columns from the scene explorer in favour of the more standard tree view system
+  - Fixed an issue with jumping between projections causing a crash in some situations (EVC-315)
+  - Fixed an issue with the release notes not being renderered correctly (EVC-314)
+  - You can now rename the user defined classifications (EVC-308)
+  - Removed the "Classic" theme option as there was confusion as to why it didn't look like Classic Windows (EVC-306)
+  - Added button which can be held down to show your password immediately after you've typed it (EVC-278)
+  - Added a presentation mode (EVC-212)
+  - Improved background loading of resources destined for the GPU (EVC-293)
   - Updated VDK also provides a number of minor improvements
     - Fixed an issue that caused a user to rejoin the queue every time it requested a license while already in queue
+	- Better support for concatenated PTS files (UD-19)
+	- Fixed issue with classification being averaged instead of picking one of the points for LOD calculations (UD-2)
 
 Version 0.1.2
   - Seperated the project codes for Vault Server / Vault Development kit (EVA) from the Euclideon Vault Client codes (EVC)
