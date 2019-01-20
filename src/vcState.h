@@ -72,11 +72,11 @@ struct vcState
   char password[vcMaxPathLength];
   const char *pLoginErrorMessage;
   const char *pReleaseNotes; //Only loaded when requested
-  bool passFocus = true;
+  bool passFocus;
 
   char modelPath[vcMaxPathLength];
 
-  int renaming = -1;
+  int renaming;
   char renameText[30];
 
   vcSettings settings;
@@ -96,9 +96,9 @@ struct vcState
     volatile int64_t loadStatus; // >0 is the size of pImageData
   } tileModal;
 
-  bool firstRun = true;
+  bool firstRun;
   int64_t lastEventTime;
-  bool showUI = false;
+  bool showUI;
 };
 
 #endif // !vcState_h__

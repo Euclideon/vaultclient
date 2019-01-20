@@ -103,6 +103,18 @@ void vcMain_UpdateSessionInfo(void *pProgramStatePtr)
     pProgramState->lastServerResponse = vcMain_GetCurrentTime();
 }
 
+void vcMain_PresentationMode(vcState *pProgramState)
+{
+  pProgramState->settings.window.presentationMode = !pProgramState->settings.window.presentationMode;
+  if (pProgramState->settings.window.presentationMode)
+    SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+  else
+    SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
+
+  if (pProgramState->settings.responsiveUI == vcPM_Responsive)
+    pProgramState->lastEventTime = vcMain_GetCurrentTime();
+}
+
 void vcLogin(void *pProgramStatePtr)
 {
   vdkError result;
@@ -296,7 +308,10 @@ int main(int argc, char **args)
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
   programState.settings.hideIntervalSeconds = 3;
-  programState.showUI = false;
+  programState.showUI = true;
+  programState.firstRun = true;
+  programState.passFocus = true;
+  programState.renaming = -1;
 
   programState.loadList.reserve(udMax(64, argc));
   programState.sceneList.reserve(64);
@@ -613,6 +628,9 @@ epilogue:
 
 void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
 {
+  if (pProgramState->settings.window.presentationMode && (pProgramState->settings.responsiveUI == vcPM_Hide || !pProgramState->showUI))
+    return;
+
   ImGuiIO &io = ImGui::GetIO();
   float bottomLeftOffset = 0.f;
 
@@ -702,17 +720,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
         // Fullscreen
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("Fullscreen"), vcString::Get("FullscreenKey"), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode) || ImGui::IsKeyPressed(SDL_SCANCODE_F5, false))
-        {
-          pProgramState->settings.window.presentationMode = !pProgramState->settings.window.presentationMode;
-          if (pProgramState->settings.window.presentationMode)
-            SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
-          else
-            SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
-
-          if (pProgramState->settings.responsiveUI == vcPM_Responsive)
-            pProgramState->lastEventTime = vcMain_GetCurrentTime();
-        }
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("Fullscreen"), vcString::Get("FullscreenKey"), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode))
+          vcMain_PresentationMode(pProgramState);
       }
 
       if (pProgramState->settings.presentation.showCameraInfo)
@@ -858,6 +867,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
 
+  if (ImGui::IsKeyPressed(SDL_SCANCODE_F5, false))
+    vcMain_PresentationMode(pProgramState);
+  if (pProgramState->settings.responsiveUI == vcPM_Show)
+    pProgramState->showUI = true;
+
   // use some data from previous frame
   pProgramState->worldMousePos = pProgramState->previousWorldMousePos;
   pProgramState->pickingSuccess = pProgramState->previousPickingSuccess;
@@ -920,6 +934,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
 int vcMainMenuGui(vcState *pProgramState)
 {
+  if (pProgramState->settings.window.presentationMode)
+    return 0;
+
   int menuHeight = 0;
 
   if (ImGui::BeginMainMenuBar())
@@ -1085,7 +1102,7 @@ void vcRenderWindow(vcState *pProgramState)
   vcFramebuffer_Clear(pProgramState->pDefaultFramebuffer, 0xFF000000);
 
   SDL_Keymod modState = SDL_GetModState();
-  ImGuiIO& io = ImGui::GetIO(); // for future key commands as well
+  ImGuiIO &io = ImGui::GetIO(); // for future key commands as well
   ImVec2 size = io.DisplaySize;
 
   if (pProgramState->settings.responsiveUI == vcPM_Responsive)
@@ -1469,10 +1486,12 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::EndDock();
 
       ImGui::SetNextWindowSize(size);
-      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2,2));
-      ImGui::SetNextWindowPos(ImVec2(0,0));
-      if (ImGui::Begin(vcString::Get("Scene"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration))
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
+      ImGui::SetNextWindowPos(ImVec2(0, 0));
+
+      if (ImGui::Begin(vcString::Get("Scene"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
         vcRenderSceneWindow(pProgramState);
+
       ImGui::End();
       ImGui::PopStyleVar();
     }
@@ -1504,13 +1523,13 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::Checkbox(vcString::Get("AdvancedGIS"), &pProgramState->settings.presentation.showAdvancedGIS);
         ImGui::Checkbox(vcString::Get("LimitFPS"), &pProgramState->settings.presentation.limitFPSInBackground);
 
-        ImGui::Checkbox(vcString::Get("ShowCompass"), &pProgramState->settings.presentation.showCompass);
+        ImGui::Checkbox("Show Compass On Screen", &pProgramState->settings.presentation.showCompass);
 
-        if (ImGui::Combo(vcString::Get("PresentationUI"), (int*)&pProgramState->settings.responsiveUI, vcString::Get("ResponsiveOptions")))
+        if (ImGui::Combo(vcString::Get("Presentation UI"), (int*)&pProgramState->settings.responsiveUI, vcString::Get("ResponsiveOptions")))
           pProgramState->showUI = false;
 
-        ImGui::Combo(vcString::Get("MouseAnchor"), (int*)&pProgramState->settings.presentation.mouseAnchor, vcString::Get("AnchorOptions"));
-        ImGui::Combo(vcString::Get("VoxelShape"), &pProgramState->settings.presentation.pointMode, vcString::Get("VoxelOptions"));
+        ImGui::Combo(vcString::Get("Mouse Anchor Style"), (int*)&pProgramState->settings.presentation.mouseAnchor, vcString::Get("AnchorOptions"));
+        ImGui::Combo(vcString::Get("Voxel Shape"), &pProgramState->settings.presentation.pointMode, vcString::Get("VoxelOptions"));
       }
 
       if (ImGui::CollapsingHeader(vcString::Get("InputControlsID")))
