@@ -85,3 +85,8 @@ const char *vStringFormat(const char *pFormatString, const char **ppStrings, siz
 
   return pBuf;
 }
+
+const char *vStringFormat(const char *pFormatString, const char *pString)
+{
+  return vStringFormat(pFormatString, &pString, 1);
+}
