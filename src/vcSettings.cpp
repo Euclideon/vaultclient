@@ -10,7 +10,7 @@
 #include "vcClassificationColours.h"
 
 extern ImGui::DockContext g_dock;
-const char *pDefaults = "asset://defaults.json";
+const char *pDefaults = "asset://defaultsettings.json";
 
 void vcSettings_RecursiveLoadDock(const udJSON &parentDock, int parentIndex, bool isNextTab = false)
 {
@@ -196,23 +196,18 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/)
   if (!pSettings->noLocalStorage && pSettings->pSaveFilePath == nullptr)
     vcSettings_InitializePrefPath(pSettings);
 
-  if (forceReset || pSettings->pSaveFilePath == nullptr)
-  {
-    const char *pSettingFileData;
-
-    if (udFile_Load(pDefaults, (void **)&pSettingFileData) == udR_Success)
-      pSavedData = pSettingFileData;
-  }
-  else
+  if (!forceReset && pSettings->pSaveFilePath != nullptr)
   {
     char buffer[vcMaxPathLength];
     udSprintf(buffer, vcMaxPathLength, "%ssettings.json", pSettings->pSaveFilePath);
 
-    const char *pSettingFileData;
-
-    if (udFile_Load(buffer, (void **)&pSettingFileData) == udR_Success)
-      pSavedData = pSettingFileData;
+    if (udFile_Load(buffer, (void **)&pSavedData) != udR_Success)
+      udFree(pSavedData); // Didn't load, let's free this in case it was allocated
   }
+
+  // If we didn't load, let's try load the defaults
+  if (pSavedData == nullptr && udFile_Load(pDefaults, (void **)&pSavedData) != udR_Success)
+    udFree(pSavedData); // Didn't load, let's free this in case it was allocated
 
   udJSON data;
   if (pSavedData != nullptr)
