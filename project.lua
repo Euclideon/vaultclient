@@ -12,6 +12,7 @@ project "vaultClient"
 	files { "project.lua" }
 	files { "docs/**.md" }
 	files { "builds/releasenotes.md" }
+	files { "builds/defaultsettings.json" }
 
 	--This project includes
 	includedirs { "src", "src/scene" }
@@ -69,8 +70,8 @@ project "vaultClient"
 		links { "SDL2", "AudioToolbox.framework", "QuartzCore.framework", "OpenGLES.framework", "CoreGraphics.framework", "UIKit.framework", "Foundation.framework", "CoreAudio.framework", "AVFoundation.framework", "GameController.framework", "CoreMotion.framework" }
 
 	filter { "system:macosx or ios" }
-		files { "builds/assets/**", "builds/releasenotes.md" }
-		xcodebuildresources { ".otf", ".png", ".jpg", "releasenotes" }
+		files { "builds/assets/**", "builds/releasenotes.md", "builds/defaultsettings.json" }
+		xcodebuildresources { ".otf", ".png", ".jpg", "releasenotes", "defaultsettings" }
 
 	filter { "system:not windows" }
 		links { "dl" }
