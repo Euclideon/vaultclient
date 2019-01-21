@@ -110,10 +110,16 @@ There are a number of ways to add models to the scene.
 3. If you have access to projects on the server you will be able to click the "Projects" button in the menu and select a project to load. Projects are defined from the Vault Server you're connected to.
 
 ### 4. Settings
+This pane allows you to change a number of settings
 
 > TIP: If you ever change a setting and can't recall what you've changed, you can reset _all_ settings by going to the "System" menu and selecting "Restore Default"
 
-???
+You can reset individual categories of settings by right clicking a heading in the "Settings" tab and selecting "Restore Defaults".
+
+#### Settings Keys
+- `F5` to enter presentation mode, in this mode the scene becomes fullscreen and optionally hides the overlays on the scene, depending on the "Responsive UI" setting.
+
+The "Presentation UI" settings determine whether to show overlays on the Scene tab in presentation mode, the options are "Show", "Hide" or "Responsive" which will show the overlays until you don't move the mouse for 3 seconds.
 
 ### 5. Watermark
 ???
@@ -179,6 +185,8 @@ Where the settings file is stored depends on your OS.
 - Linux: `???`
 - iOS: `???`
 - Android: `???`
+
+The default settings are loaded from the file "defaultsettings.json" in the same directory as client.
 
 ## FAQs
 
