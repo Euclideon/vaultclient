@@ -1525,11 +1525,11 @@ void vcRenderWindow(vcState *pProgramState)
 
         ImGui::Checkbox("Show Compass On Screen", &pProgramState->settings.presentation.showCompass);
 
-        if (ImGui::Combo(vcString::Get("Presentation UI"), (int*)&pProgramState->settings.responsiveUI, vcString::Get("ResponsiveOptions")))
+        if (ImGui::Combo(vcString::Get("PresentationUI"), (int*)&pProgramState->settings.responsiveUI, vcString::Get("ResponsiveOptions")))
           pProgramState->showUI = false;
 
-        ImGui::Combo(vcString::Get("Mouse Anchor Style"), (int*)&pProgramState->settings.presentation.mouseAnchor, vcString::Get("AnchorOptions"));
-        ImGui::Combo(vcString::Get("Voxel Shape"), &pProgramState->settings.presentation.pointMode, vcString::Get("VoxelOptions"));
+        ImGui::Combo(vcString::Get("MouseAnchor"), (int*)&pProgramState->settings.presentation.mouseAnchor, vcString::Get("AnchorOptions"));
+        ImGui::Combo(vcString::Get("VoxelShape"), &pProgramState->settings.presentation.pointMode, vcString::Get("VoxelOptions"));
       }
 
       if (ImGui::CollapsingHeader(vcString::Get("InputControlsID")))
