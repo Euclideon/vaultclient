@@ -899,7 +899,28 @@ void vcRenderSceneWindow(vcState *pProgramState)
       vcGizmo_SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
       vcGizmo_SetDrawList();
 
-      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->sceneMatrix, nullptr, vcGAC_AllUniform, pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->pivot);
+      if (pProgramState->sceneExplorer.pItems->children[pProgramState->sceneExplorer.clickedItem.index]->type == vcSOT_PointCloud)
+      {
+        vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->sceneMatrix, nullptr, vcGAC_AllUniform, pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->pivot);
+      }
+      else if (pProgramState->sceneExplorer.pItems->children[pProgramState->sceneExplorer.clickedItem.index]->type == vcSOT_PointOfInterest)
+      {
+        vcPOI *pPOI = (vcPOI*)pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index];
+        udDouble4x4 delta = udDouble4x4::identity();
+
+        udDouble4x4 temp = udDouble4x4::create(pPOI->sceneMatrix);
+        udDouble4x4 *pTemp = &temp;
+        if (pPOI->line.selectedPoint == 0)
+          pTemp = &pPOI->sceneMatrix;
+
+        vcGizmo_Manipulate(pProgramState->pCamera, vcGO_Translate, pProgramState->gizmo.coordinateSystem, pTemp, &delta, vcGAC_Translation, pPOI->line.pPoints[pPOI->line.selectedPoint] - pPOI->line.pPoints[0]);
+        pPOI->line.pPoints[pPOI->line.selectedPoint] = pPOI->line.pPoints[pPOI->line.selectedPoint] + delta.axis.t.toVector3();
+        if (pPOI->pFence != nullptr)
+        {
+          vcFenceRenderer_ClearPoints(pPOI->pFence);
+          vcFenceRenderer_AddPoints(pPOI->pFence, pPOI->line.pPoints, pPOI->line.numPoints, pPOI->line.closed);
+        }
+      }
     }
   }
 
