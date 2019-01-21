@@ -44,6 +44,7 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 			cp -rf builds/assets/ $DEPLOYDIR/Windows/assets
 			cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll $DEPLOYDIR/Windows/vaultSDK.dll
 			cp -f builds/releasenotes.md $DEPLOYDIR/Windows/releasenotes.md
+			cp -f builds/defaultsettings.json $DEPLOYDIR/Windows/defaultsettings.json
 
 			# Technically this could be in any build; outputs the change list to the deploy dir
 			git log --no-merges --pretty=format:"%an (%ae) %ai%n%s%n%b" > $DEPLOYDIR/history.txt

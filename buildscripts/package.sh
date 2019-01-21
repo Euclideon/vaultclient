@@ -20,7 +20,7 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 
 	# Create package zip
 	pushd package
-	/c/Program\ Files/7-Zip/7z.exe a ..\\vaultclient.zip assets\\ SDL2.dll vaultClient.exe vaultClient_OpenGL.exe vaultConvertCMD.exe vaultSDK.dll releasenotes.md
+	/c/Program\ Files/7-Zip/7z.exe a ..\\vaultclient.zip assets\\ SDL2.dll vaultClient.exe vaultClient_OpenGL.exe vaultConvertCMD.exe vaultSDK.dll releasenotes.md defaultsettings.json
 	popd
 
 	# Deploy package zip
