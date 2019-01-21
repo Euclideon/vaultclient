@@ -58,6 +58,7 @@ project "vaultClient"
 		xcodebuildsettings {
 			["INFOPLIST_PREFIX_HEADER"] = "src/vcVersion.h",
 			["INFOPLIST_PREPROCESS"] = "YES",
+			["MACOSX_DEPLOYMENT_TARGET"] = "10.13",
 		}
 
 	filter { "system:ios" }
