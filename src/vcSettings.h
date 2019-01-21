@@ -55,10 +55,22 @@ enum vcPresentationMode
   vcPM_Responsive
 };
 
+enum vcSettingCategory
+{
+  vcSC_Appearance,
+  vcSC_InputControls,
+  vcSC_Viewport,
+  vcSC_MapsElevation,
+  vcSC_Visualization,
+  vcSC_All
+};
+
 struct vcSettings
 {
   bool noLocalStorage; //If set to true; cannot save or load from local storage
   const char *pSaveFilePath;
+
+  bool onScreenControls;
 
   struct
   {
@@ -188,7 +200,7 @@ const float vcSL_CameraFieldOfViewMax = 100;
 const float vcSL_OSCPixelRatio = 100.f;
 
 // Settings Functions
-bool vcSettings_Load(vcSettings *pSettings, bool forceReset = false);
+bool vcSettings_Load(vcSettings *pSettings, bool forceReset = false, vcSettingCategory group = vcSC_All);
 bool vcSettings_Save(vcSettings *pSettings);
 
 // Uses udTempStr internally.

@@ -39,7 +39,6 @@ struct vcState
   SDL_Window *pWindow;
   vcFramebuffer *pDefaultFramebuffer;
 
-  bool onScreenControls;
   int openModals; // This is controlled inside vcModals.cpp
 
   vcCamera *pCamera;
