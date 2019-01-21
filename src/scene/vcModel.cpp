@@ -123,9 +123,9 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
   }
 }
 
-void vcModel_ShowImGui(vcState * /*pProgramState*/, vcSceneItem *pBaseItem)
+void vcModel_ShowImGui(vcState * /*pProgramState*/, vcSceneItem *pBaseItem, size_t *pItemID)
 {
-  vcIGSW_InputTextWithResize("Model Name", &pBaseItem->pName, &pBaseItem->nameBufferLength);
+  vcIGSW_InputTextWithResize(udTempStr("Model Name###ModelName%zu", *pItemID), &pBaseItem->pName, &pBaseItem->nameBufferLength);
   ImGui::TextWrapped("Path: %s", pBaseItem->pPath);
 
   if (pBaseItem->pMetadata != nullptr)
@@ -174,7 +174,7 @@ void vcModel_AddToList(vcState *pProgramState, const char *pName, const char *pF
   udStrcpy(pModel->typeStr, sizeof(pModel->typeStr), "UDS");
 
   // Add it to the load queue
-  pProgramState->sceneList.push_back(pModel); // TODO: Proper Exception Handling
+  vcScene_AddItem(pProgramState, pModel);
 
   vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
   if (pLoadInfo != nullptr)
