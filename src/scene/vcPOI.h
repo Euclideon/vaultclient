@@ -3,6 +3,7 @@
 
 #include "vcScene.h"
 #include "vdkRenderContext.h"
+#include "gl/vcFenceRenderer.h"
 
 struct vdkPointCloud;
 struct vcTexture;
@@ -15,6 +16,9 @@ struct vcLineInfo
   size_t numPoints;
   uint32_t lineColour;
   uint32_t lineWidth;
+  size_t selectedPoint;
+  bool closed;
+  vcFenceRendererImageMode lineStyle;
 };
 
 struct vcPOI : public vcSceneItem
