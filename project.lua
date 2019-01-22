@@ -72,7 +72,7 @@ project "vaultClient"
 
 	filter { "system:macosx or ios" }
 		files { "builds/assets/**", "builds/releasenotes.md", "builds/defaultsettings.json" }
-		xcodebuildresources { ".otf", ".png", ".jpg", "releasenotes", "defaultsettings" }
+		xcodebuildresources { ".otf", ".png", ".jpg", ".json", "releasenotes", "defaultsettings" }
 
 	filter { "system:not windows" }
 		links { "dl" }
