@@ -22,7 +22,6 @@ void vcPOI::ApplyDelta(vcState * /*pProgramState*/)
 
 void vcPOI::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
 {
-  vcIGSW_InputTextWithResize(udTempStr("Label Name###POIName%zu", *pItemID), &pName, &nameBufferLength);
   vcIGSW_ColorPickerU32(udTempStr("Label Colour###POIColor%zu", *pItemID), &nameColour, ImGuiColorEditFlags_None);
 }
 

@@ -5,9 +5,15 @@
 void vcSceneItem::AddItem(vcState *pProgramState)
 {
   vcFolder *pParent = pProgramState->sceneExplorer.clickedItem.pParent;
+  vcSceneItem *pChild = nullptr;
+
+  if (pParent)
+    pChild = pParent->children[pProgramState->sceneExplorer.clickedItem.index];
 
   // TODO: Proper Exception Handling
-  if (pParent != nullptr)
+  if (pChild != nullptr && pChild->type == vcSOT_Folder)
+    ((vcFolder*)pChild)->children.push_back(this);
+  else if (pParent != nullptr)
     pParent->children.push_back(this);
   else
     pProgramState->sceneExplorer.pItems->children.push_back(this);
@@ -111,7 +117,7 @@ bool vcScene_ContainsItem(vcFolder *pParent, vcSceneItem *pItem)
         return true;
   }
 
-  return false;
+  return pParent == pItem;
 }
 
 void vcScene_SelectItem(vcState *pProgramState, vcFolder *pParent, size_t index)
