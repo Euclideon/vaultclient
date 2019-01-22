@@ -2,21 +2,15 @@
 
 #include "vcState.h"
 
-void vcScene_AddItem(vcState *pProgramState, vcSceneItem *pItem)
+void vcSceneItem::AddItem(vcState *pProgramState)
 {
   vcFolder *pParent = pProgramState->sceneExplorer.clickedItem.pParent;
-  vcSceneItem *pChild = nullptr;
-
-  if (pParent)
-    pChild = pParent->children[pProgramState->sceneExplorer.clickedItem.index];
 
   // TODO: Proper Exception Handling
-  if (pChild != nullptr && pChild->type == vcSOT_Folder)
-    ((vcFolder*)pChild)->children.push_back(pItem);
-  else if (pParent != nullptr)
-    pParent->children.push_back(pItem);
+  if (pParent != nullptr)
+    pParent->children.push_back(this);
   else
-    pProgramState->sceneExplorer.pItems->children.push_back(pItem);
+    pProgramState->sceneExplorer.pItems->children.push_back(this);
 }
 
 void vcScene_RemoveReference(vcSceneItemRef *pItemRef, vcFolder *pParent, size_t index)
@@ -58,8 +52,7 @@ void vcScene_RemoveItem(vcState *pProgramState, vcFolder *pParent, size_t index)
 
   if (pParent->children[index]->loadStatus == vcSLS_Loaded)
   {
-    if (pParent->children[index]->pCleanupFunc)
-      pParent->children[index]->pCleanupFunc(pProgramState, pParent->children[index]);
+    pParent->children[index]->Cleanup(pProgramState);
 
     if (pParent->children[index]->pMetadata)
       pParent->children[index]->pMetadata->Destroy();
