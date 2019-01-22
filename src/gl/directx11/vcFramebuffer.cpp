@@ -35,7 +35,9 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
   if (ppFramebuffer == nullptr || *ppFramebuffer == nullptr)
     return;
 
-  //TODO: This
+  vcFramebuffer *pBuffer = *ppFramebuffer;
+  pBuffer->pRenderTargetView->Release();
+  pBuffer->pDepthStencilView->Release();
 
   udFree(*ppFramebuffer);
 }
