@@ -2,45 +2,158 @@
 
 #include "vcState.h"
 
-void vcScene_RemoveItem(vcState *pProgramState, size_t index)
+void vcScene_AddItem(vcState *pProgramState, vcSceneItem *pItem)
 {
-  if (pProgramState->sceneList[index]->loadStatus == vcSLS_Pending)
-    udInterlockedCompareExchange(&pProgramState->sceneList[index]->loadStatus, vcSLS_Unloaded, vcSLS_Pending);
+  vcFolder *pParent = pProgramState->sceneExplorer.clickedItem.pParent;
+  vcSceneItem *pChild = nullptr;
 
-  while (pProgramState->sceneList[index]->loadStatus == vcSLS_Loading)
-    udYield(); // Spin until other thread stops processing
+  if (pParent)
+    pChild = pParent->children[pProgramState->sceneExplorer.clickedItem.index];
 
-  if (pProgramState->sceneList[index]->loadStatus == vcSLS_Loaded)
+  // TODO: Proper Exception Handling
+  if (pChild != nullptr && pChild->type == vcSOT_Folder)
+    ((vcFolder*)pChild)->children.push_back(pItem);
+  else if (pParent != nullptr)
+    pParent->children.push_back(pItem);
+  else
+    pProgramState->sceneExplorer.pItems->children.push_back(pItem);
+}
+
+void vcScene_RemoveReference(vcSceneItemRef *pItemRef, vcFolder *pParent, size_t index)
+{
+  if (pItemRef->pParent == pParent && pItemRef->index == index)
   {
-    if (pProgramState->sceneList[index]->pCleanupFunc)
-      pProgramState->sceneList[index]->pCleanupFunc(pProgramState, pProgramState->sceneList[index]);
+    pItemRef->pParent = nullptr;
+    pItemRef->index = SIZE_MAX;
+  }
+  else if (pItemRef->pParent == pParent && pItemRef->index > index)
+  {
+    --pItemRef->index;
+  }
+}
 
-    if (pProgramState->sceneList[index]->pMetadata)
-      pProgramState->sceneList[index]->pMetadata->Destroy();
-
-    udFree(pProgramState->sceneList[index]->pMetadata);
-    udFree(pProgramState->sceneList[index]->pZone);
+void vcScene_RemoveItem(vcState *pProgramState, vcFolder *pParent, size_t index)
+{
+  // Remove references
+  vcScene_RemoveReference(&pProgramState->sceneExplorer.insertItem, pParent, index);
+  vcScene_RemoveReference(&pProgramState->sceneExplorer.clickedItem, pParent, index);
+  for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size(); ++i)
+  {
+    if (pProgramState->sceneExplorer.selectedItems[i].pParent == pParent && pProgramState->sceneExplorer.selectedItems[i].index == index)
+    {
+      pProgramState->sceneExplorer.selectedItems.erase(pProgramState->sceneExplorer.selectedItems.begin() + i);
+      --i;
+    }
+    else if (pProgramState->sceneExplorer.selectedItems[i].pParent == pParent && pProgramState->sceneExplorer.selectedItems[i].index > index)
+    {
+      --pProgramState->sceneExplorer.selectedItems[i].index;
+    }
   }
 
-  pProgramState->sceneList[index]->loadStatus = vcSLS_Unloaded;
+  if (pParent->children[index]->loadStatus == vcSLS_Pending)
+    udInterlockedCompareExchange(&pParent->children[index]->loadStatus, vcSLS_Unloaded, vcSLS_Pending);
 
-  udFree(pProgramState->sceneList.at(index));
-  pProgramState->sceneList.erase(pProgramState->sceneList.begin() + index);
+  while (pParent->children[index]->loadStatus == vcSLS_Loading)
+    udYield(); // Spin until other thread stops processing
+
+  if (pParent->children[index]->loadStatus == vcSLS_Loaded)
+  {
+    if (pParent->children[index]->pCleanupFunc)
+      pParent->children[index]->pCleanupFunc(pProgramState, pParent->children[index]);
+
+    if (pParent->children[index]->pMetadata)
+      pParent->children[index]->pMetadata->Destroy();
+
+    udFree(pParent->children[index]->pMetadata);
+    udFree(pParent->children[index]->pZone);
+  }
+
+  pParent->children[index]->loadStatus = vcSLS_Unloaded;
+
+  udFree(pParent->children.at(index));
+  pParent->children.erase(pParent->children.begin() + index);
 }
 
 void vcScene_RemoveAll(vcState *pProgramState)
 {
-  while (pProgramState->sceneList.size() > 0)
-    vcScene_RemoveItem(pProgramState, 0);
-  pProgramState->numSelectedModels = 0;
+  if (pProgramState->sceneExplorer.pItems == nullptr)
+    return;
+
+  while (pProgramState->sceneExplorer.pItems->children.size() > 0)
+    vcScene_RemoveItem(pProgramState, pProgramState->sceneExplorer.pItems, 0);
+  pProgramState->sceneExplorer.selectedItems.clear();
+}
+
+void vcScene_RemoveSelected(vcState *pProgramState, vcFolder *pFolder)
+{
+  for (size_t i = 0; i < pFolder->children.size(); ++i)
+  {
+    if (pFolder->children[i]->selected)
+    {
+      vcScene_RemoveItem(pProgramState, pFolder, i);
+      i--;
+      continue;
+    }
+
+    if (pFolder->children[i]->type == vcSOT_Folder)
+      vcScene_RemoveSelected(pProgramState, (vcFolder*)pFolder->children[i]);
+  }
+}
+
+void vcScene_RemoveSelected(vcState *pProgramState)
+{
+  vcScene_RemoveSelected(pProgramState, pProgramState->sceneExplorer.pItems);
+  pProgramState->sceneExplorer.selectedItems.clear();
+}
+
+bool vcScene_ContainsItem(vcFolder *pParent, vcSceneItem *pItem)
+{
+  for (size_t i = 0; i < pParent->children.size(); ++i)
+  {
+    if (pParent->children[i] == pItem)
+      return true;
+
+    if (pParent->children[i]->type == vcSOT_Folder)
+      if (vcScene_ContainsItem((vcFolder*)pParent->children[i], pItem))
+        return true;
+  }
+
+  return false;
+}
+
+void vcScene_SelectItem(vcState *pProgramState, vcFolder *pParent, size_t index)
+{
+  if (!pParent->children[index]->selected)
+  {
+    pParent->children[index]->selected = true;
+    pProgramState->sceneExplorer.selectedItems.push_back({ pParent, index });
+  }
+}
+
+void vcScene_ClearSelection(vcFolder *pParent)
+{
+  for (size_t i = 0; i < pParent->children.size(); i++)
+  {
+    if (pParent->children[i]->type == vcSOT_Folder)
+      vcScene_ClearSelection((vcFolder*)pParent->children[i]);
+    else
+      pParent->children[i]->selected = false;
+  }
+  pParent->selected = false;
+}
+
+void vcScene_ClearSelection(vcState *pProgramState)
+{
+  vcScene_ClearSelection(pProgramState->sceneExplorer.pItems);
+  pProgramState->sceneExplorer.selectedItems.clear();
 }
 
 void vcScene_UpdateItemToCurrentProjection(vcState *pProgramState, vcSceneItem *pModel)
 {
   if (!pModel)
   {
-    for (size_t i = 0; i < pProgramState->sceneList.size(); ++i)
-      vcScene_UpdateItemToCurrentProjection(pProgramState, pProgramState->sceneList[i]);
+    for (size_t i = 0; i < pProgramState->sceneExplorer.pItems->children.size(); ++i)
+      vcScene_UpdateItemToCurrentProjection(pProgramState, pProgramState->sceneExplorer.pItems->children[i]);
   }
   else
   {
