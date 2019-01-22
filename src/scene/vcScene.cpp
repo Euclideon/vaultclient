@@ -130,6 +130,20 @@ void vcScene_SelectItem(vcState *pProgramState, vcFolder *pParent, size_t index)
   }
 }
 
+void vcScene_UnselectItem(vcState *pProgramState, vcFolder *pParent, size_t index)
+{
+  if (pParent->children[index]->selected)
+  {
+    pParent->children[index]->selected = false;
+    for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size(); ++i)
+    {
+      const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
+      if (item.pParent == pParent && item.index == index)
+        pProgramState->sceneExplorer.selectedItems.erase(pProgramState->sceneExplorer.selectedItems.begin() + i);
+    }
+  }
+}
+
 void vcScene_ClearSelection(vcFolder *pParent)
 {
   for (size_t i = 0; i < pParent->children.size(); i++)
