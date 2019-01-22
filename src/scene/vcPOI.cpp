@@ -17,12 +17,12 @@ void vcPOI_Cleanup(vcState * /*pProgramState*/, vcSceneItem *pBaseItem)
     vcFenceRenderer_Destroy(&pPOI->pFence);
 }
 
-void vcPOI_ShowImGui(vcState * /*pProgramState*/, vcSceneItem *pBaseItem)
+void vcPOI_ShowImGui(vcState * /*pProgramState*/, vcSceneItem *pBaseItem, size_t *pItemID)
 {
   vcPOI *pPOI = (vcPOI*)pBaseItem;
 
-  vcIGSW_InputTextWithResize("Label Name", &pPOI->pName, &pPOI->nameBufferLength);
-  vcIGSW_ColorPickerU32("Label Colour", &pPOI->nameColour, ImGuiColorEditFlags_None);
+  vcIGSW_InputTextWithResize(udTempStr("Label Name###POIName%zu", *pItemID), &pPOI->pName, &pPOI->nameBufferLength);
+  vcIGSW_ColorPickerU32(udTempStr("Label Colour###POIColor%zu", *pItemID), &pPOI->nameColour, ImGuiColorEditFlags_None);
 }
 
 void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid)
@@ -76,7 +76,7 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
   udStrcpy(pPOI->typeStr, sizeof(pPOI->typeStr), "POI");
   pPOI->loadStatus = vcSLS_Loaded;
 
-  pProgramState->sceneList.push_back(pPOI);
+  vcScene_AddItem(pProgramState, pPOI);
 }
 
 void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid)
