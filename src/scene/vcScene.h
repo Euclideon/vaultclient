@@ -69,6 +69,7 @@ void vcScene_RemoveSelected(vcState *pProgramState);
 bool vcScene_ContainsItem(vcFolder *pParent, vcSceneItem *pItem);
 
 void vcScene_SelectItem(vcState *pProgramState, vcFolder *pParent, size_t index);
+void vcScene_UnselectItem(vcState *pProgramState, vcFolder *pParent, size_t index);
 void vcScene_ClearSelection(vcState *pProgramState);
 
 void vcScene_UpdateItemToCurrentProjection(vcState *pProgramState, vcSceneItem *pModel); // If pModel is nullptr, everything in the scene is moved to the current space
