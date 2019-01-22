@@ -24,6 +24,11 @@ struct vcPOI : public vcSceneItem
   double namePt;
 
   vcFenceRenderer *pFence;
+
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
+  void ApplyDelta(vcState *pProgramState);
+  void HandleImGui(vcState *pProgramState, size_t *pItemID);
+  void Cleanup(vcState *pProgramState);
 };
 
 void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid);
