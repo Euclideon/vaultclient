@@ -894,7 +894,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     // Camera update has to be here because it depends on previous ImGui state
     vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create(windowSize.x, windowSize.y), udFloat2::create((float)renderData.mouse.x, (float)renderData.mouse.y));
 
-    if (pProgramState->sceneExplorer.selectedItems.size() == 1)
+    if (pProgramState->sceneExplorer.clickedItem.pParent)
     {
       vcGizmo_SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
       vcGizmo_SetDrawList();

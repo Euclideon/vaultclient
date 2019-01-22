@@ -43,6 +43,7 @@ struct vcSceneItem
   bool visible;
   bool selected;
   bool expanded;
+  bool editName;
 
   vcSceneItemType type;
   char typeStr[8];
