@@ -57,21 +57,6 @@ static void vcMain_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sa
   }
 }
 
-void vcFolder::AddItem(vcState *pProgramState)
-{
-  vcFolder *pParent = pProgramState->sceneExplorer.clickedItem.pParent;
-  vcSceneItem *pChild = nullptr;
-
-  if (pParent)
-    pChild = pParent->children[pProgramState->sceneExplorer.clickedItem.index];
-
-  // TODO: Proper Exception Handling
-  if (pChild != nullptr && pChild->type == vcSOT_Folder)
-    ((vcFolder*)pChild)->children.push_back(this);
-  else
-    vcSceneItem::AddItem(pProgramState);
-}
-
 void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
   if (!visible)
@@ -88,10 +73,6 @@ void vcFolder::ApplyDelta(vcState * /*pProgramState*/)
 
 void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
-  // Allow to be null for root folder
-  if (pName)
-    vcIGSW_InputTextWithResize(udTempStr("Label Name###FolderName%zu", *pItemID), &pName, &nameBufferLength);
-
   size_t i;
   for (i = 0; i < children.size(); ++i)
   {
@@ -107,6 +88,9 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       ImGui::PopStyleColor();
     }
 
+    // Can only edit the name while the item is still selected
+    children[i]->editName = children[i]->editName && children[i]->selected;
+
     // Visibility
     ImGui::Checkbox(udTempStr("###SXIVisible%zu", *pItemID), &children[i]->visible);
     ImGui::SameLine();
@@ -119,7 +103,18 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
     if (children[i]->selected)
       flags |= ImGuiTreeNodeFlags_Selected;
 
-    children[i]->expanded = ImGui::TreeNodeEx(udTempStr("%s###SXIName%zu", children[i]->pName, *pItemID), flags);
+    if (children[i]->editName)
+    {
+      children[i]->expanded = ImGui::TreeNodeEx(udTempStr("###SXIName%zu", *pItemID), flags);
+      ImGui::SameLine();
+      if (vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &children[i]->pName, &children[i]->nameBufferLength, ImGuiInputTextFlags_EnterReturnsTrue))
+        children[i]->editName = false;
+    }
+    else
+    {
+      children[i]->expanded = ImGui::TreeNodeEx(udTempStr("%s###SXIName%zu", children[i]->pName, *pItemID), flags);
+      children[i]->editName = ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(0);
+    }
 
     if ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!children[i]->selected && ImGui::IsItemActive()))
     {
