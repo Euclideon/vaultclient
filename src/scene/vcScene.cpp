@@ -10,7 +10,7 @@ void vcScene_RemoveItem(vcState *pProgramState, size_t index)
   while (pProgramState->sceneList[index]->loadStatus == vcSLS_Loading)
     udYield(); // Spin until other thread stops processing
 
-  if (pProgramState->sceneList[index]->loadStatus == vcSLS_Loaded)
+  if (pProgramState->sceneList[index]->loadStatus == vcSLS_Loaded || pProgramState->sceneList[index]->loadStatus == vcSLS_OpenFailure || pProgramState->sceneList[index]->loadStatus == vcSLS_Failed)
   {
     if (pProgramState->sceneList[index]->pCleanupFunc)
       pProgramState->sceneList[index]->pCleanupFunc(pProgramState, pProgramState->sceneList[index]);
