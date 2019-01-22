@@ -2,39 +2,47 @@
 
 #include "vcScene.h"
 #include "vcState.h"
+#include "vcRender.h"
 
 #include "gl/vcFenceRenderer.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-void vcPOI_Cleanup(vcState * /*pProgramState*/, vcSceneItem *pBaseItem)
+void vcPOI::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
 {
-  vcPOI *pPOI = (vcPOI*)pBaseItem;
-  udFree(pPOI->pName);
-
-  if (pPOI->pFence != nullptr)
-    vcFenceRenderer_Destroy(&pPOI->pFence);
+  if (pFence != nullptr)
+    pRenderData->fences.PushBack(pFence);
 }
 
-void vcPOI_ShowImGui(vcState * /*pProgramState*/, vcSceneItem *pBaseItem)
+void vcPOI::ApplyDelta(vcState * /*pProgramState*/)
 {
-  vcPOI *pPOI = (vcPOI*)pBaseItem;
 
-  vcIGSW_InputTextWithResize("Label Name", &pPOI->pName, &pPOI->nameBufferLength);
-  vcIGSW_ColorPickerU32("Label Colour", &pPOI->nameColour, ImGuiColorEditFlags_None);
+}
+
+void vcPOI::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
+{
+  vcIGSW_ColorPickerU32(udTempStr("Label Colour###POIColor%zu", *pItemID), &nameColour, ImGuiColorEditFlags_None);
+}
+
+void vcPOI::Cleanup(vcState * /*pProgramState*/)
+{
+  udFree(pName);
+
+  if (pFence != nullptr)
+    vcFenceRenderer_Destroy(&pFence);
+
+  this->vcPOI::~vcPOI();
 }
 
 void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid)
 {
   vcPOI *pPOI = udAllocType(vcPOI, 1, udAF_Zero);
+  pPOI = new (pPOI) vcPOI();
   pPOI->visible = true;
 
   pPOI->pName = udStrdup(pName);
   pPOI->type = vcSOT_PointOfInterest;
-
-  pPOI->pCleanupFunc = vcPOI_Cleanup;
-  pPOI->pImGuiFunc = vcPOI_ShowImGui;
 
   pPOI->nameColour = nameColour;
   pPOI->namePt = namePt;
@@ -76,7 +84,7 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
   udStrcpy(pPOI->typeStr, sizeof(pPOI->typeStr), "POI");
   pPOI->loadStatus = vcSLS_Loaded;
 
-  pProgramState->sceneList.push_back(pPOI);
+  pPOI->AddItem(pProgramState);
 }
 
 void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid)

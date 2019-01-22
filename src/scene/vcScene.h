@@ -6,6 +6,8 @@
 class udJSON;
 struct vcState;
 struct vcSceneItem;
+struct vcFolder;
+struct vcRenderData;
 
 enum vcSceneLoadStatus
 {
@@ -25,12 +27,14 @@ enum vcSceneItemType
 
   vcSOT_PointCloud, // "UDS"
   vcSOT_PointOfInterest, // "POI"
+  vcSOT_Folder, // "Folder"
 
   vcSOT_Custom, // Need to check the type string manually
 
   vcSOT_Count
 };
 
+typedef void (udSceneItemImGuiCallback)(vcState *pProgramState, vcSceneItem *pBaseItem, size_t *pItemID);
 typedef void (udSceneItemBasicCallback)(vcState *pProgramState, vcSceneItem *pBaseItem);
 
 struct vcSceneItem
@@ -39,6 +43,7 @@ struct vcSceneItem
   bool visible;
   bool selected;
   bool expanded;
+  bool editName;
 
   vcSceneItemType type;
   char typeStr[8];
@@ -54,12 +59,31 @@ struct vcSceneItem
   char *pName;
   size_t nameBufferLength;
 
-  udSceneItemBasicCallback *pImGuiFunc; // This is used to help with exposing item specific UI
-  udSceneItemBasicCallback *pCleanupFunc; // Only calls this if its 'completed' loading and is 'vcSLS_Loaded'; note: this is called before other cleanup operations
+  // This is used to help with adding the item to current folder
+  virtual void AddItem(vcState *pProgramState);
+
+  // This is used to help with adding the item to the renderer
+  virtual void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) = 0;
+
+  // This is used to help with applying changes (e.g. Gizmo)
+  virtual void ApplyDelta(vcState *pProgramState) = 0;
+
+  // This is used to help with exposing item specific UI
+  virtual void HandleImGui(vcState *pProgramState, size_t *pItemID) = 0;
+
+  // Only calls this if its 'completed' loading and is 'vcSLS_Loaded'; note: this is called before other cleanup operations
+  virtual void Cleanup(vcState *pProgramState) = 0;
 };
 
-void vcScene_RemoveItem(vcState *pProgramState, size_t index);
+void vcScene_RemoveItem(vcState *pProgramState, vcFolder *pParent, size_t index);
 void vcScene_RemoveAll(vcState *pProgramState);
+void vcScene_RemoveSelected(vcState *pProgramState);
+
+bool vcScene_ContainsItem(vcFolder *pParent, vcSceneItem *pItem);
+
+void vcScene_SelectItem(vcState *pProgramState, vcFolder *pParent, size_t index);
+void vcScene_UnselectItem(vcState *pProgramState, vcFolder *pParent, size_t index);
+void vcScene_ClearSelection(vcState *pProgramState);
 
 void vcScene_UpdateItemToCurrentProjection(vcState *pProgramState, vcSceneItem *pModel); // If pModel is nullptr, everything in the scene is moved to the current space
 bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel);

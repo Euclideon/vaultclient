@@ -206,9 +206,6 @@ void vcLogout(vcState *pProgramState)
   pProgramState->hasContext = false;
   pProgramState->forceLogout = false;
 
-  pProgramState->numSelectedModels = 0;
-  pProgramState->prevSelectedModel = 0;
-
   if (pProgramState->pVDKContext != nullptr)
   {
     pProgramState->modelPath[0] = '\0';
@@ -313,8 +310,13 @@ int main(int argc, char **args)
   programState.passFocus = true;
   programState.renaming = -1;
 
+  programState.sceneExplorer.insertItem.pParent = nullptr;
+  programState.sceneExplorer.insertItem.index = SIZE_MAX;
+  programState.sceneExplorer.clickedItem.pParent = nullptr;
+  programState.sceneExplorer.clickedItem.index = SIZE_MAX;
+
   programState.loadList.reserve(udMax(64, argc));
-  programState.sceneList.reserve(64);
+  vcFolder_AddToList(&programState, nullptr);
 
   for (int i = 1; i < argc; ++i)
     programState.loadList.push_back(udStrdup(args[i]));
@@ -613,13 +615,13 @@ epilogue:
   for (size_t i = 0; i < programState.loadList.size(); i++)
     udFree(programState.loadList[i]);
   programState.loadList.~vector();
-  vcScene_RemoveAll(&programState);
-  programState.sceneList.~vector();
   vcRender_Destroy(&programState.pRenderContext);
   vcTexture_Destroy(&programState.tileModal.pServerIcon);
   vcString::FreeTable();
   vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
   vcLogout(&programState);
+  programState.sceneExplorer.pItems->Cleanup(&programState);
+  udFree(programState.sceneExplorer.pItems);
 
   vcGLState_Deinit();
 
@@ -628,9 +630,6 @@ epilogue:
 
 void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
 {
-  if (pProgramState->settings.window.presentationMode && (pProgramState->settings.responsiveUI == vcPM_Hide || !pProgramState->showUI))
-    return;
-
   ImGuiIO &io = ImGui::GetIO();
   float bottomLeftOffset = 0.f;
 
@@ -878,7 +877,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
   if (pProgramState->cameraInput.isUsingAnchorPoint)
     renderData.pWorldAnchorPos = &pProgramState->cameraInput.worldAnchorPoint;
 
-  vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
+  if (!pProgramState->settings.window.presentationMode || pProgramState->settings.responsiveUI == vcPM_Show || pProgramState->showUI)
+    vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
 
   ImVec2 uv0 = ImVec2(0, 0);
   ImVec2 uv1 = ImVec2(1, 1);
@@ -894,12 +894,12 @@ void vcRenderSceneWindow(vcState *pProgramState)
     // Camera update has to be here because it depends on previous ImGui state
     vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create(windowSize.x, windowSize.y), udFloat2::create((float)renderData.mouse.x, (float)renderData.mouse.y));
 
-    if (pProgramState->numSelectedModels == 1)
+    if (pProgramState->sceneExplorer.clickedItem.pParent)
     {
       vcGizmo_SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
       vcGizmo_SetDrawList();
 
-      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->sceneList[pProgramState->prevSelectedModel]->sceneMatrix, nullptr, vcGAC_AllUniform, pProgramState->sceneList[pProgramState->prevSelectedModel]->pivot);
+      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->sceneMatrix, nullptr, vcGAC_AllUniform, pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->pivot);
     }
   }
 
@@ -907,20 +907,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.pGISSpace = &pProgramState->gis;
   renderData.pCameraSettings = &pProgramState->settings.camera;
 
-  for (size_t i = 0; i < pProgramState->sceneList.size(); ++i)
-  {
-    if (pProgramState->sceneList[i]->type == vcSOT_PointCloud)
-    {
-      renderData.models.PushBack((vcModel*)pProgramState->sceneList[i]);
-    }
-    else if (pProgramState->sceneList[i]->type == vcSOT_PointOfInterest)
-    {
-      vcPOI* pPOI = (vcPOI*)pProgramState->sceneList[i];
-
-      if (pPOI->pFence != nullptr)
-        renderData.fences.PushBack(pPOI->pFence);
-    }
-  }
+  pProgramState->sceneExplorer.pItems->AddToScene(pProgramState, &renderData);
 
   // Render scene to texture
   vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
@@ -934,9 +921,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
 int vcMainMenuGui(vcState *pProgramState)
 {
-  if (pProgramState->settings.window.presentationMode)
-    return 0;
-
   int menuHeight = 0;
 
   if (ImGui::BeginMainMenuBar())
@@ -1101,7 +1085,6 @@ void vcRenderWindow(vcState *pProgramState)
   vcGLState_SetViewport(0, 0, pProgramState->settings.window.width, pProgramState->settings.window.height);
   vcFramebuffer_Clear(pProgramState->pDefaultFramebuffer, 0xFF000000);
 
-  SDL_Keymod modState = SDL_GetModState();
   ImGuiIO &io = ImGui::GetIO(); // for future key commands as well
   ImVec2 size = io.DisplaySize;
 
@@ -1125,7 +1108,7 @@ void vcRenderWindow(vcState *pProgramState)
 
   //end keyboard/mouse handling
 
-  if (pProgramState->hasContext)
+  if (pProgramState->hasContext && !pProgramState->settings.window.presentationMode)
   {
     float menuHeight = (float)vcMainMenuGui(pProgramState);
     ImGui::RootDock(ImVec2(0, menuHeight), ImVec2(size.x, size.y - menuHeight));
@@ -1272,207 +1255,70 @@ void vcRenderWindow(vcState *pProgramState)
         vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
-        vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
+        vcFolder_AddToList(pProgramState, "Folder");
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("Remove"), vcString::Get("DeleteKey"), vcMBBI_Remove, vcMBBG_NewGroup) || ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE])
-      {
-        if (pProgramState->numSelectedModels != 0) // Indented check for clarity
-        {
-          // if multiple selected and removed
-          if (pProgramState->numSelectedModels > 1)
-          {
-            size_t removed = 0;
-
-            for (size_t iter = 0; iter < pProgramState->sceneList.size(); ++iter)
-            {
-              size_t index = iter - removed;
-
-              if (pProgramState->sceneList[index]->selected)
-              {
-                vcScene_RemoveItem(pProgramState, index);
-                ++removed;
-              }
-            }
-          }
-          else
-          {
-            vcScene_RemoveItem(pProgramState, pProgramState->prevSelectedModel);
-          }
-
-          pProgramState->numSelectedModels = 0;
-          pProgramState->prevSelectedModel = 0;
-        }
-      }
+        vcScene_RemoveSelected(pProgramState);
 
       // Tree view for the scene
       ImGui::Separator();
 
-      static size_t draggedIndex = 0;
-      static size_t drawSeperatorBefore = SIZE_MAX;
-      size_t hovered = SIZE_MAX;
-
-      size_t i = 0;
-
-      if (!ImGui::IsMouseDragging())
-        drawSeperatorBefore = SIZE_MAX;
-
-      for (i = 0; i < pProgramState->sceneList.size(); ++i)
+      if (ImGui::BeginChild("SceneExplorerList", ImVec2(0,0), false, ImGuiWindowFlags_HorizontalScrollbar))
       {
-        // This block is also after the loop
-        if (drawSeperatorBefore == i)
+        if (!ImGui::IsMouseDragging() && pProgramState->sceneExplorer.insertItem.pParent != nullptr)
         {
-          ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.f, 1.f, 0.f, 1.f)); // RGBA
-          ImVec2 pos = ImGui::GetCursorPos();
-          ImGui::Separator();
-          ImGui::SetCursorPos(pos);
-          ImGui::PopStyleColor();
-        }
-
-        // Visibility
-        ImGui::Checkbox(udTempStr("##SXIVisible%zu", i), &pProgramState->sceneList[i]->visible);
-        ImGui::SameLine();
-
-        if (pProgramState->sceneList[i]->pImGuiFunc != nullptr)
-        {
-          if (ImGui::ArrowButton(udTempStr("##SXIExpanded%zu", i), pProgramState->sceneList[i]->expanded ? ImGuiDir_Down : ImGuiDir_Right))
-            pProgramState->sceneList[i]->expanded = !pProgramState->sceneList[i]->expanded;
-          ImGui::SameLine();
-        }
-
-        vcMain_ShowLoadStatusIndicator((vcSceneLoadStatus)pProgramState->sceneList[i]->loadStatus);
-
-        // The actual model
-        if (ImGui::Selectable(udTempStr("%s##SXIName%zu", pProgramState->sceneList[i]->pName, i), pProgramState->sceneList[i]->selected))
-        {
-          if ((modState & KMOD_CTRL) == 0)
+          // Ensure a circular reference is not created
+          bool itemFound = false;
+          for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size() && !itemFound; ++i)
           {
-            for (size_t j = 0; j < pProgramState->sceneList.size(); ++j)
-              pProgramState->sceneList[j]->selected = false;
-
-            pProgramState->numSelectedModels = 0;
+            const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
+            if (item.pParent->children[item.index]->type == vcSOT_Folder)
+              itemFound = vcScene_ContainsItem((vcFolder*)item.pParent->children[item.index], pProgramState->sceneExplorer.insertItem.pParent);
           }
 
-          if (modState & KMOD_SHIFT)
+          if (!itemFound)
           {
-            size_t startInd = udMin(i, pProgramState->prevSelectedModel);
-            size_t endInd = udMax(i, pProgramState->prevSelectedModel);
-            for (size_t j = startInd; j <= endInd; ++j)
+            for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size(); ++i)
             {
-              pProgramState->sceneList[j]->selected = true;
-              pProgramState->numSelectedModels++;
+              const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
+
+              // If we remove items before the insertItem index we need to adjust it accordingly
+              if (item.pParent == pProgramState->sceneExplorer.insertItem.pParent && item.index < pProgramState->sceneExplorer.insertItem.index)
+                --pProgramState->sceneExplorer.insertItem.index;
+
+              // Remove the item from its parent and insert it into the insertItem parent
+              vcSceneItem* pTemp = item.pParent->children[item.index];
+              item.pParent->children.erase(item.pParent->children.begin() + item.index);
+              pProgramState->sceneExplorer.insertItem.pParent->children.insert(pProgramState->sceneExplorer.insertItem.pParent->children.begin() + pProgramState->sceneExplorer.insertItem.index + i, pTemp);
+
+              // If we remove items before other selected items we need to adjust their indexes accordingly
+              for (size_t j = i + 1; j < pProgramState->sceneExplorer.selectedItems.size(); ++j)
+              {
+                if (item.pParent == pProgramState->sceneExplorer.selectedItems[j].pParent && item.index < pProgramState->sceneExplorer.selectedItems[j].index)
+                  --pProgramState->sceneExplorer.selectedItems[j].index;
+              }
+
+              // Update the selected item information to repeat drag and drop
+              pProgramState->sceneExplorer.selectedItems[i].pParent = pProgramState->sceneExplorer.insertItem.pParent;
+              pProgramState->sceneExplorer.selectedItems[i].index = pProgramState->sceneExplorer.insertItem.index + i;
+
+              pProgramState->sceneExplorer.clickedItem = pProgramState->sceneExplorer.selectedItems[i];
             }
           }
-          else
-          {
-            pProgramState->sceneList[i]->selected = !pProgramState->sceneList[i]->selected;
-            pProgramState->numSelectedModels += (pProgramState->sceneList[i]->selected ? 1 : 0);
-          }
 
-          pProgramState->prevSelectedModel = i;
+          pProgramState->sceneExplorer.insertItem = { nullptr, SIZE_MAX };
         }
 
-        if (ImGui::BeginDragDropSource())
-        {
-          draggedIndex = i;
-          ImGui::SetDragDropPayload("SceneItem", &pProgramState->sceneList[i], sizeof(vcSceneItem*), ImGuiCond_Once);
-          ImGui::Text("%s", pProgramState->sceneList[i]->pName);
-          ImGui::EndDragDropSource();
-        }
+        size_t i = 0;
+        if (pProgramState->sceneExplorer.pItems)
+          pProgramState->sceneExplorer.pItems->HandleImGui(pProgramState, &i);
 
-        if (ImGui::BeginDragDropTarget())
-        {
-          const ImGuiPayload *pPayload;
-
-          pPayload = ImGui::AcceptDragDropPayload("SceneItem", ImGuiDragDropFlags_AcceptBeforeDelivery | ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
-
-          if (pPayload != nullptr)
-          {
-            ImVec2 minPos = ImGui::GetItemRectMin();
-            ImVec2 maxPos = ImGui::GetItemRectMax();
-            ImVec2 mousePos = ImGui::GetMousePos();
-
-            if (udAbs(mousePos.y - minPos.y) < udAbs(mousePos.y - maxPos.y))
-              drawSeperatorBefore = i;
-            else
-              drawSeperatorBefore = i + 1;
-
-            hovered = i;
-          }
-
-          pPayload = ImGui::AcceptDragDropPayload("SceneItem", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
-          if (pPayload != nullptr)
-          {
-            if (draggedIndex < drawSeperatorBefore)
-              --drawSeperatorBefore;
-
-            pProgramState->sceneList.erase(pProgramState->sceneList.begin() + draggedIndex);
-            pProgramState->sceneList.insert(pProgramState->sceneList.begin() + drawSeperatorBefore, *(vcSceneItem**)pPayload->Data);
-
-            drawSeperatorBefore = SIZE_MAX;
-          }
-
-          ImGui::EndDragDropTarget();
-        }
-
-        if (ImGui::BeginPopupContextItem(udTempStr("ModelContextMenu_%zu", i)))
-        {
-          if (pProgramState->sceneList[i]->pZone != nullptr && ImGui::Selectable(vcString::Get("UseProjection")))
-          {
-            if (vcGIS_ChangeSpace(&pProgramState->gis, pProgramState->sceneList[i]->pZone->srid, &pProgramState->pCamera->position))
-              vcScene_UpdateItemToCurrentProjection(pProgramState, nullptr); // Update all models to new zone
-          }
-
-          if (ImGui::Selectable(vcString::Get("MoveTo")))
-          {
-            udDouble3 localSpaceCenter = vcScene_GetItemWorldSpacePivotPoint(pProgramState->sceneList[i]);
-
-            // Transform the camera position. Don't do the entire matrix as it may lead to inaccuracy/de-normalised camera
-            if (pProgramState->gis.isProjected && pProgramState->sceneList[i]->pZone != nullptr && pProgramState->sceneList[i]->pZone->srid != pProgramState->gis.SRID)
-              localSpaceCenter = udGeoZone_TransformPoint(localSpaceCenter, *pProgramState->sceneList[i]->pZone, pProgramState->gis.zone);
-
-            pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
-            pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
-            pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
-            pProgramState->cameraInput.worldAnchorPoint = localSpaceCenter;
-            pProgramState->cameraInput.progress = 0.0;
-          }
-
-          ImGui::EndPopup();
-        }
-
-        if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
-          vcScene_UseProjectFromItem(pProgramState, pProgramState->sceneList[i]);
-
-        if (ImGui::IsItemHovered())
-          ImGui::SetTooltip("%s", pProgramState->sceneList[i]->pName);
-
-        // Show additional settings from ImGui
-        if (pProgramState->sceneList[i]->expanded)
-        {
-          ImGui::Indent();
-          ImGui::PushID(udTempStr("SXIExpanded%zu", i));
-
-          pProgramState->sceneList[i]->pImGuiFunc(pProgramState, pProgramState->sceneList[i]);
-
-          ImGui::PopID();
-          ImGui::Unindent();
-        }
-      }
-
-      if (hovered == SIZE_MAX)
-        drawSeperatorBefore = SIZE_MAX;
-
-      // This block is also in the loop above
-      if (drawSeperatorBefore == i)
-      {
-        ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.f, 1.f, 0.f, 1.f)); // RGBA
-        ImGui::Separator();
-        ImGui::PopStyleColor();
+        ImGui::EndChild();
       }
     }
     ImGui::EndDock();
 
-    if (!pProgramState->settings.window.presentationMode || pProgramState->showUI || pProgramState->settings.responsiveUI == vcPM_Show)
+    if (!pProgramState->settings.window.presentationMode)
     {
       if (ImGui::BeginDock(vcString::Get("Scene"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
         vcRenderSceneWindow(pProgramState);
