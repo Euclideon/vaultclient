@@ -112,8 +112,16 @@ void vcFolder_ShowImGui(vcState *pProgramState, vcSceneItem *pBaseItem, size_t *
       if (!ImGui::GetIO().KeyCtrl)
         vcScene_ClearSelection(pProgramState);
 
-      vcScene_SelectItem(pProgramState, pFolder, i);
-      pProgramState->sceneExplorer.clickedItem = { pFolder, i };
+      if (pFolder->children[i]->selected)
+      {
+        vcScene_UnselectItem(pProgramState, pFolder, i);
+        pProgramState->sceneExplorer.clickedItem = { nullptr, SIZE_MAX };
+      }
+      else
+      {
+        vcScene_SelectItem(pProgramState, pFolder, i);
+        pProgramState->sceneExplorer.clickedItem = { pFolder, i };
+      }
     }
 
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) && !ImGui::IsItemHovered() && !ImGui::IsItemActive())
