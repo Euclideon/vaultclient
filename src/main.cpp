@@ -628,9 +628,6 @@ epilogue:
 
 void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
 {
-  if (pProgramState->settings.window.presentationMode && (pProgramState->settings.responsiveUI == vcPM_Hide || !pProgramState->showUI))
-    return;
-
   ImGuiIO &io = ImGui::GetIO();
   float bottomLeftOffset = 0.f;
 
@@ -878,7 +875,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
   if (pProgramState->cameraInput.isUsingAnchorPoint)
     renderData.pWorldAnchorPos = &pProgramState->cameraInput.worldAnchorPoint;
 
-  vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
+  if (!pProgramState->settings.window.presentationMode || pProgramState->settings.responsiveUI == vcPM_Show || pProgramState->showUI)
+    vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
 
   ImVec2 uv0 = ImVec2(0, 0);
   ImVec2 uv1 = ImVec2(1, 1);
@@ -934,9 +932,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
 int vcMainMenuGui(vcState *pProgramState)
 {
-  if (pProgramState->settings.window.presentationMode)
-    return 0;
-
   int menuHeight = 0;
 
   if (ImGui::BeginMainMenuBar())
@@ -1125,7 +1120,7 @@ void vcRenderWindow(vcState *pProgramState)
 
   //end keyboard/mouse handling
 
-  if (pProgramState->hasContext)
+  if (pProgramState->hasContext && !pProgramState->settings.window.presentationMode)
   {
     float menuHeight = (float)vcMainMenuGui(pProgramState);
     ImGui::RootDock(ImVec2(0, menuHeight), ImVec2(size.x, size.y - menuHeight));
@@ -1472,7 +1467,7 @@ void vcRenderWindow(vcState *pProgramState)
     }
     ImGui::EndDock();
 
-    if (!pProgramState->settings.window.presentationMode || pProgramState->showUI || pProgramState->settings.responsiveUI == vcPM_Show)
+    if (!pProgramState->settings.window.presentationMode)
     {
       if (ImGui::BeginDock(vcString::Get("Scene"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
         vcRenderSceneWindow(pProgramState);
