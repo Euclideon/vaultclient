@@ -134,9 +134,8 @@ void vcModel::ApplyDelta(vcState * /*pProgramState*/)
 
 }
 
-void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
+void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
 {
-  vcIGSW_InputTextWithResize(udTempStr("Model Name###ModelName%zu", *pItemID), &pName, &nameBufferLength);
   ImGui::TextWrapped("Path: %s", pPath);
 
   if (pMetadata != nullptr)
