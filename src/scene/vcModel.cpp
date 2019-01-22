@@ -2,6 +2,7 @@
 
 #include "vcScene.h"
 #include "vcState.h"
+#include "vcRender.h"
 
 #include "gl/vcTexture.h"
 
@@ -123,26 +124,35 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
   }
 }
 
-void vcModel_ShowImGui(vcState * /*pProgramState*/, vcSceneItem *pBaseItem)
+void vcModel::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
 {
-  vcIGSW_InputTextWithResize("Model Name", &pBaseItem->pName, &pBaseItem->nameBufferLength);
-  ImGui::TextWrapped("Path: %s", pBaseItem->pPath);
-
-  if (pBaseItem->pMetadata != nullptr)
-    vcImGuiValueTreeObject(pBaseItem->pMetadata);
+  pRenderData->models.PushBack(this);
 }
 
-void vcModel_Cleanup(vcState *pProgramState, vcSceneItem *pBaseItem)
+void vcModel::ApplyDelta(vcState * /*pProgramState*/)
 {
-  vcModel *pModel = (vcModel*)pBaseItem;
 
-  vdkPointCloud_Unload(pProgramState->pVDKContext, &pModel->pPointCloud);
+}
 
-  udFree(pModel->pName);
-  udFree(pModel->pPath);
+void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
+{
+  ImGui::TextWrapped("Path: %s", pPath);
 
-  if (pModel->pWatermark != nullptr)
-    vcTexture_Destroy(&pModel->pWatermark);
+  if (pMetadata != nullptr)
+    vcImGuiValueTreeObject(pMetadata);
+}
+
+void vcModel::Cleanup(vcState *pProgramState)
+{
+  vdkPointCloud_Unload(pProgramState->pVDKContext, &pPointCloud);
+
+  udFree(pName);
+  udFree(pPath);
+
+  if (pWatermark != nullptr)
+    vcTexture_Destroy(&pWatermark);
+
+  this->vcModel::~vcModel();
 }
 
 void vcModel_AddToList(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad /*= true*/, udDouble3 *pOverridePosition /*= nullptr*/, udDouble3 *pOverrideYPR /*= nullptr*/, double scale /*= 1.0*/)
@@ -151,6 +161,7 @@ void vcModel_AddToList(vcState *pProgramState, const char *pName, const char *pF
     return;
 
   vcModel *pModel = udAllocType(vcModel, 1, udAF_Zero);
+  pModel = new (pModel) vcModel();
 
   // Prepare the model
   pModel->pPath = udStrdup(pFilePath);
@@ -168,13 +179,10 @@ void vcModel_AddToList(vcState *pProgramState, const char *pName, const char *pF
   pModel->visible = true;
   pModel->type = vcSOT_PointCloud;
 
-  pModel->pImGuiFunc = vcModel_ShowImGui;
-  pModel->pCleanupFunc = vcModel_Cleanup;
-
   udStrcpy(pModel->typeStr, sizeof(pModel->typeStr), "UDS");
 
   // Add it to the load queue
-  pProgramState->sceneList.push_back(pModel); // TODO: Proper Exception Handling
+  pModel->AddItem(pProgramState);
 
   vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
   if (pLoadInfo != nullptr)

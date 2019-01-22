@@ -37,7 +37,7 @@ int vcIGSW_ResizeString(ImGuiInputTextCallbackData *pData)
   return 0;
 }
 
-bool vcIGSW_InputTextWithResize(const char *pLabel, char **ppBuffer, size_t *pBufferSize)
+bool vcIGSW_InputTextWithResize(const char *pLabel, char **ppBuffer, size_t *pBufferSize, ImGuiInputTextFlags flags /*= ImGuiInputTextFlags_None*/)
 {
   vcIGSWResizeContainer info;
   info.ppBuffer = ppBuffer;
@@ -46,7 +46,7 @@ bool vcIGSW_InputTextWithResize(const char *pLabel, char **ppBuffer, size_t *pBu
   if (*pBufferSize == 0)
     *pBufferSize = udStrlen(*ppBuffer) + 1; //+1 for '\0'
 
-  return ImGui::InputText(pLabel, *ppBuffer, *pBufferSize, ImGuiInputTextFlags_CallbackResize, vcIGSW_ResizeString, &info);
+  return ImGui::InputText(pLabel, *ppBuffer, *pBufferSize, ImGuiInputTextFlags_CallbackResize | flags, vcIGSW_ResizeString, &info);
 }
 
 bool vcIGSW_ColorPickerU32(const char *pLabel, uint32_t *pColor, ImGuiColorEditFlags flags)

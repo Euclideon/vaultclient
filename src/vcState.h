@@ -11,6 +11,7 @@
 #include "vcSettings.h"
 #include "vcScene.h"
 #include "vcGIS.h"
+#include "vcFolder.h"
 
 #include "imgui_ex/ImGuizmo.h"
 
@@ -26,6 +27,12 @@ struct vcCamera;
 struct vcTexture;
 struct vcConvertContext;
 
+struct vcSceneItemRef
+{
+  vcFolder *pParent;
+  size_t index;
+};
+
 struct vcState
 {
   bool programComplete;
@@ -38,11 +45,7 @@ struct vcState
   vcCamera *pCamera;
 
   std::vector<const char*> loadList;
-  std::vector<vcSceneItem*> sceneList;
   vWorkerThreadPool *pWorkerPool;
-
-  size_t numSelectedModels;
-  size_t prevSelectedModel;
 
   double deltaTime;
   udUInt2 sceneResolution;
@@ -95,6 +98,15 @@ struct vcState
     volatile void *pImageData;
     volatile int64_t loadStatus; // >0 is the size of pImageData
   } tileModal;
+
+  struct
+  {
+    vcFolder *pItems;
+
+    vcSceneItemRef insertItem;
+    vcSceneItemRef clickedItem;
+    std::vector<vcSceneItemRef> selectedItems;
+  } sceneExplorer;
 
   bool firstRun;
   int64_t lastEventTime;
