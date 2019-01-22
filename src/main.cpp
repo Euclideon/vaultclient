@@ -620,7 +620,7 @@ epilogue:
   vcString::FreeTable();
   vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
   vcLogout(&programState);
-  programState.sceneExplorer.pItems->pCleanupFunc(&programState, programState.sceneExplorer.pItems);
+  programState.sceneExplorer.pItems->Cleanup(&programState);
   udFree(programState.sceneExplorer.pItems);
 
   vcGLState_Deinit();
@@ -838,31 +838,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   }
 }
 
-void vcRenderSceneWindowAddItems(vcFolder *pParent, vcRenderData *pRenderData)
-{
-  for (size_t i = 0; i < pParent->children.size(); ++i)
-  {
-    if (pParent->children[i]->type == vcSOT_PointCloud)
-    {
-      pRenderData->models.PushBack((vcModel*)pParent->children[i]);
-    }
-    else if (pParent->children[i]->type == vcSOT_PointOfInterest)
-    {
-      vcPOI *pPOI = (vcPOI*)pParent->children[i];
-
-      if (pPOI->pFence != nullptr)
-        pRenderData->fences.PushBack(pPOI->pFence);
-    }
-    else if (pParent->children[i]->type == vcSOT_Folder)
-    {
-      vcFolder *pFolder = (vcFolder*)pParent->children[i];
-
-      if (pFolder->visible)
-        vcRenderSceneWindowAddItems(pFolder, pRenderData);
-    }
-  }
-}
-
 void vcRenderSceneWindow(vcState *pProgramState)
 {
   //Rendering
@@ -932,22 +907,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.pGISSpace = &pProgramState->gis;
   renderData.pCameraSettings = &pProgramState->settings.camera;
 
-  vcRenderSceneWindowAddItems(pProgramState->sceneExplorer.pItems, &renderData);
-
-  for (size_t i = 0; i < pProgramState->sceneExplorer.pItems->children.size(); ++i)
-  {
-    if (pProgramState->sceneExplorer.pItems->children[i]->type == vcSOT_PointCloud)
-    {
-      renderData.models.PushBack((vcModel*)pProgramState->sceneExplorer.pItems->children[i]);
-    }
-    else if (pProgramState->sceneExplorer.pItems->children[i]->type == vcSOT_PointOfInterest)
-    {
-      vcPOI* pPOI = (vcPOI*)pProgramState->sceneExplorer.pItems->children[i];
-
-      if (pPOI->pFence != nullptr)
-        renderData.fences.PushBack(pPOI->pFence);
-    }
-  }
+  pProgramState->sceneExplorer.pItems->AddToScene(pProgramState, &renderData);
 
   // Render scene to texture
   vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
@@ -1351,7 +1311,7 @@ void vcRenderWindow(vcState *pProgramState)
 
         size_t i = 0;
         if (pProgramState->sceneExplorer.pItems)
-          pProgramState->sceneExplorer.pItems->pImGuiFunc(pProgramState, pProgramState->sceneExplorer.pItems, &i);
+          pProgramState->sceneExplorer.pItems->HandleImGui(pProgramState, &i);
 
         ImGui::EndChild();
       }

@@ -7,6 +7,7 @@ class udJSON;
 struct vcState;
 struct vcSceneItem;
 struct vcFolder;
+struct vcRenderData;
 
 enum vcSceneLoadStatus
 {
@@ -57,11 +58,22 @@ struct vcSceneItem
   char *pName;
   size_t nameBufferLength;
 
-  udSceneItemImGuiCallback *pImGuiFunc; // This is used to help with exposing item specific UI
-  udSceneItemBasicCallback *pCleanupFunc; // Only calls this if its 'completed' loading and is 'vcSLS_Loaded'; note: this is called before other cleanup operations
+  // This is used to help with adding the item to current folder
+  virtual void AddItem(vcState *pProgramState);
+
+  // This is used to help with adding the item to the renderer
+  virtual void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) = 0;
+
+  // This is used to help with applying changes (e.g. Gizmo)
+  virtual void ApplyDelta(vcState *pProgramState) = 0;
+
+  // This is used to help with exposing item specific UI
+  virtual void HandleImGui(vcState *pProgramState, size_t *pItemID) = 0;
+
+  // Only calls this if its 'completed' loading and is 'vcSLS_Loaded'; note: this is called before other cleanup operations
+  virtual void Cleanup(vcState *pProgramState) = 0;
 };
 
-void vcScene_AddItem(vcState *pProgramState, vcSceneItem *pItem);
 void vcScene_RemoveItem(vcState *pProgramState, vcFolder *pParent, size_t index);
 void vcScene_RemoveAll(vcState *pProgramState);
 void vcScene_RemoveSelected(vcState *pProgramState);

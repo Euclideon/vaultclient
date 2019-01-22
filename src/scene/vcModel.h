@@ -18,6 +18,11 @@ struct vcModel : public vcSceneItem
 
   bool hasWatermark; // True if the model has a watermark (might not be loaded)
   vcTexture *pWatermark; // If the watermark is loaded, it will be here
+
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
+  void ApplyDelta(vcState *pProgramState);
+  void HandleImGui(vcState *pProgramState, size_t *pItemID);
+  void Cleanup(vcState *pProgramState);
 };
 
 void vcModel_AddToList(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad = true, udDouble3 *pOverridePosition = nullptr, udDouble3 *pOverrideYPR = nullptr, double scale = 1.0);
