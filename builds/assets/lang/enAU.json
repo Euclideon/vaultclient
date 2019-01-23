@@ -88,6 +88,7 @@
 	"UseProjection":"Use Projection",
 	"EditName":"Edit Name",
 	"MoveTo":"Move To",
+	"ResetPosition":"Reset Position",
 	"Properties":"Properties",
 	"Theme":"Theme",
 	"ShowDiagnostics":"Show Diagnostic Information",
