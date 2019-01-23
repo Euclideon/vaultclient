@@ -71,6 +71,18 @@ void vcFolder::ApplyDelta(vcState * /*pProgramState*/)
   // Maybe recurse children and call ApplyDelta?
 }
 
+void vcFolder_AddInsertSeparator()
+{
+  ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.f, 1.f, 0.f, 1.f)); // RGBA
+  ImVec2 pos = ImGui::GetCursorPos();
+  ImVec2 winPos = ImGui::GetWindowPos();
+  ImGui::SetWindowPos({ winPos.x + pos.x, winPos.y }, ImGuiCond_Always);
+  ImGui::Separator();
+  ImGui::SetCursorPos(pos);
+  ImGui::SetWindowPos(winPos, ImGuiCond_Always);
+  ImGui::PopStyleColor();
+}
+
 void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   size_t i;
@@ -80,13 +92,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
     // This block is also after the loop
     if (this == pProgramState->sceneExplorer.insertItem.pParent && i == pProgramState->sceneExplorer.insertItem.index)
-    {
-      ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.f, 1.f, 0.f, 1.f)); // RGBA
-      ImVec2 pos = ImGui::GetCursorPos();
-      ImGui::Separator();
-      ImGui::SetCursorPos(pos);
-      ImGui::PopStyleColor();
-    }
+      vcFolder_AddInsertSeparator();
 
     // Can only edit the name while the item is still selected
     children[i]->editName = children[i]->editName && children[i]->selected;
@@ -138,7 +144,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       }
     }
 
-    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) && !ImGui::IsItemHovered() && !ImGui::IsItemActive())
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) && ImGui::IsMouseDragging())
     {
       ImVec2 minPos = ImGui::GetItemRectMin();
       ImVec2 maxPos = ImGui::GetItemRectMax();
@@ -172,7 +178,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           vcScene_UpdateItemToCurrentProjection(pProgramState, nullptr); // Update all models to new zone
       }
 
-      if (ImGui::Selectable(vcString::Get("MoveTo")))
+      if (children[i]->type != vcSOT_Folder && ImGui::Selectable(vcString::Get("MoveTo")))
       {
         udDouble3 localSpaceCenter = vcScene_GetItemWorldSpacePivotPoint(children[i]);
 
@@ -212,11 +218,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
   // This block is also in the loop above
   if (this == pProgramState->sceneExplorer.insertItem.pParent && i == pProgramState->sceneExplorer.insertItem.index)
-  {
-    ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.f, 1.f, 0.f, 1.f)); // RGBA
-    ImGui::Separator();
-    ImGui::PopStyleColor();
-  }
+    vcFolder_AddInsertSeparator();
 }
 
 void vcFolder::Cleanup(vcState *pProgramState)
