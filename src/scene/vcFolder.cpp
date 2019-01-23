@@ -107,13 +107,18 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
     {
       children[i]->expanded = ImGui::TreeNodeEx(udTempStr("###SXIName%zu", *pItemID), flags);
       ImGui::SameLine();
-      if (vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &children[i]->pName, &children[i]->nameBufferLength, ImGuiInputTextFlags_EnterReturnsTrue))
+      vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &children[i]->pName, &children[i]->nameBufferLength);
+
+      if (ImGui::IsItemDeactivated())
         children[i]->editName = false;
+      else
+        ImGui::SetKeyboardFocusHere(-1); // Set focus to previous widget
     }
     else
     {
       children[i]->expanded = ImGui::TreeNodeEx(udTempStr("%s###SXIName%zu", children[i]->pName, *pItemID), flags);
-      children[i]->editName = ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(0);
+      if (children[i]->selected && pProgramState->sceneExplorer.selectedItems.back().pParent == this && pProgramState->sceneExplorer.selectedItems.back().index == i && ImGui::GetIO().KeysDown[SDL_SCANCODE_F2])
+        children[i]->editName = true;
     }
 
     if ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!children[i]->selected && ImGui::IsItemActive()))
@@ -149,6 +154,18 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
     if (ImGui::BeginPopupContextItem(udTempStr("ModelContextMenu_%zu", *pItemID)))
     {
+      if (!children[i]->selected)
+      {
+        if (!ImGui::GetIO().KeyCtrl)
+          vcScene_ClearSelection(pProgramState);
+
+        vcScene_SelectItem(pProgramState, this, i);
+        pProgramState->sceneExplorer.clickedItem = { this, i };
+      }
+
+      if (ImGui::Selectable(vcString::Get("EditName")))
+        children[i]->editName = true;
+
       if (children[i]->pZone != nullptr && ImGui::Selectable(vcString::Get("UseProjection")))
       {
         if (vcGIS_ChangeSpace(&pProgramState->gis, children[i]->pZone->srid, &pProgramState->pCamera->position))
