@@ -193,6 +193,9 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         pProgramState->cameraInput.progress = 0.0;
       }
 
+      if (children[i]->type == vcSOT_PointCloud && ImGui::Selectable(vcString::Get("ResetPosition"), false, children[i]->sceneMatrix == children[i]->defaultMatrix ? ImGuiSelectableFlags_Disabled : 0))
+        children[i]->sceneMatrix = children[i]->defaultMatrix;
+
       ImGui::EndPopup();
     }
 
