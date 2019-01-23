@@ -199,7 +199,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       ImGui::EndPopup();
     }
 
-    if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
+    if (children[i]->type != vcSOT_Folder && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
       vcScene_UseProjectFromItem(pProgramState, children[i]);
 
     if (ImGui::IsItemHovered())
