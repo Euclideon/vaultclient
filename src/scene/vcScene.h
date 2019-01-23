@@ -48,6 +48,7 @@ struct vcSceneItem
   vcSceneItemType type;
   char typeStr[8];
 
+  udDouble4x4 defaultMatrix; // This is the matrix that was originally loaded
   udDouble4x4 sceneMatrix; // This is the matrix used to render into the current projection
   udDouble3 pivot; // The point in local space that the object is anchored around (for scaling and rotating)
 
