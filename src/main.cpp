@@ -1274,6 +1274,8 @@ void vcRenderWindow(vcState *pProgramState)
             const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
             if (item.pParent->children[item.index]->type == vcSOT_Folder)
               itemFound = vcScene_ContainsItem((vcFolder*)item.pParent->children[item.index], pProgramState->sceneExplorer.insertItem.pParent);
+
+            itemFound = itemFound || (item.pParent == pProgramState->sceneExplorer.insertItem.pParent && item.index == pProgramState->sceneExplorer.insertItem.index);
           }
 
           if (!itemFound)
