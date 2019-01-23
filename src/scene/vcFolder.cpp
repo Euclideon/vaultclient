@@ -115,7 +115,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       ImGui::SameLine();
       vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &children[i]->pName, &children[i]->nameBufferLength);
 
-      if (ImGui::IsItemDeactivated())
+      if (ImGui::IsItemDeactivated() || !(pProgramState->sceneExplorer.selectedItems.back().pParent == this && pProgramState->sceneExplorer.selectedItems.back().index == i))
         children[i]->editName = false;
       else
         ImGui::SetKeyboardFocusHere(-1); // Set focus to previous widget
