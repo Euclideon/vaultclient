@@ -80,7 +80,8 @@ namespace vcString
     Set("ElevationFormat", vStringFormat("{0}##Settings", Get("Elevation")));
     Set("VisualizationFormat", vStringFormat("{0}##Settings", Get("Visualization")));
     Set("RestoreColorsID", vStringFormat("{0}##RestoreClassificationColors", Get("MenuRestoreDefaults")));
-    const char *latLongAlt[] = { Get("Lat"), Get("Long"), Get("pStrAlt") };
+
+    const char *latLongAlt[] = { Get("Lat"), Get("Long"), Get("Alt") };
     Set("LatLongAlt", vStringFormat("{0}: %.7f, {1}: %.7f, {2}: %.2fm", latLongAlt, 3));
     Set("InactiveSlash", vStringFormat("{0} /", Get("Inactive")));
     Set("AppearanceRestore", vStringFormat("{0}##AppearanceRestore", Get("MenuRestoreDefaults")));
@@ -94,6 +95,9 @@ namespace vcString
       format5[1] = "";
 
     Set("PackageUpdate", vStringFormat("{0} {1} {2}", format5, 3));
+
+    const char *format6[] = { Get("Arrow"), Get("Glow"), Get("Solid") };
+    Set("LineStyles", vStringFormat("{0}|\0{1}|\0{2}|\0", format6, 3));
 
     return vE_Success;
   }
