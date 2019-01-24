@@ -226,5 +226,17 @@
 	"RotateKey":"N",
 	"ScaleKey":"M",
 	"LocalKey":"C",
-	"FullscreenKey":"F5"
+	"FullscreenKey":"F5",
+	"Position":"Position",
+	"Point":"Point",
+	"Length":"Length",
+	"Area":"Area",
+	"LineColour":"Line Colour",
+	"LineWidth":"Line Width",
+	"LabelName":"Label Name",
+	"LabelColour":"Label Colour",
+	"LineStyle":"Line Style",
+	"Arrow":"Arrow",
+	"Glow":"Glow",
+	"Solid":"Solid"
 }

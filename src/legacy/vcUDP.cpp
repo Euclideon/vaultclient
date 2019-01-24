@@ -213,8 +213,10 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
 
               memset(&info, 0, sizeof(info));
 
-              info.pPoints = udAllocType(udDouble3, pNodeList->length + (isClosed ? 1 : 0), udAF_None);
+              info.pPoints = udAllocType(udDouble3, pNodeList->length, udAF_None);
               info.numPoints = 0;
+
+              info.closed = isClosed;
 
               info.lineWidth = 1;
               info.lineColour = colour;
@@ -224,10 +226,6 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
                 if (vcUDP_ReadGeolocation(pNodeList->GetElement(k)->AsString(""), info.pPoints[info.numPoints], epsgCode))
                   ++info.numPoints;
               }
-
-              // If its closed, we need to readd the first point at the end
-              if (isClosed && pNodeList->length > 0 && vcUDP_ReadGeolocation(pNodeList->GetElement(0)->AsString(""), info.pPoints[info.numPoints], epsgCode))
-                ++info.numPoints;
 
               if (info.numPoints > 0)
                 vcPOI_AddToList(pProgramState, pName, colour, 1.0, &info, epsgCode);
