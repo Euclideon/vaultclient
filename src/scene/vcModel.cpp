@@ -92,6 +92,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
       }
 
       vdkPointCloud_GetStoredMatrix(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->pPointCloud, pLoadInfo->pModel->sceneMatrix.a);
+      pLoadInfo->pModel->defaultMatrix = pLoadInfo->pModel->sceneMatrix;
 
       udDouble3 scaleFactor = udDouble3::create(udMag3(pLoadInfo->pModel->sceneMatrix.axis.x), udMag3(pLoadInfo->pModel->sceneMatrix.axis.y), udMag3(pLoadInfo->pModel->sceneMatrix.axis.z)) * pLoadInfo->scale;
       udDouble3 translate = pLoadInfo->pModel->sceneMatrix.axis.t.toVector3();

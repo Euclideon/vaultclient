@@ -37,7 +37,7 @@ struct vcFenceRendererConfig
 udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer);
 udResult vcFenceRenderer_Destroy(vcFenceRenderer **ppFenceRenderer);
 
-udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *pPoints, size_t pointCount);
+udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *pPoints, size_t pointCount, bool closed = false);
 void vcFenceRenderer_ClearPoints(vcFenceRenderer *pFenceRenderer);
 
 udResult vcFenceRenderer_SetConfig(vcFenceRenderer *pFenceRenderer, const vcFenceRendererConfig &config);

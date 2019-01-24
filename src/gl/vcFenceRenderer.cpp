@@ -354,17 +354,17 @@ epilogue:
   return result;
 }
 
-udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *pPoints, size_t pointCount)
+udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *pPoints, size_t pointCount, bool closed)
 {
   udResult result = udR_Success;
   vcFenceSegment newSegment = {};
 
   UD_ERROR_IF(pointCount < 2, udR_InvalidParameter_);
 
-  newSegment.pCachedPoints = udAllocType(udDouble3, pointCount, udAF_Zero);
+  newSegment.pCachedPoints = udAllocType(udDouble3, pointCount + closed, udAF_Zero);
   UD_ERROR_NULL(newSegment.pCachedPoints, udR_MemoryAllocationFailure);
 
-  newSegment.pointCount = pointCount;
+  newSegment.pointCount = pointCount + closed;
 
   // Reposition all the points around an origin point
   newSegment.fenceOriginOffset = udDouble4x4::translation(pPoints[0]);
@@ -372,6 +372,9 @@ udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *p
   {
     newSegment.pCachedPoints[i] = pPoints[i] - pPoints[0];
   }
+
+  if (closed)
+    newSegment.pCachedPoints[pointCount] = udDouble3::zero();
 
   vcFenceRenderer_CreateSegmentVertexData(pFenceRenderer, &newSegment);
   pFenceRenderer->pSegments->push_back(newSegment);
