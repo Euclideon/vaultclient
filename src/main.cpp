@@ -291,11 +291,11 @@ int main(int argc, char **args)
   // TODO: Query device and fill screen
   programState.sceneResolution.x = 1920;
   programState.sceneResolution.y = 1080;
-  programState.onScreenControls = true;
+  programState.settings.onScreenControls = true;
 #else
   programState.sceneResolution.x = 1280;
   programState.sceneResolution.y = 720;
-  programState.onScreenControls = false;
+  programState.settings.onScreenControls = false;
 #endif
   vcCamera_Create(&programState.pCamera);
 
@@ -761,7 +761,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   }
 
   // On Screen Controls Overlay
-  if (pProgramState->onScreenControls)
+  if (pProgramState->settings.onScreenControls)
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
@@ -1371,7 +1371,16 @@ void vcRenderWindow(vcState *pProgramState)
 
     if (ImGui::BeginDock(vcString::Get("Settings"), &pProgramState->settings.window.windowsOpen[vcDocks_Settings]))
     {
-      if (ImGui::CollapsingHeader(vcString::Get("SettingsAppearance")))
+      bool opened = ImGui::CollapsingHeader(vcString::Get("SettingsAppearance"));
+      if (ImGui::BeginPopupContextItem("AppearanceContext"))
+      {
+        if (ImGui::Selectable(vcString::Get("AppearanceRestore")))
+        {
+          vcSettings_Load(&pProgramState->settings, true, vcSC_Appearance);
+        }
+        ImGui::EndPopup();
+      }
+      if (opened)
       {
         int styleIndex = pProgramState->settings.presentation.styleIndex - 1;
 
@@ -1401,10 +1410,18 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::Combo(vcString::Get("VoxelShape"), &pProgramState->settings.presentation.pointMode, vcString::Get("VoxelOptions"));
       }
 
-      if (ImGui::CollapsingHeader(vcString::Get("InputControlsID")))
+      bool opened2 = ImGui::CollapsingHeader(vcString::Get("InputControlsID"));
+      if (ImGui::BeginPopupContextItem("InputContext"))
       {
-        ImGui::Checkbox(vcString::Get("OnScreenControls"), &pProgramState->onScreenControls);
-
+        if (ImGui::Selectable(vcString::Get("InputRestore")))
+        {
+          vcSettings_Load(&pProgramState->settings, true, vcSC_InputControls);
+        }
+        ImGui::EndPopup();
+      }
+      if (opened2)
+      {
+        ImGui::Checkbox(vcString::Get("OnScreenControls"), &pProgramState->settings.onScreenControls);
         if (ImGui::Checkbox(vcString::Get("TouchUI"), &pProgramState->settings.window.touchscreenFriendly))
         {
           ImGuiStyle& style = ImGui::GetStyle();
@@ -1428,10 +1445,18 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::Combo(vcString::Get("ScrollWheel"), (int*)&pProgramState->settings.camera.scrollWheelMode, scrollwheelModes, (int)udLengthOf(scrollwheelModes));
       }
 
-      if (ImGui::CollapsingHeader(vcString::Get("ViewportID")))
+      bool opened3 = ImGui::CollapsingHeader(vcString::Get("ViewportID"));
+      if (ImGui::BeginPopupContextItem("ViewportContext"))
       {
-        if (ImGui::SliderFloat(vcString::Get("NearPlane"), &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))
+        if (ImGui::Selectable(vcString::Get("ViewportRestore")))
         {
+          vcSettings_Load(&pProgramState->settings, true, vcSC_Viewport);
+        }
+        ImGui::EndPopup();
+      }
+      if (opened3)
+      {
+        if (ImGui::SliderFloat(vcString::Get("NearPlane"), &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))        {
           pProgramState->settings.camera.nearPlane = udClamp(pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax);
           pProgramState->settings.camera.farPlane = udMin(pProgramState->settings.camera.farPlane, pProgramState->settings.camera.nearPlane * vcSL_CameraNearFarPlaneRatioMax);
         }
@@ -1479,7 +1504,16 @@ void vcRenderWindow(vcState *pProgramState)
         }
       }
 
-      if (ImGui::CollapsingHeader(vcString::Get("ElevationFormat")))
+      bool opened4 = ImGui::CollapsingHeader(vcString::Get("ElevationFormat"));
+      if (ImGui::BeginPopupContextItem("MapsContext"))
+      {
+        if (ImGui::Selectable(vcString::Get("MapsRestore")))
+        {
+          vcSettings_Load(&pProgramState->settings, true, vcSC_MapsElevation);
+        }
+        ImGui::EndPopup();
+      }
+      if (opened4)
       {
         ImGui::Checkbox(vcString::Get("MapTiles"), &pProgramState->settings.maptiles.mapEnabled);
 
@@ -1517,7 +1551,16 @@ void vcRenderWindow(vcState *pProgramState)
         }
       }
 
-      if (ImGui::CollapsingHeader(vcString::Get("VisualizationFormat")))
+      bool opened5 = ImGui::CollapsingHeader(vcString::Get("VisualizationFormat"));
+      if (ImGui::BeginPopupContextItem("VisualizationContext"))
+      {
+        if (ImGui::Selectable(vcString::Get("VisualizationRestore")))
+        {
+          vcSettings_Load(&pProgramState->settings, true, vcSC_Visualization);
+        }
+        ImGui::EndPopup();
+      }
+      if (opened5)
       {
         const char *visualizationModes[] = { vcString::Get("Colour"), vcString::Get("Intensity"), vcString::Get("Classification") };
         ImGui::Combo(vcString::Get("DisplayMode"), (int*)&pProgramState->settings.visualization.mode, visualizationModes, (int)udLengthOf(visualizationModes));
@@ -1650,9 +1693,7 @@ void vcRenderWindow(vcState *pProgramState)
         }
       }
     }
-
     ImGui::EndDock();
   }
-
   vcModals_DrawModals(pProgramState);
 }
