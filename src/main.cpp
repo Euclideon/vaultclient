@@ -21,6 +21,7 @@
 
 #include "vcConvert.h"
 #include "vcVersion.h"
+#include "vcTime.h"
 #include "vcGIS.h"
 #include "vcClassificationColours.h"
 #include "vcPOI.h"
@@ -28,6 +29,7 @@
 #include "vcWebFile.h"
 #include "vcStrings.h"
 #include "vcModals.h"
+#include "vcLiveFeed.h"
 
 #include "vCore/vStringFormat.h"
 
@@ -87,11 +89,6 @@ struct vcColumnHeader
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
-int64_t vcMain_GetCurrentTime(int fractionSec = 1) // This gives 1/fractionSec factions since epoch, 5=200ms, 10=100ms etc.
-{
-  return std::chrono::system_clock::now().time_since_epoch().count() * fractionSec / std::chrono::system_clock::period::den;
-}
-
 void vcMain_UpdateSessionInfo(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
@@ -100,7 +97,7 @@ void vcMain_UpdateSessionInfo(void *pProgramStatePtr)
   if (response != vE_Success)
     pProgramState->forceLogout = true;
   else
-    pProgramState->lastServerResponse = vcMain_GetCurrentTime();
+    pProgramState->lastServerResponse = vcTime_GetEpochSecs();
 }
 
 void vcMain_PresentationMode(vcState *pProgramState)
@@ -112,7 +109,7 @@ void vcMain_PresentationMode(vcState *pProgramState)
     SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
 
   if (pProgramState->settings.responsiveUI == vcPM_Responsive)
-    pProgramState->lastEventTime = vcMain_GetCurrentTime();
+    pProgramState->lastEventTime = vcTime_GetEpochSecs();
 }
 
 const char* vcMain_GetOSName()
@@ -194,7 +191,7 @@ void vcLogin(void *pProgramStatePtr)
         if (info.Get("success").AsBool() == true)
         {
           udStrcpy(pProgramState->username, udLengthOf(pProgramState->username), info.Get("user.realname").AsString("Guest"));
-          pProgramState->lastServerResponse = vcMain_GetCurrentTime();
+          pProgramState->lastServerResponse = vcTime_GetEpochSecs();
         }
         else
         {
@@ -623,9 +620,9 @@ int main(int argc, char **args)
       } while (continueLoading);
 
       // Ping the server every 30 seconds
-      if (vcMain_GetCurrentTime() > programState.lastServerAttempt + 30)
+      if (vcTime_GetEpochSecs() > programState.lastServerAttempt + 30)
       {
-        programState.lastServerAttempt = vcMain_GetCurrentTime();
+        programState.lastServerAttempt = vcTime_GetEpochSecs();
         vWorkerThread_AddTask(programState.pWorkerPool, vcMain_UpdateSessionInfo, &programState, false);
       }
 
@@ -887,6 +884,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     return;
 
   vcRenderData renderData = {};
+  renderData.pCamera = pProgramState->pCamera;
   renderData.models.Init(32);
   renderData.fences.Init(32);
   renderData.labels.Init(32);
@@ -1130,7 +1128,7 @@ int vcMainMenuGui(vcState *pProgramState)
       udStrcat(endBarInfo, udLengthOf(endBarInfo), " / ");
     }
 
-    int64_t currentTime = vcMain_GetCurrentTime();
+    int64_t currentTime = vcTime_GetEpochSecs();
 
     for (int i = 0; i < vdkLT_Count; ++i)
     {
@@ -1176,46 +1174,6 @@ int vcMainMenuGui(vcState *pProgramState)
   return menuHeight;
 }
 
-void vcMain_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine = true)
-{
-  const char *loadingChars[] = { "\xE2\x96\xB2", "\xE2\x96\xB6", "\xE2\x96\xBC", "\xE2\x97\x80" };
-  int64_t currentLoadingChar = vcMain_GetCurrentTime(10);
-
-  // Load Status (if any)
-  if (loadStatus == vcSLS_Pending)
-  {
-    ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Yellow Exclamation in Triangle
-    if (ImGui::IsItemHovered())
-      ImGui::SetTooltip("%s", vcString::Get("Pending"));
-
-    if (sameLine)
-      ImGui::SameLine();
-  }
-  else if (loadStatus == vcSLS_Loading)
-  {
-    ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", loadingChars[currentLoadingChar % udLengthOf(loadingChars)]); // Yellow Spinning clock
-    if (ImGui::IsItemHovered())
-      ImGui::SetTooltip("%s", vcString::Get("Loading"));
-
-    if (sameLine)
-      ImGui::SameLine();
-  }
-  else if (loadStatus == vcSLS_Failed || loadStatus == vcSLS_OpenFailure)
-  {
-    ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Red Exclamation in Triangle
-    if (ImGui::IsItemHovered())
-    {
-      if (loadStatus == vcSLS_OpenFailure)
-        ImGui::SetTooltip("%s", vcString::Get("ModelOpenFailure"));
-      else
-        ImGui::SetTooltip("%s", vcString::Get("ModelLoadFailure"));
-    }
-
-    if (sameLine)
-      ImGui::SameLine();
-  }
-}
-
 void vcRenderWindow(vcState *pProgramState)
 {
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
@@ -1229,10 +1187,10 @@ void vcRenderWindow(vcState *pProgramState)
   {
     if (io.MouseDelta.x != 0.0 || io.MouseDelta.y != 0.0)
     {
-      pProgramState->lastEventTime = vcMain_GetCurrentTime();
+      pProgramState->lastEventTime = vcTime_GetEpochSecs();
       pProgramState->showUI = true;
     }
-    else if ((vcMain_GetCurrentTime() - pProgramState->lastEventTime) > pProgramState->settings.hideIntervalSeconds)
+    else if ((vcTime_GetEpochSecs() - pProgramState->lastEventTime) > pProgramState->settings.hideIntervalSeconds)
     {
       pProgramState->showUI = false;
     }
@@ -1271,7 +1229,7 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::SetNextWindowSize(ImVec2(500, 160));
       if (ImGui::Begin(vcString::Get("loginTitle"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
       {
-        vcMain_ShowLoadStatusIndicator(vcSLS_Loading);
+        vcFolder_ShowLoadStatusIndicator(vcSLS_Loading);
         ImGui::TextUnformatted(vcString::Get("loginMessageChecking"));
       }
       ImGui::End();
@@ -1392,7 +1350,13 @@ void vcRenderWindow(vcState *pProgramState)
         vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
-        vcFolder_AddToList(pProgramState, vcString::Get("DefaultName_Folder"));
+      {
+        //EVC-392 will help with this
+        if (ImGui::GetIO().KeyCtrl)
+          vcLiveFeed_AddToList(pProgramState);
+        else
+          vcFolder_AddToList(pProgramState, vcString::Get("DefaultName_Folder"));
+      }
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("Remove"), vcString::Get("DeleteKey"), vcMBBI_Remove, vcMBBG_NewGroup) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE] && !ImGui::IsAnyItemActive()))
         vcScene_RemoveSelected(pProgramState);
@@ -1400,7 +1364,7 @@ void vcRenderWindow(vcState *pProgramState)
       // Tree view for the scene
       ImGui::Separator();
 
-      if (ImGui::BeginChild("SceneExplorerList", ImVec2(0,0), false, ImGuiWindowFlags_HorizontalScrollbar))
+      if (ImGui::BeginChild("SceneExplorerList", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
       {
         if (!ImGui::IsMouseDragging() && pProgramState->sceneExplorer.insertItem.pParent != nullptr)
         {
@@ -1582,7 +1546,7 @@ void vcRenderWindow(vcState *pProgramState)
       }
       if (opened3)
       {
-        if (ImGui::SliderFloat(vcString::Get("NearPlane"), &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))        {
+        if (ImGui::SliderFloat(vcString::Get("NearPlane"), &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f)) {
           pProgramState->settings.camera.nearPlane = udClamp(pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax);
           pProgramState->settings.camera.farPlane = udMin(pProgramState->settings.camera.farPlane, pProgramState->settings.camera.nearPlane * vcSL_CameraNearFarPlaneRatioMax);
         }
@@ -1647,7 +1611,7 @@ void vcRenderWindow(vcState *pProgramState)
         {
           ImGui::Checkbox(vcString::Get("MouseLock"), &pProgramState->settings.maptiles.mouseInteracts);
 
-          if (ImGui::Button(vcString::Get("TileServer"),ImVec2(-1,0)))
+          if (ImGui::Button(vcString::Get("TileServer"), ImVec2(-1, 0)))
             vcModals_OpenModal(pProgramState, vcMT_TileServer);
 
           ImGui::SliderFloat(vcString::Get("MapHeight"), &pProgramState->settings.maptiles.mapHeight, -1000.f, 1000.f, "%.3fm", 2.f);

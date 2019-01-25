@@ -17,5 +17,6 @@ struct vcFolder : public vcSceneItem
 };
 
 void vcFolder_AddToList(vcState *pProgramState, const char *pName);
+void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine = true);
 
 #endif //vcFolder_h__
