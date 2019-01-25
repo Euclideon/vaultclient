@@ -61,7 +61,7 @@ bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
 
   g_pd3dDeviceContext->ClearRenderTargetView(pFramebuffer->pRenderTargetView, colours);
   if (pFramebuffer->pDepthStencilView)
-    g_pd3dDeviceContext->ClearDepthStencilView(pFramebuffer->pDepthStencilView, D3D11_CLEAR_DEPTH, 1.f, 0);
+    g_pd3dDeviceContext->ClearDepthStencilView(pFramebuffer->pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
 
   return true;
 }

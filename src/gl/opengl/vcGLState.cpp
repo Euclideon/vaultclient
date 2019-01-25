@@ -6,6 +6,11 @@ static vcGLState s_internalState;
 vcFramebuffer g_defaultFramebuffer;
 int32_t g_maxAnisotropy = 0;
 
+static const GLenum vcGLSSOPToGL[] = { GL_KEEP, GL_ZERO, GL_REPLACE, GL_INCR, GL_DECR };
+UDCOMPILEASSERT(udLengthOf(vcGLSSOPToGL) == vcGLSSOP_Total, "Not Enough OpenGL Stencil Operations");
+static const GLenum vcGLSSFToGL[]{ GL_ALWAYS, GL_NEVER, GL_LESS, GL_LEQUAL, GL_GREATER, GL_GEQUAL, GL_EQUAL, GL_NOTEQUAL };
+UDCOMPILEASSERT(udLengthOf(vcGLSSFToGL) == vcGLSSF_Total, "Not Enough OpenGL Stencil Functions");
+
 bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 {
 #if UDPLATFORM_WINDOWS
@@ -37,6 +42,15 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
   glEnable(GL_SCISSOR_TEST);
 
+  // match opengl stencil defaults
+  s_internalState.stencil.compareFunc = vcGLSSF_Always;
+  s_internalState.stencil.compareValue = 0;
+  s_internalState.stencil.compareMask = 0xff;
+  s_internalState.stencil.onDepthFail = vcGLSSOP_Keep;
+  s_internalState.stencil.onStencilFail = vcGLSSOP_Keep;
+  s_internalState.stencil.onStencilAndDepthPass = vcGLSSOP_Keep;
+  s_internalState.stencil.writeMask = 0xff;
+
   return vcGLState_ResetState(true);
 }
 
@@ -51,7 +65,7 @@ bool vcGLState_ApplyState(vcGLState *pState)
 
   success &= vcGLState_SetFaceMode(pState->fillMode, pState->cullMode, pState->isFrontCCW);
   success &= vcGLState_SetBlendMode(pState->blendMode);
-  success &= vcGLState_SetDepthMode(pState->depthReadMode, pState->doDepthWrite);
+  success &= vcGLState_SetDepthStencilMode(pState->depthReadMode, pState->doDepthWrite, &pState->stencil);
 
   return success;
 }
@@ -60,7 +74,7 @@ bool vcGLState_ResetState(bool force /*= false*/)
 {
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back, true, force);
   vcGLState_SetBlendMode(vcGLSBM_None, force);
-  vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true, force);
+  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true, nullptr, force);
 
   return true;
 }
@@ -90,7 +104,6 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
   if (s_internalState.fillMode != fillMode || force)
   {
 #if !UDPLATFORM_IOS && !UDPLATFORM_IOS_SIMULATOR
-
     if (fillMode == vcGLSFM_Solid)
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     else
@@ -140,7 +153,7 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
   return true;
 }
 
-bool vcGLState_SetDepthMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite, bool force /*= false*/)
+bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite, vcGLStencilSettings *pStencil /* = nullptr */, bool force /*= false*/)
 {
   if (s_internalState.depthReadMode != depthReadMode || force)
   {
@@ -181,6 +194,43 @@ bool vcGLState_SetDepthMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite,
     s_internalState.doDepthWrite = doDepthWrite;
   }
 
+  bool enableStencil = pStencil != nullptr;
+  if ((s_internalState.stencil.enabled != enableStencil) || force)
+  {
+    if (enableStencil)
+      glEnable(GL_STENCIL_TEST);
+    else
+      glDisable(GL_STENCIL_TEST);
+
+    s_internalState.stencil.enabled = enableStencil;
+  }
+
+  if (enableStencil)
+  {
+    if ((s_internalState.stencil.writeMask != pStencil->writeMask) || force)
+    {
+      glStencilMask(pStencil->writeMask);
+      s_internalState.stencil.writeMask = pStencil->writeMask;
+    }
+
+    if ((s_internalState.stencil.compareFunc != pStencil->compareFunc) || (s_internalState.stencil.compareValue != pStencil->compareValue) || (s_internalState.stencil.compareMask != pStencil->compareMask) || force)
+    {
+      glStencilFunc(vcGLSSFToGL[pStencil->compareFunc], pStencil->compareValue, pStencil->compareMask);
+
+      s_internalState.stencil.compareFunc = pStencil->compareFunc;
+      s_internalState.stencil.compareValue = pStencil->compareValue;
+      s_internalState.stencil.compareMask = pStencil->compareMask;
+    }
+
+    if ((s_internalState.stencil.onStencilFail != pStencil->onStencilFail) || (s_internalState.stencil.onDepthFail != pStencil->onDepthFail) || (s_internalState.stencil.onStencilAndDepthPass != pStencil->onStencilAndDepthPass) || force)
+    {
+      glStencilOp(vcGLSSOPToGL[pStencil->onStencilFail], vcGLSSOPToGL[pStencil->onDepthFail], vcGLSSOPToGL[pStencil->onStencilAndDepthPass]);
+
+      s_internalState.stencil.onStencilFail = pStencil->onStencilFail;
+      s_internalState.stencil.onDepthFail = pStencil->onDepthFail;
+      s_internalState.stencil.onStencilAndDepthPass = pStencil->onStencilAndDepthPass;
+    }
+  }
   return true;
 }
 

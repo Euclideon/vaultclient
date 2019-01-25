@@ -237,7 +237,7 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
   vcTexture_Destroy(&pRenderContext->pDepthTexture);
   vcFramebuffer_Destroy(&pRenderContext->pFramebuffer);
   vcTexture_Create(&pRenderContext->pTexture, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget);
-  vcTexture_Create(&pRenderContext->pDepthTexture, widthIncr, heightIncr, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget);
+  vcTexture_Create(&pRenderContext->pDepthTexture, widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget);
   vcFramebuffer_Create(&pRenderContext->pFramebuffer, pRenderContext->pTexture, pRenderContext->pDepthTexture);
 
   if (pRenderContext->pVaultContext)
@@ -407,7 +407,7 @@ void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
 
   vcGLState_ResetState();
   vcGLState_SetBlendMode(vcGLSBM_AdditiveSrcInterpolativeDst);
-  vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, false);
+  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   // Draw fences here
@@ -428,7 +428,7 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
 {
   float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
 
-  vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true);
+  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
 
   vcRender_RenderAndUploadUDToTexture(pRenderContext, renderData);
 
@@ -449,12 +449,12 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
 
     // Render highlighting any occlusion
     vcGLState_SetBlendMode(vcGLSBM_Additive);
-    vcGLState_SetDepthMode(vcGLSDM_Greater, false);
+    vcGLState_SetDepthStencilMode(vcGLSDM_Greater, false);
     vcCompass_Render(pRenderContext->pCompass, pRenderContext->pSettings->presentation.mouseAnchor, mvp, udDouble4::create(0.0, 0.15, 1.0, 0.5));
 
     // Render non-occluded
     vcGLState_SetBlendMode(vcGLSBM_Interpolative);
-    vcGLState_SetDepthMode(vcGLSDM_Less, true);
+    vcGLState_SetDepthStencilMode(vcGLSDM_Less, true);
     vcCompass_Render(pRenderContext->pCompass, pRenderContext->pSettings->presentation.mouseAnchor, mvp);
 
     vcGLState_ResetState();
@@ -464,7 +464,7 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
   {
     udDouble4x4 cameraRotation = udDouble4x4::rotationYPR(pRenderContext->pCamera->matrices.camera.extractYPR());
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
-    vcGLState_SetDepthMode(vcGLSDM_Always, false);
+    vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
 
     if (!renderData.pGISSpace->isProjected)
     {

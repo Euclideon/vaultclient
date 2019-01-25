@@ -54,6 +54,48 @@ enum vcGLStateDepthMode
   vcGLSDM_Always
 };
 
+enum vcGLStateStencilFunc
+{
+  vcGLSSF_Always,
+  vcGLSSF_Never,
+
+  vcGLSSF_Less,
+  vcGLSSF_LessOrEqual,
+  vcGLSSF_Greater,
+  vcGLSSF_GreaterOrEqual,
+
+  vcGLSSF_Equal,
+  vcGLSSF_NotEqual,
+
+  vcGLSSF_Total
+};
+
+enum vcGLStateStencilOp
+{
+  vcGLSSOP_Keep,
+  vcGLSSOP_Zero,
+  vcGLSSOP_Replace,
+
+  vcGLSSOP_Increment,
+  vcGLSSOP_Decrement,
+
+  vcGLSSOP_Total
+};
+
+struct vcGLStencilSettings
+{
+  bool enabled;
+  uint8_t writeMask;
+
+  vcGLStateStencilFunc compareFunc;
+  uint8_t compareValue;
+  uint8_t compareMask;
+
+  vcGLStateStencilOp onStencilFail;
+  vcGLStateStencilOp onDepthFail;
+  vcGLStateStencilOp onStencilAndDepthPass;
+};
+
 struct vcGLState
 {
   vcGLStateFillMode fillMode;
@@ -65,6 +107,7 @@ struct vcGLState
   udFloat2 depthRange;
 
   vcGLStateBlendMode blendMode;
+  vcGLStencilSettings stencil;
 
   udInt4 viewportZone;
   udInt4 scissorZone;
@@ -81,7 +124,7 @@ bool vcGLState_ResetState(bool force = false);
 
 bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMode, bool isFrontCCW = true, bool force = false);
 bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force = false);
-bool vcGLState_SetDepthMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite, bool force = false);
+bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite, vcGLStencilSettings *pStencil = nullptr, bool force = false);
 
 bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, float minDepth = 0.f, float maxDepth = 1.f);
 bool vcGLState_SetViewportDepthRange(float minDepth, float maxDepth);
