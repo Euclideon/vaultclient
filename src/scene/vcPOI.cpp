@@ -27,7 +27,6 @@ void vcPOI::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
 {
   bool reConfig = false;
 
-  vcIGSW_InputTextWithResize(vcString::Get("LabelName"), &pName, &nameBufferLength);
   vcIGSW_ColorPickerU32(udTempStr("%s##POIColor%zu", vcString::Get("LabelColour"), *pItemID), &nameColour, ImGuiColorEditFlags_None);
 
   bool lines = line.numPoints > 1;

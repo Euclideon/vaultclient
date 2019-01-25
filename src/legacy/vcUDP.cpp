@@ -5,6 +5,69 @@
 
 #include "vcModel.h"
 #include "vcPOI.h"
+#include "vcFolder.h"
+
+
+enum vcUDPItemDataType
+{
+  vcUDPIDT_Dataset,
+  vcUDPIDT_Label,
+  vcUDPIDT_Polygon,
+
+  vcUDPIDT_Count,
+};
+
+const char *g_vcUDPTypeNames[vcUDPIDT_Count] = {
+  "DataSetData",
+  "Label",
+  "PolygonData",
+};
+
+const char *g_vcUDPTypeGroupNames[vcUDPIDT_Count] = {
+  "DataSetGroup",
+  "LabelGroup",
+  "PolygonGroup",
+};
+
+struct vcUDPItemData
+{
+  int64_t id;
+  bool isFolder;
+  int64_t parentID;
+  int64_t treeIndex;
+  vcSceneItemRef sceneFolder;
+
+  vcUDPItemDataType type;
+  union
+  {
+    struct
+    {
+      const char *pName;
+      const char *pPath;
+      const char *pLocation;
+      const char *pAngleX;
+      const char *pAngleY;
+      const char *pAngleZ;
+      const char *pScale;
+    } dataset;
+    struct
+    {
+      const char *pName;
+      const char *pGeoLocation;
+      const char *pColour;
+      const char *pFontSize;
+    } label;
+    struct
+    {
+      const char *pName;
+      uint32_t colour;
+      bool isClosed;
+      udDouble3 *pPoints;
+      size_t numPoints;
+      int32_t epsgCode;
+    } polygon;
+  };
+};
 
 void vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char *pModelName, const char *pModelFilename, bool firstLoad, udDouble3 *pPosition, udDouble3 *pYPR, double scale)
 {
@@ -37,12 +100,325 @@ bool vcUDP_ReadGeolocation(const char *pStr, udDouble3 &position, int &epsg)
   return (count == 4);
 }
 
+vcSceneItemRef vcUDP_GetSceneItemRef(vcState *pProgramState)
+{
+  vcFolder *pParent = pProgramState->sceneExplorer.clickedItem.pParent;
+  if (pParent == nullptr)
+    pParent = pProgramState->sceneExplorer.pItems;
+  else
+    pParent = (vcFolder*)pParent->children[pProgramState->sceneExplorer.clickedItem.index];
+
+  return { pParent, pParent->children.size() };
+}
+
+void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemData, vcUDPItemDataType type)
+{
+  for (size_t i = 0; i < items.ArrayLength(); ++i)
+  {
+    if (udStrEqual(items.Get("[%zu].Name", i).AsString(), g_vcUDPTypeNames[type]))
+    {
+      const udJSON &datasetData = items.Get("[%zu].DataEntry", i);
+
+      vcUDPItemData item = {};
+      item.id = items.Get("[%zu].Id", i).AsInt64();
+      item.isFolder = false;
+      item.parentID = 0;
+      item.treeIndex = 0;
+      item.sceneFolder = { nullptr, SIZE_MAX };
+      item.type = type;
+
+      switch (type)
+      {
+      case vcUDPIDT_Dataset:
+        item.dataset.pName = nullptr;
+        item.dataset.pPath = nullptr;
+        item.dataset.pLocation = nullptr;
+        item.dataset.pAngleX = nullptr;
+        item.dataset.pAngleY = nullptr;
+        item.dataset.pAngleZ = nullptr;
+        item.dataset.pScale = nullptr;
+        break;
+      case vcUDPIDT_Label:
+        item.label.pName = nullptr;
+        item.label.pGeoLocation = nullptr;
+        item.label.pColour = nullptr;
+        item.label.pFontSize = nullptr;
+      case vcUDPIDT_Polygon:
+        item.polygon.pName = nullptr;
+        item.polygon.colour = 0;
+        item.polygon.isClosed = false;
+        item.polygon.pPoints = nullptr;
+        item.polygon.numPoints = 0;
+        item.polygon.epsgCode = 0;
+        break;
+      case vcUDPIDT_Count:
+        // Failure
+        break;
+      }
+
+      for (size_t j = 0; j < datasetData.ArrayLength(); ++j)
+      {
+        if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "IsFolder"))
+        {
+          item.isFolder = datasetData.Get("[%zu].content", j).AsBool();
+        }
+        else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "ParentId"))
+        {
+          item.parentID = datasetData.Get("[%zu].content", j).AsInt64();
+        }
+        else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "TreeIndex"))
+        {
+          item.treeIndex = datasetData.Get("[%zu].content", j).AsInt64();
+        }
+        else
+        {
+          switch (type)
+          {
+          case vcUDPIDT_Dataset:
+            if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "Path"))
+              item.dataset.pPath = datasetData.Get("[%zu].content", j).AsString();
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "Name"))
+              item.dataset.pName = datasetData.Get("[%zu].content", j).AsString();
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "Location"))
+              item.dataset.pLocation = datasetData.Get("[%zu].content", j).AsString();
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "AngleX"))
+              item.dataset.pAngleX = datasetData.Get("[%zu].content", j).AsString();
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "AngleY"))
+              item.dataset.pAngleY = datasetData.Get("[%zu].content", j).AsString();
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "AngleZ"))
+              item.dataset.pAngleZ = datasetData.Get("[%zu].content", j).AsString();
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "Scale"))
+              item.dataset.pScale = datasetData.Get("[%zu].content", j).AsString();
+            break;
+          case vcUDPIDT_Label:
+            if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "Name"))
+              item.label.pName = datasetData.Get("[%zu].content", j).AsString();
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "GeoLocation"))
+              item.label.pGeoLocation = datasetData.Get("[%zu].content", j).AsString();
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "LabelColor"))
+              item.label.pColour = datasetData.Get("[%zu].content", j).AsString();
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "FontSize"))
+              item.label.pFontSize = datasetData.Get("[%zu].content", j).AsString();
+            break;
+          case vcUDPIDT_Polygon:
+            if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "PolygonName"))
+            {
+              item.polygon.pName = datasetData.Get("[%zu].content", j).AsString();
+            }
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "PolygonIsClosed"))
+            {
+              item.polygon.isClosed = datasetData.Get("[%zu].content", j).AsBool();
+            }
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "PolygonColour"))
+            {
+              item.polygon.colour = (uint32_t)datasetData.Get("[%zu].content", j).AsInt(); // Stored as int in file, needs to be uint in vc
+            }
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "Nodes"))
+            {
+              const udJSONArray *pNodeList = datasetData.Get("[%zu].GeoLocationArray", j).AsArray();
+              item.polygon.pPoints = udAllocType(udDouble3, pNodeList->length, udAF_None);
+              item.polygon.numPoints = 0;
+
+              for (size_t k = 0; k < pNodeList->length; ++k)
+              {
+                if (vcUDP_ReadGeolocation(pNodeList->GetElement(k)->AsString(""), item.polygon.pPoints[item.polygon.numPoints], item.polygon.epsgCode))
+                  ++item.polygon.numPoints;
+              }
+            }
+            break;
+          case vcUDPIDT_Count:
+            // Failure
+            break;
+          }
+        }
+      }
+
+      pItemData->push_back(item);
+    }
+  }
+}
+
+void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::vector<vcUDPItemData> *pItemData, size_t index, bool *pFirstLoad)
+{
+  const vcUDPItemData &item = pItemData->at(index);
+
+  if (item.dataset.pPath != nullptr)
+  {
+    udDouble3 position = udDouble3::zero();
+    udDouble3 ypr = udDouble3::zero();
+    double scale = 1.0;
+
+    udDouble3 *pPosition = nullptr;
+    udDouble3 *pYPR = nullptr;
+
+    if (item.dataset.pLocation != nullptr)
+    {
+      int epsgCode = 0;
+
+      if (vcUDP_ReadGeolocation(item.dataset.pLocation, position, epsgCode))
+        pPosition = &position;
+
+      udUnused(epsgCode); //TODO: Use this
+    }
+
+    if (item.dataset.pAngleX != nullptr || item.dataset.pAngleY != nullptr || item.dataset.pAngleZ != nullptr) // At least one of the angles is set
+    {
+      if (item.dataset.pAngleZ != nullptr)
+        ypr.x = UD_DEG2RAD(udStrAtof64(item.dataset.pAngleZ));
+
+      if (item.dataset.pAngleX != nullptr)
+        ypr.y = UD_DEG2RAD(udStrAtof64(item.dataset.pAngleX));
+
+      if (item.dataset.pAngleY != nullptr)
+        ypr.z = UD_DEG2RAD(udStrAtof64(item.dataset.pAngleY));
+
+      pYPR = &ypr;
+    }
+
+    if (item.dataset.pScale != nullptr)
+      scale = udStrAtof64(item.dataset.pScale);
+
+    pItemData->at(index).sceneFolder = vcUDP_GetSceneItemRef(pProgramState);
+    vcUDP_AddModel(pProgramState, pFilename, item.dataset.pName, item.dataset.pPath, *pFirstLoad, pPosition, pYPR, scale);
+    *pFirstLoad = false;
+  }
+}
+
+void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLabelData, size_t index)
+{
+  const vcUDPItemData &item = pLabelData->at(index);
+
+  if (item.label.pName != nullptr && item.label.pGeoLocation != nullptr)
+  {
+    udDouble3 position = udDouble3::zero();
+    int32_t epsgCode = 0;
+
+    uint16_t size = (uint16_t)udStrAtou(item.label.pFontSize);
+    uint32_t colour = (uint32_t)udStrAtoi(item.label.pColour); //These are stored as int (with negatives) in MDM
+
+    if (vcUDP_ReadGeolocation(item.label.pGeoLocation, position, epsgCode))
+    {
+      pLabelData->at(index).sceneFolder = vcUDP_GetSceneItemRef(pProgramState);
+      vcPOI_AddToList(pProgramState, item.label.pName, colour, size, position, epsgCode);
+    }
+  }
+}
+
+void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pLabelData, size_t index)
+{
+  const vcUDPItemData &item = pLabelData->at(index);
+
+  if (item.polygon.pName != nullptr && item.polygon.pPoints != nullptr)
+  {
+    vcLineInfo info;
+    memset(&info, 0, sizeof(info));
+
+    info.pPoints = item.polygon.pPoints;
+    info.numPoints = item.polygon.numPoints;
+
+    info.closed = item.polygon.isClosed;
+
+    info.lineWidth = 1;
+    info.lineColour = item.polygon.colour;
+
+    if (info.numPoints > 0)
+      vcPOI_AddToList(pProgramState, item.polygon.pName, item.polygon.colour, 1.0, &info, item.polygon.epsgCode);
+
+    udFree(info.pPoints);
+  }
+}
+
+void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vector<vcUDPItemData> *pItemData, size_t index, bool *pFirstLoad, size_t rootOffset)
+{
+  const vcUDPItemData &item = pItemData->at(index);
+
+  // Ensure parent is loaded and set as the item to add items to
+  if (item.parentID != 0)
+  {
+    for (size_t i = 0; i < pItemData->size(); ++i)
+    {
+      if (pItemData->at(i).id == item.parentID)
+      {
+        if (pItemData->at(i).sceneFolder.pParent == nullptr && pItemData->at(i).sceneFolder.index == SIZE_MAX)
+          vcUDP_AddItemData(pProgramState, pFilename, pItemData, i, pFirstLoad, rootOffset);
+
+        pProgramState->sceneExplorer.clickedItem = pItemData->at(i).sceneFolder;
+        break;
+      }
+    }
+  }
+
+  // Create the folders and items
+  if (item.isFolder)
+  {
+    if (pItemData->at(index).sceneFolder.pParent == nullptr && pItemData->at(index).sceneFolder.index == SIZE_MAX)
+    {
+      pItemData->at(index).sceneFolder = vcUDP_GetSceneItemRef(pProgramState);
+      vcFolder_AddToList(pProgramState, item.dataset.pName);
+    }
+  }
+  else
+  {
+    switch (item.type)
+    {
+    case vcUDPIDT_Dataset:
+      vcUDP_AddDataSetData(pProgramState, pFilename, pItemData, index, pFirstLoad);
+      break;
+    case vcUDPIDT_Label:
+      vcUDP_AddLabelData(pProgramState, pItemData, index);
+      break;
+    case vcUDPIDT_Polygon:
+      vcUDP_AddPolygonData(pProgramState, pItemData, index);
+      break;
+    case vcUDPIDT_Count:
+      // Failure
+      break;
+    }
+  }
+
+  // Insert item into the correct order
+  size_t treeIndex = rootOffset + (size_t)item.treeIndex;
+  if (treeIndex != item.sceneFolder.index && treeIndex < item.sceneFolder.pParent->children.size())
+  {
+    vcSceneItemRef *pSceneRef = &pItemData->at(index).sceneFolder;
+    vcSceneItem *pTemp = pSceneRef->pParent->children[pSceneRef->index];
+    pSceneRef->pParent->children.erase(pSceneRef->pParent->children.begin() + pSceneRef->index);
+    pSceneRef->pParent->children.insert(pSceneRef->pParent->children.begin() + treeIndex, pTemp);
+    pSceneRef->index = treeIndex;
+  }
+
+  pProgramState->sceneExplorer.clickedItem = { nullptr, SIZE_MAX };
+}
+
+bool vcUDP_LoadItem(vcState *pProgramState, const char *pFilename, const udJSON &groupDataBlock, std::vector<vcUDPItemData> *pItemData, vcUDPItemDataType type, bool *pFirstLoad)
+{
+  size_t rootOffset = pProgramState->sceneExplorer.pItems->children.size();
+  if (udStrEqual(groupDataBlock.Get("Name").AsString(), g_vcUDPTypeGroupNames[type]))
+  {
+    const udJSON &items = groupDataBlock.Get("DataBlock");
+    vcUDP_ParseItemData(items, pItemData, type);
+
+    for (size_t i = 0; i < items.ArrayLength(); ++i)
+    {
+      vcUDP_AddItemData(pProgramState, pFilename, pItemData, i, pFirstLoad, rootOffset);
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
 void vcUDP_Load(vcState *pProgramState, const char *pFilename)
 {
   udResult result;
   udJSON xml;
   const char *pXMLText = nullptr;
   bool firstLoad = true;
+  std::vector<vcUDPItemData> dataSetData;
+  std::vector<vcUDPItemData> labelData;
+  std::vector<vcUDPItemData> polygonData;
+
   UD_ERROR_CHECK(udFile_Load(pFilename, (void**)&pXMLText));
   UD_ERROR_CHECK(xml.Parse(pXMLText));
 
@@ -62,179 +438,16 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
     const udJSON &dataBlocks = xml.Get("DataBlock.DataBlock");
     for (size_t i = 0; i < dataBlocks.ArrayLength(); ++i)
     {
-      if (udStrEqual(dataBlocks.Get("[%zu].Name", i).AsString(), "DataSetGroup"))
-      {
-        const udJSON &datasets = dataBlocks.Get("[%zu].DataBlock", i);
-        for (size_t j = 0; j < datasets.ArrayLength(); ++j)
-        {
-          if (udStrEqual(datasets.Get("[%zu].Name", j).AsString(), "DataSetData"))
-          {
-            const udJSON &datasetData = datasets.Get("[%zu].DataEntry", j);
+      const udJSON &groupDataBlock = dataBlocks.Get("[%zu]", i);
+      if (vcUDP_LoadItem(pProgramState, pFilename, groupDataBlock, &dataSetData, vcUDPIDT_Dataset, &firstLoad))
+        continue;
 
-            const char *pName = nullptr;
-            const char *pPath = nullptr;
-            const char *pLocation = nullptr;
-            const char *pAngleX = nullptr;
-            const char *pAngleY = nullptr;
-            const char *pAngleZ = nullptr;
-            const char *pScale = nullptr;
+      if (vcUDP_LoadItem(pProgramState, pFilename, groupDataBlock, &labelData, vcUDPIDT_Label, &firstLoad))
+        continue;
 
-            for (size_t k = 0; k < datasetData.ArrayLength(); ++k)
-            {
-              if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Path"))
-                pPath = datasetData.Get("[%zu].content", k).AsString();
-              else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Name"))
-                pName = datasetData.Get("[%zu].content", k).AsString();
-              else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Location"))
-                pLocation = datasetData.Get("[%zu].content", k).AsString();
-              else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "AngleX"))
-                pAngleX = datasetData.Get("[%zu].content", k).AsString();
-              else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "AngleY"))
-                pAngleY = datasetData.Get("[%zu].content", k).AsString();
-              else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "AngleZ"))
-                pAngleZ = datasetData.Get("[%zu].content", k).AsString();
-              else if (udStrEqual(datasetData.Get("[%zu].Name", k).AsString(), "Scale"))
-                pScale = datasetData.Get("[%zu].content", k).AsString();
-            }
+      if (vcUDP_LoadItem(pProgramState, pFilename, groupDataBlock, &polygonData, vcUDPIDT_Polygon, &firstLoad))
+        continue;
 
-            if (pPath != nullptr)
-            {
-              udDouble3 position = udDouble3::zero();
-              udDouble3 ypr = udDouble3::zero();
-              double scale = 1.0;
-
-              udDouble3 *pPosition = nullptr;
-              udDouble3 *pYPR = nullptr;
-
-              if (pLocation != nullptr)
-              {
-                int epsgCode = 0;
-
-                if (vcUDP_ReadGeolocation(pLocation, position, epsgCode))
-                  pPosition = &position;
-
-                udUnused(epsgCode); //TODO: Use this
-              }
-
-              if (pAngleX != nullptr || pAngleY != nullptr || pAngleZ != nullptr) // At least one of the angles is set
-              {
-                if (pAngleZ != nullptr)
-                  ypr.x = UD_DEG2RAD(udStrAtof64(pAngleZ));
-
-                if (pAngleX != nullptr)
-                  ypr.y = UD_DEG2RAD(udStrAtof64(pAngleX));
-
-                if (pAngleY != nullptr)
-                  ypr.z = UD_DEG2RAD(udStrAtof64(pAngleY));
-
-                pYPR = &ypr;
-              }
-
-              if (pScale != nullptr)
-                scale = udStrAtof64(pScale);
-
-              vcUDP_AddModel(pProgramState, pFilename, pName, pPath, firstLoad, pPosition, pYPR, scale);
-              firstLoad = false;
-            }
-          }
-        }
-      }
-      else if (udStrEqual(dataBlocks.Get("[%zu].Name", i).AsString(), "LabelGroup"))
-      {
-        const udJSON &labels = dataBlocks.Get("[%zu].DataBlock", i);
-        for (size_t j = 0; j < labels.ArrayLength(); ++j)
-        {
-          if (udStrEqual(labels.Get("[%zu].Name", j).AsString(), "Label"))
-          {
-            const udJSON &labelData = labels.Get("[%zu].DataEntry", j);
-
-            const char *pName = nullptr;
-            const char *pGeoLocation = nullptr;
-
-            const char *pColour = nullptr;
-            const char *pFontSize = nullptr;
-
-            for (size_t k = 0; k < labelData.ArrayLength(); ++k)
-            {
-              if (udStrEqual(labelData.Get("[%zu].Name", k).AsString(), "Name"))
-                pName = labelData.Get("[%zu].content", k).AsString();
-              else if (udStrEqual(labelData.Get("[%zu].Name", k).AsString(), "GeoLocation"))
-                pGeoLocation = labelData.Get("[%zu].content", k).AsString();
-              else if (udStrEqual(labelData.Get("[%zu].Name", k).AsString(), "FontSize"))
-                pFontSize = labelData.Get("[%zu].content", k).AsString();
-              else if (udStrEqual(labelData.Get("[%zu].Name", k).AsString(), "LabelColor"))
-                pColour = labelData.Get("[%zu].content", k).AsString();
-            }
-
-            if (pName != nullptr && pGeoLocation != nullptr)
-            {
-              udDouble3 position = udDouble3::zero();
-              int32_t epsgCode = 0;
-
-              uint16_t size = (uint16_t)udStrAtou(pFontSize);
-              uint32_t colour = (uint32_t)udStrAtoi(pColour); //These are stored as int (with negatives) in MDM
-
-              if (vcUDP_ReadGeolocation(pGeoLocation, position, epsgCode))
-                vcPOI_AddToList(pProgramState, pName, colour, size, position, epsgCode);
-            }
-          }
-        }
-      }
-      else if (udStrEqual(dataBlocks.Get("[%zu].Name", i).AsString(), "PolygonGroup"))
-      {
-        const udJSON &polygons = dataBlocks.Get("[%zu].DataBlock", i);
-        for (size_t j = 0; j < polygons.ArrayLength(); ++j)
-        {
-          if (udStrEqual(polygons.Get("[%zu].Name", j).AsString(), "PolygonData"))
-          {
-            const udJSON &polygonData = polygons.Get("[%zu].DataEntry", j);
-            const udJSONArray *pNodeList = nullptr;
-
-            const char *pName = nullptr;
-            uint32_t colour = 0;
-            bool isClosed = false;
-
-            for (size_t k = 0; k < polygonData.ArrayLength(); ++k)
-            {
-              if (udStrEqual(polygonData.Get("[%zu].Name", k).AsString(), "PolygonName"))
-                pName = polygonData.Get("[%zu].content", k).AsString();
-              else if (udStrEqual(polygonData.Get("[%zu].Name", k).AsString(), "PolygonIsClosed"))
-                isClosed = polygonData.Get("[%zu].content", k).AsBool();
-              else if (udStrEqual(polygonData.Get("[%zu].Name", k).AsString(), "PolygonColour"))
-                colour = (uint32_t)polygonData.Get("[%zu].content", k).AsInt(); // Stored as int in file, needs to be uint in vc
-              else if (udStrEqual(polygonData.Get("[%zu].Name", k).AsString(), "Nodes"))
-                pNodeList = polygonData.Get("[%zu].GeoLocationArray", k).AsArray();
-            }
-
-            if (pName != nullptr && pNodeList != nullptr)
-            {
-              int32_t epsgCode = 0;
-              vcLineInfo info;
-
-              memset(&info, 0, sizeof(info));
-
-              info.pPoints = udAllocType(udDouble3, pNodeList->length, udAF_None);
-              info.numPoints = 0;
-
-              info.closed = isClosed;
-
-              info.lineWidth = 1;
-              info.lineColour = colour;
-
-              for (size_t k = 0; k < pNodeList->length; ++k)
-              {
-                if (vcUDP_ReadGeolocation(pNodeList->GetElement(k)->AsString(""), info.pPoints[info.numPoints], epsgCode))
-                  ++info.numPoints;
-              }
-
-              if (info.numPoints > 0)
-                vcPOI_AddToList(pProgramState, pName, colour, 1.0, &info, epsgCode);
-
-              udFree(info.pPoints);
-            }
-          }
-        }
-      }
       // TODO: Add bookmark support here.
     }
   }
