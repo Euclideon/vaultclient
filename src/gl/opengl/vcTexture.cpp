@@ -51,10 +51,10 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
     type = GL_FLOAT;
     glFormat = GL_DEPTH_COMPONENT;
     break;
-  case vcTextureFormat_D24: // fall through
-    internalFormat = GL_DEPTH_COMPONENT24;
-    type = GL_UNSIGNED_INT;
-    glFormat = GL_DEPTH_COMPONENT;
+  case vcTextureFormat_D24S8:
+    internalFormat = GL_DEPTH24_STENCIL8;
+    type = GL_UNSIGNED_INT_24_8;
+    glFormat = GL_DEPTH_STENCIL;
     break;
   default:
     UD_ERROR_SET(udR_InvalidParameter_);
@@ -146,10 +146,10 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
     type = GL_FLOAT;
     glFormat = GL_DEPTH_COMPONENT;
     break;
-  case vcTextureFormat_D24: // fall through
-    internalFormat = GL_DEPTH_COMPONENT24;
-    type = GL_UNSIGNED_INT;
-    glFormat = GL_DEPTH_COMPONENT;
+  case vcTextureFormat_D24S8:
+    internalFormat = GL_DEPTH24_STENCIL8;
+    type = GL_UNSIGNED_INT_24_8;
+    glFormat = GL_DEPTH_STENCIL;
     break;
   default:
     UD_ERROR_SET(udR_InvalidParameter_);

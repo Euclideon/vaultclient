@@ -21,6 +21,11 @@ int g_VertexBufferSize = 5000, g_IndexBufferSize = 10000;
 
 int32_t g_maxAnisotropy = 0;
 
+static const D3D11_STENCIL_OP vcGLSSOPToD3D[] = { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_ZERO, D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_INCR, D3D11_STENCIL_OP_DECR };
+UDCOMPILEASSERT(udLengthOf(vcGLSSOPToD3D) == vcGLSSOP_Total, "Not Enough DirectX Stencil Operations");
+static const D3D11_COMPARISON_FUNC vcGLSSFToD3D[] = { D3D11_COMPARISON_ALWAYS, D3D11_COMPARISON_NEVER, D3D11_COMPARISON_LESS, D3D11_COMPARISON_LESS_EQUAL, D3D11_COMPARISON_GREATER, D3D11_COMPARISON_GREATER_EQUAL, D3D11_COMPARISON_EQUAL, D3D11_COMPARISON_NOT_EQUAL };
+UDCOMPILEASSERT(udLengthOf(vcGLSSFToD3D) == vcGLSSF_Total, "Not Enough DirectX Stencil Functions");
+
 bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 {
   SDL_SysWMinfo windowInfo;
@@ -75,6 +80,8 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   s_internalState.cullMode = vcGLSCM_Back;
   s_internalState.isFrontCCW = true;
 
+  s_internalState.stencil.enabled = false;
+
   g_maxAnisotropy = D3D11_DEFAULT_MAX_ANISOTROPY;
 
   return vcGLState_ResetState(true);
@@ -125,7 +132,7 @@ bool vcGLState_ApplyState(vcGLState *pState)
 
   success &= vcGLState_SetFaceMode(pState->fillMode, pState->cullMode, pState->isFrontCCW);
   success &= vcGLState_SetBlendMode(pState->blendMode);
-  success &= vcGLState_SetDepthMode(pState->depthReadMode, pState->doDepthWrite);
+  success &= vcGLState_SetDepthStencilMode(pState->depthReadMode, pState->doDepthWrite, &pState->stencil);
 
   return success;
 }
@@ -134,7 +141,7 @@ bool vcGLState_ResetState(bool force /*= false*/)
 {
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back, true, force);
   vcGLState_SetBlendMode(vcGLSBM_None, force);
-  vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true, force);
+  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true, nullptr, force);
 
   return true;
 }
@@ -227,18 +234,33 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
   return true;
 }
 
-bool vcGLState_SetDepthMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite, bool force /*= false*/)
+bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite, vcGLStencilSettings *pStencil /*= nullptr*/, bool force /*= false*/)
 {
-  if (s_internalState.depthReadMode != depthReadMode || s_internalState.doDepthWrite != doDepthWrite || force)
+  bool enableStencil = pStencil != nullptr;
+
+  if ((s_internalState.depthReadMode != depthReadMode) || (s_internalState.doDepthWrite != doDepthWrite) || force || (s_internalState.stencil.enabled != enableStencil) ||
+    (enableStencil && ((s_internalState.stencil.onStencilFail != pStencil->onStencilFail) || (s_internalState.stencil.onDepthFail != pStencil->onDepthFail) || (s_internalState.stencil.onStencilAndDepthPass != pStencil->onStencilAndDepthPass) || (s_internalState.stencil.compareFunc != pStencil->compareFunc) || (s_internalState.stencil.compareMask != pStencil->compareMask) || (s_internalState.stencil.writeMask != pStencil->writeMask))))
   {
     D3D11_DEPTH_STENCIL_DESC desc;
     ZeroMemory(&desc, sizeof(desc));
     desc.DepthEnable = true;
     desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
     desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
-    desc.StencilEnable = false;
-    desc.FrontFace.StencilFailOp = desc.FrontFace.StencilDepthFailOp = desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+    desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
     desc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+    desc.StencilEnable = enableStencil;
+    if (enableStencil)
+    {
+      desc.FrontFace.StencilFailOp = vcGLSSOPToD3D[pStencil->onStencilFail];
+      desc.FrontFace.StencilDepthFailOp = vcGLSSOPToD3D[pStencil->onDepthFail];
+      desc.FrontFace.StencilPassOp = vcGLSSOPToD3D[pStencil->onStencilAndDepthPass];
+      desc.FrontFace.StencilFunc = vcGLSSFToD3D[pStencil->compareFunc];
+      desc.StencilReadMask = pStencil->compareMask;
+      desc.StencilWriteMask = pStencil->writeMask;
+    }
     desc.BackFace = desc.FrontFace;
 
     if (depthReadMode == vcGLSDM_None)
@@ -269,9 +291,24 @@ bool vcGLState_SetDepthMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite,
 
     s_internalState.depthReadMode = depthReadMode;
     s_internalState.doDepthWrite = doDepthWrite;
+
+    s_internalState.stencil.enabled = enableStencil;
+    if (enableStencil)
+    {
+      s_internalState.stencil.writeMask = pStencil->writeMask;
+      s_internalState.stencil.compareFunc = pStencil->compareFunc;
+      s_internalState.stencil.compareValue = pStencil->compareValue;
+      s_internalState.stencil.compareMask = pStencil->compareMask;
+      s_internalState.stencil.onStencilFail = pStencil->onStencilFail;
+      s_internalState.stencil.onDepthFail = pStencil->onDepthFail;
+      s_internalState.stencil.onStencilAndDepthPass = pStencil->onStencilAndDepthPass;
+    }
   }
 
-  g_pd3dDeviceContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
+  int stencilRef = 0;
+  if (pStencil)
+    stencilRef = pStencil->compareValue;
+  g_pd3dDeviceContext->OMSetDepthStencilState(g_pDepthStencilState, stencilRef);
 
   return true;
 }
