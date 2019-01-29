@@ -600,7 +600,7 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
   vcGLState_SetBlendMode(vcGLSBM_AdditiveSrcInterpolativeDst);
 
   if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
-    vcGLState_SetDepthMode(vcGLSDM_Always, false);
+    vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
   else if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Underlay)
     vcGLState_SetViewportDepthRange(1.0f, 1.0f);
 
@@ -648,7 +648,7 @@ void vcTerrainRenderer_Render(vcTerrainRenderer *pTerrainRenderer, const udDoubl
   }
 
   if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
-    vcGLState_SetDepthMode(vcGLSDM_LessOrEqual, true);
+    vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
   else if (pTerrainRenderer->pSettings->maptiles.blendMode == vcMTBM_Underlay)
     vcGLState_SetViewportDepthRange(0.0f, 1.0f);
 
