@@ -66,14 +66,7 @@ namespace vcString
     Set("RememberServer", vStringFormat("{0}##rememberServerURL", Get("Remember")));
     Set("RememberUser", vStringFormat("{0}##rememberUsername", Get("Remember")));
     Set("SettingsAppearance", vStringFormat("{0}##Settings", Get("Appearance")));
-    const char *format[] = { Get("Dark"), Get("Light") };
-    Set("ThemeOptions", vStringFormat("{0}|\0{1}|\0", format, 2));
-    const char *format2[] = { Get("Hide"), Get("Show"), Get("Responsive") };
-    Set("ResponsiveOptions", vStringFormat("{0}|\0{1}|\0{2}|\0", format2, 3));
-    const char *format3[] = { Get("None"), Get("Orbit"), Get("Compass") };
-    Set("AnchorOptions", vStringFormat("{0}|\0{1}|\0{2}|\0", format3, 3));
-    const char *format4[] = { Get("Rectangles"), Get("Cubes"), Get("Points") };
-    Set("VoxelOptions", vStringFormat("{0}|\0{1}|\0{2}|\0", format4, 3));
+
     Set("InputControlsID", vStringFormat("{0}##Settings", Get("InputControls")));
     Set("ViewportID", vStringFormat("{0}##Settings", Get("Viewport")));
     Set("DegreesFormat", vStringFormat("%.0f {0}", Get("Degrees")));
@@ -95,9 +88,6 @@ namespace vcString
       format5[1] = "";
 
     Set("PackageUpdate", vStringFormat("{0} {1} {2}", format5, 3));
-
-    const char *format6[] = { Get("Arrow"), Get("Glow"), Get("Solid") };
-    Set("LineStyles", vStringFormat("{0}|\0{1}|\0{2}|\0", format6, 3));
 
     return vE_Success;
   }
