@@ -1384,8 +1384,8 @@ void vcRenderWindow(vcState *pProgramState)
       {
         int styleIndex = pProgramState->settings.presentation.styleIndex - 1;
 
-        const char *xoptions[] = { vcString::Get("Dark"), vcString::Get("Light") };
-        if (ImGui::Combo(vcString::Get("Theme"), &styleIndex, xoptions, (int)udLengthOf(xoptions)))
+        const char *themeOptions[] = { vcString::Get("Dark"), vcString::Get("Light") };
+        if (ImGui::Combo(vcString::Get("Theme"), &styleIndex, themeOptions, (int)udLengthOf(themeOptions)))
         {
           pProgramState->settings.presentation.styleIndex = styleIndex + 1;
           switch (styleIndex)
@@ -1404,15 +1404,15 @@ void vcRenderWindow(vcState *pProgramState)
 
         ImGui::Checkbox("Show Compass On Screen", &pProgramState->settings.presentation.showCompass);
 
-        const char *xoptions2[] = { vcString::Get("Hide"), vcString::Get("Show"), vcString::Get("Responsive") };
-        if (ImGui::Combo(vcString::Get("PresentationUI"), (int*)&pProgramState->settings.responsiveUI, xoptions2, (int)udLengthOf(xoptions2)))
+        const char *presentationOptions[] = { vcString::Get("Hide"), vcString::Get("Show"), vcString::Get("Responsive") };
+        if (ImGui::Combo(vcString::Get("PresentationUI"), (int*)&pProgramState->settings.responsiveUI, presentationOptions, (int)udLengthOf(presentationOptions)))
           pProgramState->showUI = false;
 
-        const char *xoptions3[] = { vcString::Get("None"), vcString::Get("Orbit"), vcString::Get("Compass") };
-        ImGui::Combo(vcString::Get("MouseAnchor"), (int*)&pProgramState->settings.presentation.mouseAnchor, xoptions3, (int)udLengthOf(xoptions3));
+        const char *anchorOptions[] = { vcString::Get("None"), vcString::Get("Orbit"), vcString::Get("Compass") };
+        ImGui::Combo(vcString::Get("MouseAnchor"), (int*)&pProgramState->settings.presentation.mouseAnchor, anchorOptions, (int)udLengthOf(anchorOptions));
 
-        const char *xoptions4[] = { vcString::Get("Rectangles"), vcString::Get("Cubes"), vcString::Get("Points") };
-        ImGui::Combo(vcString::Get("VoxelShape"), &pProgramState->settings.presentation.pointMode, xoptions4, (int)udLengthOf(xoptions4));
+        const char *voxelOptions[] = { vcString::Get("Rectangles"), vcString::Get("Cubes"), vcString::Get("Points") };
+        ImGui::Combo(vcString::Get("VoxelShape"), &pProgramState->settings.presentation.pointMode, voxelOptions, (int)udLengthOf(voxelOptions));
       }
 
       bool opened2 = ImGui::CollapsingHeader(vcString::Get("InputControlsID"));
