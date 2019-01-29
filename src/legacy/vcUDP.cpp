@@ -359,6 +359,7 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
   }
   else
   {
+    pItemData->at(index).sceneFolder = vcUDP_GetSceneItemRef(pProgramState);
     switch (item.type)
     {
     case vcUDPIDT_Dataset:
