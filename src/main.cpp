@@ -986,6 +986,11 @@ int vcMainMenuGui(vcState *pProgramState)
 
       ImGui::Separator();
 
+      if (ImGui::MenuItem(vcString::Get("ImportUDP"), nullptr, nullptr))
+        vcModals_OpenModal(pProgramState, vcMT_ImportUDP);
+
+      ImGui::Separator();
+
       for (size_t i = 0; i < pProjectList->length; ++i)
       {
         if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr))
