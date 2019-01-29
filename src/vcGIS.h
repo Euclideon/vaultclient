@@ -13,8 +13,6 @@ struct vcGISSpace
   udGeoZone zone;
 };
 
-void vcGIS_ClearCache();
-
 bool vcGIS_AcceptableSRID(vcSRID sridCode);
 
 // Changes pSpace from its current zone to the new zone, pCameraPosition if set gets moved to the new zone
