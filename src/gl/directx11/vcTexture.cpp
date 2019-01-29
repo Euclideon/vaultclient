@@ -41,7 +41,7 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
     texFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
     pixelBytes = 4;
     break;
-  case vcTextureFormat_D24:
+  case vcTextureFormat_D24S8:
     texFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
     pixelBytes = 4;
     break;
@@ -57,7 +57,7 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   }
 
   UINT bindFlags = 0;
-  if (pTexture->isRenderTarget && (format == vcTextureFormat_D32F || format == vcTextureFormat_D24))
+  if (pTexture->isRenderTarget && (format == vcTextureFormat_D32F || format == vcTextureFormat_D24S8))
     bindFlags = D3D11_BIND_DEPTH_STENCIL;
   else if (pTexture->isRenderTarget)
     bindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
