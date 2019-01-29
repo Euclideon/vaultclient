@@ -613,7 +613,6 @@ epilogue:
   free(pEucWatermarkData);
   for (size_t i = 0; i < programState.loadList.size(); i++)
     udFree(programState.loadList[i]);
-  programState.loadList.~vector();
   vcRender_Destroy(&programState.pRenderContext);
   vcTexture_Destroy(&programState.tileModal.pServerIcon);
   vcString::FreeTable();
