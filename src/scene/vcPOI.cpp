@@ -86,7 +86,8 @@ void vcPOI::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
     if (ImGui::InputInt(vcString::Get("LineWidth"), (int *)&line.lineWidth))
       reConfig = true;
 
-    if (ImGui::Combo(vcString::Get("LineStyle"), (int *)&line.lineStyle, vcString::Get("LineStyles")))
+    const char *xoptions[] = { vcString::Get("Arrow"), vcString::Get("Glow"), vcString::Get("Solid") };
+    if (ImGui::Combo(vcString::Get("LineStyle"), (int *)&line.lineStyle, xoptions, (int)udLengthOf(xoptions)))
       reConfig = true;
 
     if (reConfig)

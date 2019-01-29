@@ -1384,7 +1384,8 @@ void vcRenderWindow(vcState *pProgramState)
       {
         int styleIndex = pProgramState->settings.presentation.styleIndex - 1;
 
-        if (ImGui::Combo(vcString::Get("Theme"), &styleIndex, vcString::Get("ThemeOptions")))
+        const char *xoptions[] = { vcString::Get("Dark"), vcString::Get("Light") };
+        if (ImGui::Combo(vcString::Get("Theme"), &styleIndex, xoptions, (int)udLengthOf(xoptions)))
         {
           pProgramState->settings.presentation.styleIndex = styleIndex + 1;
           switch (styleIndex)
@@ -1403,11 +1404,15 @@ void vcRenderWindow(vcState *pProgramState)
 
         ImGui::Checkbox("Show Compass On Screen", &pProgramState->settings.presentation.showCompass);
 
-        if (ImGui::Combo(vcString::Get("PresentationUI"), (int*)&pProgramState->settings.responsiveUI, vcString::Get("ResponsiveOptions")))
+        const char *xoptions2[] = { vcString::Get("Hide"), vcString::Get("Show"), vcString::Get("Responsive") };
+        if (ImGui::Combo(vcString::Get("PresentationUI"), (int*)&pProgramState->settings.responsiveUI, xoptions2, (int)udLengthOf(xoptions2)))
           pProgramState->showUI = false;
 
-        ImGui::Combo(vcString::Get("MouseAnchor"), (int*)&pProgramState->settings.presentation.mouseAnchor, vcString::Get("AnchorOptions"));
-        ImGui::Combo(vcString::Get("VoxelShape"), &pProgramState->settings.presentation.pointMode, vcString::Get("VoxelOptions"));
+        const char *xoptions3[] = { vcString::Get("None"), vcString::Get("Orbit"), vcString::Get("Compass") };
+        ImGui::Combo(vcString::Get("MouseAnchor"), (int*)&pProgramState->settings.presentation.mouseAnchor, xoptions3, (int)udLengthOf(xoptions3));
+
+        const char *xoptions4[] = { vcString::Get("Rectangles"), vcString::Get("Cubes"), vcString::Get("Points") };
+        ImGui::Combo(vcString::Get("VoxelShape"), &pProgramState->settings.presentation.pointMode, xoptions4, (int)udLengthOf(xoptions4));
       }
 
       bool opened2 = ImGui::CollapsingHeader(vcString::Get("InputControlsID"));
