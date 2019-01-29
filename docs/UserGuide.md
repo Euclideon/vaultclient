@@ -79,7 +79,7 @@ After logging in you should see the full user interface:
 The scene viewport displays your scene (the Scene Explorer (see below) explains how to add things to the scene).
 
 #### Moving around the viewport
-> TIP: These settings are configurable in the [Input & Controls](#input-&-controls) settings menu
+> TIP: These settings are configurable in the [Input & Controls](#input-&-controls) settings menu.
 
 Mouse Controls:
 - Holding the left mouse button down and moving the mouse will "tumble" (Turning without moving) the camera.
@@ -132,7 +132,7 @@ There are a number of ways to add models to the scene.
 ![Model Loaded](images/modelloaded.png)
 
 1. Drag and Drop: On devices with folder exploring you can drag a file from your file explorer and drop it in the Euclideon Vault Client window to add the model to the scene.
-2. Direct URI loading: You can type a url or path by either clicking the UDS or Folder containing the file in the Selection Window popout. The URL window at the top of the pane allows URL and network paths to retrieve UDS files.
+2. Direct URI loading: You can type a URL or path by either clicking the UDS or Folder containing the file in the Selection Window popout. The URL window at the top of the pane allows URL and network paths to retrieve UDS files.
 3. If you have access to projects on the server you will be able to click the "Projects" button in the menu and select a project to load. Projects are defined from the Vault Server you're connected to.
 
 ### 4. Settings
@@ -140,37 +140,38 @@ There are a number of ways to add models to the scene.
 Appearance
   - Allows users to change presentation UI, Mouse Anchor Shape, Default Voxel Shape.
 Input and Controls
-  - Allows on screen mouse control, Touchscreen friendly UI, inverse X and Y axis, mouse pivot settings (bindings & mouse icon control)
+  - Allows on screen mouse control, Touchscreen friendly UI, inverse X and Y axis, mouse pivot settings (bindings & mouse icon control).
 Viewport
-  - Changes minimal viewing distance and maximum viewing distance, allows changing field of view
-  > Tip: If experiencing loss of image, change min and max settings
+  - Changes minimal viewing distance and maximum viewing distance, allows changing field of view.
+  > Tip: If experiencing loss of image, change min and max settings.
+
 Maps & Elevation
-  -  Toggle Map Tiles and Allow mouse to lock to Maps
+  -  Toggle Map Tiles and allow mouse to lock to Maps.
   -  Tile Server allows overlay with existing maps, clicking 'Tile Server' prompts https address for background tiles with either option to import png or jpg via http address.
-    - Tile Server supports altering default Map height, blending with objects allows tile maps to overlay, underlay or feature in hybrid mode with existing vault objects.
+    - Tile Server supports altering default Map Height, blending with objects allows tile maps to overlay, underlay or feature in hybrid mode with existing vault objects.
     - Transparency sliders adjust the overall visability of objects allowing Tiles to be more visable with vault objects in foreground.
-    - Map height adjusts the hight of Tiles in relation to vault objects.
+    - Map Height adjusts the hight of tiles in relation to vault objects.
 Visualization
-  - Allows users to cycle between Colour, Intensity and Classification Display modes
-  - Enabling Color by Height, Depth and Edges with max min sliders for each respective property with a color wheel to showcase features.
+  - Allows users to cycle between Colour, Intensity and Classification Display modes.
+  - Enabling Color by Height, Depth and Edges with max / min sliders for each respective property with a color wheel to showcase features.
   - Enabling Contours allows coloured contours sorted by distance and band height with a color wheel.
 
-> TIP: If you ever change a setting and can't recall what you've changed, you can reset _all_ settings by going to the "System" menu and selecting "Restore Default"
+> TIP: If you ever change a setting and can't recall what you've changed, you can reset _all_ settings by going to the "System" menu and selecting "Restore Default".
 
 ### 6. GIS / Scene Info
-  - Scene contains several key functions, such as X,Y,Z Camera coordinates, camera rotation coordinates and camera movement speed. Toggled by 'Show Camera Button'
-  - Displays Latitude and Longitude, along with Current camera Altitude.
-  - Several clickboxes allow Lock Altitude (spacebar default), Show Camera Information, Show projection information (Displays SRID, MGA zones information)
+  - Scene contains several key functions, such as X,Y,Z camera coordinates, camera rotation coordinates and camera movement speed. Toggled by 'Show Camera Button'.
+  - Displays Latitude and Longitude, along with current camera altitude.
+  - Several clickboxes allow Lock Altitude (spacebar default), Show Camera Information, Show projection information (Displays SRID, MGA zones information).
   - Gismo Translate, Gizmo Rotate, Gizmo Scale and Gizmo local space buttons
 
 ### 7. Copyright, Watermark & Compass
-  - Adding Copyright Data can be done in the metadata subtab during converting
-  - Compass by default is on, Appearence pane contains on/off checkbox
-  - Watermarks can be viewed on each UDS file, by clicking on the UDS file in the Scene explorer and then viewing the [Watermark] identification tag
+  - Adding Copyright Data can be done in the metadata subtab during converting.
+  - Compass by default is on, Appearence pane contains on/off checkbox.
+  - Watermarks can be viewed on each UDS file, by clicking on the UDS file in the Scene Explorer and then viewing the [Watermark] identification tag.
 
 ### 8. Convert Tab
 Converting to UDS file format can be done from within the Euclideon Vault Client as well. Loading a supported pointcloud format will open the "Convert" window if it isn't already open. A quick 'pre-parse' is done to detect the file format, supported attributes etc. By loading the start of the file, this stage also does an estimate of the total number of points the file has.
-  - Supported file conversion formats (?????)
+  - Supported file conversion formats (?????).
 > If you aren't able to find the convert tab, it can be displayed from the `Windows > Convert` flag, once selected the convert option will be displayed next to the Scene tab.
 
 ![Convert Window](images/convertpane.png)
@@ -178,7 +179,7 @@ Converting to UDS file format can be done from within the Euclideon Vault Client
 There are a few additional settings to modify here.
 
 - Output name
-  - This is the final name and path of the exported UDS file
+  - This is the final name and path of the exported UDS file.
   - Ideally this should be the target location of the file so that you don't need to copy the file at the end. Make sure there is enough space in the target directory to store the entire file that will be output.
 - Temp Directory
   - Defaults to beside the Output file but should ideally be on a high speed local drive.
@@ -187,14 +188,14 @@ There are a few additional settings to modify here.
   - If corruption or incomplete data is detected during a conversion this setting will decide wheather the conversion gets cancelled (off) or continues, skipping the corrupted points.
 - Point Resolution [Defaults to 0.01 and then source size]
   - This settting determines the size of the points (in meters) in the pointcloud after conversion.
-  - It will attempt to find a good size based on the source data and can also be set manually by first checking the "Override" checkbox and then typing in the text field
+  - It will attempt to find a good size based on the source data and can also be set manually by first checking the "Override" checkbox and then typing in the text field.
 - SRID [Defaults to 0]
   - The SRID is the Geotagged ID of the GIS zone for the exported model.
   - Usually the source data will have information about what zone the data is stored in, search for "EPSG code" or "SRID code" in the meta data.
-  - If the pre-parse can detect the SRID it will set it here as well and can also be set manually by first checking the "Override" checkbox and then typing in the text field
+  - If the pre-parse can detect the SRID it will set it here as well and can also be set manually by first checking the "Override" checkbox and then typing in the text field.
   - It assumes that the input is already in the correct zone and does not currently do a conversion.
 - Input Files
-  - Expanding this will give you the list of files that will be merged together into the new UDS
+  - Expanding this will give you the list of files that will be merged together into the new UDS.
   - The estimated number of points in each file will be shown. During conversion the progress for each file will also be shown.
 
 - Meta Data
@@ -208,7 +209,7 @@ There are a few additional settings to modify here.
   License
     - Entry field for Name of License holders (watermark)
 
-You can keep track of progress on the c`onvert tab, go back to working in the scene tab or prepare another conversion that will begin as soon as the first convert completes.
+You can keep track of progress on the convert tab, go back to working in the scene tab or prepare another conversion that will begin as soon as the first convert completes.
 
 ![Conversion Running](images/convertrunning.png)
 
@@ -243,19 +244,19 @@ How can I turn the compass off?
 > Visualization pane on the right hand side in settings, press the checkbox and you've toggled it off.
 
 How do I lock altitude when moving the camera?
-> Press Space bar to toggle, or press the local altitude button in the'status' window (top left of the Scene window)
+> Press Space bar to toggle, or press the local altitude button in the'status' window (top left of the Scene window).
 
 How do I load my previous projects?
 > Press projects, and view the previous Euclideon vault projects from the dropdown box.
 
-How do I convert into UDS
+How do I convert into UDS?
 > Coverting to UDS is as simple as pressing the convert window and naming the output and selecting the destination of the coverted file.
 
 A coverting error occured, what do I do?
-> Due to either corrupt or incomplete data, clicking the 'continue converting' tickbox will complete converting regardless of data intergrity. (Visuals may vary)
+> Due to either corrupt or incomplete data, clicking the 'continue converting' tickbox will complete converting regardless of data intergrity. (Visuals may vary).
 
 I want to demonstrate key features of my 3D model, how can I do that?
-> Check out the visualization dropdown box in the Settings pane, on the right hand side of the Vault Client
+> Check out the visualization dropdown box in the Settings pane, on the right hand side of the Vault Client.
 
 How do I adjust the mouse controls?
 > View Mouse Pivot bindings in the input and controls menu in settings.
@@ -264,7 +265,7 @@ I closed the settings window and Scene Explorer how do I display them?
 > Open the window box and press the Windows which you want to display.
 
 What is the Name and Light next to my license name mean?
-> Status of License, Which license is being used and How recently your license has synced with the Vault. Green = Good, Yellow = >30 second disconnected, Red = >60 seconds disconnected (Services may be hindered)
+> Status of License, Which license is being used and How recently your license has synced with the Vault. Green = Good, Yellow = >30 second disconnected, Red = >60 seconds disconnected (Services may be hindered).
 
 My 3d object is hidden behind a tile map, how do I see it?
 > Changing the Transparency or the Blending in Maps and elevation may make it easier to see your object, using a combination of these for varied affect.
@@ -273,7 +274,7 @@ I keep getting the "logged out" screen, how do I fix this issue?
 > Check your internet access and license permissions and try again. For offline use, upgrade your license.
 
 I cannot log in?
-> Check your internet connection, your license status, and ensure you've used the correct URL, username and password. Make sure your URL has a closed bracket at the end of it if using the default server URL
+> Check your internet connection, your license status, and ensure you've used the correct URL, username and password. Make sure your URL has a closed bracket at the end of it if using the default server URL.
 
 I cannot connect to the vault, how do I resolve this issue?
 > Check your firewall or proxy settings, if running a proxy ensure the address is proxy.euclideon with the port number 80.
