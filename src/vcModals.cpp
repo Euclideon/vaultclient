@@ -304,6 +304,41 @@ void vcModals_DrawAddUDS(vcState *pProgramState)
   }
 }
 
+void vcModals_DrawAddUDP(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_AddUDP))
+    ImGui::OpenPopup(vcString::Get("SceneAddUDP"));
+
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("SceneAddUDP")))
+  {
+    ImGui::InputText(vcString::Get("PathURL"), pProgramState->modelPath, vcMaxPathLength);
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("Load"), ImVec2(100.f, 0)))
+    {
+      pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("Cancel"), ImVec2(100.f, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+      ImGui::CloseCurrentPopup();
+
+    ImGui::Separator();
+
+    const char *fileExtensions[] = { ".udp" };
+    if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
+    {
+      pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::EndPopup();
+  }
+}
+
 void vcModals_DrawNotImplemented(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_NotYetImplemented))
@@ -333,6 +368,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawNewVersionAvailable(pProgramState);
   vcModals_DrawTileServer(pProgramState);
   vcModals_DrawAddUDS(pProgramState);
+  vcModals_DrawAddUDP(pProgramState);
   vcModals_DrawNotImplemented(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_NewVersionAvailable) | (1 << vcMT_LoggedOut));

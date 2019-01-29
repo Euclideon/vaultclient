@@ -10,6 +10,7 @@ enum vcModalTypes
   vcMT_NewVersionAvailable,
   vcMT_TileServer,
   vcMT_AddUDS,
+  vcMT_AddUDP,
   vcMT_NotYetImplemented,
 
   vcMT_Count
