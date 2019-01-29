@@ -115,12 +115,32 @@ void vcMain_PresentationMode(vcState *pProgramState)
     pProgramState->lastEventTime = vcMain_GetCurrentTime();
 }
 
+const char* vcMain_GetOSName()
+{
+#if UDPLATFORM_ANDROID
+  return "Android";
+#elif UDPLATFORM_EMSCRIPTEN
+  return "Emscripten";
+#elif UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  return "iOS";
+#elif UDPLATFORM_LINUX
+  // TODO: Handle other distributions
+  return "Ubuntu";
+#elif UDPLATFORM_MACOSX
+  return "macOS";
+#elif UDPLATFORM_WINDOWS
+  return "Windows";
+#else
+  return "Unknown";
+#endif
+}
+
 void vcLogin(void *pProgramStatePtr)
 {
   vdkError result;
   vcState *pProgramState = (vcState*)pProgramStatePtr;
 
-  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "EuclideonClient", pProgramState->settings.loginInfo.username, pProgramState->password);
+  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "EuclideonVaultClient", pProgramState->settings.loginInfo.username, pProgramState->password);
   if (result == vE_ConnectionFailure)
     pProgramState->pLoginErrorMessage = vcString::Get("LoginConnectionError");
   else if (result == vE_NotAllowed)
@@ -147,7 +167,8 @@ void vcLogin(void *pProgramStatePtr)
   vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pProjData);
 
   const char *pPackageData = nullptr;
-  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/packages/latest", "{ \"packagename\": \"EuclideonClient\", \"packagevariant\": \"Windows\" }", &pPackageData) == vE_Success)
+  const char *pPostJSON = udTempStr("{ \"packagename\": \"EuclideonVaultClient\", \"packagevariant\": \"%s\" }", vcMain_GetOSName());
+  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/packages/latest", pPostJSON, &pPackageData) == vE_Success)
   {
     pProgramState->packageInfo.Parse(pPackageData);
     if (pProgramState->packageInfo.Get("success").AsBool())
