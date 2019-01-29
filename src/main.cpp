@@ -867,6 +867,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   vcRenderData renderData = {};
   renderData.models.Init(32);
   renderData.fences.Init(32);
+  renderData.labels.Init(32);
   renderData.mouse.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.y = (uint32_t)(io.MousePos.y - windowPos.y);
 
@@ -946,10 +947,13 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   pProgramState->sceneExplorer.pItems->AddToScene(pProgramState, &renderData);
 
+  vcRender_vcRenderSceneImGui(pProgramState->pRenderContext, renderData);
+
   // Render scene to texture
   vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
   renderData.models.Deinit();
   renderData.fences.Deinit();
+  renderData.labels.Deinit();
 
   pProgramState->previousWorldMousePos = renderData.worldMousePos;
   pProgramState->previousPickingSuccess = renderData.pickingSuccess;
