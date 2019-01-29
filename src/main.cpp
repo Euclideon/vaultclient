@@ -986,8 +986,8 @@ int vcMainMenuGui(vcState *pProgramState)
 
       ImGui::Separator();
 
-      if (ImGui::MenuItem(vcString::Get("AddUDP"), nullptr, nullptr))
-        vcModals_OpenModal(pProgramState, vcMT_AddUDP);
+      if (ImGui::MenuItem(vcString::Get("ImportUDP"), nullptr, nullptr))
+        vcModals_OpenModal(pProgramState, vcMT_ImportUDP);
 
       ImGui::Separator();
 

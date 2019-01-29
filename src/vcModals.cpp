@@ -304,13 +304,13 @@ void vcModals_DrawAddUDS(vcState *pProgramState)
   }
 }
 
-void vcModals_DrawAddUDP(vcState *pProgramState)
+void vcModals_DrawImportUDP(vcState *pProgramState)
 {
-  if (pProgramState->openModals & (1 << vcMT_AddUDP))
-    ImGui::OpenPopup(vcString::Get("SceneAddUDP"));
+  if (pProgramState->openModals & (1 << vcMT_ImportUDP))
+    ImGui::OpenPopup(vcString::Get("SceneImportUDP"));
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(vcString::Get("SceneAddUDP")))
+  if (ImGui::BeginPopupModal(vcString::Get("SceneImportUDP")))
   {
     ImGui::InputText(vcString::Get("PathURL"), pProgramState->modelPath, vcMaxPathLength);
     ImGui::SameLine();
@@ -368,7 +368,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawNewVersionAvailable(pProgramState);
   vcModals_DrawTileServer(pProgramState);
   vcModals_DrawAddUDS(pProgramState);
-  vcModals_DrawAddUDP(pProgramState);
+  vcModals_DrawImportUDP(pProgramState);
   vcModals_DrawNotImplemented(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_NewVersionAvailable) | (1 << vcMT_LoggedOut));
