@@ -276,6 +276,9 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       pSettings->maptiles.mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
       pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(1);
       pSettings->maptiles.transparency = data.Get("maptiles.transparency").AsFloat(1.f);
+
+      pSettings->maptiles.mapQuality = (vcTileRendererMapQuality)data.Get("maptiles.mapQuality").AsInt(vcTRMQ_Medium);
+      pSettings->maptiles.mapOptions = (vcTileRendererFlags)data.Get("maptiles.mapOptions").AsInt(vcTRF_None);
     }
 
     if (group == vcSC_All || group == vcSC_Visualization)
@@ -497,6 +500,8 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("maptiles.transparency = %f", pSettings->maptiles.transparency);
   data.Set("maptiles.mapHeight = %f", pSettings->maptiles.mapHeight);
   data.Set("maptiles.mouseInteracts = %s", pSettings->maptiles.mouseInteracts ? "true" : "false");
+  data.Set("maptiles.mapQuality = %d", int(pSettings->maptiles.mapQuality));
+  data.Set("maptiles.mapOptions = %d", int(pSettings->maptiles.mapOptions));
 
   tempNode.SetString(pSettings->maptiles.tileServerAddress);
   data.Set(&tempNode, "maptiles.serverURL");
