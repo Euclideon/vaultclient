@@ -139,6 +139,12 @@ bool ImGui_ImplSDL2_ProcessEvent(SDL_Event* event)
             int key = event->key.keysym.scancode;
             IM_ASSERT(key >= 0 && key < IM_ARRAYSIZE(io.KeysDown));
 
+            // Idea acquired from https://github.com/ocornut/imgui/issues/2191
+            // TODO: Come back when https://github.com/ocornut/imgui/pull/2005 is merged
+            //       and add ImGuiKey_NumericEnter to our io.KeyMap below
+            if (key == SDL_SCANCODE_KP_ENTER)
+              key = SDL_SCANCODE_RETURN;
+
             if (key != SDL_SCANCODE_BACKSPACE)
               io.KeysDown[key] = (event->type == SDL_KEYDOWN);
             else
