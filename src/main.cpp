@@ -899,11 +899,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
       vcGizmo_SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
       vcGizmo_SetDrawList();
 
-      if (pProgramState->sceneExplorer.pItems->children[pProgramState->sceneExplorer.clickedItem.index]->type == vcSOT_PointCloud)
+      if (pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->type == vcSOT_PointCloud)
       {
         vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->sceneMatrix, nullptr, vcGAC_AllUniform, pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->pivot);
       }
-      else if (pProgramState->sceneExplorer.pItems->children[pProgramState->sceneExplorer.clickedItem.index]->type == vcSOT_PointOfInterest)
+      else if (pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->type == vcSOT_PointOfInterest)
       {
         vcPOI *pPOI = (vcPOI*)pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index];
         udDouble4x4 delta = udDouble4x4::identity();
