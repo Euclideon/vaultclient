@@ -174,8 +174,10 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
 
   if (srid != 0)
   {
+    pPOI->pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
     pPOI->pZone = udAllocType(udGeoZone, 1, udAF_Zero);
-    udGeoZone_SetFromSRID(pPOI->pZone, srid);
+    udGeoZone_SetFromSRID(pPOI->pOriginalZone, srid);
+    memcpy(pPOI->pZone, pPOI->pOriginalZone, sizeof(*pPOI->pZone));
   }
 
   udStrcpy(pPOI->typeStr, sizeof(pPOI->typeStr), "POI");

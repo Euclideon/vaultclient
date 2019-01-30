@@ -174,7 +174,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
       if (children[i]->pZone != nullptr && ImGui::Selectable(vcString::Get("UseProjection")))
       {
-        if (vcGIS_ChangeSpace(&pProgramState->gis, children[i]->pZone->srid, &pProgramState->pCamera->position))
+        if (vcGIS_ChangeSpace(&pProgramState->gis, children[i]->pOriginalZone->srid, &pProgramState->pCamera->position))
           vcScene_UpdateItemToCurrentProjection(pProgramState, nullptr); // Update all models to new zone
       }
 

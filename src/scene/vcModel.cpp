@@ -86,8 +86,10 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
         if (srid != 0)
         {
+          pLoadInfo->pModel->pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
           pLoadInfo->pModel->pZone = udAllocType(udGeoZone, 1, udAF_Zero);
-          udGeoZone_SetFromSRID(pLoadInfo->pModel->pZone, srid);
+          udGeoZone_SetFromSRID(pLoadInfo->pModel->pOriginalZone, srid);
+          memcpy(pLoadInfo->pModel->pZone, pLoadInfo->pModel->pOriginalZone, sizeof(*pLoadInfo->pModel->pZone));
         }
       }
 
