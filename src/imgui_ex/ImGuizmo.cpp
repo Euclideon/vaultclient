@@ -920,6 +920,9 @@ static void vcGizmo_HandleScale(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix, i
         sGizmoContext.mScale = udDouble3::create(udMax(1.0 + scaleDelta, 0.001));
       }
 
+      // should only scale in response to immediate changes in mousepos
+      sGizmoContext.mSaveMousePosx = io.MousePos.x;
+
       // snap
       if (snap)
         vcGizmo_ComputeSnap(sGizmoContext.mScale, snap);
