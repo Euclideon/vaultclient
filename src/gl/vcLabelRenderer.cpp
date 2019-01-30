@@ -39,7 +39,6 @@ udResult vcLabelRenderer_Destroy(vcLabelRenderer **ppLabelRenderer)
   return udR_Success;
 }
 
-
 udResult vcLabelRenderer_SetConfig(vcLabelRenderer *pLabelRenderer, const vcLabelRendererConfig &config)
 {
   if (udStrcmp(config.pText, pLabelRenderer->config.pText) != 0)
