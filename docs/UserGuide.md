@@ -1,29 +1,4 @@
 # Euclideon Vault Client User Guide
-
-
----
-IMAGES THAT SHOULD BE USED
-
-![Login Screen](images/appearance.png)
-![Login Screen](images/camerabox.png)
-![Login Screen](images/inputcontrol.png)
-![Login Screen](images/loggedout.png)
-![Login Screen](images/mapsandelevation.png)
-![Login Screen](images/projectdropdown.png)
-![Login Screen](images/sceneexplorer.png)
-![Login Screen](images/sceneexplorer0.png)
-![Login Screen](images/sceneexplorer2.png)
-![Login Screen](images/settings.png)
-![Login Screen](images/statusbar.png)
-![Login Screen](images/systemdown.png)
-![Login Screen](images/tileserver.png)
-![Login Screen](images/viewport.png)
-![Login Screen](images/visualizationall.png)
-![Login Screen](images/visualizationsettings.png)
-![Login Screen](images/windowsmenu.png)
-
----
-
 ## The Basics
 ### Unpacking / Installing
 
@@ -40,7 +15,7 @@ IMAGES THAT SHOULD BE USED
 #### Debian Linux Distributions (Requires Desktop Environment)
 1. Use your package manager to install the following:
     - SDL2 (Minimum version 2.0.5)
-    - libCURL (latest)
+    - libCURL (Version 3)
 2. Download the latest tar.gz that has been approved for use from your Euclideon Vault Server provider.
 3. Unpack the entire contents of the tar.gz
 4. Run `vaultClient`
@@ -95,12 +70,17 @@ Default Keyboard Controls (with the "Scene" window focussed):
 - `Spacebar` locks altitude allowing user to move forward without it directly adjusting camera height (Z-axis lock)
 
 ### 2. Menu & Status Bar
+![Status Bar](images/statusbar.png)
 The menu bar consists of 2 sections, the left section with menu drop downs and the right section with status information.
 
 #### System Menu
+![System Menu](images/systemdown.png)
 The system menu has a number of system related functions.
 
+
 - `Logout` terminates your current session with the server. This is a security feature to prevent attackers from hijacking your session. It also takes you back to the login screen in case you want to change users or servers.
+
+![Logged Out](images/loggedout.png)
   > TIP: Logout does not unlock your current licenses for use by other users, they must still time out.
 - `Restore Defaults` resets _all_ settings back to how they were when you ran Euclideon Vault Client the first time.
 - `About` displays a popup with the version and license information for the current version of Client.
@@ -108,11 +88,15 @@ The system menu has a number of system related functions.
 - `Quit` logs you out and then closes the program.
 
 #### Windows
+![Windows Menu](images/windowsmenu.png)
+
 The windows menu allows you to show or hide various windows in the Euclideon Vault Client application.
 
 - Contains windows: Scene, Scene Explorer, Settings, Convert
 
 #### Projects
+![Projects Menu](images/projectdropdown.png)
+
 The projects menu has a new scene button and if additional projects are available to your user, it will show those projects here as well.
 
 - "New Scene" will remove all items from your Scene
@@ -123,6 +107,8 @@ The status bar shows a lot of useful information (not all of it will always be a
 - Number of files queued to load "([n] Files Queued),
 
 ### 3. Scene Explorer
+![Scene Explorer](images/sceneexplorer0.png)
+
 This pane shows you the assets currently in your scene, allows user to add UDS files and create new folders, Points of interest, Areas of interest & Lines.
 
 > TIP: If you ever want to quickly clear the current scene, the "Projects" menu has a "New Scene" button that will remove everything from the scene.
@@ -130,47 +116,75 @@ This pane shows you the assets currently in your scene, allows user to add UDS f
 #### Loading UDS Models
 There are a number of ways to add models to the scene.
 
-![Model Loaded](images/modelloaded.png)
+![Loaded Model](images/sceneexplorer.png)
+![Model Information](images/sceneexplorer2.png)
 
 1. Drag and Drop: On devices with folder exploring you can drag a file from your file explorer and drop it in the Euclideon Vault Client window to add the model to the scene.
 2. Direct URI loading: You can type a URL or path in the Add UDS popup. The path field at the top of the pane allows URL and network paths to retrieve UDS files.
 3. If you have access to projects on the server you will be able to click the "Projects" button in the menu and select a project to load. Projects are loaded from the Vault Server you're connected to.
 
 ### 4. Settings
+![Settings](images/settings.png)
+
   - Settings contain both a large number of functional and visual customisations to the Vault Client such as changing the display theme, showing FPS, onscreen compass, displaying diagnostic and advanced GIS settings.
+
 Appearance
+
+![Appearance Settings](images/appearance.png)
   - Allows users to change presentation UI, Mouse Anchor Shape, Default Voxel Shape.
+
+
 Input and Controls
+
+![Input Settings](images/inputcontrol.png)
+
   - Allows on screen mouse control, Touchscreen friendly UI, inverse X and Y axis, mouse pivot settings (bindings & mouse icon control).
+
+
 Viewport
+
+![Viewport Settings](images/viewport.png)
+
   - Changes minimal viewing distance and maximum viewing distance, allows changing field of view.
   > TIP: If experiencing loss of image, change min and max settings
+
 Maps & Elevation
+
+![Maps & Elevation Settings](images/mapsandelevation.png)
+
   -  Toggle Map Tiles and allow mouse to lock to Maps.
+
+![Tile Server](images/tileserver.png)
+
   -  Tile Server allows overlay with existing maps, clicking 'Tile Server' prompts user to enter an https address for background tiles with the option to import png or jpg.
     - Transparency slider adjusts the overall visibility of objects allowing Tiles to be more visible with vault objects in foreground.
     - Map height adjusts the height of tiles in relation to vault objects.
     - Blending with objects allows tile maps to overlay, underlay or feature in hybrid mode with existing vault objects.
 
 Visualization
+
+![Visualization Settings](images/visualizationsettings.png)
+
   - Allows users to change between Colour, Intensity and Classification Display modes.
   - Enabling Color by Height, Depth and Edges with max / min sliders for each respective property with a color wheel to showcase features.
   - Enabling Contours allows coloured contours sorted by distance and band height with a color wheel.
+![Visualization Settings Expanded](images/visualizationall.png)
 
 > TIP: If you ever change a setting and can't recall what you've changed, you can reset _all_ settings by going to the "System" menu and selecting "Restore Defaults", or you can reset individual groups of settings by right clicking their header and selecting "Restore Defaults"
 
-### 6. GIS / Scene Info
+### 5. GIS / Scene Info
+![Camera Information](images/camerabox.png)
   - Scene contains several key functions, such as X,Y,Z camera coordinates, camera rotation coordinates and camera movement speed. Toggled by 'Show Camera Button'.
   - Displays Latitude and Longitude, along with current camera altitude.
   - Several clickboxes allow Lock Altitude (spacebar default), Show Camera Information, Show projection information (Displays SRID, MGA zones information).
   - Gismo Translate, Gizmo Rotate, Gizmo Scale and Gizmo local space buttons
 
-### 7. Copyright, Watermark & Compass
+### 6. Copyright, Watermark & Compass
   - Adding Copyright Data can be done in the metadata subtab during converting
   - Compass by default is on, Appearance pane contains on/off checkbox
   - Watermarks can be viewed on each UDS file, by clicking on the UDS file in the Scene Explorer and then viewing the [Watermark] identification tag
 
-### 8. Convert Tab
+### 7. Convert Tab
 Converting to UDS file format can be done from within the Euclideon Vault Client as well. Loading a supported pointcloud format will open the "Convert" window if it isn't already open. A quick 'pre-parse' is done to detect the file format, supported attributes etc. By loading the start of the file, this stage also does an estimate of the total number of points the file has.
   - Supported file conversion formats (?????).
 > If you aren't able to find the convert tab, it can be displayed from the `Windows > Convert` flag, once selected the convert option will be displayed next to the Scene tab.
