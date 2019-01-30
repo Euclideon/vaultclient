@@ -65,6 +65,7 @@ void vcScene_RemoveItem(vcState *pProgramState, vcFolder *pParent, size_t index)
       pParent->children[index]->pMetadata->Destroy();
 
     udFree(pParent->children[index]->pMetadata);
+    udFree(pParent->children[index]->pOriginalZone);
     udFree(pParent->children[index]->pZone);
   }
 
@@ -189,7 +190,7 @@ bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel)
   if (pProgramState == nullptr || pModel == nullptr)
     return false;
 
-  if ((pModel->pZone != nullptr && vcGIS_ChangeSpace(&pProgramState->gis, pModel->pZone->srid)) || (pModel->pZone == nullptr && vcGIS_ChangeSpace(&pProgramState->gis, 0)))
+  if ((pModel->pZone != nullptr && vcGIS_ChangeSpace(&pProgramState->gis, pModel->pOriginalZone->srid)) || (pModel->pZone == nullptr && vcGIS_ChangeSpace(&pProgramState->gis, 0)))
     vcScene_UpdateItemToCurrentProjection(pProgramState, nullptr); // Update all models to new zone
 
   pProgramState->pCamera->position = vcScene_GetItemWorldSpacePivotPoint(pModel);
