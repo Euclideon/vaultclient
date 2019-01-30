@@ -170,8 +170,7 @@ void vcTileRenderer_LoadThread(void *pThreadData)
         }
       }
 
-      // TODO: refactor code to remove this mutex lock
-      udLockMutex(pCache->pMutex);
+      // Node has been invalidated since download started
       if (!pBestNode->touched)
       {
         // TODO: Put into LRU texture cache (but for now just throw it out)
@@ -184,7 +183,9 @@ void vcTileRenderer_LoadThread(void *pThreadData)
         if (pBestNode->renderInfo.loadAttempts < MaxTileRequestAttempts)
         {
           pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_InQueue;
+          udLockMutex(pCache->pMutex);
           pCache->tileLoadList.PushBack(pBestNode); // put it back
+          udReleaseMutex(pCache->pMutex);
         }
         else
         {
@@ -201,8 +202,6 @@ void vcTileRenderer_LoadThread(void *pThreadData)
       pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Downloaded;
 
 epilogue:
-      udReleaseMutex(pCache->pMutex);
-
       udFree(pFileData);
       stbi_image_free(pData);
     }
@@ -295,6 +294,10 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
   vcTileRenderer *pTileRenderer = *ppTileRenderer;
 
   pTileRenderer->cache.keepLoading = false;
+
+  for (size_t i = 0; i < udLengthOf(pTileRenderer->cache.pThreads); ++i)
+    udIncrementSemaphore(pTileRenderer->cache.pSemaphore);
+
   for (size_t i = 0; i < udLengthOf(pTileRenderer->cache.pThreads); ++i)
   {
     udThread_Join(pTileRenderer->cache.pThreads[i]);
