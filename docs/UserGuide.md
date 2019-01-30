@@ -64,17 +64,34 @@ Mouse Controls:
   > TIP: If you prefer scroll wheel to change the move speed like Euclideon Geoverse MDM does, that option is available in the Mouse Pivot bindings in settings as well.
 
 Default Keyboard Controls (with the "Scene" window focussed):
-- `W` and `S` strafe the camera forward and backward at the current Camera Move Speed
-- `A` and `D` strafe the camera left and right at the current Camera Move Speed
-- `R` and `F` strafe the camera up and down at the current Camera Move Speed
-- `Spacebar` locks altitude allowing user to move forward without it directly adjusting camera height (Z-axis lock)
+- `W` and `S` strafe the camera forward and backward at the current Camera Move Speed.
+- `A` and `D` strafe the camera left and right at the current Camera Move Speed.
+- `R` and `F` strafe the camera up and down at the current Camera Move Speed.
+- `Spacebar` locks altitude allowing user to move forward without it directly adjusting camera height (Z-axis lock).
+
+#### Hotkeys
+- `F5` Toggles presentation mode, hiding the interface and going fullscreen.
+
+##### Gizmo Hotkeys
+- `B` Sets the gizmo to translation mode, allowing user to move objects.
+- `N` Sets the gizmo to rotation mode, allowing user to rotate objects.
+- `M` Sets the gizmo to scale mode, allowing user to resize objects.
+- `C` Toggles the gizmo between local and world space coordinates.
+
+##### Scene Explorer Hotkeys
+- `Ctrl+U` Opens popup for loading UDS files.
+- `Delete` Removes selected item(s) from the scene explorer.
 
 ### 2. Menu & Status Bar
+
 ![Status Bar](images/statusbar.png)
+
 The menu bar consists of 2 sections, the left section with menu drop downs and the right section with status information.
 
 #### System Menu
+
 ![System Menu](images/systemdown.png)
+
 The system menu has a number of system related functions.
 
 
@@ -117,6 +134,7 @@ This pane shows you the assets currently in your scene, allows user to add UDS f
 There are a number of ways to add models to the scene.
 
 ![Loaded Model](images/sceneexplorer.png)
+
 ![Model Information](images/sceneexplorer2.png)
 
 1. Drag and Drop: On devices with folder exploring you can drag a file from your file explorer and drop it in the Euclideon Vault Client window to add the model to the scene.
@@ -173,18 +191,22 @@ Visualization
 > TIP: If you ever change a setting and can't recall what you've changed, you can reset _all_ settings by going to the "System" menu and selecting "Restore Defaults", or you can reset individual groups of settings by right clicking their header and selecting "Restore Defaults"
 
 ### 5. GIS / Scene Info
+
 ![Camera Information](images/camerabox.png)
+
   - Scene contains several key functions, such as X,Y,Z camera coordinates, camera rotation coordinates and camera movement speed. Toggled by 'Show Camera Button'.
   - Displays Latitude and Longitude, along with current camera altitude.
   - Several clickboxes allow Lock Altitude (spacebar default), Show Camera Information, Show projection information (Displays SRID, MGA zones information).
   - Gismo Translate, Gizmo Rotate, Gizmo Scale and Gizmo local space buttons
 
-### 6. Copyright, Watermark & Compass
+### 6. Copyright & Compass
   - Adding Copyright Data can be done in the metadata subtab during converting
   - Compass by default is on, Appearance pane contains on/off checkbox
+
+### 7. Watermark
   - Watermarks can be viewed on each UDS file, by clicking on the UDS file in the Scene Explorer and then viewing the [Watermark] identification tag
 
-### 7. Convert Tab
+### 8. Convert Tab
 Converting to UDS file format can be done from within the Euclideon Vault Client as well. Loading a supported pointcloud format will open the "Convert" window if it isn't already open. A quick 'pre-parse' is done to detect the file format, supported attributes etc. By loading the start of the file, this stage also does an estimate of the total number of points the file has.
   - Supported file conversion formats (?????).
 > If you aren't able to find the convert tab, it can be displayed from the `Windows > Convert` flag, once selected the convert option will be displayed next to the Scene tab.
