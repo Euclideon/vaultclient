@@ -178,7 +178,7 @@ void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemD
             if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "Path"))
               item.dataset.pPath = datasetData.Get("[%zu].content", j).AsString();
             else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "Name"))
-              item.dataset.pName = datasetData.Get("[%zu].content", j).AsString();
+              item.dataset.pName = datasetData.Get("[%zu].content", j).AsString("");
             else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "Location"))
               item.dataset.pLocation = datasetData.Get("[%zu].content", j).AsString();
             else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "AngleX"))
@@ -192,7 +192,7 @@ void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemD
             break;
           case vcUDPIDT_Label:
             if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "Name"))
-              item.label.pName = datasetData.Get("[%zu].content", j).AsString();
+              item.label.pName = datasetData.Get("[%zu].content", j).AsString("");
             else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "GeoLocation"))
               item.label.pGeoLocation = datasetData.Get("[%zu].content", j).AsString();
             else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "LabelColor"))
@@ -203,7 +203,7 @@ void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemD
           case vcUDPIDT_Polygon:
             if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "PolygonName"))
             {
-              item.polygon.pName = datasetData.Get("[%zu].content", j).AsString();
+              item.polygon.pName = datasetData.Get("[%zu].content", j).AsString("");
             }
             else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "PolygonIsClosed"))
             {
@@ -384,7 +384,19 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
     vcSceneItemRef *pSceneRef = &pItemData->at(index).sceneFolder;
     vcSceneItem *pTemp = pSceneRef->pParent->children[pSceneRef->index];
     pSceneRef->pParent->children.erase(pSceneRef->pParent->children.begin() + pSceneRef->index);
+    // Fix indexes from removal
+    for (size_t i = 0; i < pItemData->size(); ++i)
+    {
+      if (pItemData->at(i).sceneFolder.pParent == pSceneRef->pParent && pItemData->at(i).sceneFolder.index >= pSceneRef->index)
+        --pItemData->at(i).sceneFolder.index;
+    }
     pSceneRef->pParent->children.insert(pSceneRef->pParent->children.begin() + treeIndex, pTemp);
+    // Fix indexes from insertion
+    for (size_t i = 0; i < pItemData->size(); ++i)
+    {
+      if (pItemData->at(i).sceneFolder.pParent == pSceneRef->pParent && pItemData->at(i).sceneFolder.index > treeIndex)
+        ++pItemData->at(i).sceneFolder.index;
+    }
     pSceneRef->index = treeIndex;
   }
 
