@@ -53,6 +53,7 @@ struct vcSceneItem
   udDouble3 pivot; // The point in local space that the object is anchored around (for scaling and rotating)
 
   udJSON *pMetadata; // This points to a metadata (if it exists)
+  udGeoZone *pOriginalZone; // nullptr if not geolocated
   udGeoZone *pZone; // nullptr if not geolocated
 
   const char *pPath;
