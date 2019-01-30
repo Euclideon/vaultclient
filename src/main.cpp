@@ -431,7 +431,6 @@ int main(int argc, char **args)
 
   pFontPath = vcSettings_GetAssetPath("assets/fonts/NotoSansCJKjp-Regular.otf");
   ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize);
-
   fontCfg.MergeMode = true;
 
 #if UD_RELEASE // Load all glyphs for supported languages
