@@ -397,7 +397,6 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
   }
 }
 
-
 void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   udUnused(renderData);
@@ -483,6 +482,14 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
   vcShader_Bind(nullptr);
 
   vcFramebuffer_Bind(pDefaultFramebuffer);
+}
+
+void vcRender_vcRenderSceneImGui(vcRenderContext *pRenderContext, const vcRenderData &renderData)
+{
+
+  // Labels
+  for (size_t i = 0; i < renderData.labels.length; ++i)
+    vcLabelRenderer_Render(renderData.labels[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
 }
 
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext)

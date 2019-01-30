@@ -16,6 +16,9 @@ void vcPOI::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
 {
   if (pFence != nullptr)
     pRenderData->fences.PushBack(pFence);
+
+  if (pLabel != nullptr)
+    pRenderData->labels.PushBack(pLabel);
 }
 
 void vcPOI::ApplyDelta(vcState * /*pProgramState*/)
@@ -103,6 +106,8 @@ void vcPOI::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
 
       vcFenceRenderer_SetConfig(pFence, config);
     }
+
+    // TODO: label renderer config too
   }
 }
 
@@ -111,8 +116,8 @@ void vcPOI::Cleanup(vcState * /*pProgramState*/)
   udFree(pName);
   udFree(line.pPoints);
 
-  if (pFence != nullptr)
-    vcFenceRenderer_Destroy(&pFence);
+  vcFenceRenderer_Destroy(&pFence);
+  vcLabelRenderer_Destroy(&pLabel);
 
   this->vcPOI::~vcPOI();
 }
@@ -157,6 +162,15 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
     vcFenceRenderer_SetConfig(pPOI->pFence, config);
     vcFenceRenderer_AddPoints(pPOI->pFence, pLine->pPoints, pLine->numPoints);
   }
+
+  vcLabelRendererConfig labelConfig = {};
+  labelConfig.pText = pPOI->pName;
+  labelConfig.worldPosition = pLine->pPoints[0];
+  labelConfig.textSize = vcLFS_Medium;
+  labelConfig.textColour = nameColour;
+
+  vcLabelRenderer_Create(&pPOI->pLabel);
+  vcLabelRenderer_SetConfig(pPOI->pLabel, labelConfig);
 
   if (srid != 0)
   {

@@ -4,6 +4,7 @@
 #include "vcScene.h"
 #include "vdkRenderContext.h"
 #include "gl/vcFenceRenderer.h"
+#include "gl/vcLabelRenderer.h"
 
 struct vdkPointCloud;
 struct vcTexture;
@@ -28,6 +29,7 @@ struct vcPOI : public vcSceneItem
   double namePt;
 
   vcFenceRenderer *pFence;
+  vcLabelRenderer *pLabel;
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState);
