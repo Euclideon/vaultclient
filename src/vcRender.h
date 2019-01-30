@@ -10,6 +10,7 @@
 
 #include "gl/vcMesh.h"
 #include "gl/vcFenceRenderer.h"
+#include "gl/vcLabelRenderer.h"
 
 struct vcRenderContext;
 struct vcTexture;
@@ -29,6 +30,7 @@ struct vcRenderData
 
   udChunkedArray<vcModel*> models;
   udChunkedArray<vcFenceRenderer*> fences;
+  udChunkedArray<vcLabelRenderer*> labels;
 
   vcCameraSettings *pCameraSettings;
   vcTexture *pSkyboxCubemap;
@@ -43,6 +45,7 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
 
 vcTexture* vcRender_GetSceneTexture(vcRenderContext *pRenderContext);
 void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer);
+void vcRender_vcRenderSceneImGui(vcRenderContext *pRenderContext, const vcRenderData &renderData);
 
 void vcRender_ClearTiles(vcRenderContext *pRenderContext);
 void vcRender_ClearPoints(vcRenderContext *pRenderContext);
