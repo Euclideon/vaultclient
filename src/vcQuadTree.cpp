@@ -220,22 +220,23 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
   }
 }
 
-void vcQuadTree_Create(vcQuadTree *pQuadTree, vcSettings *pSettings)
-{
-  pQuadTree->nodes.capacity = 1024; // best guess, should hold enough nodes for usage
-  vcQuadTree_ExpandCapacity(pQuadTree);
-
-  vcQuadTree_Reset(pQuadTree);
-
-  pQuadTree->pSettings = pSettings;
-}
-
 void vcQuadTree_CleanupNodes(vcQuadTree *pQuadTree)
 {
   for (uint32_t i = 0; i < pQuadTree->nodes.used; ++i)
     vcQuadTree_CleanupNode(&pQuadTree->nodes.pPool[i]);
 
   pQuadTree->nodes.used = 0;
+}
+
+void vcQuadTree_Create(vcQuadTree *pQuadTree, vcSettings *pSettings)
+{
+  pQuadTree->nodes.capacity = 1024; // best guess, should hold enough nodes for usage
+  vcQuadTree_ExpandCapacity(pQuadTree);
+
+  vcQuadTree_CleanupNodes(pQuadTree);
+  vcQuadTree_Reset(pQuadTree);
+
+  pQuadTree->pSettings = pSettings;
 }
 
 void vcQuadTree_Destroy(vcQuadTree *pQuadTree)
@@ -248,8 +249,6 @@ void vcQuadTree_Destroy(vcQuadTree *pQuadTree)
 
 void vcQuadTree_Reset(vcQuadTree *pQuadTree)
 {
-  vcQuadTree_CleanupNodes(pQuadTree);
-
   memset(&pQuadTree->metaData, 0, sizeof(vcQuadTreeMetaData));
   pQuadTree->completeRerootRequired = true;
 }
