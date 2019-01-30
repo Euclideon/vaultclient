@@ -10,8 +10,6 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-udFloat4 vcPOI_BGRAToImGui(uint32_t lineColour);
-
 void vcPOI::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
 {
   if (pFence != nullptr)
@@ -167,7 +165,7 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
   labelConfig.pText = pPOI->pName;
   labelConfig.worldPosition = pLine->pPoints[0];
   labelConfig.textSize = vcLFS_Medium;
-  labelConfig.textColour = nameColour;
+  labelConfig.textColour = vcPOI_BGRAToRGBAUInt32(nameColour);
 
   vcLabelRenderer_Create(&pPOI->pLabel);
   vcLabelRenderer_SetConfig(pPOI->pLabel, labelConfig);
@@ -193,16 +191,4 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
   temp.lineColour = 0xFFFFFFFF;
 
   vcPOI_AddToList(pProgramState, pName, nameColour, namePt, &temp, srid);
-}
-
-udFloat4 vcPOI_BGRAToImGui(uint32_t lineColour)
-{
-  //TODO: Find or add a math helper for this
-  udFloat4 colours; // RGBA
-  colours.x = ((((lineColour) >> 16) & 0xFF) / 255.f); // Red
-  colours.y = ((((lineColour) >> 8) & 0xFF) / 255.f); // Green
-  colours.z = ((((lineColour) >> 0) & 0xFF) / 255.f); // Blue
-  colours.w = ((((lineColour) >> 24) & 0xFF) / 255.f); // Alpha
-
-  return colours;
 }
