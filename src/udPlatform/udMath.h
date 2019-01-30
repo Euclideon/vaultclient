@@ -220,40 +220,40 @@ struct udVector2
 {
   T x, y;
   typedef T ElementType;
-  enum { ElementCount = 2 } ;
+  enum { ElementCount = 2 };
 
-  udVector2<T> operator -() const                      { udVector2<T> r = { -x, -y }; return r; }
+  udVector2<T> operator -() const { udVector2<T> r = { -x, -y }; return r; }
   bool         operator ==(const udVector2<T> &v) const { return x == v.x && y == v.y; }
   bool         operator !=(const udVector2<T> &v) const { return !(*this == v); }
 
-  udVector2<T> operator +(const udVector2<T> &v) const { udVector2<T> r = { x+v.x, y+v.y }; return r; }
-  udVector2<T> operator -(const udVector2<T> &v) const { udVector2<T> r = { x-v.x, y-v.y }; return r; }
+  udVector2<T> operator +(const udVector2<T> &v) const { udVector2<T> r = { x + v.x, y + v.y }; return r; }
+  udVector2<T> operator -(const udVector2<T> &v) const { udVector2<T> r = { x - v.x, y - v.y }; return r; }
   udVector2<T> operator *(const udVector2<T> &v) const { udVector2<T> r = { x*v.x, y*v.y }; return r; }
   template <typename U>
-  udVector2<T> operator *(U f) const                   { udVector2<T> r = { T(x*f), T(y*f) }; return r; }
-  udVector2<T> operator /(const udVector2<T> &v) const { udVector2<T> r = { x/v.x, y/v.y }; return r; }
+  udVector2<T> operator *(U f) const { udVector2<T> r = { T(x*f), T(y*f) }; return r; }
+  udVector2<T> operator /(const udVector2<T> &v) const { udVector2<T> r = { x / v.x, y / v.y }; return r; }
   template <typename U>
-  udVector2<T> operator /(U f) const                   { udVector2<T> r = { T(x/f), T(y/f) }; return r; }
-  T            operator [](size_t index) const         { return ((T*)this)[index]; }
+  udVector2<T> operator /(U f) const { udVector2<T> r = { T(x / f), T(y / f) }; return r; }
+  T            operator [](size_t index) const { return ((T*)this)[index]; }
 
-  udVector2<T>& operator +=(const udVector2<T> &v)     { x+=v.x; y+=v.y; return *this; }
-  udVector2<T>& operator -=(const udVector2<T> &v)     { x-=v.x; y-=v.y; return *this; }
-  udVector2<T>& operator *=(const udVector2<T> &v)     { x*=v.x; y*=v.y; return *this; }
+  udVector2<T>& operator +=(const udVector2<T> &v) { x += v.x; y += v.y; return *this; }
+  udVector2<T>& operator -=(const udVector2<T> &v) { x -= v.x; y -= v.y; return *this; }
+  udVector2<T>& operator *=(const udVector2<T> &v) { x *= v.x; y *= v.y; return *this; }
   template <typename U>
-  udVector2<T>& operator *=(U f)                       { x=T(x*f); y=T(y*f); return *this; }
-  udVector2<T>& operator /=(const udVector2<T> &v)     { x/=v.x; y/=v.y; return *this; }
+  udVector2<T>& operator *=(U f) { x = T(x*f); y = T(y*f); return *this; }
+  udVector2<T>& operator /=(const udVector2<T> &v) { x /= v.x; y /= v.y; return *this; }
   template <typename U>
-  udVector2<T>& operator /=(U f)                       { x=T(x/f); y=T(y/f); return *this; }
-  T&            operator [](size_t index)              { return ((T*)this)[index]; }
+  udVector2<T>& operator /=(U f) { x = T(x / f); y = T(y / f); return *this; }
+  T&            operator [](size_t index) { return ((T*)this)[index]; }
 
   // static members
-  static udVector2<T> zero()      { udVector2<T> r = { T(0), T(0) }; return r; }
-  static udVector2<T> one()       { udVector2<T> r = { T(1), T(1) }; return r; }
+  static udVector2<T> zero() { udVector2<T> r = { T(0), T(0) }; return r; }
+  static udVector2<T> one() { udVector2<T> r = { T(1), T(1) }; return r; }
 
-  static udVector2<T> xAxis()     { udVector2<T> r = { T(1), T(0) }; return r; }
-  static udVector2<T> yAxis()     { udVector2<T> r = { T(0), T(1) }; return r; }
+  static udVector2<T> xAxis() { udVector2<T> r = { T(1), T(0) }; return r; }
+  static udVector2<T> yAxis() { udVector2<T> r = { T(0), T(1) }; return r; }
 
-  static udVector2<T> create(T _f)       { udVector2<T> r = { _f, _f }; return r; }
+  static udVector2<T> create(T _f) { udVector2<T> r = { _f, _f }; return r; }
   static udVector2<T> create(T _x, T _y) { udVector2<T> r = { _x, _y }; return r; }
   template <typename U>
   static udVector2<T> create(const udVector2<U> &_v) { udVector2<T> r = { T(_v.x), T(_v.y) }; return r; }
@@ -268,39 +268,39 @@ struct udVector3
   typedef T ElementType;
   enum { ElementCount = 3 };
 
-  udVector2<T>& toVector2()               { return *(udVector2<T>*)this; }
-  const udVector2<T>& toVector2() const   { return *(udVector2<T>*)this; }
+  udVector2<T>& toVector2() { return *(udVector2<T>*)this; }
+  const udVector2<T>& toVector2() const { return *(udVector2<T>*)this; }
 
-  udVector3<T> operator -() const                       { udVector3<T> r = { -x, -y, -z }; return r; }
+  udVector3<T> operator -() const { udVector3<T> r = { -x, -y, -z }; return r; }
   bool         operator ==(const udVector3<T> &v) const { return x == v.x && y == v.y && z == v.z; }
   bool         operator !=(const udVector3<T> &v) const { return !(*this == v); }
 
-  udVector3<T> operator +(const udVector3<T> &v) const  { udVector3<T> r = { x+v.x, y+v.y, z+v.z }; return r; }
-  udVector3<T> operator -(const udVector3<T> &v) const  { udVector3<T> r = { x-v.x, y-v.y, z-v.z }; return r; }
-  udVector3<T> operator *(const udVector3<T> &v) const  { udVector3<T> r = { x*v.x, y*v.y, z*v.z }; return r; }
+  udVector3<T> operator +(const udVector3<T> &v) const { udVector3<T> r = { x + v.x, y + v.y, z + v.z }; return r; }
+  udVector3<T> operator -(const udVector3<T> &v) const { udVector3<T> r = { x - v.x, y - v.y, z - v.z }; return r; }
+  udVector3<T> operator *(const udVector3<T> &v) const { udVector3<T> r = { x*v.x, y*v.y, z*v.z }; return r; }
   template <typename U>
-  udVector3<T> operator *(U f) const                    { udVector3<T> r = { T(x*f), T(y*f), T(z*f) }; return r; }
-  udVector3<T> operator /(const udVector3<T> &v) const  { udVector3<T> r = { x/v.x, y/v.y, z/v.z }; return r; }
+  udVector3<T> operator *(U f) const { udVector3<T> r = { T(x*f), T(y*f), T(z*f) }; return r; }
+  udVector3<T> operator /(const udVector3<T> &v) const { udVector3<T> r = { x / v.x, y / v.y, z / v.z }; return r; }
   template <typename U>
-  udVector3<T> operator /(U f) const                    { udVector3<T> r = { T(x/f), T(y/f), T(z/f) }; return r; }
-  T            operator [](size_t index) const          { return ((T*)this)[index]; }
+  udVector3<T> operator /(U f) const { udVector3<T> r = { T(x / f), T(y / f), T(z / f) }; return r; }
+  T            operator [](size_t index) const { return ((T*)this)[index]; }
 
-  udVector3<T>& operator +=(const udVector3<T> &v)      { x+=v.x; y+=v.y; z+=v.z; return *this; }
-  udVector3<T>& operator -=(const udVector3<T> &v)      { x-=v.x; y-=v.y; z-=v.z; return *this; }
-  udVector3<T>& operator *=(const udVector3<T> &v)      { x*=v.x; y*=v.y; z*=v.z; return *this; }
+  udVector3<T>& operator +=(const udVector3<T> &v) { x += v.x; y += v.y; z += v.z; return *this; }
+  udVector3<T>& operator -=(const udVector3<T> &v) { x -= v.x; y -= v.y; z -= v.z; return *this; }
+  udVector3<T>& operator *=(const udVector3<T> &v) { x *= v.x; y *= v.y; z *= v.z; return *this; }
   template <typename U>
-  udVector3<T>& operator *=(U f)                        { x=T(x*f); y=T(y*f); z=T(z*f); return *this; }
-  udVector3<T>& operator /=(const udVector3<T> &v)      { x/=v.x; y/=v.y; z/=v.z; return *this; }
+  udVector3<T>& operator *=(U f) { x = T(x*f); y = T(y*f); z = T(z*f); return *this; }
+  udVector3<T>& operator /=(const udVector3<T> &v) { x /= v.x; y /= v.y; z /= v.z; return *this; }
   template <typename U>
-  udVector3<T>& operator /=(U f)                        { x=T(x/f); y=T(y/f); z=T(z/f); return *this; }
-  T&            operator [](size_t index)               { return ((T*)this)[index]; }
+  udVector3<T>& operator /=(U f) { x = T(x / f); y = T(y / f); z = T(z / f); return *this; }
+  T&            operator [](size_t index) { return ((T*)this)[index]; }
 
   // static members
-  static udVector3<T> zero()  { udVector3<T> r = { T(0), T(0), T(0) }; return r; }
-  static udVector3<T> one()   { udVector3<T> r = { T(1), T(1), T(1) }; return r; }
+  static udVector3<T> zero() { udVector3<T> r = { T(0), T(0), T(0) }; return r; }
+  static udVector3<T> one() { udVector3<T> r = { T(1), T(1), T(1) }; return r; }
 
-  static udVector3<T> create(T _f)                        { udVector3<T> r = { _f, _f, _f };     return r; }
-  static udVector3<T> create(T _x, T _y, T _z)            { udVector3<T> r = { _x, _y, _z };     return r; }
+  static udVector3<T> create(T _f) { udVector3<T> r = { _f, _f, _f };     return r; }
+  static udVector3<T> create(T _x, T _y, T _z) { udVector3<T> r = { _x, _y, _z };     return r; }
   static udVector3<T> create(const udVector2<T> _v, T _z) { udVector3<T> r = { _v.x, _v.y, _z }; return r; }
   template <typename U>
   static udVector3<T> create(const udVector3<U> &_v) { udVector3<T> r = { T(_v.x), T(_v.y), T(_v.z) }; return r; }
@@ -315,43 +315,43 @@ struct udVector4
   typedef T ElementType;
   enum { ElementCount = 4 };
 
-  udVector3<T>& toVector3()               { return *(udVector3<T>*)this; }
-  const udVector3<T>& toVector3() const   { return *(udVector3<T>*)this; }
-  udVector2<T>& toVector2()               { return *(udVector2<T>*)this; }
-  const udVector2<T>& toVector2() const   { return *(udVector2<T>*)this; }
+  udVector3<T>& toVector3() { return *(udVector3<T>*)this; }
+  const udVector3<T>& toVector3() const { return *(udVector3<T>*)this; }
+  udVector2<T>& toVector2() { return *(udVector2<T>*)this; }
+  const udVector2<T>& toVector2() const { return *(udVector2<T>*)this; }
 
-  udVector4<T> operator -() const                      { udVector4<T> r = { -x, -y, -z, -w }; return r; }
+  udVector4<T> operator -() const { udVector4<T> r = { -x, -y, -z, -w }; return r; }
   bool         operator ==(const udVector4<T> &v) const { return x == v.x && y == v.y && z == v.z && w == v.w; }
   bool         operator !=(const udVector4<T> &v) const { return !(*this == v); }
 
-  udVector4<T> operator +(const udVector4<T> &v) const { udVector4<T> r = { x+v.x, y+v.y, z+v.z, w+v.w }; return r; }
-  udVector4<T> operator -(const udVector4<T> &v) const { udVector4<T> r = { x-v.x, y-v.y, z-v.z, w-v.w }; return r; }
+  udVector4<T> operator +(const udVector4<T> &v) const { udVector4<T> r = { x + v.x, y + v.y, z + v.z, w + v.w }; return r; }
+  udVector4<T> operator -(const udVector4<T> &v) const { udVector4<T> r = { x - v.x, y - v.y, z - v.z, w - v.w }; return r; }
   udVector4<T> operator *(const udVector4<T> &v) const { udVector4<T> r = { x*v.x, y*v.y, z*v.z, w*v.w }; return r; }
   template <typename U>
-  udVector4<T> operator *(U f) const                   { udVector4<T> r = { T(x*f), T(y*f), T(z*f), T(w*f) }; return r; }
-  udVector4<T> operator /(const udVector4<T> &v) const { udVector4<T> r = { x/v.x, y/v.y, z/v.z, w/v.w }; return r; }
+  udVector4<T> operator *(U f) const { udVector4<T> r = { T(x*f), T(y*f), T(z*f), T(w*f) }; return r; }
+  udVector4<T> operator /(const udVector4<T> &v) const { udVector4<T> r = { x / v.x, y / v.y, z / v.z, w / v.w }; return r; }
   template <typename U>
-  udVector4<T> operator /(U f) const                   { udVector4<T> r = { T(x/f), T(y/f), T(z/f), T(w/f) }; return r; }
-  T            operator [](size_t index) const         { return ((T*)this)[index]; }
+  udVector4<T> operator /(U f) const { udVector4<T> r = { T(x / f), T(y / f), T(z / f), T(w / f) }; return r; }
+  T            operator [](size_t index) const { return ((T*)this)[index]; }
 
-  udVector4<T>& operator +=(const udVector4<T> &v)     { x+=v.x; y+=v.y; z+=v.z; w+=v.w; return *this; }
-  udVector4<T>& operator -=(const udVector4<T> &v)     { x-=v.x; y-=v.y; z-=v.z; w-=v.w; return *this; }
-  udVector4<T>& operator *=(const udVector4<T> &v)     { x*=v.x; y*=v.y; z*=v.z; w*=v.w; return *this; }
+  udVector4<T>& operator +=(const udVector4<T> &v) { x += v.x; y += v.y; z += v.z; w += v.w; return *this; }
+  udVector4<T>& operator -=(const udVector4<T> &v) { x -= v.x; y -= v.y; z -= v.z; w -= v.w; return *this; }
+  udVector4<T>& operator *=(const udVector4<T> &v) { x *= v.x; y *= v.y; z *= v.z; w *= v.w; return *this; }
   template <typename U>
-  udVector4<T>& operator *=(U f)                       { x=T(x*f); y=T(y*f); z=T(z*f); w=T(w*f); return *this; }
-  udVector4<T>& operator /=(const udVector4<T> &v)     { x/=v.x; y/=v.y; z/=v.z; w/=v.w; return *this; }
+  udVector4<T>& operator *=(U f) { x = T(x*f); y = T(y*f); z = T(z*f); w = T(w*f); return *this; }
+  udVector4<T>& operator /=(const udVector4<T> &v) { x /= v.x; y /= v.y; z /= v.z; w /= v.w; return *this; }
   template <typename U>
-  udVector4<T>& operator /=(U f)                       { x=T(x/f); y=T(y/f); z=T(z/f); w=T(w/f); return *this; }
-  T&            operator [](size_t index)              { return ((T*)this)[index]; }
+  udVector4<T>& operator /=(U f) { x = T(x / f); y = T(y / f); z = T(z / f); w = T(w / f); return *this; }
+  T&            operator [](size_t index) { return ((T*)this)[index]; }
 
   // static members
-  static udVector4<T> zero()      { udVector4<T> r = { T(0), T(0), T(0), T(0) }; return r; }
-  static udVector4<T> one()       { udVector4<T> r = { T(1), T(1), T(1), T(1) }; return r; }
-  static udVector4<T> identity()  { udVector4<T> r = { T(0), T(0), T(0), T(1) }; return r; }
+  static udVector4<T> zero() { udVector4<T> r = { T(0), T(0), T(0), T(0) }; return r; }
+  static udVector4<T> one() { udVector4<T> r = { T(1), T(1), T(1), T(1) }; return r; }
+  static udVector4<T> identity() { udVector4<T> r = { T(0), T(0), T(0), T(1) }; return r; }
 
-  static udVector4<T> create(T _f)                               { udVector4<T> r = {   _f,   _f,   _f, _f }; return r; }
-  static udVector4<T> create(T _x, T _y, T _z, T _w)             { udVector4<T> r = {   _x,   _y,   _z, _w }; return r; }
-  static udVector4<T> create(const udVector3<T> &_v, T _w)       { udVector4<T> r = { _v.x, _v.y, _v.z, _w }; return r; }
+  static udVector4<T> create(T _f) { udVector4<T> r = { _f,   _f,   _f, _f }; return r; }
+  static udVector4<T> create(T _x, T _y, T _z, T _w) { udVector4<T> r = { _x,   _y,   _z, _w }; return r; }
+  static udVector4<T> create(const udVector3<T> &_v, T _w) { udVector4<T> r = { _v.x, _v.y, _v.z, _w }; return r; }
   static udVector4<T> create(const udVector2<T> &_v, T _z, T _w) { udVector4<T> r = { _v.x, _v.y,   _z, _w }; return r; }
   template <typename U>
   static udVector4<T> create(const udVector4<U> &_v) { udVector4<T> r = { T(_v.x), T(_v.y), T(_v.z), T(_v.w) }; return r; }
@@ -373,16 +373,16 @@ struct udQuaternion
   udQuaternion<T> operator -(const udQuaternion<T> &q) const { udQuaternion<T> r = { x - q.x, y - q.y, z - q.z, w - q.w }; return r; }
   udQuaternion<T> operator *(const udQuaternion<T> &q) const { return udMul(*this, q); }
   template <typename U>
-  udQuaternion<T> operator *(U f) const                      { udQuaternion<T> r = { T(x*f), T(y*f), T(z*f), T(w*f) }; return r; }
-  T            operator [](size_t index) const               { return ((T*)this)[index]; }
+  udQuaternion<T> operator *(U f) const { udQuaternion<T> r = { T(x*f), T(y*f), T(z*f), T(w*f) }; return r; }
+  T            operator [](size_t index) const { return ((T*)this)[index]; }
 
-  udQuaternion<T>& operator *=(const udQuaternion<T> &q)     { *this = udMul(*this, q); return *this; }
+  udQuaternion<T>& operator *=(const udQuaternion<T> &q) { *this = udMul(*this, q); return *this; }
   template <typename U>
-  udQuaternion<T>& operator *=(U f)                          { x=T(x*f); y=T(y*f); z=T(z*f); w=T(w*f); return *this; }
-  udQuaternion<T>& operator +=(const udQuaternion<T> &q)     { x += q.x; y += q.y; z += q.z; w += q.w; return *this; }
-  udQuaternion<T>& operator -=(const udQuaternion<T> &q)     { x -= q.x; y -= q.y; z -= q.z; w -= q.w; return *this; }
+  udQuaternion<T>& operator *=(U f) { x = T(x*f); y = T(y*f); z = T(z*f); w = T(w*f); return *this; }
+  udQuaternion<T>& operator +=(const udQuaternion<T> &q) { x += q.x; y += q.y; z += q.z; w += q.w; return *this; }
+  udQuaternion<T>& operator -=(const udQuaternion<T> &q) { x -= q.x; y -= q.y; z -= q.z; w -= q.w; return *this; }
 
-  T&            operator [](size_t index)                    { return ((T*)this)[index]; }
+  T&            operator [](size_t index) { return ((T*)this)[index]; }
 
   udQuaternion<T>& inverse();
   udQuaternion<T>& conjugate();
@@ -393,7 +393,7 @@ struct udQuaternion
 
   // static members
   static udQuaternion<T> zero() { udQuaternion<T> q = { T(0), T(0), T(0), T(0) }; return q; }
-  static udQuaternion<T> identity()  { udQuaternion<T> q = { T(0), T(0), T(0), T(1) }; return q; }
+  static udQuaternion<T> identity() { udQuaternion<T> q = { T(0), T(0), T(0), T(1) }; return q; }
 
   static udQuaternion<T> create(const udVector3<T> &axis, T rad);
   static udQuaternion<T> create(const T _y, const T _p, const T _r);
@@ -435,14 +435,14 @@ struct udMatrix4x4
   udMatrix4x4<T> operator *(U f)                      const { return udMul(*this, f); }
   udMatrix4x4<T> operator +(const udMatrix4x4<T> &m2) const { return udAdd(*this, m2); }
   udMatrix4x4<T> operator -(const udMatrix4x4<T> &m2) const { return udSub(*this, m2); }
-  udVector4<T> operator *(const udVector4<T> &v) const     { return udMul(*this, v); }
+  udVector4<T> operator *(const udVector4<T> &v) const { return udMul(*this, v); }
 
-  udMatrix4x4<T>& operator +=(const udMatrix4x4<T> &m2)    { *this = udAdd(*this, m2); return *this; }
-  udMatrix4x4<T>& operator -=(const udMatrix4x4<T> &m2)    { *this = udSub(*this, m2); return *this; }
-  udMatrix4x4<T>& operator *=(const udMatrix4x4<T> &m2)    { *this = udMul(*this, m2); return *this; }
-  udMatrix4x4<T>& operator *=(T f)                         { *this = udMul(*this, f); return *this; }
+  udMatrix4x4<T>& operator +=(const udMatrix4x4<T> &m2) { *this = udAdd(*this, m2); return *this; }
+  udMatrix4x4<T>& operator -=(const udMatrix4x4<T> &m2) { *this = udSub(*this, m2); return *this; }
+  udMatrix4x4<T>& operator *=(const udMatrix4x4<T> &m2) { *this = udMul(*this, m2); return *this; }
+  udMatrix4x4<T>& operator *=(T f) { *this = udMul(*this, f); return *this; }
 
-  bool operator ==(const udMatrix4x4& rh) const            { return memcmp(this, &rh, sizeof(*this)) == 0; }
+  bool operator ==(const udMatrix4x4& rh) const { return memcmp(this, &rh, sizeof(*this)) == 0; }
 
   udMatrix4x4<T>& transpose();
   T determinant();
@@ -476,7 +476,9 @@ struct udMatrix4x4
   static udMatrix4x4<T> scaleNonUniform(T x, T y, T z, const udVector3<T> &t = udVector3<T>::zero());
   static udMatrix4x4<T> scaleNonUniform(const udVector3<T> &s, const udVector3<T> &t = udVector3<T>::zero()) { return scaleNonUniform(s.x, s.y, s.z, t); }
 
-  static udMatrix4x4<T> perspective(T fovY, T aspectRatio, T znear, T zfar);
+  // Note: These perspective matrices are right-handed and Z-up
+  static udMatrix4x4<T> perspectiveZO(T fovY, T aspectRatio, T znear, T zfar); // Depth is [0, 1]. Compatiable with DirectX coordinate system. Previously `perspective()` was this function.
+  static udMatrix4x4<T> perspectiveNO(T fovY, T aspectRatio, T znear, T zfar); // Depth is [-1, 1]. Comptaible with OpenGL coordinate system.
   static udMatrix4x4<T> ortho(T left, T right, T bottom, T top, T znear = T(0), T zfar = T(1));
   static udMatrix4x4<T> orthoForScreen(T width, T height, T znear = T(0), T zfar = T(1));
 
