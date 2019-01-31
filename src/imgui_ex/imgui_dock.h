@@ -8,4 +8,5 @@ namespace ImGui
   IMGUI_API void EndDock();
   IMGUI_API void SetDockActive();
   IMGUI_API void CaptureDefaults();
+  IMGUI_API bool IsDockActive(const char *pLabel);
 } // namespace ImGui

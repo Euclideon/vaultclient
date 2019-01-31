@@ -13,6 +13,7 @@ enum vcModalTypes
   vcMT_ImportUDP,
   vcMT_LoadWatermark,
   vcMT_NotYetImplemented,
+  vcMT_ImageViewer,
 
   vcMT_Count
 };

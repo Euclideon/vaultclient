@@ -217,6 +217,14 @@ namespace ImGui
     ~DockContext() {}
 
 
+    bool isActive(const char *pLabel)
+    {
+      for (int i = 0; i < m_docks.size(); ++i)
+        if (udStrEqual(m_docks[i]->label, pLabel))
+          return m_docks[i]->active;
+      return false;
+    }
+
     void captureDefaults()
     {
       for (int i = 0; i < m_docks.size(); ++i)
