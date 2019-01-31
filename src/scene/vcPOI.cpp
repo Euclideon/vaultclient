@@ -93,7 +93,7 @@ void vcPOI::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
     if (reConfig)
     {
       vcFenceRendererConfig config;
-      udFloat4 colour = vcPOI_BGRAToImGui(line.lineColour);
+      udFloat4 colour = vcIGSW_BGRAToImGui(line.lineColour);
       config.visualMode = vcRRVM_Fence;
       config.imageMode = line.lineStyle;
       config.bottomColour = colour;
@@ -146,7 +146,7 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
   {
     vcFenceRenderer_Create(&pPOI->pFence);
 
-    udFloat4 colours = vcPOI_BGRAToImGui(nameColour);
+    udFloat4 colours = vcIGSW_BGRAToImGui(nameColour);
 
     vcFenceRendererConfig config;
     config.visualMode = vcRRVM_Fence;
@@ -165,7 +165,7 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
   labelConfig.pText = pPOI->pName;
   labelConfig.worldPosition = pLine->pPoints[0];
   labelConfig.textSize = vcLFS_Medium;
-  labelConfig.textColour = vcPOI_BGRAToRGBAUInt32(nameColour);
+  labelConfig.textColour = vcIGSW_BGRAToRGBAUInt32(nameColour);
 
   vcLabelRenderer_Create(&pPOI->pLabel);
   vcLabelRenderer_SetConfig(pPOI->pLabel, labelConfig);
