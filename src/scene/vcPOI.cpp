@@ -12,11 +12,17 @@
 
 void vcPOI::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
 {
+  if (!visible)
+    return;
+
   if (pFence != nullptr)
     pRenderData->fences.PushBack(pFence);
 
   if (pLabelInfo != nullptr)
+  {
+    pLabelInfo->pText = pName;
     pRenderData->labels.PushBack(pLabelInfo);
+  }
 }
 
 void vcPOI::ApplyDelta(vcState * /*pProgramState*/)
