@@ -399,9 +399,6 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
 
 void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-  udUnused(renderData);
-  udUnused(pRenderContext);
-
   vcGLState_ResetState();
   vcGLState_SetBlendMode(vcGLSBM_AdditiveSrcInterpolativeDst);
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);

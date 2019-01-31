@@ -74,3 +74,21 @@ bool vcIGSW_ColorPickerU32(const char *pLabel, uint32_t *pColor, ImGuiColorEditF
 
   return false;
 }
+
+udFloat4 vcIGSW_BGRAToImGui(uint32_t lineColour)
+{
+  //TODO: Find or add a math helper for this
+  udFloat4 colours; // RGBA
+  colours.x = ((((lineColour) >> 16) & 0xFF) / 255.f); // Red
+  colours.y = ((((lineColour) >> 8) & 0xFF) / 255.f); // Green
+  colours.z = ((((lineColour) >> 0) & 0xFF) / 255.f); // Blue
+  colours.w = ((((lineColour) >> 24) & 0xFF) / 255.f); // Alpha
+
+  return colours;
+}
+
+uint32_t vcIGSW_BGRAToRGBAUInt32(uint32_t lineColour)
+{
+  // BGRA to RGBA
+  return ((lineColour & 0xff) << 16) | (lineColour & 0x0000ff00) | (((lineColour >> 16) & 0xff) << 0) | (lineColour & 0xff000000);
+}
