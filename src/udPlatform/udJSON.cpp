@@ -1509,18 +1509,39 @@ static udResult ParseXMLString(const char **ppStr, const char *pXML, int *pCharC
 {
   udResult result;
   int charCount = 0;
+  int extraChars = 0;
+  int di = 0;
   char *pStr = nullptr;
 
   if (*pXML == '\'' || *pXML == '\"')
   {
-    charCount = (int)udStrMatchBrace(pXML);
-    UD_ERROR_IF(charCount < 2, udR_ParseError);
-    pStr = udAllocType(char, charCount - 2 + 1, udAF_None);
-    UD_ERROR_NULL(pStr, udR_MemoryAllocationFailure);
-    int di = 0;
-    for (int si = 1; pXML[si] != *pXML;)
+    charCount = (int)udStrMatchBrace(pXML) - 2;
+    extraChars = 2;
+    UD_ERROR_IF(charCount < 0, udR_ParseError);
+    ++pXML;
+  }
+  else
+  {
+    const char *pTerm = udStrchr(pXML, "<");
+    UD_ERROR_NULL(pTerm, udR_ParseError);
+    charCount = (int)(pTerm - pXML);
+  }
+
+  pStr = udAllocType(char, charCount + 1, udAF_None);
+  UD_ERROR_NULL(pStr, udR_MemoryAllocationFailure);
+  for (int si = 0; si < charCount;)
+  {
+    bool escaped = false;
+
+    // Escape hex codes
+    if ((si + 6) <= charCount && pXML[si] == '&' && pXML[si + 1] == '#' && pXML[si + 2] == 'x' && pXML[si + 5] == ';')
     {
-      bool escaped = false;
+      pStr[di++] = (char)udStrAtoi(pXML + si + 3, nullptr, 16);
+      si += 6;
+      escaped = true;
+    }
+    else
+    {
       for (int e = 0; pXML[si] == '&' && !escaped && e < (int)UDARRAYSIZE(s_pXMLEscStrings); ++e)
       {
         if (udStrBeginsWith(pXML+si, s_pXMLEscStrings[e]))
@@ -1530,18 +1551,18 @@ static udResult ParseXMLString(const char **ppStr, const char *pXML, int *pCharC
           escaped = true;
         }
       }
-      if (!escaped)
-        pStr[di++] = pXML[si++];
     }
-    pStr[di] = 0; // Terminate
+    if (!escaped)
+      pStr[di++] = pXML[si++];
   }
+  pStr[di] = 0; // Terminate
   *ppStr = pStr;
   pStr = nullptr;
   result = udR_Success;
 
 epilogue:
   if (pCharCount)
-    *pCharCount = charCount;
+    *pCharCount = charCount + extraChars;
   udFree(pStr);
   return result;
 }
@@ -1685,7 +1706,7 @@ udResult udJSON::ParseXML(const char *pXML, int *pCharCount, int *pLineNumber)
         pAttr->pKey = udStrdup(CONTENT_MEMBER);
         UD_ERROR_NULL(pAttr->pKey, udR_MemoryAllocationFailure);
         pAttr->value.Clear();
-        pAttr->value.u.pStr = udStrndup(pXML, len);
+        ParseXMLString(&pAttr->value.u.pStr, pXML, nullptr);
         UD_ERROR_NULL(pAttr->value.u.pStr, udR_MemoryAllocationFailure);
         pAttr->value.type = T_String;
         if (cData)
