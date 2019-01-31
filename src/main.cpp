@@ -664,7 +664,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         if (pProgramState->gis.SRID != 0 && pProgramState->gis.isProjected)
           ImGui::Text("%s (%s: %d)", pProgramState->gis.zone.zoneName, vcString::Get("SRID"), pProgramState->gis.SRID);
         else if (pProgramState->gis.SRID == 0)
-          ImGui::Text("%s", vcString::Get("NotGeolocated"));
+          ImGui::TextUnformatted(vcString::Get("NotGeolocated"));
         else
           ImGui::Text("%s: %d", vcString::Get("UnsupportedSRID"), pProgramState->gis.SRID);
 
@@ -760,7 +760,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
           char tmpBuf[128];
           const char *latLongAltStrings[] = { udTempStr("%.7f", cameraLatLong.x), udTempStr("%.7f", cameraLatLong.y), udTempStr("%.2fm", cameraLatLong.z) };
-          ImGui::Text(vStringFormat(tmpBuf, udLengthOf(tmpBuf), vcString::Get("LatLongAlt"), latLongAltStrings, udLengthOf(latLongAltStrings)));
+          ImGui::TextUnformatted(vStringFormat(tmpBuf, udLengthOf(tmpBuf), vcString::Get("LatLongAlt"), latLongAltStrings, udLengthOf(latLongAltStrings)));
 
           if (pProgramState->gis.zone.latLongBoundMin != pProgramState->gis.zone.latLongBoundMax)
           {
@@ -786,7 +786,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     if (ImGui::Begin("OnScrnControls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
     {
       ImGui::SetWindowSize(ImVec2(175, 150));
-      ImGui::Text("%s", vcString::Get("Controls"));
+      ImGui::TextUnformatted(vcString::Get("Controls"));
 
       ImGui::Separator();
 
@@ -850,7 +850,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::SetNextWindowBgAlpha(0.5f);
 
     if (ImGui::Begin("MapCopyright", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
-      ImGui::Text("%s", vcString::Get("MapData"));
+      ImGui::TextUnformatted(vcString::Get("MapData"));
     ImGui::End();
   }
 }
@@ -1071,7 +1071,7 @@ int vcMainMenuGui(vcState *pProgramState)
     udStrcat(endBarInfo, udLengthOf(endBarInfo), pProgramState->username);
 
     ImGui::SameLine(ImGui::GetContentRegionMax().x - ImGui::CalcTextSize(endBarInfo).x - 25);
-    ImGui::Text("%s", endBarInfo);
+    ImGui::TextUnformatted(endBarInfo);
 
     // Connection status indicator
     {
@@ -1085,7 +1085,7 @@ int vcMainMenuGui(vcState *pProgramState)
       if (ImGui::IsItemHovered())
       {
         ImGui::BeginTooltip();
-        ImGui::Text("%s", vcString::Get("ConnectionStatus"));
+        ImGui::TextUnformatted(vcString::Get("ConnectionStatus"));
         ImGui::EndTooltip();
       }
     }
@@ -1194,7 +1194,7 @@ void vcRenderWindow(vcState *pProgramState)
       if (ImGui::Begin(vcString::Get("LoginWaiting"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
       {
         vcMain_ShowLoadStatusIndicator(vcSLS_Loading);
-        ImGui::Text("%s", vcString::Get("Checking"));
+        ImGui::TextUnformatted(vcString::Get("Checking"));
       }
       ImGui::End();
     }
@@ -1204,7 +1204,7 @@ void vcRenderWindow(vcState *pProgramState)
       if (ImGui::Begin(vcString::Get("Login"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
       {
         if (pProgramState->pLoginErrorMessage != nullptr)
-          ImGui::Text("%s", pProgramState->pLoginErrorMessage);
+          ImGui::TextUnformatted(pProgramState->pLoginErrorMessage);
 
         bool tryLogin = false;
 
@@ -1474,7 +1474,7 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::Checkbox(vcString::Get("InvertX"), &pProgramState->settings.camera.invertX);
         ImGui::Checkbox(vcString::Get("InvertY"), &pProgramState->settings.camera.invertY);
 
-        ImGui::Text("%s", vcString::Get("MousePivot"));
+        ImGui::TextUnformatted(vcString::Get("MousePivot"));
         const char *mouseModes[] = { vcString::Get("Tumble"), vcString::Get("Orbit"), vcString::Get("Pan") };
         const char *scrollwheelModes[] = { vcString::Get("Dolly"), vcString::Get("ChangeMoveSpeed") };
 

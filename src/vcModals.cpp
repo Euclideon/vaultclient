@@ -24,7 +24,7 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
 
   if (ImGui::BeginPopupModal(vcString::Get("LoggedOut"), nullptr, ImGuiWindowFlags_NoResize))
   {
-    ImGui::Text("%s", vcString::Get("Logged"));
+    ImGui::TextUnformatted(vcString::Get("Logged"));
 
     if (ImGui::Button(vcString::Get("Close"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
@@ -69,7 +69,7 @@ void vcModals_DrawReleaseNotes(vcState *pProgramState)
     }
     else
     {
-      ImGui::Text("%s", vcString::Get("ReleaseNotesFail"));
+      ImGui::TextUnformatted(vcString::Get("ReleaseNotesFail"));
     }
 
     ImGui::EndPopup();
@@ -254,7 +254,7 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     ImGui::SetItemDefaultFocus();
 
     if (pProgramState->tileModal.loadStatus == -1)
-      ImGui::Text("%s", vcString::Get("LoadingWait"));
+      ImGui::TextUnformatted(vcString::Get("LoadingWait"));
     else if (pProgramState->tileModal.loadStatus == -2)
       ImGui::TextColored(ImVec4(255, 0, 0, 255), "%s", vcString::Get("ErrorFetching"));
     else if (pProgramState->tileModal.pServerIcon != nullptr)
@@ -385,7 +385,7 @@ void vcModals_DrawNotImplemented(vcState *pProgramState)
 
   if (ImGui::BeginPopupModal(vcString::Get("NotImplemented"), nullptr, ImGuiWindowFlags_NoResize))
   {
-    ImGui::Text("%s", vcString::Get("NotAvailable"));
+    ImGui::TextUnformatted(vcString::Get("NotAvailable"));
 
     if (ImGui::Button(vcString::Get("Close"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
