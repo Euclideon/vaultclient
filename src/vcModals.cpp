@@ -6,8 +6,9 @@
 #include "gl/vcTexture.h"
 #include "vcRender.h"
 #include "vcStrings.h"
-#include "vCore/vStringFormat.h"
 #include "vcConvert.h"
+
+#include "vCore/vStringFormat.h"
 
 #include "udPlatform/udFile.h"
 
@@ -45,7 +46,7 @@ void vcModals_DrawReleaseNotes(vcState *pProgramState)
   {
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-    ImGui::Text("%s %s", vcString::Get("AppName"), vcString::Get("ReleaseNotes"));
+    ImGui::Text("Euclideon Vault Client / %s", vcString::Get("ReleaseNotes"));
 
     ImGui::Text("%s: %s", vcString::Get("CurrentVersion"), VCVERSION_PRODUCT_STRING);
 
@@ -85,13 +86,13 @@ void vcModals_DrawAbout(vcState *pProgramState)
   {
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-    ImGui::Text("%s %s", vcString::Get("AppName"), vcString::Get("3rdPartyLic"));
+    ImGui::Text("Euclideon Vault Client / %s", vcString::Get("3rdPartyLic"));
 
     ImGui::Text("%s: %s", vcString::Get("Version"), VCVERSION_PRODUCT_STRING);
 
-
+    char strBuf[128];
     if (pProgramState->packageInfo.Get("success").AsBool())
-      ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "%s", vcString::Get("PackageUpdate"));
+      ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "%s", vStringFormat(strBuf, udLengthOf(strBuf), vcString::Get("PackageUpdate"), pProgramState->packageInfo.Get("package.versionstring").AsString()));
 
     ImGui::NextColumn();
     if (ImGui::Button(vcString::Get("Close"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
@@ -101,7 +102,7 @@ void vcModals_DrawAbout(vcState *pProgramState)
 
     ImGui::Separator();
 
-    ImGui::BeginChild(vcString::Get("Licenses"));
+    ImGui::BeginChild("Licenses");
     for (int i = 0; i < (int)UDARRAYSIZE(ThirdPartyLicenses); i++)
     {
       // ImGui::Text has a limitation of 3072 bytes.
@@ -125,7 +126,7 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
   {
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-    ImGui::Text("%s", vcString::Get("AppName"));
+    ImGui::Text("Euclideon Vault Client");
 
     ImGui::Text("%s: %s", vcString::Get("CurrentVersion"), VCVERSION_PRODUCT_STRING);
 

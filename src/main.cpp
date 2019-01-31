@@ -758,7 +758,9 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
           udDouble3 cameraLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->pCamera->matrices.camera.axis.t.toVector3());
 
-          ImGui::Text(vcString::Get("LatLongAlt"), cameraLatLong.x, cameraLatLong.y, cameraLatLong.z);
+          char tmpBuf[128];
+          const char *latLongAltStrings[] = { udTempStr("%.7f", cameraLatLong.x), udTempStr("%.7f", cameraLatLong.y), udTempStr("%.2fm", cameraLatLong.z) };
+          ImGui::Text(vStringFormat(tmpBuf, udLengthOf(tmpBuf), vcString::Get("LatLongAlt"), latLongAltStrings, udLengthOf(latLongAltStrings)));
 
           if (pProgramState->gis.zone.latLongBoundMin != pProgramState->gis.zone.latLongBoundMax)
           {
@@ -781,7 +783,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
-    if (ImGui::Begin(vcString::Get("OnScrnControls"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+    if (ImGui::Begin("OnScrnControls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
     {
       ImGui::SetWindowSize(ImVec2(175, 150));
       ImGui::Text("%s", vcString::Get("Controls"));
@@ -836,7 +838,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::SetNextWindowSize(ImVec2((float)sizei.x, (float)sizei.y));
     ImGui::SetNextWindowBgAlpha(0.5f);
 
-    if (ImGui::Begin(vcString::Get("ModelWatermark"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+    if (ImGui::Begin("ModelWatermark", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
       ImGui::Image(pProgramState->pSceneWatermark, ImVec2((float)sizei.x, (float)sizei.y));
     ImGui::End();
     ImGui::PopStyleVar();
@@ -847,7 +849,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
     ImGui::SetNextWindowBgAlpha(0.5f);
 
-    if (ImGui::Begin(vcString::Get("MapCopyright"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+    if (ImGui::Begin("MapCopyright", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
       ImGui::Text("%s", vcString::Get("MapData"));
     ImGui::End();
   }
@@ -1025,18 +1027,30 @@ int vcMainMenuGui(vcState *pProgramState)
     }
 
     char endBarInfo[512] = {};
+    char tempData[128] = {};
 
     if (pProgramState->loadList.size() > 0)
-      udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("(%zu %s) / ", pProgramState->loadList.size(), vcString::Get("EndBarFiles")));
+    {
+      const char *strings[] = { udTempStr("%zu", pProgramState->loadList.size()) };
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), vStringFormat(tempData, udLengthOf(tempData), vcString::Get("EndBarFiles"), strings, udLengthOf(strings)));
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), " / ");
+    }
 
     if ((SDL_GetWindowFlags(pProgramState->pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0)
-      udStrcat(endBarInfo, udLengthOf(endBarInfo), vcString::Get("InactiveSlash"));
+    {
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), vcString::Get("RunningInBackground"));
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), " / ");
+    }
 
     if (pProgramState->packageInfo.Get("success").AsBool())
       udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s [%s] / ", vcString::Get("UpdateAvailable"), pProgramState->packageInfo.Get("package.versionstring").AsString()));
 
     if (pProgramState->settings.presentation.showDiagnosticInfo)
-      udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s: %.3f (%.2fms) / ", vcString::Get("FPS"), 1.f / pProgramState->deltaTime, pProgramState->deltaTime * 1000.f));
+    {
+      const char *strings[] = { udTempStr("%.2f", 1.f / pProgramState->deltaTime), udTempStr("%.3f", pProgramState->deltaTime * 1000.f) };
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), vStringFormat(tempData, udLengthOf(tempData), vcString::Get("FPS"), strings, udLengthOf(strings)));
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), " / ");
+    }
 
     int64_t currentTime = vcMain_GetCurrentTime();
 
@@ -1169,7 +1183,7 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::SetNextWindowPos(ImVec2(size.x - 5, size.y - 5), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
 
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f, 0.f, 0.f, 0.f));
-    ImGui::Begin(vcString::Get("Watermark"), nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
+    ImGui::Begin("Watermark", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
     ImGui::Image(pProgramState->pCompanyLogo, ImVec2(301, 161), ImVec2(0, 0), ImVec2(1, 1));
     ImGui::End();
     ImGui::PopStyleColor();
