@@ -1,18 +1,18 @@
-# Euclideon Vault Client User Guide
-## The Basics
-### Unpacking / Installing
+# **Euclideon Vault Client User Guide**
+# Getting Started
+## Unpacking / Installing
 
-#### Windows
+### Windows
 1. Download the latest ZIP that has been approved for use from your Euclideon Vault Server provider.
 2. Unpack the entire contents of the .zip file
 3. If you have a computer capable of running OpenGL run `vaultClient_OpenGL.exe` otherwise for older machines `vaultClient.exe`. The OpenGL version will offer a smoother experience on most machines.
 
-#### macOS
+### MacOS
 1. Download the latest DMG package that has been approved for use from your Euclideon Vault Server provider.
 2. Open the DMG and drag the "Euclideon Vault Client" icon onto the provided "Applications" icon
 4. Run the "Euclideon Vault Client" application from "Applications"
 
-#### Debian Linux Distributions (Requires Desktop Environment)
+### Debian Linux Distributions (Requires Desktop Environment)
 1. Use your package manager to install the following:
     - SDL2 (Minimum version 2.0.5)
     - libCURL (Version 3)
@@ -20,19 +20,23 @@
 3. Unpack the entire contents of the tar.gz
 4. Run `vaultClient`
 
-#### iOS / Android
-- The iOS and Android builds are not currently publicly available.
+### iOS / Android
+The iOS and Android builds are not currently publicly available.
 
-### Logging In
-After running the application you should see a login screen as below.
+## Logging In
+After running the application you should see the Login screen below.
 
 ![Login Screen](images/loginscreen.png)
 
-- `ServerURL` will be provided by your vault server provider*
-- `Username` is the username you were given (or entered while registering). If you weren't provided with a username you may be able to register for one by visiting the server URL in your browser*
-- `Password` is your account password
+`ServerURL` will be provided by your vault server provider.
 
-There are additional settings in the "Advanced Connection Settings" dropdown.
+`Username` is the username you were given (or entered while registering). If you weren't provided with a username you may be able to register for one by visiting the server URL in your browser.
+
+`Password` is your account password.
+
+If `Remember` is ticked, the client will store the value entered so you don't have to enter it every time.
+
+There are also additional settings in the "Advanced Connection Settings" dropdown:
 
 - `Proxy Address` is the address for your internet proxy (this is provided by your system administrator). It can additionally include the port number and protocol. Examples include: `192.168.0.1`, `169.123.123.1:80` or `https://10.4.0.1:8081`. Leaving this blank will attempt auto-detection.
   - Many companies & organizations have authenticated proxies. Entering a proxy here is not enough to ensure that the proxy will work in all situations. This box does support authentication using _protocol_://_username_:_password_@_proxyaddress_:_port_ e.g. `https://developer:secretPassword123@10.4.0.255:8081` or `user:p455w0rd@proxy.local`. __PLEASE NOTE THAT THIS SETTING IS STORED IN PLAIN TEXT! AFTER CONFIRMING YOU HAVE AN AUTHENTICATED PROXY- DELETE YOUR INFORMATION FROM THIS BOX!__ A future release will provide a secure way to store proxy information.
@@ -40,21 +44,33 @@ There are additional settings in the "Advanced Connection Settings" dropdown.
 
 > NOTE: `Ignore Certificate Verification` will not be saved due to the security risk associated. You will need to enable this setting each time you open the application.
 
-*`Remember` will store the value you enter here for future use so you don't have to enter it every time.
+After you have entered your credentials, click `Login!` and you should see an empty scene in the user interface similar to the image below.
 
-After logging in you should see the full user interface:
 ![User Interface](images/afterlogin.png)
 
 ---
 
-## User Interface
+# User Interface
+
+Shown below is a numbered diagram of a screenshot of the user interface.
 
 ![Interface Numbers](images/interfacenumbered.png)
 
-### 1. Scene Viewport
-The scene viewport displays your scene (the Scene Explorer (see below) explains how to add things to the scene).
+1. Scene Viewport
+2. Menu & Status Bar
+3. Scene Explorer
+4. Settings
+5. GIS/Scene Info
+6. Copyright & Compass
+7. Watermark
+8. Convert Tab
 
-#### Moving around the viewport
+The following numbered sections will explain these features in full detail.
+
+## 1. Scene Viewport
+The scene viewport displays your scene. The Scene Explorer section (see **3. Scene Explorer** below) will explain how to add models to your scene.
+
+### Moving around the viewport
 > TIP: These settings are configurable in the [Input & Controls](#input-&-controls) settings menu.
 
 Mouse Controls:
@@ -68,28 +84,28 @@ Default Keyboard Controls (with the "Scene" window focussed):
 - `W` and `S` strafe the camera forward and backward at the current Camera Move Speed.
 - `A` and `D` strafe the camera left and right at the current Camera Move Speed.
 - `R` and `F` strafe the camera up and down at the current Camera Move Speed.
-- `Spacebar` locks altitude allowing user to move forward without it directly adjusting camera height (Z-axis lock).
+- `Spacebar` locks altitude, allowing user to pan and strafe the camera without changing camera height (Z-axis lock).
 
-#### Hotkeys
+### Hotkeys
 - `F5` Toggles presentation mode, hiding the interface and going fullscreen.
 
-##### Gizmo Hotkeys
+#### Gizmo Hotkeys
 - `B` Sets the gizmo to translation mode, allowing user to move objects.
 - `N` Sets the gizmo to rotation mode, allowing user to rotate objects.
 - `M` Sets the gizmo to scale mode, allowing user to resize objects.
 - `C` Toggles the gizmo between local and world space coordinates.
 
-##### Scene Explorer Hotkeys
+#### Scene Explorer Hotkeys
 - `Ctrl+U` Opens popup for loading UDS files.
 - `Delete` Removes selected item(s) from the scene explorer.
 
-### 2. Menu & Status Bar
+## 2. Menu & Status Bar
 
 ![Status Bar](images/statusbar.png)
 
 The menu bar consists of 2 sections, the left section with menu drop downs and the right section with status information.
 
-#### System Menu
+### System Menu
 
 ![System Menu](images/systemdown.png)
 
@@ -105,146 +121,154 @@ The system menu has a number of system related functions.
 - `Release Notes` displays a popup with information on the current and previous release changes.
 - `Quit` logs you out and then closes the program.
 
-#### Windows
+### Windows
 ![Windows Menu](images/windowsmenu.png)
 
 The windows menu allows you to show or hide various windows in the Euclideon Vault Client application.
 
 - Contains windows: Scene, Scene Explorer, Settings, Convert
 
-#### Projects
+### Projects
 ![Projects Menu](images/projectdropdown.png)
 
 The projects menu has a new scene button and if additional projects are available to your user, it will show those projects here as well.
 
 - "New Scene" will remove all items from your Scene
 
-#### Status Bar
+### Status Bar
 The status bar shows a lot of useful information (not all of it will always be available).
 
 - Number of files queued to load "([n] Files Queued),
 
-### 3. Scene Explorer
+## 3. Scene Explorer
 ![Scene Explorer](images/sceneexplorer.png)
 
-This pane shows you the assets currently in your scene, allows user to add UDS files and create new folders, Points of interest, Areas of interest & Lines.
+The Scene Explorer window shows you the assets currently in your scene, and also allows the user to add UDS models and create new folders, points of interest, areas of interest and lines.
 
 > TIP: If you ever want to quickly clear the current scene, the "Projects" menu has a "New Scene" button that will remove everything from the scene.
 
-#### Scene Explorer Quick Action Menu
+### Quick Action Menu
 The buttons across the top of the Scene Explorer allow quick access to add or remove from the scene. From left to right:
-1.  Add UDS `Ctrl + U`
+- `Add UDS` (hotkey `Ctrl + U`) This button opens the dialog box to add a UDS model to the scene. The Path/URL can include files on the local drives, network drives, UNC Paths, HTTP, HTTPS, FTP & FTPS.
+   ![AddUDS](images/adduds.png)
+- `Add Point of Interest` This button adds a point of interest to the scene.
+- `Add Area of Interest` __This button is not enabled in this version of Euclideon Vault Client.__
+- `Add Lines` __This button is not enabled in this version of Euclideon Vault Client.__
+- `Add Folder` Adds a folder to the scene explorer. This can help with organizing your scene.
+- `Delete` (hotkey `Delete`) This deletes all selected items from the scene
 
-    ![AddUDS](images/adduds.png)
-  -  This button opens the dialogue box to add a UDS to the scene. The Path/URL can include files on the local drives, network drives, UNC Paths, HTTP, HTTPS, FTP & FTPS.
-2. Add Point of Interest
-  - This button adds a point of interest to the scene.
-3. Add Area of Interest
-  - This button is not enabled in this version of Euclideon Vault Client.
-4. Add Lines
-  - This button is not enabled in this version of Euclideon Vault Client.
-5. Add Folder
-  - Adds a folder to the scene explorer. This can help with organizing your scene.
-6. Delete (or `Delete` key)
-  - This deletes all selected models from the scene
+### Scene Items
 
-#### Scene Items
-
-Under the quick actions the contents of your scene will be displayed.
+Under the quick action menu you will find the contents of your scene.
 
 ![Model Information](images/sceneexplorer2.png)
 
-- The tick box to the very left of each item is a visibility checkbox. Disabling this hides the element in the scene.
-- The arrow indicator expands the items information. For Folders this will show the contents of the folder.
-- Highlighted items are items you have selected.
+- The checkbox to the left of each item is a visibility checkbox. Disabling this hides the element in the scene.
+- The arrow indicator expands the items information. For folders this will show the contents of the folder.
 
 > Note that disabling visibility for a folder will also disable visibility for _all_ items in that folder- including subfolders and their contents.
 
 ##### Selecting Items
 
-You can select mulitple items in the scene explorer by holding `Ctrl` and then Left Clicking them- doing this on a selected item will deselect it.
+Left-click on an item in the Scene Explorer to select it. Selected items will appear highlighted.
+
+You can select multiple items in the scene explorer by holding `Ctrl` and then left-clicking them. Doing this on a selected item will deselect it.
 
 Single clicking without `Ctrl` will deselect all items and select just the item you have clicked.
 
 ##### Reorganizing the scene
 
-The items in the scene explorer can be dragged to reorder them. A yellow line indicates where the item will be after you release the item.
+The items in the scene explorer can be reordered by holding left-click and dragging them around. A yellow line indicates where the item will be after you release it.
 
-> When dropping onto folders. It is best to open the folder you wish to drag into before starting the drag operation.
+> When dropping onto folders. It is best to open the folder you wish to drag into before starting the click-drag operation.
 
-#### Loading UDS Models
+### Loading UDS Models
 There are a number of ways to add models to the scene.
 
 1. Drag and Drop: On devices with folder exploring you can drag a file from your file explorer and drop it in the Euclideon Vault Client window to add the model to the scene.
 2. Direct URI loading: You can type a URL or path in the `Add UDS` popup. The path field at the top of the pane allows URL and network paths to retrieve UDS files.
 3. If you have access to projects on the server you will be able to click the "Projects" button in the menu and select a project to load. Projects are loaded from the Vault Server you're connected to.
 
-### 4. Settings
+## 4. Settings
 ![Settings](images/settings.png)
 
-  - Settings contain both a large number of functional and visual customisations to the Vault Client such as changing the display theme, showing FPS, onscreen compass, displaying diagnostic and advanced GIS settings.
+Settings contain both a large number of functional and visual customisations to the Vault Client such as changing the display theme, showing FPS, onscreen compass, displaying diagnostic and advanced GIS settings.
 
-Appearance
+#### Appearance
 
 ![Appearance Settings](images/appearance.png)
-  - Allows users to change presentation UI, Mouse Anchor Shape, Default Voxel Shape.
+
+Allows users to change presentation UI, Mouse Anchor Shape, Default Voxel Shape.
 
 
-Input and Controls
+#### Input and Controls
 
 ![Input Settings](images/inputcontrol.png)
 
-  - Allows on screen mouse control, Touchscreen friendly UI, inverse X and Y axis, mouse pivot settings (bindings & mouse icon control).
+Allows on screen mouse control, Touchscreen friendly UI, inverse X and Y axis, mouse pivot settings (bindings & mouse icon control).
 
 
-Viewport
+#### Viewport
 
 ![Viewport Settings](images/viewport.png)
 
-  - Changes minimal viewing distance and maximum viewing distance, allows changing field of view.
-  > TIP: If experiencing loss of image, change min and max settings
+Changes minimal viewing distance and maximum viewing distance, allows changing field of view.
+  > TIP: If experiencing loss of image, try changing the near and far plane settings to make your objects visible again.
 
-Maps & Elevation
+#### Maps & Elevation
 
 ![Maps & Elevation Settings](images/mapsandelevation.png)
 
-  -  Toggle Map Tiles and allow mouse to lock to Maps.
+The top two checkboxes are used to toggle Map Tiles and allow the mouse to lock to maps when using the mouse for camera movement.
+
+Tile Server allows overlay with existing maps, clicking `Tile Server` prompts the user to enter a https:// address for background tiles, with the option to import .png or .jpg files.
 
 ![Tile Server](images/tileserver.png)
 
-  -  Tile Server allows overlay with existing maps, clicking 'Tile Server' prompts user to enter an https address for background tiles with the option to import png or jpg.
-    - Transparency slider adjusts the overall visibility of objects allowing Tiles to be more visible with vault objects in foreground.
-    - Map height adjusts the height of tiles in relation to vault objects.
-    - Blending with objects allows tile maps to overlay, underlay or feature in hybrid mode with existing vault objects.
+The transparency slider adjusts the overall visibility of objects allowing tiles to be more visible with vault objects in foreground.
 
-Visualization
+Map height adjusts the height of tiles in relation to vault objects.
+
+Blending with objects allows tile maps to overlay, underlay or feature in hybrid mode with existing vault objects.
+
+#### Visualization
 
 ![Visualization Settings](images/visualizationsettings.png)
 
-  - Allows users to change between Colour, Intensity and Classification Display modes.
-  - Enabling Color by Height, Depth and Edges with max / min sliders for each respective property with a color wheel to showcase features.
-  - Enabling Contours allows coloured contours sorted by distance and band height with a color wheel.
+This pane allows users to change between Colour, Intensity and Classification display modes.
+
+Here you can enable Edge Highlighting or display Colour by Height or Depth. Enabling Contours will display coloured contours sorted by distance and band height.
+
+All four display options are shown expanded below, each allows the user to specify min/max values and choose custom colour schemes.
+
 ![Visualization Settings Expanded](images/visualizationall.png)
 
 > TIP: If you ever change a setting and can't recall what you've changed, you can reset _all_ settings by going to the "System" menu and selecting "Restore Defaults", or you can reset individual groups of settings by right clicking their header and selecting "Restore Defaults"
 
-### 5. GIS / Scene Info
+## 5. GIS / Scene Info
 
 ![Camera Information](images/camerabox.png)
 
-  - Scene contains several key functions, such as X,Y,Z camera coordinates, camera rotation coordinates and camera movement speed. Toggled by 'Show Camera Button'.
-  - Displays Latitude and Longitude, along with current camera altitude.
-  - Several clickboxes allow Lock Altitude (spacebar default), Show Camera Information, Show projection information (Displays SRID, MGA zones information).
-  - Gismo Translate, Gizmo Rotate, Gizmo Scale and Gizmo local space buttons
+This pane contains several useful features, from left to right:
+  - `Lock Altitude` (hotkey `spacebar`) will keep the camera's height constant when panning with the mouse or strafing with the keyboard (Z-axis lock).
+  - `Show Camera Information` will toggle display the camera position and rotation coordinates, and the camera move speed slider.
+  - `Show Projection Information` will toggle display SRID and MGA zone information in the top-right corner.
+  - `Gizmo Translate` (hotkey `B`) allows the user to move objects.
+  - `Gizmo Rotate` (hotkey `N`) allows the user to rotate objects.
+  - `Gizmo Scale` (hotkey `M`) allows the user to resize objects.
+  - `Gizmo Local Space` (hotkey `C`) toggles the gizmo between local and world space coordinates.
+  - `Fullscreen` (hotkey `F5`) toggles presentation mode, hiding the interface and going fullscreen.
 
-### 6. Copyright & Compass
+If supported in the scene, this area also displays the Latitude, Longitude and Altitude of the camera's current position.
+
+## 6. Copyright & Compass
   - Adding Copyright Data can be done in the metadata subtab during converting
   - Compass by default is on, Appearance pane contains on/off checkbox
 
-### 7. Watermark
+## 7. Watermark
   - Watermarks can be viewed on each UDS file, by clicking on the UDS file in the Scene Explorer and then viewing the [Watermark] identification tag
 
-### 8. Convert Tab
+## 8. Convert Tab
 Converting to UDS file format can be done from within the Euclideon Vault Client as well. Loading a supported pointcloud format will open the "Convert" window if it isn't already open. A quick 'pre-parse' is done to detect the file format, supported attributes etc. By loading the start of the file, this stage also does an estimate of the total number of points the file has.
   - Supported file conversion formats (?????).
 > If you aren't able to find the convert tab, it can be displayed from the `Windows > Convert` flag, once selected the convert option will be displayed next to the Scene tab.
@@ -294,7 +318,7 @@ The "X" button beside the convert job in the "Convert Jobs" section allows you t
 
 ---
 
-## Technical Information
+# Technical Information
 
 ### Requirements
 
@@ -310,7 +334,7 @@ Where the settings file is stored depends on your OS.
 - iOS: `???`
 - Android: `???`
 
-## FAQs
+# FAQs
 
 Why can't I see my image?
 > Try adjusting the viewport settings until the image appears, ensure you have loaded and enabled the layer in the scene viewer pane.
