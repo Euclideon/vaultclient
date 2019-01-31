@@ -56,6 +56,8 @@ Shown below is a numbered diagram of a screenshot of the user interface.
 
 ![Interface Numbers](images/interfacenumbered.png)
 
+??Make these bold??
+
 1. Scene Viewport
 2. Menu & Status Bar
 3. Scene Explorer
@@ -65,10 +67,10 @@ Shown below is a numbered diagram of a screenshot of the user interface.
 7. Watermark
 8. Convert Tab
 
-The following numbered sections will explain these features in full detail.
+The following numbered sections will explain each of these features in full detail.
 
 ## 1. Scene Viewport
-The scene viewport displays your scene. The Scene Explorer section (see **3. Scene Explorer** below) will explain how to add models to your scene.
+The scene viewport displays your scene. The Scene Explorer section (see section **3. Scene Explorer** below) will explain how to add models to your scene.
 
 ### Moving around the viewport
 > TIP: These settings are configurable in the [Input & Controls](#input-&-controls) settings menu.
@@ -192,36 +194,48 @@ There are a number of ways to add models to the scene.
 ## 4. Settings
 ![Settings](images/settings.png)
 
-Settings contain both a large number of functional and visual customisations to the Vault Client such as changing the display theme, showing FPS, onscreen compass, displaying diagnostic and advanced GIS settings.
+The settings window has five? subheadings which allow the user to customise and control how the vault client looks and operates. The subheading can be opened by left-clicking on the arrows to the left.
 
 #### Appearance
 
 ![Appearance Settings](images/appearance.png)
 
-Allows users to change presentation UI, Mouse Anchor Shape, Default Voxel Shape.
+Here the user can adjust several settings that change the appearance of the client:
 
+  - A visual theme can be chosen to change the overall colour scheme, options are Light and Dark.???
+  - The user can choose to display diagnostic information, such as FPS???
+  - The user can choose to display advanced GIS settings in the top-right corner.
+  - The FPS limit of the client when running in the background can be toggled???
+  - The compass in the bottom-right corner can be toggled on/off.
+  - By default the UI is not visible in Presentation or Fullscreen mode (hotkey `F5`) but this setting can be changed.
+  - The appearance of the mouse when anchoring to models or map tiles can be changed.
+  - The user can set the shape of voxels in the main window to either points, squares or cubes.
 
 #### Input and Controls
 
 ![Input Settings](images/inputcontrol.png)
 
-Allows on screen mouse control, Touchscreen friendly UI, inverse X and Y axis, mouse pivot settings (bindings & mouse icon control).
+Expanding this subheading allows the user to change settings that affect how they interface with the client:
 
+  - Can toggle on-screen mouse controls.
+  - Can change the UI to be touchscreen friendly ???
+  - The X and Y axes can be inverted, which will affect camera movement with the mouse.
+  - Mouse-controlled camera movement can be customised by the user, descriptions of the different mouse pivot bindings can be found in section **1. Scene Viewport** above.
 
 #### Viewport
 
 ![Viewport Settings](images/viewport.png)
 
-Changes minimal viewing distance and maximum viewing distance, allows changing field of view.
+These options allow the user to changes the camera's minimum and maximum viewing distance, and field of view of the camera lens.
   > TIP: If experiencing loss of image, try changing the near and far plane settings to make your objects visible again.
 
 #### Maps & Elevation
 
 ![Maps & Elevation Settings](images/mapsandelevation.png)
 
-The top two checkboxes are used to toggle Map Tiles and allow the mouse to lock to maps when using the mouse for camera movement.
+The top two checkboxes here are used to toggle Map Tiles and allow the mouse to lock to maps when using the mouse for camera movement.
 
-Tile Server allows overlay with existing maps, clicking `Tile Server` prompts the user to enter a https:// address for background tiles, with the option to import .png or .jpg files.
+Tile Server allows overlay with existing maps??, clicking `Tile Server` prompts the user to enter a https:// address for background tiles, with the option to import .png or .jpg files.??
 
 ![Tile Server](images/tileserver.png)
 
@@ -250,7 +264,7 @@ All four display options are shown expanded below, each allows the user to speci
 ![Camera Information](images/camerabox.png)
 
 This pane contains several useful features, from left to right:
-  - `Lock Altitude` (hotkey `spacebar`) will keep the camera's height constant when panning with the mouse or strafing with the keyboard (Z-axis lock).
+  - `Lock Altitude` (hotkey `Spacebar`) will keep the camera's height constant when panning with the mouse or strafing with the keyboard (Z-axis lock).
   - `Show Camera Information` will toggle display the camera position and rotation coordinates, and the camera move speed slider.
   - `Show Projection Information` will toggle display SRID and MGA zone information in the top-right corner.
   - `Gizmo Translate` (hotkey `B`) allows the user to move objects.
@@ -259,14 +273,15 @@ This pane contains several useful features, from left to right:
   - `Gizmo Local Space` (hotkey `C`) toggles the gizmo between local and world space coordinates.
   - `Fullscreen` (hotkey `F5`) toggles presentation mode, hiding the interface and going fullscreen.
 
-If supported in the scene, this area also displays the Latitude, Longitude and Altitude of the camera's current position.
+If supported in the scene (?), this area also displays the Latitude, Longitude and Altitude of the camera's current position.
 
 ## 6. Copyright & Compass
-  - Adding Copyright Data can be done in the metadata subtab during converting
-  - Compass by default is on, Appearance pane contains on/off checkbox
+Copyright data will be displayed in the bottom-right corner of the viewport. Copyright Data can be added to new models in the metadata subtab during conversion.
+
+A compass is also displayed in this corner, indicating the camera's current orientation within the global coordinate space. Compass by default is on, but the Appearance pane contains an on/off checkbox to toggle this setting.
 
 ## 7. Watermark
-  - Watermarks can be viewed on each UDS file, by clicking on the UDS file in the Scene Explorer and then viewing the [Watermark] identification tag
+Watermarks can be viewed on each UDS file, by clicking on the UDS file in the Scene Explorer and then viewing the [Watermark] identification tag
 
 ## 8. Convert Tab
 Converting to UDS file format can be done from within the Euclideon Vault Client as well. Loading a supported pointcloud format will open the "Convert" window if it isn't already open. A quick 'pre-parse' is done to detect the file format, supported attributes etc. By loading the start of the file, this stage also does an estimate of the total number of points the file has.
