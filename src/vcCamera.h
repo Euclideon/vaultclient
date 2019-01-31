@@ -36,6 +36,7 @@ struct vcCamera
     udDouble4x4 view;
 
     udDouble4x4 projection;
+    udDouble4x4 projectionUD;
     udDouble4x4 projectionNear; // Used for skybox
 
     udDouble4x4 viewProjection;
