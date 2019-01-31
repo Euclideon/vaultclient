@@ -37,7 +37,7 @@ namespace vcString
     }
   }
 
-  vdkError LoadTable(vcState *pProgramState, const char *pFilename)
+  vdkError LoadTable(const char *pFilename)
   {
     char *pPos = nullptr;
     if (pFilename == nullptr || udFile_Load(pFilename, (void **)&pPos) != udR_Success)

@@ -473,7 +473,7 @@ int main(int argc, char **args)
 
   SDL_EnableScreenSaver();
 
-  vcString::LoadTable(&programState, "asset://assets/lang/enAU.json");
+  vcString::LoadTable("asset://assets/lang/enAU.json");
 
   while (!programState.programComplete)
   {
