@@ -373,7 +373,7 @@ void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, 
   }
 
   if (pNode->renderInfo.loadStatus != vcNodeRenderInfo::vcTLS_Loaded && vcQuadTree_IsVisibleLeafNode(&pTileRenderer->quadTree, pNode))
-    vcTileRenderer_UpdateTileTexture(pTileRenderer, pNode);
+      vcTileRenderer_UpdateTileTexture(pTileRenderer, pNode);
 
   if (pNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_Loaded && !pNode->renderInfo.fading && pNode->renderInfo.transparency == 0.0f)
   {
@@ -467,7 +467,6 @@ bool vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
 
   pTileRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pNode->renderInfo.transparency * pTileRenderer->pSettings->maptiles.transparency);
 #if VISUALIZE_DEBUG_TILES
-
   if (!pNode->renderInfo.pTexture)
   {
     pTileRenderer->presentShader.everyObject.colour.x = pNode->level / 21.0f;
@@ -481,6 +480,8 @@ bool vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
   vcMesh_Render(pMesh, TileIndexResolution * TileIndexResolution * 2); // 2 tris per quad
 
   pNode->rendered = true;
+  ++pTileRenderer->quadTree.metaData.nodeRenderCount;
+
   return true;
 }
 
@@ -596,6 +597,10 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true, nullptr);
   vcGLState_SetBlendMode(vcGLSBM_None);
   vcShader_Bind(nullptr);
+
+#if VISUALIZE_DEBUG_TILES
+  printf("touched=%d, visible=%d, rendered=%d, leaves=%d\n", pTileRenderer->quadTree.metaData.nodeTouchedCount, pTileRenderer->quadTree.metaData.visibleNodeCount, pTileRenderer->quadTree.metaData.nodeRenderCount, pTileRenderer->quadTree.metaData.leafNodeCount);
+#endif
 }
 
 void vcTileRenderer_ClearTiles(vcTileRenderer *pTileRenderer)

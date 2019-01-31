@@ -281,6 +281,8 @@
   "sceneGizmoLocalSpaceKey": "C",
   "sceneFullscreen": "Fullscreen",
   "sceneFullscreenKey": "F5",
+  "sceneMapMode": "Map Mode",
+  "sceneMapModeKey": "Ctrl+M",
 
   "sceneCameraSettings": "Camera Settings",
   "sceneCameraLatLongAlt": "Lat: {0}°, Lon: {1}°, Alt {2}",

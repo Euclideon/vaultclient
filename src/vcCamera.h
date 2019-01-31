@@ -51,11 +51,20 @@ enum vcInputState
   vcCIS_None,
   vcCIS_Orbiting,
   vcCIS_MovingToPoint,
+  vcCIS_LookingAtPoint,
   vcCIS_CommandZooming,
   vcCIS_PinchZooming,
   vcCIS_Panning,
 
   vcCIS_Count
+};
+
+enum vcCamerMode
+{
+  vcCM_FreeRoam,
+  vcCM_OrthoMap,
+
+  vcCM_Count,
 };
 
 struct vcCameraInput
@@ -66,6 +75,7 @@ struct vcCameraInput
   udDouble3 worldAnchorPoint;
   udRay<double> anchorMouseRay;
   udDouble3 startPosition; // for zoom to
+  udDouble3 lookAtPosition; // for 'look at'
   udDoubleQuat startAngle;
   double progress;
 
@@ -73,6 +83,8 @@ struct vcCameraInput
 
   udDouble3 keyboardInput;
   udDouble3 mouseInput;
+
+  bool transitioningToMapMode;
 };
 
 struct vcCameraSettings
@@ -87,6 +99,9 @@ struct vcCameraSettings
   vcCameraMoveMode moveMode;
   vcCameraPivotMode cameraMouseBindings[3]; // bindings for camera settings
   vcCameraScrollWheelMode scrollWheelMode;
+
+  vcCamerMode cameraMode;
+  double orthographicSize;
 };
 
 // Lens Sizes
@@ -118,5 +133,8 @@ void vcCamera_Destroy(vcCamera **ppCamera);
 
 // Applies movement to camera
 void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos);
+
+void vcCamera_SwapMapMode(vcState *pProgramState);
+void vcCamera_LookAt(vcState *pProgramState, const udDouble3 &targetPosition);
 
 #endif//vcCamera_h__

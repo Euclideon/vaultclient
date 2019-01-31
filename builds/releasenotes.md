@@ -1,6 +1,7 @@
 Euclideon Vault Client Version History
 
 Version 0.2.1
+  - Added Map Mode (orthographic rendering) (EVC-227)
   - Added a built-in Image Viewer
   - Added the ability to import labels from CSV (EVC-239)
   - Added a right-click context menu to add POIs, set the map height and Move To
