@@ -279,7 +279,8 @@ static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &m
     sGizmoContext.mModel = udDouble4x4::translation((matrix * udDouble4x4::translation(sGizmoContext.pivot)).axis.t.toVector3());
   }
 
-  sGizmoContext.mModelSource = matrix;
+  if (!sGizmoContext.mbUsing)
+    sGizmoContext.mModelSource = matrix;
   sGizmoContext.mModelScaleOrigin = udDouble3::create(udMag3(sGizmoContext.mModelSource.axis.x), udMag3(sGizmoContext.mModelSource.axis.y), udMag3(sGizmoContext.mModelSource.axis.z));
 
   sGizmoContext.mModelInverse = udInverse(sGizmoContext.mModel);
@@ -822,7 +823,7 @@ static void vcGizmo_HandleTranslation(udDouble4x4 *matrix, udDouble4x4 *deltaMat
       if (deltaMatrix)
         *deltaMatrix = deltaMatrixTranslation;
 
-      *matrix = deltaMatrixTranslation * sGizmoContext.mModelSource;
+      *matrix = deltaMatrixTranslation * (*matrix);
 
       if (!io.MouseDown[0])
         sGizmoContext.mbUsing = false;
@@ -920,9 +921,6 @@ static void vcGizmo_HandleScale(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix, i
         sGizmoContext.mScale = udDouble3::create(udMax(1.0 + scaleDelta, 0.001));
       }
 
-      // should only scale in response to immediate changes in mousepos
-      sGizmoContext.mSaveMousePosx = io.MousePos.x;
-
       // snap
       if (snap)
         vcGizmo_ComputeSnap(sGizmoContext.mScale, snap);
@@ -995,7 +993,7 @@ static void vcGizmo_HandleRotation(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix
     udDouble4x4 deltaRotation = udDouble4x4::translation(sGizmoContext.pivot) * udDouble4x4::rotationAxis(rotationAxisLocalSpace.toVector3(), sGizmoContext.mRotationAngle - sGizmoContext.mRotationAngleOrigin) * udDouble4x4::translation(-sGizmoContext.pivot);
     sGizmoContext.mRotationAngleOrigin = sGizmoContext.mRotationAngle;
 
-    *matrix = sGizmoContext.mModelSource * deltaRotation;
+    *matrix *= deltaRotation;
 
     if (deltaMatrix)
       *deltaMatrix = deltaRotation;
