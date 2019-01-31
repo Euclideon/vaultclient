@@ -566,18 +566,32 @@ int main(int argc, char **args)
           if (pNextLoad != nullptr)
           {
             udFilename loadFile(pNextLoad);
-
-            if (udStrEquali(loadFile.GetExt(), ".uds") || udStrEquali(loadFile.GetExt(), ".ssf") || udStrEquali(loadFile.GetExt(), ".udm") || udStrEquali(loadFile.GetExt(), ".udg"))
+            const char *pExt = loadFile.GetExt();
+            if (udStrEquali(pExt, ".uds") || udStrEquali(pExt, ".ssf") || udStrEquali(pExt, ".udm") || udStrEquali(pExt, ".udg"))
             {
               vcModel_AddToList(&programState, nullptr, pNextLoad, firstLoad);
               continueLoading = true;
             }
-            else if (udStrEquali(loadFile.GetExt(), ".udp"))
+            else if (udStrEquali(pExt, ".udp"))
             {
               if (firstLoad)
                 vcScene_RemoveAll(&programState);
 
               vcUDP_Load(&programState, pNextLoad);
+            }
+            else if ( !ImGui::IsDockActive(vcString::Get("Convert")) &&
+              (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif")))
+            {
+              vcTexture_Destroy(&programState.image.pImage);
+
+              int comp;
+              stbi_uc *pImg = stbi_load(pNextLoad, &programState.image.width, &programState.image.height, &comp, 4);
+
+              vcTexture_Create(&programState.image.pImage, programState.image.width, programState.image.height, pImg);
+
+              stbi_image_free(pImg);
+
+              vcModals_OpenModal(&programState, vcMT_ImageViewer);
             }
             else
             {
@@ -640,6 +654,7 @@ epilogue:
   vcLogout(&programState);
   programState.sceneExplorer.pItems->Cleanup(&programState);
   udFree(programState.sceneExplorer.pItems);
+  vcTexture_Destroy(&programState.image.pImage);
 
   vcGLState_Deinit();
 

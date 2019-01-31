@@ -39,4 +39,9 @@ namespace ImGui
   {
     g_dock.captureDefaults();
   }
+
+  bool IsDockActive(const char *pLabel)
+  {
+    return g_dock.isActive(pLabel);
+  }
 } // namespace ImGui

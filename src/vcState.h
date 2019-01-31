@@ -107,6 +107,13 @@ struct vcState
     std::vector<vcSceneItemRef> selectedItems;
   } sceneExplorer;
 
+  struct
+  {
+    vcTexture *pImage;
+    int width;
+    int height;
+  } image;
+
   bool firstRun;
   int64_t lastEventTime;
   bool showUI;

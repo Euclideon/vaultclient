@@ -394,6 +394,56 @@ void vcModals_DrawNotImplemented(vcState *pProgramState)
   }
 }
 
+void vcModals_DrawImageViewer(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_ImageViewer))
+    ImGui::OpenPopup(vcString::Get("ImageViewer"));
+
+  int maxX, maxY;
+  SDL_GetWindowSize(pProgramState->pWindow, &maxX, &maxY);
+
+  ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2((float)maxX, (float)maxY));
+  if (ImGui::BeginPopupModal(vcString::Get("ImageViewer"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
+  {
+    if (ImGui::Button(vcString::Get("Close"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+      ImGui::CloseCurrentPopup();
+
+    ImGuiIO io = ImGui::GetIO();
+    ImVec2 window = ImGui::GetWindowSize();
+    ImVec2 windowPos = ImGui::GetWindowPos();
+
+    ImGui::Image(pProgramState->image.pImage, ImVec2((float)pProgramState->image.width, (float)pProgramState->image.height));
+
+    if (ImGui::IsWindowHovered())
+    {
+      io.MouseWheel += ImGui::IsMouseDoubleClicked(0);
+      if (io.MouseWheel != 0 && (io.MouseWheel > 0 || (pProgramState->image.width > window.x || pProgramState->image.height > window.y + 15)))
+      {
+        float scaleFactor = io.MouseWheel / 10;
+
+        float xRatio = float((io.MousePos.x - windowPos.x) / window.x - .5);
+        float yRatio = float((io.MousePos.y - windowPos.y) / window.y - .5);
+
+        float deltaX = pProgramState->image.width * scaleFactor;
+        float deltaY = pProgramState->image.height * scaleFactor;
+
+        ImGui::SetScrollX(ImGui::GetScrollX() + (deltaX / 2) + (deltaX * xRatio));
+        ImGui::SetScrollY(ImGui::GetScrollY() + (deltaY / 2) + (deltaY * yRatio));
+
+        pProgramState->image.width = int(pProgramState->image.width * (1 + scaleFactor));
+        pProgramState->image.height = int(pProgramState->image.height * (1 + scaleFactor));
+      }
+
+      if (io.MouseDown[0])
+      {
+        ImGui::SetScrollX(ImGui::GetScrollX() - (ImGui::GetScrollMaxX() * (io.MouseDelta.x / window.x * 2)));
+        ImGui::SetScrollY(ImGui::GetScrollY() - (ImGui::GetScrollMaxY() * (io.MouseDelta.y / window.y * 2)));
+      }
+    }
+
+    ImGui::EndPopup();
+  }
+}
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 {
   pProgramState->openModals |= (1 << type);
@@ -410,6 +460,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawImportUDP(pProgramState);
   vcModals_DrawLoadWatermark(pProgramState);
   vcModals_DrawNotImplemented(pProgramState);
+  vcModals_DrawImageViewer(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_NewVersionAvailable) | (1 << vcMT_LoggedOut));
 }
