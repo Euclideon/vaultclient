@@ -7,6 +7,7 @@
 #include "vcRender.h"
 #include "vcStrings.h"
 #include "vCore/vStringFormat.h"
+#include "vcConvert.h"
 
 #include "udPlatform/udFile.h"
 
@@ -339,6 +340,43 @@ void vcModals_DrawImportUDP(vcState *pProgramState)
   }
 }
 
+void vcModals_DrawLoadWatermark(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_LoadWatermark))
+    ImGui::OpenPopup(vcString::Get("LoadWatermark"));
+
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("LoadWatermark")))
+  {
+    ImGui::InputText(vcString::Get("PathURL"), pProgramState->modelPath, vcMaxPathLength);
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("Load"), ImVec2(100.f, 0)))
+    {
+      vdkConvert_AddWatermark(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext, pProgramState->modelPath);
+      pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->watermark.isDirty = true;
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("Cancel"), ImVec2(100.f, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+      ImGui::CloseCurrentPopup();
+
+    ImGui::Separator();
+
+    const char *fileExtensions[] = { ".jpg", ".png", ".tga", ".bmp", ".gif" };
+    if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
+    {
+      vdkConvert_AddWatermark(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext, pProgramState->modelPath);
+      pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->watermark.isDirty = true;
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::EndPopup();
+  }
+}
+
 void vcModals_DrawNotImplemented(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_NotYetImplemented))
@@ -369,6 +407,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawTileServer(pProgramState);
   vcModals_DrawAddUDS(pProgramState);
   vcModals_DrawImportUDP(pProgramState);
+  vcModals_DrawLoadWatermark(pProgramState);
   vcModals_DrawNotImplemented(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_NewVersionAvailable) | (1 << vcMT_LoggedOut));
