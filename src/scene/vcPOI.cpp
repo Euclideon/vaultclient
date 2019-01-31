@@ -15,8 +15,8 @@ void vcPOI::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
   if (pFence != nullptr)
     pRenderData->fences.PushBack(pFence);
 
-  if (pLabel != nullptr)
-    pRenderData->labels.PushBack(pLabel);
+  if (pLabelInfo != nullptr)
+    pRenderData->labels.PushBack(pLabelInfo);
 }
 
 void vcPOI::ApplyDelta(vcState * /*pProgramState*/)
@@ -28,7 +28,11 @@ void vcPOI::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
 {
   bool reConfig = false;
 
-  vcIGSW_ColorPickerU32(udTempStr("%s##POIColor%zu", vcString::Get("LabelColour"), *pItemID), &nameColour, ImGuiColorEditFlags_None);
+  if (vcIGSW_ColorPickerU32(udTempStr("%s##POIColor%zu", vcString::Get("LabelColour"), *pItemID), &nameColour, ImGuiColorEditFlags_None))
+    pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(nameColour);
+
+  if (vcIGSW_ColorPickerU32(udTempStr("%s##POIBackColor%zu", vcString::Get("LabelBackgroundColour"), *pItemID), &backColour, ImGuiColorEditFlags_None))
+    pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(backColour);
 
   bool lines = line.numPoints > 1;
 
@@ -115,7 +119,7 @@ void vcPOI::Cleanup(vcState * /*pProgramState*/)
   udFree(line.pPoints);
 
   vcFenceRenderer_Destroy(&pFence);
-  vcLabelRenderer_Destroy(&pLabel);
+  udFree(pLabelInfo);
 
   this->vcPOI::~vcPOI();
 }
@@ -161,14 +165,14 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
     vcFenceRenderer_AddPoints(pPOI->pFence, pLine->pPoints, pLine->numPoints);
   }
 
-  vcLabelRendererConfig labelConfig = {};
-  labelConfig.pText = pPOI->pName;
-  labelConfig.worldPosition = pLine->pPoints[0];
-  labelConfig.textSize = vcLFS_Medium;
-  labelConfig.textColour = vcIGSW_BGRAToRGBAUInt32(nameColour);
+  pPOI->backColour = 0x7F000000;
 
-  vcLabelRenderer_Create(&pPOI->pLabel);
-  vcLabelRenderer_SetConfig(pPOI->pLabel, labelConfig);
+  pPOI->pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
+  pPOI->pLabelInfo->pText = pPOI->pName;
+  pPOI->pLabelInfo->worldPosition = pLine->pPoints[0];
+  pPOI->pLabelInfo->textSize = vcLFS_Medium;
+  pPOI->pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(nameColour);
+  pPOI->pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(pPOI->backColour);
 
   if (srid != 0)
   {
