@@ -30,7 +30,7 @@ struct vcRenderData
 
   udChunkedArray<vcModel*> models;
   udChunkedArray<vcFenceRenderer*> fences;
-  udChunkedArray<vcLabelRenderer*> labels;
+  udChunkedArray<vcLabelInfo*> labels;
 
   vcCameraSettings *pCameraSettings;
   vcTexture *pSkyboxCubemap;
