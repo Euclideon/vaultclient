@@ -78,7 +78,7 @@
   },
   "maptiles": {
     "enabled": true,
-    "blendMode": 1,
+    "blendMode": 0,
     "transparency": 1.000000,
     "mapHeight": 0.000000,
     "mouseInteracts": true,
