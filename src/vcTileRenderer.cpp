@@ -438,6 +438,14 @@ bool vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     pTexture = pTileRenderer->pEmptyTileTexture;
   }
 
+  // This is a temporary fix to fix the "tile bounds overflow bug" occurring in the GIS math?
+  // It basically results in an invalid world bounds
+  if (pNode->worldBounds[0].x > pNode->worldBounds[1].x || pNode->worldBounds[2].x > pNode->worldBounds[3].x ||
+      pNode->worldBounds[2].y > pNode->worldBounds[0].y || pNode->worldBounds[3].y > pNode->worldBounds[1].y)
+  {
+    return false;
+  }
+
   for (int t = 0; t < TileVertexResolution * TileVertexResolution; ++t)
   {
     udFloat4 eyeSpaceVertexPosition = udFloat4::create(view * udDouble4::create(pNode->worldBounds[t], 0.0, 1.0));
