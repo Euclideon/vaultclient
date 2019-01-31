@@ -3,6 +3,51 @@
 
 #include "udPlatform/udMath.h"
 
+enum udEaseType
+{
+  udET_Linear,
+
+  udET_QuadraticIn,
+  udET_QuadraticOut,
+  udET_QuadraticInOut,
+
+  udET_CubicIn,
+  udET_CubicOut,
+  udET_CubicInOut,
+};
+
+template <typename T>
+T udEase(const T t, udEaseType easeType = udET_Linear)
+{
+  T result = t;
+  switch (easeType)
+  {
+  case udET_QuadraticIn:
+    result = t * t;
+    break;
+  case udET_QuadraticOut:
+    result = t * (T(2) - t);
+    break;
+  case udET_QuadraticInOut:
+    result = (t < T(0.5)) ? (T(2) * t * t) : (T(-1) + (T(4) - T(2) * t) * t);
+    break;
+  case udET_CubicIn:
+    result = t * t * t;
+    break;
+  case udET_CubicOut:
+    result = (t - T(1)) * (t - 1) * (t - 1) + T(1);
+    break;
+  case udET_CubicInOut:
+    result = (t < T(0.5)) ? (T(4) * t * t * t) : ((t - T(1))*(T(2) * t - T(2))*(T(2) * t - T(2)) + T(1));
+    break;
+  case udET_Linear: // fall through
+  default:
+    break;
+  }
+
+  return result;
+}
+
 template <typename T>
 struct udRay
 {
@@ -37,7 +82,7 @@ udRay<T> udRotateAround(udRay<T> ray, udVector3<T> center, udVector3<T> axis, T 
 
   udVector3<T> direction = ray.position - center; // find current direction relative to center
   r.position = center + rotation.apply(direction); // define new position
-  r.direction = udMath_DirFromEuler((rotation * udQuaternion<T>::create(udMath_DirToEuler(ray.direction))).eulerAngles()); // rotate object to keep looking at the center
+  r.direction = udMath_DirFromYPR((rotation * udQuaternion<T>::create(udMath_DirToYPR(ray.direction))).eulerAngles()); // rotate object to keep looking at the center
 
   return r;
 }
@@ -141,25 +186,25 @@ static void udExtractTransform(const udMatrix4x4<T> &matrix, udVector3<T> &posit
 }
 
 template <typename T>
-static udVector3<T> udMath_DirFromEuler(const udVector3<T> &ypr)
+static udVector3<T> udMath_DirFromYPR(const udVector3<T> &ypr)
 {
   udVector3<T> r;
 
-  r.x = udCos(ypr.x) * udCos(ypr.y);
-  r.y = udSin(ypr.x) * udCos(ypr.y);
+  r.x = -udSin(ypr.x) * udCos(ypr.y);
+  r.y = udCos(ypr.x) * udCos(ypr.y);
   r.z = udSin(ypr.y);
 
   return r;
 }
 
 template <typename T>
-static udVector3<T> udMath_DirToEuler(const udVector3<T> &direction)
+static udVector3<T> udMath_DirToYPR(const udVector3<T> &direction)
 {
   udVector3<T> r;
 
   udVector3<T> dir = udNormalize(direction);
 
-  r.x = udATan2(dir.y, dir.x);
+  r.x = -udATan2(dir.x, dir.y);
   r.y = udASin(dir.z);
   r.z = 0; // No Roll
 

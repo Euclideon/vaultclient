@@ -307,6 +307,9 @@ Modules are currently:
 - `sceneGizmoLocalSpaceKey`: Used in Gizmo Local Space tooltip, shown in brackets
 - `sceneFullscreen`: Tooltip displayed when mouse is hovered over the Fullscreen button in the viewport controls window
 - `sceneFullscreenKey`: Used in Fullscreen button tooltip, shown in brackets
+- `sceneMapMode`: Tooltip displayed when mouse is hovered over the Map Mode button in the viewport controls window
+- `sceneMapModeKey`: Used in Map Mode button tooltip, shown in brackets
+-
 - `sceneCameraSettings`: String used internally as ID for the viewport controls/camera information window?
 - `sceneCameraLatLongAlt`: Used to display the latitude, longitude and altitude information where applicable
   - {0} = Latitude (in degrees)

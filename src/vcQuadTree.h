@@ -62,6 +62,11 @@ struct vcQuadTreeMetaData
   int maxTreeDepth;
   int memUsageMB; // node usage
   float generateTimeMs;
+
+  int nodeTouchedCount;
+  int leafNodeCount;
+  int visibleNodeCount;
+  int nodeRenderCount;
 };
 
 struct vcQuadTree
