@@ -2,28 +2,13 @@
 
 #include "imgui.h"
 #include "stb_image.h"
-#include "vdkConvert.h"
+#include "vcStrings.h"
+#include "vcModals.h"
 
 #include "udPlatform/udMath.h"
 #include "udPlatform/udChunkedArray.h"
 #include "udPlatform/udThread.h"
 #include "udPlatform/udDebug.h"
-
-#include "vcState.h"
-#include "gl/vcTexture.h"
-
-enum vcConvertQueueStatus
-{
-  vcCQS_Preparing,
-  vcCQS_Queued,
-  vcCQS_QueuedPendingLicense,
-  vcCQS_Running,
-  vcCQS_Completed,
-  vcCQS_Cancelled,
-  vcCQS_Failed,
-
-  vcCQS_Count
-};
 
 const char *statusNames[] =
 {
@@ -37,39 +22,6 @@ const char *statusNames[] =
 };
 
 UDCOMPILEASSERT(UDARRAYSIZE(statusNames) == vcCQS_Count, "Not Enough Status Names");
-
-struct vcConvertItem
-{
-  vdkConvertContext *pConvertContext;
-  const vdkConvertInfo *pConvertInfo;
-  vcConvertQueueStatus status;
-
-  enum { vcCI_MetadataMaxLength = 256 };
-  char author[vcCI_MetadataMaxLength];
-  char comment[vcCI_MetadataMaxLength];
-  char copyright[vcCI_MetadataMaxLength];
-  char license[vcCI_MetadataMaxLength];
-
-  struct
-  {
-    bool isDirty;
-    const char *pFilename;
-    vcTexture *pTexture;
-    int width;
-    int height;
-  } watermark;
-};
-
-struct vcConvertContext
-{
-  udChunkedArray<vcConvertItem*> jobs;
-  bool threadRunning;
-  udSemaphore *pSemaphore;
-  udMutex *pMutex;
-  udThread *pThread;
-
-  size_t selectedItem;
-};
 
 uint32_t vcConvert_Thread(void *pVoidState)
 {
@@ -298,20 +250,20 @@ void vcConvert_ShowUI(vcState *pProgramState)
         float currentFileProgress = perItemAmount * itemInfo.pointsRead / itemInfo.pointsCount;
         float completedFileProgress = perItemAmount * pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem;
 
-        ImGui::ProgressBar(currentFileProgress + completedFileProgress, ImVec2(-1, 0), udTempStr("Reading File %s/%s...", udCommaInt(pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem+1), udCommaInt(pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalItems)));
+        ImGui::ProgressBar(currentFileProgress + completedFileProgress, ImVec2(-1, 0), udTempStr("%s %s/%s...", vcString::Get("ReadingFile"), udCommaInt(pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem+1), udCommaInt(pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalItems)));
       }
       else
       {
         uint64_t pointsWritten = (pProgramState->pConvertContext->jobs[i]->pConvertInfo->outputPointCount + pProgramState->pConvertContext->jobs[i]->pConvertInfo->discardedPointCount);
         uint64_t pointsTotal = pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalPointsRead;
 
-        ImGui::ProgressBar(progressRatio + (1.f - progressRatio) * pointsWritten / pointsTotal, ImVec2(-1, 0), udTempStr("Writing Points %s/%s", udCommaInt(pointsWritten), udCommaInt(pointsTotal)));
+        ImGui::ProgressBar(progressRatio + (1.f - progressRatio) * pointsWritten / pointsTotal, ImVec2(-1, 0), udTempStr("%s %s/%s", vcString::Get("WritingPoints"), udCommaInt(pointsWritten), udCommaInt(pointsTotal)));
       }
     }
     else if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Completed)
     {
       ImGui::SameLine();
-      if (ImGui::Button(udTempStr("Add to Scene##vcConvLoad_%zu", i), ImVec2(-1, 0)))
+      if (ImGui::Button(udTempStr("%s##vcConvLoad_%zu", vcString::Get("AddToScene"), i), ImVec2(-1, 0)))
         pProgramState->loadList.push_back(udStrdup(pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName));
     }
   }
@@ -326,31 +278,31 @@ void vcConvert_ShowUI(vcState *pProgramState)
   ImGui::Separator();
   ImGui::Separator();
 
-  ImGui::Text("Convert Settings");
+  ImGui::Text("%s", vcString::Get("ConvertSettings"));
   ImGui::Separator();
 
   udSprintf(outputName, UDARRAYSIZE(outputName), "%s", pSelectedJob->pConvertInfo->pOutputName);
-  if (ImGui::InputText("Output Name", outputName, UDARRAYSIZE(outputName)))
+  if (ImGui::InputText(vcString::Get("OutputName"), outputName, UDARRAYSIZE(outputName)))
     vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pSelectedJob->pConvertContext, outputName);
 
   udSprintf(tempDirectory, UDARRAYSIZE(tempDirectory), "%s", pSelectedJob->pConvertInfo->pTempFilesPrefix);
-  if (ImGui::InputText("Temp Directory", tempDirectory, UDARRAYSIZE(tempDirectory)))
+  if (ImGui::InputText(vcString::Get("TempDirectory"), tempDirectory, UDARRAYSIZE(tempDirectory)))
     vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pSelectedJob->pConvertContext, tempDirectory);
 
   ImGui::Separator();
 
   if (pSelectedJob->status == vcCQS_Preparing)
-    ImGui::CheckboxFlags("Continue processing after corrupt/incomplete data (where possible)", (uint32_t*)&pSelectedJob->pConvertInfo->ignoreParseErrors, 1);
+    ImGui::CheckboxFlags(vcString::Get("ContinueOnCorrupt"), (uint32_t*)&pSelectedJob->pConvertInfo->ignoreParseErrors, 1);
 
   // Resolution
-  ImGui::Text("Point resolution: %.6f", pSelectedJob->pConvertInfo->pointResolution);
+  ImGui::Text("%s: %.6f", vcString::Get("PointResolution"), pSelectedJob->pConvertInfo->pointResolution);
   if (pSelectedJob->pConvertInfo->pointResolution != pSelectedJob->pConvertInfo->minPointResolution || pSelectedJob->pConvertInfo->pointResolution != pSelectedJob->pConvertInfo->maxPointResolution)
   {
     ImGui::SameLine();
     if (pSelectedJob->pConvertInfo->minPointResolution == pSelectedJob->pConvertInfo->maxPointResolution)
-      ImGui::Text("(input data is %.6f)", pSelectedJob->pConvertInfo->minPointResolution);
+      ImGui::Text("(%s %.6f)", vcString::Get("Point resolution"), pSelectedJob->pConvertInfo->minPointResolution);
     else
-      ImGui::Text("(input data ranges from %.6f to %.6f)", pSelectedJob->pConvertInfo->minPointResolution, pSelectedJob->pConvertInfo->maxPointResolution);
+      ImGui::Text("(%s %.6f - %.6f)", vcString::Get("InputDataRanges"), pSelectedJob->pConvertInfo->minPointResolution, pSelectedJob->pConvertInfo->maxPointResolution);
   }
 
   // Override Resolution
@@ -360,15 +312,15 @@ void vcConvert_ShowUI(vcState *pProgramState)
     double resolution = pSelectedJob->pConvertInfo->pointResolution;
 
     ImGui::SameLine();
-    if (ImGui::Checkbox("Override##ConvertResolutionOverride", &overrideResolution))
+    if (ImGui::Checkbox(vcString::Get("OverrideID"), &overrideResolution))
       vdkConvert_SetPointResolution(pProgramState->pVDKContext, pSelectedJob->pConvertContext, overrideResolution ? 1 : 0, resolution);
 
-    if (overrideResolution && ImGui::InputDouble("Point Resolution##ConvertResolution", &resolution, 0.0001, 0.01, "%.6f"))
+    if (overrideResolution && ImGui::InputDouble(vcString::Get("PointResolutionID"), &resolution, 0.0001, 0.01, "%.6f"))
       vdkConvert_SetPointResolution(pProgramState->pVDKContext, pSelectedJob->pConvertContext, 1, resolution);
   }
 
   // SRID
-  ImGui::Text("SRID: %d", pSelectedJob->pConvertInfo->srid);
+  ImGui::Text("%s: %d", vcString::Get("SRID"), pSelectedJob->pConvertInfo->srid);
 
   // Override SRID
   if (pSelectedJob->status == vcCQS_Preparing)
@@ -377,15 +329,18 @@ void vcConvert_ShowUI(vcState *pProgramState)
     int srid = pSelectedJob->pConvertInfo->srid;
 
     ImGui::SameLine();
-    if (ImGui::Checkbox("Override##ConvertSRIDOverride", &overrideSRID))
+    if (ImGui::Checkbox(vcString::Get("OverrideSRIDID"), &overrideSRID))
       vdkConvert_SetSRID(pProgramState->pVDKContext, pSelectedJob->pConvertContext, overrideSRID ? 1 : 0, srid);
 
-    if (overrideSRID && ImGui::InputInt("SRID##ConvertSRID", &srid))
+    if (overrideSRID && ImGui::InputInt(vcString::Get("SRIDID"), &srid))
       vdkConvert_SetSRID(pProgramState->pVDKContext, pSelectedJob->pConvertContext, 1, srid);
   }
 
   ImGui::Separator();
-  ImGui::Text("Metadata");
+  ImGui::Text("%s", vcString::Get("Metadata"));
+
+  if (ImGui::Button(vcString::Get("LoadWatermark")))
+    vcModals_OpenModal(pProgramState, vcMT_LoadWatermark);
 
   if (pSelectedJob->watermark.isDirty || pSelectedJob->watermark.pTexture != nullptr)
   {
@@ -412,28 +367,28 @@ void vcConvert_ShowUI(vcState *pProgramState)
   }
   else
   {
-    ImGui::Text("No watermark. Drop a file on the editor to add one");
+    ImGui::Text("%s", vcString::Get("NoWatermark"));
   }
 
-  if (ImGui::InputText("Author", pSelectedJob->author, udLengthOf(pSelectedJob->author)))
+  if (ImGui::InputText(vcString::Get("Author"), pSelectedJob->author, udLengthOf(pSelectedJob->author)))
     vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "Author", pSelectedJob->author);
 
-  if (ImGui::InputText("Comment", pSelectedJob->comment, udLengthOf(pSelectedJob->comment)))
+  if (ImGui::InputText(vcString::Get("Comment"), pSelectedJob->comment, udLengthOf(pSelectedJob->comment)))
     vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "Comment", pSelectedJob->comment);
 
-  if (ImGui::InputText("Copyright", pSelectedJob->copyright, udLengthOf(pSelectedJob->copyright)))
+  if (ImGui::InputText(vcString::Get("Copyright"), pSelectedJob->copyright, udLengthOf(pSelectedJob->copyright)))
     vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "Copyright", pSelectedJob->copyright);
 
-  if (ImGui::InputText("License", pSelectedJob->license, udLengthOf(pSelectedJob->license)))
+  if (ImGui::InputText(vcString::Get("License"), pSelectedJob->license, udLengthOf(pSelectedJob->license)))
     vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "License", pSelectedJob->license);
 
   ImGui::Separator();
   if (pSelectedJob->pConvertInfo->totalItems > 0)
   {
     ImGui::SetNextTreeNodeOpen(true, ImGuiCond_FirstUseEver);
-    if (ImGui::TreeNodeEx(pSelectedJob->pConvertInfo, 0, "Input Files (%s files)", udCommaInt(pSelectedJob->pConvertInfo->totalItems)))
+    if (ImGui::TreeNodeEx(pSelectedJob->pConvertInfo, 0, "%s (%s %s)", vcString::Get("InputFiles"), udCommaInt(pSelectedJob->pConvertInfo->totalItems), vcString::Get("Files")))
     {
-      if (pSelectedJob->status == vcCQS_Preparing && ImGui::Button("Remove All Files"))
+      if (pSelectedJob->status == vcCQS_Preparing && ImGui::Button(vcString::Get("RemoveAll")))
       {
         while (pSelectedJob->pConvertInfo->totalItems > 0)
           vdkConvert_RemoveItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, 0);
@@ -450,11 +405,11 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
         if (pSelectedJob->status == vcCQS_Preparing)
         {
-          ImGui::Text("Points: %s", udCommaInt(itemInfo.pointsCount));
+          ImGui::Text("%s: %s", vcString::Get("Points"), udCommaInt(itemInfo.pointsCount));
 
           ImGui::NextColumn();
 
-          if (ImGui::Button(udTempStr("Remove##convertitemremove_%zu", i)))
+          if (ImGui::Button(udTempStr("%s##convertitemremove_%zu", vcString::Get("Remove"), i)))
           {
             vdkConvert_RemoveItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i);
             --i;
@@ -464,19 +419,19 @@ void vcConvert_ShowUI(vcState *pProgramState)
         {
           if (pSelectedJob->pConvertInfo->currentInputItem > i) // Already read
           {
-            ImGui::Text("Read %spts", udCommaInt(itemInfo.pointsRead));
+            ImGui::Text("%s %s%s", vcString::Get("Read"), udCommaInt(itemInfo.pointsRead), vcString::Get("PointsAbbreviation"));
             ImGui::NextColumn();
             ImGui::ProgressBar(1.f);
           }
           else if (pSelectedJob->pConvertInfo->currentInputItem < i) // Pending read
           {
-            ImGui::Text("%spts estimate", udCommaInt(itemInfo.pointsCount));
+            ImGui::Text("%s%s %s", udCommaInt(itemInfo.pointsCount), vcString::Get("PointsAbbreviation"), vcString::Get("Estimate"));
             ImGui::NextColumn();
             ImGui::ProgressBar(0.f);
           }
           else // Currently reading
           {
-            ImGui::Text("Reading... %s/%spts", udCommaInt(itemInfo.pointsRead), udCommaInt(itemInfo.pointsCount));
+            ImGui::Text("%s... %s/%s%s", vcString::Get("Reading"), udCommaInt(itemInfo.pointsRead), udCommaInt(itemInfo.pointsCount), vcString::Get("PointsAbbreviation"));
             ImGui::NextColumn();
             ImGui::ProgressBar(1.f * itemInfo.pointsRead / itemInfo.pointsCount);
           }
@@ -490,13 +445,13 @@ void vcConvert_ShowUI(vcState *pProgramState)
       ImGui::TreePop();
     }
 
-    if (pSelectedJob->status == vcCQS_Preparing && ImGui::Button("Begin Convert"))
+    if (pSelectedJob->status == vcCQS_Preparing && ImGui::Button(vcString::Get("BeginConvert")))
     {
       ImGui::Separator();
       pSelectedJob->status = vcCQS_Queued;
       udIncrementSemaphore(pProgramState->pConvertContext->pSemaphore);
     }
-    else if (pSelectedJob->status == vcCQS_Completed && ImGui::Button("Reset"))
+    else if (pSelectedJob->status == vcCQS_Completed && ImGui::Button(vcString::Get("Reset")))
     {
       ImGui::Separator();
       vdkConvertContext *pConvertContext = nullptr;

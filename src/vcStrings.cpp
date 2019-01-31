@@ -89,6 +89,11 @@ namespace vcString
 
     Set("PackageUpdate", vStringFormat("{0} {1} {2}", format5, 3));
 
+    Set("OverrideID", vStringFormat("{0}##ConvertResolutionOverride", Get("Override")));
+    Set("PointResolutionID", vStringFormat("{0}##ConvertResolution", Get("PointResolution")));
+    Set("OverrideSRIDID", vStringFormat("{0}##ConvertSRIDOverride", Get("Override")));
+    Set("SRIDID", vStringFormat("{0}##ConvertSRID", Get("SRID")));
+
     return vE_Success;
   }
 
