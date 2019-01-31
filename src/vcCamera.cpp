@@ -40,8 +40,16 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
   double zFar = settings.farPlane;
 
   pCamera->matrices.camera = vcCamera_GetMatrix(pCamera);
-  pCamera->matrices.projection = udDouble4x4::perspective(fov, aspect, zNear, zFar);
-  pCamera->matrices.projectionNear = udDouble4x4::perspective(fov, aspect, 0.5f, 10000.f);
+  pCamera->matrices.projectionUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
+
+#if defined(GRAPHICS_API_D3D11)
+  pCamera->matrices.projection = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
+  pCamera->matrices.projectionNear = udDouble4x4::perspectiveZO(fov, aspect, 0.5f, 10000.f);
+#endif
+#if defined(GRAPHICS_API_OPENGL)
+  pCamera->matrices.projection = udDouble4x4::perspectiveNO(fov, aspect, zNear, zFar);
+  pCamera->matrices.projectionNear = udDouble4x4::perspectiveNO(fov, aspect, 0.5f, 10000.f);
+#endif
 
   pCamera->matrices.view = pCamera->matrices.camera;
   pCamera->matrices.view.inverse();

@@ -462,7 +462,7 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
 
     if (!renderData.pGISSpace->isProjected)
     {
-      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspective(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udInverse(cameraRotation));
+      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspectiveZO(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udInverse(cameraRotation));
     }
     else
     {
@@ -470,7 +470,7 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
       currentLatLong.x = udClamp(currentLatLong.x, -90.0, 89.0);
       udDouble3 norther = udGeoZone_ToCartesian(renderData.pGISSpace->zone, udDouble3::create(currentLatLong.x + 1.0, currentLatLong.y, currentLatLong.z));
       udDouble4x4 north = udDouble4x4::lookAt(pRenderContext->pCamera->position, norther);
-      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspective(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udDouble4x4::rotationYPR(north.extractYPR()) * udInverse(cameraRotation));
+      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspectiveZO(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udDouble4x4::rotationYPR(north.extractYPR()) * udInverse(cameraRotation));
     }
 
     vcGLState_ResetState();
@@ -504,7 +504,7 @@ udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext)
   if (vdkRenderView_SetTargets(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, pRenderContext->udRenderContext.pColorBuffer, 0, pRenderContext->udRenderContext.pDepthBuffer) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->pCamera->matrices.projection.a) != vE_Success)
+  if (vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->pCamera->matrices.projectionUD.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
 epilogue:
@@ -519,7 +519,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   vdkRenderInstance *pModels = nullptr;
   int numVisibleModels = 0;
 
-  vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->pCamera->matrices.projection.a);
+  vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->pCamera->matrices.projectionUD.a);
   vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->pCamera->matrices.view.a);
 
   switch (pRenderContext->pSettings->visualization.mode)

@@ -134,7 +134,7 @@ const char* const g_udFragmentShader = R"shader(
     col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
 
     output.Color0 = float4(col.xyz, 1.0);// UD always opaque
-    output.Depth0 = depth * 2.0 - 1.0;
+    output.Depth0 = depth;
     return output;
   }
 )shader";
