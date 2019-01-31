@@ -3,8 +3,6 @@
 
 #include "udPlatform/udMath.h"
 
-struct vcLabelRenderer;
-
 enum vcLabelFontSize
 {
   vcLFS_Small,
@@ -14,20 +12,16 @@ enum vcLabelFontSize
   vcLFS_Count,
 };
 
-struct vcLabelRendererConfig
+struct vcLabelInfo
 {
   udDouble3 worldPosition;
 
   char *pText;
   vcLabelFontSize textSize;
-  uint32_t textColour;
+  uint32_t textColourRGBA;
+  uint32_t backColourRGBA;
 };
 
-udResult vcLabelRenderer_Create(vcLabelRenderer **ppLabelRenderer);
-udResult vcLabelRenderer_Destroy(vcLabelRenderer **ppLabelRenderer);
-
-bool vcLabelRenderer_Render(vcLabelRenderer *pLabelRenderer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize);
-
-udResult vcLabelRenderer_SetConfig(vcLabelRenderer *pLabelRenderer, const vcLabelRendererConfig &config);
+bool vcLabelRenderer_Render(vcLabelInfo *pLabel, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize);
 
 #endif//vcLabelRenderer_h__
