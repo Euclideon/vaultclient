@@ -200,15 +200,15 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
     pChildNode->level = currentDepth + 1;
     pChildNode->visible = vcQuadTree_IsNodeVisible(pQuadTree, pChildNode);
 
-    udInt2 slippyManhattanDist = udInt2::create(udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x),
-      udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y));
-
     udDouble3 viewPoint = pQuadTree->cameraWorldPosition;
     viewPoint.z -= pQuadTree->quadTreeHeightOffset; // relative height
 
     // TODO: tile heights (DEM)
     double distanceToQuadrant = udAbs(viewPoint.z);
-    if (udMagSq2(slippyManhattanDist) != 0)
+
+    // Left this comment here as I'm not sure removing it is correct yet
+    //udInt2 slippyManhattanDist = udInt2::create(udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x), udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y));
+    //if (udMagSq2(slippyManhattanDist) != 0)
     {
       distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, viewPoint);
       pChildNode->visible = pChildNode->visible && (udAbs(udSin(viewPoint.z / distanceToQuadrant)) >= tileToCameraCullAngle);
