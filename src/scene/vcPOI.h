@@ -26,10 +26,11 @@ struct vcPOI : public vcSceneItem
 {
   vcLineInfo line;
   uint32_t nameColour;
+  uint32_t backColour;
   double namePt;
 
   vcFenceRenderer *pFence;
-  vcLabelRenderer *pLabel;
+  vcLabelInfo *pLabelInfo;
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState);

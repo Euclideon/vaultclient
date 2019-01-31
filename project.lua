@@ -13,6 +13,7 @@ project "vaultClient"
 	files { "docs/**.md" }
 	files { "builds/releasenotes.md" }
 	files { "builds/defaultsettings.json" }
+	files { "builds/assets/lang/*.json" }
 
 	--This project includes
 	includedirs { "src", "src/scene" }
