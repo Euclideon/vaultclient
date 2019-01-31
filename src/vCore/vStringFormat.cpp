@@ -123,7 +123,7 @@ const char *vStringFormat(char *pBuffer, size_t bufLen, const char *pFormatStrin
 
   int newLength = len + newChars + 1;
 
-  if (bufLen < newLength)
+  if ((int)bufLen < newLength)
     return pFormatString;
 
   int outPos = 0;
