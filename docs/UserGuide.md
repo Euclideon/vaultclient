@@ -35,6 +35,7 @@ After running the application you should see a login screen as below.
 There are additional settings in the "Advanced Connection Settings" dropdown.
 
 - `Proxy Address` is the address for your internet proxy (this is provided by your system administrator). It can additionally include the port number and protocol. Examples include: `192.168.0.1`, `169.123.123.1:80` or `https://10.4.0.1:8081`. Leaving this blank will attempt auto-detection.
+  - Many companies & organizations have authenticated proxies. Entering a proxy here is not enough to ensure that the proxy will work in all situations. This box does support authentication using _protocol_://_username_:_password_@_proxyaddress_:_port_ e.g. `https://developer:secretPassword123@10.4.0.255:8081` or `user:p455w0rd@proxy.local`. __PLEASE NOTE THAT THIS SETTING IS STORED IN PLAIN TEXT! AFTER CONFIRMING YOU HAVE AN AUTHENTICATED PROXY- DELETE YOUR INFORMATION FROM THIS BOX!__ A future release will provide a secure way to store proxy information.
 - `Ignore Certificate Verification` will disable verification of the PEER and HOST certificate authorities. This setting should *ONLY* be used when instructed by your system administrator and only when errors are occurring during the login process. It will weaken the security between your computer and the Euclideon Vault Server.
 
 > NOTE: `Ignore Certificate Verification` will not be saved due to the security risk associated. You will need to enable this setting each time you open the application.
@@ -124,21 +125,58 @@ The status bar shows a lot of useful information (not all of it will always be a
 - Number of files queued to load "([n] Files Queued),
 
 ### 3. Scene Explorer
-![Scene Explorer](images/sceneexplorer0.png)
+![Scene Explorer](images/sceneexplorer.png)
 
 This pane shows you the assets currently in your scene, allows user to add UDS files and create new folders, Points of interest, Areas of interest & Lines.
 
 > TIP: If you ever want to quickly clear the current scene, the "Projects" menu has a "New Scene" button that will remove everything from the scene.
 
-#### Loading UDS Models
-There are a number of ways to add models to the scene.
+#### Scene Explorer Quick Action Menu
+The buttons across the top of the Scene Explorer allow quick access to add or remove from the scene. From left to right:
+1.  Add UDS `Ctrl + U`
 
-![Loaded Model](images/sceneexplorer.png)
+    ![AddUDS](images/adduds.png)
+  -  This button opens the dialogue box to add a UDS to the scene. The Path/URL can include files on the local drives, network drives, UNC Paths, HTTP, HTTPS, FTP & FTPS.
+2. Add Point of Interest
+  - This button adds a point of interest to the scene.
+3. Add Area of Interest
+  - This button is not enabled in this version of Euclideon Vault Client.
+4. Add Lines
+  - This button is not enabled in this version of Euclideon Vault Client.
+5. Add Folder
+  - Adds a folder to the scene explorer. This can help with organizing your scene.
+6. Delete (or `Delete` key)
+  - This deletes all selected models from the scene
+
+#### Scene Items
+
+Under the quick actions the contents of your scene will be displayed.
 
 ![Model Information](images/sceneexplorer2.png)
 
+- The tick box to the very left of each item is a visibility checkbox. Disabling this hides the element in the scene.
+- The arrow indicator expands the items information. For Folders this will show the contents of the folder.
+- Highlighted items are items you have selected.
+
+> Note that disabling visibility for a folder will also disable visibility for _all_ items in that folder- including subfolders and their contents.
+
+##### Selecting Items
+
+You can select mulitple items in the scene explorer by holding `Ctrl` and then Left Clicking them- doing this on a selected item will deselect it.
+
+Single clicking without `Ctrl` will deselect all items and select just the item you have clicked.
+
+##### Reorganizing the scene
+
+The items in the scene explorer can be dragged to reorder them. A yellow line indicates where the item will be after you release the item.
+
+> When dropping onto folders. It is best to open the folder you wish to drag into before starting the drag operation.
+
+#### Loading UDS Models
+There are a number of ways to add models to the scene.
+
 1. Drag and Drop: On devices with folder exploring you can drag a file from your file explorer and drop it in the Euclideon Vault Client window to add the model to the scene.
-2. Direct URI loading: You can type a URL or path in the Add UDS popup. The path field at the top of the pane allows URL and network paths to retrieve UDS files.
+2. Direct URI loading: You can type a URL or path in the `Add UDS` popup. The path field at the top of the pane allows URL and network paths to retrieve UDS files.
 3. If you have access to projects on the server you will be able to click the "Projects" button in the menu and select a project to load. Projects are loaded from the Vault Server you're connected to.
 
 ### 4. Settings
