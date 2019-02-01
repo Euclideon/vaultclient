@@ -143,7 +143,7 @@ The status bar shows a lot of useful information (not all of it will always be a
 ## 3. Scene Explorer
 ![Scene Explorer](images/sceneexplorer.png)
 
-The Scene Explorer window shows you the assets currently in your scene, and also allows the user to add UDS models and create new folders, points of interest, areas of interest and lines.
+The Scene Explorer window shows you the assets currently in your scene, and also allows the user to add UDS models and create new folders, points of interest, areas of interest and lines. Non-UDS models can also be imported if they are legacy files (.udg or .ssf) or they can be converted to UDS format using the Conversion tool (see section [**8. Convert Tab**](#Convert-Tab)).
 
 ### Quick Action Menu
 The buttons across the top of the Scene Explorer allow quick access to add or remove from the scene. From left to right:
@@ -245,7 +245,7 @@ Map height adjusts the height of map tiles in the scene.
 
 Blending allows map tiles to overlay, underlay or feature in hybrid mode with existing objects.
 
-The transparency slider adjusts the transparency of the map tiles so they don't obscure the visibility of objects in the scene.
+The transparency (opacity) slider adjusts the transparency (opacity) of the map tiles so they don't obscure the visibility of objects in the scene.
 
 The `Set to Camera Height` button can be used to set the height of the map tiles to the camera's current height. This can be used to place map tiles outside the default range of the slider of +/-1000m.?
 
@@ -255,9 +255,21 @@ The `Set to Camera Height` button can be used to set the height of the map tiles
 
 This pane allows users to change between Colour, Intensity and Classification display modes.
 
-Here you can enable Edge Highlighting or display Colour by Height or Depth. Enabling Contours will display coloured contours sorted by distance and band height.
+In intensity display mode, an extra option appears for the use to specify the min and max intensity of the display? as shown below.
 
-All four display options are shown expanded below, each allows the user to specify min/max values and choose custom colour schemes.
+![Visualization Intensity](images/visualizationintensity.png)
+
+In classification display mode, a checkbox appears which, when enabled, allows the user to customise the colours of objects corresponding to their designated classifications.?
+
+![Visualization Classification](images/visualizationclassification.png)
+
+Below Display Mode are four additional visualization options.
+  - `Enable Edge Highlighting` ???
+  - `Enable Colour by Height` Applies colours along the specified two-colour gradient to all objects in the scene based on their height.?
+  - `Enable Colour by Depth` ???
+  - `Enable Contours` Displays coloured contours sorted by distance and band height.?
+
+All four display options also allow the user to customise the colours. They are shown expanded below.
 
 ![Visualization Settings Expanded](images/visualizationall.png)
 
