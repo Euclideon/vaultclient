@@ -99,7 +99,7 @@ double vcQuadTree_PointToRectDistance(udDouble2 edges[4], const udDouble3 &point
   };
 
   // Not true distance, XY plane distance has more weighting
-  double closestEdgeFudgedDistance = 0.0;
+  double closestEdgeDistance = 0.0;
 
   // test each edge to find minimum distance to quadrant shape (2d)
   for (int e = 0; e < 4; ++e)
@@ -116,12 +116,10 @@ double vcQuadTree_PointToRectDistance(udDouble2 edges[4], const udDouble3 &point
     udDouble3 closestPointOnEdge = udDouble3::create(p1 + udClamp(r, 0.0, 1.0) * edge, 0.0);
 
     double distToEdge = udMag3(closestPointOnEdge - point);
-    double horizontalDist = udMag2(closestPointOnEdge.toVector2() - point.toVector2());
-    double fudgedDistance = distToEdge + horizontalDist; // horizontal distance has more influence
-    closestEdgeFudgedDistance = closestEdgeFudgedDistance == 0 ? fudgedDistance : udMin(closestEdgeFudgedDistance, fudgedDistance);
+    closestEdgeDistance = (e == 0) ? distToEdge : udMin(closestEdgeDistance, distToEdge);
   }
 
-  return closestEdgeFudgedDistance;
+  return closestEdgeDistance;
 }
 
 void vcQuadTree_CleanupNode(vcQuadTreeNode *pNode)
@@ -156,6 +154,12 @@ bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode 
   udDouble3 center = udDouble3::create((max + min) * 0.5, pQuadTree->quadTreeHeightOffset);
   udDouble3 extents = udDouble3::create((max - min) * 0.5, 0.0);
   return vcQuadTree_FrustumTest(pQuadTree->frustumPlanes, center, extents) > -1;
+}
+
+// distance is in quad tree space [0, 1]
+inline bool vcQuadTree_ShouldSubdivide(vcQuadTree *pQuadTree, double distance, int depth)
+{
+  return distance < (1.0 / (1 << (depth + vcTRMQToValue[pQuadTree->pSettings->maptiles.mapQuality])));
 }
 
 void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeIndex, int currentDepth)
@@ -200,21 +204,25 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
     pChildNode->level = currentDepth + 1;
     pChildNode->visible = vcQuadTree_IsNodeVisible(pQuadTree, pChildNode);
 
-    udDouble3 viewPoint = pQuadTree->cameraWorldPosition;
-    viewPoint.z -= pQuadTree->quadTreeHeightOffset; // relative height
-
     // TODO: tile heights (DEM)
-    double distanceToQuadrant = udAbs(viewPoint.z);
+    double distanceToQuadrant = udAbs(pQuadTree->cameraTreePosition.z);
 
     udInt2 slippyManhattanDist = udInt2::create(udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x), udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y));
     if (udMagSq2(slippyManhattanDist) != 0)
     {
-      distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, viewPoint);
-      pChildNode->visible = pChildNode->visible && (udAbs(udSin(viewPoint.z / distanceToQuadrant)) >= tileToCameraCullAngle);
+      distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraTreePosition);
+      pChildNode->visible = pChildNode->visible && (udAbs(udSin(pQuadTree->cameraTreePosition.z / distanceToQuadrant)) >= tileToCameraCullAngle);
     }
 
     double distanceInTreeSpace = (distanceToQuadrant / pQuadTree->quadTreeWorldSize);
-    if (distanceInTreeSpace < (1.0 / (1 << (currentDepth + vcTRMQToValue[pQuadTree->pSettings->maptiles.mapQuality]))))
+
+    // Artificially change the distances of tiles based on their relative depths.
+    // Essentially flattens out lower layers, while simultaneously raising levels of tiles further away
+    int depthDiffToView = pQuadTree->expectedTreeDepth - currentDepth;
+    if (depthDiffToView > 0)
+      distanceInTreeSpace *= (0.6 + 0.25 * depthDiffToView);
+
+    if (vcQuadTree_ShouldSubdivide(pQuadTree, distanceInTreeSpace, currentDepth))
       vcQuadTree_RecurseGenerateTree(pQuadTree, childIndex, currentDepth + 1);
   }
 }
@@ -344,6 +352,14 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
   pQuadTree->quadTreeHeightOffset = viewInfo.quadTreeHeightOffset;
 
   pQuadTree->metaData.maxTreeDepth = udMax(0, MaxVisibleLevel - viewInfo.slippyCoords.z);
+
+  pQuadTree->cameraTreePosition = pQuadTree->cameraWorldPosition;
+  pQuadTree->cameraTreePosition.z -= pQuadTree->quadTreeHeightOffset; // relative height
+
+  pQuadTree->expectedTreeDepth = 0;
+  double distanceToQuadrant = udAbs(pQuadTree->cameraTreePosition.z) / pQuadTree->quadTreeWorldSize;
+  while (vcQuadTree_ShouldSubdivide(pQuadTree, distanceToQuadrant, pQuadTree->expectedTreeDepth))
+    ++pQuadTree->expectedTreeDepth;
 
   // extract frustum planes
   udDouble4x4 transposedViewProjection = udTranspose(viewInfo.viewProjectionMatrix);
