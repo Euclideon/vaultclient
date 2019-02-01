@@ -37,7 +37,7 @@ namespace vcString
     }
   }
 
-  vdkError LoadTable(vcState *pProgramState, const char *pFilename)
+  vdkError LoadTable(const char *pFilename)
   {
     char *pPos = nullptr;
     if (pFilename == nullptr || udFile_Load(pFilename, (void **)&pPos) != udR_Success)
@@ -74,20 +74,11 @@ namespace vcString
     Set("VisualizationFormat", vStringFormat("{0}##Settings", Get("Visualization")));
     Set("RestoreColorsID", vStringFormat("{0}##RestoreClassificationColors", Get("MenuRestoreDefaults")));
 
-    const char *latLongAlt[] = { Get("Lat"), Get("Long"), Get("Alt") };
-    Set("LatLongAlt", vStringFormat("{0}: %.7f, {1}: %.7f, {2}: %.2fm", latLongAlt, 3));
-    Set("InactiveSlash", vStringFormat("{0} /", Get("Inactive")));
     Set("AppearanceRestore", vStringFormat("{0}##AppearanceRestore", Get("MenuRestoreDefaults")));
     Set("InputRestore", vStringFormat("{0}##InputRestore", Get("MenuRestoreDefaults")));
     Set("ViewportRestore", vStringFormat("{0}##ViewportRestore", Get("MenuRestoreDefaults")));
     Set("MapsRestore", vStringFormat("{0}##MapsRestore", Get("MenuRestoreDefaults")));
     Set("VisualizationRestore", vStringFormat("{0}##VisualizationRestore", Get("MenuRestoreDefaults")));
-
-    const char *format5[] = { Get("UpdateAvailableLong"), pProgramState->packageInfo.Get("package.versionstring").AsString(), Get("InYourVaultServer") };
-    if (format5[1] == nullptr)
-      format5[1] = "";
-
-    Set("PackageUpdate", vStringFormat("{0} {1} {2}", format5, 3));
 
     Set("OverrideID", vStringFormat("{0}##ConvertResolutionOverride", Get("Override")));
     Set("PointResolutionID", vStringFormat("{0}##ConvertResolution", Get("PointResolution")));

@@ -278,7 +278,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   ImGui::Separator();
   ImGui::Separator();
 
-  ImGui::Text("%s", vcString::Get("ConvertSettings"));
+  ImGui::TextUnformatted(vcString::Get("ConvertSettings"));
   ImGui::Separator();
 
   udSprintf(outputName, UDARRAYSIZE(outputName), "%s", pSelectedJob->pConvertInfo->pOutputName);
@@ -337,7 +337,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   }
 
   ImGui::Separator();
-  ImGui::Text("%s", vcString::Get("Metadata"));
+  ImGui::TextUnformatted(vcString::Get("Metadata"));
 
   if (ImGui::Button(vcString::Get("LoadWatermark")))
     vcModals_OpenModal(pProgramState, vcMT_LoadWatermark);
@@ -367,7 +367,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   }
   else
   {
-    ImGui::Text("%s", vcString::Get("NoWatermark"));
+    ImGui::TextUnformatted(vcString::Get("NoWatermark"));
   }
 
   if (ImGui::InputText(vcString::Get("Author"), pSelectedJob->author, udLengthOf(pSelectedJob->author)))
@@ -400,7 +400,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
       {
         vdkConvert_GetItemInfo(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i, &itemInfo);
 
-        ImGui::Text("%s", itemInfo.pFilename);
+        ImGui::TextUnformatted(itemInfo.pFilename);
         ImGui::NextColumn();
 
         if (pSelectedJob->status == vcCQS_Preparing)
