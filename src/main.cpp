@@ -1344,8 +1344,13 @@ void vcRenderWindow(vcState *pProgramState)
               const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
 
               // If we remove items before the insertItem index we need to adjust it accordingly
+              // and all the other items
               if (item.pParent == pProgramState->sceneExplorer.insertItem.pParent && item.index < pProgramState->sceneExplorer.insertItem.index)
+              {
                 --pProgramState->sceneExplorer.insertItem.index;
+                for (size_t j = 0; j < i; ++j)
+                  --pProgramState->sceneExplorer.selectedItems[j].index;
+              }
 
               // Remove the item from its parent and insert it into the insertItem parent
               vcSceneItem* pTemp = item.pParent->children[item.index];
