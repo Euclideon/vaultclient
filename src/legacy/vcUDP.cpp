@@ -145,7 +145,7 @@ void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemD
         item.label.pFontSize = nullptr;
       case vcUDPIDT_Polygon:
         item.polygon.pName = nullptr;
-        item.polygon.colour = 0;
+        item.polygon.colour = 0xFFFFFFFF; // Default colour is white
         item.polygon.isClosed = false;
         item.polygon.pPoints = nullptr;
         item.polygon.numPoints = 0;
