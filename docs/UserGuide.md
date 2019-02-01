@@ -24,7 +24,7 @@
 The iOS and Android builds are not currently publicly available.
 
 ## Logging In
-After starting the application you will see the log-in screen below.
+After starting the application you will see the login screen below.
 
 ![Login Screen](images/loginscreen.png)
 
@@ -44,7 +44,7 @@ There are also additional settings in the "Advanced Connection Settings" dropdow
 
 > NOTE: `Ignore Certificate Verification` will not be saved due to the security risk associated. You will need to enable this setting each time you open the application.
 
-After you have entered your credentials, click `Login!` and you should see an empty scene in the user interface similar to the image below.
+After you have entered your credentials, click `Login!` and you will see an empty scene in the viewport similar to the image below.
 
 ![User Interface](images/afterlogin.png)
 
@@ -56,33 +56,31 @@ Shown below is a numbered diagram of a screenshot of the user interface.
 
 ![Interface Numbers](images/interfacenumbered.png)
 
-??Make these bold??
-
-1. Scene Viewport
-2. Menu & Status Bar
-3. Scene Explorer
-4. Settings
-5. GIS/Scene Info
-6. Copyright & Compass
-7. Watermark
-8. Convert Tab
+1. [**Scene Viewport**](#Scene-Viewport)
+2. [**Menu and Status Bar**](#Menu-and-Status-Bar)
+3. [**Scene Explorer**](#Scene-Explorer)
+4. [**Settings**](#Settings)
+5. [**Scene Info and Controls**](#Scene-Info-and-Controls)
+6. [**Copyright and Compass**](#Copyright-and-Compass)
+7. [**Watermark**](#Watermark)
+8. [**Convert Tab**](#Convert-Tab)
 
 The following numbered sections will explain each of these features in full detail.
 
 ## 1. Scene Viewport
-The scene viewport displays your scene. The Scene Explorer section (see section **3. Scene Explorer** below) will explain how to add models to your scene.
+The scene viewport displays the current scene. Section [**3. Scene Explorer**](#Scene-Explorer) explains how to add models to your scene.
 
 ### Moving around the viewport
-> TIP: These settings are configurable in the [Input and Controls](#input-and-controls) settings menu.
+> NOTE: These settings are configurable in [**Input and Controls**](#input-and-controls) (see section [**4. Settings**](#Settings)).
 
-Mouse Controls:
-- Holding the left mouse button down and moving the mouse will "tumble" (Turning without moving) the camera.
-- Holding the right mouse button down on a point in the scene (not the skybox) will begin "panning" (moving the camera, but not turning it) the camera. It will keep the originally hovered point _under the mouse cursor_.
-- Holding the middle mouse button down on a point in the scene (not the skybox) will begin "orbiting" (keeping the camera the same distance from the point by turning and moving the camera) the selected point. It will keep the originally hovered point _at the same place on the screen_.
-- The scroll wheel will "dolly" (move the camera in and out) from the hovered point (not the skybox).
-  > TIP: If you prefer scroll wheel to change the move speed like Euclideon Geoverse MDM does, that option is available in the Mouse Pivot bindings in settings as well.
+Default Mouse Controls:
+- Holding the `left mouse` button and moving the mouse will "tumble" (Turning without moving) the camera.
+- Holding the `right mouse` button on a point in the scene (not the skybox) will begin "panning" (moving the camera, but not turning it) the camera. It will keep the originally hovered point _under the mouse cursor_.
+- Holding the `middle mouse` button on a point in the scene (not the skybox) will begin "orbiting" (keeping the camera the same distance from the point by turning and moving the camera) the selected point. It will keep the originally hovered point _at the same place on the screen_.
+- The `mouse scroll wheel` will "dolly" (move the camera in and out) from the point where the mouse is hovering (will not work with the skybox).
+  > TIP: If you prefer scroll wheel to change the move speed like Euclideon Geoverse MDM does, that option is available in the Mouse Pivot bindings in the Settings window as well.
 
-Default Keyboard Controls (with the "Scene" window focussed):
+Default Keyboard Controls (with the "Scene" window focused):
 - `W` and `S` strafe the camera forward and backward at the current Camera Move Speed.
 - `A` and `D` strafe the camera left and right at the current Camera Move Speed.
 - `R` and `F` strafe the camera up and down at the current Camera Move Speed.
@@ -98,10 +96,10 @@ Default Keyboard Controls (with the "Scene" window focussed):
 - `C` Toggles the gizmo between local and world space coordinates.
 
 #### Scene Explorer Hotkeys
-- `Ctrl+U` Opens popup for loading UDS files.
-- `Delete` Removes selected item(s) from the scene explorer.
+- `Ctrl+U` Opens a popup for loading UDS files.
+- `Delete` Removes the selected item(s) from the scene.
 
-## 2. Menu & Status Bar
+## 2. Menu and Status Bar
 
 ![Status Bar](images/statusbar.png)
 
@@ -161,7 +159,7 @@ The buttons across the top of the Scene Explorer allow quick access to add or re
 
 ### Scene Items
 
-Under the quick action menu you will find the contents of your scene.
+Underneath the quick action menu you will find the contents of your scene.
 
 ![Model Information](images/sceneexplorer2.png)
 
@@ -196,7 +194,7 @@ There are a number of ways to add models to the scene.
 
 The settings window has five subheadings which allow the user to customise and control how the vault client looks and operates. The subheading can be opened by left-clicking on the arrows to the left.
 
->TIP: To restore all default values for any of these settings, simply right-click on the subheading and then click on `restore defaults`
+>TIP: To restore all default values for any of these settings, simply right-click on the header and then select `Restore Defaults`.
 
 #### Appearance
 
@@ -222,7 +220,7 @@ Expanding this subheading allows the user to change settings that affect how the
   - The user can toggle on-screen mouse controls.
   - The user can optimise the client for use with a touchscreen.
   - The X and Y axes can be inverted, which will affect camera movement with the mouse.
-  - Mouse-controlled camera movement can be customised by the user, descriptions of the different mouse pivot bindings can be found in section **1. Scene Viewport** above.
+  - Mouse-controlled camera movement can be customised by the user. Descriptions of the different mouse pivot bindings can be found in section [**1. Scene Viewport**](#Scene-Viewport).
 
 #### Viewport
 
@@ -263,14 +261,14 @@ All four display options are shown expanded below, each allows the user to speci
 
 ![Visualization Settings Expanded](images/visualizationall.png)
 
-> TIP: If you ever change a setting and can't recall what you've changed, you can reset _all_ settings by going to the "System" menu and selecting "Restore Defaults", or you can reset individual groups of settings by right clicking their header and selecting "Restore Defaults"
+> TIP: If you ever change a setting and can't recall what you've changed, you can reset _all_ settings by going to the "System" menu and selecting "Restore Defaults", or you can reset individual groups of settings by right clicking their header and selecting "Restore Defaults".
 
-## 5. GIS / Scene Info
+## 5. Scene Info and Controls
 
 ![Camera Information](images/camerabox.png)
 
-This pane contains several useful features, from left to right:
-  1. `Lock Altitude` (hotkey `Spacebar`) will keep the camera's height constant when panning with the mouse or strafing with the keyboard (Z-axis lock).
+This pane contains several useful features, numbered on the screenshot above.
+  1. `Lock Altitude` (hotkey `Spacebar`) will keep the camera's height constant (Z-axis lock) when panning with the mouse or strafing with the keyboard (this is the same as enabling "Helicopter" mode in Geoverse MDM).
   2. `Show Camera Information` displays the camera position and rotation coordinates, and the camera move speed slider.
   3. `Show Projection Information` displays SRID information in the top-right corner.
   4. `Gizmo Translate` (hotkey `B`) sets the gizmo to translation mode, allowing the user to move objects.
@@ -279,12 +277,12 @@ This pane contains several useful features, from left to right:
   7. `Gizmo Local Space` (hotkey `C`) toggles the gizmo's operational coordinate system between local coordinates (relative to the object) and world coordinates (relative to the world space).
   8. `Fullscreen` (hotkey `F5`) toggles presentation mode and sets the client to fullscreen. By default this will hide the user interface.
 
-If supported in the scene (?), this area also displays the Latitude, Longitude and Altitude of the camera's current position.
+This area also displays the Latitude, Longitude and Altitude of the camera's current position, if the camera is projected in a geospatial zone.
 
-## 6. Copyright & Compass
+## 6. Copyright and Compass
 Copyright data will be displayed in the bottom-right corner of the viewport. Copyright Data can be added to new models in the metadata textbox during conversion.
 
-A compass is also displayed in this corner, indicating the camera's current orientation within the global coordinate space. Compass by default is on, but the Appearance pane contains an on/off checkbox to toggle this setting (see **Appearance** section in **4. Settings** above).
+A compass is also displayed in this corner, indicating the camera's current orientation within the global coordinate space. Compass by default is on, but the Appearance pane contains an on/off checkbox to toggle this setting (see [**Appearance**](#Appearance) in section [**4. Settings**](#Settings)).
 
 ## 7. Watermark
 Watermarks can be viewed on each UDS file, by clicking on the UDS file in the Scene Explorer and then viewing the [Watermark] identification tag.
