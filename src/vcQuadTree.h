@@ -69,6 +69,8 @@ struct vcQuadTree
   vcGISSpace *pSpace;
   udInt3 slippyCoords;
   udDouble3 cameraWorldPosition;
+  udDouble3 cameraTreePosition;
+  int expectedTreeDepth; // depth of the deepest node
   double quadTreeWorldSize;
   double visibleDistance;
   double quadTreeHeightOffset;
