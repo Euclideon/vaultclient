@@ -64,12 +64,9 @@ struct vcGizmoContext
   vcGizmoAllowedControls allowedControls;
 
   vcCamera camera;
-  udDouble3 pivot;
 
   udDouble4x4 mModel;
   udDouble4x4 mModelInverse;
-  udDouble4x4 mModelSource;
-  udDouble4x4 mModelSourceInverse;
   udDouble4x4 mMVP;
 
   udDouble3 mModelScaleOrigin;
@@ -258,17 +255,16 @@ bool vcGizmo_IsHovered()
   return (vcGizmo_GetMoveType() != vcGMT_None) || vcGizmo_GetRotateType() != vcGMT_None || vcGizmo_GetScaleType() != vcGMT_None || vcGizmo_IsActive();
 }
 
-static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &matrix, vcGizmoCoordinateSystem mode, vcGizmoAllowedControls allowedControls, udDouble3 pivot)
+static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &matrix, vcGizmoCoordinateSystem mode, vcGizmoAllowedControls allowedControls)
 {
   sGizmoContext.mMode = mode;
   sGizmoContext.allowedControls = allowedControls;
 
   sGizmoContext.camera = *pCamera;
-  sGizmoContext.pivot = pivot;
 
   if (mode == vcGCS_Local)
   {
-    sGizmoContext.mModel = (matrix * udDouble4x4::translation(sGizmoContext.pivot));
+    sGizmoContext.mModel = matrix;
 
     sGizmoContext.mModel.axis.x = udNormalize3(sGizmoContext.mModel.axis.x);
     sGizmoContext.mModel.axis.y = udNormalize3(sGizmoContext.mModel.axis.y);
@@ -276,15 +272,12 @@ static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &m
   }
   else
   {
-    sGizmoContext.mModel = udDouble4x4::translation((matrix * udDouble4x4::translation(sGizmoContext.pivot)).axis.t.toVector3());
+    sGizmoContext.mModel = udDouble4x4::translation(matrix.axis.t.toVector3());
   }
 
-  if (!sGizmoContext.mbUsing)
-    sGizmoContext.mModelSource = matrix;
-  sGizmoContext.mModelScaleOrigin = udDouble3::create(udMag3(sGizmoContext.mModelSource.axis.x), udMag3(sGizmoContext.mModelSource.axis.y), udMag3(sGizmoContext.mModelSource.axis.z));
+  sGizmoContext.mModelScaleOrigin = udDouble3::create(udMag3(matrix.axis.x), udMag3(matrix.axis.y), udMag3(matrix.axis.z));
 
   sGizmoContext.mModelInverse = udInverse(sGizmoContext.mModel);
-  sGizmoContext.mModelSourceInverse = udInverse(sGizmoContext.mModelSource);
   sGizmoContext.mMVP = sGizmoContext.camera.matrices.viewProjection * sGizmoContext.mModel;
 
   sGizmoContext.mCameraDir = udMath_DirFromEuler(sGizmoContext.camera.eulerRotation);
@@ -301,7 +294,6 @@ static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &m
 
 static void vcGizmo_ComputeColors(ImU32 *colors, size_t numColors, int type, vcGizmoOperation operation)
 {
-
   // Presets all the colours to a disabled colour; that way if they aren't otherwise set below they are disabled
   for (size_t i = 0; i < numColors; i++)
     colors[i] = DisabledColor;
@@ -767,7 +759,7 @@ static int vcGizmo_GetMoveType()
   return type;
 }
 
-static void vcGizmo_HandleTranslation(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix, int& type, double snap)
+static void vcGizmo_HandleTranslation(udDouble4x4 *deltaMatrix, int& type, double snap)
 {
   ImGuiIO& io = ImGui::GetIO();
   bool applyRotationLocaly = sGizmoContext.mMode == vcGCS_Local || type == vcGMT_MoveScreen;
@@ -800,11 +792,11 @@ static void vcGizmo_HandleTranslation(udDouble4x4 *matrix, udDouble4x4 *deltaMat
 
         if (applyRotationLocaly)
         {
-          udDouble4x4 modelSourceNormalized = sGizmoContext.mModelSource;
+          udDouble4x4 modelSourceNormalized = sGizmoContext.mModel;
 
-          sGizmoContext.mModelSource.axis.x = udNormalize3(sGizmoContext.mModelSource.axis.x);
-          sGizmoContext.mModelSource.axis.y = udNormalize3(sGizmoContext.mModelSource.axis.y);
-          sGizmoContext.mModelSource.axis.z = udNormalize3(sGizmoContext.mModelSource.axis.z);
+          sGizmoContext.mModel.axis.x = udNormalize3(sGizmoContext.mModel.axis.x);
+          sGizmoContext.mModel.axis.y = udNormalize3(sGizmoContext.mModel.axis.y);
+          sGizmoContext.mModel.axis.z = udNormalize3(sGizmoContext.mModel.axis.z);
 
           udDouble4x4 modelSourceNormalizedInverse = udInverse(modelSourceNormalized);
           cumulativeDelta = (modelSourceNormalizedInverse * udDouble4::create(cumulativeDelta, 0)).toVector3();
@@ -822,8 +814,6 @@ static void vcGizmo_HandleTranslation(udDouble4x4 *matrix, udDouble4x4 *deltaMat
       udDouble4x4 deltaMatrixTranslation = udDouble4x4::translation(delta);
       if (deltaMatrix)
         *deltaMatrix = deltaMatrixTranslation;
-
-      *matrix = deltaMatrixTranslation * (*matrix);
 
       if (!io.MouseDown[0])
         sGizmoContext.mbUsing = false;
@@ -863,7 +853,7 @@ static void vcGizmo_HandleTranslation(udDouble4x4 *matrix, udDouble4x4 *deltaMat
   }
 }
 
-static void vcGizmo_HandleScale(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix, int& type, double snap)
+static void vcGizmo_HandleScale(udDouble4x4 *deltaMatrix, int& type, double snap)
 {
   ImGuiIO& io = ImGui::GetIO();
 
@@ -886,7 +876,7 @@ static void vcGizmo_HandleScale(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix, i
         sGizmoContext.mMatrixOrigin = sGizmoContext.mModel.axis.t.toVector3();
         sGizmoContext.mScale = udDouble3::one();
         sGizmoContext.mRelativeOrigin = (sGizmoContext.mTranslationPlaneOrigin - sGizmoContext.mModel.axis.t.toVector3()) * (1.0 / sGizmoContext.mScreenFactor);
-        sGizmoContext.mScaleValueOrigin = udDouble3::create(udMag3(sGizmoContext.mModelSource.axis.x), udMag3(sGizmoContext.mModelSource.axis.y), udMag3(sGizmoContext.mModelSource.axis.z));
+        sGizmoContext.mScaleValueOrigin = udDouble3::create(udMag3(sGizmoContext.mModel.axis.x), udMag3(sGizmoContext.mModel.axis.y), udMag3(sGizmoContext.mModel.axis.z));
         sGizmoContext.mSaveMousePosx = io.MousePos.x;
       }
     }
@@ -930,9 +920,7 @@ static void vcGizmo_HandleScale(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix, i
         sGizmoContext.mScale[i] = udMax(sGizmoContext.mScale[i], 0.001);
 
       // compute matrix & delta
-      udDouble4x4 deltaMatrixScale = udDouble4x4::translation(sGizmoContext.pivot) * udDouble4x4::scaleNonUniform(sGizmoContext.mScale) * udDouble4x4::translation(-sGizmoContext.pivot);
-
-      *matrix = sGizmoContext.mModelSource * deltaMatrixScale;
+      udDouble4x4 deltaMatrixScale = udDouble4x4::translation(sGizmoContext.mModel.axis.t.toVector3()) * udDouble4x4::scaleNonUniform(sGizmoContext.mScale) * udDouble4x4::translation(-sGizmoContext.mModel.axis.t.toVector3());;
 
       if (deltaMatrix)
         *deltaMatrix = deltaMatrixScale;
@@ -945,7 +933,7 @@ static void vcGizmo_HandleScale(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix, i
   }
 }
 
-static void vcGizmo_HandleRotation(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix, int& type, double snap)
+static void vcGizmo_HandleRotation(udDouble4x4 *deltaMatrix, int& type, double snap)
 {
   ImGuiIO& io = ImGui::GetIO();
   bool applyRotationLocally = sGizmoContext.mMode == vcGCS_Local;
@@ -988,12 +976,8 @@ static void vcGizmo_HandleRotation(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix
     if (snap)
       vcGizmo_ComputeSnap(&sGizmoContext.mRotationAngle, UD_DEG2RAD(snap));
 
-    udDouble4 rotationAxisLocalSpace = udNormalize3(sGizmoContext.mModelSourceInverse * udDouble4::create(sGizmoContext.mTranslationPlane.normal, 0.0));
-
-    udDouble4x4 deltaRotation = udDouble4x4::translation(sGizmoContext.pivot) * udDouble4x4::rotationAxis(rotationAxisLocalSpace.toVector3(), sGizmoContext.mRotationAngle - sGizmoContext.mRotationAngleOrigin) * udDouble4x4::translation(-sGizmoContext.pivot);
+    udDouble4x4 deltaRotation = udDouble4x4::translation(sGizmoContext.mModel.axis.t.toVector3()) * udDouble4x4::rotationAxis(sGizmoContext.mTranslationPlane.normal, sGizmoContext.mRotationAngle - sGizmoContext.mRotationAngleOrigin) * udDouble4x4::translation(-sGizmoContext.mModel.axis.t.toVector3());
     sGizmoContext.mRotationAngleOrigin = sGizmoContext.mRotationAngle;
-
-    *matrix *= deltaRotation;
 
     if (deltaMatrix)
       *deltaMatrix = deltaRotation;
@@ -1005,21 +989,18 @@ static void vcGizmo_HandleRotation(udDouble4x4 *matrix, udDouble4x4 *deltaMatrix
   }
 }
 
-void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcGizmoCoordinateSystem mode, udDouble4x4 *pMatrix, udDouble4x4 *pDeltaMatrix, vcGizmoAllowedControls allowedControls, udDouble3 pivot /*= udDouble3::zero()*/, double snap /*= 0.0*/)
+void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcGizmoCoordinateSystem mode, const udDouble4x4 &matrix, udDouble4x4 *pDeltaMatrix, vcGizmoAllowedControls allowedControls, double snap /*= 0.0*/)
 {
-  if (pMatrix == nullptr)
-    return; // Can't have a gizmo for nullptr matrix
-
   if (operation == vcGO_Scale)
     mode = vcGCS_Local;
 
-  vcGizmo_ComputeContext(pCamera, *pMatrix, mode, allowedControls, pivot);
+  vcGizmo_ComputeContext(pCamera, matrix, mode, allowedControls);
 
   if (pDeltaMatrix)
     pDeltaMatrix->identity();
 
   // behind camera
-  udDouble4 camSpacePosition = sGizmoContext.mMVP * udDouble4::create(pivot, 1);
+  udDouble4 camSpacePosition = sGizmoContext.mMVP.axis.t;
   if (camSpacePosition.z < 0.001f)
   {
     sGizmoContext.mbUsing = false;
@@ -1030,15 +1011,15 @@ void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcG
   switch (operation)
   {
   case vcGO_Rotate:
-    vcGizmo_HandleRotation(pMatrix, pDeltaMatrix, type, snap);
+    vcGizmo_HandleRotation(pDeltaMatrix, type, snap);
     vcGizmo_DrawRotationGizmo(type);
     break;
   case vcGO_Translate:
-    vcGizmo_HandleTranslation(pMatrix, pDeltaMatrix, type, snap);
+    vcGizmo_HandleTranslation(pDeltaMatrix, type, snap);
     vcGizmo_DrawTranslationGizmo(type);
     break;
   case vcGO_Scale:
-    vcGizmo_HandleScale(pMatrix, pDeltaMatrix, type, snap);
+    vcGizmo_HandleScale(pDeltaMatrix, type, snap);
     vcGizmo_DrawScaleGizmo(type);
     break;
   }
