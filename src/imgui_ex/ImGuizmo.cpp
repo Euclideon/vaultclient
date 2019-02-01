@@ -96,6 +96,7 @@ struct vcGizmoContext
   udDouble3 mScale;
   udDouble3 mScaleValueOrigin;
   float mSaveMousePosx;
+  float mLastMousePosx;
 
   // save axis factor when using gizmo
   bool mBelowAxisLimit[3];
@@ -503,7 +504,7 @@ static void vcGizmo_DrawScaleGizmo(int type)
   udDouble3 scaleDisplay = { 1.0, 1.0, 1.0 };
 
   if (sGizmoContext.mbUsing)
-    scaleDisplay = sGizmoContext.mScale;
+    scaleDisplay = sGizmoContext.mScaleValueOrigin;
 
   for (unsigned int i = 0; i < 3; i++)
   {
@@ -876,8 +877,8 @@ static void vcGizmo_HandleScale(udDouble4x4 *deltaMatrix, int& type, double snap
         sGizmoContext.mMatrixOrigin = sGizmoContext.mModel.axis.t.toVector3();
         sGizmoContext.mScale = udDouble3::one();
         sGizmoContext.mRelativeOrigin = (sGizmoContext.mTranslationPlaneOrigin - sGizmoContext.mModel.axis.t.toVector3()) * (1.0 / sGizmoContext.mScreenFactor);
-        sGizmoContext.mScaleValueOrigin = udDouble3::create(udMag3(sGizmoContext.mModel.axis.x), udMag3(sGizmoContext.mModel.axis.y), udMag3(sGizmoContext.mModel.axis.z));
         sGizmoContext.mSaveMousePosx = io.MousePos.x;
+        sGizmoContext.mLastMousePosx = io.MousePos.x;
       }
     }
   }
@@ -908,6 +909,8 @@ static void vcGizmo_HandleScale(udDouble4x4 *deltaMatrix, int& type, double snap
       else
       {
         double scaleDelta = (io.MousePos.x - sGizmoContext.mSaveMousePosx)  * 0.01f;
+        sGizmoContext.mScaleValueOrigin = udDouble3::create(udMax(1.0 + scaleDelta, 0.001));
+        scaleDelta = (io.MousePos.x - sGizmoContext.mLastMousePosx)  * 0.01f;
         sGizmoContext.mScale = udDouble3::create(udMax(1.0 + scaleDelta, 0.001));
       }
 
@@ -929,6 +932,7 @@ static void vcGizmo_HandleScale(udDouble4x4 *deltaMatrix, int& type, double snap
         sGizmoContext.mbUsing = false;
 
       type = sGizmoContext.mCurrentOperation;
+      sGizmoContext.mLastMousePosx = io.MousePos.x;
     }
   }
 }
