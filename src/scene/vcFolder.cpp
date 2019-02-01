@@ -205,6 +205,16 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
     if (ImGui::IsItemHovered())
       ImGui::SetTooltip("%s", children[i]->pName);
 
+    if (!children[i]->expanded && children[i] == pProgramState->sceneExplorer.insertItem.pParent && pProgramState->sceneExplorer.insertItem.index == pProgramState->sceneExplorer.insertItem.pParent->children.size())
+    {
+      // Double indent to match open folder insertion
+      ImGui::Indent();
+      ImGui::Indent();
+      vcFolder_AddInsertSeparator();
+      ImGui::Unindent();
+      ImGui::Unindent();
+    }
+
     // Show additional settings from ImGui
     if (children[i]->expanded)
     {
