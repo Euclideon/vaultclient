@@ -382,7 +382,7 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
   // always request root
   vcTileRenderer_UpdateTileTexture(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex]);
 
-  // remove from the queue any tiles that now invalid
+  // remove from the queue any tiles that are invalid
   for (int i = 0; i < (int)pTileRenderer->cache.tileLoadList.length; ++i)
   {
     if (!pTileRenderer->cache.tileLoadList[i]->renderInfo.tryLoad)
