@@ -1,6 +1,8 @@
 #include "vcMenuButtons.h"
 #include "gl/vcTexture.h"
 
+#include "udPlatform/udPlatformUtil.h"
+
 #include "imgui.h"
 
 bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char *pKeyCode, const vcMenuBarButtonIcon buttonIndex, vcMenuBarButtonGap gap, bool selected /*= false*/)
@@ -17,13 +19,18 @@ bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char 
   float buttonX = (buttonIndex % (int)(textureRelativeButtonSize / buttonSize)) * buttonUVSize;
   float buttonY = (buttonIndex / (int)(textureRelativeButtonSize / buttonSize)) * buttonUVSize;
 
+  bool retVal = false;
+
   if (gap == vcMBBG_SameGroup)
     ImGui::SameLine(0.f, MBtn_Padding);
   else if (gap == vcMBBG_NewGroup)
     ImGui::SameLine(0.f, MBtn_Gap);
 
   ImGui::PushID(pButtonName);
-  bool retVal = ImGui::ImageButton(pUITexture, ImVec2(buttonSize, buttonSize), ImVec2(buttonX, buttonY), ImVec2(buttonX + buttonUVSize, buttonY + buttonUVSize), 2, selected ? EnabledColor : DefaultBGColor);
+  if (pUITexture != nullptr)
+    retVal = ImGui::ImageButton(pUITexture, ImVec2(buttonSize, buttonSize), ImVec2(buttonX, buttonY), ImVec2(buttonX + buttonUVSize, buttonY + buttonUVSize), 2, selected ? EnabledColor : DefaultBGColor);
+  else
+    retVal = ImGui::Button(udTempStr("?###%s", pButtonName), ImVec2(buttonSize, buttonSize));
   if (ImGui::IsItemHovered())
   {
     if (pKeyCode == nullptr)
