@@ -15,6 +15,11 @@ fi
 export DEPLOYDIR="$DEV/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
 export VAULTSDK_HOME="$DEV/Builds/vault/linkedvdk/Pipeline_33708"
 
+# Prepare UserGuide
+mkdir -p builds/userguide
+cp -r docs/images builds/userguide/images
+cp docs/UserGuide.md builds/userguide/UserGuide.md
+
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 	export CERT_THUMBPRINT="bbee8d60b45735badf16f76e049b966981bd2751"
 
@@ -34,6 +39,10 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 		# Make sure directory exists
 		mkdir -p $DEPLOYDIR/Windows
 
+		//bne-fs-fs-003/Software/DevelopmentTools/Pandoc/pandoc-2.3-windows-x86_64/pandoc.exe -f gfm --tab-stop 2 docs/UserGuide.md -o __temp.html
+		cat docs/misc/header.html __temp.html docs/misc/footer.html > builds/userguide/UserGuide.html
+		rm __temp.html
+
 		# D3D copies only EXE, OpenGL copies everything else
 		if [ $3 == "--gfxapi=d3d11" ]; then
 			cp -f builds/vaultClient_d3d11.exe $DEPLOYDIR/Windows/vaultClient.exe
@@ -45,6 +54,7 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 			cp -f $VAULTSDK_HOME/lib/win_x64/vaultSDK.dll $DEPLOYDIR/Windows/vaultSDK.dll
 			cp -f builds/releasenotes.md $DEPLOYDIR/Windows/releasenotes.md
 			cp -f builds/defaultsettings.json $DEPLOYDIR/Windows/defaultsettings.json
+			cp -rf builds/userguide/ $DEPLOYDIR/Windows/userguide
 
 			# Technically this could be in any build; outputs the change list to the deploy dir
 			git log --no-merges --pretty=format:"%an (%ae) %ai%n%s%n%b" > $DEPLOYDIR/history.txt
