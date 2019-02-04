@@ -430,7 +430,7 @@ I cannot connect to the vault, how do I resolve this issue?
 > Check your firewall or proxy settings, if running a proxy ensure the address is proxy.euclideon with the port number 80.
 
 My proxy isn't working, why?
-> Authenticated Proxies at the time of this build do not have official proxy support, when using proxies the format �protocol://username:password@domain/URI� should be adopted, network metadata is not transmitted when using proxies and is stored in plain text file, which may assist solving connection issues.
+> Authenticated Proxies at the time of this build do not have official proxy support, when using proxies the format `protocol://username:password@domain/URI` should be adopted, network metadata is not transmitted when using proxies and is stored in plain text file, which may assist solving connection issues.
 
 `Could not open a secure channel` Why is this popping up?
 > If you're using a proxy, your network may not be sending encrypted data, ticking the "ignore certificate verification" may circumvent this issue. Note: Network Security certificates will not be verified.
