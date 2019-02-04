@@ -1,18 +1,18 @@
 # **Euclideon Vault Client User Guide**
-# Getting Started
-## Unpacking / Installing
+## Getting Started
+### Unpacking / Installing
 
-### Windows
+#### Windows
 1. Download the latest ZIP that has been approved for use from your Euclideon Vault Server provider.
 2. Unpack the entire contents of the .zip file
 3. If you have a computer capable of running OpenGL run `vaultClient_OpenGL.exe` otherwise for older machines `vaultClient.exe`. The OpenGL version will offer a smoother experience on most machines.
 
-### macOS
+#### macOS
 1. Download the latest DMG package that has been approved for use from your Euclideon Vault Server provider.
 2. Open the DMG and drag the "Euclideon Vault Client" icon onto the provided "Applications" icon
 4. Run the "Euclideon Vault Client" application from "Applications"
 
-### Debian Linux Distributions (Requires Desktop Environment)
+#### Debian Linux Distributions (Requires Desktop Environment)
 1. Use your package manager to install the following:
     - SDL2 (Minimum version 2.0.5)
     - libCURL (Version 3)
@@ -20,10 +20,10 @@
 3. Unpack the entire contents of the tar.gz
 4. Run `vaultClient`
 
-### iOS / Android
+#### iOS / Android
 The iOS and Android builds are not currently publicly available.
 
-## Logging In
+### Logging In
 After starting the application you will see the login screen below.
 
 ![Login Screen](images/loginscreen.png)
@@ -50,7 +50,7 @@ After you have entered your credentials, click `Login!` and you will see an empt
 
 ---
 
-# User Interface
+## User Interface
 
 Shown below is a numbered diagram of a screenshot of the user interface.
 
@@ -67,10 +67,10 @@ Shown below is a numbered diagram of a screenshot of the user interface.
 
 The following numbered sections will explain each of these features in full detail.
 
-## 1. Scene Viewport
+### 1. Scene Viewport
 The scene viewport displays the current scene. Section [**3. Scene Explorer**](#Scene-Explorer) explains how to add models to your scene.
 
-### Moving around the viewport
+#### Moving around the viewport
 > NOTE: These settings are configurable in [**Input and Controls**](#input-and-controls) (see section [**4. Settings**](#Settings)).
 
 Default Mouse Controls:
@@ -86,26 +86,26 @@ Default Keyboard Controls (with the "Scene" window focused):
 - `R` and `F` strafe the camera up and down at the current Camera Move Speed.
 - `Spacebar` locks altitude, allowing the user to pan and strafe the camera without changing the camera's height (Z-axis lock).
 
-### Hotkeys
+#### Hotkeys
 - `F5` Toggles presentation mode, hiding the interface and going fullscreen.
 
-#### Gizmo Hotkeys
+##### Gizmo Hotkeys
 - `B` Sets the gizmo to translation mode, allowing user to move objects.
 - `N` Sets the gizmo to rotation mode, allowing user to rotate objects.
 - `M` Sets the gizmo to scale mode, allowing user to resize objects.
 - `C` Toggles the gizmo between local and world space coordinates.
 
-#### Scene Explorer Hotkeys
+##### Scene Explorer Hotkeys
 - `Ctrl+U` Opens a popup for loading UDS files.
 - `Delete` Removes the selected item(s) from the scene.
 
-## 2. Menu and Status Bar
+### 2. Menu and Status Bar
 
 ![Status Bar](images/statusbar.png)
 
 The menu bar consists of 2 sections, the left section with menu drop downs and the right section with status information.
 
-### System Menu
+#### System Menu
 
 ![System Menu](images/systemdown.png)
 
@@ -121,31 +121,31 @@ The system menu has a number of system related functions.
 - `Release Notes` displays a popup with information on the current and previous release changes.
 - `Quit` logs you out and then closes the program.
 
-### Windows
+#### Windows
 ![Windows Menu](images/windowsmenu.png)
 
 The windows menu allows you to show or hide various windows in the Euclideon Vault Client application.
 
 - Contains windows: Scene, Scene Explorer, Settings, Convert
 
-### Projects
+#### Projects
 ![Projects Menu](images/projectdropdown.png)
 
 The projects menu has a new scene button and if additional projects are available to your user, it will show those projects here as well.
 
 - "New Scene" will remove all items from your Scene and create a new empty Scene.
 
-### Status Bar
+#### Status Bar
 The status bar shows a lot of useful information (not all of it will always be available).
 
 - Number of files queued to load "([n] Files Queued),
 
-## 3. Scene Explorer
+### 3. Scene Explorer
 ![Scene Explorer](images/sceneexplorer.png)
 
 The Scene Explorer window shows you the assets currently in your scene, and also allows the user to add UDS models and create new folders, points of interest, areas of interest and lines. Non-UDS models can also be imported if they are legacy files (.udg or .ssf) or they can be converted to UDS format using the Conversion tool (see section [**8. Convert Tab**](#Convert-Tab)).
 
-### Quick Action Menu
+#### Quick Action Menu
 The buttons across the top of the Scene Explorer allow quick access to add or remove from the scene. From left to right:
 - `Add UDS` (hotkey `Ctrl + U`) This button opens the dialog box to add a UDS model to the scene. The Path/URL can include files on the local drives, network drives, UNC Paths, HTTP, HTTPS, FTP & FTPS.
    ![AddUDS](images/adduds.png)
@@ -157,7 +157,7 @@ The buttons across the top of the Scene Explorer allow quick access to add or re
 
 > TIP: If you ever want to quickly clear the current scene, the "Projects" menu has a "New Scene" option that will remove everything from the scene.
 
-### Scene Items
+#### Scene Items
 
 Underneath the quick action menu you will find the contents of your scene.
 
@@ -182,14 +182,14 @@ Items or groups of items in the scene explorer can be reordered by holding left-
 
 > When dropping onto folders. It is best to open the folder you wish to drag into before starting the click-drag operation.
 
-### Loading UDS Models
+#### Loading UDS Models
 There are a number of ways to add models to the scene.
 
 1. Drag and Drop: On devices with folder exploring you can drag a file from your file explorer and drop it in the Euclideon Vault Client window to add the model to the scene.
 2. Direct URI loading: You can type a URL or path in the `Add UDS` popup. The path field at the top of the pane allows URL and network paths to retrieve UDS files.
 3. If you have access to projects on the server you will be able to click the "Projects" button in the menu and select a project to load. Projects are loaded from the Vault Server you're connected to.
 
-## 4. Settings
+### 4. Settings
 ![Settings](images/settings.png)
 
 The settings window has five subheadings which allow the user to customise and control how the vault client looks and operates. The subheading can be opened by left-clicking on the arrows to the left.
@@ -275,7 +275,7 @@ All four display options also allow the user to customise the colours. They are 
 
 > TIP: If you ever change a setting and can't recall what you've changed, you can reset _all_ settings by going to the "System" menu and selecting "Restore Defaults", or you can reset individual groups of settings by right clicking their header and selecting "Restore Defaults".
 
-## 5. Scene Info and Controls
+### 5. Scene Info and Controls
 
 ![Camera Information](images/camerabox.png)
 
@@ -291,15 +291,15 @@ This pane contains several useful features, numbered on the screenshot above.
 
 This area also displays the Latitude, Longitude and Altitude of the camera's current position, if the camera is projected in a geospatial zone.
 
-## 6. Copyright and Compass
+### 6. Copyright and Compass
 Copyright data will be displayed in the bottom-right corner of the viewport. Copyright Data can be added to new models in the metadata textbox during conversion.
 
 A compass is also displayed in this corner, indicating the camera's current orientation within the global coordinate space. Compass by default is on, but the Appearance pane contains an on/off checkbox to toggle this setting (see [**Appearance**](#Appearance) in section [**4. Settings**](#Settings)).
 
-## 7. Watermark
+### 7. Watermark
 Watermarks can be viewed on each UDS file, by clicking on the UDS file in the Scene Explorer and then viewing the [Watermark] identification tag.
 
-## 8. Convert Tab
+### 8. Convert Tab
 Converting to UDS file format can be done from within the Euclideon Vault Client as well. Loading a supported pointcloud format will open the "Convert" window if it isn't already open. A quick 'pre-parse' is done to detect the file format, supported attributes etc. By loading the start of the file, this stage also does an estimate of the total number of points the file has.
 
   - Supported file conversion formats (?????).
@@ -351,15 +351,15 @@ The "X" button beside the convert job in the "Convert Jobs" section allows you t
 
 ---
 
-# Technical Information
+## Technical Information
 
-## Requirements
+### Requirements
 
 - VaultClient_OpenGL Requires OpenGL
 - Internet Connection
 - Euclideon Vault License
 
-## Settings On Disk
+### Settings On Disk
 Where the settings file is stored depends on your OS.
 - Windows: `%AppData%/Euclideon/client/settings.json`
 - macOS: `~/Library/Application Support/euclideon/client/settings.json`
@@ -367,7 +367,7 @@ Where the settings file is stored depends on your OS.
 - iOS: `???`
 - Android: `???`
 
-## Third Party Licenses
+### Third Party Licenses
 Euclideon Vault Client uses a number of third party libraries.
 
 - `Dear ImGui` from [GitHub](https://github.com/ocornut/imgui)
@@ -385,7 +385,7 @@ Euclideon Vault Development Kit (VDK) uses the following additional libraries.
 - `mbedtls` from [GitHub](https://github.com/ARMmbed/mbedtls)
 - `miniz` from [GitHub](https://github.com/richgel999/miniz)
 
-# FAQs
+## FAQs
 
 Why can't I see my image?
 > Try adjusting the viewport settings until the image appears, ensure you have loaded and enabled the layer in the scene viewer pane.

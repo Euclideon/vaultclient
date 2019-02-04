@@ -148,3 +148,4 @@ Makefile
 /.vs/config
 /builds/imgui.ini
 /builds/imgui_dock.layout
+/builds/userguide
