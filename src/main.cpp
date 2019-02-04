@@ -474,6 +474,7 @@ int main(int argc, char **args)
   SDL_EnableScreenSaver();
 
   vcString::LoadTable("asset://assets/lang/enAU.json");
+  vcTexture_CreateFromFilename(&programState.pUITexture, "asset://assets/textures/uiDark24.png");
 
   while (!programState.programComplete)
   {
@@ -704,39 +705,32 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::SetNextWindowBgAlpha(0.5f);
     if (ImGui::Begin(vcString::Get("CameraSettings"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
     {
-      if (pProgramState->pUITexture == nullptr)
-      {
-        vcTexture_CreateFromFilename(&pProgramState->pUITexture, "asset://assets/textures/uiDark24.png");
-      }
-      else
-      {
-        // Basic Settings
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("LockAltitude"), vcString::Get("LockAltKey"), vcMBBI_LockAltitude, vcMBBG_FirstItem, (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)))
-          pProgramState->settings.camera.moveMode = (pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter;
+      // Basic Settings
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("LockAltitude"), vcString::Get("LockAltKey"), vcMBBI_LockAltitude, vcMBBG_FirstItem, (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)))
+        pProgramState->settings.camera.moveMode = (pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter;
 
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("CameraInfo"), nullptr, vcMBBI_ShowCameraSettings, vcMBBG_SameGroup, pProgramState->settings.presentation.showCameraInfo))
-          pProgramState->settings.presentation.showCameraInfo = !pProgramState->settings.presentation.showCameraInfo;
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("CameraInfo"), nullptr, vcMBBI_ShowCameraSettings, vcMBBG_SameGroup, pProgramState->settings.presentation.showCameraInfo))
+        pProgramState->settings.presentation.showCameraInfo = !pProgramState->settings.presentation.showCameraInfo;
 
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("ProjectionInfo"), nullptr, vcMBBI_ShowGeospatialInfo, vcMBBG_SameGroup, pProgramState->settings.presentation.showProjectionInfo))
-          pProgramState->settings.presentation.showProjectionInfo = !pProgramState->settings.presentation.showProjectionInfo;
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("ProjectionInfo"), nullptr, vcMBBI_ShowGeospatialInfo, vcMBBG_SameGroup, pProgramState->settings.presentation.showProjectionInfo))
+        pProgramState->settings.presentation.showProjectionInfo = !pProgramState->settings.presentation.showProjectionInfo;
 
-        // Gizmo Settings
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoTranslate"), vcString::Get("TranslateKey"), vcMBBI_Translate, vcMBBG_NewGroup, (pProgramState->gizmo.operation == vcGO_Translate)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_B])
-          pProgramState->gizmo.operation = vcGO_Translate;
+      // Gizmo Settings
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoTranslate"), vcString::Get("TranslateKey"), vcMBBI_Translate, vcMBBG_NewGroup, (pProgramState->gizmo.operation == vcGO_Translate)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_B])
+        pProgramState->gizmo.operation = vcGO_Translate;
 
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoRotate"), vcString::Get("RotateKey"), vcMBBI_Rotate, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Rotate)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_N])
-          pProgramState->gizmo.operation = vcGO_Rotate;
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoRotate"), vcString::Get("RotateKey"), vcMBBI_Rotate, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Rotate)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_N])
+        pProgramState->gizmo.operation = vcGO_Rotate;
 
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoScale"), vcString::Get("ScaleKey"), vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_M])
-          pProgramState->gizmo.operation = vcGO_Scale;
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoScale"), vcString::Get("ScaleKey"), vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_M])
+        pProgramState->gizmo.operation = vcGO_Scale;
 
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoLocalSpace"), vcString::Get("LocalKey"), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)) || ImGui::IsKeyPressed(SDL_SCANCODE_C, false))
-          pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoLocalSpace"), vcString::Get("LocalKey"), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)) || ImGui::IsKeyPressed(SDL_SCANCODE_C, false))
+        pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
-        // Fullscreen
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("Fullscreen"), vcString::Get("FullscreenKey"), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode))
-          vcMain_PresentationMode(pProgramState);
-      }
+      // Fullscreen
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("Fullscreen"), vcString::Get("FullscreenKey"), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode))
+        vcMain_PresentationMode(pProgramState);
 
       if (pProgramState->settings.presentation.showCameraInfo)
       {
