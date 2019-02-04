@@ -17,7 +17,7 @@ export VAULTSDK_HOME="$DEV/Builds/vault/linkedvdk/Pipeline_33708"
 
 # Prepare UserGuide
 mkdir -p builds/userguide
-cp docs/images builds/userguide/images
+cp -r docs/images builds/userguide/images
 cp docs/UserGuide.md builds/userguide/UserGuide.md
 
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
