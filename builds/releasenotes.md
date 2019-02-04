@@ -1,6 +1,8 @@
 Euclideon Vault Client Version History
 
-Version 0.2.0 (In Progress)
+Version 0.2.0
+  ADDITIONS & FIXES
+  - Added user guide, we will continue to improve this in the next release to cover all existing features
   - Added a menu bar for frequently changed settings (EVC-298)
     - Added keyboard shortcuts for those settings as well (EVC-238)
   - Fixed some size issues with some of the modals (EVC-285) and added support for pressing ESC to close them
@@ -17,6 +19,8 @@ Version 0.2.0 (In Progress)
   - Added Gizmos to move items around in the scene (EVC-288, EVC-297 & EVC-294)
   - The load indicator has been slowed down and now only ticks a few times a second
   - Removed unnessecary columns from the scene explorer in favour of the more standard tree view system
+    - Added folders for filtering options
+    - Items can be dragged in the tree to reorder
   - Fixed an issue with jumping between projections causing a crash in some situations (EVC-315)
   - Fixed an issue with the release notes not being renderered correctly (EVC-314)
   - You can now rename the user defined classifications (EVC-308)
@@ -28,6 +32,17 @@ Version 0.2.0 (In Progress)
     - Fixed an issue that caused a user to rejoin the queue every time it requested a license while already in queue
 	- Better support for concatenated PTS files (UD-19)
 	- Fixed issue with classification being averaged instead of picking one of the points for LOD calculations (UD-2)
+
+  KNOWN ISSUES
+  - User guide does not cover the entire application
+  - Corrupted UDS files silently fail without notifying the user
+  - All POI's are defaulting to 0,0,0 at creation
+  - No longer able to restart failed convert jobs
+  - Known crash when exiting the program when currently outside a GeoZone
+  - POI fences have low quality art
+  - Auto-Detection of proxies is only very rarely working
+  - Unable to save projects
+  - Unable to add points to polygons or measure
 
 Version 0.1.2
   - Seperated the project codes for Vault Server / Vault Development kit (EVA) from the Euclideon Vault Client codes (EVC)
