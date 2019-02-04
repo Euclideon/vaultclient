@@ -118,7 +118,7 @@ const char* const g_udFragmentShader = R"shader(
     float4 col = texture0.Sample(sampler0, input.uv);
     float depth = texture1.Sample(sampler1, input.uv).x;
 
-    float4 fragWorldPosition = mul(u_inverseViewProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0));
+    float4 fragWorldPosition = mul(u_inverseViewProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, depth, 1.0));
     fragWorldPosition /= fragWorldPosition.w;
 
     col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
