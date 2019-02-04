@@ -867,7 +867,7 @@ udDouble4x4 udGeoZone_TransformMatrix(const udDouble4x4 &matrix, const udGeoZone
     return matrix;
 
   // A very large model will lead to inaccuracies, so in this case, scale it down
-  double accuracyScale = (matrix.a[0] > 1000) ? matrix.a[0] / 1000.0 : 1.0;
+  double accuracyScale = (matrix.a[0] < 1.0) ? 1.0 : 1.0 / matrix.a[0]; //TODO: This fix needs to be retained between updates of udPlatform
 
   udDouble3 llO = udGeoZone_ToLatLong(sourceZone, matrix.axis.t.toVector3());
   udDouble3 llX = udGeoZone_ToLatLong(sourceZone, matrix.axis.t.toVector3() + (matrix.axis.x.toVector3() * accuracyScale));
