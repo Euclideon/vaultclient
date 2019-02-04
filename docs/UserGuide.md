@@ -353,19 +353,37 @@ The "X" button beside the convert job in the "Convert Jobs" section allows you t
 
 # Technical Information
 
-### Requirements
+## Requirements
 
 - VaultClient_OpenGL Requires OpenGL
 - Internet Connection
 - Euclideon Vault License
 
-### Settings On Disk
+## Settings On Disk
 Where the settings file is stored depends on your OS.
 - Windows: `%AppData%/Euclideon/client/settings.json`
 - macOS: `~/Library/Application Support/euclideon/client/settings.json`
 - Linux: `~/.local/share/euclideon/client/settings.json`
 - iOS: `???`
 - Android: `???`
+
+## Third Party Licenses
+Euclideon Vault Client uses a number of third party libraries.
+
+- `Dear ImGui` from [GitHub](https://github.com/ocornut/imgui)
+- `Dear ImGui - Minimal Docking Extension` from [GitHub](https://github.com/vassvik/imgui_docking_minimal)
+- `ImGuizmo` from [GitHub](https://github.com/CedricGuillemet/ImGuizmo)
+- `libSDL2` from [libsdl](https://libsdl.org)
+- `GLEW` from [SourceForge](http://glew.sourceforge.net/)
+- `Nothings/STB` single header libraries from [GitHub](https://github.com/nothings/stb)
+
+Euclideon Vault Development Kit (VDK) uses the following additional libraries.
+
+- `cURL` from [GitHub](https://github.com/curl/curl)
+- `Nothings/STB` single header libraries from [GitHub](https://github.com/nothings/stb)
+- `libdeflate` from [GitHub](https://github.com/ebiggers/libdeflate)
+- `mbedtls` from [GitHub](https://github.com/ARMmbed/mbedtls)
+- `miniz` from [GitHub](https://github.com/richgel999/miniz)
 
 # FAQs
 
@@ -412,7 +430,7 @@ I cannot connect to the vault, how do I resolve this issue?
 > Check your firewall or proxy settings, if running a proxy ensure the address is proxy.euclideon with the port number 80.
 
 My proxy isn't working, why?
-> Authenticated Proxies at the time of this build do not have official proxy support, when using proxies the format “protocol://username:password@domain/URI” should be adopted, network metadata is not transmitted when using proxies and is stored in plain text file, which may assist solving connection issues.
+> Authenticated Proxies at the time of this build do not have official proxy support, when using proxies the format `protocol://username:password@domain/URI` should be adopted, network metadata is not transmitted when using proxies and is stored in plain text file, which may assist solving connection issues.
 
 `Could not open a secure channel` Why is this popping up?
 > If you're using a proxy, your network may not be sending encrypted data, ticking the "ignore certificate verification" may circumvent this issue. Note: Network Security certificates will not be verified.
