@@ -941,7 +941,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
         if (ImGui::MenuItem(vcString::Get("SetMapHeightHere")))
         {
-          pProgramState->settings.maptiles.mapHeight = worldMouse.z;
+          pProgramState->settings.maptiles.mapHeight = (float)worldMouse.z;
           ImGui::CloseCurrentPopup();
         }
 
