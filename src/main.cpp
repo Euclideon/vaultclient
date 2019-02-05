@@ -925,7 +925,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       static bool hadMouse = false;
       static udDouble3 worldMouse;
 
-      if (!wasOpenLastFrame)
+      if (!wasOpenLastFrame || ImGui::IsMouseClicked(1))
       {
         hadMouse = pProgramState->pickingSuccess;
         worldMouse = pProgramState->worldMousePos;
