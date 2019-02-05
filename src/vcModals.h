@@ -11,8 +11,8 @@ enum vcModalTypes
   vcMT_TileServer,
   vcMT_AddUDS,
   vcMT_ImportUDP,
+  vcMT_ImportCSV,
   vcMT_LoadWatermark,
-  vcMT_AddCSV,
   vcMT_NotYetImplemented,
   vcMT_ImageViewer,
 

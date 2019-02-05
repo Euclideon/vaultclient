@@ -1014,10 +1014,16 @@ int vcMainMenuGui(vcState *pProgramState)
       if (ImGui::MenuItem(vcString::Get("NewScene"), nullptr, nullptr))
         vcScene_RemoveAll(pProgramState);
 
-      ImGui::Separator();
+      if (ImGui::BeginMenu("Import"))
+      {
+        if (ImGui::MenuItem(vcString::Get("ImportUDP"), nullptr, nullptr))
+          vcModals_OpenModal(pProgramState, vcMT_ImportUDP);
 
-      if (ImGui::MenuItem(vcString::Get("ImportUDP"), nullptr, nullptr))
-        vcModals_OpenModal(pProgramState, vcMT_ImportUDP);
+        if (ImGui::MenuItem(vcString::Get("ImportCSV"), nullptr, nullptr))
+          vcModals_OpenModal(pProgramState, vcMT_ImportCSV);
+
+        ImGui::EndMenu();
+      }
 
       ImGui::Separator();
 
@@ -1324,12 +1330,6 @@ void vcRenderWindow(vcState *pProgramState)
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
         vcFolder_AddToList(pProgramState, "Folder");
-
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("ImportCSV"), nullptr, vcMBBI_LoadCSV, vcMBBG_SameGroup))
-        vcModals_OpenModal(pProgramState, vcMT_AddCSV);
-
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("ExportCSV"), nullptr, vcMBBI_SaveCSV, vcMBBG_SameGroup))
-        vcModals_OpenModal(pProgramState, vcMT_SaveCSV);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("Remove"), vcString::Get("DeleteKey"), vcMBBI_Remove, vcMBBG_NewGroup) || ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE])
         vcScene_RemoveSelected(pProgramState);
