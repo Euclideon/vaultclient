@@ -3,6 +3,7 @@
 
 #include "vcScene.h"
 #include "vdkRenderContext.h"
+#include "vdkError.h"
 #include "gl/vcFenceRenderer.h"
 #include "gl/vcLabelRenderer.h"
 
@@ -38,7 +39,7 @@ struct vcPOI : public vcSceneItem
   void Cleanup(vcState *pProgramState);
 };
 
-void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid);
-void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid);
+void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes = "");
+void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid, const char *pNotes = "");
 
 #endif //vcPOI_h__

@@ -1014,10 +1014,16 @@ int vcMainMenuGui(vcState *pProgramState)
       if (ImGui::MenuItem(vcString::Get("NewScene"), nullptr, nullptr))
         vcScene_RemoveAll(pProgramState);
 
-      ImGui::Separator();
+      if (ImGui::BeginMenu("Import"))
+      {
+        if (ImGui::MenuItem(vcString::Get("ImportUDP"), nullptr, nullptr))
+          vcModals_OpenModal(pProgramState, vcMT_ImportUDP);
 
-      if (ImGui::MenuItem(vcString::Get("ImportUDP"), nullptr, nullptr))
-        vcModals_OpenModal(pProgramState, vcMT_ImportUDP);
+        if (ImGui::MenuItem(vcString::Get("ImportCSV"), nullptr, nullptr))
+          vcModals_OpenModal(pProgramState, vcMT_ImportCSV);
+
+        ImGui::EndMenu();
+      }
 
       ImGui::Separator();
 
@@ -1751,6 +1757,35 @@ void vcRenderWindow(vcState *pProgramState)
       }
     }
     ImGui::EndDock();
+
+    if (pProgramState->currentError != vE_Success)
+    {
+      ImGui::OpenPopup("Error");
+      ImGui::SetNextWindowSize(ImVec2(250, 60));
+    }
+
+    if (ImGui::BeginPopupModal("Error", NULL, ImGuiWindowFlags_NoDecoration))
+    {
+      const char *pMessage;
+
+      switch (pProgramState->currentError)
+      {
+      case vE_Failure: pMessage = vcString::Get("Failure"); break;
+      case vE_OpenFailure: pMessage = vcString::Get("OpenFailure"); break;
+      case vE_ReadFailure: pMessage = vcString::Get("ReadFailure"); break;
+      case vE_WriteFailure: pMessage = vcString::Get("WriteFailure"); break;
+      default: pMessage = vcString::Get("Failure"); break;
+      }
+
+      ImGui::TextWrapped("%s", pMessage);
+
+      if (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+      {
+        pProgramState->currentError = vE_Success;
+        ImGui::CloseCurrentPopup();
+      }
+      ImGui::EndPopup();
+    }
   }
   vcModals_DrawModals(pProgramState);
 }

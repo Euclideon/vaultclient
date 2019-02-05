@@ -9,6 +9,7 @@
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
+#include "udPlatform/udFile.h"
 
 void vcPOI::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
 {
@@ -130,7 +131,7 @@ void vcPOI::Cleanup(vcState * /*pProgramState*/)
   this->vcPOI::~vcPOI();
 }
 
-void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid)
+void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes)
 {
   vcPOI *pPOI = udAllocType(vcPOI, 1, udAF_Zero);
   pPOI = new (pPOI) vcPOI();
@@ -188,13 +189,19 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
     memcpy(pPOI->pZone, pPOI->pOriginalZone, sizeof(*pPOI->pZone));
   }
 
+  if (pNotes != nullptr && pNotes[0] != '\0')
+  {
+    pPOI->pMetadata = udAllocType(udJSON, 1, udAF_Zero);
+    pPOI->pMetadata->Set("notes = '%s'", pNotes);
+  }
+
   udStrcpy(pPOI->typeStr, sizeof(pPOI->typeStr), "POI");
   pPOI->loadStatus = vcSLS_Loaded;
 
   pPOI->AddItem(pProgramState);
 }
 
-void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid)
+void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid, const char *pNotes)
 {
   vcLineInfo temp;
   temp.numPoints = 1;
@@ -202,5 +209,5 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
   temp.lineWidth = 1;
   temp.lineColour = 0xFFFFFFFF;
 
-  vcPOI_AddToList(pProgramState, pName, nameColour, namePt, &temp, srid);
+  vcPOI_AddToList(pProgramState, pName, nameColour, namePt, &temp, srid, pNotes);
 }
