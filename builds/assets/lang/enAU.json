@@ -264,6 +264,10 @@
   "RemoveAll": "Remove All Files",
   "InputFiles": "Input Files",
   "Files": "files",
-  "LoadWatermark": "Load Watermark Image"
+  "LoadWatermark": "Load Watermark Image",
+  "SetMapHeightHere": "Set as map height",
+  "LabelAddHere": "Add POI here",
+  "DefaultName_POI": "Point of interest",
+  "DefaultName_Folder": "Folder"
   "ImageViewer":"Image Viewer"
 }
