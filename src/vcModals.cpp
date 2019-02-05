@@ -3,6 +3,7 @@
 #include "vcState.h"
 #include "vcVersion.h"
 #include "vcThirdPartyLicenses.h"
+#include "vcPOI.h"
 #include "gl/vcTexture.h"
 #include "vcRender.h"
 #include "vcStrings.h"
@@ -16,6 +17,8 @@
 #include "imgui_ex/vcFileDialog.h"
 
 #include "stb_image.h"
+
+#include "legacy/vcCSV.h"
 
 void vcModals_DrawLoggedOut(vcState *pProgramState)
 {
@@ -271,55 +274,41 @@ void vcModals_DrawTileServer(vcState *pProgramState)
   }
 }
 
-void vcModals_DrawAddUDS(vcState *pProgramState)
+void vcModals_DrawFileModal(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_AddUDS))
     ImGui::OpenPopup(vcString::Get("SceneAddUDS"));
+  if (pProgramState->openModals & (1 << vcMT_ImportUDP))
+    ImGui::OpenPopup(vcString::Get("ImportUDP"));
+  if (pProgramState->openModals & (1 << vcMT_ImportCSV))
+    ImGui::OpenPopup(vcString::Get("ImportCSV"));
+
+  vcModalTypes mode = vcMT_Count;
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("SceneAddUDS")))
-  {
-    ImGui::InputText(vcString::Get("PathURL"), pProgramState->modelPath, vcMaxPathLength);
-    ImGui::SameLine();
-
-    if (ImGui::Button(vcString::Get("Load"), ImVec2(100.f, 0)))
-    {
-      pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
-      ImGui::CloseCurrentPopup();
-    }
-
-    ImGui::SameLine();
-
-    if (ImGui::Button(vcString::Get("Cancel"), ImVec2(100.f, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
-      ImGui::CloseCurrentPopup();
-
-    ImGui::Separator();
-
-    const char *fileExtensions[] = { ".uds", ".ssf", ".udg" };
-    if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
-    {
-      pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
-      ImGui::CloseCurrentPopup();
-    }
-
-    ImGui::EndPopup();
-  }
-}
-
-void vcModals_DrawImportUDP(vcState *pProgramState)
-{
-  if (pProgramState->openModals & (1 << vcMT_ImportUDP))
-    ImGui::OpenPopup(vcString::Get("SceneImportUDP"));
+    mode = vcMT_AddUDS;
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(vcString::Get("SceneImportUDP")))
+  if (ImGui::BeginPopupModal(vcString::Get("ImportUDP")))
+    mode = vcMT_ImportUDP;
+
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("ImportCSV")))
+    mode = vcMT_ImportCSV;
+
+  if (mode < vcMT_Count)
   {
     ImGui::InputText(vcString::Get("PathURL"), pProgramState->modelPath, vcMaxPathLength);
     ImGui::SameLine();
 
     if (ImGui::Button(vcString::Get("Load"), ImVec2(100.f, 0)))
     {
-      pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
+      if (mode == vcMT_AddUDS || mode == vcMT_ImportUDP)
+        pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
+      else if (mode == vcMT_ImportCSV)
+        pProgramState->currentError = vcCSV_LoadCSV(pProgramState, pProgramState->modelPath);
+
       ImGui::CloseCurrentPopup();
     }
 
@@ -330,11 +319,32 @@ void vcModals_DrawImportUDP(vcState *pProgramState)
 
     ImGui::Separator();
 
-    const char *fileExtensions[] = { ".udp" };
-    if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
+    if (mode == vcMT_AddUDS)
     {
-      pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
-      ImGui::CloseCurrentPopup();
+      const char *fileExtensions[] = { ".uds", ".ssf", ".udg" };
+      if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
+      {
+        pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
+        ImGui::CloseCurrentPopup();
+      }
+    }
+    if (mode == vcMT_ImportUDP)
+    {
+      const char *fileExtensions[] = { ".udp" };
+      if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
+      {
+        pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
+        ImGui::CloseCurrentPopup();
+      }
+    }
+    else if (mode == vcMT_ImportCSV)
+    {
+      const char *fileExtensions[] = { ".csv" };
+      if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
+      {
+        pProgramState->currentError = vcCSV_LoadCSV(pProgramState, pProgramState->modelPath);
+        ImGui::CloseCurrentPopup();
+      }
     }
 
     ImGui::EndPopup();
@@ -444,6 +454,7 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
     ImGui::EndPopup();
   }
 }
+
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 {
   pProgramState->openModals |= (1 << type);
@@ -456,8 +467,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawAbout(pProgramState);
   vcModals_DrawNewVersionAvailable(pProgramState);
   vcModals_DrawTileServer(pProgramState);
-  vcModals_DrawAddUDS(pProgramState);
-  vcModals_DrawImportUDP(pProgramState);
+  vcModals_DrawFileModal(pProgramState);
   vcModals_DrawLoadWatermark(pProgramState);
   vcModals_DrawNotImplemented(pProgramState);
   vcModals_DrawImageViewer(pProgramState);
