@@ -41,6 +41,5 @@ struct vcPOI : public vcSceneItem
 
 void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes = "");
 void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid, const char *pNotes = "");
-vdkError vcPOI_LoadCSV(vcState *pProgramState, const char *pFilename);
 
 #endif //vcPOI_h__
