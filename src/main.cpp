@@ -918,6 +918,55 @@ void vcRenderSceneWindow(vcState *pProgramState)
     vcTexture *pSceneTexture = vcRender_GetSceneTexture(pProgramState->pRenderContext);
     ImGui::ImageButton(pSceneTexture, windowSize, uv0, uv1, 0);
 
+    static bool wasOpenLastFrame = false;
+
+    if (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem()) //TODO:
+    {
+      static bool hadMouse = false;
+      static udDouble3 worldMouse;
+
+      if (!wasOpenLastFrame || ImGui::IsMouseClicked(1))
+      {
+        hadMouse = pProgramState->pickingSuccess;
+        worldMouse = pProgramState->worldMousePos;
+      }
+
+      if (hadMouse)
+      {
+        if (ImGui::MenuItem(vcString::Get("LabelAddHere")))
+        {
+          vcPOI_AddToList(pProgramState, vcString::Get("DefaultName_POI"), 0xFFFFFFFF, 14, worldMouse, pProgramState->gis.SRID);
+          ImGui::CloseCurrentPopup();
+        }
+
+        if (ImGui::MenuItem(vcString::Get("SetMapHeightHere")))
+        {
+          pProgramState->settings.maptiles.mapHeight = (float)worldMouse.z;
+          ImGui::CloseCurrentPopup();
+        }
+
+        if (ImGui::MenuItem(vcString::Get("MoveTo")))
+        {
+          pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
+          pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
+          pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
+          pProgramState->cameraInput.worldAnchorPoint = worldMouse;
+          pProgramState->cameraInput.progress = 0.0;
+        }
+      }
+      else
+      {
+        ImGui::CloseCurrentPopup();
+      }
+
+      ImGui::EndPopup();
+      wasOpenLastFrame = true;
+    }
+    else
+    {
+      wasOpenLastFrame = false;
+    }
+
     // Camera update has to be here because it depends on previous ImGui state
     vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create(windowSize.x, windowSize.y), udFloat2::create((float)renderData.mouse.x, (float)renderData.mouse.y));
 
@@ -1320,7 +1369,7 @@ void vcRenderWindow(vcState *pProgramState)
         vcModals_OpenModal(pProgramState, vcMT_AddUDS);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddPOI"), nullptr, vcMBBI_AddPointOfInterest, vcMBBG_SameGroup))
-        vcPOI_AddToList(pProgramState, "Point of Interest", 0xFFFFFFFF, 14, udDouble3::zero(), 0);
+        vcPOI_AddToList(pProgramState, vcString::Get("DefaultName_POI"), 0xFFFFFFFF, 14, udDouble3::zero(), 0);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddAOI"), nullptr, vcMBBI_AddAreaOfInterest, vcMBBG_SameGroup))
         vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
@@ -1329,7 +1378,7 @@ void vcRenderWindow(vcState *pProgramState)
         vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
-        vcFolder_AddToList(pProgramState, "Folder");
+        vcFolder_AddToList(pProgramState, vcString::Get("DefaultName_Folder"));
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("Remove"), vcString::Get("DeleteKey"), vcMBBI_Remove, vcMBBG_NewGroup) || ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE])
         vcScene_RemoveSelected(pProgramState);
