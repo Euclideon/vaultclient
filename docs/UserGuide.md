@@ -56,22 +56,22 @@ Shown below is a numbered diagram of a screenshot of the user interface.
 
 ![Interface Numbers](images/interfacenumbered.png)
 
-1. [**Scene Viewport**](#1-scene-viewport)
-2. [**Menu and Status Bar**](#2-menu-and-status-bar)
-3. [**Scene Explorer**](#3-scene-explorer)
-4. [**Settings**](#4-settings)
-5. [**Scene Info and Controls**](#5-scene-info-and-controls)
-6. [**Copyright and Compass**](#6-copyright-and-compass)
-7. [**Watermark**](#7-watermark)
-8. [**Convert Tab**](#8-convert-tab)
+1. [**Scene Viewport**](#1.-scene-viewport)
+2. [**Menu and Status Bar**](#2.-menu-and-status-bar)
+3. [**Scene Explorer**](#3.-scene-explorer)
+4. [**Settings**](#4.-settings)
+5. [**Scene Info and Controls**](#5.-scene-info-and-controls)
+6. [**Copyright and Compass**](#6.-copyright-and-compass)
+7. [**Watermark**](#7.-watermark)
+8. [**Convert Tab**](#8.-convert-tab)
 
 The following numbered sections will explain each of these features in full detail.
 
 ### 1. Scene Viewport
-The scene viewport displays the current scene. Section [**3. Scene Explorer**](#3-scene-explorer) explains how to add models to your scene.
+The scene viewport displays the current scene. Section [**3. Scene Explorer**](#3.-scene-explorer) explains how to add models to your scene.
 
 #### Moving around the viewport
-> NOTE: These settings are configurable in [**Input and Controls**](#input-and-controls) (see section [**4. Settings**](#4-settings)).
+> NOTE: These settings are configurable in [**Input and Controls**](#input-and-controls) (see section [**4. Settings**](#4.-settings)).
 
 Default Mouse Controls:
 - Holding the `left mouse` button and moving the mouse will "tumble" (Turning without moving) the camera.
@@ -143,7 +143,7 @@ The status bar shows a lot of useful information (not all of it will always be a
 ### 3. Scene Explorer
 ![Scene Explorer](images/sceneexplorer.png)
 
-The Scene Explorer window shows you the assets currently in your scene, and also allows the user to add UDS models and create new folders, points of interest, areas of interest and lines. Non-UDS models can also be imported if they are legacy files (.udg or .ssf) or they can be converted to UDS format using the Conversion tool (see section [**8. Convert Tab**](#8-convert-tab)).
+The Scene Explorer window shows you the assets currently in your scene, and also allows the user to add UDS models and create new folders, points of interest, areas of interest and lines. Non-UDS models can also be imported if they are legacy files (.udg or .ssf) or they can be converted to UDS format using the Conversion tool (see section [**8. Convert Tab**](#8.-convert-tab)).
 
 #### Quick Action Menu
 The buttons across the top of the Scene Explorer allow quick access to add or remove from the scene. From left to right:
@@ -220,7 +220,7 @@ Expanding this subheading allows the user to change settings that affect how the
   - The user can toggle on-screen mouse controls.
   - The user can optimise the client for use with a touchscreen.
   - The X and Y axes can be inverted, which will affect camera movement with the mouse.
-  - Mouse-controlled camera movement can be customised by the user. Descriptions of the different mouse pivot bindings can be found in section [**1. Scene Viewport**](#1-scene-viewport).
+  - Mouse-controlled camera movement can be customised by the user. Descriptions of the different mouse pivot bindings can be found in section [**1. Scene Viewport**](#1.-scene-viewport).
 
 #### Viewport
 
@@ -294,21 +294,21 @@ This area also displays the Latitude, Longitude and Altitude of the camera's cur
 ### 6. Copyright and Compass
 Copyright data will be displayed in the bottom-right corner of the viewport. Copyright Data can be added to new models in the metadata textbox during conversion.
 
-A compass is also displayed in this corner, indicating the camera's current orientation within the global coordinate space. Compass by default is on, but the Appearance pane contains an on/off checkbox to toggle this setting (see [**Appearance**](#appearance) in section [**4. Settings**](#4-settings)).
+A compass is also displayed in this corner, indicating the camera's current orientation within the global coordinate space. Compass by default is on, but the Appearance pane contains an on/off checkbox to toggle this setting (see [**Appearance**](#appearance) in section [**4. Settings**](#4.-settings)).
 
 ### 7. Watermark
 Watermarks can be viewed on each UDS file, by clicking on the UDS file in the Scene Explorer and then viewing the [Watermark] identification tag.
 
 ### 8. Convert Tab
-Converting to UDS file format can be done from within the Euclideon Vault Client as well. Loading a supported pointcloud format will open the "Convert" window if it isn't already open. A quick 'pre-parse' is done to detect the file format, supported attributes etc. By loading the start of the file, this stage also does an estimate of the total number of points the file has.
+The Euclideon Vault Client allows pointcloud files with a valid filetype to be converted into the supported `.uds` file format. To do this, load a valid pointcloud file into the client by dragging and dropping the file into the client window. This will open the Convert Tab if it isn't already open.
 
-  - Supported file conversion formats (?????).
+Valid conversion filetypes are: `.pts`, `.ptx`, `.las`, `.txt`, `.csv`, `.e57`, `.asc`, `.xyz`.
 
 > If you aren't able to find the convert tab, it can be displayed from the `Windows > Convert` flag, once selected the convert option will be displayed next to the Scene tab.
 
 ![Convert Window](images/convertpane.png)
 
-There are a few additional settings to modify here.
+There are a few settings to modify in the convert tab.
 
 - Output name
   - This is the final name and path of the exported UDS file.
