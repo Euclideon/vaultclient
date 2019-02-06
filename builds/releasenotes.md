@@ -1,5 +1,10 @@
 Euclideon Vault Client Version History
 
+Version 0.2.1
+  - Added a built-in Image Viewer
+  - Added the ability to import labels from CSV (EVC-239)
+  - Added a right-click context menu to add POIs, set the map height and Move To
+
 Version 0.2.0
   ADDITIONS & FIXES
   - Added user guide, we will continue to improve this in the next release to cover all existing features
