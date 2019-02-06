@@ -21,6 +21,8 @@ const char *statusNames[] =
   "Failed"
 };
 
+void vcConvert_ResetConvert(vcState *pProgramState, vcConvertItem *pConvertItem, vdkConvertItemInfo *pItemInfo);
+
 UDCOMPILEASSERT(UDARRAYSIZE(statusNames) == vcCQS_Count, "Not Enough Status Names");
 
 uint32_t vcConvert_Thread(void *pVoidState)
@@ -291,7 +293,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
   ImGui::Separator();
 
-  if (pSelectedJob->status == vcCQS_Preparing)
+  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
     ImGui::CheckboxFlags(vcString::Get("ContinueOnCorrupt"), (uint32_t*)&pSelectedJob->pConvertInfo->ignoreParseErrors, 1);
 
   // Resolution
@@ -306,7 +308,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   }
 
   // Override Resolution
-  if (pSelectedJob->status == vcCQS_Preparing)
+  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
   {
     bool overrideResolution = pSelectedJob->pConvertInfo->overrideResolution ? 1 : 0;
     double resolution = pSelectedJob->pConvertInfo->pointResolution;
@@ -323,7 +325,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   ImGui::Text("%s: %d", vcString::Get("SRID"), pSelectedJob->pConvertInfo->srid);
 
   // Override SRID
-  if (pSelectedJob->status == vcCQS_Preparing)
+  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
   {
     bool overrideSRID = pSelectedJob->pConvertInfo->overrideSRID ? 1 : 0;
     int srid = pSelectedJob->pConvertInfo->srid;
@@ -388,7 +390,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
     ImGui::SetNextTreeNodeOpen(true, ImGuiCond_FirstUseEver);
     if (ImGui::TreeNodeEx(pSelectedJob->pConvertInfo, 0, "%s (%s %s)", vcString::Get("InputFiles"), udCommaInt(pSelectedJob->pConvertInfo->totalItems), vcString::Get("Files")))
     {
-      if (pSelectedJob->status == vcCQS_Preparing && ImGui::Button(vcString::Get("RemoveAll")))
+      if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled) && ImGui::Button(vcString::Get("RemoveAll")))
       {
         while (pSelectedJob->pConvertInfo->totalItems > 0)
           vdkConvert_RemoveItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, 0);
@@ -403,7 +405,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
         ImGui::TextUnformatted(itemInfo.pFilename);
         ImGui::NextColumn();
 
-        if (pSelectedJob->status == vcCQS_Preparing)
+        if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
         {
           ImGui::Text("%s: %s", vcString::Get("Points"), udCommaInt(itemInfo.pointsCount));
 
@@ -445,8 +447,10 @@ void vcConvert_ShowUI(vcState *pProgramState)
       ImGui::TreePop();
     }
 
-    if (pSelectedJob->status == vcCQS_Preparing && ImGui::Button(vcString::Get("BeginConvert")))
+    if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled) && ImGui::Button(vcString::Get("BeginConvert")))
     {
+      if (pSelectedJob->status == vcCQS_Cancelled)
+        vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
       ImGui::Separator();
       pSelectedJob->status = vcCQS_Queued;
       udIncrementSemaphore(pProgramState->pConvertContext->pSemaphore);
@@ -454,34 +458,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
     else if (pSelectedJob->status == vcCQS_Completed && ImGui::Button(vcString::Get("Reset")))
     {
       ImGui::Separator();
-      vdkConvertContext *pConvertContext = nullptr;
-      const vdkConvertInfo *pConvertInfo = nullptr;
-      vdkConvert_CreateContext(pProgramState->pVDKContext, &pConvertContext);
-      vdkConvert_GetInfo(pProgramState->pVDKContext, pConvertContext, &pConvertInfo);
-
-      for (size_t i = 0; i < pSelectedJob->pConvertInfo->totalItems; i++)
-      {
-        vdkConvert_GetItemInfo(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i, &itemInfo);
-        vdkConvert_AddItem(pProgramState->pVDKContext, pConvertContext, itemInfo.pFilename);
-      }
-
-      vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pConvertContext, pSelectedJob->pConvertInfo->pOutputName);
-      vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pConvertContext, pSelectedJob->pConvertInfo->pTempFilesPrefix);
-      vdkConvert_SetPointResolution(pProgramState->pVDKContext, pConvertContext, pSelectedJob->pConvertInfo->overrideResolution != 0, pSelectedJob->pConvertInfo->pointResolution);
-      vdkConvert_SetSRID(pProgramState->pVDKContext, pConvertContext, pSelectedJob->pConvertInfo->overrideSRID != 0, pSelectedJob->pConvertInfo->srid);
-
-      vdkConvert_AddWatermark(pProgramState->pVDKContext, pConvertContext, pSelectedJob->watermark.pFilename);
-
-      vdkConvert_SetMetadata(pProgramState->pVDKContext, pConvertContext, "Author", pSelectedJob->author);
-      vdkConvert_SetMetadata(pProgramState->pVDKContext, pConvertContext, "Comment", pSelectedJob->comment);
-      vdkConvert_SetMetadata(pProgramState->pVDKContext, pConvertContext, "Copyright", pSelectedJob->copyright);
-      vdkConvert_SetMetadata(pProgramState->pVDKContext, pConvertContext, "License", pSelectedJob->license);
-
-      vdkConvert_DestroyContext(pProgramState->pVDKContext, &pSelectedJob->pConvertContext);
-
-      pSelectedJob->pConvertContext = pConvertContext;
-      pSelectedJob->pConvertInfo = pConvertInfo;
-      pSelectedJob->status = vcCQS_Preparing;
+      vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
     }
   }
 }
@@ -523,4 +500,36 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
   }
 
   return false;
+}
+
+void vcConvert_ResetConvert(vcState *pProgramState, vcConvertItem *pConvertItem, vdkConvertItemInfo *pItemInfo)
+{
+  vdkConvertContext *pConvertContext = nullptr;
+  const vdkConvertInfo *pConvertInfo = nullptr;
+  vdkConvert_CreateContext(pProgramState->pVDKContext, &pConvertContext);
+  vdkConvert_GetInfo(pProgramState->pVDKContext, pConvertContext, &pConvertInfo);
+
+  for (size_t i = 0; i < pConvertItem->pConvertInfo->totalItems; i++)
+  {
+    vdkConvert_GetItemInfo(pProgramState->pVDKContext, pConvertItem->pConvertContext, i, pItemInfo);
+    vdkConvert_AddItem(pProgramState->pVDKContext, pConvertContext, pItemInfo->pFilename);
+  }
+
+  vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pConvertContext, pConvertItem->pConvertInfo->pOutputName);
+  vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pConvertContext, pConvertItem->pConvertInfo->pTempFilesPrefix);
+  vdkConvert_SetPointResolution(pProgramState->pVDKContext, pConvertContext, pConvertItem->pConvertInfo->overrideResolution != 0, pConvertItem->pConvertInfo->pointResolution);
+  vdkConvert_SetSRID(pProgramState->pVDKContext, pConvertContext, pConvertItem->pConvertInfo->overrideSRID != 0, pConvertItem->pConvertInfo->srid);
+
+  vdkConvert_AddWatermark(pProgramState->pVDKContext, pConvertContext, pConvertItem->watermark.pFilename);
+
+  vdkConvert_SetMetadata(pProgramState->pVDKContext, pConvertContext, "Author", pConvertItem->author);
+  vdkConvert_SetMetadata(pProgramState->pVDKContext, pConvertContext, "Comment", pConvertItem->comment);
+  vdkConvert_SetMetadata(pProgramState->pVDKContext, pConvertContext, "Copyright", pConvertItem->copyright);
+  vdkConvert_SetMetadata(pProgramState->pVDKContext, pConvertContext, "License", pConvertItem->license);
+
+  vdkConvert_DestroyContext(pProgramState->pVDKContext, &pConvertItem->pConvertContext);
+
+  pConvertItem->pConvertContext = pConvertContext;
+  pConvertItem->pConvertInfo = pConvertInfo;
+  pConvertItem->status = vcCQS_Preparing;
 }
