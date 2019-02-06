@@ -566,15 +566,15 @@ int main(int argc, char **args)
 
           if (pNextLoad != nullptr)
           {
-            udFilename loadFile(pNextLoad);
-            udFile *pTestFile;
-            if (udFile_Open(&pTestFile, loadFile, udFOF_Read) != 0)
+            // test to see if specified filepath is valid
+            udFile *pTestFile = nullptr;
+            programState.currentError = vE_OpenFailure;
+            if (udFile_Open(&pTestFile, pNextLoad, udFOF_Read) == udR_Success)
             {
-              programState.currentError = vE_OpenFailure;
-            }
-            else
-            {
+              udFile_Close(&pTestFile);
+              programState.currentError = vE_Success;
 
+              udFilename loadFile(pNextLoad);
               const char *pExt = loadFile.GetExt();
               if (udStrEquali(pExt, ".uds") || udStrEquali(pExt, ".ssf") || udStrEquali(pExt, ".udm") || udStrEquali(pExt, ".udg"))
               {
