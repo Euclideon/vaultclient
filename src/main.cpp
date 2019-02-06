@@ -566,8 +566,8 @@ int main(int argc, char **args)
 
           if (pNextLoad != nullptr)
           {
-            FILE *pTestFile = fopen(pNextLoad, "r");
-            if (!pTestFile)
+            FILE *pTestFile;
+            if (fopen_s(&pTestFile, pNextLoad, "r") != 0)
             {
               programState.currentError = vE_OpenFailure;
             }
