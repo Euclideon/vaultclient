@@ -203,7 +203,7 @@ The settings window has five subheadings which allow the user to customise and c
 Here the user can adjust several settings that change the appearance of the client:
 
   - A visual theme can be chosen to change the overall colour scheme, options are Light or Dark.
-  - The user can choose to display diagnostic information, such as the frame-rate and model bounds.
+  - The user can choose to display diagnostic information, such as the frame-rate.
   - The user can choose to display advanced GIS settings in the top-right corner.
   - The user can choose to limit the FPS when the client is running in the background, reducing interference with other open programs.
   - The compass in the bottom-right corner can be toggled on/off.

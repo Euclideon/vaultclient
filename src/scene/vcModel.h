@@ -13,8 +13,6 @@ struct vcModel : public vcSceneItem
   vdkPointCloud *pPointCloud;
 
   double meterScale;
-  udDouble3 boundsMin;
-  udDouble3 boundsMax;
 
   bool hasWatermark; // True if the model has a watermark (might not be loaded)
   vcTexture *pWatermark; // If the watermark is loaded, it will be here
