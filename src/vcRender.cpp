@@ -76,6 +76,7 @@ struct vcRenderContext
   vcTexture *pDepthTexture;
 
   vcUDRenderContext udRenderContext;
+  vcFenceRenderer *pDiagnosticFences;
 
   vcTileRenderer *pTileRenderer;
   vcAnchor *pCompass;
@@ -124,6 +125,7 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   vcShader_Bind(nullptr);
 
   UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, pSettings));
+  UD_ERROR_CHECK(vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences));
 
   *ppRenderContext = pRenderContext;
 
@@ -171,6 +173,7 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
 
   UD_ERROR_CHECK(vcTileRenderer_Destroy(&pRenderContext->pTileRenderer));
+  UD_ERROR_CHECK(vcFenceRenderer_Destroy(&pRenderContext->pDiagnosticFences));
 
 epilogue:
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
@@ -401,6 +404,10 @@ void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
+  // Draw fences here
+  if (pRenderContext->pSettings->presentation.showDiagnosticInfo)
+    vcFenceRenderer_Render(pRenderContext->pDiagnosticFences, pRenderContext->pCamera->matrices.viewProjection, renderData.deltaTime);
+
   for (size_t i = 0; i < renderData.fences.length; ++i)
     vcFenceRenderer_Render(renderData.fences[i], pRenderContext->pCamera->matrices.viewProjection, renderData.deltaTime);
 }
@@ -577,6 +584,53 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
     }
   }
 
+
+  if (pRenderContext->pSettings->presentation.showDiagnosticInfo)
+  {
+    float z = 0;
+    if (pRenderContext->pSettings->maptiles.mapEnabled)
+      z = pRenderContext->pSettings->maptiles.mapHeight;
+
+    udInt2 slippyCurrent;
+    udDouble3 localCurrent;
+
+    double xRange = renderData.pGISSpace->zone.latLongBoundMax.x - renderData.pGISSpace->zone.latLongBoundMin.x;
+    double yRange = renderData.pGISSpace->zone.latLongBoundMax.y - renderData.pGISSpace->zone.latLongBoundMin.y;
+
+    if (xRange > 0 || yRange > 0)
+    {
+      std::vector<udDouble3> corners;
+
+      for (int i = 0; i < yRange; ++i)
+      {
+        vcGIS_LatLongToSlippy(&slippyCurrent, udDouble3::create(renderData.pGISSpace->zone.latLongBoundMin.x, renderData.pGISSpace->zone.latLongBoundMin.y + i, 0), 21);
+        vcGIS_SlippyToLocal(renderData.pGISSpace, &localCurrent, slippyCurrent, 21);
+        corners.push_back(udDouble3::create(localCurrent.x, localCurrent.y, z));
+      }
+      for (int i = 0; i < xRange; ++i)
+      {
+        vcGIS_LatLongToSlippy(&slippyCurrent, udDouble3::create(renderData.pGISSpace->zone.latLongBoundMin.x + i, renderData.pGISSpace->zone.latLongBoundMax.y, 0), 21);
+        vcGIS_SlippyToLocal(renderData.pGISSpace, &localCurrent, slippyCurrent, 21);
+        corners.push_back(udDouble3::create(localCurrent.x, localCurrent.y, z));
+      }
+      for (int i = 0; i < yRange; ++i)
+      {
+        vcGIS_LatLongToSlippy(&slippyCurrent, udDouble3::create(renderData.pGISSpace->zone.latLongBoundMax.x, renderData.pGISSpace->zone.latLongBoundMax.y - i, 0), 21);
+        vcGIS_SlippyToLocal(renderData.pGISSpace, &localCurrent, slippyCurrent, 21);
+        corners.push_back(udDouble3::create(localCurrent.x, localCurrent.y, z));
+      }
+      for (int i = 0; i < xRange; ++i)
+      {
+        vcGIS_LatLongToSlippy(&slippyCurrent, udDouble3::create(renderData.pGISSpace->zone.latLongBoundMax.x - i, renderData.pGISSpace->zone.latLongBoundMin.y, 0), 21);
+        vcGIS_SlippyToLocal(renderData.pGISSpace, &localCurrent, slippyCurrent, 21);
+        corners.push_back(udDouble3::create(localCurrent.x, localCurrent.y, z));
+      }
+      corners.push_back(udDouble3::create(corners[0]));
+
+      vcFenceRenderer_AddPoints(pRenderContext->pDiagnosticFences, &corners[0], corners.size());
+    }
+  }
+
   vdkRenderPicking picking = {};
   picking.x = (uint32_t)((float)renderData.mouse.x / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
   picking.y = (uint32_t)((float)renderData.mouse.y / (float)pRenderContext->originalSceneResolution.y * (float)pRenderContext->sceneResolution.y);
@@ -610,4 +664,12 @@ void vcRender_ClearTiles(vcRenderContext *pRenderContext)
     return;
 
   vcTileRenderer_ClearTiles(pRenderContext->pTileRenderer);
+}
+
+void vcRender_ClearPoints(vcRenderContext *pRenderContext)
+{
+  if (pRenderContext == nullptr)
+    return;
+
+  vcFenceRenderer_ClearPoints(pRenderContext->pDiagnosticFences);
 }
