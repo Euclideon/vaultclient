@@ -566,37 +566,46 @@ int main(int argc, char **args)
 
           if (pNextLoad != nullptr)
           {
-            udFilename loadFile(pNextLoad);
-            const char *pExt = loadFile.GetExt();
-            if (udStrEquali(pExt, ".uds") || udStrEquali(pExt, ".ssf") || udStrEquali(pExt, ".udm") || udStrEquali(pExt, ".udg"))
+            // test to see if specified filepath is valid
+            udFile *pTestFile = nullptr;
+            programState.currentError = vE_OpenFailure;
+            if (udFile_Open(&pTestFile, pNextLoad, udFOF_Read) == udR_Success)
             {
-              vcModel_AddToList(&programState, nullptr, pNextLoad, firstLoad);
-              continueLoading = true;
-            }
-            else if (udStrEquali(pExt, ".udp"))
-            {
-              if (firstLoad)
-                vcScene_RemoveAll(&programState);
+              udFile_Close(&pTestFile);
+              programState.currentError = vE_Success;
 
-              vcUDP_Load(&programState, pNextLoad);
-            }
-            else if ( !ImGui::IsDockActive(vcString::Get("Convert")) &&
-              (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif")))
-            {
-              vcTexture_Destroy(&programState.image.pImage);
+              udFilename loadFile(pNextLoad);
+              const char *pExt = loadFile.GetExt();
+              if (udStrEquali(pExt, ".uds") || udStrEquali(pExt, ".ssf") || udStrEquali(pExt, ".udm") || udStrEquali(pExt, ".udg"))
+              {
+                vcModel_AddToList(&programState, nullptr, pNextLoad, firstLoad);
+                continueLoading = true;
+              }
+              else if (udStrEquali(pExt, ".udp"))
+              {
+                if (firstLoad)
+                  vcScene_RemoveAll(&programState);
 
-              int comp;
-              stbi_uc *pImg = stbi_load(pNextLoad, &programState.image.width, &programState.image.height, &comp, 4);
+                vcUDP_Load(&programState, pNextLoad);
+              }
+              else if (!ImGui::IsDockActive(vcString::Get("Convert")) &&
+                (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif")))
+              {
+                vcTexture_Destroy(&programState.image.pImage);
 
-              vcTexture_Create(&programState.image.pImage, programState.image.width, programState.image.height, pImg);
+                int comp;
+                stbi_uc *pImg = stbi_load(pNextLoad, &programState.image.width, &programState.image.height, &comp, 4);
 
-              stbi_image_free(pImg);
+                vcTexture_Create(&programState.image.pImage, programState.image.width, programState.image.height, pImg);
 
-              vcModals_OpenModal(&programState, vcMT_ImageViewer);
-            }
-            else
-            {
-              vcConvert_AddFile(&programState, pNextLoad);
+                stbi_image_free(pImg);
+
+                vcModals_OpenModal(&programState, vcMT_ImageViewer);
+              }
+              else
+              {
+                vcConvert_AddFile(&programState, pNextLoad);
+              }
             }
 
             udFree(pNextLoad);
