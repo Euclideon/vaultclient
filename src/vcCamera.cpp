@@ -244,6 +244,9 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
   case vcCIS_Panning:
   {
+    if (pCamInput->mouseInput.x < .01 && pCamInput->mouseInput.x > -.01 && pCamInput->mouseInput.y < .01 && pCamInput->mouseInput.y > -.01)
+      break;
+
     udPlane<double> plane = udPlane<double>::create(pCamInput->worldAnchorPoint, { 0, 0, 1 });
 
     if (pCamSettings->moveMode == vcCMM_Plane)
