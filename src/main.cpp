@@ -566,14 +566,15 @@ int main(int argc, char **args)
 
           if (pNextLoad != nullptr)
           {
-            FILE *pTestFile;
-            if (fopen_s(&pTestFile, pNextLoad, "r") != 0)
+            udFilename loadFile(pNextLoad);
+            udFile *pTestFile;
+            if (udFile_Open(&pTestFile, loadFile, udFOF_Read) != 0)
             {
               programState.currentError = vE_OpenFailure;
             }
             else
             {
-              udFilename loadFile(pNextLoad);
+
               const char *pExt = loadFile.GetExt();
               if (udStrEquali(pExt, ".uds") || udStrEquali(pExt, ".ssf") || udStrEquali(pExt, ".udm") || udStrEquali(pExt, ".udg"))
               {
