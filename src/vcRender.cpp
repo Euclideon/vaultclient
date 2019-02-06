@@ -585,32 +585,8 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   }
 
 
-  if ( pRenderContext->pSettings->presentation.showDiagnosticInfo && renderData.models.length > 0)
+  if (pRenderContext->pSettings->presentation.showDiagnosticInfo)
   {
-    vcFenceRenderer_ClearPoints(pRenderContext->pDiagnosticFences);
-
-    for (size_t i = 0; i < renderData.models.length; ++i)
-    {
-      if (renderData.models[i]->loadStatus != vcSLS_Loaded)
-        continue;
-
-      udDouble3 corners[10];
-
-      corners[0] = (renderData.models[i]->sceneMatrix * udDouble4::create(renderData.models[i]->boundsMin.x, renderData.models[i]->boundsMin.y, renderData.models[i]->boundsMin.z, 1.0)).toVector3();
-      corners[1] = (renderData.models[i]->sceneMatrix * udDouble4::create(renderData.models[i]->boundsMin.x, renderData.models[i]->boundsMax.y, renderData.models[i]->boundsMin.z, 1.0)).toVector3();
-      corners[2] = (renderData.models[i]->sceneMatrix * udDouble4::create(renderData.models[i]->boundsMax.x, renderData.models[i]->boundsMax.y, renderData.models[i]->boundsMin.z, 1.0)).toVector3();
-      corners[3] = (renderData.models[i]->sceneMatrix * udDouble4::create(renderData.models[i]->boundsMax.x, renderData.models[i]->boundsMin.y, renderData.models[i]->boundsMin.z, 1.0)).toVector3();
-      corners[4] = corners[0];
-
-      corners[5] = (renderData.models[i]->sceneMatrix * udDouble4::create(renderData.models[i]->boundsMin.x, renderData.models[i]->boundsMin.y, renderData.models[i]->boundsMax.z, 1.0)).toVector3();
-      corners[6] = (renderData.models[i]->sceneMatrix * udDouble4::create(renderData.models[i]->boundsMin.x, renderData.models[i]->boundsMax.y, renderData.models[i]->boundsMax.z, 1.0)).toVector3();
-      corners[7] = (renderData.models[i]->sceneMatrix * udDouble4::create(renderData.models[i]->boundsMax.x, renderData.models[i]->boundsMax.y, renderData.models[i]->boundsMax.z, 1.0)).toVector3();
-      corners[8] = (renderData.models[i]->sceneMatrix * udDouble4::create(renderData.models[i]->boundsMax.x, renderData.models[i]->boundsMin.y, renderData.models[i]->boundsMax.z, 1.0)).toVector3();
-      corners[9] = corners[5];
-
-      vcFenceRenderer_AddPoints(pRenderContext->pDiagnosticFences, corners, (int)udLengthOf(corners));
-    }
-
     float z = 0;
     if (pRenderContext->pSettings->maptiles.mapEnabled)
       z = pRenderContext->pSettings->maptiles.mapHeight;
@@ -689,7 +665,6 @@ void vcRender_ClearTiles(vcRenderContext *pRenderContext)
 
   vcTileRenderer_ClearTiles(pRenderContext->pTileRenderer);
 }
-
 
 void vcRender_ClearPoints(vcRenderContext *pRenderContext)
 {

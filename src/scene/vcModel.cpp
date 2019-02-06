@@ -52,8 +52,6 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
         pLoadInfo->pModel->meterScale = pLoadInfo->pModel->pMetadata->Get("info.meterScale").AsDouble(1.0);
         pLoadInfo->pModel->pivot = pLoadInfo->pModel->pMetadata->Get("info.pivot").AsDouble3();
-        pLoadInfo->pModel->boundsMin = pLoadInfo->pModel->pMetadata->Get("info.bounds.min").AsDouble3();
-        pLoadInfo->pModel->boundsMax = pLoadInfo->pModel->pMetadata->Get("info.bounds.max").AsDouble3();
 
         vcSRID srid = 0;
         udJSON tempNode;
