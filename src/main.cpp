@@ -593,12 +593,19 @@ int main(int argc, char **args)
               {
                 vcTexture_Destroy(&programState.image.pImage);
 
-                int comp;
-                stbi_uc *pImg = stbi_load(pNextLoad, &programState.image.width, &programState.image.height, &comp, 4);
+                void *pFileData = nullptr;
+                int64_t fileLen = -1;
+                if (udFile_Load(pNextLoad, &pFileData, &fileLen) == udR_Success && fileLen != 0)
+                {
+                  int comp;
+                  stbi_uc *pImg = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, &programState.image.width, &programState.image.height, &comp, 4);
 
-                vcTexture_Create(&programState.image.pImage, programState.image.width, programState.image.height, pImg);
+                  vcTexture_Create(&programState.image.pImage, programState.image.width, programState.image.height, pImg);
 
-                stbi_image_free(pImg);
+                  stbi_image_free(pImg);
+                }
+
+                udFree(pFileData);
 
                 vcModals_OpenModal(&programState, vcMT_ImageViewer);
               }
