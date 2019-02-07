@@ -1267,17 +1267,17 @@ void vcRenderWindow(vcState *pProgramState)
     if (udStrEqual(pProgramState->pLoginErrorMessage, vcString::Get("Pending")))
     {
       ImGui::SetNextWindowSize(ImVec2(500, 160));
-      if (ImGui::Begin("Login", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
+      if (ImGui::Begin(vcString::Get("loginTitle"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
       {
         vcMain_ShowLoadStatusIndicator(vcSLS_Loading);
-        ImGui::TextUnformatted(vcString::Get("Checking"));
+        ImGui::TextUnformatted(vcString::Get("loginMessageChecking"));
       }
       ImGui::End();
     }
     else
     {
       ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
-      if (ImGui::Begin("Login", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
+      if (ImGui::Begin(vcString::Get("loginTitle"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
       {
         if (pProgramState->pLoginErrorMessage != nullptr)
           ImGui::TextUnformatted(pProgramState->pLoginErrorMessage);
@@ -1285,31 +1285,31 @@ void vcRenderWindow(vcState *pProgramState)
         bool tryLogin = false;
 
         // Server URL
-        tryLogin |= ImGui::InputText(vcString::Get("ServerURL"), pProgramState->settings.loginInfo.serverURL, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+        tryLogin |= ImGui::InputText(vcString::Get("loginServerURL"), pProgramState->settings.loginInfo.serverURL, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
         if (pProgramState->pLoginErrorMessage == nullptr && !pProgramState->settings.loginInfo.rememberServer)
           ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
         ImGui::SameLine();
-        ImGui::Checkbox(vcString::Get("RememberServer"), &pProgramState->settings.loginInfo.rememberServer);
+        ImGui::Checkbox(udTempStr("%s##rememberServerURL", vcString::Get("loginRememberServer")), &pProgramState->settings.loginInfo.rememberServer);
 
         // Username
-        tryLogin |= ImGui::InputText(vcString::Get("Username"), pProgramState->settings.loginInfo.username, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+        tryLogin |= ImGui::InputText(vcString::Get("loginUsername"), pProgramState->settings.loginInfo.username, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
         if (pProgramState->pLoginErrorMessage == nullptr && pProgramState->settings.loginInfo.rememberServer && !pProgramState->settings.loginInfo.rememberUsername)
           ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
         ImGui::SameLine();
-        ImGui::Checkbox(vcString::Get("RememberUser"), &pProgramState->settings.loginInfo.rememberUsername);
+        ImGui::Checkbox(udTempStr("%s##rememberUser", vcString::Get("loginRememberUser")), &pProgramState->settings.loginInfo.rememberUsername);
 
         // Password
         ImVec2 buttonSize;
         if (pProgramState->passFocus)
         {
-          ImGui::Button(vcString::Get("Show"));
+          ImGui::Button(vcString::Get("loginShowPassword"));
           ImGui::SameLine(0, 0);
           buttonSize = ImGui::GetItemRectSize();
         }
         if (ImGui::IsItemActive() && pProgramState->passFocus)
-          tryLogin |= ImGui::InputText(vcString::Get("Password"), pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+          tryLogin |= ImGui::InputText(vcString::Get("loginPassword"), pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
         else
-          tryLogin |= ImGui::InputText(vcString::Get("Password"), pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
+          tryLogin |= ImGui::InputText(vcString::Get("loginPassword"), pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
 
         if (pProgramState->passFocus && ImGui::IsMouseClicked(0))
         {
@@ -1325,32 +1325,32 @@ void vcRenderWindow(vcState *pProgramState)
           ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
 
         if (pProgramState->pLoginErrorMessage == nullptr)
-          pProgramState->pLoginErrorMessage = vcString::Get("Credentials");
+          pProgramState->pLoginErrorMessage = vcString::Get("loginMessageCredentials");
 
         if (ImGui::Button(vcString::Get("loginButton")) || tryLogin)
         {
-          pProgramState->pLoginErrorMessage = vcString::Get("Pending");
+          pProgramState->pLoginErrorMessage = vcString::Get("loginMessagePending");
           vWorkerThread_AddTask(pProgramState->pWorkerPool, vcLogin, pProgramState, false);
         }
 
         if (SDL_GetModState() & KMOD_CAPS)
         {
           ImGui::SameLine();
-          ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "%s", vcString::Get("CapsWarning"));
+          ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "%s", vcString::Get("loginCapsWarning"));
         }
 
         ImGui::Separator();
 
-        if (ImGui::TreeNode(vcString::Get("AdvancedSettings")))
+        if (ImGui::TreeNode(vcString::Get("loginAdvancedSettings")))
         {
-          if (ImGui::InputText(vcString::Get("ProxyAddress"), pProgramState->settings.loginInfo.proxy, vcMaxPathLength))
+          if (ImGui::InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy, vcMaxPathLength))
             vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
 
-          if (ImGui::Checkbox(vcString::Get("IgnoreCert"), &pProgramState->settings.loginInfo.ignoreCertificateVerification))
+          if (ImGui::Checkbox(vcString::Get("loginIgnoreCert"), &pProgramState->settings.loginInfo.ignoreCertificateVerification))
             vdkConfig_IgnoreCertificateVerification(pProgramState->settings.loginInfo.ignoreCertificateVerification);
 
           if (pProgramState->settings.loginInfo.ignoreCertificateVerification)
-            ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "%s", vcString::Get("IgnoreCertWarning"));
+            ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "%s", vcString::Get("loginIgnoreCertWarning"));
 
           ImGui::TreePop();
         }
