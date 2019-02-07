@@ -10,6 +10,22 @@
 
   "loginTitle": "Login",
   "loginButton": "Login",
+
+  "loginServerURL": "ServerURL",
+  "loginRememberServer": "Remember",
+  "loginUsername": "Username",
+  "loginRememberUser": "Remember",
+  "loginShowPassword": "Show",
+  "loginPassword": "Password",
+  "loginCapsWarning": "Caps Lock is Enabled!",
+  "loginAdvancedSettings": "Advanced Connection Settings",
+  "loginProxyAddress": "Proxy Address",
+  "loginIgnoreCert": "Ignore Certificate Verification",
+  "loginIgnoreCertWarning": "THIS IS A DANGEROUS SETTING, ONLY SET THIS ON REQUEST FROM YOUR SYSTEM ADMINISTRATOR",
+
+  "loginMessageCredentials": "Please enter your credentials...",
+  "loginMessageChecking": "Checking with server...",
+  "loginMessagePending": "Pending",
   "loginErrorConnection": "Could not connect to server.",
   "loginErrorAuth": "Username or Password incorrect.",
   "loginErrorTimeSync": "Your clock doesn't match the remote server clock.",
@@ -79,17 +95,6 @@
   "ImportCSV": "Import CSV",
   "Filename": "Filename",
   "Watermark": "Watermark",
-  "Checking": "Checking with server...",
-  "ServerURL": "ServerURL",
-  "Username": "Username",
-  "Show": "Show",
-  "Password": "Password",
-  "Credentials": "Please enter your credentials...",
-  "CapsWarning": "Caps Lock is Enabled!",
-  "AdvancedSettings": "Advanced Connection Settings",
-  "ProxyAddress": "Proxy Address",
-  "IgnoreCert": "Ignore Certificate Verification",
-  "IgnoreCertWarning": "THIS IS A DANGEROUS SETTING, ONLY SET THIS ON REQUEST FROM YOUR SYSTEM ADMINISTRATOR",
   "ReleaseNotes": "Release Notes",
   "About": "About",
   "AddUDS": "Add UDS",
@@ -281,6 +286,6 @@
   "SetMapHeightHere": "Set as map height",
   "LabelAddHere": "Add POI here",
   "DefaultName_POI": "Point of interest",
-  "DefaultName_Folder": "Folder"
+  "DefaultName_Folder": "Folder",
   "ImageViewer":"Image Viewer"
 }
