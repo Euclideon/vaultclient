@@ -4,6 +4,7 @@
 #include "imgui.h"
 #include "imgui_ex/ImGuizmo.h"
 
+#define ONE_PIXEL_SQ 0.0001
 #define LENSNAME(x) #x+5
 
 const char *lensNameArray[] =
@@ -244,7 +245,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
   case vcCIS_Panning:
   {
-    if (pCamInput->mouseInput.x < .01 && pCamInput->mouseInput.x > -.01 && pCamInput->mouseInput.y < .01 && pCamInput->mouseInput.y > -.01)
+    if ((pCamInput->mouseInput.x * pCamInput->mouseInput.x) < ONE_PIXEL_SQ && (pCamInput->mouseInput.y * pCamInput->mouseInput.y) < ONE_PIXEL_SQ)
       break;
 
     udPlane<double> plane = udPlane<double>::create(pCamInput->worldAnchorPoint, { 0, 0, 1 });
