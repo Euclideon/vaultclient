@@ -62,9 +62,6 @@ namespace vcString
     }
 
     // Concatenations
-    Set("LoginWaiting", vStringFormat("{0}##LoginWaiting", Get("Login")));
-    Set("RememberServer", vStringFormat("{0}##rememberServerURL", Get("Remember")));
-    Set("RememberUser", vStringFormat("{0}##rememberUsername", Get("Remember")));
     Set("SettingsAppearance", vStringFormat("{0}##Settings", Get("Appearance")));
 
     Set("InputControlsID", vStringFormat("{0}##Settings", Get("InputControls")));

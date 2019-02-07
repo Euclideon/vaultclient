@@ -39,8 +39,12 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 		# Make sure directory exists
 		mkdir -p $DEPLOYDIR/Windows
 
-		//bne-fs-fs-003/Software/DevelopmentTools/Pandoc/pandoc-2.3-windows-x86_64/pandoc.exe -f gfm --tab-stop 2 docs/UserGuide.md -o __temp.html
+		//bne-fs-fs-003.euclideon.local/Software/DevelopmentTools/Pandoc/pandoc-2.3-windows-x86_64/pandoc.exe -f gfm --tab-stop 2 docs/UserGuide.md -o __temp.html
 		cat docs/misc/header.html __temp.html docs/misc/footer.html > builds/userguide/UserGuide.html
+		rm __temp.html
+
+		//bne-fs-fs-003.euclideon.local/Software/DevelopmentTools/Pandoc/pandoc-2.3-windows-x86_64/pandoc.exe -f gfm --tab-stop 2 docs/TranslationGuide.md -o __temp.html
+		cat docs/misc/header.html __temp.html docs/misc/footer.html > builds/userguide/TranslationGuide.html
 		rm __temp.html
 
 		# D3D copies only EXE, OpenGL copies everything else
