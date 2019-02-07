@@ -142,19 +142,19 @@ void vcLogin(void *pProgramStatePtr)
 
   result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "EuclideonVaultClient", pProgramState->settings.loginInfo.username, pProgramState->password);
   if (result == vE_ConnectionFailure)
-    pProgramState->pLoginErrorMessage = vcString::Get("LoginConnectionError");
+    pProgramState->pLoginErrorMessage = vcString::Get("loginErrorConnection");
   else if (result == vE_NotAllowed)
-    pProgramState->pLoginErrorMessage = vcString::Get("LoginAuthError");
+    pProgramState->pLoginErrorMessage = vcString::Get("loginErrorAuth");
   else if (result == vE_OutOfSync)
-    pProgramState->pLoginErrorMessage = vcString::Get("LoginSyncError");
+    pProgramState->pLoginErrorMessage = vcString::Get("loginErrorTimeSync");
   else if (result == vE_SecurityFailure)
-    pProgramState->pLoginErrorMessage = vcString::Get("LoginSecurityError");
+    pProgramState->pLoginErrorMessage = vcString::Get("loginErrorSecurity");
   else if (result == vE_ServerFailure)
-    pProgramState->pLoginErrorMessage = vcString::Get("LoginServerError");
+    pProgramState->pLoginErrorMessage = vcString::Get("loginErrorNegotiate");
   else if (result == vE_ProxyError)
-    pProgramState->pLoginErrorMessage = vcString::Get("LoginProxyError");
+    pProgramState->pLoginErrorMessage = vcString::Get("loginErrorProxy");
   else if (result != vE_Success)
-    pProgramState->pLoginErrorMessage = vcString::Get("LoginOtherError");
+    pProgramState->pLoginErrorMessage = vcString::Get("loginErrorOther");
 
   if (result != vE_Success)
     return;
@@ -767,14 +767,14 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       {
         ImGui::Separator();
 
-        ImGui::InputScalarN(vcString::Get("CameraPosition"), ImGuiDataType_Double, &pProgramState->pCamera->position.x, 3);
+        ImGui::InputScalarN(vcString::Get("cameraPosition"), ImGuiDataType_Double, &pProgramState->pCamera->position.x, 3);
 
         pProgramState->pCamera->eulerRotation = UD_RAD2DEG(pProgramState->pCamera->eulerRotation);
 
-        ImGui::InputScalarN(vcString::Get("CameraRotation"), ImGuiDataType_Double, &pProgramState->pCamera->eulerRotation.x, 3);
+        ImGui::InputScalarN(vcString::Get("cameraRotation"), ImGuiDataType_Double, &pProgramState->pCamera->eulerRotation.x, 3);
         pProgramState->pCamera->eulerRotation = UD_DEG2RAD(pProgramState->pCamera->eulerRotation);
 
-        if (ImGui::SliderFloat(vcString::Get("MoveSpeed"), &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
+        if (ImGui::SliderFloat(vcString::Get("cameraMoveSpeed"), &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
           pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
 
         if (pProgramState->gis.isProjected)
@@ -785,7 +785,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
           char tmpBuf[128];
           const char *latLongAltStrings[] = { udTempStr("%.7f", cameraLatLong.x), udTempStr("%.7f", cameraLatLong.y), udTempStr("%.2fm", cameraLatLong.z) };
-          ImGui::TextUnformatted(vStringFormat(tmpBuf, udLengthOf(tmpBuf), vcString::Get("LatLongAlt"), latLongAltStrings, udLengthOf(latLongAltStrings)));
+          ImGui::TextUnformatted(vStringFormat(tmpBuf, udLengthOf(tmpBuf), vcString::Get("cameraLatLongAlt"), latLongAltStrings, udLengthOf(latLongAltStrings)));
 
           if (pProgramState->gis.zone.latLongBoundMin != pProgramState->gis.zone.latLongBoundMax)
           {
@@ -793,7 +793,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
             udDouble2 &maxBound = pProgramState->gis.zone.latLongBoundMax;
 
             if (cameraLatLong.x < minBound.x || cameraLatLong.y < minBound.y || cameraLatLong.x > maxBound.x || cameraLatLong.y > maxBound.y)
-              ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", vcString::Get("CameraOutOfBounds"));
+              ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", vcString::Get("cameraOutOfBounds"));
           }
         }
       }
@@ -810,11 +810,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
     if (ImGui::Begin("OnScrnControls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
     {
-      ImGui::SetWindowSize(ImVec2(175, 150));
-      ImGui::TextUnformatted(vcString::Get("Controls"));
-
-      ImGui::Separator();
-
+      ImGui::SetWindowSize(ImVec2(175, 120));
 
       ImGui::Columns(2, NULL, false);
 
@@ -824,12 +820,12 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       double right = 0;
       float vertical = 0;
 
-      if (ImGui::VSliderFloat("##oscUDSlider", ImVec2(40, 100), &vertical, -1, 1, "U/D"))
+      if (ImGui::VSliderFloat("##oscUDSlider", ImVec2(40, 100), &vertical, -1, 1, vcString::Get("cameraOSCUpDown")))
         vertical = udClamp(vertical, -1.f, 1.f);
 
       ImGui::NextColumn();
 
-      ImGui::Button(vcString::Get("MoveCamera"), ImVec2(100, 100));
+      ImGui::Button(vcString::Get("cameraOSCMove"), ImVec2(100, 100));
       if (ImGui::IsItemActive())
       {
         // Draw a line between the button and the mouse cursor
@@ -1271,7 +1267,7 @@ void vcRenderWindow(vcState *pProgramState)
     if (udStrEqual(pProgramState->pLoginErrorMessage, vcString::Get("Pending")))
     {
       ImGui::SetNextWindowSize(ImVec2(500, 160));
-      if (ImGui::Begin(vcString::Get("LoginWaiting"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
+      if (ImGui::Begin("Login", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
       {
         vcMain_ShowLoadStatusIndicator(vcSLS_Loading);
         ImGui::TextUnformatted(vcString::Get("Checking"));
@@ -1281,7 +1277,7 @@ void vcRenderWindow(vcState *pProgramState)
     else
     {
       ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
-      if (ImGui::Begin(vcString::Get("Login"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
+      if (ImGui::Begin("Login", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
       {
         if (pProgramState->pLoginErrorMessage != nullptr)
           ImGui::TextUnformatted(pProgramState->pLoginErrorMessage);
@@ -1331,7 +1327,7 @@ void vcRenderWindow(vcState *pProgramState)
         if (pProgramState->pLoginErrorMessage == nullptr)
           pProgramState->pLoginErrorMessage = vcString::Get("Credentials");
 
-        if (ImGui::Button(vcString::Get("LoginButton")) || tryLogin)
+        if (ImGui::Button(vcString::Get("loginButton")) || tryLogin)
         {
           pProgramState->pLoginErrorMessage = vcString::Get("Pending");
           vWorkerThread_AddTask(pProgramState->pWorkerPool, vcLogin, pProgramState, false);
@@ -1365,7 +1361,7 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::SetNextWindowBgAlpha(0.f);
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f, 0.f, 0.f, 0.f));
     ImGui::SetNextWindowPos(ImVec2(0, size.y), ImGuiCond_Always, ImVec2(0, 1));
-    if (ImGui::Begin(vcString::Get("LoginScreenPopups"), nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
+    if (ImGui::Begin("LoginScreenPopups", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
     {
       if (ImGui::Button(vcString::Get("ReleaseNotes")))
         vcModals_OpenModal(pProgramState, vcMT_ReleaseNotes);
