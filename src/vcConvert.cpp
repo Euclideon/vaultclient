@@ -86,7 +86,7 @@ uint32_t vcConvert_Thread(void *pVoidState)
           SDL_MESSAGEBOX_INFORMATION, /* .flags */
           NULL, /* .pWindow */
           "File Exists", /* .title */
-          udTempStr("The file \"%s\" already exists.\nDo you want to override the file?", pItem->pConvertInfo->pOutputName), /* .message */
+          udTempStr("The file \"%s\" already exists.\nDo you want to overwrite the file?", pItem->pConvertInfo->pOutputName), /* .message */
           SDL_arraysize(buttons), /* .numbuttons */
           buttons, /* .buttons */
           &colorScheme /* .colorScheme */
