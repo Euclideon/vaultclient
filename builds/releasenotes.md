@@ -4,6 +4,7 @@ Version 0.2.1
   - Added a built-in Image Viewer
   - Added the ability to import labels from CSV (EVC-239)
   - Added a right-click context menu to add POIs, set the map height and Move To
+  - Fixed various typos
 
 Version 0.2.0
   ADDITIONS & FIXES
