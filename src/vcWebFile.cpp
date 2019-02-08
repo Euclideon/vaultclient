@@ -5,42 +5,38 @@
 #include "udPlatform/udFile.h"
 #include "udPlatform/udFileHandler.h"
 
-struct vcWebFile : public udFile
-{
-  const char *pData;
-  uint32_t dataLength;
-};
-
-static udResult vcWebFile_SeekRead(udFile *pIntFile, void *pBuffer, size_t bufferLength, int64_t seekOffset, size_t *pActualRead, udFilePipelinedRequest * /*pPipelinedRequest*/)
+static udResult vcWebFile_SeekRead(udFile *pFile, void *pBuffer, size_t bufferLength, int64_t seekOffset, size_t *pActualRead, udFilePipelinedRequest * /*pPipelinedRequest*/)
 {
   UDTRACE();
-  vcWebFile *pFile = static_cast<vcWebFile*>(pIntFile);
-  udResult result = udR_Failure_;
-  uint32_t actualRead = 0;
+  udResult result = udR_Success;
+  vdkWebOptions options = {};
+  const char *pData = nullptr;
+  uint64_t dataLength = 0;
+  int responseCode = 0;
 
-  UD_ERROR_IF(pFile->dataLength <= seekOffset, udR_ReadFailure);
+  options.method = vdkWM_GET;
+  options.rangeBegin = (uint64_t)seekOffset;
+  options.rangeEnd = (uint64_t)(seekOffset + bufferLength - 1);
 
-  actualRead = udMin((uint32_t)bufferLength, (uint32_t)(pFile->dataLength - seekOffset));
+  UD_ERROR_IF(vdkWeb_RequestAdv(pFile->pFilenameCopy, options, &pData, &dataLength, &responseCode) != vE_Success, udR_ReadFailure);
+  UD_ERROR_IF(dataLength > bufferLength, udR_ReadFailure);
 
+  memcpy(pBuffer, pData, dataLength);
   if (pActualRead)
-    *pActualRead = actualRead;
-
-  memcpy(pBuffer, &pFile->pData[seekOffset], actualRead);
-
-  result = udR_Success;
+    *pActualRead = dataLength;
 
 epilogue:
+  if (pData)
+    vdkWeb_ReleaseResponse(&pData);
   return result;
 }
 
 static udResult vcWebFile_Close(udFile **ppFile)
 {
-  vcWebFile *pFile = static_cast<vcWebFile*>(*ppFile);
+  if (ppFile == nullptr)
+    return udR_InvalidParameter_;
 
-  if (pFile->pData)
-    vdkWeb_ReleaseResponse(&pFile->pData);
-
-  udFree(pFile);
+  udFree(*ppFile);
 
   return udR_Success;
 }
@@ -48,24 +44,29 @@ static udResult vcWebFile_Close(udFile **ppFile)
 udResult vcWebFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags flags)
 {
   UDTRACE();
-  vcWebFile *pFile = nullptr;
+  udFile *pFile = nullptr;
   udResult result;
+  vdkWebOptions options = {};
+  const char *pData = nullptr;
+  uint64_t dataLength = 0;
   int responseCode = 0;
+
+  options.method = vdkWM_HEAD;
 
   UD_ERROR_IF(flags & udFOF_Write, udR_NotAllowed);
   UD_ERROR_IF(flags & udFOF_Create, udR_NotAllowed);
 
-  pFile = udAllocType(vcWebFile, 1, udAF_Zero);
+  pFile = udAllocType(udFile, 1, udAF_Zero);
   UD_ERROR_NULL(pFile, udR_MemoryAllocationFailure);
 
   pFile->fpRead = vcWebFile_SeekRead;
   pFile->fpClose = vcWebFile_Close;
 
-  UD_ERROR_IF(vdkWeb_GetRequest(pFilename, &pFile->pData, &pFile->dataLength, &responseCode) != vE_Success, udR_OpenFailure);
+  UD_ERROR_IF(vdkWeb_RequestAdv(pFilename, options, &pData, &dataLength, &responseCode) != vE_Success, udR_OpenFailure);
   UD_ERROR_IF(responseCode != 200, udR_OpenFailure);
 
-  pFile->totalBytes = pFile->dataLength;
-  pFile->fileLength = pFile->dataLength;
+  pFile->totalBytes = dataLength;
+  pFile->fileLength = dataLength;
 
   *ppFile = pFile;
   pFile = nullptr;
@@ -73,7 +74,7 @@ udResult vcWebFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags 
 
 epilogue:
   if (pFile != nullptr)
-    vcWebFile_Close((udFile**)&pFile);
+    vcWebFile_Close(&pFile);
 
   return result;
 }
