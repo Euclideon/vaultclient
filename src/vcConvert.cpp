@@ -302,7 +302,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   {
     ImGui::SameLine();
     if (pSelectedJob->pConvertInfo->minPointResolution == pSelectedJob->pConvertInfo->maxPointResolution)
-      ImGui::Text("(%s %.6f)", vcString::Get("Point resolution"), pSelectedJob->pConvertInfo->minPointResolution);
+      ImGui::Text("(%s %.6f)", vcString::Get("PointResolution"), pSelectedJob->pConvertInfo->minPointResolution);
     else
       ImGui::Text("(%s %.6f - %.6f)", vcString::Get("InputDataRanges"), pSelectedJob->pConvertInfo->minPointResolution, pSelectedJob->pConvertInfo->maxPointResolution);
   }
