@@ -41,6 +41,7 @@ struct vcState
   vcFramebuffer *pDefaultFramebuffer;
 
   int openModals; // This is controlled inside vcModals.cpp
+  bool modalOpen;
 
   vcCamera *pCamera;
 
