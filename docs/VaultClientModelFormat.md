@@ -35,6 +35,7 @@
   <tr><td>2</td><td>Unsigned Int16</td><td>If enabled via the flag (0x1), this contains the texture index for the diffuse map</td></tr>
   <tr><td>2</td><td>Unsigned Int16</td><td>If enabled via the flag (0x2), this contains the texture index for the normal map</td></tr>
   <tr><td>2</td><td>Unsigned Int16</td><td>If enabled via the flag (0x4), this contains the texture index for the specular map</td></tr>
+  <tr><td>4</td><td>4 Bytes BGRA</td><td>Diffuse color of the current material in BGRA</td></tr>
 </table>
 
 #### Material Setting Flags

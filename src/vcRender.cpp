@@ -436,6 +436,8 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
   vcRenderTerrain(pRenderContext, renderData);
   vcRenderPolygons(pRenderContext, renderData);
 
+  // !!! Render meshy models
+
   if (pRenderContext->pSettings->presentation.mouseAnchor != vcAS_None && (renderData.pickingSuccess || (renderData.pWorldAnchorPos != nullptr)))
   {
     udDouble4x4 mvp = pRenderContext->pCamera->matrices.viewProjection * udDouble4x4::translation(renderData.pWorldAnchorPos ? *renderData.pWorldAnchorPos : renderData.worldMousePos);
