@@ -283,6 +283,7 @@
   "InputFiles": "Input Files",
   "Files": "files",
   "LoadWatermark": "Load Watermark Image",
+  "RemoveWatermark": "Remove Watermark Image",
   "SetMapHeightHere": "Set as map height",
   "LabelAddHere": "Add POI here",
   "DefaultName_POI": "Point of interest",
