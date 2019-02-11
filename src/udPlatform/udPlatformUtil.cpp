@@ -1322,7 +1322,7 @@ void udFilename::CalculateIndices()
   filenameIndex = -1;
   extensionIndex = len; // If no extension, point extension to nul terminator
 
-  for (--len; len > 0 && (filenameIndex == -1 || extensionIndex == -1); --len)
+  for (--len; len >= 0 && (filenameIndex == -1 || extensionIndex == -1); --len)
   {
     if (path[extensionIndex] == 0 && path[len] == '.') // Last period
       extensionIndex = len;
