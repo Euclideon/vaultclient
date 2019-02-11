@@ -290,13 +290,16 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   if (!isHovered && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
     isFocused = false;
 
+  if (pProgramState->modalOpen)
+    isFocused = false;
+
   if (io.KeyCtrl)
     speedModifier *= 0.1f;
 
   if (io.KeyShift)
     speedModifier *= 10.f;
 
-  if (!ImGui::GetIO().WantCaptureKeyboard || isFocused)
+  if ((!ImGui::GetIO().WantCaptureKeyboard || isFocused) && !pProgramState->modalOpen)
   {
     keyboardInput.y += io.KeysDown[SDL_SCANCODE_W] - io.KeysDown[SDL_SCANCODE_S];
     keyboardInput.x += io.KeysDown[SDL_SCANCODE_D] - io.KeysDown[SDL_SCANCODE_A];

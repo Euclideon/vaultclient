@@ -5,6 +5,7 @@ Version 0.2.1
   - Added the ability to import labels from CSV (EVC-239)
   - Added a right-click context menu to add POIs, set the map height and Move To
   - Fixed various typos
+  - Fixed issue with scene tab accepting input while modals were open
 
 Version 0.2.0
   ADDITIONS & FIXES
@@ -36,8 +37,8 @@ Version 0.2.0
   - Improved background loading of resources destined for the GPU (EVC-293)
   - Updated VDK also provides a number of minor improvements
     - Fixed an issue that caused a user to rejoin the queue every time it requested a license while already in queue
-	- Better support for concatenated PTS files (UD-19)
-	- Fixed issue with classification being averaged instead of picking one of the points for LOD calculations (UD-2)
+    - Better support for concatenated PTS files (UD-19)
+    - Fixed issue with classification being averaged instead of picking one of the points for LOD calculations (UD-2)
 
   KNOWN ISSUES
   - User guide does not cover the entire application

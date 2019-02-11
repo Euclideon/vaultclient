@@ -747,16 +747,16 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->settings.presentation.showProjectionInfo = !pProgramState->settings.presentation.showProjectionInfo;
 
       // Gizmo Settings
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoTranslate"), vcString::Get("TranslateKey"), vcMBBI_Translate, vcMBBG_NewGroup, (pProgramState->gizmo.operation == vcGO_Translate)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_B])
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoTranslate"), vcString::Get("TranslateKey"), vcMBBI_Translate, vcMBBG_NewGroup, (pProgramState->gizmo.operation == vcGO_Translate)) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_B] && !pProgramState->modalOpen))
         pProgramState->gizmo.operation = vcGO_Translate;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoRotate"), vcString::Get("RotateKey"), vcMBBI_Rotate, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Rotate)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_N])
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoRotate"), vcString::Get("RotateKey"), vcMBBI_Rotate, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Rotate)) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_N] && !pProgramState->modalOpen))
         pProgramState->gizmo.operation = vcGO_Rotate;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoScale"), vcString::Get("ScaleKey"), vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_M])
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoScale"), vcString::Get("ScaleKey"), vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_M] && !pProgramState->modalOpen))
         pProgramState->gizmo.operation = vcGO_Scale;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoLocalSpace"), vcString::Get("LocalKey"), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)) || ImGui::IsKeyPressed(SDL_SCANCODE_C, false))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoLocalSpace"), vcString::Get("LocalKey"), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)) || (ImGui::IsKeyPressed(SDL_SCANCODE_C, false) && !pProgramState->modalOpen))
         pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
       // Fullscreen
@@ -905,7 +905,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
 
-  if (ImGui::IsKeyPressed(SDL_SCANCODE_F5, false))
+  if (ImGui::IsKeyPressed(SDL_SCANCODE_F5, false) && !pProgramState->modalOpen)
     vcMain_PresentationMode(pProgramState);
   if (pProgramState->settings.responsiveUI == vcPM_Show)
     pProgramState->showUI = true;
@@ -989,7 +989,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
       if (pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->type == vcSOT_PointCloud)
       {
-        vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->sceneMatrix, nullptr, vcGAC_AllUniform, pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->pivot);
+        if (!pProgramState->modalOpen)
+          vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, &pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->sceneMatrix, nullptr, vcGAC_AllUniform, pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->pivot);
       }
       else if (pProgramState->sceneExplorer.clickedItem.pParent->children[pProgramState->sceneExplorer.clickedItem.index]->type == vcSOT_PointOfInterest)
       {
@@ -1001,7 +1002,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
         if (pPOI->line.selectedPoint == 0)
           pTemp = &pPOI->sceneMatrix;
 
-        vcGizmo_Manipulate(pProgramState->pCamera, vcGO_Translate, pProgramState->gizmo.coordinateSystem, pTemp, &delta, vcGAC_Translation, pPOI->line.pPoints[pPOI->line.selectedPoint] - pPOI->line.pPoints[0]);
+        if (!pProgramState->modalOpen)
+          vcGizmo_Manipulate(pProgramState->pCamera, vcGO_Translate, pProgramState->gizmo.coordinateSystem, pTemp, &delta, vcGAC_Translation, pPOI->line.pPoints[pPOI->line.selectedPoint] - pPOI->line.pPoints[0]);
         pPOI->line.pPoints[pPOI->line.selectedPoint] = pPOI->line.pPoints[pPOI->line.selectedPoint] + delta.axis.t.toVector3();
         if (pPOI->pFence != nullptr)
         {
