@@ -30,6 +30,7 @@
 #include "vcStrings.h"
 #include "vcModals.h"
 #include "vcLiveFeed.h"
+#include "vcVSMF.h"
 
 #include "vCore/vStringFormat.h"
 
@@ -596,6 +597,16 @@ int main(int argc, char **args)
                 udFree(pFileData);
 
                 vcModals_OpenModal(&programState, vcMT_ImageViewer);
+              }
+              else if (udStrEquali(pExt, ".vsm"))
+              {
+                void *pFileData = nullptr;
+                int64_t fileLen = -1;
+
+                if (udFile_Load(pNextLoad, &pFileData, &fileLen) == udR_Success)
+                  vcVSMF_ReadData(pFileData, (int)fileLen);
+
+                udFree(pFileData);
               }
               else
               {
