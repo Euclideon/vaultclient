@@ -7,6 +7,7 @@ Version 0.2.1
   - Fixed various typos
   - Fixed issue with scene tab accepting input while modals were open
   - Fixed issue where pressing delete while editing a scene item would delete it
+  - Added history buffer for undo/redo functionality
 
 Version 0.2.0
   ADDITIONS & FIXES
