@@ -6,6 +6,7 @@ Version 0.2.1
   - Added a right-click context menu to add POIs, set the map height and Move To
   - Fixed various typos
   - Fixed issue with scene tab accepting input while modals were open
+  - Fixed issue where pressing delete while editing a scene item would delete it
 
 Version 0.2.0
   ADDITIONS & FIXES
