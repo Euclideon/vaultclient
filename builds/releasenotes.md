@@ -8,6 +8,8 @@ Version 0.2.1
   - Fixed issue with scene tab accepting input while modals were open
   - Fixed issue where pressing delete while editing a scene item would delete it
   - Added history buffer for undo/redo functionality
+  - Added the ability to remove watermarks on the convert tab
+  - Fixed issue with temp directory incorrectly changing when modifying the output name
 
 Version 0.2.0
   ADDITIONS & FIXES
