@@ -27,6 +27,7 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
 
   if (ImGui::BeginPopupModal(vcString::Get("LoggedOut"), nullptr, ImGuiWindowFlags_NoResize))
   {
+    pProgramState->modalOpen = true;
     ImGui::TextUnformatted(vcString::Get("Logged"));
 
     if (ImGui::Button(vcString::Get("Close"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
@@ -47,6 +48,7 @@ void vcModals_DrawReleaseNotes(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("MenuReleaseNotes")))
   {
+    pProgramState->modalOpen = true;
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
     ImGui::Text("Euclideon Vault Client / %s", vcString::Get("ReleaseNotes"));
@@ -87,6 +89,7 @@ void vcModals_DrawAbout(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("MenuAbout")))
   {
+    pProgramState->modalOpen = true;
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
     ImGui::Text("Euclideon Vault Client / %s", vcString::Get("3rdPartyLic"));
@@ -127,6 +130,7 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("NewVersionAvailable")))
   {
+    pProgramState->modalOpen = true;
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
     ImGui::Text("Euclideon Vault Client");
@@ -211,6 +215,7 @@ void vcModals_DrawTileServer(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(300, 342), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("TileServer")))
   {
+    pProgramState->modalOpen = true;
     // If there is loaded data, we turn it into a texture:
     if (pProgramState->tileModal.loadStatus > 0)
     {
@@ -299,6 +304,7 @@ void vcModals_DrawFileModal(vcState *pProgramState)
 
   if (mode < vcMT_Count)
   {
+    pProgramState->modalOpen = true;
     ImGui::InputText(vcString::Get("PathURL"), pProgramState->modelPath, vcMaxPathLength);
     ImGui::SameLine();
 
@@ -359,6 +365,7 @@ void vcModals_DrawLoadWatermark(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("LoadWatermark")))
   {
+    pProgramState->modalOpen = true;
     ImGui::InputText(vcString::Get("PathURL"), pProgramState->modelPath, vcMaxPathLength);
     ImGui::SameLine();
 
@@ -395,6 +402,7 @@ void vcModals_DrawNotImplemented(vcState *pProgramState)
 
   if (ImGui::BeginPopupModal(vcString::Get("NotImplemented"), nullptr, ImGuiWindowFlags_NoResize))
   {
+    pProgramState->modalOpen = true;
     ImGui::TextUnformatted(vcString::Get("NotAvailable"));
 
     if (ImGui::Button(vcString::Get("Close"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
@@ -415,6 +423,7 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
   ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2((float)maxX, (float)maxY));
   if (ImGui::BeginPopupModal(vcString::Get("ImageViewer"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
   {
+    pProgramState->modalOpen = true;
     if (ImGui::Button(vcString::Get("Close"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
@@ -462,6 +471,7 @@ void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 
 void vcModals_DrawModals(vcState *pProgramState)
 {
+  pProgramState->modalOpen = false;
   vcModals_DrawLoggedOut(pProgramState);
   vcModals_DrawReleaseNotes(pProgramState);
   vcModals_DrawAbout(pProgramState);
