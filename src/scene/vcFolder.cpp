@@ -3,24 +3,17 @@
 #include "vcScene.h"
 #include "vcState.h"
 #include "vcStrings.h"
+#include "vcTime.h"
 
 #include "gl/vcFenceRenderer.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-#include <chrono>
-
-// TODO: Rename vcMain functions
-static int64_t vcMain_GetCurrentTime(int fractionSec = 1) // This gives 1/fractionSec factions since epoch, 5=200ms, 10=100ms etc.
-{
-  return std::chrono::system_clock::now().time_since_epoch().count() * fractionSec / std::chrono::system_clock::period::den;
-}
-
-static void vcMain_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine = true)
+void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine /*= true*/)
 {
   const char *loadingChars[] = { "\xE2\x96\xB2", "\xE2\x96\xB6", "\xE2\x96\xBC", "\xE2\x97\x80" };
-  int64_t currentLoadingChar = vcMain_GetCurrentTime(10);
+  int64_t currentLoadingChar = (int64_t)(10*vcTime_GetEpochSecsF());
 
   // Load Status (if any)
   if (loadStatus == vcSLS_Pending)
@@ -101,7 +94,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
     ImGui::Checkbox(udTempStr("###SXIVisible%zu", *pItemID), &children[i]->visible);
     ImGui::SameLine();
 
-    vcMain_ShowLoadStatusIndicator((vcSceneLoadStatus)children[i]->loadStatus);
+    vcFolder_ShowLoadStatusIndicator((vcSceneLoadStatus)children[i]->loadStatus);
 
     // The actual model
     ImGui::SetNextTreeNodeOpen(children[i]->expanded, ImGuiCond_Always);

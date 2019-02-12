@@ -28,6 +28,7 @@ enum vcSceneItemType
   vcSOT_PointCloud, // "UDS"
   vcSOT_PointOfInterest, // "POI"
   vcSOT_Folder, // "Folder"
+  vcSOT_LiveFeed, // "IOT"
 
   vcSOT_Custom, // Need to check the type string manually
 
