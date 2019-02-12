@@ -63,7 +63,7 @@ Shown below is a numbered diagram of a screenshot of the user interface.
 5. [**Scene Info and Controls**](#5.-scene-info-and-controls)
 6. [**Copyright and Compass**](#6.-copyright-and-compass)
 7. [**Watermark**](#7.-watermark)
-8. [**Convert Tab**](#8.-convert-tab)
+8. [**Convert Tab**](#8.-converting)
 
 The following numbered sections will explain each of these features in full detail.
 
@@ -143,7 +143,7 @@ The status bar shows a lot of useful information (not all of it will always be a
 ### 3. Scene Explorer
 ![Scene Explorer](images/sceneexplorer.png)
 
-The Scene Explorer window shows you the assets currently in your scene, and also allows the user to add UDS models and create new folders, points of interest, areas of interest and lines. Non-UDS models can also be imported if they are legacy files (.udg or .ssf) or they can be converted to UDS format using the Conversion tool (see section [**8. Convert Tab**](#8.-convert-tab)).
+The Scene Explorer window shows you the assets currently in your scene, and also allows the user to add UDS models and create new folders, points of interest, areas of interest and lines. Non-UDS models can also be imported if they are legacy files (.udg or .ssf) or they can be converted to UDS format using the Conversion tool (see section [**8. Converting**](#8.-converting)).
 
 #### Quick Action Menu
 The buttons across the top of the Scene Explorer allow quick access to add or remove from the scene. From left to right:
@@ -299,7 +299,9 @@ A compass is also displayed in this corner, indicating the camera's current orie
 ### 7. Watermark
 Watermarks can be viewed on each UDS file, by clicking on the UDS file in the Scene Explorer and then viewing the [Watermark] identification tag.
 
-### 8. Convert Tab
+### 8. Converting
+
+#### Converting in Vault Client
 The Euclideon Vault Client allows pointcloud files with a valid filetype to be converted into the supported `.uds` file format. To do this, load a valid pointcloud file into the client by dragging and dropping the file into the client window. This will open the Convert Tab if it isn't already open.
 
 Valid conversion filetypes are: `.pts`, `.ptx`, `.las`, `.txt`, `.csv`, `.e57`, `.asc`, `.xyz`.
@@ -348,6 +350,23 @@ You can keep track of progress on the convert tab, go back to working in the sce
 The "X" button beside the convert job in the "Convert Jobs" section allows you to cancel a running convert (it will cancel at the next 'safe' point to do so and clean up temporary files). Once cancelled the 'Begin Convert' button and the configuration options will reappear enabling you to restart the conversion. After a job has completed the "X" button also allows you to remove it from the list. A successful conversion will also have an "Add to Scene" button that adds the converted UDS to the existing scene.
 
 > We do not recommend running multiple converts at the same time. Converting is a memory and processor intensive process so it's almost always faster to have 1 convert running at a time. Euclideon Vault Client helps with this by allowing you to queue multiple jobs to run one after another.
+
+#### Converting in Command Line (CMD)
+The Vault Client also comes with a feature called _Vault Convert CMD_ which allows files to be converted from within command line instead of using the [**Convert Tab**](#8.-converting). Simply open a command prompt and enter the following command:
+
+`vcConvertCMD server username password [options] -i inputFile [-i anotherInputFile] -o outputFile.uds`
+
+- `server` is the location of your vault server, and `username` and `password` are your account details for connecting to this server. These will be the same as those used for the Vault Client login screen (See [**Logging In**](#Logging-In)).
+- `options` are optional arguments for customising the conversion. Some available options are:
+  - `-resolution <res>` override the resolution (0.01 = 1cm, 0.001 = 1mm)
+  - `-srid <sridCode>` override the srid code for geolocation
+  - `-pause` require the enter key to be pressed before exiting
+  - `-pauseOnError` if an error occurs, require the enter key to be pressed before exiting
+- `inputFile` is the location of the file you wish to convert. If the file's path contains any spaces, you need to put the path in quotes, for example: `"C:\My Data\File to Convert.csv"`
+  - Additional input files may be specified but they will all be merged into the one output file, so ensure they are compatible first.
+- `outputFile.uds` is the name and location of the new `.uds` file you wish to create. Again, if the file's path contains any spaces you must put the path in quotes, for example: `"C:\Output\Converted File.uds"`
+
+Valid conversion filetypes are: `.pts`, `.ptx`, `.las`, `.txt`, `.csv`, `.e57`, `.asc`, `.xyz`.
 
 ---
 
