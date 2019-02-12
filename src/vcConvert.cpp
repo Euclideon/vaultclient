@@ -344,28 +344,30 @@ void vcConvert_ShowUI(vcState *pProgramState)
   if (ImGui::Button(vcString::Get("LoadWatermark")))
     vcModals_OpenModal(pProgramState, vcMT_LoadWatermark);
 
-  if (pSelectedJob->watermark.isDirty || pSelectedJob->watermark.pTexture != nullptr)
+  if (pSelectedJob->watermark.isDirty)
   {
-
-    if (pSelectedJob->watermark.isDirty)
+    vcTexture_Destroy(&pSelectedJob->watermark.pTexture);
+    uint8_t *pData = nullptr;
+    size_t dataSize = 0;
+    if (udBase64Decode(&pData, &dataSize, pSelectedJob->pConvertInfo->pWatermark) == udR_Success)
     {
-      vcTexture_Destroy(&pSelectedJob->watermark.pTexture);
-      uint8_t *pData = nullptr;
-      size_t dataSize = 0;
-      if (udBase64Decode(&pData, &dataSize, pSelectedJob->pConvertInfo->pWatermark) == udR_Success)
-      {
-        int comp;
-        stbi_uc *pImg = stbi_load_from_memory(pData, (int)dataSize, &pSelectedJob->watermark.width, &pSelectedJob->watermark.height, &comp, 4);
+      int comp;
+      stbi_uc *pImg = stbi_load_from_memory(pData, (int)dataSize, &pSelectedJob->watermark.width, &pSelectedJob->watermark.height, &comp, 4);
 
-        vcTexture_Create(&pSelectedJob->watermark.pTexture, pSelectedJob->watermark.width, pSelectedJob->watermark.height, pImg);
+      vcTexture_Create(&pSelectedJob->watermark.pTexture, pSelectedJob->watermark.width, pSelectedJob->watermark.height, pImg);
 
-        stbi_image_free(pImg);
-      }
-
-      udFree(pData);
+      stbi_image_free(pImg);
     }
 
+    udFree(pData);
+  }
+
+  if (pSelectedJob->watermark.pTexture != nullptr)
+  {
     ImGui::Image(pSelectedJob->watermark.pTexture, ImVec2((float)pSelectedJob->watermark.width, (float)pSelectedJob->watermark.height));
+    ImGui::SameLine();
+    if (ImGui::Button(vcString::Get("RemoveWatermark")))
+      vdkConvert_RemoveWatermark(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext);
   }
   else
   {
