@@ -367,7 +367,12 @@ void vcConvert_ShowUI(vcState *pProgramState)
     ImGui::Image(pSelectedJob->watermark.pTexture, ImVec2((float)pSelectedJob->watermark.width, (float)pSelectedJob->watermark.height));
     ImGui::SameLine();
     if (ImGui::Button(vcString::Get("RemoveWatermark")))
+    {
       vdkConvert_RemoveWatermark(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext);
+      udFree(pSelectedJob->watermark.pFilename);
+      pSelectedJob->watermark.width = 0;
+      pSelectedJob->watermark.height = 0;
+    }
   }
   else
   {
