@@ -84,6 +84,25 @@ static void ImGui_ImplSDL2_ImeSetInputScreenPos(int x, int y)
   SDL_SetTextInputRect(&rect);
 }
 
+#ifdef _WIN32
+static void ImGui_ImplSDL2_FixKeyState(int key, SDL_Keymod mod)
+{
+  bool onWin = GetKeyState(key) != 0;
+  bool onSDL = (SDL_GetModState() & mod) != 0;
+
+  if (onWin && !onSDL)
+    SDL_SetModState((SDL_Keymod)(SDL_GetModState() | mod));
+  else if (!onWin && onSDL)
+    SDL_SetModState((SDL_Keymod)(SDL_GetModState() & ~mod));
+}
+
+static void ImGui_ImplSDL2_FixKeyboardState()
+{
+  ImGui_ImplSDL2_FixKeyState(VK_CAPITAL, KMOD_CAPS);
+  ImGui_ImplSDL2_FixKeyState(VK_NUMLOCK, KMOD_NUM);
+}
+#endif
+
 SDL_Window* ImGui_ImplSDL2_CreateWindow(const char* title, int x, int y, int w, int h, ImU32 flags)
 {
   SDL_Window* window = SDL_CreateWindow(title, x, y, w, h, (Uint32)(flags | SDL_WINDOW_HIDDEN));
@@ -95,6 +114,9 @@ SDL_Window* ImGui_ImplSDL2_CreateWindow(const char* title, int x, int y, int w, 
     SDL_VERSION(&wmInfo.version);
     SDL_GetWindowWMInfo(window, &wmInfo);
     ImmAssociateContext((HWND)wmInfo.info.win.window, 0);
+
+    // Fix keyboard state
+    ImGui_ImplSDL2_FixKeyboardState();
 #endif
 
     if (!(flags & SDL_WINDOW_HIDDEN))
@@ -167,6 +189,9 @@ bool ImGui_ImplSDL2_ProcessEvent(SDL_Event* event)
           SDL_VERSION(&wmInfo.version);
           SDL_GetWindowWMInfo(window, &wmInfo);
           ImmAssociateContextEx((HWND)wmInfo.info.win.window, 0, IACE_DEFAULT);
+
+          // Fix keyboard state
+          ImGui_ImplSDL2_FixKeyboardState();
 #endif
         }
       }
