@@ -1331,14 +1331,20 @@ void vcRenderWindow(vcState *pProgramState)
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddLines"), nullptr, vcMBBI_AddLines, vcMBBG_SameGroup))
         vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddOther"), nullptr, vcMBBI_AddOther, vcMBBG_SameGroup))
       {
-        //EVC-392 will help with this
-        if (ImGui::GetIO().KeyCtrl)
-          vcLiveFeed_AddToList(pProgramState);
-        else
-          vcFolder_AddToList(pProgramState, vcString::Get("DefaultName_Folder"));
+
       }
+      if (ImGui::BeginPopupContextItem("AddOther", 0))
+      {
+        if (ImGui::MenuItem(vcString::Get("AddFeed"), nullptr, nullptr))
+          vcLiveFeed_AddToList(pProgramState);
+
+        ImGui::EndPopup();
+      }
+
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
+        vcFolder_AddToList(pProgramState, vcString::Get("DefaultName_Folder"));
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("Remove"), vcString::Get("DeleteKey"), vcMBBI_Remove, vcMBBG_NewGroup) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE] && !ImGui::IsAnyItemActive()))
         vcScene_RemoveSelected(pProgramState);
