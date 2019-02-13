@@ -165,7 +165,7 @@ void vcScene_ClearSelection(vcState *pProgramState)
   pProgramState->sceneExplorer.selectedItems.clear();
 }
 
-void vcSceneItem::ChangeProjection(vcState *pProgramState, const udGeoZone &newZone)
+void vcSceneItem::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
 {
   if (this->pZone != nullptr && newZone.srid != this->pZone->srid)
     memcpy(this->pZone, &newZone, sizeof(newZone));
