@@ -192,9 +192,9 @@ There are a number of ways to add models to the scene.
 ### 4. Settings
 ![Settings](images/settings.png)
 
-The settings window has five subheadings which allow the user to customise and control how the vault client looks and operates. The subheading can be opened by left-clicking on the arrows to the left.
+The settings window has five subheadings where the user can customise how Euclideon Vault Client looks and operates. Click these subheadings to expand them.
 
->TIP: To restore all default values for any of these settings, simply right-click on the header and then select `Restore Defaults`.
+>TIP: To restore all default values for any of these settings, simply right-click on the subheading and then select `Restore Defaults`.
 
 #### Appearance
 
@@ -301,12 +301,14 @@ Watermarks can be viewed on each UDS file, by clicking on the UDS file in the Sc
 
 ### 8. Converting
 
-#### Converting in Vault Client
-The Euclideon Vault Client allows pointcloud files with a valid filetype to be converted into the supported `.uds` file format. To do this, load a valid pointcloud file into the client by dragging and dropping the file into the client window. This will open the Convert Tab if it isn't already open.
+#### Converting in Euclideon Vault Client
+The Euclideon Vault Client allows pointcloud files of a valid filetype to be converted into the supported `.uds` file format. To do this, click the convert tab in the top left corner of the viewport, then load a valid pointcloud file into the client by dragging and dropping the file into the client window.
 
 Valid conversion filetypes are: `.pts`, `.ptx`, `.las`, `.txt`, `.csv`, `.e57`, `.asc`, `.xyz`.
 
-> If you aren't able to find the convert tab, it can be displayed from the `Windows > Convert` flag, once selected the convert option will be displayed next to the Scene tab.
+> If you aren't able to see the convert tab, click the `Windows` menu and ensure the `Convert` flag is checked. Once this is selected the convert option will be displayed next to the Scene tab.
+
+A screenshot of the convert window is shown below.
 
 ![Convert Window](images/convertpane.png)
 
@@ -351,12 +353,14 @@ The "X" button beside the convert job in the "Convert Jobs" section allows you t
 
 > We do not recommend running multiple converts at the same time. Converting is a memory and processor intensive process so it's almost always faster to have 1 convert running at a time. Euclideon Vault Client helps with this by allowing you to queue multiple jobs to run one after another.
 
-#### Converting in Command Line (CMD)
-The Vault Client also comes with a feature called _Vault Convert CMD_ which allows files to be converted from within command line instead of using the [**Convert Tab**](#8.-converting). Simply open a command prompt and enter the following command:
+#### Converting from Command Line (CMD)
+The Euclideon Vault Client also comes with a separate command line only application which allows files to be converted via the command line instead of using the [**Convert Tab**](#8.-converting).
 
-`vcConvertCMD server username password [options] -i inputFile [-i anotherInputFile] -o outputFile.uds`
+To do this, open a command prompt and navigate to the folder containing the executable file `vaultConvertCMD.exe`, or alternatively enter the full path of this executable before the command, and then enter the following command:
 
-- `server` is the location of your vault server, and `username` and `password` are your account details for connecting to this server. These will be the same as those used for the Vault Client login screen (See [**Logging In**](#Logging-In)).
+`vaultConvertCMD server username password [options] -i inputFile [-i anotherInputFile] -o outputFile.uds`
+
+- `server` is the location of your vault server, and `username` and `password` are your account details for connecting to this server. These will be the same as those used for the Euclideon Vault Client login screen (See [**Logging In**](#Logging-In)).
 - `options` are optional arguments for customising the conversion. Some available options are:
   - `-resolution <res>` override the resolution (0.01 = 1cm, 0.001 = 1mm)
   - `-srid <sridCode>` override the srid code for geolocation
@@ -425,7 +429,7 @@ A converting error occured, what do I do?
 > Due to either corrupt or incomplete data, clicking the 'continue converting' tickbox will complete converting regardless of data integrity. (Visuals may vary)
 
 I want to demonstrate key features of my 3D model, how can I do that?
-> Check out the visualization dropdown box in the Settings pane, on the right hand side of the Vault Client.
+> Check out the visualization dropdown box in the Settings pane, on the right hand side of the viewport in Euclideon Vault Client.
 
 How do I adjust the mouse controls?
 > View Mouse Pivot bindings in the input and controls menu in settings.
