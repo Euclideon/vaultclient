@@ -10,6 +10,9 @@ Version 0.2.1
   - Added history buffer for undo/redo functionality
   - Added the ability to remove watermarks on the convert tab
   - Fixed issue with temp directory incorrectly changing when modifying the output name
+  - Fixed a number of issues relating to the gizmos.
+    - Multiple objects can be selected and manipulated at the same time
+    - Scale is now calcualated correctly and doesn't reapply every frame
 
 Version 0.2.0
   ADDITIONS & FIXES
