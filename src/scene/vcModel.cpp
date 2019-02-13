@@ -130,9 +130,9 @@ void vcModel::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
   pRenderData->models.PushBack(this);
 }
 
-void vcModel::ApplyDelta(vcState * /*pProgramState*/)
+void vcModel::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
 {
-
+  sceneMatrix = delta * sceneMatrix;
 }
 
 void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
@@ -154,6 +154,16 @@ void vcModel::Cleanup(vcState *pProgramState)
     vcTexture_Destroy(&pWatermark);
 
   this->vcModel::~vcModel();
+}
+
+udDouble3 vcModel::GetLocalSpacePivot()
+{
+  return pivot;
+}
+
+udDouble4x4 vcModel::GetWorldSpaceMatrix()
+{
+  return sceneMatrix;
 }
 
 void vcModel_AddToList(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad /*= true*/, udDouble3 *pOverridePosition /*= nullptr*/, udDouble3 *pOverrideYPR /*= nullptr*/, double scale /*= 1.0*/)

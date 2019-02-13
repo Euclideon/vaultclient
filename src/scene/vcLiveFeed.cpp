@@ -187,9 +187,10 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   udReleaseMutex(this->pMutex);
 }
 
-void vcLiveFeed::ApplyDelta(vcState * /*pProgramState*/)
+void vcLiveFeed::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
-
+  udUnused(pProgramState);
+  udUnused(delta);
 }
 
 void vcLiveFeed::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
