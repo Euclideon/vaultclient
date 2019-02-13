@@ -366,9 +366,9 @@ To do this, open a command prompt and navigate to the folder containing the exec
   - `-srid <sridCode>` override the srid code for geolocation
   - `-pause` require the enter key to be pressed before exiting
   - `-pauseOnError` if an error occurs, require the enter key to be pressed before exiting
-- `inputFile` is the location of the file you wish to convert. If the file's path contains any spaces, you need to put the path in quotes, for example: `"C:\My Data\File to Convert.csv"`
+- `inputFile` is the location of the file you wish to convert. If the file's path contains any spaces, you need to put the path in quotes, for example: `"C:/My Data/File to Convert.csv"`
   - Additional input files may be specified but they will all be merged into the one output file, so ensure they are compatible first.
-- `outputFile.uds` is the name and location of the new `.uds` file you wish to create. Again, if the file's path contains any spaces you must put the path in quotes, for example: `"C:\Output\Converted File.uds"`
+- `outputFile.uds` is the name and location of the new `.uds` file you wish to create. Again, if the file's path contains any spaces you must put the path in quotes, for example: `"C:/Output/Converted File.uds"`
 
 Valid conversion filetypes are: `.pts`, `.ptx`, `.las`, `.txt`, `.csv`, `.e57`, `.asc`, `.xyz`.
 
