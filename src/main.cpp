@@ -244,15 +244,6 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
   {
     vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
 
-#if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX
-    if (pProgramState->settings.window.maximized)
-      SDL_MaximizeWindow(pProgramState->pWindow);
-    else
-      SDL_RestoreWindow(pProgramState->pWindow);
-
-    SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
-    //SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
-#endif
     switch (pProgramState->settings.presentation.styleIndex)
     {
     case 0: ImGui::StyleColorsDark(); ++pProgramState->settings.presentation.styleIndex; break;
