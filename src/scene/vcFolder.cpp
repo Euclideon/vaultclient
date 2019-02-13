@@ -67,7 +67,7 @@ void vcFolder::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 
 void vcFolder_AddInsertSeparator()
 {
-  ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.f, 1.f, 0.f, 1.f)); // RGBA
+  ImGui::PushStyleColor(ImGuiCol_Separator, ImGui::GetStyle().Colors[ImGuiCol_HeaderHovered]); //RBGA
   ImVec2 pos = ImGui::GetCursorPos();
   ImVec2 winPos = ImGui::GetWindowPos();
   ImGui::SetWindowPos({ winPos.x + pos.x, winPos.y }, ImGuiCond_Always);
