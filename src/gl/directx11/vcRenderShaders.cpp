@@ -176,7 +176,7 @@ const char* const g_tileFragmentShader = R"shader(
   float4 main(PS_INPUT input) : SV_Target
   {
     float4 col = texture0.Sample(sampler0, input.uv);
-    return float4(col.xyz * input.colour.xyz, 1.0) * input.colour.w;
+    return float4(col.xyz * input.colour.xyz, input.colour.w);
   }
 )shader";
 
