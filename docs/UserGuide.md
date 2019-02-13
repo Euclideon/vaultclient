@@ -86,6 +86,35 @@ Default Keyboard Controls (with the "Scene" window focused):
 - `R` and `F` strafe the camera up and down at the current Camera Move Speed.
 - `Spacebar` locks altitude, allowing the user to pan and strafe the camera without changing the camera's height (Z-axis lock).
 
+#### Moving items in the scene
+
+After selecting some items (see [Selecting Items](#selecting-items)) gizmo's will appear in the viewport.
+
+![Scene Gizmos](images/gizmos.png)
+- Translation Gizmo (left), Rotation Gizmo (middle) & Scale Gizmo (right).
+
+In local space mode the axis will align with the local axis of the last selected item. If that model doesn't have local space axis then it will use global axis.
+
+Looking at the gizmo from different angles may cause the gizmo to display one or more axis hatched. This is to indicate that the axis is point in the negative direction for that axis.
+- Red is the X axis, most frequently the EASTING.
+- Green is the Y axis, most frequently the NORTHING.
+- Blue is the Z axis, most frequently the ALTITUDE.
+
+- The translation gizmo is used to move the scene item(s) around. There are 3 sections to the translation gizmo.
+  1. The coloured axis arms of the Gizmo translate locked to that axis
+  2. The coloured squares between to axis arms translate in that plane (the square between the X & Y axis translates only in the XY plane) the colour shows which axis won't be modified by that square.
+  3. The white ball at the origin of the gizmo translates the models in the plane perpendicular to the camera
+- The rotation gizmo changes the orientation of the item(s). They will orbit around the centre of the gizmo. There are 2 sections to the rotation gizmo.
+  1. The coloured axis rings rotate around the normal to the plane. The blue ring (Z-axis) rotates everything around the Z-axis
+  2. The white ring orbits everything around the centre of the gizmo in the axis parallel to the direction of the camera.
+- The scale gizmo changes the size of the item(s). They anchor for this scale is the centre of the gizmo. There are 2 sections to the scale gizmo.
+  1. The coloured axis arms of the Gizmo scale along that axis
+  3. The white ball at the origin of the gizmo scales uniformly in all axis
+
+In some situations not all gizmos will be available. In these cases part of the gizmo will be greyed out. One common occurance for this is when trying to scale UDS files (they don't properly support non-uniform scale)
+![Scene Gizmos](images/gizmogreyed.png)
+
+
 #### Hotkeys
 - `F5` Toggles presentation mode, hiding the interface and going fullscreen.
 
