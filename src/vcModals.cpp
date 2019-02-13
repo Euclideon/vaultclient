@@ -417,48 +417,71 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
   if (pProgramState->openModals & (1 << vcMT_ImageViewer))
     ImGui::OpenPopup(vcString::Get("ImageViewer"));
 
+  // Use 75% of the window
   int maxX, maxY;
   SDL_GetWindowSize(pProgramState->pWindow, &maxX, &maxY);
+  ImGui::SetNextWindowSize(ImVec2(maxX * 0.75f, maxY * 0.75f), ImGuiCond_Always);
 
-  ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2((float)maxX, (float)maxY));
   if (ImGui::BeginPopupModal(vcString::Get("ImageViewer"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
   {
     pProgramState->modalOpen = true;
     if (ImGui::Button(vcString::Get("Close"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
-    ImGuiIO io = ImGui::GetIO();
-    ImVec2 window = ImGui::GetWindowSize();
-    ImVec2 windowPos = ImGui::GetWindowPos();
-
-    ImGui::Image(pProgramState->image.pImage, ImVec2((float)pProgramState->image.width, (float)pProgramState->image.height));
-
-    if (ImGui::IsWindowHovered())
+    if (ImGui::BeginChild("ImageViewerImage", ImVec2(0, 0), false, ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
     {
-      io.MouseWheel += ImGui::IsMouseDoubleClicked(0);
-      if (io.MouseWheel != 0 && (io.MouseWheel > 0 || (pProgramState->image.width > window.x || pProgramState->image.height > window.y + 15)))
+      ImGuiIO io = ImGui::GetIO();
+      ImVec2 window = ImGui::GetWindowSize();
+      ImVec2 windowPos = ImGui::GetWindowPos();
+
+      ImGui::Image(pProgramState->image.pImage, ImVec2((float)pProgramState->image.width, (float)pProgramState->image.height));
+
+      if (ImGui::IsWindowHovered())
       {
-        float scaleFactor = io.MouseWheel / 10;
+        io.MouseWheel += ImGui::IsMouseDoubleClicked(0);
+        if (io.MouseWheel != 0 && (io.MouseWheel > 0 || (pProgramState->image.width > window.x || pProgramState->image.height > window.y + 15)))
+        {
+          float scaleFactor = io.MouseWheel / 10;
 
-        float xRatio = float((io.MousePos.x - windowPos.x) / window.x - .5);
-        float yRatio = float((io.MousePos.y - windowPos.y) / window.y - .5);
+          float ratio = (float)pProgramState->image.width / (float)pProgramState->image.height;
+          float xRatio = float((io.MousePos.x - windowPos.x) / window.x - .5);
+          float yRatio = float((io.MousePos.y - windowPos.y) / window.y - .5);
 
-        float deltaX = pProgramState->image.width * scaleFactor;
-        float deltaY = pProgramState->image.height * scaleFactor;
+          float deltaX = pProgramState->image.width * scaleFactor;
+          float deltaY = pProgramState->image.height * scaleFactor;
 
-        ImGui::SetScrollX(ImGui::GetScrollX() + (deltaX / 2) + (deltaX * xRatio));
-        ImGui::SetScrollY(ImGui::GetScrollY() + (deltaY / 2) + (deltaY * yRatio));
+          ImGui::SetScrollX(ImGui::GetScrollX() + (deltaX / 2) + (deltaX * xRatio));
+          ImGui::SetScrollY(ImGui::GetScrollY() + (deltaY / 2) + (deltaY * yRatio));
 
-        pProgramState->image.width = int(pProgramState->image.width * (1 + scaleFactor));
-        pProgramState->image.height = int(pProgramState->image.height * (1 + scaleFactor));
-      }
+          pProgramState->image.width = int(pProgramState->image.width * (1 + scaleFactor));
+          pProgramState->image.height = int(pProgramState->image.height * (1 + scaleFactor));
 
-      if (io.MouseDown[0])
-      {
-        ImGui::SetScrollX(ImGui::GetScrollX() - (ImGui::GetScrollMaxX() * (io.MouseDelta.x / window.x * 2)));
-        ImGui::SetScrollY(ImGui::GetScrollY() - (ImGui::GetScrollMaxY() * (io.MouseDelta.y / window.y * 2)));
+          if (pProgramState->image.width > pProgramState->image.height)
+          {
+            if (pProgramState->image.width < (int)window.x)
+            {
+              pProgramState->image.width = (int)window.x;
+              pProgramState->image.height = int(pProgramState->image.width * ratio);
+            }
+          }
+          else
+          {
+            if (pProgramState->image.height < (int)window.y)
+            {
+              pProgramState->image.height = (int)window.y;
+              pProgramState->image.width = int(pProgramState->image.height / ratio);
+            }
+          }
+        }
+
+        if (io.MouseDown[0])
+        {
+          ImGui::SetScrollX(ImGui::GetScrollX() - (ImGui::GetScrollMaxX() * (io.MouseDelta.x / window.x * 2)));
+          ImGui::SetScrollY(ImGui::GetScrollY() - (ImGui::GetScrollMaxY() * (io.MouseDelta.y / window.y * 2)));
+        }
       }
     }
+    ImGui::EndChild();
 
     ImGui::EndPopup();
   }
