@@ -102,6 +102,8 @@
   "AddPOI": "Add Point of Interest",
   "AddAOI": "Add Area of Interest",
   "AddLines": "Add Lines",
+  "AddOther": "Add Other",
+  "AddFeed": "Add Live Feed",
   "AddFolder": "Add Folder",
   "Remove": "Remove Selected",
   "UseProjection": "Use Projection",
@@ -288,5 +290,5 @@
   "LabelAddHere": "Add POI here",
   "DefaultName_POI": "Point of interest",
   "DefaultName_Folder": "Folder",
-  "ImageViewer":"Image Viewer"
+  "ImageViewer": "Image Viewer"
 }
