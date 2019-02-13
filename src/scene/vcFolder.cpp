@@ -59,9 +59,10 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     children[i]->AddToScene(pProgramState, pRenderData);
 }
 
-void vcFolder::ApplyDelta(vcState * /*pProgramState*/)
+void vcFolder::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
-  // Maybe recurse children and call ApplyDelta?
+  for (size_t i = 0; i < children.size(); ++i)
+    children[i]->ApplyDelta(pProgramState, delta);
 }
 
 void vcFolder_AddInsertSeparator()
@@ -173,7 +174,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
       if (children[i]->type != vcSOT_Folder && ImGui::Selectable(vcString::Get("MoveTo")))
       {
-        udDouble3 localSpaceCenter = vcScene_GetItemWorldSpacePivotPoint(children[i]);
+        udDouble3 localSpaceCenter = children[i]->GetWorldSpacePivot();
 
         // Transform the camera position. Don't do the entire matrix as it may lead to inaccuracy/de-normalised camera
         if (pProgramState->gis.isProjected && children[i]->pZone != nullptr && children[i]->pZone->srid != pProgramState->gis.SRID)
@@ -186,8 +187,8 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         pProgramState->cameraInput.progress = 0.0;
       }
 
-      if (children[i]->type == vcSOT_PointCloud && ImGui::Selectable(vcString::Get("ResetPosition"), false, children[i]->sceneMatrix == children[i]->defaultMatrix ? ImGuiSelectableFlags_Disabled : 0))
-        children[i]->sceneMatrix = children[i]->defaultMatrix;
+      //if (children[i]->type == vcSOT_PointCloud && ImGui::Selectable(vcString::Get("ResetPosition"), false, children[i]->sceneMatrix == children[i]->defaultMatrix ? ImGuiSelectableFlags_Disabled : 0))
+      //  children[i]->sceneMatrix = children[i]->defaultMatrix;
 
       ImGui::EndPopup();
     }

@@ -7,6 +7,8 @@
 
 #include "gl/vcFenceRenderer.h"
 
+#include "udPlatform/udMath.h"
+
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 #include "udPlatform/udFile.h"
@@ -26,9 +28,17 @@ void vcPOI::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
   }
 }
 
-void vcPOI::ApplyDelta(vcState * /*pProgramState*/)
+void vcPOI::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
 {
+  line.pPoints[line.selectedPoint] = (delta * udDouble4x4::translation(line.pPoints[line.selectedPoint])).axis.t.toVector3();
 
+  pLabelInfo->worldPosition = line.pPoints[0];
+
+  if (pFence != nullptr)
+  {
+    vcFenceRenderer_ClearPoints(pFence);
+    vcFenceRenderer_AddPoints(pFence, line.pPoints, line.numPoints, line.closed);
+  }
 }
 
 void vcPOI::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
@@ -98,7 +108,7 @@ void vcPOI::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
       reConfig = true;
 
     const char *lineOptions[] = { vcString::Get("Arrow"), vcString::Get("Glow"), vcString::Get("Solid") };
-    if (ImGui::Combo(vcString::Get("LineStyle"), (int *)&line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
+    if (ImGui::Combo(vcString::Get("LineStyle"), (int *)&line.lineStyle, lineOptions, (int) udLengthOf(lineOptions)))
       reConfig = true;
 
     if (reConfig)
@@ -131,7 +141,12 @@ void vcPOI::Cleanup(vcState * /*pProgramState*/)
   this->vcPOI::~vcPOI();
 }
 
-void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes)
+udDouble4x4 vcPOI::GetWorldSpaceMatrix()
+{
+  return udDouble4x4::translation(line.pPoints[0]);
+}
+
+void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/)
 {
   vcPOI *pPOI = udAllocType(vcPOI, 1, udAF_Zero);
   pPOI = new (pPOI) vcPOI();
@@ -147,8 +162,6 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
 
   pPOI->line.pPoints = udAllocType(udDouble3, pLine->numPoints, udAF_Zero);
   memcpy(pPOI->line.pPoints, pLine->pPoints, sizeof(udDouble3) * pLine->numPoints);
-
-  pPOI->sceneMatrix = udDouble4x4::translation(pLine->pPoints[0]);
 
   pPOI->line.selectedPoint = 0;
   pPOI->line.lineStyle = vcRRIM_Arrow;

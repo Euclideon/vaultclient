@@ -49,10 +49,6 @@ struct vcSceneItem
   vcSceneItemType type;
   char typeStr[8];
 
-  udDouble4x4 defaultMatrix; // This is the matrix that was originally loaded
-  udDouble4x4 sceneMatrix; // This is the matrix used to render into the current projection
-  udDouble3 pivot; // The point in local space that the object is anchored around (for scaling and rotating)
-
   udJSON *pMetadata; // This points to a metadata (if it exists)
   udGeoZone *pOriginalZone; // nullptr if not geolocated
   udGeoZone *pZone; // nullptr if not geolocated
@@ -69,13 +65,20 @@ struct vcSceneItem
   virtual void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) = 0;
 
   // This is used to help with applying changes (e.g. Gizmo)
-  virtual void ApplyDelta(vcState *pProgramState) = 0;
+  virtual void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) = 0;
 
   // This is used to help with exposing item specific UI
   virtual void HandleImGui(vcState *pProgramState, size_t *pItemID) = 0;
 
   // Only calls this if its 'completed' loading and is 'vcSLS_Loaded'; note: this is called before other cleanup operations
   virtual void Cleanup(vcState *pProgramState) = 0;
+
+  // Gets the item's pivot point in various spaces
+  virtual udDouble3 GetWorldSpacePivot();
+  virtual udDouble3 GetLocalSpacePivot();
+
+  // Gets the world space matrix (or identity if not applicable)
+  virtual udDouble4x4 GetWorldSpaceMatrix();
 };
 
 void vcScene_RemoveItem(vcState *pProgramState, vcFolder *pParent, size_t index);
@@ -90,8 +93,5 @@ void vcScene_ClearSelection(vcState *pProgramState);
 
 void vcScene_UpdateItemToCurrentProjection(vcState *pProgramState, vcSceneItem *pModel); // If pModel is nullptr, everything in the scene is moved to the current space
 bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel);
-
-udDouble3 vcScene_GetItemWorldSpacePivotPoint(vcSceneItem *pModel);
-
 
 #endif
