@@ -230,6 +230,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       pSettings->presentation.showAdvancedGIS = data.Get("showAdvGISOptions").AsBool(false);
       pSettings->presentation.mouseAnchor = (vcAnchorStyle)data.Get("mouseAnchor").AsInt(vcAS_Orbit);
       pSettings->presentation.showCompass = data.Get("showCompass").AsBool(true);
+      pSettings->presentation.POIfadeDistance = data.Get("POIfadeDistance").AsFloat(0.f);
       pSettings->presentation.limitFPSInBackground = data.Get("limitFPSInBackground").AsBool(true);
       pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
       pSettings->responsiveUI = (vcPresentationMode)data.Get("responsiveUI").AsInt(vcPM_Hide);
@@ -400,6 +401,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("mouseAnchor = %d", pSettings->presentation.mouseAnchor);
   data.Set("showCompass = %s", pSettings->presentation.showCompass ? "true" : "false");
   data.Set("limitFPSInBackground = %s", pSettings->presentation.limitFPSInBackground ? "true" : "false");
+  data.Set("POIfadeDistance = %f", pSettings->presentation.POIfadeDistance);
   data.Set("pointMode = %d", pSettings->presentation.pointMode);
   data.Set("responsiveUI = %d", pSettings->responsiveUI);
 
