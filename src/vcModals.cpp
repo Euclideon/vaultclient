@@ -461,7 +461,7 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
             if (pProgramState->image.width < (int)window.x)
             {
               pProgramState->image.width = (int)window.x;
-              pProgramState->image.height = int(pProgramState->image.width * ratio);
+              pProgramState->image.height = int(pProgramState->image.width / ratio);
             }
           }
           else
@@ -469,7 +469,7 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
             if (pProgramState->image.height < (int)window.y)
             {
               pProgramState->image.height = (int)window.y;
-              pProgramState->image.width = int(pProgramState->image.height / ratio);
+              pProgramState->image.width = int(pProgramState->image.height * ratio);
             }
           }
         }
