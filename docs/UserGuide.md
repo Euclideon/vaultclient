@@ -88,30 +88,33 @@ Default Keyboard Controls (with the "Scene" window focused):
 
 #### Moving items in the scene
 
-After selecting some items (see [Selecting Items](#selecting-items)) gizmo's will appear in the viewport.
+When one or more items is selected (see [Selecting Items](#selecting-items)) a transformation tool called a "gizmo" will become visible on the item(s) in the viewport:
 
 ![Scene Gizmos](images/gizmos.png)
-- Translation Gizmo (left), Rotation Gizmo (middle) & Scale Gizmo (right).
+> Translation Gizmo (left), Rotation Gizmo (middle) & Scale Gizmo (right).
 
-In local space mode the axis will align with the local axis of the last selected item. If that model doesn't have local space axis then it will use global axis.
+In local space mode the axis will align with the local axis of the last selected item. If that model doesn't have a local space axis then it will use the global axis.
+- **Red** is the X axis, in global space the _EASTING_.
+- **Green** is the Y axis, in global space the _NORTHING_.
+- **Blue** is the Z axis, in global space the _ALTITUDE_.
 
-Looking at the gizmo from different angles may cause the gizmo to display one or more axis hatched. This is to indicate that the axis is point in the negative direction for that axis.
-- Red is the X axis, most frequently the EASTING.
-- Green is the Y axis, most frequently the NORTHING.
-- Blue is the Z axis, most frequently the ALTITUDE.
+Looking at the gizmo from different angles will cause one or more of its axes to appear hatched/dashed. This indicates that this axis is pointed in the negative direction.
 
-- The translation gizmo is used to move the scene item(s) around. There are 3 sections to the translation gizmo.
-  1. The coloured axis arms of the Gizmo translate locked to that axis
-  2. The coloured squares between to axis arms translate in that plane (the square between the X & Y axis translates only in the XY plane) the colour shows which axis won't be modified by that square.
-  3. The white ball at the origin of the gizmo translates the models in the plane perpendicular to the camera
-- The rotation gizmo changes the orientation of the item(s). They will orbit around the centre of the gizmo. There are 2 sections to the rotation gizmo.
-  1. The coloured axis rings rotate around the normal to the plane. The blue ring (Z-axis) rotates everything around the Z-axis
-  2. The white ring orbits everything around the centre of the gizmo in the axis parallel to the direction of the camera.
-- The scale gizmo changes the size of the item(s). They anchor for this scale is the centre of the gizmo. There are 2 sections to the scale gizmo.
-  1. The coloured axis arms of the Gizmo scale along that axis
-  3. The white ball at the origin of the gizmo scales uniformly in all axis
+The Translation Gizmo is used to move scene item(s) around. There are 3 sections to the translation gizmo:
+  1. The coloured axis arms of the gizmo will translate only along that axis.
+  2. The coloured squares between two axis arms will translate in that plane (e.g. the square between the X & Y axis translates only in the XY plane). The colour indicates which axis won't be modified by using that square.
+  3. The white circle at the origin of the gizmo will translate the models in the plane perpendicular to the camera.
 
-In some situations not all gizmos will be available. In these cases part of the gizmo will be greyed out. One common occurance for this is when trying to scale UDS files (they don't properly support non-uniform scale)
+The Rotation Gizmo changes the orientation of the item(s). They will always orbit around their centre. There are 2 sections to the rotation gizmo:
+  1. The coloured rings will each rotate around the normal to that plane. (e.g. Blue is the Z-axis, so the blue ring rotates everything around the Z-axis).
+  2. The white ring rotates everything around the axis parallel to the direction of the camera.
+
+The Scale Gizmo changes the size of the selected item(s). The anchor for scaling is always the centre of the item(s). There are 2 sections to the scale gizmo:
+  1. The coloured axis arms of the gizmo will scale along that axis only.
+  3. The white circle at the origin of the gizmo will scale the item(s) uniformly.
+
+In some situations not all gizmos will be available. In these cases part of the gizmo will be greyed out. One common occurance of this is when trying to scale UDS files (they don't properly support non-uniform scale).
+
 ![Scene Gizmos](images/gizmogreyed.png)
 
 
@@ -262,11 +265,11 @@ These options allow the user to changes the camera's minimum and maximum viewing
 
 ![Maps & Elevation Settings](images/mapsandelevation.png)
 
-The first checkbox is used to toggle the visibility? of map tiles in the viewport.
+The first checkbox is used to toggle the visibility of map tiles in the viewport.
 
 The second checkbox allows the mouse to lock to map tiles when moving the camera with the mouse.
 
-Tile Server allows overlay with existing maps??, clicking `Tile Server` prompts the user to enter a https:// address for background tiles, with the option to import .png or .jpg files.??
+Tile Server allows overlay with existing maps, clicking `Tile Server` prompts the user to enter a https:// address for background tiles, with the option to import .png or .jpg files.
 
 ![Tile Server](images/tileserver.png)
 
@@ -276,7 +279,7 @@ Blending allows map tiles to overlay, underlay or feature in hybrid mode with ex
 
 The transparency (opacity) slider adjusts the transparency (opacity) of the map tiles so they don't obscure the visibility of objects in the scene.
 
-The `Set to Camera Height` button can be used to set the height of the map tiles to the camera's current height. This can be used to place map tiles outside the default range of the slider of +/-1000m.?
+The `Set to Camera Height` button can be used to set the height of the map tiles to the camera's current height. This can be used to place map tiles outside the default range of the slider of +/-1000m. The map height can also be entered manually by holding `ctrl` and left-clicking on the slider.
 
 #### Visualization
 
@@ -284,19 +287,19 @@ The `Set to Camera Height` button can be used to set the height of the map tiles
 
 This pane allows users to change between Colour, Intensity and Classification display modes.
 
-In intensity display mode, an extra option appears for the use to specify the min and max intensity of the display? as shown below.
+In intensity display mode, an extra option appears to specify the min and max intensity of the display as shown below.
 
 ![Visualization Intensity](images/visualizationintensity.png)
 
-In classification display mode, a checkbox appears which, when enabled, allows the user to customise the colours of objects corresponding to their designated classifications.?
+In classification display mode, a checkbox appears which, when enabled, allows the user to customise the colours of objects corresponding to their designated classifications.
 
 ![Visualization Classification](images/visualizationclassification.png)
 
 Below Display Mode are four additional visualization options.
-  - `Enable Edge Highlighting` ???
-  - `Enable Colour by Height` Applies colours along the specified two-colour gradient to all objects in the scene based on their height.?
-  - `Enable Colour by Depth` ???
-  - `Enable Contours` Displays coloured contours sorted by distance and band height.?
+  - `Enable Edge Highlighting` Highlights the edges of every voxel in the scene, using the specified width and colour. The threshold determines how to resolve the edges of overlapping voxels.
+  - `Enable Colour by Height` Displays colours along the specified two-colour gradient to all objects in the scene based on their height.
+  - `Enable Colour by Depth` Displays colours along a one-colour gradient to all objects in the scene based on their distance from the camera.
+  - `Enable Contours` Displays coloured elevation contours on all objects where band height is the width of the contours and distances is the vertical space between each contour.
 
 All four display options also allow the user to customise the colours. They are shown expanded below.
 
