@@ -315,6 +315,7 @@ int main(int argc, char **args)
 
   programState.settings.hideIntervalSeconds = 3;
   programState.showUI = true;
+  programState.changeActiveDock = vcDocks_Count;
   programState.firstRun = true;
   programState.passFocus = true;
   programState.renaming = -1;
@@ -568,6 +569,7 @@ int main(int argc, char **args)
               {
                 vcModel_AddToList(&programState, nullptr, pNextLoad, firstLoad);
                 continueLoading = true;
+                programState.changeActiveDock = vcDocks_Scene;
               }
               else if (udStrEquali(pExt, ".udp"))
               {
@@ -575,6 +577,7 @@ int main(int argc, char **args)
                   vcScene_RemoveAll(&programState);
 
                 vcUDP_Load(&programState, pNextLoad);
+                programState.changeActiveDock = vcDocks_Scene;
               }
               else if (!ImGui::IsDockActive(vcString::Get("Convert")) &&
                 (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif")))
@@ -600,6 +603,7 @@ int main(int argc, char **args)
               else
               {
                 vcConvert_AddFile(&programState, pNextLoad);
+                programState.changeActiveDock = vcDocks_Convert;
               }
             }
 
@@ -1161,6 +1165,15 @@ int vcMainMenuGui(vcState *pProgramState)
   return menuHeight;
 }
 
+void vcChangeTab(vcState *pProgramState, vcDocks dock)
+{
+  if (pProgramState->changeActiveDock == dock)
+  {
+    ImGui::SetDockActive();
+    pProgramState->changeActiveDock = vcDocks_Count;
+  }
+}
+
 void vcRenderWindow(vcState *pProgramState)
 {
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
@@ -1423,6 +1436,7 @@ void vcRenderWindow(vcState *pProgramState)
     {
       if (ImGui::BeginDock(vcString::Get("Scene"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
         vcRenderSceneWindow(pProgramState);
+      vcChangeTab(pProgramState, vcDocks_Scene);
       ImGui::EndDock();
     }
     else
@@ -1430,6 +1444,7 @@ void vcRenderWindow(vcState *pProgramState)
       // Dummy scene dock, otherwise the docks get shuffled around
       if (ImGui::BeginDock(vcString::Get("Scene"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
         ImGui::Dummy(ImVec2((float)pProgramState->sceneResolution.x, (float)pProgramState->sceneResolution.y));
+      vcChangeTab(pProgramState, vcDocks_Scene);
       ImGui::EndDock();
 
       ImGui::SetNextWindowSize(size);
@@ -1445,6 +1460,8 @@ void vcRenderWindow(vcState *pProgramState)
 
     if (ImGui::BeginDock(vcString::Get("Convert"), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
       vcConvert_ShowUI(pProgramState);
+
+    vcChangeTab(pProgramState, vcDocks_Convert);
     ImGui::EndDock();
 
     if (ImGui::BeginDock(vcString::Get("Settings"), &pProgramState->settings.window.windowsOpen[vcDocks_Settings]))

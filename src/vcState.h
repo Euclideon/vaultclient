@@ -120,6 +120,7 @@ struct vcState
   vdkError currentError;
   int64_t lastEventTime;
   bool showUI;
+  vcDocks changeActiveDock;
 };
 
 #endif // !vcState_h__
