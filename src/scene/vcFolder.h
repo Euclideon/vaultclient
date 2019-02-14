@@ -10,6 +10,8 @@ struct vcFolder : public vcSceneItem
 {
   std::vector<vcSceneItem*> children;
 
+  void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
+
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
   void HandleImGui(vcState *pProgramState, size_t *pItemID);
