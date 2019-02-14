@@ -446,5 +446,17 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   if (pProgramState->cameraInput.inputState == vcCIS_None)
     pProgramState->cameraInput.isUsingAnchorPoint = false;
 
+  for each (vcSceneItem *pItem in pProgramState->sceneExplorer.pItems->children)
+  {
+    if (pItem->type == vcSOT_PointOfInterest)
+    {
+      double distFromCamera = udMag3(pItem->GetWorldSpacePivot() - pProgramState->pCamera->position);
+      if (distFromCamera > pProgramState->settings.presentation.POIfadeDistance)
+        pItem->visible = false;
+      else
+        pItem->visible = true;
+    }
+  }
+
   vcCamera_UpdateMatrices(pProgramState->pCamera, pProgramState->settings.camera, windowSize, &mousePos);
 }
