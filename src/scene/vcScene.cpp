@@ -176,8 +176,10 @@ bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel)
   if (pProgramState == nullptr || pModel == nullptr)
     return false;
 
-  if ((pModel->pZone != nullptr && vcGIS_ChangeSpace(&pProgramState->gis, pModel->pOriginalZone->srid)) || (pModel->pZone == nullptr && vcGIS_ChangeSpace(&pProgramState->gis, 0)))
+  if ((pModel->pZone != nullptr && vcGIS_ChangeSpace(&pProgramState->gis, pModel->pOriginalZone->srid)))
     pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, *pModel->pOriginalZone); // Update all models to new zone
+  else if (pModel->pZone == nullptr)
+    vcGIS_ChangeSpace(&pProgramState->gis, 0); // unless there is no new zone
 
   pProgramState->pCamera->position = pModel->GetWorldSpacePivot();
 
