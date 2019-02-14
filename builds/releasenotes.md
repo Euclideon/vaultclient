@@ -13,6 +13,8 @@ Version 0.2.1
   - Fixed a number of issues relating to the gizmos.
     - Multiple objects can be selected and manipulated at the same time
     - Scale is now calcualated correctly and doesn't reapply every frame
+  - Added support for loading label hyperlinks from UDP
+    - Added support for some image file extensions to open in image viewer modal
 
 Version 0.2.0
   ADDITIONS & FIXES

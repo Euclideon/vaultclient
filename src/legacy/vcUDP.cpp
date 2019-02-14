@@ -56,6 +56,7 @@ struct vcUDPItemData
       const char *pGeoLocation;
       const char *pColour;
       const char *pFontSize;
+      const char *pHyperlink;
     } label;
     struct
     {
@@ -143,6 +144,7 @@ void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemD
         item.label.pGeoLocation = nullptr;
         item.label.pColour = nullptr;
         item.label.pFontSize = nullptr;
+        item.label.pHyperlink = nullptr;
       case vcUDPIDT_Polygon:
         item.polygon.pName = nullptr;
         item.polygon.colour = 0xFFFFFFFF; // Default colour is white
@@ -199,6 +201,8 @@ void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemD
               item.label.pColour = datasetData.Get("[%zu].content", j).AsString();
             else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "FontSize"))
               item.label.pFontSize = datasetData.Get("[%zu].content", j).AsString();
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "Hyperlink"))
+              item.label.pHyperlink = datasetData.Get("[%zu].content", j).AsString();
             break;
           case vcUDPIDT_Polygon:
             if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "PolygonName"))
@@ -300,6 +304,19 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
     {
       pLabelData->at(index).sceneFolder = vcUDP_GetSceneItemRef(pProgramState);
       vcPOI_AddToList(pProgramState, item.label.pName, colour, size, position, epsgCode);
+
+      // Add hyperlink to the metadata
+      if (item.label.pHyperlink != nullptr)
+      {
+        vcPOI *pPOI = (vcPOI*)item.sceneFolder.pParent->children[item.sceneFolder.index];
+        udJSON temp;
+        temp.SetString(item.label.pHyperlink);
+
+        if (pPOI->pMetadata == nullptr)
+          pPOI->pMetadata = udAllocType(udJSON, 1, udAF_Zero);
+
+        pPOI->pMetadata->Set(&temp, "hyperlink");
+      }
     }
   }
 }
