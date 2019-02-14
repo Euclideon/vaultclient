@@ -165,24 +165,10 @@ void vcScene_ClearSelection(vcState *pProgramState)
   pProgramState->sceneExplorer.selectedItems.clear();
 }
 
-void vcScene_UpdateItemToCurrentProjection(vcState *pProgramState, vcSceneItem *pModel)
+void vcSceneItem::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
 {
-  if (!pModel)
-  {
-    for (size_t i = 0; i < pProgramState->sceneExplorer.pItems->children.size(); ++i)
-      vcScene_UpdateItemToCurrentProjection(pProgramState, pProgramState->sceneExplorer.pItems->children[i]);
-  }
-  else
-  {
-    // Handle transforming into the camera's GeoZone
-    //if (pProgramState->gis.isProjected && pModel->pZone != nullptr && pProgramState->gis.SRID != pModel->pZone->srid)
-    //{
-    //  pModel->sceneMatrix = udGeoZone_TransformMatrix(pModel->sceneMatrix, *pModel->pZone, pProgramState->gis.zone);
-    //
-    //  // This is not ideal as it will gather drift
-    //  memcpy(pModel->pZone, &pProgramState->gis.zone, sizeof(pProgramState->gis.zone));
-    //}
-  }
+  if (this->pZone != nullptr && newZone.srid != this->pZone->srid)
+    memcpy(this->pZone, &newZone, sizeof(newZone));
 }
 
 bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel)
@@ -190,8 +176,8 @@ bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel)
   if (pProgramState == nullptr || pModel == nullptr)
     return false;
 
-  //if ((pModel->pZone != nullptr && vcGIS_ChangeSpace(&pProgramState->gis, pModel->pOriginalZone->srid)) || (pModel->pZone == nullptr && vcGIS_ChangeSpace(&pProgramState->gis, 0)))
-  //  vcScene_UpdateItemToCurrentProjection(pProgramState, nullptr); // Update all models to new zone
+  if ((pModel->pZone != nullptr && vcGIS_ChangeSpace(&pProgramState->gis, pModel->pOriginalZone->srid)) || (pModel->pZone == nullptr && vcGIS_ChangeSpace(&pProgramState->gis, 0)))
+    pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, *pModel->pOriginalZone); // Update all models to new zone
 
   pProgramState->pCamera->position = pModel->GetWorldSpacePivot();
 

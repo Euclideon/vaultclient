@@ -707,10 +707,12 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       if (pProgramState->settings.presentation.showAdvancedGIS)
       {
         int newSRID = pProgramState->gis.SRID;
-        if (ImGui::InputInt(vcString::Get("OverrideSRID"), &newSRID) && vcGIS_AcceptableSRID((vcSRID)newSRID))
+        udGeoZone zone;
+
+        if (ImGui::InputInt(vcString::Get("OverrideSRID"), &newSRID) && udGeoZone_SetFromSRID(&zone, newSRID) == udR_Success)
         {
           if (vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position))
-            vcScene_UpdateItemToCurrentProjection(pProgramState, nullptr); // Update all models to new zone
+            pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, zone);
         }
       }
     }
@@ -1077,7 +1079,7 @@ int vcMainMenuGui(vcState *pProgramState)
           vcScene_RemoveAll(pProgramState);
 
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
-            vcModel_AddToList(pProgramState, nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
+            vcModel_AddToList(pProgramState, nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), (j == 0));
         }
       }
 

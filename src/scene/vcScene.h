@@ -73,6 +73,9 @@ struct vcSceneItem
   // Only calls this if its 'completed' loading and is 'vcSLS_Loaded'; note: this is called before other cleanup operations
   virtual void Cleanup(vcState *pProgramState) = 0;
 
+  // This function handles projection changes if additional handling is required
+  virtual void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
+
   // Gets the item's pivot point in various spaces
   virtual udDouble3 GetWorldSpacePivot();
   virtual udDouble3 GetLocalSpacePivot();
@@ -91,7 +94,6 @@ void vcScene_SelectItem(vcState *pProgramState, vcFolder *pParent, size_t index)
 void vcScene_UnselectItem(vcState *pProgramState, vcFolder *pParent, size_t index);
 void vcScene_ClearSelection(vcState *pProgramState);
 
-void vcScene_UpdateItemToCurrentProjection(vcState *pProgramState, vcSceneItem *pModel); // If pModel is nullptr, everything in the scene is moved to the current space
 bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel);
 
 #endif

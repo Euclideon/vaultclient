@@ -59,6 +59,12 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     children[i]->AddToScene(pProgramState, pRenderData);
 }
 
+void vcFolder::ChangeProjection(vcState *pProgramState, const udGeoZone &newZone)
+{
+  for (size_t i = 0; i < children.size(); ++i)
+    children[i]->ChangeProjection(pProgramState, newZone);
+}
+
 void vcFolder::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
   for (size_t i = 0; i < children.size(); ++i)
@@ -169,7 +175,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       if (children[i]->pZone != nullptr && ImGui::Selectable(vcString::Get("UseProjection")))
       {
         if (vcGIS_ChangeSpace(&pProgramState->gis, children[i]->pOriginalZone->srid, &pProgramState->pCamera->position))
-          vcScene_UpdateItemToCurrentProjection(pProgramState, nullptr); // Update all models to new zone
+          pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, *children[i]->pOriginalZone);
       }
 
       if (children[i]->type != vcSOT_Folder && ImGui::Selectable(vcString::Get("MoveTo")))

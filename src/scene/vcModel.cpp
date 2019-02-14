@@ -110,7 +110,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
       if (pLoadInfo->jumpToLocation)
         vcScene_UseProjectFromItem(pLoadInfo->pProgramState, pLoadInfo->pModel);
       else
-        vcScene_UpdateItemToCurrentProjection(pLoadInfo->pProgramState, nullptr); // Set all model matrices
+        pLoadInfo->pModel->ChangeProjection(pLoadInfo->pProgramState, pLoadInfo->pProgramState->gis.zone);
 
       pLoadInfo->pModel->loadStatus = vcSLS_Loaded;
     }
@@ -128,6 +128,16 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 void vcModel::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
 {
   pRenderData->models.PushBack(this);
+}
+
+void vcModel::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
+{
+  // This is not ideal as it will gather drift
+  if (this->pZone != nullptr)
+    this->sceneMatrix = udGeoZone_TransformMatrix(this->sceneMatrix, *this->pZone, newZone);
+
+  // Call the parent version
+  vcSceneItem::ChangeProjection(nullptr, newZone);
 }
 
 void vcModel::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
