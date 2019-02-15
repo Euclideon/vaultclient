@@ -161,7 +161,12 @@ void vcModel::Cleanup(vcState *pProgramState)
   udFree(pPath);
 
   if (pWatermark != nullptr)
+  {
+    if (pProgramState->pSceneWatermark == pWatermark)
+      pProgramState->pSceneWatermark = nullptr;
+
     vcTexture_Destroy(&pWatermark);
+  }
 
   this->vcModel::~vcModel();
 }
