@@ -94,9 +94,9 @@ When one or more items is selected (see [Selecting Items](#selecting-items)) a t
 > Translation Gizmo (left), Rotation Gizmo (middle) & Scale Gizmo (right).
 
 In local space mode the axis will align with the local axis of the last selected item. If that model doesn't have a local space axis then it will use the global axis.
-- **Red** is the X axis, in global space the _EASTING_.
-- **Green** is the Y axis, in global space the _NORTHING_.
-- **Blue** is the Z axis, in global space the _ALTITUDE_.
+- **Red** is the X axis, which in projection space usually corresponds to the _EASTING_.
+- **Green** is the Y axis, which usually corresponds to the _NORTHING_.
+- **Blue** is the Z axis, which usually corresponds to the _ALTITUDE_.
 
 Looking at the gizmo from different angles will cause one or more of its axes to appear hatched/dashed. This indicates that this axis is pointed in the negative direction.
 
@@ -105,15 +105,15 @@ The Translation Gizmo is used to move scene item(s) around. There are 3 sections
   2. The coloured squares between two axis arms will translate in that plane (e.g. the square between the X & Y axis translates only in the XY plane). The colour indicates which axis won't be modified by using that square.
   3. The white circle at the origin of the gizmo will translate the models in the plane perpendicular to the camera.
 
-The Rotation Gizmo changes the orientation of the item(s). They will always orbit around their centre. There are 2 sections to the rotation gizmo:
-  1. The coloured rings will each rotate around the normal to that plane. (e.g. Blue is the Z-axis, so the blue ring rotates everything around the Z-axis).
+The Rotation Gizmo changes the orientation of the item(s). They will always rotate around their centre. There are 2 sections to the rotation gizmo:
+  1. The coloured rings will each rotate around the axis of that colour (e.g. the Z-axis is blue, so the blue ring rotates everything around the Z-axis).
   2. The white ring rotates everything around the axis parallel to the direction of the camera.
 
 The Scale Gizmo changes the size of the selected item(s). The anchor for scaling is always the centre of the item(s). There are 2 sections to the scale gizmo:
-  1. The coloured axis arms of the gizmo will scale along that axis only.
-  3. The white circle at the origin of the gizmo will scale the item(s) uniformly.
+  1. The coloured axis arms of the gizmo can be used to scale along that axis only.
+  3. The white circle at the origin of the gizmo will scale uniformly in all directions.
 
-In some situations not all gizmos will be available. In these cases part of the gizmo will be greyed out. One common occurance of this is when trying to scale UDS files (they don't properly support non-uniform scale).
+In some situations not all gizmos will be available. In these cases part of the gizmo will be greyed out. One common occurrence of this is when trying to scale UDS files (they don't properly support non-uniform scale).
 
 ![Scene Gizmos](images/gizmogreyed.png)
 
@@ -244,6 +244,8 @@ Here the user can adjust several settings that change the appearance of the clie
   - The appearance of the mouse when anchoring to models or map tiles can be changed.
   - The user can set the shape of voxels in the main window to either points, squares or cubes.
 
+>TIP: For settings that are controlled via a slider, it is also possible to ctrl+click on the slider and manually enter a value. For some settings this allows for the slider to be set to a value outside of its usual min and max range.
+
 #### Input and Controls
 
 ![Input Settings](images/inputcontrol.png)
@@ -270,7 +272,7 @@ The first checkbox is used to toggle the visibility of map tiles in the viewport
 
 The second checkbox allows the mouse to lock to map tiles when moving the camera with the mouse.
 
-Tile Server allows overlay with existing maps, clicking `Tile Server` prompts the user to enter a https:// address for background tiles, with the option to import .png or .jpg files.
+Tile Server allows overlay with existing maps, clicking `Tile Server` prompts the user to enter a server address for retrieving background map tiles.
 
 ![Tile Server](images/tileserver.png)
 
@@ -280,7 +282,7 @@ Blending allows map tiles to overlay, underlay or feature in hybrid mode with ex
 
 The transparency (opacity) slider adjusts the transparency (opacity) of the map tiles so they don't obscure the visibility of objects in the scene.
 
-The `Set to Camera Height` button can be used to set the height of the map tiles to the camera's current height. This can be used to place map tiles outside the default range of the slider of +/-1000m. The map height can also be entered manually by holding `ctrl` and left-clicking on the slider.
+The `Set to Camera Height` button can be used to set the height of the map tiles to the camera's current height. This can be used to place map tiles outside the default range of the slider of +/-1000m.
 
 #### Visualization
 
