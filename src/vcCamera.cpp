@@ -446,7 +446,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   if (pProgramState->cameraInput.inputState == vcCIS_None)
     pProgramState->cameraInput.isUsingAnchorPoint = false;
 
-  for each (vcSceneItem *pItem in pProgramState->sceneExplorer.pItems->children)
+  for (vcSceneItem *pItem : pProgramState->sceneExplorer.pItems->children)
   {
     if (pItem->type == vcSOT_PointOfInterest)
     {
