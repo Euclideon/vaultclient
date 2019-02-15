@@ -41,7 +41,7 @@ void vcPOI::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
   }
 }
 
-void vcPOI::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
+void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   bool reConfig = false;
 
@@ -127,6 +127,19 @@ void vcPOI::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
     }
 
     // TODO: label renderer config too
+  }
+
+  // Handle hyperlinks
+  const char *pHyperlink = pMetadata->Get("hyperlink").AsString();
+  if (pHyperlink != nullptr)
+  {
+    ImGui::TextWrapped("%s: %s", vcString::Get("LabelHyperlink"), pHyperlink);
+    if (udStrEndsWithi(pHyperlink, ".png") || udStrEndsWithi(pHyperlink, ".jpg"))
+    {
+      ImGui::SameLine();
+      if (ImGui::Button(vcString::Get("LabelOpenHyperlink")))
+        pProgramState->loadList.push_back(udStrdup(pHyperlink));
+    }
   }
 }
 
