@@ -328,7 +328,14 @@ int main(int argc, char **args)
   vcFolder_AddToList(&programState, nullptr);
 
   for (int i = 1; i < argc; ++i)
-    programState.loadList.push_back(udStrdup(args[i]));
+  {
+#if UDPLATFORM_OSX
+    // macOS assigns a unique process serial number (PSN) to all apps,
+    // we should not attempt to load this as a file.
+    if (!udStrBeginsWithi(args[i], "-psn"))
+#endif
+      programState.loadList.push_back(udStrdup(args[i]));
+  }
 
   vWorkerThread_StartThreads(&programState.pWorkerPool);
   vcConvert_Init(&programState);
