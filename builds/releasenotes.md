@@ -16,6 +16,7 @@ Version 0.2.1
   - Added support for loading label hyperlinks from UDP
     - Added support for some image file extensions to open in image viewer modal
   - Added ability to change to appropriate tab when files are dropped
+  - Fixed issue with error appearing for macOS users after logging in
 
 Version 0.2.0
   ADDITIONS & FIXES
