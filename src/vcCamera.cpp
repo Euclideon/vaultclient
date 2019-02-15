@@ -446,12 +446,13 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   if (pProgramState->cameraInput.inputState == vcCIS_None)
     pProgramState->cameraInput.isUsingAnchorPoint = false;
 
+  double fadeDistSq = udPow(pProgramState->settings.presentation.POIfadeDistance, 2);
   for (vcSceneItem *pItem : pProgramState->sceneExplorer.pItems->children)
   {
     if (pItem->type == vcSOT_PointOfInterest)
     {
-      double distFromCamera = udMag3(pItem->GetWorldSpacePivot() - pProgramState->pCamera->position);
-      if (distFromCamera > pProgramState->settings.presentation.POIfadeDistance)
+      double distFromCameraSq = udMagSq3(pItem->GetWorldSpacePivot() - pProgramState->pCamera->position);
+      if (distFromCameraSq > fadeDistSq) // comparing squares avoids sqrt operations which are costly
         pItem->visible = false;
       else
         pItem->visible = true;
