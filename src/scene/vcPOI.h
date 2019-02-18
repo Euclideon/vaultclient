@@ -34,15 +34,17 @@ public:
   vcFenceRenderer *m_pFence;
   vcLabelInfo *m_pLabelInfo;
 
+  vcPOI(const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes = "");
+  vcPOI(const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid, const char *pNotes = "");
+
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
   void HandleImGui(vcState *pProgramState, size_t *pItemID);
   void Cleanup(vcState *pProgramState);
 
   udDouble4x4 GetWorldSpaceMatrix();
+protected:
+  void Init(const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes = "");
 };
-
-void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes = "");
-void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid, const char *pNotes = "");
 
 #endif //vcPOI_h__

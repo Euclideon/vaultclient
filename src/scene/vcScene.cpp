@@ -3,6 +3,18 @@
 #include "vcState.h"
 #include "vcRender.h"
 
+vcSceneItem::vcSceneItem() :
+  m_loadStatus(0), m_visible(false), m_selected(false), m_expanded(false), m_editName(false),
+  m_type(vcSOT_Unknown), m_typeStr(""), m_pMetadata(nullptr), m_pOriginalZone(nullptr),
+  m_pZone(nullptr), m_pPath(nullptr), m_pName(nullptr), m_nameBufferLength(0)
+{
+}
+
+vcSceneItem::~vcSceneItem()
+{
+
+}
+
 void vcSceneItem::AddItem(vcState *pProgramState)
 {
   vcFolder *pParent = pProgramState->sceneExplorer.clickedItem.pParent;
@@ -18,6 +30,23 @@ void vcSceneItem::AddItem(vcState *pProgramState)
     pParent->m_children.push_back(this);
   else
     pProgramState->sceneExplorer.pItems->m_children.push_back(this);
+}
+
+void vcScene_AddItem(vcState *pProgramState, vcSceneItem *pItem)
+{
+  vcFolder *pParent = pProgramState->sceneExplorer.clickedItem.pParent;
+  vcSceneItem *pChild = nullptr;
+
+  if (pParent)
+    pChild = pParent->m_children[pProgramState->sceneExplorer.clickedItem.index];
+
+  // TODO: Proper Exception Handling
+  if (pChild != nullptr && pChild->m_type == vcSOT_Folder)
+    ((vcFolder*)pChild)->m_children.push_back(pItem);
+  else if (pParent != nullptr)
+    pParent->m_children.push_back(pItem);
+  else
+    pProgramState->sceneExplorer.pItems->m_children.push_back(pItem);
 }
 
 void vcScene_RemoveReference(vcSceneItemRef *pItemRef, vcFolder *pParent, size_t index)
@@ -71,7 +100,7 @@ void vcScene_RemoveItem(vcState *pProgramState, vcFolder *pParent, size_t index)
 
   pParent->m_children[index]->m_loadStatus = vcSLS_Unloaded;
 
-  udFree(pParent->m_children.at(index));
+  delete pParent->m_children.at(index);
   pParent->m_children.erase(pParent->m_children.begin() + index);
 }
 

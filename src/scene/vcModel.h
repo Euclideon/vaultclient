@@ -22,6 +22,8 @@ public:
   bool m_hasWatermark; // True if the model has a watermark (might not be loaded)
   vcTexture *m_pWatermark; // If the watermark is loaded, it will be here
 
+  vcModel(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad = true, udDouble3 *pOverridePosition = nullptr, udDouble3 *pOverrideYPR = nullptr, double scale = 1.0);
+
   void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
@@ -32,7 +34,5 @@ public:
   udDouble3 GetLocalSpacePivot();
   udDouble4x4 GetWorldSpaceMatrix();
 };
-
-void vcModel_AddToList(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad = true, udDouble3 *pOverridePosition = nullptr, udDouble3 *pOverrideYPR = nullptr, double scale = 1.0);
 
 #endif //vcModel_h__

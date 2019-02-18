@@ -28,12 +28,11 @@ public:
 
   udMutex *m_pMutex;
 
+  vcLiveFeed();
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
   void HandleImGui(vcState *pProgramState, size_t *pItemID);
   void Cleanup(vcState *pProgramState);
 };
-
-void vcLiveFeed_AddToList(vcState *pProgramState);
 
 #endif //vcLiveFeed_h__

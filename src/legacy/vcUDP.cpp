@@ -87,7 +87,7 @@ void vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char
   else
     file.SetFromFullPath(pModelFilename);
 
-  vcModel_AddToList(pProgramState, pModelName, file, firstLoad, pPosition, pYPR, scale);
+  vcScene_AddItem(pProgramState, new vcModel(pProgramState, pModelName, file, firstLoad, pPosition, pYPR, scale));
 }
 
 bool vcUDP_ReadGeolocation(const char *pStr, udDouble3 &position, int &epsg)
@@ -303,7 +303,7 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
     if (vcUDP_ReadGeolocation(item.label.pGeoLocation, position, epsgCode))
     {
       pLabelData->at(index).sceneFolder = vcUDP_GetSceneItemRef(pProgramState);
-      vcPOI_AddToList(pProgramState, item.label.pName, colour, size, position, epsgCode);
+      vcScene_AddItem(pProgramState, new vcPOI(item.label.pName, colour, size, position, epsgCode));
 
       // Add hyperlink to the metadata
       if (item.label.pHyperlink != nullptr)
@@ -339,7 +339,7 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
     info.lineColour = item.polygon.colour;
 
     if (info.numPoints > 0)
-      vcPOI_AddToList(pProgramState, item.polygon.pName, item.polygon.colour, 1.0, &info, item.polygon.epsgCode);
+      vcScene_AddItem(pProgramState, new vcPOI(item.polygon.pName, item.polygon.colour, 1.0, &info, item.polygon.epsgCode));
 
     udFree(info.pPoints);
   }
@@ -371,7 +371,7 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
     if (pItemData->at(index).sceneFolder.pParent == nullptr && pItemData->at(index).sceneFolder.index == SIZE_MAX)
     {
       pItemData->at(index).sceneFolder = vcUDP_GetSceneItemRef(pProgramState);
-      vcFolder_AddToList(pProgramState, item.dataset.pName);
+      vcScene_AddItem(pProgramState, new vcFolder(item.dataset.pName));
     }
   }
   else

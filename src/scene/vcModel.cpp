@@ -125,6 +125,62 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
   }
 }
 
+vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad /*= true*/, udDouble3 *pOverridePosition /*= nullptr*/, udDouble3 *pOverrideYPR /*= nullptr*/, double scale /*= 1.0*/) :
+  m_pPointCloud(nullptr), m_pivot(udDouble3::zero()), m_defaultMatrix(udDouble4x4::identity()), m_sceneMatrix(udDouble4x4::identity()),
+  m_meterScale(0.0), m_hasWatermark(false), m_pWatermark(nullptr)
+{
+  if (pFilePath == nullptr)
+    return;
+
+  // Prepare the model
+  m_pPath = udStrdup(pFilePath);
+
+  if (pName == nullptr)
+  {
+    udFilename udfilename(pFilePath);
+    m_pName = udStrdup(udfilename.GetFilenameWithExt());
+  }
+  else
+  {
+    m_pName = udStrdup(pName);
+  }
+
+  m_visible = true;
+  m_type = vcSOT_PointCloud;
+
+  udStrcpy(m_typeStr, sizeof(m_typeStr), "UDS");
+
+  vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
+  if (pLoadInfo != nullptr)
+  {
+    // Prepare the load info
+    pLoadInfo->pModel = this;
+    pLoadInfo->pProgramState = pProgramState;
+    pLoadInfo->jumpToLocation = jumpToModelOnLoad;
+
+    if (pOverridePosition)
+    {
+      pLoadInfo->usePosition = true;
+      pLoadInfo->position = *pOverridePosition;
+    }
+
+    if (pOverrideYPR)
+    {
+      pLoadInfo->useRotation = true;
+      pLoadInfo->rotation = *pOverrideYPR;
+    }
+
+    pLoadInfo->scale = scale;
+
+    // Queue for load
+    vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModel_LoadModel, pLoadInfo);
+  }
+  else
+  {
+    m_loadStatus = vcSLS_Failed;
+  }
+}
+
 void vcModel::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
 {
   pRenderData->models.PushBack(this);
@@ -167,8 +223,6 @@ void vcModel::Cleanup(vcState *pProgramState)
 
     vcTexture_Destroy(&m_pWatermark);
   }
-
-  this->vcModel::~vcModel();
 }
 
 udDouble3 vcModel::GetLocalSpacePivot()
@@ -179,64 +233,4 @@ udDouble3 vcModel::GetLocalSpacePivot()
 udDouble4x4 vcModel::GetWorldSpaceMatrix()
 {
   return m_sceneMatrix;
-}
-
-void vcModel_AddToList(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad /*= true*/, udDouble3 *pOverridePosition /*= nullptr*/, udDouble3 *pOverrideYPR /*= nullptr*/, double scale /*= 1.0*/)
-{
-  if (pFilePath == nullptr)
-    return;
-
-  vcModel *pModel = udAllocType(vcModel, 1, udAF_Zero);
-  pModel = new (pModel) vcModel();
-
-  // Prepare the model
-  pModel->m_pPath = udStrdup(pFilePath);
-
-  if (pName == nullptr)
-  {
-    udFilename udfilename(pFilePath);
-    pModel->m_pName = udStrdup(udfilename.GetFilenameWithExt());
-  }
-  else
-  {
-    pModel->m_pName = udStrdup(pName);
-  }
-
-  pModel->m_visible = true;
-  pModel->m_type = vcSOT_PointCloud;
-
-  udStrcpy(pModel->m_typeStr, sizeof(pModel->m_typeStr), "UDS");
-
-  // Add it to the load queue
-  pModel->AddItem(pProgramState);
-
-  vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
-  if (pLoadInfo != nullptr)
-  {
-    // Prepare the load info
-    pLoadInfo->pModel = pModel;
-    pLoadInfo->pProgramState = pProgramState;
-    pLoadInfo->jumpToLocation = jumpToModelOnLoad;
-
-    if (pOverridePosition)
-    {
-      pLoadInfo->usePosition = true;
-      pLoadInfo->position = *pOverridePosition;
-    }
-
-    if (pOverrideYPR)
-    {
-      pLoadInfo->useRotation = true;
-      pLoadInfo->rotation = *pOverrideYPR;
-    }
-
-    pLoadInfo->scale = scale;
-
-    // Queue for load
-    vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModel_LoadModel, pLoadInfo);
-  }
-  else
-  {
-    pModel->m_loadStatus = vcSLS_Failed;
-  }
 }

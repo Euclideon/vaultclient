@@ -11,6 +11,8 @@ class vcFolder : public vcSceneItem
 public:
   std::vector<vcSceneItem*> m_children;
 
+  vcFolder(const char *pName);
+
   void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
@@ -19,7 +21,6 @@ public:
   void Cleanup(vcState *pProgramState);
 };
 
-void vcFolder_AddToList(vcState *pProgramState, const char *pName);
 void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine = true);
 
 #endif //vcFolder_h__

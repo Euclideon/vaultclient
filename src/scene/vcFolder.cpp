@@ -50,6 +50,16 @@ void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLin
   }
 }
 
+vcFolder::vcFolder(const char *pName)
+{
+  m_visible = true;
+  m_pName = udStrdup(pName);
+  m_type = vcSOT_Folder;
+  m_children.reserve(64);
+  udStrcpy(m_typeStr, sizeof(m_typeStr), "Folder");
+  m_loadStatus = vcSLS_Loaded;
+}
+
 void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
   if (!m_visible)
@@ -240,26 +250,4 @@ void vcFolder::Cleanup(vcState *pProgramState)
 
   while (m_children.size() > 0)
     vcScene_RemoveItem(pProgramState, this, 0);
-
-  this->vcFolder::~vcFolder();
-}
-
-void vcFolder_AddToList(vcState *pProgramState, const char *pName)
-{
-  vcFolder *pFolder =  udAllocType(vcFolder, 1, udAF_Zero);
-  pFolder = new (pFolder) vcFolder();
-  pFolder->m_visible = true;
-
-  pFolder->m_pName = udStrdup(pName);
-  pFolder->m_type = vcSOT_Folder;
-
-  pFolder->m_children.reserve(64);
-
-  udStrcpy(pFolder->m_typeStr, sizeof(pFolder->m_typeStr), "Folder");
-  pFolder->m_loadStatus = vcSLS_Loaded;
-
-  if (pName == nullptr)
-    pProgramState->sceneExplorer.pItems = pFolder;
-  else
-    pFolder->AddItem(pProgramState);
 }
