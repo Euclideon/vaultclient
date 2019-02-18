@@ -8,8 +8,9 @@ struct vdkPointCloud;
 struct vcTexture;
 struct vcState;
 
-struct vcModel : public vcSceneItem
+class vcModel : public vcSceneItem
 {
+public:
   vdkPointCloud *pPointCloud;
 
   udDouble3 pivot;
