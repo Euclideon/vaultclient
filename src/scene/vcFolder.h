@@ -9,7 +9,7 @@ struct vcState;
 class vcFolder : public vcSceneItem
 {
 public:
-  std::vector<vcSceneItem*> children;
+  std::vector<vcSceneItem*> m_children;
 
   void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
 

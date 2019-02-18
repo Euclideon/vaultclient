@@ -107,9 +107,9 @@ vcSceneItemRef vcUDP_GetSceneItemRef(vcState *pProgramState)
   if (pParent == nullptr)
     pParent = pProgramState->sceneExplorer.pItems;
   else
-    pParent = (vcFolder*)pParent->children[pProgramState->sceneExplorer.clickedItem.index];
+    pParent = (vcFolder*)pParent->m_children[pProgramState->sceneExplorer.clickedItem.index];
 
-  return { pParent, pParent->children.size() };
+  return { pParent, pParent->m_children.size() };
 }
 
 void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemData, vcUDPItemDataType type)
@@ -308,14 +308,14 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
       // Add hyperlink to the metadata
       if (item.label.pHyperlink != nullptr)
       {
-        vcPOI *pPOI = (vcPOI*)item.sceneFolder.pParent->children[item.sceneFolder.index];
+        vcPOI *pPOI = (vcPOI*)item.sceneFolder.pParent->m_children[item.sceneFolder.index];
         udJSON temp;
         temp.SetString(item.label.pHyperlink);
 
-        if (pPOI->pMetadata == nullptr)
-          pPOI->pMetadata = udAllocType(udJSON, 1, udAF_Zero);
+        if (pPOI->m_pMetadata == nullptr)
+          pPOI->m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
 
-        pPOI->pMetadata->Set(&temp, "hyperlink");
+        pPOI->m_pMetadata->Set(&temp, "hyperlink");
       }
     }
   }
@@ -396,11 +396,11 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
 
   // Insert item into the correct order
   size_t treeIndex = rootOffset + (size_t)item.treeIndex;
-  if (treeIndex != item.sceneFolder.index && treeIndex < item.sceneFolder.pParent->children.size())
+  if (treeIndex != item.sceneFolder.index && treeIndex < item.sceneFolder.pParent->m_children.size())
   {
     vcSceneItemRef *pSceneRef = &pItemData->at(index).sceneFolder;
-    vcSceneItem *pTemp = pSceneRef->pParent->children[pSceneRef->index];
-    pSceneRef->pParent->children.erase(pSceneRef->pParent->children.begin() + pSceneRef->index);
+    vcSceneItem *pTemp = pSceneRef->pParent->m_children[pSceneRef->index];
+    pSceneRef->pParent->m_children.erase(pSceneRef->pParent->m_children.begin() + pSceneRef->index);
     // Fix indexes from removal
     for (size_t i = 0; i < pItemData->size(); ++i)
     {
@@ -408,7 +408,7 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
       if (pItemData->at(i).sceneFolder.pParent == pSceneRef->pParent && pItemData->at(i).sceneFolder.index > pSceneRef->index)
         --pItemData->at(i).sceneFolder.index;
     }
-    pSceneRef->pParent->children.insert(pSceneRef->pParent->children.begin() + treeIndex, pTemp);
+    pSceneRef->pParent->m_children.insert(pSceneRef->pParent->m_children.begin() + treeIndex, pTemp);
     // Fix indexes from insertion
     for (size_t i = 0; i < pItemData->size(); ++i)
     {
@@ -425,7 +425,7 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
 
 bool vcUDP_LoadItem(vcState *pProgramState, const char *pFilename, const udJSON &groupDataBlock, std::vector<vcUDPItemData> *pItemData, vcUDPItemDataType type, bool *pFirstLoad)
 {
-  size_t rootOffset = pProgramState->sceneExplorer.pItems->children.size();
+  size_t rootOffset = pProgramState->sceneExplorer.pItems->m_children.size();
   if (udStrEqual(groupDataBlock.Get("Name").AsString(), g_vcUDPTypeGroupNames[type]))
   {
     const udJSON &items = groupDataBlock.Get("DataBlock");

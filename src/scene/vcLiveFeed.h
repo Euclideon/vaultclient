@@ -15,18 +15,18 @@ struct vcLiveFeedItem;
 class vcLiveFeed : public vcSceneItem
 {
 public:
-  double lastUpdateTime;
+  double m_lastUpdateTime;
 
-  std::vector<vcLiveFeedItem*> feedItems;
-  size_t visibleItems;
+  std::vector<vcLiveFeedItem*> m_feedItems;
+  size_t m_visibleItems;
 
-  double updateFrequency; // Delay in seconds between updates
-  double decayFrequency; // Remove items if they haven't updated more recently than this
+  double m_updateFrequency; // Delay in seconds between updates
+  double m_decayFrequency; // Remove items if they haven't updated more recently than this
 
-  double detailDistance; // Distance to use 'simple' system
-  double falloffDistance; // Distance to stop displaying entirely
+  double m_detailDistance; // Distance to use 'simple' system
+  double m_falloffDistance; // Distance to stop displaying entirely
 
-  udMutex *pMutex;
+  udMutex *m_pMutex;
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
