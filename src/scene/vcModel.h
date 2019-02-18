@@ -11,16 +11,16 @@ struct vcState;
 class vcModel : public vcSceneItem
 {
 public:
-  vdkPointCloud *pPointCloud;
+  vdkPointCloud *m_pPointCloud;
 
-  udDouble3 pivot;
-  udDouble4x4 defaultMatrix; // This is the matrix that was originally loaded
-  udDouble4x4 sceneMatrix; // This is the matrix used to render into the current projection
+  udDouble3 m_pivot;
+  udDouble4x4 m_defaultMatrix; // This is the matrix that was originally loaded
+  udDouble4x4 m_sceneMatrix; // This is the matrix used to render into the current projection
 
-  double meterScale;
+  double m_meterScale;
 
-  bool hasWatermark; // True if the model has a watermark (might not be loaded)
-  vcTexture *pWatermark; // If the watermark is loaded, it will be here
+  bool m_hasWatermark; // True if the model has a watermark (might not be loaded)
+  vcTexture *m_pWatermark; // If the watermark is loaded, it will be here
 
   void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
 

@@ -26,13 +26,13 @@ struct vcLineInfo
 class vcPOI : public vcSceneItem
 {
 public:
-  vcLineInfo line;
-  uint32_t nameColour;
-  uint32_t backColour;
-  double namePt;
+  vcLineInfo m_line;
+  uint32_t m_nameColour;
+  uint32_t m_backColour;
+  double m_namePt;
 
-  vcFenceRenderer *pFence;
-  vcLabelInfo *pLabelInfo;
+  vcFenceRenderer *m_pFence;
+  vcLabelInfo *m_pLabelInfo;
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
