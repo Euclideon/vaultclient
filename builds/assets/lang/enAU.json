@@ -222,7 +222,7 @@
   "NotImplemented": "Not Implemented",
   "NotAvailable": "Sorry, this functionality is not yet available.",
   "SRID": "SRID",
-  "POIcutoff": "POI Visibility Distance",
+  "POIcutoff": "Max POI Distance",
   "PresentationUI": "Presentation UI",
   "Hide": "Hide",
   "Responsive": "Responsive",

@@ -13,9 +13,10 @@
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 #include "udPlatform/udFile.h"
 
-void vcPOI::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
+void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
-  if (!visible)
+  // if POI is invisible or if it exceeds maximum visible POI distance
+  if (!visible || udMag3(pLabelInfo->worldPosition - pProgramState->pCamera->position) > pProgramState->settings.presentation.POIfadeDistance)
     return;
 
   if (pFence != nullptr)
