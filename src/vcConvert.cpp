@@ -477,7 +477,7 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
   if (pProgramState->pConvertContext->selectedItem < pProgramState->pConvertContext->jobs.length)
   {
     pSelectedJob = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem];
-    if (pSelectedJob->status != vcCQS_Preparing)
+    if (pSelectedJob->status != vcCQS_Preparing && pSelectedJob->status != vcCQS_Cancelled)
       pSelectedJob = nullptr;
   }
 
