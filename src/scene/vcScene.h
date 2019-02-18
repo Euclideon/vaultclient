@@ -59,6 +59,9 @@ public:
   char *m_pName;
   size_t m_nameBufferLength;
 
+  vcSceneItem();
+  virtual ~vcSceneItem();
+
   // This is used to help with adding the item to current folder
   virtual void AddItem(vcState *pProgramState);
 
@@ -85,6 +88,7 @@ public:
   virtual udDouble4x4 GetWorldSpaceMatrix();
 };
 
+void vcScene_AddItem(vcState *pProgramState, vcSceneItem *pItem);
 void vcScene_RemoveItem(vcState *pProgramState, vcFolder *pParent, size_t index);
 void vcScene_RemoveAll(vcState *pProgramState);
 void vcScene_RemoveSelected(vcState *pProgramState);

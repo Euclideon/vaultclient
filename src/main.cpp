@@ -326,7 +326,7 @@ int main(int argc, char **args)
   programState.sceneExplorer.clickedItem.index = SIZE_MAX;
 
   programState.loadList.reserve(udMax(64, argc));
-  vcFolder_AddToList(&programState, nullptr);
+  programState.sceneExplorer.pItems = new vcFolder(nullptr);
 
   for (int i = 1; i < argc; ++i)
   {
@@ -574,7 +574,7 @@ int main(int argc, char **args)
               const char *pExt = loadFile.GetExt();
               if (udStrEquali(pExt, ".uds") || udStrEquali(pExt, ".ssf") || udStrEquali(pExt, ".udm") || udStrEquali(pExt, ".udg"))
               {
-                vcModel_AddToList(&programState, nullptr, pNextLoad, firstLoad);
+                vcScene_AddItem(&programState, new vcModel(&programState, nullptr, pNextLoad, firstLoad));
                 continueLoading = true;
                 programState.changeActiveDock = vcDocks_Scene;
               }
@@ -669,7 +669,7 @@ epilogue:
   vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
   vcLogout(&programState);
   programState.sceneExplorer.pItems->Cleanup(&programState);
-  udFree(programState.sceneExplorer.pItems);
+  delete programState.sceneExplorer.pItems;
   vcTexture_Destroy(&programState.image.pImage);
 
   vcGLState_Deinit();
@@ -949,7 +949,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       {
         if (ImGui::MenuItem(vcString::Get("LabelAddHere")))
         {
-          vcPOI_AddToList(pProgramState, vcString::Get("DefaultName_POI"), 0xFFFFFFFF, 14, worldMouse, pProgramState->gis.SRID);
+          vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("DefaultName_POI"), 0xFFFFFFFF, 14, worldMouse, pProgramState->gis.SRID));
           ImGui::CloseCurrentPopup();
         }
 
@@ -1093,7 +1093,7 @@ int vcMainMenuGui(vcState *pProgramState)
           vcScene_RemoveAll(pProgramState);
 
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
-            vcModel_AddToList(pProgramState, nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), (j == 0));
+            vcScene_AddItem(pProgramState, new vcModel(pProgramState, nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), (j == 0)));
         }
       }
 
@@ -1348,7 +1348,7 @@ void vcRenderWindow(vcState *pProgramState)
         vcModals_OpenModal(pProgramState, vcMT_AddUDS);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddPOI"), nullptr, vcMBBI_AddPointOfInterest, vcMBBG_SameGroup))
-        vcPOI_AddToList(pProgramState, vcString::Get("DefaultName_POI"), 0xFFFFFFFF, 14, udDouble3::zero(), 0);
+        vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("DefaultName_POI"), 0xFFFFFFFF, 14, udDouble3::zero(), 0));
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddAOI"), nullptr, vcMBBI_AddAreaOfInterest, vcMBBG_SameGroup))
         vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
@@ -1363,13 +1363,13 @@ void vcRenderWindow(vcState *pProgramState)
       if (ImGui::BeginPopupContextItem("AddOther", 0))
       {
         if (ImGui::MenuItem(vcString::Get("AddFeed"), nullptr, nullptr))
-          vcLiveFeed_AddToList(pProgramState);
+          vcScene_AddItem(pProgramState, new vcLiveFeed());
 
         ImGui::EndPopup();
       }
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
-        vcFolder_AddToList(pProgramState, vcString::Get("DefaultName_Folder"));
+        vcScene_AddItem(pProgramState, new vcFolder(vcString::Get("DefaultName_Folder")));
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("Remove"), vcString::Get("DeleteKey"), vcMBBI_Remove, vcMBBG_NewGroup) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE] && !ImGui::IsAnyItemActive()))
         vcScene_RemoveSelected(pProgramState);

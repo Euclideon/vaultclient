@@ -13,6 +13,22 @@
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 #include "udPlatform/udFile.h"
 
+vcPOI::vcPOI(const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/)
+{
+  Init(pName, nameColour, namePt, pLine, srid, pNotes);
+}
+
+vcPOI::vcPOI(const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid, const char *pNotes /*= ""*/)
+{
+  vcLineInfo temp;
+  temp.numPoints = 1;
+  temp.pPoints = &position;
+  temp.lineWidth = 1;
+  temp.lineColour = 0xFFFFFFFF;
+
+  Init(pName, nameColour, namePt, &temp, srid, pNotes);
+}
+
 void vcPOI::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
 {
   if (!m_visible)
@@ -150,8 +166,6 @@ void vcPOI::Cleanup(vcState * /*pProgramState*/)
 
   vcFenceRenderer_Destroy(&m_pFence);
   udFree(m_pLabelInfo);
-
-  this->vcPOI::~vcPOI();
 }
 
 udDouble4x4 vcPOI::GetWorldSpaceMatrix()
@@ -159,29 +173,25 @@ udDouble4x4 vcPOI::GetWorldSpaceMatrix()
   return udDouble4x4::translation(m_line.pPoints[0]);
 }
 
-void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/)
+void vcPOI::Init(const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/)
 {
-  vcPOI *pPOI = udAllocType(vcPOI, 1, udAF_Zero);
-  pPOI = new (pPOI) vcPOI();
-  pPOI->m_visible = true;
+  m_visible = true;
+  m_pName = udStrdup(pName);
+  m_type = vcSOT_PointOfInterest;
+  m_nameColour = nameColour;
+  m_namePt = namePt;
+  memcpy(&m_line, pLine, sizeof(m_line));
 
-  pPOI->m_pName = udStrdup(pName);
-  pPOI->m_type = vcSOT_PointOfInterest;
+  m_line.pPoints = udAllocType(udDouble3, pLine->numPoints, udAF_Zero);
+  memcpy(m_line.pPoints, pLine->pPoints, sizeof(udDouble3) * pLine->numPoints);
 
-  pPOI->m_nameColour = nameColour;
-  pPOI->m_namePt = namePt;
+  m_line.selectedPoint = 0;
+  m_line.lineStyle = vcRRIM_Arrow;
 
-  memcpy(&pPOI->m_line, pLine, sizeof(pPOI->m_line));
-
-  pPOI->m_line.pPoints = udAllocType(udDouble3, pLine->numPoints, udAF_Zero);
-  memcpy(pPOI->m_line.pPoints, pLine->pPoints, sizeof(udDouble3) * pLine->numPoints);
-
-  pPOI->m_line.selectedPoint = 0;
-  pPOI->m_line.lineStyle = vcRRIM_Arrow;
-
+  m_pFence = nullptr;
   if (pLine->numPoints > 1)
   {
-    vcFenceRenderer_Create(&pPOI->m_pFence);
+    vcFenceRenderer_Create(&m_pFence);
 
     udFloat4 colours = vcIGSW_BGRAToImGui(nameColour);
 
@@ -194,46 +204,33 @@ void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameCol
     config.textureScrollSpeed = 1.f;
     config.textureRepeatScale = 1.f;
 
-    vcFenceRenderer_SetConfig(pPOI->m_pFence, config);
-    vcFenceRenderer_AddPoints(pPOI->m_pFence, pLine->pPoints, pLine->numPoints);
+    vcFenceRenderer_SetConfig(m_pFence, config);
+    vcFenceRenderer_AddPoints(m_pFence, pLine->pPoints, pLine->numPoints);
   }
 
-  pPOI->m_backColour = 0x7F000000;
+  m_backColour = 0x7F000000;
 
-  pPOI->m_pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
-  pPOI->m_pLabelInfo->pText = pPOI->m_pName;
-  pPOI->m_pLabelInfo->worldPosition = pLine->pPoints[0];
-  pPOI->m_pLabelInfo->textSize = vcLFS_Medium;
-  pPOI->m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(nameColour);
-  pPOI->m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(pPOI->m_backColour);
+  m_pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
+  m_pLabelInfo->pText = m_pName;
+  m_pLabelInfo->worldPosition = pLine->pPoints[0];
+  m_pLabelInfo->textSize = vcLFS_Medium;
+  m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(nameColour);
+  m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
 
   if (srid != 0)
   {
-    pPOI->m_pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
-    pPOI->m_pZone = udAllocType(udGeoZone, 1, udAF_Zero);
-    udGeoZone_SetFromSRID(pPOI->m_pOriginalZone, srid);
-    memcpy(pPOI->m_pZone, pPOI->m_pOriginalZone, sizeof(*pPOI->m_pZone));
+    m_pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
+    m_pZone = udAllocType(udGeoZone, 1, udAF_Zero);
+    udGeoZone_SetFromSRID(m_pOriginalZone, srid);
+    memcpy(m_pZone, m_pOriginalZone, sizeof(*m_pZone));
   }
 
   if (pNotes != nullptr && pNotes[0] != '\0')
   {
-    pPOI->m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
-    pPOI->m_pMetadata->Set("notes = '%s'", pNotes);
+    m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
+    m_pMetadata->Set("notes = '%s'", pNotes);
   }
 
-  udStrcpy(pPOI->m_typeStr, sizeof(pPOI->m_typeStr), "POI");
-  pPOI->m_loadStatus = vcSLS_Loaded;
-
-  pPOI->AddItem(pProgramState);
-}
-
-void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid, const char *pNotes)
-{
-  vcLineInfo temp;
-  temp.numPoints = 1;
-  temp.pPoints = &position;
-  temp.lineWidth = 1;
-  temp.lineColour = 0xFFFFFFFF;
-
-  vcPOI_AddToList(pProgramState, pName, nameColour, namePt, &temp, srid, pNotes);
+  udStrcpy(m_typeStr, sizeof(m_typeStr), "POI");
+  m_loadStatus = vcSLS_Loaded;
 }

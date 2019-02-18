@@ -132,6 +132,17 @@ epilogue:
   pInfo->pFeed->m_loadStatus = vcSLS_Loaded;
 }
 
+vcLiveFeed::vcLiveFeed() :
+  m_lastUpdateTime(0.0), m_visibleItems(0), m_updateFrequency(15.0), m_decayFrequency(300.0),
+  m_detailDistance(500.0), m_falloffDistance(25000.0), m_pMutex(udCreateMutex())
+{
+  m_visible = true;
+  m_pName = udStrdup("Live Feed");
+  m_type = vcSOT_LiveFeed;
+  udStrcpy(m_typeStr, sizeof(m_typeStr), "IOT");
+  m_loadStatus = vcSLS_Pending;
+}
+
 void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
   if (!m_visible)
@@ -259,28 +270,4 @@ void vcLiveFeed::Cleanup(vcState * /*pProgramState*/)
   udDestroyMutex(&this->m_pMutex);
 
   this->m_feedItems.clear();
-
-  this->vcLiveFeed::~vcLiveFeed();
-}
-
-void vcLiveFeed_AddToList(vcState *pProgramState)
-{
-  vcLiveFeed *pLiveFeed = udAllocType(vcLiveFeed, 1, udAF_Zero);
-  pLiveFeed = new (pLiveFeed) vcLiveFeed();
-  pLiveFeed->m_visible = true;
-
-  pLiveFeed->m_pName = udStrdup("Live Feed");
-  pLiveFeed->m_type = vcSOT_LiveFeed;
-
-  // Just setting this as a nice default
-  pLiveFeed->m_updateFrequency = 15.0;
-  pLiveFeed->m_decayFrequency = 300.0;
-  pLiveFeed->m_detailDistance = 500.0;
-  pLiveFeed->m_falloffDistance = 25000.0;
-  pLiveFeed->m_pMutex = udCreateMutex();
-
-  udStrcpy(pLiveFeed->m_typeStr, sizeof(pLiveFeed->m_typeStr), "IOT");
-  pLiveFeed->m_loadStatus = vcSLS_Pending;
-
-  pLiveFeed->AddItem(pProgramState);
 }
