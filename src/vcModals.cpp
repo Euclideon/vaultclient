@@ -355,6 +355,11 @@ void vcModals_DrawFileModal(vcState *pProgramState)
 
     ImGui::EndPopup();
   }
+  else
+  {
+    // Clear text input on close
+    pProgramState->modelPath[0] = '\0';
+  }
 }
 
 void vcModals_DrawLoadWatermark(vcState *pProgramState)

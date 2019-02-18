@@ -17,6 +17,7 @@ Version 0.2.1
     - Added support for some image file extensions to open in image viewer modal
   - Added ability to change to appropriate tab when files are dropped
   - Fixed issue with error appearing for macOS users after logging in
+  - Fixed issue with load file modal textbox retaining previously loaded file
 
 Version 0.2.0
   ADDITIONS & FIXES
