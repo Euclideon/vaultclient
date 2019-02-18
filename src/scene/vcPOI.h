@@ -23,8 +23,9 @@ struct vcLineInfo
   vcFenceRendererImageMode lineStyle;
 };
 
-struct vcPOI : public vcSceneItem
+class vcPOI : public vcSceneItem
 {
+public:
   vcLineInfo line;
   uint32_t nameColour;
   uint32_t backColour;

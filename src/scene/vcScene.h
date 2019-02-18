@@ -5,8 +5,8 @@
 
 class udJSON;
 struct vcState;
-struct vcSceneItem;
-struct vcFolder;
+class vcSceneItem;
+class vcFolder;
 struct vcRenderData;
 
 enum vcSceneLoadStatus
@@ -38,8 +38,9 @@ enum vcSceneItemType
 typedef void (udSceneItemImGuiCallback)(vcState *pProgramState, vcSceneItem *pBaseItem, size_t *pItemID);
 typedef void (udSceneItemBasicCallback)(vcState *pProgramState, vcSceneItem *pBaseItem);
 
-struct vcSceneItem
+class vcSceneItem
 {
+public:
   volatile int32_t loadStatus;
   bool visible;
   bool selected;

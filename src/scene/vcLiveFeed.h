@@ -12,8 +12,9 @@
 struct vcState;
 struct vcLiveFeedItem;
 
-struct vcLiveFeed : public vcSceneItem
+class vcLiveFeed : public vcSceneItem
 {
+public:
   double lastUpdateTime;
 
   std::vector<vcLiveFeedItem*> feedItems;
