@@ -130,19 +130,8 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
     pCamera->eulerRotation += pCamInput->mouseInput;
     pCamera->eulerRotation.y = udClamp(pCamera->eulerRotation.y, -UD_HALF_PI, UD_HALF_PI);
-
-    while (pCamera->eulerRotation.x > UD_PI)
-      pCamera->eulerRotation.x -= UD_2PI;
-    while (pCamera->eulerRotation.x < -UD_PI)
-      pCamera->eulerRotation.x += UD_2PI;
-    while (pCamera->eulerRotation.y > UD_PI)
-      pCamera->eulerRotation.y -= UD_2PI;
-    while (pCamera->eulerRotation.y < -UD_PI)
-      pCamera->eulerRotation.y += UD_2PI;
-    while (pCamera->eulerRotation.z > UD_PI)
-      pCamera->eulerRotation.z -= UD_2PI;
-    while (pCamera->eulerRotation.z < -UD_PI)
-      pCamera->eulerRotation.z += UD_2PI;
+    pCamera->eulerRotation.x = udMod(pCamera->eulerRotation.x, UD_2PI);
+    pCamera->eulerRotation.z = udMod(pCamera->eulerRotation.z, UD_2PI);
   }
   break;
 
@@ -313,7 +302,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   {
     ImVec2 mouseDelta = io.MouseDelta;
 
-    if (keyboardInput != udDouble3::zero() || keyboardInput != udDouble3::zero() || isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]) // if input is detected, TODO: add proper any input detection
+    if (keyboardInput != udDouble3::zero() || isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]) // if input is detected, TODO: add proper any input detection
     {
       if (pProgramState->cameraInput.inputState == vcCIS_MovingToPoint)
         pProgramState->cameraInput.inputState = vcCIS_None;

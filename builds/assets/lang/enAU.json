@@ -256,6 +256,8 @@
   "LabelName": "Label Name",
   "LabelColour": "Text Colour",
   "LabelBackgroundColour": "Background Colour",
+  "LabelHyperlink": "Hyperlink",
+  "LabelOpenHyperlink": "Open Hyperlink",
   "LineStyle": "Line Style",
   "Arrow": "Arrow",
   "Glow": "Glow",
