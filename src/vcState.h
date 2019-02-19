@@ -34,6 +34,20 @@ struct vcSceneItemRef
   size_t index;
 };
 
+enum vcLoginStatus
+{
+  vcLS_NoStatus, // Used temporarily at startup and after logout to set focus on the correct fields
+  vcLS_EnterCredentials,
+  vcLS_Pending,
+  vcLS_ConnectionError,
+  vcLS_AuthError,
+  vcLS_TimeSync,
+  vcLS_SecurityError,
+  vcLS_NegotiationError,
+  vcLS_ProxyError,
+  vcLS_OtherError
+};
+
 struct vcState
 {
   bool programComplete;
@@ -56,6 +70,7 @@ struct vcState
   char username[64];
 
   vcTexture *pCompanyLogo;
+  vcTexture *pBuildingsTexture;
   vcTexture *pSceneWatermark;
   vcTexture *pUITexture;
 
@@ -75,7 +90,9 @@ struct vcState
   vcConvertContext *pConvertContext;
 
   char password[vcMaxPathLength];
-  const char *pLoginErrorMessage;
+
+  vcLoginStatus loginStatus;
+
   const char *pReleaseNotes; //Only loaded when requested
   bool passFocus;
 
