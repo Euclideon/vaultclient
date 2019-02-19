@@ -6,9 +6,12 @@
 
 struct vcState;
 
-struct vcFolder : public vcSceneItem
+class vcFolder : public vcSceneItem
 {
-  std::vector<vcSceneItem*> children;
+public:
+  std::vector<vcSceneItem*> m_children;
+
+  vcFolder(const char *pName);
 
   void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
 
@@ -18,7 +21,6 @@ struct vcFolder : public vcSceneItem
   void Cleanup(vcState *pProgramState);
 };
 
-void vcFolder_AddToList(vcState *pProgramState, const char *pName);
 void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine = true);
 
 #endif //vcFolder_h__

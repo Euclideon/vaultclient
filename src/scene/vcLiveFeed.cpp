@@ -42,7 +42,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
   vcLiveFeedUpdateInfo *pInfo = (vcLiveFeedUpdateInfo*)pUserData;
 
   const char *pFeedsJSON = nullptr;
-  const char *pMessage = udTempStr("{ \"position\": [153.092, -27.464, 0], \"srid\": 32756, \"radius\": 100, \"time\": %f }", pInfo->pFeed->lastUpdateTime);
+  const char *pMessage = udTempStr("{ \"position\": [153.092, -27.464, 0], \"srid\": 32756, \"radius\": 100, \"time\": %f }", pInfo->pFeed->m_lastUpdateTime);
 
   if (vdkServerAPI_Query(pInfo->pProgramState->pVDKContext, "v1/feeds/region", pMessage, &pFeedsJSON) == vE_Success)
   {
@@ -51,7 +51,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
     {
       udJSONArray *pFeeds = data.Get("feeds").AsArray();
 
-      pInfo->pFeed->lastUpdateTime = udMax(pInfo->pFeed->lastUpdateTime, data.Get("lastUpdate").AsDouble());
+      pInfo->pFeed->m_lastUpdateTime = udMax(pInfo->pFeed->m_lastUpdateTime, data.Get("lastUpdate").AsDouble());
 
       if (!pFeeds)
         goto epilogue;
@@ -68,8 +68,8 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
         udStrcpy(uuid, udLengthOf(uuid), pNode->Get("feedid").AsString());
 
         vcLiveFeedItem *pFeedItem = nullptr;
-        udLockMutex(pInfo->pFeed->pMutex);
-        for (vcLiveFeedItem *pCachedFeedItem : pInfo->pFeed->feedItems)
+        udLockMutex(pInfo->pFeed->m_pMutex);
+        for (vcLiveFeedItem *pCachedFeedItem : pInfo->pFeed->m_feedItems)
         {
           if (udStrcmp(uuid, pCachedFeedItem->uuid) == 0)
           {
@@ -77,7 +77,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
             break;
           }
         }
-        udReleaseMutex(pInfo->pFeed->pMutex);
+        udReleaseMutex(pInfo->pFeed->m_pMutex);
 
         udFloat4x4 rotation = udFloat4x4::identity();
         udDouble3 newPosition = udDouble3::create((float)temp.Get("coordinates[0]").AsDouble(), (float)temp.Get("coordinates[1]").AsDouble(), (float)temp.Get("coordinates[2]").AsDouble());
@@ -87,9 +87,9 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
         {
           pFeedItem = udAllocType(vcLiveFeedItem, 1, udAF_Zero);
           udStrcpy(pFeedItem->uuid, udLengthOf(pFeedItem->uuid), uuid);
-          udLockMutex(pInfo->pFeed->pMutex);
-          pInfo->pFeed->feedItems.push_back(pFeedItem);
-          udReleaseMutex(pInfo->pFeed->pMutex);
+          udLockMutex(pInfo->pFeed->m_pMutex);
+          pInfo->pFeed->m_feedItems.push_back(pFeedItem);
+          udReleaseMutex(pInfo->pFeed->m_pMutex);
 
           pFeedItem->previousPosition = newPosition;
           pFeedItem->tweenAmount = 1.0f;
@@ -128,23 +128,34 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
 
 epilogue:
   vdkServerAPI_ReleaseResult(pInfo->pProgramState->pVDKContext, &pFeedsJSON);
-  pInfo->pFeed->lastUpdateTime = vcTime_GetEpochSecsF();
-  pInfo->pFeed->loadStatus = vcSLS_Loaded;
+  pInfo->pFeed->m_lastUpdateTime = vcTime_GetEpochSecsF();
+  pInfo->pFeed->m_loadStatus = vcSLS_Loaded;
+}
+
+vcLiveFeed::vcLiveFeed() :
+  m_lastUpdateTime(0.0), m_visibleItems(0), m_updateFrequency(15.0), m_decayFrequency(300.0),
+  m_detailDistance(500.0), m_falloffDistance(25000.0), m_pMutex(udCreateMutex())
+{
+  m_visible = true;
+  m_pName = udStrdup("Live Feed");
+  m_type = vcSOT_LiveFeed;
+  udStrcpy(m_typeStr, sizeof(m_typeStr), "IOT");
+  m_loadStatus = vcSLS_Pending;
 }
 
 void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
-  if (!visible)
+  if (!m_visible)
     return;
 
   double now = vcTime_GetEpochSecsF();
-  double recently = now - this->decayFrequency;
+  double recently = now - this->m_decayFrequency;
 
-  if (this->loadStatus != vcSLS_Loading)
+  if (this->m_loadStatus != vcSLS_Loading)
   {
-    if (now >= this->lastUpdateTime + this->updateFrequency)
+    if (now >= this->m_lastUpdateTime + this->m_updateFrequency)
     {
-      this->loadStatus = vcSLS_Loading;
+      this->m_loadStatus = vcSLS_Loading;
 
       vcLiveFeedUpdateInfo *pInfo = udAllocType(vcLiveFeedUpdateInfo, 1, udAF_None);
       pInfo->pProgramState = pProgramState;
@@ -154,10 +165,10 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     }
   }
 
-  visibleItems = 0;
+  m_visibleItems = 0;
 
-  udLockMutex(this->pMutex);
-  for (vcLiveFeedItem *pFeedItem : this->feedItems)
+  udLockMutex(this->m_pMutex);
+  for (vcLiveFeedItem *pFeedItem : this->m_feedItems)
   {
     // If its not visible or its been a while since it was visible
     if (!pFeedItem->visible || pFeedItem->lastUpdated < recently)
@@ -170,10 +181,10 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     pFeedItem->displayPosition = udLerp(pFeedItem->previousPosition, pFeedItem->livePosition, pFeedItem->tweenAmount);
     double distanceSq = udMagSq3(pFeedItem->displayPosition - pRenderData->pCamera->position);
 
-    if (distanceSq > this->falloffDistance * this->falloffDistance)
+    if (distanceSq > this->m_falloffDistance * this->m_falloffDistance)
       continue; // Don't really want to mark !visible because it will be again soon
 
-    if (distanceSq < this->detailDistance * this->detailDistance)
+    if (distanceSq < this->m_detailDistance * this->m_detailDistance)
       pFeedItem->labelConfig.pText = pFeedItem->pDetailedLabel;
     else
       pFeedItem->labelConfig.pText = pFeedItem->pSimplifedLabel;
@@ -182,9 +193,9 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
     pRenderData->labels.PushBack(&pFeedItem->labelConfig);
 
-    ++this->visibleItems;
+    ++this->m_visibleItems;
   }
-  udReleaseMutex(this->pMutex);
+  udReleaseMutex(this->m_pMutex);
 }
 
 void vcLiveFeed::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
@@ -195,18 +206,18 @@ void vcLiveFeed::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 
 void vcLiveFeed::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
 {
-  ImGui::Text("Feed Items: %zu", this->feedItems.size());
-  ImGui::Text("Visible Items: %zu", this->visibleItems);
+  ImGui::Text("Feed Items: %zu", this->m_feedItems.size());
+  ImGui::Text("Visible Items: %zu", this->m_visibleItems);
 
-  ImGui::Text("Next update in %.2f seconds", (this->lastUpdateTime + this->updateFrequency) - vcTime_GetEpochSecsF());
+  ImGui::Text("Next update in %.2f seconds", (this->m_lastUpdateTime + this->m_updateFrequency) - vcTime_GetEpochSecsF());
 
   // Update Frequency
   {
     const double updateFrequencyMinValue = 5.0;
     const double updateFrequencyMaxValue = 300.0;
 
-    if (ImGui::SliderScalar("Update Frequency", ImGuiDataType_Double, &this->updateFrequency, &updateFrequencyMinValue, &updateFrequencyMaxValue, "%.0f seconds"))
-      this->updateFrequency = udClamp(this->updateFrequency, updateFrequencyMinValue, updateFrequencyMaxValue);
+    if (ImGui::SliderScalar("Update Frequency", ImGuiDataType_Double, &this->m_updateFrequency, &updateFrequencyMinValue, &updateFrequencyMaxValue, "%.0f seconds"))
+      this->m_updateFrequency = udClamp(this->m_updateFrequency, updateFrequencyMinValue, updateFrequencyMaxValue);
   }
 
   // Decay Frequency
@@ -214,16 +225,16 @@ void vcLiveFeed::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
     const double decayFrequencyMinValue = 30.0;
     const double decayFrequencyMaxValue = 604800.0; // 1 week
 
-    if (ImGui::SliderScalar("Decay Frequency", ImGuiDataType_Double, &this->decayFrequency, &decayFrequencyMinValue, &decayFrequencyMaxValue, "%.0f seconds", 4.f))
+    if (ImGui::SliderScalar("Decay Frequency", ImGuiDataType_Double, &this->m_decayFrequency, &decayFrequencyMinValue, &decayFrequencyMaxValue, "%.0f seconds", 4.f))
     {
-      this->decayFrequency = udClamp(this->decayFrequency, decayFrequencyMinValue, decayFrequencyMaxValue);
+      this->m_decayFrequency = udClamp(this->m_decayFrequency, decayFrequencyMinValue, decayFrequencyMaxValue);
 
-      double recently = vcTime_GetEpochSecsF() - this->decayFrequency;
+      double recently = vcTime_GetEpochSecsF() - this->m_decayFrequency;
 
-      udLockMutex(this->pMutex);
-      for (vcLiveFeedItem *pFeedItem : this->feedItems)
+      udLockMutex(this->m_pMutex);
+      for (vcLiveFeedItem *pFeedItem : this->m_feedItems)
         pFeedItem->visible = (pFeedItem->lastUpdated > recently);
-      udReleaseMutex(this->pMutex);
+      udReleaseMutex(this->m_pMutex);
     }
 
     // Simplify Distance
@@ -231,8 +242,8 @@ void vcLiveFeed::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
       const double detailDistanceMinValue = 1.0;
       const double detailDistanceMaxValue = 2500.0;
 
-      if (ImGui::SliderScalar("Detail Distance", ImGuiDataType_Double, &this->detailDistance, &detailDistanceMinValue, &detailDistanceMaxValue, "%.0f", 1.5f))
-        this->detailDistance = udClamp(this->detailDistance, detailDistanceMinValue, detailDistanceMaxValue);
+      if (ImGui::SliderScalar("Detail Distance", ImGuiDataType_Double, &this->m_detailDistance, &detailDistanceMinValue, &detailDistanceMaxValue, "%.0f", 1.5f))
+        this->m_detailDistance = udClamp(this->m_detailDistance, detailDistanceMinValue, detailDistanceMaxValue);
     }
 
     // Falloff Distance
@@ -240,8 +251,8 @@ void vcLiveFeed::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
       const double falloffDistanceMinValue = 1.0;
       const double falloffDistanceMaxValue = 100000.0;
 
-      if (ImGui::SliderScalar("Falloff Distance", ImGuiDataType_Double, &this->falloffDistance, &falloffDistanceMinValue, &falloffDistanceMaxValue, "%.0f", 3.f))
-        this->falloffDistance = udClamp(this->falloffDistance, falloffDistanceMinValue, falloffDistanceMaxValue);
+      if (ImGui::SliderScalar("Falloff Distance", ImGuiDataType_Double, &this->m_falloffDistance, &falloffDistanceMinValue, &falloffDistanceMaxValue, "%.0f", 3.f))
+        this->m_falloffDistance = udClamp(this->m_falloffDistance, falloffDistanceMinValue, falloffDistanceMaxValue);
     }
 
   }
@@ -249,38 +260,14 @@ void vcLiveFeed::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
 
 void vcLiveFeed::Cleanup(vcState * /*pProgramState*/)
 {
-  udFree(pName);
+  udFree(m_pName);
 
-  udLockMutex(this->pMutex);
-  for (vcLiveFeedItem *pObject : this->feedItems)
+  udLockMutex(this->m_pMutex);
+  for (vcLiveFeedItem *pObject : this->m_feedItems)
     udFree(pObject);
-  udReleaseMutex(this->pMutex);
+  udReleaseMutex(this->m_pMutex);
 
-  udDestroyMutex(&this->pMutex);
+  udDestroyMutex(&this->m_pMutex);
 
-  this->feedItems.clear();
-
-  this->vcLiveFeed::~vcLiveFeed();
-}
-
-void vcLiveFeed_AddToList(vcState *pProgramState)
-{
-  vcLiveFeed *pLiveFeed = udAllocType(vcLiveFeed, 1, udAF_Zero);
-  pLiveFeed = new (pLiveFeed) vcLiveFeed();
-  pLiveFeed->visible = true;
-
-  pLiveFeed->pName = udStrdup("Live Feed");
-  pLiveFeed->type = vcSOT_LiveFeed;
-
-  // Just setting this as a nice default
-  pLiveFeed->updateFrequency = 15.0;
-  pLiveFeed->decayFrequency = 300.0;
-  pLiveFeed->detailDistance = 500.0;
-  pLiveFeed->falloffDistance = 25000.0;
-  pLiveFeed->pMutex = udCreateMutex();
-
-  udStrcpy(pLiveFeed->typeStr, sizeof(pLiveFeed->typeStr), "IOT");
-  pLiveFeed->loadStatus = vcSLS_Pending;
-
-  pLiveFeed->AddItem(pProgramState);
+  this->m_feedItems.clear();
 }
