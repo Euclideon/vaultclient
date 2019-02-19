@@ -16,7 +16,7 @@
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
   // if POI is invisible or if it exceeds maximum visible POI distance
-  if (!visible || udMag3(pLabelInfo->worldPosition - pProgramState->pCamera->position) > pProgramState->settings.presentation.POIfadeDistance)
+  if (!visible || udMag3(pLabelInfo->worldPosition - pProgramState->pCamera->position) > pProgramState->settings.presentation.POIFadeDistance)
     return;
 
   if (pFence != nullptr)

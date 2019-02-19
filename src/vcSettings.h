@@ -98,7 +98,7 @@ struct vcSettings
 
     vcAnchorStyle mouseAnchor;
     bool showCompass;
-    float POIfadeDistance;
+    float POIFadeDistance;
     bool limitFPSInBackground;
 
     int pointMode;

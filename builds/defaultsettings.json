@@ -7,7 +7,7 @@
   "mouseAnchor": 1,
   "showCompass": true,
   "limitFPSInBackground": true,
-  "POIfadeDistance": 10000,
+  "POIFadeDistance": 10000,
   "pointMode": 0,
   "responsiveUI": 0,
   "window": {
