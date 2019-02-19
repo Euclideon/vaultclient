@@ -145,6 +145,7 @@ solution "vaultClient"
 	startproject "vaultClient"
 	cppdialect "C++11"
 	pic "On"
+	editandcontinue "Off"
 
 	xcodebuildsettings { ["CLANG_CXX_LANGUAGE_STANDARD"] = "c++0x" }
 
