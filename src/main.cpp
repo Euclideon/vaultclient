@@ -326,7 +326,7 @@ int main(int argc, char **args)
   programState.sceneExplorer.clickedItem.index = SIZE_MAX;
 
   programState.loadList.reserve(udMax(64, argc));
-  vcFolder_AddToList(&programState, nullptr);
+  programState.sceneExplorer.pItems = new vcFolder(nullptr);
 
   for (int i = 1; i < argc; ++i)
   {
@@ -574,7 +574,7 @@ int main(int argc, char **args)
               const char *pExt = loadFile.GetExt();
               if (udStrEquali(pExt, ".uds") || udStrEquali(pExt, ".ssf") || udStrEquali(pExt, ".udm") || udStrEquali(pExt, ".udg"))
               {
-                vcModel_AddToList(&programState, nullptr, pNextLoad, firstLoad);
+                vcScene_AddItem(&programState, new vcModel(&programState, nullptr, pNextLoad, firstLoad));
                 continueLoading = true;
                 programState.changeActiveDock = vcDocks_Scene;
               }
@@ -669,7 +669,7 @@ epilogue:
   vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
   vcLogout(&programState);
   programState.sceneExplorer.pItems->Cleanup(&programState);
-  udFree(programState.sceneExplorer.pItems);
+  delete programState.sceneExplorer.pItems;
   vcTexture_Destroy(&programState.image.pImage);
 
   vcGLState_Deinit();
@@ -949,7 +949,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       {
         if (ImGui::MenuItem(vcString::Get("LabelAddHere")))
         {
-          vcPOI_AddToList(pProgramState, vcString::Get("DefaultName_POI"), 0xFFFFFFFF, 14, worldMouse, pProgramState->gis.SRID);
+          vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("DefaultName_POI"), 0xFFFFFFFF, 14, worldMouse, pProgramState->gis.SRID));
           ImGui::CloseCurrentPopup();
         }
 
@@ -993,7 +993,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       vcGizmo_SetDrawList();
 
       vcSceneItemRef clickedItemRef = pProgramState->sceneExplorer.clickedItem;
-      vcSceneItem *pItem = clickedItemRef.pParent->children[clickedItemRef.index];
+      vcSceneItem *pItem = clickedItemRef.pParent->m_children[clickedItemRef.index];
 
       udDouble4x4 temp = pItem->GetWorldSpaceMatrix();
       temp.axis.t.toVector3() = pItem->GetWorldSpacePivot();
@@ -1005,7 +1005,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       if (!(delta == udDouble4x4::identity()))
       {
         for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
-          ref.pParent->children[ref.index]->ApplyDelta(pProgramState, delta);
+          ref.pParent->m_children[ref.index]->ApplyDelta(pProgramState, delta);
       }
     }
   }
@@ -1093,7 +1093,7 @@ int vcMainMenuGui(vcState *pProgramState)
           vcScene_RemoveAll(pProgramState);
 
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
-            vcModel_AddToList(pProgramState, nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), (j == 0));
+            vcScene_AddItem(pProgramState, new vcModel(pProgramState, nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), (j == 0)));
         }
       }
 
@@ -1348,7 +1348,7 @@ void vcRenderWindow(vcState *pProgramState)
         vcModals_OpenModal(pProgramState, vcMT_AddUDS);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddPOI"), nullptr, vcMBBI_AddPointOfInterest, vcMBBG_SameGroup))
-        vcPOI_AddToList(pProgramState, vcString::Get("DefaultName_POI"), 0xFFFFFFFF, 14, udDouble3::zero(), 0);
+        vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("DefaultName_POI"), 0xFFFFFFFF, 14, udDouble3::zero(), 0));
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddAOI"), nullptr, vcMBBI_AddAreaOfInterest, vcMBBG_SameGroup))
         vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
@@ -1363,13 +1363,13 @@ void vcRenderWindow(vcState *pProgramState)
       if (ImGui::BeginPopupContextItem("AddOther", 0))
       {
         if (ImGui::MenuItem(vcString::Get("AddFeed"), nullptr, nullptr))
-          vcLiveFeed_AddToList(pProgramState);
+          vcScene_AddItem(pProgramState, new vcLiveFeed());
 
         ImGui::EndPopup();
       }
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
-        vcFolder_AddToList(pProgramState, vcString::Get("DefaultName_Folder"));
+        vcScene_AddItem(pProgramState, new vcFolder(vcString::Get("DefaultName_Folder")));
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("Remove"), vcString::Get("DeleteKey"), vcMBBI_Remove, vcMBBG_NewGroup) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE] && !ImGui::IsAnyItemActive()))
         vcScene_RemoveSelected(pProgramState);
@@ -1386,8 +1386,8 @@ void vcRenderWindow(vcState *pProgramState)
           for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size() && !itemFound; ++i)
           {
             const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
-            if (item.pParent->children[item.index]->type == vcSOT_Folder)
-              itemFound = vcScene_ContainsItem((vcFolder*)item.pParent->children[item.index], pProgramState->sceneExplorer.insertItem.pParent);
+            if (item.pParent->m_children[item.index]->m_type == vcSOT_Folder)
+              itemFound = vcScene_ContainsItem((vcFolder*)item.pParent->m_children[item.index], pProgramState->sceneExplorer.insertItem.pParent);
 
             itemFound = itemFound || (item.pParent == pProgramState->sceneExplorer.insertItem.pParent && item.index == pProgramState->sceneExplorer.insertItem.index);
           }
@@ -1408,9 +1408,9 @@ void vcRenderWindow(vcState *pProgramState)
               }
 
               // Remove the item from its parent and insert it into the insertItem parent
-              vcSceneItem* pTemp = item.pParent->children[item.index];
-              item.pParent->children.erase(item.pParent->children.begin() + item.index);
-              pProgramState->sceneExplorer.insertItem.pParent->children.insert(pProgramState->sceneExplorer.insertItem.pParent->children.begin() + pProgramState->sceneExplorer.insertItem.index + i, pTemp);
+              vcSceneItem* pTemp = item.pParent->m_children[item.index];
+              item.pParent->m_children.erase(item.pParent->m_children.begin() + item.index);
+              pProgramState->sceneExplorer.insertItem.pParent->m_children.insert(pProgramState->sceneExplorer.insertItem.pParent->m_children.begin() + pProgramState->sceneExplorer.insertItem.index + i, pTemp);
 
               // If we remove items before other selected items we need to adjust their indexes accordingly
               for (size_t j = i + 1; j < pProgramState->sceneExplorer.selectedItems.size(); ++j)

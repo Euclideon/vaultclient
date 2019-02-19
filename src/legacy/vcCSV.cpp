@@ -93,7 +93,7 @@ vdkError vcCSV_LoadCSV(vcState *pProgramState, const char *pFilename)
 
     udStrSkipWhiteSpace(pPos);
 
-    vcPOI_AddToList(pProgramState, pName, 0xFFFFFFFF, 0, position, epsgcode, pNotes);
+    vcScene_AddItem(pProgramState, new vcPOI(pName, 0xFFFFFFFF, 0, position, epsgcode, pNotes));
     udFree(pName);
     udFree(pNotes);
   }
