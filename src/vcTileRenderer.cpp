@@ -323,7 +323,6 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
   vcMesh_Destroy(&pTileRenderer->pFullTileMesh);
   vcTexture_Destroy(&pTileRenderer->pEmptyTileTexture);
 
-  pTileRenderer->pTransparentTiles->clear();
   delete pTileRenderer->pTransparentTiles;
   pTileRenderer->pTransparentTiles = nullptr;
 
@@ -600,8 +599,8 @@ void vcTileRenderer_ClearTiles(vcTileRenderer *pTileRenderer)
   udLockMutex(pTileRenderer->cache.pMutex);
 
   pTileRenderer->pTransparentTiles->clear();
-  vcQuadTree_Reset(&pTileRenderer->quadTree);
   pTileRenderer->cache.tileLoadList.Clear();
+  vcQuadTree_Reset(&pTileRenderer->quadTree);
 
   udReleaseMutex(pTileRenderer->cache.pMutex);
 }
