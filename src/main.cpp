@@ -404,7 +404,6 @@ int main(int argc, char **args)
   SDL_GL_SetSwapInterval(0); // disable v-sync
 
   ImGui::CreateContext();
-  ImGui::GetIO().ConfigResizeWindowsFromEdges = true; // Fix for ImGuiWindowFlags_ResizeFromAnySide being removed
   vcMain_LoadSettings(&programState, false);
 
   // setup watermark for background
@@ -586,8 +585,7 @@ int main(int argc, char **args)
                 vcUDP_Load(&programState, pNextLoad);
                 programState.changeActiveDock = vcDocks_Scene;
               }
-              else if (!ImGui::IsDockActive(vcString::Get("Convert")) &&
-                (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif")))
+              else if (!ImGui::IsDockActive(vcString::Get("Convert")) && (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif")))
               {
                 vcTexture_Destroy(&programState.image.pImage);
 
