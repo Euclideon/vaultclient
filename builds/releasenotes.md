@@ -13,6 +13,9 @@ Version 0.2.1
   - Fixed a number of issues relating to the gizmos.
     - Multiple objects can be selected and manipulated at the same time
     - Scale is now calcualated correctly and doesn't reapply every frame
+  - Added "Add Other" button to Scene Explorer
+  - Added slider to Appearance Settings to control the max visible distance of POIs
+  - Fixed issue with manual entry of large values into camera pose causing a crash
   - Added support for loading label hyperlinks from UDP
     - Added support for some image file extensions to open in image viewer modal
   - Added ability to change to appropriate tab when files are dropped
