@@ -163,7 +163,7 @@ uniform sampler2D u_texture;
 void main()
 {
   vec4 col = texture(u_texture, v_uv);
-  out_Colour = vec4(col.xyz * v_colour.xyz, 1.0) * v_colour.w;
+  out_Colour = vec4(col.xyz * v_colour.xyz, v_colour.w);
 }
 )shader";
 
@@ -388,6 +388,6 @@ const char* const g_FenceFragmentShader = FRAG_HEADER R"shader(
   void main()
   {
     vec4 texCol = texture(u_texture, v_uv);
-    out_Colour = vec4(texCol.xyz * v_colour.xyz, 1.0) * texCol.w * v_colour.w;
+    out_Colour = vec4(texCol.xyz * v_colour.xyz, texCol.w * v_colour.w);
   }
 )shader";

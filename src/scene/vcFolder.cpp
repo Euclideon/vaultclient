@@ -50,25 +50,35 @@ void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLin
   }
 }
 
+vcFolder::vcFolder(const char *pName)
+{
+  m_visible = true;
+  m_pName = udStrdup(pName);
+  m_type = vcSOT_Folder;
+  m_children.reserve(64);
+  udStrcpy(m_typeStr, sizeof(m_typeStr), "Folder");
+  m_loadStatus = vcSLS_Loaded;
+}
+
 void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
-  if (!visible)
+  if (!m_visible)
     return;
 
-  for (size_t i = 0; i < children.size(); ++i)
-    children[i]->AddToScene(pProgramState, pRenderData);
+  for (size_t i = 0; i < m_children.size(); ++i)
+    m_children[i]->AddToScene(pProgramState, pRenderData);
 }
 
 void vcFolder::ChangeProjection(vcState *pProgramState, const udGeoZone &newZone)
 {
-  for (size_t i = 0; i < children.size(); ++i)
-    children[i]->ChangeProjection(pProgramState, newZone);
+  for (size_t i = 0; i < m_children.size(); ++i)
+    m_children[i]->ChangeProjection(pProgramState, newZone);
 }
 
 void vcFolder::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
-  for (size_t i = 0; i < children.size(); ++i)
-    children[i]->ApplyDelta(pProgramState, delta);
+  for (size_t i = 0; i < m_children.size(); ++i)
+    m_children[i]->ApplyDelta(pProgramState, delta);
 }
 
 void vcFolder_AddInsertSeparator()
@@ -86,7 +96,7 @@ void vcFolder_AddInsertSeparator()
 void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   size_t i;
-  for (i = 0; i < children.size(); ++i)
+  for (i = 0; i < m_children.size(); ++i)
   {
     ++(*pItemID);
 
@@ -95,44 +105,44 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       vcFolder_AddInsertSeparator();
 
     // Can only edit the name while the item is still selected
-    children[i]->editName = children[i]->editName && children[i]->selected;
+    m_children[i]->m_editName = m_children[i]->m_editName && m_children[i]->m_selected;
 
     // Visibility
-    ImGui::Checkbox(udTempStr("###SXIVisible%zu", *pItemID), &children[i]->visible);
+    ImGui::Checkbox(udTempStr("###SXIVisible%zu", *pItemID), &m_children[i]->m_visible);
     ImGui::SameLine();
 
-    vcFolder_ShowLoadStatusIndicator((vcSceneLoadStatus)children[i]->loadStatus);
+    vcFolder_ShowLoadStatusIndicator((vcSceneLoadStatus)m_children[i]->m_loadStatus);
 
     // The actual model
-    ImGui::SetNextTreeNodeOpen(children[i]->expanded, ImGuiCond_Always);
+    ImGui::SetNextTreeNodeOpen(m_children[i]->m_expanded, ImGuiCond_Always);
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
-    if (children[i]->selected)
+    if (m_children[i]->m_selected)
       flags |= ImGuiTreeNodeFlags_Selected;
 
-    if (children[i]->editName)
+    if (m_children[i]->m_editName)
     {
-      children[i]->expanded = ImGui::TreeNodeEx(udTempStr("###SXIName%zu", *pItemID), flags);
+      m_children[i]->m_expanded = ImGui::TreeNodeEx(udTempStr("###SXIName%zu", *pItemID), flags);
       ImGui::SameLine();
-      vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &children[i]->pName, &children[i]->nameBufferLength);
+      vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &m_children[i]->m_pName, &m_children[i]->m_nameBufferLength);
 
       if (ImGui::IsItemDeactivated() || !(pProgramState->sceneExplorer.selectedItems.back().pParent == this && pProgramState->sceneExplorer.selectedItems.back().index == i))
-        children[i]->editName = false;
+        m_children[i]->m_editName = false;
       else
         ImGui::SetKeyboardFocusHere(-1); // Set focus to previous widget
     }
     else
     {
-      children[i]->expanded = ImGui::TreeNodeEx(udTempStr("%s###SXIName%zu", children[i]->pName, *pItemID), flags);
-      if (children[i]->selected && pProgramState->sceneExplorer.selectedItems.back().pParent == this && pProgramState->sceneExplorer.selectedItems.back().index == i && ImGui::GetIO().KeysDown[SDL_SCANCODE_F2])
-        children[i]->editName = true;
+      m_children[i]->m_expanded = ImGui::TreeNodeEx(udTempStr("%s###SXIName%zu", m_children[i]->m_pName, *pItemID), flags);
+      if (m_children[i]->m_selected && pProgramState->sceneExplorer.selectedItems.back().pParent == this && pProgramState->sceneExplorer.selectedItems.back().index == i && ImGui::GetIO().KeysDown[SDL_SCANCODE_F2])
+        m_children[i]->m_editName = true;
     }
 
-    if ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!children[i]->selected && ImGui::IsItemActive()))
+    if ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!m_children[i]->m_selected && ImGui::IsItemActive()))
     {
       if (!ImGui::GetIO().KeyCtrl)
         vcScene_ClearSelection(pProgramState);
 
-      if (children[i]->selected)
+      if (m_children[i]->m_selected)
       {
         vcScene_UnselectItem(pProgramState, this, i);
         pProgramState->sceneExplorer.clickedItem = { nullptr, SIZE_MAX };
@@ -150,8 +160,8 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       ImVec2 maxPos = ImGui::GetItemRectMax();
       ImVec2 mousePos = ImGui::GetMousePos();
 
-      if (children[i]->type == vcSOT_Folder && udAbs(mousePos.y - minPos.y) >= udAbs(mousePos.y - maxPos.y))
-        pProgramState->sceneExplorer.insertItem = { (vcFolder*)children[i], ((vcFolder*)children[i])->children.size() };
+      if (m_children[i]->m_type == vcSOT_Folder && udAbs(mousePos.y - minPos.y) >= udAbs(mousePos.y - maxPos.y))
+        pProgramState->sceneExplorer.insertItem = { (vcFolder*)m_children[i], ((vcFolder*)m_children[i])->m_children.size() };
       else if (udAbs(mousePos.y - minPos.y) < udAbs(mousePos.y - maxPos.y))
         pProgramState->sceneExplorer.insertItem = { this, i };
       else
@@ -160,7 +170,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
     if (ImGui::BeginPopupContextItem(udTempStr("ModelContextMenu_%zu", *pItemID)))
     {
-      if (!children[i]->selected)
+      if (!m_children[i]->m_selected)
       {
         if (!ImGui::GetIO().KeyCtrl)
           vcScene_ClearSelection(pProgramState);
@@ -170,21 +180,21 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       }
 
       if (ImGui::Selectable(vcString::Get("EditName")))
-        children[i]->editName = true;
+        m_children[i]->m_editName = true;
 
-      if (children[i]->pZone != nullptr && ImGui::Selectable(vcString::Get("UseProjection")))
+      if (m_children[i]->m_pZone != nullptr && ImGui::Selectable(vcString::Get("UseProjection")))
       {
-        if (vcGIS_ChangeSpace(&pProgramState->gis, children[i]->pOriginalZone->srid, &pProgramState->pCamera->position))
-          pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, *children[i]->pOriginalZone);
+        if (vcGIS_ChangeSpace(&pProgramState->gis, m_children[i]->m_pOriginalZone->srid, &pProgramState->pCamera->position))
+          pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, *m_children[i]->m_pOriginalZone);
       }
 
-      if (children[i]->type != vcSOT_Folder && ImGui::Selectable(vcString::Get("MoveTo")))
+      if (m_children[i]->m_type != vcSOT_Folder && ImGui::Selectable(vcString::Get("MoveTo")))
       {
-        udDouble3 localSpaceCenter = children[i]->GetWorldSpacePivot();
+        udDouble3 localSpaceCenter = m_children[i]->GetWorldSpacePivot();
 
         // Transform the camera position. Don't do the entire matrix as it may lead to inaccuracy/de-normalised camera
-        if (pProgramState->gis.isProjected && children[i]->pZone != nullptr && children[i]->pZone->srid != pProgramState->gis.SRID)
-          localSpaceCenter = udGeoZone_TransformPoint(localSpaceCenter, *children[i]->pZone, pProgramState->gis.zone);
+        if (pProgramState->gis.isProjected && m_children[i]->m_pZone != nullptr && m_children[i]->m_pZone->srid != pProgramState->gis.SRID)
+          localSpaceCenter = udGeoZone_TransformPoint(localSpaceCenter, *m_children[i]->m_pZone, pProgramState->gis.zone);
 
         pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
         pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
@@ -193,19 +203,19 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         pProgramState->cameraInput.progress = 0.0;
       }
 
-      //if (children[i]->type == vcSOT_PointCloud && ImGui::Selectable(vcString::Get("ResetPosition"), false, children[i]->sceneMatrix == children[i]->defaultMatrix ? ImGuiSelectableFlags_Disabled : 0))
-      //  children[i]->sceneMatrix = children[i]->defaultMatrix;
+      //if (m_children[i]->m_type == vcSOT_PointCloud && ImGui::Selectable(vcString::Get("ResetPosition"), false, m_children[i]->m_sceneMatrix == m_children[i]->m_defaultMatrix ? ImGuiSelectableFlags_Disabled : 0))
+      //  m_children[i]->m_sceneMatrix = m_children[i]->m_defaultMatrix;
 
       ImGui::EndPopup();
     }
 
-    if (children[i]->type != vcSOT_Folder && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
-      vcScene_UseProjectFromItem(pProgramState, children[i]);
+    if (m_children[i]->m_type != vcSOT_Folder && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
+      vcScene_UseProjectFromItem(pProgramState, m_children[i]);
 
     if (ImGui::IsItemHovered())
-      ImGui::SetTooltip("%s", children[i]->pName);
+      ImGui::SetTooltip("%s", m_children[i]->m_pName);
 
-    if (!children[i]->expanded && children[i] == pProgramState->sceneExplorer.insertItem.pParent && pProgramState->sceneExplorer.insertItem.index == pProgramState->sceneExplorer.insertItem.pParent->children.size())
+    if (!m_children[i]->m_expanded && m_children[i] == pProgramState->sceneExplorer.insertItem.pParent && pProgramState->sceneExplorer.insertItem.index == pProgramState->sceneExplorer.insertItem.pParent->m_children.size())
     {
       // Double indent to match open folder insertion
       ImGui::Indent();
@@ -216,12 +226,12 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
     }
 
     // Show additional settings from ImGui
-    if (children[i]->expanded)
+    if (m_children[i]->m_expanded)
     {
       ImGui::Indent();
       ImGui::PushID(udTempStr("SXIExpanded%zu", *pItemID));
 
-      children[i]->HandleImGui(pProgramState, pItemID);
+      m_children[i]->HandleImGui(pProgramState, pItemID);
 
       ImGui::PopID();
       ImGui::Unindent();
@@ -236,30 +246,8 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
 void vcFolder::Cleanup(vcState *pProgramState)
 {
-  udFree(pName);
+  udFree(m_pName);
 
-  while (children.size() > 0)
+  while (m_children.size() > 0)
     vcScene_RemoveItem(pProgramState, this, 0);
-
-  this->vcFolder::~vcFolder();
-}
-
-void vcFolder_AddToList(vcState *pProgramState, const char *pName)
-{
-  vcFolder *pFolder =  udAllocType(vcFolder, 1, udAF_Zero);
-  pFolder = new (pFolder) vcFolder();
-  pFolder->visible = true;
-
-  pFolder->pName = udStrdup(pName);
-  pFolder->type = vcSOT_Folder;
-
-  pFolder->children.reserve(64);
-
-  udStrcpy(pFolder->typeStr, sizeof(pFolder->typeStr), "Folder");
-  pFolder->loadStatus = vcSLS_Loaded;
-
-  if (pName == nullptr)
-    pProgramState->sceneExplorer.pItems = pFolder;
-  else
-    pFolder->AddItem(pProgramState);
 }

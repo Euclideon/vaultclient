@@ -23,15 +23,19 @@ struct vcLineInfo
   vcFenceRendererImageMode lineStyle;
 };
 
-struct vcPOI : public vcSceneItem
+class vcPOI : public vcSceneItem
 {
-  vcLineInfo line;
-  uint32_t nameColour;
-  uint32_t backColour;
-  double namePt;
+public:
+  vcLineInfo m_line;
+  uint32_t m_nameColour;
+  uint32_t m_backColour;
+  double m_namePt;
 
-  vcFenceRenderer *pFence;
-  vcLabelInfo *pLabelInfo;
+  vcFenceRenderer *m_pFence;
+  vcLabelInfo *m_pLabelInfo;
+
+  vcPOI(const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes = "");
+  vcPOI(const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid, const char *pNotes = "");
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
@@ -39,9 +43,8 @@ struct vcPOI : public vcSceneItem
   void Cleanup(vcState *pProgramState);
 
   udDouble4x4 GetWorldSpaceMatrix();
+protected:
+  void Init(const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes = "");
 };
-
-void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes = "");
-void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid, const char *pNotes = "");
 
 #endif //vcPOI_h__
