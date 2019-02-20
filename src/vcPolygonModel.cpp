@@ -1,4 +1,4 @@
-#include "vcVSMF.h"
+#include "vcPolygonModel.h"
 
 #include "udPlatform/udPlatformUtil.h"
 #include "udPlatform/udMath.h"
@@ -7,15 +7,20 @@
 #include "vcCompass.h"
 #include "vCore/vStringFormat.h"
 
-enum meshFlags {
-  vMS_None = 0,
-  vMS_Normals = 1,
-  vMS_UVs = 2,
-  vMS_Tangents = 4,
-  vMS_SkinWeights = 8
+#include "gl/vcMesh.h"
+
+// TODO: do these need to be public to be accessible to the importer?
+enum vcPolygonModelVertexFlags
+{
+  vcPMVF_None = 0,
+  vcPMVF_Normals = 1,
+  vcPMVF_UVs = 2,
+  vcPMVF_Tangents = 4,
+  vcPMVF_SkinWeights = 8
 };
 
-struct VSMFHeader {
+struct VSMFHeader
+{
   uint16_t versionID;
   uint16_t flags;
   uint16_t numMaterials;
@@ -26,26 +31,33 @@ struct VSMFHeader {
   float maxXYZ[3];
 };
 
-struct VSMFMaterial {
+struct vcPolygonModelTexture
+{
+
+};
+
+struct vcPolygonModelMaterial
+{
   uint16_t flags;
   uint32_t BGRA;
 };
 
-struct VSMFMesh {
+struct vcPolygonModelMesh
+{
   uint16_t flags;
   uint16_t materialID;
   uint16_t LOD;
   uint16_t numVertices;
   uint16_t numElements;
-};
 
-struct VSMFTexture {
-
-};
-
-struct vcMeshyModel
-{
+  vcPolygonModelMaterial material;
   vcMesh *pMesh;
+};
+
+struct vcPolygonModel
+{
+  int meshCount;
+  vcPolygonModelMesh *pMeshes;
 
   vcShader *pShader;
   vcShaderConstantBuffer *pShaderConstantBuffer;
@@ -59,15 +71,15 @@ struct vcMeshyModel
   } shaderBuffer;
 };
 
-udResult vcVSMF_ReadData(void *pInputVSMF, int dataLength)
+udResult vcPolygonModel_CreateFromMemory(vcPolygonModel **ppModel, char *pData, int dataLength)
 {
-  if (pInputVSMF == nullptr || dataLength < sizeof(VSMFHeader))
+  if (pData == nullptr || dataLength < sizeof(VSMFHeader))
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
-  char *pFilePos = (char*)pInputVSMF;
+  udResult result = udR_Success;
+  char *pFilePos = pData;
 
-  VSMFHeader header;
+  VSMFHeader header = {};
 
   UD_ERROR_IF(!udStrBeginsWith(pFilePos, "VSMF"), udR_InvalidParameter_);
   pFilePos += 4; // "VSMF"
@@ -75,8 +87,8 @@ udResult vcVSMF_ReadData(void *pInputVSMF, int dataLength)
   // Header
   UD_ERROR_CHECK(udReadFromPointer(&header, pFilePos, &dataLength));
 
-  VSMFMaterial *pMaterials = udAllocType(VSMFMaterial, header.numMaterials, udAF_Zero);
-  VSMFMesh *pMeshes = udAllocType(VSMFMesh, header.numMeshes, udAF_Zero);
+  vcPolygonModelMaterial *pMaterials = udAllocType(vcPolygonModelMaterial, header.numMaterials, udAF_Zero);
+  vcPolygonModelMesh *pMeshes = udAllocType(vcPolygonModelMesh, header.numMeshes, udAF_Zero);
   //VSMFTexture *pTextures = udAllocType(VSMFTexture, header.numTextures, udAF_Zero);
 
   // Materials
@@ -97,7 +109,7 @@ udResult vcVSMF_ReadData(void *pInputVSMF, int dataLength)
     UD_ERROR_CHECK(udReadFromPointer(&pMeshes[i].numElements, pFilePos, &dataLength));
 
     //char *pNormals, pUVs;
-    uint32_t recordSize = 12;
+   /* uint32_t recordSize = 12;
 
     vcVertexLayoutTypes *pVertexLayout = udAllocType(vcVertexLayoutTypes, 4, udAF_Zero);
     vcVertexLayoutTypes *pNextVL = pVertexLayout;
@@ -106,14 +118,15 @@ udResult vcVSMF_ReadData(void *pInputVSMF, int dataLength)
 
     char *pNormals, *pUVs;
 
-    if (pMeshes[i].flags & vMS_Normals)
+    if (pMeshes[i].flags & vcPMVF_Normals)
     {
       *pNextVL = vcVLT_Normal3;
       ++pNextVL;
       recordSize += 12;
       pNormals = "float3 normal : NORMAL;";
     }
-    if (pMeshes[i].flags & vMS_UVs)
+
+    if (pMeshes[i].flags & vcPMVF_UVs)
     {
       *pNextVL = vcVLT_TextureCoords2;
       ++pNextVL;
@@ -130,11 +143,14 @@ udResult vcVSMF_ReadData(void *pInputVSMF, int dataLength)
 
     void *pIndices = pFilePos;
     pFilePos += pMeshes[i].numVertices;
+    */
+    vcPolygonModel *pNewModel = udAllocType(vcPolygonModel, 1, udAF_Zero);
+    pNewModel->meshCount = header.numMeshes;
 
-    vcMeshyModel *pNewModel = udAllocType(vcMeshyModel, 1, udAF_Zero);
-
-    UD_ERROR_CHECK(vcMesh_Create(&pNewModel->pMesh, pVertexLayout, (int)totalTypes, pVerts, pMeshes[i].numVertices, pIndices, pMeshes[i].numVertices));
-
+    for (int i = 0; i < pNewModel->meshCount; ++i)
+    {
+      UD_ERROR_CHECK(vcMesh_Create(&pNewModel->pMeshes[i].pMesh, pVertexLayout, (int)totalTypes, pVerts, pMeshes[i].numVertices, pIndices, pMeshes[i].numVertices));
+    }
     // const char *ppStrings[] = { pNormals, pUVs };
     // const char *pShaderConfig = vStringFormat("struct VS_INPUT { float3 pos : POSITION; {0} {1} };", ppStrings, 2);
 
@@ -153,41 +169,47 @@ udResult vcVSMF_ReadData(void *pInputVSMF, int dataLength)
 
     pNewModel->shaderBuffer.u_colour = color;
 
-    udFree(pVertexLayout);
+    //udFree(pVertexLayout);
   }
 
-  result = udR_Success;
-
 epilogue:
+  if (result != udR_Success)
+  {
+
+  }
   return result;
 }
 
-udResult vcVSMF_Render(vcMeshyModel *pModel, const udDouble4x4 &worldViewProj)
+udResult vcVSMF_Render(vcPolygonModel *pModel, const udDouble4x4 &worldViewProj)
 {
-  if (pModel == nullptr || pModel->pMesh == nullptr)
+  if (pModel == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result = udR_Success;
 
   pModel->shaderBuffer.u_viewProjectionMatrix = udFloat4x4::create(worldViewProj);
   pModel->shaderBuffer.u_sunDirection = udNormalize(udFloat3::create(1.0f, 0.0f, -1.0f));
 
   UD_ERROR_IF(!vcShader_Bind(pModel->pShader), udR_InternalError);
-  UD_ERROR_IF(!vcShader_BindConstantBuffer(pModel->pShader, pModel->pShaderConstantBuffer, &pModel->shaderBuffer, sizeof(vcMeshyModel::shaderBuffer)), udR_InputExhausted);
-  UD_ERROR_IF(!vcMesh_Render(pModel->pMesh), udR_InternalError);
+  UD_ERROR_IF(!vcShader_BindConstantBuffer(pModel->pShader, pModel->pShaderConstantBuffer, &pModel->shaderBuffer, sizeof(vcPolygonModel::shaderBuffer)), udR_InputExhausted);
 
-  result = udR_Success;
+  for (int i = 0; i < pModel->meshCount; ++i)
+    UD_ERROR_IF(!vcMesh_Render(pModel->pMeshes[i].pMesh), udR_InternalError);
 
 epilogue:
+  // todo: handle failures
   return result;
 }
 
-udResult vcVSMF_Destroy(vcMeshyModel **ppModel)
+udResult vcPolygonModel_Destroy(vcPolygonModel **ppModel)
 {
   if (ppModel == nullptr || *ppModel == nullptr)
     return udR_InvalidParameter_;
 
-  vcMesh_Destroy(&(*ppModel)->pMesh);
+  vcPolygonModel *pModel = (*ppModel);
+
+  for (int i = 0; i < pModel->meshCount; ++i)
+    vcMesh_Destroy(&(*ppModel)->pMeshes[i].pMesh);
 
   vcShader_DestroyShader(&(*ppModel)->pShader);
   udFree((*ppModel));
