@@ -20,7 +20,7 @@ void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLin
   {
     ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Yellow Exclamation in Triangle
     if (ImGui::IsItemHovered())
-      ImGui::SetTooltip("%s", vcString::Get("Pending"));
+      ImGui::SetTooltip("%s", vcString::Get("sceneExplorerPending"));
 
     if (sameLine)
       ImGui::SameLine();
@@ -29,7 +29,7 @@ void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLin
   {
     ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", loadingChars[currentLoadingChar % udLengthOf(loadingChars)]); // Yellow Spinning clock
     if (ImGui::IsItemHovered())
-      ImGui::SetTooltip("%s", vcString::Get("Loading"));
+      ImGui::SetTooltip("%s", vcString::Get("sceneExplorerLoading"));
 
     if (sameLine)
       ImGui::SameLine();
@@ -40,9 +40,9 @@ void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLin
     if (ImGui::IsItemHovered())
     {
       if (loadStatus == vcSLS_OpenFailure)
-        ImGui::SetTooltip("%s", vcString::Get("ModelOpenFailure"));
+        ImGui::SetTooltip("%s", vcString::Get("sceneExplorerErrorOpen"));
       else
-        ImGui::SetTooltip("%s", vcString::Get("ModelLoadFailure"));
+        ImGui::SetTooltip("%s", vcString::Get("sceneExplorerErrorLoad"));
     }
 
     if (sameLine)
@@ -179,16 +179,16 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         pProgramState->sceneExplorer.clickedItem = { this, i };
       }
 
-      if (ImGui::Selectable(vcString::Get("EditName")))
+      if (ImGui::Selectable(vcString::Get("sceneExplorerEditName")))
         m_children[i]->m_editName = true;
 
-      if (m_children[i]->m_pZone != nullptr && ImGui::Selectable(vcString::Get("UseProjection")))
+      if (m_children[i]->m_pZone != nullptr && ImGui::Selectable(vcString::Get("sceneExplorerUseProjection")))
       {
         if (vcGIS_ChangeSpace(&pProgramState->gis, m_children[i]->m_pOriginalZone->srid, &pProgramState->pCamera->position))
           pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, *m_children[i]->m_pOriginalZone);
       }
 
-      if (m_children[i]->m_type != vcSOT_Folder && ImGui::Selectable(vcString::Get("MoveTo")))
+      if (m_children[i]->m_type != vcSOT_Folder && ImGui::Selectable(vcString::Get("sceneExplorerMoveTo")))
       {
         udDouble3 localSpaceCenter = m_children[i]->GetWorldSpacePivot();
 

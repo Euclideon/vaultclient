@@ -25,50 +25,353 @@ Email support@euclideon.com to get your language included in the official bundle
 
 ## String List
 
-Strings are camelCase, with the module they are from and then the specific string key. For example, the convert module has an error message that is displayed when an unsupported filename is found, this is `convertErrorUnsupported`
+Strings are camelCase, with the module they are from and then the specific string key. For example, if the convert module has an error message that is displayed when an unsupported filename is found, this would be `convertErrorUnsupported`
 
 Modules are currently:
 - [Login](#login-strings)
-- [Camera](#camera-strings)
 - [Settings](#settings-strings)
+- [Convert](#convert-strings)
+- [Menu](#menu-strings)
+- [Scene](#scene-strings)
+- [Error](#error-strings)
 
 ### Login Strings
 
-- `loginTitle`: This is the title in the login box
-- `loginButton`: Used on the button on the login screen
-
+- `loginTitle`: Title of the login window
+- `loginButton`: Used on the button that logs in the user
+- `loginAbout`: Used on the button that opens the About window from the login screen
+- `loginReleaseNotes`: Used on the button that opens the Release Notes window from the login screen
 - `loginServerURL`: Vault Server address
-- `loginRememberServer` does the user want the server to be remembered?
-- `loginUsername` label for the username field.
-- `loginRememberUser`: does the user want their username to be remembered?
-- `loginShowPassword`: This is a button to show the users password
-- `loginPassword` label for the password field
-- `loginCapsWarning` is a warning when caps lock is enabled
-- `loginAdvancedSettings` is a label to expand the advanced settings
-- `loginProxyAddress` label for the proxy address field
-- `loginIgnoreCert`: This is a setting to disable many of the security checks when logging in
-- `loginIgnoreCertWarning`: This displays a warning to the user that disabling the security certificates is _really_ dangerous
+- `loginRememberServer`: Used on the button that remembers the server address
+- `loginUsername`: Label for the username field
+- `loginRememberUser`: Used on the button that remembers the username
+- `loginShowPassword`: Label for the button that toggles showing the user's password
+- `loginPassword`: Label for the password field
+- `loginCapsWarning`: Warning displayed when caps lock is enabled while logging in
+- `loginAdvancedSettings`: Subheading for expandable section containing advanced settings
+- `loginProxyAddress`: Label for the proxy address field
+- `loginIgnoreCert`: Label for a setting that disables many of the security checks when logging in
+- `loginIgnoreCertWarning`: This displays a warning to the user that disabling the security certificates is _very_ dangerous
+- `loginPending`: Used internally to set the login status to "pending"?
+- `loginMessageCredentials`: Prompts the user to enter their login information
+- `loginMessageChecking`: Tells the user to wait while their login information is confirmed
+- `loginErrorConnection`: Displays when the vault client fails to connect to the specified vault server
+- `loginErrorAuth`: Displays when the server rejects the specified username or password
+- `loginErrorTimeSync`: Displays when the local clock and server clock are not synchronised
+- `loginErrorSecurity`: Displays when the server fails a security check during a login attempt
+- `loginErrorNegotiate`: ?
+- `loginErrorProxy`: ?
+- `loginErrorOther`: Displays when an unknown error occurs during login, tells the user to try again
 
-- `loginMessageCredentials`: "Please enter your credentials..."
-- `loginMessageChecking`: "Checking with server..."
-- `loginMessagePending`: "Pending"
-- `loginErrorConnection`: "Could not connect to server."
-- `loginErrorAuth`: "Username or Password incorrect."
-- `loginErrorTimeSync`: "Your clock doesn't match the remote server clock."
-- `loginErrorSecurity`: "Could not open a secure channel to the server."
-- `loginErrorNegotiate`: "Unable to negotiate with server, please confirm the server address"
-- `loginErrorProxy`: "Unable to negotiate with proxy server, please confirm the proxy server address"
-- `loginErrorOther`: "Unknown error occurred, please try again later."
+### Settings Strings
 
-### Camera Strings
+- `settingsTitle`: Title of the settings tab
+- `settingsAppearance`: Title of the Appearance subheading in Settings
+- `settingsAppearanceRestoreDefaults`: Used to restore default values for all appearance settings
+- `settingsAppearanceTheme`: Label next to dropdown list to select appearance theme
+- `settingsAppearanceDark`: Dark option for appearance theme dropdown list
+- `settingsAppearanceLight`: Light option for appearance theme dropdown list
+- `settingsAppearanceShowDiagnostics`: Label next to the checkbox that toggles the display of diagnostic information in the menu bar
+- `settingsAppearanceAdvancedGIS`: Label next to the checkbox that toggles the display of advanced GIS settings in the viewport
+- `settingsAppearanceLimitFPS`: Label next to checkbox for limiting the frame-rate while vault client window is inactive or unselected
+- `settingsAppearanceShowCompass`: Label next to checkbox that toggles the appearance of a compass in the viewport
+- `settingsAppearanceMouseAnchor`: Label next to dropdown list to select the appearance of the mouse cursor when hovering over objects in the scene
+- `settingsAppearanceNone`: "None" option for mouse cursor appearance. If selected, mouse cursor retains its default appearance
+- `settingsAppearanceCompass`: Compass option for mouse cursor appearance
+- `settingsAppearanceOrbit`: Orbit option for mouse cursor appearance
+- `settingsAppearanceVoxelShape`: Label next to dropdown list to select the shape of the voxels that make up the models in the scene
+- `settingsAppearanceRectangles`: Rectangles option for voxel shape dropdown list
+- `settingsAppearanceCubes`: Cubes option for voxel shape dropdown list
+- `settingsAppearancePoints`: Points option for voxel shape dropdown list
+- `settingsAppearancePresentationUI`: Label for dropdown list to select whether the user interface (UI) is visible in presentation/fullscreen mode
+- `settingsAppearanceHide`: Hide option for presentation UI dropdown list, in fullscreen mode the UI will not be visible
+- `settingsAppearanceShow`: Show option for presentation UI dropdown list, in fullscreen mode the UI will be visible
+- `settingsAppearanceResponsive`: Responsive option for presentation UI dropdown list, in fullscreen mode the UI will only be visible if the user does something
+- `settingsControls`: Title of the Input & Controls subheading in Settings
+- `settingsControlsRestoreDefaults`: Used to restore default values for all controls settings
+- `settingsControlsOSC`: Label next to checkbox that toggles the appearance of on-screen camera controls in the viewport
+- `settingsControlsTouchUI`: Label next to checkbox that toggles UI optimisation for a touchscreen
+- `settingsControlsInvertX`: Label next to checkbox that toggles the positive/negative X-axis for the purposes of camera movement
+- `settingsControlsInvertY`: Label next to checkbox that toggles the positive/negative Y-axis for the purposes of camera movement
+- `settingsControlsMousePivot`: Subheading for the four dropdown lists used to assign bindings for mouse input
+- `settingsControlsTumble`: Option for Left, Middle and Right mouse button dropdown lists, rotates the camera without moving it
+- `settingsControlsOrbit`: Option for Left, Middle and Right mouse button dropdown lists, moves the camera while maintaining distance to the selected point
+- `settingsControlsPan`: Option for Left, Middle and Right mouse button dropdown lists, moves the camera perpendicular to its forward direction
+- `settingsControlsDolly`: Option for scrollwheel dropdown list, zooms camera in and out
+- `settingsControlsChangeMoveSpeed`: Option for scrollwheel dropdown list, changes the camera movement speed
+- `settingsControlsLeft`: Label next to dropdown list for selecting what the left mouse button does
+- `settingsControlsMiddle`: Label next to dropdown list for selecting what the middle mouse button does
+- `settingsControlsRight`: Label next to dropdown list for selecting what the right mouse button does
+- `settingsControlsScrollWheel`: Label next to dropdown list for selecting what the scrollwheel does
+- `settingsViewport`: Title of the Viewport subheading in Settings
+- `settingsViewportRestoreDefaults`: Used to restore default values for all viewport settings
+- `settingsViewportNearPlane`: Label next to slider for setting the minimum viewable distance
+- `settingsViewportFarPlane`: Label next to slider for setting the maximum viewable distance
+- `settingsViewportCameraLens`: Label next to dropdown list for selecting the camera's field of view
+- `settingsViewportFOV`: Label next to slider for setting a custom field of view
+- `settingsViewportDegrees`: Units used in slider for setting a custom field of view
+- `settingsMaps`: Title of the Maps & Elevation subheading in Settings
+- `settingsMapsRestoreDefaults`: Used to restore default values for all maps settings
+- `settingsMapsMapTiles`: Label next to checkbox for toggling the visibility of map tiles in the scene
+- `settingsMapsMouseLock`: Label next to checkbox for toggling whether or not the user can click on map tiles within the scene
+- `settingsMapsTileServerTitle`: Title used on tile server window
+- `settingsMapsTileServerButton`: Label used on button for opening the tile server window
+- `settingsMapsTileServer`: Label used next to textbox where user can enter the address of the tile server they wish to use
+- `settingsMapsTileServerLoading`: Message displayed in tile server window while vault client tries contacting the specified server
+- `settingsMapsTileServerErrorFetching`: Message displayed in tile server window when vault client fails to contact the specified server
+- `settingsMapsTileServerImageFormat`: Label next to dropdown list for selecting the file format of images obtained from the tile server
+- `settingsMapsTileServerCloseButton`: Label used on button for closing tile server window
+- `settingsMapsMapHeight`: Label next to slider for setting the height of map tiles in the scene
+- `settingsMapsHybrid`: Option in map blending dropdown list, will display map tiles only over scene objects which are below the specified map height
+- `settingsMapsOverlay`: Option in map blending dropdown list, will display map tiles over all scene objects
+- `settingsMapsUnderlay`: Option in map blending dropdown list, will display all scene objects over map tiles
+- `settingsMapsBlending`: Label next to dropdown list for selecting the style of map tile blending in the scene
+- `settingsMapsOpacity`: Label next to slider for setting the opacity of map tiles (opacity is the opposite of transparency)
+- `settingsMapsSetHeight`: Label used on button that sets the height of map tiles to the current camera height
+- `settingsVis`: Title of the Visualisation subheading in Settings
+- `settingsVisDisplayMode`: Label next to dropdown list for selecting how the scene is displayed
+- `settingsVisModeClassification`: Option in display mode dropdown list where the colour of scene objects is determined by the objects classification
+- `settingsVisModeColour`: Option in display mode dropdown list where scene objects are shown in their true colour
+- `settingsVisModeIntensity`: ?
+- `settingsVisMinIntensity`: ?
+- `settingsVisMaxIntensity`: ?
+- `settingsVisEdge`: Label next to checkbox for enabling voxel outlines
+- `settingsVisEdgeWidth`: Label next to slider for setting the width of voxel outlines
+- `settingsVisEdgeThreshold`: Label next to slider for setting the size limit for edges to consist of multiple voxels
+- `settingsVisEdgeColour`: Label next to colour selector for setting the colour of voxel outlines
+- `settingsVisHeight`: Label next to checkbox for enabling colouration of scene objects based on their height
+- `settingsVisHeightStartColour`: Label next to colour selector for setting the colour of objects towards the minimum height
+- `settingsVisHeightEndColour`: Label next to colour selector for setting the colour of objects towards the maximum height
+- `settingsVisHeightStart`: Label next to slider for setting the minimum height for colouration
+- `settingsVisHeightEnd`: Label next to slider for setting the maximum height for colouration
+- `settingsVisDepth`: Label next to checkbox for enabling colouration of scene objects based on their distance from the camera (depth)
+- `settingsVisDepthColour`: Label next to colour selector for setting the colour of objects towards the maximum depth
+- `settingsVisDepthStart`: Label next to slider for setting the minimum depth for colouration
+- `settingsVisDepthEnd`: Label next to slider for setting the maximum depth for colouration
+- `settingsVisContours`: Label next to checkbox for enabling an overlay of contours indicating the height of scene objects
+- `settingsVisContoursColour`: Label next to colour selector for setting the colour of contours
+- `settingsVisContoursDistances`: Label next to slider for setting the vertical distance between each contour
+- `settingsVisContoursBandHeight`: Label next to slider for setting the vertical size of each contour
+- `settingsVisRestoreDefaults`: Used to restore default values for all visualisation settings
+- `settingsVisClassRestoreDefaults`: Label on a button that restores default values for all classifications and colours
+- `settingsVisClassShowColourTable`: Label next to checkbox that opens table for defining colours for each classification
+- `settingsVisClassNeverClassified`: Label for classification #0
+- `settingsVisClassUnclassified`: Label for classification #1
+- `settingsVisClassGround`: Label for classification #2
+- `settingsVisClassLowVegetation`: Label for classification #3
+- `settingsVisClassMediumVegetation`: Label for classification #4
+- `settingsVisClassHighVegetation`: Label for classification #5
+- `settingsVisClassBuilding`: Label for classification #6
+- `settingsVisClassLowPoint`: Label for classification #7
+- `settingsVisClassKeyPoint`: Label for classification #8
+- `settingsVisClassWater`: Label for classification #9
+- `settingsVisClassRail`: Label for classification #10
+- `settingsVisClassRoadSurface`: Label for classification #11
+- `settingsVisClassReserved`: Label for classification #12
+- `settingsVisClassWireGuard`: Label for classification #13
+- `settingsVisClassWireConductor`: Label for classification #14
+- `settingsVisClassTransmissionTower`: Label for classification #15
+- `settingsVisClassWireStructureConnector`: Label for classification #16
+- `settingsVisClassBridgeDeck`: Label for classification #17
+- `settingsVisClassHighNoise`: Label for classification #18
+- `settingsVisClassReservedColours`: Title for expandable subheading containing classifications #19 to #63
+- `settingsVisClassReservedLabels`: Label used for classifications #19 to #63
+- `settingsVisClassUserDefinable`: Title for expandable subheading containing classifications #64 to #255
+- `settingsVisClassUserDefined`: Default label used for unnamed classifications #64 to #255
+- `settingsVisClassRename`: Label for rename button beside each user definable classification
+- `settingsVisClassSet`: Label for button that appears beside a textbox when renaming a user definable classification, used to confirm the new name
 
-- `cameraLatLongAlt`: Used to display the latitude, longitude and altitude information where applicable
-  1. {0} Latitiude (in degrees)
-  2. {1} Longitude (in degrees)
-  3. {2} Altitude (in SRID space)
-- `cameraPosition`: Is used in the camera info box so the user can change the position of the camera (in the current SRID)
-- `cameraRotation`: Is used in the camera info box so the user can change the orientation of the camera
-- `cameraMoveSpeed`: Is used on the slider in the camera info box to let the user change the speed of the camera.
-- `cameraOutOfBounds`: Is displayed in the camera info box when the camera is outside of the requested geozone. This is intended to alert the user that the space is distorted
-- `cameraOSCMove`: This text is displayed on the forward, back and strage button of the on screen controls. (note that this setting is deprecated to be removed)
-- `cameraOSCUpDown`: This is the text in the up/down section of the on screen controls. (note that this setting is deprecated to be removed)
+### Convert Strings
+
+- `convertTitle`: Title of the convert tab
+- `convertReadingFile`: Progress message displayed when reading a file during a convert job
+- `convertWritingPoints`: Progress message displayed when writing to the new file during a convert job
+- `convertAddToScene`: Label for button that appears following a successful convert job that adds the new object to the scene
+- `convertSettings`: Subheading for section where user can customise settings for the convert job
+- `convertOutputName`: Label next to text box where user specifies the path and name of the output file generation from the convert job
+- `convertTempDirectory`: Label next to text box where user specifies the path of the folder used to store temporary files during the convert job
+- `convertContinueOnCorrupt`: Label next to checkbox to set whether or not convert job should try to continue upon encountering an error
+- `convertPointResolution`: Label showing the current point resolution of the convert job
+- `convertInputDataRanges`: Label showing the min and max point resolution values of the convert job
+- `convertOverride`: Label next to checkboxes that are used to set a custom point resolution or SRID
+- `convertMetadata`: Subheading for section where user can define metadata for the file that results from the convert job
+- `convertNoWatermark`: This message displays when no watermark image has been chosen for the current convert job
+- `convertLicense`: Label next to text box where user can enter license information to be assigned to the output file
+- `convertCopyright`: Label next to text box where user can enter copyright information to be assigned to the output file
+- `convertComment`: Label next to text box where user can set the value of the comment field in the output file
+- `convertAuthor`: Label next to text box where user can set the value of the author field in the output file
+- `convertReset`: Label used for button that resets a completed (or cancelled?) convert job
+- `convertBeginConvert`: Label used for button that commences the currently selected convert job(s)
+- `convertReading`: Used in progress message to indicate that the convert job has begun
+- `convertPointsAbbreviation`: Abbreviation of the word "points", used in progress message during an active convert job
+- `convertLoadWatermark`: Label used for button that opens the "load watermark" window
+- `convertRemoveWatermark`: Label used for button that appears once a watermark has been loaded and is used to remove the loaded watermark
+- `convertEstimate`: Used in progress message indicating that the number of points in a queued convert job is an estimate only?
+- `convertRead`: Used in progress message to indicate how many points have been read
+- `convertRemoveAll`: Label used for button that removes all queued convert jobs
+- `convertInputFiles`: Subheading for section showing all currently queued convert jobs, will not appear if no jobs have been added
+- `convertFiles`: Label used to indicate how many files are currently in the queue
+- `convertSRID`: Label showing the current SRID of the convert job
+- `convertPoints`: Label used to show the number of points in a queued file
+- `convertRemove`: Label used for buttons that appear beside each queued file which remove them individually from the queue
+- `convertPathURL`: Label next to text box in Load Watermark window containing the path of the watermark image file
+- `convertLoadButton`: Label used for button in Load Watermark window that loads the currently selected file and closes the window
+- `convertCancelButton`: Label used for button beside in Load Watermark window that closes the window
+
+### Menu Strings
+
+- `menuSystem`: Header for System menu
+- `menuRestoreDefaults`: Option in System menu, restores most vault client settings to their default values
+- `menuQuit`: Option in System menu, exits the program
+- `menuWindows`: Header for Windows menu
+- `menuScene`: Option in Windows menu to enable the Scene tab
+- `menuConvert`: Option in Windows menu to enable the Convert tab
+- `menuSceneExplorer`: Option in Windows menu to enable the Scene Explorer tab
+- `menuSettings`: Option in Windows menu to enable the Settings tab
+- `menuProjects`: Header for Projects menu
+- `menuNewScene`: Option in Projects menu to remove all objects in the current scene and creating a new, empty scene
+
+- `menuLogout`: Logout option in System menu, logs the user out and opens the logout window
+- `menuLogoutTitle`: Title of logout window
+- `menuLogoutMessage`: Message displayed in logout window, informs the user that they have been logged out
+- `menuLogoutCloseButton`: Label for button that closes the logout window
+-
+- `menuReleaseNotes`: Option in System menu, opens the Release Notes window
+- `menuReleaseNotesTitle`: Title of Release Notes window
+- `menuReleaseNotesFail`: Displayed when client fails to load text from the Release Notes file
+- `menuReleaseNotesShort`: String used internally as ID for displaying the Release Notes window?
+- `menuReleaseNotesCloseButton`: Label used on the close button of the Release Notes window
+
+- `menuAbout`: Option in System menu, opens the About window
+- `menuAboutTitle`: Title for the About window
+- `menuAboutVersion`: Used in the About window to show the current version of vault client
+- `menuAboutLicenseInfo`: Used in the About window to indicate that it contains third party license information
+- `menuAboutCloseButton`: Label used on the close button of the About window
+- `menuAboutPackageUpdate`: Used to show information about the most recent package update?
+
+- `menuImport`: Option in Projects menu, opens the Import sub-menu
+- `menuImportUDP`: Option in Import sub-menu, opens the Import UDP Window
+- `menuImportUDPTitle`: Title of the Import UDP Window
+- `menuImportCSV`: Option in Import sub-menu, opens the Import CSV Window
+- `menuImportCSVTitle`: Title of the Import CSV Window
+
+- `menuCurrentVersion`: Used to display the current version of vault client in the Release Notes and "New Version Available" windows
+- `menuNewVersionAvailableTitle`: Title of "New Version Available" window
+- `menuNewVersion`: Used to display the new version of vault client that is available
+- `menuNewVersionDownloadPrompt`: Tells the user how to download the new version of vault client
+- `menuNewVersionCloseButton`: Label used for the close button of the "New Version Available" window
+
+- `menuBarUpdateAvailable`: Message shown in the menu bar when there is a new version of vault client available
+- `menuBarFilesQueued`: Used to show in the menu bar how many files have been queued for importing into the scene
+  - {0} = number of files queued?
+- `menuBarConvert`: Used to display the status of the convert license
+- `menuBarLicense`: Used to display that the menu bar is showing the status of the convert or render licenses
+- `menuBarRender`: Used to display the status of the render license
+- `menuBarConnectionStatus`: Used to display the current connection status between vault client and the server
+- `menuBarFPS`: Displays vault client's current framerate in both frames per second (fps) and milliseconds (ms)
+  - {0} = framerate in frames/s
+  - {1} = framerate in ms/frame
+- `menuBarSecondsAbbreviation`: Abbreviation used to display the number of seconds remaining before license expiration
+- `menuBarLicenseExpired`: Used to indicate when the render or convert license has expired
+- `menuBarLicenseQueued`: Used to indicate the position of a file being imported in the import queue?
+- `menuBarInactive`: Used to indicate that vault client is not the currently selected window and is running in the background
+
+### Scene Strings
+
+- `sceneTitle`: Title of the Scene tab
+- `sceneImageViewerTitle`: Title of the Image Viewer window
+- `sceneImageViewerCloseButton`: Label used for the close button of the Image Viewer window
+- `sceneGeographicInfo`: Used to display the geographic information in the corner of the viewport
+- `sceneNotGeolocated`: Displays when the current location of the camera is not in a known geographic area
+- `sceneUnsupportedSRID`: `Unsupported SRID`,
+- `sceneMousePointInfo`: `Mouse Point (Projected)`,
+- `sceneMousePointWGS`: `Mouse Point (WGS84)`,
+- `sceneSRID`: `SRID`,
+- `sceneOverrideSRID`: `Override SRID`,
+- `sceneMapCopyright`: `MapCopyright`,
+- `sceneMapData`: `Map Data © OpenStreetMap contributors`,
+- `sceneSetMapHeight`: `Set as map height`,
+- `sceneAddPOI`: `Add POI here`,
+- `sceneMoveTo`: `Move To`,
+
+- `sceneLockAltitude`: `Lock Altitude`,
+- `sceneLockAltitudeKey`: `Space`,
+- `sceneCameraInfo`: `Show Camera Information`,
+- `sceneProjectionInfo`: `Show Projection Information`,
+- `sceneGizmoTranslate`: `Gizmo Translate`,
+- `sceneGizmoTranslateKey`: `B`,
+- `sceneGizmoRotate`: `Gizmo Rotate`,
+- `sceneGizmoRotateKey`: `N`,
+- `sceneGizmoScale`: `Gizmo Scale`,
+- `sceneGizmoScaleKey`: `M`,
+- `sceneGizmoLocalSpace`: `Gizmo Local Space`,
+- `sceneGizmoLocalSpaceKey`: `C`,
+- `sceneFullscreen`: `Fullscreen`,
+- `sceneFullscreenKey`: `F5`,
+
+- `sceneCameraSettings`: `Camera Settings`,
+- `sceneCameraLatLongAlt`: Used to display the latitude, longitude and altitude information where applicable
+  - {0} = Latitude (in degrees)
+  - {1} = Longitude (in degrees)
+  - {2} = Altitude (in SRID space)
+- `sceneCameraPosition`: Is used in the camera info box so the user can change the position of the camera (in the current SRID)
+- `sceneCameraRotation`: Is used in the camera info box so the user can change the orientation of the camera
+- `sceneCameraMoveSpeed`: Is used on the slider in the camera info box to let the user change the speed of the camera
+- `sceneCameraOutOfBounds`: Is displayed in the camera info box when the camera is outside of the requested geozone. This is intended to alert the user that the space is distorted
+- `sceneCameraOSCMove`: This text is displayed on the forward, back and strage button of the on screen controls (note that this setting is deprecated to be removed)
+- `sceneCameraOSCUpDown`: This is the text in the up/down section of the on screen controls (note that this setting is deprecated to be removed)
+
+- `sceneExplorerTitle`: `Scene Explorer`,
+- `sceneExplorerRemove`: `Remove Selected`,
+- `sceneExplorerRemoveKey`: `Delete`,
+- `sceneExplorerAddUDS`: `Add UDS`,
+- `sceneExplorerAddUDSKey`: `Ctrl+U`,
+- `sceneExplorerAddUDSTitle`: `Add UDS to Scene`,
+- `sceneExplorerAddPOI`: `Add Point of Interest`,
+- `sceneExplorerAddAOI`: `Add Area of Interest`,
+- `sceneExplorerAddLines`: `Add Lines`,
+- `sceneExplorerAddOther`: `Add Other`,
+- `sceneExplorerAddFeed`: `Add Live Feed`,
+- `sceneExplorerAddFolder`: `Add Folder`,
+- `sceneExplorerEditName`: `Edit Name`,
+- `sceneExplorerUseProjection`: `Use Projection`,
+- `sceneExplorerMoveTo`: `Move To`,
+- `sceneExplorerPathURL`: `Path/URL:`,
+- `sceneExplorerLoadButton`: `Load`,
+- `sceneExplorerCancelButton`: `Cancel`,
+
+- `sceneExplorerErrorOpen`: `Could not open the model, perhaps it is missing or you don't have permission to access it.`,
+- `sceneExplorerErrorLoad`: `Failed to load model`,
+- `sceneExplorerNotImplementedTitle`: `Not Implemented`,
+- `sceneExplorerNotImplementedMessage`: `Sorry, this functionality is not yet available.`,
+- `sceneExplorerNotImplementedCloseButton`: `Close`,
+- `sceneExplorerPending`: `Pending`,
+- `sceneExplorerLoading`: `Loading`,
+- `sceneExplorerPOIDefaultName`: `Point of interest`,
+- `sceneExplorerFolderDefaultName`: `Folder`,
+
+- `scenePOIDefaultName`: `Point of interest`,
+- `scenePOIPosition`: `Position`,
+- `scenePOIPoint`: `Point`,
+- `scenePOIPoints`: `Points`,
+- `scenePOILength`: `Length`,
+- `scenePOIArea`: `Area`,
+- `scenePOILineColour`: `Line Colour`,
+- `scenePOILineWidth`: `Line Width`,
+- `scenePOILabelColour`: `Text Colour`,
+- `scenePOILabelBackgroundColour`: `Background Colour`,
+- `scenePOILabelHyperlink`: `Hyperlink`,
+- `scenePOILabelOpenHyperlink`: `Open Hyperlink`,
+- `scenePOILineStyle`: `Line Style`,
+- `scenePOIArrow`: `Arrow`,
+- `scenePOIGlow`: `Glow`,
+- `scenePOISolid`: `Solid`,
+
+### Error Strings
+
+- `errorTitle`: `Error`,
+- `errorUnknown`: `Unknown Error.`,
+- `errorOpening`: `Error opening file.`,
+- `errorReading`: `Error reading file.`,
+- `errorWriting`: `Error writing to file.`,
+- `errorCloseButton`: `Close`
