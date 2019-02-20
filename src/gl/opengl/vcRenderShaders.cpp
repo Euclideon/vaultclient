@@ -163,7 +163,7 @@ uniform sampler2D u_texture;
 void main()
 {
   vec4 col = texture(u_texture, v_uv);
-  out_Colour = vec4(col.xyz * v_colour.xyz, 1.0) * v_colour.w;
+  out_Colour = vec4(col.xyz * v_colour.xyz, v_colour.w);
 }
 )shader";
 

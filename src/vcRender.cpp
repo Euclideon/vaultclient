@@ -376,7 +376,7 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
     for (int i = 0; i < 4; ++i)
       vcGIS_SlippyToLocal(renderData.pGISSpace, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
-    vcTileRenderer_Update(pRenderContext->pTileRenderer, renderData.pGISSpace, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, viewProjection);
+    vcTileRenderer_Update(pRenderContext->pTileRenderer, renderData.deltaTime, renderData.pGISSpace, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, viewProjection);
     vcTileRenderer_Render(pRenderContext->pTileRenderer, pRenderContext->pCamera->matrices.view, pRenderContext->pCamera->matrices.projection);
 
     if (pRenderContext->pSettings->maptiles.mouseInteracts)
@@ -400,7 +400,7 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
 void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   vcGLState_ResetState();
-  vcGLState_SetBlendMode(vcGLSBM_AdditiveSrcInterpolativeDst);
+  vcGLState_SetBlendMode(vcGLSBM_Interpolative);
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
