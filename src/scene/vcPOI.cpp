@@ -29,10 +29,10 @@ vcPOI::vcPOI(const char *pName, uint32_t nameColour, double namePt, udDouble3 po
   Init(pName, nameColour, namePt, &temp, srid, pNotes);
 }
 
-void vcPOI::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
+void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
   // if POI is invisible or if it exceeds maximum visible POI distance
-  if (!visible || udMag3(pLabelInfo->worldPosition - pProgramState->pCamera->position) > pProgramState->settings.presentation.POIFadeDistance)
+  if (!m_visible || udMag3(m_pLabelInfo->worldPosition - pProgramState->pCamera->position) > pProgramState->settings.presentation.POIFadeDistance)
     return;
 
   if (m_pFence != nullptr)
