@@ -114,6 +114,10 @@ void vcScene_RemoveAll(vcState *pProgramState)
   pProgramState->sceneExplorer.selectedItems.clear();
 
   vcRender_ClearTiles(pProgramState->pRenderContext);
+  vcGIS_ChangeSpace(&pProgramState->gis, 0);
+
+  if (pProgramState->pCamera != nullptr) // This is destroyed before the scene
+    pProgramState->pCamera->position = udDouble3::zero();
 }
 
 void vcScene_RemoveSelected(vcState *pProgramState, vcFolder *pFolder)

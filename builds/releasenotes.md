@@ -23,6 +23,7 @@ Version 0.2.1
   - Fixed issue with load file modal textbox retaining previously loaded file
   - Map tiles now fade in
   - Fixed an issue with fence rendered UV calculation sometimes being incorrect
+  - The projected space and camera position are reset back to 0 when clearing the scene
 
 Version 0.2.0
   ADDITIONS & FIXES
