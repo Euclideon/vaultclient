@@ -388,6 +388,6 @@ const char* const g_FenceFragmentShader = FRAG_HEADER R"shader(
   void main()
   {
     vec4 texCol = texture(u_texture, v_uv);
-    out_Colour = vec4(texCol.xyz * v_colour.xyz, 1.0) * texCol.w * v_colour.w;
+    out_Colour = vec4(texCol.xyz * v_colour.xyz, texCol.w * v_colour.w);
   }
 )shader";
