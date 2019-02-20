@@ -1,5 +1,6 @@
 #include "udGeoZone.h"
 #include "udPlatformUtil.h"
+#include "udJSON.h"
 
 // Stored as g_udGZ_StdTransforms FROM WGS84 to the given datum
 struct udGeoZoneGeodeticDatumDescriptor
@@ -583,11 +584,171 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
       return udR_ObjectNotFound;
     }
   }
-  pZone->pDatumShortName = g_udGZ_GeodeticDatumDescriptors[pZone->datum].pShortName;
-  pZone->pDatumName = g_udGZ_GeodeticDatumDescriptors[pZone->datum].pDatumName;
-  pZone->srid = sridCode; // Assign last as an indicator of valid zone
+  pZone->srid = sridCode;
+  udStrcpy(pZone->datumName, udLengthOf(pZone->datumName), g_udGZ_GeodeticDatumDescriptors[pZone->datum].pDatumName);
+  udStrcpy(pZone->datumShortName, udLengthOf(pZone->datumShortName), g_udGZ_GeodeticDatumDescriptors[pZone->datum].pShortName);
 
   return udR_Success;
+}
+
+// ----------------------------------------------------------------------------
+// Author: Jon Kable, February 2019
+// Once unitMetreScale, semiMajorAxis and flattening have all been identified, this helper function can be called to perform all remaining calculations
+static void udGeoZone_MetreScaleSpheroidMaths(udGeoZone *pZone)
+{
+  pZone->semiMajorAxis /= pZone->unitMetreScale;
+  double a = pZone->semiMajorAxis;
+  double f = pZone->flattening;
+  double b = a * (1 - f); // b=a*(1-f)
+  pZone->semiMinorAxis = b; // in feet or metres
+  pZone->eccentricity = udSqrt(a*a - b*b) / a; // e=sqrt(a^2-b^2)/a
+  pZone->eccentricitySq = udPow(pZone->eccentricity, 2);
+  pZone->thirdFlattening = (a - b) / (a + b); // tf=(a-b)/(a+b)
+  udGeoZone_SetSpheroid(pZone);
+}
+
+// ----------------------------------------------------------------------------
+// Author: Jon Kable, February 2019
+// Helper function for parsing through WellKnownText data
+static void udGeoZone_JSONTreeSearch(udGeoZone *pZone, udJSON *wkt, const char *pStr)
+{
+  size_t n = wkt->Get("%s", pStr).ArrayLength();
+  for (size_t i = 0; i < n; ++i)
+  {
+    // Data Extraction
+    const char *pElem = nullptr;
+    const char *pVal = nullptr;
+    udSprintf(&pElem, "%s[%d]", pStr, (int)i);
+    const char *pType = wkt->Get("%s.type", pElem).AsString();
+    const char *pName = wkt->Get("%s.name", pElem).AsString();
+
+    if (pType == nullptr)
+    {
+      // nothing to check
+    }
+    else if (udStrEqual(pType, "PARAMETER"))
+    {
+      if (udStrEqual(pName, "false_easting"))
+        pZone->falseEasting = wkt->Get("%s.values[0]", pElem).AsDouble();
+      else if (udStrEqual(pName, "false_northing"))
+        pZone->falseNorthing = wkt->Get("%s.values[0]", pElem).AsDouble();
+      else if (udStrEqual(pName, "scale_factor"))
+        pZone->scaleFactor = wkt->Get("%s.values[0]", pElem).AsDouble();
+      else if (udStrEqual(pName, "central_meridian"))
+        pZone->meridian = wkt->Get("%s.values[0]", pElem).AsDouble();
+      else if (udStrEqual(pName, "latitude_of_origin")) // aka parallel of origin
+        pZone->parallel = wkt->Get("%s.values[0]", pElem).AsDouble();
+      else if (udStrEqual(pName, "standard_parallel_1"))
+        pZone->firstParallel = wkt->Get("%s.values[0]", pElem).AsDouble();
+      else if (udStrEqual(pName, "standard_parallel_2"))
+        pZone->secondParallel = wkt->Get("%s.values[0]", pElem).AsDouble();
+    }
+    else if (udStrEqual(pType, "UNIT"))
+    {
+      if (pZone->unitMetreScale == 0 && (udStrstr(pName, 0, "foot") || udStrstr(pName, 0, "feet") || udStrstr(pName, 0, "ft") || udStrstr(pName, 0, "metre")))
+      {
+        pZone->unitMetreScale = wkt->Get("%s.values[0]", pElem).AsDouble();
+        if (pZone->semiMajorAxis != 0)
+        {
+          udGeoZone_MetreScaleSpheroidMaths(pZone);
+        }
+      }
+    }
+    else if (udStrEqual(pType, "PROJCS"))
+    {
+      size_t pIndex = 0;
+      const char *pNameStr = udStrchr(pName, "/", &pIndex); // sometimes the PROJCS name is listed in WKT as: 'shortname / longname'...
+      if (pNameStr != nullptr)
+      {
+        pNameStr += 2; // ...if so, ignore the '/' and the space following it, focus only on 'longname'
+        udStrcpy(pZone->zoneName, udLengthOf(pZone->zoneName), pNameStr);
+      }
+      else
+      {
+        udStrcpy(pZone->zoneName, udLengthOf(pZone->zoneName), pName);
+      }
+
+      udSprintf(&pVal, "%s.values", pElem);
+      size_t numValues = wkt->Get("%s", pVal).ArrayLength();
+      for (size_t j = 0; j < numValues; ++j)
+      {
+        if (udStrEqual(wkt->Get("%s[%d].type", pVal, (int)j).AsString(), "AUTHORITY"))
+        {
+          pZone->srid = wkt->Get("%s[%d].values[0]", pVal, (int)j).AsInt(); // the authority tag directly under PROJCS is the srid
+          break;
+        }
+      }
+    }
+    else if (udStrEqual(pType, "GEOGCS"))
+    {
+      for (int j = 0; j < udGZGD_Count; ++j)
+      {
+        if (udStrEqual(g_udGZ_GeodeticDatumDescriptors[j].pFullName, pName))
+        {
+          pZone->datum = (udGeoZoneGeodeticDatum)j; // enum ordering corresponds to GDD dataset ordering
+          udStrcpy(pZone->datumShortName, udLengthOf(pZone->datumShortName), g_udGZ_GeodeticDatumDescriptors[j].pShortName);
+          break;
+        }
+      }
+    }
+    else if (udStrEqual(pType, "DATUM"))
+    {
+      udStrcpy(pZone->datumName, udLengthOf(pZone->datumName), pName);
+    }
+    else if (udStrEqual(pType, "PROJECTION"))
+    {
+      if (udStrstr(pName, 0, "Mercator"))
+      {
+        pZone->projection = udGZPT_TransverseMercator;
+        if (pZone->scaleFactor == 0) // default for TM is 0.9996
+          pZone->scaleFactor = 0.9996;
+      }
+      else if (udStrstr(pName, 0, "Lambert"))
+      {
+        pZone->projection = udGZPT_LambertConformalConic2SP;
+        if (pZone->scaleFactor == 0) // default for lambert is 1.0
+          pZone->scaleFactor = 1;
+      }
+    }
+    else if (udStrEqual(pType, "SPHEROID"))
+    {
+      pZone->semiMajorAxis = wkt->Get("%s.values[0]", pElem).AsDouble(); // in feet or metres
+      pZone->flattening = 1.0 / wkt->Get("%s.values[1]", pElem).AsDouble(); // inverse flattening
+      if (pZone->unitMetreScale != 0)
+      {
+        udGeoZone_MetreScaleSpheroidMaths(pZone);
+      }
+    }
+
+    // Recursive Iteration (or Iterative Recursion)
+    udSprintf(&pVal, "%s.values", pElem);
+    udFree(pElem);
+    if (wkt->Get("%s", pVal).ArrayLength() > 0)
+    {
+      udGeoZone_JSONTreeSearch(pZone, wkt, pVal);
+    }
+    udFree(pVal);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Author: Jon Kable, February 2019
+udResult udGeoZone_SetFromWKT(udGeoZone *pZone, const char *pWKT)
+{
+  if (pZone == nullptr || pWKT == nullptr)
+    return udR_InvalidParameter_;
+  else
+    memset(pZone, 0, sizeof(udGeoZone));
+
+  udJSON wkt;
+  udParseWKT(&wkt, pWKT);
+
+  // recursive helper function
+  udGeoZone_JSONTreeSearch(pZone, &wkt, "values");
+
+  if (pZone->scaleFactor != 0 && !udStrEqual(pZone->datumShortName, "") && pZone->semiMajorAxis != 0) // ensure some key variables are not null
+    return udR_Success;
+  return udR_Failure_;
 }
 
 // ----------------------------------------------------------------------------
@@ -867,7 +1028,7 @@ udDouble4x4 udGeoZone_TransformMatrix(const udDouble4x4 &matrix, const udGeoZone
     return matrix;
 
   // A very large model will lead to inaccuracies, so in this case, scale it down
-  double accuracyScale = (matrix.a[0] < 1.0) ? 1.0 : 1.0 / matrix.a[0]; //TODO: This fix needs to be retained between updates of udPlatform
+  double accuracyScale = (matrix.a[0] > 1000) ? matrix.a[0] / 1000.0 : 1.0;
 
   udDouble3 llO = udGeoZone_ToLatLong(sourceZone, matrix.axis.t.toVector3());
   udDouble3 llX = udGeoZone_ToLatLong(sourceZone, matrix.axis.t.toVector3() + (matrix.axis.x.toVector3() * accuracyScale));
