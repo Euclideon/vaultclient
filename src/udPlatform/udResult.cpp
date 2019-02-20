@@ -51,6 +51,7 @@ udResultInfo udResultInfoArray[] =
   RESULTINFO(udR_OutOfOrder),
   RESULTINFO(udR_OutOfRange),
   RESULTINFO(udR_CalledMoreThanOnce),
+  RESULTINFO(udR_ImageLoadFailure),
 
   RESULTINFO(udR_OpenFailure),
   RESULTINFO(udR_CloseFailure),
