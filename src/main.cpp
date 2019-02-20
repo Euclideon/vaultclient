@@ -30,7 +30,7 @@
 #include "vcStrings.h"
 #include "vcModals.h"
 #include "vcLiveFeed.h"
-#include "vcVSMF.h"
+#include "vcPolygonModel.h"
 
 #include "vCore/vStringFormat.h"
 
@@ -603,8 +603,21 @@ int main(int argc, char **args)
                 void *pFileData = nullptr;
                 int64_t fileLen = -1;
 
+                vcPolygonModel *pModel = nullptr;
                 if (udFile_Load(pNextLoad, &pFileData, &fileLen) == udR_Success)
-                  vcVSMF_ReadData(pFileData, (int)fileLen);
+                {
+                  udResult modelLoadResult = vcPolygonModel_CreateFromMemory(&pModel, (char*)pFileData, (int)fileLen);
+                  if (modelLoadResult != udR_Success)
+                  {
+                    // TODO: error report
+                    printf("ERROR LOADING MODEL (%s)\n", udResultAsString(modelLoadResult));
+                  }
+                }
+
+                if (pModel)
+                {
+                  // TODO: add to render queue
+                }
 
                 udFree(pFileData);
               }
