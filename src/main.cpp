@@ -1500,10 +1500,11 @@ void vcRenderWindow(vcState *pProgramState)
         // Checks so the casts below are safe
         UDCOMPILEASSERT(sizeof(pProgramState->settings.presentation.mouseAnchor) == sizeof(int), "MouseAnchor is no longer sizeof(int)");
 
+        ImGui::SliderFloat(vcString::Get("POICutoff"), &pProgramState->settings.presentation.POIFadeDistance, 0.f, 1000000.f, "%.3fm", 3.f);
+
         ImGui::Checkbox(vcString::Get("ShowDiagnostics"), &pProgramState->settings.presentation.showDiagnosticInfo);
         ImGui::Checkbox(vcString::Get("AdvancedGIS"), &pProgramState->settings.presentation.showAdvancedGIS);
         ImGui::Checkbox(vcString::Get("LimitFPS"), &pProgramState->settings.presentation.limitFPSInBackground);
-
         ImGui::Checkbox("Show Compass On Screen", &pProgramState->settings.presentation.showCompass);
 
         const char *presentationOptions[] = { vcString::Get("Hide"), vcString::Get("Show"), vcString::Get("Responsive") };
