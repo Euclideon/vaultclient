@@ -62,20 +62,20 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   bool reConfig = false;
 
-  if (vcIGSW_ColorPickerU32(udTempStr("%s##POIColor%zu", vcString::Get("LabelColour"), *pItemID), &m_nameColour, ImGuiColorEditFlags_None))
+  if (vcIGSW_ColorPickerU32(udTempStr("%s##POIColor%zu", vcString::Get("scenePOILabelColour"), *pItemID), &m_nameColour, ImGuiColorEditFlags_None))
     m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
 
-  if (vcIGSW_ColorPickerU32(udTempStr("%s##POIBackColor%zu", vcString::Get("LabelBackgroundColour"), *pItemID), &m_backColour, ImGuiColorEditFlags_None))
+  if (vcIGSW_ColorPickerU32(udTempStr("%s##POIBackColor%zu", vcString::Get("scenePOILabelBackgroundColour"), *pItemID), &m_backColour, ImGuiColorEditFlags_None))
     m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
 
   bool lines = m_line.numPoints > 1;
 
   if (lines)
   {
-    if (vcIGSW_ColorPickerU32(vcString::Get("LineColour"), &m_line.lineColour, ImGuiColorEditFlags_None))
+    if (vcIGSW_ColorPickerU32(vcString::Get("scenePOILineColour"), &m_line.lineColour, ImGuiColorEditFlags_None))
       reConfig = true;
 
-    if (ImGui::BeginCombo(vcString::Get("Points"), udTempStr("%s %zu", vcString::Get("Point"), m_line.selectedPoint + 1)))
+    if (ImGui::BeginCombo(vcString::Get("scenePOIPoints"), udTempStr("%s %zu", vcString::Get("scenePOIPoint"), m_line.selectedPoint + 1)))
     {
       for (size_t i = 1; i <= m_line.numPoints; ++i)
         if (ImGui::Selectable(udTempStr("%s %zu", vcString::Get("Point"), i)))
@@ -85,7 +85,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     }
   }
 
-  ImGui::TextWrapped("%s: %.2f, %.2f, %.2f", vcString::Get("Position"), m_line.pPoints[m_line.selectedPoint].x, m_line.pPoints[m_line.selectedPoint].y, m_line.pPoints[m_line.selectedPoint].z);
+  ImGui::TextWrapped("%s: %.2f, %.2f, %.2f", vcString::Get("scenePOIPosition"), m_line.pPoints[m_line.selectedPoint].x, m_line.pPoints[m_line.selectedPoint].y, m_line.pPoints[m_line.selectedPoint].z);
 
   if (lines)
   {
@@ -103,7 +103,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
         length = udMag3(m_line.pPoints[m_line.selectedPoint] - m_line.pPoints[m_line.selectedPoint + 1]);
       }
     }
-    ImGui::TextWrapped("%s: %.2f", vcString::Get("Length"), length);
+    ImGui::TextWrapped("%s: %.2f", vcString::Get("scenePOILength"), length);
 
     // Area, ignores Z axis
     if (m_line.closed)
@@ -118,14 +118,14 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       }
       area /= 2;
 
-      ImGui::TextWrapped("%s: %.2f", vcString::Get("Area"), area);
+      ImGui::TextWrapped("%s: %.2f", vcString::Get("scenePOIArea"), area);
     }
 
-    if (ImGui::InputInt(vcString::Get("LineWidth"), (int *)&m_line.lineWidth))
+    if (ImGui::InputInt(vcString::Get("scenePOILineWidth"), (int *)&m_line.lineWidth))
       reConfig = true;
 
-    const char *lineOptions[] = { vcString::Get("Arrow"), vcString::Get("Glow"), vcString::Get("Solid") };
-    if (ImGui::Combo(vcString::Get("LineStyle"), (int *)&m_line.lineStyle, lineOptions, (int) udLengthOf(lineOptions)))
+    const char *lineOptions[] = { vcString::Get("scenePOIArrow"), vcString::Get("Glow"), vcString::Get("Solid") };
+    if (ImGui::Combo(vcString::Get("scenePOILineStyle"), (int *)&m_line.lineStyle, lineOptions, (int) udLengthOf(lineOptions)))
       reConfig = true;
 
     if (reConfig)
@@ -150,11 +150,11 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   const char *pHyperlink = m_pMetadata->Get("hyperlink").AsString();
   if (pHyperlink != nullptr)
   {
-    ImGui::TextWrapped("%s: %s", vcString::Get("LabelHyperlink"), pHyperlink);
+    ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelHyperlink"), pHyperlink);
     if (udStrEndsWithi(pHyperlink, ".png") || udStrEndsWithi(pHyperlink, ".jpg"))
     {
       ImGui::SameLine();
-      if (ImGui::Button(vcString::Get("LabelOpenHyperlink")))
+      if (ImGui::Button(vcString::Get("scenePOILabelOpenHyperlink")))
         pProgramState->loadList.push_back(udStrdup(pHyperlink));
     }
   }
