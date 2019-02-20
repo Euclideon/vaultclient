@@ -62,25 +62,25 @@ namespace vcString
     }
 
     // Concatenations
-    Set("SettingsAppearance", vStringFormat("{0}##Settings", Get("Appearance")));
+    Set("AppearanceID", vStringFormat("{0}##Settings", Get("settingsAppearance")));
 
-    Set("InputControlsID", vStringFormat("{0}##Settings", Get("InputControls")));
-    Set("ViewportID", vStringFormat("{0}##Settings", Get("Viewport")));
-    Set("DegreesFormat", vStringFormat("%.0f {0}", Get("Degrees")));
-    Set("ElevationFormat", vStringFormat("{0}##Settings", Get("Elevation")));
-    Set("VisualizationFormat", vStringFormat("{0}##Settings", Get("Visualization")));
-    Set("RestoreColorsID", vStringFormat("{0}##RestoreClassificationColors", Get("MenuRestoreDefaults")));
+    Set("InputControlsID", vStringFormat("{0}##Settings", Get("settingsControls")));
+    Set("ViewportID", vStringFormat("{0}##Settings", Get("settingsViewport")));
+    Set("DegreesFormat", vStringFormat("%.0f {0}", Get("settingsViewportDegrees")));
+    Set("ElevationFormat", vStringFormat("{0}##Settings", Get("settingsMaps")));
+    Set("VisualizationFormat", vStringFormat("{0}##Settings", Get("settingsVis")));
+    Set("RestoreColoursID", vStringFormat("{0}##RestoreClassificationColors", Get("settingsVisClassRestoreDefaults")));
 
-    Set("AppearanceRestore", vStringFormat("{0}##AppearanceRestore", Get("MenuRestoreDefaults")));
-    Set("InputRestore", vStringFormat("{0}##InputRestore", Get("MenuRestoreDefaults")));
-    Set("ViewportRestore", vStringFormat("{0}##ViewportRestore", Get("MenuRestoreDefaults")));
-    Set("MapsRestore", vStringFormat("{0}##MapsRestore", Get("MenuRestoreDefaults")));
-    Set("VisualizationRestore", vStringFormat("{0}##VisualizationRestore", Get("MenuRestoreDefaults")));
+    Set("AppearanceRestore", vStringFormat("{0}##AppearanceRestore", Get("settingsAppearanceRestoreDefaults")));
+    Set("InputRestore", vStringFormat("{0}##InputRestore", Get("settingsControlsRestoreDefaults")));
+    Set("ViewportRestore", vStringFormat("{0}##ViewportRestore", Get("settingsViewportRestoreDefaults")));
+    Set("MapsRestore", vStringFormat("{0}##MapsRestore", Get("settingsMapsRestoreDefaults")));
+    Set("VisualizationRestore", vStringFormat("{0}##VisualizationRestore", Get("settingsVisRestoreDefaults")));
 
-    Set("OverrideID", vStringFormat("{0}##ConvertResolutionOverride", Get("Override")));
-    Set("PointResolutionID", vStringFormat("{0}##ConvertResolution", Get("PointResolution")));
-    Set("OverrideSRIDID", vStringFormat("{0}##ConvertSRIDOverride", Get("Override")));
-    Set("SRIDID", vStringFormat("{0}##ConvertSRID", Get("SRID")));
+    Set("OverrideID", vStringFormat("{0}##ConvertResolutionOverride", Get("convertOverride")));
+    Set("PointResolutionID", vStringFormat("{0}##ConvertResolution", Get("convertPointResolution")));
+    Set("OverrideSRIDID", vStringFormat("{0}##ConvertSRIDOverride", Get("convertOverride")));
+    Set("SRIDID", vStringFormat("{0}##ConvertSRID", Get("convertSRID")));
 
     return vE_Success;
   }
