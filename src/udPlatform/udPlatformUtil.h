@@ -190,11 +190,11 @@ public:
 // Helper for growing an array as required TODO: Use configured memory allocators
 // *********************************************************************
 template<typename T>
-bool udSizeArray(T *&ptr, uint32_t &currentLength, uint32_t requiredLength, int32_t allocationMultiples = 0)
+bool udSizeArray(T *&ptr, size_t &currentLength, size_t requiredLength, size_t allocationMultiples = 0)
 {
-  if (requiredLength > currentLength || allocationMultiples < 0)
+  if (requiredLength > currentLength || allocationMultiples == 0)
   {
-    uint32_t newLength;
+    size_t newLength;
     if (allocationMultiples > 1)
       newLength = ((requiredLength + allocationMultiples - 1) / allocationMultiples) * allocationMultiples;
     else

@@ -975,10 +975,27 @@ udResult udJSON::Parse(const char *pString, int *pCharCount, int *pLineNumber)
     {
       if (pString[charCount] == '.')
       {
-        int integralCharCount = charCount;
+        int integralCharCount = charCount + 1;
         u.dVal = udStrAtof64(pString, &charCount);
-        dPrec = (uint8_t)(charCount - (integralCharCount+1));
+        dPrec = (uint8_t)(charCount - integralCharCount);
         type = T_Double;
+        if (dPrec > 10 && charCount < 60)
+        {
+          // For numbers with a lot of precision, detect recurring numbers and
+          // add the recurring precision to preserve as much precision as possible
+          int recurCount = 0;
+          char lastDigit = pString[charCount - 1];
+          while (recurCount < dPrec && pString[charCount - 2 - recurCount] == lastDigit)
+            ++recurCount;
+          if (recurCount >= 6)
+          {
+            char tmp[64];
+            udStrncpy(tmp, sizeof(tmp), pString, charCount);
+            tmp[charCount] = tmp[charCount + 1] = tmp[charCount + 2] = tmp[charCount + 3] = lastDigit;
+            tmp[charCount + 4] = 0;
+            u.dVal = udStrAtof64(tmp);
+          }
+        }
       }
       else
       {
