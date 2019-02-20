@@ -233,7 +233,7 @@ namespace ImGui
 
     Dock& getDock(const char* label, bool opened)
     {
-      ImU32 id = ImHash(label, 0);
+      ImU32 id = ImHashStr(label, 0);
       for (int i = 0; i < m_docks.size(); ++i)
       {
         if (m_docks[i]->id == id) return *m_docks[i];
@@ -1135,7 +1135,7 @@ namespace ImGui
           fscanf(fp, "%s %d", str2, &id5);
 
           m_docks[id]->label = ImStrdup(lab);
-          m_docks[id]->id = ImHash(m_docks[id]->label, 0);
+          m_docks[id]->id = ImHashStr(m_docks[id]->label, 0);
 
           m_docks[id]->children[0] = getDockByIndex(id1);
           m_docks[id]->children[1] = getDockByIndex(id2);
