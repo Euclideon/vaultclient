@@ -19,7 +19,7 @@ struct vcNodeRenderInfo
     vcTLS_Loaded,
 
     vcTLS_Failed,
-  } loadStatus;
+  } volatile loadStatus;
 
   bool tryLoad;
   int loadAttempts;
@@ -28,7 +28,8 @@ struct vcNodeRenderInfo
   int32_t width, height;
   void *pData;
 
-  float lastUsedTime;
+  bool fading;
+  float transparency;
 
   // cached
   udDouble2 center;
@@ -49,7 +50,10 @@ struct vcQuadTreeNode
   volatile bool touched;
   bool rendered;
 
+  // cached
   udDouble2 worldBounds[4]; // corners
+  udDouble2 tileCenter, tileExtents;
+
   vcNodeRenderInfo renderInfo;
 };
 
@@ -103,9 +107,25 @@ void vcQuadTree_Reset(vcQuadTree *pQuadTree);
 void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo);
 void vcQuadTree_Prune(vcQuadTree *pQuadTree);
 
+bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode);
+
 inline bool vcQuadTree_IsLeafNode(const vcQuadTreeNode *pNode)
 {
   return pNode->childMask == 0;
+}
+
+inline bool vcQuadTree_IsVisibleLeafNode(const vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode)
+{
+  if (vcQuadTree_IsLeafNode(pNode))
+    return true;
+
+  for (int c = 0; c < 4; ++c)
+  {
+    if (pQuadTree->nodes.pPool[pNode->childBlockIndex + c].touched)
+      return false;
+  }
+
+  return true;
 }
 
 #endif//vcQuadTree_h__

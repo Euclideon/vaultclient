@@ -94,7 +94,6 @@ void vcFenceRenderer_Destroy()
 udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer)
 {
   udResult result = udR_Success;
-
   vcFenceRenderer *pFenceRenderer = nullptr;
 
   UD_ERROR_NULL(ppFenceRenderer, udR_InvalidParameter_);
@@ -304,7 +303,7 @@ udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer
 
     // calculate UVs
     float hyp = udMag3(pLeft - pRight);
-    float dist0 = udSqrt(hyp * hyp - widthSquared);
+    float dist0 = udSqrt(udAbs(hyp * hyp - widthSquared));
     float dist1 = 0;
     if (jointFlipped)
     {
@@ -316,7 +315,7 @@ udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer
     pVerts[vertIndex + 0].uv.x = currentUV + uv0 + previousDist1;
     pVerts[vertIndex + 1].uv.x = currentUV + uv1 + previousDist0;
 
-    currentUV += udMax(uv0 - dist0, uv1 - dist1); // take max (offset slightly, for better tiling between segments)
+    currentUV += udMax(uv0 - dist0, uv1 - dist1); // take max of distances
 
     pVerts[vertIndex + 2].uv.x = currentUV + dist1;
     pVerts[vertIndex + 3].uv.x = currentUV + dist0;
