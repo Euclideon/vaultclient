@@ -18,6 +18,7 @@ Version 0.2.1
   - Added ability to change to appropriate tab when files are dropped
   - Fixed issue with error appearing for macOS users after logging in
   - Fixed issue with load file modal textbox retaining previously loaded file
+  - Map tiles now fade in
 
 Version 0.2.0
   ADDITIONS & FIXES
