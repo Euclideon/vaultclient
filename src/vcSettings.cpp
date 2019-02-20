@@ -21,7 +21,7 @@ void vcSettings_RecursiveLoadDock(const udJSON &parentDock, int parentIndex, boo
   int newIndex = g_dock.m_docks.size()-1;
 
   g_dock.m_docks[newIndex]->label = ImStrdup(parentDock.Get("label").AsString());
-  g_dock.m_docks[newIndex]->id = ImHash(g_dock.m_docks[newIndex]->label, 0);
+  g_dock.m_docks[newIndex]->id = ImHashStr(g_dock.m_docks[newIndex]->label, 0);
 
   if (parentDock.Get("child").ArrayLength() > 0) // has children
   {
