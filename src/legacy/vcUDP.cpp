@@ -64,7 +64,7 @@ struct vcUDPItemData
       uint32_t colour;
       bool isClosed;
       udDouble3 *pPoints;
-      size_t numPoints;
+      int numPoints;
       int32_t epsgCode;
     } polygon;
   };
@@ -300,10 +300,18 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
     uint16_t size = (uint16_t)udStrAtou(item.label.pFontSize);
     uint32_t colour = (uint32_t)udStrAtoi(item.label.pColour); //These are stored as int (with negatives) in MDM
 
+    vcLabelFontSize lfs = vcLFS_Medium;
+
+    // 16 was default size in Geoverse MDM
+    if (size > 16)
+      lfs = vcLFS_Large;
+    else if (size < 16)
+      lfs = vcLFS_Small;
+
     if (vcUDP_ReadGeolocation(item.label.pGeoLocation, position, epsgCode))
     {
       pLabelData->at(index).sceneFolder = vcUDP_GetSceneItemRef(pProgramState);
-      vcScene_AddItem(pProgramState, new vcPOI(item.label.pName, colour, size, position, epsgCode));
+      vcScene_AddItem(pProgramState, new vcPOI(item.label.pName, colour, lfs, position, epsgCode));
 
       // Add hyperlink to the metadata
       if (item.label.pHyperlink != nullptr)
@@ -336,10 +344,11 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
     info.closed = item.polygon.isClosed;
 
     info.lineWidth = 1;
-    info.lineColour = item.polygon.colour;
+    info.colourPrimary = item.polygon.colour;
+    info.colourSecondary = item.polygon.colour;
 
     if (info.numPoints > 0)
-      vcScene_AddItem(pProgramState, new vcPOI(item.polygon.pName, item.polygon.colour, 1.0, &info, item.polygon.epsgCode));
+      vcScene_AddItem(pProgramState, new vcPOI(item.polygon.pName, item.polygon.colour, vcLFS_Medium, &info, item.polygon.epsgCode));
 
     udFree(info.pPoints);
   }

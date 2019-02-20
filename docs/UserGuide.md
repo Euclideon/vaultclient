@@ -221,6 +221,31 @@ There are a number of ways to add models to the scene.
 2. Direct URI loading: You can type a URL or path in the `Add UDS` popup. The path field at the top of the pane allows URL and network paths to retrieve UDS files.
 3. If you have access to projects on the server you will be able to click the "Projects" button in the menu and select a project to load. Projects are loaded from the Vault Server you're connected to.
 
+#### Scene Item Properties
+
+##### UDS Point Cloud
+
+![Scene Properties UDS](images/sceneproperties_uds.png)
+
+The expanded properties for UDS files show the path the UDS was loaded from and then a treeview of the internal metadata from the file.
+
+> The `info` includes advanced information like the attributes in the file, their sizes and how they are blended for level of detail calculations.
+
+##### Points Of Interest (POI)
+
+![Scene Properties UDS](images/sceneproperties_poi.png)
+
+>TIP: The name of the Point of Interest is the text displayed on the label in the scene
+
+- The size and colour of the label in the scene are controlled by `Text Colour`, `Background Colour` and `Label Size`
+- `Selected Point` allows fine manipulation of a single point of the points in this point of interest. `-1` indicates you're modifying all of the points when using the Gizmo
+- In the `Line Settings` there are a number of controls for the look and feel of the line  (if there are multiple points in the point of interest)
+  - `Show Length` and `Show Area` will show those details on the label in the scene
+  - `Close Polygon` causes the line to loop from the last point back to the first one. This setting is also required if you want to see the area.
+  - The `Colour`, `Width`, `Style` and `Orientation` settings all modify how the lines between the points are displayed.
+
+>TIP: If a point of interest is the only item selected in the scene, the context menu when you right click in the world will allow you to add a point to the end of the currently selected POI.
+
 ### 4. Settings
 ![Settings](images/settings.png)
 

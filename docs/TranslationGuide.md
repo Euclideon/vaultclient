@@ -341,25 +341,36 @@ Modules are currently:
 - `sceneExplorerNotImplementedCloseButton`: Label used on the close button in the Not Implemented window
 - `sceneExplorerPending`: Tooltip displayed when mouse is hovered over the alert next to a scene item in the Scene Explorer that vault client has not opened yet
 - `sceneExplorerLoading`: Tooltip displayed when mouse is hovered over the alert next to a scene item in the Scene Explorer that vault client has not fully loaded yet
-- `sceneExplorerPOIDefaultName`: Default name of new POI objects when they are added to the Scene Explorer
 - `sceneExplorerFolderDefaultName`: Default name of new folders when they are added to the Scene Explorer
 
-- `scenePOIDefaultName`: `Point of interest`,
-- `scenePOIPosition`: `Position`,
-- `scenePOIPoint`: `Point`,
-- `scenePOIPoints`: `Points`,
-- `scenePOILength`: `Length`,
-- `scenePOIArea`: `Area`,
-- `scenePOILineColour`: `Line Colour`,
-- `scenePOILineWidth`: `Line Width`,
-- `scenePOILabelColour`: `Text Colour`,
-- `scenePOILabelBackgroundColour`: `Background Colour`,
-- `scenePOILabelHyperlink`: `Hyperlink`,
-- `scenePOILabelOpenHyperlink`: `Open Hyperlink`,
-- `scenePOILineStyle`: `Line Style`,
-- `scenePOIArrow`: `Arrow`,
-- `scenePOIGlow`: `Glow`,
-- `scenePOISolid`: `Solid`,
+- `scenePOIDefaultName`: Default name of new POI objects when they are added to the Scene Explorer
+- `scenePOIAddPoint`: Used in the context menu for adding a new point at the current mouse position
+- `scenePOIPointPosition`: Label for the UI to override the position of the selected point
+- `scenePOISelectedPoint`: Used on the slider to select a point from the points in this POI
+- `scenePOILineLength`: Used in the label to show the length of the POI
+- `scenePOIArea`: Used in the label to show the length of the POI
+- `scenePOILabelColour`: The colour of the text on the label in the scene
+- `scenePOILabelBackgroundColour`: The background colour of the label in the scene
+- `scenePOILabelHyperlink`: Label used to show if there is a hyperlink attached
+- `scenePOILabelOpenHyperlink`: Button used to open the hyperlink if its possible to open it
+- `scenePOILabelSize`: Label for the drop down to select the label size
+- `scenePOILabelSizeSmall` text on the drop down to select the smaller than default text size
+- `scenePOILabelSizeNormal` text on the drop down to select the default text size
+- `scenePOILabelSizeLarge` text on the drop down to select the larger than default text size
+- `scenePOILineSettings`: The header for the expansion for the other line settings
+- `scenePOILineShowLength` Label on the checkbox for when the user wants the length displayed on the label in the scene
+- `scenePOILineShowArea`: Label on the checkbox for when the user wants the area displayed on the label in the scene
+- `scenePOILineClosed`: Label on the checkbox for when the user wants the lines to form a closed polygon
+- `scenePOILineColour1`: Label for the colour picker for the first colour for the lines
+- `scenePOILineColour2`: Label for the colour picker for the second colour for the lines
+- `scenePOILineWidth`: Label for how wide (in SRID units) the line is
+- `scenePOILineStyle`: Label for the drop down to select a line style
+- `scenePOILineStyleArrow`: Drop down item for the "Arrow" line style
+- `scenePOILineStyleGlow`: Drop down item for the "Glow" line style
+- `scenePOILineStyleSolid`: Drop down item for the "Solid" line style
+- `scenePOILineOrientation`: Label for the drop down to select a line orientation
+- `scenePOILineOrientationVert`: Text on the drop down item for the "Vertical" / "Fence" orientation
+- `scenePOILineOrientationHorz`: Text on the drop down item for the "Horizontal / Path" orientation
 
 ### Error Strings
 
