@@ -203,22 +203,6 @@ void vcPOI::AddPoint(const udDouble3 &position)
   m_line.pPoints = pNewPoints;
   ++m_line.numPoints;
 
-  if (m_pFence == nullptr)
-  {
-    vcFenceRenderer_Create(&m_pFence);
-
-    vcFenceRendererConfig config;
-    config.visualMode = m_line.fenceMode;
-    config.imageMode = m_line.lineStyle;
-    config.bottomColour = vcIGSW_BGRAToImGui(m_line.colourSecondary);
-    config.topColour = vcIGSW_BGRAToImGui(m_line.colourPrimary);
-    config.ribbonWidth = (float)m_line.lineWidth;
-    config.textureScrollSpeed = 1.f;
-    config.textureRepeatScale = 1.f;
-
-    vcFenceRenderer_SetConfig(m_pFence, config);
-  }
-
   UpdatePoints();
 }
 
