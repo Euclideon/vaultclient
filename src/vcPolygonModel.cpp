@@ -4,10 +4,39 @@
 #include "udPlatform/udMath.h"
 #include "udPlatform/udResult.h"
 
-#include "vcCompass.h"
-#include "vCore/vStringFormat.h"
-
+#include "gl/vcRenderShaders.h"
 #include "gl/vcMesh.h"
+#include "gl/vcTexture.h"
+
+static int gPolygonShaderRefCount = 0;
+
+enum vcPolygonModelShaderType
+{
+  vcPMST_P1N1UV1,
+
+  vcPMST_Count
+};
+
+struct vcPolygonModelShader
+{
+  vcShader *pShader;
+  vcShaderConstantBuffer *pEveryFrameConstantBuffer;
+  vcShaderConstantBuffer *pEveryObjectConstantBuffer;
+
+  vcShaderSampler *pDiffuseSampler;
+
+  struct
+  {
+    udFloat4x4 u_viewProjectionMatrix;
+  } everyFrame;
+
+  struct
+  {
+    udFloat4x4 u_world;
+    udFloat4 u_colour;
+  } everyObject;
+
+} gShaders[vcPMST_Count];
 
 // TODO: do these need to be public to be accessible to the importer?
 enum vcPolygonModelVertexFlags
@@ -15,8 +44,8 @@ enum vcPolygonModelVertexFlags
   vcPMVF_None = 0,
   vcPMVF_Normals = 1,
   vcPMVF_UVs = 2,
-  vcPMVF_Tangents = 4,
-  vcPMVF_SkinWeights = 8
+  //vcPMVF_Tangents = 4,
+  //vcPMVF_SkinWeights = 8
 };
 
 struct VSMFHeader
@@ -31,15 +60,12 @@ struct VSMFHeader
   float maxXYZ[3];
 };
 
-struct vcPolygonModelTexture
-{
-
-};
-
 struct vcPolygonModelMaterial
 {
   uint16_t flags;
-  uint32_t BGRA;
+  uint32_t colour; // bgra
+
+  vcTexture *pTexture;
 };
 
 struct vcPolygonModelMesh
@@ -50,7 +76,7 @@ struct vcPolygonModelMesh
   uint16_t numVertices;
   uint16_t numElements;
 
-  vcPolygonModelMaterial material;
+  vcPolygonModelMaterial material; // TODO: materialID should reference a container of there. These should be shared between meshes, and rendering should be organized by material.
   vcMesh *pMesh;
 };
 
@@ -58,18 +84,15 @@ struct vcPolygonModel
 {
   int meshCount;
   vcPolygonModelMesh *pMeshes;
-
-  vcShader *pShader;
-  vcShaderConstantBuffer *pShaderConstantBuffer;
-
-  struct
-  {
-    udFloat4x4 u_viewProjectionMatrix;
-    udFloat4 u_colour;
-    udFloat3 u_sunDirection;
-    float _padding;
-  } shaderBuffer;
 };
+
+struct vcPolygonModelVertex
+{
+  udFloat3 pos;
+  udFloat3 normal;
+  udFloat2 uv;
+};
+const vcVertexLayoutTypes vcPolygonModelVertexLayout[] = { vcVLT_Position3, vcVLT_Normal3, vcVLT_TextureCoords2 };
 
 udResult vcPolygonModel_CreateFromMemory(vcPolygonModel **ppModel, char *pData, int dataLength)
 {
@@ -77,6 +100,7 @@ udResult vcPolygonModel_CreateFromMemory(vcPolygonModel **ppModel, char *pData, 
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
+  vcPolygonModel *pNewModel = nullptr;
   char *pFilePos = pData;
 
   VSMFHeader header = {};
@@ -87,114 +111,109 @@ udResult vcPolygonModel_CreateFromMemory(vcPolygonModel **ppModel, char *pData, 
   // Header
   UD_ERROR_CHECK(udReadFromPointer(&header, pFilePos, &dataLength));
 
-  vcPolygonModelMaterial *pMaterials = udAllocType(vcPolygonModelMaterial, header.numMaterials, udAF_Zero);
-  vcPolygonModelMesh *pMeshes = udAllocType(vcPolygonModelMesh, header.numMeshes, udAF_Zero);
-  //VSMFTexture *pTextures = udAllocType(VSMFTexture, header.numTextures, udAF_Zero);
+  pNewModel = udAllocType(vcPolygonModel, 1, udAF_Zero);
+  pNewModel->pMeshes = udAllocType(vcPolygonModelMesh, header.numMeshes, udAF_Zero);
+  pNewModel->meshCount = header.numMeshes;
 
   // Materials
   for (int i = 0; i < header.numMaterials; ++i)
   {
-    UD_ERROR_CHECK(udReadFromPointer(&pMaterials[i].flags, pFilePos, &dataLength));
-    UD_ERROR_CHECK(udReadFromPointer(&pMaterials[i].BGRA, pFilePos, &dataLength));
+    if (i >= header.numMeshes) // TODO: material count should not exceed mesh count
+    {
+      pFilePos += 6;
+      continue;
+    }
+
+    UD_ERROR_CHECK(udReadFromPointer(&pNewModel->pMeshes[i].material.flags, pFilePos, &dataLength));
+    UD_ERROR_CHECK(udReadFromPointer(&pNewModel->pMeshes[i].material.colour, pFilePos, &dataLength));
   }
 
   // Vertex Block
   // Mesh
   for (int i = 0; i < header.numMeshes; ++i)
   {
-    UD_ERROR_CHECK(udReadFromPointer(&pMeshes[i].flags, pFilePos, &dataLength));
-    UD_ERROR_CHECK(udReadFromPointer(&pMeshes[i].materialID, pFilePos, &dataLength));
-    UD_ERROR_CHECK(udReadFromPointer(&pMeshes[i].LOD, pFilePos, &dataLength));
-    UD_ERROR_CHECK(udReadFromPointer(&pMeshes[i].numVertices, pFilePos, &dataLength));
-    UD_ERROR_CHECK(udReadFromPointer(&pMeshes[i].numElements, pFilePos, &dataLength));
+    UD_ERROR_CHECK(udReadFromPointer(&pNewModel->pMeshes[i].flags, pFilePos, &dataLength));
+    UD_ERROR_CHECK(udReadFromPointer(&pNewModel->pMeshes[i].materialID, pFilePos, &dataLength));
+    UD_ERROR_CHECK(udReadFromPointer(&pNewModel->pMeshes[i].LOD, pFilePos, &dataLength));
+    UD_ERROR_CHECK(udReadFromPointer(&pNewModel->pMeshes[i].numVertices, pFilePos, &dataLength));
+    UD_ERROR_CHECK(udReadFromPointer(&pNewModel->pMeshes[i].numElements, pFilePos, &dataLength));
 
-    //char *pNormals, pUVs;
-   /* uint32_t recordSize = 12;
-
-    vcVertexLayoutTypes *pVertexLayout = udAllocType(vcVertexLayoutTypes, 4, udAF_Zero);
-    vcVertexLayoutTypes *pNextVL = pVertexLayout;
-    *pNextVL = vcVLT_Position3;
-    ++pNextVL;
-
-    char *pNormals, *pUVs;
-
-    if (pMeshes[i].flags & vcPMVF_Normals)
-    {
-      *pNextVL = vcVLT_Normal3;
-      ++pNextVL;
-      recordSize += 12;
-      pNormals = "float3 normal : NORMAL;";
-    }
-
-    if (pMeshes[i].flags & vcPMVF_UVs)
-    {
-      *pNextVL = vcVLT_TextureCoords2;
-      ++pNextVL;
-      recordSize += 8;
-      pUVs = "float2 uv : TEXCOORD0;";
-    }
-    //if (pMeshes[i].flags & vMS_Tangents)
-    //  pNextVL = vcVLT_??;
-
-    int64_t totalTypes = pNextVL - pVertexLayout;
+    // override material id for now
+    pNewModel->pMeshes[i].materialID = vcPMST_P1N1UV1;
 
     void *pVerts = pFilePos;
-    pFilePos += recordSize * pMeshes[i].numVertices;
+    pFilePos += sizeof(vcPolygonModelVertex) * pNewModel->pMeshes[i].numVertices;
 
     void *pIndices = pFilePos;
-    pFilePos += pMeshes[i].numVertices;
-    */
-    vcPolygonModel *pNewModel = udAllocType(vcPolygonModel, 1, udAF_Zero);
-    pNewModel->meshCount = header.numMeshes;
+    pFilePos += sizeof(uint16_t) * pNewModel->pMeshes[i].numElements;
 
-    for (int i = 0; i < pNewModel->meshCount; ++i)
+    for (int t = 0; t < header.numTextures; ++t)
     {
-      UD_ERROR_CHECK(vcMesh_Create(&pNewModel->pMeshes[i].pMesh, pVertexLayout, (int)totalTypes, pVerts, pMeshes[i].numVertices, pIndices, pMeshes[i].numVertices));
+      uint32_t textureFileSize = 0;
+      UD_ERROR_CHECK(udReadFromPointer(&textureFileSize, pFilePos, &dataLength));
+
+      // TODO: only handle 1 texture at the moment
+      if (t == 0)
+      {
+        void *pTextureData = pFilePos;
+        vcTexture_CreateFromMemory(&pNewModel->pMeshes[i].material.pTexture, pTextureData, textureFileSize);
+      }
+      pFilePos += textureFileSize;
     }
-    // const char *ppStrings[] = { pNormals, pUVs };
-    // const char *pShaderConfig = vStringFormat("struct VS_INPUT { float3 pos : POSITION; {0} {1} };", ppStrings, 2);
 
-    // need to build shader to suit pMeshes[i].flags?, also meshes reference materials which currently is just a (diffuse?) color: pMaterials[pMeshes[i].materialID].BGRA
-    // In a platform independent way, or just statically create some shaders for each vertex layout case
-
-    // UD_ERROR_IF(!vcShader_CreateFromText(&pNewModel->pShader, VERTEX.SHADER, FRAG.SHADER, pVertexLayout, (uint32_t)totalTypes), udR_InvalidConfiguration);
-    //UD_ERROR_IF(!vcShader_GetConstantBuffer(&pNewModel->pShaderConstantBuffer, pNewModel->pShader, "u_EveryObject", sizeof(vcMeshyModel::shaderBuffer)), udR_InvalidParameter_);
-
-    float s = 1.0f / 255.0f;
-    udFloat4 color = udFloat4::create(
-      ((pMaterials[pMeshes[i].materialID].BGRA >> 8) & 0xFF) * s,
-      ((pMaterials[pMeshes[i].materialID].BGRA >> 16) & 0xFF) * s,
-      ((pMaterials[pMeshes[i].materialID].BGRA >> 24) & 0xFF) * s,
-      ((pMaterials[pMeshes[i].materialID].BGRA >> 0) & 0xFF) * s);
-
-    pNewModel->shaderBuffer.u_colour = color;
-
-    //udFree(pVertexLayout);
+    UD_ERROR_CHECK(vcMesh_Create(&pNewModel->pMeshes[i].pMesh, vcPolygonModelVertexLayout, (int)udLengthOf(vcPolygonModelVertexLayout), pVerts, pNewModel->pMeshes[i].numVertices, pIndices, pNewModel->pMeshes[i].numElements, vcMF_IndexShort));
   }
+
+  *ppModel = pNewModel;
 
 epilogue:
   if (result != udR_Success)
   {
+    if (pNewModel)
+    {
+      for (int i = 0; i < pNewModel->meshCount; ++i)
+        vcMesh_Destroy(&pNewModel->pMeshes[i].pMesh);
 
+      udFree(pNewModel->pMeshes);
+    }
+    udFree(pNewModel);
   }
   return result;
 }
 
-udResult vcVSMF_Render(vcPolygonModel *pModel, const udDouble4x4 &worldViewProj)
+udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelMatrix, const udDouble4x4 &viewProjectionMatrix)
 {
   if (pModel == nullptr)
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
 
-  pModel->shaderBuffer.u_viewProjectionMatrix = udFloat4x4::create(worldViewProj);
-  pModel->shaderBuffer.u_sunDirection = udNormalize(udFloat3::create(1.0f, 0.0f, -1.0f));
-
-  UD_ERROR_IF(!vcShader_Bind(pModel->pShader), udR_InternalError);
-  UD_ERROR_IF(!vcShader_BindConstantBuffer(pModel->pShader, pModel->pShaderConstantBuffer, &pModel->shaderBuffer, sizeof(vcPolygonModel::shaderBuffer)), udR_InputExhausted);
-
   for (int i = 0; i < pModel->meshCount; ++i)
-    UD_ERROR_IF(!vcMesh_Render(pModel->pMeshes[i].pMesh), udR_InternalError);
+  {
+    vcPolygonModelMesh *pModelMesh = &pModel->pMeshes[i];
+    vcPolygonModelShader *pPolygonShader = &gShaders[pModelMesh->materialID];
+
+    vcShader_Bind(pPolygonShader->pShader);
+
+    pPolygonShader->everyObject.u_world = udFloat4x4::create(modelMatrix);
+    pPolygonShader->everyFrame.u_viewProjectionMatrix = udFloat4x4::create(viewProjectionMatrix);
+
+    float s = 1.0f / 255.0f;
+    udFloat4 colour = udFloat4::create(
+      ((pModel->pMeshes[i].material.colour >> 8) & 0xFF) * s,
+      ((pModel->pMeshes[i].material.colour >> 16) & 0xFF) * s,
+      ((pModel->pMeshes[i].material.colour >> 24) & 0xFF) * s,
+      ((pModel->pMeshes[i].material.colour >> 0) & 0xFF) * s);
+
+    pPolygonShader->everyObject.u_colour = colour;
+
+    vcShader_BindConstantBuffer(pPolygonShader->pShader, pPolygonShader->pEveryObjectConstantBuffer, &pPolygonShader->everyObject, sizeof(vcPolygonModelShader::everyObject));
+    vcShader_BindConstantBuffer(pPolygonShader->pShader, pPolygonShader->pEveryFrameConstantBuffer, &pPolygonShader->everyFrame, sizeof(vcPolygonModelShader::everyFrame));
+
+    vcShader_BindTexture(pPolygonShader->pShader, pModelMesh->material.pTexture, 0, pPolygonShader->pDiffuseSampler);
+
+    vcMesh_Render(pModelMesh->pMesh);
+  }
 
 epilogue:
   // todo: handle failures
@@ -209,10 +228,46 @@ udResult vcPolygonModel_Destroy(vcPolygonModel **ppModel)
   vcPolygonModel *pModel = (*ppModel);
 
   for (int i = 0; i < pModel->meshCount; ++i)
-    vcMesh_Destroy(&(*ppModel)->pMeshes[i].pMesh);
+  {
+    vcTexture_Destroy(&pModel->pMeshes[i].material.pTexture);
+    vcMesh_Destroy(&pModel->pMeshes[i].pMesh);
+  }
+  udFree(pModel->pMeshes);
+  udFree(pModel);
+  return udR_Success;
+}
 
-  vcShader_DestroyShader(&(*ppModel)->pShader);
-  udFree((*ppModel));
+
+udResult vcPolygonModel_CreateShaders()
+{
+  ++gPolygonShaderRefCount;
+  if (gPolygonShaderRefCount != 1)
+    return udR_Success;
+
+  udResult result = udR_Success;
+
+  vcPolygonModelShader *pPolygonShader = &gShaders[vcPMST_P1N1UV1];
+  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP1N1UV1VertexShader, g_PolygonP1N1UV1FragmentShader, vcPolygonModelVertexLayout, udLengthOf(vcPolygonModelVertexLayout)), udR_InternalError);
+  vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame));
+  vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject));
+  vcShader_GetSamplerIndex(&pPolygonShader->pDiffuseSampler, pPolygonShader->pShader, "u_texture");
+
+epilogue:
+  return result;
+}
+
+udResult vcPolygonModel_DestroyShaders()
+{
+  --gPolygonShaderRefCount;
+  if (gPolygonShaderRefCount != 0)
+    return udR_Success;
+
+  for (int i = 0; i < vcPMST_Count; ++i)
+  {
+    vcShader_ReleaseConstantBuffer(gShaders[i].pShader, gShaders[i].pEveryObjectConstantBuffer);
+    vcShader_ReleaseConstantBuffer(gShaders[i].pShader, gShaders[i].pEveryFrameConstantBuffer);
+    vcShader_DestroyShader(&gShaders[i].pShader);
+  }
 
   return udR_Success;
 }

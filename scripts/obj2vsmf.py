@@ -4,12 +4,16 @@ import sys
 
 version = 1
 twobytemax = 0xFFFF
+filemax = 1000000000
 
 importFilename = "BCC_Bus.obj"
 outputFilename = "Test"
 
+textures = []
+
 materialList = {'__white' : 0} # Default white for 'usemtl'
 materials = [[0x0, 0xFF, 0xFF, 0xFF, 0xFF]] # flags, BGRA
+defautMatUsed = False
 
 meshList = {'__baseMesh' : 0} # right now material list indexes are used to reference meshes, procVerts, faces
 meshProperties = [[False, False, False, 0x0, 0x0]] #flags (normals, UVs, tangents), matID, LOD
@@ -53,9 +57,12 @@ def readMaterials(filename):
       if matName is not None:
         addMaterial(matName, flags, blue, green, red)
       matName = ' '.join(word[1:])
-    #if word[0] == "map_Ka":
-    #if word[0] == "map_Kd":
-    #if word[0] == "map_Ks":
+    if word[0] == "map_Ka":
+      textures.append(word[-1])
+    if word[0] == "map_Kd":
+      textures.append(word[-1])
+    if word[0] == "map_Ks":
+      textures.append(word[-1])
     if word[0] == "Kd":
       if word[1] != "xyz" and word[1] != "spectral":
         red = float(word[1])
@@ -127,6 +134,7 @@ for line in lines:
       currMat = materialList[' '.join(tokens[1:])]
     else: # Default white
       currMat = 0
+      defautMatUsed = True
 
   elif tokens[0] == "lod":
     for i in currMesh:
@@ -155,7 +163,7 @@ for meshIndex in range(len(faces)):
       value = [ float(verts[iv][0]), float(verts[iv][1]), float(verts[iv][2]), float(normals[io][0]), float(normals[io][1]), float(normals[io][2]), float(uvs[it][0]), float(uvs[it][1]) ]
 
       if key not in vertIndexes:
-        vertIndexes[key] = len(procVerts)
+        vertIndexes[key] = len(procVerts[meshIndex])
         procVerts[meshIndex].append(value)
 
       procIndices[meshIndex].append(vertIndexes[key])
@@ -184,12 +192,13 @@ if len(meshProperties) > twobytemax:
     print(twobytemax)
 
 # Header
-#                                                                             textures
-fh.write(pack('4s6H6f', b"VSMF", version, 0, len(materials), len(meshProperties), 0x0, 0, min[0], min[1], min[2], max[0], max[1], max[2] ))
+fh.write(pack('4s6H6f', b"VSMF", version, 0, len(materials) - 1 + defautMatUsed, len(meshProperties), len(textures), 0, min[0], min[1], min[2], max[0], max[1], max[2] ))
 
 # Materials
-for mat in materials:
-  fh.write(pack('H4B', mat[0], mat[4], mat[3], mat[2], mat[1]))
+for mat in range(len(materials)):
+  if mat == 0 and defautMatUsed == False:
+    continue
+  fh.write(pack('H4B', materials[mat][0], materials[mat][4], materials[mat][3], materials[mat][2], materials[mat][1]))
 
 # Mesh
 for i in range(len(meshList)):
@@ -203,7 +212,7 @@ for i in range(len(meshList)):
     print("Error: Too many vertexes, maximum is ")
     print(twobytemax)
 
-  fh.write(pack('5H', x, meshProperties[i][3], meshProperties[i][4], len(procVerts[i]), len(procVerts[i])*3))
+  fh.write(pack('5H', x, meshProperties[i][3], meshProperties[i][4], len(procVerts[i]), len(procIndices[i])))
 
   for j in range(len(procVerts[i])):
     fh.write(pack('3f', procVerts[i][j][0], procVerts[i][j][1], procVerts[i][j][2]))
@@ -216,5 +225,14 @@ for i in range(len(meshList)):
 
   for j in range(len(procIndices[i])):
     fh.write(pack('H', procIndices[i][j]))
+
+  for j in range(len(textures)):
+    textureFile = open(textures[j], 'rb')
+    textureData = textureFile.read(filemax)
+
+    fh.write(pack('I', len(textureData)))
+    fh.write(textureData)
+
+
 
 fh.close()

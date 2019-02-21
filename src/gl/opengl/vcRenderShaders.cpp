@@ -246,7 +246,7 @@ void main()
 )shader";
 
 
-const char* const g_PositionNormalFragmentShader = FRAG_HEADER R"shader(
+const char* const g_CompassFragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec4 v_colour;
   in vec3 v_normal;
@@ -269,7 +269,7 @@ const char* const g_PositionNormalFragmentShader = FRAG_HEADER R"shader(
   }
 )shader";
 
-const char* const g_PositionNormalVertexShader = VERT_HEADER R"shader(
+const char* const g_CompassVertexShader = VERT_HEADER R"shader(
   //Input Format
   layout(location = 0) in vec3 a_pos;
   layout(location = 1) in vec3 a_normal;
@@ -389,5 +389,57 @@ const char* const g_FenceFragmentShader = FRAG_HEADER R"shader(
   {
     vec4 texCol = texture(u_texture, v_uv);
     out_Colour = vec4(texCol.xyz * v_colour.xyz, 1.0) * texCol.w * v_colour.w;
+  }
+)shader";
+
+
+
+const char* const g_PolygonP1N1UV1FragmentShader = FRAG_HEADER R"shader(
+  //Input Format
+  in vec2 v_uv;
+  in vec4 v_colour;
+  in vec3 v_normal;
+
+  //Output Format
+  out vec4 out_Colour;
+
+  uniform sampler2D u_texture;
+
+  void main()
+  {
+    vec4 col = texture(u_texture, vec2(v_uv.x, 1.0 - v_uv.y));
+    out_Colour = vec4(col.xyz, 1.0);
+  }
+)shader";
+
+const char* const g_PolygonP1N1UV1VertexShader = VERT_HEADER R"shader(
+  //Input Format
+  layout(location = 0) in vec3 a_pos;
+  layout(location = 1) in vec3 a_normal;
+  layout(location = 2) in vec2 a_uv;
+
+  //Output Format
+  out vec2 v_uv;
+  out vec4 v_colour;
+  out vec3 v_normal;
+
+  layout (std140) uniform u_EveryFrame
+  {
+    mat4 u_viewProjectionMatrix;
+  };
+
+  layout (std140) uniform u_EveryObject
+  {
+    mat4 u_modelMatrix;
+    vec4 u_colour;
+  };
+
+  void main()
+  {
+    gl_Position = u_viewProjectionMatrix * u_modelMatrix * vec4(a_pos, 1.0);
+
+    v_uv = a_uv;
+    v_normal = a_normal;
+    v_colour = u_colour;
   }
 )shader";
