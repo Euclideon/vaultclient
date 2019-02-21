@@ -123,7 +123,8 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
     {
       m_children[i]->m_expanded = ImGui::TreeNodeEx(udTempStr("###SXIName%zu", *pItemID), flags);
       ImGui::SameLine();
-      vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &m_children[i]->m_pName, &m_children[i]->m_nameBufferLength);
+      if (vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &m_children[i]->m_pName, &m_children[i]->m_nameBufferLength))
+        m_children[i]->OnNameChange();
 
       if (ImGui::IsItemDeactivated() || !(pProgramState->sceneExplorer.selectedItems.back().pParent == this && pProgramState->sceneExplorer.selectedItems.back().index == i))
         m_children[i]->m_editName = false;

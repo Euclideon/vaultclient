@@ -71,8 +71,11 @@ public:
   // This is used to help with applying changes (e.g. Gizmo)
   virtual void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) = 0;
 
-  // This is used to help with exposing item specific UI
-  virtual void HandleImGui(vcState *pProgramState, size_t *pItemID) = 0;
+  // These are used to help with exposing item specific UI
+  virtual void HandleImGui(vcState *pProgramState, size_t *pItemID) = 0; // Shows expanded settings in scene explorer
+
+  // These are used when the user has tried to change something
+  virtual void OnNameChange();
 
   // Only calls this if its 'completed' loading and is 'vcSLS_Loaded'; note: this is called before other cleanup operations
   virtual void Cleanup(vcState *pProgramState) = 0;
@@ -88,7 +91,7 @@ public:
   virtual udDouble4x4 GetWorldSpaceMatrix();
 };
 
-void vcScene_AddItem(vcState *pProgramState, vcSceneItem *pItem);
+void vcScene_AddItem(vcState *pProgramState, vcSceneItem *pItem, bool select = false);
 void vcScene_RemoveItem(vcState *pProgramState, vcFolder *pParent, size_t index);
 void vcScene_RemoveAll(vcState *pProgramState);
 void vcScene_RemoveSelected(vcState *pProgramState);

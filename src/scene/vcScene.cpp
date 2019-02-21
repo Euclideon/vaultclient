@@ -32,21 +32,33 @@ void vcSceneItem::AddItem(vcState *pProgramState)
     pProgramState->sceneExplorer.pItems->m_children.push_back(this);
 }
 
-void vcScene_AddItem(vcState *pProgramState, vcSceneItem *pItem)
+void vcSceneItem::OnNameChange()
+{
+  // Does nothing in default version
+}
+
+void vcScene_AddItem(vcState *pProgramState, vcSceneItem *pItem, bool select /*= false*/)
 {
   vcFolder *pParent = pProgramState->sceneExplorer.clickedItem.pParent;
   vcSceneItem *pChild = nullptr;
+
+  vcFolder *pFolder = nullptr;
 
   if (pParent)
     pChild = pParent->m_children[pProgramState->sceneExplorer.clickedItem.index];
 
   // TODO: Proper Exception Handling
   if (pChild != nullptr && pChild->m_type == vcSOT_Folder)
-    ((vcFolder*)pChild)->m_children.push_back(pItem);
+    pFolder = (vcFolder*)pChild;
   else if (pParent != nullptr)
-    pParent->m_children.push_back(pItem);
+    pFolder = pParent;
   else
-    pProgramState->sceneExplorer.pItems->m_children.push_back(pItem);
+    pFolder = pProgramState->sceneExplorer.pItems;
+
+  pFolder->m_children.push_back(pItem);
+
+  if (select)
+    vcScene_SelectItem(pProgramState, pFolder, pFolder->m_children.size() - 1);
 }
 
 void vcScene_RemoveReference(vcSceneItemRef *pItemRef, vcFolder *pParent, size_t index)
