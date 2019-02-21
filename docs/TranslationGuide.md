@@ -71,6 +71,7 @@ Modules are currently:
 - `settingsAppearanceTheme`: Label next to dropdown list to select appearance theme
 - `settingsAppearanceDark`: Dark option for appearance theme dropdown list
 - `settingsAppearanceLight`: Light option for appearance theme dropdown list
+- `settingsAppearancePOIDistance`: Label next to slider for setting the maximum distance at which POIs are visible
 - `settingsAppearanceShowDiagnostics`: Label next to the checkbox that toggles the display of diagnostic information in the menu bar
 - `settingsAppearanceAdvancedGIS`: Label next to the checkbox that toggles the display of advanced GIS settings in the viewport
 - `settingsAppearanceLimitFPS`: Label next to checkbox for limiting the frame-rate while vault client window is inactive or unselected
