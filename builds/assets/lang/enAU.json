@@ -42,6 +42,7 @@
   "settingsAppearanceTheme": "Theme",
   "settingsAppearanceDark": "Dark",
   "settingsAppearanceLight": "Light",
+  "settingsAppearancePOIDistance": "Max POI Distance",
   "settingsAppearanceShowDiagnostics": "Show Diagnostic Information",
   "settingsAppearanceAdvancedGIS": "Show Advanced GIS Settings",
   "settingsAppearanceLimitFPS": "Limit FPS In Background",
