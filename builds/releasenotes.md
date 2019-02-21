@@ -24,6 +24,15 @@ Version 0.2.1
   - Map tiles now fade in
   - Fixed an issue with fence rendered UV calculation sometimes being incorrect
   - The projected space and camera position are reset back to 0 when clearing the scene
+  - Points of Interest changes
+    - Can now add points to the (singular) selected POI from the world context menu
+    - POIs are created on top of the camera by default
+    - Colours of the line are changeable
+    - Area and Length can be displayed in the label
+    - Added Selector for if the polygon is closed or not
+    - Can now select a single point via the POI properties to manipulate individually
+    - The label is now centred from all the points instead of just on the first point
+    - The label font size is attempted to be maintained from UDP projects (Vault POI's only have 3 settings though)
 
 Version 0.2.0
   ADDITIONS & FIXES

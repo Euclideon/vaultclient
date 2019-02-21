@@ -947,7 +947,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       {
         if (ImGui::MenuItem(vcString::Get("sceneAddPOI")))
         {
-          vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, 14, worldMouse, pProgramState->gis.SRID));
+          vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, worldMouse, pProgramState->gis.SRID), true);
           ImGui::CloseCurrentPopup();
         }
 
@@ -967,6 +967,18 @@ void vcRenderSceneWindow(vcState *pProgramState)
           pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
           pProgramState->cameraInput.worldAnchorPoint = worldMouse;
           pProgramState->cameraInput.progress = 0.0;
+        }
+
+        if (pProgramState->sceneExplorer.selectedItems.size() == 1)
+        {
+          const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
+          if (item.pParent->m_children[item.index]->m_type == vcSOT_PointOfInterest)
+          {
+            vcPOI* pPOI = (vcPOI*)item.pParent->m_children[item.index];
+
+            if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
+              pPOI->AddPoint(worldMouse);
+          }
         }
       }
       else
@@ -1349,7 +1361,7 @@ void vcRenderWindow(vcState *pProgramState)
         vcModals_OpenModal(pProgramState, vcMT_AddUDS);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddPOI"), nullptr, vcMBBI_AddPointOfInterest, vcMBBG_SameGroup))
-        vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("sceneExplorerPOIDefaultName"), 0xFFFFFFFF, 14, udDouble3::zero(), 0));
+        vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, pProgramState->pCamera->position, pProgramState->gis.SRID), true);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddAOI"), nullptr, vcMBBI_AddAreaOfInterest, vcMBBG_SameGroup))
         vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
@@ -1357,10 +1369,7 @@ void vcRenderWindow(vcState *pProgramState)
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddLines"), nullptr, vcMBBI_AddLines, vcMBBG_SameGroup))
         vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddOther"), nullptr, vcMBBI_AddOther, vcMBBG_SameGroup))
-      {
-
-      }
+      vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddOther"), nullptr, vcMBBI_AddOther, vcMBBG_SameGroup);
       if (ImGui::BeginPopupContextItem(vcString::Get("sceneExplorerAddOther"), 0))
       {
         if (ImGui::MenuItem(vcString::Get("sceneExplorerAddFeed"), nullptr, nullptr))
