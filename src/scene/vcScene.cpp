@@ -212,8 +212,9 @@ void vcScene_ClearSelection(vcState *pProgramState)
 
 void vcSceneItem::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
 {
-  if (this->m_pZone != nullptr && newZone.srid != this->m_pZone->srid)
-    memcpy(this->m_pZone, &newZone, sizeof(newZone));
+  UDASSERT(newZone.srid != 0, "Changing to non-existant projection");
+  if (this->m_pZone != nullptr && newZone.srid != m_pZone->srid)
+    memcpy(m_pZone, &newZone, sizeof(newZone));
 }
 
 bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel)
