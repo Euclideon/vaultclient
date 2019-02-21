@@ -219,7 +219,7 @@ const char* const g_tileVertexShader = R"shader(
 
 
 
-const char* const g_PositionNormalFragmentShader = R"shader(
+const char* const g_CompassFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -241,11 +241,72 @@ const char* const g_PositionNormalFragmentShader = R"shader(
   }
 )shader";
 
-const char* const g_PositionNormalVertexShader = R"shader(
+const char* const g_CompassVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
     float3 normal : NORMAL;
+  };
+
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float3 normal : COLOR0;
+    float4 colour : COLOR1;
+    float3 sunDirection : COLOR2;
+    float4 fragClipPosition : COLOR3;
+  };
+
+  cbuffer u_EveryObject : register(b0)
+  {
+    float4x4 u_worldViewProjectionMatrix;
+    float4 u_colour;
+    float3 u_sunDirection;
+    float _padding;
+  };
+
+  PS_INPUT main(VS_INPUT input)
+  {
+    PS_INPUT output;
+
+    output.pos = mul(u_worldViewProjectionMatrix, float4(input.pos, 1.0));
+    output.normal = (input.normal * 0.5) + 0.5;
+    output.colour = u_colour;
+    output.sunDirection = u_sunDirection;
+    output.fragClipPosition = output.pos;
+    return output;
+  }
+)shader";
+
+
+const char* const g_PolygonPNFragmentShader = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float3 normal : COLOR0;
+    float4 colour : COLOR1;
+    float3 sunDirection : COLOR2;
+    float4 fragClipPosition : COLOR3;
+  };
+
+  float4 main(PS_INPUT input) : SV_Target
+  {
+    float3 fakeEyeVector = normalize(input.fragClipPosition.xyz / input.fragClipPosition.w);
+    float3 worldNormal = input.normal * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
+    float ndotl = 0.5 + 0.5 * -dot(input.sunDirection, worldNormal);
+    float edotr = max(0.0, -dot(-fakeEyeVector, worldNormal));
+    edotr = pow(edotr, 60.0);
+    float3 sheenColour = float3(1.0, 1.0, 0.9);
+    return float4(input.colour.a * (ndotl * input.colour.xyz + edotr * sheenColour), 1.0);
+  }
+)shader";
+
+const char* const g_PolygonPNVertexShader = R"shader(
+  struct VS_INPUT
+  {
+    float3 pos : POSITION;
+    float3 normal : NORMAL;
+    float2 uv:
   };
 
   struct PS_INPUT

@@ -44,6 +44,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+vcPolygonModel *pTempDebugPolyModel = nullptr;
+
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
 #  include <crtdbg.h>
 #  include <stdio.h>
@@ -355,7 +357,7 @@ int main(int argc, char **args)
 
   if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3) != 0)
     goto epilogue;
-  if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1) != 0)
+  if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2) != 0)
     goto epilogue;
 #endif
 
@@ -598,6 +600,7 @@ int main(int argc, char **args)
 
                 vcModals_OpenModal(&programState, vcMT_ImageViewer);
               }
+#ifndef GIT_BUILD
               else if (udStrEquali(pExt, ".vsm"))
               {
                 void *pFileData = nullptr;
@@ -616,11 +619,14 @@ int main(int argc, char **args)
 
                 if (pModel)
                 {
-                  // TODO: add to render queue
-                }
+                  if (pTempDebugPolyModel)
+                    vcPolygonModel_Destroy(&pTempDebugPolyModel);
 
+                  pTempDebugPolyModel = pModel;
+                }
                 udFree(pFileData);
               }
+#endif
               else
               {
                 vcConvert_AddFile(&programState, pNextLoad);
@@ -672,6 +678,7 @@ epilogue:
   vcCamera_Destroy(&programState.pCamera);
   vcTexture_Destroy(&programState.pCompanyLogo);
   vcTexture_Destroy(&programState.pUITexture);
+  vcPolygonModel_Destroy(&pTempDebugPolyModel);
   free(pIconData);
   free(pEucWatermarkData);
   for (size_t i = 0; i < programState.loadList.size(); i++)
@@ -905,8 +912,12 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.models.Init(32);
   renderData.fences.Init(32);
   renderData.labels.Init(32);
+  renderData.polyModels.Init(64);
   renderData.mouse.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.y = (uint32_t)(io.MousePos.y - windowPos.y);
+
+  if (pTempDebugPolyModel)
+    renderData.polyModels.PushBack(pTempDebugPolyModel);
 
   udDouble3 cameraMoveOffset = udDouble3::zero();
 
@@ -1033,6 +1044,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.models.Deinit();
   renderData.fences.Deinit();
   renderData.labels.Deinit();
+  renderData.polyModels.Deinit();
 
   pProgramState->previousWorldMousePos = renderData.worldMousePos;
   pProgramState->previousPickingSuccess = renderData.pickingSuccess;

@@ -10,10 +10,14 @@ extern const char* const g_vcSkyboxVertexShader;
 extern const char* const g_FenceVertexShader;
 extern const char* const g_FenceFragmentShader;
 
-extern const char* const g_PositionNormalFragmentShader;
-extern const char* const g_PositionNormalVertexShader;
+extern const char* const g_CompassFragmentShader;
+extern const char* const g_CompassVertexShader;
 
 extern const char* const g_ImGuiVertexShader;
 extern const char* const g_ImGuiFragmentShader;
+
+// Polygon shaders
+extern const char* const g_PolygonP1N1UV1FragmentShader;
+extern const char* const g_PolygonP1N1UV1VertexShader;
 
 #endif//vcRenderShaders_h__

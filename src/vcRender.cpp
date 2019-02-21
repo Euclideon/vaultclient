@@ -122,6 +122,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.presentShader.uniform_depth, pRenderContext->udRenderContext.presentShader.pProgram, "u_depth");
   vcShader_GetConstantBuffer(&pRenderContext->udRenderContext.presentShader.uniform_params, pRenderContext->udRenderContext.presentShader.pProgram, "u_params", sizeof(pRenderContext->udRenderContext.presentShader.params));
 
+  vcPolygonModel_CreateShaders();
+
   vcShader_Bind(nullptr);
 
   UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, pSettings));
@@ -168,6 +170,8 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
 
   vcTexture_Destroy(&pRenderContext->pSkyboxTexture);
   UD_ERROR_CHECK(vcCompass_Destroy(&pRenderContext->pCompass));
+
+  vcPolygonModel_DestroyShaders();
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
@@ -400,16 +404,29 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
 void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   vcGLState_ResetState();
-  vcGLState_SetBlendMode(vcGLSBM_AdditiveSrcInterpolativeDst);
-  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
-  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
-  // Draw fences here
-  if (pRenderContext->pSettings->presentation.showDiagnosticInfo)
-    vcFenceRenderer_Render(pRenderContext->pDiagnosticFences, pRenderContext->pCamera->matrices.viewProjection, renderData.deltaTime);
+  // Polygon Models
+  {
+    vcGLState_SetBlendMode(vcGLSBM_None);
+    vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 
-  for (size_t i = 0; i < renderData.fences.length; ++i)
-    vcFenceRenderer_Render(renderData.fences[i], pRenderContext->pCamera->matrices.viewProjection, renderData.deltaTime);
+    for (size_t i = 0; i < renderData.polyModels.length; ++i)
+      vcPolygonModel_Render(renderData.polyModels[i], udDouble4x4::identity(), pRenderContext->pCamera->matrices.viewProjection);
+  }
+
+  // Fences
+  {
+    vcGLState_SetBlendMode(vcGLSBM_AdditiveSrcInterpolativeDst);
+    vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+
+    if (pRenderContext->pSettings->presentation.showDiagnosticInfo)
+      vcFenceRenderer_Render(pRenderContext->pDiagnosticFences, pRenderContext->pCamera->matrices.viewProjection, renderData.deltaTime);
+
+    for (size_t i = 0; i < renderData.fences.length; ++i)
+      vcFenceRenderer_Render(renderData.fences[i], pRenderContext->pCamera->matrices.viewProjection, renderData.deltaTime);
+  }
 }
 
 
