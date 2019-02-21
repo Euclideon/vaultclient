@@ -175,13 +175,13 @@ epilogue:
         vcMesh_Destroy(&pNewModel->pMeshes[i].pMesh);
 
       udFree(pNewModel->pMeshes);
+      udFree(pNewModel);
     }
-    udFree(pNewModel);
   }
   return result;
 }
 
-udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelMatrix, const udDouble4x4 &viewProjectionMatrix)
+udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelMatrix, const udDouble4x4 &viewProjectionMatrix, vcTexture *pDiffuseOverride /*= nullptr*/)
 {
   if (pModel == nullptr)
     return udR_InvalidParameter_;
@@ -195,7 +195,6 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
 
     vcShader_Bind(pPolygonShader->pShader);
 
-    pPolygonShader->everyObject.u_world = udFloat4x4::create(modelMatrix);
     pPolygonShader->everyFrame.u_viewProjectionMatrix = udFloat4x4::create(viewProjectionMatrix);
 
     float s = 1.0f / 255.0f;
@@ -206,11 +205,16 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
       ((pModel->pMeshes[i].material.colour >> 0) & 0xFF) * s);
 
     pPolygonShader->everyObject.u_colour = colour;
+    pPolygonShader->everyObject.u_world = udFloat4x4::create(modelMatrix);
 
     vcShader_BindConstantBuffer(pPolygonShader->pShader, pPolygonShader->pEveryObjectConstantBuffer, &pPolygonShader->everyObject, sizeof(vcPolygonModelShader::everyObject));
     vcShader_BindConstantBuffer(pPolygonShader->pShader, pPolygonShader->pEveryFrameConstantBuffer, &pPolygonShader->everyFrame, sizeof(vcPolygonModelShader::everyFrame));
 
-    vcShader_BindTexture(pPolygonShader->pShader, pModelMesh->material.pTexture, 0, pPolygonShader->pDiffuseSampler);
+    vcTexture *pDiffuseTexture = pModelMesh->material.pTexture;
+    if (pDiffuseOverride)
+      pDiffuseTexture = pDiffuseOverride;
+
+    vcShader_BindTexture(pPolygonShader->pShader, pDiffuseTexture, 0, pPolygonShader->pDiffuseSampler);
 
     vcMesh_Render(pModelMesh->pMesh);
   }

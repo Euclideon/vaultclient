@@ -276,68 +276,7 @@ const char* const g_CompassVertexShader = R"shader(
     output.fragClipPosition = output.pos;
     return output;
   }
-)shader";
-
-
-const char* const g_PolygonPNFragmentShader = R"shader(
-  struct PS_INPUT
-  {
-    float4 pos : SV_POSITION;
-    float3 normal : COLOR0;
-    float4 colour : COLOR1;
-    float3 sunDirection : COLOR2;
-    float4 fragClipPosition : COLOR3;
-  };
-
-  float4 main(PS_INPUT input) : SV_Target
-  {
-    float3 fakeEyeVector = normalize(input.fragClipPosition.xyz / input.fragClipPosition.w);
-    float3 worldNormal = input.normal * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
-    float ndotl = 0.5 + 0.5 * -dot(input.sunDirection, worldNormal);
-    float edotr = max(0.0, -dot(-fakeEyeVector, worldNormal));
-    edotr = pow(edotr, 60.0);
-    float3 sheenColour = float3(1.0, 1.0, 0.9);
-    return float4(input.colour.a * (ndotl * input.colour.xyz + edotr * sheenColour), 1.0);
-  }
-)shader";
-
-const char* const g_PolygonPNVertexShader = R"shader(
-  struct VS_INPUT
-  {
-    float3 pos : POSITION;
-    float3 normal : NORMAL;
-    float2 uv:
-  };
-
-  struct PS_INPUT
-  {
-    float4 pos : SV_POSITION;
-    float3 normal : COLOR0;
-    float4 colour : COLOR1;
-    float3 sunDirection : COLOR2;
-    float4 fragClipPosition : COLOR3;
-  };
-
-  cbuffer u_EveryObject : register(b0)
-  {
-    float4x4 u_worldViewProjectionMatrix;
-    float4 u_colour;
-    float3 u_sunDirection;
-    float _padding;
-  };
-
-  PS_INPUT main(VS_INPUT input)
-  {
-    PS_INPUT output;
-
-    output.pos = mul(u_worldViewProjectionMatrix, float4(input.pos, 1.0));
-    output.normal = (input.normal * 0.5) + 0.5;
-    output.colour = u_colour;
-    output.sunDirection = u_sunDirection;
-    output.fragClipPosition = output.pos;
-    return output;
-  }
-)shader";
+  )shader";
 
 const char* const g_vcSkyboxVertexShader = R"shader(
   struct VS_INPUT
@@ -506,5 +445,64 @@ const char* const g_FenceFragmentShader = R"shader(
   {
     float4 texCol = texture0.Sample(sampler0, input.uv);
     return float4(texCol.xyz * input.colour.xyz, 1.0) * texCol.w * input.colour.w;
+  }
+)shader";
+
+const char* const g_PolygonP1N1UV1FragmentShader = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD0;
+    float3 normal : NORMAL;
+    float4 colour : COLOR0;
+  };
+
+  sampler sampler0;
+  Texture2D texture0;
+
+  float4 main(PS_INPUT input) : SV_Target
+  {
+    float4 col = texture0.Sample(sampler0, input.uv);
+    return float4(col.xyz, 1.0);
+  }
+)shader";
+
+const char* const g_PolygonP1N1UV1VertexShader = R"shader(
+  struct VS_INPUT
+  {
+    float3 pos : POSITION;
+    float2 uv  : TEXCOORD0;
+    float3 normal : NORMAL;
+  };
+
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv  : TEXCOORD0;
+    float3 normal : NORMAL;
+    float4 colour : COLOR0;
+  };
+
+  cbuffer u_EveryFrame : register(b0)
+  {
+    float4x4 u_viewProjectionMatrix;
+  };
+
+  cbuffer u_EveryObject : register(b1)
+  {
+    float4x4 u_modelMatrix;
+    float4 u_colour;
+  };
+
+  PS_INPUT main(VS_INPUT input)
+  {
+    PS_INPUT output;
+
+    output.pos = mul(u_viewProjectionMatrix, mul(u_modelMatrix, float4(input.pos, 1.0)));
+    output.uv = float2(input.uv.x, 1.0 - input.uv.y);
+    output.normal = input.normal;
+    output.colour = u_colour;
+
+    return output;
   }
 )shader";

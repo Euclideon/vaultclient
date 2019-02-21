@@ -108,7 +108,6 @@ bool vcTexture_CreateFromMemory(vcTexture **ppTexture, void *pFileData, size_t f
   *ppTexture = pTexture;
 
   return (pTexture != nullptr);
-
 }
 
 bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)

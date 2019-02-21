@@ -407,7 +407,7 @@ const char* const g_PolygonP1N1UV1FragmentShader = FRAG_HEADER R"shader(
 
   void main()
   {
-    vec4 col = texture(u_texture, vec2(v_uv.x, 1.0 - v_uv.y));
+    vec4 col = texture(u_texture, v_uv);
     out_Colour = vec4(col.xyz, 1.0);
   }
 )shader";
@@ -438,7 +438,7 @@ const char* const g_PolygonP1N1UV1VertexShader = VERT_HEADER R"shader(
   {
     gl_Position = u_viewProjectionMatrix * u_modelMatrix * vec4(a_pos, 1.0);
 
-    v_uv = a_uv;
+    v_uv = vec2(a_uv.x, 1.0 - a_uv.y);
     v_normal = a_normal;
     v_colour = u_colour;
   }
