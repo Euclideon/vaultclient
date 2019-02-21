@@ -118,6 +118,10 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
     pCamera->position += addPos;
 
+    // Check for a nan camera position and reset to zero, this allows the UI to be usable in the event of error
+    if (isnan(pCamera->position.x) || isnan(pCamera->position.y) || isnan(pCamera->position.z))
+      pCamera->position = udDouble3::zero();
+
     // Rotation
     if (pCamSettings->invertX)
       pCamInput->mouseInput.x *= -1.0;
