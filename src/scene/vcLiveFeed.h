@@ -23,7 +23,6 @@ public:
   double m_updateFrequency; // Delay in seconds between updates
   double m_decayFrequency; // Remove items if they haven't updated more recently than this
 
-  double m_detailDistance; // Distance to use 'simple' system
   double m_falloffDistance; // Distance to stop displaying entirely
 
   udMutex *m_pMutex;
