@@ -52,7 +52,7 @@ Modules are currently:
 - `loginProxyAddress`: Label for the proxy address field
 - `loginIgnoreCert`: Label for a setting that disables many of the security checks when logging in
 - `loginIgnoreCertWarning`: This displays a warning to the user that disabling the security certificates is _very_ dangerous
-- `loginPending`: Used internally to set the login status to "pending"?
+- `loginPending`: String used internally to set the login status to "pending"?
 - `loginMessageCredentials`: Prompts the user to enter their login information
 - `loginMessageChecking`: Tells the user to wait while their login information is confirmed
 - `loginErrorConnection`: Displays when the vault client fails to connect to the specified vault server
@@ -65,7 +65,7 @@ Modules are currently:
 
 ### Settings Strings
 
-- `settingsTitle`: Title of the settings tab
+- `settingsTitle`: Title of the Settings tab
 - `settingsAppearance`: Title of the Appearance subheading in Settings
 - `settingsAppearanceRestoreDefaults`: Used to restore default values for all appearance settings
 - `settingsAppearanceTheme`: Label next to dropdown list to select appearance theme
@@ -230,37 +230,31 @@ Modules are currently:
 - `menuSettings`: Option in Windows menu to enable the Settings tab
 - `menuProjects`: Header for Projects menu
 - `menuNewScene`: Option in Projects menu to remove all objects in the current scene and creating a new, empty scene
-
 - `menuLogout`: Logout option in System menu, logs the user out and opens the logout window
 - `menuLogoutTitle`: Title of logout window
 - `menuLogoutMessage`: Message displayed in logout window, informs the user that they have been logged out
 - `menuLogoutCloseButton`: Label for button that closes the logout window
--
 - `menuReleaseNotes`: Option in System menu, opens the Release Notes window
 - `menuReleaseNotesTitle`: Title of Release Notes window
 - `menuReleaseNotesFail`: Displayed when client fails to load text from the Release Notes file
 - `menuReleaseNotesShort`: String used internally as ID for displaying the Release Notes window?
 - `menuReleaseNotesCloseButton`: Label used on the close button of the Release Notes window
-
 - `menuAbout`: Option in System menu, opens the About window
 - `menuAboutTitle`: Title for the About window
 - `menuAboutVersion`: Used in the About window to show the current version of vault client
 - `menuAboutLicenseInfo`: Used in the About window to indicate that it contains third party license information
 - `menuAboutCloseButton`: Label used on the close button of the About window
 - `menuAboutPackageUpdate`: Used to show information about the most recent package update?
-
 - `menuImport`: Option in Projects menu, opens the Import sub-menu
 - `menuImportUDP`: Option in Import sub-menu, opens the Import UDP Window
 - `menuImportUDPTitle`: Title of the Import UDP Window
 - `menuImportCSV`: Option in Import sub-menu, opens the Import CSV Window
 - `menuImportCSVTitle`: Title of the Import CSV Window
-
 - `menuCurrentVersion`: Used to display the current version of vault client in the Release Notes and "New Version Available" windows
 - `menuNewVersionAvailableTitle`: Title of "New Version Available" window
 - `menuNewVersion`: Used to display the new version of vault client that is available
 - `menuNewVersionDownloadPrompt`: Tells the user how to download the new version of vault client
 - `menuNewVersionCloseButton`: Label used for the close button of the "New Version Available" window
-
 - `menuBarUpdateAvailable`: Message shown in the menu bar when there is a new version of vault client available
 - `menuBarFilesQueued`: Used to show in the menu bar how many files have been queued for importing into the scene
   - {0} = number of files queued?
@@ -283,33 +277,33 @@ Modules are currently:
 - `sceneImageViewerCloseButton`: Label used for the close button of the Image Viewer window
 - `sceneGeographicInfo`: Used to display the geographic information in the corner of the viewport
 - `sceneNotGeolocated`: Displays when the current location of the camera is not in a known geographic area
-- `sceneUnsupportedSRID`: `Unsupported SRID`,
-- `sceneMousePointInfo`: `Mouse Point (Projected)`,
-- `sceneMousePointWGS`: `Mouse Point (WGS84)`,
-- `sceneSRID`: `SRID`,
-- `sceneOverrideSRID`: `Override SRID`,
-- `sceneMapCopyright`: `MapCopyright`,
-- `sceneMapData`: `Map Data © OpenStreetMap contributors`,
-- `sceneSetMapHeight`: `Set as map height`,
-- `sceneAddPOI`: `Add POI here`,
-- `sceneMoveTo`: `Move To`,
+- `sceneUnsupportedSRID`: Displays when the current location has an SRID that is invalid
+- `sceneMousePointInfo`: Used to display the position of the mouse in the corner of the viewport, in global space coordinates, when in a geolocated zone
+- `sceneMousePointWGS`: Used to display the position of the mouse in the corner of the viewport, in WGS84 coordinates, when in a geolocated zone
+- `sceneSRID`: Used to display the SRID code of the geolocated position of the camera
+- `sceneOverrideSRID`: Label used for the interface shown when Advanced GIS Settings is enabled in Appearance Settings, allows the user to change the current SRID
+- `sceneMapCopyright`: String used internally as the ID for the map copyright data window?
+- `sceneMapData`: Message displayed in the map copyright data window in the corner of the viewport, only shows when the camera is in a valid SRID zone
+- `sceneSetMapHeight`: Menu option when right-clicking within the scene, sets map height to the current mouse location's height
+- `sceneAddPOI`: Menu option when right-clicking within the scene, creates a POI at the current mouse location
+- `sceneMoveTo`: Menu option when right-clicking within the scene, moves the camera to the current mouse location
 
-- `sceneLockAltitude`: `Lock Altitude`,
-- `sceneLockAltitudeKey`: `Space`,
-- `sceneCameraInfo`: `Show Camera Information`,
-- `sceneProjectionInfo`: `Show Projection Information`,
-- `sceneGizmoTranslate`: `Gizmo Translate`,
-- `sceneGizmoTranslateKey`: `B`,
-- `sceneGizmoRotate`: `Gizmo Rotate`,
-- `sceneGizmoRotateKey`: `N`,
-- `sceneGizmoScale`: `Gizmo Scale`,
-- `sceneGizmoScaleKey`: `M`,
-- `sceneGizmoLocalSpace`: `Gizmo Local Space`,
-- `sceneGizmoLocalSpaceKey`: `C`,
-- `sceneFullscreen`: `Fullscreen`,
-- `sceneFullscreenKey`: `F5`,
+- `sceneLockAltitude`: Tooltip displayed when mouse is hovered over the Lock Altitude button in the viewport controls window
+- `sceneLockAltitudeKey`: Used in Lock Altitude tooltip, shown in brackets
+- `sceneCameraInfo`: Tooltip displayed when mouse is hovered over the Show Camera Information button in the viewport controls window
+- `sceneProjectionInfo`: Tooltip displayed when mouse is hovered over the Show Projection Information button in the viewport controls window
+- `sceneGizmoTranslate`: Tooltip displayed when mouse is hovered over the Gizmo Translate button in the viewport controls window
+- `sceneGizmoTranslateKey`: Used in Gizmo Translate tooltip, shown in brackets
+- `sceneGizmoRotate`: Tooltip displayed when mouse is hovered over the Gizmo Rotate button in the viewport controls window
+- `sceneGizmoRotateKey`: Used in Gizmo Rotate tooltip, shown in brackets
+- `sceneGizmoScale`: Tooltip displayed when mouse is hovered over the Gizmo Scale button in the viewport controls window
+- `sceneGizmoScaleKey`: Used in Gizmo Scale tooltip, shown in brackets
+- `sceneGizmoLocalSpace`: Tooltip displayed when mouse is hovered over the Gizmo Local Space button in the viewport controls window
+- `sceneGizmoLocalSpaceKey`: Used in Gizmo Local Space tooltip, shown in brackets
+- `sceneFullscreen`: Tooltip displayed when mouse is hovered over the Fullscreen button in the viewport controls window
+- `sceneFullscreenKey`: Used in Fullscreen button tooltip, shown in brackets
 
-- `sceneCameraSettings`: `Camera Settings`,
+- `sceneCameraSettings`: String used internally as ID for the viewport controls/camera information window?
 - `sceneCameraLatLongAlt`: Used to display the latitude, longitude and altitude information where applicable
   - {0} = Latitude (in degrees)
   - {1} = Longitude (in degrees)
@@ -321,34 +315,34 @@ Modules are currently:
 - `sceneCameraOSCMove`: This text is displayed on the forward, back and strage button of the on screen controls (note that this setting is deprecated to be removed)
 - `sceneCameraOSCUpDown`: This is the text in the up/down section of the on screen controls (note that this setting is deprecated to be removed)
 
-- `sceneExplorerTitle`: `Scene Explorer`,
-- `sceneExplorerRemove`: `Remove Selected`,
-- `sceneExplorerRemoveKey`: `Delete`,
-- `sceneExplorerAddUDS`: `Add UDS`,
-- `sceneExplorerAddUDSKey`: `Ctrl+U`,
-- `sceneExplorerAddUDSTitle`: `Add UDS to Scene`,
-- `sceneExplorerAddPOI`: `Add Point of Interest`,
-- `sceneExplorerAddAOI`: `Add Area of Interest`,
-- `sceneExplorerAddLines`: `Add Lines`,
-- `sceneExplorerAddOther`: `Add Other`,
-- `sceneExplorerAddFeed`: `Add Live Feed`,
-- `sceneExplorerAddFolder`: `Add Folder`,
-- `sceneExplorerEditName`: `Edit Name`,
-- `sceneExplorerUseProjection`: `Use Projection`,
-- `sceneExplorerMoveTo`: `Move To`,
-- `sceneExplorerPathURL`: `Path/URL:`,
-- `sceneExplorerLoadButton`: `Load`,
-- `sceneExplorerCancelButton`: `Cancel`,
+- `sceneExplorerTitle`: Title of the Scene Explorer tab
+- `sceneExplorerRemove`: Tooltip displayed when mouse is hovered over the Remove button in the scene explorer tab
+- `sceneExplorerRemoveKey`: Used in Remove button tooltip, shown in brackets
+- `sceneExplorerAddUDS`: Tooltip displayed when mouse is hovered over the Add UDS button in the scene explorer tab
+- `sceneExplorerAddUDSKey`: Used in Add UDS button tooltip, shown in brackets
+- `sceneExplorerAddUDSTitle`: Title of the Add UDS window
+- `sceneExplorerAddPOI`: Tooltip displayed when mouse is hovered over the Add POI button in the scene explorer tab
+- `sceneExplorerAddAOI`: Tooltip displayed when mouse is hovered over the Add AOI button in the scene explorer tab
+- `sceneExplorerAddLines`: Tooltip displayed when mouse is hovered over the Add Lines button in the scene explorer tab
+- `sceneExplorerAddOther`: Tooltip displayed when mouse is hovered over the Add Other button in the scene explorer tab
+- `sceneExplorerAddFeed`: Menu option in the Add Other menu which is displayed when the Add Other button is clicked, adds a Live Feed item to the scene
+- `sceneExplorerAddFolder`: Tooltip displayed when mouse is hovered over the Add Folder button in the scene explorer tab
+- `sceneExplorerEditName`: Menu option when right-clicking on an item in the Scene Explorer, allows user to change the name of the item
+- `sceneExplorerUseProjection`: Menu option when right-clicking on an item in the Scene Explorer, changes the current SRID to that of the selected scene item
+- `sceneExplorerMoveTo`: Menu option when right-clicking on an item in the Scene Explorer, moves the camera to the location of the selected item
+- `sceneExplorerPathURL`: Label next to the text box containing the path of the currently selected file
+- `sceneExplorerLoadButton`: Label used for the Load button in the Add UDS window which loads the currently selected file and closes the window
+- `sceneExplorerCancelButton`: Label used for the Close button of the Add UDS window
 
-- `sceneExplorerErrorOpen`: `Could not open the model, perhaps it is missing or you don't have permission to access it.`,
-- `sceneExplorerErrorLoad`: `Failed to load model`,
-- `sceneExplorerNotImplementedTitle`: `Not Implemented`,
-- `sceneExplorerNotImplementedMessage`: `Sorry, this functionality is not yet available.`,
-- `sceneExplorerNotImplementedCloseButton`: `Close`,
-- `sceneExplorerPending`: `Pending`,
-- `sceneExplorerLoading`: `Loading`,
-- `sceneExplorerPOIDefaultName`: `Point of interest`,
-- `sceneExplorerFolderDefaultName`: `Folder`,
+- `sceneExplorerErrorOpen`: Tooltip displayed when mouse is hovered over the warning next to a scene item in the Scene Explorer that vault client was unable to open or access
+- `sceneExplorerErrorLoad`: Tooltip displayed when mouse is hovered over the warning next to a scene item in the Scene Explorer that vault client was unable to fully load
+- `sceneExplorerNotImplementedTitle`: Title used for the Not Implemented window
+- `sceneExplorerNotImplementedMessage`: Message diplayed in the Not Implemented window, which is shown when a vault client feature has not been completed yet
+- `sceneExplorerNotImplementedCloseButton`: Label used on the close button in the Not Implemented window
+- `sceneExplorerPending`: Tooltip displayed when mouse is hovered over the alert next to a scene item in the Scene Explorer that vault client has not opened yet
+- `sceneExplorerLoading`: Tooltip displayed when mouse is hovered over the alert next to a scene item in the Scene Explorer that vault client has not fully loaded yet
+- `sceneExplorerPOIDefaultName`: Default name of new POI objects when they are added to the Scene Explorer
+- `sceneExplorerFolderDefaultName`: Default name of new folders when they are added to the Scene Explorer
 
 - `scenePOIDefaultName`: `Point of interest`,
 - `scenePOIPosition`: `Position`,
@@ -369,9 +363,9 @@ Modules are currently:
 
 ### Error Strings
 
-- `errorTitle`: `Error`,
-- `errorUnknown`: `Unknown Error.`,
-- `errorOpening`: `Error opening file.`,
-- `errorReading`: `Error reading file.`,
-- `errorWriting`: `Error writing to file.`,
-- `errorCloseButton`: `Close`
+- `errorTitle`: Title used for the Error window
+- `errorUnknown`: Message displayed when an error occurs but vault client is unable to determine what type of error
+- `errorOpening`: Message displayed when vault client fails to open a file
+- `errorReading`: Message displayed when vault client fails to read a file
+- `errorWriting`: Message displayed when vault client fails to write to an output file
+- `errorCloseButton`: Label used on the close button of the Error window
