@@ -273,14 +273,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   bool isBtnHeld[3] = { ImGui::IsMouseDown(0), ImGui::IsMouseDown(1), ImGui::IsMouseDown(2) };
   bool isBtnReleased[3] = { ImGui::IsMouseReleased(0), ImGui::IsMouseReleased(1), ImGui::IsMouseReleased(2) };
 
-  if (isHovered && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
-    isFocused = true;
-
-  if (!isHovered && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
-    isFocused = false;
-
-  if (pProgramState->modalOpen)
-    isFocused = false;
+  isFocused = isHovered && !pProgramState->modalOpen;
 
   if (io.KeyCtrl)
     speedModifier *= 0.1f;
