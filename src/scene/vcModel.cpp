@@ -29,6 +29,7 @@ struct vcModelLoadInfo
 
 void vcModel_LoadModel(void *pLoadInfoPtr)
 {
+  udGeoZone *pMemberZone = nullptr;
   vcModelLoadInfo *pLoadInfo = (vcModelLoadInfo*)pLoadInfoPtr;
   if (pLoadInfo->pProgramState->programComplete)
     return;
@@ -85,9 +86,9 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
         if (srid != 0)
         {
           pLoadInfo->pModel->m_pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
-          pLoadInfo->pModel->m_pZone = udAllocType(udGeoZone, 1, udAF_Zero);
+          pMemberZone = udAllocType(udGeoZone, 1, udAF_Zero);
           udGeoZone_SetFromSRID(pLoadInfo->pModel->m_pOriginalZone, srid);
-          memcpy(pLoadInfo->pModel->m_pZone, pLoadInfo->pModel->m_pOriginalZone, sizeof(*pLoadInfo->pModel->m_pZone));
+          memcpy(pMemberZone, pLoadInfo->pModel->m_pOriginalZone, sizeof(*pMemberZone));
         }
       }
 
@@ -107,9 +108,15 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
       if (pLoadInfo->useRotation || pLoadInfo->usePosition || pLoadInfo->scale != 1.0)
         pLoadInfo->pModel->m_sceneMatrix = udDouble4x4::translation(translate) * udDouble4x4::translation(pLoadInfo->pModel->m_pivot) * udDouble4x4::rotationYPR(ypr) * udDouble4x4::scaleNonUniform(scaleFactor) * udDouble4x4::translation(-pLoadInfo->pModel->m_pivot);
 
+      if (pMemberZone)
+      {
+        pLoadInfo->pModel->m_pZone = pMemberZone;
+        pMemberZone = nullptr;
+      }
+
       if (pLoadInfo->jumpToLocation)
         vcScene_UseProjectFromItem(pLoadInfo->pProgramState, pLoadInfo->pModel);
-      else
+      else if (pLoadInfo->pProgramState->gis.isProjected)
         pLoadInfo->pModel->ChangeProjection(pLoadInfo->pProgramState, pLoadInfo->pProgramState->gis.zone);
 
       pLoadInfo->pModel->m_loadStatus = vcSLS_Loaded;
@@ -123,6 +130,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
       pLoadInfo->pModel->m_loadStatus = vcSLS_Failed;
     }
   }
+  udFree(pMemberZone);
 }
 
 vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad /*= true*/, udDouble3 *pOverridePosition /*= nullptr*/, udDouble3 *pOverrideYPR /*= nullptr*/, double scale /*= 1.0*/) :
@@ -189,8 +197,8 @@ void vcModel::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
 void vcModel::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
 {
   // This is not ideal as it will gather drift
-  if (this->m_pZone != nullptr)
-    this->m_sceneMatrix = udGeoZone_TransformMatrix(this->m_sceneMatrix, *this->m_pZone, newZone);
+  if (m_pZone != nullptr)
+    m_sceneMatrix = udGeoZone_TransformMatrix(this->m_sceneMatrix, *m_pZone, newZone);
 
   // Call the parent version
   vcSceneItem::ChangeProjection(nullptr, newZone);
