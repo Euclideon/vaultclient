@@ -1039,7 +1039,10 @@ int vcMainMenuGui(vcState *pProgramState)
         vcLogout(pProgramState);
 
       if (ImGui::MenuItem(vcString::Get("menuRestoreDefaults"), nullptr))
+      {
         vcMain_LoadSettings(pProgramState, true);
+        vcRender_ClearTiles(pProgramState->pRenderContext); // refresh map tiles since they just got updated
+      }
 
       if (ImGui::MenuItem(vcString::Get("menuAbout")))
         vcModals_OpenModal(pProgramState, vcMT_About);
@@ -1614,6 +1617,7 @@ void vcRenderWindow(vcState *pProgramState)
         if (ImGui::Selectable(vcString::Get("MapsRestore")))
         {
           vcSettings_Load(&pProgramState->settings, true, vcSC_MapsElevation);
+          vcRender_ClearTiles(pProgramState->pRenderContext); // refresh map tiles since they just got updated
         }
         ImGui::EndPopup();
       }
