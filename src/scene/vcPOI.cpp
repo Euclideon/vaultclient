@@ -8,10 +8,10 @@
 #include "gl/vcFenceRenderer.h"
 
 #include "udPlatform/udMath.h"
+#include "udPlatform/udFile.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
-#include "udPlatform/udFile.h"
 
 vcPOI::vcPOI(const char *pName, uint32_t nameColour, vcLabelFontSize namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/)
 {
@@ -110,7 +110,7 @@ void vcPOI::UpdatePoints()
     config.imageMode = m_line.lineStyle;
     config.bottomColour = vcIGSW_BGRAToImGui(m_line.colourSecondary);
     config.topColour = vcIGSW_BGRAToImGui(m_line.colourPrimary);
-    config.ribbonWidth = (float)m_line.lineWidth;
+    config.ribbonWidth = m_line.lineWidth;
     config.textureScrollSpeed = 1.f;
     config.textureRepeatScale = 1.f;
 
@@ -135,7 +135,8 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
   if (m_line.numPoints > 1)
   {
-    ImGui::SliderInt(vcString::Get("scenePOISelectedPoint"), &m_line.selectedPoint, -1, m_line.numPoints - 1);
+    if (ImGui::SliderInt(vcString::Get("scenePOISelectedPoint"), &m_line.selectedPoint, -1, m_line.numPoints - 1))
+      m_line.selectedPoint = udClamp(m_line.selectedPoint, -1, m_line.numPoints - 1);
 
     if (m_line.selectedPoint != -1)
     {
@@ -160,7 +161,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColorSecondary%zu", vcString::Get("scenePOILineColour2"), *pItemID), &m_line.colourSecondary, ImGuiColorEditFlags_None))
         UpdatePoints();
 
-      if (ImGui::InputInt(udTempStr("%s##POILineColorSecondary%zu", vcString::Get("scenePOILineWidth"), *pItemID), (int *)&m_line.lineWidth))
+      if (ImGui::SliderFloat(udTempStr("%s##POILineColorSecondary%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_line.lineWidth, 0.01f, 1000.f, "%.2f", 3.f))
         UpdatePoints();
 
       const char *lineOptions[] = { vcString::Get("scenePOILineStyleArrow"), vcString::Get("scenePOILineStyleGlow"), vcString::Get("scenePOILineStyleSolid") };

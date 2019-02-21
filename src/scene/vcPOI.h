@@ -18,7 +18,7 @@ struct vcLineInfo
   int numPoints;
   uint32_t colourPrimary;
   uint32_t colourSecondary;
-  uint32_t lineWidth;
+  float lineWidth;
   int selectedPoint;
   bool closed;
   vcFenceRendererImageMode lineStyle;
