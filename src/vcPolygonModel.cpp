@@ -118,7 +118,7 @@ udResult vcPolygonModel_CreateFromMemory(vcPolygonModel **ppModel, char *pData, 
   // Materials
   for (int i = 0; i < header.numMaterials; ++i)
   {
-    if (i >= header.numMeshes) // TODO: material count should not exceed mesh count
+    if (i >= header.numMeshes) // TODO: material count should not exceed mesh count?
     {
       pFilePos += 6;
       continue;
@@ -141,11 +141,11 @@ udResult vcPolygonModel_CreateFromMemory(vcPolygonModel **ppModel, char *pData, 
     // override material id for now
     pNewModel->pMeshes[i].materialID = vcPMST_P1N1UV1;
 
-    void *pVerts = pFilePos;
-    pFilePos += sizeof(vcPolygonModelVertex) * pNewModel->pMeshes[i].numVertices;
+    vcPolygonModelVertex *pVerts = (vcPolygonModelVertex*)pFilePos;
+    pFilePos += sizeof(*pVerts) * pNewModel->pMeshes[i].numVertices;
 
-    void *pIndices = pFilePos;
-    pFilePos += sizeof(uint16_t) * pNewModel->pMeshes[i].numElements;
+    uint16_t *pIndices = (uint16_t*)pFilePos;
+    pFilePos += sizeof(*pIndices) * pNewModel->pMeshes[i].numElements;
 
     for (int t = 0; t < header.numTextures; ++t)
     {
@@ -165,18 +165,16 @@ udResult vcPolygonModel_CreateFromMemory(vcPolygonModel **ppModel, char *pData, 
   }
 
   *ppModel = pNewModel;
+  pNewModel = nullptr;
 
 epilogue:
-  if (result != udR_Success)
+  if (pNewModel)
   {
-    if (pNewModel)
-    {
-      for (int i = 0; i < pNewModel->meshCount; ++i)
-        vcMesh_Destroy(&pNewModel->pMeshes[i].pMesh);
+    for (int i = 0; i < pNewModel->meshCount; ++i)
+      vcMesh_Destroy(&pNewModel->pMeshes[i].pMesh);
 
-      udFree(pNewModel->pMeshes);
-      udFree(pNewModel);
-    }
+    udFree(pNewModel->pMeshes);
+    udFree(pNewModel);
   }
   return result;
 }

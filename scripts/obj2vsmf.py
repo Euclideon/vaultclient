@@ -9,14 +9,14 @@ filemax = 1000000000
 importFilename = "BCC_Bus.obj"
 outputFilename = "Test"
 
-textures = []
+textures = {}
 
 materialList = {'__white' : 0} # Default white for 'usemtl'
 materials = [[0x0, 0xFF, 0xFF, 0xFF, 0xFF]] # flags, BGRA
 defautMatUsed = False
 
 meshList = {'__baseMesh' : 0} # right now material list indexes are used to reference meshes, procVerts, faces
-meshProperties = [[False, False, False, 0x0, 0x0]] #flags (normals, UVs, tangents), matID, LOD
+meshProperties = [[False, False, False, 0x0, 0x0, 0]] #flags (normals, UVs, tangents), matID, LOD
 currMesh = [0]
 
 min = [] # X, Y, Z
@@ -57,12 +57,13 @@ def readMaterials(filename):
       if matName is not None:
         addMaterial(matName, flags, blue, green, red)
       matName = ' '.join(word[1:])
-    if word[0] == "map_Ka":
-      textures.append(word[-1])
-    if word[0] == "map_Kd":
-      textures.append(word[-1])
-    if word[0] == "map_Ks":
-      textures.append(word[-1])
+    if word[-1] not in list(textures.keys()):
+      if word[0] == "map_Ka":
+        textures[word[-1]] = len(textures)
+      if word[0] == "map_Kd":
+        textures[word[-1]] = len(textures)
+      if word[0] == "map_Ks":
+        textures[word[-1]] = len(textures)
     if word[0] == "Kd":
       if word[1] != "xyz" and word[1] != "spectral":
         red = float(word[1])
@@ -99,23 +100,18 @@ for line in lines:
     else:
       verts.append(tokens[1:])
 
-
   elif tokens[0] == "vn":
     if tokens[1] == "":
       normals.append(tokens[2:])
     else:
       normals.append(tokens[1:])
-    for i in currMesh:
-      meshProperties[i][0] = True
 
   # UV U X
   elif tokens[0] == "vt":
     if tokens[1] == "":
-      uvs.append(tokens[2:])
+      uvs.append(tokens[2:4])
     else:
-      uvs.append(tokens[1:])
-    for i in currMesh:
-      meshProperties[i][1] = True
+      uvs.append(tokens[1:3])
 
   elif tokens[0] == "f":
     for i in currMesh:
@@ -160,6 +156,11 @@ for meshIndex in range(len(faces)):
       it = int(vbs[1]) - 1
       io = int(vbs[2]) - 1
 
+      if io > 0:
+        meshProperties[meshIndex][0] = True
+      if it > 0:
+        meshProperties[meshIndex][1] = True
+
       value = [ float(verts[iv][0]), float(verts[iv][1]), float(verts[iv][2]), float(normals[io][0]), float(normals[io][1]), float(normals[io][2]), float(uvs[it][0]), float(uvs[it][1]) ]
 
       if key not in vertIndexes:
@@ -191,8 +192,13 @@ if len(meshProperties) > twobytemax:
     print("Error: Too many materials, maximum is ")
     print(twobytemax)
 
+validMeshes = 0
+for i in range(len(meshList)):
+  if len(procVerts[i]) > 1:
+    validMeshes += 1
+
 # Header
-fh.write(pack('4s6H6f', b"VSMF", version, 0, len(materials) - 1 + defautMatUsed, len(meshProperties), len(textures), 0, min[0], min[1], min[2], max[0], max[1], max[2] ))
+fh.write(pack('4s6H6f', b"VSMF", version, 0, len(materials) - 1 + defautMatUsed, validMeshes, len(textures), 0, min[0], min[1], min[2], max[0], max[1], max[2] ))
 
 # Materials
 for mat in range(len(materials)):
@@ -226,13 +232,11 @@ for i in range(len(meshList)):
   for j in range(len(procIndices[i])):
     fh.write(pack('H', procIndices[i][j]))
 
-  for j in range(len(textures)):
-    textureFile = open(textures[j], 'rb')
-    textureData = textureFile.read(filemax)
+for i in range(len(textures)):
+  textureFile = open(list(textures.keys())[i], 'rb')
+  textureData = textureFile.read(filemax)
 
-    fh.write(pack('I', len(textureData)))
-    fh.write(textureData)
-
-
+  fh.write(pack('I', len(textureData)))
+  fh.write(textureData)
 
 fh.close()
