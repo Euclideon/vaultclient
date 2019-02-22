@@ -242,9 +242,9 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     if (pCamSettings->moveMode == vcCMM_Plane)
       plane.normal = udDoubleQuat::create(pCamera->eulerRotation).apply({ 0, 1, 0 });
 
-    udDouble3 offset;
-    if (udIntersect(plane, pCamera->worldMouseRay, &offset) == udR_Success)
-      pCamera->position += (pCamInput->worldAnchorPoint - offset);
+    udDouble3 offset, anchorOffset;
+    if (udIntersect(plane, pCamera->worldMouseRay, &offset) == udR_Success && udIntersect(plane, pCamInput->anchorMouseRay, &anchorOffset) == udR_Success)
+      pCamera->position += (anchorOffset - offset);
   }
   break;
 
@@ -325,6 +325,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
             pProgramState->cameraInput.isUsingAnchorPoint = true;
             pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
           }
+          pProgramState->cameraInput.anchorMouseRay = pProgramState->pCamera->worldMouseRay;
           pProgramState->cameraInput.inputState = vcCIS_Panning;
           break;
         }
