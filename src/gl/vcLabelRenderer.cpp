@@ -16,7 +16,7 @@ bool vcLabelRenderer_Render(vcLabelInfo *pLabelRenderer, const udDouble4x4 &view
   if (pLabelRenderer->textSize == vcLFS_Large)
     ImGui::SetWindowFontScale(1.2f);
   else if (pLabelRenderer->textSize == vcLFS_Small)
-    ImGui::SetWindowFontScale(0.9f);
+    ImGui::SetWindowFontScale(0.87f);
 
   ImVec2 labelSize = ImGui::CalcTextSize(pLabelRenderer->pText);
 
