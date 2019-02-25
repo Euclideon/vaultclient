@@ -294,7 +294,11 @@ void vcConvert_ShowUI(vcState *pProgramState)
   ImGui::Separator();
 
   if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
-    ImGui::CheckboxFlags(vcString::Get("convertContinueOnCorrupt"), (uint32_t*)&pSelectedJob->pConvertInfo->ignoreParseErrors, 1);
+  {
+    bool skipErrorsWherePossible = pSelectedJob->pConvertInfo->skipErrorsWherePossible;
+    if (ImGui::Checkbox(vcString::Get("convertContinueOnCorrupt"), &skipErrorsWherePossible))
+      vdkConvert_SetSkipErrorsWherePossible(pProgramState->pVDKContext, pSelectedJob->pConvertContext, skipErrorsWherePossible);
+  }
 
   // Resolution
   ImGui::Text("%s: %.6f", vcString::Get("convertPointResolution"), pSelectedJob->pConvertInfo->pointResolution);
@@ -310,86 +314,110 @@ void vcConvert_ShowUI(vcState *pProgramState)
   // Override Resolution
   if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
   {
-    bool overrideResolution = pSelectedJob->pConvertInfo->overrideResolution ? 1 : 0;
+    bool overrideResolution = pSelectedJob->pConvertInfo->overrideResolution;
     double resolution = pSelectedJob->pConvertInfo->pointResolution;
 
     ImGui::SameLine();
-    if (ImGui::Checkbox(vcString::Get("OverrideID"), &overrideResolution))
-      vdkConvert_SetPointResolution(pProgramState->pVDKContext, pSelectedJob->pConvertContext, overrideResolution ? 1 : 0, resolution);
+    if (ImGui::Checkbox(udTempStr("%s##ConvertResolutionOverride", vcString::Get("convertOverride")), &overrideResolution))
+      vdkConvert_SetPointResolution(pProgramState->pVDKContext, pSelectedJob->pConvertContext, overrideResolution, resolution);
 
-    if (overrideResolution && ImGui::InputDouble(vcString::Get("PointResolutionID"), &resolution, 0.0001, 0.01, "%.6f"))
-      vdkConvert_SetPointResolution(pProgramState->pVDKContext, pSelectedJob->pConvertContext, 1, resolution);
-  }
-
-  // SRID
-  ImGui::Text("%s: %d", vcString::Get("convertSRID"), pSelectedJob->pConvertInfo->srid);
-
-  // Override SRID
-  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
-  {
-    bool overrideSRID = pSelectedJob->pConvertInfo->overrideSRID ? 1 : 0;
-    int srid = pSelectedJob->pConvertInfo->srid;
-
-    ImGui::SameLine();
-    if (ImGui::Checkbox(vcString::Get("OverrideSRIDID"), &overrideSRID))
-      vdkConvert_SetSRID(pProgramState->pVDKContext, pSelectedJob->pConvertContext, overrideSRID ? 1 : 0, srid);
-
-    if (overrideSRID && ImGui::InputInt(vcString::Get("SRIDID"), &srid))
-      vdkConvert_SetSRID(pProgramState->pVDKContext, pSelectedJob->pConvertContext, 1, srid);
-  }
-
-  ImGui::Separator();
-  ImGui::TextUnformatted(vcString::Get("convertMetadata"));
-
-  if (ImGui::Button(vcString::Get("convertLoadWatermark")))
-    vcModals_OpenModal(pProgramState, vcMT_LoadWatermark);
-
-  if (pSelectedJob->watermark.isDirty)
-  {
-    vcTexture_Destroy(&pSelectedJob->watermark.pTexture);
-    uint8_t *pData = nullptr;
-    size_t dataSize = 0;
-    if (udBase64Decode(&pData, &dataSize, pSelectedJob->pConvertInfo->pWatermark) == udR_Success)
+    if (overrideResolution)
     {
-      int comp;
-      stbi_uc *pImg = stbi_load_from_memory(pData, (int)dataSize, &pSelectedJob->watermark.width, &pSelectedJob->watermark.height, &comp, 4);
+      ImGui::Indent();
 
-      vcTexture_Create(&pSelectedJob->watermark.pTexture, pSelectedJob->watermark.width, pSelectedJob->watermark.height, pImg);
+      if (ImGui::InputDouble(udTempStr("%s##ConvertResolution", vcString::Get("convertPointResolution")), &resolution, 0.0001, 0.01, "%.6f"))
+        vdkConvert_SetPointResolution(pProgramState->pVDKContext, pSelectedJob->pConvertContext, 1, resolution);
 
-      stbi_image_free(pImg);
+      ImGui::Unindent();
     }
 
-    udFree(pData);
-  }
+    // Override SRID
+    bool overrideSRID = pSelectedJob->pConvertInfo->overrideSRID;
+    int srid = pSelectedJob->pConvertInfo->srid;
 
-  if (pSelectedJob->watermark.pTexture != nullptr)
-  {
-    ImGui::Image(pSelectedJob->watermark.pTexture, ImVec2((float)pSelectedJob->watermark.width, (float)pSelectedJob->watermark.height));
-    ImGui::SameLine();
-    if (ImGui::Button(vcString::Get("convertRemoveWatermark")))
+    if (ImGui::Checkbox(udTempStr("%s##ConvertOverrideGeolocate", vcString::Get("convertOverrideGeolocation")), &overrideSRID))
+      vdkConvert_SetSRID(pProgramState->pVDKContext, pSelectedJob->pConvertContext, overrideSRID, srid);
+
+    if (overrideSRID)
     {
-      vdkConvert_RemoveWatermark(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext);
-      udFree(pSelectedJob->watermark.pFilename);
-      pSelectedJob->watermark.width = 0;
-      pSelectedJob->watermark.height = 0;
+      ImGui::Indent();
+
+      if (ImGui::InputInt(udTempStr("%s##ConvertSRID", vcString::Get("convertSRID")), &srid))
+        vdkConvert_SetSRID(pProgramState->pVDKContext, pSelectedJob->pConvertContext, overrideSRID, srid);
+
+      // While overrideSRID isn't required for global offset to work, in order to simplify the UI for most users, we hide global offset when override SRID is disabled
+      double globalOffset[3];
+      memcpy(globalOffset, pSelectedJob->pConvertInfo->globalOffset, sizeof(globalOffset));
+      if (ImGui::InputScalarN(vcString::Get("convertGlobalOffset"), ImGuiDataType_Double, &globalOffset, 3))
+        vdkConvert_SetGlobalOffset(pProgramState->pVDKContext, pSelectedJob->pConvertContext, globalOffset);
+
+      // Quick Convert
+      bool quickConvert = (pSelectedJob->pConvertInfo->everyNth != 0);
+      if (ImGui::Checkbox(vcString::Get("convertQuickTest"), &quickConvert))
+        vdkConvert_SetEveryNth(pProgramState->pVDKContext, pSelectedJob->pConvertContext, quickConvert ? 1000 : 0);
+
+      ImGui::Unindent();
+    }
+
+    ImGui::Separator();
+    ImGui::TextUnformatted(vcString::Get("convertMetadata"));
+
+    // Other Metadata
+    if (ImGui::InputText(vcString::Get("convertAuthor"), pSelectedJob->author, udLengthOf(pSelectedJob->author)))
+      vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "Author", pSelectedJob->author);
+
+    if (ImGui::InputText(vcString::Get("convertComment"), pSelectedJob->comment, udLengthOf(pSelectedJob->comment)))
+      vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "Comment", pSelectedJob->comment);
+
+    if (ImGui::InputText(vcString::Get("convertCopyright"), pSelectedJob->copyright, udLengthOf(pSelectedJob->copyright)))
+      vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "Copyright", pSelectedJob->copyright);
+
+    if (ImGui::InputText(vcString::Get("convertLicense"), pSelectedJob->license, udLengthOf(pSelectedJob->license)))
+      vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "License", pSelectedJob->license);
+
+    // Watermark
+    if (ImGui::Button(vcString::Get("convertLoadWatermark")))
+      vcModals_OpenModal(pProgramState, vcMT_LoadWatermark);
+
+    if (pSelectedJob->watermark.pTexture != nullptr)
+    {
+      ImGui::SameLine();
+      if (ImGui::Button(vcString::Get("convertRemoveWatermark")))
+      {
+        vdkConvert_RemoveWatermark(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext);
+        udFree(pSelectedJob->watermark.pFilename);
+        pSelectedJob->watermark.width = 0;
+        pSelectedJob->watermark.height = 0;
+      }
+    }
+
+    if (pSelectedJob->watermark.isDirty)
+    {
+      vcTexture_Destroy(&pSelectedJob->watermark.pTexture);
+      uint8_t *pData = nullptr;
+      size_t dataSize = 0;
+      if (udBase64Decode(&pData, &dataSize, pSelectedJob->pConvertInfo->pWatermark) == udR_Success)
+      {
+        int comp;
+        stbi_uc *pImg = stbi_load_from_memory(pData, (int)dataSize, &pSelectedJob->watermark.width, &pSelectedJob->watermark.height, &comp, 4);
+
+        vcTexture_Create(&pSelectedJob->watermark.pTexture, pSelectedJob->watermark.width, pSelectedJob->watermark.height, pImg);
+
+        stbi_image_free(pImg);
+      }
+
+      udFree(pData);
     }
   }
   else
   {
-    ImGui::TextUnformatted(vcString::Get("convertNoWatermark"));
+    ImGui::Text("%s: %d", vcString::Get("convertSRID"), pSelectedJob->pConvertInfo->srid);
   }
 
-  if (ImGui::InputText(vcString::Get("convertAuthor"), pSelectedJob->author, udLengthOf(pSelectedJob->author)))
-    vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "Author", pSelectedJob->author);
-
-  if (ImGui::InputText(vcString::Get("convertComment"), pSelectedJob->comment, udLengthOf(pSelectedJob->comment)))
-    vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "Comment", pSelectedJob->comment);
-
-  if (ImGui::InputText(vcString::Get("convertCopyright"), pSelectedJob->copyright, udLengthOf(pSelectedJob->copyright)))
-    vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "Copyright", pSelectedJob->copyright);
-
-  if (ImGui::InputText(vcString::Get("convertLicense"), pSelectedJob->license, udLengthOf(pSelectedJob->license)))
-    vdkConvert_SetMetadata(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "License", pSelectedJob->license);
+  if (pSelectedJob->watermark.pTexture != nullptr)
+    ImGui::Image(pSelectedJob->watermark.pTexture, ImVec2((float)pSelectedJob->watermark.width, (float)pSelectedJob->watermark.height));
+  else
+    ImGui::TextUnformatted(vcString::Get("convertNoWatermark"));
 
   ImGui::Separator();
   if (pSelectedJob->pConvertInfo->totalItems > 0)
@@ -526,6 +554,11 @@ void vcConvert_ResetConvert(vcState *pProgramState, vcConvertItem *pConvertItem,
   vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pConvertContext, pConvertItem->pConvertInfo->pTempFilesPrefix);
   vdkConvert_SetPointResolution(pProgramState->pVDKContext, pConvertContext, pConvertItem->pConvertInfo->overrideResolution != 0, pConvertItem->pConvertInfo->pointResolution);
   vdkConvert_SetSRID(pProgramState->pVDKContext, pConvertContext, pConvertItem->pConvertInfo->overrideSRID != 0, pConvertItem->pConvertInfo->srid);
+
+  vdkConvert_SetSkipErrorsWherePossible(pProgramState->pVDKContext, pConvertContext, pConvertItem->pConvertInfo->skipErrorsWherePossible);
+  vdkConvert_SetEveryNth(pProgramState->pVDKContext, pConvertContext, pConvertItem->pConvertInfo->everyNth);
+
+  vdkConvert_SetGlobalOffset(pProgramState->pVDKContext, pConvertContext, pConvertItem->pConvertInfo->globalOffset);
 
   vdkConvert_AddWatermark(pProgramState->pVDKContext, pConvertContext, pConvertItem->watermark.pFilename);
 
