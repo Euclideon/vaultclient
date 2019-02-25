@@ -242,9 +242,9 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     if (pCamSettings->moveMode == vcCMM_Plane)
       plane.normal = udDoubleQuat::create(pCamera->eulerRotation).apply({ 0, 1, 0 });
 
-    udDouble3 offset;
-    if (udIntersect(plane, pCamera->worldMouseRay, &offset) == udR_Success)
-      pCamera->position += (pCamInput->worldAnchorPoint - offset);
+    udDouble3 offset, anchorOffset;
+    if (udIntersect(plane, pCamera->worldMouseRay, &offset) == udR_Success && udIntersect(plane, pCamInput->anchorMouseRay, &anchorOffset) == udR_Success)
+      pCamera->position += (anchorOffset - offset);
   }
   break;
 
@@ -273,14 +273,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   bool isBtnHeld[3] = { ImGui::IsMouseDown(0), ImGui::IsMouseDown(1), ImGui::IsMouseDown(2) };
   bool isBtnReleased[3] = { ImGui::IsMouseReleased(0), ImGui::IsMouseReleased(1), ImGui::IsMouseReleased(2) };
 
-  if (isHovered && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
-    isFocused = true;
-
-  if (!isHovered && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
-    isFocused = false;
-
-  if (pProgramState->modalOpen)
-    isFocused = false;
+  isFocused = isHovered && !pProgramState->modalOpen;
 
   if (io.KeyCtrl)
     speedModifier *= 0.1f;
@@ -332,6 +325,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
             pProgramState->cameraInput.isUsingAnchorPoint = true;
             pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
           }
+          pProgramState->cameraInput.anchorMouseRay = pProgramState->pCamera->worldMouseRay;
           pProgramState->cameraInput.inputState = vcCIS_Panning;
           break;
         }
