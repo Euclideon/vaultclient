@@ -217,7 +217,7 @@ void vcPOI::AddPoint(const udDouble3 &position)
   UpdatePoints();
 }
 
-void vcPOI::ChangeProjection(vcState *pProgramState, const udGeoZone &newZone)
+void vcPOI::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
 {
   // Change all points in the POI to the new projection
   for (int i = 0; i < m_line.numPoints; ++i)
