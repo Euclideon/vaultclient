@@ -222,7 +222,7 @@ bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel)
   if (pProgramState == nullptr || pModel == nullptr)
     return false;
 
-  if (pModel->m_pZone == nullptr || pModel->m_pOriginalZone == nullptr || pModel->m_pOriginalZone->srid == 0)
+  if (pModel->m_pOriginalZone == nullptr || pModel->m_pOriginalZone->srid == 0)
     vcGIS_ChangeSpace(&pProgramState->gis, 0);
   else if (vcGIS_ChangeSpace(&pProgramState->gis, pModel->m_pOriginalZone->srid))
     pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, *pModel->m_pOriginalZone); // Update all models to new zone unless there is no new zone
