@@ -183,7 +183,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       if (ImGui::Selectable(vcString::Get("sceneExplorerEditName")))
         m_children[i]->m_editName = true;
 
-      if (m_children[i]->m_pZone != nullptr && ImGui::Selectable(vcString::Get("sceneExplorerUseProjection")))
+      if (ImGui::Selectable(vcString::Get("sceneExplorerUseProjection")) && m_children[i]->m_pOriginalZone != nullptr && m_children[i]->m_pOriginalZone->srid != 0)
       {
         if (vcGIS_ChangeSpace(&pProgramState->gis, m_children[i]->m_pOriginalZone->srid, &pProgramState->pCamera->position))
           pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, *m_children[i]->m_pOriginalZone);

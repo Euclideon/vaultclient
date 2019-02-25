@@ -15,6 +15,7 @@ struct vcFenceRenderer;
 struct vcLineInfo
 {
   udDouble3 *pPoints;
+  udDouble3 *pOriginalPoints;
   int numPoints;
   uint32_t colourPrimary;
   uint32_t colourSecondary;
@@ -50,6 +51,7 @@ public:
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
   void HandleImGui(vcState *pProgramState, size_t *pItemID);
   void Cleanup(vcState *pProgramState);
+  void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
 
   void OnNameChange();
 
