@@ -15,15 +15,17 @@ Version 0.2.1
     - Scale is now calcualated correctly and doesn't reapply every frame
   - Added "Add Other" button to Scene Explorer
   - Added slider to Appearance Settings to control the max visible distance of POIs
-  - Fixed issue with manual entry of large values into camera pose causing a crash
+  - Fixed issue with manual entry of large values into camera position causing a crash
   - Added support for loading label hyperlinks from UDP
     - Added support for some image file extensions to open in image viewer modal
   - Added ability to change to appropriate tab when files are dropped
+    - Also now changes to the scene when clicking "Add To Scene" after conversion
   - Fixed issue with error appearing for macOS users after logging in
   - Fixed issue with load file modal textbox retaining previously loaded file
   - Map tiles now fade in
   - Fixed an issue with fence rendered UV calculation sometimes being incorrect
   - The projected space and camera position are reset back to 0 when clearing the scene
+  - UDS files with unknown SRID's will attempt to use the WKT embedded in the UDS to create a projection
   - Points of Interest changes
     - Can now add points to the (singular) selected POI from the world context menu
     - POIs are created on top of the camera by default
