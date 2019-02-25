@@ -125,8 +125,9 @@ void vcScene_RemoveAll(vcState *pProgramState)
     vcScene_RemoveItem(pProgramState, pProgramState->sceneExplorer.pItems, 0);
   pProgramState->sceneExplorer.selectedItems.clear();
 
+  udGeoZone zone = {};
   vcRender_ClearTiles(pProgramState->pRenderContext);
-  vcGIS_ChangeSpace(&pProgramState->gis, 0);
+  vcGIS_ChangeSpace(&pProgramState->gis, zone);
 
   if (pProgramState->pCamera != nullptr) // This is destroyed before the scene
     pProgramState->pCamera->position = udDouble3::zero();
@@ -212,7 +213,6 @@ void vcScene_ClearSelection(vcState *pProgramState)
 
 void vcSceneItem::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
 {
-  UDASSERT(newZone.srid != 0, "Changing to non-existant projection");
   if (this->m_pZone != nullptr && newZone.srid != m_pZone->srid)
     memcpy(m_pZone, &newZone, sizeof(newZone));
 }
@@ -222,9 +222,11 @@ bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel)
   if (pProgramState == nullptr || pModel == nullptr)
     return false;
 
+  udGeoZone zone = {};
+
   if (pModel->m_pZone == nullptr || pModel->m_pOriginalZone == nullptr || pModel->m_pOriginalZone->srid == 0)
-    vcGIS_ChangeSpace(&pProgramState->gis, 0);
-  else if (vcGIS_ChangeSpace(&pProgramState->gis, pModel->m_pOriginalZone->srid))
+    vcGIS_ChangeSpace(&pProgramState->gis, zone);
+  else if (vcGIS_ChangeSpace(&pProgramState->gis, *pModel->m_pOriginalZone))
     pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, *pModel->m_pOriginalZone); // Update all models to new zone unless there is no new zone
 
   pProgramState->pCamera->position = pModel->GetWorldSpacePivot();
