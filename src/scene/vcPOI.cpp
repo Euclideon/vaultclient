@@ -59,14 +59,16 @@ void vcPOI::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
     for (int i = 0; i < m_line.numPoints; ++i)
     {
       m_line.pPoints[i] = (delta * udDouble4x4::translation(m_line.pPoints[i])).axis.t.toVector3();
-      m_line.pOriginalPoints[i] = (delta * udDouble4x4::translation(m_line.pOriginalPoints[i])).axis.t.toVector3(); // apply same translation to original points too
+      m_line.pOriginalPoints[i] = m_pZone == nullptr ? m_line.pPoints[i] : udGeoZone_TransformPoint(m_line.pPoints[i], *m_pZone, *m_pOriginalZone); // apply translation to original points too
     }
   }
   else
   {
     m_line.pPoints[m_line.selectedPoint] = (delta * udDouble4x4::translation(m_line.pPoints[m_line.selectedPoint])).axis.t.toVector3();
-    m_line.pOriginalPoints[m_line.selectedPoint] = (delta * udDouble4x4::translation(m_line.pOriginalPoints[m_line.selectedPoint])).axis.t.toVector3();
+    m_line.pOriginalPoints[m_line.selectedPoint] = m_pZone == nullptr ? m_line.pPoints[m_line.selectedPoint] : udGeoZone_TransformPoint(m_line.pPoints[m_line.selectedPoint], *m_pZone, *m_pOriginalZone);
   }
+
+
 
   UpdatePoints();
 }
@@ -207,9 +209,11 @@ void vcPOI::AddPoint(const udDouble3 &position)
   pNewPoints[m_line.numPoints] = position;
   udFree(m_line.pPoints);
   m_line.pPoints = pNewPoints;
-
-  memcpy(pNewPoints, m_line.pOriginalPoints, sizeof(udDouble3) * m_line.numPoints);
-  pNewPoints[m_line.numPoints] = position;
+  if (m_pZone != nullptr)
+  {
+    memcpy(pNewPoints, m_line.pOriginalPoints, sizeof(udDouble3) * m_line.numPoints);
+    pNewPoints[m_line.numPoints] = udGeoZone_TransformPoint(position, *m_pZone, *m_pOriginalZone);
+  }
   udFree(m_line.pOriginalPoints);
   m_line.pOriginalPoints = pNewPoints;
 
@@ -219,10 +223,13 @@ void vcPOI::AddPoint(const udDouble3 &position)
 
 void vcPOI::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
 {
-  // Change all points in the POI to the new projection
-  for (int i = 0; i < m_line.numPoints; ++i)
-    m_line.pPoints[i] = udGeoZone_TransformPoint(m_line.pOriginalPoints[i], *m_pOriginalZone, newZone);
-  UpdatePoints();
+  if (m_pZone != nullptr)
+  {
+    // Change all points in the POI to the new projection
+    for (int i = 0; i < m_line.numPoints; ++i)
+      m_line.pPoints[i] = udGeoZone_TransformPoint(m_line.pOriginalPoints[i], *m_pOriginalZone, newZone);
+    UpdatePoints();
+  }
 
   // Call the parent version
   vcSceneItem::ChangeProjection(nullptr, newZone);
