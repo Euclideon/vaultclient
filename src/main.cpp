@@ -932,7 +932,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
     static bool wasOpenLastFrame = false;
 
-    if (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem()) //TODO:
+    if (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext"))
     {
       static bool hadMouse = false;
       static udDouble3 worldMouse;
