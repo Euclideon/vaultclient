@@ -77,11 +77,6 @@ namespace vcString
     Set("MapsRestore", vStringFormat("{0}##MapsRestore", Get("settingsMapsRestoreDefaults")));
     Set("VisualizationRestore", vStringFormat("{0}##VisualizationRestore", Get("settingsVisRestoreDefaults")));
 
-    Set("OverrideID", vStringFormat("{0}##ConvertResolutionOverride", Get("convertOverride")));
-    Set("PointResolutionID", vStringFormat("{0}##ConvertResolution", Get("convertPointResolution")));
-    Set("OverrideSRIDID", vStringFormat("{0}##ConvertSRIDOverride", Get("convertOverride")));
-    Set("SRIDID", vStringFormat("{0}##ConvertSRID", Get("convertSRID")));
-
     return vE_Success;
   }
 
