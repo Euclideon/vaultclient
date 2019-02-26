@@ -318,7 +318,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
     double resolution = pSelectedJob->pConvertInfo->pointResolution;
 
     ImGui::SameLine();
-    if (ImGui::Checkbox(udTempStr("%s##ConvertResolutionOverride", vcString::Get("convertOverride")), &overrideResolution))
+    if (ImGui::Checkbox(udTempStr("%s##ConvertResolutionOverride", vcString::Get("convertOverrideResolution")), &overrideResolution))
       vdkConvert_SetPointResolution(pProgramState->pVDKContext, pSelectedJob->pConvertContext, overrideResolution, resolution);
 
     if (overrideResolution)

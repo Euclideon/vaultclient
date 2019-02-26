@@ -168,7 +168,7 @@
   "convertContinueOnCorrupt": "Continue processing after corrupt/incomplete data (where possible)",
   "convertPointResolution": "Point resolution",
   "convertInputDataRanges": "input data ranges from",
-  "convertOverride": "Override Resolution",
+  "convertOverrideResolution": "Override Resolution",
   "convertOverrideGeolocation": "Override Geolocation",
   "convertQuickTest": "Quick Partial Convert (to test Settings)",
   "convertGlobalOffset": "Global Point Offset",
