@@ -294,9 +294,6 @@ int main(int argc, char **args)
   ImFontConfig fontCfg = ImFontConfig();
   const char *pFontPath = nullptr;
 
-  bool continueLoading = false;
-  const char *pNextLoad = nullptr;
-
   // default values
   programState.settings.camera.moveMode = vcCMM_Plane;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
@@ -553,13 +550,14 @@ int main(int argc, char **args)
     {
       // Load next file in the load list (if there is one and the user has a context)
       bool firstLoad = true;
+      bool continueLoading = false;
       do
       {
         continueLoading = false;
 
         if (programState.loadList.size() > 0)
         {
-          pNextLoad = programState.loadList[0];
+          const char *pNextLoad = programState.loadList[0];
           programState.loadList.erase(programState.loadList.begin()); // TODO: Proper Exception Handling
 
           if (pNextLoad != nullptr)
@@ -588,25 +586,25 @@ int main(int argc, char **args)
                 vcUDP_Load(&programState, pNextLoad);
                 programState.changeActiveDock = vcDocks_Scene;
               }
-              else if (!ImGui::IsDockActive(vcString::Get("convertTitle")) && (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif")))
+              else if (ImGui::IsDockActive(vcString::Get("sceneTitle")) && (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif")))
               {
-                vcTexture_Destroy(&programState.image.pImage);
+                const vcSceneItemRef &clicked = programState.sceneExplorer.clickedItem;
+                vcSceneItem *pPOI = nullptr;
+                if (clicked.pParent != nullptr && clicked.pParent->m_children[clicked.index]->m_type == vcSOT_PointOfInterest)
+                  pPOI = clicked.pParent->m_children[clicked.index];
 
-                void *pFileData = nullptr;
-                int64_t fileLen = -1;
-                if (udFile_Load(pNextLoad, &pFileData, &fileLen) == udR_Success && fileLen != 0)
+                if (pPOI == nullptr)
                 {
-                  int comp;
-                  stbi_uc *pImg = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, &programState.image.width, &programState.image.height, &comp, 4);
-
-                  vcTexture_Create(&programState.image.pImage, programState.image.width, programState.image.height, pImg);
-
-                  stbi_image_free(pImg);
+                  pPOI = new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, programState.pCamera->position, programState.gis.SRID);
+                  vcScene_AddItem(&programState, pPOI, true);
                 }
 
-                udFree(pFileData);
+                if (pPOI->m_pMetadata == nullptr)
+                  pPOI->m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
 
-                vcModals_OpenModal(&programState, vcMT_ImageViewer);
+                udJSON tmp;
+                tmp.SetString(pNextLoad);
+                pPOI->m_pMetadata->Set(&tmp, "imageurl");
               }
 #ifndef GIT_BUILD
               else if (udStrEquali(pExt, ".vsm"))
@@ -644,6 +642,29 @@ int main(int argc, char **args)
 
             udFree(pNextLoad);
           }
+        }
+
+        if (programState.pLoadImage != nullptr)
+        {
+          vcTexture_Destroy(&programState.image.pImage);
+
+          void *pFileData = nullptr;
+          int64_t fileLen = -1;
+          if (udFile_Load(programState.pLoadImage, &pFileData, &fileLen) == udR_Success && fileLen != 0)
+          {
+            int comp;
+            stbi_uc *pImg = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, &programState.image.width, &programState.image.height, &comp, 4);
+
+            vcTexture_Create(&programState.image.pImage, programState.image.width, programState.image.height, pImg);
+
+            stbi_image_free(pImg);
+          }
+
+          udFree(pFileData);
+
+          vcModals_OpenModal(&programState, vcMT_ImageViewer);
+
+          udFree(programState.pLoadImage);
         }
 
         firstLoad = false;
