@@ -189,8 +189,18 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     {
       ImGui::SameLine();
       if (ImGui::Button(vcString::Get("scenePOILabelOpenHyperlink")))
-        pProgramState->loadList.push_back(udStrdup(pHyperlink));
+        pProgramState->pLoadImage = udStrdup(pHyperlink);
     }
+  }
+
+  // Handle imageurl
+  const char *pImageURL = m_pMetadata->Get("imageurl").AsString();
+  if (pImageURL != nullptr)
+  {
+    ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageURL"), pImageURL);
+    ImGui::SameLine();
+    if (ImGui::Button(vcString::Get("scenePOILabelOpenImageURL")))
+      pProgramState->pLoadImage = udStrdup(pImageURL);
   }
 }
 

@@ -35,6 +35,7 @@ Version 0.2.1
     - Can now select a single point via the POI properties to manipulate individually
     - The label is now centred from all the points instead of just on the first point
     - The label font size is attempted to be maintained from UDP projects (Vault POI's only have 3 settings though)
+    - Can now add images to the (singular) selected POI by dropping an image on the scene, a new POI is created if one is not selected.
 
 Version 0.2.0
   ADDITIONS & FIXES
