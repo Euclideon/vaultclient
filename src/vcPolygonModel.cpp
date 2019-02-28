@@ -231,8 +231,10 @@ udResult vcPolygonModel_Destroy(vcPolygonModel **ppModel)
     vcTexture_Destroy(&pModel->pMeshes[i].material.pTexture);
     vcMesh_Destroy(&pModel->pMeshes[i].pMesh);
   }
+
   udFree(pModel->pMeshes);
   udFree(pModel);
+
   return udR_Success;
 }
 
