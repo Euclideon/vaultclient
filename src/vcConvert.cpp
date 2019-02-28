@@ -87,8 +87,8 @@ uint32_t vcConvert_Thread(void *pVoidState)
         SDL_MessageBoxData messageboxdata = {
           SDL_MESSAGEBOX_INFORMATION, /* .flags */
           NULL, /* .pWindow */
-          "File Exists", /* .title */
-          udTempStr("The file \"%s\" already exists.\nDo you want to overwrite the file?", pItem->pConvertInfo->pOutputName), /* .message */
+          vcString::Get("convertFileExistsTitle"), /* .title */
+          udTempStr(vcString::Get("convertFileExistsMessage"), pItem->pConvertInfo->pOutputName), /* .message */
           SDL_arraysize(buttons), /* .numbuttons */
           buttons, /* .buttons */
           &colorScheme /* .colorScheme */
