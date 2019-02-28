@@ -123,7 +123,7 @@ const char* vcMain_GetOSName()
 #elif UDPLATFORM_LINUX
   // TODO: Handle other distributions
   return "Ubuntu";
-#elif UDPLATFORM_MACOSX
+#elif UDPLATFORM_OSX
   return "macOS";
 #elif UDPLATFORM_WINDOWS
   return "Windows";
