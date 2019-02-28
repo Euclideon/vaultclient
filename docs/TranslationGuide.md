@@ -194,7 +194,10 @@ Modules are currently:
 - `convertContinueOnCorrupt`: Label next to checkbox to set whether or not convert job should try to continue upon encountering an error
 - `convertPointResolution`: Label showing the current point resolution of the convert job
 - `convertInputDataRanges`: Label showing the min and max point resolution values of the convert job
-- `convertOverride`: Label next to checkboxes that are used to set a custom point resolution or SRID
+- `convertOverrideResolution`: Label next to checkbox that is used to set a custom point resolution
+- `convertOverrideGeolocation`: Label next to checkboxes that are used to set a custom point resolution or SRID
+- `convertQuickTest`: label on checkbox to select quick/partial convert mode that assists with testing the settings are correct
+- `convertGlobalOffset` label beside the XYZ override position
 - `convertMetadata`: Subheading for section where user can define metadata for the file that results from the convert job
 - `convertNoWatermark`: This message displays when no watermark image has been chosen for the current convert job
 - `convertLicense`: Label next to text box where user can enter license information to be assigned to the output file

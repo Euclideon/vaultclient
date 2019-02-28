@@ -140,7 +140,7 @@ bool vcFileDialog_Show(char *pPath, size_t pathLength, bool loadOnly /*= true*/,
   {
     if (ImGui::TreeNode(ppDrives[i]))
     {
-      clickedFile = vcFileDialog_ListFolder(ppDrives[i], pPath, pathLength, ppExtensions, extensionCount);
+      clickedFile |= vcFileDialog_ListFolder(ppDrives[i], pPath, pathLength, ppExtensions, extensionCount);
       ImGui::TreePop();
     }
   }
