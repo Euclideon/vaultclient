@@ -202,21 +202,48 @@ struct vcSettings
 };
 
 // Settings Limits (vcSL prefix)
+const double vcSL_GlobalLimit = 40000000.0; // these limits can apply to any sliders/inputs related to position or distance
+const double vcSL_GlobalLimitSmall = 1000000.0;
+const float vcSL_GlobalLimitf = (float)vcSL_GlobalLimit;
+const float vcSL_GlobalLimitSmallf = (float)vcSL_GlobalLimitSmall;
+
 const float vcSL_CameraNearPlaneMin = 0.01f;
 const float vcSL_CameraNearPlaneMax = 1000.f;
-
 const float vcSL_CameraFarPlaneMin = vcSL_CameraNearPlaneMax;
 const float vcSL_CameraFarPlaneMax = 1000000.f;
-
 const float vcSL_CameraNearFarPlaneRatioMax = 20000.f;
-
 const float vcSL_CameraMinMoveSpeed = 0.5f;
 const float vcSL_CameraMaxMoveSpeed = 10000.f;
-
 const float vcSL_CameraFieldOfViewMin = 5;
 const float vcSL_CameraFieldOfViewMax = 100;
 
 const float vcSL_OSCPixelRatio = 100.f;
+
+const float vcSL_POIFaderMin = 0.f;
+const float vcSL_POIFaderMax = 1000000.f;
+
+const float vcSL_MapHeightMin = -1000.f;
+const float vcSL_MapHeightMax = 1000.f;
+
+const float vcSL_OpacityMin = 0.f;
+const float vcSL_OpacityMax = 1.f;
+
+const float vcSL_IntensityMin = 0.f;
+const float vcSL_IntensityMax = 65535.f;
+
+const int vcSL_EdgeHighlightMin = 1;
+const int vcSL_EdgeHighlightMax = 10;
+const float vcSL_EdgeHighlightThresholdMin = 0.001f;
+const float vcSL_EdgeHighlightThresholdMax = 10.f;
+
+const float vcSL_ColourByHeightMin = 0.f;
+const float vcSL_ColourByHeightMax = 1000.f;
+const float vcSL_ColourByDepthMin = 0.f;
+const float vcSL_ColourByDepthMax = 1000.f;
+const float vcSL_ContourDistanceMin = 0.f;
+const float vcSL_ContourDistanceMax = 1000.f;
+const float vcSL_ContourBandHeightMin = 0.f;
+const float vcSL_ContourBandHeightMax = 1000.f;
 
 // Settings Functions
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset = false, vcSettingCategory group = vcSC_All);
