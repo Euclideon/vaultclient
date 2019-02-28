@@ -4,6 +4,7 @@
 #include "vcState.h"
 #include "vcModel.h"
 #include "vcCompass.h"
+#include "vcPolygonModel.h"
 
 #include "vdkRenderContext.h"
 #include "vdkRenderView.h"
@@ -31,6 +32,7 @@ struct vcRenderData
   udChunkedArray<vcModel*> models;
   udChunkedArray<vcFenceRenderer*> fences;
   udChunkedArray<vcLabelInfo*> labels;
+  udChunkedArray<vcPolygonModel*> polyModels;
 
   vcCamera *pCamera;
   vcCameraSettings *pCameraSettings;

@@ -84,22 +84,15 @@ epilogue:
 
 }
 
-bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
+bool vcTexture_CreateFromMemory(vcTexture **ppTexture, void *pFileData, size_t fileLength, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
 {
-  if (ppTexture == nullptr || pFilename == nullptr)
+  if (ppTexture == nullptr || pFileData == nullptr || fileLength == 0)
     return false;
 
   uint32_t width, height, channelCount;
   vcTexture *pTexture = nullptr;
 
-  void *pFileData;
-  int64_t fileLen;
-
-  if (udFile_Load(pFilename, &pFileData, &fileLen) != udR_Success)
-    return false;
-
-  uint8_t *pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
-  udFree(pFileData);
+  uint8_t *pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLength, (int*)&width, (int*)&height, (int*)&channelCount, 4);
 
   if (pData)
     vcTexture_Create(&pTexture, width, height, pData, vcTextureFormat_RGBA8, filterMode, hasMipmaps, wrapMode, flags, aniFilter);
@@ -115,6 +108,23 @@ bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, 
   *ppTexture = pTexture;
 
   return (pTexture != nullptr);
+}
+
+bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
+{
+  if (ppTexture == nullptr || pFilename == nullptr)
+    return false;
+
+  void *pFileData;
+  int64_t fileLen;
+
+  if (udFile_Load(pFilename, &pFileData, &fileLen) != udR_Success)
+    return false;
+
+  bool result = vcTexture_CreateFromMemory(ppTexture, pFileData, fileLen, pWidth, pHeight, filterMode, hasMipmaps, wrapMode, flags, aniFilter);
+
+  udFree(pFileData);
+  return result;
 }
 
 udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height)

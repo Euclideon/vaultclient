@@ -219,7 +219,7 @@ const char* const g_tileVertexShader = R"shader(
 
 
 
-const char* const g_PositionNormalFragmentShader = R"shader(
+const char* const g_CompassFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -241,7 +241,7 @@ const char* const g_PositionNormalFragmentShader = R"shader(
   }
 )shader";
 
-const char* const g_PositionNormalVertexShader = R"shader(
+const char* const g_CompassVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
@@ -276,7 +276,7 @@ const char* const g_PositionNormalVertexShader = R"shader(
     output.fragClipPosition = output.pos;
     return output;
   }
-)shader";
+  )shader";
 
 const char* const g_vcSkyboxVertexShader = R"shader(
   struct VS_INPUT
@@ -445,5 +445,64 @@ const char* const g_FenceFragmentShader = R"shader(
   {
     float4 texCol = texture0.Sample(sampler0, input.uv);
     return float4(texCol.xyz * input.colour.xyz, texCol.w * input.colour.w);
+  }
+)shader";
+
+const char* const g_PolygonP1N1UV1FragmentShader = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD0;
+    float3 normal : NORMAL;
+    float4 colour : COLOR0;
+  };
+
+  sampler sampler0;
+  Texture2D texture0;
+
+  float4 main(PS_INPUT input) : SV_Target
+  {
+    float4 col = texture0.Sample(sampler0, input.uv);
+    return float4(col.xyz, 1.0);
+  }
+)shader";
+
+const char* const g_PolygonP1N1UV1VertexShader = R"shader(
+  struct VS_INPUT
+  {
+    float3 pos : POSITION;
+    float2 uv  : TEXCOORD0;
+    float3 normal : NORMAL;
+  };
+
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv  : TEXCOORD0;
+    float3 normal : NORMAL;
+    float4 colour : COLOR0;
+  };
+
+  cbuffer u_EveryFrame : register(b0)
+  {
+    float4x4 u_viewProjectionMatrix;
+  };
+
+  cbuffer u_EveryObject : register(b1)
+  {
+    float4x4 u_modelMatrix;
+    float4 u_colour;
+  };
+
+  PS_INPUT main(VS_INPUT input)
+  {
+    PS_INPUT output;
+
+    output.pos = mul(u_viewProjectionMatrix, mul(u_modelMatrix, float4(input.pos, 1.0)));
+    output.uv = float2(input.uv.x, 1.0 - input.uv.y);
+    output.normal = input.normal;
+    output.colour = u_colour;
+
+    return output;
   }
 )shader";
