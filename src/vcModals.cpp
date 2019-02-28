@@ -128,7 +128,7 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
     ImGui::OpenPopup(vcString::Get("menuNewVersionAvailableTitle"));
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(vcString::Get("menuNewVersionAvailableTitle")))
+  if (ImGui::BeginPopupModal(vcString::Get("menuNewVersionAvailableTitle"), nullptr, ImGuiWindowFlags_NoResize))
   {
     pProgramState->modalOpen = true;
     ImGui::Columns(2, NULL, false);
@@ -154,7 +154,7 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
 
     ImGui::Separator();
 
-    ImGui::BeginChild(vcString::Get("menuReleaseNotesTitle"));
+    ImGui::BeginChild(vcString::Get("menuReleaseNotesTitle"), ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
     ImGui::TextUnformatted(pProgramState->packageInfo.Get("package.releasenotes").AsString(""));
     ImGui::EndChild();
 

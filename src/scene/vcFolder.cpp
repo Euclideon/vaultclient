@@ -7,6 +7,8 @@
 
 #include "gl/vcFenceRenderer.h"
 
+#include "vcModel.h" // Included just for "ResetPosition"
+
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
@@ -185,7 +187,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
       if (ImGui::Selectable(vcString::Get("sceneExplorerUseProjection")) && m_children[i]->m_pOriginalZone != nullptr && m_children[i]->m_pOriginalZone->srid != 0)
       {
-        if (vcGIS_ChangeSpace(&pProgramState->gis, m_children[i]->m_pOriginalZone->srid, &pProgramState->pCamera->position))
+        if (vcGIS_ChangeSpace(&pProgramState->gis, *m_children[i]->m_pOriginalZone, &pProgramState->pCamera->position))
           pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, *m_children[i]->m_pOriginalZone);
       }
 
@@ -204,8 +206,9 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         pProgramState->cameraInput.progress = 0.0;
       }
 
-      //if (m_children[i]->m_type == vcSOT_PointCloud && ImGui::Selectable(vcString::Get("ResetPosition"), false, m_children[i]->m_sceneMatrix == m_children[i]->m_defaultMatrix ? ImGuiSelectableFlags_Disabled : 0))
-      //  m_children[i]->m_sceneMatrix = m_children[i]->m_defaultMatrix;
+      // This is terrible but semi-required until we have undo
+      if (m_children[i]->m_type == vcSOT_PointCloud && m_children[i]->m_pOriginalZone->srid == m_children[i]->m_pZone->srid && ImGui::Selectable(vcString::Get("ResetPosition"), false))
+        ((vcModel*)m_children[i])->m_sceneMatrix = ((vcModel*)m_children[i])->m_defaultMatrix;
 
       ImGui::EndPopup();
     }

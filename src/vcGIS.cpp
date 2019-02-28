@@ -9,19 +9,15 @@ bool vcGIS_AcceptableSRID(vcSRID sridCode)
   return (udGeoZone_SetFromSRID(&zone, sridCode) == udR_Success);
 }
 
-bool vcGIS_ChangeSpace(vcGISSpace *pSpace, vcSRID newSRID, udDouble3 *pCameraPosition /*= nullptr*/)
+bool vcGIS_ChangeSpace(vcGISSpace *pSpace, const udGeoZone &newZone, udDouble3 *pCameraPosition /*= nullptr*/)
 {
-  udGeoZone newZone;
   bool currentlyProjected = pSpace->isProjected;
 
-  pSpace->SRID = newSRID;
+  pSpace->SRID = newZone.srid;
   pSpace->isProjected = false;
 
-  if (newSRID == 0)
+  if (pSpace->SRID == 0)
     return true;
-
-  if (udGeoZone_SetFromSRID(&newZone, newSRID) != udR_Success)
-    return false;
 
   if (currentlyProjected && pCameraPosition != nullptr)
     *pCameraPosition = udGeoZone_TransformPoint(*pCameraPosition, pSpace->zone, newZone);
