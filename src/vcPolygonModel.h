@@ -10,7 +10,7 @@ udResult vcPolygonModel_CreateShaders();
 udResult vcPolygonModel_DestroyShaders();
 
 udResult vcPolygonModel_CreateFromMemory(vcPolygonModel **ppModel, char *pData, int dataLength);
-//udResult vcVSMF_CreateFromStream(vcVSMF **ppModel, const char *pURL); TODO
+udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL);
 
 udResult vcPolygonModel_Destroy(vcPolygonModel **ppModel);
 

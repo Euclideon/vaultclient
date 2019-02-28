@@ -412,7 +412,7 @@ void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
-      vcPolygonModel_Render(renderData.polyModels[i], udDouble4x4::identity(), pRenderContext->pCamera->matrices.viewProjection);
+      vcPolygonModel_Render(renderData.polyModels[i].pModel, renderData.polyModels[i].worldMat, pRenderContext->pCamera->matrices.viewProjection);
   }
 
   // Fences

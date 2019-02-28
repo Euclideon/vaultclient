@@ -16,6 +16,12 @@
 struct vcRenderContext;
 struct vcTexture;
 
+struct vcRenderPolyInstance
+{
+  vcPolygonModel *pModel;
+  udDouble4x4 worldMat; // will be converted to eye internally
+};
+
 struct vcRenderData
 {
   vcGISSpace *pGISSpace;
@@ -32,7 +38,7 @@ struct vcRenderData
   udChunkedArray<vcModel*> models;
   udChunkedArray<vcFenceRenderer*> fences;
   udChunkedArray<vcLabelInfo*> labels;
-  udChunkedArray<vcPolygonModel*> polyModels;
+  udChunkedArray<vcRenderPolyInstance> polyModels;
 
   vcCamera *pCamera;
   vcCameraSettings *pCameraSettings;

@@ -6,18 +6,27 @@
 #include "vdkRenderContext.h"
 #include "vdkError.h"
 
-#include <vector>
 #include "udPlatform/udThread.h"
+#include "udPlatform/udChunkedArray.h"
 
 struct vcState;
 struct vcLiveFeedItem;
+struct vcPolygonModel;
+
+struct vcLiveFeedPolyCache
+{
+  const char *pModelURL;
+  vcPolygonModel *pModel;
+};
 
 class vcLiveFeed : public vcSceneItem
 {
 public:
   double m_lastUpdateTime;
 
-  std::vector<vcLiveFeedItem*> m_feedItems;
+  udChunkedArray<vcLiveFeedItem*> m_feedItems;
+  udChunkedArray<vcLiveFeedPolyCache> m_polygonModels;
+
   size_t m_visibleItems;
 
   double m_updateFrequency; // Delay in seconds between updates
