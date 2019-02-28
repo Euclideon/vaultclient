@@ -46,6 +46,7 @@ struct vcState
   vcCamera *pCamera;
 
   std::vector<const char*> loadList;
+  const char *pLoadImage;
   vWorkerThreadPool *pWorkerPool;
 
   double deltaTime;
