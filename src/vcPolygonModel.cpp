@@ -1,6 +1,7 @@
 #include "vcPolygonModel.h"
 
 #include "udPlatform/udPlatformUtil.h"
+#include "udPlatform/udFile.h"
 
 #include "gl/vcRenderShaders.h"
 #include "gl/vcMesh.h"
@@ -174,6 +175,21 @@ epilogue:
     udFree(pNewModel->pMeshes);
     udFree(pNewModel);
   }
+  return result;
+}
+
+udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL)
+{
+  udResult result = udR_Failure_;
+  void *pMemory = nullptr;
+  int64_t fileLength = 0;
+
+  UD_ERROR_CHECK(udFile_Load(pURL, &pMemory, &fileLength));
+  UD_ERROR_CHECK(vcPolygonModel_CreateFromMemory(ppModel, (char*)pMemory, (int)fileLength));
+
+epilogue:
+  udFree(pMemory);
+
   return result;
 }
 
