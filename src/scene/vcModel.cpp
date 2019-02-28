@@ -58,36 +58,34 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
         udJSON tempNode;
 
         const char *pSRID = pLoadInfo->pModel->m_pMetadata->Get("ProjectionID").AsString();
+        const char *pWKT = pLoadInfo->pModel->m_pMetadata->Get("ProjectionWKT").AsString();
+
         if (pSRID != nullptr)
         {
           pSRID = udStrchr(pSRID, ":");
           if (pSRID != nullptr)
             srid = udStrAtou(&pSRID[1]);
-        }
 
-        const char *pWKT = pLoadInfo->pModel->m_pMetadata->Get("ProjectionWKT").AsString();
-        if (pWKT != nullptr)
-        {
-          if (udParseWKT(&tempNode, pWKT) == udR_Success)
+          pLoadInfo->pModel->m_pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
+          pMemberZone = udAllocType(udGeoZone, 1, udAF_Zero);
+          if (udGeoZone_SetFromSRID(pLoadInfo->pModel->m_pOriginalZone, srid) == udR_Success)
           {
-            for (size_t i = 0; i < tempNode.Get("values").ArrayLength() && srid == 0; ++i)
-            {
-              if (udStrEquali(tempNode.Get("values[%zu].m_type", i).AsString(), "AUTHORITY"))
-              {
-                srid = tempNode.Get("values[%zu].values[0]", i).AsInt();
-                break;
-              }
-            }
-
-            pLoadInfo->pModel->m_pMetadata->Set(&tempNode, "ProjectionWKT");
+            memcpy(pMemberZone, pLoadInfo->pModel->m_pOriginalZone, sizeof(*pMemberZone));
+          }
+          else
+          {
+            udFree(pLoadInfo->pModel->m_pOriginalZone);
+            udFree(pMemberZone);
           }
         }
 
-        if (srid != 0)
+        if (pLoadInfo->pModel->m_pOriginalZone == nullptr && pMemberZone == nullptr && pWKT != nullptr)
         {
           pLoadInfo->pModel->m_pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
           pMemberZone = udAllocType(udGeoZone, 1, udAF_Zero);
-          udGeoZone_SetFromSRID(pLoadInfo->pModel->m_pOriginalZone, srid);
+
+          udGeoZone_SetFromWKT(pLoadInfo->pModel->m_pOriginalZone, pWKT);
+
           memcpy(pMemberZone, pLoadInfo->pModel->m_pOriginalZone, sizeof(*pMemberZone));
         }
       }
