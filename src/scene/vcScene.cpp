@@ -219,7 +219,7 @@ void vcSceneItem::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone 
 
 bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel)
 {
-  if (pProgramState == nullptr || pModel == nullptr)
+  if (pProgramState == nullptr || pModel == nullptr || pProgramState->programComplete)
     return false;
 
   udGeoZone zone = {};
