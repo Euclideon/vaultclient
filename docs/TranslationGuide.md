@@ -221,6 +221,8 @@ Modules are currently:
 - `convertPathURL`: Label next to text box in Load Watermark window containing the path of the watermark image file
 - `convertLoadButton`: Label used for button in Load Watermark window that loads the currently selected file and closes the window
 - `convertCancelButton`: Label used for button beside in Load Watermark window that closes the window
+- `convertFileExistsTitle`: Title of the window that appears when the specified convert output file already exists
+- `convertFileExistsMessage`: Message displayed in the window that appears when the specified convert output file already exists
 
 ### Menu Strings
 
@@ -291,7 +293,6 @@ Modules are currently:
 - `sceneSetMapHeight`: Menu option when right-clicking within the scene, sets map height to the current mouse location's height
 - `sceneAddPOI`: Menu option when right-clicking within the scene, creates a POI at the current mouse location
 - `sceneMoveTo`: Menu option when right-clicking within the scene, moves the camera to the current mouse location
-
 - `sceneLockAltitude`: Tooltip displayed when mouse is hovered over the Lock Altitude button in the viewport controls window
 - `sceneLockAltitudeKey`: Used in Lock Altitude tooltip, shown in brackets
 - `sceneCameraInfo`: Tooltip displayed when mouse is hovered over the Show Camera Information button in the viewport controls window
@@ -306,7 +307,6 @@ Modules are currently:
 - `sceneGizmoLocalSpaceKey`: Used in Gizmo Local Space tooltip, shown in brackets
 - `sceneFullscreen`: Tooltip displayed when mouse is hovered over the Fullscreen button in the viewport controls window
 - `sceneFullscreenKey`: Used in Fullscreen button tooltip, shown in brackets
-
 - `sceneCameraSettings`: String used internally as ID for the viewport controls/camera information window?
 - `sceneCameraLatLongAlt`: Used to display the latitude, longitude and altitude information where applicable
   - {0} = Latitude (in degrees)
@@ -318,7 +318,6 @@ Modules are currently:
 - `sceneCameraOutOfBounds`: Is displayed in the camera info box when the camera is outside of the requested geozone. This is intended to alert the user that the space is distorted
 - `sceneCameraOSCMove`: This text is displayed on the forward, back and strage button of the on screen controls (note that this setting is deprecated to be removed)
 - `sceneCameraOSCUpDown`: This is the text in the up/down section of the on screen controls (note that this setting is deprecated to be removed)
-
 - `sceneExplorerTitle`: Title of the Scene Explorer tab
 - `sceneExplorerRemove`: Tooltip displayed when mouse is hovered over the Remove button in the scene explorer tab
 - `sceneExplorerRemoveKey`: Used in Remove button tooltip, shown in brackets
@@ -337,7 +336,6 @@ Modules are currently:
 - `sceneExplorerPathURL`: Label next to the text box containing the path of the currently selected file
 - `sceneExplorerLoadButton`: Label used for the Load button in the Add UDS window which loads the currently selected file and closes the window
 - `sceneExplorerCancelButton`: Label used for the Close button of the Add UDS window
-
 - `sceneExplorerErrorOpen`: Tooltip displayed when mouse is hovered over the warning next to a scene item in the Scene Explorer that vault client was unable to open or access
 - `sceneExplorerErrorLoad`: Tooltip displayed when mouse is hovered over the warning next to a scene item in the Scene Explorer that vault client was unable to fully load
 - `sceneExplorerNotImplementedTitle`: Title used for the Not Implemented window
@@ -346,7 +344,6 @@ Modules are currently:
 - `sceneExplorerPending`: Tooltip displayed when mouse is hovered over the alert next to a scene item in the Scene Explorer that vault client has not opened yet
 - `sceneExplorerLoading`: Tooltip displayed when mouse is hovered over the alert next to a scene item in the Scene Explorer that vault client has not fully loaded yet
 - `sceneExplorerFolderDefaultName`: Default name of new folders when they are added to the Scene Explorer
-
 - `scenePOIDefaultName`: Default name of new POI objects when they are added to the Scene Explorer
 - `scenePOIAddPoint`: Used in the context menu for adding a new point at the current mouse position
 - `scenePOIPointPosition`: Label for the UI to override the position of the selected point
