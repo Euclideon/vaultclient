@@ -4,6 +4,7 @@
 #include "stb_image.h"
 #include "vcStrings.h"
 #include "vcModals.h"
+#include "vCore/vStringFormat.h"
 
 #include "udPlatform/udMath.h"
 #include "udPlatform/udChunkedArray.h"
@@ -62,6 +63,7 @@ uint32_t vcConvert_Thread(void *pVoidState)
       // If the item was pending a license state, we already checked if the
       // user wanted to override the file. We know this because if the user
       // clicks No, the status is set to Pending and won't be processed again.
+      const char *pFileExistsMsg = nullptr;
       if (!wasPending && udFileExists(pItem->pConvertInfo->pOutputName) == udR_Success)
       {
         const SDL_MessageBoxButtonData buttons[] = {
@@ -83,12 +85,12 @@ uint32_t vcConvert_Thread(void *pVoidState)
             { 255, 0, 255 }
           }
         };
-
+        pFileExistsMsg = vStringFormat(vcString::Get("convertFileExistsMessage"), pItem->pConvertInfo->pOutputName);
         SDL_MessageBoxData messageboxdata = {
           SDL_MESSAGEBOX_INFORMATION, /* .flags */
           NULL, /* .pWindow */
           vcString::Get("convertFileExistsTitle"), /* .title */
-          udTempStr(vcString::Get("convertFileExistsMessage"), pItem->pConvertInfo->pOutputName), /* .message */
+          pFileExistsMsg, /* .message */
           SDL_arraysize(buttons), /* .numbuttons */
           buttons, /* .buttons */
           &colorScheme /* .colorScheme */
@@ -102,6 +104,7 @@ uint32_t vcConvert_Thread(void *pVoidState)
           continue;
         }
       }
+      udFree(pFileExistsMsg);
 
       vdkError conversionStatus = vdkConvert_DoConvert(pProgramState->pVDKContext, pItem->pConvertContext);
 
