@@ -54,22 +54,20 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
 void vcPOI::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
 {
+  bool isGeolocated = m_pZone != nullptr;
   if (m_line.selectedPoint == -1) // We need to update all the points
   {
     for (int i = 0; i < m_line.numPoints; ++i)
     {
       m_line.pPoints[i] = (delta * udDouble4x4::translation(m_line.pPoints[i])).axis.t.toVector3();
-      m_line.pOriginalPoints[i] = m_pZone == nullptr ? m_line.pPoints[i] : udGeoZone_TransformPoint(m_line.pPoints[i], *m_pZone, *m_pOriginalZone); // apply translation to original points too
+      m_line.pOriginalPoints[i] = isGeolocated ? udGeoZone_TransformPoint(m_line.pPoints[i], *m_pZone, *m_pOriginalZone) : m_line.pPoints[i]; // apply translation to original points too
     }
   }
   else
   {
     m_line.pPoints[m_line.selectedPoint] = (delta * udDouble4x4::translation(m_line.pPoints[m_line.selectedPoint])).axis.t.toVector3();
-    m_line.pOriginalPoints[m_line.selectedPoint] = m_pZone == nullptr ? m_line.pPoints[m_line.selectedPoint] : udGeoZone_TransformPoint(m_line.pPoints[m_line.selectedPoint], *m_pZone, *m_pOriginalZone);
+    m_line.pOriginalPoints[m_line.selectedPoint] = isGeolocated ? udGeoZone_TransformPoint(m_line.pPoints[m_line.selectedPoint], *m_pZone, *m_pOriginalZone) : m_line.pPoints[m_line.selectedPoint];
   }
-
-
-
   UpdatePoints();
 }
 
