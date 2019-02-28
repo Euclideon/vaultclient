@@ -447,8 +447,6 @@ Where the settings file is stored depends on your OS.
 - Windows: `%AppData%/Euclideon/client/settings.json`
 - macOS: `~/Library/Application Support/euclideon/client/settings.json`
 - Linux: `~/.local/share/euclideon/client/settings.json`
-- iOS: `???`
-- Android: `???`
 
 ### Third Party Licenses
 Euclideon Vault Client uses a number of third party libraries.
