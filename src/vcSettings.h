@@ -202,7 +202,10 @@ struct vcSettings
 };
 
 // Settings Limits (vcSL prefix)
-const float vcSL_GlobalLimit = 40000000.f; // this limit can apply to all manually entered values as needed
+const double vcSL_GlobalLimit = 40000000.0; // these limits can apply to any sliders/inputs related to position or distance
+const double vcSL_GlobalLimitSmall = 1000000.0;
+const float vcSL_GlobalLimitf = (float)vcSL_GlobalLimit;
+const float vcSL_GlobalLimitSmallf = (float)vcSL_GlobalLimitSmall;
 
 const float vcSL_CameraNearPlaneMin = 0.01f;
 const float vcSL_CameraNearPlaneMax = 1000.f;
@@ -224,6 +227,9 @@ const float vcSL_MapHeightMax = 1000.f;
 
 const float vcSL_OpacityMin = 0.f;
 const float vcSL_OpacityMax = 1.f;
+
+const float vcSL_IntensityMin = 0.f;
+const float vcSL_IntensityMax = 65535.f;
 
 const int vcSL_EdgeHighlightMin = 1;
 const int vcSL_EdgeHighlightMax = 10;
