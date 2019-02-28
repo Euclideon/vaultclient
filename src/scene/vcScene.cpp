@@ -3,21 +3,62 @@
 #include "vcState.h"
 #include "vcRender.h"
 
+vcSceneItem::vcSceneItem() :
+  m_loadStatus(0), m_visible(false), m_selected(false), m_expanded(false), m_editName(false),
+  m_type(vcSOT_Unknown), m_typeStr(""), m_pMetadata(nullptr), m_pOriginalZone(nullptr),
+  m_pZone(nullptr), m_pPath(nullptr), m_pName(nullptr), m_nameBufferLength(0)
+{
+}
+
+vcSceneItem::~vcSceneItem()
+{
+
+}
+
 void vcSceneItem::AddItem(vcState *pProgramState)
 {
   vcFolder *pParent = pProgramState->sceneExplorer.clickedItem.pParent;
   vcSceneItem *pChild = nullptr;
 
   if (pParent)
-    pChild = pParent->children[pProgramState->sceneExplorer.clickedItem.index];
+    pChild = pParent->m_children[pProgramState->sceneExplorer.clickedItem.index];
 
   // TODO: Proper Exception Handling
-  if (pChild != nullptr && pChild->type == vcSOT_Folder)
-    ((vcFolder*)pChild)->children.push_back(this);
+  if (pChild != nullptr && pChild->m_type == vcSOT_Folder)
+    ((vcFolder*)pChild)->m_children.push_back(this);
   else if (pParent != nullptr)
-    pParent->children.push_back(this);
+    pParent->m_children.push_back(this);
   else
-    pProgramState->sceneExplorer.pItems->children.push_back(this);
+    pProgramState->sceneExplorer.pItems->m_children.push_back(this);
+}
+
+void vcSceneItem::OnNameChange()
+{
+  // Does nothing in default version
+}
+
+void vcScene_AddItem(vcState *pProgramState, vcSceneItem *pItem, bool select /*= false*/)
+{
+  vcFolder *pParent = pProgramState->sceneExplorer.clickedItem.pParent;
+  vcSceneItem *pChild = nullptr;
+
+  vcFolder *pFolder = nullptr;
+
+  if (pParent)
+    pChild = pParent->m_children[pProgramState->sceneExplorer.clickedItem.index];
+
+  // TODO: Proper Exception Handling
+  if (pChild != nullptr && pChild->m_type == vcSOT_Folder)
+    pFolder = (vcFolder*)pChild;
+  else if (pParent != nullptr)
+    pFolder = pParent;
+  else
+    pFolder = pProgramState->sceneExplorer.pItems;
+
+  pFolder->m_children.push_back(pItem);
+
+  if (select)
+    vcScene_SelectItem(pProgramState, pFolder, pFolder->m_children.size() - 1);
 }
 
 void vcScene_RemoveReference(vcSceneItemRef *pItemRef, vcFolder *pParent, size_t index)
@@ -51,28 +92,28 @@ void vcScene_RemoveItem(vcState *pProgramState, vcFolder *pParent, size_t index)
     }
   }
 
-  if (pParent->children[index]->loadStatus == vcSLS_Pending)
-    udInterlockedCompareExchange(&pParent->children[index]->loadStatus, vcSLS_Unloaded, vcSLS_Pending);
+  if (pParent->m_children[index]->m_loadStatus == vcSLS_Pending)
+    udInterlockedCompareExchange(&pParent->m_children[index]->m_loadStatus, vcSLS_Unloaded, vcSLS_Pending);
 
-  while (pParent->children[index]->loadStatus == vcSLS_Loading)
+  while (pParent->m_children[index]->m_loadStatus == vcSLS_Loading)
     udYield(); // Spin until other thread stops processing
 
-  if (pParent->children[index]->loadStatus == vcSLS_Loaded || pParent->children[index]->loadStatus == vcSLS_OpenFailure || pParent->children[index]->loadStatus == vcSLS_Failed)
+  if (pParent->m_children[index]->m_loadStatus == vcSLS_Loaded || pParent->m_children[index]->m_loadStatus == vcSLS_OpenFailure || pParent->m_children[index]->m_loadStatus == vcSLS_Failed)
   {
-    pParent->children[index]->Cleanup(pProgramState);
+    pParent->m_children[index]->Cleanup(pProgramState);
 
-    if (pParent->children[index]->pMetadata)
-      pParent->children[index]->pMetadata->Destroy();
+    if (pParent->m_children[index]->m_pMetadata)
+      pParent->m_children[index]->m_pMetadata->Destroy();
 
-    udFree(pParent->children[index]->pMetadata);
-    udFree(pParent->children[index]->pOriginalZone);
-    udFree(pParent->children[index]->pZone);
+    udFree(pParent->m_children[index]->m_pMetadata);
+    udFree(pParent->m_children[index]->m_pOriginalZone);
+    udFree(pParent->m_children[index]->m_pZone);
   }
 
-  pParent->children[index]->loadStatus = vcSLS_Unloaded;
+  pParent->m_children[index]->m_loadStatus = vcSLS_Unloaded;
 
-  udFree(pParent->children.at(index));
-  pParent->children.erase(pParent->children.begin() + index);
+  delete pParent->m_children.at(index);
+  pParent->m_children.erase(pParent->m_children.begin() + index);
 }
 
 void vcScene_RemoveAll(vcState *pProgramState)
@@ -80,26 +121,30 @@ void vcScene_RemoveAll(vcState *pProgramState)
   if (pProgramState->sceneExplorer.pItems == nullptr)
     return;
 
-  while (pProgramState->sceneExplorer.pItems->children.size() > 0)
+  while (pProgramState->sceneExplorer.pItems->m_children.size() > 0)
     vcScene_RemoveItem(pProgramState, pProgramState->sceneExplorer.pItems, 0);
   pProgramState->sceneExplorer.selectedItems.clear();
 
   vcRender_ClearTiles(pProgramState->pRenderContext);
+  vcGIS_ChangeSpace(&pProgramState->gis, 0);
+
+  if (pProgramState->pCamera != nullptr) // This is destroyed before the scene
+    pProgramState->pCamera->position = udDouble3::zero();
 }
 
 void vcScene_RemoveSelected(vcState *pProgramState, vcFolder *pFolder)
 {
-  for (size_t i = 0; i < pFolder->children.size(); ++i)
+  for (size_t i = 0; i < pFolder->m_children.size(); ++i)
   {
-    if (pFolder->children[i]->selected)
+    if (pFolder->m_children[i]->m_selected)
     {
       vcScene_RemoveItem(pProgramState, pFolder, i);
       i--;
       continue;
     }
 
-    if (pFolder->children[i]->type == vcSOT_Folder)
-      vcScene_RemoveSelected(pProgramState, (vcFolder*)pFolder->children[i]);
+    if (pFolder->m_children[i]->m_type == vcSOT_Folder)
+      vcScene_RemoveSelected(pProgramState, (vcFolder*)pFolder->m_children[i]);
   }
 }
 
@@ -111,13 +156,13 @@ void vcScene_RemoveSelected(vcState *pProgramState)
 
 bool vcScene_ContainsItem(vcFolder *pParent, vcSceneItem *pItem)
 {
-  for (size_t i = 0; i < pParent->children.size(); ++i)
+  for (size_t i = 0; i < pParent->m_children.size(); ++i)
   {
-    if (pParent->children[i] == pItem)
+    if (pParent->m_children[i] == pItem)
       return true;
 
-    if (pParent->children[i]->type == vcSOT_Folder)
-      if (vcScene_ContainsItem((vcFolder*)pParent->children[i], pItem))
+    if (pParent->m_children[i]->m_type == vcSOT_Folder)
+      if (vcScene_ContainsItem((vcFolder*)pParent->m_children[i], pItem))
         return true;
   }
 
@@ -126,18 +171,18 @@ bool vcScene_ContainsItem(vcFolder *pParent, vcSceneItem *pItem)
 
 void vcScene_SelectItem(vcState *pProgramState, vcFolder *pParent, size_t index)
 {
-  if (!pParent->children[index]->selected)
+  if (!pParent->m_children[index]->m_selected)
   {
-    pParent->children[index]->selected = true;
+    pParent->m_children[index]->m_selected = true;
     pProgramState->sceneExplorer.selectedItems.push_back({ pParent, index });
   }
 }
 
 void vcScene_UnselectItem(vcState *pProgramState, vcFolder *pParent, size_t index)
 {
-  if (pParent->children[index]->selected)
+  if (pParent->m_children[index]->m_selected)
   {
-    pParent->children[index]->selected = false;
+    pParent->m_children[index]->m_selected = false;
     for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size(); ++i)
     {
       const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
@@ -149,14 +194,14 @@ void vcScene_UnselectItem(vcState *pProgramState, vcFolder *pParent, size_t inde
 
 void vcScene_ClearSelection(vcFolder *pParent)
 {
-  for (size_t i = 0; i < pParent->children.size(); i++)
+  for (size_t i = 0; i < pParent->m_children.size(); i++)
   {
-    if (pParent->children[i]->type == vcSOT_Folder)
-      vcScene_ClearSelection((vcFolder*)pParent->children[i]);
+    if (pParent->m_children[i]->m_type == vcSOT_Folder)
+      vcScene_ClearSelection((vcFolder*)pParent->m_children[i]);
     else
-      pParent->children[i]->selected = false;
+      pParent->m_children[i]->m_selected = false;
   }
-  pParent->selected = false;
+  pParent->m_selected = false;
 }
 
 void vcScene_ClearSelection(vcState *pProgramState)
@@ -167,8 +212,9 @@ void vcScene_ClearSelection(vcState *pProgramState)
 
 void vcSceneItem::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
 {
-  if (this->pZone != nullptr && newZone.srid != this->pZone->srid)
-    memcpy(this->pZone, &newZone, sizeof(newZone));
+  UDASSERT(newZone.srid != 0, "Changing to non-existant projection");
+  if (this->m_pZone != nullptr && newZone.srid != m_pZone->srid)
+    memcpy(m_pZone, &newZone, sizeof(newZone));
 }
 
 bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel)
@@ -176,10 +222,10 @@ bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel)
   if (pProgramState == nullptr || pModel == nullptr)
     return false;
 
-  if ((pModel->pZone != nullptr && vcGIS_ChangeSpace(&pProgramState->gis, pModel->pOriginalZone->srid)))
-    pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, *pModel->pOriginalZone); // Update all models to new zone
-  else if (pModel->pZone == nullptr)
-    vcGIS_ChangeSpace(&pProgramState->gis, 0); // unless there is no new zone
+  if (pModel->m_pZone == nullptr || pModel->m_pOriginalZone == nullptr || pModel->m_pOriginalZone->srid == 0)
+    vcGIS_ChangeSpace(&pProgramState->gis, 0);
+  else if (vcGIS_ChangeSpace(&pProgramState->gis, pModel->m_pOriginalZone->srid))
+    pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, *pModel->m_pOriginalZone); // Update all models to new zone unless there is no new zone
 
   pProgramState->pCamera->position = pModel->GetWorldSpacePivot();
 

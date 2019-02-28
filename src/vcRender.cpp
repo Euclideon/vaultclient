@@ -380,7 +380,7 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
     for (int i = 0; i < 4; ++i)
       vcGIS_SlippyToLocal(renderData.pGISSpace, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
-    vcTileRenderer_Update(pRenderContext->pTileRenderer, renderData.pGISSpace, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, viewProjection);
+    vcTileRenderer_Update(pRenderContext->pTileRenderer, renderData.deltaTime, renderData.pGISSpace, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, viewProjection);
     vcTileRenderer_Render(pRenderContext->pTileRenderer, pRenderContext->pCamera->matrices.view, pRenderContext->pCamera->matrices.projection);
 
     if (pRenderContext->pSettings->maptiles.mouseInteracts)
@@ -417,7 +417,7 @@ void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
 
   // Fences
   {
-    vcGLState_SetBlendMode(vcGLSBM_AdditiveSrcInterpolativeDst);
+    vcGLState_SetBlendMode(vcGLSBM_Interpolative);
     vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
@@ -564,23 +564,23 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
 
   for (size_t i = 0; i < renderData.models.length; ++i)
   {
-    if (renderData.models[i]->visible && renderData.models[i]->loadStatus == vcSLS_Loaded)
+    if (renderData.models[i]->m_visible && renderData.models[i]->m_loadStatus == vcSLS_Loaded)
     {
       // Copy to the contiguous array
-      pModels[numVisibleModels].pPointCloud = renderData.models[i]->pPointCloud;
-      memcpy(&pModels[numVisibleModels].matrix, renderData.models[i]->sceneMatrix.a, sizeof(pModels[numVisibleModels].matrix));
+      pModels[numVisibleModels].pPointCloud = renderData.models[i]->m_pPointCloud;
+      memcpy(&pModels[numVisibleModels].matrix, renderData.models[i]->m_sceneMatrix.a, sizeof(pModels[numVisibleModels].matrix));
       ++numVisibleModels;
 
-      if (renderData.models[i]->hasWatermark)
+      if (renderData.models[i]->m_hasWatermark)
       {
-        double cameraDist = udMag(udClosestPointOnOOBB(udDouble3::zero(), pRenderContext->pCamera->matrices.view * renderData.models[i]->sceneMatrix));
+        double cameraDist = udMag(udClosestPointOnOOBB(udDouble3::zero(), pRenderContext->pCamera->matrices.view * renderData.models[i]->m_sceneMatrix));
         if (cameraDist < maxDist)
         {
           maxDist = cameraDist;
 
-          if (renderData.models[i]->pWatermark == nullptr) // Load the watermark
+          if (renderData.models[i]->m_pWatermark == nullptr) // Load the watermark
           {
-            const char *pWatermarkStr = renderData.models[i]->pMetadata->Get("Watermark").AsString();
+            const char *pWatermarkStr = renderData.models[i]->m_pMetadata->Get("Watermark").AsString();
             if (pWatermarkStr)
             {
               uint8_t *pImage = nullptr;
@@ -589,7 +589,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
               {
                 int imageWidth, imageHeight, imageChannels;
                 unsigned char *pImageData = stbi_load_from_memory(pImage, (int)imageLen, &imageWidth, &imageHeight, &imageChannels, 4);
-                vcTexture_Create(&renderData.models[i]->pWatermark, imageWidth, imageHeight, pImageData, vcTextureFormat_RGBA8, vcTFM_Nearest, false);
+                vcTexture_Create(&renderData.models[i]->m_pWatermark, imageWidth, imageHeight, pImageData, vcTextureFormat_RGBA8, vcTFM_Nearest, false);
                 free(pImageData);
               }
 
@@ -597,7 +597,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
             }
           }
 
-          renderData.pWatermarkTexture = renderData.models[i]->pWatermark;
+          renderData.pWatermarkTexture = renderData.models[i]->m_pWatermark;
         }
       }
     }

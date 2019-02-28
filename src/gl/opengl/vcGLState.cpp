@@ -138,13 +138,11 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
       glEnable(GL_BLEND);
 
       if (blendMode == vcGLSBM_Interpolative)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
       else if (blendMode == vcGLSBM_Additive)
-        glBlendFunc(GL_ONE, GL_ONE);
+        glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
       else if (blendMode == vcGLSBM_Multiplicative)
-        glBlendFunc(GL_DST_COLOR, GL_ZERO);
-      else if (blendMode == vcGLSBM_AdditiveSrcInterpolativeDst)
-        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        glBlendFuncSeparate(GL_DST_COLOR, GL_ZERO, GL_ONE, GL_ZERO);
     }
 
     s_internalState.blendMode = blendMode;

@@ -29,34 +29,35 @@ struct vcModelLoadInfo
 
 void vcModel_LoadModel(void *pLoadInfoPtr)
 {
+  udGeoZone *pMemberZone = nullptr;
   vcModelLoadInfo *pLoadInfo = (vcModelLoadInfo*)pLoadInfoPtr;
   if (pLoadInfo->pProgramState->programComplete)
     return;
 
-  int32_t status = udInterlockedCompareExchange(&pLoadInfo->pModel->loadStatus, vcSLS_Loading, vcSLS_Pending);
+  int32_t status = udInterlockedCompareExchange(&pLoadInfo->pModel->m_loadStatus, vcSLS_Loading, vcSLS_Pending);
 
   if (status == vcSLS_Pending)
   {
-    vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->pPointCloud, pLoadInfo->pModel->pPath);
+    vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->m_pPointCloud, pLoadInfo->pModel->m_pPath);
 
     if (modelStatus == vE_Success)
     {
       const char *pMetadata;
-      pLoadInfo->pModel->pMetadata = udAllocType(udJSON, 1, udAF_Zero);
+      pLoadInfo->pModel->m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
 
-      if (vdkPointCloud_GetMetadata(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->pPointCloud, &pMetadata) == vE_Success)
+      if (vdkPointCloud_GetMetadata(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->m_pPointCloud, &pMetadata) == vE_Success)
       {
-        pLoadInfo->pModel->pMetadata->Parse(pMetadata);
+        pLoadInfo->pModel->m_pMetadata->Parse(pMetadata);
 
-        pLoadInfo->pModel->hasWatermark = pLoadInfo->pModel->pMetadata->Get("Watermark").IsString();
+        pLoadInfo->pModel->m_hasWatermark = pLoadInfo->pModel->m_pMetadata->Get("Watermark").IsString();
 
-        pLoadInfo->pModel->meterScale = pLoadInfo->pModel->pMetadata->Get("info.meterScale").AsDouble(1.0);
-        pLoadInfo->pModel->pivot = pLoadInfo->pModel->pMetadata->Get("info.pivot").AsDouble3();
+        pLoadInfo->pModel->m_meterScale = pLoadInfo->pModel->m_pMetadata->Get("info.meterScale").AsDouble(1.0);
+        pLoadInfo->pModel->m_pivot = pLoadInfo->pModel->m_pMetadata->Get("info.pivot").AsDouble3();
 
         vcSRID srid = 0;
         udJSON tempNode;
 
-        const char *pSRID = pLoadInfo->pModel->pMetadata->Get("ProjectionID").AsString();
+        const char *pSRID = pLoadInfo->pModel->m_pMetadata->Get("ProjectionID").AsString();
         if (pSRID != nullptr)
         {
           pSRID = udStrchr(pSRID, ":");
@@ -64,38 +65,38 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
             srid = udStrAtou(&pSRID[1]);
         }
 
-        const char *pWKT = pLoadInfo->pModel->pMetadata->Get("ProjectionWKT").AsString();
+        const char *pWKT = pLoadInfo->pModel->m_pMetadata->Get("ProjectionWKT").AsString();
         if (pWKT != nullptr)
         {
           if (udParseWKT(&tempNode, pWKT) == udR_Success)
           {
             for (size_t i = 0; i < tempNode.Get("values").ArrayLength() && srid == 0; ++i)
             {
-              if (udStrEquali(tempNode.Get("values[%zu].type", i).AsString(), "AUTHORITY"))
+              if (udStrEquali(tempNode.Get("values[%zu].m_type", i).AsString(), "AUTHORITY"))
               {
                 srid = tempNode.Get("values[%zu].values[0]", i).AsInt();
                 break;
               }
             }
 
-            pLoadInfo->pModel->pMetadata->Set(&tempNode, "ProjectionWKT");
+            pLoadInfo->pModel->m_pMetadata->Set(&tempNode, "ProjectionWKT");
           }
         }
 
         if (srid != 0)
         {
-          pLoadInfo->pModel->pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
-          pLoadInfo->pModel->pZone = udAllocType(udGeoZone, 1, udAF_Zero);
-          udGeoZone_SetFromSRID(pLoadInfo->pModel->pOriginalZone, srid);
-          memcpy(pLoadInfo->pModel->pZone, pLoadInfo->pModel->pOriginalZone, sizeof(*pLoadInfo->pModel->pZone));
+          pLoadInfo->pModel->m_pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
+          pMemberZone = udAllocType(udGeoZone, 1, udAF_Zero);
+          udGeoZone_SetFromSRID(pLoadInfo->pModel->m_pOriginalZone, srid);
+          memcpy(pMemberZone, pLoadInfo->pModel->m_pOriginalZone, sizeof(*pMemberZone));
         }
       }
 
-      vdkPointCloud_GetStoredMatrix(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->pPointCloud, pLoadInfo->pModel->sceneMatrix.a);
-      pLoadInfo->pModel->defaultMatrix = pLoadInfo->pModel->sceneMatrix;
+      vdkPointCloud_GetStoredMatrix(pLoadInfo->pProgramState->pVDKContext, pLoadInfo->pModel->m_pPointCloud, pLoadInfo->pModel->m_sceneMatrix.a);
+      pLoadInfo->pModel->m_defaultMatrix = pLoadInfo->pModel->m_sceneMatrix;
 
-      udDouble3 scaleFactor = udDouble3::create(udMag3(pLoadInfo->pModel->sceneMatrix.axis.x), udMag3(pLoadInfo->pModel->sceneMatrix.axis.y), udMag3(pLoadInfo->pModel->sceneMatrix.axis.z)) * pLoadInfo->scale;
-      udDouble3 translate = pLoadInfo->pModel->sceneMatrix.axis.t.toVector3();
+      udDouble3 scaleFactor = udDouble3::create(udMag3(pLoadInfo->pModel->m_sceneMatrix.axis.x), udMag3(pLoadInfo->pModel->m_sceneMatrix.axis.y), udMag3(pLoadInfo->pModel->m_sceneMatrix.axis.z)) * pLoadInfo->scale;
+      udDouble3 translate = pLoadInfo->pModel->m_sceneMatrix.axis.t.toVector3();
       udDouble3 ypr = udDouble3::zero();
 
       if (pLoadInfo->useRotation)
@@ -105,111 +106,63 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
         translate = pLoadInfo->position;
 
       if (pLoadInfo->useRotation || pLoadInfo->usePosition || pLoadInfo->scale != 1.0)
-        pLoadInfo->pModel->sceneMatrix = udDouble4x4::translation(translate) * udDouble4x4::translation(pLoadInfo->pModel->pivot) * udDouble4x4::rotationYPR(ypr) * udDouble4x4::scaleNonUniform(scaleFactor) * udDouble4x4::translation(-pLoadInfo->pModel->pivot);
+        pLoadInfo->pModel->m_sceneMatrix = udDouble4x4::translation(translate) * udDouble4x4::translation(pLoadInfo->pModel->m_pivot) * udDouble4x4::rotationYPR(ypr) * udDouble4x4::scaleNonUniform(scaleFactor) * udDouble4x4::translation(-pLoadInfo->pModel->m_pivot);
+
+      if (pMemberZone)
+      {
+        pLoadInfo->pModel->m_pZone = pMemberZone;
+        pMemberZone = nullptr;
+      }
 
       if (pLoadInfo->jumpToLocation)
         vcScene_UseProjectFromItem(pLoadInfo->pProgramState, pLoadInfo->pModel);
-      else
+      else if (pLoadInfo->pProgramState->gis.isProjected)
         pLoadInfo->pModel->ChangeProjection(pLoadInfo->pProgramState, pLoadInfo->pProgramState->gis.zone);
 
-      pLoadInfo->pModel->loadStatus = vcSLS_Loaded;
+      pLoadInfo->pModel->m_loadStatus = vcSLS_Loaded;
     }
     else if (modelStatus == vE_OpenFailure)
     {
-      pLoadInfo->pModel->loadStatus = vcSLS_OpenFailure;
+      pLoadInfo->pModel->m_loadStatus = vcSLS_OpenFailure;
     }
     else
     {
-      pLoadInfo->pModel->loadStatus = vcSLS_Failed;
+      pLoadInfo->pModel->m_loadStatus = vcSLS_Failed;
     }
   }
+  udFree(pMemberZone);
 }
 
-void vcModel::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
-{
-  pRenderData->models.PushBack(this);
-}
-
-void vcModel::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
-{
-  // This is not ideal as it will gather drift
-  if (this->pZone != nullptr)
-    this->sceneMatrix = udGeoZone_TransformMatrix(this->sceneMatrix, *this->pZone, newZone);
-
-  // Call the parent version
-  vcSceneItem::ChangeProjection(nullptr, newZone);
-}
-
-void vcModel::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
-{
-  sceneMatrix = delta * sceneMatrix;
-}
-
-void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
-{
-  ImGui::TextWrapped("Path: %s", pPath);
-
-  if (pMetadata != nullptr)
-    vcImGuiValueTreeObject(pMetadata);
-}
-
-void vcModel::Cleanup(vcState *pProgramState)
-{
-  vdkPointCloud_Unload(pProgramState->pVDKContext, &pPointCloud);
-
-  udFree(pName);
-  udFree(pPath);
-
-  if (pWatermark != nullptr)
-    vcTexture_Destroy(&pWatermark);
-
-  this->vcModel::~vcModel();
-}
-
-udDouble3 vcModel::GetLocalSpacePivot()
-{
-  return pivot;
-}
-
-udDouble4x4 vcModel::GetWorldSpaceMatrix()
-{
-  return sceneMatrix;
-}
-
-void vcModel_AddToList(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad /*= true*/, udDouble3 *pOverridePosition /*= nullptr*/, udDouble3 *pOverrideYPR /*= nullptr*/, double scale /*= 1.0*/)
+vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad /*= true*/, udDouble3 *pOverridePosition /*= nullptr*/, udDouble3 *pOverrideYPR /*= nullptr*/, double scale /*= 1.0*/) :
+  m_pPointCloud(nullptr), m_pivot(udDouble3::zero()), m_defaultMatrix(udDouble4x4::identity()), m_sceneMatrix(udDouble4x4::identity()),
+  m_meterScale(0.0), m_hasWatermark(false), m_pWatermark(nullptr)
 {
   if (pFilePath == nullptr)
     return;
 
-  vcModel *pModel = udAllocType(vcModel, 1, udAF_Zero);
-  pModel = new (pModel) vcModel();
-
   // Prepare the model
-  pModel->pPath = udStrdup(pFilePath);
+  m_pPath = udStrdup(pFilePath);
 
   if (pName == nullptr)
   {
     udFilename udfilename(pFilePath);
-    pModel->pName = udStrdup(udfilename.GetFilenameWithExt());
+    m_pName = udStrdup(udfilename.GetFilenameWithExt());
   }
   else
   {
-    pModel->pName = udStrdup(pName);
+    m_pName = udStrdup(pName);
   }
 
-  pModel->visible = true;
-  pModel->type = vcSOT_PointCloud;
+  m_visible = true;
+  m_type = vcSOT_PointCloud;
 
-  udStrcpy(pModel->typeStr, sizeof(pModel->typeStr), "UDS");
-
-  // Add it to the load queue
-  pModel->AddItem(pProgramState);
+  udStrcpy(m_typeStr, sizeof(m_typeStr), "UDS");
 
   vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
   if (pLoadInfo != nullptr)
   {
     // Prepare the load info
-    pLoadInfo->pModel = pModel;
+    pLoadInfo->pModel = this;
     pLoadInfo->pProgramState = pProgramState;
     pLoadInfo->jumpToLocation = jumpToModelOnLoad;
 
@@ -232,6 +185,60 @@ void vcModel_AddToList(vcState *pProgramState, const char *pName, const char *pF
   }
   else
   {
-    pModel->loadStatus = vcSLS_Failed;
+    m_loadStatus = vcSLS_Failed;
   }
+}
+
+void vcModel::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
+{
+  pRenderData->models.PushBack(this);
+}
+
+void vcModel::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
+{
+  // This is not ideal as it will gather drift
+  if (m_pZone != nullptr)
+    m_sceneMatrix = udGeoZone_TransformMatrix(this->m_sceneMatrix, *m_pZone, newZone);
+
+  // Call the parent version
+  vcSceneItem::ChangeProjection(nullptr, newZone);
+}
+
+void vcModel::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
+{
+  m_sceneMatrix = delta * m_sceneMatrix;
+}
+
+void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
+{
+  ImGui::TextWrapped("Path: %s", m_pPath);
+
+  if (m_pMetadata != nullptr)
+    vcImGuiValueTreeObject(m_pMetadata);
+}
+
+void vcModel::Cleanup(vcState *pProgramState)
+{
+  vdkPointCloud_Unload(pProgramState->pVDKContext, &m_pPointCloud);
+
+  udFree(m_pName);
+  udFree(m_pPath);
+
+  if (m_pWatermark != nullptr)
+  {
+    if (pProgramState->pSceneWatermark == m_pWatermark)
+      pProgramState->pSceneWatermark = nullptr;
+
+    vcTexture_Destroy(&m_pWatermark);
+  }
+}
+
+udDouble3 vcModel::GetLocalSpacePivot()
+{
+  return m_pivot;
+}
+
+udDouble4x4 vcModel::GetWorldSpaceMatrix()
+{
+  return m_sceneMatrix;
 }

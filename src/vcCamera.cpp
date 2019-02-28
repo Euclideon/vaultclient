@@ -41,14 +41,10 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
   double zFar = settings.farPlane;
 
   pCamera->matrices.camera = vcCamera_GetMatrix(pCamera);
-
-  // THIS IS TEMPORAY - AS SOON AS THE UD PROJECTION MATRICES FIX GOES THROUGH,
-  // CHANGE THIS LINE TO:
-  //pCamera->matrices.projectionUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
-  pCamera->matrices.projectionUD = udDouble4x4::perspectiveNO(fov, aspect, zNear, zFar);
+  pCamera->matrices.projectionUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
 
 #if defined(GRAPHICS_API_D3D11)
-  pCamera->matrices.projection = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
+  pCamera->matrices.projection = pCamera->matrices.projectionUD;
   pCamera->matrices.projectionNear = udDouble4x4::perspectiveZO(fov, aspect, 0.5f, 10000.f);
 #endif
 #if defined(GRAPHICS_API_OPENGL)
@@ -122,6 +118,10 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
     pCamera->position += addPos;
 
+    // Check for a nan camera position and reset to zero, this allows the UI to be usable in the event of error
+    if (isnan(pCamera->position.x) || isnan(pCamera->position.y) || isnan(pCamera->position.z))
+      pCamera->position = udDouble3::zero();
+
     // Rotation
     if (pCamSettings->invertX)
       pCamInput->mouseInput.x *= -1.0;
@@ -130,19 +130,8 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
     pCamera->eulerRotation += pCamInput->mouseInput;
     pCamera->eulerRotation.y = udClamp(pCamera->eulerRotation.y, -UD_HALF_PI, UD_HALF_PI);
-
-    while (pCamera->eulerRotation.x > UD_PI)
-      pCamera->eulerRotation.x -= UD_2PI;
-    while (pCamera->eulerRotation.x < -UD_PI)
-      pCamera->eulerRotation.x += UD_2PI;
-    while (pCamera->eulerRotation.y > UD_PI)
-      pCamera->eulerRotation.y -= UD_2PI;
-    while (pCamera->eulerRotation.y < -UD_PI)
-      pCamera->eulerRotation.y += UD_2PI;
-    while (pCamera->eulerRotation.z > UD_PI)
-      pCamera->eulerRotation.z -= UD_2PI;
-    while (pCamera->eulerRotation.z < -UD_PI)
-      pCamera->eulerRotation.z += UD_2PI;
+    pCamera->eulerRotation.x = udMod(pCamera->eulerRotation.x, UD_2PI);
+    pCamera->eulerRotation.z = udMod(pCamera->eulerRotation.z, UD_2PI);
   }
   break;
 
@@ -253,9 +242,9 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     if (pCamSettings->moveMode == vcCMM_Plane)
       plane.normal = udDoubleQuat::create(pCamera->eulerRotation).apply({ 0, 1, 0 });
 
-    udDouble3 offset;
-    if (udIntersect(plane, pCamera->worldMouseRay, &offset) == udR_Success)
-      pCamera->position += (pCamInput->worldAnchorPoint - offset);
+    udDouble3 offset, anchorOffset;
+    if (udIntersect(plane, pCamera->worldMouseRay, &offset) == udR_Success && udIntersect(plane, pCamInput->anchorMouseRay, &anchorOffset) == udR_Success)
+      pCamera->position += (anchorOffset - offset);
   }
   break;
 
@@ -276,7 +265,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
   float speedModifier = 1.f;
 
-  bool isHovered = ImGui::IsItemHovered() && !vcGizmo_IsHovered();
   static bool isFocused = false;
 
   bool isBtnClicked[3] = { ImGui::IsMouseClicked(0, false), ImGui::IsMouseClicked(1, false), ImGui::IsMouseClicked(2, false) };
@@ -284,14 +272,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   bool isBtnHeld[3] = { ImGui::IsMouseDown(0), ImGui::IsMouseDown(1), ImGui::IsMouseDown(2) };
   bool isBtnReleased[3] = { ImGui::IsMouseReleased(0), ImGui::IsMouseReleased(1), ImGui::IsMouseReleased(2) };
 
-  if (isHovered && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
-    isFocused = true;
-
-  if (!isHovered && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
-    isFocused = false;
-
-  if (pProgramState->modalOpen)
-    isFocused = false;
+  isFocused = ImGui::IsItemHovered() && !vcGizmo_IsActive() && !pProgramState->modalOpen;
 
   if (io.KeyCtrl)
     speedModifier *= 0.1f;
@@ -313,7 +294,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   {
     ImVec2 mouseDelta = io.MouseDelta;
 
-    if (keyboardInput != udDouble3::zero() || keyboardInput != udDouble3::zero() || isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]) // if input is detected, TODO: add proper any input detection
+    if (keyboardInput != udDouble3::zero() || isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]) // if input is detected, TODO: add proper any input detection
     {
       if (pProgramState->cameraInput.inputState == vcCIS_MovingToPoint)
         pProgramState->cameraInput.inputState = vcCIS_None;
@@ -343,6 +324,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
             pProgramState->cameraInput.isUsingAnchorPoint = true;
             pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
           }
+          pProgramState->cameraInput.anchorMouseRay = pProgramState->pCamera->worldMouseRay;
           pProgramState->cameraInput.inputState = vcCIS_Panning;
           break;
         }

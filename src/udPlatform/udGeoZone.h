@@ -75,8 +75,8 @@ struct udGeoZone
   double unitMetreScale;      // 1.0 for metres, 0.3048006096012192 for feet
   int32_t zone;
   int32_t srid;
-  const char *pDatumShortName;
-  const char *pDatumName;
+  char datumShortName[16];
+  char datumName[64];
   char zoneName[64]; // Only 33 characters required for longest known name "Japan Plane Rectangular CS XVIII"
 };
 
@@ -85,6 +85,9 @@ udResult udGeoZone_FindSRID(int32_t *pSRIDCode, const udDouble3 &latLong, bool f
 
 // Set the zone structure parameters from a given srid code
 udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode);
+
+// Get geozone from well known text
+udResult udGeoZone_SetFromWKT(udGeoZone *pZone, const char *pWKT);
 
 // Get the Well Known Text for a zone
 udResult udGeoZone_GetWellKnownText(const char **ppWKT, const udGeoZone &zone);

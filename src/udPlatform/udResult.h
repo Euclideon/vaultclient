@@ -56,6 +56,7 @@ enum udResult
   udR_OutOfOrder,
   udR_OutOfRange,
   udR_CalledMoreThanOnce,
+  udR_ImageLoadFailure,
 
   udR_OpenFailure,
   udR_CloseFailure,

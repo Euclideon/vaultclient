@@ -318,6 +318,7 @@ int main(int argc, char **args)
 
   programState.settings.hideIntervalSeconds = 3;
   programState.showUI = true;
+  programState.changeActiveDock = vcDocks_Count;
   programState.firstRun = true;
   programState.passFocus = true;
   programState.renaming = -1;
@@ -328,10 +329,17 @@ int main(int argc, char **args)
   programState.sceneExplorer.clickedItem.index = SIZE_MAX;
 
   programState.loadList.reserve(udMax(64, argc));
-  vcFolder_AddToList(&programState, nullptr);
+  programState.sceneExplorer.pItems = new vcFolder(nullptr);
 
   for (int i = 1; i < argc; ++i)
-    programState.loadList.push_back(udStrdup(args[i]));
+  {
+#if UDPLATFORM_OSX
+    // macOS assigns a unique process serial number (PSN) to all apps,
+    // we should not attempt to load this as a file.
+    if (!udStrBeginsWithi(args[i], "-psn"))
+#endif
+      programState.loadList.push_back(udStrdup(args[i]));
+  }
 
   vWorkerThread_StartThreads(&programState.pWorkerPool);
   vcConvert_Init(&programState);
@@ -399,7 +407,6 @@ int main(int argc, char **args)
   SDL_GL_SetSwapInterval(0); // disable v-sync
 
   ImGui::CreateContext();
-  ImGui::GetIO().ConfigResizeWindowsFromEdges = true; // Fix for ImGuiWindowFlags_ResizeFromAnySide being removed
   vcMain_LoadSettings(&programState, false);
 
   // setup watermark for background
@@ -569,8 +576,9 @@ int main(int argc, char **args)
               const char *pExt = loadFile.GetExt();
               if (udStrEquali(pExt, ".uds") || udStrEquali(pExt, ".ssf") || udStrEquali(pExt, ".udm") || udStrEquali(pExt, ".udg"))
               {
-                vcModel_AddToList(&programState, nullptr, pNextLoad, firstLoad);
+                vcScene_AddItem(&programState, new vcModel(&programState, nullptr, pNextLoad, firstLoad));
                 continueLoading = true;
+                programState.changeActiveDock = vcDocks_Scene;
               }
               else if (udStrEquali(pExt, ".udp"))
               {
@@ -578,9 +586,9 @@ int main(int argc, char **args)
                   vcScene_RemoveAll(&programState);
 
                 vcUDP_Load(&programState, pNextLoad);
+                programState.changeActiveDock = vcDocks_Scene;
               }
-              else if (!ImGui::IsDockActive(vcString::Get("Convert")) &&
-                (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif")))
+              else if (!ImGui::IsDockActive(vcString::Get("convertTitle")) && (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif")))
               {
                 vcTexture_Destroy(&programState.image.pImage);
 
@@ -630,6 +638,7 @@ int main(int argc, char **args)
               else
               {
                 vcConvert_AddFile(&programState, pNextLoad);
+                programState.changeActiveDock = vcDocks_Convert;
               }
             }
 
@@ -689,7 +698,7 @@ epilogue:
   vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
   vcLogout(&programState);
   programState.sceneExplorer.pItems->Cleanup(&programState);
-  udFree(programState.sceneExplorer.pItems);
+  delete programState.sceneExplorer.pItems;
   vcTexture_Destroy(&programState.image.pImage);
 
   vcGLState_Deinit();
@@ -708,28 +717,28 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
-    if (ImGui::Begin(vcString::Get("GeographicInfo"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar))
+    if (ImGui::Begin(vcString::Get("sceneGeographicInfo"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar))
     {
       if (pProgramState->settings.presentation.showProjectionInfo)
       {
         if (pProgramState->gis.SRID != 0 && pProgramState->gis.isProjected)
-          ImGui::Text("%s (%s: %d)", pProgramState->gis.zone.zoneName, vcString::Get("SRID"), pProgramState->gis.SRID);
+          ImGui::Text("%s (%s: %d)", pProgramState->gis.zone.zoneName, vcString::Get("sceneSRID"), pProgramState->gis.SRID);
         else if (pProgramState->gis.SRID == 0)
-          ImGui::TextUnformatted(vcString::Get("NotGeolocated"));
+          ImGui::TextUnformatted(vcString::Get("sceneNotGeolocated"));
         else
-          ImGui::Text("%s: %d", vcString::Get("UnsupportedSRID"), pProgramState->gis.SRID);
+          ImGui::Text("%s: %d", vcString::Get("sceneUnsupportedSRID"), pProgramState->gis.SRID);
 
         ImGui::Separator();
         if (ImGui::IsMousePosValid())
         {
           if (pProgramState->pickingSuccess)
           {
-            ImGui::Text("%s: %.2f, %.2f, %.2f", vcString::Get("MousePointInfo"), pProgramState->worldMousePos.x, pProgramState->worldMousePos.y, pProgramState->worldMousePos.z);
+            ImGui::Text("%s: %.2f, %.2f, %.2f", vcString::Get("sceneMousePointInfo"), pProgramState->worldMousePos.x, pProgramState->worldMousePos.y, pProgramState->worldMousePos.z);
 
             if (pProgramState->gis.isProjected)
             {
               udDouble3 mousePointInLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->worldMousePos);
-              ImGui::Text("%s: %.6f, %.6f", vcString::Get("MousePointWGS"), mousePointInLatLong.x, mousePointInLatLong.y);
+              ImGui::Text("%s: %.6f, %.6f", vcString::Get("sceneMousePointWGS"), mousePointInLatLong.x, mousePointInLatLong.y);
             }
           }
         }
@@ -740,7 +749,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         int newSRID = pProgramState->gis.SRID;
         udGeoZone zone;
 
-        if (ImGui::InputInt(vcString::Get("OverrideSRID"), &newSRID) && udGeoZone_SetFromSRID(&zone, newSRID) == udR_Success)
+        if (ImGui::InputInt(vcString::Get("sceneOverrideSRID"), &newSRID) && udGeoZone_SetFromSRID(&zone, newSRID) == udR_Success)
         {
           if (vcGIS_ChangeSpace(&pProgramState->gis, (vcSRID)newSRID, &pProgramState->pCamera->position))
             pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, zone);
@@ -755,47 +764,47 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x, windowPos.y), ImGuiCond_Always, ImVec2(0.f, 0.f));
     ImGui::SetNextWindowBgAlpha(0.5f);
-    if (ImGui::Begin(vcString::Get("CameraSettings"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+    if (ImGui::Begin(vcString::Get("sceneCameraSettings"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
     {
       // Basic Settings
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("LockAltitude"), vcString::Get("LockAltKey"), vcMBBI_LockAltitude, vcMBBG_FirstItem, (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneLockAltitude"), vcString::Get("sceneLockAltitudeKey"), vcMBBI_LockAltitude, vcMBBG_FirstItem, (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)))
         pProgramState->settings.camera.moveMode = (pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("CameraInfo"), nullptr, vcMBBI_ShowCameraSettings, vcMBBG_SameGroup, pProgramState->settings.presentation.showCameraInfo))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneCameraInfo"), nullptr, vcMBBI_ShowCameraSettings, vcMBBG_SameGroup, pProgramState->settings.presentation.showCameraInfo))
         pProgramState->settings.presentation.showCameraInfo = !pProgramState->settings.presentation.showCameraInfo;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("ProjectionInfo"), nullptr, vcMBBI_ShowGeospatialInfo, vcMBBG_SameGroup, pProgramState->settings.presentation.showProjectionInfo))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneProjectionInfo"), nullptr, vcMBBI_ShowGeospatialInfo, vcMBBG_SameGroup, pProgramState->settings.presentation.showProjectionInfo))
         pProgramState->settings.presentation.showProjectionInfo = !pProgramState->settings.presentation.showProjectionInfo;
 
       // Gizmo Settings
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoTranslate"), vcString::Get("TranslateKey"), vcMBBI_Translate, vcMBBG_NewGroup, (pProgramState->gizmo.operation == vcGO_Translate)) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_B] && !pProgramState->modalOpen))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoTranslate"), vcString::Get("sceneGizmoTranslateKey"), vcMBBI_Translate, vcMBBG_NewGroup, (pProgramState->gizmo.operation == vcGO_Translate)) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_B] && !pProgramState->modalOpen))
         pProgramState->gizmo.operation = vcGO_Translate;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoRotate"), vcString::Get("RotateKey"), vcMBBI_Rotate, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Rotate)) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_N] && !pProgramState->modalOpen))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoRotate"), vcString::Get("sceneGizmoRotateKey"), vcMBBI_Rotate, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Rotate)) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_N] && !pProgramState->modalOpen))
         pProgramState->gizmo.operation = vcGO_Rotate;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoScale"), vcString::Get("ScaleKey"), vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_M] && !pProgramState->modalOpen))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoScale"), vcString::Get("sceneGizmoScaleKey"), vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_M] && !pProgramState->modalOpen))
         pProgramState->gizmo.operation = vcGO_Scale;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("GizmoLocalSpace"), vcString::Get("LocalKey"), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)) || (ImGui::IsKeyPressed(SDL_SCANCODE_C, false) && !pProgramState->modalOpen))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), vcString::Get("sceneGizmoLocalSpaceKey"), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)) || (ImGui::IsKeyPressed(SDL_SCANCODE_C, false) && !pProgramState->modalOpen))
         pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
       // Fullscreen
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("Fullscreen"), vcString::Get("FullscreenKey"), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), vcString::Get("sceneFullscreenKey"), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode))
         vcMain_PresentationMode(pProgramState);
 
       if (pProgramState->settings.presentation.showCameraInfo)
       {
         ImGui::Separator();
 
-        ImGui::InputScalarN(vcString::Get("cameraPosition"), ImGuiDataType_Double, &pProgramState->pCamera->position.x, 3);
+        ImGui::InputScalarN(vcString::Get("sceneCameraPosition"), ImGuiDataType_Double, &pProgramState->pCamera->position.x, 3);
 
         pProgramState->pCamera->eulerRotation = UD_RAD2DEG(pProgramState->pCamera->eulerRotation);
 
-        ImGui::InputScalarN(vcString::Get("cameraRotation"), ImGuiDataType_Double, &pProgramState->pCamera->eulerRotation.x, 3);
+        ImGui::InputScalarN(vcString::Get("sceneCameraRotation"), ImGuiDataType_Double, &pProgramState->pCamera->eulerRotation.x, 3);
         pProgramState->pCamera->eulerRotation = UD_DEG2RAD(pProgramState->pCamera->eulerRotation);
 
-        if (ImGui::SliderFloat(vcString::Get("cameraMoveSpeed"), &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
+        if (ImGui::SliderFloat(vcString::Get("sceneCameraMoveSpeed"), &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
           pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, 0.f);
 
         if (pProgramState->gis.isProjected)
@@ -806,7 +815,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
           char tmpBuf[128];
           const char *latLongAltStrings[] = { udTempStr("%.7f", cameraLatLong.x), udTempStr("%.7f", cameraLatLong.y), udTempStr("%.2fm", cameraLatLong.z) };
-          ImGui::TextUnformatted(vStringFormat(tmpBuf, udLengthOf(tmpBuf), vcString::Get("cameraLatLongAlt"), latLongAltStrings, udLengthOf(latLongAltStrings)));
+          ImGui::TextUnformatted(vStringFormat(tmpBuf, udLengthOf(tmpBuf), vcString::Get("sceneCameraLatLongAlt"), latLongAltStrings, udLengthOf(latLongAltStrings)));
 
           if (pProgramState->gis.zone.latLongBoundMin != pProgramState->gis.zone.latLongBoundMax)
           {
@@ -814,7 +823,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
             udDouble2 &maxBound = pProgramState->gis.zone.latLongBoundMax;
 
             if (cameraLatLong.x < minBound.x || cameraLatLong.y < minBound.y || cameraLatLong.x > maxBound.x || cameraLatLong.y > maxBound.y)
-              ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", vcString::Get("cameraOutOfBounds"));
+              ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", vcString::Get("sceneCameraOutOfBounds"));
           }
         }
       }
@@ -841,12 +850,12 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       double right = 0;
       float vertical = 0;
 
-      if (ImGui::VSliderFloat("##oscUDSlider", ImVec2(40, 100), &vertical, -1, 1, vcString::Get("cameraOSCUpDown")))
+      if (ImGui::VSliderFloat("##oscUDSlider", ImVec2(40, 100), &vertical, -1, 1, vcString::Get("sceneCameraOSCUpDown")))
         vertical = udClamp(vertical, -1.f, 1.f);
 
       ImGui::NextColumn();
 
-      ImGui::Button(vcString::Get("cameraOSCMove"), ImVec2(100, 100));
+      ImGui::Button(vcString::Get("sceneCameraOSCMove"), ImVec2(100, 100));
       if (ImGui::IsItemActive())
       {
         // Draw a line between the button and the mouse cursor
@@ -891,8 +900,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
     ImGui::SetNextWindowBgAlpha(0.5f);
 
-    if (ImGui::Begin("MapCopyright", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
-      ImGui::TextUnformatted(vcString::Get("MapData"));
+    if (ImGui::Begin(vcString::Get("sceneMapCopyright"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+      ImGui::TextUnformatted(vcString::Get("sceneMapData"));
     ImGui::End();
   }
 }
@@ -958,7 +967,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
     static bool wasOpenLastFrame = false;
 
-    if (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem()) //TODO:
+    if (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext"))
     {
       static bool hadMouse = false;
       static udDouble3 worldMouse;
@@ -971,25 +980,40 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
       if (hadMouse)
       {
-        if (ImGui::MenuItem(vcString::Get("LabelAddHere")))
+        if (ImGui::MenuItem(vcString::Get("sceneAddPOI")))
         {
-          vcPOI_AddToList(pProgramState, vcString::Get("DefaultName_POI"), 0xFFFFFFFF, 14, worldMouse, pProgramState->gis.SRID);
+          vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, worldMouse, pProgramState->gis.SRID), true);
           ImGui::CloseCurrentPopup();
         }
 
-        if (ImGui::MenuItem(vcString::Get("SetMapHeightHere")))
+        if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected && pProgramState->settings.maptiles.mapHeight != worldMouse.z)
         {
-          pProgramState->settings.maptiles.mapHeight = (float)worldMouse.z;
-          ImGui::CloseCurrentPopup();
+          if (ImGui::MenuItem(vcString::Get("sceneSetMapHeight")))
+          {
+            pProgramState->settings.maptiles.mapHeight = (float)worldMouse.z;
+            ImGui::CloseCurrentPopup();
+          }
         }
 
-        if (ImGui::MenuItem(vcString::Get("MoveTo")))
+        if (ImGui::MenuItem(vcString::Get("sceneMoveTo")))
         {
           pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
           pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
           pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
           pProgramState->cameraInput.worldAnchorPoint = worldMouse;
           pProgramState->cameraInput.progress = 0.0;
+        }
+
+        if (pProgramState->sceneExplorer.selectedItems.size() == 1)
+        {
+          const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
+          if (item.pParent->m_children[item.index]->m_type == vcSOT_PointOfInterest)
+          {
+            vcPOI* pPOI = (vcPOI*)item.pParent->m_children[item.index];
+
+            if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
+              pPOI->AddPoint(worldMouse);
+          }
         }
       }
       else
@@ -1014,7 +1038,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       vcGizmo_SetDrawList();
 
       vcSceneItemRef clickedItemRef = pProgramState->sceneExplorer.clickedItem;
-      vcSceneItem *pItem = clickedItemRef.pParent->children[clickedItemRef.index];
+      vcSceneItem *pItem = clickedItemRef.pParent->m_children[clickedItemRef.index];
 
       udDouble4x4 temp = pItem->GetWorldSpaceMatrix();
       temp.axis.t.toVector3() = pItem->GetWorldSpacePivot();
@@ -1026,7 +1050,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       if (!(delta == udDouble4x4::identity()))
       {
         for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
-          ref.pParent->children[ref.index]->ApplyDelta(pProgramState, delta);
+          ref.pParent->m_children[ref.index]->ApplyDelta(pProgramState, delta);
       }
     }
   }
@@ -1057,50 +1081,53 @@ int vcMainMenuGui(vcState *pProgramState)
 
   if (ImGui::BeginMainMenuBar())
   {
-    if (ImGui::BeginMenu(vcString::Get("MenuSystem")))
+    if (ImGui::BeginMenu(vcString::Get("menuSystem")))
     {
-      if (ImGui::MenuItem(vcString::Get("MenuLogout")))
+      if (ImGui::MenuItem(vcString::Get("menuLogout")))
         vcLogout(pProgramState);
 
-      if (ImGui::MenuItem(vcString::Get("MenuRestoreDefaults"), nullptr))
+      if (ImGui::MenuItem(vcString::Get("menuRestoreDefaults"), nullptr))
+      {
         vcMain_LoadSettings(pProgramState, true);
+        vcRender_ClearTiles(pProgramState->pRenderContext); // refresh map tiles since they just got updated
+      }
 
-      if (ImGui::MenuItem(vcString::Get("MenuAbout")))
+      if (ImGui::MenuItem(vcString::Get("menuAbout")))
         vcModals_OpenModal(pProgramState, vcMT_About);
 
-      if (ImGui::MenuItem(vcString::Get("MenuReleaseNotes")))
+      if (ImGui::MenuItem(vcString::Get("menuReleaseNotes")))
         vcModals_OpenModal(pProgramState, vcMT_ReleaseNotes);
 
 #if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX
-      if (ImGui::MenuItem(vcString::Get("MenuQuit"), "Alt+F4"))
+      if (ImGui::MenuItem(vcString::Get("menuQuit"), "Alt+F4"))
         pProgramState->programComplete = true;
 #endif
 
       ImGui::EndMenu();
     }
 
-    if (ImGui::BeginMenu(vcString::Get("Windows")))
+    if (ImGui::BeginMenu(vcString::Get("menuWindows")))
     {
-      ImGui::MenuItem(vcString::Get("Scene"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Scene]);
-      ImGui::MenuItem(vcString::Get("SceneExplorer"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]);
-      ImGui::MenuItem(vcString::Get("Settings"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Settings]);
-      ImGui::MenuItem(vcString::Get("Convert"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Convert]);
+      ImGui::MenuItem(vcString::Get("menuScene"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Scene]);
+      ImGui::MenuItem(vcString::Get("menuSceneExplorer"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]);
+      ImGui::MenuItem(vcString::Get("menuSettings"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Settings]);
+      ImGui::MenuItem(vcString::Get("menuConvert"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Convert]);
       ImGui::Separator();
       ImGui::EndMenu();
     }
 
     udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
-    if (ImGui::BeginMenu(vcString::Get("Projects"), pProjectList != nullptr && pProjectList->length > 0))
+    if (ImGui::BeginMenu(vcString::Get("menuProjects"), pProjectList != nullptr && pProjectList->length > 0))
     {
-      if (ImGui::MenuItem(vcString::Get("NewScene"), nullptr, nullptr))
+      if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr))
         vcScene_RemoveAll(pProgramState);
 
-      if (ImGui::BeginMenu("Import"))
+      if (ImGui::BeginMenu(vcString::Get("menuImport")))
       {
-        if (ImGui::MenuItem(vcString::Get("ImportUDP"), nullptr, nullptr))
+        if (ImGui::MenuItem(vcString::Get("menuImportUDP"), nullptr, nullptr))
           vcModals_OpenModal(pProgramState, vcMT_ImportUDP);
 
-        if (ImGui::MenuItem(vcString::Get("ImportCSV"), nullptr, nullptr))
+        if (ImGui::MenuItem(vcString::Get("menuImportCSV"), nullptr, nullptr))
           vcModals_OpenModal(pProgramState, vcMT_ImportCSV);
 
         ImGui::EndMenu();
@@ -1115,7 +1142,7 @@ int vcMainMenuGui(vcState *pProgramState)
           vcScene_RemoveAll(pProgramState);
 
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
-            vcModel_AddToList(pProgramState, nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), (j == 0));
+            vcScene_AddItem(pProgramState, new vcModel(pProgramState, nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), (j == 0)));
         }
       }
 
@@ -1128,23 +1155,23 @@ int vcMainMenuGui(vcState *pProgramState)
     if (pProgramState->loadList.size() > 0)
     {
       const char *strings[] = { udTempStr("%zu", pProgramState->loadList.size()) };
-      udStrcat(endBarInfo, udLengthOf(endBarInfo), vStringFormat(tempData, udLengthOf(tempData), vcString::Get("EndBarFiles"), strings, udLengthOf(strings)));
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), vStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFilesQueued"), strings, udLengthOf(strings)));
       udStrcat(endBarInfo, udLengthOf(endBarInfo), " / ");
     }
 
     if ((SDL_GetWindowFlags(pProgramState->pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0)
     {
-      udStrcat(endBarInfo, udLengthOf(endBarInfo), vcString::Get("RunningInBackground"));
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), vcString::Get("menuBarInactive"));
       udStrcat(endBarInfo, udLengthOf(endBarInfo), " / ");
     }
 
     if (pProgramState->packageInfo.Get("success").AsBool())
-      udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s [%s] / ", vcString::Get("UpdateAvailable"), pProgramState->packageInfo.Get("package.versionstring").AsString()));
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s [%s] / ", vcString::Get("menuBarUpdateAvailable"), pProgramState->packageInfo.Get("package.versionstring").AsString()));
 
     if (pProgramState->settings.presentation.showDiagnosticInfo)
     {
       const char *strings[] = { udTempStr("%.2f", 1.f / pProgramState->deltaTime), udTempStr("%.3f", pProgramState->deltaTime * 1000.f) };
-      udStrcat(endBarInfo, udLengthOf(endBarInfo), vStringFormat(tempData, udLengthOf(tempData), vcString::Get("FPS"), strings, udLengthOf(strings)));
+      udStrcat(endBarInfo, udLengthOf(endBarInfo), vStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFPS"), strings, udLengthOf(strings)));
       udStrcat(endBarInfo, udLengthOf(endBarInfo), " / ");
     }
 
@@ -1156,11 +1183,11 @@ int vcMainMenuGui(vcState *pProgramState)
       if (vdkContext_GetLicenseInfo(pProgramState->pVDKContext, (vdkLicenseType)i, &info) == vE_Success)
       {
         if (info.queuePosition < 0 && (uint64_t)currentTime < info.expiresTimestamp)
-          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s %s (%" PRIu64 "%s) / ", i == vdkLT_Render ? vcString::Get("Render") : vcString::Get("Convert"), vcString::Get("License"), (info.expiresTimestamp - currentTime), vcString::Get("Secs")));
+          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s %s (%" PRIu64 "%s) / ", i == vdkLT_Render ? vcString::Get("menuBarRender") : vcString::Get("menuBarConvert"), vcString::Get("menuBarLicense"), (info.expiresTimestamp - currentTime), vcString::Get("menuBarSecondsAbbreviation")));
         else if (info.queuePosition < 0)
-          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s %s / ", i == vdkLT_Render ? vcString::Get("Render") : vcString::Get("Convert"), vcString::Get("LicenseExpired")));
+          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s %s / ", i == vdkLT_Render ? vcString::Get("menuBarRender") : vcString::Get("menuBarConvert"), vcString::Get("menuBarLicenseExpired")));
         else
-          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s %s (%" PRId64 " %s) / ", i == vdkLT_Render ? vcString::Get("Render") : vcString::Get("Convert"), vcString::Get("License"), info.queuePosition, vcString::Get("LicenseQueued")));
+          udStrcat(endBarInfo, udLengthOf(endBarInfo), udTempStr("%s %s (%" PRId64 " %s) / ", i == vdkLT_Render ? vcString::Get("menuBarRender") : vcString::Get("menuBarConvert"), vcString::Get("menuBarLicense"), info.queuePosition, vcString::Get("menuBarLicenseQueued")));
       }
     }
 
@@ -1181,7 +1208,7 @@ int vcMainMenuGui(vcState *pProgramState)
       if (ImGui::IsItemHovered())
       {
         ImGui::BeginTooltip();
-        ImGui::TextUnformatted(vcString::Get("ConnectionStatus"));
+        ImGui::TextUnformatted(vcString::Get("menuBarConnectionStatus"));
         ImGui::EndTooltip();
       }
     }
@@ -1192,6 +1219,15 @@ int vcMainMenuGui(vcState *pProgramState)
   }
 
   return menuHeight;
+}
+
+void vcChangeTab(vcState *pProgramState, vcDocks dock)
+{
+  if (pProgramState->changeActiveDock == dock)
+  {
+    ImGui::SetDockActive();
+    pProgramState->changeActiveDock = vcDocks_Count;
+  }
 }
 
 void vcRenderWindow(vcState *pProgramState)
@@ -1244,7 +1280,7 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::End();
     ImGui::PopStyleColor();
 
-    if (udStrEqual(pProgramState->pLoginErrorMessage, vcString::Get("Pending")))
+    if (udStrEqual(pProgramState->pLoginErrorMessage, vcString::Get("loginPending")))
     {
       ImGui::SetNextWindowSize(ImVec2(500, 160));
       if (ImGui::Begin(vcString::Get("loginTitle"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
@@ -1309,7 +1345,7 @@ void vcRenderWindow(vcState *pProgramState)
 
         if (ImGui::Button(vcString::Get("loginButton")) || tryLogin)
         {
-          pProgramState->pLoginErrorMessage = vcString::Get("loginMessagePending");
+          pProgramState->pLoginErrorMessage = vcString::Get("loginPending");
           vWorkerThread_AddTask(pProgramState->pWorkerPool, vcLogin, pProgramState, false);
         }
 
@@ -1343,11 +1379,11 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::SetNextWindowPos(ImVec2(0, size.y), ImGuiCond_Always, ImVec2(0, 1));
     if (ImGui::Begin("LoginScreenPopups", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
     {
-      if (ImGui::Button(vcString::Get("ReleaseNotes")))
+      if (ImGui::Button(vcString::Get("loginReleaseNotes")))
         vcModals_OpenModal(pProgramState, vcMT_ReleaseNotes);
 
       ImGui::SameLine();
-      if (ImGui::Button(vcString::Get("About")))
+      if (ImGui::Button(vcString::Get("loginAbout")))
         vcModals_OpenModal(pProgramState, vcMT_About);
     }
     ImGui::End();
@@ -1355,36 +1391,33 @@ void vcRenderWindow(vcState *pProgramState)
   }
   else
   {
-    if (ImGui::BeginDock(vcString::Get("SceneExplorer"), &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
+    if (ImGui::BeginDock(vcString::Get("sceneExplorerTitle"), &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
     {
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddUDS"), "Ctrl+U", vcMBBI_AddPointCloud, vcMBBG_FirstItem) || (ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeysDown[SDL_SCANCODE_U]))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddUDS"), vcString::Get("sceneExplorerAddUDSKey"), vcMBBI_AddPointCloud, vcMBBG_FirstItem) || (ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeysDown[SDL_SCANCODE_U]))
         vcModals_OpenModal(pProgramState, vcMT_AddUDS);
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddPOI"), nullptr, vcMBBI_AddPointOfInterest, vcMBBG_SameGroup))
-        vcPOI_AddToList(pProgramState, vcString::Get("DefaultName_POI"), 0xFFFFFFFF, 14, udDouble3::zero(), 0);
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddPOI"), nullptr, vcMBBI_AddPointOfInterest, vcMBBG_SameGroup))
+        vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, pProgramState->pCamera->position, pProgramState->gis.SRID), true);
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddAOI"), nullptr, vcMBBI_AddAreaOfInterest, vcMBBG_SameGroup))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddAOI"), nullptr, vcMBBI_AddAreaOfInterest, vcMBBG_SameGroup))
         vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddLines"), nullptr, vcMBBI_AddLines, vcMBBG_SameGroup))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddLines"), nullptr, vcMBBI_AddLines, vcMBBG_SameGroup))
         vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddOther"), nullptr, vcMBBI_AddOther, vcMBBG_SameGroup))
+      vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddOther"), nullptr, vcMBBI_AddOther, vcMBBG_SameGroup);
+      if (ImGui::BeginPopupContextItem(vcString::Get("sceneExplorerAddOther"), 0))
       {
-
-      }
-      if (ImGui::BeginPopupContextItem("AddOther", 0))
-      {
-        if (ImGui::MenuItem(vcString::Get("AddFeed"), nullptr, nullptr))
-          vcLiveFeed_AddToList(pProgramState);
+        if (ImGui::MenuItem(vcString::Get("sceneExplorerAddFeed"), nullptr, nullptr))
+          vcScene_AddItem(pProgramState, new vcLiveFeed());
 
         ImGui::EndPopup();
       }
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("AddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
-        vcFolder_AddToList(pProgramState, vcString::Get("DefaultName_Folder"));
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
+        vcScene_AddItem(pProgramState, new vcFolder(vcString::Get("sceneExplorerFolderDefaultName")));
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("Remove"), vcString::Get("DeleteKey"), vcMBBI_Remove, vcMBBG_NewGroup) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE] && !ImGui::IsAnyItemActive()))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerRemove"), vcString::Get("sceneExplorerRemoveKey"), vcMBBI_Remove, vcMBBG_NewGroup) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE] && !ImGui::IsAnyItemActive()))
         vcScene_RemoveSelected(pProgramState);
 
       // Tree view for the scene
@@ -1399,8 +1432,8 @@ void vcRenderWindow(vcState *pProgramState)
           for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size() && !itemFound; ++i)
           {
             const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
-            if (item.pParent->children[item.index]->type == vcSOT_Folder)
-              itemFound = vcScene_ContainsItem((vcFolder*)item.pParent->children[item.index], pProgramState->sceneExplorer.insertItem.pParent);
+            if (item.pParent->m_children[item.index]->m_type == vcSOT_Folder)
+              itemFound = vcScene_ContainsItem((vcFolder*)item.pParent->m_children[item.index], pProgramState->sceneExplorer.insertItem.pParent);
 
             itemFound = itemFound || (item.pParent == pProgramState->sceneExplorer.insertItem.pParent && item.index == pProgramState->sceneExplorer.insertItem.index);
           }
@@ -1421,9 +1454,9 @@ void vcRenderWindow(vcState *pProgramState)
               }
 
               // Remove the item from its parent and insert it into the insertItem parent
-              vcSceneItem* pTemp = item.pParent->children[item.index];
-              item.pParent->children.erase(item.pParent->children.begin() + item.index);
-              pProgramState->sceneExplorer.insertItem.pParent->children.insert(pProgramState->sceneExplorer.insertItem.pParent->children.begin() + pProgramState->sceneExplorer.insertItem.index + i, pTemp);
+              vcSceneItem* pTemp = item.pParent->m_children[item.index];
+              item.pParent->m_children.erase(item.pParent->m_children.begin() + item.index);
+              pProgramState->sceneExplorer.insertItem.pParent->m_children.insert(pProgramState->sceneExplorer.insertItem.pParent->m_children.begin() + pProgramState->sceneExplorer.insertItem.index + i, pTemp);
 
               // If we remove items before other selected items we need to adjust their indexes accordingly
               for (size_t j = i + 1; j < pProgramState->sceneExplorer.selectedItems.size(); ++j)
@@ -1454,35 +1487,39 @@ void vcRenderWindow(vcState *pProgramState)
 
     if (!pProgramState->settings.window.presentationMode)
     {
-      if (ImGui::BeginDock(vcString::Get("Scene"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
+      if (ImGui::BeginDock(vcString::Get("sceneTitle"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
         vcRenderSceneWindow(pProgramState);
+      vcChangeTab(pProgramState, vcDocks_Scene);
       ImGui::EndDock();
     }
     else
     {
       // Dummy scene dock, otherwise the docks get shuffled around
-      if (ImGui::BeginDock(vcString::Get("Scene"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
+      if (ImGui::BeginDock(vcString::Get("sceneTitle"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
         ImGui::Dummy(ImVec2((float)pProgramState->sceneResolution.x, (float)pProgramState->sceneResolution.y));
+      vcChangeTab(pProgramState, vcDocks_Scene);
       ImGui::EndDock();
 
       ImGui::SetNextWindowSize(size);
       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
       ImGui::SetNextWindowPos(ImVec2(0, 0));
 
-      if (ImGui::Begin(vcString::Get("Scene"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
+      if (ImGui::Begin(vcString::Get("sceneTitle"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
         vcRenderSceneWindow(pProgramState);
 
       ImGui::End();
       ImGui::PopStyleVar();
     }
 
-    if (ImGui::BeginDock(vcString::Get("Convert"), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
+    if (ImGui::BeginDock(vcString::Get("convertTitle"), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
       vcConvert_ShowUI(pProgramState);
+
+    vcChangeTab(pProgramState, vcDocks_Convert);
     ImGui::EndDock();
 
-    if (ImGui::BeginDock(vcString::Get("Settings"), &pProgramState->settings.window.windowsOpen[vcDocks_Settings]))
+    if (ImGui::BeginDock(vcString::Get("settingsTitle"), &pProgramState->settings.window.windowsOpen[vcDocks_Settings]))
     {
-      bool opened = ImGui::CollapsingHeader(vcString::Get("SettingsAppearance"));
+      bool opened = ImGui::CollapsingHeader(vcString::Get("AppearanceID"));
       if (ImGui::BeginPopupContextItem("AppearanceContext"))
       {
         if (ImGui::Selectable(vcString::Get("AppearanceRestore")))
@@ -1495,8 +1532,8 @@ void vcRenderWindow(vcState *pProgramState)
       {
         int styleIndex = pProgramState->settings.presentation.styleIndex - 1;
 
-        const char *themeOptions[] = { vcString::Get("Dark"), vcString::Get("Light") };
-        if (ImGui::Combo(vcString::Get("Theme"), &styleIndex, themeOptions, (int)udLengthOf(themeOptions)))
+        const char *themeOptions[] = { vcString::Get("settingsAppearanceDark"), vcString::Get("settingsAppearanceLight") };
+        if (ImGui::Combo(vcString::Get("settingsAppearanceTheme"), &styleIndex, themeOptions, (int)udLengthOf(themeOptions)))
         {
           pProgramState->settings.presentation.styleIndex = styleIndex + 1;
           switch (styleIndex)
@@ -1509,21 +1546,21 @@ void vcRenderWindow(vcState *pProgramState)
         // Checks so the casts below are safe
         UDCOMPILEASSERT(sizeof(pProgramState->settings.presentation.mouseAnchor) == sizeof(int), "MouseAnchor is no longer sizeof(int)");
 
-        ImGui::Checkbox(vcString::Get("ShowDiagnostics"), &pProgramState->settings.presentation.showDiagnosticInfo);
-        ImGui::Checkbox(vcString::Get("AdvancedGIS"), &pProgramState->settings.presentation.showAdvancedGIS);
-        ImGui::Checkbox(vcString::Get("LimitFPS"), &pProgramState->settings.presentation.limitFPSInBackground);
+        ImGui::SliderFloat(vcString::Get("settingsAppearancePOIDistance"), &pProgramState->settings.presentation.POIFadeDistance, 0.f, 1000000.f, "%.3fm", 3.f);
+        ImGui::Checkbox(vcString::Get("settingsAppearanceShowDiagnostics"), &pProgramState->settings.presentation.showDiagnosticInfo);
+        ImGui::Checkbox(vcString::Get("settingsAppearanceAdvancedGIS"), &pProgramState->settings.presentation.showAdvancedGIS);
+        ImGui::Checkbox(vcString::Get("settingsAppearanceLimitFPS"), &pProgramState->settings.presentation.limitFPSInBackground);
+        ImGui::Checkbox(vcString::Get("settingsAppearanceShowCompass"), &pProgramState->settings.presentation.showCompass);
 
-        ImGui::Checkbox("Show Compass On Screen", &pProgramState->settings.presentation.showCompass);
-
-        const char *presentationOptions[] = { vcString::Get("Hide"), vcString::Get("Show"), vcString::Get("Responsive") };
-        if (ImGui::Combo(vcString::Get("PresentationUI"), (int*)&pProgramState->settings.responsiveUI, presentationOptions, (int)udLengthOf(presentationOptions)))
+        const char *presentationOptions[] = { vcString::Get("settingsAppearanceHide"), vcString::Get("settingsAppearanceShow"), vcString::Get("settingsAppearanceResponsive") };
+        if (ImGui::Combo(vcString::Get("settingsAppearancePresentationUI"), (int*)&pProgramState->settings.responsiveUI, presentationOptions, (int)udLengthOf(presentationOptions)))
           pProgramState->showUI = false;
 
-        const char *anchorOptions[] = { vcString::Get("None"), vcString::Get("Orbit"), vcString::Get("Compass") };
-        ImGui::Combo(vcString::Get("MouseAnchor"), (int*)&pProgramState->settings.presentation.mouseAnchor, anchorOptions, (int)udLengthOf(anchorOptions));
+        const char *anchorOptions[] = { vcString::Get("settingsAppearanceNone"), vcString::Get("settingsAppearanceOrbit"), vcString::Get("settingsAppearanceCompass") };
+        ImGui::Combo(vcString::Get("settingsAppearanceMouseAnchor"), (int*)&pProgramState->settings.presentation.mouseAnchor, anchorOptions, (int)udLengthOf(anchorOptions));
 
-        const char *voxelOptions[] = { vcString::Get("Rectangles"), vcString::Get("Cubes"), vcString::Get("Points") };
-        ImGui::Combo(vcString::Get("VoxelShape"), &pProgramState->settings.presentation.pointMode, voxelOptions, (int)udLengthOf(voxelOptions));
+        const char *voxelOptions[] = { vcString::Get("settingsAppearanceRectangles"), vcString::Get("settingsAppearanceCubes"), vcString::Get("settingsAppearancePoints") };
+        ImGui::Combo(vcString::Get("settingsAppearanceVoxelShape"), &pProgramState->settings.presentation.pointMode, voxelOptions, (int)udLengthOf(voxelOptions));
       }
 
       bool opened2 = ImGui::CollapsingHeader(vcString::Get("InputControlsID"));
@@ -1537,28 +1574,28 @@ void vcRenderWindow(vcState *pProgramState)
       }
       if (opened2)
       {
-        ImGui::Checkbox(vcString::Get("OnScreenControls"), &pProgramState->settings.onScreenControls);
-        if (ImGui::Checkbox(vcString::Get("TouchUI"), &pProgramState->settings.window.touchscreenFriendly))
+        ImGui::Checkbox(vcString::Get("settingsControlsOSC"), &pProgramState->settings.onScreenControls);
+        if (ImGui::Checkbox(vcString::Get("settingsControlsTouchUI"), &pProgramState->settings.window.touchscreenFriendly))
         {
           ImGuiStyle& style = ImGui::GetStyle();
           style.TouchExtraPadding = pProgramState->settings.window.touchscreenFriendly ? ImVec2(4, 4) : ImVec2();
         }
 
-        ImGui::Checkbox(vcString::Get("InvertX"), &pProgramState->settings.camera.invertX);
-        ImGui::Checkbox(vcString::Get("InvertY"), &pProgramState->settings.camera.invertY);
+        ImGui::Checkbox(vcString::Get("settingsControlsInvertX"), &pProgramState->settings.camera.invertX);
+        ImGui::Checkbox(vcString::Get("settingsControlsInvertY"), &pProgramState->settings.camera.invertY);
 
-        ImGui::TextUnformatted(vcString::Get("MousePivot"));
-        const char *mouseModes[] = { vcString::Get("Tumble"), vcString::Get("Orbit"), vcString::Get("Pan") };
-        const char *scrollwheelModes[] = { vcString::Get("Dolly"), vcString::Get("ChangeMoveSpeed") };
+        ImGui::TextUnformatted(vcString::Get("settingsControlsMousePivot"));
+        const char *mouseModes[] = { vcString::Get("settingsControlsTumble"), vcString::Get("settingsControlsOrbit"), vcString::Get("settingsControlsPan") };
+        const char *scrollwheelModes[] = { vcString::Get("settingsControlsDolly"), vcString::Get("settingsControlsChangeMoveSpeed") };
 
         // Checks so the casts below are safe
         UDCOMPILEASSERT(sizeof(pProgramState->settings.camera.cameraMouseBindings[0]) == sizeof(int), "Bindings is no longer sizeof(int)");
         UDCOMPILEASSERT(sizeof(pProgramState->settings.camera.scrollWheelMode) == sizeof(int), "ScrollWheel is no longer sizeof(int)");
 
-        ImGui::Combo(vcString::Get("Left"), (int*)&pProgramState->settings.camera.cameraMouseBindings[0], mouseModes, (int)udLengthOf(mouseModes));
-        ImGui::Combo(vcString::Get("Middle"), (int*)&pProgramState->settings.camera.cameraMouseBindings[2], mouseModes, (int)udLengthOf(mouseModes));
-        ImGui::Combo(vcString::Get("Right"), (int*)&pProgramState->settings.camera.cameraMouseBindings[1], mouseModes, (int)udLengthOf(mouseModes));
-        ImGui::Combo(vcString::Get("ScrollWheel"), (int*)&pProgramState->settings.camera.scrollWheelMode, scrollwheelModes, (int)udLengthOf(scrollwheelModes));
+        ImGui::Combo(vcString::Get("settingsControlsLeft"), (int*)&pProgramState->settings.camera.cameraMouseBindings[0], mouseModes, (int)udLengthOf(mouseModes));
+        ImGui::Combo(vcString::Get("settingsControlsMiddle"), (int*)&pProgramState->settings.camera.cameraMouseBindings[2], mouseModes, (int)udLengthOf(mouseModes));
+        ImGui::Combo(vcString::Get("settingsControlsRight"), (int*)&pProgramState->settings.camera.cameraMouseBindings[1], mouseModes, (int)udLengthOf(mouseModes));
+        ImGui::Combo(vcString::Get("settingsControlsScrollWheel"), (int*)&pProgramState->settings.camera.scrollWheelMode, scrollwheelModes, (int)udLengthOf(scrollwheelModes));
       }
 
       bool opened3 = ImGui::CollapsingHeader(vcString::Get("ViewportID"));
@@ -1572,20 +1609,20 @@ void vcRenderWindow(vcState *pProgramState)
       }
       if (opened3)
       {
-        if (ImGui::SliderFloat(vcString::Get("NearPlane"), &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))
+        if (ImGui::SliderFloat(vcString::Get("settingsViewportNearPlane"), &pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax, "%.3fm", 2.f))
         {
           pProgramState->settings.camera.nearPlane = udClamp(pProgramState->settings.camera.nearPlane, vcSL_CameraNearPlaneMin, vcSL_CameraNearPlaneMax);
           pProgramState->settings.camera.farPlane = udMin(pProgramState->settings.camera.farPlane, pProgramState->settings.camera.nearPlane * vcSL_CameraNearFarPlaneRatioMax);
         }
 
-        if (ImGui::SliderFloat(vcString::Get("FarPlane"), &pProgramState->settings.camera.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "%.3fm", 2.f))
+        if (ImGui::SliderFloat(vcString::Get("settingsViewportFarPlane"), &pProgramState->settings.camera.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "%.3fm", 2.f))
         {
           pProgramState->settings.camera.farPlane = udClamp(pProgramState->settings.camera.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax);
           pProgramState->settings.camera.nearPlane = udMax(pProgramState->settings.camera.nearPlane, pProgramState->settings.camera.farPlane / vcSL_CameraNearFarPlaneRatioMax);
         }
 
         //const char *pLensOptions = " Custom FoV\0 7mm\0 11mm\0 15mm\0 24mm\0 30mm\0 50mm\0 70mm\0 100mm\0";
-        if (ImGui::Combo(vcString::Get("CameraLense"), &pProgramState->settings.camera.lensIndex, vcCamera_GetLensNames(), vcLS_TotalLenses))
+        if (ImGui::Combo(vcString::Get("settingsViewportCameraLens"), &pProgramState->settings.camera.lensIndex, vcCamera_GetLensNames(), vcLS_TotalLenses))
         {
           switch (pProgramState->settings.camera.lensIndex)
           {
@@ -1616,7 +1653,7 @@ void vcRenderWindow(vcState *pProgramState)
         if (pProgramState->settings.camera.lensIndex == vcLS_Custom)
         {
           float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
-          if (ImGui::SliderFloat(vcString::Get("FOV"), &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, vcString::Get("DegreesFormat")))
+          if (ImGui::SliderFloat(vcString::Get("settingsViewportFOV"), &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, vcString::Get("DegreesFormat")))
             pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
         }
       }
@@ -1627,24 +1664,25 @@ void vcRenderWindow(vcState *pProgramState)
         if (ImGui::Selectable(vcString::Get("MapsRestore")))
         {
           vcSettings_Load(&pProgramState->settings, true, vcSC_MapsElevation);
+          vcRender_ClearTiles(pProgramState->pRenderContext); // refresh map tiles since they just got updated
         }
         ImGui::EndPopup();
       }
       if (opened4)
       {
-        ImGui::Checkbox(vcString::Get("MapTiles"), &pProgramState->settings.maptiles.mapEnabled);
+        ImGui::Checkbox(vcString::Get("settingsMapsMapTiles"), &pProgramState->settings.maptiles.mapEnabled);
 
         if (pProgramState->settings.maptiles.mapEnabled)
         {
-          ImGui::Checkbox(vcString::Get("MouseLock"), &pProgramState->settings.maptiles.mouseInteracts);
+          ImGui::Checkbox(vcString::Get("settingsMapsMouseLock"), &pProgramState->settings.maptiles.mouseInteracts);
 
-          if (ImGui::Button(vcString::Get("TileServer"), ImVec2(-1, 0)))
+          if (ImGui::Button(vcString::Get("settingsMapsTileServerButton"), ImVec2(-1, 0)))
             vcModals_OpenModal(pProgramState, vcMT_TileServer);
 
-          ImGui::SliderFloat(vcString::Get("MapHeight"), &pProgramState->settings.maptiles.mapHeight, -1000.f, 1000.f, "%.3fm", 2.f);
+          ImGui::SliderFloat(vcString::Get("settingsMapsMapHeight"), &pProgramState->settings.maptiles.mapHeight, -1000.f, 1000.f, "%.3fm", 2.f);
 
-          const char* blendModes[] = { vcString::Get("Hybrid"), vcString::Get("Overlay"), vcString::Get("Underlay") };
-          if (ImGui::BeginCombo(vcString::Get("Blending"), blendModes[pProgramState->settings.maptiles.blendMode]))
+          const char* blendModes[] = { vcString::Get("settingsMapsHybrid"), vcString::Get("settingsMapsOverlay"), vcString::Get("settingsMapsUnderlay") };
+          if (ImGui::BeginCombo(vcString::Get("settingsMapsBlending"), blendModes[pProgramState->settings.maptiles.blendMode]))
           {
             for (size_t n = 0; n < UDARRAYSIZE(blendModes); ++n)
             {
@@ -1660,10 +1698,10 @@ void vcRenderWindow(vcState *pProgramState)
             ImGui::EndCombo();
           }
 
-          if (ImGui::SliderFloat(vcString::Get("Transparency"), &pProgramState->settings.maptiles.transparency, 0.f, 1.f, "%.3f"))
+          if (ImGui::SliderFloat(vcString::Get("settingsMapsOpacity"), &pProgramState->settings.maptiles.transparency, 0.f, 1.f, "%.3f"))
             pProgramState->settings.maptiles.transparency = udClamp(pProgramState->settings.maptiles.transparency, 0.f, 1.f);
 
-          if (ImGui::Button(vcString::Get("SetHeight")))
+          if (ImGui::Button(vcString::Get("settingsMapsSetHeight")))
             pProgramState->settings.maptiles.mapHeight = (float)pProgramState->pCamera->position.z;
         }
       }
@@ -1679,66 +1717,66 @@ void vcRenderWindow(vcState *pProgramState)
       }
       if (opened5)
       {
-        const char *visualizationModes[] = { vcString::Get("Colour"), vcString::Get("Intensity"), vcString::Get("Classification") };
-        ImGui::Combo(vcString::Get("DisplayMode"), (int*)&pProgramState->settings.visualization.mode, visualizationModes, (int)udLengthOf(visualizationModes));
+        const char *visualizationModes[] = { vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification") };
+        ImGui::Combo(vcString::Get("settingsVisDisplayMode"), (int*)&pProgramState->settings.visualization.mode, visualizationModes, (int)udLengthOf(visualizationModes));
 
         if (pProgramState->settings.visualization.mode == vcVM_Intensity)
         {
           // Temporary until https://github.com/ocornut/imgui/issues/467 is resolved, then use commented out code below
           float temp[] = { (float)pProgramState->settings.visualization.minIntensity, (float)pProgramState->settings.visualization.maxIntensity };
-          ImGui::SliderFloat(vcString::Get("MinIntensity"), &temp[0], 0.f, temp[1], "%.0f", 4.f);
-          ImGui::SliderFloat(vcString::Get("MaxIntensity"), &temp[1], temp[0], 65535.f, "%.0f", 4.f);
+          ImGui::SliderFloat(vcString::Get("settingsVisMinIntensity"), &temp[0], 0.f, temp[1], "%.0f", 4.f);
+          ImGui::SliderFloat(vcString::Get("settingsVisMaxIntensity"), &temp[1], temp[0], 65535.f, "%.0f", 4.f);
           pProgramState->settings.visualization.minIntensity = (int)temp[0];
           pProgramState->settings.visualization.maxIntensity = (int)temp[1];
         }
 
         if (pProgramState->settings.visualization.mode == vcVM_Classification)
         {
-          ImGui::Checkbox(vcString::Get("ShowColorTable"), &pProgramState->settings.visualization.useCustomClassificationColours);
+          ImGui::Checkbox(vcString::Get("settingsVisClassShowColourTable"), &pProgramState->settings.visualization.useCustomClassificationColours);
 
           if (pProgramState->settings.visualization.useCustomClassificationColours)
           {
             ImGui::SameLine();
-            if (ImGui::Button(vcString::Get("RestoreColorsID")))
+            if (ImGui::Button(vcString::Get("RestoreColoursID")))
               memcpy(pProgramState->settings.visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pProgramState->settings.visualization.customClassificationColors));
 
-            vcIGSW_ColorPickerU32(vcString::Get("ColorNeverClassified"), &pProgramState->settings.visualization.customClassificationColors[0], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorUnclassified"), &pProgramState->settings.visualization.customClassificationColors[1], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorGround"), &pProgramState->settings.visualization.customClassificationColors[2], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorLowVegetation"), &pProgramState->settings.visualization.customClassificationColors[3], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorMediumVegetation"), &pProgramState->settings.visualization.customClassificationColors[4], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorHighVegetation"), &pProgramState->settings.visualization.customClassificationColors[5], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorBuilding"), &pProgramState->settings.visualization.customClassificationColors[6], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorLowPoint"), &pProgramState->settings.visualization.customClassificationColors[7], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorKeyPoint"), &pProgramState->settings.visualization.customClassificationColors[8], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorWater"), &pProgramState->settings.visualization.customClassificationColors[9], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorRail"), &pProgramState->settings.visualization.customClassificationColors[10], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorRoadSurface"), &pProgramState->settings.visualization.customClassificationColors[11], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorReserved"), &pProgramState->settings.visualization.customClassificationColors[12], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorWireGuard"), &pProgramState->settings.visualization.customClassificationColors[13], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorWireConductor"), &pProgramState->settings.visualization.customClassificationColors[14], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorTransmissionTower"), &pProgramState->settings.visualization.customClassificationColors[15], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorWireStructureConnector"), &pProgramState->settings.visualization.customClassificationColors[16], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorBridgeDeck"), &pProgramState->settings.visualization.customClassificationColors[17], ImGuiColorEditFlags_NoAlpha);
-            vcIGSW_ColorPickerU32(vcString::Get("ColorHighNoise"), &pProgramState->settings.visualization.customClassificationColors[18], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassNeverClassified"), &pProgramState->settings.visualization.customClassificationColors[0], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassUnclassified"), &pProgramState->settings.visualization.customClassificationColors[1], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassGround"), &pProgramState->settings.visualization.customClassificationColors[2], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassLowVegetation"), &pProgramState->settings.visualization.customClassificationColors[3], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassMediumVegetation"), &pProgramState->settings.visualization.customClassificationColors[4], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassHighVegetation"), &pProgramState->settings.visualization.customClassificationColors[5], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassBuilding"), &pProgramState->settings.visualization.customClassificationColors[6], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassLowPoint"), &pProgramState->settings.visualization.customClassificationColors[7], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassKeyPoint"), &pProgramState->settings.visualization.customClassificationColors[8], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassWater"), &pProgramState->settings.visualization.customClassificationColors[9], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassRail"), &pProgramState->settings.visualization.customClassificationColors[10], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassRoadSurface"), &pProgramState->settings.visualization.customClassificationColors[11], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassReserved"), &pProgramState->settings.visualization.customClassificationColors[12], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassWireGuard"), &pProgramState->settings.visualization.customClassificationColors[13], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassWireConductor"), &pProgramState->settings.visualization.customClassificationColors[14], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassTransmissionTower"), &pProgramState->settings.visualization.customClassificationColors[15], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassWireStructureConnector"), &pProgramState->settings.visualization.customClassificationColors[16], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassBridgeDeck"), &pProgramState->settings.visualization.customClassificationColors[17], ImGuiColorEditFlags_NoAlpha);
+            vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassHighNoise"), &pProgramState->settings.visualization.customClassificationColors[18], ImGuiColorEditFlags_NoAlpha);
 
-            if (ImGui::TreeNode(vcString::Get("ColorReservedColors")))
+            if (ImGui::TreeNode(vcString::Get("settingsVisClassReservedColours")))
             {
               for (int i = 19; i < 64; ++i)
-                vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, vcString::Get("Reserved")), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+                vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, vcString::Get("settingsVisClassReservedLabels")), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
               ImGui::TreePop();
             }
 
-            if (ImGui::TreeNode(vcString::Get("ColorUserDefinable")))
+            if (ImGui::TreeNode(vcString::Get("settingsVisClassUserDefinable")))
             {
               for (int i = 64; i <= 255; ++i)
               {
                 char buttonID[12], inputID[3];
                 if (pProgramState->settings.visualization.customClassificationColorLabels[i] == nullptr)
-                  vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, vcString::Get("UserDefined")), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+                  vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, vcString::Get("settingsVisClassUserDefined")), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
                 else
                   vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, pProgramState->settings.visualization.customClassificationColorLabels[i]), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
-                udSprintf(buttonID, 12, "%s##%d", vcString::Get("Rename"), i);
+                udSprintf(buttonID, 12, "%s##%d", vcString::Get("settingsVisClassRename"), i);
                 udSprintf(inputID, 3, "##I%d", i);
                 ImGui::SameLine();
                 if (ImGui::Button(buttonID))
@@ -1750,7 +1788,7 @@ void vcRenderWindow(vcState *pProgramState)
                 {
                   ImGui::InputText(inputID, pProgramState->renameText, 30, ImGuiInputTextFlags_AutoSelectAll);
                   ImGui::SameLine();
-                  if (ImGui::Button(vcString::Get("Set")))
+                  if (ImGui::Button(vcString::Get("settingsVisClassSet")))
                   {
                     if (pProgramState->settings.visualization.customClassificationColorLabels[i] != nullptr)
                       udFree(pProgramState->settings.visualization.customClassificationColorLabels[i]);
@@ -1765,48 +1803,48 @@ void vcRenderWindow(vcState *pProgramState)
         }
 
         // Post visualization - Edge Highlighting
-        ImGui::Checkbox(vcString::Get("EdgeHighlighting"), &pProgramState->settings.postVisualization.edgeOutlines.enable);
+        ImGui::Checkbox(vcString::Get("settingsVisEdge"), &pProgramState->settings.postVisualization.edgeOutlines.enable);
         if (pProgramState->settings.postVisualization.edgeOutlines.enable)
         {
-          ImGui::SliderInt(vcString::Get("EdgeWidth"), &pProgramState->settings.postVisualization.edgeOutlines.width, 1, 10);
+          ImGui::SliderInt(vcString::Get("settingsVisEdgeWidth"), &pProgramState->settings.postVisualization.edgeOutlines.width, 1, 10);
 
           // TODO: Make this less awful. 0-100 would make more sense than 0.0001 to 0.001.
-          ImGui::SliderFloat(vcString::Get("EdgeThreshold"), &pProgramState->settings.postVisualization.edgeOutlines.threshold, 0.001f, 10.0f, "%.3f");
-          ImGui::ColorEdit4(vcString::Get("EdgeColour"), &pProgramState->settings.postVisualization.edgeOutlines.colour.x);
+          ImGui::SliderFloat(vcString::Get("settingsVisEdgeThreshold"), &pProgramState->settings.postVisualization.edgeOutlines.threshold, 0.001f, 10.0f, "%.3f");
+          ImGui::ColorEdit4(vcString::Get("settingsVisEdgeColour"), &pProgramState->settings.postVisualization.edgeOutlines.colour.x);
         }
 
         // Post visualization - Colour by Height
-        ImGui::Checkbox(vcString::Get("ColourHeight"), &pProgramState->settings.postVisualization.colourByHeight.enable);
+        ImGui::Checkbox(vcString::Get("settingsVisHeight"), &pProgramState->settings.postVisualization.colourByHeight.enable);
         if (pProgramState->settings.postVisualization.colourByHeight.enable)
         {
-          ImGui::ColorEdit4(vcString::Get("ColourStart"), &pProgramState->settings.postVisualization.colourByHeight.minColour.x);
-          ImGui::ColorEdit4(vcString::Get("ColourEnd"), &pProgramState->settings.postVisualization.colourByHeight.maxColour.x);
+          ImGui::ColorEdit4(vcString::Get("settingsVisHeightStartColour"), &pProgramState->settings.postVisualization.colourByHeight.minColour.x);
+          ImGui::ColorEdit4(vcString::Get("settingsVisHeightEndColour"), &pProgramState->settings.postVisualization.colourByHeight.maxColour.x);
 
           // TODO: Set min/max to the bounds of the model? Currently set to 0m -> 1km with accuracy of 1mm
-          ImGui::SliderFloat(vcString::Get("ColourHeightStart"), &pProgramState->settings.postVisualization.colourByHeight.startHeight, 0.f, 1000.f, "%.3f");
-          ImGui::SliderFloat(vcString::Get("ColourHeightEnd"), &pProgramState->settings.postVisualization.colourByHeight.endHeight, 0.f, 1000.f, "%.3f");
+          ImGui::SliderFloat(vcString::Get("settingsVisHeightStart"), &pProgramState->settings.postVisualization.colourByHeight.startHeight, 0.f, 1000.f, "%.3f");
+          ImGui::SliderFloat(vcString::Get("settingsVisHeightEnd"), &pProgramState->settings.postVisualization.colourByHeight.endHeight, 0.f, 1000.f, "%.3f");
         }
 
         // Post visualization - Colour by Depth
-        ImGui::Checkbox(vcString::Get("ColourDepth"), &pProgramState->settings.postVisualization.colourByDepth.enable);
+        ImGui::Checkbox(vcString::Get("settingsVisDepth"), &pProgramState->settings.postVisualization.colourByDepth.enable);
         if (pProgramState->settings.postVisualization.colourByDepth.enable)
         {
-          ImGui::ColorEdit4(vcString::Get("DepthColour"), &pProgramState->settings.postVisualization.colourByDepth.colour.x);
+          ImGui::ColorEdit4(vcString::Get("settingsVisDepthColour"), &pProgramState->settings.postVisualization.colourByDepth.colour.x);
 
           // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
-          ImGui::SliderFloat(vcString::Get("ColourDepthStart"), &pProgramState->settings.postVisualization.colourByDepth.startDepth, 0.f, 1000.f, "%.3f");
-          ImGui::SliderFloat(vcString::Get("ColourDepthEnd"), &pProgramState->settings.postVisualization.colourByDepth.endDepth, 0.f, 1000.f, "%.3f");
+          ImGui::SliderFloat(vcString::Get("settingsVisDepthStart"), &pProgramState->settings.postVisualization.colourByDepth.startDepth, 0.f, 1000.f, "%.3f");
+          ImGui::SliderFloat(vcString::Get("settingsVisDepthEnd"), &pProgramState->settings.postVisualization.colourByDepth.endDepth, 0.f, 1000.f, "%.3f");
         }
 
         // Post visualization - Contours
-        ImGui::Checkbox(vcString::Get("EnableContours"), &pProgramState->settings.postVisualization.contours.enable);
+        ImGui::Checkbox(vcString::Get("settingsVisContours"), &pProgramState->settings.postVisualization.contours.enable);
         if (pProgramState->settings.postVisualization.contours.enable)
         {
-          ImGui::ColorEdit4(vcString::Get("ContoursColour"), &pProgramState->settings.postVisualization.contours.colour.x);
+          ImGui::ColorEdit4(vcString::Get("settingsVisContoursColour"), &pProgramState->settings.postVisualization.contours.colour.x);
 
           // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
-          ImGui::SliderFloat(vcString::Get("ContoursDistances"), &pProgramState->settings.postVisualization.contours.distances, 0.f, 1000.f, "%.3f");
-          ImGui::SliderFloat(vcString::Get("ContoursBandHeight"), &pProgramState->settings.postVisualization.contours.bandHeight, 0.f, 1000.f, "%.3f");
+          ImGui::SliderFloat(vcString::Get("settingsVisContoursDistances"), &pProgramState->settings.postVisualization.contours.distances, 0.f, 1000.f, "%.3f");
+          ImGui::SliderFloat(vcString::Get("settingsVisContoursBandHeight"), &pProgramState->settings.postVisualization.contours.bandHeight, 0.f, 1000.f, "%.3f");
         }
       }
     }
@@ -1814,26 +1852,26 @@ void vcRenderWindow(vcState *pProgramState)
 
     if (pProgramState->currentError != vE_Success)
     {
-      ImGui::OpenPopup("Error");
+      ImGui::OpenPopup(vcString::Get("errorTitle"));
       ImGui::SetNextWindowSize(ImVec2(250, 60));
     }
 
-    if (ImGui::BeginPopupModal("Error", NULL, ImGuiWindowFlags_NoDecoration))
+    if (ImGui::BeginPopupModal(vcString::Get("errorTitle"), NULL, ImGuiWindowFlags_NoDecoration))
     {
       const char *pMessage;
 
       switch (pProgramState->currentError)
       {
-      case vE_Failure: pMessage = vcString::Get("Failure"); break;
-      case vE_OpenFailure: pMessage = vcString::Get("OpenFailure"); break;
-      case vE_ReadFailure: pMessage = vcString::Get("ReadFailure"); break;
-      case vE_WriteFailure: pMessage = vcString::Get("WriteFailure"); break;
-      default: pMessage = vcString::Get("Failure"); break;
+      case vE_Failure: pMessage = vcString::Get("errorUnknown"); break;
+      case vE_OpenFailure: pMessage = vcString::Get("errorOpening"); break;
+      case vE_ReadFailure: pMessage = vcString::Get("errorReading"); break;
+      case vE_WriteFailure: pMessage = vcString::Get("errorWriting"); break;
+      default: pMessage = vcString::Get("errorUnknown"); break;
       }
 
       ImGui::TextWrapped("%s", pMessage);
 
-      if (ImGui::Button("Close", ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+      if (ImGui::Button(vcString::Get("errorCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       {
         pProgramState->currentError = vE_Success;
         ImGui::CloseCurrentPopup();

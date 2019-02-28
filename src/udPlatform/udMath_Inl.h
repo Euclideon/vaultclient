@@ -771,10 +771,10 @@ template <typename T>
 udMatrix4x4<T> udMatrix4x4<T>::perspectiveZO(T fovY, T aspectRatio, T zNear, T zFar)
 {
   T fov = udTan(fovY / T(2));
-  udMatrix4x4<T> r = {{{ T(1)/(aspectRatio*fov), T(0),         T(0),                                T(0),
-                         T(0),                   T(0),         zFar / (zFar - zNear),               T(1),
-                         T(0),                   T(1)/fov,     T(0),                                T(0),
-                         T(0),                   T(0),        -(zFar * zNear) / (zFar - zNear),     T(0) }}};
+  udMatrix4x4<T> r = {{{ T(1) / (aspectRatio*fov), T(0),         T(0),                                       T(0),
+                         T(0),                     T(0),         zFar / (zFar - zNear),                      T(1),
+                         T(0),                     T(1)/fov,     T(0),                                       T(0),
+                         T(0),                     T(0),         -(zFar * zNear) / (zFar - zNear),           T(0) }}};
   return r;
 }
 
@@ -782,20 +782,30 @@ template <typename T>
 udMatrix4x4<T> udMatrix4x4<T>::perspectiveNO(T fovY, T aspectRatio, T zNear, T zFar)
 {
   T fov = udTan(fovY / T(2));
-  udMatrix4x4<T> r = { { { T(1) / (aspectRatio*fov), T(0),         T(0),                                       T(0),
-                           T(0),                     T(0),         (zFar + zNear) / (zFar - zNear),            T(1),
-                           T(0),                     T(1) / fov,   T(0),                                       T(0),
-                           T(0),                     T(0),         -(T(2) * zFar * zNear) / (zFar - zNear),    T(0) } } };
+  udMatrix4x4<T> r = {{{ T(1) / (aspectRatio*fov), T(0),         T(0),                                       T(0),
+                         T(0),                     T(0),         (zFar + zNear) / (zFar - zNear),            T(1),
+                         T(0),                     T(1) / fov,   T(0),                                       T(0),
+                         T(0),                     T(0),         -(T(2) * zFar * zNear) / (zFar - zNear),    T(0) } } };
   return r;
 }
 
 template <typename T>
-udMatrix4x4<T> udMatrix4x4<T>::ortho(T left, T right, T bottom, T top, T znear, T zfar)
+udMatrix4x4<T> udMatrix4x4<T>::orthoNO(T left, T right, T bottom, T top, T znear, T zfar)
 {
   udMatrix4x4<T> r = {{{ T(2) / (right - left),            T(0),                             T(0),                             T(0),
                          T(0),                             T(0),                             T(2) / (zfar - znear),            T(0),
                          T(0),                             T(2) / (top - bottom),            T(0),                             T(0),
                          -(right + left) / (right - left), -(top + bottom) / (top - bottom), -(zfar + znear) / (zfar - znear), T(1) }}};
+  return r;
+}
+
+template <typename T>
+udMatrix4x4<T> udMatrix4x4<T>::orthoZO(T left, T right, T bottom, T top, T znear, T zfar)
+{
+  udMatrix4x4<T> r = {{{ T(2) / (right - left),            T(0),                             T(0),                             T(0),
+                         T(0),                             T(0),                             T(1) / (zfar - znear),            T(0),
+                         T(0),                             T(2) / (top - bottom),            T(0),                             T(0),
+                         -(right + left) / (right - left), -(top + bottom) / (top - bottom), -znear / (zfar - znear),          T(1) }}};
   return r;
 }
 
