@@ -5,8 +5,9 @@
 
 enum vcLabelFontSize
 {
+  vcLFS_Medium, // Default size is medium
+
   vcLFS_Small,
-  vcLFS_Medium,
   vcLFS_Large,
 
   vcLFS_Count,
