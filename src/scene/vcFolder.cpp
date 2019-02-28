@@ -8,6 +8,7 @@
 #include "gl/vcFenceRenderer.h"
 
 #include "vcModel.h" // Included just for "ResetPosition"
+#include "vcRender.h" // Included just for "ClearTiles"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
@@ -188,7 +189,11 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       if (m_children[i]->m_pZone != nullptr && ImGui::Selectable(vcString::Get("sceneExplorerUseProjection")))
       {
         if (vcGIS_ChangeSpace(&pProgramState->gis, *m_children[i]->m_pOriginalZone, &pProgramState->pCamera->position))
+        {
           pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, *m_children[i]->m_pOriginalZone);
+          // refresh map tiles when geozone changes
+          vcRender_ClearTiles(pProgramState->pRenderContext);
+        }
       }
 
       if (m_children[i]->m_type != vcSOT_Folder && ImGui::Selectable(vcString::Get("sceneExplorerMoveTo")))
