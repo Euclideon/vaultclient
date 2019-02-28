@@ -54,16 +54,20 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
 void vcPOI::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
 {
+  bool isGeolocated = m_pZone != nullptr;
   if (m_line.selectedPoint == -1) // We need to update all the points
   {
     for (int i = 0; i < m_line.numPoints; ++i)
+    {
       m_line.pPoints[i] = (delta * udDouble4x4::translation(m_line.pPoints[i])).axis.t.toVector3();
+      m_line.pOriginalPoints[i] = isGeolocated ? udGeoZone_TransformPoint(m_line.pPoints[i], *m_pZone, *m_pOriginalZone) : m_line.pPoints[i]; // apply translation to original points too
+    }
   }
   else
   {
     m_line.pPoints[m_line.selectedPoint] = (delta * udDouble4x4::translation(m_line.pPoints[m_line.selectedPoint])).axis.t.toVector3();
+    m_line.pOriginalPoints[m_line.selectedPoint] = isGeolocated ? udGeoZone_TransformPoint(m_line.pPoints[m_line.selectedPoint], *m_pZone, *m_pOriginalZone) : m_line.pPoints[m_line.selectedPoint];
   }
-
   UpdatePoints();
 }
 
@@ -198,19 +202,42 @@ void vcPOI::OnNameChange()
 void vcPOI::AddPoint(const udDouble3 &position)
 {
   udDouble3 *pNewPoints = udAllocType(udDouble3, m_line.numPoints + 1, udAF_Zero);
+
   memcpy(pNewPoints, m_line.pPoints, sizeof(udDouble3) * m_line.numPoints);
   pNewPoints[m_line.numPoints] = position;
   udFree(m_line.pPoints);
   m_line.pPoints = pNewPoints;
-  ++m_line.numPoints;
+  if (m_pZone != nullptr)
+  {
+    memcpy(pNewPoints, m_line.pOriginalPoints, sizeof(udDouble3) * m_line.numPoints);
+    pNewPoints[m_line.numPoints] = udGeoZone_TransformPoint(position, *m_pZone, *m_pOriginalZone);
+  }
+  udFree(m_line.pOriginalPoints);
+  m_line.pOriginalPoints = pNewPoints;
 
+  ++m_line.numPoints;
   UpdatePoints();
+}
+
+void vcPOI::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
+{
+  if (m_pZone != nullptr)
+  {
+    // Change all points in the POI to the new projection
+    for (int i = 0; i < m_line.numPoints; ++i)
+      m_line.pPoints[i] = udGeoZone_TransformPoint(m_line.pOriginalPoints[i], *m_pOriginalZone, newZone);
+    UpdatePoints();
+  }
+
+  // Call the parent version
+  vcSceneItem::ChangeProjection(nullptr, newZone);
 }
 
 void vcPOI::Cleanup(vcState * /*pProgramState*/)
 {
   udFree(m_pName);
   udFree(m_line.pPoints);
+  udFree(m_line.pOriginalPoints);
   udFree(m_pLabelText);
 
   vcFenceRenderer_Destroy(&m_pFence);
@@ -242,6 +269,8 @@ void vcPOI::Init(const char *pName, uint32_t nameColour, vcLabelFontSize namePt,
   m_line.selectedPoint = -1; // Sentinel for no point selected
   m_line.pPoints = udAllocType(udDouble3, pLine->numPoints, udAF_Zero);
   memcpy(m_line.pPoints, pLine->pPoints, sizeof(udDouble3) * pLine->numPoints);
+  m_line.pOriginalPoints = udAllocType(udDouble3, pLine->numPoints, udAF_Zero);
+  memcpy(m_line.pOriginalPoints, pLine->pPoints, sizeof(udDouble3) * pLine->numPoints);
 
   m_pLabelText = nullptr;
 
