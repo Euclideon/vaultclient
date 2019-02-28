@@ -13,6 +13,26 @@ Version 0.2.1
   - Fixed a number of issues relating to the gizmos.
     - Multiple objects can be selected and manipulated at the same time
     - Scale is now calcualated correctly and doesn't reapply every frame
+  - Added "Add Other" button to Scene Explorer
+  - Added slider to Appearance Settings to control the max visible distance of POIs
+  - Fixed issue with manual entry of large values into camera pose causing a crash
+  - Added support for loading label hyperlinks from UDP
+    - Added support for some image file extensions to open in image viewer modal
+  - Added ability to change to appropriate tab when files are dropped
+  - Fixed issue with error appearing for macOS users after logging in
+  - Fixed issue with load file modal textbox retaining previously loaded file
+  - Map tiles now fade in
+  - Fixed an issue with fence rendered UV calculation sometimes being incorrect
+  - The projected space and camera position are reset back to 0 when clearing the scene
+  - Points of Interest changes
+    - Can now add points to the (singular) selected POI from the world context menu
+    - POIs are created on top of the camera by default
+    - Colours of the line are changeable
+    - Area and Length can be displayed in the label
+    - Added Selector for if the polygon is closed or not
+    - Can now select a single point via the POI properties to manipulate individually
+    - The label is now centred from all the points instead of just on the first point
+    - The label font size is attempted to be maintained from UDP projects (Vault POI's only have 3 settings though)
 
 Version 0.2.0
   ADDITIONS & FIXES

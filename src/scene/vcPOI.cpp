@@ -8,219 +8,267 @@
 #include "gl/vcFenceRenderer.h"
 
 #include "udPlatform/udMath.h"
+#include "udPlatform/udFile.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
-#include "udPlatform/udFile.h"
 
-void vcPOI::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
+vcPOI::vcPOI(const char *pName, uint32_t nameColour, vcLabelFontSize namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/)
 {
-  if (!visible)
+  Init(pName, nameColour, namePt, pLine, srid, pNotes);
+}
+
+vcPOI::vcPOI(const char *pName, uint32_t nameColour, vcLabelFontSize namePt, udDouble3 position, int32_t srid, const char *pNotes /*= ""*/)
+{
+  vcLineInfo temp = {};
+  temp.numPoints = 1;
+  temp.pPoints = &position;
+  temp.lineWidth = 1;
+  temp.colourPrimary = 0xFFFFFFFF;
+  temp.colourSecondary = 0xFFFFFFFF;
+
+  temp.closed = false;
+
+  Init(pName, nameColour, namePt, &temp, srid, pNotes);
+}
+
+void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
+{
+  // if POI is invisible or if it exceeds maximum visible POI distance
+  if (!m_visible || udMag3(m_pLabelInfo->worldPosition - pProgramState->pCamera->position) > pProgramState->settings.presentation.POIFadeDistance)
     return;
 
-  if (pFence != nullptr)
-    pRenderData->fences.PushBack(pFence);
+  if (m_pFence != nullptr)
+    pRenderData->fences.PushBack(m_pFence);
 
-  if (pLabelInfo != nullptr)
+  if (m_pLabelInfo != nullptr)
   {
-    pLabelInfo->pText = pName;
-    pRenderData->labels.PushBack(pLabelInfo);
+    if (m_showLength || m_showArea)
+      m_pLabelInfo->pText = m_pLabelText;
+    else
+      m_pLabelInfo->pText = m_pName;
+
+    pRenderData->labels.PushBack(m_pLabelInfo);
   }
 }
 
 void vcPOI::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
 {
-  line.pPoints[line.selectedPoint] = (delta * udDouble4x4::translation(line.pPoints[line.selectedPoint])).axis.t.toVector3();
-
-  pLabelInfo->worldPosition = line.pPoints[0];
-
-  if (pFence != nullptr)
+  if (m_line.selectedPoint == -1) // We need to update all the points
   {
-    vcFenceRenderer_ClearPoints(pFence);
-    vcFenceRenderer_AddPoints(pFence, line.pPoints, line.numPoints, line.closed);
+    for (int i = 0; i < m_line.numPoints; ++i)
+      m_line.pPoints[i] = (delta * udDouble4x4::translation(m_line.pPoints[i])).axis.t.toVector3();
+  }
+  else
+  {
+    m_line.pPoints[m_line.selectedPoint] = (delta * udDouble4x4::translation(m_line.pPoints[m_line.selectedPoint])).axis.t.toVector3();
+  }
+
+  UpdatePoints();
+}
+
+void vcPOI::UpdatePoints()
+{
+  // Calculate length, area and label position
+  m_calculatedLength = 0;
+  m_calculatedArea = 0;
+  udDouble3 averagePosition = udDouble3::zero();
+
+  int j = ((m_line.numPoints == 0) ? 0 : m_line.numPoints - 1);
+
+  for (int i = 0; i < m_line.numPoints; i++)
+  {
+    if (m_showArea && m_line.closed && m_line.numPoints > 2) // Area requires at least 2 points
+      m_calculatedArea = m_calculatedArea + (m_line.pPoints[j].x + m_line.pPoints[i].x) * (m_line.pPoints[j].y - m_line.pPoints[i].y);
+
+    if (m_line.closed || i > 0) // Calculate length
+      m_calculatedLength += udMag3(m_line.pPoints[j] - m_line.pPoints[i]);
+
+    averagePosition += m_line.pPoints[i];
+
+    j = i;
+  }
+
+  m_calculatedArea = udAbs(m_calculatedArea) / 2;
+  m_pLabelInfo->worldPosition = averagePosition / m_line.numPoints;
+
+  if (m_showArea && m_showLength)
+    udSprintf(&m_pLabelText, "%s\n%s: %.3f\n%s: %.3f", m_pName, vcString::Get("scenePOILineLength"), m_calculatedLength, vcString::Get("scenePOIArea"), m_calculatedArea);
+  else if (m_showLength)
+    udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pName, vcString::Get("scenePOILineLength"), m_calculatedLength);
+  else if (m_showArea)
+    udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pName, vcString::Get("scenePOIArea"), m_calculatedArea);
+
+  // update the fence renderer as well
+  if (m_line.numPoints > 1)
+  {
+    if (m_pFence == nullptr)
+      vcFenceRenderer_Create(&m_pFence);
+
+    vcFenceRendererConfig config;
+    config.visualMode = m_line.fenceMode;
+    config.imageMode = m_line.lineStyle;
+    config.bottomColour = vcIGSW_BGRAToImGui(m_line.colourSecondary);
+    config.topColour = vcIGSW_BGRAToImGui(m_line.colourPrimary);
+    config.ribbonWidth = m_line.lineWidth;
+    config.textureScrollSpeed = 1.f;
+    config.textureRepeatScale = 1.f;
+
+    vcFenceRenderer_SetConfig(m_pFence, config);
+
+    vcFenceRenderer_ClearPoints(m_pFence);
+    vcFenceRenderer_AddPoints(m_pFence, m_line.pPoints, m_line.numPoints, m_line.closed);
   }
 }
 
-void vcPOI::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
+void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
-  bool reConfig = false;
+  if (vcIGSW_ColorPickerU32(udTempStr("%s##POIColour%zu", vcString::Get("scenePOILabelColour"), *pItemID), &m_nameColour, ImGuiColorEditFlags_None))
+    m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
 
-  if (vcIGSW_ColorPickerU32(udTempStr("%s##POIColor%zu", vcString::Get("LabelColour"), *pItemID), &nameColour, ImGuiColorEditFlags_None))
-    pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(nameColour);
+  if (vcIGSW_ColorPickerU32(udTempStr("%s##POIBackColour%zu", vcString::Get("scenePOILabelBackgroundColour"), *pItemID), &m_backColour, ImGuiColorEditFlags_None))
+    m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
 
-  if (vcIGSW_ColorPickerU32(udTempStr("%s##POIBackColor%zu", vcString::Get("LabelBackgroundColour"), *pItemID), &backColour, ImGuiColorEditFlags_None))
-    pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(backColour);
+  const char *labelSizeOptions[] = { vcString::Get("scenePOILabelSizeSmall"), vcString::Get("scenePOILabelSizeNormal"), vcString::Get("scenePOILabelSizeLarge") };
+  if (ImGui::Combo(udTempStr("%s##POILabelSize%zu", vcString::Get("scenePOILabelSize"), *pItemID), (int*)&m_pLabelInfo->textSize, labelSizeOptions, (int)udLengthOf(labelSizeOptions)))
+    UpdatePoints();
 
-  bool lines = line.numPoints > 1;
-
-  if (lines)
+  if (m_line.numPoints > 1)
   {
-    if (vcIGSW_ColorPickerU32(vcString::Get("LineColour"), &line.lineColour, ImGuiColorEditFlags_None))
-      reConfig = true;
+    if (ImGui::SliderInt(vcString::Get("scenePOISelectedPoint"), &m_line.selectedPoint, -1, m_line.numPoints - 1))
+      m_line.selectedPoint = udClamp(m_line.selectedPoint, -1, m_line.numPoints - 1);
 
-    if (ImGui::BeginCombo(vcString::Get("Points"), udTempStr("%s %zu", vcString::Get("Point"), line.selectedPoint + 1)))
+    if (m_line.selectedPoint != -1)
     {
-      for (size_t i = 1; i <= line.numPoints; ++i)
-        if (ImGui::Selectable(udTempStr("%s %zu", vcString::Get("Point"), i)))
-          line.selectedPoint = i - 1;
+      if (ImGui::InputScalarN(udTempStr("%s##POIPointPos%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_line.pPoints[m_line.selectedPoint].x, 3))
+        UpdatePoints();
+    }
 
-      ImGui::EndCombo();
+    if (ImGui::TreeNode("%s##POILineSettings%zu", vcString::Get("scenePOILineSettings"), *pItemID))
+    {
+      if (ImGui::Checkbox(udTempStr("%s##POIShowLength%zu", vcString::Get("scenePOILineShowLength"), *pItemID), &m_showLength))
+        UpdatePoints();
+
+      if (ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), *pItemID), &m_showArea))
+        UpdatePoints();
+
+      if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOILineClosed"), *pItemID), &m_line.closed))
+        UpdatePoints();
+
+      if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColorPrimary%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_line.colourPrimary, ImGuiColorEditFlags_None))
+        UpdatePoints();
+
+      if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColorSecondary%zu", vcString::Get("scenePOILineColour2"), *pItemID), &m_line.colourSecondary, ImGuiColorEditFlags_None))
+        UpdatePoints();
+
+      if (ImGui::SliderFloat(udTempStr("%s##POILineColorSecondary%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_line.lineWidth, 0.01f, 1000.f, "%.2f", 3.f))
+        UpdatePoints();
+
+      const char *lineOptions[] = { vcString::Get("scenePOILineStyleArrow"), vcString::Get("scenePOILineStyleGlow"), vcString::Get("scenePOILineStyleSolid") };
+      if (ImGui::Combo(udTempStr("%s##POILineColorSecondary%zu", vcString::Get("scenePOILineStyle"), *pItemID), (int *)&m_line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
+        UpdatePoints();
+
+      const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
+      if (ImGui::Combo(udTempStr("%s##POIFenceStyle%zu", vcString::Get("scenePOILineOrientation"), *pItemID), (int *)&m_line.fenceMode, fenceOptions, (int)udLengthOf(fenceOptions)))
+        UpdatePoints();
+
+      ImGui::TreePop();
     }
   }
 
-  ImGui::TextWrapped("%s: %.2f, %.2f, %.2f", vcString::Get("Position"), line.pPoints[line.selectedPoint].x, line.pPoints[line.selectedPoint].y, line.pPoints[line.selectedPoint].z);
-
-  if (lines)
+  // Handle hyperlinks
+  const char *pHyperlink = m_pMetadata->Get("hyperlink").AsString();
+  if (pHyperlink != nullptr)
   {
-    // Length
-    double length = 0;
-    if (line.numPoints > 1)
+    ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelHyperlink"), pHyperlink);
+    if (udStrEndsWithi(pHyperlink, ".png") || udStrEndsWithi(pHyperlink, ".jpg"))
     {
-      if (line.selectedPoint == line.numPoints - 1)
-      {
-        if (line.closed)
-          length = udMag3(line.pPoints[line.selectedPoint] - line.pPoints[0]);
-      }
-      else
-      {
-        length = udMag3(line.pPoints[line.selectedPoint] - line.pPoints[line.selectedPoint + 1]);
-      }
+      ImGui::SameLine();
+      if (ImGui::Button(vcString::Get("scenePOILabelOpenHyperlink")))
+        pProgramState->loadList.push_back(udStrdup(pHyperlink));
     }
-    ImGui::TextWrapped("%s: %.2f", vcString::Get("Length"), length);
-
-    // Area, ignores Z axis
-    if (line.closed)
-    {
-      double area = 0;
-      size_t j = line.numPoints - 1;
-
-      for (size_t i = 0; i < line.numPoints; i++)
-      {
-        area = area + (line.pPoints[j].x + line.pPoints[i].x) * (line.pPoints[j].y - line.pPoints[i].y);
-        j = i;
-      }
-      area /= 2;
-
-      ImGui::TextWrapped("%s: %.2f", vcString::Get("Area"), area);
-    }
-
-    if (ImGui::InputInt(vcString::Get("LineWidth"), (int *)&line.lineWidth))
-      reConfig = true;
-
-    const char *lineOptions[] = { vcString::Get("Arrow"), vcString::Get("Glow"), vcString::Get("Solid") };
-    if (ImGui::Combo(vcString::Get("LineStyle"), (int *)&line.lineStyle, lineOptions, (int) udLengthOf(lineOptions)))
-      reConfig = true;
-
-    if (reConfig)
-    {
-      vcFenceRendererConfig config;
-      udFloat4 colour = vcIGSW_BGRAToImGui(line.lineColour);
-      config.visualMode = vcRRVM_Fence;
-      config.imageMode = line.lineStyle;
-      config.bottomColour = colour;
-      config.topColour = colour;
-      config.ribbonWidth = (float)line.lineWidth;
-      config.textureScrollSpeed = 1.f;
-      config.textureRepeatScale = 1.f;
-
-      vcFenceRenderer_SetConfig(pFence, config);
-    }
-
-    // TODO: label renderer config too
   }
+}
+
+void vcPOI::OnNameChange()
+{
+  UpdatePoints();
+}
+
+void vcPOI::AddPoint(const udDouble3 &position)
+{
+  udDouble3 *pNewPoints = udAllocType(udDouble3, m_line.numPoints + 1, udAF_Zero);
+  memcpy(pNewPoints, m_line.pPoints, sizeof(udDouble3) * m_line.numPoints);
+  pNewPoints[m_line.numPoints] = position;
+  udFree(m_line.pPoints);
+  m_line.pPoints = pNewPoints;
+  ++m_line.numPoints;
+
+  UpdatePoints();
 }
 
 void vcPOI::Cleanup(vcState * /*pProgramState*/)
 {
-  udFree(pName);
-  udFree(line.pPoints);
+  udFree(m_pName);
+  udFree(m_line.pPoints);
+  udFree(m_pLabelText);
 
-  vcFenceRenderer_Destroy(&pFence);
-  udFree(pLabelInfo);
-
-  this->vcPOI::~vcPOI();
+  vcFenceRenderer_Destroy(&m_pFence);
+  udFree(m_pLabelInfo);
 }
 
 udDouble4x4 vcPOI::GetWorldSpaceMatrix()
 {
-  return udDouble4x4::translation(line.pPoints[0]);
+  if (m_line.selectedPoint == -1)
+    return udDouble4x4::translation(m_pLabelInfo->worldPosition);
+  else
+    return udDouble4x4::translation(m_line.pPoints[m_line.selectedPoint]);
 }
 
-void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/)
+void vcPOI::Init(const char *pName, uint32_t nameColour, vcLabelFontSize namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/)
 {
-  vcPOI *pPOI = udAllocType(vcPOI, 1, udAF_Zero);
-  pPOI = new (pPOI) vcPOI();
-  pPOI->visible = true;
+  m_visible = true;
+  m_pName = udStrdup(pName);
+  m_type = vcSOT_PointOfInterest;
+  m_nameColour = nameColour;
+  m_backColour = 0x7F000000;
+  m_namePt = namePt;
 
-  pPOI->pName = udStrdup(pName);
-  pPOI->type = vcSOT_PointOfInterest;
+  m_showArea = false;
+  m_showLength = false;
 
-  pPOI->nameColour = nameColour;
-  pPOI->namePt = namePt;
+  memcpy(&m_line, pLine, sizeof(m_line));
 
-  memcpy(&pPOI->line, pLine, sizeof(pPOI->line));
+  m_line.selectedPoint = -1; // Sentinel for no point selected
+  m_line.pPoints = udAllocType(udDouble3, pLine->numPoints, udAF_Zero);
+  memcpy(m_line.pPoints, pLine->pPoints, sizeof(udDouble3) * pLine->numPoints);
 
-  pPOI->line.pPoints = udAllocType(udDouble3, pLine->numPoints, udAF_Zero);
-  memcpy(pPOI->line.pPoints, pLine->pPoints, sizeof(udDouble3) * pLine->numPoints);
+  m_pLabelText = nullptr;
 
-  pPOI->line.selectedPoint = 0;
-  pPOI->line.lineStyle = vcRRIM_Arrow;
+  m_pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
+  m_pLabelInfo->pText = m_pName;
+  m_pLabelInfo->worldPosition = pLine->pPoints[0];
+  m_pLabelInfo->textSize = namePt;
+  m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(nameColour);
+  m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
 
-  if (pLine->numPoints > 1)
-  {
-    vcFenceRenderer_Create(&pPOI->pFence);
-
-    udFloat4 colours = vcIGSW_BGRAToImGui(nameColour);
-
-    vcFenceRendererConfig config;
-    config.visualMode = vcRRVM_Fence;
-    config.imageMode = vcRRIM_Arrow;
-    config.bottomColour = colours;
-    config.topColour = colours;
-    config.ribbonWidth = (float)pLine->lineWidth;
-    config.textureScrollSpeed = 1.f;
-    config.textureRepeatScale = 1.f;
-
-    vcFenceRenderer_SetConfig(pPOI->pFence, config);
-    vcFenceRenderer_AddPoints(pPOI->pFence, pLine->pPoints, pLine->numPoints);
-  }
-
-  pPOI->backColour = 0x7F000000;
-
-  pPOI->pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
-  pPOI->pLabelInfo->pText = pPOI->pName;
-  pPOI->pLabelInfo->worldPosition = pLine->pPoints[0];
-  pPOI->pLabelInfo->textSize = vcLFS_Medium;
-  pPOI->pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(nameColour);
-  pPOI->pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(pPOI->backColour);
+  m_pFence = nullptr;
+  UpdatePoints();
 
   if (srid != 0)
   {
-    pPOI->pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
-    pPOI->pZone = udAllocType(udGeoZone, 1, udAF_Zero);
-    udGeoZone_SetFromSRID(pPOI->pOriginalZone, srid);
-    memcpy(pPOI->pZone, pPOI->pOriginalZone, sizeof(*pPOI->pZone));
+    m_pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
+    m_pZone = udAllocType(udGeoZone, 1, udAF_Zero);
+    udGeoZone_SetFromSRID(m_pOriginalZone, srid);
+    memcpy(m_pZone, m_pOriginalZone, sizeof(*m_pZone));
   }
 
   if (pNotes != nullptr && pNotes[0] != '\0')
   {
-    pPOI->pMetadata = udAllocType(udJSON, 1, udAF_Zero);
-    pPOI->pMetadata->Set("notes = '%s'", pNotes);
+    m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
+    m_pMetadata->Set("notes = '%s'", pNotes);
   }
 
-  udStrcpy(pPOI->typeStr, sizeof(pPOI->typeStr), "POI");
-  pPOI->loadStatus = vcSLS_Loaded;
-
-  pPOI->AddItem(pProgramState);
-}
-
-void vcPOI_AddToList(vcState *pProgramState, const char *pName, uint32_t nameColour, double namePt, udDouble3 position, int32_t srid, const char *pNotes)
-{
-  vcLineInfo temp;
-  temp.numPoints = 1;
-  temp.pPoints = &position;
-  temp.lineWidth = 1;
-  temp.lineColour = 0xFFFFFFFF;
-
-  vcPOI_AddToList(pProgramState, pName, nameColour, namePt, &temp, srid, pNotes);
+  udStrcpy(m_typeStr, sizeof(m_typeStr), "POI");
+  m_loadStatus = vcSLS_Loaded;
 }
