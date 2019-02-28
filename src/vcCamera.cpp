@@ -266,13 +266,15 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   float speedModifier = 1.f;
 
   static bool isFocused = false;
+  static bool isMouseBtnBeingHeld = false;
 
   bool isBtnClicked[3] = { ImGui::IsMouseClicked(0, false), ImGui::IsMouseClicked(1, false), ImGui::IsMouseClicked(2, false) };
   bool isBtnDoubleClicked[3] = { ImGui::IsMouseDoubleClicked(0), ImGui::IsMouseDoubleClicked(1), ImGui::IsMouseDoubleClicked(2) };
   bool isBtnHeld[3] = { ImGui::IsMouseDown(0), ImGui::IsMouseDown(1), ImGui::IsMouseDown(2) };
   bool isBtnReleased[3] = { ImGui::IsMouseReleased(0), ImGui::IsMouseReleased(1), ImGui::IsMouseReleased(2) };
 
-  isFocused = ImGui::IsItemHovered() && !vcGizmo_IsActive() && !pProgramState->modalOpen;
+  isMouseBtnBeingHeld &= (isBtnHeld[0] || isBtnHeld[1] || isBtnHeld[2]);
+  isFocused = (ImGui::IsItemHovered() || isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
 
   if (io.KeyCtrl)
     speedModifier *= 0.1f;
@@ -334,6 +336,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
       if (isBtnHeld[i] && !isBtnClicked[i])
       {
+        isMouseBtnBeingHeld = true;
         mouseInput.x = -mouseDelta.x / 100.0;
         mouseInput.y = -mouseDelta.y / 100.0;
         mouseInput.z = 0.0;
