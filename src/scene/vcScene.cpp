@@ -229,6 +229,9 @@ bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel)
   else if (vcGIS_ChangeSpace(&pProgramState->gis, *pModel->m_pOriginalZone))
     pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, *pModel->m_pOriginalZone); // Update all models to new zone unless there is no new zone
 
+  // refresh map tiles when geozone changes
+  vcRender_ClearTiles(pProgramState->pRenderContext);
+
   pProgramState->pCamera->position = pModel->GetWorldSpacePivot();
 
   return true;
