@@ -1,8 +1,6 @@
 #include "vcPolygonModel.h"
 
 #include "udPlatform/udPlatformUtil.h"
-#include "udPlatform/udMath.h"
-#include "udPlatform/udResult.h"
 
 #include "gl/vcRenderShaders.h"
 #include "gl/vcMesh.h"

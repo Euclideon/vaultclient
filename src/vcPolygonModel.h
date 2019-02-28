@@ -1,7 +1,7 @@
 #ifndef vcPolygonModel_h__
 #define vcPolygonModel_h__
 
-#include "udPlatform\udMath.h"
+#include "udPlatform/udMath.h"
 
 struct vcPolygonModel;
 struct vcTexture;
