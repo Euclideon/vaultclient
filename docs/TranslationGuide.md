@@ -222,7 +222,7 @@ Modules are currently:
 - `convertLoadButton`: Label used for button in Load Watermark window that loads the currently selected file and closes the window
 - `convertCancelButton`: Label used for button beside in Load Watermark window that closes the window
 - `convertFileExistsTitle`: Title of the window that appears when the specified convert output file already exists
-- `convertFileExistsMessage`: Message displayed in the window that appears when the specified convert output file already exists
+- `convertFileExistsMessage`: Message displayed in the window that appears when the specified convert output file already exists, {0} is the full path and name of the file
 
 ### Menu Strings
 
