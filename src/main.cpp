@@ -769,10 +769,9 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         if (ImGui::InputScalarN(vcString::Get("sceneCameraPosition"), ImGuiDataType_Double, &pProgramState->pCamera->position.x, 3))
         {
           // limit the manual entry of camera position to +/- 40000000
-          double cameraPosLimit = (double)vcSL_GlobalLimit;
-          pProgramState->pCamera->position.x = udClamp(pProgramState->pCamera->position.x, -cameraPosLimit, cameraPosLimit);
-          pProgramState->pCamera->position.y = udClamp(pProgramState->pCamera->position.y, -cameraPosLimit, cameraPosLimit);
-          pProgramState->pCamera->position.z = udClamp(pProgramState->pCamera->position.z, -cameraPosLimit, cameraPosLimit);
+          pProgramState->pCamera->position.x = udClamp(pProgramState->pCamera->position.x, -vcSL_GlobalLimit, vcSL_GlobalLimit);
+          pProgramState->pCamera->position.y = udClamp(pProgramState->pCamera->position.y, -vcSL_GlobalLimit, vcSL_GlobalLimit);
+          pProgramState->pCamera->position.z = udClamp(pProgramState->pCamera->position.z, -vcSL_GlobalLimit, vcSL_GlobalLimit);
         }
 
         pProgramState->pCamera->eulerRotation = UD_RAD2DEG(pProgramState->pCamera->eulerRotation);
@@ -780,7 +779,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->pCamera->eulerRotation = UD_DEG2RAD(pProgramState->pCamera->eulerRotation);
 
         if (ImGui::SliderFloat(vcString::Get("sceneCameraMoveSpeed"), &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
-          pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_GlobalLimit);
+          pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_GlobalLimitSmallf);
 
         if (pProgramState->gis.isProjected)
         {
@@ -1517,7 +1516,7 @@ void vcRenderWindow(vcState *pProgramState)
         UDCOMPILEASSERT(sizeof(pProgramState->settings.presentation.mouseAnchor) == sizeof(int), "MouseAnchor is no longer sizeof(int)");
 
         if (ImGui::SliderFloat(vcString::Get("settingsAppearancePOIDistance"), &pProgramState->settings.presentation.POIFadeDistance, vcSL_POIFaderMin, vcSL_POIFaderMax, "%.3fm", 3.f))
-          pProgramState->settings.presentation.POIFadeDistance = udClamp(pProgramState->settings.presentation.POIFadeDistance, vcSL_POIFaderMin, vcSL_GlobalLimit);
+          pProgramState->settings.presentation.POIFadeDistance = udClamp(pProgramState->settings.presentation.POIFadeDistance, vcSL_POIFaderMin, vcSL_GlobalLimitf);
         ImGui::Checkbox(vcString::Get("settingsAppearanceShowDiagnostics"), &pProgramState->settings.presentation.showDiagnosticInfo);
         ImGui::Checkbox(vcString::Get("settingsAppearanceAdvancedGIS"), &pProgramState->settings.presentation.showAdvancedGIS);
         ImGui::Checkbox(vcString::Get("settingsAppearanceLimitFPS"), &pProgramState->settings.presentation.limitFPSInBackground);
@@ -1651,7 +1650,7 @@ void vcRenderWindow(vcState *pProgramState)
             vcModals_OpenModal(pProgramState, vcMT_TileServer);
 
           if (ImGui::SliderFloat(vcString::Get("settingsMapsMapHeight"), &pProgramState->settings.maptiles.mapHeight, vcSL_MapHeightMin, vcSL_MapHeightMax, "%.3fm", 2.f))
-            pProgramState->settings.maptiles.mapHeight = udClamp(pProgramState->settings.maptiles.mapHeight, -vcSL_GlobalLimit, vcSL_GlobalLimit);
+            pProgramState->settings.maptiles.mapHeight = udClamp(pProgramState->settings.maptiles.mapHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
 
           const char* blendModes[] = { vcString::Get("settingsMapsHybrid"), vcString::Get("settingsMapsOverlay"), vcString::Get("settingsMapsUnderlay") };
           if (ImGui::BeginCombo(vcString::Get("settingsMapsBlending"), blendModes[pProgramState->settings.maptiles.blendMode]))
@@ -1696,10 +1695,10 @@ void vcRenderWindow(vcState *pProgramState)
         {
           // Temporary until https://github.com/ocornut/imgui/issues/467 is resolved, then use commented out code below
           float temp[] = { (float)pProgramState->settings.visualization.minIntensity, (float)pProgramState->settings.visualization.maxIntensity };
-          ImGui::SliderFloat(vcString::Get("settingsVisMinIntensity"), &temp[0], 0.f, temp[1], "%.0f", 4.f);
-          ImGui::SliderFloat(vcString::Get("settingsVisMaxIntensity"), &temp[1], temp[0], 65535.f, "%.0f", 4.f);
-          pProgramState->settings.visualization.minIntensity = (int)udClamp(temp[0], -vcSL_GlobalLimit, vcSL_GlobalLimit);
-          pProgramState->settings.visualization.maxIntensity = (int)udClamp(temp[1], -vcSL_GlobalLimit, vcSL_GlobalLimit);
+          ImGui::SliderFloat(vcString::Get("settingsVisMinIntensity"), &temp[0], vcSL_IntensityMin, temp[1], "%.0f", 4.f);
+          ImGui::SliderFloat(vcString::Get("settingsVisMaxIntensity"), &temp[1], temp[0], vcSL_IntensityMax, "%.0f", 4.f);
+          pProgramState->settings.visualization.minIntensity = (int)udClamp(temp[0], vcSL_IntensityMin, vcSL_IntensityMax);
+          pProgramState->settings.visualization.maxIntensity = (int)udClamp(temp[1], vcSL_IntensityMin, vcSL_IntensityMax);
         }
 
         if (pProgramState->settings.visualization.mode == vcVM_Classification)
@@ -1796,9 +1795,9 @@ void vcRenderWindow(vcState *pProgramState)
 
           // TODO: Set min/max to the bounds of the model? Currently set to 0m -> 1km with accuracy of 1mm
           if (ImGui::SliderFloat(vcString::Get("settingsVisHeightStart"), &pProgramState->settings.postVisualization.colourByHeight.startHeight, vcSL_ColourByHeightMin, vcSL_ColourByHeightMax, "%.3f"))
-            pProgramState->settings.postVisualization.colourByHeight.startHeight = udClamp(pProgramState->settings.postVisualization.colourByHeight.startHeight, -vcSL_GlobalLimit, vcSL_GlobalLimit);
+            pProgramState->settings.postVisualization.colourByHeight.startHeight = udClamp(pProgramState->settings.postVisualization.colourByHeight.startHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
           if (ImGui::SliderFloat(vcString::Get("settingsVisHeightEnd"), &pProgramState->settings.postVisualization.colourByHeight.endHeight, vcSL_ColourByHeightMin, vcSL_ColourByHeightMax, "%.3f"))
-            pProgramState->settings.postVisualization.colourByHeight.endHeight = udClamp(pProgramState->settings.postVisualization.colourByHeight.endHeight, -vcSL_GlobalLimit, vcSL_GlobalLimit);
+            pProgramState->settings.postVisualization.colourByHeight.endHeight = udClamp(pProgramState->settings.postVisualization.colourByHeight.endHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
         }
 
         // Post visualization - Colour by Depth
@@ -1809,9 +1808,9 @@ void vcRenderWindow(vcState *pProgramState)
 
           // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
           if (ImGui::SliderFloat(vcString::Get("settingsVisDepthStart"), &pProgramState->settings.postVisualization.colourByDepth.startDepth, vcSL_ColourByDepthMin, vcSL_ColourByDepthMax, "%.3f"))
-            pProgramState->settings.postVisualization.colourByDepth.startDepth = udClamp(pProgramState->settings.postVisualization.colourByDepth.startDepth, -vcSL_GlobalLimit, vcSL_GlobalLimit);
+            pProgramState->settings.postVisualization.colourByDepth.startDepth = udClamp(pProgramState->settings.postVisualization.colourByDepth.startDepth, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
           if (ImGui::SliderFloat(vcString::Get("settingsVisDepthEnd"), &pProgramState->settings.postVisualization.colourByDepth.endDepth, vcSL_ColourByDepthMin, vcSL_ColourByDepthMax, "%.3f"))
-            pProgramState->settings.postVisualization.colourByDepth.endDepth = udClamp(pProgramState->settings.postVisualization.colourByDepth.endDepth, -vcSL_GlobalLimit, vcSL_GlobalLimit);
+            pProgramState->settings.postVisualization.colourByDepth.endDepth = udClamp(pProgramState->settings.postVisualization.colourByDepth.endDepth, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
         }
 
         // Post visualization - Contours
@@ -1822,9 +1821,9 @@ void vcRenderWindow(vcState *pProgramState)
 
           // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
           if (ImGui::SliderFloat(vcString::Get("settingsVisContoursDistances"), &pProgramState->settings.postVisualization.contours.distances, vcSL_ContourDistanceMin, vcSL_ContourDistanceMax, "%.3f", 2))
-            pProgramState->settings.postVisualization.contours.distances = udClamp(pProgramState->settings.postVisualization.contours.distances, vcSL_ContourDistanceMin, vcSL_GlobalLimit);
+            pProgramState->settings.postVisualization.contours.distances = udClamp(pProgramState->settings.postVisualization.contours.distances, vcSL_ContourDistanceMin, vcSL_GlobalLimitSmallf);
           if (ImGui::SliderFloat(vcString::Get("settingsVisContoursBandHeight"), &pProgramState->settings.postVisualization.contours.bandHeight, vcSL_ContourBandHeightMin, vcSL_ContourBandHeightMax, "%.3f", 2))
-            pProgramState->settings.postVisualization.contours.bandHeight = udClamp(pProgramState->settings.postVisualization.contours.bandHeight, vcSL_ContourBandHeightMin, vcSL_GlobalLimit);
+            pProgramState->settings.postVisualization.contours.bandHeight = udClamp(pProgramState->settings.postVisualization.contours.bandHeight, vcSL_ContourBandHeightMin, vcSL_GlobalLimitSmallf);
         }
       }
     }

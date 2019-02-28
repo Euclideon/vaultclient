@@ -350,9 +350,8 @@ void vcConvert_ShowUI(vcState *pProgramState)
       memcpy(globalOffset, pSelectedJob->pConvertInfo->globalOffset, sizeof(globalOffset));
       if (ImGui::InputScalarN(vcString::Get("convertGlobalOffset"), ImGuiDataType_Double, &globalOffset, 3))
       {
-        double globalOffsetLimit = (double)vcSL_GlobalLimit;
         for (int i = 0; i < 3; ++i)
-          globalOffset[i] = udClamp(globalOffset[i], -globalOffsetLimit, globalOffsetLimit);
+          globalOffset[i] = udClamp(globalOffset[i], -vcSL_GlobalLimit, vcSL_GlobalLimit);
         vdkConvert_SetGlobalOffset(pProgramState->pVDKContext, pSelectedJob->pConvertContext, globalOffset);
       }
 
