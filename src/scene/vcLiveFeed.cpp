@@ -23,7 +23,9 @@ struct vcLiveFeedItemLOD
   double distance; // Normalized Distance
   double sspixels; // Screenspace Pixels
 
-  vcPolygonModel *pModel;
+  const char *pModelAddress;
+  vcPolygonModel *pModel; // The LOD does not own this though
+
   vcTexture *pIcon;
   vcLabelInfo *pLabelInfo;
   const char *pLabelText;
@@ -59,8 +61,7 @@ void vcLiveFeedItem_ClearLODs(vcLiveFeedItem *pFeedItem)
 
     udFree(ref.pLabelText);
     udFree(ref.pLabelInfo);
-
-    // TODO: Cleanup the polygon model somehow...
+    udFree(ref.pModelAddress);
   }
 
   pFeedItem->lodLevels.Deinit();
@@ -100,9 +101,12 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
           continue;
 
         vcLiveFeedItem *pFeedItem = nullptr;
+
         udLockMutex(pInfo->pFeed->m_pMutex);
-        for (vcLiveFeedItem *pCachedFeedItem : pInfo->pFeed->m_feedItems)
+        for (size_t j = 0; j < pInfo->pFeed->m_feedItems.length; ++j)
         {
+          vcLiveFeedItem *pCachedFeedItem = pInfo->pFeed->m_feedItems[j];
+
           if (uuid == pCachedFeedItem->uuid)
           {
             pFeedItem = pCachedFeedItem;
@@ -121,7 +125,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
           pFeedItem->lodLevels.Init(4);
           pFeedItem->uuid = uuid;
           udLockMutex(pInfo->pFeed->m_pMutex);
-          pInfo->pFeed->m_feedItems.push_back(pFeedItem);
+          pInfo->pFeed->m_feedItems.PushBack(pFeedItem);
           udReleaseMutex(pInfo->pFeed->m_pMutex);
 
           pFeedItem->previousPosition = newPosition;
@@ -164,6 +168,17 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
 
             lodRef.distance = pLOD->Get("distance").AsDouble();
             lodRef.sspixels = pLOD->Get("sspixels").AsDouble();
+
+            const udJSON &modelObj = pLOD->Get("model");
+            if (modelObj.IsObject())
+            {
+              if (udStrEquali(modelObj.Get("type").AsString(), "vsm") && !udStrEquali(lodRef.pModelAddress, modelObj.Get("url").AsString()))
+              {
+                udFree(lodRef.pModelAddress);
+                lodRef.pModelAddress = udStrdup(modelObj.Get("url").AsString());
+                lodRef.pModel = nullptr;
+              }
+            }
 
             const udJSON &labelObj = pLOD->Get("label");
             if (labelObj.IsObject())
@@ -216,6 +231,9 @@ vcLiveFeed::vcLiveFeed() :
   m_lastUpdateTime(0.0), m_visibleItems(0), m_updateFrequency(15.0), m_decayFrequency(300.0),
   m_falloffDistance(50000.0), m_pMutex(udCreateMutex())
 {
+  m_feedItems.Init(512);
+  m_polygonModels.Init(16);
+
   m_visible = true;
   m_pName = udStrdup("Live Feed");
   m_type = vcSOT_LiveFeed;
@@ -229,13 +247,13 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     return;
 
   double now = vcTime_GetEpochSecsF();
-  double recently = now - this->m_decayFrequency;
+  double recently = now - m_decayFrequency;
 
-  if (this->m_loadStatus != vcSLS_Loading)
+  if (m_loadStatus != vcSLS_Loading)
   {
-    if (now >= this->m_lastUpdateTime + this->m_updateFrequency)
+    if (now >= m_lastUpdateTime + m_updateFrequency)
     {
-      this->m_loadStatus = vcSLS_Loading;
+      m_loadStatus = vcSLS_Loading;
 
       vcLiveFeedUpdateInfo *pInfo = udAllocType(vcLiveFeedUpdateInfo, 1, udAF_None);
       pInfo->pProgramState = pProgramState;
@@ -247,9 +265,11 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
   m_visibleItems = 0;
 
-  udLockMutex(this->m_pMutex);
-  for (vcLiveFeedItem *pFeedItem : this->m_feedItems)
+  udLockMutex(m_pMutex);
+  for (size_t i = 0; i < m_feedItems.length; ++i)
   {
+    vcLiveFeedItem *pFeedItem = m_feedItems[i];
+
     // If its not visible or its been a while since it was visible
     if (!pFeedItem->visible || pFeedItem->lastUpdated < recently)
     {
@@ -261,13 +281,13 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     pFeedItem->displayPosition = udLerp(pFeedItem->previousPosition, pFeedItem->livePosition, pFeedItem->tweenAmount);
     double distanceSq = udMagSq3(pFeedItem->displayPosition - pRenderData->pCamera->position);
 
-    if (distanceSq > this->m_falloffDistance * this->m_falloffDistance)
+    if (distanceSq > m_falloffDistance * m_falloffDistance)
       continue; // Don't really want to mark !visible because it will be again soon
 
     // Select & Render LOD here
     for (size_t lodI = 0; lodI < pFeedItem->lodLevels.length; ++lodI)
     {
-      const vcLiveFeedItemLOD &lodRef = pFeedItem->lodLevels[lodI];
+      vcLiveFeedItemLOD &lodRef = pFeedItem->lodLevels[lodI];
 
       if (lodRef.distance != 0.0 && distanceSq > (lodRef.distance*lodRef.distance) / (pFeedItem->minBoundingRadius * pFeedItem->minBoundingRadius))
         continue;
@@ -284,12 +304,42 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pRenderData->labels.PushBack(lodRef.pLabelInfo);
       }
 
+      if (lodRef.pModelAddress != nullptr)
+      {
+        vcPolygonModel *pModel = lodRef.pModel;
+
+        if (pModel == nullptr) // Add to cache
+        {
+          bool found = false;
+          for (size_t pI = 0; pI < m_polygonModels.length; ++pI)
+          {
+            if (udStrEquali(m_polygonModels[pI].pModelURL, lodRef.pModelAddress))
+            {
+              found = true;
+              pModel = m_polygonModels[pI].pModel;
+              break;
+            }
+          }
+
+          if (!found)
+          {
+            vcPolygonModel_CreateFromURL(&pModel, lodRef.pModelAddress);
+            m_polygonModels.PushBack({ udStrdup(lodRef.pModelAddress), pModel }); // Even if the load failed we should add it
+          }
+
+          lodRef.pModel = pModel;
+        }
+
+        if (pModel != nullptr)
+          pRenderData->polyModels.PushBack({ pModel, udDouble4x4::translation(pFeedItem->displayPosition) });
+      }
+
       break; // We got to the end so we should stop
     }
 
-    ++this->m_visibleItems;
+    ++m_visibleItems;
   }
-  udReleaseMutex(this->m_pMutex);
+  udReleaseMutex(m_pMutex);
 }
 
 void vcLiveFeed::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
@@ -300,18 +350,18 @@ void vcLiveFeed::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 
 void vcLiveFeed::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
 {
-  ImGui::Text("Feed Items: %zu", this->m_feedItems.size());
-  ImGui::Text("Visible Items: %zu", this->m_visibleItems);
+  ImGui::Text("Feed Items: %zu", m_feedItems.length);
+  ImGui::Text("Visible Items: %zu", m_visibleItems);
 
-  ImGui::Text("Next update in %.2f seconds", (this->m_lastUpdateTime + this->m_updateFrequency) - vcTime_GetEpochSecsF());
+  ImGui::Text("Next update in %.2f seconds", (m_lastUpdateTime + m_updateFrequency) - vcTime_GetEpochSecsF());
 
   // Update Frequency
   {
     const double updateFrequencyMinValue = 5.0;
     const double updateFrequencyMaxValue = 300.0;
 
-    if (ImGui::SliderScalar("Update Frequency", ImGuiDataType_Double, &this->m_updateFrequency, &updateFrequencyMinValue, &updateFrequencyMaxValue, "%.0f seconds"))
-      this->m_updateFrequency = udClamp(this->m_updateFrequency, updateFrequencyMinValue, updateFrequencyMaxValue);
+    if (ImGui::SliderScalar("Update Frequency", ImGuiDataType_Double, &m_updateFrequency, &updateFrequencyMinValue, &updateFrequencyMaxValue, "%.0f seconds"))
+      m_updateFrequency = udClamp(m_updateFrequency, updateFrequencyMinValue, updateFrequencyMaxValue);
   }
 
   // Decay Frequency
@@ -319,16 +369,20 @@ void vcLiveFeed::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
     const double decayFrequencyMinValue = 30.0;
     const double decayFrequencyMaxValue = 604800.0; // 1 week
 
-    if (ImGui::SliderScalar("Decay Frequency", ImGuiDataType_Double, &this->m_decayFrequency, &decayFrequencyMinValue, &decayFrequencyMaxValue, "%.0f seconds", 4.f))
+    if (ImGui::SliderScalar("Decay Frequency", ImGuiDataType_Double, &m_decayFrequency, &decayFrequencyMinValue, &decayFrequencyMaxValue, "%.0f seconds", 4.f))
     {
-      this->m_decayFrequency = udClamp(this->m_decayFrequency, decayFrequencyMinValue, decayFrequencyMaxValue);
+      m_decayFrequency = udClamp(m_decayFrequency, decayFrequencyMinValue, decayFrequencyMaxValue);
 
-      double recently = vcTime_GetEpochSecsF() - this->m_decayFrequency;
+      double recently = vcTime_GetEpochSecsF() - m_decayFrequency;
 
-      udLockMutex(this->m_pMutex);
-      for (vcLiveFeedItem *pFeedItem : this->m_feedItems)
+      udLockMutex(m_pMutex);
+
+      for (size_t i = 0; i < m_feedItems.length; ++i)
+      {
+        vcLiveFeedItem *pFeedItem = m_feedItems[i];
         pFeedItem->visible = (pFeedItem->lastUpdated > recently);
-      udReleaseMutex(this->m_pMutex);
+      }
+      udReleaseMutex(m_pMutex);
     }
 
     // Falloff Distance
@@ -336,8 +390,8 @@ void vcLiveFeed::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
       const double falloffDistanceMinValue = 1.0;
       const double falloffDistanceMaxValue = 100000.0;
 
-      if (ImGui::SliderScalar("Falloff Distance", ImGuiDataType_Double, &this->m_falloffDistance, &falloffDistanceMinValue, &falloffDistanceMaxValue, "%.0f", 3.f))
-        this->m_falloffDistance = udClamp(this->m_falloffDistance, falloffDistanceMinValue, falloffDistanceMaxValue);
+      if (ImGui::SliderScalar("Falloff Distance", ImGuiDataType_Double, &m_falloffDistance, &falloffDistanceMinValue, &falloffDistanceMaxValue, "%.0f", 3.f))
+        m_falloffDistance = udClamp(m_falloffDistance, falloffDistanceMinValue, falloffDistanceMaxValue);
     }
 
   }
@@ -347,15 +401,24 @@ void vcLiveFeed::Cleanup(vcState * /*pProgramState*/)
 {
   udFree(m_pName);
 
-  udLockMutex(this->m_pMutex);
-  for (vcLiveFeedItem *pObject : this->m_feedItems)
+  udLockMutex(m_pMutex);
+  for (size_t i = 0; i < m_feedItems.length; ++i)
   {
-    vcLiveFeedItem_ClearLODs(pObject);
-    udFree(pObject);
+    vcLiveFeedItem *pFeedItem = m_feedItems[i];
+
+    vcLiveFeedItem_ClearLODs(pFeedItem);
+    udFree(pFeedItem);
   }
-  udReleaseMutex(this->m_pMutex);
+  udReleaseMutex(m_pMutex);
 
-  udDestroyMutex(&this->m_pMutex);
+  udDestroyMutex(&m_pMutex);
 
-  this->m_feedItems.clear();
+  for (size_t i = 0; i < m_polygonModels.length; ++i)
+  {
+    udFree(m_polygonModels[i].pModelURL);
+    vcPolygonModel_Destroy(&m_polygonModels[i].pModel);
+  }
+
+  m_feedItems.Deinit();
+  m_polygonModels.Deinit();
 }
