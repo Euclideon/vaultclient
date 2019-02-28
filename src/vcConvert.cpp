@@ -349,7 +349,11 @@ void vcConvert_ShowUI(vcState *pProgramState)
       double globalOffset[3];
       memcpy(globalOffset, pSelectedJob->pConvertInfo->globalOffset, sizeof(globalOffset));
       if (ImGui::InputScalarN(vcString::Get("convertGlobalOffset"), ImGuiDataType_Double, &globalOffset, 3))
+      {
+        for (int i = 0; i < 3; ++i)
+          globalOffset[i] = udClamp(globalOffset[i], -vcSL_GlobalLimit, vcSL_GlobalLimit);
         vdkConvert_SetGlobalOffset(pProgramState->pVDKContext, pSelectedJob->pConvertContext, globalOffset);
+      }
 
       // Quick Convert
       bool quickConvert = (pSelectedJob->pConvertInfo->everyNth != 0);
