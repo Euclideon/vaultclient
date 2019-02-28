@@ -94,7 +94,7 @@ const vcVertexLayoutTypes vcPolygonModelVertexLayout[] = { vcVLT_Position3, vcVL
 
 udResult vcPolygonModel_CreateFromMemory(vcPolygonModel **ppModel, char *pData, int dataLength)
 {
-  if (pData == nullptr || dataLength < sizeof(VSMFHeader))
+  if (pData == nullptr || (size_t)dataLength < sizeof(VSMFHeader))
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
@@ -215,7 +215,6 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
     vcMesh_Render(pModelMesh->pMesh);
   }
 
-epilogue:
   // todo: handle failures
   return result;
 }
@@ -247,7 +246,7 @@ udResult vcPolygonModel_CreateShaders()
   udResult result = udR_Success;
 
   vcPolygonModelShader *pPolygonShader = &gShaders[vcPMST_P1N1UV1];
-  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP1N1UV1VertexShader, g_PolygonP1N1UV1FragmentShader, vcPolygonModelVertexLayout, udLengthOf(vcPolygonModelVertexLayout)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP1N1UV1VertexShader, g_PolygonP1N1UV1FragmentShader, vcPolygonModelVertexLayout, (uint32_t)udLengthOf(vcPolygonModelVertexLayout)), udR_InternalError);
   vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame));
   vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject));
   vcShader_GetSamplerIndex(&pPolygonShader->pDiffuseSampler, pPolygonShader->pShader, "u_texture");
