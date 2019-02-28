@@ -721,7 +721,10 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         if (ImGui::InputInt(vcString::Get("sceneOverrideSRID"), &newSRID) && udGeoZone_SetFromSRID(&zone, newSRID) == udR_Success)
         {
           if (vcGIS_ChangeSpace(&pProgramState->gis, zone, &pProgramState->pCamera->position))
+          {
             pProgramState->sceneExplorer.pItems->ChangeProjection(pProgramState, zone);
+            vcRender_ClearTiles(pProgramState->pRenderContext);
+          }
         }
       }
     }
