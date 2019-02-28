@@ -340,8 +340,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
     if (overrideSRID)
     {
-      ImGui::Indent();
-
       if (ImGui::InputInt(udTempStr("%s##ConvertSRID", vcString::Get("convertSRID")), &srid))
         vdkConvert_SetSRID(pProgramState->pVDKContext, pSelectedJob->pConvertContext, overrideSRID, srid);
 
@@ -354,14 +352,11 @@ void vcConvert_ShowUI(vcState *pProgramState)
           globalOffset[i] = udClamp(globalOffset[i], -vcSL_GlobalLimit, vcSL_GlobalLimit);
         vdkConvert_SetGlobalOffset(pProgramState->pVDKContext, pSelectedJob->pConvertContext, globalOffset);
       }
-
-      // Quick Convert
-      bool quickConvert = (pSelectedJob->pConvertInfo->everyNth != 0);
-      if (ImGui::Checkbox(vcString::Get("convertQuickTest"), &quickConvert))
-        vdkConvert_SetEveryNth(pProgramState->pVDKContext, pSelectedJob->pConvertContext, quickConvert ? 1000 : 0);
-
-      ImGui::Unindent();
     }
+    // Quick Convert
+    bool quickConvert = (pSelectedJob->pConvertInfo->everyNth != 0);
+    if (ImGui::Checkbox(vcString::Get("convertQuickTest"), &quickConvert))
+      vdkConvert_SetEveryNth(pProgramState->pVDKContext, pSelectedJob->pConvertContext, quickConvert ? 1000 : 0);
 
     ImGui::Separator();
     ImGui::TextUnformatted(vcString::Get("convertMetadata"));
