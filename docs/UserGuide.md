@@ -379,17 +379,21 @@ There are a few settings to modify in the convert tab.
   - Ideally this should be the target location of the file so that you don't need to copy the file at the end. Make sure there is enough space in the target directory to store the entire file that will be output.
 - Temp Directory
   - Defaults to beside the Output file but should ideally be on a high speed local drive.
-  - A lot of small files will be written here for a short period of time during conversion so make sure you have enough disk space to store the files, a good rule of thumb is that the temporary directory uses about as much space as the uncompressed raw inputs do as the points in the temporary files aren't compressed yet.
+  - A lot of small files will be written here for a short period of time during conversion so make sure you have enough disk space. A good rule of thumb is the temporary directory uses about as much space as the uncompressed raw inputs, since the points in the temporary files aren't compressed yet.
 - Continue processing after corrupt/incomplete data (where possible) [Defaults to Off]
   - If corruption or incomplete data is detected during a conversion this setting will decide whether the conversion gets cancelled (off) or continues, skipping the corrupted points.
 - Point Resolution [Defaults to 0.01 and then source size]
   - This setting determines the size of the points (in meters) in the pointcloud after conversion.
   - It will attempt to find a good size based on the source data and can also be set manually by first checking the "Override" checkbox and then typing in the text field.
-- SRID [Defaults to 0]
-  - The SRID is the Geotagged ID of the GIS zone for the exported model.
+- Geolocation [Defaults to SRID = 0]
   - Usually the source data will have information about what zone the data is stored in, search for "EPSG code" or "SRID code" in the meta data.
-  - If the pre-parse can detect the SRID it will set it here as well and can also be set manually by first checking the "Override" checkbox and then typing in the text field.
-  - It assumes that the input is already in the correct zone and does not currently do a conversion.
+  - The SRID is the Geotagged ID of the GIS zone for the exported model. If the pre-parse can detect the SRID it will be set automatically.
+  - The SRID can also be set manually by first checking the "Override" checkbox and then typing in the text field. This assumes that the input is already in the correct zone and does not currently do a conversion.
+  - Global Point Offset can be used to add an offset to the x, y and z coordinates of the converted model from that which was specified in the file's metadata, or if not, from the global origin (0, 0, 0).
+- Quick Partial Convert
+  - Enabling this option will greatly speed-up the conversion process by only processing 1 in every 1000 points of the input data.
+  - This is useful for testing and calibrating the conversion settings before attempting to convert a large and time-consuming job.
+  - When imported into the scene the converted model will appear disintegrated and will have 1/1000th of the intended resolution.
 - Input Files
   - Expanding this will give you the list of files that will be merged together into the new UDS.
   - The estimated number of points in each file will be shown. During conversion the progress for each file will also be shown.
