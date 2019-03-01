@@ -787,6 +787,10 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), vcString::Get("sceneFullscreenKey"), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode))
         vcMain_PresentationMode(pProgramState);
 
+      // map mode
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneMapMode"), vcString::Get("sceneMapModeKey"), vcMBBI_MapMode, vcMBBG_NewGroup, pProgramState->settings.camera.cameraMode == vcCM_OrthoMap))
+        vcCamera_SwapMapMode(pProgramState);
+
       if (pProgramState->settings.presentation.showCameraInfo)
       {
         ImGui::Separator();
@@ -1251,6 +1255,9 @@ void vcRenderWindow(vcState *pProgramState)
 #if UDPLATFORM_WINDOWS
   if (io.KeyAlt && ImGui::IsKeyPressed(SDL_SCANCODE_F4))
     pProgramState->programComplete = true;
+
+  if (io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_M))
+    vcCamera_SwapMapMode(pProgramState);
 #endif
 
   //end keyboard/mouse handling

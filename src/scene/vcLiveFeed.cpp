@@ -138,7 +138,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
           if (udMagSq3(dir) > 0)
           {
             dir = udNormalize3(dir);
-            pFeedItem->ypr = udMath_DirToEuler(dir) + udDouble3::create(UD_HALF_PI, 0, 0); // Pete's fix for DirToYPR is needed here as well
+            pFeedItem->ypr = udMath_DirToYPR(dir);
             pFeedItem->tweenAmount = 0;
             pFeedItem->previousPosition = pFeedItem->displayPosition;
           }
