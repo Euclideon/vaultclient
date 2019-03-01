@@ -364,7 +364,7 @@ Watermarks can be viewed on each UDS file, by clicking on the UDS file in the Sc
 #### Converting in Euclideon Vault Client
 The Euclideon Vault Client allows pointcloud files of a valid filetype to be converted into the supported `.uds` file format. To do this, click the convert tab in the top left corner of the viewport, then load a valid pointcloud file into the client by dragging and dropping the file into the client window.
 
-Valid conversion filetypes are: `.pts`, `.ptx`, `.las`, `.txt`, `.csv`, `.e57`, `.asc`, `.xyz`.
+Valid conversion filetypes are: `.pts`, `.ptx`, `.las`, `.txt`, `.csv`, `.e57`, `.asc`, `.xyz`, `.obj`.
 
 > If you aren't able to see the convert tab, click the `Windows` menu and ensure the `Convert` flag is checked. Once this is selected the convert option will be displayed next to the Scene tab.
 
@@ -434,7 +434,7 @@ To do this, open a command prompt and navigate to the folder containing the exec
   - Additional input files may be specified but they will all be merged into the one output file, so ensure they are compatible first.
 - `outputFile.uds` is the name and location of the new `.uds` file you wish to create. Again, if the file's path contains any spaces you must put the path in quotes, for example: `"C:/Output/Converted File.uds"`
 
-Valid conversion filetypes are: `.pts`, `.ptx`, `.las`, `.txt`, `.csv`, `.e57`, `.asc`, `.xyz`.
+Valid conversion filetypes are: `.pts`, `.ptx`, `.las`, `.txt`, `.csv`, `.e57`, `.asc`, `.xyz`, `.obj`.
 
 ---
 
