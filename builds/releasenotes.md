@@ -37,6 +37,8 @@ Version 0.2.1
     - The label font size is attempted to be maintained from UDP projects (Vault POI's only have 3 settings though)
   - Removed the padding string from displaying in the metadata
   - Improved point estimates by updating them more frequently during the conversion process
+  - Added the option to offset the global starting position of a converted and imported model
+  - Added the option to perform a Quick Partial Convert to avoid long wait times when testing convert settings
 
 Version 0.2.0
   ADDITIONS & FIXES
