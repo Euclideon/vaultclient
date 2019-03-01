@@ -212,6 +212,7 @@ void vcPOI::OnNameChange()
 void vcPOI::AddPoint(const udDouble3 &position)
 {
   udDouble3 *pNewPoints = udAllocType(udDouble3, m_line.numPoints + 1, udAF_Zero);
+  udDouble3 *pNewOriginalPoints = udAllocType(udDouble3, m_line.numPoints + 1, udAF_Zero);
 
   memcpy(pNewPoints, m_line.pPoints, sizeof(udDouble3) * m_line.numPoints);
   pNewPoints[m_line.numPoints] = position;
@@ -219,11 +220,11 @@ void vcPOI::AddPoint(const udDouble3 &position)
   m_line.pPoints = pNewPoints;
   if (m_pZone != nullptr)
   {
-    memcpy(pNewPoints, m_line.pOriginalPoints, sizeof(udDouble3) * m_line.numPoints);
-    pNewPoints[m_line.numPoints] = udGeoZone_TransformPoint(position, *m_pZone, *m_pOriginalZone);
+    memcpy(pNewOriginalPoints, m_line.pOriginalPoints, sizeof(udDouble3) * m_line.numPoints);
+    pNewOriginalPoints[m_line.numPoints] = udGeoZone_TransformPoint(position, *m_pZone, *m_pOriginalZone);
   }
   udFree(m_line.pOriginalPoints);
-  m_line.pOriginalPoints = pNewPoints;
+  m_line.pOriginalPoints = pNewOriginalPoints;
 
   ++m_line.numPoints;
   UpdatePoints();
