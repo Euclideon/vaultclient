@@ -4,9 +4,9 @@
 #include "vcSettings.h"
 
 #include "udPlatform/udMath.h"
+#include "vcGIS.h"
 
 struct vcTexture;
-struct vcGISSpace;
 
 struct vcNodeRenderInfo
 {
@@ -28,7 +28,7 @@ struct vcNodeRenderInfo
   int32_t width, height;
   void *pData;
 
-  bool fading;
+  bool fadingIn;
   float transparency;
 
   // cached
@@ -75,7 +75,7 @@ struct vcQuadTree
 
   vcQuadTreeMetaData metaData;
   udDouble4 frustumPlanes[6];
-  vcGISSpace *pSpace;
+  vcGISSpace gisSpace;
   udInt3 slippyCoords;
   udDouble3 cameraWorldPosition;
   udDouble3 cameraTreePosition;

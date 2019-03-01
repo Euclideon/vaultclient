@@ -29,6 +29,8 @@ enum
   MaxTileRequestAttempts = 3,
 };
 
+static const float sTileFadeSpeed = 2.15f;
+
 struct vcTileRenderer
 {
   float frameDeltaTime;
@@ -41,6 +43,7 @@ struct vcTileRenderer
 
   udDouble3 cameraPosition;
 
+  std::vector<std::vector<vcQuadTreeNode*>> *pRenderQueue;
   std::vector<vcQuadTreeNode*> *pTransparentTiles;
 
   // cache textures
@@ -284,6 +287,9 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
  vcTexture_Create(&pTileRenderer->pEmptyTileTexture, 1, 1, &greyPixel);
 
  pTileRenderer->pTransparentTiles = new std::vector<vcQuadTreeNode*>();
+ pTileRenderer->pRenderQueue = new std::vector<std::vector<vcQuadTreeNode*>>();
+ for (int i = 0; i < MaxVisibleTileLevel; ++i)
+   pTileRenderer->pRenderQueue->push_back(std::vector<vcQuadTreeNode*>());
 
   *ppTileRenderer = pTileRenderer;
   pTileRenderer = nullptr;
@@ -324,7 +330,9 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
   vcTexture_Destroy(&pTileRenderer->pEmptyTileTexture);
 
   delete pTileRenderer->pTransparentTiles;
+  delete pTileRenderer->pRenderQueue;
   pTileRenderer->pTransparentTiles = nullptr;
+  pTileRenderer->pRenderQueue = nullptr;
 
   vcQuadTree_Destroy(&(*ppTileRenderer)->quadTree);
   udFree(*ppTileRenderer);
@@ -375,9 +383,9 @@ void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, 
   if (pNode->renderInfo.loadStatus != vcNodeRenderInfo::vcTLS_Loaded && vcQuadTree_IsVisibleLeafNode(&pTileRenderer->quadTree, pNode))
       vcTileRenderer_UpdateTileTexture(pTileRenderer, pNode);
 
-  if (pNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_Loaded && !pNode->renderInfo.fading && pNode->renderInfo.transparency == 0.0f)
+  if (pNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_Loaded && !pNode->renderInfo.fadingIn && pNode->renderInfo.transparency == 0.0f)
   {
-    pNode->renderInfo.fading = true;
+    pNode->renderInfo.fadingIn = true;
     pTileRenderer->pTransparentTiles->push_back(pNode);
   }
 }
@@ -437,26 +445,39 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
   pTileRenderer->quadTree.metaData.generateTimeMs = udPerfCounterMilliseconds(startTime);
 }
 
-bool vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, vcMesh *pMesh, const udDouble4x4 &view)
+bool vcTileRenderer_NodeHasValidBounds(vcQuadTreeNode *pNode)
+{
+  return !((pNode->tileExtents.x <= UD_EPSILON || pNode->tileExtents.y <= UD_EPSILON) ||
+    pNode->worldBounds[0].x > pNode->worldBounds[1].x || pNode->worldBounds[2].x > pNode->worldBounds[3].x ||
+    pNode->worldBounds[2].y > pNode->worldBounds[0].y || pNode->worldBounds[3].y > pNode->worldBounds[1].y);
+}
+
+bool vcTileRenderer_IsRootNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
+{
+  return (pNode == &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex]);
+}
+
+bool vcTileRenderer_CanNodeDraw(vcQuadTreeNode *pNode)
+{
+  if (!pNode->renderInfo.pTexture || pNode->renderInfo.fadingIn)
+    return false;
+
+  return vcTileRenderer_NodeHasValidBounds(pNode);
+}
+
+bool vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, vcMesh *pMesh, const udDouble4x4 &view, bool parentCanDraw)
 {
   vcTexture *pTexture = pNode->renderInfo.pTexture;
+  float tileTransparency = pNode->renderInfo.transparency * pTileRenderer->pSettings->maptiles.transparency;
   if (pTexture == nullptr)
   {
 #if !VISUALIZE_DEBUG_TILES
-    if (pNode != &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex])
+    if (!vcTileRenderer_IsRootNode(pTileRenderer, pNode) && parentCanDraw)
       return false;
 #endif
 
-    // only root node should touch this
     pTexture = pTileRenderer->pEmptyTileTexture;
-  }
-
-  // This is a temporary fix to fix the "tile bounds overflow bug" occurring in the GIS math?
-  // It basically results in an invalid world bounds
-  if (pNode->worldBounds[0].x > pNode->worldBounds[1].x || pNode->worldBounds[2].x > pNode->worldBounds[3].x ||
-      pNode->worldBounds[2].y > pNode->worldBounds[0].y || pNode->worldBounds[3].y > pNode->worldBounds[1].y)
-  {
-    return false;
+    tileTransparency = pTileRenderer->pSettings->maptiles.transparency;
   }
 
   for (int t = 0; t < TileVertexResolution * TileVertexResolution; ++t)
@@ -465,8 +486,9 @@ bool vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     pTileRenderer->presentShader.everyObject.eyePositions[t] = eyeSpaceVertexPosition;
   }
 
-  pTileRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pNode->renderInfo.transparency * pTileRenderer->pSettings->maptiles.transparency);
+  pTileRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, tileTransparency);
 #if VISUALIZE_DEBUG_TILES
+  pTileRenderer->presentShader.everyObject.colour.w = 1.0f;
   if (!pNode->renderInfo.pTexture)
   {
     pTileRenderer->presentShader.everyObject.colour.x = pNode->level / 21.0f;
@@ -497,18 +519,18 @@ void vcTileRenderer_RecursiveSetRendered(vcTileRenderer *pTileRenderer, vcQuadTr
 
 // 'true' indicates the node was able to render itself (or it didn't want to render itself).
 // 'false' indicates that the nodes parent needs to be rendered.
-bool vcTileRenderer_RecursiveRender(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, const udDouble4x4 &view)
+bool vcTileRenderer_RecursiveBuildRenderQueue(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, bool canParentDraw)
 {
   if (!pNode->touched)
   {
     vcQuadTreeNode *pParentNode = &pTileRenderer->quadTree.nodes.pPool[pNode->parentIndex];
 
     // parent can render itself (opaque), so this tile is not needed
-    if (pParentNode->renderInfo.pTexture && !pParentNode->renderInfo.fading)
+    if (pParentNode->renderInfo.pTexture && !pParentNode->renderInfo.fadingIn)
       return false;
 
     // re-test visibility
-    pNode->visible = vcQuadTree_IsNodeVisible(&pTileRenderer->quadTree, pNode);
+    pNode->visible = pParentNode->visible && vcQuadTree_IsNodeVisible(&pTileRenderer->quadTree, pNode);
   }
 
   if (!pNode->visible)
@@ -518,21 +540,50 @@ bool vcTileRenderer_RecursiveRender(vcTileRenderer *pTileRenderer, vcQuadTreeNod
   if (!childrenNeedThisTileRendered)
   {
     for (int c = 0; c < 4; ++c)
-      childrenNeedThisTileRendered = !vcTileRenderer_RecursiveRender(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pNode->childBlockIndex + c], view) || childrenNeedThisTileRendered;
+    {
+      vcQuadTreeNode *pChildNode = &pTileRenderer->quadTree.nodes.pPool[pNode->childBlockIndex + c];
+      childrenNeedThisTileRendered = !vcTileRenderer_RecursiveBuildRenderQueue(pTileRenderer, pChildNode, canParentDraw || vcTileRenderer_CanNodeDraw(pChildNode)) || childrenNeedThisTileRendered;
+    }
   }
 
-  if (pNode->renderInfo.fading)
+  if (pNode->renderInfo.fadingIn)
     return false;
 
   if (childrenNeedThisTileRendered)
-    return vcTileRenderer_DrawNode(pTileRenderer, pNode, pTileRenderer->pFullTileMesh, view);
+  {
+    if (!pNode->renderInfo.pTexture && (!vcTileRenderer_IsRootNode(pTileRenderer, pNode) && canParentDraw))
+      return false;
+
+    if (!vcTileRenderer_NodeHasValidBounds(pNode))
+      return false;
+
+    pTileRenderer->pRenderQueue->at(pNode->level).push_back(pNode);
+  }
 
   // This child doesn't need parent to draw itself
   return true;
 }
 
+void vcTileRenderer_DrawRenderQueue(vcTileRenderer *pTileRenderer, const udDouble4x4 &view)
+{
+  for (int i = MaxVisibleTileLevel - 1; i >= 0; --i)
+  {
+    for (size_t t = 0; t < pTileRenderer->pRenderQueue->at(i).size(); ++t)
+    {
+      vcTileRenderer_DrawNode(pTileRenderer, pTileRenderer->pRenderQueue->at(i).at(t), pTileRenderer->pFullTileMesh, view, false);
+    }
+  }
+}
+
 void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, const udDouble4x4 &proj)
 {
+  vcQuadTreeNode *pRootNode = &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex];
+  if (!pRootNode->touched) // can occur on failed re-roots
+    return;
+
+  for (int i = 0; i < MaxVisibleTileLevel; ++i)
+    pTileRenderer->pRenderQueue->at(i).clear();
+
   udDouble4x4 viewWithMapTranslation = view * udDouble4x4::translation(0, 0, pTileRenderer->pSettings->maptiles.mapHeight);
 
   vcGLStencilSettings stencil = {};
@@ -560,13 +611,13 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcShader_Bind(pTileRenderer->presentShader.pProgram);
   pTileRenderer->presentShader.everyObject.projectionMatrix = udFloat4x4::create(proj);
 
-  vcQuadTreeNode *pRoot = &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex];
-  pRoot->renderInfo.transparency = 1.0f;
-  vcTileRenderer_RecursiveRender(pTileRenderer, pRoot, viewWithMapTranslation);
+  pRootNode->renderInfo.transparency = 1.0f;
+  vcTileRenderer_RecursiveBuildRenderQueue(pTileRenderer, pRootNode, vcTileRenderer_CanNodeDraw(pRootNode));
+  vcTileRenderer_DrawRenderQueue(pTileRenderer, viewWithMapTranslation);
 
   // Render the root tile again (if it hasn't already been rendered normally) to cover up gaps between tiles
-  if (!pRoot->rendered && pRoot->renderInfo.pTexture)
-    vcTileRenderer_DrawNode(pTileRenderer, pRoot, pTileRenderer->pFullTileMesh, viewWithMapTranslation);
+  if (!pRootNode->rendered && pRootNode->renderInfo.pTexture && vcTileRenderer_NodeHasValidBounds(pRootNode))
+    vcTileRenderer_DrawNode(pTileRenderer, pRootNode, pTileRenderer->pFullTileMesh, viewWithMapTranslation, false);
 
   // Draw transparent tiles
   if (pTileRenderer->pTransparentTiles->size() > 0)
@@ -575,22 +626,23 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
     vcGLState_SetBlendMode(vcGLSBM_Interpolative);
     for (auto tile : (*pTileRenderer->pTransparentTiles))
     {
-      tile->renderInfo.transparency = udMin(1.0f, tile->renderInfo.transparency + pTileRenderer->frameDeltaTime * 2.15f);
-      vcTileRenderer_DrawNode(pTileRenderer, tile, pTileRenderer->pFullTileMesh, viewWithMapTranslation);
+      tile->renderInfo.transparency = udMin(1.0f, tile->renderInfo.transparency + pTileRenderer->frameDeltaTime * sTileFadeSpeed);
+      if (tile->visible && vcTileRenderer_NodeHasValidBounds(tile))
+        vcTileRenderer_DrawNode(pTileRenderer, tile, pTileRenderer->pFullTileMesh, viewWithMapTranslation, false);
     }
 
     for (int i = 0; i < int(pTileRenderer->pTransparentTiles->size()); ++i)
     {
       if (pTileRenderer->pTransparentTiles->at(i)->renderInfo.transparency >= 1.0f)
       {
-        pTileRenderer->pTransparentTiles->at(i)->renderInfo.fading = false;
+        pTileRenderer->pTransparentTiles->at(i)->renderInfo.fadingIn = false;
         pTileRenderer->pTransparentTiles->erase(pTileRenderer->pTransparentTiles->begin() + i);
         --i;
       }
     }
   }
 
-  vcTileRenderer_RecursiveSetRendered(pTileRenderer, pRoot, pRoot->rendered);
+  vcTileRenderer_RecursiveSetRendered(pTileRenderer, pRootNode, pRootNode->rendered);
 
   if (pTileRenderer->pSettings->maptiles.blendMode == vcMTBM_Underlay)
     vcGLState_SetViewportDepthRange(0.0f, 1.0f);
