@@ -25,7 +25,7 @@ struct vcConvertItem
 {
   vdkConvertContext *pConvertContext;
   const vdkConvertInfo *pConvertInfo;
-  vcConvertQueueStatus status;
+  volatile vcConvertQueueStatus status;
 
   enum { vcCI_MetadataMaxLength = 256 };
   char author[vcCI_MetadataMaxLength];
@@ -60,5 +60,6 @@ void vcConvert_Deinit(vcState *pProgramState);
 void vcConvert_ShowUI(vcState *pProgramState);
 
 bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename);
+void vcConvert_RemoveJob(vcState *pProgramState, size_t index);
 
 #endif // !vcConvert_h__

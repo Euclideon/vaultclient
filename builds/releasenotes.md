@@ -40,6 +40,7 @@ Version 0.2.1
   - Improved point estimates by updating them more frequently during the conversion process
   - Added the option to offset the global starting position of a converted and imported model
   - Added the option to perform a Quick Partial Convert to avoid long wait times when testing convert settings
+  - Fixed issue with convert jobs not being cleared or cancelled on logout
 
 Version 0.2.0
   ADDITIONS & FIXES
