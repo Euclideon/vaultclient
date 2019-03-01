@@ -8,13 +8,6 @@
     "contactemail": "support@euclideon.com"
   },
 
-  "/": "/",
-  "TEMPORARY VARIABLES": "DELETE THESE AT SOME POINT",
-  "\\": "\\",
-  "ResetPosition": "Reset Position",
-
-  "//": "//",
-
   "loginTitle": "Login",
   "loginButton": "Login",
   "loginAbout": "About",
@@ -313,6 +306,7 @@
   "sceneExplorerEditName": "Edit Name",
   "sceneExplorerUseProjection": "Use Projection",
   "sceneExplorerMoveTo": "Move To",
+  "sceneExplorerResetPosition": "Reset Position",
   "sceneExplorerPathURL": "Path/URL:",
   "sceneExplorerLoadButton": "Load",
   "sceneExplorerCancelButton": "Cancel",
