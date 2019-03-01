@@ -559,7 +559,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   if (renderData.models.length > 0)
     pModels = udAllocStack(vdkRenderInstance, renderData.models.length, udAF_None);
 
-  double maxDist = pRenderContext->pSettings->camera.farPlane;
+  double maxDistSqr = pRenderContext->pSettings->camera.farPlane * pRenderContext->pSettings->camera.farPlane;
   renderData.pWatermarkTexture = nullptr;
 
   for (size_t i = 0; i < renderData.models.length; ++i)
@@ -573,10 +573,10 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
 
       if (renderData.models[i]->m_hasWatermark)
       {
-        double cameraDist = udMag(udClosestPointOnOOBB(udDouble3::zero(), pRenderContext->pCamera->matrices.view * renderData.models[i]->m_sceneMatrix));
-        if (cameraDist < maxDist)
+        double cameraDistSqr = udMagSq(pRenderContext->pCamera->position - renderData.models[i]->m_sceneMatrix.axis.t.toVector3());
+        if (cameraDistSqr < maxDistSqr)
         {
-          maxDist = cameraDist;
+          maxDistSqr = cameraDistSqr;
 
           if (renderData.models[i]->m_pWatermark == nullptr) // Load the watermark
           {

@@ -86,6 +86,12 @@ Default Keyboard Controls (with the "Scene" window focused):
 - `R` and `F` strafe the camera up and down at the current Camera Move Speed.
 - `Spacebar` locks altitude, allowing the user to pan and strafe the camera without changing the camera's height (Z-axis lock).
 
+Map Mode Controls:
+- Holding down any mouse button and moving will pan the scene
+- The 'mouse scroll wheel' will zoom in/out
+- 'W' 'S' 'A' 'D' will strafe the camera up / down / left / right respectively.
+- 'Ctrl+M' will exit map mode
+
 #### Moving items in the scene
 
 When one or more items is selected (see [Selecting Items](#selecting-items)) a transformation tool called a "gizmo" will become visible on the item(s) in the viewport:
@@ -129,6 +135,7 @@ In some situations not all gizmos will be available. In these cases part of the 
 
 ##### Scene Explorer Hotkeys
 - `Ctrl+U` Opens a popup for loading UDS files.
+- `Ctrl+M` Changes to / from Map Mode
 - `Delete` Removes the selected item(s) from the scene.
 
 ### 2. Menu and Status Bar
@@ -348,6 +355,8 @@ This pane contains several useful features, numbered on the screenshot above.
   6. `Gizmo Scale` (hotkey `M`) sets the gizmo to scaling mode, allowing the user to resize objects.
   7. `Gizmo Local Space` (hotkey `C`) toggles the gizmo's operational coordinate system between local coordinates (relative to the object) and world coordinates (relative to the world space).
   8. `Fullscreen` (hotkey `F5`) toggles presentation mode and sets the client to fullscreen. By default this will hide the user interface.
+  9. `Map Mode` (hotkey `Ctrl+M`) toggles map display mode, which displays the scene top down and orthographically
+  > TIP: Entering and exiting map mode will attempt to keep the camera at the same height, so what you see remains consistent
 
 This area also displays the Latitude, Longitude and Altitude of the camera's current position, if the camera is projected in a geospatial zone.
 

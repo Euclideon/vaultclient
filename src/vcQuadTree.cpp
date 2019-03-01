@@ -15,8 +15,7 @@ enum
   MaxVisibleLevel = 19,
 };
 
-static const int vcTRMQToValue[] = { 5, 2, 0 };
-UDCOMPILEASSERT(udLengthOf(vcTRMQToValue) == vcTRMQ_Total, "Not Enough TileRendererMapQuality Options");
+static const int vcTRMQToDepthModifiers[vcCM_Count][vcTRMQ_Total] = { { 4, 2, 0 }, { 2, 1, 0 } };
 
 // Returns -1=outside, 0=inside, >0=partial (bits of planes crossed)
 static int vcQuadTree_FrustumTest(const udDouble4 frustumPlanes[6], const udDouble3 &boundCenter, const udDouble3 &boundExtents)
@@ -162,7 +161,7 @@ bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode 
 
 inline bool vcQuadTree_ShouldSubdivide(vcQuadTree *pQuadTree, double distanceMS, int depth)
 {
-  return distanceMS < (1.0 / (1 << (depth + vcTRMQToValue[pQuadTree->pSettings->maptiles.mapQuality])));
+  return distanceMS < (1.0 / (1 << (depth + vcTRMQToDepthModifiers[pQuadTree->pSettings->camera.cameraMode][pQuadTree->pSettings->maptiles.mapQuality])));
 }
 
 void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeIndex, int currentDepth)
@@ -171,7 +170,10 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
   pCurrentNode->childMask = 0;
 
   if (currentDepth >= pQuadTree->metaData.maxTreeDepth)
+  {
+    ++pQuadTree->metaData.leafNodeCount;
     return;
+  }
 
   if (pCurrentNode->childBlockIndex == INVALID_NODE_INDEX)
   {
@@ -208,29 +210,37 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
     pChildNode->visible = pCurrentNode->visible && vcQuadTree_IsNodeVisible(pQuadTree, pChildNode);
 
     // TODO: tile heights (DEM)
-    double distanceToQuadrant = udAbs(pQuadTree->cameraTreePosition.z);
+    double distanceToQuadrant = pQuadTree->pSettings->camera.orthographicSize * 2.0;
 
-    udInt2 slippyManhattanDist = udInt2::create(udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x), udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y));
-    if (udMagSq2(slippyManhattanDist) != 0)
+    if (pQuadTree->pSettings->camera.cameraMode == vcCM_FreeRoam)
     {
-      distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraTreePosition);
-      pChildNode->visible = pChildNode->visible && (udAbs(udSin(pQuadTree->cameraTreePosition.z / distanceToQuadrant)) >= tileToCameraCullAngle);
+      distanceToQuadrant = udAbs(pQuadTree->cameraTreePosition.z);
+      udInt2 slippyManhattanDist = udInt2::create(udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x), udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y));
+      if (udMagSq2(slippyManhattanDist) != 0)
+      {
+        distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraTreePosition);
+        pChildNode->visible = pChildNode->visible && (udAbs(udSin(pQuadTree->cameraTreePosition.z / distanceToQuadrant)) >= tileToCameraCullAngle);
+      }
+
+      // Artificially change the distances of tiles based on their relative depths.
+      // Flattens out lower layers, while raising levels of tiles further away.
+      // This is done because of perspectiveness, we actually want a non-uniform quad tree.
+      // Note: these values were just 'trial and error'ed
+      int nodeDepthToTreeDepth = pQuadTree->expectedTreeDepth - currentDepth;
+      distanceToQuadrant *= udLerp(1.0, (0.6 + 0.25 * nodeDepthToTreeDepth), udClamp(nodeDepthToTreeDepth, 0, 1));
     }
 
-    if ((pQuadTree->pSettings->maptiles.mapOptions & vcTRF_OnlyRequestVisibleTiles) != 0 && !pChildNode->visible)
+    ++pQuadTree->metaData.nodeTouchedCount;
+    if (pChildNode->visible)
+      ++pQuadTree->metaData.visibleNodeCount;
+    else if (pQuadTree->pSettings->camera.cameraMode == vcCM_OrthoMap || (pQuadTree->pSettings->maptiles.mapOptions & vcTRF_OnlyRequestVisibleTiles) != 0)
       continue;
 
     double distanceMS = (distanceToQuadrant / pQuadTree->quadTreeWorldSize);
-
-    // Artificially change the distances of tiles based on their relative depths.
-    // Essentially flattens out lower layers, while simultaneously raising levels of tiles further away
-    int depthDiffToView = pQuadTree->expectedTreeDepth - currentDepth;
-    if (depthDiffToView > 0)
-      distanceMS *= (0.6 + 0.25 * depthDiffToView);
-
     if (vcQuadTree_ShouldSubdivide(pQuadTree, distanceMS, currentDepth))
       vcQuadTree_RecurseGenerateTree(pQuadTree, childIndex, currentDepth + 1);
-
+    else
+      ++pQuadTree->metaData.leafNodeCount;
   }
 }
 
@@ -367,6 +377,10 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
   pQuadTree->visibleDistance = viewInfo.visibleDistance;
   pQuadTree->quadTreeHeightOffset = viewInfo.quadTreeHeightOffset;
 
+  pQuadTree->metaData.nodeTouchedCount = 0;
+  pQuadTree->metaData.leafNodeCount = 0;
+  pQuadTree->metaData.visibleNodeCount = 0;
+  pQuadTree->metaData.nodeRenderCount = 0;
   pQuadTree->metaData.maxTreeDepth = udMax(0, MaxVisibleLevel - viewInfo.slippyCoords.z);
 
   pQuadTree->cameraTreePosition = pQuadTree->cameraWorldPosition;
@@ -394,14 +408,14 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
   // Must re-check `completeRerootRequired` condition here, because complete re-rooting can fail (finite amount of nodes)
   if (!pQuadTree->completeRerootRequired)
   {
-    // validate the entire root block
-    uint32_t rootBlockIndex = vcQuadTree_NodeIndexToBlockIndex(pQuadTree->rootIndex);
-    for (uint32_t c = 0; c < NodeChildCount; ++c)
-      pQuadTree->nodes.pPool[rootBlockIndex + c].touched = true;
-    pQuadTree->nodes.pPool[pQuadTree->rootIndex].visible = true;
+  // validate the entire root block
+  uint32_t rootBlockIndex = vcQuadTree_NodeIndexToBlockIndex(pQuadTree->rootIndex);
+  for (uint32_t c = 0; c < NodeChildCount; ++c)
+    pQuadTree->nodes.pPool[rootBlockIndex + c].touched = true;
+  pQuadTree->nodes.pPool[pQuadTree->rootIndex].visible = true;
 
     vcQuadTree_RecurseGenerateTree(pQuadTree, pQuadTree->rootIndex, 0);
-  }
+}
 }
 
 bool vcQuadTree_IsBlockUsed(vcQuadTree *pQuadTree, uint32_t blockIndex)
@@ -461,7 +475,7 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
           return true;
 
         parentIndex = pParentNode->parentIndex;
-      }
+}
     }
 
     // case #2: its not a leaf node, it cannot be used for rendering BUT one of its descendents could be used for rendering
