@@ -207,7 +207,7 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
 
     vcShader_Bind(pPolygonShader->pShader);
 
-    pPolygonShader->everyFrame.u_viewProjectionMatrix = udFloat4x4::create(viewProjectionMatrix);
+    pPolygonShader->everyFrame.u_viewProjectionMatrix = udFloat4x4::create(viewProjectionMatrix * modelMatrix);
 
     float s = 1.0f / 255.0f;
     udFloat4 colour = udFloat4::create(
@@ -217,7 +217,7 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
       ((pModel->pMeshes[i].material.colour >> 0) & 0xFF) * s);
 
     pPolygonShader->everyObject.u_colour = colour;
-    pPolygonShader->everyObject.u_world = udFloat4x4::create(modelMatrix);
+    pPolygonShader->everyObject.u_world = udFloat4x4::identity();
 
     vcShader_BindConstantBuffer(pPolygonShader->pShader, pPolygonShader->pEveryObjectConstantBuffer, &pPolygonShader->everyObject, sizeof(vcPolygonModelShader::everyObject));
     vcShader_BindConstantBuffer(pPolygonShader->pShader, pPolygonShader->pEveryFrameConstantBuffer, &pPolygonShader->everyFrame, sizeof(vcPolygonModelShader::everyFrame));
