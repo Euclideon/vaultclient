@@ -133,7 +133,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   if (vcIGSW_ColorPickerU32(udTempStr("%s##POIBackColour%zu", vcString::Get("scenePOILabelBackgroundColour"), *pItemID), &m_backColour, ImGuiColorEditFlags_None))
     m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
 
-  const char *labelSizeOptions[] = { vcString::Get("scenePOILabelSizeSmall"), vcString::Get("scenePOILabelSizeNormal"), vcString::Get("scenePOILabelSizeLarge") };
+  const char *labelSizeOptions[] = { vcString::Get("scenePOILabelSizeNormal"), vcString::Get("scenePOILabelSizeSmall"), vcString::Get("scenePOILabelSizeLarge") };
   if (ImGui::Combo(udTempStr("%s##POILabelSize%zu", vcString::Get("scenePOILabelSize"), *pItemID), (int*)&m_pLabelInfo->textSize, labelSizeOptions, (int)udLengthOf(labelSizeOptions)))
     UpdatePoints();
 
