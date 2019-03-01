@@ -227,6 +227,29 @@ void vcLogout(vcState *pProgramState)
 
   if (pProgramState->pVDKContext != nullptr)
   {
+    // Cancel all convert jobs
+    if (pProgramState->pConvertContext != nullptr)
+    {
+      // Cancel all jobs
+      for (size_t i = 0; i < pProgramState->pConvertContext->jobs.length; i++)
+      {
+        vdkConvert_Cancel(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[i]->pConvertContext);
+      }
+
+      // Wait for jobs to finish and destroy them
+      while (pProgramState->pConvertContext->jobs.length != 0)
+      {
+        for (size_t i = 0; i < pProgramState->pConvertContext->jobs.length; i++)
+        {
+          if (pProgramState->pConvertContext->jobs[i]->status != vcCQS_Running)
+          {
+            vcConvert_RemoveJob(pProgramState, i);
+            --i;
+          }
+        }
+      }
+    }
+
     pProgramState->modelPath[0] = '\0';
     vcScene_RemoveAll(pProgramState);
     pProgramState->projects.Destroy();
