@@ -333,6 +333,7 @@ Modules are currently:
 - `sceneExplorerEditName`: Menu option when right-clicking on an item in the Scene Explorer, allows user to change the name of the item
 - `sceneExplorerUseProjection`: Menu option when right-clicking on an item in the Scene Explorer, changes the current SRID to that of the selected scene item
 - `sceneExplorerMoveTo`: Menu option when right-clicking on an item in the Scene Explorer, moves the camera to the location of the selected item
+- `sceneExplorerResetPosition`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to that position if it has been moved
 - `sceneExplorerPathURL`: Label next to the text box containing the path of the currently selected file
 - `sceneExplorerLoadButton`: Label used for the Load button in the Add UDS window which loads the currently selected file and closes the window
 - `sceneExplorerCancelButton`: Label used for the Close button of the Add UDS window
