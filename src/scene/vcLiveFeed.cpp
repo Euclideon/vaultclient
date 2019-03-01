@@ -38,6 +38,8 @@ struct vcLiveFeedItem
   bool visible;
   double lastUpdated;
 
+  udDouble3 ypr; // Estimated for many IOTs
+
   udDouble3 previousPosition; // Previous known location
   udDouble3 livePosition; // Latest known location
   udDouble3 displayPosition; // Where we're going to display the item
@@ -115,7 +117,6 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
         }
         udReleaseMutex(pInfo->pFeed->m_pMutex);
 
-        udFloat4x4 rotation = udFloat4x4::identity();
         udDouble3 newPosition = pNode->Get("geometry.coordinates").AsDouble3();
         double updated = pNode->Get("updated").AsDouble();
 
@@ -137,8 +138,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
           if (udMagSq3(dir) > 0)
           {
             dir = udNormalize3(dir);
-            udDouble3 euler = udMath_DirToEuler(dir);
-            rotation = udFloat4x4::rotationYPR(float(euler.x + UD_HALF_PI), 0, 0);
+            pFeedItem->ypr = udMath_DirToEuler(dir) + udDouble3::create(UD_HALF_PI, 0, 0); // Pete's fix for DirToYPR is needed here as well
             pFeedItem->tweenAmount = 0;
             pFeedItem->previousPosition = pFeedItem->displayPosition;
           }
@@ -331,7 +331,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         }
 
         if (pModel != nullptr)
-          pRenderData->polyModels.PushBack({ pModel, udDouble4x4::translation(pFeedItem->displayPosition) });
+          pRenderData->polyModels.PushBack({ pModel, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition) });
       }
 
       break; // We got to the end so we should stop
