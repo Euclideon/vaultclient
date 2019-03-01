@@ -196,7 +196,7 @@
   "convertLoadButton": "Load",
   "convertCancelButton": "Cancel",
   "convertFileExistsTitle": "File Exists",
-  "convertFileExistsMessage":"The file \"{0}\" already exists.\nDo you want to overwrite the file?",
+  "convertFileExistsMessage": "The file \"{0}\" already exists.\nDo you want to overwrite the file?",
 
   "menuSystem": "System",
   "menuRestoreDefaults": "Restore Defaults",
@@ -308,6 +308,7 @@
   "sceneExplorerEditName": "Edit Name",
   "sceneExplorerUseProjection": "Use Projection",
   "sceneExplorerMoveTo": "Move To",
+  "sceneExplorerResetPosition": "Reset Position",
   "sceneExplorerPathURL": "Path/URL:",
   "sceneExplorerLoadButton": "Load",
   "sceneExplorerCancelButton": "Cancel",

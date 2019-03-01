@@ -212,7 +212,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       }
 
       // This is terrible but semi-required until we have undo
-      if (m_children[i]->m_type == vcSOT_PointCloud && m_children[i]->m_pZone != nullptr && m_children[i]->m_pOriginalZone->srid == m_children[i]->m_pZone->srid && ImGui::Selectable(vcString::Get("ResetPosition"), false))
+      if (m_children[i]->m_type == vcSOT_PointCloud && m_children[i]->m_pZone != nullptr && m_children[i]->m_pOriginalZone->srid == m_children[i]->m_pZone->srid && ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
         ((vcModel*)m_children[i])->m_sceneMatrix = ((vcModel*)m_children[i])->m_defaultMatrix;
 
       ImGui::EndPopup();
