@@ -254,7 +254,16 @@ epilogue:
 }
 
 vcLiveFeed::vcLiveFeed() :
-  m_lastUpdateTime(0.0), m_visibleItems(0), m_updateFrequency(15.0), m_decayFrequency(300.0), m_tweenPositionAndOrientation(true), m_maxDisplayDistance(50000.0), m_pMutex(udCreateMutex()), m_position(udDouble3::zero()), m_updateMode(vcLFM_Camera)
+  m_lastUpdateTime(0.0),
+  m_visibleItems(0),
+  m_tweenPositionAndOrientation(true),
+  m_updateFrequency(15.0),
+  m_decayFrequency(300.0),
+  m_maxDisplayDistance(50000.0),
+  m_updateMode(vcLFM_Camera),
+  m_storedCameraPosition(udDouble3::zero()),
+  m_position(udDouble3::zero()),
+  m_pMutex(udCreateMutex())
 {
   m_feedItems.Init(512);
   m_polygonModels.Init(16);
