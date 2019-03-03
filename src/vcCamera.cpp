@@ -320,13 +320,11 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
 void vcCamera_SwapMapMode(vcState *pProgramState)
 {
-  static const double heightToOrthoRatio = 2.8725; // note: trial and error'd
-
   udDouble3 lookAtPosition = pProgramState->pCamera->position;
   double cameraHeight = pProgramState->pCamera->position.z;
   if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
   {
-    pProgramState->settings.camera.orthographicSize = udMax(1.0, pProgramState->pCamera->position.z / heightToOrthoRatio);
+    pProgramState->settings.camera.orthographicSize = udMax(1.0, pProgramState->pCamera->position.z / vcCamera_HeightToOrthoRatio);
 
     // defer actually swapping projection mode
     pProgramState->cameraInput.transitioningToMapMode = true;
@@ -335,7 +333,7 @@ void vcCamera_SwapMapMode(vcState *pProgramState)
   }
   else
   {
-    cameraHeight = pProgramState->settings.camera.orthographicSize * heightToOrthoRatio;
+    cameraHeight = pProgramState->settings.camera.orthographicSize * vcCamera_HeightToOrthoRatio;
     pProgramState->settings.camera.cameraMode = vcCM_FreeRoam;
     pProgramState->cameraInput.transitioningToMapMode = false;
 
