@@ -244,7 +244,7 @@ udDouble3 vcSceneItem::GetWorldSpacePivot()
 
 udDouble3 vcSceneItem::GetLocalSpacePivot()
 {
-  return udDouble3::zero();
+  return udDouble3::zero(); //TODO: Consider somehow defaulting to Camera Position instead
 }
 
 udDouble4x4 vcSceneItem::GetWorldSpaceMatrix()
