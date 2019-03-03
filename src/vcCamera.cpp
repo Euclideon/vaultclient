@@ -263,11 +263,12 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
       udDouble3 towards = udNormalize3(pCamInput->worldAnchorPoint - pCamera->position);
       addPos = distanceToPoint * pCamInput->mouseInput.y * towards;
     }
-    else // ortho
+    else // map mode
     {
       double previousOrthoSize = pCamSettings->orthographicSize;
 
-      double orthoRelativeChange = 1.0 - (0.015 * pCamInput->mouseInput.y * pCamSettings->moveSpeed * deltaTime * speedModifier);
+      static const double gMouseWheelToMapZoomRatio = 0.005;
+      double orthoRelativeChange = 1.0 - (gMouseWheelToMapZoomRatio * pCamInput->mouseInput.y * pCamSettings->moveSpeed * deltaTime * speedModifier);
       pCamSettings->orthographicSize = udClamp(pCamSettings->orthographicSize * orthoRelativeChange, sOrthoNearFarPlane.x, sOrthoNearFarPlane.y);
 
       double orthoSizeChange = pCamSettings->orthographicSize - previousOrthoSize;
