@@ -33,6 +33,10 @@ Modules are currently:
 - [Convert](#convert-strings)
 - [Menu](#menu-strings)
 - [Scene](#scene-strings)
+  - [Camera](#camera)
+  - [Scene Explorer](#scene-explorer)
+  - [Point of Interest](#point-of-interest)
+  - [Live Feeds](#live-feeds)
 - [Error](#error-strings)
 
 ### Login Strings
@@ -309,7 +313,8 @@ Modules are currently:
 - `sceneFullscreenKey`: Used in Fullscreen button tooltip, shown in brackets
 - `sceneMapMode`: Tooltip displayed when mouse is hovered over the Map Mode button in the viewport controls window
 - `sceneMapModeKey`: Used in Map Mode button tooltip, shown in brackets
--
+
+#### Camera
 - `sceneCameraSettings`: String used internally as ID for the viewport controls/camera information window?
 - `sceneCameraLatLongAlt`: Used to display the latitude, longitude and altitude information where applicable
   - {0} = Latitude (in degrees)
@@ -321,6 +326,8 @@ Modules are currently:
 - `sceneCameraOutOfBounds`: Is displayed in the camera info box when the camera is outside of the requested geozone. This is intended to alert the user that the space is distorted
 - `sceneCameraOSCMove`: This text is displayed on the forward, back and strage button of the on screen controls (note that this setting is deprecated to be removed)
 - `sceneCameraOSCUpDown`: This is the text in the up/down section of the on screen controls (note that this setting is deprecated to be removed)
+
+#### Scene Explorer
 - `sceneExplorerTitle`: Title of the Scene Explorer tab
 - `sceneExplorerRemove`: Tooltip displayed when mouse is hovered over the Remove button in the scene explorer tab
 - `sceneExplorerRemoveKey`: Used in Remove button tooltip, shown in brackets
@@ -348,6 +355,8 @@ Modules are currently:
 - `sceneExplorerPending`: Tooltip displayed when mouse is hovered over the alert next to a scene item in the Scene Explorer that vault client has not opened yet
 - `sceneExplorerLoading`: Tooltip displayed when mouse is hovered over the alert next to a scene item in the Scene Explorer that vault client has not fully loaded yet
 - `sceneExplorerFolderDefaultName`: Default name of new folders when they are added to the Scene Explorer
+-
+#### Point of Interest
 - `scenePOIDefaultName`: Default name of new POI objects when they are added to the Scene Explorer
 - `scenePOIAddPoint`: Used in the context menu for adding a new point at the current mouse position
 - `scenePOIPointPosition`: Label for the UI to override the position of the selected point
@@ -376,6 +385,22 @@ Modules are currently:
 - `scenePOILineOrientation`: Label for the drop down to select a line orientation
 - `scenePOILineOrientationVert`: Text on the drop down item for the "Vertical" / "Fence" orientation
 - `scenePOILineOrientationHorz`: Text on the drop down item for the "Horizontal / Path" orientation
+
+#### Live Feeds
+- `liveFeedUpdateFrequency`: Used on label for how many seconds delay between updates
+- `liveFeedMaxDisplayTime`: Used on the label for how many seconds to display an item before hiding it
+- `liveFeedDisplayDistance`: Label on slider for Maximum distance to display an item before it gets hidden
+- `liveFeedTween`: Label on the checkbox that enables tweening
+- `liveFeedMode`: Label for combo box that sets the update mode for the feed
+- `liveFeedModeGroups`: Checkbox item for updating based on the contents of a group
+- `liveFeedModePosition`: Checkbox item for updating based on the radius around a fixed point
+- `liveFeedModeCamera`:  Checkbox item for updating based on the radius around the camera
+- `liveFeedDiagInfo`: Diagnostic info about the feed (shown only with "Show Diagnostic Info" enabled)
+  - {0} total number of items
+  - {1} total number of visible items
+  - {2} number of second until the next update (or negative for seconds since starting the last update)
+- `liveFeedGroupID`: When in `liveFeedModeGroups` mode, this is the input for the Group ID. [Will eventually be a drop down to select by group name]
+- `liveFeedPosition`: When in `liveFeedModePosition` mode, this is the XYZ of the Position
 
 ### Error Strings
 

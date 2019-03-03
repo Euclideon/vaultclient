@@ -5,6 +5,7 @@
 #include "vcState.h"
 #include "vcRender.h"
 #include "vcTime.h"
+#include "vcStrings.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
@@ -13,6 +14,7 @@
 #include "vcPolygonModel.h"
 
 #include "vCore/vUUID.h"
+#include "vCore/vStringFormat.h"
 
 #include "udPlatform/udFile.h"
 #include "udPlatform/udPlatformUtil.h"
@@ -80,144 +82,168 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
   }
 
   const char *pFeedsJSON = nullptr;
-  const char *pMessage = udTempStr("{ \"position\": [%f, %f, %f], \"srid\": %d, \"radius\": %f, \"time\": %f }", pInfo->pProgramState->pCamera->position.x, pInfo->pProgramState->pCamera->position.y, pInfo->pProgramState->pCamera->position.z, pInfo->pProgramState->gis.SRID, pInfo->pFeed->m_falloffDistance, 0.f);
 
-  if (vdkServerAPI_Query(pInfo->pProgramState->pVDKContext, "v1/feeds/region", pMessage, &pFeedsJSON) == vE_Success)
+  const char *pServerAddr = nullptr;
+  const char *pMessage = nullptr;
+
+  pInfo->pFeed->m_storedCameraPosition = pInfo->pProgramState->pCamera->position;
+
+  if (pInfo->pFeed->m_updateMode == vcLFM_Group)
   {
-    udJSON data;
-    if (data.Parse(pFeedsJSON) == udR_Success)
+    pServerAddr = "v1/feeds/group";
+    pMessage = udTempStr("{ \"groupid\": \"%s\", \"srid\": %d, \"time\": %f }", vUUID_GetAsString(&pInfo->pFeed->m_groupID), pInfo->pProgramState->gis.SRID, pInfo->pFeed->m_lastUpdateTime);
+  }
+  else if (pInfo->pFeed->m_updateMode == vcLFM_Position)
+  {
+    pServerAddr = "v1/feeds/region";
+    pMessage = udTempStr("{ \"position\": [%f, %f, %f], \"srid\": %d, \"radius\": %f, \"time\": %f }", pInfo->pFeed->m_position.x, pInfo->pFeed->m_position.y, pInfo->pFeed->m_position.z, pInfo->pProgramState->gis.SRID, pInfo->pFeed->m_maxDisplayDistance, pInfo->pFeed->m_lastUpdateTime);
+  }
+  else if (pInfo->pFeed->m_updateMode == vcLFM_Camera)
+  {
+    pServerAddr = "v1/feeds/region";
+    pMessage = udTempStr("{ \"position\": [%f, %f, %f], \"srid\": %d, \"radius\": %f, \"time\": %f }", pInfo->pProgramState->pCamera->position.x, pInfo->pProgramState->pCamera->position.y, pInfo->pProgramState->pCamera->position.z, pInfo->pProgramState->gis.SRID, pInfo->pFeed->m_maxDisplayDistance, 0.f);
+  }
+
+  if (pServerAddr != nullptr && pMessage != nullptr)
+  {
+    vdkError vError = vdkServerAPI_Query(pInfo->pProgramState->pVDKContext, pServerAddr, pMessage, &pFeedsJSON);
+
+    if (vError == vE_Success)
     {
-      udJSONArray *pFeeds = data.Get("feeds").AsArray();
-
-      pInfo->pFeed->m_lastUpdateTime = udMax(pInfo->pFeed->m_lastUpdateTime, data.Get("lastUpdate").AsDouble());
-
-      if (!pFeeds)
-        goto epilogue;
-
-      for (size_t i = 0; i < pFeeds->length; ++i)
+      udJSON data;
+      if (data.Parse(pFeedsJSON) == udR_Success)
       {
-        udJSON *pNode = pFeeds->GetElement(i);
+        udJSONArray *pFeeds = data.Get("feeds").AsArray();
 
-        vUUID uuid;
-        if (vUUID_SetFromString(&uuid, pNode->Get("feedid").AsString()) != udR_Success)
-          continue;
+        pInfo->pFeed->m_lastUpdateTime = udMax(pInfo->pFeed->m_lastUpdateTime, data.Get("lastUpdate").AsDouble());
 
-        vcLiveFeedItem *pFeedItem = nullptr;
+        if (!pFeeds)
+          goto epilogue;
 
-        udLockMutex(pInfo->pFeed->m_pMutex);
-        for (size_t j = 0; j < pInfo->pFeed->m_feedItems.length; ++j)
+        for (size_t i = 0; i < pFeeds->length; ++i)
         {
-          vcLiveFeedItem *pCachedFeedItem = pInfo->pFeed->m_feedItems[j];
+          udJSON *pNode = pFeeds->GetElement(i);
 
-          if (uuid == pCachedFeedItem->uuid)
-          {
-            pFeedItem = pCachedFeedItem;
-            break;
-          }
-        }
-        udReleaseMutex(pInfo->pFeed->m_pMutex);
+          vUUID uuid;
+          if (vUUID_SetFromString(&uuid, pNode->Get("feedid").AsString()) != udR_Success)
+            continue;
 
-        udDouble3 newPosition = pNode->Get("geometry.coordinates").AsDouble3();
-        double updated = pNode->Get("updated").AsDouble();
+          vcLiveFeedItem *pFeedItem = nullptr;
 
-        if (pFeedItem == nullptr)
-        {
-          pFeedItem = udAllocType(vcLiveFeedItem, 1, udAF_Zero);
-          pFeedItem->lodLevels.Init(4);
-          pFeedItem->uuid = uuid;
           udLockMutex(pInfo->pFeed->m_pMutex);
-          pInfo->pFeed->m_feedItems.PushBack(pFeedItem);
+          for (size_t j = 0; j < pInfo->pFeed->m_feedItems.length; ++j)
+          {
+            vcLiveFeedItem *pCachedFeedItem = pInfo->pFeed->m_feedItems[j];
+
+            if (uuid == pCachedFeedItem->uuid)
+            {
+              pFeedItem = pCachedFeedItem;
+              break;
+            }
+          }
           udReleaseMutex(pInfo->pFeed->m_pMutex);
 
-          pFeedItem->previousPosition = newPosition;
-          pFeedItem->tweenAmount = 1.0f;
-        }
-        else
-        {
-          udDouble3 dir = newPosition - pFeedItem->previousPosition;
-          if (udMagSq3(dir) > 0)
+          udDouble3 newPosition = pNode->Get("geometry.coordinates").AsDouble3();
+          double updated = pNode->Get("updated").AsDouble();
+
+          if (pFeedItem == nullptr)
           {
-            dir = udNormalize3(dir);
-            pFeedItem->ypr = udMath_DirToYPR(dir);
-            pFeedItem->tweenAmount = 0;
-            pFeedItem->previousPosition = pFeedItem->displayPosition;
+            pFeedItem = udAllocType(vcLiveFeedItem, 1, udAF_Zero);
+            pFeedItem->lodLevels.Init(4);
+            pFeedItem->uuid = uuid;
+            udLockMutex(pInfo->pFeed->m_pMutex);
+            pInfo->pFeed->m_feedItems.PushBack(pFeedItem);
+            udReleaseMutex(pInfo->pFeed->m_pMutex);
+
+            pFeedItem->previousPosition = newPosition;
+            pFeedItem->tweenAmount = 1.0f;
           }
-        }
-
-        pFeedItem->lastUpdated = updated;
-        pFeedItem->visible = true; // Just got updated
-
-        pFeedItem->minBoundingRadius = pNode->Get("display.minBoundingRadius").AsDouble(1.0);
-
-        udJSONArray *pLODS = pNode->Get("display.lods").AsArray();
-
-        if (pLODS != nullptr)
-        {
-          udLockMutex(pInfo->pFeed->m_pMutex);
-
-          if (pFeedItem->lodLevels.length > pLODS->length)
-            vcLiveFeedItem_ClearLODs(pFeedItem);
-
-          pFeedItem->lodLevels.GrowBack(pLODS->length - pFeedItem->lodLevels.length);
-
-          // We just need to confirm the info is basically the same
-          for (size_t lodLevelIndex = 0; lodLevelIndex < pLODS->length; ++lodLevelIndex)
+          else
           {
-            udJSON *pLOD = pLODS->GetElement(lodLevelIndex);
-            vcLiveFeedItemLOD &lodRef = pFeedItem->lodLevels[lodLevelIndex];
-
-            lodRef.distance = pLOD->Get("distance").AsDouble();
-            lodRef.sspixels = pLOD->Get("sspixels").AsDouble();
-
-            const udJSON &modelObj = pLOD->Get("model");
-            if (modelObj.IsObject())
+            udDouble3 dir = newPosition - pFeedItem->previousPosition;
+            if (udMagSq3(dir) > 0)
             {
-              if (udStrEquali(modelObj.Get("type").AsString(), "vsm") && !udStrEquali(lodRef.pModelAddress, modelObj.Get("url").AsString()))
+              dir = udNormalize3(dir);
+              pFeedItem->ypr = udMath_DirToYPR(dir);
+              pFeedItem->tweenAmount = 0;
+              pFeedItem->previousPosition = pFeedItem->displayPosition;
+            }
+          }
+
+          pFeedItem->lastUpdated = updated;
+          pFeedItem->visible = true; // Just got updated
+
+          pFeedItem->minBoundingRadius = pNode->Get("display.minBoundingRadius").AsDouble(1.0);
+
+          udJSONArray *pLODS = pNode->Get("display.lods").AsArray();
+
+          if (pLODS != nullptr)
+          {
+            udLockMutex(pInfo->pFeed->m_pMutex);
+
+            if (pFeedItem->lodLevels.length > pLODS->length)
+              vcLiveFeedItem_ClearLODs(pFeedItem);
+
+            pFeedItem->lodLevels.GrowBack(pLODS->length - pFeedItem->lodLevels.length);
+
+            // We just need to confirm the info is basically the same
+            for (size_t lodLevelIndex = 0; lodLevelIndex < pLODS->length; ++lodLevelIndex)
+            {
+              udJSON *pLOD = pLODS->GetElement(lodLevelIndex);
+              vcLiveFeedItemLOD &lodRef = pFeedItem->lodLevels[lodLevelIndex];
+
+              lodRef.distance = pLOD->Get("distance").AsDouble();
+              lodRef.sspixels = pLOD->Get("sspixels").AsDouble();
+
+              const udJSON &modelObj = pLOD->Get("model");
+              if (modelObj.IsObject())
               {
-                udFree(lodRef.pModelAddress);
-                lodRef.pModelAddress = udStrdup(modelObj.Get("url").AsString());
-                lodRef.pModel = nullptr;
+                if (udStrEquali(modelObj.Get("type").AsString(), "vsm") && !udStrEquali(lodRef.pModelAddress, modelObj.Get("url").AsString()))
+                {
+                  udFree(lodRef.pModelAddress);
+                  lodRef.pModelAddress = udStrdup(modelObj.Get("url").AsString());
+                  lodRef.pModel = nullptr;
+                }
+              }
+
+              const udJSON &labelObj = pLOD->Get("label");
+              if (labelObj.IsObject())
+              {
+                // Was there a label before?
+                if (lodRef.pLabelInfo == nullptr)
+                  lodRef.pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
+
+                lodRef.pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(udStrAtou(labelObj.Get("bgcolor").AsString("7F000000"), nullptr, 16));
+                lodRef.pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(udStrAtou(labelObj.Get("color").AsString("FFFFFFFF"), nullptr, 16));
+
+                if ((lodRef.pLabelInfo->textColourRGBA & 0xFF000000) == 0)
+                  lodRef.pLabelInfo->textColourRGBA |= 0xFF000000; // If alpha is 0, set it to full
+
+                if ((lodRef.pLabelInfo->backColourRGBA & 0xFF000000) == 0 && (lodRef.pLabelInfo->backColourRGBA & 0xFFFFFF) != 0)
+                  lodRef.pLabelInfo->backColourRGBA |= 0x7F000000; // If alpha is 0 and there is colour, set it to half alpha?
+
+                udFree(lodRef.pLabelText);
+                lodRef.pLabelText = udStrdup(labelObj.Get("text").AsString("[?]"));
+
+                const char *pTextSize = labelObj.Get("size").AsString();
+                if (udStrEquali(pTextSize, "x-small") || udStrEquali(pTextSize, "small"))
+                  lodRef.pLabelInfo->textSize = vcLFS_Small;
+                else if (udStrEquali(pTextSize, "large") || udStrEquali(pTextSize, "x-large"))
+                  lodRef.pLabelInfo->textSize = vcLFS_Large;
+                else
+                  lodRef.pLabelInfo->textSize = vcLFS_Medium;
+
+                lodRef.pLabelInfo->pText = lodRef.pLabelText;
               }
             }
 
-            const udJSON &labelObj = pLOD->Get("label");
-            if (labelObj.IsObject())
-            {
-              // Was there a label before?
-              if (lodRef.pLabelInfo == nullptr)
-                lodRef.pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
-
-              lodRef.pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(udStrAtou(labelObj.Get("bgcolor").AsString("7F000000"), nullptr, 16));
-              lodRef.pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(udStrAtou(labelObj.Get("color").AsString("FFFFFFFF"), nullptr, 16));
-
-              if ((lodRef.pLabelInfo->textColourRGBA & 0xFF000000) == 0)
-                lodRef.pLabelInfo->textColourRGBA |= 0xFF000000; // If alpha is 0, set it to full
-
-              if ((lodRef.pLabelInfo->backColourRGBA & 0xFF000000) == 0 && (lodRef.pLabelInfo->backColourRGBA & 0xFFFFFF) != 0)
-                lodRef.pLabelInfo->backColourRGBA |= 0x7F000000; // If alpha is 0 and there is colour, set it to half alpha?
-
-              udFree(lodRef.pLabelText);
-              lodRef.pLabelText = udStrdup(labelObj.Get("text").AsString("[?]"));
-
-              const char *pTextSize = labelObj.Get("size").AsString();
-              if (udStrEquali(pTextSize, "x-small") || udStrEquali(pTextSize, "small"))
-                lodRef.pLabelInfo->textSize = vcLFS_Small;
-              else if (udStrEquali(pTextSize, "large") || udStrEquali(pTextSize, "x-large"))
-                lodRef.pLabelInfo->textSize = vcLFS_Large;
-              else
-                lodRef.pLabelInfo->textSize = vcLFS_Medium;
-
-              lodRef.pLabelInfo->pText = lodRef.pLabelText;
-            }
+            udReleaseMutex(pInfo->pFeed->m_pMutex);
           }
 
-          udReleaseMutex(pInfo->pFeed->m_pMutex);
+          pFeedItem->livePosition = newPosition;
         }
-
-        pFeedItem->livePosition = newPosition;
       }
     }
-
   }
 
 epilogue:
@@ -228,8 +254,7 @@ epilogue:
 }
 
 vcLiveFeed::vcLiveFeed() :
-  m_lastUpdateTime(0.0), m_visibleItems(0), m_updateFrequency(15.0), m_decayFrequency(300.0),
-  m_falloffDistance(50000.0), m_pMutex(udCreateMutex())
+  m_lastUpdateTime(0.0), m_visibleItems(0), m_updateFrequency(15.0), m_decayFrequency(300.0), m_tweenPositionAndOrientation(true), m_maxDisplayDistance(50000.0), m_pMutex(udCreateMutex()), m_position(udDouble3::zero()), m_updateMode(vcLFM_Camera)
 {
   m_feedItems.Init(512);
   m_polygonModels.Init(16);
@@ -239,6 +264,22 @@ vcLiveFeed::vcLiveFeed() :
   m_type = vcSOT_LiveFeed;
   udStrcpy(m_typeStr, sizeof(m_typeStr), "IOT");
   m_loadStatus = vcSLS_Pending;
+
+  vUUID_Clear(&m_groupID);
+}
+
+vcLiveFeed::vcLiveFeed(const vUUID &groupid) :
+  vcLiveFeed()
+{
+  m_updateMode = vcLFM_Group;
+  m_groupID = groupid;
+}
+
+vcLiveFeed::vcLiveFeed(const udDouble3 &position) :
+  vcLiveFeed()
+{
+  m_updateMode = vcLFM_Position;
+  m_position = position;
 }
 
 void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -277,11 +318,18 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       continue;
     }
 
-    pFeedItem->tweenAmount = udMin(1.0, pFeedItem->tweenAmount + pRenderData->deltaTime * 0.02);
-    pFeedItem->displayPosition = udLerp(pFeedItem->previousPosition, pFeedItem->livePosition, pFeedItem->tweenAmount);
-    double distanceSq = udMagSq3(pFeedItem->displayPosition - pRenderData->pCamera->position);
+    udDouble3 cameraPosition = pRenderData->pCamera->position;
 
-    if (distanceSq > m_falloffDistance * m_falloffDistance)
+    if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
+    {
+      cameraPosition.z = pProgramState->settings.camera.orthographicSize * vcCamera_HeightToOrthoRatio;
+    }
+
+    pFeedItem->tweenAmount = m_tweenPositionAndOrientation ? udMin(1.0, pFeedItem->tweenAmount + pRenderData->deltaTime * 0.02) : 1.0;
+    pFeedItem->displayPosition = udLerp(pFeedItem->previousPosition, pFeedItem->livePosition, pFeedItem->tweenAmount);
+    double distanceSq = udMagSq3(pFeedItem->displayPosition - cameraPosition);
+
+    if (distanceSq > m_maxDisplayDistance * m_maxDisplayDistance)
       continue; // Don't really want to mark !visible because it will be again soon
 
     // Select & Render LOD here
@@ -342,25 +390,28 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   udReleaseMutex(m_pMutex);
 }
 
-void vcLiveFeed::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
+void vcLiveFeed::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
 {
-  udUnused(pProgramState);
-  udUnused(delta);
+  if (m_updateMode == vcLFM_Position)
+    m_position = (delta * udDouble4x4::translation(m_position)).axis.t.toVector3();
 }
 
-void vcLiveFeed::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
+void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
 {
-  ImGui::Text("Feed Items: %zu", m_feedItems.length);
-  ImGui::Text("Visible Items: %zu", m_visibleItems);
-
-  ImGui::Text("Next update in %.2f seconds", (m_lastUpdateTime + m_updateFrequency) - vcTime_GetEpochSecsF());
+  if (pProgramState->settings.presentation.showDiagnosticInfo)
+  {
+    const char *strings[] = { udTempStr("%zu", m_feedItems.length), udTempStr("%zu", m_visibleItems), udTempStr("%.2f", (m_lastUpdateTime + m_updateFrequency) - vcTime_GetEpochSecsF()) };
+    const char *pBuffer = vStringFormat(vcString::Get("liveFeedDiagInfo"), strings, udLengthOf(strings));
+    ImGui::Text("%s", pBuffer);
+    udFree(pBuffer);
+  }
 
   // Update Frequency
   {
     const double updateFrequencyMinValue = 5.0;
     const double updateFrequencyMaxValue = 300.0;
 
-    if (ImGui::SliderScalar("Update Frequency", ImGuiDataType_Double, &m_updateFrequency, &updateFrequencyMinValue, &updateFrequencyMaxValue, "%.0f seconds"))
+    if (ImGui::SliderScalar(vcString::Get("liveFeedUpdateFrequency"), ImGuiDataType_Double, &m_updateFrequency, &updateFrequencyMinValue, &updateFrequencyMaxValue, "%.0f seconds"))
       m_updateFrequency = udClamp(m_updateFrequency, updateFrequencyMinValue, updateFrequencyMaxValue);
   }
 
@@ -369,7 +420,7 @@ void vcLiveFeed::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
     const double decayFrequencyMinValue = 30.0;
     const double decayFrequencyMaxValue = 604800.0; // 1 week
 
-    if (ImGui::SliderScalar("Decay Frequency", ImGuiDataType_Double, &m_decayFrequency, &decayFrequencyMinValue, &decayFrequencyMaxValue, "%.0f seconds", 4.f))
+    if (ImGui::SliderScalar(vcString::Get("liveFeedMaxDisplayTime"), ImGuiDataType_Double, &m_decayFrequency, &decayFrequencyMinValue, &decayFrequencyMaxValue, "%.0f seconds", 4.f))
     {
       m_decayFrequency = udClamp(m_decayFrequency, decayFrequencyMinValue, decayFrequencyMaxValue);
 
@@ -387,11 +438,36 @@ void vcLiveFeed::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
 
     // Falloff Distance
     {
-      const double falloffDistanceMinValue = 1.0;
-      const double falloffDistanceMaxValue = 100000.0;
+      const double displayDistanceMinValue = 1.0;
+      const double displayDistanceMaxValue = 100000.0;
 
-      if (ImGui::SliderScalar("Falloff Distance", ImGuiDataType_Double, &m_falloffDistance, &falloffDistanceMinValue, &falloffDistanceMaxValue, "%.0f", 3.f))
-        m_falloffDistance = udClamp(m_falloffDistance, falloffDistanceMinValue, falloffDistanceMaxValue);
+      if (ImGui::SliderScalar(vcString::Get("liveFeedDisplayDistance"), ImGuiDataType_Double, &m_maxDisplayDistance, &displayDistanceMinValue, &displayDistanceMaxValue, "%.0f", 3.f))
+        m_maxDisplayDistance = udClamp(m_maxDisplayDistance, displayDistanceMinValue, displayDistanceMaxValue);
+    }
+
+    // Tween
+    ImGui::Checkbox(vcString::Get("liveFeedTween"), &m_tweenPositionAndOrientation);
+
+    const char *feedModeOptions[] = { vcString::Get("liveFeedModeGroups"), vcString::Get("liveFeedModePosition"), vcString::Get("liveFeedModeCamera") };
+    if (ImGui::Combo(vcString::Get("liveFeedMode"), (int*)&m_updateMode, feedModeOptions, (int)udLengthOf(feedModeOptions)))
+    {
+      if (m_updateMode == vcLFM_Position && m_position == udDouble3::zero())
+        m_position = pProgramState->pCamera->position;
+    }
+
+    if (m_updateMode == vcLFM_Group)
+    {
+      char groupStr[vUUID::vsUUID_Length+1];
+      udStrcpy(groupStr, udLengthOf(groupStr), vUUID_GetAsString(&m_groupID));
+      if (ImGui::InputText(vcString::Get("liveFeedGroupID"), groupStr, udLengthOf(groupStr)))
+      {
+        if (vUUID_IsValid(groupStr))
+          vUUID_SetFromString(&m_groupID, groupStr);
+      }
+    }
+    else if (m_updateMode == vcLFM_Position)
+    {
+      ImGui::InputScalarN(vcString::Get("liveFeedPosition"), ImGuiDataType_Double, &m_position.x, 3);
     }
 
   }
@@ -421,4 +497,12 @@ void vcLiveFeed::Cleanup(vcState * /*pProgramState*/)
 
   m_feedItems.Deinit();
   m_polygonModels.Deinit();
+}
+
+udDouble3 vcLiveFeed::GetLocalSpacePivot()
+{
+  if (m_updateMode == vcLFM_Position)
+    return m_position;
+  else
+    return m_storedCameraPosition;
 }

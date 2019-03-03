@@ -1166,6 +1166,28 @@ int vcMainMenuGui(vcState *pProgramState)
 
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
             vcScene_AddItem(pProgramState, new vcModel(pProgramState, nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), (j == 0)));
+
+          for (size_t j = 0; j < pProjectList->GetElement(i)->Get("feeds").ArrayLength(); ++j)
+          {
+            vcLiveFeed *pFeed = nullptr;
+            const char *pFeedName = pProjectList->GetElement(i)->Get("feeds[%zu].name", j).AsString();
+            vUUID groupID;
+
+            if (vUUID_SetFromString(&groupID, pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString()) == udR_Success)
+              pFeed = new vcLiveFeed(groupID);
+            else if (pFeed == nullptr)
+              pFeed = new vcLiveFeed();
+
+            if (pFeedName != nullptr)
+            {
+              udFree(pFeed->m_pName);
+              pFeed->m_pName = udStrdup(pFeedName);
+              pFeed->m_nameBufferLength = udStrlen(pFeedName)+1; // +1 for nullptr
+              pFeed->OnNameChange();
+            }
+
+            vcScene_AddItem(pProgramState, pFeed);
+          }
         }
       }
 
