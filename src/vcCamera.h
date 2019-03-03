@@ -104,6 +104,8 @@ struct vcCameraSettings
   double orthographicSize;
 };
 
+static const double vcCamera_HeightToOrthoRatio = 2.8725; // note: trial and error'd
+
 // Lens Sizes
 // - Using formula 2*atan(35/(2*lens)) in radians
 const float vcLens15mm = 1.72434f;
