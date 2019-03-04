@@ -444,7 +444,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
         if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
         {
-          ImGui::Text("%s: %s", vcString::Get("convertPoints"), udCommaInt(itemInfo.pointsCount));
+          ImGui::Text("%s: %s", vcString::Get("convertPoints"), itemInfo.pointsCount == (uint64_t)-1 ? vcString::Get("convertPointsNoEstimate") : udCommaInt(itemInfo.pointsCount));
 
           ImGui::NextColumn();
 

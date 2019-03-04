@@ -191,6 +191,7 @@
   "convertFiles": "files",
   "convertSRID": "SRID",
   "convertPoints": "Points",
+  "convertPointsNoEstimate": "No Estimate Available",
   "convertRemove": "Remove",
   "convertPathURL": "Path/URL:",
   "convertLoadButton": "Load",
