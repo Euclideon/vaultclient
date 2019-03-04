@@ -28,8 +28,8 @@
     "convert": true
   },
   "login": {
-    "rememberServer": false,
-    "serverURL": "",
+    "rememberServer": true,
+    "serverURL": "https://vaulttrial.euclideon.com",
     "rememberUsername": false,
     "username": "",
     "proxy": ""
