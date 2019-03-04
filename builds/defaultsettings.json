@@ -18,7 +18,8 @@
     "width": 1280,
     "height": 720,
     "maximized": false,
-    "touchscreenFriendly": false
+    "touchscreenFriendly": false,
+    "language": "enAU"
   },
   "frames": {
     "scene": true,
@@ -102,7 +103,7 @@
       },
       "child": [
         {
-          "label": "Scene",
+          "label": "###sceneDock",
           "status": 0,
           "active": true,
           "open": true,
@@ -116,7 +117,7 @@
           },
           "location": "1",
           "next": {
-            "label": "Convert",
+            "label": "###convertDock",
             "status": 0,
             "active": false,
             "open": true,
@@ -147,7 +148,7 @@
           "location": "0",
           "child": [
             {
-              "label": "Scene Explorer",
+              "label": "###sceneExplorerDock",
               "status": 0,
               "active": true,
               "open": true,
@@ -162,7 +163,7 @@
               "location": "20"
             },
             {
-              "label": "Settings",
+              "label": "###settingsDock",
               "status": 0,
               "active": true,
               "open": true,
