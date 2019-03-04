@@ -331,7 +331,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
     if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
     {
-      cameraPosition.z = pProgramState->settings.camera.orthographicSize * vcCamera_HeightToOrthoRatio;
+      cameraPosition.z = pProgramState->settings.camera.orthographicSize * vcCamera_HeightToOrthoFOVRatios[pProgramState->settings.camera.lensIndex];
     }
 
     pFeedItem->tweenAmount = m_tweenPositionAndOrientation ? udMin(1.0, pFeedItem->tweenAmount + pRenderData->deltaTime * 0.02) : 1.0;
