@@ -253,6 +253,26 @@ The expanded properties for UDS files show the path the UDS was loaded from and 
 
 >TIP: If a point of interest is the only item selected in the scene, the context menu when you right click in the world will allow you to add a point to the end of the currently selected POI.
 
+##### Live Feeds (IOT)
+
+![Scene Properties IOT](images/sceneproperties_livefeed.png)
+
+> TIP: This is intended for people creating projects for others to use. They are advanced features that can cause performance loss if not configured correctly.
+
+- `Update Frequency` is the number of seconds to wait after completing an update before doing another update.
+- `Oldest display time` is used to hide live feed assets that haven't been updated in a while.
+- `Maximum distance to display` is an override to assist with performance. If feeds are causing performance issues, this should be reduced.
+- `Enable Tweening / Position Smoothing` allows the positions and orientations of moving feed items to be calculated.
+- `Update Mode` changes how the feeds are updated
+  - `Group Mode` updates all feeds in a group on the server. _THIS IS THE RECOMMENDED MODE_.
+    - While in this mode, a `Group ID` input box will be available, this is the Group ID as provided by the Vault server.
+      - A future version of Vault Client will change this box to a drop down with available groups.
+  - `Position Mode` updates all feeds around a specified point with the radius specified in `Maximum distance to display`.
+    - When this mode is active the Gizmo can be used to move the centre point to the desired location.
+  - `Camera Mode` updates all feeds in the `Maxmimum distance to display`. This mode is unable to run optimizations based on time and position as the camera moves. As such, we do __*not*__ recommend using this mode.
+
+> TIP: Show Diagnostic Information will give a lot more information in the UI about how many items are currently being tracked as well as how long until the next update
+
 ### 4. Settings
 ![Settings](images/settings.png)
 
