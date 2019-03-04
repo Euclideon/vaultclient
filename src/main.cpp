@@ -489,7 +489,7 @@ int main(int argc, char **args)
 
   SDL_EnableScreenSaver();
 
-  vcString::LoadTable("asset://assets/lang/enAU.json");
+  vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", programState.settings.window.languageCode));
   vcTexture_CreateFromFilename(&programState.pUITexture, "asset://assets/textures/uiDark24.png");
 
   while (!programState.programComplete)
@@ -1436,13 +1436,24 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::SameLine();
       if (ImGui::Button(vcString::Get("loginAbout")))
         vcModals_OpenModal(pProgramState, vcMT_About);
+
+      // TODO: Add More Languages to this (preferably dynamically- remember to factor in packaging on non-windows platforms)
+      const char *langs[] = { "enAU", "zhCN" };
+      ImGui::SameLine();
+      int lang = udStrEqual(pProgramState->settings.window.languageCode, langs[0]) ? 0 : 1;
+      if (ImGui::Combo("##langCode", &lang, langs, (int)udLengthOf(langs)))
+      {
+        udStrcpy(pProgramState->settings.window.languageCode, udLengthOf(pProgramState->settings.window.languageCode), langs[lang]);
+        vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", langs[lang]));
+      }
+
     }
     ImGui::End();
     ImGui::PopStyleColor();
   }
   else
   {
-    if (ImGui::BeginDock(vcString::Get("sceneExplorerTitle"), &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
+    if (ImGui::BeginDock(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
     {
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddUDS"), vcString::Get("sceneExplorerAddUDSKey"), vcMBBI_AddPointCloud, vcMBBG_FirstItem) || (ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeysDown[SDL_SCANCODE_U]))
         vcModals_OpenModal(pProgramState, vcMT_AddUDS);
@@ -1538,7 +1549,7 @@ void vcRenderWindow(vcState *pProgramState)
 
     if (!pProgramState->settings.window.presentationMode)
     {
-      if (ImGui::BeginDock(vcString::Get("sceneTitle"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
+      if (ImGui::BeginDock(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
         vcRenderSceneWindow(pProgramState);
       vcChangeTab(pProgramState, vcDocks_Scene);
       ImGui::EndDock();
@@ -1546,7 +1557,7 @@ void vcRenderWindow(vcState *pProgramState)
     else
     {
       // Dummy scene dock, otherwise the docks get shuffled around
-      if (ImGui::BeginDock(vcString::Get("sceneTitle"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
+      if (ImGui::BeginDock(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
         ImGui::Dummy(ImVec2((float)pProgramState->sceneResolution.x, (float)pProgramState->sceneResolution.y));
       vcChangeTab(pProgramState, vcDocks_Scene);
       ImGui::EndDock();
@@ -1555,20 +1566,20 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
       ImGui::SetNextWindowPos(ImVec2(0, 0));
 
-      if (ImGui::Begin(vcString::Get("sceneTitle"), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
+      if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
         vcRenderSceneWindow(pProgramState);
 
       ImGui::End();
       ImGui::PopStyleVar();
     }
 
-    if (ImGui::BeginDock(vcString::Get("convertTitle"), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
+    if (ImGui::BeginDock(udTempStr("%s###convertDock", vcString::Get("convertTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
       vcConvert_ShowUI(pProgramState);
 
     vcChangeTab(pProgramState, vcDocks_Convert);
     ImGui::EndDock();
 
-    if (ImGui::BeginDock(vcString::Get("settingsTitle"), &pProgramState->settings.window.windowsOpen[vcDocks_Settings]))
+    if (ImGui::BeginDock(udTempStr("%s###settingsDock", vcString::Get("settingsTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Settings]))
     {
       bool opened = ImGui::CollapsingHeader(vcString::Get("AppearanceID"));
       if (ImGui::BeginPopupContextItem("AppearanceContext"))
