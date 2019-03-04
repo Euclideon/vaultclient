@@ -185,6 +185,9 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
       udDouble3 euler = udMath_DirToYPR(transform.direction);
 
+      // handle special case when camera pointing directly down causes ambiguous udATan2 calculation
+      if (pCamera->eulerRotation.y == -UD_HALF_PI) euler.x -= UD_PI;
+
       // Only apply if not flipped over the top
       // eulerAngles() returns values between 0 and UD_2PI, a value of UD_PI will indicate a flip
       if (euler.y < UD_HALF_PI || euler.y >(UD_HALF_PI + UD_PI))
