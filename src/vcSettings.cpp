@@ -21,6 +21,29 @@ void vcSettings_RecursiveLoadDock(const udJSON &parentDock, int parentIndex, boo
   int newIndex = g_dock.m_docks.size()-1;
 
   g_dock.m_docks[newIndex]->label = ImStrdup(parentDock.Get("label").AsString());
+
+  // Legacy names from pre-0.2.1
+  if (udStrEquali(g_dock.m_docks[newIndex]->label, "Scene"))
+  {
+    ImGui::MemFree(g_dock.m_docks[newIndex]->label);
+    g_dock.m_docks[newIndex]->label = ImStrdup("###sceneDock");
+  }
+  else if (udStrEquali(g_dock.m_docks[newIndex]->label, "Convert"))
+  {
+    ImGui::MemFree(g_dock.m_docks[newIndex]->label);
+    g_dock.m_docks[newIndex]->label = ImStrdup("###convertDock");
+  }
+  else if (udStrEquali(g_dock.m_docks[newIndex]->label, "Scene Explorer"))
+  {
+    ImGui::MemFree(g_dock.m_docks[newIndex]->label);
+    g_dock.m_docks[newIndex]->label = ImStrdup("###sceneExplorerDock");
+  }
+  else if (udStrEquali(g_dock.m_docks[newIndex]->label, "Settings"))
+  {
+    ImGui::MemFree(g_dock.m_docks[newIndex]->label);
+    g_dock.m_docks[newIndex]->label = ImStrdup("###settingsDock");
+  }
+
   g_dock.m_docks[newIndex]->id = ImHashStr(g_dock.m_docks[newIndex]->label, 0);
 
   if (parentDock.Get("child").ArrayLength() > 0) // has children
