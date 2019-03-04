@@ -267,8 +267,8 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     {
       double previousOrthoSize = pCamSettings->orthographicSize;
 
-      static const double gMouseWheelToMapZoomRatio = 0.005;
-      double orthoRelativeChange = 1.0 - (gMouseWheelToMapZoomRatio * pCamInput->mouseInput.y * pCamSettings->moveSpeed * deltaTime * speedModifier);
+      static const double gMouseWheelToMapZoomRatio = 25.0;
+      double orthoRelativeChange = 1.0 - (gMouseWheelToMapZoomRatio * pCamInput->mouseInput.y * deltaTime);
       pCamSettings->orthographicSize = udClamp(pCamSettings->orthographicSize * orthoRelativeChange, sOrthoNearFarPlane.x, sOrthoNearFarPlane.y);
 
       double orthoSizeChange = pCamSettings->orthographicSize - previousOrthoSize;
