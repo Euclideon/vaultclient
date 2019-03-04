@@ -71,6 +71,37 @@ void vcLiveFeedItem_ClearLODs(vcLiveFeedItem *pFeedItem)
   pFeedItem->lodLevels.Deinit();
 }
 
+void vcLiveFeed_LoadModel(void *pUserData)
+{
+  vcLiveFeed *pFeed = (vcLiveFeed*)pUserData;
+  udLockMutex(pFeed->m_pMutex);
+
+  vcLiveFeedPolyCache *pItem = nullptr;
+  for (size_t pI = 0; pI < pFeed->m_polygonModels.length; ++pI)
+  {
+    if (pFeed->m_polygonModels[pI].loadStatus == vcLiveFeedPolyCache::LS_InQueue)
+    {
+      pItem = &pFeed->m_polygonModels[pI];
+      break;
+    }
+  }
+
+  if (!pItem)
+    return;
+
+  pItem->loadStatus = vcLiveFeedPolyCache::LS_Downloading;
+  udReleaseMutex(pFeed->m_pMutex);
+
+  if (udFile_Load(pItem->pModelURL, &pItem->pModelData, &pItem->modelDataLength) != udR_Success)
+  {
+    pItem->loadStatus = vcLiveFeedPolyCache::LS_Failed;
+  }
+  else
+  {
+    pItem->loadStatus = vcLiveFeedPolyCache::LS_Downloaded;
+  }
+}
+
 void vcLiveFeed_UpdateFeed(void *pUserData)
 {
   vcLiveFeedUpdateInfo *pInfo = (vcLiveFeedUpdateInfo*)pUserData;
@@ -367,21 +398,37 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
         if (pModel == nullptr) // Add to cache
         {
-          bool found = false;
+          vcLiveFeedPolyCache *pItem = nullptr;
           for (size_t pI = 0; pI < m_polygonModels.length; ++pI)
           {
             if (udStrEquali(m_polygonModels[pI].pModelURL, lodRef.pModelAddress))
             {
-              found = true;
-              pModel = m_polygonModels[pI].pModel;
+              pItem = &m_polygonModels[pI];
               break;
             }
           }
 
-          if (!found)
+          if (pItem)
           {
-            vcPolygonModel_CreateFromURL(&pModel, lodRef.pModelAddress);
-            m_polygonModels.PushBack({ udStrdup(lodRef.pModelAddress), pModel }); // Even if the load failed we should add it
+            if (pItem->loadStatus == vcLiveFeedPolyCache::LS_Downloaded)
+            {
+              pItem->loadStatus = vcLiveFeedPolyCache::LS_Loaded;
+              if (vcPolygonModel_CreateFromMemory(&pItem->pModel, (char*)pItem->pModelData, (int)pItem->modelDataLength) != udR_Success)
+              {
+                // TODO: retry? draw some error mesh?
+                pItem->loadStatus = vcLiveFeedPolyCache::LS_Failed;
+              }
+
+              udFree(pItem->pModelData);
+              pItem->modelDataLength = 0;
+            }
+
+            pModel = pItem->pModel;
+          }
+          else
+          {
+            m_polygonModels.PushBack({ udStrdup(lodRef.pModelAddress), nullptr, vcLiveFeedPolyCache::LS_InQueue, nullptr, 0 });
+            vWorkerThread_AddTask(pProgramState->pWorkerPool, vcLiveFeed_LoadModel, this, false);
           }
 
           lodRef.pModel = pModel;
@@ -494,15 +541,22 @@ void vcLiveFeed::Cleanup(vcState * /*pProgramState*/)
     vcLiveFeedItem_ClearLODs(pFeedItem);
     udFree(pFeedItem);
   }
-  udReleaseMutex(m_pMutex);
-
-  udDestroyMutex(&m_pMutex);
 
   for (size_t i = 0; i < m_polygonModels.length; ++i)
   {
+    while (m_polygonModels[i].loadStatus == vcLiveFeedPolyCache::LS_Downloading)
+    {
+      udYield(); // busy wait
+    }
+
     udFree(m_polygonModels[i].pModelURL);
     vcPolygonModel_Destroy(&m_polygonModels[i].pModel);
+    udFree(m_polygonModels[i].pModelData);
   }
+
+  udReleaseMutex(m_pMutex);
+
+  udDestroyMutex(&m_pMutex);
 
   m_feedItems.Deinit();
   m_polygonModels.Deinit();
