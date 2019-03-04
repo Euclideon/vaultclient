@@ -190,7 +190,11 @@ Modules are currently:
 
 - `convertTitle`: Title of the convert tab
 - `convertReadingFile`: Progress message displayed when reading a file during a convert job
+  - {0} the current file being read
+  - {1} the total number of files
 - `convertWritingPoints`: Progress message displayed when writing to the new file during a convert job
+  - {0} the current number of points written
+  - {1} the total points expected to be read
 - `convertAddToScene`: Label for button that appears following a successful convert job that adds the new object to the scene
 - `convertSettings`: Subheading for section where user can customise settings for the convert job
 - `convertOutputName`: Label next to text box where user specifies the path and name of the output file generation from the convert job
@@ -210,18 +214,27 @@ Modules are currently:
 - `convertAuthor`: Label next to text box where user can set the value of the author field in the output file
 - `convertReset`: Label used for button that resets a completed (or cancelled?) convert job
 - `convertBeginConvert`: Label used for button that commences the currently selected convert job(s)
-- `convertReading`: Used in progress message to indicate that the convert job has begun
-- `convertPointsAbbreviation`: Abbreviation of the word "points", used in progress message during an active convert job
+- `convertPendingEstimate`: label used when the item is pending and has estimated point count
+  - {0} is points estimated
+  - {1} is `0` (no points read because its pending)
+- `convertPendingNoEstimate`: label used when the point estimated isn't available
+  - {0} is `-1` (cannot guess number of points)
+  - {1} is `0` (no points read because its pending)
+- `convertReadingEstimate`: label used when reading and there is an estimated number of points
+  - {0} is points estimated
+  - {1} is number of points read
+- `convertReadingNoEstimate`: label used when reading points and there is no estimated number of points
+  - {0} is `-1` (cannot guess number of points)
+  - {1} is number of points read
+- `convertReadComplete`: label used when reading points has completed
+  - {0} is points total
+  - {1} is points read
 - `convertLoadWatermark`: Label used for button that opens the "load watermark" window
 - `convertRemoveWatermark`: Label used for button that appears once a watermark has been loaded and is used to remove the loaded watermark
-- `convertEstimate`: Used in progress message indicating that the number of points in a queued convert job is an estimate only?
-- `convertRead`: Used in progress message to indicate how many points have been read
 - `convertRemoveAll`: Label used for button that removes all queued convert jobs
 - `convertInputFiles`: Subheading for section showing all currently queued convert jobs, will not appear if no jobs have been added
-- `convertFiles`: Label used to indicate how many files are currently in the queue
+  - {0} is the number of files
 - `convertSRID`: Label showing the current SRID of the convert job
-- `convertPoints`: Label used to show the number of points in a queued file
-- `convertPointsNoEstimate`: Message displayed in place of the number of points when vault client is unable to estimate the number of points in the input file
 - `convertRemove`: Label used for buttons that appear beside each queued file which remove them individually from the queue
 - `convertPathURL`: Label next to text box in Load Watermark window containing the path of the watermark image file
 - `convertLoadButton`: Label used for button in Load Watermark window that loads the currently selected file and closes the window
