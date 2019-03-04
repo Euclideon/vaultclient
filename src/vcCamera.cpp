@@ -185,8 +185,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
       udDouble3 euler = udMath_DirToYPR(transform.direction);
 
-      // Only apply if not flipped over the top
-      // eulerAngles() returns values between 0 and UD_2PI, a value of UD_PI will indicate a flip
+      // Only apply if not exactly vertical
       if (udAbs(euler.y) < UD_HALF_PI)
       {
         pCamera->position = transform.position;
