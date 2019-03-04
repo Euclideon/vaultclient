@@ -205,7 +205,7 @@ void vcModel::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &new
 void vcModel::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
 {
   m_sceneMatrix = delta * m_sceneMatrix;
-  if (!m_moved) m_moved = true;
+  m_moved = true;
 }
 
 void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
