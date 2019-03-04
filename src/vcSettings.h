@@ -116,6 +116,8 @@ struct vcSettings
     bool presentationMode = false;
 
     bool windowsOpen[vcDocks_Count];
+
+    char languageCode[5]; //4 + nullterminator
   } window;
 
   struct
