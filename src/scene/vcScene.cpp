@@ -4,7 +4,7 @@
 #include "vcRender.h"
 
 vcSceneItem::vcSceneItem() :
-  m_loadStatus(0), m_visible(false), m_selected(false), m_expanded(false), m_editName(false),
+  m_loadStatus(0), m_visible(false), m_selected(false), m_expanded(false), m_editName(false), m_moved(false),
   m_type(vcSOT_Unknown), m_typeStr(""), m_pMetadata(nullptr), m_pOriginalZone(nullptr),
   m_pZone(nullptr), m_pPath(nullptr), m_pName(nullptr), m_nameBufferLength(0)
 {
