@@ -104,7 +104,17 @@ struct vcCameraSettings
   double orthographicSize;
 };
 
-static const double vcCamera_HeightToOrthoRatio = 2.8725; // note: trial and error'd
+// 0.05745 per mm of FOV
+static const double vcCamera_HeightToOrthoFOVRatios[] =
+{
+  1.0, // custom: TODO fix me
+  0.86175,
+  1.3788,
+  1.7235,
+  2.8725,
+  4.0215,
+  5.745,
+};
 
 // Lens Sizes
 // - Using formula 2*atan(35/(2*lens)) in radians
