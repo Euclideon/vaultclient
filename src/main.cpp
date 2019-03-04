@@ -607,7 +607,7 @@ int main(int argc, char **args)
                 vcUDP_Load(&programState, pNextLoad);
                 programState.changeActiveDock = vcDocks_Scene;
               }
-              else if (ImGui::IsDockActive(vcString::Get("sceneTitle")) && (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif")))
+              else if (ImGui::IsDockActive(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))) && (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif")))
               {
                 const vcSceneItemRef &clicked = programState.sceneExplorer.clickedItem;
                 vcSceneItem *pPOI = nullptr;
