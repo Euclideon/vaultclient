@@ -140,19 +140,19 @@ void vcLogin(void *pProgramStatePtr)
 
   result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "EuclideonVaultClient", pProgramState->settings.loginInfo.username, pProgramState->password);
   if (result == vE_ConnectionFailure)
-    pProgramState->pLoginErrorMessage = vcString::Get("loginErrorConnection");
+    pProgramState->loginStatus = vcLS_ConnectionError;
   else if (result == vE_NotAllowed)
-    pProgramState->pLoginErrorMessage = vcString::Get("loginErrorAuth");
+    pProgramState->loginStatus = vcLS_AuthError;
   else if (result == vE_OutOfSync)
-    pProgramState->pLoginErrorMessage = vcString::Get("loginErrorTimeSync");
+    pProgramState->loginStatus = vcLS_TimeSync;
   else if (result == vE_SecurityFailure)
-    pProgramState->pLoginErrorMessage = vcString::Get("loginErrorSecurity");
+    pProgramState->loginStatus = vcLS_SecurityError;
   else if (result == vE_ServerFailure)
-    pProgramState->pLoginErrorMessage = vcString::Get("loginErrorNegotiate");
+    pProgramState->loginStatus = vcLS_NegotiationError;
   else if (result == vE_ProxyError)
-    pProgramState->pLoginErrorMessage = vcString::Get("loginErrorProxy");
+    pProgramState->loginStatus = vcLS_ProxyError;
   else if (result != vE_Success)
-    pProgramState->pLoginErrorMessage = vcString::Get("loginErrorOther");
+    pProgramState->loginStatus = vcLS_OtherError;
 
   if (result != vE_Success)
     return;
@@ -216,7 +216,7 @@ void vcLogin(void *pProgramStatePtr)
   if (!pProgramState->settings.loginInfo.rememberUsername)
     memset(pProgramState->settings.loginInfo.username, 0, sizeof(pProgramState->settings.loginInfo.username));
 
-  pProgramState->pLoginErrorMessage = nullptr;
+  pProgramState->loginStatus = vcLS_NoStatus;
   pProgramState->hasContext = true;
 }
 
@@ -428,8 +428,8 @@ int main(int argc, char **args)
   vcMain_LoadSettings(&programState, false);
 
   // setup watermark for background
-  pEucWatermarkData = stbi_load(vcSettings_GetAssetPath("assets/icons/EuclideonLogo.png"), &iconWidth, &iconHeight, &iconBytesPerPixel, 0); // reusing the variables for width etc
-  vcTexture_Create(&programState.pCompanyLogo, iconWidth, iconHeight, pEucWatermarkData);
+  vcTexture_CreateFromFilename(&programState.pCompanyLogo, "asset://assets/textures/logo.png");
+  vcTexture_CreateFromFilename(&programState.pBuildingsTexture, "asset://assets/textures/buildings.png", nullptr, nullptr, vcTFM_Nearest, false);
 
   if (!ImGuiGL_Init(programState.pWindow))
     goto epilogue;
@@ -704,6 +704,7 @@ epilogue:
   vcConvert_Deinit(&programState);
   vcCamera_Destroy(&programState.pCamera);
   vcTexture_Destroy(&programState.pCompanyLogo);
+  vcTexture_Destroy(&programState.pBuildingsTexture);
   vcTexture_Destroy(&programState.pUITexture);
   free(pIconData);
   free(pEucWatermarkData);
@@ -1322,19 +1323,96 @@ void vcRenderWindow(vcState *pProgramState)
 
   if (!pProgramState->hasContext)
   {
-    ImGui::SetNextWindowBgAlpha(0.f);
-    ImGui::SetNextWindowPos(ImVec2(size.x - 5, size.y - 5), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
+    enum vcLoginBackgroundSettings
+    {
+      vcLBS_LoginBoxY = 40,
+      vcLBS_LoginBoxH = 280,
+      vcLBS_LogoW = 375,
+      vcLBS_LogoH = 577,
+    };
 
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f, 0.f, 0.f, 0.f));
-    ImGui::Begin("Watermark", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
-    ImGui::Image(pProgramState->pCompanyLogo, ImVec2(301, 161), ImVec2(0, 0), ImVec2(1, 1));
-    ImGui::End();
-    ImGui::PopStyleColor();
 
-    if (udStrEqual(pProgramState->pLoginErrorMessage, vcString::Get("loginPending")))
+    ImGui::SetNextWindowBgAlpha(0.f);
+    ImGui::SetNextWindowPos(ImVec2(0, size.y), ImGuiCond_Always, ImVec2(0, 1));
+    if (ImGui::Begin("LoginScreenPopups", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
     {
-      ImGui::SetNextWindowSize(ImVec2(500, 160));
-      if (ImGui::Begin(vcString::Get("loginTitle"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
+      ImGui::PushItemWidth(130.f);
+
+      if (ImGui::Button(vcString::Get("loginReleaseNotes")))
+        vcModals_OpenModal(pProgramState, vcMT_ReleaseNotes);
+
+      ImGui::SameLine();
+      if (ImGui::Button(vcString::Get("loginAbout")))
+        vcModals_OpenModal(pProgramState, vcMT_About);
+
+      // TODO: Add More Languages to this (preferably dynamically- remember to factor in packaging on non-windows platforms)
+      const char *langs[] = { "enAU", "zhCN" };
+      ImGui::SameLine();
+      int lang = udStrEqual(pProgramState->settings.window.languageCode, langs[0]) ? 0 : 1;
+      if (ImGui::Combo("##langCode", &lang, langs, (int)udLengthOf(langs)))
+      {
+        udStrcpy(pProgramState->settings.window.languageCode, udLengthOf(pProgramState->settings.window.languageCode), langs[lang]);
+        vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", langs[lang]));
+      }
+
+      // Let the user change the look and feel on the login page
+      const char *themeOptions[] = { vcString::Get("settingsAppearanceDark"), vcString::Get("settingsAppearanceLight") };
+      ImGui::SameLine();
+      int styleIndex = pProgramState->settings.presentation.styleIndex - 1;
+      if (ImGui::Combo("##theme", &styleIndex, themeOptions, (int)udLengthOf(themeOptions)))
+      {
+        pProgramState->settings.presentation.styleIndex = styleIndex + 1;
+        switch (styleIndex)
+        {
+        case 0: ImGui::StyleColorsDark(); break;
+        case 1: ImGui::StyleColorsLight(); break;
+        }
+      }
+
+      ImGui::PopItemWidth();
+    }
+    ImGui::End();
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+    ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_Always);
+    ImGui::SetNextWindowBgAlpha(0.f);
+    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always, ImVec2(0.f, 0.f));
+
+    if (ImGui::Begin("Background", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
+    {
+      ImVec2 p0 = ImVec2((size.x - 2048) / 2, size.y - 512);
+      ImVec2 p1 = ImVec2((size.x + 2048) / 2, size.y);
+
+      static float mouseX = 0.f;
+      if (io.MousePos.x != -FLT_MAX)
+        mouseX = (io.MousePos.x / size.x) * 2.f - 1.f;
+
+      ImGui::GetWindowDrawList()->AddRectFilledMultiColor(ImVec2(0, 0), size, 0xFFB5A245, 0xFFE3D9A8, 0xFFCDBC71, 0xFF998523);
+
+      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 03.f + 100.f, p0.y), ImVec2(p1.x + mouseX * 03.f + 100.f, p1.y), ImVec2(0, 0.75), ImVec2(1, 1.00));
+      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 15.f + 350.f, p0.y), ImVec2(p1.x + mouseX * 15.f + 350.f, p1.y), ImVec2(0, 0.50), ImVec2(1, 0.75));
+      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 40.f - 230.f, p0.y), ImVec2(p1.x + mouseX * 40.f - 230.f, p1.y), ImVec2(0, 0.25), ImVec2(1, 0.50));
+      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 70.f - 080.f, p0.y), ImVec2(p1.x + mouseX * 70.f - 080.f, p1.y), ImVec2(0, 0.00), ImVec2(1, 0.25));
+
+      float scaling = udMin(0.9f * (size.y - vcLBS_LoginBoxH) / vcLBS_LogoH, 1.f);
+      float yOff = (size.y - vcLBS_LoginBoxH) / 2.f;
+      ImGui::GetWindowDrawList()->AddImage(pProgramState->pCompanyLogo, ImVec2((size.x - vcLBS_LogoW * scaling) / 2.f, yOff - (vcLBS_LogoH * scaling * 0.5f)), ImVec2((size.x + vcLBS_LogoW * scaling) / 2, yOff + (vcLBS_LogoH * scaling * 0.5f)));
+    }
+    ImGui::End();
+    ImGui::PopStyleVar(2);
+
+    ImGui::PopStyleColor(); // Border Colour
+
+    ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
+    ImGui::SetNextWindowPos(ImVec2(size.x / 2, size.y - vcLBS_LoginBoxY), ImGuiCond_Always, ImVec2(0.5, 1.0));
+
+    const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorOther" };
+
+    if (pProgramState->loginStatus == vcLS_Pending)
+    {
+      if (ImGui::Begin(vcString::Get("loginTitle"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar))
       {
         vcFolder_ShowLoadStatusIndicator(vcSLS_Loading);
         ImGui::TextUnformatted(vcString::Get("loginMessageChecking"));
@@ -1343,24 +1421,22 @@ void vcRenderWindow(vcState *pProgramState)
     }
     else
     {
-      ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
-      if (ImGui::Begin(vcString::Get("loginTitle"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
+      if (ImGui::Begin(vcString::Get("loginTitle"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
       {
-        if (pProgramState->pLoginErrorMessage != nullptr)
-          ImGui::TextUnformatted(pProgramState->pLoginErrorMessage);
+        ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
 
         bool tryLogin = false;
 
         // Server URL
         tryLogin |= ImGui::InputText(vcString::Get("loginServerURL"), pProgramState->settings.loginInfo.serverURL, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
-        if (pProgramState->pLoginErrorMessage == nullptr && !pProgramState->settings.loginInfo.rememberServer)
+        if (pProgramState->loginStatus == vcLS_NoStatus && !pProgramState->settings.loginInfo.rememberServer)
           ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
         ImGui::SameLine();
         ImGui::Checkbox(udTempStr("%s##rememberServerURL", vcString::Get("loginRememberServer")), &pProgramState->settings.loginInfo.rememberServer);
 
         // Username
         tryLogin |= ImGui::InputText(vcString::Get("loginUsername"), pProgramState->settings.loginInfo.username, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
-        if (pProgramState->pLoginErrorMessage == nullptr && pProgramState->settings.loginInfo.rememberServer && !pProgramState->settings.loginInfo.rememberUsername)
+        if (pProgramState->loginStatus == vcLS_NoStatus && pProgramState->settings.loginInfo.rememberServer && !pProgramState->settings.loginInfo.rememberUsername)
           ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
         ImGui::SameLine();
         ImGui::Checkbox(udTempStr("%s##rememberUser", vcString::Get("loginRememberUser")), &pProgramState->settings.loginInfo.rememberUsername);
@@ -1388,15 +1464,15 @@ void vcRenderWindow(vcState *pProgramState)
         if (!pProgramState->passFocus && udStrlen(pProgramState->password) == 0)
           pProgramState->passFocus = true;
 
-        if (pProgramState->pLoginErrorMessage == nullptr && pProgramState->settings.loginInfo.rememberServer && pProgramState->settings.loginInfo.rememberUsername)
+        if (pProgramState->loginStatus == vcLS_NoStatus && pProgramState->settings.loginInfo.rememberServer && pProgramState->settings.loginInfo.rememberUsername)
           ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
 
-        if (pProgramState->pLoginErrorMessage == nullptr)
-          pProgramState->pLoginErrorMessage = vcString::Get("loginMessageCredentials");
+        if (pProgramState->loginStatus == vcLS_NoStatus)
+          pProgramState->loginStatus = vcLS_EnterCredentials;
 
         if (ImGui::Button(vcString::Get("loginButton")) || tryLogin)
         {
-          pProgramState->pLoginErrorMessage = vcString::Get("loginPending");
+          pProgramState->loginStatus = vcLS_Pending;
           vWorkerThread_AddTask(pProgramState->pWorkerPool, vcLogin, pProgramState, false);
         }
 
@@ -1424,32 +1500,6 @@ void vcRenderWindow(vcState *pProgramState)
       }
       ImGui::End();
     }
-
-    ImGui::SetNextWindowBgAlpha(0.f);
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f, 0.f, 0.f, 0.f));
-    ImGui::SetNextWindowPos(ImVec2(0, size.y), ImGuiCond_Always, ImVec2(0, 1));
-    if (ImGui::Begin("LoginScreenPopups", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
-    {
-      if (ImGui::Button(vcString::Get("loginReleaseNotes")))
-        vcModals_OpenModal(pProgramState, vcMT_ReleaseNotes);
-
-      ImGui::SameLine();
-      if (ImGui::Button(vcString::Get("loginAbout")))
-        vcModals_OpenModal(pProgramState, vcMT_About);
-
-      // TODO: Add More Languages to this (preferably dynamically- remember to factor in packaging on non-windows platforms)
-      const char *langs[] = { "enAU", "zhCN" };
-      ImGui::SameLine();
-      int lang = udStrEqual(pProgramState->settings.window.languageCode, langs[0]) ? 0 : 1;
-      if (ImGui::Combo("##langCode", &lang, langs, (int)udLengthOf(langs)))
-      {
-        udStrcpy(pProgramState->settings.window.languageCode, udLengthOf(pProgramState->settings.window.languageCode), langs[lang]);
-        vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", langs[lang]));
-      }
-
-    }
-    ImGui::End();
-    ImGui::PopStyleColor();
   }
   else
   {
