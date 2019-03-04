@@ -195,6 +195,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   vcConvertItem *pSelectedJob = nullptr;
   vdkConvertItemInfo itemInfo;
   char tempBuffer[256];
+  char localizationBuffer[512];
   char outputName[vcMaxPathLength];
   char tempDirectory[vcMaxPathLength];
 
@@ -255,7 +256,9 @@ void vcConvert_ShowUI(vcState *pProgramState)
         float currentFileProgress = perItemAmount * itemInfo.pointsRead / itemInfo.pointsCount;
         float completedFileProgress = perItemAmount * pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem;
 
-        ImGui::ProgressBar(currentFileProgress + completedFileProgress, ImVec2(-1, 0), udTempStr("%s %s/%s...", vcString::Get("convertReadingFile"), udCommaInt(pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem+1), udCommaInt(pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalItems)));
+        const char *fileIndexStrings[] = { udCommaInt(pProgramState->pConvertContext->jobs[i]->pConvertInfo->currentInputItem + 1), udCommaInt(pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalItems) };
+
+        ImGui::ProgressBar(currentFileProgress + completedFileProgress, ImVec2(-1, 0), vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertReadingFile"), fileIndexStrings, udLengthOf(fileIndexStrings)));
       }
       else
       {
@@ -426,7 +429,10 @@ void vcConvert_ShowUI(vcState *pProgramState)
   if (pSelectedJob->pConvertInfo->totalItems > 0)
   {
     ImGui::SetNextTreeNodeOpen(true, ImGuiCond_FirstUseEver);
-    if (ImGui::TreeNodeEx(pSelectedJob->pConvertInfo, 0, "%s (%s %s)", vcString::Get("convertInputFiles"), udCommaInt(pSelectedJob->pConvertInfo->totalItems), vcString::Get("convertFiles")))
+
+    vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertInputFiles"), udCommaInt(pSelectedJob->pConvertInfo->totalItems));
+
+    if (ImGui::TreeNodeEx(pSelectedJob->pConvertInfo, 0, "%s", localizationBuffer))
     {
       if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled) && ImGui::Button(vcString::Get("convertRemoveAll")))
       {
@@ -443,9 +449,16 @@ void vcConvert_ShowUI(vcState *pProgramState)
         ImGui::TextUnformatted(itemInfo.pFilename);
         ImGui::NextColumn();
 
+        const char *ptCountStrings[] = { udCommaInt(itemInfo.pointsCount), udCommaInt(itemInfo.pointsRead) };
+
         if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
         {
-          ImGui::Text("%s: %s", vcString::Get("convertPoints"), itemInfo.pointsCount == (uint64_t)-1 ? vcString::Get("convertPointsNoEstimate") : udCommaInt(itemInfo.pointsCount));
+          if (itemInfo.pointsCount == -1)
+            vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertPendingNoEstimate"), ptCountStrings, udLengthOf(ptCountStrings));
+          else
+            vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertPendingEstimate"), ptCountStrings, udLengthOf(ptCountStrings));
+
+          ImGui::TextUnformatted(localizationBuffer);
 
           ImGui::NextColumn();
 
@@ -459,19 +472,30 @@ void vcConvert_ShowUI(vcState *pProgramState)
         {
           if (pSelectedJob->pConvertInfo->currentInputItem > i) // Already read
           {
-            ImGui::Text("%s %s%s", vcString::Get("convertRead"), udCommaInt(itemInfo.pointsRead), vcString::Get("convertPointsAbbreviation"));
+            vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertReadComplete"), ptCountStrings, udLengthOf(ptCountStrings));
+            ImGui::TextUnformatted(localizationBuffer);
             ImGui::NextColumn();
             ImGui::ProgressBar(1.f);
           }
           else if (pSelectedJob->pConvertInfo->currentInputItem < i) // Pending read
           {
-            ImGui::Text("%s%s %s", udCommaInt(itemInfo.pointsCount), vcString::Get("convertPointsAbbreviation"), vcString::Get("convertEstimate"));
+            if (itemInfo.pointsCount == -1)
+              vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertPendingNoEstimate"), ptCountStrings, udLengthOf(ptCountStrings));
+            else
+              vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertPendingEstimate"), ptCountStrings, udLengthOf(ptCountStrings));
+
+            ImGui::TextUnformatted(localizationBuffer);
             ImGui::NextColumn();
             ImGui::ProgressBar(0.f);
           }
           else // Currently reading
           {
-            ImGui::Text("%s... %s/%s%s", vcString::Get("convertReading"), udCommaInt(itemInfo.pointsRead), udCommaInt(itemInfo.pointsCount), vcString::Get("convertPointsAbbreviation"));
+            if (itemInfo.pointsCount == -1)
+              vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertReadingNoEstimate"), ptCountStrings, udLengthOf(ptCountStrings));
+            else
+              vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertReadingEstimate"), ptCountStrings, udLengthOf(ptCountStrings));
+
+            ImGui::TextUnformatted(localizationBuffer);
             ImGui::NextColumn();
             ImGui::ProgressBar(1.f * itemInfo.pointsRead / itemInfo.pointsCount);
           }
