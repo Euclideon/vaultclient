@@ -398,7 +398,7 @@ int main(int argc, char **args)
   if (!programState.pWindow)
     goto epilogue;
 
-  pIconData = stbi_load(vcSettings_GetAssetPath("asset://assets/icons/EuclideonClientIcon.png"), &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
+  pIconData = stbi_load(vcSettings_GetAssetPath("assets/icons/EuclideonClientIcon.png"), &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
 
   pitch = iconWidth * iconBytesPerPixel;
   pitch = (pitch + 3) & ~3;
