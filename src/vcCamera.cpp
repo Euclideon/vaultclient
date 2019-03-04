@@ -137,6 +137,16 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
           addPos = udNormalize3(addPos);
       }
     }
+    else // map mode
+    {
+      if (vertPos != 0)
+      {
+        static const double gKeyToMapZoomRatio = 0.00025;
+        double orthoRelativeChange = 1.0 + (gKeyToMapZoomRatio * vertPos * pCamSettings->moveSpeed * speedModifier * deltaTime);
+        double newOrthographicSize = udClamp(pCamSettings->orthographicSize * orthoRelativeChange, sOrthoNearFarPlane.x, sOrthoNearFarPlane.y);
+        pCamSettings->orthographicSize = newOrthographicSize;
+      }
+    }
 
     addPos.z += vertPos;
     addPos *= pCamSettings->moveSpeed * speedModifier * deltaTime;
