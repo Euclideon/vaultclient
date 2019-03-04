@@ -395,6 +395,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
     if (pSelectedJob->watermark.isDirty)
     {
+      pSelectedJob->watermark.isDirty = false;
       vcTexture_Destroy(&pSelectedJob->watermark.pTexture);
       uint8_t *pData = nullptr;
       size_t dataSize = 0;
