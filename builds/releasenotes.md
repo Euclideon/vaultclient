@@ -1,51 +1,87 @@
 Euclideon Vault Client Version History
 
+Known Major Issues In Current Release
+  - User guide does not cover the entire application
+  - Corrupted UDS files silently fail without notifying the user (EVC-20)
+  - Auto-Detection of proxies is only very rarely working
+  - Unable to save projects (EVC-267)
+  - Convert issues relating to full or read-only drives (EVC-126)
+  - Various CSV label import issues (EVC-368, EVC-369)
+  - Very aggressive auto-logout when the server cannot be pinged within 30 seconds (EVC-449)
+  - An issue is preventing macOS users from running the build directly because of signing issues (EVC-408)
+  - Map mode only transitions nicely for items with z at 0 (EVC-460)
+
 Version 0.2.1
-  - Added Map Mode (orthographic rendering) (EVC-227)
-  - Added a built-in Image Viewer
-  - Added the ability to import labels from CSV (EVC-239)
-  - Added a right-click context menu to add POIs, set the map height and Move To
-  - Fixed various typos
-  - Fixed issue with scene tab accepting input while modals were open
-  - Fixed issue where pressing delete while editing a scene item would delete it
-  - Added history buffer for undo/redo functionality
-  - Added the ability to remove watermarks on the convert tab
-  - Fixed issue with temp directory incorrectly changing when modifying the output name
-  - Fixed a number of issues relating to the gizmos.
-    - Multiple objects can be selected and manipulated at the same time
-    - Scale is now calcualated correctly and doesn't reapply every frame
-  - Added "Add Other" button to Scene Explorer
-  - Added slider to Appearance Settings to control the max visible distance of POIs
-  - Fixed issue with manual entry of large values into camera position causing a crash
-  - Added support for loading label hyperlinks from UDP
-    - Added support for some image file extensions to open in image viewer modal
-  - Added ability to change to appropriate tab when files are dropped
-    - Also now changes to the scene when clicking "Add To Scene" after conversion
-  - Fixed issue with error appearing for macOS users after logging in
-  - Fixed issue with load file modal textbox retaining previously loaded file
-  - Map tiles now fade in
-  - Fixed an issue with fence rendered UV calculation sometimes being incorrect
-  - The projected space and camera position are reset back to 0 when clearing the scene
-  - UDS files with unknown SRID's will attempt to use the WKT embedded in the UDS to create a projection
+  - Scene & Scene Explorer changes
+    - Map tiles now fade in (EVC-361)
+    - The projected space and camera position are reset back to 0 when clearing the scene
+    - UDS files with unknown SRID's will attempt to use the WKT embedded in the UDS to create a projection
+    - Removed the padding string from displaying in the metadata
+    - Fixed issue with manual entry of large values into camera position causing a crash (EVC-385, EVC-386)
+    - Added "Add Other" button to Scene Explorer (will be used for less common scene item types)
+    - Fixed a number of issues relating to the gizmos.
+      - Multiple objects can be selected and manipulated at the same time
+      - Scale is now calcualated correctly and doesn't reapply every frame
+    - Added Map Mode (orthographic rendering) (EVC-227)
+    - Added a right-click context menu to add POIs, set the map height and Move To (EVC-392, EVC-399)
+    - Fixed Depth being miscalculated in some situations (EVC-421)
+    - Fixed issue where pressing delete while editing a scene item would delete it (EVC-383)
+    - Changed colour of drag line when adding scene items to folders (EVC-397)
+    - The resolution a model was converted at is displayed in its properties (EVC-443)
+    - Fixed a slowdown that occurred when viewing diagnostic information (EVC-446)
   - Points of Interest changes
-    - Can now add points to the (singular) selected POI from the world context menu
-    - POIs are created on top of the camera by default
+    - Can now add points to the (singular) selected POI from the world context menu (EVC-256)
+    - POIs are created on top of the camera by default (EVC-346)
     - Colours of the line are changeable
-    - Area and Length can be displayed in the label
-    - Added Selector for if the polygon is closed or not
+    - Fixed an issue with fence rendered UV calculation sometimes being incorrect
+    - Area and Length can be displayed in the label (EVC-257)
+    - Added Selector for if the polygon is closed or not (EVC-351)
     - Can now select a single point via the POI properties to manipulate individually
     - The label is now centred from all the points instead of just on the first point
     - The label font size is attempted to be maintained from UDP projects (Vault POI's only have 3 settings though)
-  - Removed the padding string from displaying in the metadata
-  - Improved point estimates by updating them more frequently during the conversion process
-  - Added the option to offset the global starting position of a converted and imported model
-  - Added the option to perform a Quick Partial Convert to avoid long wait times when testing convert settings
-  - Fixed issue with convert jobs not being cleared or cancelled on logout
-  - Added preliminary support for Vault Live Feeds
-  - Added a fancy new login screen
+    - Added slider to Appearance Settings to control the max visible distance of POIs (EVC-374)
+    - Added the ability to import specific label formats from CSV (EVC-239)
+    - Added support for loading label hyperlinks from UDP
+    - Added support for some image file extensions to open in image viewer modal
+    - Dropping an image onto the scene will create a POI at that point with an image attached (EVC-458)
+    - Updated the artwork for the lines (VASS-15)
+  - Lots of improvements to conversion
+    - Readded ability to reset convert tasks
+    - Added the option to offset the global starting position of a converted and imported model
+    - Added the option to perform a Quick Partial Convert to avoid long wait times when testing convert settings
+    - Improved point estimates by updating them more frequently during the conversion process
+    - Added the ability to remove watermarks on the convert tab (EVC-387)
+    - Fixed issue with temp directory incorrectly changing when modifying the output name (EVC-358, EVC-382)
+    - Fixed issue with convert jobs not being cleared or cancelled on logout (EVC-444)
+    - "Add To Scene" takes the user to the Scene window (EVC-378)
+    - Added OBJ file format support (EVC-440)
+    - Fixed issues with specific watermarks (EVC-437)
+    - Fixed a memory leak related to metadata not being cleaned up correctly
+    - Fixed a number of issues related to models submitted by customers (thanks for your assistance)
+      - LAS files in WGS84 occasionally hit an edge case and wouldn't be located correctly (EVC-83)
+      - Lots of file types miscalculated the number of points (EVC-427, EVC-441, EVC-442)
+  - Miscellaneous Changes
+    - Added preliminary support for Vault Live Feeds
+    - Added a fancy new login screen
+    - Fixed issue with scene tab accepting input while modals were open
+    - Added a built-in Image Viewer
+    - Added ability to change to appropriate tab when files are dropped
+    - Fixed issue with error appearing for macOS users after logging in (EVC-448)
+    - Fixed issue with new version detection on macOS (EVC-433)
+    - Fixed issue with load file modal textbox retaining previously loaded file (EVC-412)
+    - Capped the inputs of a lot of the settings to avoid crashes or unexpected behaviour (EVC-452)
+    - Fixed issue with Caps lock being report wrong on Windows if you start the program with caps lock on (EVC-453)
+    - Fixed lots of issues related to changing projection spaces (EVC-428, EVC-429)
+      - also lots of crashes for the same (EVC-316, EVC-407, EVC-409, EVC-411, EVC-430, EVC-447, EVC-450, EVC-364, EVC-388)
+    - Lots of the UI was updated to support localization
+    - Fixed a few situations where text would leave the window and no scroll or word wrap occurred (EVC-141)
+    - Added proper documentation on the command line convertor (EVC-362)
+    - Fixed a memory leak related to license renewal
+    - Fixed a number of reported issues with the user guide (EVC-366, EVC-367)
+    - Fixed a number of issues relating to loading with URLs (EVC-365, EVC-376, EVC-377)
+    - Fixed various typos (EVC-379, EVC-380, EVC-381, EVC-419, EVC-422)
 
 Version 0.2.0
-  ADDITIONS & FIXES
   - Added user guide, we will continue to improve this in the next release to cover all existing features
   - Added a menu bar for frequently changed settings (EVC-298)
     - Added keyboard shortcuts for those settings as well (EVC-238)
@@ -76,17 +112,6 @@ Version 0.2.0
     - Fixed an issue that caused a user to rejoin the queue every time it requested a license while already in queue
     - Better support for concatenated PTS files (UD-19)
     - Fixed issue with classification being averaged instead of picking one of the points for LOD calculations (UD-2)
-
-  KNOWN ISSUES
-  - User guide does not cover the entire application
-  - Corrupted UDS files silently fail without notifying the user
-  - All POI's are defaulting to 0,0,0 at creation
-  - No longer able to restart failed convert jobs
-  - Known crash when exiting the program when currently outside a GeoZone
-  - POI fences have low quality art
-  - Auto-Detection of proxies is only very rarely working
-  - Unable to save projects
-  - Unable to add points to polygons or measure
 
 Version 0.1.2
   - Seperated the project codes for Vault Server / Vault Development kit (EVA) from the Euclideon Vault Client codes (EVC)
