@@ -616,7 +616,10 @@ int main(int argc, char **args)
 
                 if (pPOI == nullptr)
                 {
-                  pPOI = new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, programState.pCamera->position, programState.gis.SRID);
+                  if (programState.worldMousePos != udDouble3::zero())
+                    pPOI = new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, programState.worldMousePos, programState.gis.SRID);
+                  else
+                    pPOI = new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, programState.pCamera->position, programState.gis.SRID);
                   vcScene_AddItem(&programState, pPOI, true);
                 }
 
