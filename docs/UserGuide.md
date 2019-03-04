@@ -271,7 +271,7 @@ The expanded properties for UDS files show the path the UDS was loaded from and 
     - When this mode is active the Gizmo can be used to move the centre point to the desired location.
   - `Camera Mode` updates all feeds in the `Maxmimum distance to display`. This mode is unable to run optimizations based on time and position as the camera moves. As such, we do __*not*__ recommend using this mode.
 
->TIP: Show Diagnostic Information will give a lot more information in the UI about how many items are currently being tracked as well as when the next
+> TIP: Show Diagnostic Information will give a lot more information in the UI about how many items are currently being tracked as well as how long until the next update
 
 ### 4. Settings
 ![Settings](images/settings.png)
