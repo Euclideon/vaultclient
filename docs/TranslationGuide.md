@@ -221,6 +221,7 @@ Modules are currently:
 - `convertFiles`: Label used to indicate how many files are currently in the queue
 - `convertSRID`: Label showing the current SRID of the convert job
 - `convertPoints`: Label used to show the number of points in a queued file
+- `convertPointsNoEstimate`: Message displayed in place of the number of points when vault client is unable to estimate the number of points in the input file
 - `convertRemove`: Label used for buttons that appear beside each queued file which remove them individually from the queue
 - `convertPathURL`: Label next to text box in Load Watermark window containing the path of the watermark image file
 - `convertLoadButton`: Label used for button in Load Watermark window that loads the currently selected file and closes the window
