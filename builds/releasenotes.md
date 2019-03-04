@@ -42,6 +42,7 @@ Version 0.2.1
   - Added the option to perform a Quick Partial Convert to avoid long wait times when testing convert settings
   - Fixed issue with convert jobs not being cleared or cancelled on logout
   - Added preliminary support for Vault Live Feeds
+  - Added a fancy new login screen
 
 Version 0.2.0
   ADDITIONS & FIXES
