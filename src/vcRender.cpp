@@ -606,6 +606,8 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
 
   if (pRenderContext->pSettings->presentation.showDiagnosticInfo)
   {
+    vcFenceRenderer_ClearPoints(pRenderContext->pDiagnosticFences);
+
     float z = 0;
     if (pRenderContext->pSettings->maptiles.mapEnabled)
       z = pRenderContext->pSettings->maptiles.mapHeight;
