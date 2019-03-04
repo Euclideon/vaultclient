@@ -8,7 +8,7 @@ Known Major Issues In Current Release
   - Convert issues relating to full or read-only drives (EVC-126)
   - Various CSV label import issues (EVC-368, EVC-369)
   - Very aggressive auto-logout when the server cannot be pinged within 30 seconds (EVC-449)
-  - An issues is preventing macOS users from running the build because of signing issues (EVC-408)
+  - An issue is preventing macOS users from running the build directly because of signing issues (EVC-408)
   - Map mode only transitions nicely for items with z at 0 (EVC-460)
 
 Version 0.2.1
