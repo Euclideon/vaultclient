@@ -391,7 +391,7 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
       double hitDistance;
       if (udIntersect(mapPlane, pRenderContext->pCamera->worldMouseRay, &hitPoint, &hitDistance) == udR_Success)
       {
-        if (hitDistance < pRenderContext->pSettings->camera.farPlane && (!renderData.pickingSuccess || hitDistance < udMag3(renderData.worldMousePos - localCamPos)))
+        if (hitDistance < pRenderContext->pSettings->camera.farPlane && (!renderData.pickingSuccess || hitDistance < udMag3(renderData.worldMousePos - localCamPos) - pRenderContext->pSettings->camera.nearPlane))
         {
           renderData.pickingSuccess = true;
           renderData.worldMousePos = hitPoint;
