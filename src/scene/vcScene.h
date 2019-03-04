@@ -46,6 +46,7 @@ public:
   bool m_selected;
   bool m_expanded;
   bool m_editName;
+  bool m_moved;
 
   vcSceneItemType m_type;
   char m_typeStr[8];
