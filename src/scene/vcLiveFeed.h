@@ -19,6 +19,19 @@ struct vcLiveFeedPolyCache
 {
   const char *pModelURL;
   vcPolygonModel *pModel;
+
+  enum LoadStatus
+  {
+    LS_InQueue,
+    LS_Downloading,
+    LS_Downloaded,
+    LS_Loaded,
+
+    LS_Failed
+  } volatile loadStatus;
+
+  void *pModelData;
+  int64_t modelDataLength;
 };
 
 enum vcLiveFeedMode
