@@ -110,3 +110,61 @@ void udAsyncJob_Destroy(udAsyncJob **ppJobHandle)
     udFree(*ppJobHandle);
   }
 }
+
+// ****************************************************************************
+// Author: Dave Pevreal, February 2019
+void udAsyncPause_RequestPause(udAsyncPause *pPause)
+{
+  if (pPause && !pPause->pSema)
+  {
+    // Only attempt to pause if a pause is not already in progress
+    udSemaphore *pSema = udCreateSemaphore();
+    if (udInterlockedCompareExchangePointer(&pPause->pSema, pSema, nullptr) != nullptr)
+    {
+      // CompareExchange failed, so another thread initiated a pause, just destroy
+      udDestroySemaphore(&pSema);
+    }
+  }
+}
+
+// ****************************************************************************
+// Author: Dave Pevreal, February 2019
+void udAsyncPause_Resume(udAsyncPause *pPause)
+{
+  if (pPause && pPause->pSema)
+  {
+    // Always clear an error causing the pause upon resume, it is expected to retry
+    pPause->errorCausingPause = udR_Success;
+    pPause->errorContext = udAsyncPause::EC_None;
+    udIncrementSemaphore(pPause->pSema);
+  }
+}
+
+// ****************************************************************************
+// Author: Dave Pevreal, February 2019
+void udAsyncPause_HandlePause(udAsyncPause *pPause)
+{
+  udSemaphore *pSema = pPause->pSema;
+  if (pSema)
+  {
+    pPause->isPaused = true;
+    udWaitSemaphore(pSema);
+    // Once the wait is over the pause has been released, so destroy the semaphore
+    pPause->isPaused = false;
+    udInterlockedExchangePointer(&pPause->pSema, nullptr);
+    udDestroySemaphore(&pSema);
+  }
+}
+
+// ****************************************************************************
+// Author: Dave Pevreal, March 2019
+const char * udAsyncPause_GetErrorContextString(udAsyncPause::Context errorContext)
+{
+  switch (errorContext)
+  {
+    case udAsyncPause::EC_None:                 return "No error context";
+    case udAsyncPause::EC_WritingOutputFile:    return "Writing output file, disk full?";
+    case udAsyncPause::EC_WritingTemporaryFile: return "Writing temporary file, disk full?";
+    default:                                    return "(unknown error context)";
+  }
+}

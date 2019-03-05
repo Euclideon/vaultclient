@@ -1,9 +1,27 @@
+#ifndef UDASYNCJOB_H
+#define UDASYNCJOB_H
+
 #include "udResult.h"
 #include "udThread.h"
 
 // A simple interface to allow function calls to be easily made optionally background calls with one additional parameter
 
 struct udAsyncJob;
+
+// A helper for pausing ASync jobs, ensure all fields are zero to be initialised into non-paused state
+struct udAsyncPause
+{
+  udSemaphore *volatile pSema;         // Created locked by initiator of pause, released and destroyed by handler of pause when incremented to release pause
+  udResult errorCausingPause; // If an error condition (eg disk full) initiated a pause, the error code is here
+  enum Context
+  {
+    EC_None,
+    EC_WritingTemporaryFile,
+    EC_WritingOutputFile,
+  } errorContext;
+  bool isPaused;
+  bool errorsCanInitiatePause; // Set to true if the caller will handle user interaction when paused due to recoverable error
+};
 
 // Create an async job handle
 udResult udAsyncJob_Create(udAsyncJob **ppJobHandle);
@@ -26,6 +44,18 @@ bool udAsyncJob_IsPending(udAsyncJob *pJobHandle);
 
 // Destroy the async job (destroy semaphore)
 void udAsyncJob_Destroy(udAsyncJob **ppJobHandle);
+
+// Initiate a pause
+void udAsyncPause_RequestPause(udAsyncPause *pPause);
+
+// Resume a process currently paused
+void udAsyncPause_Resume(udAsyncPause *pPause);
+
+// (Called on worker thread). If paused, blocks until Resume is called, and destroys
+void udAsyncPause_HandlePause(udAsyncPause *pPause);
+
+// Return a human-readable (English) string for a given error context
+const char *udAsyncPause_GetErrorContextString(udAsyncPause::Context errorContext);
 
 // Some helper macros for boiler-plate code generation, each macro corresponds to number of parameters before pAsyncJob
 // For these macros to work, udAsyncJob *pAsyncJob must be the LAST PARAMETER of the function
@@ -121,3 +151,5 @@ void udAsyncJob_Destroy(udAsyncJob **ppJobHandle);
             return udThread_Create(nullptr, udajStartFunc, udMemDup(&udajParams, sizeof(udajParams), 0, udAF_None),     \
                                    udTCF_None, UDSTRINGIFY(func));                                                      \
         }
+
+#endif // UDASYNCJOB_H

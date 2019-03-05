@@ -40,7 +40,7 @@ int udWaitConditionVariable(udConditionVariable *pConditionVariable, udMutex *pM
 
 udMutex *udCreateMutex();
 void udDestroyMutex(udMutex **ppMutex);
-void udLockMutex(udMutex *pMutex);
+udMutex *udLockMutex(udMutex *pMutex); // Returns pMutex on success
 void udReleaseMutex(udMutex *pMutex);
 
 // A convenience class to lock and unlock based on scope of the variable
