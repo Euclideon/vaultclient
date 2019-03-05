@@ -84,6 +84,9 @@ public:
   // This function handles projection changes if additional handling is required
   virtual void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
 
+  // Moves the camera to the item
+  virtual void SetCameraPosition(vcState *pProgramState);
+
   // Gets the item's pivot point in various spaces
   virtual udDouble3 GetWorldSpacePivot();
   virtual udDouble3 GetLocalSpacePivot();
