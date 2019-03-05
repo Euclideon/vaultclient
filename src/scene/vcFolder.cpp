@@ -198,16 +198,11 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
       if (m_children[i]->m_type != vcSOT_Folder && ImGui::Selectable(vcString::Get("sceneExplorerMoveTo")))
       {
-        udDouble3 localSpaceCenter = m_children[i]->GetWorldSpacePivot();
-
-        // Transform the camera position. Don't do the entire matrix as it may lead to inaccuracy/de-normalised camera
-        if (pProgramState->gis.isProjected && m_children[i]->m_pZone != nullptr && m_children[i]->m_pZone->srid != pProgramState->gis.SRID)
-          localSpaceCenter = udGeoZone_TransformPoint(localSpaceCenter, *m_children[i]->m_pZone, pProgramState->gis.zone);
-
+        // Trigger a camera movement path
         pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
         pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
         pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
-        pProgramState->cameraInput.worldAnchorPoint = localSpaceCenter;
+        pProgramState->cameraInput.worldAnchorPoint = m_children[i]->GetWorldSpacePivot();
         pProgramState->cameraInput.progress = 0.0;
       }
 
