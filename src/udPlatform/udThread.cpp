@@ -768,7 +768,14 @@ udMutex *udCreateMutex()
 #else
   pthread_mutex_t *mutex = (pthread_mutex_t *)udAlloc(sizeof(pthread_mutex_t));
   if (mutex)
-    pthread_mutex_init(mutex, NULL);
+  {
+    // Initialise the mutex to be recursive, this allows the same thread to lock multiple times
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(mutex, &attr);
+    pthread_mutexattr_destroy(&attr);
+  }
   return (udMutex*)mutex;
 #endif
 }
@@ -793,7 +800,7 @@ void udDestroyMutex(udMutex **ppMutex)
 }
 
 // ****************************************************************************
-void udLockMutex(udMutex *pMutex)
+udMutex *udLockMutex(udMutex *pMutex)
 {
   if (pMutex)
   {
@@ -803,6 +810,7 @@ void udLockMutex(udMutex *pMutex)
     pthread_mutex_lock((pthread_mutex_t *)pMutex);
 #endif
   }
+  return pMutex;
 }
 
 // ****************************************************************************

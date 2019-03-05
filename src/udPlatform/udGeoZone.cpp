@@ -52,6 +52,7 @@ const udGeoZoneGeodeticDatumDescriptor g_udGZ_GeodeticDatumDescriptors[udGZGD_Co
   { "Tokyo",                                 "Tokyo",       "Tokyo",                                      udGZE_Bessel1841,    { -146.414, 507.337, 680.507, 0.0, 0.0, 0.0, 0.0 },              7414, 6301 },
   { "WGS 72",                                "WGS 72",      "WGS_1972",                                   udGZE_WGS72,         { 0.0, 0.0, 4.5, 0.0, 0.0, 0.554, 0.2263 },                      4322, 6322 },
   { "JGD2000",                               "JGD2000",     "Japanese_Geodetic_Datum_2000",               udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4612, 6612 },
+  { "JGD2011",                               "JGD2011",     "Japanese_Geodetic_Datum_2011",               udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           6668, 1128 },
   { "GDA94",                                 "GDA94",       "Geocentric_Datum_of_Australia_1994",         udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4283, 6283 },
   { "RGF93",                                 "RGF93",       "Reseau_Geodesique_Francais_1993",            udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4171, 6171 },
   { "NAD83(HARN)",                           "NAD83(HARN)", "NAD83_High_Accuracy_Reference_Network",      udGZE_GRS80,         { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },                           4152, 6152 },
@@ -394,9 +395,10 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
     udGeoZone_SetSpheroid(pZone);
     udGeoZone_SetUTMZoneBounds(pZone, false);
   }
-  else if (sridCode >= 2443 && sridCode <= 2461)
+  else if ((sridCode >= 2443 && sridCode <= 2461) || (sridCode >= 6669 && sridCode <= 6687))
   {
-    // JGD2000 / Japan Plane Rectangular CS I through XIX
+    // {2443-2461} JGD2000 / Japan Plane Rectangular CS I through XIX
+    // {6669-6687} JGD2011 / Japan Plane Rectangular CS I through XIX
 
     const udDouble2 jprcsRegions[] = { // Meridian, Latitude Of Origin
       { 129.5, 33.0 },
@@ -421,9 +423,18 @@ udResult udGeoZone_SetFromSRID(udGeoZone *pZone, int32_t sridCode)
     };
     const char *pRomanNumerals[] = { "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX" };
 
-    pZone->datum = udGZGD_JGD2000;
+    if (sridCode >= 2443 && sridCode <= 2461) // JDG2000
+    {
+      pZone->datum = udGZGD_JGD2000;
+      pZone->zone = sridCode - 2443;
+    }
+    else if (sridCode >= 6669 && sridCode <= 6687) // JDG2011 
+    {
+      pZone->datum = udGZGD_JGD2011;
+      pZone->zone = sridCode - 6669;
+    }
+
     pZone->projection = udGZPT_TransverseMercator;
-    pZone->zone = sridCode - 2443;
     if (pZone->zone > (int)udLengthOf(pRomanNumerals))
       return udR_InternalError;
     udSprintf(pZone->zoneName, udLengthOf(pZone->zoneName), "Japan Plane Rectangular CS %s", pRomanNumerals[pZone->zone]);
@@ -772,7 +783,7 @@ udResult udGeoZone_GetWellKnownText(const char **ppWKT, const udGeoZone &zone)
   pDesc = &g_udGZ_GeodeticDatumDescriptors[zone.datum];
   pEllipsoid = &g_udGZ_StdEllipsoids[pDesc->ellipsoid];
   // If the ellipsoid isn't WGS84, then provide parameters to get to WGS84
-  if (pDesc->ellipsoid != udGZE_WGS84 && zone.datum != udGZGD_CGCS2000)
+  if (pDesc->ellipsoid != udGZE_WGS84 && zone.datum != udGZGD_CGCS2000 && zone.datum != udGZGD_JGD2011)
   {
     udSprintf(&pWKTToWGS84, ",TOWGS84[%s,%s,%s,%s,%s,%s,%s]",
       udTempStr_TrimDouble(pDesc->paramsHelmert7[0], 3),
@@ -813,8 +824,8 @@ udResult udGeoZone_GetWellKnownText(const char **ppWKT, const udGeoZone &zone)
                                 udTempStr_TrimDouble(zone.falseEasting, 3), udTempStr_TrimDouble(zone.falseNorthing, 3), pWKTUnit);
   }
 
-  // JGD2000 and CGCS2000 doesn't provide axis information
-  if (zone.datum != udGZGD_JGD2000 && zone.datum != udGZGD_CGCS2000)
+  // JGD2000, JGD2011 and CGCS2000 doesn't provide axis information
+  if (zone.datum != udGZGD_JGD2000 && zone.datum != udGZGD_JGD2011 && zone.datum != udGZGD_CGCS2000)
   {
     // Generally transverse mercator projections have one style, lambert another, except for 3112
     if (zone.projection == udGZPT_TransverseMercator || zone.srid == 3112)

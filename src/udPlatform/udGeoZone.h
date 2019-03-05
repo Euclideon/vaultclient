@@ -33,6 +33,7 @@ enum udGeoZoneGeodeticDatum
   udGZGD_Tokyo,      //EPSG:7414
   udGZGD_WGS72,      //EPSG:4322
   udGZGD_JGD2000,    //EPSG:4612
+  udGZGD_JGD2011,    //EPSG:6668
   udGZGD_GDA94,      //EPSG:4283
   udGZGD_RGF93,      //EPSG:4171
   udGZGD_NAD83_HARN, //EPSG:4152

@@ -57,6 +57,7 @@ enum udResult
   udR_OutOfRange,
   udR_CalledMoreThanOnce,
   udR_ImageLoadFailure,
+  udR_StreamerNotInitialised,
 
   udR_OpenFailure,
   udR_CloseFailure,
