@@ -305,10 +305,11 @@ void vcModals_DrawFileModal(vcState *pProgramState)
   if (mode < vcMT_Count)
   {
     pProgramState->modalOpen = true;
-    ImGui::InputText(vcString::Get("sceneExplorerPathURL"), pProgramState->modelPath, vcMaxPathLength);
+    bool pressedEnter = ImGui::InputText(vcString::Get("sceneExplorerPathURL"), pProgramState->modelPath, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+
     ImGui::SameLine();
 
-    if (ImGui::Button(vcString::Get("sceneExplorerLoadButton"), ImVec2(100.f, 0)))
+    if (ImGui::Button(vcString::Get("sceneExplorerLoadButton"), ImVec2(100.f, 0)) || pressedEnter)
     {
       if (mode == vcMT_AddUDS || mode == vcMT_ImportUDP)
         pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
@@ -371,10 +372,11 @@ void vcModals_DrawLoadWatermark(vcState *pProgramState)
   if (ImGui::BeginPopupModal(vcString::Get("convertLoadWatermark")))
   {
     pProgramState->modalOpen = true;
-    ImGui::InputText(vcString::Get("convertPathURL"), pProgramState->modelPath, vcMaxPathLength);
+    bool pressedEnter = ImGui::InputText(vcString::Get("convertPathURL"), pProgramState->modelPath, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+
     ImGui::SameLine();
 
-    if (ImGui::Button(vcString::Get("convertLoadButton"), ImVec2(100.f, 0)))
+    if (ImGui::Button(vcString::Get("convertLoadButton"), ImVec2(100.f, 0)) || pressedEnter)
     {
       vdkConvert_AddWatermark(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext, pProgramState->modelPath);
       pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->watermark.isDirty = true;
