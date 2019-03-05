@@ -186,16 +186,21 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
       if (pCamSettings->invertY)
         pCamInput->mouseInput.y *= -1.0;
 
+      // Apply X-axis input
       transform = udRotateAround(transform, pCamInput->worldAnchorPoint, { 0, 0, 1 }, pCamInput->mouseInput.x);
       udRay<double> temp = transform;
 
+      // Apply Y-axis input
       transform = udRotateAround(transform, pCamInput->worldAnchorPoint, udDoubleQuat::create(udMath_DirToYPR(transform.direction)).apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
-      if ((transform.direction.y > 0 && temp.direction.y < 0) || (transform.direction.y < 0 && temp.direction.y > 0) || (transform.direction.x > 0 && temp.direction.x < 0) || (transform.direction.x < 0 && temp.direction.x > 0))
+      if ((transform.direction.x > 0 && temp.direction.x < 0) || (transform.direction.x < 0 && temp.direction.x > 0))
         transform = temp;
-
       udDouble3 euler = udMath_DirToYPR(transform.direction);
 
-      // Only apply if not exactly vertical
+      // handle special case when camera pointing directly down causes flip due to ambiguous udATan2 calculation
+      if (pCamera->eulerRotation.y == -UD_HALF_PI)
+        euler.x -= UD_PI;
+
+      // Only apply if not exactly vertical, this will cause flickering
       if (udAbs(euler.y) < UD_HALF_PI)
       {
         pCamera->position = transform.position;
