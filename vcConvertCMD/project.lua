@@ -23,6 +23,10 @@ project "vaultConvertCMD"
 	filter { "system:macosx" }
 		frameworkdirs { "/Library/Frameworks/" }
 		links { "CoreFoundation.framework", "Security.framework" }
+
+	filter { "system:linux" }
+		linkoptions { "-Wl,-rpath '-Wl,$$ORIGIN'" } -- Check beside the executable for the SDK
+
 	filter {}
 
 	-- include common stuff
