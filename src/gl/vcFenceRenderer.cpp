@@ -1,11 +1,12 @@
 
-#include "gl/vcFenceRenderer.h"
+#include "vcFenceRenderer.h"
+
+#include "udPlatform/udChunkedArray.h"
+
 #include "gl/vcMesh.h"
 #include "gl/vcRenderShaders.h"
 #include "gl/vcTexture.h"
 #include "vcSettings.h"
-
-#include <vector>
 
 struct vcFenceSegment
 {
@@ -19,7 +20,7 @@ struct vcFenceSegment
 
 struct vcFenceRenderer
 {
-  std::vector<vcFenceSegment> *pSegments;
+  udChunkedArray<vcFenceSegment> segments;
 
   double totalTimePassed;
   vcFenceRendererConfig config;
@@ -101,7 +102,7 @@ udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer)
   pFenceRenderer = udAllocType(vcFenceRenderer, 1, udAF_Zero);
   UD_ERROR_NULL(pFenceRenderer, udR_MemoryAllocationFailure);
 
-  pFenceRenderer->pSegments = new std::vector<vcFenceSegment>();
+  pFenceRenderer->segments.Init(32);
 
   // defaults
   pFenceRenderer->config.ribbonWidth = 2.5f;
@@ -118,14 +119,12 @@ udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer)
   vcShader_GetConstantBuffer(&pFenceRenderer->renderShader.uniform_everyFrame, pFenceRenderer->renderShader.pProgram, "u_EveryFrame", sizeof(pFenceRenderer->renderShader.everyFrameParams));
   vcShader_GetConstantBuffer(&pFenceRenderer->renderShader.uniform_everyObject, pFenceRenderer->renderShader.pProgram, "u_EveryObject", sizeof(pFenceRenderer->renderShader.everyObjectParams));
 
+  vcFenceRenderer_Init();
   *ppFenceRenderer = pFenceRenderer;
   pFenceRenderer = nullptr;
 
 epilogue:
-
-  if (pFenceRenderer == nullptr)
-    vcFenceRenderer_Init();
-
+  udFree(pFenceRenderer);
   return result;
 }
 
@@ -138,8 +137,7 @@ udResult vcFenceRenderer_Destroy(vcFenceRenderer **ppFenceRenderer)
   *ppFenceRenderer = nullptr;
 
   vcFenceRenderer_ClearPoints(pFenceRenderer);
-  delete pFenceRenderer->pSegments;
-  pFenceRenderer->pSegments = nullptr;
+  pFenceRenderer->segments.Deinit();
 
   vcShader_DestroyShader(&pFenceRenderer->renderShader.pProgram);
 
@@ -160,9 +158,9 @@ udResult vcFenceRenderer_SetConfig(vcFenceRenderer *pFenceRenderer, const vcFenc
   // need to rebuild verts on width change
   if ((oldWidth - pFenceRenderer->config.ribbonWidth) > UD_EPSILON)
   {
-    for (size_t i = 0; i < pFenceRenderer->pSegments->size(); ++i)
+    for (size_t i = 0; i < pFenceRenderer->segments.length; ++i)
     {
-      if (vcFenceRenderer_CreateSegmentVertexData(pFenceRenderer, &pFenceRenderer->pSegments->at(i)) != udR_Success)
+      if (vcFenceRenderer_CreateSegmentVertexData(pFenceRenderer, &pFenceRenderer->segments[i]) != udR_Success)
       {
         result = udR_InternalError;
       }
@@ -340,13 +338,9 @@ udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer
   pVerts[vertIndex + 1].uv.x = currentUV + maxUV;
 
   if (pSegment->pMesh)
-  {
-    UD_ERROR_IF(vcMesh_UploadData(pSegment->pMesh, vcRibbonVertexLayout, layoutCount, pVerts, pSegment->vertCount, nullptr, 0), udR_InternalError);
-  }
-  else
-  {
-    UD_ERROR_IF(vcMesh_Create(&pSegment->pMesh, vcRibbonVertexLayout, layoutCount, pVerts, pSegment->vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
-  }
+    vcMesh_Destroy(&pSegment->pMesh);
+
+  UD_ERROR_IF(vcMesh_Create(&pSegment->pMesh, vcRibbonVertexLayout, layoutCount, pVerts, pSegment->vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
 
 epilogue:
   udFree(pVerts);
@@ -360,10 +354,9 @@ udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *p
 
   UD_ERROR_IF(pointCount < 2, udR_InvalidParameter_);
 
-  newSegment.pCachedPoints = udAllocType(udDouble3, pointCount + closed, udAF_Zero);
+  newSegment.pointCount = pointCount + (closed ? 1 : 0);
+  newSegment.pCachedPoints = udAllocType(udDouble3, newSegment.pointCount, udAF_Zero);
   UD_ERROR_NULL(newSegment.pCachedPoints, udR_MemoryAllocationFailure);
-
-  newSegment.pointCount = pointCount + closed;
 
   // Reposition all the points around an origin point
   newSegment.fenceOriginOffset = udDouble4x4::translation(pPoints[0]);
@@ -376,7 +369,7 @@ udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *p
     newSegment.pCachedPoints[pointCount] = udDouble3::zero();
 
   vcFenceRenderer_CreateSegmentVertexData(pFenceRenderer, &newSegment);
-  pFenceRenderer->pSegments->push_back(newSegment);
+  pFenceRenderer->segments.PushBack(newSegment);
 
 epilogue:
 
@@ -385,22 +378,22 @@ epilogue:
 
 void vcFenceRenderer_ClearPoints(vcFenceRenderer *pFenceRenderer)
 {
-  for (size_t i = 0; i < pFenceRenderer->pSegments->size(); ++i)
+  for (size_t i = 0; i < pFenceRenderer->segments.length; ++i)
   {
-    vcFenceSegment *pSegment = &pFenceRenderer->pSegments->at(i);
+    vcFenceSegment *pSegment = &pFenceRenderer->segments[i];
 
     vcMesh_Destroy(&pSegment->pMesh);
     udFree(pSegment->pCachedPoints);
   }
 
-  pFenceRenderer->pSegments->clear();
+  pFenceRenderer->segments.Clear();
 }
 
 bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &viewProjectionMatrix, double deltaTime)
 {
   bool success = true;
 
-  if (pFenceRenderer->pSegments->size() == 0)
+  if (pFenceRenderer->segments.length == 0)
     return success;
 
   pFenceRenderer->totalTimePassed += deltaTime;
@@ -443,9 +436,9 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
   vcShader_BindTexture(pFenceRenderer->renderShader.pProgram, pDisplayTexture, 0, pFenceRenderer->renderShader.uniform_texture);
   vcShader_BindConstantBuffer(pFenceRenderer->renderShader.pProgram, pFenceRenderer->renderShader.uniform_everyFrame, &pFenceRenderer->renderShader.everyFrameParams, sizeof(pFenceRenderer->renderShader.everyFrameParams));
 
-  for (size_t i = 0; i < pFenceRenderer->pSegments->size(); ++i)
+  for (size_t i = 0; i < pFenceRenderer->segments.length; ++i)
   {
-    vcFenceSegment *pSegment = &pFenceRenderer->pSegments->at(i);
+    vcFenceSegment *pSegment = &pFenceRenderer->segments[i];
 
     pFenceRenderer->renderShader.everyObjectParams.modelViewProjection = udFloat4x4::create(viewProjectionMatrix * pSegment->fenceOriginOffset);
     vcShader_BindConstantBuffer(pFenceRenderer->renderShader.pProgram, pFenceRenderer->renderShader.uniform_everyObject, &pFenceRenderer->renderShader.everyObjectParams, sizeof(pFenceRenderer->renderShader.everyObjectParams));

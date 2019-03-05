@@ -604,9 +604,14 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
     vcGLState_SetBlendMode(vcGLSBM_Interpolative);
 
   if (pTileRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
+  {
+    vcGLState_SetViewportDepthRange(0.0f, 0.0f);
     vcGLState_SetDepthStencilMode(vcGLSDM_Always, false, &stencil);
+  }
   else if (pTileRenderer->pSettings->maptiles.blendMode == vcMTBM_Underlay)
+  {
     vcGLState_SetViewportDepthRange(1.0f, 1.0f);
+  }
 
   vcShader_Bind(pTileRenderer->presentShader.pProgram);
   pTileRenderer->presentShader.everyObject.projectionMatrix = udFloat4x4::create(proj);
@@ -644,8 +649,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
 
   vcTileRenderer_RecursiveSetRendered(pTileRenderer, pRootNode, pRootNode->rendered);
 
-  if (pTileRenderer->pSettings->maptiles.blendMode == vcMTBM_Underlay)
-    vcGLState_SetViewportDepthRange(0.0f, 1.0f);
+  vcGLState_SetViewportDepthRange(0.0f, 1.0f);
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true, nullptr);
   vcGLState_SetBlendMode(vcGLSBM_None);
   vcShader_Bind(nullptr);
