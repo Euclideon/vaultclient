@@ -26,22 +26,22 @@ void vcSettings_RecursiveLoadDock(const udJSON &parentDock, int parentIndex, boo
   if (udStrEquali(g_dock.m_docks[newIndex]->label, "Scene"))
   {
     ImGui::MemFree(g_dock.m_docks[newIndex]->label);
-    g_dock.m_docks[newIndex]->label = ImStrdup("###sceneDock");
+    g_dock.m_docks[newIndex]->label = ImStrdup("scene###sceneDock");
   }
   else if (udStrEquali(g_dock.m_docks[newIndex]->label, "Convert"))
   {
     ImGui::MemFree(g_dock.m_docks[newIndex]->label);
-    g_dock.m_docks[newIndex]->label = ImStrdup("###convertDock");
+    g_dock.m_docks[newIndex]->label = ImStrdup("convert###convertDock");
   }
   else if (udStrEquali(g_dock.m_docks[newIndex]->label, "Scene Explorer"))
   {
     ImGui::MemFree(g_dock.m_docks[newIndex]->label);
-    g_dock.m_docks[newIndex]->label = ImStrdup("###sceneExplorerDock");
+    g_dock.m_docks[newIndex]->label = ImStrdup("sceneExplorer###sceneExplorerDock");
   }
   else if (udStrEquali(g_dock.m_docks[newIndex]->label, "Settings"))
   {
     ImGui::MemFree(g_dock.m_docks[newIndex]->label);
-    g_dock.m_docks[newIndex]->label = ImStrdup("###settingsDock");
+    g_dock.m_docks[newIndex]->label = ImStrdup("settings###settingsDock");
   }
 
   g_dock.m_docks[newIndex]->id = ImHashStr(g_dock.m_docks[newIndex]->label, 0);
