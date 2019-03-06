@@ -11,6 +11,14 @@ Known Major Issues In Current Release
   - An issue is preventing macOS users from running the build directly because of signing issues (EVC-408)
   - Map mode only transitions nicely for items with z at 0 (EVC-460)
 
+Version 0.2.2 (Might End up being 0.3.0)
+  - Scene & Scene Explorer
+    - Fixed an issue with the camera misbehaving when looking straight down in perspective mode
+  - Conversion
+    - _None Yet_
+  - Miscellaneous
+    - The file dialog modal now starts loading after pressing enter/return on the input name field (EVC-414)
+
 Version 0.2.1
   - Scene & Scene Explorer changes
     - Map tiles now fade in (EVC-361)
