@@ -85,6 +85,10 @@ struct vcCameraInput
   udDouble3 mouseInput;
 
   bool transitioningToMapMode;
+
+  udDouble3 smoothTranslation;
+  udDouble3 smoothRotation;
+  double smoothOrthographicChange;
 };
 
 struct vcCameraSettings
