@@ -362,6 +362,12 @@
   "scenePOILineOrientationVert": "Vertical / Fence",
   "scenePOILineOrientationHorz": "Horizontal / Path",
 
+  "scenePOIPerformFlyThrough": "Fly Camera Through All Points",
+  "scenePOIBookmarkMode": "Enable Bookmark Mode",
+  "scenePOISetBookmarkCamera": "Set Bookmark to Camera Position",
+  "scenePOICameraPosition": "Bookmark Position",
+  "scenePOICameraRotation": "Bookmark Rotation",
+
   "liveFeedUpdateFrequency": "Update frequency",
   "liveFeedMaxDisplayTime": "Oldest display time",
   "liveFeedDisplayDistance": "Maximum distance to display",

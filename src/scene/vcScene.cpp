@@ -232,9 +232,15 @@ bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel)
   // refresh map tiles when geozone changes
   vcRender_ClearTiles(pProgramState->pRenderContext);
 
-  pProgramState->pCamera->position = pModel->GetWorldSpacePivot();
+  // move camera to the new item's position
+  pModel->SetCameraPosition(pProgramState);
 
   return true;
+}
+
+void vcSceneItem::SetCameraPosition(vcState *pProgramState)
+{
+  pProgramState->pCamera->position = GetWorldSpacePivot();
 }
 
 udDouble3 vcSceneItem::GetWorldSpacePivot()
