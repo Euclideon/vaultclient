@@ -14,7 +14,7 @@ Known Major Issues In Current Release
 Version 0.2.2 (Might End up being 0.3.0)
   - Scene & Scene Explorer
     - Fixed an issue with the camera misbehaving when looking straight down in perspective mode
-    - Added camera smoothing
+    - Added camera smoothing (EVC-471)
   - Conversion
     - _None Yet_
   - Miscellaneous
