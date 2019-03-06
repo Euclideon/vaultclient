@@ -1,5 +1,28 @@
 # **Euclideon Vault Client Translation Guide**
 
+### Version 1.2
+##### Strings Added (enAU):
+- "settingsAppearancePOIDistance"
+- "convertJobs"
+- "convertAwaiting"
+- "convertQueued"
+- "convertAwaitingLicense"
+- "convertRunning"
+- "convertCompleted"
+- "convertCancelled"
+- "convertFailed"
+
+##### Strings Removed (zhCN):
+- "convertOverride"
+- "convertEstimate"
+- "convertRead"
+- "convertPoints"
+
+##### Strings Modified (zhCN):
+- "loginButton"
+- "convertLoadButton"
+- "sceneExplorerLoadButton"
+
 ## Getting Started with a New Translation
 
 Translation files live in `/assets/lang/` and are named using the ISO standards [ISO 639-1](https://wikipedia.org/wiki/ISO_639-1) and [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2). The Australian English translation is therefore `en-AU.json`.
@@ -241,6 +264,14 @@ Modules are currently:
 - `convertCancelButton`: Label used for button beside in Load Watermark window that closes the window
 - `convertFileExistsTitle`: Title of the window that appears when the specified convert output file already exists
 - `convertFileExistsMessage`: Message displayed in the window that appears when the specified convert output file already exists, {0} is the full path and name of the file
+- `convertJobs`: Label used for the list of conversion jobs at the top of the convert page
+- `convertAwaiting`: Message displayed when no conversion jobs have been added
+- `convertQueued`: Message displayed next to a job that is queued to start but has not started yet
+- `convertAwaitingLicense`: Message displayed next to a job that is waiting for a convert license and has not started yet
+- `convertRunning`: Message displayed next to a job that is currently being converted
+- `convertCompleted`: Message displayed next to a job that has finished being converted
+- `convertCancelled`: Message displayed next to a job that was cancelled by the user
+- `convertFailed`: Message displayed next to a job that failed to finish converting
 
 ### Menu Strings
 
