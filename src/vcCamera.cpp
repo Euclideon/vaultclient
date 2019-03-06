@@ -248,43 +248,34 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
   case vcCIS_Orbiting:
   {
     double distanceToPointSqr = udMagSq3(pCamInput->worldAnchorPoint - pCamera->position);
-
-    if (distanceToPointSqr != 0.0)
+    if (distanceToPointSqr != 0.0 && (pCamInput->mouseInput.x != 0 || pCamInput->mouseInput.y != 0))
     {
-      udRay<double> transform;
+      udRay<double> transform, tempTransform;
       transform.position = pCamera->position;
       transform.direction = udMath_DirFromYPR(pCamera->eulerRotation);
-
-      // Rotation
       if (pCamSettings->invertX)
         pCamInput->mouseInput.x *= -1.0;
       if (pCamSettings->invertY)
         pCamInput->mouseInput.y *= -1.0;
 
-      // Apply X-axis input
-      transform = udRotateAround(transform, pCamInput->worldAnchorPoint, { 0, 0, 1 }, pCamInput->mouseInput.x);
-      udRay<double> temp = transform;
+      // Apply input
+      tempTransform = udRotateAround(transform, pCamInput->worldAnchorPoint, { 0, 0, 1 }, pCamInput->mouseInput.x);
+      transform = udRotateAround(tempTransform, pCamInput->worldAnchorPoint, udDoubleQuat::create(udMath_DirToYPR(tempTransform.direction)).apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
 
-      // Apply Y-axis input
-      transform = udRotateAround(transform, pCamInput->worldAnchorPoint, udDoubleQuat::create(udMath_DirToYPR(transform.direction)).apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
-      if ((transform.direction.x > 0 && temp.direction.x < 0) || (transform.direction.x < 0 && temp.direction.x > 0))
-        transform = temp;
+      // Prevent flipping
+      if ((transform.direction.x > 0 && tempTransform.direction.x < 0) || (transform.direction.x < 0 && tempTransform.direction.x > 0))
+        transform = tempTransform;
+
       udDouble3 euler = udMath_DirToYPR(transform.direction);
 
-      // handle special case when camera pointing directly down causes flip due to ambiguous udATan2 calculation
+      // Handle special case where ATan2 is ambiguous
       if (pCamera->eulerRotation.y == -UD_HALF_PI)
-        euler.x -= UD_PI;
+        euler.x += UD_PI;
 
-      // Only apply if not exactly vertical, this will cause flickering
-      if (udAbs(euler.y) < UD_HALF_PI)
-      {
-        pCamera->position = transform.position;
-        pCamera->eulerRotation = euler;
-        pCamera->eulerRotation.z = 0;
-
-        if (pCamera->eulerRotation.y > UD_PI)
-          pCamera->eulerRotation.y -= UD_2PI;
-      }
+      // Apply transform
+      pCamera->position = transform.position;
+      pCamera->eulerRotation = euler;
+      pCamera->eulerRotation.z = 0;
     }
   }
   break;
@@ -336,7 +327,8 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     pCamera->position = pCamInput->startPosition + moveVector * travelProgress;
 
     udDouble3 targetEuler = udMath_DirToYPR(pCamInput->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest));
-    pCamera->eulerRotation = udSlerp(pCamInput->startAngle, udDoubleQuat::create(targetEuler), travelProgress).eulerAngles();
+    if (pCamInput->progress < 0.5)
+      pCamera->eulerRotation = udSlerp(pCamInput->startAngle, udDoubleQuat::create(targetEuler), travelProgress * 2.0).eulerAngles();
 
     if (pCamera->eulerRotation.y > UD_PI)
       pCamera->eulerRotation.y -= UD_2PI;
