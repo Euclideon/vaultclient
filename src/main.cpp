@@ -1386,15 +1386,19 @@ void vcRenderWindow(vcState *pProgramState)
       ImVec2 p1 = ImVec2((size.x + 2048) / 2, size.y);
 
       static float mouseX = 0.f;
+      static float mouseY = 0.f;
       if (io.MousePos.x != -FLT_MAX)
+      {
         mouseX = (io.MousePos.x / size.x) * 2.f - 1.f;
+        mouseY = (io.MousePos.y / size.y);
+      }
 
       ImGui::GetWindowDrawList()->AddRectFilledMultiColor(ImVec2(0, 0), size, 0xFFB5A245, 0xFFE3D9A8, 0xFFCDBC71, 0xFF998523);
 
-      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 03.f + 100.f, p0.y), ImVec2(p1.x + mouseX * 03.f + 100.f, p1.y), ImVec2(0, 0.75), ImVec2(1, 1.00));
-      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 15.f + 350.f, p0.y), ImVec2(p1.x + mouseX * 15.f + 350.f, p1.y), ImVec2(0, 0.50), ImVec2(1, 0.75));
-      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 40.f - 230.f, p0.y), ImVec2(p1.x + mouseX * 40.f - 230.f, p1.y), ImVec2(0, 0.25), ImVec2(1, 0.50));
-      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 70.f - 080.f, p0.y), ImVec2(p1.x + mouseX * 70.f - 080.f, p1.y), ImVec2(0, 0.00), ImVec2(1, 0.25));
+      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 03.f + 100.f, p0.y + mouseY * 0.f), ImVec2(p1.x + mouseX * 03.f + 100.f, p1.y + mouseY * 0.f), ImVec2(0, 0.75), ImVec2(1, 1.00));
+      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 15.f + 350.f, p0.y + mouseY * 1.f), ImVec2(p1.x + mouseX * 15.f + 350.f, p1.y + mouseY * 1.f), ImVec2(0, 0.50), ImVec2(1, 0.75));
+      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 40.f - 230.f, p0.y + mouseY * 2.f), ImVec2(p1.x + mouseX * 40.f - 230.f, p1.y + mouseY * 2.f), ImVec2(0, 0.25), ImVec2(1, 0.50));
+      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 70.f - 080.f, p0.y + mouseY * 3.f), ImVec2(p1.x + mouseX * 70.f - 080.f, p1.y + mouseY * 3.f), ImVec2(0, 0.00), ImVec2(1, 0.25));
 
       float scaling = udMin(0.9f * (size.y - vcLBS_LoginBoxH) / vcLBS_LogoH, 1.f);
       float yOff = (size.y - vcLBS_LoginBoxH) / 2.f;
