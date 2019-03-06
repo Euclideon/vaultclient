@@ -139,6 +139,40 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
   if (m_line.numPoints > 1)
   {
+    static bool flyingThroughPoints = false;
+    static int flyThroughPoint = -1;
+    if (ImGui::Button(vcString::Get("scenePOIPerformFlyThrough")))
+    {
+      flyingThroughPoints = true;
+      pProgramState->cameraInput.progress = 0.0;
+    }
+
+    // Perform a fly-through
+    if (flyingThroughPoints)
+    {
+      bool finalLoop = m_line.closed && flyThroughPoint == m_line.numPoints - 1;
+      if ((flyThroughPoint < m_line.numPoints - 1 || finalLoop) && (pProgramState->cameraInput.progress == 1.0 ||
+        (pProgramState->cameraInput.progress == 0.0 && pProgramState->cameraInput.inputState != vcCIS_MovingToPoint)))
+      {
+        udDouble3 currentPoint = pProgramState->pCamera->position;
+        udDouble3 nextPoint = m_line.pPoints[flyThroughPoint + 1];
+        if (finalLoop) // if closed loop then do one final trip to the starting point
+          nextPoint = m_line.pPoints[0];
+        pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
+        pProgramState->cameraInput.progress = 0.0;
+        pProgramState->cameraInput.startPosition = currentPoint;
+        pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
+        pProgramState->cameraInput.worldAnchorPoint = nextPoint;
+        ++flyThroughPoint;
+      }
+    }
+    // If exiting out of the fly-through
+    if (pProgramState->cameraInput.inputState != vcCIS_MovingToPoint)
+    {
+      flyThroughPoint = -1;
+      flyingThroughPoints = false;
+    }
+
     if (ImGui::SliderInt(vcString::Get("scenePOISelectedPoint"), &m_line.selectedPoint, -1, m_line.numPoints - 1))
       m_line.selectedPoint = udClamp(m_line.selectedPoint, -1, m_line.numPoints - 1);
 
@@ -177,6 +211,19 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
         UpdatePoints();
 
       ImGui::TreePop();
+    }
+  }
+
+  // Handle POI bookmark mode
+  if (ImGui::Checkbox(vcString::Get("scenePOIBookmarkMode"), &m_bookmarkMode) || m_bookmarkMode)
+  {
+    ImGui::InputScalarN(udTempStr("%s##POIBookmarkPos%zu", vcString::Get("scenePOICameraPosition"), *pItemID), ImGuiDataType_Double, &m_bookmarkCameraPosition.x, 3);
+    ImGui::InputScalarN(udTempStr("%s##POIBookmarkRot%zu", vcString::Get("scenePOICameraRotation"), *pItemID), ImGuiDataType_Double, &m_bookmarkCameraRotation.x, 3);
+    if (ImGui::Button(vcString::Get("scenePOISetBookmarkCamera")))
+    {
+      // Store the RELATIVE position and orientation to avoid potential issues with projection changes
+      m_bookmarkCameraPosition = pProgramState->pCamera->position - m_pLabelInfo->worldPosition;
+      m_bookmarkCameraRotation = pProgramState->pCamera->eulerRotation - udMath_DirToYPR(-m_bookmarkCameraPosition);
     }
   }
 
@@ -255,6 +302,16 @@ void vcPOI::Cleanup(vcState * /*pProgramState*/)
   udFree(m_pLabelInfo);
 }
 
+void vcPOI::SetCameraPosition(vcState *pProgramState)
+{
+  pProgramState->pCamera->position = m_pLabelInfo->worldPosition;
+  if (m_bookmarkMode)
+  {
+    pProgramState->pCamera->position += m_bookmarkCameraPosition;
+    pProgramState->pCamera->eulerRotation = udMath_DirToYPR(-m_bookmarkCameraPosition) + m_bookmarkCameraRotation;
+  }
+}
+
 udDouble4x4 vcPOI::GetWorldSpaceMatrix()
 {
   if (m_line.selectedPoint == -1)
@@ -272,6 +329,9 @@ void vcPOI::Init(const char *pName, uint32_t nameColour, vcLabelFontSize namePt,
   m_backColour = 0x7F000000;
   m_namePt = namePt;
 
+  m_bookmarkCameraPosition = udDouble3::zero();
+  m_bookmarkCameraRotation = udDouble3::zero();
+  m_bookmarkMode = false;
   m_showArea = false;
   m_showLength = false;
 

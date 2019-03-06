@@ -261,7 +261,8 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     pCamera->position = pCamInput->startPosition + moveVector * travelProgress;
 
     udDouble3 targetEuler = udMath_DirToYPR(pCamInput->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest));
-    pCamera->eulerRotation = udSlerp(pCamInput->startAngle, udDoubleQuat::create(targetEuler), travelProgress).eulerAngles();
+    if (pCamInput->progress < 0.5)
+      pCamera->eulerRotation = udSlerp(pCamInput->startAngle, udDoubleQuat::create(targetEuler), travelProgress * 2.0).eulerAngles();
 
     if (pCamera->eulerRotation.y > UD_PI)
       pCamera->eulerRotation.y -= UD_2PI;
