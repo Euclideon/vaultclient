@@ -200,7 +200,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   char tempDirectory[vcMaxPathLength];
 
   // Convert Jobs
-  ImGui::Text(vcString::Get("convertJobs"));
+  ImGui::Text("%s", vcString::Get("convertJobs"));
   ImGui::Separator();
 
   for (size_t i = 0; i < pProgramState->pConvertContext->jobs.length; ++i)
