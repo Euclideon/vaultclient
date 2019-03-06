@@ -13,13 +13,13 @@
 
 const char *statusNames[] =
 {
-  "Awaiting User Input",
-  "Queued",
-  "Waiting For Convert License",
-  "Running",
-  "Completed",
-  "Cancelled",
-  "Failed"
+  "convertAwaiting",
+  "convertQueued",
+  "convertAwaitingLicense",
+  "convertRunning",
+  "convertCompleted",
+  "convertCancelled",
+  "convertFailed"
 };
 
 void vcConvert_ResetConvert(vcState *pProgramState, vcConvertItem *pConvertItem, vdkConvertItemInfo *pItemInfo);
@@ -200,7 +200,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   char tempDirectory[vcMaxPathLength];
 
   // Convert Jobs
-  ImGui::Text("Convert Jobs");
+  ImGui::Text("%s", vcString::Get("convertJobs"));
   ImGui::Separator();
 
   for (size_t i = 0; i < pProgramState->pConvertContext->jobs.length; ++i)
@@ -232,7 +232,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
     float buttonWidth = ImGui::GetItemRectSize().x;
     ImGui::SameLine();
 
-    udSprintf(tempBuffer, UDARRAYSIZE(tempBuffer), "%s (%s)##convertjob_%zu", pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName, statusNames[pProgramState->pConvertContext->jobs[i]->status], i);
+    udSprintf(tempBuffer, UDARRAYSIZE(tempBuffer), "%s (%s)##convertjob_%zu", pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName, vcString::Get(statusNames[pProgramState->pConvertContext->jobs[i]->status]), i);
 
     ImVec2 selectablePos = ImVec2(ImGui::GetContentRegionMax().x - buttonWidth - ImGui::GetStyle().ItemSpacing.x * 2, 0);
     if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
