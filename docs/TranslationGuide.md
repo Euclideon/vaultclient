@@ -1,7 +1,7 @@
 # **Euclideon Vault Client Translation Guide**
 
 ### Version 1.2
-##### Strings Added (enAU):
+##### Strings Added:
 - "settingsAppearancePOIDistance"
 - "convertJobs"
 - "convertAwaiting"
@@ -12,16 +12,11 @@
 - "convertCancelled"
 - "convertFailed"
 
-##### Strings Removed (zhCN):
+##### Strings Removed:
 - "convertOverride"
 - "convertEstimate"
 - "convertRead"
 - "convertPoints"
-
-##### Strings Modified (zhCN):
-- "loginButton"
-- "convertLoadButton"
-- "sceneExplorerLoadButton"
 
 ## Getting Started with a New Translation
 
