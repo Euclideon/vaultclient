@@ -83,8 +83,8 @@ struct vcState
 
   bool hasContext;
   bool forceLogout;
-  int64_t lastServerAttempt;
-  int64_t lastServerResponse;
+  double lastServerAttempt;
+  double lastServerResponse;
   vdkContext *pVDKContext;
   vcRenderContext *pRenderContext;
   vcConvertContext *pConvertContext;
@@ -92,6 +92,7 @@ struct vcState
   char password[vcMaxPathLength];
 
   vcLoginStatus loginStatus;
+  vdkError logoutReason;
 
   const char *pReleaseNotes; //Only loaded when requested
   bool passFocus;
