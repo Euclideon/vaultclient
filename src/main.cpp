@@ -95,10 +95,13 @@ void vcMain_UpdateSessionInfo(void *pProgramStatePtr)
   vcState *pProgramState = (vcState*)pProgramStatePtr;
   vdkError response = vdkContext_KeepAlive(pProgramState->pVDKContext);
 
-  if (response != vE_Success)
+  pProgramState->logoutReason = response;
+  double now = vcTime_GetEpochSecsF();
+
+  if (response == vE_SessionExpired || now - 180.0 > pProgramState->lastServerResponse)
     pProgramState->forceLogout = true;
-  else
-    pProgramState->lastServerResponse = vcTime_GetEpochSecs();
+  else if (response == vE_Success)
+    pProgramState->lastServerResponse = now;
 }
 
 void vcMain_PresentationMode(vcState *pProgramState)
@@ -154,6 +157,8 @@ void vcLogin(void *pProgramStatePtr)
   else if (result != vE_Success)
     pProgramState->loginStatus = vcLS_OtherError;
 
+  pProgramState->logoutReason = result;
+
   if (result != vE_Success)
     return;
 
@@ -192,7 +197,7 @@ void vcLogin(void *pProgramStatePtr)
         if (info.Get("success").AsBool() == true)
         {
           udStrcpy(pProgramState->username, udLengthOf(pProgramState->username), info.Get("user.realname").AsString("Guest"));
-          pProgramState->lastServerResponse = vcTime_GetEpochSecs();
+          pProgramState->lastServerResponse = vcTime_GetEpochSecsF();
         }
         else
         {
@@ -668,9 +673,9 @@ int main(int argc, char **args)
       } while (continueLoading);
 
       // Ping the server every 30 seconds
-      if (vcTime_GetEpochSecs() > programState.lastServerAttempt + 30)
+      if (vcTime_GetEpochSecsF() > programState.lastServerAttempt + 30.0)
       {
-        programState.lastServerAttempt = vcTime_GetEpochSecs();
+        programState.lastServerAttempt = vcTime_GetEpochSecsF();
         vWorkerThread_AddTask(programState.pWorkerPool, vcMain_UpdateSessionInfo, &programState, false);
       }
 
@@ -1428,6 +1433,13 @@ void vcRenderWindow(vcState *pProgramState)
       if (ImGui::Begin(vcString::Get("loginTitle"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
       {
         ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
+
+        // Tool for support to get reasons for failures, requires Alt & Ctrl
+        if (pProgramState->logoutReason != vE_Success && io.KeyAlt && io.KeyCtrl)
+        {
+          ImGui::SameLine();
+          ImGui::Text("E:%d", (int)pProgramState->logoutReason);
+        }
 
         bool tryLogin = false;
 
