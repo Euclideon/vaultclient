@@ -10,6 +10,9 @@ Known Major Issues In Current Release
   - An issue is preventing macOS users from running the build directly because of signing issues (EVC-408)
   - Map mode only transitions nicely for items with z at 0 (EVC-460)
 
+Version 0.2.3 (Might be 0.3.0)
+  - [No Changes Yet]
+
 Version 0.2.2
   - The file dialog modal now starts loading after pressing enter/return on the input name field (EVC-414)
   - Made auto-logout when the server cannot be pinged much less aggressive (EVA-449)
@@ -19,7 +22,6 @@ Version 0.2.2
     - Vault server defaults to the multi-region server instead of the trial server
     - Map Tiles defaults to the new tile server (http://slippy.vault.euclideon.com)
   - Using updated backgrounds for the login screen (VASS-18 & VASS-19)
-  - Added [Enter] to submit users actions in the file dialog (EVC-414)
 
 Version 0.2.1
   - Scene & Scene Explorer changes
