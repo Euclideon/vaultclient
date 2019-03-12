@@ -304,13 +304,13 @@ static void ImGui_ImplSDL2_UpdateMousePosAndButtons()
     g_MousePressed[0] = g_MousePressed[1] = g_MousePressed[2] = false;
 
 #if SDL_HAS_CAPTURE_MOUSE && !defined(__EMSCRIPTEN__)
-    SDL_Window* focused_window = SDL_GetKeyboardFocus();
-    if (g_Window == focused_window)
+    //SDL_Window* focused_window = SDL_GetKeyboardFocus();
+    //if (g_Window == focused_window) // This check is not required as we only support 1 window currently
     {
         // SDL_GetMouseState() gives mouse position seemingly based on the last window entered/focused(?)
         // The creation of a new windows at runtime and SDL_CaptureMouse both seems to severely mess up with that, so we retrieve that position globally.
         int wx, wy;
-        SDL_GetWindowPosition(focused_window, &wx, &wy);
+        SDL_GetWindowPosition(g_Window, &wx, &wy); // When adding support for multiple windows, this should be `focused_window`
         SDL_GetGlobalMouseState(&mx, &my);
         mx -= wx;
         my -= wy;
