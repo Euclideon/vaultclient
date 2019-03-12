@@ -48,6 +48,23 @@ After you have entered your credentials, click `Login!` and you will see an empt
 
 ![User Interface](images/afterlogin.png)
 
+#### Login Errors
+
+A number of things can go wrong during login.
+
+<table>
+<tr><th>Message</th><th>Reason</th></tr>
+<tr><td>Could not connect to server.</td><td>There are a number of possible causes for this message. The most common is the server address entered into the field is not correct</td></tr>
+<tr><td>Username or Password incorrect.</td><td>This is shown in a number of sitations with the most common being that the password is not correct for the given username. This is also shown if the username does not exist or has been banned.</td></tr>
+<tr><td>Your clock doesn't match the remote server clock.</td><td>In order to maintain system security, the client and server must agree on the time to within 5 minutes. Having the server and client both set to syncronize with "universal" NTP time is preferable. This error will occur if the timezone of either the server or the client is not set correctly.</td></tr>
+<tr><td>Could not open a secure channel to the server.</td><td>The client was able to connect to the server but an error occurred while verifying the server was the intended target or negotiating an encrypted connection.</td></tr>
+<tr><td>Unable to negotiate with server, please confirm the server address</td><td>The client was able to connect to the server provided in the server URL field but the server did not respond as expected. This usually occurs if the server is not a Euclideon Vault Server.</td></tr>
+<tr><td>Unable to negotiate with proxy server, please confirm the proxy server address</td><td>This occurs when the proxy information is partially correct. Further details may be required before the connection through the proxy is correct (usually proxy authentication details).</td></tr>
+<tr><td>Unknown error occurred, please try again later.</td><td>This error was not one of the above errors and will require Euclideon Support assistance to resolve.</td></tr>
+</table>
+
+> TIP: When an error occurs, holding `Alt` and `Ctrl` together will display an additional error code after the message that can be provided to Euclideon Support so they can try to assist further. This is most often used when "Unknown Error Occurred" is displayed.
+
 ---
 
 ## User Interface
@@ -541,7 +558,7 @@ I cannot log in?
 > Check your internet connection, your license status, and ensure you've used the correct URL, username and password. Make sure your URL has a closed bracket at the end of it if using the default server URL.
 
 I cannot connect to the vault, how do I resolve this issue?
-> Check your firewall or proxy settings, if running a proxy ensure the address is proxy.euclideon with the port number 80.
+> Check your firewall or proxy settings, if running a proxy ensure the address is correct with your IT department and that the correct port is set
 
 My proxy isn't working, why?
 > Authenticated Proxies at the time of this build do not have official proxy support, when using proxies the format `protocol://username:password@domain/URI` should be adopted, network metadata is not transmitted when using proxies and is stored in plain text file, which may assist solving connection issues.
