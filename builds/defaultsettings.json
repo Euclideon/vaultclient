@@ -29,7 +29,7 @@
   },
   "login": {
     "rememberServer": true,
-    "serverURL": "https://vaulttrial.euclideon.com",
+    "serverURL": "https://earth.vault.euclideon.com",
     "rememberUsername": false,
     "username": "",
     "proxy": ""
@@ -84,7 +84,7 @@
     "transparency": 1.000000,
     "mapHeight": 0.000000,
     "mouseInteracts": true,
-    "serverURL": "http://20.188.211.58",
+    "serverURL": "http://slippy.vault.euclideon.com",
     "imgExtension": "png"
   },
   "rootDocks": [
