@@ -59,7 +59,7 @@ enum vcInputState
   vcCIS_Count
 };
 
-enum vcCameraMode
+enum vcCamerMode
 {
   vcCM_FreeRoam,
   vcCM_OrthoMap,
@@ -85,10 +85,6 @@ struct vcCameraInput
   udDouble3 mouseInput;
 
   bool transitioningToMapMode;
-
-  udDouble3 smoothTranslation;
-  udDouble3 smoothRotation;
-  double smoothOrthographicChange;
 };
 
 struct vcCameraSettings
@@ -104,7 +100,7 @@ struct vcCameraSettings
   vcCameraPivotMode cameraMouseBindings[3]; // bindings for camera settings
   vcCameraScrollWheelMode scrollWheelMode;
 
-  vcCameraMode cameraMode;
+  vcCamerMode cameraMode;
   double orthographicSize;
 };
 
