@@ -3,22 +3,25 @@ Euclideon Vault Client Version History
 Known Major Issues In Current Release
   - User guide does not cover the entire application
   - Corrupted UDS files silently fail without notifying the user (EVC-20)
-  - Auto-Detection of proxies is only very rarely working
+  - Auto-Detection of proxies is only very rarely working (EVA-442)
   - Unable to save projects (EVC-267)
   - Convert issues relating to full or read-only drives (EVC-126)
   - Various CSV label import issues (EVC-368, EVC-369)
-  - Very aggressive auto-logout when the server cannot be pinged within 30 seconds (EVC-449)
   - An issue is preventing macOS users from running the build directly because of signing issues (EVC-408)
   - Map mode only transitions nicely for items with z at 0 (EVC-460)
 
-Version 0.2.2 (Might End up being 0.3.0)
-  - Scene & Scene Explorer
-    - Fixed an issue with the camera misbehaving when looking straight down in perspective mode
-    - Added camera smoothing (EVC-471)
-  - Conversion
-    - _None Yet_
-  - Miscellaneous
-    - The file dialog modal now starts loading after pressing enter/return on the input name field (EVC-414)
+Version 0.2.2
+  - Fixed an issue with the camera misbehaving when looking straight down in perspective mode
+  - Added camera smoothing (EVC-471)
+  - The file dialog modal now starts loading after pressing enter/return on the input name field (EVC-414)
+  - Made auto-logout when the server cannot be pinged much less aggressive (EVA-449)
+  - Modified translation strings (Translation Guide was updated to suit) (EVC-469)
+  - Settings are now saved pretty, making them easier to modify by hand if required (EVC-472)
+  - Updated default server addressed
+    - Vault server defaults to the multi-region server instead of the trial server
+    - Map Tiles defaults to the new tile server (http://slippy.vault.euclideon.com)
+  - Using updated backgrounds for the login screen (VASS-18 & VASS-19)
+  - Added [Enter] to submit users actions in the file dialog (EVC-414)
 
 Version 0.2.1
   - Scene & Scene Explorer changes

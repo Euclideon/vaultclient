@@ -1,22 +1,16 @@
 # **Euclideon Vault Client Translation Guide**
 
-### Version 1.2
-##### Strings Added:
-- "settingsAppearancePOIDistance"
-- "convertJobs"
-- "convertAwaiting"
-- "convertQueued"
-- "convertAwaitingLicense"
-- "convertRunning"
-- "convertCompleted"
-- "convertCancelled"
-- "convertFailed"
+## Changelist
 
-##### Strings Removed:
-- "convertOverride"
-- "convertEstimate"
-- "convertRead"
-- "convertPoints"
+- Version 0.2.2
+  - Added:
+    - Appearance Setting
+      - `settingsAppearancePOIDistance`
+    - Convert Status codes:
+      - `convertJobs`, `convertAwaiting`, `convertQueued`, `convertAwaitingLicense`, `convertRunning`, `convertCompleted`, `convertCancelled`, `convertFailed`
+  - Removed
+    - Unused convert strings:
+      - `convertOverride`, `convertEstimate`, `convertRead`, `convertPoints`
 
 ## Getting Started with a New Translation
 
@@ -88,6 +82,8 @@ Modules are currently:
 ### Settings Strings
 
 - `settingsTitle`: Title of the Settings tab
+
+#### Appearance
 - `settingsAppearance`: Title of the Appearance subheading in Settings
 - `settingsAppearanceRestoreDefaults`: Used to restore default values for all appearance settings
 - `settingsAppearanceTheme`: Label next to dropdown list to select appearance theme
@@ -110,6 +106,8 @@ Modules are currently:
 - `settingsAppearanceHide`: Hide option for presentation UI dropdown list, in fullscreen mode the UI will not be visible
 - `settingsAppearanceShow`: Show option for presentation UI dropdown list, in fullscreen mode the UI will be visible
 - `settingsAppearanceResponsive`: Responsive option for presentation UI dropdown list, in fullscreen mode the UI will only be visible if the user does something
+
+#### Input & Controls
 - `settingsControls`: Title of the Input & Controls subheading in Settings
 - `settingsControlsRestoreDefaults`: Used to restore default values for all controls settings
 - `settingsControlsOSC`: Label next to checkbox that toggles the appearance of on-screen camera controls in the viewport
@@ -126,6 +124,8 @@ Modules are currently:
 - `settingsControlsMiddle`: Label next to dropdown list for selecting what the middle mouse button does
 - `settingsControlsRight`: Label next to dropdown list for selecting what the right mouse button does
 - `settingsControlsScrollWheel`: Label next to dropdown list for selecting what the scrollwheel does
+
+#### Viewport
 - `settingsViewport`: Title of the Viewport subheading in Settings
 - `settingsViewportRestoreDefaults`: Used to restore default values for all viewport settings
 - `settingsViewportNearPlane`: Label next to slider for setting the minimum viewable distance
@@ -151,6 +151,8 @@ Modules are currently:
 - `settingsMapsBlending`: Label next to dropdown list for selecting the style of map tile blending in the scene
 - `settingsMapsOpacity`: Label next to slider for setting the opacity of map tiles (opacity is the opposite of transparency)
 - `settingsMapsSetHeight`: Label used on button that sets the height of map tiles to the current camera height
+
+#### Visualization
 - `settingsVis`: Title of the Visualisation subheading in Settings
 - `settingsVisDisplayMode`: Label next to dropdown list for selecting how the scene is displayed
 - `settingsVisModeClassification`: Option in display mode dropdown list where the colour of scene objects is determined by the objects classification
@@ -176,8 +178,13 @@ Modules are currently:
 - `settingsVisContoursDistances`: Label next to slider for setting the vertical distance between each contour
 - `settingsVisContoursBandHeight`: Label next to slider for setting the vertical size of each contour
 - `settingsVisRestoreDefaults`: Used to restore default values for all visualisation settings
+
 - `settingsVisClassRestoreDefaults`: Label on a button that restores default values for all classifications and colours
 - `settingsVisClassShowColourTable`: Label next to checkbox that opens table for defining colours for each classification
+- `settingsVisClassRename`: Label for rename button beside each user definable classification
+- `settingsVisClassSet`: Label for button that appears beside a textbox when renaming a user definable classification, used to confirm the new name
+
+##### Classifications
 - `settingsVisClassNeverClassified`: Label for classification #0
 - `settingsVisClassUnclassified`: Label for classification #1
 - `settingsVisClassGround`: Label for classification #2
@@ -201,8 +208,6 @@ Modules are currently:
 - `settingsVisClassReservedLabels`: Label used for classifications #19 to #63
 - `settingsVisClassUserDefinable`: Title for expandable subheading containing classifications #64 to #255
 - `settingsVisClassUserDefined`: Default label used for unnamed classifications #64 to #255
-- `settingsVisClassRename`: Label for rename button beside each user definable classification
-- `settingsVisClassSet`: Label for button that appears beside a textbox when renaming a user definable classification, used to confirm the new name
 
 ### Convert Strings
 
