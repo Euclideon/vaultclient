@@ -11,8 +11,6 @@ Known Major Issues In Current Release
   - Map mode only transitions nicely for items with z at 0 (EVC-460)
 
 Version 0.2.2
-  - Fixed an issue with the camera misbehaving when looking straight down in perspective mode
-  - Added camera smoothing (EVC-471)
   - The file dialog modal now starts loading after pressing enter/return on the input name field (EVC-414)
   - Made auto-logout when the server cannot be pinged much less aggressive (EVA-449)
   - Modified translation strings (Translation Guide was updated to suit) (EVC-469)

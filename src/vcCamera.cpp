@@ -22,10 +22,6 @@ UDCOMPILEASSERT(UDARRAYSIZE(lensNameArray) == vcLS_TotalLenses, "Lens Name not i
 
 static const udDouble2 sOrthoNearFarPlane = { 1.0, 1000000.0 };
 
-// higher == quicker smoothing
-static const double sCameraTranslationSmoothingSpeed = 15.0;
-static const double sCameraRotationSmoothingSpeed = 20.0;
-
 const char** vcCamera_GetLensNames()
 {
   return lensNameArray;
@@ -36,83 +32,6 @@ udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera)
   udQuaternion<double> orientation = udQuaternion<double>::create(pCamera->eulerRotation);
   udDouble3 lookPos = pCamera->position + orientation.apply(udDouble3::create(0.0, 1.0, 0.0));
   return udDouble4x4::lookAt(pCamera->position, lookPos, orientation.apply(udDouble3::create(0.0, 0.0, 1.0)));
-}
-
-void vcCamera_StopSmoothing(vcCameraInput *pCamInput)
-{
-  pCamInput->smoothTranslation = udDouble3::zero();
-  pCamInput->smoothRotation = udDouble3::zero();
-  pCamInput->smoothOrthographicChange = 0.0;
-}
-
-void vcCamera_UpdateSmoothing(vcCamera *pCamera, vcCameraInput *pCamInput, vcCameraSettings *pCamSettings, double deltaTime)
-{
-  static const double minSmoothingThreshold = 0.00001;
-
-  // translation
-  if (udMagSq3(pCamInput->smoothTranslation) > minSmoothingThreshold)
-  {
-    udDouble3 step = pCamInput->smoothTranslation * udMin(1.0, deltaTime * sCameraTranslationSmoothingSpeed);
-    pCamera->position += step;
-    pCamInput->smoothTranslation -= step;
-  }
-
-  // rotation
-  if (udMagSq3(pCamInput->smoothRotation) > minSmoothingThreshold)
-  {
-    udDouble3 step = pCamInput->smoothRotation * udMin(1.0, deltaTime * sCameraRotationSmoothingSpeed);
-    pCamera->eulerRotation += step;
-    pCamInput->smoothRotation -= step;
-
-    pCamera->eulerRotation.y = udClamp(pCamera->eulerRotation.y, -UD_HALF_PI, UD_HALF_PI);
-    pCamera->eulerRotation.x = udMod(pCamera->eulerRotation.x, UD_2PI);
-    pCamera->eulerRotation.z = udMod(pCamera->eulerRotation.z, UD_2PI);
-  }
-
-  // ortho zoom
-  if (udAbs(pCamInput->smoothOrthographicChange) > minSmoothingThreshold)
-  {
-    double previousOrthoSize = pCamSettings->orthographicSize;
-
-    double step = pCamInput->smoothOrthographicChange * udMin(1.0, deltaTime * sCameraTranslationSmoothingSpeed);
-    pCamSettings->orthographicSize = udClamp(pCamSettings->orthographicSize * (1.0 - step), sOrthoNearFarPlane.x, sOrthoNearFarPlane.y);
-    pCamInput->smoothOrthographicChange -= step;
-
-    udDouble2 towards = pCamInput->worldAnchorPoint.toVector2() - pCamera->position.toVector2();
-    if (udMagSq2(towards) > 0)
-    {
-      towards = (pCamInput->worldAnchorPoint.toVector2() - pCamera->position.toVector2()) / previousOrthoSize;
-      pCamera->position += udDouble3::create(towards * - (pCamSettings->orthographicSize - previousOrthoSize), 0.0);
-    }
-  }
-}
-
-void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindingIndex)
-{
-  switch (pProgramState->settings.camera.cameraMouseBindings[bindingIndex])
-  {
-  case vcCPM_Orbit:
-    if (pProgramState->pickingSuccess)
-    {
-      pProgramState->cameraInput.isUsingAnchorPoint = true;
-      pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
-      pProgramState->cameraInput.inputState = vcCIS_Orbiting;
-      vcCamera_StopSmoothing(&pProgramState->cameraInput);
-    }
-    break;
-  case vcCPM_Tumble:
-    //pProgramState->cameraInput.inputState = vcCIS_None;
-    break;
-  case vcCPM_Pan:
-    if (pProgramState->pickingSuccess)
-    {
-      pProgramState->cameraInput.isUsingAnchorPoint = true;
-      pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
-    }
-    pProgramState->cameraInput.anchorMouseRay = pProgramState->pCamera->worldMouseRay;
-    pProgramState->cameraInput.inputState = vcCIS_Panning;
-    break;
-  };
 }
 
 void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr)
@@ -222,14 +141,17 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     {
       if (vertPos != 0)
       {
-        pCamInput->smoothOrthographicChange += 0.005 * vertPos * pCamSettings->moveSpeed * speedModifier * deltaTime;
-        pCamInput->worldAnchorPoint = pCamera->position; // stops translation occuring
+        static const double gKeyToMapZoomRatio = 0.00025;
+        double orthoRelativeChange = 1.0 + (gKeyToMapZoomRatio * vertPos * pCamSettings->moveSpeed * speedModifier * deltaTime);
+        double newOrthographicSize = udClamp(pCamSettings->orthographicSize * orthoRelativeChange, sOrthoNearFarPlane.x, sOrthoNearFarPlane.y);
+        pCamSettings->orthographicSize = newOrthographicSize;
       }
     }
 
     addPos.z += vertPos;
     addPos *= pCamSettings->moveSpeed * speedModifier * deltaTime;
-    pCamInput->smoothTranslation += addPos;
+
+    pCamera->position += addPos;
 
     // Check for a nan camera position and reset to zero, this allows the UI to be usable in the event of error
     if (isnan(pCamera->position.x) || isnan(pCamera->position.y) || isnan(pCamera->position.z))
@@ -241,41 +163,48 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     if (pCamSettings->invertY)
       pCamInput->mouseInput.y *= -1.0;
 
-    pCamInput->smoothRotation += pCamInput->mouseInput;
+    pCamera->eulerRotation += pCamInput->mouseInput;
+    pCamera->eulerRotation.y = udClamp(pCamera->eulerRotation.y, -UD_HALF_PI, UD_HALF_PI);
+    pCamera->eulerRotation.x = udMod(pCamera->eulerRotation.x, UD_2PI);
+    pCamera->eulerRotation.z = udMod(pCamera->eulerRotation.z, UD_2PI);
   }
   break;
 
   case vcCIS_Orbiting:
   {
-    double distanceToPointSqr = udMagSq3(pCamInput->worldAnchorPoint - pCamera->position);
-    if (distanceToPointSqr != 0.0 && (pCamInput->mouseInput.x != 0 || pCamInput->mouseInput.y != 0))
+    double distanceToPoint = udMag3(pCamInput->worldAnchorPoint - pCamera->position);
+
+    if (distanceToPoint != 0.0)
     {
-      udRay<double> transform, tempTransform;
+      udRay<double> transform;
       transform.position = pCamera->position;
       transform.direction = udMath_DirFromYPR(pCamera->eulerRotation);
+
+      // Rotation
       if (pCamSettings->invertX)
         pCamInput->mouseInput.x *= -1.0;
       if (pCamSettings->invertY)
         pCamInput->mouseInput.y *= -1.0;
 
-      // Apply input
-      tempTransform = udRotateAround(transform, pCamInput->worldAnchorPoint, { 0, 0, 1 }, pCamInput->mouseInput.x);
-      transform = udRotateAround(tempTransform, pCamInput->worldAnchorPoint, udDoubleQuat::create(udMath_DirToYPR(tempTransform.direction)).apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
+      transform = udRotateAround(transform, pCamInput->worldAnchorPoint, { 0, 0, 1 }, pCamInput->mouseInput.x);
+      udRay<double> temp = transform;
 
-      // Prevent flipping
-      if ((transform.direction.x > 0 && tempTransform.direction.x < 0) || (transform.direction.x < 0 && tempTransform.direction.x > 0))
-        transform = tempTransform;
+      transform = udRotateAround(transform, pCamInput->worldAnchorPoint, udDoubleQuat::create(udMath_DirToYPR(transform.direction)).apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
+      if ((transform.direction.y > 0 && temp.direction.y < 0) || (transform.direction.y < 0 && temp.direction.y > 0) || (transform.direction.x > 0 && temp.direction.x < 0) || (transform.direction.x < 0 && temp.direction.x > 0))
+        transform = temp;
 
       udDouble3 euler = udMath_DirToYPR(transform.direction);
 
-      // Handle special case where ATan2 is ambiguous
-      if (pCamera->eulerRotation.y == -UD_HALF_PI)
-        euler.x += UD_PI;
+      // Only apply if not exactly vertical
+      if (udAbs(euler.y) < UD_HALF_PI)
+      {
+        pCamera->position = transform.position;
+        pCamera->eulerRotation = euler;
+        pCamera->eulerRotation.z = 0;
 
-      // Apply transform
-      pCamera->position = transform.position;
-      pCamera->eulerRotation = euler;
-      pCamera->eulerRotation.z = 0;
+        if (pCamera->eulerRotation.y > UD_PI)
+          pCamera->eulerRotation.y -= UD_2PI;
+      }
     }
   }
   break;
@@ -327,8 +256,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     pCamera->position = pCamInput->startPosition + moveVector * travelProgress;
 
     udDouble3 targetEuler = udMath_DirToYPR(pCamInput->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest));
-    if (pCamInput->progress < 0.5)
-      pCamera->eulerRotation = udSlerp(pCamInput->startAngle, udDoubleQuat::create(targetEuler), travelProgress * 2.0).eulerAngles();
+    pCamera->eulerRotation = udSlerp(pCamInput->startAngle, udDoubleQuat::create(targetEuler), travelProgress).eulerAngles();
 
     if (pCamera->eulerRotation.y > UD_PI)
       pCamera->eulerRotation.y -= UD_2PI;
@@ -346,22 +274,31 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     }
     else // map mode
     {
-      pCamInput->smoothOrthographicChange += pCamInput->mouseInput.y;
+      double previousOrthoSize = pCamSettings->orthographicSize;
+
+      static const double gMouseWheelToMapZoomRatio = 25.0;
+      double orthoRelativeChange = 1.0 - (gMouseWheelToMapZoomRatio * pCamInput->mouseInput.y * deltaTime);
+      pCamSettings->orthographicSize = udClamp(pCamSettings->orthographicSize * orthoRelativeChange, sOrthoNearFarPlane.x, sOrthoNearFarPlane.y);
+
+      double orthoSizeChange = pCamSettings->orthographicSize - previousOrthoSize;
+      udDouble2 towards = (pCamInput->worldAnchorPoint.toVector2() - pCamera->position.toVector2()) / previousOrthoSize;
+      addPos = udDouble3::create(towards * -orthoSizeChange, 0.0);
     }
-
-    pCamInput->smoothTranslation += addPos;
-
+    pCamera->position += addPos;
   }
   break;
 
   case vcCIS_PinchZooming:
   {
-    // TODO
+    // TODO:
   }
   break;
 
   case vcCIS_Panning:
   {
+    if ((pCamInput->mouseInput.x * pCamInput->mouseInput.x) < ONE_PIXEL_SQ && (pCamInput->mouseInput.y * pCamInput->mouseInput.y) < ONE_PIXEL_SQ)
+      break;
+
     udPlane<double> plane = udPlane<double>::create(pCamInput->worldAnchorPoint, { 0, 0, 1 });
 
     if (pCamSettings->cameraMode != vcCM_OrthoMap && pCamSettings->moveMode == vcCMM_Plane)
@@ -369,16 +306,13 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
     udDouble3 offset, anchorOffset;
     if (udIntersect(plane, pCamera->worldMouseRay, &offset) == udR_Success && udIntersect(plane, pCamInput->anchorMouseRay, &anchorOffset) == udR_Success)
-      pCamInput->smoothTranslation = (anchorOffset - offset);
-
+      pCamera->position += (anchorOffset - offset);
   }
   break;
 
   case vcCIS_Count:
     break; // to cover all implemented cases
   }
-
-  vcCamera_UpdateSmoothing(pCamera, pCamInput, pCamSettings, deltaTime);
 
   if (pCamInput->inputState == vcCIS_None && pCamInput->transitioningToMapMode)
   {
@@ -495,11 +429,33 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     for (int i = 0; i < 3; ++i)
     {
       // Single Clicking
-      if (isBtnClicked[i] && pProgramState->cameraInput.inputState == vcCIS_None)
+      if (isBtnClicked[i])
       {
         if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
         {
-          vcCamera_BeginCameraPivotModeMouseBinding(pProgramState, i);
+          switch (pProgramState->settings.camera.cameraMouseBindings[i])
+          {
+          case vcCPM_Orbit:
+            if (pProgramState->pickingSuccess)
+            {
+              pProgramState->cameraInput.isUsingAnchorPoint = true;
+              pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
+              pProgramState->cameraInput.inputState = vcCIS_Orbiting;
+            }
+            break;
+          case vcCPM_Tumble:
+            pProgramState->cameraInput.inputState = vcCIS_None;
+            break;
+          case vcCPM_Pan:
+            if (pProgramState->pickingSuccess)
+            {
+              pProgramState->cameraInput.isUsingAnchorPoint = true;
+              pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
+            }
+            pProgramState->cameraInput.anchorMouseRay = pProgramState->pCamera->worldMouseRay;
+            pProgramState->cameraInput.inputState = vcCIS_Panning;
+            break;
+          }
         }
         else
         {
@@ -523,41 +479,11 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
       if (isBtnReleased[i])
       {
-        if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
-        {
-          if ((i == 0 || i == 1) && pProgramState->cameraInput.inputState == vcCIS_CommandZooming)
-          {
-            pProgramState->cameraInput.inputState = vcCIS_None;
+        if (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Orbit && pProgramState->cameraInput.inputState == vcCIS_Orbiting)
+          pProgramState->cameraInput.inputState = vcCIS_None;
 
-            if (isBtnHeld[1]) // if right click is still being held, begin doing whatever is bound
-            {
-              vcCamera_BeginCameraPivotModeMouseBinding(pProgramState, 1);
-            }
-          }
-
-          if (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Orbit && pProgramState->cameraInput.inputState == vcCIS_Orbiting)
-            pProgramState->cameraInput.inputState = vcCIS_None;
-
-          if (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Pan && pProgramState->cameraInput.inputState == vcCIS_Panning)
-            pProgramState->cameraInput.inputState = vcCIS_None;
-
-        }
-        else // map mode
-        {
-          if (!isBtnHeld[0] && !isBtnHeld[1] && !isBtnHeld[2]) // nothing is pressed (remember, they're all mapped to panning)
-          {
-            pProgramState->cameraInput.inputState = vcCIS_None;
-          }
-          else if (pProgramState->cameraInput.inputState != vcCIS_Panning) // if not panning, begin (e.g. was zooming with double mouse)
-          {
-            // theres still a button being held, start panning
-            pProgramState->cameraInput.isUsingAnchorPoint = true;
-            pProgramState->cameraInput.worldAnchorPoint = pProgramState->pCamera->worldMouseRay.position;
-            pProgramState->cameraInput.anchorMouseRay = pProgramState->pCamera->worldMouseRay;
-            pProgramState->cameraInput.inputState = vcCIS_Panning;
-          }
-
-        }
+        if (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Pan && pProgramState->cameraInput.inputState == vcCIS_Panning)
+          pProgramState->cameraInput.inputState = vcCIS_None;
       }
 
       // Double Clicking
@@ -585,11 +511,9 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     double timeout = defaultTimeouts[pProgramState->settings.camera.cameraMode]; // How long you have to stop scrolling the scroll wheel before the point unlocks
     static double previousLockTime = 0.0;
     double currentTime = ImGui::GetTime();
-    bool zooming = false;
 
     if (io.MouseWheel != 0)
     {
-      zooming = true;
       if (pProgramState->settings.camera.scrollWheelMode == vcCSWM_Dolly)
       {
         if (previousLockTime < currentTime - timeout && (pProgramState->pickingSuccess || pProgramState->settings.camera.cameraMode == vcCM_OrthoMap) && pProgramState->cameraInput.inputState == vcCIS_None)
@@ -608,8 +532,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
           mouseInput.y = io.MouseWheel / 10.f;
           mouseInput.z = 0.0;
           previousLockTime = currentTime;
-
-          pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
         }
       }
       else
@@ -622,22 +544,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
         pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
       }
     }
-
-    if (isBtnHeld[0] && isBtnHeld[1])
-    {
-      zooming = true;
-      if (isBtnClicked[0] || isBtnClicked[1])
-      {
-        pProgramState->cameraInput.isUsingAnchorPoint = true;
-        pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
-        pProgramState->cameraInput.inputState = vcCIS_CommandZooming;
-
-        if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-          pProgramState->cameraInput.worldAnchorPoint = pProgramState->pCamera->worldMouseRay.position;
-      }
-    }
-
-    if (!zooming && pProgramState->cameraInput.inputState == vcCIS_CommandZooming && previousLockTime < currentTime - timeout)
+    else if (pProgramState->cameraInput.inputState == vcCIS_CommandZooming && previousLockTime < currentTime - timeout)
     {
       pProgramState->cameraInput.inputState = vcCIS_None;
     }
@@ -661,6 +568,13 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     if (!io.MouseDown[0] && !io.MouseDown[1] && io.MouseDown[2])
       pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.cameraMouseBindings[2];
   }
+
+  if (pProgramState->cameraInput.currentPivotMode != vcCPM_Orbit && pProgramState->cameraInput.inputState == vcCIS_Orbiting)
+    pProgramState->cameraInput.inputState = vcCIS_None;
+
+  if (pProgramState->cameraInput.currentPivotMode != vcCPM_Pan && pProgramState->cameraInput.inputState == vcCIS_Panning)
+    pProgramState->cameraInput.inputState = vcCIS_None;
+
 
   // Apply movement and rotation
   pProgramState->cameraInput.keyboardInput = keyboardInput;
