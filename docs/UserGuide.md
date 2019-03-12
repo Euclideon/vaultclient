@@ -59,11 +59,11 @@ A number of things can go wrong during login.
 <tr><td>Your clock doesn't match the remote server clock.</td><td>In order to maintain system security, the client and server must agree on the time to within 5 minutes. Having the server and client both set to syncronize with "universal" NTP time is preferable. This error will occur if the timezone of either the server or the client is not set correctly.</td></tr>
 <tr><td>Could not open a secure channel to the server.</td><td>The client was able to connect to the server but an error occurred while verifying the server was the intended target or negotiating an encrypted connection.</td></tr>
 <tr><td>Unable to negotiate with server, please confirm the server address</td><td>The client was able to connect to the server provided in the server URL field but the server did not respond as expected. This usually occurs if the server is not a Euclideon Vault Server.</td></tr>
-<tr><td>Unable to negotiate with proxy server, please confirm the proxy server address</td><td>This occurs when the proxy information is partially correct. Further details may be required before the connection through the proxy is correct (usually proxy authorization details).</td></tr>
+<tr><td>Unable to negotiate with proxy server, please confirm the proxy server address</td><td>This occurs when the proxy information is partially correct. Further details may be required before the connection through the proxy is correct (usually proxy authentication details).</td></tr>
 <tr><td>Unknown error occurred, please try again later.</td><td>This error was not one of the above errors and will require Euclideon Support assistance to resolve.</td></tr>
 </table>
 
-> TIP: When an error occurs, holding `Alt` and `Ctrl` together will display an additional error code after the message that can be provided to Euclideon Support so they can try assist further. This is most often used when "Unknown Error Occurred" is displayed.
+> TIP: When an error occurs, holding `Alt` and `Ctrl` together will display an additional error code after the message that can be provided to Euclideon Support so they can try to assist further. This is most often used when "Unknown Error Occurred" is displayed.
 
 ---
 
