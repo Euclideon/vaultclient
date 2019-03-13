@@ -27,6 +27,21 @@ struct vcModelLoadInfo
   double scale; // Always uses this one
 };
 
+void vcModel_PostLoadModel(void *pLoadInfoPtr)
+{
+  vcModelLoadInfo *pLoadInfo = (vcModelLoadInfo*)pLoadInfoPtr;
+  if (pLoadInfo->pProgramState->programComplete)
+    return;
+
+  if (pLoadInfo->pModel->m_loadStatus != vcSLS_Loaded)
+    return;
+
+  if (pLoadInfo->jumpToLocation)
+    vcScene_UseProjectFromItem(pLoadInfo->pProgramState, pLoadInfo->pModel);
+  else if (pLoadInfo->pProgramState->gis.isProjected)
+    pLoadInfo->pModel->ChangeProjection(pLoadInfo->pProgramState, pLoadInfo->pProgramState->gis.zone);
+}
+
 void vcModel_LoadModel(void *pLoadInfoPtr)
 {
   udGeoZone *pMemberZone = nullptr;
@@ -112,11 +127,6 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
         pMemberZone = nullptr;
       }
 
-      if (pLoadInfo->jumpToLocation)
-        vcScene_UseProjectFromItem(pLoadInfo->pProgramState, pLoadInfo->pModel);
-      else if (pLoadInfo->pProgramState->gis.isProjected)
-        pLoadInfo->pModel->ChangeProjection(pLoadInfo->pProgramState, pLoadInfo->pProgramState->gis.zone);
-
       pLoadInfo->pModel->m_loadStatus = vcSLS_Loaded;
     }
     else if (modelStatus == vE_OpenFailure)
@@ -179,7 +189,7 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePat
     pLoadInfo->scale = scale;
 
     // Queue for load
-    vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModel_LoadModel, pLoadInfo);
+    vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModel_LoadModel, pLoadInfo, true, vcModel_PostLoadModel);
   }
   else
   {
