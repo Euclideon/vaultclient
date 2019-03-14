@@ -445,7 +445,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
   float speedModifier = 1.f;
 
-  static bool isFocused = false;
   static bool isMouseBtnBeingHeld = false;
 
   bool isBtnClicked[3] = { ImGui::IsMouseClicked(0, false), ImGui::IsMouseClicked(1, false), ImGui::IsMouseClicked(2, false) };
@@ -454,7 +453,16 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   bool isBtnReleased[3] = { ImGui::IsMouseReleased(0), ImGui::IsMouseReleased(1), ImGui::IsMouseReleased(2) };
 
   isMouseBtnBeingHeld &= (isBtnHeld[0] || isBtnHeld[1] || isBtnHeld[2]);
-  isFocused = (ImGui::IsItemHovered() || isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
+  bool isFocused = (ImGui::IsItemHovered() || isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
+
+  // If the gizmo is hovered and this this didn't have focus then we shouldn't handle mouse inputs here
+  if (!isMouseBtnBeingHeld && vcGizmo_IsHovered())
+  {
+    memset(isBtnClicked, 0, sizeof(isBtnClicked));
+    memset(isBtnDoubleClicked, 0, sizeof(isBtnDoubleClicked));
+    memset(isBtnHeld, 0, sizeof(isBtnHeld));
+    memset(isBtnReleased, 0, sizeof(isBtnReleased));
+  }
 
   if (io.KeyCtrl)
     speedModifier *= 0.1f;
@@ -641,8 +649,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   {
     pProgramState->cameraInput.inputState = vcCIS_None;
   }
-
-  printf_s("Focus %d!\n", isFocused ? 1 : 0);
 
   // set pivot to send to apply function
   pProgramState->cameraInput.currentPivotMode = vcCPM_Tumble;
