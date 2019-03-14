@@ -22,7 +22,7 @@ void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLin
   if (loadStatus == vcSLS_Pending)
   {
     ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Yellow Exclamation in Triangle
-    if (ImGui::IsItemHovered())
+    if (vcIGSW_IsItemHovered())
       ImGui::SetTooltip("%s", vcString::Get("sceneExplorerPending"));
 
     if (sameLine)
@@ -31,7 +31,7 @@ void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLin
   else if (loadStatus == vcSLS_Loading)
   {
     ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", loadingChars[currentLoadingChar % udLengthOf(loadingChars)]); // Yellow Spinning clock
-    if (ImGui::IsItemHovered())
+    if (vcIGSW_IsItemHovered())
       ImGui::SetTooltip("%s", vcString::Get("sceneExplorerLoading"));
 
     if (sameLine)
@@ -40,7 +40,7 @@ void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLin
   else if (loadStatus == vcSLS_Failed || loadStatus == vcSLS_OpenFailure)
   {
     ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Red Exclamation in Triangle
-    if (ImGui::IsItemHovered())
+    if (vcIGSW_IsItemHovered())
     {
       if (loadStatus == vcSLS_OpenFailure)
         ImGui::SetTooltip("%s", vcString::Get("sceneExplorerErrorOpen"));
@@ -222,7 +222,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
     if (m_children[i]->m_type != vcSOT_Folder && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
       vcScene_UseProjectFromItem(pProgramState, m_children[i]);
 
-    if (ImGui::IsItemHovered())
+    if (vcIGSW_IsItemHovered())
       ImGui::SetTooltip("%s", m_children[i]->m_pName);
 
     if (!m_children[i]->m_expanded && m_children[i] == pProgramState->sceneExplorer.insertItem.pParent && pProgramState->sceneExplorer.insertItem.index == pProgramState->sceneExplorer.insertItem.pParent->m_children.size())
