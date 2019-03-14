@@ -4,6 +4,7 @@
 #include "udPlatform/udPlatformUtil.h"
 
 #include "imgui.h"
+#include "imgui_internal.h"
 
 struct vcIGSWResizeContainer
 {
@@ -91,4 +92,9 @@ uint32_t vcIGSW_BGRAToRGBAUInt32(uint32_t lineColour)
 {
   // BGRA to RGBA
   return ((lineColour & 0xff) << 16) | (lineColour & 0x0000ff00) | (((lineColour >> 16) & 0xff) << 0) | (lineColour & 0xff000000);
+}
+
+bool vcIGSW_IsItemHovered(ImGuiHoveredFlags /*flags = 0*/, float timer /*= 0.5f*/)
+{
+  return ImGui::IsItemHovered() && GImGui->HoveredIdTimer > timer;
 }
