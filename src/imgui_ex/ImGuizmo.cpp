@@ -336,6 +336,7 @@ static void vcGizmo_ComputeColors(ImU32 *colors, size_t numColors, int type, vcG
     }
     break;
   case vcGO_NoGizmo:
+    break;
   }
 }
 
@@ -1028,5 +1029,6 @@ void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcG
     vcGizmo_DrawScaleGizmo(type);
     break;
   case vcGO_NoGizmo:
+    break;
   }
 }
