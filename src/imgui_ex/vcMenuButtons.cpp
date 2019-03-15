@@ -1,4 +1,5 @@
 #include "vcMenuButtons.h"
+#include "vcImGuiSimpleWidgets.h"
 #include "gl/vcTexture.h"
 
 #include "udPlatform/udPlatformUtil.h"
@@ -31,7 +32,7 @@ bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char 
     retVal = ImGui::ImageButton(pUITexture, ImVec2(buttonSize, buttonSize), ImVec2(buttonX, buttonY), ImVec2(buttonX + buttonUVSize, buttonY + buttonUVSize), 2, selected ? EnabledColor : DefaultBGColor);
   else
     retVal = ImGui::Button(udTempStr("?###%s", pButtonName), ImVec2(buttonSize, buttonSize));
-  if (ImGui::IsItemHovered())
+  if (vcIGSW_IsItemHovered())
   {
     if (pKeyCode == nullptr)
       ImGui::SetTooltip("%s", pButtonName);
