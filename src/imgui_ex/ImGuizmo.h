@@ -6,6 +6,7 @@
 
 enum vcGizmoOperation
 {
+  vcGO_NoGizmo,
   vcGO_Translate,
   vcGO_Rotate,
   vcGO_Scale,
