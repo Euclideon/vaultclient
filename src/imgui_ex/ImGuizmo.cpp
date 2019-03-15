@@ -335,6 +335,7 @@ static void vcGizmo_ComputeColors(ImU32 *colors, size_t numColors, int type, vcG
         colors[i + 1] = (type == (int)(vcGMT_ScaleX + i)) ? SelectionColor : DirectionColor[i];
     }
     break;
+  case vcGO_NoGizmo:
   }
 }
 
@@ -1026,5 +1027,6 @@ void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcG
     vcGizmo_HandleScale(pDeltaMatrix, type, snap);
     vcGizmo_DrawScaleGizmo(type);
     break;
+  case vcGO_NoGizmo:
   }
 }
