@@ -57,6 +57,9 @@ class EXIFInfo {
   // available (i.e., a blob starting with the bytes "Exif\0\0").
   int parseFromEXIFSegment(const unsigned char *buf, unsigned len);
 
+  // Parsing function for an XMP segment. This is used internally by parseFrom()
+  int parseFromXMPSegment(const unsigned char *buf, unsigned len, unsigned short section_length);
+
   // Set all data members to default values.
   void clear();
 
@@ -79,6 +82,7 @@ class EXIFInfo {
   std::string DateTimeDigitized;    // Digitization date and time (may not exist)
   std::string SubSecTimeOriginal;   // Sub-second time that original picture was taken
   std::string Copyright;            // File copyright information
+  std::string XMPMetadata;          // XMP Metadata
   double ExposureTime;              // Exposure time in seconds
   double FNumber;                   // F/stop
   unsigned short ExposureProgram;   // Exposure program
