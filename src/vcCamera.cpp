@@ -445,7 +445,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
   float speedModifier = 1.f;
 
-  static bool isFocused = false;
   static bool isMouseBtnBeingHeld = false;
 
   bool isBtnClicked[3] = { ImGui::IsMouseClicked(0, false), ImGui::IsMouseClicked(1, false), ImGui::IsMouseClicked(2, false) };
@@ -454,7 +453,16 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   bool isBtnReleased[3] = { ImGui::IsMouseReleased(0), ImGui::IsMouseReleased(1), ImGui::IsMouseReleased(2) };
 
   isMouseBtnBeingHeld &= (isBtnHeld[0] || isBtnHeld[1] || isBtnHeld[2]);
-  isFocused = (ImGui::IsItemHovered() || isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
+  bool isFocused = (ImGui::IsItemHovered() || isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
+
+  // If the gizmo is hovered and this this didn't have focus then we shouldn't handle mouse inputs here
+  if (!isMouseBtnBeingHeld && vcGizmo_IsHovered())
+  {
+    memset(isBtnClicked, 0, sizeof(isBtnClicked));
+    memset(isBtnDoubleClicked, 0, sizeof(isBtnDoubleClicked));
+    memset(isBtnHeld, 0, sizeof(isBtnHeld));
+    memset(isBtnReleased, 0, sizeof(isBtnReleased));
+  }
 
   if (io.KeyCtrl)
     speedModifier *= 0.1f;
@@ -472,10 +480,10 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
       pProgramState->settings.camera.moveMode = ((pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter);
   }
 
+  ImVec2 mouseDelta = io.MouseDelta;
+
   if (isFocused)
   {
-    ImVec2 mouseDelta = io.MouseDelta;
-
     if (keyboardInput != udDouble3::zero() || isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]) // if input is detected, TODO: add proper any input detection
     {
       if (pProgramState->cameraInput.inputState == vcCIS_MovingToPoint || pProgramState->cameraInput.inputState == vcCIS_LookingAtPoint)
@@ -490,142 +498,109 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
         }
       }
     }
+  }
 
-    for (int i = 0; i < 3; ++i)
+  for (int i = 0; i < 3; ++i)
+  {
+    // Single Clicking
+    if (isBtnClicked[i] && pProgramState->cameraInput.inputState == vcCIS_None)
     {
-      // Single Clicking
-      if (isBtnClicked[i] && pProgramState->cameraInput.inputState == vcCIS_None)
+      if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
       {
-        if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
+        vcCamera_BeginCameraPivotModeMouseBinding(pProgramState, i);
+      }
+      else
+      {
+        // orthographic always only pans
+        pProgramState->cameraInput.isUsingAnchorPoint = true;
+        pProgramState->cameraInput.worldAnchorPoint = pProgramState->pCamera->worldMouseRay.position;
+        pProgramState->cameraInput.anchorMouseRay = pProgramState->pCamera->worldMouseRay;
+        pProgramState->cameraInput.inputState = vcCIS_Panning;
+      }
+    }
+
+    // Click and Hold
+
+    if (isBtnHeld[i] && !isBtnClicked[i])
+    {
+      isMouseBtnBeingHeld = true;
+      mouseInput.x = -mouseDelta.x / 100.0;
+      mouseInput.y = -mouseDelta.y / 100.0;
+      mouseInput.z = 0.0;
+    }
+
+    if (isBtnReleased[i])
+    {
+      if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
+      {
+        if ((i == 0 || i == 1) && pProgramState->cameraInput.inputState == vcCIS_CommandZooming)
         {
-          vcCamera_BeginCameraPivotModeMouseBinding(pProgramState, i);
+          pProgramState->cameraInput.inputState = vcCIS_None;
+
+          if (isBtnHeld[1]) // if right click is still being held, begin doing whatever is bound
+          {
+            vcCamera_BeginCameraPivotModeMouseBinding(pProgramState, 1);
+          }
         }
-        else
+
+        if (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Orbit && pProgramState->cameraInput.inputState == vcCIS_Orbiting)
+          pProgramState->cameraInput.inputState = vcCIS_None;
+
+        if (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Pan && pProgramState->cameraInput.inputState == vcCIS_Panning)
+          pProgramState->cameraInput.inputState = vcCIS_None;
+
+      }
+      else // map mode
+      {
+        if (!isBtnHeld[0] && !isBtnHeld[1] && !isBtnHeld[2]) // nothing is pressed (remember, they're all mapped to panning)
         {
-          // orthographic always only pans
+          pProgramState->cameraInput.inputState = vcCIS_None;
+        }
+        else if (pProgramState->cameraInput.inputState != vcCIS_Panning) // if not panning, begin (e.g. was zooming with double mouse)
+        {
+          // theres still a button being held, start panning
           pProgramState->cameraInput.isUsingAnchorPoint = true;
           pProgramState->cameraInput.worldAnchorPoint = pProgramState->pCamera->worldMouseRay.position;
           pProgramState->cameraInput.anchorMouseRay = pProgramState->pCamera->worldMouseRay;
           pProgramState->cameraInput.inputState = vcCIS_Panning;
         }
-      }
 
-      // Click and Hold
-
-      if (isBtnHeld[i] && !isBtnClicked[i])
-      {
-        isMouseBtnBeingHeld = true;
-        mouseInput.x = -mouseDelta.x / 100.0;
-        mouseInput.y = -mouseDelta.y / 100.0;
-        mouseInput.z = 0.0;
-      }
-
-      if (isBtnReleased[i])
-      {
-        if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
-        {
-          if ((i == 0 || i == 1) && pProgramState->cameraInput.inputState == vcCIS_CommandZooming)
-          {
-            pProgramState->cameraInput.inputState = vcCIS_None;
-
-            if (isBtnHeld[1]) // if right click is still being held, begin doing whatever is bound
-            {
-              vcCamera_BeginCameraPivotModeMouseBinding(pProgramState, 1);
-            }
-          }
-
-          if (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Orbit && pProgramState->cameraInput.inputState == vcCIS_Orbiting)
-            pProgramState->cameraInput.inputState = vcCIS_None;
-
-          if (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Pan && pProgramState->cameraInput.inputState == vcCIS_Panning)
-            pProgramState->cameraInput.inputState = vcCIS_None;
-
-        }
-        else // map mode
-        {
-          if (!isBtnHeld[0] && !isBtnHeld[1] && !isBtnHeld[2]) // nothing is pressed (remember, they're all mapped to panning)
-          {
-            pProgramState->cameraInput.inputState = vcCIS_None;
-          }
-          else if (pProgramState->cameraInput.inputState != vcCIS_Panning) // if not panning, begin (e.g. was zooming with double mouse)
-          {
-            // theres still a button being held, start panning
-            pProgramState->cameraInput.isUsingAnchorPoint = true;
-            pProgramState->cameraInput.worldAnchorPoint = pProgramState->pCamera->worldMouseRay.position;
-            pProgramState->cameraInput.anchorMouseRay = pProgramState->pCamera->worldMouseRay;
-            pProgramState->cameraInput.inputState = vcCIS_Panning;
-          }
-
-        }
-      }
-
-      // Double Clicking
-      if (i == 0 && isBtnDoubleClicked[i]) // if left double clicked
-      {
-        if (pProgramState->pickingSuccess || pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-        {
-          pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
-          pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
-          pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
-          pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
-          pProgramState->cameraInput.progress = 0.0;
-
-          if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-          {
-            pProgramState->cameraInput.startAngle = udDoubleQuat::identity();
-            pProgramState->cameraInput.worldAnchorPoint = pProgramState->pCamera->worldMouseRay.position;
-          }
-        }
       }
     }
 
-    // Mouse Wheel
-    const double defaultTimeouts[vcCM_Count] = { 0.25, 0.0 };
-    double timeout = defaultTimeouts[pProgramState->settings.camera.cameraMode]; // How long you have to stop scrolling the scroll wheel before the point unlocks
-    static double previousLockTime = 0.0;
-    double currentTime = ImGui::GetTime();
-    bool zooming = false;
-
-    if (io.MouseWheel != 0)
+    // Double Clicking
+    if (i == 0 && isBtnDoubleClicked[i]) // if left double clicked
     {
-      zooming = true;
-      if (pProgramState->settings.camera.scrollWheelMode == vcCSWM_Dolly)
+      if (pProgramState->pickingSuccess || pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
       {
-        if (previousLockTime < currentTime - timeout && (pProgramState->pickingSuccess || pProgramState->settings.camera.cameraMode == vcCM_OrthoMap) && pProgramState->cameraInput.inputState == vcCIS_None)
+        pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
+        pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
+        pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
+        pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
+        pProgramState->cameraInput.progress = 0.0;
+
+        if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
         {
-          pProgramState->cameraInput.isUsingAnchorPoint = true;
-          pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
-          pProgramState->cameraInput.inputState = vcCIS_CommandZooming;
-
-          if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-            pProgramState->cameraInput.worldAnchorPoint = pProgramState->pCamera->worldMouseRay.position;
+          pProgramState->cameraInput.startAngle = udDoubleQuat::identity();
+          pProgramState->cameraInput.worldAnchorPoint = pProgramState->pCamera->worldMouseRay.position;
         }
-
-        if (pProgramState->cameraInput.inputState == vcCIS_CommandZooming)
-        {
-          mouseInput.x = 0.0;
-          mouseInput.y = io.MouseWheel / 10.f;
-          mouseInput.z = 0.0;
-          previousLockTime = currentTime;
-
-          pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
-        }
-      }
-      else
-      {
-        if (io.MouseWheel > 0)
-          pProgramState->settings.camera.moveSpeed *= (1.f + io.MouseWheel / 10.f);
-        else
-          pProgramState->settings.camera.moveSpeed /= (1.f - io.MouseWheel / 10.f);
-
-        pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
       }
     }
+  }
 
-    if (isBtnHeld[0] && isBtnHeld[1])
+  // Mouse Wheel
+  const double defaultTimeouts[vcCM_Count] = { 0.25, 0.0 };
+  double timeout = defaultTimeouts[pProgramState->settings.camera.cameraMode]; // How long you have to stop scrolling the scroll wheel before the point unlocks
+  static double previousLockTime = 0.0;
+  double currentTime = ImGui::GetTime();
+  bool zooming = false;
+
+  if (io.MouseWheel != 0)
+  {
+    zooming = true;
+    if (pProgramState->settings.camera.scrollWheelMode == vcCSWM_Dolly)
     {
-      zooming = true;
-      if (isBtnClicked[0] || isBtnClicked[1])
+      if (previousLockTime < currentTime - timeout && (pProgramState->pickingSuccess || pProgramState->settings.camera.cameraMode == vcCM_OrthoMap) && pProgramState->cameraInput.inputState == vcCIS_None)
       {
         pProgramState->cameraInput.isUsingAnchorPoint = true;
         pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
@@ -634,12 +609,45 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
         if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
           pProgramState->cameraInput.worldAnchorPoint = pProgramState->pCamera->worldMouseRay.position;
       }
-    }
 
-    if (!zooming && pProgramState->cameraInput.inputState == vcCIS_CommandZooming && previousLockTime < currentTime - timeout)
-    {
-      pProgramState->cameraInput.inputState = vcCIS_None;
+      if (pProgramState->cameraInput.inputState == vcCIS_CommandZooming)
+      {
+        mouseInput.x = 0.0;
+        mouseInput.y = io.MouseWheel / 10.f;
+        mouseInput.z = 0.0;
+        previousLockTime = currentTime;
+
+        pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
+      }
     }
+    else
+    {
+      if (io.MouseWheel > 0)
+        pProgramState->settings.camera.moveSpeed *= (1.f + io.MouseWheel / 10.f);
+      else
+        pProgramState->settings.camera.moveSpeed /= (1.f - io.MouseWheel / 10.f);
+
+      pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
+    }
+  }
+
+  if (isBtnHeld[0] && isBtnHeld[1])
+  {
+    zooming = true;
+    if (isBtnClicked[0] || isBtnClicked[1])
+    {
+      pProgramState->cameraInput.isUsingAnchorPoint = true;
+      pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
+      pProgramState->cameraInput.inputState = vcCIS_CommandZooming;
+
+      if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
+        pProgramState->cameraInput.worldAnchorPoint = pProgramState->pCamera->worldMouseRay.position;
+    }
+  }
+
+  if (!zooming && pProgramState->cameraInput.inputState == vcCIS_CommandZooming && previousLockTime < currentTime - timeout)
+  {
+    pProgramState->cameraInput.inputState = vcCIS_None;
   }
 
   // set pivot to send to apply function
