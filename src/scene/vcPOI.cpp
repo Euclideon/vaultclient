@@ -139,7 +139,6 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
   if (m_line.numPoints > 1)
   {
-    /* THIS WAS COMMENTED OUT SO WE CAN SHIP 0.2.2 (EVC-477)
     static bool flyingThroughPoints = false;
     static int flyThroughPoint = -1;
     if (ImGui::Button(vcString::Get("scenePOIPerformFlyThrough")))
@@ -173,7 +172,6 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       flyThroughPoint = -1;
       flyingThroughPoints = false;
     }
-    */
 
     if (ImGui::SliderInt(vcString::Get("scenePOISelectedPoint"), &m_line.selectedPoint, -1, m_line.numPoints - 1))
       m_line.selectedPoint = udClamp(m_line.selectedPoint, -1, m_line.numPoints - 1);
@@ -216,7 +214,6 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     }
   }
 
-  /* COMMENTED OUT SO WE CAN SHIP 0.2.2 (EVC-477)
   // Handle POI bookmark mode
   if (ImGui::Checkbox(vcString::Get("scenePOIBookmarkMode"), &m_bookmarkMode) || m_bookmarkMode)
   {
@@ -229,7 +226,6 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       m_bookmarkCameraRotation = pProgramState->pCamera->eulerRotation - udMath_DirToYPR(-m_bookmarkCameraPosition);
     }
   }
-  */
 
   // Handle hyperlinks
   const char *pHyperlink = m_pMetadata->Get("hyperlink").AsString();
