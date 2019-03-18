@@ -618,7 +618,7 @@ int main(int argc, char **args)
               {
                 udDouble3 geolocation = udDouble3::zero();
                 bool hasLocation = false;
-                vcState::vcImageInfo::vcImageType imageType = vcState::vcImageInfo::vcImageType::vcIIIT_StandardPhoto;
+                vcState::ImageInfo::ImageType imageType = vcState::ImageInfo::ImageType::StandardPhoto;
 
                 // Many jpg's have exif, let's process that first
                 if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg"))
@@ -649,9 +649,9 @@ int main(int argc, char **args)
                           bool isPhotosphere = xmp.Get("x:xmpmeta.rdf:RDF.rdf:Description.GPano:IsPhotosphere").AsBool();
 
                           if (isPanorama && isPhotosphere)
-                            imageType = vcState::vcImageInfo::vcImageType::vcIIIT_PhotoSphere;
+                            imageType = vcState::ImageInfo::ImageType::PhotoSphere;
                           else if (isPanorama)
-                            imageType = vcState::vcImageInfo::vcImageType::vcIIIT_Panorama;
+                            imageType = vcState::ImageInfo::ImageType::Panorama;
                         }
                       }
                     }
@@ -687,9 +687,9 @@ int main(int argc, char **args)
                 tmp.SetString(pNextLoad);
                 pPOI->m_pMetadata->Set(&tmp, "imageurl");
 
-                if (imageType == vcState::vcImageInfo::vcIIIT_PhotoSphere)
+                if (imageType == vcState::ImageInfo::ImageType::PhotoSphere)
                   pPOI->m_pMetadata->Set("imagetype = 'photosphere'");
-                else if (imageType == vcState::vcImageInfo::vcIIIT_Panorama)
+                else if (imageType == vcState::ImageInfo::ImageType::Panorama)
                   pPOI->m_pMetadata->Set("imagetype = 'panorama'");
                 else
                   pPOI->m_pMetadata->Set("imagetype = 'standard'");
