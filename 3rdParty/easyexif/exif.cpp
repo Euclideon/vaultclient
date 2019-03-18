@@ -447,16 +447,32 @@ int easyexif::EXIFInfo::parseFrom(const unsigned char *buf, unsigned len) {
   // =========
   //  16 bytes
   unsigned offs = 0;  // current offset into buffer
-  for (offs = 0; offs < len - 1; offs++)
-    if (buf[offs] == 0xFF && buf[offs + 1] == 0xE1) break;
-  if (offs + 4 > len) return PARSE_EXIF_ERROR_NO_EXIF;
-  offs += 2;
-  unsigned short section_length = parse_value<uint16_t>(buf + offs, false);
-  if (offs + section_length > len || section_length < 16)
-    return PARSE_EXIF_ERROR_CORRUPT;
-  offs += 2;
+  bool hasExif = false;
 
-  return parseFromEXIFSegment(buf + offs, len - offs);
+  while (true)
+  {
+    for (; offs < len - 1; offs++)
+      if (buf[offs] == 0xFF && buf[offs + 1] == 0xE1)
+        break;
+
+    if (offs + 4 > len)
+      break;
+
+    offs += 2;
+    unsigned short section_length = parse_value<uint16_t>(buf + offs, false);
+    if (offs + section_length > len || section_length < 16)
+      return PARSE_EXIF_ERROR_CORRUPT;
+    offs += 2;
+
+    int loaded = (parseFromEXIFSegment(buf + offs, len - offs));
+
+    if (loaded == PARSE_EXIF_ERROR_NO_EXIF)
+      loaded = parseFromXMPSegment(buf + offs, len - offs, section_length);
+
+    hasExif |= (loaded == PARSE_EXIF_SUCCESS);
+  }
+
+  return hasExif ? PARSE_EXIF_SUCCESS : PARSE_EXIF_ERROR_NO_EXIF;
 }
 
 int easyexif::EXIFInfo::parseFrom(const string &data) {
@@ -577,6 +593,10 @@ int easyexif::EXIFInfo::parseFromEXIFSegment(const unsigned char *buf,
         // EXIF SubIFD offset
         exif_sub_ifd_offset = tiff_header_start + result.data();
         break;
+
+      default:
+
+        break;
     }
   }
 
@@ -590,9 +610,14 @@ int easyexif::EXIFInfo::parseFromEXIFSegment(const unsigned char *buf,
     if (offs + 6 + 12 * num_entries2 > len) return PARSE_EXIF_ERROR_CORRUPT;
     offs += 2;
     while (--num_entries2 >= 0) {
-      IFEntry result =
-          parseIFEntry(buf, offs, alignIntel, tiff_header_start, len);
+      IFEntry result = parseIFEntry(buf, offs, alignIntel, tiff_header_start, len);
       switch (result.tag()) {
+        case 0x02bc:
+          // XMP Metadata (Adobe technote 9-14-02)
+          if (result.format() == 5)
+            this->XMPMetadata = result.val_string();
+          break;
+
         case 0x829a:
           // Exposure time in seconds
           if (result.format() == 5 && result.val_rational().size())
@@ -855,6 +880,27 @@ int easyexif::EXIFInfo::parseFromEXIFSegment(const unsigned char *buf,
   }
 
   return PARSE_EXIF_SUCCESS;
+}
+
+//
+// Main parsing function for an XMP segment.
+//
+// PARAM: 'buf' start of the EXIF TIFF, which must be the bytes "http://ns.adobe.com/xap/1.0/\0".
+// PARAM: 'len' length of buffer
+// PARAM: 'section_length' expected length of this section
+//
+int easyexif::EXIFInfo::parseFromXMPSegment(const uint8_t* buf, unsigned len, unsigned short section_length) {
+  unsigned offs = 29; // current offset into buffer
+  if (!buf || len < offs)
+    return PARSE_EXIF_ERROR_NO_EXIF;
+  if (!std::equal(buf, buf + offs, "http://ns.adobe.com/xap/1.0/\0"))
+    return PARSE_EXIF_ERROR_NO_EXIF;
+  if (offs >= len)
+    return PARSE_EXIF_ERROR_CORRUPT;
+
+  this->XMPMetadata = std::string((const char*)(buf + offs), section_length - offs);
+
+  return PARSE_EXIF_SUCCESS;//parseFromXMPSegmentXML((const char*)(buf + offs), len - offs);
 }
 
 void easyexif::EXIFInfo::clear() {
