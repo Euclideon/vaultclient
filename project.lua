@@ -9,6 +9,7 @@ project "vaultClient"
 	files { "src/**.cpp", "src/**.h", "src/**.c" }
 	files { "3rdParty/Imgui/**.cpp", "3rdParty/Imgui/**.h" }
 	files { "3rdParty/stb/**.h" }
+	files { "3rdParty/easyexif/**.h", "3rdParty/easyexif/**.cpp" }
 	files { "project.lua" }
 	files { "docs/**.md" }
 	files { "builds/releasenotes.md" }
@@ -19,6 +20,7 @@ project "vaultClient"
 	includedirs { "src", "src/scene" }
 	includedirs { "3rdParty/Imgui" }
 	includedirs { "3rdParty/stb" }
+	includedirs { "3rdParty/easyexif" }
 
 	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS" }
 

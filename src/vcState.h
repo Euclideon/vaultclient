@@ -128,11 +128,20 @@ struct vcState
     std::vector<vcSceneItemRef> selectedItems;
   } sceneExplorer;
 
-  struct
+  struct ImageInfo
   {
     vcTexture *pImage;
     int width;
     int height;
+
+    enum ImageType
+    {
+      StandardPhoto,
+      Panorama,
+      PhotoSphere,
+
+      Count
+    } imageType;
   } image;
 
   bool firstRun;
