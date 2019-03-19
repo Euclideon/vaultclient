@@ -459,8 +459,8 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   for (size_t i = 0; i < udLengthOf(isBtnClicked); ++i)
     totalButtonsHeld += isBtnHeld[i] ? 1 : 0;
 
-  // If the gizmo is hovered and this this didn't have focus then we shouldn't handle mouse inputs here
-  if (!isMouseBtnBeingHeld && vcGizmo_IsHovered())
+  // If the gizmo is hovered or this isn't hovered at the start of the mouse event then we shouldn't handle mouse inputs here
+  if (!isMouseBtnBeingHeld && (vcGizmo_IsHovered() || !ImGui::IsItemHovered()))
   {
     memset(isBtnClicked, 0, sizeof(isBtnClicked));
     memset(isBtnDoubleClicked, 0, sizeof(isBtnDoubleClicked));
