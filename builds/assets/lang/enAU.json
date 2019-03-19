@@ -8,7 +8,6 @@
     "contactemail": "support@euclideon.com"
   },
 
-  "loginTitle": "Login",
   "loginButton": "Login",
   "loginAbout": "About",
   "loginReleaseNotes": "Release Notes",
@@ -21,6 +20,8 @@
   "loginCapsWarning": "Caps Lock is Enabled!",
   "loginAdvancedSettings": "Advanced Connection Settings",
   "loginProxyAddress": "Proxy Address",
+  "loginProxyAutodetect": "Auto-detect Proxy",
+  "loginProxyTest": "Test Proxy",
   "loginIgnoreCert": "Ignore Certificate Verification",
   "loginIgnoreCertWarning": "THIS IS A DANGEROUS SETTING, ONLY SET THIS ON REQUEST FROM YOUR SYSTEM ADMINISTRATOR",
 
@@ -33,6 +34,8 @@
   "loginErrorSecurity": "Could not open a secure channel to the server.",
   "loginErrorNegotiate": "Unable to negotiate with server, please confirm the server address",
   "loginErrorProxy": "Unable to negotiate with proxy server, please confirm the proxy server address",
+  "loginErrorProxyAuthPending": "Waiting for valid proxy credentials...",
+  "loginErrorProxyAuthFailed": "No valid proxy credentials were supplied, please try another proxy or supply valid proxy credentials",
   "loginErrorOther": "Unknown error occurred, please try again later.",
 
   "settingsTitle": "Settings",
@@ -257,6 +260,13 @@
   "menuBarLicenseExpired": "License (expired)",
   "menuBarLicenseQueued": "in Queue",
   "menuBarInactive": "Inactive",
+
+  "modalProxyInfo": "The proxy requires authentication:",
+  "modalProxyBadCreds": "The specified proxy credentials were incorrect, please confirm and try again.",
+  "modalProxyUsername": "Proxy Username",
+  "modalProxyPassword": "Proxy Password",
+  "modalProxyAuthContinueButton": "Test",
+  "modalProxyAuthCancelButton": "Cancel",
 
   "sceneTitle": "Scene",
   "sceneImageViewerTitle": "Image Viewer",

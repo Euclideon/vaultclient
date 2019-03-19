@@ -8,6 +8,7 @@
 #include "vcRender.h"
 #include "vcStrings.h"
 #include "vcConvert.h"
+#include "vcProxyHelper.h"
 
 #include "vCore/vStringFormat.h"
 
@@ -34,6 +35,67 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
     {
       ImGui::CloseCurrentPopup();
       pProgramState->openModals &= ~(1 << vcMT_LoggedOut);
+    }
+
+    ImGui::EndPopup();
+  }
+}
+
+void vcModals_DrawProxyAuth(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_ProxyAuth))
+    ImGui::OpenPopup("modalProxy");
+
+  if (ImGui::BeginPopupModal("modalProxy", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+  {
+    pProgramState->modalOpen = true;
+
+    // These are here so they don't leak
+    static char proxyUsername[256];
+    static char proxyPassword[256];
+
+    bool closePopup = false;
+    bool tryLogin = false;
+    static bool detailsGood = true;
+
+    // Info
+    ImGui::TextUnformatted(vcString::Get("modalProxyInfo"));
+
+    if (!detailsGood)
+      ImGui::TextUnformatted(vcString::Get("modalProxyBadCreds"));
+
+    // Username
+    tryLogin |= ImGui::InputText(vcString::Get("modalProxyUsername"), proxyUsername, udLengthOf(proxyUsername), ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::SetItemDefaultFocus();
+
+    // Password
+    tryLogin |= ImGui::InputText(vcString::Get("modalProxyPassword"), proxyPassword, udLengthOf(proxyPassword), ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
+
+    if (ImGui::Button(vcString::Get("modalProxyAuthContinueButton")) || tryLogin)
+    {
+      if (vcProxyHelper_SetUserAndPass(pProgramState, proxyUsername, proxyPassword) == vE_Success)
+        closePopup = true;
+      else
+        detailsGood = false;
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("modalProxyAuthCancelButton")) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    {
+      pProgramState->loginStatus = vcLS_ProxyAuthFailed; // Change the error so it doesn't try login when the modal closes
+      closePopup = true;
+    }
+
+    if (closePopup)
+    {
+      detailsGood = true;
+
+      memset(proxyUsername, 0, sizeof(proxyUsername));
+      memset(proxyPassword, 0, sizeof(proxyPassword));
+
+      ImGui::CloseCurrentPopup();
+      pProgramState->openModals &= ~(1 << vcMT_ProxyAuth);
     }
 
     ImGui::EndPopup();
@@ -503,6 +565,7 @@ void vcModals_DrawModals(vcState *pProgramState)
 {
   pProgramState->modalOpen = false;
   vcModals_DrawLoggedOut(pProgramState);
+  vcModals_DrawProxyAuth(pProgramState);
   vcModals_DrawReleaseNotes(pProgramState);
   vcModals_DrawAbout(pProgramState);
   vcModals_DrawNewVersionAvailable(pProgramState);
@@ -512,5 +575,5 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawNotImplemented(pProgramState);
   vcModals_DrawImageViewer(pProgramState);
 
-  pProgramState->openModals &= ((1 << vcMT_NewVersionAvailable) | (1 << vcMT_LoggedOut));
+  pProgramState->openModals &= ((1 << vcMT_NewVersionAvailable) | (1 << vcMT_LoggedOut) | (1 << vcMT_ProxyAuth));
 }
