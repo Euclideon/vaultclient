@@ -390,6 +390,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
         udStrcpy(pSettings->loginInfo.username, sizeof(pSettings->loginInfo.username), data.Get("login.username").AsString());
 
       udStrcpy(pSettings->loginInfo.proxy, udLengthOf(pSettings->loginInfo.proxy), data.Get("login.proxy").AsString());
+      udStrcpy(pSettings->loginInfo.proxyTestURL, udLengthOf(pSettings->loginInfo.proxyTestURL), data.Get("login.proxyTestURL").AsString("http://vaultmodels.euclideon.com/proxytest"));
+      pSettings->loginInfo.autoDetectProxy = data.Get("login.autodetectproxy").AsBool();
 
       // Camera
       pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
@@ -464,6 +466,7 @@ bool vcSettings_Save(vcSettings *pSettings)
 
   tempNode.SetString(pSettings->loginInfo.proxy);
   data.Set(&tempNode, "login.proxy");
+  data.Set("login.autodetectproxy = %s", pSettings->loginInfo.autoDetectProxy ? "true" : "false");
 
   // Camera
   data.Set("camera.moveSpeed = %f", pSettings->camera.moveSpeed);

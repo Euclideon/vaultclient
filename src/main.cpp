@@ -33,6 +33,7 @@
 #include "vcModals.h"
 #include "vcLiveFeed.h"
 #include "vcPolygonModel.h"
+#include "vcProxyHelper.h"
 
 #include "vCore/vStringFormat.h"
 
@@ -156,6 +157,8 @@ void vcLogin(void *pProgramStatePtr)
     pProgramState->loginStatus = vcLS_NegotiationError;
   else if (result == vE_ProxyError)
     pProgramState->loginStatus = vcLS_ProxyError;
+  else if (result == vE_ProxyAuthRequired)
+    pProgramState->loginStatus = vcLS_ProxyAuthRequired;
   else if (result != vE_Success)
     pProgramState->loginStatus = vcLS_OtherError;
 
@@ -1477,11 +1480,11 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
     ImGui::SetNextWindowPos(ImVec2(size.x / 2, size.y - vcLBS_LoginBoxY), ImGuiCond_Always, ImVec2(0.5, 1.0));
 
-    const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorOther" };
+    const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther" };
 
     if (pProgramState->loginStatus == vcLS_Pending)
     {
-      if (ImGui::Begin(vcString::Get("loginTitle"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar))
+      if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar))
       {
         vcFolder_ShowLoadStatusIndicator(vcSLS_Loading);
         ImGui::TextUnformatted(vcString::Get("loginMessageChecking"));
@@ -1490,7 +1493,7 @@ void vcRenderWindow(vcState *pProgramState)
     }
     else
     {
-      if (ImGui::Begin(vcString::Get("loginTitle"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+      if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
       {
         ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
 
@@ -1537,6 +1540,7 @@ void vcRenderWindow(vcState *pProgramState)
           if (io.MouseClickedPos->x < minPos.x - buttonSize.x || io.MouseClickedPos->x > maxPos.x || io.MouseClickedPos->y < minPos.y || io.MouseClickedPos->y > maxPos.y)
             pProgramState->passFocus = false;
         }
+
         if (!pProgramState->passFocus && udStrlen(pProgramState->password) == 0)
           pProgramState->passFocus = true;
 
@@ -1544,10 +1548,22 @@ void vcRenderWindow(vcState *pProgramState)
           ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
 
         if (pProgramState->loginStatus == vcLS_NoStatus)
+        {
           pProgramState->loginStatus = vcLS_EnterCredentials;
+        }
+        else if (pProgramState->loginStatus == vcLS_ProxyAuthRequired)
+        {
+          pProgramState->loginStatus = vcLS_ProxyAuthPending;
+          vcModals_OpenModal(pProgramState, vcMT_ProxyAuth);
+        }
+        else if (pProgramState->loginStatus == vcLS_ProxyAuthPending && !pProgramState->modalOpen)
+        {
+          tryLogin = true; // Retries the login after proxy info is entered
+        }
 
         if (ImGui::Button(vcString::Get("loginButton")) || tryLogin)
         {
+          pProgramState->passFocus = false;
           pProgramState->loginStatus = vcLS_Pending;
           vWorkerThread_AddTask(pProgramState->pWorkerPool, vcLogin, pProgramState, false);
         }
@@ -1562,8 +1578,23 @@ void vcRenderWindow(vcState *pProgramState)
 
         if (ImGui::TreeNode(vcString::Get("loginAdvancedSettings")))
         {
-          if (ImGui::InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy, vcMaxPathLength))
+          // Make sure its actually off before doing the auto-proxy check
+          if (ImGui::Checkbox(vcString::Get("loginProxyAutodetect"), &pProgramState->settings.loginInfo.autoDetectProxy) && pProgramState->settings.loginInfo.autoDetectProxy)
+            vcProxyHelper_AutoDetectProxy(pProgramState);
+
+          if (ImGui::InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy, vcMaxPathLength, pProgramState->settings.loginInfo.autoDetectProxy ? ImGuiInputTextFlags_ReadOnly : ImGuiInputTextFlags_None) && !pProgramState->settings.loginInfo.autoDetectProxy)
             vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
+
+          ImGui::SameLine();
+          if (ImGui::Button(vcString::Get("loginProxyTest")))
+          {
+            if (pProgramState->settings.loginInfo.autoDetectProxy)
+              vcProxyHelper_AutoDetectProxy(pProgramState);
+
+            //TODO: Decide what to do with other errors
+            if (vcProxyHelper_TestProxy(pProgramState) == vE_ProxyAuthRequired)
+              vcModals_OpenModal(pProgramState, vcMT_ProxyAuth);
+          }
 
           if (ImGui::Checkbox(vcString::Get("loginIgnoreCert"), &pProgramState->settings.loginInfo.ignoreCertificateVerification))
             vdkConfig_IgnoreCertificateVerification(pProgramState->settings.loginInfo.ignoreCertificateVerification);
