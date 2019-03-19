@@ -28,7 +28,7 @@ namespace vcString
     if (pValue == nullptr)
     {
       // Caches the mising string-
-      gStringTable[pKey] = vStringFormat("{MISSING/{0}}", pKey);
+      gStringTable[pKey] = vStringFormat("{{0}}", pKey);
       return gStringTable[pKey];
     }
     else

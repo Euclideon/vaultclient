@@ -8,7 +8,6 @@
     "contactemail": "support@euclideon.com"
   },
 
-  "loginTitle": "Login",
   "loginButton": "Login",
   "loginAbout": "About",
   "loginReleaseNotes": "Release Notes",
@@ -21,6 +20,8 @@
   "loginCapsWarning": "Caps Lock is Enabled!",
   "loginAdvancedSettings": "Advanced Connection Settings",
   "loginProxyAddress": "Proxy Address",
+  "loginProxyAutodetect": "Auto-detect Proxy",
+  "loginProxyTest": "Test Proxy",
   "loginIgnoreCert": "Ignore Certificate Verification",
   "loginIgnoreCertWarning": "THIS IS A DANGEROUS SETTING, ONLY SET THIS ON REQUEST FROM YOUR SYSTEM ADMINISTRATOR",
 
@@ -33,6 +34,9 @@
   "loginErrorSecurity": "Could not open a secure channel to the server.",
   "loginErrorNegotiate": "Unable to negotiate with server, please confirm the server address",
   "loginErrorProxy": "Unable to negotiate with proxy server, please confirm the proxy server address",
+  "loginErrorProxyAuthReq": "The proxy is requesting proxy credentials",
+  "loginErrorProxyAuthPending": "Waiting for user input on proxy information",
+  "loginErrorProxyAuthFailed": "The supplied proxy details are incorrect",
   "loginErrorOther": "Unknown error occurred, please try again later.",
 
   "settingsTitle": "Settings",

@@ -5,6 +5,7 @@ enum vcModalTypes
 {
   // These are handled by DrawModals
   vcMT_LoggedOut,
+  vcMT_ProxyAuth,
   vcMT_ReleaseNotes,
   vcMT_About,
   vcMT_NewVersionAvailable,
