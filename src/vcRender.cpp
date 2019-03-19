@@ -573,7 +573,11 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
 
       if (renderData.models[i]->m_hasWatermark)
       {
-        double cameraDistSqr = udMagSq(pRenderContext->pCamera->position - renderData.models[i]->m_sceneMatrix.axis.t.toVector3());
+        udDouble3 distVector = pRenderContext->pCamera->position - renderData.models[i]->GetWorldSpacePivot();
+        if (pRenderContext->pSettings->camera.cameraMode == vcCM_OrthoMap)
+          distVector.z = 0.0;
+
+        double cameraDistSqr = udMagSq(distVector);
         if (cameraDistSqr < maxDistSqr)
         {
           maxDistSqr = cameraDistSqr;
