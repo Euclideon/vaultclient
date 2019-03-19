@@ -455,6 +455,10 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   isMouseBtnBeingHeld &= (isBtnHeld[0] || isBtnHeld[1] || isBtnHeld[2]);
   bool isFocused = (ImGui::IsItemHovered() || isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
 
+  int totalButtonsHeld = 0;
+  for (size_t i = 0; i < udLengthOf(isBtnClicked); ++i)
+    totalButtonsHeld += isBtnHeld[i] ? 1 : 0;
+
   // If the gizmo is hovered and this this didn't have focus then we shouldn't handle mouse inputs here
   if (!isMouseBtnBeingHeld && vcGizmo_IsHovered())
   {
@@ -503,7 +507,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   for (int i = 0; i < 3; ++i)
   {
     // Single Clicking
-    if (isBtnClicked[i] && pProgramState->cameraInput.inputState == vcCIS_None)
+    if (isBtnClicked[i] && (pProgramState->cameraInput.inputState == vcCIS_None || totalButtonsHeld == 1)) // immediately override current input if this is a new button down
     {
       if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
       {
@@ -533,22 +537,22 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     {
       if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
       {
-        if ((i == 0 || i == 1) && pProgramState->cameraInput.inputState == vcCIS_CommandZooming)
+        if ((pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Orbit && pProgramState->cameraInput.inputState == vcCIS_Orbiting) ||
+            (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Pan && pProgramState->cameraInput.inputState == vcCIS_Panning) ||
+             pProgramState->cameraInput.inputState == vcCIS_CommandZooming)
         {
           pProgramState->cameraInput.inputState = vcCIS_None;
 
-          if (isBtnHeld[1]) // if right click is still being held, begin doing whatever is bound
+          // Should another mouse action take over? (it's being held down)
+          for (int j = 0; j < 3; ++j)
           {
-            vcCamera_BeginCameraPivotModeMouseBinding(pProgramState, 1);
+            if (isBtnHeld[j])
+            {
+              vcCamera_BeginCameraPivotModeMouseBinding(pProgramState, j);
+              break;
+            }
           }
         }
-
-        if (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Orbit && pProgramState->cameraInput.inputState == vcCIS_Orbiting)
-          pProgramState->cameraInput.inputState = vcCIS_None;
-
-        if (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Pan && pProgramState->cameraInput.inputState == vcCIS_Panning)
-          pProgramState->cameraInput.inputState = vcCIS_None;
-
       }
       else // map mode
       {
