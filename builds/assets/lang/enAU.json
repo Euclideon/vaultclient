@@ -34,9 +34,8 @@
   "loginErrorSecurity": "Could not open a secure channel to the server.",
   "loginErrorNegotiate": "Unable to negotiate with server, please confirm the server address",
   "loginErrorProxy": "Unable to negotiate with proxy server, please confirm the proxy server address",
-  "loginErrorProxyAuthReq": "The proxy is requesting proxy credentials",
-  "loginErrorProxyAuthPending": "Waiting for user input on proxy information",
-  "loginErrorProxyAuthFailed": "The supplied proxy details are incorrect",
+  "loginErrorProxyAuthPending": "Waiting for valid proxy credentials...",
+  "loginErrorProxyAuthFailed": "No valid proxy credentials were supplied, please try another proxy or supply valid proxy credentials",
   "loginErrorOther": "Unknown error occurred, please try again later.",
 
   "settingsTitle": "Settings",
@@ -261,6 +260,13 @@
   "menuBarLicenseExpired": "License (expired)",
   "menuBarLicenseQueued": "in Queue",
   "menuBarInactive": "Inactive",
+
+  "modalProxyInfo": "The proxy requires authentication:",
+  "modalProxyBadCreds": "The specified proxy credentials were incorrect, please confirm and try again.",
+  "modalProxyUsername": "Proxy Username",
+  "modalProxyPassword": "Proxy Password",
+  "modalProxyAuthContinueButton": "Test",
+  "modalProxyAuthCancelButton": "Cancel",
 
   "sceneTitle": "Scene",
   "sceneImageViewerTitle": "Image Viewer",

@@ -4,10 +4,10 @@
 
 - Version 0.2.3 (or 0.3.0?)
   - Added:
-    - Proxy Messages
-      - `loginErrorProxyAuthReq`, `loginErrorProxyAuthPending`, `loginErrorProxyAuthFailed`
-    - Proxy Buttons
-      - `loginProxyAutodetect`, `loginProxyTest`
+    - Proxy Messages & Settings
+      - `loginErrorProxyAuthPending`, `loginErrorProxyAuthFailed`, `loginProxyAutodetect`, `loginProxyTest`
+    - Proxy Modal
+      - `modalProxyInfo`, `modalProxyBadCreds`, `modalProxyUsername`, `modalProxyPassword`, `modalProxyAuthContinueButton`, `modalProxyAuthCancelButton`
   - Removed:
     - Titles
       - "loginTitle"
@@ -74,6 +74,8 @@ Modules are currently:
 - `loginCapsWarning`: Warning displayed when caps lock is enabled while logging in
 - `loginAdvancedSettings`: Subheading for expandable section containing advanced settings
 - `loginProxyAddress`: Label for the proxy address field
+- `loginProxyAutodetect`: Label for the checkbox that attempts to find a proxy automatically
+- `loginProxyTest`: Used on the button that tests the proxy details are correct
 - `loginIgnoreCert`: Label for a setting that disables many of the security checks when logging in
 - `loginIgnoreCertWarning`: This displays a warning to the user that disabling the security certificates is _very_ dangerous
 - `loginPending`: String used internally to set the login status to "pending"?
@@ -83,8 +85,10 @@ Modules are currently:
 - `loginErrorAuth`: Displays when the server rejects the specified username or password
 - `loginErrorTimeSync`: Displays when the local clock and server clock are not synchronised
 - `loginErrorSecurity`: Displays when the server fails a security check during a login attempt
-- `loginErrorNegotiate`: ?
-- `loginErrorProxy`: ?
+- `loginErrorNegotiate`: Displays when the server entered responds but not in a way expected of a vault server
+- `loginErrorProxy`: Displays when the user was unable to login due to a proxy interfering
+- `loginErrorProxyAuthPending`: Displays in the background when the proxy credential modal is visible
+- `loginErrorProxyAuthFailed`: Displays if the user cancels the proxy modal without submitting valid details
 - `loginErrorOther`: Displays when an unknown error occurs during login, tells the user to try again
 
 ### Settings Strings
@@ -332,6 +336,15 @@ Modules are currently:
 - `menuBarLicenseExpired`: Used to indicate when the render or convert license has expired
 - `menuBarLicenseQueued`: Used to indicate the position of a file being imported in the import queue?
 - `menuBarInactive`: Used to indicate that vault client is not the currently selected window and is running in the background
+
+### Proxy Login Modal
+
+- `modalProxyInfo`: Used at the top of the proxy login modal to let the user know why they are logging in
+- `modalProxyBadCreds`: Message displayed at the top of the proxy modal after the supplied username and password fail to authenticate with the proxy
+- `modalProxyUsername`: Label for the text input for the proxy username
+- `modalProxyPassword`: Label for the text input for the proxy password
+- `modalProxyAuthContinueButton`: Button used for continuing with the supplied username and password
+- `modalProxyAuthCancelButton`: Button used to cancel the proxy authentication modal without submitting details
 
 ### Scene Strings
 

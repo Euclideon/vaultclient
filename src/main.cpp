@@ -1480,7 +1480,7 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
     ImGui::SetNextWindowPos(ImVec2(size.x / 2, size.y - vcLBS_LoginBoxY), ImGuiCond_Always, ImVec2(0.5, 1.0));
 
-    const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthReq", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther" };
+    const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther" };
 
     if (pProgramState->loginStatus == vcLS_Pending)
     {

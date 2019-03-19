@@ -1,9 +1,9 @@
 #ifndef vcProxyHelper_h__
 #define vcProxyHelper_h__
 
-struct vcState;
-
 #include "vdkError.h"
+
+struct vcState;
 
 vdkError vcProxyHelper_AutoDetectProxy(vcState *pProgramState);
 
