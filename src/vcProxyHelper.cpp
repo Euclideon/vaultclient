@@ -21,7 +21,12 @@ vdkError vcProxyHelper_AutoDetectProxy(vcState *pProgramState)
   WINHTTP_PROXY_INFO proxyInfo;
   ZeroMemory(&proxyInfo, sizeof(proxyInfo));
 
-  udURL serverURL = pProgramState->settings.loginInfo.serverURL;
+  udURL serverURL;
+
+  if (pProgramState->settings.loginInfo.serverURL[0] == '\0')
+    serverURL = pProgramState->settings.loginInfo.proxyTestURL;
+  else
+    serverURL = pProgramState->settings.loginInfo.serverURL;
 
   pHttpSession = WinHttpOpen(L"VaultClient AutoProxy Request/1.0", WINHTTP_ACCESS_TYPE_NO_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
 
@@ -101,7 +106,14 @@ vdkError vcProxyHelper_TestProxy(vcState *pProgramState)
 {
   const char *pResult = nullptr;
 
-  vdkError vResult = vdkWeb_Request(pProgramState->settings.loginInfo.proxyTestURL, &pResult, nullptr, nullptr);
+  const char *pServerURL;
+
+  if (pProgramState->settings.loginInfo.serverURL[0] == '\0')
+    pServerURL = pProgramState->settings.loginInfo.proxyTestURL;
+  else
+    pServerURL = pProgramState->settings.loginInfo.serverURL;
+
+  vdkError vResult = vdkWeb_Request(pServerURL, &pResult, nullptr, nullptr);
 
   if (vResult == vE_Success)
     vdkWeb_ReleaseResponse(&pResult);
