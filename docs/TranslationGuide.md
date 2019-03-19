@@ -2,13 +2,22 @@
 
 ## Changelist
 
+- Version 0.2.3 (or 0.3.0?)
+  - Added:
+    - Proxy Messages
+      - `loginErrorProxyAuthReq`, `loginErrorProxyAuthPending`, `loginErrorProxyAuthFailed`
+    - Proxy Buttons
+      - `loginProxyAutodetect`, `loginProxyTest`
+  - Removed:
+    - Titles
+      - "loginTitle"
 - Version 0.2.2
   - Added:
     - Appearance Setting
       - `settingsAppearancePOIDistance`
     - Convert Status codes:
       - `convertJobs`, `convertAwaiting`, `convertQueued`, `convertAwaitingLicense`, `convertRunning`, `convertCompleted`, `convertCancelled`, `convertFailed`
-  - Removed
+  - Removed:
     - Unused convert strings:
       - `convertOverride`, `convertEstimate`, `convertRead`, `convertPoints`
 
@@ -53,7 +62,6 @@ Modules are currently:
 
 ### Login Strings
 
-- `loginTitle`: Title of the login window
 - `loginButton`: Used on the button that logs in the user
 - `loginAbout`: Used on the button that opens the About window from the login screen
 - `loginReleaseNotes`: Used on the button that opens the Release Notes window from the login screen

@@ -32,7 +32,8 @@
     "serverURL": "https://earth.vault.euclideon.com",
     "rememberUsername": false,
     "username": "",
-    "proxy": ""
+    "proxy": "",
+    "proxyTestURL": "http://vaultmodels.euclideon.com/proxytest"
   },
   "camera": {
     "moveSpeed": 10.000000,

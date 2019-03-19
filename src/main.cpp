@@ -33,6 +33,7 @@
 #include "vcModals.h"
 #include "vcLiveFeed.h"
 #include "vcPolygonModel.h"
+#include "vcProxyHelper.h"
 
 #include "vCore/vStringFormat.h"
 
@@ -45,10 +46,6 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-
-#if UDPLATFORM_WINDOWS
-# include <winhttp.h>
-#endif
 
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
 #  include <crtdbg.h>
@@ -160,6 +157,8 @@ void vcLogin(void *pProgramStatePtr)
     pProgramState->loginStatus = vcLS_NegotiationError;
   else if (result == vE_ProxyError)
     pProgramState->loginStatus = vcLS_ProxyError;
+  else if (result == vE_ProxyAuthRequired)
+    pProgramState->loginStatus = vcLS_ProxyAuthRequired;
   else if (result != vE_Success)
     pProgramState->loginStatus = vcLS_OtherError;
 
@@ -287,95 +286,6 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
     }
   }
   ImGui::CaptureDefaults();
-}
-
-void vcMain_AutoDetectProxy(vcState *pProgramState)
-{
-#if UDPLATFORM_WINDOWS
-  HINTERNET pHttpSession = nullptr;
-  HINTERNET pConnect = nullptr;
-  HINTERNET pRequest = nullptr;
-
-  WINHTTP_AUTOPROXY_OPTIONS  autoProxyOptions;
-  ZeroMemory(&autoProxyOptions, sizeof(autoProxyOptions));
-
-  WINHTTP_PROXY_INFO proxyInfo;
-  ZeroMemory(&proxyInfo, sizeof(proxyInfo));
-
-  udURL serverURL = pProgramState->settings.loginInfo.serverURL;
-
-  pHttpSession = WinHttpOpen(L"VaultClient AutoProxy Request/1.0", WINHTTP_ACCESS_TYPE_NO_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
-
-  if (!pHttpSession)
-    goto Exit;
-
-  pConnect = WinHttpConnect(pHttpSession, udOSString(serverURL.GetDomain()), (INTERNET_PORT)serverURL.GetPort(), 0);
-
-  if (!pConnect)
-    goto Exit;
-
-  pRequest = WinHttpOpenRequest(pConnect, L"GET", L"index.html", L"HTTP/1.1", WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
-
-  if (!pRequest)
-    goto Exit;
-
-  // Use auto-detection because the Proxy Auto-Config URL is not known.
-  autoProxyOptions.dwFlags = WINHTTP_AUTOPROXY_AUTO_DETECT;
-
-  // Use DHCP and DNS-based auto-detection.
-  autoProxyOptions.dwAutoDetectFlags = WINHTTP_AUTO_DETECT_TYPE_DHCP | WINHTTP_AUTO_DETECT_TYPE_DNS_A;
-
-  // If obtaining the PAC script requires NTLM/Negotiate authentication,
-  // then automatically supply the client domain credentials.
-  //
-  // This is much faster when FALSE, might be worth trying with FALSE first.
-  autoProxyOptions.fAutoLogonIfChallenged = TRUE;
-
-  // Get proxy for the URL, otherwise fall back to IE settings.
-  if (WinHttpGetProxyForUrl(pHttpSession, udOSString(pProgramState->settings.loginInfo.serverURL), &autoProxyOptions, &proxyInfo))
-  {
-    if (proxyInfo.dwAccessType != WINHTTP_ACCESS_TYPE_NO_PROXY)
-      udStrcpy(pProgramState->settings.loginInfo.autoDetectProxyURL, udLengthOf(pProgramState->settings.loginInfo.autoDetectProxyURL), udOSString(proxyInfo.lpszProxy));
-  }
-  else
-  {
-    WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig;
-    ZeroMemory(&proxyConfig, sizeof(proxyConfig));
-    if (WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig))
-    {
-      // Avoid crashing in udOSString
-      if (proxyConfig.lpszProxy != nullptr)
-        udStrcpy(pProgramState->settings.loginInfo.autoDetectProxyURL, udLengthOf(pProgramState->settings.loginInfo.autoDetectProxyURL), udOSString(proxyConfig.lpszProxy));
-    }
-
-    if (proxyConfig.lpszAutoConfigUrl != nullptr)
-      GlobalFree(proxyConfig.lpszAutoConfigUrl);
-
-    if (proxyConfig.lpszProxy != nullptr)
-      GlobalFree(proxyConfig.lpszProxy);
-
-    if (proxyConfig.lpszProxyBypass != nullptr)
-      GlobalFree(proxyConfig.lpszProxyBypass);
-  }
-
-Exit:
-  if (proxyInfo.lpszProxy != nullptr)
-    GlobalFree(proxyInfo.lpszProxy);
-
-  if (proxyInfo.lpszProxyBypass != nullptr)
-    GlobalFree(proxyInfo.lpszProxyBypass);
-
-  if (pRequest != nullptr)
-    WinHttpCloseHandle(pRequest);
-
-  if (pConnect != nullptr)
-    WinHttpCloseHandle(pConnect);
-
-  if (pHttpSession != nullptr)
-    WinHttpCloseHandle(pHttpSession);
-#endif
-
-  vdkConfig_ForceProxy(pProgramState->settings.loginInfo.autoDetectProxyURL);
 }
 
 int main(int argc, char **args)
@@ -1570,11 +1480,11 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
     ImGui::SetNextWindowPos(ImVec2(size.x / 2, size.y - vcLBS_LoginBoxY), ImGuiCond_Always, ImVec2(0.5, 1.0));
 
-    const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorOther" };
+    const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthReq", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther" };
 
     if (pProgramState->loginStatus == vcLS_Pending)
     {
-      if (ImGui::Begin(vcString::Get("loginTitle"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar))
+      if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar))
       {
         vcFolder_ShowLoadStatusIndicator(vcSLS_Loading);
         ImGui::TextUnformatted(vcString::Get("loginMessageChecking"));
@@ -1583,7 +1493,7 @@ void vcRenderWindow(vcState *pProgramState)
     }
     else
     {
-      if (ImGui::Begin(vcString::Get("loginTitle"), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+      if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
       {
         ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
 
@@ -1630,6 +1540,7 @@ void vcRenderWindow(vcState *pProgramState)
           if (io.MouseClickedPos->x < minPos.x - buttonSize.x || io.MouseClickedPos->x > maxPos.x || io.MouseClickedPos->y < minPos.y || io.MouseClickedPos->y > maxPos.y)
             pProgramState->passFocus = false;
         }
+
         if (!pProgramState->passFocus && udStrlen(pProgramState->password) == 0)
           pProgramState->passFocus = true;
 
@@ -1637,10 +1548,22 @@ void vcRenderWindow(vcState *pProgramState)
           ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
 
         if (pProgramState->loginStatus == vcLS_NoStatus)
+        {
           pProgramState->loginStatus = vcLS_EnterCredentials;
+        }
+        else if (pProgramState->loginStatus == vcLS_ProxyAuthRequired)
+        {
+          pProgramState->loginStatus = vcLS_ProxyAuthPending;
+          vcModals_OpenModal(pProgramState, vcMT_ProxyAuth);
+        }
+        else if (pProgramState->loginStatus == vcLS_ProxyAuthPending && !pProgramState->modalOpen)
+        {
+          tryLogin = true; // Retries the login after proxy info is entered
+        }
 
         if (ImGui::Button(vcString::Get("loginButton")) || tryLogin)
         {
+          pProgramState->passFocus = false;
           pProgramState->loginStatus = vcLS_Pending;
           vWorkerThread_AddTask(pProgramState->pWorkerPool, vcLogin, pProgramState, false);
         }
@@ -1655,11 +1578,23 @@ void vcRenderWindow(vcState *pProgramState)
 
         if (ImGui::TreeNode(vcString::Get("loginAdvancedSettings")))
         {
+          // Make sure its actually off before doing the auto-proxy check
+          if (ImGui::Checkbox(vcString::Get("loginProxyAutodetect"), &pProgramState->settings.loginInfo.autoDetectProxy) && pProgramState->settings.loginInfo.autoDetectProxy)
+            vcProxyHelper_AutoDetectProxy(pProgramState);
+
           if (ImGui::InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy, vcMaxPathLength, pProgramState->settings.loginInfo.autoDetectProxy ? ImGuiInputTextFlags_ReadOnly : ImGuiInputTextFlags_None) && !pProgramState->settings.loginInfo.autoDetectProxy)
             vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
 
-          if (ImGui::Checkbox("Auto-detect Proxy", &pProgramState->settings.loginInfo.autoDetectProxy))
-            vcMain_AutoDetectProxy(pProgramState);
+          ImGui::SameLine();
+          if (ImGui::Button(vcString::Get("loginProxyTest")))
+          {
+            if (pProgramState->settings.loginInfo.autoDetectProxy)
+              vcProxyHelper_AutoDetectProxy(pProgramState);
+
+            //TODO: Decide what to do with other errors
+            if (vcProxyHelper_TestProxy(pProgramState) == vE_ProxyAuthRequired)
+              vcModals_OpenModal(pProgramState, vcMT_ProxyAuth);
+          }
 
           if (ImGui::Checkbox(vcString::Get("loginIgnoreCert"), &pProgramState->settings.loginInfo.ignoreCertificateVerification))
             vdkConfig_IgnoreCertificateVerification(pProgramState->settings.loginInfo.ignoreCertificateVerification);
