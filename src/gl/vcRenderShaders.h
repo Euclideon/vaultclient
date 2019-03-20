@@ -9,6 +9,8 @@ extern const char* const g_vcSkyboxFragmentShader;
 extern const char* const g_vcSkyboxVertexShader;
 extern const char* const g_FenceVertexShader;
 extern const char* const g_FenceFragmentShader;
+extern const char* const g_WaterVertexShader;
+extern const char* const g_WaterFragmentShader;
 
 extern const char* const g_CompassFragmentShader;
 extern const char* const g_CompassVertexShader;
