@@ -10,7 +10,6 @@
 #include "imgui.h"
 #include "imgui_ex/imgui_impl_sdl.h"
 #include "imgui_ex/imgui_impl_gl.h"
-#include "imgui_ex/imgui_dock.h"
 #include "imgui_ex/imgui_udValue.h"
 #include "imgui_ex/ImGuizmo.h"
 #include "imgui_ex/vcMenuButtons.h"
@@ -319,7 +318,6 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
     case 2: ImGui::StyleColorsLight(); break;
     }
   }
-  ImGui::CaptureDefaults();
 }
 
 int main(int argc, char **args)
@@ -467,6 +465,8 @@ int main(int argc, char **args)
   if (!vcGLState_Init(programState.pWindow, &programState.pDefaultFramebuffer))
     goto epilogue;
 
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
   vcMain_LoadSettings(&programState, false);
 
   // setup watermark for background
@@ -649,7 +649,7 @@ int main(int argc, char **args)
                 vcUDP_Load(&programState, pNextLoad);
                 programState.changeActiveDock = vcDocks_Scene;
               }
-              else if (ImGui::IsDockActive(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))) && (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif")))
+              else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif"))
               {
                 udDouble3 geolocation = udDouble3::zero();
                 bool hasLocation = false;
@@ -819,15 +819,11 @@ int main(int argc, char **args)
       }
 
       if (programState.firstRun)
-      {
-        ImGui::CaptureDefaults();
         programState.firstRun = false;
-      }
     }
   }
 
   vcSettings_Save(&programState.settings);
-  ImGui::ShutdownDock();
   ImGui::DestroyContext();
 
 epilogue:
@@ -1456,7 +1452,7 @@ void vcChangeTab(vcState *pProgramState, vcDocks dock)
 {
   if (pProgramState->changeActiveDock == dock)
   {
-    ImGui::SetDockActive();
+    ImGui::SetWindowFocus();
     pProgramState->changeActiveDock = vcDocks_Count;
   }
 }
@@ -1493,14 +1489,22 @@ void vcRenderWindow(vcState *pProgramState)
 
   //end keyboard/mouse handling
 
-  if (pProgramState->hasContext && !pProgramState->settings.window.presentationMode)
+  if (pProgramState->hasContext)
   {
-    float menuHeight = (float)vcMainMenuGui(pProgramState);
-    ImGui::RootDock(ImVec2(0, menuHeight), ImVec2(size.x, size.y - menuHeight));
-  }
-  else
-  {
-    ImGui::RootDock(ImVec2(0, 0), ImVec2(size.x, size.y));
+    vcMainMenuGui(pProgramState);
+
+    ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowBgAlpha(0.f);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
+
+    ImGui::Begin("RootDockContainer", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
+    ImGui::DockSpace(ImGui::GetID("MyDockspace"), ImVec2(0, 0), ImGuiDockNodeFlags_PassthruDockspace);
+    ImGui::End();
+
+    ImGui::PopStyleVar(2);
   }
 
   if (!pProgramState->hasContext)
@@ -1762,7 +1766,7 @@ void vcRenderWindow(vcState *pProgramState)
   }
   else
   {
-    if (ImGui::BeginDock(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
+    if (ImGui::Begin(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
     {
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddUDS"), vcString::Get("sceneExplorerAddUDSKey"), vcMBBI_AddPointCloud, vcMBBG_FirstItem) || (ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeysDown[SDL_SCANCODE_U]))
         vcModals_OpenModal(pProgramState, vcMT_AddUDS);
@@ -1872,25 +1876,25 @@ void vcRenderWindow(vcState *pProgramState)
         if (pProgramState->sceneExplorer.pItems)
           pProgramState->sceneExplorer.pItems->HandleImGui(pProgramState, &i);
 
-        ImGui::EndChild();
       }
+      ImGui::EndChild();
     }
-    ImGui::EndDock();
+    ImGui::End();
 
     if (!pProgramState->settings.window.presentationMode)
     {
-      if (ImGui::BeginDock(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
+      if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
         vcRenderSceneWindow(pProgramState);
       vcChangeTab(pProgramState, vcDocks_Scene);
-      ImGui::EndDock();
+      ImGui::End();
     }
     else
     {
       // Dummy scene dock, otherwise the docks get shuffled around
-      if (ImGui::BeginDock(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
+      if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
         ImGui::Dummy(ImVec2((float)pProgramState->sceneResolution.x, (float)pProgramState->sceneResolution.y));
       vcChangeTab(pProgramState, vcDocks_Scene);
-      ImGui::EndDock();
+      ImGui::End();
 
       ImGui::SetNextWindowSize(size);
       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
@@ -1903,13 +1907,13 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::PopStyleVar();
     }
 
-    if (ImGui::BeginDock(udTempStr("%s###convertDock", vcString::Get("convertTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
+    if (ImGui::Begin(udTempStr("%s###convertDock", vcString::Get("convertTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
       vcConvert_ShowUI(pProgramState);
 
     vcChangeTab(pProgramState, vcDocks_Convert);
-    ImGui::EndDock();
+    ImGui::End();
 
-    if (ImGui::BeginDock(udTempStr("%s###settingsDock", vcString::Get("settingsTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Settings]))
+    if (ImGui::Begin(udTempStr("%s###settingsDock", vcString::Get("settingsTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Settings]))
     {
       bool opened = ImGui::CollapsingHeader(vcString::Get("AppearanceID"));
       if (ImGui::BeginPopupContextItem("AppearanceContext"))
@@ -2243,7 +2247,7 @@ void vcRenderWindow(vcState *pProgramState)
         }
       }
     }
-    ImGui::EndDock();
+    ImGui::End();
 
     if (pProgramState->currentError != vE_Success)
     {

@@ -21,7 +21,7 @@ const vcVertexLayoutTypes vcImGuiVertexLayout[] = { vcVLT_Position2, vcVLT_Textu
 // Functions
 bool ImGuiGL_Init(SDL_Window *pWindow)
 {
-  ImGui_ImplSDL2_InitForOpenGL(pWindow, nullptr);
+  ImGui_ImplSDL2_InitForOpenGL(pWindow);
   return true;
 }
 
