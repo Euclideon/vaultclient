@@ -5,148 +5,10 @@
 #include "udPlatform/udFileHandler.h"
 
 #include "imgui.h"
-#include "imgui_ex/imgui_dock_internal.h"
 
 #include "vcClassificationColours.h"
 
-extern ImGui::DockContext g_dock;
 const char *pDefaults = "asset://defaultsettings.json";
-
-void vcSettings_RecursiveLoadDock(const udJSON &parentDock, int parentIndex, bool isNextTab = false)
-{
-  ImGui::DockContext::Dock *new_dock = (ImGui::DockContext::Dock*)ImGui::MemAlloc(sizeof(ImGui::DockContext::Dock));
-  IM_PLACEMENT_NEW(new_dock) ImGui::DockContext::Dock();
-  g_dock.m_docks.push_back(new_dock);
-
-  int newIndex = g_dock.m_docks.size()-1;
-
-  g_dock.m_docks[newIndex]->label = ImStrdup(parentDock.Get("label").AsString());
-
-  // Legacy names from pre-0.2.1
-  if (udStrEquali(g_dock.m_docks[newIndex]->label, "Scene"))
-  {
-    ImGui::MemFree(g_dock.m_docks[newIndex]->label);
-    g_dock.m_docks[newIndex]->label = ImStrdup("scene###sceneDock");
-  }
-  else if (udStrEquali(g_dock.m_docks[newIndex]->label, "Convert"))
-  {
-    ImGui::MemFree(g_dock.m_docks[newIndex]->label);
-    g_dock.m_docks[newIndex]->label = ImStrdup("convert###convertDock");
-  }
-  else if (udStrEquali(g_dock.m_docks[newIndex]->label, "Scene Explorer"))
-  {
-    ImGui::MemFree(g_dock.m_docks[newIndex]->label);
-    g_dock.m_docks[newIndex]->label = ImStrdup("sceneExplorer###sceneExplorerDock");
-  }
-  else if (udStrEquali(g_dock.m_docks[newIndex]->label, "Settings"))
-  {
-    ImGui::MemFree(g_dock.m_docks[newIndex]->label);
-    g_dock.m_docks[newIndex]->label = ImStrdup("settings###settingsDock");
-  }
-
-  g_dock.m_docks[newIndex]->id = ImHashStr(g_dock.m_docks[newIndex]->label, 0);
-
-  if (parentDock.Get("child").ArrayLength() > 0) // has children
-  {
-    vcSettings_RecursiveLoadDock(parentDock.Get("child[0]"), newIndex);
-    g_dock.m_docks[newIndex]->children[0] = g_dock.getDockByIndex(newIndex + 1);
-
-    int child1Index = g_dock.m_docks.size();
-    vcSettings_RecursiveLoadDock(parentDock.Get("child[1]"), newIndex);
-    g_dock.m_docks[newIndex]->children[1] = g_dock.getDockByIndex(child1Index);
-  }
-
-  if (isNextTab)
-    g_dock.m_docks[newIndex]->prev_tab = g_dock.getDockByIndex(newIndex - 1); // must be previous value
-
-  if (parentDock.Get("next").MemberCount() > 0) // has next_tab
-  {
-    vcSettings_RecursiveLoadDock(parentDock.Get("next"), parentIndex, true);
-
-    g_dock.m_docks[newIndex]->next_tab = g_dock.getDockByIndex(newIndex + 1); // as tab cannot have children
-  }
-
-  g_dock.m_docks[newIndex]->parent = g_dock.getDockByIndex(parentIndex);
-
-  g_dock.m_docks[newIndex]->status = (ImGui::DockContext::Status_)parentDock.Get("status").AsInt();
-  g_dock.m_docks[newIndex]->active = parentDock.Get("active").AsBool();
-  g_dock.m_docks[newIndex]->opened = parentDock.Get("open").AsBool();
-
-  g_dock.m_docks[newIndex]->pos.x = parentDock.Get("position.x").AsFloat();
-  g_dock.m_docks[newIndex]->pos.y = parentDock.Get("position.y").AsFloat();
-  g_dock.m_docks[newIndex]->size.x = parentDock.Get("size.x").AsFloat();
-  g_dock.m_docks[newIndex]->size.y = parentDock.Get("size.y").AsFloat();
-
-  udStrcpy(g_dock.m_docks[newIndex]->location, sizeof(g_dock.m_docks[newIndex]->location), parentDock.Get("location").AsString(""));
-
-  g_dock.tryDockToStoredLocation(*g_dock.m_docks[newIndex]);
-}
-
-void vcSettings_LoadDocks(udJSON &settings)
-{
-  for (int i = 0; i < g_dock.m_docks.size(); ++i)
-  {
-    g_dock.m_docks[i]->~Dock();
-    MemFree(g_dock.m_docks[i]);
-  }
-  g_dock.m_docks.clear();
-
-  int numRootDocks = (int)settings.Get("rootDocks").ArrayLength();
-
-  for (int i = 0; i < numRootDocks; ++i)
-  {
-    vcSettings_RecursiveLoadDock(settings.Get("rootDocks[%d]", i), -1);
-  }
-}
-
-void vcSettings_RecursiveSaveDock(udJSON &parentJSON, ImGui::DockContext::Dock *pParentDock, const char *pParentString)
-{
-  udJSON dockJSON;
-  dockJSON.SetObject();
-
-  ImGui::DockContext::Dock &dock = *pParentDock;
-
-  dockJSON.Set("label = '%s'", dock.parent ? (dock.label[0] == '\0' ? "DOCK" : dock.label) : (dock.label[0] == '\0' ? "ROOT" : dock.label));
-
-  dockJSON.Set("status = %d", dock.status);
-  dockJSON.Set("active = %s", dock.active ? "true" : "false");
-  dockJSON.Set("open = %s", dock.opened ? "true" : "false");
-
-  dockJSON.Set("position.x = %f", dock.pos.x);
-  dockJSON.Set("position.y = %f", dock.pos.y);
-  dockJSON.Set("size.x = %f", dock.size.x);
-  dockJSON.Set("size.y = %f", dock.size.y);
-
-  g_dock.fillLocation(dock);
-  if (udStrlen(dock.location))
-    dockJSON.Set("location = '%s'", dock.location);
-
-  if (dock.children[0])
-    vcSettings_RecursiveSaveDock(dockJSON, dock.children[0], "child[0]");
-
-  if (dock.children[1])
-    vcSettings_RecursiveSaveDock(dockJSON, dock.children[1], "child[1]");
-
-  if (dock.next_tab)
-    vcSettings_RecursiveSaveDock(dockJSON, dock.next_tab, "next");
-
-  parentJSON.Set(&dockJSON, "%s", pParentString);
-}
-
-void vcSettings_SaveDocks(udJSON &settings)
-{
-  for (int i = 0; i < g_dock.m_docks.size(); ++i)
-  {
-    ImGui::DockContext::Dock& dock = *g_dock.m_docks[i];
-    bool dockIsValidRoot = (g_dock.getDockIndex(dock.parent) == -1);
-
-    if ((!dock.children[0] || !dock.children[1]) && udStrlen(dock.label) == 0) // if either of the children are nullptr and the label has a length of 0
-      dockIsValidRoot = false; // is a root dock with no children, do not save
-
-    if (dockIsValidRoot)
-      vcSettings_RecursiveSaveDock(settings, &dock, "rootDocks[]");
-  }
-}
 
 void vcSettings_InitializePrefPath(vcSettings *pSettings)
 {
@@ -406,9 +268,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       // Camera
       pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
       pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
-
-      // Docks
-      vcSettings_LoadDocks(data);
     }
 epilogue:
   udFree(pSavedData);
@@ -552,9 +411,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   tempNode.SetString(pSettings->maptiles.tileServerExtension);
   data.Set(&tempNode, "maptiles.imgExtension");
 
-  // Docks
-  vcSettings_SaveDocks(data);
-
+  // Save
   const char *pSettingsStr;
 
   if (data.Export(&pSettingsStr, udJEO_JSON | udJEO_FormatWhiteSpace) == udR_Success)
