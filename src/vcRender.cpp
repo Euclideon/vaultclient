@@ -5,6 +5,7 @@
 #include "gl/vcShader.h"
 #include "gl/vcGLState.h"
 #include "gl/vcFenceRenderer.h"
+#include "gl/vcWaterRenderer.h"
 
 #include "vcTileRenderer.h"
 #include "vcGIS.h"
@@ -401,7 +402,7 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
   }
 }
 
-void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
+void vcRenderOpaquePolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   vcGLState_ResetState();
 
@@ -413,14 +414,20 @@ void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
 
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
       vcPolygonModel_Render(renderData.polyModels[i].pModel, renderData.polyModels[i].worldMat, pRenderContext->pCamera->matrices.viewProjection);
+
+    for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
+      vcWaterRenderer_Render(renderData.waterVolumes[i], pRenderContext->pCamera->matrices.view, pRenderContext->pCamera->matrices.viewProjection, pRenderContext->pSkyboxTexture, renderData.deltaTime);
   }
+}
+
+void vcRenderTransparentPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
+{
+  vcGLState_SetBlendMode(vcGLSBM_Interpolative);
+  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   // Fences
   {
-    vcGLState_SetBlendMode(vcGLSBM_Interpolative);
-    vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
-    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
-
     if (pRenderContext->pSettings->presentation.showDiagnosticInfo)
       vcFenceRenderer_Render(pRenderContext->pDiagnosticFences, pRenderContext->pCamera->matrices.viewProjection, renderData.deltaTime);
 
@@ -428,7 +435,6 @@ void vcRenderPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
       vcFenceRenderer_Render(renderData.fences[i], pRenderContext->pCamera->matrices.viewProjection, renderData.deltaTime);
   }
 }
-
 
 vcTexture* vcRender_GetSceneTexture(vcRenderContext *pRenderContext)
 {
@@ -450,8 +456,9 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
 
   vcPresentUD(pRenderContext);
   vcRenderSkybox(pRenderContext);
+  vcRenderOpaquePolygons(pRenderContext, renderData);
   vcRenderTerrain(pRenderContext, renderData);
-  vcRenderPolygons(pRenderContext, renderData);
+  vcRenderTransparentPolygons(pRenderContext, renderData);
 
   // !!! Render meshy models
 

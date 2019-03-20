@@ -12,6 +12,7 @@
 #include "gl/vcMesh.h"
 #include "gl/vcFenceRenderer.h"
 #include "gl/vcLabelRenderer.h"
+#include "gl/vcWaterRenderer.h"
 
 struct vcRenderContext;
 struct vcTexture;
@@ -39,6 +40,7 @@ struct vcRenderData
   udChunkedArray<vcFenceRenderer*> fences;
   udChunkedArray<vcLabelInfo*> labels;
   udChunkedArray<vcRenderPolyInstance> polyModels;
+  udChunkedArray<vcWaterRenderer*> waterVolumes;
 
   vcCamera *pCamera;
   vcCameraSettings *pCameraSettings;

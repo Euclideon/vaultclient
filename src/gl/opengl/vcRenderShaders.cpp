@@ -213,7 +213,6 @@ void main()
 )shader";
 
 const char* const g_vcSkyboxFragmentShader = FRAG_HEADER R"shader(
-
 uniform sampler2D u_texture;
 layout (std140) uniform u_EveryFrame
 {
@@ -321,7 +320,6 @@ void main()
 )shader";
 
 const char* const g_ImGuiFragmentShader = FRAG_HEADER R"shader(
-
 uniform sampler2D Texture;
 
 in vec2 Frag_UV;
@@ -336,6 +334,13 @@ void main()
 )shader";
 
 const char* const g_FenceVertexShader = VERT_HEADER R"shader(
+layout(location = 0) in vec3 a_position;
+layout(location = 1) in vec2 a_uv;
+layout(location = 2) in vec4 a_ribbonInfo; // xyz: expand vector; z: pair id (0 or 1)
+
+out vec2 v_uv;
+out vec4 v_colour;
+
 layout (std140) uniform u_EveryFrame
 {
   vec4 u_bottomColour;
@@ -354,13 +359,6 @@ layout (std140) uniform u_EveryObject
 {
   mat4 u_modelViewProjectionMatrix;
 };
-
-layout(location = 0) in vec3 a_position;
-layout(location = 1) in vec2 a_uv;
-layout(location = 2) in vec4 a_ribbonInfo; // xyz: expand vector; z: pair id (0 or 1)
-
-out vec2 v_uv;
-out vec4 v_colour;
 
 void main()
 {
@@ -392,7 +390,104 @@ const char* const g_FenceFragmentShader = FRAG_HEADER R"shader(
   }
 )shader";
 
+const char* const g_WaterFragmentShader = FRAG_HEADER R"shader(
+  //Input Format
+  in vec2 v_uv0;
+  in vec2 v_uv1;
+  in vec4 v_fragEyePos;
+  in vec3 v_colour;
 
+  //Output Format
+  out vec4 out_Colour;
+
+  layout (std140) uniform u_EveryFrameFrag
+  {
+    vec4 u_specularDir;
+    mat4 u_eyeNormalMatrix;
+    mat4 u_inverseViewMatrix;
+  };
+
+  uniform sampler2D u_normalMap;
+  uniform sampler2D u_skybox;
+
+  #define PI 3.14159265359
+
+  vec2 directionToLatLong(vec3 dir)
+  {
+    vec2 longlat = vec2(atan(dir.x, dir.y) + PI, acos(dir.z));
+    return longlat / vec2(2.0 * PI, PI);
+  }
+
+  void main()
+  {
+    vec3 specularDir = normalize(u_specularDir.xyz);
+
+    vec3 normal0 = texture(u_normalMap, v_uv0).xyz * vec3(2.0) - vec3(1.0);
+    vec3 normal1 = texture(u_normalMap, v_uv1).xyz * vec3(2.0) - vec3(1.0);
+    vec3 normal = normalize((normal0.xyz * normal1.xyz));
+
+    vec3 eyeToFrag = normalize(v_fragEyePos.xyz);
+    vec3 eyeSpecularDir = normalize((u_eyeNormalMatrix * vec4(specularDir, 0.0)).xyz);
+    vec3 eyeNormal = normalize((u_eyeNormalMatrix * vec4(normal, 0.0)).xyz);
+    vec3 eyeReflectionDir = normalize(reflect(eyeToFrag, eyeNormal));
+
+    float nDotS = abs(dot(eyeReflectionDir, eyeSpecularDir));
+    float nDotL = -dot(eyeNormal, eyeToFrag);
+    float fresnel = nDotL * vec3(0.5) + vec3(0.5);
+
+    float specular = pow(nDotS, 250.0) * 0.5;
+
+    vec3 deepFactor = vec3(0.35, 0.35, 0.35);
+    vec3 shallowFactor = vec3(1.0, 1.0, 0.7);
+
+    float distanceToShore = 1.0; // maybe TODO
+    vec3 refractionColour = v_colour * mix(shallowFactor, deepFactor, distanceToShore);
+
+    // reflection
+    vec4 worldFragPos = u_inverseViewMatrix * vec4(eyeReflectionDir, 0.0);
+    vec4 skybox = texture(u_skybox, directionToLatLong(normalize(worldFragPos.xyz)));
+    vec3 reflectionColour = skybox.xyz;
+
+    vec3 finalColour = mix(reflectionColour, refractionColour, fresnel * 0.75) + vec3(specular);
+    out_Colour = vec4(finalColour, 1.0);
+  }
+)shader";
+
+const char* const g_WaterVertexShader = VERT_HEADER R"shader(
+  layout(location = 0) in vec2 a_position;
+
+  out vec2 v_uv0;
+  out vec2 v_uv1;
+  out vec4 v_fragEyePos;
+  out vec3 v_colour;
+
+  layout (std140) uniform u_EveryFrameVert
+  {
+    vec4 u_time;
+  };
+
+  layout (std140) uniform u_EveryObject
+  {
+    vec4 u_colourAndSize;
+    mat4 u_modelViewMatrix;
+    mat4 u_modelViewProjectionMatrix;
+  };
+
+  void main()
+  {
+    float uvScaleBodySize = u_colourAndSize.w; // packed here
+
+    // scale the uvs with time
+    float uvOffset = u_time.x * 0.0625;
+    v_uv0 = uvScaleBodySize * a_position.xy * vec2(0.25) - vec2(uvOffset, uvOffset);
+    v_uv1 = uvScaleBodySize * a_position.yx * vec2(0.50) - vec2(uvOffset, uvOffset * 0.75);
+
+    v_fragEyePos = u_modelViewMatrix * vec4(a_position, 0.0, 1.0);
+    v_colour = u_colourAndSize.xyz;
+
+    gl_Position = u_modelViewProjectionMatrix * vec4(a_position, 0.0, 1.0);
+  }
+)shader";
 
 const char* const g_PolygonP1N1UV1FragmentShader = FRAG_HEADER R"shader(
   //Input Format

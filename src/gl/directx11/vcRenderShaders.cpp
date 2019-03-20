@@ -382,6 +382,20 @@ const char* const g_ImGuiFragmentShader = R"frag(
 
 
 const char* const g_FenceVertexShader = R"shader(
+  struct VS_INPUT
+  {
+    float3 pos : POSITION;
+    float2 uv  : TEXCOORD0;
+    float4 ribbonInfo : COLOR0; // xyz: expand vector; z: pair id (0 or 1)
+  };
+
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float4 colour : COLOR0;
+    float2 uv  : TEXCOORD0;
+  };
+
   cbuffer u_EveryFrame : register(b0)
   {
     float4 u_bottomColour;
@@ -399,20 +413,6 @@ const char* const g_FenceVertexShader = R"shader(
   cbuffer u_EveryObject : register(b1)
   {
     float4x4 u_modelViewProjectionMatrix;
-  };
-
-  struct VS_INPUT
-  {
-    float3 pos : POSITION;
-    float2 uv  : TEXCOORD0;
-    float4 ribbonInfo : COLOR0; // xyz: expand vector; z: pair id (0 or 1)
-  };
-
-  struct PS_INPUT
-  {
-    float4 pos : SV_POSITION;
-    float4 colour : COLOR0;
-    float2 uv  : TEXCOORD0;
   };
 
   PS_INPUT main(VS_INPUT input)
@@ -445,6 +445,117 @@ const char* const g_FenceFragmentShader = R"shader(
   {
     float4 texCol = texture0.Sample(sampler0, input.uv);
     return float4(texCol.xyz * input.colour.xyz, texCol.w * input.colour.w);
+  }
+)shader";
+
+const char* const g_WaterFragmentShader = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv0 : TEXCOORD0;
+    float2 uv1 : TEXCOORD1;
+    float4 fragEyePos : COLOR0;
+    float4 colour : COLOR1;
+  };
+
+  cbuffer u_EveryFrameFrag : register(b0)
+  {
+    float4 u_specularDir;
+    float4x4 u_eyeNormalMatrix;
+    float4x4 u_inverseViewMatrix;
+  };
+
+  #define PI 3.14159265359
+
+  float2 directionToLatLong(float3 dir)
+  {
+    float2 longlat = float2(atan2(dir.x, dir.y) + PI, acos(dir.z));
+    return longlat / float2(2.0 * PI, PI);
+  }
+
+  sampler sampler0;
+  sampler sampler1;
+  Texture2D u_normalMap;
+  Texture2D u_skybox;
+
+  float4 main(PS_INPUT input) : SV_Target
+  {
+    float3 specularDir = normalize(u_specularDir.xyz);
+
+    float3 normal0 = u_normalMap.Sample(sampler0, input.uv0).xyz * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
+    float3 normal1 = u_normalMap.Sample(sampler0, input.uv1).xyz * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
+    float3 normal = normalize((normal0.xyz * normal1.xyz));
+
+    float3 eyeToFrag = normalize(input.fragEyePos.xyz);
+    float3 eyeSpecularDir = normalize(mul(u_eyeNormalMatrix, float4(specularDir, 0.0)).xyz);
+    float3 eyeNormal = normalize(mul(u_eyeNormalMatrix, float4(normal, 0.0)).xyz);
+    float3 eyeReflectionDir = normalize(reflect(eyeToFrag, eyeNormal));
+
+    float nDotS = abs(dot(eyeReflectionDir, eyeSpecularDir));
+    float nDotL = -dot(eyeNormal, eyeToFrag);
+    float fresnel = nDotL * float3(0.5, 0.5, 0.5) + float3(0.5, 0.5, 0.5);
+
+    float specular = pow(nDotS, 250.0) * 0.5;
+
+    float3 deepFactor = float3(0.35, 0.35, 0.35);
+    float3 shallowFactor = float3(1.0, 1.0, 0.7);
+
+    float distanceToShore = 1.0; // maybe TODO
+    float3 refractionColour = input.colour * lerp(shallowFactor, deepFactor, distanceToShore);
+
+    // reflection
+    float4 worldFragPos = mul(u_inverseViewMatrix, float4(eyeReflectionDir, 0.0));
+    float4 skybox = u_skybox.Sample(sampler1, directionToLatLong(normalize(worldFragPos.xyz)));
+    float3 reflectionColour = skybox.xyz;
+
+    float3 finalColour = lerp(reflectionColour, refractionColour, fresnel * 0.75) + float3(specular, specular, specular);
+    return float4(finalColour, 1.0);
+  }
+)shader";
+
+const char* const g_WaterVertexShader = R"shader(
+  struct VS_INPUT
+  {
+    float2 pos : POSITION;
+  };
+
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv0  : TEXCOORD0;
+    float2 uv1  : TEXCOORD1;
+    float4 fragEyePos : COLOR0;
+    float3 colour : COLOR1;
+  };
+
+  cbuffer u_EveryFrameVert : register(b0)
+  {
+    float4 u_time;
+  };
+
+  cbuffer u_EveryObject : register(b1)
+  {
+    float4 u_colourAndSize;
+    float4x4 u_modelViewMatrix;
+    float4x4 u_modelViewProjectionMatrix;
+  };
+
+  PS_INPUT main(VS_INPUT input)
+  {
+    PS_INPUT output;
+
+    float uvScaleBodySize = u_colourAndSize.w; // packed here
+
+    // scale the uvs with time
+    float uvOffset = u_time.x * 0.0625;
+    output.uv0 = uvScaleBodySize * input.pos.xy * float2(0.25, 0.25) - float2(uvOffset, uvOffset);
+    output.uv1 = uvScaleBodySize * input.pos.yx * float2(0.50, 0.50) - float2(uvOffset, uvOffset * 0.75);
+
+    output.fragEyePos = mul(u_modelViewMatrix, float4(input.pos, 0.0, 1.0));
+    output.colour = u_colourAndSize.xyz;
+    output.pos = mul(u_modelViewProjectionMatrix, float4(input.pos, 0.0, 1.0));
+
+    return output;
   }
 )shader";
 

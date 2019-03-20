@@ -102,11 +102,14 @@ void vcMesh_Destroy(vcMesh **ppMesh)
   if (ppMesh == nullptr || *ppMesh == nullptr)
     return;
 
-  glDeleteBuffers(1, &(*ppMesh)->vbo);
-  glDeleteBuffers(1, &(*ppMesh)->ibo);
-  glDeleteVertexArrays(1, &(*ppMesh)->vao);
+  vcMesh *pMesh = *ppMesh;
+  *ppMesh = nullptr;
 
-  udFree(*ppMesh);
+  glDeleteBuffers(1, &pMesh->vbo);
+  glDeleteBuffers(1, &pMesh->ibo);
+  glDeleteVertexArrays(1, &pMesh->vao);
+
+  udFree(pMesh);
 }
 
 udResult vcMesh_UploadData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, int totalTypes, const void* pVerts, int totalVerts, const void *pIndices, int totalIndices)
