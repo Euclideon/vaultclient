@@ -376,7 +376,7 @@ int main(int argc, char **args)
   Uint64 LAST;
 
   // Setup SDL
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0)
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
     goto epilogue;
 
   // Setup window
@@ -425,6 +425,8 @@ int main(int argc, char **args)
 
   SDL_free(pIcon);
 
+  ImGui::CreateContext();
+
   glcontext = SDL_GL_CreateContext(programState.pWindow);
   if (!glcontext)
     goto epilogue;
@@ -434,7 +436,6 @@ int main(int argc, char **args)
 
   SDL_GL_SetSwapInterval(0); // disable v-sync
 
-  ImGui::CreateContext();
   vcMain_LoadSettings(&programState, false);
 
   // setup watermark for background
