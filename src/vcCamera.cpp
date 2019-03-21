@@ -468,10 +468,18 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     memset(isBtnReleased, 0, sizeof(isBtnReleased));
   }
 
+  // Controller Input
+  if (true)
+  {
+    keyboardInput.y -= io.NavInputs[ImGuiNavInput_LStickUp];
+    keyboardInput.x += io.NavInputs[ImGuiNavInput_LStickLeft];
+    keyboardInput.z += io.NavInputs[ImGuiNavInput_DpadUp] - io.NavInputs[ImGuiNavInput_DpadDown];
+  }
+
   if (io.KeyCtrl)
     speedModifier *= 0.1f;
 
-  if (io.KeyShift)
+  if (io.KeyShift || io.NavInputs[ImGuiNavInput_Cancel])
     speedModifier *= 10.f;
 
   if ((!ImGui::GetIO().WantCaptureKeyboard || isFocused) && !pProgramState->modalOpen)
