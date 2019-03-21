@@ -241,7 +241,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     if (pCamSettings->invertY)
       pCamInput->mouseInput.y *= -1.0;
 
-    pCamInput->smoothRotation += pCamInput->mouseInput;
+    pCamInput->smoothRotation += pCamInput->mouseInput * 0.5;
   }
   break;
 
@@ -363,13 +363,16 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
   {
     udPlane<double> plane = udPlane<double>::create(pCamInput->worldAnchorPoint, { 0, 0, 1 });
 
+    if (pCamSettings->cameraMode == vcCM_OrthoMap)
+      plane.point.z = 0;
+
     if (pCamSettings->cameraMode != vcCM_OrthoMap && pCamSettings->moveMode == vcCMM_Plane)
       plane.normal = udDoubleQuat::create(pCamera->eulerRotation).apply({ 0, 1, 0 });
 
-    udDouble3 offset, anchorOffset;
+    udDouble3 offset = udDouble3::create(0, 0, 0);
+    udDouble3 anchorOffset = udDouble3::create(0, 0, 0);
     if (udIntersect(plane, pCamera->worldMouseRay, &offset) == udR_Success && udIntersect(plane, pCamInput->anchorMouseRay, &anchorOffset) == udR_Success)
       pCamInput->smoothTranslation = (anchorOffset - offset);
-
   }
   break;
 
@@ -445,7 +448,11 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
   float speedModifier = 1.f;
 
+  ImVec2 mouseDelta = io.MouseDelta;
+  float mouseWheel = io.MouseWheel;
+
   static bool isMouseBtnBeingHeld = false;
+  static bool gizmoCapturedMouse = false;
 
   bool isBtnClicked[3] = { ImGui::IsMouseClicked(0, false), ImGui::IsMouseClicked(1, false), ImGui::IsMouseClicked(2, false) };
   bool isBtnDoubleClicked[3] = { ImGui::IsMouseDoubleClicked(0), ImGui::IsMouseDoubleClicked(1), ImGui::IsMouseDoubleClicked(2) };
@@ -456,16 +463,28 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   bool isFocused = (ImGui::IsItemHovered() || isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
 
   int totalButtonsHeld = 0;
-  for (size_t i = 0; i < udLengthOf(isBtnClicked); ++i)
+  for (size_t i = 0; i < udLengthOf(isBtnHeld); ++i)
     totalButtonsHeld += isBtnHeld[i] ? 1 : 0;
 
-  // If the gizmo is hovered or this isn't hovered at the start of the mouse event then we shouldn't handle mouse inputs here
-  if (!isMouseBtnBeingHeld && (vcGizmo_IsHovered() || !ImGui::IsItemHovered()))
+  bool forceClearMouseState = (!isMouseBtnBeingHeld && !ImGui::IsItemHovered());
+
+  // Was the gizmo just clicked on?
+  gizmoCapturedMouse = gizmoCapturedMouse || (pProgramState->gizmo.operation != 0 && vcGizmo_IsHovered() && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]));
+  if (gizmoCapturedMouse)
+  {
+    // was the gizmo just released?
+    gizmoCapturedMouse = isBtnHeld[0] || isBtnHeld[1] || isBtnHeld[2];
+    forceClearMouseState = (forceClearMouseState || gizmoCapturedMouse);
+  }
+
+  if (forceClearMouseState)
   {
     memset(isBtnClicked, 0, sizeof(isBtnClicked));
     memset(isBtnDoubleClicked, 0, sizeof(isBtnDoubleClicked));
     memset(isBtnHeld, 0, sizeof(isBtnHeld));
     memset(isBtnReleased, 0, sizeof(isBtnReleased));
+    mouseDelta = ImVec2();
+    mouseWheel = 0.0f;
   }
 
   if (io.KeyCtrl)
@@ -483,8 +502,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     if (io.KeysDown[SDL_SCANCODE_SPACE] && io.KeysDownDuration[SDL_SCANCODE_SPACE] == 0.0)
       pProgramState->settings.camera.moveMode = ((pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter);
   }
-
-  ImVec2 mouseDelta = io.MouseDelta;
 
   if (isFocused)
   {
@@ -599,7 +616,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   double currentTime = ImGui::GetTime();
   bool zooming = false;
 
-  if (io.MouseWheel != 0)
+  if (mouseWheel != 0)
   {
     zooming = true;
     if (pProgramState->settings.camera.scrollWheelMode == vcCSWM_Dolly)
@@ -617,7 +634,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
       if (pProgramState->cameraInput.inputState == vcCIS_CommandZooming)
       {
         mouseInput.x = 0.0;
-        mouseInput.y = io.MouseWheel / 10.f;
+        mouseInput.y = mouseWheel / 10.f;
         mouseInput.z = 0.0;
         previousLockTime = currentTime;
 
@@ -626,10 +643,10 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     }
     else
     {
-      if (io.MouseWheel > 0)
-        pProgramState->settings.camera.moveSpeed *= (1.f + io.MouseWheel / 10.f);
+      if (mouseWheel > 0)
+        pProgramState->settings.camera.moveSpeed *= (1.f + mouseWheel / 10.f);
       else
-        pProgramState->settings.camera.moveSpeed /= (1.f - io.MouseWheel / 10.f);
+        pProgramState->settings.camera.moveSpeed /= (1.f - mouseWheel / 10.f);
 
       pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
     }
