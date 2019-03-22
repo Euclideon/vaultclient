@@ -227,6 +227,14 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
       }
     }
 
+    // Panning - DPAD
+    pCamInput->controllerDPADInput = (udDouble4x4::rotationYPR(pCamera->eulerRotation) * udDouble4::create(pCamInput->controllerDPADInput, 1)).toVector3();
+
+    if (pCamSettings->cameraMode == vcCM_OrthoMap || pCamSettings->moveMode == vcCMM_Helicopter)
+      pCamInput->controllerDPADInput.z = 0.0;
+
+    addPos += pCamInput->controllerDPADInput;
+
     addPos.z += vertPos;
     addPos *= pCamSettings->moveSpeed * speedModifier * deltaTime;
     pCamInput->smoothTranslation += addPos;
@@ -446,6 +454,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   float speedModifier = 1.f;
 
   static bool isMouseBtnBeingHeld = false;
+  static bool isRightTriggerHeld = false;
 
   bool isBtnClicked[3] = { ImGui::IsMouseClicked(0, false), ImGui::IsMouseClicked(1, false), ImGui::IsMouseClicked(2, false) };
   bool isBtnDoubleClicked[3] = { ImGui::IsMouseDoubleClicked(0), ImGui::IsMouseDoubleClicked(1), ImGui::IsMouseDoubleClicked(2) };
@@ -469,17 +478,43 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   }
 
   // Controller Input
-  if (true)
+  if (io.NavActive)
   {
-    keyboardInput.y -= io.NavInputs[ImGuiNavInput_LStickUp];
-    keyboardInput.x += io.NavInputs[ImGuiNavInput_LStickLeft];
-    keyboardInput.z += io.NavInputs[ImGuiNavInput_DpadUp] - io.NavInputs[ImGuiNavInput_DpadDown];
+    keyboardInput.y += -io.NavInputs[vcControllerButton_LStickY];
+    keyboardInput.x += io.NavInputs[vcControllerButton_LStickX];
+    mouseInput.x = -io.NavInputs[vcControllerButton_RStickX] / 15.0f;
+    mouseInput.y = io.NavInputs[vcControllerButton_RStickY] / 25.0f;
+    // In Imgui the DPAD is bound to navigation, so disable DPAD panning until the issue is resolved
+    //pProgramState->cameraInput.controllerDPADInput = udDouble3::create(io.NavInputs[vcControllerButton_DpadRight] - io.NavInputs[vcControllerButton_DpadLeft], 0, io.NavInputs[vcControllerButton_DpadUp] - io.NavInputs[vcControllerButton_DpadDown]);
+    if (isRightTriggerHeld)
+    {
+      if (pProgramState->pickingSuccess && pProgramState->cameraInput.inputState == vcCIS_None)
+      {
+        pProgramState->cameraInput.isUsingAnchorPoint = true;
+        pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
+        pProgramState->cameraInput.inputState = vcCIS_Orbiting;
+        vcCamera_StopSmoothing(&pProgramState->cameraInput);
+      }
+      if (io.NavInputs[vcControllerButton_RTrigger] < 0.85f)
+      {
+        pProgramState->cameraInput.inputState = vcCIS_None;
+        isRightTriggerHeld = false;
+      }
+    }
+    else if (io.NavInputs[vcControllerButton_RTrigger] > 0.85f)
+    {
+      isRightTriggerHeld = true;
+    }
+    if (io.NavInputs[vcControllerButton_Y] && !io.NavInputsDownDuration[vcControllerButton_Y])
+      vcCamera_SwapMapMode(pProgramState);
+    if (io.NavInputs[vcControllerButton_A] && !io.NavInputsDownDuration[vcControllerButton_A])
+      pProgramState->settings.camera.moveMode = ((pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter);
   }
 
   if (io.KeyCtrl)
     speedModifier *= 0.1f;
 
-  if (io.KeyShift || io.NavInputs[ImGuiNavInput_Cancel])
+  if (io.KeyShift || io.NavInputs[vcControllerButton_LTrigger] > 0.15f)
     speedModifier *= 10.f;
 
   if ((!ImGui::GetIO().WantCaptureKeyboard || isFocused) && !pProgramState->modalOpen)
@@ -488,7 +523,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     keyboardInput.x += io.KeysDown[SDL_SCANCODE_D] - io.KeysDown[SDL_SCANCODE_A];
     keyboardInput.z += io.KeysDown[SDL_SCANCODE_R] - io.KeysDown[SDL_SCANCODE_F];
 
-    if (io.KeysDown[SDL_SCANCODE_SPACE] && io.KeysDownDuration[SDL_SCANCODE_SPACE] == 0.0)
+    if (ImGui::IsKeyPressed(SDL_SCANCODE_SPACE, false))
       pProgramState->settings.camera.moveMode = ((pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter);
   }
 
