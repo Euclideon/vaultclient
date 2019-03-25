@@ -11,7 +11,7 @@ Known Major Issues In Current Release
   - Map mode only transitions nicely for items with z at 0 (EVC-460)
 
 Version 0.2.3 (Might be 0.3.0)
-  - [No Changes Yet]
+  - Added Gamepad/Xbox Controller functionality for camera movement
 
 Version 0.2.2
   - Fixed an issue with the camera misbehaving when looking straight down in perspective mode
