@@ -480,12 +480,14 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   // Controller Input
   if (io.NavActive)
   {
-    keyboardInput.y += -io.NavInputs[vcControllerButton_LStickY];
-    keyboardInput.x += io.NavInputs[vcControllerButton_LStickX];
-    mouseInput.x = -io.NavInputs[vcControllerButton_RStickX] / 15.0f;
-    mouseInput.y = io.NavInputs[vcControllerButton_RStickY] / 25.0f;
+    keyboardInput.x += io.NavInputs[ImGuiNavInput_LStickLeft]; // Left Stick Horizontal
+    keyboardInput.y += -io.NavInputs[ImGuiNavInput_LStickUp]; // Left Stick Vertical
+    mouseInput.x = -io.NavInputs[ImGuiNavInput_LStickRight] / 15.0f; // Right Stick Horizontal
+    mouseInput.y = io.NavInputs[ImGuiNavInput_LStickDown] / 25.0f; // Right Stick Vertical
+
     // In Imgui the DPAD is bound to navigation, so disable DPAD panning until the issue is resolved
-    //pProgramState->cameraInput.controllerDPADInput = udDouble3::create(io.NavInputs[vcControllerButton_DpadRight] - io.NavInputs[vcControllerButton_DpadLeft], 0, io.NavInputs[vcControllerButton_DpadUp] - io.NavInputs[vcControllerButton_DpadDown]);
+    //pProgramState->cameraInput.controllerDPADInput = udDouble3::create(io.NavInputs[ImGuiNavInput_DpadRight] - io.NavInputs[ImGuiNavInput_DpadLeft], 0, io.NavInputs[ImGuiNavInput_DpadUp] - io.NavInputs[ImGuiNavInput_DpadDown]);
+
     if (isRightTriggerHeld)
     {
       if (pProgramState->pickingSuccess && pProgramState->cameraInput.inputState == vcCIS_None)
@@ -495,26 +497,26 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
         pProgramState->cameraInput.inputState = vcCIS_Orbiting;
         vcCamera_StopSmoothing(&pProgramState->cameraInput);
       }
-      if (io.NavInputs[vcControllerButton_RTrigger] < 0.85f)
+      if (io.NavInputs[ImGuiNavInput_FocusNext] < 0.85f) // Right Trigger
       {
         pProgramState->cameraInput.inputState = vcCIS_None;
         isRightTriggerHeld = false;
       }
     }
-    else if (io.NavInputs[vcControllerButton_RTrigger] > 0.85f)
+    else if (io.NavInputs[ImGuiNavInput_FocusNext] > 0.85f) // Right Trigger
     {
       isRightTriggerHeld = true;
     }
-    if (io.NavInputs[vcControllerButton_Y] && !io.NavInputsDownDuration[vcControllerButton_Y])
+    if (io.NavInputs[ImGuiNavInput_Input] && !io.NavInputsDownDuration[ImGuiNavInput_Input]) // Y Button
       vcCamera_SwapMapMode(pProgramState);
-    if (io.NavInputs[vcControllerButton_A] && !io.NavInputsDownDuration[vcControllerButton_A])
+    if (io.NavInputs[ImGuiNavInput_Activate] && !io.NavInputsDownDuration[ImGuiNavInput_Activate]) // A Button
       pProgramState->settings.camera.moveMode = ((pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter);
   }
 
   if (io.KeyCtrl)
     speedModifier *= 0.1f;
 
-  if (io.KeyShift || io.NavInputs[vcControllerButton_LTrigger] > 0.15f)
+  if (io.KeyShift || io.NavInputs[ImGuiNavInput_FocusPrev] > 0.15f) // Left Trigger
     speedModifier *= 10.f;
 
   if ((!ImGui::GetIO().WantCaptureKeyboard || isFocused) && !pProgramState->modalOpen)

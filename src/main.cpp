@@ -1037,7 +1037,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
 
-  if (((io.NavInputs[vcControllerButton_Start] && !io.NavInputsDownDuration[vcControllerButton_Start]) || ImGui::IsKeyPressed(SDL_SCANCODE_F5, false)) && !pProgramState->modalOpen)
+  if (!pProgramState->modalOpen && (ImGui::IsKeyPressed(SDL_SCANCODE_F5, false) || (io.NavInputs[ImGuiNavInput_TweakFast] && !io.NavInputsDownDuration[ImGuiNavInput_TweakFast]))) // Start Button
     vcMain_PresentationMode(pProgramState);
   if (pProgramState->settings.responsiveUI == vcPM_Show)
     pProgramState->showUI = true;
@@ -1160,7 +1160,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   vcRender_vcRenderSceneImGui(pProgramState->pRenderContext, renderData);
 
-  float rightTrigger = io.NavInputs[vcControllerButton_RTrigger];
+  float rightTrigger = io.NavInputs[ImGuiNavInput_FocusNext]; // Right Trigger
   // Show crosshair when right trigger is partially pressed
   if (rightTrigger > 0.15f)
   {

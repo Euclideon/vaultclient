@@ -143,27 +143,6 @@ enum vcLensSizes
   vcLS_TotalLenses
 };
 
-// Corresponds to and replaces the ImGuiNavInput_ enum in imgui.h
-enum vcControllerButton
-{
-  vcControllerButton_A,
-  vcControllerButton_B,
-  vcControllerButton_Y,
-  vcControllerButton_X,
-  vcControllerButton_DpadLeft,
-  vcControllerButton_DpadRight,
-  vcControllerButton_DpadUp,
-  vcControllerButton_DpadDown,
-  vcControllerButton_LStickX,
-  vcControllerButton_RStickX,
-  vcControllerButton_LStickY,
-  vcControllerButton_RStickY,
-  vcControllerButton_LTrigger,
-  vcControllerButton_RTrigger,
-  vcControllerButton_Back,
-  vcControllerButton_Start
-};
-
 const char** vcCamera_GetLensNames();
 
 void vcCamera_Create(vcCamera **ppCamera);
