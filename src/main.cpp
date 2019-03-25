@@ -1037,7 +1037,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
 
-  if ((io.NavInputs[vcControllerButton_Start] || ImGui::IsKeyPressed(SDL_SCANCODE_F5, false)) && !pProgramState->modalOpen)
+  if (((io.NavInputs[vcControllerButton_Start] && !io.NavInputsDownDuration[vcControllerButton_Start]) || ImGui::IsKeyPressed(SDL_SCANCODE_F5, false)) && !pProgramState->modalOpen)
     vcMain_PresentationMode(pProgramState);
   if (pProgramState->settings.responsiveUI == vcPM_Show)
     pProgramState->showUI = true;
