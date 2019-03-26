@@ -227,6 +227,14 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
       }
     }
 
+    // Panning - DPAD
+    pCamInput->controllerDPADInput = (udDouble4x4::rotationYPR(pCamera->eulerRotation) * udDouble4::create(pCamInput->controllerDPADInput, 1)).toVector3();
+
+    if (pCamSettings->cameraMode == vcCM_OrthoMap || pCamSettings->moveMode == vcCMM_Helicopter)
+      pCamInput->controllerDPADInput.z = 0.0;
+
+    addPos += pCamInput->controllerDPADInput;
+
     addPos.z += vertPos;
     addPos *= pCamSettings->moveSpeed * speedModifier * deltaTime;
     pCamInput->smoothTranslation += addPos;
@@ -446,6 +454,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   float speedModifier = 1.f;
 
   static bool isMouseBtnBeingHeld = false;
+  static bool isRightTriggerHeld = false;
 
   bool isBtnClicked[3] = { ImGui::IsMouseClicked(0, false), ImGui::IsMouseClicked(1, false), ImGui::IsMouseClicked(2, false) };
   bool isBtnDoubleClicked[3] = { ImGui::IsMouseDoubleClicked(0), ImGui::IsMouseDoubleClicked(1), ImGui::IsMouseDoubleClicked(2) };
@@ -468,10 +477,46 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     memset(isBtnReleased, 0, sizeof(isBtnReleased));
   }
 
+  // Controller Input
+  if (io.NavActive)
+  {
+    keyboardInput.x += io.NavInputs[ImGuiNavInput_LStickLeft]; // Left Stick Horizontal
+    keyboardInput.y += -io.NavInputs[ImGuiNavInput_LStickUp]; // Left Stick Vertical
+    mouseInput.x = -io.NavInputs[ImGuiNavInput_LStickRight] / 15.0f; // Right Stick Horizontal
+    mouseInput.y = io.NavInputs[ImGuiNavInput_LStickDown] / 25.0f; // Right Stick Vertical
+
+    // In Imgui the DPAD is bound to navigation, so disable DPAD panning until the issue is resolved
+    //pProgramState->cameraInput.controllerDPADInput = udDouble3::create(io.NavInputs[ImGuiNavInput_DpadRight] - io.NavInputs[ImGuiNavInput_DpadLeft], 0, io.NavInputs[ImGuiNavInput_DpadUp] - io.NavInputs[ImGuiNavInput_DpadDown]);
+
+    if (isRightTriggerHeld)
+    {
+      if (pProgramState->pickingSuccess && pProgramState->cameraInput.inputState == vcCIS_None)
+      {
+        pProgramState->cameraInput.isUsingAnchorPoint = true;
+        pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
+        pProgramState->cameraInput.inputState = vcCIS_Orbiting;
+        vcCamera_StopSmoothing(&pProgramState->cameraInput);
+      }
+      if (io.NavInputs[ImGuiNavInput_FocusNext] < 0.85f) // Right Trigger
+      {
+        pProgramState->cameraInput.inputState = vcCIS_None;
+        isRightTriggerHeld = false;
+      }
+    }
+    else if (io.NavInputs[ImGuiNavInput_FocusNext] > 0.85f) // Right Trigger
+    {
+      isRightTriggerHeld = true;
+    }
+    if (io.NavInputs[ImGuiNavInput_Input] && !io.NavInputsDownDuration[ImGuiNavInput_Input]) // Y Button
+      vcCamera_SwapMapMode(pProgramState);
+    if (io.NavInputs[ImGuiNavInput_Activate] && !io.NavInputsDownDuration[ImGuiNavInput_Activate]) // A Button
+      pProgramState->settings.camera.moveMode = ((pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter);
+  }
+
   if (io.KeyCtrl)
     speedModifier *= 0.1f;
 
-  if (io.KeyShift)
+  if (io.KeyShift || io.NavInputs[ImGuiNavInput_FocusPrev] > 0.15f) // Left Trigger
     speedModifier *= 10.f;
 
   if ((!ImGui::GetIO().WantCaptureKeyboard || isFocused) && !pProgramState->modalOpen)
@@ -480,7 +525,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     keyboardInput.x += io.KeysDown[SDL_SCANCODE_D] - io.KeysDown[SDL_SCANCODE_A];
     keyboardInput.z += io.KeysDown[SDL_SCANCODE_R] - io.KeysDown[SDL_SCANCODE_F];
 
-    if (io.KeysDown[SDL_SCANCODE_SPACE] && io.KeysDownDuration[SDL_SCANCODE_SPACE] == 0.0)
+    if (ImGui::IsKeyPressed(SDL_SCANCODE_SPACE, false))
       pProgramState->settings.camera.moveMode = ((pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter);
   }
 
