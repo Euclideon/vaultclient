@@ -13,6 +13,9 @@ UDCOMPILEASSERT(udLengthOf(vcGLSSFToGL) == vcGLSSF_Total, "Not Enough OpenGL Ste
 
 bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 {
+  if (SDL_GL_CreateContext(pWindow) == nullptr)
+    return false;
+
 #if UDPLATFORM_WINDOWS
   glewExperimental = GL_TRUE;
   if (glewInit() != GLEW_OK)
@@ -50,6 +53,8 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   s_internalState.stencil.onStencilFail = vcGLSSOP_Keep;
   s_internalState.stencil.onStencilAndDepthPass = vcGLSSOP_Keep;
   s_internalState.stencil.writeMask = 0xff;
+
+  SDL_GL_SetSwapInterval(0); // disable v-sync
 
   return vcGLState_ResetState(true);
 }

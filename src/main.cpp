@@ -300,8 +300,7 @@ int main(int argc, char **args)
   }
 #endif //UDPLATFORM_WINDOWS
 
-  SDL_GLContext glcontext = NULL;
-  uint32_t windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+  uint32_t windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   windowFlags |= SDL_WINDOW_FULLSCREEN;
 #endif
@@ -379,6 +378,9 @@ int main(int argc, char **args)
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
     goto epilogue;
 
+#if GRAPHICS_API_OPENGL
+  windowFlags |= SDL_WINDOW_OPENGL;
+
   // Setup window
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -400,6 +402,8 @@ int main(int argc, char **args)
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
+#endif //GRAPHICS_API_OPENGL
 
   // Stop window from being minimized while fullscreened and focus is lost
   SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
@@ -426,15 +430,8 @@ int main(int argc, char **args)
   SDL_free(pIcon);
 
   ImGui::CreateContext();
-
-  glcontext = SDL_GL_CreateContext(programState.pWindow);
-  if (!glcontext)
-    goto epilogue;
-
   if (!vcGLState_Init(programState.pWindow, &programState.pDefaultFramebuffer))
     goto epilogue;
-
-  SDL_GL_SetSwapInterval(0); // disable v-sync
 
   vcMain_LoadSettings(&programState, false);
 
