@@ -265,7 +265,9 @@ void vcConvert_ShowUI(vcState *pProgramState)
         uint64_t pointsWritten = (pProgramState->pConvertContext->jobs[i]->pConvertInfo->outputPointCount + pProgramState->pConvertContext->jobs[i]->pConvertInfo->discardedPointCount);
         uint64_t pointsTotal = pProgramState->pConvertContext->jobs[i]->pConvertInfo->totalPointsRead;
 
-        ImGui::ProgressBar(progressRatio + (1.f - progressRatio) * pointsWritten / pointsTotal, ImVec2(-1, 0), udTempStr("%s %s/%s", vcString::Get("convertWritingPoints"), udCommaInt(pointsWritten), udCommaInt(pointsTotal)));
+        const char *strings[] = { udCommaInt(pointsWritten), udCommaInt(pointsTotal) };
+
+        ImGui::ProgressBar(progressRatio + (1.f - progressRatio) * pointsWritten / pointsTotal, ImVec2(-1, 0), vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertWritingPoints"), strings, udLengthOf(strings)));
       }
     }
     else if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Completed)
