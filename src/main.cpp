@@ -376,7 +376,7 @@ int main(int argc, char **args)
   Uint64 LAST;
 
   // Setup SDL
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0)
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
     goto epilogue;
 
   // Setup window
@@ -425,6 +425,8 @@ int main(int argc, char **args)
 
   SDL_free(pIcon);
 
+  ImGui::CreateContext();
+
   glcontext = SDL_GL_CreateContext(programState.pWindow);
   if (!glcontext)
     goto epilogue;
@@ -434,7 +436,6 @@ int main(int argc, char **args)
 
   SDL_GL_SetSwapInterval(0); // disable v-sync
 
-  ImGui::CreateContext();
   vcMain_LoadSettings(&programState, false);
 
   // setup watermark for background
@@ -1036,7 +1037,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
 
-  if (ImGui::IsKeyPressed(SDL_SCANCODE_F5, false) && !pProgramState->modalOpen)
+  if (!pProgramState->modalOpen && (ImGui::IsKeyPressed(SDL_SCANCODE_F5, false) || (io.NavInputs[ImGuiNavInput_TweakFast] && !io.NavInputsDownDuration[ImGuiNavInput_TweakFast]))) // Start Button
     vcMain_PresentationMode(pProgramState);
   if (pProgramState->settings.responsiveUI == vcPM_Show)
     pProgramState->showUI = true;
@@ -1165,6 +1166,25 @@ void vcRenderSceneWindow(vcState *pProgramState)
   pProgramState->sceneExplorer.pItems->AddToScene(pProgramState, &renderData);
 
   vcRender_vcRenderSceneImGui(pProgramState->pRenderContext, renderData);
+
+  float rightTrigger = io.NavInputs[ImGuiNavInput_FocusNext]; // Right Trigger
+  // Show crosshair when right trigger is partially pressed
+  if (rightTrigger > 0.15f)
+  {
+    udInt2 centrePoint = { (int)windowSize.x / 2, (int)windowSize.y / 2 };
+
+    // Orbit around centre when right trigger is fully pressed (also see vcCamera_HandleSceneInput())
+    if (rightTrigger > 0.85f)
+      renderData.mouse = centrePoint;
+
+    // Need to adjust crosshair position slightly
+    centrePoint += pProgramState->settings.window.presentationMode ? udInt2::create(-8, -8) : udInt2::create(-2, -2);
+
+    ImVec2 sceneWindowPos = ImGui::GetWindowPos();
+    sceneWindowPos = ImVec2(sceneWindowPos.x + centrePoint.x, sceneWindowPos.y + centrePoint.y);
+
+    ImGui::GetWindowDrawList()->AddImage(pProgramState->pUITexture, ImVec2((float)sceneWindowPos.x, (float)sceneWindowPos.y), ImVec2((float)sceneWindowPos.x + 24, (float)sceneWindowPos.y + 24), ImVec2(0, 0.375), ImVec2(0.09375, 0.46875));
+  }
 
   // Render scene to texture
   vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);

@@ -102,12 +102,27 @@ Default Keyboard Controls (with the "Scene" window focused):
 - `A` and `D` strafe the camera left and right at the current Camera Move Speed.
 - `R` and `F` strafe the camera up and down at the current Camera Move Speed.
 - `Spacebar` locks altitude, allowing the user to pan and strafe the camera without changing the camera's height (Z-axis lock).
+>TIP: Holding the `Shift` key while strafing will greatly increase movement speed
 
 Map Mode Controls:
 - Holding down any mouse button and moving will pan the scene
 - The 'mouse scroll wheel' will zoom in/out
 - 'W' 'S' 'A' 'D' will strafe the camera up / down / left / right respectively.
 - 'Ctrl+M' will exit map mode
+
+In addition to mouse/keyboard controls, the camera can also be moved using an Xbox Controller or equivalent gamepad/controller device.
+
+For an Xbox controller the controls are:
+- Left Analog Stick - Move/Strafe
+- Right Analog Stick - Rotate Camera (tumble)
+- Dpad (directional arrows) - Navigation (or maybe panning?)
+- Left Trigger - Increase Move Speed (sprint)
+- Right Trigger - Orbit (with crosshair)
+- A Button - Toggle Lock Altitude
+- Y Button - Toggle Map Mode
+- Start Button - Toggle Fullscreen Mode
+
+Note that these controls might be mapped differently on other controllers.
 
 #### Moving items in the scene
 
