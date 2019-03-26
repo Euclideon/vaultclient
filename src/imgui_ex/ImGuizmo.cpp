@@ -253,7 +253,7 @@ bool vcGizmo_IsActive()
 
 bool vcGizmo_IsHovered()
 {
-  return (vcGizmo_GetMoveType() != vcGMT_None) || vcGizmo_GetRotateType() != vcGMT_None || vcGizmo_GetScaleType() != vcGMT_None || vcGizmo_IsActive();
+  return (vcGizmo_GetMoveType() != vcGMT_None || vcGizmo_GetRotateType() != vcGMT_None || vcGizmo_GetScaleType() != vcGMT_None || vcGizmo_IsActive());
 }
 
 static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &matrix, vcGizmoCoordinateSystem mode, vcGizmoAllowedControls allowedControls)
@@ -686,14 +686,14 @@ static int vcGizmo_GetRotateType()
   {
     udDouble2 deltaScreen = { io.MousePos.x - sGizmoContext.mScreenSquareCenter.x, io.MousePos.y - sGizmoContext.mScreenSquareCenter.y };
     double dist = udMag(deltaScreen);
-    if (dist >= (sGizmoContext.mRadiusSquareCenter - 1.0f) && dist < (sGizmoContext.mRadiusSquareCenter + 1.0f))
+    if (dist >= (sGizmoContext.mRadiusSquareCenter - 1.0) && dist < (sGizmoContext.mRadiusSquareCenter + 1.0))
       type = vcGMT_RotateScreen;
 
     const udDouble3 planeNormals[] = { sGizmoContext.mModel.axis.x.toVector3(), sGizmoContext.mModel.axis.y.toVector3(), sGizmoContext.mModel.axis.z.toVector3() };
 
     for (unsigned int i = 0; i < 3 && type == vcGMT_None; i++)
     {
-      // pickup plan
+      // pickup plane
       udPlane<double> pickupPlane = udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), planeNormals[i]);
 
       udDouble3 localPos;
@@ -701,7 +701,7 @@ static int vcGizmo_GetRotateType()
         continue;
       localPos -= pickupPlane.point;
 
-      if (udDot(sGizmoContext.camera.worldMouseRay.direction, udNormalize3(localPos)) > FLT_EPSILON)
+      if (udDot(sGizmoContext.camera.worldMouseRay.direction, udNormalize3(localPos)) > DBL_EPSILON)
         continue;
 
       udDouble4 idealPosOnCircle = sGizmoContext.mModelInverse * udDouble4::create(udNormalize3(localPos), 0);
@@ -709,9 +709,7 @@ static int vcGizmo_GetRotateType()
 
       ImVec2 distanceOnScreen = idealPosOnCircleScreen - io.MousePos;
 
-      double distance = udMag3(vcGizmo_MakeVect(distanceOnScreen));
-
-      if (distance < 8.0) // pixel size
+      if (udMagSq3(vcGizmo_MakeVect(distanceOnScreen)) < 8.0 * 8.0) // pixel size
         type = vcGMT_RotateX + i;
     }
   }
@@ -740,22 +738,25 @@ static int vcGizmo_GetMoveType()
       dirPlaneY = (sGizmoContext.mModel * udDouble4::create(dirPlaneY, 0)).toVector3();
 
       udDouble3 posOnPlane;
-      if (udIntersect(udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), dirAxis), sGizmoContext.camera.worldMouseRay, &posOnPlane) != udR_Success)
-        continue;
+      if (udIntersect(udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), -sGizmoContext.mCameraDir), sGizmoContext.camera.worldMouseRay, &posOnPlane) == udR_Success)
+      {
+        const ImVec2 posOnPlaneScreen = vcGizmo_WorldToScreen(posOnPlane, sGizmoContext.camera.matrices.viewProjection);
+        const ImVec2 axisStartOnScreen = vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t.toVector3() + dirAxis * sGizmoContext.mScreenFactor * 0.1f, sGizmoContext.camera.matrices.viewProjection);
+        const ImVec2 axisEndOnScreen = vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t.toVector3() + dirAxis * sGizmoContext.mScreenFactor, sGizmoContext.camera.matrices.viewProjection);
 
-      const ImVec2 posOnPlanScreen = vcGizmo_WorldToScreen(posOnPlane, sGizmoContext.camera.matrices.viewProjection);
-      const ImVec2 axisStartOnScreen = vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t.toVector3() + dirAxis * sGizmoContext.mScreenFactor * 0.1f, sGizmoContext.camera.matrices.viewProjection);
-      const ImVec2 axisEndOnScreen = vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t.toVector3() + dirAxis * sGizmoContext.mScreenFactor, sGizmoContext.camera.matrices.viewProjection);
+        udDouble4 closestPointOnAxis = vcGizmo_PointOnSegment(vcGizmo_MakeVect(posOnPlaneScreen), vcGizmo_MakeVect(axisStartOnScreen), vcGizmo_MakeVect(axisEndOnScreen));
 
-      udDouble4 closestPointOnAxis = vcGizmo_PointOnSegment(vcGizmo_MakeVect(posOnPlanScreen), vcGizmo_MakeVect(axisStartOnScreen), vcGizmo_MakeVect(axisEndOnScreen));
+        if (udMagSq3(closestPointOnAxis - vcGizmo_MakeVect(posOnPlaneScreen)) < 12.0 * 12.0) // pixel size
+          type = vcGMT_MoveX + i;
+      }
 
-      if (udMag3(closestPointOnAxis - vcGizmo_MakeVect(posOnPlanScreen)) < 12.0) // pixel size
-        type = vcGMT_MoveX + i;
-
-      const double dx = udDot(dirPlaneX, ((posOnPlane - sGizmoContext.mModel.axis.t.toVector3()) * (1.0 / sGizmoContext.mScreenFactor)));
-      const double dy = udDot(dirPlaneY, ((posOnPlane - sGizmoContext.mModel.axis.t.toVector3()) * (1.0 / sGizmoContext.mScreenFactor)));
-      if (belowPlaneLimit && dx >= sQuadUV[0] && dx <= sQuadUV[4] && dy >= sQuadUV[1] && dy <= sQuadUV[3])
-        type = vcGMT_MoveYZ + i;
+      if (udIntersect(udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), dirAxis), sGizmoContext.camera.worldMouseRay, &posOnPlane) == udR_Success)
+      {
+        const double dx = udDot(dirPlaneX, ((posOnPlane - sGizmoContext.mModel.axis.t.toVector3()) * (1.0 / sGizmoContext.mScreenFactor)));
+        const double dy = udDot(dirPlaneY, ((posOnPlane - sGizmoContext.mModel.axis.t.toVector3()) * (1.0 / sGizmoContext.mScreenFactor)));
+        if (belowPlaneLimit && dx >= sQuadUV[0] && dx <= sQuadUV[4] && dy >= sQuadUV[1] && dy <= sQuadUV[3])
+          type = vcGMT_MoveYZ + i;
+      }
     }
   }
 
@@ -1007,7 +1008,7 @@ void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcG
 
   // behind camera
   udDouble4 camSpacePosition = sGizmoContext.mMVP.axis.t;
-  if (camSpacePosition.z < 0.001f)
+  if (camSpacePosition.z < -0.001f)
   {
     sGizmoContext.mbUsing = false;
     return;
