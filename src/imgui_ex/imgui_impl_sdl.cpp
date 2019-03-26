@@ -209,6 +209,10 @@ static bool    ImGui_ImplSDL2_Init(SDL_Window* window)
     io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;       // We can honor GetMouseCursor() values (optional)
     io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;        // We can honor io.WantSetMousePos requests (optional, rarely used)
 
+    // Set up Gamepad
+    io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+
     // Keyboard mapping. ImGui will use those indices to peek into the io.KeysDown[] array.
     io.KeyMap[ImGuiKey_Tab] = SDL_SCANCODE_TAB;
     io.KeyMap[ImGuiKey_LeftArrow] = SDL_SCANCODE_LEFT;
@@ -348,6 +352,38 @@ static void ImGui_ImplSDL2_UpdateMouseCursor()
     }
 }
 
+void ImGui_ImplSDL2_UpdateController()
+{
+    ImGuiIO& io = ImGui::GetIO();
+
+    // Gamepad/Controller Mapping
+    if (io.NavActive)
+    {
+      memset(io.NavInputs, 0, sizeof(io.NavInputs));
+
+#define MAP_BUTTON(NAV_BUTTON, CONTROLLER_BUTTON) { if (SDL_GameControllerGetButton(SDL_GameControllerOpen(0), CONTROLLER_BUTTON) > 0 ) io.NavInputs[NAV_BUTTON] = 1.0f; }
+#define MAP_ANALOG(NAV_AXIS, CONTROLLER_AXIS) { int16_t v = SDL_GameControllerGetAxis(SDL_GameControllerOpen(0), CONTROLLER_AXIS); io.NavInputs[NAV_AXIS] = v < -8192 ? (v + 8192)/24576.f : v > 8192 ? (v - 8192)/24576.f : 0.0f; }
+
+      MAP_BUTTON(ImGuiNavInput_DpadUp, SDL_CONTROLLER_BUTTON_DPAD_UP);
+      MAP_BUTTON(ImGuiNavInput_DpadDown, SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+      MAP_BUTTON(ImGuiNavInput_DpadLeft, SDL_CONTROLLER_BUTTON_DPAD_LEFT);
+      MAP_BUTTON(ImGuiNavInput_DpadRight, SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+      MAP_BUTTON(ImGuiNavInput_TweakFast, SDL_CONTROLLER_BUTTON_START);
+      MAP_BUTTON(ImGuiNavInput_Activate, SDL_CONTROLLER_BUTTON_A);
+      MAP_BUTTON(ImGuiNavInput_Input, SDL_CONTROLLER_BUTTON_Y);
+
+      MAP_ANALOG(ImGuiNavInput_LStickUp, SDL_CONTROLLER_AXIS_LEFTY);
+      MAP_ANALOG(ImGuiNavInput_LStickLeft, SDL_CONTROLLER_AXIS_LEFTX);
+      MAP_ANALOG(ImGuiNavInput_LStickDown, SDL_CONTROLLER_AXIS_RIGHTY);
+      MAP_ANALOG(ImGuiNavInput_LStickRight, SDL_CONTROLLER_AXIS_RIGHTX);
+      MAP_ANALOG(ImGuiNavInput_FocusNext, SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
+      MAP_ANALOG(ImGuiNavInput_FocusPrev, SDL_CONTROLLER_AXIS_TRIGGERLEFT);
+
+#undef MAP_BUTTON
+#undef MAP_ANALOG
+    }
+}
+
 void ImGui_ImplSDL2_NewFrame(SDL_Window* window)
 {
     ImGuiIO& io = ImGui::GetIO();
@@ -370,6 +406,7 @@ void ImGui_ImplSDL2_NewFrame(SDL_Window* window)
 
     ImGui_ImplSDL2_UpdateMousePosAndButtons();
     ImGui_ImplSDL2_UpdateMouseCursor();
+    ImGui_ImplSDL2_UpdateController();
 
     if (SDL_HasScreenKeyboardSupport() == SDL_TRUE)
     {

@@ -83,6 +83,7 @@ struct vcCameraInput
 
   udDouble3 keyboardInput;
   udDouble3 mouseInput;
+  udDouble3 controllerDPADInput;
 
   bool transitioningToMapMode;
 
