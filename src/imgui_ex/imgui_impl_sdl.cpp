@@ -35,7 +35,6 @@
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
 #include "udPlatform/udPlatform.h"
-#include "vcCamera.h"
 
 #ifdef _WIN32
 #include <Windows.h>
