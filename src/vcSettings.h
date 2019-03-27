@@ -85,6 +85,7 @@ struct vcSettings
 {
   bool noLocalStorage; //If set to true; cannot save or load from local storage
   const char *pSaveFilePath;
+  char cacheAssetPath[vcMaxPathLength];
 
   bool onScreenControls;
 

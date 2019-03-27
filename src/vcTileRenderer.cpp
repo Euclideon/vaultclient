@@ -27,6 +27,8 @@ enum
   TileIndexResolution = (TileVertexResolution - 1),
 
   MaxTileRequestAttempts = 3,
+
+  MaxTextureUploadsPerFrame = 3,
 };
 
 static const float sTileFadeSpeed = 2.15f;
@@ -50,7 +52,7 @@ struct vcTileRenderer
   struct vcTileCache
   {
     volatile bool keepLoading;
-    udThread *pThreads[4];
+    udThread *pThreads[8];
     udSemaphore *pSemaphore;
     udMutex *pMutex;
     udChunkedArray<vcQuadTreeNode*> tileLoadList;
@@ -77,6 +79,56 @@ struct vcTileVertex
   float index;
 };
 const vcVertexLayoutTypes vcTileVertexLayout[] = { vcVLT_Position3 };
+
+// This functionality here for now until the cache module is implemented
+bool vcTileRenderer_TryWriteTile(const char *filename, void *pFileData, size_t fileLen)
+{
+  udFile *pFile = nullptr;
+  if (udFile_Open(&pFile, filename, udFOF_Create | udFOF_Write) == udR_Success)
+  {
+    udFile_Write(pFile, pFileData, fileLen);
+    udFile_Close(&pFile);
+    return true;
+  }
+
+  return false;
+}
+
+// This functionality here for now. In the future will be migrated to udPlatformUtils.
+udResult vcTileRenderer_CreateDirRecursive(const char *pFolderPath)
+{
+  udResult result = udR_Success;
+  char *pMutableDirectoryPath = nullptr;
+
+  UD_ERROR_NULL(pFolderPath, udR_InvalidParameter_);
+
+  pMutableDirectoryPath = udStrdup(pFolderPath);
+  UD_ERROR_NULL(pMutableDirectoryPath, udR_MemoryAllocationFailure);
+
+  for (uint32_t i = 0;; ++i)
+  {
+    if (pMutableDirectoryPath[i] == '\0' || pMutableDirectoryPath[i] == '/' || pMutableDirectoryPath[i] == '\\')
+    {
+      pMutableDirectoryPath[i] = '\0';
+      result = udCreateDir(pMutableDirectoryPath);
+
+      // TODO: handle directories already existing
+      // TODO: handle path not found
+      //if (result != udR_Success)
+      //  UD_ERROR_HANDLE();
+
+      pMutableDirectoryPath[i] = pFolderPath[i];
+
+      if (pMutableDirectoryPath[i] == '\0')
+        break;
+    }
+  }
+
+epilogue:
+  udFree(pMutableDirectoryPath);
+
+  return result;
+}
 
 void vcTileRenderer_LoadThread(void *pThreadData)
 {
@@ -151,12 +203,40 @@ void vcTileRenderer_LoadThread(void *pThreadData)
       pBestNode->renderInfo.loadAttempts++;
       pCache->tileLoadList.RemoveSwapLast(best);
 
-      char buff[256];
-      udSprintf(buff, sizeof(buff), "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+      char localFileName[vcMaxPathLength];
+      char serverAddress[vcMaxPathLength];
+
+      // TODO this functionality should not be here, let alone re-calculated every texture request
+      // Trim protocol
+      const char *protocolSeparators[] =
+      {
+        "//",
+        "/",
+      };
+      const char *pTrimmedTileServerAddress = pRenderer->pSettings->maptiles.tileServerAddress;
+      for (size_t i = 0; i < udLengthOf(protocolSeparators); ++i)
+      {
+        if (udStrstr(pRenderer->pSettings->maptiles.tileServerAddress, sizeof(pRenderer->pSettings->maptiles.tileServerAddress), protocolSeparators[i]))
+        {
+          pTrimmedTileServerAddress += sizeof(protocolSeparators[i]) - 1; // -1 for null character
+          break;
+        }
+      }
+
+      udSprintf(localFileName, sizeof(localFileName), "%s\\%s\\%d\\%d\\%d.%s", pRenderer->pSettings->cacheAssetPath, pTrimmedTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+      udSprintf(serverAddress, sizeof(serverAddress), "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
       udReleaseMutex(pCache->pMutex);
 
-      bool failedLoad = false;
+      bool downloadingFromServer = true;
+      char *pTileURL = serverAddress;
 
+      if (udFileExists(localFileName) == udR_Success)
+      {
+        pTileURL = localFileName;
+        downloadingFromServer = false;
+      }
+
+      bool failedLoad = false;
       void *pFileData = nullptr;
       int64_t fileLen = -1;
       int width = 0;
@@ -164,20 +244,8 @@ void vcTileRenderer_LoadThread(void *pThreadData)
       int channelCount = 0;
       uint8_t *pData = nullptr;
 
-      if (udFile_Load(buff, &pFileData, &fileLen) != udR_Success || fileLen == 0)
-      {
-        // Failed to load tile from server
-        failedLoad = true;
-      }
-      else
-      {
-        pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
-        if (pData == nullptr)
-        {
-          // Failed to load tile from memory
-          failedLoad = true;
-        }
-      }
+      if (udFile_Load(pTileURL, &pFileData, &fileLen) != udR_Success || fileLen == 0)
+        failedLoad = true; // Failed to load tile from somewhere (server or local cache)
 
       // Node has been invalidated since download started
       if (!pBestNode->touched)
@@ -185,6 +253,16 @@ void vcTileRenderer_LoadThread(void *pThreadData)
         // TODO: Put into LRU texture cache (but for now just throw it out)
         pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
         goto epilogue;
+      }
+
+      if (fileLen > 0)
+      {
+        pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
+        if (pData == nullptr)
+        {
+          // Failed to load tile from memory (unexpected format? corruption?)
+          failedLoad = true;
+        }
       }
 
       if (failedLoad)
@@ -212,6 +290,23 @@ void vcTileRenderer_LoadThread(void *pThreadData)
       pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Downloaded;
 
 epilogue:
+
+      // This functionality here for now until the cache module is implemented
+      if (pFileData && fileLen > 0 && downloadingFromServer && pCache->keepLoading)
+      {
+        if (!vcTileRenderer_TryWriteTile(localFileName, pFileData, fileLen))
+        {
+          size_t index = 0;
+          char localFolderPath[vcMaxPathLength];
+          udSprintf(localFolderPath, sizeof(localFolderPath), "%s", localFileName);
+          if (udStrrchr(localFileName, "\\/", &index) != nullptr)
+            localFolderPath[index] = '\0';
+
+          if (vcTileRenderer_CreateDirRecursive(localFolderPath) == udR_Success)
+            vcTileRenderer_TryWriteTile(localFileName, pFileData, fileLen);
+        }
+      }
+
       udFree(pFileData);
       stbi_image_free(pData);
     }
@@ -341,7 +436,7 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
   return udR_Success;
 }
 
-void vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
+bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
 {
   vcTileRenderer::vcTileCache *pTileCache = &pTileRenderer->cache;
   if (pNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_None)
@@ -369,19 +464,29 @@ void vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeN
 
     vcTexture_Create(&pNode->renderInfo.pTexture, pNode->renderInfo.width, pNode->renderInfo.height, pNode->renderInfo.pData, vcTextureFormat_RGBA8, vcTFM_Linear, true, vcTWM_Clamp, vcTCF_None, 16);
     udFree(pNode->renderInfo.pData);
+
+    return true;
   }
+
+  return false;
 }
 
-void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
+void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, int &tileUploadCount)
 {
+  if (tileUploadCount >= MaxTextureUploadsPerFrame)
+    return;
+
   if (!vcQuadTree_IsLeafNode(pNode))
   {
     for (int c = 0; c < 4; ++c)
-      vcTileRenderer_UpdateTextureQueuesRecursive(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pNode->childBlockIndex + c]);
+      vcTileRenderer_UpdateTextureQueuesRecursive(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pNode->childBlockIndex + c], tileUploadCount);
   }
 
   if (pNode->renderInfo.loadStatus != vcNodeRenderInfo::vcTLS_Loaded && vcQuadTree_IsVisibleLeafNode(&pTileRenderer->quadTree, pNode))
-      vcTileRenderer_UpdateTileTexture(pTileRenderer, pNode);
+  {
+    if (vcTileRenderer_UpdateTileTexture(pTileRenderer, pNode))
+      ++tileUploadCount;
+  }
 
   if (pNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_Loaded && !pNode->renderInfo.fadingIn && pNode->renderInfo.transparency == 0.0f)
   {
@@ -396,8 +501,12 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
   for (size_t i = 0; i < pTileRenderer->cache.tileLoadList.length; ++i)
     pTileRenderer->cache.tileLoadList[i]->renderInfo.tryLoad = false;
 
+  // Limit the max number of tiles uploaded per frame
+  // TODO: use timings instead
+  int tileUploadCount = 0;
+
   // update visible tiles textures
-  vcTileRenderer_UpdateTextureQueuesRecursive(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex]);
+  vcTileRenderer_UpdateTextureQueuesRecursive(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex], tileUploadCount);
 
   // always request root
   vcTileRenderer_UpdateTileTexture(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex]);
