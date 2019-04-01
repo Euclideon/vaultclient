@@ -8,6 +8,8 @@
       - `loginErrorProxyAuthPending`, `loginErrorProxyAuthFailed`, `loginProxyAutodetect`, `loginProxyTest`
     - Proxy Modal
       - `modalProxyInfo`, `modalProxyBadCreds`, `modalProxyUsername`, `modalProxyPassword`, `modalProxyAuthContinueButton`, `modalProxyAuthCancelButton`
+    - Scene Explorer
+      - `scenePOIRemovePoint`
   - Removed:
     - Titles
       - "loginTitle"
@@ -425,6 +427,7 @@ Modules are currently:
 #### Point of Interest
 - `scenePOIDefaultName`: Default name of new POI objects when they are added to the Scene Explorer
 - `scenePOIAddPoint`: Used in the context menu for adding a new point at the current mouse position
+- `scenePOIRemovePoint`: Used in the button to remove the selected point from this POI.
 - `scenePOIPointPosition`: Label for the UI to override the position of the selected point
 - `scenePOISelectedPoint`: Used on the slider to select a point from the points in this POI
 - `scenePOILineLength`: Used in the label to show the length of the POI

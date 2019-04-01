@@ -342,6 +342,7 @@
 
   "scenePOIDefaultName": "Point of Interest",
   "scenePOIAddPoint": "Add Node Here",
+  "scenePOIRemovePoint": "Remove Node",
   "scenePOIPointPosition": "Point Position",
   "scenePOISelectedPoint": "Selected Point",
   "scenePOILineLength": "Length",
