@@ -95,6 +95,7 @@ struct vcGizmoContext
   // scale
   udDouble3 mScale;
   udDouble3 mScaleValueOrigin;
+  udDouble3 mLastScaleDelta;
   float mSaveMousePosx;
   float mLastMousePosx;
 
@@ -318,9 +319,13 @@ static void vcGizmo_ComputeColors(ImU32 *colors, size_t numColors, int type, vcG
     }
     break;
   case vcGO_Rotate:
-    if (sGizmoContext.allowedControls & vcGAC_Rotation)
+    if (sGizmoContext.allowedControls & vcGAC_RotationScreen)
     {
       colors[0] = (type == vcGMT_RotateScreen) ? SelectionColor : WhiteColor;
+    }
+
+    if (sGizmoContext.allowedControls & vcGAC_RotationAxis)
+    {
       for (int i = 0; i < 3; i++)
         colors[i + 1] = (type == (int)(vcGMT_RotateX + i)) ? SelectionColor : DirectionColor[i];
     }
@@ -396,7 +401,7 @@ static void vcGizmo_ComputeSnap(double* value, double snap)
   if (snap <= DBL_EPSILON)
     return;
 
-  double modulo = fmod(*value, snap);
+  double modulo = udMod(*value, snap);
   double moduloRatio = udAbs(modulo) / snap;
 
   if (moduloRatio < sSnapTension)
@@ -451,7 +456,7 @@ static void vcGizmo_DrawRotationGizmo(int type)
       circlePos[i] = vcGizmo_WorldToScreen(pos, sGizmoContext.mMVP);
     }
 
-    float radiusAxis = sqrtf((ImLengthSqr(vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t, sGizmoContext.camera.matrices.viewProjection) - circlePos[0])));
+    float radiusAxis = udSqrt((ImLengthSqr(vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t, sGizmoContext.camera.matrices.viewProjection) - circlePos[0])));
     if (radiusAxis > sGizmoContext.mRadiusSquareCenter)
       sGizmoContext.mRadiusSquareCenter = radiusAxis;
 
@@ -659,6 +664,9 @@ static int vcGizmo_GetScaleType()
       udDouble3 dirPlaneX, dirPlaneY, dirAxis;
       bool belowAxisLimit, belowPlaneLimit;
       vcGizmo_ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
+      dirAxis = (sGizmoContext.mModel * udDouble4::create(dirAxis, 0)).toVector3();
+      dirPlaneX = (sGizmoContext.mModel * udDouble4::create(dirPlaneX, 0)).toVector3();
+      dirPlaneY = (sGizmoContext.mModel * udDouble4::create(dirPlaneY, 0)).toVector3();
 
       udDouble3 posOnPlane;
       if (udIntersect(udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), dirAxis), sGizmoContext.camera.worldMouseRay, &posOnPlane) != udR_Success)
@@ -682,13 +690,16 @@ static int vcGizmo_GetRotateType()
   ImGuiIO& io = ImGui::GetIO();
   int type = vcGMT_None;
 
-  if (sGizmoContext.allowedControls & vcGAC_Rotation)
+  if (sGizmoContext.allowedControls & vcGAC_RotationScreen)
   {
     udDouble2 deltaScreen = { io.MousePos.x - sGizmoContext.mScreenSquareCenter.x, io.MousePos.y - sGizmoContext.mScreenSquareCenter.y };
     double dist = udMag(deltaScreen);
     if (dist >= (sGizmoContext.mRadiusSquareCenter - 1.0) && dist < (sGizmoContext.mRadiusSquareCenter + 1.0))
       type = vcGMT_RotateScreen;
+  }
 
+  if ((sGizmoContext.allowedControls & vcGAC_RotationAxis) && (type == vcGMT_None))
+  {
     const udDouble3 planeNormals[] = { sGizmoContext.mModel.axis.x.toVector3(), sGizmoContext.mModel.axis.y.toVector3(), sGizmoContext.mModel.axis.z.toVector3() };
 
     for (unsigned int i = 0; i < 3 && type == vcGMT_None; i++)
@@ -857,7 +868,7 @@ static void vcGizmo_HandleTranslation(udDouble4x4 *deltaMatrix, int& type, doubl
   }
 }
 
-static void vcGizmo_HandleScale(udDouble4x4 *deltaMatrix, int& type, double snap)
+static void vcGizmo_HandleScale(udDouble4x4 *pDeltaMatrix, int& type, double snap)
 {
   ImGuiIO& io = ImGui::GetIO();
 
@@ -872,6 +883,7 @@ static void vcGizmo_HandleScale(udDouble4x4 *deltaMatrix, int& type, double snap
     {
       sGizmoContext.mbUsing = true;
       sGizmoContext.mCurrentOperation = type;
+      sGizmoContext.mLastScaleDelta = udDouble3::zero();
       const udDouble3 movePlanNormal[] = { sGizmoContext.mModel.axis.y.toVector3(), sGizmoContext.mModel.axis.z.toVector3(), sGizmoContext.mModel.axis.x.toVector3(), sGizmoContext.mModel.axis.z.toVector3(), sGizmoContext.mModel.axis.y.toVector3(), sGizmoContext.mModel.axis.x.toVector3(), -sGizmoContext.mCameraDir };
 
       sGizmoContext.mTranslationPlane = udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), movePlanNormal[type - vcGMT_ScaleX]);
@@ -896,40 +908,53 @@ static void vcGizmo_HandleScale(udDouble4x4 *deltaMatrix, int& type, double snap
       udDouble3 newOrigin = newPos - sGizmoContext.mRelativeOrigin * sGizmoContext.mScreenFactor;
       udDouble3 delta = newOrigin - sGizmoContext.mModel.axis.t.toVector3();
 
+      double scaleDelta = 0.0;
+      int axisIndex = 0;
+      bool uniformScaling = false;
+
       // 1 axis constraint
       if (sGizmoContext.mCurrentOperation >= vcGMT_ScaleX && sGizmoContext.mCurrentOperation <= vcGMT_ScaleZ)
       {
-        int axisIndex = sGizmoContext.mCurrentOperation - vcGMT_ScaleX;
+        axisIndex = sGizmoContext.mCurrentOperation - vcGMT_ScaleX;
         udDouble3 axisValue = sGizmoContext.mModel.c[axisIndex].toVector3();
         double lengthOnAxis = udDot(axisValue, delta);
         delta = axisValue * lengthOnAxis;
 
         udDouble3 baseVector = sGizmoContext.mTranslationPlaneOrigin - sGizmoContext.mModel.axis.t.toVector3();
-        double ratio = udDot(axisValue, baseVector + delta) / udDot(axisValue, baseVector);
-
-        sGizmoContext.mScale[axisIndex] = udMax(ratio, 0.001);
+        scaleDelta = udDot(axisValue, baseVector + delta) / udDot(axisValue, baseVector) - 1.0;
       }
       else
       {
-        double scaleDelta = (io.MousePos.x - sGizmoContext.mSaveMousePosx)  * 0.01f;
-        sGizmoContext.mScaleValueOrigin = udDouble3::create(udMax(1.0 + scaleDelta, 0.001));
-        scaleDelta = (io.MousePos.x - sGizmoContext.mLastMousePosx)  * 0.01f;
-        sGizmoContext.mScale = udDouble3::create(udMax(1.0 + scaleDelta, 0.001));
+        uniformScaling = true;
+        scaleDelta = (io.MousePos.x - sGizmoContext.mSaveMousePosx)  * 0.01;
       }
 
-      // snap
-      if (snap)
-        vcGizmo_ComputeSnap(sGizmoContext.mScale, snap);
+      scaleDelta = udMax(-0.99, scaleDelta);
+      vcGizmo_ComputeSnap(&scaleDelta, snap);
+      scaleDelta = udMax((snap - 1.0), scaleDelta);
 
-      // no 0 allowed
-      for (int i = 0; i < 3;i++)
-        sGizmoContext.mScale[i] = udMax(sGizmoContext.mScale[i], 0.001);
+      sGizmoContext.mScaleValueOrigin[axisIndex] = 1.0 + scaleDelta;
+
+      double inverseLastScaleDelta = 100.0; // 0.01 is our minimum scale, 100 == (1.0 / 0.01)
+      if (sGizmoContext.mLastScaleDelta[axisIndex] != -1.0)
+        inverseLastScaleDelta = (1.0 / (1.0 + sGizmoContext.mLastScaleDelta[axisIndex]));
+
+      sGizmoContext.mLastScaleDelta[axisIndex] = scaleDelta;
+      sGizmoContext.mScale[axisIndex] = (1.0 + scaleDelta) * inverseLastScaleDelta;
+
+      if (uniformScaling)
+      {
+        // spread to all 3 axis
+        sGizmoContext.mScaleValueOrigin = udDouble3::create(1.0 + scaleDelta);
+        sGizmoContext.mLastScaleDelta = udDouble3::create(scaleDelta);
+        sGizmoContext.mScale = udDouble3::create(sGizmoContext.mScale[axisIndex]);
+      }
 
       // compute matrix & delta
-      udDouble4x4 deltaMatrixScale = udDouble4x4::translation(sGizmoContext.mModel.axis.t.toVector3()) * udDouble4x4::scaleNonUniform(sGizmoContext.mScale) * udDouble4x4::translation(-sGizmoContext.mModel.axis.t.toVector3());;
+      udDouble4x4 deltaMatrixScale = sGizmoContext.mModel * udDouble4x4::scaleNonUniform(sGizmoContext.mScale) * udInverse(sGizmoContext.mModel);
 
-      if (deltaMatrix)
-        *deltaMatrix = deltaMatrixScale;
+      if (pDeltaMatrix)
+        *pDeltaMatrix = deltaMatrixScale;
 
       if (!io.MouseDown[0])
         sGizmoContext.mbUsing = false;
