@@ -180,6 +180,8 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     {
       if (ImGui::InputScalarN(udTempStr("%s##POIPointPos%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_line.pPoints[m_line.selectedPoint].x, 3))
         UpdatePoints();
+      if (ImGui::Button(vcString::Get("scenePOIRemovePoint")))
+        RemovePoint(m_line.selectedPoint);
     }
 
     if (ImGui::TreeNode("%s##POILineSettings%zu", vcString::Get("scenePOILineSettings"), *pItemID))
@@ -276,6 +278,17 @@ void vcPOI::AddPoint(const udDouble3 &position)
   m_line.pOriginalPoints = pNewOriginalPoints;
 
   ++m_line.numPoints;
+  UpdatePoints();
+}
+
+void vcPOI::RemovePoint(int index)
+{
+  if (index < (m_line.numPoints - 1))
+  {
+    memmove(m_line.pPoints + index, m_line.pPoints + index + 1, sizeof(udDouble3) * (m_line.numPoints - index - 1));
+    memmove(m_line.pOriginalPoints + index, m_line.pOriginalPoints + index + 1, sizeof(udDouble3) * (m_line.numPoints - index - 1));
+  }
+  --m_line.numPoints;
   UpdatePoints();
 }
 
