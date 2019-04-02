@@ -1248,9 +1248,6 @@ int vcMainMenuGui(vcState *pProgramState)
         if (ImGui::MenuItem(vcString::Get("menuImportUDP"), nullptr, nullptr))
           vcModals_OpenModal(pProgramState, vcMT_ImportUDP);
 
-        if (ImGui::MenuItem(vcString::Get("menuImportCSV"), nullptr, nullptr))
-          vcModals_OpenModal(pProgramState, vcMT_ImportCSV);
-
         ImGui::EndMenu();
       }
 

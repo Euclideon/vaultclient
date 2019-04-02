@@ -239,8 +239,6 @@
   "menuImport": "Import",
   "menuImportUDP": "Import UDP",
   "menuImportUDPTitle": "Import UDP to Scene",
-  "menuImportCSV": "Import CSV",
-  "menuImportCSVTitle": "Import CSV to Scene",
 
   "menuCurrentVersion": "Current Version",
   "menuNewVersionAvailableTitle": "New Version Available",
