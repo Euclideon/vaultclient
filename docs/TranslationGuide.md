@@ -10,9 +10,13 @@
       - `modalProxyInfo`, `modalProxyBadCreds`, `modalProxyUsername`, `modalProxyPassword`, `modalProxyAuthContinueButton`, `modalProxyAuthCancelButton`
     - Scene Explorer
       - `scenePOIRemovePoint`
+    - Viewport
+      - `settingsViewportViewDistance`
   - Removed:
     - Titles
       - "loginTitle"
+    - Viewport
+      - `settingsViewportFarPlane`, `settingsViewportNearPlane`
 - Version 0.2.2
   - Added:
     - Appearance Setting
@@ -142,8 +146,7 @@ Modules are currently:
 #### Viewport
 - `settingsViewport`: Title of the Viewport subheading in Settings
 - `settingsViewportRestoreDefaults`: Used to restore default values for all viewport settings
-- `settingsViewportNearPlane`: Label next to slider for setting the minimum viewable distance
-- `settingsViewportFarPlane`: Label next to slider for setting the maximum viewable distance
+- `settingsViewportViewDistance`: Label next to slider for setting the viewable distance
 - `settingsViewportCameraLens`: Label next to dropdown list for selecting the camera's field of view
 - `settingsViewportFOV`: Label next to slider for setting a custom field of view
 - `settingsViewportDegrees`: Units used in slider for setting a custom field of view

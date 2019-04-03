@@ -82,8 +82,7 @@
 
   "settingsViewport": "Viewport",
   "settingsViewportRestoreDefaults": "Restore Defaults",
-  "settingsViewportNearPlane": "Near Plane",
-  "settingsViewportFarPlane": "Far Plane",
+  "settingsViewportViewDistance": "View Distance",
   "settingsViewportCameraLens": "Camera Lens (fov)",
   "settingsViewportFOV": "Field Of View",
   "settingsViewportDegrees": "Degrees",
