@@ -276,12 +276,23 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
 
 void vcPresentUD(vcRenderContext *pRenderContext)
 {
+  float nearPlane = pRenderContext->pSettings->camera.nearPlane;
+  float farPlane = pRenderContext->pSettings->camera.farPlane;
+
   // edge outlines
   int outlineWidth = pRenderContext->pSettings->postVisualization.edgeOutlines.width;
   float outlineEdgeThreshold = pRenderContext->pSettings->postVisualization.edgeOutlines.threshold;
   udFloat4 outlineColour = pRenderContext->pSettings->postVisualization.edgeOutlines.colour;
   if (!pRenderContext->pSettings->postVisualization.edgeOutlines.enable)
     outlineColour.w = 0.0f;
+
+  if (pRenderContext->pSettings->camera.cameraMode == vcCM_OrthoMap)
+  {
+    // adjust some visuals in map mode
+    nearPlane = float(vcSL_CameraOrthoNearFarPlane.x);
+    farPlane = float(vcSL_CameraOrthoNearFarPlane.y);
+    outlineEdgeThreshold /= float(vcSL_CameraOrthoNearFarPlane.y * 0.15);
+  }
 
   // colour by height
   udFloat4 colourByHeightMinColour = pRenderContext->pSettings->postVisualization.colourByHeight.minColour;
@@ -310,8 +321,8 @@ void vcPresentUD(vcRenderContext *pRenderContext)
   pRenderContext->udRenderContext.presentShader.params.inverseViewProjection = udFloat4x4::create(pRenderContext->pCamera->matrices.inverseViewProjection);
   pRenderContext->udRenderContext.presentShader.params.screenParams.x = outlineWidth * (1.0f / pRenderContext->pSettings->window.width);
   pRenderContext->udRenderContext.presentShader.params.screenParams.y = outlineWidth * (1.0f / pRenderContext->pSettings->window.height);
-  pRenderContext->udRenderContext.presentShader.params.screenParams.z = pRenderContext->pSettings->camera.nearPlane;
-  pRenderContext->udRenderContext.presentShader.params.screenParams.w = pRenderContext->pSettings->camera.farPlane;
+  pRenderContext->udRenderContext.presentShader.params.screenParams.z = nearPlane;
+  pRenderContext->udRenderContext.presentShader.params.screenParams.w = farPlane;
   pRenderContext->udRenderContext.presentShader.params.outlineColour = outlineColour;
   pRenderContext->udRenderContext.presentShader.params.outlineParams.x = (float)outlineWidth;
   pRenderContext->udRenderContext.presentShader.params.outlineParams.y = outlineEdgeThreshold;
