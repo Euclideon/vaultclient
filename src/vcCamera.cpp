@@ -20,8 +20,6 @@ const char *lensNameArray[] =
 
 UDCOMPILEASSERT(UDARRAYSIZE(lensNameArray) == vcLS_TotalLenses, "Lens Name not in Strings");
 
-static const udDouble2 sOrthoNearFarPlane = { 1.0, 1000000.0 };
-
 // higher == quicker smoothing
 static const double sCameraTranslationSmoothingSpeed = 15.0;
 static const double sCameraRotationSmoothingSpeed = 20.0;
@@ -75,7 +73,7 @@ void vcCamera_UpdateSmoothing(vcCamera *pCamera, vcCameraInput *pCamInput, vcCam
     double previousOrthoSize = pCamSettings->orthographicSize;
 
     double step = pCamInput->smoothOrthographicChange * udMin(1.0, deltaTime * sCameraTranslationSmoothingSpeed);
-    pCamSettings->orthographicSize = udClamp(pCamSettings->orthographicSize * (1.0 - step), sOrthoNearFarPlane.x, sOrthoNearFarPlane.y);
+    pCamSettings->orthographicSize = udClamp(pCamSettings->orthographicSize * (1.0 - step), vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
     pCamInput->smoothOrthographicChange -= step;
 
     udDouble2 towards = pCamInput->worldAnchorPoint.toVector2() - pCamera->position.toVector2();
@@ -134,9 +132,9 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
   switch (settings.cameraMode)
   {
   case vcCM_OrthoMap:
-    pCamera->matrices.projectionUD = udDouble4x4::orthoZO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, sOrthoNearFarPlane.x, sOrthoNearFarPlane.y);
+    pCamera->matrices.projectionUD = udDouble4x4::orthoZO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
 #if defined(GRAPHICS_API_OPENGL)
-    pCamera->matrices.projection = udDouble4x4::orthoNO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, sOrthoNearFarPlane.x, sOrthoNearFarPlane.y);
+    pCamera->matrices.projection = udDouble4x4::orthoNO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
 #endif
     break;
   case vcCM_FreeRoam: // fall through
@@ -222,7 +220,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     {
       if (vertPos != 0)
       {
-        pCamInput->smoothOrthographicChange += 0.005 * vertPos * pCamSettings->moveSpeed * speedModifier * deltaTime;
+        pCamInput->smoothOrthographicChange -= 0.005 * vertPos * pCamSettings->moveSpeed * speedModifier * deltaTime;
         pCamInput->worldAnchorPoint = pCamera->position; // stops translation occuring
       }
     }
@@ -399,7 +397,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
   // in orthographic mode, force camera straight down
   if (pCamSettings->cameraMode == vcCM_OrthoMap)
   {
-    pCamera->position.z = sOrthoNearFarPlane.y * 0.5;
+    pCamera->position.z = vcSL_CameraOrthoNearFarPlane.y * 0.5;
     pCamera->eulerRotation = udDouble3::create(0.0, -UD_HALF_PI, 0.0); // down orientation
   }
 }
