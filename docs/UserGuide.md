@@ -346,7 +346,7 @@ Expanding this subheading allows the user to change settings that affect how the
 ![Viewport Settings](images/viewport.png)
 
 These options allow the user to changes the camera's minimum and maximum viewing distance, and field of view of the camera lens.
-  > TIP: If experiencing loss of image, try changing the near and far plane settings to make your objects visible again.
+  > TIP: If experiencing loss of image, try changing the view distance settings to make your objects visible again.
 
 #### Maps & Elevation
 
