@@ -214,11 +214,13 @@ const float vcSL_GlobalLimitSmallf = (float)vcSL_GlobalLimitSmall;
 
 const float vcSL_CameraFarPlaneMin = 200.0f;
 const float vcSL_CameraFarPlaneMax = 1000000.f;
-const float vcSL_CameraFarToNearPlaneRatio = 0.001f;
+const float vcSL_CameraFarToNearPlaneRatio = 0.00005f;
 const float vcSL_CameraMinMoveSpeed = 0.5f;
 const float vcSL_CameraMaxMoveSpeed = 10000.f;
 const float vcSL_CameraFieldOfViewMin = 5;
 const float vcSL_CameraFieldOfViewMax = 100;
+
+static const udDouble2 vcSL_CameraOrthoNearFarPlane = { 1.0, 1000000.0 };
 
 const float vcSL_OSCPixelRatio = 100.f;
 
