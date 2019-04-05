@@ -51,6 +51,19 @@
 #  include <crtdbg.h>
 #  include <stdio.h>
 
+# if BUILDING_VDK
+#  include "vdkDLLExport.h"
+
+#  ifdef __cplusplus
+extern "C" {
+#  endif
+  VDKDLL_API void vdkConfig_TrackMemoryBegin();
+  VDKDLL_API bool vdkConfig_TrackMemoryEnd();
+#  ifdef __cplusplus
+}
+#  endif
+# endif
+
 # undef main
 # define main ClientMain
 int main(int argc, char **args);
@@ -60,8 +73,28 @@ int SDL_main(int argc, char **args)
   _CrtMemState m1, m2, diff;
   _CrtMemCheckpoint(&m1);
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF);
+#if BUILDING_VDK
+  vdkConfig_TrackMemoryBegin();
+#endif
 
   int ret = main(argc, args);
+
+#if BUILDING_VDK
+  if (!vdkConfig_TrackMemoryEnd())
+  {
+    printf("%s\n", "Memory leaks in VDK found");
+
+    // You've hit this because you've introduced a memory leak!
+    // If you need help, define __MEMORY_DEBUG__ in the premake5.lua just before:
+    // if _OPTIONS["force-vaultsdk"] then
+    // This will emit filenames of what is leaking to assist in tracking down what's leaking.
+    // Additionally, you can set _CrtSetBreakAlloc(<allocationNumber>);
+    // inside vdkConfig_TrackMemoryEnd().
+    __debugbreak();
+
+    ret = 1;
+  }
+#endif
 
   _CrtMemCheckpoint(&m2);
   if (_CrtMemDifference(&diff, &m1, &m2) && diff.lCounts[_NORMAL_BLOCK] > 0)
