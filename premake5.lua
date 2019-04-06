@@ -61,6 +61,7 @@ function injectvaultsdkbin()
 
 	if _OPTIONS["force-vaultsdk"] then
 		includedirs { "%{wks.location}/../vault/vaultsdk/src" }
+		defines { "BUILDING_VDK" }
 	else
 		if os.getenv("VAULTSDK_HOME") == nil then
 			error "VaultSDK not installed correctly. (No VAULTSDK_HOME environment variable set!)"
