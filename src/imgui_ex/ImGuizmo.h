@@ -21,12 +21,15 @@ enum vcGizmoCoordinateSystem
 enum vcGizmoAllowedControls
 {
   vcGAC_Translation = (1 << 0),
-  vcGAC_Rotation = (1 << 1),
-  vcGAC_ScaleUniform = (1 << 2),
-  vcGAC_ScaleNonUniform = (1 << 3),
+  vcGAC_ScaleUniform = (1 << 1),
+  vcGAC_ScaleNonUniform = (1 << 2),
+  vcGAC_RotationAxis = (1 << 3),
+  vcGAC_RotationScreen = (1 << 4),
 
+  vcGAC_Scale = vcGAC_ScaleNonUniform | vcGAC_ScaleUniform,
+  vcGAC_Rotation = vcGAC_RotationAxis | vcGAC_RotationScreen,
   vcGAC_AllUniform = vcGAC_Translation | vcGAC_Rotation | vcGAC_ScaleUniform,
-  vcGAC_All = vcGAC_Translation | vcGAC_Rotation | vcGAC_ScaleUniform | vcGAC_ScaleNonUniform
+  vcGAC_All = vcGAC_Translation | vcGAC_Rotation | vcGAC_Scale
 };
 
 void vcGizmo_SetDrawList(); // call inside your own window and before vcGizmo_Manipulate() in order to draw gizmo to that window.
