@@ -14,9 +14,12 @@
       - `settingsViewportViewDistance`
   - Removed:
     - Titles
-      - "loginTitle"
+      - `loginTitle`
     - Viewport
       - `settingsViewportFarPlane`, `settingsViewportNearPlane`
+    - Menu strings
+      - `menuImportCSV`
+      - `menuImportCSVTitle`
 - Version 0.2.2
   - Added:
     - Appearance Setting
@@ -320,8 +323,6 @@ Modules are currently:
 - `menuImport`: Option in Projects menu, opens the Import sub-menu
 - `menuImportUDP`: Option in Import sub-menu, opens the Import UDP Window
 - `menuImportUDPTitle`: Title of the Import UDP Window
-- `menuImportCSV`: Option in Import sub-menu, opens the Import CSV Window
-- `menuImportCSVTitle`: Title of the Import CSV Window
 - `menuCurrentVersion`: Used to display the current version of vault client in the Release Notes and "New Version Available" windows
 - `menuNewVersionAvailableTitle`: Title of "New Version Available" window
 - `menuNewVersion`: Used to display the new version of vault client that is available
