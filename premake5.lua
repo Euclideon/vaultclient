@@ -151,7 +151,7 @@ solution "vaultClient"
 	xcodebuildsettings { ["CLANG_CXX_LANGUAGE_STANDARD"] = "c++0x" }
 
 	if os.target() == premake.WINDOWS then
-		os.copyfile("bin/sdl/SDL2.dll", "builds/SDL2.dll")
+		os.copyfile("3rdParty/SDL2-2.0.8/lib/x64/SDL2.dll", "builds/SDL2.dll")
 	end
 
 	-- Strings
