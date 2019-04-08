@@ -701,7 +701,7 @@ namespace ImGui
 
           const char* text_end = FindRenderedTextEnd(dock_tab->label);
           ImVec2 size2(CalcTextSize(dock_tab->label, text_end).x, line_height);
-          if (InvisibleButton(dock_tab->label, size2))
+          if (size2.x != 0.0 && InvisibleButton(dock_tab->label, size2))
           {
             dock_tab->setActive();
           }
