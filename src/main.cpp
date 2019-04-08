@@ -1156,6 +1156,21 @@ void vcRenderSceneWindow(vcState *pProgramState)
       wasOpenLastFrame = false;
     }
 
+    // Orbit around centre when fully pressed, show crosshair when partially pressed (also see vcCamera_HandleSceneInput())
+    if (io.NavInputs[ImGuiNavInput_FocusNext] > 0.15f) // Right Trigger
+    {
+      udInt2 centrePoint = { (int)windowSize.x / 2, (int)windowSize.y / 2 };
+      renderData.mouse = centrePoint;
+
+      // Need to adjust crosshair position slightly
+      centrePoint += pProgramState->settings.window.presentationMode ? udInt2::create(-8, -8) : udInt2::create(-2, -2);
+
+      ImVec2 sceneWindowPos = ImGui::GetWindowPos();
+      sceneWindowPos = ImVec2(sceneWindowPos.x + centrePoint.x, sceneWindowPos.y + centrePoint.y);
+
+      ImGui::GetWindowDrawList()->AddImage(pProgramState->pUITexture, ImVec2((float)sceneWindowPos.x, (float)sceneWindowPos.y), ImVec2((float)sceneWindowPos.x + 24, (float)sceneWindowPos.y + 24), ImVec2(0, 0.375), ImVec2(0.09375, 0.46875));
+    }
+
     // Camera update has to be here because it depends on previous ImGui state
     vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create(windowSize.x, windowSize.y), udFloat2::create((float)renderData.mouse.x, (float)renderData.mouse.y));
 
@@ -1200,25 +1215,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
   pProgramState->sceneExplorer.pItems->AddToScene(pProgramState, &renderData);
 
   vcRender_vcRenderSceneImGui(pProgramState->pRenderContext, renderData);
-
-  float rightTrigger = io.NavInputs[ImGuiNavInput_FocusNext]; // Right Trigger
-  // Show crosshair when right trigger is partially pressed
-  if (rightTrigger > 0.15f)
-  {
-    udInt2 centrePoint = { (int)windowSize.x / 2, (int)windowSize.y / 2 };
-
-    // Orbit around centre when right trigger is fully pressed (also see vcCamera_HandleSceneInput())
-    if (rightTrigger > 0.85f)
-      renderData.mouse = centrePoint;
-
-    // Need to adjust crosshair position slightly
-    centrePoint += pProgramState->settings.window.presentationMode ? udInt2::create(-8, -8) : udInt2::create(-2, -2);
-
-    ImVec2 sceneWindowPos = ImGui::GetWindowPos();
-    sceneWindowPos = ImVec2(sceneWindowPos.x + centrePoint.x, sceneWindowPos.y + centrePoint.y);
-
-    ImGui::GetWindowDrawList()->AddImage(pProgramState->pUITexture, ImVec2((float)sceneWindowPos.x, (float)sceneWindowPos.y), ImVec2((float)sceneWindowPos.x + 24, (float)sceneWindowPos.y + 24), ImVec2(0, 0.375), ImVec2(0.09375, 0.46875));
-  }
 
   // Render scene to texture
   vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
