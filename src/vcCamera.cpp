@@ -99,7 +99,7 @@ void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindi
     }
     break;
   case vcCPM_Tumble:
-    //pProgramState->cameraInput.inputState = vcCIS_None;
+    pProgramState->cameraInput.inputState = vcCIS_None;
     break;
   case vcCPM_Pan:
     if (pProgramState->pickingSuccess)
@@ -112,6 +112,9 @@ void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindi
     break;
   case vcCPM_Forward:
     pProgramState->cameraInput.inputState = vcCIS_MovingForward;
+    break;
+  default:
+    // Do nothing
     break;
   };
 }
@@ -200,6 +203,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
   {
   case vcCIS_MovingForward:
     pCamInput->keyboardInput.y += 1;
+    break;
   case vcCIS_None:
   {
     udDouble3 addPos = udClamp(pCamInput->keyboardInput, udDouble3::create(-1, -1, -1), udDouble3::create(1, 1, 1)); // clamp in case 2 similarly mapped movement buttons are pressed
@@ -350,9 +354,16 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     udDouble3 addPos = udDouble3::zero();
     if (pCamSettings->cameraMode == vcCM_FreeRoam)
     {
-      double distanceToPoint = udMag3(pCamInput->worldAnchorPoint - pCamera->position);
-      udDouble3 towards = udNormalize3(pCamInput->worldAnchorPoint - pCamera->position);
-      addPos = distanceToPoint * pCamInput->mouseInput.y * towards;
+      udDouble3 towards = pCamInput->worldAnchorPoint - pCamera->position;
+      if (udMagSq3(towards) > 0)
+      {
+        double maxDistance = 0.9 * pCamSettings->farPlane; // limit to 90% of visible distance
+        double distanceToPoint = udMag3(towards);
+        if (pCamInput->mouseInput.y < 0)
+          distanceToPoint = udClamp(maxDistance - distanceToPoint, 0.0, distanceToPoint);
+
+        addPos = distanceToPoint * pCamInput->mouseInput.y * udNormalize3(towards);
+    }
     }
     else // map mode
     {
@@ -360,7 +371,6 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     }
 
     pCamInput->smoothTranslation += addPos;
-
   }
   break;
 

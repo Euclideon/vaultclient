@@ -493,7 +493,7 @@ const char* const g_WaterFragmentShader = R"shader(
 
     float nDotS = abs(dot(eyeReflectionDir, eyeSpecularDir));
     float nDotL = -dot(eyeNormal, eyeToFrag);
-    float fresnel = nDotL * float3(0.5, 0.5, 0.5) + float3(0.5, 0.5, 0.5);
+    float fresnel = nDotL * 0.5 + 0.5;
 
     float specular = pow(nDotS, 250.0) * 0.5;
 
@@ -501,7 +501,7 @@ const char* const g_WaterFragmentShader = R"shader(
     float3 shallowFactor = float3(1.0, 1.0, 0.7);
 
     float distanceToShore = 1.0; // maybe TODO
-    float3 refractionColour = input.colour * lerp(shallowFactor, deepFactor, distanceToShore);
+    float3 refractionColour = input.colour.xyz * lerp(shallowFactor, deepFactor, distanceToShore);
 
     // reflection
     float4 worldFragPos = mul(u_inverseViewMatrix, float4(eyeReflectionDir, 0.0));
