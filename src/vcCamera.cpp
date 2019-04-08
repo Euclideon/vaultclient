@@ -110,6 +110,9 @@ void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindi
     pProgramState->cameraInput.anchorMouseRay = pProgramState->pCamera->worldMouseRay;
     pProgramState->cameraInput.inputState = vcCIS_Panning;
     break;
+  case vcCPM_Forward:
+    pProgramState->cameraInput.inputState = vcCIS_MovingForward;
+    break;
   };
 }
 
@@ -195,6 +198,8 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 {
   switch (pCamInput->inputState)
   {
+  case vcCIS_MovingForward:
+    pCamInput->keyboardInput.y += 1;
   case vcCIS_None:
   {
     udDouble3 addPos = udClamp(pCamInput->keyboardInput, udDouble3::create(-1, -1, -1), udDouble3::create(1, 1, 1)); // clamp in case 2 similarly mapped movement buttons are pressed
@@ -600,6 +605,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
       {
         if ((pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Orbit && pProgramState->cameraInput.inputState == vcCIS_Orbiting) ||
             (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Pan && pProgramState->cameraInput.inputState == vcCIS_Panning) ||
+            (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Forward && pProgramState->cameraInput.inputState == vcCIS_MovingForward) ||
              pProgramState->cameraInput.inputState == vcCIS_CommandZooming)
         {
           pProgramState->cameraInput.inputState = vcCIS_None;
@@ -693,20 +699,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
         pProgramState->settings.camera.moveSpeed /= (1.f - mouseWheel / 10.f);
 
       pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
-    }
-  }
-
-  if (isBtnHeld[0] && isBtnHeld[1])
-  {
-    zooming = true;
-    if (isBtnClicked[0] || isBtnClicked[1])
-    {
-      pProgramState->cameraInput.isUsingAnchorPoint = true;
-      pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
-      pProgramState->cameraInput.inputState = vcCIS_CommandZooming;
-
-      if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-        pProgramState->cameraInput.worldAnchorPoint = pProgramState->pCamera->worldMouseRay.position;
     }
   }
 

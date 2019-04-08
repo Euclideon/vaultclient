@@ -70,6 +70,7 @@
   "settingsControlsInvertX": "Invert X-axis",
   "settingsControlsInvertY": "Invert Y-axis",
   "settingsControlsMousePivot": "Mouse Pivot Bindings",
+  "settingsControlsForward": "Move Forward",
   "settingsControlsTumble": "Tumble",
   "settingsControlsOrbit": "Orbit",
   "settingsControlsPan": "Pan",
