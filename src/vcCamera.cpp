@@ -492,6 +492,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     memset(isBtnReleased, 0, sizeof(isBtnReleased));
     mouseDelta = ImVec2();
     mouseWheel = 0.0f;
+    pProgramState->cameraInput.inputState = vcCIS_None;
   }
 
   // Controller Input
