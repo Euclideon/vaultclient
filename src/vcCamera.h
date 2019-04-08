@@ -15,6 +15,7 @@ enum vcCameraPivotMode
   vcCPM_Tumble,
   vcCPM_Orbit,
   vcCPM_Pan,
+  vcCPM_Forward,
 };
 
 enum vcCameraScrollWheelMode
@@ -55,6 +56,7 @@ enum vcInputState
   vcCIS_CommandZooming,
   vcCIS_PinchZooming,
   vcCIS_Panning,
+  vcCIS_MovingForward,
 
   vcCIS_Count
 };

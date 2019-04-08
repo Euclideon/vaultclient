@@ -136,6 +136,7 @@ Modules are currently:
 - `settingsControlsInvertX`: Label next to checkbox that toggles the positive/negative X-axis for the purposes of camera movement
 - `settingsControlsInvertY`: Label next to checkbox that toggles the positive/negative Y-axis for the purposes of camera movement
 - `settingsControlsMousePivot`: Subheading for the four dropdown lists used to assign bindings for mouse input
+- `settingsControlsForward`: Option for Left, Middle and Right mouse button dropdown lists, moves the camera forwards (same as W key) and also allows tumbling
 - `settingsControlsTumble`: Option for Left, Middle and Right mouse button dropdown lists, rotates the camera without moving it
 - `settingsControlsOrbit`: Option for Left, Middle and Right mouse button dropdown lists, moves the camera while maintaining distance to the selected point
 - `settingsControlsPan`: Option for Left, Middle and Right mouse button dropdown lists, moves the camera perpendicular to its forward direction
