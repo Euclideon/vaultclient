@@ -124,7 +124,7 @@ void ImGuiGL_DestroyFontsTexture()
 
 bool ImGuiGL_CreateDeviceObjects()
 {
-  vcShader_CreateFromText(&pImGuiShader, g_ImGuiVertexShader, g_ImGuiFragmentShader, vcImGuiVertexLayout, (int)udLengthOf(vcImGuiVertexLayout));
+  vcShader_CreateFromText(&pImGuiShader, g_ImGuiVertexShader, g_ImGuiFragmentShader, vcImGuiVertexLayout);
   vcShader_GetConstantBuffer(&g_pAttribLocationProjMtx, pImGuiShader, "u_EveryFrame", sizeof(udFloat4x4));
   ImGuiGL_CreateFontsTexture();
 

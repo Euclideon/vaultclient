@@ -113,7 +113,7 @@ udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer)
   pFenceRenderer->config.imageMode = vcRRIM_Solid;
   pFenceRenderer->config.visualMode = vcRRVM_Fence;
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&pFenceRenderer->renderShader.pProgram, g_FenceVertexShader, g_FenceFragmentShader, vcRibbonVertexLayout, (int)udLengthOf(vcRibbonVertexLayout)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pFenceRenderer->renderShader.pProgram, g_FenceVertexShader, g_FenceFragmentShader, vcRibbonVertexLayout), udR_InternalError);
   vcShader_Bind(pFenceRenderer->renderShader.pProgram);
   vcShader_GetSamplerIndex(&pFenceRenderer->renderShader.uniform_texture, pFenceRenderer->renderShader.pProgram, "u_texture");
   vcShader_GetConstantBuffer(&pFenceRenderer->renderShader.uniform_everyFrame, pFenceRenderer->renderShader.pProgram, "u_EveryFrame", sizeof(pFenceRenderer->renderShader.everyFrameParams));
