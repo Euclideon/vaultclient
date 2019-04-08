@@ -51,7 +51,7 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 		if [ $3 == "--gfxapi=d3d11" ]; then
 			cp -f builds/vaultClient_d3d11.exe $DEPLOYDIR/Windows/vaultClient.exe
 		else
-			cp -f bin/sdl/SDL2.dll $DEPLOYDIR/Windows/SDL2.dll
+			cp -f builds/SDL2.dll $DEPLOYDIR/Windows/SDL2.dll
 			cp -f builds/vaultClient.exe $DEPLOYDIR/Windows/vaultClient_OpenGL.exe
 			cp -f builds/vaultConvertCMD.exe $DEPLOYDIR/Windows/vaultConvertCMD.exe
 			cp -rf builds/assets/ $DEPLOYDIR/Windows/assets
