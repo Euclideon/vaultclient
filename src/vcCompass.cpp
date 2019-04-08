@@ -35,7 +35,7 @@ udResult vcCompass_Create(vcAnchor **ppCompass)
   UD_ERROR_CHECK(vcMesh_Create(&pCompass->meshes[vcAS_Orbit], vcNormalVertexLayout, (int)udLengthOf(vcNormalVertexLayout), pOrbitVerts, (int)udLengthOf(orbitVertsFltArray), orbitFaces, (int)udLengthOf(orbitFaces), vcMF_IndexShort));
   UD_ERROR_CHECK(vcMesh_Create(&pCompass->meshes[vcAS_Compass], vcNormalVertexLayout, (int)udLengthOf(vcNormalVertexLayout), pCompassVerts, (int)udLengthOf(compassVertsFltArray), compassFaces, (int)udLengthOf(compassFaces), vcMF_IndexShort));
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&pCompass->pShader, g_CompassVertexShader, g_CompassFragmentShader, vcNormalVertexLayout, (uint32_t)UDARRAYSIZE(vcNormalVertexLayout)), udR_InvalidConfiguration);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pCompass->pShader, g_CompassVertexShader, g_CompassFragmentShader, vcNormalVertexLayout), udR_InvalidConfiguration);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pCompass->pShaderConstantBuffer, pCompass->pShader, "u_EveryObject", sizeof(vcAnchor::shaderBuffer)), udR_InvalidParameter_);
 
   *ppCompass = pCompass;

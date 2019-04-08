@@ -264,7 +264,7 @@ udResult vcPolygonModel_CreateShaders()
   udResult result = udR_Success;
 
   vcPolygonModelShader *pPolygonShader = &gShaders[vcPMST_P1N1UV1];
-  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP1N1UV1VertexShader, g_PolygonP1N1UV1FragmentShader, vcPolygonModelVertexLayout, (uint32_t)udLengthOf(vcPolygonModelVertexLayout)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP1N1UV1VertexShader, g_PolygonP1N1UV1FragmentShader, vcPolygonModelVertexLayout), udR_InternalError);
   vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame));
   vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject));
   vcShader_GetSamplerIndex(&pPolygonShader->pDiffuseSampler, pPolygonShader->pShader, "u_texture");
