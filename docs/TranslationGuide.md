@@ -6,6 +6,8 @@
   - Added:
     - Proxy Messages & Settings
       - `loginErrorProxyAuthPending`, `loginErrorProxyAuthFailed`, `loginProxyAutodetect`, `loginProxyTest`
+    - Control Settings
+      - `settingsControlsForward`
     - Proxy Modal
       - `modalProxyInfo`, `modalProxyBadCreds`, `modalProxyUsername`, `modalProxyPassword`, `modalProxyAuthContinueButton`, `modalProxyAuthCancelButton`
     - Scene Explorer
