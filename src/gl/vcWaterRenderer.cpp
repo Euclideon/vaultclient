@@ -95,7 +95,7 @@ udResult vcWaterRenderer_Create(vcWaterRenderer **ppWaterRenderer)
 
   pWaterRenderer->volumes.Init(32);
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&pWaterRenderer->renderShader.pProgram, g_WaterVertexShader, g_WaterFragmentShader, vcWaterVolumeVertexLayout, (int)udLengthOf(vcWaterVolumeVertexLayout)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pWaterRenderer->renderShader.pProgram, g_WaterVertexShader, g_WaterFragmentShader, vcWaterVolumeVertexLayout), udR_InternalError);
   vcShader_Bind(pWaterRenderer->renderShader.pProgram);
   vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_normalMap, pWaterRenderer->renderShader.pProgram, "u_normalMap");
   vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_skybox, pWaterRenderer->renderShader.pProgram, "u_skybox");
