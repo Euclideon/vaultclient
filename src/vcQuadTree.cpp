@@ -385,7 +385,6 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
   pQuadTree->slippyCoords = viewInfo.slippyCoords;
   pQuadTree->cameraWorldPosition = viewInfo.cameraPosition;
   pQuadTree->quadTreeWorldSize = viewInfo.quadTreeWorldSize;
-  pQuadTree->visibleDistance = viewInfo.visibleDistance;
   pQuadTree->quadTreeHeightOffset = viewInfo.quadTreeHeightOffset;
 
   pQuadTree->metaData.nodeTouchedCount = 0;

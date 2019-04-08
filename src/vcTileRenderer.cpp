@@ -428,7 +428,6 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
     slippyCoords,
     cameraWorldPos,
     slippyCornersViewSize,
-    (double)pTileRenderer->pSettings->camera.farPlane,
     pTileRenderer->pSettings->maptiles.mapHeight,
     viewProjectionMatrix
   };
