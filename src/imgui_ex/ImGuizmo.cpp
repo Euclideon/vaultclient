@@ -665,11 +665,9 @@ static int vcGizmo_GetScaleType()
       bool belowAxisLimit, belowPlaneLimit;
       vcGizmo_ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
       dirAxis = (sGizmoContext.mModel * udDouble4::create(dirAxis, 0)).toVector3();
-      dirPlaneX = (sGizmoContext.mModel * udDouble4::create(dirPlaneX, 0)).toVector3();
-      dirPlaneY = (sGizmoContext.mModel * udDouble4::create(dirPlaneY, 0)).toVector3();
 
       udDouble3 posOnPlane;
-      if (udIntersect(udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), dirAxis), sGizmoContext.camera.worldMouseRay, &posOnPlane) != udR_Success)
+      if (udIntersect(udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), -sGizmoContext.mCameraDir), sGizmoContext.camera.worldMouseRay, &posOnPlane) != udR_Success)
         continue;
 
       const ImVec2 posOnPlanScreen = vcGizmo_WorldToScreen(posOnPlane, sGizmoContext.camera.matrices.viewProjection);
@@ -678,7 +676,8 @@ static int vcGizmo_GetScaleType()
 
       udDouble4 closestPointOnAxis = vcGizmo_PointOnSegment(vcGizmo_MakeVect(posOnPlanScreen), vcGizmo_MakeVect(axisStartOnScreen), vcGizmo_MakeVect(axisEndOnScreen));
 
-      if (udMag3(closestPointOnAxis - vcGizmo_MakeVect(posOnPlanScreen)) < 12.0) // pixel size
+      double distSqr = udMagSq3(closestPointOnAxis - vcGizmo_MakeVect(posOnPlanScreen));
+      if (distSqr < 12.0 * 12.0) // pixel size
         type = vcGMT_ScaleX + i;
     }
   }
