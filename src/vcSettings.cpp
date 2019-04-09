@@ -156,9 +156,19 @@ void vcSettings_InitializePrefPath(vcSettings *pSettings)
   char *pPath = SDL_GetPrefPath("euclideon", "client");
 
   if (pPath != nullptr)
+  {
     pSettings->pSaveFilePath = pPath;
+    udSprintf(pSettings->cacheAssetPath, vcMaxPathLength, "%scache", pSettings->pSaveFilePath);
+    if (udCreateDir(pSettings->cacheAssetPath) != udR_Success)
+    {
+      // Probably already exists
+      // TODO: handle other failure conditions
+    }
+  }
   else
+  {
     pSettings->noLocalStorage = true;
+  }
 }
 
 const char* SDL_fileread(const char* filename)
