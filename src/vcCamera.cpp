@@ -203,7 +203,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
   {
   case vcCIS_MovingForward:
     pCamInput->keyboardInput.y += 1;
-    break;
+    // fall through
   case vcCIS_None:
   {
     udDouble3 addPos = udClamp(pCamInput->keyboardInput, udDouble3::create(-1, -1, -1), udDouble3::create(1, 1, 1)); // clamp in case 2 similarly mapped movement buttons are pressed
