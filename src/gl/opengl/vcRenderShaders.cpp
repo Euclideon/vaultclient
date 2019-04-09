@@ -433,7 +433,7 @@ const char* const g_WaterFragmentShader = FRAG_HEADER R"shader(
 
     float nDotS = abs(dot(eyeReflectionDir, eyeSpecularDir));
     float nDotL = -dot(eyeNormal, eyeToFrag);
-    float fresnel = nDotL * vec3(0.5) + vec3(0.5);
+    float fresnel = nDotL * 0.5 + 0.5;
 
     float specular = pow(nDotS, 250.0) * 0.5;
 
@@ -441,7 +441,7 @@ const char* const g_WaterFragmentShader = FRAG_HEADER R"shader(
     vec3 shallowFactor = vec3(1.0, 1.0, 0.7);
 
     float distanceToShore = 1.0; // maybe TODO
-    vec3 refractionColour = v_colour * mix(shallowFactor, deepFactor, distanceToShore);
+    vec3 refractionColour = v_colour.xyz * mix(shallowFactor, deepFactor, distanceToShore);
 
     // reflection
     vec4 worldFragPos = u_inverseViewMatrix * vec4(eyeReflectionDir, 0.0);

@@ -81,7 +81,6 @@ struct vcQuadTree
   udDouble3 cameraTreePosition;
   int expectedTreeDepth; // depth of the deepest node
   double quadTreeWorldSize;
-  double visibleDistance;
   double quadTreeHeightOffset;
 
   uint32_t rootIndex;
@@ -100,7 +99,6 @@ struct vcQuadTreeViewInfo
   udInt3 slippyCoords;
   udDouble3 cameraPosition;
   double quadTreeWorldSize;
-  double visibleDistance;
   double quadTreeHeightOffset;
   udDouble4x4 viewProjectionMatrix;
 };
