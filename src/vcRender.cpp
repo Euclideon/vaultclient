@@ -372,11 +372,15 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
 
     int currentZoom = 21;
 
+    double farPlane = pRenderContext->pSettings->camera.farPlane;
+    if (pRenderContext->pSettings->camera.cameraMode == vcCM_OrthoMap)
+      farPlane = pRenderContext->pSettings->camera.orthographicSize * 2.0;
+
     // Cardinal Limits
-    localCorners[0] = localCamPos + udDouble3::create(-pRenderContext->pSettings->camera.farPlane, +pRenderContext->pSettings->camera.farPlane, 0);
-    localCorners[1] = localCamPos + udDouble3::create(+pRenderContext->pSettings->camera.farPlane, +pRenderContext->pSettings->camera.farPlane, 0);
-    localCorners[2] = localCamPos + udDouble3::create(-pRenderContext->pSettings->camera.farPlane, -pRenderContext->pSettings->camera.farPlane, 0);
-    localCorners[3] = localCamPos + udDouble3::create(+pRenderContext->pSettings->camera.farPlane, -pRenderContext->pSettings->camera.farPlane, 0);
+    localCorners[0] = localCamPos + udDouble3::create(-farPlane, +farPlane, 0);
+    localCorners[1] = localCamPos + udDouble3::create(+farPlane, +farPlane, 0);
+    localCorners[2] = localCamPos + udDouble3::create(-farPlane, -farPlane, 0);
+    localCorners[3] = localCamPos + udDouble3::create(+farPlane, -farPlane, 0);
 
     for (int i = 0; i < 4; ++i)
       vcGIS_LocalToSlippy(renderData.pGISSpace, &slippyCorners[i], localCorners[i], currentZoom);
