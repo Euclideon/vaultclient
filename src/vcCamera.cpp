@@ -504,10 +504,9 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     memset(isBtnClicked, 0, sizeof(isBtnClicked));
     memset(isBtnDoubleClicked, 0, sizeof(isBtnDoubleClicked));
     memset(isBtnHeld, 0, sizeof(isBtnHeld));
-    memset(isBtnReleased, 0, sizeof(isBtnReleased));
+    //memset(isBtnReleased, 0, sizeof(isBtnReleased)); // 09/04/19 - commented out to fix pan-release bug, check back and review once more fully tested
     mouseDelta = ImVec2();
     mouseWheel = 0.0f;
-    pProgramState->cameraInput.inputState = vcCIS_None;
   }
 
   // Controller Input
