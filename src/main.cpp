@@ -722,11 +722,11 @@ int main(int argc, char **args)
                 pPOI->m_pMetadata->Set(&tmp, "imageurl");
 
                 if (imageType == vcState::ImageInfo::ImageType::PhotoSphere)
-                  pPOI->m_pMetadata->Set("imagetype = 'photosphere'");
+                  pPOI->m_pMetadata->Set(udTempStr("imagetype = '%s'", vcString::Get("scenePOILabelImageTypePhotosphere")));
                 else if (imageType == vcState::ImageInfo::ImageType::Panorama)
-                  pPOI->m_pMetadata->Set("imagetype = 'panorama'");
+                  pPOI->m_pMetadata->Set(udTempStr("imagetype = '%s'", vcString::Get("scenePOILabelImageTypePanoramic")));
                 else
-                  pPOI->m_pMetadata->Set("imagetype = 'standard'");
+                  pPOI->m_pMetadata->Set(udTempStr("imagetype = '%s'", vcString::Get("scenePOILabelImageTypeStandard")));
               }
               else
               {
