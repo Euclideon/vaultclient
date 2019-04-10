@@ -247,7 +247,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   if (pImageURL != nullptr)
   {
     ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageURL"), pImageURL);
-    ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageType"), m_pMetadata->Get("imagetype").AsString("standard"));
+    ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageType"), m_pMetadata->Get("imagetype").AsString(vcString::Get("scenePOILabelImageTypeStandard")));
     if (ImGui::Button(vcString::Get("scenePOILabelOpenImageURL")))
     {
       pProgramState->pLoadImage = udStrdup(pImageURL);

@@ -355,6 +355,10 @@
   "scenePOILabelSizeSmall": "Small",
   "scenePOILabelSizeNormal": "Medium",
   "scenePOILabelSizeLarge": "Large",
+  "scenePOILabelImageType": "Image Type",
+  "scenePOILabelImageTypeStandard": "standard",
+  "scenePOILabelImageTypePanoramic": "panoramic",
+  "scenePOILabelImageTypePhotosphere": "photosphere",
 
   "scenePOILineSettings": "Line Settings",
   "scenePOILineShowLength": "Show Length",
