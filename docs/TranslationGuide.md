@@ -11,7 +11,7 @@
     - Proxy Modal
       - `modalProxyInfo`, `modalProxyBadCreds`, `modalProxyUsername`, `modalProxyPassword`, `modalProxyAuthContinueButton`, `modalProxyAuthCancelButton`
     - Scene Explorer
-      - `scenePOIRemovePoint`, `scenePOILabelImageType`, `scenePOILabelImageTypeStandard`, `scenePOILabelImageTypePanoramic`, `scenePOILabelImageTypePhotosphere`
+      - `scenePOIRemovePoint`, `scenePOILabelImageType`, `scenePOILabelImageTypeStandard`, `scenePOILabelImageTypePanorama`, `scenePOILabelImageTypePhotosphere`
     - Viewport
       - `settingsViewportViewDistance`
   - Removed:
@@ -449,7 +449,7 @@ Modules are currently:
 - `scenePOILabelSizeLarge`: text on the drop down to select the larger than default text size
 - `scenePOILabelImageType`: Label for POI image type shown in the scene explorer
 - `scenePOILabelImageTypeStandard`: One of the POI image types as shown in the scene explorer
-- `scenePOILabelImageTypePanoramic`: One of the POI image types as shown in the scene explorer
+- `scenePOILabelImageTypePanorama`: One of the POI image types as shown in the scene explorer
 - `scenePOILabelImageTypePhotosphere`: One of the POI image types as shown in the scene explorer
 - `scenePOILineSettings`: The header for the expansion for the other line settings
 - `scenePOILineShowLength` Label on the checkbox for when the user wants the length displayed on the label in the scene
