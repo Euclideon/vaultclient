@@ -313,8 +313,14 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
     if (pCamera->eulerRotation.y > UD_PI)
       pCamera->eulerRotation.y -= UD_2PI;
-    break;
   }
+  break;
+
+  case vcCIS_FlyingThrough:
+  {
+    udDouble3 moveVector = pCamInput->worldAnchorPoint - pCamInput->startPosition;
+  }
+  break;
 
   case vcCIS_MovingToPoint:
   {
