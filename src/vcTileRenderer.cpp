@@ -194,8 +194,9 @@ void vcTileRenderer_LoadThread(void *pThreadData)
 
       if (best == -1)
       {
+        pCache->tileLoadList.Clear();
         udReleaseMutex(pCache->pMutex);
-        continue;
+        break;
       }
 
       vcQuadTreeNode *pBestNode = pCache->tileLoadList[best];
