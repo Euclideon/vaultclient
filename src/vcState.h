@@ -8,6 +8,8 @@
 
 #include "vCore/vWorkerThread.h"
 
+#include "rendering/vcImageRenderer.h"
+
 #include "vcSettings.h"
 #include "vcScene.h"
 #include "vcGIS.h"
@@ -131,20 +133,14 @@ struct vcState
     std::vector<vcSceneItemRef> selectedItems;
   } sceneExplorer;
 
+  // TODO: Remove once pauls changes go through
   struct ImageInfo
   {
     vcTexture *pImage;
     int width;
     int height;
 
-    enum ImageType
-    {
-      StandardPhoto,
-      Panorama,
-      PhotoSphere,
-
-      Count
-    } imageType;
+    vcImageType imageType;
   } image;
 
   bool firstRun;

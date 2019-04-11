@@ -5,7 +5,7 @@
 #include "vcStrings.h"
 #include "vcTime.h"
 
-#include "gl/vcFenceRenderer.h"
+#include "rendering/vcFenceRenderer.h"
 
 #include "vcModel.h" // Included just for "ResetPosition"
 #include "vcRender.h" // Included just for "ClearTiles"

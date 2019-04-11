@@ -10,8 +10,8 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-#include "gl/vcLabelRenderer.h"
-#include "vcPolygonModel.h"
+#include "rendering/vcLabelRenderer.h"
+#include "rendering/vcPolygonModel.h"
 
 #include "vCore/vUUID.h"
 #include "vCore/vStringFormat.h"
