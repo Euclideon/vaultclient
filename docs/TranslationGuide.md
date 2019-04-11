@@ -11,7 +11,7 @@
     - Proxy Modal
       - `modalProxyInfo`, `modalProxyBadCreds`, `modalProxyUsername`, `modalProxyPassword`, `modalProxyAuthContinueButton`, `modalProxyAuthCancelButton`
     - Scene Explorer
-      - `scenePOIRemovePoint`
+      - `scenePOIRemovePoint`, `scenePOILabelImageType`, `scenePOILabelImageTypeStandard`, `scenePOILabelImageTypePanorama`, `scenePOILabelImageTypePhotosphere`
     - Viewport
       - `settingsViewportViewDistance`
   - Removed:
@@ -444,9 +444,13 @@ Modules are currently:
 - `scenePOILabelHyperlink`: Label used to show if there is a hyperlink attached
 - `scenePOILabelOpenHyperlink`: Button used to open the hyperlink if its possible to open it
 - `scenePOILabelSize`: Label for the drop down to select the label size
-- `scenePOILabelSizeSmall` text on the drop down to select the smaller than default text size
-- `scenePOILabelSizeNormal` text on the drop down to select the default text size
-- `scenePOILabelSizeLarge` text on the drop down to select the larger than default text size
+- `scenePOILabelSizeSmall`: text on the drop down to select the smaller than default text size
+- `scenePOILabelSizeNormal`: text on the drop down to select the default text size
+- `scenePOILabelSizeLarge`: text on the drop down to select the larger than default text size
+- `scenePOILabelImageType`: Label for POI image type shown in the scene explorer
+- `scenePOILabelImageTypeStandard`: One of the POI image types as shown in the scene explorer
+- `scenePOILabelImageTypePanorama`: One of the POI image types as shown in the scene explorer
+- `scenePOILabelImageTypePhotosphere`: One of the POI image types as shown in the scene explorer
 - `scenePOILineSettings`: The header for the expansion for the other line settings
 - `scenePOILineShowLength` Label on the checkbox for when the user wants the length displayed on the label in the scene
 - `scenePOILineShowArea`: Label on the checkbox for when the user wants the area displayed on the label in the scene
