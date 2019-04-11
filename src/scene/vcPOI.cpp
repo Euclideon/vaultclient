@@ -247,7 +247,20 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   if (pImageURL != nullptr)
   {
     ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageURL"), pImageURL);
-    ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageType"), m_pMetadata->Get("imagetype").AsString("standard"));
+
+    const char *imageType = m_pMetadata->Get("imagetype").AsString("standard");
+    if (udStrEqual(imageType, "photosphere"))
+    {
+      ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageType"), vcString::Get("scenePOILabelImageTypePhotosphere"));
+    }
+    else if (udStrEqual(imageType, "panorama"))
+    {
+      ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageType"), vcString::Get("scenePOILabelImageTypePanorama"));
+    }
+    else
+    {
+      ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageType"), vcString::Get("scenePOILabelImageTypeStandard"));
+    }
     if (ImGui::Button(vcString::Get("scenePOILabelOpenImageURL")))
     {
       pProgramState->pLoadImage = udStrdup(pImageURL);
