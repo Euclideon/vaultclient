@@ -13,6 +13,7 @@
 #include "gl/vcFenceRenderer.h"
 #include "gl/vcLabelRenderer.h"
 #include "gl/vcWaterRenderer.h"
+#include "gl/vcImageRenderer.h"
 
 struct vcRenderContext;
 struct vcTexture;
@@ -41,10 +42,10 @@ struct vcRenderData
   udChunkedArray<vcLabelInfo*> labels;
   udChunkedArray<vcRenderPolyInstance> polyModels;
   udChunkedArray<vcWaterRenderer*> waterVolumes;
+  udChunkedArray<vcImageRenderInfo*> images;
 
   vcCamera *pCamera;
   vcCameraSettings *pCameraSettings;
-  vcTexture *pSkyboxCubemap;
 };
 
 udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &windowResolution);

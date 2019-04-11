@@ -524,10 +524,13 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
 
 void vcRender_vcRenderSceneImGui(vcRenderContext *pRenderContext, const vcRenderData &renderData)
 {
-
   // Labels
   for (size_t i = 0; i < renderData.labels.length; ++i)
     vcLabelRenderer_Render(renderData.labels[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
+
+  // Images
+  for (size_t i = 0; i < renderData.images.length; ++i)
+    vcImageRenderer_Render(renderData.images[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->pCamera->matrices.view, pRenderContext->sceneResolution);
 }
 
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext)

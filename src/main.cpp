@@ -1052,6 +1052,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.labels.Init(32);
   renderData.waterVolumes.Init(32);
   renderData.polyModels.Init(64);
+  renderData.images.Init(32);
   renderData.mouse.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.y = (uint32_t)(io.MousePos.y - windowPos.y);
 
@@ -1223,6 +1224,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.labels.Deinit();
   renderData.waterVolumes.Deinit();
   renderData.polyModels.Deinit();
+  renderData.labels.Deinit();
 
   pProgramState->previousWorldMousePos = renderData.worldMousePos;
   pProgramState->previousPickingSuccess = renderData.pickingSuccess;
