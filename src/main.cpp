@@ -32,7 +32,8 @@
 #include "vcStrings.h"
 #include "vcModals.h"
 #include "vcLiveFeed.h"
-#include "vcPolygonModel.h"
+#include "rendering/vcPolygonModel.h"
+#include "rendering/vcImageRenderer.h"
 #include "vcProxyHelper.h"
 
 #include "vCore/vStringFormat.h"
@@ -652,19 +653,20 @@ int main(int argc, char **args)
               {
                 udDouble3 geolocation = udDouble3::zero();
                 bool hasLocation = false;
-                vcState::ImageInfo::ImageType imageType = vcState::ImageInfo::ImageType::StandardPhoto;
+                vcImageType imageType = vcIT_StandardPhoto;
 
-                // Many jpg's have exif, let's process that first
-                if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg"))
+                vcTexture *pImage = nullptr;
+                const unsigned char *pFileData = nullptr;
+                int64_t numBytes = 0;
+
+                if (udFile_Load(pNextLoad, (void**)&pFileData, &numBytes) == udR_Success)
                 {
-                  easyexif::EXIFInfo result;
-
-                  const unsigned char *pData = nullptr;
-                  int64_t numBytes = 0;
-
-                  if (udFile_Load(pNextLoad, (void**)&pData, &numBytes) == udR_Success)
+                  // Many jpg's have exif, let's process that first
+                  if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg"))
                   {
-                    if (result.parseFrom(pData, (int)numBytes) == PARSE_EXIF_SUCCESS)
+                    easyexif::EXIFInfo result;
+
+                    if (result.parseFrom(pFileData, (int)numBytes) == PARSE_EXIF_SUCCESS)
                     {
                       if (result.GeoLocation.Latitude != 0.0 || result.GeoLocation.Longitude != 0.0)
                       {
@@ -683,15 +685,35 @@ int main(int argc, char **args)
                           bool isPhotosphere = xmp.Get("x:xmpmeta.rdf:RDF.rdf:Description.GPano:IsPhotosphere").AsBool();
 
                           if (isPanorama && isPhotosphere)
-                            imageType = vcState::ImageInfo::ImageType::PhotoSphere;
+                            imageType = vcIT_PhotoSphere;
                           else if (isPanorama)
-                            imageType = vcState::ImageInfo::ImageType::Panorama;
+                            imageType = vcIT_Panorama;
                         }
                       }
                     }
-
-                    udFree(pData);
                   }
+
+                  // TODO: Generate a thumbnail
+                  {
+                    int width, height;
+                    int comp;
+                    stbi_uc *pImgPixels = stbi_load_from_memory((stbi_uc*)pFileData, (int)numBytes, &width, &height, &comp, 4);
+                    if (!pImgPixels)
+                    {
+                      // TODO: image failed to load, display error image
+                    }
+
+                    // TODO: (EVC-515) Mip maps are broken in directX
+                    vcTexture_Create(&pImage, width, height, pImgPixels, vcTextureFormat_RGBA8, vcTFM_Linear, false);
+
+                    stbi_image_free(pImgPixels);
+                  }
+
+                  udFree(pFileData);
+                }
+                else
+                {
+                  // TODO: file failed to load, display error image
                 }
 
                 const vcSceneItemRef &clicked = programState.sceneExplorer.clickedItem;
@@ -714,6 +736,16 @@ int main(int argc, char **args)
                   vcScene_AddItem(&programState, pPOI, true);
                 }
 
+                // TODO: Using POIs to store media points is a temporary solution
+                vcPOI *pRealPOI = (vcPOI*)pPOI;
+                pRealPOI->m_pImage = udAllocType(vcImageRenderInfo, 1, udAF_Zero);
+                pRealPOI->m_pImage->ypr = udDouble3::zero();
+                pRealPOI->m_pImage->scale = udDouble3::one();
+                pRealPOI->m_pImage->pTexture = pImage;
+                pRealPOI->m_pImage->colour = udFloat4::create(1.0f, 1.0f, 1.0f, 1.0f);
+                pRealPOI->m_pImage->size = vcIS_Large;
+                pRealPOI->m_pImage->type = imageType;
+
                 if (pPOI->m_pMetadata == nullptr)
                   pPOI->m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
 
@@ -721,9 +753,9 @@ int main(int argc, char **args)
                 tmp.SetString(pNextLoad);
                 pPOI->m_pMetadata->Set(&tmp, "imageurl");
 
-                if (imageType == vcState::ImageInfo::ImageType::PhotoSphere)
+                if (imageType == vcIT_PhotoSphere)
                   pPOI->m_pMetadata->Set("imagetype = 'photosphere'");
-                else if (imageType == vcState::ImageInfo::ImageType::Panorama)
+                else if (imageType == vcIT_Panorama)
                   pPOI->m_pMetadata->Set("imagetype = 'panorama'");
                 else
                   pPOI->m_pMetadata->Set("imagetype = 'standard'");
@@ -1224,7 +1256,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.labels.Deinit();
   renderData.waterVolumes.Deinit();
   renderData.polyModels.Deinit();
-  renderData.labels.Deinit();
+  renderData.images.Deinit();
 
   pProgramState->previousWorldMousePos = renderData.worldMousePos;
   pProgramState->previousPickingSuccess = renderData.pickingSuccess;

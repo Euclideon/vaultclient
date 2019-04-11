@@ -4,6 +4,7 @@
 #include "gl/vcShader.h"
 #include "gl/vcRenderShaders.h"
 
+#include "gl/vcMesh.h"
 #include "vcInternalModels.h"
 
 struct vcAnchor
@@ -32,10 +33,10 @@ udResult vcCompass_Create(vcAnchor **ppCompass)
 
   UD_ERROR_NULL(pCompass, udR_MemoryAllocationFailure);
 
-  UD_ERROR_CHECK(vcMesh_Create(&pCompass->meshes[vcAS_Orbit], vcNormalVertexLayout, (int)udLengthOf(vcNormalVertexLayout), pOrbitVerts, (int)udLengthOf(orbitVertsFltArray), orbitFaces, (int)udLengthOf(orbitFaces), vcMF_IndexShort));
-  UD_ERROR_CHECK(vcMesh_Create(&pCompass->meshes[vcAS_Compass], vcNormalVertexLayout, (int)udLengthOf(vcNormalVertexLayout), pCompassVerts, (int)udLengthOf(compassVertsFltArray), compassFaces, (int)udLengthOf(compassFaces), vcMF_IndexShort));
+  UD_ERROR_CHECK(vcMesh_Create(&pCompass->meshes[vcAS_Orbit], vcP1N1VertexLayout, (int)udLengthOf(vcP1N1VertexLayout), pOrbitVertices, (int)udLengthOf(orbitVerticesFltArray), orbitIndices, (int)udLengthOf(orbitIndices), vcMF_IndexShort));
+  UD_ERROR_CHECK(vcMesh_Create(&pCompass->meshes[vcAS_Compass], vcP1N1VertexLayout, (int)udLengthOf(vcP1N1VertexLayout), pCompassVerts, (int)udLengthOf(compassVertsFltArray), compassIndices, (int)udLengthOf(compassIndices), vcMF_IndexShort));
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&pCompass->pShader, g_CompassVertexShader, g_CompassFragmentShader, vcNormalVertexLayout), udR_InvalidConfiguration);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pCompass->pShader, g_CompassVertexShader, g_CompassFragmentShader, vcP1N1VertexLayout), udR_InvalidConfiguration);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pCompass->pShaderConstantBuffer, pCompass->pShader, "u_EveryObject", sizeof(vcAnchor::shaderBuffer)), udR_InvalidParameter_);
 
   *ppCompass = pCompass;

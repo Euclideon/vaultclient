@@ -10,6 +10,7 @@ Known Major Issues In Current Release
   - An issue is preventing macOS users from running the build directly because of signing issues (EVC-408)
   - Map mode only transitions nicely for items with z at 0 (EVC-460)
   - Combined near/far plane sliders into a single slider (EVC-493)
+  - Images are not using thumbnails
 
 Version 0.2.3 (Might be 0.3.0)
   - Added Gamepad/Xbox Controller functionality for camera movement

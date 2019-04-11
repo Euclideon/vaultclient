@@ -101,6 +101,7 @@ struct vcQuadTreeViewInfo
   double quadTreeWorldSize;
   double quadTreeHeightOffset;
   udDouble4x4 viewProjectionMatrix;
+  int maxVisibleTileLevel;
 };
 
 void vcQuadTree_Create(vcQuadTree *pQuadTree, vcSettings *pSettings);

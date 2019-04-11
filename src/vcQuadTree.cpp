@@ -1,5 +1,4 @@
 #include "vcQuadTree.h"
-#include "vcTileRenderer.h"
 #include "vcGIS.h"
 #include "gl/vcTexture.h"
 
@@ -391,14 +390,14 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
   pQuadTree->metaData.leafNodeCount = 0;
   pQuadTree->metaData.visibleNodeCount = 0;
   pQuadTree->metaData.nodeRenderCount = 0;
-  pQuadTree->metaData.maxTreeDepth = udMax(0, (MaxVisibleTileLevel - 1) - viewInfo.slippyCoords.z);
+  pQuadTree->metaData.maxTreeDepth = udMax(0, (viewInfo.maxVisibleTileLevel - 1) - viewInfo.slippyCoords.z);
 
   pQuadTree->cameraTreePosition = pQuadTree->cameraWorldPosition;
   pQuadTree->cameraTreePosition.z -= pQuadTree->quadTreeHeightOffset; // relative height
 
   pQuadTree->expectedTreeDepth = 0;
   double distanceToQuadrant = udAbs(pQuadTree->cameraTreePosition.z) / pQuadTree->quadTreeWorldSize;
-  while (pQuadTree->expectedTreeDepth < (MaxVisibleTileLevel - 1) && vcQuadTree_ShouldSubdivide(pQuadTree, distanceToQuadrant, pQuadTree->expectedTreeDepth))
+  while (pQuadTree->expectedTreeDepth < (viewInfo.maxVisibleTileLevel - 1) && vcQuadTree_ShouldSubdivide(pQuadTree, distanceToQuadrant, pQuadTree->expectedTreeDepth))
     ++pQuadTree->expectedTreeDepth;
 
   // extract frustum planes
