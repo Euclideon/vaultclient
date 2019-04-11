@@ -3,9 +3,6 @@
 
 #include "imgui.h"
 
-static const int vcLFSToPixelSize[] = { 6, 8, 10 };
-UDCOMPILEASSERT(udLengthOf(vcLFSToPixelSize) == vcLFS_Count, "LabelFontSize not equal size");
-
 bool vcLabelRenderer_Render(vcLabelInfo *pLabelRenderer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize)
 {
   ImDrawList* drawList = ImGui::GetWindowDrawList();
