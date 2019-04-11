@@ -319,6 +319,24 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
   case vcCIS_FlyingThrough:
   {
     udDouble3 moveVector = pCamInput->worldAnchorPoint - pCamInput->startPosition;
+    double flyStep = pCamSettings->moveSpeed * speedModifier * deltaTime;
+    pCamInput->progress = udMin(pCamInput->progress + flyStep / udMag3(moveVector), 1.0);
+    udDouble3 leadingPoint = pCamInput->startPosition + moveVector * pCamInput->progress;
+    udDouble3 cam2point = udNormalize3(leadingPoint - pCamera->position);
+    udDouble3 targetEuler = udMath_DirToYPR(cam2point);
+    pCamera->eulerRotation = udSlerp(udDoubleQuat::create(pCamera->eulerRotation), udDoubleQuat::create(targetEuler), 0.2).eulerAngles();
+
+    if (pCamera->eulerRotation.y > UD_PI)
+      pCamera->eulerRotation.y -= UD_2PI;
+
+    if (pCamSettings->moveMode == vcCMM_Helicopter)
+      cam2point.z = 0;
+
+    // Slow camera if it gets too close to the leading point
+    if (udMag3(leadingPoint - pCamera->position) < 100)
+      flyStep *= 0.9;
+
+    pCamera->position += cam2point * flyStep;
   }
   break;
 
@@ -571,7 +589,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   {
     if (keyboardInput != udDouble3::zero() || isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]) // if input is detected, TODO: add proper any input detection
     {
-      if (pProgramState->cameraInput.inputState == vcCIS_MovingToPoint || pProgramState->cameraInput.inputState == vcCIS_LookingAtPoint)
+      if (pProgramState->cameraInput.inputState == vcCIS_MovingToPoint || pProgramState->cameraInput.inputState == vcCIS_LookingAtPoint || pProgramState->cameraInput.inputState == vcCIS_FlyingThrough)
       {
         pProgramState->pCamera->eulerRotation.z = 0.0;
         pProgramState->cameraInput.inputState = vcCIS_None;

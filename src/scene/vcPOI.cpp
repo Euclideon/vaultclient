@@ -157,20 +157,27 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
     if (flyingThroughPoints)
     {
-      // If exiting out of the fly-through
-      if (pProgramState->cameraInput.inputState != vcCIS_MovingToPoint && pProgramState->cameraInput.inputState != vcCIS_FlyingThrough)
+      if (pProgramState->cameraInput.progress == 1.0)
       {
+        pProgramState->cameraInput.progress = 0.0;
+        if (pProgramState->cameraInput.inputState == vcCIS_None)
+          pProgramState->cameraInput.inputState = vcCIS_FlyingThrough;
+        pProgramState->cameraInput.startPosition = m_line.pPoints[flyThroughPoint++];
+        if (flyThroughPoint == m_line.numPoints)
+        {
+          if (m_line.closed)
+            flyThroughPoint = 0;
+          else
+            pProgramState->cameraInput.inputState = vcCIS_None;
+        }
+        pProgramState->cameraInput.worldAnchorPoint = m_line.pPoints[flyThroughPoint];
+      }
+      else if (pProgramState->cameraInput.inputState != vcCIS_MovingToPoint && pProgramState->cameraInput.inputState != vcCIS_FlyingThrough)
+      {
+        // Exiting out of the fly-through
         flyThroughPoint = 0;
         flyingThroughPoints = false;
-      }
-      else if (pProgramState->cameraInput.progress == 1.0)
-      {
-        pProgramState->cameraInput.inputState = vcCIS_FlyingThrough;
-        pProgramState->cameraInput.progress = 0.0;
-        pProgramState->cameraInput.startPosition = m_line.pPoints[flyThroughPoint];
-        if (++flyThroughPoint == m_line.numPoints)
-          flyThroughPoint = 0;
-        pProgramState->cameraInput.worldAnchorPoint = m_line.pPoints[flyThroughPoint];
+        pProgramState->pCamera->eulerRotation.z = 0;
       }
     }
 
