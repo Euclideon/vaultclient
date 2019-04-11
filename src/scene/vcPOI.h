@@ -45,6 +45,9 @@ public:
   bool m_showLength;
   double m_calculatedLength;
 
+  bool m_flyingThroughPoints;
+  int m_flyThroughPoint;
+
   vcFenceRenderer *m_pFence;
   vcLabelInfo *m_pLabelInfo;
   const char *m_pLabelText;

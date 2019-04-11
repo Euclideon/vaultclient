@@ -319,24 +319,38 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
   case vcCIS_FlyingThrough:
   {
     udDouble3 moveVector = pCamInput->worldAnchorPoint - pCamInput->startPosition;
+
+    if (moveVector == udDouble3::zero())
+    {
+      pCamInput->progress = 1.0;
+      break;
+    }
+
     double flyStep = pCamSettings->moveSpeed * speedModifier * deltaTime;
     pCamInput->progress = udMin(pCamInput->progress + flyStep / udMag3(moveVector), 1.0);
     udDouble3 leadingPoint = pCamInput->startPosition + moveVector * pCamInput->progress;
-    udDouble3 cam2point = udNormalize3(leadingPoint - pCamera->position);
-    udDouble3 targetEuler = udMath_DirToYPR(cam2point);
+    udDouble3 cam2Point = leadingPoint - pCamera->position;
+    double distCam2Point = udMag3(cam2Point);
+
+    if (distCam2Point == 0)
+      cam2Point = moveVector;
+    else
+      cam2Point = udNormalize3(cam2Point);
+
+    udDouble3 targetEuler = udMath_DirToYPR(cam2Point);
     pCamera->eulerRotation = udSlerp(udDoubleQuat::create(pCamera->eulerRotation), udDoubleQuat::create(targetEuler), 0.2).eulerAngles();
 
     if (pCamera->eulerRotation.y > UD_PI)
       pCamera->eulerRotation.y -= UD_2PI;
 
     if (pCamSettings->moveMode == vcCMM_Helicopter)
-      cam2point.z = 0;
+      cam2Point.z = 0;
 
-    // Slow camera if it gets too close to the leading point
-    if (udMag3(leadingPoint - pCamera->position) < 100)
+    // Slow camera if it gets too close to the leading point (100m)
+    if (distCam2Point < 100)
       flyStep *= 0.9;
 
-    pCamera->position += cam2point * flyStep;
+    pCamera->position += cam2Point * flyStep;
   }
   break;
 
