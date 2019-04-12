@@ -1,5 +1,32 @@
 # **Euclideon Vault Client User Guide**
+
+### Table of Contents
+- [**Unpacking / Installing**](#unpacking-/-installing)
+  - [**Windows**](#windows)
+  - [**macOS**](#macos)
+  - [**Debian Linux Distributions**](#debian-linux-distributions-(requires-desktop-environment))
+  - [**iOS / Android**](#ios-/-android)
+- [**Logging In**](#logging-in)
+  - [**Login Errors**](#login-errors)
+- [**User Interface**](#user-interface)
+  - [**1. Scene Viewport**](#1.-scene-viewport)
+  - [**2. Menu and Status Bar**](#2.-menu-and-status-bar)
+  - [**3. Scene Explorer**](#3.-scene-explorer)
+  - [**4. Settings**](#4.-settings)
+  - [**5. Scene Info and Controls**](#5.-scene-info-and-controls)
+  - [**6. Copyright and Compass**](#6.-copyright-and-compass)
+  - [**7. Watermark**](#7.-watermark)
+  - [**8. Converting**](#8.-converting)
+    - [**Converting in Euclideon Vault Client**](#converting-in-euclideon-vault-client)
+    - [**Converting From Command Line (CMD)**](#converting-from-command-line-(cmd))
+- [**Technical Information**](#technical-information)
+  -  [**Requirements**](#requirements)
+  -  [**Settings On Disk**](#settings-on-disk)
+  -  [**Third Party Licenses**](#third-party-licenses)
+- [**FAQs**](#faqs)
+
 ## Getting Started
+
 ### Unpacking / Installing
 
 #### Windows
@@ -126,7 +153,12 @@ Note that these controls might be mapped differently on other controllers.
 
 #### Moving items in the scene
 
-When one or more items is selected (see [Selecting Items](#selecting-items)) a transformation tool called a "gizmo" will become visible on the item(s) in the viewport:
+Items are moved in Vault Client through the use of a transformation tool called a "gizmo". When active, the gizmo appears at the origin of an item.
+To activate the gizmo tool, do the following:
+- Select one or more items (see [Selecting Items](#selecting-items)).
+- Select a gizmo tool type from the user interface (see [5.4 Scene Info And Controls](#5.-scene-info-and-controls))
+  >Note: the gizmo is off by default.
+
 
 ![Scene Gizmos](images/gizmos.png)
 > Translation Gizmo (left), Rotation Gizmo (middle) & Scale Gizmo (right).
@@ -285,6 +317,7 @@ The expanded properties for UDS files show the path the UDS was loaded from and 
 
 >TIP: If a point of interest is the only item selected in the scene, the context menu when you right click in the world will allow you to add a point to the end of the currently selected POI.
 
+>TIP: Note: when dropping a geolocated Point Of Interest into the scene, it will be position it correctly if the camera is currently in a projected space
 ##### Live Feeds (IOT)
 
 ![Scene Properties IOT](images/sceneproperties_livefeed.png)
