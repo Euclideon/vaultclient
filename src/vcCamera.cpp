@@ -321,6 +321,16 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
   {
     vcLineInfo *pLine = (vcLineInfo*)pCamInput->pObjectInfo;
 
+    // If important things have been deleted cancel the flythrough
+    if (pLine == nullptr || pLine->pPoints == nullptr || pLine->numPoints <= 1 || pCamInput->flyThroughPoint >= pLine->numPoints)
+    {
+      pCamInput->flyThroughPoint = 0;
+      pCamInput->flyThroughActive = false;
+      pCamInput->inputState = vcCIS_None;
+      pCamInput->pObjectInfo = nullptr;
+      break;
+    }
+
     // Move to first point on first loop
     if (!pCamInput->flyThroughActive)
     {
@@ -331,15 +341,6 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
       pCamInput->worldAnchorPoint = pLine->pPoints[pCamInput->flyThroughPoint];
       pCamInput->progress = 0.0;
       pCamInput->inputState = vcCIS_MovingToPoint;
-      break;
-    }
-
-    // If too many points have been deleted while flythrough is active
-    if (pLine->numPoints <= 1 || pCamInput->flyThroughPoint >= pLine->numPoints)
-    {
-      pCamInput->flyThroughPoint = 0;
-      pCamInput->flyThroughActive = false;
-      pCamInput->inputState = vcCIS_None;
       break;
     }
 
