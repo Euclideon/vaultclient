@@ -87,7 +87,10 @@ struct vcCameraInput
   udDouble3 keyboardInput;
   udDouble3 mouseInput;
   udDouble3 controllerDPADInput;
+  void *pObjectInfo;
 
+  bool flyThroughActive;
+  int flyThroughPoint;
   bool transitioningToMapMode;
 
   udDouble3 smoothTranslation;

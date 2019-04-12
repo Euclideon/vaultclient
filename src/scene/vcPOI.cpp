@@ -34,32 +34,6 @@ vcPOI::vcPOI(const char *pName, uint32_t nameColour, vcLabelFontSize namePt, udD
 
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
-  if (m_flyingThroughPoints)
-  {
-    if (pProgramState->cameraInput.progress == 1.0)
-    {
-      pProgramState->cameraInput.progress = 0.0;
-      if (pProgramState->cameraInput.inputState == vcCIS_None)
-        pProgramState->cameraInput.inputState = vcCIS_FlyingThrough;
-      pProgramState->cameraInput.startPosition = m_line.pPoints[m_flyThroughPoint++];
-      if (m_flyThroughPoint == m_line.numPoints)
-      {
-        if (m_line.closed)
-          m_flyThroughPoint = 0;
-        else
-          pProgramState->cameraInput.inputState = vcCIS_None;
-      }
-      pProgramState->cameraInput.worldAnchorPoint = m_line.pPoints[m_flyThroughPoint];
-    }
-    else if ((pProgramState->cameraInput.inputState != vcCIS_MovingToPoint && pProgramState->cameraInput.inputState != vcCIS_FlyingThrough) || m_line.numPoints <= 1)
-    {
-      // Exiting out of the fly-through
-      m_flyThroughPoint = 0;
-      m_flyingThroughPoints = false;
-      pProgramState->pCamera->eulerRotation.z = 0;
-    }
-  }
-
   // if POI is invisible or if it exceeds maximum visible POI distance
   if (!m_visible || udMag3(m_pLabelInfo->worldPosition - pProgramState->pCamera->position) > pProgramState->settings.presentation.POIFadeDistance)
     return;
@@ -167,16 +141,9 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   {
     if (ImGui::Button(vcString::Get("scenePOIPerformFlyThrough")))
     {
-      // Go to first point
-      if (!m_flyingThroughPoints)
-      {
-        pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
-        pProgramState->cameraInput.progress = 0.0;
-        pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
-        pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
-        pProgramState->cameraInput.worldAnchorPoint = m_line.pPoints[0];
-        m_flyingThroughPoints = true;
-      }
+      pProgramState->cameraInput.inputState = vcCIS_FlyingThrough;
+      pProgramState->cameraInput.flyThroughActive = false;
+      pProgramState->cameraInput.pObjectInfo = &m_line;
     }
 
     if (ImGui::SliderInt(vcString::Get("scenePOISelectedPoint"), &m_line.selectedPoint, -1, m_line.numPoints - 1))
