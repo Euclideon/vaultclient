@@ -37,8 +37,10 @@ namespace vcString
     }
   }
 
-  vdkError LoadTable(const char *pFilename)
+  vdkError LoadTable(const char *pFilename, vcTranslationInfo *pInfo)
   {
+    FreeTable(pInfo); // Empty the table
+
     char *pPos = nullptr;
     if (pFilename == nullptr || udFile_Load(pFilename, (void **)&pPos) != udR_Success)
       pPos = udStrdup(""); // So this can be free'd later
@@ -61,6 +63,11 @@ namespace vcString
         Set(pKey, udStrdup(pValue));
     }
 
+    pInfo->pLocalName = udStrdup(strings.Get("_LanguageInfo.localname").AsString("?"));
+    pInfo->pEnglishName = udStrdup(strings.Get("_LanguageInfo.englishname").AsString("?"));
+    pInfo->pTranslatorName = udStrdup(strings.Get("_LanguageInfo.translationby").AsString("?"));
+    pInfo->pTranslatorContactEmail = udStrdup(strings.Get("_LanguageInfo.contactemail").AsString("?"));
+
     // Concatenations
     Set("AppearanceID", vStringFormat("{0}##Settings", Get("settingsAppearance")));
 
@@ -80,8 +87,16 @@ namespace vcString
     return vE_Success;
   }
 
-  void FreeTable()
+  void FreeTable(vcTranslationInfo *pInfo)
   {
+    if (pInfo != nullptr)
+    {
+      udFree(pInfo->pLocalName);
+      udFree(pInfo->pEnglishName);
+      udFree(pInfo->pTranslatorName);
+      udFree(pInfo->pTranslatorContactEmail);
+    }
+
     for (std::pair<std::string, const char*> kvp : gStringTable)
       udFree(kvp.second);
 
