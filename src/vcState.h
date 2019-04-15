@@ -8,6 +8,8 @@
 
 #include "vCore/vWorkerThread.h"
 
+#include "vcImageRenderer.h"
+
 #include "vcSettings.h"
 #include "vcScene.h"
 #include "vcGIS.h"
@@ -137,14 +139,7 @@ struct vcState
     int width;
     int height;
 
-    enum ImageType
-    {
-      StandardPhoto,
-      Panorama,
-      PhotoSphere,
-
-      Count
-    } imageType;
+    vcImageType imageType;
   } image;
 
   bool firstRun;

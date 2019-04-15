@@ -5,7 +5,7 @@
 #include "vcRender.h"
 #include "vcStrings.h"
 
-#include "gl/vcFenceRenderer.h"
+#include "vcFenceRenderer.h"
 
 #include "udPlatform/udMath.h"
 #include "udPlatform/udFile.h"
@@ -50,6 +50,22 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
     pRenderData->labels.PushBack(m_pLabelInfo);
   }
+
+  if (m_pImage != nullptr)
+  {
+    m_pImage->position = m_pLabelInfo->worldPosition;
+
+    // For now brute force sorting (n^2)
+    double distToCameraSqr = udMagSq3(m_pImage->position - pRenderData->pCamera->position);
+    size_t i = 0;
+    for (; i < pRenderData->images.length; ++i)
+    {
+      if (udMagSq3(pRenderData->images[i]->position - pRenderData->pCamera->position) < distToCameraSqr)
+        break;
+    }
+    pRenderData->images.Insert(i, &m_pImage);
+  }
+
 }
 
 void vcPOI::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
@@ -69,6 +85,18 @@ void vcPOI::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
     m_line.pOriginalPoints[m_line.selectedPoint] = isGeolocated ? udGeoZone_TransformPoint(m_line.pPoints[m_line.selectedPoint], *m_pZone, *m_pOriginalZone) : m_line.pPoints[m_line.selectedPoint];
   }
   UpdatePoints();
+
+  if (m_pImage != nullptr)
+  {
+    udDouble4x4 resultMatrix = delta * udDouble4x4::rotationYPR(m_pImage->ypr) * udDouble4x4::scaleNonUniform(m_pImage->scale);
+    udDouble3 position, scale;
+    udQuaternion<double> rotation;
+    udExtractTransform(resultMatrix, position, scale, rotation);
+
+    udUnused(position);
+    m_pImage->ypr = udMath_DirToYPR(rotation.apply(udDouble3::create(0, 1, 0)));
+    m_pImage->scale = scale;
+  }
 }
 
 void vcPOI::UpdatePoints()
@@ -220,24 +248,13 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   if (pImageURL != nullptr)
   {
     ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageURL"), pImageURL);
-
-    const char *imageType = m_pMetadata->Get("imagetype").AsString("standard");
-    if (udStrEqual(imageType, "photosphere"))
-    {
-      ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageType"), vcString::Get("scenePOILabelImageTypePhotosphere"));
-    }
-    else if (udStrEqual(imageType, "panorama"))
-    {
-      ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageType"), vcString::Get("scenePOILabelImageTypePanorama"));
-    }
-    else
-    {
-      ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageType"), vcString::Get("scenePOILabelImageTypeStandard"));
-    }
     if (ImGui::Button(vcString::Get("scenePOILabelOpenImageURL")))
     {
       pProgramState->pLoadImage = udStrdup(pImageURL);
     }
+
+    const char *imageTypeNames[] = { vcString::Get("scenePOILabelImageTypeStandard"), vcString::Get("scenePOILabelImageTypePanorama"), vcString::Get("scenePOILabelImageTypePhotosphere") };
+    ImGui::Combo(udTempStr("%s##scenePOILabelImageURL%zu", vcString::Get("scenePOILabelImageURL"), *pItemID), (int*)&m_pImage->type, imageTypeNames, (int)udLengthOf(imageTypeNames));
   }
 }
 
@@ -301,6 +318,12 @@ void vcPOI::Cleanup(vcState * /*pProgramState*/)
 
   vcFenceRenderer_Destroy(&m_pFence);
   udFree(m_pLabelInfo);
+
+  if (m_pImage)
+  {
+    vcTexture_Destroy(&m_pImage->pTexture);
+    udFree(m_pImage);
+  }
 }
 
 void vcPOI::SetCameraPosition(vcState *pProgramState)
@@ -323,6 +346,7 @@ udDouble4x4 vcPOI::GetWorldSpaceMatrix()
 
 void vcPOI::Init(const char *pName, uint32_t nameColour, vcLabelFontSize namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/)
 {
+  m_pImage = nullptr;
   m_visible = true;
   m_pName = udStrdup(pName);
   m_type = vcSOT_PointOfInterest;

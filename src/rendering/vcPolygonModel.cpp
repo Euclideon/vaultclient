@@ -16,7 +16,7 @@ enum vcPolygonModelShaderType
   vcPMST_Count
 };
 
-struct vcPolygonModelShader
+static struct vcPolygonModelShader
 {
   vcShader *pShader;
   vcShaderConstantBuffer *pEveryFrameConstantBuffer;

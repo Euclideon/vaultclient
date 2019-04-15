@@ -4,17 +4,16 @@
 #include "gl/vcFramebuffer.h"
 #include "gl/vcShader.h"
 #include "gl/vcGLState.h"
-#include "gl/vcFenceRenderer.h"
-#include "gl/vcWaterRenderer.h"
-
+#include "vcFenceRenderer.h"
+#include "vcWaterRenderer.h"
 #include "vcTileRenderer.h"
-#include "vcGIS.h"
 #include "vcCompass.h"
+
+#include "vcInternalModels.h"
+#include "vcGIS.h"
+
 #include "stb_image.h"
 #include <vector>
-
-const int qrIndices[6] = { 0, 1, 2, 0, 2, 3 };
-const vcSimpleVertex qrSqVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
 
 enum
 {
@@ -109,7 +108,7 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcSimpleVertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShader.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShader, vcSimpleVertexLayout), udR_InternalError);
 
-  vcMesh_Create(&pRenderContext->pScreenQuadMesh, vcSimpleVertexLayout, 2, qrSqVertices, 4, qrIndices, 6, vcMF_Dynamic);
+  vcMesh_Create(&pRenderContext->pScreenQuadMesh, vcSimpleVertexLayout, int(udLengthOf(vcSimpleVertexLayout)), screenQuadVertices, 4, screenQuadIndices, 6, vcMF_Dynamic);
 
   vcTexture_CreateFromFilename(&pRenderContext->pSkyboxTexture, "asset://assets/skyboxes/WaterClouds.jpg", nullptr, nullptr, vcTFM_Linear);
   UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
@@ -124,6 +123,7 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   vcShader_GetConstantBuffer(&pRenderContext->udRenderContext.presentShader.uniform_params, pRenderContext->udRenderContext.presentShader.pProgram, "u_params", sizeof(pRenderContext->udRenderContext.presentShader.params));
 
   vcPolygonModel_CreateShaders();
+  vcImageRenderer_Init();
 
   vcShader_Bind(nullptr);
 
@@ -173,6 +173,7 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   UD_ERROR_CHECK(vcCompass_Destroy(&pRenderContext->pCompass));
 
   vcPolygonModel_DestroyShaders();
+  vcImageRenderer_Destroy();
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
@@ -439,10 +440,17 @@ void vcRenderTransparentPolygons(vcRenderContext *pRenderContext, vcRenderData &
 {
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
-  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+
+  // Images
+  {
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
+    for (size_t i = 0; i < renderData.images.length; ++i)
+      vcImageRenderer_Render(renderData.images[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
+  }
 
   // Fences
   {
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
     if (pRenderContext->pSettings->presentation.showDiagnosticInfo)
       vcFenceRenderer_Render(pRenderContext->pDiagnosticFences, pRenderContext->pCamera->matrices.viewProjection, renderData.deltaTime);
 
@@ -527,10 +535,6 @@ void vcRender_vcRenderSceneImGui(vcRenderContext *pRenderContext, const vcRender
   // Labels
   for (size_t i = 0; i < renderData.labels.length; ++i)
     vcLabelRenderer_Render(renderData.labels[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
-
-  // Images
-  for (size_t i = 0; i < renderData.images.length; ++i)
-    vcImageRenderer_Render(renderData.images[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->pCamera->matrices.view, pRenderContext->sceneResolution);
 }
 
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext)

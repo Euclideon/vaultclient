@@ -5,8 +5,9 @@
 #include "vcCamera.h"
 #include "vdkRenderContext.h"
 #include "vdkError.h"
-#include "gl/vcFenceRenderer.h"
-#include "gl/vcLabelRenderer.h"
+#include "vcFenceRenderer.h"
+#include "vcLabelRenderer.h"
+#include "vcImageRenderer.h"
 
 struct vdkPointCloud;
 struct vcTexture;
@@ -48,6 +49,7 @@ public:
   vcFenceRenderer *m_pFence;
   vcLabelInfo *m_pLabelInfo;
   const char *m_pLabelText;
+  vcImageRenderInfo *m_pImage;
 
   vcPOI(const char *pName, uint32_t nameColour, vcLabelFontSize namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes = "");
   vcPOI(const char *pName, uint32_t nameColour, vcLabelFontSize namePt, udDouble3 position, int32_t srid, const char *pNotes = "");

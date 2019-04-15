@@ -17,7 +17,7 @@ project "vaultClient"
 	files { "builds/assets/lang/*.json" }
 
 	--This project includes
-	includedirs { "src", "src/scene" }
+	includedirs { "src", "src/scene", "src/rendering" }
 	includedirs { "3rdParty/Imgui" }
 	includedirs { "3rdParty/stb" }
 	includedirs { "3rdParty/easyexif" }
