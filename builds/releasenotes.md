@@ -3,17 +3,42 @@ Euclideon Vault Client Version History
 Known Major Issues In Current Release
   - User guide does not cover the entire application
   - Corrupted UDS files silently fail without notifying the user (EVC-20)
-  - Auto-Detection of proxies is only very rarely working (EVA-442)
   - Unable to save projects (EVC-267)
   - Convert issues relating to full or read-only drives (EVC-126)
-  - Various CSV label import issues (EVC-368, EVC-369)
   - An issue is preventing macOS users from running the build directly because of signing issues (EVC-408)
   - Map mode only transitions nicely for items with z at 0 (EVC-460)
-  - Combined near/far plane sliders into a single slider (EVC-493)
-  - Images are not using thumbnails
+  - Images in the scene are not using thumbnails (EVC-513)
 
-Version 0.2.3 (Might be 0.3.0)
-  - Added Gamepad/Xbox Controller functionality for camera movement
+Version 0.2.3
+  - Improvements
+    - Added Gamepad/Xbox Controller functionality for camera movement (EVC-203)
+    - Removed the troublesome CSV importer for POI's/Labels (EVC-494)
+    - Added camera smoothing (EVC-471)
+    - Added ability to fly through the POI line (EVC-477 & EVC-512)
+    - Removed confusion about near and far planes, there is now only 1 slider "View Distance" (EVC-493)
+    - Map Tiles are now cached locally so revisiting the same area is faster (EVC-485)
+    - Added 'Move Forward' mouse option for Geoverse MDM fans (EVC-504)
+    - Added image POI's thumbnails to the scene (EVC-510)
+    - Added option to generate and show a low quality preview during conversion
+    - Gizmo is now off by default and can be toggled on and off (EVC-332)
+    - Added support and translation details to the login page
+  - Fixed Crashes
+    - DirectX no longer crashes on systems that don't support OpenGL3.2
+    - Tiles no longer crash when server doesn't respond correctly (EVC-487)
+    - No longer crashes after resetting to default in some configurations (EVC-501)
+  - Other fixes
+    - Gizmo's now work correctly in map mode (EVC-491, EVC-475, EVC-482)
+    - Consistent Logout after 15minutes on macOS resolved (EVC-449)
+    - POIs from dropped images are now positioned correctly if the window doesn't have focus (EVC-465)
+    - Watermarks are calculated from the center of the model (EVC-470)
+    - Moving to point resets camera roll to zero correctly (EVC-471)
+    - Points in POIs are able to be removed or inserted (EVA-472)
+    - Camera no longer snaps after the window gains focus (EVC-476)
+    - Scale gizmo now behaves as expected (EVC-480)
+    - Fixed some camera input issues that resulted in the camera getting confused and rolling around (EVC-488 & EVC-483)
+    - Removed erroneous {0}/{1] during convert (EVC-492)
+    - Reverse up/down controls in map mode to be more consistent with what most people expect (EVC-495)
+    - Added a delay for the tool tips (EVC-416)
 
 Version 0.2.2
   - Fixed an issue with the camera misbehaving when looking straight down in perspective mode
