@@ -1686,7 +1686,6 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::End();
     }
   }
-
   else
   {
     if (ImGui::BeginDock(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
