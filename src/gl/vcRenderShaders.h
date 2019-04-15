@@ -21,5 +21,10 @@ extern const char* const g_ImGuiFragmentShader;
 // Polygon shaders
 extern const char* const g_PolygonP1N1UV1FragmentShader;
 extern const char* const g_PolygonP1N1UV1VertexShader;
+extern const char* const g_PolygonP1UV1FragmentShader;
+extern const char* const g_PolygonP1UV1VertexShader;
+
+extern const char* const g_BillboardFragmentShader;
+extern const char* const g_BillboardVertexShader;
 
 #endif//vcRenderShaders_h__

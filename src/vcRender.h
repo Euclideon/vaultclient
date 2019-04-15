@@ -3,17 +3,17 @@
 
 #include "vcState.h"
 #include "vcModel.h"
-#include "vcCompass.h"
-#include "vcPolygonModel.h"
 
 #include "vdkRenderContext.h"
 #include "vdkRenderView.h"
 
 #include "gl/vcMesh.h"
-#include "gl/vcFenceRenderer.h"
-#include "gl/vcLabelRenderer.h"
-#include "gl/vcWaterRenderer.h"
-#include "gl/vcImageRenderer.h"
+#include "vcFenceRenderer.h"
+#include "vcLabelRenderer.h"
+#include "vcWaterRenderer.h"
+#include "vcImageRenderer.h"
+#include "vcCompass.h"
+#include "vcPolygonModel.h"
 
 struct vcRenderContext;
 struct vcTexture;

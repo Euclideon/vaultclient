@@ -539,7 +539,8 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
     cameraWorldPos,
     slippyCornersViewSize,
     pTileRenderer->pSettings->maptiles.mapHeight,
-    viewProjectionMatrix
+    viewProjectionMatrix,
+    MaxVisibleTileLevel
   };
 
   uint64_t startTime = udPerfCounterStart();

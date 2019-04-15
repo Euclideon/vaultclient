@@ -15,7 +15,9 @@ bool vcLabelRenderer_Render(vcLabelInfo *pLabelRenderer, const udDouble4x4 &view
   else if (pLabelRenderer->textSize == vcLFS_Small)
     ImGui::SetWindowFontScale(0.87f);
 
-  ImVec2 labelSize = ImGui::CalcTextSize(pLabelRenderer->pText);
+  ImVec2 halfLabelSize = ImGui::CalcTextSize(pLabelRenderer->pText);
+  halfLabelSize.x *= 0.5;
+  halfLabelSize.y *= 0.5;
 
   udDouble4 screenPosition = viewProjectionMatrix * udDouble4::create(pLabelRenderer->worldPosition, 1.0);
   screenPosition = screenPosition / screenPosition.w;
@@ -27,8 +29,8 @@ bool vcLabelRenderer_Render(vcLabelInfo *pLabelRenderer, const udDouble4x4 &view
     ImVec2 winMin = ImGui::GetWindowPos();
     ImVec2 windowPosition = ImVec2(float(screenPosition.x * screenSize.x) + winMin.x, float(screenPosition.y * screenSize.y) + winMin.y);
 
-    drawList->AddQuadFilled(ImVec2(windowPosition.x, windowPosition.y), ImVec2(windowPosition.x + labelSize.x, windowPosition.y), ImVec2(windowPosition.x + labelSize.x, windowPosition.y + labelSize.y), ImVec2(windowPosition.x, windowPosition.y + labelSize.y), pLabelRenderer->backColourRGBA);
-    drawList->AddText(windowPosition, pLabelRenderer->textColourRGBA, pLabelRenderer->pText);
+    drawList->AddQuadFilled(ImVec2(windowPosition.x - halfLabelSize.x, windowPosition.y - halfLabelSize.y), ImVec2(windowPosition.x + halfLabelSize.x, windowPosition.y - halfLabelSize.y), ImVec2(windowPosition.x + halfLabelSize.x, windowPosition.y + halfLabelSize.y), ImVec2(windowPosition.x - halfLabelSize.x, windowPosition.y + halfLabelSize.y), pLabelRenderer->backColourRGBA);
+    drawList->AddText(ImVec2(windowPosition.x - halfLabelSize.x, windowPosition.y - halfLabelSize.y), pLabelRenderer->textColourRGBA, pLabelRenderer->pText);
   }
 
   if (pLabelRenderer->textSize != vcLFS_Medium)
