@@ -11,12 +11,14 @@
     - Proxy Modal
       - `modalProxyInfo`, `modalProxyBadCreds`, `modalProxyUsername`, `modalProxyPassword`, `modalProxyAuthContinueButton`, `modalProxyAuthCancelButton`
     - Scene Explorer
-      - `scenePOIRemovePoint`, `scenePOILabelImageType`, `scenePOILabelImageTypeStandard`, `scenePOILabelImageTypePanorama`, `scenePOILabelImageTypePhotosphere`
+      - `scenePOIRemovePoint`, `scenePOILabelImageType`, `scenePOILabelImageTypeStandard`, `scenePOILabelImageTypePanorama`, `scenePOILabelImageTypePhotosphere`, `sceneAddMenu`, `sceneAddAOI`, `sceneAddLine`, `scenePOIAreaDefaultName`, `scenePOILineDefaultName`, `sceneExplorerAddLine`
     - Viewport
       - `settingsViewportViewDistance`
   - Removed:
     - Titles
       - `loginTitle`
+    - Scene Explorer
+      - `sceneExplorerAddLines`
     - Viewport
       - `settingsViewportFarPlane`, `settingsViewportNearPlane`
     - Menu strings
@@ -372,6 +374,9 @@ Modules are currently:
 - `sceneSetMapHeight`: Menu option when right-clicking within the scene, sets map height to the current mouse location's height
 - `sceneAddPOI`: Menu option when right-clicking within the scene, creates a POI at the current mouse location
 - `sceneMoveTo`: Menu option when right-clicking within the scene, moves the camera to the current mouse location
+- `sceneAddMenu`: Sub-menu menu option when right-clicking within the scene, contains AddPOI, AddAOI and AddLine
+- `sceneAddAOI`: Menu option when right-clicking within the scene, creates an AOI at the current mouse location
+- `sceneAddLine`: Menu option when right-clicking within the scene, creates a Line at the current mouse location
 - `sceneLockAltitude`: Tooltip displayed when mouse is hovered over the Lock Altitude button in the viewport controls window
 - `sceneLockAltitudeKey`: Used in Lock Altitude tooltip, shown in brackets
 - `sceneCameraInfo`: Tooltip displayed when mouse is hovered over the Show Camera Information button in the viewport controls window
@@ -411,7 +416,7 @@ Modules are currently:
 - `sceneExplorerAddUDSTitle`: Title of the Add UDS window
 - `sceneExplorerAddPOI`: Tooltip displayed when mouse is hovered over the Add POI button in the scene explorer tab
 - `sceneExplorerAddAOI`: Tooltip displayed when mouse is hovered over the Add AOI button in the scene explorer tab
-- `sceneExplorerAddLines`: Tooltip displayed when mouse is hovered over the Add Lines button in the scene explorer tab
+- `sceneExplorerAddLine`: Tooltip displayed when mouse is hovered over the Add Line button in the scene explorer tab
 - `sceneExplorerAddOther`: Tooltip displayed when mouse is hovered over the Add Other button in the scene explorer tab
 - `sceneExplorerAddFeed`: Menu option in the Add Other menu which is displayed when the Add Other button is clicked, adds a Live Feed item to the scene
 - `sceneExplorerAddFolder`: Tooltip displayed when mouse is hovered over the Add Folder button in the scene explorer tab
@@ -433,6 +438,8 @@ Modules are currently:
 -
 #### Point of Interest
 - `scenePOIDefaultName`: Default name of new POI objects when they are added to the Scene Explorer
+- `scenePOIAreaDefaultName`: Default name of new AOI objects when they are added to the Scene Explorer
+- `scenePOILineDefaultName`: Default name of new Line objects when they are added to the Scene Explorer
 - `scenePOIAddPoint`: Used in the context menu for adding a new point at the current mouse position
 - `scenePOIRemovePoint`: Used in the button to remove the selected point from this POI.
 - `scenePOIPointPosition`: Label for the UI to override the position of the selected point
