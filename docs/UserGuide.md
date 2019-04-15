@@ -310,6 +310,7 @@ The expanded properties for UDS files show the path the UDS was loaded from and 
 
 - The size and colour of the label in the scene are controlled by `Text Colour`, `Background Colour` and `Label Size`
 - `Selected Point` allows fine manipulation of a single point of the points in this point of interest. `-1` indicates you're modifying all of the points when using the Gizmo
+- The `Fly Camera Through All Points` button will begin a fly-through of all points along the line in order. The fly-through speed is determined by the Camera Move Speed. If the `Close Polygon` line setting is checked, the fly-through will repeat until cancelled.
 - In the `Line Settings` there are a number of controls for the look and feel of the line  (if there are multiple points in the point of interest)
   - `Show Length` and `Show Area` will show those details on the label in the scene
   - `Close Polygon` causes the line to loop from the last point back to the first one. This setting is also required if you want to see the area.
