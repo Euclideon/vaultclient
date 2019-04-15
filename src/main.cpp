@@ -9,6 +9,11 @@
 
 #include "imgui.h"
 #include "imgui_ex/imgui_impl_sdl.h"
+
+#if defined(GRAPHICS_API_METAL)
+#include "gl/metal/imgui_impl_metal.h"
+#endif
+
 #include "imgui_ex/imgui_impl_gl.h"
 #include "imgui_ex/imgui_dock.h"
 #include "imgui_ex/imgui_udValue.h"
@@ -593,14 +598,23 @@ int main(int argc, char **args)
     udSleep(sleepMS);
     programState.deltaTime += sleepMS * 0.001; // adjust delta
 
+#ifdef GRAPHICS_API_METAL
+    ImGui_ImplMetal_NewFrame(programState.pWindow);
+#else
     ImGuiGL_NewFrame(programState.pWindow);
+#endif
+
     vcGizmo_BeginFrame();
-
-    vcGLState_ResetState(true);
     vcRenderWindow(&programState);
-
     ImGui::Render();
-    ImGuiGL_RenderDrawData(ImGui::GetDrawData());
+
+    ImDrawData *drawData = ImGui::GetDrawData();
+
+#ifndef GRAPHICS_API_METAL
+    ImGuiGL_RenderDrawData(drawData);
+#else
+    ImGui_ImplMetal_RenderDrawData(drawData);
+#endif
 
     vcGLState_Present(programState.pWindow);
 
@@ -828,6 +842,11 @@ int main(int argc, char **args)
 
   vcSettings_Save(&programState.settings);
   ImGui::ShutdownDock();
+#ifdef GRAPHICS_API_METAL
+  ImGui_ImplMetal_Shutdown();
+#else
+  ImGuiGL_DestroyDeviceObjects();
+#endif
   ImGui::DestroyContext();
 
 epilogue:
@@ -836,7 +855,7 @@ epilogue:
       udFree(programState.settings.visualization.customClassificationColorLabels[i]);
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
-  ImGuiGL_DestroyDeviceObjects();
+
   vcConvert_Deinit(&programState);
   vcCamera_Destroy(&programState.pCamera);
   vcTexture_Destroy(&programState.pCompanyLogo);

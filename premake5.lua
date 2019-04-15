@@ -6,12 +6,12 @@ filter { "system:ios", "action:xcode4" }
   xcodebuildsettings {
     ['PRODUCT_BUNDLE_IDENTIFIER'] = 'Euclideon Vault Client',
     ["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = "iPhone Developer",
-    ['IPHONEOS_DEPLOYMENT_TARGET'] = '10.3',
+    ['IPHONEOS_DEPLOYMENT_TARGET'] = '10.1',
     ['SDKROOT'] = 'iphoneos',
     ['ARCHS'] = 'arm64',
     ['TARGETED_DEVICE_FAMILY'] = "1,2",
     ['DEVELOPMENT_TEAM'] = "452P989JPT",
-    ['ENABLE_BITCODE'] = "NO",
+    ['ENABLE_BITCODE'] = "NO"
   }
 
 function getosinfo()
@@ -68,6 +68,9 @@ function injectvaultsdkbin()
 		end
 
 		if os.target() == premake.WINDOWS then
+			if _OPTIONS["gfxapi"] == "metal" then
+				_OPTIONS["gfxapi"] = "opengl"
+			end
 			os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.dll", "builds/vaultSDK.dll")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.lib", "src/vaultSDK.lib")
@@ -82,14 +85,32 @@ function injectvaultsdkbin()
 			os.execute("/usr/bin/hdiutil detach /Volumes/vaultSDK")
 			os.execute("/usr/bin/hdiutil detach " .. device)
 			os.execute("rm -r builds/vaultSDK.dmg")
+			
+			if _OPTIONS["gfxapi"] == "metal" then
+				os.execute("xcrun -sdk macosx metal -c " .. os.getenv("VAULTSDK_HOME") .. "/../vaultclient/src/gl/metal/Shaders.metal -o lib.air")
+				os.execute("xcrun -sdk macosx metallib lib.air -o " .. os.getenv("VAULTSDK_HOME") .. "/../vaultclient/src/gl/metal/shaders.metallib")
+				os.execute("rm lib.air")
+			end
 
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
-			prelinkcommands {
-				"rm -rf %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
-				"mkdir -p %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
-				"cp -af builds/vaultSDK.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/",
-				"cp -af /Library/Frameworks/SDL2.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/",
-			}
+			if _OPTIONS["gfxapi"] == "metal" then
+				prelinkcommands {
+					"rm -rf %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
+					"mkdir -p %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
+					"cp -af builds/vaultSDK.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/",
+					"cp -af /Library/Frameworks/SDL2.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/",
+					"xcrun -sdk macosx metal -c src/gl/metal/Shaders.metal -o lib.air",
+					"xcrun -sdk macosx metallib lib.air -o src/gl/metal/shaders.metallib",
+					"rm lib.air"
+				}
+			else
+				prelinkcommands {
+					"rm -rf %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
+					"mkdir -p %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
+					"cp -af builds/vaultSDK.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/",
+					"cp -af /Library/Frameworks/SDL2.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/"
+				}
+			end
 			linkoptions { "-rpath @executable_path/../Frameworks/" }
 			frameworkdirs { "builds" }
 		elseif os.target() == premake.IOS then
@@ -100,6 +121,9 @@ function injectvaultsdkbin()
 			libdirs { "builds" }
 			linkoptions { "-rpath @executable_path/" }
 		else
+			if _OPTIONS["gfxapi"] == "metal" then
+				_OPTIONS["gfxapi"] = "opengl"
+			end
 			os.execute("mkdir -p builds")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/linux_GCC_x64/libvaultSDK.so", "builds/libvaultSDK.so")
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
@@ -122,8 +146,14 @@ newoption {
    default     = "opengl",
    allowed = {
       { "opengl", "OpenGL" },
-      { "d3d11", "Direct3D 11 (Windows only)" }
+      { "d3d11", "Direct3D 11 (Windows only)" },
+      { "metal", "Metal (MacOSX & IOS only)" }
    }
+}
+
+newoption {
+	trigger     = "test-ios",
+	description = "Settings for IOS simulator"
 }
 
 solution "vaultClient"
