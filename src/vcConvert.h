@@ -26,6 +26,7 @@ struct vcConvertItem
   vdkConvertContext *pConvertContext;
   const vdkConvertInfo *pConvertInfo;
   volatile vcConvertQueueStatus status;
+  bool previewRequested;
 
   enum { vcCI_MetadataMaxLength = 256 };
   char author[vcCI_MetadataMaxLength];

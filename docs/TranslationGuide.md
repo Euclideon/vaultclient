@@ -2,7 +2,7 @@
 
 ## Changelist
 
-- Version 0.2.3 (or 0.3.0?)
+- Version 0.2.3
   - Added:
     - Proxy Messages & Settings
       - `loginErrorProxyAuthPending`, `loginErrorProxyAuthFailed`, `loginProxyAutodetect`, `loginProxyTest`
@@ -14,6 +14,8 @@
       - `scenePOIRemovePoint`, `scenePOILabelImageType`, `scenePOILabelImageTypeStandard`, `scenePOILabelImageTypePanorama`, `scenePOILabelImageTypePhotosphere`, `sceneAddMenu`, `sceneAddAOI`, `sceneAddLine`, `scenePOIAreaDefaultName`, `scenePOILineDefaultName`, `sceneExplorerAddLine`
     - Viewport
       - `settingsViewportViewDistance`
+    - Convert
+      - `convertGeneratingPreview`, `convertAddPreviewToScene`, `convertPreviewName`, `convertSpaceLabel`, `convertSpaceCartesian`, `convertSpaceLatLong`, `convertSpaceLongLat`
   - Removed:
     - Titles
       - `loginTitle`
@@ -297,6 +299,13 @@ Modules are currently:
 - `convertCompleted`: Message displayed next to a job that has finished being converted
 - `convertCancelled`: Message displayed next to a job that was cancelled by the user
 - `convertFailed`: Message displayed next to a job that failed to finish converting
+- `convertGeneratingPreview`: Displayed on the button while a preview is being generated
+- `convertAddPreviewToScene`: Displayed on the button that generates a preview model and adds it to the scene
+- `convertPreviewName`: The default name for a preview pointcloud when added to the scene
+- `convertSpaceLabel`: The label beside the dropdown to select the projection space for the input
+- `convertSpaceCartesian`: The label on the combobox item for a cartesian projected conversion input
+- `convertSpaceLatLong`: The label on the combobox item for a latitude, longitude ordered conversion input
+- `convertSpaceLongLat`: The label on the combobox item for a longitude, latitude ordered conversion input
 
 ### Menu Strings
 

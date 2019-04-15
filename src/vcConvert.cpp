@@ -4,6 +4,9 @@
 #include "stb_image.h"
 #include "vcStrings.h"
 #include "vcModals.h"
+#include "vcScene.h"
+#include "vcModel.h"
+
 #include "vCore/vStringFormat.h"
 
 #include "udPlatform/udMath.h"
@@ -162,6 +165,9 @@ void vcConvert_Deinit(vcState *pProgramState)
   pProgramState->pConvertContext->threadRunning = false;
   udIncrementSemaphore(pProgramState->pConvertContext->pSemaphore);
 
+  for (size_t i = 0; i < pProgramState->pConvertContext->jobs.length; ++i)
+    vdkConvert_Cancel(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[i]->pConvertContext); // This will fail for most of the jobs
+
   udThread_Join(pProgramState->pConvertContext->pThread);
 
   udDestroyMutex(&pProgramState->pConvertContext->pMutex);
@@ -288,7 +294,44 @@ void vcConvert_ShowUI(vcState *pProgramState)
   ImGui::Separator();
   ImGui::Separator();
 
+  ImGui::Columns(2);
+
   ImGui::TextUnformatted(vcString::Get("convertSettings"));
+
+
+  ImGui::NextColumn();
+
+  if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled) && ImGui::Button(vcString::Get("convertBeginConvert"), ImVec2(-1, 50)))
+  {
+    if (pSelectedJob->status == vcCQS_Cancelled)
+      vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
+    ImGui::Separator();
+    pSelectedJob->status = vcCQS_Queued;
+    udIncrementSemaphore(pProgramState->pConvertContext->pSemaphore);
+  }
+  else if (pSelectedJob->status == vcCQS_Completed && ImGui::Button(vcString::Get("convertReset"), ImVec2(-1, 50)))
+  {
+    ImGui::Separator();
+    vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
+  }
+  else if (pSelectedJob->status == vcCQS_Running && ImGui::Button(udTempStr("%s##vcAddPreview", pSelectedJob->previewRequested ? vcString::Get("convertGeneratingPreview") : vcString::Get("convertAddPreviewToScene")), ImVec2(-1, 50)) || pSelectedJob->previewRequested)
+  {
+    vdkPointCloud *pPointCloud = nullptr;
+    vdkError result = vdkConvert_GeneratePreview(pProgramState->pVDKContext, pSelectedJob->pConvertContext, &pPointCloud);
+
+    if (result == vE_Success)
+    {
+      pSelectedJob->previewRequested = false;
+      vcScene_AddItem(pProgramState, new vcModel(pProgramState, vcString::Get("convertPreviewName"), pPointCloud));
+    }
+    else if (result == vE_Pending)
+    {
+      pSelectedJob->previewRequested = true; // This might already be true
+    }
+  }
+
+  ImGui::Columns(1);
+
   ImGui::Separator();
 
   udSprintf(outputName, UDARRAYSIZE(outputName), "%s", pSelectedJob->pConvertInfo->pOutputName);
@@ -464,6 +507,14 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
           ImGui::NextColumn();
 
+          //TODO: Localize this
+          int sourceSpace = (int)itemInfo.sourceProjection;
+          UDCOMPILEASSERT(vdkCSP_Count == 3, "Please update to match number of convert spaces");
+
+          const char *sourceSpaceNames[] = { vcString::Get("convertSpaceCartesian"), vcString::Get("convertSpaceLatLong"), vcString::Get("convertSpaceLongLat") };
+          if (ImGui::Combo(vcString::Get("convertSpaceLabel"), &sourceSpace, sourceSpaceNames, (int)udLengthOf(sourceSpaceNames)))
+            vdkConvert_SetInputSourceProjection(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i, (vdkConvertSourceProjection)sourceSpace);
+
           if (ImGui::Button(udTempStr("%s##convertitemremove_%zu", vcString::Get("convertRemove"), i)))
           {
             vdkConvert_RemoveItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i);
@@ -509,20 +560,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
       ImGui::Columns(1);
 
       ImGui::TreePop();
-    }
-
-    if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled) && ImGui::Button(vcString::Get("convertBeginConvert")))
-    {
-      if (pSelectedJob->status == vcCQS_Cancelled)
-        vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
-      ImGui::Separator();
-      pSelectedJob->status = vcCQS_Queued;
-      udIncrementSemaphore(pProgramState->pConvertContext->pSemaphore);
-    }
-    else if (pSelectedJob->status == vcCQS_Completed && ImGui::Button(vcString::Get("convertReset")))
-    {
-      ImGui::Separator();
-      vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
     }
   }
 }
