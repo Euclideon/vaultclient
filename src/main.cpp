@@ -1145,10 +1145,42 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
       if (hadMouse)
       {
-        if (ImGui::MenuItem(vcString::Get("sceneAddPOI")))
+        if (pProgramState->sceneExplorer.selectedItems.size() == 1)
         {
-          vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, worldMouse, pProgramState->gis.SRID), true);
-          ImGui::CloseCurrentPopup();
+          const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
+          if (item.pParent->m_children[item.index]->m_type == vcSOT_PointOfInterest)
+          {
+            vcPOI* pPOI = (vcPOI*)item.pParent->m_children[item.index];
+
+            // Don't allow consecutive points at the same position
+            if (pPOI->m_line.pPoints[pPOI->m_line.numPoints - 1] != worldMouse && ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
+              pPOI->AddPoint(worldMouse);
+          }
+        }
+
+        if (ImGui::BeginMenu(vcString::Get("sceneAddMenu")))
+        {
+          if (ImGui::MenuItem(vcString::Get("sceneAddPOI")))
+          {
+            vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, worldMouse, pProgramState->gis.SRID), false);
+            ImGui::CloseCurrentPopup();
+          }
+          if (ImGui::MenuItem(vcString::Get("sceneAddAOI")))
+          {
+            vcScene_ClearSelection(pProgramState);
+            vcPOI *pAOI = new vcPOI(vcString::Get("scenePOIAreaDefaultName"), 0xFFFFFFFF, vcLFS_Medium, worldMouse, pProgramState->gis.SRID);
+            pAOI->m_line.closed = true;
+            vcScene_AddItem(pProgramState, pAOI, true);
+            ImGui::CloseCurrentPopup();
+          }
+          if (ImGui::MenuItem(vcString::Get("sceneAddLine")))
+          {
+            vcScene_ClearSelection(pProgramState);
+            vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOILineDefaultName"), 0xFFFFFFFF, vcLFS_Medium, worldMouse, pProgramState->gis.SRID), true);
+            ImGui::CloseCurrentPopup();
+          }
+
+          ImGui::EndMenu();
         }
 
         if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected && pProgramState->settings.maptiles.mapHeight != worldMouse.z)
@@ -1167,18 +1199,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
           pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
           pProgramState->cameraInput.worldAnchorPoint = worldMouse;
           pProgramState->cameraInput.progress = 0.0;
-        }
-
-        if (pProgramState->sceneExplorer.selectedItems.size() == 1)
-        {
-          const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
-          if (item.pParent->m_children[item.index]->m_type == vcSOT_PointOfInterest)
-          {
-            vcPOI* pPOI = (vcPOI*)item.pParent->m_children[item.index];
-
-            if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
-              pPOI->AddPoint(worldMouse);
-          }
         }
       }
       else
@@ -1711,17 +1731,39 @@ void vcRenderWindow(vcState *pProgramState)
         vcModals_OpenModal(pProgramState, vcMT_AddUDS);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddPOI"), nullptr, vcMBBI_AddPointOfInterest, vcMBBG_SameGroup))
-        vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, pProgramState->pCamera->position, pProgramState->gis.SRID), true);
+        vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, pProgramState->pCamera->position, pProgramState->gis.SRID), false);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddAOI"), nullptr, vcMBBI_AddAreaOfInterest, vcMBBG_SameGroup))
-        vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
+      {
+        vcScene_ClearSelection(pProgramState);
+        vcPOI *pAOI = new vcPOI(vcString::Get("scenePOIAreaDefaultName"), 0xFFFFFFFF, vcLFS_Medium, pProgramState->pCamera->position, pProgramState->gis.SRID);
+        pAOI->m_line.closed = true;
+        vcScene_AddItem(pProgramState, pAOI, true);
+        ImGui::CloseCurrentPopup();
+      }
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddLines"), nullptr, vcMBBI_AddLines, vcMBBG_SameGroup))
-        vcModals_OpenModal(pProgramState, vcMT_NotYetImplemented);
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddLine"), nullptr, vcMBBI_AddLines, vcMBBG_SameGroup))
+      {
+        vcScene_ClearSelection(pProgramState);
+        vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOILineDefaultName"), 0xFFFFFFFF, vcLFS_Medium, pProgramState->pCamera->position, pProgramState->gis.SRID), true);
+      }
 
       vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddOther"), nullptr, vcMBBI_AddOther, vcMBBG_SameGroup);
       if (ImGui::BeginPopupContextItem(vcString::Get("sceneExplorerAddOther"), 0))
       {
+        if (pProgramState->sceneExplorer.selectedItems.size() == 1)
+        {
+          const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
+          if (item.pParent->m_children[item.index]->m_type == vcSOT_PointOfInterest)
+          {
+            vcPOI* pPOI = (vcPOI*)item.pParent->m_children[item.index];
+
+            // Don't allow consecutive points at the same position
+            if (pPOI->m_line.pPoints[pPOI->m_line.numPoints - 1] != pProgramState->pCamera->position && ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
+              pPOI->AddPoint(pProgramState->pCamera->position);
+          }
+        }
+
         if (ImGui::MenuItem(vcString::Get("sceneExplorerAddFeed"), nullptr, nullptr))
           vcScene_AddItem(pProgramState, new vcLiveFeed());
 
