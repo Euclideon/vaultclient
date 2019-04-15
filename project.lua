@@ -39,7 +39,7 @@ project "vaultClient"
 	filter { "configurations:Release" }
 		optimize "Full"
 		flags { "NoFramePointer", "NoBufferSecurityCheck" }
-
+	
 	filter { "system:windows" }
 		defines { "GLEW_STATIC" }
 		sysincludedirs { "3rdParty/glew/include", "3rdParty/SDL2-2.0.8/include" }
@@ -54,7 +54,7 @@ project "vaultClient"
 		includedirs { "3rdParty" }
 		files { "3rdParty/GL/glext.h" }
 
-	filter { "system:macosx" }
+	filter { "system:macosx", "options:not test-ios" }
 		files { "macOS-Info.plist", "icons/macOSAppIcons.icns" }
 		frameworkdirs { "/Library/Frameworks/" }
 		links { "SDL2.framework", "OpenGL.framework" }
@@ -74,8 +74,9 @@ project "vaultClient"
 		links { "SDL2", "AudioToolbox.framework", "QuartzCore.framework", "OpenGLES.framework", "CoreGraphics.framework", "UIKit.framework", "Foundation.framework", "CoreAudio.framework", "AVFoundation.framework", "GameController.framework", "CoreMotion.framework" }
 
 	filter { "system:macosx or ios" }
+		files { "src/**.mm", "src/**.metal", "src/**.metallib" }
 		files { "builds/assets/**", "builds/releasenotes.md", "builds/defaultsettings.json" }
-		xcodebuildresources { ".otf", ".png", ".jpg", ".json", "releasenotes", "defaultsettings" }
+		xcodebuildresources { ".otf", ".png", ".jpg", ".json", ".metallib", "releasenotes", "defaultsettings" }
 
 	filter { "system:not windows" }
 		links { "dl" }
@@ -83,24 +84,60 @@ project "vaultClient"
 	filter { "system:linux" }
 		links { "z" }
 
+	filter { "options:test-ios" }
+		frameworkdirs { "/Library/Frameworks/" }
+		xcodebuildsettings {
+    			['PRODUCT_BUNDLE_IDENTIFIER'] = 'Euclideon Vault Client',
+    			["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = "iPhone Developer",
+    			['IPHONEOS_DEPLOYMENT_TARGET'] = '10.1',
+    			['SDKROOT'] = 'iphoneos',
+			['ADDITIONAL_SDKS'] = 'iphonesimulator',
+    			['ARCHS'] = 'arm64',
+    			['TARGETED_DEVICE_FAMILY'] = "1,2",
+    			['DEVELOPMENT_TEAM'] = "452P989JPT",
+    			['ENABLE_BITCODE'] = "NO",
+			["ASSETCATALOG_COMPILER_APPICON_NAME"] = "AppIcon" }
+		files { "iOS-Info.plist", "builds/libvaultSDK.dylib", "icons/Images.xcassets" }
+		sysincludedirs { "3rdParty/SDL2-2.0.8/include" }
+		xcodebuildresources { "libvaultSDK", "Images.xcassets" }
+		removefiles { "3rdParty/glew/glew.c" }
+		libdirs { "3rdParty/SDL2-2.0.8/lib/ios" }
+		
+		links { "SDL2", "AudioToolbox.framework", "QuartzCore.framework", "OpenGLES.framework", "CoreGraphics.framework", "UIKit.framework", "Foundation.framework", "CoreAudio.framework", "AVFoundation.framework", "GameController.framework", "CoreMotion.framework" }
+
 	filter { "options:gfxapi=opengl" }
 		defines { "GRAPHICS_API_OPENGL=1" }
+		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = { "src/gl/directx11/*", "src/gl/metal/*" } }
 
-	filter { "options:not gfxapi=opengl"}
-		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = { "src/gl/opengl/*" } }
-
-	filter { "options:not gfxapi=opengl", "files:src/gl/opengl/*", "system:not macosx" }
+	filter { "options:gfxapi=opengl", "files:src/gl/directx11/*", "system:not macosx" }
+		flags { "ExcludeFromBuild" }
+	filter { "options:gfxapi=opengl", "files:src/gl/metal/*", "system:not macosx" }
 		flags { "ExcludeFromBuild" }
 
 	filter { "options:gfxapi=d3d11" }
 		libdirs { "$(DXSDK_DIR)/Lib/x64;" }
 		links { "d3d11.lib", "d3dcompiler.lib", "dxgi.lib", "dxguid.lib" }
 		defines { "GRAPHICS_API_D3D11=1" }
+		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = { "src/gl/metal/*", "src/gl/opengl/*" } }
 
-	filter { "options:not gfxapi=d3d11"}
-		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = { "src/gl/directx11/*" } }
+	filter { "options:gfxapi=metal" }
+		defines { "GRAPHICS_API_METAL=1" }
+		xcodebuildsettings { 
+			["EXCLUDED_SOURCE_FILE_NAMES"] = { "src/gl/opengl/*", "src/gl/directx11/*" },
+			['CLANG_ENABLE_OBJC_ARC'] = "YES" }
+		links { "MetalKit.framework", "Metal.framework" }
 
-	filter { "options:not gfxapi=d3d11", "files:src/gl/directx11/*", "system:not macosx" }
+	filter { "options:gfxapi=metal", "system:macosx", "options:not test-ios" }
+		links { "AppKit.framework" }
+
+	filter { "options:gfxapi=metal", "files:src/gl/opengl/*", "system:not macosx" }
+		flags { "ExcludeFromBuild" }
+	filter { "options:gfxapi=metal", "files:src/gl/directx11/*", "system:not macosx" }
+		flags { "ExcludeFromBuild" }
+
+	filter { "options:gfxapi=d3d11", "files:src/gl/opengl/*", "system:not macosx" }
+		flags { "ExcludeFromBuild" }
+	filter { "options:gfxapi=d3d11", "files:src/gl/metal/*", "system:not macosx" }
 		flags { "ExcludeFromBuild" }
 
 	-- include common stuff
