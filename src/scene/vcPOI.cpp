@@ -139,38 +139,11 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
   if (m_line.numPoints > 1)
   {
-    static bool flyingThroughPoints = false;
-    static int flyThroughPoint = -1;
     if (ImGui::Button(vcString::Get("scenePOIPerformFlyThrough")))
     {
-      flyingThroughPoints = true;
-      pProgramState->cameraInput.progress = 0.0;
-    }
-
-    // Perform a fly-through
-    if (flyingThroughPoints)
-    {
-      bool finalLoop = m_line.closed && flyThroughPoint == m_line.numPoints - 1;
-      if ((flyThroughPoint < m_line.numPoints - 1 || finalLoop) && (pProgramState->cameraInput.progress == 1.0 ||
-        (pProgramState->cameraInput.progress == 0.0 && pProgramState->cameraInput.inputState != vcCIS_MovingToPoint)))
-      {
-        udDouble3 currentPoint = pProgramState->pCamera->position;
-        udDouble3 nextPoint = m_line.pPoints[flyThroughPoint + 1];
-        if (finalLoop) // if closed loop then do one final trip to the starting point
-          nextPoint = m_line.pPoints[0];
-        pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
-        pProgramState->cameraInput.progress = 0.0;
-        pProgramState->cameraInput.startPosition = currentPoint;
-        pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
-        pProgramState->cameraInput.worldAnchorPoint = nextPoint;
-        ++flyThroughPoint;
-      }
-    }
-    // If exiting out of the fly-through
-    if (pProgramState->cameraInput.inputState != vcCIS_MovingToPoint)
-    {
-      flyThroughPoint = -1;
-      flyingThroughPoints = false;
+      pProgramState->cameraInput.inputState = vcCIS_FlyingThrough;
+      pProgramState->cameraInput.flyThroughActive = false;
+      pProgramState->cameraInput.pObjectInfo = &m_line;
     }
 
     if (ImGui::SliderInt(vcString::Get("scenePOISelectedPoint"), &m_line.selectedPoint, -1, m_line.numPoints - 1))

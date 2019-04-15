@@ -1,5 +1,6 @@
 #include "vcCamera.h"
 #include "vcState.h"
+#include "vcPOI.h"
 
 #include "imgui.h"
 #include "imgui_ex/ImGuizmo.h"
@@ -313,8 +314,88 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
     if (pCamera->eulerRotation.y > UD_PI)
       pCamera->eulerRotation.y -= UD_2PI;
-    break;
   }
+  break;
+
+  case vcCIS_FlyingThrough:
+  {
+    vcLineInfo *pLine = (vcLineInfo*)pCamInput->pObjectInfo;
+
+    // If important things have been deleted cancel the flythrough
+    if (pLine == nullptr || pLine->pPoints == nullptr || pLine->numPoints <= 1 || pCamInput->flyThroughPoint >= pLine->numPoints)
+    {
+      pCamInput->flyThroughPoint = 0;
+      pCamInput->flyThroughActive = false;
+      pCamInput->inputState = vcCIS_None;
+      pCamInput->pObjectInfo = nullptr;
+      break;
+    }
+
+    // Move to first point on first loop
+    if (!pCamInput->flyThroughActive)
+    {
+      pCamInput->flyThroughActive = true;
+      pCamInput->flyThroughPoint = 0;
+      pCamInput->startPosition = pCamera->position;
+      pCamInput->startAngle = udDoubleQuat::create(pCamera->eulerRotation);
+      pCamInput->worldAnchorPoint = pLine->pPoints[pCamInput->flyThroughPoint];
+      pCamInput->progress = 0.0;
+      pCamInput->inputState = vcCIS_MovingToPoint;
+      break;
+    }
+
+    // If target point is reached
+    if (pCamInput->progress == 1.0)
+    {
+      pCamInput->progress = 0.0;
+      pCamInput->startPosition = pLine->pPoints[pCamInput->flyThroughPoint];
+      pCamInput->flyThroughPoint++;
+      if (pCamInput->flyThroughPoint >= pLine->numPoints)
+      {
+        pCamInput->flyThroughPoint = 0;
+        // Loop through points if polygon is closed
+        if (!pLine->closed)
+        {
+          pCamInput->flyThroughActive = false;
+          pCamInput->inputState = vcCIS_None;
+          break;
+        }
+      }
+      pCamInput->worldAnchorPoint = pLine->pPoints[pCamInput->flyThroughPoint];
+    }
+
+    udDouble3 moveVector = pCamInput->worldAnchorPoint - pCamInput->startPosition;
+
+    // If consecutive points are in the same position (avoids divide by zero)
+    if (moveVector == udDouble3::zero())
+    {
+      pCamInput->progress = 1.0;
+      break;
+    }
+
+    double flyStep = pCamSettings->moveSpeed * speedModifier * deltaTime;
+    pCamInput->progress = udMin(pCamInput->progress + flyStep / udMag3(moveVector), 1.0);
+    udDouble3 leadingPoint = pCamInput->startPosition + moveVector * pCamInput->progress;
+    udDouble3 cam2Point = leadingPoint - pCamera->position;
+    double distCam2Point = udMag3(cam2Point);
+    cam2Point = udNormalize3(distCam2Point == 0 ? moveVector : cam2Point); // avoids divide by zero
+
+    // Smoothly rotate camera to face the leading point at all times
+    udDouble3 targetEuler = udMath_DirToYPR(cam2Point);
+    pCamera->eulerRotation = udSlerp(udDoubleQuat::create(pCamera->eulerRotation), udDoubleQuat::create(targetEuler), 0.2).eulerAngles();
+    if (pCamera->eulerRotation.y > UD_PI)
+      pCamera->eulerRotation.y -= UD_2PI;
+
+    if (pCamSettings->moveMode == vcCMM_Helicopter)
+      cam2Point.z = 0;
+
+    // Slow camera if it gets too close to the leading point (100m)
+    if (distCam2Point < 100)
+      flyStep *= 0.9;
+
+    pCamera->position += cam2Point * flyStep;
+  }
+  break;
 
   case vcCIS_MovingToPoint:
   {
@@ -336,6 +417,8 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     {
       pCamInput->progress = 1.0;
       pCamInput->inputState = vcCIS_None;
+      if (pCamInput->flyThroughActive)
+        pCamInput->inputState = vcCIS_FlyingThrough; // continue on to the next point
     }
 
     double travelProgress = udEase(pCamInput->progress, udET_CubicInOut);
@@ -565,10 +648,16 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   {
     if (keyboardInput != udDouble3::zero() || isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]) // if input is detected, TODO: add proper any input detection
     {
-      if (pProgramState->cameraInput.inputState == vcCIS_MovingToPoint || pProgramState->cameraInput.inputState == vcCIS_LookingAtPoint)
+      if (pProgramState->cameraInput.inputState == vcCIS_MovingToPoint || pProgramState->cameraInput.inputState == vcCIS_LookingAtPoint || pProgramState->cameraInput.inputState == vcCIS_FlyingThrough)
       {
         pProgramState->pCamera->eulerRotation.z = 0.0;
         pProgramState->cameraInput.inputState = vcCIS_None;
+
+        if (pProgramState->cameraInput.flyThroughActive)
+        {
+          pProgramState->cameraInput.flyThroughActive = false;
+          pProgramState->cameraInput.flyThroughPoint = 0;
+        }
 
         if (pProgramState->cameraInput.transitioningToMapMode)
         {
