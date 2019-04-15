@@ -254,7 +254,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     }
 
     const char *imageTypeNames[] = { vcString::Get("scenePOILabelImageTypeStandard"), vcString::Get("scenePOILabelImageTypePanorama"), vcString::Get("scenePOILabelImageTypePhotosphere") };
-    ImGui::Combo(udTempStr("%s##scenePOILabelImageURL%zu", vcString::Get("scenePOILabelImageURL"), *pItemID), (int*)&m_pImage->type, imageTypeNames, (int)udLengthOf(imageTypeNames));
+    ImGui::Combo(udTempStr("%s##scenePOILabelImageType%zu", vcString::Get("scenePOILabelImageType"), *pItemID), (int*)&m_pImage->type, imageTypeNames, (int)udLengthOf(imageTypeNames));
   }
 }
 
