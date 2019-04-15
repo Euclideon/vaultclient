@@ -1115,7 +1115,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
           {
             vcPOI* pPOI = (vcPOI*)item.pParent->m_children[item.index];
 
-            if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
+            // Don't allow consecutive points at the same position
+            if (pPOI->m_line.pPoints[pPOI->m_line.numPoints - 1] != worldMouse && ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
               pPOI->AddPoint(worldMouse);
           }
         }
@@ -1714,6 +1715,19 @@ void vcRenderWindow(vcState *pProgramState)
       vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddOther"), nullptr, vcMBBI_AddOther, vcMBBG_SameGroup);
       if (ImGui::BeginPopupContextItem(vcString::Get("sceneExplorerAddOther"), 0))
       {
+        if (pProgramState->sceneExplorer.selectedItems.size() == 1)
+        {
+          const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
+          if (item.pParent->m_children[item.index]->m_type == vcSOT_PointOfInterest)
+          {
+            vcPOI* pPOI = (vcPOI*)item.pParent->m_children[item.index];
+
+            // Don't allow consecutive points at the same position
+            if (pPOI->m_line.pPoints[pPOI->m_line.numPoints - 1] != pProgramState->pCamera->position && ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
+              pPOI->AddPoint(pProgramState->pCamera->position);
+          }
+        }
+
         if (ImGui::MenuItem(vcString::Get("sceneExplorerAddFeed"), nullptr, nullptr))
           vcScene_AddItem(pProgramState, new vcLiveFeed());
 
