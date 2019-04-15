@@ -32,8 +32,8 @@
 #include "vcStrings.h"
 #include "vcModals.h"
 #include "vcLiveFeed.h"
-#include "rendering/vcPolygonModel.h"
-#include "rendering/vcImageRenderer.h"
+#include "vcPolygonModel.h"
+#include "vcImageRenderer.h"
 #include "vcProxyHelper.h"
 
 #include "vCore/vStringFormat.h"
@@ -693,14 +693,14 @@ int main(int argc, char **args)
                     }
                   }
 
-                  // TODO: Generate a thumbnail
+                  // TODO: (EVC-513) Generate a thumbnail
                   {
                     int width, height;
                     int comp;
                     stbi_uc *pImgPixels = stbi_load_from_memory((stbi_uc*)pFileData, (int)numBytes, &width, &height, &comp, 4);
                     if (!pImgPixels)
                     {
-                      // TODO: image failed to load, display error image
+                      // TODO: (EVC-517) Image failed to load, display error image
                     }
 
                     // TODO: (EVC-515) Mip maps are broken in directX
@@ -713,7 +713,7 @@ int main(int argc, char **args)
                 }
                 else
                 {
-                  // TODO: file failed to load, display error image
+                  // TODO: (EVC-517) File failed to load, display error image
                 }
 
                 const vcSceneItemRef &clicked = programState.sceneExplorer.clickedItem;
@@ -733,11 +733,16 @@ int main(int argc, char **args)
                     currentLocation = programState.pCamera->position;
 
                   pPOI = new vcPOI(loadFile.GetFilenameWithExt(), 0xFFFFFFFF, vcLFS_Medium, currentLocation, programState.gis.SRID);
-                  vcScene_AddItem(&programState, pPOI, true);
+                  vcScene_AddItem(&programState, pPOI);
                 }
 
                 // TODO: Using POIs to store media points is a temporary solution
                 vcPOI *pRealPOI = (vcPOI*)pPOI;
+                if (pRealPOI->m_pImage)
+                {
+                  vcTexture_Destroy(&pRealPOI->m_pImage->pTexture);
+                  udFree(pRealPOI->m_pImage);
+                }
                 pRealPOI->m_pImage = udAllocType(vcImageRenderInfo, 1, udAF_Zero);
                 pRealPOI->m_pImage->ypr = udDouble3::zero();
                 pRealPOI->m_pImage->scale = udDouble3::one();

@@ -4,12 +4,12 @@
 #include "gl/vcFramebuffer.h"
 #include "gl/vcShader.h"
 #include "gl/vcGLState.h"
-#include "rendering/vcFenceRenderer.h"
-#include "rendering/vcWaterRenderer.h"
-#include "rendering/vcTileRenderer.h"
-#include "rendering/vcCompass.h"
+#include "vcFenceRenderer.h"
+#include "vcWaterRenderer.h"
+#include "vcTileRenderer.h"
+#include "vcCompass.h"
 
-#include "rendering/vcInternalModels.h"
+#include "vcInternalModels.h"
 #include "vcGIS.h"
 
 #include "stb_image.h"
@@ -445,9 +445,7 @@ void vcRenderTransparentPolygons(vcRenderContext *pRenderContext, vcRenderData &
   {
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
     for (size_t i = 0; i < renderData.images.length; ++i)
-    {
       vcImageRenderer_Render(renderData.images[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
-    }
   }
 
   // Fences

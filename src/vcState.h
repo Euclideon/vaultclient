@@ -8,7 +8,7 @@
 
 #include "vCore/vWorkerThread.h"
 
-#include "rendering/vcImageRenderer.h"
+#include "vcImageRenderer.h"
 
 #include "vcSettings.h"
 #include "vcScene.h"
@@ -133,7 +133,6 @@ struct vcState
     std::vector<vcSceneItemRef> selectedItems;
   } sceneExplorer;
 
-  // TODO: Remove once pauls changes go through
   struct ImageInfo
   {
     vcTexture *pImage;

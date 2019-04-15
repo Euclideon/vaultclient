@@ -5,9 +5,9 @@
 #include "vcCamera.h"
 #include "vdkRenderContext.h"
 #include "vdkError.h"
-#include "rendering/vcFenceRenderer.h"
-#include "rendering/vcLabelRenderer.h"
-#include "rendering/vcImageRenderer.h"
+#include "vcFenceRenderer.h"
+#include "vcLabelRenderer.h"
+#include "vcImageRenderer.h"
 
 struct vdkPointCloud;
 struct vcTexture;

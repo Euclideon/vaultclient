@@ -1,4 +1,3 @@
-
 #include "vcInternalModels.h"
 
 const vcP1UV1Vertex *pTubeVertices = (vcP1UV1Vertex*)tubeVerticesFltArray;
