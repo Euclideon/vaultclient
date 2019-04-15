@@ -585,7 +585,7 @@ int main(int argc, char **args)
     NOW = SDL_GetPerformanceCounter();
     programState.deltaTime = double(NOW - LAST) / SDL_GetPerformanceFrequency();
 
-    frametimeMS = 0.03333333; // 30 FPS cap
+    frametimeMS = 0.0166666667; // 60 FPS cap
     if ((SDL_GetWindowFlags(programState.pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0 && programState.settings.presentation.limitFPSInBackground)
       frametimeMS = 0.250; // 4 FPS cap when not focused
 
