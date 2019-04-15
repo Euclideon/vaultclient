@@ -207,6 +207,13 @@
   "convertCompleted": "Completed",
   "convertCancelled": "Cancelled",
   "convertFailed": "Failed",
+  "convertGeneratingPreview": "Generating Preview...",
+  "convertAddPreviewToScene": "Add Preview to Scene",
+  "convertPreviewName": "Conversion Preview",
+  "convertSpaceLabel": "Source XY",
+  "convertSpaceCartesian": "Cartesian",
+  "convertSpaceLatLong": "Latitude then Longitude",
+  "convertSpaceLongLat": "Longitude then Latitude",
 
   "menuSystem": "System",
   "menuRestoreDefaults": "Restore Defaults",
