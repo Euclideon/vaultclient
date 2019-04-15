@@ -315,6 +315,7 @@ The expanded properties for UDS files show the path the UDS was loaded from and 
   - `Show Length` and `Show Area` will show those details on the label in the scene
   - `Close Polygon` causes the line to loop from the last point back to the first one. This setting is also required if you want to see the area.
   - The `Colour`, `Width`, `Style` and `Orientation` settings all modify how the lines between the points are displayed.
+- When `Enable Bookmark Mode` is checked you can set the relative camera position and orientation jumped to when the POI is double-clicked in scene explorer.
 - For POIs with images, you can change its type (standard, panorama, photosphere) in the `Image Type` drop down.
 
 >TIP: If a point of interest is the only item selected in the scene, the context menu when you right click in the world will allow you to add a point to the end of the currently selected POI.
