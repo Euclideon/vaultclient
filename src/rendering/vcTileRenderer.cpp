@@ -194,6 +194,12 @@ void vcTileRenderer_LoadThread(void *pThreadData)
 
       if (best == -1)
       {
+        for (size_t i = 0; i < pCache->tileLoadList.length; ++i)
+        {
+          pNode = pCache->tileLoadList[i];
+          pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
+        }
+
         pCache->tileLoadList.Clear();
         udReleaseMutex(pCache->pMutex);
         break;
