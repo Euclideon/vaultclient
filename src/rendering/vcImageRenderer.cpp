@@ -1,8 +1,10 @@
 #include "vcImageRenderer.h"
-#include "udPlatform/udPlatformUtil.h"
+
 #include "gl/vcMesh.h"
-#include "rendering/vcInternalModels.h"
 #include "gl/vcRenderShaders.h"
+#include "vcInternalModels.h"
+
+#include "udPlatform/udPlatformUtil.h"
 
 #include "imgui.h"
 

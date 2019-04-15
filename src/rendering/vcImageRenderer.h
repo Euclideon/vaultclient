@@ -12,7 +12,6 @@ enum vcImageSize
   vcIS_Count,
 };
 
-// TODO: Probably move to `vcMediaPoint` once pauls changes go through
 enum vcImageType
 {
   vcIT_StandardPhoto,
