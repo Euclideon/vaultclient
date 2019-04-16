@@ -9,7 +9,7 @@
 #include "imgui.h"
 
 // These values were picked by visual inspection
-static const float vcISToPixelSize[] = { 3000.0, 10000.0 };
+static const float vcISToPixelSize[] = { 100.0, 150.0 };
 UDCOMPILEASSERT(udLengthOf(vcISToPixelSize) == vcIS_Count, "ImagePixelSize not equal size");
 
 static const float vcISToWorldSize[] = { 3.0, 10.0 };
@@ -71,7 +71,7 @@ void vcImageRenderer_Destroy()
   }
 }
 
-bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize)
+bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, double zScale)
 {
   // get aspect ratio
   udInt2 imageSize = {};
@@ -91,7 +91,7 @@ bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &vi
 
   pShader->everyObject.u_modelViewProjectionMatrix = udFloat4x4::create(mvp);
   pShader->everyObject.u_colour = pImageInfo->colour;
-  pShader->everyObject.u_screenSize = udFloat4::create(vcISToPixelSize[pImageInfo->size] / screenSize.x, vcISToPixelSize[pImageInfo->size] / screenSize.y * aspect, 0.0f, 0.0f);
+  pShader->everyObject.u_screenSize = udFloat4::create(vcISToPixelSize[pImageInfo->size] / screenSize.x, vcISToPixelSize[pImageInfo->size] / screenSize.y * aspect, float(zScale), 0.0f);
 
   vcShader_BindConstantBuffer(pShader->pShader, pShader->pEveryObjectConstantBuffer, &pShader->everyObject, sizeof(pShader->everyObject));
   vcShader_BindTexture(pShader->pShader, pImageInfo->pTexture, 0, pShader->pDiffuseSampler);

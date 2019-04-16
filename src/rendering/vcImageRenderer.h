@@ -36,6 +36,6 @@ struct vcImageRenderInfo
 void vcImageRenderer_Init();
 void vcImageRenderer_Destroy();
 
-bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize);
+bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, double zScale);
 
 #endif//vcImageRenderer_h__
