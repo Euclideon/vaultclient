@@ -65,7 +65,7 @@ project "vaultClient"
 		}
 
 	filter { "system:ios" }
-		files { "iOS-Info.plist", "builds/libvaultSDK.dylib", "icons/Images.xcassets" }
+		files { "iOS-Info.plist", "builds/libvaultSDK.dylib", "icons/Images.xcassets", "src/vcWebFile.mm" }
 		sysincludedirs { "3rdParty/SDL2-2.0.8/include" }
 		xcodebuildresources { "libvaultSDK", "Images.xcassets" }
 		xcodebuildsettings { ["ASSETCATALOG_COMPILER_APPICON_NAME"] = "AppIcon" }

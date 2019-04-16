@@ -9,11 +9,12 @@
 #include "vCore/vWorkerThread.h"
 
 #include "vcImageRenderer.h"
-
 #include "vcSettings.h"
 #include "vcScene.h"
 #include "vcGIS.h"
 #include "vcFolder.h"
+#include "vcStrings.h"
+
 #include "vdkError.h"
 
 #include "imgui_ex/ImGuizmo.h"
@@ -145,6 +146,7 @@ struct vcState
   bool firstRun;
   vdkError currentError;
   int64_t lastEventTime;
+  vcTranslationInfo languageInfo;
   bool showUI;
   vcDocks changeActiveDock;
 };

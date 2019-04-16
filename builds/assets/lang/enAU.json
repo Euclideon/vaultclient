@@ -24,6 +24,9 @@
   "loginProxyTest": "Test Proxy",
   "loginIgnoreCert": "Ignore Certificate Verification",
   "loginIgnoreCertWarning": "THIS IS A DANGEROUS SETTING, ONLY SET THIS ON REQUEST FROM YOUR SYSTEM ADMINISTRATOR",
+  "loginSupportIssueTracker": "Want to report an issue? Let us know on {1}!",
+  "loginSupportDirectEmail": "Email {0} for confidential support",
+  "loginTranslationBy": "{0} translation provided by {1}\nReport translation issues to {2}",
 
   "loginPending": "Pending",
   "loginMessageCredentials": "Please enter your credentials...",
