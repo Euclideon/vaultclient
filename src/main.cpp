@@ -531,7 +531,7 @@ int main(int argc, char **args)
 
   SDL_EnableScreenSaver();
 
-  vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", programState.settings.window.languageCode));
+  vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", programState.settings.window.languageCode), &programState.languageInfo);
   vcTexture_CreateFromFilename(&programState.pUITexture, "asset://assets/textures/uiDark24.png");
 
   while (!programState.programComplete)
@@ -848,7 +848,7 @@ epilogue:
     udFree(programState.loadList[i]);
   vcRender_Destroy(&programState.pRenderContext);
   vcTexture_Destroy(&programState.tileModal.pServerIcon);
-  vcString::FreeTable();
+  vcString::FreeTable(&programState.languageInfo);
   vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
   vcLogout(&programState);
   programState.sceneExplorer.pItems->Cleanup(&programState);
@@ -1536,7 +1536,7 @@ void vcRenderWindow(vcState *pProgramState)
       if (ImGui::Combo("##langCode", &lang, langs, (int)udLengthOf(langs)))
       {
         udStrcpy(pProgramState->settings.window.languageCode, udLengthOf(pProgramState->settings.window.languageCode), langs[lang]);
-        vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", langs[lang]));
+        vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", langs[lang]), &pProgramState->languageInfo);
       }
 
       // Let the user change the look and feel on the login page
@@ -1554,6 +1554,44 @@ void vcRenderWindow(vcState *pProgramState)
       }
 
       ImGui::PopItemWidth();
+    }
+    ImGui::End();
+
+    ImGui::SetNextWindowBgAlpha(0.1f);
+    ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always, ImVec2(0, 0));
+    if (ImGui::Begin("LoginScreenSupportInfo", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
+    {
+      const char *issueTrackerStrings[] = { "https://github.com/euclideon/vaultclient/issues", "GitHub" };
+      const char *pIssueTrackerStr = vStringFormat(vcString::Get("loginSupportIssueTracker"), issueTrackerStrings, udLengthOf(issueTrackerStrings));
+      ImGui::TextUnformatted(pIssueTrackerStr);
+      udFree(pIssueTrackerStr);
+      if (ImGui::IsItemClicked())
+        vcWebFile_OpenBrowser("https://github.com/euclideon/vaultclient/issues");
+      if (ImGui::IsItemHovered())
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+
+      const char *pSupportStr = vStringFormat(vcString::Get("loginSupportDirectEmail"), "support@euclideon.com");
+      ImGui::TextUnformatted(pSupportStr);
+      udFree(pSupportStr);
+      if (ImGui::IsItemClicked())
+        vcWebFile_OpenBrowser("mailto://support@euclideon.com?subject=Vault%20Client%20" VCVERSION_VERSION_STRING "%20Support");
+      if (ImGui::IsItemHovered())
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    }
+    ImGui::End();
+
+    ImGui::SetNextWindowBgAlpha(0.1f);
+    ImGui::SetNextWindowPos(ImVec2(size.x-10, 10), ImGuiCond_Always, ImVec2(1, 0));
+    if (ImGui::Begin("LoginScreenTranslationInfo", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
+    {
+      const char *translationStrings[] = { pProgramState->languageInfo.pLocalName, pProgramState->languageInfo.pTranslatorName, pProgramState->languageInfo.pTranslatorContactEmail };
+      const char *pTranslationInfo = vStringFormat(vcString::Get("loginTranslationBy"), translationStrings, udLengthOf(translationStrings));
+      ImGui::TextUnformatted(pTranslationInfo);
+      udFree(pTranslationInfo);
+      if (ImGui::IsItemClicked())
+        vcWebFile_OpenBrowser(udTempStr("mailto://%s", pProgramState->languageInfo.pTranslatorContactEmail));
+      if (ImGui::IsItemHovered())
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     }
     ImGui::End();
 

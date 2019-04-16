@@ -7,4 +7,6 @@
 
 udResult vcWebFile_RegisterFileHandlers();
 
+void vcWebFile_OpenBrowser(const char *pWebpageAddress);
+
 #endif //vcWebFile_h__

@@ -2,6 +2,7 @@
 
 #include "vdkWeb.h"
 
+#include "udPlatform/udPlatformUtil.h"
 #include "udPlatform/udFile.h"
 #include "udPlatform/udFileHandler.h"
 
@@ -91,3 +92,28 @@ udResult vcWebFile_RegisterFileHandlers()
 epilogue:
   return result;
 }
+
+#if !(UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR)
+void vcWebFile_OpenBrowser(const char *pWebpageAddress)
+{
+  const char *pBuffer = nullptr;
+
+#if UDPLATFORM_WINDOWS
+  udSprintf(&pBuffer, "START %s", pWebpageAddress);
+#elif UDPLATFORM_OSX
+  udSprintf(&pBuffer, "open %s", pWebpageAddress);
+#elif UDPLATFORM_LINUX
+  udSprintf(&pBuffer, "xdg-open %s", pWebpageAddress);
+#endif
+
+  if (pBuffer != nullptr)
+  {
+    //Have to do this because some compilers require you do something with the return value of system
+    int retval = system(pBuffer);
+    udUnused(retval);
+
+    udFree(pBuffer);
+  }
+}
+#endif
+

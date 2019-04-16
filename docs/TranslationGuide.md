@@ -4,8 +4,8 @@
 
 - Version 0.2.3 (or 0.3.0?)
   - Added:
-    - Proxy Messages & Settings
-      - `loginErrorProxyAuthPending`, `loginErrorProxyAuthFailed`, `loginProxyAutodetect`, `loginProxyTest`
+    - Login Screen
+      - `loginErrorProxyAuthPending`, `loginErrorProxyAuthFailed`, `loginProxyAutodetect`, `loginProxyTest`, `loginSupportIssueTracker`, `loginSupportDirectEmail`, `loginTranslationBy`
     - Control Settings
       - `settingsControlsForward`
     - Proxy Modal
@@ -89,6 +89,15 @@ Modules are currently:
 - `loginProxyAddress`: Label for the proxy address field
 - `loginProxyAutodetect`: Label for the checkbox that attempts to find a proxy automatically
 - `loginProxyTest`: Used on the button that tests the proxy details are correct
+- `loginSupportIssueTracker`: Displayed on the login page to direct the user to the Euclideon public issue tracker (is a hyperlink to the webpage)
+  - {0} is the issue tracker web address
+  - {1} is the issue tracker host name
+- `loginSupportDirectEmail`: Displayed on the login page to direct the user to Euclideon support (opens an email to support when clicked)
+  - {0} is the support email address
+- `loginTranslationBy`: Displays credits for the translation on the login page
+  - {0} is the language `localname` provided in `_LanguageInfo`
+  - {1} is the `translationby` provided in `_LanguageInfo`
+  - {2} is the `contactemail` provided in `_LanguageInfo`
 - `loginIgnoreCert`: Label for a setting that disables many of the security checks when logging in
 - `loginIgnoreCertWarning`: This displays a warning to the user that disabling the security certificates is _very_ dangerous
 - `loginPending`: String used internally to set the login status to "pending"?
