@@ -42,7 +42,7 @@ void vcModel_PostLoadModel(void *pLoadInfoPtr)
     pLoadInfo->pModel->ChangeProjection(pLoadInfo->pProgramState, pLoadInfo->pProgramState->gis.zone);
 }
 
-void vcModel_Temp(vcState *pProgramState, vcModel *pModel, double scale, udDouble3 *pPosition = nullptr, udDouble3 *pRotation = nullptr)
+void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, double scale, udDouble3 *pPosition = nullptr, udDouble3 *pRotation = nullptr)
 {
   udGeoZone *pMemberZone = nullptr;
   const char *pMetadata;
@@ -57,8 +57,6 @@ void vcModel_Temp(vcState *pProgramState, vcModel *pModel, double scale, udDoubl
     pModel->m_pivot = pModel->m_pMetadata->Get("info.pivot").AsDouble3();
 
     vcSRID srid = 0;
-    udJSON tempNode;
-
     const char *pSRID = pModel->m_pMetadata->Get("ProjectionID").AsString();
     const char *pWKT = pModel->m_pMetadata->Get("ProjectionWKT").AsString();
 
@@ -69,15 +67,14 @@ void vcModel_Temp(vcState *pProgramState, vcModel *pModel, double scale, udDoubl
         srid = udStrAtou(&pSRID[1]);
 
       pModel->m_pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
-      pMemberZone = udAllocType(udGeoZone, 1, udAF_Zero);
       if (udGeoZone_SetFromSRID(pModel->m_pOriginalZone, srid) == udR_Success)
       {
+        pMemberZone = udAllocType(udGeoZone, 1, udAF_Zero);
         memcpy(pMemberZone, pModel->m_pOriginalZone, sizeof(*pMemberZone));
       }
       else
       {
         udFree(pModel->m_pOriginalZone);
-        udFree(pMemberZone);
       }
     }
 
@@ -131,7 +128,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
     if (modelStatus == vE_Success)
     {
-      vcModel_Temp(pLoadInfo->pProgramState, pLoadInfo->pModel, pLoadInfo->scale, pLoadInfo->usePosition ? &pLoadInfo->position : nullptr, pLoadInfo->useRotation ? &pLoadInfo->rotation : nullptr);
+      vcModel_LoadMetadata(pLoadInfo->pProgramState, pLoadInfo->pModel, pLoadInfo->scale, pLoadInfo->usePosition ? &pLoadInfo->position : nullptr, pLoadInfo->useRotation ? &pLoadInfo->rotation : nullptr);
 
       pLoadInfo->pModel->m_loadStatus = vcSLS_Loaded;
     }
@@ -203,8 +200,13 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePat
 }
 
 vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud, bool jumpToModelOnLoad /*= false*/) :
-  m_pPointCloud(nullptr), m_pivot(udDouble3::zero()), m_defaultMatrix(udDouble4x4::identity()), m_sceneMatrix(udDouble4x4::identity()),
-  m_meterScale(0.0), m_hasWatermark(false), m_pWatermark(nullptr)
+  m_pPointCloud(nullptr),
+  m_pivot(udDouble3::zero()),
+  m_defaultMatrix(udDouble4x4::identity()),
+  m_sceneMatrix(udDouble4x4::identity()),
+  m_meterScale(0.0),
+  m_hasWatermark(false),
+  m_pWatermark(nullptr)
 {
   m_pPointCloud = pCloud;
 
@@ -219,12 +221,12 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
 
   udStrcpy(m_typeStr, sizeof(m_typeStr), "UDS");
 
-  vcModel_Temp(pProgramState, this, 1.0);
+  vcModel_LoadMetadata(pProgramState, this, 1.0);
 
   if (jumpToModelOnLoad)
     vcScene_UseProjectFromItem(pProgramState, this);
   else if (pProgramState->gis.isProjected)
-    this->ChangeProjection(pProgramState, pProgramState->gis.zone);
+    ChangeProjection(pProgramState, pProgramState->gis.zone);
 }
 
 void vcModel::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
@@ -236,7 +238,7 @@ void vcModel::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &new
 {
   // This is not ideal as it will gather drift
   if (m_pZone != nullptr)
-    m_sceneMatrix = udGeoZone_TransformMatrix(this->m_sceneMatrix, *m_pZone, newZone);
+    m_sceneMatrix = udGeoZone_TransformMatrix(m_sceneMatrix, *m_pZone, newZone);
 
   // Call the parent version
   vcSceneItem::ChangeProjection(nullptr, newZone);
