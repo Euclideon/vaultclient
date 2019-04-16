@@ -298,7 +298,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
   ImGui::TextUnformatted(vcString::Get("convertSettings"));
 
-
   ImGui::NextColumn();
 
   if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled) && ImGui::Button(vcString::Get("convertBeginConvert"), ImVec2(-1, 50)))
