@@ -1573,7 +1573,7 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::TextUnformatted(pSupportStr);
       udFree(pSupportStr);
       if (ImGui::IsItemClicked())
-        vcWebFile_OpenBrowser("mailto://support@euclideon.com?subject=Vault%20Client%20" VCVERSION_VERSION_STRING "%20Support");
+        vcWebFile_OpenBrowser("mailto:support@euclideon.com?subject=Vault%20Client%20" VCVERSION_VERSION_STRING "%20Support");
       if (ImGui::IsItemHovered())
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     }
@@ -1588,7 +1588,7 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::TextUnformatted(pTranslationInfo);
       udFree(pTranslationInfo);
       if (ImGui::IsItemClicked())
-        vcWebFile_OpenBrowser(udTempStr("mailto://%s", pProgramState->languageInfo.pTranslatorContactEmail));
+        vcWebFile_OpenBrowser(udTempStr("mailto:%s", pProgramState->languageInfo.pTranslatorContactEmail));
       if (ImGui::IsItemHovered())
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     }
