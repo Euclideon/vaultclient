@@ -1152,8 +1152,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
           {
             vcPOI* pPOI = (vcPOI*)item.pParent->m_children[item.index];
 
-            // Don't allow consecutive points at the same position
-            if (pPOI->m_line.pPoints[pPOI->m_line.numPoints - 1] != worldMouse && ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
+            if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
               pPOI->AddPoint(worldMouse);
           }
         }
@@ -1758,8 +1757,7 @@ void vcRenderWindow(vcState *pProgramState)
           {
             vcPOI* pPOI = (vcPOI*)item.pParent->m_children[item.index];
 
-            // Don't allow consecutive points at the same position
-            if (pPOI->m_line.pPoints[pPOI->m_line.numPoints - 1] != pProgramState->pCamera->position && ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
+            if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
               pPOI->AddPoint(pProgramState->pCamera->position);
           }
         }
