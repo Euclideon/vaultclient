@@ -617,7 +617,7 @@ const char* const g_BillboardVertexShader = VERT_HEADER R"shader(
   void main()
   {
     gl_Position = u_modelViewProjectionMatrix * vec4(a_pos, 1.0);
-    gl_Position.xy += u_screenSize.xy * vec2(a_uv.x * 2.0 - 1.0, a_uv.y * 2.0 - 1.0); // expand billboard
+    gl_Position.xy += u_screenSize.z * gl_Position.w * u_screenSize.xy * vec2(a_uv.x * 2.0 - 1.0, a_uv.y * 2.0 - 1.0); // expand billboard
 
     v_uv = vec2(a_uv.x, 1.0 - a_uv.y);
     v_colour = u_colour;
