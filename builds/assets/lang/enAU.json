@@ -390,6 +390,7 @@
   "scenePOILineOrientationVert": "Vertical / Fence",
   "scenePOILineOrientationHorz": "Horizontal / Path",
 
+  "scenePOICancelFlyThrough": "Cancel Fly Through",
   "scenePOIPerformFlyThrough": "Fly Camera Through All Points",
   "scenePOIBookmarkMode": "Enable Bookmark Mode",
   "scenePOISetBookmarkCamera": "Set Bookmark to Camera Position",

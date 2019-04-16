@@ -167,11 +167,24 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
   if (m_line.numPoints > 1)
   {
-    if (ImGui::Button(vcString::Get("scenePOIPerformFlyThrough")))
+    if (!pProgramState->cameraInput.flyThroughActive)
     {
-      pProgramState->cameraInput.inputState = vcCIS_FlyingThrough;
-      pProgramState->cameraInput.flyThroughActive = false;
-      pProgramState->cameraInput.pObjectInfo = &m_line;
+      if (ImGui::Button(vcString::Get("scenePOIPerformFlyThrough")))
+      {
+        pProgramState->cameraInput.inputState = vcCIS_FlyingThrough;
+        pProgramState->cameraInput.flyThroughActive = false; // set false to activate MoveTo, will be set true in vcCamera before next frame
+        pProgramState->cameraInput.pObjectInfo = &m_line;
+      }
+    }
+    else
+    {
+      if (ImGui::Button(vcString::Get("scenePOICancelFlyThrough")))
+      {
+        pProgramState->cameraInput.inputState = vcCIS_None;
+        pProgramState->cameraInput.flyThroughActive = false;
+        pProgramState->cameraInput.flyThroughPoint = 0;
+        pProgramState->cameraInput.pObjectInfo = nullptr;
+      }
     }
 
     if (ImGui::SliderInt(vcString::Get("scenePOISelectedPoint"), &m_line.selectedPoint, -1, m_line.numPoints - 1))
