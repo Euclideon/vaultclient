@@ -11,7 +11,7 @@
     - Proxy Modal
       - `modalProxyInfo`, `modalProxyBadCreds`, `modalProxyUsername`, `modalProxyPassword`, `modalProxyAuthContinueButton`, `modalProxyAuthCancelButton`
     - Scene Explorer
-      - `scenePOIRemovePoint`, `scenePOILabelImageType`, `scenePOILabelImageTypeStandard`, `scenePOILabelImageTypePanorama`, `scenePOILabelImageTypePhotosphere`, `sceneAddMenu`, `sceneAddAOI`, `sceneAddLine`, `scenePOIAreaDefaultName`, `scenePOILineDefaultName`, `sceneExplorerAddLine`
+      - `scenePOIRemovePoint`, `scenePOILabelImageType`, `scenePOILabelImageTypeStandard`, `scenePOILabelImageTypePanorama`, `scenePOILabelImageTypePhotosphere`, `sceneAddMenu`, `sceneAddAOI`, `sceneAddLine`, `scenePOIAreaDefaultName`, `scenePOILineDefaultName`, `sceneExplorerAddLine`, `scenePOICancelFlyThrough`, `scenePOIPerformFlyThrough`, `scenePOIBookmarkMode`, `scenePOISetBookmarkCamera`, `scenePOICameraPosition`, `scenePOICameraRotation`
     - Viewport
       - `settingsViewportViewDistance`
   - Removed:
@@ -472,6 +472,12 @@ Modules are currently:
 - `scenePOILineOrientation`: Label for the drop down to select a line orientation
 - `scenePOILineOrientationVert`: Text on the drop down item for the "Vertical" / "Fence" orientation
 - `scenePOILineOrientationHorz`: Text on the drop down item for the "Horizontal / Path" orientation
+- `scenePOICancelFlyThrough`: Label for button that appears during fly-through, allows user to cancel the fly-through
+- `scenePOIPerformFlyThrough`: Label for button that appears when POI has multiple nodes, will trigger a fly-through
+- `scenePOIBookmarkMode`: Label for checkbox that appears under POI settings that toggles bookmark mode
+- `scenePOISetBookmarkCamera`: Label for button that bookmarks the current camera position and orientation
+- `scenePOICameraPosition`: Label for displaying the current bookmarked camera position
+- `scenePOICameraRotation`: Label for displaying the current bookmarked camera orientation
 
 #### Live Feeds
 - `liveFeedUpdateFrequency`: Used on label for how many seconds delay between updates
