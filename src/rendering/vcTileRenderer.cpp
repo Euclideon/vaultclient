@@ -230,7 +230,7 @@ void vcTileRenderer_LoadThread(void *pThreadData)
         }
       }
 
-      udSprintf(localFileName, sizeof(localFileName), "%s\\%s\\%d\\%d\\%d.%s", pRenderer->pSettings->cacheAssetPath, pTrimmedTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+      udSprintf(localFileName, sizeof(localFileName), "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, pTrimmedTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
       udSprintf(serverAddress, sizeof(serverAddress), "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
       udReleaseMutex(pCache->pMutex);
 
