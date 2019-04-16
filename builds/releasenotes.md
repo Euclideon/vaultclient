@@ -39,6 +39,7 @@ Version 0.2.3
     - Removed erroneous {0}/{1] during convert (EVC-492)
     - Reverse up/down controls in map mode to be more consistent with what most people expect (EVC-495)
     - Added a delay for the tool tips (EVC-416)
+    - Fixed issues with OBJ's with empty string texture names not being processed correctly
 
 Version 0.2.2
   - Fixed an issue with the camera misbehaving when looking straight down in perspective mode
