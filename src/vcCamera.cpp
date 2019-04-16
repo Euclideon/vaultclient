@@ -520,6 +520,10 @@ void vcCamera_SwapMapMode(vcState *pProgramState)
     pProgramState->cameraInput.transitioningToMapMode = false;
 
     lookAtPosition += udDouble3::create(0, 1, 0); // forward
+
+    // also adjust the far plane (so things won't disappear if the view plane isn't configured correctly)
+    pProgramState->settings.camera.farPlane = udMax(pProgramState->settings.camera.farPlane, float(pProgramState->settings.camera.orthographicSize * 2.0));
+    pProgramState->settings.camera.nearPlane = pProgramState->settings.camera.farPlane * vcSL_CameraFarToNearPlaneRatio;
   }
 
   vcCamera_LookAt(pProgramState, lookAtPosition);

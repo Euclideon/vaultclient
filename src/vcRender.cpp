@@ -375,7 +375,7 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
 
     double farPlane = pRenderContext->pSettings->camera.farPlane;
     if (pRenderContext->pSettings->camera.cameraMode == vcCM_OrthoMap)
-      farPlane = pRenderContext->pSettings->camera.orthographicSize * 2.0;
+      farPlane = udMax(farPlane, pRenderContext->pSettings->camera.orthographicSize * 2.0);
 
     // Cardinal Limits
     localCorners[0] = localCamPos + udDouble3::create(-farPlane, +farPlane, 0);
