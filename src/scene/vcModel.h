@@ -23,6 +23,7 @@ public:
   vcTexture *m_pWatermark; // If the watermark is loaded, it will be here
 
   vcModel(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad = true, udDouble3 *pOverridePosition = nullptr, udDouble3 *pOverrideYPR = nullptr, double scale = 1.0);
+  vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud, bool jumpToModelOnLoad = false);
 
   void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
 
