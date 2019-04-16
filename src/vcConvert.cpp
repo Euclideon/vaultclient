@@ -313,7 +313,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
     ImGui::Separator();
     vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
   }
-  else if (pSelectedJob->status == vcCQS_Running && ImGui::Button(udTempStr("%s##vcAddPreview", pSelectedJob->previewRequested ? vcString::Get("convertGeneratingPreview") : vcString::Get("convertAddPreviewToScene")), ImVec2(-1, 50)) || pSelectedJob->previewRequested)
+  else if (pSelectedJob->status == vcCQS_Running && (ImGui::Button(udTempStr("%s##vcAddPreview", pSelectedJob->previewRequested ? vcString::Get("convertGeneratingPreview") : vcString::Get("convertAddPreviewToScene")), ImVec2(-1, 50)) || pSelectedJob->previewRequested))
   {
     vdkPointCloud *pPointCloud = nullptr;
     vdkError result = vdkConvert_GeneratePreview(pProgramState->pVDKContext, pSelectedJob->pConvertContext, &pPointCloud);
