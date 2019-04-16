@@ -172,18 +172,18 @@ udResult vcFenceRenderer_SetConfig(vcFenceRenderer *pFenceRenderer, const vcFenc
 
 udFloat3 vcFenceRenderer_CreateEndJointExpandVector(const udFloat3 &previous, const udFloat3 &center, float width)
 {
-  return udCross(udNormalize(center - previous), udFloat3::create(0, 0, 1)) * width * 0.5f;
+  return udCross(udMag3(center - previous) == 0 ? center - previous : udNormalize(center - previous), udFloat3::create(0, 0, 1)) * width * 0.5f;
 }
 
 udFloat3 vcFenceRenderer_CreateStartJointExpandVector(const udFloat3 &center, const udFloat3 &next, float width)
 {
-  return udCross(udNormalize(next - center), udFloat3::create(0, 0, 1)) * width * 0.5f;
+  return udCross(udMag3(next - center) == 0 ? next - center : udNormalize(next - center), udFloat3::create(0, 0, 1)) * width * 0.5f;
 }
 
 udFloat3 vcFenceRenderer_CreateSegmentJointExpandVector(const udFloat3 &previous, const udFloat3 &center, const udFloat3 &next, float width, bool *pJointFlipped)
 {
-  udFloat3 v1 = udNormalize(center - previous);
-  udFloat3 v2 = udNormalize(next - center);
+  udFloat3 v1 = udMag3(center - previous) == 0 ? center - previous : udNormalize(center - previous);
+  udFloat3 v2 = udMag3(next - center) == 0 ? next - center : udNormalize(next - center);
   float d = udDot(v1, v2);
   float theta = udACos(d);
 
@@ -206,8 +206,8 @@ udFloat3 vcFenceRenderer_CreateSegmentJointExpandVector(const udFloat3 &previous
   float u = width / (2.0f * udSin(theta));
   float v = width / (2.0f * udSin(theta));
 
-  udFloat3 u0 = ((previous - center) / udMag(previous - center)) * u;
-  udFloat3 v0 = ((next - center) / udMag(next - center)) * v;
+  udFloat3 u0 = udMag3(previous - center) == 0 ? previous - center : udNormalize(previous - center) * u;
+  udFloat3 v0 = udMag3(next - center) == 0 ? next - center : udNormalize(next - center) * v;
 
   return -(u0 + v0);
 }
