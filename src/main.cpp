@@ -181,13 +181,13 @@ void vcLogin(void *pProgramStatePtr)
   result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "EuclideonVaultClient", pProgramState->settings.loginInfo.username, pProgramState->password);
   if (result == vE_ConnectionFailure)
     pProgramState->loginStatus = vcLS_ConnectionError;
-  else if (result == vE_NotAllowed)
+  else if (result == vE_AuthFailure)
     pProgramState->loginStatus = vcLS_AuthError;
   else if (result == vE_OutOfSync)
     pProgramState->loginStatus = vcLS_TimeSync;
   else if (result == vE_SecurityFailure)
     pProgramState->loginStatus = vcLS_SecurityError;
-  else if (result == vE_ServerFailure)
+  else if (result == vE_ServerFailure || result == vE_ParseError)
     pProgramState->loginStatus = vcLS_NegotiationError;
   else if (result == vE_ProxyError)
     pProgramState->loginStatus = vcLS_ProxyError;
