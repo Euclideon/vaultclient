@@ -1,21 +1,21 @@
 #import <Metal/Metal.h>
 #import <MetalKit/MTKView.h>
 #import "vcMetal.h"
-#import "ViewCon.h"
+#import "vcViewCon.h"
 #include "imgui.h"
 #include "imgui_ex/imgui_impl_sdl.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
 
-@implementation ViewCon
+@implementation vcViewCon
 
 - (void)viewDidLoad
 {
     [super viewDidLoad];
 
-    _renderer = [[Renderer alloc] initWithMetalKitView:_Mview];
+    _renderer = [[vcRenderer alloc] initWithMetalKitView:_Mview];
 #ifdef METAL_DEBUG
-    if(!_renderer)
+    if (_renderer == nullptr)
     {
         NSLog(@"Renderer failed initialization");
     }
@@ -28,16 +28,14 @@
     _renderer.pipelines = [NSMutableArray arrayWithCapacity:20];
     _renderer.pipeDescs = [NSMutableArray arrayWithCapacity:20];
     _renderer.constantBuffers = [NSMutableArray arrayWithCapacity:40];
-    _renderer.indexBuffers = [NSMutableArray arrayWithCapacity:40];
     
+    _renderer.indexBuffers = [NSMutableDictionary dictionaryWithCapacity:80];
     _renderer.textures = [NSMutableDictionary dictionaryWithCapacity:250];
     _renderer.vertBuffers = [NSMutableDictionary dictionaryWithCapacity:200];
     
-    _renderer.depthStates = [NSMutableArray arrayWithCapacity:16];
-    _renderer.samplers = [NSMutableDictionary dictionaryWithCapacity:10];
-    _renderer.blendPipelines = [NSMutableDictionary dictionaryWithCapacity:20];
-    
-    [_renderer defaultPipelines];
+    _renderer.depthStates = [NSMutableArray arrayWithCapacity:50];
+    _renderer.samplers = [NSMutableDictionary dictionaryWithCapacity:20];
+    _renderer.blendPipelines = [NSMutableDictionary dictionaryWithCapacity:50];
 
     _Mview.delegate = _renderer;
 }

@@ -11,6 +11,9 @@
 
 // If you are new to dear imgui, read examples/README.txt and read the documentation at the top of imgui.cpp.
 
+#ifndef imgui_impl_metal_h__
+#define imgui_impl_metal_h__
+
 #include <SDL2/SDL.h>
 
 IMGUI_IMPL_API bool ImGui_ImplMetal_Init();
@@ -30,3 +33,5 @@ IMGUI_IMPL_API void ImGui_ImplMetal_DestroyFontsTexture();
 IMGUI_IMPL_API bool ImGui_ImplMetal_CreateDeviceObjects();
 
 IMGUI_IMPL_API void ImGui_ImplMetal_DestroyDeviceObjects();
+
+#endif

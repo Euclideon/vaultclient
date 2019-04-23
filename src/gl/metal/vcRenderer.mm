@@ -1,11 +1,11 @@
 #import <MetalKit/MetalKit.h>
 
-#import "Renderer.h"
+#import "vcRenderer.h"
 #import "vcMetal.h"
 #include "imgui.h"
 #include "vcGLState.h"
 
-@implementation Renderer
+@implementation vcRenderer
 {
   vcFramebuffer *pFramebuffers[BUFFER_COUNT];
   vcFramebuffer *pCurrFramebuffer;
@@ -58,13 +58,16 @@
     }
   }
 
-  do {
-    _renderPasses[0] = view.currentRenderPassDescriptor;
-  } while (_renderPasses[0] == nil);
+  // currentRenderPassDescriptor contains a drawable with a color texture attachment
+  _renderPasses[0] = view.currentRenderPassDescriptor;
   
+  if (_renderPasses[0] == nil)
+  {
+    _renderPasses[0] = [[MTLRenderPassDescriptor alloc] init];
+    _renderPasses[0].colorAttachments[0].texture = _textures[[NSString stringWithUTF8String:pFramebuffers[0]->pColor->ID]];
+  }
   _renderPasses[0].depthAttachment.texture = _textures[[NSString stringWithUTF8String:pFramebuffers[0]->pDepth->ID]];
   _renderPasses[0].stencilAttachment.texture = _textures[[NSString stringWithUTF8String:pFramebuffers[0]->pDepth->ID]];
-  
   for (int i = 0; i < BUFFER_COUNT; ++i)
   {
     if (pFramebuffers[i] != nullptr)
@@ -93,84 +96,39 @@
     if (pIntermediate->format == vcTextureFormat_D24S8)
       _viewCon.renderer.renderPasses[0].stencilAttachment.texture = _viewCon.renderer.renderPasses[0].depthAttachment.texture;
   }
-  vcGLState_SetViewport(0, 0, size.width, size.height);
 }
 
-- (void)defaultPipelines
+-(void)bindPipeline:(nonnull vcShader *)pShader
 {
-  id<MTLFunction> vert = [_library newFunctionWithName:@"vertex_main"];
-  id<MTLFunction> frag = [_library newFunctionWithName:@"fragment_main"];
-
-  MTLVertexDescriptor *vertexDescriptor = [MTLVertexDescriptor vertexDescriptor];
-  vertexDescriptor.attributes[0].offset = sizeof(float) * 2;
-  vertexDescriptor.attributes[0].format = MTLVertexFormatFloat2; // position
-  vertexDescriptor.attributes[0].bufferIndex = 0;
-  vertexDescriptor.attributes[1].offset = sizeof(float) * 2;
-  vertexDescriptor.attributes[1].format = MTLVertexFormatFloat2; // texCoords
-  vertexDescriptor.attributes[1].bufferIndex = 0;
-  vertexDescriptor.attributes[2].offset = sizeof(char) * 4;
-  vertexDescriptor.attributes[2].format = MTLVertexFormatUChar4; // color
-  vertexDescriptor.attributes[2].bufferIndex = 0;
-  vertexDescriptor.layouts[0].stepRate = 1;
-  vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
-  vertexDescriptor.layouts[0].stride = (sizeof(float) * 4) + sizeof(char) * 4;
-
-  MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-  pipelineDescriptor.vertexFunction = vert;
-  pipelineDescriptor.fragmentFunction = frag;
-  pipelineDescriptor.vertexDescriptor = vertexDescriptor;
-  pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-  pipelineDescriptor.colorAttachments[0].blendingEnabled = YES;
-  pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
-  pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
-  pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
-  pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorSourceAlpha;
-  pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-  pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
-  pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float;
-#else
-  pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
-  pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
-#endif
-    
-  [_pipelines addObject:[_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil]];
-  [_pipeDescs addObject:pipelineDescriptor];
-}
-
--(void)bindPipeline:(nonnull vcShader *)shader
-{
-  pCurrShader = shader;
+  pCurrShader = pShader;
   [self bindBlendState];
 }
 
-- (void)bindTexture:(nonnull struct vcTexture*)texture index:(NSInteger)tIndex
+- (void)bindTexture:(nonnull struct vcTexture*)pTexture index:(NSInteger)tIndex
 {
-  NSString *currID = [NSString stringWithUTF8String:texture->ID];
+  NSString *currID = [NSString stringWithUTF8String:pTexture->ID];
   [_encoders[pCurrFramebuffer->ID] setFragmentTexture:_textures[currID] atIndex:tIndex];
   
-  currID = [NSString stringWithUTF8String:texture->samplerID];
+  currID = [NSString stringWithUTF8String:pTexture->samplerID];
   [_encoders[pCurrFramebuffer->ID] setFragmentSamplerState:_samplers[currID] atIndex:tIndex];
 }
 
-- (void)bindSampler:(nonnull struct vcShaderSampler *)sampler index:(NSInteger)samplerIndex
+- (void)bindSampler:(nonnull struct vcShaderSampler *)pSampler index:(NSInteger)samplerIndex
 {
-  NSString *currID = [NSString stringWithUTF8String:sampler->name];
+  NSString *currID = [NSString stringWithUTF8String:pSampler->name];
   [_encoders[pCurrFramebuffer->ID] setFragmentSamplerState:_samplers[currID] atIndex:samplerIndex];
 }
 
-- (void)bindDepthStencil:(nonnull id<MTLDepthStencilState>)dsState settings:(nullable vcGLStencilSettings *)stencilSettings
+- (void)bindDepthStencil:(nonnull id<MTLDepthStencilState>)dsState settings:(nullable vcGLStencilSettings *)pStencil
 {
   for (int i = 0; i < BUFFER_COUNT; ++i)
   {
-    if (pFramebuffers[i])
+    if (pFramebuffers[i] != nullptr)
     {
       [_encoders[i] setDepthStencilState:dsState];
     
-      if (stencilSettings)
-        [_encoders[i] setStencilReferenceValue:(uint32_t)stencilSettings->compareValue];
+      if (pStencil != nullptr)
+        [_encoders[i] setStencilReferenceValue:(uint32_t)pStencil->compareValue];
     }
   }
 }
@@ -197,14 +155,11 @@
     case vcGLSBM_Multiplicative:
       pLookup = [NSString stringWithFormat:@"%dM",pCurrShader->ID];
       break;
-    default:
-      NSLog(@"Error generating blend mode lookup string");
-      break;
   }
 
   blend = pLookup;
 
-  if (!pLookup || _blendPipelines[pLookup])
+  if (pLookup == nullptr || _blendPipelines[pLookup])
   {
     [self bindBlendState];
     return;
@@ -256,11 +211,11 @@
 
 - (void)bindBlendState
 {
-  if (pCurrShader && pCurrFramebuffer)
+  if (pCurrShader != nullptr && pCurrFramebuffer != nullptr)
   {
     id<MTLRenderPipelineState> pipe;
     
-    if (!blend)
+    if (blend == nullptr)
     {
       pipe = [_pipelines objectAtIndex:pCurrShader->ID];
     }
@@ -268,6 +223,7 @@
     {
       if (![_blendPipelines objectForKey:blend] || ![blend hasPrefix:[NSString stringWithFormat:@"%d",pCurrShader->ID]])
         [self setBlendMode:blendMode];
+        
       pipe = [_blendPipelines objectForKey:blend];
     }
     
@@ -275,83 +231,79 @@
   }
 }
 
-- (void)drawUnindexed:(id<MTLBuffer>)vertBuffer
-          vertexStart:(NSUInteger)vStart
-          vertexCount:(NSUInteger)vCount
-        primitiveType:(MTLPrimitiveType)type
+- (void)drawUnindexed:(id<MTLBuffer>)vertBuffer vertexStart:(NSUInteger)vStart vertexCount:(NSUInteger)vCount primitiveType:(MTLPrimitiveType)type
 {
   for (int i = 0; i < pCurrShader->numBufferObjects; ++i)
     [self bindConstantBuffer:&pCurrShader->bufferObjects[i] index:i+1];
-  [_encoders[pCurrFramebuffer->ID] setVertexBuffer:vertBuffer
-                                            offset:vStart
-                                           atIndex:0];
-  [_encoders[pCurrFramebuffer->ID] drawPrimitives:type
-                                      vertexStart:vStart
-                                      vertexCount:vCount];
+    
+  [_encoders[pCurrFramebuffer->ID] setVertexBuffer:vertBuffer offset:vStart atIndex:0];
+  [_encoders[pCurrFramebuffer->ID] drawPrimitives:type vertexStart:vStart vertexCount:vCount];
 }
-- (void)drawIndexedTriangles:(id<MTLBuffer>)positionBuffer
-               indexedBuffer:(id<MTLBuffer>)indexBuffer
-                  indexCount:(unsigned long)indexCount
-                   indexSize:(MTLIndexType)indexType
-               primitiveType:(MTLPrimitiveType)type
+- (void)drawIndexedTriangles:(id<MTLBuffer>)vertBuffer indexedBuffer:(id<MTLBuffer>)indexBuffer indexCount:(unsigned long)indexCount offset:(unsigned long)offset indexSize:(MTLIndexType)indexType primitiveType:(MTLPrimitiveType)type
 {
   for (int i = 0; i < pCurrShader->numBufferObjects; ++i)
     [self bindConstantBuffer:&pCurrShader->bufferObjects[i] index:i+1];
-  [_encoders[pCurrFramebuffer->ID] setVertexBuffer:positionBuffer
-                             offset:0
-                            atIndex:0];
-  [_encoders[pCurrFramebuffer->ID] drawIndexedPrimitives:type
-                               indexCount:indexCount
-                                indexType:indexType
-                              indexBuffer:indexBuffer
-                        indexBufferOffset:0
-                            instanceCount:1];
+    
+  [_encoders[pCurrFramebuffer->ID] setVertexBuffer:vertBuffer offset:0 atIndex:0];
+  [_encoders[pCurrFramebuffer->ID] drawIndexedPrimitives:type indexCount:indexCount indexType:indexType indexBuffer:indexBuffer indexBufferOffset:offset];
 }
 
-- (void)cullMode:(MTLCullMode)mode
-{
-  for (int i = 0; i < BUFFER_COUNT; ++i)
-    if (pFramebuffers[i])
-    {
-      [_encoders[i] setCullMode:mode];
-    }
-}
-- (void)fillMode:(MTLTriangleFillMode)mode
-{
-  for (int i = 0; i < BUFFER_COUNT; ++i)
-    if (pFramebuffers[i])
-      [_encoders[i] setTriangleFillMode:mode];
-}
-- (void)windingMode:(MTLWinding)mode
-{
-  for (int i = 0; i < BUFFER_COUNT; ++i)
-    if (pFramebuffers[i])
-      [_encoders[i] setFrontFacingWinding:mode];
-}
-
-- (void)addFramebuffer:(nullable vcFramebuffer*)framebuffer
+- (void)setCullMode:(MTLCullMode)mode
 {
   for (int i = 0; i < BUFFER_COUNT; ++i)
   {
-    if (!pFramebuffers[i])
+    if (pFramebuffers[i] != nullptr)
+      [_encoders[i] setCullMode:mode];
+  }
+}
+- (void)setFillMode:(MTLTriangleFillMode)mode
+{
+  for (int i = 0; i < BUFFER_COUNT; ++i)
+  {
+    if (pFramebuffers[i] != nullptr)
+      [_encoders[i] setTriangleFillMode:mode];
+  }
+}
+- (void)setWindingMode:(MTLWinding)mode
+{
+  for (int i = 0; i < BUFFER_COUNT; ++i)
+  {
+    if (pFramebuffers[i] != nullptr)
+      [_encoders[i] setFrontFacingWinding:mode];
+  }
+}
+
+- (void)setScissor:(MTLScissorRect)rect
+{
+  rect.width = udMin(rect.width, _renderPasses[0].colorAttachments[0].texture.width);
+  rect.height = udMin(rect.height, _renderPasses[0].colorAttachments[0].texture.height);
+  [_encoders[pCurrFramebuffer->ID] setScissorRect:rect];
+
+}
+
+- (void)addFramebuffer:(nullable vcFramebuffer*)pFramebuffer
+{
+  for (int i = 0; i < BUFFER_COUNT; ++i)
+  {
+    if (pFramebuffers[i] == nullptr)
     {
       MTLRenderPassDescriptor *pass = [[MTLRenderPassDescriptor alloc] init];
       
       pass.colorAttachments[0].loadAction = MTLLoadActionClear;
       pass.colorAttachments[0].storeAction = MTLStoreActionStore;
       pass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0);
-      if (framebuffer->pColor)
-        pass.colorAttachments[0].texture = _textures[[NSString stringWithUTF8String:framebuffer->pColor->ID]];
+      if (pFramebuffer->pColor != nullptr)
+        pass.colorAttachments[0].texture = _textures[[NSString stringWithUTF8String:pFramebuffer->pColor->ID]];
       
-      if (framebuffer->pDepth)
+      if (pFramebuffer->pDepth != nullptr)
       {
-        pass.depthAttachment.texture = _textures[[NSString stringWithUTF8String:framebuffer->pDepth->ID]];
+        pass.depthAttachment.texture = _textures[[NSString stringWithUTF8String:pFramebuffer->pDepth->ID]];
         pass.depthAttachment.loadAction = MTLLoadActionClear;
         pass.depthAttachment.storeAction = MTLStoreActionStore;
         pass.depthAttachment.clearDepth = 1.0;
-        if (framebuffer->pDepth->format == vcTextureFormat_D24S8)
+        if (pFramebuffer->pDepth->format == vcTextureFormat_D24S8)
         {
-          pass.stencilAttachment.texture = _textures[[NSString stringWithUTF8String:framebuffer->pDepth->ID]];
+          pass.stencilAttachment.texture = _textures[[NSString stringWithUTF8String:pFramebuffer->pDepth->ID]];
           pass.stencilAttachment.clearStencil = 0;
         }
         else
@@ -365,8 +317,8 @@
         pass.stencilAttachment.texture = nil;
       }
       
-      pFramebuffers[i] = framebuffer;
-      framebuffer->ID = i;
+      pFramebuffers[i] = pFramebuffer;
+      pFramebuffer->ID = i;
       
       [_renderPasses setObject:pass atIndexedSubscript:i];
       [_commandBuffers setObject:[_queue commandBuffer] atIndexedSubscript:i];
@@ -376,15 +328,15 @@
     }
   }
 }
-- (void)setFramebuffer:(vcFramebuffer*)framebuffer
+- (void)setFramebuffer:(vcFramebuffer*)pFramebuffer
 {
-  pCurrFramebuffer = framebuffer;
+  pCurrFramebuffer = pFramebuffer;
 }
-- (void)destroyFramebuffer:(vcFramebuffer*)framebuffer
+- (void)destroyFramebuffer:(vcFramebuffer*)pFramebuffer
 {
-  [_encoders[framebuffer->ID] endEncoding];
-  [_commandBuffers[framebuffer->ID] commit];
-  pFramebuffers[framebuffer->ID] = nullptr;
+  [_encoders[pFramebuffer->ID] endEncoding];
+  [_commandBuffers[pFramebuffer->ID] commit];
+  pFramebuffers[pFramebuffer->ID] = nullptr;
 }
 - (void)bindViewport:(MTLViewport)vp
 {
@@ -393,20 +345,8 @@
     NSLog(@"invalid viewport");
 #endif
   for (int i = 0; i < BUFFER_COUNT; ++i)
-    if (pFramebuffers[i])
+    if (pFramebuffers[i] != nullptr)
       [_encoders[i] setViewport:vp];
-}
-- (id<MTLCommandBuffer>)mainBuffer
-{
-  return _commandBuffers[0];
-}
-- (id<MTLRenderCommandEncoder>)mainEncoder
-{
-  return _encoders[0];
-}
-- (MTLRenderPassDescriptor*)mainRenderPass
-{
-  return _renderPasses[0];
 }
 
 @end

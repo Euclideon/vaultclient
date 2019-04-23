@@ -9,17 +9,15 @@
 #import "gl/vcFramebuffer.h"
 
 #import <Metal/Metal.h>
-#import "Renderer.h"
-#import "ViewCon.h"
+#import "vcRenderer.h"
+#import "vcViewCon.h"
 
 #define BUFFER_COUNT 2
+#define METAL_DEBUG
 
-extern ViewCon *_viewCon;
+extern vcViewCon *_viewCon;
 extern id<MTLDevice> _device;
 extern id<MTLLibrary> _library;
-
-// Internal State
-static vcGLState s_internalState;
 
 struct vcTexture
 {
@@ -62,7 +60,7 @@ struct vcShader
 struct vcMesh
 {
   char vBufferIndex[32];
-  uint32_t iBufferIndex;
+  char iBufferIndex[32];
   uint32_t vertexBytes;
 
   uint32_t vertexCount;

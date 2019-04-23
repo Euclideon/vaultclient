@@ -1,5 +1,5 @@
-#ifndef Renderer_h__
-#define Renderer_h__
+#ifndef vcRenderer_h__
+#define vcRenderer_h__
 
 #import <MetalKit/MetalKit.h>
 #import "gl/vcGLState.h"
@@ -7,7 +7,7 @@
 #import "gl/vcFramebuffer.h"
 #import "vcMetal.h"
 
-@interface Renderer : NSObject<MTKViewDelegate>
+@interface vcRenderer : NSObject<MTKViewDelegate>
 
 @property(nonatomic,strong,nonnull) id<MTLCommandQueue> queue;
 
@@ -18,9 +18,9 @@
 @property(nonatomic,strong,nonnull) NSMutableArray<id<MTLRenderPipelineState>> *pipelines;
 @property(nonatomic,strong,nonnull) NSMutableArray<MTLRenderPipelineDescriptor*> *pipeDescs;
 @property(nonatomic,strong,nonnull) NSMutableArray<id<MTLBuffer>> *constantBuffers;
-@property(nonatomic,strong,nonnull) NSMutableArray<id<MTLBuffer>> *indexBuffers;
 
 @property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLBuffer>> *vertBuffers;
+@property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLBuffer>> *indexBuffers;
 @property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLTexture>> *textures;
 
 // Permutables
@@ -35,33 +35,22 @@
 
 - (nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)mtkView;
 - (void)mtkView:(nonnull MTKView*)view drawableSizeWillChange:(CGSize)size;
-- (void)defaultPipelines;
-- (void)bindPipeline:(nonnull vcShader*)shader;
-- (void)bindTexture:(nonnull struct vcTexture*)texture index:(NSInteger)samplerIndex;
-- (void)bindSampler:(nonnull struct vcShaderSampler*)texture index:(NSInteger)samplerIndex;
-- (void)bindDepthStencil:(nonnull id<MTLDepthStencilState>)dsState settings:(nullable vcGLStencilSettings *)stencilSettings;
+- (void)bindPipeline:(nonnull vcShader*)pShader;
+- (void)bindTexture:(nonnull struct vcTexture*)pTexture index:(NSInteger)samplerIndex;
+- (void)bindSampler:(nonnull struct vcShaderSampler*)pTexture index:(NSInteger)samplerIndex;
+- (void)bindDepthStencil:(nonnull id<MTLDepthStencilState>)dsState settings:(nullable vcGLStencilSettings *)pStencil;
 - (void)setBlendMode:(vcGLStateBlendMode)blendMode;
 - (void)bindConstantBuffer:(nonnull vcShaderConstantBuffer*)pBuffer index:(NSUInteger)index;
-- (void)drawUnindexed:(nonnull id<MTLBuffer>)vertBuffer
-          vertexStart:(NSUInteger)vStart
-          vertexCount:(NSUInteger)vCount
-        primitiveType:(MTLPrimitiveType)type;
-- (void)drawIndexedTriangles:(nonnull id<MTLBuffer>)positionBuffer
-               indexedBuffer:(nonnull id<MTLBuffer>)indexBuffer
-                  indexCount:(unsigned long)indexCount
-                   indexSize:(MTLIndexType)indexType
-               primitiveType:(MTLPrimitiveType)type;
-- (void)cullMode:(MTLCullMode)mode;
-- (void)fillMode:(MTLTriangleFillMode)mode;
-- (void)windingMode:(MTLWinding)mode;
-- (void)addFramebuffer:(nullable vcFramebuffer*)framebuffer;
-- (void)setFramebuffer:(nullable vcFramebuffer*)framebuffer;
-- (void)destroyFramebuffer:(nonnull vcFramebuffer*)framebuffer;
+- (void)drawUnindexed:(nonnull id<MTLBuffer>)vertBuffer vertexStart:(NSUInteger)vStart vertexCount:(NSUInteger)vCount primitiveType:(MTLPrimitiveType)type;
+- (void)drawIndexedTriangles:(nonnull id<MTLBuffer>)positionBuffer indexedBuffer:(nonnull id<MTLBuffer>)indexBuffer indexCount:(unsigned long)indexCount offset:(unsigned long)offset indexSize:(MTLIndexType)indexType primitiveType:(MTLPrimitiveType)type;
+- (void)setCullMode:(MTLCullMode)mode;
+- (void)setFillMode:(MTLTriangleFillMode)mode;
+- (void)setWindingMode:(MTLWinding)mode;
+- (void)setScissor:(MTLScissorRect)rect;
+- (void)addFramebuffer:(nullable vcFramebuffer*)pFramebuffer;
+- (void)setFramebuffer:(nullable vcFramebuffer*)pFramebuffer;
+- (void)destroyFramebuffer:(nonnull vcFramebuffer*)pFramebuffer;
 - (void)bindViewport:(MTLViewport)vp;
-
-- (nonnull id<MTLCommandBuffer>)mainBuffer;
-- (nonnull id<MTLRenderCommandEncoder>)mainEncoder;
-- (nonnull MTLRenderPassDescriptor*)mainRenderPass;
 
 @end
 

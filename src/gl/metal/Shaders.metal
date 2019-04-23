@@ -144,39 +144,39 @@ using namespace metal;
 
 
 // ImGui Vertex Shader - g_ImGuiVertexShader
-struct Uniforms {
-    float4x4 projectionMatrix;
-};
+  struct Uniforms {
+      float4x4 projectionMatrix;
+  };
 
-struct VertexIn {
-    float2 position  [[attribute(0)]];
-    float2 texCoords [[attribute(1)]];
-    uchar4 color     [[attribute(2)]];
-};
+  struct VertexIn {
+      float2 position  [[attribute(0)]];
+      float2 texCoords [[attribute(1)]];
+      uchar4 color     [[attribute(2)]];
+  };
 
-struct VertexOut {
-  float4 position [[position]];
-  float2 texCoords;
-  float4 color;
-};
+  struct VertexOut {
+    float4 position [[position]];
+    float2 texCoords;
+    float4 color;
+  };
 
-vertex VertexOut vertex_main(VertexIn in [[stage_in]], constant Uniforms& uIMGUI [[buffer(1)]])
-{
-    VertexOut out;
-    out.position = uIMGUI.projectionMatrix * float4(in.position, 0, 1);
-    out.texCoords = in.texCoords;
-    out.color = float4(in.color) / float4(255.0);
-    return out;
-}
+  vertex VertexOut imguiVertexShader(VertexIn in [[stage_in]], constant Uniforms& uIMGUI [[buffer(1)]])
+  {
+      VertexOut out;
+      out.position = uIMGUI.projectionMatrix * float4(in.position, 0, 1);
+      out.texCoords = in.texCoords;
+      out.color = float4(in.color) / float4(255.0);
+      return out;
+  }
 
 
 // ImGui Fragment Shader - g_ImGuiFragmentShader
-fragment half4 fragment_main(VertexOut in [[stage_in]], texture2d<half, access::sample> IMtexture [[texture(0)]])
-{
-  constexpr sampler linearSampler(coord::normalized, min_filter::linear, mag_filter::linear, mip_filter::linear);
-  half4 texColor = IMtexture.sample(linearSampler, in.texCoords);
-  return half4(in.color) * texColor;
-}
+  fragment half4 imguiFragmentShader(VertexOut in [[stage_in]], texture2d<half, access::sample> IMtexture [[texture(0)]])
+  {
+    constexpr sampler linearSampler(coord::normalized, min_filter::linear, mag_filter::linear, mip_filter::linear);
+    half4 texColor = IMtexture.sample(linearSampler, in.texCoords);
+    return half4(in.color) * texColor;
+  }
 
 // Fence Vertex Shader - g_FenceVertexShader
 
@@ -357,7 +357,7 @@ fragment half4 fragment_main(VertexOut in [[stage_in]], texture2d<half, access::
     return out;
   }
 
-// g_WaterVertexShader = R"shader(
+// g_WaterVertexShader
 struct WVSInput
 {
     float2 pos [[attribute(0)]];
@@ -503,3 +503,86 @@ PNUVFragmentShader(PNUVSOutput in [[stage_in]], texture2d<float, access::sample>
     return float4(col.xyz, 1.0);
 }
 
+
+// g_PolygonP1UV1FragmentShader
+struct PUVFSInput
+{
+    float4 pos [[position]];
+    float2 uv;
+    float4 colour;
+};
+
+fragment float4
+PUVFragmentShader(PUVFSInput in [[stage_in]], texture2d<float, access::sample> PUFSimg [[texture(0)]], sampler PUFSsampler [[sampler(0)]])
+{
+    float4 col = PUFSimg.sample(PUFSsampler, in.uv);
+    return col * in.colour;
+}
+
+// g_PolygonP1UV1VertexShader
+struct PUVVSInput
+{
+    float3 pos [[attribute(0)]];
+    float2 uv [[attribute(1)]];
+};
+
+struct PUVVSUniforms
+{
+    float4x4 u_modelViewProjectionMatrix;
+    float4 u_colour;
+    float4 u_screenSize; // unused
+};
+
+vertex PUVFSInput
+PUVVertexShader(PUVVSInput in [[stage_in]], constant PUVVSUniforms& uniforms [[buffer(1)]])
+{
+    PUVFSInput out;
+    
+    out.pos = uniforms.u_modelViewProjectionMatrix * float4(in.pos, 1.0);
+    out.uv = float2(in.uv.x, 1.0 - in.uv.y);
+    out.colour = uniforms.u_colour;
+    
+    return out;
+}
+
+// g_BillboardFragmentShader
+struct BFSInput
+{
+    float4 pos [[position]];
+    float2 uv;
+    float4 colour;
+};
+
+fragment float4
+billboardFragmentShader(BFSInput in [[stage_in]], texture2d<float, access::sample> BFSimg [[texture(0)]], sampler BFSsampler [[sampler(0)]])
+{
+    float4 col = BFSimg.sample(BFSsampler, in.uv);
+    return col * in.colour;
+}
+
+// g_BillboardVertexShader
+struct BVSInput
+{
+    float3 pos [[attribute(0)]];
+    float2 uv [[attribute(1)]];
+};
+
+struct BVSUniforms
+{
+    float4x4 u_modelViewProjectionMatrix;
+    float4 u_colour;
+    float4 u_screenSize;
+};
+
+vertex BFSInput
+billboardVertexShader(BVSInput in [[stage_in]], constant BVSUniforms& uniforms [[buffer(1)]])
+{
+    BFSInput out;
+    
+    out.pos = uniforms.u_modelViewProjectionMatrix * float4(in.pos, 1.0);
+    out.pos.xy += uniforms.u_screenSize.z * out.pos.w * uniforms.u_screenSize.xy * float2(in.uv.x * 2.0 - 1.0, in.uv.y * 2.0 - 1.0); // expand billboard
+    out.uv = float2(in.uv.x, 1.0 - in.uv.y);
+    out.colour = uniforms.u_colour;
+    
+    return out;
+}
