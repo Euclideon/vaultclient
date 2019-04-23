@@ -43,10 +43,7 @@ bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
   if (pFramebuffer == nullptr)
     return false;
   
-  udFloat4 col = udFloat4::create(((colour >> 16) & 0xFF) / 255.f,
-              ((colour >> 8) & 0xFF) / 255.f,
-              (colour & 0xFF) / 255.f,
-              ((colour >> 24) & 0xFF) / 255.f);
+  udFloat4 col = udFloat4::create(((colour >> 16) & 0xFF) / 255.f, ((colour >> 8) & 0xFF) / 255.f, (colour & 0xFF) / 255.f, ((colour >> 24) & 0xFF) / 255.f);
   
   _viewCon.renderer.renderPasses[pFramebuffer->ID].colorAttachments[0].clearColor = MTLClearColorMake(col.x,col.y,col.z,col.w);
   _viewCon.renderer.renderPasses[pFramebuffer->ID].colorAttachments[0].loadAction = MTLLoadActionClear;

@@ -6,7 +6,7 @@ project "vaultClient"
 	flags { "StaticRuntime", "FatalWarnings", "MultiProcessorCompile" }
 
 	--Files to include
-	files { "src/**.cpp", "src/**.h", "src/**.c" }
+	files { "src/**.cpp", "src/**.h", "src/**.c", "src/**.mm", "src/**.metal" }
 	files { "3rdParty/Imgui/**.cpp", "3rdParty/Imgui/**.h" }
 	files { "3rdParty/stb/**.h" }
 	files { "3rdParty/easyexif/**.h", "3rdParty/easyexif/**.cpp" }
@@ -27,6 +27,21 @@ project "vaultClient"
 	symbols "On"
 	injectvaultsdkbin()
 
+	local excludedSourceFileNames = {}
+	if _OPTIONS["gfxapi"] ~= "opengl" then
+  		table.insert(excludedSourceFileNames, "src/gl/opengl/*");
+	end
+	if _OPTIONS["gfxapi"] ~= "d3d11" then
+  		table.insert(excludedSourceFileNames, "src/gl/directx11/*");
+	end
+	if _OPTIONS["gfxapi"] ~= "metal" then
+		table.insert(excludedSourceFileNames, "src/gl/metal/*");
+		table.insert(excludedSourceFileNames, "src/imgui_ex/*.mm");
+	end
+	if os.target() ~= premake.IOS then
+		table.insert(excludedSourceFileNames, "src/vcWebFile.mm");
+	end
+
 	-- filters
 	filter { "configurations:Debug" }
 		kind "ConsoleApp"
@@ -39,7 +54,7 @@ project "vaultClient"
 	filter { "configurations:Release" }
 		optimize "Full"
 		flags { "NoFramePointer", "NoBufferSecurityCheck" }
-	
+
 	filter { "system:windows" }
 		defines { "GLEW_STATIC" }
 		sysincludedirs { "3rdParty/glew/include", "3rdParty/SDL2-2.0.8/include" }
@@ -54,7 +69,7 @@ project "vaultClient"
 		includedirs { "3rdParty" }
 		files { "3rdParty/GL/glext.h" }
 
-	filter { "system:macosx", "options:not test-ios" }
+	filter { "system:macosx" }
 		files { "macOS-Info.plist", "icons/macOSAppIcons.icns" }
 		frameworkdirs { "/Library/Frameworks/" }
 		links { "SDL2.framework", "OpenGL.framework" }
@@ -63,7 +78,7 @@ project "vaultClient"
 			["INFOPLIST_PREPROCESS"] = "YES",
 			["MACOSX_DEPLOYMENT_TARGET"] = "10.13",
 		}
-
+		
 	filter { "system:ios" }
 		files { "iOS-Info.plist", "builds/libvaultSDK.dylib", "icons/Images.xcassets", "src/vcWebFile.mm" }
 		sysincludedirs { "3rdParty/SDL2-2.0.8/include" }
@@ -74,9 +89,9 @@ project "vaultClient"
 		links { "SDL2", "AudioToolbox.framework", "QuartzCore.framework", "OpenGLES.framework", "CoreGraphics.framework", "UIKit.framework", "Foundation.framework", "CoreAudio.framework", "AVFoundation.framework", "GameController.framework", "CoreMotion.framework" }
 
 	filter { "system:macosx or ios" }
-		files { "src/**.mm", "src/**.metal", "src/**.metallib" }
 		files { "builds/assets/**", "builds/releasenotes.md", "builds/defaultsettings.json" }
 		xcodebuildresources { ".otf", ".png", ".jpg", ".json", ".metallib", "releasenotes", "defaultsettings" }
+		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = excludedSourceFileNames }
 
 	filter { "system:not windows" }
 		links { "dl" }
@@ -84,60 +99,39 @@ project "vaultClient"
 	filter { "system:linux" }
 		links { "z" }
 
-	filter { "options:test-ios" }
-		frameworkdirs { "/Library/Frameworks/" }
-		xcodebuildsettings {
-    			['PRODUCT_BUNDLE_IDENTIFIER'] = 'Euclideon Vault Client',
-    			["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = "iPhone Developer",
-    			['IPHONEOS_DEPLOYMENT_TARGET'] = '10.1',
-    			['SDKROOT'] = 'iphoneos',
-			['ADDITIONAL_SDKS'] = 'iphonesimulator',
-    			['ARCHS'] = 'arm64',
-    			['TARGETED_DEVICE_FAMILY'] = "1,2",
-    			['DEVELOPMENT_TEAM'] = "452P989JPT",
-    			['ENABLE_BITCODE'] = "NO",
-			["ASSETCATALOG_COMPILER_APPICON_NAME"] = "AppIcon" }
-		files { "iOS-Info.plist", "builds/libvaultSDK.dylib", "icons/Images.xcassets" }
-		sysincludedirs { "3rdParty/SDL2-2.0.8/include" }
-		xcodebuildresources { "libvaultSDK", "Images.xcassets" }
-		removefiles { "3rdParty/glew/glew.c" }
-		libdirs { "3rdParty/SDL2-2.0.8/lib/ios" }
-		
-		links { "SDL2", "AudioToolbox.framework", "QuartzCore.framework", "OpenGLES.framework", "CoreGraphics.framework", "UIKit.framework", "Foundation.framework", "CoreAudio.framework", "AVFoundation.framework", "GameController.framework", "CoreMotion.framework" }
-
 	filter { "options:gfxapi=opengl" }
 		defines { "GRAPHICS_API_OPENGL=1" }
-		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = { "src/gl/directx11/*", "src/gl/metal/*" } }
-
-	filter { "options:gfxapi=opengl", "files:src/gl/directx11/*", "system:not macosx" }
-		flags { "ExcludeFromBuild" }
-	filter { "options:gfxapi=opengl", "files:src/gl/metal/*", "system:not macosx" }
-		flags { "ExcludeFromBuild" }
 
 	filter { "options:gfxapi=d3d11" }
 		libdirs { "$(DXSDK_DIR)/Lib/x64;" }
 		links { "d3d11.lib", "d3dcompiler.lib", "dxgi.lib", "dxguid.lib" }
 		defines { "GRAPHICS_API_D3D11=1" }
-		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = { "src/gl/metal/*", "src/gl/opengl/*" } }
 
 	filter { "options:gfxapi=metal" }
 		defines { "GRAPHICS_API_METAL=1" }
-		xcodebuildsettings { 
-			["EXCLUDED_SOURCE_FILE_NAMES"] = { "src/gl/opengl/*", "src/gl/directx11/*" },
-			['CLANG_ENABLE_OBJC_ARC'] = "YES" }
+		files { "src/gl/metal/shaders.metallib" }
+		xcodebuildsettings {
+			["CLANG_ENABLE_OBJC_ARC"] = "YES",
+			["GCC_ENABLE_OBJC_EXCEPTIONS"] = "YES", 
+		}
 		links { "MetalKit.framework", "Metal.framework" }
+		prebuildcommands {
+			"xcrun -sdk macosx metal -c src/gl/metal/Shaders.metal -o lib.air",
+			"xcrun -sdk macosx metallib lib.air -o src/gl/metal/shaders.metallib",
+			"rm lib.air",
+		}
 
-	filter { "options:gfxapi=metal", "system:macosx", "options:not test-ios" }
+	filter { "options:gfxapi=metal", "system:macosx" }
 		links { "AppKit.framework" }
 
-	filter { "options:gfxapi=metal", "files:src/gl/opengl/*", "system:not macosx" }
+	filter { "options:not gfxapi=opengl", "files:src/gl/opengl/*", "system:not macosx" }
 		flags { "ExcludeFromBuild" }
-	filter { "options:gfxapi=metal", "files:src/gl/directx11/*", "system:not macosx" }
+	filter { "options:not gfxapi=d3d11", "files:src/gl/directx11/*", "system:not macosx" }
+		flags { "ExcludeFromBuild" }
+	filter { "options:not gfxapi=metal", "files:src/gl/metal/*", "system:not macosx" }
 		flags { "ExcludeFromBuild" }
 
-	filter { "options:gfxapi=d3d11", "files:src/gl/opengl/*", "system:not macosx" }
-		flags { "ExcludeFromBuild" }
-	filter { "options:gfxapi=d3d11", "files:src/gl/metal/*", "system:not macosx" }
+	filter { "system:not ios and not macosx", "files:src/**.mm" }
 		flags { "ExcludeFromBuild" }
 
 	-- include common stuff
@@ -151,6 +145,6 @@ project "vaultClient"
 		targetname ("%{prj.name}_" .. _OPTIONS["gfxapi"])
 
 	filter {}
-
+	
 	targetdir "builds"
 	debugdir "builds"

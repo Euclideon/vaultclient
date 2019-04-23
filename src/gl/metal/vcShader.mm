@@ -36,11 +36,11 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
         vertexDesc.attributes[i].format = MTLVertexFormatFloat2;
         accumulatedOffset += 2 * sizeof(float);
         break;
-      case vcVLT_RibbonInfo4: // !!!
+      case vcVLT_RibbonInfo4:
         vertexDesc.attributes[i].format = MTLVertexFormatFloat4;
         accumulatedOffset += 4 * sizeof(float);
         break;
-      case vcVLT_ColourBGRA: // !!!
+      case vcVLT_ColourBGRA:
         vertexDesc.attributes[i].format = MTLVertexFormatUInt;
         accumulatedOffset += 1 * sizeof(uint32_t);
         break;
@@ -49,11 +49,12 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
         accumulatedOffset += 3 * sizeof(float);
         break;
       case vcVLT_TotalTypes:
-        break; // never reaches here due to error set above
+        break;
     }
     
     vertexDesc.layouts[0].stride = accumulatedOffset;
     vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+    vertexDesc.layouts[0].stepRate = 1;
   }
   
   id<MTLFunction> vFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pVertexShader]];
@@ -65,19 +66,14 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   pDesc.fragmentFunction = fFunc;
   
   pDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-  pDesc.colorAttachments[0].blendingEnabled = YES;
-  pDesc.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
-  pDesc.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
-  pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
-  pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorSourceAlpha;
-  pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-  pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
   pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float;
-#else
+#elif UDPLATFORM_OSX
   pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
   pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
+#else
+# error "Unknown platform!"
 #endif
     
   id<MTLRenderPipelineState> state = [_device newRenderPipelineStateWithDescriptor:pDesc error:&err];
@@ -93,6 +89,7 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   [_viewCon.renderer.pipelines addObject:state];
   [_viewCon.renderer.pipeDescs addObject:pDesc];
   
+  // Bind here ensures depth/stencil state is constructed before first use
   [_viewCon.renderer bindPipeline:pShader];
   
   *ppShader = pShader;
@@ -181,7 +178,7 @@ bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuf
     ++pShader->numBufferObjects;
   }
   
-  if (pBuffer->expectedSize == bufferSize)
+  if (pBuffer->expectedSize >= bufferSize)
   {
     // !!!!!!!!!!!
     // Differences in packing of structs in our code vs metal shader source makes this not work out, may help to move structs to seperate header
@@ -203,29 +200,24 @@ bool vcShader_ReleaseConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *p
   if (pShader == nullptr || pBuffer == nullptr)
     return false;
   
-  for (int i = 0; i < pShader->numBufferObjects; ++i)
-  {
-    if (udStrEquali(pShader->bufferObjects[i].name, pBuffer->name))
-    {
-      if (i + 1 < 16)
-      {
-        for (int j = 1; j < pShader->numBufferObjects; ++j)
-        {
-          pShader->bufferObjects[i] = pShader->bufferObjects[j];
-          ++i;
-        }
-      }
-    }
-  }
-  --pShader->numBufferObjects;
-  
+  // TODO
+    
   return true;
 }
 
 bool vcShader_GetSamplerIndex(vcShaderSampler **ppSampler, vcShader *pShader, const char *pSamplerName)
 {
-  udUnused(ppSampler);
-  udUnused(pShader);
-  udUnused(pSamplerName);
-  return true;
+  if (pShader == nullptr)
+    return false;
+  
+  for (int i = 0; i < pShader->numBufferObjects; ++i)
+  {
+    if (udStrEquali(pShader->samplerIndexes[i].name, pSamplerName))
+    {
+      *ppSampler = &pShader->samplerIndexes[i];
+      return true;
+    }
+  }
+
+  return false;
 }

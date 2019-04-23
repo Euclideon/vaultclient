@@ -5,25 +5,29 @@
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
 #import <UIKit/UIKit.h>
-#else
+#elif UDPLATFORM_OSX
 #import <Cocoa/Cocoa.h>
+#else
+# error "Unsupported platform!"
 #endif
 
 #import <Metal/Metal.h>
 #import <MetalKit/MTKView.h>
 
-#import "ViewCon.h"
+#include "vcViewCon.h"
 #include "vcStrings.h"
 #include "imgui.h"
-#include "imgui_impl_metal.h"
 #include "imgui_impl_sdl.h"
+#include "imgui_ex/imgui_impl_metal.h"
 
 int32_t g_maxAnisotropy = 0;
-ViewCon *_viewCon;
+vcViewCon *_viewCon;
 
 id<MTLDevice> _device;
 id<MTLLibrary> _library;
 id<MTLCommandQueue> _queue;
+
+static vcGLState s_internalState;
 
 MTLStencilOperation mapStencilOperation[] =
 {
@@ -83,16 +87,16 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   _device = MTLCreateSystemDefaultDevice();
   _library = [_device newLibraryWithFile:[[NSBundle mainBundle] pathForResource:@"shaders" ofType:@"metallib" ] error:nil];
   
-#ifdef METAL_DEBUG
-  if (!_device)
+  if (_device == nullptr)
   {
     NSLog(@"Metal is not supported on this device");
+    return false;
   }
-  else if (!_library)
+  else if (_library == nullptr)
   {
     NSLog(@"Shader library couldn't be created");
+    return false;
   }
-#endif
   
   SDL_SysWMinfo wminfo;
   SDL_VERSION(&wminfo.version);
@@ -100,26 +104,36 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   UIView *sdlview = wminfo.info.uikit.window;
-#else
+#elif UDPLATFORM_OSX
   NSView *sdlview = wminfo.info.cocoa.window.contentView;
+#else
+# error "Unsupported platform!"
 #endif
   
   sdlview.autoresizesSubviews = true;
   
-  _viewCon = [ViewCon alloc];
+  _viewCon = [vcViewCon alloc];
   _viewCon.Mview = [[MTKView alloc] initWithFrame:sdlview.frame device:_device];
+  if(_viewCon.Mview == nullptr)
+  {
+      NSLog(@"MTKView wasn't created");
+      return false;
+  }
   [sdlview addSubview:_viewCon.Mview];
   _viewCon.Mview.device = _device;
   _viewCon.Mview.framebufferOnly = false;
   _viewCon.Mview.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
   _viewCon.Mview.autoResizeDrawable = true;
-  _viewCon.Mview.preferredFramesPerSecond = 30;
+  _viewCon.Mview.preferredFramesPerSecond = 60;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   _viewCon.Mview.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-#else
+#elif UDPLATFORM_OSX
   _viewCon.Mview.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+#else
+# error "Unsupported platform!"
 #endif
   
+  // Overloading NSViewController/UIViewController function, initializes the view controller objects
   [_viewCon viewDidLoad];
   
   vcTexture *defaultTexture, *defaultDepth;
@@ -142,13 +156,6 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   vcGLState_BuildDepthStates();
   
   ImGui_ImplMetal_Init();
-  
-#ifdef METAL_DEBUG
-  if(!_viewCon.Mview)
-  {
-    NSLog(@"MTKView wasn't created");
-  }
-#endif
 
   *ppDefaultFramebuffer = pFramebuffer;
   
@@ -177,33 +184,46 @@ bool vcGLState_ApplyState(vcGLState *pState)
 
 bool vcGLState_ResetState(bool force /*= false*/)
 {
-  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back, true, force);
-  vcGLState_SetBlendMode(vcGLSBM_None, force);
-  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true, nullptr, force);
-
-  return true;
+  bool success = true;
+  
+  success &= vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back, true, force);
+  success &= vcGLState_SetBlendMode(vcGLSBM_None, force);
+  success &= vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true, nullptr, force);
+  
+  return success;
 }
 
 bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMode, bool isFrontCCW /*= true*/, bool force /*= false*/)
 {
   if (force || fillMode != s_internalState.fillMode || cullMode != s_internalState.cullMode || isFrontCCW != s_internalState.isFrontCCW)
   {
-    if (fillMode == vcGLSFM_Solid)
-      [_viewCon.renderer fillMode:MTLTriangleFillModeFill];
-    else
-      [_viewCon.renderer fillMode:MTLTriangleFillModeLines];
+    switch(fillMode)
+    {
+      case vcGLSFM_Solid:
+        [_viewCon.renderer setFillMode:MTLTriangleFillModeFill];
+        break;
+      case vcGLSFM_Wireframe:
+        [_viewCon.renderer setFillMode:MTLTriangleFillModeLines];
+        break;
+    }
     
-    if (cullMode == vcGLSCM_None)
-      [_viewCon.renderer cullMode:MTLCullModeNone];
-    else if (cullMode == vcGLSCM_Front)
-      [_viewCon.renderer cullMode:MTLCullModeFront];
-    else if (cullMode == vcGLSCM_Back)
-      [_viewCon.renderer cullMode:MTLCullModeBack];
+    switch(cullMode)
+    {
+      case vcGLSCM_None:
+        [_viewCon.renderer setCullMode:MTLCullModeNone];
+        break;
+      case vcGLSCM_Front:
+        [_viewCon.renderer setCullMode:MTLCullModeFront];
+        break;
+      case vcGLSCM_Back:
+        [_viewCon.renderer setCullMode:MTLCullModeBack];
+        break;
+    }
     
     if (isFrontCCW)
-      [_viewCon.renderer windingMode:MTLWindingCounterClockwise];
+      [_viewCon.renderer setWindingMode:MTLWindingCounterClockwise];
     else
-      [_viewCon.renderer windingMode:MTLWindingClockwise];
+      [_viewCon.renderer setWindingMode:MTLWindingClockwise];
     
     s_internalState.fillMode = fillMode;
     s_internalState.cullMode = cullMode;
@@ -224,6 +244,7 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
 
 bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite, vcGLStencilSettings *pStencil /* = nullptr */, bool force /*= false*/)
 {
+  // Always forced, TODO: Check depthReadMode & pStencil for redundancy and store depth stencil states
   udUnused(force);
   
   bool enableStencil = pStencil != nullptr;
@@ -239,9 +260,9 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
   depthStencilDesc.depthCompareFunction = mapDepthMode[depthReadMode];
   depthStencilDesc.depthWriteEnabled = doDepthWrite;
   
-#if !UDPLATFORM_IOS && !UDPLATFORM_IOS_SIMULATOR
   if (enableStencil)
   {
+#if UDPLATFORM_OSX
     MTLStencilDescriptor *stencilDesc = [[MTLStencilDescriptor alloc] init];
     
     stencilDesc.readMask = (uint32)pStencil->compareMask;
@@ -253,8 +274,12 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
     
     depthStencilDesc.frontFaceStencil = stencilDesc;
     depthStencilDesc.backFaceStencil = stencilDesc;
-  }
+#elif UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+    return false;
+#else
+# error "Unknown platform!"
 #endif
+  }
   
   id<MTLDepthStencilState> dsState = [_device newDepthStencilStateWithDescriptor:depthStencilDesc];
   [_viewCon.renderer bindDepthStencil:dsState settings:pStencil];
@@ -279,6 +304,8 @@ bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, 
   
   [_viewCon.renderer bindViewport:vp];
   s_internalState.viewportZone = udInt4::create(x, y, width, height);
+  
+  vcGLState_Scissor(x, y, width + x, height + y);
 
   return true;
 }
@@ -306,14 +333,18 @@ bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
   return true;
 }
 
-void vcGLState_Scissor(int left, int top, int width, int height, bool force /*= false*/)
+void vcGLState_Scissor(int left, int top, int right, int bottom, bool force /*= false*/)
 {
-  udUnused(left);
-  udUnused(top);
-  udUnused(width);
-  udUnused(height);
   udUnused(force);
-  return;
+  udInt4 newScissor = udInt4::create(left, s_internalState.viewportZone.w - bottom, right - left, bottom - top);
+  MTLScissorRect rect = {
+      .x = (NSUInteger)left,
+      .y = (NSUInteger)top,
+      .width = (NSUInteger)right - left,
+      .height = (NSUInteger)bottom - top
+  };
+  [_viewCon.renderer setScissor:rect];
+  s_internalState.scissorZone = newScissor;
 }
 
 int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel)

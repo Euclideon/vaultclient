@@ -6,12 +6,12 @@
 #import "udPlatform/udFile.h"
 #import "udPlatform/udPlatformUtil.h"
 
-#import "ViewCon.h"
-#import "Renderer.h"
+#import "vcViewCon.h"
+#import "vcRenderer.h"
 
 #include "stb_image.h"
 
-uint32_t textureIndex = 0;
+uint32_t g_textureIndex = 0;
 
 udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags, int32_t aniFilter /* = 0 */)
 {
@@ -19,10 +19,6 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
     return udR_InvalidParameter_;
 
   udUnused(hasMipmaps);
-  
-  // only allow mip maps for certain formats
-  //if (format != vcTextureFormat_RGBA8)
-  //  hasMipmaps = false;
   
   udResult result = udR_Success;
 
@@ -36,8 +32,10 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
     pTextureDesc.pixelFormat = MTLPixelFormatRGBA8Unorm;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
     pTextureDesc.storageMode = MTLStorageModeShared;
-#else
+#elif UDPLATFORM_OSX
     pTextureDesc.storageMode = MTLStorageModeManaged;
+#else
+# error "Unsupported platform!"
 #endif
     pTextureDesc.usage = MTLTextureUsagePixelFormatView | MTLTextureUsageShaderRead;
     break;
@@ -45,8 +43,10 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
     pTextureDesc.pixelFormat = MTLPixelFormatBGRA8Unorm;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
     pTextureDesc.storageMode = MTLStorageModeShared;
-#else
+#elif UDPLATFORM_OSX
     pTextureDesc.storageMode = MTLStorageModeManaged;
+#else
+# error "Unsupported platform!"
 #endif
     pTextureDesc.usage = MTLTextureUsageShaderRead;
     break;
@@ -58,21 +58,18 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
   case vcTextureFormat_D24S8:
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
     pTextureDesc.pixelFormat = MTLPixelFormatDepth32Float;
-#else
+#elif UDPLATFORM_OSX
     pTextureDesc.pixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
+#else
+# error "Unsupported platform!"
 #endif
     pTextureDesc.usage = MTLTextureUsageShaderRead;
     pTextureDesc.storageMode = MTLStorageModePrivate;
     break;
-  default:
-    break;
-    //UD_ERROR_SET(udR_InvalidParameter_);
   }
   
   pTextureDesc.width = width;
   pTextureDesc.height = height;
-
-  // number? no mipmaps is 1
   pTextureDesc.mipmapLevelCount = 1;
   
   if (flags & vcTCF_RenderTarget || flags & vcTCF_Dynamic)
@@ -98,11 +95,8 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
   
   if (pPixels && (pTextureDesc.storageMode != MTLStorageModePrivate))
   {
-    [texture replaceRegion:region
-               mipmapLevel:0
-                 withBytes:pPixels
-               bytesPerRow:row];
-#if !UDPLATFORM_IOS && !UDPLATFORM_IOS_SIMULATOR
+    [texture replaceRegion:region mipmapLevel:0 withBytes:pPixels bytesPerRow:row];
+#if UDPLATFORM_OSX
     [_viewCon.renderer.blitEncoder synchronizeTexture:texture slice:0 level:0];
 #endif
   }
@@ -112,14 +106,16 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
     [_viewCon.renderer.blitEncoder copyFromBuffer:temp sourceOffset:0 sourceBytesPerRow:row sourceBytesPerImage:len sourceSize:MTLSizeMake(width, height, 1) toTexture:texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
   }
 
+  // Sampler
   NSString *key = [NSString stringWithFormat:@"%@%@", (filterMode == vcTFM_Nearest ? @"N" : @"L"), (wrapMode == vcTWM_Repeat ? @"R" : @"C")];
   id<MTLSamplerState> savedSampler = [_viewCon.renderer.samplers valueForKey:key];
   
   if (savedSampler)
+  {
     udStrcpy(pText->samplerID, 32, key.UTF8String);
+  }
   else
   {
-    // Sampler stuff
     MTLSamplerDescriptor *pSamplerDesc = [MTLSamplerDescriptor new];
     pSamplerDesc.mipFilter = MTLSamplerMipFilterNotMipmapped;
     pSamplerDesc.rAddressMode = MTLSamplerAddressModeClampToEdge;
@@ -127,16 +123,19 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
     pSamplerDesc.tAddressMode = MTLSamplerAddressModeClampToEdge;
     if (filterMode == vcTFM_Nearest)
       pSamplerDesc.mipFilter = MTLSamplerMipFilterNearest;
+    
     if (wrapMode == vcTWM_Repeat)
     {
       pSamplerDesc.rAddressMode = MTLSamplerAddressModeRepeat;
       pSamplerDesc.sAddressMode = MTLSamplerAddressModeRepeat;
       pSamplerDesc.tAddressMode = MTLSamplerAddressModeRepeat;
     }
+    
     if (aniFilter > 0)
       pSamplerDesc.maxAnisotropy = aniFilter;
     else
       pSamplerDesc.maxAnisotropy = 1;
+    
     pSamplerDesc.minFilter = MTLSamplerMinMagFilterNearest;
     pSamplerDesc.magFilter = MTLSamplerMinMagFilterLinear;
     
@@ -146,10 +145,10 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
     [_viewCon.renderer.samplers setObject:sampler forKey:key];
   }
   
-  NSString *txID = [NSString stringWithFormat:@"%u",textureIndex];
+  NSString *txID = [NSString stringWithFormat:@"%u",g_textureIndex];
   udStrcpy(pText->ID, 32, txID.UTF8String);
   [_viewCon.renderer.textures setObject:texture forKey:txID];
-  ++textureIndex;
+  ++g_textureIndex;
   
   *ppTexture = pText;
   pText = nullptr;
@@ -200,24 +199,24 @@ bool vcTexture_CreateFromFilename(struct vcTexture **ppTexture, const char *pFil
 
 udResult vcTexture_UploadPixels(struct vcTexture *pTexture, const void *pPixels, int width, int height)
 {
-  if (pTexture == nullptr || pPixels == nullptr || width == 0 || height == 0)
-    return udR_InvalidParameter_;
-
-  udResult result = udR_Success;
+  udResult result = udR_Failure_;
   
+  if (pTexture == nullptr || pPixels == nullptr || width == 0 || height == 0)
+    return result;
+
   if ((int)pTexture->width == width && (int)pTexture->height == height)
   {
     id<MTLBuffer> pData = [_device newBufferWithBytes:pPixels length:width * height * 4 options:MTLStorageModeShared];
     
     [_viewCon.renderer.blitEncoder copyFromBuffer:pData sourceOffset:0 sourceBytesPerRow:width * 4 sourceBytesPerImage:width * height * 4 sourceSize:MTLSizeMake(width, height, 1) toTexture:_viewCon.renderer.textures[[NSString stringWithUTF8String:pTexture->ID]] destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
-#if !UDPLATFORM_IOS && !UDPLATFORM_IOS_SIMULATOR
+#if UDPLATFORM_OSX
     if (_viewCon.renderer.textures[[NSString stringWithUTF8String:pTexture->ID]].storageMode != MTLStorageModePrivate)
       [_viewCon.renderer.blitEncoder synchronizeTexture:_viewCon.renderer.textures[[NSString stringWithUTF8String:pTexture->ID]] slice:0 level:0];
 #endif
-    return result;
+    result = udR_Success;
   }
-
-  return udR_Failure_;
+  
+  return result;
 }
 
 void vcTexture_Destroy(struct vcTexture **ppTexture)
@@ -245,18 +244,17 @@ bool vcTexture_LoadCubemap(struct vcTexture **ppTexture, const char *pFilename)
   fileName.ExtractFilenameOnly(fileNameNoExt, (int)udLengthOf(fileNameNoExt));
   uint8_t* data = stbi_load(vcSettings_GetAssetPath(udTempStr("assets/skyboxes/%s%s%s", fileNameNoExt, names[0], fileName.GetExt())), &width, &height, &depth, 0);
   
-  MTLTextureDescriptor *pTextureDesc = [MTLTextureDescriptor textureCubeDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
-                                                                                 size:width
-                                                                            mipmapped:NO];
+  MTLTextureDescriptor *pTextureDesc = [MTLTextureDescriptor textureCubeDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm size:width mipmapped:NO];
+  
   if (data)
   {
     if (depth == 3)
-      // ??? RGB
-      pTextureDesc.pixelFormat = MTLPixelFormatRGBA8Unorm;
+      // ??? RGB No corresponding MTLPixelFormat that I can see, except in the compressed formats
+      pTextureDesc.pixelFormat = MTLPixelFormatInvalid;
     else
       pTextureDesc.pixelFormat = MTLPixelFormatRGBA8Unorm;
   }
-  pTextureDesc.pixelFormat = MTLPixelFormatInvalid;
+
   pTextureDesc.width = width;
   pTextureDesc.height = height;
   
@@ -264,12 +262,7 @@ bool vcTexture_LoadCubemap(struct vcTexture **ppTexture, const char *pFilename)
   
 
   MTLRegion region = MTLRegionMake2D(0, 0, width, height);
-  [texture replaceRegion:region
-                        mipmapLevel:0
-                              slice:0
-                          withBytes:data
-                        bytesPerRow:4 * width
-                      bytesPerImage:4 * width * height];
+  [texture replaceRegion:region mipmapLevel:0 slice:0 withBytes:data bytesPerRow:4 * width bytesPerImage:4 * width * height];
   
   stbi_image_free(data);
   
@@ -279,12 +272,7 @@ bool vcTexture_LoadCubemap(struct vcTexture **ppTexture, const char *pFilename)
     fileName.ExtractFilenameOnly(fileNameNoExt, (int)udLengthOf(fileNameNoExt));
     uint8_t* data = stbi_load(vcSettings_GetAssetPath(udTempStr("assets/skyboxes/%s%s%s", fileNameNoExt, names[i], fileName.GetExt())), &width, &height, &depth, 0);
 
-    [texture replaceRegion:region
-                          mipmapLevel:0
-                                slice:i
-                            withBytes:data
-                          bytesPerRow:4 * width
-                        bytesPerImage:4 * width * height];
+    [texture replaceRegion:region mipmapLevel:0 slice:i withBytes:data bytesPerRow:4 * width bytesPerImage:4 * width * height];
 
     stbi_image_free(data);
   }
@@ -293,7 +281,9 @@ bool vcTexture_LoadCubemap(struct vcTexture **ppTexture, const char *pFilename)
   id<MTLSamplerState> savedSampler = [_viewCon.renderer.samplers valueForKey:key];
   
   if (savedSampler)
+  {
     udStrcpy(pTexture->samplerID, 32, key.UTF8String);
+  }
   else
   {
     // Sampler stuff
@@ -312,10 +302,10 @@ bool vcTexture_LoadCubemap(struct vcTexture **ppTexture, const char *pFilename)
     [_viewCon.renderer.samplers setObject:sampler forKey:key];
   }
 
-  NSString *txID = [NSString stringWithFormat:@"%u",textureIndex];
+  NSString *txID = [NSString stringWithFormat:@"%u",g_textureIndex];
   udStrcpy(pTexture->ID, 32, txID.UTF8String);
   [_viewCon.renderer.textures setObject:texture forKey:txID];
-  ++textureIndex;
+  ++g_textureIndex;
 
   *ppTexture = pTexture;
   pTexture = nullptr;

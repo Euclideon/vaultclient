@@ -16,15 +16,14 @@
 
 #include "imgui.h"
 #include "imgui_impl_metal.h"
-#include "imgui_ex/imgui_impl_sdl.h"
+#include "imgui_impl_sdl.h"
 
 #import <Metal/Metal.h>
 //#import <QuartzCore/CAMetalLayer.h> // Not suported in XCode 9.2. Maybe a macro to detect the SDK version can be used (something like #if MACOS_SDK >= 10.13 ...)
 
-#import "gl/vcFramebuffer.h"
-#import "vcMetal.h"
-#import "Renderer.h"
-
+#include "gl/vcFramebuffer.h"
+#include "gl/metal/vcMetal.h"
+#include "gl/metal/vcRenderer.h"
 #include "udPlatform/udPlatform.h"
 
 #pragma mark - Support classes
@@ -87,7 +86,7 @@ void ImGui_ImplMetal_NewFrame(SDL_Window *pWindow)
 {
     IM_ASSERT(g_sharedMetalContext != nil && "No Metal context. Did you call ImGui_ImplMetal_Init?");
     
-    g_sharedMetalContext.renderPassDescriptor = [_viewCon.renderer mainRenderPass];
+    g_sharedMetalContext.renderPassDescriptor = _viewCon.renderer.renderPasses[0];
     
     ImGuiIO& io = ImGui::GetIO();
     
@@ -107,7 +106,7 @@ void ImGui_ImplMetal_NewFrame(SDL_Window *pWindow)
 // Metal Render function.
 void ImGui_ImplMetal_RenderDrawData(ImDrawData* draw_data)
 {
-    [g_sharedMetalContext renderDrawData:draw_data commandBuffer:[_viewCon.renderer mainBuffer] commandEncoder:[_viewCon.renderer mainEncoder]];
+    [g_sharedMetalContext renderDrawData:draw_data commandBuffer:_viewCon.renderer.commandBuffers[0] commandEncoder:_viewCon.renderer.encoders[0]];
 }
 
 bool ImGui_ImplMetal_CreateFontsTexture()
@@ -239,8 +238,8 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
 {
     NSError *error = nil;
     
-    id<MTLFunction> vertexFunction = [_library newFunctionWithName:@"vertex_main"];
-    id<MTLFunction> fragmentFunction = [_library newFunctionWithName:@"fragment_main"];
+    id<MTLFunction> vertexFunction = [_library newFunctionWithName:@"imguiVertexShader"];
+    id<MTLFunction> fragmentFunction = [_library newFunctionWithName:@"imguiFragmentShader"];
     
     if (vertexFunction == nil || fragmentFunction == nil)
     {
@@ -278,9 +277,11 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
     pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
     pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float;
-#else
+#elif UDPLATFORM_OSX
     pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
     pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
+#else
+# error "Unsupported platform!"
 #endif
     
     id<MTLRenderPipelineState> renderPipelineState = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
