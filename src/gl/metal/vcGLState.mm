@@ -205,6 +205,9 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
       case vcGLSFM_Wireframe:
         [_viewCon.renderer setFillMode:MTLTriangleFillModeLines];
         break;
+      case vcGLSFM_TotalModes:
+        return false;
+        break;
     }
     
     switch(cullMode)
@@ -217,6 +220,9 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
         break;
       case vcGLSCM_Back:
         [_viewCon.renderer setCullMode:MTLCullModeBack];
+        break;
+      case vcGLSCM_TotalModes:
+        return false;
         break;
     }
     

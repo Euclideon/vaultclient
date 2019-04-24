@@ -94,15 +94,27 @@ linux_deb_clang_debug:
 #    - linux
 #    - docker
 
-macosx_x64_release:
+macosx_x64_release_opengl:
   stage: build
-  script: "buildscripts/build.sh Release x64"
+  script: "buildscripts/build.sh Release x64 --gfxapi=opengl"
   tags:
     - osx
 
-macosx_x64_debug:
+macosx_x64_debug_opengl:
   stage: build
-  script: "buildscripts/build.sh Debug x64"
+  script: "buildscripts/build.sh Debug x64 --gfxapi=opengl"
+  tags:
+    - osx
+
+macosx_x64_release_metal:
+  stage: build
+  script: "buildscripts/build.sh Release x64 --gfxapi=metal"
+  tags:
+    - osx
+
+macosx_x64_debug_metal:
+  stage: build
+  script: "buildscripts/build.sh Debug x64 --gfxapi=metal"
   tags:
     - osx
 
