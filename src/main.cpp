@@ -9,13 +9,17 @@
 
 #include "imgui.h"
 #include "imgui_ex/imgui_impl_sdl.h"
+
+#if defined(GRAPHICS_API_METAL)
+#include "imgui_ex/imgui_impl_metal.h"
+#endif
+
 #include "imgui_ex/imgui_impl_gl.h"
 #include "imgui_ex/imgui_dock.h"
 #include "imgui_ex/imgui_udValue.h"
 #include "imgui_ex/ImGuizmo.h"
 #include "imgui_ex/vcMenuButtons.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
-
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
 
@@ -590,17 +594,27 @@ int main(int argc, char **args)
       frametimeMS = 0.250; // 4 FPS cap when not focused
 
     sleepMS = (uint32_t)udMax((frametimeMS - programState.deltaTime) * 1000.0, 0.0);
+#ifndef GRAPHICS_API_METAL
     udSleep(sleepMS);
+#endif
     programState.deltaTime += sleepMS * 0.001; // adjust delta
 
+#ifdef GRAPHICS_API_METAL
+    ImGui_ImplMetal_NewFrame(programState.pWindow);
+#else
     ImGuiGL_NewFrame(programState.pWindow);
+#endif
+      
     vcGizmo_BeginFrame();
-
     vcGLState_ResetState(true);
     vcRenderWindow(&programState);
-
     ImGui::Render();
+    
+#ifdef GRAPHICS_API_METAL
+    ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData());
+#else
     ImGuiGL_RenderDrawData(ImGui::GetDrawData());
+#endif
 
     vcGLState_Present(programState.pWindow);
 
@@ -828,15 +842,21 @@ int main(int argc, char **args)
 
   vcSettings_Save(&programState.settings);
   ImGui::ShutdownDock();
-  ImGui::DestroyContext();
-
+  
 epilogue:
   for (size_t i = 0; i < 256; ++i)
     if (programState.settings.visualization.customClassificationColorLabels[i] != nullptr)
       udFree(programState.settings.visualization.customClassificationColorLabels[i]);
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
+    
+#ifdef GRAPHICS_API_METAL
+  ImGui_ImplMetal_Shutdown();
+#else
   ImGuiGL_DestroyDeviceObjects();
+#endif
+  ImGui::DestroyContext();
+  
   vcConvert_Deinit(&programState);
   vcCamera_Destroy(&programState.pCamera);
   vcTexture_Destroy(&programState.pCompanyLogo);
