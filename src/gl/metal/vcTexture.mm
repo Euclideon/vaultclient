@@ -28,6 +28,9 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
   
   switch (format)
   {
+  case vcTextureFormat_Unknown:
+    return udR_InvalidParameter_;
+    break;
   case vcTextureFormat_RGBA8:
     pTextureDesc.pixelFormat = MTLPixelFormatRGBA8Unorm;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
@@ -65,6 +68,12 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
 #endif
     pTextureDesc.usage = MTLTextureUsageShaderRead;
     pTextureDesc.storageMode = MTLStorageModePrivate;
+    break;
+  case vcTextureFormat_Cubemap:
+    return udR_InvalidParameter_;
+    break;
+  case vcTextureFormat_Count:
+    return udR_InvalidParameter_;
     break;
   }
   
