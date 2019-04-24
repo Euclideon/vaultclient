@@ -87,6 +87,7 @@ else
 		# Make folder to store the framework to build a DMG from
 		mkdir builds/packaging
 		cp -af builds/vaultClient.app builds/packaging/vaultClient.app
+		export APPNAME=vaultClient
 		hdiutil create builds/vaultClient.dmg -volname "vaultClient" -srcfolder builds/packaging
 	elif [[ $OSTYPE == "darwin"* ]]; then # OSX
 		# Make folder to store the framework to build a DMG from
