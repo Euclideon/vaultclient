@@ -130,7 +130,7 @@ else
 					close
 				end tell
 			end tell
-		' | sed 's/"APPNAME"/"$APPNAME"' | osascript
+		' | sed "s/APPNAME/$APPNAME/" | osascript
 		chmod -Rf go-w /Volumes/vaultClient
 		cp icons/macOSAppIcons.icns /Volumes/vaultClient/.VolumeIcon.icns
 		SetFile -c icnC "/Volumes/vaultClient/.VolumeIcon.icns"
