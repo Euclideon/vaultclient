@@ -5,8 +5,10 @@
 #include "udPlatform/udFileHandler.h"
 
 #include "imgui.h"
+#include "imgui_internal.h"
 
 #include "vcClassificationColours.h"
+#include "vCore/vStringFormat.h"
 
 const char *pDefaults = "asset://defaultsettings.json";
 
@@ -108,7 +110,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
   if (pSavedData != nullptr)
     data.Parse(pSavedData);
 
-  if (!data.Get("dock").IsString())
+  if (data.Get("docks").IsArray())
   {
     vcSettings_Load(pSettings, true);
     goto epilogue;
@@ -237,6 +239,62 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->postVisualization.contours.bandHeight = data.Get("postVisualization.contours.bandHeight").AsFloat(1.f);
   }
 
+  /*if (data.Get("dock").IsString()
+  {
+    char *pDockSettings = udStrdup(data.Get("dock").AsString());
+
+    ImGui::LoadIniSettingsFromMemory(pDockSettings);
+    ImGuiID swapID;
+
+    udJSONArray *pDocks = data.Get("dock").AsArray();
+    for (int i = 0; i < pDocks->length; ++i)
+    {
+      udJSON *pDock = pDocks->GetElement(i);
+
+      dockSetting *pSetting = udAllocType(dockSetting, 1, udAF_Zero);
+
+      if (pDock->Get("flags").AsInt() & ImGuiDockNodeFlags_PassthruCentralNode || pDock->Get("flags").AsInt() & ImGuiDockNodeFlags_DockSpace)
+      {
+        swapID = pDock->Get("id").AsInt();
+        continue;
+      }
+
+      pSetting->ID = pDock->Get("id").AsInt();
+      pSetting->Flags = pDock->Get("flags").AsInt();
+
+      pSetting->Pos = ImVec2(pDock->Get("x").AsFloat(), pDock->Get("y").AsFloat());
+      pSetting->Size = ImVec2(pDock->Get("w").AsFloat(), pDock->Get("h").AsFloat());
+
+      if (pDock->Get("parent").IsNumeric())
+      {
+        if (pDock->Get("parent").AsInt() == swapID)
+          pSetting->Parent = pSettings->rootNode;
+        else
+          pSetting->Parent = pDock->Get("parent").AsInt();
+      }
+
+      if (pDock->Get("windows").IsArray())
+      {
+        udJSONArray *pWindows = pDock->Get("windows").AsArray();
+
+        for (int j = 0; j < pWindows->length; ++j)
+        {
+          udJSON *pJSONWindow = pWindows->GetElement(j);
+
+          pSetting->Windows[j] = udStrdup(pJSONWindow->Get("name").AsString());
+
+          pJSONWindow->Destroy();
+        }
+        pWindows->Deinit();
+        //udFree(pWindows);
+      }
+      pDock->Destroy();
+      pSettings->dockSettings[i - 1] = pSetting;
+    }
+    pDocks->Deinit();
+    //udFree(pDocks);
+  }*/
+
   if (group == vcSC_All)
   {
     // Windows
@@ -269,8 +327,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
     pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
 
-    if (pSettings->firstRun && data.Get("dock").IsString())
+    if (data.Get("dock").IsString())
+    {
+      ImGui::DockBuilderRemoveNode(pSettings->rootNode);
       ImGui::LoadIniSettingsFromMemory(data.Get("dock").AsString());
+    }
   }
 
 epilogue:
@@ -278,6 +339,33 @@ epilogue:
 
   return true;
 }
+
+/*void vcSettings_RecurseDocks(ImGuiDockNode *pNode, udJSON &out)
+{
+  udJSON data;
+  data.Set("id = %d", (int)pNode->ID);
+  if (pNode->ParentNode)
+    data.Set("parent = %d", (int)pNode->ParentNode->ID);
+  data.Set("flags = %d", (int)pNode->LocalFlags);
+
+  for (int i = 0; i < pNode->Windows.size(); ++i)
+  {
+    udJSON window;
+    window.Set("name = '%s'", pNode->Windows[i]->Name);
+    data.Set(&window, "windows[]");
+  }
+
+  data.Set("x = %f", pNode->Pos.x);
+  data.Set("y = %f", pNode->Pos.y);
+  data.Set("w = %f", pNode->Size.x);
+  data.Set("h = %f", pNode->Size.y);
+
+  out.Set(&data, "dock[]");
+
+  for (int i = 0; i < udLengthOf(pNode->ChildNodes); ++i)
+    if (pNode->ChildNodes[i] != nullptr)
+      vcSettings_RecurseDocks(pNode->ChildNodes[i], out);
+}*/
 
 bool vcSettings_Save(vcSettings *pSettings)
 {
@@ -414,6 +502,10 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set(&tempNode, "maptiles.serverURL");
   tempNode.SetString(pSettings->maptiles.tileServerExtension);
   data.Set(&tempNode, "maptiles.imgExtension");
+
+  /*ImGuiDockNode *pRootNode = ImGui::DockBuilderGetNode(pSettings->rootNode);
+  if (pRootNode != nullptr && !pRootNode->IsEmpty())
+    vcSettings_RecurseDocks(ImGui::DockNodeGetRootNode(pRootNode), data);*/
 
   data.Set("dock = '%s'", ImGui::SaveIniSettingsToMemory());
 

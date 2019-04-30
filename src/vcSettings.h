@@ -2,6 +2,8 @@
 #include "udPlatform/udPlatform.h"
 #include "udPlatform/udMath.h"
 #include "vcCamera.h"
+#include "imgui.h"
+#include "imgui_internal.h"
 
 #ifndef vcSettings_h__
 #define vcSettings_h__
@@ -62,6 +64,7 @@ enum vcSettingCategory
   vcSC_Viewport,
   vcSC_MapsElevation,
   vcSC_Visualization,
+  vcSC_Docks,
   vcSC_All
 };
 
@@ -79,6 +82,16 @@ enum vcTileRendererFlags
   vcTRF_None = 0,
 
   vcTRF_OnlyRequestVisibleTiles = 0x1,
+};
+
+struct dockSetting
+{
+  ImGuiID ID;
+  ImVec2 Pos;
+  ImVec2 Size;
+  ImGuiID Parent;
+  char *Windows[4];
+  uint32_t Flags;
 };
 
 struct vcSettings
@@ -117,8 +130,10 @@ struct vcSettings
     bool presentationMode = false;
 
     bool windowsOpen[vcDocks_Count];
+    ImGuiID windowDocks[vcDocks_Count];
 
     char languageCode[5]; //4 + nullterminator
+
   } window;
 
   struct
@@ -205,7 +220,9 @@ struct vcSettings
 
   vcPresentationMode responsiveUI;
   int hideIntervalSeconds;
-  bool firstRun;
+
+  ImGuiID rootNode;
+  dockSetting *dockSettings[10];
 };
 
 // Settings Limits (vcSL prefix)
