@@ -205,6 +205,7 @@ struct vcSettings
 
   vcPresentationMode responsiveUI;
   int hideIntervalSeconds;
+  bool firstRun;
 };
 
 // Settings Limits (vcSL prefix)

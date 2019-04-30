@@ -65,8 +65,12 @@
 #define SDL_HAS_ALWAYS_ON_TOP               0 /*SDL_VERSION_ATLEAST(2,0,5)*/
 #define SDL_HAS_USABLE_DISPLAY_BOUNDS       0 /*SDL_VERSION_ATLEAST(2,0,5)*/
 #define SDL_HAS_PER_MONITOR_DPI             SDL_VERSION_ATLEAST(2,0,4)
-
+#define SDL_HAS_VULKAN                      SDL_VERSION_ATLEAST(2,0,6)
 #define SDL_HAS_MOUSE_FOCUS_CLICKTHROUGH    SDL_VERSION_ATLEAST(2,0,5)
+
+#if !SDL_HAS_VULKAN
+static const Uint32 SDL_WINDOW_VULKAN = 0x10000000;
+#endif
 
 // Data
 static SDL_Window*  g_Window = NULL;
@@ -92,11 +96,11 @@ static void ImGui_ImplSDL2_SetClipboardText(void*, const char* text)
     SDL_SetClipboardText(text);
 }
 
-static void ImGui_ImplSDL2_ImeSetInputScreenPos(int x, int y)
+/*static void ImGui_ImplSDL2_ImeSetInputScreenPos(int x, int y)
 {
   SDL_Rect rect = { x, y, 0, 0 };
   SDL_SetTextInputRect(&rect);
-}
+}*/
 
 #ifdef _WIN32
 static void ImGui_ImplSDL2_FixKeyState(int key, SDL_Keymod mod)

@@ -143,7 +143,6 @@ struct vcState
     vcImageType imageType;
   } image;
 
-  bool firstRun;
   vdkError currentError;
   int64_t lastEventTime;
   vcTranslationInfo languageInfo;
