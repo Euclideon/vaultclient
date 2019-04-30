@@ -138,10 +138,11 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
 
   pCamera->matrices.camera = vcCamera_GetMatrix(pCamera);
 
-#if defined(GRAPHICS_API_D3D11)
-  pCamera->matrices.projectionNear = udDouble4x4::perspectiveZO(fov, aspect, 0.5f, 10000.f);
-#elif defined(GRAPHICS_API_OPENGL)
+
+#if defined(GRAPHICS_API_OPENGL)
   pCamera->matrices.projectionNear = udDouble4x4::perspectiveNO(fov, aspect, 0.5f, 10000.f);
+#else
+  pCamera->matrices.projectionNear = udDouble4x4::perspectiveZO(fov, aspect, 0.5f, 10000.f);
 #endif
 
   switch (settings.cameraMode)
@@ -160,7 +161,7 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
 #endif
   }
 
-#if defined(GRAPHICS_API_D3D11)
+#if !defined(GRAPHICS_API_OPENGL)
   pCamera->matrices.projection = pCamera->matrices.projectionUD;
 #endif
 
