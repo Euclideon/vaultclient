@@ -8,6 +8,7 @@
 #include <chrono>
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_ex/imgui_impl_sdl.h"
 #include "imgui_ex/imgui_impl_gl.h"
 #include "imgui_ex/imgui_udValue.h"
@@ -374,11 +375,11 @@ int main(int argc, char **args)
   programState.settings.camera.nearPlane = 0.5f;
   programState.settings.camera.farPlane = 10000.f;
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
+  programState.settings.firstRun = true;
 
   programState.settings.hideIntervalSeconds = 3;
   programState.showUI = true;
   programState.changeActiveDock = vcDocks_Count;
-  programState.firstRun = true;
   programState.passFocus = true;
   programState.renaming = -1;
 
@@ -818,8 +819,8 @@ int main(int argc, char **args)
         vcModals_OpenModal(&programState, vcMT_LoggedOut);
       }
 
-      if (programState.firstRun)
-        programState.firstRun = false;
+      if (programState.settings.firstRun)
+        programState.settings.firstRun = false;
     }
   }
 
@@ -1881,6 +1882,12 @@ void vcRenderWindow(vcState *pProgramState)
     }
     ImGui::End();
 
+    if (ImGui::Begin(udTempStr("%s###convertDock", vcString::Get("convertTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
+      vcConvert_ShowUI(pProgramState);
+
+    vcChangeTab(pProgramState, vcDocks_Convert);
+    ImGui::End();
+
     if (!pProgramState->settings.window.presentationMode)
     {
       if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
@@ -1906,12 +1913,6 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::End();
       ImGui::PopStyleVar();
     }
-
-    if (ImGui::Begin(udTempStr("%s###convertDock", vcString::Get("convertTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
-      vcConvert_ShowUI(pProgramState);
-
-    vcChangeTab(pProgramState, vcDocks_Convert);
-    ImGui::End();
 
     if (ImGui::Begin(udTempStr("%s###settingsDock", vcString::Get("settingsTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Settings]))
     {
