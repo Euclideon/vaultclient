@@ -378,6 +378,7 @@ int main(int argc, char **args)
   programState.settings.firstRun = true;
 
   programState.settings.hideIntervalSeconds = 3;
+  programState.settings.window.windowDocks[0] = 123456789; // Sentinel
   programState.showUI = true;
   programState.changeActiveDock = vcDocks_Count;
   programState.passFocus = true;
@@ -468,7 +469,6 @@ int main(int argc, char **args)
 
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-  vcMain_LoadSettings(&programState, false);
 
   // setup watermark for background
   vcTexture_CreateFromFilename(&programState.pCompanyLogo, "asset://assets/textures/logo.png");
@@ -476,6 +476,8 @@ int main(int argc, char **args)
 
   if (!ImGuiGL_Init(programState.pWindow))
     goto epilogue;
+
+  vcMain_LoadSettings(&programState, false);
 
   //Get ready...
   NOW = SDL_GetPerformanceCounter();
@@ -823,6 +825,7 @@ int main(int argc, char **args)
 
       if (programState.settings.firstRun)
         programState.settings.firstRun = false;
+
     }
   }
 
@@ -1498,18 +1501,17 @@ void vcRenderWindow(vcState *pProgramState)
   {
     vcMainMenuGui(pProgramState);
 
+    pProgramState->settings.rootNode = ImGui::GetID("MyDockspace");
     ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowBgAlpha(0.f);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
-
     ImGui::Begin("RootDockContainer", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
-    ImGui::DockSpace(ImGui::GetID("MyDockspace"), ImVec2(0, 0), ImGuiDockNodeFlags_PassthruDockspace);
-    ImGui::End();
-
     ImGui::PopStyleVar(2);
+    ImGui::DockSpace(pProgramState->settings.rootNode, ImVec2(0, 0), ImGuiDockNodeFlags_PassthruCentralNode);
+    ImGui::End();
   }
 
   if (!pProgramState->hasContext)
