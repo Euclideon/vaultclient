@@ -11,6 +11,7 @@
 
 #include "vcInternalModels.h"
 #include "vcGIS.h"
+#include "vcI3S.h"
 
 #include "stb_image.h"
 #include <vector>
@@ -19,6 +20,8 @@ enum
 {
   vcRender_SceneSizeIncrement = 32 // directX framebuffer can only be certain increments
 };
+
+vcIndexed3DSceneLayer *pSceneLayer;
 
 struct vcUDRenderContext
 {
@@ -130,6 +133,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, pSettings));
   UD_ERROR_CHECK(vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences));
 
+  vcIndexed3DSceneLayer_Create(&pSceneLayer, "E:/Vault Datasets/I3S/mesh4");
+
   *ppRenderContext = pRenderContext;
 
   pRenderContext->pSettings = pSettings;
@@ -174,6 +179,8 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
 
   vcPolygonModel_DestroyShaders();
   vcImageRenderer_Destroy();
+
+  vcIndexed3DSceneLayer_Destroy(&pSceneLayer);
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
@@ -426,10 +433,12 @@ void vcRenderOpaquePolygons(vcRenderContext *pRenderContext, vcRenderData &rende
   {
     vcGLState_SetBlendMode(vcGLSBM_None);
     vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
-    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
       vcPolygonModel_Render(renderData.polyModels[i].pModel, renderData.polyModels[i].worldMat, pRenderContext->pCamera->matrices.viewProjection);
+
+    vcIndexed3DSceneLayer_Render(pSceneLayer, pRenderContext->pCamera->matrices.viewProjection);
 
     for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
       vcWaterRenderer_Render(renderData.waterVolumes[i], pRenderContext->pCamera->matrices.view, pRenderContext->pCamera->matrices.viewProjection, pRenderContext->pSkyboxTexture, renderData.deltaTime);

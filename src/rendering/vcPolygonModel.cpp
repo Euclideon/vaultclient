@@ -4,7 +4,6 @@
 #include "udPlatform/udFile.h"
 
 #include "gl/vcRenderShaders.h"
-#include "gl/vcMesh.h"
 #include "gl/vcTexture.h"
 
 static int gPolygonShaderRefCount = 0;
@@ -85,13 +84,37 @@ struct vcPolygonModel
   vcPolygonModelMesh *pMeshes;
 };
 
-struct vcPolygonModelVertex
+
+udResult vcPolygonModel_CreateFromData(vcPolygonModel **ppPolygonModel, vcPolygonModelVertex *pVerts, uint16_t vertCount)
 {
-  udFloat3 pos;
-  udFloat3 normal;
-  udFloat2 uv;
-};
-const vcVertexLayoutTypes vcPolygonModelVertexLayout[] = { vcVLT_Position3, vcVLT_Normal3, vcVLT_TextureCoords2 };
+  udResult result = udR_Success;
+  vcPolygonModel *pPolygonModel = nullptr;
+
+  pPolygonModel = udAllocType(vcPolygonModel, 1, udAF_Zero);
+  pPolygonModel->pMeshes = udAllocType(vcPolygonModelMesh, 1, udAF_Zero);
+  pPolygonModel->meshCount = 1;
+
+  pPolygonModel->pMeshes[0].material.flags = 0;
+  pPolygonModel->pMeshes[0].material.colour = 0xffffffff;
+
+  pPolygonModel->pMeshes[0].flags = vcPMVF_Normals | vcPMVF_UVs;
+  //pPolygonModel->pMeshes[0].materialID;
+  pPolygonModel->pMeshes[0].LOD = 0;
+  pPolygonModel->pMeshes[0].numVertices = vertCount;
+  pPolygonModel->pMeshes[0].numElements = 0;
+
+  // override material id for now
+  pPolygonModel->pMeshes[0].materialID = vcPMST_P1N1UV1;
+
+  //pPolygonModel->pMeshes[0].material.pTexture
+
+  vcMesh_Create(&pPolygonModel->pMeshes[0].pMesh, vcPolygonModelVertexLayout, (int)udLengthOf(vcPolygonModelVertexLayout), pVerts, pPolygonModel->pMeshes[0].numVertices, nullptr, pPolygonModel->pMeshes[0].numVertices, vcMF_NoIndexBuffer);
+
+  *ppPolygonModel = pPolygonModel;
+
+//epilogue:
+  return result;
+}
 
 udResult vcPolygonModel_CreateFromMemory(vcPolygonModel **ppModel, char *pData, int dataLength)
 {

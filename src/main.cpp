@@ -604,12 +604,12 @@ int main(int argc, char **args)
 #else
     ImGuiGL_NewFrame(programState.pWindow);
 #endif
-      
+
     vcGizmo_BeginFrame();
     vcGLState_ResetState(true);
     vcRenderWindow(&programState);
     ImGui::Render();
-    
+
 #ifdef GRAPHICS_API_METAL
     ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData());
 #else
@@ -842,21 +842,21 @@ int main(int argc, char **args)
 
   vcSettings_Save(&programState.settings);
   ImGui::ShutdownDock();
-  
+
 epilogue:
   for (size_t i = 0; i < 256; ++i)
     if (programState.settings.visualization.customClassificationColorLabels[i] != nullptr)
       udFree(programState.settings.visualization.customClassificationColorLabels[i]);
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
-    
+
 #ifdef GRAPHICS_API_METAL
   ImGui_ImplMetal_Shutdown();
 #else
   ImGuiGL_DestroyDeviceObjects();
 #endif
   ImGui::DestroyContext();
-  
+
   vcConvert_Deinit(&programState);
   vcCamera_Destroy(&programState.pCamera);
   vcTexture_Destroy(&programState.pCompanyLogo);
