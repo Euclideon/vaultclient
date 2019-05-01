@@ -45,11 +45,6 @@
 #include "imgui_impl_sdl.h"
 #include "udPlatform/udPlatform.h"
 
-#ifdef _WIN32
-#include <Windows.h>
-#include <imm.h>
-#endif
-
 // SDL
 // (the multi-viewports feature requires SDL features supported from SDL 2.0.4+. SDL 2.0.5+ is highly recommended)
 #include <SDL2/SDL.h>
@@ -68,9 +63,9 @@
 #define SDL_HAS_VULKAN                      SDL_VERSION_ATLEAST(2,0,6)
 #define SDL_HAS_MOUSE_FOCUS_CLICKTHROUGH    SDL_VERSION_ATLEAST(2,0,5)
 
-#if !SDL_HAS_VULKAN
+/*#if !SDL_HAS_VULKAN
 static const Uint32 SDL_WINDOW_VULKAN = 0x10000000;
-#endif
+#endif*/
 
 // Data
 static SDL_Window*  g_Window = NULL;
@@ -78,10 +73,23 @@ static Uint64       g_Time = 0;
 static bool         g_MousePressed[3] = { false, false, false };
 static SDL_Cursor*  g_MouseCursors[ImGuiMouseCursor_COUNT] = { 0 };
 static char*        g_ClipboardTextData = NULL;
-
+#ifdef _WIN32
+static uint16_t     g_PrevCursorPos = 0;
+static HIMC         g_InputContext = NULL;
+#endif
 // Forward Declarations
 static void ImGui_ImplSDL2_InitPlatformInterface(SDL_Window* window);
 static void ImGui_ImplSDL2_ShutdownPlatformInterface();
+
+#ifdef _WIN32
+static HWND ImGui_ImplSDL2_GetHWND(SDL_Window* window)
+{
+  SDL_SysWMinfo wmInfo;
+  SDL_VERSION(&wmInfo.version);
+  SDL_GetWindowWMInfo(window, &wmInfo);
+  return (HWND)wmInfo.info.win.window;
+}
+#endif
 
 static const char* ImGui_ImplSDL2_GetClipboardText(void*)
 {
@@ -96,11 +104,26 @@ static void ImGui_ImplSDL2_SetClipboardText(void*, const char* text)
     SDL_SetClipboardText(text);
 }
 
-/*static void ImGui_ImplSDL2_ImeSetInputScreenPos(int x, int y)
+static void ImGui_ImplSDL2_ImeSetInputScreenPos(ImGuiViewport* viewport, ImVec2 pos)
 {
-  SDL_Rect rect = { x, y, 0, 0 };
+#ifdef _WIN32
+  POINT point;
+  point.x = static_cast<LONG>(viewport->Pos.x + pos.x);
+  point.y = static_cast<LONG>(viewport->Pos.y + pos.y);
+
+  RECT rect = {0};
+
+  COMPOSITIONFORM form;
+  form.dwStyle = CFS_FORCE_POSITION;
+  form.ptCurrentPos = point;
+  form.rcArea = rect;
+
+  ImmSetCompositionWindow(g_InputContext, &form);
+#else
+  SDL_Rect rect = { static_cast<int>(viewport->Pos.x + pos.x), static_cast<int>(viewport->Pos.y + pos.y), 0, 0 };
   SDL_SetTextInputRect(&rect);
-}*/
+#endif
+}
 
 #ifdef _WIN32
 static void ImGui_ImplSDL2_FixKeyState(int key, SDL_Keymod mod)
@@ -128,11 +151,7 @@ SDL_Window* ImGui_ImplSDL2_CreateWindow(const char* title, int x, int y, int w, 
   if (window)
   {
 #ifdef _WIN32
-    //SDL_SysWMinfo wmInfo;
-    //SDL_VERSION(&wmInfo.version);
-    //SDL_GetWindowWMInfo(window, &wmInfo);
-    //ImmAssociateContext((HWND)wmInfo.info.win.window, 0);
-
+    // ImmAssociateContext(ImGui_ImplSDL2_GetHWND(window), g_InputContext);
     // Fix keyboard state
     ImGui_ImplSDL2_FixKeyboardState();
 #endif
@@ -176,6 +195,19 @@ bool ImGui_ImplSDL2_ProcessEvent(SDL_Event* event)
     case SDL_KEYDOWN:
     case SDL_KEYUP:
         {
+            // Prevents backspace being grabbed by ImGui if IME composition is in progress
+            // IME updates before this block - get previous cursor position to prevent deleting last character from IME + 1 from ImGui
+#ifdef _WIN32
+            char c = '\0'; // Dummy output buffer, ImmGetCompositionStringW(g_InputContext, GCS_CURSORPOS, &c, 1); returns cursorpos
+            uint16_t result = (uint16_t)ImmGetCompositionStringW(g_InputContext, GCS_CURSORPOS, &c, 1);
+            if (result > 0 || g_PrevCursorPos > 0)
+            {
+              g_PrevCursorPos = result;
+              return true;
+            }
+            g_PrevCursorPos = result;
+#endif
+
             int key = event->key.keysym.scancode;
             IM_ASSERT(key >= 0 && key < IM_ARRAYSIZE(io.KeysDown));
 
@@ -216,11 +248,6 @@ bool ImGui_ImplSDL2_ProcessEvent(SDL_Event* event)
           if (window)
           {
     #ifdef _WIN32
-            //SDL_SysWMinfo wmInfo;
-            //SDL_VERSION(&wmInfo.version);
-            //SDL_GetWindowWMInfo(window, &wmInfo);
-            //ImmAssociateContextEx((HWND)wmInfo.info.win.window, 0, IACE_DEFAULT);
-
             // Fix keyboard state
             ImGui_ImplSDL2_FixKeyboardState();
     #endif
@@ -274,7 +301,6 @@ static bool    ImGui_ImplSDL2_Init(SDL_Window* window)
     io.SetClipboardTextFn = ImGui_ImplSDL2_SetClipboardText;
     io.GetClipboardTextFn = ImGui_ImplSDL2_GetClipboardText;
     io.ClipboardUserData = NULL;
-    //io.ImeSetInputScreenPosFn = ImGui_ImplSDL2_ImeSetInputScreenPos;
 
     g_MouseCursors[ImGuiMouseCursor_Arrow] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
     g_MouseCursors[ImGuiMouseCursor_TextInput] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);
@@ -285,14 +311,12 @@ static bool    ImGui_ImplSDL2_Init(SDL_Window* window)
     g_MouseCursors[ImGuiMouseCursor_ResizeNWSE] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENWSE);
     g_MouseCursors[ImGuiMouseCursor_Hand] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
 
+    SDL_StartTextInput();
+
 #ifdef _WIN32
-    SDL_SysWMinfo wmInfo;
-    SDL_VERSION(&wmInfo.version);
-    SDL_GetWindowWMInfo(window, &wmInfo);
-    //io.ImeWindowHandle = wmInfo.info.win.window;
-#else
-    (void)window;
+    g_InputContext = ImmGetContext(ImGui_ImplSDL2_GetHWND(g_Window));
 #endif
+    (void)window;
 
     // We need SDL_CaptureMouse(), SDL_GetGlobalMouseState() from SDL 2.0.4+ to support multiple viewports.
     // We left the call to ImGui_ImplSDL2_InitPlatformInterface() outside of #ifdef to avoid unused-function warnings.
@@ -321,6 +345,8 @@ void ImGui_ImplSDL2_Shutdown()
     for (ImGuiMouseCursor cursor_n = 0; cursor_n < ImGuiMouseCursor_COUNT; cursor_n++)
         SDL_FreeCursor(g_MouseCursors[cursor_n]);
     memset(g_MouseCursors, 0, sizeof(g_MouseCursors));
+
+    SDL_StopTextInput();
 }
 
 // This code is incredibly messy because some of the functions we need for full viewport support are not available in SDL < 2.0.4.
@@ -466,6 +492,7 @@ void ImGui_ImplSDL2_NewFrame(SDL_Window* window)
     ImGui_ImplSDL2_UpdateMouseCursor();
     ImGui_ImplSDL2_UpdateController();
 
+    // Always false on Windows, and SDL_Start/Stop... doesn't change input to ImGui on Windows either, might work on mobile though
     if (SDL_HasScreenKeyboardSupport() == SDL_TRUE)
     {
       bool isKeyboardOpen = (SDL_IsScreenKeyboardShown(window) == SDL_TRUE);
@@ -513,7 +540,8 @@ static void ImGui_ImplSDL2_CreateWindow(ImGuiViewport* viewport)
   }
 
   Uint32 sdl_flags = 0;
-  sdl_flags |= use_opengl ? SDL_WINDOW_OPENGL : SDL_WINDOW_VULKAN;
+  if (use_opengl)
+    sdl_flags |= SDL_WINDOW_OPENGL;
   sdl_flags |= SDL_GetWindowFlags(g_Window) & SDL_WINDOW_ALLOW_HIGHDPI;
   sdl_flags |= SDL_WINDOW_HIDDEN;
   sdl_flags |= (viewport->Flags & ImGuiViewportFlags_NoDecoration) ? SDL_WINDOW_BORDERLESS : 0;
@@ -702,6 +730,8 @@ static void ImGui_ImplSDL2_InitPlatformInterface(SDL_Window* window)
   platform_io.Platform_SetWindowTitle = ImGui_ImplSDL2_SetWindowTitle;
   platform_io.Platform_RenderWindow = ImGui_ImplSDL2_RenderWindow;
   platform_io.Platform_SwapBuffers = ImGui_ImplSDL2_SwapBuffers;
+  platform_io.Platform_SetImeInputPos = ImGui_ImplSDL2_ImeSetInputScreenPos;
+
 #if SDL_HAS_WINDOW_ALPHA
   platform_io.Platform_SetWindowAlpha = ImGui_ImplSDL2_SetWindowAlpha;
 #endif

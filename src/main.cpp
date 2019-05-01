@@ -603,6 +603,8 @@ int main(int argc, char **args)
     ImGui::Render();
     ImGuiGL_RenderDrawData(ImGui::GetDrawData());
 
+    ImGui::UpdatePlatformWindows();
+
     vcGLState_Present(programState.pWindow);
 
     if (ImGui::GetIO().WantSaveIniSettings)
@@ -1466,6 +1468,8 @@ void vcRenderWindow(vcState *pProgramState)
 
   ImGuiIO &io = ImGui::GetIO(); // for future key commands as well
   ImVec2 size = io.DisplaySize;
+
+  ImGui::RenderPlatformWindowsDefault();
 
   if (pProgramState->settings.responsiveUI == vcPM_Responsive)
   {
