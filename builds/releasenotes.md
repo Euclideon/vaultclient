@@ -9,6 +9,11 @@ Known Major Issues In Current Release
   - Map mode only transitions nicely for items with z at 0 (EVC-460)
   - Images in the scene are not using thumbnails (EVC-513)
 
+
+Version 0.2.4
+  - Improvements
+    - IME input windows now draw at the text input location on Windows
+
 Version 0.2.3
   - Improvements
     - Added Gamepad/Xbox Controller functionality for camera movement (EVC-203)
