@@ -513,6 +513,25 @@ struct ImVec2ih
     ImVec2ih(short _x, short _y) { x = _x; y = _y; }
 };
 
+// Exposed functionality
+
+// Persistent Settings data, stored contiguously in SettingsNodes (sizeof() ~32 bytes)
+struct ImGuiDockNodeSettings
+{
+  ImGuiID         ID;
+  ImGuiID         ParentID;
+  ImGuiID         SelectedTabID;
+  signed char     SplitAxis;
+  char            Depth;
+  char            IsDockSpace;
+  char            IsCentralNode;
+  char            IsHiddenTabBar;
+  ImVec2ih        Pos;
+  ImVec2ih        Size;
+  ImVec2ih        SizeRef;
+  ImGuiDockNodeSettings() { ID = ParentID = SelectedTabID = 0; SplitAxis = ImGuiAxis_None; Depth = 0; IsDockSpace = IsCentralNode = IsHiddenTabBar = 0; }
+};
+
 // 2D axis aligned bounding-box
 // NB: we can't rely on ImVec2 math operators being available here
 struct IMGUI_API ImRect
@@ -1537,6 +1556,10 @@ struct ImGuiTabBar
 
 namespace ImGui
 {
+    // Exposed functionality
+    IMGUI_API static void DockContextBuildNodesFromSettings(ImGuiContext* ctx, ImGuiDockNodeSettings* node_settings_array, int node_settings_count);
+    IMGUI_API void DockContextClearNodes(ImGuiContext* ctx, ImGuiID root_id, bool clear_persistent_docking_refs);
+
     // We should always have a CurrentWindow in the stack (there is an implicit "Debug" window)
     // If this ever crash because g.CurrentWindow is NULL it means that either
     // - ImGui::NewFrame() has never been called, which is illegal.

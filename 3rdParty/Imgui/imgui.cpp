@@ -10740,23 +10740,6 @@ struct ImGuiDockPreviewData
     ImGuiDockPreviewData() : FutureNode(0) { IsDropAllowed = IsCenterAvailable = IsSidesAvailable = IsSplitDirExplicit = false; SplitNode = NULL; SplitDir = ImGuiDir_None; SplitRatio = 0.f; }
 };
 
-// Persistent Settings data, stored contiguously in SettingsNodes (sizeof() ~32 bytes)
-struct ImGuiDockNodeSettings
-{
-    ImGuiID         ID;
-    ImGuiID         ParentID;
-    ImGuiID         SelectedTabID;
-    signed char     SplitAxis;
-    char            Depth;
-    char            IsDockSpace;
-    char            IsCentralNode;
-    char            IsHiddenTabBar;
-    ImVec2ih        Pos;
-    ImVec2ih        Size;
-    ImVec2ih        SizeRef;
-    ImGuiDockNodeSettings() { ID = ParentID = SelectedTabID = 0; SplitAxis = ImGuiAxis_None; Depth = 0; IsDockSpace = IsCentralNode = IsHiddenTabBar = 0; }
-};
-
 struct ImGuiDockContext
 {
     ImGuiStorage                    Nodes;                      // Map ID -> ImGuiDockNode*: Active nodes
@@ -10783,8 +10766,6 @@ namespace ImGui
     static void             DockContextProcessUndockNode(ImGuiContext* ctx, ImGuiDockNode* node);
     static void             DockContextPruneUnusedSettingsNodes(ImGuiContext* ctx);
     static ImGuiDockNode*   DockContextFindNodeByID(ImGuiContext* ctx, ImGuiID id);
-    static void             DockContextClearNodes(ImGuiContext* ctx, ImGuiID root_id, bool clear_persistent_docking_refs);    // Use root_id==0 to clear all
-    static void             DockContextBuildNodesFromSettings(ImGuiContext* ctx, ImGuiDockNodeSettings* node_settings_array, int node_settings_count);
     static void             DockContextBuildAddWindowsToNodes(ImGuiContext* ctx, ImGuiID root_id);                            // Use root_id==0 to add all
 
     // ImGuiDockNode

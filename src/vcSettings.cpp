@@ -239,61 +239,66 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->postVisualization.contours.bandHeight = data.Get("postVisualization.contours.bandHeight").AsFloat(1.f);
   }
 
-  /*if (data.Get("dock").IsString()
+  if (data.Get("dock").IsArray() && (group == vcSC_Docks || forceReset))
   {
-    char *pDockSettings = udStrdup(data.Get("dock").AsString());
-
-    ImGui::LoadIniSettingsFromMemory(pDockSettings);
-    ImGuiID swapID;
-
     udJSONArray *pDocks = data.Get("dock").AsArray();
-    for (int i = 0; i < pDocks->length; ++i)
+    size_t numNodes = pDocks->length;
+
+    ImGui::DockContextClearNodes(GImGui, 0, true);
+
+    ImGuiDockNodeSettings *pDockNodes = udAllocType(ImGuiDockNodeSettings, numNodes, udAF_Zero);
+
+    for (size_t i = 0; i < pDocks->length; ++i)
     {
       udJSON *pDock = pDocks->GetElement(i);
 
-      dockSetting *pSetting = udAllocType(dockSetting, 1, udAF_Zero);
+      pDockNodes[i].ID = pDock->Get("id").AsInt();
+      pDockNodes[i].Pos = ImVec2ih((short)pDock->Get("x").AsInt(), (short)pDock->Get("y").AsInt());
+      pDockNodes[i].Size = ImVec2ih((short)pDock->Get("w").AsInt(), (short)pDock->Get("h").AsInt());
+      pDockNodes[i].SizeRef = ImVec2ih((short)pDock->Get("wr").AsInt(), (short)pDock->Get("hr").AsInt());
 
-      if (pDock->Get("flags").AsInt() & ImGuiDockNodeFlags_PassthruCentralNode || pDock->Get("flags").AsInt() & ImGuiDockNodeFlags_DockSpace)
-      {
-        swapID = pDock->Get("id").AsInt();
-        continue;
-      }
-
-      pSetting->ID = pDock->Get("id").AsInt();
-      pSetting->Flags = pDock->Get("flags").AsInt();
-
-      pSetting->Pos = ImVec2(pDock->Get("x").AsFloat(), pDock->Get("y").AsFloat());
-      pSetting->Size = ImVec2(pDock->Get("w").AsFloat(), pDock->Get("h").AsFloat());
-
+      pDockNodes[i].SelectedTabID = pDock->Get("selectedtab").AsInt();
       if (pDock->Get("parent").IsNumeric())
-      {
-        if (pDock->Get("parent").AsInt() == swapID)
-          pSetting->Parent = pSettings->rootNode;
-        else
-          pSetting->Parent = pDock->Get("parent").AsInt();
-      }
+        pDockNodes[i].ParentID = pDock->Get("parent").AsInt();
+
+      if (pDock->Get("split").IsString())
+        pDockNodes[i].SplitAxis = *(pDock->Get("split").AsString()) == 'X' ? ImGuiAxis_X : ImGuiAxis_Y;
+      else
+        pDockNodes[i].SplitAxis = ImGuiAxis_None;
+
+      pDockNodes[i].IsCentralNode = (char)pDock->Get("central").AsInt();
+      pDockNodes[i].IsDockSpace = (char)pDock->Get("dockspace").AsInt();
+      pDockNodes[i].IsHiddenTabBar = (char)pDock->Get("hiddentabbar").AsInt();
+      pDockNodes[i].Depth = (char)pDock->Get("depth").AsInt();
 
       if (pDock->Get("windows").IsArray())
       {
         udJSONArray *pWindows = pDock->Get("windows").AsArray();
 
-        for (int j = 0; j < pWindows->length; ++j)
+        for (size_t j = 0; j < pWindows->length; ++j)
         {
           udJSON *pJSONWindow = pWindows->GetElement(j);
 
-          pSetting->Windows[j] = udStrdup(pJSONWindow->Get("name").AsString());
-
+          ImGuiWindow* window = ImGui::FindWindowByName(pJSONWindow->Get("name").AsString());
+          if (window)
+          {
+            window->DockId = pDockNodes[i].ID;
+            window->DockOrder = (short)pJSONWindow->Get("index").AsInt();
+            window->Collapsed = pJSONWindow->Get("collapsed").AsBool();
+          }
           pJSONWindow->Destroy();
         }
         pWindows->Deinit();
-        //udFree(pWindows);
       }
       pDock->Destroy();
-      pSettings->dockSettings[i - 1] = pSetting;
     }
     pDocks->Deinit();
-    //udFree(pDocks);
-  }*/
+
+    ImGui::DockContextBuildNodesFromSettings(GImGui, pDockNodes, (int)numNodes);
+    udFree(pDockNodes);
+
+    pSettings->docksLoaded = true;
+  }
 
   if (group == vcSC_All)
   {
@@ -326,12 +331,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     // Camera
     pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
     pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
-
-    if (data.Get("dock").IsString())
-    {
-      ImGui::DockBuilderRemoveNode(pSettings->rootNode);
-      ImGui::LoadIniSettingsFromMemory(data.Get("dock").AsString());
-    }
   }
 
 epilogue:
@@ -340,18 +339,32 @@ epilogue:
   return true;
 }
 
-/*void vcSettings_RecurseDocks(ImGuiDockNode *pNode, udJSON &out)
+void vcSettings_RecurseDocks(ImGuiDockNode *pNode, udJSON &out, int *pDepth)
 {
   udJSON data;
   data.Set("id = %d", (int)pNode->ID);
   if (pNode->ParentNode)
     data.Set("parent = %d", (int)pNode->ParentNode->ID);
-  data.Set("flags = %d", (int)pNode->LocalFlags);
+
+  data.Set("selectedtab = %d", pNode->SelectedTabID);
+
+  data.Set("central = %d", (int)pNode->IsCentralNode());
+  data.Set("dockspace = %d", (int)pNode->IsDockSpace());
+  data.Set("hiddentabbar = %d", (int)pNode->IsHiddenTabBar());
+  data.Set("depth = %d", *pDepth);
 
   for (int i = 0; i < pNode->Windows.size(); ++i)
   {
     udJSON window;
-    window.Set("name = '%s'", pNode->Windows[i]->Name);
+
+    // Only want the part ###xxxxDock so any language works
+    char *pIDName = pNode->Windows[i]->Name;
+    while (*pIDName != '#')
+      ++pIDName;
+
+    window.Set("name = '%s'", pIDName);
+    window.Set("index = %d", i);
+    window.Set("collapsed = %d", (int)pNode->Windows[i]->Collapsed);
     data.Set(&window, "windows[]");
   }
 
@@ -359,13 +372,19 @@ epilogue:
   data.Set("y = %f", pNode->Pos.y);
   data.Set("w = %f", pNode->Size.x);
   data.Set("h = %f", pNode->Size.y);
+  data.Set("wr = %f", pNode->SizeRef.x);
+  data.Set("hr = %f", pNode->SizeRef.y);
+
+  if (pNode->IsSplitNode())
+    data.Set("split = '%s'", pNode->SplitAxis == 1 ? "Y" : "X");
 
   out.Set(&data, "dock[]");
+  ++*pDepth;
 
   for (int i = 0; i < udLengthOf(pNode->ChildNodes); ++i)
     if (pNode->ChildNodes[i] != nullptr)
-      vcSettings_RecurseDocks(pNode->ChildNodes[i], out);
-}*/
+      vcSettings_RecurseDocks(pNode->ChildNodes[i], out, pDepth);
+}
 
 bool vcSettings_Save(vcSettings *pSettings)
 {
@@ -503,11 +522,10 @@ bool vcSettings_Save(vcSettings *pSettings)
   tempNode.SetString(pSettings->maptiles.tileServerExtension);
   data.Set(&tempNode, "maptiles.imgExtension");
 
-  /*ImGuiDockNode *pRootNode = ImGui::DockBuilderGetNode(pSettings->rootNode);
+  int depth = 0;
+  ImGuiDockNode *pRootNode = ImGui::DockBuilderGetNode(pSettings->rootNode);
   if (pRootNode != nullptr && !pRootNode->IsEmpty())
-    vcSettings_RecurseDocks(ImGui::DockNodeGetRootNode(pRootNode), data);*/
-
-  data.Set("dock = '%s'", ImGui::SaveIniSettingsToMemory());
+    vcSettings_RecurseDocks(ImGui::DockNodeGetRootNode(pRootNode), data, &depth);
 
   // Save
   const char *pSettingsStr;
