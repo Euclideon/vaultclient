@@ -84,16 +84,6 @@ enum vcTileRendererFlags
   vcTRF_OnlyRequestVisibleTiles = 0x1,
 };
 
-struct dockSetting
-{
-  ImGuiID ID;
-  ImVec2 Pos;
-  ImVec2 Size;
-  ImGuiID Parent;
-  char *Windows[4];
-  uint32_t Flags;
-};
-
 struct vcSettings
 {
   bool noLocalStorage; //If set to true; cannot save or load from local storage
@@ -130,7 +120,6 @@ struct vcSettings
     bool presentationMode = false;
 
     bool windowsOpen[vcDocks_Count];
-    ImGuiID windowDocks[vcDocks_Count];
 
     char languageCode[5]; //4 + nullterminator
 
@@ -222,7 +211,7 @@ struct vcSettings
   int hideIntervalSeconds;
 
   ImGuiID rootNode;
-  dockSetting *dockSettings[10];
+  bool docksLoaded;
 };
 
 // Settings Limits (vcSL prefix)
