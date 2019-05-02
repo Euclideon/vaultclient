@@ -1,35 +1,25 @@
 #include "vcLayout.h"
 
+uint32_t vcLayout_GetSize(const vcVertexLayoutTypes layoutType)
+{
+  switch (layoutType)
+  {
+  case vcVLT_Position2:      return 8;
+  case vcVLT_Position3:      return 12;
+  case vcVLT_TextureCoords2: return 8;
+  case vcVLT_RibbonInfo4:    return 16;
+  case vcVLT_ColourBGRA:     return 4;
+  case vcVLT_Normal3:        return 12;
+  }
+  return 0;
+}
 
 uint32_t vcLayout_GetSize(const vcVertexLayoutTypes *pLayout, int numTypes)
 {
   uint32_t accumlatedOffset = 0;
 
   for (int i = 0; i < numTypes; ++i)
-  {
-    switch (pLayout[i])
-    {
-    case vcVLT_Position2:
-      accumlatedOffset += 8;
-      break;
-    case vcVLT_Position3:
-      accumlatedOffset += 12;
-      break;
-    case vcVLT_TextureCoords2:
-      accumlatedOffset += 8;
-      break;
-    case vcVLT_RibbonInfo4:
-      accumlatedOffset += 16;
-      break;
-    case vcVLT_ColourBGRA:
-      accumlatedOffset += 4;
-      break;
-    case vcVLT_Normal3:
-      accumlatedOffset += 12;
-      break;
-    case vcVLT_TotalTypes:
-      break;
-    }
-  }
+    accumlatedOffset += vcLayout_GetSize(pLayout[i]);
+
   return accumlatedOffset;
 }

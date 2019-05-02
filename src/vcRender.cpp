@@ -21,7 +21,7 @@ enum
   vcRender_SceneSizeIncrement = 32 // directX framebuffer can only be certain increments
 };
 
-vcIndexed3DSceneLayer *pSceneLayer;
+vcIndexed3DSceneLayer *pSceneLayer = nullptr;
 
 struct vcUDRenderContext
 {
