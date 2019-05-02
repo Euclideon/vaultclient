@@ -84,8 +84,16 @@ struct vcPolygonModel
   vcPolygonModelMesh *pMeshes;
 };
 
+struct vcPolygonModelVertex
+{
+  udFloat3 pos;
+  udFloat3 normal;
+  udFloat2 uv;
+};
+const vcVertexLayoutTypes vcPolygonModelVertexLayout[] = { vcVLT_Position3, vcVLT_Normal3, vcVLT_TextureCoords2 };
 
-udResult vcPolygonModel_CreateFromData(vcPolygonModel **ppPolygonModel, vcPolygonModelVertex *pVerts, uint16_t vertCount)
+
+udResult vcPolygonModel_CreateFromData(vcPolygonModel **ppPolygonModel, void *pVerts, uint16_t vertCount, const vcVertexLayoutTypes *pMeshLayout, int totalTypes)
 {
   udResult result = udR_Success;
   vcPolygonModel *pPolygonModel = nullptr;
@@ -106,13 +114,13 @@ udResult vcPolygonModel_CreateFromData(vcPolygonModel **ppPolygonModel, vcPolygo
   // override material id for now
   pPolygonModel->pMeshes[0].materialID = vcPMST_P1N1UV1;
 
-  //pPolygonModel->pMeshes[0].material.pTexture
+  pPolygonModel->pMeshes[0].material.pTexture = nullptr;
 
-  vcMesh_Create(&pPolygonModel->pMeshes[0].pMesh, vcPolygonModelVertexLayout, (int)udLengthOf(vcPolygonModelVertexLayout), pVerts, pPolygonModel->pMeshes[0].numVertices, nullptr, pPolygonModel->pMeshes[0].numVertices, vcMF_NoIndexBuffer);
+  UD_ERROR_CHECK(vcMesh_Create(&pPolygonModel->pMeshes[0].pMesh, pMeshLayout, totalTypes, pVerts, pPolygonModel->pMeshes[0].numVertices, nullptr, pPolygonModel->pMeshes[0].numVertices, vcMF_NoIndexBuffer));
 
   *ppPolygonModel = pPolygonModel;
 
-//epilogue:
+epilogue:
   return result;
 }
 

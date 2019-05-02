@@ -23,5 +23,6 @@ struct vcSimpleVertex
 const vcVertexLayoutTypes vcSimpleVertexLayout[] = { vcVLT_Position3, vcVLT_TextureCoords2 };
 
 uint32_t vcLayout_GetSize(const vcVertexLayoutTypes *pLayout, int numTypes);
+uint32_t vcLayout_GetSize(const vcVertexLayoutTypes layoutType);
 
 #endif//vcLayout_h__
