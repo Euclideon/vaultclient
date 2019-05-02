@@ -262,7 +262,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
         pDockNodes[i].ParentID = pDock->Get("parent").AsInt();
 
       if (pDock->Get("split").IsString())
-        pDockNodes[i].SplitAxis = *(pDock->Get("split").AsString()) == 'X' ? ImGuiAxis_X : ImGuiAxis_Y;
+        pDockNodes[i].SplitAxis = *(pDock->Get("split").AsString()) == 'X' ? (signed char)ImGuiAxis_X : (signed char)ImGuiAxis_Y;
       else
         pDockNodes[i].SplitAxis = ImGuiAxis_None;
 
@@ -381,7 +381,7 @@ void vcSettings_RecurseDocks(ImGuiDockNode *pNode, udJSON &out, int *pDepth)
   out.Set(&data, "dock[]");
   ++*pDepth;
 
-  for (int i = 0; i < udLengthOf(pNode->ChildNodes); ++i)
+  for (size_t i = 0; i < udLengthOf(pNode->ChildNodes); ++i)
     if (pNode->ChildNodes[i] != nullptr)
       vcSettings_RecurseDocks(pNode->ChildNodes[i], out, pDepth);
 }
