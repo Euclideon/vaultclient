@@ -241,6 +241,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (data.Get("dock").IsArray() && (group == vcSC_Docks || forceReset))
   {
+    pSettings->window.windowsOpen[vcDocks_Scene] = data.Get("frames.scene").AsBool(true);
+    pSettings->window.windowsOpen[vcDocks_Settings] = data.Get("frames.settings").AsBool(true);
+    pSettings->window.windowsOpen[vcDocks_SceneExplorer] = data.Get("frames.explorer").AsBool(true);
+    pSettings->window.windowsOpen[vcDocks_Convert] = data.Get("frames.convert").AsBool(false);
+
     udJSONArray *pDocks = data.Get("dock").AsArray();
     size_t numNodes = pDocks->length;
 
@@ -262,7 +267,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
         pDockNodes[i].ParentID = pDock->Get("parent").AsInt();
 
       if (pDock->Get("split").IsString())
-        pDockNodes[i].SplitAxis = *(pDock->Get("split").AsString()) == 'X' ? (signed char)ImGuiAxis_X : (signed char)ImGuiAxis_Y;
+        pDockNodes[i].SplitAxis = (*(pDock->Get("split").AsString()) == 'X') ? (signed char)ImGuiAxis_X : (signed char)ImGuiAxis_Y;
       else
         pDockNodes[i].SplitAxis = ImGuiAxis_None;
 
@@ -279,12 +284,12 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
         {
           udJSON *pJSONWindow = pWindows->GetElement(j);
 
-          ImGuiWindow* window = ImGui::FindWindowByName(pJSONWindow->Get("name").AsString());
-          if (window)
+          ImGuiWindow* pWindow = ImGui::FindWindowByName(pJSONWindow->Get("name").AsString());
+          if (pWindow)
           {
-            window->DockId = pDockNodes[i].ID;
-            window->DockOrder = (short)pJSONWindow->Get("index").AsInt();
-            window->Collapsed = pJSONWindow->Get("collapsed").AsBool();
+            pWindow->DockId = pDockNodes[i].ID;
+            pWindow->DockOrder = (short)pJSONWindow->Get("index").AsInt();
+            pWindow->Collapsed = pJSONWindow->Get("collapsed").AsBool();
           }
           pJSONWindow->Destroy();
         }
@@ -310,10 +315,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->window.maximized = data.Get("window.maximized").AsBool(false);
     udStrcpy(pSettings->window.languageCode, udLengthOf(pSettings->window.languageCode), data.Get("window.language").AsString("enAU"));
 
-    pSettings->window.windowsOpen[vcDocks_Scene] = data.Get("frames.scene").AsBool(true);
-    pSettings->window.windowsOpen[vcDocks_Settings] = data.Get("frames.settings").AsBool(true);
-    pSettings->window.windowsOpen[vcDocks_SceneExplorer] = data.Get("frames.explorer").AsBool(true);
-    pSettings->window.windowsOpen[vcDocks_Convert] = data.Get("frames.convert").AsBool(false);
+    // True so the windows' IDs are always available on the ID stack, actual load is done in vcSC_Docks above
+    pSettings->window.windowsOpen[vcDocks_Scene] = true;
+    pSettings->window.windowsOpen[vcDocks_Settings] = true;
+    pSettings->window.windowsOpen[vcDocks_SceneExplorer] = true;
+    pSettings->window.windowsOpen[vcDocks_Convert] = true;
 
     // Login Info
     pSettings->loginInfo.rememberServer = data.Get("login.rememberServer").AsBool(false);
@@ -376,14 +382,19 @@ void vcSettings_RecurseDocks(ImGuiDockNode *pNode, udJSON &out, int *pDepth)
   data.Set("hr = %f", pNode->SizeRef.y);
 
   if (pNode->IsSplitNode())
-    data.Set("split = '%s'", pNode->SplitAxis == 1 ? "Y" : "X");
+    data.Set("split = '%s'", (pNode->SplitAxis == 1) ? "Y" : "X");
 
   out.Set(&data, "dock[]");
-  ++*pDepth;
+  ++(*pDepth);
 
   for (size_t i = 0; i < udLengthOf(pNode->ChildNodes); ++i)
+  {
     if (pNode->ChildNodes[i] != nullptr)
+    {
       vcSettings_RecurseDocks(pNode->ChildNodes[i], out, pDepth);
+      --(*pDepth);
+    }
+  }
 }
 
 bool vcSettings_Save(vcSettings *pSettings)
