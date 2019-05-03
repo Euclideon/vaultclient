@@ -2268,9 +2268,7 @@ void vcRenderWindow(vcState *pProgramState)
     }
 
     if (!pProgramState->settings.docksLoaded)
-    {
       vcSettings_Load(&pProgramState->settings, false, vcSC_Docks);
-    }
 
     if (pProgramState->currentError != vE_Success)
     {
