@@ -1,4 +1,4 @@
-#include "vcI3S.h"
+#include "vcSceneLayerRenderer.h"
 
 #include <vector>
 
@@ -24,7 +24,7 @@ enum
   vcMaxURLLength = vcMaxPathLength
 };
 
-struct vcIndexed3DSceneLayerNode
+struct vcSceneLayerRendererNode
 {
   enum vcLoadState
   {
@@ -40,7 +40,7 @@ struct vcIndexed3DSceneLayerNode
   uint32_t id;
   char url[vcMaxURLLength];
   udDouble4 minimumBoundingSphere;
-  vcIndexed3DSceneLayerNode *pChildren;
+  vcSceneLayerRendererNode *pChildren;
   size_t childrenCount;
 
   struct SharedResource
@@ -90,19 +90,19 @@ struct vcIndexed3DSceneLayerNode
   size_t attributeDataCount;
 };
 
-struct vcIndexed3DSceneLayer
+struct vcSceneLayerRenderer
 {
   char sceneLayerURL[vcMaxURLLength];
   udJSON description;
   udDouble4 extent;
-  vcIndexed3DSceneLayerNode root;
+  vcSceneLayerRendererNode root;
 
   vcVertexLayoutTypes *pDefaultGeometryLayout;
   size_t defaultGeometryLayoutCount;
 };
 
 static int gRefCount = 0;
-void vcIndexed3DSceneLayer_Create()
+void vcSceneLayerRenderer_Create()
 {
   ++gRefCount;
   if (gRefCount == 1)
@@ -111,7 +111,7 @@ void vcIndexed3DSceneLayer_Create()
   }
 }
 
-void vcIndexed3DSceneLayer_Destroy()
+void vcSceneLayerRenderer_Destroy()
 {
   --gRefCount;
   if (gRefCount == 0)
@@ -120,7 +120,7 @@ void vcIndexed3DSceneLayer_Destroy()
   }
 }
 
-const char *vcIndexed3DSceneLayer_AppendRelativeURL(const char *pRootURL, const char *pURL)
+const char *vcSceneLayerRenderer_AppendRelativeURL(const char *pRootURL, const char *pURL)
 {
   // TODO: (EVC-541) Overcome udTempStr()'s max size of 2048 (max size of URL is 4096)
   if (udStrlen(pURL) >= 2 && pURL[0] == '.' && pURL[1] == '/')
@@ -131,7 +131,7 @@ const char *vcIndexed3DSceneLayer_AppendRelativeURL(const char *pRootURL, const 
   return udTempStr("%s/%s", pRootURL, pURL);
 }
 
-void vcIndexed3DSceneLayer_RecursiveDestroyNode(vcIndexed3DSceneLayerNode *pNode)
+void vcSceneLayerRenderer_RecursiveDestroyNode(vcSceneLayerRendererNode *pNode)
 {
   for (size_t i = 0; i < pNode->geometryDataCount; ++i)
     vcPolygonModel_Destroy(&pNode->pGeometryData[i].pModel);
@@ -146,12 +146,12 @@ void vcIndexed3DSceneLayer_RecursiveDestroyNode(vcIndexed3DSceneLayerNode *pNode
   udFree(pNode->pAttributeData);
 
   for (size_t i = 0; i < pNode->childrenCount; ++i)
-    vcIndexed3DSceneLayer_RecursiveDestroyNode(&pNode->pChildren[i]);
+    vcSceneLayerRenderer_RecursiveDestroyNode(&pNode->pChildren[i]);
 
   udFree(pNode->pChildren);
 }
 
-udResult vcIndexed3DSceneLayer_LoadNodeFeatureData(vcIndexed3DSceneLayer *pSceneLayer, vcIndexed3DSceneLayerNode *pNode)
+udResult vcSceneLayerRenderer_LoadNodeFeatureData(vcSceneLayerRenderer *pSceneLayer, vcSceneLayerRendererNode *pNode)
 {
   udUnused(pSceneLayer);
 
@@ -163,12 +163,14 @@ udResult vcIndexed3DSceneLayer_LoadNodeFeatureData(vcIndexed3DSceneLayer *pScene
   for (size_t i = 0; i < pNode->featureDataCount; ++i)
   {
     udSprintf(pSharedStringBuffer, vcMaxURLLength, "%s.json", pNode->pFeatureData[i].url);
-    UD_ERROR_CHECK(udFile_Load(vcIndexed3DSceneLayer_AppendRelativeURL(pNode->url, pSharedStringBuffer), (void**)&pFileData, &fileLen));
+    UD_ERROR_CHECK(udFile_Load(vcSceneLayerRenderer_AppendRelativeURL(pNode->url, pSharedStringBuffer), (void**)&pFileData, &fileLen));
     UD_ERROR_CHECK(featuresJSON.Parse(pFileData));
 
     // TODO: JIRA task add a udJSON.AsDouble2()
+    // Note: 'position' is either (x/y/z) OR just (x/y).
     pNode->pFeatureData[i].position.x = featuresJSON.Get("featureData[%zu].position[0]", i).AsDouble();
     pNode->pFeatureData[i].position.y = featuresJSON.Get("featureData[%zu].position[1]", i).AsDouble();
+    pNode->pFeatureData[i].position.z = featuresJSON.Get("featureData[%zu].position[2]", i).AsDouble();
     pNode->pFeatureData[i].pivotOffset = featuresJSON.Get("featureData[%zu].pivotOffset", i).AsDouble3();
     pNode->pFeatureData[i].minimumBoundingBox = featuresJSON.Get("featureData[%zu].mbb", i).AsDouble4();
 
@@ -186,7 +188,7 @@ epilogue:
 }
 
 // Assumed the nodes features have already been loaded
-udResult vcIndexed3DSceneLayer_LoadNodeGeometryData(vcIndexed3DSceneLayer *pSceneLayer, vcIndexed3DSceneLayerNode *pNode)
+udResult vcSceneLayerRenderer_LoadNodeGeometryData(vcSceneLayerRenderer *pSceneLayer, vcSceneLayerRendererNode *pNode)
 {
   udResult result;
   char *pFileData = nullptr;
@@ -208,11 +210,12 @@ udResult vcIndexed3DSceneLayer_LoadNodeGeometryData(vcIndexed3DSceneLayer *pScen
   udFloat3 finalVertPosition = {};
   const char *pPropertyName = nullptr;
   const char *pTypeName = nullptr;
+  udFloat2 heightBounds = {};
 
   for (size_t i = 0; i < pNode->geometryDataCount; ++i)
   {
     udSprintf(pSharedStringBuffer, vcMaxURLLength, "%s.bin", pNode->pGeometryData[i].url);
-    UD_ERROR_CHECK(udFile_Load(vcIndexed3DSceneLayer_AppendRelativeURL(pNode->url, pSharedStringBuffer), (void**)&pFileData, &fileLen));
+    UD_ERROR_CHECK(udFile_Load(vcSceneLayerRenderer_AppendRelativeURL(pNode->url, pSharedStringBuffer), (void**)&pFileData, &fileLen));
 
     pCurrentFile = pFileData;
 
@@ -220,6 +223,11 @@ udResult vcIndexed3DSceneLayer_LoadNodeGeometryData(vcIndexed3DSceneLayer *pScen
     originLatLong = udDouble3::create(pNode->pFeatureData[i].position.x, pNode->pFeatureData[i].position.y, 0.0);
     udGeoZone_FindSRID(&sridCode, originLatLong, true);
     udGeoZone_SetFromSRID(&pNode->pGeometryData[i].zone, sridCode);
+
+    // debugging
+    pointCartesian = udGeoZone_ToCartesian(pNode->pGeometryData[i].zone, originLatLong, true);
+    printf("Origin: %f, %f\n", pointCartesian.x, pointCartesian.y);
+    printf("SRID: %d\n", sridCode);
 
     /// Header
     headerElementCount = pSceneLayer->description.Get("store.defaultGeometrySchema.header").ArrayLength();
@@ -261,8 +269,7 @@ udResult vcIndexed3DSceneLayer_LoadNodeGeometryData(vcIndexed3DSceneLayer *pScen
         // TODO: (EVC-540) Handle different sized positions
         memcpy(&vertI3S, pCurrentFile, sizeof(vertI3S));
         pointCartesian = udGeoZone_ToCartesian(pNode->pGeometryData[i].zone, originLatLong + udDouble3::create(vertI3S.x, vertI3S.y, 0.0), true);
-        originCartesian = udDouble3::create(pointCartesian.x, pointCartesian.y, vertI3S.z);
-
+        originCartesian = udDouble3::create(pointCartesian.x, pointCartesian.y, vertI3S.z + pNode->pFeatureData[i].position.z);
         pNode->pGeometryData[i].originMatrix = udDouble4x4::translation(originCartesian);
 
         for (uint64_t v = 0; v < vertCount; ++v)
@@ -274,7 +281,15 @@ udResult vcIndexed3DSceneLayer_LoadNodeGeometryData(vcIndexed3DSceneLayer *pScen
 
           memcpy(pVerts + vertexOffset + (v * vertexSize), &finalVertPosition, attributeSize);
           pCurrentFile += attributeSize;
+
+          heightBounds.x = udMin(finalVertPosition.z, heightBounds.x);
+          heightBounds.y = udMax(finalVertPosition.z, heightBounds.y);
         }
+
+        // TODO: (EVC-543) The heights appear to be normalized? So I did this
+        // to line it up so that the minimum vertex height is at 0.0. I don't know
+        // if this is correct, I've probably missed something in the model format.
+        pNode->pGeometryData[i].originMatrix.axis.t.z += (heightBounds.y - heightBounds.x) * 0.5;
       }
       else
       {
@@ -306,8 +321,8 @@ epilogue:
   return result;
 }
 
-// Assumed vcIndexed3DSceneLayer_LoadNodeFeatures() already called
-udResult vcIndexed3DSceneLayer_LoadNodeTextureData(vcIndexed3DSceneLayer *pSceneLayer, vcIndexed3DSceneLayerNode *pNode)
+// Assumed vcSceneLayerRenderer_LoadNodeFeatures() already called
+udResult vcSceneLayerRenderer_LoadNodeTextureData(vcSceneLayerRenderer *pSceneLayer, vcSceneLayerRendererNode *pNode)
 {
   udUnused(pSceneLayer);
 
@@ -319,7 +334,7 @@ udResult vcIndexed3DSceneLayer_LoadNodeTextureData(vcIndexed3DSceneLayer *pScene
     // TODO: (EVC-542) other formats (this information is in sharedResource.json)
     pExtension = "jpg"; // temp
     udSprintf(pSharedStringBuffer, vcMaxURLLength, "%s.%s", pNode->pTextureData[i].url, pExtension);
-    if (!vcTexture_CreateFromFilename(&pNode->pTextureData[i].pTexture, vcIndexed3DSceneLayer_AppendRelativeURL(pNode->url, pSharedStringBuffer)))
+    if (!vcTexture_CreateFromFilename(&pNode->pTextureData[i].pTexture, vcSceneLayerRenderer_AppendRelativeURL(pNode->url, pSharedStringBuffer)))
       result = udR_Failure_;
   }
 
@@ -328,7 +343,7 @@ udResult vcIndexed3DSceneLayer_LoadNodeTextureData(vcIndexed3DSceneLayer *pScene
 }
 
 template<typename T>
-udResult vcIndexed3DSceneLayer_AllocateNodeData(T **ppData, size_t *pDataCount, const udJSON &nodeJSON, const char *pKey)
+udResult vcSceneLayerRenderer_AllocateNodeData(T **ppData, size_t *pDataCount, const udJSON &nodeJSON, const char *pKey)
 {
   udResult result;
   T *pData = nullptr;
@@ -355,78 +370,78 @@ epilogue:
 }
 
 
-udResult vcIndexed3DSceneLayer_LoadNode(vcIndexed3DSceneLayer *pSceneLayer, vcIndexed3DSceneLayerNode *pNode)
+udResult vcSceneLayerRenderer_LoadNode(vcSceneLayerRenderer *pSceneLayer, vcSceneLayerRendererNode *pNode)
 {
   udResult result;
   udJSON nodeJSON;
   char *pFileData = nullptr;
   int64_t fileLen = 0;
-  vcIndexed3DSceneLayerNode *pChildNode = nullptr;
+  vcSceneLayerRendererNode *pChildNode = nullptr;
   const char *pChildNodeURL = nullptr;
 
-  pNode->loadState = vcIndexed3DSceneLayerNode::vcLS_Loading;
+  pNode->loadState = vcSceneLayerRendererNode::vcLS_Loading;
 
   // Load the nodes info
-  UD_ERROR_CHECK(udFile_Load(vcIndexed3DSceneLayer_AppendRelativeURL(pNode->url, pNodeInfoFile), (void**)&pFileData, &fileLen));
+  UD_ERROR_CHECK(udFile_Load(vcSceneLayerRenderer_AppendRelativeURL(pNode->url, pNodeInfoFile), (void**)&pFileData, &fileLen));
   UD_ERROR_CHECK(nodeJSON.Parse(pFileData));
 
-  UD_ERROR_CHECK(vcIndexed3DSceneLayer_AllocateNodeData(&pNode->pSharedResources, &pNode->sharedResourceCount, nodeJSON, "sharedResource"));
-  UD_ERROR_CHECK(vcIndexed3DSceneLayer_AllocateNodeData(&pNode->pFeatureData, &pNode->featureDataCount, nodeJSON, "featureData"));
-  UD_ERROR_CHECK(vcIndexed3DSceneLayer_AllocateNodeData(&pNode->pGeometryData, &pNode->geometryDataCount, nodeJSON, "geometryData"));
-  UD_ERROR_CHECK(vcIndexed3DSceneLayer_AllocateNodeData(&pNode->pTextureData, &pNode->textureDataCount, nodeJSON, "textureData"));
-  UD_ERROR_CHECK(vcIndexed3DSceneLayer_AllocateNodeData(&pNode->pAttributeData, &pNode->attributeDataCount, nodeJSON, "attributeData"));
+  UD_ERROR_CHECK(vcSceneLayerRenderer_AllocateNodeData(&pNode->pSharedResources, &pNode->sharedResourceCount, nodeJSON, "sharedResource"));
+  UD_ERROR_CHECK(vcSceneLayerRenderer_AllocateNodeData(&pNode->pFeatureData, &pNode->featureDataCount, nodeJSON, "featureData"));
+  UD_ERROR_CHECK(vcSceneLayerRenderer_AllocateNodeData(&pNode->pGeometryData, &pNode->geometryDataCount, nodeJSON, "geometryData"));
+  UD_ERROR_CHECK(vcSceneLayerRenderer_AllocateNodeData(&pNode->pTextureData, &pNode->textureDataCount, nodeJSON, "textureData"));
+  UD_ERROR_CHECK(vcSceneLayerRenderer_AllocateNodeData(&pNode->pAttributeData, &pNode->attributeDataCount, nodeJSON, "attributeData"));
 
   pNode->childrenCount = nodeJSON.Get("children").ArrayLength();
   if (pNode->childrenCount > 0)
   {
-    pNode->pChildren = udAllocType(vcIndexed3DSceneLayerNode, pNode->childrenCount, udAF_Zero);
+    pNode->pChildren = udAllocType(vcSceneLayerRendererNode, pNode->childrenCount, udAF_Zero);
     UD_ERROR_NULL(pNode->pChildren, udR_MemoryAllocationFailure);
 
     for (size_t i = 0; i < pNode->childrenCount; ++i)
     {
       pChildNode = &pNode->pChildren[i];
-      pChildNode->loadState = vcIndexed3DSceneLayerNode::vcLS_NotLoaded;
+      pChildNode->loadState = vcSceneLayerRendererNode::vcLS_NotLoaded;
       pChildNode->id = nodeJSON.Get("children[%zu].id", i).AsInt();
       pChildNode->minimumBoundingSphere = nodeJSON.Get("children[%zu].mbs", i).AsDouble4();
 
       pChildNodeURL = nodeJSON.Get("children[%zu].href", i).AsString();
-      udStrcpy(pChildNode->url, sizeof(pChildNode->url), vcIndexed3DSceneLayer_AppendRelativeURL(pNode->url, pChildNodeURL));
+      udStrcpy(pChildNode->url, sizeof(pChildNode->url), vcSceneLayerRenderer_AppendRelativeURL(pNode->url, pChildNodeURL));
     }
   }
 
-  UD_ERROR_CHECK(vcIndexed3DSceneLayer_LoadNodeFeatureData(pSceneLayer, pNode));
-  UD_ERROR_CHECK(vcIndexed3DSceneLayer_LoadNodeGeometryData(pSceneLayer, pNode));
-  UD_ERROR_CHECK(vcIndexed3DSceneLayer_LoadNodeTextureData(pSceneLayer, pNode));
+  UD_ERROR_CHECK(vcSceneLayerRenderer_LoadNodeFeatureData(pSceneLayer, pNode));
+  UD_ERROR_CHECK(vcSceneLayerRenderer_LoadNodeGeometryData(pSceneLayer, pNode));
+  UD_ERROR_CHECK(vcSceneLayerRenderer_LoadNodeTextureData(pSceneLayer, pNode));
 
   result = udR_Success;
-  pNode->loadState = vcIndexed3DSceneLayerNode::vcLS_Success;
+  pNode->loadState = vcSceneLayerRendererNode::vcLS_Success;
 
 epilogue:
-  if (pNode->loadState != vcIndexed3DSceneLayerNode::vcLS_Success)
-    pNode->loadState = vcIndexed3DSceneLayerNode::vcLS_Failed;
+  if (pNode->loadState != vcSceneLayerRendererNode::vcLS_Success)
+    pNode->loadState = vcSceneLayerRendererNode::vcLS_Failed;
 
   udFree(pFileData);
   return result;
 }
 
-udResult vcIndexed3DSceneLayer_Create(vcIndexed3DSceneLayer **ppSceneLayer, const char *pSceneLayerURL)
+udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayer, const char *pSceneLayerURL)
 {
-  vcIndexed3DSceneLayer_Create();
+  vcSceneLayerRenderer_Create();
 
   udResult result;
-  vcIndexed3DSceneLayer *pSceneLayer = nullptr;
+  vcSceneLayerRenderer *pSceneLayer = nullptr;
   const char *pFileData = nullptr;
   int64_t fileLen = 0;
   const char *pAttributeName = nullptr;
   const char *pRootURL = nullptr;
 
-  pSceneLayer = udAllocType(vcIndexed3DSceneLayer, 1, udAF_Zero);
+  pSceneLayer = udAllocType(vcSceneLayerRenderer, 1, udAF_Zero);
   UD_ERROR_NULL(pSceneLayer, udR_MemoryAllocationFailure);
 
   udStrcpy(pSceneLayer->sceneLayerURL, sizeof(pSceneLayer->sceneLayerURL), pSceneLayerURL);
 
   // TODO: Actually unzip. For now I'm manually unzipping until udPlatform moves
-  UD_ERROR_CHECK(udFile_Load(vcIndexed3DSceneLayer_AppendRelativeURL(pSceneLayer->sceneLayerURL, pSceneLayerInfoFile), (void**)&pFileData, &fileLen));
+  UD_ERROR_CHECK(udFile_Load(vcSceneLayerRenderer_AppendRelativeURL(pSceneLayer->sceneLayerURL, pSceneLayerInfoFile), (void**)&pFileData, &fileLen));
   UD_ERROR_CHECK(pSceneLayer->description.Parse(pFileData));
 
   // Load layout description now
@@ -457,14 +472,14 @@ udResult vcIndexed3DSceneLayer_Create(vcIndexed3DSceneLayer **ppSceneLayer, cons
   }
 
   // Initialize the root
-  pRootURL = vcIndexed3DSceneLayer_AppendRelativeURL(pSceneLayer->sceneLayerURL, pSceneLayer->description.Get("store.rootNode").AsString());
+  pRootURL = vcSceneLayerRenderer_AppendRelativeURL(pSceneLayer->sceneLayerURL, pSceneLayer->description.Get("store.rootNode").AsString());
   udStrcpy(pSceneLayer->root.url, sizeof(pSceneLayer->root.url), pRootURL);
-  vcIndexed3DSceneLayer_LoadNode(pSceneLayer, &pSceneLayer->root);
+  vcSceneLayerRenderer_LoadNode(pSceneLayer, &pSceneLayer->root);
 
   // FOR NOW, build first layer of tree
-  for (size_t i = 0; i < pSceneLayer->root.childrenCount; ++i)
+  for (size_t i = 0; i < udMin(10ull, pSceneLayer->root.childrenCount); ++i)
   {
-    vcIndexed3DSceneLayer_LoadNode(pSceneLayer, &pSceneLayer->root.pChildren[i]);
+    vcSceneLayerRenderer_LoadNode(pSceneLayer, &pSceneLayer->root.pChildren[i]);
   }
 
   *ppSceneLayer = pSceneLayer;
@@ -472,23 +487,23 @@ udResult vcIndexed3DSceneLayer_Create(vcIndexed3DSceneLayer **ppSceneLayer, cons
 
 epilogue:
   if (result != udR_Success)
-    vcIndexed3DSceneLayer_Destroy();
+    vcSceneLayerRenderer_Destroy();
 
   udFree(pFileData);
   return result;
 }
 
-udResult vcIndexed3DSceneLayer_Destroy(vcIndexed3DSceneLayer **ppSceneLayer)
+udResult vcSceneLayerRenderer_Destroy(vcSceneLayerRenderer **ppSceneLayer)
 {
   udResult result;
-  vcIndexed3DSceneLayer *pSceneLayer = nullptr;
+  vcSceneLayerRenderer *pSceneLayer = nullptr;
 
   UD_ERROR_NULL(ppSceneLayer, udR_InvalidParameter_);
 
   pSceneLayer = *ppSceneLayer;
   *ppSceneLayer = nullptr;
 
-  vcIndexed3DSceneLayer_RecursiveDestroyNode(&pSceneLayer->root);
+  vcSceneLayerRenderer_RecursiveDestroyNode(&pSceneLayer->root);
 
   pSceneLayer->description.Destroy();
 
@@ -497,15 +512,28 @@ udResult vcIndexed3DSceneLayer_Destroy(vcIndexed3DSceneLayer **ppSceneLayer)
   result = udR_Success;
 
 epilogue:
-  vcIndexed3DSceneLayer_Destroy();
+  vcSceneLayerRenderer_Destroy();
   return result;
 }
 
-bool vcIndexed3DSceneLayer_RecursiveRender(vcIndexed3DSceneLayerNode *pNode, const udDouble4x4 &viewProjectionMatrix)
+// TODO: Visibility culling
+// Notes about implementation: https://docs.opengeospatial.org/cs/17-014r5/17-014r5.html
+//TraverseNodeTree(node)
+//{
+//  if (node’s mbs is not visible) // see 1)
+//                                 // do nothing
+//  else if (node has no children or ScreenSize(mbs) < maxScreenThreshold) //see 2)
+//                                                                         // render the node // see 3)
+//  else
+//    for each child in children(node) // see 4)
+//      TraverseNodeTree(child);
+//}
+
+bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRendererNode *pNode, const udDouble4x4 &viewProjectionMatrix)
 {
-  for (size_t i = 0; i < pNode->childrenCount; ++i) // hard coded 10 atm cause they arent unzipped!
+  for (size_t i = 0; i < udMin(10ull, pNode->childrenCount); ++i) // hard coded 10 atm cause they arent unzipped!
   {
-    vcIndexed3DSceneLayerNode *pChildNode = &pNode->pChildren[i];
+    vcSceneLayerRendererNode *pChildNode = &pNode->pChildren[i];
     for (size_t geometry = 0; geometry < pChildNode->geometryDataCount; ++geometry)
     {
       vcTexture *pDrawTexture = nullptr;
@@ -519,8 +547,8 @@ bool vcIndexed3DSceneLayer_RecursiveRender(vcIndexed3DSceneLayerNode *pNode, con
   return true;
 }
 
-bool vcIndexed3DSceneLayer_Render(vcIndexed3DSceneLayer *pSceneLayer, const udDouble4x4 &viewProjectionMatrix)
+bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayer, const udDouble4x4 &viewProjectionMatrix)
 {
-  vcIndexed3DSceneLayer_RecursiveRender(&pSceneLayer->root, viewProjectionMatrix);
+  vcSceneLayerRenderer_RecursiveRender(&pSceneLayer->root, viewProjectionMatrix);
   return true;
 }

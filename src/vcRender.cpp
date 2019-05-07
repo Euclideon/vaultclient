@@ -10,8 +10,7 @@
 #include "vcCompass.h"
 
 #include "vcInternalModels.h"
-#include "vcGIS.h"
-#include "vcI3S.h"
+#include "vcSceneLayerRenderer.h"
 
 #include "stb_image.h"
 #include <vector>
@@ -21,7 +20,7 @@ enum
   vcRender_SceneSizeIncrement = 32 // directX framebuffer can only be certain increments
 };
 
-vcIndexed3DSceneLayer *pSceneLayer = nullptr;
+vcSceneLayerRenderer *pSceneLayer = nullptr;
 
 struct vcUDRenderContext
 {
@@ -133,7 +132,7 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, pSettings));
   UD_ERROR_CHECK(vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences));
 
-  vcIndexed3DSceneLayer_Create(&pSceneLayer, "E:/Vault Datasets/I3S/mesh4");
+  vcSceneLayerRenderer_Create(&pSceneLayer, "E:/Vault Datasets/I3S/mesh4");
 
   *ppRenderContext = pRenderContext;
 
@@ -180,7 +179,7 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   vcPolygonModel_DestroyShaders();
   vcImageRenderer_Destroy();
 
-  vcIndexed3DSceneLayer_Destroy(&pSceneLayer);
+  vcSceneLayerRenderer_Destroy(&pSceneLayer);
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
@@ -438,7 +437,7 @@ void vcRenderOpaquePolygons(vcRenderContext *pRenderContext, vcRenderData &rende
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
       vcPolygonModel_Render(renderData.polyModels[i].pModel, renderData.polyModels[i].worldMat, pRenderContext->pCamera->matrices.viewProjection);
 
-    vcIndexed3DSceneLayer_Render(pSceneLayer, pRenderContext->pCamera->matrices.viewProjection);
+    vcSceneLayerRenderer_Render(pSceneLayer, pRenderContext->pCamera->matrices.viewProjection);
 
     for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
       vcWaterRenderer_Render(renderData.waterVolumes[i], pRenderContext->pCamera->matrices.view, pRenderContext->pCamera->matrices.viewProjection, pRenderContext->pSkyboxTexture, renderData.deltaTime);
