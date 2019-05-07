@@ -5,6 +5,7 @@
 
 #include "gl/vcRenderShaders.h"
 #include "gl/vcTexture.h"
+#include "gl/vcMesh.h"
 
 static int gPolygonShaderRefCount = 0;
 
@@ -95,11 +96,16 @@ const vcVertexLayoutTypes vcPolygonModelVertexLayout[] = { vcVLT_Position3, vcVL
 
 udResult vcPolygonModel_CreateFromData(vcPolygonModel **ppPolygonModel, void *pVerts, uint16_t vertCount, const vcVertexLayoutTypes *pMeshLayout, int totalTypes)
 {
+  if (ppPolygonModel == nullptr || pVerts == nullptr || pMeshLayout == nullptr || vertCount == 0 || totalTypes <= 0)
+    return udR_InvalidParameter_;
+
   udResult result = udR_Success;
   vcPolygonModel *pPolygonModel = nullptr;
 
   pPolygonModel = udAllocType(vcPolygonModel, 1, udAF_Zero);
   pPolygonModel->pMeshes = udAllocType(vcPolygonModelMesh, 1, udAF_Zero);
+  UD_ERROR_NULL(pPolygonModel->pMeshes, udR_MemoryAllocationFailure);
+
   pPolygonModel->meshCount = 1;
 
   pPolygonModel->pMeshes[0].material.flags = 0;
