@@ -1,6 +1,6 @@
 project "vaultClient"
 	--Settings
-	kind "ConsoleApp"
+	kind "WindowedApp"
 
 	language "C++"
 	flags { "StaticRuntime", "FatalWarnings", "MultiProcessorCompile" }

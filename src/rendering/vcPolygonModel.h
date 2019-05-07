@@ -2,7 +2,7 @@
 #define vcPolygonModel_h__
 
 #include "udPlatform/udMath.h"
-#include "gl/vcMesh.h"
+#include "gl/vcLayout.h"
 
 struct vcPolygonModel;
 struct vcTexture;
