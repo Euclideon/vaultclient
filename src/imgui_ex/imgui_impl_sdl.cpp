@@ -235,7 +235,7 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
       Uint8 window_event = event->window.event;
       /*if (window_event == SDL_WINDOWEVENT_CLOSE || window_event == SDL_WINDOWEVENT_MOVED || window_event == SDL_WINDOWEVENT_RESIZED)
         if (ImGuiViewport* viewport = ImGui::FindViewportByPlatformHandle((void*)SDL_GetWindowFromID(event->window.windowID)))
-        {
+      {
           if (window_event == SDL_WINDOWEVENT_CLOSE)
             viewport->PlatformRequestClose = true;
           if (window_event == SDL_WINDOWEVENT_MOVED)
@@ -246,20 +246,20 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
         }
         else*/ if (window_event == SDL_WINDOWEVENT_FOCUS_GAINED)
         {
-          SDL_Window* window = SDL_GetWindowFromID(event->window.windowID);
-          if (window)
-          {
+        SDL_Window* window = SDL_GetWindowFromID(event->window.windowID);
+        if (window)
+        {
     #ifdef _WIN32
-            // Fix keyboard state
-            ImGui_ImplSDL2_FixKeyboardState();
+          // Fix keyboard state
+          ImGui_ImplSDL2_FixKeyboardState();
     #endif
-          }
         }
+      }
     }
     return false;
 }
 
-static bool ImGui_ImplSDL2_Init(SDL_Window* window)
+static bool    ImGui_ImplSDL2_Init(SDL_Window* window)
 {
     g_Window = window;
 
@@ -357,20 +357,20 @@ void ImGui_ImplSDL2_Shutdown()
 // This code is incredibly messy because some of the functions we need for full viewport support are not available in SDL < 2.0.4.
 static void ImGui_ImplSDL2_UpdateMousePosAndButtons()
 {
-  ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
   io.MouseHoveredViewport = 0;
 
   // [1]
   // Only when requested by io.WantSetMousePos: set OS mouse pos from Dear ImGui mouse pos.
   // (rarely used, mostly when ImGuiConfigFlags_NavEnableSetMousePos is enabled by user)
-  if (io.WantSetMousePos)
+    if (io.WantSetMousePos)
   {
 #if SDL_HAS_CAPTURE_AND_GLOBAL_MOUSE
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
             SDL_WarpMouseGlobal((int)io.MousePos.x, (int)io.MousePos.y);
         else
 #endif
-            SDL_WarpMouseInWindow(g_Window, (int)io.MousePos.x, (int)io.MousePos.y);
+        SDL_WarpMouseInWindow(g_Window, (int)io.MousePos.x, (int)io.MousePos.y);
     }
     else
     {
@@ -381,7 +381,7 @@ static void ImGui_ImplSDL2_UpdateMousePosAndButtons()
     // Set Dear ImGui mouse pos from OS mouse pos + get buttons. (this is the common behavior)
     int mouse_x_local, mouse_y_local;
     Uint32 mouse_buttons = SDL_GetMouseState(&mouse_x_local, &mouse_y_local);
-    io.MouseDown[0] = g_MousePressed[0] || (mouse_buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;      // If a mouse press event came, always pass it as "mouse held this frame", so we don't miss click-release events that are shorter than 1 frame.
+    io.MouseDown[0] = g_MousePressed[0] || (mouse_buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;  // If a mouse press event came, always pass it as "mouse held this frame", so we don't miss click-release events that are shorter than 1 frame.
     io.MouseDown[1] = g_MousePressed[1] || (mouse_buttons & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
     io.MouseDown[2] = g_MousePressed[2] || (mouse_buttons & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;
     g_MousePressed[0] = g_MousePressed[1] = g_MousePressed[2] = false;
@@ -485,7 +485,7 @@ static void ImGui_ImplSDL2_UpdateGamepads()
 void ImGui_ImplSDL2_NewFrame(SDL_Window* window)
 {
     ImGuiIO& io = ImGui::GetIO();
-    IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer back-end. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
+    //IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer back-end. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
 
     // Setup display size (every frame to accommodate for window resizing)
     int w, h;
@@ -494,7 +494,7 @@ void ImGui_ImplSDL2_NewFrame(SDL_Window* window)
     SDL_GL_GetDrawableSize(window, &display_w, &display_h);
     io.DisplaySize = ImVec2((float)w, (float)h);
     if (w > 0 && h > 0)
-        io.DisplayFramebufferScale = ImVec2((float)display_w / w, (float)display_h / h);
+      io.DisplayFramebufferScale = ImVec2((float)display_w / w, (float)display_h / h);
 
     // Setup time step (we don't use SDL_GetTicks() because it is using millisecond resolution)
     static Uint64 frequency = SDL_GetPerformanceFrequency();

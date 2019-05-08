@@ -33,6 +33,7 @@ struct vcFramebuffer
   uint32_t ID;
   vcTexture *pColor;
   vcTexture *pDepth;
+  bool drawMe;
 };
 
 struct vcShaderConstantBuffer
