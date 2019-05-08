@@ -145,7 +145,7 @@ void vcMain_PresentationMode(vcState *pProgramState)
 {
   pProgramState->settings.window.presentationMode = !pProgramState->settings.window.presentationMode;
   if (pProgramState->settings.window.presentationMode)
-    SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN);
   else
     SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
 
@@ -468,6 +468,7 @@ int main(int argc, char **args)
 
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+  vcMain_LoadSettings(&programState, false);
 
   // setup watermark for background
   vcTexture_CreateFromFilename(&programState.pCompanyLogo, "asset://assets/textures/logo.png");
@@ -475,8 +476,6 @@ int main(int argc, char **args)
 
   if (!ImGuiGL_Init(programState.pWindow))
     goto epilogue;
-
-  vcMain_LoadSettings(&programState, false);
 
   //Get ready...
   NOW = SDL_GetPerformanceCounter();
@@ -870,7 +869,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
-    if (ImGui::Begin(vcString::Get("sceneGeographicInfo"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar))
+    if (ImGui::Begin(vcString::Get("sceneGeographicInfo"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
     {
       if (pProgramState->settings.presentation.showProjectionInfo)
       {
@@ -920,7 +919,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x, windowPos.y), ImGuiCond_Always, ImVec2(0.f, 0.f));
     ImGui::SetNextWindowBgAlpha(0.5f);
-    if (ImGui::Begin(vcString::Get("sceneCameraSettings"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+    if (ImGui::Begin(vcString::Get("sceneCameraSettings"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
     {
       // Basic Settings
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneLockAltitude"), vcString::Get("sceneLockAltitudeKey"), vcMBBI_LockAltitude, vcMBBG_FirstItem, (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)))
@@ -1496,7 +1495,8 @@ void vcRenderWindow(vcState *pProgramState)
 
   if (pProgramState->hasContext)
   {
-    vcMainMenuGui(pProgramState);
+    if (!pProgramState->settings.window.presentationMode)
+      vcMainMenuGui(pProgramState);
 
     if (!pProgramState->settings.docksLoaded)
       pProgramState->settings.rootNode = ImGui::GetID("MyDockspace");
@@ -1772,7 +1772,7 @@ void vcRenderWindow(vcState *pProgramState)
   }
   else
   {
-    if (pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer])
+    if (pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer] && !pProgramState->settings.window.presentationMode)
     {
       if (ImGui::Begin(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
       {
@@ -1890,7 +1890,7 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::End();
     }
 
-    if (pProgramState->settings.window.windowsOpen[vcDocks_Convert])
+    if (pProgramState->settings.window.windowsOpen[vcDocks_Convert] && !pProgramState->settings.window.presentationMode)
     {
       if (ImGui::Begin(udTempStr("%s###convertDock", vcString::Get("convertTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
         vcConvert_ShowUI(pProgramState);
@@ -1911,16 +1911,17 @@ void vcRenderWindow(vcState *pProgramState)
       else
       {
         // Dummy scene dock, otherwise the docks get shuffled around
-        if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
+        /*if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
           ImGui::Dummy(ImVec2((float)pProgramState->sceneResolution.x, (float)pProgramState->sceneResolution.y));
         vcChangeTab(pProgramState, vcDocks_Scene);
         ImGui::End();
+        */
 
         ImGui::SetNextWindowSize(size);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
         ImGui::SetNextWindowPos(ImVec2(0, 0));
 
-        if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
+        if (ImGui::Begin(udTempStr("%s###scenePresentation", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
           vcRenderSceneWindow(pProgramState);
 
         ImGui::End();
@@ -1928,7 +1929,7 @@ void vcRenderWindow(vcState *pProgramState)
       }
     }
 
-    if (pProgramState->settings.window.windowsOpen[vcDocks_Settings])
+    if (pProgramState->settings.window.windowsOpen[vcDocks_Settings] && !pProgramState->settings.window.presentationMode)
     {
       if (ImGui::Begin(udTempStr("%s###settingsDock", vcString::Get("settingsTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Settings]))
       {
