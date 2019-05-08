@@ -20,7 +20,7 @@ enum
   vcRender_SceneSizeIncrement = 32 // directX framebuffer can only be certain increments
 };
 
-vcSceneLayerRenderer *pSceneLayer = nullptr;
+vcSceneLayerRenderer *pSceneLayer[2] = {};
 
 struct vcUDRenderContext
 {
@@ -97,7 +97,7 @@ struct vcRenderContext
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
 udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vcRenderData &renderData);
 
-udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &sceneResolution)
+udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings, vcCamera *pCamera, vWorkerThreadPool *pWorkerThreadPool, const udUInt2 &sceneResolution)
 {
   udResult result = udR_Success;
   vcRenderContext *pRenderContext = nullptr;
@@ -132,7 +132,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, pSettings));
   UD_ERROR_CHECK(vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences));
 
-  vcSceneLayerRenderer_Create(&pSceneLayer, "E:/Vault Datasets/I3S/mesh4");
+  vcSceneLayerRenderer_Create(&pSceneLayer[0], pSettings, pWorkerThreadPool, "E:/Vault Datasets/I3S/mesh4");
+  vcSceneLayerRenderer_Create(&pSceneLayer[1], pSettings, pWorkerThreadPool, "E:/Vault Datasets/I3S/tilt/tilt");
 
   *ppRenderContext = pRenderContext;
 
@@ -179,7 +180,8 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   vcPolygonModel_DestroyShaders();
   vcImageRenderer_Destroy();
 
-  vcSceneLayerRenderer_Destroy(&pSceneLayer);
+  vcSceneLayerRenderer_Destroy(&pSceneLayer[0]);
+  vcSceneLayerRenderer_Destroy(&pSceneLayer[1]);
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
@@ -424,7 +426,7 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
   }
 }
 
-void vcRenderOpaquePolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
+void vcRenderOpaqueGeometry(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   vcGLState_ResetState();
 
@@ -437,14 +439,15 @@ void vcRenderOpaquePolygons(vcRenderContext *pRenderContext, vcRenderData &rende
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
       vcPolygonModel_Render(renderData.polyModels[i].pModel, renderData.polyModels[i].worldMat, pRenderContext->pCamera->matrices.viewProjection);
 
-    vcSceneLayerRenderer_Render(pSceneLayer, pRenderContext->pCamera->matrices.viewProjection);
+    vcSceneLayerRenderer_Render(pSceneLayer[0], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
+    vcSceneLayerRenderer_Render(pSceneLayer[1], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
 
     for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
       vcWaterRenderer_Render(renderData.waterVolumes[i], pRenderContext->pCamera->matrices.view, pRenderContext->pCamera->matrices.viewProjection, pRenderContext->pSkyboxTexture, renderData.deltaTime);
   }
 }
 
-void vcRenderTransparentPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
+void vcRenderTransparentGeometry(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
@@ -501,9 +504,9 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
 
   vcPresentUD(pRenderContext);
   vcRenderSkybox(pRenderContext);
-  vcRenderOpaquePolygons(pRenderContext, renderData);
+  vcRenderOpaqueGeometry(pRenderContext, renderData);
   vcRenderTerrain(pRenderContext, renderData);
-  vcRenderTransparentPolygons(pRenderContext, renderData);
+  vcRenderTransparentGeometry(pRenderContext, renderData);
 
   if (pRenderContext->pSettings->presentation.mouseAnchor != vcAS_None && (renderData.pickingSuccess || (renderData.pWorldAnchorPos != nullptr)))
   {

@@ -484,7 +484,7 @@ int main(int argc, char **args)
   NOW = SDL_GetPerformanceCounter();
   LAST = 0;
 
-  if (vcRender_Init(&(programState.pRenderContext), &(programState.settings), programState.pCamera, programState.sceneResolution) != udR_Success)
+  if (vcRender_Init(&programState.pRenderContext, &programState.settings, programState.pCamera, programState.pWorkerPool, programState.sceneResolution) != udR_Success)
     goto epilogue;
 
   // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
