@@ -87,16 +87,15 @@ void ImGui_ImplMetal_NewFrame(SDL_Window *pWindow)
     IM_ASSERT(g_sharedMetalContext != nil && "No Metal context. Did you call ImGui_ImplMetal_Init?");
     
     g_sharedMetalContext.renderPassDescriptor = _viewCon.renderer.renderPasses[0];
+
+    ImGui_ImplSDL2_NewFrame(pWindow);
     
     ImGuiIO& io = ImGui::GetIO();
     
-    // Using this causes havoc as you resize the window when imgui sets the scissor rect below
-    //io.DisplaySize = ImVec2((float)(_viewCon.Mview.window.frame.size.width), (float)(_viewCon.Mview.window.frame.size.height));
     io.DisplaySize = ImVec2((float)(_viewCon.Mview.drawableSize.width), (float)(_viewCon.Mview.drawableSize.height));
-    io.DisplayFramebufferScale = ImVec2(io.DisplaySize.x > 0 ? ((float)(_viewCon.Mview.drawableSize.width) / io.DisplaySize.x) : 0,
-                                        io.DisplaySize.y > 0 ? ((float)(_viewCon.Mview.drawableSize.height) / io.DisplaySize.y) : 0);
+    // FramebufferScale should stay at 1,1 because the drawable size is automatically resized from the view size
+    io.DisplayFramebufferScale = ImVec2(1,1);
     
-    ImGui_ImplSDL2_NewFrame(pWindow);
     ImGui::NewFrame();
 
     io.MousePos.x -= [_viewCon.Mview.window contentLayoutRect].origin.x;
@@ -188,7 +187,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
     
     vcTexture *fontText;
-    vcTexture_Create(&fontText, width, height, pixels, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Clamp);
+    vcTexture_Create(&fontText, width, height, pixels);
     self.fontTexture = fontText;
 }
 
@@ -375,21 +374,13 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
                 ImVec4 clip_rect;
                 clip_rect.x = (pcmd->ClipRect.x - clip_off.x) * clip_scale.x;
                 clip_rect.y = (pcmd->ClipRect.y - clip_off.y) * clip_scale.y;
-                clip_rect.z = udMin(((pcmd->ClipRect.z - clip_off.x) * clip_scale.x), (float)g_sharedMetalContext.renderPassDescriptor.colorAttachments[0].texture.width);
-                clip_rect.w = udMin(((pcmd->ClipRect.w - clip_off.y) * clip_scale.y), (float)g_sharedMetalContext.renderPassDescriptor.colorAttachments[0].texture.height);
+                clip_rect.z = (pcmd->ClipRect.z - clip_off.x) * clip_scale.x;
+                clip_rect.w = (pcmd->ClipRect.w - clip_off.y) * clip_scale.y;
                 
                 if (clip_rect.x < fb_width && clip_rect.y < fb_height && clip_rect.z > 1.0f && clip_rect.w > 1.0f)
                 {
-                    // Apply scissor/clipping rectangle
-                    MTLScissorRect scissorRect =
-                    {
-                        .x = NSUInteger(clip_rect.x),
-                        .y = NSUInteger(clip_rect.y),
-                        .width = NSUInteger(clip_rect.z - clip_rect.x),
-                        .height = NSUInteger(clip_rect.w - clip_rect.y)
-                    };
-                    [commandEncoder setScissorRect:scissorRect];
-                    
+                    vcGLState_Scissor(clip_rect.x, clip_rect.y, clip_rect.z, clip_rect.w);
+
                     // Bind texture, Draw
                     if (pcmd->TextureId != NULL)
                     {

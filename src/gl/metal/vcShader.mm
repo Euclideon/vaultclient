@@ -51,11 +51,10 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
       case vcVLT_TotalTypes:
         break;
     }
-    
-    vertexDesc.layouts[0].stride = accumulatedOffset;
-    vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
-    vertexDesc.layouts[0].stepRate = 1;
   }
+  vertexDesc.layouts[0].stride = accumulatedOffset;
+  vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+  vertexDesc.layouts[0].stepRate = 1;
   
   id<MTLFunction> vFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pVertexShader]];
   id<MTLFunction> fFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pFragmentShader]];
@@ -109,9 +108,8 @@ void vcShader_DestroyShader(vcShader **ppShader)
 bool vcShader_Bind(vcShader *pShader)
 {
   if (pShader != nullptr)
-  {
     [_viewCon.renderer bindPipeline:pShader];
-  }
+
   return true;
 }
 
