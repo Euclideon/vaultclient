@@ -8,10 +8,13 @@
 #include "udPlatform/udMath.h"
 
 struct vcSceneLayerRenderer;
+struct vcSettings;
 
-udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayer, const char *pSceneLayerURL);
+struct vWorkerThreadPool;
+
+udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayer, const vcSettings *pSettings, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL);
 udResult vcSceneLayerRenderer_Destroy(vcSceneLayerRenderer **ppSceneLayer);
 
-bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayer, const udDouble4x4 &viewProjectionMatrix);
+bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution);
 
 #endif//vcSceneLayerRenderer_h__
