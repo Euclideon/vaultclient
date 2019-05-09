@@ -103,6 +103,8 @@ udResult vcPolygonModel_CreateFromData(vcPolygonModel **ppPolygonModel, void *pV
   vcPolygonModel *pPolygonModel = nullptr;
 
   pPolygonModel = udAllocType(vcPolygonModel, 1, udAF_Zero);
+  UD_ERROR_NULL(pPolygonModel, udR_MemoryAllocationFailure);
+
   pPolygonModel->pMeshes = udAllocType(vcPolygonModelMesh, 1, udAF_Zero);
   UD_ERROR_NULL(pPolygonModel->pMeshes, udR_MemoryAllocationFailure);
 

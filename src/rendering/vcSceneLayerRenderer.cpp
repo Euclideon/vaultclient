@@ -9,6 +9,7 @@
 #include "vcPolygonModel.h"
 
 #include "gl/vcTexture.h"
+#include "gl/vcGLState.h"
 
 #include "udPlatform/udJSON.h"
 #include "udPlatform/udFile.h"
@@ -18,32 +19,33 @@
 static const char *pSceneLayerInfoFile = "3dSceneLayer.json";
 static const char *pNodeInfoFile = "3dNodeIndexDocument.json";
 
-// Shared, reused dynamically allocated
-static char *pSharedStringBuffer = nullptr;
-
 enum
 {
   // TODO: (EVC-541) Determine actual max URL length of I3S
   vcMaxURLLength = vcMaxPathLength,
-  vcMaxUploadsPerFrame = 3, // gpu
+
+  // TODO: (EVC-547) This is arbitrary
+  vcMaxRealtimeUploadsBytesPerFrame = 30 * 1024, // bytes gpu
 };
 
 struct vcSceneLayerRendererNode
 {
   enum vcLoadState
   {
+    // Note: some logic depends on the ordering of these enums
     vcLS_NotLoaded,
     vcLS_Loading,
     vcLS_InMemory,
-    vcLS_Success,
 
+    vcLS_Success,
     vcLS_Failed,
   };
 
   vcLoadState loadState;
 
+  int level;
   char id[vcMaxPathLength]; // TODO: How big should this be?
-  char url[vcMaxURLLength];
+  const char *pURL;
   vcSceneLayerRendererNode *pChildren;
   size_t childrenCount;
 
@@ -59,14 +61,14 @@ struct vcSceneLayerRendererNode
 
   struct SharedResource
   {
-    char url[vcMaxURLLength];
+    const char *pURL;
 
   } *pSharedResources;
   size_t sharedResourceCount;
 
   struct FeatureData
   {
-    char url[vcMaxURLLength];
+    const char *pURL;
 
     udDouble3 position;
     udDouble3 pivotOffset;
@@ -76,35 +78,36 @@ struct vcSceneLayerRendererNode
 
   struct GeometryData
   {
-    char url[vcMaxURLLength];
+    bool loaded;
+    const char *pURL;
 
     udDouble4x4 originMatrix;
     udDouble4x4 transformation;
     //int type;
     vcPolygonModel *pModel;
 
-    // cached for delayed upload to gpu
-    char *pVertsData;
+    // cpu
+    uint8_t *pData;
     uint64_t vertCount;
   } *pGeometryData;
   size_t geometryDataCount;
 
   struct TextureData
   {
-    char url[vcMaxURLLength];
+    bool loaded;
+    const char *pURL;
 
     vcTexture *pTexture;
 
-    // cached for delayed upload to gpu
-    void *pData;
-    int width;
-    int height;
+    // cpu
+    uint8_t *pData;
+    int width, height;
   } *pTextureData;
   size_t textureDataCount;
 
   struct AttributeData
   {
-    char url[vcMaxURLLength];
+    const char *pURL;
 
   } *pAttributeData;
   size_t attributeDataCount;
@@ -112,9 +115,11 @@ struct vcSceneLayerRendererNode
 
 struct vcSceneLayerRenderer
 {
+  vcSceneLayerRendererMode mode;
+
   const vcSettings *pSettings;
   vWorkerThreadPool *pThreadPool;
-  int uploadsThisFrame;
+  size_t maxUploadsPerFrameBytes;
 
   char sceneLayerURL[vcMaxURLLength];
   udJSON description;
@@ -131,7 +136,7 @@ struct vcLoadNodeJobData
   vcSceneLayerRendererNode *pNode;
 };
 
-udResult vcSceneLayerRenderer_LoadNodeData(vcSceneLayerRenderer *pSceneLayer, vcSceneLayerRendererNode *pNode, bool recursiveLoadChildren = false, bool fullNodeLoad = false);
+udResult vcSceneLayerRenderer_LoadNodeData(vcSceneLayerRenderer *pSceneLayer, vcSceneLayerRendererNode *pNode);
 
 void vcSceneLayerRenderer_AsyncLoadNode(void *pSceneLayerPtr)
 {
@@ -141,56 +146,69 @@ void vcSceneLayerRenderer_AsyncLoadNode(void *pSceneLayerPtr)
   vcSceneLayerRenderer_LoadNodeData(pLoadData->pSceneLayer, pLoadData->pNode);
 }
 
-static int gRefCount = 0;
-void vcSceneLayerRenderer_Create()
+// TODO: (EVC-549) This should be removed from here and put somewhere public
+void vcNormalizePath(const char **ppDest, const char *pRoot, const char *pAppend)
 {
-  ++gRefCount;
-  if (gRefCount == 1)
+  const char *pRemoveCharacters = "\\";
+
+  char *pNewAppend = udStrdup(pAppend);
+  size_t len = udStrlen(pNewAppend);
+  size_t index = 0;
+  while (udStrchr(pNewAppend, pRemoveCharacters, &index) != nullptr)
   {
-    pSharedStringBuffer = udAllocType(char, vcMaxURLLength, udAF_Zero);
+    memcpy(pNewAppend + index, pNewAppend + (index + 1), (len - index));
+    len -= 1;
   }
-}
 
-void vcSceneLayerRenderer_Destroy()
-{
-  --gRefCount;
-  if (gRefCount == 0)
+  // Remove leading `./`
+  if (udStrlen(pNewAppend) >= 2 && pNewAppend[0] == '.' && pNewAppend[1] == '/')
   {
-    udFree(pSharedStringBuffer);
+    len -= 2;
+    memcpy(pNewAppend, pNewAppend + 2, len);
   }
-}
-
-// TODO: Consider moving this functionality out into udPlatform
-const char *vcSceneLayerRenderer_AppendURL(const char *pRootURL, const char *pURL)
-{
-  // TODO: (EVC-541) Overcome udTempStr()'s max size of 2048 (max size of URL is 4096)
-  if (udStrlen(pURL) >= 2 && pURL[0] == '.' && pURL[1] == '/')
-    return udTempStr("%s/%s", pRootURL, pURL + 2);
-
-  // TODO: ??! One of the datasets has paths like this?
-  if (udStrlen(pURL) >= 4 && pURL[0] == '.' && pURL[1] == '\\' && pURL[2] == '/')
-    return udTempStr("%s/%s", pRootURL, pURL + 3);
-
-  if (udStrlen(pURL) >= 2 && pURL[0] == '.' && pURL[1] == '.')
-    return udTempStr("%s/%s", pRootURL, pURL + 2);
 
   // TODO: (EVC-541) What else?
 
-  return udTempStr("%s/%s", pRootURL, pURL);
+  pNewAppend[len] = '\0';
+  if (pRoot)
+    udSprintf(ppDest, "%s/%s", pRoot, pNewAppend);
+  else
+    udSprintf(ppDest, "%s", pNewAppend);
+  udFree(pNewAppend);
 }
 
 void vcSceneLayerRenderer_RecursiveDestroyNode(vcSceneLayerRendererNode *pNode)
 {
+
+  for (size_t i = 0; i < pNode->sharedResourceCount; ++i)
+  {
+    udFree(pNode->pSharedResources[i].pURL);
+  }
+
+  for (size_t i = 0; i < pNode->featureDataCount; ++i)
+  {
+    udFree(pNode->pFeatureData[i].pURL);
+  }
+
   for (size_t i = 0; i < pNode->geometryDataCount; ++i)
   {
+    udFree(pNode->pGeometryData[i].pURL);
+
     vcPolygonModel_Destroy(&pNode->pGeometryData[i].pModel);
-    udFree(pNode->pGeometryData[i].pVertsData);
+    udFree(pNode->pGeometryData[i].pData);
   }
 
   for (size_t i = 0; i < pNode->textureDataCount; ++i)
   {
+    udFree(pNode->pTextureData[i].pURL);
+
     vcTexture_Destroy(&pNode->pTextureData[i].pTexture);
     udFree(pNode->pTextureData[i].pData);
+  }
+
+  for (size_t i = 0; i < pNode->attributeDataCount; ++i)
+  {
+    udFree(pNode->pAttributeData[i].pURL);
   }
 
   udFree(pNode->pSharedResources);
@@ -203,6 +221,7 @@ void vcSceneLayerRenderer_RecursiveDestroyNode(vcSceneLayerRendererNode *pNode)
     vcSceneLayerRenderer_RecursiveDestroyNode(&pNode->pChildren[i]);
 
   udFree(pNode->pChildren);
+  udFree(pNode->pURL);
 }
 
 udResult vcSceneLayerRenderer_LoadNodeFeatureData(vcSceneLayerRenderer *pSceneLayer, vcSceneLayerRendererNode *pNode)
@@ -210,21 +229,22 @@ udResult vcSceneLayerRenderer_LoadNodeFeatureData(vcSceneLayerRenderer *pSceneLa
   udUnused(pSceneLayer);
 
   udResult result;
+  const char *pPathBuffer = nullptr;
   char *pFileData = nullptr;
   int64_t fileLen = 0;
   udJSON featuresJSON;
 
   for (size_t i = 0; i < pNode->featureDataCount; ++i)
   {
-    udSprintf(pSharedStringBuffer, vcMaxURLLength, "%s.json", pNode->pFeatureData[i].url);
-    UD_ERROR_CHECK(udFile_Load(vcSceneLayerRenderer_AppendURL(pNode->url, pSharedStringBuffer), (void**)&pFileData, &fileLen));
+    udSprintf(&pPathBuffer, "%s/%s.json", pNode->pURL, pNode->pFeatureData[i].pURL);
+    UD_ERROR_CHECK(udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen));
     UD_ERROR_CHECK(featuresJSON.Parse(pFileData));
 
     // TODO: JIRA task add a udJSON.AsDouble2()
     // Note: 'position' is either (x/y/z) OR just (x/y).
     pNode->pFeatureData[i].position.x = featuresJSON.Get("featureData[%zu].position[0]", i).AsDouble();
     pNode->pFeatureData[i].position.y = featuresJSON.Get("featureData[%zu].position[1]", i).AsDouble();
-    pNode->pFeatureData[i].position.z = featuresJSON.Get("featureData[%zu].position[2]", i).AsDouble();
+    pNode->pFeatureData[i].position.z = featuresJSON.Get("featureData[%zu].position[2]", i).AsDouble(); // may not exist
     pNode->pFeatureData[i].pivotOffset = featuresJSON.Get("featureData[%zu].pivotOffset", i).AsDouble3();
     pNode->pFeatureData[i].minimumBoundingBox = featuresJSON.Get("featureData[%zu].mbb", i).AsDouble4();
 
@@ -237,6 +257,7 @@ udResult vcSceneLayerRenderer_LoadNodeFeatureData(vcSceneLayerRenderer *pSceneLa
   result = udR_Success;
 
 epilogue:
+  udFree(pPathBuffer);
   udFree(pFileData);
   return result;
 }
@@ -245,6 +266,7 @@ epilogue:
 udResult vcSceneLayerRenderer_LoadNodeGeometryData(vcSceneLayerRenderer *pSceneLayer, vcSceneLayerRendererNode *pNode)
 {
   udResult result;
+  const char *pPathBuffer = nullptr;
   char *pFileData = nullptr;
   int64_t fileLen = 0;
   uint64_t featureCount = 0;
@@ -263,8 +285,8 @@ udResult vcSceneLayerRenderer_LoadNodeGeometryData(vcSceneLayerRenderer *pSceneL
 
   for (size_t i = 0; i < pNode->geometryDataCount; ++i)
   {
-    udSprintf(pSharedStringBuffer, vcMaxURLLength, "%s.bin", pNode->pGeometryData[i].url);
-    UD_ERROR_CHECK(udFile_Load(vcSceneLayerRenderer_AppendURL(pNode->url, pSharedStringBuffer), (void**)&pFileData, &fileLen));
+    udSprintf(&pPathBuffer, "%s/%s.bin", pNode->pURL, pNode->pGeometryData[i].pURL);
+    UD_ERROR_CHECK(udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen));
 
     pCurrentFile = pFileData;
 
@@ -293,7 +315,7 @@ udResult vcSceneLayerRenderer_LoadNodeGeometryData(vcSceneLayerRenderer *pSceneL
     vertexSize = vcLayout_GetSize(pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount);
     UD_ERROR_IF(pNode->pGeometryData[i].vertCount * vertexSize == 0, udR_ParseError);
 
-    pNode->pGeometryData[i].pVertsData = udAllocType(char, pNode->pGeometryData[i].vertCount * vertexSize, udAF_Zero);
+    pNode->pGeometryData[i].pData = udAllocType(uint8_t, pNode->pGeometryData[i].vertCount * vertexSize, udAF_Zero);
 
     // vertices are non-interleaved.
     // TODO: (EVC-542) Is that what "Topology: PerAttributeArray" signals?
@@ -319,7 +341,7 @@ udResult vcSceneLayerRenderer_LoadNodeGeometryData(vcSceneLayerRenderer *pSceneL
           pointCartesian.z = vertI3S.z; // Elevation (the z component of the vertex position) is specified in meters
           finalVertPosition = udFloat3::create(pointCartesian - originCartesian);
 
-          memcpy(pNode->pGeometryData[i].pVertsData + vertexOffset + (v * vertexSize), &finalVertPosition, attributeSize);
+          memcpy(pNode->pGeometryData[i].pData + vertexOffset + (v * vertexSize), &finalVertPosition, attributeSize);
           pCurrentFile += attributeSize;
         }
 
@@ -332,7 +354,7 @@ udResult vcSceneLayerRenderer_LoadNodeGeometryData(vcSceneLayerRenderer *pSceneL
       {
         for (uint64_t v = 0; v < pNode->pGeometryData[i].vertCount; ++v)
         {
-          memcpy(pNode->pGeometryData[i].pVertsData + vertexOffset + (v * vertexSize), pCurrentFile, attributeSize);
+          memcpy(pNode->pGeometryData[i].pData + vertexOffset + (v * vertexSize), pCurrentFile, attributeSize);
           pCurrentFile += attributeSize;
         }
       }
@@ -349,6 +371,7 @@ udResult vcSceneLayerRenderer_LoadNodeGeometryData(vcSceneLayerRenderer *pSceneL
   result = udR_Success;
 
 epilogue:
+  udFree(pPathBuffer);
   udFree(pFileData);
   return result;
 }
@@ -359,7 +382,8 @@ udResult vcSceneLayerRenderer_LoadNodeTextureData(vcSceneLayerRenderer *pSceneLa
   udUnused(pSceneLayer);
 
   udResult result = udR_Success;
-  void *pData = nullptr;
+  const char *pPathBuffer = nullptr;
+  uint8_t *pData = nullptr;
   void *pFileData = nullptr;
   int64_t fileLen = 0;
   int channelCount = 0;
@@ -378,15 +402,15 @@ udResult vcSceneLayerRenderer_LoadNodeTextureData(vcSceneLayerRenderer *pSceneLa
     // TODO: (EVC-542) other formats (this information is in sharedResource.json)
     for (size_t f = 0; f < udLengthOf(pExtensions); ++f)
     {
-      udSprintf(pSharedStringBuffer, vcMaxURLLength, "%s.%s", pNode->pTextureData[i].url, pExtensions[f]);
-      if (udFile_Load(vcSceneLayerRenderer_AppendURL(pNode->url, pSharedStringBuffer), (void**)&pFileData, &fileLen) != udR_Success)
+      udSprintf(&pPathBuffer, "%s/%s.%s", pNode->pURL, pNode->pTextureData[i].pURL, pExtensions[f]);
+      if (udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen) != udR_Success)
         continue;
 
-      pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
+      pData = (uint8_t*)stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
 
       pNode->pTextureData[i].width = width;
       pNode->pTextureData[i].height = height;
-      pNode->pTextureData[i].pData = udMemDup(pData, sizeof(uint32_t)*width*height, 0, udAF_None);
+      pNode->pTextureData[i].pData = (uint8_t*)udMemDup(pData, sizeof(uint32_t)*width*height, 0, udAF_None);
 
       udFree(pFileData);
       stbi_image_free(pData);
@@ -395,35 +419,65 @@ udResult vcSceneLayerRenderer_LoadNodeTextureData(vcSceneLayerRenderer *pSceneLa
   }
 
 //epilogue:
+  udFree(pPathBuffer);
   return result;
 }
 
-void vcSceneLayerRenderer_UploadNodeData(vcSceneLayerRenderer *pSceneLayer, vcSceneLayerRendererNode *pNode)
+void vcSceneLayerRenderer_UploadNodeDataGPUIfPossible(vcSceneLayerRenderer *pSceneLayer, vcSceneLayerRendererNode *pNode, size_t maxUploadsAllowed)
 {
-  printf("Uploading node data: %s\n", pNode->id);
+  if (pSceneLayer->maxUploadsPerFrameBytes >= maxUploadsAllowed)
+    return;
+
+  bool uploadsCompleted = true;
+  size_t vertexSize = vcLayout_GetSize(pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount);
 
   // TODO: handle failures
   // geometry
   for (size_t i = 0; i < pNode->geometryDataCount; ++i)
   {
+    if (pNode->pGeometryData[i].loaded)
+      continue;
+
+    if (pSceneLayer->maxUploadsPerFrameBytes >= maxUploadsAllowed) // allowing partial uploads
+    {
+      uploadsCompleted = false;
+      break;
+    }
+
+    //printf("Uploading node GEOMETRY data: %s (%zu kb)\n", pNode->id, (vertexSize * pNode->pGeometryData[i].vertCount) / 1024);
+
     //UD_ERROR_IF(vertCount > UINT16_MAX, udR_Failure_);
     //UD_ERROR_CHECK()
-    vcPolygonModel_CreateFromData(&pNode->pGeometryData[i].pModel, pNode->pGeometryData[i].pVertsData, (uint16_t)pNode->pGeometryData[i].vertCount, pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount);
-    udFree(pNode->pGeometryData[i].pVertsData);
+    vcPolygonModel_CreateFromData(&pNode->pGeometryData[i].pModel, pNode->pGeometryData[i].pData, (uint16_t)pNode->pGeometryData[i].vertCount, pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount);
+    udFree(pNode->pGeometryData[i].pData);
 
-    ++pSceneLayer->uploadsThisFrame;
+    pNode->pGeometryData[i].loaded = true;
+    pSceneLayer->maxUploadsPerFrameBytes += (vertexSize * pNode->pGeometryData[i].vertCount);
   }
 
   // textures
   for (size_t i = 0; i < pNode->textureDataCount; ++i)
   {
-    vcTexture_Create(&pNode->pTextureData[i].pTexture, pNode->pTextureData[i].width, pNode->pTextureData[i].height, pNode->pTextureData[i].pData, vcTextureFormat_RGBA8, vcTFM_Linear, true);
+    if (pNode->pTextureData[i].loaded)
+      continue;
+
+    if (pSceneLayer->maxUploadsPerFrameBytes >= maxUploadsAllowed) // allowing partial uploads
+    {
+      uploadsCompleted = false;
+      break;
+    }
+
+    //printf("Uploading node TEXTURE data: %s (%zu kb)\n", pNode->id, (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4) / 1024);
+
+    vcTexture_Create(&pNode->pTextureData[i].pTexture, pNode->pTextureData[i].width, pNode->pTextureData[i].height, pNode->pTextureData[i].pData, vcTextureFormat_RGBA8, vcTFM_Linear, false);
     udFree(pNode->pTextureData[i].pData);
 
-    ++pSceneLayer->uploadsThisFrame;
+    pNode->pTextureData[i].loaded = true;
+    pSceneLayer->maxUploadsPerFrameBytes += (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4);
   }
 
-  pNode->loadState = vcSceneLayerRendererNode::vcLS_Success;
+  if (uploadsCompleted)
+    pNode->loadState = vcSceneLayerRendererNode::vcLS_Success;
 }
 
 template<typename T>
@@ -440,7 +494,7 @@ udResult vcSceneLayerRenderer_AllocateNodeData(T **ppData, size_t *pDataCount, c
   UD_ERROR_NULL(pData, udR_MemoryAllocationFailure);
 
   for (size_t i = 0; i < count; ++i)
-    udStrcpy(pData[i].url, sizeof(pData[i].url), nodeJSON.Get("%s", udTempStr("%s[%zu].href", pKey, i)).AsString());
+    vcNormalizePath(&pData[i].pURL, nullptr, nodeJSON.Get("%s[%zu].href", pKey, i).AsString());
 
   (*ppData) = pData;
   (*pDataCount) = count;
@@ -470,14 +524,15 @@ void vcSceneLayerRenderer_CalculateNodeBounds(vcSceneLayerRendererNode *pNode, c
   pNode->minimumBoundingSphere.radius = mbsLatLongHeightRadius.w;
 
   // debugging
-  printf("Origin: %f, %f\n", pNode->minimumBoundingSphere.position.x, pNode->minimumBoundingSphere.position.y);
-  printf("SRID: %d\n", sridCode);
+ // printf("Origin: %f, %f\n", pNode->minimumBoundingSphere.position.x, pNode->minimumBoundingSphere.position.y);
+ // printf("SRID: %d\n", sridCode);
 }
 
-udResult vcSceneLayerRenderer_LoadNodeData(vcSceneLayerRenderer *pSceneLayer, vcSceneLayerRendererNode *pNode, bool recursiveLoadChildren /*= false*/, bool fullNodeLoad /*= false*/)
+udResult vcSceneLayerRenderer_LoadNodeData(vcSceneLayerRenderer *pSceneLayer, vcSceneLayerRendererNode *pNode)
 {
   udResult result;
   udJSON nodeJSON;
+  const char *pPathBuffer = nullptr;
   char *pFileData = nullptr;
   int64_t fileLen = 0;
   vcSceneLayerRendererNode *pChildNode = nullptr;
@@ -485,21 +540,25 @@ udResult vcSceneLayerRenderer_LoadNodeData(vcSceneLayerRenderer *pSceneLayer, vc
   pNode->loadState = vcSceneLayerRendererNode::vcLS_Loading;
 
   // Load the nodes info
-  UD_ERROR_CHECK(udFile_Load(vcSceneLayerRenderer_AppendURL(pNode->url, pNodeInfoFile), (void**)&pFileData, &fileLen));
+  udSprintf(&pPathBuffer, "%s/%s", pNode->pURL, pNodeInfoFile);
+  UD_ERROR_CHECK(udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen));
   UD_ERROR_CHECK(nodeJSON.Parse(pFileData));
 
-  // this is potentially re-copying
-  udStrcpy(pNode->id, sizeof(pNode->id), nodeJSON.Get("id").AsString());
-  pNode->loadSelectionValue = nodeJSON.Get("lodSelection[0].maxError").AsDouble(); // TODO: I've made an assumptions here (e.g. always has at least one lod metric)
+  // potentially already calculated some node info (it's stored in this nodes parents 'children' array)
+  if (pNode->id[0] == '\0')
+  {
+    udStrcpy(pNode->id, sizeof(pNode->id), nodeJSON.Get("id").AsString());
+    vcSceneLayerRenderer_CalculateNodeBounds(pNode, nodeJSON.Get("mbs").AsDouble4());
+  }
 
-  // this is potentially re-calculating
-  vcSceneLayerRenderer_CalculateNodeBounds(pNode, nodeJSON.Get("mbs").AsDouble4());
+  pNode->level = nodeJSON.Get("level").AsInt();
+  pNode->loadSelectionValue = nodeJSON.Get("lodSelection[0].maxError").AsDouble(); // TODO: I've made an assumptions here (e.g. always has at least one lod metric)
 
   UD_ERROR_CHECK(vcSceneLayerRenderer_AllocateNodeData(&pNode->pSharedResources, &pNode->sharedResourceCount, nodeJSON, "sharedResource"));
   UD_ERROR_CHECK(vcSceneLayerRenderer_AllocateNodeData(&pNode->pFeatureData, &pNode->featureDataCount, nodeJSON, "featureData"));
   UD_ERROR_CHECK(vcSceneLayerRenderer_AllocateNodeData(&pNode->pGeometryData, &pNode->geometryDataCount, nodeJSON, "geometryData"));
   UD_ERROR_CHECK(vcSceneLayerRenderer_AllocateNodeData(&pNode->pTextureData, &pNode->textureDataCount, nodeJSON, "textureData"));
-  UD_ERROR_CHECK(vcSceneLayerRenderer_AllocateNodeData(&pNode->pAttributeData, &pNode->attributeDataCount, nodeJSON, "attribut  eData"));
+  UD_ERROR_CHECK(vcSceneLayerRenderer_AllocateNodeData(&pNode->pAttributeData, &pNode->attributeDataCount, nodeJSON, "attributeData"));
 
   // Hierarchy
   pNode->childrenCount = nodeJSON.Get("children").ArrayLength();
@@ -514,58 +573,58 @@ udResult vcSceneLayerRenderer_LoadNodeData(vcSceneLayerRenderer *pSceneLayer, vc
       pChildNode->loadState = vcSceneLayerRendererNode::vcLS_NotLoaded;
 
       udStrcpy(pChildNode->id, sizeof(pChildNode->id), nodeJSON.Get("children[%zu].id", i).AsString());
-      udStrcpy(pChildNode->url, sizeof(pChildNode->url), vcSceneLayerRenderer_AppendURL(pNode->url, nodeJSON.Get("children[%zu].href", i).AsString()));
+      vcNormalizePath(&pChildNode->pURL, pNode->pURL, nodeJSON.Get("children[%zu].href", i).AsString());
 
       vcSceneLayerRenderer_CalculateNodeBounds(pChildNode, nodeJSON.Get("children[%zu].mbs", i).AsDouble4());
     }
   }
 
+  // TODO: (EVC-548) - these may actually not be needed yet during realtime rendering
   UD_ERROR_CHECK(vcSceneLayerRenderer_LoadNodeFeatureData(pSceneLayer, pNode));
   UD_ERROR_CHECK(vcSceneLayerRenderer_LoadNodeGeometryData(pSceneLayer, pNode));
   UD_ERROR_CHECK(vcSceneLayerRenderer_LoadNodeTextureData(pSceneLayer, pNode));
 
   pNode->loadState = vcSceneLayerRendererNode::vcLS_InMemory;
 
-  if (fullNodeLoad)
-    vcSceneLayerRenderer_UploadNodeData(pSceneLayer, pNode);
-
-  if (recursiveLoadChildren)
+  if (pSceneLayer->mode == vcSLRM_Convert)
   {
     for (size_t i = 0; i < pNode->childrenCount; ++i)
     {
-      UD_ERROR_CHECK(vcSceneLayerRenderer_LoadNodeData(pSceneLayer, &pNode->pChildren[i], recursiveLoadChildren, fullNodeLoad));
+      UD_ERROR_CHECK(vcSceneLayerRenderer_LoadNodeData(pSceneLayer, &pNode->pChildren[i]));
     }
   }
 
   result = udR_Success;
+
 epilogue:
   if (result != udR_Success)
     pNode->loadState = vcSceneLayerRendererNode::vcLS_Failed;
 
+  udFree(pPathBuffer);
   udFree(pFileData);
   return result;
 }
 
-udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayer, const vcSettings *pSettings, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL)
+udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayer, const vcSettings *pSettings, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL, const vcSceneLayerRendererMode &mode /* = vcSLRM_Rendering */)
 {
-  vcSceneLayerRenderer_Create();
-
   udResult result;
   vcSceneLayerRenderer *pSceneLayer = nullptr;
+  const char *pPathBuffer = nullptr;
   const char *pFileData = nullptr;
   int64_t fileLen = 0;
   const char *pAttributeName = nullptr;
-  const char *pRootURL = nullptr;
 
   pSceneLayer = udAllocType(vcSceneLayerRenderer, 1, udAF_Zero);
   UD_ERROR_NULL(pSceneLayer, udR_MemoryAllocationFailure);
 
+  pSceneLayer->mode = mode;
   pSceneLayer->pSettings = pSettings;
   pSceneLayer->pThreadPool = pWorkerThreadPool;
   udStrcpy(pSceneLayer->sceneLayerURL, sizeof(pSceneLayer->sceneLayerURL), pSceneLayerURL);
 
-  // TODO: Actually unzip. For now I'm manually unzipping until udPlatform moves
-  UD_ERROR_CHECK(udFile_Load(vcSceneLayerRenderer_AppendURL(pSceneLayer->sceneLayerURL, pSceneLayerInfoFile), (void**)&pFileData, &fileLen));
+  // TODO: Actually unzip. For now I'm manually unzipping until udPlatform change
+  udSprintf(&pPathBuffer, "%s/%s", pSceneLayer->sceneLayerURL, pSceneLayerInfoFile);
+  UD_ERROR_CHECK(udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen));
   UD_ERROR_CHECK(pSceneLayer->description.Parse(pFileData));
 
   // Load layout description now
@@ -595,18 +654,15 @@ udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayer, const 
     }
   }
 
-  // Initialize the root
-  pRootURL = vcSceneLayerRenderer_AppendURL(pSceneLayer->sceneLayerURL, pSceneLayer->description.Get("store.rootNode").AsString());
-  udStrcpy(pSceneLayer->root.url, sizeof(pSceneLayer->root.url), pRootURL);
-  UD_ERROR_CHECK(vcSceneLayerRenderer_LoadNodeData(pSceneLayer, &pSceneLayer->root, false, true));
+  // Load the root
+  vcNormalizePath(&pSceneLayer->root.pURL, pSceneLayer->sceneLayerURL, pSceneLayer->description.Get("store.rootNode").AsString());
+  UD_ERROR_CHECK(vcSceneLayerRenderer_LoadNodeData(pSceneLayer, &pSceneLayer->root));
 
   *ppSceneLayer = pSceneLayer;
   result = udR_Success;
 
 epilogue:
-  if (result != udR_Success)
-    vcSceneLayerRenderer_Destroy();
-
+  udFree(pPathBuffer);
   udFree(pFileData);
   return result;
 }
@@ -617,6 +673,7 @@ udResult vcSceneLayerRenderer_Destroy(vcSceneLayerRenderer **ppSceneLayer)
   vcSceneLayerRenderer *pSceneLayer = nullptr;
 
   UD_ERROR_NULL(ppSceneLayer, udR_InvalidParameter_);
+  UD_ERROR_NULL(*ppSceneLayer, udR_InvalidParameter_);
 
   pSceneLayer = *ppSceneLayer;
   *ppSceneLayer = nullptr;
@@ -630,7 +687,6 @@ udResult vcSceneLayerRenderer_Destroy(vcSceneLayerRenderer **ppSceneLayer)
   result = udR_Success;
 
 epilogue:
-  vcSceneLayerRenderer_Destroy();
   return result;
 }
 
@@ -668,22 +724,52 @@ double vcSceneLayerRenderer_CalculateScreenSize(vcSceneLayerRendererNode *pNode,
   p1 /= p1.w;
   p2 /= p2.w;
 
-  // TODO: Verify this `2.0` is correct...I'm 75% sure it is, but changing it to 1.0 does cause a very slight noticeable LOD pop, but is that meant to happen?
+  // TODO: (EVC-548) Verify this `2.0` is correct (because I only calculate the half size above)
+  // I'm 75% sure it is, but changing it to 1.0 does cause a very slight noticeable LOD pop, but is that meant to happen?
   double r1 = udMag(center.toVector3() - p1.toVector3()) * 2.0;
   double r2 = udMag(center.toVector3() - p2.toVector3()) * 2.0;
   udDouble2 screenSize = udDouble2::create(screenResolution.x * r1, screenResolution.y * r2);
   return udMax(screenSize.x, screenSize.y);
 }
 
-void vcSceneLayerRenderer_RenderNode(vcSceneLayerRendererNode *pNode, const udDouble4x4 &viewProjectionMatrix)
+bool vcSceneLayerRenderer_HandleNodeLoadState(vcSceneLayerRenderer *pSceneLayer, vcSceneLayerRendererNode *pNode)
+{
+  if (pNode->loadState <= vcSceneLayerRendererNode::vcLS_Loading)
+  {
+    if (pNode->loadState == vcSceneLayerRendererNode::vcLS_NotLoaded)
+    {
+      pNode->loadState = vcSceneLayerRendererNode::vcLS_Loading;
+
+      // TODO: (EVC-548) Consider loading nodes based on distance (sound familiar?)
+      //printf("Queuing node: %s\n", pNode->id);
+      vcLoadNodeJobData *pLoadData = udAllocType(vcLoadNodeJobData, 1, udAF_Zero);
+      pLoadData->pSceneLayer = pSceneLayer;
+      pLoadData->pNode = pNode;
+      vWorkerThread_AddTask(pSceneLayer->pThreadPool, vcSceneLayerRenderer_AsyncLoadNode, pLoadData);
+    }
+  }
+  else if (pNode->loadState == vcSceneLayerRendererNode::vcLS_InMemory)
+  {
+    vcSceneLayerRenderer_UploadNodeDataGPUIfPossible(pSceneLayer, pNode, vcMaxRealtimeUploadsBytesPerFrame);
+  }
+
+  return (pNode->loadState == vcSceneLayerRendererNode::vcLS_Success);
+}
+
+void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayer, vcSceneLayerRendererNode *pNode, const udDouble4x4 &viewProjectionMatrix)
 {
   //printf("Drawing node %s\n", pNode->id);
+  udUnused(pSceneLayer);
 
   for (size_t geometry = 0; geometry < pNode->geometryDataCount; ++geometry)
   {
+    if (!pNode->pGeometryData[geometry].loaded)
+      continue;
+
     vcTexture *pDrawTexture = nullptr;
-    if (pNode->textureDataCount > 0)
+    if (pNode->textureDataCount > 0 && pNode->pTextureData[0].loaded)
       pDrawTexture = pNode->pTextureData[0].pTexture; // TODO: pretty sure i need to read the material for this...
+
     vcPolygonModel_Render(pNode->pGeometryData[geometry].pModel, pNode->pGeometryData[geometry].originMatrix, viewProjectionMatrix, pDrawTexture);
 
     // TODO: (EVC-542) other geometry types
@@ -695,30 +781,13 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayer, vcS
   if (!vcSceneLayerRenderer_IsNodeVisible(pNode, frustumPlanes))
     return true; // consume, but do nothing
 
-  if (pNode->loadState <= vcSceneLayerRendererNode::vcLS_Loading)
-  {
-    if (pNode->loadState == vcSceneLayerRendererNode::vcLS_NotLoaded)
-    {
-      pNode->loadState = vcSceneLayerRendererNode::vcLS_Loading;
-
-      // TODO: Consider loading nodes based on distance (sound familiar?)
-      printf("Queuing node: %s\n", pNode->id);
-      vcLoadNodeJobData *pLoadData = udAllocType(vcLoadNodeJobData, 1, udAF_Zero);
-      pLoadData->pSceneLayer = pSceneLayer;
-      pLoadData->pNode = pNode;
-      vWorkerThread_AddTask(pSceneLayer->pThreadPool, vcSceneLayerRenderer_AsyncLoadNode, pLoadData);
-    }
-
+  if (!vcSceneLayerRenderer_HandleNodeLoadState(pSceneLayer, pNode))
     return false;
-  }
 
   double nodeScreenSize = vcSceneLayerRenderer_CalculateScreenSize(pNode, viewProjectionMatrix, screenResolution);
   if (pNode->childrenCount == 0 || nodeScreenSize < pNode->loadSelectionValue)
   {
-    if (pNode->loadState == vcSceneLayerRendererNode::vcLS_InMemory && pSceneLayer->uploadsThisFrame < vcMaxUploadsPerFrame)
-      vcSceneLayerRenderer_UploadNodeData(pSceneLayer, pNode);
-
-    vcSceneLayerRenderer_RenderNode(pNode, viewProjectionMatrix);
+    vcSceneLayerRenderer_RenderNode(pSceneLayer, pNode, viewProjectionMatrix);
     return true;
   }
 
@@ -729,21 +798,23 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayer, vcS
     childrenAllRendered = vcSceneLayerRenderer_RecursiveRender(pSceneLayer, pChildNode, viewProjectionMatrix, frustumPlanes, screenResolution) && childrenAllRendered;
   }
 
-  // If children are not loaded in yet, render this LOD
-  // TODO this is broken
+  // TODO: (EVC-548)
+  // If children are not loaded in yet, render this LOD.
+  // At the moment this can cause incorrect parent occluding child
   if (!childrenAllRendered)
-    vcSceneLayerRenderer_RenderNode(pNode, viewProjectionMatrix);
+    vcSceneLayerRenderer_RenderNode(pSceneLayer, pNode, viewProjectionMatrix);
 
   return true;
 }
 
 bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution)
 {
-  if (pSceneLayer == nullptr)
+  if (pSceneLayer == nullptr || (pSceneLayer->mode != vcSLRM_Rendering))
     return false;
 
-  pSceneLayer->uploadsThisFrame = 0;
+  pSceneLayer->maxUploadsPerFrameBytes = 0;
 
+  // TODO: (EVC-548) This is duplicated work across i3s models
   // extract frustum planes
   udDouble4x4 transposedViewProjection = udTranspose(viewProjectionMatrix);
   udDouble4 frustumPlanes[6];

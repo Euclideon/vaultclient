@@ -132,8 +132,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, pSettings));
   UD_ERROR_CHECK(vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences));
 
-  vcSceneLayerRenderer_Create(&pSceneLayer[0], pSettings, pWorkerThreadPool, "E:/Vault Datasets/I3S/mesh4");
-  vcSceneLayerRenderer_Create(&pSceneLayer[1], pSettings, pWorkerThreadPool, "E:/Vault Datasets/I3S/tilt/tilt");
+  vcSceneLayerRenderer_Create(&pSceneLayer[0], pSettings, pWorkerThreadPool, "E:/Vault Datasets/I3S/mesh4", vcSLRM_Convert);
+  //vcSceneLayerRenderer_Create(&pSceneLayer[1], pSettings, pWorkerThreadPool, "E:/Vault Datasets/I3S/tilt/tilt", vcSLRM_Rendering);
 
   *ppRenderContext = pRenderContext;
 
@@ -433,14 +433,14 @@ void vcRenderOpaqueGeometry(vcRenderContext *pRenderContext, vcRenderData &rende
   // Polygon Models
   {
     vcGLState_SetBlendMode(vcGLSBM_None);
-    vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+    vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
 
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
       vcPolygonModel_Render(renderData.polyModels[i].pModel, renderData.polyModels[i].worldMat, pRenderContext->pCamera->matrices.viewProjection);
 
-    vcSceneLayerRenderer_Render(pSceneLayer[0], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
-    vcSceneLayerRenderer_Render(pSceneLayer[1], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
+    for (size_t i = 0; i < 2; ++i)
+      vcSceneLayerRenderer_Render(pSceneLayer[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
 
     for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
       vcWaterRenderer_Render(renderData.waterVolumes[i], pRenderContext->pCamera->matrices.view, pRenderContext->pCamera->matrices.viewProjection, pRenderContext->pSkyboxTexture, renderData.deltaTime);

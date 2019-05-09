@@ -52,6 +52,7 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
   udResult result = udR_Failure_;
 
   vcMesh *pMesh = udAllocType(vcMesh, 1, udAF_Zero);
+  UD_ERROR_NULL(pMesh, udR_MemoryAllocationFailure);
 
   uint32_t vertexSize = vcLayout_GetSize(pMeshLayout, totalTypes);
   pMesh->vertexSize = vertexSize;
