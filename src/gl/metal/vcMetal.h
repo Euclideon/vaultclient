@@ -33,7 +33,7 @@ struct vcFramebuffer
   uint32_t ID;
   vcTexture *pColor;
   vcTexture *pDepth;
-  bool drawMe;
+  bool render;
 };
 
 struct vcShaderConstantBuffer
@@ -61,10 +61,10 @@ struct vcShader
 struct vcMesh
 {
   char vBufferIndex[32];
-  char iBufferIndex[32];
-  uint32_t vertexBytes;
-
   uint32_t vertexCount;
+  uint32_t vertexBytes;
+  
+  char iBufferIndex[32];
   MTLIndexType indexType;
   uint32_t indexCount;
   uint32_t indexBytes;

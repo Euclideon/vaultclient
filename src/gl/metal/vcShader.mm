@@ -4,17 +4,17 @@
 
 #import "udPlatformUtil.h"
 
+uint32_t g_pipeCount = 0;
+
 // Takes shader function names instead of shader description string
-bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes * pVertLayout, uint32_t totalTypes)
+bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes)
 {
   if (ppShader == nullptr || pVertexShader == nullptr || pFragmentShader == nullptr)
     return false;
-
-  NSError *err = nil;
   
   vcShader *pShader = udAllocType(vcShader, 1, udAF_Zero);
 
-  MTLVertexDescriptor *vertexDesc = [[MTLVertexDescriptor alloc] init];
+  MTLVertexDescriptor *vertexDesc = [MTLVertexDescriptor vertexDescriptor];
   
   ptrdiff_t accumulatedOffset = 0;
   for (uint32_t i = 0; i < totalTypes; ++i)
@@ -58,7 +58,7 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   
   id<MTLFunction> vFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pVertexShader]];
   id<MTLFunction> fFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pFragmentShader]];
-  
+
   MTLRenderPipelineDescriptor *pDesc = [[MTLRenderPipelineDescriptor alloc] init];
   pDesc.vertexDescriptor = vertexDesc;
   pDesc.vertexFunction = vFunc;
@@ -74,22 +74,10 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
 #else
 # error "Unknown platform!"
 #endif
-    
-  id<MTLRenderPipelineState> state = [_device newRenderPipelineStateWithDescriptor:pDesc error:&err];
-#ifdef METAL_DEBUG
-  if (!state)
-  {
-    NSLog(@"Build pipeline state failed: %@", err);
-    return false;
-  }
-#endif
-  pShader->ID = (uint32_t)_viewCon.renderer.pipelines.count;
-  
-  [_viewCon.renderer.pipelines addObject:state];
-  [_viewCon.renderer.pipeDescs addObject:pDesc];
-  
-  // Bind here ensures depth/stencil state is constructed before first use
-  [_viewCon.renderer bindPipeline:pShader];
+
+  [_viewCon.renderer buildBlendPipelines:pDesc];
+  pShader->ID = (uint32_t)g_pipeCount;
+  ++g_pipeCount;
   
   *ppShader = pShader;
   pShader = nullptr;
@@ -176,7 +164,7 @@ bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuf
     ++pShader->numBufferObjects;
   }
   
-  if (pBuffer->expectedSize >= bufferSize)
+  if (pBuffer->expectedSize == bufferSize)
   {
     // !!!!!!!!!!!
     // Differences in packing of structs in our code vs metal shader source makes this not work out, may help to move structs to seperate header
