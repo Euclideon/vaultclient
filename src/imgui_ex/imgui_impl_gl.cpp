@@ -59,13 +59,21 @@ void ImGuiGL_RenderDrawData(ImDrawData* draw_data)
   // Setup viewport, orthographic projection matrix
   vcGLState_SetViewport(0, 0, fb_width, fb_height);
 
+#ifdef GRAPHICS_API_METAL
+  const udFloat4x4 ortho_projection = udFloat4x4::create(
+    2.0f / io.DisplaySize.x, 0.0f, 0.0f, 0.0f,
+    0.0f, 2.0f / -io.DisplaySize.y, 0.0f, 0.0f,
+    0.0f, 0.0f, 1.0f, 0.0f,
+    -1.0f, 1.0f, 0.0f, 1.0f
+  );
+#else
   const udFloat4x4 ortho_projection = udFloat4x4::create(
     2.0f / io.DisplaySize.x, 0.0f, 0.0f, 0.0f,
     0.0f, 2.0f / -io.DisplaySize.y, 0.0f, 0.0f,
     0.0f, 0.0f, -1.0f, 0.0f,
     -1.0f, 1.0f, 0.0f, 1.0f
   );
-
+#endif
   vcShader_Bind(pImGuiShader);
   vcShader_BindConstantBuffer(pImGuiShader, g_pAttribLocationProjMtx, &ortho_projection, sizeof(ortho_projection));
   vcShader_GetSamplerIndex(&pImGuiSampler, pImGuiShader, "Texture");

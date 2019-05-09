@@ -25,9 +25,8 @@
     _renderer.encoders = [NSMutableArray arrayWithCapacity:BUFFER_COUNT];
     _renderer.renderPasses = [NSMutableArray arrayWithCapacity:BUFFER_COUNT];
     
-    _renderer.pipelines = [NSMutableArray arrayWithCapacity:20];
-    _renderer.pipeDescs = [NSMutableArray arrayWithCapacity:20];
     _renderer.constantBuffers = [NSMutableArray arrayWithCapacity:40];
+    _renderer.pipelines = [NSMutableArray arrayWithCapacity:60];
     
     _renderer.indexBuffers = [NSMutableDictionary dictionaryWithCapacity:80];
     _renderer.textures = [NSMutableDictionary dictionaryWithCapacity:250];
@@ -35,7 +34,6 @@
     
     _renderer.depthStates = [NSMutableArray arrayWithCapacity:50];
     _renderer.samplers = [NSMutableDictionary dictionaryWithCapacity:20];
-    _renderer.blendPipelines = [NSMutableDictionary dictionaryWithCapacity:50];
 
     _Mview.delegate = _renderer;
 }

@@ -37,6 +37,8 @@ enum vcGLStateBlendMode
   vcGLSBM_Interpolative, // (source alpha * source fragment) + ((1 – source alpha) * destination fragment)
   vcGLSBM_Additive, // (1 * source fragment) + (1 * destination fragment)
   vcGLSBM_Multiplicative, // source fragment * destination fragment
+    
+  vcGLSBM_Count
 };
 
 enum vcGLStateDepthMode

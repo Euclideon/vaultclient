@@ -11,8 +11,7 @@
   vcFramebuffer *pCurrFramebuffer;
   vcShader *pCurrShader;
   
-  NSString *g_blend;
-  vcGLStateBlendMode g_blendMode;
+  vcGLStateBlendMode blendMode;
 }
 
 - (nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)view
@@ -20,8 +19,6 @@
   self = [super init];
   if (self)
   {
-    g_blend = nullptr;
-    
     _queue = [_device newCommandQueue];
     
     _blitBuffer = [_queue commandBuffer];
@@ -42,7 +39,7 @@
   [_blitBuffer waitUntilScheduled];
   for (size_t i = 0; i < BUFFER_COUNT; ++i)
   {
-    if (pFramebuffers[i] != nullptr && pFramebuffers[i]->drawMe)
+    if (pFramebuffers[i] != nullptr && pFramebuffers[i]->render)
     {
       [_encoders[i] endEncoding];
       if (i != 0)
@@ -76,12 +73,12 @@
   {
     if (pFramebuffers[i] != nullptr)
     {
-      if (pFramebuffers[i]->drawMe)
+      if (pFramebuffers[i]->render)
       {
         _commandBuffers[i] = [_queue commandBuffer];
         [_encoders replaceObjectAtIndex:i withObject:[_commandBuffers[i] renderCommandEncoderWithDescriptor:_renderPasses[i]]];
       }
-      pFramebuffers[i]->drawMe = false;
+      pFramebuffers[i]->render = false;
     }
   }
   
@@ -109,7 +106,7 @@
 -(void)bindPipeline:(nonnull vcShader *)pShader
 {
   pCurrShader = pShader;
-  [self bindBlendState];
+  [self bindBlendState:blendMode];
 }
 
 - (void)bindTexture:(nonnull struct vcTexture*)pTexture index:(NSInteger)tIndex
@@ -141,102 +138,17 @@
   }
 }
 
-- (void)setBlendMode:(vcGLStateBlendMode)newBlendMode
-{
-  if (!pCurrShader)
-    return;
-
-  g_blendMode = newBlendMode;
-  
-  NSString *pLookup;
-  switch (g_blendMode)
-  {
-    case vcGLSBM_None:
-      pLookup = nullptr;
-      break;
-    case vcGLSBM_Additive:
-      pLookup = [NSString stringWithFormat:@"%dA",pCurrShader->ID];
-      break;
-    case vcGLSBM_Interpolative:
-      pLookup = [NSString stringWithFormat:@"%dI",pCurrShader->ID];
-      break;
-    case vcGLSBM_Multiplicative:
-      pLookup = [NSString stringWithFormat:@"%dM",pCurrShader->ID];
-      break;
-  }
-
-  g_blend = pLookup;
-
-  if (pLookup == nullptr || _blendPipelines[pLookup])
-  {
-    [self bindBlendState];
-    return;
-  }
-  
-  MTLRenderPipelineDescriptor *pDesc = [_pipeDescs[pCurrShader->ID] copy];
-  
-  if (g_blendMode == vcGLSBM_None)
-  {
-    pDesc.colorAttachments[0].blendingEnabled = false;
-  }
-  else
-  {
-    pDesc.colorAttachments[0].blendingEnabled = true;
-    pDesc.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
-    pDesc.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
-    
-    if (g_blendMode == vcGLSBM_Interpolative)
-    {
-      pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
-      pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
-      pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-      pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOne;
-    }
-    else if (g_blendMode == vcGLSBM_Additive)
-    {
-      pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorOne;
-      pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
-      pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOne;
-      pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
-    }
-    else if (g_blendMode == vcGLSBM_Multiplicative)
-    {
-      pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorDestinationColor;
-      pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
-      pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorZero;
-      pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
-    }
-    
-    [_blendPipelines setObject:[_device newRenderPipelineStateWithDescriptor:pDesc error:nil] forKey:g_blend];
-  }
-}
-
 - (void)bindConstantBuffer:(nonnull vcShaderConstantBuffer *)pBuffer index:(NSUInteger)index
 {
   [_encoders[pCurrFramebuffer->ID] setVertexBuffer:[_constantBuffers objectAtIndex:pBuffer->ID] offset:0 atIndex:index];
   [_encoders[pCurrFramebuffer->ID] setFragmentBuffer:[_constantBuffers objectAtIndex:pBuffer->ID] offset:0 atIndex:index];
 }
 
-- (void)bindBlendState
+- (void)bindBlendState:(vcGLStateBlendMode)newMode
 {
+  blendMode = newMode;
   if (pCurrShader != nullptr && pCurrFramebuffer != nullptr)
-  {
-    id<MTLRenderPipelineState> pipe;
-    
-    if (g_blend == nullptr)
-    {
-      pipe = [_pipelines objectAtIndex:pCurrShader->ID];
-    }
-    else
-    {
-      if (![_blendPipelines objectForKey:g_blend] || ![g_blend hasPrefix:[NSString stringWithFormat:@"%d",pCurrShader->ID]])
-        [self setBlendMode:g_blendMode];
-        
-      pipe = [_blendPipelines objectForKey:g_blend];
-    }
-    
-    [_encoders[pCurrFramebuffer->ID] setRenderPipelineState:pipe];
-  }
+    [_encoders[pCurrFramebuffer->ID] setRenderPipelineState:_pipelines[(pCurrShader->ID * vcGLSBM_Count) + newMode]];
 }
 
 - (void)drawUnindexed:(id<MTLBuffer>)vertBuffer vertexStart:(NSUInteger)vStart vertexCount:(NSUInteger)vCount primitiveType:(MTLPrimitiveType)type
@@ -332,7 +244,7 @@
 
       pFramebuffers[i] = pFramebuffer;
       pFramebuffer->ID = i;
-      pFramebuffer->drawMe = true;
+      pFramebuffer->render = true;
       
       [_renderPasses setObject:pass atIndexedSubscript:i];
       [_commandBuffers setObject:[_queue commandBuffer] atIndexedSubscript:i];
@@ -346,7 +258,7 @@
 - (void)setFramebuffer:(vcFramebuffer*)pFramebuffer
 {
   pCurrFramebuffer = pFramebuffer;
-  pFramebuffer->drawMe = true;
+  pFramebuffer->render = true;
 }
 
 - (void)destroyFramebuffer:(vcFramebuffer*)pFramebuffer
@@ -366,4 +278,51 @@
       [_encoders[i] setViewport:vp];
 }
 
+- (void)buildBlendPipelines:(nonnull MTLRenderPipelineDescriptor*)pDesc
+{
+  NSError *err = nil;
+  [_pipelines addObject:[_device newRenderPipelineStateWithDescriptor:pDesc error:&err]];
+#ifdef METAL_DEBUG
+  if (err != nil)
+    NSLog(@"Error: failed to create Metal pipeline state: %@", err);
+#endif
+  pDesc.colorAttachments[0].blendingEnabled = YES;
+  pDesc.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
+  pDesc.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
+  
+  for (int i = vcGLSBM_Interpolative; i < vcGLSBM_Count; ++i)
+  {
+    switch ((vcGLStateBlendMode)i)
+    {
+      case vcGLSBM_None:
+        break;
+      case vcGLSBM_Interpolative:
+        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
+        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOne;
+        break;
+      case vcGLSBM_Additive:
+        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
+        break;
+      case vcGLSBM_Multiplicative:
+        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorDestinationColor;
+        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorZero;
+        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
+        break;
+      case vcGLSBM_Count:
+        break;
+    }
+    
+    [_pipelines addObject:[_device newRenderPipelineStateWithDescriptor:pDesc error:&err]];
+#ifdef METAL_DEBUG
+    if (err != nil)
+      NSLog(@"Error: failed to create Metal pipeline state: %@", err);
+#endif
+  }
+}
 @end

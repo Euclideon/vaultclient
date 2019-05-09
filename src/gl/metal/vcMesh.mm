@@ -134,28 +134,25 @@ udResult vcMesh_UploadData(struct vcMesh *pMesh, const vcVertexLayoutTypes *pLay
   }
   
   uint32_t size = accumulatedOffset * totalVerts;
+  
   if (pMesh->vertexCount * pMesh->vertexBytes < size)
-  {
     [_viewCon.renderer.vertBuffers setObject:[_device newBufferWithBytes:pVerts length:size options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pMesh->vBufferIndex]];
-  }
   else
-  {
-    memcpy((char *)_viewCon.renderer.vertBuffers[[NSString stringWithUTF8String:pMesh->vBufferIndex]].contents, pVerts, size);
-  }
+    [_viewCon.renderer.vertBuffers setObject:[_device newBufferWithBytes:pVerts length:size options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pMesh->vBufferIndex]];
+    //memcpy((char *)_viewCon.renderer.vertBuffers[[NSString stringWithUTF8String:pMesh->vBufferIndex]].contents, pVerts, size);
   
   pMesh->vertexCount = totalVerts;
   pMesh->vertexBytes = accumulatedOffset;
   
   if (totalIndices > 0)
   {
+    uint32_t isize = totalIndices * pMesh->indexBytes;
+    
     if (pMesh->indexCount < (uint32_t)totalIndices)
-    {
-      [_viewCon.renderer.indexBuffers setObject:[_device newBufferWithBytes:pIndices length:totalIndices * pMesh->indexBytes options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pMesh->iBufferIndex]];
-    }
+      [_viewCon.renderer.indexBuffers setObject:[_device newBufferWithBytes:pIndices length:isize options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pMesh->iBufferIndex]];
     else
-    {
-      memcpy((char *)_viewCon.renderer.indexBuffers[[NSString stringWithUTF8String:pMesh->iBufferIndex]].contents, pIndices, totalIndices * pMesh->indexBytes);
-    }
+      [_viewCon.renderer.indexBuffers setObject:[_device newBufferWithBytes:pIndices length:isize options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pMesh->iBufferIndex]];
+      //memcpy((char *)_viewCon.renderer.indexBuffers[[NSString stringWithUTF8String:pMesh->iBufferIndex]].contents, pIndices, isize);
   }
   pMesh->indexCount = totalIndices;
   
@@ -185,7 +182,7 @@ bool vcMesh_Render(struct vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_
   if (pMesh->indexCount > 0)
   {
     if (elementCount == 0)
-      elementCount = pMesh->indexCount - startElement * elementsPerPrimitive;
+      elementCount = pMesh->indexCount;
     else
       elementCount *= elementsPerPrimitive;
     
@@ -194,7 +191,7 @@ bool vcMesh_Render(struct vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_
   else
   {
     if (elementCount == 0)
-      elementCount = pMesh->vertexCount - startElement;
+      elementCount = pMesh->vertexCount;
 
     [_viewCon.renderer drawUnindexed:_viewCon.renderer.vertBuffers[[NSString stringWithUTF8String:pMesh->vBufferIndex]] vertexStart:startElement * pMesh->vertexBytes vertexCount:elementCount primitiveType:primitiveType];
   }
