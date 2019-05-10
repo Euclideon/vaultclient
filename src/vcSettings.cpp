@@ -1,8 +1,9 @@
 #include "vcSettings.h"
 
-#include "udPlatform/udJSON.h"
-#include "udPlatform/udPlatformUtil.h"
-#include "udPlatform/udFileHandler.h"
+#include "udJSON.h"
+#include "udPlatformUtil.h"
+#include "udFileHandler.h"
+#include "udStringUtil.h"
 
 #include "imgui.h"
 #include "imgui_internal.h"

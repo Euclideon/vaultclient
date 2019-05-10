@@ -3,8 +3,9 @@
 #import "gl/vcShader.h"
 #import "gl/vcTexture.h"
 #import "vcSettings.h"
-#import "udPlatform/udFile.h"
-#import "udPlatform/udPlatformUtil.h"
+#import "udFile.h"
+#import "udPlatformUtil.h"
+#import "udStringUtil.h"
 
 #import "vcViewCon.h"
 #import "vcRenderer.h"

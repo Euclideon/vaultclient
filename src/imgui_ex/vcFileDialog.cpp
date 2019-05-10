@@ -1,5 +1,6 @@
 #include "vcFileDialog.h"
 
+#include "udStringUtil.h"
 #include "vcState.h"
 #include "imgui.h"
 

@@ -1,10 +1,10 @@
 #ifndef vcState_h__
 #define vcState_h__
 
-#include "udPlatform/udPlatformUtil.h"
-#include "udPlatform/udMath.h"
-#include "udPlatform/udChunkedArray.h"
-#include "udPlatform/udJSON.h"
+#include "udPlatformUtil.h"
+#include "udMath.h"
+#include "udChunkedArray.h"
+#include "udJSON.h"
 
 #include "vCore/vWorkerThread.h"
 

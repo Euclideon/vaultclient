@@ -1,7 +1,7 @@
 #ifndef vcLayout_h__
 #define vcLayout_h__
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 
 enum vcVertexLayoutTypes
 {

@@ -1,6 +1,7 @@
 #include "gl/vcShader.h"
 #include "vcD3D11.h"
-#include "udPlatform/udPlatformUtil.h"
+#include "udPlatformUtil.h"
+#include "udStringUtil.h"
 
 #include <d3dcompiler.h>
 #include <D3D11Shader.h>

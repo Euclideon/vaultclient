@@ -1,7 +1,7 @@
 
 #include "vcFenceRenderer.h"
 
-#include "udPlatform/udChunkedArray.h"
+#include "udChunkedArray.h"
 
 #include "gl/vcMesh.h"
 #include "gl/vcRenderShaders.h"

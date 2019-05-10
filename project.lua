@@ -18,9 +18,12 @@ project "vaultClient"
 
 	--This project includes
 	includedirs { "src", "src/scene", "src/rendering" }
+	includedirs { "3rdParty/udcore/Include" }
 	includedirs { "3rdParty/Imgui" }
 	includedirs { "3rdParty/stb" }
 	includedirs { "3rdParty/easyexif" }
+
+	links { "udCore" .. (projectSuffix or "") }
 
 	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS" }
 
@@ -94,7 +97,7 @@ project "vaultClient"
 		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = excludedSourceFileNames }
 
 	filter { "system:emscripten" }
-		removefiles { "src/udPlatform/**", "src/vCore/vUUID.*", "src/vCore/vSafeDeque.h" }
+		removefiles { "src/vCore/vUUID.*", "src/vCore/vSafeDeque.h" }
 		links { "GLEW" }
 		linkoptions  { "-s USE_WEBGL2=1", "-s FULL_ES3=1", --[["-s DEMANGLE_SUPPORT=1",]] "-s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\", \"getValue\", \"setValue\", \"UTF8ToString\", \"stringToUTF8\"]'" }
 
@@ -140,7 +143,7 @@ project "vaultClient"
 		flags { "ExcludeFromBuild" }
 
 	-- include common stuff
-	dofile "bin/premake/common-proj.lua"
+	dofile "3rdParty/udcore/bin/premake-bin/common-proj.lua"
 
 	filter { "system:ios" }
 		removeflags { "FatalWarnings" }

@@ -10,7 +10,7 @@
 #define GRAPHICS_API_D3D11 0
 #endif
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 
 enum
 {
