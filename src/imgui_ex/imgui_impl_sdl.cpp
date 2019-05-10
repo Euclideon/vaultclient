@@ -44,7 +44,7 @@
 
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
-#include "udPlatform/udPlatform.h"
+#include "udPlatform.h"
 
 // SDL
 // (the multi-viewports feature requires SDL features supported from SDL 2.0.4+. SDL 2.0.5+ is highly recommended)

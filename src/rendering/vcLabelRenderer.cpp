@@ -1,5 +1,5 @@
 #include "vcLabelRenderer.h"
-#include "udPlatform/udPlatformUtil.h"
+#include "udPlatformUtil.h"
 
 #include "imgui.h"
 

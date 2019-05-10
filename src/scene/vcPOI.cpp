@@ -7,8 +7,9 @@
 
 #include "vcFenceRenderer.h"
 
-#include "udPlatform/udMath.h"
-#include "udPlatform/udFile.h"
+#include "udMath.h"
+#include "udFile.h"
+#include "udStringUtil.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"

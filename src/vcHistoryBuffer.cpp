@@ -1,6 +1,6 @@
 #include "vcHistoryBuffer.h"
 
-#include "udPlatform/udChunkedArray.h"
+#include "udChunkedArray.h"
 
 struct vcHistoryBuffer
 {

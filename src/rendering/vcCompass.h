@@ -1,8 +1,8 @@
 #ifndef vcCompass_h__
 #define vcCompass_h__
 
-#include "udPlatform/udResult.h"
-#include "udPlatform/udMath.h"
+#include "udResult.h"
+#include "udMath.h"
 
 #include "vcSettings.h"
 

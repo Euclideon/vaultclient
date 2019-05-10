@@ -9,10 +9,11 @@
 
 #include "vCore/vStringFormat.h"
 
-#include "udPlatform/udMath.h"
-#include "udPlatform/udChunkedArray.h"
-#include "udPlatform/udThread.h"
-#include "udPlatform/udDebug.h"
+#include "udMath.h"
+#include "udChunkedArray.h"
+#include "udThread.h"
+#include "udDebug.h"
+#include "udStringUtil.h"
 
 const char *statusNames[] =
 {
