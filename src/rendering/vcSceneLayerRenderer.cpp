@@ -117,7 +117,6 @@ struct vcSceneLayerRenderer
 {
   vcSceneLayerRendererMode mode;
 
-  const vcSettings *pSettings;
   vWorkerThreadPool *pThreadPool;
   size_t maxUploadsPerFrameBytes;
 
@@ -128,6 +127,20 @@ struct vcSceneLayerRenderer
 
   vcVertexLayoutTypes *pDefaultGeometryLayout;
   size_t defaultGeometryLayoutCount;
+
+  /// TEMP
+  // TODO: Put into vcSceneLayerConverter
+  int pointCount;
+  int totalPoints;
+  int totalPolygons;
+  int polygonCount;
+  double *pTriPositions;
+  double *pTriWeights;
+  bool triangleDone;
+  vdkTriangleVoxelizer *pTrivox;
+
+  int currentLeaf;
+  udChunkedArray<vcSceneLayerRendererNode*> leafNodes;
 };
 
 struct vcLoadNodeJobData
@@ -278,7 +291,7 @@ udResult vcSceneLayerRenderer_LoadNodeGeometryData(vcSceneLayerRenderer *pSceneL
   size_t headerElementCount = 0;
   udFloat3 vertI3S = {};
   udDouble3 pointCartesian = {};
-  udDouble3 originCartesian = {};
+  udDouble3 originCartesian = udDouble3::create(DBL_MAX, DBL_MAX, DBL_MAX);
   udFloat3 finalVertPosition = {};
   const char *pPropertyName = nullptr;
   const char *pTypeName = nullptr;
@@ -334,6 +347,16 @@ udResult vcSceneLayerRenderer_LoadNodeGeometryData(vcSceneLayerRenderer *pSceneL
         originCartesian = udDouble3::create(pointCartesian.x, pointCartesian.y, vertI3S.z + pNode->pFeatureData[i].position.z);
         pNode->pGeometryData[i].originMatrix = udDouble4x4::translation(originCartesian);
 
+        // Calculate the minimum point in each axis as the origin
+        // (convert seems to require that all verts be positive?)
+        //for (uint64_t v = 0; v < pNode->pGeometryData[i].vertCount; ++v)
+        //{
+        //  memcpy(&vertI3S, pCurrentFile + attributeSize * v, sizeof(vertI3S));
+        //  pointCartesian = udGeoZone_ToCartesian(pNode->zone, udDouble3::create(pNode->latLong.x + vertI3S.x, pNode->latLong.y + vertI3S.y, 0.0), true);
+        //  originCartesian = udDouble3::create(udMin(originCartesian.x, pointCartesian.x), udMin(originCartesian.y, pointCartesian.y), udMin(originCartesian.z, (vertI3S.z + pNode->pFeatureData[i].position.z)));
+        //}
+        //pNode->pGeometryData[i].originMatrix = udDouble4x4::translation(originCartesian);
+
         for (uint64_t v = 0; v < pNode->pGeometryData[i].vertCount; ++v)
         {
           memcpy(&vertI3S, pCurrentFile, sizeof(vertI3S));
@@ -383,7 +406,7 @@ udResult vcSceneLayerRenderer_LoadNodeTextureData(vcSceneLayerRenderer *pSceneLa
 
   udResult result = udR_Success;
   const char *pPathBuffer = nullptr;
-  uint8_t *pData = nullptr;
+  uint8_t *pPixelData = nullptr;
   void *pFileData = nullptr;
   int64_t fileLen = 0;
   int channelCount = 0;
@@ -406,14 +429,14 @@ udResult vcSceneLayerRenderer_LoadNodeTextureData(vcSceneLayerRenderer *pSceneLa
       if (udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen) != udR_Success)
         continue;
 
-      pData = (uint8_t*)stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
+      pPixelData = (uint8_t*)stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
 
       pNode->pTextureData[i].width = width;
       pNode->pTextureData[i].height = height;
-      pNode->pTextureData[i].pData = (uint8_t*)udMemDup(pData, sizeof(uint32_t)*width*height, 0, udAF_None);
+      pNode->pTextureData[i].pData = (uint8_t*)udMemDup(pPixelData, sizeof(uint32_t)*width*height, 0, udAF_None);
 
       udFree(pFileData);
-      stbi_image_free(pData);
+      stbi_image_free(pPixelData);
       break;
     }
   }
@@ -605,7 +628,7 @@ epilogue:
   return result;
 }
 
-udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayer, const vcSettings *pSettings, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL, const vcSceneLayerRendererMode &mode /* = vcSLRM_Rendering */)
+udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayer, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL, const vcSceneLayerRendererMode &mode /* = vcSLRM_Rendering */)
 {
   udResult result;
   vcSceneLayerRenderer *pSceneLayer = nullptr;
@@ -618,7 +641,6 @@ udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayer, const 
   UD_ERROR_NULL(pSceneLayer, udR_MemoryAllocationFailure);
 
   pSceneLayer->mode = mode;
-  pSceneLayer->pSettings = pSettings;
   pSceneLayer->pThreadPool = pWorkerThreadPool;
   udStrcpy(pSceneLayer->sceneLayerURL, sizeof(pSceneLayer->sceneLayerURL), pSceneLayerURL);
 
@@ -795,7 +817,8 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayer, vcS
   for (size_t i = 0; i < pNode->childrenCount; ++i)
   {
     vcSceneLayerRendererNode *pChildNode = &pNode->pChildren[i];
-    childrenAllRendered = vcSceneLayerRenderer_RecursiveRender(pSceneLayer, pChildNode, viewProjectionMatrix, frustumPlanes, screenResolution) && childrenAllRendered;
+    //if (i == 4)
+      childrenAllRendered = vcSceneLayerRenderer_RecursiveRender(pSceneLayer, pChildNode, viewProjectionMatrix, frustumPlanes, screenResolution) && childrenAllRendered;
   }
 
   // TODO: (EVC-548)
@@ -829,4 +852,235 @@ bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayer, const udDoub
     frustumPlanes[j] /= udMag3(frustumPlanes[j]);
 
   return vcSceneLayerRenderer_RecursiveRender(pSceneLayer, &pSceneLayer->root, viewProjectionMatrix, frustumPlanes, screenResolution);
+}
+
+void vcSceneLayerRenderer_RecursiveGetLeafNodes(vcSceneLayerRendererNode *pNode, udChunkedArray<vcSceneLayerRendererNode*> &leafNodes)
+{
+  if (pNode->childrenCount == 0)
+  {
+    leafNodes.PushBack(pNode);
+    return;
+  }
+
+  for (size_t i = 0; i < pNode->childrenCount; ++i)
+    vcSceneLayerRenderer_RecursiveGetLeafNodes(&pNode->pChildren[i], leafNodes);
+}
+
+void vcSceneLayerRenderer_GetLeafNodes(vcSceneLayerRenderer *pSceneLayer, udChunkedArray<vcSceneLayerRendererNode*> &leafNodes)
+{
+  vcSceneLayerRenderer_RecursiveGetLeafNodes(&pSceneLayer->root, leafNodes);
+}
+
+
+vdkError vcSceneLayerRenderer_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, const double origin[3], double pointResolution, vdkConvertCustomItemFlags flags)
+{
+  vcSceneLayerRenderer *pSceneLayer = (vcSceneLayerRenderer*)pConvertInput->pData;
+  vdkError result;
+
+  pConvertInput->sourceResolution = pointResolution;
+  pSceneLayer->totalPoints = 100000;//pSceneLayer->root.pChildren[0].pGeometryData[0].vertCount;//pConvertInput->pointCount;
+  pSceneLayer->leafNodes.Init(128);
+  pSceneLayer->currentLeaf = 0;
+
+  vcSceneLayerRenderer_GetLeafNodes(pSceneLayer, pSceneLayer->leafNodes);
+
+  // TODO: Do actual loading of nodes here
+  // enum vcSceneLayerLoadFlag { vcSLLF_LoadAllNodes, vcSLLF_LoadTextures };
+  // vcSceneLayerLoadFlag flags = vcSLLF_LoadAllNodes;
+  // if (pBuffer->content & vdkCAC_ARGB)
+  //  flags |= vcSLLF_LoadTextures;
+  // vcSceneLayer_Load(flags);
+
+  UD_ERROR_CHECK(vdkTriangleVoxelizer_Create(&pSceneLayer->pTrivox, pointResolution));
+
+  result = vE_Success;
+epilogue:
+
+  return result;
+}
+
+void vcSceneLayerRenderer_Close(vdkConvertCustomItem *pConvertInput)
+{
+  if (pConvertInput->pData != nullptr)
+  {
+    vcSceneLayerRenderer *pSceneLayer = (vcSceneLayerRenderer*)pConvertInput->pData;
+    pSceneLayer->leafNodes.Deinit();
+    vdkTriangleVoxelizer_Destroy(&pSceneLayer->pTrivox);
+    vcSceneLayerRenderer_Destroy(&pSceneLayer);
+    udFree(pSceneLayer);
+  }
+}
+
+vdkError vcSceneLayerRenderer_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPointBufferInt64 *pBuffer)
+{
+  vcSceneLayerRenderer *pSceneLayer = (vcSceneLayerRenderer*)pConvertInput->pData;
+  vdkError result;
+  size_t vertexSize = vcLayout_GetSize(pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount);
+
+  if (pBuffer->pAttributes == nullptr)
+    return vE_Failure;
+
+  memset(pBuffer->pAttributes, 0, pBuffer->attributeSize * pBuffer->pointsAllocated);
+  pBuffer->pointCount = 0;
+
+
+  while (pSceneLayer->currentLeaf < pSceneLayer->leafNodes.length)
+  {
+    vcSceneLayerRendererNode *pNode = pSceneLayer->leafNodes[pSceneLayer->currentLeaf];
+    if (pNode->geometryDataCount == 0)
+    {
+      pSceneLayer->currentLeaf++;
+      pSceneLayer->polygonCount = 0;
+      //pSceneLayer->leafNodes.Clear(); // TEMP
+      continue;
+    }
+
+    vcSceneLayerRendererNode::GeometryData *pGeomData = &pNode->pGeometryData[0]; // todo: keep track of, and loop over all geometry
+    vcSceneLayerRendererNode::TextureData *pTextureData = nullptr;
+    if (pNode->textureDataCount >= 0)
+      pTextureData = &pNode->pTextureData[0]; // todo: validate!
+
+    udDouble3 sceneLayerOrigin = pSceneLayer->root.minimumBoundingSphere.position - udDouble3::create(pSceneLayer->root.minimumBoundingSphere.radius);
+    udDouble3 geomOrigin = pGeomData->originMatrix.axis.t.toVector3();
+    udDouble3 geometryOriginOffset = geomOrigin - sceneLayerOrigin;
+
+    while (pBuffer->pointCount < pBuffer->pointsAllocated && pSceneLayer->polygonCount < pGeomData->vertCount / 3) // totalPolygons
+    {
+      uint8_t *pAttr = &pBuffer->pAttributes[pBuffer->pointCount * pBuffer->attributeSize];
+      size_t maxPoints = pBuffer->pointsAllocated - pBuffer->pointCount;
+      uint64_t numPoints = 0;
+      udFloat2 vertexUVs[3] = {};
+      //int materialID = 0;
+
+      // Get Vertices
+      udFloat3 f0 = *((udFloat3*)&pGeomData->pData[(pSceneLayer->polygonCount * 3 + 0) * vertexSize]);
+      udFloat3 f1 = *((udFloat3*)&pGeomData->pData[(pSceneLayer->polygonCount * 3 + 1) * vertexSize]);
+      udFloat3 f2 = *((udFloat3*)&pGeomData->pData[(pSceneLayer->polygonCount * 3 + 2) * vertexSize]);
+
+      double p0[3], p1[3], p2[3];
+
+      for (int i = 0; i < 3; ++i)
+      {
+        p0[i] = f0[i] + geometryOriginOffset[i];
+        p1[i] = f1[i] + geometryOriginOffset[i];
+        p2[i] = f2[i] + geometryOriginOffset[i];
+      }
+
+      UD_ERROR_CHECK(vdkTriangleVoxelizer_SetTriangle(pSceneLayer->pTrivox, p0, p1, p2));
+      UD_ERROR_CHECK(vdkTriangleVoxelizer_GetPoints(pSceneLayer->pTrivox, &pSceneLayer->pTriPositions, &pSceneLayer->pTriWeights, &numPoints, maxPoints));
+
+      if (pBuffer->content & vdkCAC_ARGB)
+      {
+        // ASSUMPTIONS! (assumed a specific vertex layout!
+        // TODO: add a '_Get()' functionality, also use above for position
+        vertexUVs[0] = *((udFloat2*)&pGeomData->pData[(pSceneLayer->polygonCount * 3 + 0) * vertexSize + 24]);
+        vertexUVs[1] = *((udFloat2*)&pGeomData->pData[(pSceneLayer->polygonCount * 3 + 1) * vertexSize + 24]);
+        vertexUVs[2] = *((udFloat2*)&pGeomData->pData[(pSceneLayer->polygonCount * 3 + 2) * vertexSize + 24]);
+      }
+
+      // write all points from current triangle
+      for (size_t i = 0; i < numPoints; ++i)
+      {
+        for (size_t j = 0; j < 3; ++j)
+          pBuffer->pPositions[pBuffer->pointCount + i][j] = (int64_t)(pSceneLayer->pTriPositions[3 * i + j] / pConvertInput->sourceResolution);
+
+        // Assign attributes
+        if (pBuffer->content & vdkCAC_ARGB && pTextureData != nullptr)
+        {
+          udFloat2 pointUV = { 0, 0 };
+          for (int j = 0; j < 3; ++j)
+            pointUV += vertexUVs[j] * pSceneLayer->pTriWeights[3 * i + j];
+
+          int w = pTextureData->width;
+          int h = pTextureData->height;
+          int u = udMod(udRound(pointUV[0] * w), w);
+          u += u < 0 ? w : 0; // ModMod would handle negatives in a single line but that has an extra division operation so this method is faster
+          int v = udMod(udRound(pointUV[1] * h), h); // Invert v
+          v += v < 0 ? h : 0;
+          uint32_t colour = *(uint32_t*)(&pTextureData->pData[(u + v * w) * 4]); // ARGB
+          uint8_t colours[4] = { (colour & 0xFF0000) >> 16, (colour & 0xFF00) >> 8, (colour & 0xFF), (colour & 0xFF000000) >> 24 }; // RGBA
+          memcpy(pAttr, &colours, sizeof(colours));
+          pAttr = &pAttr[sizeof(colours)];
+        }
+      }
+
+      // if current triangle is done, go to next
+      if (numPoints < maxPoints)
+        ++pSceneLayer->polygonCount;
+
+      pBuffer->pointCount += numPoints;
+    }
+
+    if (pBuffer->pointCount >= pBuffer->pointsAllocated)
+      break;
+    else if (pSceneLayer->polygonCount >= pGeomData->vertCount / 3)
+    {
+      ++pSceneLayer->currentLeaf;
+      pSceneLayer->polygonCount = 0;
+      //pSceneLayer->leafNodes.Clear(); // TEMP
+    }
+  }
+  pSceneLayer->pointCount += pBuffer->pointCount;
+
+  result = vE_Success;
+epilogue:
+
+  return result;
+}
+
+vdkError vcSceneLayerRenderer_AddItem(vdkContext *pContext, vdkConvertContext *pConvertContext, const char *pFilename)
+{
+  vdkError result;
+  vcSceneLayerRenderer *pSceneLayer = nullptr;
+  vdkConvertCustomItem customItem = {};
+
+  // UD_ERROR_CHECK()
+  vcSceneLayerRenderer_Create(&pSceneLayer, nullptr, pFilename, vcSLRM_Convert);
+
+  // Populate customItem
+  customItem.pData = pSceneLayer;
+  customItem.pOpen = vcSceneLayerRenderer_Open;
+  customItem.pClose = vcSceneLayerRenderer_Close;
+  customItem.pReadPointsInt = vcSceneLayerRenderer_ReadPointsInt;
+  customItem.pName = pFilename;
+
+  // TEMP - enable colour by default
+  customItem.content = vdkCAC_ARGB;
+  //customItem.content = vdkCAC_Intensity;
+
+  customItem.srid = pSceneLayer->root.zone.srid;
+  customItem.sourceProjection = vdkCSP_SourceCartesian;
+
+  // TEMP - use default res value here to get point estimate
+  customItem.sourceResolution = 0.05; // 1;
+  /*
+  // Determine point count
+  if (pFBX->totalPolygons > 0)
+  {
+    UD_ERROR_CHECK(vcFBX_EstimatePoints(pFBX, customItem.sourceResolution, &customItem.pointCount));
+    customItem.pointCountIsEstimate = true;
+  }
+  else
+  {
+    customItem.pointCount = pFBX->pMesh->GetControlPointsCount();
+    customItem.pointCountIsEstimate = false;
+  }
+  */
+
+  double bounds = pSceneLayer->root.minimumBoundingSphere.radius;
+  customItem.boundMin[0] = 0.0;
+  customItem.boundMin[1] = 0.0;
+  customItem.boundMin[2] = 0.0;
+  customItem.boundMax[0] = + bounds * 2.0;
+  customItem.boundMax[1] = + bounds * 2.0;
+  customItem.boundMax[2] = + bounds * 2.0;
+  customItem.boundsKnown = true;
+
+  return vdkConvert_AddCustomItem(pContext, pConvertContext, &customItem);
+
+epilogue:
+  //pFBX->pManager->Destroy(); // destroying manager destroys all objects that were created with it
+  //udFree(pFBX);
+
+  return result;
 }
