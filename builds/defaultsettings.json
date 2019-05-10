@@ -88,5 +88,139 @@
     "serverURL": "http://slippy.vault.euclideon.com",
     "imgExtension": "png"
   },
-  "dock": "[Window][###sceneDock]\nPos=0,22\nSize=1020,698\nCollapsed=0\nDockId=0x00000001,0\n\n[Window][RootDockContainer]\nPos=0,0\nSize=1280,720\nCollapsed=0\n\n[Window][###sceneExplorerDock]\nPos=1022,22\nSize=258,318\nCollapsed=0\nDockId=0x00000003,0\n\n[Window][###settingsDock]\nPos=1022,342\nSize=258,378\nCollapsed=0\nDockId=0x00000004,0\n\n[Window][###convertDock]\nPos=0,22\nSize=1020,698\nCollapsed=0\nDockId=0x00000001,1\n\n[Docking][Data]\nDockSpace     ID=0x236DAF44 Pos=0,22 Size=1280,698 Split=X SelectedTab=0x469A2D56\n  DockNode    ID=0x00000001 Parent=0x236DAF44 SizeRef=1020,698 CentralNode=1 SelectedTab=0x41CBF0BC\n  DockNode    ID=0x00000002 Parent=0x236DAF44 SizeRef=258,698 Split=Y SelectedTab=0x4073EE43\n    DockNode  ID=0x00000003 Parent=0x00000002 SizeRef=490,318 SelectedTab=0x4073EE43\n    DockNode  ID=0x00000004 Parent=0x00000002 SizeRef=490,378 SelectedTab=0xAD83196B\n\n"
+  "dock": [
+    {
+      "id": 965938713,
+      "selectedtab": 0,
+      "central": 0,
+      "dockspace": 1,
+      "hiddentabbar": 0,
+      "depth": 0,
+      "x": 0.000000,
+      "y": 22.000000,
+      "w": 1280.000000,
+      "h": 720.000000,
+      "wr": 1280.000000,
+      "hr": 720.000000,
+      "split": "X"
+    },
+    {
+      "id": 5,
+      "parent": 965938713,
+      "selectedtab": 1103884476,
+      "central": 0,
+      "dockspace": 0,
+      "hiddentabbar": 0,
+      "depth": 1,
+      "windows": [
+        {
+          "name": "###convertDock",
+          "index": 0,
+          "collapsed": 0
+        },
+        {
+          "name": "###sceneDock",
+          "index": 1,
+          "collapsed": 0
+        }
+      ],
+      "x": 0.000000,
+      "y": 22.000000,
+      "w": 1015.000000,
+      "h": 720.000000,
+      "wr": 1015.000000,
+      "hr": 0.000000
+    },
+    {
+      "id": 6,
+      "parent": 965938713,
+      "selectedtab": 0,
+      "central": 0,
+      "dockspace": 0,
+      "hiddentabbar": 0,
+      "depth": 2,
+      "x": 1017.000000,
+      "y": 22.000000,
+      "w": 263.000000,
+      "h": 720.000000,
+      "wr": 263.000000,
+      "hr": 720.000000,
+      "split": "X"
+    },
+    {
+      "id": 1,
+      "parent": 6,
+      "selectedtab": 0,
+      "central": 0,
+      "dockspace": 0,
+      "hiddentabbar": 0,
+      "depth": 3,
+      "x": 0.000000,
+      "y": 22.000000,
+      "w": 1151.000000,
+      "h": 720.000000,
+      "wr": 0.000000,
+      "hr": 0.000000
+    },
+    {
+      "id": 2,
+      "parent": 6,
+      "selectedtab": -1383917205,
+      "central": 0,
+      "dockspace": 0,
+      "hiddentabbar": 0,
+      "depth": 4,
+      "x": 1017.000000,
+      "y": 22.000000,
+      "w": 263.000000,
+      "h": 720.000000,
+      "wr": 0.000000,
+      "hr": 0.000000,
+      "split": "Y"
+    },
+    {
+      "id": 3,
+      "parent": 2,
+      "selectedtab": 1081339459,
+      "central": 0,
+      "dockspace": 0,
+      "hiddentabbar": 0,
+      "depth": 5,
+      "windows": [
+        {
+          "name": "###sceneExplorerDock",
+          "index": 0,
+          "collapsed": 0
+        }
+      ],
+      "x": 1017.000000,
+      "y": 22.000000,
+      "w": 263.000000,
+      "h": 324.000000,
+      "wr": 0.000000,
+      "hr": 324.000000
+    },
+    {
+      "id": 4,
+      "parent": 2,
+      "selectedtab": -1383917205,
+      "central": 0,
+      "dockspace": 0,
+      "hiddentabbar": 0,
+      "depth": 6,
+      "windows": [
+        {
+          "name": "###settingsDock",
+          "index": 0,
+          "collapsed": 0
+        }
+      ],
+      "x": 1017.000000,
+      "y": 348.000000,
+      "w": 263.000000,
+      "h": 394.000000,
+      "wr": 0.000000,
+      "hr": 394.000000
+    }
+  ]
 }
