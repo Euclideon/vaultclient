@@ -239,70 +239,69 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->postVisualization.contours.bandHeight = data.Get("postVisualization.contours.bandHeight").AsFloat(1.f);
   }
 
-  if (data.Get("dock").IsArray() && (group == vcSC_Docks || forceReset))
+  if (group == vcSC_Docks || forceReset)
   {
-    pSettings->window.windowsOpen[vcDocks_Scene] = data.Get("frames.scene").AsBool(true);
-    pSettings->window.windowsOpen[vcDocks_Settings] = data.Get("frames.settings").AsBool(true);
-    pSettings->window.windowsOpen[vcDocks_SceneExplorer] = data.Get("frames.explorer").AsBool(true);
-    pSettings->window.windowsOpen[vcDocks_Convert] = data.Get("frames.convert").AsBool(false);
-
-    udJSONArray *pDocks = data.Get("dock").AsArray();
-    size_t numNodes = pDocks->length;
-
-    ImGui::DockContextClearNodes(GImGui, 0, true);
-
-    ImGuiDockNodeSettings *pDockNodes = udAllocType(ImGuiDockNodeSettings, numNodes, udAF_Zero);
-
-    for (size_t i = 0; i < pDocks->length; ++i)
-    {
-      udJSON *pDock = pDocks->GetElement(i);
-
-      pDockNodes[i].ID = pDock->Get("id").AsInt();
-      pDockNodes[i].Pos = ImVec2ih((short)pDock->Get("x").AsInt(), (short)pDock->Get("y").AsInt());
-      pDockNodes[i].Size = ImVec2ih((short)pDock->Get("w").AsInt(), (short)pDock->Get("h").AsInt());
-      pDockNodes[i].SizeRef = ImVec2ih((short)pDock->Get("wr").AsInt(), (short)pDock->Get("hr").AsInt());
-
-      pDockNodes[i].SelectedTabID = pDock->Get("selectedtab").AsInt();
-      if (pDock->Get("parent").IsNumeric())
-        pDockNodes[i].ParentID = pDock->Get("parent").AsInt();
-
-      if (pDock->Get("split").IsString())
-        pDockNodes[i].SplitAxis = (*(pDock->Get("split").AsString()) == 'X') ? (signed char)ImGuiAxis_X : (signed char)ImGuiAxis_Y;
-      else
-        pDockNodes[i].SplitAxis = ImGuiAxis_None;
-
-      pDockNodes[i].IsCentralNode = (char)pDock->Get("central").AsInt();
-      pDockNodes[i].IsDockSpace = (char)pDock->Get("dockspace").AsInt();
-      pDockNodes[i].IsHiddenTabBar = (char)pDock->Get("hiddentabbar").AsInt();
-      pDockNodes[i].Depth = (char)pDock->Get("depth").AsInt();
-
-      if (pDock->Get("windows").IsArray())
-      {
-        udJSONArray *pWindows = pDock->Get("windows").AsArray();
-
-        for (size_t j = 0; j < pWindows->length; ++j)
-        {
-          udJSON *pJSONWindow = pWindows->GetElement(j);
-
-          ImGuiWindow* pWindow = ImGui::FindWindowByName(pJSONWindow->Get("name").AsString());
-          if (pWindow)
-          {
-            pWindow->DockId = pDockNodes[i].ID;
-            pWindow->DockOrder = (short)pJSONWindow->Get("index").AsInt();
-            pWindow->Collapsed = pJSONWindow->Get("collapsed").AsBool();
-          }
-          pJSONWindow->Destroy();
-        }
-        pWindows->Deinit();
-      }
-      pDock->Destroy();
-    }
-    pDocks->Deinit();
-
-    ImGui::DockContextBuildNodesFromSettings(GImGui, pDockNodes, (int)numNodes);
-    udFree(pDockNodes);
-
     pSettings->docksLoaded = true;
+
+    if (data.Get("dock").IsArray())
+    {
+      pSettings->window.windowsOpen[vcDocks_Scene] = data.Get("frames.scene").AsBool(true);
+      pSettings->window.windowsOpen[vcDocks_Settings] = data.Get("frames.settings").AsBool(true);
+      pSettings->window.windowsOpen[vcDocks_SceneExplorer] = data.Get("frames.explorer").AsBool(true);
+      pSettings->window.windowsOpen[vcDocks_Convert] = data.Get("frames.convert").AsBool(false);
+
+      udJSONArray *pDocks = data.Get("dock").AsArray();
+      size_t numNodes = pDocks->length;
+
+      ImGui::DockContextClearNodes(GImGui, 0, true);
+
+      ImGuiDockNodeSettings *pDockNodes = udAllocType(ImGuiDockNodeSettings, numNodes, udAF_Zero);
+
+      for (size_t i = 0; i < pDocks->length; ++i)
+      {
+        udJSON *pDock = pDocks->GetElement(i);
+
+        pDockNodes[i].ID = pDock->Get("id").AsInt();
+        pDockNodes[i].Pos = ImVec2ih((short)pDock->Get("x").AsInt(), (short)pDock->Get("y").AsInt());
+        pDockNodes[i].Size = ImVec2ih((short)pDock->Get("w").AsInt(), (short)pDock->Get("h").AsInt());
+        pDockNodes[i].SizeRef = ImVec2ih((short)pDock->Get("wr").AsInt(), (short)pDock->Get("hr").AsInt());
+
+        pDockNodes[i].SelectedTabID = pDock->Get("selectedtab").AsInt();
+        if (pDock->Get("parent").IsNumeric())
+          pDockNodes[i].ParentID = pDock->Get("parent").AsInt();
+
+        if (pDock->Get("split").IsString())
+          pDockNodes[i].SplitAxis = (*(pDock->Get("split").AsString()) == 'X') ? (signed char)ImGuiAxis_X : (signed char)ImGuiAxis_Y;
+        else
+          pDockNodes[i].SplitAxis = ImGuiAxis_None;
+
+        pDockNodes[i].IsCentralNode = (char)pDock->Get("central").AsInt();
+        pDockNodes[i].IsDockSpace = (char)pDock->Get("dockspace").AsInt();
+        pDockNodes[i].IsHiddenTabBar = (char)pDock->Get("hiddentabbar").AsInt();
+        pDockNodes[i].Depth = (char)pDock->Get("depth").AsInt();
+
+        if (pDock->Get("windows").IsArray())
+        {
+          udJSONArray *pWindows = pDock->Get("windows").AsArray();
+
+          for (size_t j = 0; j < pWindows->length; ++j)
+          {
+            udJSON *pJSONWindow = pWindows->GetElement(j);
+
+            ImGuiWindow* pWindow = ImGui::FindWindowByName(pJSONWindow->Get("name").AsString());
+            if (pWindow)
+            {
+              pWindow->DockId = pDockNodes[i].ID;
+              pWindow->DockOrder = (short)pJSONWindow->Get("index").AsInt();
+              pWindow->Collapsed = pJSONWindow->Get("collapsed").AsBool();
+            }
+          }
+        }
+      }
+
+      ImGui::DockContextBuildNodesFromSettings(GImGui, pDockNodes, (int)numNodes);
+      udFree(pDockNodes);
+    }
   }
 
   if (group == vcSC_All)
@@ -315,7 +314,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->window.maximized = data.Get("window.maximized").AsBool(false);
     udStrcpy(pSettings->window.languageCode, udLengthOf(pSettings->window.languageCode), data.Get("window.language").AsString("enAU"));
 
-    // True so the windows' IDs are always available on the ID stack, actual load is done in vcSC_Docks above
+    // True so the windows are open for the dock load, actual load is done in vcSC_Docks above
     pSettings->window.windowsOpen[vcDocks_Scene] = true;
     pSettings->window.windowsOpen[vcDocks_Settings] = true;
     pSettings->window.windowsOpen[vcDocks_SceneExplorer] = true;
@@ -363,10 +362,8 @@ void vcSettings_RecurseDocks(ImGuiDockNode *pNode, udJSON &out, int *pDepth)
   {
     udJSON window;
 
-    // Only want the part ###xxxxDock so any language works
-    char *pIDName = pNode->Windows[i]->Name;
-    while (*pIDName != '#')
-      ++pIDName;
+    // Only want the part '###xxxxDock' so any language works
+    const char *pIDName = udStrchr(pNode->Windows[i]->Name, "#");
 
     window.Set("name = '%s'", pIDName);
     window.Set("index = %d", i);
@@ -399,7 +396,7 @@ void vcSettings_RecurseDocks(ImGuiDockNode *pNode, udJSON &out, int *pDepth)
 
 bool vcSettings_Save(vcSettings *pSettings)
 {
-  if (pSettings->noLocalStorage)
+  if (pSettings->noLocalStorage || pSettings->window.presentationMode)
     return false;
 
   bool success = false;
