@@ -18,9 +18,20 @@ struct vcSettings;
 
 struct vWorkerThreadPool;
 
-udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayer, const vcSettings *pSettings, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL, const vcSceneLayerRendererMode &mode = vcSLRM_Rendering);
+// TODO: (EVC-550) Split this giant file out into individual model/renderer/converter files
+udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayer, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL, const vcSceneLayerRendererMode &mode = vcSLRM_Rendering);
 udResult vcSceneLayerRenderer_Destroy(vcSceneLayerRenderer **ppSceneLayer);
 
+// TODO: add a _Load() function, and use instead of vcSceneLayerRendererMode parameter
+// inside _create should not load any node data, including the root IMO
+// then when converting, call this function in the _Open() callback
+
+// TODO: (EVC-550) Split this giant file out into individual model/renderer/converter files
 bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution);
+
+// TODO: (EVC-550) Split this giant file out into individual model/renderer/converter files
+#include "vdkConvertCustom.h"
+#include "vdkTriangleVoxelizer.h"
+vdkError vcSceneLayerRenderer_AddItem(vdkContext *pContext, vdkConvertContext *pConvertContext, const char *pFilename);
 
 #endif//vcSceneLayerRenderer_h__

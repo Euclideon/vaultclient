@@ -6,6 +6,7 @@
 #include "vcModals.h"
 #include "vcScene.h"
 #include "vcModel.h"
+#include "vcSceneLayerRenderer.h"
 
 #include "vCore/vStringFormat.h"
 
@@ -582,6 +583,16 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
 
   if (pSelectedJob == nullptr)
     vcConvert_AddEmptyJob(pProgramState, &pSelectedJob);
+
+  // Try I3S
+  //udStrEndsWithi(pFilename, ".slpk") &&
+  //pFilename
+  //"E:/Vault Datasets/I3S/mesh4"
+  if (udStrEndsWithi(pFilename, ".slpk") && vcSceneLayerRenderer_AddItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "E:/Vault Datasets/I3S/tilt/tilt") == vE_Success)
+  {
+    pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
+    return true;
+  }
 
   if (vdkConvert_AddItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
   {

@@ -132,7 +132,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, pSettings));
   UD_ERROR_CHECK(vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences));
 
-  vcSceneLayerRenderer_Create(&pSceneLayer[0], pSettings, pWorkerThreadPool, "E:/Vault Datasets/I3S/mesh4", vcSLRM_Convert);
+  (pWorkerThreadPool);
+  //vcSceneLayerRenderer_Create(&pSceneLayer[0], pWorkerThreadPool, "E:/Vault Datasets/I3S/mesh4", vcSLRM_Rendering);
   //vcSceneLayerRenderer_Create(&pSceneLayer[1], pSettings, pWorkerThreadPool, "E:/Vault Datasets/I3S/tilt/tilt", vcSLRM_Rendering);
 
   *ppRenderContext = pRenderContext;
