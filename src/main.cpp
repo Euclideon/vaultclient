@@ -145,9 +145,15 @@ void vcMain_PresentationMode(vcState *pProgramState)
 {
   pProgramState->settings.window.presentationMode = !pProgramState->settings.window.presentationMode;
   if (pProgramState->settings.window.presentationMode)
-    SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN);
+  {
+    vcSettings_Save(&pProgramState->settings);
+    SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+  }
   else
+  {
+    pProgramState->settings.docksLoaded = false;
     SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
+  }
 
   if (pProgramState->settings.responsiveUI == vcPM_Responsive)
     pProgramState->lastEventTime = vcTime_GetEpochSecs();
@@ -463,12 +469,14 @@ int main(int argc, char **args)
   SDL_free(pIcon);
 
   ImGui::CreateContext();
+
+  vcMain_LoadSettings(&programState, false);
+
   if (!vcGLState_Init(programState.pWindow, &programState.pDefaultFramebuffer))
     goto epilogue;
 
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-  vcMain_LoadSettings(&programState, false);
 
   // setup watermark for background
   vcTexture_CreateFromFilename(&programState.pCompanyLogo, "asset://assets/textures/logo.png");
@@ -820,8 +828,6 @@ int main(int argc, char **args)
         vcLogout(&programState);
         vcModals_OpenModal(&programState, vcMT_LoggedOut);
       }
-
-
     }
   }
 
@@ -1493,10 +1499,9 @@ void vcRenderWindow(vcState *pProgramState)
 
   //end keyboard/mouse handling
 
-  if (pProgramState->hasContext)
+  if (pProgramState->hasContext && !pProgramState->settings.window.presentationMode)
   {
-    if (!pProgramState->settings.window.presentationMode)
-      vcMainMenuGui(pProgramState);
+    vcMainMenuGui(pProgramState);
 
     if (!pProgramState->settings.docksLoaded)
       pProgramState->settings.rootNode = ImGui::GetID("MyDockspace");
@@ -1910,13 +1915,6 @@ void vcRenderWindow(vcState *pProgramState)
       }
       else
       {
-        // Dummy scene dock, otherwise the docks get shuffled around
-        /*if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
-          ImGui::Dummy(ImVec2((float)pProgramState->sceneResolution.x, (float)pProgramState->sceneResolution.y));
-        vcChangeTab(pProgramState, vcDocks_Scene);
-        ImGui::End();
-        */
-
         ImGui::SetNextWindowSize(size);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
         ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -2269,7 +2267,13 @@ void vcRenderWindow(vcState *pProgramState)
     }
 
     if (!pProgramState->settings.docksLoaded)
+    {
       vcSettings_Load(&pProgramState->settings, false, vcSC_Docks);
+
+      // Don't show the window in a bad state
+      ImGui::EndFrame();
+      ImGui::NewFrame();
+    }
 
     if (pProgramState->currentError != vE_Success)
     {
