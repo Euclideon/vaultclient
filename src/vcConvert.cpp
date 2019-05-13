@@ -6,7 +6,7 @@
 #include "vcModals.h"
 #include "vcScene.h"
 #include "vcModel.h"
-#include "vcSceneLayerRenderer.h"
+#include "vcSceneLayerConvert.h"
 
 #include "vCore/vStringFormat.h"
 
@@ -588,7 +588,8 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
   //udStrEndsWithi(pFilename, ".slpk") &&
   //pFilename
   //"E:/Vault Datasets/I3S/mesh4"
-  if (udStrEndsWithi(pFilename, ".slpk") && vcSceneLayerRenderer_AddItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, "E:/Vault Datasets/I3S/tilt/tilt") == vE_Success)
+  //"E:/Vault Datasets/I3S/tilt/tilt"
+  if (udStrEndsWithi(pFilename, ".slpk") && vcSceneLayerConvert_AddItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pProgramState->pWorkerPool, "E:/Vault Datasets/I3S/mesh4") == vE_Success)
   {
     pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
     return true;

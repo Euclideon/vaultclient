@@ -88,4 +88,5 @@ static const GLuint vcTWMToGL[] = { GL_REPEAT, GL_CLAMP_TO_EDGE }; // Wrap Mode
 UDCOMPILEASSERT(UDARRAYSIZE(vcTWMToGL) == vcTFM_Total, "TextureFilterModes not equal size");
 
 
+
 #endif // vcOpenGL_h__
