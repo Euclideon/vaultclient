@@ -68,6 +68,9 @@ function injectvaultsdkbin()
 		end
 
 		if os.target() == premake.WINDOWS then
+			if _OPTIONS["gfxapi"] == "metal" then
+				_OPTIONS["gfxapi"] = "opengl"
+			end
 			os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.dll", "builds/vaultSDK.dll")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.lib", "src/vaultSDK.lib")
@@ -82,7 +85,6 @@ function injectvaultsdkbin()
 			os.execute("/usr/bin/hdiutil detach /Volumes/vaultSDK")
 			os.execute("/usr/bin/hdiutil detach " .. device)
 			os.execute("rm -r builds/vaultSDK.dmg")
-
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			prelinkcommands {
 				"rm -rf %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
@@ -100,6 +102,9 @@ function injectvaultsdkbin()
 			libdirs { "builds" }
 			linkoptions { "-rpath @executable_path/" }
 		else
+			if _OPTIONS["gfxapi"] == "metal" then
+				_OPTIONS["gfxapi"] = "opengl"
+			end
 			os.execute("mkdir -p builds")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/linux_GCC_x64/libvaultSDK.so", "builds/libvaultSDK.so")
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
@@ -122,7 +127,8 @@ newoption {
    default     = "opengl",
    allowed = {
       { "opengl", "OpenGL" },
-      { "d3d11", "Direct3D 11 (Windows only)" }
+      { "d3d11", "Direct3D 11 (Windows only)" },
+      { "metal", "Metal (macOS & iOS only)" }
    }
 }
 
