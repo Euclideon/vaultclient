@@ -161,7 +161,6 @@ void vcMain_PresentationMode(vcState *pProgramState)
   }
   else
   {
-    pProgramState->settings.docksLoaded = false;
     SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
   }
 
@@ -704,7 +703,6 @@ int main(int argc, char **args)
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
   programState.settings.hideIntervalSeconds = 3;
-  programState.settings.docksLoaded = false;
   programState.showUI = true;
   programState.changeActiveDock = vcDocks_Count;
   programState.passFocus = true;
@@ -1560,18 +1558,15 @@ void vcRenderWindow(vcState *pProgramState)
   {
     vcMainMenuGui(pProgramState);
 
-    if (!pProgramState->settings.docksLoaded)
-      pProgramState->settings.rootNode = ImGui::GetID("MyDockspace");
-
     ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowBgAlpha(0.f);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
-    ImGui::Begin("RootDockContainer", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
+    ImGui::Begin("RootDockContainer", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoSavedSettings);
     ImGui::PopStyleVar(2);
-    ImGui::DockSpace(pProgramState->settings.rootNode, size);
+    ImGui::DockSpace(ImGui::GetID("MyDockspace"), size);
     ImGui::End();
   }
 
@@ -1708,7 +1703,7 @@ void vcRenderWindow(vcState *pProgramState)
 
     if (pProgramState->loginStatus == vcLS_Pending)
     {
-      if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar))
+      if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings))
       {
         vcFolder_ShowLoadStatusIndicator(vcSLS_Loading);
         ImGui::TextUnformatted(vcString::Get("loginMessageChecking"));
@@ -1717,7 +1712,7 @@ void vcRenderWindow(vcState *pProgramState)
     }
     else
     {
-      if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+      if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings))
       {
         ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
 
@@ -2321,15 +2316,6 @@ void vcRenderWindow(vcState *pProgramState)
         }
       }
       ImGui::End();
-    }
-
-    if (!pProgramState->settings.docksLoaded)
-    {
-      vcSettings_Load(&pProgramState->settings, false, vcSC_Docks);
-
-      // Don't show the window in a bad state
-      ImGui::EndFrame();
-      ImGui::NewFrame();
     }
 
     if (pProgramState->currentError != vE_Success)
