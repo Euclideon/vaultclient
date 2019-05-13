@@ -10,7 +10,7 @@
   vcFramebuffer *pFramebuffers[BUFFER_COUNT];
   vcFramebuffer *pCurrFramebuffer;
   vcShader *pCurrShader;
-  
+
   NSString *blend;
   vcGLStateBlendMode blendMode;
 }
@@ -21,12 +21,12 @@
   if (self)
   {
     blend = nullptr;
-    
+
     _queue = [_device newCommandQueue];
-    
+
     _blitBuffer = [_queue commandBuffer];
     _blitEncoder = [_blitBuffer blitCommandEncoder];
-    
+
     view.paused = true;
   }
   return self;
@@ -35,7 +35,7 @@
 - (void)drawInMTKView:(nonnull MTKView *)view
 {
   // Finalise last frame
-  
+
   // End encoding
   for (int i = 0; i < BUFFER_COUNT; ++i)
   {
@@ -45,9 +45,9 @@
     }
   }
   [_blitEncoder endEncoding];
-  
+
   [_commandBuffers[0] presentDrawable:view.currentDrawable];
-  
+
   // Commit buffers
   [_blitBuffer commit];
   for (int i = 0; i < BUFFER_COUNT; ++i)
@@ -60,7 +60,7 @@
 
   // currentRenderPassDescriptor contains a drawable with a color texture attachment
   _renderPasses[0] = view.currentRenderPassDescriptor;
-  
+
   if (_renderPasses[0] == nil)
   {
     _renderPasses[0] = [[MTLRenderPassDescriptor alloc] init];
@@ -76,7 +76,7 @@
       [_encoders replaceObjectAtIndex:i withObject:[_commandBuffers[i] renderCommandEncoderWithDescriptor:_renderPasses[i]]];
     }
   }
-  
+
   _blitBuffer = [_queue commandBuffer];
   _blitEncoder = [_blitBuffer blitCommandEncoder];
 }
@@ -90,7 +90,7 @@
     vcTexture_Create(&pIntermediate, size.width, size.height, nullptr, pFramebuffers[0]->pDepth->format, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget, 0);
 
     vcTexture_Destroy(&pFramebuffers[0]->pDepth);
-    
+
     pFramebuffers[0]->pDepth = pIntermediate;
     _viewCon.renderer.renderPasses[0].depthAttachment.texture = _viewCon.renderer.textures[[NSString stringWithUTF8String:pIntermediate->ID]];
     if (pIntermediate->format == vcTextureFormat_D24S8)
@@ -108,7 +108,7 @@
 {
   NSString *currID = [NSString stringWithUTF8String:pTexture->ID];
   [_encoders[pCurrFramebuffer->ID] setFragmentTexture:_textures[currID] atIndex:tIndex];
-  
+
   currID = [NSString stringWithUTF8String:pTexture->samplerID];
   [_encoders[pCurrFramebuffer->ID] setFragmentSamplerState:_samplers[currID] atIndex:tIndex];
 }
@@ -126,7 +126,7 @@
     if (pFramebuffers[i] != nullptr)
     {
       [_encoders[i] setDepthStencilState:dsState];
-    
+
       if (pStencil != nullptr)
         [_encoders[i] setStencilReferenceValue:(uint32_t)pStencil->compareValue];
     }
@@ -139,7 +139,7 @@
     return;
 
   blendMode = newBlendMode;
-  
+
   NSString *pLookup;
   switch (blendMode)
   {
@@ -164,9 +164,9 @@
     [self bindBlendState];
     return;
   }
-  
+
   MTLRenderPipelineDescriptor *pDesc = [_pipeDescs[pCurrShader->ID] copy];
-  
+
   if (blendMode == vcGLSBM_None)
   {
     pDesc.colorAttachments[0].blendingEnabled = false;
@@ -180,12 +180,12 @@
     pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
     pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
     pDesc.colorAttachments[0].writeMask = MTLColorWriteMaskAll;
-    
+
     if (blendMode == vcGLSBM_Interpolative)
     {
       pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
       pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-      
+
       pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOne;
     }
     else if (blendMode == vcGLSBM_Additive)
@@ -198,7 +198,7 @@
       pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorDestinationColor;
       pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorZero;
     }
-    
+
     [_blendPipelines setObject:[_device newRenderPipelineStateWithDescriptor:pDesc error:nil] forKey:blend];
   }
 }
@@ -214,7 +214,7 @@
   if (pCurrShader != nullptr && pCurrFramebuffer != nullptr)
   {
     id<MTLRenderPipelineState> pipe;
-    
+
     if (blend == nullptr)
     {
       pipe = [_pipelines objectAtIndex:pCurrShader->ID];
@@ -223,10 +223,10 @@
     {
       if (![_blendPipelines objectForKey:blend] || ![blend hasPrefix:[NSString stringWithFormat:@"%d",pCurrShader->ID]])
         [self setBlendMode:blendMode];
-        
+
       pipe = [_blendPipelines objectForKey:blend];
     }
-    
+
     [_encoders[pCurrFramebuffer->ID] setRenderPipelineState:pipe];
   }
 }
@@ -235,7 +235,7 @@
 {
   for (int i = 0; i < pCurrShader->numBufferObjects; ++i)
     [self bindConstantBuffer:&pCurrShader->bufferObjects[i] index:i+1];
-    
+
   [_encoders[pCurrFramebuffer->ID] setVertexBuffer:vertBuffer offset:vStart atIndex:0];
   [_encoders[pCurrFramebuffer->ID] drawPrimitives:type vertexStart:vStart vertexCount:vCount];
 }
@@ -243,7 +243,7 @@
 {
   for (int i = 0; i < pCurrShader->numBufferObjects; ++i)
     [self bindConstantBuffer:&pCurrShader->bufferObjects[i] index:i+1];
-    
+
   [_encoders[pCurrFramebuffer->ID] setVertexBuffer:vertBuffer offset:0 atIndex:0];
   [_encoders[pCurrFramebuffer->ID] drawIndexedPrimitives:type indexCount:indexCount indexType:indexType indexBuffer:indexBuffer indexBufferOffset:offset];
 }
@@ -288,13 +288,13 @@
     if (pFramebuffers[i] == nullptr)
     {
       MTLRenderPassDescriptor *pass = [[MTLRenderPassDescriptor alloc] init];
-      
+
       pass.colorAttachments[0].loadAction = MTLLoadActionClear;
       pass.colorAttachments[0].storeAction = MTLStoreActionStore;
       pass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0);
       if (pFramebuffer->pColor != nullptr)
         pass.colorAttachments[0].texture = _textures[[NSString stringWithUTF8String:pFramebuffer->pColor->ID]];
-      
+
       if (pFramebuffer->pDepth != nullptr)
       {
         pass.depthAttachment.texture = _textures[[NSString stringWithUTF8String:pFramebuffer->pDepth->ID]];
@@ -316,10 +316,10 @@
         pass.depthAttachment.texture = nil;
         pass.stencilAttachment.texture = nil;
       }
-      
+
       pFramebuffers[i] = pFramebuffer;
       pFramebuffer->ID = i;
-      
+
       [_renderPasses setObject:pass atIndexedSubscript:i];
       [_commandBuffers setObject:[_queue commandBuffer] atIndexedSubscript:i];
       [_encoders setObject:[_commandBuffers[i] renderCommandEncoderWithDescriptor:pass] atIndexedSubscript:i];

@@ -262,6 +262,7 @@ bool vcGLState_Present(SDL_Window *pWindow)
   if (pWindow == nullptr)
     return false;
 
+  memset(&s_internalState.frameInfo, 0, sizeof(s_internalState.frameInfo));
   SDL_GL_SwapWindow(pWindow);
   return true;
 }
@@ -287,4 +288,16 @@ void vcGLState_Scissor(int left, int top, int right, int bottom, bool force /*= 
 int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel)
 {
   return udMin(desiredAniLevel, g_maxAnisotropy);
+}
+
+void vcGLState_GPUDidWork(size_t drawCount, size_t triCount, size_t uploadBytesCount)
+{
+  s_internalState.frameInfo.drawCount += drawCount;
+  s_internalState.frameInfo.triCount += triCount;
+  s_internalState.frameInfo.uploadBytesCount += uploadBytesCount;
+}
+
+bool vcGLState_IsDataUploadAllowed()
+{
+  return s_internalState.frameInfo.uploadBytesCount < vcGLState_MaxUploadBytesPerFrame;
 }
