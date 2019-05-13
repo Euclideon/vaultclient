@@ -44,7 +44,11 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   case vcTextureFormat_BGRA8:
     internalFormat = GL_RGBA8;
     type = GL_UNSIGNED_BYTE;
+#if UDPLATFORM_EMSCRIPTEN
+    glFormat = GL_RGBA; // TODO: Fix this
+#else
     glFormat = GL_BGRA;
+#endif
     break;
   case vcTextureFormat_D32F:
     internalFormat = GL_DEPTH_COMPONENT32F;
@@ -149,7 +153,11 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
   case vcTextureFormat_BGRA8:
     internalFormat = GL_RGBA8;
     type = GL_UNSIGNED_BYTE;
+#if UDPLATFORM_EMSCRIPTEN
+    glFormat = GL_RGBA; // TODO: Fix this
+#else
     glFormat = GL_BGRA;
+#endif
     break;
   case vcTextureFormat_D32F:
     internalFormat = GL_DEPTH_COMPONENT32F;
