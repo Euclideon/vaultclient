@@ -49,7 +49,13 @@
 
 #include "udPlatform/udFile.h"
 
-#define STB_IMAGE_IMPLEMENTATION
+#if UDPLATFORM_EMSCRIPTEN
+#include "vHTTPRequest.h"
+#endif
+
+#if !UDPLATFORM_EMSCRIPTEN
+# define STB_IMAGE_IMPLEMENTATION
+#endif
 #include "stb_image.h"
 
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
@@ -331,8 +337,14 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
   }
 }
 
+#if UDPLATFORM_EMSCRIPTEN
+void vcMain_MainLoop(void *pArgs)
+{
+  vcState *pProgramState = (vcState*)pArgs;
+#else
 void vcMain_MainLoop(vcState *pProgramState)
 {
+#endif
   static Uint64 NOW = SDL_GetPerformanceCounter();
   static Uint64 LAST = 0;
 
@@ -654,6 +666,10 @@ int main(int argc, char **args)
 
   vcState programState = {};
 
+#if UDPLATFORM_EMSCRIPTEN
+  vHTTPRequest_StartWorkerThread();
+#endif
+
   vcSettings_RegisterAssetFileHandler();
   vcWebFile_RegisterFileHandlers();
 
@@ -714,6 +730,15 @@ int main(int argc, char **args)
 
   vWorkerThread_StartThreads(&programState.pWorkerPool);
   vcConvert_Init(&programState);
+
+#if UDPLATFORM_EMSCRIPTEN
+  programState.sceneResolution.x = EM_ASM_INT_V({
+    return window.innerWidth;
+  });
+  programState.sceneResolution.y = EM_ASM_INT_V({
+    return window.innerHeight;
+  });
+#endif
 
   // Setup SDL
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -846,8 +871,12 @@ int main(int argc, char **args)
   vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", programState.settings.window.languageCode), &programState.languageInfo);
   vcTexture_CreateFromFilename(&programState.pUITexture, "asset://assets/textures/uiDark24.png");
 
+#if UDPLATFORM_EMSCRIPTEN
+  emscripten_set_main_loop_arg(vcMain_MainLoop, &programState, 0, 1);
+#else
   while (!programState.programComplete)
     vcMain_MainLoop(&programState);
+#endif
 
   vcSettings_Save(&programState.settings);
 
@@ -884,6 +913,10 @@ epilogue:
   vcTexture_Destroy(&programState.image.pImage);
 
   vcGLState_Deinit();
+
+#if UDPLATFORM_EMSCRIPTEN
+  vHTTPRequest_ShutdownWorkerThread();
+#endif
 
   return 0;
 }
