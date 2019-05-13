@@ -10,6 +10,10 @@
 #include "vcClassificationColours.h"
 #include "vCore/vStringFormat.h"
 
+#if UDPLATFORM_EMSCRIPTEN
+# include <emscripten.h>
+#endif
+
 const char *pDefaults = "asset://defaultsettings.json";
 
 void vcSettings_InitializePrefPath(vcSettings *pSettings)
@@ -550,6 +554,13 @@ bool vcSettings_Save(vcSettings *pSettings)
   return success;
 }
 
+#if UDPLATFORM_EMSCRIPTEN
+void *vcSettings_GetAssetPathAllocateCallback(size_t length)
+{
+  return udAlloc(length);
+}
+#endif
+
 const char *vcSettings_GetAssetPath(const char *pFilename)
 {
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
@@ -565,6 +576,17 @@ const char *vcSettings_GetAssetPath(const char *pFilename)
   SDL_free(pBasePath);
 
   return pOutput;
+#elif UDPLATFORM_EMSCRIPTEN
+  char *pURL = (char*)EM_ASM_INT({
+    var url = window.location.href.substr(0, window.location.href.lastIndexOf('/'));
+    var lengthBytes = lengthBytesUTF8(url) + 1;
+    var pURL = dynCall_ii($0, lengthBytes);
+    stringToUTF8(url, pURL, lengthBytes + 1);
+    return pURL;
+  }, vcSettings_GetAssetPathAllocateCallback);
+  const char *pTempURL = udTempStr("%s/%s", pURL, pFilename);
+  udFree(pURL);
+  return pTempURL;
 #else
   return udTempStr("%s", pFilename);
 #endif
@@ -573,7 +595,11 @@ const char *vcSettings_GetAssetPath(const char *pFilename)
 udResult vcSettings_FileHandlerAssetOpen(udFile **ppFile, const char *pFilename, udFileOpenFlags flags)
 {
   size_t fileStart = 8; // length of asset://
-  return udFile_Open(ppFile, vcSettings_GetAssetPath(pFilename + fileStart), flags);
+  const char *pNewFilename = vcSettings_GetAssetPath(pFilename + fileStart);
+  udResult res = udFile_Open(ppFile, pNewFilename, flags);
+  udFree((*ppFile)->pFilenameCopy);
+  (*ppFile)->pFilenameCopy = udStrdup(pNewFilename);
+  return res;
 }
 
 udResult vcSettings_RegisterAssetFileHandler()
