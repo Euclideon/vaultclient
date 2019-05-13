@@ -324,6 +324,7 @@
   "sceneExplorerTitle": "Scene Explorer",
   "sceneExplorerRemove": "Remove Selected",
   "sceneExplorerRemoveKey": "Delete",
+  "sceneExplorerRemoveItem": "Remove Item",
   "sceneExplorerAddUDS": "Add UDS",
   "sceneExplorerAddUDSKey": "Ctrl+U",
   "sceneExplorerAddUDSTitle": "Add UDS to Scene",
