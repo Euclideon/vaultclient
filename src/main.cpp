@@ -665,9 +665,8 @@ int main(int argc, char **args)
   int pitch;
   long rMask, gMask, bMask, aMask;
 
-  const float FontSize = 16.f;
-  ImFontConfig fontCfg = ImFontConfig();
-  const char *pFontPath = nullptr;
+  void *pFontData = nullptr;
+  int64_t fontDataLength = 0;
 
   // default values
   programState.settings.camera.moveMode = vcCMM_Plane;
@@ -795,47 +794,52 @@ int main(int argc, char **args)
   // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
   vcFramebuffer_Bind(programState.pDefaultFramebuffer);
 
-  pFontPath = vcSettings_GetAssetPath("assets/fonts/NotoSansCJKjp-Regular.otf");
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize);
-  fontCfg.MergeMode = true;
+  if (udFile_Load(vcSettings_GetAssetPath("assets/fonts/NotoSansCJKjp-Regular.otf"), &pFontData, &fontDataLength) == udR_Success)
+  {
+    const float FontSize = 16.f;
+    ImFontConfig fontCfg = ImFontConfig();
+    fontCfg.FontDataOwnedByAtlas = false;
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontDataLength, FontSize, &fontCfg);
+    fontCfg.MergeMode = true;
 
 #if UD_RELEASE // Load all glyphs for supported languages
-  static ImWchar characterRanges[] =
-  {
-    0x0020, 0x00FF, // Basic Latin + Latin Supplement
-    0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
-    0x0E00, 0x0E7F, // Thai
-    0x2010, 0x205E, // Punctuations
-    0x25A0, 0x25FF, // Geometric Shapes
-    0x26A0, 0x26A1, // Exclamation in Triangle
-    0x2DE0, 0x2DFF, // Cyrillic Extended-A
-    0x3000, 0x30FF, // Punctuations, Hiragana, Katakana
-    0x3131, 0x3163, // Korean alphabets
-    0x31F0, 0x31FF, // Katakana Phonetic Extensions
-    0x4e00, 0x9FAF, // CJK Ideograms
-    0xA640, 0xA69F, // Cyrillic Extended-B
-    0xAC00, 0xD79D, // Korean characters
-    0xFF00, 0xFFEF, // Half-width characters
-    0
-  };
+    static ImWchar characterRanges[] =
+    {
+      0x0020, 0x00FF, // Basic Latin + Latin Supplement
+      0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
+      0x0E00, 0x0E7F, // Thai
+      0x2010, 0x205E, // Punctuations
+      0x25A0, 0x25FF, // Geometric Shapes
+      0x26A0, 0x26A1, // Exclamation in Triangle
+      0x2DE0, 0x2DFF, // Cyrillic Extended-A
+      0x3000, 0x30FF, // Punctuations, Hiragana, Katakana
+      0x3131, 0x3163, // Korean alphabets
+      0x31F0, 0x31FF, // Katakana Phonetic Extensions
+      0x4e00, 0x9FAF, // CJK Ideograms
+      0xA640, 0xA69F, // Cyrillic Extended-B
+      0xAC00, 0xD79D, // Korean characters
+      0xFF00, 0xFFEF, // Half-width characters
+      0
+    };
 
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize, &fontCfg, characterRanges);
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesJapanese()); // Still need to load Japanese seperately
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontDataLength, FontSize, &fontCfg, characterRanges);
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontDataLength, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesJapanese()); // Still need to load Japanese seperately
 #else // Debug; Only load required Glyphs
-  static ImWchar characterRanges[] =
-  {
-    0x0020, 0x00FF, // Basic Latin + Latin Supplement
-    0x2010, 0x205E, // Punctuations
-    0x25A0, 0x25FF, // Geometric Shapes
-    0x26A0, 0x26A1, // Exclamation in Triangle
-    0
-  };
+    static ImWchar characterRanges[] =
+    {
+      0x0020, 0x00FF, // Basic Latin + Latin Supplement
+      0x2010, 0x205E, // Punctuations
+      0x25A0, 0x25FF, // Geometric Shapes
+      0x26A0, 0x26A1, // Exclamation in Triangle
+      0
+    };
 
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize, &fontCfg, characterRanges);
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontDataLength, FontSize, &fontCfg, characterRanges);
 #endif
 
-  // No longer need the udTempStr after this point.
-  pFontPath = nullptr;
+    udFree(pFontData);
+    fontDataLength = 0;
+  }
 
   SDL_EnableScreenSaver();
 
