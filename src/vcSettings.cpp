@@ -110,12 +110,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
   if (pSavedData != nullptr)
     data.Parse(pSavedData);
 
-  if (data.Get("docks").IsArray())
-  {
-    vcSettings_Load(pSettings, true);
-    goto epilogue;
-  }
-
   if (group == vcSC_All || group == vcSC_Appearance)
   {
     // Misc Settings
@@ -241,10 +235,10 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_Docks || forceReset)
   {
-    pSettings->docksLoaded = true;
-
     if (data.Get("dock").IsArray())
     {
+      pSettings->docksLoaded = true;
+
       pSettings->window.windowsOpen[vcDocks_Scene] = data.Get("frames.scene").AsBool(true);
       pSettings->window.windowsOpen[vcDocks_Settings] = data.Get("frames.settings").AsBool(true);
       pSettings->window.windowsOpen[vcDocks_SceneExplorer] = data.Get("frames.explorer").AsBool(true);
@@ -301,6 +295,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
       ImGui::DockContextBuildNodesFromSettings(GImGui, pDockNodes, (int)numNodes);
       udFree(pDockNodes);
+    }
+    else
+    {
+      vcSettings_Load(pSettings, true, vcSC_Docks);
+      goto epilogue;
     }
   }
 
