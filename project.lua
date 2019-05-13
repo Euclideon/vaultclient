@@ -78,7 +78,7 @@ project "vaultClient"
 			["INFOPLIST_PREPROCESS"] = "YES",
 			["MACOSX_DEPLOYMENT_TARGET"] = "10.13",
 		}
-		
+
 	filter { "system:ios" }
 		files { "iOS-Info.plist", "builds/libvaultSDK.dylib", "icons/Images.xcassets", "src/vcWebFile.mm" }
 		sysincludedirs { "3rdParty/SDL2-2.0.8/include" }
@@ -92,6 +92,11 @@ project "vaultClient"
 		files { "builds/assets/**", "builds/releasenotes.md", "builds/defaultsettings.json" }
 		xcodebuildresources { ".otf", ".png", ".jpg", ".json", ".metallib", "releasenotes", "defaultsettings" }
 		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = excludedSourceFileNames }
+
+	filter { "system:emscripten" }
+		removefiles { "src/udPlatform/**", "src/vCore/vUUID.*", "src/vCore/vSafeDeque.h" }
+		links { "GLEW" }
+		linkoptions  { "-s USE_WEBGL2=1", "-s FULL_ES3=1", --[["-s DEMANGLE_SUPPORT=1",]] "-s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\", \"getValue\", \"setValue\", \"UTF8ToString\", \"stringToUTF8\"]'" }
 
 	filter { "system:not windows" }
 		links { "dl" }
@@ -112,7 +117,7 @@ project "vaultClient"
 		files { "src/gl/metal/shaders.metallib" }
 		xcodebuildsettings {
 			["CLANG_ENABLE_OBJC_ARC"] = "YES",
-			["GCC_ENABLE_OBJC_EXCEPTIONS"] = "YES", 
+			["GCC_ENABLE_OBJC_EXCEPTIONS"] = "YES",
 		}
 		links { "MetalKit.framework", "Metal.framework" }
 		prebuildcommands {
@@ -145,6 +150,6 @@ project "vaultClient"
 		targetname ("%{prj.name}_" .. _OPTIONS["gfxapi"])
 
 	filter {}
-	
+
 	targetdir "builds"
 	debugdir "builds"
