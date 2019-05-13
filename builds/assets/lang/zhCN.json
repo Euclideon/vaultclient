@@ -300,6 +300,7 @@
   "sceneExplorerTitle": "场景资源管理器",
   "sceneExplorerRemove": "删除",
   "sceneExplorerRemoveKey": "删除键",
+  "sceneExplorerRemoveItem": "除去项目",
   "sceneExplorerAddUDS": "添加UDS",
   "sceneExplorerAddUDSKey": "Ctrl+U",
   "sceneExplorerAddUDSTitle": "添加UDS到场景",

@@ -216,6 +216,13 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           ((vcModel*)m_children[i])->m_sceneMatrix = udGeoZone_TransformMatrix(((vcModel*)m_children[i])->m_defaultMatrix, *m_children[i]->m_pOriginalZone, *m_children[i]->m_pZone);
       }
 
+      if (ImGui::Selectable(vcString::Get("sceneExplorerRemoveItem")))
+      {
+        vcScene_RemoveItem(pProgramState, this, i);
+        ImGui::EndPopup();
+        return;
+      }
+
       ImGui::EndPopup();
     }
 
