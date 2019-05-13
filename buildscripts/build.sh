@@ -13,7 +13,7 @@ else
 fi
 
 export DEPLOYDIR="$DEV/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
-export VAULTSDK_HOME="$DEV/Builds/vault/linkedvdk/Pipeline_37494"
+export VAULTSDK_HOME="$DEV/Builds/vault/linkedvdk/Pipeline_37529"
 
 # Prepare UserGuide
 mkdir -p builds/userguide
@@ -75,7 +75,7 @@ else
 		fi
 	elif [[ $OSTYPE == "darwin"* ]]; then # OSX
 		export OSNAME="macOS"
-		bin/premake/premake5-osx xcode4
+		bin/premake/premake5-osx xcode4 $3
 		xcodebuild -project vaultClient.xcodeproj -configuration $1
 	else
 		export OSNAME="Linux"
@@ -87,11 +87,18 @@ else
 		# Make folder to store the framework to build a DMG from
 		mkdir builds/packaging
 		cp -af builds/vaultClient.app builds/packaging/vaultClient.app
+		export APPNAME=vaultClient
 		hdiutil create builds/vaultClient.dmg -volname "vaultClient" -srcfolder builds/packaging
 	elif [[ $OSTYPE == "darwin"* ]]; then # OSX
 		# Make folder to store the framework to build a DMG from
 		mkdir -p builds/packaging/.background
-		cp -af builds/vaultClient.app builds/packaging/vaultClient.app
+		if [ $3 == "--gfxapi=metal" ]; then
+			cp -af builds/vaultClient_metal.app builds/packaging/vaultClient_metal.app
+			export APPNAME=vaultClient_metal
+		else
+			cp -af builds/vaultClient.app builds/packaging/vaultClient.app
+			export APPNAME=vaultClient
+		fi
 		cp icons/dmgBackground.png builds/packaging/.background/background.png
 
 		# Detach /Volumes/vaultClient just in case an earlier build failed to do so
@@ -116,14 +123,14 @@ else
 					set icon size of theViewOptions to 72
 					set background picture of theViewOptions to file ".background:background.png"
 					make new alias file at container window to POSIX file "/Applications" with properties {name:"Applications"}
-					set position of item "vaultClient" of container window to {150, 180}
+					set position of item "APPNAME" of container window to {150, 180}
 					set position of item "Applications" of container window to {360, 180}
 					update without registering applications
 					delay 5
 					close
 				end tell
 			end tell
-		' | osascript
+		' | sed "s/APPNAME/$APPNAME/" | osascript
 		chmod -Rf go-w /Volumes/vaultClient
 		cp icons/macOSAppIcons.icns /Volumes/vaultClient/.VolumeIcon.icns
 		SetFile -c icnC "/Volumes/vaultClient/.VolumeIcon.icns"
@@ -148,7 +155,7 @@ else
 
 			if [[ $OSTYPE == "darwin"* ]]; then # iOS or macOS
 				if ([ $2 == "arm64" ] || [ $2 == "x64" ]); then # Don't deploy simulator builds of iOS
-					cp -f builds/vaultClient.dmg $DEPLOYDIR/vaultClient-$OSNAME.dmg
+					cp -f builds/vaultClient.dmg $DEPLOYDIR/$APPNAME-$OSNAME.dmg
 				fi
 			else
 				cp -f vaultClient-$OSNAME.tar.gz $DEPLOYDIR/vaultClient-$OSNAME.tar.gz
