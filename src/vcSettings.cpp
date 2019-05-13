@@ -250,6 +250,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       ImGui::DockContextClearNodes(GImGui, 0, true);
 
       ImGuiDockNodeSettings *pDockNodes = udAllocType(ImGuiDockNodeSettings, numNodes, udAF_Zero);
+      for (int i = 0; i < vcDocks_Count; ++i)
+        pSettings->pActive[i] = nullptr;
 
       for (size_t i = 0; i < pDocks->length; ++i)
       {
@@ -260,7 +262,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
         pDockNodes[i].Size = ImVec2ih((short)pDock->Get("w").AsInt(), (short)pDock->Get("h").AsInt());
         pDockNodes[i].SizeRef = ImVec2ih((short)pDock->Get("wr").AsInt(), (short)pDock->Get("hr").AsInt());
 
-        pDockNodes[i].SelectedTabID = pDock->Get("selectedtab").AsInt();
         if (pDock->Get("parent").IsNumeric())
           pDockNodes[i].ParentID = pDock->Get("parent").AsInt();
 
@@ -288,6 +289,17 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
               pWindow->DockId = pDockNodes[i].ID;
               pWindow->DockOrder = (short)pJSONWindow->Get("index").AsInt();
               pWindow->Collapsed = pJSONWindow->Get("collapsed").AsBool();
+              if (pWindows->length > 1 && pJSONWindow->Get("active").AsBool())
+              {
+                for (int k = 0; k < vcDocks_Count; ++k)
+                {
+                  if (pSettings->pActive[k] == nullptr)
+                  {
+                    pSettings->pActive[k] = pWindow;
+                    break;
+                  }
+                }
+              }
             }
           }
         }
@@ -350,24 +362,26 @@ void vcSettings_RecurseDocks(ImGuiDockNode *pNode, udJSON &out, int *pDepth)
   if (pNode->ParentNode)
     data.Set("parent = %d", (int)pNode->ParentNode->ID);
 
-  data.Set("selectedtab = %d", pNode->SelectedTabID);
-
   data.Set("central = %d", (int)pNode->IsCentralNode());
   data.Set("dockspace = %d", (int)pNode->IsDockSpace());
   data.Set("hiddentabbar = %d", (int)pNode->IsHiddenTabBar());
   data.Set("depth = %d", *pDepth);
 
-  for (int i = 0; i < pNode->Windows.size(); ++i)
+  if (pNode->TabBar != nullptr)
   {
-    udJSON window;
+    for (int i = 0; i < pNode->TabBar->Tabs.size(); ++i)
+    {
+      udJSON window;
 
-    // Only want the part '###xxxxDock' so any language works
-    const char *pIDName = udStrchr(pNode->Windows[i]->Name, "#");
+      // Only want the part '###xxxxDock' so any language works
+      const char *pIDName = udStrchr(pNode->TabBar->Tabs[i].Window->Name, "#");
 
-    window.Set("name = '%s'", pIDName);
-    window.Set("index = %d", i);
-    window.Set("collapsed = %d", (int)pNode->Windows[i]->Collapsed);
-    data.Set(&window, "windows[]");
+      window.Set("name = '%s'", pIDName);
+      window.Set("index = %d", i);
+      window.Set("collapsed = %d", (int)pNode->TabBar->Tabs[i].Window->Collapsed);
+      window.Set("active = %d", (int)(pNode->TabBar->Tabs[i].ID == pNode->TabBar->SelectedTabId));
+      data.Set(&window, "windows[]");
+    }
   }
 
   data.Set("x = %f", pNode->Pos.x);

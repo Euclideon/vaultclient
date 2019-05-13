@@ -212,6 +212,7 @@ struct vcSettings
 
   ImGuiID rootNode;
   bool docksLoaded;
+  ImGuiWindow *pActive[vcDocks_Count];
 };
 
 // Settings Limits (vcSL prefix)
