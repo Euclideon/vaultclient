@@ -1501,7 +1501,7 @@ void vcRenderWindow(vcState *pProgramState)
 
   if (pProgramState->hasContext && !pProgramState->settings.window.presentationMode)
   {
-    vcMainMenuGui(pProgramState);
+    int margin = vcMainMenuGui(pProgramState);
 
     if (!pProgramState->settings.docksLoaded)
       pProgramState->settings.rootNode = ImGui::GetID("MyDockspace");
@@ -1514,7 +1514,7 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
     ImGui::Begin("RootDockContainer", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
     ImGui::PopStyleVar(2);
-    ImGui::DockSpace(pProgramState->settings.rootNode, size);
+    ImGui::DockSpace(pProgramState->settings.rootNode, ImVec2(size.x, size.y - margin));
     ImGui::End();
   }
 
@@ -2273,6 +2273,18 @@ void vcRenderWindow(vcState *pProgramState)
       // Don't show the window in a bad state
       ImGui::EndFrame();
       ImGui::NewFrame();
+    }
+    else if (pProgramState->settings.pActive[0] != nullptr)
+    {
+      // Set selected tab ID to the now created tab
+      for (int i = 0; i < vcDocks_Count; ++i)
+      {
+        if (pProgramState->settings.pActive[i] == nullptr)
+          break;
+
+        ImGui::SetWindowFocus(pProgramState->settings.pActive[i]->Name);
+        pProgramState->settings.pActive[i] = nullptr;
+      }
     }
 
     if (pProgramState->currentError != vE_Success)
