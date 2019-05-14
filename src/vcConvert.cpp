@@ -511,7 +511,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
           UDCOMPILEASSERT(vdkCSP_Count == 3, "Please update to match number of convert spaces");
 
           const char *sourceSpaceNames[] = { vcString::Get("convertSpaceCartesian"), vcString::Get("convertSpaceLatLong"), vcString::Get("convertSpaceLongLat") };
-          if (ImGui::Combo(vcString::Get("convertSpaceLabel"), &sourceSpace, sourceSpaceNames, (int)udLengthOf(sourceSpaceNames)))
+          if (ImGui::Combo(udTempStr("%s###converitemspace_%zu",vcString::Get("convertSpaceLabel"), i), &sourceSpace, sourceSpaceNames, (int)udLengthOf(sourceSpaceNames)))
             vdkConvert_SetInputSourceProjection(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i, (vdkConvertSourceProjection)sourceSpace);
 
           if (ImGui::Button(udTempStr("%s##convertitemremove_%zu", vcString::Get("convertRemove"), i)))
