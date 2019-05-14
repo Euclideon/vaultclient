@@ -13,12 +13,14 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcPOI::vcPOI(const char *pName, uint32_t nameColour, vcLabelFontSize namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/)
+vcPOI::vcPOI(vdkProject *pProject, const char *pName, uint32_t nameColour, vcLabelFontSize namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/) :
+  vcSceneItem(pProject, "POI", pName)
 {
   Init(pName, nameColour, namePt, pLine, srid, pNotes);
 }
 
-vcPOI::vcPOI(const char *pName, uint32_t nameColour, vcLabelFontSize namePt, udDouble3 position, int32_t srid, const char *pNotes /*= ""*/)
+vcPOI::vcPOI(vdkProject *pProject, const char *pName, uint32_t nameColour, vcLabelFontSize namePt, udDouble3 position, int32_t srid, const char *pNotes /*= ""*/) :
+  vcSceneItem(pProject, "POI", pName)
 {
   vcLineInfo temp = {};
   temp.numPoints = 1;
@@ -362,7 +364,6 @@ void vcPOI::Init(const char *pName, uint32_t nameColour, vcLabelFontSize namePt,
   m_pImage = nullptr;
   m_visible = true;
   m_pName = udStrdup(pName);
-  m_type = vdkPNT_PointOfInterest;
   m_nameColour = nameColour;
   m_backColour = 0x7F000000;
   m_namePt = namePt;
@@ -408,6 +409,5 @@ void vcPOI::Init(const char *pName, uint32_t nameColour, vcLabelFontSize namePt,
     m_metadata.Set(&tempStr, "notes");
   }
 
-  udStrcpy(m_typeStr, sizeof(m_typeStr), "POI");
   m_loadStatus = vcSLS_Loaded;
 }

@@ -3,6 +3,19 @@
 #include "vcState.h"
 #include "vcRender.h"
 
+vdkProjectNode* vcSceneItem_CreateNodeInProject(vdkProject *pProject, const char *pType, const char *pName, const char *pURI)
+{
+  vdkProjectNode *pNode = nullptr;
+
+  if (vdkProjectNode_Create(pProject, &pNode, pType, pName, pURI, nullptr) != vE_Success)
+  {
+    // This is very bad- allocating a node will prevent crashes because everything assumes it has a valid node
+    pNode = udAllocType(vdkProjectNode, 1, udAF_Zero); // This will leak
+  }
+
+  return pNode;
+}
+
 vcSceneItem::vcSceneItem(vdkProjectNode *pNode) :
   m_loadStatus(0),
   m_visible(false),
@@ -16,12 +29,11 @@ vcSceneItem::vcSceneItem(vdkProjectNode *pNode) :
   m_metadata.SetVoid();
   m_pNode = pNode;
 
-  // This needs to slowly become true and then remove the other constructor
-  //UDASSERT(pNode != nullptr, "Bad Node!");
+  pNode->pUserData = this;
 }
 
-vcSceneItem::vcSceneItem() :
-  vcSceneItem(nullptr)
+vcSceneItem::vcSceneItem(vdkProject *pProject, const char *pType, const char *pName, const char *pURI /*= nullptr*/) :
+  vcSceneItem(vcSceneItem_CreateNodeInProject(pProject, pType, pName, pURI))
 {
   // Do nothing
 }
@@ -40,7 +52,7 @@ void vcSceneItem::AddItem(vcState *pProgramState)
     pChild = pParent->m_children[pProgramState->sceneExplorer.clickedItem.index];
 
   // TODO: Proper Exception Handling
-  if (pChild != nullptr && pChild->m_type == vdkPNT_Folder)
+  if (pChild != nullptr && pChild->m_pNode->itemtype == vdkPNT_Folder)
     ((vcFolder*)pChild)->m_children.push_back(this);
   else if (pParent != nullptr)
     pParent->m_children.push_back(this);
@@ -64,7 +76,7 @@ void vcScene_AddItem(vcState *pProgramState, vcSceneItem *pItem, bool select /*=
     pChild = pParent->m_children[pProgramState->sceneExplorer.clickedItem.index];
 
   // TODO: Proper Exception Handling
-  if (pChild != nullptr && pChild->m_type == vdkPNT_Folder)
+  if (pChild != nullptr && pChild->m_pNode->itemtype == vdkPNT_Folder)
     pFolder = (vcFolder*)pChild;
   else if (pParent != nullptr)
     pFolder = pParent;
@@ -157,7 +169,7 @@ void vcScene_RemoveSelected(vcState *pProgramState, vcFolder *pFolder)
       continue;
     }
 
-    if (pFolder->m_children[i]->m_type == vdkPNT_Folder)
+    if (pFolder->m_children[i]->m_pNode->itemtype == vdkPNT_Folder)
       vcScene_RemoveSelected(pProgramState, (vcFolder*)pFolder->m_children[i]);
   }
 }
@@ -175,7 +187,7 @@ bool vcScene_ContainsItem(vcFolder *pParent, vcSceneItem *pItem)
     if (pParent->m_children[i] == pItem)
       return true;
 
-    if (pParent->m_children[i]->m_type == vdkPNT_Folder)
+    if (pParent->m_children[i]->m_pNode->itemtype == vdkPNT_Folder)
       if (vcScene_ContainsItem((vcFolder*)pParent->m_children[i], pItem))
         return true;
   }
@@ -210,7 +222,7 @@ void vcScene_ClearSelection(vcFolder *pParent)
 {
   for (size_t i = 0; i < pParent->m_children.size(); i++)
   {
-    if (pParent->m_children[i]->m_type == vdkPNT_Folder)
+    if (pParent->m_children[i]->m_pNode->itemtype == vdkPNT_Folder)
       vcScene_ClearSelection((vcFolder*)pParent->m_children[i]);
     else
       pParent->m_children[i]->m_selected = false;
