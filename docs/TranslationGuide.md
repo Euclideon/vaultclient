@@ -429,6 +429,7 @@ Modules are currently:
 - `sceneExplorerTitle`: Title of the Scene Explorer tab
 - `sceneExplorerRemove`: Tooltip displayed when mouse is hovered over the Remove button in the scene explorer tab
 - `sceneExplorerRemoveKey`: Used in Remove button tooltip, shown in brackets
+- `sceneExplorerRemoveItem`: Menu option when right-clicking on an item in the Scene Explorer, removes the clicked item
 - `sceneExplorerAddUDS`: Tooltip displayed when mouse is hovered over the Add UDS button in the scene explorer tab
 - `sceneExplorerAddUDSKey`: Used in Add UDS button tooltip, shown in brackets
 - `sceneExplorerAddUDSTitle`: Title of the Add UDS window
