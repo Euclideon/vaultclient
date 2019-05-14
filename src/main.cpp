@@ -577,19 +577,16 @@ void vcMain_MainLoop(vcState *pProgramState)
               pRealPOI->m_pImage->size = vcIS_Large;
               pRealPOI->m_pImage->type = imageType;
 
-              if (pPOI->m_pMetadata == nullptr)
-                pPOI->m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
-
               udJSON tmp;
               tmp.SetString(pNextLoad);
-              pPOI->m_pMetadata->Set(&tmp, "imageurl");
+              pPOI->m_metadata.Set(&tmp, "imageurl");
 
               if (imageType == vcIT_PhotoSphere)
-                pPOI->m_pMetadata->Set("imagetype = 'photosphere'");
+                pPOI->m_metadata.Set("imagetype = 'photosphere'");
               else if (imageType == vcIT_Panorama)
-                pPOI->m_pMetadata->Set("imagetype = 'panorama'");
+                pPOI->m_metadata.Set("imagetype = 'panorama'");
               else
-                pPOI->m_pMetadata->Set("imagetype = 'standard'");
+                pPOI->m_metadata.Set("imagetype = 'standard'");
             }
             else
             {

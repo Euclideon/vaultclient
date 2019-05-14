@@ -3,11 +3,27 @@
 #include "vcState.h"
 #include "vcRender.h"
 
-vcSceneItem::vcSceneItem() :
-  m_loadStatus(0), m_visible(false), m_selected(false), m_expanded(false), m_editName(false), m_moved(false),
-  m_type(vdkPNT_Custom), m_typeStr(""), m_pMetadata(nullptr), m_pOriginalZone(nullptr),
-  m_pZone(nullptr), m_pPath(nullptr), m_pName(nullptr), m_nameBufferLength(0)
+vcSceneItem::vcSceneItem(vdkProjectNode *pNode) :
+  m_loadStatus(0),
+  m_visible(false),
+  m_selected(false),
+  m_expanded(false),
+  m_editName(false),
+  m_moved(false),
+  m_pOriginalZone(nullptr),
+  m_pZone(nullptr)
 {
+  m_metadata.SetVoid();
+  m_pNode = pNode;
+
+  // This needs to slowly become true and then remove the other constructor
+  //UDASSERT(pNode != nullptr, "Bad Node!");
+}
+
+vcSceneItem::vcSceneItem() :
+  vcSceneItem(nullptr)
+{
+  // Do nothing
 }
 
 vcSceneItem::~vcSceneItem()
@@ -101,11 +117,8 @@ void vcScene_RemoveItem(vcState *pProgramState, vcFolder *pParent, size_t index)
   if (pParent->m_children[index]->m_loadStatus == vcSLS_Loaded || pParent->m_children[index]->m_loadStatus == vcSLS_OpenFailure || pParent->m_children[index]->m_loadStatus == vcSLS_Failed)
   {
     pParent->m_children[index]->Cleanup(pProgramState);
+    pParent->m_children[index]->m_metadata.Destroy();
 
-    if (pParent->m_children[index]->m_pMetadata)
-      pParent->m_children[index]->m_pMetadata->Destroy();
-
-    udFree(pParent->m_children[index]->m_pMetadata);
     udFree(pParent->m_children[index]->m_pOriginalZone);
     udFree(pParent->m_children[index]->m_pZone);
   }
