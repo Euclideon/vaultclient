@@ -2,6 +2,7 @@
 #define vcImGuiSimpleWidgets_h__
 
 #include "vcMath.h"
+#include "vcScene.h"
 
 typedef int ImGuiColorEditFlags;
 typedef int ImGuiInputTextFlags;
@@ -14,5 +15,7 @@ udFloat4 vcIGSW_BGRAToImGui(uint32_t lineColour);
 uint32_t vcIGSW_BGRAToRGBAUInt32(uint32_t lineColour);
 
 bool vcIGSW_IsItemHovered(ImGuiHoveredFlags flags = 0, float timer = 0.5f);
+
+void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine = true);
 
 #endif // vcImGuiSimpleWidgets_h__
