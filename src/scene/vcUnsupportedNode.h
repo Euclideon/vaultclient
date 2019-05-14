@@ -1,21 +1,21 @@
-#ifndef vcFolder_h__
-#define vcFolder_h__
+#ifndef vcUnsupportedNode_h__
+#define vcUnsupportedNode_h__
 
 #include "vcSceneItem.h"
 
 struct vcState;
+struct vcRenderData;
 
-class vcFolder : public vcSceneItem
+class vcUnsupportedNode : public vcSceneItem
 {
 public:
-  vcFolder(vdkProjectNode *pNode);
-
-  void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
+  vcUnsupportedNode(vdkProjectNode *pNode);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
   void HandleImGui(vcState *pProgramState, size_t *pItemID);
   void Cleanup(vcState *pProgramState);
+  udDouble3 GetLocalSpacePivot();
 };
 
-#endif //vcFolder_h__
+#endif //vcUnsupportedNode_h__

@@ -1,7 +1,7 @@
 #ifndef vcModel_h__
 #define vcModel_h__
 
-#include "vcScene.h"
+#include "vcSceneItem.h"
 #include "vdkRenderContext.h"
 
 struct vdkPointCloud;
@@ -22,7 +22,7 @@ public:
   bool m_hasWatermark; // True if the model has a watermark (might not be loaded)
   vcTexture *m_pWatermark; // If the watermark is loaded, it will be here
 
-  vcModel(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad = true, udDouble3 *pOverridePosition = nullptr, udDouble3 *pOverrideYPR = nullptr, double scale = 1.0);
+  vcModel(vcState *pProgramState, vdkProjectNode *pNode);
   vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud, bool jumpToModelOnLoad = false);
 
   void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);

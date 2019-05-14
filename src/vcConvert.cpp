@@ -4,7 +4,7 @@
 #include "stb_image.h"
 #include "vcStrings.h"
 #include "vcModals.h"
-#include "vcScene.h"
+#include "vcSceneItem.h"
 #include "vcModel.h"
 
 #include "vCore/vStringFormat.h"
@@ -334,7 +334,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
     if (result == vE_Success)
     {
       pSelectedJob->previewRequested = false;
-      vcScene_AddItem(pProgramState, new vcModel(pProgramState, vcString::Get("convertPreviewName"), pPointCloud));
+      new vcModel(pProgramState, vcString::Get("convertPreviewName"), pPointCloud);
     }
     else if (result == vE_Pending)
     {

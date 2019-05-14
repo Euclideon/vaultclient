@@ -344,6 +344,8 @@ void vcModals_DrawFileModal(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_AddUDS))
     ImGui::OpenPopup(vcString::Get("sceneExplorerAddUDSTitle"));
+  if (pProgramState->openModals & (1 << vcMT_ImportGeoJSON))
+    ImGui::OpenPopup(vcString::Get("menuImportGeoJSONTitle"));
   if (pProgramState->openModals & (1 << vcMT_ImportUDP))
     ImGui::OpenPopup(vcString::Get("menuImportUDPTitle"));
 
@@ -352,6 +354,10 @@ void vcModals_DrawFileModal(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerAddUDSTitle")))
     mode = vcMT_AddUDS;
+
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("menuImportGeoJSONTitle")))
+    mode = vcMT_ImportGeoJSON;
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("menuImportUDPTitle")))
@@ -379,6 +385,12 @@ void vcModals_DrawFileModal(vcState *pProgramState)
     if (mode == vcMT_AddUDS)
     {
       const char *fileExtensions[] = { ".uds", ".ssf", ".udg" };
+      if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
+        loadFile = true;
+    }
+    else if (mode == vcMT_ImportGeoJSON)
+    {
+      const char *fileExtensions[] = { ".json" };
       if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
         loadFile = true;
     }
@@ -439,17 +451,34 @@ void vcModals_DrawLoadWatermark(vcState *pProgramState)
   }
 }
 
-void vcModals_DrawNotImplemented(vcState *pProgramState)
+void vcModals_DrawProjectChangeFailed(vcState *pProgramState)
 {
-  if (pProgramState->openModals & (1 << vcMT_NotYetImplemented))
-    ImGui::OpenPopup(vcString::Get("sceneExplorerNotImplementedTitle"));
+  if (pProgramState->openModals & (1 << vcMT_ProjectChangeFailed))
+    ImGui::OpenPopup(vcString::Get("sceneExplorerProjectChangeFailedTitle"));
 
-  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerNotImplementedTitle"), nullptr, ImGuiWindowFlags_NoResize))
+  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerProjectChangeFailedTitle"), nullptr, ImGuiWindowFlags_NoResize))
   {
     pProgramState->modalOpen = true;
-    ImGui::TextUnformatted(vcString::Get("sceneExplorerNotImplementedMessage"));
+    ImGui::TextUnformatted(vcString::Get("sceneExplorerProjectChangeFailedMessage"));
 
-    if (ImGui::Button(vcString::Get("sceneExplorerNotImplementedCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+      ImGui::CloseCurrentPopup();
+
+    ImGui::EndPopup();
+  }
+}
+
+void vcModals_DrawProjectReadOnly(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_ProjectReadOnly))
+    ImGui::OpenPopup(vcString::Get("sceneExplorerProjectReadOnlyTitle"));
+
+  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerProjectReadOnlyTitle"), nullptr, ImGuiWindowFlags_NoResize))
+  {
+    pProgramState->modalOpen = true;
+    ImGui::TextUnformatted(vcString::Get("sceneExplorerProjectReadOnlyMessage"));
+
+    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::EndPopup();
@@ -547,7 +576,8 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawTileServer(pProgramState);
   vcModals_DrawFileModal(pProgramState);
   vcModals_DrawLoadWatermark(pProgramState);
-  vcModals_DrawNotImplemented(pProgramState);
+  vcModals_DrawProjectChangeFailed(pProgramState);
+  vcModals_DrawProjectReadOnly(pProgramState);
   vcModals_DrawImageViewer(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_NewVersionAvailable) | (1 << vcMT_LoggedOut) | (1 << vcMT_ProxyAuth));

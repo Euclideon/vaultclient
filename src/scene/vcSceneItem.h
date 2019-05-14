@@ -2,12 +2,11 @@
 #define vcScene_h__
 
 #include "vcGIS.h"
-#include "vdkProject.h"
+#include "vcProject.h"
 #include "udJSON.h"
 
 struct vcState;
 class vcSceneItem;
-class vcFolder;
 struct vcRenderData;
 
 enum vcSceneLoadStatus
@@ -41,17 +40,9 @@ public:
   udGeoZone *m_pOriginalZone; // nullptr if not geolocated
   udGeoZone *m_pZone; // nullptr if not geolocated
 
-  const char *m_pPath;
-
-  char *m_pName;
-  size_t m_nameBufferLength;
-
   vcSceneItem(vdkProjectNode *pNode);
-  vcSceneItem(vdkProject *pProject, const char *pType, const char *pName, const char *pURI = nullptr);
-  virtual ~vcSceneItem();
-
-  // This is used to help with adding the item to current folder
-  virtual void AddItem(vcState *pProgramState);
+  vcSceneItem(vdkProject *pProject, const char *pType, const char *pName);
+  ~vcSceneItem();
 
   // This is used to help with adding the item to the renderer
   virtual void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) = 0;
@@ -61,9 +52,6 @@ public:
 
   // These are used to help with exposing item specific UI
   virtual void HandleImGui(vcState *pProgramState, size_t *pItemID) = 0; // Shows expanded settings in scene explorer
-
-  // These are used when the user has tried to change something
-  virtual void OnNameChange();
 
   // Only calls this if its 'completed' loading and is 'vcSLS_Loaded'; note: this is called before other cleanup operations
   virtual void Cleanup(vcState *pProgramState) = 0;
@@ -81,18 +69,5 @@ public:
   // Gets the world space matrix (or identity if not applicable)
   virtual udDouble4x4 GetWorldSpaceMatrix();
 };
-
-void vcScene_AddItem(vcState *pProgramState, vcSceneItem *pItem, bool select = false);
-void vcScene_RemoveItem(vcState *pProgramState, vcFolder *pParent, size_t index);
-void vcScene_RemoveAll(vcState *pProgramState);
-void vcScene_RemoveSelected(vcState *pProgramState);
-
-bool vcScene_ContainsItem(vcFolder *pParent, vcSceneItem *pItem);
-
-void vcScene_SelectItem(vcState *pProgramState, vcFolder *pParent, size_t index);
-void vcScene_UnselectItem(vcState *pProgramState, vcFolder *pParent, size_t index);
-void vcScene_ClearSelection(vcState *pProgramState);
-
-bool vcScene_UseProjectFromItem(vcState *pProgramState, vcSceneItem *pModel);
 
 #endif

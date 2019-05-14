@@ -2,7 +2,7 @@
 #define vcImGuiSimpleWidgets_h__
 
 #include "vcMath.h"
-#include "vcScene.h"
+#include "vcSceneItem.h"
 
 typedef int ImGuiColorEditFlags;
 typedef int ImGuiInputTextFlags;

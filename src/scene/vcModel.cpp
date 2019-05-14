@@ -1,6 +1,5 @@
 #include "vcModel.h"
 
-#include "vcScene.h"
 #include "vcState.h"
 #include "vcRender.h"
 
@@ -39,7 +38,7 @@ void vcModel_PostLoadModel(void *pLoadInfoPtr)
     return;
 
   if (pLoadInfo->jumpToLocation)
-    vcScene_UseProjectFromItem(pLoadInfo->pProgramState, pLoadInfo->pModel);
+    vcProject_UseProjectionFromItem(pLoadInfo->pProgramState, pLoadInfo->pModel);
   else if (pLoadInfo->pProgramState->gis.isProjected)
     pLoadInfo->pModel->ChangeProjection(pLoadInfo->pProgramState, pLoadInfo->pProgramState->gis.zone);
 }
@@ -125,7 +124,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
   if (status == vcSLS_Pending)
   {
-    vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->m_pPointCloud, pLoadInfo->pModel->m_pPath);
+    vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->m_pPointCloud, pLoadInfo->pModel->m_pNode->pURI);
 
     if (modelStatus == vE_Success)
     {
@@ -144,8 +143,8 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
   }
 }
 
-vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad /*= true*/, udDouble3 *pOverridePosition /*= nullptr*/, udDouble3 *pOverrideYPR /*= nullptr*/, double scale /*= 1.0*/) :
-  vcSceneItem(pProgramState->sceneExplorer.pProject, "UDS", pName == nullptr ? pFilePath : pName),
+vcModel::vcModel(vcState *pProgramState, vdkProjectNode *pNode) :
+  vcSceneItem(pNode),
   m_pPointCloud(nullptr),
   m_pivot(udDouble3::zero()),
   m_defaultMatrix(udDouble4x4::identity()),
@@ -154,23 +153,18 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePat
   m_hasWatermark(false),
   m_pWatermark(nullptr)
 {
+  const char *pFilePath = pNode->pURI;
+
   if (pFilePath == nullptr)
-    return;
+    return; // Can't load a model if we don't have the URL
 
-  // Prepare the model
-  m_pPath = udStrdup(pFilePath);
+  udFilename udfilename(pFilePath);
 
-  if (pName == nullptr)
-  {
-    udFilename udfilename(pFilePath);
-    m_pName = udStrdup(udfilename.GetFilenameWithExt());
-  }
-  else
-  {
-    m_pName = udStrdup(pName);
-  }
-
-  m_visible = true;
+  //TODO: Update name
+  //if (pName == nullptr)
+  //  m_pName = udStrdup(udfilename.GetFilenameWithExt());
+  //else
+  //  m_pName = udStrdup(pName);
 
   vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
   if (pLoadInfo != nullptr)
@@ -178,8 +172,9 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePat
     // Prepare the load info
     pLoadInfo->pModel = this;
     pLoadInfo->pProgramState = pProgramState;
-    pLoadInfo->jumpToLocation = jumpToModelOnLoad;
+    pLoadInfo->jumpToLocation = false;//jumpToModelOnLoad;
 
+#if 0
     if (pOverridePosition)
     {
       pLoadInfo->usePosition = true;
@@ -191,10 +186,11 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePat
       pLoadInfo->useRotation = true;
       pLoadInfo->rotation = *pOverrideYPR;
     }
+#endif
 
-    pLoadInfo->scale = scale;
+    pLoadInfo->scale = 1.f;//scale;
 
-    // Queue for load
+                           // Queue for load
     vWorkerThread_AddTask(pProgramState->pWorkerPool, vcModel_LoadModel, pLoadInfo, true, vcModel_PostLoadModel);
   }
   else
@@ -215,18 +211,18 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
 {
   m_pPointCloud = pCloud;
 
-  if (pName == nullptr)
-    m_pName = udStrdup("<?>");
-  else
-    m_pName = udStrdup(pName);
+  //TODO: Update Name
+  //if (pName == nullptr)
+  //  m_pName = udStrdup("<?>");
+  //else
+  //  m_pName = udStrdup(pName);
 
-  m_visible = true;
   m_loadStatus = vcSLS_Loaded;
 
   vcModel_LoadMetadata(pProgramState, this, 1.0);
 
   if (jumpToModelOnLoad)
-    vcScene_UseProjectFromItem(pProgramState, this);
+    vcProject_UseProjectionFromItem(pProgramState, this);
   else if (pProgramState->gis.isProjected)
     ChangeProjection(pProgramState, pProgramState->gis.zone);
 }
@@ -254,17 +250,13 @@ void vcModel::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
 
 void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
 {
-  ImGui::TextWrapped("Path: %s", m_pPath);
-
+  ImGui::TextWrapped("Path: %s", m_pNode->pURI);
   vcImGuiValueTreeObject(&m_metadata);
 }
 
 void vcModel::Cleanup(vcState *pProgramState)
 {
   vdkPointCloud_Unload(pProgramState->pVDKContext, &m_pPointCloud);
-
-  udFree(m_pName);
-  udFree(m_pPath);
 
   if (m_pWatermark != nullptr)
   {

@@ -8,6 +8,8 @@
 #include "vcPOI.h"
 #include "vcFolder.h"
 
+#if 0
+
 enum vcUDPItemDataType
 {
   vcUDPIDT_Dataset,
@@ -87,7 +89,7 @@ void vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char
   else
     file.SetFromFullPath(pModelFilename);
 
-  vcScene_AddItem(pProgramState, new vcModel(pProgramState, pModelName, file, firstLoad, pPosition, pYPR, scale));
+//  new vcModel(pProgramState, pModelName, file, firstLoad, pPosition, pYPR, scale);
 }
 
 bool vcUDP_ReadGeolocation(const char *pStr, udDouble3 &position, int &epsg)
@@ -103,13 +105,13 @@ bool vcUDP_ReadGeolocation(const char *pStr, udDouble3 &position, int &epsg)
 
 vcSceneItemRef vcUDP_GetSceneItemRef(vcState *pProgramState)
 {
-  vcFolder *pParent = pProgramState->sceneExplorer.clickedItem.pParent;
+  vdkProjectNode *pParent = pProgramState->sceneExplorer.clickedItem.pParent;
   if (pParent == nullptr)
-    pParent = pProgramState->sceneExplorer.pItems;
+    pParent = pProgramState->sceneExplorer.pProjectRoot->m_pNode;
   else
-    pParent = (vcFolder*)pParent->m_children[pProgramState->sceneExplorer.clickedItem.index];
+    pParent = pProgramState->sceneExplorer.clickedItem.pItem;
 
-  return { pParent, pParent->m_children.size() };
+  return { pParent, ((vcFolder*)pParent->pUserData)->GetNumChildren() };
 }
 
 void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemData, vcUDPItemDataType type)
@@ -311,12 +313,12 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
     if (vcUDP_ReadGeolocation(item.label.pGeoLocation, position, epsgCode))
     {
       pLabelData->at(index).sceneFolder = vcUDP_GetSceneItemRef(pProgramState);
-      vcScene_AddItem(pProgramState, new vcPOI(pProgramState->sceneExplorer.pProject, item.label.pName, colour, lfs, position, epsgCode));
+      new vcPOI(pProgramState->sceneExplorer.pProject, item.label.pName, colour, lfs, position, epsgCode);
 
       // Add hyperlink to the metadata
       if (item.label.pHyperlink != nullptr)
       {
-        vcPOI *pPOI = (vcPOI*)item.sceneFolder.pParent->m_children[item.sceneFolder.index];
+        vcPOI *pPOI = (vcPOI*)((vcFolder*)item.sceneFolder.pParent->pUserData)->GetChild(item.sceneFolder.index);
         udJSON temp;
         temp.SetString(item.label.pHyperlink);
 
@@ -345,7 +347,7 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
     info.colourSecondary = item.polygon.colour;
 
     if (info.numPoints > 0)
-      vcScene_AddItem(pProgramState, new vcPOI(pProgramState->sceneExplorer.pProject, item.polygon.pName, item.polygon.colour, vcLFS_Medium, &info, item.polygon.epsgCode));
+      new vcPOI(pProgramState->sceneExplorer.pProject, item.polygon.pName, item.polygon.colour, vcLFS_Medium, &info, item.polygon.epsgCode);
 
     udFree(info.pPoints);
   }
@@ -377,7 +379,8 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
     if (pItemData->at(index).sceneFolder.pParent == nullptr && pItemData->at(index).sceneFolder.index == SIZE_MAX)
     {
       pItemData->at(index).sceneFolder = vcUDP_GetSceneItemRef(pProgramState);
-      vcScene_AddItem(pProgramState, new vcFolder(pProgramState->sceneExplorer.pProject, item.dataset.pName));
+      //TODO: Fix me
+      //new vcFolder(pProgramState->sceneExplorer.pProject, item.dataset.pName);
     }
   }
   else
@@ -402,11 +405,14 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
 
   // Insert item into the correct order
   size_t treeIndex = rootOffset + (size_t)item.treeIndex;
-  if (treeIndex != item.sceneFolder.index && treeIndex < item.sceneFolder.pParent->m_children.size())
+  if (treeIndex != item.sceneFolder.index && treeIndex < ((vcFolder*)item.sceneFolder.pParent->pUserData)->GetNumChildren())
   {
     vcSceneItemRef *pSceneRef = &pItemData->at(index).sceneFolder;
-    vcSceneItem *pTemp = pSceneRef->pParent->m_children[pSceneRef->index];
-    pSceneRef->pParent->m_children.erase(pSceneRef->pParent->m_children.begin() + pSceneRef->index);
+    vcSceneItem *pTemp = ((vcFolder*)pSceneRef->pParent->pUserData)->GetChild(pSceneRef->index);
+    vdkProjectNode *pChildNode = pTemp->m_pNode;
+
+    vdkProjectNode_RemoveChild(pProgramState->sceneExplorer.pProject, pSceneRef->pParent, pChildNode);
+
     // Fix indexes from removal
     for (size_t i = 0; i < pItemData->size(); ++i)
     {
@@ -414,7 +420,9 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
       if (pItemData->at(i).sceneFolder.pParent == pSceneRef->pParent && pItemData->at(i).sceneFolder.index > pSceneRef->index)
         --pItemData->at(i).sceneFolder.index;
     }
-    pSceneRef->pParent->m_children.insert(pSceneRef->pParent->m_children.begin() + treeIndex, pTemp);
+
+    vdkProjectNode_InsertChild(pProgramState->sceneExplorer.pProject, pSceneRef->pParent, pTemp->m_pNode, treeIndex);
+
     // Fix indexes from insertion
     for (size_t i = 0; i < pItemData->size(); ++i)
     {
@@ -431,7 +439,7 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
 
 bool vcUDP_LoadItem(vcState *pProgramState, const char *pFilename, const udJSON &groupDataBlock, std::vector<vcUDPItemData> *pItemData, vcUDPItemDataType type, bool *pFirstLoad)
 {
-  size_t rootOffset = pProgramState->sceneExplorer.pItems->m_children.size();
+  size_t rootOffset = pProgramState->sceneExplorer.pProjectRoot->GetNumChildren();
   if (udStrEqual(groupDataBlock.Get("Name").AsString(), g_vcUDPTypeGroupNames[type]))
   {
     const udJSON &items = groupDataBlock.Get("DataBlock");
@@ -494,3 +502,16 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
 epilogue:
   udFree(pXMLText);
 }
+
+#else // Disable UDP
+
+#include "vcModals.h"
+
+void vcUDP_Load(vcState *pProgramState, const char *pFilename)
+{
+  udUnused(pFilename);
+
+  vcModals_OpenModal(pProgramState, vcMT_ProjectReadOnly);
+}
+
+#endif
