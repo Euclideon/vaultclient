@@ -22,8 +22,8 @@ const char *lensNameArray[] =
 UDCOMPILEASSERT(UDARRAYSIZE(lensNameArray) == vcLS_TotalLenses, "Lens Name not in Strings");
 
 // higher == quicker smoothing
-static const double sCameraTranslationSmoothingSpeed = 15.0;
-static const double sCameraRotationSmoothingSpeed = 20.0;
+static const double sCameraTranslationSmoothingSpeed = 22.0;
+static const double sCameraRotationSmoothingSpeed = 40.0;
 
 const char** vcCamera_GetLensNames()
 {
@@ -47,41 +47,49 @@ void vcCamera_StopSmoothing(vcCameraInput *pCamInput)
 void vcCamera_UpdateSmoothing(vcCamera *pCamera, vcCameraInput *pCamInput, vcCameraSettings *pCamSettings, double deltaTime)
 {
   static const double minSmoothingThreshold = 0.00001;
+  static const double stepAmount = 0.001666667;
 
-  // translation
-  if (udMagSq3(pCamInput->smoothTranslation) > minSmoothingThreshold)
+  static double stepRemaining = 0.0;
+  stepRemaining += deltaTime;
+  while (stepRemaining >= stepAmount)
   {
-    udDouble3 step = pCamInput->smoothTranslation * udMin(1.0, deltaTime * sCameraTranslationSmoothingSpeed);
-    pCamera->position += step;
-    pCamInput->smoothTranslation -= step;
-  }
+    stepRemaining -= stepAmount;
 
-  // rotation
-  if (udMagSq3(pCamInput->smoothRotation) > minSmoothingThreshold)
-  {
-    udDouble3 step = pCamInput->smoothRotation * udMin(1.0, deltaTime * sCameraRotationSmoothingSpeed);
-    pCamera->eulerRotation += step;
-    pCamInput->smoothRotation -= step;
-
-    pCamera->eulerRotation.y = udClamp(pCamera->eulerRotation.y, -UD_HALF_PI, UD_HALF_PI);
-    pCamera->eulerRotation.x = udMod(pCamera->eulerRotation.x, UD_2PI);
-    pCamera->eulerRotation.z = udMod(pCamera->eulerRotation.z, UD_2PI);
-  }
-
-  // ortho zoom
-  if (udAbs(pCamInput->smoothOrthographicChange) > minSmoothingThreshold)
-  {
-    double previousOrthoSize = pCamSettings->orthographicSize;
-
-    double step = pCamInput->smoothOrthographicChange * udMin(1.0, deltaTime * sCameraTranslationSmoothingSpeed);
-    pCamSettings->orthographicSize = udClamp(pCamSettings->orthographicSize * (1.0 - step), vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
-    pCamInput->smoothOrthographicChange -= step;
-
-    udDouble2 towards = pCamInput->worldAnchorPoint.toVector2() - pCamera->position.toVector2();
-    if (udMagSq2(towards) > 0)
+    // translation
+    if (udMagSq3(pCamInput->smoothTranslation) > minSmoothingThreshold)
     {
-      towards = (pCamInput->worldAnchorPoint.toVector2() - pCamera->position.toVector2()) / previousOrthoSize;
-      pCamera->position += udDouble3::create(towards * - (pCamSettings->orthographicSize - previousOrthoSize), 0.0);
+      udDouble3 step = pCamInput->smoothTranslation * udMin(1.0, stepAmount * sCameraTranslationSmoothingSpeed);
+      pCamera->position += step;
+      pCamInput->smoothTranslation -= step;
+    }
+
+    // rotation
+    if (udMagSq3(pCamInput->smoothRotation) > minSmoothingThreshold)
+    {
+      udDouble3 step = pCamInput->smoothRotation * udMin(1.0, stepAmount * sCameraRotationSmoothingSpeed);
+      pCamera->eulerRotation += step;
+      pCamInput->smoothRotation -= step;
+
+      pCamera->eulerRotation.y = udClamp(pCamera->eulerRotation.y, -UD_HALF_PI, UD_HALF_PI);
+      pCamera->eulerRotation.x = udMod(pCamera->eulerRotation.x, UD_2PI);
+      pCamera->eulerRotation.z = udMod(pCamera->eulerRotation.z, UD_2PI);
+    }
+
+    // ortho zoom
+    if (udAbs(pCamInput->smoothOrthographicChange) > minSmoothingThreshold)
+    {
+      double previousOrthoSize = pCamSettings->orthographicSize;
+
+      double step = pCamInput->smoothOrthographicChange * udMin(1.0, stepAmount * sCameraTranslationSmoothingSpeed);
+      pCamSettings->orthographicSize = udClamp(pCamSettings->orthographicSize * (1.0 - step), vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
+      pCamInput->smoothOrthographicChange -= step;
+
+      udDouble2 towards = pCamInput->worldAnchorPoint.toVector2() - pCamera->position.toVector2();
+      if (udMagSq2(towards) > 0)
+      {
+        towards = (pCamInput->worldAnchorPoint.toVector2() - pCamera->position.toVector2()) / previousOrthoSize;
+        pCamera->position += udDouble3::create(towards * -(pCamSettings->orthographicSize - previousOrthoSize), 0.0);
+      }
     }
   }
 }
@@ -130,10 +138,11 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
 
   pCamera->matrices.camera = vcCamera_GetMatrix(pCamera);
 
-#if defined(GRAPHICS_API_D3D11)
-  pCamera->matrices.projectionNear = udDouble4x4::perspectiveZO(fov, aspect, 0.5f, 10000.f);
-#elif defined(GRAPHICS_API_OPENGL)
+
+#if defined(GRAPHICS_API_OPENGL)
   pCamera->matrices.projectionNear = udDouble4x4::perspectiveNO(fov, aspect, 0.5f, 10000.f);
+#else
+  pCamera->matrices.projectionNear = udDouble4x4::perspectiveZO(fov, aspect, 0.5f, 10000.f);
 #endif
 
   switch (settings.cameraMode)
@@ -152,7 +161,7 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
 #endif
   }
 
-#if defined(GRAPHICS_API_D3D11)
+#if !defined(GRAPHICS_API_OPENGL)
   pCamera->matrices.projection = pCamera->matrices.projectionUD;
 #endif
 
@@ -520,6 +529,10 @@ void vcCamera_SwapMapMode(vcState *pProgramState)
     pProgramState->cameraInput.transitioningToMapMode = false;
 
     lookAtPosition += udDouble3::create(0, 1, 0); // forward
+
+    // also adjust the far plane (so things won't disappear if the view plane isn't configured correctly)
+    pProgramState->settings.camera.farPlane = udMax(pProgramState->settings.camera.farPlane, float(pProgramState->settings.camera.orthographicSize * 2.0));
+    pProgramState->settings.camera.nearPlane = pProgramState->settings.camera.farPlane * vcSL_CameraFarToNearPlaneRatio;
   }
 
   vcCamera_LookAt(pProgramState, lookAtPosition);

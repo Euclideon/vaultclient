@@ -713,7 +713,7 @@ const char* const g_BillboardVertexShader = R"shader(
     PS_INPUT output;
 
     output.pos = mul(u_modelViewProjectionMatrix, float4(input.pos, 1.0));
-    output.pos.xy += u_screenSize.xy * float2(input.uv.x * 2.0 - 1.0, input.uv.y * 2.0 - 1.0); // expand billboard
+    output.pos.xy += u_screenSize.z * output.pos.w * u_screenSize.xy * float2(input.uv.x * 2.0 - 1.0, input.uv.y * 2.0 - 1.0); // expand billboard
     output.uv = float2(input.uv.x, 1.0 - input.uv.y);
     output.colour = u_colour;
 

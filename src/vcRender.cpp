@@ -375,7 +375,7 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
 
     double farPlane = pRenderContext->pSettings->camera.farPlane;
     if (pRenderContext->pSettings->camera.cameraMode == vcCM_OrthoMap)
-      farPlane = pRenderContext->pSettings->camera.orthographicSize * 2.0;
+      farPlane = udMax(farPlane, pRenderContext->pSettings->camera.orthographicSize * 2.0);
 
     // Cardinal Limits
     localCorners[0] = localCamPos + udDouble3::create(-farPlane, +farPlane, 0);
@@ -444,8 +444,22 @@ void vcRenderTransparentPolygons(vcRenderContext *pRenderContext, vcRenderData &
   // Images
   {
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
+
     for (size_t i = 0; i < renderData.images.length; ++i)
-      vcImageRenderer_Render(renderData.images[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
+    {
+      static const double distScalar = 600.0;
+
+      double zScale = 1.0;
+      if (pRenderContext->pSettings->camera.cameraMode == vcCM_FreeRoam)
+        zScale -= udMag3(pRenderContext->pCamera->position - renderData.images[i]->position) / distScalar;
+      else // map mode
+        zScale -= pRenderContext->pSettings->camera.orthographicSize / distScalar;
+
+      if (zScale < 0) // too far
+        continue;
+
+      vcImageRenderer_Render(renderData.images[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution, zScale);
+    }
   }
 
   // Fences
