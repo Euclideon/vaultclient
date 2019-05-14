@@ -553,7 +553,6 @@ Where the settings file is stored depends on your OS.
 Euclideon Vault Client uses a number of third party libraries. Please view the `About` box from the Login page within the application for full license information.
 
 - `Dear ImGui` from [GitHub](https://github.com/ocornut/imgui)
-- `Dear ImGui - Minimal Docking Extension` from [GitHub](https://github.com/vassvik/imgui_docking_minimal)
 - `ImGuizmo` from [GitHub](https://github.com/CedricGuillemet/ImGuizmo)
 - `libSDL2` from [libsdl](https://libsdl.org)
 - `GLEW` from [SourceForge](http://glew.sourceforge.net/)
