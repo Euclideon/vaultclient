@@ -64,7 +64,6 @@ enum vcSettingCategory
   vcSC_Viewport,
   vcSC_MapsElevation,
   vcSC_Visualization,
-  vcSC_Docks,
   vcSC_All
 };
 
@@ -209,9 +208,6 @@ struct vcSettings
 
   vcPresentationMode responsiveUI;
   int hideIntervalSeconds;
-
-  ImGuiID rootNode;
-  bool docksLoaded;
   ImGuiWindow *pActive[vcDocks_Count];
 };
 

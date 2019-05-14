@@ -10,12 +10,16 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "imgui_ex/imgui_impl_sdl.h"
+
+#if defined(GRAPHICS_API_METAL)
+#include "imgui_ex/imgui_impl_metal.h"
+#endif
+
 #include "imgui_ex/imgui_impl_gl.h"
 #include "imgui_ex/imgui_udValue.h"
 #include "imgui_ex/ImGuizmo.h"
 #include "imgui_ex/vcMenuButtons.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
-
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
 
@@ -45,7 +49,13 @@
 
 #include "udPlatform/udFile.h"
 
-#define STB_IMAGE_IMPLEMENTATION
+#if UDPLATFORM_EMSCRIPTEN
+#include "vHTTPRequest.h"
+#endif
+
+#if !UDPLATFORM_EMSCRIPTEN
+# define STB_IMAGE_IMPLEMENTATION
+#endif
 #include "stb_image.h"
 
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
@@ -151,7 +161,6 @@ void vcMain_PresentationMode(vcState *pProgramState)
   }
   else
   {
-    pProgramState->settings.docksLoaded = false;
     SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
   }
 
@@ -187,13 +196,13 @@ void vcLogin(void *pProgramStatePtr)
   result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "EuclideonVaultClient", pProgramState->settings.loginInfo.username, pProgramState->password);
   if (result == vE_ConnectionFailure)
     pProgramState->loginStatus = vcLS_ConnectionError;
-  else if (result == vE_NotAllowed)
+  else if (result == vE_AuthFailure)
     pProgramState->loginStatus = vcLS_AuthError;
   else if (result == vE_OutOfSync)
     pProgramState->loginStatus = vcLS_TimeSync;
   else if (result == vE_SecurityFailure)
     pProgramState->loginStatus = vcLS_SecurityError;
-  else if (result == vE_ServerFailure)
+  else if (result == vE_ServerFailure || result == vE_ParseError)
     pProgramState->loginStatus = vcLS_NegotiationError;
   else if (result == vE_ProxyError)
     pProgramState->loginStatus = vcLS_ProxyError;
@@ -327,6 +336,316 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
   }
 }
 
+#if UDPLATFORM_EMSCRIPTEN
+void vcMain_MainLoop(void *pArgs)
+{
+  vcState *pProgramState = (vcState*)pArgs;
+#else
+void vcMain_MainLoop(vcState *pProgramState)
+{
+#endif
+  static Uint64 NOW = SDL_GetPerformanceCounter();
+  static Uint64 LAST = 0;
+
+  double frametimeMS = 0.0;
+  uint32_t sleepMS = 0;
+
+  SDL_Event event;
+  while (SDL_PollEvent(&event))
+  {
+    if (!ImGui_ImplSDL2_ProcessEvent(&event))
+    {
+      if (event.type == SDL_WINDOWEVENT)
+      {
+        if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+        {
+          pProgramState->settings.window.width = event.window.data1;
+          pProgramState->settings.window.height = event.window.data2;
+          vcGLState_ResizeBackBuffer(event.window.data1, event.window.data2);
+        }
+        else if (event.window.event == SDL_WINDOWEVENT_MOVED)
+        {
+          if (!pProgramState->settings.window.presentationMode)
+          {
+            pProgramState->settings.window.xpos = event.window.data1;
+            pProgramState->settings.window.ypos = event.window.data2;
+          }
+        }
+        else if (event.window.event == SDL_WINDOWEVENT_MAXIMIZED)
+        {
+          pProgramState->settings.window.maximized = true;
+        }
+        else if (event.window.event == SDL_WINDOWEVENT_RESTORED)
+        {
+          pProgramState->settings.window.maximized = false;
+        }
+      }
+      else if (event.type == SDL_MULTIGESTURE)
+      {
+        // TODO: pinch to zoom
+      }
+      else if (event.type == SDL_DROPFILE && pProgramState->hasContext)
+      {
+        pProgramState->loadList.push_back(udStrdup(event.drop.file));
+      }
+      else if (event.type == SDL_QUIT)
+      {
+        pProgramState->programComplete = true;
+      }
+    }
+  }
+
+  LAST = NOW;
+  NOW = SDL_GetPerformanceCounter();
+  pProgramState->deltaTime = double(NOW - LAST) / SDL_GetPerformanceFrequency();
+
+  frametimeMS = 0.0166666667; // 60 FPS cap
+  if ((SDL_GetWindowFlags(pProgramState->pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0 && pProgramState->settings.presentation.limitFPSInBackground)
+    frametimeMS = 0.250; // 4 FPS cap when not focused
+
+  sleepMS = (uint32_t)udMax((frametimeMS - pProgramState->deltaTime) * 1000.0, 0.0);
+#ifndef GRAPHICS_API_METAL
+  udSleep(sleepMS);
+#endif
+  pProgramState->deltaTime += sleepMS * 0.001; // adjust delta
+
+#ifdef GRAPHICS_API_METAL
+  ImGui_ImplMetal_NewFrame(pProgramState->pWindow);
+#else
+  ImGuiGL_NewFrame(pProgramState->pWindow);
+#endif
+
+  vcGizmo_BeginFrame();
+  vcGLState_ResetState(true);
+  vcRenderWindow(pProgramState);
+  ImGui::Render();
+
+#ifdef GRAPHICS_API_METAL
+  ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData());
+#else
+  ImGuiGL_RenderDrawData(ImGui::GetDrawData());
+#endif
+
+  ImGui::UpdatePlatformWindows();
+
+  vcGLState_Present(pProgramState->pWindow);
+
+  if (ImGui::GetIO().WantSaveIniSettings)
+    vcSettings_Save(&pProgramState->settings);
+
+  ImGui::GetIO().KeysDown[SDL_SCANCODE_BACKSPACE] = false;
+
+  if (pProgramState->hasContext)
+  {
+    // Load next file in the load list (if there is one and the user has a context)
+    bool firstLoad = true;
+    bool continueLoading = false;
+    do
+    {
+      continueLoading = false;
+
+      if (pProgramState->loadList.size() > 0)
+      {
+        const char *pNextLoad = pProgramState->loadList[0];
+        pProgramState->loadList.erase(pProgramState->loadList.begin()); // TODO: Proper Exception Handling
+
+        if (pNextLoad != nullptr)
+        {
+          // test to see if specified filepath is valid
+          udFile *pTestFile = nullptr;
+          pProgramState->currentError = vE_OpenFailure;
+          if (udFile_Open(&pTestFile, pNextLoad, udFOF_Read) == udR_Success)
+          {
+            udFile_Close(&pTestFile);
+            pProgramState->currentError = vE_Success;
+
+            udFilename loadFile(pNextLoad);
+            const char *pExt = loadFile.GetExt();
+            if (udStrEquali(pExt, ".uds") || udStrEquali(pExt, ".ssf") || udStrEquali(pExt, ".udm") || udStrEquali(pExt, ".udg"))
+            {
+              vcScene_AddItem(pProgramState, new vcModel(pProgramState, nullptr, pNextLoad, firstLoad));
+              continueLoading = true;
+              pProgramState->changeActiveDock = vcDocks_Scene;
+            }
+            else if (udStrEquali(pExt, ".udp"))
+            {
+              if (firstLoad)
+                vcScene_RemoveAll(pProgramState);
+
+              vcUDP_Load(pProgramState, pNextLoad);
+              pProgramState->changeActiveDock = vcDocks_Scene;
+            }
+            else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif"))
+            {
+              udDouble3 geolocation = udDouble3::zero();
+              bool hasLocation = false;
+              vcImageType imageType = vcIT_StandardPhoto;
+
+              vcTexture *pImage = nullptr;
+              const unsigned char *pFileData = nullptr;
+              int64_t numBytes = 0;
+
+              if (udFile_Load(pNextLoad, (void**)&pFileData, &numBytes) == udR_Success)
+              {
+                // Many jpg's have exif, let's process that first
+                if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg"))
+                {
+                  easyexif::EXIFInfo result;
+
+                  if (result.parseFrom(pFileData, (int)numBytes) == PARSE_EXIF_SUCCESS)
+                  {
+                    if (result.GeoLocation.Latitude != 0.0 || result.GeoLocation.Longitude != 0.0)
+                    {
+                      hasLocation = true;
+                      geolocation.x = result.GeoLocation.Latitude;
+                      geolocation.y = result.GeoLocation.Longitude;
+                      geolocation.z = result.GeoLocation.Altitude;
+                    }
+
+                    if (result.XMPMetadata != "")
+                    {
+                      udJSON xmp;
+                      if (xmp.Parse(result.XMPMetadata.c_str()) == udR_Success)
+                      {
+                        bool isPanorama = xmp.Get("x:xmpmeta.rdf:RDF.rdf:Description.xmlns:GPano").IsString();
+                        bool isPhotosphere = xmp.Get("x:xmpmeta.rdf:RDF.rdf:Description.GPano:IsPhotosphere").AsBool();
+
+                        if (isPanorama && isPhotosphere)
+                          imageType = vcIT_PhotoSphere;
+                        else if (isPanorama)
+                          imageType = vcIT_Panorama;
+                      }
+                    }
+                  }
+                }
+
+                // TODO: (EVC-513) Generate a thumbnail
+                {
+                  int width, height;
+                  int comp;
+                  stbi_uc *pImgPixels = stbi_load_from_memory((stbi_uc*)pFileData, (int)numBytes, &width, &height, &comp, 4);
+                  if (!pImgPixels)
+                  {
+                    // TODO: (EVC-517) Image failed to load, display error image
+                  }
+
+                  // TODO: (EVC-515) Mip maps are broken in directX
+                  vcTexture_Create(&pImage, width, height, pImgPixels, vcTextureFormat_RGBA8, vcTFM_Linear, false);
+
+                  stbi_image_free(pImgPixels);
+                }
+
+                udFree(pFileData);
+              }
+              else
+              {
+                // TODO: (EVC-517) File failed to load, display error image
+              }
+
+              const vcSceneItemRef &clicked = pProgramState->sceneExplorer.clickedItem;
+              vcSceneItem *pPOI = nullptr;
+              if (clicked.pParent != nullptr && clicked.pParent->m_children[clicked.index]->m_type == vcSOT_PointOfInterest)
+                pPOI = clicked.pParent->m_children[clicked.index];
+
+              if (pPOI == nullptr)
+              {
+                udDouble3 currentLocation;
+
+                if (hasLocation && pProgramState->gis.isProjected)
+                  currentLocation = udGeoZone_ToCartesian(pProgramState->gis.zone, geolocation);
+                else if (pProgramState->worldMousePos != udDouble3::zero())
+                  currentLocation = pProgramState->worldMousePos;
+                else
+                  currentLocation = pProgramState->pCamera->position;
+
+                pPOI = new vcPOI(loadFile.GetFilenameWithExt(), 0xFFFFFFFF, vcLFS_Medium, currentLocation, pProgramState->gis.SRID);
+                vcScene_AddItem(pProgramState, pPOI);
+              }
+
+              // TODO: Using POIs to store media points is a temporary solution
+              vcPOI *pRealPOI = (vcPOI*)pPOI;
+              if (pRealPOI->m_pImage)
+              {
+                vcTexture_Destroy(&pRealPOI->m_pImage->pTexture);
+                udFree(pRealPOI->m_pImage);
+              }
+              pRealPOI->m_pImage = udAllocType(vcImageRenderInfo, 1, udAF_Zero);
+              pRealPOI->m_pImage->ypr = udDouble3::zero();
+              pRealPOI->m_pImage->scale = udDouble3::one();
+              pRealPOI->m_pImage->pTexture = pImage;
+              pRealPOI->m_pImage->colour = udFloat4::create(1.0f, 1.0f, 1.0f, 1.0f);
+              pRealPOI->m_pImage->size = vcIS_Large;
+              pRealPOI->m_pImage->type = imageType;
+
+              if (pPOI->m_pMetadata == nullptr)
+                pPOI->m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
+
+              udJSON tmp;
+              tmp.SetString(pNextLoad);
+              pPOI->m_pMetadata->Set(&tmp, "imageurl");
+
+              if (imageType == vcIT_PhotoSphere)
+                pPOI->m_pMetadata->Set("imagetype = 'photosphere'");
+              else if (imageType == vcIT_Panorama)
+                pPOI->m_pMetadata->Set("imagetype = 'panorama'");
+              else
+                pPOI->m_pMetadata->Set("imagetype = 'standard'");
+            }
+            else
+            {
+              vcConvert_AddFile(pProgramState, pNextLoad);
+              pProgramState->changeActiveDock = vcDocks_Convert;
+            }
+          }
+
+          udFree(pNextLoad);
+        }
+      }
+
+      if (pProgramState->pLoadImage != nullptr)
+      {
+        vcTexture_Destroy(&pProgramState->image.pImage);
+
+        void *pFileData = nullptr;
+        int64_t fileLen = -1;
+
+        if (udFile_Load(pProgramState->pLoadImage, &pFileData, &fileLen) == udR_Success && fileLen != 0)
+        {
+          int comp;
+          stbi_uc *pImg = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, &pProgramState->image.width, &pProgramState->image.height, &comp, 4);
+
+          vcTexture_Create(&pProgramState->image.pImage, pProgramState->image.width, pProgramState->image.height, pImg);
+
+          stbi_image_free(pImg);
+        }
+
+        udFree(pFileData);
+
+        vcModals_OpenModal(pProgramState, vcMT_ImageViewer);
+
+        udFree(pProgramState->pLoadImage);
+      }
+
+      firstLoad = false;
+    } while (continueLoading);
+
+    // Ping the server every 30 seconds
+    if (vcTime_GetEpochSecsF() > pProgramState->lastServerAttempt + 30.0)
+    {
+      pProgramState->lastServerAttempt = vcTime_GetEpochSecsF();
+      vWorkerThread_AddTask(pProgramState->pWorkerPool, vcMain_UpdateSessionInfo, pProgramState, false);
+    }
+
+    vWorkerThread_DoPostWork(pProgramState->pWorkerPool);
+
+    if (pProgramState->forceLogout)
+    {
+      vcLogout(pProgramState);
+      vcModals_OpenModal(pProgramState, vcMT_LoggedOut);
+    }
+  }
+}
+
 int main(int argc, char **args)
 {
 #if UDPLATFORM_WINDOWS
@@ -346,6 +665,10 @@ int main(int argc, char **args)
 
   vcState programState = {};
 
+#if UDPLATFORM_EMSCRIPTEN
+  vHTTPRequest_StartWorkerThread();
+#endif
+
   vcSettings_RegisterAssetFileHandler();
   vcWebFile_RegisterFileHandlers();
 
@@ -356,12 +679,9 @@ int main(int argc, char **args)
   unsigned char *pEucWatermarkData = nullptr;
   int pitch;
   long rMask, gMask, bMask, aMask;
-  double frametimeMS = 0.0;
-  uint32_t sleepMS = 0;
 
-  const float FontSize = 16.f;
-  ImFontConfig fontCfg = ImFontConfig();
-  const char *pFontPath = nullptr;
+  void *pFontData = nullptr;
+  int64_t fontDataLength = 0;
 
   // default values
   programState.settings.camera.moveMode = vcCMM_Plane;
@@ -383,7 +703,6 @@ int main(int argc, char **args)
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
   programState.settings.hideIntervalSeconds = 3;
-  programState.settings.docksLoaded = false;
   programState.showUI = true;
   programState.changeActiveDock = vcDocks_Count;
   programState.passFocus = true;
@@ -410,8 +729,14 @@ int main(int argc, char **args)
   vWorkerThread_StartThreads(&programState.pWorkerPool);
   vcConvert_Init(&programState);
 
-  Uint64 NOW;
-  Uint64 LAST;
+#if UDPLATFORM_EMSCRIPTEN
+  programState.sceneResolution.x = EM_ASM_INT_V({
+    return window.innerWidth;
+  });
+  programState.sceneResolution.y = EM_ASM_INT_V({
+    return window.innerHeight;
+  });
+#endif
 
   // Setup SDL
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -421,7 +746,7 @@ int main(int argc, char **args)
   windowFlags |= SDL_WINDOW_OPENGL;
 
   // Setup window
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_EMSCRIPTEN
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 
   if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3) != 0)
@@ -485,10 +810,6 @@ int main(int argc, char **args)
   if (!ImGuiGL_Init(programState.pWindow))
     goto epilogue;
 
-  //Get ready...
-  NOW = SDL_GetPerformanceCounter();
-  LAST = 0;
-
   if (vcRender_Init(&(programState.pRenderContext), &(programState.settings), programState.pCamera, programState.sceneResolution) != udR_Success)
     goto epilogue;
 
@@ -496,343 +817,66 @@ int main(int argc, char **args)
   // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
   vcFramebuffer_Bind(programState.pDefaultFramebuffer);
 
-  pFontPath = vcSettings_GetAssetPath("assets/fonts/NotoSansCJKjp-Regular.otf");
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize);
-  fontCfg.MergeMode = true;
+  if (udFile_Load(vcSettings_GetAssetPath("assets/fonts/NotoSansCJKjp-Regular.otf"), &pFontData, &fontDataLength) == udR_Success)
+  {
+    const float FontSize = 16.f;
+    ImFontConfig fontCfg = ImFontConfig();
+    fontCfg.FontDataOwnedByAtlas = false;
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontDataLength, FontSize, &fontCfg);
+    fontCfg.MergeMode = true;
 
 #if UD_RELEASE // Load all glyphs for supported languages
-  static ImWchar characterRanges[] =
-  {
-    0x0020, 0x00FF, // Basic Latin + Latin Supplement
-    0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
-    0x0E00, 0x0E7F, // Thai
-    0x2010, 0x205E, // Punctuations
-    0x25A0, 0x25FF, // Geometric Shapes
-    0x26A0, 0x26A1, // Exclamation in Triangle
-    0x2DE0, 0x2DFF, // Cyrillic Extended-A
-    0x3000, 0x30FF, // Punctuations, Hiragana, Katakana
-    0x3131, 0x3163, // Korean alphabets
-    0x31F0, 0x31FF, // Katakana Phonetic Extensions
-    0x4e00, 0x9FAF, // CJK Ideograms
-    0xA640, 0xA69F, // Cyrillic Extended-B
-    0xAC00, 0xD79D, // Korean characters
-    0xFF00, 0xFFEF, // Half-width characters
-    0
-  };
+    static ImWchar characterRanges[] =
+    {
+      0x0020, 0x00FF, // Basic Latin + Latin Supplement
+      0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
+      0x0E00, 0x0E7F, // Thai
+      0x2010, 0x205E, // Punctuations
+      0x25A0, 0x25FF, // Geometric Shapes
+      0x26A0, 0x26A1, // Exclamation in Triangle
+      0x2DE0, 0x2DFF, // Cyrillic Extended-A
+      0x3000, 0x30FF, // Punctuations, Hiragana, Katakana
+      0x3131, 0x3163, // Korean alphabets
+      0x31F0, 0x31FF, // Katakana Phonetic Extensions
+      0x4e00, 0x9FAF, // CJK Ideograms
+      0xA640, 0xA69F, // Cyrillic Extended-B
+      0xAC00, 0xD79D, // Korean characters
+      0xFF00, 0xFFEF, // Half-width characters
+      0
+    };
 
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize, &fontCfg, characterRanges);
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesJapanese()); // Still need to load Japanese seperately
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontDataLength, FontSize, &fontCfg, characterRanges);
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontDataLength, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesJapanese()); // Still need to load Japanese seperately
 #else // Debug; Only load required Glyphs
-  static ImWchar characterRanges[] =
-  {
-    0x0020, 0x00FF, // Basic Latin + Latin Supplement
-    0x2010, 0x205E, // Punctuations
-    0x25A0, 0x25FF, // Geometric Shapes
-    0x26A0, 0x26A1, // Exclamation in Triangle
-    0
-  };
+    static ImWchar characterRanges[] =
+    {
+      0x0020, 0x00FF, // Basic Latin + Latin Supplement
+      0x2010, 0x205E, // Punctuations
+      0x25A0, 0x25FF, // Geometric Shapes
+      0x26A0, 0x26A1, // Exclamation in Triangle
+      0
+    };
 
-  ImGui::GetIO().Fonts->AddFontFromFileTTF(pFontPath, FontSize, &fontCfg, characterRanges);
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontDataLength, FontSize, &fontCfg, characterRanges);
 #endif
 
-  // No longer need the udTempStr after this point.
-  pFontPath = nullptr;
+    udFree(pFontData);
+    fontDataLength = 0;
+  }
 
   SDL_EnableScreenSaver();
 
   vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", programState.settings.window.languageCode), &programState.languageInfo);
   vcTexture_CreateFromFilename(&programState.pUITexture, "asset://assets/textures/uiDark24.png");
 
+#if UDPLATFORM_EMSCRIPTEN
+  emscripten_set_main_loop_arg(vcMain_MainLoop, &programState, 0, 1);
+#else
   while (!programState.programComplete)
-  {
-    SDL_Event event;
-    while (SDL_PollEvent(&event))
-    {
-      if (!ImGui_ImplSDL2_ProcessEvent(&event))
-      {
-        if (event.type == SDL_WINDOWEVENT)
-        {
-          if (event.window.event == SDL_WINDOWEVENT_RESIZED)
-          {
-            programState.settings.window.width = event.window.data1;
-            programState.settings.window.height = event.window.data2;
-            vcGLState_ResizeBackBuffer(event.window.data1, event.window.data2);
-          }
-          else if (event.window.event == SDL_WINDOWEVENT_MOVED)
-          {
-            if (!programState.settings.window.presentationMode)
-            {
-              programState.settings.window.xpos = event.window.data1;
-              programState.settings.window.ypos = event.window.data2;
-            }
-          }
-          else if (event.window.event == SDL_WINDOWEVENT_MAXIMIZED)
-          {
-            programState.settings.window.maximized = true;
-          }
-          else if (event.window.event == SDL_WINDOWEVENT_RESTORED)
-          {
-            programState.settings.window.maximized = false;
-          }
-        }
-        else if (event.type == SDL_MULTIGESTURE)
-        {
-          // TODO: pinch to zoom
-        }
-        else if (event.type == SDL_DROPFILE && programState.hasContext)
-        {
-          programState.loadList.push_back(udStrdup(event.drop.file));
-        }
-        else if (event.type == SDL_QUIT)
-        {
-          programState.programComplete = true;
-        }
-      }
-    }
-
-    LAST = NOW;
-    NOW = SDL_GetPerformanceCounter();
-    programState.deltaTime = double(NOW - LAST) / SDL_GetPerformanceFrequency();
-
-    frametimeMS = 0.0166666667; // 60 FPS cap
-    if ((SDL_GetWindowFlags(programState.pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0 && programState.settings.presentation.limitFPSInBackground)
-      frametimeMS = 0.250; // 4 FPS cap when not focused
-
-    sleepMS = (uint32_t)udMax((frametimeMS - programState.deltaTime) * 1000.0, 0.0);
-    udSleep(sleepMS);
-    programState.deltaTime += sleepMS * 0.001; // adjust delta
-
-    ImGuiGL_NewFrame(programState.pWindow);
-    vcGizmo_BeginFrame();
-
-    vcGLState_ResetState(true);
-    vcRenderWindow(&programState);
-
-    ImGui::Render();
-    ImGuiGL_RenderDrawData(ImGui::GetDrawData());
-
-    ImGui::UpdatePlatformWindows();
-
-    vcGLState_Present(programState.pWindow);
-
-    if (ImGui::GetIO().WantSaveIniSettings)
-      vcSettings_Save(&programState.settings);
-
-    ImGui::GetIO().KeysDown[SDL_SCANCODE_BACKSPACE] = false;
-
-    if (programState.hasContext)
-    {
-      // Load next file in the load list (if there is one and the user has a context)
-      bool firstLoad = true;
-      bool continueLoading = false;
-      do
-      {
-        continueLoading = false;
-
-        if (programState.loadList.size() > 0)
-        {
-          const char *pNextLoad = programState.loadList[0];
-          programState.loadList.erase(programState.loadList.begin()); // TODO: Proper Exception Handling
-
-          if (pNextLoad != nullptr)
-          {
-            // test to see if specified filepath is valid
-            udFile *pTestFile = nullptr;
-            programState.currentError = vE_OpenFailure;
-            if (udFile_Open(&pTestFile, pNextLoad, udFOF_Read) == udR_Success)
-            {
-              udFile_Close(&pTestFile);
-              programState.currentError = vE_Success;
-
-              udFilename loadFile(pNextLoad);
-              const char *pExt = loadFile.GetExt();
-              if (udStrEquali(pExt, ".uds") || udStrEquali(pExt, ".ssf") || udStrEquali(pExt, ".udm") || udStrEquali(pExt, ".udg"))
-              {
-                vcScene_AddItem(&programState, new vcModel(&programState, nullptr, pNextLoad, firstLoad));
-                continueLoading = true;
-                programState.changeActiveDock = vcDocks_Scene;
-              }
-              else if (udStrEquali(pExt, ".udp"))
-              {
-                if (firstLoad)
-                  vcScene_RemoveAll(&programState);
-
-                vcUDP_Load(&programState, pNextLoad);
-                programState.changeActiveDock = vcDocks_Scene;
-              }
-              else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif"))
-              {
-                udDouble3 geolocation = udDouble3::zero();
-                bool hasLocation = false;
-                vcImageType imageType = vcIT_StandardPhoto;
-
-                vcTexture *pImage = nullptr;
-                const unsigned char *pFileData = nullptr;
-                int64_t numBytes = 0;
-
-                if (udFile_Load(pNextLoad, (void**)&pFileData, &numBytes) == udR_Success)
-                {
-                  // Many jpg's have exif, let's process that first
-                  if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg"))
-                  {
-                    easyexif::EXIFInfo result;
-
-                    if (result.parseFrom(pFileData, (int)numBytes) == PARSE_EXIF_SUCCESS)
-                    {
-                      if (result.GeoLocation.Latitude != 0.0 || result.GeoLocation.Longitude != 0.0)
-                      {
-                        hasLocation = true;
-                        geolocation.x = result.GeoLocation.Latitude;
-                        geolocation.y = result.GeoLocation.Longitude;
-                        geolocation.z = result.GeoLocation.Altitude;
-                      }
-
-                      if (result.XMPMetadata != "")
-                      {
-                        udJSON xmp;
-                        if (xmp.Parse(result.XMPMetadata.c_str()) == udR_Success)
-                        {
-                          bool isPanorama = xmp.Get("x:xmpmeta.rdf:RDF.rdf:Description.xmlns:GPano").IsString();
-                          bool isPhotosphere = xmp.Get("x:xmpmeta.rdf:RDF.rdf:Description.GPano:IsPhotosphere").AsBool();
-
-                          if (isPanorama && isPhotosphere)
-                            imageType = vcIT_PhotoSphere;
-                          else if (isPanorama)
-                            imageType = vcIT_Panorama;
-                        }
-                      }
-                    }
-                  }
-
-                  // TODO: (EVC-513) Generate a thumbnail
-                  {
-                    int width, height;
-                    int comp;
-                    stbi_uc *pImgPixels = stbi_load_from_memory((stbi_uc*)pFileData, (int)numBytes, &width, &height, &comp, 4);
-                    if (!pImgPixels)
-                    {
-                      // TODO: (EVC-517) Image failed to load, display error image
-                    }
-
-                    // TODO: (EVC-515) Mip maps are broken in directX
-                    vcTexture_Create(&pImage, width, height, pImgPixels, vcTextureFormat_RGBA8, vcTFM_Linear, false);
-
-                    stbi_image_free(pImgPixels);
-                  }
-
-                  udFree(pFileData);
-                }
-                else
-                {
-                  // TODO: (EVC-517) File failed to load, display error image
-                }
-
-                const vcSceneItemRef &clicked = programState.sceneExplorer.clickedItem;
-                vcSceneItem *pPOI = nullptr;
-                if (clicked.pParent != nullptr && clicked.pParent->m_children[clicked.index]->m_type == vcSOT_PointOfInterest)
-                  pPOI = clicked.pParent->m_children[clicked.index];
-
-                if (pPOI == nullptr)
-                {
-                  udDouble3 currentLocation;
-
-                  if (hasLocation && programState.gis.isProjected)
-                    currentLocation = udGeoZone_ToCartesian(programState.gis.zone, geolocation);
-                  else if (programState.worldMousePos != udDouble3::zero())
-                    currentLocation = programState.worldMousePos;
-                  else
-                    currentLocation = programState.pCamera->position;
-
-                  pPOI = new vcPOI(loadFile.GetFilenameWithExt(), 0xFFFFFFFF, vcLFS_Medium, currentLocation, programState.gis.SRID);
-                  vcScene_AddItem(&programState, pPOI);
-                }
-
-                // TODO: Using POIs to store media points is a temporary solution
-                vcPOI *pRealPOI = (vcPOI*)pPOI;
-                if (pRealPOI->m_pImage)
-                {
-                  vcTexture_Destroy(&pRealPOI->m_pImage->pTexture);
-                  udFree(pRealPOI->m_pImage);
-                }
-                pRealPOI->m_pImage = udAllocType(vcImageRenderInfo, 1, udAF_Zero);
-                pRealPOI->m_pImage->ypr = udDouble3::zero();
-                pRealPOI->m_pImage->scale = udDouble3::one();
-                pRealPOI->m_pImage->pTexture = pImage;
-                pRealPOI->m_pImage->colour = udFloat4::create(1.0f, 1.0f, 1.0f, 1.0f);
-                pRealPOI->m_pImage->size = vcIS_Large;
-                pRealPOI->m_pImage->type = imageType;
-
-                if (pPOI->m_pMetadata == nullptr)
-                  pPOI->m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
-
-                udJSON tmp;
-                tmp.SetString(pNextLoad);
-                pPOI->m_pMetadata->Set(&tmp, "imageurl");
-
-                if (imageType == vcIT_PhotoSphere)
-                  pPOI->m_pMetadata->Set("imagetype = 'photosphere'");
-                else if (imageType == vcIT_Panorama)
-                  pPOI->m_pMetadata->Set("imagetype = 'panorama'");
-                else
-                  pPOI->m_pMetadata->Set("imagetype = 'standard'");
-              }
-              else
-              {
-                vcConvert_AddFile(&programState, pNextLoad);
-                programState.changeActiveDock = vcDocks_Convert;
-              }
-            }
-
-            udFree(pNextLoad);
-          }
-        }
-
-        if (programState.pLoadImage != nullptr)
-        {
-          vcTexture_Destroy(&programState.image.pImage);
-
-          void *pFileData = nullptr;
-          int64_t fileLen = -1;
-
-          if (udFile_Load(programState.pLoadImage, &pFileData, &fileLen) == udR_Success && fileLen != 0)
-          {
-            int comp;
-            stbi_uc *pImg = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, &programState.image.width, &programState.image.height, &comp, 4);
-
-            vcTexture_Create(&programState.image.pImage, programState.image.width, programState.image.height, pImg);
-
-            stbi_image_free(pImg);
-          }
-
-          udFree(pFileData);
-
-          vcModals_OpenModal(&programState, vcMT_ImageViewer);
-
-          udFree(programState.pLoadImage);
-        }
-
-        firstLoad = false;
-      } while (continueLoading);
-
-      // Ping the server every 30 seconds
-      if (vcTime_GetEpochSecsF() > programState.lastServerAttempt + 30.0)
-      {
-        programState.lastServerAttempt = vcTime_GetEpochSecsF();
-        vWorkerThread_AddTask(programState.pWorkerPool, vcMain_UpdateSessionInfo, &programState, false);
-      }
-
-      vWorkerThread_DoPostWork(programState.pWorkerPool);
-
-      if (programState.forceLogout)
-      {
-        vcLogout(&programState);
-        vcModals_OpenModal(&programState, vcMT_LoggedOut);
-      }
-    }
-  }
+    vcMain_MainLoop(&programState);
+#endif
 
   vcSettings_Save(&programState.settings);
-  ImGui::DestroyContext();
 
 epilogue:
   for (size_t i = 0; i < 256; ++i)
@@ -840,7 +884,14 @@ epilogue:
       udFree(programState.settings.visualization.customClassificationColorLabels[i]);
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
+
+#ifdef GRAPHICS_API_METAL
+  ImGui_ImplMetal_Shutdown();
+#else
   ImGuiGL_DestroyDeviceObjects();
+#endif
+  ImGui::DestroyContext();
+
   vcConvert_Deinit(&programState);
   vcCamera_Destroy(&programState.pCamera);
   vcTexture_Destroy(&programState.pCompanyLogo);
@@ -860,6 +911,10 @@ epilogue:
   vcTexture_Destroy(&programState.image.pImage);
 
   vcGLState_Deinit();
+
+#if UDPLATFORM_EMSCRIPTEN
+  vHTTPRequest_ShutdownWorkerThread();
+#endif
 
   return 0;
 }
@@ -1503,18 +1558,15 @@ void vcRenderWindow(vcState *pProgramState)
   {
     int margin = vcMainMenuGui(pProgramState);
 
-    if (!pProgramState->settings.docksLoaded)
-      pProgramState->settings.rootNode = ImGui::GetID("MyDockspace");
-
     ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowBgAlpha(0.f);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
-    ImGui::Begin("RootDockContainer", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
+    ImGui::Begin("RootDockContainer", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoSavedSettings);
     ImGui::PopStyleVar(2);
-    ImGui::DockSpace(pProgramState->settings.rootNode, ImVec2(size.x, size.y - margin));
+    ImGui::DockSpace(ImGui::GetID("MyDockspace"), ImVec2(size.x, size.y - margin));
     ImGui::End();
   }
 
@@ -1651,7 +1703,7 @@ void vcRenderWindow(vcState *pProgramState)
 
     if (pProgramState->loginStatus == vcLS_Pending)
     {
-      if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar))
+      if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings))
       {
         vcFolder_ShowLoadStatusIndicator(vcSLS_Loading);
         ImGui::TextUnformatted(vcString::Get("loginMessageChecking"));
@@ -1660,7 +1712,7 @@ void vcRenderWindow(vcState *pProgramState)
     }
     else
     {
-      if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+      if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings))
       {
         ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
 
@@ -2266,15 +2318,7 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::End();
     }
 
-    if (!pProgramState->settings.docksLoaded)
-    {
-      vcSettings_Load(&pProgramState->settings, false, vcSC_Docks);
-
-      // Don't show the window in a bad state
-      ImGui::EndFrame();
-      ImGui::NewFrame();
-    }
-    else if (pProgramState->settings.pActive[0] != nullptr)
+    if (pProgramState->settings.pActive[0] != nullptr)
     {
       // Set selected tab ID to the now created tab
       for (int i = 0; i < vcDocks_Count; ++i)

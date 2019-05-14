@@ -1,6 +1,9 @@
 require "ios"
+require "vstudio"
+require "emscripten"
 
 table.insert(premake.option.get("os").allowed, { "ios", "Apple iOS" })
+table.insert(premake.option.get("os").allowed, { "emscripten", "Emscripten" })
 
 filter { "system:ios", "action:xcode4" }
   xcodebuildsettings {
@@ -15,13 +18,9 @@ filter { "system:ios", "action:xcode4" }
   }
 
 function getosinfo()
-	local osname = "windows"
+	local osname = os.target()
 	local distroExtension = ""
-	if os.target() == premake.MACOSX then
-		osname = "macosx"
-	elseif os.target() == premake.IOS then
-		osname = "ios"
-	elseif os.target() ~= premake.WINDOWS then
+	if os.target() == premake.LINUX then
 		osname = os.outputof('lsb_release -ir | head -n2 | cut -d ":" -f 2 | tr -d "\n\t" | tr [:upper:] [:lower:] | cut -d "." -f 1')
 		distroExtension = iif(string.startswith(osname, "ubuntu"), "_deb", "_rpm")
 	end
@@ -62,12 +61,21 @@ function injectvaultsdkbin()
 	if _OPTIONS["force-vaultsdk"] then
 		includedirs { "%{wks.location}/../vault/vaultsdk/src" }
 		defines { "BUILDING_VDK" }
+		if os.target() == "emscripten" then
+			links { "udPlatform", "vaultcore" }
+			includedirs { "../vault/ud/udPlatform/Include", "../vault/vaultcore/src" }
+			--buildoptions { "--js-library ../vault/vaultcore/src/vHTTPRequest.js" }
+			linkoptions  { "--js-library ../vault/vaultcore/src/vHTTPRequest.js" }
+		end
 	else
 		if os.getenv("VAULTSDK_HOME") == nil then
 			error "VaultSDK not installed correctly. (No VAULTSDK_HOME environment variable set!)"
 		end
 
 		if os.target() == premake.WINDOWS then
+			if _OPTIONS["gfxapi"] == "metal" then
+				_OPTIONS["gfxapi"] = "opengl"
+			end
 			os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.dll", "builds/vaultSDK.dll")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.lib", "src/vaultSDK.lib")
@@ -82,7 +90,6 @@ function injectvaultsdkbin()
 			os.execute("/usr/bin/hdiutil detach /Volumes/vaultSDK")
 			os.execute("/usr/bin/hdiutil detach " .. device)
 			os.execute("rm -r builds/vaultSDK.dmg")
-
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			prelinkcommands {
 				"rm -rf %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
@@ -100,6 +107,9 @@ function injectvaultsdkbin()
 			libdirs { "builds" }
 			linkoptions { "-rpath @executable_path/" }
 		else
+			if _OPTIONS["gfxapi"] == "metal" then
+				_OPTIONS["gfxapi"] = "opengl"
+			end
 			os.execute("mkdir -p builds")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/linux_GCC_x64/libvaultSDK.so", "builds/libvaultSDK.so")
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
@@ -122,7 +132,8 @@ newoption {
    default     = "opengl",
    allowed = {
       { "opengl", "OpenGL" },
-      { "d3d11", "Direct3D 11 (Windows only)" }
+      { "d3d11", "Direct3D 11 (Windows only)" },
+      { "metal", "Metal (macOS & iOS only)" }
    }
 }
 
@@ -141,7 +152,22 @@ solution "vaultClient"
 		configurations { "Debug", "Release" }
 	end
 
-	platforms { "x64" }
+
+	if os.target() == "emscripten" then
+		platforms { "Emscripten" }
+		buildoptions { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-s BINARYEN_TRAP_MODE='clamp'", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=1073741824" }
+		linkoptions  { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-s BINARYEN_TRAP_MODE='clamp'", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=1073741824" }
+		targetextension ".bc"
+		linkgroups "On"
+		filter { "kind:*App" }
+			targetextension ".js"
+		filter { "files:**.cpp" }
+			buildoptions { "-std=c++11" }
+		filter {}
+	else
+		platforms { "x64" }
+	end
+
 	editorintegration "on"
 	startproject "vaultClient"
 	cppdialect "C++11"
@@ -175,12 +201,16 @@ solution "vaultClient"
 	end
 
 	if _OPTIONS["force-vaultsdk"] then
-		if os.target() ~= premake.MACOSX then
+		if os.target() ~= premake.MACOSX and os.target() ~= "emscripten" then
 			dofile "../vault/3rdParty/curl/project.lua"
 		end
 		dofile "../vault/ud/udPlatform/project.lua"
 		dofile "../vault/ud/udPointCloud/project.lua"
 		dofile "../vault/vaultcore/project.lua"
+		filter { "system:emscripten" }
+			removefiles { "../vault/vaultcore/src/vWorkerThread.*" }
+			includedirs { "src/vCore" }
+		filter {}
 		dofile "../vault/vaultsdk/project.lua"
 
 		filter { "system:macosx" }
@@ -188,12 +218,14 @@ solution "vaultClient"
 				['INSTALL_PATH'] = "@executable_path/../Frameworks",
 				['SKIP_INSTALL'] = "YES"
 			}
+		filter { "system:emscripten" }
+			includedirs { "src/vCore" }
 		filter {}
 		targetdir "%{wks.location}/builds"
 		debugdir "%{wks.location}/builds"
 	end
 
-	if os.target() ~= premake.IOS and os.target() ~= premake.ANDROID then
+	if os.target() ~= premake.IOS and os.target() ~= premake.ANDROID and os.target() ~= "emscripten" then
 		dofile "vcConvertCMD/project.lua"
 	end
 
