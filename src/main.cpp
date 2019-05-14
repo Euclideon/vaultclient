@@ -544,7 +544,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
               const vcSceneItemRef &clicked = pProgramState->sceneExplorer.clickedItem;
               vcSceneItem *pPOI = nullptr;
-              if (clicked.pParent != nullptr && clicked.pParent->m_children[clicked.index]->m_type == vdkPNT_PointOfInterest)
+              if (clicked.pParent != nullptr && clicked.pParent->m_children[clicked.index]->m_pNode->itemtype == vdkPNT_PointOfInterest)
                 pPOI = clicked.pParent->m_children[clicked.index];
 
               if (pPOI == nullptr)
@@ -558,7 +558,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                 else
                   currentLocation = pProgramState->pCamera->position;
 
-                pPOI = new vcPOI(loadFile.GetFilenameWithExt(), 0xFFFFFFFF, vcLFS_Medium, currentLocation, pProgramState->gis.SRID);
+                pPOI = new vcPOI(pProgramState->sceneExplorer.pProject, loadFile.GetFilenameWithExt(), 0xFFFFFFFF, vcLFS_Medium, currentLocation, pProgramState->gis.SRID);
                 vcScene_AddItem(pProgramState, pPOI);
               }
 
@@ -711,7 +711,9 @@ int main(int argc, char **args)
   programState.sceneExplorer.clickedItem.index = SIZE_MAX;
 
   programState.loadList.reserve(udMax(64, argc));
-  programState.sceneExplorer.pItems = new vcFolder(nullptr);
+
+  vdkProject_CreateLocal(&programState.sceneExplorer.pProject, nullptr, nullptr);
+  programState.sceneExplorer.pItems = new vcFolder(programState.sceneExplorer.pProject, nullptr);
 
   for (int i = 1; i < argc; ++i)
   {
@@ -881,6 +883,7 @@ epilogue:
       udFree(programState.settings.visualization.customClassificationColorLabels[i]);
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
+  vdkProject_Release(&programState.sceneExplorer.pProject);
 
 #ifdef GRAPHICS_API_METAL
   ImGui_ImplMetal_Shutdown();
@@ -1204,7 +1207,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
         if (pProgramState->sceneExplorer.selectedItems.size() == 1)
         {
           const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
-          if (item.pParent->m_children[item.index]->m_type == vdkPNT_PointOfInterest)
+          if (item.pParent->m_children[item.index]->m_pNode->itemtype == vdkPNT_PointOfInterest)
           {
             vcPOI* pPOI = (vcPOI*)item.pParent->m_children[item.index];
 
@@ -1217,13 +1220,13 @@ void vcRenderSceneWindow(vcState *pProgramState)
         {
           if (ImGui::MenuItem(vcString::Get("sceneAddPOI")))
           {
-            vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, worldMouse, pProgramState->gis.SRID), false);
+            vcScene_AddItem(pProgramState, new vcPOI(pProgramState->sceneExplorer.pProject, vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, worldMouse, pProgramState->gis.SRID), false);
             ImGui::CloseCurrentPopup();
           }
           if (ImGui::MenuItem(vcString::Get("sceneAddAOI")))
           {
             vcScene_ClearSelection(pProgramState);
-            vcPOI *pAOI = new vcPOI(vcString::Get("scenePOIAreaDefaultName"), 0xFFFFFFFF, vcLFS_Medium, worldMouse, pProgramState->gis.SRID);
+            vcPOI *pAOI = new vcPOI(pProgramState->sceneExplorer.pProject, vcString::Get("scenePOIAreaDefaultName"), 0xFFFFFFFF, vcLFS_Medium, worldMouse, pProgramState->gis.SRID);
             pAOI->m_line.closed = true;
             vcScene_AddItem(pProgramState, pAOI, true);
             ImGui::CloseCurrentPopup();
@@ -1231,7 +1234,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
           if (ImGui::MenuItem(vcString::Get("sceneAddLine")))
           {
             vcScene_ClearSelection(pProgramState);
-            vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOILineDefaultName"), 0xFFFFFFFF, vcLFS_Medium, worldMouse, pProgramState->gis.SRID), true);
+            vcScene_AddItem(pProgramState, new vcPOI(pProgramState->sceneExplorer.pProject, vcString::Get("scenePOILineDefaultName"), 0xFFFFFFFF, vcLFS_Medium, worldMouse, pProgramState->gis.SRID), true);
             ImGui::CloseCurrentPopup();
           }
 
@@ -1416,9 +1419,9 @@ int vcMainMenuGui(vcState *pProgramState)
             vUUID groupID;
 
             if (vUUID_SetFromString(&groupID, pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString()) == udR_Success)
-              pFeed = new vcLiveFeed(groupID);
+              pFeed = new vcLiveFeed(pProgramState->sceneExplorer.pProject, groupID);
             else if (pFeed == nullptr)
-              pFeed = new vcLiveFeed();
+              pFeed = new vcLiveFeed(pProgramState->sceneExplorer.pProject);
 
             if (pFeedName != nullptr)
             {
@@ -1834,12 +1837,12 @@ void vcRenderWindow(vcState *pProgramState)
           vcModals_OpenModal(pProgramState, vcMT_AddUDS);
 
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddPOI"), nullptr, vcMBBI_AddPointOfInterest, vcMBBG_SameGroup))
-          vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, pProgramState->pCamera->position, pProgramState->gis.SRID), false);
+          vcScene_AddItem(pProgramState, new vcPOI(pProgramState->sceneExplorer.pProject, vcString::Get("scenePOIDefaultName"), 0xFFFFFFFF, vcLFS_Medium, pProgramState->pCamera->position, pProgramState->gis.SRID), false);
 
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddAOI"), nullptr, vcMBBI_AddAreaOfInterest, vcMBBG_SameGroup))
         {
           vcScene_ClearSelection(pProgramState);
-          vcPOI *pAOI = new vcPOI(vcString::Get("scenePOIAreaDefaultName"), 0xFFFFFFFF, vcLFS_Medium, pProgramState->pCamera->position, pProgramState->gis.SRID);
+          vcPOI *pAOI = new vcPOI(pProgramState->sceneExplorer.pProject, vcString::Get("scenePOIAreaDefaultName"), 0xFFFFFFFF, vcLFS_Medium, pProgramState->pCamera->position, pProgramState->gis.SRID);
           pAOI->m_line.closed = true;
           vcScene_AddItem(pProgramState, pAOI, true);
           ImGui::CloseCurrentPopup();
@@ -1848,7 +1851,7 @@ void vcRenderWindow(vcState *pProgramState)
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddLine"), nullptr, vcMBBI_AddLines, vcMBBG_SameGroup))
         {
           vcScene_ClearSelection(pProgramState);
-          vcScene_AddItem(pProgramState, new vcPOI(vcString::Get("scenePOILineDefaultName"), 0xFFFFFFFF, vcLFS_Medium, pProgramState->pCamera->position, pProgramState->gis.SRID), true);
+          vcScene_AddItem(pProgramState, new vcPOI(pProgramState->sceneExplorer.pProject, vcString::Get("scenePOILineDefaultName"), 0xFFFFFFFF, vcLFS_Medium, pProgramState->pCamera->position, pProgramState->gis.SRID), true);
         }
 
         vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddOther"), nullptr, vcMBBI_AddOther, vcMBBG_SameGroup);
@@ -1857,7 +1860,7 @@ void vcRenderWindow(vcState *pProgramState)
           if (pProgramState->sceneExplorer.selectedItems.size() == 1)
           {
             const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
-            if (item.pParent->m_children[item.index]->m_type == vdkPNT_PointOfInterest)
+            if (item.pParent->m_children[item.index]->m_pNode->itemtype == vdkPNT_PointOfInterest)
             {
               vcPOI* pPOI = (vcPOI*)item.pParent->m_children[item.index];
 
@@ -1867,13 +1870,13 @@ void vcRenderWindow(vcState *pProgramState)
           }
 
           if (ImGui::MenuItem(vcString::Get("sceneExplorerAddFeed"), nullptr, nullptr))
-            vcScene_AddItem(pProgramState, new vcLiveFeed());
+            vcScene_AddItem(pProgramState, new vcLiveFeed(pProgramState->sceneExplorer.pProject));
 
           ImGui::EndPopup();
         }
 
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
-          vcScene_AddItem(pProgramState, new vcFolder(vcString::Get("sceneExplorerFolderDefaultName")));
+          vcScene_AddItem(pProgramState, new vcFolder(pProgramState->sceneExplorer.pProject, vcString::Get("sceneExplorerFolderDefaultName")));
 
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerRemove"), vcString::Get("sceneExplorerRemoveKey"), vcMBBI_Remove, vcMBBG_NewGroup) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE] && !ImGui::IsAnyItemActive()))
           vcScene_RemoveSelected(pProgramState);
@@ -1890,7 +1893,7 @@ void vcRenderWindow(vcState *pProgramState)
             for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size() && !itemFound; ++i)
             {
               const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
-              if (item.pParent->m_children[item.index]->m_type == vdkPNT_Folder)
+              if (item.pParent->m_children[item.index]->m_pNode->itemtype == vdkPNT_Folder)
                 itemFound = vcScene_ContainsItem((vcFolder*)item.pParent->m_children[item.index], pProgramState->sceneExplorer.insertItem.pParent);
 
               itemFound = itemFound || (item.pParent == pProgramState->sceneExplorer.insertItem.pParent && item.index == pProgramState->sceneExplorer.insertItem.index);

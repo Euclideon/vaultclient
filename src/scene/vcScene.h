@@ -37,9 +37,6 @@ public:
   bool m_editName;
   bool m_moved;
 
-  vdkProjectNodeType m_type;
-  char m_typeStr[8];
-
   udJSON m_metadata; // This points to a metadata (may be an empty object)
   udGeoZone *m_pOriginalZone; // nullptr if not geolocated
   udGeoZone *m_pZone; // nullptr if not geolocated
@@ -49,8 +46,8 @@ public:
   char *m_pName;
   size_t m_nameBufferLength;
 
-  vcSceneItem();
   vcSceneItem(vdkProjectNode *pNode);
+  vcSceneItem(vdkProject *pProject, const char *pType, const char *pName, const char *pURI = nullptr);
   virtual ~vcSceneItem();
 
   // This is used to help with adding the item to current folder
