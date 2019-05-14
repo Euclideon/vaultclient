@@ -143,8 +143,14 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 }
 
 vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad /*= true*/, udDouble3 *pOverridePosition /*= nullptr*/, udDouble3 *pOverrideYPR /*= nullptr*/, double scale /*= 1.0*/) :
-  m_pPointCloud(nullptr), m_pivot(udDouble3::zero()), m_defaultMatrix(udDouble4x4::identity()), m_sceneMatrix(udDouble4x4::identity()),
-  m_meterScale(0.0), m_hasWatermark(false), m_pWatermark(nullptr)
+  vcSceneItem(pProgramState->sceneExplorer.pProject, "UDS", pName == nullptr ? pFilePath : pName),
+  m_pPointCloud(nullptr),
+  m_pivot(udDouble3::zero()),
+  m_defaultMatrix(udDouble4x4::identity()),
+  m_sceneMatrix(udDouble4x4::identity()),
+  m_meterScale(0.0),
+  m_hasWatermark(false),
+  m_pWatermark(nullptr)
 {
   if (pFilePath == nullptr)
     return;
@@ -163,9 +169,6 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePat
   }
 
   m_visible = true;
-  m_type = vdkPNT_PointCloud;
-
-  udStrcpy(m_typeStr, sizeof(m_typeStr), "UDS");
 
   vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
   if (pLoadInfo != nullptr)
@@ -199,6 +202,7 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePat
 }
 
 vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud, bool jumpToModelOnLoad /*= false*/) :
+  vcSceneItem(pProgramState->sceneExplorer.pProject, "UDS", pName),
   m_pPointCloud(nullptr),
   m_pivot(udDouble3::zero()),
   m_defaultMatrix(udDouble4x4::identity()),
@@ -215,10 +219,7 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
     m_pName = udStrdup(pName);
 
   m_visible = true;
-  m_type = vdkPNT_PointCloud;
   m_loadStatus = vcSLS_Loaded;
-
-  udStrcpy(m_typeStr, sizeof(m_typeStr), "UDS");
 
   vcModel_LoadMetadata(pProgramState, this, 1.0);
 
