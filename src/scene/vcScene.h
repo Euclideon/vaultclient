@@ -3,8 +3,8 @@
 
 #include "vcGIS.h"
 #include "vdkProject.h"
+#include "udPlatform/udJSON.h"
 
-class udJSON;
 struct vcState;
 class vcSceneItem;
 class vcFolder;
@@ -28,6 +28,8 @@ typedef void (udSceneItemBasicCallback)(vcState *pProgramState, vcSceneItem *pBa
 class vcSceneItem
 {
 public:
+  vdkProjectNode *m_pNode; // This will be null in the short term but by the end of the projects changes will _never_ be null
+
   volatile int32_t m_loadStatus;
   bool m_visible;
   bool m_selected;
@@ -38,7 +40,7 @@ public:
   vdkProjectNodeType m_type;
   char m_typeStr[8];
 
-  udJSON *m_pMetadata; // This points to a metadata (if it exists)
+  udJSON m_metadata; // This points to a metadata (may be an empty object)
   udGeoZone *m_pOriginalZone; // nullptr if not geolocated
   udGeoZone *m_pZone; // nullptr if not geolocated
 
@@ -48,6 +50,7 @@ public:
   size_t m_nameBufferLength;
 
   vcSceneItem();
+  vcSceneItem(vdkProjectNode *pNode);
   virtual ~vcSceneItem();
 
   // This is used to help with adding the item to current folder

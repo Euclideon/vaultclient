@@ -320,10 +320,7 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
         udJSON temp;
         temp.SetString(item.label.pHyperlink);
 
-        if (pPOI->m_pMetadata == nullptr)
-          pPOI->m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
-
-        pPOI->m_pMetadata->Set(&temp, "hyperlink");
+        pPOI->m_metadata.Set(&temp, "hyperlink");
       }
     }
   }
