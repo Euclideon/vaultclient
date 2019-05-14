@@ -301,7 +301,7 @@ vcLiveFeed::vcLiveFeed() :
 
   m_visible = true;
   m_pName = udStrdup("Live Feed");
-  m_type = vcSOT_LiveFeed;
+  m_type = vdkPNT_LiveFeed;
   udStrcpy(m_typeStr, sizeof(m_typeStr), "IOT");
   m_loadStatus = vcSLS_Pending;
 

@@ -544,7 +544,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
               const vcSceneItemRef &clicked = pProgramState->sceneExplorer.clickedItem;
               vcSceneItem *pPOI = nullptr;
-              if (clicked.pParent != nullptr && clicked.pParent->m_children[clicked.index]->m_type == vcSOT_PointOfInterest)
+              if (clicked.pParent != nullptr && clicked.pParent->m_children[clicked.index]->m_type == vdkPNT_PointOfInterest)
                 pPOI = clicked.pParent->m_children[clicked.index];
 
               if (pPOI == nullptr)
@@ -1207,7 +1207,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
         if (pProgramState->sceneExplorer.selectedItems.size() == 1)
         {
           const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
-          if (item.pParent->m_children[item.index]->m_type == vcSOT_PointOfInterest)
+          if (item.pParent->m_children[item.index]->m_type == vdkPNT_PointOfInterest)
           {
             vcPOI* pPOI = (vcPOI*)item.pParent->m_children[item.index];
 
@@ -1860,7 +1860,7 @@ void vcRenderWindow(vcState *pProgramState)
           if (pProgramState->sceneExplorer.selectedItems.size() == 1)
           {
             const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
-            if (item.pParent->m_children[item.index]->m_type == vcSOT_PointOfInterest)
+            if (item.pParent->m_children[item.index]->m_type == vdkPNT_PointOfInterest)
             {
               vcPOI* pPOI = (vcPOI*)item.pParent->m_children[item.index];
 
@@ -1893,7 +1893,7 @@ void vcRenderWindow(vcState *pProgramState)
             for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size() && !itemFound; ++i)
             {
               const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
-              if (item.pParent->m_children[item.index]->m_type == vcSOT_Folder)
+              if (item.pParent->m_children[item.index]->m_type == vdkPNT_Folder)
                 itemFound = vcScene_ContainsItem((vcFolder*)item.pParent->m_children[item.index], pProgramState->sceneExplorer.insertItem.pParent);
 
               itemFound = itemFound || (item.pParent == pProgramState->sceneExplorer.insertItem.pParent && item.index == pProgramState->sceneExplorer.insertItem.index);
