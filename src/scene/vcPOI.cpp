@@ -347,7 +347,8 @@ void vcPOI::SetCameraPosition(vcState *pProgramState)
   if (m_bookmarkMode)
   {
     pProgramState->pCamera->position += m_bookmarkCameraPosition;
-    pProgramState->pCamera->eulerRotation = udMath_DirToYPR(-m_bookmarkCameraPosition) + m_bookmarkCameraRotation;
+    if (m_bookmarkCameraPosition != udDouble3::zero())
+      pProgramState->pCamera->eulerRotation = udMath_DirToYPR(-m_bookmarkCameraPosition) + m_bookmarkCameraRotation;
   }
 }
 
