@@ -362,7 +362,7 @@ void vcPOI::Init(const char *pName, uint32_t nameColour, vcLabelFontSize namePt,
   m_pImage = nullptr;
   m_visible = true;
   m_pName = udStrdup(pName);
-  m_type = vcSOT_PointOfInterest;
+  m_type = vdkPNT_PointOfInterest;
   m_nameColour = nameColour;
   m_backColour = 0x7F000000;
   m_namePt = namePt;

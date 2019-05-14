@@ -57,7 +57,7 @@ vcFolder::vcFolder(const char *pName)
 {
   m_visible = true;
   m_pName = udStrdup(pName);
-  m_type = vcSOT_Folder;
+  m_type = vdkPNT_Folder;
   m_children.reserve(64);
   udStrcpy(m_typeStr, sizeof(m_typeStr), "Folder");
   m_loadStatus = vcSLS_Loaded;
@@ -164,7 +164,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       ImVec2 maxPos = ImGui::GetItemRectMax();
       ImVec2 mousePos = ImGui::GetMousePos();
 
-      if (m_children[i]->m_type == vcSOT_Folder && udAbs(mousePos.y - minPos.y) >= udAbs(mousePos.y - maxPos.y))
+      if (m_children[i]->m_type == vdkPNT_Folder && udAbs(mousePos.y - minPos.y) >= udAbs(mousePos.y - maxPos.y))
         pProgramState->sceneExplorer.insertItem = { (vcFolder*)m_children[i], ((vcFolder*)m_children[i])->m_children.size() };
       else if (udAbs(mousePos.y - minPos.y) < udAbs(mousePos.y - maxPos.y))
         pProgramState->sceneExplorer.insertItem = { this, i };
@@ -196,7 +196,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         }
       }
 
-      if (m_children[i]->m_type != vcSOT_Folder && ImGui::Selectable(vcString::Get("sceneExplorerMoveTo")))
+      if (m_children[i]->m_type != vdkPNT_Folder && ImGui::Selectable(vcString::Get("sceneExplorerMoveTo")))
       {
         // Trigger a camera movement path
         pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
@@ -207,7 +207,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       }
 
       // This is terrible but semi-required until we have undo
-      if (m_children[i]->m_moved && m_children[i]->m_type == vcSOT_PointCloud && ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
+      if (m_children[i]->m_moved && m_children[i]->m_type == vdkPNT_PointCloud && ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
       {
         m_children[i]->m_moved = false;
         if (m_children[i]->m_pZone == nullptr || m_children[i]->m_pOriginalZone->srid == m_children[i]->m_pZone->srid)
@@ -219,7 +219,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       ImGui::EndPopup();
     }
 
-    if (m_children[i]->m_type != vcSOT_Folder && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
+    if (m_children[i]->m_type != vdkPNT_Folder && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
       vcScene_UseProjectFromItem(pProgramState, m_children[i]);
 
     if (vcIGSW_IsItemHovered())

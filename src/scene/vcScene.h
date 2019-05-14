@@ -2,6 +2,7 @@
 #define vcScene_h__
 
 #include "vcGIS.h"
+#include "vdkProject.h"
 
 class udJSON;
 struct vcState;
@@ -21,20 +22,6 @@ enum vcSceneLoadStatus
   vcSLS_Count
 };
 
-enum vcSceneItemType
-{
-  vcSOT_Unknown, // default is no type string (shouldn't stay in this state for long)
-
-  vcSOT_PointCloud, // "UDS"
-  vcSOT_PointOfInterest, // "POI"
-  vcSOT_Folder, // "Folder"
-  vcSOT_LiveFeed, // "IOT"
-
-  vcSOT_Custom, // Need to check the type string manually
-
-  vcSOT_Count
-};
-
 typedef void (udSceneItemImGuiCallback)(vcState *pProgramState, vcSceneItem *pBaseItem, size_t *pItemID);
 typedef void (udSceneItemBasicCallback)(vcState *pProgramState, vcSceneItem *pBaseItem);
 
@@ -48,7 +35,7 @@ public:
   bool m_editName;
   bool m_moved;
 
-  vcSceneItemType m_type;
+  vdkProjectNodeType m_type;
   char m_typeStr[8];
 
   udJSON *m_pMetadata; // This points to a metadata (if it exists)
