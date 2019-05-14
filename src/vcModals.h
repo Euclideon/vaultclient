@@ -11,10 +11,12 @@ enum vcModalTypes
   vcMT_NewVersionAvailable,
   vcMT_TileServer,
   vcMT_AddUDS,
+  vcMT_ImportGeoJSON,
   vcMT_ImportUDP,
   vcMT_LoadWatermark,
-  vcMT_NotYetImplemented,
   vcMT_ImageViewer,
+  vcMT_ProjectChangeFailed,
+  vcMT_ProjectReadOnly,
 
   vcMT_Count
 };

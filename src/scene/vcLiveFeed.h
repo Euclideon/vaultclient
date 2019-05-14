@@ -1,7 +1,7 @@
 #ifndef vcLiveFeed_h__
 #define vcLiveFeed_h__
 
-#include "vcScene.h"
+#include "vcSceneItem.h"
 
 #include "vCore/vUUID.h"
 
@@ -66,9 +66,7 @@ public:
 
   udMutex *m_pMutex;
 
-  vcLiveFeed(vdkProject *pProject);
-  vcLiveFeed(vdkProject *pProject, const vUUID &groupid);
-  vcLiveFeed(vdkProject *pProject, const udDouble3 &position);
+  vcLiveFeed(vdkProjectNode *pProjectNode);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);

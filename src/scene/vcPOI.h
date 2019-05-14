@@ -1,7 +1,7 @@
 #ifndef vcPOI_h__
 #define vcPOI_h__
 
-#include "vcScene.h"
+#include "vcSceneItem.h"
 #include "vcCamera.h"
 #include "vdkRenderContext.h"
 #include "vdkError.h"
@@ -17,7 +17,6 @@ struct vcFenceRenderer;
 struct vcLineInfo
 {
   udDouble3 *pPoints;
-  udDouble3 *pOriginalPoints;
   int numPoints;
   uint32_t colourPrimary;
   uint32_t colourSecondary;
@@ -51,8 +50,7 @@ public:
   const char *m_pLabelText;
   vcImageRenderInfo *m_pImage;
 
-  vcPOI(vdkProject *pProject, const char *pName, uint32_t nameColour, vcLabelFontSize namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes = "");
-  vcPOI(vdkProject *pProject, const char *pName, uint32_t nameColour, vcLabelFontSize namePt, udDouble3 position, int32_t srid, const char *pNotes = "");
+  vcPOI(vdkProjectNode *pNode);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
@@ -67,8 +65,6 @@ public:
   void UpdatePoints();
   void SetCameraPosition(vcState *pProgramState);
   udDouble4x4 GetWorldSpaceMatrix();
-protected:
-  void Init(const char *pName, uint32_t nameColour, vcLabelFontSize namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes = "");
 };
 
 #endif //vcPOI_h__

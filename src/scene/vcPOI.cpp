@@ -1,6 +1,5 @@
 #include "vcPOI.h"
 
-#include "vcScene.h"
 #include "vcState.h"
 #include "vcRender.h"
 #include "vcStrings.h"
@@ -14,25 +13,52 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcPOI::vcPOI(vdkProject *pProject, const char *pName, uint32_t nameColour, vcLabelFontSize namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/) :
-  vcSceneItem(pProject, "POI", pName)
+vcPOI::vcPOI(vdkProjectNode *pNode) :
+  vcSceneItem(pNode)
 {
-  Init(pName, nameColour, namePt, pLine, srid, pNotes);
-}
+  m_pImage = nullptr;
+  m_nameColour = 0xFFFFFFFF;
+  m_backColour = 0x7F000000;
+  m_namePt = vcLFS_Medium;
 
-vcPOI::vcPOI(vdkProject *pProject, const char *pName, uint32_t nameColour, vcLabelFontSize namePt, udDouble3 position, int32_t srid, const char *pNotes /*= ""*/) :
-  vcSceneItem(pProject, "POI", pName)
-{
-  vcLineInfo temp = {};
-  temp.numPoints = 1;
-  temp.pPoints = &position;
-  temp.lineWidth = 1;
-  temp.colourPrimary = 0xFFFFFFFF;
-  temp.colourSecondary = 0xFFFFFFFF;
+  m_bookmarkCameraPosition = udDouble3::zero();
+  m_bookmarkCameraRotation = udDouble3::zero();
+  m_bookmarkMode = false;
+  m_showArea = false;
+  m_showLength = false;
 
-  temp.closed = false;
+  memset(&m_line, 0, sizeof(m_line));
 
-  Init(pName, nameColour, namePt, &temp, srid, pNotes);
+  m_line.selectedPoint = -1; // Sentinel for no point selected
+  m_line.numPoints = m_pNode->geomCount;
+
+  m_line.colourPrimary = 0xFFFFFFFF;
+  m_line.colourSecondary = 0xFFFFFFFF;
+  m_line.lineWidth = 1.0;
+  m_line.closed = (m_pNode->geomtype == vdkPGT_Polygon);
+  m_line.lineStyle = vcRRIM_Arrow;
+  m_line.fenceMode = vcRRVM_Fence;
+
+  if (m_line.numPoints > 0)
+  {
+    m_line.pPoints = udAllocType(udDouble3, m_line.numPoints, udAF_Zero);
+    memcpy(m_line.pPoints, m_pNode->pCoordinates, sizeof(udDouble3)*m_line.numPoints);
+  }
+
+  m_pLabelText = nullptr;
+
+  m_pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
+  m_pLabelInfo->pText = m_pNode->pName;
+  if (m_line.numPoints > 0)
+    m_pLabelInfo->worldPosition = m_line.pPoints[0];
+  m_pLabelInfo->textSize = m_namePt;
+  m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
+  m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
+
+  m_pFence = nullptr;
+  UpdatePoints();
+
+  m_loadStatus = vcSLS_Loaded;
 }
 
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -49,7 +75,7 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     if (m_showLength || m_showArea)
       m_pLabelInfo->pText = m_pLabelText;
     else
-      m_pLabelInfo->pText = m_pName;
+      m_pLabelInfo->pText = m_pNode->pName;
 
     pRenderData->labels.PushBack(m_pLabelInfo);
   }
@@ -68,25 +94,21 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     }
     pRenderData->images.Insert(i, &m_pImage);
   }
-
 }
 
 void vcPOI::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
 {
-  bool isGeolocated = m_pZone != nullptr;
+  //bool isGeolocated = m_pZone != nullptr;
   if (m_line.selectedPoint == -1) // We need to update all the points
   {
     for (int i = 0; i < m_line.numPoints; ++i)
-    {
       m_line.pPoints[i] = (delta * udDouble4x4::translation(m_line.pPoints[i])).axis.t.toVector3();
-      m_line.pOriginalPoints[i] = isGeolocated ? udGeoZone_TransformPoint(m_line.pPoints[i], *m_pZone, *m_pOriginalZone) : m_line.pPoints[i]; // apply translation to original points too
-    }
   }
   else
   {
     m_line.pPoints[m_line.selectedPoint] = (delta * udDouble4x4::translation(m_line.pPoints[m_line.selectedPoint])).axis.t.toVector3();
-    m_line.pOriginalPoints[m_line.selectedPoint] = isGeolocated ? udGeoZone_TransformPoint(m_line.pPoints[m_line.selectedPoint], *m_pZone, *m_pOriginalZone) : m_line.pPoints[m_line.selectedPoint];
   }
+
   UpdatePoints();
 
   if (m_pImage != nullptr)
@@ -128,11 +150,11 @@ void vcPOI::UpdatePoints()
   m_pLabelInfo->worldPosition = averagePosition / m_line.numPoints;
 
   if (m_showArea && m_showLength)
-    udSprintf(&m_pLabelText, "%s\n%s: %.3f\n%s: %.3f", m_pName, vcString::Get("scenePOILineLength"), m_calculatedLength, vcString::Get("scenePOIArea"), m_calculatedArea);
+    udSprintf(&m_pLabelText, "%s\n%s: %.3f\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOILineLength"), m_calculatedLength, vcString::Get("scenePOIArea"), m_calculatedArea);
   else if (m_showLength)
-    udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pName, vcString::Get("scenePOILineLength"), m_calculatedLength);
+    udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOILineLength"), m_calculatedLength);
   else if (m_showArea)
-    udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pName, vcString::Get("scenePOIArea"), m_calculatedArea);
+    udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOIArea"), m_calculatedArea);
 
   // update the fence renderer as well
   if (m_line.numPoints > 1)
@@ -282,19 +304,11 @@ void vcPOI::OnNameChange()
 void vcPOI::AddPoint(const udDouble3 &position)
 {
   udDouble3 *pNewPoints = udAllocType(udDouble3, m_line.numPoints + 1, udAF_Zero);
-  udDouble3 *pNewOriginalPoints = udAllocType(udDouble3, m_line.numPoints + 1, udAF_Zero);
 
   memcpy(pNewPoints, m_line.pPoints, sizeof(udDouble3) * m_line.numPoints);
   pNewPoints[m_line.numPoints] = position;
   udFree(m_line.pPoints);
   m_line.pPoints = pNewPoints;
-  if (m_pZone != nullptr)
-  {
-    memcpy(pNewOriginalPoints, m_line.pOriginalPoints, sizeof(udDouble3) * m_line.numPoints);
-    pNewOriginalPoints[m_line.numPoints] = udGeoZone_TransformPoint(position, *m_pZone, *m_pOriginalZone);
-  }
-  udFree(m_line.pOriginalPoints);
-  m_line.pOriginalPoints = pNewOriginalPoints;
 
   ++m_line.numPoints;
   UpdatePoints();
@@ -303,10 +317,8 @@ void vcPOI::AddPoint(const udDouble3 &position)
 void vcPOI::RemovePoint(int index)
 {
   if (index < (m_line.numPoints - 1))
-  {
     memmove(m_line.pPoints + index, m_line.pPoints + index + 1, sizeof(udDouble3) * (m_line.numPoints - index - 1));
-    memmove(m_line.pOriginalPoints + index, m_line.pOriginalPoints + index + 1, sizeof(udDouble3) * (m_line.numPoints - index - 1));
-  }
+
   --m_line.numPoints;
   UpdatePoints();
 }
@@ -316,8 +328,8 @@ void vcPOI::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZo
   if (m_pZone != nullptr)
   {
     // Change all points in the POI to the new projection
-    for (int i = 0; i < m_line.numPoints; ++i)
-      m_line.pPoints[i] = udGeoZone_TransformPoint(m_line.pOriginalPoints[i], *m_pOriginalZone, newZone);
+    //for (int i = 0; i < m_line.numPoints; ++i)
+    //  m_line.pPoints[i] = udGeoZone_TransformPoint(m_line.pOriginalPoints[i], *m_pOriginalZone, newZone);
     UpdatePoints();
   }
 
@@ -327,9 +339,7 @@ void vcPOI::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZo
 
 void vcPOI::Cleanup(vcState * /*pProgramState*/)
 {
-  udFree(m_pName);
   udFree(m_line.pPoints);
-  udFree(m_line.pOriginalPoints);
   udFree(m_pLabelText);
 
   vcFenceRenderer_Destroy(&m_pFence);
@@ -359,57 +369,4 @@ udDouble4x4 vcPOI::GetWorldSpaceMatrix()
     return udDouble4x4::translation(m_pLabelInfo->worldPosition);
   else
     return udDouble4x4::translation(m_line.pPoints[m_line.selectedPoint]);
-}
-
-void vcPOI::Init(const char *pName, uint32_t nameColour, vcLabelFontSize namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/)
-{
-  m_pImage = nullptr;
-  m_visible = true;
-  m_pName = udStrdup(pName);
-  m_nameColour = nameColour;
-  m_backColour = 0x7F000000;
-  m_namePt = namePt;
-
-  m_bookmarkCameraPosition = udDouble3::zero();
-  m_bookmarkCameraRotation = udDouble3::zero();
-  m_bookmarkMode = false;
-  m_showArea = false;
-  m_showLength = false;
-
-  memcpy(&m_line, pLine, sizeof(m_line));
-
-  m_line.selectedPoint = -1; // Sentinel for no point selected
-  m_line.pPoints = udAllocType(udDouble3, pLine->numPoints, udAF_Zero);
-  memcpy(m_line.pPoints, pLine->pPoints, sizeof(udDouble3) * pLine->numPoints);
-  m_line.pOriginalPoints = udAllocType(udDouble3, pLine->numPoints, udAF_Zero);
-  memcpy(m_line.pOriginalPoints, pLine->pPoints, sizeof(udDouble3) * pLine->numPoints);
-
-  m_pLabelText = nullptr;
-
-  m_pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
-  m_pLabelInfo->pText = m_pName;
-  m_pLabelInfo->worldPosition = pLine->pPoints[0];
-  m_pLabelInfo->textSize = namePt;
-  m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(nameColour);
-  m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
-
-  m_pFence = nullptr;
-  UpdatePoints();
-
-  if (srid != 0)
-  {
-    m_pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
-    m_pZone = udAllocType(udGeoZone, 1, udAF_Zero);
-    udGeoZone_SetFromSRID(m_pOriginalZone, srid);
-    memcpy(m_pZone, m_pOriginalZone, sizeof(*m_pZone));
-  }
-
-  if (pNotes != nullptr && pNotes[0] != '\0')
-  {
-    udJSON tempStr;
-    tempStr.SetString(pNotes);
-    m_metadata.Set(&tempStr, "notes");
-  }
-
-  m_loadStatus = vcSLS_Loaded;
 }

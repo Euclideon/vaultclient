@@ -285,8 +285,9 @@ epilogue:
   pInfo->pFeed->m_loadStatus = vcSLS_Loaded;
 }
 
-vcLiveFeed::vcLiveFeed(vdkProject *pProject) :
-  vcSceneItem(pProject, "IOT", "Live Feed"),
+
+vcLiveFeed::vcLiveFeed(vdkProjectNode *pNode) :
+  vcSceneItem(pNode),
   m_lastUpdateTime(0.0),
   m_visibleItems(0),
   m_tweenPositionAndOrientation(true),
@@ -301,25 +302,23 @@ vcLiveFeed::vcLiveFeed(vdkProject *pProject) :
   m_feedItems.Init(512);
   m_polygonModels.Init(16);
 
-  m_visible = true;
-  m_pName = udStrdup("Live Feed");
   m_loadStatus = vcSLS_Pending;
 
-  vUUID_Clear(&m_groupID);
-}
-
-vcLiveFeed::vcLiveFeed(vdkProject *pProject, const vUUID &groupid) :
-  vcLiveFeed(pProject)
-{
-  m_updateMode = vcLFM_Group;
-  m_groupID = groupid;
-}
-
-vcLiveFeed::vcLiveFeed(vdkProject *pProject, const udDouble3 &position) :
-  vcLiveFeed(pProject)
-{
-  m_updateMode = vcLFM_Position;
-  m_position = position;
+  const char *pGroupID = nullptr;
+  if (vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pGroupID, nullptr))
+  {
+    m_updateMode = vcLFM_Group;
+    vUUID_SetFromString(&m_groupID, pGroupID);
+  }
+  else if (m_pNode->geomtype == vdkPGT_Point && m_pNode->geomCount == 1)
+  {
+    m_updateMode = vcLFM_Position;
+    m_position = udDouble3::create(m_pNode->pCoordinates[0], m_pNode->pCoordinates[1], m_pNode->pCoordinates[2]);
+  }
+  else
+  {
+    vUUID_Clear(&m_groupID);
+  }
 }
 
 void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -531,8 +530,6 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
 
 void vcLiveFeed::Cleanup(vcState * /*pProgramState*/)
 {
-  udFree(m_pName);
-
   udLockMutex(m_pMutex);
   for (size_t i = 0; i < m_feedItems.length; ++i)
   {

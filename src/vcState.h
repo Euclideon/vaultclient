@@ -10,7 +10,7 @@
 
 #include "vcImageRenderer.h"
 #include "vcSettings.h"
-#include "vcScene.h"
+#include "vcSceneItem.h"
 #include "vcGIS.h"
 #include "vcFolder.h"
 #include "vcStrings.h"
@@ -33,8 +33,8 @@ struct vcConvertContext;
 
 struct vcSceneItemRef
 {
-  vcFolder *pParent;
-  size_t index;
+  vdkProjectNode *pParent;
+  vdkProjectNode *pItem;
 };
 
 enum vcLoginStatus
@@ -128,7 +128,7 @@ struct vcState
   struct
   {
     vdkProject *pProject;
-    vcFolder *pItems;
+    vcFolder *pProjectRoot;
 
     vcSceneItemRef insertItem;
     vcSceneItemRef clickedItem;
