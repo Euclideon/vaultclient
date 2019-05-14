@@ -21,6 +21,4 @@ public:
   void Cleanup(vcState *pProgramState);
 };
 
-void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine = true);
-
 #endif //vcFolder_h__
