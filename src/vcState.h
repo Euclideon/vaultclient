@@ -127,6 +127,7 @@ struct vcState
 
   struct
   {
+    vdkProject *pProject;
     vcFolder *pItems;
 
     vcSceneItemRef insertItem;

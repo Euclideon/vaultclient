@@ -244,7 +244,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   }
 
   // Handle hyperlinks
-  const char *pHyperlink = m_pMetadata->Get("hyperlink").AsString();
+  const char *pHyperlink = m_metadata.Get("hyperlink").AsString();
   if (pHyperlink != nullptr)
   {
     ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelHyperlink"), pHyperlink);
@@ -257,7 +257,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   }
 
   // Handle imageurl
-  const char *pImageURL = m_pMetadata->Get("imageurl").AsString();
+  const char *pImageURL = m_metadata.Get("imageurl").AsString();
   if (pImageURL != nullptr)
   {
     ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageURL"), pImageURL);
@@ -403,8 +403,9 @@ void vcPOI::Init(const char *pName, uint32_t nameColour, vcLabelFontSize namePt,
 
   if (pNotes != nullptr && pNotes[0] != '\0')
   {
-    m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
-    m_pMetadata->Set("notes = '%s'", pNotes);
+    udJSON tempStr;
+    tempStr.SetString(pNotes);
+    m_metadata.Set(&tempStr, "notes");
   }
 
   udStrcpy(m_typeStr, sizeof(m_typeStr), "POI");
