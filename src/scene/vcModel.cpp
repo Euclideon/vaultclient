@@ -46,19 +46,18 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, double scale,
 {
   udGeoZone *pMemberZone = nullptr;
   const char *pMetadata;
-  pModel->m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
 
   if (vdkPointCloud_GetMetadata(pProgramState->pVDKContext, pModel->m_pPointCloud, &pMetadata) == vE_Success)
   {
-    pModel->m_pMetadata->Parse(pMetadata);
-    pModel->m_hasWatermark = pModel->m_pMetadata->Get("Watermark").IsString();
+    pModel->m_metadata.Parse(pMetadata);
+    pModel->m_hasWatermark = pModel->m_metadata.Get("Watermark").IsString();
 
-    pModel->m_meterScale = pModel->m_pMetadata->Get("info.meterScale").AsDouble(1.0);
-    pModel->m_pivot = pModel->m_pMetadata->Get("info.pivot").AsDouble3();
+    pModel->m_meterScale = pModel->m_metadata.Get("info.meterScale").AsDouble(1.0);
+    pModel->m_pivot = pModel->m_metadata.Get("info.pivot").AsDouble3();
 
     vcSRID srid = 0;
-    const char *pSRID = pModel->m_pMetadata->Get("ProjectionID").AsString();
-    const char *pWKT = pModel->m_pMetadata->Get("ProjectionWKT").AsString();
+    const char *pSRID = pModel->m_metadata.Get("ProjectionID").AsString();
+    const char *pWKT = pModel->m_metadata.Get("ProjectionWKT").AsString();
 
     if (pSRID != nullptr)
     {
@@ -254,8 +253,7 @@ void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
 {
   ImGui::TextWrapped("Path: %s", m_pPath);
 
-  if (m_pMetadata != nullptr)
-    vcImGuiValueTreeObject(m_pMetadata);
+  vcImGuiValueTreeObject(&m_metadata);
 }
 
 void vcModel::Cleanup(vcState *pProgramState)
