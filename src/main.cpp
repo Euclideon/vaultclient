@@ -1705,7 +1705,7 @@ void vcRenderWindow(vcState *pProgramState)
     {
       if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings))
       {
-        vcFolder_ShowLoadStatusIndicator(vcSLS_Loading);
+        vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
         ImGui::TextUnformatted(vcString::Get("loginMessageChecking"));
       }
       ImGui::End();

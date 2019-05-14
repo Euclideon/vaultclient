@@ -13,46 +13,6 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine /*= true*/)
-{
-  const char *loadingChars[] = { "\xE2\x96\xB2", "\xE2\x96\xB6", "\xE2\x96\xBC", "\xE2\x97\x80" };
-  int64_t currentLoadingChar = (int64_t)(10*vcTime_GetEpochSecsF());
-
-  // Load Status (if any)
-  if (loadStatus == vcSLS_Pending)
-  {
-    ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Yellow Exclamation in Triangle
-    if (vcIGSW_IsItemHovered())
-      ImGui::SetTooltip("%s", vcString::Get("sceneExplorerPending"));
-
-    if (sameLine)
-      ImGui::SameLine();
-  }
-  else if (loadStatus == vcSLS_Loading)
-  {
-    ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", loadingChars[currentLoadingChar % udLengthOf(loadingChars)]); // Yellow Spinning clock
-    if (vcIGSW_IsItemHovered())
-      ImGui::SetTooltip("%s", vcString::Get("sceneExplorerLoading"));
-
-    if (sameLine)
-      ImGui::SameLine();
-  }
-  else if (loadStatus == vcSLS_Failed || loadStatus == vcSLS_OpenFailure)
-  {
-    ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Red Exclamation in Triangle
-    if (vcIGSW_IsItemHovered())
-    {
-      if (loadStatus == vcSLS_OpenFailure)
-        ImGui::SetTooltip("%s", vcString::Get("sceneExplorerErrorOpen"));
-      else
-        ImGui::SetTooltip("%s", vcString::Get("sceneExplorerErrorLoad"));
-    }
-
-    if (sameLine)
-      ImGui::SameLine();
-  }
-}
-
 vcFolder::vcFolder(const char *pName)
 {
   m_visible = true;
@@ -114,7 +74,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
     ImGui::Checkbox(udTempStr("###SXIVisible%zu", *pItemID), &m_children[i]->m_visible);
     ImGui::SameLine();
 
-    vcFolder_ShowLoadStatusIndicator((vcSceneLoadStatus)m_children[i]->m_loadStatus);
+    vcIGSW_ShowLoadStatusIndicator((vcSceneLoadStatus)m_children[i]->m_loadStatus);
 
     // The actual model
     ImGui::SetNextTreeNodeOpen(m_children[i]->m_expanded, ImGuiCond_Always);
