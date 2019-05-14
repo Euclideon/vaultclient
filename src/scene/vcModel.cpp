@@ -164,7 +164,7 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePat
   }
 
   m_visible = true;
-  m_type = vcSOT_PointCloud;
+  m_type = vdkPNT_PointCloud;
 
   udStrcpy(m_typeStr, sizeof(m_typeStr), "UDS");
 
@@ -216,7 +216,7 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
     m_pName = udStrdup(pName);
 
   m_visible = true;
-  m_type = vcSOT_PointCloud;
+  m_type = vdkPNT_PointCloud;
   m_loadStatus = vcSLS_Loaded;
 
   udStrcpy(m_typeStr, sizeof(m_typeStr), "UDS");
