@@ -11,7 +11,7 @@ class vcFolder : public vcSceneItem
 public:
   std::vector<vcSceneItem*> m_children;
 
-  vcFolder(const char *pName);
+  vcFolder(vdkProject *pProject, const char *pName);
 
   void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
 
