@@ -14,11 +14,4 @@ struct vWorkerThreadPool;
 udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL);
 udResult vcSceneLayer_Destroy(vcSceneLayer **ppSceneLayer);
 
-// TODO: add a _Load() function, and use instead of vcSceneLayerRendererMode parameter
-// inside _create should not load any node data, including the root IMO
-// then when converting, call this function in the _Open() callback
-
-//udResult vcSceneLayer_LoadEntire(vcSceneLayer *pSceneLayer);
-
-
 #endif//vcSceneLayer_h__

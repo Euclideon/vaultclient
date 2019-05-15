@@ -20,8 +20,7 @@ enum
   vcRender_SceneSizeIncrement = 32 // directX framebuffer can only be certain increments
 };
 
-vcSceneLayerRenderer *pSceneLayerRenderer = nullptr;
-vcSceneLayer *pSceneLayer[2] = {};
+vcSceneLayerRenderer *pSceneLayerRenderer[2] = {};
 
 struct vcUDRenderContext
 {
@@ -133,10 +132,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, pSettings));
   UD_ERROR_CHECK(vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences));
 
-  vcSceneLayer_Create(&pSceneLayer[0], pWorkerThreadPool, "E:/Vault Datasets/I3S/mesh4");
-  vcSceneLayer_Create(&pSceneLayer[1], pWorkerThreadPool, "E:/Vault Datasets/I3S/tilt/tilt");
-
-  vcSceneLayerRenderer_Create(&pSceneLayerRenderer);
+  vcSceneLayerRenderer_Create(&pSceneLayerRenderer[0], pWorkerThreadPool, "E:/Vault Datasets/I3S/mesh4");
+  vcSceneLayerRenderer_Create(&pSceneLayerRenderer[1], pWorkerThreadPool, "E:/Vault Datasets/I3S/tilt/tilt");
 
   *ppRenderContext = pRenderContext;
 
@@ -184,9 +181,7 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
   vcImageRenderer_Destroy();
 
   for (int i = 0; i < 2; ++i)
-    vcSceneLayer_Destroy(&pSceneLayer[i]);
-
-  vcSceneLayerRenderer_Destroy(&pSceneLayerRenderer);
+    vcSceneLayerRenderer_Destroy(&pSceneLayerRenderer[i]);
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
@@ -445,7 +440,7 @@ void vcRenderOpaqueGeometry(vcRenderContext *pRenderContext, vcRenderData &rende
       vcPolygonModel_Render(renderData.polyModels[i].pModel, renderData.polyModels[i].worldMat, pRenderContext->pCamera->matrices.viewProjection);
 
     for (size_t i = 0; i < 2; ++i)
-      vcSceneLayerRenderer_Render(pSceneLayerRenderer, pSceneLayer[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
+      vcSceneLayerRenderer_Render(pSceneLayerRenderer[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
 
     for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
       vcWaterRenderer_Render(renderData.waterVolumes[i], pRenderContext->pCamera->matrices.view, pRenderContext->pCamera->matrices.viewProjection, pRenderContext->pSkyboxTexture, renderData.deltaTime);

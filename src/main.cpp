@@ -73,6 +73,7 @@ extern "C" {
 # define main ClientMain
 int main(int argc, char **args);
 
+
 int SDL_main(int argc, char **args)
 {
   _CrtMemState m1, m2, diff;

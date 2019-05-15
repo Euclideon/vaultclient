@@ -117,7 +117,8 @@ struct vcSceneLayer
   size_t geometryVertexStride;
 };
 
-// TODO: (EVC-548) This will the nodes data entirely - (this actually may not be necessary)
+// TODO: (EVC-548) This will the nodes data entirely - (this actually may not be necessary, for
+// example during convert, we only need the leaf nodes data...so why load non-leaf node geometry data etc.?)
 // if `pNode` is nullptr, the entire model will be loaded into memory
 // Note: Does not upload to GPU here
 udResult vcSceneLayer_LoadNodeData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode = nullptr);
