@@ -793,7 +793,7 @@ int main(int argc, char **args)
   SDL_free(pIcon);
 
   ImGui::CreateContext();
-  ImGui::GetStyle().WindowRounding = 0;
+  ImGui::GetStyle().WindowRounding = 0.0f;
 
   vcMain_LoadSettings(&programState, false);
 
