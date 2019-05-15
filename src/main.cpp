@@ -603,6 +603,10 @@ void vcMain_MainLoop(vcState *pProgramState)
               else
                 pPOI->m_metadata.Set("imagetype = 'standard'");
             }
+            else
+            {
+              vcConvert_AddFile(pProgramState, pNextLoad);
+            }
           }
 
           udFree(pNextLoad);
