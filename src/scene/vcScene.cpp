@@ -24,7 +24,8 @@ vcSceneItem::vcSceneItem(vdkProjectNode *pNode) :
   m_editName(false),
   m_moved(false),
   m_pOriginalZone(nullptr),
-  m_pZone(nullptr)
+  m_pZone(nullptr),
+  m_pPath(nullptr)
 {
   m_metadata.SetVoid();
   m_pNode = pNode;
