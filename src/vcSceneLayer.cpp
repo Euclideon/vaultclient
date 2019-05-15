@@ -57,6 +57,7 @@ void vcNormalizePath(const char **ppDest, const char *pRoot, const char *pAppend
     udSprintf(ppDest, "%s/%s", pRoot, pNewAppend);
   else
     udSprintf(ppDest, "%s", pNewAppend);
+
   udFree(pNewAppend);
 }
 
@@ -106,11 +107,6 @@ void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode)
   udFree(pNode->pURL);
 }
 
-vcSceneLayerNode *vcSceneLayer_GetRootNode(vcSceneLayer *pSceneLayer)
-{
-  return &pSceneLayer->root;
-}
-
 udResult vcSceneLayer_LoadNodeFeatureData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
 {
   udUnused(pSceneLayer);
@@ -131,7 +127,7 @@ udResult vcSceneLayer_LoadNodeFeatureData(vcSceneLayer *pSceneLayer, vcSceneLaye
     // Note: 'position' is either (x/y/z) OR just (x/y).
     pNode->pFeatureData[i].position.x = featuresJSON.Get("featureData[%zu].position[0]", i).AsDouble();
     pNode->pFeatureData[i].position.y = featuresJSON.Get("featureData[%zu].position[1]", i).AsDouble();
-    pNode->pFeatureData[i].position.z = featuresJSON.Get("featureData[%zu].position[2]", i).AsDouble(); // may not exist
+    pNode->pFeatureData[i].position.z = featuresJSON.Get("featureData[%zu].position[2]", i).AsDouble(0.0); // may not exist
     pNode->pFeatureData[i].pivotOffset = featuresJSON.Get("featureData[%zu].pivotOffset", i).AsDouble3();
     pNode->pFeatureData[i].minimumBoundingBox = featuresJSON.Get("featureData[%zu].mbb", i).AsDouble4();
 
@@ -199,7 +195,6 @@ udResult vcSceneLayer_LoadNodeGeometryData(vcSceneLayer *pSceneLayer, vcSceneLay
     /// Geometry
     // TODO: EVC-542
     UD_ERROR_IF(pNode->pGeometryData[i].vertCount * pSceneLayer->geometryVertexStride == 0, udR_ParseError);
-
     pNode->pGeometryData[i].pData = udAllocType(uint8_t, pNode->pGeometryData[i].vertCount * pSceneLayer->geometryVertexStride, udAF_Zero);
 
     // vertices are non-interleaved.
@@ -218,16 +213,6 @@ udResult vcSceneLayer_LoadNodeGeometryData(vcSceneLayer *pSceneLayer, vcSceneLay
         pointCartesian = udGeoZone_ToCartesian(pNode->zone, udDouble3::create(pNode->latLong.x + vertI3S.x, pNode->latLong.y + vertI3S.y, 0.0), true);
         originCartesian = udDouble3::create(pointCartesian.x, pointCartesian.y, vertI3S.z + pNode->pFeatureData[i].position.z);
         pNode->pGeometryData[i].originMatrix = udDouble4x4::translation(originCartesian);
-
-        // Calculate the minimum point in each axis as the origin
-        // (convert seems to require that all verts be positive?)
-        //for (uint64_t v = 0; v < pNode->pGeometryData[i].vertCount; ++v)
-        //{
-        //  memcpy(&vertI3S, pCurrentFile + attributeSize * v, sizeof(vertI3S));
-        //  pointCartesian = udGeoZone_ToCartesian(pNode->zone, udDouble3::create(pNode->latLong.x + vertI3S.x, pNode->latLong.y + vertI3S.y, 0.0), true);
-        //  originCartesian = udDouble3::create(udMin(originCartesian.x, pointCartesian.x), udMin(originCartesian.y, pointCartesian.y), udMin(originCartesian.z, (vertI3S.z + pNode->pFeatureData[i].position.z)));
-        //}
-        //pNode->pGeometryData[i].originMatrix = udDouble4x4::translation(originCartesian);
 
         for (uint64_t v = 0; v < pNode->pGeometryData[i].vertCount; ++v)
         {
@@ -450,11 +435,9 @@ udResult vcSceneLayer_LoadNodeData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *
   if (pNode != nullptr)
     UD_ERROR_SET(vcSceneLayer_RecursiveLoadNodeData(pSceneLayer, pNode, false));
 
-  // Load the roots children
+  // Load the entire model
   for (size_t i = 0; i < pSceneLayer->root.childrenCount; ++i)
-  {
     UD_ERROR_CHECK(vcSceneLayer_RecursiveLoadNodeData(pSceneLayer, &pSceneLayer->root.pChildren[i], true));
-  }
 
   result = udR_Success;
 
@@ -536,7 +519,6 @@ udResult vcSceneLayer_Destroy(vcSceneLayer **ppSceneLayer)
   *ppSceneLayer = nullptr;
 
   vcSceneLayer_RecursiveDestroyNode(&pSceneLayer->root);
-
   pSceneLayer->description.Destroy();
 
   udFree(pSceneLayer->pDefaultGeometryLayout);
@@ -627,9 +609,4 @@ bool vcSceneLayer_TouchNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
   }
 
   return (pNode->loadState == vcSceneLayerNode::vcLS_Success);
-}
-
-uint32_t vcSceneLayer_GetGeometryVertexSize(vcSceneLayer *pSceneLayer)
-{
-  return vcLayout_GetSize(pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount);
 }

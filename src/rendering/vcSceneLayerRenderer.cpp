@@ -9,46 +9,53 @@
 
 struct vcSceneLayerRenderer
 {
+  vcSceneLayer *pSceneLayer;
 
+  udDouble4 frustumPlanes[6];
 };
 
-udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer)
+udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL)
 {
-  *ppSceneLayerRenderer = udAllocType(vcSceneLayerRenderer, 1, udAF_Zero);
+  udResult result;
+  vcSceneLayerRenderer *pSceneLayerRenderer = nullptr;
 
-  return udR_Success;
+  UD_ERROR_NULL(ppSceneLayerRenderer, udR_InvalidParameter_);
+
+  pSceneLayerRenderer = udAllocType(vcSceneLayerRenderer, 1, udAF_Zero);
+  UD_ERROR_NULL(pSceneLayerRenderer, udR_MemoryAllocationFailure);
+
+  UD_ERROR_CHECK(vcSceneLayer_Create(&pSceneLayerRenderer->pSceneLayer, pWorkerThreadPool, pSceneLayerURL));
+
+  *ppSceneLayerRenderer = pSceneLayerRenderer;
+  result = udR_Success;
+
+epilogue:
+  return result;
 }
 
 udResult vcSceneLayerRenderer_Destroy(vcSceneLayerRenderer **ppSceneLayerRenderer)
 {
-  udFree(*ppSceneLayerRenderer);
+  udResult result;
+  vcSceneLayerRenderer *pSceneLayerRenderer = nullptr;
 
-  return udR_Success;
-}
+  UD_ERROR_NULL(ppSceneLayerRenderer, udR_InvalidParameter_);
 
-// TODO: This is a copy of the implementation from vcTileRenderer.cpp
-// Returns -1=outside, 0=inside, >0=partial (bits of planes crossed)
-static int vcSceneLayerRenderer_FrustumTest(const udDouble4 frustumPlanes[6], const udDouble3 &boundCenter, const udDouble3 &boundExtents)
-{
-  int partial = 0;
+  pSceneLayerRenderer = *ppSceneLayerRenderer;
+  *ppSceneLayerRenderer = nullptr;
 
-  for (int i = 0; i < 6; ++i)
-  {
-    double distToCenter = udDot4(udDouble4::create(boundCenter, 1.0), frustumPlanes[i]);
-    //optimized for case where boxExtents are all same: udFloat radiusBoxAtPlane = udDot3(boxExtents, udAbs(udVec3(curPlane)));
-    double radiusBoxAtPlane = udDot3(boundExtents, udAbs(frustumPlanes[i].toVector3()));
-    if (distToCenter < -radiusBoxAtPlane)
-      return -1; // Box is entirely behind at least one plane
-    else if (distToCenter <= radiusBoxAtPlane) // If spanned (not entirely infront)
-      partial |= (1 << i);
-  }
+  vcSceneLayer_Destroy(&pSceneLayerRenderer->pSceneLayer);
 
-  return partial;
+  udFree(pSceneLayerRenderer);
+
+  result = udR_Success;
+
+epilogue:
+  return result;
 }
 
 bool vcSceneLayerRenderer_IsNodeVisible(vcSceneLayerNode *pNode, const udDouble4 frustumPlanes[6])
 {
-  return -1 < vcSceneLayerRenderer_FrustumTest(frustumPlanes, pNode->minimumBoundingSphere.position, udDouble3::create(pNode->minimumBoundingSphere.radius));
+  return -1 < udFrustumTest(frustumPlanes, pNode->minimumBoundingSphere.position, udDouble3::create(pNode->minimumBoundingSphere.radius));
 }
 
 double vcSceneLayerRenderer_CalculateNodeScreenSize(vcSceneLayerNode *pNode, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution)
@@ -70,7 +77,6 @@ double vcSceneLayerRenderer_CalculateNodeScreenSize(vcSceneLayerNode *pNode, con
 
 void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udDouble4x4 &viewProjectionMatrix)
 {
-  //printf("Drawing node %s\n", pNode->id);
   udUnused(pSceneLayerRenderer);
 
   for (size_t geometry = 0; geometry < pNode->geometryDataCount; ++geometry)
@@ -80,7 +86,7 @@ void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayerRenderer, 
 
     vcTexture *pDrawTexture = nullptr;
     if (pNode->textureDataCount > 0 && pNode->pTextureData[0].loaded)
-      pDrawTexture = pNode->pTextureData[0].pTexture; // TODO: pretty sure i need to read the material for this...
+      pDrawTexture = pNode->pTextureData[0].pTexture; // TODO: pretty sure I need to read the material for this...
 
     vcPolygonModel_Render(pNode->pGeometryData[geometry].pModel, pNode->pGeometryData[geometry].originMatrix, viewProjectionMatrix, pDrawTexture);
 
@@ -88,12 +94,12 @@ void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayerRenderer, 
   }
 }
 
-bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode, const udDouble4x4 &viewProjectionMatrix, const udDouble4 frustumPlanes[6], const udUInt2 &screenResolution)
+bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution)
 {
-  if (!vcSceneLayerRenderer_IsNodeVisible(pNode, frustumPlanes))
+  if (!vcSceneLayerRenderer_IsNodeVisible(pNode, pSceneLayerRenderer->frustumPlanes))
     return true; // consume, but do nothing
 
-  if (!vcSceneLayer_TouchNode(pSceneLayer, pNode))
+  if (!vcSceneLayer_TouchNode(pSceneLayerRenderer->pSceneLayer, pNode))
     return false;
 
   double nodeScreenSize = vcSceneLayerRenderer_CalculateNodeScreenSize(pNode, viewProjectionMatrix, screenResolution);
@@ -107,7 +113,7 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRende
   for (size_t i = 0; i < pNode->childrenCount; ++i)
   {
     vcSceneLayerNode *pChildNode = &pNode->pChildren[i];
-    childrenAllRendered = vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, pSceneLayer, pChildNode, viewProjectionMatrix, frustumPlanes, screenResolution) && childrenAllRendered;
+    childrenAllRendered = vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, pChildNode, viewProjectionMatrix, screenResolution) && childrenAllRendered;
   }
 
   // TODO: (EVC-548)
@@ -119,7 +125,7 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRende
   return true;
 }
 
-bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayer *pSceneLayer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution)
+bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayerRenderer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution)
 {
   if (pSceneLayerRenderer == nullptr)
     return false;
@@ -127,16 +133,15 @@ bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayerRenderer, vcSc
   // TODO: (EVC-548) This is duplicated work across i3s models
   // extract frustum planes and re-use
   udDouble4x4 transposedViewProjection = udTranspose(viewProjectionMatrix);
-  udDouble4 frustumPlanes[6];
-  frustumPlanes[0] = transposedViewProjection.c[3] + transposedViewProjection.c[0]; // Left
-  frustumPlanes[1] = transposedViewProjection.c[3] - transposedViewProjection.c[0]; // Right
-  frustumPlanes[2] = transposedViewProjection.c[3] + transposedViewProjection.c[1]; // Bottom
-  frustumPlanes[3] = transposedViewProjection.c[3] - transposedViewProjection.c[1]; // Top
-  frustumPlanes[4] = transposedViewProjection.c[3] + transposedViewProjection.c[2]; // Near
-  frustumPlanes[5] = transposedViewProjection.c[3] - transposedViewProjection.c[2]; // Far
+  pSceneLayerRenderer->frustumPlanes[0] = transposedViewProjection.c[3] + transposedViewProjection.c[0]; // Left
+  pSceneLayerRenderer->frustumPlanes[1] = transposedViewProjection.c[3] - transposedViewProjection.c[0]; // Right
+  pSceneLayerRenderer->frustumPlanes[2] = transposedViewProjection.c[3] + transposedViewProjection.c[1]; // Bottom
+  pSceneLayerRenderer->frustumPlanes[3] = transposedViewProjection.c[3] - transposedViewProjection.c[1]; // Top
+  pSceneLayerRenderer->frustumPlanes[4] = transposedViewProjection.c[3] + transposedViewProjection.c[2]; // Near
+  pSceneLayerRenderer->frustumPlanes[5] = transposedViewProjection.c[3] - transposedViewProjection.c[2]; // Far
   // Normalize the planes
   for (int j = 0; j < 6; ++j)
-    frustumPlanes[j] /= udMag3(frustumPlanes[j]);
+    pSceneLayerRenderer->frustumPlanes[j] /= udMag3(pSceneLayerRenderer->frustumPlanes[j]);
 
-  return vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, pSceneLayer, &pSceneLayer->root, viewProjectionMatrix, frustumPlanes, screenResolution);
+  return vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, &pSceneLayerRenderer->pSceneLayer->root, viewProjectionMatrix, screenResolution);
 }
