@@ -208,7 +208,6 @@ struct vcSettings
 
   vcPresentationMode responsiveUI;
   int hideIntervalSeconds;
-  ImGuiWindow *pActive[vcDocks_Count];
 };
 
 // Settings Limits (vcSL prefix)

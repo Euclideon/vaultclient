@@ -477,6 +477,21 @@ void vcMain_MainLoop(vcState *pProgramState)
             }
             else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif"))
             {
+              // Use as convert watermark if convert window is open, focused tab if docked and under the mouse position
+              if (pProgramState->settings.window.windowsOpen[vcDocks_Convert])
+              {
+                ImGuiWindow *pConvert = ImGui::FindWindowByName("###convertDock");
+                if (pConvert != nullptr && ((pConvert->DockNode != nullptr && pConvert->DockTabIsVisible) || (pConvert->DockNode == nullptr && !pConvert->Collapsed)))
+                {
+                  int x, y;
+                  SDL_GetMouseState(&x, &y); // ImGui mouse pos is -FLT_MAX during drag/drop operation
+                  if (x > pConvert->Pos.x && x < pConvert->Pos.x + pConvert->Size.x && y > pConvert->Pos.y && y < pConvert->Pos.y + pConvert->Size.y)
+                  {
+                    vcConvert_AddFile(pProgramState, pNextLoad);
+                    continue;
+                  }
+                }
+              }
               udDouble3 geolocation = udDouble3::zero();
               bool hasLocation = false;
               vcImageType imageType = vcIT_StandardPhoto;
@@ -591,7 +606,6 @@ void vcMain_MainLoop(vcState *pProgramState)
             else
             {
               vcConvert_AddFile(pProgramState, pNextLoad);
-              pProgramState->changeActiveDock = vcDocks_Convert;
             }
           }
 
@@ -2317,19 +2331,6 @@ void vcRenderWindow(vcState *pProgramState)
         }
       }
       ImGui::End();
-    }
-
-    if (pProgramState->settings.pActive[0] != nullptr)
-    {
-      // Set selected tab ID to the now created tab
-      for (int i = 0; i < vcDocks_Count; ++i)
-      {
-        if (pProgramState->settings.pActive[i] == nullptr)
-          break;
-
-        ImGui::SetWindowFocus(pProgramState->settings.pActive[i]->Name);
-        pProgramState->settings.pActive[i] = nullptr;
-      }
     }
 
     if (pProgramState->currentError != vE_Success)
