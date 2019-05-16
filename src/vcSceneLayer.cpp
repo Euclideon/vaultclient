@@ -12,24 +12,48 @@
 
 #include "udPlatform/udFile.h"
 
-static const char *pSceneLayerInfoFileName = "3dSceneLayer.json";
-static const char *pNodeInfoFileName = "3dNodeIndexDocument.json";
+static const char *pSceneLayerInfoFilename = "3dSceneLayer.json";
+static const char *pNodeInfoFilename = "3dNodeIndexDocument.json";
+
 
 struct vcSceneLayer_LoadNodeJobData
 {
   vcSceneLayer *pSceneLayer;
   vcSceneLayerNode *pNode;
+  vcSceneLayerNodeLoadOptions loadOptions;
 };
 
-void vcSceneLayer_LoadNodeThread(void *pData)
+udResult vcSceneLayer_LoadNodeData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
+
+void vcSceneLayer_LoadNodeJob(void *pData)
 {
   vcSceneLayer_LoadNodeJobData *pLoadData = (vcSceneLayer_LoadNodeJobData*)pData;
 
-  // Note: this will load the entirety of the nodes data - which could be unnecessary?
+  if (!pLoadData->pSceneLayer->isActive)
+  {
+    pLoadData->pNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
+    return;
+  }
+
+  // TODO: (JIRA 548) this will load the entirety of the nodes data - which could be unnecessary?
+  vcSceneLayer_LoadNode(pLoadData->pSceneLayer, pLoadData->pNode);
+}
+
+void vcSceneLayer_LoadNodeInternalsJob(void *pData)
+{
+  vcSceneLayer_LoadNodeJobData *pLoadData = (vcSceneLayer_LoadNodeJobData*)pData;
+
+  if (!pLoadData->pSceneLayer->isActive)
+  {
+    pLoadData->pNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
+    return;
+  }
+
+  // TODO: (JIRA 548) this will load the entirety of the nodes data - which could be unnecessary?
   vcSceneLayer_LoadNodeData(pLoadData->pSceneLayer, pLoadData->pNode);
 }
 
-// TODO: (EVC-549) This should be removed from here and put somewhere public
+// TODO: (EVC-549) This should be in udPlatform
 void vcNormalizePath(const char **ppDest, const char *pRoot, const char *pAppend)
 {
   const char *pRemoveCharacters = "\\";
@@ -63,6 +87,9 @@ void vcNormalizePath(const char **ppDest, const char *pRoot, const char *pAppend
 
 void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode)
 {
+  while (pNode->loadState == vcSceneLayerNode::vcLS_InQueue || pNode->loadState == vcSceneLayerNode::vcLS_Loading)
+    udYield();
+
   for (size_t i = 0; i < pNode->sharedResourceCount; ++i)
   {
     udFree(pNode->pSharedResources[i].pURL);
@@ -107,7 +134,65 @@ void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode)
   udFree(pNode->pURL);
 }
 
-udResult vcSceneLayer_LoadNodeFeatureData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
+udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode, bool force = false)
+{
+  udResult result;
+  bool uploadsCompleted = true;
+
+  if (!force && !vcGLState_IsGPUDataUploadAllowed())
+    return udR_Success;
+
+  // geometry
+  for (size_t i = 0; i < pNode->geometryDataCount; ++i)
+  {
+    if (pNode->pGeometryData[i].loaded)
+      continue;
+
+    // TODO: (EVC-553) Let `vcPolygonModel_CreateFromData()` handle this
+    if (!force && !vcGLState_IsGPUDataUploadAllowed()) // allow partial uploads
+    {
+      uploadsCompleted = false;
+      break;
+    }
+
+    UD_ERROR_IF(pNode->pGeometryData[i].vertCount > UINT16_MAX, udR_Failure_);
+    UD_ERROR_CHECK(vcPolygonModel_CreateFromData(&pNode->pGeometryData[i].pModel, pNode->pGeometryData[i].pData, (uint16_t)pNode->pGeometryData[i].vertCount, pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount));
+    udFree(pNode->pGeometryData[i].pData);
+
+    pNode->pGeometryData[i].loaded = true;
+    vcGLState_GPUDidWork(0, 0, (pNode->pGeometryData[i].vertexStride * pNode->pGeometryData[i].vertCount));
+  }
+
+  // textures
+  for (size_t i = 0; i < pNode->textureDataCount; ++i)
+  {
+    if (pNode->pTextureData[i].loaded || pNode->pTextureData[i].pData == nullptr)
+      continue;
+
+    // TODO: (EVC-553) Let `vcTexture_Create()` handle this
+    if (!force && !vcGLState_IsGPUDataUploadAllowed()) // allow partial uploads
+    {
+      uploadsCompleted = false;
+      break;
+    }
+
+    UD_ERROR_CHECK(vcTexture_Create(&pNode->pTextureData[i].pTexture, pNode->pTextureData[i].width, pNode->pTextureData[i].height, pNode->pTextureData[i].pData, vcTextureFormat_RGBA8, vcTFM_Linear, false));
+    udFree(pNode->pTextureData[i].pData);
+
+    pNode->pTextureData[i].loaded = true;
+    vcGLState_GPUDidWork(0, 0, (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4));
+  }
+
+  if (uploadsCompleted)
+    pNode->loadState = vcSceneLayerNode::vcLS_Success;
+
+  result = udR_Success;
+
+epilogue:
+  return result;
+}
+
+udResult vcSceneLayer_LoadFeatureData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
 {
   udUnused(pSceneLayer);
 
@@ -146,7 +231,7 @@ epilogue:
 }
 
 // Assumed the nodes features have already been loaded
-udResult vcSceneLayer_LoadNodeGeometryData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
+udResult vcSceneLayer_LoadGeometryData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
 {
   udResult result;
   const char *pPathBuffer = nullptr;
@@ -173,7 +258,7 @@ udResult vcSceneLayer_LoadNodeGeometryData(vcSceneLayer *pSceneLayer, vcSceneLay
     pCurrentFile = pFileData;
 
     /// Header
-    // TODO: Calculate once on node load... not per geometry
+    // TODO: (EVC-548) Calculate once on node load... not per geometry
     headerElementCount = pSceneLayer->description.Get("store.defaultGeometrySchema.header").ArrayLength();
     for (size_t h = 0; h < headerElementCount; ++h)
     {
@@ -193,9 +278,10 @@ udResult vcSceneLayer_LoadNodeGeometryData(vcSceneLayer *pSceneLayer, vcSceneLay
     }
 
     /// Geometry
-    // TODO: EVC-542
-    UD_ERROR_IF(pNode->pGeometryData[i].vertCount * pSceneLayer->geometryVertexStride == 0, udR_ParseError);
-    pNode->pGeometryData[i].pData = udAllocType(uint8_t, pNode->pGeometryData[i].vertCount * pSceneLayer->geometryVertexStride, udAF_Zero);
+    // TODO: (EVC-542)
+    pNode->pGeometryData[i].vertexStride = vcLayout_GetSize(pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount);
+    UD_ERROR_IF(pNode->pGeometryData[i].vertCount * pNode->pGeometryData[i].vertexStride == 0, udR_ParseError);
+    pNode->pGeometryData[i].pData = udAllocType(uint8_t, pNode->pGeometryData[i].vertCount * pNode->pGeometryData[i].vertexStride, udAF_Zero);
 
     // vertices are non-interleaved.
     // TODO: (EVC-542) Is that what "Topology: PerAttributeArray" signals?
@@ -221,20 +307,17 @@ udResult vcSceneLayer_LoadNodeGeometryData(vcSceneLayer *pSceneLayer, vcSceneLay
           pointCartesian.z = vertI3S.z; // Elevation (the z component of the vertex position) is specified in meters
           finalVertPosition = udFloat3::create(pointCartesian - originCartesian);
 
-          memcpy(pNode->pGeometryData[i].pData + vertexOffset + (v * pSceneLayer->geometryVertexStride), &finalVertPosition, attributeSize);
+          memcpy(pNode->pGeometryData[i].pData + vertexOffset + (v * pNode->pGeometryData[i].vertexStride), &finalVertPosition, attributeSize);
           pCurrentFile += attributeSize;
         }
 
-        // TODO: (EVC-543) The heights appear to be normalized? So I did this
-        // to line it up so that the minimum vertex height is at 0.0. I don't know
-        // if this is correct, I've probably missed something in the model format.
         pNode->pGeometryData[i].originMatrix.axis.t.z += pNode->minimumBoundingSphere.position.z;
       }
       else
       {
         for (uint64_t v = 0; v < pNode->pGeometryData[i].vertCount; ++v)
         {
-          memcpy(pNode->pGeometryData[i].pData + vertexOffset + (v * pSceneLayer->geometryVertexStride), pCurrentFile, attributeSize);
+          memcpy(pNode->pGeometryData[i].pData + vertexOffset + (v * pNode->pGeometryData[i].vertexStride), pCurrentFile, attributeSize);
           pCurrentFile += attributeSize;
         }
       }
@@ -257,7 +340,7 @@ epilogue:
 }
 
 // Assumed nodes features has already been loaded
-udResult vcSceneLayer_LoadNodeTextureData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
+udResult vcSceneLayer_LoadTextureData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
 {
   udUnused(pSceneLayer);
 
@@ -345,25 +428,37 @@ void vcSceneLayer_CalculateNodeBounds(vcSceneLayerNode *pNode, const udDouble4 &
   pNode->minimumBoundingSphere.position = udGeoZone_ToCartesian(pNode->zone, originLatLong, true);
   pNode->minimumBoundingSphere.position.z = mbsLatLongHeightRadius.z;
   pNode->minimumBoundingSphere.radius = mbsLatLongHeightRadius.w;
-
-  // debugging
-  // printf("Origin: %f, %f\n", pNode->minimumBoundingSphere.position.x, pNode->minimumBoundingSphere.position.y);
-  // printf("SRID: %d\n", sridCode);
 }
 
-udResult vcSceneLayer_RecursiveLoadNodeData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode, bool recursive)
+udResult vcSceneLayer_LoadNodeData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
+{
+  udResult result;
+
+  UD_ERROR_NULL(pNode, udR_InvalidParameter_);
+
+  UD_ERROR_CHECK(vcSceneLayer_LoadFeatureData(pSceneLayer, pNode));
+  UD_ERROR_CHECK(vcSceneLayer_LoadGeometryData(pSceneLayer, pNode));
+  UD_ERROR_CHECK(vcSceneLayer_LoadTextureData(pSceneLayer, pNode));
+
+  pNode->loadState = vcSceneLayerNode::vcLS_InMemory;
+  result = udR_Success;
+
+epilogue:
+  return result;
+}
+
+udResult vcSceneLayer_RecursiveLoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode, const vcSceneLayerNodeLoadOptions &options)
 {
   udResult result;
   udJSON nodeJSON;
   const char *pPathBuffer = nullptr;
   char *pFileData = nullptr;
   int64_t fileLen = 0;
-  vcSceneLayerNode *pChildNode = nullptr;
 
   pNode->loadState = vcSceneLayerNode::vcLS_Loading;
 
   // Load the nodes info
-  udSprintf(&pPathBuffer, "%s/%s", pNode->pURL, pNodeInfoFileName);
+  udSprintf(&pPathBuffer, "%s/%s", pNode->pURL, pNodeInfoFilename);
   UD_ERROR_CHECK(udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen));
   UD_ERROR_CHECK(nodeJSON.Parse(pFileData));
 
@@ -375,7 +470,7 @@ udResult vcSceneLayer_RecursiveLoadNodeData(vcSceneLayer *pSceneLayer, vcSceneLa
   }
 
   pNode->level = nodeJSON.Get("level").AsInt();
-  pNode->loadSelectionValue = nodeJSON.Get("lodSelection[0].maxError").AsDouble(); // TODO: I've made an assumptions here (e.g. always has at least one lod metric)
+  pNode->lodSelectionValue = nodeJSON.Get("lodSelection[0].maxError").AsDouble(); // TODO: I've made an assumptions here (e.g. always has at least one lod metric)
 
   UD_ERROR_CHECK(vcSceneLayer_AllocateNodeData(&pNode->pSharedResources, &pNode->sharedResourceCount, nodeJSON, "sharedResource"));
   UD_ERROR_CHECK(vcSceneLayer_AllocateNodeData(&pNode->pFeatureData, &pNode->featureDataCount, nodeJSON, "featureData"));
@@ -392,7 +487,7 @@ udResult vcSceneLayer_RecursiveLoadNodeData(vcSceneLayer *pSceneLayer, vcSceneLa
 
     for (size_t i = 0; i < pNode->childrenCount; ++i)
     {
-      pChildNode = &pNode->pChildren[i];
+      vcSceneLayerNode *pChildNode = &pNode->pChildren[i];
       pChildNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
 
       udStrcpy(pChildNode->id, sizeof(pChildNode->id), nodeJSON.Get("children[%zu].id", i).AsString());
@@ -402,19 +497,27 @@ udResult vcSceneLayer_RecursiveLoadNodeData(vcSceneLayer *pSceneLayer, vcSceneLa
     }
   }
 
-  // TODO: (EVC-548) - these may actually not be needed yet during realtime rendering
-  UD_ERROR_CHECK(vcSceneLayer_LoadNodeFeatureData(pSceneLayer, pNode));
-  UD_ERROR_CHECK(vcSceneLayer_LoadNodeGeometryData(pSceneLayer, pNode));
-  UD_ERROR_CHECK(vcSceneLayer_LoadNodeTextureData(pSceneLayer, pNode));
+  // TODO: (EVC-548) - these may actually not be needed
+  // E.g. During convert, where we're trying to just get the leaf nodes...
+  // for non-leaf nodes none of these are actually needed!
+  // E.g. For rendering, maybe we want to skip over a few levels
+  // (options & vsSLNLO_ShallowLoad == 0) &&
+  if (((options & vsSLNLO_CompleteNodeLoad) || ((options & vsSLNLO_OnlyLoadLeaves) == 0 || pNode->childrenCount == 0)))
+  {
+    UD_ERROR_CHECK(vcSceneLayer_LoadNodeData(pSceneLayer, pNode));
 
-  pNode->loadState = vcSceneLayerNode::vcLS_InMemory;
+    if (options & vsSLNLO_CompleteNodeLoad)
+      UD_ERROR_CHECK(vcSceneLayer_UploadDataToGPUIfPossible(pSceneLayer, pNode, true));
+  }
+  else
+  {
+    pNode->loadState = vcSceneLayerNode::vcLS_PartialLoad;
+  }
 
-  if (recursive)
+  if (options & vsSLNLO_RecursiveLoad)
   {
     for (size_t i = 0; i < pNode->childrenCount; ++i)
-    {
-      UD_ERROR_CHECK(vcSceneLayer_RecursiveLoadNodeData(pSceneLayer, &pNode->pChildren[i], recursive));
-    }
+      UD_ERROR_CHECK(vcSceneLayer_RecursiveLoadNode(pSceneLayer, &pNode->pChildren[i], options));
   }
 
   result = udR_Success;
@@ -428,16 +531,16 @@ epilogue:
   return result;
 }
 
-udResult vcSceneLayer_LoadNodeData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode /* = nullptr*/)
+udResult vcSceneLayer_LoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode /* = nullptr*/, const vcSceneLayerNodeLoadOptions &options /* = vcSLNLO_None*/)
 {
   udResult result;
 
   if (pNode != nullptr)
-    UD_ERROR_SET(vcSceneLayer_RecursiveLoadNodeData(pSceneLayer, pNode, false));
+    UD_ERROR_SET(vcSceneLayer_RecursiveLoadNode(pSceneLayer, pNode, options));
 
   // Load the entire model
   for (size_t i = 0; i < pSceneLayer->root.childrenCount; ++i)
-    UD_ERROR_CHECK(vcSceneLayer_RecursiveLoadNodeData(pSceneLayer, &pSceneLayer->root.pChildren[i], true));
+    UD_ERROR_CHECK(vcSceneLayer_RecursiveLoadNode(pSceneLayer, &pSceneLayer->root.pChildren[i], options));
 
   result = udR_Success;
 
@@ -457,11 +560,12 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWo
   pSceneLayer = udAllocType(vcSceneLayer, 1, udAF_Zero);
   UD_ERROR_NULL(pSceneLayer, udR_MemoryAllocationFailure);
 
+  pSceneLayer->isActive = true;
   pSceneLayer->pThreadPool = pWorkerThreadPool;
   udStrcpy(pSceneLayer->sceneLayerURL, sizeof(pSceneLayer->sceneLayerURL), pSceneLayerURL);
 
   // TODO: Actually unzip. For now I'm manually unzipping until udPlatform change
-  udSprintf(&pPathBuffer, "%s/%s", pSceneLayer->sceneLayerURL, pSceneLayerInfoFileName);
+  udSprintf(&pPathBuffer, "%s/%s", pSceneLayer->sceneLayerURL, pSceneLayerInfoFilename);
   UD_ERROR_CHECK(udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen));
   UD_ERROR_CHECK(pSceneLayer->description.Parse(pFileData));
 
@@ -491,12 +595,11 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWo
       UD_ERROR_SET(udR_ParseError);
     }
   }
-  pSceneLayer->geometryVertexStride = vcLayout_GetSize(pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount);
 
   // Load the root
   // TODO: (EVC-548) Does the root actually need to be loaded here?
   vcNormalizePath(&pSceneLayer->root.pURL, pSceneLayer->sceneLayerURL, pSceneLayer->description.Get("store.rootNode").AsString());
-  UD_ERROR_CHECK(vcSceneLayer_LoadNodeData(pSceneLayer, &pSceneLayer->root));
+  UD_ERROR_CHECK(vcSceneLayer_LoadNode(pSceneLayer, &pSceneLayer->root));
 
   *ppSceneLayer = pSceneLayer;
   result = udR_Success;
@@ -518,6 +621,7 @@ udResult vcSceneLayer_Destroy(vcSceneLayer **ppSceneLayer)
   pSceneLayer = *ppSceneLayer;
   *ppSceneLayer = nullptr;
 
+  pSceneLayer->isActive = false;
   vcSceneLayer_RecursiveDestroyNode(&pSceneLayer->root);
   pSceneLayer->description.Destroy();
 
@@ -529,84 +633,47 @@ epilogue:
   return result;
 }
 
-void vcSceneLayer_UploadNodeDataGPUIfPossible(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
-{
-  if (!vcGLState_IsDataUploadAllowed())
-    return;
-
-  bool uploadsCompleted = true;
-
-  // TODO: handle failures
-  // geometry
-  for (size_t i = 0; i < pNode->geometryDataCount; ++i)
-  {
-    if (pNode->pGeometryData[i].loaded)
-      continue;
-
-    // TODO: (EVC-553) Let `vcPolygonModel_CreateFromData()` handle this
-    if (!vcGLState_IsDataUploadAllowed()) // allow partial uploads
-    {
-      uploadsCompleted = false;
-      break;
-    }
-
-    //printf("Uploading node GEOMETRY data: %s (%zu kb)\n", pNode->id, (vertexSize * pNode->pGeometryData[i].vertCount) / 1024);
-
-    //UD_ERROR_IF(vertCount > UINT16_MAX, udR_Failure_);
-    //UD_ERROR_CHECK()
-    vcPolygonModel_CreateFromData(&pNode->pGeometryData[i].pModel, pNode->pGeometryData[i].pData, (uint16_t)pNode->pGeometryData[i].vertCount, pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount);
-    udFree(pNode->pGeometryData[i].pData);
-
-    pNode->pGeometryData[i].loaded = true;
-    vcGLState_GPUDidWork(0, 0, (pSceneLayer->geometryVertexStride * pNode->pGeometryData[i].vertCount));
-  }
-
-  // textures
-  for (size_t i = 0; i < pNode->textureDataCount; ++i)
-  {
-    if (pNode->pTextureData[i].loaded)
-      continue;
-
-    // TODO: (EVC-553) Let `vcTexture_Create()` handle this
-    if (!vcGLState_IsDataUploadAllowed()) // allow partial uploads
-    {
-      uploadsCompleted = false;
-      break;
-    }
-
-    //printf("Uploading node TEXTURE data: %s (%zu kb)\n", pNode->id, (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4) / 1024);
-
-    vcTexture_Create(&pNode->pTextureData[i].pTexture, pNode->pTextureData[i].width, pNode->pTextureData[i].height, pNode->pTextureData[i].pData, vcTextureFormat_RGBA8, vcTFM_Linear, false);
-    udFree(pNode->pTextureData[i].pData);
-
-    pNode->pTextureData[i].loaded = true;
-    vcGLState_GPUDidWork(0, 0, (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4));
-  }
-
-  if (uploadsCompleted)
-    pNode->loadState = vcSceneLayerNode::vcLS_Success;
-}
-
 bool vcSceneLayer_TouchNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
 {
-  if (pNode->loadState <= vcSceneLayerNode::vcLS_Loading)
+  if (pNode->loadState == vcSceneLayerNode::vcLS_NotLoaded)
   {
-    if (pNode->loadState == vcSceneLayerNode::vcLS_NotLoaded)
-    {
-      pNode->loadState = vcSceneLayerNode::vcLS_Loading;
+    pNode->loadState = vcSceneLayerNode::vcLS_InQueue;
 
-      // TODO: (EVC-548) Consider loading nodes based on distance (sound familiar?)
-      //printf("Queuing node: %s\n", pNode->id);
-      vcSceneLayer_LoadNodeJobData *pLoadData = udAllocType(vcSceneLayer_LoadNodeJobData, 1, udAF_Zero);
-      pLoadData->pSceneLayer = pSceneLayer;
-      pLoadData->pNode = pNode;
-      vWorkerThread_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeThread, pLoadData);
-    }
+    // TODO: (EVC-548) Consider loading nodes based on distance (sound familiar?)
+    vcSceneLayer_LoadNodeJobData *pLoadData = udAllocType(vcSceneLayer_LoadNodeJobData, 1, udAF_Zero);
+    pLoadData->pSceneLayer = pSceneLayer;
+    pLoadData->pNode = pNode;
+    // TODO: (EVC-548)
+    //pLoadData->loadOptions = needsDrawing ? vcSLNLO_None : vsSLNLO_ShallowLoad;
+    vWorkerThread_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeJob, pLoadData);
   }
-  else if (pNode->loadState == vcSceneLayerNode::vcLS_InMemory)
+  else if (pNode->loadState == vcSceneLayerNode::vcLS_PartialLoad)
   {
-    vcSceneLayer_UploadNodeDataGPUIfPossible(pSceneLayer, pNode);
+    // TODO: (EVC-569) Partial node uploading has not been fully tested!
+    vcSceneLayer_LoadNodeJobData *pLoadData = udAllocType(vcSceneLayer_LoadNodeJobData, 1, udAF_Zero);
+    pLoadData->pSceneLayer = pSceneLayer;
+    pLoadData->pNode = pNode;
+    pLoadData->loadOptions = vcSLNLO_None;
+    vWorkerThread_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeInternalsJob, pLoadData);
   }
 
-  return (pNode->loadState == vcSceneLayerNode::vcLS_Success);
+  if (pNode->loadState == vcSceneLayerNode::vcLS_InMemory)
+    vcSceneLayer_UploadDataToGPUIfPossible(pSceneLayer, pNode);
+
+  return pNode->loadState == vcSceneLayerNode::vcLS_Success;
+}
+
+bool vcSceneLayer_IsNodeMetadataLoaded(vcSceneLayerNode *pNode)
+{
+  return pNode->loadState == vcSceneLayerNode::vcLS_PartialLoad || pNode->loadState == vcSceneLayerNode::vcLS_InMemory || pNode->loadState == vcSceneLayerNode::vcLS_Success;
+}
+
+
+vcSceneLayerVertex* vcSceneLayer_GetVertex(vcSceneLayerNode::GeometryData *pGeometry, uint64_t index)
+{
+  if (pGeometry == nullptr || pGeometry->pData == nullptr || index >= pGeometry->vertCount)
+    return nullptr;
+
+  // TODO: (EVC-540) ASSUMPTIONS! (assumed a specific vertex layout!)
+  return (vcSceneLayerVertex*)&pGeometry->pData[index * pGeometry->vertexStride];
 }

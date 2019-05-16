@@ -624,15 +624,6 @@ int main(int argc, char **args)
 
     ImGui::GetIO().KeysDown[SDL_SCANCODE_BACKSPACE] = false;
 
-    static bool pressed = false;
-    if (ImGui::GetIO().KeysDown[SDL_SCANCODE_O] && !pressed)
-    {
-      pressed = true;
-      vcConvert_AddFile(&programState, "E:/Vault Datasets/I3S/mesh4");
-    }
-    else if (!ImGui::GetIO().KeysDown[SDL_SCANCODE_O])
-      pressed = false;
-
     if (programState.hasContext)
     {
       // Load next file in the load list (if there is one and the user has a context)

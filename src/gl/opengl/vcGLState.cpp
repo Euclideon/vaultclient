@@ -297,7 +297,7 @@ void vcGLState_GPUDidWork(size_t drawCount, size_t triCount, size_t uploadBytesC
   s_internalState.frameInfo.uploadBytesCount += uploadBytesCount;
 }
 
-bool vcGLState_IsDataUploadAllowed()
+bool vcGLState_IsGPUDataUploadAllowed()
 {
   return s_internalState.frameInfo.uploadBytesCount < vcGLState_MaxUploadBytesPerFrame;
 }

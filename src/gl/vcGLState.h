@@ -150,6 +150,6 @@ void vcGLState_Scissor(int left, int top, int right, int bottom, bool force = fa
 int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel);
 
 void vcGLState_GPUDidWork(size_t drawCount, size_t triCount, size_t uploadBytesCount);
-bool vcGLState_IsDataUploadAllowed();
+bool vcGLState_IsGPUDataUploadAllowed();
 
 #endif // vcGLState_h__
