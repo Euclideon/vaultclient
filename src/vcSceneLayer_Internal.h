@@ -16,24 +16,37 @@ enum
   vcMaxURLLength = vcMaxPathLength,
 };
 
+enum vcSceneLayerNodeLoadOptions
+{
+  vcSLNLO_None             = 0x0,
+
+  vsSLNLO_RecursiveLoad    = 0x1, // will recursively load every child node into memory
+
+  // The following are mutually exclsive
+  //vsSLNLO_ShallowLoad      = 0x2, // will only load the nodes meta data
+  vsSLNLO_CompleteNodeLoad = 0x4, // loads entire node, including gpu immediately
+  vsSLNLO_OnlyLoadLeaves   = 0x8, // effectively does `vsSLNLO_ShallowLoad` on all non-leaf nodes
+};
+inline vcSceneLayerNodeLoadOptions operator|(const vcSceneLayerNodeLoadOptions &a, const vcSceneLayerNodeLoadOptions &b) { return (vcSceneLayerNodeLoadOptions)(int(a) | int(b)); }
+
 struct vcSceneLayerNode
 {
   enum vcLoadState
   {
-    // Note: some logic depends on the ordering of these enums
     vcLS_NotLoaded,
-
-    vcLS_Loading,
-    vcLS_InMemory,
-
-    vcLS_Success,
     vcLS_Failed,
+    vcLS_InQueue,
+    vcLS_Loading,
+
+    vcLS_PartialLoad, // TODO: (EVC-569) Partial node uploading has not been fully tested
+    vcLS_InMemory,
+    vcLS_Success,
   };
 
-  vcLoadState loadState;
+  volatile vcLoadState loadState;
 
   int level;
-  char id[vcMaxPathLength]; // TODO: (EVC-541) How big should this be?
+  char id[vcMaxURLLength];
   const char *pURL;
   vcSceneLayerNode *pChildren;
   size_t childrenCount;
@@ -45,7 +58,7 @@ struct vcSceneLayerNode
     double radius;
   } minimumBoundingSphere; // Cartesian
   //int lodSelectionMetric; // TODO
-  double loadSelectionValue;
+  double lodSelectionValue;
   udGeoZone zone;
 
   struct SharedResource
@@ -78,6 +91,7 @@ struct vcSceneLayerNode
     // cpu
     uint8_t *pData;
     uint64_t vertCount;
+    size_t vertexStride;
   } *pGeometryData;
   size_t geometryDataCount;
 
@@ -105,6 +119,7 @@ struct vcSceneLayerNode
 struct vcSceneLayer
 {
   vWorkerThreadPool *pThreadPool;
+  bool isActive;
 
   char sceneLayerURL[vcMaxURLLength];
   udJSON description;
@@ -114,15 +129,22 @@ struct vcSceneLayer
 
   vcVertexLayoutTypes *pDefaultGeometryLayout;
   size_t defaultGeometryLayoutCount;
-  size_t geometryVertexStride;
 };
 
-// TODO: (EVC-548) This will the nodes data entirely - (this actually may not be necessary, for
-// example during convert, we only need the leaf nodes data...so why load non-leaf node geometry data etc.?)
-// if `pNode` is nullptr, the entire model will be loaded into memory
-// Note: Does not upload to GPU here
-udResult vcSceneLayer_LoadNodeData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode = nullptr);
+udResult vcSceneLayer_LoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode = nullptr, const vcSceneLayerNodeLoadOptions &options = vcSLNLO_None);
 
 // Prepares the node for use
 // Returns true if the node is ready for use
 bool vcSceneLayer_TouchNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
+
+bool vcSceneLayer_IsNodeMetadataLoaded(vcSceneLayerNode *pNode);
+
+// TODO: (EVC-540) ASSUMPTIONS! (assumed a specific vertex layout!)
+struct vcSceneLayerVertex
+{
+  udFloat3 position;
+  udFloat3 normal;
+  udFloat2 uv0;
+  uint32_t colour;
+};
+vcSceneLayerVertex* vcSceneLayer_GetVertex(vcSceneLayerNode::GeometryData *pGeometry, uint64_t index);

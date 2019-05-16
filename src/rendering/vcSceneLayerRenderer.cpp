@@ -44,7 +44,6 @@ udResult vcSceneLayerRenderer_Destroy(vcSceneLayerRenderer **ppSceneLayerRendere
   *ppSceneLayerRenderer = nullptr;
 
   vcSceneLayer_Destroy(&pSceneLayerRenderer->pSceneLayer);
-
   udFree(pSceneLayerRenderer);
 
   result = udR_Success;
@@ -69,8 +68,8 @@ double vcSceneLayerRenderer_CalculateNodeScreenSize(vcSceneLayerNode *pNode, con
 
   // TODO: (EVC-548) Verify this `2.0` is correct (because I only calculate the half size above)
   // I'm 75% sure it is, but changing it to 1.0 does cause a very slight noticeable LOD pop, but is that meant to happen?
-  double r1 = udMag(center.toVector3() - p1.toVector3()) * 2.0;
-  double r2 = udMag(center.toVector3() - p2.toVector3()) * 2.0;
+  double r1 = udMag(center.toVector3() - p1.toVector3()) * 1.0; // 2.0 or 1.0?
+  double r2 = udMag(center.toVector3() - p2.toVector3()) * 1.0; // 2.0 or 1.0?
   udDouble2 screenSize = udDouble2::create(screenResolution.x * r1, screenResolution.y * r2);
   return udMax(screenSize.x, screenSize.y);
 }
@@ -86,7 +85,7 @@ void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayerRenderer, 
 
     vcTexture *pDrawTexture = nullptr;
     if (pNode->textureDataCount > 0 && pNode->pTextureData[0].loaded)
-      pDrawTexture = pNode->pTextureData[0].pTexture; // TODO: pretty sure I need to read the material for this...
+      pDrawTexture = pNode->pTextureData[0].pTexture; // TODO: (EVC-542) read the actual material data
 
     vcPolygonModel_Render(pNode->pGeometryData[geometry].pModel, pNode->pGeometryData[geometry].originMatrix, viewProjectionMatrix, pDrawTexture);
 
@@ -103,7 +102,7 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRende
     return false;
 
   double nodeScreenSize = vcSceneLayerRenderer_CalculateNodeScreenSize(pNode, viewProjectionMatrix, screenResolution);
-  if (pNode->childrenCount == 0 || nodeScreenSize < pNode->loadSelectionValue)
+  if (pNode->childrenCount == 0 || nodeScreenSize < pNode->lodSelectionValue)
   {
     vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, viewProjectionMatrix);
     return true;
@@ -131,7 +130,7 @@ bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayerRenderer, cons
     return false;
 
   // TODO: (EVC-548) This is duplicated work across i3s models
-  // extract frustum planes and re-use
+  // extract frustum planes
   udDouble4x4 transposedViewProjection = udTranspose(viewProjectionMatrix);
   pSceneLayerRenderer->frustumPlanes[0] = transposedViewProjection.c[3] + transposedViewProjection.c[0]; // Left
   pSceneLayerRenderer->frustumPlanes[1] = transposedViewProjection.c[3] - transposedViewProjection.c[0]; // Right
