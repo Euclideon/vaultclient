@@ -20,6 +20,7 @@ enum vcConvertQueueStatus
   vcCQS_ParseFailed,
   vcCQS_ImageParseFailed,
   vcCQS_Failed,
+  vcCQS_NoFile,
 
   vcCQS_Count
 };

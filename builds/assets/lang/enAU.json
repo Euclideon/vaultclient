@@ -213,6 +213,7 @@
   "convertParseError": "Parsing File Failed",
   "convertImageParseError": "Parsing Image Failed",
   "convertFailed": "Conversion Failed",
+  "convertNoFile": "No File Selected",
   "convertGeneratingPreview": "Generating Preview...",
   "convertAddPreviewToScene": "Add Preview to Scene",
   "convertPreviewName": "Conversion Preview",
