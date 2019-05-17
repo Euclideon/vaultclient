@@ -79,6 +79,7 @@ struct vcMesh
   GLenum drawType;
   GLenum indexType;
   int indexBytes;
+  uint32_t vertexSize;
 };
 
 static const GLuint vcTFMToGL[] = { GL_NEAREST, GL_LINEAR }; // Filter Mode

@@ -50,16 +50,16 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
     return udR_InvalidParameter_;
 
   udResult result = udR_Failure_;
+  vcMesh *pMesh = nullptr;
 
-  vcMesh *pMesh = udAllocType(vcMesh, 1, udAF_Zero);
+  pMesh = udAllocType(vcMesh, 1, udAF_Zero);
+  UD_ERROR_NULL(pMesh, udR_MemoryAllocationFailure);
 
-  uint32_t vertexSize = vcLayout_GetSize(pMeshLayout, totalTypes);
-  pMesh->vertexSize = vertexSize;
-
+  pMesh->vertexSize = vcLayout_GetSize(pMeshLayout, totalTypes);
   pMesh->drawType = (flags & vcMF_Dynamic) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 
   // Create vertex buffer
-  UD_ERROR_CHECK(vcMeshInternal_RecreateBuffer(&pMesh->pVBO, pMesh->drawType, D3D11_BIND_VERTEX_BUFFER, vertexSize, currentVerts, (void*)pVerts));
+  UD_ERROR_CHECK(vcMeshInternal_RecreateBuffer(&pMesh->pVBO, pMesh->drawType, D3D11_BIND_VERTEX_BUFFER, pMesh->vertexSize, currentVerts, (void*)pVerts));
 
   if ((flags & vcMF_NoIndexBuffer) == 0)
   {
@@ -73,6 +73,7 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
   pMesh->maxVertexCount = currentVerts;
   pMesh->indexCount = currentIndices;
   pMesh->maxIndexCount = currentIndices;
+  vcGLState_GPUDidWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
 
   *ppMesh = pMesh;
   result = udR_Success;
@@ -119,16 +120,16 @@ udResult vcMesh_UploadData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, in
 
   D3D11_MAPPED_SUBRESOURCE vertexResource, indexResource;
 
-  uint32_t vertexSize = vcLayout_GetSize(pLayout, totalTypes);
+  pMesh->vertexSize = vcLayout_GetSize(pLayout, totalTypes);
 
   if (pMesh->maxVertexCount < (uint32_t)totalVerts)
   {
-    UD_ERROR_CHECK(vcMeshInternal_RecreateBuffer(&pMesh->pVBO, pMesh->drawType, D3D11_BIND_VERTEX_BUFFER, vertexSize, totalVerts));
+    UD_ERROR_CHECK(vcMeshInternal_RecreateBuffer(&pMesh->pVBO, pMesh->drawType, D3D11_BIND_VERTEX_BUFFER, pMesh->vertexSize, totalVerts));
     pMesh->maxVertexCount = totalVerts;
   }
 
   UD_ERROR_IF(g_pd3dDeviceContext->Map(pMesh->pVBO, 0, D3D11_MAP_WRITE_DISCARD, 0, &vertexResource) != S_OK, udR_MemoryAllocationFailure);
-  memcpy(vertexResource.pData, pVerts, totalVerts * vertexSize);
+  memcpy(vertexResource.pData, pVerts, totalVerts * pMesh->vertexSize);
   g_pd3dDeviceContext->Unmap(pMesh->pVBO, 0);
 
   pMesh->vertexCount = totalVerts;
@@ -148,10 +149,10 @@ udResult vcMesh_UploadData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, in
     pMesh->indexCount = totalIndices;
   }
 
+  vcGLState_GPUDidWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
   result = udR_Success;
 
 epilogue:
-
   return result;
 }
 
@@ -194,5 +195,6 @@ bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t start
   else
     g_pd3dDeviceContext->DrawIndexed(elementCount * elementsPerPrimitive, startElement * elementsPerPrimitive, 0);
 
+  vcGLState_GPUDidWork(1, elementCount - startElement, 0);
   return true;
 }
