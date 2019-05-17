@@ -22,6 +22,9 @@ const char *statusNames[] =
   "convertRunning",
   "convertCompleted",
   "convertCancelled",
+  "convertWriteFailed",
+  "convertParseError",
+  "convertImageParseError",
   "convertFailed"
 };
 
@@ -115,6 +118,12 @@ uint32_t vcConvert_Thread(void *pVoidState)
         pItem->status = vcCQS_QueuedPendingLicense;
       else if (conversionStatus == vE_Cancelled)
         pItem->status = vcCQS_Cancelled;
+      else if (conversionStatus == vE_WriteFailure)
+        pItem->status = vcCQS_WriteFailed;
+      else if (conversionStatus == vE_ParseError)
+        pItem->status = vcCQS_ParseFailed;
+      else if (conversionStatus == vE_ImageParseError)
+        pItem->status = vcCQS_ImageParseFailed;
       else if (conversionStatus != vE_Success)
         pItem->status = vcCQS_Failed;
       else // succeeded
