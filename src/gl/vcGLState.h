@@ -12,6 +12,13 @@
 
 #include "udPlatform/udMath.h"
 
+enum
+{
+  // TODO: (EVC-547) This is arbitrary. Should be platform based.
+  vcGLState_MaxUploadBytesPerFrame = 30 * 1024, // 30kb
+};
+
+
 // State enums
 enum vcGLStateFillMode
 {
@@ -110,6 +117,13 @@ struct vcGLState
 
   udInt4 viewportZone;
   udInt4 scissorZone;
+
+  struct
+  {
+    size_t drawCount;
+    size_t triCount;
+    size_t uploadBytesCount;
+  } frameInfo;
 };
 
 struct SDL_Window;
@@ -135,5 +149,8 @@ bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height);
 void vcGLState_Scissor(int left, int top, int right, int bottom, bool force = false);
 
 int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel);
+
+void vcGLState_GPUDidWork(size_t drawCount, size_t triCount, size_t uploadBytesCount);
+bool vcGLState_IsGPUDataUploadAllowed();
 
 #endif // vcGLState_h__

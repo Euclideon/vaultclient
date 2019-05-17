@@ -33,6 +33,7 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   GLint internalFormat = GL_INVALID_ENUM;
   GLenum type = GL_INVALID_ENUM;
   GLint glFormat = GL_INVALID_ENUM;
+  int pixelBytes = 4;
 
   switch (format)
   {
@@ -40,6 +41,7 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
     internalFormat = GL_RGBA8;
     type = GL_UNSIGNED_BYTE;
     glFormat = GL_RGBA;
+    pixelBytes = 4;
     break;
   case vcTextureFormat_BGRA8:
     internalFormat = GL_RGBA8;
@@ -49,16 +51,19 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
 #else
     glFormat = GL_BGRA;
 #endif
+    pixelBytes = 4;
     break;
   case vcTextureFormat_D32F:
     internalFormat = GL_DEPTH_COMPONENT32F;
     type = GL_FLOAT;
     glFormat = GL_DEPTH_COMPONENT;
+    pixelBytes = 4;
     break;
   case vcTextureFormat_D24S8:
     internalFormat = GL_DEPTH24_STENCIL8;
     type = GL_UNSIGNED_INT_24_8;
     glFormat = GL_DEPTH_STENCIL;
+    pixelBytes = 4;
     break;
   default:
     UD_ERROR_SET(udR_InvalidParameter_);
@@ -75,6 +80,7 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   pTexture->format = format;
   pTexture->width = width;
   pTexture->height = height;
+  vcGLState_GPUDidWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
 
   *ppTexture = pTexture;
 
@@ -142,6 +148,7 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
   GLint internalFormat = GL_INVALID_ENUM;
   GLenum type = GL_INVALID_ENUM;
   GLint glFormat = GL_INVALID_ENUM;
+  int pixelBytes = 4;
 
   switch (pTexture->format)
   {
@@ -149,6 +156,7 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
     internalFormat = GL_RGBA8;
     type = GL_UNSIGNED_BYTE;
     glFormat = GL_RGBA;
+    pixelBytes = 4;
     break;
   case vcTextureFormat_BGRA8:
     internalFormat = GL_RGBA8;
@@ -158,16 +166,19 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
 #else
     glFormat = GL_BGRA;
 #endif
+    pixelBytes = 4;
     break;
   case vcTextureFormat_D32F:
     internalFormat = GL_DEPTH_COMPONENT32F;
     type = GL_FLOAT;
     glFormat = GL_DEPTH_COMPONENT;
+    pixelBytes = 4;
     break;
   case vcTextureFormat_D24S8:
     internalFormat = GL_DEPTH24_STENCIL8;
     type = GL_UNSIGNED_INT_24_8;
     glFormat = GL_DEPTH_STENCIL;
+    pixelBytes = 4;
     break;
   default:
     UD_ERROR_SET(udR_InvalidParameter_);
@@ -179,6 +190,8 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
   glBindTexture(GL_TEXTURE_2D, pTexture->id);
   glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, pTexture->width, pTexture->height, 0, glFormat, type, pPixels);
   glBindTexture(GL_TEXTURE_2D, 0);
+
+  vcGLState_GPUDidWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
 
 epilogue:
   return result;
@@ -206,6 +219,7 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
 
   const char* names[] = { "_LF", "_RT", "_FR", "_BK", "_UP", "_DN" };
   const GLenum types[] = { GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X, GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
+  int pixelBytes = 4;
 
   for (int i = 0; i < 6; i++) // for each face of the cube map
   {
@@ -227,6 +241,8 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
 
       stbi_image_free(data);
     }
+
+    pixelBytes = depth; // assume they all have the same depth
     VERIFY_GL();
   }
 
@@ -243,6 +259,8 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
     udFree(pTexture);
     return false;
   }
+
+  vcGLState_GPUDidWork(0, 0, pTexture->width * pTexture->height * pixelBytes * 6);
 
   *ppTexture = pTexture;
   return true;
