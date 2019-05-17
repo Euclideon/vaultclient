@@ -135,6 +135,104 @@ struct vcColumnHeader
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
+void vcMain_LangCombo(vcState *pProgramState)
+{
+  if (!ImGui::BeginCombo("##langCode", pProgramState->settings.window.languageCode))
+    return;
+
+  vdkError result = vE_Success;
+
+  const char *pFileContents;
+  udJSON languages;
+
+  if (udFile_Load(vcSettings_GetAssetPath("assets/lang/languages.json"), (void**)&pFileContents) != udR_Success)
+  {
+    result = vE_ReadFailure;
+    goto epilogue;
+  }
+
+  if (languages.Parse(pFileContents) != udR_Success)
+  {
+    result = vE_ParseError;
+    goto epilogue;
+  }
+
+  // Check directory for files not included in languages.json, then update if necessary
+#if defined(UDPLATFORM_WINDOWS) || defined(UDPLATFORM_OSX) || defined(UDPLATFORM_LINUX)
+  udFindDir *pDir = nullptr;
+  if (udOpenDir(&pDir, vcSettings_GetAssetPath("assets/lang")) != udR_Success)
+  {
+    result = vE_OpenFailure;
+    goto epilogue;
+  }
+
+  bool rewrite = false;
+
+  do
+  {
+    if (udStrBeginsWith(pDir->pFilename, ".") || udStrBeginsWith(pDir->pFilename, "$") || udStrcmpi(pDir->pFilename, "languages.json") == 0) // Skip system '$*', this '.', parent '..' and misc 'hidden' folders '.*'
+      continue;
+
+    bool found = false;
+    for (int i = 0; i < languages.MemberCount(); ++i)
+    {
+      if (udStrcmpi(languages.GetMember(i)->AsString(), pDir->pFilename) == 0)
+      {
+        found = true;
+        break;
+      }
+    }
+
+    if (found)
+      continue;
+
+    size_t pos;
+    udStrrchr(pDir->pFilename, ".", &pos);
+    const char *pShortName = udStrndup(pDir->pFilename, pos);
+    languages.Set("%s = '%s'", pShortName, pDir->pFilename);
+    udFree(pShortName);
+
+    rewrite = true;
+
+  } while (udReadDir(pDir) == udR_Success);
+
+  udCloseDir(&pDir);
+
+  if (rewrite)
+  {
+    const char *pLanguageStr;
+
+    if (languages.Export(&pLanguageStr, udJEO_JSON | udJEO_FormatWhiteSpace) == udR_Success)
+    {
+      SDL_filewrite(vcSettings_GetAssetPath("assets/lang/languages.json"), pLanguageStr, udStrlen(pLanguageStr));
+      udFree(pLanguageStr);
+    }
+  }
+#endif
+
+  // Body of combo
+  for (int i = 0; i < languages.MemberCount(); ++i)
+  {
+    const char *pName = languages.GetMemberName(i);
+    if (ImGui::Selectable(pName))
+    {
+      udStrcpy(pProgramState->settings.window.languageCode, udLengthOf(pProgramState->settings.window.languageCode), pName);
+      vcString::LoadTable(vcSettings_GetAssetPath(udTempStr("assets/lang/%s", languages.Get(pName).AsString())), &pProgramState->languageInfo);
+    }
+  }
+
+  ImGui::EndCombo();
+
+epilogue:
+  udFree(pFileContents);
+  languages.Destroy();
+
+  if (result != vE_Success)
+    pProgramState->currentError = result;
+
+  return;
+}
+
 void vcMain_UpdateSessionInfo(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
@@ -1619,15 +1717,9 @@ void vcRenderWindow(vcState *pProgramState)
       if (ImGui::Button(vcString::Get("loginAbout")))
         vcModals_OpenModal(pProgramState, vcMT_About);
 
-      // TODO: Add More Languages to this (preferably dynamically- remember to factor in packaging on non-windows platforms)
-      const char *langs[] = { "enAU", "zhCN" };
       ImGui::SameLine();
-      int lang = udStrEqual(pProgramState->settings.window.languageCode, langs[0]) ? 0 : 1;
-      if (ImGui::Combo("##langCode", &lang, langs, (int)udLengthOf(langs)))
-      {
-        udStrcpy(pProgramState->settings.window.languageCode, udLengthOf(pProgramState->settings.window.languageCode), langs[lang]);
-        vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", langs[lang]), &pProgramState->languageInfo);
-      }
+
+      vcMain_LangCombo(pProgramState);
 
       // Let the user change the look and feel on the login page
       const char *themeOptions[] = { vcString::Get("settingsAppearanceDark"), vcString::Get("settingsAppearanceLight") };
@@ -1837,6 +1929,20 @@ void vcRenderWindow(vcState *pProgramState)
             //TODO: Decide what to do with other errors
             if (vcProxyHelper_TestProxy(pProgramState) == vE_ProxyAuthRequired)
               vcModals_OpenModal(pProgramState, vcMT_ProxyAuth);
+          }
+
+          if (ImGui::InputText(vcString::Get("loginUserAgent"), pProgramState->settings.loginInfo.userAgent, vcMaxPathLength))
+            vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
+
+          // TODO: Consider reading user agent strings from a file
+          const char *UAOptions[] = { "Mozilla" };
+          const char *UAStrings[] = { "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:53.0) Gecko/20100101 Firefox/53.0" };
+
+          int UAIndex = -1;
+          if (ImGui::Combo(udTempStr("%s###loginUserAgentPresets", vcString::Get("loginSelectUserAgent")), &UAIndex, UAOptions, (int)udLengthOf(UAOptions)))
+          {
+            udStrcpy(pProgramState->settings.loginInfo.userAgent, vcMaxPathLength, UAStrings[UAIndex]);
+            vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
           }
 
           if (ImGui::Checkbox(vcString::Get("loginIgnoreCert"), &pProgramState->settings.loginInfo.ignoreCertificateVerification))

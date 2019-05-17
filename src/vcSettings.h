@@ -137,6 +137,7 @@ struct vcSettings
     char proxyTestURL[vcMaxPathLength];
     bool autoDetectProxy;
     char autoDetectProxyURL[vcMaxPathLength];
+    char userAgent[vcMaxPathLength];
     bool ignoreCertificateVerification;
   } loginInfo;
 
@@ -268,5 +269,7 @@ const char *vcSettings_GetAssetPath(const char *pFilename);
 
 // Provides a handler for "asset://" files
 udResult vcSettings_RegisterAssetFileHandler();
+
+bool SDL_filewrite(const char* filename, const char *pStr, size_t bytes);
 
 #endif // !vcSettings_h__
