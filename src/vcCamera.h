@@ -92,6 +92,7 @@ struct vcCameraInput
   bool flyThroughActive;
   int flyThroughPoint;
   bool transitioningToMapMode;
+  bool stabilize;
 
   udDouble3 smoothTranslation;
   udDouble3 smoothRotation;
