@@ -22,7 +22,11 @@ const char *statusNames[] =
   "convertRunning",
   "convertCompleted",
   "convertCancelled",
-  "convertFailed"
+  "convertWriteFailed",
+  "convertParseError",
+  "convertImageParseError",
+  "convertFailed",
+  "convertNoFile"
 };
 
 void vcConvert_ResetConvert(vcState *pProgramState, vcConvertItem *pConvertItem, vdkConvertItemInfo *pItemInfo);
@@ -115,6 +119,12 @@ uint32_t vcConvert_Thread(void *pVoidState)
         pItem->status = vcCQS_QueuedPendingLicense;
       else if (conversionStatus == vE_Cancelled)
         pItem->status = vcCQS_Cancelled;
+      else if (conversionStatus == vE_WriteFailure)
+        pItem->status = vcCQS_WriteFailed;
+      else if (conversionStatus == vE_ParseError)
+        pItem->status = vcCQS_ParseFailed;
+      else if (conversionStatus == vE_ImageParseError)
+        pItem->status = vcCQS_ImageParseFailed;
       else if (conversionStatus != vE_Success)
         pItem->status = vcCQS_Failed;
       else // succeeded
@@ -192,6 +202,8 @@ void vcConvert_AddEmptyJob(vcState *pProgramState, vcConvertItem **ppNextItem)
   vdkConvert_GetInfo(pProgramState->pVDKContext, pNextItem->pConvertContext, &pNextItem->pConvertInfo);
 
   udReleaseMutex(pProgramState->pConvertContext->pMutex);
+
+  pNextItem->status = vcCQS_NoFile;
 
   *ppNextItem = pNextItem;
 }
@@ -343,7 +355,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
   ImGui::Separator();
 
-  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
+  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_NoFile)
   {
     bool skipErrorsWherePossible = pSelectedJob->pConvertInfo->skipErrorsWherePossible;
     if (ImGui::Checkbox(vcString::Get("convertContinueOnCorrupt"), &skipErrorsWherePossible))
@@ -362,7 +374,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   }
 
   // Override Resolution
-  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
+  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_NoFile)
   {
     bool overrideResolution = pSelectedJob->pConvertInfo->overrideResolution;
     double resolution = pSelectedJob->pConvertInfo->pointResolution;
@@ -576,7 +588,7 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
 
   for (size_t i = pProgramState->pConvertContext->jobs.length; i > 0 && pSelectedJob == nullptr; --i)
   {
-    if (pProgramState->pConvertContext->jobs[i - 1]->status == vcCQS_Preparing)
+    if (pProgramState->pConvertContext->jobs[i - 1]->status == vcCQS_NoFile)
       pSelectedJob = pProgramState->pConvertContext->jobs[i - 1];
   }
 
@@ -585,6 +597,7 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
 
   if (vdkConvert_AddItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
   {
+    pSelectedJob->status = vcCQS_Preparing;
     pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
     return true;
   }
