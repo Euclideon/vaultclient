@@ -8,10 +8,13 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
+  ptrdiff_t accumulatedOffset = 0;
+  vcMesh *pMesh = nullptr;
 
-  vcMesh *pMesh = udAllocType(vcMesh, 1, udAF_Zero);
+  pMesh = udAllocType(vcMesh, 1, udAF_Zero);
+  UD_ERROR_NULL(pMesh, udR_MemoryAllocationFailure);
 
-  uint32_t vertexSize = vcLayout_GetSize(pMeshLayout, totalTypes);
+  pMesh->vertexSize = vcLayout_GetSize(pMeshLayout, totalTypes);
 
   if (flags & vcMF_Dynamic)
     pMesh->drawType = GL_STREAM_DRAW;
@@ -23,7 +26,7 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
 
   glGenBuffers(1, &pMesh->vbo);
   glBindBuffer(GL_ARRAY_BUFFER, pMesh->vbo);
-  glBufferData(GL_ARRAY_BUFFER, vertexSize * currentVerts, pVerts, pMesh->drawType);
+  glBufferData(GL_ARRAY_BUFFER, pMesh->vertexSize * currentVerts, pVerts, pMesh->drawType);
 
   if ((flags & vcMF_NoIndexBuffer) == 0)
   {
@@ -43,7 +46,6 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, pMesh->indexBytes * currentIndices, pIndices, pMesh->drawType);
   }
 
-  ptrdiff_t accumulatedOffset = 0;
   for (int i = 0; i < totalTypes; ++i)
   {
     if (pMeshLayout[i] >= vcVLT_TotalTypes)
@@ -52,27 +54,27 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
     switch (pMeshLayout[i])
     {
     case vcVLT_Position2:
-      glVertexAttribPointer(i, 2, GL_FLOAT, GL_FALSE, vertexSize, (GLvoid*)accumulatedOffset);
+      glVertexAttribPointer(i, 2, GL_FLOAT, GL_FALSE, pMesh->vertexSize, (GLvoid*)accumulatedOffset);
       accumulatedOffset += 2 * sizeof(float);
       break;
     case vcVLT_Position3:
-      glVertexAttribPointer(i, 3, GL_FLOAT, GL_FALSE, vertexSize, (GLvoid*)accumulatedOffset);
+      glVertexAttribPointer(i, 3, GL_FLOAT, GL_FALSE, pMesh->vertexSize, (GLvoid*)accumulatedOffset);
       accumulatedOffset += 3 * sizeof(float);
       break;
     case vcVLT_TextureCoords2:
-      glVertexAttribPointer(i, 2, GL_FLOAT, GL_FALSE, vertexSize, (GLvoid*)accumulatedOffset);
+      glVertexAttribPointer(i, 2, GL_FLOAT, GL_FALSE, pMesh->vertexSize, (GLvoid*)accumulatedOffset);
       accumulatedOffset += 2 * sizeof(float);
       break;
     case vcVLT_RibbonInfo4:
-      glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, vertexSize, (GLvoid*)accumulatedOffset);
+      glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, pMesh->vertexSize, (GLvoid*)accumulatedOffset);
       accumulatedOffset += 4 * sizeof(float);
       break;
     case vcVLT_ColourBGRA:
-      glVertexAttribPointer(i, 4, GL_UNSIGNED_BYTE, GL_TRUE, vertexSize, (GLvoid*)accumulatedOffset);
+      glVertexAttribPointer(i, 4, GL_UNSIGNED_BYTE, GL_TRUE, pMesh->vertexSize, (GLvoid*)accumulatedOffset);
       accumulatedOffset += 1 * sizeof(uint32_t);
       break;
     case vcVLT_Normal3:
-      glVertexAttribPointer(i, 3, GL_FLOAT, GL_FALSE, vertexSize, (GLvoid*)accumulatedOffset);
+      glVertexAttribPointer(i, 3, GL_FLOAT, GL_FALSE, pMesh->vertexSize, (GLvoid*)accumulatedOffset);
       accumulatedOffset += 3 * sizeof(float);
       break;
     case vcVLT_TotalTypes:
@@ -84,6 +86,7 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
 
   pMesh->vertexCount = currentVerts;
   pMesh->indexCount = currentIndices;
+  vcGLState_GPUDidWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
 
 epilogue:
   glBindVertexArray(0);
@@ -119,7 +122,7 @@ udResult vcMesh_UploadData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, in
 
   udResult result = udR_Success;
 
-  uint32_t vertexSize = vcLayout_GetSize(pLayout, totalTypes);
+  pMesh->vertexSize = vcLayout_GetSize(pLayout, totalTypes);
 
   pMesh->vertexCount = totalVerts;
   pMesh->indexCount = totalIndices;
@@ -127,7 +130,7 @@ udResult vcMesh_UploadData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, in
   glBindVertexArray(pMesh->vao);
 
   glBindBuffer(GL_ARRAY_BUFFER, pMesh->vbo);
-  glBufferData(GL_ARRAY_BUFFER, vertexSize * totalVerts, pVerts, pMesh->drawType);
+  glBufferData(GL_ARRAY_BUFFER, pMesh->vertexSize * totalVerts, pVerts, pMesh->drawType);
 
   if (pMesh->indexType != GL_NONE)
   {
@@ -135,6 +138,7 @@ udResult vcMesh_UploadData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, in
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, pMesh->indexBytes * totalIndices, pIndices, pMesh->drawType);
   }
 
+  vcGLState_GPUDidWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
   return result;
 }
 
@@ -174,5 +178,6 @@ bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t start
 
   glBindVertexArray(0);
 
+  vcGLState_GPUDidWork(1, elementCount - startElement, 0);
   return true;
 }
