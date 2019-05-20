@@ -493,6 +493,27 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     break; // to cover all implemented cases
   }
 
+  if (pCamInput->stabilize)
+  {
+    if (pCamera->eulerRotation.z > UD_PI)
+      pCamera->eulerRotation.z -= UD_2PI;
+
+    pCamInput->progress += deltaTime * 2; // .5 second stabilize time
+    if (pCamInput->progress > 1.0)
+    {
+      pCamInput->progress = 1.0;
+      pCamInput->stabilize = false;
+      pCamInput->inputState = vcCIS_None;
+    }
+
+    double travelProgress = udEase(pCamInput->progress, udET_CubicOut);
+
+    pCamera->eulerRotation.z = udLerp(pCamera->eulerRotation.z, 0.0, travelProgress);
+
+    if (pCamera->eulerRotation.y > UD_PI)
+      pCamera->eulerRotation.y -= UD_2PI;
+  }
+
   vcCamera_UpdateSmoothing(pCamera, pCamInput, pCamSettings, deltaTime);
 
   if (pCamInput->inputState == vcCIS_None && pCamInput->transitioningToMapMode)
@@ -663,7 +684,8 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     {
       if (pProgramState->cameraInput.inputState == vcCIS_MovingToPoint || pProgramState->cameraInput.inputState == vcCIS_LookingAtPoint || pProgramState->cameraInput.inputState == vcCIS_FlyingThrough)
       {
-        pProgramState->pCamera->eulerRotation.z = 0.0;
+        pProgramState->cameraInput.stabilize = true;
+        pProgramState->cameraInput.progress = 0;
         pProgramState->cameraInput.inputState = vcCIS_None;
 
         if (pProgramState->cameraInput.flyThroughActive)
