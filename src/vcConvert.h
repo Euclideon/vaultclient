@@ -16,7 +16,11 @@ enum vcConvertQueueStatus
   vcCQS_Running,
   vcCQS_Completed,
   vcCQS_Cancelled,
+  vcCQS_WriteFailed,
+  vcCQS_ParseFailed,
+  vcCQS_ImageParseFailed,
   vcCQS_Failed,
+  vcCQS_NoFile,
 
   vcCQS_Count
 };
