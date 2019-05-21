@@ -161,6 +161,7 @@ void vcMain_PresentationMode(vcState *pProgramState)
   }
   else
   {
+    pProgramState->settings.docksLoaded = false;
     SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
   }
 
@@ -712,6 +713,13 @@ int main(int argc, char **args)
   programState.settings.camera.nearPlane = 0.5f;
   programState.settings.camera.farPlane = 10000.f;
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
+
+  // Dock setting
+  programState.settings.docksLoaded = false;
+  programState.settings.window.windowsOpen[vcDocks_Scene] = true;
+  programState.settings.window.windowsOpen[vcDocks_Settings] = true;
+  programState.settings.window.windowsOpen[vcDocks_SceneExplorer] = true;
+  programState.settings.window.windowsOpen[vcDocks_Convert] = true;
 
   programState.settings.hideIntervalSeconds = 3;
   programState.showUI = true;
@@ -1573,6 +1581,9 @@ void vcRenderWindow(vcState *pProgramState)
   {
     int margin = vcMainMenuGui(pProgramState);
 
+    if (!pProgramState->settings.docksLoaded)
+      pProgramState->settings.rootDock = ImGui::GetID("MyDockspace");
+
     ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowBgAlpha(0.f);
@@ -1581,7 +1592,7 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
     ImGui::Begin("RootDockContainer", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoSavedSettings);
     ImGui::PopStyleVar(2);
-    ImGui::DockSpace(ImGui::GetID("MyDockspace"), ImVec2(size.x, size.y - margin));
+    ImGui::DockSpace(pProgramState->settings.rootDock, ImVec2(size.x, size.y - margin));
     ImGui::End();
   }
 
@@ -2331,6 +2342,27 @@ void vcRenderWindow(vcState *pProgramState)
         }
       }
       ImGui::End();
+    }
+
+    if (pProgramState->settings.pActive[0] != nullptr)
+    {
+      for (int i = 0; i < vcDocks_Count; ++i)
+      {
+        if (pProgramState->settings.pActive[i] == nullptr)
+          break;
+
+        ImGui::SetWindowFocus(pProgramState->settings.pActive[i]->Name);
+        pProgramState->settings.pActive[i] = nullptr;
+      }
+    }
+
+    if (!pProgramState->settings.docksLoaded)
+    {
+      vcSettings_Load(&pProgramState->settings, false, vcSC_Docks);
+
+      // Don't show the window in a bad state
+      ImGui::EndFrame();
+      ImGui::NewFrame();
     }
 
     if (pProgramState->currentError != vE_Success)
