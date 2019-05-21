@@ -1,7 +1,7 @@
 #ifndef vcWebFile_h__
 #define vcWebFile_h__
 
-#include "udPlatform/udResult.h"
+#include "udResult.h"
 
 // Caution, this API does not support partial request currently so it will download the full file regardless
 

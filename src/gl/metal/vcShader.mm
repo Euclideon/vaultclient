@@ -3,6 +3,7 @@
 #import <Metal/Metal.h>
 
 #import "udPlatformUtil.h"
+#import "udStringUtil.h"
 
 uint32_t g_pipeCount = 0;
 
@@ -11,17 +12,17 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
 {
   if (ppShader == nullptr || pVertexShader == nullptr || pFragmentShader == nullptr)
     return false;
-  
+
   vcShader *pShader = udAllocType(vcShader, 1, udAF_Zero);
 
   MTLVertexDescriptor *vertexDesc = [MTLVertexDescriptor vertexDescriptor];
-  
+
   ptrdiff_t accumulatedOffset = 0;
   for (uint32_t i = 0; i < totalTypes; ++i)
   {
     vertexDesc.attributes[i].bufferIndex = 0;
     vertexDesc.attributes[i].offset = accumulatedOffset;
-    
+
     switch (pVertLayout[i])
     {
       case vcVLT_Position2:
@@ -63,7 +64,7 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   pDesc.vertexDescriptor = vertexDesc;
   pDesc.vertexFunction = vFunc;
   pDesc.fragmentFunction = fFunc;
-  
+
   pDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
@@ -78,7 +79,7 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   [_viewCon.renderer buildBlendPipelines:pDesc];
   pShader->ID = (uint32_t)g_pipeCount;
   ++g_pipeCount;
-  
+
   *ppShader = pShader;
   pShader = nullptr;
 
@@ -120,9 +121,9 @@ bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pSh
 {
   if (ppBuffer == nullptr || pShader == nullptr || bufferSize == 0)
     return false;
-  
+
   *ppBuffer = nullptr;
-  
+
   for (int i = 0; i < pShader->numBufferObjects; ++i)
   {
     if (udStrEquali(pShader->bufferObjects[i].name, pBufferName) && (bufferSize == pShader->bufferObjects[i].expectedSize))
@@ -131,20 +132,20 @@ bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pSh
       return true;
     }
   }
-  
+
   vcShaderConstantBuffer *temp = udAllocType(vcShaderConstantBuffer, 1, udAF_Zero);
   temp->expectedSize = bufferSize;
   temp->ID = (uint32_t)_viewCon.renderer.constantBuffers.count;
   udStrcpy(temp->name, 32, pBufferName);
-  
+
   [_viewCon.renderer.constantBuffers addObject:[_device newBufferWithLength:bufferSize options:MTLStorageModeShared]];
-  
+
   pShader->bufferObjects[pShader->numBufferObjects] = *temp;
   ++pShader->numBufferObjects;
-  
+
   *ppBuffer = temp;
   temp = nullptr;
-  
+
   return true;
 }
 
@@ -157,27 +158,27 @@ bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuf
   for (int i = 0; i < pShader->numBufferObjects; ++i)
     if (udStrEquali(pShader->bufferObjects[i].name, pBuffer->name))
       found = i;
-  
+
   if (found < 0)
   {
     pShader->bufferObjects[pShader->numBufferObjects] = *pBuffer;
     ++pShader->numBufferObjects;
   }
-  
+
   if (pBuffer->expectedSize == bufferSize)
   {
     // !!!!!!!!!!!
     // Differences in packing of structs in our code vs metal shader source makes this not work out, may help to move structs to seperate header
     //memcpy(_viewCon.renderer.constantBuffers[pBuffer->ID].contents, pData, bufferSize);
     //[_viewCon.renderer.constantBuffers[pBuffer->ID] didModifyRange:NSMakeRange(0, bufferSize)];
-    
+
     [_viewCon.renderer.constantBuffers replaceObjectAtIndex:pBuffer->ID withObject:[_device newBufferWithBytes:pData length:bufferSize options:MTLStorageModeShared]];
   }
   else
   {
     [_viewCon.renderer.constantBuffers replaceObjectAtIndex:pBuffer->ID withObject:[_device newBufferWithBytes:pData length:bufferSize options:MTLStorageModeShared]];
   }
-  
+
   return true;
 }
 
@@ -185,9 +186,9 @@ bool vcShader_ReleaseConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *p
 {
   if (pShader == nullptr || pBuffer == nullptr)
     return false;
-  
+
   // TODO
-    
+
   return true;
 }
 
@@ -195,7 +196,7 @@ bool vcShader_GetSamplerIndex(vcShaderSampler **ppSampler, vcShader *pShader, co
 {
   if (pShader == nullptr)
     return false;
-  
+
   for (int i = 0; i < pShader->numBufferObjects; ++i)
   {
     if (udStrEquali(pShader->samplerIndexes[i].name, pSamplerName))

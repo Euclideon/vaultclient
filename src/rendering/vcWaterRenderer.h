@@ -1,7 +1,7 @@
 #ifndef vcWaterRenderer_h__
 #define vcWaterRenderer_h__
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 
 struct vcWaterRenderer;
 struct vcCamera;

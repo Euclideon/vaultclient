@@ -1,9 +1,9 @@
 #include "vWorkerThread.h"
-#include "udPlatform/udChunkedArray.h"
-#include "udPlatform/udPlatformUtil.h"
-#include "udPlatform/udThread.h"
+#include "udChunkedArray.h"
+#include "udPlatformUtil.h"
+#include "udThread.h"
 #include "vSafeDeque.h"
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 
 uint32_t vWorkerThread_DoWork(void *pPoolPtr)
 {
