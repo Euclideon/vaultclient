@@ -64,6 +64,7 @@ enum vcSettingCategory
   vcSC_Viewport,
   vcSC_MapsElevation,
   vcSC_Visualization,
+  vcSC_Docks,
   vcSC_All
 };
 
@@ -208,6 +209,10 @@ struct vcSettings
 
   vcPresentationMode responsiveUI;
   int hideIntervalSeconds;
+
+  bool docksLoaded;
+  ImGuiID rootDock;
+  ImGuiWindow *pActive[vcDocks_Count];
 };
 
 // Settings Limits (vcSL prefix)
