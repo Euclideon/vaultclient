@@ -16,8 +16,6 @@
 
 const char DefaultFilename[] = "asset://defaultsettings.json";
 
-const char ImGuiIniDefaults[] = "[Window][Debug##Default]\nPos=60,60\nSize=400,400\nCollapsed=0\n\n[Window][###sceneExplorerDock]\nPos=872,22\nSize=408,259\nCollapsed=0\nDockId=0x00000003,0\n\n[Window][###convertDock]\nPos=0,22\nSize=870,720\nCollapsed=0\nDockId=0x00000001,1\n\n[Window][###settingsDock]\nPos=872,283\nSize=408,459\nCollapsed=0\nDockId=0x00000004,0\n\n[Window][###sceneDock]\nPos=0,22\nSize=870,720\nCollapsed=0\nDockId=0x00000001,0\n\n[Docking][Data]\nDockSpace     ID=0x236DAF44 Pos=0,22 Size=1280,720 Split=X SelectedTab=0x469A2D56\n  DockNode    ID=0x00000001 Parent=0x236DAF44 SizeRef=870,720 CentralNode=1 SelectedTab=0x41CBF0BC\n  DockNode    ID=0x00000002 Parent=0x236DAF44 SizeRef=408,720 Split=Y SelectedTab=0xAD83196B\n    DockNode  ID=0x00000003 Parent=0x00000002 SizeRef=408,259 SelectedTab=0x4073EE43\n    DockNode  ID=0x00000004 Parent=0x00000002 SizeRef=408,459 SelectedTab=0xAD83196B\n\n";
-
 void vcSettings_InitializePrefPath(vcSettings *pSettings)
 {
   if (pSettings->noLocalStorage)
@@ -249,12 +247,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->window.maximized = data.Get("window.maximized").AsBool(false);
     udStrcpy(pSettings->window.languageCode, udLengthOf(pSettings->window.languageCode), data.Get("window.language").AsString("enAU"));
 
-    // Dock settings
-    pSettings->window.windowsOpen[vcDocks_Scene] = data.Get("frames.scene").AsBool(true);
-    pSettings->window.windowsOpen[vcDocks_Settings] = data.Get("frames.settings").AsBool(true);
-    pSettings->window.windowsOpen[vcDocks_SceneExplorer] = data.Get("frames.explorer").AsBool(true);
-    pSettings->window.windowsOpen[vcDocks_Convert] = data.Get("frames.convert").AsBool(false);
-
     // Login Info
     pSettings->loginInfo.rememberServer = data.Get("login.rememberServer").AsBool(false);
     if (pSettings->loginInfo.rememberServer)
@@ -271,15 +263,143 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     // Camera
     pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
     pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
-
-    const char *pImGuiSettings = data.Get("imgui.ini").AsString(ImGuiIniDefaults);
-    ImGui::LoadIniSettingsFromMemory(pImGuiSettings);
   }
 
-  udFree(pSavedData);
+  if (group == vcSC_Docks || forceReset)
+  {
+    if (data.Get("dock").IsArray())
+    {
+      pSettings->docksLoaded = true;
 
+      pSettings->window.windowsOpen[vcDocks_Scene] = data.Get("frames.scene").AsBool(true);
+      pSettings->window.windowsOpen[vcDocks_Settings] = data.Get("frames.settings").AsBool(true);
+      pSettings->window.windowsOpen[vcDocks_SceneExplorer] = data.Get("frames.explorer").AsBool(true);
+      pSettings->window.windowsOpen[vcDocks_Convert] = data.Get("frames.convert").AsBool(false);
+
+      udJSONArray *pDocks = data.Get("dock").AsArray();
+      size_t numNodes = pDocks->length;
+
+      ImGui::DockContextClearNodes(GImGui, 0, true);
+
+      ImGuiDockNodeSettings *pDockNodes = udAllocType(ImGuiDockNodeSettings, numNodes, udAF_Zero);
+
+      for (size_t i = 0; i < pDocks->length; ++i)
+      {
+        udJSON *pDock = pDocks->GetElement(i);
+
+        pDockNodes[i].ID = pDock->Get("id").AsInt();
+        pDockNodes[i].Pos = ImVec2ih((short)pDock->Get("x").AsInt(), (short)pDock->Get("y").AsInt());
+        pDockNodes[i].Size = ImVec2ih((short)pDock->Get("w").AsInt(), (short)pDock->Get("h").AsInt());
+        pDockNodes[i].SizeRef = ImVec2ih((short)pDock->Get("wr").AsInt(), (short)pDock->Get("hr").AsInt());
+
+        if (pDock->Get("parent").IsNumeric())
+          pDockNodes[i].ParentID = pDock->Get("parent").AsInt();
+
+        if (pDock->Get("split").IsString())
+          pDockNodes[i].SplitAxis = (*(pDock->Get("split").AsString()) == 'X') ? (signed char)ImGuiAxis_X : (signed char)ImGuiAxis_Y;
+        else
+          pDockNodes[i].SplitAxis = ImGuiAxis_None;
+
+        pDockNodes[i].IsCentralNode = (char)pDock->Get("central").AsInt();
+        pDockNodes[i].IsDockSpace = (char)pDock->Get("dockspace").AsInt();
+        pDockNodes[i].IsHiddenTabBar = (char)pDock->Get("hiddentabbar").AsInt();
+        pDockNodes[i].Depth = (char)pDock->Get("depth").AsInt();
+
+        if (pDock->Get("windows").IsArray())
+        {
+          udJSONArray *pWindows = pDock->Get("windows").AsArray();
+
+          for (size_t j = 0; j < pWindows->length; ++j)
+          {
+            udJSON *pJSONWindow = pWindows->GetElement(j);
+
+            ImGuiWindow* pWindow = ImGui::FindWindowByName(pJSONWindow->Get("name").AsString());
+            if (pWindow)
+            {
+              pWindow->DockId = pDockNodes[i].ID;
+              pWindow->DockOrder = (short)pJSONWindow->Get("index").AsInt();
+              pWindow->Collapsed = pJSONWindow->Get("collapsed").AsBool();
+              if (pJSONWindow->Get("visible").AsBool())
+              {
+                for (size_t k = 0; k < sizeof(pSettings->pActive); ++k)
+                {
+                  if (pSettings->pActive[k] == nullptr)
+                  {
+                    pSettings->pActive[k] = pWindow;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      ImGui::DockContextBuildNodesFromSettings(GImGui, pDockNodes, (int)numNodes);
+      udFree(pDockNodes);
+    }
+    else
+    {
+      vcSettings_Load(pSettings, true, vcSC_Docks);
+      goto epilogue;
+    }
+  }
+
+epilogue:
+  udFree(pSavedData);
   return true;
 }
+
+void vcSettings_RecurseDocks(ImGuiDockNode *pNode, udJSON &out, int *pDepth)
+{
+  udJSON data;
+  data.Set("id = %d", (int)pNode->ID);
+  if (pNode->ParentNode)
+    data.Set("parent = %d", (int)pNode->ParentNode->ID);
+
+  data.Set("central = %d", (int)pNode->IsCentralNode());
+  data.Set("dockspace = %d", (int)pNode->IsDockSpace());
+  data.Set("hiddentabbar = %d", (int)pNode->IsHiddenTabBar());
+  data.Set("depth = %d", *pDepth);
+
+  for (int i = 0; i < pNode->Windows.size(); ++i)
+  {
+    udJSON window;
+
+    // Only want the part '###xxxxDock' so any language works
+    const char *pIDName = udStrchr(pNode->Windows[i]->Name, "#");
+
+    window.Set("name = '%s'", pIDName);
+    window.Set("index = %d", i);
+    window.Set("collapsed = %d", (int)pNode->Windows[i]->Collapsed);
+    window.Set("visible = %d", (int)pNode->Windows[i]->DockTabIsVisible);
+
+    data.Set(&window, "windows[]");
+  }
+
+  data.Set("x = %f", pNode->Pos.x);
+  data.Set("y = %f", pNode->Pos.y);
+  data.Set("w = %f", pNode->Size.x);
+  data.Set("h = %f", pNode->Size.y);
+  data.Set("wr = %f", pNode->SizeRef.x);
+  data.Set("hr = %f", pNode->SizeRef.y);
+
+  if (pNode->IsSplitNode())
+    data.Set("split = '%s'", (pNode->SplitAxis == 1) ? "Y" : "X");
+
+  out.Set(&data, "dock[]");
+  ++(*pDepth);
+
+  for (size_t i = 0; i < udLengthOf(pNode->ChildNodes); ++i)
+  {
+    if (pNode->ChildNodes[i] != nullptr)
+    {
+      vcSettings_RecurseDocks(pNode->ChildNodes[i], out, pDepth);
+      --(*pDepth);
+    }
+  }
+}
+
 
 bool vcSettings_Save(vcSettings *pSettings)
 {
@@ -417,9 +537,10 @@ bool vcSettings_Save(vcSettings *pSettings)
   tempNode.SetString(pSettings->maptiles.tileServerExtension);
   data.Set(&tempNode, "maptiles.imgExtension");
 
-  const char *pImGuiSettings = ImGui::SaveIniSettingsToMemory();
-  tempNode.SetString(pImGuiSettings);
-  data.Set(&tempNode, "imgui.ini");
+  int depth = 0;
+  ImGuiDockNode *pRootNode = ImGui::DockBuilderGetNode(pSettings->rootDock);
+  if (pRootNode != nullptr && !pRootNode->IsEmpty())
+    vcSettings_RecurseDocks(ImGui::DockNodeGetRootNode(pRootNode), data, &depth);
 
   // Save
   const char *pSettingsStr;
