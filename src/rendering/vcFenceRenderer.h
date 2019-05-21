@@ -1,7 +1,7 @@
 #ifndef vcFenceRenderer_h__
 #define vcFenceRenderer_h__
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 
 struct vcFenceRenderer;
 

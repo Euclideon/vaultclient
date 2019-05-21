@@ -3,7 +3,7 @@
 
 #include "vcSettings.h"
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 #include "vcGIS.h"
 
 struct vcTexture;

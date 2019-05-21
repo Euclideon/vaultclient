@@ -1,5 +1,7 @@
-#include "udPlatform/udPlatformUtil.h"
 #include "vStringFormat.h"
+
+#include "udPlatformUtil.h"
+#include "udStringUtil.h"
 
 const char *vStringFormat(const char *pFormatString, const char **ppStrings, size_t numStrings)
 {

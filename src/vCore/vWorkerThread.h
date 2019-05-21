@@ -2,7 +2,7 @@
 #define vWorkerThread_h__
 
 #include <stdint.h>
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 #include "vSafeDeque.h"
 
 // A basic system to queue tasks in the background

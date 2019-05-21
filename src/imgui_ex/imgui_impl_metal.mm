@@ -24,7 +24,7 @@
 #include "gl/vcFramebuffer.h"
 #include "gl/metal/vcMetal.h"
 #include "gl/metal/vcRenderer.h"
-#include "udPlatform/udPlatform.h"
+#include "udPlatform.h"
 
 #pragma mark - Support classes
 
@@ -65,15 +65,15 @@ bool ImGui_ImplMetal_Init()
 {
     ImGuiIO& io = ImGui::GetIO();
     io.BackendRendererName = "imgui_impl_metal";
-    
+
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         g_sharedMetalContext = [[MetalContext alloc] init];
     });
-    
+
     g_sharedMetalContext.library = _library;
     ImGui_ImplMetal_CreateDeviceObjects();
-    
+
     return true;
 }
 
@@ -85,17 +85,17 @@ void ImGui_ImplMetal_Shutdown()
 void ImGui_ImplMetal_NewFrame(SDL_Window *pWindow)
 {
     IM_ASSERT(g_sharedMetalContext != nil && "No Metal context. Did you call ImGui_ImplMetal_Init?");
-    
+
     g_sharedMetalContext.renderPassDescriptor = _viewCon.renderer.renderPasses[0];
-    
+
     ImGuiIO& io = ImGui::GetIO();
-    
+
     // Using this causes havoc as you resize the window when imgui sets the scissor rect below
     //io.DisplaySize = ImVec2((float)(_viewCon.Mview.window.frame.size.width), (float)(_viewCon.Mview.window.frame.size.height));
     io.DisplaySize = ImVec2((float)(_viewCon.Mview.drawableSize.width), (float)(_viewCon.Mview.drawableSize.height));
     io.DisplayFramebufferScale = ImVec2(io.DisplaySize.x > 0 ? ((float)(_viewCon.Mview.drawableSize.width) / io.DisplaySize.x) : 0,
                                         io.DisplaySize.y > 0 ? ((float)(_viewCon.Mview.drawableSize.height) / io.DisplaySize.y) : 0);
-    
+
     ImGui_ImplSDL2_NewFrame(pWindow);
     ImGui::NewFrame();
 
@@ -112,10 +112,10 @@ void ImGui_ImplMetal_RenderDrawData(ImDrawData* draw_data)
 bool ImGui_ImplMetal_CreateFontsTexture()
 {
     [g_sharedMetalContext makeFontTextureWithDevice:_device];
-    
+
     ImGuiIO& io = ImGui::GetIO();
     io.Fonts->TexID = (void *)g_sharedMetalContext.fontTexture; // ImTextureID == void*
-    
+
     return (g_sharedMetalContext.fontTexture != nil);
 }
 
@@ -129,9 +129,9 @@ void ImGui_ImplMetal_DestroyFontsTexture()
 bool ImGui_ImplMetal_CreateDeviceObjects()
 {
     [g_sharedMetalContext makeDeviceObjectsWithDevice:_device];
-    
+
     ImGui_ImplMetal_CreateFontsTexture();
-    
+
     return true;
 }
 
@@ -186,7 +186,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     unsigned char* pixels;
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-    
+
     vcTexture *fontText;
     vcTexture_Create(&fontText, width, height, pixels, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Clamp);
     self.fontTexture = fontText;
@@ -195,7 +195,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
 - (MetalBuffer *)dequeueReusableBufferOfLength:(NSUInteger)length device:(id<MTLDevice>)device
 {
     NSTimeInterval now = [NSDate date].timeIntervalSince1970;
-    
+
     // Purge old buffers that haven't been useful for a while
     if (now - self.lastBufferCachePurge > 1.0)
     {
@@ -210,20 +210,20 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
         self.bufferCache = [survivors mutableCopy];
         self.lastBufferCachePurge = now;
     }
-    
+
     // See if we have a buffer we can reuse
     MetalBuffer *bestCandidate = nil;
     for (MetalBuffer *candidate in self.bufferCache)
         if (candidate.buffer.length >= length && (bestCandidate == nil || bestCandidate.lastReuseTime > candidate.lastReuseTime))
             bestCandidate = candidate;
-    
+
     if (bestCandidate != nil)
     {
         [self.bufferCache removeObject:bestCandidate];
         bestCandidate.lastReuseTime = now;
         return bestCandidate;
     }
-    
+
     // No luck; make a new buffer
     id<MTLBuffer> backing = [device newBufferWithLength:length options:MTLResourceStorageModeShared];
     return [[MetalBuffer alloc] initWithBuffer:backing];
@@ -237,16 +237,16 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
 - (nullable id<MTLRenderPipelineState>)getPipeline:(nonnull id<MTLDevice>)device
 {
     NSError *error = nil;
-    
+
     id<MTLFunction> vertexFunction = [_library newFunctionWithName:@"imguiVertexShader"];
     id<MTLFunction> fragmentFunction = [_library newFunctionWithName:@"imguiFragmentShader"];
-    
+
     if (vertexFunction == nil || fragmentFunction == nil)
     {
         NSLog(@"Error: failed to find Metal shader functions in library: %@", error);
         return nil;
     }
-    
+
     MTLVertexDescriptor *vertexDescriptor = [MTLVertexDescriptor vertexDescriptor];
     vertexDescriptor.attributes[0].offset = IM_OFFSETOF(ImDrawVert, pos);
     vertexDescriptor.attributes[0].format = MTLVertexFormatFloat2; // position
@@ -260,7 +260,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     vertexDescriptor.layouts[0].stepRate = 1;
     vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
     vertexDescriptor.layouts[0].stride = sizeof(ImDrawVert);
-    
+
     MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
     pipelineDescriptor.vertexFunction = vertexFunction;
     pipelineDescriptor.fragmentFunction = fragmentFunction;
@@ -273,7 +273,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorSourceAlpha;
     pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
     pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-    
+
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
     pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
     pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float;
@@ -283,13 +283,13 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
 #else
 # error "Unsupported platform!"
 #endif
-    
+
     id<MTLRenderPipelineState> renderPipelineState = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
     if (error != nil)
     {
         NSLog(@"Error: failed to create Metal pipeline state: %@", error);
     }
-    
+
     return renderPipelineState;
 }
 
@@ -302,10 +302,10 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     int fb_height = (int)(drawData->DisplaySize.y * drawData->FramebufferScale.y);
     if (fb_width <= 0 || fb_height <= 0 || drawData->CmdListsCount == 0)
         return;
-    
+
     [commandEncoder setCullMode:MTLCullModeNone];
     [commandEncoder setDepthStencilState:g_sharedMetalContext.depthStencilState];
-    
+
     // Setup viewport, orthographic projection matrix
     // Our visible imgui space lies from draw_data->DisplayPos (top left) to
     // draw_data->DisplayPos+data_data->DisplaySize (bottom right). DisplayMin is typically (0,0) for single viewport apps.
@@ -332,22 +332,22 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
         { 0.0f,         0.0f,        1/(F-N),   0.0f },
         { (R+L)/(L-R),  (T+B)/(B-T), N/(F-N),   1.0f },
     };
-    
+
     [commandEncoder setVertexBytes:&ortho_projection length:sizeof(ortho_projection) atIndex:1];
-    
+
     size_t vertexBufferLength = drawData->TotalVtxCount * sizeof(ImDrawVert);
     size_t indexBufferLength = drawData->TotalIdxCount * sizeof(ImDrawIdx);
     MetalBuffer* vertexBuffer = [self dequeueReusableBufferOfLength:vertexBufferLength device:commandBuffer.device];
     MetalBuffer* indexBuffer = [self dequeueReusableBufferOfLength:indexBufferLength device:commandBuffer.device];
-    
+
     [commandEncoder setRenderPipelineState:g_sharedMetalContext.renderPipeState];
-    
+
     [commandEncoder setVertexBuffer:vertexBuffer.buffer offset:0 atIndex:0];
-    
+
     // Will project scissor/clipping rectangles into framebuffer space
     ImVec2 clip_off = drawData->DisplayPos;         // (0,0) unless using multi-viewports
     ImVec2 clip_scale = drawData->FramebufferScale; // (1,1) unless using retina display which are often (2,2)
-    
+
     // Render command lists
     size_t vertexBufferOffset = 0;
     size_t indexBufferOffset = 0;
@@ -355,12 +355,12 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     {
         const ImDrawList* cmd_list = drawData->CmdLists[n];
         ImDrawIdx idx_buffer_offset = 0;
-        
+
         memcpy((char *)vertexBuffer.buffer.contents + vertexBufferOffset, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
         memcpy((char *)indexBuffer.buffer.contents + indexBufferOffset, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
-        
+
         [commandEncoder setVertexBufferOffset:vertexBufferOffset atIndex:0];
-        
+
         for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
         {
             const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
@@ -377,7 +377,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
                 clip_rect.y = (pcmd->ClipRect.y - clip_off.y) * clip_scale.y;
                 clip_rect.z = udMin(((pcmd->ClipRect.z - clip_off.x) * clip_scale.x), (float)g_sharedMetalContext.renderPassDescriptor.colorAttachments[0].texture.width);
                 clip_rect.w = udMin(((pcmd->ClipRect.w - clip_off.y) * clip_scale.y), (float)g_sharedMetalContext.renderPassDescriptor.colorAttachments[0].texture.height);
-                
+
                 if (clip_rect.x < fb_width && clip_rect.y < fb_height && clip_rect.z > 1.0f && clip_rect.w > 1.0f)
                 {
                     // Apply scissor/clipping rectangle
@@ -389,7 +389,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
                         .height = NSUInteger(clip_rect.w - clip_rect.y)
                     };
                     [commandEncoder setScissorRect:scissorRect];
-                    
+
                     // Bind texture, Draw
                     if (pcmd->TextureId != NULL)
                     {
@@ -404,11 +404,11 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
             }
             idx_buffer_offset += pcmd->ElemCount * sizeof(ImDrawIdx);
         }
-        
+
         vertexBufferOffset += cmd_list->VtxBuffer.Size * sizeof(ImDrawVert);
         indexBufferOffset += cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx);
     }
-    
+
     id weakSelf = self;
     [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer>)
      {

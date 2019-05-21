@@ -1,6 +1,6 @@
 #include "SDL2/SDL.h"
-#include "udPlatform/udPlatform.h"
-#include "udPlatform/udMath.h"
+#include "udPlatform.h"
+#include "udMath.h"
 #include "vcCamera.h"
 #include "imgui.h"
 #include "imgui_internal.h"

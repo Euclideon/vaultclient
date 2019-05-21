@@ -18,27 +18,27 @@ GOTO END
 
 :ONE
  ECHO Creating VS2015 Project...
- bin\premake\premake5.exe vs2015
+ 3rdParty\udcore\bin\premake-bin\premake5.exe vs2015
  GOTO END
 
 :TWO
  ECHO Creating VS2015 Project (With vaultSDK Repository)...
- bin\premake\premake5.exe vs2015 --force-vaultsdk
+ 3rdParty\udcore\bin\premake-bin\premake5.exe vs2015 --force-vaultsdk
  GOTO END
 
 :THREE
  ECHO Creating VS2015 Project...
- bin\premake\premake5.exe vs2015 --gfxapi=d3d11
+ 3rdParty\udcore\bin\premake-bin\premake5.exe vs2015 --gfxapi=d3d11
  GOTO END
 
 :FOUR
  ECHO Creating VS2015 Project (With vaultSDK Repository)...
- bin\premake\premake5.exe vs2015 --force-vaultsdk --gfxapi=d3d11
+ 3rdParty\udcore\bin\premake-bin\premake5.exe vs2015 --force-vaultsdk --gfxapi=d3d11
  GOTO END
 
 :FIVE
  ECHO Creating VS2015 Project (With vaultSDK Repository) for Emscripten...
- bin\premake\premake5.exe vs2015 --force-vaultsdk --os=emscripten
+ 3rdParty\udcore\bin\premake-bin\premake5.exe vs2015 --force-vaultsdk --os=emscripten
  GOTO END
 
 :END

@@ -4,7 +4,7 @@
 #include "gl/vcRenderShaders.h"
 #include "vcInternalModels.h"
 
-#include "udPlatform/udPlatformUtil.h"
+#include "udPlatformUtil.h"
 
 #include "imgui.h"
 

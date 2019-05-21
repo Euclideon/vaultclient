@@ -1,7 +1,8 @@
 #include "vcStrings.h"
 #include "vCore/vStringFormat.h"
-#include "udPlatform/udFile.h"
-#include "udPlatform/udJSON.h"
+#include "udFile.h"
+#include "udJSON.h"
+#include "udStringUtil.h"
 
 #include <string>
 #include <unordered_map>

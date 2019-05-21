@@ -1,10 +1,12 @@
 #include "vcOpenGL.h"
 
+#include "vcSettings.h"
 #include "gl/vcTexture.h"
 
-#include "vcSettings.h"
-#include "udPlatform/udFile.h"
-#include "udPlatform/udPlatformUtil.h"
+#include "udFile.h"
+#include "udPlatformUtil.h"
+#include "udStringUtil.h"
+
 #include "stb_image.h"
 
 udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags /*flags = vcTCF_None*/, int32_t aniFilter /* = 0 */)

@@ -4,6 +4,8 @@
 #include "vdkConfig.h"
 #include "vdkWeb.h"
 
+#include "udStringUtil.h"
+
 #if UDPLATFORM_WINDOWS
 # include <winhttp.h>
 #endif

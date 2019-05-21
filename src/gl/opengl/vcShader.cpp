@@ -1,6 +1,7 @@
 #include "gl/vcShader.h"
 #include "vcOpenGL.h"
-#include "udPlatform/udPlatformUtil.h"
+#include "udPlatformUtil.h"
+#include "udStringUtil.h"
 
 GLint vcBuildShader(GLenum type, const GLchar *shaderCode)
 {

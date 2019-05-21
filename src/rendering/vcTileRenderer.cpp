@@ -9,10 +9,11 @@
 #include "gl/vcShader.h"
 #include "gl/vcMesh.h"
 
-#include "udPlatform/udThread.h"
-#include "udPlatform/udFile.h"
-#include "udPlatform/udPlatformUtil.h"
-#include "udPlatform/udChunkedArray.h"
+#include "udThread.h"
+#include "udFile.h"
+#include "udPlatformUtil.h"
+#include "udChunkedArray.h"
+#include "udStringUtil.h"
 
 #include "stb_image.h"
 
