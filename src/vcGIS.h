@@ -1,8 +1,8 @@
 #ifndef vcGIS_h__
 #define vcGIS_h__
 
-#include "udPlatform/udMath.h"
-#include "udPlatform/udGeoZone.h"
+#include "udMath.h"
+#include "udGeoZone.h"
 
 typedef int32_t vcSRID;
 

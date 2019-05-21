@@ -3,7 +3,7 @@
 
 #include "vcGIS.h"
 #include "vdkProject.h"
-#include "udPlatform/udJSON.h"
+#include "udJSON.h"
 
 struct vcState;
 class vcSceneItem;

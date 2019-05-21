@@ -1,7 +1,8 @@
 #include "vcImGuiSimpleWidgets.h"
 
-#include "udPlatform/udPlatform.h"
-#include "udPlatform/udPlatformUtil.h"
+#include "udPlatform.h"
+#include "udPlatformUtil.h"
+#include "udStringUtil.h"
 
 #include "imgui.h"
 #include "imgui_internal.h"

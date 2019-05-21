@@ -1,7 +1,7 @@
 
 #include "vcWaterRenderer.h"
 
-#include "udPlatform/udChunkedArray.h"
+#include "udChunkedArray.h"
 
 #include "gl/vcShader.h"
 #include "gl/vcRenderShaders.h"

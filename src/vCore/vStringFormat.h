@@ -1,7 +1,7 @@
 #ifndef vStringFormat_H__
 #define vStringFormat_H__
 
-#include "udPlatform/udPlatform.h"
+#include "udPlatform.h"
 
 // Returns formatted string
 const char* vStringFormat(const char *pFormatString, const char **ppStrings, size_t numStrings);

@@ -1,7 +1,7 @@
 #ifndef vcCamera_h__
 #define vcCamera_h__
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 #include "vcMath.h"
 
 enum vcCameraMoveMode

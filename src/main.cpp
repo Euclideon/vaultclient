@@ -47,15 +47,13 @@
 
 #include "legacy/vcUDP.h"
 
-#include "udPlatform/udFile.h"
+#include "udFile.h"
+#include "udStringUtil.h"
 
 #if UDPLATFORM_EMSCRIPTEN
 #include "vHTTPRequest.h"
 #endif
 
-#if !UDPLATFORM_EMSCRIPTEN
-# define STB_IMAGE_IMPLEMENTATION
-#endif
 #include "stb_image.h"
 
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)

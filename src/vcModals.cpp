@@ -12,7 +12,8 @@
 
 #include "vCore/vStringFormat.h"
 
-#include "udPlatform/udFile.h"
+#include "udFile.h"
+#include "udStringUtil.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcFileDialog.h"

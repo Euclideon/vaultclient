@@ -1,8 +1,8 @@
 #ifndef vSafeDeque_h__
 #define vSafeDeque_h__
-#include "udPlatform/udResult.h"
-#include "udPlatform/udChunkedArray.h"
-#include "udPlatform/udThread.h"
+#include "udResult.h"
+#include "udChunkedArray.h"
+#include "udThread.h"
 
 /// Thread safe double ended queue
 template <typename T>

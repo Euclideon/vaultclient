@@ -3,7 +3,7 @@
 
 #include "gl/vcLayout.h"
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 
 struct vcPolygonModel;
 struct vcTexture;

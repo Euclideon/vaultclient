@@ -3,6 +3,7 @@
 #import "vcViewCon.h"
 #import "vcRenderer.h"
 #import "udPlatformUtil.h"
+#import "udStringUtil.h"
 
 uint32_t g_currIndex = 0;
 uint32_t g_currVertex = 0;

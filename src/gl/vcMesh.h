@@ -1,7 +1,7 @@
 #ifndef vcMesh_h__
 #define vcMesh_h__
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 #include "gl/vcShader.h"
 
 struct vcMesh;
