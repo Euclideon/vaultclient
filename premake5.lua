@@ -235,6 +235,9 @@ solution "vaultClient"
 	projectSuffix = nil
   
 	dofile "3rdParty/udcore/project.lua"
+	filter {}
+		removeflags { "FatalWarnings" }
+
 	dofile "project.lua"
   
 	if os.target() ~= premake.IOS and os.target() ~= premake.ANDROID and os.target() ~= "emscripten" then
