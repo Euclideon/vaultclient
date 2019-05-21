@@ -1,7 +1,7 @@
 #ifndef vcShader_h__
 #define vcShader_h__
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 #include "gl/vcLayout.h"
 
 struct vcShader;

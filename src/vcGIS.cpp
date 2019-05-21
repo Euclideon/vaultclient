@@ -1,7 +1,7 @@
 #include "vcGIS.h"
 
-#include "udPlatform/udPlatformUtil.h"
-#include "udPlatform/udGeoZone.h"
+#include "udPlatformUtil.h"
+#include "udGeoZone.h"
 
 bool vcGIS_AcceptableSRID(vcSRID sridCode)
 {

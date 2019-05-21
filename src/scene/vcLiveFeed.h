@@ -8,8 +8,8 @@
 #include "vdkRenderContext.h"
 #include "vdkError.h"
 
-#include "udPlatform/udThread.h"
-#include "udPlatform/udChunkedArray.h"
+#include "udThread.h"
+#include "udChunkedArray.h"
 
 struct vcState;
 struct vcLiveFeedItem;

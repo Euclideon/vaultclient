@@ -1,7 +1,7 @@
 #ifndef vcOpenGL_h__
 #define vcOpenGL_h__
 
-#include "udPlatform/udPlatform.h"
+#include "udPlatform.h"
 
 #include <d3d11.h>
 #define DIRECTINPUT_VERSION 0x0800

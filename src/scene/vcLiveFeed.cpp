@@ -16,9 +16,10 @@
 #include "vCore/vUUID.h"
 #include "vCore/vStringFormat.h"
 
-#include "udPlatform/udFile.h"
-#include "udPlatform/udPlatformUtil.h"
-#include "udPlatform/udChunkedArray.h"
+#include "udFile.h"
+#include "udPlatformUtil.h"
+#include "udChunkedArray.h"
+#include "udStringUtil.h"
 
 struct vcLiveFeedItemLOD
 {

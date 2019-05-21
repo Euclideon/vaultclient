@@ -42,11 +42,10 @@ function injectudbin()
 	local ud2Libdir = ud2Location .. libPath .. system .. shortname .. compilerExtension .. distroExtension
 
 	-- Call the Premake APIs
-	links { "udPointCloud", "udPlatform" }
-	includedirs { ud2Location .. "/udPlatform/Include", ud2Location .. "/udPointCloud/Include" }
+	links { "udPointCloudVDK", "udCoreVDK" }
+	includedirs { ud2Location .. "/udCore/Include", ud2Location .. "/udPointCloud/Include" }
 	libdirs { ud2Libdir }
 end
-
 
 function injectvaultsdkbin()
 	-- Calculate the paths
@@ -62,8 +61,8 @@ function injectvaultsdkbin()
 		includedirs { "%{wks.location}/../vault/vaultsdk/src" }
 		defines { "BUILDING_VDK" }
 		if os.target() == "emscripten" then
-			links { "udPlatform", "vaultcore" }
-			includedirs { "../vault/ud/udPlatform/Include", "../vault/vaultcore/src" }
+			links { "vaultcore" }
+			includedirs { "../vault/vaultcore/src" }
 			--buildoptions { "--js-library ../vault/vaultcore/src/vHTTPRequest.js" }
 			linkoptions  { "--js-library ../vault/vaultcore/src/vHTTPRequest.js" }
 		end
@@ -152,7 +151,6 @@ solution "vaultClient"
 		configurations { "Debug", "Release" }
 	end
 
-
 	if os.target() == "emscripten" then
 		platforms { "Emscripten" }
 		buildoptions { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-s BINARYEN_TRAP_MODE='clamp'", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=1073741824" }
@@ -201,32 +199,48 @@ solution "vaultClient"
 	end
 
 	if _OPTIONS["force-vaultsdk"] then
+		projectSuffix = "VDK"
+  
 		if os.target() ~= premake.MACOSX and os.target() ~= "emscripten" then
 			dofile "../vault/3rdParty/curl/project.lua"
 		end
-		dofile "../vault/ud/udPlatform/project.lua"
+    
+		dofile "../vault/ud/udCore/project.lua"
 		dofile "../vault/ud/udPointCloud/project.lua"
 		dofile "../vault/vaultcore/project.lua"
-		filter { "system:emscripten" }
+		
+    filter { "system:emscripten" }
 			removefiles { "../vault/vaultcore/src/vWorkerThread.*" }
 			includedirs { "src/vCore" }
-		filter {}
-		dofile "../vault/vaultsdk/project.lua"
+		
+    filter {}
+		
+    dofile "../vault/vaultsdk/project.lua"
 
 		filter { "system:macosx" }
 			xcodebuildsettings {
 				['INSTALL_PATH'] = "@executable_path/../Frameworks",
 				['SKIP_INSTALL'] = "YES"
 			}
+
 		filter { "system:emscripten" }
 			includedirs { "src/vCore" }
+
 		filter {}
+
 		targetdir "%{wks.location}/builds"
 		debugdir "%{wks.location}/builds"
 	end
+  
+	projectSuffix = nil
+  
+	dofile "3rdParty/udcore/project.lua"
+	filter {}
+		removeflags { "FatalWarnings" }
 
+	dofile "project.lua"
+  
 	if os.target() ~= premake.IOS and os.target() ~= premake.ANDROID and os.target() ~= "emscripten" then
 		dofile "vcConvertCMD/project.lua"
 	end
 
-	dofile "project.lua"

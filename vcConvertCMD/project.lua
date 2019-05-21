@@ -7,13 +7,13 @@ project "vaultConvertCMD"
 
 	--Files to include
 	files { "src/**.cpp", "src/**.h" }
-	files { "../src/udPlatform/**.cpp", "../src/udPlatform/**.h" }
 	files { "project.lua" }
 
 	--This project includes
 	includedirs { "src" }
-	includedirs { "../src/udPlatform" }
+	includedirs { "../3rdParty/udcore/Include" }
 
+	links { "udCore" .. (projectSuffix or "") }
 	injectvaultsdkbin()
 
 	filter { "system:windows" }
@@ -30,7 +30,7 @@ project "vaultConvertCMD"
 	filter {}
 
 	-- include common stuff
-	dofile "../bin/premake/common-proj.lua"
+	dofile "../3rdParty/udcore/bin/premake-bin/common-proj.lua"
 
 	filter {}
 

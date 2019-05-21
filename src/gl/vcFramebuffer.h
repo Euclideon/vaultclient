@@ -1,7 +1,7 @@
 #ifndef vcFramebuffer_h__
 #define vcFramebuffer_h__
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 #include "vcTexture.h"
 
 struct vcFramebuffer;

@@ -1,7 +1,7 @@
 #ifndef vcOpenGL_h__
 #define vcOpenGL_h__
 
-#include "udPlatform/udPlatform.h"
+#include "udPlatform.h"
 
 #if UDPLATFORM_OSX
 # include "OpenGL/gl3.h"

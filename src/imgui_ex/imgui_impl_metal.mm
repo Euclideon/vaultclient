@@ -25,7 +25,7 @@
 #include "gl/vcRenderShaders.h"
 #include "gl/metal/vcMetal.h"
 #include "gl/metal/vcRenderer.h"
-#include "udPlatform/udPlatform.h"
+#include "udPlatform.h"
 
 #pragma mark - Support classes
 
@@ -56,14 +56,14 @@ bool ImGui_ImplMetal_Init()
 {
     ImGuiIO& io = ImGui::GetIO();
     io.BackendRendererName = "imgui_impl_metal";
-    
+
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         g_sharedMetalContext = [[MetalContext alloc] init];
     });
-    
+
     ImGui_ImplMetal_CreateDeviceObjects();
-    
+
     return true;
 }
 
@@ -75,15 +75,15 @@ void ImGui_ImplMetal_Shutdown()
 void ImGui_ImplMetal_NewFrame(SDL_Window *pWindow)
 {
     IM_ASSERT(g_sharedMetalContext != nil && "No Metal context. Did you call ImGui_ImplMetal_Init?");
-    
+
     ImGui_ImplSDL2_NewFrame(pWindow);
-    
+
     ImGuiIO& io = ImGui::GetIO();
-    
+
     io.DisplaySize = ImVec2((float)(_viewCon.Mview.drawableSize.width), (float)(_viewCon.Mview.drawableSize.height));
     // FramebufferScale should stay at 1,1 because the drawable size is automatically resized from the view size
     io.DisplayFramebufferScale = ImVec2(1,1);
-    
+
     ImGui::NewFrame();
 
     io.MousePos.x -= [_viewCon.Mview.window contentLayoutRect].origin.x;
@@ -99,9 +99,9 @@ void ImGui_ImplMetal_RenderDrawData(ImDrawData* draw_data)
 bool ImGui_ImplMetal_CreateFontsTexture()
 {
     [g_sharedMetalContext makeFontTextureWithDevice:_device];
-    
+
     ImGuiIO& io = ImGui::GetIO();
-    
+
     return (io.Fonts->TexID != nil);
 }
 
@@ -114,9 +114,9 @@ void ImGui_ImplMetal_DestroyFontsTexture()
 bool ImGui_ImplMetal_CreateDeviceObjects()
 {
     [g_sharedMetalContext makeDeviceObjects];
-    
+
     ImGui_ImplMetal_CreateFontsTexture();
-    
+
     return true;
 }
 
@@ -151,7 +151,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     unsigned char* pixels;
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-    
+
     vcTexture *fontText;
     vcTexture_Create(&fontText, width, height, pixels);
 
@@ -161,16 +161,16 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
 - (nullable id<MTLRenderPipelineState>)getPipeline:(nonnull id<MTLDevice>)device
 {
     NSError *error = nil;
-    
+
     id<MTLFunction> vertexFunction = [_library newFunctionWithName:@"imguiVertexShader"];
     id<MTLFunction> fragmentFunction = [_library newFunctionWithName:@"imguiFragmentShader"];
-    
+
     if (vertexFunction == nil || fragmentFunction == nil)
     {
         NSLog(@"Error: failed to find Metal shader functions in library: %@", error);
         return nil;
     }
-    
+
     MTLVertexDescriptor *vertexDescriptor = [MTLVertexDescriptor vertexDescriptor];
     vertexDescriptor.attributes[0].offset = 0;
     vertexDescriptor.attributes[0].format = MTLVertexFormatFloat2; // position
@@ -184,7 +184,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     vertexDescriptor.layouts[0].stepRate = 1;
     vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
     vertexDescriptor.layouts[0].stride = 20;
-    
+
     MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
     pipelineDescriptor.vertexFunction = vertexFunction;
     pipelineDescriptor.fragmentFunction = fragmentFunction;
@@ -197,7 +197,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
     pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
     pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOne;
-    
+
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
     pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
     pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float;
@@ -207,13 +207,13 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
 #else
 # error "Unsupported platform!"
 #endif
-    
+
     id<MTLRenderPipelineState> renderPipelineState = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
     if (error != nil)
     {
         NSLog(@"Error: failed to create Metal pipeline state: %@", error);
     }
-    
+
     return renderPipelineState;
 }
 
@@ -224,13 +224,13 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
     if (fb_width <= 0 || fb_height <= 0)
         return;
-    
+
     drawData->ScaleClipRects(io.DisplayFramebufferScale);
     vcGLState_SetBlendMode(vcGLSBM_Interpolative, true);
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
-    
+
     vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
-    
+
     vcGLState_SetViewport(0, 0, fb_width, fb_height);
     const udFloat4x4 ortho_projection = udFloat4x4::create(
        2.0f / io.DisplaySize.x, 0.0f, 0.0f, 0.0f,
@@ -238,7 +238,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
        0.0f, 0.0f, 1.0f, 0.0f,
        -1.0f, 1.0f, 0.0f, 1.0f
     );
-    
+
     vcMesh_Create(&pMetalMesh, vcImGuiVertexLayout, 3, drawData->CmdLists[0]->VtxBuffer.Data, drawData->CmdLists[0]->VtxBuffer.Size, drawData->CmdLists[0]->IdxBuffer.Data, drawData->CmdLists[0]->IdxBuffer.Size, vcMF_Dynamic | vcMF_IndexShort);
 
     vcShader_Bind(pMetalShader);
@@ -246,19 +246,19 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
 
     vcShader_BindConstantBuffer(pMetalShader, metalMatrix, &ortho_projection, sizeof(ortho_projection));
     vcShader_GetSamplerIndex(&pMetalSampler, pMetalShader, "Texture");
-    
+
     if (drawData->CmdListsCount != 0 && pMetalMesh == nullptr)
         vcMesh_Create(&pMetalMesh, vcImGuiVertexLayout, 3, drawData->CmdLists[0]->VtxBuffer.Data, drawData->CmdLists[0]->VtxBuffer.Size, drawData->CmdLists[0]->IdxBuffer.Data, drawData->CmdLists[0]->IdxBuffer.Size, vcMF_Dynamic | vcMF_IndexShort);
-    
+
     // Draw
     ImVec2 pos = drawData->DisplayPos;
     for (int n = 0; n < drawData->CmdListsCount; n++)
     {
         const ImDrawList* cmd_list = drawData->CmdLists[n];
         uint32_t totalDrawn = 0;
-        
+
         vcMesh_UploadData(pMetalMesh, vcImGuiVertexLayout, 3, (void*)cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size, (void*)cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size);
-        
+
         for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
         {
             const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];

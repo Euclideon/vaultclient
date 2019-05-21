@@ -1,8 +1,8 @@
 #ifndef vcTexture_h__
 #define vcTexture_h__
 
-#include "udPlatform/udPlatform.h"
-#include "udPlatform/udMath.h"
+#include "udPlatform.h"
+#include "udMath.h"
 
 enum vcTextureFormat
 {

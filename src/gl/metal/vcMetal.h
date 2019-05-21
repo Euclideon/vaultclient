@@ -1,7 +1,7 @@
 #ifndef vcMetal_h__
 #define vcMetal_h__
 
-#import "udPlatform/udPlatform.h"
+#import "udPlatform.h"
 
 #import "gl/vcGLState.h"
 #import "gl/vcTexture.h"

@@ -1,12 +1,12 @@
 #include "vcUDP.h"
 
-#include "udPlatform/udFile.h"
-#include "udPlatform/udJSON.h"
+#include "udFile.h"
+#include "udJSON.h"
+#include "udStringUtil.h"
 
 #include "vcModel.h"
 #include "vcPOI.h"
 #include "vcFolder.h"
-
 
 enum vcUDPItemDataType
 {

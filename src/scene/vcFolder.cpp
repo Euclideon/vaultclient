@@ -10,6 +10,8 @@
 #include "vcModel.h" // Included just for "ResetPosition"
 #include "vcRender.h" // Included just for "ClearTiles"
 
+#include "udStringUtil.h"
+
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 

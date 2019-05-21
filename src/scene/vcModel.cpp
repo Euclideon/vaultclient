@@ -12,6 +12,8 @@
 
 #include "vdkPointCloud.h"
 
+#include "udStringUtil.h"
+
 struct vcModelLoadInfo
 {
   bool jumpToLocation;

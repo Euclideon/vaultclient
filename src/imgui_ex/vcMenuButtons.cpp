@@ -2,7 +2,8 @@
 #include "vcImGuiSimpleWidgets.h"
 #include "gl/vcTexture.h"
 
-#include "udPlatform/udPlatformUtil.h"
+#include "udPlatformUtil.h"
+#include "udStringUtil.h"
 
 #include "imgui.h"
 

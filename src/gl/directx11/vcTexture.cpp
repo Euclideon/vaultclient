@@ -3,8 +3,11 @@
 #include "gl/vcTexture.h"
 
 #include "vcSettings.h"
-#include "udPlatform/udFile.h"
-#include "udPlatform/udPlatformUtil.h"
+
+#include "udFile.h"
+#include "udPlatformUtil.h"
+#include "udStringUtil.h"
+
 #include "stb_image.h"
 
 enum
