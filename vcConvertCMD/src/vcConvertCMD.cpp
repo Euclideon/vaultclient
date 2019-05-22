@@ -1,9 +1,11 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "udPlatformUtil.h"
 #include "udThread.h"
+#include "udStringUtil.h"
+#include "udFile.h"
+
 #include "vdkConvert.h"
 #include "vdkContext.h"
-#include "udFile.h"
 
 #include <stdio.h>
 #include <inttypes.h>

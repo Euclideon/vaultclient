@@ -1,10 +1,10 @@
 #ifndef vcState_h__
 #define vcState_h__
 
-#include "udPlatform/udPlatformUtil.h"
-#include "udPlatform/udMath.h"
-#include "udPlatform/udChunkedArray.h"
-#include "udPlatform/udJSON.h"
+#include "udPlatformUtil.h"
+#include "udMath.h"
+#include "udChunkedArray.h"
+#include "udJSON.h"
 
 #include "vCore/vWorkerThread.h"
 
@@ -127,6 +127,7 @@ struct vcState
 
   struct
   {
+    vdkProject *pProject;
     vcFolder *pItems;
 
     vcSceneItemRef insertItem;
@@ -143,7 +144,6 @@ struct vcState
     vcImageType imageType;
   } image;
 
-  bool firstRun;
   vdkError currentError;
   int64_t lastEventTime;
   vcTranslationInfo languageInfo;

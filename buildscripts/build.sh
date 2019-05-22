@@ -13,7 +13,7 @@ else
 fi
 
 export DEPLOYDIR="$DEV/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
-export VAULTSDK_HOME="$DEV/Builds/vault/linkedvdk/Pipeline_37529"
+export VAULTSDK_HOME="$DEV/Builds/vault/linkedvdk/Pipeline_38469"
 
 # Prepare UserGuide
 mkdir -p builds/userguide
@@ -23,7 +23,7 @@ cp docs/UserGuide.md builds/userguide/UserGuide.md
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 	export CERT_THUMBPRINT="bbee8d60b45735badf16f76e049b966981bd2751"
 
-	bin/premake/premake5.exe vs2015 $3
+	3rdParty/udcore/bin/premake-bin/premake5.exe vs2015 $3
 
 	"C:/Program Files (x86)/MSBuild/14.0/Bin/amd64/MSBuild.exe" vaultClient.sln //p:Configuration=$1 //p:Platform=$2 //v:m //m
 
@@ -67,7 +67,7 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 else
 	if ([[ $OSTYPE == "darwin"* ]] && [ $3 == "ios" ]); then # iOS
 		export OSNAME="iOS"
-		bin/premake/premake5-osx xcode4 --os=ios
+		3rdParty/udcore/bin/premake-bin/premake5-osx xcode4 --os=ios
 		if [ $2 == "x86_64" ]; then # Simulator
 			xcodebuild -project vaultClient.xcodeproj -configuration $1 -arch $2 -sdk iphonesimulator
 		else
@@ -75,11 +75,11 @@ else
 		fi
 	elif [[ $OSTYPE == "darwin"* ]]; then # OSX
 		export OSNAME="macOS"
-		bin/premake/premake5-osx xcode4 $3
+		3rdParty/udcore/bin/premake-bin/premake5-osx xcode4 $3
 		xcodebuild -project vaultClient.xcodeproj -configuration $1
 	else
 		export OSNAME="Linux"
-		bin/premake/premake5 gmake
+		3rdParty/udcore/bin/premake-bin/premake5 gmake
 		make config=$(echo ${1}_${2} | tr [:upper:] [:lower:]) -j4
 	fi
 

@@ -10,7 +10,14 @@
 #define GRAPHICS_API_D3D11 0
 #endif
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
+
+enum
+{
+  // TODO: (EVC-547) This is arbitrary. Should be platform based.
+  vcGLState_MaxUploadBytesPerFrame = 30 * 1024, // 30kb
+};
+
 
 enum
 {
@@ -43,6 +50,8 @@ enum vcGLStateBlendMode
   vcGLSBM_Interpolative, // (source alpha * source fragment) + ((1 – source alpha) * destination fragment)
   vcGLSBM_Additive, // (1 * source fragment) + (1 * destination fragment)
   vcGLSBM_Multiplicative, // source fragment * destination fragment
+    
+  vcGLSBM_Count
 };
 
 enum vcGLStateDepthMode

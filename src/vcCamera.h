@@ -1,7 +1,7 @@
 #ifndef vcCamera_h__
 #define vcCamera_h__
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 #include "vcMath.h"
 
 enum vcCameraMoveMode
@@ -92,6 +92,7 @@ struct vcCameraInput
   bool flyThroughActive;
   int flyThroughPoint;
   bool transitioningToMapMode;
+  bool stabilize;
 
   udDouble3 smoothTranslation;
   udDouble3 smoothRotation;

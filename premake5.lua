@@ -1,6 +1,9 @@
 require "ios"
+require "vstudio"
+require "emscripten"
 
 table.insert(premake.option.get("os").allowed, { "ios", "Apple iOS" })
+table.insert(premake.option.get("os").allowed, { "emscripten", "Emscripten" })
 
 filter { "system:ios", "action:xcode4" }
   xcodebuildsettings {
@@ -15,13 +18,9 @@ filter { "system:ios", "action:xcode4" }
   }
 
 function getosinfo()
-	local osname = "windows"
+	local osname = os.target()
 	local distroExtension = ""
-	if os.target() == premake.MACOSX then
-		osname = "macosx"
-	elseif os.target() == premake.IOS then
-		osname = "ios"
-	elseif os.target() ~= premake.WINDOWS then
+	if os.target() == premake.LINUX then
 		osname = os.outputof('lsb_release -ir | head -n2 | cut -d ":" -f 2 | tr -d "\n\t" | tr [:upper:] [:lower:] | cut -d "." -f 1')
 		distroExtension = iif(string.startswith(osname, "ubuntu"), "_deb", "_rpm")
 	end
@@ -43,11 +42,10 @@ function injectudbin()
 	local ud2Libdir = ud2Location .. libPath .. system .. shortname .. compilerExtension .. distroExtension
 
 	-- Call the Premake APIs
-	links { "udPointCloud", "udPlatform" }
-	includedirs { ud2Location .. "/udPlatform/Include", ud2Location .. "/udPointCloud/Include" }
+	links { "udPointCloudVDK", "udCoreVDK" }
+	includedirs { ud2Location .. "/udCore/Include", ud2Location .. "/udPointCloud/Include" }
 	libdirs { ud2Libdir }
 end
-
 
 function injectvaultsdkbin()
 	-- Calculate the paths
@@ -62,6 +60,12 @@ function injectvaultsdkbin()
 	if _OPTIONS["force-vaultsdk"] then
 		includedirs { "%{wks.location}/../vault/vaultsdk/src" }
 		defines { "BUILDING_VDK" }
+		if os.target() == "emscripten" then
+			links { "vaultcore" }
+			includedirs { "../vault/vaultcore/src" }
+			--buildoptions { "--js-library ../vault/vaultcore/src/vHTTPRequest.js" }
+			linkoptions  { "--js-library ../vault/vaultcore/src/vHTTPRequest.js" }
+		end
 	else
 		if os.getenv("VAULTSDK_HOME") == nil then
 			error "VaultSDK not installed correctly. (No VAULTSDK_HOME environment variable set!)"
@@ -147,7 +151,21 @@ solution "vaultClient"
 		configurations { "Debug", "Release" }
 	end
 
-	platforms { "x64" }
+	if os.target() == "emscripten" then
+		platforms { "Emscripten" }
+		buildoptions { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-s BINARYEN_TRAP_MODE='clamp'", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=1073741824" }
+		linkoptions  { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-s BINARYEN_TRAP_MODE='clamp'", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=1073741824" }
+		targetextension ".bc"
+		linkgroups "On"
+		filter { "kind:*App" }
+			targetextension ".js"
+		filter { "files:**.cpp" }
+			buildoptions { "-std=c++11" }
+		filter {}
+	else
+		platforms { "x64" }
+	end
+
 	editorintegration "on"
 	startproject "vaultClient"
 	cppdialect "C++11"
@@ -181,26 +199,48 @@ solution "vaultClient"
 	end
 
 	if _OPTIONS["force-vaultsdk"] then
-		if os.target() ~= premake.MACOSX then
+		projectSuffix = "VDK"
+  
+		if os.target() ~= premake.MACOSX and os.target() ~= "emscripten" then
 			dofile "../vault/3rdParty/curl/project.lua"
 		end
-		dofile "../vault/ud/udPlatform/project.lua"
+    
+		dofile "../vault/ud/udCore/project.lua"
 		dofile "../vault/ud/udPointCloud/project.lua"
 		dofile "../vault/vaultcore/project.lua"
-		dofile "../vault/vaultsdk/project.lua"
+		
+    filter { "system:emscripten" }
+			removefiles { "../vault/vaultcore/src/vWorkerThread.*" }
+			includedirs { "src/vCore" }
+		
+    filter {}
+		
+    dofile "../vault/vaultsdk/project.lua"
 
 		filter { "system:macosx" }
 			xcodebuildsettings {
 				['INSTALL_PATH'] = "@executable_path/../Frameworks",
 				['SKIP_INSTALL'] = "YES"
 			}
+
+		filter { "system:emscripten" }
+			includedirs { "src/vCore" }
+
 		filter {}
+
 		targetdir "%{wks.location}/builds"
 		debugdir "%{wks.location}/builds"
 	end
+  
+	projectSuffix = nil
+  
+	dofile "3rdParty/udcore/project.lua"
+	filter {}
+		removeflags { "FatalWarnings" }
 
-	if os.target() ~= premake.IOS and os.target() ~= premake.ANDROID then
+	dofile "project.lua"
+  
+	if os.target() ~= premake.IOS and os.target() ~= premake.ANDROID and os.target() ~= "emscripten" then
 		dofile "vcConvertCMD/project.lua"
 	end
 
-	dofile "project.lua"

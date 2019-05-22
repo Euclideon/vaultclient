@@ -11,13 +11,12 @@
 
 @property(nonatomic,strong,nonnull) id<MTLCommandQueue> queue;
 
-// Blit stuff
+// Blitting
 @property(nonatomic,strong,nonnull) id<MTLCommandBuffer> blitBuffer;
 @property(nonatomic,strong,nonnull) id<MTLBlitCommandEncoder> blitEncoder;
 
-@property(nonatomic,strong,nonnull) NSMutableArray<id<MTLRenderPipelineState>> *pipelines;
-@property(nonatomic,strong,nonnull) NSMutableArray<MTLRenderPipelineDescriptor*> *pipeDescs;
 @property(nonatomic,strong,nonnull) NSMutableArray<id<MTLBuffer>> *constantBuffers;
+@property(nonatomic,strong,nonnull) NSMutableArray<id<MTLRenderPipelineState>> *pipelines;
 
 @property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLBuffer>> *vertBuffers;
 @property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLBuffer>> *indexBuffers;
@@ -26,7 +25,6 @@
 // Permutables
 @property(nonatomic,strong,nonnull) NSMutableArray<id<MTLDepthStencilState>> *depthStates;
 @property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLSamplerState>> *samplers;
-@property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLRenderPipelineState>> *blendPipelines;
 
 // Per buffer objects
 @property(nonatomic,strong,nonnull) NSMutableArray<MTLRenderPassDescriptor*> *renderPasses;
@@ -39,7 +37,7 @@
 - (void)bindTexture:(nonnull struct vcTexture*)pTexture index:(NSInteger)samplerIndex;
 - (void)bindSampler:(nonnull struct vcShaderSampler*)pTexture index:(NSInteger)samplerIndex;
 - (void)bindDepthStencil:(nonnull id<MTLDepthStencilState>)dsState settings:(nullable vcGLStencilSettings *)pStencil;
-- (void)setBlendMode:(vcGLStateBlendMode)blendMode;
+- (void)bindBlendState:(vcGLStateBlendMode)blendMode;
 - (void)bindConstantBuffer:(nonnull vcShaderConstantBuffer*)pBuffer index:(NSUInteger)index;
 - (void)drawUnindexed:(nonnull id<MTLBuffer>)vertBuffer vertexStart:(NSUInteger)vStart vertexCount:(NSUInteger)vCount primitiveType:(MTLPrimitiveType)type;
 - (void)drawIndexedTriangles:(nonnull id<MTLBuffer>)positionBuffer indexedBuffer:(nonnull id<MTLBuffer>)indexBuffer indexCount:(unsigned long)indexCount offset:(unsigned long)offset indexSize:(MTLIndexType)indexType primitiveType:(MTLPrimitiveType)type;
@@ -51,7 +49,7 @@
 - (void)setFramebuffer:(nullable vcFramebuffer*)pFramebuffer;
 - (void)destroyFramebuffer:(nonnull vcFramebuffer*)pFramebuffer;
 - (void)bindViewport:(MTLViewport)vp;
-
+- (void)buildBlendPipelines:(nonnull MTLRenderPipelineDescriptor*)pDesc;
 @end
 
 #endif

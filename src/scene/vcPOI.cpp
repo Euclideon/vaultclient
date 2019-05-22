@@ -7,18 +7,21 @@
 
 #include "vcFenceRenderer.h"
 
-#include "udPlatform/udMath.h"
-#include "udPlatform/udFile.h"
+#include "udMath.h"
+#include "udFile.h"
+#include "udStringUtil.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcPOI::vcPOI(const char *pName, uint32_t nameColour, vcLabelFontSize namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/)
+vcPOI::vcPOI(vdkProject *pProject, const char *pName, uint32_t nameColour, vcLabelFontSize namePt, vcLineInfo *pLine, int32_t srid, const char *pNotes /*= ""*/) :
+  vcSceneItem(pProject, "POI", pName)
 {
   Init(pName, nameColour, namePt, pLine, srid, pNotes);
 }
 
-vcPOI::vcPOI(const char *pName, uint32_t nameColour, vcLabelFontSize namePt, udDouble3 position, int32_t srid, const char *pNotes /*= ""*/)
+vcPOI::vcPOI(vdkProject *pProject, const char *pName, uint32_t nameColour, vcLabelFontSize namePt, udDouble3 position, int32_t srid, const char *pNotes /*= ""*/) :
+  vcSceneItem(pProject, "POI", pName)
 {
   vcLineInfo temp = {};
   temp.numPoints = 1;
@@ -244,7 +247,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   }
 
   // Handle hyperlinks
-  const char *pHyperlink = m_pMetadata->Get("hyperlink").AsString();
+  const char *pHyperlink = m_metadata.Get("hyperlink").AsString();
   if (pHyperlink != nullptr)
   {
     ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelHyperlink"), pHyperlink);
@@ -257,7 +260,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   }
 
   // Handle imageurl
-  const char *pImageURL = m_pMetadata->Get("imageurl").AsString();
+  const char *pImageURL = m_metadata.Get("imageurl").AsString();
   if (pImageURL != nullptr)
   {
     ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageURL"), pImageURL);
@@ -345,7 +348,8 @@ void vcPOI::SetCameraPosition(vcState *pProgramState)
   if (m_bookmarkMode)
   {
     pProgramState->pCamera->position += m_bookmarkCameraPosition;
-    pProgramState->pCamera->eulerRotation = udMath_DirToYPR(-m_bookmarkCameraPosition) + m_bookmarkCameraRotation;
+    if (m_bookmarkCameraPosition != udDouble3::zero())
+      pProgramState->pCamera->eulerRotation = udMath_DirToYPR(-m_bookmarkCameraPosition) + m_bookmarkCameraRotation;
   }
 }
 
@@ -362,7 +366,6 @@ void vcPOI::Init(const char *pName, uint32_t nameColour, vcLabelFontSize namePt,
   m_pImage = nullptr;
   m_visible = true;
   m_pName = udStrdup(pName);
-  m_type = vcSOT_PointOfInterest;
   m_nameColour = nameColour;
   m_backColour = 0x7F000000;
   m_namePt = namePt;
@@ -403,10 +406,10 @@ void vcPOI::Init(const char *pName, uint32_t nameColour, vcLabelFontSize namePt,
 
   if (pNotes != nullptr && pNotes[0] != '\0')
   {
-    m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
-    m_pMetadata->Set("notes = '%s'", pNotes);
+    udJSON tempStr;
+    tempStr.SetString(pNotes);
+    m_metadata.Set(&tempStr, "notes");
   }
 
-  udStrcpy(m_typeStr, sizeof(m_typeStr), "POI");
   m_loadStatus = vcSLS_Loaded;
 }

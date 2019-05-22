@@ -38,6 +38,7 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer)
   return true;
 }
 
+// Changing clear colour might not be necessary in release, as it doesn't commit any commandbuffers that haven't had their corresponding framebuffer bound (and presumably rendered to) in a frame
 bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
 {
   if (pFramebuffer == nullptr)
@@ -46,7 +47,6 @@ bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
   udFloat4 col = udFloat4::create(((colour >> 16) & 0xFF) / 255.f, ((colour >> 8) & 0xFF) / 255.f, (colour & 0xFF) / 255.f, ((colour >> 24) & 0xFF) / 255.f);
   
   _viewCon.renderer.renderPasses[pFramebuffer->ID].colorAttachments[0].clearColor = MTLClearColorMake(col.x,col.y,col.z,col.w);
-  _viewCon.renderer.renderPasses[pFramebuffer->ID].colorAttachments[0].loadAction = MTLLoadActionClear;
   _viewCon.renderer.renderPasses[pFramebuffer->ID].depthAttachment.clearDepth = 1.0;
   
   return true;

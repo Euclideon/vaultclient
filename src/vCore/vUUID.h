@@ -2,7 +2,7 @@
 #define vUUID_h__
 
 #include <stdint.h>
-#include "udPlatform/udPlatform.h"
+#include "udPlatform.h"
 
 struct vUUID
 {

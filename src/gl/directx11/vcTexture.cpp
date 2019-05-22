@@ -3,8 +3,11 @@
 #include "gl/vcTexture.h"
 
 #include "vcSettings.h"
-#include "udPlatform/udFile.h"
-#include "udPlatform/udPlatformUtil.h"
+
+#include "udFile.h"
+#include "udPlatformUtil.h"
+#include "udStringUtil.h"
+
 #include "stb_image.h"
 
 enum
@@ -173,6 +176,7 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   pTexture->format = format;
   pTexture->width = width;
   pTexture->height = height;
+  vcGLState_GPUDidWork(0, 0, size_t((pTexture->width * pTexture->height * pixelBytes) * (hasMipmaps ? 1.3333f : 1.0f)));
 
   *ppTexture = pTexture;
 
@@ -236,10 +240,13 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
 
   udResult result = udR_Success;
 
+  int pixelBytes = 4; // assumed
   D3D11_MAPPED_SUBRESOURCE mappedResource;
   UD_ERROR_IF(g_pd3dDeviceContext->Map(pTexture->pTextureD3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource) != S_OK, udR_InternalError);
-  memcpy(mappedResource.pData, pPixels, width * height * 4);
+  memcpy(mappedResource.pData, pPixels, width * height * pixelBytes);
   g_pd3dDeviceContext->Unmap(pTexture->pTextureD3D, 0);
+
+  vcGLState_GPUDidWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
 
 epilogue:
   return result;
@@ -271,6 +278,7 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
   const char* names[] = { "_LF", "_RT", "_FR", "_BK", "_UP", "_DN" };
   pTexture->format = vcTextureFormat_Cubemap;
   uint8_t *pFacePixels[6];
+  int pixelBytes = 4;
 
   for (int i = 0; i < 6; i++) // for each face of the cube map
   {
@@ -283,6 +291,7 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
     pTexture->height = height;
     pTexture->width = width;
 
+    pixelBytes = depth; // assume they all have the same depth
     VERIFY_GL();
   }
 
@@ -306,7 +315,7 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
   for (int i = 0; i < 6; i++) // for each face of the cube map
   {
     subResource[i].pSysMem = pFacePixels[i];
-    subResource[i].SysMemPitch = desc.Width * 4;
+    subResource[i].SysMemPitch = desc.Width * pixelBytes;
     subResource[i].SysMemSlicePitch = 0;
   }
 
@@ -348,6 +357,8 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
   {
     stbi_image_free(pFacePixels[i]);
   }
+
+  vcGLState_GPUDidWork(0, 0, pTexture->width * pTexture->height * pixelBytes * 6);
 
 #if UDPLATFORM_OSX
   SDL_free(pBaseDir);

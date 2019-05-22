@@ -1,7 +1,7 @@
 #ifndef vcLabelRenderer_h__
 #define vcLabelRenderer_h__
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 
 enum vcLabelFontSize
 {

@@ -636,7 +636,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
 
           if (renderData.models[i]->m_pWatermark == nullptr) // Load the watermark
           {
-            const char *pWatermarkStr = renderData.models[i]->m_pMetadata->Get("Watermark").AsString();
+            const char *pWatermarkStr = renderData.models[i]->m_metadata.Get("Watermark").AsString();
             if (pWatermarkStr)
             {
               uint8_t *pImage = nullptr;

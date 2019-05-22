@@ -88,99 +88,140 @@
     "serverURL": "http://slippy.vault.euclideon.com",
     "imgExtension": "png"
   },
-  "rootDocks": [
+  "dock": [
     {
-      "label": "ROOT",
-      "status": 0,
-      "active": true,
-      "open": false,
-      "position": {
-        "x": 0.000000,
-        "y": 22.000000
-      },
-      "size": {
-        "x": 1280.000000,
-        "y": 698.000000
-      },
-      "child": [
+      "id": 965938713,
+      "selectedtab": 0,
+      "central": 0,
+      "dockspace": 1,
+      "hiddentabbar": 0,
+      "depth": 0,
+      "x": 0.000000,
+      "y": 22.000000,
+      "w": 1280.000000,
+      "h": 720.000000,
+      "wr": 1280.000000,
+      "hr": 720.000000,
+      "split": "X"
+    },
+    {
+      "id": 5,
+      "parent": 965938713,
+      "selectedtab": 1103884476,
+      "central": 0,
+      "dockspace": 0,
+      "hiddentabbar": 0,
+      "depth": 1,
+      "windows": [
         {
-          "label": "###sceneDock",
-          "status": 0,
-          "active": true,
-          "open": true,
-          "position": {
-            "x": 0.000000,
-            "y": 22.000000
-          },
-          "size": {
-            "x": 981.000000,
-            "y": 698.000000
-          },
-          "location": "1",
-          "next": {
-            "label": "###convertDock",
-            "status": 0,
-            "active": false,
-            "open": true,
-            "position": {
-              "x": 0.000000,
-              "y": 22.000000
-            },
-            "size": {
-              "x": 976.000000,
-              "y": 698.000000
-            },
-            "location": "1"
-          }
+          "name": "###convertDock",
+          "index": 0,
+          "collapsed": 0
         },
         {
-          "label": "DOCK",
-          "status": 0,
-          "active": true,
-          "open": false,
-          "position": {
-            "x": 981.000000,
-            "y": 22.000000
-          },
-          "size": {
-            "x": 299.000000,
-            "y": 698.000000
-          },
-          "location": "0",
-          "child": [
-            {
-              "label": "###sceneExplorerDock",
-              "status": 0,
-              "active": true,
-              "open": true,
-              "position": {
-                "x": 976.000000,
-                "y": 22.000000
-              },
-              "size": {
-                "x": 304.000000,
-                "y": 287.000000
-              },
-              "location": "20"
-            },
-            {
-              "label": "###settingsDock",
-              "status": 0,
-              "active": true,
-              "open": true,
-              "position": {
-                "x": 976.000000,
-                "y": 309.000000
-              },
-              "size": {
-                "x": 304.000000,
-                "y": 411.000000
-              },
-              "location": "30"
-            }
-          ]
+          "name": "###sceneDock",
+          "index": 1,
+          "collapsed": 0
         }
-      ]
+      ],
+      "x": 0.000000,
+      "y": 22.000000,
+      "w": 1015.000000,
+      "h": 720.000000,
+      "wr": 1015.000000,
+      "hr": 0.000000
+    },
+    {
+      "id": 6,
+      "parent": 965938713,
+      "selectedtab": 0,
+      "central": 0,
+      "dockspace": 0,
+      "hiddentabbar": 0,
+      "depth": 2,
+      "x": 1017.000000,
+      "y": 22.000000,
+      "w": 263.000000,
+      "h": 720.000000,
+      "wr": 263.000000,
+      "hr": 720.000000,
+      "split": "X"
+    },
+    {
+      "id": 1,
+      "parent": 6,
+      "selectedtab": 0,
+      "central": 0,
+      "dockspace": 0,
+      "hiddentabbar": 0,
+      "depth": 3,
+      "x": 0.000000,
+      "y": 22.000000,
+      "w": 1151.000000,
+      "h": 720.000000,
+      "wr": 0.000000,
+      "hr": 0.000000
+    },
+    {
+      "id": 2,
+      "parent": 6,
+      "selectedtab": -1383917205,
+      "central": 0,
+      "dockspace": 0,
+      "hiddentabbar": 0,
+      "depth": 4,
+      "x": 1017.000000,
+      "y": 22.000000,
+      "w": 263.000000,
+      "h": 720.000000,
+      "wr": 0.000000,
+      "hr": 0.000000,
+      "split": "Y"
+    },
+    {
+      "id": 3,
+      "parent": 2,
+      "selectedtab": 1081339459,
+      "central": 0,
+      "dockspace": 0,
+      "hiddentabbar": 0,
+      "depth": 5,
+      "windows": [
+        {
+          "name": "###sceneExplorerDock",
+          "index": 0,
+          "collapsed": 0
+        }
+      ],
+      "x": 1017.000000,
+      "y": 22.000000,
+      "w": 263.000000,
+      "h": 324.000000,
+      "wr": 0.000000,
+      "hr": 324.000000
+    },
+    {
+      "id": 4,
+      "parent": 2,
+      "selectedtab": -1383917205,
+      "central": 0,
+      "dockspace": 0,
+      "hiddentabbar": 0,
+      "depth": 6,
+      "windows": [
+        {
+          "name": "###settingsDock",
+          "index": 0,
+          "collapsed": 0
+        }
+      ],
+      "x": 1017.000000,
+      "y": 348.000000,
+      "w": 263.000000,
+      "h": 394.000000,
+      "wr": 0.000000,
+      "hr": 394.000000
     }
   ]
+
 }

@@ -1,7 +1,7 @@
 #ifndef vcOpenGL_h__
 #define vcOpenGL_h__
 
-#include "udPlatform/udPlatform.h"
+#include "udPlatform.h"
 
 #if UDPLATFORM_OSX
 # include "OpenGL/gl3.h"
@@ -79,6 +79,7 @@ struct vcMesh
   GLenum drawType;
   GLenum indexType;
   int indexBytes;
+  uint32_t vertexSize;
 };
 
 static const GLuint vcTFMToGL[] = { GL_NEAREST, GL_LINEAR }; // Filter Mode

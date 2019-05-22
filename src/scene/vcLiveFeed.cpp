@@ -16,9 +16,10 @@
 #include "vCore/vUUID.h"
 #include "vCore/vStringFormat.h"
 
-#include "udPlatform/udFile.h"
-#include "udPlatform/udPlatformUtil.h"
-#include "udPlatform/udChunkedArray.h"
+#include "udFile.h"
+#include "udPlatformUtil.h"
+#include "udChunkedArray.h"
+#include "udStringUtil.h"
 
 struct vcLiveFeedItemLOD
 {
@@ -284,7 +285,8 @@ epilogue:
   pInfo->pFeed->m_loadStatus = vcSLS_Loaded;
 }
 
-vcLiveFeed::vcLiveFeed() :
+vcLiveFeed::vcLiveFeed(vdkProject *pProject) :
+  vcSceneItem(pProject, "IOT", "Live Feed"),
   m_lastUpdateTime(0.0),
   m_visibleItems(0),
   m_tweenPositionAndOrientation(true),
@@ -301,22 +303,20 @@ vcLiveFeed::vcLiveFeed() :
 
   m_visible = true;
   m_pName = udStrdup("Live Feed");
-  m_type = vcSOT_LiveFeed;
-  udStrcpy(m_typeStr, sizeof(m_typeStr), "IOT");
   m_loadStatus = vcSLS_Pending;
 
   vUUID_Clear(&m_groupID);
 }
 
-vcLiveFeed::vcLiveFeed(const vUUID &groupid) :
-  vcLiveFeed()
+vcLiveFeed::vcLiveFeed(vdkProject *pProject, const vUUID &groupid) :
+  vcLiveFeed(pProject)
 {
   m_updateMode = vcLFM_Group;
   m_groupID = groupid;
 }
 
-vcLiveFeed::vcLiveFeed(const udDouble3 &position) :
-  vcLiveFeed()
+vcLiveFeed::vcLiveFeed(vdkProject *pProject, const udDouble3 &position) :
+  vcLiveFeed(pProject)
 {
   m_updateMode = vcLFM_Position;
   m_position = position;
@@ -413,9 +413,9 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
             if (pItem->loadStatus == vcLiveFeedPolyCache::LS_Downloaded)
             {
               pItem->loadStatus = vcLiveFeedPolyCache::LS_Loaded;
-              if (vcPolygonModel_CreateFromMemory(&pItem->pModel, (char*)pItem->pModelData, (int)pItem->modelDataLength) != udR_Success)
+              if (vcPolygonModel_CreateFromVSMFInMemory(&pItem->pModel, (char*)pItem->pModelData, (int)pItem->modelDataLength) != udR_Success)
               {
-                // TODO: retry? draw some error mesh?
+                // TODO: (EVC-570) retry? draw some error mesh?
                 pItem->loadStatus = vcLiveFeedPolyCache::LS_Failed;
               }
 
