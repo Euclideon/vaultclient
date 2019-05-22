@@ -275,7 +275,6 @@ bool vcGLState_Present(SDL_Window *pWindow)
   if (pWindow == nullptr)
     return false;
 
-  memset(&s_internalState.frameInfo, 0, sizeof(s_internalState.frameInfo));
   SDL_GL_SwapWindow(pWindow);
 
   memset(&s_internalState.frameInfo, 0, sizeof(s_internalState.frameInfo));
@@ -305,7 +304,7 @@ int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel)
   return udMin(desiredAniLevel, g_maxAnisotropy);
 }
 
-void vcGLState_GPUDidWork(size_t drawCount, size_t triCount, size_t uploadBytesCount)
+void vcGLState_ReportGPUWork(size_t drawCount, size_t triCount, size_t uploadBytesCount)
 {
   s_internalState.frameInfo.drawCount += drawCount;
   s_internalState.frameInfo.triCount += triCount;
@@ -314,5 +313,5 @@ void vcGLState_GPUDidWork(size_t drawCount, size_t triCount, size_t uploadBytesC
 
 bool vcGLState_IsGPUDataUploadAllowed()
 {
-  return s_internalState.frameInfo.uploadBytesCount < vcGLState_MaxUploadBytesPerFrame;
+  return (s_internalState.frameInfo.uploadBytesCount < vcGLState_MaxUploadBytesPerFrame);
 }

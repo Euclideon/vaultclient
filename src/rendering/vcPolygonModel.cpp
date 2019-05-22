@@ -99,6 +99,9 @@ vcPolygonModelShaderType vcPolygonModel_GetShaderType(const vcVertexLayoutTypes 
   if (totalTypes == 3 && (pMeshLayout[0] == vcVLT_Position3 && pMeshLayout[1] == vcVLT_Normal3 && pMeshLayout[2] == vcVLT_TextureCoords2))
     return vcPMST_P1N1UV1;
 
+  if (totalTypes == 4 && (pMeshLayout[0] == vcVLT_Position3 && pMeshLayout[1] == vcVLT_Normal3 && pMeshLayout[2] == vcVLT_TextureCoords2) && pMeshLayout[3] == vcVLT_ColourBGRA)
+    return vcPMST_P1N1UV1; // TODO: (EVC-540) Re-use for now, ignoring colour attribute
+
   return vcPMST_Count;
 }
 

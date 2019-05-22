@@ -10,7 +10,8 @@
 #include "gl/vcTexture.h"
 #include "gl/vcGLState.h"
 
-#include "udPlatform/udFile.h"
+#include "udFile.h"
+#include "udStringUtil.h"
 
 static const char *pSceneLayerInfoFilename = "3dSceneLayer.json";
 static const char *pNodeInfoFilename = "3dNodeIndexDocument.json";
@@ -139,7 +140,8 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
   udResult result;
   bool uploadsCompleted = true;
 
-  if (!force && !vcGLState_IsGPUDataUploadAllowed())
+  // TODO: (EVC-553)
+  if (false)//!force && !vcGLState_IsGPUDataUploadAllowed())
     return udR_Success;
 
   // geometry
@@ -149,18 +151,18 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
       continue;
 
     // TODO: (EVC-553) Let `vcPolygonModel_CreateFromData()` handle this
-    if (!force && !vcGLState_IsGPUDataUploadAllowed()) // allow partial uploads
+    if (false)//!force && !vcGLState_IsGPUDataUploadAllowed()) // allow partial uploads
     {
       uploadsCompleted = false;
       break;
     }
 
     UD_ERROR_IF(pNode->pGeometryData[i].vertCount > UINT16_MAX, udR_Failure_);
-    UD_ERROR_CHECK(vcPolygonModel_CreateFromData(&pNode->pGeometryData[i].pModel, pNode->pGeometryData[i].pData, (uint16_t)pNode->pGeometryData[i].vertCount, pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount));
+    UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&pNode->pGeometryData[i].pModel, pNode->pGeometryData[i].pData, (uint16_t)pNode->pGeometryData[i].vertCount, pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount));
     udFree(pNode->pGeometryData[i].pData);
 
     pNode->pGeometryData[i].loaded = true;
-    vcGLState_GPUDidWork(0, 0, (pNode->pGeometryData[i].vertexStride * pNode->pGeometryData[i].vertCount));
+    vcGLState_ReportGPUWork(0, 0, (pNode->pGeometryData[i].vertexStride * pNode->pGeometryData[i].vertCount));
   }
 
   // textures
@@ -170,7 +172,7 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
       continue;
 
     // TODO: (EVC-553) Let `vcTexture_Create()` handle this
-    if (!force && !vcGLState_IsGPUDataUploadAllowed()) // allow partial uploads
+    if (false)//!force && !vcGLState_IsGPUDataUploadAllowed()) // allow partial uploads
     {
       uploadsCompleted = false;
       break;
@@ -180,7 +182,7 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
     udFree(pNode->pTextureData[i].pData);
 
     pNode->pTextureData[i].loaded = true;
-    vcGLState_GPUDidWork(0, 0, (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4));
+    vcGLState_ReportGPUWork(0, 0, (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4));
   }
 
   if (uploadsCompleted)

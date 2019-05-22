@@ -830,7 +830,7 @@ int main(int argc, char **args)
   if (!ImGuiGL_Init(programState.pWindow))
     goto epilogue;
 
-  if (vcRender_Init(&(programState.pRenderContext), &(programState.settings), programState.pCamera, programState.sceneResolution) != udR_Success)
+  if (vcRender_Init(&(programState.pRenderContext), &(programState.settings), programState.pCamera, programState.pWorkerPool, programState.sceneResolution) != udR_Success)
     goto epilogue;
 
   // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer

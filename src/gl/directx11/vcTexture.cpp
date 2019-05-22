@@ -176,7 +176,7 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   pTexture->format = format;
   pTexture->width = width;
   pTexture->height = height;
-  vcGLState_GPUDidWork(0, 0, size_t((pTexture->width * pTexture->height * pixelBytes) * (hasMipmaps ? 1.3333f : 1.0f)));
+  vcGLState_ReportGPUWork(0, 0, size_t((pTexture->width * pTexture->height * pixelBytes) * (hasMipmaps ? 1.3333f : 1.0f)));
 
   *ppTexture = pTexture;
 
@@ -246,7 +246,7 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
   memcpy(mappedResource.pData, pPixels, width * height * pixelBytes);
   g_pd3dDeviceContext->Unmap(pTexture->pTextureD3D, 0);
 
-  vcGLState_GPUDidWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
+  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
 
 epilogue:
   return result;
@@ -358,7 +358,7 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
     stbi_image_free(pFacePixels[i]);
   }
 
-  vcGLState_GPUDidWork(0, 0, pTexture->width * pTexture->height * pixelBytes * 6);
+  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pixelBytes * 6);
 
 #if UDPLATFORM_OSX
   SDL_free(pBaseDir);

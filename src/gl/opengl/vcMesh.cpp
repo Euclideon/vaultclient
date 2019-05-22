@@ -86,7 +86,7 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
 
   pMesh->vertexCount = currentVerts;
   pMesh->indexCount = currentIndices;
-  vcGLState_GPUDidWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
+  vcGLState_ReportGPUWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
 
 epilogue:
   glBindVertexArray(0);
@@ -138,7 +138,7 @@ udResult vcMesh_UploadData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, in
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, pMesh->indexBytes * totalIndices, pIndices, pMesh->drawType);
   }
 
-  vcGLState_GPUDidWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
+  vcGLState_ReportGPUWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
   return result;
 }
 
@@ -178,6 +178,6 @@ bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t start
 
   glBindVertexArray(0);
 
-  vcGLState_GPUDidWork(1, elementCount - startElement, 0);
+  vcGLState_ReportGPUWork(1, elementCount - startElement, 0);
   return true;
 }
