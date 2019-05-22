@@ -2,9 +2,10 @@
 
 #include "vdkWeb.h"
 
-#include "udPlatform/udPlatformUtil.h"
-#include "udPlatform/udFile.h"
-#include "udPlatform/udFileHandler.h"
+#include "udPlatformUtil.h"
+#include "udFile.h"
+#include "udFileHandler.h"
+#include "udStringUtil.h"
 
 static udResult vcWebFile_SeekRead(udFile *pFile, void *pBuffer, size_t bufferLength, int64_t seekOffset, size_t *pActualRead, udFilePipelinedRequest * /*pPipelinedRequest*/)
 {

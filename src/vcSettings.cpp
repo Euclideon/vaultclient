@@ -1,152 +1,21 @@
 #include "vcSettings.h"
 
-#include "udPlatform/udJSON.h"
-#include "udPlatform/udPlatformUtil.h"
-#include "udPlatform/udFileHandler.h"
+#include "udJSON.h"
+#include "udPlatformUtil.h"
+#include "udFileHandler.h"
+#include "udStringUtil.h"
 
 #include "imgui.h"
-#include "imgui_ex/imgui_dock_internal.h"
+#include "imgui_internal.h"
 
 #include "vcClassificationColours.h"
+#include "vCore/vStringFormat.h"
 
-extern ImGui::DockContext g_dock;
-const char *pDefaults = "asset://defaultsettings.json";
+#if UDPLATFORM_EMSCRIPTEN
+# include <emscripten.h>
+#endif
 
-void vcSettings_RecursiveLoadDock(const udJSON &parentDock, int parentIndex, bool isNextTab = false)
-{
-  ImGui::DockContext::Dock *new_dock = (ImGui::DockContext::Dock*)ImGui::MemAlloc(sizeof(ImGui::DockContext::Dock));
-  IM_PLACEMENT_NEW(new_dock) ImGui::DockContext::Dock();
-  g_dock.m_docks.push_back(new_dock);
-
-  int newIndex = g_dock.m_docks.size()-1;
-
-  g_dock.m_docks[newIndex]->label = ImStrdup(parentDock.Get("label").AsString());
-
-  // Legacy names from pre-0.2.1
-  if (udStrEquali(g_dock.m_docks[newIndex]->label, "Scene"))
-  {
-    ImGui::MemFree(g_dock.m_docks[newIndex]->label);
-    g_dock.m_docks[newIndex]->label = ImStrdup("scene###sceneDock");
-  }
-  else if (udStrEquali(g_dock.m_docks[newIndex]->label, "Convert"))
-  {
-    ImGui::MemFree(g_dock.m_docks[newIndex]->label);
-    g_dock.m_docks[newIndex]->label = ImStrdup("convert###convertDock");
-  }
-  else if (udStrEquali(g_dock.m_docks[newIndex]->label, "Scene Explorer"))
-  {
-    ImGui::MemFree(g_dock.m_docks[newIndex]->label);
-    g_dock.m_docks[newIndex]->label = ImStrdup("sceneExplorer###sceneExplorerDock");
-  }
-  else if (udStrEquali(g_dock.m_docks[newIndex]->label, "Settings"))
-  {
-    ImGui::MemFree(g_dock.m_docks[newIndex]->label);
-    g_dock.m_docks[newIndex]->label = ImStrdup("settings###settingsDock");
-  }
-
-  g_dock.m_docks[newIndex]->id = ImHashStr(g_dock.m_docks[newIndex]->label, 0);
-
-  if (parentDock.Get("child").ArrayLength() > 0) // has children
-  {
-    vcSettings_RecursiveLoadDock(parentDock.Get("child[0]"), newIndex);
-    g_dock.m_docks[newIndex]->children[0] = g_dock.getDockByIndex(newIndex + 1);
-
-    int child1Index = g_dock.m_docks.size();
-    vcSettings_RecursiveLoadDock(parentDock.Get("child[1]"), newIndex);
-    g_dock.m_docks[newIndex]->children[1] = g_dock.getDockByIndex(child1Index);
-  }
-
-  if (isNextTab)
-    g_dock.m_docks[newIndex]->prev_tab = g_dock.getDockByIndex(newIndex - 1); // must be previous value
-
-  if (parentDock.Get("next").MemberCount() > 0) // has next_tab
-  {
-    vcSettings_RecursiveLoadDock(parentDock.Get("next"), parentIndex, true);
-
-    g_dock.m_docks[newIndex]->next_tab = g_dock.getDockByIndex(newIndex + 1); // as tab cannot have children
-  }
-
-  g_dock.m_docks[newIndex]->parent = g_dock.getDockByIndex(parentIndex);
-
-  g_dock.m_docks[newIndex]->status = (ImGui::DockContext::Status_)parentDock.Get("status").AsInt();
-  g_dock.m_docks[newIndex]->active = parentDock.Get("active").AsBool();
-  g_dock.m_docks[newIndex]->opened = parentDock.Get("open").AsBool();
-
-  g_dock.m_docks[newIndex]->pos.x = parentDock.Get("position.x").AsFloat();
-  g_dock.m_docks[newIndex]->pos.y = parentDock.Get("position.y").AsFloat();
-  g_dock.m_docks[newIndex]->size.x = parentDock.Get("size.x").AsFloat();
-  g_dock.m_docks[newIndex]->size.y = parentDock.Get("size.y").AsFloat();
-
-  udStrcpy(g_dock.m_docks[newIndex]->location, sizeof(g_dock.m_docks[newIndex]->location), parentDock.Get("location").AsString(""));
-
-  g_dock.tryDockToStoredLocation(*g_dock.m_docks[newIndex]);
-}
-
-void vcSettings_LoadDocks(udJSON &settings)
-{
-  for (int i = 0; i < g_dock.m_docks.size(); ++i)
-  {
-    g_dock.m_docks[i]->~Dock();
-    MemFree(g_dock.m_docks[i]);
-  }
-  g_dock.m_docks.clear();
-
-  int numRootDocks = (int)settings.Get("rootDocks").ArrayLength();
-
-  for (int i = 0; i < numRootDocks; ++i)
-  {
-    vcSettings_RecursiveLoadDock(settings.Get("rootDocks[%d]", i), -1);
-  }
-}
-
-void vcSettings_RecursiveSaveDock(udJSON &parentJSON, ImGui::DockContext::Dock *pParentDock, const char *pParentString)
-{
-  udJSON dockJSON;
-  dockJSON.SetObject();
-
-  ImGui::DockContext::Dock &dock = *pParentDock;
-
-  dockJSON.Set("label = '%s'", dock.parent ? (dock.label[0] == '\0' ? "DOCK" : dock.label) : (dock.label[0] == '\0' ? "ROOT" : dock.label));
-
-  dockJSON.Set("status = %d", dock.status);
-  dockJSON.Set("active = %s", dock.active ? "true" : "false");
-  dockJSON.Set("open = %s", dock.opened ? "true" : "false");
-
-  dockJSON.Set("position.x = %f", dock.pos.x);
-  dockJSON.Set("position.y = %f", dock.pos.y);
-  dockJSON.Set("size.x = %f", dock.size.x);
-  dockJSON.Set("size.y = %f", dock.size.y);
-
-  g_dock.fillLocation(dock);
-  if (udStrlen(dock.location))
-    dockJSON.Set("location = '%s'", dock.location);
-
-  if (dock.children[0])
-    vcSettings_RecursiveSaveDock(dockJSON, dock.children[0], "child[0]");
-
-  if (dock.children[1])
-    vcSettings_RecursiveSaveDock(dockJSON, dock.children[1], "child[1]");
-
-  if (dock.next_tab)
-    vcSettings_RecursiveSaveDock(dockJSON, dock.next_tab, "next");
-
-  parentJSON.Set(&dockJSON, "%s", pParentString);
-}
-
-void vcSettings_SaveDocks(udJSON &settings)
-{
-  for (int i = 0; i < g_dock.m_docks.size(); ++i)
-  {
-    ImGui::DockContext::Dock& dock = *g_dock.m_docks[i];
-    bool dockIsValidRoot = (g_dock.getDockIndex(dock.parent) == -1);
-
-    if ((!dock.children[0] || !dock.children[1]) && udStrlen(dock.label) == 0) // if either of the children are nullptr and the label has a length of 0
-      dockIsValidRoot = false; // is a root dock with no children, do not save
-
-    if (dockIsValidRoot)
-      vcSettings_RecursiveSaveDock(settings, &dock, "rootDocks[]");
-  }
-}
+const char DefaultFilename[] = "asset://defaultsettings.json";
 
 void vcSettings_InitializePrefPath(vcSettings *pSettings)
 {
@@ -239,186 +108,303 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
   }
 
   // If we didn't load, let's try load the defaults
-  if (pSavedData == nullptr && udFile_Load(pDefaults, (void **)&pSavedData) != udR_Success)
+  if (pSavedData == nullptr && udFile_Load(DefaultFilename, (void **)&pSavedData) != udR_Success)
     udFree(pSavedData); // Didn't load, let's free this in case it was allocated
 
   udJSON data;
   if (pSavedData != nullptr)
     data.Parse(pSavedData);
 
-  if (data.Get("docks").IsArray())
+  if (group == vcSC_All || group == vcSC_Appearance)
   {
-    vcSettings_Load(pSettings, true);
-    goto epilogue;
+    // Misc Settings
+    pSettings->presentation.styleIndex = data.Get("style").AsInt(1); // dark style by default
+
+    pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
+    pSettings->presentation.showCameraInfo = data.Get("showCameraInfo").AsBool(true);
+    pSettings->presentation.showProjectionInfo = data.Get("showGISInfo").AsBool(true);
+    pSettings->presentation.showAdvancedGIS = data.Get("showAdvGISOptions").AsBool(false);
+    pSettings->presentation.mouseAnchor = (vcAnchorStyle)data.Get("mouseAnchor").AsInt(vcAS_Orbit);
+    pSettings->presentation.showCompass = data.Get("showCompass").AsBool(true);
+    pSettings->presentation.POIFadeDistance = data.Get("POIfadeDistance").AsFloat(10000.f);
+    pSettings->presentation.limitFPSInBackground = data.Get("limitFPSInBackground").AsBool(true);
+    pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
+    pSettings->responsiveUI = (vcPresentationMode)data.Get("responsiveUI").AsInt(vcPM_Hide);
+
+    switch (pSettings->presentation.styleIndex)
+    {
+    case 0: ImGui::StyleColorsClassic(); break;
+    case 1: ImGui::StyleColorsDark(); break;
+    case 2: ImGui::StyleColorsLight(); break;
+    }
   }
 
-    if (group == vcSC_All || group == vcSC_Appearance)
-    {
-      // Misc Settings
-      pSettings->presentation.styleIndex = data.Get("style").AsInt(1); // dark style by default
-
-      pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
-      pSettings->presentation.showCameraInfo = data.Get("showCameraInfo").AsBool(true);
-      pSettings->presentation.showProjectionInfo = data.Get("showGISInfo").AsBool(true);
-      pSettings->presentation.showAdvancedGIS = data.Get("showAdvGISOptions").AsBool(false);
-      pSettings->presentation.mouseAnchor = (vcAnchorStyle)data.Get("mouseAnchor").AsInt(vcAS_Orbit);
-      pSettings->presentation.showCompass = data.Get("showCompass").AsBool(true);
-      pSettings->presentation.POIFadeDistance = data.Get("POIfadeDistance").AsFloat(10000.f);
-      pSettings->presentation.limitFPSInBackground = data.Get("limitFPSInBackground").AsBool(true);
-      pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
-      pSettings->responsiveUI = (vcPresentationMode)data.Get("responsiveUI").AsInt(vcPM_Hide);
-
-      switch (pSettings->presentation.styleIndex)
-      {
-      case 0: ImGui::StyleColorsClassic(); break;
-      case 1: ImGui::StyleColorsDark(); break;
-      case 2: ImGui::StyleColorsLight(); break;
-      }
-    }
-
-    if (group == vcSC_All || group == vcSC_InputControls)
-    {
-      pSettings->window.touchscreenFriendly = data.Get("window.touchscreenFriendly").AsBool(false);
+  if (group == vcSC_All || group == vcSC_InputControls)
+  {
+    pSettings->window.touchscreenFriendly = data.Get("window.touchscreenFriendly").AsBool(false);
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-      pSettings->onScreenControls = true;
+    pSettings->onScreenControls = true;
 #else
-      pSettings->onScreenControls = false;
+    pSettings->onScreenControls = false;
 #endif
-      pSettings->camera.invertX = data.Get("camera.invertX").AsBool(false);
-      pSettings->camera.invertY = data.Get("camera.invertY").AsBool(false);
-      pSettings->camera.cameraMouseBindings[0] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[0]").AsInt(vcCPM_Tumble);
-      pSettings->camera.cameraMouseBindings[1] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[1]").AsInt(vcCPM_Pan);
-      pSettings->camera.cameraMouseBindings[2] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[2]").AsInt(vcCPM_Orbit);
-      pSettings->camera.scrollWheelMode = (vcCameraScrollWheelMode)data.Get("camera.scrollwheelBinding").AsInt(vcCSWM_Dolly);
-    }
+    pSettings->camera.invertX = data.Get("camera.invertX").AsBool(false);
+    pSettings->camera.invertY = data.Get("camera.invertY").AsBool(false);
+    pSettings->camera.cameraMouseBindings[0] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[0]").AsInt(vcCPM_Tumble);
+    pSettings->camera.cameraMouseBindings[1] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[1]").AsInt(vcCPM_Pan);
+    pSettings->camera.cameraMouseBindings[2] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[2]").AsInt(vcCPM_Orbit);
+    pSettings->camera.scrollWheelMode = (vcCameraScrollWheelMode)data.Get("camera.scrollwheelBinding").AsInt(vcCSWM_Dolly);
+  }
 
-    if (group == vcSC_All || group == vcSC_Viewport)
+  if (group == vcSC_All || group == vcSC_Viewport)
+  {
+    pSettings->camera.nearPlane = data.Get("camera.nearPlane").AsFloat(0.5f);
+    pSettings->camera.farPlane = data.Get("camera.farPlane").AsFloat(10000.f);
+    pSettings->camera.lensIndex = data.Get("camera.lensId").AsInt(vcLS_30mm);
+    pSettings->camera.fieldOfView = data.Get("camera.fieldOfView").AsFloat(vcLens30mm);
+  }
+
+  if (group == vcSC_All || group == vcSC_MapsElevation)
+  {
+    // Map Tiles
+    pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
+    pSettings->maptiles.mouseInteracts = data.Get("maptiles.mouseInteracts").AsBool(true);
+    udStrcpy(pSettings->maptiles.tileServerAddress, sizeof(pSettings->maptiles.tileServerAddress), data.Get("maptiles.serverURL").AsString("http://slippy.vault.euclideon.com/"));
+    udStrcpy(pSettings->maptiles.tileServerExtension, sizeof(pSettings->maptiles.tileServerExtension), data.Get("maptiles.imgExtension").AsString("png"));
+    pSettings->maptiles.mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
+    pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(1);
+    pSettings->maptiles.transparency = data.Get("maptiles.transparency").AsFloat(1.f);
+
+    if (udStrEquali(pSettings->maptiles.tileServerAddress, "http://20.188.211.58"))
+      udStrcpy(pSettings->maptiles.tileServerAddress, sizeof(pSettings->maptiles.tileServerAddress), "http://slippy.vault.euclideon.com");
+
+    pSettings->maptiles.mapQuality = (vcTileRendererMapQuality)data.Get("maptiles.mapQuality").AsInt(vcTRMQ_High);
+    pSettings->maptiles.mapOptions = (vcTileRendererFlags)data.Get("maptiles.mapOptions").AsInt(vcTRF_None);
+  }
+
+  if (group == vcSC_All || group == vcSC_Visualization)
+  {
+    pSettings->visualization.mode = (vcVisualizatationMode)data.Get("visualization.mode").AsInt(0);
+    pSettings->postVisualization.edgeOutlines.enable = data.Get("postVisualization.edgeOutlines.enabled").AsBool(false);
+    pSettings->postVisualization.colourByHeight.enable = data.Get("postVisualization.colourByHeight.enabled").AsBool(false);
+    pSettings->postVisualization.colourByDepth.enable = data.Get("postVisualization.colourByDepth.enabled").AsBool(false);
+    pSettings->postVisualization.contours.enable = data.Get("postVisualization.contours.enabled").AsBool(false);
+    pSettings->visualization.minIntensity = data.Get("visualization.minIntensity").AsInt(0);
+    pSettings->visualization.maxIntensity = data.Get("visualization.maxIntensity").AsInt(65535);
+
+    memcpy(pSettings->visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pSettings->visualization.customClassificationColors));
+    if (data.Get("visualization.classificationColours").IsArray())
     {
-      pSettings->camera.nearPlane = data.Get("camera.nearPlane").AsFloat(0.5f);
-      pSettings->camera.farPlane = data.Get("camera.farPlane").AsFloat(10000.f);
-      pSettings->camera.lensIndex = data.Get("camera.lensId").AsInt(vcLS_30mm);
-      pSettings->camera.fieldOfView = data.Get("camera.fieldOfView").AsFloat(vcLens30mm);
+      const udJSONArray *pColors = data.Get("visualization.classificationColours").AsArray();
+
+      for (size_t i = 0; i < pColors->length; ++i)
+        pSettings->visualization.customClassificationColors[i] = pColors->GetElement(i)->AsInt(GeoverseClassificationColours[i]);
     }
-
-    if (group == vcSC_All || group == vcSC_MapsElevation)
+    if (data.Get("visualization.classificationColourLabels").IsArray())
     {
-      // Map Tiles
-      pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
-      pSettings->maptiles.mouseInteracts = data.Get("maptiles.mouseInteracts").AsBool(true);
-      udStrcpy(pSettings->maptiles.tileServerAddress, sizeof(pSettings->maptiles.tileServerAddress), data.Get("maptiles.serverURL").AsString("http://slippy.vault.euclideon.com/"));
-      udStrcpy(pSettings->maptiles.tileServerExtension, sizeof(pSettings->maptiles.tileServerExtension), data.Get("maptiles.imgExtension").AsString("png"));
-      pSettings->maptiles.mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
-      pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(1);
-      pSettings->maptiles.transparency = data.Get("maptiles.transparency").AsFloat(1.f);
+      const udJSONArray *pColorLabels = data.Get("visualization.classificationColourLabels").AsArray();
 
-      if (udStrEquali(pSettings->maptiles.tileServerAddress, "http://20.188.211.58"))
-        udStrcpy(pSettings->maptiles.tileServerAddress, sizeof(pSettings->maptiles.tileServerAddress), "http://slippy.vault.euclideon.com");
-
-      pSettings->maptiles.mapQuality = (vcTileRendererMapQuality)data.Get("maptiles.mapQuality").AsInt(vcTRMQ_High);
-      pSettings->maptiles.mapOptions = (vcTileRendererFlags)data.Get("maptiles.mapOptions").AsInt(vcTRF_None);
-    }
-
-    if (group == vcSC_All || group == vcSC_Visualization)
-    {
-      pSettings->visualization.mode = (vcVisualizatationMode)data.Get("visualization.mode").AsInt(0);
-      pSettings->postVisualization.edgeOutlines.enable = data.Get("postVisualization.edgeOutlines.enabled").AsBool(false);
-      pSettings->postVisualization.colourByHeight.enable = data.Get("postVisualization.colourByHeight.enabled").AsBool(false);
-      pSettings->postVisualization.colourByDepth.enable = data.Get("postVisualization.colourByDepth.enabled").AsBool(false);
-      pSettings->postVisualization.contours.enable = data.Get("postVisualization.contours.enabled").AsBool(false);
-      pSettings->visualization.minIntensity = data.Get("visualization.minIntensity").AsInt(0);
-      pSettings->visualization.maxIntensity = data.Get("visualization.maxIntensity").AsInt(65535);
-
-      memcpy(pSettings->visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pSettings->visualization.customClassificationColors));
-      if (data.Get("visualization.classificationColours").IsArray())
+      for (size_t i = 0; i < pColorLabels->length; ++i)
       {
-        const udJSONArray *pColors = data.Get("visualization.classificationColours").AsArray();
-
-        for (size_t i = 0; i < pColors->length; ++i)
-          pSettings->visualization.customClassificationColors[i] = pColors->GetElement(i)->AsInt(GeoverseClassificationColours[i]);
+        int digits = 3;
+        const char *buf = pColorLabels->GetElement(i)->AsString();
+        pSettings->visualization.customClassificationColorLabels[udStrAtoi(buf, &digits)] = udStrdup(buf + digits);
       }
-      if (data.Get("visualization.classificationColourLabels").IsArray())
-      {
-        const udJSONArray *pColorLabels = data.Get("visualization.classificationColourLabels").AsArray();
-
-        for (size_t i = 0; i < pColorLabels->length; ++i)
-        {
-          int digits = 3;
-          const char *buf = pColorLabels->GetElement(i)->AsString();
-          pSettings->visualization.customClassificationColorLabels[udStrAtoi(buf, &digits)] = udStrdup(buf + digits);
-        }
-      }
-
-      // Post visualization - Edge Highlighting
-      pSettings->postVisualization.edgeOutlines.width = data.Get("postVisualization.edgeOutlines.width").AsInt(1);
-      pSettings->postVisualization.edgeOutlines.threshold = data.Get("postVisualization.edgeOutlines.threshold").AsFloat(0.001f);
-      for (int i = 0; i < 4; i++)
-        pSettings->postVisualization.edgeOutlines.colour[i] = data.Get("postVisualization.edgeOutlines.colour[%d]", i).AsFloat(1.f);
-
-      // Post visualization - Colour by height
-      for (int i = 0; i < 4; i++)
-        pSettings->postVisualization.colourByHeight.minColour[i] = data.Get("postVisualization.colourByHeight.minColour[%d]", i).AsFloat((i < 3) ? 0.f : 1.f); // 0.f, 0.f, 1.f, 1.f
-      for (int i = 0; i < 4; i++)
-        pSettings->postVisualization.colourByHeight.maxColour[i] = data.Get("postVisualization.colourByHeight.maxColour[%d]", i).AsFloat((i % 2) ? 1.f : 0.f); // 0.f, 1.f, 0.f, 1.f
-      pSettings->postVisualization.colourByHeight.startHeight = data.Get("postVisualization.colourByHeight.startHeight").AsFloat(30.f);
-      pSettings->postVisualization.colourByHeight.endHeight = data.Get("postVisualization.colourByHeight.endHeight").AsFloat(50.f);
-
-      // Post visualization - Colour by depth
-      for (int i = 0; i < 4; i++)
-        pSettings->postVisualization.colourByDepth.colour[i] = data.Get("postVisualization.colourByDepth.colour[%d]", i).AsFloat((i == 0 || i == 3) ? 1.f : 0.f); // 1.f, 0.f, 0.f, 1.f
-      pSettings->postVisualization.colourByDepth.startDepth = data.Get("postVisualization.colourByDepth.startDepth").AsFloat(100.f);
-      pSettings->postVisualization.colourByDepth.endDepth = data.Get("postVisualization.colourByDepth.endDepth").AsFloat(1000.f);
-
-      // Post visualization - Contours
-      for (int i = 0; i < 4; i++)
-        pSettings->postVisualization.contours.colour[i] = data.Get("postVisualization.contours.colour[%d]", i).AsFloat((i == 3) ? 1.f : 0.f); // 0.f, 0.f, 0.f, 1.f
-      pSettings->postVisualization.contours.distances = data.Get("postVisualization.contours.distances").AsFloat(50.f);
-      pSettings->postVisualization.contours.bandHeight = data.Get("postVisualization.contours.bandHeight").AsFloat(1.f);
     }
 
-    if (group == vcSC_All)
+    // Post visualization - Edge Highlighting
+    pSettings->postVisualization.edgeOutlines.width = data.Get("postVisualization.edgeOutlines.width").AsInt(1);
+    pSettings->postVisualization.edgeOutlines.threshold = data.Get("postVisualization.edgeOutlines.threshold").AsFloat(0.001f);
+    for (int i = 0; i < 4; i++)
+      pSettings->postVisualization.edgeOutlines.colour[i] = data.Get("postVisualization.edgeOutlines.colour[%d]", i).AsFloat(1.f);
+
+    // Post visualization - Colour by height
+    for (int i = 0; i < 4; i++)
+      pSettings->postVisualization.colourByHeight.minColour[i] = data.Get("postVisualization.colourByHeight.minColour[%d]", i).AsFloat((i < 3) ? 0.f : 1.f); // 0.f, 0.f, 1.f, 1.f
+    for (int i = 0; i < 4; i++)
+      pSettings->postVisualization.colourByHeight.maxColour[i] = data.Get("postVisualization.colourByHeight.maxColour[%d]", i).AsFloat((i % 2) ? 1.f : 0.f); // 0.f, 1.f, 0.f, 1.f
+    pSettings->postVisualization.colourByHeight.startHeight = data.Get("postVisualization.colourByHeight.startHeight").AsFloat(30.f);
+    pSettings->postVisualization.colourByHeight.endHeight = data.Get("postVisualization.colourByHeight.endHeight").AsFloat(50.f);
+
+    // Post visualization - Colour by depth
+    for (int i = 0; i < 4; i++)
+      pSettings->postVisualization.colourByDepth.colour[i] = data.Get("postVisualization.colourByDepth.colour[%d]", i).AsFloat((i == 0 || i == 3) ? 1.f : 0.f); // 1.f, 0.f, 0.f, 1.f
+    pSettings->postVisualization.colourByDepth.startDepth = data.Get("postVisualization.colourByDepth.startDepth").AsFloat(100.f);
+    pSettings->postVisualization.colourByDepth.endDepth = data.Get("postVisualization.colourByDepth.endDepth").AsFloat(1000.f);
+
+    // Post visualization - Contours
+    for (int i = 0; i < 4; i++)
+      pSettings->postVisualization.contours.colour[i] = data.Get("postVisualization.contours.colour[%d]", i).AsFloat((i == 3) ? 1.f : 0.f); // 0.f, 0.f, 0.f, 1.f
+    pSettings->postVisualization.contours.distances = data.Get("postVisualization.contours.distances").AsFloat(50.f);
+    pSettings->postVisualization.contours.bandHeight = data.Get("postVisualization.contours.bandHeight").AsFloat(1.f);
+  }
+
+  if (group == vcSC_All)
+  {
+    // Windows
+    pSettings->window.xpos = data.Get("window.position.x").AsInt(SDL_WINDOWPOS_CENTERED);
+    pSettings->window.ypos = data.Get("window.position.y").AsInt(SDL_WINDOWPOS_CENTERED);
+    pSettings->window.width = data.Get("window.width").AsInt(1280);
+    pSettings->window.height = data.Get("window.height").AsInt(720);
+    pSettings->window.maximized = data.Get("window.maximized").AsBool(false);
+    udStrcpy(pSettings->window.languageCode, udLengthOf(pSettings->window.languageCode), data.Get("window.language").AsString("enAU"));
+
+    // Login Info
+    pSettings->loginInfo.rememberServer = data.Get("login.rememberServer").AsBool(false);
+    if (pSettings->loginInfo.rememberServer)
+      udStrcpy(pSettings->loginInfo.serverURL, sizeof(pSettings->loginInfo.serverURL), data.Get("login.serverURL").AsString());
+
+    pSettings->loginInfo.rememberUsername = data.Get("login.rememberUsername").AsBool(false);
+    if (pSettings->loginInfo.rememberUsername)
+      udStrcpy(pSettings->loginInfo.username, sizeof(pSettings->loginInfo.username), data.Get("login.username").AsString());
+
+    udStrcpy(pSettings->loginInfo.proxy, udLengthOf(pSettings->loginInfo.proxy), data.Get("login.proxy").AsString());
+    udStrcpy(pSettings->loginInfo.proxyTestURL, udLengthOf(pSettings->loginInfo.proxyTestURL), data.Get("login.proxyTestURL").AsString("http://vaultmodels.euclideon.com/proxytest"));
+    pSettings->loginInfo.autoDetectProxy = data.Get("login.autodetectproxy").AsBool();
+
+    // Camera
+    pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
+    pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
+  }
+
+  if (group == vcSC_Docks || forceReset)
+  {
+    if (data.Get("dock").IsArray())
     {
-      // Windows
-      pSettings->window.xpos = data.Get("window.position.x").AsInt(SDL_WINDOWPOS_CENTERED);
-      pSettings->window.ypos = data.Get("window.position.y").AsInt(SDL_WINDOWPOS_CENTERED);
-      pSettings->window.width = data.Get("window.width").AsInt(1280);
-      pSettings->window.height = data.Get("window.height").AsInt(720);
-      pSettings->window.maximized = data.Get("window.maximized").AsBool(false);
-      udStrcpy(pSettings->window.languageCode, udLengthOf(pSettings->window.languageCode), data.Get("window.language").AsString("enAU"));
+      pSettings->docksLoaded = true;
 
       pSettings->window.windowsOpen[vcDocks_Scene] = data.Get("frames.scene").AsBool(true);
       pSettings->window.windowsOpen[vcDocks_Settings] = data.Get("frames.settings").AsBool(true);
       pSettings->window.windowsOpen[vcDocks_SceneExplorer] = data.Get("frames.explorer").AsBool(true);
       pSettings->window.windowsOpen[vcDocks_Convert] = data.Get("frames.convert").AsBool(false);
 
-      // Login Info
-      pSettings->loginInfo.rememberServer = data.Get("login.rememberServer").AsBool(false);
-      if (pSettings->loginInfo.rememberServer)
-        udStrcpy(pSettings->loginInfo.serverURL, sizeof(pSettings->loginInfo.serverURL), data.Get("login.serverURL").AsString());
+      udJSONArray *pDocks = data.Get("dock").AsArray();
+      size_t numNodes = pDocks->length;
 
-      pSettings->loginInfo.rememberUsername = data.Get("login.rememberUsername").AsBool(false);
-      if (pSettings->loginInfo.rememberUsername)
-        udStrcpy(pSettings->loginInfo.username, sizeof(pSettings->loginInfo.username), data.Get("login.username").AsString());
+      ImGui::DockContextClearNodes(GImGui, 0, true);
 
-      udStrcpy(pSettings->loginInfo.proxy, udLengthOf(pSettings->loginInfo.proxy), data.Get("login.proxy").AsString());
-      udStrcpy(pSettings->loginInfo.proxyTestURL, udLengthOf(pSettings->loginInfo.proxyTestURL), data.Get("login.proxyTestURL").AsString("http://vaultmodels.euclideon.com/proxytest"));
-      pSettings->loginInfo.autoDetectProxy = data.Get("login.autodetectproxy").AsBool();
+      ImGuiDockNodeSettings *pDockNodes = udAllocType(ImGuiDockNodeSettings, numNodes, udAF_Zero);
 
-      // Camera
-      pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
-      pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
+      for (size_t i = 0; i < pDocks->length; ++i)
+      {
+        udJSON *pDock = pDocks->GetElement(i);
 
-      // Docks
-      vcSettings_LoadDocks(data);
+        pDockNodes[i].ID = pDock->Get("id").AsInt();
+        pDockNodes[i].Pos = ImVec2ih((short)pDock->Get("x").AsInt(), (short)pDock->Get("y").AsInt());
+        pDockNodes[i].Size = ImVec2ih((short)pDock->Get("w").AsInt(), (short)pDock->Get("h").AsInt());
+        pDockNodes[i].SizeRef = ImVec2ih((short)pDock->Get("wr").AsInt(), (short)pDock->Get("hr").AsInt());
+
+        if (pDock->Get("parent").IsNumeric())
+          pDockNodes[i].ParentID = pDock->Get("parent").AsInt();
+
+        if (pDock->Get("split").IsString())
+          pDockNodes[i].SplitAxis = (*(pDock->Get("split").AsString()) == 'X') ? (signed char)ImGuiAxis_X : (signed char)ImGuiAxis_Y;
+        else
+          pDockNodes[i].SplitAxis = ImGuiAxis_None;
+
+        pDockNodes[i].IsCentralNode = (char)pDock->Get("central").AsInt();
+        pDockNodes[i].IsDockSpace = (char)pDock->Get("dockspace").AsInt();
+        pDockNodes[i].IsHiddenTabBar = (char)pDock->Get("hiddentabbar").AsInt();
+        pDockNodes[i].Depth = (char)pDock->Get("depth").AsInt();
+
+        if (pDock->Get("windows").IsArray())
+        {
+          udJSONArray *pWindows = pDock->Get("windows").AsArray();
+
+          for (size_t j = 0; j < pWindows->length; ++j)
+          {
+            udJSON *pJSONWindow = pWindows->GetElement(j);
+
+            ImGuiWindow* pWindow = ImGui::FindWindowByName(pJSONWindow->Get("name").AsString());
+            if (pWindow)
+            {
+              pWindow->DockId = pDockNodes[i].ID;
+              pWindow->DockOrder = (short)pJSONWindow->Get("index").AsInt();
+              pWindow->Collapsed = pJSONWindow->Get("collapsed").AsBool();
+              if (pJSONWindow->Get("visible").AsBool())
+              {
+                for (size_t k = 0; k < sizeof(pSettings->pActive); ++k)
+                {
+                  if (pSettings->pActive[k] == nullptr)
+                  {
+                    pSettings->pActive[k] = pWindow;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      ImGui::DockContextBuildNodesFromSettings(GImGui, pDockNodes, (int)numNodes);
+      udFree(pDockNodes);
     }
+    else
+    {
+      vcSettings_Load(pSettings, true, vcSC_Docks);
+      goto epilogue;
+    }
+  }
+
 epilogue:
   udFree(pSavedData);
-
   return true;
 }
 
+void vcSettings_RecurseDocks(ImGuiDockNode *pNode, udJSON &out, int *pDepth)
+{
+  udJSON data;
+  data.Set("id = %d", (int)pNode->ID);
+  if (pNode->ParentNode)
+    data.Set("parent = %d", (int)pNode->ParentNode->ID);
+
+  data.Set("central = %d", (int)pNode->IsCentralNode());
+  data.Set("dockspace = %d", (int)pNode->IsDockSpace());
+  data.Set("hiddentabbar = %d", (int)pNode->IsHiddenTabBar());
+  data.Set("depth = %d", *pDepth);
+
+  for (int i = 0; i < pNode->Windows.size(); ++i)
+  {
+    udJSON window;
+
+    // Only want the part '###xxxxDock' so any language works
+    const char *pIDName = udStrchr(pNode->Windows[i]->Name, "#");
+
+    window.Set("name = '%s'", pIDName);
+    window.Set("index = %d", i);
+    window.Set("collapsed = %d", (int)pNode->Windows[i]->Collapsed);
+    window.Set("visible = %d", (int)pNode->Windows[i]->DockTabIsVisible);
+
+    data.Set(&window, "windows[]");
+  }
+
+  data.Set("x = %f", pNode->Pos.x);
+  data.Set("y = %f", pNode->Pos.y);
+  data.Set("w = %f", pNode->Size.x);
+  data.Set("h = %f", pNode->Size.y);
+  data.Set("wr = %f", pNode->SizeRef.x);
+  data.Set("hr = %f", pNode->SizeRef.y);
+
+  if (pNode->IsSplitNode())
+    data.Set("split = '%s'", (pNode->SplitAxis == 1) ? "Y" : "X");
+
+  out.Set(&data, "dock[]");
+  ++(*pDepth);
+
+  for (size_t i = 0; i < udLengthOf(pNode->ChildNodes); ++i)
+  {
+    if (pNode->ChildNodes[i] != nullptr)
+    {
+      vcSettings_RecurseDocks(pNode->ChildNodes[i], out, pDepth);
+      --(*pDepth);
+    }
+  }
+}
+
+
 bool vcSettings_Save(vcSettings *pSettings)
 {
-  if (pSettings->noLocalStorage)
+  if (pSettings->noLocalStorage || pSettings->window.presentationMode)
     return false;
 
   bool success = false;
@@ -552,9 +538,12 @@ bool vcSettings_Save(vcSettings *pSettings)
   tempNode.SetString(pSettings->maptiles.tileServerExtension);
   data.Set(&tempNode, "maptiles.imgExtension");
 
-  // Docks
-  vcSettings_SaveDocks(data);
+  int depth = 0;
+  ImGuiDockNode *pRootNode = ImGui::DockBuilderGetNode(pSettings->rootDock);
+  if (pRootNode != nullptr && !pRootNode->IsEmpty())
+    vcSettings_RecurseDocks(ImGui::DockNodeGetRootNode(pRootNode), data, &depth);
 
+  // Save
   const char *pSettingsStr;
 
   if (data.Export(&pSettingsStr, udJEO_JSON | udJEO_FormatWhiteSpace) == udR_Success)
@@ -569,6 +558,13 @@ bool vcSettings_Save(vcSettings *pSettings)
 
   return success;
 }
+
+#if UDPLATFORM_EMSCRIPTEN
+void *vcSettings_GetAssetPathAllocateCallback(size_t length)
+{
+  return udAlloc(length);
+}
+#endif
 
 const char *vcSettings_GetAssetPath(const char *pFilename)
 {
@@ -585,6 +581,17 @@ const char *vcSettings_GetAssetPath(const char *pFilename)
   SDL_free(pBasePath);
 
   return pOutput;
+#elif UDPLATFORM_EMSCRIPTEN
+  char *pURL = (char*)EM_ASM_INT({
+    var url = window.location.href.substr(0, window.location.href.lastIndexOf('/'));
+    var lengthBytes = lengthBytesUTF8(url) + 1;
+    var pURL = dynCall_ii($0, lengthBytes);
+    stringToUTF8(url, pURL, lengthBytes + 1);
+    return pURL;
+  }, vcSettings_GetAssetPathAllocateCallback);
+  const char *pTempURL = udTempStr("%s/%s", pURL, pFilename);
+  udFree(pURL);
+  return pTempURL;
 #else
   return udTempStr("%s", pFilename);
 #endif
@@ -593,7 +600,11 @@ const char *vcSettings_GetAssetPath(const char *pFilename)
 udResult vcSettings_FileHandlerAssetOpen(udFile **ppFile, const char *pFilename, udFileOpenFlags flags)
 {
   size_t fileStart = 8; // length of asset://
-  return udFile_Open(ppFile, vcSettings_GetAssetPath(pFilename + fileStart), flags);
+  const char *pNewFilename = vcSettings_GetAssetPath(pFilename + fileStart);
+  udResult res = udFile_Open(ppFile, pNewFilename, flags);
+  udFree((*ppFile)->pFilenameCopy);
+  (*ppFile)->pFilenameCopy = udStrdup(pNewFilename);
+  return res;
 }
 
 udResult vcSettings_RegisterAssetFileHandler()

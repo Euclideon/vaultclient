@@ -1,7 +1,7 @@
 #ifndef vcImageRenderer_h__
 #define vcImageRenderer_h__
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 #include "gl/vcTexture.h"
 
 enum vcImageSize

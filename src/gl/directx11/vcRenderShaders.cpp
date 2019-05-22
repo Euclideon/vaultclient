@@ -1,5 +1,5 @@
 #include "gl/vcRenderShaders.h"
-#include "udPlatform/udPlatformUtil.h"
+#include "udPlatformUtil.h"
 
 const char* const g_udFragmentShader = R"shader(
   struct PS_INPUT

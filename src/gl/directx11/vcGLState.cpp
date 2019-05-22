@@ -340,8 +340,9 @@ bool vcGLState_Present(SDL_Window * /*pWindow*/)
   if (g_pSwapChain == nullptr)
     return false;
 
-  memset(&s_internalState.frameInfo, 0, sizeof(s_internalState.frameInfo));
   g_pSwapChain->Present(1, 0); // Present with vsync
+
+  memset(&s_internalState.frameInfo, 0, sizeof(s_internalState.frameInfo));
   return true;
 }
 
@@ -374,7 +375,6 @@ int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel)
 {
   return udMin(desiredAniLevel, g_maxAnisotropy);
 }
-
 
 void vcGLState_GPUDidWork(size_t drawCount, size_t triCount, size_t uploadBytesCount)
 {

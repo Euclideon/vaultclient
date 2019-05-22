@@ -1,7 +1,8 @@
 #include "vUUID.h"
 
-#include "udPlatform/udPlatformUtil.h"
-#include "udPlatform/udMath.h"
+#include "udPlatformUtil.h"
+#include "udMath.h"
+#include "udStringUtil.h"
 
 void vUUID_Clear(vUUID *pUUID)
 {

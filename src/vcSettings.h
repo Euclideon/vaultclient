@@ -1,7 +1,9 @@
 #include "SDL2/SDL.h"
-#include "udPlatform/udPlatform.h"
-#include "udPlatform/udMath.h"
+#include "udPlatform.h"
+#include "udMath.h"
 #include "vcCamera.h"
+#include "imgui.h"
+#include "imgui_internal.h"
 
 #ifndef vcSettings_h__
 #define vcSettings_h__
@@ -62,6 +64,7 @@ enum vcSettingCategory
   vcSC_Viewport,
   vcSC_MapsElevation,
   vcSC_Visualization,
+  vcSC_Docks,
   vcSC_All
 };
 
@@ -119,6 +122,7 @@ struct vcSettings
     bool windowsOpen[vcDocks_Count];
 
     char languageCode[5]; //4 + nullterminator
+
   } window;
 
   struct
@@ -205,6 +209,10 @@ struct vcSettings
 
   vcPresentationMode responsiveUI;
   int hideIntervalSeconds;
+
+  bool docksLoaded;
+  ImGuiID rootDock;
+  ImGuiWindow *pActive[vcDocks_Count];
 };
 
 // Settings Limits (vcSL prefix)

@@ -2,6 +2,10 @@
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
 
+#if UDPLATFORM_EMSCRIPTEN
+# include <emscripten/html5.h>
+#endif
+
 static vcGLState s_internalState;
 vcFramebuffer g_defaultFramebuffer;
 int32_t g_maxAnisotropy = 0;
@@ -15,6 +19,15 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 {
   if (SDL_GL_CreateContext(pWindow) == nullptr)
     return false;
+
+#if UDPLATFORM_EMSCRIPTEN
+  EmscriptenWebGLContextAttributes attr;
+  emscripten_webgl_init_context_attributes(&attr);
+  attr.majorVersion = 2;
+  attr.minorVersion = 0;
+  EMSCRIPTEN_WEBGL_CONTEXT_HANDLE ctx = emscripten_webgl_create_context(0, &attr);
+  emscripten_webgl_make_context_current(ctx);
+#endif
 
 #if UDPLATFORM_WINDOWS
   glewExperimental = GL_TRUE;
@@ -108,7 +121,7 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
 
   if (s_internalState.fillMode != fillMode || force)
   {
-#if !UDPLATFORM_IOS && !UDPLATFORM_IOS_SIMULATOR
+#if !UDPLATFORM_IOS && !UDPLATFORM_IOS_SIMULATOR && !UDPLATFORM_EMSCRIPTEN
     if (fillMode == vcGLSFM_Solid)
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     else
@@ -264,6 +277,8 @@ bool vcGLState_Present(SDL_Window *pWindow)
 
   memset(&s_internalState.frameInfo, 0, sizeof(s_internalState.frameInfo));
   SDL_GL_SwapWindow(pWindow);
+
+  memset(&s_internalState.frameInfo, 0, sizeof(s_internalState.frameInfo));
   return true;
 }
 

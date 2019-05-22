@@ -1,7 +1,7 @@
 #ifndef vcMetal_h__
 #define vcMetal_h__
 
-#import "udPlatform/udPlatform.h"
+#import "udPlatform.h"
 
 #import "gl/vcGLState.h"
 #import "gl/vcTexture.h"
@@ -33,6 +33,7 @@ struct vcFramebuffer
   uint32_t ID;
   vcTexture *pColor;
   vcTexture *pDepth;
+  bool render;
 };
 
 struct vcShaderConstantBuffer
@@ -60,10 +61,10 @@ struct vcShader
 struct vcMesh
 {
   char vBufferIndex[32];
-  char iBufferIndex[32];
-  uint32_t vertexBytes;
-
   uint32_t vertexCount;
+  uint32_t vertexBytes;
+  
+  char iBufferIndex[32];
   MTLIndexType indexType;
   uint32_t indexCount;
   uint32_t indexBytes;

@@ -307,7 +307,11 @@ Modules are currently:
 - `convertRunning`: Message displayed next to a job that is currently being converted
 - `convertCompleted`: Message displayed next to a job that has finished being converted
 - `convertCancelled`: Message displayed next to a job that was cancelled by the user
-- `convertFailed`: Message displayed next to a job that failed to finish converting
+- `convertWriteFailed`: Message displayed next to a job that failed due to being unable to write a file to disk or create a directory
+- `convertParseError`: Message displayed next to a job that failed due to an issue interpreting the input file
+- `convertImageParseError`: Message displayed next to a job that failed due to an error processing an image file
+- `convertFailed`: Message displayed next to a job that failed to finish converting for a reason not listed above
+- `convertNoFile`: Message displayed to indicate that no file has been selected for conversion
 - `convertGeneratingPreview`: Displayed on the button while a preview is being generated
 - `convertAddPreviewToScene`: Displayed on the button that generates a preview model and adds it to the scene
 - `convertPreviewName`: The default name for a preview pointcloud when added to the scene
@@ -429,6 +433,7 @@ Modules are currently:
 - `sceneExplorerTitle`: Title of the Scene Explorer tab
 - `sceneExplorerRemove`: Tooltip displayed when mouse is hovered over the Remove button in the scene explorer tab
 - `sceneExplorerRemoveKey`: Used in Remove button tooltip, shown in brackets
+- `sceneExplorerRemoveItem`: Menu option when right-clicking on an item in the Scene Explorer, removes the clicked item
 - `sceneExplorerAddUDS`: Tooltip displayed when mouse is hovered over the Add UDS button in the scene explorer tab
 - `sceneExplorerAddUDSKey`: Used in Add UDS button tooltip, shown in brackets
 - `sceneExplorerAddUDSTitle`: Title of the Add UDS window

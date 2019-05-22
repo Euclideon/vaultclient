@@ -2,7 +2,7 @@
 #define vcHistoryBuffer_h__
 
 #include <stdint.h>
-#include "udPlatform/udResult.h"
+#include "udResult.h"
 
 typedef void vcHistoryBuffer_DoFunc(void *pData);
 typedef void vcHistoryBuffer_UndoFunc(void *pData);

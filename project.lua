@@ -18,9 +18,12 @@ project "vaultClient"
 
 	--This project includes
 	includedirs { "src", "src/scene", "src/rendering" }
+	includedirs { "3rdParty/udcore/Include" }
 	includedirs { "3rdParty/Imgui" }
 	includedirs { "3rdParty/stb" }
 	includedirs { "3rdParty/easyexif" }
+
+	links { "udCore" .. (projectSuffix or "") }
 
 	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS" }
 
@@ -61,7 +64,7 @@ project "vaultClient"
 		files { "3rdParty/glew/glew.c", "src/**.rc" }
 		linkoptions( "/LARGEADDRESSAWARE" )
 		libdirs { "3rdParty/SDL2-2.0.8/lib/x64" }
-		links { "SDL2.lib", "SDL2main.lib", "opengl32.lib", "winmm.lib", "ws2_32", "winhttp" }
+		links { "SDL2.lib", "SDL2main.lib", "opengl32.lib", "winmm.lib", "ws2_32", "winhttp", "imm32.lib" }
 
 	filter { "system:linux" }
 		linkoptions { "-Wl,-rpath '-Wl,$$ORIGIN'" } -- Check beside the executable for the SDK
@@ -78,7 +81,7 @@ project "vaultClient"
 			["INFOPLIST_PREPROCESS"] = "YES",
 			["MACOSX_DEPLOYMENT_TARGET"] = "10.13",
 		}
-		
+
 	filter { "system:ios" }
 		files { "iOS-Info.plist", "builds/libvaultSDK.dylib", "icons/Images.xcassets", "src/vcWebFile.mm" }
 		sysincludedirs { "3rdParty/SDL2-2.0.8/include" }
@@ -92,6 +95,11 @@ project "vaultClient"
 		files { "builds/assets/**", "builds/releasenotes.md", "builds/defaultsettings.json" }
 		xcodebuildresources { ".otf", ".png", ".jpg", ".json", ".metallib", "releasenotes", "defaultsettings" }
 		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = excludedSourceFileNames }
+
+	filter { "system:emscripten" }
+		removefiles { "src/vCore/vUUID.*", "src/vCore/vSafeDeque.h" }
+		links { "GLEW" }
+		linkoptions  { "-s USE_WEBGL2=1", "-s FULL_ES3=1", --[["-s DEMANGLE_SUPPORT=1",]] "-s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\", \"getValue\", \"setValue\", \"UTF8ToString\", \"stringToUTF8\"]'" }
 
 	filter { "system:not windows" }
 		links { "dl" }
@@ -112,7 +120,7 @@ project "vaultClient"
 		files { "src/gl/metal/shaders.metallib" }
 		xcodebuildsettings {
 			["CLANG_ENABLE_OBJC_ARC"] = "YES",
-			["GCC_ENABLE_OBJC_EXCEPTIONS"] = "YES", 
+			["GCC_ENABLE_OBJC_EXCEPTIONS"] = "YES",
 		}
 		links { "MetalKit.framework", "Metal.framework" }
 		prebuildcommands {
@@ -135,7 +143,7 @@ project "vaultClient"
 		flags { "ExcludeFromBuild" }
 
 	-- include common stuff
-	dofile "bin/premake/common-proj.lua"
+	dofile "3rdParty/udcore/bin/premake-bin/common-proj.lua"
 
 	filter { "system:ios" }
 		removeflags { "FatalWarnings" }
@@ -145,6 +153,6 @@ project "vaultClient"
 		targetname ("%{prj.name}_" .. _OPTIONS["gfxapi"])
 
 	filter {}
-	
+
 	targetdir "builds"
 	debugdir "builds"

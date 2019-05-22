@@ -12,6 +12,8 @@
 
 #include "vdkPointCloud.h"
 
+#include "udStringUtil.h"
+
 struct vcModelLoadInfo
 {
   bool jumpToLocation;
@@ -46,19 +48,18 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, double scale,
 {
   udGeoZone *pMemberZone = nullptr;
   const char *pMetadata;
-  pModel->m_pMetadata = udAllocType(udJSON, 1, udAF_Zero);
 
   if (vdkPointCloud_GetMetadata(pProgramState->pVDKContext, pModel->m_pPointCloud, &pMetadata) == vE_Success)
   {
-    pModel->m_pMetadata->Parse(pMetadata);
-    pModel->m_hasWatermark = pModel->m_pMetadata->Get("Watermark").IsString();
+    pModel->m_metadata.Parse(pMetadata);
+    pModel->m_hasWatermark = pModel->m_metadata.Get("Watermark").IsString();
 
-    pModel->m_meterScale = pModel->m_pMetadata->Get("info.meterScale").AsDouble(1.0);
-    pModel->m_pivot = pModel->m_pMetadata->Get("info.pivot").AsDouble3();
+    pModel->m_meterScale = pModel->m_metadata.Get("info.meterScale").AsDouble(1.0);
+    pModel->m_pivot = pModel->m_metadata.Get("info.pivot").AsDouble3();
 
     vcSRID srid = 0;
-    const char *pSRID = pModel->m_pMetadata->Get("ProjectionID").AsString();
-    const char *pWKT = pModel->m_pMetadata->Get("ProjectionWKT").AsString();
+    const char *pSRID = pModel->m_metadata.Get("ProjectionID").AsString();
+    const char *pWKT = pModel->m_metadata.Get("ProjectionWKT").AsString();
 
     if (pSRID != nullptr)
     {
@@ -144,8 +145,14 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 }
 
 vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePath, bool jumpToModelOnLoad /*= true*/, udDouble3 *pOverridePosition /*= nullptr*/, udDouble3 *pOverrideYPR /*= nullptr*/, double scale /*= 1.0*/) :
-  m_pPointCloud(nullptr), m_pivot(udDouble3::zero()), m_defaultMatrix(udDouble4x4::identity()), m_sceneMatrix(udDouble4x4::identity()),
-  m_meterScale(0.0), m_hasWatermark(false), m_pWatermark(nullptr)
+  vcSceneItem(pProgramState->sceneExplorer.pProject, "UDS", pName == nullptr ? pFilePath : pName),
+  m_pPointCloud(nullptr),
+  m_pivot(udDouble3::zero()),
+  m_defaultMatrix(udDouble4x4::identity()),
+  m_sceneMatrix(udDouble4x4::identity()),
+  m_meterScale(0.0),
+  m_hasWatermark(false),
+  m_pWatermark(nullptr)
 {
   if (pFilePath == nullptr)
     return;
@@ -164,9 +171,6 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePat
   }
 
   m_visible = true;
-  m_type = vcSOT_PointCloud;
-
-  udStrcpy(m_typeStr, sizeof(m_typeStr), "UDS");
 
   vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
   if (pLoadInfo != nullptr)
@@ -200,6 +204,7 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, const char *pFilePat
 }
 
 vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud, bool jumpToModelOnLoad /*= false*/) :
+  vcSceneItem(pProgramState->sceneExplorer.pProject, "UDS", pName),
   m_pPointCloud(nullptr),
   m_pivot(udDouble3::zero()),
   m_defaultMatrix(udDouble4x4::identity()),
@@ -216,10 +221,7 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
     m_pName = udStrdup(pName);
 
   m_visible = true;
-  m_type = vcSOT_PointCloud;
   m_loadStatus = vcSLS_Loaded;
-
-  udStrcpy(m_typeStr, sizeof(m_typeStr), "UDS");
 
   vcModel_LoadMetadata(pProgramState, this, 1.0);
 
@@ -254,8 +256,7 @@ void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
 {
   ImGui::TextWrapped("Path: %s", m_pPath);
 
-  if (m_pMetadata != nullptr)
-    vcImGuiValueTreeObject(m_pMetadata);
+  vcImGuiValueTreeObject(&m_metadata);
 }
 
 void vcModel::Cleanup(vcState *pProgramState)

@@ -10,56 +10,17 @@
 #include "vcModel.h" // Included just for "ResetPosition"
 #include "vcRender.h" // Included just for "ClearTiles"
 
+#include "udStringUtil.h"
+
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-void vcFolder_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine /*= true*/)
-{
-  const char *loadingChars[] = { "\xE2\x96\xB2", "\xE2\x96\xB6", "\xE2\x96\xBC", "\xE2\x97\x80" };
-  int64_t currentLoadingChar = (int64_t)(10*vcTime_GetEpochSecsF());
-
-  // Load Status (if any)
-  if (loadStatus == vcSLS_Pending)
-  {
-    ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Yellow Exclamation in Triangle
-    if (vcIGSW_IsItemHovered())
-      ImGui::SetTooltip("%s", vcString::Get("sceneExplorerPending"));
-
-    if (sameLine)
-      ImGui::SameLine();
-  }
-  else if (loadStatus == vcSLS_Loading)
-  {
-    ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", loadingChars[currentLoadingChar % udLengthOf(loadingChars)]); // Yellow Spinning clock
-    if (vcIGSW_IsItemHovered())
-      ImGui::SetTooltip("%s", vcString::Get("sceneExplorerLoading"));
-
-    if (sameLine)
-      ImGui::SameLine();
-  }
-  else if (loadStatus == vcSLS_Failed || loadStatus == vcSLS_OpenFailure)
-  {
-    ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Red Exclamation in Triangle
-    if (vcIGSW_IsItemHovered())
-    {
-      if (loadStatus == vcSLS_OpenFailure)
-        ImGui::SetTooltip("%s", vcString::Get("sceneExplorerErrorOpen"));
-      else
-        ImGui::SetTooltip("%s", vcString::Get("sceneExplorerErrorLoad"));
-    }
-
-    if (sameLine)
-      ImGui::SameLine();
-  }
-}
-
-vcFolder::vcFolder(const char *pName)
+vcFolder::vcFolder(vdkProject *pProject, const char *pName) :
+  vcSceneItem(pProject, "Folder", pName, nullptr)
 {
   m_visible = true;
   m_pName = udStrdup(pName);
-  m_type = vcSOT_Folder;
   m_children.reserve(64);
-  udStrcpy(m_typeStr, sizeof(m_typeStr), "Folder");
   m_loadStatus = vcSLS_Loaded;
 }
 
@@ -114,7 +75,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
     ImGui::Checkbox(udTempStr("###SXIVisible%zu", *pItemID), &m_children[i]->m_visible);
     ImGui::SameLine();
 
-    vcFolder_ShowLoadStatusIndicator((vcSceneLoadStatus)m_children[i]->m_loadStatus);
+    vcIGSW_ShowLoadStatusIndicator((vcSceneLoadStatus)m_children[i]->m_loadStatus);
 
     // The actual model
     ImGui::SetNextTreeNodeOpen(m_children[i]->m_expanded, ImGuiCond_Always);
@@ -164,7 +125,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       ImVec2 maxPos = ImGui::GetItemRectMax();
       ImVec2 mousePos = ImGui::GetMousePos();
 
-      if (m_children[i]->m_type == vcSOT_Folder && udAbs(mousePos.y - minPos.y) >= udAbs(mousePos.y - maxPos.y))
+      if (m_children[i]->m_pNode->itemtype == vdkPNT_Folder && udAbs(mousePos.y - minPos.y) >= udAbs(mousePos.y - maxPos.y))
         pProgramState->sceneExplorer.insertItem = { (vcFolder*)m_children[i], ((vcFolder*)m_children[i])->m_children.size() };
       else if (udAbs(mousePos.y - minPos.y) < udAbs(mousePos.y - maxPos.y))
         pProgramState->sceneExplorer.insertItem = { this, i };
@@ -196,7 +157,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         }
       }
 
-      if (m_children[i]->m_type != vcSOT_Folder && ImGui::Selectable(vcString::Get("sceneExplorerMoveTo")))
+      if (m_children[i]->m_pNode->itemtype != vdkPNT_Folder && ImGui::Selectable(vcString::Get("sceneExplorerMoveTo")))
       {
         // Trigger a camera movement path
         pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
@@ -207,7 +168,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       }
 
       // This is terrible but semi-required until we have undo
-      if (m_children[i]->m_moved && m_children[i]->m_type == vcSOT_PointCloud && ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
+      if (m_children[i]->m_moved && m_children[i]->m_pNode->itemtype == vdkPNT_PointCloud && ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
       {
         m_children[i]->m_moved = false;
         if (m_children[i]->m_pZone == nullptr || m_children[i]->m_pOriginalZone->srid == m_children[i]->m_pZone->srid)
@@ -216,10 +177,17 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           ((vcModel*)m_children[i])->m_sceneMatrix = udGeoZone_TransformMatrix(((vcModel*)m_children[i])->m_defaultMatrix, *m_children[i]->m_pOriginalZone, *m_children[i]->m_pZone);
       }
 
+      if (ImGui::Selectable(vcString::Get("sceneExplorerRemoveItem")))
+      {
+        vcScene_RemoveItem(pProgramState, this, i);
+        ImGui::EndPopup();
+        return;
+      }
+
       ImGui::EndPopup();
     }
 
-    if (m_children[i]->m_type != vcSOT_Folder && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
+    if (m_children[i]->m_pNode->itemtype != vdkPNT_Folder && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
       vcScene_UseProjectFromItem(pProgramState, m_children[i]);
 
     if (vcIGSW_IsItemHovered())

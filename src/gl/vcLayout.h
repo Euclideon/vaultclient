@@ -1,7 +1,7 @@
 #ifndef vcLayout_h__
 #define vcLayout_h__
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 
 enum vcVertexLayoutTypes
 {
@@ -22,6 +22,7 @@ struct vcSimpleVertex
 };
 const vcVertexLayoutTypes vcSimpleVertexLayout[] = { vcVLT_Position3, vcVLT_TextureCoords2 };
 
+uint32_t vcLayout_GetSize(const vcVertexLayoutTypes layoutType);
 uint32_t vcLayout_GetSize(const vcVertexLayoutTypes *pLayout, int numTypes);
 uint32_t vcLayout_GetSize(const vcVertexLayoutTypes layoutType);
 

@@ -8,8 +8,8 @@
 #include "vdkRenderContext.h"
 #include "vdkError.h"
 
-#include "udPlatform/udThread.h"
-#include "udPlatform/udChunkedArray.h"
+#include "udThread.h"
+#include "udChunkedArray.h"
 
 struct vcState;
 struct vcLiveFeedItem;
@@ -66,9 +66,9 @@ public:
 
   udMutex *m_pMutex;
 
-  vcLiveFeed();
-  vcLiveFeed(const vUUID &groupid);
-  vcLiveFeed(const udDouble3 &position);
+  vcLiveFeed(vdkProject *pProject);
+  vcLiveFeed(vdkProject *pProject, const vUUID &groupid);
+  vcLiveFeed(vdkProject *pProject, const udDouble3 &position);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);

@@ -1,7 +1,7 @@
 #ifndef vcMath_h__
 #define vcMath_h__
 
-#include "udPlatform/udMath.h"
+#include "udMath.h"
 
 enum udEaseType
 {

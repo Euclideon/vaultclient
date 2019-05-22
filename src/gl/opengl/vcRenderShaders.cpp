@@ -1,7 +1,7 @@
 #include "gl/vcRenderShaders.h"
-#include "udPlatform/udPlatformUtil.h"
+#include "udPlatformUtil.h"
 
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_EMSCRIPTEN
 # define FRAG_HEADER "#version 300 es\nprecision highp float;\n"
 # define VERT_HEADER "#version 300 es\n"
 #else

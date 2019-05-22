@@ -1,6 +1,8 @@
 #include "imgui_udValue.h"
 
-#include "udPlatform/udJSON.h"
+#include "udJSON.h"
+#include "udStringUtil.h"
+
 #include "imgui.h"
 
 void vcImGuiValueTreeArray(const udJSON *pValue)

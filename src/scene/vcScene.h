@@ -2,8 +2,9 @@
 #define vcScene_h__
 
 #include "vcGIS.h"
+#include "vdkProject.h"
+#include "udJSON.h"
 
-class udJSON;
 struct vcState;
 class vcSceneItem;
 class vcFolder;
@@ -21,26 +22,14 @@ enum vcSceneLoadStatus
   vcSLS_Count
 };
 
-enum vcSceneItemType
-{
-  vcSOT_Unknown, // default is no type string (shouldn't stay in this state for long)
-
-  vcSOT_PointCloud, // "UDS"
-  vcSOT_PointOfInterest, // "POI"
-  vcSOT_Folder, // "Folder"
-  vcSOT_LiveFeed, // "IOT"
-
-  vcSOT_Custom, // Need to check the type string manually
-
-  vcSOT_Count
-};
-
 typedef void (udSceneItemImGuiCallback)(vcState *pProgramState, vcSceneItem *pBaseItem, size_t *pItemID);
 typedef void (udSceneItemBasicCallback)(vcState *pProgramState, vcSceneItem *pBaseItem);
 
 class vcSceneItem
 {
 public:
+  vdkProjectNode *m_pNode; // This will be null in the short term but by the end of the projects changes will _never_ be null
+
   volatile int32_t m_loadStatus;
   bool m_visible;
   bool m_selected;
@@ -48,10 +37,7 @@ public:
   bool m_editName;
   bool m_moved;
 
-  vcSceneItemType m_type;
-  char m_typeStr[8];
-
-  udJSON *m_pMetadata; // This points to a metadata (if it exists)
+  udJSON m_metadata; // This points to a metadata (may be an empty object)
   udGeoZone *m_pOriginalZone; // nullptr if not geolocated
   udGeoZone *m_pZone; // nullptr if not geolocated
 
@@ -60,7 +46,8 @@ public:
   char *m_pName;
   size_t m_nameBufferLength;
 
-  vcSceneItem();
+  vcSceneItem(vdkProjectNode *pNode);
+  vcSceneItem(vdkProject *pProject, const char *pType, const char *pName, const char *pURI = nullptr);
   virtual ~vcSceneItem();
 
   // This is used to help with adding the item to current folder

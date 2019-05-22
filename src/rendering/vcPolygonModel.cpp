@@ -1,11 +1,12 @@
 #include "vcPolygonModel.h"
 
-#include "udPlatform/udPlatformUtil.h"
-#include "udPlatform/udFile.h"
+#include "udPlatformUtil.h"
+#include "udFile.h"
+#include "udStringUtil.h"
 
 #include "gl/vcRenderShaders.h"
-#include "gl/vcTexture.h"
 #include "gl/vcMesh.h"
+#include "gl/vcTexture.h"
 
 static int gPolygonShaderRefCount = 0;
 
@@ -93,8 +94,15 @@ struct vcPolygonModelVertex
 };
 const vcVertexLayoutTypes vcPolygonModelVertexLayout[] = { vcVLT_Position3, vcVLT_Normal3, vcVLT_TextureCoords2 };
 
+vcPolygonModelShaderType vcPolygonModel_GetShaderType(const vcVertexLayoutTypes *pMeshLayout, int totalTypes)
+{
+  if (totalTypes == 3 && (pMeshLayout[0] == vcVLT_Position3 && pMeshLayout[1] == vcVLT_Normal3 && pMeshLayout[2] == vcVLT_TextureCoords2))
+    return vcPMST_P1N1UV1;
 
-udResult vcPolygonModel_CreateFromData(vcPolygonModel **ppPolygonModel, void *pVerts, uint16_t vertCount, const vcVertexLayoutTypes *pMeshLayout, int totalTypes)
+  return vcPMST_Count;
+}
+
+udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel, void *pVerts, uint16_t vertCount, const vcVertexLayoutTypes *pMeshLayout, int totalTypes)
 {
   if (ppPolygonModel == nullptr || pVerts == nullptr || pMeshLayout == nullptr || vertCount == 0 || totalTypes <= 0)
     return udR_InvalidParameter_;
@@ -113,16 +121,17 @@ udResult vcPolygonModel_CreateFromData(vcPolygonModel **ppPolygonModel, void *pV
   pPolygonModel->pMeshes[0].material.flags = 0;
   pPolygonModel->pMeshes[0].material.colour = 0xffffffff;
 
-  pPolygonModel->pMeshes[0].flags = vcPMVF_Normals | vcPMVF_UVs;
-  //pPolygonModel->pMeshes[0].materialID;
+  // TODO: (EVC-570) Calculate and actually use flags
+  pPolygonModel->pMeshes[0].flags = 0;//vcPMVF_Normals | vcPMVF_UVs;
   pPolygonModel->pMeshes[0].LOD = 0;
   pPolygonModel->pMeshes[0].numVertices = vertCount;
   pPolygonModel->pMeshes[0].numElements = 0;
-
-  // override material id for now
-  pPolygonModel->pMeshes[0].materialID = vcPMST_P1N1UV1;
-
   pPolygonModel->pMeshes[0].material.pTexture = nullptr;
+  pPolygonModel->pMeshes[0].materialID = (uint16_t)vcPolygonModel_GetShaderType(pMeshLayout, totalTypes);
+
+  // Check for unsupported vertex format
+  if (pPolygonModel->pMeshes[0].materialID == vcPMST_Count)
+    UD_ERROR_SET(udR_Unsupported);
 
   UD_ERROR_CHECK(vcMesh_Create(&pPolygonModel->pMeshes[0].pMesh, pMeshLayout, totalTypes, pVerts, pPolygonModel->pMeshes[0].numVertices, nullptr, pPolygonModel->pMeshes[0].numVertices, vcMF_NoIndexBuffer));
 
@@ -132,7 +141,7 @@ epilogue:
   return result;
 }
 
-udResult vcPolygonModel_CreateFromMemory(vcPolygonModel **ppModel, char *pData, int dataLength)
+udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *pData, int dataLength)
 {
   if (pData == nullptr || (size_t)dataLength < sizeof(VSMFHeader))
     return udR_InvalidParameter_;
@@ -149,14 +158,21 @@ udResult vcPolygonModel_CreateFromMemory(vcPolygonModel **ppModel, char *pData, 
   // Header
   UD_ERROR_CHECK(udReadFromPointer(&header, pFilePos, &dataLength));
 
+  if (header.versionID > 1)
+    UD_ERROR_SET(udR_Unsupported);
+
   pNewModel = udAllocType(vcPolygonModel, 1, udAF_Zero);
+  UD_ERROR_NULL(pNewModel, udR_MemoryAllocationFailure);
+
   pNewModel->pMeshes = udAllocType(vcPolygonModelMesh, header.numMeshes, udAF_Zero);
+  UD_ERROR_NULL(pNewModel->pMeshes, udR_MemoryAllocationFailure);
+
   pNewModel->meshCount = header.numMeshes;
 
   // Materials
   for (int i = 0; i < header.numMaterials; ++i)
   {
-    if (i >= header.numMeshes) // TODO: material count should not exceed mesh count?
+    if (i >= header.numMeshes) // TODO: (EVC-570) material count should not exceed mesh count?
     {
       pFilePos += 6;
       continue;
@@ -190,11 +206,14 @@ udResult vcPolygonModel_CreateFromMemory(vcPolygonModel **ppModel, char *pData, 
       uint32_t textureFileSize = 0;
       UD_ERROR_CHECK(udReadFromPointer(&textureFileSize, pFilePos, &dataLength));
 
-      // TODO: only handle 1 texture at the moment
+      // TODO: (EVC-570) only handle 1 texture at the moment
       if (t == 0)
       {
         void *pTextureData = pFilePos;
-        vcTexture_CreateFromMemory(&pNewModel->pMeshes[i].material.pTexture, pTextureData, textureFileSize);
+        if (!vcTexture_CreateFromMemory(&pNewModel->pMeshes[i].material.pTexture, pTextureData, textureFileSize))
+        {
+          // TODO: (EVC-570)
+        }
       }
       pFilePos += textureFileSize;
     }
@@ -219,16 +238,20 @@ epilogue:
 
 udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL)
 {
-  udResult result = udR_Failure_;
+  udResult result;
   void *pMemory = nullptr;
   int64_t fileLength = 0;
 
   UD_ERROR_CHECK(udFile_Load(pURL, &pMemory, &fileLength));
-  UD_ERROR_CHECK(vcPolygonModel_CreateFromMemory(ppModel, (char*)pMemory, (int)fileLength));
+  UD_ERROR_CHECK(vcPolygonModel_CreateFromVSMFInMemory(ppModel, (char*)pMemory, (int)fileLength));
+
+  result = udR_Success;
 
 epilogue:
-  udFree(pMemory);
+  if (result != udR_Success)
+    vcPolygonModel_Destroy(ppModel);
 
+  udFree(pMemory);
   return result;
 }
 
@@ -270,7 +293,7 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
     vcMesh_Render(pModelMesh->pMesh);
   }
 
-  // todo: handle failures
+  // TODO: (EVC-570) handle failures
   return result;
 }
 
@@ -280,6 +303,7 @@ udResult vcPolygonModel_Destroy(vcPolygonModel **ppModel)
     return udR_InvalidParameter_;
 
   vcPolygonModel *pModel = (*ppModel);
+  *ppModel = nullptr;
 
   for (int i = 0; i < pModel->meshCount; ++i)
   {
@@ -300,13 +324,15 @@ udResult vcPolygonModel_CreateShaders()
   if (gPolygonShaderRefCount != 1)
     return udR_Success;
 
-  udResult result = udR_Success;
+  udResult result;
 
   vcPolygonModelShader *pPolygonShader = &gShaders[vcPMST_P1N1UV1];
   UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP1N1UV1VertexShader, g_PolygonP1N1UV1FragmentShader, vcPolygonModelVertexLayout), udR_InternalError);
   vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame));
   vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject));
   vcShader_GetSamplerIndex(&pPolygonShader->pDiffuseSampler, pPolygonShader->pShader, "u_texture");
+
+  result = udR_Success;
 
 epilogue:
   return result;
