@@ -1,8 +1,8 @@
 #ifndef vcSceneLayerHelper_h__
 #define vcSceneLayerHelper_h__
 
-#include "udPlatform/udMath.h"
-#include "udPlatform/udPlatformUtil.h"
+#include "udMath.h"
+#include "udPlatformUtil.h"
 
 template <typename T>
 size_t vcSceneLayerHelper_ReadSceneLayerType(T *pValue, char *pData, const char *pType)

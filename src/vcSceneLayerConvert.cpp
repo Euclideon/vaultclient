@@ -1,7 +1,8 @@
 #include "vcSceneLayerConvert.h"
 #include "vcSceneLayer_Internal.h"
 
-#include "udPlatform/udChunkedArray.h"
+#include "udChunkedArray.h"
+#include "udPlatformUtil.h"
 
 #include "vdkConvertCustom.h"
 #include "vdkTriangleVoxelizer.h"

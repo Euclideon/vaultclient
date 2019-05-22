@@ -164,7 +164,7 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
   [_viewCon.renderer.textures setObject:texture forKey:txID];
   ++g_textureIndex;
 
-  vcGLState_GPUDidWork(0, 0, pText->width * pText->height * pixelBytes);
+  vcGLState_ReportGPUWork(0, 0, pText->width * pText->height * pixelBytes);
   *ppTexture = pText;
   pText = nullptr;
 
@@ -232,7 +232,7 @@ udResult vcTexture_UploadPixels(struct vcTexture *pTexture, const void *pPixels,
     result = udR_Success;
   }
 
-  vcGLState_GPUDidWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
+  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
   return result;
 }
 
@@ -324,7 +324,7 @@ bool vcTexture_LoadCubemap(struct vcTexture **ppTexture, const char *pFilename)
   [_viewCon.renderer.textures setObject:texture forKey:txID];
   ++g_textureIndex;
 
-  vcGLState_GPUDidWork(0, 0, pTexture->width * pTexture->height * depth * 6);
+  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * depth * 6);
   *ppTexture = pTexture;
   pTexture = nullptr;
   return true;

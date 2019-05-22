@@ -4,8 +4,8 @@
 
 #include "gl/vcLayout.h"
 
-#include "udPlatform/udGeoZone.h"
-#include "udPlatform/udJSON.h"
+#include "udGeoZone.h"
+#include "udJSON.h"
 
 struct vcPolygonModel;
 struct vcTexture;
