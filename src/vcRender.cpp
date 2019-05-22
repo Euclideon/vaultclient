@@ -20,8 +20,6 @@ enum
   vcRender_SceneSizeIncrement = 32 // directX framebuffer can only be certain increments
 };
 
-vcSceneLayerRenderer *pSceneLayerRenderer[2] = {};
-
 struct vcUDRenderContext
 {
   vdkRenderContext *pRenderer;
@@ -132,9 +130,6 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
   UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, pSettings));
   UD_ERROR_CHECK(vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences));
 
-  vcSceneLayerRenderer_Create(&pSceneLayerRenderer[0], pWorkerThreadPool, "E:/Vault Datasets/I3S/mesh4");
-  vcSceneLayerRenderer_Create(&pSceneLayerRenderer[1], pWorkerThreadPool, "E:/Vault Datasets/I3S/tilt/tilt");
-
   *ppRenderContext = pRenderContext;
 
   pRenderContext->pSettings = pSettings;
@@ -179,9 +174,6 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
 
   vcPolygonModel_DestroyShaders();
   vcImageRenderer_Destroy();
-
-  for (int i = 0; i < 2; ++i)
-    vcSceneLayerRenderer_Destroy(&pSceneLayerRenderer[i]);
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
@@ -439,8 +431,8 @@ void vcRenderOpaqueGeometry(vcRenderContext *pRenderContext, vcRenderData &rende
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
       vcPolygonModel_Render(renderData.polyModels[i].pModel, renderData.polyModels[i].worldMat, pRenderContext->pCamera->matrices.viewProjection);
 
-    for (size_t i = 0; i < 2; ++i)
-      vcSceneLayerRenderer_Render(pSceneLayerRenderer[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
+    for (size_t i = 0; i < renderData.sceneLayers.length; ++i)
+      vcSceneLayerRenderer_Render(renderData.sceneLayers[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
 
     for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
       vcWaterRenderer_Render(renderData.waterVolumes[i], pRenderContext->pCamera->matrices.view, pRenderContext->pCamera->matrices.viewProjection, pRenderContext->pSkyboxTexture, renderData.deltaTime);

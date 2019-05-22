@@ -20,6 +20,8 @@ udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer
   vcSceneLayerRenderer *pSceneLayerRenderer = nullptr;
 
   UD_ERROR_NULL(ppSceneLayerRenderer, udR_InvalidParameter_);
+  UD_ERROR_NULL(pWorkerThreadPool, udR_InvalidParameter_);
+  UD_ERROR_NULL(pSceneLayerURL, udR_InvalidParameter_);
 
   pSceneLayerRenderer = udAllocType(vcSceneLayerRenderer, 1, udAF_Zero);
   UD_ERROR_NULL(pSceneLayerRenderer, udR_MemoryAllocationFailure);
@@ -30,6 +32,12 @@ udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer
   result = udR_Success;
 
 epilogue:
+  if (result != udR_Success)
+  {
+    vcSceneLayer_Destroy(&pSceneLayerRenderer->pSceneLayer);
+    udFree(pSceneLayerRenderer);
+  }
+
   return result;
 }
 
