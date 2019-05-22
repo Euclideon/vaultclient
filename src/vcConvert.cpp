@@ -597,13 +597,10 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
   if (pSelectedJob == nullptr)
     vcConvert_AddEmptyJob(pProgramState, &pSelectedJob);
 
-  // Try I3S
-  //udStrEndsWithi(pFilename, ".slpk") &&
-  //pFilename
-  //"E:/Vault Datasets/I3S/mesh4"
-  //"E:/Vault Datasets/I3S/tilt/tilt"
-  if (udStrEndsWithi(pFilename, ".slpk") && vcSceneLayerConvert_AddItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pProgramState->pWorkerPool, "E:/Vault Datasets/I3S/tilt/tilt") == vE_Success)
+  // Maybe its an I3S?
+  if (udStrEndsWithi(pFilename, ".slpk") && vcSceneLayerConvert_AddItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pProgramState->pWorkerPool, pFilename) == vE_Success)
   {
+    pSelectedJob->status = vcCQS_Preparing;
     pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
     return true;
   }

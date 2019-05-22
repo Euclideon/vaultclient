@@ -17,6 +17,7 @@
 
 struct vcRenderContext;
 struct vcTexture;
+struct vcSceneLayerRenderer;
 
 struct vWorkerThreadPool;
 
@@ -45,6 +46,7 @@ struct vcRenderData
   udChunkedArray<vcRenderPolyInstance> polyModels;
   udChunkedArray<vcWaterRenderer*> waterVolumes;
   udChunkedArray<vcImageRenderInfo*> images;
+  udChunkedArray<vcSceneLayerRenderer*> sceneLayers;
 
   vcCamera *pCamera;
   vcCameraSettings *pCameraSettings;

@@ -13,9 +13,93 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 
-static const char *pSceneLayerInfoFilename = "3dSceneLayer.json";
-static const char *pNodeInfoFilename = "3dNodeIndexDocument.json";
+static const char *pSceneLayerInfoFilename = "3dSceneLayer.json.gz";
+static const char *pNodeInfoFilename = "3dNodeIndexDocument.json.gz";
 
+#include "zlib.h"
+#include "zconf.h"
+
+udResult udCompression_DeflateGZIP(char **ppDest, int64_t *pDestLength, const char *pMemory, int64_t inLength)
+{
+  udResult result;
+  z_stream strm = {};
+  bool finished = false;
+  char *pDest = nullptr;
+  int64_t destLength = 0;
+
+  UD_ERROR_NULL(ppDest, udR_InvalidParameter_);
+  UD_ERROR_NULL(pDestLength, udR_InvalidParameter_);
+  UD_ERROR_NULL(pMemory, udR_InvalidParameter_);
+
+  strm.next_in = (Bytef *)pMemory;
+  strm.avail_in = (uInt)inLength;
+
+  UD_ERROR_IF(inflateInit2(&strm, 16 + MAX_WBITS) != 0, udR_InternalError);
+
+  pDest = udAllocType(char, inLength, udAF_Zero);
+  UD_ERROR_NULL(pDest, udR_MemoryAllocationFailure);
+
+  destLength = inLength;
+
+  while (!finished)
+  {
+    if (strm.total_out >= destLength)
+    {
+      // TODO: Find a (better) metric for this increase
+      int64_t newSize = (int64_t)(destLength * 1.5f);
+      char *pNewDest = (char *)udRealloc(pDest, newSize);
+      UD_ERROR_NULL(pDest, udR_MemoryAllocationFailure);
+      pDest = pNewDest;
+      destLength = newSize;
+    }
+
+    strm.next_out = (Bytef *)(pDest + strm.total_out);
+    strm.avail_out = (uInt)(destLength - strm.total_out);
+
+    // Inflate another chunk.
+    int err = inflate(&strm, Z_SYNC_FLUSH);
+    if (err == Z_STREAM_END)
+      finished = true;
+    else if (err != Z_OK) {
+      UD_ERROR_SET(udR_InternalError);
+    }
+  }
+
+  *ppDest = pDest;
+  *pDestLength = destLength;
+  result = udR_Success;
+
+epilogue:
+  if (result != udR_Success)
+    udFree(pDest);
+
+  inflateEnd(&strm);
+
+  return result;
+}
+
+udResult udFile_LoadGZIP(const char *pFilename, void **ppMemory, int64_t *pFileLengthInBytes)
+{
+  udResult result;
+  char *pFileData = nullptr;
+  char *pCompressedFileData = nullptr;
+  int64_t fileLen = 0;
+  int64_t compressedFileLen = 0;
+
+  UD_ERROR_CHECK(udFile_Load(pFilename, (void**)&pCompressedFileData, &compressedFileLen));
+  UD_ERROR_CHECK(udCompression_DeflateGZIP(&pFileData, &fileLen, pCompressedFileData, compressedFileLen));
+
+  *ppMemory = pFileData;
+  *pFileLengthInBytes = fileLen;
+  result = udR_Success;
+
+epilogue:
+  if (result != udR_Success)
+    udFree(pFileData);
+
+  udFree(pCompressedFileData);
+  return result;
+}
 
 struct vcSceneLayer_LoadNodeJobData
 {
@@ -54,35 +138,54 @@ void vcSceneLayer_LoadNodeInternalsJob(void *pData)
   vcSceneLayer_LoadNodeData(pLoadData->pSceneLayer, pLoadData->pNode);
 }
 
-// TODO: (EVC-549) This should be in udPlatform
-void vcNormalizePath(const char **ppDest, const char *pRoot, const char *pAppend)
+// TODO: (EVC-549) This should be in udCore
+void vcNormalizePath(const char **ppDest, const char *pRoot, const char *pAppend, bool doColon)
 {
   const char *pRemoveCharacters = "\\";
 
+  char *pNewRoot = nullptr;
   char *pNewAppend = udStrdup(pAppend);
   size_t len = udStrlen(pNewAppend);
   size_t index = 0;
-  while (udStrchr(pNewAppend, pRemoveCharacters, &index) != nullptr)
+  while (udStrchr(pNewAppend, pRemoveCharacters, &index) != nullptr)//udStrstr(pNewAppend, len, "\\/", &index) != nullptr)//
   {
     memcpy(pNewAppend + index, pNewAppend + (index + 1), (len - index));
     len -= 1;
+
+    //memcpy(pNewAppend + index + 1, pNewAppend + (index + 1 + 1), (len - index));
+    //len -= 1;
   }
 
-  // Remove leading `./`
-  if (udStrlen(pNewAppend) >= 2 && pNewAppend[0] == '.' && pNewAppend[1] == '/')
+  // Remove leading "./" or leading ".\\"
+  if (udStrlen(pNewAppend) >= 2 && pNewAppend[0] == '.' && (pNewAppend[1] == '/' || pNewAppend[1] == '\\'))
   {
     len -= 2;
     memcpy(pNewAppend, pNewAppend + 2, len);
+  }
+
+  // remove any leading "../"
+  // TODO: This isn't good enough!
+  if (len >= 3 && udStrBeginsWith(pNewAppend, "../"))
+  {
+    if (udStrrchr(pRoot, "/", &index) != nullptr)
+    {
+      pNewRoot = udStrdup(pRoot);
+      pNewRoot[index] = '\0';
+      pNewAppend += 3;
+      len -= 3;
+      pRoot = pNewRoot;
+    }
   }
 
   // TODO: (EVC-541) What else?
 
   pNewAppend[len] = '\0';
   if (pRoot)
-    udSprintf(ppDest, "%s/%s", pRoot, pNewAppend);
+    udSprintf(ppDest, doColon ? "%s:%s" : "%s/%s", pRoot, pNewAppend);
   else
     udSprintf(ppDest, "%s", pNewAppend);
 
+  udFree(pNewRoot);
   udFree(pNewAppend);
 }
 
@@ -137,6 +240,8 @@ void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode)
 
 udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode, bool force = false)
 {
+  udUnused(force);
+
   udResult result;
   bool uploadsCompleted = true;
 
@@ -206,8 +311,8 @@ udResult vcSceneLayer_LoadFeatureData(vcSceneLayer *pSceneLayer, vcSceneLayerNod
 
   for (size_t i = 0; i < pNode->featureDataCount; ++i)
   {
-    udSprintf(&pPathBuffer, "%s/%s.json", pNode->pURL, pNode->pFeatureData[i].pURL);
-    UD_ERROR_CHECK(udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen));
+    udSprintf(&pPathBuffer, "zip://%s/%s.json.gz", pNode->pURL, pNode->pFeatureData[i].pURL);
+    UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData, &fileLen));
     UD_ERROR_CHECK(featuresJSON.Parse(pFileData));
 
     // TODO: JIRA task add a udJSON.AsDouble2()
@@ -254,8 +359,10 @@ udResult vcSceneLayer_LoadGeometryData(vcSceneLayer *pSceneLayer, vcSceneLayerNo
 
   for (size_t i = 0; i < pNode->geometryDataCount; ++i)
   {
-    udSprintf(&pPathBuffer, "%s/%s.bin", pNode->pURL, pNode->pGeometryData[i].pURL);
-    UD_ERROR_CHECK(udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen));
+    //udSprintf(&pPathBuffer, "%s/%s.bin", pNode->pURL, pNode->pGeometryData[i].pURL);
+    //UD_ERROR_CHECK(udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen));
+    udSprintf(&pPathBuffer, "zip://%s/%s.bin.gz", pNode->pURL, pNode->pGeometryData[i].pURL);
+    UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData, &fileLen));
 
     pCurrentFile = pFileData;
 
@@ -367,7 +474,7 @@ udResult vcSceneLayer_LoadTextureData(vcSceneLayer *pSceneLayer, vcSceneLayerNod
     // TODO: (EVC-542) other formats (this information is in sharedResource.json)
     for (size_t f = 0; f < udLengthOf(pExtensions); ++f)
     {
-      udSprintf(&pPathBuffer, "%s/%s.%s", pNode->pURL, pNode->pTextureData[i].pURL, pExtensions[f]);
+      udSprintf(&pPathBuffer, "zip://%s/%s.%s", pNode->pURL, pNode->pTextureData[i].pURL, pExtensions[f]);
       if (udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen) != udR_Success)
         continue;
 
@@ -402,7 +509,7 @@ udResult vcSceneLayer_AllocateNodeData(T **ppData, size_t *pDataCount, const udJ
   UD_ERROR_NULL(pData, udR_MemoryAllocationFailure);
 
   for (size_t i = 0; i < count; ++i)
-    vcNormalizePath(&pData[i].pURL, nullptr, nodeJSON.Get("%s[%zu].href", pKey, i).AsString());
+    vcNormalizePath(&pData[i].pURL, nullptr, nodeJSON.Get("%s[%zu].href", pKey, i).AsString(), false);
 
   (*ppData) = pData;
   (*pDataCount) = count;
@@ -460,8 +567,8 @@ udResult vcSceneLayer_RecursiveLoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerN
   pNode->loadState = vcSceneLayerNode::vcLS_Loading;
 
   // Load the nodes info
-  udSprintf(&pPathBuffer, "%s/%s", pNode->pURL, pNodeInfoFilename);
-  UD_ERROR_CHECK(udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen));
+  udSprintf(&pPathBuffer, "zip://%s/%s", pNode->pURL, pNodeInfoFilename);
+  UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData, &fileLen));
   UD_ERROR_CHECK(nodeJSON.Parse(pFileData));
 
   // potentially already calculated some node info (it's stored in this nodes parents 'children' array)
@@ -493,7 +600,7 @@ udResult vcSceneLayer_RecursiveLoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerN
       pChildNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
 
       udStrcpy(pChildNode->id, sizeof(pChildNode->id), nodeJSON.Get("children[%zu].id", i).AsString());
-      vcNormalizePath(&pChildNode->pURL, pNode->pURL, nodeJSON.Get("children[%zu].href", i).AsString());
+      vcNormalizePath(&pChildNode->pURL, pNode->pURL, nodeJSON.Get("children[%zu].href", i).AsString(), false);
 
       vcSceneLayer_CalculateNodeBounds(pChildNode, nodeJSON.Get("children[%zu].mbs", i).AsDouble4());
     }
@@ -555,7 +662,7 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWo
   udResult result;
   vcSceneLayer *pSceneLayer = nullptr;
   const char *pPathBuffer = nullptr;
-  const char *pFileData = nullptr;
+  char *pFileData = nullptr;
   int64_t fileLen = 0;
   const char *pAttributeName = nullptr;
 
@@ -566,9 +673,8 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWo
   pSceneLayer->pThreadPool = pWorkerThreadPool;
   udStrcpy(pSceneLayer->sceneLayerURL, sizeof(pSceneLayer->sceneLayerURL), pSceneLayerURL);
 
-  // TODO: Actually unzip. For now I'm manually unzipping until udPlatform change
-  udSprintf(&pPathBuffer, "%s/%s", pSceneLayer->sceneLayerURL, pSceneLayerInfoFilename);
-  UD_ERROR_CHECK(udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen));
+  udSprintf(&pPathBuffer, "zip://%s:%s", pSceneLayer->sceneLayerURL, pSceneLayerInfoFilename);
+  UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData, &fileLen));
   UD_ERROR_CHECK(pSceneLayer->description.Parse(pFileData));
 
   // Load layout description now
@@ -600,13 +706,21 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWo
 
   // Load the root
   // TODO: (EVC-548) Does the root actually need to be loaded here?
-  vcNormalizePath(&pSceneLayer->root.pURL, pSceneLayer->sceneLayerURL, pSceneLayer->description.Get("store.rootNode").AsString());
+  vcNormalizePath(&pSceneLayer->root.pURL, pSceneLayer->sceneLayerURL, pSceneLayer->description.Get("store.rootNode").AsString(), true);
   UD_ERROR_CHECK(vcSceneLayer_LoadNode(pSceneLayer, &pSceneLayer->root));
 
   *ppSceneLayer = pSceneLayer;
   result = udR_Success;
 
 epilogue:
+  if (result != udR_Success)
+  {
+    pSceneLayer->description.Destroy();
+    if (pSceneLayer != nullptr)
+      udFree(pSceneLayer->pDefaultGeometryLayout);
+    udFree(pSceneLayer);
+  }
+
   udFree(pPathBuffer);
   udFree(pFileData);
   return result;
@@ -648,6 +762,7 @@ bool vcSceneLayer_TouchNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
     // TODO: (EVC-548)
     //pLoadData->loadOptions = needsDrawing ? vcSLNLO_None : vsSLNLO_ShallowLoad;
     vWorkerThread_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeJob, pLoadData);
+    //vcSceneLayer_LoadNode(pSceneLayer, pNode);
   }
   else if (pNode->loadState == vcSceneLayerNode::vcLS_PartialLoad)
   {
@@ -656,7 +771,7 @@ bool vcSceneLayer_TouchNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
     pLoadData->pSceneLayer = pSceneLayer;
     pLoadData->pNode = pNode;
     pLoadData->loadOptions = vcSLNLO_None;
-    vWorkerThread_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeInternalsJob, pLoadData);
+    //vWorkerThread_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeInternalsJob, pLoadData);
   }
 
   if (pNode->loadState == vcSceneLayerNode::vcLS_InMemory)

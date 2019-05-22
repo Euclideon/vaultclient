@@ -9,6 +9,7 @@ project "vaultClient"
 	files { "src/**.cpp", "src/**.h", "src/**.c", "src/**.mm", "src/**.metal" }
 	files { "3rdParty/Imgui/**.cpp", "3rdParty/Imgui/**.h" }
 	files { "3rdParty/stb/**.h" }
+	files { "3rdParty/zlib/**.h", "3rdParty/zlib/**.c" }
 	files { "3rdParty/easyexif/**.h", "3rdParty/easyexif/**.cpp" }
 	files { "project.lua" }
 	files { "docs/**.md" }
@@ -21,6 +22,7 @@ project "vaultClient"
 	includedirs { "3rdParty/udcore/Include" }
 	includedirs { "3rdParty/Imgui" }
 	includedirs { "3rdParty/stb" }
+	includedirs { "3rdParty/zlib" }
 	includedirs { "3rdParty/easyexif" }
 
 	links { "udCore" .. (projectSuffix or "") }

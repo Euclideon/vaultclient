@@ -119,7 +119,7 @@ uint32_t vcSceneLayerConvert_BilinearSample(uint8_t *pPixelData, const udFloat2 
     colour[c] = udLerp(colourT, colourB, rem.y);
   }
 
-  return 0xff000000 | (colour[0] << 16) | (colour[1] << 8) | colour[2];
+  return 0xff000000 | (colour[2] << 16) | (colour[1] << 8) | colour[0];
 }
 */
 
@@ -304,6 +304,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
               int u = (int)udMod(udMod(udRound(pointUV.x * width), width) + width, width);
               int v = (int)udMod(udMod(udRound(pointUV.y * height), height) + height, height);
               uint32_t colour = *(uint32_t*)(&pTextureData->pData[(u + v * pTextureData->width) * 4]);
+              //uint32_t colour = vcSceneLayerConvert_BilinearSample(pTextureData->pData, pointUV, width, height);
               *pColour = 0xff000000 | ((colour & 0xff) << 16) | (colour & 0xff00) | ((colour & 0xff0000) >> 16);
             }
           }
