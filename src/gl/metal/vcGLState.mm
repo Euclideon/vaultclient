@@ -354,6 +354,9 @@ bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
 void vcGLState_Scissor(int left, int top, int right, int bottom, bool force /*= false*/)
 {
   udUnused(force);
+  if ((NSUInteger)right > _viewCon.renderer.renderPasses[0].colorAttachments[0].texture.width || (NSUInteger)bottom > _viewCon.renderer.renderPasses[0].colorAttachments[0].texture.height)
+    return;
+  
   udInt4 newScissor = udInt4::create(left, s_internalState.viewportZone.w - bottom, right - left, bottom - top);
   MTLScissorRect rect = {
       .x = (NSUInteger)left,
