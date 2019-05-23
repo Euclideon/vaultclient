@@ -98,7 +98,7 @@ int SDL_main(int argc, char **args)
     printf("%s\n", "Memory leaks in VDK found");
 
     // You've hit this because you've introduced a memory leak!
-    // If you need help, define __MEMORY_DEBUG__ in the premake5.lua just before:
+    // If you need help, defines {"__MEMORY_DEBUG__"} in the premake5.lua just before:
     // if _OPTIONS["force-vaultsdk"] then
     // This will emit filenames of what is leaking to assist in tracking down what's leaking.
     // Additionally, you can set _CrtSetBreakAlloc(<allocationNumber>);
@@ -116,7 +116,7 @@ int SDL_main(int argc, char **args)
     printf("%s\n", "Memory leaks found");
 
     // You've hit this because you've introduced a memory leak!
-    // If you need help, define __MEMORY_DEBUG__ in the premake5.lua just before:
+    // If you need help, defines {"__MEMORY_DEBUG__"} in the premake5.lua just before:
     // if _OPTIONS["force-vaultsdk"] then
     // This will emit filenames of what is leaking to assist in tracking down what's leaking.
     // Additionally, you can set _CrtSetBreakAlloc(<allocationNumber>);
@@ -863,7 +863,7 @@ int main(int argc, char **args)
   if (!ImGuiGL_Init(programState.pWindow))
     goto epilogue;
 
-  if (vcRender_Init(&(programState.pRenderContext), &(programState.settings), programState.pCamera, programState.pWorkerPool, programState.sceneResolution) != udR_Success)
+  if (vcRender_Init(&(programState.pRenderContext), &(programState.settings), programState.pCamera, programState.sceneResolution) != udR_Success)
     goto epilogue;
 
   pSceneRenderers.Init(32);
@@ -972,6 +972,7 @@ epilogue:
   vcTexture_Destroy(&programState.image.pImage);
 
   vcGLState_Deinit();
+  udThread_DestroyCached();
 
 #if UDPLATFORM_EMSCRIPTEN
   vHTTPRequest_ShutdownWorkerThread();

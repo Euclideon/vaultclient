@@ -598,7 +598,7 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
     vcConvert_AddEmptyJob(pProgramState, &pSelectedJob);
 
   // Maybe its an I3S?
-  if (udStrEndsWithi(pFilename, ".slpk") && vcSceneLayerConvert_AddItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pProgramState->pWorkerPool, pFilename) == vE_Success)
+  if (udStrEndsWithi(pFilename, ".slpk") && vcSceneLayerConvert_AddItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
   {
     pSelectedJob->status = vcCQS_Preparing;
     pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;

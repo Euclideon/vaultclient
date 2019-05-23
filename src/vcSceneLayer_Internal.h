@@ -16,18 +16,13 @@ enum
   vcMaxURLLength = vcMaxPathLength,
 };
 
-enum vcSceneLayerNodeLoadOptions
+enum vcSceneLayerLoadType
 {
-  vcSLNLO_None             = 0x0,
+  vcSLLT_None,
 
-  vsSLNLO_RecursiveLoad    = 0x1, // will recursively load every child node into memory
-
-  // The following are mutually exclsive
-  //vsSLNLO_ShallowLoad      = 0x2, // will only load the nodes meta data
-  vsSLNLO_CompleteNodeLoad = 0x4, // loads entire node, including gpu immediately
-  vsSLNLO_OnlyLoadLeaves   = 0x8, // effectively does `vsSLNLO_ShallowLoad` on all non-leaf nodes
+  vcSLLT_Convert,
+  vcSLLT_Rendering
 };
-inline vcSceneLayerNodeLoadOptions operator|(const vcSceneLayerNodeLoadOptions &a, const vcSceneLayerNodeLoadOptions &b) { return (vcSceneLayerNodeLoadOptions)(int(a) | int(b)); }
 
 struct vcSceneLayerNode
 {
@@ -122,6 +117,7 @@ struct vcSceneLayer
   bool isActive;
 
   char sceneLayerURL[vcMaxURLLength];
+  char pathSeparatorChar; // '/' or '\\'
   udJSON description;
   udDouble4 extent;
 
@@ -131,7 +127,7 @@ struct vcSceneLayer
   size_t defaultGeometryLayoutCount;
 };
 
-udResult vcSceneLayer_LoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode = nullptr, const vcSceneLayerNodeLoadOptions &options = vcSLNLO_None);
+udResult vcSceneLayer_LoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode = nullptr, const vcSceneLayerLoadType &loadType = vcSLLT_None);
 
 // Prepares the node for use
 // Returns true if the node is ready for use
