@@ -1401,28 +1401,31 @@ void vcRenderSceneWindow(vcState *pProgramState)
       vcSceneItemRef clickedItemRef = pProgramState->sceneExplorer.clickedItem;
       vcSceneItem *pItem = (vcSceneItem*)clickedItemRef.pItem->pUserData;
 
-      udDouble4x4 temp = pItem->GetWorldSpaceMatrix();
-      temp.axis.t.toVector3() = pItem->GetWorldSpacePivot();
-
-      udDouble4x4 delta = udDouble4x4::identity();
-
-      double snapAmt = 0.1;
-
-      if (pProgramState->gizmo.operation == vcGO_Rotate)
-        snapAmt = 15.0;
-      else if (pProgramState->gizmo.operation == vcGO_Translate)
-        snapAmt = 0.25;
-      vcGizmoAllowedControls allowedControls = vcGAC_AllUniform;
-
-      if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-        allowedControls = (vcGizmoAllowedControls)(allowedControls & ~vcGAC_RotationAxis);
-
-      vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : 0.0);
-
-      if (!(delta == udDouble4x4::identity()))
+      if (pItem != nullptr)
       {
-        for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
-          ((vcSceneItem*)ref.pItem->pUserData)->ApplyDelta(pProgramState, delta);
+        udDouble4x4 temp = pItem->GetWorldSpaceMatrix();
+        temp.axis.t.toVector3() = pItem->GetWorldSpacePivot();
+
+        udDouble4x4 delta = udDouble4x4::identity();
+
+        double snapAmt = 0.1;
+
+        if (pProgramState->gizmo.operation == vcGO_Rotate)
+          snapAmt = 15.0;
+        else if (pProgramState->gizmo.operation == vcGO_Translate)
+          snapAmt = 0.25;
+        vcGizmoAllowedControls allowedControls = vcGAC_AllUniform;
+
+        if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
+          allowedControls = (vcGizmoAllowedControls)(allowedControls & ~vcGAC_RotationAxis);
+
+        vcGizmo_Manipulate(pProgramState->pCamera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : 0.0);
+
+        if (!(delta == udDouble4x4::identity()))
+        {
+          for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
+            ((vcSceneItem*)ref.pItem->pUserData)->ApplyDelta(pProgramState, delta);
+        }
       }
     }
   }

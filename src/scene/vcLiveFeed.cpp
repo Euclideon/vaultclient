@@ -190,16 +190,26 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
             pFeedItem->previousPosition = newPosition;
             pFeedItem->tweenAmount = 1.0f;
           }
-          else
+
+          udDouble3 dir = newPosition - pFeedItem->previousPosition;
+          bool hasOrientation = !pNode->Get("data.orientation").IsVoid();
+
+          if (udMagSq3(dir) > 0)
           {
-            udDouble3 dir = newPosition - pFeedItem->previousPosition;
-            if (udMagSq3(dir) > 0)
-            {
-              dir = udNormalize3(dir);
+            dir = udNormalize3(dir);
+
+            if (!hasOrientation)
               pFeedItem->ypr = udMath_DirToYPR(dir);
-              pFeedItem->tweenAmount = 0;
-              pFeedItem->previousPosition = pFeedItem->displayPosition;
-            }
+
+            pFeedItem->tweenAmount = 0;
+            pFeedItem->previousPosition = pFeedItem->displayPosition;
+          }
+
+          if (hasOrientation)
+          {
+            pFeedItem->ypr.x = -UD_DEG2RAD(pNode->Get("data.orientation.heading").AsDouble());
+            pFeedItem->ypr.y = UD_DEG2RAD(pNode->Get("data.orientation.pitch").AsDouble());
+            pFeedItem->ypr.z = UD_DEG2RAD(pNode->Get("data.orientation.roll").AsDouble());
           }
 
           pFeedItem->lastUpdated = updated;
