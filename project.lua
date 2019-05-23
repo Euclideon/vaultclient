@@ -47,7 +47,7 @@ project "vaultClient"
 		table.insert(excludedSourceFileNames, "src/vcWebFile.mm");
 	end
 
-	-- filters
+	-- filters		
 	filter { "configurations:Debug" }
 		kind "ConsoleApp"
 		optimize "Debug"
@@ -143,7 +143,10 @@ project "vaultClient"
 
 	filter { "system:not ios and not macosx", "files:src/**.mm" }
 		flags { "ExcludeFromBuild" }
-
+		
+	filter { "files:3rdParty/**" }
+		warnings "Off"
+		
 	-- include common stuff
 	dofile "3rdParty/udcore/bin/premake-bin/common-proj.lua"
 
@@ -153,8 +156,8 @@ project "vaultClient"
 	filter { "not options:gfxapi=opengl" }
 		objdir ("Output/intermediate/%{prj.name}/%{cfg.buildcfg}_%{cfg.platform}" .. _OPTIONS["gfxapi"])
 		targetname ("%{prj.name}_" .. _OPTIONS["gfxapi"])
-
+		
 	filter {}
-
+		
 	targetdir "builds"
 	debugdir "builds"

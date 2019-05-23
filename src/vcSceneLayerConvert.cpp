@@ -30,19 +30,19 @@ struct vcSceneLayerConvert
   udChunkedArray<vcSceneLayerNode*> leafNodes;
 };
 
-udResult vcSceneLayerConvert_Create(vcSceneLayerConvert **ppSceneLayerConvert, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL)
+udResult vcSceneLayerConvert_Create(vcSceneLayerConvert **ppSceneLayerConvert, const char *pSceneLayerURL)
 {
   udResult result;
   vcSceneLayerConvert *pSceneLayerConvert = nullptr;
 
   UD_ERROR_NULL(ppSceneLayerConvert, udR_InvalidParameter_);
-  UD_ERROR_NULL(pWorkerThreadPool, udR_InvalidParameter_);
   UD_ERROR_NULL(pSceneLayerURL, udR_InvalidParameter_);
 
   pSceneLayerConvert = udAllocType(vcSceneLayerConvert, 1, udAF_Zero);
   UD_ERROR_NULL(pSceneLayerConvert, udR_MemoryAllocationFailure);
 
-  UD_ERROR_CHECK(vcSceneLayer_Create(&pSceneLayerConvert->pSceneLayer, pWorkerThreadPool, pSceneLayerURL));
+  // Convert doesn't use a worker pool at the moment
+  UD_ERROR_CHECK(vcSceneLayer_Create(&pSceneLayerConvert->pSceneLayer, nullptr, pSceneLayerURL));
   UD_ERROR_CHECK(pSceneLayerConvert->leafNodes.Init(128));
 
   *ppSceneLayerConvert = pSceneLayerConvert;
@@ -95,9 +95,9 @@ void vcSceneLayerConvert_GenerateLeafNodeList(vcSceneLayerConvert *pSceneLayerCo
 // TODO: this is broken, because I'm not sure about the sample center
 uint32_t vcSceneLayerConvert_BilinearSample(uint8_t *pPixelData, const udFloat2 &sampleUV, float width, float height)
 {
-  // TODO: Not sure about the sample center... (the `-0.5` bit)
-  udFloat2 uv = { udMod(udMod((sampleUV[0] - 0.5f / width) * width, width) + width, width),
-                  udMod(udMod((sampleUV[1] - 0.5f / height) * height, height) + height, height) };
+  // TODO: Not sure about the sample center... (the `+0.5` bit)
+  udFloat2 uv = { udMod(udMod((sampleUV[0] + 0.5f / width) * width, width) + width, width),
+                  udMod(udMod((sampleUV[1] + 0.5f / height) * height, height) + height, height) };
   udFloat2 whole = udFloat2::create(udFloor(uv.x), udFloor(uv.y));
   udFloat2 rem = udFloat2::create(uv.x - whole.x, uv.y - whole.y);
 
@@ -176,7 +176,7 @@ vdkError vcSceneLayerConvert_Open(vdkConvertCustomItem *pConvertInput, uint32_t 
   pSceneLayerConvert->totalPrimCount = 0;
   pSceneLayerConvert->totalPrimIndex = 0;
 
-  if (vcSceneLayer_LoadNode(pSceneLayerConvert->pSceneLayer, nullptr, vsSLNLO_RecursiveLoad | vsSLNLO_OnlyLoadLeaves) != udR_Success)
+  if (vcSceneLayer_LoadNode(pSceneLayerConvert->pSceneLayer, nullptr, vcSLLT_Convert) != udR_Success)
     UD_ERROR_SET(vE_Failure);
 
   vcSceneLayerConvert_GenerateLeafNodeList(pSceneLayerConvert);
@@ -304,7 +304,6 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
               int u = (int)udMod(udMod(udRound(pointUV.x * width), width) + width, width);
               int v = (int)udMod(udMod(udRound(pointUV.y * height), height) + height, height);
               uint32_t colour = *(uint32_t*)(&pTextureData->pData[(u + v * pTextureData->width) * 4]);
-              //uint32_t colour = vcSceneLayerConvert_BilinearSample(pTextureData->pData, pointUV, width, height);
               *pColour = 0xff000000 | ((colour & 0xff) << 16) | (colour & 0xff00) | ((colour & 0xff0000) >> 16);
             }
           }
@@ -368,13 +367,13 @@ epilogue:
   return result;
 }
 
-vdkError vcSceneLayerConvert_AddItem(vdkContext *pContext, vdkConvertContext *pConvertContext, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL)
+vdkError vcSceneLayerConvert_AddItem(vdkContext *pContext, vdkConvertContext *pConvertContext, const char *pSceneLayerURL)
 {
   vdkError result;
   vcSceneLayerConvert *pSceneLayerConvert = nullptr;
   vdkConvertCustomItem customItem = {};
 
-  if (vcSceneLayerConvert_Create(&pSceneLayerConvert, pWorkerThreadPool, pSceneLayerURL) != udR_Success)
+  if (vcSceneLayerConvert_Create(&pSceneLayerConvert, pSceneLayerURL) != udR_Success)
     UD_ERROR_SET(vE_Failure);
 
   // Populate customItem
