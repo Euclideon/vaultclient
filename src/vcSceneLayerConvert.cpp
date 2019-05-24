@@ -284,10 +284,10 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
         }
 
         // Assign attributes
-        if (pBuffer->content & vdkCAC_ARGB)
+        if (pBuffer->attributes.content & vdkCAC_ARGB)
         {
           // TODO: (EVC-540) other handle variant attribute layouts
-          // Actually use `udAttribute_GetAttributeOffset(udA_ARGB, pBuffer->content)` correctly
+          // Actually use `udAttribute_GetAttributeOffset(vdkCAC_ARGB, pBuffer->content)` correctly
           uint32_t *pColour = (uint32_t*)udAddBytes(pBuffer->pAttributes, pBuffer->pointCount * pBuffer->attributeSize);
 
           if (pTextureData != nullptr)

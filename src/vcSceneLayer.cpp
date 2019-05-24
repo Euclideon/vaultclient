@@ -13,88 +13,37 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 
-#include "zlib.h"
-#include "zconf.h"
-
-// TODO: This will not live here for long
-udResult udCompression_DeflateGZIP(char **ppDest, int64_t *pDestLength, const char *pMemory, int64_t inLength)
+udResult udFile_LoadGZIP(const char *pFilename, void **ppMemory, int64_t *pFileLengthInBytes = nullptr)
 {
   udResult result;
-  z_stream strm = {};
-  bool finished = false;
-  char *pDest = nullptr;
-  int64_t destLength = 0;
+  char *pBufferData = nullptr;
+  int64_t rawFileLen = 0;
+  char *pRawFileData = nullptr;
+  size_t bufferLen = 0;
 
-  UD_ERROR_NULL(ppDest, udR_InvalidParameter_);
-  UD_ERROR_NULL(pDestLength, udR_InvalidParameter_);
-  UD_ERROR_NULL(pMemory, udR_InvalidParameter_);
+  UD_ERROR_CHECK(udFile_Load(pFilename, (void**)&pRawFileData, &rawFileLen));
+  bufferLen = rawFileLen / 2;
 
-  // TODO: Find a (better) metric for this size increase
-  destLength = inLength * 10;
-  strm.next_in = (Bytef *)pMemory;
-  strm.avail_in = (uInt)destLength;
-
-  UD_ERROR_IF(inflateInit2(&strm, 16 + MAX_WBITS) != 0, udR_InternalError);
-
-  pDest = udAllocType(char, destLength, udAF_Zero);
-  UD_ERROR_NULL(pDest, udR_MemoryAllocationFailure);
-
-  while (!finished)
+  do
   {
-    if (strm.total_out >= destLength)
-    {
-      // TODO: Find a (better) metric for this size increase
-      int64_t newSize = (int64_t)(destLength * 1.5f);
-      char *pNewDest = (char *)udRealloc(pDest, newSize);
-      UD_ERROR_NULL(pDest, udR_MemoryAllocationFailure);
-      pDest = pNewDest;
-      destLength = newSize;
-    }
+    bufferLen = bufferLen * 2;
+    pBufferData = (char*)udRealloc(pBufferData, bufferLen);
+    UD_ERROR_NULL(pBufferData, udR_MemoryAllocationFailure);
 
-    strm.next_out = (Bytef *)(pDest + strm.total_out);
-    strm.avail_out = (uInt)(destLength - strm.total_out);
+    result = udCompression_Inflate(pBufferData, bufferLen, pRawFileData, rawFileLen, nullptr, udCT_GzipDeflate);
+  } while (result == udR_BufferTooSmall);
+  UD_ERROR_CHECK(result);
 
-    // Inflate another chunk.
-    int err = inflate(&strm, Z_SYNC_FLUSH);
-    if (err == Z_STREAM_END)
-      finished = true;
-    else if (err != Z_OK)
-      UD_ERROR_SET(udR_InternalError);
-  }
-
-  *ppDest = pDest;
-  *pDestLength = destLength;
+  *ppMemory = pBufferData;
+  if (pFileLengthInBytes)
+    *pFileLengthInBytes = bufferLen;
   result = udR_Success;
 
 epilogue:
   if (result != udR_Success)
-    udFree(pDest);
+    udFree(pBufferData);
 
-  inflateEnd(&strm);
-
-  return result;
-}
-
-udResult udFile_LoadGZIP(const char *pFilename, void **ppMemory, int64_t *pFileLengthInBytes)
-{
-  udResult result;
-  char *pFileData = nullptr;
-  char *pCompressedFileData = nullptr;
-  int64_t fileLen = 0;
-  int64_t compressedFileLen = 0;
-
-  UD_ERROR_CHECK(udFile_Load(pFilename, (void**)&pCompressedFileData, &compressedFileLen));
-  UD_ERROR_CHECK(udCompression_DeflateGZIP(&pFileData, &fileLen, pCompressedFileData, compressedFileLen));
-
-  *ppMemory = pFileData;
-  *pFileLengthInBytes = fileLen;
-  result = udR_Success;
-
-epilogue:
-  if (result != udR_Success)
-    udFree(pFileData);
-
-  udFree(pCompressedFileData);
+  udFree(pRawFileData);
   return result;
 }
 
@@ -194,13 +143,12 @@ udResult vcSceneLayer_LoadFeatureData(vcSceneLayer *pSceneLayer, vcSceneLayerNod
   udResult result;
   const char *pPathBuffer = nullptr;
   char *pFileData = nullptr;
-  int64_t fileLen = 0;
   udJSON featuresJSON;
 
   for (size_t i = 0; i < pNode->featureDataCount; ++i)
   {
     udSprintf(&pPathBuffer, "zip://%s%c%s.json.gz", pNode->pURL, pSceneLayer->pathSeparatorChar, pNode->pFeatureData[i].pURL);
-    UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData, &fileLen));
+    UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData));
     UD_ERROR_CHECK(featuresJSON.Parse(pFileData));
 
     // TODO: JIRA task add a udJSON.AsDouble2()
@@ -231,7 +179,6 @@ udResult vcSceneLayer_LoadGeometryData(vcSceneLayer *pSceneLayer, vcSceneLayerNo
   udResult result;
   const char *pPathBuffer = nullptr;
   char *pFileData = nullptr;
-  int64_t fileLen = 0;
   uint64_t featureCount = 0;
   uint64_t faceCount = 0;
   char *pCurrentFile = nullptr;
@@ -247,10 +194,8 @@ udResult vcSceneLayer_LoadGeometryData(vcSceneLayer *pSceneLayer, vcSceneLayerNo
 
   for (size_t i = 0; i < pNode->geometryDataCount; ++i)
   {
-    //udSprintf(&pPathBuffer, "%s/%s.bin", pNode->pURL, pNode->pGeometryData[i].pURL);
-    //UD_ERROR_CHECK(udFile_Load(pPathBuffer, (void**)&pFileData, &fileLen));
     udSprintf(&pPathBuffer, "zip://%s%c%s.bin.gz", pNode->pURL, pSceneLayer->pathSeparatorChar, pNode->pGeometryData[i].pURL);
-    UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData, &fileLen));
+    UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData));
 
     pCurrentFile = pFileData;
 
@@ -453,13 +398,12 @@ udResult vcSceneLayer_RecursiveLoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerN
   udJSON nodeJSON;
   const char *pPathBuffer = nullptr;
   char *pFileData = nullptr;
-  int64_t fileLen = 0;
 
   pNode->loadState = vcSceneLayerNode::vcLS_Loading;
 
   // Load the nodes info
   udSprintf(&pPathBuffer, "zip://%s%c3dNodeIndexDocument.json.gz", pNode->pURL, pSceneLayer->pathSeparatorChar);
-  UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData, &fileLen));
+  UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData));
   UD_ERROR_CHECK(nodeJSON.Parse(pFileData));
 
   // potentially already calculated some node info (it's stored in this nodes parents 'children' array)
@@ -548,7 +492,6 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWo
   vcSceneLayer *pSceneLayer = nullptr;
   const char *pPathBuffer = nullptr;
   char *pFileData = nullptr;
-  int64_t fileLen = 0;
   const char *pAttributeName = nullptr;
 
   pSceneLayer = udAllocType(vcSceneLayer, 1, udAF_Zero);
@@ -559,7 +502,7 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWo
   udStrcpy(pSceneLayer->sceneLayerURL, sizeof(pSceneLayer->sceneLayerURL), pSceneLayerURL);
 
   udSprintf(&pPathBuffer, "zip://%s:3dSceneLayer.json.gz", pSceneLayer->sceneLayerURL);
-  UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData, &fileLen));
+  UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData));
   UD_ERROR_CHECK(pSceneLayer->description.Parse(pFileData));
 
   // Load layout description now

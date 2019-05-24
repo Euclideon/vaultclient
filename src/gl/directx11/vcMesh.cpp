@@ -162,7 +162,7 @@ bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t start
     return false;
 
   if (elementCount == 0)
-    elementCount = (pMesh->indexCount / 3);
+    elementCount = (pMesh->indexCount ? pMesh->indexCount : pMesh->vertexCount) / 3;
 
   unsigned int stride = pMesh->vertexSize;
   unsigned int offset = 0;

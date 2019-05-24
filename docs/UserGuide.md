@@ -558,7 +558,6 @@ Euclideon Vault Client uses a number of third party libraries. Please view the `
 - `GLEW` from [SourceForge](http://glew.sourceforge.net/)
 - `Nothings/STB` single header libraries from [GitHub](https://github.com/nothings/stb)
 - `easyexif` available at [Euclideon's GitHub](https://github.com/euclideon/easyexif) forked originally from [GitHub](https://github.com/mayanklahiri/easyexif)
-- `zlib` from [zlib](https://zlib.net/)
 
 Euclideon Vault Development Kit (VDK) uses the following additional libraries.
 
