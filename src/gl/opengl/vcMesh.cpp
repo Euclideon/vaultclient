@@ -28,7 +28,7 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
   glBindBuffer(GL_ARRAY_BUFFER, pMesh->vbo);
   glBufferData(GL_ARRAY_BUFFER, pMesh->vertexSize * currentVerts, pVerts, pMesh->drawType);
 
-  if (currentIndices != 0 && ((flags & vcMF_NoIndexBuffer) == 0))
+  if (currentIndices > 0 && ((flags & vcMF_NoIndexBuffer) == 0))
   {
     if (flags & vcMF_IndexShort)
     {

@@ -622,7 +622,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                   {
                     vcConvert_AddFile(pProgramState, pNextLoad);
                     didConvert = true;
-                    udFree(pNextLoad); // hmmmm?
+                    udFree(pNextLoad); // TODO: This shouldn't be freed here? It isn't freed above (ln:493).
                     continue;
                   }
                 }
