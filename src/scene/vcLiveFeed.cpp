@@ -315,7 +315,7 @@ vcLiveFeed::vcLiveFeed(vdkProjectNode *pNode) :
   m_loadStatus = vcSLS_Pending;
 
   const char *pGroupID = nullptr;
-  if (vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pGroupID, nullptr))
+  if (vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pGroupID, nullptr) == vE_Success)
   {
     m_updateMode = vcLFM_Group;
     vUUID_SetFromString(&m_groupID, pGroupID);

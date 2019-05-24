@@ -310,6 +310,8 @@ void vcPOI::AddPoint(const udDouble3 &position)
   udFree(m_line.pPoints);
   m_line.pPoints = pNewPoints;
 
+  //TODO: Copy this back to the node
+
   ++m_line.numPoints;
   UpdatePoints();
 }
