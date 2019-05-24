@@ -222,7 +222,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     ImGuiIO& io = ImGui::GetIO();
     int fb_width = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
     int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
-    if (fb_width <= 0 || fb_height <= 0)
+    if (fb_width <= 0 || fb_height <= 0 || drawData->CmdLists == nullptr)
         return;
 
     drawData->ScaleClipRects(io.DisplayFramebufferScale);
