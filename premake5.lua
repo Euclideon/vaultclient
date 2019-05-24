@@ -198,7 +198,6 @@ solution "vaultClient"
 		defines { "BUILD_TIME=" .. os.getenv("UNIXTIME") }
 	end
 
-	defines { "__MEMORY_DEBUG__" }
 	if _OPTIONS["force-vaultsdk"] then
 		projectSuffix = "VDK"
   
