@@ -10,6 +10,7 @@ class vcUnsupportedNode : public vcSceneItem
 {
 public:
   vcUnsupportedNode(vdkProjectNode *pNode);
+  ~vcUnsupportedNode() {};
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
