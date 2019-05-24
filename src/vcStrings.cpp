@@ -38,22 +38,21 @@ namespace vcString
     }
   }
 
-  vdkError LoadTable(const char *pFilename, vcTranslationInfo *pInfo)
+  udResult LoadTable(const char *pFilename, vcTranslationInfo *pInfo)
   {
-    FreeTable(pInfo); // Empty the table
-
-    char *pPos = nullptr;
-    if (pFilename == nullptr || udFile_Load(pFilename, (void **)&pPos) != udR_Success)
-      pPos = udStrdup(""); // So this can be free'd later
+    udResult result = udR_Failure_;
 
     udJSON strings;
+    char *pPos = nullptr;
+    size_t count = 0;
 
-    if (strings.Parse(pPos) != udR_Success)
-      strings.SetObject();
+    FreeTable(pInfo); // Empty the table
 
-    udFree(pPos);
+    UD_ERROR_NULL(pFilename, udR_InvalidParameter_);
+    UD_ERROR_CHECK(udFile_Load(pFilename, (void **)&pPos));
+    UD_ERROR_CHECK(strings.Parse(pPos));
 
-    size_t count = strings.MemberCount();
+    count = strings.MemberCount();
 
     for (size_t i = 0; i < count; ++i)
     {
@@ -85,7 +84,10 @@ namespace vcString
     Set("MapsRestore", vStringFormat("{0}##MapsRestore", Get("settingsMapsRestoreDefaults")));
     Set("VisualizationRestore", vStringFormat("{0}##VisualizationRestore", Get("settingsVisRestoreDefaults")));
 
-    return vE_Success;
+  epilogue:
+    udFree(pPos);
+
+    return result;
   }
 
   void FreeTable(vcTranslationInfo *pInfo)
