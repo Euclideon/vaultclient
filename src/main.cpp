@@ -707,8 +707,9 @@ int main(int argc, char **args)
   // Icon parameters
   SDL_Surface *pIcon = nullptr;
   int iconWidth, iconHeight, iconBytesPerPixel;
+  void *pFileData = nullptr;
+  int64_t fileLen = 0;
   unsigned char *pIconData = nullptr;
-  unsigned char *pEucWatermarkData = nullptr;
   int pitch;
   long rMask, gMask, bMask, aMask;
 
@@ -817,22 +818,30 @@ int main(int argc, char **args)
   if (!programState.pWindow)
     goto epilogue;
 
-  pIconData = stbi_load(vcSettings_GetAssetPath("assets/icons/EuclideonClientIcon.png"), &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
+  if (udFile_Load("asset://assets/icons/EuclideonClientIcon.png", &pFileData, &fileLen) == udR_Success)
+  {
+    pIconData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
 
-  pitch = iconWidth * iconBytesPerPixel;
-  pitch = (pitch + 3) & ~3;
+    if (pIconData != nullptr)
+    {
+      pitch = iconWidth * iconBytesPerPixel;
+      pitch = (pitch + 3) & ~3;
 
-  rMask = 0xFF << 0;
-  gMask = 0xFF << 8;
-  bMask = 0xFF << 16;
-  aMask = (iconBytesPerPixel == 4) ? (0xFF << 24) : 0;
+      rMask = 0xFF << 0;
+      gMask = 0xFF << 8;
+      bMask = 0xFF << 16;
+      aMask = (iconBytesPerPixel == 4) ? (0xFF << 24) : 0;
 
-  if (pIconData != nullptr)
-    pIcon = SDL_CreateRGBSurfaceFrom(pIconData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
-  if (pIcon != nullptr)
-    SDL_SetWindowIcon(programState.pWindow, pIcon);
+      pIcon = SDL_CreateRGBSurfaceFrom(pIconData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
+      if (pIcon != nullptr)
+        SDL_SetWindowIcon(programState.pWindow, pIcon);
 
-  SDL_free(pIcon);
+      free(pIconData);
+    }
+
+    SDL_free(pIcon);
+    udFree(pFileData);
+  }
 
   ImGui::CreateContext();
   ImGui::GetStyle().WindowRounding = 0.0f;
@@ -859,7 +868,7 @@ int main(int argc, char **args)
   // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
   vcFramebuffer_Bind(programState.pDefaultFramebuffer);
 
-  if (udFile_Load(vcSettings_GetAssetPath("assets/fonts/NotoSansCJKjp-Regular.otf"), &pFontData, &fontDataLength) == udR_Success)
+  if (udFile_Load("asset://assets/fonts/NotoSansCJKjp-Regular.otf", &pFontData, &fontDataLength) == udR_Success)
   {
     const float FontSize = 16.f;
     ImFontConfig fontCfg = ImFontConfig();
@@ -939,8 +948,6 @@ epilogue:
   vcTexture_Destroy(&programState.pCompanyLogo);
   vcTexture_Destroy(&programState.pBuildingsTexture);
   vcTexture_Destroy(&programState.pUITexture);
-  free(pIconData);
-  free(pEucWatermarkData);
   for (size_t i = 0; i < programState.loadList.size(); i++)
     udFree(programState.loadList[i]);
   vcRender_Destroy(&programState.pRenderContext);
