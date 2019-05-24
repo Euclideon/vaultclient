@@ -670,7 +670,7 @@ udResult vcSettings_UpdateLanguageOptions(vcSettings *pSetting)
       continue;
 
     bool found = false;
-    for (int i = 0; i < pSetting->languageOptions.length; ++i)
+    for (size_t i = 0; i < pSetting->languageOptions.length; ++i)
     {
       if (udStrcmpi(pSetting->languageOptions[i].filename, pDir->pFilename) == 0)
       {
@@ -684,9 +684,11 @@ udResult vcSettings_UpdateLanguageOptions(vcSettings *pSetting)
 
     vcLanguageOption *pNewLang = pSetting->languageOptions.PushBack();
 
-    udStrcpy(pNewLang->filename, pDir->pFilename);
+    udFilename tempFile(pDir->pFilename);
+    tempFile.ExtractFilenameOnly(pNewLang->filename, (int)udLengthOf(pNewLang->filename));
 
     //TODO: Load the file and get the local name out
+    udStrcpy(pNewLang->languageName, pDir->pFilename);
 
     rewrite = true;
 
