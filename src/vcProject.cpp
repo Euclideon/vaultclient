@@ -6,7 +6,7 @@
 
 void vcProject_RemoveItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode)
 {
-  for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size(); ++i)
+  for (int32_t i = 0; i < (int32_t)pProgramState->sceneExplorer.selectedItems.size(); ++i)
   {
     if (pProgramState->sceneExplorer.selectedItems[i].pParent == pParent && pProgramState->sceneExplorer.selectedItems[i].pItem == pNode)
     {
@@ -115,7 +115,7 @@ void vcProject_UnselectItem(vcState *pProgramState, vdkProjectNode *pParent, vdk
   if (pItem != nullptr && pItem->m_selected)
   {
     pItem->m_selected = false;
-    for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size(); ++i)
+    for (int32_t i = 0; i < (int32_t)pProgramState->sceneExplorer.selectedItems.size(); ++i)
     {
       const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
       if (item.pParent == pParent && item.pItem == pNode)
