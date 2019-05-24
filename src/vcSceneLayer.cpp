@@ -494,6 +494,7 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWo
   const char *pPathBuffer = nullptr;
   char *pFileData = nullptr;
   const char *pAttributeName = nullptr;
+  const char *pRootPath = nullptr;
 
   pSceneLayer = udAllocType(vcSceneLayer, 1, udAF_Zero);
   UD_ERROR_NULL(pSceneLayer, udR_MemoryAllocationFailure);
@@ -535,7 +536,7 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWo
   // Load the root
   // TODO: (EVC-548) Does the root actually need to be loaded here?
   // Use the root path to determine path separator character
-  const char *pRootPath = pSceneLayer->description.Get("store.rootNode").AsString();
+  pRootPath = pSceneLayer->description.Get("store.rootNode").AsString();
   pSceneLayer->pathSeparatorChar = '/';
   if (udStrchr(pRootPath, "\\") != nullptr)
     pSceneLayer->pathSeparatorChar = '\\';
@@ -544,14 +545,14 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWo
   UD_ERROR_CHECK(vcSceneLayer_LoadNode(pSceneLayer, &pSceneLayer->root));
 
   *ppSceneLayer = pSceneLayer;
+  pSceneLayer = nullptr;
   result = udR_Success;
 
 epilogue:
-  if (result != udR_Success)
+  if (pSceneLayer != nullptr)
   {
     pSceneLayer->description.Destroy();
-    if (pSceneLayer != nullptr)
-      udFree(pSceneLayer->pDefaultGeometryLayout);
+    udFree(pSceneLayer->pDefaultGeometryLayout);
     udFree(pSceneLayer);
   }
 
