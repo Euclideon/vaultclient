@@ -29,10 +29,11 @@ udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer
   UD_ERROR_CHECK(vcSceneLayer_Create(&pSceneLayerRenderer->pSceneLayer, pWorkerThreadPool, pSceneLayerURL));
 
   *ppSceneLayerRenderer = pSceneLayerRenderer;
+  pSceneLayerRenderer = nullptr;
   result = udR_Success;
 
 epilogue:
-  if (result != udR_Success)
+  if (pSceneLayerRenderer != nullptr)
   {
     vcSceneLayer_Destroy(&pSceneLayerRenderer->pSceneLayer);
     udFree(pSceneLayerRenderer);

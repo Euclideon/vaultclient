@@ -61,7 +61,7 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
   // Create vertex buffer
   UD_ERROR_CHECK(vcMeshInternal_RecreateBuffer(&pMesh->pVBO, pMesh->drawType, D3D11_BIND_VERTEX_BUFFER, pMesh->vertexSize, currentVerts, (void*)pVerts));
 
-  if ((flags & vcMF_NoIndexBuffer) == 0)
+  if (currentIndices > 0 && ((flags & vcMF_NoIndexBuffer) == 0))
   {
     pMesh->indexBytes = (flags & vcMF_IndexShort) ? sizeof(short) : sizeof(int);
 

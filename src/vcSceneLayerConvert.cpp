@@ -46,6 +46,7 @@ udResult vcSceneLayerConvert_Create(vcSceneLayerConvert **ppSceneLayerConvert, c
   UD_ERROR_CHECK(pSceneLayerConvert->leafNodes.Init(128));
 
   *ppSceneLayerConvert = pSceneLayerConvert;
+  pSceneLayerConvert = nullptr;
   result = udR_Success;
 
 epilogue:
@@ -63,13 +64,13 @@ udResult vcSceneLayerConvert_Destroy(vcSceneLayerConvert **ppSceneLayerConvert)
   pSceneLayerConvert = (*ppSceneLayerConvert);
   *ppSceneLayerConvert = nullptr;
 
-  UD_ERROR_CHECK(vcSceneLayer_Destroy(&pSceneLayerConvert->pSceneLayer));
+  vcSceneLayer_Destroy(&pSceneLayerConvert->pSceneLayer);
   vdkTriangleVoxelizer_Destroy(&pSceneLayerConvert->pTrivox);
-  UD_ERROR_CHECK(pSceneLayerConvert->leafNodes.Deinit());
-
+  pSceneLayerConvert->leafNodes.Deinit();
   udFree(pSceneLayerConvert);
 
   result = udR_Success;
+
 epilogue:
   return result;
 }
@@ -242,16 +243,16 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
 
         // Get Vertices
         // TODO: (EVC-540) ASSUMPTIONS! (assumed a specific vertex layout!)
-        vcSceneLayerVertex* pVert0 = vcSceneLayer_GetVertex(pGeometry, pSceneLayerConvert->primIndex * 3 + 0);
-        vcSceneLayerVertex* pVert1 = vcSceneLayer_GetVertex(pGeometry, pSceneLayerConvert->primIndex * 3 + 1);
-        vcSceneLayerVertex* pVert2 = vcSceneLayer_GetVertex(pGeometry, pSceneLayerConvert->primIndex * 3 + 2);
+        vcSceneLayerVertex *v0 = vcSceneLayer_GetVertex(pGeometry, pSceneLayerConvert->primIndex * 3 + 0);
+        vcSceneLayerVertex *v1 = vcSceneLayer_GetVertex(pGeometry, pSceneLayerConvert->primIndex * 3 + 1);
+        vcSceneLayerVertex *v2 = vcSceneLayer_GetVertex(pGeometry, pSceneLayerConvert->primIndex * 3 + 2);
 
         double p0[3], p1[3], p2[3];
         for (int i = 0; i < 3; ++i)
         {
-          p0[i] = pVert0->position[i] + geometryOriginOffset[i];
-          p1[i] = pVert1->position[i] + geometryOriginOffset[i];
-          p2[i] = pVert2->position[i] + geometryOriginOffset[i];
+          p0[i] = v0->position[i] + geometryOriginOffset[i];
+          p1[i] = v1->position[i] + geometryOriginOffset[i];
+          p2[i] = v2->position[i] + geometryOriginOffset[i];
         }
 
         double *pTriPositions;
@@ -295,9 +296,9 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
             for (size_t i = 0; i < pointCount; ++i, pColour = udAddBytes(pColour, pBuffer->attributeSize))
             {
               udFloat2 pointUV = { 0, 0 };
-              pointUV += pVert0->uv0 * pTriWeights[3 * i + 0];
-              pointUV += pVert1->uv0 * pTriWeights[3 * i + 1];
-              pointUV += pVert2->uv0 * pTriWeights[3 * i + 2];
+              pointUV += v0->uv0 * pTriWeights[3 * i + 0];
+              pointUV += v1->uv0 * pTriWeights[3 * i + 1];
+              pointUV += v2->uv0 * pTriWeights[3 * i + 2];
 
               float width = (float)pTextureData->width;
               float height = (float)pTextureData->height;
@@ -320,10 +321,10 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
           // If using triangle area estimate method, calculate area returned as we go
           if (pSceneLayerConvert->triangleArea)
           {
-            const udLong3 v0 = udLong3::create(pVert0->position / pConvertInput->sourceResolution);
-            const udLong3 v1 = udLong3::create(pVert1->position / pConvertInput->sourceResolution);
-            const udLong3 v2 = udLong3::create(pVert2->position / pConvertInput->sourceResolution);
-            pSceneLayerConvert->triangleAreaReturned += (int64_t)udRound(udMag(udFloat3::create(udCross((v1 - v0), (v2 - v0)))) * 0.5);
+            const udLong3 vl0 = udLong3::create(v0->position / pConvertInput->sourceResolution);
+            const udLong3 vl1 = udLong3::create(v1->position / pConvertInput->sourceResolution);
+            const udLong3 vl2 = udLong3::create(v2->position / pConvertInput->sourceResolution);
+            pSceneLayerConvert->triangleAreaReturned += (int64_t)udRound(udMag(udFloat3::create(udCross((vl1 - vl0), (vl2 - vl0)))) * 0.5);
           }
 
           // current primitive done, move on to next
@@ -359,7 +360,6 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
     pConvertInput->pointCount = pSceneLayerConvert->triangleArea * pSceneLayerConvert->pointsReturned / pSceneLayerConvert->triangleAreaReturned;
   else if (pSceneLayerConvert->totalPrimIndex)
     pConvertInput->pointCount = pSceneLayerConvert->totalPrimCount * pSceneLayerConvert->pointsReturned / pSceneLayerConvert->totalPrimIndex;
- // pConvertInput->pointCountIsEstimate = true;
 
   result = vE_Success;
 
@@ -376,13 +376,11 @@ vdkError vcSceneLayerConvert_AddItem(vdkContext *pContext, vdkConvertContext *pC
   if (vcSceneLayerConvert_Create(&pSceneLayerConvert, pSceneLayerURL) != udR_Success)
     UD_ERROR_SET(vE_Failure);
 
-  // Populate customItem
   customItem.pData = pSceneLayerConvert;
   customItem.pOpen = vcSceneLayerConvert_Open;
   customItem.pClose = vcSceneLayerConvert_Close;
   customItem.pReadPointsInt = vcSceneLayerConvert_ReadPointsInt;
   customItem.pName = pSceneLayerURL;
-
   customItem.content = vdkCAC_ARGB;
   customItem.srid = pSceneLayerConvert->pSceneLayer->root.zone.srid;
   customItem.sourceProjection = vdkCSP_SourceCartesian;
@@ -398,10 +396,14 @@ vdkError vcSceneLayerConvert_AddItem(vdkContext *pContext, vdkConvertContext *pC
   customItem.boundMax[2] = customItem.boundMin[2] + radius * 2.0;
   customItem.boundsKnown = true;
 
-  return vdkConvert_AddCustomItem(pContext, pConvertContext, &customItem);
+  UD_ERROR_CHECK(vdkConvert_AddCustomItem(pContext, pConvertContext, &customItem));
+
+  result = vE_Success;
 
 epilogue:
-  vcSceneLayerConvert_Destroy(&pSceneLayerConvert);
+  if (result != vE_Success)
+    vcSceneLayerConvert_Destroy(&pSceneLayerConvert);
+
   return result;
 }
 

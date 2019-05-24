@@ -13,40 +13,6 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 
-udResult udFile_LoadGZIP(const char *pFilename, void **ppMemory, int64_t *pFileLengthInBytes = nullptr)
-{
-  udResult result;
-  char *pBufferData = nullptr;
-  int64_t rawFileLen = 0;
-  char *pRawFileData = nullptr;
-  size_t bufferLen = 0;
-
-  UD_ERROR_CHECK(udFile_Load(pFilename, (void**)&pRawFileData, &rawFileLen));
-  bufferLen = rawFileLen / 2;
-
-  do
-  {
-    bufferLen = bufferLen * 2;
-    pBufferData = (char*)udRealloc(pBufferData, bufferLen);
-    UD_ERROR_NULL(pBufferData, udR_MemoryAllocationFailure);
-
-    result = udCompression_Inflate(pBufferData, bufferLen, pRawFileData, rawFileLen, nullptr, udCT_GzipDeflate);
-  } while (result == udR_BufferTooSmall);
-  UD_ERROR_CHECK(result);
-
-  *ppMemory = pBufferData;
-  if (pFileLengthInBytes)
-    *pFileLengthInBytes = bufferLen;
-  result = udR_Success;
-
-epilogue:
-  if (result != udR_Success)
-    udFree(pBufferData);
-
-  udFree(pRawFileData);
-  return result;
-}
-
 struct vcSceneLayer_LoadNodeJobData
 {
   vcSceneLayer *pSceneLayer;
@@ -92,7 +58,7 @@ void vcNormalizePath(const char **ppDest, const char *pRoot, const char *pAppend
   size_t len = udStrlen(pNewAppend);
   size_t index = 0;
 
-  // TODO: why are there '\\/' seperator characters??
+  // TODO: why are there '\\/' separator characters??
   // Remove any '\\/' characters
   while (udStrstr(pNewAppend, len, "\\/", &index) != nullptr)
   {
@@ -134,6 +100,41 @@ void vcNormalizePath(const char **ppDest, const char *pRoot, const char *pAppend
 
   udFree(pNewRoot);
   udFree(pNewAppend);
+}
+
+udResult udFile_LoadGZIP(const char *pFilename, void **ppMemory, int64_t *pFileLengthInBytes = nullptr)
+{
+  udResult result;
+  char *pBufferData = nullptr;
+  int64_t rawFileLen = 0;
+  char *pRawFileData = nullptr;
+  size_t bufferLen = 0;
+
+  UD_ERROR_CHECK(udFile_Load(pFilename, (void**)&pRawFileData, &rawFileLen));
+  bufferLen = rawFileLen / 2;
+
+  do
+  {
+    bufferLen = bufferLen * 2;
+    pBufferData = (char*)udRealloc(pBufferData, bufferLen);
+    UD_ERROR_NULL(pBufferData, udR_MemoryAllocationFailure);
+
+    result = udCompression_Inflate(pBufferData, bufferLen, pRawFileData, rawFileLen, nullptr, udCT_GzipDeflate);
+  } while (result == udR_BufferTooSmall);
+  UD_ERROR_CHECK(result);
+
+  *ppMemory = pBufferData;
+  pBufferData = nullptr;
+  if (pFileLengthInBytes)
+    *pFileLengthInBytes = bufferLen;
+  result = udR_Success;
+
+epilogue:
+  if (pBufferData != nullptr)
+    udFree(pBufferData);
+
+  udFree(pRawFileData);
+  return result;
 }
 
 udResult vcSceneLayer_LoadFeatureData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
@@ -332,7 +333,7 @@ epilogue:
 }
 
 template<typename T>
-udResult vcSceneLayer_AllocateNodeData(T **ppData, size_t *pDataCount, const udJSON &nodeJSON, char pathSeperator, const char *pKey)
+udResult vcSceneLayer_AllocateNodeData(T **ppData, size_t *pDataCount, const udJSON &nodeJSON, char pathSeparator, const char *pKey)
 {
   udResult result;
   T *pData = nullptr;
@@ -345,7 +346,7 @@ udResult vcSceneLayer_AllocateNodeData(T **ppData, size_t *pDataCount, const udJ
   UD_ERROR_NULL(pData, udR_MemoryAllocationFailure);
 
   for (size_t i = 0; i < count; ++i)
-    vcNormalizePath(&pData[i].pURL, nullptr, nodeJSON.Get("%s[%zu].href", pKey, i).AsString(), pathSeperator);
+    vcNormalizePath(&pData[i].pURL, nullptr, nodeJSON.Get("%s[%zu].href", pKey, i).AsString(), pathSeparator);
 
   (*ppData) = pData;
   (*pDataCount) = count;
@@ -422,7 +423,7 @@ udResult vcSceneLayer_RecursiveLoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerN
   UD_ERROR_CHECK(vcSceneLayer_AllocateNodeData(&pNode->pTextureData, &pNode->textureDataCount, nodeJSON, pSceneLayer->pathSeparatorChar, "textureData"));
   UD_ERROR_CHECK(vcSceneLayer_AllocateNodeData(&pNode->pAttributeData, &pNode->attributeDataCount, nodeJSON, pSceneLayer->pathSeparatorChar, "attributeData"));
 
-  // Hierarchy
+  // Load children
   pNode->childrenCount = nodeJSON.Get("children").ArrayLength();
   if (pNode->childrenCount > 0)
   {
@@ -443,7 +444,7 @@ udResult vcSceneLayer_RecursiveLoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerN
 
   // TODO: (EVC-548) - these may actually not be needed
   // E.g. For rendering, we may not need the internals of certain nodes
-  if (loadType == vcSLLT_Rendering || (loadType == vcSLLT_Convert && pNode->childrenCount == 0))// ((options & vcSLNLO_CompleteNodeLoad) || ((options & vcSLNLO_OnlyLoadLeaves) == 0 || pNode->childrenCount == 0)))
+  if (loadType == vcSLLT_Rendering || (loadType == vcSLLT_Convert && pNode->childrenCount == 0))
   {
     UD_ERROR_CHECK(vcSceneLayer_LoadNodeInternals(pSceneLayer, pNode));
   }
@@ -452,7 +453,7 @@ udResult vcSceneLayer_RecursiveLoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerN
     pNode->loadState = vcSceneLayerNode::vcLS_PartialLoad;
   }
 
-  if (loadType == vcSLLT_Convert)//options & vcSLNLO_RecursiveLoad)
+  if (loadType == vcSLLT_Convert)
   {
     for (size_t i = 0; i < pNode->childrenCount; ++i)
       UD_ERROR_CHECK(vcSceneLayer_RecursiveLoadNode(pSceneLayer, &pNode->pChildren[i], loadType));
@@ -476,7 +477,7 @@ udResult vcSceneLayer_LoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNod
   if (pNode != nullptr)
     UD_ERROR_SET(vcSceneLayer_RecursiveLoadNode(pSceneLayer, pNode, loadType));
 
-  // Load the entire model
+  // TODO: (EVC-548) Assume the root has been loaded, so load the rest of the model
   for (size_t i = 0; i < pSceneLayer->root.childrenCount; ++i)
     UD_ERROR_CHECK(vcSceneLayer_RecursiveLoadNode(pSceneLayer, &pSceneLayer->root.pChildren[i], loadType));
 
@@ -508,7 +509,6 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWo
   // Load layout description now
   pSceneLayer->defaultGeometryLayoutCount = pSceneLayer->description.Get("store.defaultGeometrySchema.ordering").ArrayLength();
   UD_ERROR_IF(pSceneLayer->defaultGeometryLayoutCount == 0, udR_ParseError);
-
   pSceneLayer->pDefaultGeometryLayout = udAllocType(vcVertexLayoutTypes, pSceneLayer->defaultGeometryLayoutCount, udAF_Zero);
   UD_ERROR_NULL(pSceneLayer->pDefaultGeometryLayout, udR_MemoryAllocationFailure);
 
@@ -534,7 +534,7 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWo
 
   // Load the root
   // TODO: (EVC-548) Does the root actually need to be loaded here?
-  // Use the root path to determine path seperator character
+  // Use the root path to determine path separator character
   const char *pRootPath = pSceneLayer->description.Get("store.rootNode").AsString();
   pSceneLayer->pathSeparatorChar = '/';
   if (udStrchr(pRootPath, "\\") != nullptr)
@@ -567,14 +567,10 @@ void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode)
     udYield();
 
   for (size_t i = 0; i < pNode->sharedResourceCount; ++i)
-  {
     udFree(pNode->pSharedResources[i].pURL);
-  }
 
   for (size_t i = 0; i < pNode->featureDataCount; ++i)
-  {
     udFree(pNode->pFeatureData[i].pURL);
-  }
 
   for (size_t i = 0; i < pNode->geometryDataCount; ++i)
   {
@@ -593,9 +589,7 @@ void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode)
   }
 
   for (size_t i = 0; i < pNode->attributeDataCount; ++i)
-  {
     udFree(pNode->pAttributeData[i].pURL);
-  }
 
   udFree(pNode->pSharedResources);
   udFree(pNode->pFeatureData);
@@ -651,7 +645,7 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
     if (pNode->pGeometryData[i].loaded || (pNode->pGeometryData[i].pData == nullptr))
       continue;
 
-    // TODO: (EVC-553) Let `vcPolygonModel_CreateFromData()` handle this
+    // TODO: (EVC-553) Let `vcPolygonModel_CreateFromData()` handle this?
     //if (!force && !vcGLState_IsGPUDataUploadAllowed()) // allow partial uploads
     //{
     //  uploadsCompleted = false;
@@ -672,7 +666,7 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
     if (pNode->pTextureData[i].loaded || (pNode->pTextureData[i].pData == nullptr))
       continue;
 
-    // TODO: (EVC-553) Let `vcTexture_Create()` handle this
+    // TODO: (EVC-553) Let `vcTexture_Create()` handle this?
     //if (!force && !vcGLState_IsGPUDataUploadAllowed()) // allow partial uploads
     //{
     //  uploadsCompleted = false;
@@ -707,8 +701,8 @@ bool vcSceneLayer_TouchNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
     vcSceneLayer_LoadNodeJobData *pLoadData = udAllocType(vcSceneLayer_LoadNodeJobData, 1, udAF_Zero);
     pLoadData->pSceneLayer = pSceneLayer;
     pLoadData->pNode = pNode;
+
     // TODO: (EVC-548)
-    //pLoadData->loadOptions = needsDrawing ? vcSLNLO_None : vsSLNLO_ShallowLoad;
     vWorkerThread_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeJob, pLoadData);
   }
   else if (pNode->loadState == vcSceneLayerNode::vcLS_PartialLoad)
@@ -725,12 +719,6 @@ bool vcSceneLayer_TouchNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
 
   return pNode->loadState == vcSceneLayerNode::vcLS_Success;
 }
-
-bool vcSceneLayer_IsNodeMetadataLoaded(vcSceneLayerNode *pNode)
-{
-  return pNode->loadState == vcSceneLayerNode::vcLS_PartialLoad || pNode->loadState == vcSceneLayerNode::vcLS_InMemory || pNode->loadState == vcSceneLayerNode::vcLS_Success;
-}
-
 
 vcSceneLayerVertex* vcSceneLayer_GetVertex(vcSceneLayerNode::GeometryData *pGeometry, uint64_t index)
 {

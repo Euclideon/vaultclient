@@ -133,8 +133,6 @@ udResult vcSceneLayer_LoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNod
 // Returns true if the node is ready for use
 bool vcSceneLayer_TouchNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
 
-bool vcSceneLayer_IsNodeMetadataLoaded(vcSceneLayerNode *pNode);
-
 // TODO: (EVC-540) ASSUMPTIONS! (assumed a specific vertex layout!)
 struct vcSceneLayerVertex
 {
