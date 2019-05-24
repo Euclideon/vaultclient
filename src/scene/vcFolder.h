@@ -9,6 +9,7 @@ class vcFolder : public vcSceneItem
 {
 public:
   vcFolder(vdkProjectNode *pNode);
+  ~vcFolder() {};
 
   void ChangeProjection(const udGeoZone &newZone);
 

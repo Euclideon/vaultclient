@@ -24,6 +24,7 @@ public:
 
   vcModel(vcState *pProgramState, vdkProjectNode *pNode);
   vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud, bool jumpToModelOnLoad = false);
+  ~vcModel() {};
 
   void ChangeProjection(const udGeoZone &newZone);
 

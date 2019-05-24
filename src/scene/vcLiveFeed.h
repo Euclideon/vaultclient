@@ -67,6 +67,7 @@ public:
   udMutex *m_pMutex;
 
   vcLiveFeed(vdkProjectNode *pProjectNode);
+  ~vcLiveFeed() {};
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);

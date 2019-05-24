@@ -51,6 +51,7 @@ public:
   vcImageRenderInfo *m_pImage;
 
   vcPOI(vdkProjectNode *pNode);
+  ~vcPOI() {};
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
