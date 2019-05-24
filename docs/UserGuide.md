@@ -67,6 +67,7 @@ There are also additional settings in the "Advanced Connection Settings" dropdow
 
 - `Proxy Address` is the address for your internet proxy (this is provided by your system administrator). It can additionally include the port number and protocol. Examples include: `192.168.0.1`, `169.123.123.1:80` or `https://10.4.0.1:8081`. Leaving this blank will attempt auto-detection.
   - Many companies & organizations have authenticated proxies. Entering a proxy here is not enough to ensure that the proxy will work in all situations. This box does support authentication using _protocol_://_username_:_password_@_proxyaddress_:_port_ e.g. `https://developer:secretPassword123@10.4.0.255:8081` or `user:p455w0rd@proxy.local`. __PLEASE NOTE THAT THIS SETTING IS STORED IN PLAIN TEXT! AFTER CONFIRMING YOU HAVE AN AUTHENTICATED PROXY- DELETE YOUR INFORMATION FROM THIS BOX!__ A future release will provide a secure way to store proxy information.
+- `User Agent` is a field included in HTTP request headers. Very few users will need to specify this.
 - `Ignore Certificate Verification` will disable verification of the PEER and HOST certificate authorities. This setting should *ONLY* be used when instructed by your system administrator and only when errors are occurring during the login process. It will weaken the security between your computer and the Euclideon Vault Server.
 
 > NOTE: `Ignore Certificate Verification` will not be saved due to the security risk associated. You will need to enable this setting each time you open the application.
