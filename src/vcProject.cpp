@@ -158,10 +158,10 @@ bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pModel
 
   udGeoZone zone = {};
 
-  if (pModel->m_pZone == nullptr || pModel->m_pOriginalZone == nullptr || pModel->m_pOriginalZone->srid == 0)
+  if (pModel->m_pCurrentProjection == nullptr || pModel->m_pPreferredProjection == nullptr || pModel->m_pCurrentProjection->srid == 0)
     vcGIS_ChangeSpace(&pProgramState->gis, zone);
-  else if (vcGIS_ChangeSpace(&pProgramState->gis, *pModel->m_pOriginalZone)) // Update all models to new zone unless there is no new zone
-    pProgramState->sceneExplorer.pProjectRoot->ChangeProjection(pProgramState, *pModel->m_pOriginalZone);
+  else if (vcGIS_ChangeSpace(&pProgramState->gis, *pModel->m_pPreferredProjection)) // Update all models to new zone unless there is no new zone
+    pProgramState->sceneExplorer.pProjectRoot->ChangeProjection(*pModel->m_pPreferredProjection);
 
   // refresh map tiles when geozone changes
   vcRender_ClearTiles(pProgramState->pRenderContext);

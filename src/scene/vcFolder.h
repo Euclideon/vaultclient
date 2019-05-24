@@ -10,7 +10,7 @@ class vcFolder : public vcSceneItem
 public:
   vcFolder(vdkProjectNode *pNode);
 
-  void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
+  void ChangeProjection(const udGeoZone &newZone);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);

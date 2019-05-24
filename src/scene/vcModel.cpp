@@ -40,7 +40,7 @@ void vcModel_PostLoadModel(void *pLoadInfoPtr)
   if (pLoadInfo->jumpToLocation)
     vcProject_UseProjectionFromItem(pLoadInfo->pProgramState, pLoadInfo->pModel);
   else if (pLoadInfo->pProgramState->gis.isProjected)
-    pLoadInfo->pModel->ChangeProjection(pLoadInfo->pProgramState, pLoadInfo->pProgramState->gis.zone);
+    pLoadInfo->pModel->ChangeProjection(pLoadInfo->pProgramState->gis.zone);
 }
 
 void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, double scale, udDouble3 *pPosition = nullptr, udDouble3 *pRotation = nullptr)
@@ -66,26 +66,26 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, double scale,
       if (pSRID != nullptr)
         srid = udStrAtou(&pSRID[1]);
 
-      pModel->m_pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
-      if (udGeoZone_SetFromSRID(pModel->m_pOriginalZone, srid) == udR_Success)
+      pModel->m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+      if (udGeoZone_SetFromSRID(pModel->m_pPreferredProjection, srid) == udR_Success)
       {
         pMemberZone = udAllocType(udGeoZone, 1, udAF_Zero);
-        memcpy(pMemberZone, pModel->m_pOriginalZone, sizeof(*pMemberZone));
+        memcpy(pMemberZone, pModel->m_pPreferredProjection, sizeof(*pMemberZone));
       }
       else
       {
-        udFree(pModel->m_pOriginalZone);
+        udFree(pModel->m_pPreferredProjection);
       }
     }
 
-    if (pModel->m_pOriginalZone == nullptr && pMemberZone == nullptr && pWKT != nullptr)
+    if (pModel->m_pPreferredProjection == nullptr && pMemberZone == nullptr && pWKT != nullptr)
     {
-      pModel->m_pOriginalZone = udAllocType(udGeoZone, 1, udAF_Zero);
+      pModel->m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
       pMemberZone = udAllocType(udGeoZone, 1, udAF_Zero);
 
-      udGeoZone_SetFromWKT(pModel->m_pOriginalZone, pWKT);
+      udGeoZone_SetFromWKT(pModel->m_pPreferredProjection, pWKT);
 
-      memcpy(pMemberZone, pModel->m_pOriginalZone, sizeof(*pMemberZone));
+      memcpy(pMemberZone, pModel->m_pPreferredProjection, sizeof(*pMemberZone));
     }
   }
 
@@ -107,7 +107,7 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, double scale,
 
   if (pMemberZone)
   {
-    pModel->m_pZone = pMemberZone;
+    pModel->m_pCurrentProjection = pMemberZone;
     pMemberZone = nullptr;
   }
 
@@ -224,7 +224,7 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
   if (jumpToModelOnLoad)
     vcProject_UseProjectionFromItem(pProgramState, this);
   else if (pProgramState->gis.isProjected)
-    ChangeProjection(pProgramState, pProgramState->gis.zone);
+    ChangeProjection(pProgramState->gis.zone);
 }
 
 void vcModel::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
@@ -232,14 +232,14 @@ void vcModel::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
   pRenderData->models.PushBack(this);
 }
 
-void vcModel::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
+void vcModel::ChangeProjection(const udGeoZone &newZone)
 {
   // This is not ideal as it will gather drift
-  if (m_pZone != nullptr)
-    m_sceneMatrix = udGeoZone_TransformMatrix(m_sceneMatrix, *m_pZone, newZone);
+  if (m_pCurrentProjection != nullptr)
+    m_sceneMatrix = udGeoZone_TransformMatrix(m_sceneMatrix, *m_pCurrentProjection, newZone);
 
   // Call the parent version
-  vcSceneItem::ChangeProjection(nullptr, newZone);
+  vcSceneItem::ChangeProjection(newZone);
 }
 
 void vcModel::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
