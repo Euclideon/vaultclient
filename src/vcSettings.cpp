@@ -346,6 +346,35 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     }
   }
 
+  if (group == vcSC_Languages || group == vcSC_All)
+  {
+    const char *pFileContents = nullptr;
+
+    if (udFile_Load(vcSettings_GetAssetPath("assets/lang/languages.json"), (void**)&pFileContents) == udR_Success)
+    {
+      udJSON languages;
+
+      if (languages.Parse(pFileContents) == udR_Success)
+      {
+        if (languages.IsArray())
+        {
+          pSettings->languageOptions.Init(4);
+          pSettings->languageOptions.Clear();
+          pSettings->languageOptions.ReserveBack(languages.ArrayLength());
+
+          for (size_t i = 0; i < languages.ArrayLength(); ++i)
+          {
+            vcLanguageOption *pLangOption = pSettings->languageOptions.PushBack();
+            udStrcpy(pLangOption->languageName, languages.Get("[%zu].localname", i).AsString());
+            udStrcpy(pLangOption->filename, languages.Get("[%zu].filename", i).AsString());
+          }
+        }
+      }
+    }
+
+    udFree(pFileContents);
+  }
+
 epilogue:
   udFree(pSavedData);
   return true;
@@ -559,6 +588,15 @@ bool vcSettings_Save(vcSettings *pSettings)
   return success;
 }
 
+void vcSettings_Cleanup(vcSettings *pSettings)
+{
+  for (size_t i = 0; i < 256; ++i)
+    if (pSettings->visualization.customClassificationColorLabels[i] != nullptr)
+      udFree(pSettings->visualization.customClassificationColorLabels[i]);
+
+  pSettings->languageOptions.Deinit();
+}
+
 #if UDPLATFORM_EMSCRIPTEN
 void *vcSettings_GetAssetPathAllocateCallback(size_t length)
 {
@@ -602,12 +640,76 @@ udResult vcSettings_FileHandlerAssetOpen(udFile **ppFile, const char *pFilename,
   size_t fileStart = 8; // length of asset://
   const char *pNewFilename = vcSettings_GetAssetPath(pFilename + fileStart);
   udResult res = udFile_Open(ppFile, pNewFilename, flags);
-  udFree((*ppFile)->pFilenameCopy);
-  (*ppFile)->pFilenameCopy = udStrdup(pNewFilename);
+  if (res == udR_Success)
+  {
+    udFree((*ppFile)->pFilenameCopy);
+    (*ppFile)->pFilenameCopy = udStrdup(pNewFilename);
+  }
   return res;
 }
 
 udResult vcSettings_RegisterAssetFileHandler()
 {
   return udFile_RegisterHandler(vcSettings_FileHandlerAssetOpen, "asset://");
+}
+
+udResult vcSettings_UpdateLanguageOptions(vcSettings *pSetting)
+{
+  udResult result = udR_Unsupported;
+  udFindDir *pDir = nullptr;
+  bool rewrite = false;
+
+  // Check directory for files not included in languages.json, then update if necessary
+#if defined(UDPLATFORM_WINDOWS) || defined(UDPLATFORM_OSX) || defined(UDPLATFORM_LINUX)
+  UD_ERROR_CHECK(udOpenDir(&pDir, vcSettings_GetAssetPath("assets/lang")));
+
+  do
+  {
+    // Skip system '$*', this '.', parent '..' and misc 'hidden' folders '.*'
+    if (udStrBeginsWith(pDir->pFilename, ".") || udStrBeginsWith(pDir->pFilename, "$") || udStrcmpi(pDir->pFilename, "languages.json") == 0)
+      continue;
+
+    bool found = false;
+    for (size_t i = 0; i < pSetting->languageOptions.length; ++i)
+    {
+      if (udStrcmpi(pSetting->languageOptions[i].filename, pDir->pFilename) == 0)
+      {
+        found = true;
+        break;
+      }
+    }
+
+    if (found)
+      continue;
+
+    vcLanguageOption *pNewLang = pSetting->languageOptions.PushBack();
+
+    udFilename tempFile(pDir->pFilename);
+    tempFile.ExtractFilenameOnly(pNewLang->filename, (int)udLengthOf(pNewLang->filename));
+
+    //TODO: Load the file and get the local name out
+    udStrcpy(pNewLang->languageName, pDir->pFilename);
+
+    rewrite = true;
+
+  } while (udReadDir(pDir) == udR_Success);
+
+  udCloseDir(&pDir);
+
+  if (rewrite)
+  {
+    //TODO: Write the file back if possible (most non-windows platforms will not be possible)
+
+    //const char *pLanguageStr;
+    //
+    //if (languages.Export(&pLanguageStr, udJEO_JSON | udJEO_FormatWhiteSpace) == udR_Success)
+    //{
+    //  SDL_filewrite(vcSettings_GetAssetPath("assets/lang/languages.json"), pLanguageStr, udStrlen(pLanguageStr));
+    //  udFree(pLanguageStr);
+    //}
+  }
+#endif
+
+epilogue:
+  return result;
 }

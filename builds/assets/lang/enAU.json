@@ -22,6 +22,8 @@
   "loginProxyAddress": "Proxy Address",
   "loginProxyAutodetect": "Auto-detect Proxy",
   "loginProxyTest": "Test Proxy",
+  "loginUserAgent": "User Agent",
+  "loginSelectUserAgent": "Select User Agent",
   "loginIgnoreCert": "Ignore Certificate Verification",
   "loginIgnoreCertWarning": "THIS IS A DANGEROUS SETTING, ONLY SET THIS ON REQUEST FROM YOUR SYSTEM ADMINISTRATOR",
   "loginSupportIssueTracker": "Want to report an issue? Let us know on {1}!",

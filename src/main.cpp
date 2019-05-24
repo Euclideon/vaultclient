@@ -135,6 +135,28 @@ struct vcColumnHeader
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
+void vcMain_LangCombo(vcState *pProgramState)
+{
+  if (!ImGui::BeginCombo("##langCode", pProgramState->languageInfo.pLocalName))
+    return;
+
+  for (size_t i = 0; i < pProgramState->settings.languageOptions.length; ++i)
+  {
+    const char *pName = pProgramState->settings.languageOptions[i].languageName;
+    const char *pFilename = pProgramState->settings.languageOptions[i].filename;
+
+    if (ImGui::Selectable(pName))
+    {
+      if (vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", pFilename), &pProgramState->languageInfo) == udR_Success)
+        udStrcpy(pProgramState->settings.window.languageCode, pFilename);
+      else
+        vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", pProgramState->settings.window.languageCode), &pProgramState->languageInfo);
+    }
+  }
+
+  ImGui::EndCombo();
+}
+
 void vcMain_UpdateSessionInfo(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
@@ -899,12 +921,11 @@ int main(int argc, char **args)
   vcSettings_Save(&programState.settings);
 
 epilogue:
-  for (size_t i = 0; i < 256; ++i)
-    if (programState.settings.visualization.customClassificationColorLabels[i] != nullptr)
-      udFree(programState.settings.visualization.customClassificationColorLabels[i]);
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
   vdkProject_Release(&programState.sceneExplorer.pProject);
+
+  vcSettings_Cleanup(&programState.settings);
 
 #ifdef GRAPHICS_API_METAL
   ImGui_ImplMetal_Shutdown();
@@ -1619,15 +1640,9 @@ void vcRenderWindow(vcState *pProgramState)
       if (ImGui::Button(vcString::Get("loginAbout")))
         vcModals_OpenModal(pProgramState, vcMT_About);
 
-      // TODO: Add More Languages to this (preferably dynamically- remember to factor in packaging on non-windows platforms)
-      const char *langs[] = { "enAU", "zhCN" };
       ImGui::SameLine();
-      int lang = udStrEqual(pProgramState->settings.window.languageCode, langs[0]) ? 0 : 1;
-      if (ImGui::Combo("##langCode", &lang, langs, (int)udLengthOf(langs)))
-      {
-        udStrcpy(pProgramState->settings.window.languageCode, udLengthOf(pProgramState->settings.window.languageCode), langs[lang]);
-        vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", langs[lang]), &pProgramState->languageInfo);
-      }
+
+      vcMain_LangCombo(pProgramState);
 
       // Let the user change the look and feel on the login page
       const char *themeOptions[] = { vcString::Get("settingsAppearanceDark"), vcString::Get("settingsAppearanceLight") };
@@ -1837,6 +1852,20 @@ void vcRenderWindow(vcState *pProgramState)
             //TODO: Decide what to do with other errors
             if (vcProxyHelper_TestProxy(pProgramState) == vE_ProxyAuthRequired)
               vcModals_OpenModal(pProgramState, vcMT_ProxyAuth);
+          }
+
+          if (ImGui::InputText(vcString::Get("loginUserAgent"), pProgramState->settings.loginInfo.userAgent, vcMaxPathLength))
+            vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
+
+          // TODO: Consider reading user agent strings from a file
+          const char *UAOptions[] = { "Mozilla" };
+          const char *UAStrings[] = { "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:53.0) Gecko/20100101 Firefox/53.0" };
+
+          int UAIndex = -1;
+          if (ImGui::Combo(udTempStr("%s###loginUserAgentPresets", vcString::Get("loginSelectUserAgent")), &UAIndex, UAOptions, (int)udLengthOf(UAOptions)))
+          {
+            udStrcpy(pProgramState->settings.loginInfo.userAgent, vcMaxPathLength, UAStrings[UAIndex]);
+            vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
           }
 
           if (ImGui::Checkbox(vcString::Get("loginIgnoreCert"), &pProgramState->settings.loginInfo.ignoreCertificateVerification))
