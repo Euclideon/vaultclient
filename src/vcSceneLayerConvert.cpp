@@ -205,7 +205,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
 {
   vdkError result;
   vcSceneLayerConvert *pSceneLayerConvert = nullptr;
-  size_t pointCount = 0;
+  uint64_t pointCount = 0;
   udDouble3 sceneLayerOrigin = udDouble3::zero();
   bool allPointsReturned = false;
 
@@ -231,7 +231,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
       vcSceneLayerNode::TextureData *pTextureData = nullptr;
       uint64_t geometryPrimitiveCount = pGeometry->vertCount / 3; // TOOD: (EVC-540) other primitive types
 
-      if (pNode->textureDataCount >= 0)
+      if (pNode->textureDataCount > 0)
         pTextureData = &pNode->pTextureData[0]; // TODO: (EVC-542) validate!
 
       udDouble3 geometryOriginOffset = pGeometry->originMatrix.axis.t.toVector3() - sceneLayerOrigin;
@@ -239,7 +239,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
       // For each primitive
       while (pBuffer->pointCount < pBuffer->pointsAllocated && pSceneLayerConvert->primIndex < geometryPrimitiveCount)
       {
-        size_t maxPoints = pBuffer->pointsAllocated - pBuffer->pointCount;
+        uint64_t maxPoints = pBuffer->pointsAllocated - pBuffer->pointCount;
 
         // Get Vertices
         // TODO: (EVC-540) ASSUMPTIONS! (assumed a specific vertex layout!)
@@ -263,7 +263,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
         // Handle everyNth here in one place, slightly inefficiently but with the benefit of simplicity for the rest of the function
         if (pSceneLayerConvert->everyNth > 1)
         {
-          size_t i, pc;
+          uint64_t i, pc;
           for (i = pc = 0; i < pointCount; ++i)
           {
             if (++pSceneLayerConvert->everyNthAccum >= pSceneLayerConvert->everyNth)
@@ -278,7 +278,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
         }
 
         // write all points from current triangle
-        for (size_t i = 0; i < pointCount; ++i)
+        for (uint64_t i = 0; i < pointCount; ++i)
         {
           for (size_t j = 0; j < 3; ++j)
             pBuffer->pPositions[pBuffer->pointCount + i][j] = (int64_t)(pTriPositions[3 * i + j] / pConvertInput->sourceResolution);
@@ -293,7 +293,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
 
           if (pTextureData != nullptr)
           {
-            for (size_t i = 0; i < pointCount; ++i, pColour = udAddBytes(pColour, pBuffer->attributeSize))
+            for (uint64_t i = 0; i < pointCount; ++i, pColour = udAddBytes(pColour, pBuffer->attributeSize))
             {
               udFloat2 pointUV = { 0, 0 };
               pointUV += v0->uv0 * pTriWeights[3 * i + 0];
@@ -310,7 +310,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
           }
           else
           {
-            for (size_t i = 0; i < pointCount; ++i, pColour = udAddBytes(pColour, pBuffer->attributeSize))
+            for (uint64_t i = 0; i < pointCount; ++i, pColour = udAddBytes(pColour, pBuffer->attributeSize))
               *pColour = 0xffffffff;
           }
         }
@@ -387,13 +387,12 @@ vdkError vcSceneLayerConvert_AddItem(vdkContext *pContext, vdkConvertContext *pC
   customItem.pointCount = -1;
   customItem.pointCountIsEstimate = true;
 
-  double radius = pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.radius;
-  customItem.boundMin[0] = pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.position.x - radius;
-  customItem.boundMin[1] = pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.position.y - radius;
-  customItem.boundMin[2] = pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.position.z - radius;
-  customItem.boundMax[0] = customItem.boundMin[0] + radius * 2.0;
-  customItem.boundMax[1] = customItem.boundMin[1] + radius * 2.0;
-  customItem.boundMax[2] = customItem.boundMin[2] + radius * 2.0;
+  customItem.boundMin[0] = pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.position.x - pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.radius;
+  customItem.boundMin[1] = pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.position.y - pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.radius;
+  customItem.boundMin[2] = pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.position.z - pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.radius;
+  customItem.boundMax[0] = customItem.boundMin[0] + pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.radius * 2.0;
+  customItem.boundMax[1] = customItem.boundMin[1] + pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.radius * 2.0;
+  customItem.boundMax[2] = customItem.boundMin[2] + pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.radius * 2.0;
   customItem.boundsKnown = true;
 
   UD_ERROR_CHECK(vdkConvert_AddCustomItem(pContext, pConvertContext, &customItem));
