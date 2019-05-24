@@ -198,9 +198,6 @@
 
 - (void)setScissor:(MTLScissorRect)rect
 {
-  rect.width = udMin(rect.width, _renderPasses[0].colorAttachments[0].texture.width - rect.x);
-  rect.height = udMin(rect.height, _renderPasses[0].colorAttachments[0].texture.height - rect.y);
-
   [_encoders[pCurrFramebuffer->ID] setScissorRect:rect];
 }
 
