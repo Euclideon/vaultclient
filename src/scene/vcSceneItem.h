@@ -42,7 +42,7 @@ public:
 
   vcSceneItem(vdkProjectNode *pNode);
   vcSceneItem(vdkProject *pProject, const char *pType, const char *pName);
-  ~vcSceneItem();
+  virtual ~vcSceneItem();
 
   // This is used to help with adding the item to the renderer
   virtual void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) = 0;
