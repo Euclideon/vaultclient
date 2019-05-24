@@ -37,8 +37,8 @@ public:
   bool m_moved;
 
   udJSON m_metadata; // This points to a metadata (may be an empty object)
-  udGeoZone *m_pOriginalZone; // nullptr if not geolocated
-  udGeoZone *m_pZone; // nullptr if not geolocated
+  udGeoZone *m_pPreferredProjection; // nullptr if there is no preferred zone
+  udGeoZone *m_pCurrentProjection; // nullptr if not geolocated
 
   vcSceneItem(vdkProjectNode *pNode);
   vcSceneItem(vdkProject *pProject, const char *pType, const char *pName);
@@ -57,7 +57,7 @@ public:
   virtual void Cleanup(vcState *pProgramState) = 0;
 
   // This function handles projection changes if additional handling is required
-  virtual void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
+  virtual void ChangeProjection(const udGeoZone &newZone);
 
   // Moves the camera to the item
   virtual void SetCameraPosition(vcState *pProgramState);

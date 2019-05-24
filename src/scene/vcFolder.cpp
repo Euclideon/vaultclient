@@ -55,13 +55,13 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 }
 }
 
-void vcFolder::ChangeProjection(vcState *pProgramState, const udGeoZone &newZone)
+void vcFolder::ChangeProjection(const udGeoZone &newZone)
 {
   vdkProjectNode *pNode = m_pNode->pFirstChild;
   while (pNode != nullptr)
   {
     if (pNode->pUserData)
-      ((vcSceneItem*)pNode->pUserData)->ChangeProjection(pProgramState, newZone);
+      ((vcSceneItem*)pNode->pUserData)->ChangeProjection(newZone);
     pNode = pNode->pNextSibling;
 }
 }
@@ -197,11 +197,11 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         if (ImGui::Selectable(vcString::Get("sceneExplorerEditName")))
           pSceneItem->m_editName = true;
 
-        if (ImGui::Selectable(vcString::Get("sceneExplorerUseProjection")) && pSceneItem->m_pOriginalZone != nullptr && pSceneItem->m_pOriginalZone->srid != 0)
+        if (ImGui::Selectable(vcString::Get("sceneExplorerUseProjection")) && pSceneItem->m_pPreferredProjection != nullptr && pSceneItem->m_pPreferredProjection->srid != 0)
         {
-          if (vcGIS_ChangeSpace(&pProgramState->gis, *pSceneItem->m_pOriginalZone, &pProgramState->pCamera->position))
+          if (vcGIS_ChangeSpace(&pProgramState->gis, *pSceneItem->m_pPreferredProjection, &pProgramState->pCamera->position))
           {
-            pProgramState->sceneExplorer.pProjectRoot->ChangeProjection(pProgramState, *pSceneItem->m_pOriginalZone);
+            pProgramState->sceneExplorer.pProjectRoot->ChangeProjection(*pSceneItem->m_pPreferredProjection);
             // refresh map tiles when geozone changes
             vcRender_ClearTiles(pProgramState->pRenderContext);
           }
@@ -221,10 +221,10 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         if (pSceneItem->m_moved && pNode->itemtype == vdkPNT_PointCloud && ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
         {
           pSceneItem->m_moved = false;
-          if (pSceneItem->m_pZone == nullptr || pSceneItem->m_pOriginalZone->srid == pSceneItem->m_pZone->srid)
+          if (pSceneItem->m_pCurrentProjection == nullptr || pSceneItem->m_pPreferredProjection->srid == pSceneItem->m_pCurrentProjection->srid)
             ((vcModel*)pSceneItem)->m_sceneMatrix = ((vcModel*)pSceneItem)->m_defaultMatrix;
           else
-            ((vcModel*)pSceneItem)->m_sceneMatrix = udGeoZone_TransformMatrix(((vcModel*)pSceneItem)->m_defaultMatrix, *pSceneItem->m_pOriginalZone, *pSceneItem->m_pZone);
+            ((vcModel*)pSceneItem)->m_sceneMatrix = udGeoZone_TransformMatrix(((vcModel*)pSceneItem)->m_defaultMatrix, *pSceneItem->m_pPreferredProjection, *pSceneItem->m_pCurrentProjection);
         }
 
         if (ImGui::Selectable(vcString::Get("sceneExplorerRemoveItem")))

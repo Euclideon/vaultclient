@@ -500,7 +500,7 @@ void vcMain_MainLoop(vcState *pProgramState)
               if (udFile_Load(pNextLoad, (void**)&pMemory) == udR_Success)
               {
                 vdkProject *pProject = nullptr;
-                if (vdkProject_LoadFromMemory(&pProject, pMemory) == udR_Success)
+                if (vdkProject_LoadFromMemory(&pProject, pMemory) == vE_Success)
                 {
                   pProgramState->sceneExplorer.pProject = pProject;
                   vdkProjectNode *pNode = nullptr;
@@ -1047,7 +1047,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         {
           if (vcGIS_ChangeSpace(&pProgramState->gis, zone, &pProgramState->pCamera->position))
           {
-            pProgramState->sceneExplorer.pProjectRoot->ChangeProjection(pProgramState, zone);
+            pProgramState->sceneExplorer.pProjectRoot->ChangeProjection(zone);
             vcRender_ClearTiles(pProgramState->pRenderContext);
           }
         }

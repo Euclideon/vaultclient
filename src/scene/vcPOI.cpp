@@ -323,18 +323,18 @@ void vcPOI::RemovePoint(int index)
   UpdatePoints();
 }
 
-void vcPOI::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
+void vcPOI::ChangeProjection(const udGeoZone &newZone)
 {
-  if (m_pZone != nullptr)
-  {
-    // Change all points in the POI to the new projection
-    //for (int i = 0; i < m_line.numPoints; ++i)
-    //  m_line.pPoints[i] = udGeoZone_TransformPoint(m_line.pOriginalPoints[i], *m_pOriginalZone, newZone);
-    UpdatePoints();
-  }
+  if (m_pCurrentProjection == nullptr)
+    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+
+  // Change all points in the POI to the new projection
+  for (int i = 0; i < m_line.numPoints; ++i)
+    m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, ((udDouble3*)m_pNode->pCoordinates)[i], true);
+  UpdatePoints();
 
   // Call the parent version
-  vcSceneItem::ChangeProjection(nullptr, newZone);
+  vcSceneItem::ChangeProjection(newZone);
 }
 
 void vcPOI::Cleanup(vcState * /*pProgramState*/)

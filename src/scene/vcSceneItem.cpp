@@ -21,8 +21,8 @@ vcSceneItem::vcSceneItem(vdkProjectNode *pNode) :
   m_expanded(false),
   m_editName(false),
   m_moved(false),
-  m_pOriginalZone(nullptr),
-  m_pZone(nullptr)
+  m_pPreferredProjection(nullptr),
+  m_pCurrentProjection(nullptr)
 {
   m_metadata.SetVoid();
   m_pNode = pNode;
@@ -37,14 +37,14 @@ vcSceneItem::vcSceneItem(vdkProject *pProject, const char *pType, const char *pN
 vcSceneItem::~vcSceneItem()
 {
   m_metadata.Destroy();
-  udFree(m_pOriginalZone);
-  udFree(m_pZone);
+  udFree(m_pPreferredProjection);
+  udFree(m_pCurrentProjection);
 }
 
-void vcSceneItem::ChangeProjection(vcState * /*pProgramState*/, const udGeoZone &newZone)
+void vcSceneItem::ChangeProjection(const udGeoZone &newZone)
 {
-  if (this->m_pZone != nullptr && newZone.srid != m_pZone->srid)
-    memcpy(m_pZone, &newZone, sizeof(newZone));
+  if (this->m_pCurrentProjection != nullptr && newZone.srid != m_pCurrentProjection->srid)
+    memcpy(m_pCurrentProjection, &newZone, sizeof(newZone));
 }
 
 void vcSceneItem::SetCameraPosition(vcState *pProgramState)

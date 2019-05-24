@@ -25,7 +25,7 @@ public:
   vcModel(vcState *pProgramState, vdkProjectNode *pNode);
   vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud, bool jumpToModelOnLoad = false);
 
-  void ChangeProjection(vcState *pProgramState, const udGeoZone &newZone);
+  void ChangeProjection(const udGeoZone &newZone);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
