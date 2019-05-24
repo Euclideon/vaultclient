@@ -140,7 +140,7 @@ void vcMain_LangCombo(vcState *pProgramState)
   if (!ImGui::BeginCombo("##langCode", pProgramState->languageInfo.pLocalName))
     return;
 
-  for (int i = 0; i < pProgramState->settings.languageOptions.length; ++i)
+  for (size_t i = 0; i < pProgramState->settings.languageOptions.length; ++i)
   {
     const char *pName = pProgramState->settings.languageOptions[i].languageName;
     const char *pFilename = pProgramState->settings.languageOptions[i].filename;
