@@ -2045,8 +2045,7 @@ void vcRenderWindow(vcState *pProgramState)
                 const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
                 vdkProjectNode* pNode = item.pItem;
 
-                // TODO: Calculate index
-                vdkProjectNode_MoveChild(pProgramState->sceneExplorer.pProject, item.pParent, pProgramState->sceneExplorer.insertItem.pParent, pNode, pProgramState->sceneExplorer.insertItem.pItem); //this should be pItem->pNext sibling
+                vdkProjectNode_MoveChild(pProgramState->sceneExplorer.pProject, item.pParent, pProgramState->sceneExplorer.insertItem.pParent, pNode, pProgramState->sceneExplorer.insertItem.pItem);
 
                 // Update the selected item information to repeat drag and drop
                 pProgramState->sceneExplorer.selectedItems[i].pParent = pProgramState->sceneExplorer.insertItem.pParent;
