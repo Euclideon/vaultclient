@@ -249,4 +249,24 @@ epilogue:
   return result;
 }
 
+// Returns -1=outside, 0=inside, >0=partial (bits of planes crossed)
+template <typename T>
+static int udFrustumTest(const udVector4<T> frustumPlanes[6], const udVector3<T> &boundCenter, const udVector3<T> &boundExtents)
+{
+  int partial = 0;
+
+  for (int i = 0; i < 6; ++i)
+  {
+    double distToCenter = udDot4(udVector4<T>::create(boundCenter, 1.0), frustumPlanes[i]);
+    //optimized for case where boxExtents are all same: udFloat radiusBoxAtPlane = udDot3(boxExtents, udAbs(udVec3(curPlane)));
+    double radiusBoxAtPlane = udDot3(boundExtents, udAbs(frustumPlanes[i].toVector3()));
+    if (distToCenter < -radiusBoxAtPlane)
+      return -1; // Box is entirely behind at least one plane
+    else if (distToCenter <= radiusBoxAtPlane) // If spanned (not entirely infront)
+      partial |= (1 << i);
+  }
+
+  return partial;
+}
+
 #endif //vcMath_h__

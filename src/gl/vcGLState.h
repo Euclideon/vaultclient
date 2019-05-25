@@ -15,9 +15,8 @@
 enum
 {
   // TODO: (EVC-547) This is arbitrary. Should be platform based.
-  vcGLState_MaxUploadBytesPerFrame = 30 * 1024, // 30kb
+  vcGLState_MaxUploadBytesPerFrame = 200 * 1024, // 30kb
 };
-
 
 // State enums
 enum vcGLStateFillMode
@@ -44,7 +43,7 @@ enum vcGLStateBlendMode
   vcGLSBM_Interpolative, // (source alpha * source fragment) + ((1 – source alpha) * destination fragment)
   vcGLSBM_Additive, // (1 * source fragment) + (1 * destination fragment)
   vcGLSBM_Multiplicative, // source fragment * destination fragment
-    
+
   vcGLSBM_Count
 };
 
@@ -152,7 +151,7 @@ void vcGLState_Scissor(int left, int top, int right, int bottom, bool force = fa
 
 int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel);
 
-void vcGLState_GPUDidWork(size_t drawCount, size_t triCount, size_t uploadBytesCount);
+void vcGLState_ReportGPUWork(size_t drawCount, size_t triCount, size_t uploadBytesCount);
 bool vcGLState_IsGPUDataUploadAllowed();
 
 #endif // vcGLState_h__

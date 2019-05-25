@@ -584,6 +584,7 @@ const char* const g_PolygonP1N1UV1VertexShader = R"shader(
     float3 pos : POSITION;
     float2 uv  : TEXCOORD0;
     float3 normal : NORMAL;
+    //float4 colour : COLOR0;
   };
 
   struct PS_INPUT
@@ -610,9 +611,9 @@ const char* const g_PolygonP1N1UV1VertexShader = R"shader(
     PS_INPUT output;
 
     output.pos = mul(u_viewProjectionMatrix, mul(u_modelMatrix, float4(input.pos, 1.0)));
-    output.uv = float2(input.uv.x, 1.0 - input.uv.y);
+    output.uv = input.uv;
     output.normal = input.normal;
-    output.colour = u_colour;
+    output.colour = u_colour;// * input.colour;
 
     return output;
   }

@@ -82,7 +82,7 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   pTexture->format = format;
   pTexture->width = width;
   pTexture->height = height;
-  vcGLState_GPUDidWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
+  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
 
   *ppTexture = pTexture;
 
@@ -193,7 +193,7 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
   glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, pTexture->width, pTexture->height, 0, glFormat, type, pPixels);
   glBindTexture(GL_TEXTURE_2D, 0);
 
-  vcGLState_GPUDidWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
+  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
 
 epilogue:
   return result;
@@ -262,7 +262,7 @@ bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
     return false;
   }
 
-  vcGLState_GPUDidWork(0, 0, pTexture->width * pTexture->height * pixelBytes * 6);
+  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pixelBytes * 6);
 
   *ppTexture = pTexture;
   return true;

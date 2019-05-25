@@ -512,6 +512,7 @@ const char* const g_PolygonP1N1UV1VertexShader = VERT_HEADER R"shader(
   layout(location = 0) in vec3 a_pos;
   layout(location = 1) in vec3 a_normal;
   layout(location = 2) in vec2 a_uv;
+  //layout(location = 3) in vec4 a_colour;
 
   //Output Format
   out vec2 v_uv;
@@ -533,9 +534,9 @@ const char* const g_PolygonP1N1UV1VertexShader = VERT_HEADER R"shader(
   {
     gl_Position = u_viewProjectionMatrix * u_modelMatrix * vec4(a_pos, 1.0);
 
-    v_uv = vec2(a_uv.x, 1.0 - a_uv.y);
+    v_uv = a_uv;
     v_normal = a_normal;
-    v_colour = u_colour;
+    v_colour = u_colour;// * a_colour;
   }
 )shader";
 
