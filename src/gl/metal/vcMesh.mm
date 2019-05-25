@@ -85,7 +85,7 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
   }
 
   *ppMesh = pMesh;
-   vcGLState_GPUDidWork(0, 0, (pMesh->vertexCount * pMesh->vertexBytes) + (pMesh->indexCount * pMesh->indexBytes));
+   vcGLState_ReportGPUWork(0, 0, (pMesh->vertexCount * pMesh->vertexBytes) + (pMesh->indexCount * pMesh->indexBytes));
 
   return result;
 }
@@ -139,20 +139,20 @@ udResult vcMesh_UploadData(struct vcMesh *pMesh, const vcVertexLayoutTypes *pLay
   }
 
   uint32_t size = accumulatedOffset * totalVerts;
-  
+
   if (pMesh->vertexCount * pMesh->vertexBytes < size)
     [_viewCon.renderer.vertBuffers setObject:[_device newBufferWithBytes:pVerts length:size options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pMesh->vBufferIndex]];
   else
     [_viewCon.renderer.vertBuffers setObject:[_device newBufferWithBytes:pVerts length:size options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pMesh->vBufferIndex]];
     //memcpy((char *)_viewCon.renderer.vertBuffers[[NSString stringWithUTF8String:pMesh->vBufferIndex]].contents, pVerts, size);
-  
+
   pMesh->vertexCount = totalVerts;
   pMesh->vertexBytes = accumulatedOffset;
 
   if (totalIndices > 0)
   {
     uint32_t isize = totalIndices * pMesh->indexBytes;
-    
+
     if (pMesh->indexCount < (uint32_t)totalIndices)
       [_viewCon.renderer.indexBuffers setObject:[_device newBufferWithBytes:pIndices length:isize options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pMesh->iBufferIndex]];
     else
@@ -160,7 +160,7 @@ udResult vcMesh_UploadData(struct vcMesh *pMesh, const vcVertexLayoutTypes *pLay
       //memcpy((char *)_viewCon.renderer.indexBuffers[[NSString stringWithUTF8String:pMesh->iBufferIndex]].contents, pIndices, isize);
   }
   pMesh->indexCount = totalIndices;
-  vcGLState_GPUDidWork(0, 0, (pMesh->vertexCount * pMesh->vertexBytes) + (pMesh->indexCount * pMesh->indexBytes));
+  vcGLState_ReportGPUWork(0, 0, (pMesh->vertexCount * pMesh->vertexBytes) + (pMesh->indexCount * pMesh->indexBytes));
 
   return result;
 }
@@ -202,6 +202,6 @@ bool vcMesh_Render(struct vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_
     [_viewCon.renderer drawUnindexed:_viewCon.renderer.vertBuffers[[NSString stringWithUTF8String:pMesh->vBufferIndex]] vertexStart:startElement * pMesh->vertexBytes vertexCount:elementCount primitiveType:primitiveType];
   }
 
-  vcGLState_GPUDidWork(1, elementCount - startElement, 0);
+  vcGLState_ReportGPUWork(1, elementCount - startElement, 0);
   return true;
 }

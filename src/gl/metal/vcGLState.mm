@@ -140,7 +140,7 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   vcTexture *defaultTexture, *defaultDepth;
   vcTexture_Create(&defaultTexture, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
   vcTexture_Create(&defaultDepth, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
-  
+
   _viewCon.renderer.renderPasses[0] = _viewCon.Mview.currentRenderPassDescriptor;
   _viewCon.renderer.renderPasses[0].colorAttachments[0].loadAction = MTLLoadActionClear;
   _viewCon.renderer.renderPasses[0].colorAttachments[0].storeAction = MTLStoreActionStore;
@@ -252,13 +252,13 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
 bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDepthWrite, vcGLStencilSettings *pStencil /* = nullptr */, bool force /*= false*/)
 {
   bool enableStencil = pStencil != nullptr;
-  
+
   if ((s_internalState.depthReadMode != depthReadMode) || (s_internalState.doDepthWrite != doDepthWrite) || force || (s_internalState.stencil.enabled != enableStencil) ||
       (enableStencil && ((s_internalState.stencil.onStencilFail != pStencil->onStencilFail) || (s_internalState.stencil.onDepthFail != pStencil->onDepthFail) || (s_internalState.stencil.onStencilAndDepthPass != pStencil->onStencilAndDepthPass) || (s_internalState.stencil.compareFunc != pStencil->compareFunc) || (s_internalState.stencil.compareMask != pStencil->compareMask) || (s_internalState.stencil.writeMask != pStencil->writeMask))))
   {
     s_internalState.depthReadMode = depthReadMode;
     s_internalState.doDepthWrite = doDepthWrite;
-    
+
     s_internalState.stencil.enabled = enableStencil;
 
     if (!enableStencil)
@@ -266,7 +266,7 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
       [_viewCon.renderer bindDepthStencil:_viewCon.renderer.depthStates[((int)depthReadMode) * 2 + doDepthWrite] settings:nullptr];
       return true;
     }
-    
+
     MTLDepthStencilDescriptor *depthStencilDesc = [[MTLDepthStencilDescriptor alloc]init];
 
     depthStencilDesc.depthCompareFunction = mapDepthMode[depthReadMode];
@@ -300,7 +300,7 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
     id<MTLDepthStencilState> dsState = [_device newDepthStencilStateWithDescriptor:depthStencilDesc];
     [_viewCon.renderer bindDepthStencil:dsState settings:pStencil];
   }
-  
+
   return true;
 }
 
@@ -373,7 +373,7 @@ int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel)
   return udMin(desiredAniLevel, g_maxAnisotropy);
 }
 
-void vcGLState_GPUDidWork(size_t drawCount, size_t triCount, size_t uploadBytesCount)
+void vcGLState_ReportGPUWork(size_t drawCount, size_t triCount, size_t uploadBytesCount)
 {
   s_internalState.frameInfo.drawCount += drawCount;
   s_internalState.frameInfo.triCount += triCount;
@@ -382,5 +382,5 @@ void vcGLState_GPUDidWork(size_t drawCount, size_t triCount, size_t uploadBytesC
 
 bool vcGLState_IsGPUDataUploadAllowed()
 {
-  return s_internalState.frameInfo.uploadBytesCount < vcGLState_MaxUploadBytesPerFrame;
+  return (s_internalState.frameInfo.uploadBytesCount < vcGLState_MaxUploadBytesPerFrame);
 }

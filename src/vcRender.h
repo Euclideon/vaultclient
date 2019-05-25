@@ -17,6 +17,7 @@
 
 struct vcRenderContext;
 struct vcTexture;
+struct vcSceneLayerRenderer;
 
 struct vcRenderPolyInstance
 {
@@ -43,6 +44,7 @@ struct vcRenderData
   udChunkedArray<vcRenderPolyInstance> polyModels;
   udChunkedArray<vcWaterRenderer*> waterVolumes;
   udChunkedArray<vcImageRenderInfo*> images;
+  udChunkedArray<vcSceneLayerRenderer*> sceneLayers;
 
   vcCamera *pCamera;
   vcCameraSettings *pCameraSettings;
@@ -61,5 +63,6 @@ void vcRender_vcRenderSceneImGui(vcRenderContext *pRenderContext, const vcRender
 
 void vcRender_ClearTiles(vcRenderContext *pRenderContext);
 void vcRender_ClearPoints(vcRenderContext *pRenderContext);
+
 
 #endif//vcRender_h__
