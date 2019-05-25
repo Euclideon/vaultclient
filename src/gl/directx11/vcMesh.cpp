@@ -61,7 +61,7 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
   // Create vertex buffer
   UD_ERROR_CHECK(vcMeshInternal_RecreateBuffer(&pMesh->pVBO, pMesh->drawType, D3D11_BIND_VERTEX_BUFFER, pMesh->vertexSize, currentVerts, (void*)pVerts));
 
-  if ((flags & vcMF_NoIndexBuffer) == 0)
+  if (currentIndices > 0 && ((flags & vcMF_NoIndexBuffer) == 0))
   {
     pMesh->indexBytes = (flags & vcMF_IndexShort) ? sizeof(short) : sizeof(int);
 
@@ -73,7 +73,7 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
   pMesh->maxVertexCount = currentVerts;
   pMesh->indexCount = currentIndices;
   pMesh->maxIndexCount = currentIndices;
-  vcGLState_GPUDidWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
+  vcGLState_ReportGPUWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
 
   *ppMesh = pMesh;
   result = udR_Success;
@@ -149,7 +149,7 @@ udResult vcMesh_UploadData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, in
     pMesh->indexCount = totalIndices;
   }
 
-  vcGLState_GPUDidWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
+  vcGLState_ReportGPUWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
   result = udR_Success;
 
 epilogue:
@@ -162,7 +162,7 @@ bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t start
     return false;
 
   if (elementCount == 0)
-    elementCount = (pMesh->indexCount / 3);
+    elementCount = (pMesh->indexCount ? pMesh->indexCount : pMesh->vertexCount) / 3;
 
   unsigned int stride = pMesh->vertexSize;
   unsigned int offset = 0;
@@ -195,6 +195,6 @@ bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t start
   else
     g_pd3dDeviceContext->DrawIndexed(elementCount * elementsPerPrimitive, startElement * elementsPerPrimitive, 0);
 
-  vcGLState_GPUDidWork(1, elementCount - startElement, 0);
+  vcGLState_ReportGPUWork(1, elementCount - startElement, 0);
   return true;
 }

@@ -51,6 +51,10 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 
+// TEMP
+#include "vcSceneLayerRenderer.h"
+udChunkedArray<vcSceneLayerRenderer*> pSceneRenderers;
+
 #if UDPLATFORM_EMSCRIPTEN
 #include "vHTTPRequest.h"
 #endif
@@ -95,7 +99,7 @@ int SDL_main(int argc, char **args)
     printf("%s\n", "Memory leaks in VDK found");
 
     // You've hit this because you've introduced a memory leak!
-    // If you need help, define __MEMORY_DEBUG__ in the premake5.lua just before:
+    // If you need help, defines {"__MEMORY_DEBUG__"} in the premake5.lua just before:
     // if _OPTIONS["force-vaultsdk"] then
     // This will emit filenames of what is leaking to assist in tracking down what's leaking.
     // Additionally, you can set _CrtSetBreakAlloc(<allocationNumber>);
@@ -113,7 +117,7 @@ int SDL_main(int argc, char **args)
     printf("%s\n", "Memory leaks found");
 
     // You've hit this because you've introduced a memory leak!
-    // If you need help, define __MEMORY_DEBUG__ in the premake5.lua just before:
+    // If you need help, defines {"__MEMORY_DEBUG__"} in the premake5.lua just before:
     // if _OPTIONS["force-vaultsdk"] then
     // This will emit filenames of what is leaking to assist in tracking down what's leaking.
     // Additionally, you can set _CrtSetBreakAlloc(<allocationNumber>);
@@ -654,6 +658,35 @@ void vcMain_MainLoop(vcState *pProgramState)
               else
                 pPOI->m_metadata.Set("imagetype = 'standard'");
             }
+            else if (udStrEquali(pExt, ".slpk"))
+            {
+              // NOTE: this block is a duplicate of image handling above
+              // Use as convert job if convert window is open, focused tab if docked and under the mouse position
+              bool didConvert = false;
+              if (pProgramState->settings.window.windowsOpen[vcDocks_Convert])
+              {
+                ImGuiWindow *pConvert = ImGui::FindWindowByName("###convertDock");
+                if (pConvert != nullptr && ((pConvert->DockNode != nullptr && pConvert->DockTabIsVisible) || (pConvert->DockNode == nullptr && !pConvert->Collapsed)))
+                {
+                  int x, y;
+                  SDL_GetMouseState(&x, &y); // ImGui mouse pos is -FLT_MAX during drag/drop operation
+                  if (x > pConvert->Pos.x && x < pConvert->Pos.x + pConvert->Size.x && y > pConvert->Pos.y && y < pConvert->Pos.y + pConvert->Size.y)
+                  {
+                    vcConvert_AddFile(pProgramState, pNextLoad);
+                    didConvert = true;
+                    udFree(pNextLoad); // TODO: This shouldn't be freed here? It isn't freed above (ln:493).
+                    continue;
+                  }
+                }
+              }
+
+              if (!didConvert)
+              {
+                // Make it a renderer
+                // TODO: I'm guessing add it as a scene item `vcScene_AddItem(pProgramState, pPOI)`
+                vcSceneLayerRenderer_Create(pSceneRenderers.PushBack(), pProgramState->pWorkerPool, pNextLoad);
+              }
+            }
             else
             {
               vcConvert_AddFile(pProgramState, pNextLoad);
@@ -896,6 +929,8 @@ int main(int argc, char **args)
   if (vcRender_Init(&(programState.pRenderContext), &(programState.settings), programState.pCamera, programState.sceneResolution) != udR_Success)
     goto epilogue;
 
+  pSceneRenderers.Init(32);
+
   // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
   // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
   vcFramebuffer_Bind(programState.pDefaultFramebuffer);
@@ -974,6 +1009,11 @@ epilogue:
 #endif
   ImGui::DestroyContext();
 
+  // TEMP
+  for (size_t i = 0; i < pSceneRenderers.length; ++i)
+    vcSceneLayerRenderer_Destroy(&pSceneRenderers[i]);
+  pSceneRenderers.Deinit();
+
   vcConvert_Deinit(&programState);
   vcCamera_Destroy(&programState.pCamera);
   vcTexture_Destroy(&programState.pCompanyLogo);
@@ -992,6 +1032,7 @@ epilogue:
   vcTexture_Destroy(&programState.image.pImage);
 
   vcGLState_Deinit();
+  udThread_DestroyCached();
 
 #if UDPLATFORM_EMSCRIPTEN
   vHTTPRequest_ShutdownWorkerThread();
@@ -1230,8 +1271,12 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.waterVolumes.Init(32);
   renderData.polyModels.Init(64);
   renderData.images.Init(32);
+  renderData.sceneLayers.Init(32);
   renderData.mouse.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.y = (uint32_t)(io.MousePos.y - windowPos.y);
+
+  for (size_t i = 0; i < pSceneRenderers.length; ++i)
+    renderData.sceneLayers.PushBack(pSceneRenderers[i]);
 
   udDouble3 cameraMoveOffset = udDouble3::zero();
 
@@ -1446,6 +1491,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.waterVolumes.Deinit();
   renderData.polyModels.Deinit();
   renderData.images.Deinit();
+  renderData.sceneLayers.Deinit();
 
   pProgramState->previousWorldMousePos = renderData.worldMousePos;
   pProgramState->previousPickingSuccess = renderData.pickingSuccess;

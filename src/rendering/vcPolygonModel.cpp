@@ -99,6 +99,9 @@ vcPolygonModelShaderType vcPolygonModel_GetShaderType(const vcVertexLayoutTypes 
   if (totalTypes == 3 && (pMeshLayout[0] == vcVLT_Position3 && pMeshLayout[1] == vcVLT_Normal3 && pMeshLayout[2] == vcVLT_TextureCoords2))
     return vcPMST_P1N1UV1;
 
+  if (totalTypes == 4 && (pMeshLayout[0] == vcVLT_Position3 && pMeshLayout[1] == vcVLT_Normal3 && pMeshLayout[2] == vcVLT_TextureCoords2) && pMeshLayout[3] == vcVLT_ColourBGRA)
+    return vcPMST_P1N1UV1; // TODO: (EVC-540) Re-use for now, ignoring colour attribute
+
   return vcPMST_Count;
 }
 
@@ -133,7 +136,7 @@ udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel,
   if (pPolygonModel->pMeshes[0].materialID == vcPMST_Count)
     UD_ERROR_SET(udR_Unsupported);
 
-  UD_ERROR_CHECK(vcMesh_Create(&pPolygonModel->pMeshes[0].pMesh, pMeshLayout, totalTypes, pVerts, pPolygonModel->pMeshes[0].numVertices, nullptr, pPolygonModel->pMeshes[0].numVertices, vcMF_NoIndexBuffer));
+  UD_ERROR_CHECK(vcMesh_Create(&pPolygonModel->pMeshes[0].pMesh, pMeshLayout, totalTypes, pVerts, pPolygonModel->pMeshes[0].numVertices, nullptr, 0, vcMF_NoIndexBuffer));
 
   *ppPolygonModel = pPolygonModel;
 
@@ -197,6 +200,13 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
 
     vcPolygonModelVertex *pVerts = (vcPolygonModelVertex*)pFilePos;
     pFilePos += sizeof(*pVerts) * pNewModel->pMeshes[i].numVertices;
+
+    // TODO: Assume these all need flipping
+    for (uint16_t v = 0; v < pNewModel->pMeshes[i].numVertices; ++v)
+    {
+      vcPolygonModelVertex *pVert = &pVerts[v];
+      pVert->uv.y = 1.0f - pVert->uv.y;
+    }
 
     uint16_t *pIndices = (uint16_t*)pFilePos;
     pFilePos += sizeof(*pIndices) * pNewModel->pMeshes[i].numElements;
