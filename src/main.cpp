@@ -139,6 +139,28 @@ struct vcColumnHeader
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
+void vcMain_LangCombo(vcState *pProgramState)
+{
+  if (!ImGui::BeginCombo("##langCode", pProgramState->languageInfo.pLocalName))
+    return;
+
+  for (size_t i = 0; i < pProgramState->settings.languageOptions.length; ++i)
+  {
+    const char *pName = pProgramState->settings.languageOptions[i].languageName;
+    const char *pFilename = pProgramState->settings.languageOptions[i].filename;
+
+    if (ImGui::Selectable(pName))
+    {
+      if (vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", pFilename), &pProgramState->languageInfo) == udR_Success)
+        udStrcpy(pProgramState->settings.window.languageCode, pFilename);
+      else
+        vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", pProgramState->settings.window.languageCode), &pProgramState->languageInfo);
+    }
+  }
+
+  ImGui::EndCombo();
+}
+
 void vcMain_UpdateSessionInfo(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
@@ -718,8 +740,9 @@ int main(int argc, char **args)
   // Icon parameters
   SDL_Surface *pIcon = nullptr;
   int iconWidth, iconHeight, iconBytesPerPixel;
+  void *pFileData = nullptr;
+  int64_t fileLen = 0;
   unsigned char *pIconData = nullptr;
-  unsigned char *pEucWatermarkData = nullptr;
   int pitch;
   long rMask, gMask, bMask, aMask;
 
@@ -828,22 +851,30 @@ int main(int argc, char **args)
   if (!programState.pWindow)
     goto epilogue;
 
-  pIconData = stbi_load(vcSettings_GetAssetPath("assets/icons/EuclideonClientIcon.png"), &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
+  if (udFile_Load("asset://assets/icons/EuclideonClientIcon.png", &pFileData, &fileLen) == udR_Success)
+  {
+    pIconData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
 
-  pitch = iconWidth * iconBytesPerPixel;
-  pitch = (pitch + 3) & ~3;
+    if (pIconData != nullptr)
+    {
+      pitch = iconWidth * iconBytesPerPixel;
+      pitch = (pitch + 3) & ~3;
 
-  rMask = 0xFF << 0;
-  gMask = 0xFF << 8;
-  bMask = 0xFF << 16;
-  aMask = (iconBytesPerPixel == 4) ? (0xFF << 24) : 0;
+      rMask = 0xFF << 0;
+      gMask = 0xFF << 8;
+      bMask = 0xFF << 16;
+      aMask = (iconBytesPerPixel == 4) ? (0xFF << 24) : 0;
 
-  if (pIconData != nullptr)
-    pIcon = SDL_CreateRGBSurfaceFrom(pIconData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
-  if (pIcon != nullptr)
-    SDL_SetWindowIcon(programState.pWindow, pIcon);
+      pIcon = SDL_CreateRGBSurfaceFrom(pIconData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
+      if (pIcon != nullptr)
+        SDL_SetWindowIcon(programState.pWindow, pIcon);
 
-  SDL_free(pIcon);
+      free(pIconData);
+    }
+
+    SDL_free(pIcon);
+    udFree(pFileData);
+  }
 
   ImGui::CreateContext();
   ImGui::GetStyle().WindowRounding = 0.0f;
@@ -872,7 +903,7 @@ int main(int argc, char **args)
   // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
   vcFramebuffer_Bind(programState.pDefaultFramebuffer);
 
-  if (udFile_Load(vcSettings_GetAssetPath("assets/fonts/NotoSansCJKjp-Regular.otf"), &pFontData, &fontDataLength) == udR_Success)
+  if (udFile_Load("asset://assets/fonts/NotoSansCJKjp-Regular.otf", &pFontData, &fontDataLength) == udR_Success)
   {
     const float FontSize = 16.f;
     ImFontConfig fontCfg = ImFontConfig();
@@ -934,12 +965,11 @@ int main(int argc, char **args)
   vcSettings_Save(&programState.settings);
 
 epilogue:
-  for (size_t i = 0; i < 256; ++i)
-    if (programState.settings.visualization.customClassificationColorLabels[i] != nullptr)
-      udFree(programState.settings.visualization.customClassificationColorLabels[i]);
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
   vdkProject_Release(&programState.sceneExplorer.pProject);
+
+  vcSettings_Cleanup(&programState.settings);
 
 #ifdef GRAPHICS_API_METAL
   ImGui_ImplMetal_Shutdown();
@@ -958,8 +988,6 @@ epilogue:
   vcTexture_Destroy(&programState.pCompanyLogo);
   vcTexture_Destroy(&programState.pBuildingsTexture);
   vcTexture_Destroy(&programState.pUITexture);
-  free(pIconData);
-  free(pEucWatermarkData);
   for (size_t i = 0; i < programState.loadList.size(); i++)
     udFree(programState.loadList[i]);
   vcRender_Destroy(&programState.pRenderContext);
@@ -1665,15 +1693,9 @@ void vcRenderWindow(vcState *pProgramState)
       if (ImGui::Button(vcString::Get("loginAbout")))
         vcModals_OpenModal(pProgramState, vcMT_About);
 
-      // TODO: Add More Languages to this (preferably dynamically- remember to factor in packaging on non-windows platforms)
-      const char *langs[] = { "enAU", "zhCN" };
       ImGui::SameLine();
-      int lang = udStrEqual(pProgramState->settings.window.languageCode, langs[0]) ? 0 : 1;
-      if (ImGui::Combo("##langCode", &lang, langs, (int)udLengthOf(langs)))
-      {
-        udStrcpy(pProgramState->settings.window.languageCode, udLengthOf(pProgramState->settings.window.languageCode), langs[lang]);
-        vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", langs[lang]), &pProgramState->languageInfo);
-      }
+
+      vcMain_LangCombo(pProgramState);
 
       // Let the user change the look and feel on the login page
       const char *themeOptions[] = { vcString::Get("settingsAppearanceDark"), vcString::Get("settingsAppearanceLight") };
@@ -1883,6 +1905,20 @@ void vcRenderWindow(vcState *pProgramState)
             //TODO: Decide what to do with other errors
             if (vcProxyHelper_TestProxy(pProgramState) == vE_ProxyAuthRequired)
               vcModals_OpenModal(pProgramState, vcMT_ProxyAuth);
+          }
+
+          if (ImGui::InputText(vcString::Get("loginUserAgent"), pProgramState->settings.loginInfo.userAgent, vcMaxPathLength))
+            vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
+
+          // TODO: Consider reading user agent strings from a file
+          const char *UAOptions[] = { "Mozilla" };
+          const char *UAStrings[] = { "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:53.0) Gecko/20100101 Firefox/53.0" };
+
+          int UAIndex = -1;
+          if (ImGui::Combo(udTempStr("%s###loginUserAgentPresets", vcString::Get("loginSelectUserAgent")), &UAIndex, UAOptions, (int)udLengthOf(UAOptions)))
+          {
+            udStrcpy(pProgramState->settings.loginInfo.userAgent, vcMaxPathLength, UAStrings[UAIndex]);
+            vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
           }
 
           if (ImGui::Checkbox(vcString::Get("loginIgnoreCert"), &pProgramState->settings.loginInfo.ignoreCertificateVerification))
