@@ -28,7 +28,7 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
   glBindBuffer(GL_ARRAY_BUFFER, pMesh->vbo);
   glBufferData(GL_ARRAY_BUFFER, pMesh->vertexSize * currentVerts, pVerts, pMesh->drawType);
 
-  if ((flags & vcMF_NoIndexBuffer) == 0)
+  if (currentIndices > 0 && ((flags & vcMF_NoIndexBuffer) == 0))
   {
     if (flags & vcMF_IndexShort)
     {
@@ -86,7 +86,7 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
 
   pMesh->vertexCount = currentVerts;
   pMesh->indexCount = currentIndices;
-  vcGLState_GPUDidWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
+  vcGLState_ReportGPUWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
 
 epilogue:
   glBindVertexArray(0);
@@ -138,7 +138,7 @@ udResult vcMesh_UploadData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, in
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, pMesh->indexBytes * totalIndices, pIndices, pMesh->drawType);
   }
 
-  vcGLState_GPUDidWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
+  vcGLState_ReportGPUWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
   return result;
 }
 
@@ -148,7 +148,7 @@ bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t start
     return false;
 
   if (elementCount == 0)
-    elementCount = (pMesh->indexCount / 3);
+    elementCount = (pMesh->indexCount ? pMesh->indexCount : pMesh->vertexCount) / 3;
 
   glBindVertexArray(pMesh->vao);
   glBindBuffer(GL_ARRAY_BUFFER, pMesh->vbo);
@@ -169,15 +169,15 @@ bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t start
     break;
   }
 
-  if (pMesh->indexType != GL_NONE)
-    glDrawElements(glRenderMode, elementCount * elementsPerPrimitive, pMesh->indexType, (void*)(size_t)(startElement * elementsPerPrimitive * pMesh->indexBytes));
-  else
+  if (pMesh->indexCount == 0)
     glDrawArrays(glRenderMode, startElement * elementsPerPrimitive, elementCount * elementsPerPrimitive);
+  else
+    glDrawElements(glRenderMode, elementCount * elementsPerPrimitive, pMesh->indexType, (void*)(size_t)(startElement * elementsPerPrimitive * pMesh->indexBytes));
 
   VERIFY_GL();
 
   glBindVertexArray(0);
 
-  vcGLState_GPUDidWork(1, elementCount - startElement, 0);
+  vcGLState_ReportGPUWork(1, elementCount - startElement, 0);
   return true;
 }

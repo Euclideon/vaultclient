@@ -10,7 +10,7 @@
 #include "vcCompass.h"
 
 #include "vcInternalModels.h"
-#include "vcGIS.h"
+#include "vcSceneLayerRenderer.h"
 
 #include "stb_image.h"
 #include <vector>
@@ -418,25 +418,28 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
   }
 }
 
-void vcRenderOpaquePolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
+void vcRenderOpaqueGeometry(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   vcGLState_ResetState();
 
   // Polygon Models
   {
     vcGLState_SetBlendMode(vcGLSBM_None);
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
     vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
-    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
       vcPolygonModel_Render(renderData.polyModels[i].pModel, renderData.polyModels[i].worldMat, pRenderContext->pCamera->matrices.viewProjection);
+
+    for (size_t i = 0; i < renderData.sceneLayers.length; ++i)
+      vcSceneLayerRenderer_Render(renderData.sceneLayers[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
 
     for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
       vcWaterRenderer_Render(renderData.waterVolumes[i], pRenderContext->pCamera->matrices.view, pRenderContext->pCamera->matrices.viewProjection, pRenderContext->pSkyboxTexture, renderData.deltaTime);
   }
 }
 
-void vcRenderTransparentPolygons(vcRenderContext *pRenderContext, vcRenderData &renderData)
+void vcRenderTransparentGeometry(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
@@ -493,9 +496,9 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
 
   vcPresentUD(pRenderContext);
   vcRenderSkybox(pRenderContext);
-  vcRenderOpaquePolygons(pRenderContext, renderData);
+  vcRenderOpaqueGeometry(pRenderContext, renderData);
   vcRenderTerrain(pRenderContext, renderData);
-  vcRenderTransparentPolygons(pRenderContext, renderData);
+  vcRenderTransparentGeometry(pRenderContext, renderData);
 
   if (pRenderContext->pSettings->presentation.mouseAnchor != vcAS_None && (renderData.pickingSuccess || (renderData.pWorldAnchorPos != nullptr)))
   {
