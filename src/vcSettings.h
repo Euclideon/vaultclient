@@ -1,12 +1,16 @@
-#include "SDL2/SDL.h"
-#include "udPlatform.h"
-#include "udMath.h"
-#include "vcCamera.h"
-#include "imgui.h"
-#include "imgui_internal.h"
-
 #ifndef vcSettings_h__
 #define vcSettings_h__
+
+#include "SDL2/SDL.h"
+
+#include "udPlatform.h"
+#include "udMath.h"
+#include "udChunkedArray.h"
+
+#include "vcCamera.h"
+
+#include "imgui.h"
+#include "imgui_internal.h"
 
 enum vcMapTileBlendMode
 {
@@ -65,6 +69,7 @@ enum vcSettingCategory
   vcSC_MapsElevation,
   vcSC_Visualization,
   vcSC_Docks,
+  vcSC_Languages,
   vcSC_All
 };
 
@@ -80,8 +85,14 @@ enum vcTileRendererMapQuality
 enum vcTileRendererFlags
 {
   vcTRF_None = 0,
-
   vcTRF_OnlyRequestVisibleTiles = 0x1,
+};
+
+struct vcLanguageOption
+{
+  // Arbitrary limits
+  char languageName[32];
+  char filename[16];
 };
 
 struct vcSettings
@@ -121,8 +132,7 @@ struct vcSettings
 
     bool windowsOpen[vcDocks_Count];
 
-    char languageCode[5]; //4 + nullterminator
-
+    char languageCode[16];
   } window;
 
   struct
@@ -137,6 +147,7 @@ struct vcSettings
     char proxyTestURL[vcMaxPathLength];
     bool autoDetectProxy;
     char autoDetectProxyURL[vcMaxPathLength];
+    char userAgent[vcMaxPathLength];
     bool ignoreCertificateVerification;
   } loginInfo;
 
@@ -207,6 +218,8 @@ struct vcSettings
     bool mouseInteracts;
   } maptiles;
 
+  udChunkedArray<vcLanguageOption> languageOptions;
+
   vcPresentationMode responsiveUI;
   int hideIntervalSeconds;
 
@@ -263,10 +276,15 @@ const float vcSL_ContourBandHeightMax = 1000.f;
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset = false, vcSettingCategory group = vcSC_All);
 bool vcSettings_Save(vcSettings *pSettings);
 
+void vcSettings_Cleanup(vcSettings *pSettings);
+
 // Uses udTempStr internally.
 const char *vcSettings_GetAssetPath(const char *pFilename);
 
 // Provides a handler for "asset://" files
 udResult vcSettings_RegisterAssetFileHandler();
+
+// Various settings helpers
+udResult vcSettings_UpdateLanguageOptions(vcSettings *pSettings);
 
 #endif // !vcSettings_h__
