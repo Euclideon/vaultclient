@@ -27,6 +27,7 @@ enum vcCameraScrollWheelMode
 struct vcCamera
 {
   udDouble3 position;
+  udDouble3 positionInLongLat;
   udDouble3 eulerRotation;
 
   udRay<double> worldMouseRay;

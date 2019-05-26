@@ -29,7 +29,7 @@ struct vcLineInfo
 
 class vcPOI : public vcSceneItem
 {
-public:
+private:
   vcLineInfo m_line;
   uint32_t m_nameColour;
   uint32_t m_backColour;
@@ -48,8 +48,8 @@ public:
   vcFenceRenderer *m_pFence;
   vcLabelInfo *m_pLabelInfo;
   const char *m_pLabelText;
-  vcImageRenderInfo *m_pImage;
 
+public:
   vcPOI(vdkProjectNode *pNode);
   ~vcPOI() {};
 

@@ -41,6 +41,7 @@
 
 #include "vcPOI.h"
 #include "vcLiveFeed.h"
+#include "vcMedia.h"
 
 #include "vCore/vStringFormat.h"
 
@@ -500,7 +501,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
             udFilename loadFile(pNextLoad);
             const char *pExt = loadFile.GetExt();
-            if (udStrEquali(pExt, ".uds") || udStrEquali(pExt, ".ssf") || udStrEquali(pExt, ".udm") || udStrEquali(pExt, ".udg"))
+            if (udStrEquali(pExt, ".uds") || udStrEquali(pExt, ".ssf") || udStrEquali(pExt, ".udg"))
             {
               if (convertDrop)
               {
@@ -546,128 +547,86 @@ void vcMain_MainLoop(vcState *pProgramState)
             }
             else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif"))
             {
-              // Use as convert watermark if convert is dropped on
+              // Use as convert watermark for conversions
               if (convertDrop)
               {
                 vcConvert_AddFile(pProgramState, pNextLoad);
               }
               else
               {
-                udDouble3 geolocation = udDouble3::zero();
-                bool hasLocation = false;
-                vcImageType imageType = vcIT_StandardPhoto;
-
-                vcTexture *pImage = nullptr;
-                const unsigned char *pFileData = nullptr;
-                int64_t numBytes = 0;
-
-                if (udFile_Load(pNextLoad, (void**)&pFileData, &numBytes) == udR_Success)
+                const vcSceneItemRef &clicked = pProgramState->sceneExplorer.clickedItem;
+                if (clicked.pParent != nullptr && clicked.pItem->itemtype == vdkPNT_Media)
                 {
-                  // Many jpg's have exif, let's process that first
-                  if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg"))
+                  vdkProjectNode_SetMetadataString(clicked.pItem, "imageurl", pNextLoad);
+                }
+                else
+                {
+                  udDouble3 geolocation = udDouble3::zero();
+                  bool hasLocation = false;
+                  vcImageType imageType = vcIT_StandardPhoto;
+
+//                  vcTexture *pImage = nullptr;
+                  const unsigned char *pFileData = nullptr;
+                  int64_t numBytes = 0;
+
+                  if (udFile_Load(pNextLoad, (void**)&pFileData, &numBytes) == udR_Success)
                   {
-                    easyexif::EXIFInfo result;
-
-                    if (result.parseFrom(pFileData, (int)numBytes) == PARSE_EXIF_SUCCESS)
+                    // Many jpg's have exif, let's process that first
+                    if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg"))
                     {
-                      if (result.GeoLocation.Latitude != 0.0 || result.GeoLocation.Longitude != 0.0)
-                      {
-                        hasLocation = true;
-                        geolocation.x = result.GeoLocation.Latitude;
-                        geolocation.y = result.GeoLocation.Longitude;
-                        geolocation.z = result.GeoLocation.Altitude;
-                      }
+                      easyexif::EXIFInfo result;
 
-                      if (result.XMPMetadata != "")
+                      if (result.parseFrom(pFileData, (int)numBytes) == PARSE_EXIF_SUCCESS)
                       {
-                        udJSON xmp;
-                        if (xmp.Parse(result.XMPMetadata.c_str()) == udR_Success)
+                        if (result.GeoLocation.Latitude != 0.0 || result.GeoLocation.Longitude != 0.0)
                         {
-                          bool isPanorama = xmp.Get("x:xmpmeta.rdf:RDF.rdf:Description.xmlns:GPano").IsString();
-                          bool isPhotosphere = xmp.Get("x:xmpmeta.rdf:RDF.rdf:Description.GPano:IsPhotosphere").AsBool();
+                          hasLocation = true;
+                          geolocation.x = result.GeoLocation.Longitude;
+                          geolocation.y = result.GeoLocation.Latitude;
+                          geolocation.z = result.GeoLocation.Altitude;
+                        }
 
-                          if (isPanorama && isPhotosphere)
-                            imageType = vcIT_PhotoSphere;
-                          else if (isPanorama)
-                            imageType = vcIT_Panorama;
+                        if (result.XMPMetadata != "")
+                        {
+                          udJSON xmp;
+                          if (xmp.Parse(result.XMPMetadata.c_str()) == udR_Success)
+                          {
+                            bool isPanorama = xmp.Get("x:xmpmeta.rdf:RDF.rdf:Description.xmlns:GPano").IsString();
+                            bool isPhotosphere = xmp.Get("x:xmpmeta.rdf:RDF.rdf:Description.GPano:IsPhotosphere").AsBool();
+
+                            if (isPanorama && isPhotosphere)
+                              imageType = vcIT_PhotoSphere;
+                            else if (isPanorama)
+                              imageType = vcIT_Panorama;
+                          }
                         }
                       }
                     }
+
+                    udFree(pFileData);
                   }
 
-                  // TODO: (EVC-513) Generate a thumbnail
-                  {
-                    int width, height;
-                    int comp;
-                    stbi_uc *pImgPixels = stbi_load_from_memory((stbi_uc*)pFileData, (int)numBytes, &width, &height, &comp, 4);
-                    if (!pImgPixels)
-                    {
-                      // TODO: (EVC-517) Image failed to load, display error image
-                    }
-
-                    // TODO: (EVC-515) Mip maps are broken in directX
-                    vcTexture_Create(&pImage, width, height, pImgPixels, vcTextureFormat_RGBA8, vcTFM_Linear, false);
-
-                    stbi_image_free(pImgPixels);
-                  }
-
-                  udFree(pFileData);
-                }
-                else
-                {
-                  // TODO: (EVC-517) File failed to load, display error image
-                }
-
-                const vcSceneItemRef &clicked = pProgramState->sceneExplorer.clickedItem;
-                vcSceneItem *pPOI = nullptr;
-                if (clicked.pParent != nullptr && clicked.pItem->itemtype == vdkPNT_PointOfInterest && clicked.pItem->pUserData)
-                  pPOI = (vcPOI*)clicked.pItem->pUserData;
-
-                if (pPOI == nullptr)
-                {
-                  udDouble3 currentLocation;
-
-                  if (hasLocation && pProgramState->gis.isProjected)
-                    currentLocation = udGeoZone_ToCartesian(pProgramState->gis.zone, geolocation);
-                  else if (pProgramState->worldMousePos != udDouble3::zero())
-                    currentLocation = pProgramState->worldMousePos;
-                  else
-                    currentLocation = pProgramState->pCamera->position;
 
                   vdkProjectNode *pNode = nullptr;
-                  if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", loadFile.GetFilenameWithExt(), nullptr, nullptr) == vE_Success)
+                  if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "Media", loadFile.GetFilenameWithExt(), nullptr, nullptr) == vE_Success)
                   {
-                    //TODO: Factor in GIS
-                    vdkProjectNode_SetMetadataString(pNode, "fontsize", "medium");
-                    vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &currentLocation.x);
+
+                    if (hasLocation && pProgramState->gis.isProjected)
+                      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &geolocation.x);
+                    else if (pProgramState->worldMousePos != udDouble3::zero())
+                      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &pProgramState->worldMousePosLongLat.x);
+                    //else
+                    //  currentLocation = pProgramState->pCamera->position;
+
+                    vdkProjectNode_SetMetadataString(pNode, "imageurl", pNextLoad);
+                    if (imageType == vcIT_PhotoSphere)
+                      vdkProjectNode_SetMetadataString(pNode, "imagetype", "photosphere");
+                    else if (imageType == vcIT_Panorama)
+                      vdkProjectNode_SetMetadataString(pNode, "imagetype", "panorama");
+                    else
+                      vdkProjectNode_SetMetadataString(pNode, "imagetype", "standard");
                   }
                 }
-
-                // TODO: Using POIs to store media points is a temporary solution
-                vcPOI *pRealPOI = (vcPOI*)pPOI;
-                if (pRealPOI->m_pImage)
-                {
-                  vcTexture_Destroy(&pRealPOI->m_pImage->pTexture);
-                  udFree(pRealPOI->m_pImage);
-                }
-                pRealPOI->m_pImage = udAllocType(vcImageRenderInfo, 1, udAF_Zero);
-                pRealPOI->m_pImage->ypr = udDouble3::zero();
-                pRealPOI->m_pImage->scale = udDouble3::one();
-                pRealPOI->m_pImage->pTexture = pImage;
-                pRealPOI->m_pImage->colour = udFloat4::create(1.0f, 1.0f, 1.0f, 1.0f);
-                pRealPOI->m_pImage->size = vcIS_Large;
-                pRealPOI->m_pImage->type = imageType;
-
-                udJSON tmp;
-                tmp.SetString(pNextLoad);
-                pPOI->m_metadata.Set(&tmp, "imageurl");
-
-                if (imageType == vcIT_PhotoSphere)
-                  pPOI->m_metadata.Set("imagetype = 'photosphere'");
-                else if (imageType == vcIT_Panorama)
-                  pPOI->m_metadata.Set("imagetype = 'panorama'");
-                else
-                  pPOI->m_metadata.Set("imagetype = 'standard'");
               }
             }
             else if (udStrEquali(pExt, ".slpk"))
@@ -679,7 +638,8 @@ void vcMain_MainLoop(vcState *pProgramState)
             }
             else
             {
-              vcConvert_AddFile(pProgramState, pNextLoad);
+              if (vcConvert_AddFile(pProgramState, pNextLoad))
+                pProgramState->changeActiveDock = vcDocks_Convert;
             }
           }
 
@@ -1054,10 +1014,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
             ImGui::Text("%s: %.2f, %.2f, %.2f", vcString::Get("sceneMousePointInfo"), pProgramState->worldMousePos.x, pProgramState->worldMousePos.y, pProgramState->worldMousePos.z);
 
             if (pProgramState->gis.isProjected)
-            {
-              udDouble3 mousePointInLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->worldMousePos);
-              ImGui::Text("%s: %.6f, %.6f", vcString::Get("sceneMousePointWGS"), mousePointInLatLong.x, mousePointInLatLong.y);
-            }
+              ImGui::Text("%s: %.6f, %.6f", vcString::Get("sceneMousePointWGS"), pProgramState->worldMousePosLongLat.y, pProgramState->worldMousePosLongLat.x);
           }
         }
       }
@@ -1473,6 +1430,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.images.Deinit();
   renderData.sceneLayers.Deinit();
 
+  pProgramState->worldMousePosLongLat = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->worldMousePos, true);
   pProgramState->previousWorldMousePos = renderData.worldMousePos;
   pProgramState->previousPickingSuccess = renderData.pickingSuccess;
   pProgramState->pSceneWatermark = renderData.pWatermarkTexture;

@@ -15,6 +15,7 @@
 // Other includes for creating nodes
 #include "vcModel.h"
 #include "vcPOI.h"
+#include "vcMedia.h"
 #include "vcLiveFeed.h"
 #include "vcUnsupportedNode.h"
 #include "vcI3S.h"
@@ -54,8 +55,12 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pNode->pUserData = new vcModel(pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_LiveFeed)
         pNode->pUserData = new vcLiveFeed(pNode);
+      else if (pNode->itemtype == vdkPNT_Media)
+        pNode->pUserData = new vcMedia(pNode);
       else if (udStrEqual(pNode->itemtypeStr, "I3S"))
         pNode->pUserData = new vcI3S(pNode, pProgramState);
+      else if (udStrEqual(pNode->itemtypeStr, "Water"))
+        pNode->pUserData = new vcWater(pNode);
       else
         pNode->pUserData = new vcUnsupportedNode(pNode); // Catch all
     }

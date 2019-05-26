@@ -16,7 +16,6 @@
 vcPOI::vcPOI(vdkProjectNode *pNode) :
   vcSceneItem(pNode)
 {
-  m_pImage = nullptr;
   m_nameColour = 0xFFFFFFFF;
   m_backColour = 0x7F000000;
   m_namePt = vcLFS_Medium;
@@ -79,21 +78,6 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
     pRenderData->labels.PushBack(m_pLabelInfo);
   }
-
-  if (m_pImage != nullptr)
-  {
-    m_pImage->position = m_pLabelInfo->worldPosition;
-
-    // For now brute force sorting (n^2)
-    double distToCameraSqr = udMagSq3(m_pImage->position - pRenderData->pCamera->position);
-    size_t i = 0;
-    for (; i < pRenderData->images.length; ++i)
-    {
-      if (udMagSq3(pRenderData->images[i]->position - pRenderData->pCamera->position) < distToCameraSqr)
-        break;
-    }
-    pRenderData->images.Insert(i, &m_pImage);
-  }
 }
 
 void vcPOI::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
@@ -110,18 +94,6 @@ void vcPOI::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
   }
 
   UpdatePoints();
-
-  if (m_pImage != nullptr)
-  {
-    udDouble4x4 resultMatrix = delta * udDouble4x4::rotationYPR(m_pImage->ypr) * udDouble4x4::scaleNonUniform(m_pImage->scale);
-    udDouble3 position, scale;
-    udQuaternion<double> rotation;
-    udExtractTransform(resultMatrix, position, scale, rotation);
-
-    udUnused(position);
-    m_pImage->ypr = udMath_DirToYPR(rotation.apply(udDouble3::create(0, 1, 0)));
-    m_pImage->scale = scale;
-  }
 }
 
 void vcPOI::UpdatePoints()
@@ -280,20 +252,6 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
         pProgramState->pLoadImage = udStrdup(pHyperlink);
     }
   }
-
-  // Handle imageurl
-  const char *pImageURL = m_metadata.Get("imageurl").AsString();
-  if (pImageURL != nullptr)
-  {
-    ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageURL"), pImageURL);
-    if (ImGui::Button(vcString::Get("scenePOILabelOpenImageURL")))
-    {
-      pProgramState->pLoadImage = udStrdup(pImageURL);
-    }
-
-    const char *imageTypeNames[] = { vcString::Get("scenePOILabelImageTypeStandard"), vcString::Get("scenePOILabelImageTypePanorama"), vcString::Get("scenePOILabelImageTypePhotosphere") };
-    ImGui::Combo(udTempStr("%s##scenePOILabelImageType%zu", vcString::Get("scenePOILabelImageType"), *pItemID), (int*)&m_pImage->type, imageTypeNames, (int)udLengthOf(imageTypeNames));
-  }
 }
 
 void vcPOI::AddPoint(const udDouble3 &position)
@@ -341,12 +299,6 @@ void vcPOI::Cleanup(vcState * /*pProgramState*/)
 
   vcFenceRenderer_Destroy(&m_pFence);
   udFree(m_pLabelInfo);
-
-  if (m_pImage)
-  {
-    vcTexture_Destroy(&m_pImage->pTexture);
-    udFree(m_pImage);
-  }
 }
 
 void vcPOI::SetCameraPosition(vcState *pProgramState)
