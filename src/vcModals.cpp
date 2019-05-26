@@ -485,6 +485,23 @@ void vcModals_DrawProjectReadOnly(vcState *pProgramState)
   }
 }
 
+void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_UnsupportedFile))
+    ImGui::OpenPopup(vcString::Get("sceneExplorerUnsupportedFilesTitle"));
+
+  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerUnsupportedFilesTitle"), nullptr, ImGuiWindowFlags_NoResize))
+  {
+    pProgramState->modalOpen = true;
+    ImGui::TextUnformatted(vcString::Get("sceneExplorerUnsupportedFilesMessage"));
+
+    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+      ImGui::CloseCurrentPopup();
+
+    ImGui::EndPopup();
+  }
+}
+
 void vcModals_DrawImageViewer(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_ImageViewer))
@@ -579,6 +596,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawProjectChangeFailed(pProgramState);
   vcModals_DrawProjectReadOnly(pProgramState);
   vcModals_DrawImageViewer(pProgramState);
+  vcModals_DrawUnsupportedFiles(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_NewVersionAvailable) | (1 << vcMT_LoggedOut) | (1 << vcMT_ProxyAuth));
 }

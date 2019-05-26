@@ -81,6 +81,7 @@ struct vcState
   vcTexture *pUITexture;
 
   udDouble3 worldMousePos;
+  udDouble3 worldMousePosLongLat;
   bool pickingSuccess;
   udDouble3 previousWorldMousePos;
   bool previousPickingSuccess;
