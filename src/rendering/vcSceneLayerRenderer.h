@@ -3,7 +3,11 @@
 
 #include "vcSceneLayer.h"
 
-struct vcSceneLayerRenderer;
+struct vcSceneLayerRenderer
+{
+  vcSceneLayer *pSceneLayer;
+  udDouble4 frustumPlanes[6];
+};
 
 udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL);
 udResult vcSceneLayerRenderer_Destroy(vcSceneLayerRenderer **ppSceneLayerRenderer);

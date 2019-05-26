@@ -9,9 +9,13 @@
 
 struct vcSceneLayer;
 struct vWorkerThreadPool;
+struct udGeoZone;
 
 // `vcSceneLayer_Create()` will load the root node
 udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL);
 udResult vcSceneLayer_Destroy(vcSceneLayer **ppSceneLayer);
+
+udGeoZone* vcSceneLayer_GetPreferredZone(vcSceneLayer *pSceneLayer);
+udDouble3 vcSceneLayer_GetCenter(vcSceneLayer *pSceneLayer);
 
 #endif//vcSceneLayer_h__
