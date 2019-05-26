@@ -17,6 +17,8 @@
 #include "vcPOI.h"
 #include "vcLiveFeed.h"
 #include "vcUnsupportedNode.h"
+#include "vcI3S.h"
+#include "vcWaterNode.h"
 
 vcFolder::vcFolder(vdkProjectNode *pNode) :
   vcSceneItem(pNode)
@@ -44,9 +46,11 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       else if (pNode->itemtype == vdkPNT_PointOfInterest)
         pNode->pUserData = new vcPOI(pNode);
       else if (pNode->itemtype == vdkPNT_PointCloud)
-        pNode->pUserData = new vcModel(pProgramState, pNode);
+        pNode->pUserData = new vcModel(pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_LiveFeed)
         pNode->pUserData = new vcLiveFeed(pNode);
+      else if (udStrEqual(pNode->itemtypeStr, "I3S"))
+        pNode->pUserData = new vcI3S(pNode, pProgramState);
       else
         pNode->pUserData = new vcUnsupportedNode(pNode); // Catch all
     }

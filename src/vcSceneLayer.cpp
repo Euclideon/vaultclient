@@ -729,3 +729,19 @@ vcSceneLayerVertex* vcSceneLayer_GetVertex(vcSceneLayerNode::GeometryData *pGeom
   // TODO: (EVC-540) ASSUMPTIONS! (assumed a specific vertex layout!)
   return (vcSceneLayerVertex*)&pGeometry->pData[index * pGeometry->vertexStride];
 }
+
+udGeoZone* vcSceneLayer_GetPreferredZone(vcSceneLayer *pSceneLayer)
+{
+  if (pSceneLayer == nullptr)
+    return nullptr;
+
+  return &pSceneLayer->root.zone;
+}
+
+udDouble3 vcSceneLayer_GetCenter(vcSceneLayer *pSceneLayer)
+{
+  if (pSceneLayer == nullptr)
+    return udDouble3::zero();
+
+  return pSceneLayer->root.minimumBoundingSphere.position;
+}

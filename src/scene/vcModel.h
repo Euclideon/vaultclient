@@ -22,7 +22,7 @@ public:
   bool m_hasWatermark; // True if the model has a watermark (might not be loaded)
   vcTexture *m_pWatermark; // If the watermark is loaded, it will be here
 
-  vcModel(vcState *pProgramState, vdkProjectNode *pNode);
+  vcModel(vdkProjectNode *pNode, vcState *pProgramState);
   vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud, bool jumpToModelOnLoad = false);
   ~vcModel() {};
 

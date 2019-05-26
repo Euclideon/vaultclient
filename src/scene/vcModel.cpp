@@ -143,7 +143,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
   }
 }
 
-vcModel::vcModel(vcState *pProgramState, vdkProjectNode *pNode) :
+vcModel::vcModel(vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pNode),
   m_pPointCloud(nullptr),
   m_pivot(udDouble3::zero()),

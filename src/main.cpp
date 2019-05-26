@@ -51,10 +51,6 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 
-// TEMP
-#include "vcSceneLayerRenderer.h"
-udChunkedArray<vcSceneLayerRenderer*> pSceneRenderers;
-
 #if UDPLATFORM_EMSCRIPTEN
 #include "vHTTPRequest.h"
 #endif
@@ -681,11 +677,7 @@ void vcMain_MainLoop(vcState *pProgramState)
               }
 
               if (!didConvert)
-              {
-                // Make it a renderer
-                // TODO: I'm guessing add it as a scene item `vcScene_AddItem(pProgramState, pPOI)`
-                vcSceneLayerRenderer_Create(pSceneRenderers.PushBack(), pProgramState->pWorkerPool, pNextLoad);
-              }
+                vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, nullptr, "I3S", loadFile.GetFilenameWithExt(), pNextLoad, nullptr);
             }
             else
             {
@@ -929,8 +921,6 @@ int main(int argc, char **args)
   if (vcRender_Init(&(programState.pRenderContext), &(programState.settings), programState.pCamera, programState.sceneResolution) != udR_Success)
     goto epilogue;
 
-  pSceneRenderers.Init(32);
-
   // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
   // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
   vcFramebuffer_Bind(programState.pDefaultFramebuffer);
@@ -1008,11 +998,6 @@ epilogue:
   ImGuiGL_DestroyDeviceObjects();
 #endif
   ImGui::DestroyContext();
-
-  // TEMP
-  for (size_t i = 0; i < pSceneRenderers.length; ++i)
-    vcSceneLayerRenderer_Destroy(&pSceneRenderers[i]);
-  pSceneRenderers.Deinit();
 
   vcConvert_Deinit(&programState);
   vcCamera_Destroy(&programState.pCamera);
@@ -1274,9 +1259,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.sceneLayers.Init(32);
   renderData.mouse.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.y = (uint32_t)(io.MousePos.y - windowPos.y);
-
-  for (size_t i = 0; i < pSceneRenderers.length; ++i)
-    renderData.sceneLayers.PushBack(pSceneRenderers[i]);
 
   udDouble3 cameraMoveOffset = udDouble3::zero();
 
