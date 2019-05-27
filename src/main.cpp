@@ -610,13 +610,12 @@ void vcMain_MainLoop(vcState *pProgramState)
                   vdkProjectNode *pNode = nullptr;
                   if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "Media", loadFile.GetFilenameWithExt(), nullptr, nullptr) == vE_Success)
                   {
-
                     if (hasLocation && pProgramState->gis.isProjected)
                       vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &geolocation.x);
                     else if (pProgramState->worldMousePos != udDouble3::zero())
                       vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &pProgramState->worldMousePosLongLat.x);
-                    //else
-                    //  currentLocation = pProgramState->pCamera->position;
+                    else
+                      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &pProgramState->pCamera->positionInLongLat.x);
 
                     vdkProjectNode_SetMetadataString(pNode, "imageurl", pNextLoad);
                     if (imageType == vcIT_PhotoSphere)
@@ -1257,13 +1256,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
     if (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext"))
     {
       static bool hadMouse = false;
-      static udDouble3 worldMouse;
 
       if (!wasOpenLastFrame || ImGui::IsMouseClicked(1))
-      {
         hadMouse = pProgramState->pickingSuccess;
-        worldMouse = pProgramState->worldMousePos;
-      }
 
       if (hadMouse)
       {
@@ -1275,7 +1270,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
             vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
 
             if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
-              pPOI->AddPoint(worldMouse);
+              pPOI->AddPoint(pProgramState->worldMousePos);
           }
         }
 
@@ -1285,10 +1280,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
           {
             vdkProjectNode *pNode = nullptr;
             if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOIDefaultName"), nullptr, nullptr) == vE_Success)
-            {
-              //TODO: Factor in GIS
-              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &worldMouse.x);
-            }
+              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &pProgramState->worldMousePosLongLat.x);
 
             ImGui::CloseCurrentPopup();
           }
@@ -1298,10 +1290,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
             vdkProjectNode *pNode = nullptr;
             if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
-            {
-              //TODO: Factor in GIS
-              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, 1, &worldMouse.x);
-            }
+              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, 1, &pProgramState->worldMousePosLongLat.x);
 
             //TODO: Select the new node somehow
 
@@ -1313,10 +1302,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
             vdkProjectNode *pNode = nullptr;
             if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr))
-            {
-              //TODO: Factor in GIS
-              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_LineString, 1, &worldMouse.x);
-            }
+              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_LineString, 1, &pProgramState->worldMousePosLongLat.x);
 
             //TODO: Select the new node somehow
 
@@ -1326,11 +1312,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
           ImGui::EndMenu();
         }
 
-        if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected && pProgramState->settings.maptiles.mapHeight != worldMouse.z)
+        if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected && pProgramState->settings.maptiles.mapHeight != pProgramState->worldMousePos.z)
         {
           if (ImGui::MenuItem(vcString::Get("sceneSetMapHeight")))
           {
-            pProgramState->settings.maptiles.mapHeight = (float)worldMouse.z;
+            pProgramState->settings.maptiles.mapHeight = (float)pProgramState->worldMousePos.z;
             ImGui::CloseCurrentPopup();
           }
         }
@@ -1340,7 +1326,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
           pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
           pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
           pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
-          pProgramState->cameraInput.worldAnchorPoint = worldMouse;
+          pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
           pProgramState->cameraInput.progress = 0.0;
         }
       }
@@ -1940,10 +1926,7 @@ void vcRenderWindow(vcState *pProgramState)
         {
           vdkProjectNode *pNode = nullptr;
           if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOIDefaultName"), nullptr, nullptr) == vE_Success)
-          {
-            //TODO: Factor in GIS
-            vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &pProgramState->pCamera->position.x);
-          }
+            vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &pProgramState->pCamera->positionInLongLat.x);
         }
 
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddAOI"), nullptr, vcMBBI_AddAreaOfInterest, vcMBBG_SameGroup))
@@ -1952,10 +1935,7 @@ void vcRenderWindow(vcState *pProgramState)
 
           vdkProjectNode *pNode = nullptr;
           if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
-          {
-            //TODO: Factor in GIS
-            vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, 1, &pProgramState->pCamera->position.x);
-          }
+            vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, 1, &pProgramState->pCamera->positionInLongLat.x);
         }
 
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddLine"), nullptr, vcMBBI_AddLines, vcMBBG_SameGroup))
@@ -1964,10 +1944,7 @@ void vcRenderWindow(vcState *pProgramState)
 
           vdkProjectNode *pNode = nullptr;
           if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == vE_Success)
-          {
-            //TODO: Factor in GIS
-            vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_LineString, 1, &pProgramState->pCamera->position.x);
-          }
+            vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_LineString, 1, &pProgramState->pCamera->positionInLongLat.x);
         }
 
         vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddOther"), nullptr, vcMBBI_AddOther, vcMBBG_SameGroup);
@@ -1998,9 +1975,7 @@ void vcRenderWindow(vcState *pProgramState)
         {
           vdkProjectNode *pNode = nullptr;
           if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "Folder", vcString::Get("sceneExplorerFolderDefaultName"), nullptr, nullptr) != vE_Success)
-          {
             vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
-          }
         }
 
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerRemove"), vcString::Get("sceneExplorerRemoveKey"), vcMBBI_Remove, vcMBBG_NewGroup) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE] && !ImGui::IsAnyItemActive()))
