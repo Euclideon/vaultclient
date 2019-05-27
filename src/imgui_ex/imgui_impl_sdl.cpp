@@ -402,12 +402,9 @@ static void ImGui_ImplSDL2_UpdateMousePosAndButtons()
     else
     {
         // Single-viewport mode: mouse position in client window coordinatesio.MousePos is (0,0) when the mouse is on the upper-left corner of the app window)
-        if (SDL_GetWindowFlags(g_Window) & SDL_WINDOW_INPUT_FOCUS)
-        {
-            int window_x, window_y;
-            SDL_GetWindowPosition(g_Window, &window_x, &window_y);
-            io.MousePos = ImVec2((float)(mouse_x_global - window_x), (float)(mouse_y_global - window_y));
-        }
+        int window_x, window_y;
+        SDL_GetWindowPosition(g_Window, &window_x, &window_y);
+        io.MousePos = ImVec2((float)(mouse_x_global - window_x), (float)(mouse_y_global - window_y));
     }
 
     // SDL_CaptureMouse() let the OS know e.g. that our imgui drag outside the SDL window boundaries shouldn't e.g. trigger the OS window resize cursor.
