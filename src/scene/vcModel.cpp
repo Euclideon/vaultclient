@@ -225,6 +225,8 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
     vcProject_UseProjectionFromItem(pProgramState, this);
   else if (pProgramState->gis.isProjected)
     ChangeProjection(pProgramState->gis.zone);
+
+  m_pNode->pUserData = this;
 }
 
 void vcModel::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
