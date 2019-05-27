@@ -79,7 +79,7 @@ struct vcSceneLayerNode
     const char *pURL;
 
     udDouble4x4 originMatrix;
-    udDouble4x4 transformation;
+    //udDouble4x4 transformation;
     //int type;
     vcPolygonModel *pModel;
 
@@ -125,6 +125,9 @@ struct vcSceneLayer
 
   vcVertexLayoutTypes *pDefaultGeometryLayout;
   size_t defaultGeometryLayoutCount;
+
+  // TODO: (EVC-553) This is temporary
+  uint64_t gpuBytesUploadedThisFrame;
 };
 
 udResult vcSceneLayer_LoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode = nullptr, const vcSceneLayerLoadType &loadType = vcSLLT_None);
