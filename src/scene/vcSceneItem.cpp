@@ -66,3 +66,9 @@ udDouble4x4 vcSceneItem::GetWorldSpaceMatrix()
 {
   return udDouble4x4::identity();
 }
+
+void vcSceneItem::UpdateNode()
+{
+  this->OnNodeUpdate();
+  m_lastUpdateTime = m_pNode->lastUpdate;
+};

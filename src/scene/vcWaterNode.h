@@ -12,6 +12,8 @@ public:
   vcWater(vdkProjectNode *pNode);
   ~vcWater() {};
 
+  void OnNodeUpdate() {};
+
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
   void HandleImGui(vcState *pProgramState, size_t *pItemID);

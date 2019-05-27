@@ -13,6 +13,8 @@ public:
   vcI3S(vdkProjectNode *pNode, vcState *pProgramState);
   ~vcI3S();
 
+  void OnNodeUpdate() {};
+
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
   void HandleImGui(vcState *pProgramState, size_t *pItemID);
@@ -20,6 +22,7 @@ public:
 
   void ChangeProjection(const udGeoZone &newZone);
   udDouble3 GetLocalSpacePivot();
+
 private:
   vcSceneLayerRenderer *m_pSceneRenderer;
 };

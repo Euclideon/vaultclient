@@ -36,7 +36,12 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   {
     if (pNode->pUserData != nullptr)
     {
-      ((vcSceneItem*)pNode->pUserData)->AddToScene(pProgramState, pRenderData);
+      vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
+
+      pSceneItem->AddToScene(pProgramState, pRenderData);
+
+      if (pSceneItem->m_lastUpdateTime < pSceneItem->m_pNode->lastUpdate)
+        pSceneItem->UpdateNode();
     }
     else
     {

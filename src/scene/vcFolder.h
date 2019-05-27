@@ -11,6 +11,8 @@ public:
   vcFolder(vdkProjectNode *pNode);
   ~vcFolder() {};
 
+  void OnNodeUpdate() {};
+
   void ChangeProjection(const udGeoZone &newZone);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
