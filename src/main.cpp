@@ -479,7 +479,7 @@ void vcMain_MainLoop(vcState *pProgramState)
           pProgramState->currentError = vE_OpenFailure;
           bool convertDrop = false;
 
-          //TODO: Use ImGui drop and drop on the docks rather than globally here
+          //TODO: Use ImGui drag and drop on the docks rather than globally here
           if (pProgramState->settings.window.windowsOpen[vcDocks_Convert])
           {
             ImGuiWindow *pConvert = ImGui::FindWindowByName("###convertDock");
