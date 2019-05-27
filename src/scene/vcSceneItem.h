@@ -28,6 +28,7 @@ class vcSceneItem
 {
 public:
   vdkProjectNode *m_pNode;
+  vdkProject *m_pProject;
 
   volatile int32_t m_loadStatus;
   bool m_visible;

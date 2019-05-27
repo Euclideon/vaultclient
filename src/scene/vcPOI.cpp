@@ -66,6 +66,9 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (!m_visible || (pProgramState->settings.camera.cameraMode != vcCM_OrthoMap && udMag3(m_pLabelInfo->worldPosition - pProgramState->pCamera->position) > pProgramState->settings.presentation.POIFadeDistance))
     return;
 
+  //TODO: Super hacky- remove later
+  m_pProject = pProgramState->sceneExplorer.pProject;
+
   if (m_pFence != nullptr)
     pRenderData->fences.PushBack(m_pFence);
 
@@ -94,6 +97,7 @@ void vcPOI::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
   }
 
   UpdatePoints();
+  UpdateProjectGeometry();
 }
 
 void vcPOI::UpdatePoints()
@@ -148,6 +152,23 @@ void vcPOI::UpdatePoints()
     vcFenceRenderer_ClearPoints(m_pFence);
     vcFenceRenderer_AddPoints(m_pFence, m_line.pPoints, m_line.numPoints, m_line.closed);
   }
+}
+
+void vcPOI::UpdateProjectGeometry()
+{
+  if (m_pCurrentProjection == nullptr)
+    return; // Can't update if we aren't sure what zone we're in currently
+
+  udDouble3 *pGeom = udAllocType(udDouble3, m_line.numPoints, udAF_Zero);
+
+  // Change all points in the POI to the new projection
+  for (int i = 0; i < m_line.numPoints; ++i)
+    pGeom[i] = udGeoZone_ToLatLong(*m_pCurrentProjection, m_line.pPoints[i], true);
+
+  if (m_line.closed)
+    vdkProjectNode_SetGeometry(m_pProject, m_pNode, vdkPGT_Polygon, m_line.numPoints, (double*)pGeom);
+  else
+    vdkProjectNode_SetGeometry(m_pProject, m_pNode, vdkPGT_LineString, m_line.numPoints, (double*)pGeom);
 }
 
 void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
@@ -263,10 +284,9 @@ void vcPOI::AddPoint(const udDouble3 &position)
   udFree(m_line.pPoints);
   m_line.pPoints = pNewPoints;
 
-  //TODO: Copy this back to the node
-
   ++m_line.numPoints;
   UpdatePoints();
+  UpdateProjectGeometry();
 }
 
 void vcPOI::RemovePoint(int index)
@@ -276,6 +296,7 @@ void vcPOI::RemovePoint(int index)
 
   --m_line.numPoints;
   UpdatePoints();
+  UpdateProjectGeometry();
 }
 
 void vcPOI::ChangeProjection(const udGeoZone &newZone)
@@ -286,6 +307,7 @@ void vcPOI::ChangeProjection(const udGeoZone &newZone)
   // Change all points in the POI to the new projection
   for (int i = 0; i < m_line.numPoints; ++i)
     m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, ((udDouble3*)m_pNode->pCoordinates)[i], true);
+
   UpdatePoints();
 
   // Call the parent version

@@ -64,6 +64,8 @@ public:
   void AddPoint(const udDouble3 &position);
   void RemovePoint(int index);
   void UpdatePoints();
+  void UpdateProjectGeometry();
+
   void SetCameraPosition(vcState *pProgramState);
   udDouble4x4 GetWorldSpaceMatrix();
 };
