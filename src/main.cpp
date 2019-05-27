@@ -175,17 +175,18 @@ void vcMain_UpdateSessionInfo(void *pProgramStatePtr)
 
 void vcMain_PresentationMode(vcState *pProgramState)
 {
-  pProgramState->settings.window.presentationMode = !pProgramState->settings.window.presentationMode;
   if (pProgramState->settings.window.presentationMode)
-  {
-    vcSettings_Save(&pProgramState->settings);
-    SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
-  }
-  else
   {
     pProgramState->settings.docksLoaded = false;
     SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
   }
+  else
+  {
+    vcSettings_Save(&pProgramState->settings);
+    SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+  }
+
+  pProgramState->settings.window.presentationMode = !pProgramState->settings.window.presentationMode;
 
   if (pProgramState->settings.responsiveUI == vcPM_Responsive)
     pProgramState->lastEventTime = vcTime_GetEpochSecs();
