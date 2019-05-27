@@ -622,6 +622,8 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
     return true;
   }
 
+  vcModals_OpenModal(pProgramState, vcMT_UnsupportedFile);
+
   return false;
 }
 

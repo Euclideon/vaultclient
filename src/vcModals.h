@@ -17,6 +17,7 @@ enum vcModalTypes
   vcMT_ImageViewer,
   vcMT_ProjectChangeFailed,
   vcMT_ProjectReadOnly,
+  vcMT_UnsupportedFile,
 
   vcMT_Count
 };
