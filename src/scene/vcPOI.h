@@ -53,13 +53,13 @@ public:
   vcPOI(vdkProjectNode *pNode);
   ~vcPOI() {};
 
+  void OnNodeUpdate() {};
+
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
   void HandleImGui(vcState *pProgramState, size_t *pItemID);
   void Cleanup(vcState *pProgramState);
   void ChangeProjection(const udGeoZone &newZone);
-
-  void OnNameChange();
 
   void AddPoint(const udDouble3 &position);
   void RemovePoint(int index);

@@ -296,11 +296,6 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   }
 }
 
-void vcPOI::OnNameChange()
-{
-  UpdatePoints();
-}
-
 void vcPOI::AddPoint(const udDouble3 &position)
 {
   udDouble3 *pNewPoints = udAllocType(udDouble3, m_line.numPoints + 1, udAF_Zero);

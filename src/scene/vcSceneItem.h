@@ -27,7 +27,7 @@ typedef void (udSceneItemBasicCallback)(vcState *pProgramState, vcSceneItem *pBa
 class vcSceneItem
 {
 public:
-  vdkProjectNode *m_pNode; // This will be null in the short term but by the end of the projects changes will _never_ be null
+  vdkProjectNode *m_pNode;
 
   volatile int32_t m_loadStatus;
   bool m_visible;
@@ -36,6 +36,8 @@ public:
   bool m_editName;
   bool m_moved;
 
+  double m_lastUpdateTime; // The stored time that this node was last updated (compared with the node to see if the node updated outside of Client)
+
   udJSON m_metadata; // This points to a metadata (may be an empty object)
   udGeoZone *m_pPreferredProjection; // nullptr if there is no preferred zone
   udGeoZone *m_pCurrentProjection; // nullptr if not geolocated
@@ -43,6 +45,9 @@ public:
   vcSceneItem(vdkProjectNode *pNode);
   vcSceneItem(vdkProject *pProject, const char *pType, const char *pName);
   virtual ~vcSceneItem();
+
+  // This lets SceneItems know that their vdkProjectNode has changed
+  virtual void OnNodeUpdate() = 0;
 
   // This is used to help with adding the item to the renderer
   virtual void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) = 0;
@@ -68,6 +73,9 @@ public:
 
   // Gets the world space matrix (or identity if not applicable)
   virtual udDouble4x4 GetWorldSpaceMatrix();
+
+  // Other
+  void UpdateNode();
 };
 
 #endif
