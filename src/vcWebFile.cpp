@@ -65,7 +65,16 @@ udResult vcWebFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags 
   pFile->fpClose = vcWebFile_Close;
 
   UD_ERROR_IF(vdkWeb_RequestAdv(pFilename, options, &pData, &dataLength, &responseCode) != vE_Success, udR_OpenFailure);
-  UD_ERROR_IF(responseCode != 200, udR_OpenFailure);
+
+  // TODO: JIRA task to expand these
+  if (responseCode == 403)
+    UD_ERROR_SET(udR_NotAllowed);
+  else if (responseCode == 503)
+    UD_ERROR_SET(udR_Pending);
+  else if (responseCode >= 500 && responseCode <= 599)
+    UD_ERROR_SET(udR_ServerError);
+  else if (responseCode < 200 || responseCode >= 300)
+    UD_ERROR_SET(udR_OpenFailure);
 
   pFile->totalBytes = dataLength;
   pFile->fileLength = dataLength;

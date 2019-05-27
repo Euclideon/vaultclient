@@ -637,8 +637,8 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
   bool uploadsCompleted = true;
 
   // TODO: (EVC-553)
-  //if (!force && !vcGLState_IsGPUDataUploadAllowed())
-  //  return udR_Success;
+  if (!force && pSceneLayer->gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame)//  !vcGLState_IsGPUDataUploadAllowed())
+    return udR_Success;
 
   // geometry
   for (size_t i = 0; i < pNode->geometryDataCount; ++i)
@@ -647,11 +647,11 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
       continue;
 
     // TODO: (EVC-553) Let `vcPolygonModel_CreateFromData()` handle this?
-    //if (!force && !vcGLState_IsGPUDataUploadAllowed()) // allow partial uploads
-    //{
-    //  uploadsCompleted = false;
-    //  break;
-    //}
+    if (!force && pSceneLayer->gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame)//!vcGLState_IsGPUDataUploadAllowed()) // allow partial uploads
+    {
+      uploadsCompleted = false;
+      break;
+    }
 
     UD_ERROR_IF(pNode->pGeometryData[i].vertCount > UINT16_MAX, udR_Failure_);
     UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&pNode->pGeometryData[i].pModel, pNode->pGeometryData[i].pData, (uint16_t)pNode->pGeometryData[i].vertCount, pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount));
@@ -659,6 +659,7 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
 
     pNode->pGeometryData[i].loaded = true;
     vcGLState_ReportGPUWork(0, 0, (pNode->pGeometryData[i].vertexStride * pNode->pGeometryData[i].vertCount));
+    pSceneLayer->gpuBytesUploadedThisFrame += (pNode->pGeometryData[i].vertexStride * pNode->pGeometryData[i].vertCount);
   }
 
   // textures
@@ -668,11 +669,11 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
       continue;
 
     // TODO: (EVC-553) Let `vcTexture_Create()` handle this?
-    //if (!force && !vcGLState_IsGPUDataUploadAllowed()) // allow partial uploads
-    //{
-    //  uploadsCompleted = false;
-    //  break;
-    //}
+    if (!force && pSceneLayer->gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame)//!vcGLState_IsGPUDataUploadAllowed()) // allow partial uploads
+    {
+      uploadsCompleted = false;
+      break;
+    }
 
     // Making an assumption here, use mip maps for 'flat' hierarchies
     bool useMips = pNode->level <= 2;
@@ -681,6 +682,7 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
 
     pNode->pTextureData[i].loaded = true;
     vcGLState_ReportGPUWork(0, 0, (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4));
+    pSceneLayer->gpuBytesUploadedThisFrame += (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4);
   }
 
   if (uploadsCompleted)

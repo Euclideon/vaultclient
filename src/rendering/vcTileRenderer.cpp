@@ -27,8 +27,6 @@ enum
   TileVertexResolution = 2, // This should match GPU struct size
   TileIndexResolution = (TileVertexResolution - 1),
 
-  MaxTileRequestAttempts = 3,
-
   MaxTextureUploadsPerFrame = 3,
 };
 
@@ -37,6 +35,7 @@ static const float sTileFadeSpeed = 2.15f;
 struct vcTileRenderer
 {
   float frameDeltaTime;
+  float totalTime;
 
   vcSettings *pSettings;
   vcQuadTree quadTree;
@@ -53,10 +52,11 @@ struct vcTileRenderer
   struct vcTileCache
   {
     volatile bool keepLoading;
-    udThread *pThreads[8];
+    udThread *pThreads[4];
     udSemaphore *pSemaphore;
     udMutex *pMutex;
     udChunkedArray<vcQuadTreeNode*> tileLoadList;
+    udChunkedArray<vcQuadTreeNode*> tileTimeoutList;
   } cache;
 
   struct
@@ -131,6 +131,11 @@ epilogue:
   return result;
 }
 
+bool vcTileRenderer_ShouldLoadNode(vcQuadTreeNode *pNode)
+{
+  return pNode->renderInfo.tryLoad && pNode->touched && (pNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_InQueue);
+}
+
 void vcTileRenderer_LoadThread(void *pThreadData)
 {
   vcTileRenderer *pRenderer = (vcTileRenderer*)pThreadData;
@@ -153,11 +158,17 @@ void vcTileRenderer_LoadThread(void *pThreadData)
       udDouble3 tileCenter = udDouble3::zero();
       double bestDistancePrioritySqr = FLT_MAX;
 
-      for (size_t i = 0; i < pCache->tileLoadList.length; ++i)
+      for (int i = 0; i < (int)pCache->tileLoadList.length; ++i)
       {
         pNode = pCache->tileLoadList[i];
-        if (!pNode->renderInfo.tryLoad || !pNode->touched || pNode->renderInfo.loadStatus != vcNodeRenderInfo::vcTLS_InQueue)
+
+        if (!vcTileRenderer_ShouldLoadNode(pNode))
+        {
+          pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
+          pCache->tileLoadList.RemoveSwapLast(i);
+          --i;
           continue;
+        }
 
         tileCenter = udDouble3::create(pNode->renderInfo.center, pRenderer->pSettings->maptiles.mapHeight);
         double distanceToCameraSqr = udMagSq3(tileCenter - pRenderer->cameraPosition);
@@ -165,7 +176,7 @@ void vcTileRenderer_LoadThread(void *pThreadData)
         // root (special case)
         if (pNode == &pRenderer->quadTree.nodes.pPool[pRenderer->quadTree.rootIndex])
         {
-          best = int(i);
+          best = i;
           break;
         }
 
@@ -195,20 +206,12 @@ void vcTileRenderer_LoadThread(void *pThreadData)
 
       if (best == -1)
       {
-        for (size_t i = 0; i < pCache->tileLoadList.length; ++i)
-        {
-          pNode = pCache->tileLoadList[i];
-          pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
-        }
-
-        pCache->tileLoadList.Clear();
         udReleaseMutex(pCache->pMutex);
         break;
       }
 
       vcQuadTreeNode *pBestNode = pCache->tileLoadList[best];
       pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Downloading;
-      pBestNode->renderInfo.loadAttempts++;
       pCache->tileLoadList.RemoveSwapLast(best);
 
       char localFileName[vcMaxPathLength];
@@ -252,7 +255,8 @@ void vcTileRenderer_LoadThread(void *pThreadData)
       int channelCount = 0;
       uint8_t *pData = nullptr;
 
-      if (udFile_Load(pTileURL, &pFileData, &fileLen) != udR_Success || fileLen == 0)
+      udResult requestResult = udFile_Load(pTileURL, &pFileData, &fileLen);
+      if (requestResult != udR_Success || fileLen == 0)
         failedLoad = true; // Failed to load tile from somewhere (server or local cache)
 
       // Node has been invalidated since download started
@@ -275,11 +279,21 @@ void vcTileRenderer_LoadThread(void *pThreadData)
 
       if (failedLoad)
       {
-        if (pBestNode->renderInfo.loadAttempts < MaxTileRequestAttempts)
+        if (requestResult == udR_Pending)
         {
           pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_InQueue;
+
           udLockMutex(pCache->pMutex);
-          pCache->tileLoadList.PushBack(pBestNode); // put it back
+          if (pBestNode->slippyPosition.z <= 10)
+          {
+            // TODO: server prioritizes these tiles, so will be available much sooner. Requeue immediately
+            pCache->tileLoadList.PushBack(pBestNode);
+          }
+          else
+          {
+            pBestNode->renderInfo.timeoutTime = pRenderer->totalTime + 15.0f; // 15 seconds
+            pCache->tileTimeoutList.PushBack(pBestNode); // timeout it, inserted last
+          }
           udReleaseMutex(pCache->pMutex);
         }
         else
@@ -376,6 +390,7 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   pTileRenderer->cache.pMutex = udCreateMutex();
   pTileRenderer->cache.keepLoading = true;
   pTileRenderer->cache.tileLoadList.Init(128);
+  pTileRenderer->cache.tileTimeoutList.Init(128);
 
   for (size_t i = 0; i < udLengthOf(pTileRenderer->cache.pThreads); ++i)
     udThread_Create(&pTileRenderer->cache.pThreads[i], (udThreadStart*)vcTileRenderer_LoadThread, pTileRenderer);
@@ -426,6 +441,7 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
   udDestroySemaphore(&pTileRenderer->cache.pSemaphore);
 
   pTileRenderer->cache.tileLoadList.Deinit();
+  pTileRenderer->cache.tileTimeoutList.Deinit();
 
   vcShader_ReleaseConstantBuffer(pTileRenderer->presentShader.pProgram, pTileRenderer->presentShader.pConstantBuffer);
   vcShader_DestroyShader(&(pTileRenderer->presentShader.pProgram));
@@ -453,7 +469,7 @@ bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeN
 
     pNode->renderInfo.pData = nullptr;
     pNode->renderInfo.pTexture = nullptr;
-    pNode->renderInfo.loadAttempts = 0;
+    pNode->renderInfo.timeoutTime = pTileRenderer->totalTime;
 
     udDouble2 min = udDouble2::create(pNode->worldBounds[0].x, pNode->worldBounds[2].y);
     udDouble2 max = udDouble2::create(pNode->worldBounds[3].x, pNode->worldBounds[1].y);
@@ -530,12 +546,24 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
     }
   }
 
+  // Note: these are inserted into ascending order
+  while (pTileRenderer->cache.tileTimeoutList.length > 0)
+  {
+    vcQuadTreeNode *pNode = pTileRenderer->cache.tileTimeoutList[0];
+    if (vcTileRenderer_ShouldLoadNode(pNode) && (pNode->renderInfo.timeoutTime - pTileRenderer->totalTime) > 0.0f)
+      break;
+
+    pTileRenderer->cache.tileLoadList.PushBack(pNode);
+    pTileRenderer->cache.tileTimeoutList.RemoveSwapLast(0);
+  }
+
   // TODO: For each tile in cache, LRU destroy
 }
 
 void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, vcGISSpace *pSpace, const udDouble3 worldCorners[4], const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const udDouble4x4 &viewProjectionMatrix)
 {
   pTileRenderer->frameDeltaTime = (float)deltaTime;
+  pTileRenderer->totalTime += pTileRenderer->frameDeltaTime;
   pTileRenderer->cameraPosition = cameraWorldPos;
 
   double slippyCornersViewSize = udMag3(worldCorners[1] - worldCorners[2]) * 0.5;

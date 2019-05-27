@@ -22,7 +22,7 @@ public:
 
   void ChangeProjection(const udGeoZone &newZone);
   udDouble3 GetLocalSpacePivot();
-
+  udDouble4x4 GetWorldSpaceMatrix();
 private:
   vcSceneLayerRenderer *m_pSceneRenderer;
 };
