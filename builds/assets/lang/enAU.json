@@ -234,6 +234,10 @@
   "menuSettings": "Settings",
   "menuProjects": "Projects",
   "menuNewScene": "New Scene",
+  "menuProjectExport": "Export",
+  "menuProjectExportTitle": "Export Project to Disk",
+  "menuProjectImport": "Import",
+  "menuProjectImportTitle": "Import Project to Scene",
 
   "menuLogout": "Logout",
   "menuLogoutTitle": "Logged Out",
@@ -252,10 +256,6 @@
   "menuAboutLicenseInfo": "Third Party License Information",
   "menuAboutCloseButton": "Close",
   "menuAboutPackageUpdate": "Package Update",
-
-  "menuImport": "Import",
-  "menuImportUDP": "Import UDP",
-  "menuImportUDPTitle": "Import UDP to Scene",
 
   "menuCurrentVersion": "Current Version",
   "menuNewVersionAvailableTitle": "New Version Available",

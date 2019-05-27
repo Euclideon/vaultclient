@@ -344,10 +344,8 @@ void vcModals_DrawFileModal(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_AddUDS))
     ImGui::OpenPopup(vcString::Get("sceneExplorerAddUDSTitle"));
-  if (pProgramState->openModals & (1 << vcMT_ImportGeoJSON))
-    ImGui::OpenPopup(vcString::Get("menuImportGeoJSONTitle"));
-  if (pProgramState->openModals & (1 << vcMT_ImportUDP))
-    ImGui::OpenPopup(vcString::Get("menuImportUDPTitle"));
+  if (pProgramState->openModals & (1 << vcMT_ImportProject))
+    ImGui::OpenPopup(vcString::Get("menuProjectImportTitle"));
 
   vcModalTypes mode = vcMT_Count;
 
@@ -356,12 +354,8 @@ void vcModals_DrawFileModal(vcState *pProgramState)
     mode = vcMT_AddUDS;
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(vcString::Get("menuImportGeoJSONTitle")))
-    mode = vcMT_ImportGeoJSON;
-
-  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(vcString::Get("menuImportUDPTitle")))
-    mode = vcMT_ImportUDP;
+  if (ImGui::BeginPopupModal(vcString::Get("menuProjectImportTitle")))
+    mode = vcMT_ImportProject;
 
   if (mode < vcMT_Count)
   {
@@ -388,15 +382,9 @@ void vcModals_DrawFileModal(vcState *pProgramState)
       if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
         loadFile = true;
     }
-    else if (mode == vcMT_ImportGeoJSON)
+    else if (mode == vcMT_ImportProject)
     {
-      const char *fileExtensions[] = { ".json" };
-      if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
-        loadFile = true;
-    }
-    else if (mode == vcMT_ImportUDP)
-    {
-      const char *fileExtensions[] = { ".udp" };
+      const char *fileExtensions[] = { ".json", ".udp" };
       if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
         loadFile = true;
     }
