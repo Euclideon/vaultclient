@@ -1483,16 +1483,18 @@ int vcMainMenuGui(vcState *pProgramState)
       if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr))
         vcProject_RemoveAll(pProgramState);
 
-      if (ImGui::BeginMenu(vcString::Get("menuImport")))
+      if (ImGui::MenuItem(vcString::Get("menuProjectExport"), nullptr, nullptr))
       {
-        if (ImGui::MenuItem(vcString::Get("menuImportGeoJSON"), nullptr, nullptr))
-          vcModals_OpenModal(pProgramState, vcMT_ImportGeoJSON);
-
-        if (ImGui::MenuItem(vcString::Get("menuImportUDP"), nullptr, nullptr))
-          vcModals_OpenModal(pProgramState, vcMT_ImportUDP);
-
-        ImGui::EndMenu();
+        const char *pOutput = nullptr;
+        if (vdkProject_WriteToMemory(pProgramState->sceneExplorer.pProject, &pOutput) == vE_Success)
+        {
+          if (udFile_Save("TempProject.json", (void*)pOutput, udStrlen(pOutput)) != udR_Success)
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+        }
       }
+
+      if (ImGui::MenuItem(vcString::Get("menuProjectImport"), nullptr, nullptr))
+        vcModals_OpenModal(pProgramState, vcMT_ImportProject);
 
       ImGui::Separator();
 
