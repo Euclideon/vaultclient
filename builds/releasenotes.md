@@ -3,16 +3,33 @@ Euclideon Vault Client Version History
 Known Major Issues In Current Release
   - User guide does not cover the entire application
   - Corrupted UDS files silently fail without notifying the user (EVC-20)
-  - Unable to save projects (EVC-267)
-  - Convert issues relating to full or read-only drives (EVC-126)
   - An issue is preventing macOS users from running the build directly because of signing issues (EVC-408)
   - Map mode only transitions nicely for items with z at 0 (EVC-460)
   - Images in the scene are not using thumbnails (EVC-513)
+  - Reordering the scene sometimes doesn't work properly now (EVC-591)
 
-
-Version 0.2.4
+Version 0.3.0
   - Improvements
-    - IME input windows now draw at the text input location on Windows
+    - Projects can be exported
+      - Lots of preparation work for collaborative projects
+    - Native Metal rendering for macOS
+    - Updated to Experimental Docking branch for ImGui (native docking support instead of extension)
+    - I3S/SLPK format support (rendering and convert)
+  - Other Fixes and Changes
+    - Fixed an issue where login message for bad username/password was wrong
+    - Massive internal tidying up to better support Web and Mobile devices
+    - Tweaked colour table for light colour theme to make it more legible
+    - Removed rounded borders to be more consistent throughout the application
+    - Significant optimisations to how tiles are loaded
+    - Language list is loaded from a file to make it easier to add custom languages
+    - Lots of fixes to how GIS was handled (changing zones should be a lot less jarring now)
+    - Improved handling of drag and drop so that files dropped onto the convert window are correctly handled by convert
+    - Split out Media and saved Camera locations to specific nodes for this purpose (POI is now about marking up or measuring an area)
+    - Added Delete to the scene explorer context menu
+    - Fixed issues related to conversion from inside zip files
+    - Fixed some files that were submitted to us as failing- Thanks to everyone that sent us files!
+    - Docked tabs can be closed correctly now
+    - Fixed issues with conversions completing too quickly making the UI look like the conversion stopped midway
 
 Version 0.2.3
   - Improvements
