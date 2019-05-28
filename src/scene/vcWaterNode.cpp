@@ -5,8 +5,8 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcWater::vcWater(vdkProjectNode *pNode) :
-  vcSceneItem(pNode)
+vcWater::vcWater(vdkProjectNode *pNode, vcState *pProgramState) :
+  vcSceneItem(pNode, pProgramState)
 {
   m_loadStatus = vcSLS_Failed;
 }

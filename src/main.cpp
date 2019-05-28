@@ -530,7 +530,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                   pProgramState->sceneExplorer.pProject = pProject;
                   vdkProjectNode *pNode = nullptr;
                   vdkProject_GetRootFolder(pProject, &pNode);
-                  pProgramState->sceneExplorer.pProjectRoot = new vcFolder(pNode);
+                  pProgramState->sceneExplorer.pProjectRoot = new vcFolder(pNode, pProgramState);
                   pNode->pUserData = pProgramState->sceneExplorer.pProjectRoot;
                 }
               }
@@ -769,7 +769,7 @@ int main(int argc, char **args)
   vdkProjectNode *pRootFolder = nullptr;
   vdkProject_CreateLocal(&programState.sceneExplorer.pProject, nullptr, nullptr);
   vdkProject_GetRootFolder(programState.sceneExplorer.pProject, &pRootFolder);
-  programState.sceneExplorer.pProjectRoot = new vcFolder(pRootFolder);
+  programState.sceneExplorer.pProjectRoot = new vcFolder(pRootFolder, &programState);
 
   for (int i = 1; i < argc; ++i)
   {
