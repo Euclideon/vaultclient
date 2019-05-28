@@ -1293,9 +1293,10 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
             vdkProjectNode *pNode = nullptr;
             if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
+            {
               vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, 1, &pProgramState->worldMousePosLongLat.x);
-
-            //TODO: Select the new node somehow
+              udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+            }
 
             ImGui::CloseCurrentPopup();
           }
@@ -1305,9 +1306,10 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
             vdkProjectNode *pNode = nullptr;
             if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr))
+            {
               vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_LineString, 1, &pProgramState->worldMousePosLongLat.x);
-
-            //TODO: Select the new node somehow
+              udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+            }
 
             ImGui::CloseCurrentPopup();
           }

@@ -131,6 +131,8 @@ struct vcState
     vdkProject *pProject;
     vcFolder *pProjectRoot;
 
+    char selectUUIDWhenPossible[37];
+
     vcSceneItemRef insertItem;
     vcSceneItemRef clickedItem;
     std::vector<vcSceneItemRef> selectedItems;
