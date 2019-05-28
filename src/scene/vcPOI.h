@@ -35,10 +35,6 @@ private:
   uint32_t m_backColour;
   vcLabelFontSize m_namePt;
 
-  udDouble3 m_bookmarkCameraPosition;
-  udDouble3 m_bookmarkCameraRotation;
-  bool m_bookmarkMode;
-
   bool m_showArea;
   double m_calculatedArea;
 

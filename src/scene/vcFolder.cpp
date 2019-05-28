@@ -20,6 +20,7 @@
 #include "vcUnsupportedNode.h"
 #include "vcI3S.h"
 #include "vcWaterNode.h"
+#include "vcViewpoint.h"
 
 vcFolder::vcFolder(vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pNode, pProgramState)
@@ -57,6 +58,8 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pNode->pUserData = new vcLiveFeed(pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_Media)
         pNode->pUserData = new vcMedia(pNode, pProgramState);
+      else if (pNode->itemtype == vdkPNT_Viewpoint)
+        pNode->pUserData = new vcViewpoint(pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "I3S"))
         pNode->pUserData = new vcI3S(pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "Water"))
