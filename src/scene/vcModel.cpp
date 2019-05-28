@@ -144,7 +144,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 }
 
 vcModel::vcModel(vdkProjectNode *pNode, vcState *pProgramState) :
-  vcSceneItem(pNode),
+  vcSceneItem(pNode, pProgramState),
   m_pPointCloud(nullptr),
   m_pivot(udDouble3::zero()),
   m_defaultMatrix(udDouble4x4::identity()),
@@ -159,12 +159,6 @@ vcModel::vcModel(vdkProjectNode *pNode, vcState *pProgramState) :
     return; // Can't load a model if we don't have the URL
 
   udFilename udfilename(pFilePath);
-
-  //TODO: Update name
-  //if (pName == nullptr)
-  //  m_pName = udStrdup(udfilename.GetFilenameWithExt());
-  //else
-  //  m_pName = udStrdup(pName);
 
   vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
   if (pLoadInfo != nullptr)
@@ -200,7 +194,7 @@ vcModel::vcModel(vdkProjectNode *pNode, vcState *pProgramState) :
 }
 
 vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud, bool jumpToModelOnLoad /*= false*/) :
-  vcSceneItem(pProgramState->sceneExplorer.pProject, "UDS", pName),
+  vcSceneItem(pProgramState, "UDS", pName),
   m_pPointCloud(nullptr),
   m_pivot(udDouble3::zero()),
   m_defaultMatrix(udDouble4x4::identity()),

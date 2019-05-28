@@ -43,8 +43,8 @@ public:
   udGeoZone *m_pPreferredProjection; // nullptr if there is no preferred zone
   udGeoZone *m_pCurrentProjection; // nullptr if not geolocated
 
-  vcSceneItem(vdkProjectNode *pNode);
-  vcSceneItem(vdkProject *pProject, const char *pType, const char *pName);
+  vcSceneItem(vdkProjectNode *pNode, vcState *pProgramState);
+  vcSceneItem(vcState *pProgramState, const char *pType, const char *pName);
   virtual ~vcSceneItem();
 
   // This lets SceneItems know that their vdkProjectNode has changed
