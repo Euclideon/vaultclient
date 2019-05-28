@@ -22,7 +22,7 @@ struct vcNodeRenderInfo
   } volatile loadStatus;
 
   bool tryLoad;
-  int loadAttempts;
+  float timeoutTime; // after a failed load, tiles have a time before they will request again
 
   vcTexture *pTexture;
   int32_t width, height;

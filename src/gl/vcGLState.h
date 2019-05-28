@@ -15,7 +15,7 @@
 enum
 {
   // TODO: (EVC-547) This is arbitrary. Should be platform based.
-  vcGLState_MaxUploadBytesPerFrame = 200 * 1024, // 30kb
+  vcGLState_MaxUploadBytesPerFrame = 50 * 1024, // 50kb
 };
 
 // State enums

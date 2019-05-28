@@ -18,6 +18,7 @@ udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer
 
   pSceneLayerRenderer = udAllocType(vcSceneLayerRenderer, 1, udAF_Zero);
   UD_ERROR_NULL(pSceneLayerRenderer, udR_MemoryAllocationFailure);
+  pSceneLayerRenderer->sceneMatrix = udDouble4x4::identity();
 
   UD_ERROR_CHECK(vcSceneLayer_Create(&pSceneLayerRenderer->pSceneLayer, pWorkerThreadPool, pSceneLayerURL));
 
@@ -62,6 +63,9 @@ bool vcSceneLayerRenderer_IsNodeVisible(vcSceneLayerNode *pNode, const udDouble4
 double vcSceneLayerRenderer_CalculateNodeScreenSize(vcSceneLayerNode *pNode, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution)
 {
   udDouble4 center = viewProjectionMatrix * udDouble4::create(pNode->minimumBoundingSphere.position, 1.0);
+  if (center.w == 0.0) // if you're on the node position
+    return 0;
+
   udDouble4 p1 = viewProjectionMatrix * udDouble4::create(pNode->minimumBoundingSphere.position + udDouble3::create(pNode->minimumBoundingSphere.radius, 0.0, 0.0), 1.0);
   udDouble4 p2 = viewProjectionMatrix * udDouble4::create(pNode->minimumBoundingSphere.position + udDouble3::create(0.0, pNode->minimumBoundingSphere.radius, 0.0), 1.0);
   center /= center.w;
@@ -133,7 +137,8 @@ bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayerRenderer, cons
 
   // TODO: (EVC-548) This is duplicated work across i3s models
   // extract frustum planes
-  udDouble4x4 transposedViewProjection = udTranspose(viewProjectionMatrix);
+  udDouble4x4 worldViewProjectionMatrix = viewProjectionMatrix * pSceneLayerRenderer->sceneMatrix;
+  udDouble4x4 transposedViewProjection = udTranspose(worldViewProjectionMatrix);
   pSceneLayerRenderer->frustumPlanes[0] = transposedViewProjection.c[3] + transposedViewProjection.c[0]; // Left
   pSceneLayerRenderer->frustumPlanes[1] = transposedViewProjection.c[3] - transposedViewProjection.c[0]; // Right
   pSceneLayerRenderer->frustumPlanes[2] = transposedViewProjection.c[3] + transposedViewProjection.c[1]; // Bottom
@@ -144,5 +149,6 @@ bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayerRenderer, cons
   for (int j = 0; j < 6; ++j)
     pSceneLayerRenderer->frustumPlanes[j] /= udMag3(pSceneLayerRenderer->frustumPlanes[j]);
 
-  return vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, &pSceneLayerRenderer->pSceneLayer->root, viewProjectionMatrix, screenResolution);
+  pSceneLayerRenderer->pSceneLayer->gpuBytesUploadedThisFrame = 0;
+  return vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, &pSceneLayerRenderer->pSceneLayer->root, worldViewProjectionMatrix, screenResolution);
 }

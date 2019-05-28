@@ -7,6 +7,8 @@ struct vcSceneLayerRenderer
 {
   vcSceneLayer *pSceneLayer;
   udDouble4 frustumPlanes[6];
+
+  udDouble4x4 sceneMatrix;
 };
 
 udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL);

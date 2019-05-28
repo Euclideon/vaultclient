@@ -45,9 +45,9 @@ void vcI3S::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
   pRenderData->sceneLayers.PushBack(m_pSceneRenderer);
 }
 
-void vcI3S::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 & /*delta*/)
+void vcI3S::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
 {
-  //I3S doesn't support being moved
+  m_pSceneRenderer->sceneMatrix = delta * m_pSceneRenderer->sceneMatrix;
 }
 
 void vcI3S::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
@@ -57,12 +57,17 @@ void vcI3S::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
 
 void vcI3S::Cleanup(vcState * /*pProgramState*/)
 {
-  // Do stuff
+  vcSceneLayerRenderer_Destroy(&m_pSceneRenderer);
 }
 
 void vcI3S::ChangeProjection(const udGeoZone &newZone)
 {
-  //TODO: Support this
+  udDouble4x4 prevOrigin = udDouble4x4::translation(GetLocalSpacePivot());
+  udDouble4x4 newOffset = m_pSceneRenderer->sceneMatrix * prevOrigin;
+  if (m_pCurrentProjection != nullptr)
+    newOffset = udGeoZone_TransformMatrix(newOffset, *m_pCurrentProjection, newZone);
+
+  m_pSceneRenderer->sceneMatrix = newOffset * udInverse(prevOrigin);
 
   // Call the base version
   vcSceneItem::ChangeProjection(newZone);
@@ -74,4 +79,9 @@ udDouble3 vcI3S::GetLocalSpacePivot()
     return udDouble3::zero();
 
   return vcSceneLayer_GetCenter(m_pSceneRenderer->pSceneLayer);
+}
+
+udDouble4x4 vcI3S::GetWorldSpaceMatrix()
+{
+  return m_pSceneRenderer->sceneMatrix;
 }
