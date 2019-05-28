@@ -18,7 +18,7 @@ class vcMedia : public vcSceneItem
 public:
   vcImageRenderInfo m_image;
 
-  vcMedia(vdkProjectNode *pNode);
+  vcMedia(vdkProjectNode *pNode, vcState *pProgramState);
   ~vcMedia();
 
   void OnNodeUpdate();

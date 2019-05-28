@@ -13,8 +13,8 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcPOI::vcPOI(vdkProjectNode *pNode) :
-  vcSceneItem(pNode)
+vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
+  vcSceneItem(pNode, pProgramState)
 {
   m_nameColour = 0xFFFFFFFF;
   m_backColour = 0x7F000000;

@@ -9,7 +9,7 @@ struct vcRenderData;
 class vcWater : public vcSceneItem
 {
 public:
-  vcWater(vdkProjectNode *pNode);
+  vcWater(vdkProjectNode *pNode, vcState *pProgramState);
   ~vcWater() {};
 
   void OnNodeUpdate() {};

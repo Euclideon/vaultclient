@@ -296,8 +296,8 @@ epilogue:
 }
 
 
-vcLiveFeed::vcLiveFeed(vdkProjectNode *pNode) :
-  vcSceneItem(pNode),
+vcLiveFeed::vcLiveFeed(vdkProjectNode *pNode, vcState *pProgramState) :
+  vcSceneItem(pNode, pProgramState),
   m_lastUpdateTime(0.0),
   m_visibleItems(0),
   m_tweenPositionAndOrientation(true),
