@@ -455,7 +455,7 @@ static void ImGui_ImplSDL2_UpdateGamepads()
 
     // Update gamepad inputs
     #define MAP_BUTTON(NAV_NO, BUTTON_NO)       { io.NavInputs[NAV_NO] = (SDL_GameControllerGetButton(game_controller, BUTTON_NO) != 0) ? 1.0f : 0.0f; }
-    #define MAP_ANALOG(NAV_NO, AXIS_NO, V0, V1) { float vn = (float)(SDL_GameControllerGetAxis(game_controller, AXIS_NO) - V0) / (float)(V1 - V0); if (vn > 1.0f) vn = 1.0f; if (vn > 0.0f && io.NavInputs[NAV_NO] < vn) io.NavInputs[NAV_NO] = vn; }
+    #define MAP_ANALOG(NAV_NO, AXIS_NO, V0, V1) { float vn = (float)SDL_GameControllerGetAxis(game_controller, AXIS_NO); if (vn <= V0 && vn >= -V0) {vn = 0.0f; } else if (vn > V0) {vn = (vn - V0) / (V1 - V0); } else {vn = (vn + V0) / (V1 - V0); } io.NavInputs[NAV_NO] = vn; }
     const int thumb_dead_zone = 8000;           // SDL_gamecontroller.h suggests using this value.
     MAP_BUTTON(ImGuiNavInput_Activate,      SDL_CONTROLLER_BUTTON_A);               // Cross / A
     MAP_BUTTON(ImGuiNavInput_Cancel,        SDL_CONTROLLER_BUTTON_B);               // Circle / B
@@ -467,12 +467,12 @@ static void ImGui_ImplSDL2_UpdateGamepads()
     MAP_BUTTON(ImGuiNavInput_DpadDown,      SDL_CONTROLLER_BUTTON_DPAD_DOWN);       // D-Pad Down
     MAP_BUTTON(ImGuiNavInput_TweakSlow,     SDL_CONTROLLER_BUTTON_LEFTSHOULDER);    // L1 / LB
     MAP_BUTTON(ImGuiNavInput_TweakFast,     SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);   // R1 / RB
-    MAP_ANALOG(ImGuiNavInput_FocusPrev,     SDL_CONTROLLER_AXIS_TRIGGERLEFT, 0, +32768);   // L2 / LT
-    MAP_ANALOG(ImGuiNavInput_FocusNext,     SDL_CONTROLLER_AXIS_TRIGGERRIGHT, 0, +32768);  // R2 / RT
-    MAP_ANALOG(ImGuiNavInput_LStickLeft,    SDL_CONTROLLER_AXIS_LEFTX, -thumb_dead_zone, -32768);
-    MAP_ANALOG(ImGuiNavInput_LStickRight,   SDL_CONTROLLER_AXIS_LEFTX, +thumb_dead_zone, +32768);
-    MAP_ANALOG(ImGuiNavInput_LStickUp,      SDL_CONTROLLER_AXIS_LEFTY, -thumb_dead_zone, -32768);
-    MAP_ANALOG(ImGuiNavInput_LStickDown,    SDL_CONTROLLER_AXIS_LEFTY, +thumb_dead_zone, +32768);
+    MAP_ANALOG(ImGuiNavInput_FocusPrev,     SDL_CONTROLLER_AXIS_TRIGGERLEFT, 0, 32768);   // L2 / LT
+    MAP_ANALOG(ImGuiNavInput_FocusNext,     SDL_CONTROLLER_AXIS_TRIGGERRIGHT, 0, 32768);  // R2 / RT
+    MAP_ANALOG(ImGuiNavInput_LStickLeft,    SDL_CONTROLLER_AXIS_LEFTX, thumb_dead_zone, 32768);  // Left Stick Horizontal   = LStickLeft
+    MAP_ANALOG(ImGuiNavInput_LStickUp,      SDL_CONTROLLER_AXIS_LEFTY, thumb_dead_zone, 32768);  // Left Stick Vertical     = LStickUp
+    MAP_ANALOG(ImGuiNavInput_LStickRight,   SDL_CONTROLLER_AXIS_RIGHTX, thumb_dead_zone, 32768); // Right Stick Horizontal  = LStickRight
+    MAP_ANALOG(ImGuiNavInput_LStickDown,    SDL_CONTROLLER_AXIS_RIGHTY, thumb_dead_zone, 32768); // Right Stick Vertical    = LStickDown
 
     io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
     #undef MAP_BUTTON
