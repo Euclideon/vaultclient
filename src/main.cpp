@@ -1967,6 +1967,12 @@ void vcRenderWindow(vcState *pProgramState)
               vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
           }
 
+          if (ImGui::MenuItem(vcString::Get("sceneExplorerAddViewpoint"), nullptr, nullptr))
+          {
+            if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, nullptr, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr))
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+          }
+
           ImGui::EndPopup();
         }
 
