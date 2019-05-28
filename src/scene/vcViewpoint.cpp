@@ -9,7 +9,7 @@
 #include "imgui.h"
 
 vcViewpoint::vcViewpoint(vdkProjectNode *pNode, vcState *pProgramState) :
-  vcSceneItem(pNode)
+  vcSceneItem(pNode, pProgramState)
 {
   udUnused(pProgramState);
 
