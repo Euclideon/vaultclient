@@ -132,6 +132,7 @@ struct vcState
     vcFolder *pProjectRoot;
 
     char selectUUIDWhenPossible[37];
+    char movetoUUIDWhenPossible[37];
 
     vcSceneItemRef insertItem;
     vcSceneItemRef clickedItem;
