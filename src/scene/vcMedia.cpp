@@ -17,8 +17,8 @@
 
 #include "stb_image.h"
 
-vcMedia::vcMedia(vdkProjectNode *pNode) :
-  vcSceneItem(pNode)
+vcMedia::vcMedia(vdkProjectNode *pNode, vcState *pProgramState) :
+  vcSceneItem(pNode, pProgramState)
 {
   memset(&m_image, 0, sizeof(m_image));
   m_loadStatus = vcSLS_Loaded;

@@ -10,7 +10,7 @@
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
 vcI3S::vcI3S(vdkProjectNode *pNode, vcState *pProgramState) :
-  vcSceneItem(pNode),
+  vcSceneItem(pNode, pProgramState),
   m_pSceneRenderer(nullptr)
 {
   if (vcSceneLayerRenderer_Create(&m_pSceneRenderer, pProgramState->pWorkerPool, pNode->pURI) == udR_Success)
