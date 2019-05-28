@@ -5,8 +5,8 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcUnsupportedNode::vcUnsupportedNode(vdkProjectNode *pNode) :
-  vcSceneItem(pNode)
+vcUnsupportedNode::vcUnsupportedNode(vdkProjectNode *pNode, vcState *pProgramState) :
+  vcSceneItem(pNode, pProgramState)
 {
   m_loadStatus = vcSLS_Failed;
 }

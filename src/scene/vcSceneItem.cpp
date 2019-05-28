@@ -14,7 +14,7 @@ vdkProjectNode* vcSceneItem_CreateNodeInProject(vdkProject *pProject, const char
   return pNode;
 }
 
-vcSceneItem::vcSceneItem(vdkProjectNode *pNode) :
+vcSceneItem::vcSceneItem(vdkProjectNode *pNode, vcState * /*pProgramState*/) :
   m_pProject(nullptr),
   m_loadStatus(0),
   m_visible(true),
@@ -29,8 +29,8 @@ vcSceneItem::vcSceneItem(vdkProjectNode *pNode) :
   m_pNode = pNode;
 }
 
-vcSceneItem::vcSceneItem(vdkProject *pProject, const char *pType, const char *pName) :
-  vcSceneItem(vcSceneItem_CreateNodeInProject(pProject, pType, pName))
+vcSceneItem::vcSceneItem(vcState *pProgramState, const char *pType, const char *pName) :
+  vcSceneItem(vcSceneItem_CreateNodeInProject(pProgramState->sceneExplorer.pProject, pType, pName), pProgramState)
 {
   // Do nothing
 }
