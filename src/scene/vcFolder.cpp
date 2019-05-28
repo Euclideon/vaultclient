@@ -186,6 +186,15 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         }
       }
 
+      if (pProgramState->sceneExplorer.selectUUIDWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID))
+      {
+        vcProject_ClearSelection(pProgramState);
+        vcProject_SelectItem(pProgramState, m_pNode, pNode);
+        pProgramState->sceneExplorer.clickedItem = { m_pNode, pNode };
+
+        memset(pProgramState->sceneExplorer.selectUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.selectUUIDWhenPossible));
+      }
+
       if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) && ImGui::IsMouseDragging())
       {
         ImVec2 minPos = ImGui::GetItemRectMin();
