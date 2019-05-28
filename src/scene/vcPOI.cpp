@@ -20,9 +20,6 @@ vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
   m_backColour = 0x7F000000;
   m_namePt = vcLFS_Medium;
 
-  m_bookmarkCameraPosition = udDouble3::zero();
-  m_bookmarkCameraRotation = udDouble3::zero();
-  m_bookmarkMode = false;
   m_showArea = false;
   m_showLength = false;
 
@@ -248,19 +245,6 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     }
   }
 
-  // Handle POI bookmark mode
-  if (ImGui::Checkbox(vcString::Get("scenePOIBookmarkMode"), &m_bookmarkMode) || m_bookmarkMode)
-  {
-    ImGui::InputScalarN(udTempStr("%s##POIBookmarkPos%zu", vcString::Get("scenePOICameraPosition"), *pItemID), ImGuiDataType_Double, &m_bookmarkCameraPosition.x, 3);
-    ImGui::InputScalarN(udTempStr("%s##POIBookmarkRot%zu", vcString::Get("scenePOICameraRotation"), *pItemID), ImGuiDataType_Double, &m_bookmarkCameraRotation.x, 3);
-    if (ImGui::Button(vcString::Get("scenePOISetBookmarkCamera")))
-    {
-      // Store the RELATIVE position and orientation to avoid potential issues with projection changes
-      m_bookmarkCameraPosition = pProgramState->pCamera->position - m_pLabelInfo->worldPosition;
-      m_bookmarkCameraRotation = pProgramState->pCamera->eulerRotation - udMath_DirToYPR(-m_bookmarkCameraPosition);
-    }
-  }
-
   // Handle hyperlinks
   const char *pHyperlink = m_metadata.Get("hyperlink").AsString();
   if (pHyperlink != nullptr)
@@ -326,12 +310,6 @@ void vcPOI::Cleanup(vcState * /*pProgramState*/)
 void vcPOI::SetCameraPosition(vcState *pProgramState)
 {
   pProgramState->pCamera->position = m_pLabelInfo->worldPosition;
-  if (m_bookmarkMode)
-  {
-    pProgramState->pCamera->position += m_bookmarkCameraPosition;
-    if (m_bookmarkCameraPosition != udDouble3::zero())
-      pProgramState->pCamera->eulerRotation = udMath_DirToYPR(-m_bookmarkCameraPosition) + m_bookmarkCameraRotation;
-  }
 }
 
 udDouble4x4 vcPOI::GetWorldSpaceMatrix()

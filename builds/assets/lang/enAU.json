@@ -402,10 +402,12 @@
 
   "scenePOICancelFlyThrough": "Cancel Fly Through",
   "scenePOIPerformFlyThrough": "Fly Camera Through All Points",
-  "scenePOIBookmarkMode": "Enable Bookmark Mode",
-  "scenePOISetBookmarkCamera": "Set Bookmark to Camera Position",
-  "scenePOICameraPosition": "Bookmark Position",
-  "scenePOICameraRotation": "Bookmark Rotation",
+  
+  "sceneViewpointSetCamera": "Set Viewpoint to Camera",
+  "sceneViewpointPosition": "Viewpoint Position",
+  "sceneViewpointRotation": "Viewpoint Rotation",
+  "sceneExplorerAddViewpoint": "Add Viewpoint",
+  "viewpointDefaultName": "Viewpoint",
 
   "liveFeedDefaultName": "Live Feed",
   "liveFeedUpdateFrequency": "Update frequency",
