@@ -511,7 +511,13 @@ void vcMain_MainLoop(vcState *pProgramState)
               {
                 vdkProjectNode *pNode = nullptr;
                 if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "UDS", nullptr, pNextLoad, nullptr) != vE_Success)
+                {
                   vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+                }
+                else if (firstLoad)
+                {
+                  udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+                }
                 continueLoading = true;
                 pProgramState->changeActiveDock = vcDocks_Scene;
               }
@@ -1509,12 +1515,21 @@ int vcMainMenuGui(vcState *pProgramState)
         if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr))
         {
           vcProject_RemoveAll(pProgramState);
+          bool moveTo = true;
 
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
           {
             vdkProjectNode *pNode = nullptr;
             if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "UDS", nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), nullptr) != vE_Success)
+            {
               vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+            }
+            else
+            {
+              if (moveTo)
+                udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+              moveTo = false;
+            }
           }
 
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("feeds").ArrayLength(); ++j)
