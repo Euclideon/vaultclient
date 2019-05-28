@@ -533,6 +533,10 @@ void vcMain_MainLoop(vcState *pProgramState)
                   pProgramState->sceneExplorer.pProjectRoot = new vcFolder(pNode, pProgramState);
                   pNode->pUserData = pProgramState->sceneExplorer.pProjectRoot;
                 }
+                else
+                {
+                  vcModals_OpenModal(pProgramState, vcMT_UnsupportedFile);
+                }
               }
 
               pProgramState->changeActiveDock = vcDocks_Scene;
