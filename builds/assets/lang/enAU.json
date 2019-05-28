@@ -349,13 +349,16 @@
   "sceneExplorerCancelButton": "Cancel",
   "sceneExplorerUnknownCustomNode": "This custom node type is unsupported in the current version of Euclideon Vault Client.",
 
-  "sceneExplorerErrorOpen": "Could not open the model, perhaps it is missing or you don't have permission to access it.",
-  "sceneExplorerErrorLoad": "Failed to load model",
   "sceneExplorerProjectChangeFailedTitle": "Change Failure!",
   "sceneExplorerProjectChangeFailedMessage": "Sorry, this change you requested to the project was unable to be completed.",
   "sceneExplorerProjectReadOnlyTitle": "Read Only!",
   "sceneExplorerProjectReadOnlyMessage": "The project you tried to modify is marked read only. You do not have permission to make changes.",
+  "sceneExplorerUnsupportedFilesTitle": "Unsupported Files",
+  "sceneExplorerUnsupportedFilesMessage": "The files you tried to add are currently unsupported by Euclideon Vault Client.",
   "sceneExplorerCloseButton": "Close",
+
+  "sceneExplorerErrorOpen": "Could not open the model, perhaps it is missing or you don't have permission to access it.",
+  "sceneExplorerErrorLoad": "Failed to load model",
   "sceneExplorerPending": "Pending",
   "sceneExplorerLoading": "Loading",
   "sceneExplorerPOIDefaultName": "Point of interest",
@@ -402,11 +405,11 @@
 
   "scenePOICancelFlyThrough": "Cancel Fly Through",
   "scenePOIPerformFlyThrough": "Fly Camera Through All Points",
-  
+
   "sceneViewpointSetCamera": "Set Viewpoint to Camera",
   "sceneViewpointPosition": "Viewpoint Position",
   "sceneViewpointRotation": "Viewpoint Rotation",
-  "sceneExplorerAddViewpoint": "Add Viewpoint",
+  "sceneExplorerAddViewpoint": "Save Current Camera",
   "viewpointDefaultName": "Viewpoint",
 
   "liveFeedDefaultName": "Live Feed",

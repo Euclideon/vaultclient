@@ -7,7 +7,7 @@
 
 #include "imgui.h"
 
-bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char *pKeyCode, const vcMenuBarButtonIcon buttonIndex, vcMenuBarButtonGap gap, bool selected /*= false*/)
+bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char *pKeyCode, const vcMenuBarButtonIcon buttonIndex, vcMenuBarButtonGap gap, bool selected /*= false*/, float scale /*= 1.f*/)
 {
   const float buttonSize = 24.f;
   const float textureRelativeButtonSize = 256.f;
@@ -30,9 +30,10 @@ bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char 
 
   ImGui::PushID(pButtonName);
   if (pUITexture != nullptr)
-    retVal = ImGui::ImageButton(pUITexture, ImVec2(buttonSize, buttonSize), ImVec2(buttonX, buttonY), ImVec2(buttonX + buttonUVSize, buttonY + buttonUVSize), 2, selected ? EnabledColor : DefaultBGColor);
+    retVal = ImGui::ImageButton(pUITexture, ImVec2(buttonSize * scale, buttonSize * scale), ImVec2(buttonX, buttonY), ImVec2(buttonX + buttonUVSize, buttonY + buttonUVSize), 2, selected ? EnabledColor : DefaultBGColor);
   else
-    retVal = ImGui::Button(udTempStr("?###%s", pButtonName), ImVec2(buttonSize, buttonSize));
+    retVal = ImGui::Button(udTempStr("?###%s", pButtonName), ImVec2(buttonSize * scale, buttonSize * scale));
+
   if (vcIGSW_IsItemHovered())
   {
     if (pKeyCode == nullptr)

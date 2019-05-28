@@ -21,6 +21,8 @@ enum vcMenuBarButtonIcon
   vcMBBI_AddFolder = 14,
   vcMBBI_Remove = 15,
   vcMBBI_AddOther = 16,
+  vcMBBI_SaveViewport = 17,
+  vcMBBI_Settings = 18,
 
   // Reserved 17-19
 
@@ -54,6 +56,6 @@ enum vcMenuBarButtonGap
 
 struct vcTexture;
 
-bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char *pKeyCode, const vcMenuBarButtonIcon buttonIndex, vcMenuBarButtonGap gap, bool selected = false);
+bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char *pKeyCode, const vcMenuBarButtonIcon buttonIndex, vcMenuBarButtonGap gap, bool selected = false, float scale = 1.f);
 
 #endif //vcMenuButtons_h__
