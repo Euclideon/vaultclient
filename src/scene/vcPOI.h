@@ -50,7 +50,7 @@ private:
   const char *m_pLabelText;
 
 public:
-  vcPOI(vdkProjectNode *pNode);
+  vcPOI(vdkProjectNode *pNode, vcState *pProgramState);
   ~vcPOI() {};
 
   void OnNodeUpdate() {};
