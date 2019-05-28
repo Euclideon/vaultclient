@@ -41,6 +41,14 @@ vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
     memcpy(m_line.pPoints, m_pNode->pCoordinates, sizeof(udDouble3)*m_line.numPoints);
   }
 
+  //TODO: Handle PreferredProjection
+  if (pProgramState->gis.isProjected)
+  {
+    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+    memcpy(m_pCurrentProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
+    m_line.pPoints[0] = udGeoZone_ToCartesian(*m_pCurrentProjection, m_line.pPoints[0], true);
+  }
+
   m_pLabelText = nullptr;
 
   m_pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
@@ -52,6 +60,7 @@ vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
   m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
 
   m_pFence = nullptr;
+
   UpdatePoints();
 
   m_loadStatus = vcSLS_Loaded;
@@ -264,7 +273,7 @@ void vcPOI::AddPoint(const udDouble3 &position)
   udDouble3 *pNewPoints = udAllocType(udDouble3, m_line.numPoints + 1, udAF_Zero);
 
   memcpy(pNewPoints, m_line.pPoints, sizeof(udDouble3) * m_line.numPoints);
-  pNewPoints[m_line.numPoints] = position;
+  pNewPoints[m_line.numPoints] = (m_pCurrentProjection == nullptr) ? position : udGeoZone_ToCartesian(*m_pCurrentProjection, position, true);
   udFree(m_line.pPoints);
   m_line.pPoints = pNewPoints;
 
@@ -286,11 +295,21 @@ void vcPOI::RemovePoint(int index)
 void vcPOI::ChangeProjection(const udGeoZone &newZone)
 {
   if (m_pCurrentProjection == nullptr)
+  {
+    // If POI has no current projection, assign it this new one
     m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+    memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
 
-  // Change all points in the POI to the new projection
-  for (int i = 0; i < m_line.numPoints; ++i)
-    m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, ((udDouble3*)m_pNode->pCoordinates)[i], true);
+    // Change coords from non-GIS to longlat within the new zone
+    for (int i = 0; i < m_line.numPoints; ++i)
+      m_line.pPoints[i] = udGeoZone_ToLatLong(newZone, ((udDouble3*)m_pNode->pCoordinates)[i], true);
+  }
+  else if (m_pCurrentProjection->srid != newZone.srid)
+  {
+    // Change all points in the POI to the new projection, if it's different
+    for (int i = 0; i < m_line.numPoints; ++i)
+      m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, ((udDouble3*)m_pNode->pCoordinates)[i], true);
+  }
 
   UpdatePoints();
 

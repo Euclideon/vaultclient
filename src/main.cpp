@@ -1259,9 +1259,13 @@ void vcRenderSceneWindow(vcState *pProgramState)
     if (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext"))
     {
       static bool hadMouse = false;
+      static udDouble3 mousePosLongLat;
 
       if (!wasOpenLastFrame || ImGui::IsMouseClicked(1))
+      {
         hadMouse = pProgramState->pickingSuccess;
+        mousePosLongLat = pProgramState->worldMousePosLongLat;
+      }
 
       if (hadMouse)
       {
@@ -1273,7 +1277,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
             vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
 
             if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
-              pPOI->AddPoint(pProgramState->worldMousePos);
+              pPOI->AddPoint(mousePosLongLat);
           }
         }
 
@@ -1283,7 +1287,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
           {
             vdkProjectNode *pNode = nullptr;
             if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOIDefaultName"), nullptr, nullptr) == vE_Success)
-              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &pProgramState->worldMousePosLongLat.x);
+              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
 
             ImGui::CloseCurrentPopup();
           }
@@ -1294,7 +1298,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
             vdkProjectNode *pNode = nullptr;
             if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
             {
-              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, 1, &pProgramState->worldMousePosLongLat.x);
+              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, 1, &mousePosLongLat.x);
               udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
             }
 
@@ -1305,9 +1309,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
             vcProject_ClearSelection(pProgramState);
 
             vdkProjectNode *pNode = nullptr;
-            if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr))
+            if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == vE_Success)
             {
-              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_LineString, 1, &pProgramState->worldMousePosLongLat.x);
+              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_LineString, 1, &mousePosLongLat.x);
               udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
             }
 
@@ -1421,7 +1425,18 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.images.Deinit();
   renderData.sceneLayers.Deinit();
 
-  pProgramState->worldMousePosLongLat = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->worldMousePos, true);
+  // Can only assign longlat positions in projected space
+  if (pProgramState->gis.isProjected)
+  {
+    pProgramState->worldMousePosLongLat = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->worldMousePos, true);
+    pProgramState->pCamera->positionInLongLat = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->pCamera->position, true);
+  }
+  else
+  {
+    pProgramState->worldMousePosLongLat = pProgramState->worldMousePos;
+    pProgramState->pCamera->positionInLongLat = pProgramState->pCamera->position;
+  }
+
   pProgramState->previousWorldMousePos = renderData.worldMousePos;
   pProgramState->previousPickingSuccess = renderData.pickingSuccess;
   pProgramState->pSceneWatermark = renderData.pWatermarkTexture;
@@ -1963,7 +1978,7 @@ void vcRenderWindow(vcState *pProgramState)
               vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
 
               if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
-                pPOI->AddPoint(pProgramState->pCamera->position);
+                pPOI->AddPoint(pProgramState->pCamera->positionInLongLat);
             }
           }
 
