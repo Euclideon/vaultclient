@@ -2,6 +2,21 @@
 
 ## Changelist
 
+- Version 0.3.0
+  - Added:
+    - Login Screen
+      - `loginUserAgent`, `loginSelectUserAgent`
+    - Convert
+      - `convertWriteFailed`, `convertParseError`, `convertImageParseError`, `convertNoFile`
+    - Project Menu & Modals
+      - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`
+    - Scene Explorer
+      - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`
+  - Removed:
+    - Project Menu & Modals
+      - `menuImport`, `menuImportUDP`, `menuImportUDPTitle`
+    - Scene Explorer
+      - `sceneExplorerNotImplementedTitle`, `sceneExplorerNotImplementedMessage`, `sceneExplorerNotImplementedCloseButton`, `scenePOIBookmarkMode`, `scenePOISetBookmarkCamera`, `scenePOICameraPosition`, `scenePOICameraRotation`
 - Version 0.2.3
   - Added:
     - Login Screen
@@ -91,6 +106,8 @@ Modules are currently:
 - `loginProxyAddress`: Label for the proxy address field
 - `loginProxyAutodetect`: Label for the checkbox that attempts to find a proxy automatically
 - `loginProxyTest`: Used on the button that tests the proxy details are correct
+- `loginUserAgent`: Used on the label for the 'fake' user agent provided to servers when communicating
+- `loginSelectUserAgent`: Label on the drop down for embedded fake user agents
 - `loginSupportIssueTracker`: Displayed on the login page to direct the user to the Euclideon public issue tracker (is a hyperlink to the webpage)
   - {0} is the issue tracker web address
   - {1} is the issue tracker host name
@@ -332,6 +349,10 @@ Modules are currently:
 - `menuSettings`: Option in Windows menu to enable the Settings tab
 - `menuProjects`: Header for Projects menu
 - `menuNewScene`: Option in Projects menu to remove all objects in the current scene and creating a new, empty scene
+- `menuProjectExport`: Menu button to open the export project modal
+- `menuProjectExportTitle`: Title on the modal when exporting project files
+- `menuProjectImport`: Menu button to open the import project modal
+- `menuProjectImportTitle`: Title on modal when importing a project file (UDP or JSON files)
 - `menuLogout`: Logout option in System menu, logs the user out and opens the logout window
 - `menuLogoutTitle`: Title of logout window
 - `menuLogoutMessage`: Message displayed in logout window, informs the user that they have been logged out
@@ -450,11 +471,19 @@ Modules are currently:
 - `sceneExplorerPathURL`: Label next to the text box containing the path of the currently selected file
 - `sceneExplorerLoadButton`: Label used for the Load button in the Add UDS window which loads the currently selected file and closes the window
 - `sceneExplorerCancelButton`: Label used for the Close button of the Add UDS window
+- `sceneExplorerUnknownCustomNode`: Label used when unsupported nodes are loaded from a project
+
+- `sceneExplorerProjectChangeFailedTitle`: Title of modal when a change to the project fails
+- `sceneExplorerProjectChangeFailedMessage`: Body of modal that appears when a change to a project fails
+- `sceneExplorerProjectReadOnlyTitle`: Title of modal when a change to the project fails because its read only
+- `sceneExplorerProjectReadOnlyMessage`: Body of modal that appears when a change to a project fails becaues its read only
+- `sceneExplorerUnsupportedFilesTitle`: Title of modal that appears when the user added unsupported files
+- `sceneExplorerUnsupportedFilesMessage`: Body of modal that appears when the user added unsupported files
+
+- `sceneExplorerCloseButton`: Label on button used when closing a modal
+
 - `sceneExplorerErrorOpen`: Tooltip displayed when mouse is hovered over the warning next to a scene item in the Scene Explorer that vault client was unable to open or access
 - `sceneExplorerErrorLoad`: Tooltip displayed when mouse is hovered over the warning next to a scene item in the Scene Explorer that vault client was unable to fully load
-- `sceneExplorerNotImplementedTitle`: Title used for the Not Implemented window
-- `sceneExplorerNotImplementedMessage`: Message diplayed in the Not Implemented window, which is shown when a vault client feature has not been completed yet
-- `sceneExplorerNotImplementedCloseButton`: Label used on the close button in the Not Implemented window
 - `sceneExplorerPending`: Tooltip displayed when mouse is hovered over the alert next to a scene item in the Scene Explorer that vault client has not opened yet
 - `sceneExplorerLoading`: Tooltip displayed when mouse is hovered over the alert next to a scene item in the Scene Explorer that vault client has not fully loaded yet
 - `sceneExplorerFolderDefaultName`: Default name of new folders when they are added to the Scene Explorer
@@ -497,12 +526,15 @@ Modules are currently:
 - `scenePOILineOrientationHorz`: Text on the drop down item for the "Horizontal / Path" orientation
 - `scenePOICancelFlyThrough`: Label for button that appears during fly-through, allows user to cancel the fly-through
 - `scenePOIPerformFlyThrough`: Label for button that appears when POI has multiple nodes, will trigger a fly-through
-- `scenePOIBookmarkMode`: Label for checkbox that appears under POI settings that toggles bookmark mode
-- `scenePOISetBookmarkCamera`: Label for button that bookmarks the current camera position and orientation
-- `scenePOICameraPosition`: Label for displaying the current bookmarked camera position
-- `scenePOICameraRotation`: Label for displaying the current bookmarked camera orientation
+
+- `sceneViewpointSetCamera`: Label for button that bookmarks the current camera position and orientation
+- `sceneViewpointPosition`: Label for displaying the current stored camera position
+- `sceneViewpointRotation`: Label for displaying the current stored camera orientation
+- `sceneExplorerAddViewpoint`: Label used on tooltip when adding a viewpoint node
+- `viewpointDefaultName`: Default name for stored camera positions added to the scene explorer
 
 #### Live Feeds
+- `liveFeedDefaultName`: Default name for live feed nodes added to the scene explorer
 - `liveFeedUpdateFrequency`: Used on label for how many seconds delay between updates
 - `liveFeedMaxDisplayTime`: Used on the label for how many seconds to display an item before hiding it
 - `liveFeedDisplayDistance`: Label on slider for Maximum distance to display an item before it gets hidden

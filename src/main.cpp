@@ -1957,29 +1957,17 @@ void vcRenderWindow(vcState *pProgramState)
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddUDS"), vcString::Get("sceneExplorerAddUDSKey"), vcMBBI_AddPointCloud, vcMBBG_FirstItem) || (ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeysDown[SDL_SCANCODE_U]))
           vcModals_OpenModal(pProgramState, vcMT_AddUDS);
 
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddPOI"), nullptr, vcMBBI_AddPointOfInterest, vcMBBG_SameGroup))
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
         {
           vdkProjectNode *pNode = nullptr;
-          if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOIDefaultName"), nullptr, nullptr) == vE_Success)
-            vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &pProgramState->pCamera->positionInLongLat.x);
+          if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "Folder", vcString::Get("sceneExplorerFolderDefaultName"), nullptr, nullptr) != vE_Success)
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
         }
 
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddAOI"), nullptr, vcMBBI_AddAreaOfInterest, vcMBBG_SameGroup))
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddViewpoint"), nullptr, vcMBBI_SaveViewport, vcMBBG_SameGroup))
         {
-          vcProject_ClearSelection(pProgramState);
-
-          vdkProjectNode *pNode = nullptr;
-          if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
-            vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, 1, &pProgramState->pCamera->positionInLongLat.x);
-        }
-
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddLine"), nullptr, vcMBBI_AddLines, vcMBBG_SameGroup))
-        {
-          vcProject_ClearSelection(pProgramState);
-
-          vdkProjectNode *pNode = nullptr;
-          if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == vE_Success)
-            vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_LineString, 1, &pProgramState->pCamera->positionInLongLat.x);
+          if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, nullptr, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr))
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
         }
 
         vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddOther"), nullptr, vcMBBI_AddOther, vcMBBG_SameGroup);
@@ -2003,20 +1991,7 @@ void vcRenderWindow(vcState *pProgramState)
               vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
           }
 
-          if (ImGui::MenuItem(vcString::Get("sceneExplorerAddViewpoint"), nullptr, nullptr))
-          {
-            if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, nullptr, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr))
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
-          }
-
           ImGui::EndPopup();
-        }
-
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
-        {
-          vdkProjectNode *pNode = nullptr;
-          if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "Folder", vcString::Get("sceneExplorerFolderDefaultName"), nullptr, nullptr) != vE_Success)
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
         }
 
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerRemove"), vcString::Get("sceneExplorerRemoveKey"), vcMBBI_Remove, vcMBBG_NewGroup) || (ImGui::GetIO().KeysDown[SDL_SCANCODE_DELETE] && !ImGui::IsAnyItemActive()))
