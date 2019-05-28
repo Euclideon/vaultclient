@@ -15,6 +15,7 @@ vdkProjectNode* vcSceneItem_CreateNodeInProject(vdkProject *pProject, const char
 }
 
 vcSceneItem::vcSceneItem(vdkProjectNode *pNode) :
+  m_pProject(nullptr),
   m_loadStatus(0),
   m_visible(true),
   m_selected(false),
@@ -22,8 +23,7 @@ vcSceneItem::vcSceneItem(vdkProjectNode *pNode) :
   m_editName(false),
   m_moved(false),
   m_pPreferredProjection(nullptr),
-  m_pCurrentProjection(nullptr),
-  m_pProject(nullptr)
+  m_pCurrentProjection(nullptr)
 {
   m_metadata.SetVoid();
   m_pNode = pNode;
