@@ -52,7 +52,7 @@ struct vcTileRenderer
   struct vcTileCache
   {
     volatile bool keepLoading;
-    udThread *pThreads[4];
+    udThread *pThreads[8];
     udSemaphore *pSemaphore;
     udMutex *pMutex;
     udChunkedArray<vcQuadTreeNode*> tileLoadList;
@@ -247,7 +247,7 @@ void vcTileRenderer_LoadThread(void *pThreadData)
         downloadingFromServer = false;
       }
 
-      bool failedLoad = false;
+      udResult result = udR_Failure_;
       void *pFileData = nullptr;
       int64_t fileLen = -1;
       int width = 0;
@@ -255,31 +255,35 @@ void vcTileRenderer_LoadThread(void *pThreadData)
       int channelCount = 0;
       uint8_t *pData = nullptr;
 
-      udResult requestResult = udFile_Load(pTileURL, &pFileData, &fileLen);
-      if (requestResult != udR_Success || fileLen == 0)
-        failedLoad = true; // Failed to load tile from somewhere (server or local cache)
+      UD_ERROR_CHECK(udFile_Load(pTileURL, &pFileData, &fileLen));
+      UD_ERROR_IF(fileLen == 0, udR_InternalError);
 
       // Node has been invalidated since download started
       if (!pBestNode->touched)
       {
         // TODO: Put into LRU texture cache (but for now just throw it out)
         pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
-        goto epilogue;
+
+        // Even though the node is now invalid - since we the data, it may be put into local disk cache
+        UD_ERROR_SET(udR_Success);
       }
 
-      if (fileLen > 0)
-      {
-        pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
-        if (pData == nullptr)
-        {
-          // Failed to load tile from memory (unexpected format? corruption?)
-          failedLoad = true;
-        }
-      }
+      pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
+      UD_ERROR_NULL(pData, udR_InternalError);
 
-      if (failedLoad)
+      pBestNode->renderInfo.transparency = 0.0f;
+      pBestNode->renderInfo.width = width;
+      pBestNode->renderInfo.height = height;
+      pBestNode->renderInfo.pData = udMemDup(pData, sizeof(uint32_t)*width*height, 0, udAF_None);
+
+      pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Downloaded;
+
+epilogue:
+
+      if (result != udR_Success)
       {
-        if (requestResult == udR_Pending)
+        pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Failed;
+        if (result == udR_Pending)
         {
           pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_InQueue;
 
@@ -296,22 +300,7 @@ void vcTileRenderer_LoadThread(void *pThreadData)
           }
           udReleaseMutex(pCache->pMutex);
         }
-        else
-        {
-          pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Failed;
-        }
-        goto epilogue;
       }
-
-      pBestNode->renderInfo.transparency = 0.0f;
-      pBestNode->renderInfo.width = width;
-      pBestNode->renderInfo.height = height;
-
-      pBestNode->renderInfo.pData = udMemDup(pData, sizeof(uint32_t)*width*height, 0, udAF_None);
-
-      pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Downloaded;
-
-epilogue:
 
       // This functionality here for now until the cache module is implemented
       if (pFileData && fileLen > 0 && downloadingFromServer && pCache->keepLoading)
@@ -546,7 +535,7 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
     }
   }
 
-  // Note: these are inserted into ascending order
+  // Note: this is a FIFO queue, so only need to check the head
   while (pTileRenderer->cache.tileTimeoutList.length > 0)
   {
     vcQuadTreeNode *pNode = pTileRenderer->cache.tileTimeoutList[0];

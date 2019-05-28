@@ -631,14 +631,11 @@ epilogue:
 
 udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode, bool force = false)
 {
-  udUnused(force);
-
   udResult result;
-  bool uploadsCompleted = true;
 
   // TODO: (EVC-553)
-  if (!force && pSceneLayer->gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame)//  !vcGLState_IsGPUDataUploadAllowed())
-    return udR_Success;
+  if (!force && pSceneLayer->gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame)
+    UD_ERROR_SET(udR_Success);
 
   // geometry
   for (size_t i = 0; i < pNode->geometryDataCount; ++i)
@@ -647,11 +644,8 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
       continue;
 
     // TODO: (EVC-553) Let `vcPolygonModel_CreateFromData()` handle this?
-    if (!force && pSceneLayer->gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame)//!vcGLState_IsGPUDataUploadAllowed()) // allow partial uploads
-    {
-      uploadsCompleted = false;
-      break;
-    }
+    if (!force && pSceneLayer->gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame) // allow partial uploads
+      UD_ERROR_SET(udR_Success);
 
     UD_ERROR_IF(pNode->pGeometryData[i].vertCount > UINT16_MAX, udR_Failure_);
     UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&pNode->pGeometryData[i].pModel, pNode->pGeometryData[i].pData, (uint16_t)pNode->pGeometryData[i].vertCount, pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount));
@@ -669,14 +663,11 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
       continue;
 
     // TODO: (EVC-553) Let `vcTexture_Create()` handle this?
-    if (!force && pSceneLayer->gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame)//!vcGLState_IsGPUDataUploadAllowed()) // allow partial uploads
-    {
-      uploadsCompleted = false;
-      break;
-    }
+    if (!force && pSceneLayer->gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame) // allow partial uploads
+      UD_ERROR_SET(udR_Success);
 
     // Making an assumption here, use mip maps for 'flat' hierarchies
-    bool useMips = pNode->level <= 2;
+    bool useMips = (pNode->level <= 2);
     UD_ERROR_CHECK(vcTexture_Create(&pNode->pTextureData[i].pTexture, pNode->pTextureData[i].width, pNode->pTextureData[i].height, pNode->pTextureData[i].pData, vcTextureFormat_RGBA8, vcTFM_Linear, useMips));
     udFree(pNode->pTextureData[i].pData);
 
@@ -685,9 +676,7 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
     pSceneLayer->gpuBytesUploadedThisFrame += (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4);
   }
 
-  if (uploadsCompleted)
-    pNode->loadState = vcSceneLayerNode::vcLS_Success;
-
+  pNode->loadState = vcSceneLayerNode::vcLS_Success;
   result = udR_Success;
 
 epilogue:
