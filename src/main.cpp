@@ -557,7 +557,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                 const vcSceneItemRef &clicked = pProgramState->sceneExplorer.clickedItem;
                 if (clicked.pParent != nullptr && clicked.pItem->itemtype == vdkPNT_Media)
                 {
-                  vdkProjectNode_SetMetadataString(clicked.pItem, "imageurl", pNextLoad);
+                  vdkProjectNode_SetURI(pProgramState->sceneExplorer.pProject, clicked.pItem, pNextLoad);
                 }
                 else
                 {
@@ -608,7 +608,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
 
                   vdkProjectNode *pNode = nullptr;
-                  if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "Media", loadFile.GetFilenameWithExt(), nullptr, nullptr) == vE_Success)
+                  if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "Media", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) == vE_Success)
                   {
                     if (hasLocation && pProgramState->gis.isProjected)
                       vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &geolocation.x);
@@ -617,7 +617,6 @@ void vcMain_MainLoop(vcState *pProgramState)
                     else
                       vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &pProgramState->pCamera->positionInLongLat.x);
 
-                    vdkProjectNode_SetMetadataString(pNode, "imageurl", pNextLoad);
                     if (imageType == vcIT_PhotoSphere)
                       vdkProjectNode_SetMetadataString(pNode, "imagetype", "photosphere");
                     else if (imageType == vcIT_Panorama)

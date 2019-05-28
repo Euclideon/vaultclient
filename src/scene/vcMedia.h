@@ -16,8 +16,7 @@ struct vcState;
 class vcMedia : public vcSceneItem
 {
 public:
-  vcImageRenderInfo *m_pImage;
-  udDouble3 m_worldPosition;
+  vcImageRenderInfo m_image;
 
   vcMedia(vdkProjectNode *pNode);
   ~vcMedia();
