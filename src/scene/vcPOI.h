@@ -49,7 +49,7 @@ public:
   vcPOI(vdkProjectNode *pNode, vcState *pProgramState);
   ~vcPOI() {};
 
-  void OnNodeUpdate() {};
+  void OnNodeUpdate();
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
