@@ -325,6 +325,9 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
   ImGui::NextColumn();
 
+  // Prevent this column from being resized
+  ImGui::GetCurrentWindow()->DC.CurrentColumns->Columns[1].Flags |= ImGuiWindowFlags_NoResize;
+
   if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled) && ImGui::Button(vcString::Get("convertBeginConvert"), ImVec2(-1, 50)))
   {
     if (pSelectedJob->status == vcCQS_Cancelled)
@@ -517,6 +520,9 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
         ImGui::TextUnformatted(itemInfo.pFilename);
         ImGui::NextColumn();
+
+        // Prevent this column from being resized
+        ImGui::GetCurrentWindow()->DC.CurrentColumns->Columns[1].Flags |= ImGuiWindowFlags_NoResize;
 
         const char *ptCountStrings[] = { udCommaInt(itemInfo.pointsCount), udCommaInt(itemInfo.pointsRead) };
 
