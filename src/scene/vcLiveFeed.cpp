@@ -312,10 +312,19 @@ vcLiveFeed::vcLiveFeed(vdkProjectNode *pNode, vcState *pProgramState) :
   m_feedItems.Init(512);
   m_polygonModels.Init(16);
 
-  m_loadStatus = vcSLS_Pending;
+  OnNodeUpdate();
 
+  m_loadStatus = vcSLS_Pending;
+}
+
+void vcLiveFeed::OnNodeUpdate()
+{
   const char *pGroupID = nullptr;
-  if (vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pGroupID, nullptr) == vE_Success)
+
+  m_updateMode = vcLFM_Camera;
+  vUUID_Clear(&m_groupID);
+
+  if (vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pGroupID, nullptr) == vE_Success && pGroupID != nullptr)
   {
     m_updateMode = vcLFM_Group;
     vUUID_SetFromString(&m_groupID, pGroupID);
@@ -325,10 +334,11 @@ vcLiveFeed::vcLiveFeed(vdkProjectNode *pNode, vcState *pProgramState) :
     m_updateMode = vcLFM_Position;
     m_position = udDouble3::create(m_pNode->pCoordinates[0], m_pNode->pCoordinates[1], m_pNode->pCoordinates[2]);
   }
-  else
-  {
-    vUUID_Clear(&m_groupID);
-  }
+
+  vdkProjectNode_GetMetadataDouble(m_pNode, "updateFrequency", &m_updateFrequency, 30.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayTime", &m_decayFrequency, 30.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayDistance", &m_maxDisplayDistance, 50000.0);
+  vdkProjectNode_GetMetadataBool(m_pNode, "tweenEnabled", &m_tweenPositionAndOrientation, true);
 }
 
 void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -477,7 +487,10 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     const double updateFrequencyMaxValue = 300.0;
 
     if (ImGui::SliderScalar(vcString::Get("liveFeedUpdateFrequency"), ImGuiDataType_Double, &m_updateFrequency, &updateFrequencyMinValue, &updateFrequencyMaxValue, "%.0f s"))
+    {
       m_updateFrequency = udClamp(m_updateFrequency, updateFrequencyMinValue, updateFrequencyMaxValue);
+      vdkProjectNode_SetMetadataDouble(m_pNode, "updateFrequency", m_updateFrequency);
+    }
   }
 
   // Decay Frequency
@@ -488,6 +501,7 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     if (ImGui::SliderScalar(vcString::Get("liveFeedMaxDisplayTime"), ImGuiDataType_Double, &m_decayFrequency, &decayFrequencyMinValue, &decayFrequencyMaxValue, "%.0f s", 4.f))
     {
       m_decayFrequency = udClamp(m_decayFrequency, decayFrequencyMinValue, decayFrequencyMaxValue);
+      vdkProjectNode_SetMetadataDouble(m_pNode, "maxDisplayTime", m_decayFrequency);
 
       double recently = vcTime_GetEpochSecsF() - m_decayFrequency;
 
@@ -498,6 +512,7 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
         vcLiveFeedItem *pFeedItem = m_feedItems[i];
         pFeedItem->visible = (pFeedItem->lastUpdated > recently);
       }
+
       udReleaseMutex(m_pMutex);
     }
 
@@ -507,11 +522,15 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
       const double displayDistanceMaxValue = 100000.0;
 
       if (ImGui::SliderScalar(vcString::Get("liveFeedDisplayDistance"), ImGuiDataType_Double, &m_maxDisplayDistance, &displayDistanceMinValue, &displayDistanceMaxValue, "%.0f", 3.f))
+      {
         m_maxDisplayDistance = udClamp(m_maxDisplayDistance, displayDistanceMinValue, displayDistanceMaxValue);
+        vdkProjectNode_SetMetadataDouble(m_pNode, "maxDisplayDistance", m_maxDisplayDistance);
+      }
     }
 
     // Tween
-    ImGui::Checkbox(vcString::Get("liveFeedTween"), &m_tweenPositionAndOrientation);
+    if (ImGui::Checkbox(vcString::Get("liveFeedTween"), &m_tweenPositionAndOrientation))
+      vdkProjectNode_SetMetadataBool(m_pNode, "tweenEnabled", m_tweenPositionAndOrientation);
 
     const char *feedModeOptions[] = { vcString::Get("liveFeedModeGroups"), vcString::Get("liveFeedModePosition"), vcString::Get("liveFeedModeCamera") };
     if (ImGui::Combo(vcString::Get("liveFeedMode"), (int*)&m_updateMode, feedModeOptions, (int)udLengthOf(feedModeOptions)))
