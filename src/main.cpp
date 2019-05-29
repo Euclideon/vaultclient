@@ -1640,9 +1640,8 @@ void vcRenderWindow(vcState *pProgramState)
     ImGui::SetNextWindowBgAlpha(0.f);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
     ImGui::Begin("RootDockContainer", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoSavedSettings);
-    ImGui::PopStyleVar(2);
+    ImGui::PopStyleVar();
     ImGui::DockSpace(pProgramState->settings.rootDock, ImVec2(size.x, size.y - margin));
     ImGui::End();
   }
@@ -2051,11 +2050,13 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
         ImGui::SetNextWindowPos(ImVec2(0, 0));
 
-        if (ImGui::Begin(udTempStr("%s###scenePresentation", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
+        bool sceneWindow = ImGui::Begin(udTempStr("%s###scenePresentation", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus);
+        ImGui::PopStyleVar();
+
+        if (sceneWindow)
           vcRenderSceneWindow(pProgramState);
 
         ImGui::End();
-        ImGui::PopStyleVar();
       }
     }
 
@@ -2261,12 +2262,8 @@ void vcRenderWindow(vcState *pProgramState)
 
           if (pProgramState->settings.visualization.mode == vcVM_Intensity)
           {
-            // Temporary until https://github.com/ocornut/imgui/issues/467 is resolved, then use commented out code below
-            float temp[] = { (float)pProgramState->settings.visualization.minIntensity, (float)pProgramState->settings.visualization.maxIntensity };
-            ImGui::SliderFloat(vcString::Get("settingsVisMinIntensity"), &temp[0], vcSL_IntensityMin, temp[1], "%.0f", 4.f);
-            ImGui::SliderFloat(vcString::Get("settingsVisMaxIntensity"), &temp[1], temp[0], vcSL_IntensityMax, "%.0f", 4.f);
-            pProgramState->settings.visualization.minIntensity = (int)udClamp(temp[0], vcSL_IntensityMin, vcSL_IntensityMax);
-            pProgramState->settings.visualization.maxIntensity = (int)udClamp(temp[1], vcSL_IntensityMin, vcSL_IntensityMax);
+            vcIGSW_StickyIntSlider(vcString::Get("settingsVisMinIntensity"), &pProgramState->settings.visualization.minIntensity, (int)vcSL_IntensityMin, pProgramState->settings.visualization.maxIntensity, 255);
+            vcIGSW_StickyIntSlider(vcString::Get("settingsVisMaxIntensity"), &pProgramState->settings.visualization.maxIntensity, pProgramState->settings.visualization.minIntensity, (int)vcSL_IntensityMax, 255);
           }
 
           if (pProgramState->settings.visualization.mode == vcVM_Classification)

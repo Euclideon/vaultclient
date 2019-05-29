@@ -142,3 +142,22 @@ void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine 
       ImGui::SameLine();
   }
 }
+
+bool vcIGSW_StickyIntSlider(const char* label, int* v, int v_min, int v_max, int sticky)
+{
+  int stickThreshold = v_max / 500;
+
+  if (*v > (v_max - stickThreshold))
+    *v = v_max;
+  else if (*v < stickThreshold)
+    *v = v_min;
+  else if (*v >(sticky - stickThreshold) && *v < (sticky + stickThreshold))
+    *v = sticky;
+
+  if (ImGui::SliderInt(label, v, v_min, v_max, "%d"))
+  {
+    *v = udClamp(*v, v_min, v_max);
+    return true;
+  }
+  return false;
+}
