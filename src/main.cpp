@@ -1283,7 +1283,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
             vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
 
             // All nodes of a POI must be in the same projection space
-            if (((pPOI->m_pCurrentProjection == nullptr && !pProgramState->gis.isProjected) || pPOI->m_pCurrentProjection != nullptr && pPOI->m_pCurrentProjection->srid == pProgramState->gis.SRID) && ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
+            if (((pPOI->m_pCurrentProjection == nullptr && !pProgramState->gis.isProjected) || (pPOI->m_pCurrentProjection != nullptr && pPOI->m_pCurrentProjection->srid == pProgramState->gis.SRID) && ImGui::MenuItem(vcString::Get("scenePOIAddPoint"))))
               pPOI->AddPoint(mousePosLongLat);
           }
         }
