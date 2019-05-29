@@ -14,13 +14,15 @@ enum vcConvertQueueStatus
   vcCQS_Queued,
   vcCQS_QueuedPendingLicense,
   vcCQS_Running,
+
+  // Reusable jobs
+  vcCQS_NoFile,
   vcCQS_Completed,
   vcCQS_Cancelled,
   vcCQS_WriteFailed,
   vcCQS_ParseFailed,
   vcCQS_ImageParseFailed,
   vcCQS_Failed,
-  vcCQS_NoFile,
 
   vcCQS_Count
 };
@@ -30,6 +32,7 @@ struct vcConvertItem
   vdkConvertContext *pConvertContext;
   const vdkConvertInfo *pConvertInfo;
   volatile vcConvertQueueStatus status;
+  const char *pFilename;
   bool previewRequested;
 
   enum { vcCI_MetadataMaxLength = 256 };
