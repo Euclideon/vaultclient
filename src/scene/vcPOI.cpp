@@ -294,15 +294,29 @@ void vcPOI::RemovePoint(int index)
 
 void vcPOI::ChangeProjection(const udGeoZone &newZone)
 {
+  // If POI has no current projection and fits within this zone's bounds, assign it to this new zone
   if (m_pCurrentProjection == nullptr)
   {
-    // If POI has no current projection, assign it this new one
-    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-    memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
-
-    // Change coords from non-GIS to longlat within the new zone
+    bool withinBounds = true;
+    udDouble3 boundMin = udGeoZone_ToCartesian(newZone, udDouble3::create(newZone.latLongBoundMin, 1));
+    udDouble3 boundMax = udGeoZone_ToCartesian(newZone, udDouble3::create(newZone.latLongBoundMax, 1));
     for (int i = 0; i < m_line.numPoints; ++i)
-      m_line.pPoints[i] = udGeoZone_ToLatLong(newZone, ((udDouble3*)m_pNode->pCoordinates)[i], true);
+    {
+      if (m_line.pPoints[i].x < boundMin.x || m_line.pPoints[i].x > boundMax.x || m_line.pPoints[i].y < boundMin.y || m_line.pPoints[i].y > boundMax.y)
+      {
+        withinBounds = false;
+        break;
+      }
+    }
+    if (withinBounds)
+    {
+      m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+      memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
+
+      // Change coords from cartesian to longlat within the new zone, pPoints doesn't need to be changed
+      for (int i = 0; i < m_line.numPoints; ++i)
+        ((udDouble3*)m_pNode->pCoordinates)[i] = udGeoZone_ToLatLong(newZone, m_line.pPoints[i], true);
+    }
   }
   else if (m_pCurrentProjection->srid != newZone.srid)
   {
