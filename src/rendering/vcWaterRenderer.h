@@ -15,5 +15,4 @@ void vcWaterRenderer_ClearAllVolumes(vcWaterRenderer *pWaterRenderer);
 
 bool vcWaterRenderer_Render(vcWaterRenderer *pWaterRenderer, const udDouble4x4 &view, const udDouble4x4 &viewProjection, vcTexture *pSkyboxTexture, double deltaTime);
 
-
 #endif//vcWaterRenderer_h__
