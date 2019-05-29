@@ -475,6 +475,7 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
         vcQuadTreeNode *pParentNode = &pQuadTree->nodes.pPool[parentIndex];
         if (pParentNode->touched)
         {
+          // We have an ancestor that has no texture, or is fading
           if (!pParentNode->renderInfo.pTexture || pParentNode->renderInfo.fadingIn)
             return false;
 
@@ -484,7 +485,7 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
           return true;
 
         parentIndex = pParentNode->parentIndex;
-}
+      }
     }
 
     // case #2: its not a leaf node, it cannot be used for rendering BUT one of its descendents could be used for rendering

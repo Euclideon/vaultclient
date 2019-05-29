@@ -66,7 +66,7 @@ udResult vcWebFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags 
 
   UD_ERROR_IF(vdkWeb_RequestAdv(pFilename, options, &pData, &dataLength, &responseCode) != vE_Success, udR_OpenFailure);
 
-  // TODO: JIRA task to expand these
+  // TODO: (EVC-615) JIRA task to expand these
   if (responseCode == 403)
     UD_ERROR_SET(udR_NotAllowed);
   else if (responseCode == 503)
