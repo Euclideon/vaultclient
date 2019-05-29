@@ -63,8 +63,32 @@ vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
   m_pFence = nullptr;
 
   UpdatePoints();
+  OnNodeUpdate();
 
   m_loadStatus = vcSLS_Loaded;
+}
+
+void vcPOI::OnNodeUpdate()
+{
+  uint32_t tempUint;
+  double tempDouble;
+
+  vdkProjectNode_GetMetadataUint(m_pNode, "nameColour", &m_nameColour, 0xFFFFFFFF);
+  vdkProjectNode_GetMetadataUint(m_pNode, "backColour", &m_backColour, 0x7F000000);
+  vdkProjectNode_GetMetadataUint(m_pNode, "textSize", &tempUint, vcLFS_Medium);
+  m_pLabelInfo->textSize = (vcLabelFontSize)tempUint;
+  vdkProjectNode_GetMetadataUint(m_pNode, "showLength", &tempUint, 0);
+  m_showLength = (bool)tempUint;
+  vdkProjectNode_GetMetadataUint(m_pNode, "showArea", &tempUint, 0);
+  m_showArea = (bool)tempUint;
+  vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, 0xFFFFFFFF);
+  vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "lineWidth", (double*)&tempDouble, 1.0);
+  m_line.lineWidth = tempDouble;
+  vdkProjectNode_GetMetadataUint(m_pNode, "lineStyle", (uint32_t*)&tempUint, vcRRIM_Arrow);
+  m_line.lineStyle = (vcFenceRendererImageMode)tempUint;
+  vdkProjectNode_GetMetadataUint(m_pNode, "fenceMode", (uint32_t*)&tempUint, vcRRVM_Fence);
+  m_line.fenceMode = (vcFenceRendererVisualMode)tempUint;
 }
 
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -181,14 +205,23 @@ void vcPOI::UpdateProjectGeometry()
 void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   if (vcIGSW_ColorPickerU32(udTempStr("%s##POIColour%zu", vcString::Get("scenePOILabelColour"), *pItemID), &m_nameColour, ImGuiColorEditFlags_None))
+  {
     m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
+    vdkProjectNode_SetMetadataUint(m_pNode, "nameColour", m_nameColour);
+  }
 
   if (vcIGSW_ColorPickerU32(udTempStr("%s##POIBackColour%zu", vcString::Get("scenePOILabelBackgroundColour"), *pItemID), &m_backColour, ImGuiColorEditFlags_None))
+  {
     m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
+    vdkProjectNode_SetMetadataUint(m_pNode, "backColour", m_backColour);
+  }
 
   const char *labelSizeOptions[] = { vcString::Get("scenePOILabelSizeNormal"), vcString::Get("scenePOILabelSizeSmall"), vcString::Get("scenePOILabelSizeLarge") };
   if (ImGui::Combo(udTempStr("%s##POILabelSize%zu", vcString::Get("scenePOILabelSize"), *pItemID), (int*)&m_pLabelInfo->textSize, labelSizeOptions, (int)udLengthOf(labelSizeOptions)))
+  {
     UpdatePoints();
+    vdkProjectNode_SetMetadataUint(m_pNode, "textSize", (uint32_t)m_pLabelInfo->textSize);
+  }
 
   if (m_line.numPoints > 1)
   {
@@ -219,6 +252,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     {
       if (ImGui::InputScalarN(udTempStr("%s##POIPointPos%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_line.pPoints[m_line.selectedPoint].x, 3))
         UpdatePoints();
+
       if (ImGui::Button(vcString::Get("scenePOIRemovePoint")))
         RemovePoint(m_line.selectedPoint);
     }
@@ -226,30 +260,51 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     if (ImGui::TreeNode("%s##POILineSettings%zu", vcString::Get("scenePOILineSettings"), *pItemID))
     {
       if (ImGui::Checkbox(udTempStr("%s##POIShowLength%zu", vcString::Get("scenePOILineShowLength"), *pItemID), &m_showLength))
+      {
         UpdatePoints();
+        vdkProjectNode_SetMetadataUint(m_pNode, "showLength", (uint32_t)m_showLength);
+      }
 
       if (ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), *pItemID), &m_showArea))
+      {
         UpdatePoints();
+        vdkProjectNode_SetMetadataUint(m_pNode, "showArea", (uint32_t)m_showArea);
+      }
 
       if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOILineClosed"), *pItemID), &m_line.closed))
         UpdatePoints();
 
-      if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColorPrimary%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_line.colourPrimary, ImGuiColorEditFlags_None))
+      if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourPrimary%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_line.colourPrimary, ImGuiColorEditFlags_None))
+      {
         UpdatePoints();
+        vdkProjectNode_SetMetadataUint(m_pNode, "lineColourPrimary", m_line.colourPrimary);
+      }
 
-      if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColorSecondary%zu", vcString::Get("scenePOILineColour2"), *pItemID), &m_line.colourSecondary, ImGuiColorEditFlags_None))
+      if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineColour2"), *pItemID), &m_line.colourSecondary, ImGuiColorEditFlags_None))
+      {
         UpdatePoints();
+        vdkProjectNode_SetMetadataUint(m_pNode, "lineColourSecondary", m_line.colourSecondary);
+      }
 
-      if (ImGui::SliderFloat(udTempStr("%s##POILineColorSecondary%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_line.lineWidth, 0.01f, 1000.f, "%.2f", 3.f))
+      if (ImGui::SliderFloat(udTempStr("%s##POILineWidth%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_line.lineWidth, 0.01f, 1000.f, "%.2f", 3.f))
+      {
         UpdatePoints();
+        vdkProjectNode_SetMetadataDouble(m_pNode, "lineWidth", (double)m_line.lineWidth);
+      }
 
       const char *lineOptions[] = { vcString::Get("scenePOILineStyleArrow"), vcString::Get("scenePOILineStyleGlow"), vcString::Get("scenePOILineStyleSolid") };
-      if (ImGui::Combo(udTempStr("%s##POILineColorSecondary%zu", vcString::Get("scenePOILineStyle"), *pItemID), (int *)&m_line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
+      if (ImGui::Combo(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineStyle"), *pItemID), (int *)&m_line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
+      {
         UpdatePoints();
+        vdkProjectNode_SetMetadataUint(m_pNode, "lineStyle", (uint32_t)m_line.lineStyle);
+      }
 
       const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
       if (ImGui::Combo(udTempStr("%s##POIFenceStyle%zu", vcString::Get("scenePOILineOrientation"), *pItemID), (int *)&m_line.fenceMode, fenceOptions, (int)udLengthOf(fenceOptions)))
+      {
         UpdatePoints();
+        vdkProjectNode_SetMetadataUint(m_pNode, "fenceMode", (uint32_t)m_line.fenceMode);
+      }
 
       ImGui::TreePop();
     }
