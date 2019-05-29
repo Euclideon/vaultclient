@@ -1327,11 +1327,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
           ImGui::EndMenu();
         }
 
-        if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected && pProgramState->settings.maptiles.mapHeight != pProgramState->worldMousePos.z)
+        if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected && pProgramState->settings.maptiles.mapHeight != mousePosLongLat.z)
         {
           if (ImGui::MenuItem(vcString::Get("sceneSetMapHeight")))
           {
-            pProgramState->settings.maptiles.mapHeight = (float)pProgramState->worldMousePos.z;
+            pProgramState->settings.maptiles.mapHeight = (float)mousePosLongLat.z;
             ImGui::CloseCurrentPopup();
           }
         }
