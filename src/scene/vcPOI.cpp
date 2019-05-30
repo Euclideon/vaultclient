@@ -69,23 +69,39 @@ vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
 
 void vcPOI::OnNodeUpdate()
 {
-  uint32_t tempUint;
   double tempDouble;
+  const char *pTemp;
 
   vdkProjectNode_GetMetadataUint(m_pNode, "nameColour", &m_nameColour, 0xFFFFFFFF);
   vdkProjectNode_GetMetadataUint(m_pNode, "backColour", &m_backColour, 0x7F000000);
-  vdkProjectNode_GetMetadataUint(m_pNode, "textSize", &tempUint, vcLFS_Medium);
-  m_pLabelInfo->textSize = (vcLabelFontSize)tempUint;
+
+  vdkProjectNode_GetMetadataString(m_pNode, "textSize", &pTemp, "Medium");
+  if (udStrEquali(pTemp, "x-small") || udStrEquali(pTemp, "small"))
+    m_pLabelInfo->textSize = vcLFS_Small;
+  else if (udStrEquali(pTemp, "large") || udStrEquali(pTemp, "x-large"))
+    m_pLabelInfo->textSize = vcLFS_Large;
+  else
+    m_pLabelInfo->textSize = vcLFS_Medium;
+
   vdkProjectNode_GetMetadataBool(m_pNode, "showLength", &m_showLength, true);
   vdkProjectNode_GetMetadataBool(m_pNode, "showArea", &m_showArea, true);
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, 0xFFFFFFFF);
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
   vdkProjectNode_GetMetadataDouble(m_pNode, "lineWidth", (double*)&tempDouble, 1.0);
   m_line.lineWidth = tempDouble;
-  vdkProjectNode_GetMetadataUint(m_pNode, "lineStyle", (uint32_t*)&tempUint, vcRRIM_Arrow);
-  m_line.lineStyle = (vcFenceRendererImageMode)tempUint;
-  vdkProjectNode_GetMetadataUint(m_pNode, "fenceMode", (uint32_t*)&tempUint, vcRRVM_Fence);
-  m_line.fenceMode = (vcFenceRendererVisualMode)tempUint;
+
+  vdkProjectNode_GetMetadataString(m_pNode, "lineStyle", &pTemp, vcFRIMStrings[0]);
+  int i = 0;
+  for (; i < vcRRIM_Count; ++i)
+    if (udStrEquali(pTemp, vcFRIMStrings[i]))
+      break;
+  m_line.lineStyle = (vcFenceRendererImageMode)i;
+
+  vdkProjectNode_GetMetadataString(m_pNode, "lineMode", &pTemp, vcFRVMStrings[0]);
+  for (i = 0; i < vcRRVM_Count; ++i)
+    if (udStrEquali(pTemp, vcFRVMStrings[i]))
+      break;
+  m_line.fenceMode = (vcFenceRendererVisualMode)i;
 
   UpdatePoints();
 }
@@ -219,7 +235,20 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   if (ImGui::Combo(udTempStr("%s##POILabelSize%zu", vcString::Get("scenePOILabelSize"), *pItemID), (int*)&m_pLabelInfo->textSize, labelSizeOptions, (int)udLengthOf(labelSizeOptions)))
   {
     UpdatePoints();
-    vdkProjectNode_SetMetadataUint(m_pNode, "textSize", (uint32_t)m_pLabelInfo->textSize);
+    const char *pTemp;
+    switch (m_pLabelInfo->textSize)
+    {
+    case vcLFS_Small:
+      pTemp = "small";
+      break;
+    case vcLFS_Medium:
+      pTemp = "medium";
+      break;
+    case vcLFS_Large:
+      pTemp = "large";
+      break;
+    }
+    vdkProjectNode_SetMetadataString(m_pNode, "textSize", pTemp);
   }
 
   if (m_line.numPoints > 1)
@@ -295,14 +324,14 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       if (ImGui::Combo(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineStyle"), *pItemID), (int *)&m_line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
       {
         UpdatePoints();
-        vdkProjectNode_SetMetadataUint(m_pNode, "lineStyle", (uint32_t)m_line.lineStyle);
+        vdkProjectNode_SetMetadataString(m_pNode, "lineStyle", vcFRIMStrings[m_line.lineStyle]);
       }
 
       const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
       if (ImGui::Combo(udTempStr("%s##POIFenceStyle%zu", vcString::Get("scenePOILineOrientation"), *pItemID), (int *)&m_line.fenceMode, fenceOptions, (int)udLengthOf(fenceOptions)))
       {
         UpdatePoints();
-        vdkProjectNode_SetMetadataUint(m_pNode, "fenceMode", (uint32_t)m_line.fenceMode);
+        vdkProjectNode_SetMetadataString(m_pNode, "lineMode", vcFRVMStrings[m_line.fenceMode]);
       }
 
       ImGui::TreePop();
