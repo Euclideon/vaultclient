@@ -23,8 +23,20 @@ vcMedia::vcMedia(vdkProjectNode *pNode, vcState *pProgramState) :
   memset(&m_image, 0, sizeof(m_image));
   m_loadStatus = vcSLS_Loaded;
 
+  if (pNode->pCoordinates == nullptr)
+    pNode->pCoordinates = (double*)udAllocType(udDouble3, 1, udAF_Zero);
+
   if (pNode->geomCount == 1)
     m_image.position = ((udDouble3*)pNode->pCoordinates)[0];
+
+  if (pProgramState->gis.isProjected)
+  {
+    m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+    memcpy(m_pPreferredProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
+    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+    memcpy(m_pCurrentProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
+    m_image.position = udGeoZone_ToCartesian(*m_pCurrentProjection, m_image.position, true);
+  }
 }
 
 vcMedia::~vcMedia()
@@ -58,7 +70,11 @@ void vcMedia::OnNodeUpdate()
   }
 
   // Load this info from the node:
-  m_image.position = *(udDouble3*)m_pNode->pCoordinates;
+  if (m_pCurrentProjection == nullptr)
+    m_image.position = *(udDouble3*)m_pNode->pCoordinates;
+  else
+    m_image.position = udGeoZone_ToCartesian(*m_pCurrentProjection, *(udDouble3*)m_pNode->pCoordinates, true);
+
   m_image.ypr = udDouble3::zero();
   m_image.scale = udDouble3::one();
   m_image.colour = udFloat4::create(1.0f, 1.0f, 1.0f, 1.0f);
@@ -122,10 +138,17 @@ void vcMedia::HandleImGui(vcState *pProgramState, size_t *pItemID)
 void vcMedia::ChangeProjection(const udGeoZone &newZone)
 {
   if (m_pCurrentProjection == nullptr)
+  {
+    m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+    memcpy(m_pPreferredProjection, &newZone, sizeof(udGeoZone));
     m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-
-  // Change all points in the POI to the new projection
-  m_image.position = udGeoZone_ToCartesian(newZone, ((udDouble3*)m_pNode->pCoordinates)[0], true);
+    memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
+    *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(newZone, m_image.position, true);
+  }
+  else if (m_pCurrentProjection->srid != newZone.srid)
+  {
+    m_image.position = udGeoZone_ToCartesian(newZone, ((udDouble3*)m_pNode->pCoordinates)[0], true);
+  }
 
   // Call the parent version
   vcSceneItem::ChangeProjection(newZone);

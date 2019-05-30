@@ -11,13 +11,24 @@
 vcViewpoint::vcViewpoint(vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pNode, pProgramState)
 {
-  udUnused(pProgramState);
+  m_CameraPosition = pProgramState->pCamera->position;
+  m_CameraRotation = pProgramState->pCamera->eulerRotation;
 
-  if (pNode->pCoordinates && m_pCurrentProjection)
-    m_CameraPosition = udGeoZone_ToCartesian(*m_pCurrentProjection, *(udDouble3*)pNode->pCoordinates, true);
+  if (pNode->pCoordinates == nullptr)
+    pNode->pCoordinates = (double*)udAllocType(udDouble3, 1, udAF_Zero);
+
+  if (pProgramState->gis.isProjected)
+  {
+    m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+    memcpy(m_pPreferredProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
+    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+    memcpy(m_pCurrentProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
+    *(udDouble3*)pNode->pCoordinates = udGeoZone_ToLatLong(*m_pCurrentProjection, m_CameraPosition, true);
+  }
   else
-    m_CameraPosition = udDouble3::zero();
-  m_CameraRotation = udDouble3::zero();
+  {
+    *(udDouble3*)pNode->pCoordinates = m_CameraPosition;
+  }
 }
 
 void vcViewpoint::AddToScene(vcState *pProgramState, vcRenderData * /*pRenderData*/)
@@ -34,7 +45,7 @@ void vcViewpoint::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &del
   m_CameraRotation = udDouble3::create(udMod(sumRotation.x, UD_2PI), udClampWrap(sumRotation.y, -UD_HALF_PI, UD_HALF_PI), udMod(sumRotation.z, UD_2PI));
   // Clamped this to the same limitations as the camera
 
-  if (m_pCurrentProjection == nullptr || m_pNode->pCoordinates == nullptr)
+  if (m_pCurrentProjection == nullptr)
     return; // Can't update if we aren't sure what zone we're in currently
 
   *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(*m_pCurrentProjection, m_CameraPosition, true);
@@ -43,25 +54,41 @@ void vcViewpoint::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &del
 void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   if (ImGui::InputScalarN(udTempStr("%s##ViewpointPosition%zu", vcString::Get("sceneViewpointPosition"), *pItemID), ImGuiDataType_Double, &m_CameraPosition.x, 3))
-    *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(*m_pCurrentProjection, m_CameraPosition, true);
-
+  {
+    if (m_pCurrentProjection == nullptr)
+      *(udDouble3*)m_pNode->pCoordinates = m_CameraPosition;
+    else
+      *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(*m_pCurrentProjection, m_CameraPosition, true);
+  }
   ImGui::InputScalarN(udTempStr("%s##ViewpointRotation%zu", vcString::Get("sceneViewpointRotation"), *pItemID), ImGuiDataType_Double, &m_CameraRotation.x, 3);
   if (ImGui::Button(vcString::Get("sceneViewpointSetCamera")))
   {
-    m_CameraPosition = pProgramState->pCamera->position;
     m_CameraRotation = pProgramState->pCamera->eulerRotation;
-    if (m_pCurrentProjection == nullptr)
-      m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-    *m_pCurrentProjection = pProgramState->gis.zone;
+    m_CameraPosition = pProgramState->pCamera->position;
+
+    if (m_pCurrentProjection != nullptr)
+      *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(*m_pCurrentProjection, m_CameraPosition, true);
+
+    // If current projection is null, it will be assigned here
+    if (pProgramState->gis.isProjected)
+      ChangeProjection(pProgramState->gis.zone);
   }
 }
 
 void vcViewpoint::ChangeProjection(const udGeoZone &newZone)
 {
   if (m_pCurrentProjection == nullptr)
+  {
+    m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+    memcpy(m_pPreferredProjection, &newZone, sizeof(udGeoZone));
     m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-
-  m_CameraPosition = udGeoZone_ToCartesian(newZone, *(udDouble3*)m_pNode->pCoordinates, true);
+    memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
+    *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(newZone, m_CameraPosition, true);
+  }
+  else if (m_pCurrentProjection->srid != newZone.srid)
+  {
+    m_CameraPosition = udGeoZone_ToCartesian(newZone, *(udDouble3*)m_pNode->pCoordinates, true);
+  }
 
   // Call the parent version
   vcSceneItem::ChangeProjection(newZone);
