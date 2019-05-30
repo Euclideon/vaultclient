@@ -218,7 +218,7 @@ void vcLogin(void *pProgramStatePtr)
   vdkError result;
   vcState *pProgramState = (vcState*)pProgramStatePtr;
 
-  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "EuclideonVaultClient", pProgramState->settings.loginInfo.username, pProgramState->password);
+  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "EuclideonVaultClient" VCVERSION_VERSION_STRING, pProgramState->settings.loginInfo.username, pProgramState->password);
   if (result == vE_ConnectionFailure)
     pProgramState->loginStatus = vcLS_ConnectionError;
   else if (result == vE_AuthFailure)
@@ -1220,8 +1220,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.polyModels.Init(64);
   renderData.images.Init(32);
   renderData.sceneLayers.Init(32);
-  renderData.mouse.x = (uint32_t)(io.MousePos.x - windowPos.x);
-  renderData.mouse.y = (uint32_t)(io.MousePos.y - windowPos.y);
+  renderData.mouse.position.x = (uint32_t)(io.MousePos.x - windowPos.x);
+  renderData.mouse.position.y = (uint32_t)(io.MousePos.y - windowPos.y);
+  renderData.mouse.clicked = io.MouseClicked[1];
 
   udDouble3 cameraMoveOffset = udDouble3::zero();
 
@@ -1342,7 +1343,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
           pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
           pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
           pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
-          pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
+          pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMouseClickedPos;
           pProgramState->cameraInput.progress = 0.0;
         }
       }
@@ -1363,7 +1364,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     if (io.NavInputs[ImGuiNavInput_FocusNext] > 0.15f) // Right Trigger
     {
       udInt2 centrePoint = { (int)windowSize.x / 2, (int)windowSize.y / 2 };
-      renderData.mouse = centrePoint;
+      renderData.mouse.position = centrePoint;
 
       // Need to adjust crosshair position slightly
       centrePoint += pProgramState->settings.window.presentationMode ? udInt2::create(-8, -8) : udInt2::create(-2, -2);
@@ -1375,7 +1376,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     }
 
     // Camera update has to be here because it depends on previous ImGui state
-    vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create(windowSize.x, windowSize.y), udFloat2::create((float)renderData.mouse.x, (float)renderData.mouse.y));
+    vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create(windowSize.x, windowSize.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
 
     if (pProgramState->sceneExplorer.clickedItem.pParent && pProgramState->sceneExplorer.clickedItem.pItem && !pProgramState->modalOpen)
     {
@@ -1447,6 +1448,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
   pProgramState->previousWorldMousePos = renderData.worldMousePos;
   pProgramState->previousPickingSuccess = renderData.pickingSuccess;
   pProgramState->pSceneWatermark = renderData.pWatermarkTexture;
+
+  if (renderData.mouse.clicked)
+    pProgramState->worldMouseClickedPos = renderData.worldMousePos;
 }
 
 int vcMainMenuGui(vcState *pProgramState)
