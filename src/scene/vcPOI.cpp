@@ -62,7 +62,6 @@ vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
 
   m_pFence = nullptr;
 
-  UpdatePoints();
   OnNodeUpdate();
 
   m_loadStatus = vcSLS_Loaded;
@@ -77,10 +76,8 @@ void vcPOI::OnNodeUpdate()
   vdkProjectNode_GetMetadataUint(m_pNode, "backColour", &m_backColour, 0x7F000000);
   vdkProjectNode_GetMetadataUint(m_pNode, "textSize", &tempUint, vcLFS_Medium);
   m_pLabelInfo->textSize = (vcLabelFontSize)tempUint;
-  vdkProjectNode_GetMetadataUint(m_pNode, "showLength", &tempUint, 0);
-  m_showLength = (bool)tempUint;
-  vdkProjectNode_GetMetadataUint(m_pNode, "showArea", &tempUint, 0);
-  m_showArea = (bool)tempUint;
+  vdkProjectNode_GetMetadataBool(m_pNode, "showLength", &m_showLength, true);
+  vdkProjectNode_GetMetadataBool(m_pNode, "showArea", &m_showArea, true);
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, 0xFFFFFFFF);
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
   vdkProjectNode_GetMetadataDouble(m_pNode, "lineWidth", (double*)&tempDouble, 1.0);
@@ -89,6 +86,8 @@ void vcPOI::OnNodeUpdate()
   m_line.lineStyle = (vcFenceRendererImageMode)tempUint;
   vdkProjectNode_GetMetadataUint(m_pNode, "fenceMode", (uint32_t*)&tempUint, vcRRVM_Fence);
   m_line.fenceMode = (vcFenceRendererVisualMode)tempUint;
+
+  UpdatePoints();
 }
 
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -262,13 +261,13 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       if (ImGui::Checkbox(udTempStr("%s##POIShowLength%zu", vcString::Get("scenePOILineShowLength"), *pItemID), &m_showLength))
       {
         UpdatePoints();
-        vdkProjectNode_SetMetadataUint(m_pNode, "showLength", (uint32_t)m_showLength);
+        vdkProjectNode_SetMetadataBool(m_pNode, "showLength", m_showLength);
       }
 
       if (ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), *pItemID), &m_showArea))
       {
         UpdatePoints();
-        vdkProjectNode_SetMetadataUint(m_pNode, "showArea", (uint32_t)m_showArea);
+        vdkProjectNode_SetMetadataBool(m_pNode, "showArea", m_showArea);
       }
 
       if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOILineClosed"), *pItemID), &m_line.closed))
