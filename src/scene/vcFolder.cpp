@@ -116,6 +116,32 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
     if (pNode->pUserData != nullptr)
     {
+      if (pProgramState->pGotGeo != nullptr)
+      {
+        switch (pNode->itemtype)
+        {
+          case vdkPNT_Media:
+            ((vcMedia*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
+          case vdkPNT_PointOfInterest:
+            ((vcPOI*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
+          case vdkPNT_Viewpoint:
+            ((vcViewpoint*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
+        }
+      }
+
+      if (pProgramState->getGeo && pNode->itemtype == vdkPNT_PointCloud && ((vcModel*)(pNode->pUserData))->m_pCurrentProjection != nullptr)
+      {
+        if (pProgramState->pGotGeo == ((vcModel*)(pNode->pUserData))->m_pCurrentProjection)
+        {
+          pProgramState->pGotGeo = nullptr;
+          pProgramState->getGeo = false;
+        }
+        else if (pProgramState->pGotGeo == nullptr)
+        {
+          pProgramState->pGotGeo = ((vcModel*)(pNode->pUserData))->m_pCurrentProjection;
+        }
+      }
+
       vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
 
       // This block is also after the loop
