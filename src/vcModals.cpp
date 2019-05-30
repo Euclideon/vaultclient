@@ -346,6 +346,8 @@ void vcModals_DrawFileModal(vcState *pProgramState)
     ImGui::OpenPopup(vcString::Get("sceneExplorerAddUDSTitle"));
   if (pProgramState->openModals & (1 << vcMT_ImportProject))
     ImGui::OpenPopup(vcString::Get("menuProjectImportTitle"));
+  if (pProgramState->openModals & (1 << vcMT_ExportProject))
+    ImGui::OpenPopup(vcString::Get("menuProjectExportTitle"));
 
   vcModalTypes mode = vcMT_Count;
 
@@ -357,6 +359,10 @@ void vcModals_DrawFileModal(vcState *pProgramState)
   if (ImGui::BeginPopupModal(vcString::Get("menuProjectImportTitle")))
     mode = vcMT_ImportProject;
 
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("menuProjectExportTitle")))
+    mode = vcMT_ExportProject;
+
   if (mode < vcMT_Count)
   {
     pProgramState->modalOpen = true;
@@ -364,7 +370,12 @@ void vcModals_DrawFileModal(vcState *pProgramState)
 
     ImGui::SameLine();
 
-    bool loadFile = (ImGui::Button(vcString::Get("sceneExplorerLoadButton"), ImVec2(100.f, 0)) || pressedEnter);
+    bool loadFile = false;
+    bool saveFile = false;
+    if (mode == vcMT_ExportProject)
+      saveFile = (ImGui::Button(vcString::Get("sceneExplorerExportButton"), ImVec2(100.f, 0)) || pressedEnter);
+    else
+      loadFile = (ImGui::Button(vcString::Get("sceneExplorerLoadButton"), ImVec2(100.f, 0)) || pressedEnter);
 
     ImGui::SameLine();
 
@@ -388,11 +399,40 @@ void vcModals_DrawFileModal(vcState *pProgramState)
       if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
         loadFile = true;
     }
+    else if (mode == vcMT_ExportProject)
+    {
+      const char *fileExtensions[] = { ".json", ".udp" };
+      if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), false, fileExtensions, udLengthOf(fileExtensions)))
+        saveFile = true;
+    }
 
     if (loadFile)
     {
       pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
       pProgramState->modelPath[0] = '\0';
+      ImGui::CloseCurrentPopup();
+    }
+
+    if (saveFile)
+    {
+      const char *pOutput = nullptr;
+      if (vdkProject_WriteToMemory(pProgramState->sceneExplorer.pProject, &pOutput) == vE_Success)
+      {
+        const char *pExportFilename;
+        if (udStrEndsWithi(pProgramState->modelPath, ".json"))
+          pExportFilename = vStringFormat("{0}", pProgramState->modelPath); // User can manually enter filename
+        else
+          pExportFilename = vStringFormat("{0}_project.json", pProgramState->modelPath);
+
+        if (udFile_Save(pExportFilename, (void*)pOutput, udStrlen(pOutput)) != udR_Success)
+        {
+          vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+        }
+        else
+        {
+          vcModals_OpenModal(pProgramState, vcMT_ProjectChangeSucceeded);
+        }
+      }
       ImGui::CloseCurrentPopup();
     }
 
@@ -439,15 +479,27 @@ void vcModals_DrawLoadWatermark(vcState *pProgramState)
   }
 }
 
-void vcModals_DrawProjectChangeFailed(vcState *pProgramState)
+void vcModals_DrawProjectChangeResult(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_ProjectChangeFailed))
     ImGui::OpenPopup(vcString::Get("sceneExplorerProjectChangeFailedTitle"));
+  else if (pProgramState->openModals & (1 << vcMT_ProjectChangeSucceeded))
+    ImGui::OpenPopup(vcString::Get("sceneExplorerProjectChangeSucceededTitle"));
 
   if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerProjectChangeFailedTitle"), nullptr, ImGuiWindowFlags_NoResize))
   {
     pProgramState->modalOpen = true;
     ImGui::TextUnformatted(vcString::Get("sceneExplorerProjectChangeFailedMessage"));
+
+    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+      ImGui::CloseCurrentPopup();
+
+    ImGui::EndPopup();
+  }
+  else if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerProjectChangeSucceededTitle"), nullptr, ImGuiWindowFlags_NoResize))
+  {
+    pProgramState->modalOpen = true;
+    ImGui::TextUnformatted(vcString::Get("sceneExplorerProjectChangeSucceededMessage"));
 
     if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
@@ -581,7 +633,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawTileServer(pProgramState);
   vcModals_DrawFileModal(pProgramState);
   vcModals_DrawLoadWatermark(pProgramState);
-  vcModals_DrawProjectChangeFailed(pProgramState);
+  vcModals_DrawProjectChangeResult(pProgramState);
   vcModals_DrawProjectReadOnly(pProgramState);
   vcModals_DrawImageViewer(pProgramState);
   vcModals_DrawUnsupportedFiles(pProgramState);
