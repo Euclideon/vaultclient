@@ -2005,7 +2005,7 @@ void vcRenderWindow(vcState *pProgramState)
               if (item.pItem->itemtype == vdkPNT_Folder)
                 itemFound = vcProject_ContainsItem(item.pItem, pProgramState->sceneExplorer.insertItem.pParent);
 
-              itemFound = itemFound || (item.pParent == pProgramState->sceneExplorer.insertItem.pParent && item.pItem == pProgramState->sceneExplorer.insertItem.pItem);
+              itemFound = itemFound || item.pItem == pProgramState->sceneExplorer.insertItem.pItem;
             }
 
             if (!itemFound)
