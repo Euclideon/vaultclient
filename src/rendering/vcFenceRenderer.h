@@ -17,25 +17,12 @@ enum vcFenceRendererVisualMode
   vcRRVM_Count
 };
 
-static const char *vcFRVMStrings[] =
-{
-  "Fence",
-  "Flat"
-};
-
 enum vcFenceRendererImageMode
 {
   vcRRIM_Arrow,
   vcRRIM_Glow,
   vcRRIM_Solid,
   vcRRIM_Count
-};
-
-static const char *vcFRIMStrings[] =
-{
-  "Arrow",
-  "Glow",
-  "Solid"
 };
 
 struct vcFenceRendererConfig

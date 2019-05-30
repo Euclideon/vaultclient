@@ -13,6 +13,19 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
+const char *vcFRVMStrings[] =
+{
+  "Fence",
+  "Flat"
+};
+
+static const char *vcFRIMStrings[] =
+{
+  "Arrow",
+  "Glow",
+  "Solid"
+};
+
 vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pNode, pProgramState)
 {
@@ -88,7 +101,7 @@ void vcPOI::OnNodeUpdate()
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, 0xFFFFFFFF);
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
   vdkProjectNode_GetMetadataDouble(m_pNode, "lineWidth", (double*)&tempDouble, 1.0);
-  m_line.lineWidth = tempDouble;
+  m_line.lineWidth = (float)tempDouble;
 
   vdkProjectNode_GetMetadataString(m_pNode, "lineStyle", &pTemp, vcFRIMStrings[0]);
   int i = 0;
@@ -241,11 +254,12 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     case vcLFS_Small:
       pTemp = "small";
       break;
-    case vcLFS_Medium:
-      pTemp = "medium";
-      break;
     case vcLFS_Large:
       pTemp = "large";
+      break;
+    case vcLFS_Medium:
+    default:
+      pTemp = "medium";
       break;
     }
     vdkProjectNode_SetMetadataString(m_pNode, "textSize", pTemp);
