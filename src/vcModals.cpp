@@ -537,7 +537,7 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
 
     for (int i = 0; i < (int)pProgramState->pConvertContext->jobs.length; ++i)
     {
-      if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_NoFile)
+      if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_NoFile && pProgramState->pConvertContext->jobs[i]->pFilename)
         ImGui::TextUnformatted(pProgramState->pConvertContext->jobs[i]->pFilename);
     }
 
@@ -545,7 +545,7 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
     {
       for (int i = (int)pProgramState->pConvertContext->jobs.length - 1; i >= 0; --i)
       {
-        if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_NoFile)
+        if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_NoFile && (pProgramState->pConvertContext->jobs[i]->watermark.pFilename == nullptr))
           vcConvert_RemoveJob(pProgramState, i);
       }
       ImGui::CloseCurrentPopup();
