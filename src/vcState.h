@@ -82,6 +82,7 @@ struct vcState
 
   udDouble3 worldMousePos;
   udDouble3 worldMousePosLongLat;
+  udDouble3 worldMouseClickedPos;
   bool pickingSuccess;
   udDouble3 previousWorldMousePos;
   bool previousPickingSuccess;
