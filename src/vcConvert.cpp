@@ -523,7 +523,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
         ImGui::NextColumn();
 
         // Prevent this column from being resized
-        ImGui::GetCurrentWindow()->DC.CurrentColumns->Columns[1].Flags |= ImGuiWindowFlags_NoResize;
+        ImGui::GetCurrentWindow()->DC.CurrentColumns->Columns[1].Flags |= ImGuiColumnsFlags_NoResize;
 
         const char *ptCountStrings[] = { udCommaInt(itemInfo.pointsCount), udCommaInt(itemInfo.pointsRead) };
 

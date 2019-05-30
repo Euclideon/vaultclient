@@ -41,9 +41,10 @@ vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
     memcpy(m_line.pPoints, m_pNode->pCoordinates, sizeof(udDouble3)*m_line.numPoints);
   }
 
-  //TODO: Handle PreferredProjection
   if (pProgramState->gis.isProjected)
   {
+    m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+    memcpy(m_pPreferredProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
     m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
     memcpy(m_pCurrentProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
     m_line.pPoints[0] = udGeoZone_ToCartesian(*m_pCurrentProjection, m_line.pPoints[0], true);
@@ -310,6 +311,8 @@ void vcPOI::ChangeProjection(const udGeoZone &newZone)
     }
     if (withinBounds)
     {
+      m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+      memcpy(m_pPreferredProjection, &newZone, sizeof(udGeoZone));
       m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
       memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
 
@@ -327,7 +330,7 @@ void vcPOI::ChangeProjection(const udGeoZone &newZone)
 
   UpdatePoints();
 
-  // Call the parent version
+  // Call the parent version - m_pCurrentProjection is updated in here
   vcSceneItem::ChangeProjection(newZone);
 }
 
