@@ -53,6 +53,8 @@ void vcProject_RemoveAll(vcState *pProgramState)
 
   if (pProgramState->pCamera != nullptr) // This is destroyed before the scene
     pProgramState->pCamera->position = udDouble3::zero();
+
+  pProgramState->sceneExplorer.clickedItem = {};
 }
 
 void vcProject_RemoveSelectedFolder(vcState *pProgramState, vdkProjectNode *pFolderNode)
@@ -77,6 +79,8 @@ void vcProject_RemoveSelected(vcState *pProgramState)
 {
   vcProject_RemoveSelectedFolder(pProgramState, pProgramState->sceneExplorer.pProjectRoot->m_pNode);
   pProgramState->sceneExplorer.selectedItems.clear();
+
+  pProgramState->sceneExplorer.clickedItem = {};
 }
 
 bool vcProject_ContainsItem(vdkProjectNode *pParentNode, vdkProjectNode *pItem)
@@ -149,6 +153,7 @@ void vcProject_ClearSelection(vcState *pProgramState)
 {
   vcProject_ClearSelection(pProgramState->sceneExplorer.pProjectRoot->m_pNode);
   pProgramState->sceneExplorer.selectedItems.clear();
+  pProgramState->sceneExplorer.clickedItem = {};
 }
 
 bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pModel)

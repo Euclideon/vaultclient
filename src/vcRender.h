@@ -25,13 +25,19 @@ struct vcRenderPolyInstance
   udDouble4x4 worldMat; // will be converted to eye internally
 };
 
+struct vcMouseData
+{
+  udInt2 position;
+  bool clicked;
+};
+
 struct vcRenderData
 {
   vcGISSpace *pGISSpace;
 
   double deltaTime;
 
-  udInt2 mouse;
+  vcMouseData mouse;
   udDouble3 worldMousePos;
 
   udDouble3 *pWorldAnchorPos; // If this is not nullptr, this is the point to highlight
