@@ -122,10 +122,15 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         {
           case vdkPNT_Media:
             ((vcMedia*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
+            break;
           case vdkPNT_PointOfInterest:
             ((vcPOI*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
+            break;
           case vdkPNT_Viewpoint:
             ((vcViewpoint*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
+            break;
+          default:
+            break;
         }
       }
 
