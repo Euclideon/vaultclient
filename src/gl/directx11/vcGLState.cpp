@@ -160,7 +160,7 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
     if (cullMode == vcGLSCM_None)
       desc.CullMode = D3D11_CULL_NONE;
     else if (cullMode == vcGLSCM_Front)
-      desc.CullMode = D3D11_CULL_NONE;
+      desc.CullMode = D3D11_CULL_FRONT;
     else if (cullMode == vcGLSCM_Back)
       desc.CullMode = D3D11_CULL_BACK;
 
