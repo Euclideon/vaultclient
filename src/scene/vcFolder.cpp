@@ -69,7 +69,7 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     }
 
     pNode = pNode->pNextSibling;
-}
+  }
 }
 
 void vcFolder::ChangeProjection(const udGeoZone &newZone)
@@ -207,12 +207,10 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         ImVec2 maxPos = ImGui::GetItemRectMax();
         ImVec2 mousePos = ImGui::GetMousePos();
 
-        if (pNode->itemtype == vdkPNT_Folder && udAbs(mousePos.y - minPos.y) >= udAbs(mousePos.y - maxPos.y))
-          pProgramState->sceneExplorer.insertItem = { pNode, nullptr };
-        else if (udAbs(mousePos.y - minPos.y) < udAbs(mousePos.y - maxPos.y))
-          pProgramState->sceneExplorer.insertItem = { m_pNode, pNode };
+        if (pNode->itemtype == vdkPNT_Folder && mousePos.y > minPos.y && mousePos.y < maxPos.y)
+          pProgramState->sceneExplorer.insertItem = { pNode, pNode };
         else
-          pProgramState->sceneExplorer.insertItem = { m_pNode, pNode }; // This is actually pNode->pNextSibling
+          pProgramState->sceneExplorer.insertItem = { m_pNode, pNode }; // This will become pNode->pNextSibling after drop
       }
 
       if (ImGui::BeginPopupContextItem(udTempStr("ModelContextMenu_%zu", *pItemID)))
