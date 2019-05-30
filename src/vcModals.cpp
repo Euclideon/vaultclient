@@ -535,8 +535,21 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
     pProgramState->modalOpen = true;
     ImGui::TextUnformatted(vcString::Get("sceneExplorerUnsupportedFilesMessage"));
 
+    for (int i = 0; i < (int)pProgramState->pConvertContext->jobs.length; ++i)
+    {
+      if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_NoFile)
+        ImGui::TextUnformatted(pProgramState->pConvertContext->jobs[i]->pFilename);
+    }
+
     if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    {
+      for (int i = (int)pProgramState->pConvertContext->jobs.length - 1; i >= 0; --i)
+      {
+        if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_NoFile)
+          vcConvert_RemoveJob(pProgramState, i);
+      }
       ImGui::CloseCurrentPopup();
+    }
 
     ImGui::EndPopup();
   }
