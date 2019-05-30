@@ -11,7 +11,7 @@
     - Project Menu & Modals
       - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`
     - Scene Explorer
-      - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`
+      - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`, `sceneExplorerExportButton`, `sceneExplorerProjectChangeSucceededTitle`, `sceneExplorerProjectChangeSucceededMessage`
   - Removed:
     - Project Menu & Modals
       - `menuImport`, `menuImportUDP`, `menuImportUDPTitle`
@@ -469,12 +469,15 @@ Modules are currently:
 - `sceneExplorerMoveTo`: Menu option when right-clicking on an item in the Scene Explorer, moves the camera to the location of the selected item
 - `sceneExplorerResetPosition`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to that position if it has been moved
 - `sceneExplorerPathURL`: Label next to the text box containing the path of the currently selected file
-- `sceneExplorerLoadButton`: Label used for the Load button in the Add UDS window which loads the currently selected file and closes the window
+- `sceneExplorerLoadButton`: Label used for the Load button in the Add UDS and Import Project windows which loads the currently selected file and closes the window
+- `sceneExplorerExportButton`: Label used for the Export button in the Export Project window which saves the content of the current scene to the specified location and closes the window
 - `sceneExplorerCancelButton`: Label used for the Close button of the Add UDS window
 - `sceneExplorerUnknownCustomNode`: Label used when unsupported nodes are loaded from a project
 
 - `sceneExplorerProjectChangeFailedTitle`: Title of modal when a change to the project fails
 - `sceneExplorerProjectChangeFailedMessage`: Body of modal that appears when a change to a project fails
+- `sceneExplorerProjectChangeSucceededTitle`: Title of modal when a change to the project succeeds
+- `sceneExplorerProjectChangeSucceededMessage`: Body of modal that appears when a change to a project succeeds
 - `sceneExplorerProjectReadOnlyTitle`: Title of modal when a change to the project fails because its read only
 - `sceneExplorerProjectReadOnlyMessage`: Body of modal that appears when a change to a project fails becaues its read only
 - `sceneExplorerUnsupportedFilesTitle`: Title of modal that appears when the user added unsupported files
@@ -487,7 +490,8 @@ Modules are currently:
 - `sceneExplorerPending`: Tooltip displayed when mouse is hovered over the alert next to a scene item in the Scene Explorer that vault client has not opened yet
 - `sceneExplorerLoading`: Tooltip displayed when mouse is hovered over the alert next to a scene item in the Scene Explorer that vault client has not fully loaded yet
 - `sceneExplorerFolderDefaultName`: Default name of new folders when they are added to the Scene Explorer
--
+
+
 #### Point of Interest
 - `scenePOIDefaultName`: Default name of new POI objects when they are added to the Scene Explorer
 - `scenePOIAreaDefaultName`: Default name of new AOI objects when they are added to the Scene Explorer
