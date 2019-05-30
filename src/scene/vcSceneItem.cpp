@@ -47,7 +47,8 @@ void vcSceneItem::ChangeProjection(const udGeoZone &newZone)
   if (m_pCurrentProjection == nullptr)
   {
     udDouble3 itemPos = udGeoZone_ToLatLong(newZone, GetWorldSpacePivot());
-    if (itemPos.x <= newZone.latLongBoundMax.x && itemPos.x >= newZone.latLongBoundMin.x && itemPos.y <= newZone.latLongBoundMax.y && itemPos.y >= newZone.latLongBoundMin.y)
+    // If min == max then there are no bounds
+    if (newZone.latLongBoundMin == newZone.latLongBoundMax || (itemPos.x <= newZone.latLongBoundMax.x && itemPos.x >= newZone.latLongBoundMin.x && itemPos.y <= newZone.latLongBoundMax.y && itemPos.y >= newZone.latLongBoundMin.y))
     {
       m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
       memcpy(m_pPreferredProjection, &newZone, sizeof(udGeoZone));
