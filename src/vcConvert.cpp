@@ -22,13 +22,13 @@ const char *statusNames[] =
   "convertQueued",
   "convertAwaitingLicense",
   "convertRunning",
+  "convertNoFile",
   "convertCompleted",
   "convertCancelled",
   "convertWriteFailed",
   "convertParseError",
   "convertImageParseError",
   "convertFailed",
-  "convertNoFile"
 };
 
 void vcConvert_ResetConvert(vcState *pProgramState, vcConvertItem *pConvertItem, vdkConvertItemInfo *pItemInfo);
@@ -164,6 +164,7 @@ void vcConvert_RemoveJob(vcState *pProgramState, size_t index)
   udFree(pItem->watermark.pFilename);
   pProgramState->pConvertContext->jobs.RemoveAt(index);
   vdkConvert_DestroyContext(pProgramState->pVDKContext, &pItem->pConvertContext);
+  udFree(pItem->pFilename);
   udFree(pItem);
 
   udReleaseMutex(pProgramState->pConvertContext->pMutex);
@@ -598,17 +599,12 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
 {
   vcConvertItem *pSelectedJob = nullptr;
 
-  if (pProgramState->pConvertContext->selectedItem < pProgramState->pConvertContext->jobs.length)
+  for (int i = (int)pProgramState->pConvertContext->jobs.length - 1; i >= 0 && pSelectedJob == nullptr; --i)
   {
-    pSelectedJob = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem];
-    if (pSelectedJob->status != vcCQS_Preparing && pSelectedJob->status != vcCQS_Cancelled)
-      pSelectedJob = nullptr;
-  }
-
-  for (size_t i = pProgramState->pConvertContext->jobs.length; i > 0 && pSelectedJob == nullptr; --i)
-  {
-    if (pProgramState->pConvertContext->jobs[i - 1]->status == vcCQS_NoFile)
-      pSelectedJob = pProgramState->pConvertContext->jobs[i - 1];
+    pSelectedJob = pProgramState->pConvertContext->jobs[i];
+    if ((pSelectedJob->status == vcCQS_NoFile && pProgramState->pConvertContext->jobs[i]->pFilename == nullptr) || pSelectedJob->status > vcCQS_NoFile)
+      break;
+    pSelectedJob = nullptr;
   }
 
   if (pSelectedJob == nullptr)
@@ -639,6 +635,7 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
     return true;
   }
 
+  pSelectedJob->pFilename = udStrdup(pFilename);
   vcModals_OpenModal(pProgramState, vcMT_UnsupportedFile);
 
   return false;
