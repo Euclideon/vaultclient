@@ -530,7 +530,11 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
   if (pProgramState->openModals & (1 << vcMT_UnsupportedFile))
     ImGui::OpenPopup(vcString::Get("sceneExplorerUnsupportedFilesTitle"));
 
-  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerUnsupportedFilesTitle"), nullptr, ImGuiWindowFlags_NoResize))
+  ImVec2 window = ImGui::GetWindowSize();
+  if (window.y < pProgramState->settings.window.height)
+    ImGui::SetNextWindowPos(ImVec2(pProgramState->settings.window.width / 2 - window.x / 2, pProgramState->settings.window.height / 2 - window.y / 2), ImGuiCond_Always);
+
+  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerUnsupportedFilesTitle"), nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize))
   {
     pProgramState->modalOpen = true;
     ImGui::TextUnformatted(vcString::Get("sceneExplorerUnsupportedFilesMessage"));
