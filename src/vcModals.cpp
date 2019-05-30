@@ -401,7 +401,7 @@ void vcModals_DrawFileModal(vcState *pProgramState)
     }
     else if (mode == vcMT_ExportProject)
     {
-      const char *fileExtensions[] = { ".json", ".udp" };
+      const char *fileExtensions[] = { ".json" };
       if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), false, fileExtensions, udLengthOf(fileExtensions)))
         saveFile = true;
     }
@@ -419,10 +419,22 @@ void vcModals_DrawFileModal(vcState *pProgramState)
       if (vdkProject_WriteToMemory(pProgramState->sceneExplorer.pProject, &pOutput) == vE_Success)
       {
         const char *pExportFilename;
-        if (udStrEndsWithi(pProgramState->modelPath, ".json"))
-          pExportFilename = vStringFormat("{0}", pProgramState->modelPath); // User can manually enter filename
-        else
-          pExportFilename = vStringFormat("{0}_project.json", pProgramState->modelPath);
+        if (udStrEndsWithi(pProgramState->modelPath, ".json")) // If user has entered complete path and filename
+        {
+          pExportFilename = vStringFormat("{0}", pProgramState->modelPath);
+        }
+        else if (udStrEndsWithi(pProgramState->modelPath, "/")) // If user has entered a path to a folder
+        {
+          pExportFilename = vStringFormat("{0}vc_saved_project.json", pProgramState->modelPath);
+        }
+        else if (udFileExists(pProgramState->modelPath) == udR_Success) // If user has entered a path to a folder with no slash at the end
+        {
+          pExportFilename = vStringFormat("{0}/vc_saved_project.json", pProgramState->modelPath);
+        }
+        else // If user has entered a path and filename but no extension
+        {
+          pExportFilename = vStringFormat("{0}.json", pProgramState->modelPath);
+        }
 
         if (udFile_Save(pExportFilename, (void*)pOutput, udStrlen(pOutput)) != udR_Success)
         {
