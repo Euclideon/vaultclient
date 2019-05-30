@@ -2019,7 +2019,6 @@ void vcRenderWindow(vcState *pProgramState)
 
                 // Update the selected item information to repeat drag and drop
                 pProgramState->sceneExplorer.selectedItems[i].pParent = pProgramState->sceneExplorer.insertItem.pParent;
-                pProgramState->sceneExplorer.selectedItems[i].pItem = pProgramState->sceneExplorer.insertItem.pItem;
 
                 pProgramState->sceneExplorer.clickedItem = pProgramState->sceneExplorer.selectedItems[i];
               }
