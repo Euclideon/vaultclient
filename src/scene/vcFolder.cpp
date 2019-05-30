@@ -136,14 +136,16 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
       if (pProgramState->getGeo && pNode->itemtype == vdkPNT_PointCloud && ((vcModel*)(pNode->pUserData))->m_pCurrentProjection != nullptr)
       {
-        if (pProgramState->pGotGeo == ((vcModel*)(pNode->pUserData))->m_pCurrentProjection)
+        vcModel *pModel = (vcModel*)pNode->pUserData;
+        if (pProgramState->pGotGeo == pModel->m_pCurrentProjection)
         {
           pProgramState->pGotGeo = nullptr;
           pProgramState->getGeo = false;
         }
         else if (pProgramState->pGotGeo == nullptr)
         {
-          pProgramState->pGotGeo = ((vcModel*)(pNode->pUserData))->m_pCurrentProjection;
+          pProgramState->pGotGeo = pModel->m_pCurrentProjection;
+          vcProject_UseProjectionFromItem(pProgramState, pModel);
         }
       }
 
