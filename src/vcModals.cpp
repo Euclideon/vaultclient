@@ -419,31 +419,19 @@ void vcModals_DrawFileModal(vcState *pProgramState)
       if (vdkProject_WriteToMemory(pProgramState->sceneExplorer.pProject, &pOutput) == vE_Success)
       {
         const char *pExportFilename;
-        if (udStrEndsWithi(pProgramState->modelPath, ".json")) // If user has entered complete path and filename
-        {
+        if (udStrEndsWithi(pProgramState->modelPath, ".json"))  // If user has entered a path and filename, or selected a file to overwrite e.g. C:/Data/proj.json
           pExportFilename = vStringFormat("{0}", pProgramState->modelPath);
-        }
-        else if (udStrEndsWithi(pProgramState->modelPath, "/")) // If user has entered a path to a folder
-        {
+        else if (udStrEndsWithi(pProgramState->modelPath, "/")) // If user has entered a path to a folder (will fail if doesn't exist)      e.g. C:/Data/
           pExportFilename = vStringFormat("{0}vc_saved_project.json", pProgramState->modelPath);
-        }
-        else if (udFileExists(pProgramState->modelPath) == udR_Success) // If user has entered a path to a folder with no slash at the end
-        {
+        else if (udFileExists(pProgramState->modelPath) == udR_Success) // If user has entered a path to a folder with no slash             e.g. C:/Data
           pExportFilename = vStringFormat("{0}/vc_saved_project.json", pProgramState->modelPath);
-        }
-        else // If user has entered a path and filename but no extension
-        {
+        else                                                          // If user has entered a path and filename but no valid extension     e.g. C:/Data/proj
           pExportFilename = vStringFormat("{0}.json", pProgramState->modelPath);
-        }
 
         if (udFile_Save(pExportFilename, (void*)pOutput, udStrlen(pOutput)) != udR_Success)
-        {
           vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
-        }
         else
-        {
           vcModals_OpenModal(pProgramState, vcMT_ProjectChangeSucceeded);
-        }
       }
       ImGui::CloseCurrentPopup();
     }
