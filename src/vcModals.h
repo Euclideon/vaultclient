@@ -12,9 +12,11 @@ enum vcModalTypes
   vcMT_TileServer,
   vcMT_AddUDS,
   vcMT_ImportProject,
+  vcMT_ExportProject,
   vcMT_LoadWatermark,
   vcMT_ImageViewer,
   vcMT_ProjectChangeFailed,
+  vcMT_ProjectChangeSucceeded,
   vcMT_ProjectReadOnly,
   vcMT_UnsupportedFile,
 
