@@ -533,6 +533,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                 vdkProject *pProject = nullptr;
                 if (vdkProject_LoadFromMemory(&pProject, pMemory) == vE_Success)
                 {
+                  pProgramState->getGeo = true;
                   pProgramState->sceneExplorer.pProject = pProject;
                   vdkProjectNode *pNode = nullptr;
                   vdkProject_GetRootFolder(pProject, &pNode);
@@ -768,6 +769,8 @@ int main(int argc, char **args)
   programState.changeActiveDock = vcDocks_Count;
   programState.passFocus = true;
   programState.renaming = -1;
+  programState.getGeo = 0;
+  programState.pGotGeo = nullptr;
 
   programState.sceneExplorer.insertItem.pParent = nullptr;
   programState.sceneExplorer.insertItem.pItem = nullptr;
