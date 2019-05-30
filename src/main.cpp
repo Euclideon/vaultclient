@@ -2005,7 +2005,7 @@ void vcRenderWindow(vcState *pProgramState)
               if (item.pItem->itemtype == vdkPNT_Folder)
                 itemFound = vcProject_ContainsItem(item.pItem, pProgramState->sceneExplorer.insertItem.pParent);
 
-              itemFound = itemFound || (item.pParent == pProgramState->sceneExplorer.insertItem.pParent && item.pItem == pProgramState->sceneExplorer.insertItem.pItem);
+              itemFound = itemFound || item.pItem == pProgramState->sceneExplorer.insertItem.pItem;
             }
 
             if (!itemFound)
@@ -2019,7 +2019,6 @@ void vcRenderWindow(vcState *pProgramState)
 
                 // Update the selected item information to repeat drag and drop
                 pProgramState->sceneExplorer.selectedItems[i].pParent = pProgramState->sceneExplorer.insertItem.pParent;
-                pProgramState->sceneExplorer.selectedItems[i].pItem = pProgramState->sceneExplorer.insertItem.pItem;
 
                 pProgramState->sceneExplorer.clickedItem = pProgramState->sceneExplorer.selectedItems[i];
               }
