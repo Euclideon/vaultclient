@@ -533,6 +533,10 @@ void vcMain_MainLoop(vcState *pProgramState)
                 vdkProject *pProject = nullptr;
                 if (vdkProject_LoadFromMemory(&pProject, pMemory) == vE_Success)
                 {
+                  pProgramState->sceneExplorer.pProjectRoot->Cleanup(pProgramState);
+                  delete pProgramState->sceneExplorer.pProjectRoot;
+                  vdkProject_Release(&pProgramState->sceneExplorer.pProject);
+
                   pProgramState->getGeo = true;
                   pProgramState->sceneExplorer.pProject = pProject;
                   vdkProjectNode *pNode = nullptr;
