@@ -12,6 +12,8 @@ enum vcVertexLayoutTypes
   vcVLT_Normal3, //Vec3
   vcVLT_RibbonInfo4, // Vec4
 
+  vcVLT_Unsupported,
+
   vcVLT_TotalTypes
 };
 

@@ -102,6 +102,9 @@ vcPolygonModelShaderType vcPolygonModel_GetShaderType(const vcVertexLayoutTypes 
   if (totalTypes == 4 && (pMeshLayout[0] == vcVLT_Position3 && pMeshLayout[1] == vcVLT_Normal3 && pMeshLayout[2] == vcVLT_TextureCoords2) && pMeshLayout[3] == vcVLT_ColourBGRA)
     return vcPMST_P1N1UV1; // TODO: (EVC-540) Re-use for now, ignoring colour attribute
 
+  if (totalTypes >= 3)
+    return vcPMST_P1N1UV1; // TODO: (EVC-540) Re-use for now, ignoring other attributes
+
   return vcPMST_Count;
 }
 
@@ -141,6 +144,11 @@ udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel,
   *ppPolygonModel = pPolygonModel;
 
 epilogue:
+  if (result != udR_Success)
+  {
+    vcPolygonModel_Destroy(&pPolygonModel);
+  }
+
   return result;
 }
 

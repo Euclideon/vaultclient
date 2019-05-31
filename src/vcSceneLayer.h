@@ -18,4 +18,7 @@ udResult vcSceneLayer_Destroy(vcSceneLayer **ppSceneLayer);
 udGeoZone* vcSceneLayer_GetPreferredZone(vcSceneLayer *pSceneLayer);
 udDouble3 vcSceneLayer_GetCenter(vcSceneLayer *pSceneLayer);
 
+// TODO: (EVC-553) This is temporary
+extern uint64_t gpuBytesUploadedThisFrame;
+
 #endif//vcSceneLayer_h__
