@@ -51,14 +51,14 @@ void vcSceneItem::ChangeProjection(const udGeoZone &newZone)
     if (newZone.latLongBoundMin == newZone.latLongBoundMax || (itemPos.x <= newZone.latLongBoundMax.x && itemPos.x >= newZone.latLongBoundMin.x && itemPos.y <= newZone.latLongBoundMax.y && itemPos.y >= newZone.latLongBoundMin.y))
     {
       m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-      memcpy(m_pPreferredProjection, &newZone, sizeof(udGeoZone));
       m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-      memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
     }
   }
-  else if (newZone.srid != m_pCurrentProjection->srid)
+
+  if (m_pCurrentProjection != nullptr && newZone.srid != m_pCurrentProjection->srid)
   {
-    memcpy(m_pCurrentProjection, &newZone, sizeof(newZone));
+    memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
+    memcpy(m_pPreferredProjection, &newZone, sizeof(udGeoZone));
   }
 }
 

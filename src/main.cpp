@@ -544,6 +544,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                 {
                   vcModals_OpenModal(pProgramState, vcMT_UnsupportedFile);
                 }
+                udFree(pMemory);
               }
 
               pProgramState->changeActiveDock = vcDocks_Scene;

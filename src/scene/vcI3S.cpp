@@ -62,15 +62,15 @@ void vcI3S::Cleanup(vcState * /*pProgramState*/)
 
 void vcI3S::ChangeProjection(const udGeoZone &newZone)
 {
+  // Call the base version
+  vcSceneItem::ChangeProjection(newZone);
+
   udDouble4x4 prevOrigin = udDouble4x4::translation(GetLocalSpacePivot());
   udDouble4x4 newOffset = m_pSceneRenderer->sceneMatrix * prevOrigin;
   if (m_pCurrentProjection != nullptr)
     newOffset = udGeoZone_TransformMatrix(newOffset, *m_pCurrentProjection, newZone);
 
   m_pSceneRenderer->sceneMatrix = newOffset * udInverse(prevOrigin);
-
-  // Call the base version
-  vcSceneItem::ChangeProjection(newZone);
 }
 
 udDouble3 vcI3S::GetLocalSpacePivot()
