@@ -568,6 +568,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                 if (clicked.pParent != nullptr && clicked.pItem->itemtype == vdkPNT_Media)
                 {
                   vdkProjectNode_SetURI(pProgramState->sceneExplorer.pProject, clicked.pItem, pNextLoad);
+                  vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, clicked.pItem, vdkPGT_Point, 1, (double*)&pProgramState->worldMousePosLongLat);
                 }
                 else
                 {
