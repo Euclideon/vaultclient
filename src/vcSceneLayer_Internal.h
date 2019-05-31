@@ -70,6 +70,10 @@ struct vcSceneLayerNode
     udDouble3 position;
     udDouble3 pivotOffset;
     udDouble4 minimumBoundingBox;
+
+    vcVertexLayoutTypes *pGeometryLayout;
+    size_t geometryLayoutCount;
+
   } *pFeatureData;
   size_t featureDataCount;
 
@@ -122,12 +126,6 @@ struct vcSceneLayer
   udDouble4 extent;
 
   vcSceneLayerNode root;
-
-  vcVertexLayoutTypes *pDefaultGeometryLayout;
-  size_t defaultGeometryLayoutCount;
-
-  // TODO: (EVC-553) This is temporary
-  uint64_t gpuBytesUploadedThisFrame;
 };
 
 udResult vcSceneLayer_LoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode = nullptr, const vcSceneLayerLoadType &loadType = vcSLLT_None);

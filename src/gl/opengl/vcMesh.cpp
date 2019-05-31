@@ -50,7 +50,6 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
   {
     if (pMeshLayout[i] >= vcVLT_TotalTypes)
       UD_ERROR_SET(udR_InvalidParameter_);
-
     switch (pMeshLayout[i])
     {
     case vcVLT_Position2:
@@ -77,6 +76,8 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
       glVertexAttribPointer(i, 3, GL_FLOAT, GL_FALSE, pMesh->vertexSize, (GLvoid*)accumulatedOffset);
       accumulatedOffset += 3 * sizeof(float);
       break;
+    case vcVLT_Unsupported: // TODO: (EVC-641) Handle unsupported attributes interleaved with supported attributes
+      continue; // NOTE continue
     case vcVLT_TotalTypes:
       break; // never reaches here due to error set above
     }

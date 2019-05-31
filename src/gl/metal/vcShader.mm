@@ -49,6 +49,8 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
         vertexDesc.attributes[i].format = MTLVertexFormatFloat3;
         accumulatedOffset += 3 * sizeof(float);
         break;
+      case vcVLT_Unsupported: // TODO: (EVC-641) Handle unsupported attributes interleaved with supported attributes
+        break;
       case vcVLT_TotalTypes:
         break;
     }
@@ -56,7 +58,7 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   vertexDesc.layouts[0].stride = accumulatedOffset;
   vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
   vertexDesc.layouts[0].stepRate = 1;
-  
+
   id<MTLFunction> vFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pVertexShader]];
   id<MTLFunction> fFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pFragmentShader]];
 
