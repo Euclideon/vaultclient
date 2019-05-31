@@ -348,7 +348,7 @@ void vcFolder::Cleanup(vcState *pProgramState)
 
   while (pNode != nullptr)
   {
-    vcProject_RemoveItem(pProgramState, pNode, 0);
+    vcProject_RemoveItem(pProgramState, m_pNode, pNode);
     pNode = pNode->pNextSibling;
   }
 }
