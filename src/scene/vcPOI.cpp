@@ -18,6 +18,7 @@ const char *vcFRVMStrings[] =
   "Fence",
   "Flat"
 };
+UDCOMPILEASSERT(udLengthOf(vcFRVMStrings) == vcRRVM_Count, "New enum values");
 
 static const char *vcFRIMStrings[] =
 {
@@ -25,6 +26,8 @@ static const char *vcFRIMStrings[] =
   "Glow",
   "Solid"
 };
+UDCOMPILEASSERT(udLengthOf(vcFRIMStrings) == vcRRIM_Count, "New enum values");
+
 
 vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pNode, pProgramState)
@@ -258,7 +261,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       pTemp = "large";
       break;
     case vcLFS_Medium:
-    default:
+    default: // Falls through
       pTemp = "medium";
       break;
     }
@@ -392,14 +395,26 @@ void vcPOI::RemovePoint(int index)
 
 void vcPOI::ChangeProjection(const udGeoZone &newZone)
 {
+  if (m_pCurrentProjection == nullptr)
+  {
+    for (int i = 0; i < m_line.numPoints; ++i)
+      m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, m_line.pPoints[i], true);
+
+    m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+  }
+
+  // Call the parent version - m_pCurrentProjection is updated in here
+  vcSceneItem::ChangeProjection(newZone);
+
   // If new zone is different and points fit within this zone's bounds, assign it to this new zone
-  if (m_pCurrentProjection == nullptr || m_pCurrentProjection->srid != newZone.srid)
+  if (m_pCurrentProjection->srid != newZone.srid)
   {
     bool withinBounds = true;
     for (int i = 0; i < m_line.numPoints; ++i)
     {
-      udDouble3 *pCoord = (udDouble3*)m_pNode->pCoordinates + (3 * i);
-      if (pCoord->y < newZone.latLongBoundMin.x || pCoord->y > newZone.latLongBoundMax.x || pCoord->x < newZone.latLongBoundMin.y || pCoord->x > newZone.latLongBoundMax.y)
+      udDouble3 coord = udGeoZone_ToLatLong(newZone, m_line.pPoints[i], true);
+      if (coord.y < newZone.latLongBoundMin.x || coord.y > newZone.latLongBoundMax.x || coord.x < newZone.latLongBoundMin.y || coord.x > newZone.latLongBoundMax.y)
       {
         withinBounds = false;
         break;
@@ -407,21 +422,15 @@ void vcPOI::ChangeProjection(const udGeoZone &newZone)
     }
     if (withinBounds)
     {
-      m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-      memcpy(m_pPreferredProjection, &newZone, sizeof(udGeoZone));
-      m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-      memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
-
-      // Change coords from longlat to cartesian within the new zone
+      // Update node longlat from cartesian within the new zone
       for (int i = 0; i < m_line.numPoints; ++i)
-        ((udDouble3*)m_line.pPoints)[i] = udGeoZone_ToCartesian(newZone, *(udDouble3*)m_pNode->pCoordinates, true);
+      {
+        *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(newZone, m_line.pPoints[i], true);
+        m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, *(udDouble3*)m_pNode->pCoordinates, true);
+      }
     }
+    UpdatePoints();
   }
-
-  UpdatePoints();
-
-  // Call the parent version - m_pCurrentProjection is updated in here
-  vcSceneItem::ChangeProjection(newZone);
 }
 
 void vcPOI::Cleanup(vcState * /*pProgramState*/)
