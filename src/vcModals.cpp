@@ -340,6 +340,44 @@ void vcModals_DrawTileServer(vcState *pProgramState)
   }
 }
 
+// Presents user with a message if the specified file exists, then returns false if user declines to overwrite the file
+bool vcModals_OverwriteExistingFile(const char *pFilename)
+{
+  bool result = true;
+  const char *pFileExistsMsg = nullptr;
+  if (udFileExists(pFilename) == udR_Success)
+  {
+    const SDL_MessageBoxButtonData buttons[] = {
+      { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "No" },
+      { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Yes" },
+    };
+    SDL_MessageBoxColorScheme colorScheme = {
+      {
+        { 255, 0, 0 },
+        { 0, 255, 0 },
+        { 255, 255, 0 },
+        { 0, 0, 255 },
+        { 255, 0, 255 }
+      }
+    };
+    pFileExistsMsg = vStringFormat(vcString::Get("convertFileExistsMessage"), pFilename);
+    SDL_MessageBoxData messageboxdata = {
+      SDL_MESSAGEBOX_INFORMATION,
+      NULL,
+      vcString::Get("convertFileExistsTitle"),
+      pFileExistsMsg,
+      SDL_arraysize(buttons),
+      buttons,
+      &colorScheme
+    };
+    int buttonid = 0;
+    if (SDL_ShowMessageBox(&messageboxdata, &buttonid) != 0 || buttonid == 0)
+      result = false;
+    udFree(pFileExistsMsg);
+  }
+  return result;
+}
+
 void vcModals_DrawFileModal(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_AddUDS))
@@ -401,7 +439,7 @@ void vcModals_DrawFileModal(vcState *pProgramState)
     }
     else if (mode == vcMT_ExportProject)
     {
-      const char *fileExtensions[] = { ".json", ".udp" };
+      const char *fileExtensions[] = { ".json" };
       if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), false, fileExtensions, udLengthOf(fileExtensions)))
         saveFile = true;
     }
@@ -412,30 +450,34 @@ void vcModals_DrawFileModal(vcState *pProgramState)
       pProgramState->modelPath[0] = '\0';
       ImGui::CloseCurrentPopup();
     }
-
-    if (saveFile)
+    else if (saveFile)
     {
       const char *pOutput = nullptr;
       if (vdkProject_WriteToMemory(pProgramState->sceneExplorer.pProject, &pOutput) == vE_Success)
       {
-        const char *pExportFilename;
-        if (udStrEndsWithi(pProgramState->modelPath, ".json"))
-          pExportFilename = vStringFormat("{0}", pProgramState->modelPath); // User can manually enter filename
+        udFindDir *pDir = nullptr;
+        udFilename exportFilename(pProgramState->modelPath);
+        if (!udStrEquali(pProgramState->modelPath, "") && !udStrEndsWithi(pProgramState->modelPath, "/") && !udStrEndsWithi(pProgramState->modelPath, "\\") && udOpenDir(&pDir, pProgramState->modelPath) == udR_Success)
+          exportFilename.SetFromFullPath("%s/untitled_project.json", pProgramState->modelPath);
+        else if (exportFilename.HasFilename())
+          exportFilename.SetExtension(".json");
         else
-          pExportFilename = vStringFormat("{0}_project.json", pProgramState->modelPath);
+          exportFilename.SetFilenameWithExt("untitled_project.json");
 
-        if (udFile_Save(pExportFilename, (void*)pOutput, udStrlen(pOutput)) != udR_Success)
+        // Check if file path exists before writing to disk, and if so, the user will be presented with the option to overwrite or cancel
+        if (vcModals_OverwriteExistingFile(exportFilename.GetPath()))
         {
-          vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+          if (udFile_Save(exportFilename.GetPath(), (void*)pOutput, udStrlen(pOutput)) != udR_Success)
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+          else
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeSucceeded);
+
+          ImGui::CloseCurrentPopup();
         }
-        else
-        {
-          vcModals_OpenModal(pProgramState, vcMT_ProjectChangeSucceeded);
-        }
+        if (pDir != nullptr)
+          udFree(pDir);
       }
-      ImGui::CloseCurrentPopup();
     }
-
     ImGui::EndPopup();
   }
 }
