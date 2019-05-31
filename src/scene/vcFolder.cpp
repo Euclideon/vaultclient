@@ -123,7 +123,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         vcFolder_AddInsertSeparator();
 
       // Can only edit the name while the item is still selected
-      pSceneItem->m_editName = pSceneItem->m_editName && pSceneItem->m_selected;
+      pSceneItem->m_editName = (pSceneItem->m_editName && pSceneItem->m_selected);
 
       // Visibility
       ImGui::Checkbox(udTempStr("###SXIVisible%zu", *pItemID), &pSceneItem->m_visible);
@@ -142,11 +142,12 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         pSceneItem->m_expanded = ImGui::TreeNodeEx(udTempStr("###SXIName%zu", *pItemID), flags);
         ImGui::SameLine();
 
+		// TODO: (EVC-636) this `256` is wrong, that is not fixing the bug!
         size_t length = udStrlen(pNode->pName);
-        char *pData = udAllocType(char, length + 16, udAF_None);
+        char *pData = udAllocType(char, length + 256, udAF_None);
         memcpy(pData, pNode->pName, length + 1); // factor in \0
 
-        length += 16;
+        length += 256;
 
         vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &pData, &length);
         if (ImGui::IsItemDeactivatedAfterEdit())
@@ -260,6 +261,8 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         if (ImGui::Selectable(vcString::Get("sceneExplorerRemoveItem")))
         {
           vcProject_RemoveItem(pProgramState, m_pNode, pNode);
+          pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
+
           ImGui::EndPopup();
           return;
         }
