@@ -457,7 +457,7 @@ void vcModals_DrawFileModal(vcState *pProgramState)
       {
         udFindDir *pDir = nullptr;
         udFilename exportFilename(pProgramState->modelPath);
-        if (udStrcmpi(pProgramState->modelPath, "") && !udStrEndsWithi(pProgramState->modelPath, "/") && !udStrEndsWithi(pProgramState->modelPath, "\\")&& udOpenDir(&pDir, pProgramState->modelPath) == udR_Success)
+        if (!udStrEquali(pProgramState->modelPath, "") && !udStrEndsWithi(pProgramState->modelPath, "/") && !udStrEndsWithi(pProgramState->modelPath, "\\") && udOpenDir(&pDir, pProgramState->modelPath) == udR_Success)
           exportFilename.SetFromFullPath("%s/untitled_project.json", pProgramState->modelPath);
         else if (exportFilename.HasFilename())
           exportFilename.SetExtension(".json");
