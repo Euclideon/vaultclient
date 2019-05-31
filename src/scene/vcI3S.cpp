@@ -83,5 +83,5 @@ udDouble3 vcI3S::GetLocalSpacePivot()
 
 udDouble4x4 vcI3S::GetWorldSpaceMatrix()
 {
-  return m_pSceneRenderer->sceneMatrix;
+  return m_pSceneRenderer ? m_pSceneRenderer->sceneMatrix : udDouble4x4::identity();
 }
