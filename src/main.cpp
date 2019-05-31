@@ -2027,7 +2027,6 @@ void vcRenderWindow(vcState *pProgramState)
                 pProgramState->sceneExplorer.clickedItem = pProgramState->sceneExplorer.selectedItems[i];
               }
             }
-
             pProgramState->sceneExplorer.insertItem = { nullptr, nullptr };
           }
 

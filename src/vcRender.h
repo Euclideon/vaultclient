@@ -70,5 +70,4 @@ void vcRender_vcRenderSceneImGui(vcRenderContext *pRenderContext, const vcRender
 void vcRender_ClearTiles(vcRenderContext *pRenderContext);
 void vcRender_ClearPoints(vcRenderContext *pRenderContext);
 
-
 #endif//vcRender_h__
