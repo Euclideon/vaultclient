@@ -8,8 +8,6 @@
 #include "vcPOI.h"
 #include "vcFolder.h"
 
-#if 0
-
 enum vcUDPItemDataType
 {
   vcUDPIDT_Dataset,
@@ -72,11 +70,11 @@ struct vcUDPItemData
   };
 };
 
-void vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char *pModelName, const char *pModelFilename, bool firstLoad, udDouble3 *pPosition, udDouble3 *pYPR, double scale)
+vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char *pModelName, const char *pModelFilename, bool firstLoad, udDouble3 *pPosition, udDouble3 *pYPR, double scale)
 {
   // If the model filename is nullptr there's nothing to load
   if (pModelFilename == nullptr)
-    return;
+    return nullptr;
 
   udFilename file(pUDPFilename);
 
@@ -89,7 +87,15 @@ void vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char
   else
     file.SetFromFullPath(pModelFilename);
 
-//  new vcModel(pProgramState, pModelName, file, firstLoad, pPosition, pYPR, scale);
+  vdkProjectNode *pNode;
+  vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "UDS", pModelName, pModelFilename, nullptr);
+
+  vcModel *pModel = new vcModel(pNode, pProgramState);
+  pNode->pUserData = pModel;
+  pModel->m_meterScale = scale;
+  //pModel->m_defaultMatrix = udDouble4x4::translation(*pPosition) * udDouble4x4::rotationYPR(*pYPR) * udDouble4x4::scaleUniform(scale); // ?????
+
+  return pNode;
 }
 
 bool vcUDP_ReadGeolocation(const char *pStr, udDouble3 &position, int &epsg)
@@ -101,17 +107,6 @@ bool vcUDP_ReadGeolocation(const char *pStr, udDouble3 &position, int &epsg)
 #endif
 
   return (count == 4);
-}
-
-vcSceneItemRef vcUDP_GetSceneItemRef(vcState *pProgramState)
-{
-  vdkProjectNode *pParent = pProgramState->sceneExplorer.clickedItem.pParent;
-  if (pParent == nullptr)
-    pParent = pProgramState->sceneExplorer.pProjectRoot->m_pNode;
-  else
-    pParent = pProgramState->sceneExplorer.clickedItem.pItem;
-
-  return { pParent, ((vcFolder*)pParent->pUserData)->GetNumChildren() };
 }
 
 void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemData, vcUDPItemDataType type)
@@ -127,7 +122,7 @@ void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemD
       item.isFolder = false;
       item.parentID = 0;
       item.treeIndex = 0;
-      item.sceneFolder = { nullptr, SIZE_MAX };
+      item.sceneFolder = { nullptr, nullptr };
       item.type = type;
 
       switch (type)
@@ -284,8 +279,8 @@ void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::ve
     if (item.dataset.pScale != nullptr)
       scale = udStrAtof64(item.dataset.pScale);
 
-    pItemData->at(index).sceneFolder = vcUDP_GetSceneItemRef(pProgramState);
-    vcUDP_AddModel(pProgramState, pFilename, item.dataset.pName, item.dataset.pPath, *pFirstLoad, pPosition, pYPR, scale);
+    pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pParent != nullptr ? pProgramState->sceneExplorer.clickedItem.pParent : pProgramState->sceneExplorer.pProjectRoot->m_pNode, vcUDP_AddModel(pProgramState, pFilename, item.dataset.pName, item.dataset.pPath, *pFirstLoad, pPosition, pYPR, scale) };
+
     *pFirstLoad = false;
   }
 }
@@ -296,35 +291,39 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
 
   if (item.label.pName != nullptr && item.label.pGeoLocation != nullptr)
   {
+    vdkProjectNode *pNode;
+    vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", item.label.pName, nullptr, nullptr);
+
     udDouble3 position = udDouble3::zero();
     int32_t epsgCode = 0;
 
     uint16_t size = (uint16_t)udStrAtou(item.label.pFontSize);
     uint32_t colour = (uint32_t)udStrAtoi(item.label.pColour); //These are stored as int (with negatives) in MDM
 
-    vcLabelFontSize lfs = vcLFS_Medium;
-
-    // 16 was default size in Geoverse MDM
+    const char *pSize;
     if (size > 16)
-      lfs = vcLFS_Large;
+      pSize = "Large";
     else if (size < 16)
-      lfs = vcLFS_Small;
+      pSize = "Small";
+    else
+      pSize = "Medium";
+
+    vdkProjectNode_SetMetadataString(pNode, "textSize", pSize);
+    vdkProjectNode_SetMetadataUint(pNode, "nameColour", colour);
 
     if (vcUDP_ReadGeolocation(item.label.pGeoLocation, position, epsgCode))
     {
-      pLabelData->at(index).sceneFolder = vcUDP_GetSceneItemRef(pProgramState);
-      new vcPOI(pProgramState->sceneExplorer.pProject, item.label.pName, colour, lfs, position, epsgCode);
+      udGeoZone *pZone = udAllocType(udGeoZone, 1, udAF_Zero);
+      udGeoZone_SetFromSRID(pZone, epsgCode);
 
-      // Add hyperlink to the metadata
-      if (item.label.pHyperlink != nullptr)
-      {
-        vcPOI *pPOI = (vcPOI*)((vcFolder*)item.sceneFolder.pParent->pUserData)->GetChild(item.sceneFolder.index);
-        udJSON temp;
-        temp.SetString(item.label.pHyperlink);
-
-        pPOI->m_metadata.Set(&temp, "hyperlink");
-      }
+      vcPOI *pPOI = new vcPOI(pNode, pProgramState);
+      pNode->pUserData = pPOI;
+      pPOI->m_pCurrentProjection = pZone;
+      pPOI->m_pPreferredProjection = (udGeoZone*)udMemDup(pZone, sizeof(udGeoZone), 0, udAF_Zero);
     }
+
+    vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&position);
+    pLabelData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pParent != nullptr ? pProgramState->sceneExplorer.clickedItem.pParent : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
   }
 }
 
@@ -332,28 +331,32 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
 {
   const vcUDPItemData &item = pLabelData->at(index);
 
-  if (item.polygon.pName != nullptr && item.polygon.pPoints != nullptr)
+  if (item.polygon.pName != nullptr && item.polygon.pPoints != nullptr && item.polygon.numPoints > 0)
   {
-    vcLineInfo info;
-    memset(&info, 0, sizeof(info));
+    vdkProjectNode *pNode;
+    vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", item.polygon.pName, nullptr, nullptr);
 
-    info.pPoints = item.polygon.pPoints;
-    info.numPoints = item.polygon.numPoints;
+    if (item.polygon.isClosed)
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)item.polygon.pPoints);
+    else
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)item.polygon.pPoints);
 
-    info.closed = item.polygon.isClosed;
+    vdkProjectNode_SetMetadataDouble(pNode, "lineWidth", 1.0);
+    vdkProjectNode_SetMetadataUint(pNode, "lineColourPrimary", item.polygon.colour);
+    vdkProjectNode_SetMetadataUint(pNode, "lineColourSecondary", item.polygon.colour);
+    vdkProjectNode_SetMetadataString(pNode, "textSize", "Medium");
 
-    info.lineWidth = 1;
-    info.colourPrimary = item.polygon.colour;
-    info.colourSecondary = item.polygon.colour;
+    udGeoZone *pZone = udAllocType(udGeoZone, 1, udAF_Zero);
+    udGeoZone_SetFromSRID(pZone, item.polygon.epsgCode);
 
-    if (info.numPoints > 0)
-      new vcPOI(pProgramState->sceneExplorer.pProject, item.polygon.pName, item.polygon.colour, vcLFS_Medium, &info, item.polygon.epsgCode);
-
-    udFree(info.pPoints);
+    vcPOI *pPOI = new vcPOI(pNode, pProgramState);
+    pNode->pUserData = pPOI;
+    pPOI->m_pCurrentProjection = pZone;
+    pPOI->m_pPreferredProjection = (udGeoZone*)udMemDup(pZone, sizeof(udGeoZone), 0, udAF_Zero);
   }
 }
 
-void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vector<vcUDPItemData> *pItemData, size_t index, bool *pFirstLoad, size_t rootOffset)
+void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vector<vcUDPItemData> *pItemData, size_t index, bool *pFirstLoad)
 {
   const vcUDPItemData &item = pItemData->at(index);
 
@@ -364,8 +367,8 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
     {
       if (pItemData->at(i).id == item.parentID)
       {
-        if (pItemData->at(i).sceneFolder.pParent == nullptr && pItemData->at(i).sceneFolder.index == SIZE_MAX)
-          vcUDP_AddItemData(pProgramState, pFilename, pItemData, i, pFirstLoad, rootOffset);
+        if (pItemData->at(i).sceneFolder.pItem == nullptr)
+          vcUDP_AddItemData(pProgramState, pFilename, pItemData, i, pFirstLoad);
 
         pProgramState->sceneExplorer.clickedItem = pItemData->at(i).sceneFolder;
         break;
@@ -376,16 +379,19 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
   // Create the folders and items
   if (item.isFolder)
   {
-    if (pItemData->at(index).sceneFolder.pParent == nullptr && pItemData->at(index).sceneFolder.index == SIZE_MAX)
+    if (pItemData->at(index).sceneFolder.pParent == nullptr)
     {
-      pItemData->at(index).sceneFolder = vcUDP_GetSceneItemRef(pProgramState);
-      //TODO: Fix me
-      //new vcFolder(pProgramState->sceneExplorer.pProject, item.dataset.pName);
+      vdkProjectNode *pNode;
+      vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "Folder", item.dataset.pName, nullptr, nullptr);
+
+      vcFolder *pFolder = new vcFolder(pNode, pProgramState);
+      pNode->pUserData = pFolder;
+
+      pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pParent != nullptr ? pProgramState->sceneExplorer.clickedItem.pParent : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
     }
   }
   else
   {
-    pItemData->at(index).sceneFolder = vcUDP_GetSceneItemRef(pProgramState);
     switch (item.type)
     {
     case vcUDPIDT_Dataset:
@@ -403,57 +409,36 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
     }
   }
 
-  // Insert item into the correct order
-  size_t treeIndex = rootOffset + (size_t)item.treeIndex;
-  if (treeIndex != item.sceneFolder.index && treeIndex < ((vcFolder*)item.sceneFolder.pParent->pUserData)->GetNumChildren())
+  // Find the highest lower tree index sibling
+  int64_t maxLowerTreeIndex = 0;
+  int mLTIndex = index;
+  for (int i = 0; i < pItemData->size(); ++i)
   {
-    vcSceneItemRef *pSceneRef = &pItemData->at(index).sceneFolder;
-    vcSceneItem *pTemp = ((vcFolder*)pSceneRef->pParent->pUserData)->GetChild(pSceneRef->index);
-    vdkProjectNode *pChildNode = pTemp->m_pNode;
-
-    vdkProjectNode_RemoveChild(pProgramState->sceneExplorer.pProject, pSceneRef->pParent, pChildNode);
-
-    // Fix indexes from removal
-    for (size_t i = 0; i < pItemData->size(); ++i)
+    if (pItemData->at(i).sceneFolder.pParent == item.sceneFolder.pParent && pItemData->at(i).treeIndex > maxLowerTreeIndex && pItemData->at(i).treeIndex < item.treeIndex)
     {
-      // This is '>' because only the removed item will match on '='
-      if (pItemData->at(i).sceneFolder.pParent == pSceneRef->pParent && pItemData->at(i).sceneFolder.index > pSceneRef->index)
-        --pItemData->at(i).sceneFolder.index;
+      maxLowerTreeIndex = pItemData->at(index).treeIndex;
+      mLTIndex = i;
     }
-
-    vdkProjectNode_InsertChild(pProgramState->sceneExplorer.pProject, pSceneRef->pParent, pTemp->m_pNode, treeIndex);
-
-    // Fix indexes from insertion
-    for (size_t i = 0; i < pItemData->size(); ++i)
-    {
-      // This is '>=' because the item was inserted at this index
-      // '>' would result in two items claiming to be at treeIndex, this crashes when that item is not a folder
-      if (pItemData->at(i).sceneFolder.pParent == pSceneRef->pParent && pItemData->at(i).sceneFolder.index >= treeIndex)
-        ++pItemData->at(i).sceneFolder.index;
-    }
-    pSceneRef->index = treeIndex;
   }
 
-  pProgramState->sceneExplorer.clickedItem = { nullptr, SIZE_MAX };
+  // If none found then we become the first child
+  if (mLTIndex == index)
+    vdkProjectNode_InsertUnder(pProgramState->sceneExplorer.pProject, item.sceneFolder.pParent, item.sceneFolder.pItem);
+  else
+    vdkProjectNode_InsertAfter(pProgramState->sceneExplorer.pProject, pItemData->at(mLTIndex).sceneFolder.pItem, item.sceneFolder.pItem);
+
+  pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
 }
 
-bool vcUDP_LoadItem(vcState *pProgramState, const char *pFilename, const udJSON &groupDataBlock, std::vector<vcUDPItemData> *pItemData, vcUDPItemDataType type, bool *pFirstLoad)
+void vcUDP_LoadItem(vcState *pProgramState, const char *pFilename, const udJSON &groupDataBlock, std::vector<vcUDPItemData> *pItemData, vcUDPItemDataType type, bool *pFirstLoad)
 {
-  size_t rootOffset = pProgramState->sceneExplorer.pProjectRoot->GetNumChildren();
-  if (udStrEqual(groupDataBlock.Get("Name").AsString(), g_vcUDPTypeGroupNames[type]))
+  const udJSON &items = groupDataBlock.Get("DataBlock");
+  vcUDP_ParseItemData(items, pItemData, type);
+
+  for (size_t i = 0; i < items.ArrayLength(); ++i)
   {
-    const udJSON &items = groupDataBlock.Get("DataBlock");
-    vcUDP_ParseItemData(items, pItemData, type);
-
-    for (size_t i = 0; i < items.ArrayLength(); ++i)
-    {
-      vcUDP_AddItemData(pProgramState, pFilename, pItemData, i, pFirstLoad, rootOffset);
-    }
-
-    return true;
+    vcUDP_AddItemData(pProgramState, pFilename, pItemData, i, pFirstLoad);
   }
-
-  return false;
 }
 
 void vcUDP_Load(vcState *pProgramState, const char *pFilename)
@@ -465,6 +450,8 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
   std::vector<vcUDPItemData> dataSetData;
   std::vector<vcUDPItemData> labelData;
   std::vector<vcUDPItemData> polygonData;
+
+  std::vector<vcUDPItemData> *data[vcUDPIDT_Count] = { &dataSetData, &labelData, &polygonData };
 
   UD_ERROR_CHECK(udFile_Load(pFilename, (void**)&pXMLText));
   UD_ERROR_CHECK(xml.Parse(pXMLText));
@@ -486,32 +473,18 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
     for (size_t i = 0; i < dataBlocks.ArrayLength(); ++i)
     {
       const udJSON &groupDataBlock = dataBlocks.Get("[%zu]", i);
-      if (vcUDP_LoadItem(pProgramState, pFilename, groupDataBlock, &dataSetData, vcUDPIDT_Dataset, &firstLoad))
-        continue;
 
-      if (vcUDP_LoadItem(pProgramState, pFilename, groupDataBlock, &labelData, vcUDPIDT_Label, &firstLoad))
-        continue;
+      int j = 0;
+      for (; j < vcUDPIDT_Count; ++j)
+        if (udStrEqual(groupDataBlock.Get("Name").AsString(), g_vcUDPTypeGroupNames[j]))
+          break;
 
-      if (vcUDP_LoadItem(pProgramState, pFilename, groupDataBlock, &polygonData, vcUDPIDT_Polygon, &firstLoad))
-        continue;
+      vcUDP_LoadItem(pProgramState, pFilename, groupDataBlock, data[j], (vcUDPItemDataType)j, &firstLoad);
 
-      // TODO: Add bookmark support here.
+      // TODO: Add bookmark support here. ?? maybe not here after 31/5 changes
     }
   }
 
 epilogue:
   udFree(pXMLText);
 }
-
-#else // Disable UDP
-
-#include "vcModals.h"
-
-void vcUDP_Load(vcState *pProgramState, const char *pFilename)
-{
-  udUnused(pFilename);
-
-  vcModals_OpenModal(pProgramState, vcMT_ProjectReadOnly);
-}
-
-#endif
