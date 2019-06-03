@@ -321,18 +321,28 @@ void vcLiveFeed::OnNodeUpdate()
 {
   const char *pGroupID = nullptr;
 
-  m_updateMode = vcLFM_Camera;
   vUUID_Clear(&m_groupID);
+  vdkProjectNode_GetMetadataInt(m_pNode, "updateMode", (int32_t*)&m_updateMode, vcLFM_Group);
 
-  if (vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pGroupID, nullptr) == vE_Success && pGroupID != nullptr)
+  if (m_updateMode == vcLFM_Group && vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pGroupID, nullptr) == vE_Success && pGroupID != nullptr)
   {
     m_updateMode = vcLFM_Group;
     vUUID_SetFromString(&m_groupID, pGroupID);
   }
-  else if (m_pNode->geomtype == vdkPGT_Point && m_pNode->geomCount == 1)
+  // TODO: Paul look at this
+  else if (m_updateMode == vcLFM_Position)//m_pNode->geomtype == vdkPGT_Point && m_pNode->geomCount == 1)
   {
     m_updateMode = vcLFM_Position;
-    m_position = udDouble3::create(m_pNode->pCoordinates[0], m_pNode->pCoordinates[1], m_pNode->pCoordinates[2]);
+    vdkProjectNode_GetMetadataDouble(m_pNode, "positionX", &m_position.x, 0.0);
+    vdkProjectNode_GetMetadataDouble(m_pNode, "positionY", &m_position.y, 0.0);
+    vdkProjectNode_GetMetadataDouble(m_pNode, "positionZ", &m_position.z, 0.0);
+
+    // TODO: Paul look at this
+    //m_position = udDouble3::create(m_pNode->pCoordinates[0], m_pNode->pCoordinates[1], m_pNode->pCoordinates[2]);
+  }
+  else //vcLFM_Camera
+  {
+    m_updateMode = vcLFM_Camera;
   }
 
   vdkProjectNode_GetMetadataDouble(m_pNode, "updateFrequency", &m_updateFrequency, 30.0);
@@ -537,6 +547,9 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     {
       if (m_updateMode == vcLFM_Position && m_position == udDouble3::zero())
         m_position = pProgramState->pCamera->position;
+
+      // TODO: Paul look at this
+      vdkProjectNode_SetMetadataInt(m_pNode, "updateMode", (int)(m_updateMode));
     }
 
     if (m_updateMode == vcLFM_Group)
@@ -552,8 +565,12 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     else if (m_updateMode == vcLFM_Position)
     {
       ImGui::InputScalarN(vcString::Get("liveFeedPosition"), ImGuiDataType_Double, &m_position.x, 3);
-    }
 
+      // TODO: Paul look at this
+      vdkProjectNode_SetMetadataDouble(m_pNode, "positionX", m_position.x);
+      vdkProjectNode_SetMetadataDouble(m_pNode, "positionY", m_position.y);
+      vdkProjectNode_SetMetadataDouble(m_pNode, "positionZ", m_position.z);
+    }
   }
 }
 
