@@ -875,7 +875,6 @@ int main(int argc, char **args)
     goto epilogue;
 
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
   // setup watermark for background
   vcTexture_CreateFromFilename(&programState.pCompanyLogo, "asset://assets/textures/logo.png");
