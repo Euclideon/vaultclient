@@ -70,7 +70,7 @@ struct vcUDPItemData
   };
 };
 
-vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char *pModelName, const char *pModelFilename, bool firstLoad, udDouble3 *pPosition, udDouble3 *pYPR, double scale)
+vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char *pModelName, const char *pModelFilename, udDouble3 *pPosition, udDouble3 *pYPR, double scale)
 {
   // If the model filename is nullptr there's nothing to load
   if (pModelFilename == nullptr)
@@ -88,12 +88,14 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
     file.SetFromFullPath(pModelFilename);
 
   vdkProjectNode *pNode;
-  vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "UDS", pModelName, pModelFilename, nullptr);
+  vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "UDS", pModelName, file.GetPath(), nullptr);
 
   vcModel *pModel = new vcModel(pNode, pProgramState);
   pNode->pUserData = pModel;
   pModel->m_meterScale = scale;
   //pModel->m_defaultMatrix = udDouble4x4::translation(*pPosition) * udDouble4x4::rotationYPR(*pYPR) * udDouble4x4::scaleUniform(scale); // ?????
+
+  pModel->OnNodeUpdate();
 
   return pNode;
 }
@@ -239,7 +241,7 @@ void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemD
   }
 }
 
-void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::vector<vcUDPItemData> *pItemData, size_t index, bool *pFirstLoad)
+void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::vector<vcUDPItemData> *pItemData, size_t index)
 {
   const vcUDPItemData &item = pItemData->at(index);
 
@@ -279,10 +281,8 @@ void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::ve
     if (item.dataset.pScale != nullptr)
       scale = udStrAtof64(item.dataset.pScale);
 
-    vdkProjectNode *pNode = vcUDP_AddModel(pProgramState, item.dataset.pPath, item.dataset.pName, pFilename, *pFirstLoad, pPosition, pYPR, scale);
+    vdkProjectNode *pNode = vcUDP_AddModel(pProgramState, pFilename, item.dataset.pName, item.dataset.pPath, pPosition, pYPR, scale);
     pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
-
-    *pFirstLoad = false;
   }
 }
 
@@ -317,13 +317,15 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
       udGeoZone *pZone = udAllocType(udGeoZone, 1, udAF_Zero);
       udGeoZone_SetFromSRID(pZone, epsgCode);
 
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&udGeoZone_ToLatLong(*pZone, position, true));
+
       vcPOI *pPOI = new vcPOI(pNode, pProgramState);
       pNode->pUserData = pPOI;
-      pPOI->m_pCurrentProjection = pZone;
-      pPOI->m_pPreferredProjection = (udGeoZone*)udMemDup(pZone, sizeof(udGeoZone), 0, udAF_Zero);
+      pPOI->m_pPreferredProjection = pZone;
+
+      pPOI->ChangeProjection(*pZone);
     }
 
-    vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&position);
     pLabelData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
   }
 }
@@ -337,30 +339,32 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
     vdkProjectNode *pNode;
     vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", item.polygon.pName, nullptr, nullptr);
 
+    udGeoZone *pZone = udAllocType(udGeoZone, 1, udAF_Zero);
+    udGeoZone_SetFromSRID(pZone, item.polygon.epsgCode);
+
     if (item.polygon.isClosed)
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)item.polygon.pPoints);
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)&udGeoZone_ToLatLong(*pZone, *item.polygon.pPoints, true));
     else
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)item.polygon.pPoints);
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)&udGeoZone_ToLatLong(*pZone, *item.polygon.pPoints, true));
 
     vdkProjectNode_SetMetadataDouble(pNode, "lineWidth", 1.0);
     vdkProjectNode_SetMetadataUint(pNode, "lineColourPrimary", item.polygon.colour);
     vdkProjectNode_SetMetadataUint(pNode, "lineColourSecondary", item.polygon.colour);
     vdkProjectNode_SetMetadataString(pNode, "textSize", "Medium");
 
-    udGeoZone *pZone = udAllocType(udGeoZone, 1, udAF_Zero);
-    udGeoZone_SetFromSRID(pZone, item.polygon.epsgCode);
-
     vcPOI *pPOI = new vcPOI(pNode, pProgramState);
     pNode->pUserData = pPOI;
-    pPOI->m_pCurrentProjection = pZone;
-    pPOI->m_pPreferredProjection = (udGeoZone*)udMemDup(pZone, sizeof(udGeoZone), 0, udAF_Zero);
+    pPOI->m_pPreferredProjection = pZone;
+
+    pPOI->ChangeProjection(*pZone);
 
     pLabelData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
   }
 }
 
-void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vector<vcUDPItemData> *pItemData, size_t index, bool *pFirstLoad)
+void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vector<vcUDPItemData> *pItemData, size_t index)
 {
+  pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
   const vcUDPItemData &item = pItemData->at(index);
 
   // Ensure parent is loaded and set as the item to add items to
@@ -371,7 +375,7 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
       if (pItemData->at(i).id == item.parentID)
       {
         if (pItemData->at(i).sceneFolder.pItem == nullptr)
-          vcUDP_AddItemData(pProgramState, pFilename, pItemData, i, pFirstLoad);
+          vcUDP_AddItemData(pProgramState, pFilename, pItemData, i);
 
         pProgramState->sceneExplorer.clickedItem = pItemData->at(i).sceneFolder;
         break;
@@ -398,7 +402,7 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
     switch (item.type)
     {
     case vcUDPIDT_Dataset:
-      vcUDP_AddDataSetData(pProgramState, pFilename, pItemData, index, pFirstLoad);
+      vcUDP_AddDataSetData(pProgramState, pFilename, pItemData, index);
       break;
     case vcUDPIDT_Label:
       vcUDP_AddLabelData(pProgramState, pItemData, index);
@@ -411,6 +415,8 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
       break;
     }
   }
+
+  vdkProjectNode_RemoveChild(pProgramState->sceneExplorer.pProject, pProgramState->sceneExplorer.pProjectRoot->m_pNode, item.sceneFolder.pItem);
 
   // Find the highest lower tree index sibling
   int64_t maxLowerTreeIndex = 0;
@@ -432,18 +438,17 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
     vdkProjectNode_InsertUnder(pProgramState->sceneExplorer.pProject, item.sceneFolder.pParent, item.sceneFolder.pItem);
   else
     vdkProjectNode_InsertAfter(pProgramState->sceneExplorer.pProject, pItemData->at(maxLTIndex).sceneFolder.pItem, item.sceneFolder.pItem);
-
-  pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
 }
 
-void vcUDP_LoadItem(vcState *pProgramState, const char *pFilename, const udJSON &groupDataBlock, std::vector<vcUDPItemData> *pItemData, vcUDPItemDataType type, bool *pFirstLoad)
+void vcUDP_LoadItem(vcState *pProgramState, const char *pFilename, const udJSON &groupDataBlock, std::vector<vcUDPItemData> *pItemData, vcUDPItemDataType type)
 {
   const udJSON &items = groupDataBlock.Get("DataBlock");
+  size_t start = pItemData->size() - 1;
   vcUDP_ParseItemData(items, pItemData, type);
 
-  for (size_t i = 0; i < items.ArrayLength(); ++i)
+  for (; start < pItemData->size(); ++start)
   {
-    vcUDP_AddItemData(pProgramState, pFilename, pItemData, i, pFirstLoad);
+    vcUDP_AddItemData(pProgramState, pFilename, pItemData, start);
   }
 }
 
@@ -452,12 +457,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
   udResult result;
   udJSON xml;
   const char *pXMLText = nullptr;
-  bool firstLoad = true;
-  std::vector<vcUDPItemData> dataSetData;
-  std::vector<vcUDPItemData> labelData;
-  std::vector<vcUDPItemData> polygonData;
-
-  std::vector<vcUDPItemData> *data[vcUDPIDT_Count] = { &dataSetData, &labelData, &polygonData };
+  std::vector<vcUDPItemData> itemData;
 
   UD_ERROR_CHECK(udFile_Load(pFilename, (void**)&pXMLText));
   UD_ERROR_CHECK(xml.Parse(pXMLText));
@@ -470,8 +470,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
       const char *pName = dataEntries.Get("[%zu].Name", i).AsString();
       if (udStrEqual(pName, "AbsoluteModelPath"))
       {
-        vcUDP_AddModel(pProgramState, pFilename, nullptr, dataEntries.Get("[%zu].content", i).AsString(), firstLoad, nullptr, nullptr, 1.0);
-        firstLoad = false;
+        vcUDP_AddModel(pProgramState, pFilename, nullptr, dataEntries.Get("[%zu].content", i).AsString(), nullptr, nullptr, 1.0);
       }
     }
 
@@ -481,11 +480,16 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
       const udJSON &groupDataBlock = dataBlocks.Get("[%zu]", i);
 
       for (int j = 0; j < vcUDPIDT_Count; ++j)
+      {
         if (udStrEqual(groupDataBlock.Get("Name").AsString(), g_vcUDPTypeGroupNames[j]))
-          vcUDP_LoadItem(pProgramState, pFilename, groupDataBlock, data[j], (vcUDPItemDataType)j, &firstLoad);
-
-      // TODO: Add bookmark support here. ?? maybe not here after 31/5 changes
+        {
+          vcUDP_LoadItem(pProgramState, pFilename, groupDataBlock, &itemData, (vcUDPItemDataType)j);
+          break;
+        }
+      }
+      // TODO: Add bookmark support here.
     }
+    pProgramState->getGeo = true;
   }
 
 epilogue:
