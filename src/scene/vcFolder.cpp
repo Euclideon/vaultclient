@@ -116,6 +116,39 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
     if (pNode->pUserData != nullptr)
     {
+      if (pProgramState->pGotGeo != nullptr)
+      {
+        switch (pNode->itemtype)
+        {
+          case vdkPNT_Media:
+            ((vcMedia*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
+            break;
+          case vdkPNT_PointOfInterest:
+            ((vcPOI*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
+            break;
+          case vdkPNT_Viewpoint:
+            ((vcViewpoint*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
+            break;
+          default:
+            break;
+        }
+      }
+
+      if (pProgramState->getGeo && pNode->itemtype == vdkPNT_PointCloud && ((vcModel*)(pNode->pUserData))->m_pPreferredProjection != nullptr)
+      {
+        vcModel *pModel = (vcModel*)pNode->pUserData;
+        if (pProgramState->pGotGeo == pModel->m_pPreferredProjection)
+        {
+          pProgramState->pGotGeo = nullptr;
+          pProgramState->getGeo = false;
+        }
+        else if (pProgramState->pGotGeo == nullptr)
+        {
+          pProgramState->pGotGeo = pModel->m_pPreferredProjection;
+          vcProject_UseProjectionFromItem(pProgramState, pModel);
+        }
+      }
+
       vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
 
       // This block is also after the loop
@@ -315,7 +348,7 @@ void vcFolder::Cleanup(vcState *pProgramState)
 
   while (pNode != nullptr)
   {
-    vcProject_RemoveItem(pProgramState, m_pNode, 0);
+    vcProject_RemoveItem(pProgramState, m_pNode, pNode);
     pNode = pNode->pNextSibling;
   }
 }

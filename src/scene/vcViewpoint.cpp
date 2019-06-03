@@ -77,21 +77,14 @@ void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
 void vcViewpoint::ChangeProjection(const udGeoZone &newZone)
 {
-  if (m_pCurrentProjection == nullptr)
-  {
-    m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-    memcpy(m_pPreferredProjection, &newZone, sizeof(udGeoZone));
-    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-    memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
-    *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(newZone, m_CameraPosition, true);
-  }
-  else if (m_pCurrentProjection->srid != newZone.srid)
-  {
-    m_CameraPosition = udGeoZone_ToCartesian(newZone, *(udDouble3*)m_pNode->pCoordinates, true);
-  }
-
   // Call the parent version
   vcSceneItem::ChangeProjection(newZone);
+
+  if (m_pCurrentProjection != nullptr && m_pCurrentProjection->srid != newZone.srid)
+  {
+    *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(newZone, m_CameraPosition, true);
+    m_CameraPosition = udGeoZone_ToCartesian(newZone, *(udDouble3*)m_pNode->pCoordinates, true);
+  }
 }
 
 void vcViewpoint::Cleanup(vcState * /*pProgramState*/)
