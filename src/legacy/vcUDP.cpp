@@ -279,7 +279,8 @@ void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::ve
     if (item.dataset.pScale != nullptr)
       scale = udStrAtof64(item.dataset.pScale);
 
-    pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pParent != nullptr ? pProgramState->sceneExplorer.clickedItem.pParent : pProgramState->sceneExplorer.pProjectRoot->m_pNode, vcUDP_AddModel(pProgramState, pFilename, item.dataset.pName, item.dataset.pPath, *pFirstLoad, pPosition, pYPR, scale) };
+    vdkProjectNode *pNode = vcUDP_AddModel(pProgramState, item.dataset.pPath, item.dataset.pName, pFilename, *pFirstLoad, pPosition, pYPR, scale);
+    pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
 
     *pFirstLoad = false;
   }
@@ -323,7 +324,7 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
     }
 
     vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&position);
-    pLabelData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pParent != nullptr ? pProgramState->sceneExplorer.clickedItem.pParent : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
+    pLabelData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
   }
 }
 
@@ -353,6 +354,8 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
     pNode->pUserData = pPOI;
     pPOI->m_pCurrentProjection = pZone;
     pPOI->m_pPreferredProjection = (udGeoZone*)udMemDup(pZone, sizeof(udGeoZone), 0, udAF_Zero);
+
+    pLabelData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
   }
 }
 
@@ -387,7 +390,7 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
       vcFolder *pFolder = new vcFolder(pNode, pProgramState);
       pNode->pUserData = pFolder;
 
-      pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pParent != nullptr ? pProgramState->sceneExplorer.clickedItem.pParent : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
+      pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
     }
   }
   else
@@ -411,21 +414,24 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
 
   // Find the highest lower tree index sibling
   int64_t maxLowerTreeIndex = 0;
-  int mLTIndex = index;
+  int maxLTIndex = index;
   for (int i = 0; i < pItemData->size(); ++i)
   {
-    if (pItemData->at(i).sceneFolder.pParent == item.sceneFolder.pParent && pItemData->at(i).treeIndex > maxLowerTreeIndex && pItemData->at(i).treeIndex < item.treeIndex)
+    if (pItemData->at(i).sceneFolder.pParent == item.sceneFolder.pParent)
     {
-      maxLowerTreeIndex = pItemData->at(index).treeIndex;
-      mLTIndex = i;
+      if (pItemData->at(i).treeIndex > maxLowerTreeIndex && pItemData->at(i).treeIndex < item.treeIndex)
+      {
+        maxLowerTreeIndex = pItemData->at(index).treeIndex;
+        maxLTIndex = i;
+      }
     }
   }
 
   // If none found then we become the first child
-  if (mLTIndex == index)
+  if (maxLTIndex == index)
     vdkProjectNode_InsertUnder(pProgramState->sceneExplorer.pProject, item.sceneFolder.pParent, item.sceneFolder.pItem);
   else
-    vdkProjectNode_InsertAfter(pProgramState->sceneExplorer.pProject, pItemData->at(mLTIndex).sceneFolder.pItem, item.sceneFolder.pItem);
+    vdkProjectNode_InsertAfter(pProgramState->sceneExplorer.pProject, pItemData->at(maxLTIndex).sceneFolder.pItem, item.sceneFolder.pItem);
 
   pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
 }
@@ -474,12 +480,9 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
     {
       const udJSON &groupDataBlock = dataBlocks.Get("[%zu]", i);
 
-      int j = 0;
-      for (; j < vcUDPIDT_Count; ++j)
+      for (int j = 0; j < vcUDPIDT_Count; ++j)
         if (udStrEqual(groupDataBlock.Get("Name").AsString(), g_vcUDPTypeGroupNames[j]))
-          break;
-
-      vcUDP_LoadItem(pProgramState, pFilename, groupDataBlock, data[j], (vcUDPItemDataType)j, &firstLoad);
+          vcUDP_LoadItem(pProgramState, pFilename, groupDataBlock, data[j], (vcUDPItemDataType)j, &firstLoad);
 
       // TODO: Add bookmark support here. ?? maybe not here after 31/5 changes
     }
