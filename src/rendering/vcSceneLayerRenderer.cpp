@@ -149,6 +149,5 @@ bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayerRenderer, cons
   for (int j = 0; j < 6; ++j)
     pSceneLayerRenderer->frustumPlanes[j] /= udMag3(pSceneLayerRenderer->frustumPlanes[j]);
 
-  pSceneLayerRenderer->pSceneLayer->gpuBytesUploadedThisFrame = 0;
   return vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, &pSceneLayerRenderer->pSceneLayer->root, worldViewProjectionMatrix, screenResolution);
 }

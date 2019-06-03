@@ -431,6 +431,8 @@ void vcRenderOpaqueGeometry(vcRenderContext *pRenderContext, vcRenderData &rende
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
       vcPolygonModel_Render(renderData.polyModels[i].pModel, renderData.polyModels[i].worldMat, pRenderContext->pCamera->matrices.viewProjection);
 
+    // TODO: (EVC-553) This is temporary
+    gpuBytesUploadedThisFrame = 0;
     for (size_t i = 0; i < renderData.sceneLayers.length; ++i)
       vcSceneLayerRenderer_Render(renderData.sceneLayers[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
 

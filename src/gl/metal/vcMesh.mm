@@ -44,6 +44,8 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
       case vcVLT_Normal3:
         accumulatedOffset += 3 * sizeof(float);
         break;
+      case vcVLT_Unsupported: // TODO: (EVC-641) Handle unsupported attributes interleaved with supported attributes
+        continue; // NOTE continue
       case vcVLT_TotalTypes:
         break;
     }
@@ -133,6 +135,8 @@ udResult vcMesh_UploadData(struct vcMesh *pMesh, const vcVertexLayoutTypes *pLay
       case vcVLT_Normal3:
         accumulatedOffset += 3 * sizeof(float);
         break;
+      case vcVLT_Unsupported: // TODO: (EVC-641) Handle unsupported attributes interleaved with supported attributes
+        continue; // NOTE continue
       case vcVLT_TotalTypes:
         break;
     }

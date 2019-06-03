@@ -71,4 +71,31 @@ size_t vcSceneLayerHelper_ReadSceneLayerType(T *pValue, char *pData, const char 
   return size;
 }
 
+size_t vcSceneLayerHelper_GetSceneLayerTypeSize(const char *pType)
+{
+  if (udStrEqual(pType, "Int64"))
+    return 8;
+  else if (udStrEqual(pType, "Int32"))
+    return 4;
+  else if (udStrEqual(pType, "Int16"))
+    return 2;
+  else if (udStrEqual(pType, "Int8"))
+    return 1;
+  else if (udStrEqual(pType, "UInt64"))
+    return 8;
+  else if (udStrEqual(pType, "UInt32"))
+    return 4;
+  else if (udStrEqual(pType, "UInt16"))
+    return 2;
+  else if (udStrEqual(pType, "UInt8"))
+    return 1;
+  else if (udStrEqual(pType, "Float64"))
+    return 8;
+  else if (udStrEqual(pType, "Float32"))
+    return 4;
+  else if (udStrEqual(pType, "String"))
+    return 0; // TODO handle
+
+  return 0; // TODO handle
+}
 #endif//vcSceneLayerHelper_h__
