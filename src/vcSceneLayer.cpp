@@ -13,6 +13,9 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 
+// TODO: (EVC-553) This is temporary
+uint64_t gpuBytesUploadedThisFrame = 0;
+
 struct vcSceneLayer_LoadNodeJobData
 {
   vcSceneLayer *pSceneLayer;
@@ -79,7 +82,7 @@ void vcNormalizePath(const char **ppDest, const char *pRoot, const char *pAppend
   // TODO: This isn't good enough! (assumptions)
   if (len >= 3 && udStrBeginsWith(pNewAppend, udTempStr("..%c", separator)))
   {
-    if (udStrrchr(pRoot, &separator, &index) != nullptr)
+    if (udStrrchr(pRoot, udTempStr("%c", separator), &index) != nullptr)
     {
       pNewRoot = udStrdup(pRoot);
       pNewRoot[index] = '\0';
@@ -163,6 +166,44 @@ udResult vcSceneLayer_LoadFeatureData(vcSceneLayer *pSceneLayer, vcSceneLayerNod
     // TODO: (EVC-542) Where does this go?
     //pNode->geometries.transformation = featuresJSON.Get("geometryData[0].transformation").AsDouble4x4();
 
+    /// Layout
+    // TODO: I'm assuming that featureCount == geometryCount, and that feature X relates to geometry X
+    //       This may be wrong, maybe the 'id's link them, instead of index
+    const udJSON &vertexAttributesJSON = featuresJSON.Get("geometryData[%zu].params.vertexAttributes", i);
+
+    pNode->pFeatureData[i].geometryLayoutCount = vertexAttributesJSON.MemberCount();
+    UD_ERROR_IF(pNode->pFeatureData[i].geometryLayoutCount == 0, udR_ParseError);
+
+    pNode->pFeatureData[i].pGeometryLayout = udAllocType(vcVertexLayoutTypes, pNode->pFeatureData[i].geometryLayoutCount, udAF_Zero);
+    UD_ERROR_NULL(pNode->pFeatureData[i].pGeometryLayout, udR_MemoryAllocationFailure);
+
+    for (size_t a = 0; a < pNode->pFeatureData[i].geometryLayoutCount; ++a)
+    {
+      const udJSON *pVertexAttributeJSON = vertexAttributesJSON.GetMember(a);
+      const char *pAttributeName = vertexAttributesJSON.GetMemberName(a);
+      size_t attributeElementSize = vcSceneLayerHelper_GetSceneLayerTypeSize(pVertexAttributeJSON->Get("valueType").AsString());
+      int attributeElementCount = pVertexAttributeJSON->Get("valuesPerElement").AsInt();
+      size_t attributeSize = (attributeElementCount * attributeElementSize);
+
+      if (udStrEqual(pAttributeName, "position"))
+        pNode->pFeatureData[i].pGeometryLayout[a] = vcVLT_Position3;
+      else if (udStrEqual(pAttributeName, "normal"))
+        pNode->pFeatureData[i].pGeometryLayout[a] = vcVLT_Normal3;
+      else if (udStrEqual(pAttributeName, "uv0"))
+        pNode->pFeatureData[i].pGeometryLayout[a] = vcVLT_TextureCoords2;
+      else if (udStrEqual(pAttributeName, "color"))
+        pNode->pFeatureData[i].pGeometryLayout[a] = vcVLT_ColourBGRA;
+      else
+      {
+        // the renderer will ignore anything else
+        pNode->pFeatureData[i].pGeometryLayout[a] = vcVLT_Unsupported;
+      }
+
+      // store in geometry data
+      pNode->pGeometryData[i].vertexStride += attributeSize;
+    }
+
+    UD_ERROR_IF(pNode->pGeometryData[i].vertexStride == 0, udR_Unsupported);
     udFree(pFileData);
   }
 
@@ -184,25 +225,22 @@ udResult vcSceneLayer_LoadGeometryData(vcSceneLayer *pSceneLayer, vcSceneLayerNo
   uint64_t faceCount = 0;
   char *pCurrentFile = nullptr;
   uint32_t attributeOffset = 0;
-  uint32_t attributeSize = 0;
-  size_t headerElementCount = 0;
   udFloat3 vertI3S = {};
-  udDouble3 pointCartesian = {};
-  udDouble3 originCartesian = udDouble3::create(DBL_MAX, DBL_MAX, DBL_MAX);
   udFloat3 finalVertPosition = {};
   const char *pPropertyName = nullptr;
   const char *pTypeName = nullptr;
+  int64_t fileLen = 0;
 
   for (size_t i = 0; i < pNode->geometryDataCount; ++i)
   {
     udSprintf(&pPathBuffer, "zip://%s%c%s.bin.gz", pNode->pURL, pSceneLayer->pathSeparatorChar, pNode->pGeometryData[i].pURL);
-    UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData));
+    UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData, &fileLen));
 
     pCurrentFile = pFileData;
 
     /// Header
-    // TODO: (EVC-548) Calculate once on node load... not per geometry
-    headerElementCount = pSceneLayer->description.Get("store.defaultGeometrySchema.header").ArrayLength();
+    // TODO: (EVC-548) The header layout is consistent for all nodes, calculate once on node load... not per geometry
+    size_t headerElementCount = pSceneLayer->description.Get("store.defaultGeometrySchema.header").ArrayLength();
     for (size_t h = 0; h < headerElementCount; ++h)
     {
       pPropertyName = pSceneLayer->description.Get("store.defaultGeometrySchema.header[%zu].property", h).AsString();
@@ -216,31 +254,30 @@ udResult vcSceneLayer_LoadGeometryData(vcSceneLayer *pSceneLayer, vcSceneLayerNo
       else
       {
         // TODO: (EVC-542) Unknown property type
-        UD_ERROR_SET(udR_ParseError);
+        // UD_ERROR_SET(udR_ParseError);
       }
     }
 
     /// Geometry
     // TODO: (EVC-542)
-    pNode->pGeometryData[i].vertexStride = vcLayout_GetSize(pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount);
     UD_ERROR_IF(pNode->pGeometryData[i].vertCount * pNode->pGeometryData[i].vertexStride == 0, udR_ParseError);
     pNode->pGeometryData[i].pData = udAllocType(uint8_t, pNode->pGeometryData[i].vertCount * pNode->pGeometryData[i].vertexStride, udAF_Zero);
+    UD_ERROR_NULL(pNode->pGeometryData[i].pData, udR_MemoryAllocationFailure);
 
     // vertices are non-interleaved.
     // TODO: (EVC-542) Is that what "Topology: PerAttributeArray" signals?
-    for (size_t attributeIndex = 0; attributeIndex < pSceneLayer->defaultGeometryLayoutCount; ++attributeIndex)
+    for (size_t attributeIndex = 0; attributeIndex < pNode->pFeatureData[i].geometryLayoutCount; ++attributeIndex)
     {
-      attributeSize = vcLayout_GetSize(pSceneLayer->pDefaultGeometryLayout[attributeIndex]);
-
-      if (pSceneLayer->pDefaultGeometryLayout[attributeIndex] == vcVLT_Position3)
+      uint32_t attributeSize = vcLayout_GetSize(pNode->pFeatureData[i].pGeometryLayout[attributeIndex]);
+      if (pNode->pFeatureData[i].pGeometryLayout[attributeIndex] == vcVLT_Position3)
       {
         // positions require additional processing
 
         // Get the first position, and use that as an origin matrix (fixes floating point precision issue)
         // TODO: (EVC-540) Handle different sized positions
         memcpy(&vertI3S, pCurrentFile, sizeof(vertI3S));
-        pointCartesian = udGeoZone_ToCartesian(pNode->zone, udDouble3::create(pNode->latLong.x + vertI3S.x, pNode->latLong.y + vertI3S.y, 0.0), true);
-        originCartesian = udDouble3::create(pointCartesian.x, pointCartesian.y, vertI3S.z + pNode->pFeatureData[i].position.z);
+        udDouble3 pointCartesian = udGeoZone_ToCartesian(pNode->zone, udDouble3::create(pNode->latLong.x + vertI3S.x, pNode->latLong.y + vertI3S.y, 0.0), true);
+        udDouble3 originCartesian = udDouble3::create(pointCartesian.x, pointCartesian.y, vertI3S.z + pNode->pFeatureData[i].position.z);
         pNode->pGeometryData[i].originMatrix = udDouble4x4::translation(originCartesian);
 
         for (uint64_t v = 0; v < pNode->pGeometryData[i].vertCount; ++v)
@@ -287,7 +324,7 @@ udResult vcSceneLayer_LoadTextureData(vcSceneLayer *pSceneLayer, vcSceneLayerNod
 {
   udUnused(pSceneLayer);
 
-  udResult result = udR_Failure_;
+  udResult result = udR_Success; // udR_Failure TODO: (EVC-544) Handle texture load failures
   const char *pPathBuffer = nullptr;
   uint8_t *pPixelData = nullptr;
   void *pFileData = nullptr;
@@ -493,7 +530,6 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWo
   vcSceneLayer *pSceneLayer = nullptr;
   const char *pPathBuffer = nullptr;
   char *pFileData = nullptr;
-  const char *pAttributeName = nullptr;
   const char *pRootPath = nullptr;
 
   pSceneLayer = udAllocType(vcSceneLayer, 1, udAF_Zero);
@@ -506,32 +542,6 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWo
   udSprintf(&pPathBuffer, "zip://%s:3dSceneLayer.json.gz", pSceneLayer->sceneLayerURL);
   UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData));
   UD_ERROR_CHECK(pSceneLayer->description.Parse(pFileData));
-
-  // Load layout description now
-  pSceneLayer->defaultGeometryLayoutCount = pSceneLayer->description.Get("store.defaultGeometrySchema.ordering").ArrayLength();
-  UD_ERROR_IF(pSceneLayer->defaultGeometryLayoutCount == 0, udR_ParseError);
-  pSceneLayer->pDefaultGeometryLayout = udAllocType(vcVertexLayoutTypes, pSceneLayer->defaultGeometryLayoutCount, udAF_Zero);
-  UD_ERROR_NULL(pSceneLayer->pDefaultGeometryLayout, udR_MemoryAllocationFailure);
-
-  for (size_t i = 0; i < pSceneLayer->defaultGeometryLayoutCount; ++i)
-  {
-    pAttributeName = pSceneLayer->description.Get("store.defaultGeometrySchema.ordering[%zu]", i).AsString();
-
-    // TODO: (EVC-540) Probably need to read vertex attribute info.
-    if (udStrEqual(pAttributeName, "position"))
-      pSceneLayer->pDefaultGeometryLayout[i] = vcVLT_Position3;
-    else if (udStrEqual(pAttributeName, "normal"))
-      pSceneLayer->pDefaultGeometryLayout[i] = vcVLT_Normal3;
-    else if (udStrEqual(pAttributeName, "uv0"))
-      pSceneLayer->pDefaultGeometryLayout[i] = vcVLT_TextureCoords2;
-    else if (udStrEqual(pAttributeName, "color"))
-      pSceneLayer->pDefaultGeometryLayout[i] = vcVLT_ColourBGRA;
-    else
-    {
-      // TODO: (EVC-542) Unknown attribute type
-      UD_ERROR_SET(udR_ParseError);
-    }
-  }
 
   // Load the root
   // TODO: (EVC-548) Does the root actually need to be loaded here?
@@ -552,7 +562,6 @@ epilogue:
   if (pSceneLayer != nullptr)
   {
     pSceneLayer->description.Destroy();
-    udFree(pSceneLayer->pDefaultGeometryLayout);
     udFree(pSceneLayer);
   }
 
@@ -571,7 +580,11 @@ void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode)
     udFree(pNode->pSharedResources[i].pURL);
 
   for (size_t i = 0; i < pNode->featureDataCount; ++i)
+  {
     udFree(pNode->pFeatureData[i].pURL);
+
+    udFree(pNode->pFeatureData[i].pGeometryLayout);
+  }
 
   for (size_t i = 0; i < pNode->geometryDataCount; ++i)
   {
@@ -620,7 +633,6 @@ udResult vcSceneLayer_Destroy(vcSceneLayer **ppSceneLayer)
   vcSceneLayer_RecursiveDestroyNode(&pSceneLayer->root);
   pSceneLayer->description.Destroy();
 
-  udFree(pSceneLayer->pDefaultGeometryLayout);
   udFree(pSceneLayer);
 
   result = udR_Success;
@@ -629,12 +641,12 @@ epilogue:
   return result;
 }
 
-udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode, bool force = false)
+udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayerNode *pNode, bool force = false)
 {
   udResult result;
 
   // TODO: (EVC-553)
-  if (!force && pSceneLayer->gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame)
+  if (!force && gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame)
     UD_ERROR_SET(udR_Success);
 
   // geometry
@@ -644,16 +656,16 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
       continue;
 
     // TODO: (EVC-553) Let `vcPolygonModel_CreateFromData()` handle this?
-    if (!force && pSceneLayer->gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame) // allow partial uploads
+    if (!force && gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame) // allow partial uploads
       UD_ERROR_SET(udR_Success);
 
     UD_ERROR_IF(pNode->pGeometryData[i].vertCount > UINT16_MAX, udR_Failure_);
-    UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&pNode->pGeometryData[i].pModel, pNode->pGeometryData[i].pData, (uint16_t)pNode->pGeometryData[i].vertCount, pSceneLayer->pDefaultGeometryLayout, (int)pSceneLayer->defaultGeometryLayoutCount));
+    UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&pNode->pGeometryData[i].pModel, pNode->pGeometryData[i].pData, (uint16_t)pNode->pGeometryData[i].vertCount, pNode->pFeatureData[i].pGeometryLayout, (int)pNode->pFeatureData[i].geometryLayoutCount));
     udFree(pNode->pGeometryData[i].pData);
 
     pNode->pGeometryData[i].loaded = true;
     vcGLState_ReportGPUWork(0, 0, (pNode->pGeometryData[i].vertexStride * pNode->pGeometryData[i].vertCount));
-    pSceneLayer->gpuBytesUploadedThisFrame += (pNode->pGeometryData[i].vertexStride * pNode->pGeometryData[i].vertCount);
+    gpuBytesUploadedThisFrame += (pNode->pGeometryData[i].vertexStride * pNode->pGeometryData[i].vertCount);
   }
 
   // textures
@@ -663,7 +675,7 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
       continue;
 
     // TODO: (EVC-553) Let `vcTexture_Create()` handle this?
-    if (!force && pSceneLayer->gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame) // allow partial uploads
+    if (!force && gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame) // allow partial uploads
       UD_ERROR_SET(udR_Success);
 
     // Making an assumption here, use mip maps for 'flat' hierarchies
@@ -673,7 +685,7 @@ udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayer *pSceneLayer, vcSce
 
     pNode->pTextureData[i].loaded = true;
     vcGLState_ReportGPUWork(0, 0, (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4));
-    pSceneLayer->gpuBytesUploadedThisFrame += (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4);
+    gpuBytesUploadedThisFrame += (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4);
   }
 
   pNode->loadState = vcSceneLayerNode::vcLS_Success;
@@ -707,7 +719,7 @@ bool vcSceneLayer_TouchNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
   }
 
   if (pNode->loadState == vcSceneLayerNode::vcLS_InMemory)
-    vcSceneLayer_UploadDataToGPUIfPossible(pSceneLayer, pNode);
+    vcSceneLayer_UploadDataToGPUIfPossible(pNode);
 
   return pNode->loadState == vcSceneLayerNode::vcLS_Success;
 }

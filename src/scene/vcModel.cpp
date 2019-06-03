@@ -41,6 +41,11 @@ void vcModel_PostLoadModel(void *pLoadInfoPtr)
     vcProject_UseProjectionFromItem(pLoadInfo->pProgramState, pLoadInfo->pModel);
   else if (pLoadInfo->pProgramState->gis.isProjected)
     pLoadInfo->pModel->ChangeProjection(pLoadInfo->pProgramState->gis.zone);
+
+  // TODO: (EVC-535) This works - but is sub-optimal
+  // Not sure exactly how to handle auto-assignment...
+  pLoadInfo->pProgramState->settings.visualization.minIntensity = udMax(pLoadInfo->pProgramState->settings.visualization.minIntensity, pLoadInfo->pModel->minMaxIntensity.x);
+  pLoadInfo->pProgramState->settings.visualization.maxIntensity = udMin(pLoadInfo->pProgramState->settings.visualization.maxIntensity, pLoadInfo->pModel->minMaxIntensity.y);
 }
 
 void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, double scale, udDouble3 *pPosition = nullptr, udDouble3 *pRotation = nullptr)
@@ -87,6 +92,13 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, double scale,
 
       memcpy(pMemberZone, pModel->m_pPreferredProjection, sizeof(*pMemberZone));
     }
+
+    // TODO: (EVC-535) This works, but this data is already extracted and stored in
+    // `udOctreeUDS`... but we don't have access to that data?
+    const char *pMinMaxIntensity = pModel->m_metadata.Get("AttrMinMax_udIntensity").AsString("0, 65535");
+    int charCount = 0;
+    pModel->minMaxIntensity.x = (uint16_t)udStrAtoi(pMinMaxIntensity, &charCount);
+    pModel->minMaxIntensity.y = (uint16_t)(udStrAtoi(pMinMaxIntensity + charCount + 1));
   }
 
   vdkPointCloud_GetStoredMatrix(pProgramState->pVDKContext, pModel->m_pPointCloud, pModel->m_sceneMatrix.a);

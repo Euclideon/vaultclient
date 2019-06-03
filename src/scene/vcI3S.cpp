@@ -62,6 +62,9 @@ void vcI3S::Cleanup(vcState * /*pProgramState*/)
 
 void vcI3S::ChangeProjection(const udGeoZone &newZone)
 {
+  if (m_pSceneRenderer == nullptr)
+    return;
+
   // Call the base version
   vcSceneItem::ChangeProjection(newZone);
 

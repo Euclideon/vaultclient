@@ -16,6 +16,8 @@ uint32_t vcLayout_GetSize(const vcVertexLayoutTypes layoutType)
     return 4;
   case vcVLT_Normal3:
     return 12;
+  case vcVLT_Unsupported:
+    return 0;
   case vcVLT_TotalTypes: // fall through
   default:
     return 0;
