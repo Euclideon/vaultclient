@@ -173,7 +173,7 @@ void vcPOI::UpdatePoints()
 
   for (int i = 0; i < m_line.numPoints; i++)
   {
-    if (m_showArea && m_line.closed && m_line.numPoints > 2) // Area requires at least 2 points
+    if (m_showArea && m_line.closed && m_line.numPoints > 2) // Area requires at least 3 points
       m_calculatedArea = m_calculatedArea + (m_line.pPoints[j].x + m_line.pPoints[i].x) * (m_line.pPoints[j].y - m_line.pPoints[i].y);
 
     if (m_line.closed || i > 0) // Calculate length
@@ -231,6 +231,8 @@ void vcPOI::UpdateProjectGeometry()
     vdkProjectNode_SetGeometry(m_pProject, m_pNode, vdkPGT_Polygon, m_line.numPoints, (double*)pGeom);
   else
     vdkProjectNode_SetGeometry(m_pProject, m_pNode, vdkPGT_LineString, m_line.numPoints, (double*)pGeom);
+
+  udFree(pGeom);
 }
 
 void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
@@ -395,42 +397,33 @@ void vcPOI::RemovePoint(int index)
 
 void vcPOI::ChangeProjection(const udGeoZone &newZone)
 {
+  udDouble3 *pLatLong;
+
+  if (m_pCurrentProjection == nullptr)
+    pLatLong = m_line.pPoints;
+  else
+    pLatLong = (udDouble3*)m_pNode->pCoordinates;
+
+  for (int i = 0; i < m_line.numPoints; ++i)
+  {
+    if (pLatLong[i].y < newZone.latLongBoundMin.x || pLatLong[i].y > newZone.latLongBoundMax.x || pLatLong[i].x < newZone.latLongBoundMin.y || pLatLong[i].x > newZone.latLongBoundMax.y)
+      return;
+  }
+
   if (m_pCurrentProjection == nullptr)
   {
-    for (int i = 0; i < m_line.numPoints; ++i)
-      m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, m_line.pPoints[i], true);
-
-    m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
     m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-  }
-
-  // Call the parent version - m_pCurrentProjection is updated in here
-  vcSceneItem::ChangeProjection(newZone);
-
-  // If new zone is different and points fit within this zone's bounds, assign it to this new zone
-  if (m_pCurrentProjection->srid != newZone.srid)
-  {
-    bool withinBounds = true;
     for (int i = 0; i < m_line.numPoints; ++i)
-    {
-      udDouble3 coord = udGeoZone_ToLatLong(newZone, m_line.pPoints[i], true);
-      if (coord.y < newZone.latLongBoundMin.x || coord.y > newZone.latLongBoundMax.x || coord.x < newZone.latLongBoundMin.y || coord.x > newZone.latLongBoundMax.y)
-      {
-        withinBounds = false;
-        break;
-      }
-    }
-    if (withinBounds)
-    {
-      // Update node longlat from cartesian within the new zone
-      for (int i = 0; i < m_line.numPoints; ++i)
-      {
-        *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(newZone, m_line.pPoints[i], true);
-        m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, *(udDouble3*)m_pNode->pCoordinates, true);
-      }
-    }
-    UpdatePoints();
+      m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, pLatLong[i], true);
   }
+
+  if (newZone.srid != m_pCurrentProjection->srid)
+    memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
+
+  for (int i = 0; i < m_line.numPoints; ++i)
+    *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(newZone, m_line.pPoints[i], true);
+
+   UpdatePoints();
 }
 
 void vcPOI::Cleanup(vcState * /*pProgramState*/)
