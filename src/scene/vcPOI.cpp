@@ -13,6 +13,22 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
+const char *vcFRVMStrings[] =
+{
+  "Fence",
+  "Flat"
+};
+UDCOMPILEASSERT(udLengthOf(vcFRVMStrings) == vcRRVM_Count, "New enum values");
+
+static const char *vcFRIMStrings[] =
+{
+  "Arrow",
+  "Glow",
+  "Solid"
+};
+UDCOMPILEASSERT(udLengthOf(vcFRIMStrings) == vcRRIM_Count, "New enum values");
+
+
 vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pNode, pProgramState)
 {
@@ -62,9 +78,48 @@ vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
 
   m_pFence = nullptr;
 
-  UpdatePoints();
+  OnNodeUpdate();
 
   m_loadStatus = vcSLS_Loaded;
+}
+
+void vcPOI::OnNodeUpdate()
+{
+  double tempDouble;
+  const char *pTemp;
+
+  vdkProjectNode_GetMetadataUint(m_pNode, "nameColour", &m_nameColour, 0xFFFFFFFF);
+  vdkProjectNode_GetMetadataUint(m_pNode, "backColour", &m_backColour, 0x7F000000);
+
+  vdkProjectNode_GetMetadataString(m_pNode, "textSize", &pTemp, "Medium");
+  if (udStrEquali(pTemp, "x-small") || udStrEquali(pTemp, "small"))
+    m_pLabelInfo->textSize = vcLFS_Small;
+  else if (udStrEquali(pTemp, "large") || udStrEquali(pTemp, "x-large"))
+    m_pLabelInfo->textSize = vcLFS_Large;
+  else
+    m_pLabelInfo->textSize = vcLFS_Medium;
+
+  vdkProjectNode_GetMetadataBool(m_pNode, "showLength", &m_showLength, true);
+  vdkProjectNode_GetMetadataBool(m_pNode, "showArea", &m_showArea, true);
+  vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, 0xFFFFFFFF);
+  vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "lineWidth", (double*)&tempDouble, 1.0);
+  m_line.lineWidth = (float)tempDouble;
+
+  vdkProjectNode_GetMetadataString(m_pNode, "lineStyle", &pTemp, vcFRIMStrings[0]);
+  int i = 0;
+  for (; i < vcRRIM_Count; ++i)
+    if (udStrEquali(pTemp, vcFRIMStrings[i]))
+      break;
+  m_line.lineStyle = (vcFenceRendererImageMode)i;
+
+  vdkProjectNode_GetMetadataString(m_pNode, "lineMode", &pTemp, vcFRVMStrings[0]);
+  for (i = 0; i < vcRRVM_Count; ++i)
+    if (udStrEquali(pTemp, vcFRVMStrings[i]))
+      break;
+  m_line.fenceMode = (vcFenceRendererVisualMode)i;
+
+  UpdatePoints();
 }
 
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -181,14 +236,37 @@ void vcPOI::UpdateProjectGeometry()
 void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   if (vcIGSW_ColorPickerU32(udTempStr("%s##POIColour%zu", vcString::Get("scenePOILabelColour"), *pItemID), &m_nameColour, ImGuiColorEditFlags_None))
+  {
     m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
+    vdkProjectNode_SetMetadataUint(m_pNode, "nameColour", m_nameColour);
+  }
 
   if (vcIGSW_ColorPickerU32(udTempStr("%s##POIBackColour%zu", vcString::Get("scenePOILabelBackgroundColour"), *pItemID), &m_backColour, ImGuiColorEditFlags_None))
+  {
     m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
+    vdkProjectNode_SetMetadataUint(m_pNode, "backColour", m_backColour);
+  }
 
   const char *labelSizeOptions[] = { vcString::Get("scenePOILabelSizeNormal"), vcString::Get("scenePOILabelSizeSmall"), vcString::Get("scenePOILabelSizeLarge") };
   if (ImGui::Combo(udTempStr("%s##POILabelSize%zu", vcString::Get("scenePOILabelSize"), *pItemID), (int*)&m_pLabelInfo->textSize, labelSizeOptions, (int)udLengthOf(labelSizeOptions)))
+  {
     UpdatePoints();
+    const char *pTemp;
+    switch (m_pLabelInfo->textSize)
+    {
+    case vcLFS_Small:
+      pTemp = "small";
+      break;
+    case vcLFS_Large:
+      pTemp = "large";
+      break;
+    case vcLFS_Medium:
+    default: // Falls through
+      pTemp = "medium";
+      break;
+    }
+    vdkProjectNode_SetMetadataString(m_pNode, "textSize", pTemp);
+  }
 
   if (m_line.numPoints > 1)
   {
@@ -219,6 +297,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     {
       if (ImGui::InputScalarN(udTempStr("%s##POIPointPos%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_line.pPoints[m_line.selectedPoint].x, 3))
         UpdatePoints();
+
       if (ImGui::Button(vcString::Get("scenePOIRemovePoint")))
         RemovePoint(m_line.selectedPoint);
     }
@@ -226,30 +305,51 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     if (ImGui::TreeNode("%s##POILineSettings%zu", vcString::Get("scenePOILineSettings"), *pItemID))
     {
       if (ImGui::Checkbox(udTempStr("%s##POIShowLength%zu", vcString::Get("scenePOILineShowLength"), *pItemID), &m_showLength))
+      {
         UpdatePoints();
+        vdkProjectNode_SetMetadataBool(m_pNode, "showLength", m_showLength);
+      }
 
       if (ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), *pItemID), &m_showArea))
+      {
         UpdatePoints();
+        vdkProjectNode_SetMetadataBool(m_pNode, "showArea", m_showArea);
+      }
 
       if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOILineClosed"), *pItemID), &m_line.closed))
         UpdatePoints();
 
-      if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColorPrimary%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_line.colourPrimary, ImGuiColorEditFlags_None))
+      if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourPrimary%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_line.colourPrimary, ImGuiColorEditFlags_None))
+      {
         UpdatePoints();
+        vdkProjectNode_SetMetadataUint(m_pNode, "lineColourPrimary", m_line.colourPrimary);
+      }
 
-      if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColorSecondary%zu", vcString::Get("scenePOILineColour2"), *pItemID), &m_line.colourSecondary, ImGuiColorEditFlags_None))
+      if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineColour2"), *pItemID), &m_line.colourSecondary, ImGuiColorEditFlags_None))
+      {
         UpdatePoints();
+        vdkProjectNode_SetMetadataUint(m_pNode, "lineColourSecondary", m_line.colourSecondary);
+      }
 
-      if (ImGui::SliderFloat(udTempStr("%s##POILineColorSecondary%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_line.lineWidth, 0.01f, 1000.f, "%.2f", 3.f))
+      if (ImGui::SliderFloat(udTempStr("%s##POILineWidth%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_line.lineWidth, 0.01f, 1000.f, "%.2f", 3.f))
+      {
         UpdatePoints();
+        vdkProjectNode_SetMetadataDouble(m_pNode, "lineWidth", (double)m_line.lineWidth);
+      }
 
       const char *lineOptions[] = { vcString::Get("scenePOILineStyleArrow"), vcString::Get("scenePOILineStyleGlow"), vcString::Get("scenePOILineStyleSolid") };
-      if (ImGui::Combo(udTempStr("%s##POILineColorSecondary%zu", vcString::Get("scenePOILineStyle"), *pItemID), (int *)&m_line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
+      if (ImGui::Combo(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineStyle"), *pItemID), (int *)&m_line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
+      {
         UpdatePoints();
+        vdkProjectNode_SetMetadataString(m_pNode, "lineStyle", vcFRIMStrings[m_line.lineStyle]);
+      }
 
       const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
       if (ImGui::Combo(udTempStr("%s##POIFenceStyle%zu", vcString::Get("scenePOILineOrientation"), *pItemID), (int *)&m_line.fenceMode, fenceOptions, (int)udLengthOf(fenceOptions)))
+      {
         UpdatePoints();
+        vdkProjectNode_SetMetadataString(m_pNode, "lineMode", vcFRVMStrings[m_line.fenceMode]);
+      }
 
       ImGui::TreePop();
     }
@@ -295,15 +395,26 @@ void vcPOI::RemovePoint(int index)
 
 void vcPOI::ChangeProjection(const udGeoZone &newZone)
 {
-  // If POI has no current projection and fits within this zone's bounds, assign it to this new zone
   if (m_pCurrentProjection == nullptr)
   {
+    for (int i = 0; i < m_line.numPoints; ++i)
+      m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, m_line.pPoints[i], true);
+
+    m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+  }
+
+  // Call the parent version - m_pCurrentProjection is updated in here
+  vcSceneItem::ChangeProjection(newZone);
+
+  // If new zone is different and points fit within this zone's bounds, assign it to this new zone
+  if (m_pCurrentProjection->srid != newZone.srid)
+  {
     bool withinBounds = true;
-    udDouble3 boundMin = udGeoZone_ToCartesian(newZone, udDouble3::create(newZone.latLongBoundMin, 1));
-    udDouble3 boundMax = udGeoZone_ToCartesian(newZone, udDouble3::create(newZone.latLongBoundMax, 1));
     for (int i = 0; i < m_line.numPoints; ++i)
     {
-      if (m_line.pPoints[i].x < boundMin.x || m_line.pPoints[i].x > boundMax.x || m_line.pPoints[i].y < boundMin.y || m_line.pPoints[i].y > boundMax.y)
+      udDouble3 coord = udGeoZone_ToLatLong(newZone, m_line.pPoints[i], true);
+      if (coord.y < newZone.latLongBoundMin.x || coord.y > newZone.latLongBoundMax.x || coord.x < newZone.latLongBoundMin.y || coord.x > newZone.latLongBoundMax.y)
       {
         withinBounds = false;
         break;
@@ -311,27 +422,15 @@ void vcPOI::ChangeProjection(const udGeoZone &newZone)
     }
     if (withinBounds)
     {
-      m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-      memcpy(m_pPreferredProjection, &newZone, sizeof(udGeoZone));
-      m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-      memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
-
-      // Change coords from cartesian to longlat within the new zone, pPoints doesn't need to be changed
+      // Update node longlat from cartesian within the new zone
       for (int i = 0; i < m_line.numPoints; ++i)
-        ((udDouble3*)m_pNode->pCoordinates)[i] = udGeoZone_ToLatLong(newZone, m_line.pPoints[i], true);
+      {
+        *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(newZone, m_line.pPoints[i], true);
+        m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, *(udDouble3*)m_pNode->pCoordinates, true);
+      }
     }
+    UpdatePoints();
   }
-  else if (m_pCurrentProjection->srid != newZone.srid)
-  {
-    // Change all points in the POI to the new projection, if it's different
-    for (int i = 0; i < m_line.numPoints; ++i)
-      m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, ((udDouble3*)m_pNode->pCoordinates)[i], true);
-  }
-
-  UpdatePoints();
-
-  // Call the parent version - m_pCurrentProjection is updated in here
-  vcSceneItem::ChangeProjection(newZone);
 }
 
 void vcPOI::Cleanup(vcState * /*pProgramState*/)
