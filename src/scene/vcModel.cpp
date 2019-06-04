@@ -119,6 +119,7 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, double scale,
 
   if (pMemberZone)
   {
+    vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pModel->m_pNode, vdkPGT_Point, 1, (double*)&translate);
     pModel->m_pCurrentProjection = pMemberZone;
     pMemberZone = nullptr;
   }
