@@ -104,7 +104,7 @@ void vcFolder::ChangeProjection(const udGeoZone &newZone)
     if (pNode->pUserData)
       ((vcSceneItem*)pNode->pUserData)->ChangeProjection(newZone);
     pNode = pNode->pNextSibling;
-}
+  }
 }
 
 void vcFolder::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
@@ -115,7 +115,7 @@ void vcFolder::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
     if (pNode->pUserData)
       ((vcSceneItem*)pNode->pUserData)->ApplyDelta(pProgramState, delta);
     pNode = pNode->pNextSibling;
-}
+  }
 }
 
 void vcFolder_AddInsertSeparator()
