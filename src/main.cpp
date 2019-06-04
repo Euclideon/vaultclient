@@ -2015,7 +2015,7 @@ void vcRenderWindow(vcState *pProgramState)
             {
               const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
               if (item.pItem->itemtype == vdkPNT_Folder)
-                itemFound = vcProject_ContainsItem(item.pItem, pProgramState->sceneExplorer.insertItem.pParent);
+                itemFound = vcProject_ContainsItem(item.pItem, pProgramState->sceneExplorer.insertItem.pItem);
 
               itemFound = itemFound || item.pItem == pProgramState->sceneExplorer.insertItem.pItem;
             }
