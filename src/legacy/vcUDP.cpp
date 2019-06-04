@@ -93,7 +93,8 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
   vcModel *pModel = new vcModel(pNode, pProgramState);
   pNode->pUserData = pModel;
   pModel->m_meterScale = scale;
-  //pModel->m_defaultMatrix = udDouble4x4::translation(*pPosition) * udDouble4x4::rotationYPR(*pYPR) * udDouble4x4::scaleUniform(scale); // ?????
+  // ?????
+  pModel->m_defaultMatrix = udDouble4x4::translation(*pPosition) * udDouble4x4::rotationYPR(*pYPR) * udDouble4x4::scaleUniform(scale);
 
   pModel->OnNodeUpdate();
 
@@ -317,7 +318,8 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
       udGeoZone *pZone = udAllocType(udGeoZone, 1, udAF_Zero);
       udGeoZone_SetFromSRID(pZone, epsgCode);
 
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&udGeoZone_ToLatLong(*pZone, position, true));
+      udDouble3 temp = udGeoZone_ToLatLong(*pZone, position, true);
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
 
       vcPOI *pPOI = new vcPOI(pNode, pProgramState);
       pNode->pUserData = pPOI;
@@ -342,10 +344,11 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
     udGeoZone *pZone = udAllocType(udGeoZone, 1, udAF_Zero);
     udGeoZone_SetFromSRID(pZone, item.polygon.epsgCode);
 
+    udDouble3 temp = udGeoZone_ToLatLong(*pZone, *item.polygon.pPoints, true);
     if (item.polygon.isClosed)
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)&udGeoZone_ToLatLong(*pZone, *item.polygon.pPoints, true));
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)&temp);
     else
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)&udGeoZone_ToLatLong(*pZone, *item.polygon.pPoints, true));
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)&temp);
 
     vdkProjectNode_SetMetadataDouble(pNode, "lineWidth", 1.0);
     vdkProjectNode_SetMetadataUint(pNode, "lineColourPrimary", item.polygon.colour);
@@ -420,8 +423,8 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
 
   // Find the highest lower tree index sibling
   int64_t maxLowerTreeIndex = 0;
-  int maxLTIndex = index;
-  for (int i = 0; i < pItemData->size(); ++i)
+  size_t maxLTIndex = index;
+  for (size_t i = 0; i < pItemData->size(); ++i)
   {
     if (pItemData->at(i).sceneFolder.pParent == item.sceneFolder.pParent)
     {
