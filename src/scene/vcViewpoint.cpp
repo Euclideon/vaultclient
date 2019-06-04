@@ -77,23 +77,24 @@ void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
 void vcViewpoint::ChangeProjection(const udGeoZone &newZone)
 {
-  bool isDifferentZone = false;
-  bool wasNull = m_pCurrentProjection == nullptr;
+  if (m_pCurrentProjection != nullptr && m_pCurrentProjection->srid == newZone.srid)
+    return;
 
-  if (wasNull)
-    m_CameraPosition = udGeoZone_ToCartesian(newZone, m_CameraPosition, true);
-  else if (m_pCurrentProjection->srid != newZone.srid)
-    isDifferentZone = true;
+  udDouble3 *pLatLong;
 
-  // Call the parent version
-  vcSceneItem::ChangeProjection(newZone);
+  if (m_pCurrentProjection == nullptr)
+    pLatLong = &m_CameraPosition;
+  else
+    pLatLong = (udDouble3*)m_pNode->pCoordinates;
 
-  if (m_pCurrentProjection != nullptr && isDifferentZone)
-  {
-    *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(newZone, m_CameraPosition, true);
-    if (wasNull)
-      m_CameraPosition = udGeoZone_ToCartesian(newZone, *(udDouble3*)m_pNode->pCoordinates, true);
-  }
+  if (pLatLong->y < newZone.latLongBoundMin.x || pLatLong->y > newZone.latLongBoundMax.x || pLatLong->x < newZone.latLongBoundMin.y || pLatLong->x > newZone.latLongBoundMax.y)
+    return;
+
+  if (m_pCurrentProjection == nullptr)
+    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+
+  memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
+  m_CameraPosition = udGeoZone_ToCartesian(newZone, *pLatLong, true);
 }
 
 void vcViewpoint::Cleanup(vcState * /*pProgramState*/)

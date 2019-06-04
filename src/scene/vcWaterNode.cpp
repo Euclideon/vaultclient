@@ -31,6 +31,11 @@ void vcWater::Cleanup(vcState * /*pProgramState*/)
   // Do stuff
 }
 
+void vcWater::ChangeProjection(const udGeoZone &newZone)
+{
+  udUnused(newZone);
+}
+
 udDouble3 vcWater::GetLocalSpacePivot()
 {
   return udDouble3::zero();

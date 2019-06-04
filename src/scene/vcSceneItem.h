@@ -63,7 +63,7 @@ public:
   virtual void Cleanup(vcState *pProgramState) = 0;
 
   // This function handles projection changes if additional handling is required
-  virtual void ChangeProjection(const udGeoZone &newZone);
+  virtual void ChangeProjection(const udGeoZone &newZone) = 0;
 
   // Moves the camera to the item
   virtual void SetCameraPosition(vcState *pProgramState);
