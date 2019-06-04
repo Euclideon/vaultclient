@@ -42,24 +42,6 @@ vcSceneItem::~vcSceneItem()
   udFree(m_pCurrentProjection);
 }
 
-void vcSceneItem::ChangeProjection(const udGeoZone &newZone)
-{
-  if (m_pCurrentProjection == nullptr)
-  {
-    udDouble3 itemPos = udGeoZone_ToLatLong(newZone, GetWorldSpacePivot());
-    // If min == max then there are no bounds
-    if (newZone.latLongBoundMin == newZone.latLongBoundMax || (itemPos.x <= newZone.latLongBoundMax.x && itemPos.x >= newZone.latLongBoundMin.x && itemPos.y <= newZone.latLongBoundMax.y && itemPos.y >= newZone.latLongBoundMin.y))
-    {
-      m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-    }
-  }
-
-  if (m_pCurrentProjection != nullptr && newZone.srid != m_pCurrentProjection->srid)
-  {
-    memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
-  }
-}
-
 void vcSceneItem::SetCameraPosition(vcState *pProgramState)
 {
   pProgramState->pCamera->position = GetWorldSpacePivot();

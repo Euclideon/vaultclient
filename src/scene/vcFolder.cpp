@@ -141,22 +141,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
     if (pNode->pUserData != nullptr)
     {
       if (pProgramState->pGotGeo != nullptr)
-      {
-        switch (pNode->itemtype)
-        {
-          case vdkPNT_Media:
-            ((vcMedia*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
-            break;
-          case vdkPNT_PointOfInterest:
-            ((vcPOI*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
-            break;
-          case vdkPNT_Viewpoint:
-            ((vcViewpoint*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
-            break;
-          default:
-            break;
-        }
-      }
+        ((vcSceneItem*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
 
       if (pProgramState->getGeo && pNode->itemtype == vdkPNT_PointCloud && ((vcModel*)(pNode->pUserData))->m_pPreferredProjection != nullptr)
       {

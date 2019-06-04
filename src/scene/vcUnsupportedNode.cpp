@@ -31,6 +31,11 @@ void vcUnsupportedNode::Cleanup(vcState * /*pProgramState*/)
   // Do stuff
 }
 
+void vcUnsupportedNode::ChangeProjection(const udGeoZone &newZone)
+{
+  udUnused(newZone);
+}
+
 udDouble3 vcUnsupportedNode::GetLocalSpacePivot()
 {
   return udDouble3::zero();
