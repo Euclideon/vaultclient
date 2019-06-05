@@ -125,6 +125,7 @@ struct vcSceneLayer
   udJSON description;
   udDouble4 extent;
 
+  char *pFileData;
   vcSceneLayerNode root;
 };
 
