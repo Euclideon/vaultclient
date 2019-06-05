@@ -65,14 +65,23 @@ void vcI3S::ChangeProjection(const udGeoZone &newZone)
   if (m_pSceneRenderer == nullptr)
     return;
 
-  // Call the base version
-  vcSceneItem::ChangeProjection(newZone);
+  if (m_pCurrentProjection != nullptr && m_pCurrentProjection->srid == newZone.srid)
+    return;
+
+  // Only bounds checks the center
+  udDouble3 latLong = udGeoZone_ToLatLong(newZone, GetLocalSpacePivot(), true);
+
+  if (latLong.y < newZone.latLongBoundMin.x || latLong.y > newZone.latLongBoundMax.x || latLong.x < newZone.latLongBoundMin.y || latLong.x > newZone.latLongBoundMax.y)
+    return;
+
+  if (m_pCurrentProjection == nullptr)
+    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+
+  memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
 
   udDouble4x4 prevOrigin = udDouble4x4::translation(GetLocalSpacePivot());
   udDouble4x4 newOffset = m_pSceneRenderer->sceneMatrix * prevOrigin;
-  if (m_pCurrentProjection != nullptr)
-    newOffset = udGeoZone_TransformMatrix(newOffset, *m_pCurrentProjection, newZone);
-
+  newOffset = udGeoZone_TransformMatrix(newOffset, *m_pCurrentProjection, newZone);
   m_pSceneRenderer->sceneMatrix = newOffset * udInverse(prevOrigin);
 }
 
