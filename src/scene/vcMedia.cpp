@@ -137,14 +137,24 @@ void vcMedia::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
 void vcMedia::ChangeProjection(const udGeoZone &newZone)
 {
-  // Call the parent version
-  vcSceneItem::ChangeProjection(newZone);
+  if (m_pCurrentProjection != nullptr && newZone.srid == m_pCurrentProjection->srid)
+    return;
 
-  if (m_pCurrentProjection != nullptr && m_pCurrentProjection->srid != newZone.srid)
-  {
-    *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(newZone, m_image.position, true);
-    m_image.position = udGeoZone_ToCartesian(newZone, *(udDouble3*)m_pNode->pCoordinates, true);
-  }
+  udDouble3 *pLatLong;
+
+  if (m_pCurrentProjection == nullptr)
+    pLatLong = &m_image.position;
+  else
+    pLatLong = (udDouble3*)m_pNode->pCoordinates;
+
+  if (pLatLong->y < newZone.latLongBoundMin.x || pLatLong->y > newZone.latLongBoundMax.x || pLatLong->x < newZone.latLongBoundMin.y || pLatLong->x > newZone.latLongBoundMax.y)
+    return;
+
+  if (m_pCurrentProjection == nullptr)
+    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+
+  memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
+  m_image.position = udGeoZone_ToCartesian(newZone, *pLatLong, true);
 }
 
 void vcMedia::Cleanup(vcState * /*pProgramState*/)

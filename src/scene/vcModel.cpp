@@ -119,6 +119,7 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, double scale,
 
   if (pMemberZone)
   {
+    vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pModel->m_pNode, vdkPGT_Point, 1, (double*)&translate);
     pModel->m_pCurrentProjection = pMemberZone;
     pMemberZone = nullptr;
   }
@@ -242,12 +243,30 @@ void vcModel::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
 
 void vcModel::ChangeProjection(const udGeoZone &newZone)
 {
-  // This is not ideal as it will gather drift
-  if (m_pCurrentProjection != nullptr)
-    m_sceneMatrix = udGeoZone_TransformMatrix(m_sceneMatrix, *m_pCurrentProjection, newZone);
+  if (m_pCurrentProjection != nullptr && newZone.srid == m_pCurrentProjection->srid)
+    return;
 
-  // Call the parent version
-  vcSceneItem::ChangeProjection(newZone);
+  udDouble3 itemPos;
+
+  if (m_pCurrentProjection == nullptr)
+    itemPos = udGeoZone_ToLatLong(newZone, GetWorldSpacePivot());
+  else
+    itemPos = *(udDouble3*)m_pNode->pCoordinates;
+
+  // If min == max then there are no bounds
+  if (newZone.latLongBoundMin != newZone.latLongBoundMax)
+  {
+    if (itemPos.y > newZone.latLongBoundMax.x || itemPos.y < newZone.latLongBoundMin.x || itemPos.x > newZone.latLongBoundMax.y || itemPos.x < newZone.latLongBoundMin.y)
+      return;
+  }
+
+  if (m_pCurrentProjection == nullptr)
+    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+
+  memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
+
+  // This is not ideal as it will gather drift
+  m_sceneMatrix = udGeoZone_TransformMatrix(m_sceneMatrix, *m_pCurrentProjection, newZone);
 }
 
 void vcModel::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)

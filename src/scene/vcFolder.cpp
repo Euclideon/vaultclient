@@ -104,7 +104,7 @@ void vcFolder::ChangeProjection(const udGeoZone &newZone)
     if (pNode->pUserData)
       ((vcSceneItem*)pNode->pUserData)->ChangeProjection(newZone);
     pNode = pNode->pNextSibling;
-}
+  }
 }
 
 void vcFolder::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
@@ -115,7 +115,7 @@ void vcFolder::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
     if (pNode->pUserData)
       ((vcSceneItem*)pNode->pUserData)->ApplyDelta(pProgramState, delta);
     pNode = pNode->pNextSibling;
-}
+  }
 }
 
 void vcFolder_AddInsertSeparator()
@@ -141,22 +141,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
     if (pNode->pUserData != nullptr)
     {
       if (pProgramState->pGotGeo != nullptr)
-      {
-        switch (pNode->itemtype)
-        {
-          case vdkPNT_Media:
-            ((vcMedia*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
-            break;
-          case vdkPNT_PointOfInterest:
-            ((vcPOI*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
-            break;
-          case vdkPNT_Viewpoint:
-            ((vcViewpoint*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
-            break;
-          default:
-            break;
-        }
-      }
+        ((vcSceneItem*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
 
       if (pProgramState->getGeo && pNode->itemtype == vdkPNT_PointCloud && ((vcModel*)(pNode->pUserData))->m_pPreferredProjection != nullptr)
       {

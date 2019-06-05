@@ -596,6 +596,11 @@ void vcLiveFeed::Cleanup(vcState * /*pProgramState*/)
   m_polygonModels.Deinit();
 }
 
+void vcLiveFeed::ChangeProjection(const udGeoZone &newZone)
+{
+  udUnused(newZone);
+}
+
 udDouble3 vcLiveFeed::GetLocalSpacePivot()
 {
   if (m_updateMode == vcLFM_Position)
