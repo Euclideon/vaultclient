@@ -65,8 +65,6 @@ void vcI3S::ChangeProjection(const udGeoZone &newZone)
   if (m_pSceneRenderer == nullptr)
     return;
 
-  // Call the base version
-  vcSceneItem::ChangeProjection(newZone);
   if (m_pCurrentProjection != nullptr && m_pCurrentProjection->srid == newZone.srid)
     return;
 
