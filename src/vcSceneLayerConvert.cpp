@@ -14,6 +14,7 @@ struct vcSceneLayerConvert
   size_t leafIndex;
   size_t geometryIndex;
   size_t primIndex;
+  size_t lastPrimedPrimitive;
 
   size_t totalPrimIndex;
   size_t totalPrimCount;
@@ -176,6 +177,7 @@ vdkError vcSceneLayerConvert_Open(vdkConvertCustomItem *pConvertInput, uint32_t 
   pSceneLayerConvert->totalPoints = pConvertInput->pointCount;
   pSceneLayerConvert->totalPrimCount = 0;
   pSceneLayerConvert->totalPrimIndex = 0;
+  pSceneLayerConvert->lastPrimedPrimitive = 0xffffffff;
 
   if (vcSceneLayer_LoadNode(pSceneLayerConvert->pSceneLayer, nullptr, vcSLLT_Convert) != udR_Success)
     UD_ERROR_SET(vE_Failure);
@@ -247,17 +249,22 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
         vcSceneLayerVertex *v1 = vcSceneLayer_GetVertex(pGeometry, pSceneLayerConvert->primIndex * 3 + 1);
         vcSceneLayerVertex *v2 = vcSceneLayer_GetVertex(pGeometry, pSceneLayerConvert->primIndex * 3 + 2);
 
-        double p0[3], p1[3], p2[3];
-        for (int i = 0; i < 3; ++i)
+        if (pSceneLayerConvert->lastPrimedPrimitive != pSceneLayerConvert->primIndex)
         {
-          p0[i] = v0->position[i] + geometryOriginOffset[i];
-          p1[i] = v1->position[i] + geometryOriginOffset[i];
-          p2[i] = v2->position[i] + geometryOriginOffset[i];
+          double p0[3], p1[3], p2[3];
+          for (int i = 0; i < 3; ++i)
+          {
+            p0[i] = v0->position[i] + geometryOriginOffset[i];
+            p1[i] = v1->position[i] + geometryOriginOffset[i];
+            p2[i] = v2->position[i] + geometryOriginOffset[i];
+          }
+
+          UD_ERROR_CHECK(vdkTriangleVoxelizer_SetTriangle(pSceneLayerConvert->pTrivox, p0, p1, p2));
+          pSceneLayerConvert->lastPrimedPrimitive = pSceneLayerConvert->primIndex;
         }
 
-        double *pTriPositions;
-        double *pTriWeights;
-        UD_ERROR_CHECK(vdkTriangleVoxelizer_SetTriangle(pSceneLayerConvert->pTrivox, p0, p1, p2));
+        double *pTriPositions = nullptr;
+        double *pTriWeights = nullptr;
         UD_ERROR_CHECK(vdkTriangleVoxelizer_GetPoints(pSceneLayerConvert->pTrivox, &pTriPositions, &pTriWeights, &pointCount, maxPoints));
 
         // Handle everyNth here in one place, slightly inefficiently but with the benefit of simplicity for the rest of the function
@@ -291,6 +298,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
           // Actually use `udAttribute_GetAttributeOffset(vdkCAC_ARGB, pBuffer->content)` correctly
           uint32_t *pColour = (uint32_t*)udAddBytes(pBuffer->pAttributes, pBuffer->pointCount * pBuffer->attributeSize);
 
+
           if (pTextureData != nullptr)
           {
             for (uint64_t i = 0; i < pointCount; ++i, pColour = udAddBytes(pColour, pBuffer->attributeSize))
@@ -316,7 +324,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
         }
 
         // if current prim is done, go to next
-        if (pointCount < maxPoints)
+        if (pointCount == 0)
         {
           // If using triangle area estimate method, calculate area returned as we go
           if (pSceneLayerConvert->triangleArea)

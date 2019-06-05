@@ -425,7 +425,7 @@ void vcRenderOpaqueGeometry(vcRenderContext *pRenderContext, vcRenderData &rende
   // Polygon Models
   {
     vcGLState_SetBlendMode(vcGLSBM_None);
-    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
 
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
