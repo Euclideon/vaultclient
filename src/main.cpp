@@ -566,7 +566,7 @@ void vcMain_MainLoop(vcState *pProgramState)
               // Use as convert watermark for conversions
               if (convertDrop)
               {
-                vcConvert_AddFile(pProgramState, pNextLoad);
+                vcConvert_AddFile(pProgramState, pNextLoad, true);
               }
               else
               {
@@ -574,7 +574,6 @@ void vcMain_MainLoop(vcState *pProgramState)
                 if (clicked.pParent != nullptr && clicked.pItem->itemtype == vdkPNT_Media)
                 {
                   vdkProjectNode_SetURI(pProgramState->sceneExplorer.pProject, clicked.pItem, pNextLoad);
-                  vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, clicked.pItem, vdkPGT_Point, 1, (double*)&pProgramState->worldMousePosLongLat);
                 }
                 else
                 {
@@ -582,7 +581,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                   bool hasLocation = false;
                   vcImageType imageType = vcIT_StandardPhoto;
 
-//                  vcTexture *pImage = nullptr;
+                  // vcTexture *pImage = nullptr;
                   const unsigned char *pFileData = nullptr;
                   int64_t numBytes = 0;
 

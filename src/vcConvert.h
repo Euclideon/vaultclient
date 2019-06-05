@@ -67,7 +67,7 @@ void vcConvert_Deinit(vcState *pProgramState);
 
 void vcConvert_ShowUI(vcState *pProgramState);
 
-bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename);
+bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename, bool watermark = false);
 void vcConvert_RemoveJob(vcState *pProgramState, size_t index);
 
 #endif // !vcConvert_h__

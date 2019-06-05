@@ -595,9 +595,23 @@ void vcConvert_ShowUI(vcState *pProgramState)
   }
 }
 
-bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
+bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename, bool watermark)
 {
   vcConvertItem *pSelectedJob = nullptr;
+
+  if (watermark)
+  {
+    pSelectedJob = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem];
+
+    if (vdkConvert_AddWatermark(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
+    {
+      udFree(pSelectedJob->watermark.pFilename);
+      pSelectedJob->watermark.pFilename = udStrdup(pFilename);
+      pSelectedJob->watermark.isDirty = true;
+      pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
+      return true;
+    }
+  }
 
   for (int i = (int)pProgramState->pConvertContext->jobs.length - 1; i >= 0 && pSelectedJob == nullptr; --i)
   {
@@ -621,16 +635,6 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename)
   if (vdkConvert_AddItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
   {
     pSelectedJob->status = vcCQS_Preparing;
-    pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
-    return true;
-  }
-
-  // Long shot but maybe a watermark?
-  if (vdkConvert_AddWatermark(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
-  {
-    udFree(pSelectedJob->watermark.pFilename);
-    pSelectedJob->watermark.pFilename = udStrdup(pFilename);
-    pSelectedJob->watermark.isDirty = true;
     pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
     return true;
   }

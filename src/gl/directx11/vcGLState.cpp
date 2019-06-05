@@ -157,12 +157,21 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
     desc.ScissorEnable = true;
     desc.DepthClipEnable = true;
 
-    if (cullMode == vcGLSCM_None)
+    switch (cullMode)
+    {
+    case vcGLSCM_None:
       desc.CullMode = D3D11_CULL_NONE;
-    else if (cullMode == vcGLSCM_Front)
+      break;
+    case vcGLSCM_Front:
       desc.CullMode = D3D11_CULL_FRONT;
-    else if (cullMode == vcGLSCM_Back)
+      break;
+    case vcGLSCM_Back:
       desc.CullMode = D3D11_CULL_BACK;
+      break;
+    case vcGLSCM_TotalModes:
+      return false;
+      break;
+    }
 
     if (g_pRasterizerState != nullptr)
       g_pRasterizerState->Release();
@@ -195,26 +204,25 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
     desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
     desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-    if (blendMode == vcGLSBM_None)
+    switch (blendMode)
     {
+    case vcGLSBM_None:
       desc.RenderTarget[0].BlendEnable = false;
-    }
-    else if (blendMode == vcGLSBM_Interpolative)
-    {
+      break;
+    case vcGLSBM_Interpolative:
       desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
       desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
 
       desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-    }
-    else if (blendMode == vcGLSBM_Additive)
-    {
+      break;
+    case vcGLSBM_Additive:
       desc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
       desc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
-    }
-    else if (blendMode == vcGLSBM_Multiplicative)
-    {
+      break;
+    case vcGLSBM_Multiplicative:
       desc.RenderTarget[0].SrcBlend = D3D11_BLEND_DEST_COLOR;
       desc.RenderTarget[0].DestBlend = D3D11_BLEND_ZERO;
+      break;
     }
     g_pd3dDevice->CreateBlendState(&desc, &g_pBlendState);
 
@@ -256,22 +264,33 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
     }
     desc.BackFace = desc.FrontFace;
 
-    if (depthReadMode == vcGLSDM_None)
+    switch (depthReadMode)
+    {
+    case vcGLSDM_None:
       desc.DepthFunc = D3D11_COMPARISON_NEVER;
-    else if (depthReadMode == vcGLSDM_Less)
+      break;
+    case vcGLSDM_Less:
       desc.DepthFunc = D3D11_COMPARISON_LESS;
-    else if (depthReadMode == vcGLSDM_LessOrEqual)
+      break;
+    case vcGLSDM_LessOrEqual:
       desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-    else if (depthReadMode == vcGLSDM_Equal)
+      break;
+    case vcGLSDM_Equal:
       desc.DepthFunc = D3D11_COMPARISON_EQUAL;
-    else if (depthReadMode == vcGLSDM_GreaterOrEqual)
+      break;
+    case vcGLSDM_GreaterOrEqual:
       desc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
-    else if (depthReadMode == vcGLSDM_Greater)
+      break;
+    case vcGLSDM_Greater:
       desc.DepthFunc = D3D11_COMPARISON_GREATER;
-    else if (depthReadMode == vcGLSDM_NotEqual)
+      break;
+    case vcGLSDM_NotEqual:
       desc.DepthFunc = D3D11_COMPARISON_NOT_EQUAL;
-    else if (depthReadMode == vcGLSDM_Always)
+      break;
+    case vcGLSDM_Always:
       desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+      break;
+    }
 
     if (doDepthWrite)
       desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
