@@ -306,11 +306,13 @@ vcLiveFeed::vcLiveFeed(vdkProjectNode *pNode, vcState *pProgramState) :
   m_maxDisplayDistance(50000.0),
   m_updateMode(vcLFM_Camera),
   m_storedCameraPosition(udDouble3::zero()),
-  m_position(udDouble3::zero()),
   m_pMutex(udCreateMutex())
 {
   m_feedItems.Init(512);
   m_polygonModels.Init(16);
+
+  // Will be overwritten if pNode has pCoordinates
+  m_position = pProgramState->pCamera->position;
 
   OnNodeUpdate();
 
@@ -321,18 +323,21 @@ void vcLiveFeed::OnNodeUpdate()
 {
   const char *pGroupID = nullptr;
 
-  m_updateMode = vcLFM_Camera;
   vUUID_Clear(&m_groupID);
+  vdkProjectNode_GetMetadataInt(m_pNode, "updateMode", (int32_t*)&m_updateMode, vcLFM_Group);
 
-  if (vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pGroupID, nullptr) == vE_Success && pGroupID != nullptr)
+  if (m_updateMode == vcLFM_Group && vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pGroupID, nullptr) == vE_Success && pGroupID != nullptr)
   {
-    m_updateMode = vcLFM_Group;
     vUUID_SetFromString(&m_groupID, pGroupID);
   }
-  else if (m_pNode->geomtype == vdkPGT_Point && m_pNode->geomCount == 1)
+  else if (m_updateMode == vcLFM_Position)//m_pNode->geomtype == vdkPGT_Point && m_pNode->geomCount == 1)
   {
-    m_updateMode = vcLFM_Position;
-    m_position = udDouble3::create(m_pNode->pCoordinates[0], m_pNode->pCoordinates[1], m_pNode->pCoordinates[2]);
+    if (m_pCurrentProjection != nullptr)
+      m_position = udGeoZone_ToCartesian(*m_pCurrentProjection, *(udDouble3*)m_pNode->pCoordinates, true);
+  }
+  else //vcLFM_Camera
+  {
+    m_updateMode = vcLFM_Camera;
   }
 
   vdkProjectNode_GetMetadataDouble(m_pNode, "updateFrequency", &m_updateFrequency, 30.0);
@@ -537,6 +542,9 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     {
       if (m_updateMode == vcLFM_Position && m_position == udDouble3::zero())
         m_position = pProgramState->pCamera->position;
+
+      // TODO: Paul look at this
+      vdkProjectNode_SetMetadataInt(m_pNode, "updateMode", (int)(m_updateMode));
     }
 
     if (m_updateMode == vcLFM_Group)
@@ -551,9 +559,9 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     }
     else if (m_updateMode == vcLFM_Position)
     {
-      ImGui::InputScalarN(vcString::Get("liveFeedPosition"), ImGuiDataType_Double, &m_position.x, 3);
+      if (ImGui::InputScalarN(vcString::Get("liveFeedPosition"), ImGuiDataType_Double, &m_position.x, 3))
+        vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, m_pNode, vdkPGT_Point, 1, &m_position.x);
     }
-
   }
 }
 
