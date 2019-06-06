@@ -52,18 +52,18 @@ vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
   m_line.fenceMode = vcRRVM_Fence;
 
   if (m_line.numPoints > 0)
-  {
     m_line.pPoints = udAllocType(udDouble3, m_line.numPoints, udAF_Zero);
-    memcpy(m_line.pPoints, m_pNode->pCoordinates, sizeof(udDouble3)*m_line.numPoints);
-  }
 
-  if (pProgramState->gis.isProjected)
+  if (m_pNode->pCoordinates != nullptr)
   {
-    m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-    memcpy(m_pPreferredProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
     m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-    memcpy(m_pCurrentProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
-    m_line.pPoints[0] = udGeoZone_ToCartesian(*m_pCurrentProjection, m_line.pPoints[0], true);
+    if (pProgramState->gis.isProjected)
+      memcpy(m_pCurrentProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
+    else
+      memcpy(m_pCurrentProjection, &pProgramState->defaultGeo, sizeof(udGeoZone));
+
+    for (int i = 0; i < m_line.numPoints; ++i)
+      m_line.pPoints[i] = udGeoZone_ToCartesian(*m_pCurrentProjection, ((udDouble3*)m_pNode->pCoordinates)[i], true);
   }
 
   m_pLabelText = nullptr;
@@ -404,6 +404,9 @@ void vcPOI::RemovePoint(int index)
 
 void vcPOI::ChangeProjection(const udGeoZone &newZone)
 {
+  if (m_pCurrentProjection != nullptr && newZone.srid == m_pCurrentProjection->srid)
+    return;
+
   udDouble3 *pLatLong;
 
   if (m_pCurrentProjection == nullptr)
@@ -418,17 +421,12 @@ void vcPOI::ChangeProjection(const udGeoZone &newZone)
   }
 
   if (m_pCurrentProjection == nullptr)
-  {
     m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-    for (int i = 0; i < m_line.numPoints; ++i)
-      m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, pLatLong[i], true);
-  }
 
-  if (newZone.srid != m_pCurrentProjection->srid)
-    memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
+  memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
 
   for (int i = 0; i < m_line.numPoints; ++i)
-    *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(newZone, m_line.pPoints[i], true);
+    m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, ((udDouble3*)m_pNode->pCoordinates)[i], true);
 
    UpdatePoints();
 }

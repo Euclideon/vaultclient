@@ -773,6 +773,8 @@ int main(int argc, char **args)
   programState.getGeo = false;
   programState.pGotGeo = nullptr;
 
+  udGeoZone_SetFromSRID(&programState.defaultGeo, 7030);
+
   programState.sceneExplorer.insertItem.pParent = nullptr;
   programState.sceneExplorer.insertItem.pItem = nullptr;
   programState.sceneExplorer.clickedItem.pParent = nullptr;

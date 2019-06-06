@@ -311,8 +311,34 @@ vcLiveFeed::vcLiveFeed(vdkProjectNode *pNode, vcState *pProgramState) :
   m_feedItems.Init(512);
   m_polygonModels.Init(16);
 
-  // Will be overwritten if pNode has pCoordinates
   m_position = pProgramState->pCamera->position;
+
+  if (m_pNode->pCoordinates == nullptr)
+  {
+    udDouble3 temp;
+    if (pProgramState->gis.isProjected)
+    {
+      m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+      memcpy(m_pCurrentProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
+      temp = udGeoZone_ToLatLong(pProgramState->gis.zone, m_position, true);
+    }
+    else
+    {
+      temp = udGeoZone_ToLatLong(pProgramState->defaultGeo, m_position, true);
+    }
+
+    vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
+  }
+  else
+  { // Otherwise find the right srid and set local position
+    int32_t srid;
+    if (udGeoZone_FindSRID(&srid, *(udDouble3*)pNode->pCoordinates, true) == udR_Success)
+    {
+      m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
+      udGeoZone_SetFromSRID(m_pCurrentProjection, srid);
+      m_position = udGeoZone_ToCartesian(*m_pCurrentProjection, *(udDouble3*)pNode->pCoordinates, true);
+    }
+  }
 
   OnNodeUpdate();
 

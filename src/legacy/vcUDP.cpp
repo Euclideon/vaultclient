@@ -98,8 +98,6 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
     pModel->m_defaultMatrix = udDouble4x4::translation(*pPosition);
   if (pYPR != nullptr)
     pModel->m_defaultMatrix *= udDouble4x4::rotationYPR(*pYPR);
-  if (scale != 1)
-    pModel->m_defaultMatrix *= udDouble4x4::scaleUniform(scale);
 
   pModel->OnNodeUpdate();
 
@@ -325,12 +323,6 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
 
       udDouble3 temp = udGeoZone_ToLatLong(*pZone, position, true);
       vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
-
-      vcPOI *pPOI = new vcPOI(pNode, pProgramState);
-      pNode->pUserData = pPOI;
-      pPOI->m_pPreferredProjection = pZone;
-
-      pPOI->ChangeProjection(*pZone);
     }
 
     pLabelData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
@@ -347,24 +339,31 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
     vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", item.polygon.pName, nullptr, nullptr);
 
     udGeoZone *pZone = udAllocType(udGeoZone, 1, udAF_Zero);
-    udGeoZone_SetFromSRID(pZone, item.polygon.epsgCode);
+    if (udGeoZone_SetFromSRID(pZone, item.polygon.epsgCode) != udR_Success)
+    {
+      if (pProgramState->gis.isProjected)
+        memcpy(pZone, &pProgramState->gis.zone, sizeof(udGeoZone));
+      else
+        memcpy(pZone, &pProgramState->defaultGeo, sizeof(udGeoZone));
+    }
+    // TODO: Somehow pass epsgCode through to vcPOI
 
-    udDouble3 temp = udGeoZone_ToLatLong(*pZone, *item.polygon.pPoints, true);
+    udDouble3 *pTemp = udAllocType(udDouble3, item.polygon.numPoints, udAF_Zero);
+    for (int i = 0; i < item.polygon.numPoints; ++i)
+      pTemp[i] = udGeoZone_ToLatLong(*pZone, item.polygon.pPoints[i], true);
+
     if (item.polygon.isClosed)
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)&temp);
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)pTemp);
     else
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)&temp);
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)pTemp);
+
+    udFree(pZone);
+    udFree(pTemp);
 
     vdkProjectNode_SetMetadataDouble(pNode, "lineWidth", 1.0);
     vdkProjectNode_SetMetadataUint(pNode, "lineColourPrimary", item.polygon.colour);
     vdkProjectNode_SetMetadataUint(pNode, "lineColourSecondary", item.polygon.colour);
     vdkProjectNode_SetMetadataString(pNode, "textSize", "Medium");
-
-    vcPOI *pPOI = new vcPOI(pNode, pProgramState);
-    pNode->pUserData = pPOI;
-    pPOI->m_pPreferredProjection = pZone;
-
-    pPOI->ChangeProjection(*pZone);
 
     pLabelData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
   }
@@ -451,7 +450,7 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
 void vcUDP_LoadItem(vcState *pProgramState, const char *pFilename, const udJSON &groupDataBlock, std::vector<vcUDPItemData> *pItemData, vcUDPItemDataType type)
 {
   const udJSON &items = groupDataBlock.Get("DataBlock");
-  size_t start = pItemData->size() - 1;
+  size_t start = pItemData->size();
   vcUDP_ParseItemData(items, pItemData, type);
 
   for (; start < pItemData->size(); ++start)
