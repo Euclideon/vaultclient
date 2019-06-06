@@ -323,22 +323,15 @@ void vcLiveFeed::OnNodeUpdate()
 {
   const char *pGroupID = nullptr;
 
+  // Assuming that OnNodeUpdate will be triggered by the server, and means that we should update all these fields regardless of local update mode, update mode is just a local value and not accounted for on the server
+  vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pGroupID, nullptr);
   vUUID_Clear(&m_groupID);
-  vdkProjectNode_GetMetadataInt(m_pNode, "updateMode", (int32_t*)&m_updateMode, vcLFM_Group);
+  vUUID_SetFromString(&m_groupID, pGroupID);
 
-  if (m_updateMode == vcLFM_Group && vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pGroupID, nullptr) == vE_Success && pGroupID != nullptr)
-  {
-    vUUID_SetFromString(&m_groupID, pGroupID);
-  }
-  else if (m_updateMode == vcLFM_Position)//m_pNode->geomtype == vdkPGT_Point && m_pNode->geomCount == 1)
-  {
-    if (m_pCurrentProjection != nullptr)
-      m_position = udGeoZone_ToCartesian(*m_pCurrentProjection, *(udDouble3*)m_pNode->pCoordinates, true);
-  }
-  else //vcLFM_Camera
-  {
-    m_updateMode = vcLFM_Camera;
-  }
+  if (m_pCurrentProjection != nullptr)
+    m_position = udGeoZone_ToCartesian(*m_pCurrentProjection, *(udDouble3*)m_pNode->pCoordinates, true);
+  else
+    m_position = *(udDouble3*)m_pNode->pCoordinates;
 
   vdkProjectNode_GetMetadataDouble(m_pNode, "updateFrequency", &m_updateFrequency, 30.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayTime", &m_decayFrequency, 30.0);
@@ -542,9 +535,6 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     {
       if (m_updateMode == vcLFM_Position && m_position == udDouble3::zero())
         m_position = pProgramState->pCamera->position;
-
-      // TODO: Paul look at this
-      vdkProjectNode_SetMetadataInt(m_pNode, "updateMode", (int)(m_updateMode));
     }
 
     if (m_updateMode == vcLFM_Group)
@@ -554,7 +544,10 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
       if (ImGui::InputText(vcString::Get("liveFeedGroupID"), groupStr, udLengthOf(groupStr)))
       {
         if (vUUID_IsValid(groupStr))
+        {
           vUUID_SetFromString(&m_groupID, groupStr);
+          vdkProjectNode_SetMetadataString(m_pNode, "groupid", groupStr);
+        }
       }
     }
     else if (m_updateMode == vcLFM_Position)
