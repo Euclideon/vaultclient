@@ -55,31 +55,7 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       else if (pNode->itemtype == vdkPNT_PointCloud)
         pNode->pUserData = new vcModel(pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_LiveFeed)
-      {
         pNode->pUserData = new vcLiveFeed(pNode, pProgramState);
-        // If no project coords, use client state for projection and update coords
-        if (pNode->pCoordinates == nullptr)
-        {
-          if (pProgramState->gis.isProjected)
-          {
-            ((vcLiveFeed*)pNode->pUserData)->m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-            memcpy(((vcLiveFeed*)pNode->pUserData)->m_pCurrentProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
-            udDouble3 temp = udGeoZone_ToLatLong(pProgramState->gis.zone, ((vcLiveFeed*)pNode->pUserData)->m_position, true);
-            vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
-          }
-          // If no project coords, and no client projection then m_pCurrentProjection == nullptr, m_position will be in local space for now
-        }
-        else
-        { // Otherwise find the right srid and set local position
-          int32_t srid;
-          if (udGeoZone_FindSRID(&srid, *(udDouble3*)pNode->pCoordinates, true) == udR_Success)
-          {
-            ((vcLiveFeed*)pNode->pUserData)->m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-            udGeoZone_SetFromSRID(((vcLiveFeed*)pNode->pUserData)->m_pCurrentProjection, srid);
-            ((vcLiveFeed*)pNode->pUserData)->m_position = udGeoZone_ToCartesian(*((vcLiveFeed*)pNode->pUserData)->m_pCurrentProjection, *(udDouble3*)pNode->pCoordinates, true);
-          }
-        }
-      }
       else if (pNode->itemtype == vdkPNT_Media)
         pNode->pUserData = new vcMedia(pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_Viewpoint)

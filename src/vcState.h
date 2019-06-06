@@ -73,6 +73,7 @@ struct vcState
   udUInt2 sceneResolution;
 
   vcGISSpace gis;
+  udGeoZone defaultGeo;
   char username[64];
 
   vcTexture *pCompanyLogo;
