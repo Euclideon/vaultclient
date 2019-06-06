@@ -69,12 +69,7 @@ vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
   m_pLabelText = nullptr;
 
   m_pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
-  m_pLabelInfo->pText = m_pNode->pName;
-  if (m_line.numPoints > 0)
-    m_pLabelInfo->worldPosition = m_line.pPoints[0];
-  m_pLabelInfo->textSize = m_namePt;
-  m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
-  m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
+  UpdateLabelInfo();
 
   m_pFence = nullptr;
 
@@ -85,24 +80,24 @@ vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
 
 void vcPOI::OnNodeUpdate()
 {
-  double tempDouble;
   const char *pTemp;
+  vdkProjectNode_GetMetadataString(m_pNode, "textSize", &pTemp, "Medium");
+  if (udStrEquali(pTemp, "x-small") || udStrEquali(pTemp, "small"))
+    m_namePt = vcLFS_Small;
+  else if (udStrEquali(pTemp, "large") || udStrEquali(pTemp, "x-large"))
+    m_namePt = vcLFS_Large;
+  else
+    m_namePt = vcLFS_Medium;
 
   vdkProjectNode_GetMetadataUint(m_pNode, "nameColour", &m_nameColour, 0xFFFFFFFF);
   vdkProjectNode_GetMetadataUint(m_pNode, "backColour", &m_backColour, 0x7F000000);
-
-  vdkProjectNode_GetMetadataString(m_pNode, "textSize", &pTemp, "Medium");
-  if (udStrEquali(pTemp, "x-small") || udStrEquali(pTemp, "small"))
-    m_pLabelInfo->textSize = vcLFS_Small;
-  else if (udStrEquali(pTemp, "large") || udStrEquali(pTemp, "x-large"))
-    m_pLabelInfo->textSize = vcLFS_Large;
-  else
-    m_pLabelInfo->textSize = vcLFS_Medium;
+  vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, 0xFFFFFFFF);
+  vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
 
   vdkProjectNode_GetMetadataBool(m_pNode, "showLength", &m_showLength, true);
   vdkProjectNode_GetMetadataBool(m_pNode, "showArea", &m_showArea, true);
-  vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, 0xFFFFFFFF);
-  vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
+
+  double tempDouble;
   vdkProjectNode_GetMetadataDouble(m_pNode, "lineWidth", (double*)&tempDouble, 1.0);
   m_line.lineWidth = (float)tempDouble;
 
@@ -120,6 +115,7 @@ void vcPOI::OnNodeUpdate()
   m_line.fenceMode = (vcFenceRendererVisualMode)i;
 
   UpdatePoints();
+  UpdateLabelInfo();
 }
 
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -235,6 +231,16 @@ void vcPOI::UpdateProjectGeometry()
   udFree(pGeom);
 }
 
+void vcPOI::UpdateLabelInfo()
+{
+  m_pLabelInfo->pText = m_pNode->pName;
+  if (m_line.numPoints > 0)
+    m_pLabelInfo->worldPosition = m_line.pPoints[0];
+  m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
+  m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
+  m_pLabelInfo->textSize = m_namePt;
+}
+
 void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   if (vcIGSW_ColorPickerU32(udTempStr("%s##POIColour%zu", vcString::Get("scenePOILabelColour"), *pItemID), &m_nameColour, ImGuiColorEditFlags_None))
@@ -250,11 +256,12 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   }
 
   const char *labelSizeOptions[] = { vcString::Get("scenePOILabelSizeNormal"), vcString::Get("scenePOILabelSizeSmall"), vcString::Get("scenePOILabelSizeLarge") };
-  if (ImGui::Combo(udTempStr("%s##POILabelSize%zu", vcString::Get("scenePOILabelSize"), *pItemID), (int*)&m_pLabelInfo->textSize, labelSizeOptions, (int)udLengthOf(labelSizeOptions)))
+  if (ImGui::Combo(udTempStr("%s##POILabelSize%zu", vcString::Get("scenePOILabelSize"), *pItemID), (int*)&m_namePt, labelSizeOptions, (int)udLengthOf(labelSizeOptions)))
   {
     UpdatePoints();
     const char *pTemp;
-    switch (m_pLabelInfo->textSize)
+    m_pLabelInfo->textSize = m_namePt;
+    switch (m_namePt)
     {
     case vcLFS_Small:
       pTemp = "small";
