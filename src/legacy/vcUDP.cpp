@@ -93,8 +93,13 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
   vcModel *pModel = new vcModel(pNode, pProgramState);
   pNode->pUserData = pModel;
   pModel->m_meterScale = scale;
-  // ?????
-  pModel->m_defaultMatrix = udDouble4x4::translation(*pPosition) * udDouble4x4::rotationYPR(*pYPR) * udDouble4x4::scaleUniform(scale);
+
+  if (pPosition != nullptr)
+    pModel->m_defaultMatrix = udDouble4x4::translation(*pPosition);
+  if (pYPR != nullptr)
+    pModel->m_defaultMatrix *= udDouble4x4::rotationYPR(*pYPR);
+  if (scale != 1)
+    pModel->m_defaultMatrix *= udDouble4x4::scaleUniform(scale);
 
   pModel->OnNodeUpdate();
 
