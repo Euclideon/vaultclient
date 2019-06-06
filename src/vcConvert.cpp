@@ -22,7 +22,6 @@ const char *statusNames[] =
   "convertQueued",
   "convertAwaitingLicense",
   "convertRunning",
-  "convertNoFile",
   "convertCompleted",
   "convertCancelled",
   "convertWriteFailed",
@@ -148,6 +147,7 @@ void vcConvert_Init(vcState *pProgramState)
   pProgramState->pConvertContext = udAllocType(vcConvertContext, 1, udAF_Zero);
 
   pProgramState->pConvertContext->jobs.Init(32);
+  pProgramState->pConvertContext->unsupportedFilenames.Init(4);
 
   pProgramState->pConvertContext->pMutex = udCreateMutex();
   pProgramState->pConvertContext->pSemaphore = udCreateSemaphore();
@@ -164,7 +164,6 @@ void vcConvert_RemoveJob(vcState *pProgramState, size_t index)
   udFree(pItem->watermark.pFilename);
   pProgramState->pConvertContext->jobs.RemoveAt(index);
   vdkConvert_DestroyContext(pProgramState->pVDKContext, &pItem->pConvertContext);
-  udFree(pItem->pFilename);
   udFree(pItem);
 
   udReleaseMutex(pProgramState->pConvertContext->pMutex);
@@ -189,8 +188,16 @@ void vcConvert_Deinit(vcState *pProgramState)
 
   while (pProgramState->pConvertContext->jobs.length > 0)
     vcConvert_RemoveJob(pProgramState, 0);
-
   pProgramState->pConvertContext->jobs.Deinit();
+
+  while (pProgramState->pConvertContext->unsupportedFilenames.length > 0)
+  {
+    const char *pFn = nullptr;
+    pProgramState->pConvertContext->unsupportedFilenames.PopBack(&pFn);
+    udFree(pFn);
+  }
+  pProgramState->pConvertContext->unsupportedFilenames.Deinit();
+
   udFree(pProgramState->pConvertContext);
 }
 
@@ -206,7 +213,7 @@ void vcConvert_AddEmptyJob(vcState *pProgramState, vcConvertItem **ppNextItem)
 
   udReleaseMutex(pProgramState->pConvertContext->pMutex);
 
-  pNextItem->status = vcCQS_NoFile;
+  pNextItem->status = vcCQS_Preparing;
 
   *ppNextItem = pNextItem;
 }
@@ -372,7 +379,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
   ImGui::Separator();
 
-  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_NoFile)
+  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
   {
     bool skipErrorsWherePossible = pSelectedJob->pConvertInfo->skipErrorsWherePossible;
     if (ImGui::Checkbox(vcString::Get("convertContinueOnCorrupt"), &skipErrorsWherePossible))
@@ -391,7 +398,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   }
 
   // Override Resolution
-  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_NoFile)
+  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
   {
     bool overrideResolution = pSelectedJob->pConvertInfo->overrideResolution;
     double resolution = pSelectedJob->pConvertInfo->pointResolution;
@@ -616,7 +623,7 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename, bool water
   for (int i = (int)pProgramState->pConvertContext->jobs.length - 1; i >= 0 && pSelectedJob == nullptr; --i)
   {
     pSelectedJob = pProgramState->pConvertContext->jobs[i];
-    if ((pSelectedJob->status == vcCQS_NoFile && pProgramState->pConvertContext->jobs[i]->pFilename == nullptr) || pSelectedJob->status > vcCQS_NoFile)
+    if (pSelectedJob->status == vcCQS_Preparing)
       break;
     pSelectedJob = nullptr;
   }
@@ -639,8 +646,8 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename, bool water
     return true;
   }
 
-  pSelectedJob->pFilename = udStrdup(pFilename);
-  vcModals_OpenModal(pProgramState, vcMT_UnsupportedFile);
+  // No conversion was found so add it to list of unsupported filenames to tell the user later
+  pProgramState->pConvertContext->unsupportedFilenames.PushBack(udStrdup(pFilename));
 
   return false;
 }
