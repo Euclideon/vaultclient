@@ -569,7 +569,7 @@ void vcModals_DrawProjectReadOnly(vcState *pProgramState)
 
 void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
 {
-  if (pProgramState->openModals & (1 << vcMT_UnsupportedFile))
+  if (pProgramState->pConvertContext &&  pProgramState->pConvertContext->unsupportedFilenames.length)
     ImGui::OpenPopup(vcString::Get("sceneExplorerUnsupportedFilesTitle"));
 
   ImVec2 window = ImGui::GetWindowSize();
@@ -581,18 +581,18 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
     pProgramState->modalOpen = true;
     ImGui::TextUnformatted(vcString::Get("sceneExplorerUnsupportedFilesMessage"));
 
-    for (int i = 0; i < (int)pProgramState->pConvertContext->jobs.length; ++i)
+    for (int i = 0; i < (int)pProgramState->pConvertContext->unsupportedFilenames.length; ++i)
     {
-      if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_NoFile && pProgramState->pConvertContext->jobs[i]->pFilename)
-        ImGui::TextUnformatted(pProgramState->pConvertContext->jobs[i]->pFilename);
+      ImGui::TextUnformatted(pProgramState->pConvertContext->unsupportedFilenames[i]);
     }
 
     if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
-      for (int i = (int)pProgramState->pConvertContext->jobs.length - 1; i >= 0; --i)
+      while (pProgramState->pConvertContext->unsupportedFilenames.length)
       {
-        if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_NoFile && (pProgramState->pConvertContext->jobs[i]->watermark.pFilename == nullptr))
-          vcConvert_RemoveJob(pProgramState, i);
+        const char *pFn = nullptr;
+        pProgramState->pConvertContext->unsupportedFilenames.PopBack(&pFn);
+        udFree(pFn);
       }
       ImGui::CloseCurrentPopup();
     }
