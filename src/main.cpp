@@ -622,10 +622,17 @@ void vcMain_MainLoop(vcState *pProgramState)
                   vdkProjectNode *pNode = nullptr;
                   if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "Media", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) == vE_Success)
                   {
+
+                    //TODO: (EVC-661) Surely this isn't the correct fix... I've left the the debug printing here
+                    udDouble3 fixMeLatLong = pProgramState->previousWorldMousePos;
+                    if (pProgramState->gis.isProjected)
+                      fixMeLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->previousWorldMousePos, true);
+                    //printf("ADD: (%d): %f, %f...%f, %f, %f...%f, %f, %f\n", pProgramState->gis.zone.srid, pProgramState->worldMousePosLongLat.x, pProgramState->worldMousePosLongLat.y, pProgramState->previousWorldMousePos.x, pProgramState->previousWorldMousePos.y, pProgramState->previousWorldMousePos.z, pProgramState->worldMousePos.x, pProgramState->worldMousePos.y, pProgramState->worldMousePos.z);
+
                     if (hasLocation && pProgramState->gis.isProjected)
                       vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &geolocation.x);
-                    else if (pProgramState->worldMousePos != udDouble3::zero())
-                      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &pProgramState->worldMousePosLongLat.x);
+                    else if (pProgramState->previousWorldMousePos != udDouble3::zero())
+                      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &fixMeLatLong.x);
                     else
                       vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &pProgramState->pCamera->positionInLongLat.x);
 
