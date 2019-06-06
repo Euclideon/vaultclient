@@ -346,15 +346,16 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
       else
         memcpy(pZone, &pProgramState->defaultGeo, sizeof(udGeoZone));
     }
+    // TODO: Somehow pass epsgCode through to vcPOI
 
     udDouble3 *pTemp = udAllocType(udDouble3, item.polygon.numPoints, udAF_Zero);
     for (int i = 0; i < item.polygon.numPoints; ++i)
       pTemp[i] = udGeoZone_ToLatLong(*pZone, item.polygon.pPoints[i], true);
 
     if (item.polygon.isClosed)
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)&pTemp);
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)pTemp);
     else
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)&pTemp);
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)pTemp);
 
     udFree(pZone);
     udFree(pTemp);
