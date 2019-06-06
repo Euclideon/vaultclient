@@ -114,7 +114,7 @@ void vcMedia::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
   m_image.ypr = udMath_DirToYPR(rotation.apply(udDouble3::create(0, 1, 0)));
   m_image.scale = scale;
 
-  if (m_pCurrentProjection)
+  if (m_pCurrentProjection != nullptr)
   {
     udDouble3 longLat = udGeoZone_ToLatLong(*m_pCurrentProjection, m_image.position, true);
     vdkProjectNode_SetGeometry(m_pProject, m_pNode, vdkPGT_Point, 1, &longLat.x);
@@ -154,6 +154,7 @@ void vcMedia::ChangeProjection(const udGeoZone &newZone)
     m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
 
   memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
+
   m_image.position = udGeoZone_ToCartesian(newZone, *pLatLong, true);
 }
 
