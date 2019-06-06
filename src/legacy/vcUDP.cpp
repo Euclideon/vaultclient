@@ -302,8 +302,8 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
     udDouble3 position = udDouble3::zero();
     int32_t epsgCode = 0;
 
-    uint16_t size = (uint16_t)udStrAtou(item.label.pFontSize);
-    uint32_t colour = (uint32_t)udStrAtoi(item.label.pColour); //These are stored as int (with negatives) in MDM
+    uint16_t size = item.label.pFontSize ? (uint16_t)udStrAtou(item.label.pFontSize) : 16;
+    uint32_t colour = item.label.pColour ? (uint32_t)udStrAtoi(item.label.pColour) : 0xffffffff; //These are stored as int (with negatives) in MDM
 
     const char *pSize;
     if (size > 16)
