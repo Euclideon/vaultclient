@@ -14,9 +14,6 @@ vcViewpoint::vcViewpoint(vdkProjectNode *pNode, vcState *pProgramState) :
   m_CameraPosition = pProgramState->pCamera->position;
   m_CameraRotation = pProgramState->pCamera->eulerRotation;
 
-  if (pNode->pCoordinates == nullptr)
-    pNode->pCoordinates = (double*)udAllocType(udDouble3, 1, udAF_Zero);
-
   if (pProgramState->gis.isProjected)
   {
     m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
@@ -29,7 +26,7 @@ vcViewpoint::vcViewpoint(vdkProjectNode *pNode, vcState *pProgramState) :
   else
   {
     udDouble3 temp = udGeoZone_ToLatLong(pProgramState->defaultGeo, m_CameraPosition, true);
-    vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&m_CameraPosition);
+    vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
   }
 
   m_loadStatus = vcSLS_Loaded;
