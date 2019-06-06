@@ -102,6 +102,7 @@ void vcViewpoint::ChangeProjection(const udGeoZone &newZone)
     m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
 
   memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
+
   m_CameraPosition = udGeoZone_ToCartesian(newZone, *pLatLong, true);
 }
 

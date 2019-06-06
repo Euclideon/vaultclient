@@ -28,7 +28,6 @@ static const char *vcFRIMStrings[] =
 };
 UDCOMPILEASSERT(udLengthOf(vcFRIMStrings) == vcRRIM_Count, "New enum values");
 
-
 vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pNode, pProgramState)
 {
@@ -94,8 +93,10 @@ void vcPOI::OnNodeUpdate()
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, 0xFFFFFFFF);
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
 
-  vdkProjectNode_GetMetadataBool(m_pNode, "showLength", &m_showLength, true);
-  vdkProjectNode_GetMetadataBool(m_pNode, "showArea", &m_showArea, true);
+  vdkProjectNode_GetMetadataBool(m_pNode, "showLength", &m_showLength, false);
+  vdkProjectNode_GetMetadataBool(m_pNode, "showArea", &m_showArea, false);
+
+  m_line.closed = (m_pNode->geomtype == vdkPGT_Polygon);
 
   double tempDouble;
   vdkProjectNode_GetMetadataDouble(m_pNode, "lineWidth", (double*)&tempDouble, 1.0);
@@ -209,6 +210,10 @@ void vcPOI::UpdatePoints()
 
     vcFenceRenderer_ClearPoints(m_pFence);
     vcFenceRenderer_AddPoints(m_pFence, m_line.pPoints, m_line.numPoints, m_line.closed);
+  }
+  else if (m_pFence != nullptr)
+  {
+    vcFenceRenderer_Destroy(&m_pFence);
   }
 }
 
@@ -326,7 +331,10 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       }
 
       if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOILineClosed"), *pItemID), &m_line.closed))
+      {
         UpdatePoints();
+        UpdateProjectGeometry();
+      }
 
       if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourPrimary%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_line.colourPrimary, ImGuiColorEditFlags_None))
       {
