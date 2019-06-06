@@ -170,7 +170,6 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
       break;
     case vcGLSCM_TotalModes:
       return false;
-      break;
     }
 
     if (g_pRasterizerState != nullptr)
