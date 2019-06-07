@@ -28,6 +28,8 @@ struct vcSceneLayerConvert
   size_t everyNth;
   size_t everyNthAccum; // Accumulator for everyNth mode so calculations span triangles nicely
 
+  udDouble3 worldOrigin;
+
   udChunkedArray<vcSceneLayerNode*> leafNodes;
 };
 
@@ -178,6 +180,7 @@ vdkError vcSceneLayerConvert_Open(vdkConvertCustomItem *pConvertInput, uint32_t 
   pSceneLayerConvert->totalPrimCount = 0;
   pSceneLayerConvert->totalPrimIndex = 0;
   pSceneLayerConvert->lastPrimedPrimitive = 0xffffffff;
+  pSceneLayerConvert->worldOrigin = udDouble3::create(origin[0], origin[1], origin[2]);
 
   if (vcSceneLayer_LoadNode(pSceneLayerConvert->pSceneLayer, nullptr, vcSLLT_Convert) != udR_Success)
     UD_ERROR_SET(vE_Failure);
@@ -210,6 +213,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
   uint64_t pointCount = 0;
   udDouble3 sceneLayerOrigin = udDouble3::zero();
   bool allPointsReturned = false;
+  udDouble3 localJobOriginOffset = udDouble3::zero();
 
   UD_ERROR_NULL(pConvertInput, vE_Failure);
   UD_ERROR_NULL(pConvertInput->pData, vE_Failure);
@@ -220,6 +224,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
   memset(pBuffer->pAttributes, 0, pBuffer->attributeSize * pBuffer->pointsAllocated);
   pBuffer->pointCount = 0;
   sceneLayerOrigin = pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.position - udDouble3::create(pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.radius);
+  localJobOriginOffset = sceneLayerOrigin - pSceneLayerConvert->worldOrigin;
 
   // For each node
   while (pBuffer->pointCount < pBuffer->pointsAllocated && pSceneLayerConvert->leafIndex < pSceneLayerConvert->leafNodes.length)
@@ -288,7 +293,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
         for (uint64_t i = 0; i < pointCount; ++i)
         {
           for (size_t j = 0; j < 3; ++j)
-            pBuffer->pPositions[pBuffer->pointCount + i][j] = (int64_t)(pTriPositions[3 * i + j] / pConvertInput->sourceResolution);
+            pBuffer->pPositions[pBuffer->pointCount + i][j] = (int64_t)((pTriPositions[3 * i + j] + localJobOriginOffset[j]) / pConvertInput->sourceResolution);
         }
 
         // Assign attributes
