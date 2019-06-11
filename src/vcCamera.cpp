@@ -524,10 +524,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
   // in orthographic mode, force camera straight down
   if (pCamSettings->cameraMode == vcCM_OrthoMap)
-  {
-    pCamera->position.z = vcSL_CameraOrthoNearFarPlane.y * 0.5;
     pCamera->eulerRotation = udDouble3::create(0.0, -UD_HALF_PI, 0.0); // down orientation
-  }
 }
 
 void vcCamera_SwapMapMode(vcState *pProgramState)
