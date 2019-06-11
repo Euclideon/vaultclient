@@ -133,7 +133,7 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
   if (m_pLabelInfo != nullptr)
   {
-    if (m_showLength || m_showArea)
+    if ((m_showLength && m_line.numPoints > 1) || (m_showArea && m_line.numPoints > 2))
       m_pLabelInfo->pText = m_pLabelText;
     else
       m_pLabelInfo->pText = m_pNode->pName;
@@ -184,16 +184,16 @@ void vcPOI::UpdatePoints()
   m_calculatedArea = udAbs(m_calculatedArea) / 2;
   m_pLabelInfo->worldPosition = averagePosition / m_line.numPoints;
 
-  if (m_showArea && m_showLength)
-    udSprintf(&m_pLabelText, "%s\n%s: %.3f\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOILineLength"), m_calculatedLength, vcString::Get("scenePOIArea"), m_calculatedArea);
-  else if (m_showLength)
-    udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOILineLength"), m_calculatedLength);
-  else if (m_showArea)
-    udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOIArea"), m_calculatedArea);
-
   // update the fence renderer as well
   if (m_line.numPoints > 1)
   {
+    if (m_showArea && m_showLength && m_line.numPoints > 2)
+      udSprintf(&m_pLabelText, "%s\n%s: %.3f\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOILineLength"), m_calculatedLength, vcString::Get("scenePOIArea"), m_calculatedArea);
+    else if (m_showLength)
+      udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOILineLength"), m_calculatedLength);
+    else if (m_showArea)
+      udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOIArea"), m_calculatedArea);
+
     if (m_pFence == nullptr)
       vcFenceRenderer_Create(&m_pFence);
 
