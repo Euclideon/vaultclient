@@ -413,7 +413,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     if (moveVector == udDouble3::zero())
       break;
 
-    if (pCamSettings->moveMode == vcCMM_Helicopter)
+    if (pCamSettings->moveMode == vcCMM_Helicopter || pCamSettings->cameraMode == vcCM_OrthoMap)
       moveVector.z = 0;
 
     double length = udMag3(moveVector);
@@ -455,7 +455,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
           distanceToPoint = udClamp(maxDistance - distanceToPoint, 0.0, distanceToPoint);
 
         addPos = distanceToPoint * pCamInput->mouseInput.y * udNormalize3(towards);
-    }
+      }
     }
     else // map mode
     {
@@ -478,8 +478,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
     if (pCamSettings->cameraMode == vcCM_OrthoMap)
       plane.point.z = 0;
-
-    if (pCamSettings->cameraMode != vcCM_OrthoMap && pCamSettings->moveMode == vcCMM_Plane)
+    else if (pCamSettings->moveMode == vcCMM_Plane)
       plane.normal = udDoubleQuat::create(pCamera->eulerRotation).apply({ 0, 1, 0 });
 
     udDouble3 offset = udDouble3::create(0, 0, 0);
@@ -720,7 +719,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     }
 
     // Click and Hold
-
     if (isBtnHeld[i] && !isBtnClicked[i])
     {
       isMouseBtnBeingHeld = true;
@@ -751,7 +749,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
           }
         }
       }
-      else // map mode
+      else if (pProgramState->cameraInput.progress > 0 || (pProgramState->cameraInput.inputState != vcCIS_CommandZooming && pProgramState->cameraInput.inputState != vcCIS_MovingToPoint && pProgramState->cameraInput.inputState != vcCIS_FlyingThrough)) // map mode
       {
         if (!isBtnHeld[0] && !isBtnHeld[1] && !isBtnHeld[2]) // nothing is pressed (remember, they're all mapped to panning)
         {
@@ -765,27 +763,23 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
           pProgramState->cameraInput.anchorMouseRay = pProgramState->pCamera->worldMouseRay;
           pProgramState->cameraInput.inputState = vcCIS_Panning;
         }
-
       }
     }
+  }
 
-    // Double Clicking
-    if (i == 0 && isBtnDoubleClicked[i]) // if left double clicked
+  // Double Clicking left mouse
+  if (isBtnDoubleClicked[0] && (pProgramState->pickingSuccess || pProgramState->settings.camera.cameraMode == vcCM_OrthoMap))
+  {
+    pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
+    pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
+    pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
+    pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
+    pProgramState->cameraInput.progress = 0.0;
+
+    if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
     {
-      if (pProgramState->pickingSuccess || pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-      {
-        pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
-        pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
-        pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
-        pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMousePos;
-        pProgramState->cameraInput.progress = 0.0;
-
-        if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-        {
-          pProgramState->cameraInput.startAngle = udDoubleQuat::identity();
-          pProgramState->cameraInput.worldAnchorPoint = pProgramState->pCamera->worldMouseRay.position;
-        }
-      }
+      pProgramState->cameraInput.startAngle = udDoubleQuat::identity();
+      pProgramState->cameraInput.worldAnchorPoint = pProgramState->pCamera->worldMouseRay.position;
     }
   }
 
