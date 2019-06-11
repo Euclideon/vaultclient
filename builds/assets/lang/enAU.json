@@ -302,6 +302,7 @@
   "sceneBeginAreaMeasure": "Begin Area Measurement",
   "sceneAddLine": "Begin Line Here",
   "sceneBeginLineMeasure": "Begin Line Measurement",
+  "sceneResetRotation": "Reset Camera Rotation",
 
   "sceneLockAltitude": "Lock Altitude",
   "sceneLockAltitudeKey": "Space",

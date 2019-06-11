@@ -1402,6 +1402,15 @@ void vcRenderSceneWindow(vcState *pProgramState)
           pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMouseClickedPos;
           pProgramState->cameraInput.progress = 0.0;
         }
+
+        if (ImGui::MenuItem(vcString::Get("sceneResetRotation")))
+        {
+          pProgramState->cameraInput.inputState = vcCIS_LookingAtPoint;
+          pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
+          pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
+          pProgramState->cameraInput.lookAtPosition = pProgramState->pCamera->position;
+          pProgramState->cameraInput.progress = 0.0;
+        }
       }
       else
       {
