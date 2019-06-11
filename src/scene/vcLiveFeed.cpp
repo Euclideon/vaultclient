@@ -347,17 +347,22 @@ vcLiveFeed::vcLiveFeed(vdkProjectNode *pNode, vcState *pProgramState) :
 
 void vcLiveFeed::OnNodeUpdate()
 {
-  const char *pGroupID = nullptr;
+  const char *pTempStr = nullptr;
 
-  // Assuming that OnNodeUpdate will be triggered by the server, and means that we should update all these fields regardless of local update mode, update mode is just a local value and not accounted for on the server
-  vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pGroupID, nullptr);
+  vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pTempStr, nullptr);
   vUUID_Clear(&m_groupID);
-  vUUID_SetFromString(&m_groupID, pGroupID);
+  vUUID_SetFromString(&m_groupID, pTempStr);
 
-  if (m_pCurrentProjection != nullptr)
+  if (m_pNode->pCoordinates != nullptr && m_pCurrentProjection != nullptr)
     m_position = udGeoZone_ToCartesian(*m_pCurrentProjection, *(udDouble3*)m_pNode->pCoordinates, true);
-  else
-    m_position = *(udDouble3*)m_pNode->pCoordinates;
+
+  vdkProjectNode_GetMetadataString(m_pNode, "updateMode", &pTempStr, nullptr);
+  if (udStrEquali(pTempStr, "Group"))
+    m_updateMode = vcLFM_Group;
+  else if (udStrEquali(pTempStr, "Position"))
+    m_updateMode = vcLFM_Position;
+  else if (udStrEquali(pTempStr, "Camera"))
+    m_updateMode = vcLFM_Camera;
 
   vdkProjectNode_GetMetadataDouble(m_pNode, "updateFrequency", &m_updateFrequency, 30.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayTime", &m_decayFrequency, 30.0);
@@ -561,6 +566,23 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     {
       if (m_updateMode == vcLFM_Position && m_position == udDouble3::zero())
         m_position = pProgramState->pCamera->position;
+
+      const char *pMode = nullptr;
+      switch (m_updateMode)
+      {
+      case vcLFM_Position:
+        pMode = "Position";
+        break;
+      case vcLFM_Group:
+        pMode = "Group";
+        break;
+      case vcLFM_Camera:
+        pMode = "Camera";
+        break;
+      case vcLFM_Count:
+        break;
+      }
+      vdkProjectNode_SetMetadataString(m_pNode, "updateMode", pMode);
     }
 
     if (m_updateMode == vcLFM_Group)
@@ -578,8 +600,11 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     }
     else if (m_updateMode == vcLFM_Position)
     {
-      if (ImGui::InputScalarN(vcString::Get("liveFeedPosition"), ImGuiDataType_Double, &m_position.x, 3))
-        vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, m_pNode, vdkPGT_Point, 1, &m_position.x);
+      if (ImGui::InputScalarN(vcString::Get("liveFeedPosition"), ImGuiDataType_Double, &m_position.x, 3) && m_pCurrentProjection != nullptr)
+      {
+        udDouble3 temp = udGeoZone_ToLatLong(*m_pCurrentProjection, m_position, true);
+        vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
+      }
     }
   }
 }

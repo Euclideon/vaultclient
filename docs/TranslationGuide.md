@@ -458,9 +458,6 @@ Modules are currently:
 - `sceneExplorerAddUDS`: Tooltip displayed when mouse is hovered over the Add UDS button in the scene explorer tab
 - `sceneExplorerAddUDSKey`: Used in Add UDS button tooltip, shown in brackets
 - `sceneExplorerAddUDSTitle`: Title of the Add UDS window
-- `sceneExplorerAddPOI`: Tooltip displayed when mouse is hovered over the Add POI button in the scene explorer tab
-- `sceneExplorerAddAOI`: Tooltip displayed when mouse is hovered over the Add AOI button in the scene explorer tab
-- `sceneExplorerAddLine`: Tooltip displayed when mouse is hovered over the Add Line button in the scene explorer tab
 - `sceneExplorerAddOther`: Tooltip displayed when mouse is hovered over the Add Other button in the scene explorer tab
 - `sceneExplorerAddFeed`: Menu option in the Add Other menu which is displayed when the Add Other button is clicked, adds a Live Feed item to the scene
 - `sceneExplorerAddFolder`: Tooltip displayed when mouse is hovered over the Add Folder button in the scene explorer tab
@@ -495,7 +492,9 @@ Modules are currently:
 #### Point of Interest
 - `scenePOIDefaultName`: Default name of new POI objects when they are added to the Scene Explorer
 - `scenePOIAreaDefaultName`: Default name of new AOI objects when they are added to the Scene Explorer
+- `scenePOIAreaMeasureDefaultName`: Default name of new Area measurements when they are added to the Scene Explorer
 - `scenePOILineDefaultName`: Default name of new Line objects when they are added to the Scene Explorer
+- `scenePOILineMeasureDefaultName`: Default name of new Line measurements when they are added to the Scene Explorer
 - `scenePOIAddPoint`: Used in the context menu for adding a new point at the current mouse position
 - `scenePOIRemovePoint`: Used in the button to remove the selected point from this POI.
 - `scenePOIPointPosition`: Label for the UI to override the position of the selected point
