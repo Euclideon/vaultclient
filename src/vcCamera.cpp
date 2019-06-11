@@ -307,9 +307,11 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
   case vcCIS_LookingAtPoint:
   {
-    udDouble3 lookVector = pCamInput->lookAtPosition - pCamInput->startPosition;
+    udDouble3 targetEuler = udMath_DirToYPR(pCamInput->lookAtPosition - pCamInput->startPosition);
+    if (isnan(targetEuler.x) || isnan(targetEuler.y) || isnan(targetEuler.z))
+      targetEuler = udDouble3::zero();
 
-    pCamInput->progress += deltaTime * 1.0;
+    pCamInput->progress += deltaTime; // 1 second
     if (pCamInput->progress >= 1.0)
     {
       pCamInput->progress = 1.0;
@@ -317,8 +319,6 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
     }
 
     double progress = udEase(pCamInput->progress, udET_QuadraticOut);
-
-    udDouble3 targetEuler = udMath_DirToYPR(lookVector);
     pCamera->eulerRotation = udSlerp(pCamInput->startAngle, udDoubleQuat::create(targetEuler), progress).eulerAngles();
 
     if (pCamera->eulerRotation.y > UD_PI)
