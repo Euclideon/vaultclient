@@ -191,7 +191,7 @@ void vcPOI::UpdatePoints()
       udSprintf(&m_pLabelText, "%s\n%s: %.3f\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOILineLength"), m_calculatedLength, vcString::Get("scenePOIArea"), m_calculatedArea);
     else if (m_showLength)
       udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOILineLength"), m_calculatedLength);
-    else if (m_showArea)
+    else if (m_showArea && m_line.numPoints > 2)
       udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOIArea"), m_calculatedArea);
 
     if (m_pFence == nullptr)
