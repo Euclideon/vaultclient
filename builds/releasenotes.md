@@ -1,16 +1,22 @@
 Euclideon Vault Client Version History
 
 Known Major Issues In Current Release
+  - LOTS OF ISSUES WITH THE SCENE EXPLORER AND PROJECTS
+    - Importing and Exporting projects doesn't work consistently or reliably
+	- Lots of issues with settings for scene items not applying correctly or resetting to bad defaults
+	- Scene items disappear randomly
+	- Changing zones or having non-geolocated items in the scene causes a lot of problems.
+  - UDP can't currently be imported
   - User guide does not cover the entire application
   - Corrupted UDS files silently fail without notifying the user (EVC-20)
   - An issue is preventing macOS users from running the build directly because of signing issues (EVC-408)
   - Map mode only transitions nicely for items with z at 0 (EVC-460)
   - Images in the scene are not using thumbnails (EVC-513)
   - Reordering the scene sometimes doesn't work properly now (EVC-591)
-
-Version 0.3.0
+  
+Version 0.3.0 (Pre-Release)
   - Improvements
-    - Projects can be exported
+    - Projects can be (sort of) exported
       - Lots of preparation work for collaborative projects
     - Native Metal rendering for macOS
     - Updated to Experimental Docking branch for ImGui (native docking support instead of extension)
