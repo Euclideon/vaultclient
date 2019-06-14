@@ -16,6 +16,7 @@
 
 #include "imgui.h"
 #include "imgui_impl_metal.h"
+#include "imgui_impl_gl.h"
 #include "imgui_impl_sdl.h"
 
 #import <Metal/Metal.h>
@@ -44,7 +45,6 @@ const vcVertexLayoutTypes vcImGuiVertexLayout[] = { vcVLT_Position2, vcVLT_Textu
 
 @property (nonatomic, strong) id<MTLRenderPipelineState> pipeline;
 - (void)makeDeviceObjects;
-- (void)makeFontTextureWithDevice:(id<MTLDevice>)device;
 - (void)renderDrawData:(ImDrawData *)drawData;
 @end
 
@@ -96,33 +96,18 @@ void ImGui_ImplMetal_RenderDrawData(ImDrawData* draw_data)
     [g_sharedMetalContext renderDrawData:draw_data];
 }
 
-bool ImGui_ImplMetal_CreateFontsTexture()
-{
-    [g_sharedMetalContext makeFontTextureWithDevice:_device];
-
-    ImGuiIO& io = ImGui::GetIO();
-
-    return (io.Fonts->TexID != nil);
-}
-
-void ImGui_ImplMetal_DestroyFontsTexture()
-{
-    ImGuiIO& io = ImGui::GetIO();
-    io.Fonts->TexID = nullptr;
-}
-
 bool ImGui_ImplMetal_CreateDeviceObjects()
 {
     [g_sharedMetalContext makeDeviceObjects];
 
-    ImGui_ImplMetal_CreateFontsTexture();
+    ImGuiGL_CreateFontsTexture();
 
     return true;
 }
 
 void ImGui_ImplMetal_DestroyDeviceObjects()
 {
-    ImGui_ImplMetal_DestroyFontsTexture();
+    ImGuiGL_DestroyFontsTexture();
 }
 
 #pragma mark - MetalContext implementation
@@ -138,24 +123,6 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     vcShader_CreateFromText(&pMetalShader, g_ImGuiVertexShader, g_ImGuiFragmentShader, vcImGuiVertexLayout);
     vcShader_GetConstantBuffer(&metalMatrix, pMetalShader, "u_EveryFrame", sizeof(udFloat4x4));
     _pipeline = [self getPipeline:_device];
-}
-
-// We are retrieving and uploading the font atlas as a 4-channels RGBA texture here.
-// In theory we could call GetTexDataAsAlpha8() and upload a 1-channel texture to save on memory access bandwidth.
-// However, using a shader designed for 1-channel texture would make it less obvious to use the ImTextureID facility to render users own textures.
-// You can make that change in your implementation.
-- (void)makeFontTextureWithDevice:(id<MTLDevice>)device
-{
-    udUnused(device);
-    ImGuiIO &io = ImGui::GetIO();
-    unsigned char* pixels;
-    int width, height;
-    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-
-    vcTexture *fontText;
-    vcTexture_Create(&fontText, width, height, pixels);
-
-    io.Fonts->TexID = fontText;
 }
 
 - (nullable id<MTLRenderPipelineState>)getPipeline:(nonnull id<MTLDevice>)device

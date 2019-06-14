@@ -904,16 +904,6 @@ int main(int argc, char **args)
   vcTexture_CreateFromFilename(&programState.pCompanyLogo, "asset://assets/textures/logo.png");
   vcTexture_CreateFromFilename(&programState.pBuildingsTexture, "asset://assets/textures/buildings.png", nullptr, nullptr, vcTFM_Nearest, false);
 
-  if (!ImGuiGL_Init(programState.pWindow))
-    goto epilogue;
-
-  if (vcRender_Init(&(programState.pRenderContext), &(programState.settings), programState.pCamera, programState.sceneResolution) != udR_Success)
-    goto epilogue;
-
-  // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
-  // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
-  vcFramebuffer_Bind(programState.pDefaultFramebuffer);
-
   if (udFile_Load("asset://assets/fonts/NotoSansCJKjp-Regular.otf", &pFontData, &fontDataLength) == udR_Success)
   {
     const float FontSize = 16.f;
@@ -960,6 +950,21 @@ int main(int argc, char **args)
     udFree(pFontData);
     fontDataLength = 0;
   }
+
+#ifdef GRAPHICS_API_METAL
+  if (!ImGui_ImplMetal_Init())
+    goto epilogue;
+#else
+  if (!ImGuiGL_Init(programState.pWindow))
+    goto epilogue;
+#endif
+
+  if (vcRender_Init(&(programState.pRenderContext), &(programState.settings), programState.pCamera, programState.sceneResolution) != udR_Success)
+    goto epilogue;
+
+  // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
+  // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
+  vcFramebuffer_Bind(programState.pDefaultFramebuffer);
 
   SDL_DisableScreenSaver();
 
