@@ -97,9 +97,17 @@ project "vaultClient"
 		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = excludedSourceFileNames }
 
 	filter { "system:emscripten" }
-		removefiles { "src/vCore/vUUID.*", "src/vCore/vSafeDeque.h" }
+		kind "ConsoleApp" -- WindowedApp does not generate the final output
 		links { "GLEW" }
 		linkoptions  { "-s USE_WEBGL2=1", "-s FULL_ES3=1", --[["-s DEMANGLE_SUPPORT=1",]] "-s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\", \"getValue\", \"setValue\", \"UTF8ToString\", \"stringToUTF8\"]'" }
+
+	filter { "system:emscripten", "options:force-vaultsdk" }
+		removefiles { "src/vCore/vUUID.*", "src/vCore/vSafeDeque.h" }
+		removeincludedirs { "3rdParty/udcore/Include" }
+		removelinks { "udCore" .. (projectSuffix or "") }
+
+	filter { "system:emscripten", "options:not force-vaultsdk" }
+		removefiles { "src/vCore/vUUID.cpp", "src/vCore/vWorkerThread.cpp" }
 
 	filter { "system:not windows" }
 		links { "dl" }
