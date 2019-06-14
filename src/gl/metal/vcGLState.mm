@@ -155,8 +155,8 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   vcFramebuffer_Bind(pFramebuffer);
 
   vcGLState_BuildDepthStates();
-
-  ImGui_ImplMetal_Init();
+    
+  ImGui_ImplSDL2_InitForOpenGL(pWindow);
 
   *ppDefaultFramebuffer = pFramebuffer;
 
