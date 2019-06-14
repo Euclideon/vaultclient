@@ -15,12 +15,12 @@
 @property(nonatomic,strong,nonnull) id<MTLCommandBuffer> blitBuffer;
 @property(nonatomic,strong,nonnull) id<MTLBlitCommandEncoder> blitEncoder;
 
-@property(nonatomic,strong,nonnull) NSMutableArray<id<MTLBuffer>> *constantBuffers;
 @property(nonatomic,strong,nonnull) NSMutableArray<id<MTLRenderPipelineState>> *pipelines;
 
 @property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLBuffer>> *vertBuffers;
 @property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLBuffer>> *indexBuffers;
 @property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLTexture>> *textures;
+@property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLBuffer>> *constantBuffers;
 
 // Permutables
 @property(nonatomic,strong,nonnull) NSMutableArray<id<MTLDepthStencilState>> *depthStates;

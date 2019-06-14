@@ -21,6 +21,7 @@ const vcVertexLayoutTypes vcImGuiVertexLayout[] = { vcVLT_Position2, vcVLT_Textu
 // Functions
 bool ImGuiGL_Init(SDL_Window *pWindow)
 {
+  ImGuiGL_CreateDeviceObjects();
   ImGui_ImplSDL2_InitForOpenGL(pWindow);
   return true;
 }
@@ -33,9 +34,6 @@ void ImGuiGL_Shutdown()
 
 void ImGuiGL_NewFrame(SDL_Window *pWindow)
 {
-  if (g_pFontTexture == nullptr)
-    ImGuiGL_CreateDeviceObjects();
-
   ImGui_ImplSDL2_NewFrame(pWindow);
   ImGui::NewFrame();
 }

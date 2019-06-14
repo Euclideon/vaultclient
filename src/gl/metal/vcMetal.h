@@ -38,7 +38,7 @@ struct vcFramebuffer
 
 struct vcShaderConstantBuffer
 {
-  uint32_t ID;
+  char ID[32];
   char name[32];
   size_t expectedSize;
 };
