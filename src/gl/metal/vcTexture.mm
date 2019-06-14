@@ -131,18 +131,31 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
   else
   {
     MTLSamplerDescriptor *pSamplerDesc = [MTLSamplerDescriptor new];
-    pSamplerDesc.mipFilter = MTLSamplerMipFilterNotMipmapped;
-    pSamplerDesc.rAddressMode = MTLSamplerAddressModeClampToEdge;
-    pSamplerDesc.sAddressMode = MTLSamplerAddressModeClampToEdge;
-    pSamplerDesc.tAddressMode = MTLSamplerAddressModeClampToEdge;
-    if (filterMode == vcTFM_Nearest)
-      pSamplerDesc.mipFilter = MTLSamplerMipFilterNearest;
 
+    if (filterMode == vcTFM_Nearest)
+    {
+      pSamplerDesc.mipFilter = MTLSamplerMipFilterNearest;
+      pSamplerDesc.minFilter = MTLSamplerMinMagFilterNearest;
+      pSamplerDesc.magFilter = MTLSamplerMinMagFilterNearest;
+    }
+    else
+    {
+      pSamplerDesc.mipFilter = MTLSamplerMipFilterLinear;
+      pSamplerDesc.minFilter = MTLSamplerMinMagFilterLinear;
+      pSamplerDesc.magFilter = MTLSamplerMinMagFilterLinear;
+    }
+      
     if (wrapMode == vcTWM_Repeat)
     {
       pSamplerDesc.rAddressMode = MTLSamplerAddressModeRepeat;
       pSamplerDesc.sAddressMode = MTLSamplerAddressModeRepeat;
       pSamplerDesc.tAddressMode = MTLSamplerAddressModeRepeat;
+    }
+    else
+    {
+      pSamplerDesc.rAddressMode = MTLSamplerAddressModeClampToEdge;
+      pSamplerDesc.sAddressMode = MTLSamplerAddressModeClampToEdge;
+      pSamplerDesc.tAddressMode = MTLSamplerAddressModeClampToEdge;
     }
 
     if (aniFilter > 0)
@@ -150,8 +163,7 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
     else
       pSamplerDesc.maxAnisotropy = 1;
 
-    pSamplerDesc.minFilter = MTLSamplerMinMagFilterNearest;
-    pSamplerDesc.magFilter = MTLSamplerMinMagFilterLinear;
+    
 
     id<MTLSamplerState> sampler = [_device newSamplerStateWithDescriptor:pSamplerDesc];
 

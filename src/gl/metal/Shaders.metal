@@ -171,10 +171,9 @@ using namespace metal;
 
 
 // ImGui Fragment Shader - g_ImGuiFragmentShader
-  fragment half4 imguiFragmentShader(VertexOut in [[stage_in]], texture2d<half, access::sample> IMtexture [[texture(0)]])
+  fragment half4 imguiFragmentShader(VertexOut in [[stage_in]], texture2d<half, access::sample> IMtexture [[texture(0)]], sampler imguiSampler [[sampler(0)]])
   {
-    constexpr sampler linearSampler(coord::normalized, min_filter::linear, mag_filter::linear, mip_filter::linear);
-    half4 texColor = IMtexture.sample(linearSampler, in.texCoords);
+    half4 texColor = IMtexture.sample(imguiSampler, in.texCoords);
     return half4(in.color) * texColor;
   }
 
