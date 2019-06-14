@@ -625,7 +625,7 @@ const char *vcSettings_GetAssetPath(const char *pFilename)
   return pOutput;
 #elif UDPLATFORM_EMSCRIPTEN
   char *pURL = (char*)EM_ASM_INT({
-    var url = window.location.href.substr(0, window.location.href.lastIndexOf('/'));
+    var url = self.location.href.substr(0, self.location.href.lastIndexOf('/'));
     var lengthBytes = lengthBytesUTF8(url) + 1;
     var pURL = dynCall_ii($0, lengthBytes);
     stringToUTF8(url, pURL, lengthBytes + 1);

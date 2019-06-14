@@ -77,6 +77,15 @@ else
 		export OSNAME="macOS"
 		3rdParty/udcore/bin/premake-bin/premake5-osx xcode4 $3
 		xcodebuild -project vaultClient.xcodeproj -configuration $1
+	elif ([ -n "$3" ] && [ $3 == "Emscripten" ]); then # Emscripten
+		export OSNAME="Emscripten"
+
+		pushd /emsdk
+		source ./emsdk_env.sh
+		popd
+
+		3rdParty/udcore/bin/premake-bin/premake5 gmake2 --os=emscripten
+		make config=$(echo ${1}_${2} | tr [:upper:] [:lower:]) -j4
 	else
 		export OSNAME="Linux"
 		3rdParty/udcore/bin/premake-bin/premake5 gmake

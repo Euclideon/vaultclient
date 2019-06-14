@@ -143,6 +143,22 @@ ios_x64_debug:
 #  tags:
 #    - osx
 
+emscripten_wasm32_release:
+  image: gitlab.euclideon.com:4567/docker-images/emscripten-bionic:v3
+  stage: build
+  script: "buildscripts/build.sh Release wasm32 Emscripten"
+  tags:
+    - linux
+    - docker
+
+emscripten_wasm32_debug:
+  image: gitlab.euclideon.com:4567/docker-images/emscripten-bionic:v3
+  stage: build
+  script: "buildscripts/build.sh Debug wasm32 Emscripten"
+  tags:
+    - linux
+    - docker
+
 package_windows:
   stage: package
   script: "buildscripts\\package.sh"
