@@ -635,7 +635,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
     }
     pProgramState->getGeo = true;
 
-    for (int itemNum = 0; itemNum < itemData.size(); ++itemNum)
+    for (size_t itemNum = 0; itemNum < itemData.size(); ++itemNum)
     {
       vcUDPItemData item = itemData.at(itemNum);
 
