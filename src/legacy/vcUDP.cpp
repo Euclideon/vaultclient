@@ -88,7 +88,7 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
     file.SetFromFullPath(pModelFilename);
 
   vdkProjectNode *pNode;
-  vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "UDS", pModelName, file.GetPath(), nullptr);
+  vdkProjectNode_CreateUnder(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "UDS", pModelName, file.GetPath(), nullptr);
 
   vcModel *pModel = new vcModel(pNode, pProgramState);
   pNode->pUserData = pModel;
@@ -297,7 +297,7 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
   if (item.label.pName != nullptr && item.label.pGeoLocation != nullptr)
   {
     vdkProjectNode *pNode;
-    vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", item.label.pName, nullptr, nullptr);
+    vdkProjectNode_CreateUnder(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.label.pName, nullptr, nullptr);
 
     udDouble3 position = udDouble3::zero();
     int32_t epsgCode = 0;
@@ -336,7 +336,7 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
   if (item.polygon.pName != nullptr && item.polygon.pPoints != nullptr && item.polygon.numPoints > 0)
   {
     vdkProjectNode *pNode;
-    vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "POI", item.polygon.pName, nullptr, nullptr);
+    vdkProjectNode_CreateUnder(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.polygon.pName, nullptr, nullptr);
 
     udGeoZone *pZone = udAllocType(udGeoZone, 1, udAF_Zero);
     if (udGeoZone_SetFromSRID(pZone, item.polygon.epsgCode) != udR_Success)
@@ -396,7 +396,7 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
     if (pItemData->at(index).sceneFolder.pParent == nullptr)
     {
       vdkProjectNode *pNode;
-      vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "Folder", item.dataset.pName, nullptr, nullptr);
+      vdkProjectNode_CreateUnder(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "Folder", item.dataset.pName, nullptr, nullptr);
 
       vcFolder *pFolder = new vcFolder(pNode, pProgramState);
       pNode->pUserData = pFolder;
@@ -422,29 +422,6 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
       break;
     }
   }
-
-  vdkProjectNode_RemoveChild(pProgramState->sceneExplorer.pProject, pProgramState->sceneExplorer.pProjectRoot->m_pNode, item.sceneFolder.pItem);
-
-  // Find the highest lower tree index sibling
-  int64_t maxLowerTreeIndex = 0;
-  size_t maxLTIndex = index;
-  for (size_t i = 0; i < pItemData->size(); ++i)
-  {
-    if (pItemData->at(i).sceneFolder.pParent == item.sceneFolder.pParent)
-    {
-      if (pItemData->at(i).treeIndex > maxLowerTreeIndex && pItemData->at(i).treeIndex < item.treeIndex)
-      {
-        maxLowerTreeIndex = pItemData->at(index).treeIndex;
-        maxLTIndex = i;
-      }
-    }
-  }
-
-  // If none found then we become the first child
-  if (maxLTIndex == index)
-    vdkProjectNode_InsertUnder(pProgramState->sceneExplorer.pProject, item.sceneFolder.pParent, item.sceneFolder.pItem);
-  else
-    vdkProjectNode_InsertAfter(pProgramState->sceneExplorer.pProject, pItemData->at(maxLTIndex).sceneFolder.pItem, item.sceneFolder.pItem);
 }
 
 void vcUDP_LoadItem(vcState *pProgramState, const char *pFilename, const udJSON &groupDataBlock, std::vector<vcUDPItemData> *pItemData, vcUDPItemDataType type)
@@ -497,6 +474,31 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
       // TODO: Add bookmark support here.
     }
     pProgramState->getGeo = true;
+
+    for (size_t itemNum = 0; itemNum < itemData.size(); ++itemNum)
+    {
+      vcUDPItemData item = itemData.at(itemNum);
+
+      // Order the items
+      // Find insert before child, the lowest greater tree index
+      int64_t minGreaterTreeIndex = 0;
+      size_t minGTIndex = itemNum;
+      for (size_t i = 0; i < itemData.size(); ++i)
+      {
+        if (itemData.at(i).sceneFolder.pParent == item.sceneFolder.pParent && item.type == itemData.at(i).type)
+        {
+          if (itemData.at(i).treeIndex < minGreaterTreeIndex && itemData.at(i).treeIndex > item.treeIndex)
+          {
+            minGreaterTreeIndex = itemData.at(i).treeIndex;
+            minGTIndex = i;
+          }
+        }
+      }
+
+      // If any found then do the move, otherwise this node should bubble to the front
+      if (minGTIndex != itemNum)
+        vdkProjectNode_MoveChild(pProgramState->sceneExplorer.pProject, item.sceneFolder.pParent, item.sceneFolder.pParent, item.sceneFolder.pItem, itemData.at(itemNum).sceneFolder.pItem);
+    }
   }
 
 epilogue:
