@@ -7,12 +7,15 @@
 #include "vcModel.h"
 #include "vcPOI.h"
 #include "vcFolder.h"
+#include "vcViewpoint.h"
 
 enum vcUDPItemDataType
 {
   vcUDPIDT_Dataset,
   vcUDPIDT_Label,
   vcUDPIDT_Polygon,
+  vcUDPIDT_Bookmark,
+  vcUDPIDT_Measure,
 
   vcUDPIDT_Count,
 };
@@ -21,12 +24,16 @@ const char *g_vcUDPTypeNames[vcUDPIDT_Count] = {
   "DataSetData",
   "Label",
   "PolygonData",
+  "BookmarkData",
+  "Measure",
 };
 
 const char *g_vcUDPTypeGroupNames[vcUDPIDT_Count] = {
   "DataSetGroup",
   "LabelGroup",
   "PolygonGroup",
+  "BookmarkDataRoot",
+  "MeasureGroup",
 };
 
 struct vcUDPItemData
@@ -61,12 +68,24 @@ struct vcUDPItemData
     struct
     {
       const char *pName;
-      uint32_t colour;
+      const char *pColour;
       bool isClosed;
       udDouble3 *pPoints;
       int numPoints;
       int32_t epsgCode;
     } polygon;
+    struct
+    {
+      const char *pName;
+      const char *pGeoLocation;
+      const char *pRotation;
+    } bookmark;
+    struct
+    {
+      const char *pName;
+      const char *geoLocation[2];
+      const char *pColour;
+    } measure;
   };
 };
 
@@ -106,13 +125,41 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
 
 bool vcUDP_ReadGeolocation(const char *pStr, udDouble3 &position, int &epsg)
 {
-#if UDPLATFORM_WINDOWS
-  int count = sscanf_s(pStr, "%lf, %lf, %lf, %d", &position.x, &position.y, &position.z, &epsg);
-#else
-  int count = sscanf(pStr, "%lf, %lf, %lf, %d", &position.x, &position.y, &position.z, &epsg);
-#endif
+  int count = 0;
+  int charCount = -1;
+
+  for (; charCount != 0 && count < 3; ++count)
+  {
+    charCount = 0;
+    position[count] = udStrAtof(pStr, &charCount);
+    pStr += charCount;
+    pStr = udStrchr(pStr, ",");
+    ++pStr;
+  }
+
+  if (charCount > 0)
+    epsg = udStrAtoi(pStr, &charCount);
+
+  if (charCount > 0)
+    ++count;
 
   return (count == 4);
+}
+
+bool vcUDP_ReadDouble3(const char *pStr, udDouble3 &rotation)
+{
+  int count = 0;
+
+  for (int charCount = -1; charCount != 0 && count < 3; ++count)
+  {
+    charCount = 0;
+    rotation[count] = udStrAtof(pStr, &charCount);
+    pStr += charCount;
+    pStr = udStrchr(pStr, ",");
+    ++pStr;
+  }
+
+  return (count == 3);
 }
 
 void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemData, vcUDPItemDataType type)
@@ -148,13 +195,25 @@ void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemD
         item.label.pColour = nullptr;
         item.label.pFontSize = nullptr;
         item.label.pHyperlink = nullptr;
+        break;
       case vcUDPIDT_Polygon:
         item.polygon.pName = nullptr;
-        item.polygon.colour = 0xFFFFFFFF; // Default colour is white
+        item.polygon.pColour = nullptr;
         item.polygon.isClosed = false;
         item.polygon.pPoints = nullptr;
         item.polygon.numPoints = 0;
         item.polygon.epsgCode = 0;
+        break;
+      case vcUDPIDT_Bookmark:
+        item.bookmark.pName = nullptr;
+        item.bookmark.pGeoLocation = nullptr;
+        item.bookmark.pRotation = nullptr;
+        break;
+      case vcUDPIDT_Measure:
+        item.measure.pName = nullptr;
+        item.measure.geoLocation[0] = nullptr;
+        item.measure.geoLocation[1] = nullptr;
+        item.measure.pColour = nullptr;
         break;
       case vcUDPIDT_Count:
         // Failure
@@ -209,17 +268,11 @@ void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemD
             break;
           case vcUDPIDT_Polygon:
             if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "PolygonName"))
-            {
               item.polygon.pName = datasetData.Get("[%zu].content", j).AsString("");
-            }
             else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "PolygonIsClosed"))
-            {
               item.polygon.isClosed = datasetData.Get("[%zu].content", j).AsBool();
-            }
             else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "PolygonColour"))
-            {
-              item.polygon.colour = (uint32_t)datasetData.Get("[%zu].content", j).AsInt(); // Stored as int in file, needs to be uint in vc
-            }
+              item.polygon.pColour = datasetData.Get("[%zu].content", j).AsString();
             else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "Nodes"))
             {
               const udJSONArray *pNodeList = datasetData.Get("[%zu].GeoLocationArray", j).AsArray();
@@ -232,6 +285,24 @@ void vcUDP_ParseItemData(const udJSON &items, std::vector<vcUDPItemData> *pItemD
                   ++item.polygon.numPoints;
               }
             }
+            break;
+          case vcUDPIDT_Bookmark:
+            if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "BookmarkName"))
+              item.bookmark.pName = datasetData.Get("[%zu].content", j).AsString("");
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "GeoLocation"))
+              item.bookmark.pGeoLocation = datasetData.Get("[%zu].content", j).AsString();
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "PerspectiveOrientation"))
+              item.bookmark.pRotation = datasetData.Get("[%zu].content", j).AsString();
+            break;
+          case vcUDPIDT_Measure:
+            if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "Name"))
+              item.measure.pName = datasetData.Get("[%zu].content", j).AsString("");
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "GeoLocationP0"))
+              item.measure.geoLocation[0] = datasetData.Get("[%zu].content", j).AsString();
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "GeoLocationP1"))
+              item.measure.geoLocation[1] = datasetData.Get("[%zu].content", j).AsString();
+            else if (udStrEqual(datasetData.Get("[%zu].Name", j).AsString(), "MeasureColor"))
+              item.measure.pColour = datasetData.Get("[%zu].content", j).AsString();
             break;
           case vcUDPIDT_Count:
             // Failure
@@ -290,6 +361,82 @@ void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::ve
   }
 }
 
+void vcUPD_AddBookmarkData(vcState *pProgramState, std::vector<vcUDPItemData> *pItemData, size_t index)
+{
+  const vcUDPItemData &item = pItemData->at(index);
+
+  if (item.bookmark.pName != nullptr && item.bookmark.pGeoLocation != nullptr)
+  {
+    vdkProjectNode *pNode;
+    vdkProjectNode_CreateUnder(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "Camera", item.bookmark.pName, nullptr, nullptr);
+
+    udGeoZone zone;
+    int epsgCode = 0;
+    udDouble3 temp = udDouble3::zero();
+    if (vcUDP_ReadGeolocation(item.bookmark.pGeoLocation, temp, epsgCode))
+    {
+      udGeoZone_SetFromSRID(&zone, (int32_t)epsgCode);
+
+      temp = udGeoZone_ToLatLong(zone, temp, true);
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
+    }
+
+    temp = udDouble3::zero();
+    if (item.bookmark.pRotation != nullptr && vcUDP_ReadDouble3(item.bookmark.pRotation, temp))
+    {
+      vdkProjectNode_SetMetadataDouble(pNode, "rotation.x", temp.x);
+      vdkProjectNode_SetMetadataDouble(pNode, "rotation.y", temp.y);
+      vdkProjectNode_SetMetadataDouble(pNode, "rotation.z", temp.z);
+    }
+
+    vcViewpoint *pVP = new vcViewpoint(pNode, pProgramState);
+    pVP->m_pCurrentProjection = (udGeoZone*)udMemDup(&zone, sizeof(udGeoZone), 0, udAF_Zero);
+    pVP->m_pPreferredProjection = (udGeoZone*)udMemDup(&zone, sizeof(udGeoZone), 0, udAF_Zero);
+    pNode->pUserData = pVP;
+
+    pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
+  }
+}
+
+void vcUPD_AddMeasureData(vcState *pProgramState, std::vector<vcUDPItemData> *pItemData, size_t index)
+{
+  const vcUDPItemData &item = pItemData->at(index);
+
+  if (item.measure.pName != nullptr && item.measure.geoLocation[0] != nullptr && item.measure.geoLocation[1] != nullptr)
+  {
+    vdkProjectNode *pNode;
+    vdkProjectNode_CreateUnder(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.bookmark.pName, nullptr, nullptr);
+
+    int epsgCode = 0;
+    udDouble3 temp[2];
+    udGeoZone zone;
+    uint32_t colour = item.measure.pColour ? (uint32_t)udStrAtoi(item.measure.pColour) : 0xffffffff; //These are stored as int (with negatives) in MDM
+
+    vdkProjectNode_SetMetadataUint(pNode, "lineColourPrimary", colour);
+    vdkProjectNode_SetMetadataUint(pNode, "lineColourSecondary", colour);
+    vdkProjectNode_SetMetadataBool(pNode, "showLength", true);
+
+    if (vcUDP_ReadGeolocation(item.measure.geoLocation[0], temp[0], epsgCode))
+    {
+      udGeoZone_SetFromSRID(&zone, (int32_t)epsgCode);
+      temp[0] = udGeoZone_ToLatLong(zone, temp[0], true);
+
+      vcPOI *pPOI = new vcPOI(pNode, pProgramState);
+      pPOI->m_pCurrentProjection = (udGeoZone*)udMemDup(&zone, sizeof(udGeoZone), 0, udAF_Zero);
+      pPOI->m_pPreferredProjection = (udGeoZone*)udMemDup(&zone, sizeof(udGeoZone), 0, udAF_Zero);
+      pNode->pUserData = pPOI;
+    }
+    if (vcUDP_ReadGeolocation(item.measure.geoLocation[1], temp[1], epsgCode))
+    {
+      udGeoZone_SetFromSRID(&zone, (int32_t)epsgCode);
+      temp[1] = udGeoZone_ToLatLong(zone, temp[1], true);
+    }
+
+    vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_LineString, 2, (double*)&temp[0]);
+
+    pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
+  }
+}
 void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLabelData, size_t index)
 {
   const vcUDPItemData &item = pLabelData->at(index);
@@ -323,6 +470,11 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
 
       udDouble3 temp = udGeoZone_ToLatLong(*pZone, position, true);
       vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
+
+      vcPOI *pPOI = new vcPOI(pNode, pProgramState);
+      pPOI->m_pCurrentProjection = (udGeoZone*)udMemDup(pZone, sizeof(udGeoZone), 0, udAF_Zero);
+      pPOI->m_pPreferredProjection = (udGeoZone*)udMemDup(pZone, sizeof(udGeoZone), 0, udAF_Zero);
+      pNode->pUserData = pPOI;
     }
 
     pLabelData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
@@ -338,32 +490,35 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
     vdkProjectNode *pNode;
     vdkProjectNode_CreateUnder(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.polygon.pName, nullptr, nullptr);
 
-    udGeoZone *pZone = udAllocType(udGeoZone, 1, udAF_Zero);
-    if (udGeoZone_SetFromSRID(pZone, item.polygon.epsgCode) != udR_Success)
+    udGeoZone zone;
+    if (udGeoZone_SetFromSRID(&zone, item.polygon.epsgCode) != udR_Success)
     {
       if (pProgramState->gis.isProjected)
-        memcpy(pZone, &pProgramState->gis.zone, sizeof(udGeoZone));
-      else
-        memcpy(pZone, &pProgramState->defaultGeo, sizeof(udGeoZone));
+        memcpy(&zone, &pProgramState->gis.zone, sizeof(udGeoZone));
     }
-    // TODO: Somehow pass epsgCode through to vcPOI
 
-    udDouble3 *pTemp = udAllocType(udDouble3, item.polygon.numPoints, udAF_Zero);
     for (int i = 0; i < item.polygon.numPoints; ++i)
-      pTemp[i] = udGeoZone_ToLatLong(*pZone, item.polygon.pPoints[i], true);
+      item.polygon.pPoints[i] = udGeoZone_ToLatLong(zone, item.polygon.pPoints[i], true);
 
     if (item.polygon.isClosed)
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)pTemp);
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)item.polygon.pPoints);
     else
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)pTemp);
+      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)item.polygon.pPoints);
 
-    udFree(pZone);
+    udDouble3 *pTemp = item.polygon.pPoints;
     udFree(pTemp);
 
+    uint32_t colour = item.polygon.pColour ? (uint32_t)udStrAtoi(item.polygon.pColour) : 0xffffffff;
+
     vdkProjectNode_SetMetadataDouble(pNode, "lineWidth", 1.0);
-    vdkProjectNode_SetMetadataUint(pNode, "lineColourPrimary", item.polygon.colour);
-    vdkProjectNode_SetMetadataUint(pNode, "lineColourSecondary", item.polygon.colour);
+    vdkProjectNode_SetMetadataUint(pNode, "lineColourPrimary", colour);
+    vdkProjectNode_SetMetadataUint(pNode, "lineColourSecondary", colour);
     vdkProjectNode_SetMetadataString(pNode, "textSize", "Medium");
+
+    vcPOI *pPOI = new vcPOI(pNode, pProgramState);
+    pPOI->m_pCurrentProjection = (udGeoZone*)udMemDup(&zone, sizeof(udGeoZone), 0, udAF_Zero);
+    pPOI->m_pPreferredProjection = (udGeoZone*)udMemDup(&zone, sizeof(udGeoZone), 0, udAF_Zero);
+    pNode->pUserData = pPOI;
 
     pLabelData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
   }
@@ -379,7 +534,7 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
   {
     for (size_t i = 0; i < pItemData->size(); ++i)
     {
-      if (pItemData->at(i).id == item.parentID)
+      if (pItemData->at(i).id == item.parentID && pItemData->at(i).isFolder && pItemData->at(i).type == item.type)
       {
         if (pItemData->at(i).sceneFolder.pItem == nullptr)
           vcUDP_AddItemData(pProgramState, pFilename, pItemData, i);
@@ -416,6 +571,12 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
       break;
     case vcUDPIDT_Polygon:
       vcUDP_AddPolygonData(pProgramState, pItemData, index);
+      break;
+    case vcUDPIDT_Bookmark:
+      vcUPD_AddBookmarkData(pProgramState, pItemData, index);
+      break;
+    case vcUDPIDT_Measure:
+      vcUPD_AddMeasureData(pProgramState, pItemData, index);
       break;
     case vcUDPIDT_Count:
       // Failure
@@ -471,7 +632,6 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
           break;
         }
       }
-      // TODO: Add bookmark support here.
     }
     pProgramState->getGeo = true;
 
