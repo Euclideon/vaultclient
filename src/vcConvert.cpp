@@ -304,7 +304,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
       if (ImGui::Button(udTempStr("%s##vcConvLoad_%zu", vcString::Get("convertAddToScene"), i), ImVec2(-1, 0)))
       {
         vdkProjectNode *pNode = nullptr;
-        if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, "UDS", nullptr, pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName, nullptr) == vE_Success)
+        if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.pProjectRoot->m_pNode, "UDS", nullptr, pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName, nullptr) == vE_Success)
         {
           udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
           pProgramState->changeActiveDock = vcDocks_Scene;
