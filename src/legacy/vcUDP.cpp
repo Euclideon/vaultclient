@@ -106,8 +106,8 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
   else
     file.SetFromFullPath(pModelFilename);
 
-  vdkProjectNode *pNode;
-  vdkProjectNode_CreateUnder(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "UDS", pModelName, file.GetPath(), nullptr);
+  vdkProjectNode *pNode = nullptr;
+  vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "UDS", pModelName, file.GetPath(), nullptr);
 
   vcModel *pModel = new vcModel(pNode, pProgramState);
   pNode->pUserData = pModel;
@@ -367,8 +367,8 @@ void vcUPD_AddBookmarkData(vcState *pProgramState, std::vector<vcUDPItemData> *p
 
   if (item.bookmark.pName != nullptr && item.bookmark.pGeoLocation != nullptr)
   {
-    vdkProjectNode *pNode;
-    vdkProjectNode_CreateUnder(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "Camera", item.bookmark.pName, nullptr, nullptr);
+    vdkProjectNode *pNode = nullptr;
+    vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "Camera", item.bookmark.pName, nullptr, nullptr);
 
     udGeoZone zone;
     int epsgCode = 0;
@@ -404,8 +404,8 @@ void vcUPD_AddMeasureData(vcState *pProgramState, std::vector<vcUDPItemData> *pI
 
   if (item.measure.pName != nullptr && item.measure.geoLocation[0] != nullptr && item.measure.geoLocation[1] != nullptr)
   {
-    vdkProjectNode *pNode;
-    vdkProjectNode_CreateUnder(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.bookmark.pName, nullptr, nullptr);
+    vdkProjectNode *pNode = nullptr;
+    vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.bookmark.pName, nullptr, nullptr);
 
     int epsgCode = 0;
     udDouble3 temp[2];
@@ -443,8 +443,8 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
 
   if (item.label.pName != nullptr && item.label.pGeoLocation != nullptr)
   {
-    vdkProjectNode *pNode;
-    vdkProjectNode_CreateUnder(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.label.pName, nullptr, nullptr);
+    vdkProjectNode *pNode = nullptr;
+    vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.label.pName, nullptr, nullptr);
 
     udDouble3 position = udDouble3::zero();
     int32_t epsgCode = 0;
@@ -487,8 +487,8 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
 
   if (item.polygon.pName != nullptr && item.polygon.pPoints != nullptr && item.polygon.numPoints > 0)
   {
-    vdkProjectNode *pNode;
-    vdkProjectNode_CreateUnder(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.polygon.pName, nullptr, nullptr);
+    vdkProjectNode *pNode = nullptr;
+    vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.polygon.pName, nullptr, nullptr);
 
     udGeoZone zone;
     if (udGeoZone_SetFromSRID(&zone, item.polygon.epsgCode) != udR_Success)
@@ -550,8 +550,8 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
   {
     if (pItemData->at(index).sceneFolder.pParent == nullptr)
     {
-      vdkProjectNode *pNode;
-      vdkProjectNode_CreateUnder(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "Folder", item.dataset.pName, nullptr, nullptr);
+      vdkProjectNode *pNode = nullptr;
+      vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "Folder", item.dataset.pName, nullptr, nullptr);
 
       vcFolder *pFolder = new vcFolder(pNode, pProgramState);
       pNode->pUserData = pFolder;
