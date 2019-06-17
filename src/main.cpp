@@ -625,6 +625,7 @@ int main(int argc, char **args)
   programState.renaming = -1;
   programState.getGeo = false;
   programState.pGotGeo = nullptr;
+  programState.settings.rootDock = 0;
 
   udGeoZone_SetFromSRID(&programState.defaultGeo, 7030);
 
