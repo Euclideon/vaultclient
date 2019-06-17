@@ -6,8 +6,11 @@
 vdkProjectNode* vcSceneItem_CreateNodeInProject(vdkProject *pProject, const char *pType, const char *pName)
 {
   vdkProjectNode *pNode = nullptr;
+  vdkProjectNode *pRootNode = nullptr;
 
-  vdkProjectNode_Create(pProject, &pNode, pType, pName, nullptr, nullptr);
+  vdkProject_GetProjectRoot(pProject, &pRootNode);
+
+  vdkProjectNode_Create(pProject, &pNode, pRootNode, pType, pName, nullptr, nullptr);
 
   UDASSERT(pNode != nullptr, "Remove Path to this- memory alloc failed.");
 
