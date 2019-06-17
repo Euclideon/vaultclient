@@ -39,6 +39,7 @@
 #include "vcProxyHelper.h"
 #include "vcProject.h"
 #include "vcSettingsUI.h"
+#include "vcSession.h"
 
 #include "vcPOI.h"
 #include "vcLiveFeed.h"
@@ -162,20 +163,6 @@ void vcMain_LangCombo(vcState *pProgramState)
   ImGui::EndCombo();
 }
 
-void vcMain_UpdateSessionInfo(void *pProgramStatePtr)
-{
-  vcState *pProgramState = (vcState*)pProgramStatePtr;
-  vdkError response = vdkContext_KeepAlive(pProgramState->pVDKContext);
-
-  pProgramState->logoutReason = response;
-  double now = vcTime_GetEpochSecsF();
-
-  if (response == vE_SessionExpired || now - 180.0 > pProgramState->lastServerResponse)
-    pProgramState->forceLogout = true;
-  else if (response == vE_Success)
-    pProgramState->lastServerResponse = now;
-}
-
 void vcMain_PresentationMode(vcState *pProgramState)
 {
   if (pProgramState->settings.window.presentationMode)
@@ -193,159 +180,6 @@ void vcMain_PresentationMode(vcState *pProgramState)
 
   if (pProgramState->settings.responsiveUI == vcPM_Responsive)
     pProgramState->lastEventTime = vcTime_GetEpochSecs();
-}
-
-const char* vcMain_GetOSName()
-{
-#if UDPLATFORM_ANDROID
-  return "Android";
-#elif UDPLATFORM_EMSCRIPTEN
-  return "Emscripten";
-#elif UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  return "iOS";
-#elif UDPLATFORM_LINUX
-  // TODO: Handle other distributions
-  return "Ubuntu";
-#elif UDPLATFORM_OSX
-  return "macOS";
-#elif UDPLATFORM_WINDOWS
-  return "Windows";
-#else
-  return "Unknown";
-#endif
-}
-
-void vcLogin(void *pProgramStatePtr)
-{
-  vdkError result;
-  vcState *pProgramState = (vcState*)pProgramStatePtr;
-
-  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "EuclideonVaultClient" VCVERSION_VERSION_STRING, pProgramState->settings.loginInfo.username, pProgramState->password);
-  if (result == vE_ConnectionFailure)
-    pProgramState->loginStatus = vcLS_ConnectionError;
-  else if (result == vE_AuthFailure)
-    pProgramState->loginStatus = vcLS_AuthError;
-  else if (result == vE_OutOfSync)
-    pProgramState->loginStatus = vcLS_TimeSync;
-  else if (result == vE_SecurityFailure)
-    pProgramState->loginStatus = vcLS_SecurityError;
-  else if (result == vE_ServerFailure || result == vE_ParseError)
-    pProgramState->loginStatus = vcLS_NegotiationError;
-  else if (result == vE_ProxyError)
-    pProgramState->loginStatus = vcLS_ProxyError;
-  else if (result == vE_ProxyAuthRequired)
-    pProgramState->loginStatus = vcLS_ProxyAuthRequired;
-  else if (result != vE_Success)
-    pProgramState->loginStatus = vcLS_OtherError;
-
-  pProgramState->logoutReason = result;
-
-  if (result != vE_Success)
-    return;
-
-  vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pVDKContext);
-
-  const char *pProjData = nullptr;
-  if (vdkServerAPI_Query(pProgramState->pVDKContext, "dev/projects", nullptr, &pProjData) == vE_Success)
-    pProgramState->projects.Parse(pProjData);
-  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pProjData);
-
-  const char *pPackageData = nullptr;
-  const char *pPostJSON = udTempStr("{ \"packagename\": \"EuclideonVaultClient\", \"packagevariant\": \"%s\" }", vcMain_GetOSName());
-  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/packages/latest", pPostJSON, &pPackageData) == vE_Success)
-  {
-    pProgramState->packageInfo.Parse(pPackageData);
-    if (pProgramState->packageInfo.Get("success").AsBool())
-    {
-      if (pProgramState->packageInfo.Get("package.versionnumber").AsInt() <= VCVERSION_BUILD_NUMBER || VCVERSION_BUILD_NUMBER == 0)
-        pProgramState->packageInfo.Destroy();
-      else
-        vcModals_OpenModal(pProgramState, vcMT_NewVersionAvailable);
-    }
-  }
-  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pPackageData);
-
-  // Update username
-  {
-    const char *pSessionRawData = nullptr;
-    udJSON info;
-
-    vdkError response = vdkServerAPI_Query(pProgramState->pVDKContext, "v1/session/info", nullptr, &pSessionRawData);
-    if (response == vE_Success)
-    {
-      if (info.Parse(pSessionRawData) == udR_Success)
-      {
-        if (info.Get("success").AsBool() == true)
-        {
-          udStrcpy(pProgramState->username, udLengthOf(pProgramState->username), info.Get("user.realname").AsString("Guest"));
-          pProgramState->lastServerResponse = vcTime_GetEpochSecsF();
-        }
-        else
-        {
-          response = vE_NotAllowed;
-        }
-      }
-      else
-      {
-        response = vE_Failure;
-      }
-    }
-
-    vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pSessionRawData);
-  }
-
-  //Context Login successful
-  memset(pProgramState->password, 0, sizeof(pProgramState->password));
-  if (!pProgramState->settings.loginInfo.rememberServer)
-    memset(pProgramState->settings.loginInfo.serverURL, 0, sizeof(pProgramState->settings.loginInfo.serverURL));
-
-  if (!pProgramState->settings.loginInfo.rememberUsername)
-    memset(pProgramState->settings.loginInfo.username, 0, sizeof(pProgramState->settings.loginInfo.username));
-
-  pProgramState->loginStatus = vcLS_NoStatus;
-  pProgramState->hasContext = true;
-}
-
-void vcLogout(vcState *pProgramState)
-{
-  pProgramState->hasContext = false;
-  pProgramState->forceLogout = false;
-
-  if (pProgramState->pVDKContext != nullptr)
-  {
-    // Cancel all convert jobs
-    if (pProgramState->pConvertContext != nullptr)
-    {
-      // Cancel all jobs
-      for (size_t i = 0; i < pProgramState->pConvertContext->jobs.length; i++)
-      {
-        vdkConvert_Cancel(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[i]->pConvertContext);
-      }
-
-      // Wait for jobs to finish and destroy them
-      while (pProgramState->pConvertContext->jobs.length != 0)
-      {
-        for (size_t i = 0; i < pProgramState->pConvertContext->jobs.length; i++)
-        {
-          if (pProgramState->pConvertContext->jobs[i]->status != vcCQS_Running)
-          {
-            vcConvert_RemoveJob(pProgramState, i);
-            --i;
-          }
-        }
-      }
-    }
-
-    pProgramState->modelPath[0] = '\0';
-    vcProject_RemoveAll(pProgramState);
-    pProgramState->projects.Destroy();
-    vcRender_ClearPoints(pProgramState->pRenderContext);
-
-    memset(&pProgramState->gis, 0, sizeof(pProgramState->gis));
-    vdkContext_Disconnect(&pProgramState->pVDKContext);
-
-    vcModals_OpenModal(pProgramState, vcMT_LoggedOut);
-  }
 }
 
 void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
@@ -707,14 +541,14 @@ void vcMain_MainLoop(vcState *pProgramState)
     if (vcTime_GetEpochSecsF() > pProgramState->lastServerAttempt + 30.0)
     {
       pProgramState->lastServerAttempt = vcTime_GetEpochSecsF();
-      vWorkerThread_AddTask(pProgramState->pWorkerPool, vcMain_UpdateSessionInfo, pProgramState, false);
+      vWorkerThread_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
     }
 
     vWorkerThread_DoPostWork(pProgramState->pWorkerPool);
 
     if (pProgramState->forceLogout)
     {
-      vcLogout(pProgramState);
+      vcSession_Logout(pProgramState);
       vcModals_OpenModal(pProgramState, vcMT_LoggedOut);
     }
   }
@@ -1005,7 +839,7 @@ epilogue:
   vcTexture_Destroy(&programState.tileModal.pServerIcon);
   vcString::FreeTable(&programState.languageInfo);
   vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
-  vcLogout(&programState);
+  vcSession_Logout(&programState);
   programState.sceneExplorer.pProjectRoot->Cleanup(&programState);
   vdkProject_Release(&programState.sceneExplorer.pProject);
   delete programState.sceneExplorer.pProjectRoot;
@@ -1533,7 +1367,7 @@ int vcMainMenuGui(vcState *pProgramState)
     if (ImGui::BeginMenu(vcString::Get("menuSystem")))
     {
       if (ImGui::MenuItem(vcString::Get("menuLogout")))
-        vcLogout(pProgramState);
+        vcSession_Logout(pProgramState);
 
       if (ImGui::MenuItem(vcString::Get("menuRestoreDefaults"), nullptr))
       {
@@ -1960,7 +1794,7 @@ void vcRenderWindow(vcState *pProgramState)
         {
           pProgramState->passFocus = false;
           pProgramState->loginStatus = vcLS_Pending;
-          vWorkerThread_AddTask(pProgramState->pWorkerPool, vcLogin, pProgramState, false);
+          vWorkerThread_AddTask(pProgramState->pWorkerPool, vcSession_Login, pProgramState, false);
         }
 
         if (SDL_GetModState() & KMOD_CAPS)
