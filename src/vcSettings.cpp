@@ -240,12 +240,16 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_All)
   {
-    // Windows
-    pSettings->window.xpos = data.Get("window.position.x").AsInt(SDL_WINDOWPOS_CENTERED);
-    pSettings->window.ypos = data.Get("window.position.y").AsInt(SDL_WINDOWPOS_CENTERED);
-    pSettings->window.width = data.Get("window.width").AsInt(1280);
-    pSettings->window.height = data.Get("window.height").AsInt(720);
-    pSettings->window.maximized = data.Get("window.maximized").AsBool(false);
+    if (pSettings->rootDock != 0)
+    {
+      // Windows
+      pSettings->window.xpos = data.Get("window.position.x").AsInt(SDL_WINDOWPOS_CENTERED);
+      pSettings->window.ypos = data.Get("window.position.y").AsInt(SDL_WINDOWPOS_CENTERED);
+      pSettings->window.width = data.Get("window.width").AsInt(1280);
+      pSettings->window.height = data.Get("window.height").AsInt(720);
+      pSettings->window.maximized = data.Get("window.maximized").AsBool(false);
+    }
+
     udStrcpy(pSettings->window.languageCode, udLengthOf(pSettings->window.languageCode), data.Get("window.language").AsString("enAU"));
 
     // Login Info
