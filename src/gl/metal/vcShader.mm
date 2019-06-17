@@ -6,6 +6,7 @@
 #import "udStringUtil.h"
 
 uint32_t g_pipeCount = 0;
+uint32_t g_bufferIndex = 0;
 
 // Takes shader function names instead of shader description string
 bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes)
@@ -128,20 +129,22 @@ bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pSh
 
   for (int i = 0; i < pShader->numBufferObjects; ++i)
   {
-    if (udStrEquali(pShader->bufferObjects[i].name, pBufferName) && (bufferSize == pShader->bufferObjects[i].expectedSize))
+    if (udStrEquali(pShader->bufferObjects[i].name, pBufferName))
     {
       *ppBuffer = &pShader->bufferObjects[i];
       return true;
     }
   }
-
+  
+  NSString *bID = [NSString stringWithFormat:@"%u",g_bufferIndex];
+  [_viewCon.renderer.constantBuffers setObject:[_device newBufferWithLength:bufferSize options:MTLStorageModeShared] forKey:bID];
+  ++g_bufferIndex;
+  
   vcShaderConstantBuffer *temp = udAllocType(vcShaderConstantBuffer, 1, udAF_Zero);
   temp->expectedSize = bufferSize;
-  temp->ID = (uint32_t)_viewCon.renderer.constantBuffers.count;
   udStrcpy(temp->name, 32, pBufferName);
-
-  [_viewCon.renderer.constantBuffers addObject:[_device newBufferWithLength:bufferSize options:MTLStorageModeShared]];
-
+  udStrcpy(temp->ID, 32, bID.UTF8String);
+  
   pShader->bufferObjects[pShader->numBufferObjects] = *temp;
   ++pShader->numBufferObjects;
 
@@ -169,16 +172,13 @@ bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuf
 
   if (pBuffer->expectedSize == bufferSize)
   {
-    // !!!!!!!!!!!
-    // Differences in packing of structs in our code vs metal shader source makes this not work out, may help to move structs to seperate header
-    //memcpy(_viewCon.renderer.constantBuffers[pBuffer->ID].contents, pData, bufferSize);
-    //[_viewCon.renderer.constantBuffers[pBuffer->ID] didModifyRange:NSMakeRange(0, bufferSize)];
+    //memcpy(_viewCon.renderer.constantBuffers[[NSString stringWithUTF8String:pBuffer->ID]].contents, pData, bufferSize);
 
-    [_viewCon.renderer.constantBuffers replaceObjectAtIndex:pBuffer->ID withObject:[_device newBufferWithBytes:pData length:bufferSize options:MTLStorageModeShared]];
+    [_viewCon.renderer.constantBuffers setObject:[_device newBufferWithBytes:pData length:bufferSize options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pBuffer->ID]];
   }
   else
   {
-    [_viewCon.renderer.constantBuffers replaceObjectAtIndex:pBuffer->ID withObject:[_device newBufferWithBytes:pData length:bufferSize options:MTLStorageModeShared]];
+    [_viewCon.renderer.constantBuffers setObject:[_device newBufferWithBytes:pData length:bufferSize options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pBuffer->ID]];
   }
 
   return true;
@@ -189,8 +189,11 @@ bool vcShader_ReleaseConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *p
   if (pShader == nullptr || pBuffer == nullptr)
     return false;
 
-  // TODO
-
+  [_viewCon.renderer.constantBuffers removeObjectForKey:[NSString stringWithUTF8String:pBuffer->ID]];
+  pBuffer->expectedSize = 0;
+  
+  udFree(pBuffer);
+  
   return true;
 }
 
