@@ -140,8 +140,11 @@
 
 - (void)bindConstantBuffer:(nonnull vcShaderConstantBuffer *)pBuffer index:(NSUInteger)index
 {
-  [_encoders[pCurrFramebuffer->ID] setVertexBuffer:[_constantBuffers objectAtIndex:pBuffer->ID] offset:0 atIndex:index];
-  [_encoders[pCurrFramebuffer->ID] setFragmentBuffer:[_constantBuffers objectAtIndex:pBuffer->ID] offset:0 atIndex:index];
+  if (pBuffer->expectedSize)
+  {
+    [_encoders[pCurrFramebuffer->ID] setVertexBuffer:_constantBuffers[[NSString stringWithUTF8String:pBuffer->ID]] offset:0 atIndex:index];
+    [_encoders[pCurrFramebuffer->ID] setFragmentBuffer:_constantBuffers[[NSString stringWithUTF8String:pBuffer->ID]] offset:0 atIndex:index];
+  }
 }
 
 - (void)bindBlendState:(vcGLStateBlendMode)newMode

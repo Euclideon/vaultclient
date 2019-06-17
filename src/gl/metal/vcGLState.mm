@@ -155,7 +155,7 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   vcFramebuffer_Bind(pFramebuffer);
 
   vcGLState_BuildDepthStates();
-    
+
   ImGui_ImplSDL2_InitForOpenGL(pWindow);
 
   *ppDefaultFramebuffer = pFramebuffer;
@@ -353,7 +353,7 @@ bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
 void vcGLState_Scissor(int left, int top, int right, int bottom, bool force /*= false*/)
 {
   udUnused(force);
-  if ((NSUInteger)right > _viewCon.renderer.renderPasses[0].colorAttachments[0].texture.width || (NSUInteger)bottom > _viewCon.renderer.renderPasses[0].colorAttachments[0].texture.height)
+  if ((NSUInteger)right > _viewCon.renderer.renderPasses[0].colorAttachments[0].texture.width || right - left < 1 || (NSUInteger)bottom > _viewCon.renderer.renderPasses[0].colorAttachments[0].texture.height || bottom - top < 1)
     return;
 
   udInt4 newScissor = udInt4::create(left, s_internalState.viewportZone.w - bottom, right - left, bottom - top);

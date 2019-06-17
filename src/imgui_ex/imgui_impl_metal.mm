@@ -206,8 +206,6 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
        -1.0f, 1.0f, 0.0f, 1.0f
     );
 
-    vcMesh_Create(&pMetalMesh, vcImGuiVertexLayout, 3, drawData->CmdLists[0]->VtxBuffer.Data, drawData->CmdLists[0]->VtxBuffer.Size, drawData->CmdLists[0]->IdxBuffer.Data, drawData->CmdLists[0]->IdxBuffer.Size, vcMF_Dynamic | vcMF_IndexShort);
-
     vcShader_Bind(pMetalShader);
     [_viewCon.renderer.encoders[0] setRenderPipelineState:_pipeline];
 
