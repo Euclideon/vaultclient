@@ -8,8 +8,6 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
-#include "gl/vcGLState.h"
-
 #include "vcClassificationColours.h"
 #include "vCore/vStringFormat.h"
 
@@ -242,7 +240,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_All)
   {
-    if (!pSettings->rootDock)
+    if (pSettings->rootDock != 0)
     {
       // Windows
       pSettings->window.xpos = data.Get("window.position.x").AsInt(SDL_WINDOWPOS_CENTERED);
