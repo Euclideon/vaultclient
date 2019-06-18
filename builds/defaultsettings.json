@@ -91,7 +91,6 @@
   "dock": [
     {
       "id": 965938713,
-      "selectedtab": 0,
       "central": 0,
       "dockspace": 1,
       "hiddentabbar": 0,
@@ -107,7 +106,6 @@
     {
       "id": 5,
       "parent": 965938713,
-      "selectedtab": 1103884476,
       "central": 0,
       "dockspace": 0,
       "hiddentabbar": 0,
@@ -116,12 +114,14 @@
         {
           "name": "###convertDock",
           "index": 0,
-          "collapsed": 0
+          "collapsed": 0,
+          "visible": 0
         },
         {
           "name": "###sceneDock",
           "index": 1,
-          "collapsed": 0
+          "collapsed": 0,
+          "visible": 1
         }
       ],
       "x": 0.000000,
@@ -134,11 +134,10 @@
     {
       "id": 6,
       "parent": 965938713,
-      "selectedtab": 0,
       "central": 0,
       "dockspace": 0,
       "hiddentabbar": 0,
-      "depth": 2,
+      "depth": 1,
       "x": 1017.000000,
       "y": 22.000000,
       "w": 263.000000,
@@ -150,11 +149,10 @@
     {
       "id": 1,
       "parent": 6,
-      "selectedtab": 0,
       "central": 0,
       "dockspace": 0,
       "hiddentabbar": 0,
-      "depth": 3,
+      "depth": 2,
       "x": 0.000000,
       "y": 22.000000,
       "w": 1151.000000,
@@ -165,11 +163,10 @@
     {
       "id": 2,
       "parent": 6,
-      "selectedtab": -1383917205,
       "central": 0,
       "dockspace": 0,
       "hiddentabbar": 0,
-      "depth": 4,
+      "depth": 2,
       "x": 1017.000000,
       "y": 22.000000,
       "w": 263.000000,
@@ -181,16 +178,16 @@
     {
       "id": 3,
       "parent": 2,
-      "selectedtab": 1081339459,
       "central": 0,
       "dockspace": 0,
       "hiddentabbar": 0,
-      "depth": 5,
+      "depth": 3,
       "windows": [
         {
           "name": "###sceneExplorerDock",
           "index": 0,
-          "collapsed": 0
+          "collapsed": 0,
+          "visible": 1
         }
       ],
       "x": 1017.000000,
@@ -203,16 +200,16 @@
     {
       "id": 4,
       "parent": 2,
-      "selectedtab": -1383917205,
       "central": 0,
       "dockspace": 0,
       "hiddentabbar": 0,
-      "depth": 6,
+      "depth": 3,
       "windows": [
         {
           "name": "###settingsDock",
           "index": 0,
-          "collapsed": 0
+          "collapsed": 0,
+          "visible": 1
         }
       ],
       "x": 1017.000000,
@@ -223,5 +220,4 @@
       "hr": 394.000000
     }
   ]
-
 }
