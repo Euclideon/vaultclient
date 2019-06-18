@@ -132,6 +132,10 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
       pVertexLayout[i] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 12;
       break;
+    case vcVLT_Position4:
+      pVertexLayout[i] = { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+      accumlatedOffset += 16;
+      break;
     case vcVLT_TextureCoords2:
       pVertexLayout[i] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 8;
@@ -147,6 +151,10 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
     case vcVLT_Normal3:
       pVertexLayout[i] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 12;
+      break;
+    case vcVLT_QuadCorner:
+      pVertexLayout[i] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+      accumlatedOffset += 8;
       break;
     }
   }

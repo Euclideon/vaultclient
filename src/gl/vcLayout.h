@@ -7,10 +7,12 @@ enum vcVertexLayoutTypes
 {
   vcVLT_Position2, //Vec2
   vcVLT_Position3, //Vec3
+  vcVLT_Position4, //Vec4
   vcVLT_TextureCoords2, //Vec2
   vcVLT_ColourBGRA, //uint32_t
   vcVLT_Normal3, //Vec3
   vcVLT_RibbonInfo4, // Vec4
+  vcVLT_QuadCorner, // Vec2
 
   vcVLT_Unsupported,
 
