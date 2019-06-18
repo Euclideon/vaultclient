@@ -721,3 +721,195 @@ const char* const g_BillboardVertexShader = R"shader(
     return output;
   }
 )shader";
+
+const char *const g_udGPURenderQuadVertexShader = R"shader(
+  struct VS_INPUT
+  {
+    float4 pos : POSITION;
+    float4 colour  : COLOR0;
+    float2 corner: TEXCOORD0;
+  };
+
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float4 colour : COLOR0;
+  };
+
+  cbuffer u_EveryObject : register(b0)
+  {
+    float4x4 u_worldViewProj;
+  };
+
+  PS_INPUT main(VS_INPUT input)
+  {
+    PS_INPUT output;
+
+    output.colour = input.colour.bgra;
+    // if (u_debug != 0) v_color.xz = v_color.xz * vec2(2);
+
+    // Points
+    float4 off = float4(input.pos.www * 2.0, 0);
+    float4 pos0 = mul(u_worldViewProj, float4(input.pos.xyz + off.www, 1.0));
+    float4 pos1 = mul(u_worldViewProj, float4(input.pos.xyz + off.xww, 1.0));
+    float4 pos2 = mul(u_worldViewProj, float4(input.pos.xyz + off.xyw, 1.0));
+    float4 pos3 = mul(u_worldViewProj, float4(input.pos.xyz + off.wyw, 1.0));
+    float4 pos4 = mul(u_worldViewProj, float4(input.pos.xyz + off.wwz, 1.0));
+    float4 pos5 = mul(u_worldViewProj, float4(input.pos.xyz + off.xwz, 1.0));
+    float4 pos6 = mul(u_worldViewProj, float4(input.pos.xyz + off.xyz, 1.0));
+    float4 pos7 = mul(u_worldViewProj, float4(input.pos.xyz + off.wyz, 1.0));
+
+    float4 minPos, maxPos;
+    minPos = min(pos0, pos1);
+    minPos = min(minPos, pos2);
+    minPos = min(minPos, pos3);
+    minPos = min(minPos, pos4);
+    minPos = min(minPos, pos5);
+    minPos = min(minPos, pos6);
+    minPos = min(minPos, pos7);
+    maxPos = max(pos0, pos1);
+    maxPos = max(maxPos, pos2);
+    maxPos = max(maxPos, pos3);
+    maxPos = max(maxPos, pos4);
+    maxPos = max(maxPos, pos5);
+    maxPos = max(maxPos, pos6);
+    maxPos = max(maxPos, pos7);
+    output.pos = minPos + (maxPos - minPos) * 0.5;
+    
+    float2 pointSize = float2(maxPos.x - minPos.x, maxPos.y - minPos.y); 
+    output.pos.xy += pointSize * input.corner * float2(0.5, 0.5);
+    return output;
+  }
+)shader";
+
+const char *const g_udGPURenderQuadFragmentShader = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float4 colour : COLOR0;
+  };
+
+  float4 main(PS_INPUT input) : SV_Target
+  {
+    return input.colour;
+  }
+)shader";
+
+
+const char *const g_udGPURenderGeomVertexShader = R"shader(
+  struct VS_INPUT
+  {
+    float4 pos : POSITION;
+    float4 colour  : COLOR0;
+  };
+
+  struct GS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float4 colour : COLOR0;
+    float2 pointSize: TEXCOORD0;
+  };
+
+  cbuffer u_EveryObject : register(b0)
+  {
+    float4x4 u_worldViewProj;
+  };
+
+  GS_INPUT main(VS_INPUT input)
+  {
+    GS_INPUT output;
+
+    output.colour = input.colour.bgra;
+    // if (u_debug != 0) v_color.xz = v_color.xz * vec2(2);
+
+    // Points
+    float4 off = float4(input.pos.www * 2.0, 0);
+    float4 pos0 = mul(u_worldViewProj, float4(input.pos.xyz + off.www, 1.0));
+    float4 pos1 = mul(u_worldViewProj, float4(input.pos.xyz + off.xww, 1.0));
+    float4 pos2 = mul(u_worldViewProj, float4(input.pos.xyz + off.xyw, 1.0));
+    float4 pos3 = mul(u_worldViewProj, float4(input.pos.xyz + off.wyw, 1.0));
+    float4 pos4 = mul(u_worldViewProj, float4(input.pos.xyz + off.wwz, 1.0));
+    float4 pos5 = mul(u_worldViewProj, float4(input.pos.xyz + off.xwz, 1.0));
+    float4 pos6 = mul(u_worldViewProj, float4(input.pos.xyz + off.xyz, 1.0));
+    float4 pos7 = mul(u_worldViewProj, float4(input.pos.xyz + off.wyz, 1.0));
+
+    float4 minPos, maxPos;
+    minPos = min(pos0, pos1);
+    minPos = min(minPos, pos2);
+    minPos = min(minPos, pos3);
+    minPos = min(minPos, pos4);
+    minPos = min(minPos, pos5);
+    minPos = min(minPos, pos6);
+    minPos = min(minPos, pos7);
+    maxPos = max(pos0, pos1);
+    maxPos = max(maxPos, pos2);
+    maxPos = max(maxPos, pos3);
+    maxPos = max(maxPos, pos4);
+    maxPos = max(maxPos, pos5);
+    maxPos = max(maxPos, pos6);
+    maxPos = max(maxPos, pos7);
+    output.pos = minPos + (maxPos - minPos) * 0.5;
+    
+    output.pointSize = float2(maxPos.x - minPos.x, maxPos.y - minPos.y); 
+    return output;
+  }
+)shader";
+
+const char *const g_udGPURenderGeomFragmentShader = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float4 colour : COLOR0;
+  };
+
+  float4 main(PS_INPUT input) : SV_Target
+  {
+    return input.colour;
+  }
+)shader";
+
+const char *const g_udGPURenderGeomGeometryShader = R"shader(
+  struct GS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float4 colour : COLOR0;
+    float2 pointSize: TEXCOORD0;
+  };
+
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float4 colour : COLOR0;
+  };
+
+  [maxvertexcount(6)]
+  void main(point GS_INPUT input[1], inout TriangleStream<PS_INPUT> OutputStream)
+  {
+    PS_INPUT output;
+    output.colour = input[0].colour;
+
+    float2 halfPointSize = input[0].pointSize * float2(0.5, 0.5);
+
+    output.pos = input[0].pos + float4(-halfPointSize.x, -halfPointSize.y, 0.0, 0.0);
+    OutputStream.Append(output);
+
+    output.pos = input[0].pos + float4(halfPointSize.x, -halfPointSize.y, 0.0, 0.0);
+    OutputStream.Append(output);
+
+    output.pos = input[0].pos + float4(-halfPointSize.x, halfPointSize.y, 0.0, 0.0);
+    OutputStream.Append(output);
+
+    //OutputStream.RestartStrip();
+
+    output.pos = input[0].pos + float4(-halfPointSize.x, halfPointSize.y, 0.0, 0.0);
+    OutputStream.Append(output);
+    
+    output.pos = input[0].pos + float4(halfPointSize.x, halfPointSize.y, 0.0, 0.0);
+    OutputStream.Append(output);
+    
+    output.pos = input[0].pos + float4(halfPointSize.x, -halfPointSize.y, 0.0, 0.0);
+    OutputStream.Append(output);
+
+    //OutputStream.RestartStrip();
+  }
+)shader";

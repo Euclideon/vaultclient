@@ -36,6 +36,10 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
         vertexDesc.attributes[i].format = MTLVertexFormatFloat3;
         accumulatedOffset += 3 * sizeof(float);
         break;
+     case vcVLT_Position4:
+        vertexDesc.attributes[i].format = MTLVertexFormatFloat4;
+        accumulatedOffset += 4 * sizeof(float);
+        break;
       case vcVLT_TextureCoords2:
         vertexDesc.attributes[i].format = MTLVertexFormatFloat2;
         accumulatedOffset += 2 * sizeof(float);
@@ -51,6 +55,10 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
       case vcVLT_Normal3:
         vertexDesc.attributes[i].format = MTLVertexFormatFloat3;
         accumulatedOffset += 3 * sizeof(float);
+        break;
+     case vcVLT_QuadCorner:
+        vertexDesc.attributes[i].format = MTLVertexFormatFloat2;
+        accumulatedOffset += 2 * sizeof(float);
         break;
       case vcVLT_Unsupported: // TODO: (EVC-641) Handle unsupported attributes interleaved with supported attributes
         break;
@@ -137,16 +145,16 @@ bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pSh
       return true;
     }
   }
-  
+
   NSString *bID = [NSString stringWithFormat:@"%u",g_bufferIndex];
   [_viewCon.renderer.constantBuffers setObject:[_device newBufferWithLength:bufferSize options:MTLStorageModeShared] forKey:bID];
   ++g_bufferIndex;
-  
+
   vcShaderConstantBuffer *temp = udAllocType(vcShaderConstantBuffer, 1, udAF_Zero);
   temp->expectedSize = bufferSize;
   udStrcpy(temp->name, 32, pBufferName);
   udStrcpy(temp->ID, 32, bID.UTF8String);
-  
+
   pShader->bufferObjects[pShader->numBufferObjects] = *temp;
   ++pShader->numBufferObjects;
 
@@ -193,9 +201,9 @@ bool vcShader_ReleaseConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *p
 
   [_viewCon.renderer.constantBuffers removeObjectForKey:[NSString stringWithUTF8String:pBuffer->ID]];
   pBuffer->expectedSize = 0;
-  
+
   udFree(pBuffer);
-  
+
   return true;
 }
 
