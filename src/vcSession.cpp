@@ -155,7 +155,7 @@ void vcSession_Logout(vcState *pProgramState)
     }
 
     pProgramState->modelPath[0] = '\0';
-    vcProject_RemoveAll(pProgramState);
+    vcProject_InitBlankScene(pProgramState);
     pProgramState->projects.Destroy();
     vcRender_ClearPoints(pProgramState->pRenderContext);
 

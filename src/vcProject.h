@@ -16,8 +16,12 @@ struct vcProject
   vcFolder *pFolder;
 };
 
+void vcProject_InitBlankScene(vcState *pProgramState);
+bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename);
+
+void vcProject_Deinit(vcState *pProgramData, vcProject *pProject);
+
 void vcProject_RemoveItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode);
-void vcProject_RemoveAll(vcState *pProgramState);
 void vcProject_RemoveSelected(vcState *pProgramState);
 
 void vcProject_SelectItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode);
