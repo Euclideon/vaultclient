@@ -33,18 +33,18 @@ void vcProject_RemoveItem(vcState *pProgramState, vdkProjectNode *pParent, vdkPr
     }
   }
 
-  vdkProjectNode_RemoveChild(pProgramState->sceneExplorer.pProject, pParent, pNode);
+  vdkProjectNode_RemoveChild(pProgramState->activeProject.pProject, pParent, pNode);
 }
 
 void vcProject_RemoveAll(vcState *pProgramState)
 {
-  if (pProgramState->sceneExplorer.pProjectRoot == nullptr)
+  if (pProgramState->activeProject.pRoot == nullptr)
     return;
 
   //TODO: Just destroy the project and recreate it
 
-  while (pProgramState->sceneExplorer.pProjectRoot->m_pNode->pFirstChild != nullptr)
-    vcProject_RemoveItem(pProgramState, pProgramState->sceneExplorer.pProjectRoot->m_pNode, pProgramState->sceneExplorer.pProjectRoot->m_pNode->pFirstChild);
+  while (pProgramState->activeProject.pRoot->pFirstChild != nullptr)
+    vcProject_RemoveItem(pProgramState, pProgramState->activeProject.pRoot, pProgramState->activeProject.pRoot->pFirstChild);
   pProgramState->sceneExplorer.selectedItems.clear();
 
   udGeoZone zone = {};
@@ -77,7 +77,7 @@ void vcProject_RemoveSelectedFolder(vcState *pProgramState, vdkProjectNode *pFol
 
 void vcProject_RemoveSelected(vcState *pProgramState)
 {
-  vcProject_RemoveSelectedFolder(pProgramState, pProgramState->sceneExplorer.pProjectRoot->m_pNode);
+  vcProject_RemoveSelectedFolder(pProgramState, pProgramState->activeProject.pRoot);
   pProgramState->sceneExplorer.selectedItems.clear();
 
   pProgramState->sceneExplorer.clickedItem = {};
@@ -151,7 +151,7 @@ void vcProject_ClearSelection(vdkProjectNode *pParentNode)
 
 void vcProject_ClearSelection(vcState *pProgramState)
 {
-  vcProject_ClearSelection(pProgramState->sceneExplorer.pProjectRoot->m_pNode);
+  vcProject_ClearSelection(pProgramState->activeProject.pRoot);
   pProgramState->sceneExplorer.selectedItems.clear();
   pProgramState->sceneExplorer.clickedItem = {};
 }
@@ -166,7 +166,7 @@ bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pModel
   if (pModel->m_pCurrentProjection == nullptr || pModel->m_pPreferredProjection == nullptr || pModel->m_pCurrentProjection->srid == 0)
     vcGIS_ChangeSpace(&pProgramState->gis, zone);
   else if (vcGIS_ChangeSpace(&pProgramState->gis, *pModel->m_pPreferredProjection)) // Update all models to new zone unless there is no new zone
-    pProgramState->sceneExplorer.pProjectRoot->ChangeProjection(*pModel->m_pPreferredProjection);
+    pProgramState->activeProject.pFolder->ChangeProjection(*pModel->m_pPreferredProjection);
 
   // refresh map tiles when geozone changes
   vcRender_ClearTiles(pProgramState->pRenderContext);

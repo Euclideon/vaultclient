@@ -346,7 +346,7 @@ void vcMain_MainLoop(vcState *pProgramState)
               else
               {
                 vdkProjectNode *pNode = nullptr;
-                if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.pProjectRoot->m_pNode, "UDS", nullptr, pNextLoad, nullptr) != vE_Success)
+                if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pNextLoad, nullptr) != vE_Success)
                 {
                   vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
                 }
@@ -369,17 +369,17 @@ void vcMain_MainLoop(vcState *pProgramState)
                   if (firstLoad)
                     vcProject_RemoveAll(pProgramState);
 
-                  pProgramState->sceneExplorer.pProjectRoot->Cleanup(pProgramState);
-                  delete pProgramState->sceneExplorer.pProjectRoot;
-                  vdkProject_Release(&pProgramState->sceneExplorer.pProject);
+                  pProgramState->activeProject.pFolder->Cleanup(pProgramState);
+                  delete pProgramState->activeProject.pFolder;
+                  vdkProject_Release(&pProgramState->activeProject.pProject);
 
                   pProgramState->getGeo = true;
-                  pProgramState->sceneExplorer.pProject = pProject;
+                  pProgramState->activeProject.pProject = pProject;
 
                   vdkProjectNode *pNode = nullptr;
                   vdkProject_GetProjectRoot(pProject, &pNode);
-                  pProgramState->sceneExplorer.pProjectRoot = new vcFolder(pNode, pProgramState);
-                  pNode->pUserData = pProgramState->sceneExplorer.pProjectRoot;
+                  pProgramState->activeProject.pFolder = new vcFolder(pNode, pProgramState);
+                  pNode->pUserData = pProgramState->activeProject.pFolder;
                 }
                 else
                 { // TODO: EVC-671 More descriptive error, code is vE_ParseError
@@ -410,7 +410,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                 const vcSceneItemRef &clicked = pProgramState->sceneExplorer.clickedItem;
                 if (clicked.pParent != nullptr && clicked.pItem->itemtype == vdkPNT_Media)
                 {
-                  vdkProjectNode_SetURI(pProgramState->sceneExplorer.pProject, clicked.pItem, pNextLoad);
+                  vdkProjectNode_SetURI(pProgramState->activeProject.pProject, clicked.pItem, pNextLoad);
                 }
                 else
                 {
@@ -460,7 +460,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                   }
 
                   vdkProjectNode *pNode = nullptr;
-                  if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.pProjectRoot->m_pNode, "Media", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) == vE_Success)
+                  if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Media", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) == vE_Success)
                   {
                     //TODO: (EVC-661) Surely this isn't the correct fix... I've left the the debug printing here
                     udDouble3 fixMeLatLong = pProgramState->previousWorldMousePos;
@@ -476,11 +476,11 @@ void vcMain_MainLoop(vcState *pProgramState)
                     }
 
                     if (hasLocation && pProgramState->gis.isProjected)
-                      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &geolocation.x);
+                      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &geolocation.x);
                     else if (pProgramState->previousWorldMousePos != udDouble3::zero())
-                      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &fixMeLatLong.x);
+                      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &fixMeLatLong.x);
                     else
-                      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &pProgramState->pCamera->positionInLongLat.x);
+                      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &pProgramState->pCamera->positionInLongLat.x);
 
                     if (imageType == vcIT_PhotoSphere)
                       vdkProjectNode_SetMetadataString(pNode, "imagetype", "photosphere");
@@ -497,7 +497,7 @@ void vcMain_MainLoop(vcState *pProgramState)
               if (convertDrop)
                 vcConvert_AddFile(pProgramState, pNextLoad);
               else
-                vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, nullptr, pProgramState->sceneExplorer.pProjectRoot->m_pNode, "I3S", loadFile.GetFilenameWithExt(), pNextLoad, nullptr);
+                vdkProjectNode_Create(pProgramState->activeProject.pProject, nullptr, pProgramState->activeProject.pRoot, "I3S", loadFile.GetFilenameWithExt(), pNextLoad, nullptr);
             }
             else
             {
@@ -637,9 +637,9 @@ int main(int argc, char **args)
   programState.loadList.reserve(udMax(64, argc));
 
   vdkProjectNode *pRootFolder = nullptr;
-  vdkProject_CreateLocal(&programState.sceneExplorer.pProject, "New Project");
-  vdkProject_GetProjectRoot(programState.sceneExplorer.pProject, &pRootFolder);
-  programState.sceneExplorer.pProjectRoot = new vcFolder(pRootFolder, &programState);
+  vdkProject_CreateLocal(&programState.activeProject.pProject, "New Project");
+  vdkProject_GetProjectRoot(programState.activeProject.pProject, &pRootFolder);
+  programState.activeProject.pFolder = new vcFolder(pRootFolder, &programState);
 
   for (int i = 1; i < argc; ++i)
   {
@@ -841,9 +841,9 @@ epilogue:
   vcString::FreeTable(&programState.languageInfo);
   vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
   vcSession_Logout(&programState);
-  programState.sceneExplorer.pProjectRoot->Cleanup(&programState);
-  vdkProject_Release(&programState.sceneExplorer.pProject);
-  delete programState.sceneExplorer.pProjectRoot;
+  programState.activeProject.pFolder->Cleanup(&programState);
+  vdkProject_Release(&programState.activeProject.pProject);
+  delete programState.activeProject.pFolder;
   vcTexture_Destroy(&programState.image.pImage);
 
   vcGLState_Deinit();
@@ -900,7 +900,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         {
           if (vcGIS_ChangeSpace(&pProgramState->gis, zone, &pProgramState->pCamera->position))
           {
-            pProgramState->sceneExplorer.pProjectRoot->ChangeProjection(zone);
+            pProgramState->activeProject.pFolder->ChangeProjection(zone);
             vcRender_ClearTiles(pProgramState->pRenderContext);
           }
         }
@@ -1159,8 +1159,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
           if (ImGui::MenuItem(vcString::Get("sceneAddPOI")))
           {
-            if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.pProjectRoot->m_pNode, "POI", vcString::Get("scenePOIDefaultName"), nullptr, nullptr) == vE_Success)
-              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIDefaultName"), nullptr, nullptr) == vE_Success)
+              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
 
             ImGui::CloseCurrentPopup();
           }
@@ -1168,9 +1168,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
           {
             vcProject_ClearSelection(pProgramState);
 
-            if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.pProjectRoot->m_pNode, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
             {
-              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, 1, &mousePosLongLat.x);
+              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, 1, &mousePosLongLat.x);
               udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
             }
 
@@ -1180,9 +1180,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
           {
             vcProject_ClearSelection(pProgramState);
 
-            if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.pProjectRoot->m_pNode, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
             {
-              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, 1, &mousePosLongLat.x);
+              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, 1, &mousePosLongLat.x);
               udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
               vdkProjectNode_SetMetadataBool(pNode, "showArea", true);
             }
@@ -1193,9 +1193,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
           {
             vcProject_ClearSelection(pProgramState);
 
-            if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.pProjectRoot->m_pNode, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == vE_Success)
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == vE_Success)
             {
-              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_LineString, 1, &mousePosLongLat.x);
+              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_LineString, 1, &mousePosLongLat.x);
               udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
             }
 
@@ -1205,9 +1205,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
           {
             vcProject_ClearSelection(pProgramState);
 
-            if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.pProjectRoot->m_pNode, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == vE_Success)
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == vE_Success)
             {
-              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_LineString, 1, &mousePosLongLat.x);
+              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_LineString, 1, &mousePosLongLat.x);
               udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
               vdkProjectNode_SetMetadataBool(pNode, "showLength", true);
             }
@@ -1325,7 +1325,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.pGISSpace = &pProgramState->gis;
   renderData.pCameraSettings = &pProgramState->settings.camera;
 
-  pProgramState->sceneExplorer.pProjectRoot->AddToScene(pProgramState, &renderData);
+  pProgramState->activeProject.pFolder->AddToScene(pProgramState, &renderData);
 
   vcRender_vcRenderSceneImGui(pProgramState->pRenderContext, renderData);
 
@@ -1424,7 +1424,7 @@ int vcMainMenuGui(vcState *pProgramState)
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
           {
             vdkProjectNode *pNode = nullptr;
-            if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.pProjectRoot->m_pNode, "UDS", nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), nullptr) != vE_Success)
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), nullptr) != vE_Success)
             {
               vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
             }
@@ -1441,7 +1441,7 @@ int vcMainMenuGui(vcState *pProgramState)
             const char *pFeedName = pProjectList->GetElement(i)->Get("feeds[%zu].name", j).AsString();
 
             vdkProjectNode *pNode = nullptr;
-            if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.pProjectRoot->m_pNode, "IOT", pFeedName, nullptr, nullptr) != vE_Success)
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", pFeedName, nullptr, nullptr) != vE_Success)
               vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
 
             if (vUUID_IsValid(pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString()))
@@ -1864,18 +1864,18 @@ void vcRenderWindow(vcState *pProgramState)
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
         {
           vdkProjectNode *pNode = nullptr;
-          if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.pProjectRoot->m_pNode, "Folder", vcString::Get("sceneExplorerFolderDefaultName"), nullptr, nullptr) != vE_Success)
+          if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Folder", vcString::Get("sceneExplorerFolderDefaultName"), nullptr, nullptr) != vE_Success)
             vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
         }
 
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddViewpoint"), nullptr, vcMBBI_SaveViewport, vcMBBG_SameGroup))
         {
           vdkProjectNode *pNode;
-          if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.pProjectRoot->m_pNode, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == vE_Success)
+          if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == vE_Success)
           {
             if (pProgramState->gis.isProjected)
             {
-              vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&pProgramState->pCamera->positionInLongLat);
+              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&pProgramState->pCamera->positionInLongLat);
               vcViewpoint *pVP = new vcViewpoint(pNode, pProgramState);
               pVP->m_pCurrentProjection = (udGeoZone*)udMemDup(&pProgramState->gis.zone, sizeof(udGeoZone), 0, udAF_Zero);
               pVP->m_pPreferredProjection = (udGeoZone*)udMemDup(&pProgramState->gis.zone, sizeof(udGeoZone), 0, udAF_Zero);
@@ -1906,7 +1906,7 @@ void vcRenderWindow(vcState *pProgramState)
           if (ImGui::MenuItem(vcString::Get("sceneExplorerAddFeed"), nullptr, nullptr))
           {
             vdkProjectNode *pNode = nullptr;
-            if (vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.pProjectRoot->m_pNode, "IOT", vcString::Get("liveFeedDefaultName"), nullptr, nullptr) == vE_Success)
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", vcString::Get("liveFeedDefaultName"), nullptr, nullptr) == vE_Success)
             {
               vcLiveFeed *pLF = new vcLiveFeed(pNode, pProgramState);
               pLF->m_pCurrentProjection = (udGeoZone*)udMemDup(&pProgramState->gis.zone, sizeof(udGeoZone), 0, udAF_Zero);
@@ -1950,7 +1950,7 @@ void vcRenderWindow(vcState *pProgramState)
                 const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
                 vdkProjectNode* pNode = item.pItem;
 
-                vdkProjectNode_MoveChild(pProgramState->sceneExplorer.pProject, item.pParent, pProgramState->sceneExplorer.insertItem.pParent, pNode, pProgramState->sceneExplorer.insertItem.pItem);
+                vdkProjectNode_MoveChild(pProgramState->activeProject.pProject, item.pParent, pProgramState->sceneExplorer.insertItem.pParent, pNode, pProgramState->sceneExplorer.insertItem.pItem);
 
                 // Update the selected item information to repeat drag and drop
                 pProgramState->sceneExplorer.selectedItems[i].pParent = pProgramState->sceneExplorer.insertItem.pParent;
@@ -1962,8 +1962,8 @@ void vcRenderWindow(vcState *pProgramState)
           }
 
           size_t i = 0;
-          if (pProgramState->sceneExplorer.pProjectRoot)
-            pProgramState->sceneExplorer.pProjectRoot->HandleImGui(pProgramState, &i);
+          if (pProgramState->activeProject.pFolder)
+            pProgramState->activeProject.pFolder->HandleImGui(pProgramState, &i);
         }
         ImGui::EndChild();
       }

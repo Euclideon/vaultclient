@@ -5,6 +5,16 @@
 
 struct vcState;
 class vcSceneItem;
+class vcFolder;
+
+struct vcProject
+{
+  vdkProject *pProject;
+
+  // These are the same item pFolder->m_pNode == pRoot && pRoot-pUserdata == pFolder
+  vdkProjectNode *pRoot;
+  vcFolder *pFolder;
+};
 
 void vcProject_RemoveItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode);
 void vcProject_RemoveAll(vcState *pProgramState);

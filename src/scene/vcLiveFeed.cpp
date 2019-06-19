@@ -327,7 +327,7 @@ vcLiveFeed::vcLiveFeed(vdkProjectNode *pNode, vcState *pProgramState) :
       temp = udGeoZone_ToLatLong(pProgramState->defaultGeo, m_position, true);
     }
 
-    vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
+    vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
   }
   else
   { // Otherwise find the right srid and set local position
@@ -357,15 +357,15 @@ void vcLiveFeed::OnNodeUpdate()
     m_position = udGeoZone_ToCartesian(*m_pCurrentProjection, *(udDouble3*)m_pNode->pCoordinates, true);
 
   vdkProjectNode_GetMetadataString(m_pNode, "updateMode", &pTempStr, nullptr);
-  if (udStrEquali(pTempStr, "Group"))
-    m_updateMode = vcLFM_Group;
-  else if (udStrEquali(pTempStr, "Position"))
+  if (udStrEquali(pTempStr, "Position"))
     m_updateMode = vcLFM_Position;
   else if (udStrEquali(pTempStr, "Camera"))
     m_updateMode = vcLFM_Camera;
+  else //if (udStrEquali(pTempStr, "Group"))
+    m_updateMode = vcLFM_Group;
 
   vdkProjectNode_GetMetadataDouble(m_pNode, "updateFrequency", &m_updateFrequency, 30.0);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayTime", &m_decayFrequency, 30.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayTime", &m_decayFrequency, 300.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayDistance", &m_maxDisplayDistance, 50000.0);
   vdkProjectNode_GetMetadataBool(m_pNode, "tweenEnabled", &m_tweenPositionAndOrientation, true);
 }
@@ -603,7 +603,7 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
       if (ImGui::InputScalarN(vcString::Get("liveFeedPosition"), ImGuiDataType_Double, &m_position.x, 3) && m_pCurrentProjection != nullptr)
       {
         udDouble3 temp = udGeoZone_ToLatLong(*m_pCurrentProjection, m_position, true);
-        vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
+        vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
       }
     }
   }

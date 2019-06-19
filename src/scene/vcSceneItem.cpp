@@ -33,7 +33,7 @@ vcSceneItem::vcSceneItem(vdkProjectNode *pNode, vcState * /*pProgramState*/) :
 }
 
 vcSceneItem::vcSceneItem(vcState *pProgramState, const char *pType, const char *pName) :
-  vcSceneItem(vcSceneItem_CreateNodeInProject(pProgramState->sceneExplorer.pProject, pType, pName), pProgramState)
+  vcSceneItem(vcSceneItem_CreateNodeInProject(pProgramState->activeProject.pProject, pType, pName), pProgramState)
 {
   // Do nothing
 }

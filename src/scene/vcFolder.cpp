@@ -170,7 +170,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &pData, &length);
         if (ImGui::IsItemDeactivatedAfterEdit())
         {
-          if (vdkProjectNode_SetName(pProgramState->sceneExplorer.pProject, pNode, pData) != vE_Success)
+          if (vdkProjectNode_SetName(pProgramState->activeProject.pProject, pNode, pData) != vE_Success)
             vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
         }
 
@@ -250,7 +250,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         {
           if (vcGIS_ChangeSpace(&pProgramState->gis, *pSceneItem->m_pPreferredProjection, &pProgramState->pCamera->position))
           {
-            pProgramState->sceneExplorer.pProjectRoot->ChangeProjection(*pSceneItem->m_pPreferredProjection);
+            pProgramState->activeProject.pFolder->ChangeProjection(*pSceneItem->m_pPreferredProjection);
             // refresh map tiles when geozone changes
             vcRender_ClearTiles(pProgramState->pRenderContext);
           }

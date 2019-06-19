@@ -126,7 +126,7 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     return;
 
   //TODO: Super hacky- remove later
-  m_pProject = pProgramState->sceneExplorer.pProject;
+  m_pProject = pProgramState->activeProject.pProject;
 
   if (m_pFence != nullptr)
     pRenderData->fences.PushBack(m_pFence);
