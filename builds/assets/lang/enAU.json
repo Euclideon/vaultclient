@@ -10,6 +10,7 @@
 
   "loginButton": "Login",
   "loginAbout": "About",
+  "loginRestoreDefaults": "Restore Defaults",
   "loginReleaseNotes": "Release Notes",
   "loginServerURL": "ServerURL",
   "loginRememberServer": "Remember",
@@ -225,7 +226,6 @@
   "convertSpaceLongLat": "Longitude then Latitude",
 
   "menuSystem": "System",
-  "menuRestoreDefaults": "Restore Defaults",
   "menuQuit": "Quit",
   "menuWindows": "Windows",
   "menuScene": "Scene",

@@ -1370,12 +1370,6 @@ int vcMainMenuGui(vcState *pProgramState)
       if (ImGui::MenuItem(vcString::Get("menuLogout")))
         vcSession_Logout(pProgramState);
 
-      if (ImGui::MenuItem(vcString::Get("menuRestoreDefaults"), nullptr))
-      {
-        vcMain_LoadSettings(pProgramState, true);
-        vcRender_ClearTiles(pProgramState->pRenderContext); // refresh map tiles since they just got updated
-      }
-
       if (ImGui::MenuItem(vcString::Get("menuAbout")))
         vcModals_OpenModal(pProgramState, vcMT_About);
 
@@ -1605,6 +1599,10 @@ void vcRenderWindow(vcState *pProgramState)
     {
       ImGui::PushItemWidth(130.f);
 
+      if (ImGui::Button(vcString::Get("loginRestoreDefaults")))
+        vcMain_LoadSettings(pProgramState, true);
+
+      ImGui::SameLine();
       if (ImGui::Button(vcString::Get("loginReleaseNotes")))
         vcModals_OpenModal(pProgramState, vcMT_ReleaseNotes);
 
