@@ -14,6 +14,7 @@
 #include "vcGIS.h"
 #include "vcFolder.h"
 #include "vcStrings.h"
+#include "vcProject.h"
 
 #include "vdkError.h"
 
@@ -128,11 +129,10 @@ struct vcState
     volatile int64_t loadStatus; // >0 is the size of pImageData
   } tileModal;
 
+  vcProject activeProject;
+
   struct
   {
-    vdkProject *pProject;
-    vcFolder *pProjectRoot;
-
     char selectUUIDWhenPossible[37];
     char movetoUUIDWhenPossible[37];
 
