@@ -50,7 +50,6 @@ struct vcConvertItem
 struct vcConvertContext
 {
   udChunkedArray<vcConvertItem*> jobs;
-  udChunkedArray<const char *>unsupportedFilenames;
   bool threadRunning;
   udSemaphore *pSemaphore;
   udMutex *pMutex;
