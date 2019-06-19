@@ -25,6 +25,7 @@ void vcProject_InitBlankScene(vcState *pProgramState)
   vdkProject_CreateLocal(&pProgramState->activeProject.pProject, "New Project");
   vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
   pProgramState->activeProject.pFolder = new vcFolder(pProgramState->activeProject.pRoot, pProgramState);
+  pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
 }
 
 bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
@@ -52,6 +53,7 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
       pProgramState->activeProject.pProject = pProject;
       vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
       pProgramState->activeProject.pFolder = new vcFolder(pProgramState->activeProject.pRoot, pProgramState);
+      pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
 
       pProgramState->getGeo = true;
     }

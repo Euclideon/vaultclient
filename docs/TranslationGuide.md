@@ -8,10 +8,10 @@
       - `loginUserAgent`, `loginSelectUserAgent`, `loginRestoreDefaults`
     - Convert
       - `convertWriteFailed`, `convertParseError`, `convertImageParseError`, `convertNoFile`
-    - Project Menu & Modals
-      - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`
+    - Menus & Modals
+      - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`, `menuBarFilesFailed`, `menuBarFilesFailedTooltip`
     - Scene Explorer
-      - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`, `sceneExplorerExportButton`, `sceneExplorerProjectChangeSucceededTitle`, `sceneExplorerProjectChangeSucceededMessage`, `sceneResetRotation`
+      - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`, `sceneExplorerExportButton`, `sceneExplorerProjectChangeSucceededTitle`, `sceneExplorerProjectChangeSucceededMessage`, `sceneResetRotation`, `sceneExplorerClearAllButton`
   - Removed:
     - Menu strings
       - `menuRestoreDefaults`
@@ -19,6 +19,8 @@
       - `menuImport`, `menuImportUDP`, `menuImportUDPTitle`
     - Scene Explorer
       - `sceneExplorerNotImplementedTitle`, `sceneExplorerNotImplementedMessage`, `sceneExplorerNotImplementedCloseButton`, `scenePOIBookmarkMode`, `scenePOISetBookmarkCamera`, `scenePOICameraPosition`, `scenePOICameraRotation`
+    - Error Strings
+      - `errorTitle`, `errorUnknown`, `errorOpening`, `errorReading`, `errorWriting`, `errorCloseButton`
 - Version 0.2.3
   - Added:
     - Login Screen
@@ -380,7 +382,10 @@ Modules are currently:
 - `menuNewVersionCloseButton`: Label used for the close button of the "New Version Available" window
 - `menuBarUpdateAvailable`: Message shown in the menu bar when there is a new version of vault client available
 - `menuBarFilesQueued`: Used to show in the menu bar how many files have been queued for importing into the scene
-  - {0} = number of files queued?
+  - {0} = number of files queued
+- `menuBarFilesFailed`: Used to show in the menu bar how many of the queued files failed to be processed
+  - {0} = number of files that failed
+- `menuBarFilesFailedTooltip` Tooltip that appears to let the user know that they can click to open the failed file list
 - `menuBarConvert`: Used to display the status of the convert license
 - `menuBarLicense`: Used to display that the menu bar is showing the status of the convert or render licenses
 - `menuBarRender`: Used to display the status of the render license
@@ -483,6 +488,7 @@ Modules are currently:
 - `sceneExplorerUnsupportedFilesTitle`: Title of modal that appears when the user added unsupported files
 - `sceneExplorerUnsupportedFilesMessage`: Body of modal that appears when the user added unsupported files
 
+- `sceneExplorerClearAllButton`: Label on the button that clears the list of items in a modal
 - `sceneExplorerCloseButton`: Label on button used when closing a modal
 
 - `sceneExplorerErrorOpen`: Tooltip displayed when mouse is hovered over the warning next to a scene item in the Scene Explorer that vault client was unable to open or access
@@ -555,12 +561,3 @@ Modules are currently:
   - {2} number of second until the next update (or negative for seconds since starting the last update)
 - `liveFeedGroupID`: When in `liveFeedModeGroups` mode, this is the input for the Group ID. [Will eventually be a drop down to select by group name]
 - `liveFeedPosition`: When in `liveFeedModePosition` mode, this is the XYZ of the Position
-
-### Error Strings
-
-- `errorTitle`: Title used for the Error window
-- `errorUnknown`: Message displayed when an error occurs but vault client is unable to determine what type of error
-- `errorOpening`: Message displayed when vault client fails to open a file
-- `errorReading`: Message displayed when vault client fails to read a file
-- `errorWriting`: Message displayed when vault client fails to write to an output file
-- `errorCloseButton`: Label used on the close button of the Error window
