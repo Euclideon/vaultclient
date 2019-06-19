@@ -103,7 +103,15 @@ epilogue:
   return result;
 }
 
-#if !(UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR)
+#if (UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR)
+// See vcWebFile.mm for implementation
+#elif UDPLATFORM_EMSCRIPTEN
+void vcWebFile_OpenBrowser(const char *pWebpageAddress)
+{
+  // TODO: Open new tab with link
+  udUnused(pWebpageAddress);
+}
+#else
 void vcWebFile_OpenBrowser(const char *pWebpageAddress)
 {
   const char *pBuffer = nullptr;
