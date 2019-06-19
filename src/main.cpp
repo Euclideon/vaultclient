@@ -360,40 +360,12 @@ void vcMain_MainLoop(vcState *pProgramState)
             }
             else if (udStrEquali(pExt, ".json"))
             {
-              char *pMemory = nullptr;
-              if (udFile_Load(pNextLoad, (void**)&pMemory) == udR_Success)
-              {
-                vdkProject *pProject = nullptr;
-                if (vdkProject_LoadFromMemory(&pProject, pMemory) == vE_Success)
-                {
-                  if (firstLoad)
-                    vcProject_RemoveAll(pProgramState);
-
-                  pProgramState->activeProject.pFolder->Cleanup(pProgramState);
-                  delete pProgramState->activeProject.pFolder;
-                  vdkProject_Release(&pProgramState->activeProject.pProject);
-
-                  pProgramState->getGeo = true;
-                  pProgramState->activeProject.pProject = pProject;
-
-                  vdkProjectNode *pNode = nullptr;
-                  vdkProject_GetProjectRoot(pProject, &pNode);
-                  pProgramState->activeProject.pFolder = new vcFolder(pNode, pProgramState);
-                  pNode->pUserData = pProgramState->activeProject.pFolder;
-                }
-                else
-                { // TODO: EVC-671 More descriptive error, code is vE_ParseError
-                  vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
-                }
-                udFree(pMemory);
-              }
-
-              pProgramState->changeActiveDock = vcDocks_Scene;
+              if (vcProject_InitFromURI(pProgramState, pNextLoad))
+                pProgramState->changeActiveDock = vcDocks_Scene;
             }
             else if (udStrEquali(pExt, ".udp"))
             {
-              if (firstLoad)
-                vcProject_RemoveAll(pProgramState);
+              vcProject_InitBlankScene(pProgramState);
 
               vcUDP_Load(pProgramState, pNextLoad);
               pProgramState->changeActiveDock = vcDocks_Scene;
@@ -636,10 +608,7 @@ int main(int argc, char **args)
 
   programState.loadList.reserve(udMax(64, argc));
 
-  vdkProjectNode *pRootFolder = nullptr;
-  vdkProject_CreateLocal(&programState.activeProject.pProject, "New Project");
-  vdkProject_GetProjectRoot(programState.activeProject.pProject, &pRootFolder);
-  programState.activeProject.pFolder = new vcFolder(pRootFolder, &programState);
+  vcProject_InitBlankScene(&programState);
 
   for (int i = 1; i < argc; ++i)
   {
@@ -842,8 +811,8 @@ epilogue:
   vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
   vcSession_Logout(&programState);
   programState.activeProject.pFolder->Cleanup(&programState);
-  vdkProject_Release(&programState.activeProject.pProject);
-  delete programState.activeProject.pFolder;
+
+  vcProject_Deinit(&programState, &programState.activeProject);
   vcTexture_Destroy(&programState.image.pImage);
 
   vcGLState_Deinit();
@@ -1404,7 +1373,7 @@ int vcMainMenuGui(vcState *pProgramState)
     if (ImGui::BeginMenu(vcString::Get("menuProjects"), pProjectList != nullptr && pProjectList->length > 0))
     {
       if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr))
-        vcProject_RemoveAll(pProgramState);
+        vcProject_InitBlankScene(pProgramState);
 
       if (ImGui::MenuItem(vcString::Get("menuProjectExport"), nullptr, nullptr))
         vcModals_OpenModal(pProgramState, vcMT_ExportProject);
@@ -1418,7 +1387,7 @@ int vcMainMenuGui(vcState *pProgramState)
       {
         if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr))
         {
-          vcProject_RemoveAll(pProgramState);
+          vcProject_InitBlankScene(pProgramState);
           bool moveTo = true;
 
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
