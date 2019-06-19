@@ -453,7 +453,7 @@ void vcModals_DrawFileModal(vcState *pProgramState)
     else if (saveFile)
     {
       const char *pOutput = nullptr;
-      if (vdkProject_WriteToMemory(pProgramState->sceneExplorer.pProject, &pOutput) == vE_Success)
+      if (vdkProject_WriteToMemory(pProgramState->activeProject.pProject, &pOutput) == vE_Success)
       {
         udFindDir *pDir = nullptr;
         udFilename exportFilename(pProgramState->modelPath);

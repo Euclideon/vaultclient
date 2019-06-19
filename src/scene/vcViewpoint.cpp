@@ -21,12 +21,12 @@ vcViewpoint::vcViewpoint(vdkProjectNode *pNode, vcState *pProgramState) :
     m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
     memcpy(m_pCurrentProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
     udDouble3 temp = udGeoZone_ToLatLong(*m_pCurrentProjection, m_CameraPosition, true);
-    vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
+    vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
   }
   else
   {
     udDouble3 temp = udGeoZone_ToLatLong(pProgramState->defaultGeo, m_CameraPosition, true);
-    vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
+    vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
   }
 
   m_loadStatus = vcSLS_Loaded;
@@ -35,7 +35,7 @@ vcViewpoint::vcViewpoint(vdkProjectNode *pNode, vcState *pProgramState) :
 void vcViewpoint::AddToScene(vcState *pProgramState, vcRenderData * /*pRenderData*/)
 {
   //TODO: Super hacky- remove later
-  m_pProject = pProgramState->sceneExplorer.pProject;
+  m_pProject = pProgramState->activeProject.pProject;
 }
 
 void vcViewpoint::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
@@ -50,7 +50,7 @@ void vcViewpoint::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
     return; // Can't update if we aren't sure what zone we're in currently
 
   udDouble3 temp = udGeoZone_ToLatLong(*m_pCurrentProjection, m_CameraPosition, true);
-  vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
+  vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
 }
 
 void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
@@ -60,12 +60,12 @@ void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
     if (m_pCurrentProjection == nullptr)
     {
       udDouble3 temp = udGeoZone_ToLatLong(pProgramState->defaultGeo, m_CameraPosition, true);
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
+      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
     }
     else
     {
       udDouble3 temp = udGeoZone_ToLatLong(*m_pCurrentProjection, m_CameraPosition, true);
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
+      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
     }
   }
   ImGui::InputScalarN(udTempStr("%s##ViewpointRotation%zu", vcString::Get("sceneViewpointRotation"), *pItemID), ImGuiDataType_Double, &m_CameraRotation.x, 3);

@@ -107,7 +107,7 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
     file.SetFromFullPath(pModelFilename);
 
   vdkProjectNode *pNode = nullptr;
-  vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "UDS", pModelName, file.GetPath(), nullptr);
+  vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "UDS", pModelName, file.GetPath(), nullptr);
 
   vcModel *pModel = new vcModel(pNode, pProgramState);
   pNode->pUserData = pModel;
@@ -357,7 +357,7 @@ void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::ve
       scale = udStrAtof64(item.dataset.pScale);
 
     vdkProjectNode *pNode = vcUDP_AddModel(pProgramState, pFilename, item.dataset.pName, item.dataset.pPath, pPosition, pYPR, scale);
-    pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
+    pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot, pNode };
   }
 }
 
@@ -368,7 +368,7 @@ void vcUPD_AddBookmarkData(vcState *pProgramState, std::vector<vcUDPItemData> *p
   if (item.bookmark.pName != nullptr && item.bookmark.pGeoLocation != nullptr)
   {
     vdkProjectNode *pNode = nullptr;
-    vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "Camera", item.bookmark.pName, nullptr, nullptr);
+    vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "Camera", item.bookmark.pName, nullptr, nullptr);
 
     udGeoZone zone;
     int epsgCode = 0;
@@ -378,7 +378,7 @@ void vcUPD_AddBookmarkData(vcState *pProgramState, std::vector<vcUDPItemData> *p
       udGeoZone_SetFromSRID(&zone, (int32_t)epsgCode);
 
       temp = udGeoZone_ToLatLong(zone, temp, true);
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
+      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
     }
 
     temp = udDouble3::zero();
@@ -394,7 +394,7 @@ void vcUPD_AddBookmarkData(vcState *pProgramState, std::vector<vcUDPItemData> *p
     pVP->m_pPreferredProjection = (udGeoZone*)udMemDup(&zone, sizeof(udGeoZone), 0, udAF_Zero);
     pNode->pUserData = pVP;
 
-    pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
+    pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot, pNode };
   }
 }
 
@@ -405,7 +405,7 @@ void vcUPD_AddMeasureData(vcState *pProgramState, std::vector<vcUDPItemData> *pI
   if (item.measure.pName != nullptr && item.measure.geoLocation[0] != nullptr && item.measure.geoLocation[1] != nullptr)
   {
     vdkProjectNode *pNode = nullptr;
-    vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.bookmark.pName, nullptr, nullptr);
+    vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.bookmark.pName, nullptr, nullptr);
 
     int epsgCode = 0;
     udDouble3 temp[2];
@@ -432,9 +432,9 @@ void vcUPD_AddMeasureData(vcState *pProgramState, std::vector<vcUDPItemData> *pI
       temp[1] = udGeoZone_ToLatLong(zone, temp[1], true);
     }
 
-    vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_LineString, 2, (double*)&temp[0]);
+    vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_LineString, 2, (double*)&temp[0]);
 
-    pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
+    pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot, pNode };
   }
 }
 void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLabelData, size_t index)
@@ -444,7 +444,7 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
   if (item.label.pName != nullptr && item.label.pGeoLocation != nullptr)
   {
     vdkProjectNode *pNode = nullptr;
-    vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.label.pName, nullptr, nullptr);
+    vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.label.pName, nullptr, nullptr);
 
     udDouble3 position = udDouble3::zero();
     int32_t epsgCode = 0;
@@ -469,7 +469,7 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
       udGeoZone_SetFromSRID(pZone, epsgCode);
 
       udDouble3 temp = udGeoZone_ToLatLong(*pZone, position, true);
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
+      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
 
       vcPOI *pPOI = new vcPOI(pNode, pProgramState);
       pPOI->m_pCurrentProjection = (udGeoZone*)udMemDup(pZone, sizeof(udGeoZone), 0, udAF_Zero);
@@ -477,7 +477,7 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
       pNode->pUserData = pPOI;
     }
 
-    pLabelData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
+    pLabelData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot, pNode };
   }
 }
 
@@ -488,7 +488,7 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
   if (item.polygon.pName != nullptr && item.polygon.pPoints != nullptr && item.polygon.numPoints > 0)
   {
     vdkProjectNode *pNode = nullptr;
-    vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.polygon.pName, nullptr, nullptr);
+    vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "POI", item.polygon.pName, nullptr, nullptr);
 
     udGeoZone zone;
     if (udGeoZone_SetFromSRID(&zone, item.polygon.epsgCode) != udR_Success)
@@ -501,9 +501,9 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
       item.polygon.pPoints[i] = udGeoZone_ToLatLong(zone, item.polygon.pPoints[i], true);
 
     if (item.polygon.isClosed)
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)item.polygon.pPoints);
+      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)item.polygon.pPoints);
     else
-      vdkProjectNode_SetGeometry(pProgramState->sceneExplorer.pProject, pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)item.polygon.pPoints);
+      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)item.polygon.pPoints);
 
     udDouble3 *pTemp = item.polygon.pPoints;
     udFree(pTemp);
@@ -520,7 +520,7 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
     pPOI->m_pPreferredProjection = (udGeoZone*)udMemDup(&zone, sizeof(udGeoZone), 0, udAF_Zero);
     pNode->pUserData = pPOI;
 
-    pLabelData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
+    pLabelData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot, pNode };
   }
 }
 
@@ -551,12 +551,12 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
     if (pItemData->at(index).sceneFolder.pParent == nullptr)
     {
       vdkProjectNode *pNode = nullptr;
-      vdkProjectNode_Create(pProgramState->sceneExplorer.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "Folder", item.dataset.pName, nullptr, nullptr);
+      vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->sceneExplorer.clickedItem.pItem, "Folder", item.dataset.pName, nullptr, nullptr);
 
       vcFolder *pFolder = new vcFolder(pNode, pProgramState);
       pNode->pUserData = pFolder;
 
-      pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->sceneExplorer.pProjectRoot->m_pNode, pNode };
+      pItemData->at(index).sceneFolder = { pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot, pNode };
     }
   }
   else
@@ -657,7 +657,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
 
       // If any found then do the move, otherwise this node should bubble to the front
       if (minGTIndex != itemNum)
-        vdkProjectNode_MoveChild(pProgramState->sceneExplorer.pProject, item.sceneFolder.pParent, item.sceneFolder.pParent, item.sceneFolder.pItem, itemData.at(itemNum).sceneFolder.pItem);
+        vdkProjectNode_MoveChild(pProgramState->activeProject.pProject, item.sceneFolder.pParent, item.sceneFolder.pParent, item.sceneFolder.pItem, itemData.at(itemNum).sceneFolder.pItem);
     }
   }
 
