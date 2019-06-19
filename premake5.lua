@@ -112,8 +112,12 @@ function injectvaultsdkbin()
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			libdirs { "builds" }
 			linkoptions { "-rpath @executable_path/" }
-		elseif os.target() == "emscripten" and _ACTION:startswith("vs") then
-			os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
+		elseif os.target() == "emscripten" then
+			if os.host() == premake.WINDOWS then
+				os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
+			else
+				os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
+			end
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/libvaultSDK.bc", "src/libvaultSDK.bc")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/libvaultcore.bc", "src/libvaultcore.bc")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/libudPointCloud.bc", "src/libudPointCloud.bc")
@@ -123,8 +127,6 @@ function injectvaultsdkbin()
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/vHTTPRequest.js", "src/vHTTPRequest.js")
 			libdirs { "src" }
 			linkoptions  { "--js-library src/vHTTPRequest.js" }
-		elseif os.target() == "emscripten" and _ACTION:startswith("gmake") then
-			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 		else
 			if _OPTIONS["gfxapi"] == "metal" then
 				_OPTIONS["gfxapi"] = "opengl"
