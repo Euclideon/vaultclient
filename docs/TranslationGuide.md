@@ -5,7 +5,7 @@
 - Version 0.3.0
   - Added:
     - Login Screen
-      - `loginUserAgent`, `loginSelectUserAgent`
+      - `loginUserAgent`, `loginSelectUserAgent`, `loginRestoreDefaults`
     - Convert
       - `convertWriteFailed`, `convertParseError`, `convertImageParseError`, `convertNoFile`
     - Project Menu & Modals
@@ -13,6 +13,8 @@
     - Scene Explorer
       - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`, `sceneExplorerExportButton`, `sceneExplorerProjectChangeSucceededTitle`, `sceneExplorerProjectChangeSucceededMessage`, `sceneResetRotation`
   - Removed:
+    - Menu strings
+      - `menuRestoreDefaults`
     - Project Menu & Modals
       - `menuImport`, `menuImportUDP`, `menuImportUDPTitle`
     - Scene Explorer
@@ -93,6 +95,7 @@ Modules are currently:
 ### Login Strings
 
 - `loginButton`: Used on the button that logs in the user
+- `loginRestoreDefaults`: Used on the button that restores most vault client settings to their default values
 - `loginAbout`: Used on the button that opens the About window from the login screen
 - `loginReleaseNotes`: Used on the button that opens the Release Notes window from the login screen
 - `loginServerURL`: Vault Server address
@@ -340,7 +343,6 @@ Modules are currently:
 ### Menu Strings
 
 - `menuSystem`: Header for System menu
-- `menuRestoreDefaults`: Option in System menu, restores most vault client settings to their default values
 - `menuQuit`: Option in System menu, exits the program
 - `menuWindows`: Header for Windows menu
 - `menuScene`: Option in Windows menu to enable the Scene tab
