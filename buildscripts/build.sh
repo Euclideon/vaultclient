@@ -85,7 +85,9 @@ else
 		popd
 
 		3rdParty/udcore/bin/premake-bin/premake5 gmake2 --os=emscripten
-		make config=$(echo ${1}_${2} | tr [:upper:] [:lower:]) -j4
+
+		# TODO: Use ${2} instead of ${3} like all other targets
+		make config=$(echo ${1}_${3} | tr [:upper:] [:lower:]) -j4
 	else
 		export OSNAME="Linux"
 		3rdParty/udcore/bin/premake-bin/premake5 gmake
