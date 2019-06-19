@@ -177,6 +177,7 @@ solution "vaultClient"
 		platforms { "Emscripten" }
 		buildoptions { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-s BINARYEN_TRAP_MODE='clamp'", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=1073741824" }
 		linkoptions  { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-s BINARYEN_TRAP_MODE='clamp'", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=1073741824" }
+		linkoptions { "-O3" } -- TODO: This might not be required once `-s PROXY_TO_PTHREAD` is working.
 		targetextension ".bc"
 		linkgroups "On"
 		filter { "kind:*App" }
