@@ -810,7 +810,6 @@ epilogue:
   vcString::FreeTable(&programState.languageInfo);
   vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
   vcSession_Logout(&programState);
-  programState.activeProject.pFolder->Cleanup(&programState);
 
   vcProject_Deinit(&programState, &programState.activeProject);
   vcTexture_Destroy(&programState.image.pImage);
