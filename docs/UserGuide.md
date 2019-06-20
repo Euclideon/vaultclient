@@ -386,6 +386,8 @@ You can also track multiple points within an individual point of interest that e
 
 >TIP: For POIs with images, you can change its type (standard, panorama, photosphere) in the `Image Type` drop down.
 
+>![Image type for images loaded on to Scene](./images/image-types.png "Image type for images loaded on to Scene")
+
 >TIP: When dropping a geolocated Point Of Interest into the scene, it will be positioned correctly if the camera is currently in a projected space
 
 ##### Live Feeds (IOT)
@@ -551,7 +553,7 @@ All four display options also allow you to customise the colours:
 
 > TIP: If you changed a setting and can't recall what you've changed, you can reset all settings by going to the **System** menu and selecting **Restore Defaults**, or you can reset individual groups of settings by right clicking their header and selecting **Restore Defaults**.
 
->TIP: All settings are persistent between sessions: If you log out and log back in, the system will restore your setting changes.
+>TIP: All settings are persistent across sessions: If you log out and log back in, the system will restore your setting changes.
 
 
 
@@ -657,17 +659,19 @@ The Euclideon Vault Client enables users to import 3D models and convert them to
 
 ![Convert Window](./images/convert-parameters.png "Euclideon Vault Convert Window")  
 
+>TIP: If you attempt to drag and drop the file to want to convert on to the Convert Window before typing in the `Output Name` path and filename, then Euclideon Vault Client will report that the file type is not supported.
+
 
 | Step | Action | Comments|
 | :--- | :--- | :--- |
 | **1.** | Select the **Convert** tab in the Euclideon Vault Client interface | If the convert table is not visible, select **Convert** from the Windows drop down menu in the top left-hand corner of the Euclideon Vault Client interface. |
-| **2.** | Type in the **Output Name**&mdash;path and name&mdash;of the exported UDS file. | Ideally, this parameter should be the final target location of the file so that you don\'t need to copy the file at the end. The system will add the file extension for you.Make sure there is enough space in the target directory to store the entire converted file. |
+| **2.** | Type in the **Output Name**&mdash;path and name&mdash;of the exported UDS file. | Ideally, this parameter should be the final target location of the file so that you don\'t need to copy the file at the end. The system will add the file extension for you. Make sure there is enough space in the target directory to store the entire converted file. |
 | **3.** | **Type in the Temp Directory** | Defaults to the same location as the output file in the previous step. <br><br>Type C:\\Vault\\convert in the Output Name field and the Temp Directory will default to C:\\Vault\\convert_temp. Euclideon recommends setting the Temp Directory location to one that resides on a high-speed local drive with plenty of space (***rule of thumb:*** set aside as much space as the uncompressed raw input, as the points in the temporary files have not as yet been compressed), as the convert process will write many small, temporary files. <br><br>The conversion will remove the temp directory after completion. |
 | **4.** | Optional Selection: **Continue processing after corrupt/incomplete data (where possible)**. | If corrupt or incomplete data is detected during a conversion, this setting will decide whether the conversion is **cancelled (unticked) or continues (ticked)** resulting in a skip of the corrupted points.  |
-| **5.** | Optional Selection: **Point resolution:0.00000&mdash;Override** | Defaults to 0.01 and then source size. This setting determines the size of the points (in metres) in the point cloud after conversion. It will attempt to find a good size based on the source data but can be set manually by first ticking the \"Override\" checkbox and then typing a value in the text field. |
-| **6.** | Optional Selection: **Override Geolocation** | If the source data has been correctly geolocated, when you import that file prior to converting it, the file should already have the "Spatial Reference Identifier" (SRID) information filled in this box: search for "EPSG code" or "SRID code" in the meta data.<br><br>The SRID is the Geotagged ID of the GIS zone for the exported model.<br><br>If the pre-parse can detect the SRID it will be set automatically. If not, and you wish to correctly geolocate your data, then you can manually select the \"Override\" checkbox and enter the correct SRID in the text field. It assumes that the input is already in the correct zone.<br><br>Global Point Offset can be used to add an offset to the x, y and z coordinates of the converted model from that which was specified in the file's metadata, or if not, from the global origin (0, 0, 0). |
+| **5.** | Optional Selection: **Point resolution:0.00000&mdash;Override** | Set to the source size, or it will default to 0.01 if no source size configured. This setting determines the size of the points (in metres) in the point cloud after conversion. It will attempt to find a good size based on the source data but can be set manually by first ticking the \"Override\" checkbox and then typing a value in the text field. |
+| **6.** | Optional Selection: **Override Geolocation** | If the source data has been correctly geolocated, when you import that file prior to converting it, the file should already have the "Spatial Reference Identifier" (SRID) information filled in this box: search for "EPSG code" or "SRID code" in the metadata.<br><br>The SRID is the Geotagged ID of the GIS zone for the exported model.<br><br>If the pre-parse can detect the SRID it will be set automatically. If not, and you wish to correctly geolocate your data, then you can manually select the \"Override\" checkbox and enter the correct SRID in the text field. It assumes that the input is already in the correct zone.<br><br>Global Point Offset can be used to add an offset to the x, y and z coordinates of the converted model from that which was specified in the file's metadata, or if not, from the global origin (0, 0, 0). |
 | **7.** | **Quick Partial Convert** | Enabling this option will greatly speed-up the conversion process by only processing 1 in every 1000 points of the input data. This is useful for testing and calibrating the conversion settings before attempting to convert a large and time-consuming job. <br><br>When imported into the scene the converted model will appear disintegrated and will have 1/1000th of the intended resolution. |
-| **8.** | **Meta Data** | This section allows you to import watermark by drag and dropping, add metadata related information such as Author, Comments, Copyright and License holders. |
+| **8.** | **Metadata** | This section allows you to import watermark by drag and dropping, add metadata related information such as Author, Comments, Copyright and License holders. |
 | **9.** | **Choose a file to convert** | You can use one of two methods to add your file for conversion: |
 | | <p id="m1">**Method 1**</p> | Drag and drop the file from Windows Explorer onto the **Convert** window.<br><br> ![](./images/drag-to-convert.png)<br> |
 | | <p id="m2">**Method 2**</p> | Select **UDS+** from the Scene Explorer panel and type in the full path and name of the file to  convert.<br><br> ![](./images/convert-uds-add-to-scene.png)<br> |
@@ -709,9 +713,9 @@ You can rearrange the windows in the Euclideon Vault Client interface to suit yo
 
 | Step | Action |
 | :--- | :--- |
-| **1.**   | Depress and hold the left-mouse button on the tab of the window you want to move. |
+| **1.**   | Press and hold the left-mouse button on the tab of the window you want to move. |
 | **2.**   | As you drag the window, it should pull away from its docked location. |
-| **3.**   | Keep dragging and you will notice transparent blue rectangles appear in strategic places on the interface. |
+| **3.**   | Keep dragging and you will notice transparent blue rectangles appear in dockable locations on the interface. |
 | **4.**   | Drag your window over the blue rectangle situated where you want your window to sit.<br><br>For instance, in the screenshot, we are moving the **Scene Window** to the right of the Convert Window to create a 3-panelled interface display. |
 | **5.**   | Once in position, simply release the left-mouse button. |
 
@@ -734,15 +738,15 @@ You can store 3D models on:
 
 ### Requirements
 
-- **VaultClient_OpenGL** requires the most recent, stable version of OpenGL for your operating system.
-- A reliable and adequately sized **Internet Connection**.
+- **VaultClient_OpenGL** requires the most recent stable version of OpenGL for your operating system.
+- A reliable **Internet Connection** with adequate bandwidth for your data needs.
 - An **Euclideon Vault License**
 - Euclideon Vault Client **Login credentials**
 
 If you have not received your Euclideon Vault Client license or login credentials, then please contact Euclideon at <info@euclideon.com> or go to [Euclideon's website](https://earth.vault.euclideon.com) to access our online support.
 
 ### Settings On Disk
-We mentioned in [**Visualisation**](#visualisation) that your interface settings are persistent across session, and this is why. Euclideon Vault Client stores that information in a **settings.json** file, the location of which is dependent on your operating system.
+We mentioned in [**Visualisation**](#visualisation) that your interface settings are persistent across sessions, and this is because Euclideon Vault Client stores that information in a **settings.json** file, the location of which is dependent on your operating system.
 
 - Windows: `%AppData%/Roaming/Euclideon/client/settings.json`
 - macOS: `~/Library/Application Support/euclideon/client/settings.json`
@@ -769,27 +773,27 @@ Euclideon Vault Development Kit (VDK) uses the following additional libraries.
 ## FAQs
 
 Why can't I see my image?
-> Try adjusting the viewport settings until the image appears.<br>
-> Ensure you have loaded and enabled the layer in the scene viewer pane.
+> Check that you haven't configured the **View Distance** in viewport settings to a small distance. The default minimum is 200 metres, but you can override this value by holding the `Ctrl` key as you click in the View Distance field.<br>
+> Ensure the model is enabled: a tick should appear in the tickbox next to the model name in the Scene Explorer window.
 
 How can I turn the compass off?
 > Visualisation pane on the right hand side in settings, press the checkbox and you've toggled it off.
 
 How do I lock altitude when moving the camera?
-> Press Space bar to toggle, or press the local altitude button in the 'status' window (top left of the Scene window)
+> Press the `Space bar` to toggle, or press the lock altitude button in the 'status' window (top left of the Scene window). See [**5. Scene Info and Controls**](#5-scene-info-and-controls) for more information.
 
 How do I load my previous projects?
-> Press Projects, and view the list previous Euclideon Vault projects from the dropdown box.
+> Press Projects, and view the list of hosted Euclideon Vault projects from the dropdown box. You can also load a project that you saved to disk by selecting `Import` from the Project menu and browsing to where you saved your \<project\>.json file.
 
 How do I convert into UDS?
-> Converting to UDS is as simple as pressing the convert window and naming the output and selecting the destination of the converted file. Refer to [**8. Convert**](#8-convert) in this guide for detailed instructions.
+> Select the Convert window and type the destination path and name for the converted file in the `Output Name` field (the sytem will add the .uds extension once you click out of that field if you don't enter it). Drag and drop the file you want to convert on to the Convert window. Fill out other fields as required. Refer to [**8. Convert**](#8-convert) in this guide for detailed instructions.
 
 A converting error occured, what do I do?
-> Due to either corrupt or incomplete data, clicking the 'continue converting' tickbox will complete converting regardless of data integrity. (Visuals may vary)
+> Due to either corrupt or incomplete data, clicking the 'Continue processing after corrupt/incomplete data (where possible)' tickbox will let the conversion process know that it should attempt to complete the convert process, ignoring data integrity. Euclideon cannot guarantee that the model will convert correctly or that if it does, it will be a useful rendering. 
 
 I am dragging my file to convert onto the convert window, but nothing is  happening. What do I do?
 > Confirm that the file type is supported for conversion by Vault.
-> If you have had your Euclideon Vault interface opened for multiple days, we suggest you log out and log back in again. Try the drag and drop again.
+> If you have not closed out of your Euclideon Vault interface for a number of days, we suggest you quit out of the Euclideon Vault interface (System --> Quit), rerun the VaultClient.exe, and log back in again. Try the drag and drop again.
 
 I want to demonstrate key features of my 3D model, how can I do that?
 > Check out the [Visualisation](#visualisation) dropdown box in the Settings pane, on the right hand side of the viewport in Euclideon Vault Client.
@@ -798,13 +802,18 @@ How do I adjust the mouse controls?
 > View Mouse Pivot bindings in the [input and controls](#input-and-controls) menu in settings.
 
 I closed the settings window and Scene Explorer how do I display them?
-> Select [Window](#windows-menu) from the top menu and check that the window you are missing is unticked. An unticked window means that it won't display. If it is unticked, check it and the window that you want should display. If it does not, press `Restore Defaults` from the [System menu](#system-menu).
+> Select [Window](#windows-menu) from the top menu and confirm that the missing window is unticked; an unticked window means that it won't display. If it is unticked, click it with the left-mouse button. The window should display. If it does not, press `Restore Defaults` from the [System menu](#system-menu) to return the Euclideon Vault Client interface to its default settings.
 
 What is the Name and Light next to my license name mean?
-> Status of License, which license is being used, and how recently your license has synced with the Euclideon Vault. 
-> Green = Good, Yellow = >30 second disconnected, Red = >60 seconds disconnected (Services may be hindered).
+> The **name** is the username you used to log into the Euclideon Vault Client interface.<br> The **light** represents your connection status: 
+>- Green is good and indicates that you are connected and actively working
+>- Yellow indicates that you haven't been using the interface for >30 seconds. 
+>- Red indicates that you haven't engaged with the interface for more than 60 seconds and have been disconnected. 
+>  - Red can also point to hindered services, such as network connectivity issues.
+>
+>Other useful information includes the license type you are using and how recently your license has synced with the Euclideon Vault Server. 
 
-My 3d object is hidden behind a tile map, how do I see it?
+My 3d object is hidden behind a map tile, how do I see it?
 > Changing the Transparency or the Blending in [Maps and Elevation](#maps-and-elevation) may make it easier to see your object, using a combination of these for varied affect.
 
 I keep getting the "logged out" screen, how do I fix this issue?
@@ -813,7 +822,7 @@ I keep getting the "logged out" screen, how do I fix this issue?
 I cannot log in?
 > Check your internet connection, your license status, and ensure you have used the correct URL, username, and password. Make sure your URL has a closed bracket at the end of it if using the default server URL.
 
-I cannot connect to the Euclideon Vault, how do I resolve this issue?
+I cannot connect to the Euclideon Vault Server, how do I resolve this issue?
 > Check your firewall or proxy settings. If running a proxy, check with your IT department that the address is correct and that the correct port is set.
 
 My proxy isn't working, why?
