@@ -2,10 +2,6 @@
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
 
-#if UDPLATFORM_EMSCRIPTEN
-# include <emscripten/html5.h>
-#endif
-
 static vcGLState s_internalState;
 vcFramebuffer g_defaultFramebuffer;
 int32_t g_maxAnisotropy = 0;
@@ -17,16 +13,12 @@ UDCOMPILEASSERT(udLengthOf(vcGLSSFToGL) == vcGLSSF_Total, "Not Enough OpenGL Ste
 
 bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 {
-  if (SDL_GL_CreateContext(pWindow) == nullptr)
+  SDL_GLContext ctx = SDL_GL_CreateContext(pWindow);
+  if (ctx == nullptr)
     return false;
 
 #if UDPLATFORM_EMSCRIPTEN
-  EmscriptenWebGLContextAttributes attr;
-  emscripten_webgl_init_context_attributes(&attr);
-  attr.majorVersion = 2;
-  attr.minorVersion = 0;
-  EMSCRIPTEN_WEBGL_CONTEXT_HANDLE ctx = emscripten_webgl_create_context(0, &attr);
-  emscripten_webgl_make_context_current(ctx);
+  SDL_GL_MakeCurrent(pWindow, ctx);
 #endif
 
 #if UDPLATFORM_WINDOWS
