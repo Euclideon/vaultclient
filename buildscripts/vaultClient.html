@@ -1,0 +1,48 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<title>Vault Client</title>
+<style>
+	html, body {
+		width: 100%;
+		height: 100%;
+		margin: 0px;
+		border: 0;
+		overflow: hidden; /*  Disable scrollbars */
+		display: block;  /* No floating content on sides */
+	}
+
+	canvas {
+		position:absolute;
+		left: 0px;
+		right: 0px;
+		width: 100%;
+		height: 100%;
+	}
+</style>
+</head>
+<body>
+	<canvas id="canvas"></canvas>
+	<script>
+		window.oncontextmenu = (e) => {
+			e.preventDefault();
+		}
+		window.onkeydown = (e) => {
+			if (e.keyCode === 9) { // tab
+				e.preventDefault();
+			}
+		}
+		var Module = {
+			canvas: document.getElementById('canvas'),
+			mainScriptUrlOrBlob:"vaultClient.js",
+			preRun: [
+				function() {
+					FS.mkdir("/libsdl");
+					FS.mount(IDBFS, {}, "/libsdl");
+				},
+			],
+		};
+	</script>
+	<script src="vaultClient.js"></script>
+</body>
+</html>

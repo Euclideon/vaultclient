@@ -84,10 +84,27 @@ else
 		source ./emsdk_env.sh
 		popd
 
+		# Apply modifications to Emscripten
+		# Modify library_egl.js so that it doesn't proxy to the main thread for invalid functions
+		sed -i "s/  eglCreateContext__proxy: 'sync',/#if \!OFFSCREENCANVAS_SUPPORT\n  eglCreateContext__proxy: 'sync',\n#endif/" /emsdk/fastcomp/emscripten/src/library_egl.js
+		sed -i "s/  eglMakeCurrent__proxy: 'sync',/#if \!OFFSCREENCANVAS_SUPPORT\n  eglMakeCurrent__proxy: 'sync',\n#endif/" /emsdk/fastcomp/emscripten/src/library_egl.js
+		# Add clipboard source and modify sdl2.py so that it compiles it
+		cp buildscripts/emscripten_mods/SDL2/SDL_emscriptenclipboard.* /root/.emscripten_ports/sdl2/SDL2-version_18/src/video/emscripten
+		sed -i 's%video/emscripten/SDL_emscriptenevents.c%video/emscripten/SDL_emscriptenclipboard.c video/emscripten/SDL_emscriptenevents.c%' /emsdk/fastcomp/emscripten/tools/ports/sdl2.py
+		# Update framebuffer, mouse and video source to work with PROXY_TO_PTHREAD and use clipboard API
+		cp buildscripts/emscripten_mods/SDL2/SDL_emscriptenframebuffer.c /root/.emscripten_ports/sdl2/SDL2-version_18/src/video/emscripten/SDL_emscriptenframebuffer.c
+		cp buildscripts/emscripten_mods/SDL2/SDL_emscriptenmouse.c /root/.emscripten_ports/sdl2/SDL2-version_18/src/video/emscripten/SDL_emscriptenmouse.c
+		cp buildscripts/emscripten_mods/SDL2/SDL_emscriptenvideo.c /root/.emscripten_ports/sdl2/SDL2-version_18/src/video/emscripten/SDL_emscriptenvideo.c
+		# Update filesystem source to create intermediate directories
+		cp buildscripts/emscripten_mods/SDL2/SDL_sysfilesystem.c /root/.emscripten_ports/sdl2/SDL2-version_18/src/filesystem/emscripten/SDL_sysfilesystem.c
+
 		3rdParty/udcore/bin/premake-bin/premake5 gmake2 --os=emscripten
 
 		# TODO: Use ${2} instead of ${3} like all other targets
 		make config=$(echo ${1}_${3} | tr [:upper:] [:lower:]) -j4
+
+		# Copy HTML page into builds folder ready for packaging
+		cp buildscripts/vaultClient.html builds/vaultClient.html
 	else
 		export OSNAME="Linux"
 		3rdParty/udcore/bin/premake-bin/premake5 gmake
