@@ -11,7 +11,7 @@
     - Menus & Modals
       - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`, `menuBarFilesFailed`, `menuBarFilesFailedTooltip`
     - Scene Explorer
-      - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`, `sceneExplorerExportButton`, `sceneExplorerProjectChangeSucceededTitle`, `sceneExplorerProjectChangeSucceededMessage`, `sceneResetRotation`, `sceneExplorerClearAllButton`, `scenePOILineShowAllLengths`
+      - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`, `sceneExplorerExportButton`, `sceneExplorerProjectChangeSucceededTitle`, `sceneExplorerProjectChangeSucceededMessage`, `sceneResetRotation`, `sceneExplorerClearAllButton`, `scenePOILineShowAllLengths`, `scenePOILineStyleDiagonal`
     - Settings
       - `settingsAppearanceTranslationDifferentVersion`, `settingsConvert`, `settingsConvertRestoreDefaults`
   - Removed:
@@ -550,6 +550,7 @@ Modules are currently:
 - `scenePOILineStyleArrow`: Drop down item for the "Arrow" line style
 - `scenePOILineStyleGlow`: Drop down item for the "Glow" line style
 - `scenePOILineStyleSolid`: Drop down item for the "Solid" line style
+- `scenePOILineStyleDiagonal`: Drop down item for the "Diagonal" line style
 - `scenePOILineOrientation`: Label for the drop down to select a line orientation
 - `scenePOILineOrientationVert`: Text on the drop down item for the "Vertical" / "Fence" orientation
 - `scenePOILineOrientationHorz`: Text on the drop down item for the "Horizontal / Path" orientation

@@ -14,6 +14,7 @@ enum vcFenceRendererVisualMode
 {
   vcRRVM_Fence,
   vcRRVM_Flat,
+
   vcRRVM_Count
 };
 
@@ -22,6 +23,8 @@ enum vcFenceRendererImageMode
   vcRRIM_Arrow,
   vcRRIM_Glow,
   vcRRIM_Solid,
+  vcRRIM_Diagonal,
+
   vcRRIM_Count
 };
 
