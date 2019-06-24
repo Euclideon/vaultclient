@@ -105,8 +105,7 @@ double vcQuadTree_PointToRectDistance(udDouble2 edges[4], const udDouble3 &point
     udDouble2 p2 = edges[edgePairs[e].y];
 
     udDouble2 edge = p2 - p1;
-    double r = udDot2(edge, (point.toVector2() - p1));
-    r /= udPow(udMag2(edge), 2.0);
+    double r = udDot2(edge, (point.toVector2() - p1)) / udMagSq2(edge);
 
     // 2d edge has been found, now factor in z for distances to camera
     // TODO: tile heights (DEM)
@@ -213,16 +212,19 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
     pChildNode->visible = pCurrentNode->visible && vcQuadTree_IsNodeVisible(pQuadTree, pChildNode);
 
     // TODO: tile heights (DEM)
-    double distanceToQuadrant = pQuadTree->pSettings->camera.orthographicSize * 2.0;
+    double distanceToQuadrant;
 
     if (pQuadTree->pSettings->camera.cameraMode == vcCM_FreeRoam)
     {
-      distanceToQuadrant = udAbs(pQuadTree->cameraTreePosition.z);
       udInt2 slippyManhattanDist = udInt2::create(udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x), udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y));
       if (udMagSq2(slippyManhattanDist) != 0)
       {
         distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraTreePosition);
         pChildNode->visible = pChildNode->visible && (udAbs(udSin(pQuadTree->cameraTreePosition.z / distanceToQuadrant)) >= tileToCameraCullAngle);
+      }
+      else
+      {
+        distanceToQuadrant = udAbs(pQuadTree->cameraTreePosition.z);
       }
 
       // Artificially change the distances of tiles based on their relative depths.
@@ -231,6 +233,10 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
       // Note: these values were just 'trial and error'ed
       int nodeDepthToTreeDepth = pQuadTree->expectedTreeDepth - currentDepth;
       distanceToQuadrant *= udLerp(1.0, (0.6 + 0.25 * nodeDepthToTreeDepth), udClamp(nodeDepthToTreeDepth, 0, 1));
+    }
+    else
+    {
+      distanceToQuadrant = pQuadTree->pSettings->camera.orthographicSize * 2.0;
     }
 
     ++pQuadTree->metaData.nodeTouchedCount;
