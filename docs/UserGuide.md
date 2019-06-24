@@ -151,7 +151,7 @@ Use the Euclideon Vault Client Interface to view, import, and convert 3D models.
 
 ![Status Bar](./images/menu-status-bar.png)
 
-The menu bar consists of 2 sections, the left section with menu drop downs and the right section with status information.
+The menu bar consists of 2 sections, the left section with menu drop downs and the right section with status information. The status information will change depending on what models are loaded.
 
 #### System Menu
 
@@ -187,11 +187,6 @@ Use the projects menu to manage project viewing.
 - **Projects** list of available projects on your Euclideon Vault Server.
 
 >TIP: You can also **drag and drop** a GeoJSON file onto the Euclideon Vault Client interface to load a project.
-
-#### Status Bar
-The status bar shows a lot of useful information (not all of it will always be available).
-
-- Number of files queued to load "([n] Files Queued)"
 
 #### Loading a sample project
 
@@ -642,13 +637,12 @@ The Euclideon Vault Client enables users to import 3D models and convert them to
 
 -   LAS
 -   PTS
--   PTX
+-   PTXS
 -   TXT/CSV
 -   E57
 -   XYZ
 -   OBJ
 -   ASC (Esri)
-
 
 ![Convert Window](./images/convert-parameters.png "Euclideon Vault Convert Window")  
 
