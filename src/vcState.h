@@ -66,7 +66,16 @@ struct vcState
 
   vcCamera *pCamera;
 
-  std::vector<const char*> loadList;
+
+  struct FileError
+  {
+    const char *pFilename;
+    udResult resultCode;
+  };
+
+  udChunkedArray<const char*> loadList;
+  udChunkedArray<FileError> errorFiles;
+
   const char *pLoadImage;
   vWorkerThreadPool *pWorkerPool;
 
@@ -150,7 +159,6 @@ struct vcState
     vcImageType imageType;
   } image;
 
-  vdkError currentError;
   int64_t lastEventTime;
   vcTranslationInfo languageInfo;
   bool showUI;

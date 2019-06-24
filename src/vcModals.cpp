@@ -446,7 +446,7 @@ void vcModals_DrawFileModal(vcState *pProgramState)
 
     if (loadFile)
     {
-      pProgramState->loadList.push_back(udStrdup(pProgramState->modelPath));
+      pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
       pProgramState->modelPath[0] = '\0';
       ImGui::CloseCurrentPopup();
     }
@@ -569,33 +569,61 @@ void vcModals_DrawProjectReadOnly(vcState *pProgramState)
 
 void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
 {
-  if (pProgramState->pConvertContext &&  pProgramState->pConvertContext->unsupportedFilenames.length)
+  if (pProgramState->openModals & (1 << vcMT_UnsupportedFile))
     ImGui::OpenPopup(vcString::Get("sceneExplorerUnsupportedFilesTitle"));
 
-  ImVec2 window = ImGui::GetWindowSize();
-  if (window.y < pProgramState->settings.window.height)
-    ImGui::SetNextWindowPos(ImVec2(pProgramState->settings.window.width / 2 - window.x / 2, pProgramState->settings.window.height / 2 - window.y / 2), ImGuiCond_Always);
-
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerUnsupportedFilesTitle"), nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize))
   {
     pProgramState->modalOpen = true;
     ImGui::TextUnformatted(vcString::Get("sceneExplorerUnsupportedFilesMessage"));
 
-    for (int i = 0; i < (int)pProgramState->pConvertContext->unsupportedFilenames.length; ++i)
+    // Clear and close buttons
+    if (ImGui::Button(vcString::Get("sceneExplorerClearAllButton")))
     {
-      ImGui::TextUnformatted(pProgramState->pConvertContext->unsupportedFilenames[i]);
+      while (pProgramState->errorFiles.length)
+      {
+        vcState::FileError errorFile;
+        pProgramState->errorFiles.PopBack(&errorFile);
+        udFree(errorFile.pFilename);
+      }
     }
 
-    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
-    {
-      while (pProgramState->pConvertContext->unsupportedFilenames.length)
-      {
-        const char *pFn = nullptr;
-        pProgramState->pConvertContext->unsupportedFilenames.PopBack(&pFn);
-        udFree(pFn);
-      }
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton")) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
+
+    ImGui::Separator();
+
+    // Actual Content
+    ImGui::BeginChild("unsupportedFilesChild");
+    ImGui::Columns(2);
+
+    for (size_t i = 0; i < pProgramState->errorFiles.length; ++i)
+    {
+      if (ImGui::Button(udTempStr("X##errorFileRemove%zu", i)))
+      {
+        udFree(pProgramState->errorFiles[i].pFilename);
+        pProgramState->errorFiles.RemoveAt(i);
+        --i;
+
+        ImGui::NextColumn();
+        ImGui::NextColumn();
+
+        continue;
+      }
+
+      ImGui::SameLine();
+      ImGui::TextUnformatted(pProgramState->errorFiles[i].pFilename);
+      ImGui::NextColumn();
+
+      ImGui::TextUnformatted(udResultAsString(pProgramState->errorFiles[i].resultCode));
+      ImGui::NextColumn();
     }
+
+    ImGui::EndColumns();
+    ImGui::EndChild();
 
     ImGui::EndPopup();
   }
