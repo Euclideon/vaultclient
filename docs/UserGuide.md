@@ -665,14 +665,12 @@ The Euclideon Vault Client enables users to import 3D models and convert them to
 | **6.** | Optional Selection: **Override Geolocation** | If the source data has been correctly geolocated, when you import that file prior to converting it, the file should already have the "Spatial Reference Identifier" (SRID) information filled in this box: search for "EPSG code" or "SRID code" in the metadata.<br /><br />The SRID is the Geotagged ID of the GIS zone for the exported model.<br /><br />If the pre-parse can detect the SRID it will be set automatically. If not, and you wish to correctly geolocate your data, then you can manually select the \"Override\" checkbox and enter the correct SRID in the text field. It assumes that the input is already in the correct zone.<br /><br />Global Point Offset can be used to add an offset to the x, y and z coordinates of the converted model from that which was specified in the file's metadata, or if not, from the global origin (0, 0, 0). |
 | **7.** | **Quick Partial Convert** | Enabling this option will greatly speed-up the conversion process by only processing 1 in every 1000 points of the input data. This is useful for testing and calibrating the conversion settings before attempting to convert a large and time-consuming job. <br /><br />When imported into the scene the converted model will appear disintegrated and will have 1/1000th of the intended resolution. |
 | **8.** | **Metadata** | This section allows you to import watermark by drag and dropping, add metadata related information such as Author, Comments, Copyright and License holders. |
-| **9.** | **Choose a file to convert** | You can use one of two methods to add your file for conversion: |
-| | <p id="m1">**Method 1**</p> | Drag and drop the file from Windows Explorer onto the **Convert** window.<br /><br /> ![](./images/drag-to-convert.png)<br /> |
-| | <p id="m2">**Method 2**</p> | Select **UDS+** from the Scene Explorer panel and type in the full path and name of the file to  convert.<br /><br /> ![](./images/convert-uds-add-to-scene.png)<br /> |
+| **9.** | **Choose a file to convert** | Drag and drop the file from Windows Explorer onto the **Convert** window.<br /><br /> ![](./images/drag-to-convert.png)<br /> |
 | **10.** | Look at the **Input Files** panel. | Once you have selected your file for conversion, a new panel appears listing your selected files. The estimated number of points in each file will be shown. During conversion, the progress for each file will also be shown. Click **Remove** or **Remove All Files** if the wrong file\(s\) was selected. | 
 | **11.** | Click **Begin Convert** | Euclideon Vault will read the file then process and write the points. <br /><br /> ![Conversion in progress](./images/conversion-in-progress.png "Conversion in progress") <br />|
 | **12.** | **X** to Cancel | The "X" button beside the convert job in the "Convert Jobs" section allows you to cancel a running convert (it will cancel at the next 'safe' point and clean up temporary files). Once cancelled, the 'Begin Convert' button and the configuration options will reappear enabling you to restart the conversion. <br /><br />After a job has completed the "X" button also allows you to remove it from the list. |
-| **13.**| Click **Add to Scene** | When the conversion has completed successfully, click the **Add to Scene** button located at the top of the window. Euclideon Vault Client interface will automatically switch to the **Scene Window** to display your 3D model. <br /><br /> ![Add to Scene](./images/add-to-scene.png "Add to Scene") |
-| **14.**| Review your 3D Model | If Euclideon Vault Client interface does not switch automatically to the **Scene Window**, then select **Scene** from the Windows menu at the top of the Euclideon Vault Client interface. |
+| **13.**| Click **Add to Scene** | When the conversion has completed successfully, click the **Add to Scene** button located at the top of the window. Euclideon Vault Client interface will automatically switch to the **Scene Window** to display your 3D model. <br /><br /> ![Add to Scene](./images/add-to-scene.png "Add to Scene")<br /><br />*NOTE: Requires a Render License.* |
+| **14.**| Review your 3D Model | If Euclideon Vault Client interface does not switch automatically to the **Scene Window**, then select **Scene** from the Windows menu at the top of the Euclideon Vault Client interface. <br /><br />*NOTE: Requires a Render License.*|
 
 
 > TIP: Euclideon does not recommend running multiple converts at the same time. Converting is a memory and processor intensive process so it's almost always faster to have 1 convert running at a time. Euclideon Vault Client helps with this by allowing you to queue multiple jobs to run one after another.
@@ -681,7 +679,6 @@ The Euclideon Vault Client enables users to import 3D models and convert them to
 #### Converting from Command Line (CMD)
 The Euclideon Vault Client also comes with a separate command line application which allows you to convert files via the command line instead of using the [**Convert Tab**](#converting-in-euclideon-vault-client).
 
-Valid conversion filetypes are: `.pts`, `.ptx`, `.las`, `.txt`, `.csv`, `.e57`, `.asc (esri)`, `.xyz`, `.obj`.
 
 | Command or Option | Action |
 | :--- | :--- |
@@ -689,11 +686,7 @@ Valid conversion filetypes are: `.pts`, `.ptx`, `.las`, `.txt`, `.csv`, `.e57`, 
 | **Syntax** | `vaultConvertCMD server username password [options] -i inputFile [-i anotherInputFile] -o outputFile.uds` |
 | **server** | The name and location of your Euclideon Vault Server |
 | **username** <br /> **password** | Your account credentials for connecting to `server`.<br /> These will be the same as those used for the Euclideon Vault Client login screen (See [**Logging In**](#logging-in)). |
-| **[options]** | Optional arguments for customising the conversion: |
-|  |**-resolution <res>** Override the resolution (0.01 = 1cm, 0.001 = 1mm) <br />|
-|  |**-srid <sridCode>** Override the srid code for geolocation <br />|
-|  | **-pause** Requires the enter key to be pressed before exiting <br />|
-|  |**-pauseOnError** If an error occurs, require the enter key to be pressed before exiting<br /> |
+| **[options]** | Optional arguments for customising the conversion:<br /><br /> **-resolution <res>** Override the resolution (0.01 = 1cm, 0.001 = 1mm) <br /><br />**-srid <sridCode>** Override the srid code for geolocation <br /><br />**-pause** Requires the enter key to be pressed before exiting <br /><br />**-pauseOnError** If an error occurs, require the enter key to be pressed before exiting<br /> |
 |**-i inputFile**  | The location of the file you wish to convert. If the file's path contains any spaces, you need to put the path in quotes, for example: `"C:/My Data/File to Convert.csv"`<br /><br /> Use multiple `-i InputFile` options to specify additional input files. **NOTE:** The conversion process will merge all files into the one output file, so ensure they are compatible first. |
 |  **-o outputFile.uds** | The name and location of the new `.uds` file you wish to create. Again, if the file's path contains any spaces you must put the path in quotes, for example: `"C:/Output/Converted File.uds"` |
 
@@ -731,9 +724,9 @@ You can store 3D models on:
 
 ### Requirements
 
-- **VaultClient_OpenGL** requires the most recent stable version of OpenGL for your operating system.
-- A reliable **Internet Connection** with adequate bandwidth for your data needs.
-- An **Euclideon Vault License**
+- **VaultClient_OpenGL** requires OpenGL version 3.2 and up-to-date graphics drivers.
+- A reliable **Internet Connection** with adequate bandwidth for Euclideon Earth users.
+- An **Euclideon Vault License** for convert and render operations.
 - Euclideon Vault Client **Login credentials**
 
 If you have not received your Euclideon Vault Client license or login credentials, then please contact Euclideon at <info@euclideon.com> or go to [Euclideon's website](https://euclideon.com) to access our online support.
@@ -786,7 +779,6 @@ A converting error occured, what do I do?
 
 I am dragging my file to convert onto the convert window, but nothing is  happening. What do I do?
 > Confirm that the file type is supported for conversion by Vault.
-> If you have not closed out of your Euclideon Vault interface for a number of days, we suggest you quit out of the Euclideon Vault interface (System --> Quit), rerun the VaultClient.exe, and log back in again. Try the drag and drop again.
 
 I want to demonstrate key features of my 3D model, how can I do that?
 > Check out the [Visualisation](#visualisation) dropdown box in the Settings pane, on the right hand side of the viewport in Euclideon Vault Client.
@@ -800,13 +792,13 @@ I closed the settings window and Scene Explorer how do I display them?
 What is the Name and Light next to my license name mean?
 > The **name** is the username you used to log into the Euclideon Vault Client interface.<br /> The **light** represents your connection status: 
 >- Green is good and indicates that you are connected and actively working
->- Yellow indicates that you haven't been using the interface for >30 seconds. 
->- Red indicates that you haven't engaged with the interface for more than 60 seconds and have been disconnected. 
+>- Yellow indicates that the server hasn't been contacted in over 30 seconds. 
+>- Red indicates that the server hasn't been contacted in more than 60 seconds and have been disconnected. 
 >  - Red can also point to hindered services, such as network connectivity issues.
 >
 >Other useful information includes the license type you are using and how recently your license has synced with the Euclideon Vault Server. 
 
-My 3d object is hidden behind a map tile, how do I see it?
+My 3d object is hidden behind the map. How do I see it?
 > Changing the Transparency or the Blending in [Maps and Elevation](#maps-and-elevation) may make it easier to see your object, using a combination of these for varied affect.
 
 I keep getting the "logged out" screen, how do I fix this issue?
@@ -819,7 +811,7 @@ I cannot connect to the Euclideon Vault Server, how do I resolve this issue?
 > Check your firewall or proxy settings. If running a proxy, check with your IT department that the address is correct and that the correct port is set.
 
 My proxy isn't working, why?
-> Authenticated Proxies at the time of this build do not have official proxy support. Adopt the proxy format of `protocol://username:password@domain/URI`. Network metadata is not transmitted when using proxies and is stored in plain text file, which may assist solving connection issues.
+> Adopt the proxy format of `protocol://username:password@domain/URI`. Network metadata is not transmitted when using proxies and is stored in plain text file, which may assist solving connection issues.
 
 `Could not open a secure channel` Why is this popping up?
 > If you are using a proxy, your network may not be sending encrypted data. Ticking the "ignore certificate verification" may circumvent this issue. Note: Network Security certificates will not be verified.
