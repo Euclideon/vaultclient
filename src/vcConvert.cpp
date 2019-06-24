@@ -147,7 +147,6 @@ void vcConvert_Init(vcState *pProgramState)
   pProgramState->pConvertContext = udAllocType(vcConvertContext, 1, udAF_Zero);
 
   pProgramState->pConvertContext->jobs.Init(32);
-  pProgramState->pConvertContext->unsupportedFilenames.Init(4);
 
   pProgramState->pConvertContext->pMutex = udCreateMutex();
   pProgramState->pConvertContext->pSemaphore = udCreateSemaphore();
@@ -189,14 +188,6 @@ void vcConvert_Deinit(vcState *pProgramState)
   while (pProgramState->pConvertContext->jobs.length > 0)
     vcConvert_RemoveJob(pProgramState, 0);
   pProgramState->pConvertContext->jobs.Deinit();
-
-  while (pProgramState->pConvertContext->unsupportedFilenames.length > 0)
-  {
-    const char *pFn = nullptr;
-    pProgramState->pConvertContext->unsupportedFilenames.PopBack(&pFn);
-    udFree(pFn);
-  }
-  pProgramState->pConvertContext->unsupportedFilenames.Deinit();
 
   udFree(pProgramState->pConvertContext);
 }
@@ -647,7 +638,10 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename, bool water
   }
 
   // No conversion was found so add it to list of unsupported filenames to tell the user later
-  pProgramState->pConvertContext->unsupportedFilenames.PushBack(udStrdup(pFilename));
+  vcState::FileError fileError;
+  fileError.pFilename = udStrdup(pFilename);
+  fileError.resultCode = udR_Unsupported;
+  pProgramState->errorFiles.PushBack(fileError);
 
   return false;
 }

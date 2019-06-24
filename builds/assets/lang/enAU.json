@@ -264,7 +264,9 @@
   "menuNewVersionCloseButton": "Close",
 
   "menuBarUpdateAvailable": "Update Available",
-  "menuBarFilesQueued": "({0} Files Queued)",
+  "menuBarFilesQueued": "{0} Files Queued",
+  "menuBarFilesFailed": "{0} Files Failed",
+  "menuBarFilesFailedTooltip": "Some files failed to be processed correctly.\n\nClick here to see the full list.",
   "menuBarConvert": "Convert",
   "menuBarLicense": "License",
   "menuBarRender": "Render",
@@ -358,6 +360,7 @@
   "sceneExplorerProjectReadOnlyMessage": "The project you tried to modify is marked read only. You do not have permission to make changes.",
   "sceneExplorerUnsupportedFilesTitle": "Unsupported Files",
   "sceneExplorerUnsupportedFilesMessage": "The files you tried to add are currently unsupported by Euclideon Vault Client.",
+  "sceneExplorerClearAllButton": "Clear All",
   "sceneExplorerCloseButton": "Close",
 
   "sceneExplorerErrorOpen": "Could not open the model, perhaps it is missing or you don't have permission to access it.",
@@ -428,12 +431,5 @@
   "liveFeedModeCamera": "Around Camera",
   "liveFeedDiagInfo": "Total Cached Items: {0}\nCurrently displaying {1} items.\nNext Update in {2} seconds.",
   "liveFeedGroupID": "Group ID",
-  "liveFeedPosition": "Position",
-
-  "errorTitle": "Error",
-  "errorUnknown": "Unknown Error.",
-  "errorOpening": "Error opening file.",
-  "errorReading": "Error reading file.",
-  "errorWriting": "Error writing to file.",
-  "errorCloseButton": "Close"
+  "liveFeedPosition": "Position"
 }
