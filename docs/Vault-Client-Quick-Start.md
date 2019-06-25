@@ -157,11 +157,11 @@ Use the projects menu to manage project viewing.
 ![Projects Menu](./images/projectdropdown.png)
 
 - **New Scene** will remove all items from your Scene and create a new empty Scene.
-- **Export** will export the project information, including links to the project location, to a GeoJSON (JavaScript Object Notation) file in a user-specified directory. The directory must exist.
-- **Import** will enable you to import a project in UDS or GeoJSON (JavaScript Object Notation) format to the Scene.
+- **Export** will export the project information, including links to models and other features, to a GeoJSON (JavaScript Object Notation) file in a user-specified directory. The directory must exist.
+- **Import** will enable you to import a project in UDP or GeoJSON (JavaScript Object Notation) format to the Scene.
 - **Projects** list of available projects on your Euclideon Vault Server.
 
->TIP: You can also **drag and drop** a GeoJSON file onto the Euclideon Vault Client interface to load a project.
+>TIP: You can also **drag and drop** a UDP or GeoJSON file onto the Euclideon Vault Client interface to load a project.
 
 
 ### 2. Scene Viewport
