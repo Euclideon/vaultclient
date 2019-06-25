@@ -1,6 +1,6 @@
 
 ![Euclidon Vault Client QS cover page](./images/vault-qs-cover.png "Euclideon Vault Client QS cover page")
-# **Euclideon Vault Client Quick-Start Guide**
+# **Euclideon Vault Client Quick-Start Guide for Earth subscribers**
 ## Contents 
 
 - [**Quick-Start Guide for Euclideon Vault Client**](#quick-start-guide-for-euclideon-vault-client)
@@ -25,8 +25,8 @@
 - [**Contact Us**](#contact-us)
 - [**Special Acknowledgements**](#special-acknowledgements)
 
-## Quick-Start Guide for Euclideon Vault Client
-This Quick-start guide provides the information you need to start using Euclideon's Vault Client application. Before starting, please ensure you received an email from Euclideon with a software download link and login credentials. If you have any questions or suggestions, please contact Euclideon at <info@euclideon.com> or go to <https://www.euclideon.com/> to access our online support.
+## Quick-Start Guide for Euclideon Vault Client for Earth subscribers
+This Quick-start guide provides the information that Earth subscribers need to start using Euclideon's Vault Client application. Before starting, please ensure you received an email from Euclideon with a software download link and login credentials. If you have any questions or suggestions, please contact Euclideon at <info@euclideon.com> or go to <https://www.euclideon.com/> to access our online support.
 
 Refer to the [**Euclideon Vault Client User Guide**](./UserGuide.md) for detailed coverage of the Euclideon Vault Client interface.
 
