@@ -19,6 +19,8 @@ enum vcModalTypes
   vcMT_ProjectChangeSucceeded,
   vcMT_ProjectReadOnly,
   vcMT_UnsupportedFile,
+  vcMT_ConvertAdd,
+  vcMT_ConvertOutput,
 
   vcMT_Count
 };
