@@ -196,7 +196,7 @@ You can use specific keys, with the "Scene" window focused, to control the camer
 The Scene Explorer window lists the assets currently in your scene. When you first open the Euclideon Vault Client interface, there should be no items listed. In order to familiarise yourself with the Euclideon Vault Client interface, you can load an existing UDS model or select a sample project if you are an Euclideon Earth subscriber. We cover both methods in this chapter.
 
 #### Loading existing UDS Models
-The easiest way to load a model into the Euclideon Vault Client is to **DRAG** a uds file from your file explorer and **DROP** it in the Euclideon Vault Client Scene window to add the model to the scene.
+The easiest way to load a model into the Euclideon Vault Client is to **DRAG** a UDS file from your file explorer and **DROP** it in the Euclideon Vault Client Scene window to add the model to the scene.
 
 ![](./images/drag-to-load-uds.png)
 
