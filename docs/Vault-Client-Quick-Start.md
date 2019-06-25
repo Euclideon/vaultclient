@@ -28,7 +28,7 @@
 ## Quick-Start Guide for Euclideon Vault Client
 This Quick-start guide provides the information you need to start using Euclideon's Vault Client application. Before starting, please ensure you received an email from Euclideon with a software download link and login credentials. If you have any questions or suggestions, please contact Euclideon at <info@euclideon.com> or go to <https://www.euclideon.com/> to access our online support.
 
-Refer to the **Euclideon Vault Client User Guide** for detailed coverage of the Euclideon Vault Client interface.
+Refer to the [**Euclideon Vault Client User Guide**](./UserGuide.md) for detailed coverage of the Euclideon Vault Client interface.
 
 ## Downloading the Euclideon Vault client software
 
@@ -81,7 +81,7 @@ The iOS and Android builds are not currently publicly available.
 
 Before attempting to log into the Euclideon Vault Client, ensure you have [downloaded and extracted the Euclideon Vault Client software](#quick-start-guide-for-euclideon-vault-client).
 
-The remaining instructions in this guide target Windows operating systems. Refer to the **Euclideon Vault User Guide** for detailed information relating to the other supported operating system types.
+The remaining instructions in this guide target Windows operating systems. Refer to the [**Euclideon Vault User Guide**](./UserGuide.md) for detailed information relating to the other supported operating system types.
 
 ![Login Screen](./images/loginscreen.png "Euclideon Vault Client login screen")
 
@@ -111,7 +111,7 @@ After you have entered your credentials, click **Login** and you will see an emp
 
 Use the Euclideon Vault Client Interface to view, import, and convert 3D models. Refer to the sections that correlate to the numbers on the image for more detailed information on how to use that feature. 
 
-We are only touching on the elements you need to start using Euclideon Vault Client. Refer to the **Euclideon Vault Client User Guide** for detailed coverage of the Euclideon Vault Client interface.
+We are only touching on the elements you need to start using Euclideon Vault Client. Refer to the [**Euclideon Vault Client User Guide**](./UserGuide.md) for detailed coverage of the Euclideon Vault Client interface.
 
 ![Interface Numbers](./images/qs-interface-numbered.png "Euclideon Vault Client Interface")
 
@@ -220,7 +220,7 @@ If you are a subscriber to Euclideon Earth, Euclideon provides sample projects f
 
 ### 4. Settings
 
-You can customise settings such as speed of movement, panel brightness, camera lens, and more. This section will cover the most common customised settings. Refer to the more detailed **Euclideon Vault User Guide** for information on the other options in the Settings panel.
+You can customise settings such as speed of movement, panel brightness, camera lens, and more. This section will cover the most common customised settings. Refer to the more detailed [**Euclideon Vault User Guide**](./UserGuide.md) for information on the other options in the Settings panel.
 
 ![Settings](./images/settings.png)
 
