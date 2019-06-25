@@ -224,6 +224,11 @@
   "convertSpaceCartesian": "Cartesian",
   "convertSpaceLatLong": "Latitude then Longitude",
   "convertSpaceLongLat": "Longitude then Latitude",
+  "convertAddFileTitle": "Add New File to Convert Job",
+  "convertSetOutputTitle": "Set Convert Job Output Path",
+  "convertAddNewJob": "Create New Job",
+  "convertAddFile": "Add File",
+  "convertSetOutput": "Set Output Path",
 
   "menuSystem": "System",
   "menuQuit": "Quit",
