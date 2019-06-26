@@ -225,14 +225,12 @@ void vcConvert_ShowUI(vcState *pProgramState)
   ImGui::SetColumnOffset(1, convertJobsOffset);
 
   ImGui::Text("%s", vcString::Get("convertJobs"));
-
   ImGui::NextColumn();
 
   ImGui::TextUnformatted(vcString::Get("convertSettings"));
-
   ImGui::NextColumn();
+
   ImGui::Separator();
-  ImGui::SameLine(344);
 
   if (ImGui::Button(vcString::Get("convertAddNewJob"), ImVec2(100, 23)))
   {
@@ -333,24 +331,23 @@ void vcConvert_ShowUI(vcState *pProgramState)
   // Options pane --------------------------------
   ImGui::NextColumn();
 
-  if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled) && ImGui::Button(vcString::Get("convertAddFile"), ImVec2(200, 50)))
+  if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled))
   {
-    vcModals_OpenModal(pProgramState, vcMT_ConvertAdd);
-  }
+    if (ImGui::Button(vcString::Get("convertAddFile"), ImVec2(200, 50)))
+      vcModals_OpenModal(pProgramState, vcMT_ConvertAdd);
 
-  ImGui::SameLine();
+    ImGui::SameLine();
 
-  if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled) && ImGui::Button(vcString::Get("convertBeginConvert"), ImVec2(-1, 50)))
-  {
-    if (pSelectedJob->status == vcCQS_Cancelled)
-      vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
-    ImGui::Separator();
-    pSelectedJob->status = vcCQS_Queued;
-    udIncrementSemaphore(pProgramState->pConvertContext->pSemaphore);
+    if (ImGui::Button(vcString::Get("convertBeginConvert"), ImVec2(-1, 50)))
+    {
+      if (pSelectedJob->status == vcCQS_Cancelled)
+        vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
+      pSelectedJob->status = vcCQS_Queued;
+      udIncrementSemaphore(pProgramState->pConvertContext->pSemaphore);
+    }
   }
   else if (pSelectedJob->status == vcCQS_Completed && ImGui::Button(vcString::Get("convertReset"), ImVec2(-1, 50)))
   {
-    ImGui::Separator();
     vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
   }
   else if (pSelectedJob->status == vcCQS_Running && (ImGui::Button(udTempStr("%s##vcAddPreview", pSelectedJob->previewRequested ? vcString::Get("convertGeneratingPreview") : vcString::Get("convertAddPreviewToScene")), ImVec2(-1, 50)) || pSelectedJob->previewRequested))
@@ -372,19 +369,19 @@ void vcConvert_ShowUI(vcState *pProgramState)
   ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 
   udSprintf(outputName, UDARRAYSIZE(outputName), "%s", pSelectedJob->pConvertInfo->pOutputName);
-  if (ImGui::InputText("", outputName, UDARRAYSIZE(outputName)))
+  if (ImGui::InputText(vcString::Get("convertOutputName"), outputName, UDARRAYSIZE(outputName)))
     vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pSelectedJob->pConvertContext, outputName);
 
   udSprintf(tempDirectory, UDARRAYSIZE(tempDirectory), "%s", pSelectedJob->pConvertInfo->pTempFilesPrefix);
-  if (ImGui::InputText("", tempDirectory, UDARRAYSIZE(tempDirectory)))
+  if (ImGui::InputText(vcString::Get("convertTempDirectory"), tempDirectory, UDARRAYSIZE(tempDirectory)))
     vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pSelectedJob->pConvertContext, tempDirectory);
 
-  ImGui::SameLine();
-  ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 27);
-
-  if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled) && ImGui::Button(vcString::Get("convertSetOutput"), ImVec2(-1, 50)))
+  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
   {
-    vcModals_OpenModal(pProgramState, vcMT_ConvertOutput);
+    ImGui::SameLine();
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 27);
+    if (ImGui::Button(vcString::Get("convertSetOutput"), ImVec2(-1, 50)))
+      vcModals_OpenModal(pProgramState, vcMT_ConvertOutput);
   }
 
   ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);

@@ -457,6 +457,7 @@ void vcModals_DrawFileModal(vcState *pProgramState)
     }
     else if (mode == vcMT_ConvertAdd)
     {
+      // TODO: List all supported conversion filetypes
       if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), false, nullptr, 0)) // No extensions means show every file
         loadFile = true;
     }
