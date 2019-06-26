@@ -227,7 +227,7 @@
   "convertAddFileTitle": "Add New File to Convert Job",
   "convertSetOutputTitle": "Set Output Destination/Overwrite File",
   "convertAddNewJob": "Create New Job",
-  "convertAddFile": "Add File",
+  "convertAddFile": "Add Input File",
   "convertSetOutput": "Set Output Path",
 
   "menuSystem": "System",

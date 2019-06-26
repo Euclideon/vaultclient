@@ -220,10 +220,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
   // Convert Jobs --------------------------------
   ImGui::Columns(2);
-  ImGui::GetCurrentWindow()->DC.CurrentColumns->Columns[1].Flags |= ImGuiColumnsFlags_NoResize;
-  float convertJobsOffset = 440.f;
-  ImGui::SetColumnOffset(1, convertJobsOffset);
-
   ImGui::Text("%s", vcString::Get("convertJobs"));
   ImGui::NextColumn();
 
@@ -263,16 +259,14 @@ void vcConvert_ShowUI(vcState *pProgramState)
       }
       continue;
     }
-    float buttonWidth = ImGui::GetItemRectSize().x;
+
     ImGui::SameLine();
 
     udSprintf(tempBuffer, UDARRAYSIZE(tempBuffer), "%s (%s)##convertjob_%zu", pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName, vcString::Get(statusNames[pProgramState->pConvertContext->jobs[i]->status]), i);
 
-    ImVec2 selectablePos = ImVec2(ImGui::GetContentRegionMax().x - buttonWidth - ImGui::GetStyle().ItemSpacing.x * 2, 0);
+    ImVec2 selectablePos = ImVec2(ImGui::GetContentRegionMax().x - ImGui::GetStyle().ItemSpacing.x * 2, 0);
     if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
       selectablePos.x -= ImGui::GetContentRegionMax().x / 2.f;
-    else if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Completed)
-      selectablePos.x -= ImGui::GetContentRegionMax().x * 0.2f;
 
     if (ImGui::Selectable(tempBuffer, selected, ImGuiSelectableFlags_None, selectablePos))
       pProgramState->pConvertContext->selectedItem = i;
@@ -304,23 +298,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
         ImGui::ProgressBar(progressRatio + (1.f - progressRatio) * pointsWritten / pointsTotal, ImVec2(-1, 0), vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertWritingPoints"), strings, udLengthOf(strings)));
       }
     }
-    else if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Completed)
-    {
-      ImGui::SameLine();
-      if (ImGui::Button(udTempStr("%s##vcConvLoad_%zu", vcString::Get("convertAddToScene"), i), ImVec2(-1, 0)))
-      {
-        vdkProjectNode *pNode = nullptr;
-        if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName, nullptr) == vE_Success)
-        {
-          udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
-          pProgramState->changeActiveDock = vcDocks_Scene;
-        }
-        else
-        {
-          vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
-        }
-      }
-    }
   }
 
   if (pProgramState->pConvertContext->selectedItem >= pProgramState->pConvertContext->jobs.length)
@@ -346,9 +323,27 @@ void vcConvert_ShowUI(vcState *pProgramState)
       udIncrementSemaphore(pProgramState->pConvertContext->pSemaphore);
     }
   }
-  else if (pSelectedJob->status == vcCQS_Completed && ImGui::Button(vcString::Get("convertReset"), ImVec2(-1, 50)))
+  else if (pSelectedJob->status == vcCQS_Completed)
   {
-    vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
+    size_t selectedJob = pProgramState->pConvertContext->selectedItem;
+    if (ImGui::Button(udTempStr("%s##vcConvLoad_%zu", vcString::Get("convertAddToScene"), selectedJob), ImVec2(200, 50)))
+    {
+      vdkProjectNode *pNode = nullptr;
+      if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProgramState->pConvertContext->jobs[selectedJob]->pConvertInfo->pOutputName, nullptr) == vE_Success)
+      {
+        udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+        pProgramState->changeActiveDock = vcDocks_Scene;
+      }
+      else
+      {
+        vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+      }
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("convertReset"), ImVec2(-1, 50)))
+      vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
   }
   else if (pSelectedJob->status == vcCQS_Running && (ImGui::Button(udTempStr("%s##vcAddPreview", pSelectedJob->previewRequested ? vcString::Get("convertGeneratingPreview") : vcString::Get("convertAddPreviewToScene")), ImVec2(-1, 50)) || pSelectedJob->previewRequested))
   {
@@ -530,8 +525,9 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       float rowY = ImGui::GetCursorPosY();
       float rowIndent = ImGui::GetTextLineHeightWithSpacing() + 4;
+      float rowOffset = ImGui::GetColumnOffset(1);
       ImGui::Columns(5, NULL, false);
-      ImGui::SetColumnOffset(1, convertJobsOffset);
+      ImGui::SetColumnOffset(1, rowOffset);
       ImGui::SetColumnWidth(2, 70);
 
       for (size_t i = 0; i < pSelectedJob->pConvertInfo->totalItems; ++i)
@@ -627,29 +623,19 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename, bool water
 {
   vcConvertItem *pSelectedJob = nullptr;
 
-  if (watermark)
-  {
+  if (pProgramState->pConvertContext->selectedItem >= 0 && pProgramState->pConvertContext->selectedItem < pProgramState->pConvertContext->jobs.length)
     pSelectedJob = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem];
 
-    if (vdkConvert_AddWatermark(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
-    {
-      udFree(pSelectedJob->watermark.pFilename);
-      pSelectedJob->watermark.pFilename = udStrdup(pFilename);
-      pSelectedJob->watermark.isDirty = true;
-      pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
-      return true;
-    }
-  }
-
-  for (int i = (int)pProgramState->pConvertContext->jobs.length - 1; i >= 0 && pSelectedJob == nullptr; --i)
+  if (watermark && vdkConvert_AddWatermark(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
   {
-    pSelectedJob = pProgramState->pConvertContext->jobs[i];
-    if (pSelectedJob->status == vcCQS_Preparing)
-      break;
-    pSelectedJob = nullptr;
+    udFree(pSelectedJob->watermark.pFilename);
+    pSelectedJob->watermark.pFilename = udStrdup(pFilename);
+    pSelectedJob->watermark.isDirty = true;
+    pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
+    return true;
   }
 
-  if (pSelectedJob == nullptr)
+  if (pSelectedJob == nullptr || pSelectedJob->status != vcCQS_Preparing)
     vcConvert_AddEmptyJob(pProgramState, &pSelectedJob);
 
   // Maybe its an I3S?
