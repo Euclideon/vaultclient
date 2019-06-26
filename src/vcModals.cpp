@@ -470,20 +470,14 @@ void vcModals_DrawFileModal(vcState *pProgramState)
 
     if (loadFile)
     {
-      if (mode == vcMT_ConvertAdd)
-      {
-        // Prefer vcConvert_AddFile() to loadList.PushBack() here because it will definitely be a convert job
-        vcConvert_AddFile(pProgramState, pProgramState->modelPath);
-      }
-      else if (mode == vcMT_ConvertOutput)
+      if (mode == vcMT_ConvertOutput)
       {
         // Set output path and filename
         udFilename loadFilename(pProgramState->modelPath);
         loadFilename.SetExtension(".uds");
         vdkConvertContext *pConvertContext = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext;
         vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pConvertContext, loadFilename.GetPath());
-        loadFilename.SetExtension("_temp/");
-        vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pConvertContext, loadFilename.GetPath());
+        // SetOutputFilename() overwrites the temp directory automatically, unless the user has modified it
       }
       else
       {
