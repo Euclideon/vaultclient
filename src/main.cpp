@@ -58,6 +58,8 @@
 
 #if UDPLATFORM_EMSCRIPTEN
 #include "vHTTPRequest.h"
+#include <emscripten/threading.h>
+#include <emscripten/emscripten.h>
 #endif
 
 #include "stb_image.h"
@@ -536,6 +538,26 @@ void vcMain_MainLoop(vcState *pProgramState)
   }
 }
 
+#if UDPLATFORM_EMSCRIPTEN
+void vcMain_GetScreenResolution(vcState *pProgramState)
+{
+  pProgramState->sceneResolution.x = EM_ASM_INT_V({
+    return window.innerWidth;
+  });
+  pProgramState->sceneResolution.y = EM_ASM_INT_V({
+    return window.innerHeight;
+  });
+}
+
+void vcMain_SyncFS()
+{
+  EM_ASM({
+    // Sync from persisted state into memory
+    FS.syncfs(true, function(err) { assert(!err); });
+  });
+}
+#endif
+
 int main(int argc, char **args)
 {
 #if UDPLATFORM_WINDOWS
@@ -547,6 +569,10 @@ int main(int argc, char **args)
     SetCurrentDirectoryW(udOSString(cPathBuffer));
   }
 #endif //UDPLATFORM_WINDOWS
+
+#if UDPLATFORM_EMSCRIPTEN
+  emscripten_sync_run_in_main_runtime_thread(EM_FUNC_SIG_V, vcMain_SyncFS);
+#endif
 
   uint32_t windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
@@ -581,6 +607,8 @@ int main(int argc, char **args)
   programState.sceneResolution.x = 1920;
   programState.sceneResolution.y = 1080;
   programState.settings.onScreenControls = true;
+#elif UDPLATFORM_EMSCRIPTEN
+  emscripten_sync_run_in_main_runtime_thread(EM_FUNC_SIG_VI, vcMain_GetScreenResolution, &programState);
 #else
   programState.sceneResolution.x = 1280;
   programState.sceneResolution.y = 720;
@@ -632,15 +660,6 @@ int main(int argc, char **args)
 
   vWorkerThread_StartThreads(&programState.pWorkerPool);
   vcConvert_Init(&programState);
-
-#if UDPLATFORM_EMSCRIPTEN
-  programState.sceneResolution.x = EM_ASM_INT_V({
-    return window.innerWidth;
-  });
-  programState.sceneResolution.y = EM_ASM_INT_V({
-    return window.innerHeight;
-  });
-#endif
 
   // Setup SDL
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -709,6 +728,12 @@ int main(int argc, char **args)
   ImGui::GetStyle().WindowRounding = 0.0f;
 
   vcMain_LoadSettings(&programState, false);
+
+#if UDPLATFORM_EMSCRIPTEN
+  // This needs to be here because the settings will load with the incorrect resolution (1280x720)
+  programState.settings.window.width = (int)programState.sceneResolution.x;
+  programState.settings.window.height = (int)programState.sceneResolution.y;
+#endif
 
   if (!vcGLState_Init(programState.pWindow, &programState.pDefaultFramebuffer))
     goto epilogue;
