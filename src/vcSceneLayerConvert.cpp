@@ -210,7 +210,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
 {
   vdkError result;
   vcSceneLayerConvert *pSceneLayerConvert = nullptr;
-  uint64_t pointCount = 0;
+  uint32_t pointCount = 0;
   udDouble3 sceneLayerOrigin = udDouble3::zero();
   bool allPointsReturned = false;
   udDouble3 localJobOriginOffset = udDouble3::zero();
@@ -246,7 +246,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
       // For each primitive
       while (pBuffer->pointCount < pBuffer->pointsAllocated && pSceneLayerConvert->primIndex < geometryPrimitiveCount)
       {
-        uint64_t maxPoints = pBuffer->pointsAllocated - pBuffer->pointCount;
+        uint32_t maxPoints = pBuffer->pointsAllocated - pBuffer->pointCount;
 
         // Get Vertices
         // TODO: (EVC-540) ASSUMPTIONS! (assumed a specific vertex layout!)
@@ -275,7 +275,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
         // Handle everyNth here in one place, slightly inefficiently but with the benefit of simplicity for the rest of the function
         if (pSceneLayerConvert->everyNth > 1)
         {
-          uint64_t i, pc;
+          uint32_t i, pc;
           for (i = pc = 0; i < pointCount; ++i)
           {
             if (++pSceneLayerConvert->everyNthAccum >= pSceneLayerConvert->everyNth)
