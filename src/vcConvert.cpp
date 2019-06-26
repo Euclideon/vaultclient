@@ -623,7 +623,7 @@ bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename, bool water
 {
   vcConvertItem *pSelectedJob = nullptr;
 
-  if (pProgramState->pConvertContext->selectedItem >= 0 && pProgramState->pConvertContext->selectedItem < pProgramState->pConvertContext->jobs.length)
+  if (pProgramState->pConvertContext->selectedItem < pProgramState->pConvertContext->jobs.length)
     pSelectedJob = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem];
 
   if (watermark && vdkConvert_AddWatermark(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
