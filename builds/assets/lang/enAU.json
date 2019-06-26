@@ -225,7 +225,7 @@
   "convertSpaceLatLong": "Latitude then Longitude",
   "convertSpaceLongLat": "Longitude then Latitude",
   "convertAddFileTitle": "Add New File to Convert Job",
-  "convertSetOutputTitle": "Set Convert Job Output Path",
+  "convertSetOutputTitle": "Set Output Destination/Overwrite File",
   "convertAddNewJob": "Create New Job",
   "convertAddFile": "Add File",
   "convertSetOutput": "Set Output Path",
