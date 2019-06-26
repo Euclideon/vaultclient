@@ -13,6 +13,7 @@
 
 #if UDPLATFORM_EMSCRIPTEN
 # include <emscripten.h>
+# include <emscripten/threading.h>
 #endif
 
 const char DefaultFilename[] = "asset://defaultsettings.json";
@@ -434,6 +435,15 @@ void vcSettings_RecurseDocks(ImGuiDockNode *pNode, udJSON &out, int *pDepth)
   }
 }
 
+#if UDPLATFORM_EMSCRIPTEN
+void vcSettings_SyncFS()
+{
+  EM_ASM({
+    // Sync from memory into persisted state
+    FS.syncfs(false, function(err) { assert(!err); });
+  });
+}
+#endif
 
 bool vcSettings_Save(vcSettings *pSettings)
 {
@@ -588,6 +598,10 @@ bool vcSettings_Save(vcSettings *pSettings)
 
     udFree(pSettingsStr);
   }
+
+#if UDPLATFORM_EMSCRIPTEN
+  emscripten_sync_run_in_main_runtime_thread(EM_FUNC_SIG_V, vcSettings_SyncFS);
+#endif
 
   return success;
 }
