@@ -31,16 +31,21 @@ void
 Emscripten_SetClipboardTextWorker(const char *text, unsigned int *waitValue)
 {
     EM_ASM_({
-        navigator.clipboard.writeText(UTF8ToString($0)).then(
-            function () { // Success
-                Atomics.store(HEAPU32, $1 >> 2, 0);
-                _emscripten_futex_wake($1, 1);
-            },
-            function () { // Failure
-                Atomics.store(HEAPU32, $1 >> 2, 1);
-                _emscripten_futex_wake($1, 1);
-            }
-        );
+        if (typeof(navigator.clipboard) !== "undefined") {
+            navigator.clipboard.writeText(UTF8ToString($0)).then(
+                function () { // Success
+                    Atomics.store(HEAPU32, $1 >> 2, 0);
+                    _emscripten_futex_wake($1, 1);
+                },
+                function () { // Failure
+                    Atomics.store(HEAPU32, $1 >> 2, 1);
+                    _emscripten_futex_wake($1, 1);
+                }
+            );
+        } else {
+            Atomics.store(HEAPU32, $1 >> 2, 1);
+            _emscripten_futex_wake($1, 1);
+        }
     }, text, waitValue);
 }
 
@@ -69,16 +74,22 @@ void
 Emscripten_GetClipboardTextWorker(char **text, unsigned int *waitValue)
 {
     EM_ASM_({
-        navigator.clipboard.readText().then(
-            function (clipText) {
-                var lengthBytes = lengthBytesUTF8(clipText) + 1;
-                var allocText = _malloc(lengthBytes);
-                stringToUTF8(clipText, allocText, lengthBytes + 1);
-                HEAPU32[$0 >> 2] = allocText;
-                Atomics.store(HEAPU32, $1 >> 2, 0);
-                _emscripten_futex_wake($1, 1);
-            }
-        );
+        if (typeof(navigator.clipboard) !== "undefined") {
+            navigator.clipboard.readText().then(
+                function (clipText) {
+                    var lengthBytes = lengthBytesUTF8(clipText) + 1;
+                    var allocText = _malloc(lengthBytes);
+                    stringToUTF8(clipText, allocText, lengthBytes + 1);
+                    HEAPU32[$0 >> 2] = allocText;
+                    Atomics.store(HEAPU32, $1 >> 2, 0);
+                    _emscripten_futex_wake($1, 1);
+                }
+            );
+        } else {
+            HEAPU32[$0 >> 2] = 0;
+            Atomics.store(HEAPU32, $1 >> 2, 0);
+            _emscripten_futex_wake($1, 1);
+        }
     }, text, waitValue);
 }
 
