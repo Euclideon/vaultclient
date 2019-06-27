@@ -389,7 +389,7 @@ $endif$
 \setstretch{1.25}
 \usepackage{geometry}
 \geometry{letterpaper, left=2cm, right=2cm, top=2cm, bottom=3cm}
-\usepackage{avant}
+\usepackage[sfdefault,light]{roboto} % Set font to roboto light
 \usepackage{mwe}
 \usepackage{afterpage}
 \usepackage{titlepic}
@@ -400,13 +400,14 @@ $endif$
 \usepackage{xcolor}
 \definecolor{airforceblue}{rgb}{0.36, 0.54, 0.66} % Closest to Euclideon colours that latex allows
 \definecolor{ballblue}{rgb}{0.13, 0.67, 0.8} % Closest to Euclideon colours that latex allows
+\definecolor{bondiblue}{rgb}{0.0, 0.58, 0.71}
 \usepackage[raggedright]{titlesec}
 % Controls the spacing and color after the headings--lower-level specifically to stop the sentences running after them 
-\titleformat{\section}{\normalfont\filcenter\Huge\bfseries\color{ballblue}}{\thesection}{1em}{}
+\titleformat{\section}{\normalfont\filcenter\Huge\bfseries\color{bondiblue}}{\thesection}{1em}{}
 \titlespacing*{\section}{0pt}{12pt plus 4pt minus 2pt}{16pt plus 2pt minus 2pt}
 \titleformat{\subsection}[hang]{\normalfont\LARGE\bfseries\color{ballblue}}{\thesection}{1em}{}
 \titlespacing*{\subsection}{0pt}{14pt plus 4pt minus 2pt}{16pt plus 2pt minus 2pt}
-\titleformat{\subsubsection}[hang]{\normalfont\Large\bfseries\color{ballblue}}{\thesection}{1em}{}
+\titleformat{\subsubsection}[hang]{\normalfont\Large\bfseries\color{bondiblue}}{\thesection}{1em}{}
 \titlespacing*{\subsubsection}{0pt}{12pt plus 4pt minus 2pt}{16pt plus 2pt minus 2pt}
 \titleformat{\paragraph}[hang]{\normalfont\large\bfseries\color{ballblue}}{\theparagraph}{1em}{}
 \titlespacing*{\paragraph}{0pt}{3.25ex plus 1ex minus .2ex}{1em}
