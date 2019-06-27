@@ -1,0 +1,12 @@
+Vault Client pandoc markdown to PDF and HTML conversion commands.
+
+***HTML***
+cp Vault-Client-Quick-Start.md Vault-Client-Quick-Start-HTML.md
+sed -i 's/\\newpage/***/' Vault-Client-Quick-Start-HTML.md
+C:\Users\jfilkin\Documents\Visual Studio 2015\Projects\Vault-Client-QS-Guide>pandoc -f gfm --tab-stop 4 Vault-Client-Quick-Start-HTML.md -o Vault-Client-md2html.html
+C:\Users\jfilkin\Documents\Visual Studio 2015\Projects\Vault-Client-QS-Guide>copy /b misc\qs-header.html + Vault-Client-md2html.html Vault-Client-header.html
+C:\Users\jfilkin\Documents\Visual Studio 2015\Projects\Vault-Client-QS-Guide>copy /b misc\footer.html + Vault-Client-header.html Vault-Client-Quick-Start-Guide.html
+
+
+***PDF***
+C:\Users\jfilkin\Documents\Visual Studio 2015\Projects\Vault-Client-QS-Guide>pandoc -s -t latex --template misc/VC-QS-LatexTemplate.tex Vault-Client-Quick-Start.md -o Vault-Client-Quick-Start.pdf

@@ -27,7 +27,7 @@
 - [**Contact Us**](#contact-us)
 - [**Special Acknowledgements**](#special-acknowledgements) 
 
-******
+\newpage
 
 ## Purpose of this Guide
 This Quick Start guide provides the information that Earth subscribers need to start using Euclideon's Vault Client application. Before starting, please ensure you received an email from Euclideon with a software download link and login credentials. If you have any questions or suggestions, please contact Euclideon at <info@euclideon.com> or go to <https://www.euclideon.com/> to access our online support.
@@ -352,7 +352,7 @@ please email <sales@euclideon.com> or visit us at [https://www.euclideon.com](ht
 
 ![](./images/aerometrex.jpeg "AEROMetrex logo")
 
-Thank you to AEROmetrex for supplying the Goss Bluff sample model.
+Thank you to AEROmetrex for supplying the Gosse Bluff sample model.
 
 AEROmetrex provides aerial mapping services and products to our clients by exploiting both existing and emerging air and ground imaging technologies.
 
