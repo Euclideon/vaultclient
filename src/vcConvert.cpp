@@ -220,7 +220,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
   // Convert Jobs --------------------------------
   ImGui::Columns(2);
-  ImGui::Text("%s", vcString::Get("convertJobs"));
+  ImGui::TextUnformatted(vcString::Get("convertJobs"));
   ImGui::NextColumn();
 
   ImGui::TextUnformatted(vcString::Get("convertSettings"));
@@ -375,7 +375,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   }
 
   ImGui::SameLine();
-  ImGui::Text(vcString::Get("convertOutputName"));
+  ImGui::TextUnformatted(vcString::Get("convertOutputName"));
 
   udSprintf(tempDirectory, UDARRAYSIZE(tempDirectory), "%s", pSelectedJob->pConvertInfo->pTempFilesPrefix);
   if (ImGui::InputText(vcString::Get("convertTempDirectory"), tempDirectory, UDARRAYSIZE(tempDirectory)))
