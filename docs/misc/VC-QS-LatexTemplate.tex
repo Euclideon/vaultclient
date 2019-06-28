@@ -187,7 +187,7 @@ $else$
     \usepackage{parskip}
   }{% else
     \setlength{\parindent}{0pt}
-    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}} 
 }{% if KOMA class
   \KOMAoptions{parskip=half}}
 \makeatother
@@ -386,7 +386,7 @@ $endif$
 
 % START Specific to Vault Client Quick Start guide
 \usepackage{setspace}
-\setstretch{1.25}
+\setstretch{1.25} % vertical spacing between sentences for readability.
 \usepackage{geometry}
 \geometry{letterpaper, left=2cm, right=2cm, top=2cm, bottom=3cm}
 \usepackage[sfdefault,light]{roboto} % Set font to roboto light
@@ -403,15 +403,26 @@ $endif$
 \definecolor{bondiblue}{rgb}{0.0, 0.58, 0.71}
 \usepackage[raggedright]{titlesec}
 % Controls the spacing and color after the headings--lower-level specifically to stop the sentences running after them 
-\titleformat{\section}{\normalfont\filcenter\Huge\bfseries\color{bondiblue}}{\thesection}{1em}{}
+\titleformat{\section}[block]{\normalfont\filcenter\Huge\bfseries\color{bondiblue}}{\thesection}{1em}{}
 \titlespacing*{\section}{0pt}{12pt plus 4pt minus 2pt}{16pt plus 2pt minus 2pt}
-\titleformat{\subsection}[hang]{\normalfont\LARGE\bfseries\color{ballblue}}{\thesection}{1em}{}
+\titleformat{\subsection}[block]{\normalfont\LARGE\bfseries\color{ballblue}}{\thesubsection}{1em}{}
 \titlespacing*{\subsection}{0pt}{14pt plus 4pt minus 2pt}{16pt plus 2pt minus 2pt}
-\titleformat{\subsubsection}[hang]{\normalfont\Large\bfseries\color{bondiblue}}{\thesection}{1em}{}
-\titlespacing*{\subsubsection}{0pt}{12pt plus 4pt minus 2pt}{16pt plus 2pt minus 2pt}
-\titleformat{\paragraph}[hang]{\normalfont\large\bfseries\color{ballblue}}{\theparagraph}{1em}{}
+\titleformat{\subsubsection}[block]{\normalfont\Large\bfseries\color{bondiblue}}{\thesubsubsection}{1em}{}
+\titlespacing*{\subsubsection}{0pt}{14pt plus 4pt minus 2pt}{16pt plus 2pt minus 2pt}
+\titleformat{\paragraph}[block]{\normalfont\large\bfseries\color{ballblue}}{\theparagraph}{1em}{}
 \titlespacing*{\paragraph}{0pt}{3.25ex plus 1ex minus .2ex}{1em}
 
+\setlength{\parskip}{2em}
+\setlength{\baselineskip}{2em}
+
+% Set colours for hyperlinks
+\usepackage{hyperref}
+\hypersetup{    
+	colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,}
+	
 % END Specific to Vault Client Quick Start guide
 
 \begin{document}

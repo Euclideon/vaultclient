@@ -41,15 +41,15 @@ To use Euclideon Vault, you will need to download the Euclideon Vault Client sof
 | Step | Action |
 | :--- | :------------------------- |
 | 1. | Click on the link provided in the email that Euclideon sent: [https://earth.vault.euclideon.com/](https://earth.vault.euclideon.com) |
-| 2.| If this is your first time downloading the Euclideon Vault Client software, then **Login using the credentials provided in the email from the previous step**.<br /><br /> Otherwise, login using your existing credentials. |
-| 3. |Change your password from the temporary one Euclideon gave you by clicking on your **Username** in the top right-hand corner of the window and choosing **Change Password**. |
-| 4. | The packages screen lists the latest Euclideon Vault Client software version.<br /><br />Click on **Download** for your operating system. .<br /><br />![](./images/packages.png "Latest Euclideon Vault Client software for download") |
-| 5. | If you do not see the version that has been approved for use from your Euclideon Vault Server provider, then **Click on Packages** on the top  menu. |
-| 6. | Select **Download** for your version and operating system. <br /><br />![](./images/allpackageslist.png "List of available Euclideon Vault Client packages") |  
-| 7. | Select the location to download the EuclideonVaultClient\_OS\_version.zip file. |
-| 8. | Click **Save** to download to your default download location defined by your browser, or<br /><br />Click the up arrow next to **Save** to select **Save As** to select another download location.  |
-| 9. | Change to the directory where you downloaded the file.  |
-| 10. |Go to [Unpacking and Installing](#unpacking-and-installing) for specific installation instructions on your operating system. |
+| 2.| If this is your first time downloading the Euclideon Vault Client software, then **Login using the credentials provided in the email from the previous step**. <br /><br />Otherwise, login using your existing credentials.|
+| 3. |Change your password from the temporary one Euclideon gave you by clicking on your **Username** in the top right-hand corner of the window and choosing **Change Password**. <br />|<br />
+| 4. | The packages screen lists the latest Euclidon Vault Client software version. <br /><br />Click on **Download** for your operating system.<br /><br />  ![](./images/packages.png "Latest Euclideon Vault Client software for download") <br /><br />|
+| 5. | If you do not see the version that has been approved for use from your Euclideon Vault Server provider, then **Click on Packages** on the top  menu.|
+| 6. | Select **Download** for your version and operating system. <br /><br />![](./images/allpackageslist.png "List of available Euclideon Vault Client packages") <br /><br />|
+| 7. | Select the location to download the EuclideonVaultClient\_OS\_version.zip file.|
+| 8. | Click **Save** to download to your default download location defined by your browser, or <br /><br />Click the up arrow next to **Save** to select **Save As** to select another download location.|
+| 9. | Change to the directory where you downloaded the file.|
+| 10. |Go to [Unpacking and Installing](#unpacking-and-installing) for specific installation instructions on your operating system.|
  
 
 ## Unpacking and Installing
@@ -214,8 +214,8 @@ Another way is to use the **Quick Action Menu** buttons across the top of the Sc
 
 | Button | Description |
 | :--- | :----------------------- |
-|**Add UDS**<br /> ![Add UDS button](./images/uds-button.png "Add UDS button") | This button opens the dialog box to add a UDS model to the scene. <br />The Path/URL can include files on the local drives, network drives, UNC Paths, HTTP, HTTPS, FTP & FTPS.<br /> (hotkey `Ctrl + U`) <br /><br /> ![AddUDS](./images/add-uds.png "Add a UDS file") |
-| **Delete**<br /> ![](./images/delete-button.png) | This deletes all selected items from the scene<br />(hotkey `Delete`)  |
+|**Add UDS** <br />![Add UDS button](./images/uds-button.png "Add UDS button") | This button opens the dialog box to add a UDS model to the scene. <br />The Path/URL can include files on the local drives, network drives, UNC Paths, HTTP, HTTPS, FTP & FTPS.<br /> (hotkey `Ctrl + U`) <br /><br />![AddUDS](./images/add-uds.png "Add a UDS file") |
+| **Delete** <br />![](./images/delete-button.png) | This deletes all selected items from the scene<br />(hotkey `Delete`)  |
 
 #### Loading a sample project
 If you are a subscriber to Euclideon Earth, Euclideon provides sample projects for application evaluation. 
@@ -224,7 +224,7 @@ If you are a subscriber to Euclideon Earth, Euclideon provides sample projects f
 | :--- | :----------------------- |
 |**1.** |To load a sample project, select **Projects** from the top menu.|
 |**2.**	|Click a **Sample Project** from the dropdown list. <br /><br />![Euclideon Vault Client project selection](./images/sample-projects.png "Euclideon Vault Client project selection")  |
-|**3.**|The sample project should load. <br /><br /> ![Sample project: Gosse Bluff, Australia](./images/loaded-sample-project.png "Sample project: Gosse Bluff, Australia") |
+|**3.**|The sample project should load. <br /><br />![Sample project: Gosse Bluff, Australia](./images/loaded-sample-project.png "Sample project: Gosse Bluff, Australia") |
 
   
 ### SETTINGS
@@ -306,15 +306,15 @@ The Euclideon Vault Client enables users to import 3D models and convert them to
 | **3.** | **Type in the Temp Directory** | Defaults to the same location as the output file in the previous step. <br /><br />Type C:\\Vault\\convert in the Output Name field and the Temp Directory will default to C:\\Vault\\convert_temp. Euclideon recommends setting the Temp Directory location to one that resides on a high-speed local drive with plenty of space (***rule of thumb:*** set aside as much space as the uncompressed raw input, as the points in the temporary files have not as yet been compressed), as the convert process will write many small, temporary files. <br /><br />The conversion will remove the temp directory after completion. |
 | **4.** | Optional Selection: **Continue processing after corrupt/incomplete data (where possible)**. | If corrupt or incomplete data is detected during a conversion, this setting will decide whether the conversion is **cancelled (unticked) or continues (ticked)** resulting in a skip of the corrupted points. NOTE: If you tick this setting, the system will not report that it found corrupt or incomplete data. |
 | **5.** | Optional Selection: **Point resolution:0.00000&mdash;Override** | Set to the source size, or it will default to 0.01 if no source size configured. This setting determines the size of the points (in metres) in the point cloud after conversion. It will attempt to find a good size based on the source data but can be set manually by first ticking the \"Override\" checkbox and then typing a value in the text field. |
-| **6.** | Optional Selection: **Override Geolocation** | If the source data has been correctly geolocated, when you import that file prior to converting it, the file should already have the "Spatial Reference Identifier" (SRID) information filled in this box: search for "EPSG code" or "SRID code" in the metadata.<br /><br />The SRID is the Geotagged ID of the GIS zone for the exported model.<br /><br />If the pre-parse can detect the SRID it will be set automatically. If not, and you wish to correctly geolocate your data, then you can manually select the \"Override\" checkbox and enter the correct SRID in the text field. It assumes that the input is already in the correct zone.<br /><br />Global Point Offset can be used to add an offset to the x, y and z coordinates of the converted model from that which was specified in the file's metadata, or if not, from the global origin (0, 0, 0). |
-| **7.** | **Quick Partial Convert** | Enabling this option will greatly speed-up the conversion process by only processing 1 in every 1000 points of the input data. This is useful for testing and calibrating the conversion settings before attempting to convert a large and time-consuming job. <br /><br />When imported into the scene the converted model will appear disintegrated and will have 1/1000th of the intended resolution. |
+| **6.** | Optional Selection: **Override Geolocation** | If the source data has been correctly geolocated, when you import that file prior to converting it, the file should already have the "Spatial Reference Identifier" (SRID) information filled in this box: search for "EPSG code" or "SRID code" in the metadata. <br /><br />The **SRID** is the Geotagged ID of the GIS zone for the exported model. <br />If the pre-parse can detect the SRID it will be set automatically. If not, and you wish to correctly geolocate your data, then you can manually select the \"Override\" checkbox and enter the correct SRID in the text field. It assumes that the input is already in the correct zone. <br /><br />**Global Point Offset** can be used to add an offset to the x, y and z coordinates of the converted model from that which was specified in the file's metadata, or if not, from the global origin (0, 0, 0). |
+| **7.** | **Quick Partial Convert** | Enabling this option will greatly speed-up the conversion process by only processing 1 in every 1000 points of the input data. This is useful for testing and calibrating the conversion settings before attempting to convert a large and time-consuming job. <br />When imported into the scene the converted model will appear disintegrated and will have 1/1000th of the intended resolution. |
 | **8.** | **Metadata** | This section allows you to import watermark by drag and dropping, add metadata related information such as Author, Comments, Copyright and License holders. |
-| **9.** | **Choose a file to convert** | Drag and drop the file from Windows Explorer onto the **Convert** window.<br /><br /> ![](./images/drag-to-convert.png)<br /> |
+| **9.** | **Choose a file to convert** | Drag and drop the file from Windows Explorer onto the **Convert** window. <br />![](./images/drag-to-convert.png) <br /><br />|
 | **10.** | Look at the **Input Files** panel. | Once you have selected your file for conversion, a new panel appears listing your selected files. The estimated number of points in each file will be shown. During conversion, the progress for each file will also be shown. Click **Remove** or **Remove All Files** if the wrong file\(s\) was selected. | 
-| **11.** | Click **Begin Convert** | Euclideon Vault will read the file then process and write the points. <br /><br /> ![Conversion in progress](./images/conversion-in-progress.png "Conversion in progress") <br />|
+| **11.** | Click **Begin Convert** | Euclideon Vault will read the file then process and write the points. <br />![Conversion in progress](./images/conversion-in-progress.png "Conversion in progress") <br />|
 | **12.** | **X** to Cancel | The "X" button beside the convert job in the "Convert Jobs" section allows you to cancel a running convert (it will cancel at the next 'safe' point and clean up temporary files). Once cancelled, the 'Begin Convert' button and the configuration options will reappear enabling you to restart the conversion. <br /><br />After a job has completed the "X" button also allows you to remove it from the list. |
-| **13.**| Click **Add to Scene** | When the conversion has completed successfully, click the **Add to Scene** button located at the top of the window. Euclideon Vault Client interface will automatically switch to the **Scene Window** to display your 3D model. *NOTE: Requires a Render License.* <br /><br /> ![Add to Scene](./images/add-to-scene.png "Add to Scene") <br /><br /> |
-| **14.**| Review your 3D Model | If Euclideon Vault Client interface does not switch automatically to the **Scene Window**, then select **Scene** from the Windows menu at the top of the Euclideon Vault Client interface. <br /><br />*NOTE: Requires a Render License.*|
+| **13.**| Click **Add to Scene** | When the conversion has completed successfully, click the **Add to Scene** button located at the top of the window. Euclideon Vault Client interface will automatically switch to the **Scene Window** to display your 3D model. *NOTE: Requires a Render License.* <br /><br />![Add to Scene](./images/add-to-scene.png "Add to Scene") <br />|
+| **14.**| Review your 3D Model | If Euclideon Vault Client interface does not switch automatically to the **Scene Window**, then select **Scene** from the Windows menu at the top of the Euclideon Vault Client interface. <br />*NOTE: Requires a Render License.*|
 
 
 > TIP: Euclideon does not recommend running multiple converts at the same time. Converting is a memory and processor intensive process so it's almost always faster to have 1 convert running at a time. Euclideon Vault Client helps with this by allowing you to queue multiple jobs to run one after another.
