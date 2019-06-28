@@ -41,8 +41,8 @@ To use Euclideon Vault, you will need to download the Euclideon Vault Client sof
 | Step | Action |
 | :--- | :------------------------- |
 | 1. | Click on the link provided in the email that Euclideon sent: [https://earth.vault.euclideon.com/](https://earth.vault.euclideon.com) |
-| 2.| If this is your first time downloading the Euclideon Vault Client software, then **Login using the credentials provided in the email from the previous step**. <br /><br />Otherwise, login using your existing credentials.|
-| 3. |Change your password from the temporary one Euclideon gave you by clicking on your **Username** in the top right-hand corner of the window and choosing **Change Password**. <br />|<br />
+| 2.| If this is your first time downloading the Euclideon Vault Client software, then **Login using the credentials provided in the email from the previous step**. <br />Otherwise, login using your existing credentials.|
+| 3. |Change your password from the temporary one Euclideon gave you by clicking on your **Username** in the top right-hand corner of the window and choosing **Change Password**. <br />|
 | 4. | The packages screen lists the latest Euclidon Vault Client software version. <br /><br />Click on **Download** for your operating system.<br /><br />  ![](./images/packages.png "Latest Euclideon Vault Client software for download") <br /><br />|
 | 5. | If you do not see the version that has been approved for use from your Euclideon Vault Server provider, then **Click on Packages** on the top  menu.|
 | 6. | Select **Download** for your version and operating system. <br /><br />![](./images/allpackageslist.png "List of available Euclideon Vault Client packages") <br /><br />|
@@ -214,8 +214,8 @@ Another way is to use the **Quick Action Menu** buttons across the top of the Sc
 
 | Button | Description |
 | :--- | :----------------------- |
-|**Add UDS** <br />![Add UDS button](./images/uds-button.png "Add UDS button") | This button opens the dialog box to add a UDS model to the scene. <br />The Path/URL can include files on the local drives, network drives, UNC Paths, HTTP, HTTPS, FTP & FTPS.<br /> (hotkey `Ctrl + U`) <br /><br />![AddUDS](./images/add-uds.png "Add a UDS file") |
-| **Delete** <br />![](./images/delete-button.png) | This deletes all selected items from the scene<br />(hotkey `Delete`)  |
+|**Add UDS**  | ![Add uds](./images/uds-button.png "Add UDS button") This button opens the dialog box to add a UDS model to the scene. <br />The Path/URL can include files on the local drives, network drives, UNC Paths, HTTP, HTTPS, FTP & FTPS. <br />(hotkey `Ctrl + U`) ![](./images/add-uds.png "Add a UDS file") <br />|
+| **Delete**  | ![](./images/delete-button.png "Delete button") This deletes all selected items from the scene <br />(hotkey `Delete`)  |
 
 #### Loading a sample project
 If you are a subscriber to Euclideon Earth, Euclideon provides sample projects for application evaluation. 
