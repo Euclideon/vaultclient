@@ -364,20 +364,22 @@ void vcConvert_ShowUI(vcState *pProgramState)
   ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 
   udSprintf(outputName, UDARRAYSIZE(outputName), "%s", pSelectedJob->pConvertInfo->pOutputName);
-  if (ImGui::InputText(vcString::Get("convertOutputName"), outputName, UDARRAYSIZE(outputName)))
+  if (ImGui::InputText("", outputName, UDARRAYSIZE(outputName)))
     vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pSelectedJob->pConvertContext, outputName);
+
+  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
+  {
+    ImGui::SameLine(0.f, 0.f);
+    if (ImGui::Button("...", ImVec2(30, 0)))
+      vcModals_OpenModal(pProgramState, vcMT_ConvertOutput);
+  }
+
+  ImGui::SameLine();
+  ImGui::Text(vcString::Get("convertOutputName"));
 
   udSprintf(tempDirectory, UDARRAYSIZE(tempDirectory), "%s", pSelectedJob->pConvertInfo->pTempFilesPrefix);
   if (ImGui::InputText(vcString::Get("convertTempDirectory"), tempDirectory, UDARRAYSIZE(tempDirectory)))
     vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pSelectedJob->pConvertContext, tempDirectory);
-
-  if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
-  {
-    ImGui::SameLine();
-    ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 27);
-    if (ImGui::Button(vcString::Get("convertSetOutput"), ImVec2(-1, 50)))
-      vcModals_OpenModal(pProgramState, vcMT_ConvertOutput);
-  }
 
   ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 

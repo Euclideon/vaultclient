@@ -470,7 +470,11 @@ void vcModals_DrawFileModal(vcState *pProgramState)
 
     if (loadFile)
     {
-      if (mode == vcMT_ConvertOutput)
+      if (mode == vcMT_ConvertAdd)
+      {
+        vcConvert_AddFile(pProgramState, pProgramState->modelPath);
+      }
+      else if (mode == vcMT_ConvertOutput)
       {
         // Set output path and filename
         udFilename loadFilename(pProgramState->modelPath);
