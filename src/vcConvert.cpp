@@ -220,6 +220,10 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
   // Convert Jobs --------------------------------
   ImGui::Columns(2);
+
+  if (ImGui::IsWindowAppearing())
+    ImGui::SetColumnWidth(0, 300);
+
   ImGui::TextUnformatted(vcString::Get("convertJobs"));
   ImGui::NextColumn();
 
