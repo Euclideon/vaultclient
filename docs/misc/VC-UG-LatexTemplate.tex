@@ -274,7 +274,7 @@ $if(graphics)$
 \setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
 % Set default figure placement to htbp
 \makeatletter
-\def\fps@figure{htbp}
+\def\fps@figure{H}
 \makeatother
 $endif$
 $if(links-as-notes)$
@@ -386,14 +386,16 @@ $endif$
 
 % START Specific to Vault Client guide
 \usepackage{setspace}
-\setstretch{1.25}
+\setstretch{1.25} % vertical spacing between sentences for readability.
 \usepackage{geometry}
-\geometry{letterpaper, left=2cm, right=2cm, top=2cm, bottom=3cm}
+\geometry{letterpaper, left=2cm, right=2cm, top=2cm, bottom=4cm, footskip=2cm}
 \usepackage[sfdefault,light]{roboto} % Set font to roboto light
 \usepackage{mwe}
 \usepackage{afterpage}
 \usepackage{titlepic}
 \usepackage{graphicx}
+% Need float package to force the use of the H option for figures. Otherwise, latex shuffles the images wherever it feels they best fit and the tables will run over the margins if we leave as the standard htbp.
+\usepackage{float} 
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{babel}
@@ -414,6 +416,9 @@ $endif$
 \titleformat{\subparagraph}[block]{\normalfont\normalsize\bfseries\color{bondiblue}}{\theparagraph}{1em}{}
 \titlespacing*{\subparagraph}{0pt}{3.25ex plus 1ex minus .2ex}{1em}
 
+\setlength{\parskip}{2em}
+\setlength{\baselineskip}{2em}
+
 % Set colours for hyperlinks
 \usepackage{hyperref}
 \hypersetup{    
@@ -421,10 +426,6 @@ $endif$
     linkcolor=blue,
     filecolor=magenta,      
     urlcolor=cyan,}
-
-
-\setlength{\parskip}{2em}
-\setlength{\baselineskip}{2em}
 
 % END Specific to Vault Client guide
 
