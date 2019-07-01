@@ -37,6 +37,7 @@ vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
 
   m_showArea = false;
   m_showLength = false;
+  m_lengthLabels.Init(32);
 
   memset(&m_line, 0, sizeof(m_line));
 
@@ -94,6 +95,7 @@ void vcPOI::OnNodeUpdate()
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
 
   vdkProjectNode_GetMetadataBool(m_pNode, "showLength", &m_showLength, false);
+  vdkProjectNode_GetMetadataBool(m_pNode, "showAllLengths", &m_showAllLengths, false);
   vdkProjectNode_GetMetadataBool(m_pNode, "showArea", &m_showArea, false);
 
   m_line.closed = (m_pNode->geomtype == vdkPGT_Polygon);
@@ -139,6 +141,15 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       m_pLabelInfo->pText = m_pNode->pName;
 
     pRenderData->labels.PushBack(m_pLabelInfo);
+
+    if (m_showAllLengths && m_line.numPoints > 1)
+    {
+      for (size_t i = 0; i < m_lengthLabels.length; ++i)
+      {
+        if (m_line.closed || i > 0)
+          pRenderData->labels.PushBack(m_lengthLabels.GetElement(i));
+      }
+    }
   }
 }
 
@@ -164,25 +175,44 @@ void vcPOI::UpdatePoints()
   // Calculate length, area and label position
   m_calculatedLength = 0;
   m_calculatedArea = 0;
-  udDouble3 averagePosition = udDouble3::zero();
 
-  int j = ((m_line.numPoints == 0) ? 0 : m_line.numPoints - 1);
-
+  // j = previous, i = current
+  int j = udMax(0, m_line.numPoints - 1);
   for (int i = 0; i < m_line.numPoints; i++)
   {
     if (m_showArea && m_line.closed && m_line.numPoints > 2) // Area requires at least 3 points
       m_calculatedArea = m_calculatedArea + (m_line.pPoints[j].x + m_line.pPoints[i].x) * (m_line.pPoints[j].y - m_line.pPoints[i].y);
 
-    if (m_line.closed || i > 0) // Calculate length
-      m_calculatedLength += udMag3(m_line.pPoints[j] - m_line.pPoints[i]);
+    double lineLength = udMag3(m_line.pPoints[j] - m_line.pPoints[i]);
 
-    averagePosition += m_line.pPoints[i];
+    if (m_line.closed || i > 0) // Calculate length
+      m_calculatedLength += lineLength;
+
+    if (m_showAllLengths && m_line.numPoints > 1)
+    {
+      int numLabelDiff = m_line.numPoints - (int)m_lengthLabels.length;
+      if (numLabelDiff < 0) // Too many labels, delete one
+      {
+        vcLabelInfo *pPopLabel = nullptr;
+        m_lengthLabels.PopBack(pPopLabel);
+        udFree(pPopLabel->pText);
+      }
+      else if (numLabelDiff > 0) // Not enough labels, add one
+      {
+        vcLabelInfo label = vcLabelInfo(*m_pLabelInfo);
+        label.pText = nullptr;
+        m_lengthLabels.PushBack(label);
+      }
+
+      vcLabelInfo* pLabel = m_lengthLabels.GetElement(i);
+      pLabel->worldPosition = (m_line.pPoints[j] + m_line.pPoints[i]) / 2;
+      udSprintf(&pLabel->pText, "%.3f", lineLength);
+    }
 
     j = i;
   }
 
   m_calculatedArea = udAbs(m_calculatedArea) / 2;
-  m_pLabelInfo->worldPosition = averagePosition / m_line.numPoints;
 
   // update the fence renderer as well
   if (m_line.numPoints > 1)
@@ -239,11 +269,19 @@ void vcPOI::UpdateProjectGeometry()
 void vcPOI::UpdateLabelInfo()
 {
   m_pLabelInfo->pText = m_pNode->pName;
-  if (m_line.numPoints > 0)
-    m_pLabelInfo->worldPosition = m_line.pPoints[0];
   m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
   m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
   m_pLabelInfo->textSize = m_namePt;
+  if (m_line.numPoints > 0)
+    m_pLabelInfo->worldPosition = m_line.pPoints[0];
+
+  for (size_t i = 0; i < m_lengthLabels.length; ++i)
+  {
+    vcLabelInfo* pLabel = m_lengthLabels.GetElement(i);
+    pLabel->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
+    pLabel->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
+    pLabel->textSize = m_namePt;
+  }
 }
 
 void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
@@ -322,6 +360,12 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       {
         UpdatePoints();
         vdkProjectNode_SetMetadataBool(m_pNode, "showLength", m_showLength);
+      }
+
+      if (ImGui::Checkbox(udTempStr("%s##POIShowAllLengths%zu", vcString::Get("scenePOILineShowAllLengths"), *pItemID), &m_showAllLengths))
+      {
+        UpdatePoints();
+        vdkProjectNode_SetMetadataBool(m_pNode, "showAllLengths", m_showAllLengths);
       }
 
       if (ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), *pItemID), &m_showArea))
@@ -436,14 +480,17 @@ void vcPOI::ChangeProjection(const udGeoZone &newZone)
   for (int i = 0; i < m_line.numPoints; ++i)
     m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, ((udDouble3*)m_pNode->pCoordinates)[i], true);
 
-   UpdatePoints();
+  UpdatePoints();
 }
 
 void vcPOI::Cleanup(vcState * /*pProgramState*/)
 {
   udFree(m_line.pPoints);
   udFree(m_pLabelText);
+  for (size_t i = 0; i < m_lengthLabels.length; ++i)
+    udFree(m_lengthLabels.GetElement(i)->pText);
 
+  m_lengthLabels.Deinit();
   vcFenceRenderer_Destroy(&m_pFence);
   udFree(m_pLabelInfo);
 }
