@@ -30,7 +30,11 @@
 \newpage
 
 ## Purpose of this Guide
-This Quick Start guide provides the information that Earth subscribers need to start using Euclideon's Vault Client application. Before starting, please ensure you received an email from Euclideon with a software download link and login credentials. If you have any questions or suggestions, please contact Euclideon at <info@euclideon.com> or go to <https://www.euclideon.com/> to access our online support.
+This Quick Start guide provides the information that Earth subscribers (those who have been granted access to Euclideon's *Earth* server) need to start using Euclideon's Vault Client application. Euclideon currently hosts several Vault Servers&mdash;the first iteration is called *Earth*, succeeded by *Mars*, *Jupiter*, and so on in the future, and is accessed by a specific Server URL.   
+
+The Vault Server controls and issues licenses to the Vault Client for rendering and converting models and grants access to projects, but it does not store any model datasets. In most cases, you can host the Vault Server over an internet connection; however, it can also reside on an organisation's internal network.
+
+Before starting, please ensure you received an email from Euclideon with a software download link and login credentials. For the purpose of this guide, you will connect to Earth server: https://earth.vault.euclideon.com/.  If you have any questions or suggestions, please contact Euclideon at <info@euclideon.com> or go to <https://www.euclideon.com/> to access our online support.
 
 Refer to the [**Euclideon Vault Client User Guide**](./UserGuide.md) for detailed coverage of the Euclideon Vault Client interface.
 
