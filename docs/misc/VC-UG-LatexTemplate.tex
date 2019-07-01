@@ -187,7 +187,7 @@ $else$
     \usepackage{parskip}
   }{% else
     \setlength{\parindent}{0pt}
-    \setlength{\parskip}{6pt plus 2pt minus 1pt}} 
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
 }{% if KOMA class
   \KOMAoptions{parskip=half}}
 \makeatother
@@ -384,7 +384,7 @@ $if(logo)$
 $endif$
 $endif$
 
-% START Specific to Vault Client Quick Start guide
+% START Specific to Vault Client guide
 \usepackage{setspace}
 \setstretch{1.25} % vertical spacing between sentences for readability.
 \usepackage{geometry}
@@ -426,21 +426,21 @@ $endif$
     linkcolor=blue,
     filecolor=magenta,      
     urlcolor=cyan,}
-	
-% END Specific to Vault Client Quick Start guide
+
+% END Specific to Vault Client guide
 
 \begin{document}
 
-% START Specific to Vault Client Quick Start guide
+% START Specific to Vault Client guide
 \begin{titlepage} 
     \centering
     \vfill
 	\newgeometry{margin=-0.5cm}
-    \includegraphics{images/vault-qs-cover.png} 
+    \includegraphics{images/vault-ug-cover.png} 
     \vfill
 	\aftergroup\restoregeometry
 \end{titlepage}
-% END Specific to Vault Client Quick Start guide
+% END Specific to Vault Client guide
 
 $if(has-frontmatter)$
 \frontmatter

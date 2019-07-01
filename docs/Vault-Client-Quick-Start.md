@@ -30,7 +30,11 @@
 \newpage
 
 ## Purpose of this Guide
-This Quick Start guide provides the information that Earth subscribers need to start using Euclideon's Vault Client application. Before starting, please ensure you received an email from Euclideon with a software download link and login credentials. If you have any questions or suggestions, please contact Euclideon at <info@euclideon.com> or go to <https://www.euclideon.com/> to access our online support.
+This Quick Start guide provides the information that Earth subscribers (those who have been granted access to Euclideon's *Earth* server) need to start using Euclideon's Vault Client application. Euclideon currently hosts several Vault Servers&mdash;the first iteration is called *Earth*, succeeded by *Mars*, *Jupiter*, and so on in the future, and is accessed by a specific Server URL.   
+
+The Vault Server controls and issues licenses to the Vault Client for rendering and converting models and grants access to projects, but it does not store any model datasets. In most cases, you can host the Vault Server over an internet connection; however, it can also reside on an organisation's internal network.
+
+Before starting, please ensure you received an email from Euclideon with a software download link and login credentials. For the purpose of this guide, you will connect to Earth server: https://earth.vault.euclideon.com/.  If you have any questions or suggestions, please contact Euclideon at <info@euclideon.com> or go to <https://www.euclideon.com/> to access our online support.
 
 Refer to the [**Euclideon Vault Client User Guide**](./UserGuide.md) for detailed coverage of the Euclideon Vault Client interface.
 
@@ -80,14 +84,13 @@ Using this package requires a desktop environment.
 ### iOS and Android
 The iOS and Android builds are not currently publicly available.
 
-
 ## Logging into Vault Client
 
 Before attempting to log into the Euclideon Vault Client, ensure you have [downloaded and extracted the Euclideon Vault Client software](#quick-start-guide-for-euclideon-vault-client).
 
 The remaining instructions in this guide target Windows operating systems. Refer to the [**Euclideon Vault User Guide**](./UserGuide.md) for detailed information relating to the other supported operating system types.
 
-![](./images/loginscreen.png "Euclideon Vault Client login screen")
+![Euclideon Vault Client login screen](./images/loginscreen.png "Euclideon Vault Client login screen")
 
 | Parameter | Description |
 | :--- | :-----------------------  |
@@ -97,7 +100,6 @@ The remaining instructions in this guide target Windows operating systems. Refer
 
 There are also additional settings in the **Advanced Connection Settings** dropdown:
 
-
 | Parameter | Description |
 | :--- | :-----------------------  |
 |**Proxy Address** | The address for your internet proxy (this is provided by your system administrator). <br />It can additionally include the port number and protocol.<br /><br />Examples include: `192.168.0.1`, `169.123.123.1:80` or `https://10.4.0.1:8081`.<br />Leaving this blank will attempt auto-detection. |
@@ -106,10 +108,9 @@ There are also additional settings in the **Advanced Connection Settings** dropd
 
 After you have entered your credentials, click **Login** and you will see an empty scene in the viewport similar to the image below.
 
-![](./images/afterlogin.png "Euclideon Vault Client interface after login")
+![Euclideon Vault Client interface after login](./images/afterlogin.png "Euclideon Vault Client interface after login")
 
 > TIP: If the system reports a username or password error, ensure you have entered the credentials correctly. The system is case-sensitive and does not accept spaces before or after the Server URL and login credentials.
-
 
 ## Vault Client Interface
 
@@ -117,18 +118,18 @@ Use the Euclideon Vault Client Interface to view, import, and convert 3D models.
 
 We are only touching on the elements you need to start using Euclideon Vault Client. Refer to the [**Euclideon Vault Client User Guide**](./UserGuide.md) for detailed coverage of the Euclideon Vault Client interface.
 
-![](./images/qs-interface-numbered.png "Euclideon Vault Client Interface")
+![Euclideon Vault Client Interface](./images/qs-interface-numbered.png "Euclideon Vault Client Interface")
 
 [**1. Menu and Status Bar**](#menu-and-status-bar)  
 [**2. Scene Viewport**](#scene-viewport)  
 [**3. Scene Explorer**](#scene-explorer)  
 [**4. Settings**](#settings)  
 [**5. Convert Tab**](#convert)  
-
  
+
 ### MENU AND STATUS BAR 
 
-![](./images/menu-status-bar.png "Status bar")
+![Status bar](./images/menu-status-bar.png "Status bar")
 
 The menu bar consists of 2 sections, the left section with menu drop downs and the right section with status information. The status information will change depending on what models are loaded.
 
@@ -136,11 +137,11 @@ The menu bar consists of 2 sections, the left section with menu drop downs and t
 
 The **System** menu has a number of system related functions:
 
-![](./images/systemdown.png "System menu")
+![System menu](./images/systemdown.png "System menu")
 
 - `Logout` terminates your current session with the server and takes you back to the login screen. Logging out prevents attackers from potentially hijacking your session and enables you to change users or servers.
 
-![](./images/loggedout.png "Logged out")
+![Logged out](./images/loggedout.png "Logged out")
 
 > TIP: Logout does not unlock your current licenses for use by other users, they must still time out.
 
@@ -153,7 +154,7 @@ The **System** menu has a number of system related functions:
 
 The Windows menu allows you to show (tick) or hide (untick) the `Scene`, `Scene Explorer`, `Settings`, and `Convert` windows in the Euclideon Vault Client application.
 
-![](./images/windowsmenu.png "Euclideon Vault Client Windows Menu")
+![Euclideon Vault Client Windows Menu](./images/windowsmenu.png "Euclideon Vault Client Windows Menu")
 
 >TIP: If you notice missing functionality, be sure to enable the required screen panels.
 
@@ -161,7 +162,7 @@ The Windows menu allows you to show (tick) or hide (untick) the `Scene`, `Scene 
 
 Use the projects menu to manage project viewing.
 
-![](./images/projectdropdown.png "Projects menu")
+![Projects menu](./images/projectdropdown.png "Projects menu")
 
 - **New Scene** will remove all items from your Scene and create a new empty Scene.
 - **Export** will export the project information, including links to models and other features, to a GeoJSON (JavaScript Object Notation) file in a user-specified directory. The directory must exist.
@@ -184,7 +185,7 @@ When you load a model or project, it will display in the scene viewport. You can
 | **Orbit** | Hold down the `mouse scroll wheel` as you move the mouse. The mouse movement will give you the sensation that you are orbiting around the point you selected. This feature is based on where you first click on the screen and will keep the camera the same distance from the clicked point by turning and moving the camera. |
 | **Dolly** | The `mouse scroll wheel` will "dolly" (zoom the camera in and out) from the point where the mouse is hovering (will not work with the skybox). |
 
-![](./images/mousecontrols.png "Mouse Controls")
+![Mouse Controls](./images/mousecontrols.png "Mouse Controls")
 
 #### Default Keyboard Controls
 
@@ -206,11 +207,11 @@ The Scene Explorer window lists the assets currently in your scene. When you fir
 #### Loading existing UDS Models
 The easiest way to load a model into the Euclideon Vault Client is to **DRAG** a UDS file from your file explorer and **DROP** it in the Euclideon Vault Client Scene window to add the model to the scene.
 
-![](./images/drag-to-load-uds.png "Drag and load image")
+![Drag and load image](./images/drag-to-load-uds.png "Drag and load image")
 
 Another way is to use the **Quick Action Menu** buttons across the top of the Scene Explorer to add or remove from the scene.
 
-![](./images/sceneexplorer.png "Scene Explorer")
+![Scene Explorer](./images/sceneexplorer.png "Scene Explorer")
 
 | Button | Description |
 | :--- | :----------------------- |
@@ -231,7 +232,7 @@ If you are a subscriber to Euclideon Earth, Euclideon provides sample projects f
 
 You can customise settings such as speed of movement, panel brightness, camera lens, and more. This section will cover the most common customised settings. Refer to the more detailed [**Euclideon Vault User Guide**](./UserGuide.md) for information on the other options in the Settings panel.
 
-![](./images/settings.png "Settings menu")
+![Settings menu](./images/settings.png "Settings menu")
 
 Use the parameters in the **Settings** window to customise how the Euclideon Vault Client looks and operates:
 -   Change the  [**viewport camera**](#viewport) values 
@@ -248,7 +249,7 @@ The Viewport allows you to adjust the camera's viewing distance and field of vie
 
 Please note that Viewport parameters do not work in `Map Mode` (Ctrl+M).
 
-![](./images/viewport.png "Viewport settings")
+![Viewport settings](./images/viewport.png "Viewport settings")
 
   > TIP: If the model disappears from the scene, yet you can still see the sky, watermark, or a (list of) uds file(s) in the Scene Explorer, your View Distance might be set too low. Adjust the View Distance settings until your models are visible again.
 
@@ -261,13 +262,12 @@ Please note that Viewport parameters do not work in `Map Mode` (Ctrl+M).
    
 #### Maps and Elevation
 
-![](./images/mapsandelevation.png "Maps and Elevation settings")
-
 The map feature is useful when you need a geospatial view and are unfamiliar with the area or are looking for a specific reference point.
 Select **Map &amp; Elevation** within the **Settings** tab.
 
+![Maps and Elevation settings](./images/mapsandelevation.png "Maps and Elevation settings")
 
- > TIP: Hold down the Ctrl-key and click in any parameter that has a slide bar to manually set a more precise value or set a value outside the parameter boundaries.
+> TIP: Hold down the Ctrl-key and click in any parameter that has a slide bar to manually set a more precise value or set a value outside the parameter boundaries.
  
 
 | Parameter  | Default Value | Description |
@@ -294,7 +294,7 @@ The Euclideon Vault Client enables users to import 3D models and convert them to
 -   OBJ
 -   ASC (Esri)
 
-![](./images/convert-parameters.png "Euclideon Vault Convert Window")
+![Euclideon Vault Convert Window](./images/convert-parameters.png "Euclideon Vault Convert Window")
 
 >TIP: If you attempt to drag and drop the file to want to convert on to the Convert Window before typing in the `Output Name` path and filename, then Euclideon Vault Client will report that the file type is not supported.
 
@@ -352,9 +352,7 @@ please email <sales@euclideon.com> or visit us at [https://www.euclideon.com](ht
 
 ![](./images/aerometrex.jpeg "AEROMetrex logo")
 
-Thank you to AEROmetrex for supplying the Gosse Bluff sample model.
-
-AEROmetrex provides aerial mapping services and products to our clients by exploiting both existing and emerging air and ground imaging technologies.
+Thank you to AEROmetrex for supplying the Gosse Bluff sample model. AEROmetrex provides aerial mapping services and products to our clients by exploiting both existing and emerging air and ground imaging technologies.
 
 The award winning company specialises in aerial photogrammetry and offers a growing range of aerial orthophotography products, precision digital surface and terrain modelling, 3D models and value-added geospatial services.
 
