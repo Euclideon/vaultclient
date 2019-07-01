@@ -89,7 +89,7 @@ The iOS and Android builds are not currently publicly available.
 ## Logging In
 After starting the application you will see the login screen below.
 
-![](./images/loginscreen.png "Euclideon Vault Client login screen")
+![Euclideon Vault Client login screen](./images/loginscreen.png "Euclideon Vault Client login screen")
 
 | Parameter | Description |
 | :--- | :---------------------------  |
@@ -99,20 +99,16 @@ After starting the application you will see the login screen below.
 
 There are also additional settings in the **Advanced Connection Settings** dropdown:
 
-
 | Parameter | Description |
 | :------- | :---------------------------  |
 |**Proxy Address** | The address for your internet proxy (this is provided by your system administrator). <br />It can additionally include the port number and protocol.<br /><br />Examples include: `192.168.0.1`, `169.123.123.1:80` or `https://10.4.0.1:8081`.<br />Leaving this blank will attempt auto-detection. |
 |**User Agent** | A field included in HTTP request headers. Very few users will need to specify this setting. |
 |**Ignore Certificate Verification** | Will disable verification of the PEER and HOST certificate authorities.<br /><br />This setting should **only** be used when instructed by your system administrator and only when errors are occurring during the login process, as it will weaken the security between your computer and the Euclideon Vault Server.<br /><br />NOTE: `Ignore Certificate Verification` will not be saved due to the security risk associated. You will need to enable this setting each time you open the application. |
 
-After you have entered your credentials, click **Login** and you will see an empty scene in the viewport similar to the image below.
-
-![](./images/afterlogin.png "Euclideon Vault Client interface after login")
+After you have entered your credentials, click **Login** and you will see an empty scene in the viewport similar to the image below.  
+![Euclideon Vault Client interface after login](./images/afterlogin.png "Euclideon Vault Client interface after login")
 
 ### Login Errors
-
-A number of things may go wrong during login.
 
 | Message | Reason |
 | --------- | --------------- |
@@ -124,10 +120,9 @@ A number of things may go wrong during login.
 | **Unable to negotiate with proxy server, please confirm the proxy server address** | This occurs when the proxy information is partially correct. Further details may be required before the connection through the proxy is correct (usually proxy authentication details). | 
 | **Unknown error occurred, please try again later.** | This error was not one of the above errors and will require Euclideon Support assistance to resolve. Please contact Euclideon at support@euclideon.com or go to https://euclideon.com to access our online support. | 
 
-
 > TIP: When an error occurs, press the `Alt` and `Ctrl` keys simultaneously to display an additional error code after the message. Give the error message + code to Euclideon Support so they can help you resolve the problem. You might use this in situations where you get an **Unknown Error Occurred** message.
 
-![](./images/login-error-code.png "Login error message")
+![Login error message](./images/login-error-code.png "Login error message")
 
 
 
@@ -135,7 +130,7 @@ A number of things may go wrong during login.
 
 Use the Euclideon Vault Client Interface to view, import, and convert 3D models. Refer to the following sections that correlate to the numbers on the image for more detailed information on how to use that feature.
 
-![](./images/interface-numbered.png "Euclideon Vault Client Interface")
+![Euclideon Vault Client Interface](./images/interface-numbered.png "Euclideon Vault Client Interface")  
 
 [**1. Menu and Status Bar**](#menu-and-status-bar)  
 [**2. Scene Viewport**](#scene-viewport)  
@@ -149,37 +144,40 @@ Use the Euclideon Vault Client Interface to view, import, and convert 3D models.
 
 ### MENU AND STATUS BAR
 
-![](./images/menu-status-bar.png)
-
 The menu bar consists of 2 sections, the left section with menu drop downs and the right section with status information. The status information will change depending on what models are loaded.
+
+![Status bar](./images/menu-status-bar.png "Status bar")
 
 #### System Menu
 
-![](./images/systemdown.png)
+![System menu](./images/systemdown.png "System menu")
 
 The **System** menu has a number of system related functions:
 
 - `Logout` terminates your current session with the server and takes you back to the login screen. Logging out prevents attackers from potentially hijacking your session and enables you to change users or servers.
 
-![](./images/loggedout.png)  
-  > TIP: Logout does not unlock your current licenses for use by other users, they must still time out.
--	`Restore Defaults` resets all settings back to how they were when you ran Euclideon Vault Client the first time.
--	`About` displays a popup with the version and license information for the current version of Client.
--	`Release Notes` displays a popup with information on the current and previous release changes.
-	`Quit` logs you out and then closes the program.
+![Logged out](./images/loggedout.png "Logged out") 
+
+
+> TIP: Logout does not unlock your current licenses for use by other users, they must still time out.
+
+- `Restore Defaults` resets all settings back to how they were when you ran Euclideon Vault Client the first time.
+- `About` displays a popup with the version and license information for the current version of Client.
+- `Release Notes` displays a popup with information on the current and previous release changes.
+- `Quit` logs you out and then closes the program.
 
 #### Windows menu
 
 The Windows menu allows you to show (tick) or hide (untick) the `Scene`, `Scene Explorer`, `Settings`, and `Convert` windows in the Euclideon Vault Client application.
 
-![](./images/windowsmenu.png "Euclideon Vault Client Windows Menu")
+![Euclideon Vault Client Windows Menu](./images/windowsmenu.png "Euclideon Vault Client Windows Menu")
 
 >TIP: If you notice missing functionality, be sure to enable the required screen panels.
 
 #### Projects menu
 Use the projects menu to manage project viewing.
 
-![](./images/projectdropdown.png)
+![Projects menu](./images/projectdropdown.png "Projects menu")
 
 - **New Scene** will remove all items from your Scene and create a new empty Scene.
 - **Export**  will export the project information, including links to models and other features, to a GeoJSON (JavaScript Object Notation) file in a user-specified directory. The directory must exist.
@@ -221,7 +219,7 @@ These settings are configurable in [**Input & Controls**](#input-and-controls). 
  
 >TIP: If you prefer the Euclideon Geoverse MDM method of using the **Scroll Wheel** to change the mode speed, then that option is available in [**Settings**](#settings) --> [**Input & Controls**](#input-and-controls) --> **Mouse Pivot bindings.**
 
-![](./images/mousecontrols.png "Mouse Controls")  
+![Mouse Controls](./images/mousecontrols.png "Mouse Controls")
 
 
 ##### Default Keyboard Controls
@@ -250,7 +248,7 @@ You can use specific keys, with the "Scene" window focused, to control the camer
 
 Rather than holding down the `Shift` key to increase the camera's navigation speed, you can adjust the `Move Speed` blue bar in the [Scene Info and Controls panel](#scene-info-and-controls). This setting is persistent across sessions. 
 
-![](./images/camera-movement-speed-control.png "Camera movement speed control")
+![Camera movement speed control](./images/camera-movement-speed-control.png "Camera movement speed control")
 
 >TIP: In addition to mouse/keyboard controls, the camera can also be moved using an Xbox Controller or equivalent gamepad/controller device.
 
@@ -269,7 +267,8 @@ These controls might be mapped differently on other controllers.
 
 
 ##### Hotkeys
-Use the following keys anywhere in the active Euclideon Vault Client interface to effect the relevant change:
+Use the following keys anywhere in the active Euclideon Vault Client interface to effect the relevant change:  
+
 - `F5` Toggles presentation mode for the current Scene, hiding all other panels and setting the scene view to fullscreen.
 - `Ctrl+U` Opens a popup for loading UDS files. The Scene Explorer window must be opened.
 - `Ctrl+M` Changes to / from Map Mode
@@ -298,7 +297,7 @@ Underneath the quick action menu, you will find the contents of your scene, whic
 
 The checkbox to the left of each item is a visibility checkbox. Disabling this hides the element in the scene.
 
-![](./images/sceneexplorer2.png "Scene contents")
+![Scene contents](./images/sceneexplorer2.png "Scene contents")
 
 
 > TIP: disabling visibility for a folder will also disable visibility for _all_ items in that folder- including subfolders and their contents.
@@ -307,7 +306,7 @@ The checkbox to the left of each item is a visibility checkbox. Disabling this h
 
 The buttons across the top of the Scene Explorer allow quick access to add or remove from the scene. 
 
-![](./images/sceneexplorer.png "Scene Explorer")
+![Scene Explorer](./images/sceneexplorer.png "Scene Explorer")
 
 
 | Button | Description |
@@ -341,7 +340,7 @@ Items or groups of items in the scene explorer can be reordered by holding left-
 There are a number of ways to add models to the scene.
 
 1. **Drag and Drop:** On devices with folder exploring you can drag a file from your file explorer and drop it in the Euclideon Vault Client window to add the model to the scene.
-2. **Direct URL loading:** You can type a URL or path in the `Add UDS` ![Add UDS button](./images/uds-button.png "Add UDS button") popup. The path field at the top of the pane allows URL and network paths to retrieve UDS files.
+2. **Direct URL loading:** You can type a URL or path in the `Add UDS` popup. ![Add UDS button](./images/uds-button.png "Add UDS button") The path field at the top of the pane allows URL and network paths to retrieve UDS files.
 
 #### Scene Item Properties
 
@@ -349,7 +348,7 @@ There are a number of ways to add models to the scene.
 
 The expanded properties for UDS files show the path the UDS was loaded from and then a treeview of the internal metadata from the file.
 
-![](./images/sceneproperties_uds.png)
+![Scene Properties](./images/sceneproperties_uds.png "Scene Properties")
 
 The system displays advanced information like the attributes in the file, their sizes, and how they are blended for level of detail calculations.
 
@@ -366,7 +365,7 @@ You can add points of interest (POI) to the current scene, alter the name of the
 |**4.** | Repeat the steps for multiple points of interest.  |
 
 
-![](./images/points-of-interest.png "Adding points of interest")  
+![Adding points of interest](./images/points-of-interest.png "Adding points of interest")  
  
 You can also track multiple points within an individual point of interest that extends over a distance, such as a train line.
 
@@ -386,14 +385,13 @@ You can also track multiple points within an individual point of interest that e
 
 >TIP: For image POIs, you can change its type (standard, panorama, photosphere) in the `Image Type` drop down.
 
->![](./images/image-types.png "Image type for images loaded on to Scene")  
-
+>![Image type for images loaded on to Scene](./images/image-types.png "Image type for images loaded on to Scene")  
 
 ##### Live Feeds (IOT)  
 
 Live Feeds (IOT) is intended for use by advanced users as it contains features that can cause performance loss if not configured correctly.
 
-![](./images/sceneproperties_livefeed.png)  
+![Live Feed Settings](./images/sceneproperties_livefeed.png "Live Feed Settings")  
 
 |Option | Description |
 | :------ |  :----------- |
@@ -410,7 +408,7 @@ Live Feeds (IOT) is intended for use by advanced users as it contains features t
 Use the parameters in the **Settings** window to customise how the Euclideon Vault Client looks and operates.  
 
 
-![](./images/settings.png "Settings panel")
+![Settings panel](./images/settings.png "Settings panel")
 
 
 -	Alter the [**Appearance**](#appearance) of the interface  
@@ -421,11 +419,11 @@ Use the parameters in the **Settings** window to customise how the Euclideon Vau
 
 We recommend familarising yourself with each setting by altering the parameters individually to see how they affect the display and operation.  
 
->TIP: To restore all default values for any of these settings, simply right-click on the subheading and then select `Restore Defaults`.
+>TIP: To restore all default values for any of these settings, simply right-click on the sub-heading and then select `Restore Defaults`.
 
 #### Appearance
 
-![](./images/appearance.png "Appearance Settings")
+![Appearance Settings](./images/appearance.png "Appearance Settings")
 
 The Appearance values enable you to adjust several settings that change the appearance of the Euclideon Vault Client interface.
 
@@ -445,7 +443,7 @@ The Appearance values enable you to adjust several settings that change the appe
 
 #### Input and Controls
 
-![](./images/inputcontrol.png "Input Settings")
+![Input Settings](./images/inputcontrol.png "Input Settings")
 
 Expanding this panel allows you to change settings that affect how you interface with the Euclideon Vault Client. Please note, Input & Controls parameters do not work in `Map Mode` (Ctrl+M).:
 
@@ -456,7 +454,7 @@ Expanding this panel allows you to change settings that affect how you interface
 	
 >TIP: Hold down the Shift-key to speed up the camera movement.
 	
-![](./images/on-screen-controls.png "On-screen controls")
+![On-screen controls](./images/on-screen-controls.png "On-screen controls")
 
   - **Touch Friendly UI:** You can enable Euclideon Vault Client to recognise touchscreen devices.
   - **Invert X-axis and Invert Y-axis:** Check to invert the default camera movement when you drag the mouse along the X and Y axes.
@@ -469,7 +467,7 @@ The Viewport allows you to adjust the camera's viewing distance and field of vie
 
 Please note that Viewport parameters do not work in `Map Mode` (Ctrl+M).
 
-![](./images/viewport.png "Viewport settings")
+![Viewport settings](./images/viewport.png "Viewport settings")
 
   > TIP: If the model disappears from the scene, yet you can still see the sky, watermark, or a (list of) uds file(s) in the Scene Explorer, your View Distance might be set too low. Adjust the View Distance settings until your models are visible again.
 
@@ -506,7 +504,7 @@ Load a model or project and use the following exercises to help familiarise your
 
 The map feature is useful when you need a geospatial view and are unfamiliar with the area or are looking for a specific reference point. Select **Map &amp; Elevation** within the **Settings** tab. 
  
-![](./images/mapsandelevation.png "Maps and Elevation settings")
+![Maps and Elevation settings](./images/mapsandelevation.png "Maps and Elevation settings")
 
 
  > TIP: Hold down the Ctrl-key and click in any parameter that has a slide bar to manually set a more precise value or set a value outside the parameter boundaries.
@@ -529,15 +527,15 @@ The Visualisation panel allows you to change between Colour, Intensity, and Clas
 
 **Colour** is the default display mode.
 
-![](./images/visualizationsettings.png "Visualisation Settings")
+![Visualisation Settings](./images/visualizationsettings.png "Visualisation Settings")
 
 **Intensity** display mode: Adjust the `Min & Max Intensity` values to alter the intensity of the scene.
 
-![](./images/visualizationintensity.png "Visualisation Intensity settings")
+![Visualisation Intensity settings](./images/visualizationintensity.png "Visualisation Intensity settings")
 
 In **Classification** display mode, a checkbox appears which enables you to customise the colours of objects corresponding to their designated classifications.
 
-![](./images/visualizationclassification.png "Visualisation Classification")
+![Visualisation Classification](./images/visualizationclassification.png "Visualisation Classification")
 
 Couple the settings below with `Voxel Shape` under the [Appearance](#appearance) option in the [Settings](#settings) window to see how the voxel shape affects these settings.
 
@@ -550,7 +548,7 @@ Couple the settings below with `Voxel Shape` under the [Appearance](#appearance)
 
 All four display options also allow you to customise the colours:
 
-![](./images/visualizationall.png "Visualisation Settings Expanded")
+![Visualisation Settings Expanded](./images/visualizationall.png "Visualisation Settings Expanded")
 
 > TIP: If you changed a setting and can't recall what you've changed, you can reset all settings by going to the **System** menu and selecting **Restore Defaults**, or you can reset individual groups of settings by right clicking on their header in the **Settings Window** and selecting **Restore Defaults**.
 
@@ -560,7 +558,7 @@ All four display options also allow you to customise the colours:
 
 ### SCENE INFO AND CONTROLS
 
-![](./images/scene-info-and-controls.png "Camera information and controls")
+![Camera information and controls](./images/scene-info-and-controls.png "Camera information and controls")
 
 Use the controls on this panel to manipulate the camera and control the scene.
 
@@ -588,9 +586,9 @@ Gizmos are disabled by default. To activate the gizmo tool, do the following:
 - Select a gizmo tool from the Euclideon Vault Client interface (see [Scene Info And Controls](#scene-info-and-controls))
 
 
-![](./images/gizmos-labelled.png "Scene Gizmos")
+![Scene Gizmos](./images/gizmos-labelled.png "Scene Gizmos")
 
-![](./images/local-space-mode.png "Local Space Mode") In **Local Space Mode**, the axis will align with the local axis of the last selected item. If the model doesn't have a local space axis, then the gizmo will use the global axis.  
+In **Local Space Mode**, the axis will align with the local axis of the last selected item. If the model doesn't have a local space axis, then the gizmo will use the global axis. ![](./images/local-space-mode.png "Local Space Mode")
    
 - **Red** is the X axis, which in projection space usually corresponds to the _EASTING_.  
 - **Green** is the Y axis, which usually corresponds to the _NORTHING_.  
@@ -598,7 +596,7 @@ Gizmos are disabled by default. To activate the gizmo tool, do the following:
 
 Looking at the gizmo from different angles will cause one or more of its axes to appear hatched/dashed. This indicates that this axis is pointed in the negative direction. 
 
-![](./images/gizmo-negative-axis.png "Negative angled gizmo")
+![Negative angled gizmo](./images/gizmo-negative-axis.png "Negative angled gizmo")
 
 Use the **Translation Gizmo** to move scene item(s) around. The translation gizmo has 3 components:  
 
@@ -619,11 +617,11 @@ The **Scale Gizmo** changes the size of the selected item(s). The anchor for sca
 
 In some situations, you may find parts of the gizmo greyed out. This will happen when the model does not support that action. For instance, UDS files do not support non-uniform scaling. Therefore, that gizmo will be unavailable.
 
-![](./images/gizmogreyed.png "Scene gizmos greyed out")
+![Scene gizmos greyed out](./images/gizmogreyed.png "Scene gizmos greyed out")
 
 >TIP: If you have moved, rotated, or scaled a uds model incorrectly and cannot recall its original settings, right-click on the item in the `Scene Explorer` and select `Reset Position`.
 
-![](./images/reset-gizmo-position.png "Reset gizmo position")
+![Reset gizmo position](./images/reset-gizmo-position.png "Reset gizmo position")
 
 
 
@@ -637,7 +635,7 @@ A compass is also displayed in this corner, indicating the camera's current orie
 ### WATERMARK
 If a watermark was included in the model, it will appear at the bottom left-hand corner of the Scene window.
 
-![](./images/watermark-image.png "Watermark image on the scene window")
+![Watermark image on the scene window](./images/watermark-image.png "Watermark image on the scene window")
 
 >TIP: If you have multiple models loaded, all of which have a watermark, if they are separated geographically, then when you `Move To` or use the mouse or keyboard to navigate to the model, its watermark will display. However, if the models overlay each other, then the watermark of the model listed closer to the top in the Scene Explorer window will display.
 
@@ -655,7 +653,7 @@ The Euclideon Vault Client enables users to import 3D models and convert them to
 -   OBJ
 -   ASC (Esri)
 
-![](./images/convert-parameters.png "Euclideon Vault Convert Window")  
+![Euclideon Vault Convert Window](./images/convert-parameters.png "Euclideon Vault Convert Window")  
 
 >TIP: If you attempt to drag and drop the file to want to convert on to the Convert Window before typing in the `Output Name` path and filename, then Euclideon Vault Client will report that the file type is not supported.
 
@@ -695,7 +693,7 @@ The Euclideon Vault Client also comes with a separate command line application w
 |**-i inputFile**  | The location of the file you wish to convert. If the file's path contains any spaces, you need to put the path in quotes, for example: `"C:/My Data/File to Convert.csv"` <br />Use multiple `-i InputFile` options to specify additional input files. **NOTE:** The conversion process will merge all files into the one output file, so ensure they are compatible first. |
 |  **-o outputFile.uds** | The name and location of the new `.uds` file you wish to create. Again, if the file's path contains any spaces you must put the path in quotes, for example: `"C:/Output/Converted File.uds"` |
 
-![](./images/convert-cmd.png "Converting models from command line")
+![Converting models from command line](./images/convert-cmd.png "Converting models from command line")
    
 
 ### Rearranging Windows
@@ -710,7 +708,7 @@ You can rearrange the windows in the Euclideon Vault Client interface to suit yo
 | **4.**   | Drag your window over the blue rectangle situated where you want your window to sit.  <br /><br />For instance, in the screenshot, we are moving the **Scene Window** to the right of the Convert Window to create a 3-panelled interface display. |
 | **5.**   | Once in position, simply release the left-mouse button. |
 
-![](./images/rearrange-windows.png "Rearrange windows in Vault")
+![Rearrange windows in Vault](./images/rearrange-windows.png "Rearrange windows in Vault")
 
 
 ## Hosting a model
