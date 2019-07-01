@@ -716,9 +716,7 @@ You can rearrange the windows in the Euclideon Vault Client interface to suit yo
 You can store 3D models on:
 
 -   A local computer hard-drive
-
 -   A network drive
-
 -   In a Cloud.
     
 >Detailed configuration and implementation instructions on how to host models in a cloud is outside the scope of this document. Please, refer to the Euclideon Server and VDK Guides for more information.
@@ -795,8 +793,8 @@ Euclideon Vault Development Kit (VDK) uses the following additional libraries.
 **What is the Name and Light next to my license name mean?**    
 	The **name** is the username you used to log into the Euclideon Vault Client interface.<br /> The **light** represents your connection status.  axis.  
    
-- **Green** is good and indicates that you are connected and actively working.  
-- **Yellow** indicates that the server hasn't been contacted in over 30 seconds.  
+- **Green** is good and indicates that you are connected and actively working. 
+- **Yellow** indicates that the server hasn't been contacted in over 30 seconds. 
 - **Red** indicates that the server hasn't been contacted in more than 60 seconds and has been disconnected. Red can also point to hindered services, such as network connectivity issues.  
 
   Other useful information includes the license type you are using and how recently your license has synced with the Euclideon Vault Server. 
