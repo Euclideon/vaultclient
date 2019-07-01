@@ -403,6 +403,7 @@
 
   "scenePOILineSettings": "Line Settings",
   "scenePOILineShowLength": "Show Length",
+  "scenePOILineShowAllLengths": "Show All Lengths",
   "scenePOILineShowArea": "Show Area",
   "scenePOILineClosed": "Close Polygon",
   "scenePOILineColour1": "Line Colour 1",

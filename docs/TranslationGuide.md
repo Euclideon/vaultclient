@@ -11,7 +11,7 @@
     - Menus & Modals
       - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`, `menuBarFilesFailed`, `menuBarFilesFailedTooltip`
     - Scene Explorer
-      - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`, `sceneExplorerExportButton`, `sceneExplorerProjectChangeSucceededTitle`, `sceneExplorerProjectChangeSucceededMessage`, `sceneResetRotation`, `sceneExplorerClearAllButton`
+      - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`, `sceneExplorerExportButton`, `sceneExplorerProjectChangeSucceededTitle`, `sceneExplorerProjectChangeSucceededMessage`, `sceneResetRotation`, `sceneExplorerClearAllButton`, `scenePOILineShowAllLengths`
   - Removed:
     - Menu strings
       - `menuRestoreDefaults`
@@ -528,7 +528,8 @@ Modules are currently:
 - `scenePOILabelImageTypePanorama`: One of the POI image types as shown in the scene explorer
 - `scenePOILabelImageTypePhotosphere`: One of the POI image types as shown in the scene explorer
 - `scenePOILineSettings`: The header for the expansion for the other line settings
-- `scenePOILineShowLength` Label on the checkbox for when the user wants the length displayed on the label in the scene
+- `scenePOILineShowLength`: Label on the checkbox for when the user wants the length displayed on the label in the scene
+- `scenePOILineShowAllLengths`: Label on the checkbox that will show each individual segment line length
 - `scenePOILineShowArea`: Label on the checkbox for when the user wants the area displayed on the label in the scene
 - `scenePOILineClosed`: Label on the checkbox for when the user wants the lines to form a closed polygon
 - `scenePOILineColour1`: Label for the colour picker for the first colour for the lines
