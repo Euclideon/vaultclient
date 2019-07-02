@@ -7,7 +7,7 @@
     - Login Screen
       - `loginUserAgent`, `loginSelectUserAgent`, `loginRestoreDefaults`
     - Convert
-      - `convertWriteFailed`, `convertParseError`, `convertImageParseError`, `convertNoFile`
+      - `convertWriteFailed`, `convertParseError`, `convertImageParseError`, `convertNoFile`, `convertAddFileTitle`, `convertSetOutputTitle`, `convertAddNewJob`, `convertAddFile`, `convertSetOutput`
     - Menus & Modals
       - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`, `menuBarFilesFailed`, `menuBarFilesFailedTooltip`
     - Scene Explorer
@@ -341,6 +341,11 @@ Modules are currently:
 - `convertSpaceCartesian`: The label on the combobox item for a cartesian projected conversion input
 - `convertSpaceLatLong`: The label on the combobox item for a latitude, longitude ordered conversion input
 - `convertSpaceLongLat`: The label on the combobox item for a longitude, latitude ordered conversion input
+- `convertAddFileTitle`: Title of the file dialog used for adding files to the convert queue
+- `convertSetOutputTitle`: Title of the file dialog used for setting the convert output path
+- `convertAddNewJob`: Label for button used in convert window to create a blank new job in the convert job list
+- `convertAddFile`: Label for button used in convert window to open a file dialog and add a file to be converted
+- `convertSetOutput`: Label for button used in convert window to open a file dialog and set the destination filepath for the converted file output.
 
 ### Menu Strings
 
