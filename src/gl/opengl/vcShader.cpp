@@ -5,6 +5,11 @@
 
 GLint vcBuildShader(GLenum type, const GLchar *shaderCode)
 {
+#if !(UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR)
+  if (type == GL_GEOMETRY_SHADER && shaderCode == nullptr)
+    return (GLint)-1;
+#endif
+
   GLint compiled;
   GLint shaderCodeLen = (GLint)strlen(shaderCode);
   GLint shaderObject = glCreateShader(type);
@@ -30,13 +35,15 @@ GLint vcBuildShader(GLenum type, const GLchar *shaderCode)
   return shaderObject;
 }
 
-GLint vcBuildProgram(GLint vertexShader, GLint fragmentShader)
+GLint vcBuildProgram(GLint vertexShader, GLint fragmentShader, GLint geometryShader)
 {
   GLint programObject = glCreateProgram();
   if (vertexShader != -1)
     glAttachShader(programObject, vertexShader);
   if (fragmentShader != -1)
     glAttachShader(programObject, fragmentShader);
+  if (geometryShader != -1)
+    glAttachShader(programObject, geometryShader);
 
   glLinkProgram(programObject);
   GLint linked;
@@ -56,20 +63,32 @@ GLint vcBuildProgram(GLint vertexShader, GLint fragmentShader)
     return -1;
   }
 
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
+  if (vertexShader != -1)
+    glDeleteShader(vertexShader);
+  if (fragmentShader != -1)
+    glDeleteShader(fragmentShader);
+  if (geometryShader != -1)
+    glDeleteShader(geometryShader);
 
   return programObject;
 }
 
-bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes * /*pInputTypes*/, uint32_t /*totalInputs*/)
+bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes * /*pInputTypes*/, uint32_t /*totalInputs*/, const char *pGeometryShader /*= nullptr*/)
 {
   if (ppShader == nullptr || pVertexShader == nullptr || pFragmentShader == nullptr)
     return false;
 
   vcShader *pShader = udAllocType(vcShader, 1, udAF_Zero);
 
-  pShader->programID = vcBuildProgram(vcBuildShader(GL_VERTEX_SHADER, pVertexShader), vcBuildShader(GL_FRAGMENT_SHADER, pFragmentShader));
+  GLint geometryShaderId = (GLint)-1;
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  if (pGeometryShader != nullptr)
+    return false;
+#else// UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  geometryShaderId = vcBuildShader(GL_GEOMETRY_SHADER, pGeometryShader);
+#endif
+
+  pShader->programID = vcBuildProgram(vcBuildShader(GL_VERTEX_SHADER, pVertexShader), vcBuildShader(GL_FRAGMENT_SHADER, pFragmentShader), geometryShaderId);
 
   if (pShader->programID == GL_INVALID_INDEX)
     udFree(pShader);

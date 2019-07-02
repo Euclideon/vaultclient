@@ -46,7 +46,7 @@ epilogue:
 udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, int totalTypes, const void* pVerts, int currentVerts, const void *pIndices, int currentIndices, vcMeshFlags flags/* = vcMF_None*/)
 {
   bool invalidIndexSetup = ((flags & vcMF_NoIndexBuffer) == 0) && ((pIndices == nullptr && currentIndices > 0) || currentIndices == 0);
-  if (ppMesh == nullptr || pMeshLayout == nullptr || totalTypes == 0 || pVerts == nullptr || currentVerts == 0 || invalidIndexSetup)
+  if (ppMesh == nullptr || pMeshLayout == nullptr || totalTypes == 0 || currentVerts == 0 || invalidIndexSetup)
     return udR_InvalidParameter_;
 
   udResult result = udR_Failure_;
@@ -156,6 +156,36 @@ epilogue:
   return result;
 }
 
+udResult vcMesh_UploadSubData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, int totalTypes, int startVertex, const void* pVerts, int totalVerts, const void *pIndices, int totalIndices)
+{
+
+  if (pMesh == nullptr || pLayout == nullptr || totalTypes == 0 || pVerts == nullptr || totalVerts == 0 || pMesh->drawType != D3D11_USAGE_DYNAMIC)
+    return udR_InvalidParameter_;
+
+  udResult result = udR_Failure_;
+
+  D3D11_MAPPED_SUBRESOURCE vertexResource, indexResource;
+
+  UD_ERROR_IF(g_pd3dDeviceContext->Map(pMesh->pVBO, 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &vertexResource) != S_OK, udR_MemoryAllocationFailure);
+  memcpy((void*)((uint8_t*)vertexResource.pData + startVertex * pMesh->vertexSize), pVerts, totalVerts * pMesh->vertexSize);
+  g_pd3dDeviceContext->Unmap(pMesh->pVBO, 0);
+
+  if (pMesh->indexBytes != 0)
+  {
+    UD_ERROR_IF(g_pd3dDeviceContext->Map(pMesh->pIBO, 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &indexResource) != S_OK, udR_MemoryAllocationFailure);
+    memcpy(indexResource.pData, pIndices, totalIndices * pMesh->indexBytes);
+    g_pd3dDeviceContext->Unmap(pMesh->pIBO, 0);
+
+    pMesh->indexCount = totalIndices;
+  }
+
+  vcGLState_ReportGPUWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
+  result = udR_Success;
+
+epilogue:
+  return result;
+}
+
 bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t startElement /* = 0*/, vcMeshRenderMode renderMode /*= vcMRM_Triangles*/)
 {
   if (pMesh == nullptr || (pMesh->indexBytes > 0 && pMesh->indexCount < (elementCount + startElement) * 3) || (elementCount == 0 && startElement != 0))
@@ -179,6 +209,10 @@ bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t start
   {
   case vcMRM_TriangleStrip:
     d3dRenderMode = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+    elementsPerPrimitive = 1;
+    break;
+  case vcMRM_Points:
+    d3dRenderMode = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
     elementsPerPrimitive = 1;
     break;
   case vcMRM_Triangles: // fall through
