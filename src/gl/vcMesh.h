@@ -19,6 +19,7 @@ enum vcMeshRenderMode
 {
   vcMRM_Triangles,
   vcMRM_TriangleStrip,
+  vcMRM_Points,
 };
 
 udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, int totalTypes, const void* pVerts, int currentVerts, const void *pIndices, int currentIndices, vcMeshFlags flags = vcMF_None);
@@ -26,6 +27,7 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
 void vcMesh_Destroy(vcMesh **ppMesh);
 
 udResult vcMesh_UploadData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, int totalTypes, const void* pVerts, int totalVerts, const void *pIndices, int totalIndices);
+udResult vcMesh_UploadSubData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, int totalTypes, int startVertex, const void* pVerts, int totalVerts, const void *pIndices, int totalIndices);
 
 bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount = 0, uint32_t startElement = 0, vcMeshRenderMode renderMode = vcMRM_Triangles);
 

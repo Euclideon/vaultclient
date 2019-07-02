@@ -183,6 +183,10 @@ bool vcMesh_Render(struct vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_
     primitiveType = MTLPrimitiveTypeTriangleStrip;
     elementsPerPrimitive = 1;
     break;
+  case vcMRM_Points:
+    primitiveType = MTLPrimitiveTypePoint;
+    elementsPerPrimitive = 1;
+    break;
   case vcMRM_Triangles:
     primitiveType = MTLPrimitiveTypeTriangle;
     elementsPerPrimitive = 3;
