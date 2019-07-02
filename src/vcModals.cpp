@@ -386,6 +386,10 @@ void vcModals_DrawFileModal(vcState *pProgramState)
     ImGui::OpenPopup(vcString::Get("menuProjectImportTitle"));
   if (pProgramState->openModals & (1 << vcMT_ExportProject))
     ImGui::OpenPopup(vcString::Get("menuProjectExportTitle"));
+  if (pProgramState->openModals & (1 << vcMT_ConvertAdd))
+    ImGui::OpenPopup(vcString::Get("convertAddFileTitle"));
+  if (pProgramState->openModals & (1 << vcMT_ConvertOutput))
+    ImGui::OpenPopup(vcString::Get("convertSetOutputTitle"));
 
   vcModalTypes mode = vcMT_Count;
 
@@ -400,6 +404,14 @@ void vcModals_DrawFileModal(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("menuProjectExportTitle")))
     mode = vcMT_ExportProject;
+
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("convertAddFileTitle")))
+    mode = vcMT_ConvertAdd;
+
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("convertSetOutputTitle")))
+    mode = vcMT_ConvertOutput;
 
   if (mode < vcMT_Count)
   {
@@ -443,10 +455,38 @@ void vcModals_DrawFileModal(vcState *pProgramState)
       if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), false, fileExtensions, udLengthOf(fileExtensions)))
         saveFile = true;
     }
+    else if (mode == vcMT_ConvertAdd)
+    {
+      // TODO: List all supported conversion filetypes
+      if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), false, nullptr, 0)) // No extensions means show every file
+        loadFile = true;
+    }
+    else if (mode == vcMT_ConvertOutput)
+    {
+      const char *fileExtensions[] = { ".uds" };
+      if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), false, fileExtensions, udLengthOf(fileExtensions)))
+        loadFile = true;
+    }
 
     if (loadFile)
     {
-      pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
+      if (mode == vcMT_ConvertAdd)
+      {
+        vcConvert_AddFile(pProgramState, pProgramState->modelPath);
+      }
+      else if (mode == vcMT_ConvertOutput)
+      {
+        // Set output path and filename
+        udFilename loadFilename(pProgramState->modelPath);
+        loadFilename.SetExtension(".uds");
+        vdkConvertContext *pConvertContext = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext;
+        vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pConvertContext, loadFilename.GetPath());
+        // SetOutputFilename() overwrites the temp directory automatically, unless the user has modified it
+      }
+      else
+      {
+        pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
+      }
       pProgramState->modelPath[0] = '\0';
       ImGui::CloseCurrentPopup();
     }
@@ -467,12 +507,12 @@ void vcModals_DrawFileModal(vcState *pProgramState)
         // Check if file path exists before writing to disk, and if so, the user will be presented with the option to overwrite or cancel
         if (vcModals_OverwriteExistingFile(exportFilename.GetPath()))
         {
+          pProgramState->modelPath[0] = '\0';
+          ImGui::CloseCurrentPopup();
           if (udFile_Save(exportFilename.GetPath(), (void*)pOutput, udStrlen(pOutput)) != udR_Success)
             vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
           else
             vcModals_OpenModal(pProgramState, vcMT_ProjectChangeSucceeded);
-
-          ImGui::CloseCurrentPopup();
         }
         if (pDir != nullptr)
           udFree(pDir);
