@@ -41,6 +41,9 @@ private:
   bool m_showLength;
   double m_calculatedLength;
 
+  bool m_showAllLengths;
+  udChunkedArray<vcLabelInfo> m_lengthLabels;
+
   vcFenceRenderer *m_pFence;
   vcLabelInfo *m_pLabelInfo;
   const char *m_pLabelText;
