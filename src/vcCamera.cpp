@@ -284,8 +284,8 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
         pCamInput->mouseInput.y *= -1.0;
 
       // Apply input
-      tempTransform = udRotateAround(transform, pCamInput->worldAnchorPoint, { 0, 0, 1 }, pCamInput->mouseInput.x);
-      transform = udRotateAround(tempTransform, pCamInput->worldAnchorPoint, udDoubleQuat::create(udMath_DirToYPR(tempTransform.direction)).apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
+      tempTransform = udRay<double>::rotationAround(transform, pCamInput->worldAnchorPoint, { 0, 0, 1 }, pCamInput->mouseInput.x);
+      transform = udRay<double>::rotationAround(tempTransform, pCamInput->worldAnchorPoint, udDoubleQuat::create(udMath_DirToYPR(tempTransform.direction)).apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
 
       // Prevent flipping
       if ((transform.direction.x > 0 && tempTransform.direction.x < 0) || (transform.direction.x < 0 && tempTransform.direction.x > 0))
@@ -483,7 +483,7 @@ void vcCamera_Apply(vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraI
 
     udDouble3 offset = udDouble3::create(0, 0, 0);
     udDouble3 anchorOffset = udDouble3::create(0, 0, 0);
-    if (udIntersect(plane, pCamera->worldMouseRay, &offset) == udR_Success && udIntersect(plane, pCamInput->anchorMouseRay, &anchorOffset) == udR_Success)
+    if (plane.intersects(pCamera->worldMouseRay, &offset, nullptr) && plane.intersects(pCamInput->anchorMouseRay, &anchorOffset, nullptr))
       pCamInput->smoothTranslation = (anchorOffset - offset);
   }
   break;

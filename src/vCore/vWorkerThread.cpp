@@ -1,9 +1,11 @@
 #include "vWorkerThread.h"
+
 #include "udChunkedArray.h"
+#include "udSafeDeque.h"
 #include "udPlatformUtil.h"
 #include "udThread.h"
-#include "vSafeDeque.h"
 #include "udMath.h"
+#include "udStringUtil.h"
 
 uint32_t vWorkerThread_DoWork(void *pPoolPtr)
 {
@@ -24,7 +26,7 @@ uint32_t vWorkerThread_DoWork(void *pPoolPtr)
     if (waitValue != 0)
       continue;
 
-    if (vSafeDeque_PopFront(pPool->pQueuedTasks, &currentTask) != udR_Success)
+    if (udSafeDeque_PopFront(pPool->pQueuedTasks, &currentTask) != udR_Success)
       continue;
 
     pThreadData->isActive = true;
@@ -32,7 +34,7 @@ uint32_t vWorkerThread_DoWork(void *pPoolPtr)
       currentTask.pFunction(currentTask.pDataBlock);
 
     if (currentTask.pPostFunction)
-      vSafeDeque_PushBack(pPool->pQueuedPostTasks, currentTask);
+      udSafeDeque_PushBack(pPool->pQueuedPostTasks, currentTask);
     else if (currentTask.freeDataBlock)
       udFree(currentTask.pDataBlock);
 
@@ -44,7 +46,7 @@ uint32_t vWorkerThread_DoWork(void *pPoolPtr)
   return 0;
 }
 
-void vWorkerThread_StartThreads(vWorkerThreadPool **ppPool, uint8_t maxWorkers)
+void vWorkerThread_StartThreads(vWorkerThreadPool **ppPool, uint8_t maxWorkers /*= 4*/, const char *pThreadPrefix /*= "vWorkerThread"*/)
 {
   if (ppPool == nullptr || *ppPool != nullptr || maxWorkers == 0)
     return;
@@ -53,8 +55,8 @@ void vWorkerThread_StartThreads(vWorkerThreadPool **ppPool, uint8_t maxWorkers)
 
   pPool->pSemaphore = udCreateSemaphore();
 
-  vSafeDeque_Create(&pPool->pQueuedTasks, 32);
-  vSafeDeque_Create(&pPool->pQueuedPostTasks, 32);
+  udSafeDeque_Create(&pPool->pQueuedTasks, 32);
+  udSafeDeque_Create(&pPool->pQueuedPostTasks, 32);
 
   pPool->isRunning = true;
   pPool->totalThreads = udMax(uint8_t(1), maxWorkers);
@@ -63,7 +65,7 @@ void vWorkerThread_StartThreads(vWorkerThreadPool **ppPool, uint8_t maxWorkers)
   for (int i = 0; i < pPool->totalThreads; ++i)
   {
     pPool->pThreadData[i].pPool = pPool;
-    udThread_Create(&pPool->pThreadData[i].pThread, vWorkerThread_DoWork, &pPool->pThreadData[i]);
+    udThread_Create(&pPool->pThreadData[i].pThread, vWorkerThread_DoWork, &pPool->pThreadData[i], udTCF_None, udTempStr("%s%d", pThreadPrefix, i));
   }
 
   *ppPool = pPool;
@@ -82,23 +84,26 @@ void vWorkerThread_Shutdown(vWorkerThreadPool **ppPool, bool waitForCompletion)
     udYield(); //Spin until all threads complete
 
   for (int i = 0; i < pPool->totalThreads; i++)
+  {
+    udThread_Join(pPool->pThreadData[i].pThread);
     udThread_Destroy(&pPool->pThreadData[i].pThread);
+  }
 
   vWorkerThreadTask currentTask;
-  while (vSafeDeque_PopFront(pPool->pQueuedTasks, &currentTask) == udR_Success)
+  while (udSafeDeque_PopFront(pPool->pQueuedTasks, &currentTask) == udR_Success)
   {
     if (currentTask.freeDataBlock)
       udFree(currentTask.pDataBlock);
   }
 
-  while (vSafeDeque_PopFront(pPool->pQueuedPostTasks, &currentTask) == udR_Success)
+  while (udSafeDeque_PopFront(pPool->pQueuedPostTasks, &currentTask) == udR_Success)
   {
     if (currentTask.freeDataBlock)
       udFree(currentTask.pDataBlock);
   }
 
-  vSafeDeque_Destroy(&pPool->pQueuedTasks);
-  vSafeDeque_Destroy(&pPool->pQueuedPostTasks);
+  udSafeDeque_Destroy(&pPool->pQueuedTasks);
+  udSafeDeque_Destroy(&pPool->pQueuedPostTasks);
   udDestroySemaphore(&pPool->pSemaphore);
 
   udFree(pPool->pThreadData);
@@ -108,7 +113,7 @@ void vWorkerThread_Shutdown(vWorkerThreadPool **ppPool, bool waitForCompletion)
 void vWorkerThread_DoPostWork(vWorkerThreadPool *pPool)
 {
   vWorkerThreadTask currentTask;
-  while (vSafeDeque_PopFront(pPool->pQueuedPostTasks, &currentTask) == udR_Success)
+  while (udSafeDeque_PopFront(pPool->pQueuedPostTasks, &currentTask) == udR_Success)
   {
     currentTask.pPostFunction(currentTask.pDataBlock);
 
@@ -119,7 +124,7 @@ void vWorkerThread_DoPostWork(vWorkerThreadPool *pPool)
 
 void vWorkerThread_AddTask(vWorkerThreadPool *pPool, vWorkerThreadCallback *pFunc, void *pUserData /*= nullptr*/, bool clearMemory /*= true*/, vWorkerThreadCallback *pPostFunc /*= nullptr*/)
 {
-  if (pPool == nullptr)
+  if (pPool == nullptr || pPool->pQueuedTasks == nullptr || pPool->pSemaphore == nullptr)
     return;
 
   vWorkerThreadTask tempTask;
@@ -129,7 +134,7 @@ void vWorkerThread_AddTask(vWorkerThreadPool *pPool, vWorkerThreadCallback *pFun
   tempTask.pDataBlock = pUserData;
   tempTask.freeDataBlock = clearMemory;
 
-  vSafeDeque_PushBack(pPool->pQueuedTasks, tempTask);
+  udSafeDeque_PushBack(pPool->pQueuedTasks, tempTask);
 
   udIncrementSemaphore(pPool->pSemaphore);
 }

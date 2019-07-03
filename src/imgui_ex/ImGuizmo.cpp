@@ -422,7 +422,7 @@ static double vcGizmo_ComputeAngleOnPlane()
 {
   udDouble3 localPos;
 
-  if (udIntersect(sGizmoContext.mTranslationPlane, sGizmoContext.camera.worldMouseRay, &localPos) != udR_Success)
+  if (!sGizmoContext.mTranslationPlane.intersects(sGizmoContext.camera.worldMouseRay, &localPos, nullptr))
     return 0;
 
   localPos = udNormalize(localPos - sGizmoContext.mTranslationPlane.point);
@@ -667,7 +667,7 @@ static int vcGizmo_GetScaleType()
       dirAxis = (sGizmoContext.mModel * udDouble4::create(dirAxis, 0)).toVector3();
 
       udDouble3 posOnPlane;
-      if (udIntersect(udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), -sGizmoContext.mCameraDir), sGizmoContext.camera.worldMouseRay, &posOnPlane) != udR_Success)
+      if (!udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), -sGizmoContext.mCameraDir).intersects(sGizmoContext.camera.worldMouseRay, &posOnPlane, nullptr))
         continue;
 
       const ImVec2 posOnPlanScreen = vcGizmo_WorldToScreen(posOnPlane, sGizmoContext.camera.matrices.viewProjection);
@@ -707,7 +707,7 @@ static int vcGizmo_GetRotateType()
       udPlane<double> pickupPlane = udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), planeNormals[i]);
 
       udDouble3 localPos;
-      if (udIntersect(pickupPlane, sGizmoContext.camera.worldMouseRay, &localPos) != udR_Success)
+      if (!pickupPlane.intersects(sGizmoContext.camera.worldMouseRay, &localPos, nullptr))
         continue;
       localPos -= pickupPlane.point;
 
@@ -748,7 +748,7 @@ static int vcGizmo_GetMoveType()
       dirPlaneY = (sGizmoContext.mModel * udDouble4::create(dirPlaneY, 0)).toVector3();
 
       udDouble3 posOnPlane;
-      if (udIntersect(udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), -sGizmoContext.mCameraDir), sGizmoContext.camera.worldMouseRay, &posOnPlane) == udR_Success)
+      if (udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), -sGizmoContext.mCameraDir).intersects(sGizmoContext.camera.worldMouseRay, &posOnPlane, nullptr))
       {
         const ImVec2 posOnPlaneScreen = vcGizmo_WorldToScreen(posOnPlane, sGizmoContext.camera.matrices.viewProjection);
         const ImVec2 axisStartOnScreen = vcGizmo_WorldToScreen(sGizmoContext.mModel.axis.t.toVector3() + dirAxis * sGizmoContext.mScreenFactor * 0.1f, sGizmoContext.camera.matrices.viewProjection);
@@ -760,7 +760,7 @@ static int vcGizmo_GetMoveType()
           type = vcGMT_MoveX + i;
       }
 
-      if (udIntersect(udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), dirAxis), sGizmoContext.camera.worldMouseRay, &posOnPlane) == udR_Success)
+      if (udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), dirAxis).intersects(sGizmoContext.camera.worldMouseRay, &posOnPlane, nullptr))
       {
         const double dx = udDot(dirPlaneX, ((posOnPlane - sGizmoContext.mModel.axis.t.toVector3()) * (1.0 / sGizmoContext.mScreenFactor)));
         const double dy = udDot(dirPlaneY, ((posOnPlane - sGizmoContext.mModel.axis.t.toVector3()) * (1.0 / sGizmoContext.mScreenFactor)));
@@ -784,7 +784,7 @@ static void vcGizmo_HandleTranslation(udDouble4x4 *deltaMatrix, int& type, doubl
     ImGui::CaptureMouseFromApp();
     udDouble3 newPos;
 
-    if (udIntersect(sGizmoContext.mTranslationPlane, sGizmoContext.camera.worldMouseRay, &newPos) == udR_Success)
+    if (sGizmoContext.mTranslationPlane.intersects(sGizmoContext.camera.worldMouseRay, &newPos, nullptr))
     {
       // compute delta
       udDouble3 newOrigin = newPos - sGizmoContext.mRelativeOrigin * sGizmoContext.mScreenFactor;
@@ -858,7 +858,7 @@ static void vcGizmo_HandleTranslation(udDouble4x4 *deltaMatrix, int& type, doubl
 
       // pickup plan
       sGizmoContext.mTranslationPlane = udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), movePlanNormal[type - vcGMT_MoveX]);
-      if (udIntersect(sGizmoContext.mTranslationPlane, sGizmoContext.camera.worldMouseRay, &sGizmoContext.mTranslationPlaneOrigin) == udR_Success)
+      if (sGizmoContext.mTranslationPlane.intersects(sGizmoContext.camera.worldMouseRay, &sGizmoContext.mTranslationPlaneOrigin, nullptr))
       {
         sGizmoContext.mMatrixOrigin = sGizmoContext.mModel.axis.t.toVector3();
         sGizmoContext.mRelativeOrigin = (sGizmoContext.mTranslationPlaneOrigin - sGizmoContext.mModel.axis.t.toVector3()) * (1.0 / sGizmoContext.mScreenFactor);
@@ -886,7 +886,7 @@ static void vcGizmo_HandleScale(udDouble4x4 *pDeltaMatrix, int& type, double sna
       const udDouble3 movePlanNormal[] = { sGizmoContext.mModel.axis.y.toVector3(), sGizmoContext.mModel.axis.z.toVector3(), sGizmoContext.mModel.axis.x.toVector3(), sGizmoContext.mModel.axis.z.toVector3(), sGizmoContext.mModel.axis.y.toVector3(), sGizmoContext.mModel.axis.x.toVector3(), -sGizmoContext.mCameraDir };
 
       sGizmoContext.mTranslationPlane = udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), movePlanNormal[type - vcGMT_ScaleX]);
-      if (udIntersect(sGizmoContext.mTranslationPlane, sGizmoContext.camera.worldMouseRay, &sGizmoContext.mTranslationPlaneOrigin) == udR_Success)
+      if (sGizmoContext.mTranslationPlane.intersects(sGizmoContext.camera.worldMouseRay, &sGizmoContext.mTranslationPlaneOrigin, nullptr))
       {
         sGizmoContext.mMatrixOrigin = sGizmoContext.mModel.axis.t.toVector3();
         sGizmoContext.mScale = udDouble3::one();
@@ -902,7 +902,7 @@ static void vcGizmo_HandleScale(udDouble4x4 *pDeltaMatrix, int& type, double sna
   {
     ImGui::CaptureMouseFromApp();
     udDouble3 newPos;
-    if (udIntersect(sGizmoContext.mTranslationPlane, sGizmoContext.camera.worldMouseRay, &newPos) == udR_Success)
+    if (sGizmoContext.mTranslationPlane.intersects(sGizmoContext.camera.worldMouseRay, &newPos, nullptr))
     {
       udDouble3 newOrigin = newPos - sGizmoContext.mRelativeOrigin * sGizmoContext.mScreenFactor;
       udDouble3 delta = newOrigin - sGizmoContext.mModel.axis.t.toVector3();
@@ -990,7 +990,7 @@ static void vcGizmo_HandleRotation(udDouble4x4 *deltaMatrix, int& type, double s
       else
         sGizmoContext.mTranslationPlane = udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), sDirectionUnary[type - vcGMT_RotateX]);
 
-      if (udIntersect(sGizmoContext.mTranslationPlane, sGizmoContext.camera.worldMouseRay, &sGizmoContext.mRotationVectorSource) == udR_Success)
+      if (sGizmoContext.mTranslationPlane.intersects(sGizmoContext.camera.worldMouseRay, &sGizmoContext.mRotationVectorSource, nullptr))
       {
         sGizmoContext.mRotationVectorSource = udNormalize(sGizmoContext.mRotationVectorSource - sGizmoContext.mTranslationPlane.point);
         sGizmoContext.mRotationAngleOrigin = vcGizmo_ComputeAngleOnPlane();

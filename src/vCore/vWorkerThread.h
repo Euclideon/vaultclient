@@ -1,9 +1,7 @@
 #ifndef vWorkerThread_h__
 #define vWorkerThread_h__
 
-#include <stdint.h>
-#include "udMath.h"
-#include "vSafeDeque.h"
+#include "udSafeDeque.h"
 
 // A basic system to queue tasks in the background
 // The worker thread system does not rely on having a udCDKProject*
@@ -25,13 +23,13 @@ struct vWorkerThreadData
   vWorkerThreadPool *pPool;
   udThread *pThread;
 
-  bool isActive;
+  udInterlockedBool isActive;
 };
 
 struct vWorkerThreadPool
 {
-  vSafeDeque<vWorkerThreadTask> *pQueuedTasks;
-  vSafeDeque<vWorkerThreadTask> *pQueuedPostTasks;
+  udSafeDeque<vWorkerThreadTask> *pQueuedTasks;
+  udSafeDeque<vWorkerThreadTask> *pQueuedPostTasks;
 
   udSemaphore *pSemaphore;
   volatile int32_t runningThreads;
@@ -39,12 +37,12 @@ struct vWorkerThreadPool
   int32_t totalThreads;
   vWorkerThreadData *pThreadData;
 
-  bool isRunning;
+  udInterlockedBool isRunning;
 };
 
 // The theory with starting threads is to keep starting for each system that needs it
 //   it internally increments and onces all started are shutdown it cleans up
-void vWorkerThread_StartThreads(vWorkerThreadPool **ppPool, uint8_t maxThreads = 4);
+void vWorkerThread_StartThreads(vWorkerThreadPool **ppPool, uint8_t maxThreads = 4, const char *pThreadPrefix = "vWorkerThread");
 void vWorkerThread_Shutdown(vWorkerThreadPool **ppPool, bool waitForCompletion = true);
 
 void vWorkerThread_DoPostWork(vWorkerThreadPool *pPool);
