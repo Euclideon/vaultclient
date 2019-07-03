@@ -406,7 +406,7 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
 
       udDouble3 hitPoint;
       double hitDistance;
-      if (udIntersect(mapPlane, pRenderContext->pCamera->worldMouseRay, &hitPoint, &hitDistance) == udR_Success)
+      if (mapPlane.intersects(pRenderContext->pCamera->worldMouseRay, &hitPoint, &hitDistance))
       {
         if (hitDistance < pRenderContext->pSettings->camera.farPlane && (!renderData.pickingSuccess || hitDistance < udMag3(renderData.worldMousePos - localCamPos) - pRenderContext->pSettings->camera.nearPlane))
         {

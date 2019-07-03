@@ -9,8 +9,6 @@
 #include "vdkContext.h"
 #include "vdkServerAPI.h"
 
-#include "vcTime.h"
-
 #include "udStringUtil.h"
 
 const char* vcSession_GetOSName()
@@ -96,7 +94,7 @@ void vcSession_Login(void *pProgramStatePtr)
         if (info.Get("success").AsBool() == true)
         {
           udStrcpy(pProgramState->username, udLengthOf(pProgramState->username), info.Get("user.realname").AsString("Guest"));
-          pProgramState->lastServerResponse = vcTime_GetEpochSecsF();
+          pProgramState->lastServerResponse = udGetEpochSecsUTCf();
         }
         else
         {
@@ -172,7 +170,7 @@ void vcSession_UpdateInfo(void *pProgramStatePtr)
   vdkError response = vdkContext_KeepAlive(pProgramState->pVDKContext);
 
   pProgramState->logoutReason = response;
-  double now = vcTime_GetEpochSecsF();
+  double now = udGetEpochSecsUTCf();
 
   if (response == vE_SessionExpired || now - 180.0 > pProgramState->lastServerResponse)
     pProgramState->forceLogout = true;

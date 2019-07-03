@@ -4,7 +4,6 @@
 
 #include "vcState.h"
 #include "vcRender.h"
-#include "vcTime.h"
 #include "vcStrings.h"
 
 #include "imgui.h"
@@ -291,7 +290,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
 epilogue:
   vdkServerAPI_ReleaseResult(pInfo->pProgramState->pVDKContext, &pFeedsJSON);
 
-  pInfo->pFeed->m_lastUpdateTime = vcTime_GetEpochSecsF();
+  pInfo->pFeed->m_lastUpdateTime = udGetEpochSecsUTCf();
   pInfo->pFeed->m_loadStatus = vcSLS_Loaded;
 }
 
@@ -375,7 +374,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (!m_visible)
     return;
 
-  double now = vcTime_GetEpochSecsF();
+  double now = udGetEpochSecsUTCf();
   double recently = now - m_decayFrequency;
 
   if (m_loadStatus != vcSLS_Loading)
@@ -504,7 +503,7 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
 {
   if (pProgramState->settings.presentation.showDiagnosticInfo)
   {
-    const char *strings[] = { udTempStr("%zu", m_feedItems.length), udTempStr("%zu", m_visibleItems), udTempStr("%.2f", (m_lastUpdateTime + m_updateFrequency) - vcTime_GetEpochSecsF()) };
+    const char *strings[] = { udTempStr("%zu", m_feedItems.length), udTempStr("%zu", m_visibleItems), udTempStr("%.2f", (m_lastUpdateTime + m_updateFrequency) - udGetEpochSecsUTCf()) };
     const char *pBuffer = vStringFormat(vcString::Get("liveFeedDiagInfo"), strings, udLengthOf(strings));
     ImGui::Text("%s", pBuffer);
     udFree(pBuffer);
@@ -532,7 +531,7 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
       m_decayFrequency = udClamp(m_decayFrequency, decayFrequencyMinValue, decayFrequencyMaxValue);
       vdkProjectNode_SetMetadataDouble(m_pNode, "maxDisplayTime", m_decayFrequency);
 
-      double recently = vcTime_GetEpochSecsF() - m_decayFrequency;
+      double recently = udGetEpochSecsUTCf() - m_decayFrequency;
 
       udLockMutex(m_pMutex);
 

@@ -27,7 +27,6 @@
 
 #include "vcConvert.h"
 #include "vcVersion.h"
-#include "vcTime.h"
 #include "vcGIS.h"
 #include "vcClassificationColours.h"
 #include "vcRender.h"
@@ -181,7 +180,7 @@ void vcMain_PresentationMode(vcState *pProgramState)
   pProgramState->settings.window.presentationMode = !pProgramState->settings.window.presentationMode;
 
   if (pProgramState->settings.responsiveUI == vcPM_Responsive)
-    pProgramState->lastEventTime = vcTime_GetEpochSecs();
+    pProgramState->lastEventTime = udGetEpochSecsUTCd();
 }
 
 void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
@@ -522,9 +521,9 @@ void vcMain_MainLoop(vcState *pProgramState)
     } while (continueLoading);
 
     // Ping the server every 30 seconds
-    if (vcTime_GetEpochSecsF() > pProgramState->lastServerAttempt + 30.0)
+    if (udGetEpochSecsUTCf() > pProgramState->lastServerAttempt + 30.0)
     {
-      pProgramState->lastServerAttempt = vcTime_GetEpochSecsF();
+      pProgramState->lastServerAttempt = udGetEpochSecsUTCf();
       vWorkerThread_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
     }
 
@@ -1373,7 +1372,7 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
 {
   //Note that items are drawn right to left (reverse order) to right-align
 
-  int64_t currentTime = vcTime_GetEpochSecs();
+  int64_t currentTime = udGetEpochSecsUTCd();
   float xPosition = ImGui::GetContentRegionMax().x - 20.f;
 
   char tempData[128] = {};
@@ -1625,10 +1624,10 @@ void vcRenderWindow(vcState *pProgramState)
   {
     if (io.MouseDelta.x != 0.0 || io.MouseDelta.y != 0.0)
     {
-      pProgramState->lastEventTime = vcTime_GetEpochSecs();
+      pProgramState->lastEventTime = udGetEpochSecsUTCd();
       pProgramState->showUI = true;
     }
-    else if ((vcTime_GetEpochSecs() - pProgramState->lastEventTime) > pProgramState->settings.hideIntervalSeconds)
+    else if ((udGetEpochSecsUTCd() - pProgramState->lastEventTime) > pProgramState->settings.hideIntervalSeconds)
     {
       pProgramState->showUI = false;
     }

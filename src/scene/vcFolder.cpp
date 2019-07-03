@@ -2,7 +2,6 @@
 
 #include "vcState.h"
 #include "vcStrings.h"
-#include "vcTime.h"
 #include "vcRender.h" // Included just for "ClearTiles"
 #include "vcFenceRenderer.h"
 #include "vcModals.h"

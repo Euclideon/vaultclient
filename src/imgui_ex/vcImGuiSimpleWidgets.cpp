@@ -7,7 +7,6 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
-#include "vcTime.h"
 #include "vcStrings.h"
 
 struct vcIGSWResizeContainer
@@ -106,7 +105,7 @@ bool vcIGSW_IsItemHovered(ImGuiHoveredFlags /*flags = 0*/, float timer /*= 0.5f*
 void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine /*= true*/)
 {
   const char *loadingChars[] = { "\xE2\x96\xB2", "\xE2\x96\xB6", "\xE2\x96\xBC", "\xE2\x97\x80" };
-  int64_t currentLoadingChar = (int64_t)(10 * vcTime_GetEpochSecsF());
+  int64_t currentLoadingChar = (int64_t)(10 * udGetEpochSecsUTCf());
 
   // Load Status (if any)
   if (loadStatus == vcSLS_Pending)

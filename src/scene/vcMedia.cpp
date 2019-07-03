@@ -108,7 +108,7 @@ void vcMedia::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
   udDouble4x4 resultMatrix = delta * udDouble4x4::translation(m_image.position) * udDouble4x4::rotationYPR(m_image.ypr) * udDouble4x4::scaleNonUniform(m_image.scale);
   udDouble3 position, scale;
   udQuaternion<double> rotation;
-  udExtractTransform(resultMatrix, position, scale, rotation);
+  resultMatrix.extractTransforms(position, scale, rotation);
 
   m_image.position = position;
   m_image.ypr = udMath_DirToYPR(rotation.apply(udDouble3::create(0, 1, 0)));
