@@ -9,6 +9,7 @@ struct vcTranslationInfo
   const char *pEnglishName;
   const char *pTranslatorName;
   const char *pTranslatorContactEmail;
+  const char *pTargetVersion;
 };
 
 namespace vcString

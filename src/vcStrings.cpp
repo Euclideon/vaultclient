@@ -67,6 +67,7 @@ namespace vcString
     pInfo->pEnglishName = udStrdup(strings.Get("_LanguageInfo.englishname").AsString("?"));
     pInfo->pTranslatorName = udStrdup(strings.Get("_LanguageInfo.translationby").AsString("?"));
     pInfo->pTranslatorContactEmail = udStrdup(strings.Get("_LanguageInfo.contactemail").AsString("?"));
+    pInfo->pTargetVersion = udStrdup(strings.Get("_LanguageInfo.targetVersion").AsString());
 
     // Concatenations
     Set("AppearanceID", vStringFormat("{0}##Settings", Get("settingsAppearance")));
@@ -98,6 +99,7 @@ namespace vcString
       udFree(pInfo->pEnglishName);
       udFree(pInfo->pTranslatorName);
       udFree(pInfo->pTranslatorContactEmail);
+      udFree(pInfo->pTargetVersion);
     }
 
     for (std::pair<std::string, const char*> kvp : gStringTable)
