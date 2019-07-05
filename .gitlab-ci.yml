@@ -130,18 +130,17 @@ ios_x64_debug:
   tags:
     - osx
 
-# Disabled until provisioning fixed
-#ios_arm64_release:
-#  stage: build
-#  script: "buildscripts/build.sh Release arm64 ios"
-#  tags:
-#    - osx
-#
-#ios_arm64_debug:
-#  stage: build
-#  script: "buildscripts/build.sh Debug arm64 ios"
-#  tags:
-#    - osx
+ios_arm64_release:
+  stage: build
+  script: "buildscripts/build.sh Release arm64 ios"
+  tags:
+    - osx
+
+ios_arm64_debug:
+  stage: build
+  script: "buildscripts/build.sh Debug arm64 ios"
+  tags:
+    - osx
 
 emscripten_wasm32_release:
   image: gitlab.euclideon.com:4567/docker-images/emscripten-bionic:v3
