@@ -345,6 +345,28 @@ void vcSettingsUI_Show(vcState *pProgramState)
           pProgramState->settings.postVisualization.contours.bandHeight = udClamp(pProgramState->settings.postVisualization.contours.bandHeight, vcSL_ContourBandHeightMin, vcSL_GlobalLimitSmallf);
       }
     }
+
+    openedHeader = ImGui::CollapsingHeader(udTempStr("%s##ConvertSettings", vcString::Get("settingsConvert")));
+    if (ImGui::BeginPopupContextItem("ConvertContext"))
+    {
+      if (ImGui::Selectable(udTempStr("%s##ConvertRestore", vcString::Get("settingsConvertRestoreDefaults"))))
+        vcSettings_Load(&pProgramState->settings, true, vcSC_Convert);
+
+      ImGui::EndPopup();
+    }
+
+    if (openedHeader)
+    {
+      // Temp directory
+      ImGui::InputText(vcString::Get("convertTempDirectory"), pProgramState->settings.convertdefaults.tempDirectory, udLengthOf(pProgramState->settings.convertdefaults.tempDirectory));
+      ImGui::InputText(vcString::Get("convertWatermark"), pProgramState->settings.convertdefaults.watermark, udLengthOf(pProgramState->settings.convertdefaults.watermark));
+
+      // Metadata
+      ImGui::InputText(vcString::Get("convertAuthor"), pProgramState->settings.convertdefaults.author, udLengthOf(pProgramState->settings.convertdefaults.author));
+      ImGui::InputText(vcString::Get("convertComment"), pProgramState->settings.convertdefaults.comment, udLengthOf(pProgramState->settings.convertdefaults.comment));
+      ImGui::InputText(vcString::Get("convertCopyright"), pProgramState->settings.convertdefaults.copyright, udLengthOf(pProgramState->settings.convertdefaults.copyright));
+      ImGui::InputText(vcString::Get("convertLicense"), pProgramState->settings.convertdefaults.license, udLengthOf(pProgramState->settings.convertdefaults.license));
+    }
   }
 
   ImGui::End();
