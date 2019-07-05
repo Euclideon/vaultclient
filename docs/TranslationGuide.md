@@ -12,6 +12,8 @@
       - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`, `menuBarFilesFailed`, `menuBarFilesFailedTooltip`
     - Scene Explorer
       - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`, `sceneExplorerExportButton`, `sceneExplorerProjectChangeSucceededTitle`, `sceneExplorerProjectChangeSucceededMessage`, `sceneResetRotation`, `sceneExplorerClearAllButton`, `scenePOILineShowAllLengths`
+    - Settings
+      - `settingsAppearanceTranslationDifferentVersion`
   - Removed:
     - Menu strings
       - `menuRestoreDefaults`
@@ -68,6 +70,7 @@ The top of the file needs info on the translation:
 - `englishname`: Is the name of the translation in English so the developers at Euclideon know what it is.
 - `translationby`: This is your name so you can be credited for your work.
 - `contactemail`: This is your email so you can be credited for your work.
+- `targetVersion`: Which version of Euclideon Client that this translation targets. If the version number doens't match the user will be alerted that the translation may be incomplete
 
 The `languages.json` file contains the list of languages that Euclideon Vault Client will offer to the end user. This is checked after boot (not necessarily immediately at startup) to include new language packs. This also gets cached in the users settings directory.
 
@@ -164,6 +167,7 @@ Modules are currently:
 - `settingsAppearanceHide`: Hide option for presentation UI dropdown list, in fullscreen mode the UI will not be visible
 - `settingsAppearanceShow`: Show option for presentation UI dropdown list, in fullscreen mode the UI will be visible
 - `settingsAppearanceResponsive`: Responsive option for presentation UI dropdown list, in fullscreen mode the UI will only be visible if the user does something
+- `settingsAppearanceTranslationDifferentVersion`: Is a error tooltip that is displayed when the selected translation is for a different version of the software (may indicate that some strings may not be available)
 
 #### Input & Controls
 - `settingsControls`: Title of the Input & Controls subheading in Settings

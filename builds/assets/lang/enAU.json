@@ -5,7 +5,8 @@
     "localname": "Australian English",
     "englishname": "Australian English",
     "translationby": "Euclideon Pty Ltd",
-    "contactemail": "support@euclideon.com"
+    "contactemail": "support@euclideon.com",
+    "targetVersion": "0.3.0"
   },
 
   "loginButton": "Login",
@@ -68,6 +69,7 @@
   "settingsAppearanceHide": "Hide",
   "settingsAppearanceShow": "Show",
   "settingsAppearanceResponsive": "Responsive",
+  "settingsAppearanceTranslationDifferentVersion": "This language package is not intended to be used with this version of the software.\nSome text may be displayed incorrectly.",
 
   "settingsControls": "Input & Controls",
   "settingsControlsRestoreDefaults": "Restore Defaults",
