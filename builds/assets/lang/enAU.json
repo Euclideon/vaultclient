@@ -168,6 +168,9 @@
   "settingsVisClassRename": "Rename",
   "settingsVisClassSet": "Set",
 
+  "settingsConvert": "Convert Defaults",
+  "settingsConvertRestoreDefaults": "Restore Defaults",
+
   "convertTitle": "Convert",
   "convertReadingFile": "Reading File {0}/{1}",
   "convertWritingPoints": "Writing Points {0}/{1}",
@@ -230,6 +233,7 @@
   "convertAddNewJob": "Create New Job",
   "convertAddFile": "Add Input File",
   "convertSetOutput": "Set Output Name",
+  "convertWatermark": "Watermark",
 
   "menuSystem": "System",
   "menuQuit": "Quit",

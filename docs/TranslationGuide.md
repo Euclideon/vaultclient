@@ -7,13 +7,13 @@
     - Login Screen
       - `loginUserAgent`, `loginSelectUserAgent`, `loginRestoreDefaults`
     - Convert
-      - `convertWriteFailed`, `convertParseError`, `convertImageParseError`, `convertNoFile`, `convertAddFileTitle`, `convertSetOutputTitle`, `convertAddNewJob`, `convertAddFile`, `convertSetOutput`
+      - `convertWriteFailed`, `convertParseError`, `convertImageParseError`, `convertNoFile`, `convertAddFileTitle`, `convertSetOutputTitle`, `convertAddNewJob`, `convertAddFile`, `convertSetOutput`, `convertWatermark`
     - Menus & Modals
       - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`, `menuBarFilesFailed`, `menuBarFilesFailedTooltip`
     - Scene Explorer
       - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`, `sceneExplorerExportButton`, `sceneExplorerProjectChangeSucceededTitle`, `sceneExplorerProjectChangeSucceededMessage`, `sceneResetRotation`, `sceneExplorerClearAllButton`, `scenePOILineShowAllLengths`
     - Settings
-      - `settingsAppearanceTranslationDifferentVersion`
+      - `settingsAppearanceTranslationDifferentVersion`, `settingsConvert`, `settingsConvertRestoreDefaults`
   - Removed:
     - Menu strings
       - `menuRestoreDefaults`
@@ -272,6 +272,11 @@ Modules are currently:
 - `settingsVisClassUserDefinable`: Title for expandable subheading containing classifications #64 to #255
 - `settingsVisClassUserDefined`: Default label used for unnamed classifications #64 to #255
 
+### Convert Default Settings Strings
+
+- `settingsConvert`: Label used on the section heading for convert default settings
+- `settingsConvertRestoreDefaults`: Label used on the context menu to restore convert settings from the default settings file
+
 ### Convert Strings
 
 - `convertTitle`: Title of the convert tab
@@ -351,6 +356,7 @@ Modules are currently:
 - `convertAddNewJob`: Label for button used in convert window to create a blank new job in the convert job list
 - `convertAddFile`: Label for button used in convert window to open a file dialog and add a file to be converted
 - `convertSetOutput`: Label for button used in convert window to open a file dialog and set the destination filepath for the converted file output.
+- `convertWatermark`: Label when displaying watermark or watermark path
 
 ### Menu Strings
 
