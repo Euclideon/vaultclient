@@ -12,20 +12,21 @@
 
 void vcSettingsUI_Show(vcState *pProgramState)
 {
+  bool openedHeader = false;
+
   if (ImGui::Begin(udTempStr("%s###settingsDock", vcString::Get("settingsTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Settings]))
   {
-    bool opened = ImGui::CollapsingHeader(vcString::Get("AppearanceID"));
+    openedHeader = ImGui::CollapsingHeader(udTempStr("%s##AppearanceSettings", vcString::Get("settingsAppearance")));
 
     if (ImGui::BeginPopupContextItem("AppearanceContext"))
     {
-      if (ImGui::Selectable(vcString::Get("AppearanceRestore")))
-      {
+      if (ImGui::Selectable(udTempStr("%s##AppearanceRestore", vcString::Get("settingsAppearanceRestoreDefaults"))))
         vcSettings_Load(&pProgramState->settings, true, vcSC_Appearance);
-      }
+
       ImGui::EndPopup();
     }
 
-    if (opened)
+    if (openedHeader)
     {
       int styleIndex = pProgramState->settings.presentation.styleIndex - 1;
 
@@ -61,16 +62,16 @@ void vcSettingsUI_Show(vcState *pProgramState)
       ImGui::Combo(vcString::Get("settingsAppearanceVoxelShape"), &pProgramState->settings.presentation.pointMode, voxelOptions, (int)udLengthOf(voxelOptions));
     }
 
-    bool opened2 = ImGui::CollapsingHeader(vcString::Get("InputControlsID"));
+    openedHeader = ImGui::CollapsingHeader(udTempStr("%s##InputSettings", vcString::Get("settingsControls")));
     if (ImGui::BeginPopupContextItem("InputContext"))
     {
-      if (ImGui::Selectable(vcString::Get("InputRestore")))
-      {
+      if (ImGui::Selectable(udTempStr("%s##ControlsRestore", vcString::Get("settingsControlsRestoreDefaults"))))
         vcSettings_Load(&pProgramState->settings, true, vcSC_InputControls);
-      }
+
       ImGui::EndPopup();
     }
-    if (opened2)
+
+    if (openedHeader)
     {
       ImGui::Checkbox(vcString::Get("settingsControlsOSC"), &pProgramState->settings.onScreenControls);
       if (ImGui::Checkbox(vcString::Get("settingsControlsTouchUI"), &pProgramState->settings.window.touchscreenFriendly))
@@ -96,21 +97,19 @@ void vcSettingsUI_Show(vcState *pProgramState)
       ImGui::Combo(vcString::Get("settingsControlsScrollWheel"), (int*)&pProgramState->settings.camera.scrollWheelMode, scrollwheelModes, (int)udLengthOf(scrollwheelModes));
     }
 
-    bool opened3 = ImGui::CollapsingHeader(vcString::Get("ViewportID"));
+    openedHeader = ImGui::CollapsingHeader(udTempStr("%s##ViewportSettings", vcString::Get("settingsViewport")));
     if (ImGui::BeginPopupContextItem("ViewportContext"))
     {
-      if (ImGui::Selectable(vcString::Get("ViewportRestore")))
-      {
+      if (ImGui::Selectable(udTempStr("%s##ViewportRestore", vcString::Get("settingsViewportRestoreDefaults"))))
         vcSettings_Load(&pProgramState->settings, true, vcSC_Viewport);
-      }
+
       ImGui::EndPopup();
     }
-    if (opened3)
+
+    if (openedHeader)
     {
       if (ImGui::SliderFloat(vcString::Get("settingsViewportViewDistance"), &pProgramState->settings.camera.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "%.3fm", 2.f))
-      {
         pProgramState->settings.camera.nearPlane = pProgramState->settings.camera.farPlane * vcSL_CameraFarToNearPlaneRatio;
-      }
 
       //const char *pLensOptions = " Custom FoV\0 7mm\0 11mm\0 15mm\0 24mm\0 30mm\0 50mm\0 70mm\0 100mm\0";
       if (ImGui::Combo(vcString::Get("settingsViewportCameraLens"), &pProgramState->settings.camera.lensIndex, vcCamera_GetLensNames(), vcLS_TotalLenses))
@@ -144,22 +143,24 @@ void vcSettingsUI_Show(vcState *pProgramState)
       if (pProgramState->settings.camera.lensIndex == vcLS_Custom)
       {
         float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
-        if (ImGui::SliderFloat(vcString::Get("settingsViewportFOV"), &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, vcString::Get("DegreesFormat")))
+        if (ImGui::SliderFloat(vcString::Get("settingsViewportFOV"), &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f°"))
           pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
       }
     }
 
-    bool opened4 = ImGui::CollapsingHeader(vcString::Get("ElevationFormat"));
+    openedHeader = ImGui::CollapsingHeader(udTempStr("%s##MapSettings", vcString::Get("settingsMaps")));
     if (ImGui::BeginPopupContextItem("MapsContext"))
     {
-      if (ImGui::Selectable(vcString::Get("MapsRestore")))
+      if (ImGui::Selectable(udTempStr("%s##MapRestore", vcString::Get("settingsMapsRestoreDefaults"))))
       {
         vcSettings_Load(&pProgramState->settings, true, vcSC_MapsElevation);
         vcRender_ClearTiles(pProgramState->pRenderContext); // refresh map tiles since they just got updated
       }
+
       ImGui::EndPopup();
     }
-    if (opened4)
+
+    if (openedHeader)
     {
       ImGui::Checkbox(vcString::Get("settingsMapsMapTiles"), &pProgramState->settings.maptiles.mapEnabled);
 
@@ -198,16 +199,17 @@ void vcSettingsUI_Show(vcState *pProgramState)
       }
     }
 
-    bool opened5 = ImGui::CollapsingHeader(vcString::Get("VisualizationFormat"));
+    openedHeader = ImGui::CollapsingHeader(udTempStr("%s##VisualisationSettings", vcString::Get("settingsVis")));
     if (ImGui::BeginPopupContextItem("VisualizationContext"))
     {
-      if (ImGui::Selectable(vcString::Get("VisualizationRestore")))
+      if (ImGui::Selectable(udTempStr("%s##VisRestore", vcString::Get("settingsVisRestoreDefaults"))))
       {
         vcSettings_Load(&pProgramState->settings, true, vcSC_Visualization);
       }
       ImGui::EndPopup();
     }
-    if (opened5)
+
+    if (openedHeader)
     {
       const char *visualizationModes[] = { vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification") };
       ImGui::Combo(vcString::Get("settingsVisDisplayMode"), (int*)&pProgramState->settings.visualization.mode, visualizationModes, (int)udLengthOf(visualizationModes));
@@ -225,7 +227,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
         if (pProgramState->settings.visualization.useCustomClassificationColours)
         {
           ImGui::SameLine();
-          if (ImGui::Button(vcString::Get("RestoreColoursID")))
+          if (ImGui::Button(udTempStr("%s##RestoreClassificationColors", vcString::Get("settingsVisClassRestoreDefaults"))))
             memcpy(pProgramState->settings.visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pProgramState->settings.visualization.customClassificationColors));
 
           vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassNeverClassified"), &pProgramState->settings.visualization.customClassificationColors[0], ImGuiColorEditFlags_NoAlpha);
@@ -344,5 +346,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
       }
     }
   }
+
   ImGui::End();
 }

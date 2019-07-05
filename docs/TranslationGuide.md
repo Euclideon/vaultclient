@@ -23,6 +23,8 @@
       - `sceneExplorerNotImplementedTitle`, `sceneExplorerNotImplementedMessage`, `sceneExplorerNotImplementedCloseButton`, `scenePOIBookmarkMode`, `scenePOISetBookmarkCamera`, `scenePOICameraPosition`, `scenePOICameraRotation`
     - Error Strings
       - `errorTitle`, `errorUnknown`, `errorOpening`, `errorReading`, `errorWriting`, `errorCloseButton`
+    - Settings
+      - `settingsViewportDegrees`
 - Version 0.2.3
   - Added:
     - Login Screen
@@ -194,7 +196,6 @@ Modules are currently:
 - `settingsViewportViewDistance`: Label next to slider for setting the viewable distance
 - `settingsViewportCameraLens`: Label next to dropdown list for selecting the camera's field of view
 - `settingsViewportFOV`: Label next to slider for setting a custom field of view
-- `settingsViewportDegrees`: Units used in slider for setting a custom field of view
 - `settingsMaps`: Title of the Maps & Elevation subheading in Settings
 - `settingsMapsRestoreDefaults`: Used to restore default values for all maps settings
 - `settingsMapsMapTiles`: Label next to checkbox for toggling the visibility of map tiles in the scene
