@@ -472,7 +472,7 @@ void vcModals_DrawFileModal(vcState *pProgramState)
     {
       if (mode == vcMT_ConvertAdd)
       {
-        vcConvert_AddFile(pProgramState, pProgramState->modelPath);
+        vcConvert_QueueFile(pProgramState, pProgramState->modelPath);
       }
       else if (mode == vcMT_ConvertOutput)
       {
