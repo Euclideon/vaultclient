@@ -167,7 +167,7 @@ Modules are currently:
 - `settingsAppearanceHide`: Hide option for presentation UI dropdown list, in fullscreen mode the UI will not be visible
 - `settingsAppearanceShow`: Show option for presentation UI dropdown list, in fullscreen mode the UI will be visible
 - `settingsAppearanceResponsive`: Responsive option for presentation UI dropdown list, in fullscreen mode the UI will only be visible if the user does something
-- `settingsAppearanceTranslationDifferentVersion`: Is a error tooltip that is displayed when the selected translation is for a different version of the software (may indicate that some strings may not be available)
+- `settingsAppearanceTranslationDifferentVersion`: Is an error tooltip that is displayed when the selected translation is for a different version of the software (may indicate that some strings may not be available)
 
 #### Input & Controls
 - `settingsControls`: Title of the Input & Controls subheading in Settings
