@@ -23,12 +23,12 @@ vdkError vcProxyHelper_AutoDetectProxy(vcState *pProgramState)
   WINHTTP_PROXY_INFO proxyInfo;
   ZeroMemory(&proxyInfo, sizeof(proxyInfo));
 
-  udURL serverURL;
+  udURL serverURL = {};
 
   if (pProgramState->settings.loginInfo.serverURL[0] == '\0')
-    serverURL = pProgramState->settings.loginInfo.proxyTestURL;
+    serverURL.SetURL(pProgramState->settings.loginInfo.proxyTestURL);
   else
-    serverURL = pProgramState->settings.loginInfo.serverURL;
+    serverURL.SetURL(pProgramState->settings.loginInfo.serverURL);
 
   pHttpSession = WinHttpOpen(L"VaultClient AutoProxy Request/1.0", WINHTTP_ACCESS_TYPE_NO_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
 
