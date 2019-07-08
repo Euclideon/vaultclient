@@ -67,22 +67,7 @@ namespace vcString
     pInfo->pEnglishName = udStrdup(strings.Get("_LanguageInfo.englishname").AsString("?"));
     pInfo->pTranslatorName = udStrdup(strings.Get("_LanguageInfo.translationby").AsString("?"));
     pInfo->pTranslatorContactEmail = udStrdup(strings.Get("_LanguageInfo.contactemail").AsString("?"));
-
-    // Concatenations
-    Set("AppearanceID", vStringFormat("{0}##Settings", Get("settingsAppearance")));
-
-    Set("InputControlsID", vStringFormat("{0}##Settings", Get("settingsControls")));
-    Set("ViewportID", vStringFormat("{0}##Settings", Get("settingsViewport")));
-    Set("DegreesFormat", vStringFormat("%.0f {0}", Get("settingsViewportDegrees")));
-    Set("ElevationFormat", vStringFormat("{0}##Settings", Get("settingsMaps")));
-    Set("VisualizationFormat", vStringFormat("{0}##Settings", Get("settingsVis")));
-    Set("RestoreColoursID", vStringFormat("{0}##RestoreClassificationColors", Get("settingsVisClassRestoreDefaults")));
-
-    Set("AppearanceRestore", vStringFormat("{0}##AppearanceRestore", Get("settingsAppearanceRestoreDefaults")));
-    Set("InputRestore", vStringFormat("{0}##InputRestore", Get("settingsControlsRestoreDefaults")));
-    Set("ViewportRestore", vStringFormat("{0}##ViewportRestore", Get("settingsViewportRestoreDefaults")));
-    Set("MapsRestore", vStringFormat("{0}##MapsRestore", Get("settingsMapsRestoreDefaults")));
-    Set("VisualizationRestore", vStringFormat("{0}##VisualizationRestore", Get("settingsVisRestoreDefaults")));
+    pInfo->pTargetVersion = udStrdup(strings.Get("_LanguageInfo.targetVersion").AsString());
 
   epilogue:
     udFree(pPos);
@@ -98,6 +83,7 @@ namespace vcString
       udFree(pInfo->pEnglishName);
       udFree(pInfo->pTranslatorName);
       udFree(pInfo->pTranslatorContactEmail);
+      udFree(pInfo->pTargetVersion);
     }
 
     for (std::pair<std::string, const char*> kvp : gStringTable)

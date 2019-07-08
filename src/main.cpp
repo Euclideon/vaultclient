@@ -142,10 +142,10 @@ struct vcColumnHeader
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
-void vcMain_LangCombo(vcState *pProgramState)
+bool vcMain_LangCombo(vcState *pProgramState)
 {
   if (!ImGui::BeginCombo("##langCode", pProgramState->languageInfo.pLocalName))
-    return;
+    return false;
 
   for (size_t i = 0; i < pProgramState->settings.languageOptions.length; ++i)
   {
@@ -162,6 +162,8 @@ void vcMain_LangCombo(vcState *pProgramState)
   }
 
   ImGui::EndCombo();
+
+  return true;
 }
 
 void vcMain_PresentationMode(vcState *pProgramState)
@@ -1692,7 +1694,16 @@ void vcRenderWindow(vcState *pProgramState)
 
       ImGui::SameLine();
 
-      vcMain_LangCombo(pProgramState);
+      // Show the language combo, if its not visible and the selected translation isn't for the current version, display an error tooltip
+      if (!vcMain_LangCombo(pProgramState) && !udStrEqual(pProgramState->languageInfo.pTargetVersion, VCSTRINGIFY(VCVERSION_VERSION_ARRAY_PARTIAL)))
+      {
+        ImGui::SetNextWindowBgAlpha(0.5f);
+        ImGui::SetNextWindowPos(ImGui::GetItemRectMin(), ImGuiCond_Always, ImVec2(0, 1));
+
+        if (ImGui::Begin("LoginScreenBadTranslation", nullptr, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_Tooltip))
+          ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", vcString::Get("settingsAppearanceTranslationDifferentVersion"));
+        ImGui::End();
+      }
 
       // Let the user change the look and feel on the login page
       const char *themeOptions[] = { vcString::Get("settingsAppearanceDark"), vcString::Get("settingsAppearanceLight") };
