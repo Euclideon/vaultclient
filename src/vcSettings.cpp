@@ -239,6 +239,17 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->postVisualization.contours.bandHeight = data.Get("postVisualization.contours.bandHeight").AsFloat(1.f);
   }
 
+  if (group == vcSC_Convert || group == vcSC_All)
+  {
+    udStrcpy(pSettings->convertdefaults.tempDirectory, sizeof(pSettings->convertdefaults.tempDirectory), data.Get("convert.tempDirectory").AsString(""));
+    udStrcpy(pSettings->convertdefaults.watermark, sizeof(pSettings->convertdefaults.watermark), data.Get("convert.watermark").AsString(""));
+
+    udStrcpy(pSettings->convertdefaults.author, sizeof(pSettings->convertdefaults.author), data.Get("convert.author").AsString(""));
+    udStrcpy(pSettings->convertdefaults.comment, sizeof(pSettings->convertdefaults.comment), data.Get("convert.comment").AsString(""));
+    udStrcpy(pSettings->convertdefaults.copyright, sizeof(pSettings->convertdefaults.copyright), data.Get("convert.copyright").AsString(""));
+    udStrcpy(pSettings->convertdefaults.license, sizeof(pSettings->convertdefaults.license), data.Get("convert.license").AsString(""));
+  }
+
   if (group == vcSC_All)
   {
     if (!pSettings->docksLoaded)
@@ -566,6 +577,25 @@ bool vcSettings_Save(vcSettings *pSettings)
     data.Set("postVisualization.contours.colour[] = %f", pSettings->postVisualization.contours.colour[i]);
   data.Set("postVisualization.contours.distances = %f", pSettings->postVisualization.contours.distances);
   data.Set("postVisualization.contours.bandHeight = %f", pSettings->postVisualization.contours.bandHeight);
+
+  // Convert Settings
+  tempNode.SetString(pSettings->convertdefaults.tempDirectory);
+  data.Set(&tempNode, "convert.tempDirectory");
+
+  tempNode.SetString(pSettings->convertdefaults.watermark);
+  data.Set(&tempNode, "convert.watermark");
+
+  tempNode.SetString(pSettings->convertdefaults.author);
+  data.Set(&tempNode, "convert.author");
+
+  tempNode.SetString(pSettings->convertdefaults.comment);
+  data.Set(&tempNode, "convert.comment");
+
+  tempNode.SetString(pSettings->convertdefaults.copyright);
+  data.Set(&tempNode, "convert.copyright");
+
+  tempNode.SetString(pSettings->convertdefaults.license);
+  data.Set(&tempNode, "convert.license");
 
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");
