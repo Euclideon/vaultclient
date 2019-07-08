@@ -52,6 +52,7 @@ enum vcAnchorStyle
 enum
 {
   vcMaxPathLength = 512,
+  vcMetadataMaxLength = 256,
 };
 
 enum vcPresentationMode
@@ -68,6 +69,7 @@ enum vcSettingCategory
   vcSC_Viewport,
   vcSC_MapsElevation,
   vcSC_Visualization,
+  vcSC_Convert,
   vcSC_Docks,
   vcSC_Languages,
   vcSC_All
@@ -217,6 +219,17 @@ struct vcSettings
 
     bool mouseInteracts;
   } maptiles;
+
+  struct
+  {
+    char tempDirectory[vcMaxPathLength];
+    char watermark[vcMaxPathLength];
+
+    char author[vcMetadataMaxLength];
+    char comment[vcMetadataMaxLength];
+    char copyright[vcMetadataMaxLength];
+    char license[vcMetadataMaxLength];
+  } convertdefaults;
 
   udChunkedArray<vcLanguageOption> languageOptions;
 

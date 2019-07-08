@@ -31,11 +31,10 @@ struct vcConvertItem
   volatile vcConvertQueueStatus status;
   bool previewRequested;
 
-  enum { vcCI_MetadataMaxLength = 256 };
-  char author[vcCI_MetadataMaxLength];
-  char comment[vcCI_MetadataMaxLength];
-  char copyright[vcCI_MetadataMaxLength];
-  char license[vcCI_MetadataMaxLength];
+  char author[vcMetadataMaxLength];
+  char comment[vcMetadataMaxLength];
+  char copyright[vcMetadataMaxLength];
+  char license[vcMetadataMaxLength];
 
   struct
   {
