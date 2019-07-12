@@ -7,6 +7,7 @@
 #include "vcSceneItem.h"
 #include "vcModel.h"
 #include "vcSceneLayerConvert.h"
+#include "imgui_ex/vcImGuiSimpleWidgets.h"
 
 #include "vCore/vStringFormat.h"
 
@@ -31,6 +32,7 @@ const char *statusNames[] =
 };
 
 void vcConvert_ResetConvert(vcState *pProgramState, vcConvertItem *pConvertItem, vdkConvertItemInfo *pItemInfo);
+void vcConvert_ProcessFile(vcState *pProgramState, vcConvertItem *pJob);
 
 UDCOMPILEASSERT(UDARRAYSIZE(statusNames) == vcCQS_Count, "Not Enough Status Names");
 
@@ -39,9 +41,9 @@ uint32_t vcConvert_Thread(void *pVoidState)
   vcState *pProgramState = (vcState*)pVoidState;
   vcConvertContext *pConvertContext = pProgramState->pConvertContext;
 
-  while (pConvertContext->threadRunning)
+  while (pConvertContext->threadsRunning)
   {
-    if (udWaitSemaphore(pConvertContext->pSemaphore, 1000) != 0)
+    if (udWaitSemaphore(pConvertContext->pConversionSemaphore, 1000) != 0)
       continue;
 
     // Convert Here
@@ -50,7 +52,7 @@ uint32_t vcConvert_Thread(void *pVoidState)
       vcConvertItem *pItem = nullptr;
       bool wasPending = false;
 
-      udLockMutex(pConvertContext->pMutex);
+      udReadLockRWLock(pConvertContext->pRWLock);
       for (size_t i = 0; i < pConvertContext->jobs.length; ++i)
       {
         if (pConvertContext->jobs[i]->status == vcCQS_Queued || pConvertContext->jobs[i]->status == vcCQS_QueuedPendingLicense)
@@ -62,7 +64,7 @@ uint32_t vcConvert_Thread(void *pVoidState)
           break;
         }
       }
-      udReleaseMutex(pConvertContext->pMutex);
+      udReadUnlockRWLock(pConvertContext->pRWLock);
 
       if (pItem == nullptr)
         break;
@@ -139,6 +141,33 @@ uint32_t vcConvert_Thread(void *pVoidState)
   return 0;
 }
 
+uint32_t vcConvert_ProcessFilesThread(void *pVoidState)
+{
+  vcState *pProgramState = (vcState*)pVoidState;
+  vcConvertContext *pConvertContext = pProgramState->pConvertContext;
+
+  while (pConvertContext->threadsRunning)
+  {
+    if (udWaitSemaphore(pConvertContext->pProcessingSemaphore, 1000) != 0)
+      continue;
+
+    udReadLockRWLock(pConvertContext->pRWLock);
+    for (size_t i = 0; i < pConvertContext->jobs.length; ++i)
+    {
+      if (pConvertContext->jobs[i]->status == vcCQS_Preparing && pConvertContext->jobs[i]->itemsToProcess.length > 0)
+      {
+        vcConvert_ProcessFile(pProgramState, pConvertContext->jobs[i]);
+        break;
+      }
+    }
+    udReadUnlockRWLock(pConvertContext->pRWLock);
+
+    udSleep(10); // This is required to allow other threads to get the write lock
+  }
+
+  return 0;
+}
+
 void vcConvert_Init(vcState *pProgramState)
 {
   if (pProgramState->pConvertContext != nullptr)
@@ -148,24 +177,42 @@ void vcConvert_Init(vcState *pProgramState)
 
   pProgramState->pConvertContext->jobs.Init(32);
 
-  pProgramState->pConvertContext->pMutex = udCreateMutex();
-  pProgramState->pConvertContext->pSemaphore = udCreateSemaphore();
-  pProgramState->pConvertContext->threadRunning = true;
-  udThread_Create(&pProgramState->pConvertContext->pThread, vcConvert_Thread, pProgramState);
+  pProgramState->pConvertContext->pRWLock = udCreateRWLock();
+  pProgramState->pConvertContext->pConversionSemaphore = udCreateSemaphore();
+  pProgramState->pConvertContext->pProcessingSemaphore = udCreateSemaphore();
+  pProgramState->pConvertContext->threadsRunning = true;
+
+  udThread_Create(&pProgramState->pConvertContext->pConversionThread, vcConvert_Thread, pProgramState, udTCF_None, "ConvertJob");
+  udThread_Create(&pProgramState->pConvertContext->pProcessingThread, vcConvert_ProcessFilesThread, pProgramState, udTCF_None, "ConvertProcessFiles");
 }
 
 void vcConvert_RemoveJob(vcState *pProgramState, size_t index)
 {
-  udLockMutex(pProgramState->pConvertContext->pMutex);
-
+  udWriteLockRWLock(pProgramState->pConvertContext->pRWLock);
   vcConvertItem *pItem = pProgramState->pConvertContext->jobs[index];
+  pProgramState->pConvertContext->jobs.RemoveAt(index);
+  udWriteUnlockRWLock(pProgramState->pConvertContext->pRWLock);
+
+  //TODO: Make sure that it isn't being used, not sure if its possible that it could be getting used?
+
   vcTexture_Destroy(&pItem->watermark.pTexture);
   udFree(pItem->watermark.pFilename);
-  pProgramState->pConvertContext->jobs.RemoveAt(index);
-  vdkConvert_DestroyContext(pProgramState->pVDKContext, &pItem->pConvertContext);
-  udFree(pItem);
 
-  udReleaseMutex(pProgramState->pConvertContext->pMutex);
+  udLockMutex(pItem->pMutex);
+  while (pItem->itemsToProcess.length > 0)
+  {
+    udFree(pItem->itemsToProcess[0]);
+    pItem->itemsToProcess.PopFront();
+  }
+  udReleaseMutex(pItem->pMutex);
+
+  pItem->itemsToProcess.Deinit();
+
+  vdkConvert_DestroyContext(pProgramState->pVDKContext, &pItem->pConvertContext);
+
+  udDestroyMutex(&pItem->pMutex);
+
+  udFree(pItem);
 }
 
 void vcConvert_Deinit(vcState *pProgramState)
@@ -173,17 +220,23 @@ void vcConvert_Deinit(vcState *pProgramState)
   if (pProgramState->pConvertContext == nullptr)
     return;
 
-  pProgramState->pConvertContext->threadRunning = false;
-  udIncrementSemaphore(pProgramState->pConvertContext->pSemaphore);
+  pProgramState->pConvertContext->threadsRunning = false;
+  udIncrementSemaphore(pProgramState->pConvertContext->pConversionSemaphore);
+  udIncrementSemaphore(pProgramState->pConvertContext->pProcessingSemaphore);
 
   for (size_t i = 0; i < pProgramState->pConvertContext->jobs.length; ++i)
     vdkConvert_Cancel(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[i]->pConvertContext); // This will fail for most of the jobs
 
-  udThread_Join(pProgramState->pConvertContext->pThread);
+  udThread_Join(pProgramState->pConvertContext->pConversionThread);
+  udThread_Join(pProgramState->pConvertContext->pProcessingThread);
 
-  udDestroyMutex(&pProgramState->pConvertContext->pMutex);
-  udDestroySemaphore(&pProgramState->pConvertContext->pSemaphore);
-  udThread_Destroy(&pProgramState->pConvertContext->pThread);
+  udDestroyRWLock(&pProgramState->pConvertContext->pRWLock);
+
+  udDestroySemaphore(&pProgramState->pConvertContext->pConversionSemaphore);
+  udDestroySemaphore(&pProgramState->pConvertContext->pProcessingSemaphore);
+
+  udThread_Destroy(&pProgramState->pConvertContext->pConversionThread);
+  udThread_Destroy(&pProgramState->pConvertContext->pProcessingThread);
 
   while (pProgramState->pConvertContext->jobs.length > 0)
     vcConvert_RemoveJob(pProgramState, 0);
@@ -196,11 +249,12 @@ void vcConvert_AddEmptyJob(vcState *pProgramState, vcConvertItem **ppNextItem)
 {
   vcConvertItem *pNextItem = udAllocType(vcConvertItem, 1, udAF_Zero);
 
-  udLockMutex(pProgramState->pConvertContext->pMutex);
-
-  pProgramState->pConvertContext->jobs.PushBack(pNextItem);
   vdkConvert_CreateContext(pProgramState->pVDKContext, &pNextItem->pConvertContext);
   vdkConvert_GetInfo(pProgramState->pVDKContext, pNextItem->pConvertContext, &pNextItem->pConvertInfo);
+
+  pNextItem->pMutex = udCreateMutex();
+  pNextItem->itemsToProcess.Init(16);
+  pNextItem->status = vcCQS_Preparing;
 
   // Update with default settings
   if (udStrlen(pProgramState->settings.convertdefaults.tempDirectory) > 0)
@@ -237,9 +291,10 @@ void vcConvert_AddEmptyJob(vcState *pProgramState, vcConvertItem **ppNextItem)
     vdkConvert_SetMetadata(pProgramState->pVDKContext, pNextItem->pConvertContext, "License", pNextItem->license);
   }
 
-  udReleaseMutex(pProgramState->pConvertContext->pMutex);
-
-  pNextItem->status = vcCQS_Preparing;
+  // Add it to the jobs list
+  udWriteLockRWLock(pProgramState->pConvertContext->pRWLock);
+  pProgramState->pConvertContext->jobs.PushBack(pNextItem);
+  udWriteUnlockRWLock(pProgramState->pConvertContext->pRWLock);
 
   *ppNextItem = pNextItem;
 }
@@ -267,14 +322,14 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
   ImGui::Separator();
 
-
   if (ImGui::BeginChild("ConvertJobListColumn"))
   {
     if (ImGui::Button(vcString::Get("convertAddNewJob"), ImVec2(100, 23)))
-    {
       vcConvert_AddEmptyJob(pProgramState, &pSelectedJob);
-    }
 
+    size_t removeItem = SIZE_MAX;
+
+    udReadLockRWLock(pProgramState->pConvertContext->pRWLock);
     for (size_t i = 0; i < pProgramState->pConvertContext->jobs.length; ++i)
     {
       bool selected = (pProgramState->pConvertContext->selectedItem == i);
@@ -283,22 +338,12 @@ void vcConvert_ShowUI(vcState *pProgramState)
       if (ImGui::Button(tempBuffer, ImVec2(20, 20)))
       {
         if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
-        {
           vdkConvert_Cancel(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[i]->pConvertContext);
-        }
         else if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Queued)
-        {
           pProgramState->pConvertContext->jobs[i]->status = vcCQS_Preparing;
-        }
         else
-        {
-          vcConvert_RemoveJob(pProgramState, i);
+          removeItem = i;
 
-          if (pProgramState->pConvertContext->selectedItem >= i && pProgramState->pConvertContext->selectedItem != 0)
-            --pProgramState->pConvertContext->selectedItem;
-
-          --i;
-        }
         continue;
       }
 
@@ -341,10 +386,17 @@ void vcConvert_ShowUI(vcState *pProgramState)
         }
       }
     }
+    udReadUnlockRWLock(pProgramState->pConvertContext->pRWLock);
 
-    if (pProgramState->pConvertContext->selectedItem >= pProgramState->pConvertContext->jobs.length)
-      vcConvert_AddEmptyJob(pProgramState, &pSelectedJob);
-    else
+    if (removeItem != SIZE_MAX)
+    {
+      vcConvert_RemoveJob(pProgramState, removeItem);
+
+      if (pProgramState->pConvertContext->selectedItem >= removeItem && pProgramState->pConvertContext->selectedItem != 0)
+        --pProgramState->pConvertContext->selectedItem;
+    }
+
+    if (pProgramState->pConvertContext->selectedItem < pProgramState->pConvertContext->jobs.length)
       pSelectedJob = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem];
   }
   ImGui::EndChild();
@@ -367,12 +419,20 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
         ImGui::SameLine();
 
-        if (ImGui::Button(vcString::Get("convertBeginConvert"), ImVec2(-1, 50)))
+        if (pSelectedJob->itemsToProcess.length == 0 && pSelectedJob->pItemProcessing == nullptr)
         {
-          if (pSelectedJob->status == vcCQS_Cancelled)
-            vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
-          pSelectedJob->status = vcCQS_Queued;
-          udIncrementSemaphore(pProgramState->pConvertContext->pSemaphore);
+          if (ImGui::Button(vcString::Get("convertBeginConvert"), ImVec2(-1, 50)))
+          {
+            if (pSelectedJob->status == vcCQS_Cancelled)
+              vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
+            pSelectedJob->status = vcCQS_Queued;
+            udIncrementSemaphore(pProgramState->pConvertContext->pConversionSemaphore);
+          }
+        }
+        else
+        {
+          vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertBeginPendingFiles"), udTempStr("%zu", pSelectedJob->itemsToProcess.length + (pSelectedJob->pItemProcessing == nullptr ? 0 : 1)));
+          ImGui::Button(localizationBuffer, ImVec2(-1, 50));
         }
       }
       else if (pSelectedJob->status == vcCQS_Completed)
@@ -563,11 +623,13 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 
-      if (pSelectedJob->pConvertInfo->totalItems > 0)
+      uint64_t totalItems = pSelectedJob->pConvertInfo->totalItems + pSelectedJob->itemsToProcess.length + (pSelectedJob->pItemProcessing == nullptr ? 0 : 1);
+
+      if (totalItems > 0)
       {
         ImGui::SetNextTreeNodeOpen(true, ImGuiCond_FirstUseEver);
 
-        vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertInputFiles"), udCommaInt(pSelectedJob->pConvertInfo->totalItems));
+        vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertInputFiles"), udCommaInt(totalItems));
 
         if (ImGui::TreeNodeEx(pSelectedJob->pConvertInfo, 0, "%s", localizationBuffer))
         {
@@ -575,13 +637,31 @@ void vcConvert_ShowUI(vcState *pProgramState)
           {
             while (pSelectedJob->pConvertInfo->totalItems > 0)
               vdkConvert_RemoveItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, 0);
+
+            udLockMutex(pSelectedJob->pMutex);
+            while (pSelectedJob->itemsToProcess.length > 0)
+            {
+              udFree(pSelectedJob->itemsToProcess[0]);
+              pSelectedJob->itemsToProcess.PopFront();
+            }
+            udReleaseMutex(pSelectedJob->pMutex);
           }
 
-          ImGui::Columns(4);
+          ImGui::Columns(3);
 
           for (size_t i = 0; i < pSelectedJob->pConvertInfo->totalItems; ++i)
           {
             vdkConvert_GetItemInfo(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i, &itemInfo);
+
+            if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
+            {
+              if (ImGui::Button(udTempStr("X##convertitemremove_%zu", i)))
+              {
+                vdkConvert_RemoveItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i);
+                --i;
+              }
+              ImGui::SameLine();
+            }
 
             ImGui::TextUnformatted(itemInfo.pFilename);
             ImGui::NextColumn();
@@ -590,13 +670,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
             if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
             {
-              if (ImGui::Button(udTempStr("%s##convertitemremove_%zu", vcString::Get("convertRemove"), i)))
-              {
-                vdkConvert_RemoveItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i);
-                --i;
-              }
-              ImGui::NextColumn();
-
               if (itemInfo.pointsCount == -1)
                 vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertPendingNoEstimate"), ptCountStrings, udLengthOf(ptCountStrings));
               else
@@ -619,7 +692,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
               if (pSelectedJob->pConvertInfo->currentInputItem > i) // Already read
               {
                 vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertReadComplete"), ptCountStrings, udLengthOf(ptCountStrings));
-                ImGui::NextColumn();
                 ImGui::TextUnformatted(localizationBuffer);
                 ImGui::NextColumn();
                 ImGui::ProgressBar(1.f);
@@ -631,7 +703,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
                 else
                   vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertPendingEstimate"), ptCountStrings, udLengthOf(ptCountStrings));
 
-                ImGui::NextColumn();
                 ImGui::TextUnformatted(localizationBuffer);
                 ImGui::NextColumn();
                 ImGui::ProgressBar(0.f);
@@ -643,7 +714,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
                 else
                   vStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertReadingEstimate"), ptCountStrings, udLengthOf(ptCountStrings));
 
-                ImGui::NextColumn();
                 ImGui::TextUnformatted(localizationBuffer);
                 ImGui::NextColumn();
                 ImGui::ProgressBar(1.f * itemInfo.pointsRead / itemInfo.pointsCount);
@@ -651,6 +721,44 @@ void vcConvert_ShowUI(vcState *pProgramState)
             }
 
             ImGui::NextColumn();
+          }
+
+          if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
+          {
+            udLockMutex(pSelectedJob->pMutex);
+
+            if (pSelectedJob->pItemProcessing != nullptr)
+            {
+              vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
+              ImGui::TextUnformatted(pSelectedJob->pItemProcessing);
+              ImGui::NextColumn();
+              ImGui::TextUnformatted(vcString::Get("convertPendingProcessInProgress"));
+              ImGui::NextColumn();
+              // Intentionally blank column
+              ImGui::NextColumn();
+            }
+
+            for (size_t i = 0; i < pSelectedJob->itemsToProcess.length; ++i)
+            {
+              if (ImGui::Button(udTempStr("X##convertprocessitemremove_%zu", i)))
+              {
+                udFree(pSelectedJob->itemsToProcess[i]);
+                pSelectedJob->itemsToProcess.RemoveAt(i);
+                --i;
+              }
+              else
+              {
+                ImGui::SameLine();
+                ImGui::TextUnformatted(pSelectedJob->itemsToProcess[i]);
+              }
+
+              ImGui::NextColumn();
+              ImGui::TextUnformatted(vcString::Get("convertPendingProcessing"));
+              ImGui::NextColumn();
+              // Intentionally blank column
+              ImGui::NextColumn();
+            }
+            udReleaseMutex(pSelectedJob->pMutex);
           }
 
           ImGui::Columns(1);
@@ -664,47 +772,94 @@ void vcConvert_ShowUI(vcState *pProgramState)
   }
 }
 
-bool vcConvert_AddFile(vcState *pProgramState, const char *pFilename, bool watermark)
+void vcConvert_ProcessFile(vcState *pProgramState, vcConvertItem *pJob)
+{
+  const char *pFilename = nullptr;
+  udResult result = udR_NothingToDo;
+
+  udMutex *pMutex = udLockMutex(pJob->pMutex);
+
+  if (pJob->itemsToProcess.PopFront(&pFilename))
+  {
+    pJob->pItemProcessing = pFilename;
+
+    udFilename file(pFilename);
+    const char *pExt = file.GetExt();
+
+    udReleaseMutex(pMutex);
+    pMutex = nullptr;
+
+    if (udStrEquali(pExt, ".slpk"))
+    {
+      if (vcSceneLayerConvert_AddItem(pProgramState->pVDKContext, pJob->pConvertContext, pFilename) == vE_Success)
+        UD_ERROR_SET(udR_Success);
+      UD_ERROR_SET(udR_CorruptData);
+    }
+    else if (vdkConvert_AddItem(pProgramState->pVDKContext, pJob->pConvertContext, pFilename) == vE_Success)
+    {
+      UD_ERROR_SET(udR_Success);
+    }
+
+    UD_ERROR_SET(udR_Unsupported);
+  }
+
+epilogue:
+  if (pMutex == nullptr)
+    pMutex = udLockMutex(pJob->pMutex);
+  pJob->pItemProcessing = nullptr;
+  udReleaseMutex(pMutex);
+
+  if (pFilename != nullptr && result != udR_Success)
+  {
+    vcState::FileError fileError;
+    fileError.pFilename = pFilename;
+    fileError.resultCode = result;
+    pProgramState->errorFiles.PushBack(fileError);
+    pFilename = nullptr;
+  }
+
+  udFree(pFilename);
+}
+
+void vcConvert_QueueFile(vcState *pProgramState, const char *pFilename)
 {
   vcConvertItem *pSelectedJob = nullptr;
 
   if (pProgramState->pConvertContext->selectedItem < pProgramState->pConvertContext->jobs.length)
     pSelectedJob = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem];
 
-  if (watermark && vdkConvert_AddWatermark(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
-  {
-    udFree(pSelectedJob->watermark.pFilename);
-    pSelectedJob->watermark.pFilename = udStrdup(pFilename);
-    pSelectedJob->watermark.isDirty = true;
-    pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
-    return true;
-  }
-
   if (pSelectedJob == nullptr || pSelectedJob->status != vcCQS_Preparing)
     vcConvert_AddEmptyJob(pProgramState, &pSelectedJob);
 
-  // Maybe its an I3S?
-  if (udStrEndsWithi(pFilename, ".slpk") && vcSceneLayerConvert_AddItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
+  if (pSelectedJob != nullptr)
   {
-    pSelectedJob->status = vcCQS_Preparing;
-    pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
-    return true;
+    // Handle watermarks now
+    if (udStrEndsWithi(pFilename, ".png") || udStrEndsWithi(pFilename, ".jpg") || udStrEndsWithi(pFilename, ".bmp"))
+    {
+      if (vdkConvert_AddWatermark(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
+      {
+        udFree(pSelectedJob->watermark.pFilename);
+        pSelectedJob->watermark.pFilename = udStrdup(pFilename);
+        pSelectedJob->watermark.isDirty = true;
+      }
+      else
+      {
+        //TODO: Handle the udResult properly
+        vcState::FileError fileError;
+        fileError.pFilename = udStrdup(pFilename);
+        fileError.resultCode = udR_Unsupported;
+        pProgramState->errorFiles.PushBack(fileError);
+      }
+    }
+    else
+    {
+      udLockMutex(pSelectedJob->pMutex);
+      pSelectedJob->itemsToProcess.PushBack(udStrdup(pFilename));
+      udReleaseMutex(pSelectedJob->pMutex);
+
+      udIncrementSemaphore(pProgramState->pConvertContext->pProcessingSemaphore);
+    }
   }
-
-  if (vdkConvert_AddItem(pProgramState->pVDKContext, pSelectedJob->pConvertContext, pFilename) == vE_Success)
-  {
-    pSelectedJob->status = vcCQS_Preparing;
-    pProgramState->settings.window.windowsOpen[vcDocks_Convert] = true;
-    return true;
-  }
-
-  // No conversion was found so add it to list of unsupported filenames to tell the user later
-  vcState::FileError fileError;
-  fileError.pFilename = udStrdup(pFilename);
-  fileError.resultCode = udR_Unsupported;
-  pProgramState->errorFiles.PushBack(fileError);
-
-  return false;
 }
 
 void vcConvert_ResetConvert(vcState *pProgramState, vcConvertItem *pConvertItem, vdkConvertItemInfo *pItemInfo)
