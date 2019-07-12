@@ -6,6 +6,7 @@
 
 #include "vdkConvert.h"
 #include "vdkContext.h"
+#include "vdkConfig.h"
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -19,10 +20,13 @@
 void vcConvertCMD_ShowOptions()
 {
   printf("Usage: vcConvertCMD [vault server] [username] [password] [options] -i inputfile [-i anotherInputFile] -o outputfile.uds\n");
-  printf("   -resolution <res>   - override the resolution (0.01 = 1cm, 0.001 = 1mm)\n");
-  printf("   -srid <sridCode>    - override the srid code for geolocation\n");
-  printf("   -pause              - Require enter key to be pressed before exiting\n");
-  printf("   -pauseOnError       - If any error occurs, require enter key to be pressed before exiting\n");
+  printf("   -resolution <res>           - override the resolution (0.01 = 1cm, 0.001 = 1mm)\n");
+  printf("   -srid <sridCode>            - override the srid code for geolocation\n");
+  printf("   -pause                      - Require enter key to be pressed before exiting\n");
+  printf("   -pauseOnError               - If any error occurs, require enter key to be pressed before exiting\n");
+  printf("   -proxyURL <url>             - Set the proxy URL\n");
+  printf("   -proxyUsername <username>   - Set the username to use with the proxy\n");
+  printf("   -proxyPassword <password>   - Set the password to use with the proxy\n");
 }
 
 struct vcConvertData
@@ -49,6 +53,9 @@ struct vcConvertCMDSettings
   double resolution;
   const char *pWatermark;
   const char *pOutputFilename;
+  const char *pProxyURL;
+  const char *pProxyUsername;
+  const char *pProxyPassword;
   const char **ppInputFiles;
   int32_t inputFileCount;
   int32_t srid;
@@ -114,6 +121,21 @@ bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMD
 
       i += 2;
     }
+    else if (udStrEquali(ppArgv[i], "-proxyURL"))
+    {
+      pSettings->pProxyURL = ppArgv[i + 1];
+      i += 2;
+    }
+    else if (udStrEquali(ppArgv[i], "-proxyUsername"))
+    {
+      pSettings->pProxyUsername = ppArgv[i + 1];
+      i += 2;
+    }
+    else if (udStrEquali(ppArgv[i], "-proxyPassword"))
+    {
+      pSettings->pProxyPassword = ppArgv[i + 1];
+      i += 2;
+    }
     else
     {
       printf("Unrecognised option: %s\n", ppArgv[i]);
@@ -143,6 +165,12 @@ int main(int argc, const char **ppArgv)
   }
 
   bool cmdlineError = vcConvertCMD_ProcessCommandLine(argc, ppArgv, &settings);
+
+  if (settings.pProxyURL)
+    vdkConfig_ForceProxy(settings.pProxyURL);
+
+  if (settings.pProxyUsername)
+    vdkConfig_SetProxyAuth(settings.pProxyUsername, settings.pProxyPassword);
 
   result = vdkContext_Connect(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], ppArgv[3]);
   if (result == vE_ConnectionFailure)
