@@ -436,6 +436,10 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
     case vcRRIM_Diagonal:
       pDisplayTexture = gDiagonalTexture;
       break;
+
+    case vcRRIM_Count:
+      // Does nothing but is required to avoid compilation issues
+      break;
   }
 
   vcShader_BindTexture(pFenceRenderer->renderShader.pProgram, pDisplayTexture, 0, pFenceRenderer->renderShader.uniform_texture);
