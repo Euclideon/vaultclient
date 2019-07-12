@@ -4,7 +4,7 @@
 udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, int totalTypes, const void* pVerts, int currentVerts, const void *pIndices, int currentIndices, vcMeshFlags flags/* = vcMF_None*/)
 {
   bool invalidIndexSetup = ((flags & vcMF_NoIndexBuffer) == 0) && ((pIndices == nullptr && currentIndices > 0) || currentIndices == 0);
-  if (ppMesh == nullptr || pMeshLayout == nullptr || totalTypes == 0 || pVerts == nullptr || currentVerts == 0 || invalidIndexSetup)
+  if (ppMesh == nullptr || pMeshLayout == nullptr || totalTypes == 0 || currentVerts == 0 || invalidIndexSetup)
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
@@ -143,6 +143,30 @@ udResult vcMesh_UploadData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, in
   return result;
 }
 
+udResult vcMesh_UploadSubData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout, int totalTypes, int startVertex, const void* pVerts, int totalVerts, const void *pIndices, int totalIndices)
+{
+  if (pMesh == nullptr || pLayout == nullptr || totalTypes == 0 || pVerts == nullptr || totalVerts == 0 || pMesh->drawType == GL_STATIC_DRAW)
+    return udR_InvalidParameter_;
+
+  udResult result = udR_Success;
+
+  pMesh->vertexSize = vcLayout_GetSize(pLayout, totalTypes);
+
+  glBindVertexArray(pMesh->vao);
+
+  glBindBuffer(GL_ARRAY_BUFFER, pMesh->vbo);
+  glBufferSubData(GL_ARRAY_BUFFER, startVertex * pMesh->vertexSize, totalVerts * pMesh->vertexSize, pVerts);
+
+  if (pIndices != nullptr && totalIndices > 0 && pMesh->indexType != GL_NONE)
+  {
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pMesh->ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, pMesh->indexBytes * totalIndices, pIndices, pMesh->drawType);
+  }
+
+  vcGLState_ReportGPUWork(0, 0, (pMesh->vertexCount * pMesh->vertexSize) + (pMesh->indexCount * pMesh->indexBytes));
+  return result;
+}
+
 bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t startElement /* = 0*/, vcMeshRenderMode renderMode /*= vcMRM_Triangles*/)
 {
   if (pMesh == nullptr || (pMesh->indexBytes > 0 && pMesh->indexCount < (elementCount + startElement) * 3) || (elementCount == 0 && startElement != 0))
@@ -161,6 +185,10 @@ bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t start
   {
   case vcMRM_TriangleStrip:
     glRenderMode = GL_TRIANGLE_STRIP;
+    elementsPerPrimitive = 1;
+    break;
+  case vcMRM_Points:
+    glRenderMode = GL_POINTS;
     elementsPerPrimitive = 1;
     break;
   case vcMRM_Triangles: // fall through

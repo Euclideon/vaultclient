@@ -54,6 +54,7 @@ struct vcShader
 {
   ID3D11VertexShader *pVertexShader;
   ID3D11PixelShader* pPixelShader;
+  ID3D11GeometryShader* pGeometryShader;
 
   ID3D11InputLayout *pLayout;
 
