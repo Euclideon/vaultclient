@@ -36,6 +36,9 @@ void ImGuiGL_NewFrame(SDL_Window *pWindow)
   if (g_pFontTexture == nullptr)
     ImGuiGL_CreateDeviceObjects();
 
+  if (!ImGui::GetIO().Fonts->IsBuilt())
+    ImGuiGL_CreateFontsTexture();
+
   ImGui_ImplSDL2_NewFrame(pWindow);
   ImGui::NewFrame();
 }
@@ -111,10 +114,15 @@ void ImGuiGL_RenderDrawData(ImDrawData* draw_data)
 
 bool ImGuiGL_CreateFontsTexture()
 {
+  if (g_pFontTexture != nullptr)
+    vcTexture_Destroy(&g_pFontTexture);
+
   // Build texture atlas
   ImGuiIO& io = ImGui::GetIO();
-  unsigned char* pixels;
-  int width, height;
+  unsigned char* pixels = nullptr;
+  int width = 0;
+  int height = 0;
+
   io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits for OpenGL3 demo because it is more likely to be compatible with user's existing shader.
 
   vcTexture_Create(&g_pFontTexture, width, height, pixels);
@@ -132,8 +140,14 @@ void ImGuiGL_DestroyFontsTexture()
 
 bool ImGuiGL_CreateDeviceObjects()
 {
-  vcShader_CreateFromText(&pImGuiShader, g_ImGuiVertexShader, g_ImGuiFragmentShader, vcImGuiVertexLayout);
-  vcShader_GetConstantBuffer(&g_pAttribLocationProjMtx, pImGuiShader, "u_EveryFrame", sizeof(udFloat4x4));
+  // This function is pretty messy now to support loading fonts on the fly but also to remain _close_ to how the ImGui sample works to make it easy to merge future changes
+
+  if (pImGuiShader == nullptr)
+    vcShader_CreateFromText(&pImGuiShader, g_ImGuiVertexShader, g_ImGuiFragmentShader, vcImGuiVertexLayout);
+
+  if (g_pAttribLocationProjMtx == nullptr)
+    vcShader_GetConstantBuffer(&g_pAttribLocationProjMtx, pImGuiShader, "u_EveryFrame", sizeof(udFloat4x4));
+
   ImGuiGL_CreateFontsTexture();
 
   return true;
