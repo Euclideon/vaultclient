@@ -65,6 +65,7 @@ static int gRefCount = 0;
 static vcTexture *gArrowTexture = nullptr;
 static vcTexture *gGlowTexture = nullptr;
 static vcTexture *gSolidTexture = nullptr;
+static vcTexture *gDiagonalTexture = nullptr;
 
 udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer, vcFenceSegment *pSegment);
 
@@ -75,6 +76,7 @@ void vcFenceRenderer_Init()
   {
     vcTexture_CreateFromFilename(&gArrowTexture, "asset://assets/textures/fenceArrow.png", nullptr, nullptr, vcTFM_Linear, true);
     vcTexture_CreateFromFilename(&gGlowTexture, "asset://assets/textures/fenceGlow.png", nullptr, nullptr, vcTFM_Linear, true);
+    vcTexture_CreateFromFilename(&gDiagonalTexture, "asset://assets/textures/fenceDiagonal.png", nullptr, nullptr, vcTFM_Linear, true);
 
     static const uint32_t solidPixels[] = { 0xffffffff };
     vcTexture_Create(&gSolidTexture, 1, 1, solidPixels);
@@ -89,6 +91,7 @@ void vcFenceRenderer_Destroy()
     vcTexture_Destroy(&gArrowTexture);
     vcTexture_Destroy(&gGlowTexture);
     vcTexture_Destroy(&gSolidTexture);
+    vcTexture_Destroy(&gDiagonalTexture);
   }
 }
 
@@ -421,15 +424,21 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
   vcTexture *pDisplayTexture = nullptr;
   switch (pFenceRenderer->config.imageMode)
   {
+    case vcRRIM_Arrow:
+      pDisplayTexture = gArrowTexture;
+      break;
     case vcRRIM_Glow:
       pDisplayTexture = gGlowTexture;
       break;
     case vcRRIM_Solid:
       pDisplayTexture = gSolidTexture;
       break;
-    case vcRRIM_Arrow: // fall through
-    default:
-      pDisplayTexture = gArrowTexture;
+    case vcRRIM_Diagonal:
+      pDisplayTexture = gDiagonalTexture;
+      break;
+
+    case vcRRIM_Count:
+      // Does nothing but is required to avoid compilation issues
       break;
   }
 

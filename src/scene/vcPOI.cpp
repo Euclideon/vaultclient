@@ -24,7 +24,8 @@ static const char *vcFRIMStrings[] =
 {
   "Arrow",
   "Glow",
-  "Solid"
+  "Solid",
+  "Diagonal"
 };
 UDCOMPILEASSERT(udLengthOf(vcFRIMStrings) == vcRRIM_Count, "New enum values");
 
@@ -398,7 +399,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
         vdkProjectNode_SetMetadataDouble(m_pNode, "lineWidth", (double)m_line.lineWidth);
       }
 
-      const char *lineOptions[] = { vcString::Get("scenePOILineStyleArrow"), vcString::Get("scenePOILineStyleGlow"), vcString::Get("scenePOILineStyleSolid") };
+      const char *lineOptions[] = { vcString::Get("scenePOILineStyleArrow"), vcString::Get("scenePOILineStyleGlow"), vcString::Get("scenePOILineStyleSolid"), vcString::Get("scenePOILineStyleDiagonal") };
       if (ImGui::Combo(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineStyle"), *pItemID), (int *)&m_line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
       {
         UpdatePoints();
