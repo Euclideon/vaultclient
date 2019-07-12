@@ -421,6 +421,7 @@
   "scenePOILineStyleArrow": "Arrow",
   "scenePOILineStyleGlow": "Glow",
   "scenePOILineStyleSolid": "Solid",
+  "scenePOILineStyleDiagonal": "Diagonal",
   "scenePOILineOrientation": "Line Orientation",
   "scenePOILineOrientationVert": "Vertical / Fence",
   "scenePOILineOrientationHorz": "Horizontal / Path",
