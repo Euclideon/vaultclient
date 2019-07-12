@@ -7,7 +7,7 @@
     - Login Screen
       - `loginUserAgent`, `loginSelectUserAgent`, `loginRestoreDefaults`
     - Convert
-      - `convertWriteFailed`, `convertParseError`, `convertImageParseError`, `convertNoFile`, `convertAddFileTitle`, `convertSetOutputTitle`, `convertAddNewJob`, `convertAddFile`, `convertSetOutput`, `convertWatermark`
+      - `convertWriteFailed`, `convertParseError`, `convertImageParseError`, `convertNoFile`, `convertAddFileTitle`, `convertSetOutputTitle`, `convertAddNewJob`, `convertAddFile`, `convertSetOutput`, `convertWatermark`, `convertBeginPendingFiles`, `convertPendingProcessInProgress`, `convertPendingProcessing`, `convertNoJobSelected`
     - Menus & Modals
       - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`, `menuBarFilesFailed`, `menuBarFilesFailedTooltip`
     - Scene Explorer
@@ -19,6 +19,8 @@
       - `menuRestoreDefaults`
     - Project Menu & Modals
       - `menuImport`, `menuImportUDP`, `menuImportUDPTitle`
+    - Convert
+      - `convertRemove`
     - Scene Explorer
       - `sceneExplorerNotImplementedTitle`, `sceneExplorerNotImplementedMessage`, `sceneExplorerNotImplementedCloseButton`, `scenePOIBookmarkMode`, `scenePOISetBookmarkCamera`, `scenePOICameraPosition`, `scenePOICameraRotation`
     - Error Strings
@@ -305,12 +307,16 @@ Modules are currently:
 - `convertAuthor`: Label next to text box where user can set the value of the author field in the output file
 - `convertReset`: Label used for button that resets a completed (or cancelled?) convert job
 - `convertBeginConvert`: Label used for button that commences the currently selected convert job(s)
+- `convertBeginPendingFiles`: Label used for convert button when files are still being processed
+  - {0} is how many files are left to be processed
 - `convertPendingEstimate`: label used when the item is pending and has estimated point count
   - {0} is points estimated
   - {1} is `0` (no points read because its pending)
 - `convertPendingNoEstimate`: label used when the point estimated isn't available
   - {0} is `-1` (cannot guess number of points)
   - {1} is `0` (no points read because its pending)
+- `convertPendingProcessInProgress`: label used when the added file is currently being preprocessed
+- `convertPendingProcessing`: label used when the added file has yet to be preprocessed
 - `convertReadingEstimate`: label used when reading and there is an estimated number of points
   - {0} is points estimated
   - {1} is number of points read
@@ -326,7 +332,6 @@ Modules are currently:
 - `convertInputFiles`: Subheading for section showing all currently queued convert jobs, will not appear if no jobs have been added
   - {0} is the number of files
 - `convertSRID`: Label showing the current SRID of the convert job
-- `convertRemove`: Label used for buttons that appear beside each queued file which remove them individually from the queue
 - `convertPathURL`: Label next to text box in Load Watermark window containing the path of the watermark image file
 - `convertLoadButton`: Label used for button in Load Watermark window that loads the currently selected file and closes the window
 - `convertCancelButton`: Label used for button beside in Load Watermark window that closes the window
@@ -357,6 +362,7 @@ Modules are currently:
 - `convertAddFile`: Label for button used in convert window to open a file dialog and add a file to be converted
 - `convertSetOutput`: Label for button used in convert window to open a file dialog and set the destination filepath for the converted file output.
 - `convertWatermark`: Label when displaying watermark or watermark path
+- `convertNoJobSelected`: Label when no job is selected and one will need to be created or selected
 
 ### Menu Strings
 
