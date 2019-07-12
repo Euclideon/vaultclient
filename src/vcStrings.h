@@ -16,7 +16,8 @@ namespace vcString
 {
   const char* Get(const char *pKey);
 
-  udResult LoadTable(const char *pFilename, vcTranslationInfo *pInfo);
+  udResult LoadTableFromMemory(const char *pFilename, vcTranslationInfo *pInfo);
+  udResult LoadTableFromFile(const char *pFilename, vcTranslationInfo *pInfo);
   void FreeTable(vcTranslationInfo *pInfo);
 }
 

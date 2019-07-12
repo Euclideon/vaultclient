@@ -95,7 +95,7 @@ struct vcRenderContext
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
 udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vcRenderData &renderData);
 
-udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &sceneResolution)
+udResult vcRender_Init(vcRenderContext **ppRenderContext, vWorkerThreadPool *pWorkerPool, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &sceneResolution)
 {
   udResult result = udR_Success;
   vcRenderContext *pRenderContext = nullptr;
@@ -110,7 +110,7 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vcSettings *pSettings,
 
   vcMesh_Create(&pRenderContext->pScreenQuadMesh, vcSimpleVertexLayout, int(udLengthOf(vcSimpleVertexLayout)), screenQuadVertices, 4, screenQuadIndices, 6, vcMF_Dynamic);
 
-  vcTexture_CreateFromFilename(&pRenderContext->pSkyboxTexture, "asset://assets/skyboxes/WaterClouds.jpg", nullptr, nullptr, vcTFM_Linear);
+  vcTexture_AsyncCreateFromFilename(&pRenderContext->pSkyboxTexture, pWorkerPool, "asset://assets/skyboxes/WaterClouds.jpg", vcTFM_Linear);
   UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
 
   vcShader_Bind(pRenderContext->skyboxShader.pProgram);
