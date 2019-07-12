@@ -44,18 +44,95 @@ uint32_t vcConvertCMD_DoConvert(void *pDataPtr)
   return 0;
 }
 
-int main(int argc, const char **ppArgv)
+struct vcConvertCMDSettings
+{
+  double resolution;
+  const char *pWatermark;
+  const char *pOutputFilename;
+  const char **ppInputFiles;
+  int32_t inputFileCount;
+  int32_t srid;
+  bool pause;
+  bool pauseOnError;
+  bool autoOverwrite;
+};
+
+bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMDSettings *pSettings)
 {
   bool cmdlineError = false;
-  bool autoOverwrite = false;
-  bool pause = false;
-  bool pauseOnError = false;
+  int32_t currentInputFile = 0;
 
+  for (int i = 4; i < argc; )
+  {
+    if (udStrEquali(ppArgv[i], "-resolution"))
+    {
+      pSettings->resolution = udStrAtof64(ppArgv[i + 1]);
+      i += 2;
+    }
+    else if (udStrEquali(ppArgv[i], "-srid"))
+    {
+      pSettings->srid = udStrAtoi(ppArgv[i + 1]);
+      i += 2;
+    }
+    else if (udStrEquali(ppArgv[i], "-watermark"))
+    {
+      pSettings->pWatermark = ppArgv[i + 1];
+      i += 2;
+    }
+    else if (udStrEquali(ppArgv[i], "-i"))
+    {
+      // First time encountering input files, count them
+      if (pSettings->inputFileCount == 0)
+      {
+        for (int j = i; j < argc; j++)
+        {
+          if (udStrEquali(ppArgv[j], "-i"))
+            ++pSettings->inputFileCount;
+        }
+        pSettings->ppInputFiles = udAllocType(const char *, pSettings->inputFileCount, udAF_None);
+      }
+      pSettings->ppInputFiles[currentInputFile] = ppArgv[i + 1];
+      ++currentInputFile;
+
+      i += 2;
+    }
+    else if (udStrEquali(ppArgv[i], "-pause"))
+    {
+      pSettings->pause = true;
+      ++i;
+    }
+    else if (udStrEquali(ppArgv[i], "-pauseOnError"))
+    {
+      pSettings->pauseOnError = true;
+      ++i;
+    }
+    else if (udStrEquali(ppArgv[i], "-o"))
+    {
+      // -O implies automatic overwrite, -o does a check
+      pSettings->autoOverwrite = udStrEqual(ppArgv[i], "-O");
+      pSettings->pOutputFilename = ppArgv[i + 1];
+
+      i += 2;
+    }
+    else
+    {
+      printf("Unrecognised option: %s\n", ppArgv[i]);
+      cmdlineError = true;
+      break;
+    }
+  }
+
+  return cmdlineError;
+}
+
+int main(int argc, const char **ppArgv)
+{
   vdkError result = vE_Success;
 
   vdkContext *pContext = nullptr;
   const vdkConvertInfo *pInfo = nullptr;
   vdkConvertContext *pModel = nullptr;
+  vcConvertCMDSettings settings = {};
 
   printf("vcConvertCMD %s\n", CONVERTCMD_VERSION);
 
@@ -64,6 +141,8 @@ int main(int argc, const char **ppArgv)
     vcConvertCMD_ShowOptions();
     exit(1);
   }
+
+  bool cmdlineError = vcConvertCMD_ProcessCommandLine(argc, ppArgv, &settings);
 
   result = vdkContext_Connect(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], ppArgv[3]);
   if (result == vE_ConnectionFailure)
@@ -82,8 +161,6 @@ int main(int argc, const char **ppArgv)
   if (result != vE_Success)
     exit(2);
 
-  vdkConvertItemInfo itemInfo;
-
   result = vdkConvert_CreateContext(pContext, &pModel);
   if (result != vE_Success)
   {
@@ -100,89 +177,54 @@ int main(int argc, const char **ppArgv)
 
   vdkConvert_GetInfo(pContext, pModel, &pInfo);
 
-  for (int i = 4; i < argc; )
+  // Process settings
+  if (settings.resolution != 0)
+    vdkConvert_SetPointResolution(pContext, pModel, true, settings.resolution);
+
+  if (settings.srid != 0)
   {
-    if (udStrEquali(ppArgv[i], "-resolution"))
+    if (vdkConvert_SetSRID(pContext, pModel, true, settings.srid) != vE_Success)
     {
-      vdkConvert_SetPointResolution(pContext, pModel, true, udStrAtof64(ppArgv[i + 1]));
-      i += 2;
+      printf("Error setting srid %d\n", settings.srid);
+      cmdlineError = true;
     }
-    else if (udStrEquali(ppArgv[i], "-srid"))
+  }
+
+  if (settings.pWatermark)
+  {
+    if (vdkConvert_AddWatermark(pContext, pModel, settings.pWatermark) != vE_Success)
+      cmdlineError = true;
+  }
+
+  for (int i = 0; i < settings.inputFileCount; ++i)
+  {
+    udFindDir *pFindDir = nullptr;
+    udResult res = udOpenDir(&pFindDir, settings.ppInputFiles[i]);
+    if (res == udR_Success)
     {
-      int32_t srid = udStrAtoi(ppArgv[i + 1]);
-      if (vdkConvert_SetSRID(pContext, pModel, true, srid) != vE_Success)
-      {
-        printf("Error setting srid %d\n", srid);
-        cmdlineError = true;
-        break;
-      }
-      i += 2;
-    }
-    else if (udStrEquali(ppArgv[i], "-watermark"))
-    {
-      if (vdkConvert_AddWatermark(pContext, pModel, ppArgv[i + 1]) != vE_Success)
-        cmdlineError = true;
-      i += 2;
-    }
-    else if (udStrEquali(ppArgv[i], "-i"))
-    {
-#if UDPLATFORM_WINDOWS
-      WIN32_FIND_DATAA fd;
-      HANDLE h = FindFirstFileA(ppArgv[i + 1], &fd);
-      if (h != INVALID_HANDLE_VALUE)
-      {
-        udFilename foundFile(ppArgv[i + 1]);
-        do
-        {
-          foundFile.SetFilenameWithExt(fd.cFileName);
-          result = vdkConvert_AddItem(pContext, pModel, foundFile.GetPath());
-          if (result != vE_Success)
-            printf("Unable to convert %s [Error:%d]:\n", foundFile.GetPath(), result);
-        } while (FindNextFileA(h, &fd));
-        FindClose(h);
-      }
-      else
-      {
-        result = vdkConvert_AddItem(pContext, pModel, ppArgv[i + 1]);
-        if (result != vE_Success)
-          printf("Unable to convert %s [Error:%d]:\n", ppArgv[i + 1], result);
-      }
-      i += 2;
-#else //Non-Windows
-      ++i; // Skip "-i"
       do
       {
-        result = vdkConvert_AddItem(pContext, pModel, ppArgv[i++]);
-        if (result != vE_Success)
-          printf("Unable to convert %s:\n", ppArgv[i]);
-      } while (i < argc && ppArgv[i][0] != '-'); // Continue until another option is seen
-#endif
-    }
-    else if (udStrEquali(ppArgv[i], "-pause"))
-    {
-      pause = true;
-      ++i;
-    }
-    else if (udStrEquali(ppArgv[i], "-pauseOnError"))
-    {
-      pauseOnError = true;
-      ++i;
-    }
-    else if (udStrEquali(ppArgv[i], "-o"))
-    {
-      // -O implies automatic overwrite, -o does a check
-      autoOverwrite = udStrEqual(ppArgv[i], "-O");
-      vdkConvert_SetOutputFilename(pContext, pModel, ppArgv[i + 1]);
+        if (pFindDir->isDirectory)
+          continue;
 
-      i += 2;
+        udFilename foundFile(pFindDir->pFilename);
+        foundFile.SetFolder(settings.ppInputFiles[i]);
+        result = vdkConvert_AddItem(pContext, pModel, foundFile.GetPath());
+        if (result != vE_Success)
+          printf("Unable to convert %s [Error:%d]:\n", foundFile.GetPath(), result);
+      } while (udReadDir(pFindDir) == udR_Success);
+      res = udCloseDir(&pFindDir);
     }
     else
     {
-      printf("Unrecognised option: %s\n", ppArgv[i]);
-      cmdlineError = true;
-      break;
+      result = vdkConvert_AddItem(pContext, pModel, settings.ppInputFiles[i]);
+      if (result != vE_Success)
+        printf("Unable to convert %s [Error:%d]:\n", settings.ppInputFiles[i], result);
     }
   }
+
+  if (settings.pOutputFilename)
+    vdkConvert_SetOutputFilename(pContext, pModel, settings.pOutputFilename);
 
   if (cmdlineError || pInfo->totalItems == 0)
   {
@@ -190,7 +232,7 @@ int main(int argc, const char **ppArgv)
   }
   else
   {
-    if (!autoOverwrite && udFileExists(pInfo->pOutputName) == udR_Success)
+    if (!settings.autoOverwrite && udFileExists(pInfo->pOutputName) == udR_Success)
     {
       printf("Output file %s exists, overwrite [Y/n]?", pInfo->pOutputName);
       int answer = getchar();
@@ -212,6 +254,8 @@ int main(int argc, const char **ppArgv)
     printf("\t# Inputs: %" PRIu64 "\n\n", pInfo->totalItems);
 
     udThread_Create(nullptr, vcConvertCMD_DoConvert, &convdata);
+
+    vdkConvertItemInfo itemInfo = {};
 
     while (!convdata.ended)
     {
@@ -249,7 +293,7 @@ int main(int argc, const char **ppArgv)
 #endif
   }
 
-  if (pause || (pauseOnError && result != vE_Success))
+  if (settings.pause || (settings.pauseOnError && result != vE_Success))
   {
     printf("Press enter...");
     getchar();
