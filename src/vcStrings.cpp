@@ -38,19 +38,15 @@ namespace vcString
     }
   }
 
-  udResult LoadTable(const char *pFilename, vcTranslationInfo *pInfo)
+  udResult LoadTableFromMemory(const char *pJSON, vcTranslationInfo *pInfo)
   {
     udResult result = udR_Failure_;
-
     udJSON strings;
-    char *pPos = nullptr;
     size_t count = 0;
 
     FreeTable(pInfo); // Empty the table
 
-    UD_ERROR_NULL(pFilename, udR_InvalidParameter_);
-    UD_ERROR_CHECK(udFile_Load(pFilename, (void **)&pPos));
-    UD_ERROR_CHECK(strings.Parse(pPos));
+    UD_ERROR_CHECK(strings.Parse(pJSON));
 
     count = strings.MemberCount();
 
@@ -68,6 +64,20 @@ namespace vcString
     pInfo->pTranslatorName = udStrdup(strings.Get("_LanguageInfo.translationby").AsString("?"));
     pInfo->pTranslatorContactEmail = udStrdup(strings.Get("_LanguageInfo.contactemail").AsString("?"));
     pInfo->pTargetVersion = udStrdup(strings.Get("_LanguageInfo.targetVersion").AsString());
+
+  epilogue:
+    return result;
+  }
+
+  udResult LoadTableFromFile(const char *pFilename, vcTranslationInfo *pInfo)
+  {
+    udResult result = udR_Failure_;
+    char *pPos = nullptr;
+
+    UD_ERROR_NULL(pFilename, udR_InvalidParameter_);
+    UD_ERROR_CHECK(udFile_Load(pFilename, (void **)&pPos));
+
+    UD_ERROR_CHECK(LoadTableFromMemory(pPos, pInfo));
 
   epilogue:
     udFree(pPos);
