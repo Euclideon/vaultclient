@@ -154,10 +154,10 @@ bool vcMain_LangCombo(vcState *pProgramState)
 
     if (ImGui::Selectable(pName))
     {
-      if (vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", pFilename), &pProgramState->languageInfo) == udR_Success)
+      if (vcString::LoadTableFromFile(udTempStr("asset://assets/lang/%s.json", pFilename), &pProgramState->languageInfo) == udR_Success)
         udStrcpy(pProgramState->settings.window.languageCode, pFilename);
       else
-        vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", pProgramState->settings.window.languageCode), &pProgramState->languageInfo);
+        vcString::LoadTableFromFile(udTempStr("asset://assets/lang/%s.json", pProgramState->settings.window.languageCode), &pProgramState->languageInfo);
     }
   }
 
@@ -296,6 +296,8 @@ void vcMain_MainLoop(vcState *pProgramState)
 
   if (ImGui::GetIO().WantSaveIniSettings)
     vcSettings_Save(&pProgramState->settings);
+
+  vWorkerThread_DoPostWork(pProgramState->pWorkerPool);
 
   ImGui::GetIO().KeysDown[SDL_SCANCODE_BACKSPACE] = false;
 
@@ -513,8 +515,6 @@ void vcMain_MainLoop(vcState *pProgramState)
       vWorkerThread_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
     }
 
-    vWorkerThread_DoPostWork(pProgramState->pWorkerPool);
-
     if (pProgramState->forceLogout)
     {
       vcSession_Logout(pProgramState);
@@ -542,6 +542,131 @@ void vcMain_SyncFS()
   });
 }
 #endif
+
+struct vcMainLoadDataInfo
+{
+  vcState *pProgramState;
+  const char *pFilename;
+
+  udResult loadResult;
+  void *pData;
+  int64_t dataLen;
+};
+
+void vcMain_AsyncLoadWT(void *pLoadInfoPtr)
+{
+  vcMainLoadDataInfo *pLoadInfo = (vcMainLoadDataInfo*)pLoadInfoPtr;
+  pLoadInfo->loadResult = udFile_Load(pLoadInfo->pFilename, &pLoadInfo->pData, &pLoadInfo->dataLen);
+}
+
+void vcMain_LoadIconMT(void *pLoadInfoPtr)
+{
+  vcMainLoadDataInfo *pLoadInfo = (vcMainLoadDataInfo*)pLoadInfoPtr;
+
+  SDL_Surface *pIcon = nullptr;
+  int iconWidth, iconHeight, iconBytesPerPixel;
+  unsigned char *pIconData = nullptr;
+  int pitch;
+  long rMask, gMask, bMask, aMask;
+
+  if (pLoadInfo->loadResult == udR_Success)
+  {
+    pIconData = stbi_load_from_memory((stbi_uc*)pLoadInfo->pData, (int)pLoadInfo->dataLen, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
+
+    if (pIconData != nullptr)
+    {
+      pitch = iconWidth * iconBytesPerPixel;
+      pitch = (pitch + 3) & ~3;
+
+      rMask = 0xFF << 0;
+      gMask = 0xFF << 8;
+      bMask = 0xFF << 16;
+      aMask = (iconBytesPerPixel == 4) ? (0xFF << 24) : 0;
+
+      pIcon = SDL_CreateRGBSurfaceFrom(pIconData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
+      if (pIcon != nullptr)
+        SDL_SetWindowIcon(pLoadInfo->pProgramState->pWindow, pIcon);
+
+      free(pIconData);
+    }
+
+    SDL_free(pIcon);
+  }
+
+  udFree(pLoadInfo->pData);
+  udFree(pLoadInfo->pFilename);
+}
+
+void vcMain_LoadFontMT(void *pLoadInfoPtr)
+{
+  vcMainLoadDataInfo *pLoadInfo = (vcMainLoadDataInfo*)pLoadInfoPtr;
+
+  if (pLoadInfo->loadResult == udR_Success)
+  {
+    const float FontSize = 16.f;
+    ImFontConfig fontCfg = ImFontConfig();
+    fontCfg.FontDataOwnedByAtlas = false;
+    ImGui::GetIO().Fonts->Clear();
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, FontSize, &fontCfg);
+    fontCfg.MergeMode = true;
+
+#if UD_RELEASE // Load all glyphs for supported languages
+    static ImWchar characterRanges[] =
+    {
+      0x0020, 0x00FF, // Basic Latin + Latin Supplement
+      0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
+      0x0E00, 0x0E7F, // Thai
+      0x2010, 0x205E, // Punctuations
+      0x25A0, 0x25FF, // Geometric Shapes
+      0x26A0, 0x26A1, // Exclamation in Triangle
+      0x2DE0, 0x2DFF, // Cyrillic Extended-A
+      0x3000, 0x30FF, // Punctuations, Hiragana, Katakana
+      0x3131, 0x3163, // Korean alphabets
+      0x31F0, 0x31FF, // Katakana Phonetic Extensions
+      0x4e00, 0x9FAF, // CJK Ideograms
+      0xA640, 0xA69F, // Cyrillic Extended-B
+      0xAC00, 0xD79D, // Korean characters
+      0xFF00, 0xFFEF, // Half-width characters
+      0
+    };
+
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, FontSize, &fontCfg, characterRanges);
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesJapanese()); // Still need to load Japanese seperately
+#else // Debug; Only load required Glyphs
+    static ImWchar characterRanges[] =
+    {
+      0x0020, 0x00FF, // Basic Latin + Latin Supplement
+      0x2010, 0x205E, // Punctuations
+      0x25A0, 0x25FF, // Geometric Shapes
+      0x26A0, 0x26A1, // Exclamation in Triangle
+      0
+    };
+
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, FontSize, &fontCfg, characterRanges);
+#endif
+  }
+
+  udFree(pLoadInfo->pData);
+  udFree(pLoadInfo->pFilename);
+}
+
+void vcMain_LoadStringTableMT(void *pLoadInfoPtr)
+{
+  vcMainLoadDataInfo *pLoadInfo = (vcMainLoadDataInfo*)pLoadInfoPtr;
+
+  vcString::LoadTableFromMemory((const char*)pLoadInfo->pData, &pLoadInfo->pProgramState->languageInfo);
+
+  udFree(pLoadInfo->pData);
+  udFree(pLoadInfo->pFilename);
+}
+
+void vcMain_AsyncLoad(vcState *pProgramState, const char *pFilename, vWorkerThreadCallback *pMainThreadFn)
+{
+  vcMainLoadDataInfo *pInfo = udAllocType(vcMainLoadDataInfo, 1, udAF_Zero);
+  pInfo->pFilename = udStrdup(pFilename);
+  pInfo->pProgramState = pProgramState;
+  vWorkerThread_AddTask(pProgramState->pWorkerPool, vcMain_AsyncLoadWT, pInfo, true, pMainThreadFn);
+}
 
 int main(int argc, char **args)
 {
@@ -572,18 +697,6 @@ int main(int argc, char **args)
 
   vcSettings_RegisterAssetFileHandler();
   vcWebFile_RegisterFileHandlers();
-
-  // Icon parameters
-  SDL_Surface *pIcon = nullptr;
-  int iconWidth, iconHeight, iconBytesPerPixel;
-  void *pFileData = nullptr;
-  int64_t fileLen = 0;
-  unsigned char *pIconData = nullptr;
-  int pitch;
-  long rMask, gMask, bMask, aMask;
-
-  void *pFontData = nullptr;
-  int64_t fontDataLength = 0;
 
   // default values
   programState.settings.camera.moveMode = vcCMM_Plane;
@@ -684,31 +797,6 @@ int main(int argc, char **args)
   if (!programState.pWindow)
     goto epilogue;
 
-  if (udFile_Load("asset://assets/icons/EuclideonClientIcon.png", &pFileData, &fileLen) == udR_Success)
-  {
-    pIconData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, &iconWidth, &iconHeight, &iconBytesPerPixel, 0);
-
-    if (pIconData != nullptr)
-    {
-      pitch = iconWidth * iconBytesPerPixel;
-      pitch = (pitch + 3) & ~3;
-
-      rMask = 0xFF << 0;
-      gMask = 0xFF << 8;
-      bMask = 0xFF << 16;
-      aMask = (iconBytesPerPixel == 4) ? (0xFF << 24) : 0;
-
-      pIcon = SDL_CreateRGBSurfaceFrom(pIconData, iconWidth, iconHeight, iconBytesPerPixel * 8, pitch, rMask, gMask, bMask, aMask);
-      if (pIcon != nullptr)
-        SDL_SetWindowIcon(programState.pWindow, pIcon);
-
-      free(pIconData);
-    }
-
-    SDL_free(pIcon);
-    udFree(pFileData);
-  }
-
   ImGui::CreateContext();
   ImGui::GetStyle().WindowRounding = 0.0f;
 
@@ -725,57 +813,6 @@ int main(int argc, char **args)
 
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-  // setup watermark for background
-  vcTexture_CreateFromFilename(&programState.pCompanyLogo, "asset://assets/textures/logo.png");
-  vcTexture_CreateFromFilename(&programState.pBuildingsTexture, "asset://assets/textures/buildings.png", nullptr, nullptr, vcTFM_Nearest, false);
-
-  if (udFile_Load("asset://assets/fonts/NotoSansCJKjp-Regular.otf", &pFontData, &fontDataLength) == udR_Success)
-  {
-    const float FontSize = 16.f;
-    ImFontConfig fontCfg = ImFontConfig();
-    fontCfg.FontDataOwnedByAtlas = false;
-    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontDataLength, FontSize, &fontCfg);
-    fontCfg.MergeMode = true;
-
-#if UD_RELEASE // Load all glyphs for supported languages
-    static ImWchar characterRanges[] =
-    {
-      0x0020, 0x00FF, // Basic Latin + Latin Supplement
-      0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
-      0x0E00, 0x0E7F, // Thai
-      0x2010, 0x205E, // Punctuations
-      0x25A0, 0x25FF, // Geometric Shapes
-      0x26A0, 0x26A1, // Exclamation in Triangle
-      0x2DE0, 0x2DFF, // Cyrillic Extended-A
-      0x3000, 0x30FF, // Punctuations, Hiragana, Katakana
-      0x3131, 0x3163, // Korean alphabets
-      0x31F0, 0x31FF, // Katakana Phonetic Extensions
-      0x4e00, 0x9FAF, // CJK Ideograms
-      0xA640, 0xA69F, // Cyrillic Extended-B
-      0xAC00, 0xD79D, // Korean characters
-      0xFF00, 0xFFEF, // Half-width characters
-      0
-    };
-
-    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontDataLength, FontSize, &fontCfg, characterRanges);
-    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontDataLength, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesJapanese()); // Still need to load Japanese seperately
-#else // Debug; Only load required Glyphs
-    static ImWchar characterRanges[] =
-    {
-      0x0020, 0x00FF, // Basic Latin + Latin Supplement
-      0x2010, 0x205E, // Punctuations
-      0x25A0, 0x25FF, // Geometric Shapes
-      0x26A0, 0x26A1, // Exclamation in Triangle
-      0
-    };
-
-    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontDataLength, FontSize, &fontCfg, characterRanges);
-#endif
-
-    udFree(pFontData);
-    fontDataLength = 0;
-  }
-
 #ifdef GRAPHICS_API_METAL
   if (!ImGui_ImplMetal_Init())
     goto epilogue;
@@ -784,7 +821,7 @@ int main(int argc, char **args)
     goto epilogue;
 #endif
 
-  if (vcRender_Init(&(programState.pRenderContext), &(programState.settings), programState.pCamera, programState.sceneResolution) != udR_Success)
+  if (vcRender_Init(&(programState.pRenderContext), programState.pWorkerPool, &(programState.settings), programState.pCamera, programState.sceneResolution) != udR_Success)
     goto epilogue;
 
   // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
@@ -793,8 +830,14 @@ int main(int argc, char **args)
 
   SDL_DisableScreenSaver();
 
-  vcString::LoadTable(udTempStr("asset://assets/lang/%s.json", programState.settings.window.languageCode), &programState.languageInfo);
-  vcTexture_CreateFromFilename(&programState.pUITexture, "asset://assets/textures/uiDark24.png");
+  // Async load everything else
+  vcMain_AsyncLoad(&programState, udTempStr("asset://assets/lang/%s.json", programState.settings.window.languageCode), vcMain_LoadStringTableMT);
+  vcMain_AsyncLoad(&programState, "asset://assets/icons/EuclideonClientIcon.png", vcMain_LoadIconMT);
+  vcMain_AsyncLoad(&programState, "asset://assets/fonts/NotoSansCJKjp-Regular.otf", vcMain_LoadFontMT);
+
+  vcTexture_AsyncCreateFromFilename(&programState.pCompanyLogo, programState.pWorkerPool, "asset://assets/textures/logo.png");
+  vcTexture_AsyncCreateFromFilename(&programState.pBuildingsTexture, programState.pWorkerPool, "asset://assets/textures/buildings.png", vcTFM_Nearest, false);
+  vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png");
 
 #if UDPLATFORM_EMSCRIPTEN
   emscripten_set_main_loop_arg(vcMain_MainLoop, &programState, 0, 1);
@@ -1770,14 +1813,20 @@ void vcRenderWindow(vcState *pProgramState)
 
       ImGui::GetWindowDrawList()->AddRectFilledMultiColor(ImVec2(0, 0), size, 0xFFB5A245, 0xFFE3D9A8, 0xFFCDBC71, 0xFF998523);
 
-      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 03.f + 100.f, p0.y + mouseY * 0.f), ImVec2(p1.x + mouseX * 03.f + 100.f, p1.y + mouseY * 0.f), ImVec2(0, 0.75), ImVec2(1, 1.00));
-      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 15.f + 350.f, p0.y + mouseY * 1.f), ImVec2(p1.x + mouseX * 15.f + 350.f, p1.y + mouseY * 1.f), ImVec2(0, 0.50), ImVec2(1, 0.75));
-      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 40.f - 230.f, p0.y + mouseY * 2.f), ImVec2(p1.x + mouseX * 40.f - 230.f, p1.y + mouseY * 2.f), ImVec2(0, 0.25), ImVec2(1, 0.50));
-      ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 70.f - 080.f, p0.y + mouseY * 3.f), ImVec2(p1.x + mouseX * 70.f - 080.f, p1.y + mouseY * 3.f), ImVec2(0, 0.00), ImVec2(1, 0.25));
+      if (pProgramState->pBuildingsTexture != nullptr)
+      {
+        ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 03.f + 100.f, p0.y + mouseY * 0.f), ImVec2(p1.x + mouseX * 03.f + 100.f, p1.y + mouseY * 0.f), ImVec2(0, 0.75), ImVec2(1, 1.00));
+        ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 15.f + 350.f, p0.y + mouseY * 1.f), ImVec2(p1.x + mouseX * 15.f + 350.f, p1.y + mouseY * 1.f), ImVec2(0, 0.50), ImVec2(1, 0.75));
+        ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 40.f - 230.f, p0.y + mouseY * 2.f), ImVec2(p1.x + mouseX * 40.f - 230.f, p1.y + mouseY * 2.f), ImVec2(0, 0.25), ImVec2(1, 0.50));
+        ImGui::GetWindowDrawList()->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 70.f - 080.f, p0.y + mouseY * 3.f), ImVec2(p1.x + mouseX * 70.f - 080.f, p1.y + mouseY * 3.f), ImVec2(0, 0.00), ImVec2(1, 0.25));
+      }
 
-      float scaling = udMin(0.9f * (size.y - vcLBS_LoginBoxH) / vcLBS_LogoH, 1.f);
-      float yOff = (size.y - vcLBS_LoginBoxH) / 2.f;
-      ImGui::GetWindowDrawList()->AddImage(pProgramState->pCompanyLogo, ImVec2((size.x - vcLBS_LogoW * scaling) / 2.f, yOff - (vcLBS_LogoH * scaling * 0.5f)), ImVec2((size.x + vcLBS_LogoW * scaling) / 2, yOff + (vcLBS_LogoH * scaling * 0.5f)));
+      if (pProgramState->pCompanyLogo != nullptr)
+      {
+        float scaling = udMin(0.9f * (size.y - vcLBS_LoginBoxH) / vcLBS_LogoH, 1.f);
+        float yOff = (size.y - vcLBS_LoginBoxH) / 2.f;
+        ImGui::GetWindowDrawList()->AddImage(pProgramState->pCompanyLogo, ImVec2((size.x - vcLBS_LogoW * scaling) / 2.f, yOff - (vcLBS_LogoH * scaling * 0.5f)), ImVec2((size.x + vcLBS_LogoW * scaling) / 2, yOff + (vcLBS_LogoH * scaling * 0.5f)));
+      }
     }
     ImGui::End();
     ImGui::PopStyleVar(2);
