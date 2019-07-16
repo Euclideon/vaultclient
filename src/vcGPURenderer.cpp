@@ -111,7 +111,7 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
   udUnused(pBlockRenderer);
   vcBlockRenderVertexBuffer *pVertexBuffer = nullptr;
   int base = 0;
-  uint32_t colorOffset = vdkGPURender_GetAttributeOffset(vdkA_Colour, pVertexData);
+  uint32_t colorOffset = vdkGPURender_GetAttributeOffset(vdkAC_ARGB, pVertexData);
  // size_t intensityOffset = vdkGPURender_GetAttributeOffset(vdkA_Intensity, pVertexData);
 
   pVertexBuffer = udAllocType(vcBlockRenderVertexBuffer, 1, udAF_Zero);
@@ -185,7 +185,7 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
       pVertexBuffer->pDivisionData[div] = pVerts;
     }
 
-    if (vdkGPURender_HasAttribute(vdkA_Colour, pVertexData))
+    if (vdkGPURender_HasAttribute(vdkAC_ARGB, pVertexData))
     {
       if (pBlockRenderer->pointRendering.mode == vcBRPRM_Quads)
       {

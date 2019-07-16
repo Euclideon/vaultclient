@@ -297,7 +297,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
         }
 
         // Assign attributes
-        if (pBuffer->attributes.content & vdkCAC_ARGB)
+        if (pBuffer->attributes.content & vdkAC_ARGB)
         {
           // TODO: (EVC-540) other handle variant attribute layouts
           // Actually use `udAttribute_GetAttributeOffset(vdkCAC_ARGB, pBuffer->content)` correctly
@@ -394,7 +394,7 @@ vdkError vcSceneLayerConvert_AddItem(vdkContext *pContext, vdkConvertContext *pC
   customItem.pClose = vcSceneLayerConvert_Close;
   customItem.pReadPointsInt = vcSceneLayerConvert_ReadPointsInt;
   customItem.pName = pSceneLayerURL;
-  customItem.content = vdkCAC_ARGB;
+  customItem.content = vdkAC_ARGB;
   customItem.srid = pSceneLayerConvert->pSceneLayer->root.zone.srid;
   customItem.sourceProjection = vdkCSP_SourceCartesian;
   customItem.pointCount = -1;
