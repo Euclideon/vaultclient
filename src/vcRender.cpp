@@ -16,9 +16,6 @@
 #include "stb_image.h"
 #include <vector>
 
-// temp
-static const bool gpuRender = true;
-
 enum
 {
   vcRender_SceneSizeIncrement = 32 // directX framebuffer can only be certain increments
@@ -112,11 +109,8 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vWorkerThreadPool *pWo
   pRenderContext = udAllocType(vcRenderContext, 1, udAF_Zero);
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
 
-  if (gpuRender)
-  {
-    int maxPointCount = 3 * 1000000; // TODO: temp hard coded
-    UD_ERROR_CHECK(vcGPURenderer_Create(&pRenderContext->udRenderContext.pGPURenderer, vcBRPRM_GeometryShader, maxPointCount));
-  }
+  const int maxPointCount = 3 * 1000000; // TODO: calculate this from GPU information
+  UD_ERROR_CHECK(vcGPURenderer_Create(&pRenderContext->udRenderContext.pGPURenderer, vcBRPRM_GeometryShader, maxPointCount));
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcSimpleVertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShader.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShader, vcSimpleVertexLayout), udR_InternalError);
@@ -177,8 +171,7 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
       UD_ERROR_SET(udR_InternalError);
   }
 
-  if (gpuRender)
-    UD_ERROR_CHECK(vcGPURenderer_Destroy(&pRenderContext->udRenderContext.pGPURenderer));
+  UD_ERROR_CHECK(vcGPURenderer_Destroy(&pRenderContext->udRenderContext.pGPURenderer));
 
   vcShader_DestroyShader(&pRenderContext->udRenderContext.presentShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->skyboxShader.pProgram);
@@ -505,21 +498,18 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
 
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
 
-  if (!gpuRender)
-  {
-    vcRender_RenderUD(pRenderContext, renderData);
-    vcRender_UploadUD(pRenderContext);
-  }
-
   vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
   vcFramebuffer_Bind(pRenderContext->pFramebuffer);
   vcFramebuffer_Clear(pRenderContext->pFramebuffer, 0xFF000000);// FFFF8080);
 
-  if (!gpuRender)
+  vcRender_RenderUD(pRenderContext, renderData);
+
+  if (!pRenderContext->pSettings->experimental.useGPURenderer)
+  {
+    vcRender_UploadUD(pRenderContext);
     vcPresentUD(pRenderContext);
-  else
-    vcRender_RenderUD(pRenderContext, renderData);
+  }
 
   //vcGLState_SetBlendMode(vcGLSBM_None);
   vcRenderOpaqueGeometry(pRenderContext, renderData);
@@ -734,10 +724,11 @@ udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &render
   vdkRenderOptions renderOptions;
   memset(&renderOptions, 0, sizeof(vdkRenderOptions));
   renderOptions.pPick = &picking;
-  if (gpuRender)
-    renderOptions.flags = vdkRCRF_GPURender;
 
-  vdkError result = vdkRenderContext_RenderAdv(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, pModels, numVisibleModels, &renderOptions);
+  if (pRenderContext->pSettings->experimental.useGPURenderer)
+    renderOptions.flags = vdkRF_GPURender;
+
+  vdkError result = vdkRenderContext_Render(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, pModels, numVisibleModels, &renderOptions);
 
   if (result == vE_Success)
   {

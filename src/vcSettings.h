@@ -231,6 +231,13 @@ struct vcSettings
     char license[vcMetadataMaxLength];
   } convertdefaults;
 
+  // These are experimental features that will eventually be removed or moved to another setting.
+  // They will mostly be exposed via the System->Experiments menu to hide them away from most users
+  struct
+  {
+    bool useGPURenderer;
+  } experimental;
+
   udChunkedArray<vcLanguageOption> languageOptions;
 
   vcPresentationMode responsiveUI;
