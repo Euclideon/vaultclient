@@ -30,7 +30,9 @@ struct vcUDRenderContext
   vcTexture *pColourTex;
   vcTexture *pDepthTex;
 
+#if ALLOW_EXPERIMENT_GPURENDER
   vcGPURenderer *pGPURenderer;
+#endif
 
   struct
   {
@@ -111,7 +113,11 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vWorkerThreadPool *pWo
   pRenderContext = udAllocType(vcRenderContext, 1, udAF_Zero);
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
 
+#if ALLOW_EXPERIMENT_GPURENDER
   UD_ERROR_CHECK(vcGPURenderer_Create(&pRenderContext->udRenderContext.pGPURenderer, vcBRPRM_GeometryShader, maxPointCount));
+#else
+  udUnused(maxPointCount);
+#endif
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcSimpleVertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShader.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShader, vcSimpleVertexLayout), udR_InternalError);
@@ -172,7 +178,9 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
       UD_ERROR_SET(udR_InternalError);
   }
 
+#if ALLOW_EXPERIMENT_GPURENDER
   UD_ERROR_CHECK(vcGPURenderer_Destroy(&pRenderContext->udRenderContext.pGPURenderer));
+#endif
 
   vcShader_DestroyShader(&pRenderContext->udRenderContext.presentShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->skyboxShader.pProgram);
@@ -506,7 +514,9 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
 
   vcRender_RenderUD(pRenderContext, renderData);
 
+#if ALLOW_EXPERIMENT_GPURENDER
   if (!pRenderContext->pSettings->experimental.useGPURenderer)
+#endif
   {
     vcRender_UploadUD(pRenderContext);
     vcPresentUD(pRenderContext);
@@ -726,8 +736,10 @@ udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &render
   memset(&renderOptions, 0, sizeof(vdkRenderOptions));
   renderOptions.pPick = &picking;
 
+#if ALLOW_EXPERIMENT_GPURENDER
   if (pRenderContext->pSettings->experimental.useGPURenderer)
     renderOptions.flags = vdkRF_GPURender;
+#endif
 
   vdkError result = vdkRenderContext_Render(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, pModels, numVisibleModels, &renderOptions);
 

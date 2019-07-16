@@ -1,5 +1,9 @@
 #include "vcGPURenderer.h"
+
+#include "vcSettings.h"
 #include "gl/vcRenderShaders.h"
+
+#if ALLOW_EXPERIMENT_GPURENDER
 
 enum
 {
@@ -375,3 +379,5 @@ udResult vcGPURenderer_Destroy(vcGPURenderer **ppBlockRender)
 
   return (error == vE_Success) ? udR_Success : udR_Failure_;
 }
+
+#endif // ALLOW_EXPERIMENT_GPURENDER

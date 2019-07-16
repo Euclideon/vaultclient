@@ -1554,7 +1554,7 @@ int vcMainMenuGui(vcState *pProgramState)
 
       if (ImGui::BeginMenu(vcString::Get("menuExperimentalFeatures")))
       {
-        ImGui::MenuItem("GPU Render", nullptr, &pProgramState->settings.experimental.useGPURenderer);
+        ImGui::MenuItem("GPU Render", nullptr, &pProgramState->settings.experimental.useGPURenderer, ALLOW_EXPERIMENT_GPURENDER);
 
         ImGui::EndMenu();
       }
