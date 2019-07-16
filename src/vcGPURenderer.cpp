@@ -76,7 +76,7 @@ udResult vcGPURenderer_CreatePointRenderingData(vcGPURenderer *pBlockRenderer)
   }
   else if (pBlockRenderer->pointRendering.mode == vcBRPRM_GeometryShader)
   {
-    pBlockRenderer->pointRendering.vertCountPerPoint = 1;  
+    pBlockRenderer->pointRendering.vertCountPerPoint = 1;
     pBlockRenderer->pointRendering.pVertexLayout = vcGPURenderer_PointVertexLayout;
     pBlockRenderer->pointRendering.vertexLayoutCount = (int)udLengthOf(vcGPURenderer_PointVertexLayout);
     UD_ERROR_IF(!vcShader_CreateFromText(&pBlockRenderer->presentShader.pProgram, g_udGPURenderGeomVertexShader, g_udGPURenderGeomFragmentShader, pBlockRenderer->pointRendering.pVertexLayout, pBlockRenderer->pointRendering.vertexLayoutCount, g_udGPURenderGeomGeometryShader), udR_Failure_);
@@ -134,7 +134,7 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
       for (int j = 0; j < pVertexBuffer->divisionPointCounts[div]; ++j)
       {
         vcBlockRenderVertexBuffer::QuadVertex vert = {};
-        double position[3] = {};    
+        double position[3] = {};
 
         vdkGPURender_GetPosition(pVertexData, base + j, position);
         vert.pos = udFloat4::create(udFloat3::create((float)position[0], (float)position[1], (float)position[2]), childSize);
@@ -278,7 +278,7 @@ epilogue:
 }
 
 /*----------------------------------------------------------------------------------------------------*/
-vdkError vcGPURenderer_RenderVertexBuffer(void *pContext, const vdkGPURenderModel *pModel, void *pVertexBuffer, uint16_t divisionsMask)
+vdkError vcGPURenderer_RenderVertexBuffer(void *pContext, void *pVertexBuffer, uint16_t divisionsMask, const double matrix[16])
 {
   udUnused(divisionsMask);
 
@@ -287,8 +287,6 @@ vdkError vcGPURenderer_RenderVertexBuffer(void *pContext, const vdkGPURenderMode
   vcBlockRenderVertexBuffer *pVB = (vcBlockRenderVertexBuffer*)pVertexBuffer;
 
   // Upload shader constants
-  double matrix[16] = {};
-  vdkGPURender_GetModelMatrix(pModel, matrix);
   pBlockRenderer->presentShader.everyObject.u_world = udFloat4x4::create(udDouble4x4::create(matrix));
   vcShader_BindConstantBuffer(pBlockRenderer->presentShader.pProgram, pBlockRenderer->presentShader.pEveryObjectConstantBuffer, &pBlockRenderer->presentShader.everyObject, sizeof(pBlockRenderer->presentShader.everyObject));
 
