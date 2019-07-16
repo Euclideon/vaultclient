@@ -104,12 +104,13 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vWorkerThreadPool *pWo
   udResult result = udR_Success;
   vcRenderContext *pRenderContext = nullptr;
 
+  const int maxPointCount = 3 * 1000000; // TODO: calculate this from GPU information
+
   UD_ERROR_NULL(ppRenderContext, udR_InvalidParameter_);
 
   pRenderContext = udAllocType(vcRenderContext, 1, udAF_Zero);
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
 
-  const int maxPointCount = 3 * 1000000; // TODO: calculate this from GPU information
   UD_ERROR_CHECK(vcGPURenderer_Create(&pRenderContext->udRenderContext.pGPURenderer, vcBRPRM_GeometryShader, maxPointCount));
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcSimpleVertexLayout), udR_InternalError);
