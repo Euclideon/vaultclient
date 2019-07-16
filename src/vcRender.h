@@ -24,6 +24,9 @@ struct vcRenderPolyInstance
 {
   vcPolygonModel *pModel;
   udDouble4x4 worldMat; // will be converted to eye internally
+
+  vcSceneItem *pSceneItem;
+  uint64_t sceneItemInternalId;
 };
 
 struct vcMouseData
@@ -43,6 +46,7 @@ struct vcRenderData
 
   udDouble3 *pWorldAnchorPos; // If this is not nullptr, this is the point to highlight
   bool pickingSuccess;
+  int udModelPickedIndex;
   vcTexture *pWatermarkTexture;
 
   udChunkedArray<vcModel*> models;
@@ -64,11 +68,23 @@ udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vdkContext *p
 
 udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);
 
+void vcRender_BeginFrame(vcRenderContext *pRenderContext);
 vcTexture* vcRender_GetSceneTexture(vcRenderContext *pRenderContext);
 void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer);
 void vcRender_vcRenderSceneImGui(vcRenderContext *pRenderContext, const vcRenderData &renderData);
 
 void vcRender_ClearTiles(vcRenderContext *pRenderContext);
 void vcRender_ClearPoints(vcRenderContext *pRenderContext);
+
+struct vcRenderPickResult
+{
+  bool success;
+  udDouble3 position;
+
+  vcModel *pModel;
+  vcRenderPolyInstance *pPolygon;
+};
+vcRenderPickResult vcRender_PolygonPick(vcRenderContext *pRenderContext, vcRenderData &renderData);
+void vcRender_PickTiles(vcRenderContext *pRenderContext, vcRenderData &renderData);
 
 #endif//vcRender_h__

@@ -41,6 +41,8 @@ enum vcTextureCreationFlags
   vcTCF_RenderTarget = 2, // This texture needs to be able to be turned into a render target
 };
 
+inline vcTextureCreationFlags operator|(const vcTextureCreationFlags &a, const vcTextureCreationFlags &b) { return (vcTextureCreationFlags)(int(a) | int(b)); }
+
 struct vcTexture;
 struct vWorkerThreadPool;
 

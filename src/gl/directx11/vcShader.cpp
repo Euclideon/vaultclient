@@ -210,14 +210,19 @@ bool vcShader_Bind(vcShader *pShader)
 
 bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderSampler *pSamplerUniform /*= nullptr*/)
 {
-  if (pTexture == nullptr)
-    return false;
-
   udUnused(pShader);
   udUnused(pSamplerUniform);
 
-  g_pd3dDeviceContext->PSSetShaderResources(samplerIndex, 1, &pTexture->pTextureView);
-  g_pd3dDeviceContext->PSSetSamplers(samplerIndex, 1, &pTexture->pSampler);
+  if (pTexture == nullptr)
+  {
+    ID3D11ShaderResourceView *nullView[] = { nullptr };
+    g_pd3dDeviceContext->PSSetShaderResources(samplerIndex, 1, nullView);
+  }
+  else
+  {
+    g_pd3dDeviceContext->PSSetShaderResources(samplerIndex, 1, &pTexture->pTextureView);
+    g_pd3dDeviceContext->PSSetSamplers(samplerIndex, 1, &pTexture->pSampler);
+  }
 
   return true;
 }
