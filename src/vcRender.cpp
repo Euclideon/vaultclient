@@ -18,7 +18,10 @@
 
 enum
 {
-  vcRender_SceneSizeIncrement = 32 // directX framebuffer can only be certain increments
+  vcRender_SceneSizeIncrement = 32, // directX framebuffer can only be certain increments
+
+  // certain effects don't need to be at 100% resolution (e.g. outline). 0 is highest quality
+  vcRender_OutlineEffectDownscale = 1
 };
 
 struct vcUDRenderContext
@@ -27,11 +30,14 @@ struct vcUDRenderContext
   vdkRenderView *pRenderView;
   uint32_t *pColorBuffer;
   float *pDepthBuffer;
+
+  vcFramebuffer *pFramebuffer;
   vcTexture *pColourTex;
   vcTexture *pDepthTex;
 
 #if ALLOW_EXPERIMENT_GPURENDER
   vcGPURenderer *pGPURenderer;
+  bool usingGPURenderer;
 #endif
 
   struct
@@ -65,6 +71,20 @@ struct vcUDRenderContext
     } params;
 
   } presentShader;
+
+  struct
+  {
+    vcShader *pProgram;
+    vcShaderConstantBuffer *uniform_params;
+    vcShaderSampler *uniform_texture;
+    vcShaderSampler *uniform_depth;
+
+    struct
+    {
+      udFloat4 id; 
+    } params;
+
+  } splatIdShader;
 };
 
 struct vcRenderContext
@@ -80,6 +100,10 @@ struct vcRenderContext
   vcTexture *pTexture;
   vcTexture *pDepthTexture;
 
+  vcFramebuffer *pAuxiliaryFramebuffers[2];
+  vcTexture *pAuxiliaryTextures[2];
+  udUInt2 effectResolution;
+
   vcUDRenderContext udRenderContext;
   vcFenceRenderer *pDiagnosticFences;
 
@@ -94,12 +118,46 @@ struct vcRenderContext
   } skyboxShader;
 
   vcMesh *pScreenQuadMesh;
+  vcMesh *pFlippedScreenQuadMesh;
   vcTexture *pSkyboxTexture;
+
+  struct
+  {
+    udUInt2 location;
+
+    vcFramebuffer *pFramebuffer;
+    vcTexture *pTexture;
+    vcTexture *pDepth;
+  } picking;
+
+  struct
+  {
+    vcShader *pProgram;
+    vcShaderSampler *uniform_texture;
+    vcShaderConstantBuffer *uniform_params;
+
+    struct
+    {
+      udFloat4 stepSize;
+    } params;
+  } blurShader;
+
+  struct
+  {
+    vcShader *pProgram;
+    vcShaderSampler *uniform_texture;
+    vcShaderConstantBuffer *uniform_params;
+
+    struct
+    {
+      udFloat4 stepSizeThickness;  // (stepSize.xy, outline thickness, inner overlay strength)
+      udFloat4 colour;    // rgb, (unused)
+    } params;
+  } selectionShader;
 };
 
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
 udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &renderData);
-udResult vcRender_UploadUD(vcRenderContext *pRenderContext);
 
 udResult vcRender_Init(vcRenderContext **ppRenderContext, vWorkerThreadPool *pWorkerPool, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &sceneResolution)
 {
@@ -121,8 +179,10 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vWorkerThreadPool *pWo
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcSimpleVertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShader.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShader, vcSimpleVertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.splatIdShader.pProgram, g_udVertexShader, g_udSplatIdFragmentShader, vcSimpleVertexLayout), udR_InternalError);
 
   vcMesh_Create(&pRenderContext->pScreenQuadMesh, vcSimpleVertexLayout, int(udLengthOf(vcSimpleVertexLayout)), screenQuadVertices, 4, screenQuadIndices, 6, vcMF_Dynamic);
+  vcMesh_Create(&pRenderContext->pFlippedScreenQuadMesh, vcSimpleVertexLayout, int(udLengthOf(vcSimpleVertexLayout)), flippedScreenQuadVertices, 4, flippedScreenQuadIndices, 6, vcMF_Dynamic);
 
   vcTexture_AsyncCreateFromFilename(&pRenderContext->pSkyboxTexture, pWorkerPool, "asset://assets/skyboxes/WaterClouds.jpg", vcTFM_Linear);
   UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
@@ -135,6 +195,21 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vWorkerThreadPool *pWo
   vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.presentShader.uniform_texture, pRenderContext->udRenderContext.presentShader.pProgram, "u_texture");
   vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.presentShader.uniform_depth, pRenderContext->udRenderContext.presentShader.pProgram, "u_depth");
   vcShader_GetConstantBuffer(&pRenderContext->udRenderContext.presentShader.uniform_params, pRenderContext->udRenderContext.presentShader.pProgram, "u_params", sizeof(pRenderContext->udRenderContext.presentShader.params));
+
+  vcShader_Bind(pRenderContext->udRenderContext.splatIdShader.pProgram);
+  vcShader_GetConstantBuffer(&pRenderContext->udRenderContext.splatIdShader.uniform_params, pRenderContext->udRenderContext.splatIdShader.pProgram, "u_params", sizeof(pRenderContext->udRenderContext.splatIdShader.params));
+  vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.splatIdShader.uniform_depth, pRenderContext->udRenderContext.splatIdShader.pProgram, "u_depth");
+  vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.splatIdShader.uniform_texture, pRenderContext->udRenderContext.splatIdShader.pProgram, "u_texture");
+
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->blurShader.pProgram, g_BlurVertexShader, g_BlurFragmentShader, vcSimpleVertexLayout), udR_InternalError);
+  vcShader_Bind(pRenderContext->blurShader.pProgram);
+  vcShader_GetSamplerIndex(&pRenderContext->blurShader.uniform_texture, pRenderContext->blurShader.pProgram, "u_texture");
+  vcShader_GetConstantBuffer(&pRenderContext->blurShader.uniform_params, pRenderContext->blurShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->blurShader.params));
+
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->selectionShader.pProgram, g_HighlightVertexShader, g_HighlightFragmentShader, vcSimpleVertexLayout), udR_InternalError);
+  vcShader_Bind(pRenderContext->selectionShader.pProgram);
+  vcShader_GetSamplerIndex(&pRenderContext->selectionShader.uniform_texture, pRenderContext->selectionShader.pProgram, "u_texture");
+  vcShader_GetConstantBuffer(&pRenderContext->selectionShader.uniform_params, pRenderContext->selectionShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->selectionShader.params));
 
   vcPolygonModel_CreateShaders();
   vcImageRenderer_Init();
@@ -184,6 +259,8 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
 
   vcShader_DestroyShader(&pRenderContext->udRenderContext.presentShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->skyboxShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->blurShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->selectionShader.pProgram);
 
   vcMesh_Destroy(&pRenderContext->pScreenQuadMesh);
 
@@ -202,9 +279,20 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
 epilogue:
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
   vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
+  vcFramebuffer_Destroy(&pRenderContext->udRenderContext.pFramebuffer);
   vcTexture_Destroy(&pRenderContext->pTexture);
   vcTexture_Destroy(&pRenderContext->pDepthTexture);
   vcFramebuffer_Destroy(&pRenderContext->pFramebuffer);
+
+  vcTexture_Destroy(&pRenderContext->picking.pTexture);
+  vcTexture_Destroy(&pRenderContext->picking.pDepth);
+  vcFramebuffer_Destroy(&pRenderContext->picking.pFramebuffer);
+
+  for (int i = 0; i < 2; ++i)
+  {
+    vcTexture_Destroy(&pRenderContext->pAuxiliaryTextures[i]);
+    vcFramebuffer_Destroy(&pRenderContext->pAuxiliaryFramebuffers[i]);
+  }
 
   udFree(pRenderContext);
   return result;
@@ -229,8 +317,8 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
 {
   udResult result = udR_Success;
 
-  uint32_t widthIncr = width + (width % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - width % vcRender_SceneSizeIncrement : 0);
-  uint32_t heightIncr = height + (height % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - height % vcRender_SceneSizeIncrement : 0);
+  uint32_t widthIncr = width +(width % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - width % vcRender_SceneSizeIncrement : 0);
+  uint32_t heightIncr = height +(height % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - height % vcRender_SceneSizeIncrement : 0);
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
   UD_ERROR_IF(width == 0, udR_InvalidParameter_);
@@ -251,15 +339,52 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
   //Resize GPU Targets
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
   vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
-  vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pColorBuffer, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_Dynamic);
-  vcTexture_Create(&pRenderContext->udRenderContext.pDepthTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pDepthBuffer, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_Dynamic);
+  vcFramebuffer_Destroy(&pRenderContext->udRenderContext.pFramebuffer);
+
+  if (pRenderContext->udRenderContext.usingGPURenderer)
+  {
+    vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, widthIncr, heightIncr, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
+    vcTexture_Create(&pRenderContext->udRenderContext.pDepthTex, widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
+    vcFramebuffer_Create(&pRenderContext->udRenderContext.pFramebuffer, pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pDepthTex);
+  }
+  else
+  {
+    vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pColorBuffer, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_Dynamic);
+    vcTexture_Create(&pRenderContext->udRenderContext.pDepthTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pDepthBuffer, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_Dynamic);
+  }
 
   vcTexture_Destroy(&pRenderContext->pTexture);
   vcTexture_Destroy(&pRenderContext->pDepthTexture);
   vcFramebuffer_Destroy(&pRenderContext->pFramebuffer);
-  vcTexture_Create(&pRenderContext->pTexture, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget);
-  vcTexture_Create(&pRenderContext->pDepthTexture, widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget);
+
+  vcTexture_Destroy(&pRenderContext->picking.pTexture);
+  vcTexture_Destroy(&pRenderContext->picking.pDepth);
+  vcFramebuffer_Destroy(&pRenderContext->picking.pFramebuffer);
+  
+  for (int i = 0; i < 2; ++i)
+  {
+    vcTexture_Destroy(&pRenderContext->pAuxiliaryTextures[i]);
+    vcFramebuffer_Destroy(&pRenderContext->pAuxiliaryFramebuffers[i]);
+  }
+
+  vcTexture_Create(&pRenderContext->pTexture, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
+  vcTexture_Create(&pRenderContext->pDepthTexture, widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
   vcFramebuffer_Create(&pRenderContext->pFramebuffer, pRenderContext->pTexture, pRenderContext->pDepthTexture);
+  
+  pRenderContext->effectResolution.x = widthIncr >> vcRender_OutlineEffectDownscale;
+  pRenderContext->effectResolution.y = heightIncr >> vcRender_OutlineEffectDownscale;
+  pRenderContext->effectResolution.x = pRenderContext->effectResolution.x + (pRenderContext->effectResolution.x % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - pRenderContext->effectResolution.x % vcRender_SceneSizeIncrement : 0);
+  pRenderContext->effectResolution.y = pRenderContext->effectResolution.y + (pRenderContext->effectResolution.y % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - pRenderContext->effectResolution.y % vcRender_SceneSizeIncrement : 0);
+  
+  for (int i = 0; i < 2; ++i)
+  {
+    vcTexture_Create(&pRenderContext->pAuxiliaryTextures[i], pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Clamp, vcTCF_RenderTarget);
+    vcFramebuffer_Create(&pRenderContext->pAuxiliaryFramebuffers[i], pRenderContext->pAuxiliaryTextures[i]);
+  }
+
+  vcTexture_Create(&pRenderContext->picking.pTexture, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
+  vcTexture_Create(&pRenderContext->picking.pDepth, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
+  vcFramebuffer_Create(&pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pRenderContext->picking.pDepth);
 
   if (pRenderContext->pVaultContext)
     vcRender_RecreateUDView(pRenderContext);
@@ -293,7 +418,25 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
   vcShader_Bind(nullptr);
 }
 
-void vcPresentUD(vcRenderContext *pRenderContext)
+void vcRender_SplatUDWithId(vcRenderContext *pRenderContext, float id)
+{
+  vcShader_Bind(pRenderContext->udRenderContext.splatIdShader.pProgram);
+  
+  vcShader_BindTexture(pRenderContext->udRenderContext.splatIdShader.pProgram, pRenderContext->udRenderContext.pColourTex, 0, pRenderContext->udRenderContext.splatIdShader.uniform_texture);
+  vcShader_BindTexture(pRenderContext->udRenderContext.splatIdShader.pProgram, pRenderContext->udRenderContext.pDepthTex, 1, pRenderContext->udRenderContext.splatIdShader.uniform_depth);
+  
+  pRenderContext->udRenderContext.splatIdShader.params.id = udFloat4::create(0.0f, 0.0f, 0.0f, id);
+  vcShader_BindConstantBuffer(pRenderContext->udRenderContext.splatIdShader.pProgram, pRenderContext->udRenderContext.splatIdShader.uniform_params, &pRenderContext->udRenderContext.splatIdShader.params, sizeof(pRenderContext->udRenderContext.splatIdShader.params));
+
+#if ALLOW_EXPERIMENT_GPURENDER && GRAPHICS_API_OPENGL
+  if (pRenderContext->pSettings->experimental.useGPURenderer)
+    vcMesh_Render(pRenderContext->pFlippedScreenQuadMesh, 2);
+  else
+#endif
+    vcMesh_Render(pRenderContext->pScreenQuadMesh, 2);
+}
+
+void vcRender_PresentUD(vcRenderContext *pRenderContext)
 {
   float nearPlane = pRenderContext->pSettings->camera.nearPlane;
   float farPlane = pRenderContext->pSettings->camera.farPlane;
@@ -338,8 +481,8 @@ void vcPresentUD(vcRenderContext *pRenderContext)
   float contourBandHeight = pRenderContext->pSettings->postVisualization.contours.bandHeight;
 
   pRenderContext->udRenderContext.presentShader.params.inverseViewProjection = udFloat4x4::create(pRenderContext->pCamera->matrices.inverseViewProjection);
-  pRenderContext->udRenderContext.presentShader.params.screenParams.x = outlineWidth * (1.0f / pRenderContext->pSettings->window.width);
-  pRenderContext->udRenderContext.presentShader.params.screenParams.y = outlineWidth * (1.0f / pRenderContext->pSettings->window.height);
+  pRenderContext->udRenderContext.presentShader.params.screenParams.x = (1.0f / pRenderContext->sceneResolution.x);
+  pRenderContext->udRenderContext.presentShader.params.screenParams.y = (1.0f / pRenderContext->sceneResolution.y);
   pRenderContext->udRenderContext.presentShader.params.screenParams.z = nearPlane;
   pRenderContext->udRenderContext.presentShader.params.screenParams.w = farPlane;
   pRenderContext->udRenderContext.presentShader.params.outlineColour = outlineColour;
@@ -362,9 +505,12 @@ void vcPresentUD(vcRenderContext *pRenderContext)
   vcShader_BindTexture(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.pDepthTex, 1, pRenderContext->udRenderContext.presentShader.uniform_depth);
   vcShader_BindConstantBuffer(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.presentShader.uniform_params, &pRenderContext->udRenderContext.presentShader.params, sizeof(pRenderContext->udRenderContext.presentShader.params));
 
-  vcMesh_Render(pRenderContext->pScreenQuadMesh, 2);
-
-  vcShader_Bind(nullptr);
+#if ALLOW_EXPERIMENT_GPURENDER && GRAPHICS_API_OPENGL
+  if (pRenderContext->pSettings->experimental.useGPURenderer)
+    vcMesh_Render(pRenderContext->pFlippedScreenQuadMesh, 2);
+  else
+#endif
+    vcMesh_Render(pRenderContext->pScreenQuadMesh, 2);
 }
 
 void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
@@ -417,22 +563,6 @@ void vcRenderTerrain(vcRenderContext *pRenderContext, vcRenderData &renderData)
 
     vcTileRenderer_Update(pRenderContext->pTileRenderer, renderData.deltaTime, renderData.pGISSpace, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, viewProjection);
     vcTileRenderer_Render(pRenderContext->pTileRenderer, pRenderContext->pCamera->matrices.view, pRenderContext->pCamera->matrices.projection);
-
-    if (pRenderContext->pSettings->maptiles.mouseInteracts)
-    {
-      udPlane<double> mapPlane = udPlane<double>::create({ 0, 0, pRenderContext->pSettings->maptiles.mapHeight }, { 0, 0, 1 });
-
-      udDouble3 hitPoint;
-      double hitDistance;
-      if (mapPlane.intersects(pRenderContext->pCamera->worldMouseRay, &hitPoint, &hitDistance))
-      {
-        if (hitDistance < pRenderContext->pSettings->camera.farPlane && (!renderData.pickingSuccess || hitDistance < udMag3(renderData.worldMousePos - localCamPos) - pRenderContext->pSettings->camera.nearPlane))
-        {
-          renderData.pickingSuccess = true;
-          renderData.worldMousePos = hitPoint;
-        }
-      }
-    }
   }
 }
 
@@ -496,37 +626,157 @@ void vcRenderTransparentGeometry(vcRenderContext *pRenderContext, vcRenderData &
   }
 }
 
+void vcRender_BeginFrame(vcRenderContext *pRenderContext)
+{
+#if ALLOW_EXPERIMENT_GPURENDER
+  if (pRenderContext->pSettings->experimental.useGPURenderer != pRenderContext->udRenderContext.usingGPURenderer)
+  {
+    pRenderContext->udRenderContext.usingGPURenderer = pRenderContext->pSettings->experimental.useGPURenderer;
+    vcRender_ResizeScene(pRenderContext, pRenderContext->originalSceneResolution.x, pRenderContext->originalSceneResolution.y);
+    printf("Recreating context\n");
+  }
+#endif
+}
+
 vcTexture* vcRender_GetSceneTexture(vcRenderContext *pRenderContext)
 {
   return pRenderContext->pTexture;
 }
 
+void vcRender_ApplySelectionBuffer(vcRenderContext *pRenderContext)
+{
+  udFloat2 sampleStepSize = udFloat2::create(1.0f / pRenderContext->effectResolution.x, 1.0f / pRenderContext->effectResolution.y);
+
+  vcGLState_SetBlendMode(vcGLSBM_Interpolative);
+  vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+
+  pRenderContext->selectionShader.params.stepSizeThickness.x = sampleStepSize.x;
+  pRenderContext->selectionShader.params.stepSizeThickness.y = sampleStepSize.y;
+  pRenderContext->selectionShader.params.stepSizeThickness.z = (float)(2 << vcRender_OutlineEffectDownscale) * (pRenderContext->pSettings->objectHighlighting.thickness - 1.0f); // roughly
+  pRenderContext->selectionShader.params.stepSizeThickness.w = 0.2f;
+  pRenderContext->selectionShader.params.colour = pRenderContext->pSettings->objectHighlighting.colour;
+
+  vcShader_Bind(pRenderContext->selectionShader.pProgram);
+
+  vcShader_BindTexture(pRenderContext->selectionShader.pProgram, pRenderContext->pAuxiliaryTextures[0], 0, pRenderContext->selectionShader.uniform_texture);
+  vcShader_BindConstantBuffer(pRenderContext->selectionShader.pProgram, pRenderContext->selectionShader.uniform_params, &pRenderContext->selectionShader.params, sizeof(pRenderContext->selectionShader.params));
+
+  vcMesh_Render(pRenderContext->pScreenQuadMesh, 2);
+}
+
+udFloat4 vcRender_EncodeIdAsColour(uint32_t id)
+{
+  return udFloat4::create(0.0f, ((id & 0xff) / 255.0f), ((id & 0xff00) >> 8) / 255.0f, 1.0f);// ((id & 0xff0000) >> 16) / 255.0f);// ((id & 0xff000000) >> 24) / 255.0f);
+}
+
+bool vcRender_DrawSelectedGeometry(vcRenderContext *pRenderContext, vcRenderData &renderData)
+{
+  // check UD first
+  uint32_t modelIndex = 0; // index is based on certain models
+  for (size_t i = 0; i < renderData.models.length; ++i)
+  {
+    if (renderData.models[i]->m_visible && renderData.models[i]->m_loadStatus == vcSLS_Loaded)
+    {
+      if (renderData.models[i]->IsSceneSelected(0))
+      {
+        vcRender_SplatUDWithId(pRenderContext, (modelIndex + 1) / 255.0f);
+        return true; // assuming only a single selection
+      }
+      ++modelIndex;
+    }
+  }
+ 
+  udFloat4 selectionMask = udFloat4::create(1.0f); // mask selected object
+  for (size_t i = 0; i < renderData.polyModels.length; ++i)
+  {
+    vcRenderPolyInstance *pPolygon = &renderData.polyModels[i];
+
+    if (pPolygon->pSceneItem->IsSceneSelected(pPolygon->sceneItemInternalId))
+    {      
+      vcPolygonModel_Render(pPolygon->pModel, pPolygon->worldMat, pRenderContext->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &selectionMask);
+      return true; // assuming only a single selection
+    }
+  }
+
+  for (size_t i = 0; i < renderData.sceneLayers.length; ++i)
+  {
+    //vcSceneLayerRenderer *pSceneLayerRenderer = renderData.sceneLayers[i];
+    //if (pSceneLayerRenderer->)
+    //vcSceneLayerRenderer_Render(renderData.sceneLayers[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
+  }
+
+  return false;
+}
+
+bool vcRender_CreateSelectionBuffer(vcRenderContext *pRenderContext, vcRenderData &renderData)
+{
+  if (pRenderContext->pSettings->objectHighlighting.colour.w == 0.0f) // disabled
+    return false;
+
+  vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
+  vcGLState_SetBlendMode(vcGLSBM_None);
+  vcGLState_SetViewport(0, 0, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y);
+
+  vcFramebuffer_Bind(pRenderContext->pAuxiliaryFramebuffers[0]);
+  vcFramebuffer_Clear(pRenderContext->pAuxiliaryFramebuffers[0], 0x00000000);
+
+  if (!vcRender_DrawSelectedGeometry(pRenderContext, renderData))
+    return false;
+
+  // blur disabled at thickness value of 1.0
+  if (pRenderContext->pSettings->objectHighlighting.thickness > 1.0f)
+  {
+    udFloat2 sampleStepSize = udFloat2::create(1.0f / pRenderContext->effectResolution.x, 1.0f / pRenderContext->effectResolution.y);
+
+    vcGLState_SetBlendMode(vcGLSBM_None);
+    for (int i = 0; i < 2; ++i)
+    {
+      vcFramebuffer_Bind(pRenderContext->pAuxiliaryFramebuffers[1 - i]);
+      vcFramebuffer_Clear(pRenderContext->pAuxiliaryFramebuffers[1 - i], 0x00000000);
+
+      pRenderContext->blurShader.params.stepSize.x = i == 0 ? sampleStepSize.x : 0.0f;
+      pRenderContext->blurShader.params.stepSize.y = i == 0 ? 0.0f : sampleStepSize.y;
+
+      vcShader_Bind(pRenderContext->blurShader.pProgram);
+
+      vcShader_BindTexture(pRenderContext->blurShader.pProgram, pRenderContext->pAuxiliaryTextures[i], 0, pRenderContext->blurShader.uniform_texture);
+      vcShader_BindConstantBuffer(pRenderContext->blurShader.pProgram, pRenderContext->blurShader.uniform_params, &pRenderContext->blurShader.params, sizeof(pRenderContext->blurShader.params));
+
+      vcMesh_Render(pRenderContext->pScreenQuadMesh, 2);
+
+      vcShader_BindTexture(pRenderContext->blurShader.pProgram, nullptr, 0, pRenderContext->blurShader.uniform_texture);
+    }
+  }
+  return true;
+}
+
 void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
 {
+  udUnused(pDefaultFramebuffer);
+
   float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
-
-  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
-
-  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
-
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer);
-  vcFramebuffer_Clear(pRenderContext->pFramebuffer, 0xFF000000);// FFFF8080);
 
   vcRender_RenderUD(pRenderContext, renderData);
 
-#if ALLOW_EXPERIMENT_GPURENDER
-  if (!pRenderContext->pSettings->experimental.useGPURenderer)
-#endif
-  {
-    vcRender_UploadUD(pRenderContext);
-    vcPresentUD(pRenderContext);
-  }
+  bool selectionBufferActive = vcRender_CreateSelectionBuffer(pRenderContext, renderData);
+
+  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
+  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer);
+  vcFramebuffer_Clear(pRenderContext->pFramebuffer, 0x00FF8080);
+
+  vcRender_PresentUD(pRenderContext);
 
   //vcGLState_SetBlendMode(vcGLSBM_None);
   vcRenderOpaqueGeometry(pRenderContext, renderData);
   vcRenderSkybox(pRenderContext);
   vcRenderTerrain(pRenderContext, renderData);
   vcRenderTransparentGeometry(pRenderContext, renderData);
+
+  if (selectionBufferActive)
+    vcRender_ApplySelectionBuffer(pRenderContext);
 
   if (pRenderContext->pSettings->presentation.mouseAnchor != vcAS_None && (renderData.pickingSuccess || (renderData.pWorldAnchorPos != nullptr)))
   {
@@ -569,8 +819,7 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
   }
 
   vcShader_Bind(nullptr);
-
-  vcFramebuffer_Bind(pDefaultFramebuffer);
+  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 }
 
 void vcRender_vcRenderSceneImGui(vcRenderContext *pRenderContext, const vcRenderData &renderData)
@@ -610,7 +859,13 @@ udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &render
   vdkRenderInstance *pModels = nullptr;
   int numVisibleModels = 0;
 
-  vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->pCamera->matrices.projection.a);
+  double *pProjectionMatrix = pRenderContext->pCamera->matrices.projectionUD.a;
+#if ALLOW_EXPERIMENT_GPURENDER
+  if (pRenderContext->pSettings->experimental.useGPURenderer)
+    pProjectionMatrix = pRenderContext->pCamera->matrices.projection.a; // native render api space
+#endif
+
+  vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pProjectionMatrix);
   vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->pCamera->matrices.view.a);
 
   switch (pRenderContext->pSettings->visualization.mode)
@@ -680,7 +935,7 @@ udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &render
   }
 
 
-  if (pRenderContext->pSettings->presentation.showDiagnosticInfo)
+  if (pRenderContext->pSettings->presentation.showDiagnosticInfo && renderData.pGISSpace != nullptr)
   {
     vcFenceRenderer_ClearPoints(pRenderContext->pDiagnosticFences);
 
@@ -738,7 +993,14 @@ udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &render
 
 #if ALLOW_EXPERIMENT_GPURENDER
   if (pRenderContext->pSettings->experimental.useGPURenderer)
+  {
     renderOptions.flags = vdkRF_GPURender;
+
+    vcFramebuffer_Bind(pRenderContext->udRenderContext.pFramebuffer);
+    vcFramebuffer_Clear(pRenderContext->udRenderContext.pFramebuffer, 0x00000000);
+
+    vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+  }
 #endif
 
   vdkError result = vdkRenderContext_Render(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, pModels, numVisibleModels, &renderOptions);
@@ -750,6 +1012,7 @@ udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &render
       // More to be done here
       renderData.worldMousePos = udDouble3::create(picking.pointCenter[0], picking.pointCenter[1], picking.pointCenter[2]);
       renderData.pickingSuccess = true;
+      renderData.udModelPickedIndex = picking.modelIndex;
     }
   }
   else
@@ -757,20 +1020,17 @@ udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &render
     //TODO: Clear the buffers
   }
 
+#if ALLOW_EXPERIMENT_GPURENDER
+  if (!pRenderContext->pSettings->experimental.useGPURenderer)
+#endif
+  {
+    vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+    vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+  }
+
+
   udFreeStack(pModels);
   return udR_Success;
-}
-
-udResult vcRender_UploadUD(vcRenderContext *pRenderContext)
-{
-  udResult result;
-
-  UD_ERROR_CHECK(vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y));
-  UD_ERROR_CHECK(vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y));
-
-  result = udR_Success;
-epilogue:
-  return result;
 }
 
 void vcRender_ClearTiles(vcRenderContext *pRenderContext)
@@ -787,4 +1047,123 @@ void vcRender_ClearPoints(vcRenderContext *pRenderContext)
     return;
 
   vcFenceRenderer_ClearPoints(pRenderContext->pDiagnosticFences);
+}
+
+vcRenderPickResult vcRender_PolygonPick(vcRenderContext *pRenderContext, vcRenderData &renderData)
+{
+  vcRenderPickResult result = {};
+
+  udFloat2 pickUV = udFloat2::create((float)renderData.mouse.position.x / (float)pRenderContext->originalSceneResolution.x, (float)renderData.mouse.position.y / (float)pRenderContext->originalSceneResolution.y);
+
+  if (pickUV.x < 0 || pickUV.x > 1 || pickUV.y < 0 || pickUV.y > 1)
+    return result;
+
+  pRenderContext->picking.location.x = (uint32_t)(pickUV.x * pRenderContext->effectResolution.x);
+  pRenderContext->picking.location.y = (uint32_t)(pickUV.y * pRenderContext->effectResolution.y);
+
+  vcGLState_SetBlendMode(vcGLSBM_None);
+  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
+
+  vcFramebuffer_Bind(pRenderContext->picking.pFramebuffer);
+  vcFramebuffer_Clear(pRenderContext->picking.pFramebuffer, 0x0);
+
+  vcGLState_SetViewport(0, 0, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y);
+  vcGLState_Scissor(pRenderContext->picking.location.x, pRenderContext->picking.location.y, pRenderContext->picking.location.x + 1, pRenderContext->picking.location.y + 1);
+
+  // render pickable geometry
+  {
+    uint32_t modelId = 1; // note: start at 1, because 0 is 'null'
+
+#ifdef ALLOW_EXPERIMENT_GPURENDER
+    if (pRenderContext->udRenderContext.usingGPURenderer)
+      vcRender_SplatUDWithId(pRenderContext, 0.0f); // `0.0` is a sentinel to tell it to use the id encoded in the alpha channel
+#endif
+
+    // Polygon Models
+    {
+      for (size_t i = 0; i < renderData.polyModels.length; ++i)
+      {     
+        udFloat4 idAsColour = vcRender_EncodeIdAsColour((uint32_t)(modelId++));
+        vcPolygonModel_Render(renderData.polyModels[i].pModel, renderData.polyModels[i].worldMat, pRenderContext->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &idAsColour);
+      }
+
+      for (size_t i = 0; i < renderData.sceneLayers.length; ++i)
+      {
+        udFloat4 idAsColour = vcRender_EncodeIdAsColour((uint32_t)(modelId++));
+        //vcSceneLayerRenderer_Render(renderData.sceneLayers[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
+      }
+    }
+  }
+
+  uint8_t pickColourBGRA[4] = {};
+  float pickDepth = 0.0f;
+
+#if GRAPHICS_API_OPENGL
+  // note: we render upside-down
+  vcFramebuffer_ReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pickColourBGRA, pRenderContext->picking.location.x, pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1, 1, 1);
+  vcFramebuffer_ReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pDepth, &pickDepth, pRenderContext->picking.location.x, pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1, 1, 1);
+#elif GRAPHICS_API_D3D11
+  vcFramebuffer_ReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pickColourBGRA, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1);
+  vcFramebuffer_ReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pDepth, &pickDepth, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1);
+#endif
+  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+
+  // note `-1`, and BGRA format
+  int udPickedId = -1;
+#ifdef ALLOW_EXPERIMENT_GPURENDER
+  if (pRenderContext->pSettings->experimental.useGPURenderer)
+    udPickedId = (pickColourBGRA[2] << 0) - 1;
+#endif
+
+  int pickedPolygonId = (int)((pickColourBGRA[1] << 0) | (pickColourBGRA[0] << 8)) - 1;
+  if (pickedPolygonId != -1 || udPickedId != -1)
+  {
+    result.success = true;
+
+    // note: upside down (1.0 - uv.y)
+#if GRAPHICS_API_OPENGL
+    udDouble4 clipPos = udDouble4::create(pickUV.x * 2.0 - 1.0, (1.0 - pickUV.y) * 2.0 - 1.0, pickDepth * 2.0 - 1.0, 1.0);
+#elif GRAPHICS_API_D3D11
+    // note: direct x clip depth is [0, 1]
+    udDouble4 clipPos = udDouble4::create(pickUV.x * 2.0 - 1.0, (1.0 - pickUV.y) * 2.0 - 1.0, pickDepth, 1.0);
+#endif
+    udDouble4 pickPosition = pRenderContext->pCamera->matrices.inverseViewProjection * clipPos;
+    pickPosition = pickPosition / pickPosition.w;
+    result.success = true;
+    result.position = pickPosition.toVector3();
+     
+    if (pickedPolygonId != -1)
+    {
+      result.pPolygon = &renderData.polyModels[pickedPolygonId];
+    }
+    else
+    {
+      result.pModel = renderData.models[udPickedId];
+    }
+  }
+
+  return result;
+}
+
+void vcRender_PickTiles(vcRenderContext *pRenderContext, vcRenderData &renderData)
+{
+  if (pRenderContext->pSettings->maptiles.mapEnabled && pRenderContext->pSettings->maptiles.mouseInteracts)// check map tiles
+  {
+    udDouble4x4 cameraMatrix = pRenderContext->pCamera->matrices.camera;
+    udDouble3 localCamPos = cameraMatrix.axis.t.toVector3();
+
+    udPlane<double> mapPlane = udPlane<double>::create({ 0, 0, pRenderContext->pSettings->maptiles.mapHeight }, { 0, 0, 1 });
+
+    udDouble3 hitPoint;
+    double hitDistance;
+    if (mapPlane.intersects(pRenderContext->pCamera->worldMouseRay, &hitPoint, &hitDistance))
+    {
+      if (hitDistance < pRenderContext->pSettings->camera.farPlane && (!renderData.pickingSuccess || hitDistance < udMag3(renderData.worldMousePos - localCamPos) - pRenderContext->pSettings->camera.nearPlane))
+      {
+        renderData.pickingSuccess = true;
+        renderData.worldMousePos = hitPoint;
+      }
+    }
+  }
 }

@@ -78,6 +78,10 @@
       "distances": 50.000000,
       "bandHeight": 1.000000
     }
+    "objectHighlighting": {
+      "colour": [ 0.925, 0.553, 0.263, 1.0 ],
+      "thickness": 2.0
+    }
   },
   "maptiles": {
     "enabled": true,

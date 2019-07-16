@@ -2,6 +2,7 @@
 #define vcRenderShaders_h__
 
 extern const char* const g_udFragmentShader;
+extern const char* const g_udSplatIdFragmentShader;
 extern const char* const g_udVertexShader;
 extern const char* const g_tileFragmentShader;
 extern const char* const g_tileVertexShader;
@@ -23,9 +24,16 @@ extern const char* const g_PolygonP1N1UV1FragmentShader;
 extern const char* const g_PolygonP1N1UV1VertexShader;
 extern const char* const g_PolygonP1UV1FragmentShader;
 extern const char* const g_PolygonP1UV1VertexShader;
+extern const char* const g_FlatColour_FragmentShader;
 
 extern const char* const g_BillboardFragmentShader;
 extern const char* const g_BillboardVertexShader;
+
+// Utility Shaders
+extern const char* const g_BlurVertexShader;
+extern const char* const g_BlurFragmentShader;
+extern const char* const g_HighlightVertexShader;
+extern const char* const g_HighlightFragmentShader;
 
 // GPU UD Renderer
 extern const char* const g_udGPURenderQuadVertexShader;

@@ -50,6 +50,10 @@ public:
   // This lets SceneItems know that their vdkProjectNode has changed
   virtual void OnNodeUpdate() = 0;
 
+  virtual void OnSceneSelect(uint64_t internalId);
+  virtual void OnSceneUnselect(uint64_t internalId);
+  virtual bool IsSceneSelected(uint64_t internalId);
+
   // This is used to help with adding the item to the renderer
   virtual void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) = 0;
 

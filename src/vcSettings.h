@@ -228,6 +228,12 @@ struct vcSettings
 
   struct
   {
+    udFloat4 colour;
+    float thickness;
+  } objectHighlighting;
+
+  struct
+  {
     char tempDirectory[vcMaxPathLength];
     char watermark[vcMaxPathLength];
 

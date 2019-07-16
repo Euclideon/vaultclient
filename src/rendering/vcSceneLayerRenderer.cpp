@@ -93,7 +93,7 @@ void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayerRenderer, 
     if (pNode->textureDataCount > 0 && pNode->pTextureData[0].loaded)
       pDrawTexture = pNode->pTextureData[0].pTexture; // TODO: (EVC-542) read the actual material data
 
-    vcPolygonModel_Render(pNode->pGeometryData[geometry].pModel, pNode->pGeometryData[geometry].originMatrix, viewProjectionMatrix, pDrawTexture);
+    vcPolygonModel_Render(pNode->pGeometryData[geometry].pModel, pNode->pGeometryData[geometry].originMatrix, viewProjectionMatrix, vcPMP_Standard, pDrawTexture);
 
     // TODO: (EVC-542) other geometry types
   }

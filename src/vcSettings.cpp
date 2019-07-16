@@ -132,6 +132,9 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
     pSettings->responsiveUI = (vcPresentationMode)data.Get("responsiveUI").AsInt(vcPM_Hide);
 
+    pSettings->objectHighlighting.colour = data.Get("objectHighlighting.colour").AsFloat4(udFloat4::create(0.925f, 0.553f, 0.263f, 1.0f));
+    pSettings->objectHighlighting.thickness = data.Get("objectHighlighting.thickness").AsFloat(2.0f);
+
     switch (pSettings->presentation.styleIndex)
     {
     case 0: ImGui::StyleColorsClassic(); break;
@@ -484,6 +487,10 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("POIfadeDistance = %f", pSettings->presentation.POIFadeDistance);
   data.Set("pointMode = %d", pSettings->presentation.pointMode);
   data.Set("responsiveUI = %d", pSettings->responsiveUI);
+
+  for (int i = 0; i < 4; i++)
+    data.Set("objectHighlighting.colour[] = %f", pSettings->objectHighlighting.colour[i]);
+  data.Set("objectHighlighting.thickness = %f", pSettings->objectHighlighting.thickness);
 
   // Windows
   data.Set("window.position.x = %d", pSettings->window.xpos);
