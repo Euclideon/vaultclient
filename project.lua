@@ -65,13 +65,19 @@ project "vaultClient"
 		linkoptions( "/LARGEADDRESSAWARE" )
 		libdirs { "3rdParty/SDL2-2.0.8/lib/x64" }
 		links { "SDL2.lib", "SDL2main.lib", "opengl32.lib", "winmm.lib", "ws2_32", "winhttp", "imm32.lib" }
-
+		if os.isdir("C:/Program Files/Autodesk/FBX/FBX SDK/") then
+			defines { "FBXSDK_ON" }
+			links { "libfbxsdk-mt.lib" }
+			libdirs { "C:/Program Files/Autodesk/FBX/FBX SDK/*/lib/*/x64/**" }
+			includedirs { "C:/Program Files/Autodesk/FBX/FBX SDK/*/include/" }
+		end
+		
 	filter { "system:linux" }
 		linkoptions { "-Wl,-rpath '-Wl,$$ORIGIN'" } -- Check beside the executable for the SDK
 		links { "SDL2", "GL" }
 		includedirs { "3rdParty" }
 		files { "3rdParty/GL/glext.h" }
-
+		
 	filter { "system:macosx" }
 		files { "macOS-Info.plist", "icons/macOSAppIcons.icns" }
 		frameworkdirs { "/Library/Frameworks/" }
@@ -81,6 +87,14 @@ project "vaultClient"
 			["INFOPLIST_PREPROCESS"] = "YES",
 			["MACOSX_DEPLOYMENT_TARGET"] = "10.13",
 		}
+		if os.isdir("/Applications/Autodesk/FBX SDK/") then
+			defines { "FBXSDK_ON" }
+			links { "fbxsdk" }
+			xcodebuildsettings {
+				["HEADER_SEARCH_PATHS"] = "\"/Applications/Autodesk/FBX SDK/2019.2/include\"/**",
+				["LIBRARY_SEARCH_PATHS"] = "\"/Applications/Autodesk/FBX SDK/2019.2/lib\"/**"
+			}
+		end
 
 	filter { "system:ios" }
 		files { "iOS-Info.plist", "builds/libvaultSDK.dylib", "icons/Images.xcassets", "src/vcWebFile.mm" }
