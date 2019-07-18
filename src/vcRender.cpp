@@ -106,7 +106,7 @@ udResult vcRender_Init(vcRenderContext **ppRenderContext, vWorkerThreadPool *pWo
   udResult result = udR_Success;
   vcRenderContext *pRenderContext = nullptr;
 
-  const int maxPointCount = 3 * 1000000; // TODO: calculate this from GPU information
+  const int maxPointCount = 5 * 1000000; // TODO: calculate this from GPU information
 
   UD_ERROR_NULL(ppRenderContext, udR_InvalidParameter_);
 
