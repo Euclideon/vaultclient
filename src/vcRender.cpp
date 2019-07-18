@@ -11,6 +11,7 @@
 
 #include "vcInternalModels.h"
 #include "vcSceneLayerRenderer.h"
+#include "vcGPURenderer.h"
 
 #include "stb_image.h"
 #include <vector>
@@ -28,6 +29,10 @@ struct vcUDRenderContext
   float *pDepthBuffer;
   vcTexture *pColourTex;
   vcTexture *pDepthTex;
+
+#if ALLOW_EXPERIMENT_GPURENDER
+  vcGPURenderer *pGPURenderer;
+#endif
 
   struct
   {
@@ -93,17 +98,26 @@ struct vcRenderContext
 };
 
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
-udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vcRenderData &renderData);
+udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &renderData);
+udResult vcRender_UploadUD(vcRenderContext *pRenderContext);
 
 udResult vcRender_Init(vcRenderContext **ppRenderContext, vWorkerThreadPool *pWorkerPool, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &sceneResolution)
 {
   udResult result = udR_Success;
   vcRenderContext *pRenderContext = nullptr;
 
+  const int maxPointCount = 5 * 1000000; // TODO: calculate this from GPU information
+
   UD_ERROR_NULL(ppRenderContext, udR_InvalidParameter_);
 
   pRenderContext = udAllocType(vcRenderContext, 1, udAF_Zero);
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
+
+#if ALLOW_EXPERIMENT_GPURENDER
+  UD_ERROR_CHECK(vcGPURenderer_Create(&pRenderContext->udRenderContext.pGPURenderer, vcBRPRM_GeometryShader, maxPointCount));
+#else
+  udUnused(maxPointCount);
+#endif
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcSimpleVertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShader.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShader, vcSimpleVertexLayout), udR_InternalError);
@@ -163,6 +177,10 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
     if (vdkRenderContext_Destroy(pRenderContext->pVaultContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)
       UD_ERROR_SET(udR_InternalError);
   }
+
+#if ALLOW_EXPERIMENT_GPURENDER
+  UD_ERROR_CHECK(vcGPURenderer_Destroy(&pRenderContext->udRenderContext.pGPURenderer));
+#endif
 
   vcShader_DestroyShader(&pRenderContext->udRenderContext.presentShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->skyboxShader.pProgram);
@@ -489,16 +507,24 @@ void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderD
 
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
 
-  vcRender_RenderAndUploadUDToTexture(pRenderContext, renderData);
-
   vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
   vcFramebuffer_Bind(pRenderContext->pFramebuffer);
-  vcFramebuffer_Clear(pRenderContext->pFramebuffer, 0xFFFF8080);
+  vcFramebuffer_Clear(pRenderContext->pFramebuffer, 0xFF000000);// FFFF8080);
 
-  vcPresentUD(pRenderContext);
-  vcRenderSkybox(pRenderContext);
+  vcRender_RenderUD(pRenderContext, renderData);
+
+#if ALLOW_EXPERIMENT_GPURENDER
+  if (!pRenderContext->pSettings->experimental.useGPURenderer)
+#endif
+  {
+    vcRender_UploadUD(pRenderContext);
+    vcPresentUD(pRenderContext);
+  }
+
+  //vcGLState_SetBlendMode(vcGLSBM_None);
   vcRenderOpaqueGeometry(pRenderContext, renderData);
+  vcRenderSkybox(pRenderContext);
   vcRenderTerrain(pRenderContext, renderData);
   vcRenderTransparentGeometry(pRenderContext, renderData);
 
@@ -576,7 +602,7 @@ epilogue:
   return result;
 }
 
-udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vcRenderData &renderData)
+udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   if (pRenderContext == nullptr)
     return udR_InvalidParameter_;
@@ -584,7 +610,7 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   vdkRenderInstance *pModels = nullptr;
   int numVisibleModels = 0;
 
-  vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->pCamera->matrices.projectionUD.a);
+  vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pRenderContext->pCamera->matrices.projection.a);
   vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pRenderContext->pCamera->matrices.view.a);
 
   switch (pRenderContext->pSettings->visualization.mode)
@@ -706,7 +732,16 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
   picking.x = (uint32_t)((float)renderData.mouse.position.x / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
   picking.y = (uint32_t)((float)renderData.mouse.position.y / (float)pRenderContext->originalSceneResolution.y * (float)pRenderContext->sceneResolution.y);
 
-  vdkError result = vdkRenderContext_RenderAdv(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, pModels, numVisibleModels, &picking);
+  vdkRenderOptions renderOptions;
+  memset(&renderOptions, 0, sizeof(vdkRenderOptions));
+  renderOptions.pPick = &picking;
+
+#if ALLOW_EXPERIMENT_GPURENDER
+  if (pRenderContext->pSettings->experimental.useGPURenderer)
+    renderOptions.flags = vdkRF_GPURender;
+#endif
+
+  vdkError result = vdkRenderContext_Render(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, pModels, numVisibleModels, &renderOptions);
 
   if (result == vE_Success)
   {
@@ -716,9 +751,6 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
       renderData.worldMousePos = udDouble3::create(picking.pointCenter[0], picking.pointCenter[1], picking.pointCenter[2]);
       renderData.pickingSuccess = true;
     }
-
-    vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
-    vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
   }
   else
   {
@@ -727,6 +759,18 @@ udResult vcRender_RenderAndUploadUDToTexture(vcRenderContext *pRenderContext, vc
 
   udFreeStack(pModels);
   return udR_Success;
+}
+
+udResult vcRender_UploadUD(vcRenderContext *pRenderContext)
+{
+  udResult result;
+
+  UD_ERROR_CHECK(vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y));
+  UD_ERROR_CHECK(vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y));
+
+  result = udR_Success;
+epilogue:
+  return result;
 }
 
 void vcRender_ClearTiles(vcRenderContext *pRenderContext)

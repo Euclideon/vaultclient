@@ -12,6 +12,12 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
+#ifdef GRAPHICS_API_METAL
+#  define ALLOW_EXPERIMENT_GPURENDER 0
+#else
+#  define ALLOW_EXPERIMENT_GPURENDER 1
+#endif
+
 enum vcMapTileBlendMode
 {
   vcMTBM_Hybrid,
@@ -230,6 +236,13 @@ struct vcSettings
     char copyright[vcMetadataMaxLength];
     char license[vcMetadataMaxLength];
   } convertdefaults;
+
+  // These are experimental features that will eventually be removed or moved to another setting.
+  // They will mostly be exposed via the System->Experiments menu to hide them away from most users
+  struct
+  {
+    bool useGPURenderer;
+  } experimental;
 
   udChunkedArray<vcLanguageOption> languageOptions;
 
