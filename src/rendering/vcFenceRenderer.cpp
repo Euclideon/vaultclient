@@ -243,7 +243,7 @@ udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer
   for (size_t i = 0; i < pSegment->pointCount; ++i)
   {
     if (i > 0)
-      uvFenceOffset += float(udMag3(pSegment->pCachedPoints[i] - pSegment->pCachedPoints[i - 1]));
+      uvFenceOffset += float(udMag3(pSegment->pCachedPoints[i] - pSegment->pCachedPoints[i - 1])) / pFenceRenderer->config.ribbonWidth;
 
     udFloat3 point = udFloat3::create(pSegment->pCachedPoints[i]);
 
