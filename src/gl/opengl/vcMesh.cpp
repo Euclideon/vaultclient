@@ -60,6 +60,10 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
       glVertexAttribPointer(i, 3, GL_FLOAT, GL_FALSE, pMesh->vertexSize, (GLvoid*)accumulatedOffset);
       accumulatedOffset += 3 * sizeof(float);
       break;
+    case vcVLT_Position4:
+      glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, pMesh->vertexSize, (GLvoid*)accumulatedOffset);
+      accumulatedOffset += 4 * sizeof(float);
+      break;
     case vcVLT_TextureCoords2:
       glVertexAttribPointer(i, 2, GL_FLOAT, GL_FALSE, pMesh->vertexSize, (GLvoid*)accumulatedOffset);
       accumulatedOffset += 2 * sizeof(float);
@@ -75,6 +79,10 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
     case vcVLT_Normal3:
       glVertexAttribPointer(i, 3, GL_FLOAT, GL_FALSE, pMesh->vertexSize, (GLvoid*)accumulatedOffset);
       accumulatedOffset += 3 * sizeof(float);
+      break;
+    case vcVLT_QuadCorner:
+      glVertexAttribPointer(i, 2, GL_FLOAT, GL_FALSE, pMesh->vertexSize, (GLvoid*)accumulatedOffset);
+      accumulatedOffset += 2 * sizeof(float);
       break;
     case vcVLT_Unsupported: // TODO: (EVC-641) Handle unsupported attributes interleaved with supported attributes
       continue; // NOTE continue

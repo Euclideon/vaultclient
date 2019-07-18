@@ -9,7 +9,7 @@
     - Convert
       - `convertWriteFailed`, `convertParseError`, `convertImageParseError`, `convertNoFile`, `convertAddFileTitle`, `convertSetOutputTitle`, `convertAddNewJob`, `convertAddFile`, `convertSetOutput`, `convertWatermark`, `convertBeginPendingFiles`, `convertPendingProcessInProgress`, `convertPendingProcessing`, `convertNoJobSelected`
     - Menus & Modals
-      - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`, `menuBarFilesFailed`, `menuBarFilesFailedTooltip`
+      - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`, `menuBarFilesFailed`, `menuBarFilesFailedTooltip`, `menuExperimentalFeatures`
     - Scene Explorer
       - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`, `sceneExplorerExportButton`, `sceneExplorerProjectChangeSucceededTitle`, `sceneExplorerProjectChangeSucceededMessage`, `sceneResetRotation`, `sceneExplorerClearAllButton`, `scenePOILineShowAllLengths`, `scenePOILineStyleDiagonal`
     - Settings
@@ -368,6 +368,7 @@ Modules are currently:
 
 - `menuSystem`: Header for System menu
 - `menuQuit`: Option in System menu, exits the program
+- `menuExperimentalFeatures`: Submenu in System Menu for experimental features (not that experimental feature names are not localised as they are guaranteed to change in future versions)
 - `menuWindows`: Header for Windows menu
 - `menuScene`: Option in Windows menu to enable the Scene tab
 - `menuConvert`: Option in Windows menu to enable the Convert tab

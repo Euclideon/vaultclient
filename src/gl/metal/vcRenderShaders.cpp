@@ -29,3 +29,10 @@ const char* const g_PolygonP1UV1FragmentShader = "PUVFragmentShader";
 
 const char* const g_BillboardVertexShader = "billboardVertexShader";
 const char* const g_BillboardFragmentShader = "billboardFragmentShader";
+
+// TODO: GPU UD Renderer
+const char* const g_udGPURenderQuadVertexShader = nullptr;
+const char* const g_udGPURenderQuadFragmentShader = nullptr;
+const char* const g_udGPURenderGeomVertexShader = nullptr;
+const char* const g_udGPURenderGeomFragmentShader = nullptr;
+const char* const g_udGPURenderGeomGeometryShader = nullptr;

@@ -875,13 +875,13 @@ epilogue:
     udFree(programState.errorFiles[i].pFilename);
   programState.errorFiles.Deinit();
 
+  vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
+  vcProject_Deinit(&programState, &programState.activeProject); // This needs to be destroyed before the renderer is shutdown
   vcRender_Destroy(&programState.pRenderContext);
   vcTexture_Destroy(&programState.tileModal.pServerIcon);
   vcString::FreeTable(&programState.languageInfo);
-  vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
   vcSession_Logout(&programState);
 
-  vcProject_Deinit(&programState, &programState.activeProject);
   vcTexture_Destroy(&programState.image.pImage);
 
   vcGLState_Deinit();
@@ -1551,6 +1551,13 @@ int vcMainMenuGui(vcState *pProgramState)
 
       if (ImGui::MenuItem(vcString::Get("menuReleaseNotes")))
         vcModals_OpenModal(pProgramState, vcMT_ReleaseNotes);
+
+      if (ImGui::BeginMenu(vcString::Get("menuExperimentalFeatures")))
+      {
+        ImGui::MenuItem("GPU Render", nullptr, &pProgramState->settings.experimental.useGPURenderer, ALLOW_EXPERIMENT_GPURENDER);
+
+        ImGui::EndMenu();
+      }
 
 #if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX
       if (ImGui::MenuItem(vcString::Get("menuQuit"), "Alt+F4"))

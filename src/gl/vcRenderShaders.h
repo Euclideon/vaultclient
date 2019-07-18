@@ -27,4 +27,11 @@ extern const char* const g_PolygonP1UV1VertexShader;
 extern const char* const g_BillboardFragmentShader;
 extern const char* const g_BillboardVertexShader;
 
+// GPU UD Renderer
+extern const char* const g_udGPURenderQuadVertexShader;
+extern const char* const g_udGPURenderQuadFragmentShader;
+extern const char* const g_udGPURenderGeomVertexShader;
+extern const char* const g_udGPURenderGeomFragmentShader;
+extern const char* const g_udGPURenderGeomGeometryShader;
+
 #endif//vcRenderShaders_h__
