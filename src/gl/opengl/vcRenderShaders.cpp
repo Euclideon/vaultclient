@@ -632,7 +632,6 @@ const char *const g_udGPURenderQuadVertexShader = VERT_HEADER R"shader(
   layout(location = 2) in vec2 a_corner;
 
   out vec4 v_colour;
-  //out vec2 v_pointSize;
 
   layout (std140) uniform u_EveryObject
   {
@@ -642,8 +641,6 @@ const char *const g_udGPURenderQuadVertexShader = VERT_HEADER R"shader(
   void main()
   {
     v_colour = a_color.bgra;
-
-    // if (u_debug != 0) v_color.xz = v_color.xz * vec2(2);
 
     // Points
     vec4 off = vec4(a_position.www * 2.0, 0);
@@ -705,8 +702,6 @@ const char *const g_udGPURenderGeomVertexShader = VERT_HEADER R"shader(
   void main()
   {
     v_colour = a_color.bgra;
-
-    // if (u_debug != 0) v_color.xz = v_color.xz * vec2(2);
 
     // Points
     vec4 off = vec4(a_position.www * 2.0, 0);

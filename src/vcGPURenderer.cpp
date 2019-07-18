@@ -92,13 +92,15 @@ udResult vcGPURenderer_CreatePointRenderingData(vcGPURenderer *pBlockRenderer)
   result = udR_Success;
 
 epilogue:
+  if (result != udR_Success)
+    vcShader_DestroyShader(&pBlockRenderer->presentShader.pProgram);
+
   return result;
 }
 
 void vcGPURenderer_BeginRender(void *pContext, vdkRenderView *pView)
 {
   vcGPURenderer *pBlockRenderer = (vcGPURenderer*)pContext;
-  udUnused(pBlockRenderer);
   udUnused(pView);
 
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
@@ -112,11 +114,10 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
 {
   udResult result;
   vcGPURenderer *pBlockRenderer = (vcGPURenderer*)pContext;
-  udUnused(pBlockRenderer);
   vcBlockRenderVertexBuffer *pVertexBuffer = nullptr;
   int base = 0;
   uint32_t colorOffset = vdkGPURender_GetAttributeOffset(vdkAC_ARGB, pVertexData);
- // size_t intensityOffset = vdkGPURender_GetAttributeOffset(vdkA_Intensity, pVertexData);
+  size_t intensityOffset = vdkGPURender_GetAttributeOffset(vdkAC_Intensity, pVertexData);
 
   pVertexBuffer = udAllocType(vcBlockRenderVertexBuffer, 1, udAF_Zero);
   UD_ERROR_NULL(pVertexBuffer, udR_MemoryAllocationFailure);
@@ -218,10 +219,34 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
         }
       }
     }
-    else if (false)//vdkGPURender_HasAttribute(vdkA_Intensity, pVertexData))
+    else if (vdkGPURender_HasAttribute(vdkAC_Intensity, pVertexData))
     {
-      //for (int j = 0; j < pVertexBuffer->divisionPointCounts[div]; ++j)
-      //  pVertexBuffer->pDivisionData[div][j].color = 0xff000000 | *(uint16_t*)(vdkGPURender_GetAttributes(pVertexData, (base + j)) + intensityOffset);
+      if (pBlockRenderer->pointRendering.mode == vcBRPRM_Quads)
+      {
+        vcBlockRenderVertexBuffer::QuadVertex **ppBuffer = (vcBlockRenderVertexBuffer::QuadVertex**)(pVertexBuffer->pDivisionData);
+
+        for (int j = 0; j < pVertexBuffer->divisionPointCounts[div]; ++j)
+        {
+          uint32_t col = 0xff000000 | *(uint16_t*)(vdkGPURender_GetAttributes(pVertexData, (base + j)) + intensityOffset);
+
+          for (int v = 0; v < pBlockRenderer->pointRendering.vertCountPerPoint; ++v)
+          {
+            ppBuffer[div][j * pBlockRenderer->pointRendering.vertCountPerPoint + v].color = col;
+          }
+        }
+      }
+      else if (pBlockRenderer->pointRendering.mode == vcBRPRM_GeometryShader)
+      {
+        for (int j = 0; j < pVertexBuffer->divisionPointCounts[div]; ++j)
+        {
+          uint32_t col = 0xff000000 | *(uint16_t*)(vdkGPURender_GetAttributes(pVertexData, (base + j)) + intensityOffset);
+
+          for (int v = 0; v < pBlockRenderer->pointRendering.vertCountPerPoint; ++v)
+          {
+            pVertexBuffer->pDivisionData[div][j * pBlockRenderer->pointRendering.vertCountPerPoint + v].color = col;
+          }
+        }
+      }
     }
     else // Colour by height in the absence of anything else
     {
@@ -229,7 +254,7 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
       {
         double res[3] = {};
         vdkGPURender_GetPosition(pVertexData, (base + j), res);
-        uint32_t col = 0xff000000 | (0x010101 * int(res[1] * 255));
+        uint32_t col = 0xff000000 | (0x010101 * int(res[2] * 255));
         for (int v = 0; v < pBlockRenderer->pointRendering.vertCountPerPoint; ++v)
         {
           pVertexBuffer->pDivisionData[div][j * pBlockRenderer->pointRendering.vertCountPerPoint + v].color = col;
@@ -256,11 +281,11 @@ epilogue:
   return (result == udR_Success) ? vE_Success : vE_Failure;
 }
 
-vdkError vcGPURenderer_UploadVertexBuffer(void *pContext, const vdkGPURenderModel * /*pModel*/, void *pVertexBuffer, uint16_t /*ignore for the moment.. divisionsMask*/)
+vdkError vcGPURenderer_UploadVertexBuffer(void *pContext, const vdkGPURenderModel * /*pModel*/, void *pVertexBuffer, uint16_t divisionsMask)
 {
   udResult result;
+  udUnused(divisionsMask);
   vcGPURenderer *pBlockRenderer = (vcGPURenderer*)pContext;
-  udUnused(pBlockRenderer);
   vcBlockRenderVertexBuffer *pVB = (vcBlockRenderVertexBuffer*)pVertexBuffer;
 
   if (pVB->pMesh == nullptr)
@@ -358,7 +383,6 @@ epilogue:
   if (result != udR_Success)
   {
     vdkGPURender_Destroy(&pBlockRenderer->pRenderer);
-    vcShader_DestroyShader(&pBlockRenderer->presentShader.pProgram);
     udFree(pBlockRenderer);
   }
   return result;
@@ -369,15 +393,19 @@ udResult vcGPURenderer_Destroy(vcGPURenderer **ppBlockRender)
   if (ppBlockRender == nullptr || *ppBlockRender == nullptr)
     return udR_Success;
 
+  udResult result = udR_Success;
+
   vcGPURenderer *pBlockRenderer = *ppBlockRender;
   *ppBlockRender = nullptr;
 
   vcShader_DestroyShader(&pBlockRenderer->presentShader.pProgram);
 
-  vdkError error = vdkGPURender_Destroy(&pBlockRenderer->pRenderer);
-  udFree(pBlockRenderer);
+  if (vdkGPURender_Destroy(&pBlockRenderer->pRenderer) != vE_Success)
+    UD_ERROR_SET(udR_InternalError);
 
-  return (error == vE_Success) ? udR_Success : udR_Failure_;
+epilogue:
+  udFree(pBlockRenderer);
+  return result;
 }
 
 #endif // ALLOW_EXPERIMENT_GPURENDER

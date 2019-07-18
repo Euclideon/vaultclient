@@ -746,7 +746,6 @@ const char *const g_udGPURenderQuadVertexShader = R"shader(
     PS_INPUT output;
 
     output.colour = input.colour.bgra;
-    // if (u_debug != 0) v_color.xz = v_color.xz * vec2(2);
 
     // Points
     float4 off = float4(input.pos.www * 2.0, 0);
@@ -820,7 +819,6 @@ const char *const g_udGPURenderGeomVertexShader = R"shader(
     GS_INPUT output;
 
     output.colour = input.colour.bgra;
-    // if (u_debug != 0) v_color.xz = v_color.xz * vec2(2);
 
     // Points
     float4 off = float4(input.pos.www * 2.0, 0);
@@ -899,6 +897,7 @@ const char *const g_udGPURenderGeomGeometryShader = R"shader(
     output.pos = input[0].pos + float4(-halfPointSize.x, halfPointSize.y, 0.0, 0.0);
     OutputStream.Append(output);
 
+    //TODO: (EVC-720) Emit 4 verts as triangle strip
     //OutputStream.RestartStrip();
 
     output.pos = input[0].pos + float4(-halfPointSize.x, halfPointSize.y, 0.0, 0.0);
@@ -910,6 +909,7 @@ const char *const g_udGPURenderGeomGeometryShader = R"shader(
     output.pos = input[0].pos + float4(halfPointSize.x, -halfPointSize.y, 0.0, 0.0);
     OutputStream.Append(output);
 
+    //TODO: (EVC-720) Emit 4 verts as triangle strip
     //OutputStream.RestartStrip();
   }
 )shader";
