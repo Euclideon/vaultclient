@@ -34,15 +34,6 @@ struct vcLiveFeedPolyCache
   int64_t modelDataLength;
 };
 
-enum vcLiveFeedMode
-{
-  vcLFM_Group, // Updates all feeds in a group
-  vcLFM_Position, // Updates all feeds around a fixed point
-  vcLFM_Camera, // Updates all feeds around the camera (expensive!)
-
-  vcLFM_Count
-};
-
 class vcLiveFeed : public vcSceneItem
 {
 public:
@@ -58,10 +49,6 @@ public:
   double m_decayFrequency; // Remove items if they haven't updated more recently than this
   double m_maxDisplayDistance; // Distance to stop displaying entirely
 
-  vcLiveFeedMode m_updateMode;
-
-  udDouble3 m_storedCameraPosition;  // camera position at time of last update
-  udDouble3 m_position; // required for position mode
   vUUID m_groupID; // Required for updating group mode
 
   udMutex *m_pMutex;
