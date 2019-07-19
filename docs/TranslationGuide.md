@@ -23,6 +23,8 @@
       - `convertRemove`
     - Scene Explorer
       - `sceneExplorerNotImplementedTitle`, `sceneExplorerNotImplementedMessage`, `sceneExplorerNotImplementedCloseButton`, `scenePOIBookmarkMode`, `scenePOISetBookmarkCamera`, `scenePOICameraPosition`, `scenePOICameraRotation`
+    - Live Feeds
+      - `liveFeedMode`, `liveFeedModeGroups`, `liveFeedModePosition`, `liveFeedModeCamera`, `liveFeedPosition`
     - Error Strings
       - `errorTitle`, `errorUnknown`, `errorOpening`, `errorReading`, `errorWriting`, `errorCloseButton`
     - Settings
@@ -576,13 +578,8 @@ Modules are currently:
 - `liveFeedMaxDisplayTime`: Used on the label for how many seconds to display an item before hiding it
 - `liveFeedDisplayDistance`: Label on slider for Maximum distance to display an item before it gets hidden
 - `liveFeedTween`: Label on the checkbox that enables tweening
-- `liveFeedMode`: Label for combo box that sets the update mode for the feed
-- `liveFeedModeGroups`: Checkbox item for updating based on the contents of a group
-- `liveFeedModePosition`: Checkbox item for updating based on the radius around a fixed point
-- `liveFeedModeCamera`:  Checkbox item for updating based on the radius around the camera
 - `liveFeedDiagInfo`: Diagnostic info about the feed (shown only with "Show Diagnostic Info" enabled)
   - {0} total number of items
   - {1} total number of visible items
   - {2} number of second until the next update (or negative for seconds since starting the last update)
 - `liveFeedGroupID`: When in `liveFeedModeGroups` mode, this is the input for the Group ID. [Will eventually be a drop down to select by group name]
-- `liveFeedPosition`: When in `liveFeedModePosition` mode, this is the XYZ of the Position
