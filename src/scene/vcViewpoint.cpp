@@ -11,25 +11,9 @@
 vcViewpoint::vcViewpoint(vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pNode, pProgramState)
 {
-  m_CameraPosition = pProgramState->pCamera->position;
-  m_CameraRotation = pProgramState->pCamera->eulerRotation;
-
-  if (pProgramState->gis.isProjected)
-  {
-    m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-    memcpy(m_pPreferredProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
-    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-    memcpy(m_pCurrentProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
-    udDouble3 temp = udGeoZone_ToLatLong(*m_pCurrentProjection, m_CameraPosition, true);
-    vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
-  }
-  else
-  {
-    udDouble3 temp = udGeoZone_ToLatLong(pProgramState->defaultGeo, m_CameraPosition, true);
-    vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
-  }
-
   m_loadStatus = vcSLS_Loaded;
+
+  OnNodeUpdate();
 }
 
 void vcViewpoint::AddToScene(vcState *pProgramState, vcRenderData * /*pRenderData*/)
@@ -57,12 +41,7 @@ void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   if (ImGui::InputScalarN(udTempStr("%s##ViewpointPosition%zu", vcString::Get("sceneViewpointPosition"), *pItemID), ImGuiDataType_Double, &m_CameraPosition.x, 3))
   {
-    if (m_pCurrentProjection == nullptr)
-    {
-      udDouble3 temp = udGeoZone_ToLatLong(pProgramState->defaultGeo, m_CameraPosition, true);
-      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
-    }
-    else
+    if (m_pCurrentProjection != nullptr)
     {
       udDouble3 temp = udGeoZone_ToLatLong(*m_pCurrentProjection, m_CameraPosition, true);
       vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
