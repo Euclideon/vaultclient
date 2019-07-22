@@ -265,3 +265,37 @@ bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pModel
 
   return true;
 }
+
+bool vcProject_UpdateNodeGeometryFromCartesian(vdkProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, vdkProjectGeometryType newType, udDouble3 *pPoints, int numPoints)
+{
+  udDouble3 *pGeom = udAllocType(udDouble3, numPoints, udAF_Zero);
+
+  // Change all points from the projection
+  for (int i = 0; i < numPoints; ++i)
+    pGeom[i] = udGeoZone_ToLatLong(zone, pPoints[i], true);
+
+  vdkError result = vdkProjectNode_SetGeometry(pProject, pNode, newType, numPoints, (double*)pGeom);
+
+  udFree(pGeom);
+
+  return (result == vE_Success);
+}
+
+bool vcProject_FetchNodeGeometryAsCartesian(vdkProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, udDouble3 **ppPoints, int *pNumPoints)
+{
+  if (pProject == nullptr || pNode == nullptr || pNumPoints == nullptr)
+    return false;
+
+  if (pNumPoints != nullptr)
+    *pNumPoints = pNode->geomCount;
+
+  udDouble3 *pPoints = udAllocType(udDouble3, pNode->geomCount, udAF_Zero);
+
+  // Change all points from the projection
+  for (int i = 0; i < pNode->geomCount; ++i)
+    pPoints[i] = udGeoZone_ToCartesian(zone, ((udDouble3*)pNode->pCoordinates)[i], true);
+
+  *ppPoints = pPoints;
+
+  return true;
+}
