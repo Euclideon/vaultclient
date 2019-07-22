@@ -436,15 +436,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                 //TODO: (EVC-661) Surely this isn't the correct fix... I've left the the debug printing here
                 udDouble3 fixMeLatLong = pProgramState->previousWorldMousePos;
                 if (pProgramState->gis.isProjected)
-                {
                   fixMeLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->previousWorldMousePos, true);
-                  //printf("ADD: (%d): %f, %f...%f, %f, %f...%f, %f, %f\n", pProgramState->gis.zone.srid, pProgramState->worldMousePosLongLat.x, pProgramState->worldMousePosLongLat.y, pProgramState->previousWorldMousePos.x, pProgramState->previousWorldMousePos.y, pProgramState->previousWorldMousePos.z, pProgramState->worldMousePos.x, pProgramState->worldMousePos.y, pProgramState->worldMousePos.z);
-
-                  vcMedia *pMedia = new vcMedia(pNode, pProgramState);
-                  pMedia->m_pCurrentProjection = (udGeoZone*)udMemDup(&pProgramState->gis.zone, sizeof(udGeoZone), 0, udAF_Zero);
-                  pMedia->m_pPreferredProjection = (udGeoZone*)udMemDup(&pProgramState->gis.zone, sizeof(udGeoZone), 0, udAF_Zero);
-                  pNode->pUserData = pMedia;
-                }
 
                 if (hasLocation && pProgramState->gis.isProjected)
                   vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &geolocation.x);
@@ -733,8 +725,6 @@ int main(int argc, char **args)
   programState.renaming = -1;
   programState.getGeo = false;
   programState.pGotGeo = nullptr;
-
-  udGeoZone_SetFromSRID(&programState.defaultGeo, 7030);
 
   programState.sceneExplorer.insertItem.pParent = nullptr;
   programState.sceneExplorer.insertItem.pItem = nullptr;
@@ -1251,14 +1241,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
             }
 
             ImGui::CloseCurrentPopup();
-          }
-
-          if (pNode != nullptr)
-          {
-            vcPOI *pPOI = new vcPOI(pNode, pProgramState);
-            pPOI->m_pCurrentProjection = (udGeoZone*)udMemDup(&pProgramState->gis.zone, sizeof(udGeoZone), 0, udAF_Zero);
-            pPOI->m_pPreferredProjection = (udGeoZone*)udMemDup(&pProgramState->gis.zone, sizeof(udGeoZone), 0, udAF_Zero);
-            pNode->pUserData = pPOI;
           }
 
           ImGui::EndMenu();
@@ -2007,13 +1989,7 @@ void vcRenderWindow(vcState *pProgramState)
           if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == vE_Success)
           {
             if (pProgramState->gis.isProjected)
-            {
               vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&pProgramState->pCamera->positionInLongLat);
-              vcViewpoint *pVP = new vcViewpoint(pNode, pProgramState);
-              pVP->m_pCurrentProjection = (udGeoZone*)udMemDup(&pProgramState->gis.zone, sizeof(udGeoZone), 0, udAF_Zero);
-              pVP->m_pPreferredProjection = (udGeoZone*)udMemDup(&pProgramState->gis.zone, sizeof(udGeoZone), 0, udAF_Zero);
-              pNode->pUserData = pVP;
-            }
           }
           else
           {
@@ -2041,10 +2017,7 @@ void vcRenderWindow(vcState *pProgramState)
             vdkProjectNode *pNode = nullptr;
             if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", vcString::Get("liveFeedDefaultName"), nullptr, nullptr) == vE_Success)
             {
-              vcLiveFeed *pLF = new vcLiveFeed(pNode, pProgramState);
-              pLF->m_pCurrentProjection = (udGeoZone*)udMemDup(&pProgramState->gis.zone, sizeof(udGeoZone), 0, udAF_Zero);
-              pLF->m_pPreferredProjection = (udGeoZone*)udMemDup(&pProgramState->gis.zone, sizeof(udGeoZone), 0, udAF_Zero);
-              pNode->pUserData = pLF;
+              //Do nothing (minimising changes)
             }
             else
             {

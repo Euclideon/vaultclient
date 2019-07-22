@@ -245,7 +245,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         if (ImGui::Selectable(vcString::Get("sceneExplorerEditName")))
           pSceneItem->m_editName = true;
 
-        if (ImGui::Selectable(vcString::Get("sceneExplorerUseProjection")) && pSceneItem->m_pPreferredProjection != nullptr && pSceneItem->m_pPreferredProjection->srid != 0)
+        if (pSceneItem->m_pPreferredProjection != nullptr && pSceneItem->m_pPreferredProjection->srid != 0 && ImGui::Selectable(vcString::Get("sceneExplorerUseProjection")))
         {
           if (vcGIS_ChangeSpace(&pProgramState->gis, *pSceneItem->m_pPreferredProjection, &pProgramState->pCamera->position))
           {
