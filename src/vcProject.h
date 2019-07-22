@@ -2,6 +2,7 @@
 #define vcProject_h__
 
 #include "vdkProject.h"
+#include "vcGIS.h"
 
 struct vcState;
 class vcSceneItem;
@@ -30,5 +31,8 @@ void vcProject_ClearSelection(vcState *pProgramState);
 
 bool vcProject_ContainsItem(vdkProjectNode *pParentNode, vdkProjectNode *pItem);
 bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pModel);
+
+bool vcProject_UpdateNodeGeometryFromCartesian(vdkProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, vdkProjectGeometryType newType, udDouble3 *pPoints, int numPoints);
+bool vcProject_FetchNodeGeometryAsCartesian(vdkProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, udDouble3 **ppPoints, int *pNumPoints);
 
 #endif // vcProject_h__
