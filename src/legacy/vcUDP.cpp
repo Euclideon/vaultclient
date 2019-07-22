@@ -105,20 +105,22 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
   vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
   vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "UDS", pModelName, file.GetPath(), nullptr);
 
-  //TODO: Handle Translation, Orientation, Etc
   if (pPosition != nullptr)
   {
-    vdkProjectNode_SetMetadataDouble(pNode, "transforms.position.x", pPosition->x);
-    vdkProjectNode_SetMetadataDouble(pNode, "transforms.position.y", pPosition->y);
-    vdkProjectNode_SetMetadataDouble(pNode, "transforms.position.z", pPosition->z);
+    vdkProjectNode_SetMetadataDouble(pNode, "transform.position.x", pPosition->x);
+    vdkProjectNode_SetMetadataDouble(pNode, "transform.position.y", pPosition->y);
+    vdkProjectNode_SetMetadataDouble(pNode, "transform.position.z", pPosition->z);
   }
 
   if (pYPR != nullptr)
   {
-    vdkProjectNode_SetMetadataDouble(pNode, "transforms.rotation.y", pPosition->x);
-    vdkProjectNode_SetMetadataDouble(pNode, "transforms.rotation.p", pPosition->y);
-    vdkProjectNode_SetMetadataDouble(pNode, "transforms.rotation.r", pPosition->z);
+    vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", pPosition->x);
+    vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.p", pPosition->y);
+    vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.r", pPosition->z);
   }
+
+  if (scale != 1.0)
+    vdkProjectNode_SetMetadataDouble(pNode, "transform.scale", scale);
 
   return pNode;
 }
