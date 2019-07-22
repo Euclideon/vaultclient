@@ -90,9 +90,11 @@ project "vaultClient"
 		if os.isdir("/Applications/Autodesk/FBX SDK/") then
 			defines { "FBXSDK_ON" }
 			links { "fbxsdk" }
-			xcodebuildsettings {
-				["HEADER_SEARCH_PATHS"] = "\"/Applications/Autodesk/FBX SDK/2019.2/include\"/**",
-				["LIBRARY_SEARCH_PATHS"] = "\"/Applications/Autodesk/FBX SDK/2019.2/lib\"/**"
+			sysincludedirs { "/Applications/Autodesk/FBX SDK/*/include/" }
+			libdirs { '"/Applications/Autodesk/FBX SDK/2019.2/lib/clang/%{cfg.buildcfg}"' }
+			prelinkcommands {
+				"cp -f '/Applications/Autodesk/FBX SDK/2019.2/lib/clang/release/libfbxsdk.dylib' %{prj.targetdir}/%{prj.targetname}.app/Contents/MacOS/",
+				"cp -f '/Applications/Autodesk/FBX SDK/2019.2/lib/clang/debug/libfbxsdk.dylib' %{prj.targetdir}/%{prj.targetname}.app/Contents/MacOS/",
 			}
 		end
 

@@ -75,6 +75,8 @@ struct vcFBX
   FbxArray<vcFBX_UVSet> uvSets;
   FbxArray<vcFBXTexture> textures;
   FbxArray<FbxVector2> uvQueue;
+
+  bool badTexture;
 };
 
 // TODO: (EVC-719) Texture Blending
@@ -135,7 +137,7 @@ void vcFBX_GetUVSets(vcFBX *pFBX, FbxMesh *pMesh)
   }
 }
 
-void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
+bool vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
 {
   // Process materials to prepare colour handling
   const char *pFilename = nullptr;
@@ -201,14 +203,20 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
           udFree(pMem);
           break;
         }
-
-        udFree(pMem);
+        else
+        {
+          // Texture not found or unable to load, return bad
+          udFree(pMem);
+          return false;
+        }
       }
 
       pFBX->textures.Add(texture);
     }
     pFBX->textures.Add(texture);
   }
+
+  return true;
 }
 
 
@@ -323,7 +331,8 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
       if (pConvertInput->content & vdkAC_ARGB)
       {
         vcFBX_GetUVSets(pFBX, pFBX->pMesh);
-        vcFBX_GetTextures(pFBX, pFBX->pNode);
+        if (!vcFBX_GetTextures(pFBX, pFBX->pNode))
+          return vE_NotFound;
       }
     } // ---------------------------------------------- End new mesh handling
 
