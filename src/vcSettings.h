@@ -249,7 +249,11 @@ struct vcSettings
   vcPresentationMode responsiveUI;
   int hideIntervalSeconds;
 
-  bool docksLoaded;
+  enum vcDockLoaded {
+    vcDL_True,
+    vcDL_False,
+    vcDL_ForceReset,
+  } docksLoaded;
   ImGuiID rootDock;
   ImGuiWindow *pActive[vcDocks_Count];
 };
