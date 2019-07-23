@@ -163,9 +163,9 @@ vcModel::vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramS
   m_defaultMatrix(udDouble4x4::identity()),
   m_sceneMatrix(udDouble4x4::identity()),
   m_meterScale(0.0),
+  m_pBaseZone(nullptr),
   m_hasWatermark(false),
-  m_pWatermark(nullptr),
-  m_pBaseZone(nullptr)
+  m_pWatermark(nullptr)
 {
   const char *pFilePath = pNode->pURI;
 
@@ -214,6 +214,7 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
   m_defaultMatrix(udDouble4x4::identity()),
   m_sceneMatrix(udDouble4x4::identity()),
   m_meterScale(0.0),
+  m_pBaseZone(nullptr),
   m_hasWatermark(false),
   m_pWatermark(nullptr)
 {
