@@ -19,17 +19,19 @@ public:
 
   double m_meterScale;
 
+  udGeoZone *m_pBaseZone;
+
   bool m_hasWatermark; // True if the model has a watermark (might not be loaded)
   vcTexture *m_pWatermark; // If the watermark is loaded, it will be here
 
   // TODO: (EVC-535) This works - but is sub-optimal (this is duplicated data)
   udInt2 minMaxIntensity;
 
-  vcModel(vdkProjectNode *pNode, vcState *pProgramState);
+  vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud, bool jumpToModelOnLoad = false);
   ~vcModel() {};
 
-  void OnNodeUpdate() {};
+  void OnNodeUpdate(vcState *pProgramState);
 
   void ChangeProjection(const udGeoZone &newZone);
 

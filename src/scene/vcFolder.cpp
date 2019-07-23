@@ -21,8 +21,8 @@
 #include "vcWaterNode.h"
 #include "vcViewpoint.h"
 
-vcFolder::vcFolder(vdkProjectNode *pNode, vcState *pProgramState) :
-  vcSceneItem(pNode, pProgramState)
+vcFolder::vcFolder(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+  vcSceneItem(pProject, pNode, pProgramState)
 {
   m_loadStatus = vcSLS_Loaded;
 }
@@ -42,33 +42,38 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       pSceneItem->AddToScene(pProgramState, pRenderData);
 
       if (pSceneItem->m_lastUpdateTime < pSceneItem->m_pNode->lastUpdate)
-        pSceneItem->UpdateNode();
+        pSceneItem->UpdateNode(pProgramState);
     }
     else
     {
       // We need to create one
       if (pNode->itemtype == vdkPNT_Folder)
-        pNode->pUserData = new vcFolder(pNode, pProgramState);
+        pNode->pUserData = new vcFolder(pProgramState->activeProject.pProject, pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_PointOfInterest)
-        pNode->pUserData = new vcPOI(pNode, pProgramState);
+        pNode->pUserData = new vcPOI(pProgramState->activeProject.pProject, pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_PointCloud)
-        pNode->pUserData = new vcModel(pNode, pProgramState);
+        pNode->pUserData = new vcModel(pProgramState->activeProject.pProject, pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_LiveFeed)
-        pNode->pUserData = new vcLiveFeed(pNode, pProgramState);
+        pNode->pUserData = new vcLiveFeed(pProgramState->activeProject.pProject, pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_Media)
-        pNode->pUserData = new vcMedia(pNode, pProgramState);
+        pNode->pUserData = new vcMedia(pProgramState->activeProject.pProject, pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_Viewpoint)
-        pNode->pUserData = new vcViewpoint(pNode, pProgramState);
+        pNode->pUserData = new vcViewpoint(pProgramState->activeProject.pProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "I3S"))
-        pNode->pUserData = new vcI3S(pNode, pProgramState);
+        pNode->pUserData = new vcI3S(pProgramState->activeProject.pProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "Water"))
-        pNode->pUserData = new vcWater(pNode, pProgramState);
+        pNode->pUserData = new vcWater(pProgramState->activeProject.pProject, pNode, pProgramState);
       else
-        pNode->pUserData = new vcUnsupportedNode(pNode, pProgramState); // Catch all
+        pNode->pUserData = new vcUnsupportedNode(pProgramState->activeProject.pProject, pNode, pProgramState); // Catch all
     }
 
     pNode = pNode->pNextSibling;
   }
+}
+
+void vcFolder::OnNodeUpdate(vcState * /*pProgramState*/)
+{
+  // Does Nothing
 }
 
 void vcFolder::ChangeProjection(const udGeoZone &newZone)
@@ -266,13 +271,11 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         }
 
         // This is terrible but semi-required until we have undo
-        if (pSceneItem->m_moved && pNode->itemtype == vdkPNT_PointCloud && ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
+        if (pNode->itemtype == vdkPNT_PointCloud && ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
         {
-          pSceneItem->m_moved = false;
-          if (pSceneItem->m_pCurrentProjection == nullptr || pSceneItem->m_pPreferredProjection->srid == pSceneItem->m_pCurrentProjection->srid)
-            ((vcModel*)pSceneItem)->m_sceneMatrix = ((vcModel*)pSceneItem)->m_defaultMatrix;
-          else
-            ((vcModel*)pSceneItem)->m_sceneMatrix = udGeoZone_TransformMatrix(((vcModel*)pSceneItem)->m_defaultMatrix, *pSceneItem->m_pPreferredProjection, *pSceneItem->m_pCurrentProjection);
+          ((vcModel*)pSceneItem)->ChangeProjection(*pSceneItem->m_pPreferredProjection);
+          ((vcModel*)pSceneItem)->m_sceneMatrix = ((vcModel*)pSceneItem)->m_defaultMatrix;
+          ((vcModel*)pSceneItem)->ChangeProjection(pProgramState->gis.zone);
         }
 
         if (ImGui::Selectable(vcString::Get("sceneExplorerRemoveItem")))

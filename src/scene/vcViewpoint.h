@@ -15,10 +15,10 @@ private:
   udDouble3 m_CameraRotation;
 
 public:
-  vcViewpoint(vdkProjectNode *pNode, vcState *pProgramState);
+  vcViewpoint(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcViewpoint() {};
 
-  void OnNodeUpdate() {};
+  void OnNodeUpdate(vcState *pProgramState);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
