@@ -29,8 +29,8 @@ static const char *vcFRIMStrings[] =
 };
 UDCOMPILEASSERT(udLengthOf(vcFRIMStrings) == vcRRIM_Count, "New enum values");
 
-vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
-  vcSceneItem(pNode, pProgramState)
+vcPOI::vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+  vcSceneItem(pProject, pNode, pProgramState)
 {
   m_nameColour = 0xFFFFFFFF;
   m_backColour = 0x7F000000;
@@ -43,7 +43,6 @@ vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
   memset(&m_line, 0, sizeof(m_line));
 
   m_line.selectedPoint = -1; // Sentinel for no point selected
-  m_line.numPoints = m_pNode->geomCount;
 
   m_line.colourPrimary = 0xFFFFFFFF;
   m_line.colourSecondary = 0xFFFFFFFF;
@@ -52,24 +51,16 @@ vcPOI::vcPOI(vdkProjectNode *pNode, vcState *pProgramState) :
   m_line.lineStyle = vcRRIM_Arrow;
   m_line.fenceMode = vcRRVM_Fence;
 
-  if (m_line.numPoints > 0)
-  {
-    m_line.pPoints = udAllocType(udDouble3, m_line.numPoints, udAF_Zero);
-
-    for (int i = 0; i < m_line.numPoints; ++i)
-      m_line.pPoints[i] = ((udDouble3*)m_pNode->pCoordinates)[i]; // Won't be geolocated yet
-  }
-
   m_pLabelText = nullptr;
   m_pFence = nullptr;
   m_pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
 
-  OnNodeUpdate();
+  OnNodeUpdate(pProgramState);
 
   m_loadStatus = vcSLS_Loaded;
 }
 
-void vcPOI::OnNodeUpdate()
+void vcPOI::OnNodeUpdate(vcState *pProgramState)
 {
   const char *pTemp;
   vdkProjectNode_GetMetadataString(m_pNode, "textSize", &pTemp, "Medium");
@@ -108,6 +99,7 @@ void vcPOI::OnNodeUpdate()
       break;
   m_line.fenceMode = (vcFenceRendererVisualMode)i;
 
+  ChangeProjection(pProgramState->gis.zone);
   UpdatePoints();
   UpdateLabelInfo();
 }
@@ -117,9 +109,6 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   // if POI is invisible or if it exceeds maximum visible POI distance
   if (!m_visible || (pProgramState->settings.camera.cameraMode != vcCM_OrthoMap && udMag3(m_pLabelInfo->worldPosition - pProgramState->pCamera->position) > pProgramState->settings.presentation.POIFadeDistance))
     return;
-
-  //TODO: Super hacky- remove later
-  m_pProject = pProgramState->activeProject.pProject;
 
   if (m_pFence != nullptr)
     pRenderData->fences.PushBack(m_pFence);
@@ -144,9 +133,8 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   }
 }
 
-void vcPOI::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
+void vcPOI::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
-  //bool isGeolocated = m_pZone != nullptr;
   if (m_line.selectedPoint == -1) // We need to update all the points
   {
     for (int i = 0; i < m_line.numPoints; ++i)
@@ -158,7 +146,8 @@ void vcPOI::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
   }
 
   UpdatePoints();
-  UpdateProjectGeometry();
+
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
 }
 
 void vcPOI::UpdatePoints()
@@ -240,14 +229,6 @@ void vcPOI::UpdatePoints()
     if (m_pFence != nullptr)
       vcFenceRenderer_Destroy(&m_pFence);
   }
-}
-
-void vcPOI::UpdateProjectGeometry()
-{
-  if (m_pCurrentProjection == nullptr)
-    return; // Can't update if we aren't sure what zone we're in currently
-
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, *m_pCurrentProjection, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
 }
 
 void vcPOI::UpdateLabelInfo()
@@ -336,7 +317,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
         UpdatePoints();
 
       if (ImGui::Button(vcString::Get("scenePOIRemovePoint")))
-        RemovePoint(m_line.selectedPoint);
+        RemovePoint(pProgramState, m_line.selectedPoint);
     }
 
     if (ImGui::TreeNode("%s##POILineSettings%zu", vcString::Get("scenePOILineSettings"), *pItemID))
@@ -362,7 +343,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOILineClosed"), *pItemID), &m_line.closed))
       {
         UpdatePoints();
-        UpdateProjectGeometry();
+        vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
       }
 
       if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourPrimary%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_line.colourPrimary, ImGuiColorEditFlags_None))
@@ -415,55 +396,37 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   }
 }
 
-void vcPOI::AddPoint(const udDouble3 &position)
+void vcPOI::AddPoint(vcState *pProgramState, const udDouble3 &position)
 {
   udDouble3 *pNewPoints = udAllocType(udDouble3, m_line.numPoints + 1, udAF_Zero);
 
   memcpy(pNewPoints, m_line.pPoints, sizeof(udDouble3) * m_line.numPoints);
-  pNewPoints[m_line.numPoints] = (m_pCurrentProjection == nullptr) ? position : udGeoZone_ToCartesian(*m_pCurrentProjection, position, true);
+  pNewPoints[m_line.numPoints] = position;
+
   udFree(m_line.pPoints);
   m_line.pPoints = pNewPoints;
 
   ++m_line.numPoints;
+
   UpdatePoints();
-  UpdateProjectGeometry();
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
 }
 
-void vcPOI::RemovePoint(int index)
+void vcPOI::RemovePoint(vcState *pProgramState, int index)
 {
   if (index < (m_line.numPoints - 1))
     memmove(m_line.pPoints + index, m_line.pPoints + index + 1, sizeof(udDouble3) * (m_line.numPoints - index - 1));
 
   --m_line.numPoints;
+
   UpdatePoints();
-  UpdateProjectGeometry();
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
 }
 
 void vcPOI::ChangeProjection(const udGeoZone &newZone)
 {
-  if (m_pCurrentProjection != nullptr && newZone.srid == m_pCurrentProjection->srid)
-    return;
-
-  udDouble3 *pLatLong;
-
-  if (m_pCurrentProjection == nullptr)
-    pLatLong = m_line.pPoints;
-  else
-    pLatLong = (udDouble3*)m_pNode->pCoordinates;
-
-  for (int i = 0; i < m_line.numPoints; ++i)
-  {
-    if (pLatLong[i].y < newZone.latLongBoundMin.x || pLatLong[i].y > newZone.latLongBoundMax.x || pLatLong[i].x < newZone.latLongBoundMin.y || pLatLong[i].x > newZone.latLongBoundMax.y)
-      return;
-  }
-
-  if (m_pCurrentProjection == nullptr)
-    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-
-  memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
-
-  for (int i = 0; i < m_line.numPoints; ++i)
-    m_line.pPoints[i] = udGeoZone_ToCartesian(newZone, ((udDouble3*)m_pNode->pCoordinates)[i], true);
+  udFree(m_line.pPoints);
+  vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, newZone, &m_line.pPoints, &m_line.numPoints);
 
   UpdatePoints();
   UpdateLabelInfo();

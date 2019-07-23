@@ -5,10 +5,15 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcUnsupportedNode::vcUnsupportedNode(vdkProjectNode *pNode, vcState *pProgramState) :
-  vcSceneItem(pNode, pProgramState)
+vcUnsupportedNode::vcUnsupportedNode(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+  vcSceneItem(pProject, pNode, pProgramState)
 {
   m_loadStatus = vcSLS_Failed;
+}
+
+void vcUnsupportedNode::OnNodeUpdate(vcState * /*pProgramState*/)
+{
+  // Does nothing
 }
 
 void vcUnsupportedNode::AddToScene(vcState * /*pProgramState*/, vcRenderData * /*pRenderData*/)
@@ -18,7 +23,7 @@ void vcUnsupportedNode::AddToScene(vcState * /*pProgramState*/, vcRenderData * /
 
 void vcUnsupportedNode::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 & /*delta*/)
 {
-
+  // Does nothing
 }
 
 void vcUnsupportedNode::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
@@ -28,12 +33,12 @@ void vcUnsupportedNode::HandleImGui(vcState * /*pProgramState*/, size_t * /*pIte
 
 void vcUnsupportedNode::Cleanup(vcState * /*pProgramState*/)
 {
-  // Do stuff
+  // Does Nothing
 }
 
-void vcUnsupportedNode::ChangeProjection(const udGeoZone &newZone)
+void vcUnsupportedNode::ChangeProjection(const udGeoZone & /*newZone*/)
 {
-  udUnused(newZone);
+  // Does Nothing
 }
 
 udDouble3 vcUnsupportedNode::GetLocalSpacePivot()

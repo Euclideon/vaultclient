@@ -386,11 +386,10 @@ void vcMain_MainLoop(vcState *pProgramState)
             }
             else
             {
-              udDouble3 geolocation = udDouble3::zero();
+              udDouble3 geolocationLongLat = udDouble3::zero();
               bool hasLocation = false;
               vcImageType imageType = vcIT_StandardPhoto;
 
-              // vcTexture *pImage = nullptr;
               const unsigned char *pFileData = nullptr;
               int64_t numBytes = 0;
 
@@ -406,9 +405,9 @@ void vcMain_MainLoop(vcState *pProgramState)
                     if (exifResult.GeoLocation.Latitude != 0.0 || exifResult.GeoLocation.Longitude != 0.0)
                     {
                       hasLocation = true;
-                      geolocation.x = exifResult.GeoLocation.Longitude;
-                      geolocation.y = exifResult.GeoLocation.Latitude;
-                      geolocation.z = exifResult.GeoLocation.Altitude;
+                      geolocationLongLat.x = exifResult.GeoLocation.Longitude;
+                      geolocationLongLat.y = exifResult.GeoLocation.Latitude;
+                      geolocationLongLat.z = exifResult.GeoLocation.Altitude;
                     }
 
                     if (exifResult.XMPMetadata != "")
@@ -433,17 +432,10 @@ void vcMain_MainLoop(vcState *pProgramState)
 
               if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Media", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) == vE_Success)
               {
-                //TODO: (EVC-661) Surely this isn't the correct fix... I've left the the debug printing here
-                udDouble3 fixMeLatLong = pProgramState->previousWorldMousePos;
-                if (pProgramState->gis.isProjected)
-                  fixMeLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->previousWorldMousePos, true);
-
                 if (hasLocation && pProgramState->gis.isProjected)
-                  vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &geolocation.x);
-                else if (pProgramState->previousWorldMousePos != udDouble3::zero())
-                  vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &fixMeLatLong.x);
+                  vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &geolocationLongLat.x);
                 else
-                  vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &pProgramState->pCamera->positionInLongLat.x);
+                  vcProject_UpdateNodeGeometryFromCartesian(pProgramState->activeProject.pProject, pNode, pProgramState->gis.zone, vdkPGT_Point, pProgramState->previousPickingSuccess ? &pProgramState->previousWorldMousePos : &pProgramState->pCamera->position, 1);
 
                 if (imageType == vcIT_PhotoSphere)
                   vdkProjectNode_SetMetadataString(pNode, "imagetype", "photosphere");
@@ -791,6 +783,10 @@ int main(int argc, char **args)
   ImGui::GetStyle().WindowRounding = 0.0f;
 
   vcMain_LoadSettings(&programState, false);
+
+#if UD_DEBUG
+  programState.settings.experimental.useGPURenderer = true;
+#endif
 
 #if UDPLATFORM_EMSCRIPTEN
   // This needs to be here because the settings will load with the incorrect resolution (1280x720)
@@ -1175,9 +1171,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
           {
             vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
 
-            // All nodes of a POI must be in the same projection space
-            if ((((pPOI->m_pCurrentProjection == nullptr && !pProgramState->gis.isProjected) || (pPOI->m_pCurrentProjection != nullptr && pPOI->m_pCurrentProjection->srid == pProgramState->gis.SRID)) && ImGui::MenuItem(vcString::Get("scenePOIAddPoint"))))
-              pPOI->AddPoint(mousePosLongLat);
+            if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
+              pPOI->AddPoint(pProgramState, mousePosLongLat);
           }
         }
 
@@ -2008,7 +2003,7 @@ void vcRenderWindow(vcState *pProgramState)
               vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
 
               if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
-                pPOI->AddPoint(pProgramState->pCamera->positionInLongLat);
+                pPOI->AddPoint(pProgramState, pProgramState->cameraInput.worldAnchorPoint);
             }
           }
 

@@ -17,23 +17,21 @@ vdkProjectNode* vcSceneItem_CreateNodeInProject(vdkProject *pProject, const char
   return pNode;
 }
 
-vcSceneItem::vcSceneItem(vdkProjectNode *pNode, vcState * /*pProgramState*/) :
-  m_pProject(nullptr),
+vcSceneItem::vcSceneItem(vdkProject *pProject, vdkProjectNode *pNode, vcState * /*pProgramState*/) :
+  m_pProject(pProject),
   m_loadStatus(0),
   m_visible(true),
   m_selected(false),
   m_expanded(false),
   m_editName(false),
-  m_moved(false),
-  m_pPreferredProjection(nullptr),
-  m_pCurrentProjection(nullptr)
+  m_pPreferredProjection(nullptr)
 {
   m_metadata.SetVoid();
   m_pNode = pNode;
 }
 
 vcSceneItem::vcSceneItem(vcState *pProgramState, const char *pType, const char *pName) :
-  vcSceneItem(vcSceneItem_CreateNodeInProject(pProgramState->activeProject.pProject, pType, pName), pProgramState)
+  vcSceneItem(pProgramState->activeProject.pProject, vcSceneItem_CreateNodeInProject(pProgramState->activeProject.pProject, pType, pName), pProgramState)
 {
   // Do nothing
 }
@@ -42,7 +40,6 @@ vcSceneItem::~vcSceneItem()
 {
   m_metadata.Destroy();
   udFree(m_pPreferredProjection);
-  udFree(m_pCurrentProjection);
 }
 
 void vcSceneItem::SetCameraPosition(vcState *pProgramState)
@@ -65,8 +62,8 @@ udDouble4x4 vcSceneItem::GetWorldSpaceMatrix()
   return udDouble4x4::identity();
 }
 
-void vcSceneItem::UpdateNode()
+void vcSceneItem::UpdateNode(vcState *pProgramState)
 {
-  this->OnNodeUpdate();
+  this->OnNodeUpdate(pProgramState);
   m_lastUpdateTime = m_pNode->lastUpdate;
 };

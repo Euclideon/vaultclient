@@ -17,26 +17,13 @@
 
 #include "stb_image.h"
 
-vcMedia::vcMedia(vdkProjectNode *pNode, vcState *pProgramState) :
-  vcSceneItem(pNode, pProgramState)
+vcMedia::vcMedia(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+  vcSceneItem(pProject, pNode, pProgramState)
 {
   memset(&m_image, 0, sizeof(m_image));
-  m_loadStatus = vcSLS_Loaded;
+  m_loadStatus = vcSLS_Loading;
 
-  if (pNode->pCoordinates == nullptr)
-    pNode->pCoordinates = (double*)udAllocType(udDouble3, 1, udAF_Zero);
-
-  if (pNode->geomCount == 1)
-    m_image.position = ((udDouble3*)pNode->pCoordinates)[0];
-
-  if (pProgramState->gis.isProjected)
-  {
-    m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-    memcpy(m_pPreferredProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
-    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-    memcpy(m_pCurrentProjection, &pProgramState->gis.zone, sizeof(udGeoZone));
-    m_image.position = udGeoZone_ToCartesian(*m_pCurrentProjection, m_image.position, true);
-  }
+  OnNodeUpdate(pProgramState);
 }
 
 vcMedia::~vcMedia()
@@ -44,7 +31,7 @@ vcMedia::~vcMedia()
   vcTexture_Destroy(&m_image.pTexture);
 }
 
-void vcMedia::OnNodeUpdate()
+void vcMedia::OnNodeUpdate(vcState *pProgramState)
 {
   if (m_image.pTexture != nullptr)
     vcTexture_Destroy(&m_image.pTexture);
@@ -69,17 +56,13 @@ void vcMedia::OnNodeUpdate()
     }
   }
 
-  // Load this info from the node:
-  if (m_pCurrentProjection == nullptr)
-    m_image.position = *(udDouble3*)m_pNode->pCoordinates;
-  else
-    m_image.position = udGeoZone_ToCartesian(*m_pCurrentProjection, *(udDouble3*)m_pNode->pCoordinates, true);
-
   m_image.ypr = udDouble3::zero();
   m_image.scale = udDouble3::one();
   m_image.colour = udFloat4::create(1.0f, 1.0f, 1.0f, 1.0f);
   m_image.size = vcIS_Large;
   m_image.type = vcIT_StandardPhoto;
+
+  ChangeProjection(pProgramState->gis.zone);
 }
 
 void vcMedia::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
@@ -103,7 +86,7 @@ void vcMedia::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
   }
 }
 
-void vcMedia::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
+void vcMedia::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
   udDouble4x4 resultMatrix = delta * udDouble4x4::translation(m_image.position) * udDouble4x4::rotationYPR(m_image.ypr) * udDouble4x4::scaleNonUniform(m_image.scale);
   udDouble3 position, scale;
@@ -114,11 +97,7 @@ void vcMedia::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
   m_image.ypr = udMath_DirToYPR(rotation.apply(udDouble3::create(0, 1, 0)));
   m_image.scale = scale;
 
-  if (m_pCurrentProjection != nullptr)
-  {
-    udDouble3 longLat = udGeoZone_ToLatLong(*m_pCurrentProjection, m_image.position, true);
-    vdkProjectNode_SetGeometry(m_pProject, m_pNode, vdkPGT_Point, 1, &longLat.x);
-  }
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &m_image.position, 1);
 }
 
 void vcMedia::HandleImGui(vcState *pProgramState, size_t *pItemID)
@@ -137,25 +116,13 @@ void vcMedia::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
 void vcMedia::ChangeProjection(const udGeoZone &newZone)
 {
-  if (m_pCurrentProjection != nullptr && newZone.srid == m_pCurrentProjection->srid)
-    return;
+  udDouble3 *pPoint = nullptr;
+  int numPoints = 0;
 
-  udDouble3 *pLatLong;
-
-  if (m_pCurrentProjection == nullptr)
-    pLatLong = &m_image.position;
-  else
-    pLatLong = (udDouble3*)m_pNode->pCoordinates;
-
-  if (pLatLong->y < newZone.latLongBoundMin.x || pLatLong->y > newZone.latLongBoundMax.x || pLatLong->x < newZone.latLongBoundMin.y || pLatLong->x > newZone.latLongBoundMax.y)
-    return;
-
-  if (m_pCurrentProjection == nullptr)
-    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-
-  memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
-
-  m_image.position = udGeoZone_ToCartesian(newZone, *pLatLong, true);
+  vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, newZone, &pPoint, &numPoints);
+  if (numPoints == 1)
+    m_image.position = pPoint[0];
+  udFree(pPoint);
 }
 
 void vcMedia::Cleanup(vcState * /*pProgramState*/)

@@ -24,7 +24,7 @@ void vcProject_InitBlankScene(vcState *pProgramState)
 
   vdkProject_CreateLocal(&pProgramState->activeProject.pProject, "New Project");
   vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
-  pProgramState->activeProject.pFolder = new vcFolder(pProgramState->activeProject.pRoot, pProgramState);
+  pProgramState->activeProject.pFolder = new vcFolder(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState);
   pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
 }
 
@@ -52,7 +52,7 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
 
       pProgramState->activeProject.pProject = pProject;
       vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
-      pProgramState->activeProject.pFolder = new vcFolder(pProgramState->activeProject.pRoot, pProgramState);
+      pProgramState->activeProject.pFolder = new vcFolder(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState);
       pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
 
       pProgramState->getGeo = true;
@@ -245,23 +245,19 @@ void vcProject_ClearSelection(vcState *pProgramState)
   pProgramState->sceneExplorer.clickedItem = {};
 }
 
-bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pModel)
+bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pItem)
 {
-  if (pProgramState == nullptr || pModel == nullptr || pProgramState->programComplete)
+  if (pProgramState == nullptr || pItem == nullptr || pProgramState->programComplete || pItem->m_pPreferredProjection == nullptr)
     return false;
 
-  udGeoZone zone = {};
-
-  if (pModel->m_pCurrentProjection == nullptr || pModel->m_pPreferredProjection == nullptr || pModel->m_pCurrentProjection->srid == 0)
-    vcGIS_ChangeSpace(&pProgramState->gis, zone);
-  else if (vcGIS_ChangeSpace(&pProgramState->gis, *pModel->m_pPreferredProjection)) // Update all models to new zone unless there is no new zone
-    pProgramState->activeProject.pFolder->ChangeProjection(*pModel->m_pPreferredProjection);
+  if (vcGIS_ChangeSpace(&pProgramState->gis, *pItem->m_pPreferredProjection))
+    pProgramState->activeProject.pFolder->ChangeProjection(*pItem->m_pPreferredProjection);
 
   // refresh map tiles when geozone changes
   vcRender_ClearTiles(pProgramState->pRenderContext);
 
   // move camera to the new item's position
-  pModel->SetCameraPosition(pProgramState);
+  pItem->SetCameraPosition(pProgramState);
 
   return true;
 }
@@ -283,7 +279,7 @@ bool vcProject_UpdateNodeGeometryFromCartesian(vdkProject *pProject, vdkProjectN
 
 bool vcProject_FetchNodeGeometryAsCartesian(vdkProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, udDouble3 **ppPoints, int *pNumPoints)
 {
-  if (pProject == nullptr || pNode == nullptr || pNumPoints == nullptr)
+  if (pProject == nullptr || pNode == nullptr)
     return false;
 
   if (pNumPoints != nullptr)
