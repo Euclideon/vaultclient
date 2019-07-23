@@ -170,7 +170,7 @@ void vcMain_PresentationMode(vcState *pProgramState)
 {
   if (pProgramState->settings.window.presentationMode)
   {
-    pProgramState->settings.docksLoaded = false;
+    pProgramState->settings.docksLoaded = vcSettings::vcDockLoaded::vcDL_False;
     SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
   }
   else
@@ -704,7 +704,7 @@ int main(int argc, char **args)
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
   // Dock setting
-  programState.settings.docksLoaded = false;
+  programState.settings.docksLoaded = vcSettings::vcDockLoaded::vcDL_False;
   programState.settings.window.windowsOpen[vcDocks_Scene] = true;
   programState.settings.window.windowsOpen[vcDocks_Settings] = true;
   programState.settings.window.windowsOpen[vcDocks_SceneExplorer] = true;
@@ -1664,7 +1664,7 @@ void vcRenderWindow(vcState *pProgramState)
   {
     int margin = vcMainMenuGui(pProgramState);
 
-    if (!pProgramState->settings.docksLoaded)
+    if (pProgramState->settings.docksLoaded != vcSettings::vcDockLoaded::vcDL_True)
       pProgramState->settings.rootDock = ImGui::GetID("MyDockspace");
 
     ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
@@ -2120,7 +2120,7 @@ void vcRenderWindow(vcState *pProgramState)
       }
     }
 
-    if (!pProgramState->settings.docksLoaded)
+    if (pProgramState->settings.docksLoaded != vcSettings::vcDockLoaded::vcDL_True)
     {
       vcSettings_Load(&pProgramState->settings, false, vcSC_Docks);
 
