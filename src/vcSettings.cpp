@@ -99,7 +99,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
   if (!pSettings->noLocalStorage && pSettings->pSaveFilePath == nullptr)
     vcSettings_InitializePrefPath(pSettings);
 
-  if (!forceReset && pSettings->pSaveFilePath != nullptr)
+  if (!forceReset && pSettings->docksLoaded != vcSettings::vcDockLoaded::vcDL_ForceReset && pSettings->pSaveFilePath != nullptr)
   {
     char buffer[vcMaxPathLength];
     udSprintf(buffer, vcMaxPathLength, "%ssettings.json", pSettings->pSaveFilePath);
@@ -252,7 +252,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_All)
   {
-    if (!pSettings->docksLoaded)
+    if (pSettings->docksLoaded != vcSettings::vcDockLoaded::vcDL_True)
     {
       // Windows
       pSettings->window.xpos = data.Get("window.position.x").AsInt(SDL_WINDOWPOS_CENTERED);
@@ -282,11 +282,15 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
   }
 
-  if (group == vcSC_Docks || forceReset)
+  if (forceReset)
+  {
+    pSettings->docksLoaded = vcSettings::vcDockLoaded::vcDL_ForceReset;
+  }
+  else if (group == vcSC_Docks)
   {
     if (data.Get("dock").IsArray())
     {
-      pSettings->docksLoaded = true;
+      pSettings->docksLoaded = vcSettings::vcDockLoaded::vcDL_True;
 
       pSettings->window.windowsOpen[vcDocks_Scene] = data.Get("frames.scene").AsBool(true);
       pSettings->window.windowsOpen[vcDocks_Settings] = data.Get("frames.settings").AsBool(true);
