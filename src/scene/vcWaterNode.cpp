@@ -5,10 +5,15 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcWater::vcWater(vdkProjectNode *pNode, vcState *pProgramState) :
-  vcSceneItem(pNode, pProgramState)
+vcWater::vcWater(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+  vcSceneItem(pProject, pNode, pProgramState)
 {
   m_loadStatus = vcSLS_Failed;
+}
+
+void vcWater::OnNodeUpdate(vcState * /*pProgramState*/)
+{
+  //TODO: Update items
 }
 
 void vcWater::AddToScene(vcState * /*pProgramState*/, vcRenderData * /*pRenderData*/)

@@ -10,10 +10,10 @@ struct vcRenderData;
 class vcI3S : public vcSceneItem
 {
 public:
-  vcI3S(vdkProjectNode *pNode, vcState *pProgramState);
+  vcI3S(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcI3S();
 
-  void OnNodeUpdate() {};
+  void OnNodeUpdate(vcState *pProgramState);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);

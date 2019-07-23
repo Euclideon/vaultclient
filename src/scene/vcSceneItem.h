@@ -35,20 +35,19 @@ public:
   bool m_selected;
   bool m_expanded;
   bool m_editName;
-  bool m_moved;
+  //bool m_moved;
 
   double m_lastUpdateTime; // The stored time that this node was last updated (compared with the node to see if the node updated outside of Client)
 
   udJSON m_metadata; // This points to a metadata (may be an empty object)
   udGeoZone *m_pPreferredProjection; // nullptr if there is no preferred zone
-  udGeoZone *m_pCurrentProjection; // nullptr if not geolocated
 
-  vcSceneItem(vdkProjectNode *pNode, vcState *pProgramState);
+  vcSceneItem(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   vcSceneItem(vcState *pProgramState, const char *pType, const char *pName);
   virtual ~vcSceneItem();
 
   // This lets SceneItems know that their vdkProjectNode has changed
-  virtual void OnNodeUpdate() = 0;
+  virtual void OnNodeUpdate(vcState *pProgramState) = 0;
 
   // This is used to help with adding the item to the renderer
   virtual void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) = 0;
@@ -76,7 +75,7 @@ public:
   virtual udDouble4x4 GetWorldSpaceMatrix();
 
   // Other
-  void UpdateNode();
+  void UpdateNode(vcState *pProgramState);
 };
 
 #endif

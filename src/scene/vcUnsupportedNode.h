@@ -9,10 +9,10 @@ struct vcRenderData;
 class vcUnsupportedNode : public vcSceneItem
 {
 public:
-  vcUnsupportedNode(vdkProjectNode *pNode, vcState *pProgramState);
+  vcUnsupportedNode(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcUnsupportedNode() {};
 
-  void OnNodeUpdate() {};
+  void OnNodeUpdate(vcState *pProgramState);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
