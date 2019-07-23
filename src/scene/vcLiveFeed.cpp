@@ -276,8 +276,8 @@ epilogue:
 }
 
 
-vcLiveFeed::vcLiveFeed(vdkProjectNode *pNode, vcState *pProgramState) :
-  vcSceneItem(pNode, pProgramState),
+vcLiveFeed::vcLiveFeed(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+  vcSceneItem(pProject, pNode, pProgramState),
   m_lastUpdateTime(0.0),
   m_visibleItems(0),
   m_tweenPositionAndOrientation(true),
@@ -289,12 +289,12 @@ vcLiveFeed::vcLiveFeed(vdkProjectNode *pNode, vcState *pProgramState) :
   m_feedItems.Init(512);
   m_polygonModels.Init(16);
 
-  OnNodeUpdate();
+  OnNodeUpdate(pProgramState);
 
   m_loadStatus = vcSLS_Pending;
 }
 
-void vcLiveFeed::OnNodeUpdate()
+void vcLiveFeed::OnNodeUpdate(vcState *pProgramState)
 {
   const char *pTempStr = nullptr;
 
@@ -306,6 +306,8 @@ void vcLiveFeed::OnNodeUpdate()
   vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayTime", &m_decayFrequency, 300.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayDistance", &m_maxDisplayDistance, 50000.0);
   vdkProjectNode_GetMetadataBool(m_pNode, "tweenEnabled", &m_tweenPositionAndOrientation, true);
+
+  ChangeProjection(pProgramState->gis.zone);
 }
 
 void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)

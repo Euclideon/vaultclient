@@ -8,10 +8,10 @@ struct vcState;
 class vcFolder : public vcSceneItem
 {
 public:
-  vcFolder(vdkProjectNode *pNode, vcState *pProgramState);
+  vcFolder(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcFolder() {};
 
-  void OnNodeUpdate() {};
+  void OnNodeUpdate(vcState *pProgramState);
 
   void ChangeProjection(const udGeoZone &newZone);
 

@@ -9,10 +9,10 @@ struct vcRenderData;
 class vcWater : public vcSceneItem
 {
 public:
-  vcWater(vdkProjectNode *pNode, vcState *pProgramState);
+  vcWater(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcWater() {};
 
-  void OnNodeUpdate() {};
+  void OnNodeUpdate(vcState *pProgramState);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);

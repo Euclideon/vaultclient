@@ -18,10 +18,10 @@ class vcMedia : public vcSceneItem
 public:
   vcImageRenderInfo m_image;
 
-  vcMedia(vdkProjectNode *pNode, vcState *pProgramState);
+  vcMedia(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcMedia();
 
-  void OnNodeUpdate();
+  void OnNodeUpdate(vcState *pProgramState);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);

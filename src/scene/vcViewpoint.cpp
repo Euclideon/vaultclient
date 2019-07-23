@@ -8,18 +8,26 @@
 
 #include "imgui.h"
 
-vcViewpoint::vcViewpoint(vdkProjectNode *pNode, vcState *pProgramState) :
-  vcSceneItem(pNode, pProgramState)
+vcViewpoint::vcViewpoint(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+  vcSceneItem(pProject, pNode, pProgramState)
 {
   m_loadStatus = vcSLS_Loaded;
 
-  OnNodeUpdate();
+  OnNodeUpdate(pProgramState);
 }
 
-void vcViewpoint::AddToScene(vcState *pProgramState, vcRenderData * /*pRenderData*/)
+void vcViewpoint::OnNodeUpdate(vcState *pProgramState)
 {
-  //TODO: Super hacky- remove later
-  m_pProject = pProgramState->activeProject.pProject;
+  //TODO: Get these from m_pNode
+  //m_CameraRotation = pProgramState->pCamera->eulerRotation;
+  //m_CameraPosition = pProgramState->pCamera->position;
+
+  ChangeProjection(pProgramState->gis.zone);
+}
+
+void vcViewpoint::AddToScene(vcState * /*pProgramState*/, vcRenderData * /*pRenderData*/)
+{
+  // Does Nothing
 }
 
 void vcViewpoint::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
@@ -27,62 +35,38 @@ void vcViewpoint::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   m_CameraPosition = (delta * udDouble4x4::translation(m_CameraPosition)).axis.t.toVector3();
 
   udDouble3 sumRotation = delta.extractYPR() + m_CameraRotation;
-  m_CameraRotation = udDouble3::create(udMod(sumRotation.x, UD_2PI), udClampWrap(sumRotation.y, -UD_HALF_PI, UD_HALF_PI), udMod(sumRotation.z, UD_2PI));
+
   // Clamped this to the same limitations as the camera
+  m_CameraRotation = udDouble3::create(udMod(sumRotation.x, UD_2PI), udClampWrap(sumRotation.y, -UD_HALF_PI, UD_HALF_PI), udMod(sumRotation.z, UD_2PI));
 
-  if (m_pCurrentProjection == nullptr)
-    return; // Can't update if we aren't sure what zone we're in currently
-
-  udDouble3 temp = udGeoZone_ToLatLong(*m_pCurrentProjection, m_CameraPosition, true);
-  vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &m_CameraPosition, 1);
 }
 
 void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   if (ImGui::InputScalarN(udTempStr("%s##ViewpointPosition%zu", vcString::Get("sceneViewpointPosition"), *pItemID), ImGuiDataType_Double, &m_CameraPosition.x, 3))
-  {
-    if (m_pCurrentProjection != nullptr)
-    {
-      udDouble3 temp = udGeoZone_ToLatLong(*m_pCurrentProjection, m_CameraPosition, true);
-      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, m_pNode, vdkPGT_Point, 1, (double*)&temp);
-    }
-  }
+    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &m_CameraPosition, 1);
+
   ImGui::InputScalarN(udTempStr("%s##ViewpointRotation%zu", vcString::Get("sceneViewpointRotation"), *pItemID), ImGuiDataType_Double, &m_CameraRotation.x, 3);
   if (ImGui::Button(vcString::Get("sceneViewpointSetCamera")))
   {
     m_CameraRotation = pProgramState->pCamera->eulerRotation;
     m_CameraPosition = pProgramState->pCamera->position;
 
-    if (m_pCurrentProjection != nullptr)
-      *(udDouble3*)m_pNode->pCoordinates = udGeoZone_ToLatLong(*m_pCurrentProjection, m_CameraPosition, true);
-
-    // If current projection is null, it will be assigned here
-    if (pProgramState->gis.isProjected)
-      ChangeProjection(pProgramState->gis.zone);
+    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &m_CameraPosition, 1);
   }
 }
 
 void vcViewpoint::ChangeProjection(const udGeoZone &newZone)
 {
-  if (m_pCurrentProjection != nullptr && m_pCurrentProjection->srid == newZone.srid)
-    return;
+  udDouble3 *pPoint = nullptr;
+  int numPoints = 0;
 
-  udDouble3 *pLatLong;
+  vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, newZone, &pPoint, &numPoints);
+  if (numPoints == 1)
+    m_CameraPosition = pPoint[0];
 
-  if (m_pCurrentProjection == nullptr)
-    pLatLong = &m_CameraPosition;
-  else
-    pLatLong = (udDouble3*)m_pNode->pCoordinates;
-
-  if (pLatLong->y < newZone.latLongBoundMin.x || pLatLong->y > newZone.latLongBoundMax.x || pLatLong->x < newZone.latLongBoundMin.y || pLatLong->x > newZone.latLongBoundMax.y)
-    return;
-
-  if (m_pCurrentProjection == nullptr)
-    m_pCurrentProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-
-  memcpy(m_pCurrentProjection, &newZone, sizeof(udGeoZone));
-
-  m_CameraPosition = udGeoZone_ToCartesian(newZone, *pLatLong, true);
+  udFree(pPoint);
 }
 
 void vcViewpoint::Cleanup(vcState * /*pProgramState*/)

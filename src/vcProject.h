@@ -30,7 +30,7 @@ void vcProject_UnselectItem(vcState *pProgramState, vdkProjectNode *pParent, vdk
 void vcProject_ClearSelection(vcState *pProgramState);
 
 bool vcProject_ContainsItem(vdkProjectNode *pParentNode, vdkProjectNode *pItem);
-bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pModel);
+bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pItem);
 
 bool vcProject_UpdateNodeGeometryFromCartesian(vdkProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, vdkProjectGeometryType newType, udDouble3 *pPoints, int numPoints);
 bool vcProject_FetchNodeGeometryAsCartesian(vdkProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, udDouble3 **ppPoints, int *pNumPoints);

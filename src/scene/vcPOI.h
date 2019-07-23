@@ -49,10 +49,10 @@ private:
   const char *m_pLabelText;
 
 public:
-  vcPOI(vdkProjectNode *pNode, vcState *pProgramState);
+  vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcPOI() {};
 
-  void OnNodeUpdate();
+  void OnNodeUpdate(vcState *pProgramState);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
@@ -60,10 +60,9 @@ public:
   void Cleanup(vcState *pProgramState);
   void ChangeProjection(const udGeoZone &newZone);
 
-  void AddPoint(const udDouble3 &position);
-  void RemovePoint(int index);
+  void AddPoint(vcState *pProgramState, const udDouble3 &position);
+  void RemovePoint(vcState *pProgramState, int index);
   void UpdatePoints();
-  void UpdateProjectGeometry();
   void UpdateLabelInfo();
 
   void SetCameraPosition(vcState *pProgramState);
