@@ -56,9 +56,6 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
     }
   }
 
-  udDouble3 *pPoint = nullptr;
-  int numPoints = 0;
-
   m_image.ypr = udDouble3::zero();
   m_image.scale = udDouble3::one();
   m_image.colour = udFloat4::create(1.0f, 1.0f, 1.0f, 1.0f);
