@@ -499,13 +499,8 @@ void ImGui_ImplSDL2_NewFrame(SDL_Window* window)
     io.DeltaTime = g_Time > 0 ? (float)((double)(current_time - g_Time) / frequency) : (float)(1.0f / 60.0f);
     g_Time = current_time;
 
-    // Only process input/ update position if we have focus
-    uint32_t flags = SDL_GetWindowFlags(window);
-    if (SDL_WINDOW_MOUSE_FOCUS & flags)
-    {
-      ImGui_ImplSDL2_UpdateMousePosAndButtons();
-      ImGui_ImplSDL2_UpdateMouseCursor();
-    }
+    ImGui_ImplSDL2_UpdateMousePosAndButtons();
+    ImGui_ImplSDL2_UpdateMouseCursor();
 
     // Update game controllers (if enabled and available)
     ImGui_ImplSDL2_UpdateGamepads();
