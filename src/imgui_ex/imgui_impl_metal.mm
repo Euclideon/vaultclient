@@ -76,6 +76,9 @@ void ImGui_ImplMetal_NewFrame(SDL_Window *pWindow)
 {
     IM_ASSERT(g_sharedMetalContext != nil && "No Metal context. Did you call ImGui_ImplMetal_Init?");
 
+    if (!ImGui::GetIO().Fonts->IsBuilt())
+      ImGuiGL_CreateFontsTexture();
+
     ImGui_ImplSDL2_NewFrame(pWindow);
 
     ImGuiIO& io = ImGui::GetIO();
