@@ -173,9 +173,9 @@ void vcPOI::UpdatePoints()
       int numLabelDiff = m_line.numPoints - (int)m_lengthLabels.length;
       if (numLabelDiff < 0) // Too many labels, delete one
       {
-        vcLabelInfo *pPopLabel = nullptr;
-        m_lengthLabels.PopBack(pPopLabel);
-        udFree(pPopLabel->pText);
+        vcLabelInfo popLabel = {};
+        m_lengthLabels.PopBack(&popLabel);
+        udFree(popLabel.pText);
       }
       else if (numLabelDiff > 0) // Not enough labels, add one
       {
