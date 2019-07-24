@@ -133,7 +133,7 @@ bool vcUDP_ReadGeolocation(const char *pStr, udDouble3 &position, int &epsg)
   for (; charCount != 0 && count < 3; ++count)
   {
     charCount = 0;
-    position[count] = udStrAtof(pStr, &charCount);
+    position[count] = udStrAtof64(pStr, &charCount);
     pStr += charCount;
     pStr = udStrchr(pStr, ",");
     ++pStr;
@@ -155,7 +155,7 @@ bool vcUDP_ReadDouble3(const char *pStr, udDouble3 &rotation)
   for (int charCount = -1; charCount != 0 && count < 3; ++count)
   {
     charCount = 0;
-    rotation[count] = udStrAtof(pStr, &charCount);
+    rotation[count] = udStrAtof64(pStr, &charCount);
     pStr += charCount;
     pStr = udStrchr(pStr, ",");
     ++pStr;
