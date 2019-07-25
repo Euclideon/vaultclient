@@ -38,6 +38,7 @@ struct vcLiveFeedItem
   vUUID uuid;
 
   bool visible;
+  bool selected;
   double lastUpdated;
 
   udDouble3 ypr; // Estimated for many IOTs
@@ -427,7 +428,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         }
 
         if (pModel != nullptr)
-          pRenderData->polyModels.PushBack({ pModel, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition) });
+          pRenderData->polyModels.PushBack({ pModel, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition), this, (uint64_t)i });
       }
 
       break; // We got to the end so we should stop
@@ -557,4 +558,23 @@ void vcLiveFeed::ChangeProjection(const udGeoZone &newZone)
 udDouble3 vcLiveFeed::GetLocalSpacePivot()
 {
   return udDouble3::zero();
+}
+
+void vcLiveFeed::OnSceneSelect(uint64_t internalId)
+{
+  vcSceneItem::OnSceneSelect(internalId);
+
+  m_feedItems[internalId]->selected = true;
+}
+
+void vcLiveFeed::OnSceneUnselect(uint64_t internalId)
+{
+  vcSceneItem::OnSceneUnselect(internalId);
+
+  m_feedItems[internalId]->selected = false;
+}
+
+bool vcLiveFeed::IsSceneSelected(uint64_t internalId)
+{
+  return vcSceneItem::IsSceneSelected(internalId) && m_feedItems[internalId]->selected;
 }

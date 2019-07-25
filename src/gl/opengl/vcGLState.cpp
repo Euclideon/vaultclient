@@ -252,14 +252,14 @@ bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, 
 
   s_internalState.viewportZone = udInt4::create(x, y, width, height);
 
-  vcGLState_Scissor(s_internalState.viewportZone.x, s_internalState.viewportZone.y, s_internalState.viewportZone.z, s_internalState.viewportZone.w);
+  vcGLState_Scissor(s_internalState.viewportZone.x, s_internalState.viewportZone.y, s_internalState.viewportZone.x + s_internalState.viewportZone.z, s_internalState.viewportZone.y + s_internalState.viewportZone.w);
 
   return true;
 }
 
 bool vcGLState_SetViewportDepthRange(float minDepth, float maxDepth)
 {
-  return vcGLState_SetViewport(s_internalState.viewportZone.x, s_internalState.viewportZone.y, s_internalState.viewportZone.z, s_internalState.viewportZone.w, minDepth, maxDepth);
+  return vcGLState_SetViewport(s_internalState.viewportZone.x, s_internalState.viewportZone.y, s_internalState.viewportZone.x + s_internalState.viewportZone.z, s_internalState.viewportZone.y + s_internalState.viewportZone.w, minDepth, maxDepth);
 }
 
 bool vcGLState_Present(SDL_Window *pWindow)
@@ -282,7 +282,7 @@ bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
 
 void vcGLState_Scissor(int left, int top, int right, int bottom, bool force /*= false*/)
 {
-  udInt4 newScissor = udInt4::create(left, s_internalState.viewportZone.w - bottom, right - left, bottom - top);
+  udInt4 newScissor = udInt4::create(udMax(0, left), udMax(s_internalState.viewportZone.w - bottom, 0), right - left, bottom - top);
 
   if (s_internalState.scissorZone != newScissor || force)
   {

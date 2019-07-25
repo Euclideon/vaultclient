@@ -65,6 +65,10 @@ public:
   void ChangeProjection(const udGeoZone &newZone);
 
   udDouble3 GetLocalSpacePivot();
+
+  void OnSceneSelect(uint64_t internalId);
+  void OnSceneUnselect(uint64_t internalId);
+  bool IsSceneSelected(uint64_t internalId);
 };
 
 #endif //vcLiveFeed_h__

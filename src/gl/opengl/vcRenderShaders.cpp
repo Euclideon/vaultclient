@@ -10,6 +10,12 @@
 #endif
 
 const char* const g_udFragmentShader = FRAG_HEADER R"shader(
+//Input Format
+in vec2 v_texCoord;
+
+//Output Format
+out vec4 out_Colour;
+
 uniform sampler2D u_texture;
 uniform sampler2D u_depth;
 
@@ -36,12 +42,6 @@ layout (std140) uniform u_params
   vec4 u_contourParams; // contour distance, contour band height, (unused), (unused)
 };
 
-//Input Format
-in vec2 v_texCoord;
-
-//Output Format
-out vec4 out_Colour;
-
 float linearizeDepth(float depth)
 {
   float nearPlane = u_screenParams.z;
@@ -55,10 +55,9 @@ float getNormalizedPosition(float v, float min, float max)
 }
 
 // depth is packed into .w component
-vec4 edgeHighlight(vec3 col, vec2 uv, float depth)
+vec4 edgeHighlight(vec3 col, vec2 uv, float depth, vec4 outlineColour, float edgeOutlineWidth, float edgeOutlineThreshold)
 {
-  vec3 sampleOffsets = vec3(u_screenParams.xy, 0.0);
-  float edgeOutlineThreshold = u_outlineParams.y;
+  vec3 sampleOffsets = vec3(u_screenParams.xy, 0.0) * edgeOutlineWidth;
   float farPlane = u_screenParams.w;
 
   float d1 = texture(u_depth, uv + sampleOffsets.xz).x;
@@ -74,7 +73,7 @@ vec4 edgeHighlight(vec3 col, vec2 uv, float depth)
 
   float isEdge = 1.0 - step(wd0 - wd1, edgeOutlineThreshold) * step(wd0 - wd2, edgeOutlineThreshold) * step(wd0 - wd3, edgeOutlineThreshold) * step(wd0 - wd4, edgeOutlineThreshold);
 
-  vec3 edgeColour = mix(col.xyz, u_outlineColour.xyz, u_outlineColour.w);
+  vec3 edgeColour = mix(col.xyz, outlineColour.xyz, outlineColour.w);
   float minDepth = min(min(min(d1, d2), d3), d4);
   return vec4(mix(col.xyz, edgeColour, isEdge), mix(depth, minDepth, isEdge));
 }
@@ -122,9 +121,11 @@ void main()
   col.xyz = colourizeByDepth(col.xyz, depth);
 
   float edgeOutlineWidth = u_outlineParams.x;
-  if (edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
+  float edgeOutlineThreshold = u_outlineParams.y;
+  vec4 outlineColour = u_outlineColour;
+  if (outlineColour.w > 0 && edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
   {
-    vec4 edgeResult = edgeHighlight(col.xyz, v_texCoord, depth);
+    vec4 edgeResult = edgeHighlight(col.xyz, v_texCoord, depth, outlineColour, edgeOutlineWidth, edgeOutlineThreshold);
     col.xyz = edgeResult.xyz;
     depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
   }
@@ -135,9 +136,42 @@ void main()
 }
 )shader";
 
+const char* const g_udSplatIdFragmentShader = FRAG_HEADER R"shader(
+//Input Format
+in vec2 v_texCoord;
+
+//Output Format
+out vec4 out_Colour;
+
+layout (std140) uniform u_params
+{
+  vec4 u_idOverride;
+};
+
+uniform sampler2D u_texture;
+uniform sampler2D u_depth;
+
+bool floatEquals(float a, float b)
+{
+  return abs(a - b) <= 0.0015f;
+}
+
+void main()
+{
+  gl_FragDepth = texture(u_depth, v_texCoord).x;
+  out_Colour = vec4(0.0);
+
+  vec4 col = texture(u_texture, v_texCoord);
+  if (u_idOverride.w == 0.0 || floatEquals(u_idOverride.w, col.w))
+  {
+    out_Colour = vec4(col.w, 0, 0, 1.0);
+  }
+}
+)shader";
+
 const char* const g_udVertexShader = VERT_HEADER R"shader(
 //Input format
-layout(location = 0) in vec2 a_position;
+layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_texCoord;
 
 //Output Format
@@ -145,7 +179,7 @@ out vec2 v_texCoord;
 
 void main()
 {
-  gl_Position = vec4(a_position.x, a_position.y, 0.0, 1.0);
+  gl_Position = vec4(a_position.xy, 0.0, 1.0);
   v_texCoord = a_texCoord;
 }
 )shader";
@@ -199,7 +233,7 @@ void main()
 
 const char* const g_vcSkyboxVertexShader = VERT_HEADER R"shader(
 //Input format
-layout(location = 0) in vec2 a_position;
+layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_texCoord;
 
 //Output Format
@@ -625,6 +659,153 @@ const char* const g_BillboardVertexShader = VERT_HEADER R"shader(
   }
 )shader";
 
+const char* const g_FlatColour_FragmentShader = FRAG_HEADER R"shader(
+  //Input Format
+  in vec4 v_colour;
+
+  //Output Format
+  out vec4 out_Colour;
+
+  void main()
+  {
+    out_Colour = v_colour;
+  }
+)shader";
+
+
+const char* const g_BlurVertexShader = VERT_HEADER R"shader(
+  //Input format
+  layout(location = 0) in vec3 a_position;
+  layout(location = 1) in vec2 a_texCoord;
+  
+  //Output Format
+  out vec2 v_uv0;
+  out vec2 v_uv1;
+  out vec2 v_uv2;
+
+  layout (std140) uniform u_EveryFrame
+  {
+    vec4 u_stepSize; // remember: requires 16 byte alignment
+  };
+
+  void main()
+  {
+    gl_Position = vec4(a_position.x, a_position.y, 0.0, 1.0);
+  
+    // sample on edges, taking advantage of bilinear sampling
+    float sampleOffset = 1.42;
+    vec2 uv = vec2(a_texCoord.x, 1.0 - a_texCoord.y);
+    v_uv0 = uv + u_stepSize.xy * -sampleOffset;
+    v_uv1 = uv;
+    v_uv2 = uv + u_stepSize.xy * sampleOffset;
+  }
+)shader";
+
+const char* const g_BlurFragmentShader = FRAG_HEADER R"shader(
+  //Input Format
+  in vec2 v_uv0;
+  in vec2 v_uv1;
+  in vec2 v_uv2;
+
+  //Output Format
+  out vec4 out_Colour;
+
+  uniform sampler2D u_texture;
+
+  vec4 kernel[3] = vec4[](vec4(0.0, 0.0, 0.0, 0.27901),
+                          vec4(1.0, 1.0, 1.0, 0.44198),
+                          vec4(0.0, 0.0, 0.0, 0.27901));
+
+  void main()
+  {
+    vec4 colour = vec4(0);
+
+    colour += kernel[0] * texture(u_texture, v_uv0);
+    colour += kernel[1] * texture(u_texture, v_uv1);
+    colour += kernel[2] * texture(u_texture, v_uv2);
+
+    out_Colour = colour;
+  }
+
+)shader";
+
+const char* const g_HighlightVertexShader = VERT_HEADER R"shader(
+  //Input format
+  layout(location = 0) in vec3 a_position;
+  layout(location = 1) in vec2 a_texCoord;
+  
+  //Output Format
+  out vec2 v_uv0;
+  out vec2 v_uv1;
+  out vec2 v_uv2;
+  out vec2 v_uv3;
+  out vec2 v_uv4;
+
+  vec2 searchKernel[4] = vec2[](vec2(-1, -1), vec2(1, -1), vec2(-1,  1), vec2(1,  1));
+
+  layout (std140) uniform u_EveryFrame
+  {
+    vec4 u_stepSizeThickness; // (stepSize.xy, outline thickness, inner overlay strength)
+    vec4 u_colour;
+  };
+
+  void main()
+  {
+    gl_Position = vec4(a_position.x, a_position.y, 0.0, 1.0);
+
+    v_uv0 = vec2(a_texCoord.x, 1.0 - a_texCoord.y);
+    v_uv1 = v_uv0 + u_stepSizeThickness.xy * searchKernel[0];
+    v_uv2 = v_uv0 + u_stepSizeThickness.xy * searchKernel[1];
+    v_uv3 = v_uv0 + u_stepSizeThickness.xy * searchKernel[2];
+    v_uv4 = v_uv0 + u_stepSizeThickness.xy * searchKernel[3];
+  }
+)shader";
+
+const char* const g_HighlightFragmentShader = FRAG_HEADER R"shader(
+  //Input Format
+  in vec2 v_uv0;
+  in vec2 v_uv1;
+  in vec2 v_uv2;
+  in vec2 v_uv3;
+  in vec2 v_uv4;
+
+  //Output Format
+  out vec4 out_Colour;
+
+  uniform sampler2D u_texture;
+  layout (std140) uniform u_EveryFrame
+  {
+    vec4 u_stepSizeThickness; // (stepSize.xy, outline thickness, inner overlay strength)
+    vec4 u_colour;
+  };
+
+  void main()
+  {
+    vec4 middle = texture(u_texture, v_uv0);
+    float result = middle.w;
+
+    // 'outside' the geometry, just use the blurred 'distance'
+    if (middle.x == 0.0)
+    {
+      out_Colour = vec4(u_colour.xyz, result * u_stepSizeThickness.z * u_colour.a);
+      return;
+    }
+
+    result = 1.0 - result;
+
+    // look for an edge, setting to full colour if found
+    float softenEdge = 0.15 * u_colour.a;
+    result += softenEdge * step(texture(u_texture, v_uv1).x - middle.x, -0.00001);
+    result += softenEdge * step(texture(u_texture, v_uv2).x - middle.x, -0.00001);
+    result += softenEdge * step(texture(u_texture, v_uv3).x - middle.x, -0.00001);
+    result += softenEdge * step(texture(u_texture, v_uv4).x - middle.x, -0.00001);
+
+    result = max(u_stepSizeThickness.w, result); // overlay colour
+    out_Colour = vec4(u_colour.xyz, result);
+  }
+
+)shader";
+
 
 const char *const g_udGPURenderQuadVertexShader = VERT_HEADER R"shader(
   layout(location = 0) in vec4 a_position;
@@ -689,7 +870,7 @@ const char *const g_udGPURenderQuadFragmentShader = FRAG_HEADER R"shader(
 
 const char *const g_udGPURenderGeomVertexShader = VERT_HEADER R"shader(
   layout(location = 0) in vec4 a_position;
-  layout(location = 1) in vec4 a_color;
+  layout(location = 1) in vec4 a_colour;
 
   out vec4 v_colour;
   out vec2 v_pointSize;
@@ -697,11 +878,12 @@ const char *const g_udGPURenderGeomVertexShader = VERT_HEADER R"shader(
   layout (std140) uniform u_EveryObject
   {
     mat4 u_worldViewProj;
+    vec4 u_colour;
   };
 
   void main()
   {
-    v_colour = a_color.bgra;
+    v_colour = vec4(a_colour.bgr * u_colour.xyz, u_colour.w);
 
     // Points
     vec4 off = vec4(a_position.www * 2.0, 0);
