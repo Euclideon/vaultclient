@@ -99,6 +99,7 @@ struct vcState
 
   vcCameraInput cameraInput;
 
+  bool finishedStartup;
   bool hasContext;
   bool forceLogout;
   double lastServerAttempt;
