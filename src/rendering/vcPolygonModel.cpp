@@ -12,7 +12,8 @@ static int gPolygonShaderRefCount = 0;
 
 enum vcPolygonModelShaderType
 {
-  vcPMST_P1N1UV1,
+  vcPMST_P1N1UV1_Opaque,
+  vcPMST_P1N1UV1_FlatColour,
 
   vcPMST_Count
 };
@@ -97,13 +98,13 @@ const vcVertexLayoutTypes vcPolygonModelVertexLayout[] = { vcVLT_Position3, vcVL
 vcPolygonModelShaderType vcPolygonModel_GetShaderType(const vcVertexLayoutTypes *pMeshLayout, int totalTypes)
 {
   if (totalTypes == 3 && (pMeshLayout[0] == vcVLT_Position3 && pMeshLayout[1] == vcVLT_Normal3 && pMeshLayout[2] == vcVLT_TextureCoords2))
-    return vcPMST_P1N1UV1;
+    return vcPMST_P1N1UV1_Opaque;
 
   if (totalTypes == 4 && (pMeshLayout[0] == vcVLT_Position3 && pMeshLayout[1] == vcVLT_Normal3 && pMeshLayout[2] == vcVLT_TextureCoords2) && pMeshLayout[3] == vcVLT_ColourBGRA)
-    return vcPMST_P1N1UV1; // TODO: (EVC-540) Re-use for now, ignoring colour attribute
+    return vcPMST_P1N1UV1_Opaque; // TODO: (EVC-540) Re-use for now, ignoring colour attribute
 
   if (totalTypes >= 3)
-    return vcPMST_P1N1UV1; // TODO: (EVC-540) Re-use for now, ignoring other attributes
+    return vcPMST_P1N1UV1_Opaque; // TODO: (EVC-540) Re-use for now, ignoring other attributes
 
   return vcPMST_Count;
 }
@@ -204,7 +205,7 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
     UD_ERROR_CHECK(udReadFromPointer(&pNewModel->pMeshes[i].numElements, pFilePos, &dataLength));
 
     // override material id for now
-    pNewModel->pMeshes[i].materialID = vcPMST_P1N1UV1;
+    pNewModel->pMeshes[i].materialID = vcPMST_P1N1UV1_Opaque;
 
     vcPolygonModelVertex *pVerts = (vcPolygonModelVertex*)pFilePos;
     pFilePos += sizeof(*pVerts) * pNewModel->pMeshes[i].numVertices;
@@ -273,7 +274,7 @@ epilogue:
   return result;
 }
 
-udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelMatrix, const udDouble4x4 &viewProjectionMatrix, vcTexture *pDiffuseOverride /*= nullptr*/)
+udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelMatrix, const udDouble4x4 &viewProjectionMatrix, const vcPolyModelPass &passType /*= vcPMP_Standard*/, vcTexture *pDiffuseOverride /*= nullptr*/, const udFloat4 *pColourOverride /*= nullptr*/)
 {
   if (pModel == nullptr)
     return udR_InvalidParameter_;
@@ -284,6 +285,8 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
   {
     vcPolygonModelMesh *pModelMesh = &pModel->pMeshes[i];
     vcPolygonModelShader *pPolygonShader = &gShaders[pModelMesh->materialID];
+    if (passType == vcPMP_ColourOnly)
+      pPolygonShader = &gShaders[vcPMST_P1N1UV1_FlatColour];
 
     vcShader_Bind(pPolygonShader->pShader);
 
@@ -295,6 +298,9 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
       ((pModel->pMeshes[i].material.colour >> 16) & 0xFF) * s,
       ((pModel->pMeshes[i].material.colour >> 24) & 0xFF) * s,
       ((pModel->pMeshes[i].material.colour >> 0) & 0xFF) * s);
+
+    if (pColourOverride)
+      colour = *pColourOverride;
 
     pPolygonShader->everyObject.u_colour = colour;
     pPolygonShader->everyObject.u_world = udFloat4x4::identity();
@@ -344,11 +350,16 @@ udResult vcPolygonModel_CreateShaders()
 
   udResult result;
 
-  vcPolygonModelShader *pPolygonShader = &gShaders[vcPMST_P1N1UV1];
+  vcPolygonModelShader *pPolygonShader = &gShaders[vcPMST_P1N1UV1_Opaque];
   UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP1N1UV1VertexShader, g_PolygonP1N1UV1FragmentShader, vcPolygonModelVertexLayout), udR_InternalError);
   vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame));
   vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject));
   vcShader_GetSamplerIndex(&pPolygonShader->pDiffuseSampler, pPolygonShader->pShader, "u_texture");
+
+  pPolygonShader = &gShaders[vcPMST_P1N1UV1_FlatColour];
+  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP1N1UV1VertexShader, g_FlatColour_FragmentShader, vcPolygonModelVertexLayout), udR_InternalError);
+  vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame));
+  vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject));
 
   result = udR_Success;
 

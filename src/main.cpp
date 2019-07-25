@@ -11,7 +11,7 @@
 #include "imgui_internal.h"
 #include "imgui_ex/imgui_impl_sdl.h"
 
-#if defined(GRAPHICS_API_METAL)
+#if GRAPHICS_API_METAL
 #include "imgui_ex/imgui_impl_metal.h"
 #endif
 
@@ -268,12 +268,12 @@ void vcMain_MainLoop(vcState *pProgramState)
     frametimeMS = 0.250; // 4 FPS cap when not focused
 
   sleepMS = (uint32_t)udMax((frametimeMS - pProgramState->deltaTime) * 1000.0, 0.0);
-#ifndef GRAPHICS_API_METAL
+#if GRAPHICS_API_METAL
   udSleep(sleepMS);
 #endif
   pProgramState->deltaTime += sleepMS * 0.001; // adjust delta
 
-#ifdef GRAPHICS_API_METAL
+#if GRAPHICS_API_METAL
   ImGui_ImplMetal_NewFrame(pProgramState->pWindow);
 #else
   ImGuiGL_NewFrame(pProgramState->pWindow);
@@ -284,7 +284,7 @@ void vcMain_MainLoop(vcState *pProgramState)
   vcRenderWindow(pProgramState);
   ImGui::Render();
 
-#ifdef GRAPHICS_API_METAL
+#if GRAPHICS_API_METAL
   ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData());
 #else
   ImGuiGL_RenderDrawData(ImGui::GetDrawData());
@@ -799,7 +799,7 @@ int main(int argc, char **args)
 
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-#ifdef GRAPHICS_API_METAL
+#if GRAPHICS_API_METAL
   if (!ImGui_ImplMetal_Init())
     goto epilogue;
 #else
@@ -840,7 +840,7 @@ epilogue:
 
   vcSettings_Cleanup(&programState.settings);
 
-#ifdef GRAPHICS_API_METAL
+#if GRAPHICS_API_METAL
   ImGui_ImplMetal_Shutdown();
 #else
   ImGuiGL_DestroyDeviceObjects();
@@ -1089,6 +1089,87 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   }
 }
 
+void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderData)
+{
+  static bool mouseWasDragged = false;
+  static bool mouseWasDown = false;
+
+  // TODO: Actually get what mouse the 'tumble', 'orbit' and 'pan' controls are bound to
+  bool selectPickedObject = (!mouseWasDragged && ImGui::IsMouseReleased(0));
+  bool depthFromPickedObject = (!mouseWasDown && (ImGui::IsMouseDown(1) || ImGui::IsMouseDown(2))) || (ImGui::GetIO().MouseWheel != 0);
+
+  if (selectPickedObject || depthFromPickedObject)
+  {
+    vcRenderPickResult pickResult = vcRender_PolygonPick(pProgramState->pRenderContext, renderData);
+
+    // TODO: what if tiles occlude geometry / ud?
+    if (!pickResult.success)
+      vcRender_PickTiles(pProgramState->pRenderContext, renderData);
+
+    // We have to resolve UD vs. Polygon
+    bool selectUD = pProgramState->pickingSuccess; // UD was successfully picked (last frame)
+    bool selectPolygons = pickResult.success;
+
+    if (selectUD && selectPolygons)
+    {
+      // resolve pick
+      double polyPickDistToCameraSqr = udMagSq3(pickResult.position - pProgramState->pCamera->position);
+      double udPickDistToCameraSqr = udMagSq3(pProgramState->worldMousePos - pProgramState->pCamera->position);
+      selectUD = udPickDistToCameraSqr < polyPickDistToCameraSqr;
+      selectPolygons = selectPolygons && !selectUD;
+    }
+
+    if (selectPickedObject && (selectUD || selectPolygons)) // only unselect if we are able to select something new
+    {
+      // TODO: can I store the selected node somewhere? Instead of looping over every poly/ud model like this...
+      for (size_t i = 0; i < renderData.models.length; ++i)
+        renderData.models[i]->OnSceneUnselect(0); // TODO: internal id here?
+      for (size_t i = 0; i < renderData.polyModels.length; ++i)
+        renderData.polyModels[i].pSceneItem->OnSceneUnselect(renderData.polyModels[i].sceneItemInternalId);
+    }
+
+    if (selectUD)
+    {
+      if (selectPickedObject)
+        renderData.models[renderData.udModelPickedIndex]->OnSceneSelect(0); // TODO: internal id here?
+    }
+    else if (selectPolygons)
+    {
+      if (selectPickedObject)
+      {
+        if (pickResult.pPolygon != nullptr)
+        {
+          pickResult.pPolygon->pSceneItem->OnSceneSelect(pickResult.pPolygon->sceneItemInternalId);
+
+          // TODO: Paul is this correct?
+          pProgramState->sceneExplorer.selectedItems.push_back({ pickResult.pPolygon->pSceneItem->m_pNode, nullptr });
+        }
+        else // ud
+        {
+          pickResult.pModel->OnSceneSelect(0);
+
+          // TODO: Paul is this correct?
+          pProgramState->sceneExplorer.selectedItems.push_back({ pickResult.pModel->m_pNode, nullptr });
+        }
+      }
+
+      pProgramState->pickingSuccess = pickResult.success;
+      pProgramState->worldMousePos = pickResult.position;
+    }
+
+    mouseWasDown = true;
+  }
+
+  if (ImGui::IsMouseDragging(0))
+    mouseWasDragged = true;
+
+  if (ImGui::IsMouseReleased(0) || ImGui::IsMouseReleased(2) || ImGui::IsMouseReleased(1))
+  {
+    mouseWasDragged = false;
+    mouseWasDown = false;
+  }
+}
+
 void vcRenderSceneWindow(vcState *pProgramState)
 {
   //Rendering
@@ -1112,6 +1193,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.mouse.position.y = (uint32_t)(io.MousePos.y - windowPos.y);
   renderData.mouse.clicked = io.MouseClicked[1];
 
+  renderData.udModelPickedIndex = pProgramState->previousUDModelPickedIndex;
+
   udDouble3 cameraMoveOffset = udDouble3::zero();
 
   if (pProgramState->sceneResolution.x != windowSize.x || pProgramState->sceneResolution.y != windowSize.y) //Resize buffers
@@ -1132,6 +1215,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   // use some data from previous frame
   pProgramState->worldMousePos = pProgramState->previousWorldMousePos;
   pProgramState->pickingSuccess = pProgramState->previousPickingSuccess;
+
   if (pProgramState->cameraInput.isUsingAnchorPoint)
     renderData.pWorldAnchorPos = &pProgramState->cameraInput.worldAnchorPoint;
 
@@ -1141,10 +1225,13 @@ void vcRenderSceneWindow(vcState *pProgramState)
   ImVec2 uv0 = ImVec2(0, 0);
   ImVec2 uv1 = ImVec2(1, 1);
 #if GRAPHICS_API_OPENGL
-  uv1.y = -1;
+  uv1.y = 0;
+  uv0.y = 1;
 #endif
 
   {
+    vcRender_BeginFrame(pProgramState->pRenderContext);
+
     // Actual rendering to this texture is deferred
     vcTexture *pSceneTexture = vcRender_GetSceneTexture(pProgramState->pRenderContext);
     ImGui::ImageButton(pSceneTexture, windowSize, uv0, uv1, 0);
@@ -1296,6 +1383,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
       ImGui::GetWindowDrawList()->AddImage(pProgramState->pUITexture, ImVec2((float)sceneWindowPos.x, (float)sceneWindowPos.y), ImVec2((float)sceneWindowPos.x + 24, (float)sceneWindowPos.y + 24), ImVec2(0, 0.375), ImVec2(0.09375, 0.46875));
     }
 
+
+    pProgramState->activeProject.pFolder->AddToScene(pProgramState, &renderData);
+
+    vcRenderScene_HandlePicking(pProgramState, renderData);
+
     // Camera update has to be here because it depends on previous ImGui state
     vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create(windowSize.x, windowSize.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
 
@@ -1340,12 +1432,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.pGISSpace = &pProgramState->gis;
   renderData.pCameraSettings = &pProgramState->settings.camera;
 
-  pProgramState->activeProject.pFolder->AddToScene(pProgramState, &renderData);
-
   vcRender_vcRenderSceneImGui(pProgramState->pRenderContext, renderData);
 
   // Render scene to texture
   vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
+
   renderData.models.Deinit();
   renderData.fences.Deinit();
   renderData.labels.Deinit();
@@ -1368,10 +1459,13 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   pProgramState->previousWorldMousePos = renderData.worldMousePos;
   pProgramState->previousPickingSuccess = renderData.pickingSuccess;
+  pProgramState->previousUDModelPickedIndex = renderData.udModelPickedIndex;
   pProgramState->pSceneWatermark = renderData.pWatermarkTexture;
 
   if (renderData.mouse.clicked)
     pProgramState->worldMouseClickedPos = renderData.worldMousePos;
+
+  vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 }
 
 void vcMain_UpdateStatusBar(vcState *pProgramState)

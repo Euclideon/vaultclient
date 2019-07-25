@@ -8,7 +8,8 @@ const char* const g_udFragmentShader = R"shader(
     float2 uv : TEXCOORD0;
   };
 
-  struct PS_OUTPUT {
+  struct PS_OUTPUT 
+  {
     float4 Color0 : SV_Target;
     float Depth0 : SV_Depth;
   };
@@ -161,6 +162,53 @@ const char* const g_udVertexShader = R"shader(
   }
 )shader";
 
+
+const char* const g_udSplatIdFragmentShader = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD0;
+  };
+
+  struct PS_OUTPUT 
+  {
+    float4 Color0 : SV_Target;
+    float Depth0 : SV_Depth;
+  };
+
+  cbuffer u_params : register(b0)
+  {
+    float4 u_idOverride;
+  };
+
+  sampler sampler0;
+  Texture2D texture0;
+
+  sampler sampler1;
+  Texture2D texture1;
+
+  bool floatEquals(float a, float b)
+  {
+    return abs(a - b) <= 0.0015f;
+  }
+
+  PS_OUTPUT main(PS_INPUT input)
+  {
+    PS_OUTPUT output;
+    float4 col = texture0.Sample(sampler0, input.uv);
+    float depth = texture1.Sample(sampler1, input.uv).x;
+
+    output.Color0 = float4(0.0, 0.0, 0.0, 0.0);
+    if ((u_idOverride.w == 0.0 || floatEquals(u_idOverride.w, col.w)))
+    {
+      output.Color0 = float4(col.w, 0, 0, 1.0);
+    }
+
+    output.Depth0 = depth;
+    return output;
+  }
+
+)shader";
 
 const char* const g_tileFragmentShader = R"shader(
   struct PS_INPUT
@@ -722,6 +770,175 @@ const char* const g_BillboardVertexShader = R"shader(
   }
 )shader";
 
+
+const char* const g_FlatColour_FragmentShader = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv  : TEXCOORD0;
+    float3 normal : NORMAL;
+    float4 colour : COLOR0;
+  };
+
+  float4 main(PS_INPUT input) : SV_Target
+  {
+    return input.colour;
+  }
+)shader";
+
+
+const char* const g_BlurVertexShader = R"shader(
+  struct VS_INPUT
+  {
+    float3 pos : POSITION;
+    float2 uv  : TEXCOORD0;
+  };
+  
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv0  : TEXCOORD0;
+    float2 uv1  : TEXCOORD1;
+    float2 uv2  : TEXCOORD2;
+  };
+
+  cbuffer u_EveryFrame : register(b0)
+  {
+    float4 u_stepSize; // remember: requires 16 byte alignment
+  };
+
+  PS_INPUT main(VS_INPUT input)
+  {
+    PS_INPUT output;
+
+    output.pos = float4(input.pos.x, input.pos.y, 0.0, 1.0);
+
+    // sample on edges, taking advantage of bilinear sampling
+    float sampleOffset = 1.42;
+    float2 uv = float2(input.uv.x, 1.0 - input.uv.y);
+    output.uv0 = uv + u_stepSize.xy * -sampleOffset;
+    output.uv1 = uv;
+    output.uv2 = uv + u_stepSize.xy * sampleOffset;
+
+    return output;
+  }
+)shader";
+
+const char* const g_BlurFragmentShader = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv0  : TEXCOORD0;
+    float2 uv1  : TEXCOORD1;
+    float2 uv2  : TEXCOORD2;
+  };
+
+  sampler sampler0;
+  Texture2D texture0;
+
+  static float4 kernel[3] = {float4(0.0, 0.0, 0.0, 0.27901),
+                              float4(1.0, 1.0, 1.0, 0.44198),
+                              float4(0.0, 0.0, 0.0, 0.27901)};
+
+  float4 main(PS_INPUT input) : SV_Target
+  {
+    float4 colour = float4(0.0, 0.0, 0.0, 0.0);
+
+    colour += kernel[0] * texture0.Sample(sampler0, input.uv0);
+    colour += kernel[1] * texture0.Sample(sampler0, input.uv1);
+    colour += kernel[2] * texture0.Sample(sampler0, input.uv2);
+
+    return colour;
+  }
+
+)shader";
+
+const char* const g_HighlightVertexShader = R"shader(
+  struct VS_INPUT
+  {
+    float3 pos : POSITION;
+    float2 uv  : TEXCOORD0;
+  };
+  
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv0  : TEXCOORD0;
+    float2 uv1  : TEXCOORD1;
+    float2 uv2  : TEXCOORD2;
+    float2 uv3  : TEXCOORD3;
+    float2 uv4  : TEXCOORD4;
+    float4 colour : COLOR0;
+    float4 stepSizeThickness : COLOR1;
+  };
+
+  static float2 searchKernel[4] = {float2(-1, -1), float2(1, -1), float2(-1,  1), float2(1,  1)};
+
+  cbuffer u_EveryFrame : register(b0)
+  {
+    float4 u_stepSizeThickness; // (stepSize.xy, outline thickness, inner overlay strength)
+    float4 u_colour;
+  };
+
+  PS_INPUT main(VS_INPUT input)
+  {
+    PS_INPUT output;
+
+    output.pos = float4(input.pos.x, input.pos.y, 0.0, 1.0);
+    output.colour = u_colour;
+    output.stepSizeThickness = u_stepSizeThickness;
+
+    output.uv0 = input.uv;
+    output.uv1 = input.uv + u_stepSizeThickness.xy * searchKernel[0];
+    output.uv2 = input.uv + u_stepSizeThickness.xy * searchKernel[1];
+    output.uv3 = input.uv + u_stepSizeThickness.xy * searchKernel[2];
+    output.uv4 = input.uv + u_stepSizeThickness.xy * searchKernel[3];
+
+    return output;
+  }
+)shader";
+
+const char* const g_HighlightFragmentShader = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv0  : TEXCOORD0;
+    float2 uv1  : TEXCOORD1;
+    float2 uv2  : TEXCOORD2;
+    float2 uv3  : TEXCOORD3;
+    float2 uv4  : TEXCOORD4;
+    float4 colour : COLOR0;
+    float4 stepSizeThickness : COLOR1;
+  };
+
+  sampler sampler0;
+  Texture2D u_texture;
+
+  float4 main(PS_INPUT input) : SV_Target
+  {   
+    float4 middle = u_texture.Sample(sampler0, input.uv0);
+    float result = middle.w;
+
+    // 'outside' the geometry, just use the blurred 'distance'
+    if (middle.x == 0.0)
+      return float4(input.colour.xyz, result * input.stepSizeThickness.z * input.colour.a);
+    
+    result = 1.0 - result;
+    
+    // look for an edge, setting to full colour if found
+    float softenEdge = 0.15 * input.colour.a;
+    result += softenEdge * step(u_texture.Sample(sampler0, input.uv1).x - middle.x, -0.00001);
+    result += softenEdge * step(u_texture.Sample(sampler0, input.uv2).x - middle.x, -0.00001);
+    result += softenEdge * step(u_texture.Sample(sampler0, input.uv3).x - middle.x, -0.00001);
+    result += softenEdge * step(u_texture.Sample(sampler0, input.uv4).x - middle.x, -0.00001);
+    
+    result = max(input.stepSizeThickness.w, result); // overlay colour
+    return float4(input.colour.xyz, result);
+  }
+
+)shader";
+
+
 const char *const g_udGPURenderQuadVertexShader = R"shader(
   struct VS_INPUT
   {
@@ -812,13 +1029,15 @@ const char *const g_udGPURenderGeomVertexShader = R"shader(
   cbuffer u_EveryObject : register(b0)
   {
     float4x4 u_worldViewProj;
+    float4 u_colour;
   };
 
   GS_INPUT main(VS_INPUT input)
   {
     GS_INPUT output;
 
-    output.colour = input.colour.bgra;
+    output.colour = float4(input.colour.bgr * u_colour.xyz, u_colour.w);
+
 
     // Points
     float4 off = float4(input.pos.www * 2.0, 0);

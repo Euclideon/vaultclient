@@ -4,7 +4,7 @@
 bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, int level /*= 0*/)
 {
   vcFramebuffer *pFramebuffer = udAllocType(vcFramebuffer, 1, udAF_Zero);
-  GLenum DrawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+  GLenum DrawBuffers[] = { GL_COLOR_ATTACHMENT0 };
 
   glGenFramebuffers(1, &pFramebuffer->id);
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, pFramebuffer->id);
@@ -57,6 +57,34 @@ bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
 
   glClearColor(((colour >> 16) & 0xFF) / 255.f, ((colour >> 8) & 0xFF) / 255.f, (colour & 0xFF) / 255.f, ((colour >> 24) & 0xFF) / 255.f);
   glClear(clearMask);
+
+  return true;
+}
+
+bool vcFramebuffer_ReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, void *pPixels, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+{
+  if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || (x + width) > pAttachment->width || (y + height) > pAttachment->height)
+    return false;
+
+  switch (pAttachment->format)
+  {
+  case vcTextureFormat_RGBA8:
+    glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pPixels);
+    break;
+  case vcTextureFormat_BGRA8:
+    glReadPixels(x, y, width, height, GL_BGRA, GL_UNSIGNED_BYTE, pPixels);
+    break;
+  case vcTextureFormat_D24S8:
+    glReadPixels(x, y, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, pPixels);
+    break;
+  case vcTextureFormat_D32F:
+    glReadPixels(x, y, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, pPixels);
+    break;
+  case vcTextureFormat_Unknown: // fall through
+  case vcTextureFormat_Cubemap: // fall through
+  case vcTextureFormat_Count:
+    return false;
+  }
 
   return true;
 }

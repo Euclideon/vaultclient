@@ -23,6 +23,10 @@ const vcVertexLayoutTypes vcP1UV1VertexLayout[] = { vcVLT_Position3, vcVLT_Textu
 const vcSimpleVertex screenQuadVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
 const int screenQuadIndices[6] = { 0, 1, 2, 0, 2, 3 };
 
+// inverted screen quad
+const vcSimpleVertex flippedScreenQuadVertices[4]{ { { -1.f, -1.f, 0.f },{ 0, 0 } },{ { -1.f, 1.f, 0.f },{ 0, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 0 } } };
+const int flippedScreenQuadIndices[6] = { 2, 1, 0, 3, 2, 0 };
+
 // billboard
 const vcP1UV1Vertex billboardVertices[4]{ { { 0.f, 0.f, 0.f },{ 0, 0 } },{ { 0.f, 0.f, 0.f },{ 0, 1 } },{ { 0.f, 0.f, 0.f },{ 1, 1 } },{ { 0.f, 0.f, 0.f },{ 1, 0 } } };
 const uint16_t billboardIndices[6] = { 0, 1, 2, 0, 2, 3 };

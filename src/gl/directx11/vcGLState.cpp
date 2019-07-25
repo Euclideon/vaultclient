@@ -350,7 +350,7 @@ bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, 
 
 bool vcGLState_SetViewportDepthRange(float minDepth, float maxDepth)
 {
-  return vcGLState_SetViewport(s_internalState.viewportZone.x, s_internalState.viewportZone.y, s_internalState.viewportZone.z, s_internalState.viewportZone.w, minDepth, maxDepth);
+  return vcGLState_SetViewport(s_internalState.viewportZone.x, s_internalState.viewportZone.y, s_internalState.viewportZone.x + s_internalState.viewportZone.z, s_internalState.viewportZone.y + s_internalState.viewportZone.w, minDepth, maxDepth);
 }
 
 bool vcGLState_Present(SDL_Window * /*pWindow*/)

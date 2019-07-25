@@ -5,15 +5,15 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
 {
   if (ppFramebuffer == nullptr)
     return false;
-  
+
   udUnused(level);
   vcFramebuffer *pFramebuffer = udAllocType(vcFramebuffer, 1, udAF_Zero);
-  
+
   pFramebuffer->pColor = pTexture;
   pFramebuffer->pDepth = pDepth;
-  
+
   [_viewCon.renderer addFramebuffer:pFramebuffer];
-  
+
   *ppFramebuffer = pFramebuffer;
   pFramebuffer = nullptr;
 
@@ -24,9 +24,9 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
 {
   if (ppFramebuffer == nullptr || *ppFramebuffer == nullptr)
     return;
-  
+
   [_viewCon.renderer destroyFramebuffer:*ppFramebuffer];
-  
+
   udFree(*ppFramebuffer);
   *ppFramebuffer = nullptr;
 }
@@ -34,7 +34,7 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
 bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer)
 {
   [_viewCon.renderer setFramebuffer:pFramebuffer];
-  
+
   return true;
 }
 
@@ -43,11 +43,19 @@ bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
 {
   if (pFramebuffer == nullptr)
     return false;
-  
+
   udFloat4 col = udFloat4::create(((colour >> 16) & 0xFF) / 255.f, ((colour >> 8) & 0xFF) / 255.f, (colour & 0xFF) / 255.f, ((colour >> 24) & 0xFF) / 255.f);
-  
+
   _viewCon.renderer.renderPasses[pFramebuffer->ID].colorAttachments[0].clearColor = MTLClearColorMake(col.x,col.y,col.z,col.w);
   _viewCon.renderer.renderPasses[pFramebuffer->ID].depthAttachment.clearDepth = 1.0;
-  
+
   return true;
+}
+
+bool vcFramebuffer_ReadPixels(vcFramebuffer * /*pFramebuffer*/, vcTexture * /*pAttachment*/, void * /*pPixels*/, uint32_t /*x*/, uint32_t /*y*/, uint32_t /*width*/, uint32_t /*height*/)
+{
+  //if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || (x + width) > pAttachment->width || (y + height) > pAttachment->height)
+    return false;
+
+  //TODO: Implement this
 }

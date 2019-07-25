@@ -67,3 +67,24 @@ void vcSceneItem::UpdateNode(vcState *pProgramState)
   this->OnNodeUpdate(pProgramState);
   m_lastUpdateTime = m_pNode->lastUpdate;
 };
+
+void vcSceneItem::OnSceneSelect(uint64_t internalId)
+{
+  udUnused(internalId);
+
+  m_selected = true;
+}
+
+void vcSceneItem::OnSceneUnselect(uint64_t internalId)
+{
+  udUnused(internalId);
+
+  m_selected = false;
+}
+
+bool vcSceneItem::IsSceneSelected(uint64_t internalId)
+{
+  udUnused(internalId);
+
+  return m_selected;
+}
