@@ -1152,24 +1152,16 @@ vcRenderPickResult vcRender_PolygonPick(vcRenderContext *pRenderContext, vcRende
   return result;
 }
 
-void vcRender_PickTiles(vcRenderContext *pRenderContext, vcRenderData &renderData)
+bool vcRender_PickTiles(vcRenderContext *pRenderContext, udDouble3 &hitPoint)
 {
   if (pRenderContext->pSettings->maptiles.mapEnabled && pRenderContext->pSettings->maptiles.mouseInteracts)// check map tiles
   {
-    udDouble4x4 cameraMatrix = pRenderContext->pCamera->matrices.camera;
-    udDouble3 localCamPos = cameraMatrix.axis.t.toVector3();
-
     udPlane<double> mapPlane = udPlane<double>::create({ 0, 0, pRenderContext->pSettings->maptiles.mapHeight }, { 0, 0, 1 });
 
-    udDouble3 hitPoint;
     double hitDistance;
     if (mapPlane.intersects(pRenderContext->pCamera->worldMouseRay, &hitPoint, &hitDistance))
-    {
-      if (hitDistance < pRenderContext->pSettings->camera.farPlane && (!renderData.pickingSuccess || hitDistance < udMag3(renderData.worldMousePos - localCamPos) - pRenderContext->pSettings->camera.nearPlane))
-      {
-        renderData.pickingSuccess = true;
-        renderData.worldMousePos = hitPoint;
-      }
-    }
+      return (hitDistance < pRenderContext->pSettings->camera.farPlane && (hitDistance > pRenderContext->pSettings->camera.nearPlane));
   }
+
+  return false;
 }
