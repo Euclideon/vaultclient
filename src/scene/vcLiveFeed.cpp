@@ -560,21 +560,7 @@ udDouble3 vcLiveFeed::GetLocalSpacePivot()
   return udDouble3::zero();
 }
 
-void vcLiveFeed::OnSceneSelect(uint64_t internalId)
-{
-  vcSceneItem::OnSceneSelect(internalId);
-
-  m_feedItems[internalId]->selected = true;
-}
-
-void vcLiveFeed::OnSceneUnselect(uint64_t internalId)
-{
-  vcSceneItem::OnSceneUnselect(internalId);
-
-  m_feedItems[internalId]->selected = false;
-}
-
 bool vcLiveFeed::IsSceneSelected(uint64_t internalId)
 {
-  return vcSceneItem::IsSceneSelected(internalId) && m_feedItems[internalId]->selected;
+  return vcSceneItem::IsSceneSelected(internalId);// && m_feedItems[internalId]->selected;
 }
