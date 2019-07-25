@@ -526,22 +526,28 @@ void vcModals_DrawLoadWatermark(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_LoadWatermark))
     ImGui::OpenPopup(vcString::Get("convertLoadWatermark"));
+  if (pProgramState->openModals & (1 << vcMT_ChangeDefaultWatermark))
+    ImGui::OpenPopup(vcString::Get("convertChangeDefaultWatermark"));
+
+  vcModalTypes mode = vcMT_Count;
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("convertLoadWatermark")))
+    mode = vcMT_LoadWatermark;
+
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("convertChangeDefaultWatermark")))
+    mode = vcMT_ChangeDefaultWatermark;
+
+  if (mode < vcMT_Count)
   {
     pProgramState->modalOpen = true;
-    bool pressedEnter = ImGui::InputText(vcString::Get("convertPathURL"), pProgramState->modelPath, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+    bool loadFile = ImGui::InputText(vcString::Get("convertPathURL"), pProgramState->modelPath, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
 
     ImGui::SameLine();
 
-    if (ImGui::Button(vcString::Get("convertLoadButton"), ImVec2(100.f, 0)) || pressedEnter)
-    {
-      vdkConvert_AddWatermark(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext, pProgramState->modelPath);
-      pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->watermark.isDirty = true;
-      ImGui::CloseCurrentPopup();
-    }
-
+    if (ImGui::Button(vcString::Get("convertLoadButton"), ImVec2(100.f, 0)))
+      loadFile = true;
     ImGui::SameLine();
 
     if (ImGui::Button(vcString::Get("convertCancelButton"), ImVec2(100.f, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
@@ -551,9 +557,30 @@ void vcModals_DrawLoadWatermark(vcState *pProgramState)
 
     const char *fileExtensions[] = { ".jpg", ".png", ".tga", ".bmp", ".gif" };
     if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), true, fileExtensions, udLengthOf(fileExtensions)))
+      loadFile = true;
+
+    if (loadFile)
     {
-      vdkConvert_AddWatermark(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext, pProgramState->modelPath);
-      pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->watermark.isDirty = true;
+      if (mode == vcMT_LoadWatermark)
+      {
+        vdkConvert_AddWatermark(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext, pProgramState->modelPath);
+        pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->watermark.isDirty = true;
+      }
+      else
+      {
+        udFilename filename = pProgramState->modelPath;
+        uint8_t *pData = nullptr;
+        int64_t dataLength = 0;
+        if (udFile_Load(pProgramState->modelPath, (void**)&pData, &dataLength) == udR_Success)
+        {
+          // TODO: Resize watermark to the same dimensions as vdkConvert does - maybe requires additional VDK functionality?
+          filename.SetFolder(pProgramState->settings.pSaveFilePath);
+          udFile_Save(filename, pData, (size_t)dataLength);
+          udFree(pData);
+        }
+        udStrcpy(pProgramState->settings.convertdefaults.watermark.filename, filename.GetFilenameWithExt());
+        pProgramState->settings.convertdefaults.watermark.isDirty = true;
+      }
       ImGui::CloseCurrentPopup();
     }
 

@@ -14,6 +14,7 @@ enum vcModalTypes
   vcMT_ImportProject,
   vcMT_ExportProject,
   vcMT_LoadWatermark,
+  vcMT_ChangeDefaultWatermark,
   vcMT_ImageViewer,
   vcMT_ProjectChangeFailed,
   vcMT_ProjectChangeSucceeded,

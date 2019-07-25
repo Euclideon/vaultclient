@@ -9,6 +9,7 @@
 
 #include "vcCamera.h"
 #include "gl/vcGLState.h"
+#include "gl/vcTexture.h"
 
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -230,7 +231,14 @@ struct vcSettings
   struct
   {
     char tempDirectory[vcMaxPathLength];
-    char watermark[vcMaxPathLength];
+    struct
+    {
+      bool isDirty;
+      char filename[vcMaxPathLength];
+      vcTexture *pTexture;
+      int width;
+      int height;
+    } watermark;
 
     char author[vcMetadataMaxLength];
     char comment[vcMetadataMaxLength];
