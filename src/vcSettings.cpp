@@ -244,13 +244,13 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_Convert || group == vcSC_All)
   {
-    udStrcpy(pSettings->convertdefaults.tempDirectory, sizeof(pSettings->convertdefaults.tempDirectory), data.Get("convert.tempDirectory").AsString(""));
-    udStrcpy(pSettings->convertdefaults.watermark, sizeof(pSettings->convertdefaults.watermark), data.Get("convert.watermark").AsString(""));
-
-    udStrcpy(pSettings->convertdefaults.author, sizeof(pSettings->convertdefaults.author), data.Get("convert.author").AsString(""));
-    udStrcpy(pSettings->convertdefaults.comment, sizeof(pSettings->convertdefaults.comment), data.Get("convert.comment").AsString(""));
-    udStrcpy(pSettings->convertdefaults.copyright, sizeof(pSettings->convertdefaults.copyright), data.Get("convert.copyright").AsString(""));
-    udStrcpy(pSettings->convertdefaults.license, sizeof(pSettings->convertdefaults.license), data.Get("convert.license").AsString(""));
+    udStrcpy(pSettings->convertdefaults.tempDirectory, data.Get("convert.tempDirectory").AsString(""));
+    udStrcpy(pSettings->convertdefaults.watermark.filename, data.Get("convert.watermark").AsString(""));
+    pSettings->convertdefaults.watermark.isDirty = true;
+    udStrcpy(pSettings->convertdefaults.author, data.Get("convert.author").AsString(""));
+    udStrcpy(pSettings->convertdefaults.comment, data.Get("convert.comment").AsString(""));
+    udStrcpy(pSettings->convertdefaults.copyright, data.Get("convert.copyright").AsString(""));
+    udStrcpy(pSettings->convertdefaults.license, data.Get("convert.license").AsString(""));
   }
 
   if (group == vcSC_All)
@@ -593,7 +593,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   tempNode.SetString(pSettings->convertdefaults.tempDirectory);
   data.Set(&tempNode, "convert.tempDirectory");
 
-  tempNode.SetString(pSettings->convertdefaults.watermark);
+  tempNode.SetString(pSettings->convertdefaults.watermark.filename);
   data.Set(&tempNode, "convert.watermark");
 
   tempNode.SetString(pSettings->convertdefaults.author);
@@ -654,6 +654,8 @@ void vcSettings_Cleanup(vcSettings *pSettings)
       udFree(pSettings->visualization.customClassificationColorLabels[i]);
 
   pSettings->languageOptions.Deinit();
+
+  vcTexture_Destroy(&pSettings->convertdefaults.watermark.pTexture);
 }
 
 #if UDPLATFORM_EMSCRIPTEN

@@ -7,8 +7,10 @@
 #include "vcClassificationColours.h"
 
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
+#include "stb_image.h"
 
 #include "udStringUtil.h"
+#include "udFile.h"
 
 void vcSettingsUI_Show(vcState *pProgramState)
 {
@@ -362,7 +364,45 @@ void vcSettingsUI_Show(vcState *pProgramState)
     {
       // Temp directory
       ImGui::InputText(vcString::Get("convertTempDirectory"), pProgramState->settings.convertdefaults.tempDirectory, udLengthOf(pProgramState->settings.convertdefaults.tempDirectory));
-      ImGui::InputText(vcString::Get("convertWatermark"), pProgramState->settings.convertdefaults.watermark, udLengthOf(pProgramState->settings.convertdefaults.watermark));
+
+      if (ImGui::Button(vcString::Get("convertChangeDefaultWatermark")))
+        vcModals_OpenModal(pProgramState, vcMT_ChangeDefaultWatermark);
+
+      if (pProgramState->settings.convertdefaults.watermark.pTexture != nullptr)
+      {
+        ImGui::SameLine();
+        if (ImGui::Button(vcString::Get("convertRemoveWatermark")))
+        {
+          memset(pProgramState->settings.convertdefaults.watermark.filename, 0, sizeof(pProgramState->settings.convertdefaults.watermark.filename));
+          pProgramState->settings.convertdefaults.watermark.width = 0;
+          pProgramState->settings.convertdefaults.watermark.height = 0;
+        }
+      }
+
+      if (pProgramState->settings.convertdefaults.watermark.isDirty)
+      {
+        pProgramState->settings.convertdefaults.watermark.isDirty = false;
+        vcTexture_Destroy(&pProgramState->settings.convertdefaults.watermark.pTexture);
+        uint8_t *pData = nullptr;
+        int64_t dataSize = 0;
+        char buffer[vcMaxPathLength];
+        udStrcpy(buffer, pProgramState->settings.pSaveFilePath);
+        udStrcat(buffer, pProgramState->settings.convertdefaults.watermark.filename);
+        if (udFile_Load(buffer, (void**)&pData, &dataSize)== udR_Success)
+        {
+          int comp;
+          stbi_uc *pImg = stbi_load_from_memory(pData, (int)dataSize, &pProgramState->settings.convertdefaults.watermark.width, &pProgramState->settings.convertdefaults.watermark.height, &comp, 4);
+
+          vcTexture_Create(&pProgramState->settings.convertdefaults.watermark.pTexture, pProgramState->settings.convertdefaults.watermark.width, pProgramState->settings.convertdefaults.watermark.height, pImg);
+
+          stbi_image_free(pImg);
+        }
+
+        udFree(pData);
+      }
+
+      if (pProgramState->settings.convertdefaults.watermark.pTexture != nullptr)
+        ImGui::Image(pProgramState->settings.convertdefaults.watermark.pTexture, ImVec2(256, 256));
 
       // Metadata
       ImGui::InputText(vcString::Get("convertAuthor"), pProgramState->settings.convertdefaults.author, udLengthOf(pProgramState->settings.convertdefaults.author));
