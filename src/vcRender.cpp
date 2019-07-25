@@ -81,7 +81,7 @@ struct vcUDRenderContext
 
     struct
     {
-      udFloat4 id; 
+      udFloat4 id;
     } params;
 
   } splatIdShader;
@@ -341,6 +341,7 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
   vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
   vcFramebuffer_Destroy(&pRenderContext->udRenderContext.pFramebuffer);
 
+#if ALLOW_EXPERIMENT_GPURENDER
   if (pRenderContext->udRenderContext.usingGPURenderer)
   {
     vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, widthIncr, heightIncr, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
@@ -348,6 +349,7 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
     vcFramebuffer_Create(&pRenderContext->udRenderContext.pFramebuffer, pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pDepthTex);
   }
   else
+#endif //ALLOW_EXPERIMENT_GPURENDER
   {
     vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pColorBuffer, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_Dynamic);
     vcTexture_Create(&pRenderContext->udRenderContext.pDepthTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pDepthBuffer, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_Dynamic);
@@ -360,7 +362,7 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
   vcTexture_Destroy(&pRenderContext->picking.pTexture);
   vcTexture_Destroy(&pRenderContext->picking.pDepth);
   vcFramebuffer_Destroy(&pRenderContext->picking.pFramebuffer);
-  
+
   for (int i = 0; i < 2; ++i)
   {
     vcTexture_Destroy(&pRenderContext->pAuxiliaryTextures[i]);
@@ -370,12 +372,12 @@ udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t wi
   vcTexture_Create(&pRenderContext->pTexture, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
   vcTexture_Create(&pRenderContext->pDepthTexture, widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
   vcFramebuffer_Create(&pRenderContext->pFramebuffer, pRenderContext->pTexture, pRenderContext->pDepthTexture);
-  
+
   pRenderContext->effectResolution.x = widthIncr >> vcRender_OutlineEffectDownscale;
   pRenderContext->effectResolution.y = heightIncr >> vcRender_OutlineEffectDownscale;
   pRenderContext->effectResolution.x = pRenderContext->effectResolution.x + (pRenderContext->effectResolution.x % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - pRenderContext->effectResolution.x % vcRender_SceneSizeIncrement : 0);
   pRenderContext->effectResolution.y = pRenderContext->effectResolution.y + (pRenderContext->effectResolution.y % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - pRenderContext->effectResolution.y % vcRender_SceneSizeIncrement : 0);
-  
+
   for (int i = 0; i < 2; ++i)
   {
     vcTexture_Create(&pRenderContext->pAuxiliaryTextures[i], pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Clamp, vcTCF_RenderTarget);
@@ -421,10 +423,10 @@ void vcRenderSkybox(vcRenderContext *pRenderContext)
 void vcRender_SplatUDWithId(vcRenderContext *pRenderContext, float id)
 {
   vcShader_Bind(pRenderContext->udRenderContext.splatIdShader.pProgram);
-  
+
   vcShader_BindTexture(pRenderContext->udRenderContext.splatIdShader.pProgram, pRenderContext->udRenderContext.pColourTex, 0, pRenderContext->udRenderContext.splatIdShader.uniform_texture);
   vcShader_BindTexture(pRenderContext->udRenderContext.splatIdShader.pProgram, pRenderContext->udRenderContext.pDepthTex, 1, pRenderContext->udRenderContext.splatIdShader.uniform_depth);
-  
+
   pRenderContext->udRenderContext.splatIdShader.params.id = udFloat4::create(0.0f, 0.0f, 0.0f, id);
   vcShader_BindConstantBuffer(pRenderContext->udRenderContext.splatIdShader.pProgram, pRenderContext->udRenderContext.splatIdShader.uniform_params, &pRenderContext->udRenderContext.splatIdShader.params, sizeof(pRenderContext->udRenderContext.splatIdShader.params));
 
@@ -635,6 +637,8 @@ void vcRender_BeginFrame(vcRenderContext *pRenderContext)
     vcRender_ResizeScene(pRenderContext, pRenderContext->originalSceneResolution.x, pRenderContext->originalSceneResolution.y);
     printf("Recreating context\n");
   }
+#else
+  udUnused(pRenderContext);
 #endif
 }
 
@@ -685,14 +689,14 @@ bool vcRender_DrawSelectedGeometry(vcRenderContext *pRenderContext, vcRenderData
       ++modelIndex;
     }
   }
- 
+
   udFloat4 selectionMask = udFloat4::create(1.0f); // mask selected object
   for (size_t i = 0; i < renderData.polyModels.length; ++i)
   {
     vcRenderPolyInstance *pPolygon = &renderData.polyModels[i];
 
     if (pPolygon->pSceneItem->IsSceneSelected(pPolygon->sceneItemInternalId))
-    {      
+    {
       vcPolygonModel_Render(pPolygon->pModel, pPolygon->worldMat, pRenderContext->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &selectionMask);
       return true; // assuming only a single selection
     }
@@ -1075,7 +1079,7 @@ vcRenderPickResult vcRender_PolygonPick(vcRenderContext *pRenderContext, vcRende
   {
     uint32_t modelId = 1; // note: start at 1, because 0 is 'null'
 
-#ifdef ALLOW_EXPERIMENT_GPURENDER
+#if ALLOW_EXPERIMENT_GPURENDER
     if (pRenderContext->udRenderContext.usingGPURenderer)
       vcRender_SplatUDWithId(pRenderContext, 0.0f); // `0.0` is a sentinel to tell it to use the id encoded in the alpha channel
 #endif
@@ -1083,16 +1087,18 @@ vcRenderPickResult vcRender_PolygonPick(vcRenderContext *pRenderContext, vcRende
     // Polygon Models
     {
       for (size_t i = 0; i < renderData.polyModels.length; ++i)
-      {     
+      {
         udFloat4 idAsColour = vcRender_EncodeIdAsColour((uint32_t)(modelId++));
         vcPolygonModel_Render(renderData.polyModels[i].pModel, renderData.polyModels[i].worldMat, pRenderContext->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &idAsColour);
       }
 
+      /*
       for (size_t i = 0; i < renderData.sceneLayers.length; ++i)
       {
         udFloat4 idAsColour = vcRender_EncodeIdAsColour((uint32_t)(modelId++));
         //vcSceneLayerRenderer_Render(renderData.sceneLayers[i], pRenderContext->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
       }
+      */
     }
   }
 
@@ -1103,7 +1109,7 @@ vcRenderPickResult vcRender_PolygonPick(vcRenderContext *pRenderContext, vcRende
   // note: we render upside-down
   vcFramebuffer_ReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pickColourBGRA, pRenderContext->picking.location.x, pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1, 1, 1);
   vcFramebuffer_ReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pDepth, &pickDepth, pRenderContext->picking.location.x, pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1, 1, 1);
-#elif GRAPHICS_API_D3D11
+#else // All others are the same direction
   vcFramebuffer_ReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pickColourBGRA, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1);
   vcFramebuffer_ReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pDepth, &pickDepth, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1);
 #endif
@@ -1124,7 +1130,7 @@ vcRenderPickResult vcRender_PolygonPick(vcRenderContext *pRenderContext, vcRende
     // note: upside down (1.0 - uv.y)
 #if GRAPHICS_API_OPENGL
     udDouble4 clipPos = udDouble4::create(pickUV.x * 2.0 - 1.0, (1.0 - pickUV.y) * 2.0 - 1.0, pickDepth * 2.0 - 1.0, 1.0);
-#elif GRAPHICS_API_D3D11
+#else // All others are the same direction
     // note: direct x clip depth is [0, 1]
     udDouble4 clipPos = udDouble4::create(pickUV.x * 2.0 - 1.0, (1.0 - pickUV.y) * 2.0 - 1.0, pickDepth, 1.0);
 #endif
@@ -1132,7 +1138,7 @@ vcRenderPickResult vcRender_PolygonPick(vcRenderContext *pRenderContext, vcRende
     pickPosition = pickPosition / pickPosition.w;
     result.success = true;
     result.position = pickPosition.toVector3();
-     
+
     if (pickedPolygonId != -1)
     {
       result.pPolygon = &renderData.polyModels[pickedPolygonId];

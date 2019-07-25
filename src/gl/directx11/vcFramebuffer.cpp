@@ -117,16 +117,15 @@ bool vcFramebuffer_ReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachmen
   D3D11_MAPPED_SUBRESOURCE msr;
   res = g_pd3dDeviceContext->Map(pTextureD3D, 0, D3D11_MAP_READ, 0, &msr);
   UD_ERROR_IF(res != S_OK, udR_InternalError);
- 
+
   if (pAttachment->format == vcTextureFormat_D24S8)
   {
     uint32_t *pPixel = ((uint32_t*)msr.pData) + (x + y * pAttachment->width);
 
     // 24 bit unsigned int -> float
-    uint8_t r = ((*pPixel) & 0xff) >> 0;
-    uint8_t g = ((*pPixel) & 0xff00) >> 8;
-    uint8_t b = ((*pPixel) & 0xff0000) >> 16;
-    uint8_t a = ((*pPixel) & 0xff000000) >> 24; // stencil
+    uint8_t r = (uint8_t)(((*pPixel) & 0xff) >> 0);
+    uint8_t g = (uint8_t)(((*pPixel) & 0xff00) >> 8);
+    uint8_t b = (uint8_t)(((*pPixel) & 0xff0000) >> 16);
 
     uint32_t t = uint32_t((b << 16) | (g << 8) | (r << 0));
     float v = t / ((1 << 24) - 1.0f);

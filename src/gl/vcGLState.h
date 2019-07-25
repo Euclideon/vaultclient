@@ -3,11 +3,21 @@
 
 // Define potentially missing defines
 #ifndef GRAPHICS_API_OPENGL
-#define GRAPHICS_API_OPENGL 0
+#  define GRAPHICS_API_OPENGL 0
 #endif
 
 #ifndef GRAPHICS_API_D3D11
-#define GRAPHICS_API_D3D11 0
+#  define GRAPHICS_API_D3D11 0
+#endif
+
+#ifndef GRAPHICS_API_METAL
+#  define GRAPHICS_API_METAL 0
+#endif
+
+#if GRAPHICS_API_OPENGL || GRAPHICS_API_D3D11
+#  define ALLOW_EXPERIMENT_GPURENDER 1
+#else
+#  define ALLOW_EXPERIMENT_GPURENDER 0
 #endif
 
 #include "udMath.h"

@@ -11,7 +11,7 @@
 #include "imgui_internal.h"
 #include "imgui_ex/imgui_impl_sdl.h"
 
-#if defined(GRAPHICS_API_METAL)
+#if GRAPHICS_API_METAL
 #include "imgui_ex/imgui_impl_metal.h"
 #endif
 
@@ -268,12 +268,12 @@ void vcMain_MainLoop(vcState *pProgramState)
     frametimeMS = 0.250; // 4 FPS cap when not focused
 
   sleepMS = (uint32_t)udMax((frametimeMS - pProgramState->deltaTime) * 1000.0, 0.0);
-#ifndef GRAPHICS_API_METAL
+#if GRAPHICS_API_METAL
   udSleep(sleepMS);
 #endif
   pProgramState->deltaTime += sleepMS * 0.001; // adjust delta
 
-#ifdef GRAPHICS_API_METAL
+#if GRAPHICS_API_METAL
   ImGui_ImplMetal_NewFrame(pProgramState->pWindow);
 #else
   ImGuiGL_NewFrame(pProgramState->pWindow);
@@ -284,7 +284,7 @@ void vcMain_MainLoop(vcState *pProgramState)
   vcRenderWindow(pProgramState);
   ImGui::Render();
 
-#ifdef GRAPHICS_API_METAL
+#if GRAPHICS_API_METAL
   ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData());
 #else
   ImGuiGL_RenderDrawData(ImGui::GetDrawData());
@@ -813,7 +813,7 @@ int main(int argc, char **args)
 
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-#ifdef GRAPHICS_API_METAL
+#if GRAPHICS_API_METAL
   if (!ImGui_ImplMetal_Init())
     goto epilogue;
 #else
@@ -854,7 +854,7 @@ epilogue:
 
   vcSettings_Cleanup(&programState.settings);
 
-#ifdef GRAPHICS_API_METAL
+#if GRAPHICS_API_METAL
   ImGui_ImplMetal_Shutdown();
 #else
   ImGuiGL_DestroyDeviceObjects();
@@ -1125,7 +1125,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
     bool selectPolygons = pickResult.success;
 
     if (selectUD && selectPolygons)
-    {  
+    {
       // resolve pick
       double polyPickDistToCameraSqr = udMagSq3(pickResult.position - pProgramState->pCamera->position);
       double udPickDistToCameraSqr = udMagSq3(pProgramState->worldMousePos - pProgramState->pCamera->position);
@@ -1145,7 +1145,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
     if (selectUD)
     {
       if (selectPickedObject)
-        renderData.models[renderData.udModelPickedIndex]->OnSceneSelect(0); // TODO: internal id here?    
+        renderData.models[renderData.udModelPickedIndex]->OnSceneSelect(0); // TODO: internal id here?
     }
     else if (selectPolygons)
     {
@@ -1154,7 +1154,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         if (pickResult.pPolygon != nullptr)
         {
           pickResult.pPolygon->pSceneItem->OnSceneSelect(pickResult.pPolygon->sceneItemInternalId);
-          
+
           // TODO: Paul is this correct?
           pProgramState->sceneExplorer.selectedItems.push_back({ pickResult.pPolygon->pSceneItem->m_pNode, nullptr });
         }
@@ -1173,7 +1173,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
 
     mouseWasDown = true;
   }
-  
+
   if (ImGui::IsMouseDragging(0))
     mouseWasDragged = true;
 
@@ -1229,7 +1229,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   // use some data from previous frame
   pProgramState->worldMousePos = pProgramState->previousWorldMousePos;
   pProgramState->pickingSuccess = pProgramState->previousPickingSuccess;
-  
+
   if (pProgramState->cameraInput.isUsingAnchorPoint)
     renderData.pWorldAnchorPos = &pProgramState->cameraInput.worldAnchorPoint;
 

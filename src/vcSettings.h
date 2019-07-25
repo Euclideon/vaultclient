@@ -8,15 +8,10 @@
 #include "udChunkedArray.h"
 
 #include "vcCamera.h"
+#include "gl/vcGLState.h"
 
 #include "imgui.h"
 #include "imgui_internal.h"
-
-#ifdef GRAPHICS_API_METAL
-#  define ALLOW_EXPERIMENT_GPURENDER 0
-#else
-#  define ALLOW_EXPERIMENT_GPURENDER 1
-#endif
 
 enum vcMapTileBlendMode
 {
