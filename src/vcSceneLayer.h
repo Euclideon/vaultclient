@@ -8,11 +8,11 @@
 #include "udMath.h"
 
 struct vcSceneLayer;
-struct vWorkerThreadPool;
+struct udWorkerPool;
 struct udGeoZone;
 
 // `vcSceneLayer_Create()` will load the root node
-udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL);
+udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, udWorkerPool *pWorkerThreadPool, const char *pSceneLayerURL);
 udResult vcSceneLayer_Destroy(vcSceneLayer **ppSceneLayer);
 
 udGeoZone* vcSceneLayer_GetPreferredZone(vcSceneLayer *pSceneLayer);

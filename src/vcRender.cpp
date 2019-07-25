@@ -159,7 +159,7 @@ struct vcRenderContext
 udResult vcRender_RecreateUDView(vcRenderContext *pRenderContext);
 udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &renderData);
 
-udResult vcRender_Init(vcRenderContext **ppRenderContext, vWorkerThreadPool *pWorkerPool, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &sceneResolution)
+udResult vcRender_Init(vcRenderContext **ppRenderContext, udWorkerPool *pWorkerPool, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &sceneResolution)
 {
   udResult result = udR_Success;
   vcRenderContext *pRenderContext = nullptr;
