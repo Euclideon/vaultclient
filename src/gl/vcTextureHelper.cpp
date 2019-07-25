@@ -1,6 +1,6 @@
 #include "vcTexture.h"
 
-#include "vCore/vWorkerThread.h"
+#include "udWorkerPool.h"
 #include "udStringUtil.h"
 #include "udFile.h"
 
@@ -36,7 +36,7 @@ void vcTexture_AsyncLoadMainThreadWork(void *pTextureLoadInfo)
   udFree(pLoadInfo->pData);
 }
 
-void vcTexture_AsyncCreateFromFilename(vcTexture **ppTexture, vWorkerThreadPool *pPool, const char *pFilename, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/)
+void vcTexture_AsyncCreateFromFilename(vcTexture **ppTexture, udWorkerPool *pPool, const char *pFilename, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/)
 {
   AsyncTextureLoadInfo *pLoadInfo = udAllocType(AsyncTextureLoadInfo, 1, udAF_Zero);
 
@@ -48,5 +48,5 @@ void vcTexture_AsyncCreateFromFilename(vcTexture **ppTexture, vWorkerThreadPool 
   pLoadInfo->hasMips = hasMipmaps;
   pLoadInfo->wrapMode = wrapMode;
 
-  vWorkerThread_AddTask(pPool, vcTexture_AsyncLoadWorkerThreadWork, pLoadInfo, true, vcTexture_AsyncLoadMainThreadWork);
+  udWorkerPool_AddTask(pPool, vcTexture_AsyncLoadWorkerThreadWork, pLoadInfo, true, vcTexture_AsyncLoadMainThreadWork);
 }

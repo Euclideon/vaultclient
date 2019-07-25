@@ -5,8 +5,7 @@
 #include "udMath.h"
 #include "udChunkedArray.h"
 #include "udJSON.h"
-
-#include "vCore/vWorkerThread.h"
+#include "udWorkerPool.h"
 
 #include "vcImageRenderer.h"
 #include "vcSettings.h"
@@ -77,7 +76,7 @@ struct vcState
   udChunkedArray<FileError> errorFiles;
 
   const char *pLoadImage;
-  vWorkerThreadPool *pWorkerPool;
+  udWorkerPool *pWorkerPool;
 
   double deltaTime;
   udUInt2 sceneResolution;

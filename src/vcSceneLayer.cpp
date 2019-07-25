@@ -5,13 +5,13 @@
 #include "vcSceneLayerHelper.h"
 #include "vcPolygonModel.h"
 
-#include "vCore/vWorkerThread.h"
 
 #include "gl/vcTexture.h"
 #include "gl/vcGLState.h"
 
 #include "udFile.h"
 #include "udStringUtil.h"
+#include "udWorkerPool.h"
 
 // TODO: (EVC-553) This is temporary
 uint64_t gpuBytesUploadedThisFrame = 0;
@@ -524,7 +524,7 @@ epilogue:
   return result;
 }
 
-udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL)
+udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, udWorkerPool *pWorkerThreadPool, const char *pSceneLayerURL)
 {
   udResult result;
   vcSceneLayer *pSceneLayer = nullptr;
@@ -707,7 +707,7 @@ bool vcSceneLayer_TouchNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
     pLoadData->pNode = pNode;
 
     // TODO: (EVC-548)
-    vWorkerThread_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeJob, pLoadData);
+    udWorkerPool_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeJob, pLoadData);
   }
   else if (pNode->loadState == vcSceneLayerNode::vcLS_PartialLoad)
   {
@@ -715,7 +715,7 @@ bool vcSceneLayer_TouchNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
     vcSceneLayer_LoadNodeJobData *pLoadData = udAllocType(vcSceneLayer_LoadNodeJobData, 1, udAF_Zero);
     pLoadData->pSceneLayer = pSceneLayer;
     pLoadData->pNode = pNode;
-    vWorkerThread_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeInternalsJob, pLoadData);
+    udWorkerPool_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeInternalsJob, pLoadData);
   }
 
   if (pNode->loadState == vcSceneLayerNode::vcLS_InMemory)

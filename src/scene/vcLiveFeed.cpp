@@ -329,7 +329,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       pInfo->pProgramState = pProgramState;
       pInfo->pFeed = this;
 
-      vWorkerThread_AddTask(pProgramState->pWorkerPool, vcLiveFeed_UpdateFeed, pInfo);
+      udWorkerPool_AddTask(pProgramState->pWorkerPool, vcLiveFeed_UpdateFeed, pInfo);
     }
   }
 
@@ -421,7 +421,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
           else
           {
             m_polygonModels.PushBack({ udStrdup(lodRef.pModelAddress), nullptr, vcLiveFeedPolyCache::LS_InQueue, nullptr, 0 });
-            vWorkerThread_AddTask(pProgramState->pWorkerPool, vcLiveFeed_LoadModel, this, false);
+            udWorkerPool_AddTask(pProgramState->pWorkerPool, vcLiveFeed_LoadModel, this, false);
           }
 
           lodRef.pModel = pModel;
