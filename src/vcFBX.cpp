@@ -13,12 +13,6 @@
 #include "vcFBX.h"
 #include "vdkTriangleVoxelizer.h"
 
-/*
-  Might be worth thinking about baking the handling for everyNth into the point resolution? This will require an accurate point
-  count estimate but it would make everyNth handling simpler and speed up the process as Trivox wouldn't have to do as much processing
-  also would give a more consistent distribution of points
-*/
-
 struct vcFBX_UVSet
 {
   const char *pName;
@@ -27,6 +21,7 @@ struct vcFBX_UVSet
   FbxLayerElementArrayTemplate<int> *pIndexes;
   FbxLayerElementArrayTemplate<FbxVector2> *pDirect;
 };
+
 struct vcFBXTexture
 {
   FbxFileTexture *pTex;
@@ -75,8 +70,6 @@ struct vcFBX
   FbxArray<vcFBX_UVSet> uvSets;
   FbxArray<vcFBXTexture> textures;
   FbxArray<FbxVector2> uvQueue;
-
-  bool badTexture;
 };
 
 // TODO: (EVC-719) Texture Blending
@@ -113,7 +106,7 @@ void vcFBX_GetUVSets(vcFBX *pFBX, FbxMesh *pMesh)
   // Iterate over all uv sets
   for (int i = 0; i < UVSetNameList.GetCount(); i++)
   {
-    vcFBX_UVSet set;
+    vcFBX_UVSet set = {};
 
     const char *pName = UVSetNameList[i];
     set.pName = udStrdup(pName);
@@ -137,7 +130,7 @@ void vcFBX_GetUVSets(vcFBX *pFBX, FbxMesh *pMesh)
   }
 }
 
-bool vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
+udResult vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
 {
   // Process materials to prepare colour handling
   const char *pFilename = nullptr;
@@ -193,7 +186,8 @@ bool vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
         void *pMem = nullptr;
         int64_t fileLength;
 
-        if (udFile_Load(pFilename, &pMem, &fileLength) == udR_Success)
+        udResult res = udFile_Load(pFilename, &pMem, &fileLength);
+        if (res == udR_Success)
         {
           texture.pPixels = (uint32_t*)stbi_load_from_memory((const stbi_uc*)pMem, (int)fileLength, &texture.width, &texture.height, &texture.channels, 4);
           texture.pTex = pTexture;
@@ -205,9 +199,7 @@ bool vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
         }
         else
         {
-          // Texture not found or unable to load, return bad
-          udFree(pMem);
-          return false;
+          return res;
         }
       }
 
@@ -216,7 +208,7 @@ bool vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
     pFBX->textures.Add(texture);
   }
 
-  return true;
+  return udR_Success;
 }
 
 
@@ -286,6 +278,7 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
 epilogue:
   pFBX->pManager->Destroy(); // Destroying manager destroys all objects that were created with it
   udFree(pFBX);
+  pFBX = nullptr;
 
   return result;
 }
@@ -331,7 +324,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
       if (pConvertInput->content & vdkAC_ARGB)
       {
         vcFBX_GetUVSets(pFBX, pFBX->pMesh);
-        if (!vcFBX_GetTextures(pFBX, pFBX->pNode))
+        if (vcFBX_GetTextures(pFBX, pFBX->pNode) != udR_Success)
           return vE_NotFound;
       }
     } // ---------------------------------------------- End new mesh handling
@@ -357,13 +350,13 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
           for (int tex = 0; tex < pFBX->textures.Size(); ++tex)
           {
             uint32_t thisColour = 0;
-            bool premultiplied = true;
 
             if (pFBX->textures[tex].pTex != nullptr)
             {
               vcFBX_UVSet &UV = pFBX->uvSets[pFBX->textures[tex].uvSet];
 
-              int w = pFBX->textures[tex].width, h = pFBX->textures[tex].height;
+              int w = pFBX->textures[tex].width;
+              int h = pFBX->textures[tex].height;
 
               int PolyVertIndex = -1;
 
@@ -377,15 +370,16 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
               newVec[1] = 1 - newVec[1];
 
               int u = (int)udMod(udRound(newVec[0] * w), w);
-              u = pFBX->textures[tex].pTex->GetWrapModeU() == FbxTexture::eRepeat ? (u + w) % w : udClamp(u, 0, w);
+              u = (pFBX->textures[tex].pTex->GetWrapModeU() == FbxTexture::eRepeat ? (u + w) % w : udClamp(u, 0, w));
               int v = (int)udMod(udRound(newVec[1] * h), h);
-              v = pFBX->textures[tex].pTex->GetWrapModeV() == FbxTexture::eRepeat ? (v + h) % h : udClamp(v, 0, h);
+              v = (pFBX->textures[tex].pTex->GetWrapModeV() == FbxTexture::eRepeat ? (v + h) % h : udClamp(v, 0, h));
 
               thisColour = pFBX->textures[tex].pPixels[u + v * w];
 
-              premultiplied = pFBX->textures[tex].pTex->GetPremultiplyAlpha();
+              /*
+              bool premultiplied = pFBX->textures[tex].pTex->GetPremultiplyAlpha();
 
-              /*switch (pFBX->textures[tex].pTex->GetBlendMode())
+              switch (pFBX->textures[tex].pTex->GetBlendMode())
               {
               case FbxTexture::eTranslucent:
                 //vcFBX_Alpha((uint8_t*)&colour, (uint8_t*)&thisColour, premultiplied);
@@ -508,16 +502,15 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
                   pFBX->uvQueue.RemoveRange(0, 3);
 
                   int u = (int)udMod(udRound(pointUV[0] * w), w);
-                  u = pFBX->textures[tex].pTex->GetWrapModeU() == FbxTexture::eRepeat ? (u + w) % w : udClamp(u, 0, w);
+                  u = (pFBX->textures[tex].pTex->GetWrapModeU() == FbxTexture::eRepeat ? (u + w) % w : udClamp(u, 0, w));
                   int v = (int)udMod(udRound(pointUV[1] * h), h);
-                  v = pFBX->textures[tex].pTex->GetWrapModeV() == FbxTexture::eRepeat ? (v + h) % h : udClamp(v, 0, h);
+                  v = (pFBX->textures[tex].pTex->GetWrapModeV() == FbxTexture::eRepeat ? (v + h) % h : udClamp(v, 0, h));
 
                   uint32_t pixel = (uint32_t)u + v * w;
                   thisColour = pFBX->textures[tex].pPixels[pixel];
 
-                  //bool premultiplied = pFBX->textures[tex].pTex->GetPremultiplyAlpha();
+                  /*bool premultiplied = pFBX->textures[tex].pTex->GetPremultiplyAlpha();
 
-                  /*
                   switch (pFBX->textures[tex].pTex->GetBlendMode())
                   {
                   case FbxTexture::eTranslucent:
@@ -536,6 +529,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
                     break;
                   }
                   */
+
                   colour = thisColour;
                 }
                 else
@@ -597,9 +591,15 @@ void vcFBX_Close(vdkConvertCustomItem *pConvertInput)
   {
     vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
     vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
+
     if (pFBX->pManager != nullptr)
       pFBX->pManager->Destroy();
+
     udFree(pConvertInput->pName);
+
+    for (int i = 0; i < pFBX->uvSets.Size(); ++i)
+      udFree(pFBX->uvSets[i].pName);
+
     udFree(pFBX);
   }
 }
@@ -621,10 +621,7 @@ vdkError vcFBX_AddItem(vdkContext *pContext, vdkConvertContext *pConvertContext,
   customItem.pointCount = -1;
   customItem.content = vdkAC_ARGB; // Colour is the only content attribute in an fbx model
 
-  /*
-   * TEMP: Bounds will be overwritten, but need to be set to something nonzero and >resolution and >true bounds
-   * because custom convert will fail in vdk unless bounds are nonzero... Can this be changed or circumvented?
-   */
+  // Bounds will be overwritten
   customItem.boundsKnown = false;
   for (int i = 0; i < 3; ++i)
     customItem.boundMax[i] = 1000000000;
