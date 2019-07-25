@@ -1089,72 +1089,65 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   }
 }
 
-void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderData)
+void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderData, bool doSelect)
 {
-  static bool mouseWasDragged = false;
-  static bool mouseWasDown = false;
+  vcRenderPickResult pickResult = vcRender_PolygonPick(pProgramState->pRenderContext, renderData);
 
-  // TODO: Actually get what mouse the 'tumble', 'orbit' and 'pan' controls are bound to
-  bool selectPickedObject = (!mouseWasDragged && ImGui::IsMouseReleased(0));
-  bool depthFromPickedObject = (!mouseWasDown && (ImGui::IsMouseDown(1) || ImGui::IsMouseDown(2))) || (ImGui::GetIO().MouseWheel != 0);
+  const double farPlaneDist = 3 * (pProgramState->settings.camera.farPlane * pProgramState->settings.camera.farPlane);
 
-  if (selectPickedObject || depthFromPickedObject)
+  // We have to resolve UD vs. Polygon
+  udDouble3 mapHitPoint;
+  bool selectMap = vcRender_PickTiles(pProgramState->pRenderContext, mapHitPoint);
+  double mapDist = (selectMap ? udMagSq3(mapHitPoint - pProgramState->pCamera->position) : farPlaneDist);
+
+  bool selectUD = pProgramState->pickingSuccess && (pProgramState->previousUDModelPickedIndex != -1); // UD was successfully picked (last frame)
+  double udDist = (selectUD ? udMagSq3(pProgramState->worldMousePos - pProgramState->pCamera->position) : farPlaneDist);
+
+  bool selectPolygons = pickResult.success;
+  double polyDist = (selectPolygons ? udMagSq3(pickResult.position - pProgramState->pCamera->position) : farPlaneDist);
+
+  // resolve pick
+  selectMap = selectMap && (mapDist < udDist) && (mapDist < polyDist);
+  selectUD = selectUD && !selectMap && (udDist < polyDist);
+  selectPolygons = selectPolygons && !selectUD && !selectMap;
+
+  if (selectPolygons || selectMap)
   {
-    vcRenderPickResult pickResult = vcRender_PolygonPick(pProgramState->pRenderContext, renderData);
+    if (selectPolygons)
+      pProgramState->worldMousePos = pickResult.position;
+    else if (selectMap)
+      pProgramState->worldMousePos = mapHitPoint;
 
-    // TODO: what if tiles occlude geometry / ud?
-    if (!pickResult.success)
-      vcRender_PickTiles(pProgramState->pRenderContext, renderData);
+    pProgramState->pickingSuccess = true;
+    pProgramState->previousUDModelPickedIndex = -1;
 
-    // We have to resolve UD vs. Polygon
-    bool selectUD = pProgramState->pickingSuccess; // UD was successfully picked (last frame)
-    bool selectPolygons = pickResult.success;
+    if (renderData.pWorldAnchorPos == nullptr)
+      renderData.pWorldAnchorPos = &pProgramState->worldMousePos;
+  }
 
-    if (selectUD && selectPolygons)
-    {
-      // resolve pick
-      double polyPickDistToCameraSqr = udMagSq3(pickResult.position - pProgramState->pCamera->position);
-      double udPickDistToCameraSqr = udMagSq3(pProgramState->worldMousePos - pProgramState->pCamera->position);
-      selectUD = udPickDistToCameraSqr < polyPickDistToCameraSqr;
-      selectPolygons = selectPolygons && !selectUD;
-    }
-
-    if (selectPickedObject && (selectUD || selectPolygons)) // only unselect if we are able to select something new
-      vcProject_ClearSelection(pProgramState);
-
+  if (doSelect)
+  {
     if (selectUD)
     {
-      udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, renderData.models[renderData.udModelPickedIndex]->m_pNode->UUID);
+      if (pProgramState->previousUDModelPickedIndex < (int)renderData.models.length)
+        udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, renderData.models[pProgramState->previousUDModelPickedIndex]->m_pNode->UUID);
     }
     else if (selectPolygons)
     {
-      if (selectPickedObject)
+      if (pickResult.pPolygon != nullptr)
       {
-        if (pickResult.pPolygon != nullptr)
-        {
-          udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pPolygon->pSceneItem->m_pNode->UUID);
-          //pickResult.pPolygon->pSceneItem->OnSceneSelect(pickResult.pPolygon->sceneItemInternalId); //TODO: Handle the internal ID stuff as well
-        }
-        else // ud
-        {
-          udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pModel->m_pNode->UUID);
-        }
+        udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pPolygon->pSceneItem->m_pNode->UUID);
+        //pickResult.pPolygon->pSceneItem->OnSceneSelect(pickResult.pPolygon->sceneItemInternalId); //TODO: Handle the internal ID stuff as well
       }
-
-      pProgramState->pickingSuccess = pickResult.success;
-      pProgramState->worldMousePos = pickResult.position;
+      else // ud
+      {
+        udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pModel->m_pNode->UUID);
+      }
     }
-
-    mouseWasDown = true;
-  }
-
-  if (ImGui::IsMouseDragging(0))
-    mouseWasDragged = true;
-
-  if (ImGui::IsMouseReleased(0) || ImGui::IsMouseReleased(2) || ImGui::IsMouseReleased(1))
-  {
-    mouseWasDragged = false;
-    mouseWasDown = false;
+    else
+    {
+      vcProject_ClearSelection(pProgramState);
+    }
   }
 }
 
@@ -1224,14 +1217,15 @@ void vcRenderSceneWindow(vcState *pProgramState)
     vcTexture *pSceneTexture = vcRender_GetSceneTexture(pProgramState->pRenderContext);
     ImGui::ImageButton(pSceneTexture, windowSize, uv0, uv1, 0);
 
-    static bool wasOpenLastFrame = false;
+    static bool wasContextMenuOpenLastFrame = false;
+    bool selectItem = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold*io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
 
     if (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext"))
     {
       static bool hadMouse = false;
       static udDouble3 mousePosLongLat;
 
-      if (!wasOpenLastFrame || ImGui::IsMouseClicked(1))
+      if (!wasContextMenuOpenLastFrame || ImGui::IsMouseClicked(1))
       {
         hadMouse = pProgramState->pickingSuccess;
         mousePosLongLat = pProgramState->worldMousePosLongLat;
@@ -1349,11 +1343,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
       }
 
       ImGui::EndPopup();
-      wasOpenLastFrame = true;
+      wasContextMenuOpenLastFrame = true;
     }
     else
     {
-      wasOpenLastFrame = false;
+      wasContextMenuOpenLastFrame = false;
     }
 
     // Orbit around centre when fully pressed, show crosshair when partially pressed (also see vcCamera_HandleSceneInput())
@@ -1374,7 +1368,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
     pProgramState->activeProject.pFolder->AddToScene(pProgramState, &renderData);
 
-    vcRenderScene_HandlePicking(pProgramState, renderData);
+    vcRenderScene_HandlePicking(pProgramState, renderData, selectItem);
 
     // Camera update has to be here because it depends on previous ImGui state
     vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create(windowSize.x, windowSize.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
