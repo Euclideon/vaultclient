@@ -10,6 +10,8 @@
 #include "gl/vcShader.h"
 #include "gl/vcMesh.h"
 
+#if ALLOW_EXPERIMENT_GPURENDER
+
 enum vcGPURendererPointRenderMode
 {
   vcBRPRM_Quads,
@@ -22,5 +24,7 @@ struct vcGPURenderer;
 
 udResult vcGPURenderer_Create(vcGPURenderer **ppBlockRenderer, vcGPURendererPointRenderMode renderMode, int targetPointCount, float threshold = 0.6f);
 udResult vcGPURenderer_Destroy(vcGPURenderer **ppBlockRenderer);
+
+#endif // ALLOW_EXPERIMENT_GPURENDER
 
 #endif // vcBlockRender_h__

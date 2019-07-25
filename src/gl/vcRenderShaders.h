@@ -1,6 +1,8 @@
 #ifndef vcRenderShaders_h__
 #define vcRenderShaders_h__
 
+#include "vcGLState.h"
+
 extern const char* const g_udFragmentShader;
 extern const char* const g_udSplatIdFragmentShader;
 extern const char* const g_udVertexShader;

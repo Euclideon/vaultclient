@@ -139,7 +139,7 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
   pCamera->matrices.camera = vcCamera_GetMatrix(pCamera);
 
 
-#if defined(GRAPHICS_API_OPENGL)
+#if GRAPHICS_API_OPENGL
   pCamera->matrices.projectionNear = udDouble4x4::perspectiveNO(fov, aspect, 0.5f, 10000.f);
 #else
   pCamera->matrices.projectionNear = udDouble4x4::perspectiveZO(fov, aspect, 0.5f, 10000.f);
@@ -149,19 +149,19 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
   {
   case vcCM_OrthoMap:
     pCamera->matrices.projectionUD = udDouble4x4::orthoZO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
-#if defined(GRAPHICS_API_OPENGL)
+#if GRAPHICS_API_OPENGL
     pCamera->matrices.projection = udDouble4x4::orthoNO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
 #endif
     break;
   case vcCM_FreeRoam: // fall through
   default:
     pCamera->matrices.projectionUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
-#if defined(GRAPHICS_API_OPENGL)
+#if GRAPHICS_API_OPENGL
     pCamera->matrices.projection = udDouble4x4::perspectiveNO(fov, aspect, zNear, zFar);
 #endif
   }
 
-#if !defined(GRAPHICS_API_OPENGL)
+#if !GRAPHICS_API_OPENGL
   pCamera->matrices.projection = pCamera->matrices.projectionUD;
 #endif
 
@@ -177,7 +177,7 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
     udDouble2 mousePosClip = udDouble2::create((pMousePos->x / windowSize.x) * 2.0 - 1.0, 1.0 - (pMousePos->y / windowSize.y) * 2.0);
 
     double nearClipZ = 0.0;
-#if defined(GRAPHICS_API_OPENGL)
+#if GRAPHICS_API_OPENGL
     nearClipZ = -1.0;
 #endif
     udDouble4 mouseNear = (pCamera->matrices.inverseViewProjection * udDouble4::create(mousePosClip, nearClipZ, 1.0));
