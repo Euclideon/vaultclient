@@ -1120,18 +1120,11 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
     }
 
     if (selectPickedObject && (selectUD || selectPolygons)) // only unselect if we are able to select something new
-    {
-      // TODO: can I store the selected node somewhere? Instead of looping over every poly/ud model like this...
-      for (size_t i = 0; i < renderData.models.length; ++i)
-        renderData.models[i]->OnSceneUnselect(0); // TODO: internal id here?
-      for (size_t i = 0; i < renderData.polyModels.length; ++i)
-        renderData.polyModels[i].pSceneItem->OnSceneUnselect(renderData.polyModels[i].sceneItemInternalId);
-    }
+      vcProject_ClearSelection(pProgramState);
 
     if (selectUD)
     {
-      if (selectPickedObject)
-        renderData.models[renderData.udModelPickedIndex]->OnSceneSelect(0); // TODO: internal id here?
+      udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, renderData.models[renderData.udModelPickedIndex]->m_pNode->UUID);
     }
     else if (selectPolygons)
     {
@@ -1139,17 +1132,12 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
       {
         if (pickResult.pPolygon != nullptr)
         {
-          pickResult.pPolygon->pSceneItem->OnSceneSelect(pickResult.pPolygon->sceneItemInternalId);
-
-          // TODO: Paul is this correct?
-          pProgramState->sceneExplorer.selectedItems.push_back({ pickResult.pPolygon->pSceneItem->m_pNode, nullptr });
+          udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pPolygon->pSceneItem->m_pNode->UUID);
+          //pickResult.pPolygon->pSceneItem->OnSceneSelect(pickResult.pPolygon->sceneItemInternalId); //TODO: Handle the internal ID stuff as well
         }
         else // ud
         {
-          pickResult.pModel->OnSceneSelect(0);
-
-          // TODO: Paul is this correct?
-          pProgramState->sceneExplorer.selectedItems.push_back({ pickResult.pModel->m_pNode, nullptr });
+          udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pModel->m_pNode->UUID);
         }
       }
 
