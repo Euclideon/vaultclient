@@ -117,7 +117,7 @@ struct vcSceneLayerNode
 
 struct vcSceneLayer
 {
-  vWorkerThreadPool *pThreadPool;
+  udWorkerPool *pThreadPool;
   bool isActive;
 
   char sceneLayerURL[vcMaxURLLength];

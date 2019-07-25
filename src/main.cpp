@@ -133,12 +133,6 @@ int SDL_main(int argc, char **args)
 }
 #endif
 
-struct vcColumnHeader
-{
-  const char* pLabel;
-  float size;
-};
-
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
@@ -297,7 +291,7 @@ void vcMain_MainLoop(vcState *pProgramState)
   if (ImGui::GetIO().WantSaveIniSettings)
     vcSettings_Save(&pProgramState->settings);
 
-  vWorkerThread_DoPostWork(pProgramState->pWorkerPool);
+  udWorkerPool_DoPostWork(pProgramState->pWorkerPool, 0);
 
   ImGui::GetIO().KeysDown[SDL_SCANCODE_BACKSPACE] = false;
 
@@ -496,7 +490,7 @@ void vcMain_MainLoop(vcState *pProgramState)
     if (udGetEpochSecsUTCf() > pProgramState->lastServerAttempt + 30.0)
     {
       pProgramState->lastServerAttempt = udGetEpochSecsUTCf();
-      vWorkerThread_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
+      udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
     }
 
     if (pProgramState->forceLogout)
@@ -644,12 +638,12 @@ void vcMain_LoadStringTableMT(void *pLoadInfoPtr)
   udFree(pLoadInfo->pFilename);
 }
 
-void vcMain_AsyncLoad(vcState *pProgramState, const char *pFilename, vWorkerThreadCallback *pMainThreadFn)
+void vcMain_AsyncLoad(vcState *pProgramState, const char *pFilename, udWorkerPoolCallback *pMainThreadFn)
 {
   vcMainLoadDataInfo *pInfo = udAllocType(vcMainLoadDataInfo, 1, udAF_Zero);
   pInfo->pFilename = udStrdup(pFilename);
   pInfo->pProgramState = pProgramState;
-  vWorkerThread_AddTask(pProgramState->pWorkerPool, vcMain_AsyncLoadWT, pInfo, true, pMainThreadFn);
+  udWorkerPool_AddTask(pProgramState->pWorkerPool, vcMain_AsyncLoadWT, pInfo, true, pMainThreadFn);
 }
 
 int main(int argc, char **args)
@@ -738,7 +732,7 @@ int main(int argc, char **args)
       programState.loadList.PushBack(udStrdup(args[i]));
   }
 
-  vWorkerThread_StartThreads(&programState.pWorkerPool);
+  udWorkerPool_Create(&programState.pWorkerPool, 4, "VaultClientWorker");
   vcConvert_Init(&programState);
 
   // Setup SDL
@@ -861,7 +855,7 @@ epilogue:
     udFree(programState.errorFiles[i].pFilename);
   programState.errorFiles.Deinit();
 
-  vWorkerThread_Shutdown(&programState.pWorkerPool); // This needs to occur before logout
+  udWorkerPool_Destroy(&programState.pWorkerPool); // This needs to occur before logout
   vcProject_Deinit(&programState, &programState.activeProject); // This needs to be destroyed before the renderer is shutdown
   vcRender_Destroy(&programState.pRenderContext);
   vcTexture_Destroy(&programState.tileModal.pServerIcon);
@@ -1981,7 +1975,7 @@ void vcRenderWindow(vcState *pProgramState)
         {
           pProgramState->passFocus = false;
           pProgramState->loginStatus = vcLS_Pending;
-          vWorkerThread_AddTask(pProgramState->pWorkerPool, vcSession_Login, pProgramState, false);
+          udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_Login, pProgramState, false);
         }
 
         if (SDL_GetModState() & KMOD_CAPS)

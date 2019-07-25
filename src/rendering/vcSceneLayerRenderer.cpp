@@ -7,7 +7,7 @@
 #include "gl/vcTexture.h"
 #include "gl/vcGLState.h"
 
-udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer, vWorkerThreadPool *pWorkerThreadPool, const char *pSceneLayerURL)
+udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer, udWorkerPool *pWorkerThreadPool, const char *pSceneLayerURL)
 {
   udResult result;
   vcSceneLayerRenderer *pSceneLayerRenderer = nullptr;
