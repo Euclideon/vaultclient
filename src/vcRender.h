@@ -18,7 +18,7 @@
 struct vcRenderContext;
 struct vcTexture;
 struct vcSceneLayerRenderer;
-struct vWorkerThreadPool;
+struct udWorkerPool;
 
 struct vcRenderPolyInstance
 {
@@ -61,7 +61,7 @@ struct vcRenderData
   vcCameraSettings *pCameraSettings;
 };
 
-udResult vcRender_Init(vcRenderContext **ppRenderContext, vWorkerThreadPool *pWorkerPool, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &windowResolution);
+udResult vcRender_Init(vcRenderContext **ppRenderContext, udWorkerPool *pWorkerPool, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &windowResolution);
 udResult vcRender_Destroy(vcRenderContext **pRenderContext);
 
 udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vdkContext *pVaultContext);
