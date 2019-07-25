@@ -7,7 +7,7 @@
     - Login Screen
       - `loginUserAgent`, `loginSelectUserAgent`, `loginRestoreDefaults`
     - Convert
-      - `convertWriteFailed`, `convertParseError`, `convertImageParseError`, `convertNoFile`, `convertAddFileTitle`, `convertSetOutputTitle`, `convertAddNewJob`, `convertAddFile`, `convertSetOutput`, `convertWatermark`, `convertBeginPendingFiles`, `convertPendingProcessInProgress`, `convertPendingProcessing`, `convertNoJobSelected`
+      - `convertWriteFailed`, `convertParseError`, `convertImageParseError`, `convertNoFile`, `convertAddFileTitle`, `convertSetOutputTitle`, `convertAddNewJob`, `convertAddFile`, `convertSetOutput`, `convertWatermark`, `convertBeginPendingFiles`, `convertPendingProcessInProgress`, `convertPendingProcessing`, `convertNoJobSelected`, `convertChangeDefaultWatermark`
     - Menus & Modals
       - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`, `menuBarFilesFailed`, `menuBarFilesFailedTooltip`, `menuExperimentalFeatures`
     - Scene Explorer
@@ -280,6 +280,7 @@ Modules are currently:
 
 - `settingsConvert`: Label used on the section heading for convert default settings
 - `settingsConvertRestoreDefaults`: Label used on the context menu to restore convert settings from the default settings file
+- `convertChangeDefaultWatermark`: Label used for button that opens the "change default watermark" window
 
 ### Convert Strings
 

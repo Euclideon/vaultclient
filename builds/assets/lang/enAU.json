@@ -202,6 +202,7 @@
   "convertReadingNoEstimate": "Reading... {1} points read with no estimate.",
   "convertReadComplete": "Completed reading, parsed {1} points",
   "convertLoadWatermark": "Load Watermark Image",
+  "convertChangeDefaultWatermark": "Change Watermark Image",
   "convertRemoveWatermark": "Remove Watermark Image",
   "convertRemoveAll": "Remove All Files",
   "convertInputFiles": "Input Files ({0} files)",

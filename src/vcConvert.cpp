@@ -260,10 +260,13 @@ void vcConvert_AddEmptyJob(vcState *pProgramState, vcConvertItem **ppNextItem)
   if (udStrlen(pProgramState->settings.convertdefaults.tempDirectory) > 0)
     vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pNextItem->pConvertContext, pProgramState->settings.convertdefaults.tempDirectory);
 
-  if (udStrlen(pProgramState->settings.convertdefaults.watermark) > 0)
+  if (udStrlen(pProgramState->settings.convertdefaults.watermark.filename) > 0)
   {
-    vdkConvert_AddWatermark(pProgramState->pVDKContext, pNextItem->pConvertContext, pProgramState->settings.convertdefaults.watermark);
-    pNextItem->watermark.pFilename = udStrdup(pProgramState->settings.convertdefaults.watermark);
+    char buffer[vcMaxPathLength];
+    udStrcpy(buffer, pProgramState->settings.pSaveFilePath);
+    udStrcat(buffer, pProgramState->settings.convertdefaults.watermark.filename);
+    vdkConvert_AddWatermark(pProgramState->pVDKContext, pNextItem->pConvertContext, buffer);
+    pNextItem->watermark.pFilename = udStrdup(buffer);
     pNextItem->watermark.isDirty = true;
   }
 
