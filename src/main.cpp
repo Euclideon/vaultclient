@@ -133,6 +133,15 @@ int SDL_main(int argc, char **args)
 }
 #endif
 
+enum vcLoginBackgroundSettings
+{
+  vcLBS_LoginBoxY = 40,
+  vcLBS_LoginBoxH = 280,
+  vcLBS_LogoW = 375,
+  vcLBS_LogoH = 577,
+};
+
+void vcMain_ShowStartupScreen(vcState *pProgramState);
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
@@ -275,7 +284,10 @@ void vcMain_MainLoop(vcState *pProgramState)
 
   vcGizmo_BeginFrame();
   vcGLState_ResetState(true);
-  vcRenderWindow(pProgramState);
+  if (pProgramState->finishedStartup)
+    vcRenderWindow(pProgramState);
+  else
+    vcMain_ShowStartupScreen(pProgramState);
   ImGui::Render();
 
 #if GRAPHICS_API_METAL
@@ -291,7 +303,10 @@ void vcMain_MainLoop(vcState *pProgramState)
   if (ImGui::GetIO().WantSaveIniSettings)
     vcSettings_Save(&pProgramState->settings);
 
-  udWorkerPool_DoPostWork(pProgramState->pWorkerPool, 0);
+  if (pProgramState->finishedStartup)
+    udWorkerPool_DoPostWork(pProgramState->pWorkerPool);
+  else
+    pProgramState->finishedStartup = ((udWorkerPool_DoPostWork(pProgramState->pWorkerPool, 1) == udR_NothingToDo) && !udWorkerPool_HasActiveWorkers(pProgramState->pWorkerPool));
 
   ImGui::GetIO().KeysDown[SDL_SCANCODE_BACKSPACE] = false;
 
@@ -1696,6 +1711,42 @@ void vcChangeTab(vcState *pProgramState, vcDocks dock)
   }
 }
 
+void vcMain_ShowStartupScreen(vcState *pProgramState)
+{
+  ImGuiIO &io = ImGui::GetIO();
+  ImVec2 size = io.DisplaySize;
+
+  static double logoFade = 0.0;
+
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+  ImGui::SetNextWindowSize(ImVec2(size.x, size.y), ImGuiCond_Always);
+  ImGui::SetNextWindowBgAlpha(0.f);
+  ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always, ImVec2(0.f, 0.f));
+
+  if (ImGui::Begin("Background", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
+  {
+    ImGui::GetWindowDrawList()->AddRectFilledMultiColor(ImVec2(0, 0), size, 0xFFB5A245, 0xFFE3D9A8, 0xFFCDBC71, 0xFF998523);
+
+    float amt = (float)udSin(ImGui::GetTime()) * 50.f;
+    float baseY = size.y * 0.75f;
+    ImGui::GetWindowDrawList()->AddBezierCurve(ImVec2(0, baseY), ImVec2(size.x * 0.33f, baseY + amt), ImVec2(size.x * 0.67f, baseY - amt), ImVec2(size.x, baseY), 0xFFFFFFFF, 4.f);
+
+    if (pProgramState->pCompanyLogo != nullptr)
+    {
+      logoFade += pProgramState->deltaTime * 10; // Fade in really fast
+      uint32_t fadeIn = (0xFFFFFF | (udMin(uint32_t(logoFade * 255), 255U) << 24));
+
+      float scaling = udMin(0.9f * (size.y - vcLBS_LoginBoxH) / vcLBS_LogoH, 1.f);
+      float yOff = (size.y - vcLBS_LoginBoxH) / 2.f;
+      ImGui::GetWindowDrawList()->AddImage(pProgramState->pCompanyLogo, ImVec2((size.x - vcLBS_LogoW * scaling) / 2.f, yOff - (vcLBS_LogoH * scaling * 0.5f)), ImVec2((size.x + vcLBS_LogoW * scaling) / 2, yOff + (vcLBS_LogoH * scaling * 0.5f)), ImVec2(0, 0), ImVec2(1, 1), fadeIn);
+    }
+  }
+
+  ImGui::End();
+  ImGui::PopStyleVar(2);
+}
+
 void vcRenderWindow(vcState *pProgramState)
 {
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
@@ -1750,14 +1801,6 @@ void vcRenderWindow(vcState *pProgramState)
 
   if (!pProgramState->hasContext)
   {
-    enum vcLoginBackgroundSettings
-    {
-      vcLBS_LoginBoxY = 40,
-      vcLBS_LoginBoxH = 280,
-      vcLBS_LogoW = 375,
-      vcLBS_LogoH = 577,
-    };
-
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f, 0.f, 0.f, 0.f));
 
     ImGui::SetNextWindowBgAlpha(0.f);
