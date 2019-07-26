@@ -109,8 +109,7 @@ void vcFBX_GetUVSets(vcFBX *pFBX, FbxMesh *pMesh)
     vcFBX_UVSet set = {};
 
     const char *pName = UVSetNameList[i];
-    set.pName = udStrdup(pName);
-    const FbxGeometryElementUV *pUVElement = pMesh->GetElementUV(set.pName);
+    const FbxGeometryElementUV *pUVElement = pMesh->GetElementUV(pName);
 
     if (!pUVElement)
       continue;
@@ -126,6 +125,7 @@ void vcFBX_GetUVSets(vcFBX *pFBX, FbxMesh *pMesh)
     set.pIndexes = &pUVElement->GetIndexArray();
     set.pDirect = &pUVElement->GetDirectArray();
 
+    set.pName = udStrdup(pName);
     pFBX->uvSets.Add(set);
   }
 }
@@ -273,12 +273,16 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
 
   UD_ERROR_CHECK(vdkTriangleVoxelizer_Create(&pFBX->pTrivox, pointResolution));
 
-  return vE_Success;
+  result = vE_Success;
 
 epilogue:
-  pFBX->pManager->Destroy(); // Destroying manager destroys all objects that were created with it
-  udFree(pFBX);
-  pFBX = nullptr;
+
+  if (result != vE_Success)
+  {
+    pFBX->pManager->Destroy(); // Destroying manager destroys all objects that were created with it
+    udFree(pFBX);
+    pFBX = nullptr;
+  }
 
   return result;
 }
@@ -297,7 +301,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
   // For each mesh
   while (pFBX->currMesh < pFBX->totalMeshes)
   {
-    // -------------------------------------------------------- Handle new mesh
+    // Handle new mesh
     if (pFBX->currMesh != pFBX->lastTouchedMesh)
     {
       pFBX->lastTouchedMesh = pFBX->currMesh;
@@ -320,14 +324,14 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
       pFBX->pPoints = pFBX->pMesh->GetControlPoints();
       pFBX->pIndices = pFBX->pMesh->GetPolygonVertices();
 
-      // ---------- Colour processing
+      // Colour processing
       if (pConvertInput->content & vdkAC_ARGB)
       {
         vcFBX_GetUVSets(pFBX, pFBX->pMesh);
         if (vcFBX_GetTextures(pFBX, pFBX->pNode) != udR_Success)
           return vE_NotFound;
       }
-    } // ---------------------------------------------- End new mesh handling
+    } // End new mesh handling
 
     // Vertex only case makes a point per vertex
     if (pFBX->convertFlags & vdkCCIF_PolygonVerticesOnly)
@@ -609,6 +613,8 @@ vdkError vcFBX_AddItem(vdkContext *pContext, vdkConvertContext *pConvertContext,
   vdkConvertCustomItem customItem = {};
 
   vcFBX *pFBX = udAllocType(vcFBX, 1, udAF_Zero);
+  if (pFBX == nullptr)
+    return vE_MemoryAllocationFailure;
 
   // Populate customItem
   customItem.pData = pFBX;
