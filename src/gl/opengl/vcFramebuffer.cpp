@@ -66,6 +66,8 @@ bool vcFramebuffer_ReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachmen
   if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || (x + width) > pAttachment->width || (y + height) > pAttachment->height)
     return false;
 
+  glBindFramebuffer(GL_FRAMEBUFFER, pFramebuffer->id);
+
   switch (pAttachment->format)
   {
   case vcTextureFormat_RGBA8:
