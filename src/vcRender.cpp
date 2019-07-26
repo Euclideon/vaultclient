@@ -259,10 +259,12 @@ udResult vcRender_Destroy(vcRenderContext **ppRenderContext)
 
   vcShader_DestroyShader(&pRenderContext->udRenderContext.presentShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->skyboxShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->udRenderContext.splatIdShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->blurShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->selectionShader.pProgram);
 
   vcMesh_Destroy(&pRenderContext->pScreenQuadMesh);
+  vcMesh_Destroy(&pRenderContext->pFlippedScreenQuadMesh);
 
   vcTexture_Destroy(&pRenderContext->pSkyboxTexture);
   UD_ERROR_CHECK(vcCompass_Destroy(&pRenderContext->pCompass));
