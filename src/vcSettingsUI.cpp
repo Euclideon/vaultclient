@@ -376,6 +376,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           memset(pProgramState->settings.convertdefaults.watermark.filename, 0, sizeof(pProgramState->settings.convertdefaults.watermark.filename));
           pProgramState->settings.convertdefaults.watermark.width = 0;
           pProgramState->settings.convertdefaults.watermark.height = 0;
+          vcTexture_Destroy(&pProgramState->settings.convertdefaults.watermark.pTexture);
         }
       }
 
