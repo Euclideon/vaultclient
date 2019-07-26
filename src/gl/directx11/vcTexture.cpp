@@ -74,13 +74,14 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
 
   UD_ERROR_CHECK(vcTexture_GetFormatAndPixelSize(pTexture, format, texFormat, pixelBytes));
 
-  UINT bindFlags = 0;
-  if (pTexture->isRenderTarget && (format == vcTextureFormat_D32F || format == vcTextureFormat_D24S8))
-    bindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-  else if (pTexture->isRenderTarget)
-    bindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-  else
-    bindFlags = D3D11_BIND_SHADER_RESOURCE;
+  UINT bindFlags = D3D11_BIND_SHADER_RESOURCE;
+  if (pTexture->isRenderTarget)
+  {
+    if (format == vcTextureFormat_D32F || format == vcTextureFormat_D24S8)
+      bindFlags |= D3D11_BIND_DEPTH_STENCIL;
+    else
+      bindFlags |= D3D11_BIND_RENDER_TARGET;
+  }
 
   // Upload texture to graphics system
   D3D11_TEXTURE2D_DESC desc;
@@ -163,10 +164,13 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
     ZeroMemory(&srvDesc, sizeof(srvDesc));
     srvDesc.Format = texFormat;
-    if (pTexture->isRenderTarget && format == vcTextureFormat_D24S8)
-      srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-    else if (pTexture->isRenderTarget && format == vcTextureFormat_D32F)
-      srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+    if (pTexture->isRenderTarget)
+    {
+      if (format == vcTextureFormat_D24S8)
+        srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+      else if (format == vcTextureFormat_D32F)
+        srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+    }
 
     srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
     srvDesc.Texture2D.MipLevels = desc.MipLevels;
