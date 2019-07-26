@@ -9,28 +9,31 @@
 
 namespace vcString
 {
-  static std::unordered_map<std::string, const char*> gStringTable;
+  static std::unordered_map<std::string, const char*> *g_pStringTable;
 
   // pValue needs to be already duplicated before calling this function
   void Set(const char *pKey, const char *pValue)
   {
-    const char *pExistingValue = gStringTable[pKey];
+    const char *pExistingValue = (*g_pStringTable)[pKey];
 
     if (pExistingValue != nullptr)
       udFree(pExistingValue);
 
-    gStringTable[pKey] = pValue;
+    (*g_pStringTable)[pKey] = pValue;
   }
 
   const char* Get(const char *pKey)
   {
-    const char *pValue = gStringTable[pKey];
+    if (g_pStringTable == nullptr)
+      g_pStringTable = new std::unordered_map<std::string, const char*>();
+
+    const char *pValue = (*g_pStringTable)[pKey];
 
     if (pValue == nullptr)
     {
       // Caches the mising string-
-      gStringTable[pKey] = vStringFormat("{{0}}", pKey);
-      return gStringTable[pKey];
+      (*g_pStringTable)[pKey] = vStringFormat("{{0}}", pKey);
+      return (*g_pStringTable)[pKey];
     }
     else
     {
@@ -45,6 +48,7 @@ namespace vcString
     size_t count = 0;
 
     FreeTable(pInfo); // Empty the table
+    g_pStringTable = new std::unordered_map<std::string, const char*>();
 
     UD_ERROR_CHECK(strings.Parse(pJSON));
 
@@ -96,9 +100,14 @@ namespace vcString
       udFree(pInfo->pTargetVersion);
     }
 
-    for (std::pair<std::string, const char*> kvp : gStringTable)
+    if (g_pStringTable == nullptr)
+      return;
+
+    for (std::pair<std::string, const char*> kvp : (*g_pStringTable))
       udFree(kvp.second);
 
-    gStringTable.clear();
+    g_pStringTable->clear();
+    delete g_pStringTable;
+    g_pStringTable = nullptr;
   }
 }
