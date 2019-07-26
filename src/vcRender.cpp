@@ -905,7 +905,7 @@ udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &render
       // Copy to the contiguous array
       pModels[numVisibleModels].pPointCloud = renderData.models[i]->m_pPointCloud;
       memcpy(&pModels[numVisibleModels].matrix, renderData.models[i]->m_sceneMatrix.a, sizeof(pModels[numVisibleModels].matrix));
-      pModels[numVisibleModels].selected = renderData.models[i]->IsSceneSelected(0);
+      pModels[numVisibleModels].modelFlags = renderData.models[i]->IsSceneSelected(0) ? vdkRMF_Selected : vdkRMF_None;
       ++numVisibleModels;
 
       if (renderData.models[i]->m_hasWatermark)
