@@ -685,7 +685,12 @@ bool vcRender_DrawSelectedGeometry(vcRenderContext *pRenderContext, vcRenderData
     {
       if (renderData.models[i]->IsSceneSelected(0))
       {
-        vcRender_SplatUDWithId(pRenderContext, (modelIndex + 1) / 255.0f);
+        float splatId = 1.0f / 255.0f;
+#if ALLOW_EXPERIMENT_GPURENDER
+        if (pRenderContext->pSettings->experimental.useGPURenderer)
+          splatId = (modelIndex + 1) / 255.0f;
+#endif
+        vcRender_SplatUDWithId(pRenderContext, splatId);
         return true; // assuming only a single selection
       }
       ++modelIndex;
@@ -868,7 +873,7 @@ udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &render
   double *pProjectionMatrix = pRenderContext->pCamera->matrices.projectionUD.a;
 #if ALLOW_EXPERIMENT_GPURENDER
   if (pRenderContext->pSettings->experimental.useGPURenderer)
-    pProjectionMatrix = pRenderContext->pCamera->matrices.projection.a; // native render api space
+    pProjectionMatrix = pRenderContext->pCamera->matrices.projection.a; // native render space
 #endif
 
   vdkRenderView_SetMatrix(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pProjectionMatrix);
@@ -900,6 +905,7 @@ udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &render
       // Copy to the contiguous array
       pModels[numVisibleModels].pPointCloud = renderData.models[i]->m_pPointCloud;
       memcpy(&pModels[numVisibleModels].matrix, renderData.models[i]->m_sceneMatrix.a, sizeof(pModels[numVisibleModels].matrix));
+      pModels[numVisibleModels].modelFlags = renderData.models[i]->IsSceneSelected(0) ? vdkRMF_Selected : vdkRMF_None;
       ++numVisibleModels;
 
       if (renderData.models[i]->m_hasWatermark)
@@ -1130,15 +1136,12 @@ vcRenderPickResult vcRender_PolygonPick(vcRenderContext *pRenderContext, vcRende
     result.success = true;
 
     // note: upside down (1.0 - uv.y)
-#if GRAPHICS_API_OPENGL
-    udDouble4 clipPos = udDouble4::create(pickUV.x * 2.0 - 1.0, (1.0 - pickUV.y) * 2.0 - 1.0, pickDepth * 2.0 - 1.0, 1.0);
-#else // All others are the same direction
-    // note: direct x clip depth is [0, 1]
     udDouble4 clipPos = udDouble4::create(pickUV.x * 2.0 - 1.0, (1.0 - pickUV.y) * 2.0 - 1.0, pickDepth, 1.0);
+#if GRAPHICS_API_OPENGL
+    clipPos.z = clipPos.z * 2.0 - 1.0;
 #endif
     udDouble4 pickPosition = pRenderContext->pCamera->matrices.inverseViewProjection * clipPos;
     pickPosition = pickPosition / pickPosition.w;
-    result.success = true;
     result.position = pickPosition.toVector3();
 
     if (pickedPolygonId != -1)

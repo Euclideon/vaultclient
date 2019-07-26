@@ -814,11 +814,11 @@ const char* const g_BlurVertexShader = R"shader(
     output.pos = float4(input.pos.x, input.pos.y, 0.0, 1.0);
 
     // sample on edges, taking advantage of bilinear sampling
-    float sampleOffset = 1.42;
+    float2 sampleOffset = 1.42 * u_stepSize.xy;
     float2 uv = float2(input.uv.x, 1.0 - input.uv.y);
-    output.uv0 = uv + u_stepSize.xy * -sampleOffset;
+    output.uv0 = uv - sampleOffset;
     output.uv1 = uv;
-    output.uv2 = uv + u_stepSize.xy * sampleOffset;
+    output.uv2 = uv + sampleOffset;
 
     return output;
   }
