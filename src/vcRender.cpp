@@ -485,8 +485,8 @@ void vcRender_PresentUD(vcRenderContext *pRenderContext)
   float contourBandHeight = pRenderContext->pSettings->postVisualization.contours.bandHeight;
 
   pRenderContext->udRenderContext.presentShader.params.inverseViewProjection = udFloat4x4::create(pRenderContext->pCamera->matrices.inverseViewProjection);
-  pRenderContext->udRenderContext.presentShader.params.screenParams.x = (1.0f / pRenderContext->sceneResolution.x);
-  pRenderContext->udRenderContext.presentShader.params.screenParams.y = (1.0f / pRenderContext->sceneResolution.y);
+  pRenderContext->udRenderContext.presentShader.params.screenParams.x = outlineWidth * (1.0f / pRenderContext->sceneResolution.x);
+  pRenderContext->udRenderContext.presentShader.params.screenParams.y = outlineWidth * (1.0f / pRenderContext->sceneResolution.y);
   pRenderContext->udRenderContext.presentShader.params.screenParams.z = nearPlane;
   pRenderContext->udRenderContext.presentShader.params.screenParams.w = farPlane;
   pRenderContext->udRenderContext.presentShader.params.outlineColour = outlineColour;
