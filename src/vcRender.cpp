@@ -887,8 +887,6 @@ udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &render
     break;
   }
 
-  vdkRenderContext_SetPointMode(pRenderContext->pVaultContext, pRenderContext->udRenderContext.pRenderer, (vdkRenderContextPointMode)pRenderContext->pSettings->presentation.pointMode);
-
   if (renderData.models.length > 0)
     pModels = udAllocStack(vdkRenderInstance, renderData.models.length, udAF_None);
 
@@ -996,6 +994,8 @@ udResult vcRender_RenderUD(vcRenderContext *pRenderContext, vcRenderData &render
   vdkRenderOptions renderOptions;
   memset(&renderOptions, 0, sizeof(vdkRenderOptions));
   renderOptions.pPick = &picking;
+
+  renderOptions.pointMode = (vdkRenderContextPointMode)pRenderContext->pSettings->presentation.pointMode;
 
 #if ALLOW_EXPERIMENT_GPURENDER
   if (pRenderContext->pSettings->experimental.useGPURenderer)
