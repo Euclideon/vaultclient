@@ -366,6 +366,9 @@
   "sceneExplorerLoadButton": "Load",
   "sceneExplorerCancelButton": "Cancel",
   "sceneExplorerUnknownCustomNode": "This custom node type is unsupported in the current version of Euclideon Vault Client.",
+  "sceneModelPosition": "Model Position",
+  "sceneModelRotation": "Model Rotation",
+  "sceneModelScale": "Model Scale",
 
   "sceneExplorerProjectChangeFailedTitle": "Change Failure!",
   "sceneExplorerProjectChangeFailedMessage": "Sorry, this change you requested to the project was unable to be completed.",
