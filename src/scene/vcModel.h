@@ -42,6 +42,7 @@ public:
 
   udDouble3 GetLocalSpacePivot();
   udDouble4x4 GetWorldSpaceMatrix();
+  vcGizmoAllowedControls GetAllowedControls();
 };
 
 #endif //vcModel_h__

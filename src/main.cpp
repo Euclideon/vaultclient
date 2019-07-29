@@ -1403,7 +1403,10 @@ void vcRenderSceneWindow(vcState *pProgramState)
           snapAmt = 15.0;
         else if (pProgramState->gizmo.operation == vcGO_Translate)
           snapAmt = 0.25;
-        vcGizmoAllowedControls allowedControls = vcGAC_AllUniform;
+
+        vcGizmoAllowedControls allowedControls = vcGAC_All;
+        for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
+          allowedControls = (vcGizmoAllowedControls)(allowedControls & ((vcSceneItem*)ref.pItem->pUserData)->GetAllowedControls());
 
         if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
           allowedControls = (vcGizmoAllowedControls)(allowedControls & ~vcGAC_RotationAxis);
