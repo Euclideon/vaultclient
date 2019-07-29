@@ -4,6 +4,7 @@
 #include "vcGIS.h"
 #include "vcProject.h"
 #include "udJSON.h"
+#include "imgui_ex/ImGuizmo.h"
 
 struct vcState;
 class vcSceneItem;
@@ -75,6 +76,9 @@ public:
 
   // Gets the world space matrix (or identity if not applicable)
   virtual udDouble4x4 GetWorldSpaceMatrix();
+
+  // Gets the allowed Gizmo controls
+  virtual vcGizmoAllowedControls GetAllowedControls();
 
   // Other
   void UpdateNode(vcState *pProgramState);
