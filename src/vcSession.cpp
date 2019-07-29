@@ -31,6 +31,16 @@ const char* vcSession_GetOSName()
 #endif
 }
 
+void vcSession_GetProjectsWT(void *pProgramStatePtr)
+{
+  vcState *pProgramState = (vcState*)pProgramStatePtr;
+
+  const char *pProjData = nullptr;
+  if (vdkServerAPI_Query(pProgramState->pVDKContext, "dev/projects", nullptr, &pProjData) == vE_Success)
+    pProgramState->projects.Parse(pProjData);
+  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pProjData);
+}
+
 void vcSession_GetPackagesWT(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
@@ -84,11 +94,7 @@ void vcSession_Login(void *pProgramStatePtr)
 
   vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pVDKContext);
 
-  const char *pProjData = nullptr;
-  if (vdkServerAPI_Query(pProgramState->pVDKContext, "dev/projects", nullptr, &pProjData) == vE_Success)
-    pProgramState->projects.Parse(pProjData);
-  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pProjData);
-
+  udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetProjectsWT, pProgramState, false);
   udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetPackagesWT, pProgramState, false, vcSession_GetPackagesMT);
 
   // Update username
