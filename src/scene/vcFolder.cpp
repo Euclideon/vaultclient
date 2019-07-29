@@ -192,7 +192,9 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           pSceneItem->m_editName = true;
       }
 
-      if ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!pSceneItem->m_selected && ImGui::IsItemActive()))
+      bool sceneExplorerItemClicked = ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!pSceneItem->m_selected && ImGui::IsItemActive()));
+      bool sceneItemClicked = (pProgramState->sceneExplorer.selectUUIDWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID));
+      if (sceneExplorerItemClicked || sceneItemClicked)
       {
         if (!ImGui::GetIO().KeyCtrl)
           vcProject_ClearSelection(pProgramState);
@@ -207,15 +209,9 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           vcProject_SelectItem(pProgramState, m_pNode, pNode);
           pProgramState->sceneExplorer.clickedItem = { m_pNode, pNode };
         }
-      }
 
-      if (pProgramState->sceneExplorer.selectUUIDWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID))
-      {
-        vcProject_ClearSelection(pProgramState);
-        vcProject_SelectItem(pProgramState, m_pNode, pNode);
-        pProgramState->sceneExplorer.clickedItem = { m_pNode, pNode };
-
-        memset(pProgramState->sceneExplorer.selectUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.selectUUIDWhenPossible));
+        if (sceneItemClicked)
+          memset(pProgramState->sceneExplorer.selectUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.selectUUIDWhenPossible));
       }
 
       if (pSceneItem->m_loadStatus == vcSLS_Loaded && pProgramState->sceneExplorer.movetoUUIDWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID))
