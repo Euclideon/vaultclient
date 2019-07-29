@@ -36,7 +36,6 @@ public:
   bool m_selected;
   bool m_expanded;
   bool m_editName;
-  //bool m_moved;
 
   double m_lastUpdateTime; // The stored time that this node was last updated (compared with the node to see if the node updated outside of Client)
 
