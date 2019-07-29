@@ -11,7 +11,7 @@
     - Menus & Modals
       - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`, `menuBarFilesFailed`, `menuBarFilesFailedTooltip`, `menuExperimentalFeatures`
     - Scene Explorer
-      - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`, `sceneExplorerExportButton`, `sceneExplorerProjectChangeSucceededTitle`, `sceneExplorerProjectChangeSucceededMessage`, `sceneResetRotation`, `sceneExplorerClearAllButton`, `scenePOILineShowAllLengths`, `scenePOILineStyleDiagonal`
+      - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`, `sceneExplorerExportButton`, `sceneExplorerProjectChangeSucceededTitle`, `sceneExplorerProjectChangeSucceededMessage`, `sceneResetRotation`, `sceneExplorerClearAllButton`, `scenePOILineShowAllLengths`, `scenePOILineStyleDiagonal`, `sceneModelPosition`, `sceneModelRotation`, `sceneModelScale`
     - Settings
       - `settingsAppearanceTranslationDifferentVersion`, `settingsConvert`, `settingsConvertRestoreDefaults`
   - Removed:
@@ -523,6 +523,10 @@ Modules are currently:
 - `sceneExplorerLoading`: Tooltip displayed when mouse is hovered over the alert next to a scene item in the Scene Explorer that vault client has not fully loaded yet
 - `sceneExplorerFolderDefaultName`: Default name of new folders when they are added to the Scene Explorer
 
+#### Model
+- `sceneModelPosition`: Label used for the model position
+- `sceneModelRotation`: Label used for the model rotation
+- `sceneModelScale`: Label used for the model scale
 
 #### Point of Interest
 - `scenePOIDefaultName`: Default name of new POI objects when they are added to the Scene Explorer

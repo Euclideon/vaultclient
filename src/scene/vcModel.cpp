@@ -268,6 +268,28 @@ void vcModel::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
 void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
 {
   ImGui::TextWrapped("Path: %s", m_pNode->pURI);
+  udDouble3 position;
+  udDouble3 scale;
+  udDoubleQuat orientation;
+  m_sceneMatrix.extractTransforms(position, scale, orientation);
+
+  bool repackMatrix = false;
+  if (ImGui::InputScalarN(vcString::Get("sceneModelPosition"), ImGuiDataType_Double, &position.x, 3))
+    repackMatrix = true;
+
+  udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
+  if (ImGui::InputScalarN(vcString::Get("sceneModelRotation"), ImGuiDataType_Double, &eulerRotation.x, 3))
+  {
+    repackMatrix = true;
+    orientation = udDoubleQuat::create(UD_DEG2RAD(eulerRotation));
+  }
+
+  if (ImGui::InputScalarN(vcString::Get("sceneModelScale"), ImGuiDataType_Double, &scale.x, 1))
+    repackMatrix = true;
+
+  if (repackMatrix)
+    m_sceneMatrix = udDouble4x4::rotationQuat(orientation, position) * udDouble4x4::scaleUniform(scale.x);
+
   vcImGuiValueTreeObject(&m_metadata);
 }
 
