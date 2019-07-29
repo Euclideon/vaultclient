@@ -271,9 +271,7 @@ void vcMain_MainLoop(vcState *pProgramState)
     frametimeMS = 0.250; // 4 FPS cap when not focused
 
   sleepMS = (uint32_t)udMax((frametimeMS - pProgramState->deltaTime) * 1000.0, 0.0);
-#if GRAPHICS_API_METAL
   udSleep(sleepMS);
-#endif
   pProgramState->deltaTime += sleepMS * 0.001; // adjust delta
 
 #if GRAPHICS_API_METAL
