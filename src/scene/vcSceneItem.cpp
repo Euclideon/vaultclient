@@ -74,3 +74,8 @@ bool vcSceneItem::IsSceneSelected(uint64_t internalId)
 
   return m_selected;
 }
+
+vcGizmoAllowedControls vcSceneItem::GetAllowedControls()
+{
+  return vcGAC_All;
+}
