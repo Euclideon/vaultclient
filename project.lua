@@ -45,7 +45,22 @@ project "vaultClient"
 		table.insert(excludedSourceFileNames, "src/vcWebFile.mm");
 	end
 
-	-- filters
+	if os.isdir(_OPTIONS["fbxsdk"]) then
+		defines { "FBXSDK_ON" }
+		filter { "system:windows" }
+			libdirs { _OPTIONS["fbxsdk"] .. "/lib/*/x64/**" }
+			links { "libfbxsdk-mt.lib" }
+			includedirs { _OPTIONS["fbxsdk"] .. "/include/" }
+		filter { "system:macosx" }
+			libdirs { _OPTIONS["fbxsdk"] .. '"/lib/clang/%{cfg.buildcfg}"' }
+			sysincludedirs { _OPTIONS["fbxsdk"] .. "/include/" }
+			prelinkcommands {
+				"cp -f '" .. _OPTIONS["fbxsdk"] .. "/lib/clang/release/libfbxsdk.dylib' %{prj.targetdir}/%{prj.targetname}.app/Contents/MacOS/",
+				"cp -f '" .. _OPTIONS["fbxsdk"] .. "/lib/clang/debug/libfbxsdk.dylib' %{prj.targetdir}/%{prj.targetname}.app/Contents/MacOS/",
+			}
+	end
+
+	-- filters				
 	filter { "configurations:Debug" }
 		kind "ConsoleApp"
 		optimize "Debug"
@@ -65,12 +80,6 @@ project "vaultClient"
 		linkoptions( "/LARGEADDRESSAWARE" )
 		libdirs { "3rdParty/SDL2-2.0.8/lib/x64" }
 		links { "SDL2.lib", "SDL2main.lib", "opengl32.lib", "winmm.lib", "ws2_32", "winhttp", "imm32.lib" }
-		if os.isdir("C:/Program Files/Autodesk/FBX/FBX SDK/") then
-			defines { "FBXSDK_ON" }
-			links { "libfbxsdk-mt.lib" }
-			libdirs { "C:/Program Files/Autodesk/FBX/FBX SDK/*/lib/*/x64/**" }
-			includedirs { "C:/Program Files/Autodesk/FBX/FBX SDK/*/include/" }
-		end
 		
 	filter { "system:linux" }
 		linkoptions { "-Wl,-rpath '-Wl,$$ORIGIN'" } -- Check beside the executable for the SDK
@@ -87,16 +96,6 @@ project "vaultClient"
 			["INFOPLIST_PREPROCESS"] = "YES",
 			["MACOSX_DEPLOYMENT_TARGET"] = "10.13",
 		}
-		if os.isdir("/Applications/Autodesk/FBX SDK/") then
-			defines { "FBXSDK_ON" }
-			links { "fbxsdk" }
-			sysincludedirs { "/Applications/Autodesk/FBX SDK/*/include/" }
-			libdirs { '"/Applications/Autodesk/FBX SDK/2019.2/lib/clang/%{cfg.buildcfg}"' }
-			prelinkcommands {
-				"cp -f '/Applications/Autodesk/FBX SDK/2019.2/lib/clang/release/libfbxsdk.dylib' %{prj.targetdir}/%{prj.targetname}.app/Contents/MacOS/",
-				"cp -f '/Applications/Autodesk/FBX SDK/2019.2/lib/clang/debug/libfbxsdk.dylib' %{prj.targetdir}/%{prj.targetname}.app/Contents/MacOS/",
-			}
-		end
 
 	filter { "system:ios" }
 		files { "iOS-Info.plist", "builds/libvaultSDK.dylib", "icons/Images.xcassets", "src/vcWebFile.mm" }
