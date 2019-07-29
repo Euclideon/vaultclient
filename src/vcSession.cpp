@@ -31,6 +31,29 @@ const char* vcSession_GetOSName()
 #endif
 }
 
+void vcSession_GetPackagesWT(void *pProgramStatePtr)
+{
+  vcState *pProgramState = (vcState*)pProgramStatePtr;
+  const char *pPackageData = nullptr;
+  const char *pPostJSON = udTempStr("{ \"packagename\": \"EuclideonVaultClient\", \"packagevariant\": \"%s\" }", vcSession_GetOSName());
+  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/packages/latest", pPostJSON, &pPackageData) == vE_Success)
+    pProgramState->packageInfo.Parse(pPackageData);
+
+  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pPackageData);
+}
+
+void vcSession_GetPackagesMT(void *pProgramStatePtr)
+{
+  vcState *pProgramState = (vcState*)pProgramStatePtr;
+  if (pProgramState->packageInfo.Get("success").AsBool())
+  {
+    if (pProgramState->packageInfo.Get("package.versionnumber").AsInt() <= VCVERSION_BUILD_NUMBER || VCVERSION_BUILD_NUMBER == 0)
+      pProgramState->packageInfo.Destroy();
+    else
+      vcModals_OpenModal(pProgramState, vcMT_NewVersionAvailable);
+  }
+}
+
 void vcSession_Login(void *pProgramStatePtr)
 {
   vdkError result;
@@ -66,20 +89,7 @@ void vcSession_Login(void *pProgramStatePtr)
     pProgramState->projects.Parse(pProjData);
   vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pProjData);
 
-  const char *pPackageData = nullptr;
-  const char *pPostJSON = udTempStr("{ \"packagename\": \"EuclideonVaultClient\", \"packagevariant\": \"%s\" }", vcSession_GetOSName());
-  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/packages/latest", pPostJSON, &pPackageData) == vE_Success)
-  {
-    pProgramState->packageInfo.Parse(pPackageData);
-    if (pProgramState->packageInfo.Get("success").AsBool())
-    {
-      if (pProgramState->packageInfo.Get("package.versionnumber").AsInt() <= VCVERSION_BUILD_NUMBER || VCVERSION_BUILD_NUMBER == 0)
-        pProgramState->packageInfo.Destroy();
-      else
-        vcModals_OpenModal(pProgramState, vcMT_NewVersionAvailable);
-    }
-  }
-  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pPackageData);
+  udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetPackagesWT, pProgramState, false, vcSession_GetPackagesMT);
 
   // Update username
   {
