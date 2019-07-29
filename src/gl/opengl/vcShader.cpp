@@ -81,7 +81,7 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   vcShader *pShader = udAllocType(vcShader, 1, udAF_Zero);
 
   GLint geometryShaderId = (GLint)-1;
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_EMSCRIPTEN
   if (pGeometryShader != nullptr)
     return false;
 #else// UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
