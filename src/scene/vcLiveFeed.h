@@ -37,7 +37,11 @@ struct vcLiveFeedPolyCache
 class vcLiveFeed : public vcSceneItem
 {
 public:
-  double m_lastUpdateTime;
+  double m_lastFeedSync; // When the previous feed sync occurred
+  bool m_fetchNow; // Should we fetch immediately
+
+  double m_newestFeedUpdate; // The time of the item that was most recently updated
+  double m_oldestFeedUpdate; // The time of the item that was first updated
 
   udChunkedArray<vcLiveFeedItem*> m_feedItems;
   udChunkedArray<vcLiveFeedPolyCache> m_polygonModels;
