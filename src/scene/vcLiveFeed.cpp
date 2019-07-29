@@ -58,6 +58,8 @@ struct vcLiveFeedUpdateInfo
 {
   vcState *pProgramState;
   vcLiveFeed *pFeed;
+
+  bool newer; // Are we fetching newer or older data?
 };
 
 void vcLiveFeedItem_ClearLODs(vcLiveFeedItem *pFeedItem)
@@ -109,18 +111,16 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
 {
   vcLiveFeedUpdateInfo *pInfo = (vcLiveFeedUpdateInfo*)pUserData;
 
-  if (!pInfo->pProgramState->gis.isProjected || pInfo->pProgramState->gis.SRID == 0)
-  {
-    pInfo->pFeed->m_loadStatus = vcSLS_Failed;
-    return;
-  }
-
   const char *pFeedsJSON = nullptr;
 
-  const char *pServerAddr = "v1/feeds/group";
-  const char *pMessage = udTempStr("{ \"groupid\": \"%s\", \"time\": %f }", vUUID_GetAsString(&pInfo->pFeed->m_groupID), pInfo->pFeed->m_lastUpdateTime);
+  const char *pServerAddr = "v1/feeds/fetch";
+  const char *pMessage = udTempStr("{ \"groupid\": \"%s\", \"time\": %f, \"newer\": %s }", vUUID_GetAsString(&pInfo->pFeed->m_groupID), pInfo->newer ? pInfo->pFeed->m_newestFeedUpdate : pInfo->pFeed->m_oldestFeedUpdate, pInfo->newer ? "true" : "false");
 
   vdkError vError = vdkServerAPI_Query(pInfo->pProgramState->pVDKContext, pServerAddr, pMessage, &pFeedsJSON);
+
+  double updatedTime = 0.0;
+
+  pInfo->pFeed->m_lastFeedSync = udGetEpochSecsUTCf();
 
   if (vError == vE_Success)
   {
@@ -129,7 +129,16 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
     {
       udJSONArray *pFeeds = data.Get("feeds").AsArray();
 
-      pInfo->pFeed->m_lastUpdateTime = udMax(pInfo->pFeed->m_lastUpdateTime, data.Get("lastUpdate").AsDouble());
+      pInfo->pFeed->m_fetchNow = pInfo->newer && data.Get("more").AsBool();
+      updatedTime = data.Get("lastUpdate").AsDouble();
+
+      if (updatedTime != 0.0)
+      {
+        if (pInfo->newer)
+          pInfo->pFeed->m_newestFeedUpdate = updatedTime;
+        else
+          pInfo->pFeed->m_oldestFeedUpdate = updatedTime;
+      }
 
       if (!pFeeds)
         goto epilogue;
@@ -145,6 +154,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
         vcLiveFeedItem *pFeedItem = nullptr;
 
         udLockMutex(pInfo->pFeed->m_pMutex);
+
         for (size_t j = 0; j < pInfo->pFeed->m_feedItems.length; ++j)
         {
           vcLiveFeedItem *pCachedFeedItem = pInfo->pFeed->m_feedItems[j];
@@ -155,7 +165,6 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
             break;
           }
         }
-        udReleaseMutex(pInfo->pFeed->m_pMutex);
 
         udDouble3 newPositionLatLong = pNode->Get("geometry.coordinates").AsDouble3();
         double updated = pNode->Get("updated").AsDouble();
@@ -203,8 +212,6 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
 
         if (pLODS != nullptr)
         {
-          udLockMutex(pInfo->pFeed->m_pMutex);
-
           if (pFeedItem->lodLevels.length > pLODS->length)
             vcLiveFeedItem_ClearLODs(pFeedItem);
 
@@ -260,11 +267,11 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
               lodRef.pLabelInfo->pText = lodRef.pLabelText;
             }
           }
-
-          udReleaseMutex(pInfo->pFeed->m_pMutex);
         }
 
         pFeedItem->livePositionLatLong = newPositionLatLong;
+
+        udReleaseMutex(pInfo->pFeed->m_pMutex);
       }
     }
   }
@@ -272,14 +279,12 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
 epilogue:
   vdkServerAPI_ReleaseResult(pInfo->pProgramState->pVDKContext, &pFeedsJSON);
 
-  pInfo->pFeed->m_lastUpdateTime = udGetEpochSecsUTCf();
   pInfo->pFeed->m_loadStatus = vcSLS_Loaded;
 }
 
 
 vcLiveFeed::vcLiveFeed(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
-  m_lastUpdateTime(0.0),
   m_visibleItems(0),
   m_tweenPositionAndOrientation(true),
   m_updateFrequency(15.0),
@@ -289,6 +294,11 @@ vcLiveFeed::vcLiveFeed(vdkProject *pProject, vdkProjectNode *pNode, vcState *pPr
 {
   m_feedItems.Init(512);
   m_polygonModels.Init(16);
+
+  m_lastFeedSync = 0.0;
+  m_newestFeedUpdate = udGetEpochSecsUTCf() - m_decayFrequency;
+  m_oldestFeedUpdate = m_newestFeedUpdate;
+  m_fetchNow = true;
 
   OnNodeUpdate(pProgramState);
 
@@ -319,18 +329,17 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   double now = udGetEpochSecsUTCf();
   double recently = now - m_decayFrequency;
 
-  if (m_loadStatus != vcSLS_Loading)
+  if (m_loadStatus != vcSLS_Loading && ((now >= m_lastFeedSync + m_updateFrequency) || (now - m_decayFrequency < m_oldestFeedUpdate) || m_fetchNow))
   {
-    if (now >= m_lastUpdateTime + m_updateFrequency)
-    {
-      m_loadStatus = vcSLS_Loading;
+    m_loadStatus = vcSLS_Loading;
+    m_fetchNow = false;
 
-      vcLiveFeedUpdateInfo *pInfo = udAllocType(vcLiveFeedUpdateInfo, 1, udAF_None);
-      pInfo->pProgramState = pProgramState;
-      pInfo->pFeed = this;
+    vcLiveFeedUpdateInfo *pInfo = udAllocType(vcLiveFeedUpdateInfo, 1, udAF_Zero);
+    pInfo->pProgramState = pProgramState;
+    pInfo->pFeed = this;
+    pInfo->newer = ((now >= m_lastFeedSync + m_updateFrequency) || m_fetchNow);
 
-      udWorkerPool_AddTask(pProgramState->pWorkerPool, vcLiveFeed_UpdateFeed, pInfo);
-    }
+    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcLiveFeed_UpdateFeed, pInfo);
   }
 
   m_visibleItems = 0;
@@ -448,7 +457,7 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
 {
   if (pProgramState->settings.presentation.showDiagnosticInfo)
   {
-    const char *strings[] = { udTempStr("%zu", m_feedItems.length), udTempStr("%zu", m_visibleItems), udTempStr("%.2f", (m_lastUpdateTime + m_updateFrequency) - udGetEpochSecsUTCf()) };
+    const char *strings[] = { udTempStr("%zu", m_feedItems.length), udTempStr("%zu", m_visibleItems), udTempStr("%.2f", (m_lastFeedSync + m_updateFrequency) - udGetEpochSecsUTCf()) };
     const char *pBuffer = vStringFormat(vcString::Get("liveFeedDiagInfo"), strings, udLengthOf(strings));
     ImGui::Text("%s", pBuffer);
     udFree(pBuffer);
