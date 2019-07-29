@@ -293,3 +293,8 @@ udDouble4x4 vcModel::GetWorldSpaceMatrix()
 {
   return m_sceneMatrix;
 }
+
+vcGizmoAllowedControls vcModel::GetAllowedControls()
+{
+  return vcGAC_AllUniform;
+}
