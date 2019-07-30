@@ -2069,6 +2069,10 @@ void vcRenderWindow(vcState *pProgramState)
           {
             if (pProgramState->gis.isProjected)
               vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&pProgramState->pCamera->positionInLongLat);
+
+            vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.x", pProgramState->pCamera->eulerRotation.x);
+            vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", pProgramState->pCamera->eulerRotation.y);
+            vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.z", pProgramState->pCamera->eulerRotation.z);
           }
           else
           {
