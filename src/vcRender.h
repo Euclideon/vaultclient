@@ -74,6 +74,5 @@ struct vcRenderPickResult
   vcRenderPolyInstance *pPolygon;
 };
 vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData);
-bool vcRender_PickTiles(vcState *pProgramState, udDouble3 &hitPoint);
 
 #endif//vcRender_h__
