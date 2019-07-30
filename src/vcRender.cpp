@@ -1125,6 +1125,8 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     udPickedId = (pickColourBGRA[2] << 0) - 1;
 #endif
 
+  double currentDist = pProgramState->settings.camera.farPlane;
+
   int pickedPolygonId = (int)((pickColourBGRA[1] << 0) | (pickColourBGRA[0] << 8)) - 1;
   if (pickedPolygonId != -1 || udPickedId != -1)
   {
@@ -1139,25 +1141,32 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     pickPosition = pickPosition / pickPosition.w;
     result.position = pickPosition.toVector3();
 
+    currentDist = udMag3(result.position - pProgramState->pCamera->position);
+
     if (pickedPolygonId != -1)
       result.pPolygon = &renderData.polyModels[pickedPolygonId];
     else
       result.pModel = renderData.models[udPickedId];
   }
 
-  return result;
-}
-
-bool vcRender_PickTiles(vcState *pProgramState, udDouble3 &hitPoint)
-{
   if (pProgramState->settings.maptiles.mapEnabled && pProgramState->settings.maptiles.mouseInteracts)// check map tiles
   {
     udPlane<double> mapPlane = udPlane<double>::create({ 0, 0, pProgramState->settings.maptiles.mapHeight }, { 0, 0, 1 });
 
     double hitDistance;
+    udDouble3 hitPoint;
+
     if (mapPlane.intersects(pProgramState->pCamera->worldMouseRay, &hitPoint, &hitDistance))
-      return (hitDistance < pProgramState->settings.camera.farPlane && (hitDistance > pProgramState->settings.camera.nearPlane));
+    {
+      if (hitDistance < currentDist && (hitDistance > pProgramState->settings.camera.nearPlane))
+      {
+        result.success = true;
+        result.position = hitPoint;
+        result.pPolygon = nullptr;
+        result.pModel = nullptr;
+      }
+    }
   }
 
-  return false;
+  return result;
 }
