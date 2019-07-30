@@ -169,7 +169,11 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
 
 #if ALLOW_EXPERIMENT_GPURENDER
+# if UDPLATFORM_EMSCRIPTEN
+  UD_ERROR_CHECK(vcGPURenderer_Create(&pRenderContext->udRenderContext.pGPURenderer, vcBRPRM_Quads, maxPointCount));
+# else
   UD_ERROR_CHECK(vcGPURenderer_Create(&pRenderContext->udRenderContext.pGPURenderer, vcBRPRM_GeometryShader, maxPointCount));
+# endif
 #else
   udUnused(maxPointCount);
 #endif
