@@ -1012,8 +1012,11 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
 
   vdkError result = vdkRenderContext_Render(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, pModels, numVisibleModels, &renderOptions);
 
+  pProgramState->udModelPickedIndex = -1;
+
   if (result == vE_Success)
   {
+
     if (picking.hit)
     {
       // More to be done here
