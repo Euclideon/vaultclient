@@ -1230,11 +1230,13 @@ void vcRenderSceneWindow(vcState *pProgramState)
     if (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext"))
     {
       static bool hadMouse = false;
+      static udDouble3 mousePosCartesian;
       static udDouble3 mousePosLongLat;
 
       if (!wasContextMenuOpenLastFrame || ImGui::IsMouseClicked(1))
       {
         hadMouse = pProgramState->pickingSuccess;
+        mousePosCartesian = pProgramState->worldMousePos;
         mousePosLongLat = pProgramState->worldMousePosLongLat;
       }
 
@@ -1248,7 +1250,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
             vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
 
             if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
-              pPOI->AddPoint(pProgramState, mousePosLongLat);
+              pPOI->AddPoint(pProgramState, mousePosCartesian);
           }
         }
 
