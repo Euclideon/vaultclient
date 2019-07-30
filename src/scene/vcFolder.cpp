@@ -256,7 +256,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           }
         }
 
-        if (pNode->itemtype != vdkPNT_Folder && ImGui::Selectable(vcString::Get("sceneExplorerMoveTo")))
+        if (pNode->itemtype != vdkPNT_Folder && pSceneItem->GetWorldSpacePivot() != udDouble3::zero() && ImGui::Selectable(vcString::Get("sceneExplorerMoveTo")))
         {
           // Trigger a camera movement path
           pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
@@ -270,7 +270,8 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         // This is terrible but semi-required until we have undo
         if (pNode->itemtype == vdkPNT_PointCloud && ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
         {
-          ((vcModel*)pSceneItem)->ChangeProjection(*pSceneItem->m_pPreferredProjection);
+          if (pSceneItem->m_pPreferredProjection)
+            ((vcModel*)pSceneItem)->ChangeProjection(*pSceneItem->m_pPreferredProjection);
           ((vcModel*)pSceneItem)->m_sceneMatrix = ((vcModel*)pSceneItem)->m_defaultMatrix;
           ((vcModel*)pSceneItem)->ChangeProjection(pProgramState->gis.zone);
         }
@@ -287,8 +288,13 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         ImGui::EndPopup();
       }
 
-      if (pNode->itemtype != vdkPNT_Folder && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
-        vcProject_UseProjectionFromItem(pProgramState, pSceneItem);
+      if (pNode->itemtype != vdkPNT_Folder && pSceneItem->GetWorldSpacePivot() != udDouble3::zero() && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
+      {
+        if (pSceneItem->m_pPreferredProjection != nullptr)
+          vcProject_UseProjectionFromItem(pProgramState, pSceneItem);
+        else
+          pSceneItem->SetCameraPosition(pProgramState);
+      }
 
       if (vcIGSW_IsItemHovered())
         ImGui::SetTooltip("%s", pNode->pName);
