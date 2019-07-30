@@ -123,7 +123,7 @@ void main()
   float edgeOutlineWidth = u_outlineParams.x;
   float edgeOutlineThreshold = u_outlineParams.y;
   vec4 outlineColour = u_outlineColour;
-  if (outlineColour.w > 0 && edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
+  if (outlineColour.w > 0.0 && edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
   {
     vec4 edgeResult = edgeHighlight(col.xyz, v_texCoord, depth, outlineColour, edgeOutlineWidth, edgeOutlineThreshold);
     col.xyz = edgeResult.xyz;
@@ -677,7 +677,7 @@ const char* const g_BlurVertexShader = VERT_HEADER R"shader(
   //Input format
   layout(location = 0) in vec3 a_position;
   layout(location = 1) in vec2 a_texCoord;
-  
+
   //Output Format
   out vec2 v_uv0;
   out vec2 v_uv1;
@@ -691,7 +691,7 @@ const char* const g_BlurVertexShader = VERT_HEADER R"shader(
   void main()
   {
     gl_Position = vec4(a_position.x, a_position.y, 0.0, 1.0);
-  
+
     // sample on edges, taking advantage of bilinear sampling
     vec2 sampleOffset = 1.42 * u_stepSize.xy;
     vec2 uv = vec2(a_texCoord.x, 1.0 - a_texCoord.y);
@@ -733,7 +733,7 @@ const char* const g_HighlightVertexShader = VERT_HEADER R"shader(
   //Input format
   layout(location = 0) in vec3 a_position;
   layout(location = 1) in vec2 a_texCoord;
-  
+
   //Output Format
   out vec2 v_uv0;
   out vec2 v_uv1;
@@ -851,7 +851,7 @@ const char *const g_udGPURenderQuadVertexShader = VERT_HEADER R"shader(
     maxPos = max(maxPos, pos7);
     gl_Position = (minPos + (maxPos - minPos) * 0.5);
 
-    vec2 pointSize = vec2(maxPos.x - minPos.x, maxPos.y - minPos.y); 
+    vec2 pointSize = vec2(maxPos.x - minPos.x, maxPos.y - minPos.y);
     gl_Position.xy += pointSize * a_corner * 0.5;
   }
 )shader";
@@ -913,7 +913,7 @@ const char *const g_udGPURenderGeomVertexShader = VERT_HEADER R"shader(
     maxPos = max(maxPos, pos7);
     gl_Position = (minPos + (maxPos - minPos) * 0.5);
 
-    v_pointSize = vec2(maxPos.x - minPos.x, maxPos.y - minPos.y); 
+    v_pointSize = vec2(maxPos.x - minPos.x, maxPos.y - minPos.y);
   }
 )shader";
 
@@ -931,13 +931,13 @@ const char *const g_udGPURenderGeomFragmentShader = FRAG_HEADER R"shader(
 const char *const g_udGPURenderGeomGeometryShader = FRAG_HEADER R"shader(
   layout(points) in;
   layout(triangle_strip, max_vertices=4) out;
-  
+
   in vec2 v_pointSize[];
   in vec4 v_colour[];
   out vec4 g_colour;
 
   void main()
-  {	
+  {
     g_colour = v_colour[0];
 
     vec2 halfPointSize = v_pointSize[0] * vec2(0.5);
@@ -953,7 +953,7 @@ const char *const g_udGPURenderGeomGeometryShader = FRAG_HEADER R"shader(
 
     gl_Position = gl_in[0].gl_Position + vec4(halfPointSize.x, halfPointSize.y, 0.0, 0.0);
     EmitVertex();
-    
+
     EndPrimitive();
-  }  
+  }
 )shader";
