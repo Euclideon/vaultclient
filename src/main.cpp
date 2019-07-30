@@ -1098,34 +1098,24 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
 void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderData, bool doSelect)
 {
-  vcRenderPickResult pickResult = vcRender_PolygonPick(pProgramState, pProgramState->pRenderContext, renderData);
-
   const double farPlaneDist = 3 * (pProgramState->settings.camera.farPlane * pProgramState->settings.camera.farPlane);
 
   // We have to resolve UD vs. Polygon
-  udDouble3 mapHitPoint;
-  bool selectMap = vcRender_PickTiles(pProgramState, mapHitPoint);
-  double mapDist = (selectMap ? udMagSq3(mapHitPoint - pProgramState->pCamera->position) : farPlaneDist);
-
   bool selectUD = pProgramState->pickingSuccess && (pProgramState->udModelPickedIndex != -1); // UD was successfully picked (last frame)
   double udDist = (selectUD ? udMagSq3(pProgramState->worldMousePosCartesian - pProgramState->pCamera->position) : farPlaneDist);
 
+  vcRenderPickResult pickResult = vcRender_PolygonPick(pProgramState, pProgramState->pRenderContext, renderData);
   bool selectPolygons = pickResult.success;
   double polyDist = (selectPolygons ? udMagSq3(pickResult.position - pProgramState->pCamera->position) : farPlaneDist);
 
   // resolve pick
-  selectMap = selectMap && (mapDist < udDist) && (mapDist < polyDist);
-  selectUD = selectUD && !selectMap && (udDist < polyDist);
-  selectPolygons = selectPolygons && !selectUD && !selectMap;
+  selectUD = selectUD && (udDist < polyDist);
+  selectPolygons = selectPolygons && !selectUD;
 
-  if (selectPolygons || selectMap)
+  if (selectPolygons)
   {
-    if (selectPolygons)
-      pProgramState->worldMousePosCartesian = pickResult.position;
-    else if (selectMap)
-      pProgramState->worldMousePosCartesian = mapHitPoint;
-
     pProgramState->pickingSuccess = true;
+    pProgramState->worldMousePosCartesian = pickResult.position;
     pProgramState->udModelPickedIndex = -1;
 
     if (!pProgramState->isUsingAnchorPoint)
@@ -1149,9 +1139,13 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pPolygon->pSceneItem->m_pNode->UUID);
         //pickResult.pPolygon->pSceneItem->OnSceneSelect(pickResult.pPolygon->sceneItemInternalId); //TODO: Handle the internal ID stuff as well
       }
-      else // ud
+      else if (pickResult.pModel != nullptr)
       {
         udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pModel->m_pNode->UUID);
+      }
+      else
+      {
+        vcProject_ClearSelection(pProgramState);
       }
     }
     else

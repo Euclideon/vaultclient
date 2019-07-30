@@ -92,6 +92,7 @@ struct vcState
   bool isUsingAnchorPoint;
   udDouble3 worldAnchorPoint;
   udRay<double> anchorMouseRay;
+  udRay<double> worldMouseRay;
 
   udDouble3 worldMousePosCartesian;
   udDouble3 worldMousePosLongLat;
