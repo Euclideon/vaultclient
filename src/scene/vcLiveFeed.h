@@ -3,11 +3,10 @@
 
 #include "vcSceneItem.h"
 
-#include "vCore/vUUID.h"
-
 #include "vdkRenderContext.h"
 #include "vdkError.h"
 
+#include "udUUID.h"
 #include "udThread.h"
 #include "udChunkedArray.h"
 
@@ -53,7 +52,7 @@ public:
   double m_decayFrequency; // Remove items if they haven't updated more recently than this
   double m_maxDisplayDistance; // Distance to stop displaying entirely
 
-  vUUID m_groupID; // Required for updating group mode
+  udUUID m_groupID; // Required for updating group mode
 
   udMutex *m_pMutex;
 
