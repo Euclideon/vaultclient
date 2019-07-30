@@ -18,9 +18,9 @@ vcViewpoint::vcViewpoint(vdkProject *pProject, vdkProjectNode *pNode, vcState *p
 
 void vcViewpoint::OnNodeUpdate(vcState *pProgramState)
 {
-  //TODO: Get these from m_pNode
-  //m_CameraRotation = pProgramState->pCamera->eulerRotation;
-  //m_CameraPosition = pProgramState->pCamera->position;
+  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.x", &m_CameraRotation.x, 0.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &m_CameraRotation.y, 0.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.z", &m_CameraRotation.z, 0.0);
 
   ChangeProjection(pProgramState->gis.zone);
 }
@@ -44,16 +44,21 @@ void vcViewpoint::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 
 void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
-  if (ImGui::InputScalarN(udTempStr("%s##ViewpointPosition%zu", vcString::Get("sceneViewpointPosition"), *pItemID), ImGuiDataType_Double, &m_CameraPosition.x, 3))
-    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &m_CameraPosition, 1);
+  bool changed = false;
 
-  ImGui::InputScalarN(udTempStr("%s##ViewpointRotation%zu", vcString::Get("sceneViewpointRotation"), *pItemID), ImGuiDataType_Double, &m_CameraRotation.x, 3);
-  if (ImGui::Button(vcString::Get("sceneViewpointSetCamera")))
+  changed |= ImGui::InputScalarN(udTempStr("%s##ViewpointPosition%zu", vcString::Get("sceneViewpointPosition"), *pItemID), ImGuiDataType_Double, &m_CameraPosition.x, 3);
+  changed |= ImGui::InputScalarN(udTempStr("%s##ViewpointRotation%zu", vcString::Get("sceneViewpointRotation"), *pItemID), ImGuiDataType_Double, &m_CameraRotation.x, 3);
+
+  if (ImGui::Button(vcString::Get("sceneViewpointSetCamera")) || changed)
   {
     m_CameraRotation = pProgramState->pCamera->eulerRotation;
     m_CameraPosition = pProgramState->pCamera->position;
 
     vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &m_CameraPosition, 1);
+
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.x", m_CameraRotation.x);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_CameraRotation.y);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.z", m_CameraRotation.z);
   }
 }
 
