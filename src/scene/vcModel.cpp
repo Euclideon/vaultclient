@@ -252,6 +252,9 @@ void vcModel::ChangeProjection(const udGeoZone &newZone)
 {
   udDouble3 itemPos;
 
+  if (m_pPreferredProjection == nullptr)
+    return;
+
   //TODO: Fix this
 
   itemPos = udGeoZone_ToLatLong(newZone, GetWorldSpacePivot());
