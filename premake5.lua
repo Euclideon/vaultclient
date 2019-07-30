@@ -231,12 +231,6 @@ solution "vaultClient"
 		dofile "../vault/ud/udCore/project.lua"
 		dofile "../vault/ud/udPointCloud/project.lua"
 		dofile "../vault/vaultcore/project.lua"
-
-		filter { "system:emscripten" }
-				removefiles { "../vault/vaultcore/src/vWorkerThread.*" }
-				includedirs { "src/vCore" }
-		filter {}
-
 		dofile "../vault/vaultsdk/project.lua"
 
 		filter { "system:macosx" }
@@ -244,9 +238,6 @@ solution "vaultClient"
 				['INSTALL_PATH'] = "@executable_path/../Frameworks",
 				['SKIP_INSTALL'] = "YES"
 			}
-
-		filter { "system:emscripten" }
-			includedirs { "src/vCore" }
 		filter {}
 
 		targetdir "%{wks.location}/builds"
