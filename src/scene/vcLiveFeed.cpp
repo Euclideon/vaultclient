@@ -332,12 +332,13 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (m_loadStatus != vcSLS_Loading && ((now >= m_lastFeedSync + m_updateFrequency) || (now - m_decayFrequency < m_oldestFeedUpdate) || m_fetchNow))
   {
     m_loadStatus = vcSLS_Loading;
-    m_fetchNow = false;
 
     vcLiveFeedUpdateInfo *pInfo = udAllocType(vcLiveFeedUpdateInfo, 1, udAF_Zero);
     pInfo->pProgramState = pProgramState;
     pInfo->pFeed = this;
     pInfo->newer = ((now >= m_lastFeedSync + m_updateFrequency) || m_fetchNow);
+
+    m_fetchNow = false;
 
     udWorkerPool_AddTask(pProgramState->pWorkerPool, vcLiveFeed_UpdateFeed, pInfo);
   }
@@ -359,9 +360,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     udDouble3 cameraPosition = pRenderData->pCamera->position;
 
     if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-    {
       cameraPosition.z = pProgramState->settings.camera.orthographicSize * vcCamera_HeightToOrthoFOVRatios[pProgramState->settings.camera.lensIndex];
-    }
 
     pFeedItem->tweenAmount = m_tweenPositionAndOrientation ? udMin(1.0, pFeedItem->tweenAmount + pRenderData->deltaTime * 0.02) : 1.0;
     pFeedItem->displayPosition = udLerp(pFeedItem->previousPositionLatLong, pFeedItem->livePositionLatLong, pFeedItem->tweenAmount);
