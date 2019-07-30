@@ -1669,7 +1669,7 @@ int vcMainMenuGui(vcState *pProgramState)
             if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", pFeedName, nullptr, nullptr) != vE_Success)
               vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
 
-            if (vUUID_IsValid(pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString()))
+            if (udUUID_IsValid(pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString()))
               vdkProjectNode_SetMetadataString(pNode, "groupid", pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString());
           }
         }

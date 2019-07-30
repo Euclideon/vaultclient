@@ -12,7 +12,6 @@
 #include "vcLabelRenderer.h"
 #include "vcPolygonModel.h"
 
-#include "vCore/vUUID.h"
 #include "vCore/vStringFormat.h"
 
 #include "udFile.h"
@@ -35,7 +34,7 @@ struct vcLiveFeedItemLOD
 
 struct vcLiveFeedItem
 {
-  vUUID uuid;
+  udUUID uuid;
 
   bool visible;
   bool selected;
@@ -114,7 +113,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
   const char *pFeedsJSON = nullptr;
 
   const char *pServerAddr = "v1/feeds/fetch";
-  const char *pMessage = udTempStr("{ \"groupid\": \"%s\", \"time\": %f, \"newer\": %s }", vUUID_GetAsString(&pInfo->pFeed->m_groupID), pInfo->newer ? pInfo->pFeed->m_newestFeedUpdate : pInfo->pFeed->m_oldestFeedUpdate, pInfo->newer ? "true" : "false");
+  const char *pMessage = udTempStr("{ \"groupid\": \"%s\", \"time\": %f, \"newer\": %s }", udUUID_GetAsString(&pInfo->pFeed->m_groupID), pInfo->newer ? pInfo->pFeed->m_newestFeedUpdate : pInfo->pFeed->m_oldestFeedUpdate, pInfo->newer ? "true" : "false");
 
   vdkError vError = vdkServerAPI_Query(pInfo->pProgramState->pVDKContext, pServerAddr, pMessage, &pFeedsJSON);
 
@@ -147,8 +146,8 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
       {
         udJSON *pNode = pFeeds->GetElement(i);
 
-        vUUID uuid;
-        if (vUUID_SetFromString(&uuid, pNode->Get("feedid").AsString()) != udR_Success)
+        udUUID uuid;
+        if (udUUID_SetFromString(&uuid, pNode->Get("feedid").AsString()) != udR_Success)
           continue;
 
         vcLiveFeedItem *pFeedItem = nullptr;
@@ -310,8 +309,8 @@ void vcLiveFeed::OnNodeUpdate(vcState *pProgramState)
   const char *pTempStr = nullptr;
 
   vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pTempStr, nullptr);
-  vUUID_Clear(&m_groupID);
-  vUUID_SetFromString(&m_groupID, pTempStr);
+  udUUID_Clear(&m_groupID);
+  udUUID_SetFromString(&m_groupID, pTempStr);
 
   vdkProjectNode_GetMetadataDouble(m_pNode, "updateFrequency", &m_updateFrequency, 30.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayTime", &m_decayFrequency, 300.0);
@@ -514,13 +513,13 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     if (ImGui::Checkbox(vcString::Get("liveFeedTween"), &m_tweenPositionAndOrientation))
       vdkProjectNode_SetMetadataBool(m_pNode, "tweenEnabled", m_tweenPositionAndOrientation);
 
-    char groupStr[vUUID::vsUUID_Length+1];
-    udStrcpy(groupStr, udLengthOf(groupStr), vUUID_GetAsString(&m_groupID));
+    char groupStr[udUUID::udUUID_Length+1];
+    udStrcpy(groupStr, udLengthOf(groupStr), udUUID_GetAsString(&m_groupID));
     if (ImGui::InputText(vcString::Get("liveFeedGroupID"), groupStr, udLengthOf(groupStr)))
     {
-      if (vUUID_IsValid(groupStr))
+      if (udUUID_IsValid(groupStr))
       {
-        vUUID_SetFromString(&m_groupID, groupStr);
+        udUUID_SetFromString(&m_groupID, groupStr);
         vdkProjectNode_SetMetadataString(m_pNode, "groupid", groupStr);
       }
     }
