@@ -442,7 +442,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                 if (hasLocation && pProgramState->gis.isProjected)
                   vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &geolocationLongLat.x);
                 else
-                  vcProject_UpdateNodeGeometryFromCartesian(pProgramState->activeProject.pProject, pNode, pProgramState->gis.zone, vdkPGT_Point, pProgramState->previousPickingSuccess ? &pProgramState->previousWorldMousePos : &pProgramState->pCamera->position, 1);
+                  vcProject_UpdateNodeGeometryFromCartesian(pProgramState->activeProject.pProject, pNode, pProgramState->gis.zone, vdkPGT_Point, pProgramState->pickingSuccess ? &pProgramState->worldMousePosCartesian : &pProgramState->pCamera->position, 1);
 
                 if (imageType == vcIT_PhotoSphere)
                   vdkProjectNode_SetMetadataString(pNode, "imagetype", "photosphere");
@@ -814,7 +814,7 @@ int main(int argc, char **args)
     goto epilogue;
 #endif
 
-  if (vcRender_Init(&(programState.pRenderContext), programState.pWorkerPool, &(programState.settings), programState.pCamera, programState.sceneResolution) != udR_Success)
+  if (vcRender_Init(&programState, &(programState.pRenderContext), programState.pWorkerPool, programState.sceneResolution) != udR_Success)
     goto epilogue;
 
   // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
@@ -870,7 +870,7 @@ epilogue:
 
   udWorkerPool_Destroy(&programState.pWorkerPool); // This needs to occur before logout
   vcProject_Deinit(&programState, &programState.activeProject); // This needs to be destroyed before the renderer is shutdown
-  vcRender_Destroy(&programState.pRenderContext);
+  vcRender_Destroy(&programState, &programState.pRenderContext);
   vcTexture_Destroy(&programState.tileModal.pServerIcon);
   vcString::FreeTable(&programState.languageInfo);
   vcSession_Logout(&programState);
@@ -914,7 +914,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         {
           if (pProgramState->pickingSuccess)
           {
-            ImGui::Text("%s: %.2f, %.2f, %.2f", vcString::Get("sceneMousePointInfo"), pProgramState->worldMousePos.x, pProgramState->worldMousePos.y, pProgramState->worldMousePos.z);
+            ImGui::Text("%s: %.2f, %.2f, %.2f", vcString::Get("sceneMousePointInfo"), pProgramState->worldMousePosCartesian.x, pProgramState->worldMousePosCartesian.y, pProgramState->worldMousePosCartesian.z);
 
             if (pProgramState->gis.isProjected)
               ImGui::Text("%s: %.6f, %.6f", vcString::Get("sceneMousePointWGS"), pProgramState->worldMousePosLongLat.y, pProgramState->worldMousePosLongLat.x);
@@ -1098,17 +1098,17 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
 void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderData, bool doSelect)
 {
-  vcRenderPickResult pickResult = vcRender_PolygonPick(pProgramState->pRenderContext, renderData);
+  vcRenderPickResult pickResult = vcRender_PolygonPick(pProgramState, pProgramState->pRenderContext, renderData);
 
   const double farPlaneDist = 3 * (pProgramState->settings.camera.farPlane * pProgramState->settings.camera.farPlane);
 
   // We have to resolve UD vs. Polygon
   udDouble3 mapHitPoint;
-  bool selectMap = vcRender_PickTiles(pProgramState->pRenderContext, mapHitPoint);
+  bool selectMap = vcRender_PickTiles(pProgramState, mapHitPoint);
   double mapDist = (selectMap ? udMagSq3(mapHitPoint - pProgramState->pCamera->position) : farPlaneDist);
 
-  bool selectUD = pProgramState->pickingSuccess && (pProgramState->previousUDModelPickedIndex != -1); // UD was successfully picked (last frame)
-  double udDist = (selectUD ? udMagSq3(pProgramState->worldMousePos - pProgramState->pCamera->position) : farPlaneDist);
+  bool selectUD = pProgramState->pickingSuccess && (pProgramState->udModelPickedIndex != -1); // UD was successfully picked (last frame)
+  double udDist = (selectUD ? udMagSq3(pProgramState->worldMousePosCartesian - pProgramState->pCamera->position) : farPlaneDist);
 
   bool selectPolygons = pickResult.success;
   double polyDist = (selectPolygons ? udMagSq3(pickResult.position - pProgramState->pCamera->position) : farPlaneDist);
@@ -1121,23 +1121,26 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
   if (selectPolygons || selectMap)
   {
     if (selectPolygons)
-      pProgramState->worldMousePos = pickResult.position;
+      pProgramState->worldMousePosCartesian = pickResult.position;
     else if (selectMap)
-      pProgramState->worldMousePos = mapHitPoint;
+      pProgramState->worldMousePosCartesian = mapHitPoint;
 
     pProgramState->pickingSuccess = true;
-    pProgramState->previousUDModelPickedIndex = -1;
+    pProgramState->udModelPickedIndex = -1;
 
-    if (renderData.pWorldAnchorPos == nullptr)
-      renderData.pWorldAnchorPos = &pProgramState->worldMousePos;
+    if (!pProgramState->isUsingAnchorPoint)
+    {
+      pProgramState->isUsingAnchorPoint = true;
+      pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
+    }
   }
 
   if (doSelect)
   {
     if (selectUD)
     {
-      if (pProgramState->previousUDModelPickedIndex < (int)renderData.models.length)
-        udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, renderData.models[pProgramState->previousUDModelPickedIndex]->m_pNode->UUID);
+      if (pProgramState->udModelPickedIndex < (int)renderData.models.length)
+        udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, renderData.models[pProgramState->udModelPickedIndex]->m_pNode->UUID);
     }
     else if (selectPolygons)
     {
@@ -1169,7 +1172,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     return;
 
   vcRenderData renderData = {};
-  renderData.pCamera = pProgramState->pCamera;
+
   renderData.models.Init(32);
   renderData.fences.Init(32);
   renderData.labels.Init(32);
@@ -1181,14 +1184,12 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.mouse.position.y = (uint32_t)(io.MousePos.y - windowPos.y);
   renderData.mouse.clicked = io.MouseClicked[1];
 
-  renderData.udModelPickedIndex = pProgramState->previousUDModelPickedIndex;
-
   udDouble3 cameraMoveOffset = udDouble3::zero();
 
   if (pProgramState->sceneResolution.x != windowSize.x || pProgramState->sceneResolution.y != windowSize.y) //Resize buffers
   {
     pProgramState->sceneResolution = udUInt2::create((uint32_t)windowSize.x, (uint32_t)windowSize.y);
-    vcRender_ResizeScene(pProgramState->pRenderContext, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y);
+    vcRender_ResizeScene(pProgramState, pProgramState->pRenderContext, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y);
 
     // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
     // this isn't valid on iOS when using UIKit.
@@ -1199,13 +1200,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
     vcMain_PresentationMode(pProgramState);
   if (pProgramState->settings.responsiveUI == vcPM_Show)
     pProgramState->showUI = true;
-
-  // use some data from previous frame
-  pProgramState->worldMousePos = pProgramState->previousWorldMousePos;
-  pProgramState->pickingSuccess = pProgramState->previousPickingSuccess;
-
-  if (pProgramState->cameraInput.isUsingAnchorPoint)
-    renderData.pWorldAnchorPos = &pProgramState->cameraInput.worldAnchorPoint;
 
   if (!pProgramState->settings.window.presentationMode || pProgramState->settings.responsiveUI == vcPM_Show || pProgramState->showUI)
     vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
@@ -1218,10 +1212,10 @@ void vcRenderSceneWindow(vcState *pProgramState)
 #endif
 
   {
-    vcRender_BeginFrame(pProgramState->pRenderContext);
+    vcRender_BeginFrame(pProgramState, pProgramState->pRenderContext);
 
     // Actual rendering to this texture is deferred
-    vcTexture *pSceneTexture = vcRender_GetSceneTexture(pProgramState->pRenderContext);
+    vcTexture *pSceneTexture = vcRender_GetSceneTexture(pProgramState, pProgramState->pRenderContext);
     ImGui::ImageButton(pSceneTexture, windowSize, uv0, uv1, 0);
 
     static bool wasContextMenuOpenLastFrame = false;
@@ -1236,7 +1230,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       if (!wasContextMenuOpenLastFrame || ImGui::IsMouseClicked(1))
       {
         hadMouse = pProgramState->pickingSuccess;
-        mousePosCartesian = pProgramState->worldMousePos;
+        mousePosCartesian = pProgramState->worldMousePosCartesian;
         mousePosLongLat = pProgramState->worldMousePosLongLat;
       }
 
@@ -1333,8 +1327,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
           pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
           pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
           pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
-          pProgramState->cameraInput.worldAnchorPoint = pProgramState->worldMouseClickedPos;
           pProgramState->cameraInput.progress = 0.0;
+
+          pProgramState->worldAnchorPoint = pProgramState->worldMouseClickedPos;
         }
 
         if (ImGui::MenuItem(vcString::Get("sceneResetRotation")))
@@ -1422,14 +1417,10 @@ void vcRenderSceneWindow(vcState *pProgramState)
     }
   }
 
-  renderData.deltaTime = pProgramState->deltaTime;
-  renderData.pGISSpace = &pProgramState->gis;
-  renderData.pCameraSettings = &pProgramState->settings.camera;
-
-  vcRender_vcRenderSceneImGui(pProgramState->pRenderContext, renderData);
+  vcRender_SceneImGui(pProgramState, pProgramState->pRenderContext, renderData);
 
   // Render scene to texture
-  vcRender_RenderScene(pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
+  vcRender_RenderScene(pProgramState, pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
 
   renderData.models.Deinit();
   renderData.fences.Deinit();
@@ -1442,22 +1433,14 @@ void vcRenderSceneWindow(vcState *pProgramState)
   // Can only assign longlat positions in projected space
   if (pProgramState->gis.isProjected)
   {
-    pProgramState->worldMousePosLongLat = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->worldMousePos, true);
+    pProgramState->worldMousePosLongLat = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->worldMousePosCartesian, true);
     pProgramState->pCamera->positionInLongLat = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->pCamera->position, true);
   }
   else
   {
-    pProgramState->worldMousePosLongLat = pProgramState->worldMousePos;
+    pProgramState->worldMousePosLongLat = pProgramState->worldMousePosCartesian;
     pProgramState->pCamera->positionInLongLat = pProgramState->pCamera->position;
   }
-
-  pProgramState->previousWorldMousePos = renderData.worldMousePos;
-  pProgramState->previousPickingSuccess = renderData.pickingSuccess;
-  pProgramState->previousUDModelPickedIndex = renderData.udModelPickedIndex;
-  pProgramState->pSceneWatermark = renderData.pWatermarkTexture;
-
-  if (renderData.mouse.clicked)
-    pProgramState->worldMouseClickedPos = renderData.worldMousePos;
 
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 }
@@ -2110,7 +2093,7 @@ void vcRenderWindow(vcState *pProgramState)
               vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
 
               if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
-                pPOI->AddPoint(pProgramState, pProgramState->cameraInput.worldAnchorPoint);
+                pPOI->AddPoint(pProgramState, pProgramState->worldAnchorPoint);
             }
           }
 
