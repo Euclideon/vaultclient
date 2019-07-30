@@ -389,9 +389,9 @@ void vcUPD_AddBookmarkData(vcState *pProgramState, std::vector<vcUDPItemData> *p
     temp = udDouble3::zero();
     if (item.bookmark.pRotation != nullptr && vcUDP_ReadDouble3(item.bookmark.pRotation, temp))
     {
-      vdkProjectNode_SetMetadataDouble(pNode, "rotation.x", temp.x);
-      vdkProjectNode_SetMetadataDouble(pNode, "rotation.y", temp.y);
-      vdkProjectNode_SetMetadataDouble(pNode, "rotation.z", temp.z);
+      vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.x", temp.x);
+      vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", temp.y);
+      vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.z", temp.z);
     }
 
     pItemData->at(index).sceneFolder = { pParentNode, pNode };
