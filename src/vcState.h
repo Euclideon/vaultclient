@@ -89,13 +89,15 @@ struct vcState
   vcTexture *pSceneWatermark;
   vcTexture *pUITexture;
 
-  udDouble3 worldMousePos;
+  bool isUsingAnchorPoint;
+  udDouble3 worldAnchorPoint;
+  udRay<double> anchorMouseRay;
+
+  udDouble3 worldMousePosCartesian;
   udDouble3 worldMousePosLongLat;
   udDouble3 worldMouseClickedPos;
   bool pickingSuccess;
-  udDouble3 previousWorldMousePos;
-  bool previousPickingSuccess;
-  int previousUDModelPickedIndex;
+  int udModelPickedIndex;
 
   vcCameraInput cameraInput;
 

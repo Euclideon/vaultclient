@@ -65,7 +65,7 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
   ChangeProjection(pProgramState->gis.zone);
 }
 
-void vcMedia::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
+void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
   if (!m_visible)
     return;
@@ -73,11 +73,11 @@ void vcMedia::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
   if (m_image.pTexture != nullptr)
   {
     // For now brute force sorting (n^2)
-    double distToCameraSqr = udMagSq3(m_image.position - pRenderData->pCamera->position);
+    double distToCameraSqr = udMagSq3(m_image.position - pProgramState->pCamera->position);
     size_t i = 0;
     for (; i < pRenderData->images.length; ++i)
     {
-      if (udMagSq3(pRenderData->images[i]->position - pRenderData->pCamera->position) < distToCameraSqr)
+      if (udMagSq3(pRenderData->images[i]->position - pProgramState->pCamera->position) < distToCameraSqr)
         break;
     }
 
