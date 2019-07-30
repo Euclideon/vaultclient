@@ -92,7 +92,7 @@ void vcSession_Login(void *pProgramStatePtr)
   if (result != vE_Success)
     return;
 
-  vcRender_SetVaultContext(pProgramState->pRenderContext, pProgramState->pVDKContext);
+  vcRender_SetVaultContext(pProgramState, pProgramState->pRenderContext);
 
   udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetProjectsWT, pProgramState, false);
   udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetPackagesWT, pProgramState, false, vcSession_GetPackagesMT);

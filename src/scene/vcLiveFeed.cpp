@@ -356,14 +356,14 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       continue;
     }
 
-    udDouble3 cameraPosition = pRenderData->pCamera->position;
+    udDouble3 cameraPosition = pProgramState->pCamera->position;
 
     if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
     {
       cameraPosition.z = pProgramState->settings.camera.orthographicSize * vcCamera_HeightToOrthoFOVRatios[pProgramState->settings.camera.lensIndex];
     }
 
-    pFeedItem->tweenAmount = m_tweenPositionAndOrientation ? udMin(1.0, pFeedItem->tweenAmount + pRenderData->deltaTime * 0.02) : 1.0;
+    pFeedItem->tweenAmount = m_tweenPositionAndOrientation ? udMin(1.0, pFeedItem->tweenAmount + pProgramState->deltaTime * 0.02) : 1.0;
     pFeedItem->displayPosition = udLerp(pFeedItem->previousPositionLatLong, pFeedItem->livePositionLatLong, pFeedItem->tweenAmount);
 
     if (pProgramState->gis.isProjected)

@@ -75,9 +75,6 @@ struct vcCameraInput
 {
   vcInputState inputState;
 
-  bool isUsingAnchorPoint;
-  udDouble3 worldAnchorPoint;
-  udRay<double> anchorMouseRay;
   udDouble3 startPosition; // for zoom to
   udDouble3 lookAtPosition; // for 'look at'
   udDoubleQuat startAngle;

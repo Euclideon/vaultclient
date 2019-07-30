@@ -262,8 +262,9 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
           pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
           pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
-          pProgramState->cameraInput.worldAnchorPoint = pSceneItem->GetWorldSpacePivot();
           pProgramState->cameraInput.progress = 0.0;
+
+          pProgramState->worldAnchorPoint = pSceneItem->GetWorldSpacePivot();
         }
 
         // This is terrible but semi-required until we have undo

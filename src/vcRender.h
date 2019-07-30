@@ -37,17 +37,7 @@ struct vcMouseData
 
 struct vcRenderData
 {
-  vcGISSpace *pGISSpace;
-
-  double deltaTime;
-
   vcMouseData mouse;
-  udDouble3 worldMousePos;
-
-  udDouble3 *pWorldAnchorPos; // If this is not nullptr, this is the point to highlight
-  bool pickingSuccess;
-  int udModelPickedIndex;
-  vcTexture *pWatermarkTexture;
 
   udChunkedArray<vcModel*> models;
   udChunkedArray<vcFenceRenderer*> fences;
@@ -56,22 +46,21 @@ struct vcRenderData
   udChunkedArray<vcWaterRenderer*> waterVolumes;
   udChunkedArray<vcImageRenderInfo*> images;
   udChunkedArray<vcSceneLayerRenderer*> sceneLayers;
-
-  vcCamera *pCamera;
-  vcCameraSettings *pCameraSettings;
 };
 
-udResult vcRender_Init(vcRenderContext **ppRenderContext, udWorkerPool *pWorkerPool, vcSettings *pSettings, vcCamera *pCamera, const udUInt2 &windowResolution);
-udResult vcRender_Destroy(vcRenderContext **pRenderContext);
+udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext, udWorkerPool *pWorkerPool, const udUInt2 &windowResolution);
+udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **pRenderContext);
 
-udResult vcRender_SetVaultContext(vcRenderContext *pRenderContext, vdkContext *pVaultContext);
+udResult vcRender_SetVaultContext(vcState *pProgramState, vcRenderContext *pRenderContext);
 
-udResult vcRender_ResizeScene(vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);
+udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);
 
-void vcRender_BeginFrame(vcRenderContext *pRenderContext);
-vcTexture* vcRender_GetSceneTexture(vcRenderContext *pRenderContext);
-void vcRender_RenderScene(vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer);
-void vcRender_vcRenderSceneImGui(vcRenderContext *pRenderContext, const vcRenderData &renderData);
+void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext);
+
+void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer);
+void vcRender_SceneImGui(vcState *pProgramState, vcRenderContext *pRenderContext, const vcRenderData &renderData);
+
+vcTexture* vcRender_GetSceneTexture(vcState *pProgramState, vcRenderContext *pRenderContext);
 
 void vcRender_ClearTiles(vcRenderContext *pRenderContext);
 void vcRender_ClearPoints(vcRenderContext *pRenderContext);
@@ -84,7 +73,7 @@ struct vcRenderPickResult
   vcModel *pModel;
   vcRenderPolyInstance *pPolygon;
 };
-vcRenderPickResult vcRender_PolygonPick(vcRenderContext *pRenderContext, vcRenderData &renderData);
-bool vcRender_PickTiles(vcRenderContext *pRenderContext, udDouble3 &hitPoint);
+vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData);
+bool vcRender_PickTiles(vcState *pProgramState, udDouble3 &hitPoint);
 
 #endif//vcRender_h__
