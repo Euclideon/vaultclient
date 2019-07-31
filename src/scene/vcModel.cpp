@@ -15,42 +15,12 @@
 
 struct vcModelLoadInfo
 {
-  bool jumpToLocation;
   vcState *pProgramState;
   vcModel *pModel;
-
-  bool usePosition;
-  udDouble3 position;
-
-  bool useRotation;
-  udDouble3 rotation;
-
-  double scale; // Always uses this one
 };
 
-void vcModel_PostLoadModel(void *pLoadInfoPtr)
+void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel)
 {
-  vcModelLoadInfo *pLoadInfo = (vcModelLoadInfo*)pLoadInfoPtr;
-  if (pLoadInfo->pProgramState->programComplete)
-    return;
-
-  if (pLoadInfo->pModel->m_loadStatus != vcSLS_Loaded)
-    return;
-
-  if (pLoadInfo->jumpToLocation)
-    vcProject_UseProjectionFromItem(pLoadInfo->pProgramState, pLoadInfo->pModel);
-  else if (pLoadInfo->pProgramState->gis.isProjected)
-    pLoadInfo->pModel->ChangeProjection(pLoadInfo->pProgramState->gis.zone);
-
-  // TODO: (EVC-535) This works - but is sub-optimal
-  // Not sure exactly how to handle auto-assignment...
-  pLoadInfo->pProgramState->settings.visualization.minIntensity = udMax(pLoadInfo->pProgramState->settings.visualization.minIntensity, pLoadInfo->pModel->minMaxIntensity.x);
-  pLoadInfo->pProgramState->settings.visualization.maxIntensity = udMin(pLoadInfo->pProgramState->settings.visualization.maxIntensity, pLoadInfo->pModel->minMaxIntensity.y);
-}
-
-void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, double scale, udDouble3 *pPosition = nullptr, udDouble3 *pRotation = nullptr)
-{
-  udGeoZone *pMemberZone = nullptr;
   const char *pMetadata;
 
   if (vdkPointCloud_GetMetadata(pProgramState->pVDKContext, pModel->m_pPointCloud, &pMetadata) == vE_Success)
@@ -72,59 +42,39 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, double scale,
         srid = udStrAtou(&pSRID[1]);
 
       pModel->m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-      if (udGeoZone_SetFromSRID(pModel->m_pPreferredProjection, srid) == udR_Success)
-      {
-        pMemberZone = udAllocType(udGeoZone, 1, udAF_Zero);
-        memcpy(pMemberZone, pModel->m_pPreferredProjection, sizeof(*pMemberZone));
-      }
-      else
-      {
+      if (udGeoZone_SetFromSRID(pModel->m_pPreferredProjection, srid) != udR_Success)
         udFree(pModel->m_pPreferredProjection);
-      }
     }
 
-    if (pModel->m_pPreferredProjection == nullptr && pMemberZone == nullptr && pWKT != nullptr)
+    if (pModel->m_pPreferredProjection == nullptr && pWKT != nullptr)
     {
       pModel->m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-      pMemberZone = udAllocType(udGeoZone, 1, udAF_Zero);
 
-      udGeoZone_SetFromWKT(pModel->m_pPreferredProjection, pWKT);
-
-      memcpy(pMemberZone, pModel->m_pPreferredProjection, sizeof(*pMemberZone));
+      if (udGeoZone_SetFromWKT(pModel->m_pPreferredProjection, pWKT) != udR_Success)
+        udFree(pModel->m_pPreferredProjection);
     }
 
-    // TODO: (EVC-535) This works, but this data is already extracted and stored in
-    // `udOctreeUDS`... but we don't have access to that data?
-    const char *pMinMaxIntensity = pModel->m_metadata.Get("AttrMinMax_udIntensity").AsString("0, 65535");
-    int charCount = 0;
-    pModel->minMaxIntensity.x = (uint16_t)udStrAtoi(pMinMaxIntensity, &charCount);
-    pModel->minMaxIntensity.y = (uint16_t)(udStrAtoi(pMinMaxIntensity + charCount + 1));
+    // TODO: Handle this better (EVC-535)
+    const char *pMinMaxIntensity = pModel->m_metadata.Get("AttrMinMax_udIntensity").AsString();
+    if (pMinMaxIntensity != nullptr)
+    {
+      int charCount = 0;
+      int minIntensity = (uint16_t)udStrAtoi(pMinMaxIntensity, &charCount);
+      int maxIntensity = (uint16_t)(udStrAtoi(pMinMaxIntensity + charCount + 1));
+
+      pProgramState->settings.visualization.minIntensity = udMax(pProgramState->settings.visualization.minIntensity, minIntensity);
+      pProgramState->settings.visualization.maxIntensity = udMin(pProgramState->settings.visualization.maxIntensity, maxIntensity);
+    }
   }
 
   vdkPointCloud_GetStoredMatrix(pProgramState->pVDKContext, pModel->m_pPointCloud, pModel->m_sceneMatrix.a);
   pModel->m_defaultMatrix = pModel->m_sceneMatrix;
+  pModel->m_baseMatrix = pModel->m_defaultMatrix;
 
-  udDouble3 scaleFactor = udDouble3::create(udMag3(pModel->m_sceneMatrix.axis.x), udMag3(pModel->m_sceneMatrix.axis.y), udMag3(pModel->m_sceneMatrix.axis.z)) * scale;
-  udDouble3 translate = pModel->m_sceneMatrix.axis.t.toVector3();
-  udDouble3 ypr = udDouble3::zero();
+  pModel->OnNodeUpdate(pProgramState);
 
-  if (pRotation != nullptr)
-    ypr = *pRotation;
-
-  if (pPosition != nullptr)
-    translate = *pPosition;
-
-  if (pRotation != nullptr || pPosition != nullptr || scale != 1.0)
-    pModel->m_sceneMatrix = udDouble4x4::translation(translate) * udDouble4x4::translation(pModel->m_pivot) * udDouble4x4::rotationYPR(ypr) * udDouble4x4::scaleNonUniform(scaleFactor) * udDouble4x4::translation(-pModel->m_pivot);
-
-  if (pMemberZone)
-  {
-    vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pModel->m_pNode, vdkPGT_Point, 1, (double*)&translate);
-    pModel->m_pBaseZone = pMemberZone;
-    pMemberZone = nullptr;
-  }
-
-  udFree(pMemberZone);
+  if (pModel->m_pPreferredProjection)
+    pModel->m_changeZones = true;
 }
 
 void vcModel_LoadModel(void *pLoadInfoPtr)
@@ -141,8 +91,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
     if (modelStatus == vE_Success)
     {
-      vcModel_LoadMetadata(pLoadInfo->pProgramState, pLoadInfo->pModel, pLoadInfo->scale, pLoadInfo->usePosition ? &pLoadInfo->position : nullptr, pLoadInfo->useRotation ? &pLoadInfo->rotation : nullptr);
-
+      vcModel_LoadMetadata(pLoadInfo->pProgramState, pLoadInfo->pModel);
       pLoadInfo->pModel->m_loadStatus = vcSLS_Loaded;
     }
     else if (modelStatus == vE_OpenFailure)
@@ -161,45 +110,23 @@ vcModel::vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramS
   m_pPointCloud(nullptr),
   m_pivot(udDouble3::zero()),
   m_defaultMatrix(udDouble4x4::identity()),
+  m_pCurrentZone(nullptr),
   m_sceneMatrix(udDouble4x4::identity()),
+  m_baseMatrix(udDouble4x4::identity()),
+  m_changeZones(false),
   m_meterScale(0.0),
-  m_pBaseZone(nullptr),
   m_hasWatermark(false),
   m_pWatermark(nullptr)
 {
-  const char *pFilePath = pNode->pURI;
-
-  if (pFilePath == nullptr)
-    return; // Can't load a model if we don't have the URL
-
-  udFilename udfilename(pFilePath);
-
   vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
   if (pLoadInfo != nullptr)
   {
     // Prepare the load info
     pLoadInfo->pModel = this;
     pLoadInfo->pProgramState = pProgramState;
-    pLoadInfo->jumpToLocation = false;//jumpToModelOnLoad;
 
-#if 0
-    if (pOverridePosition)
-    {
-      pLoadInfo->usePosition = true;
-      pLoadInfo->position = *pOverridePosition;
-    }
-
-    if (pOverrideYPR)
-    {
-      pLoadInfo->useRotation = true;
-      pLoadInfo->rotation = *pOverrideYPR;
-    }
-#endif
-
-    pLoadInfo->scale = 1.f;//scale;
-
-                           // Queue for load
-    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcModel_LoadModel, pLoadInfo, true, vcModel_PostLoadModel);
+    // Queue for load
+    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcModel_LoadModel, pLoadInfo, true);
   }
   else
   {
@@ -207,65 +134,119 @@ vcModel::vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramS
   }
 }
 
-vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud, bool jumpToModelOnLoad /*= false*/) :
+vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud) :
   vcSceneItem(pProgramState, "UDS", pName),
   m_pPointCloud(nullptr),
   m_pivot(udDouble3::zero()),
   m_defaultMatrix(udDouble4x4::identity()),
+  m_pCurrentZone(nullptr),
   m_sceneMatrix(udDouble4x4::identity()),
+  m_baseMatrix(udDouble4x4::identity()),
+  m_changeZones(false),
   m_meterScale(0.0),
-  m_pBaseZone(nullptr),
   m_hasWatermark(false),
   m_pWatermark(nullptr)
 {
   m_pPointCloud = pCloud;
-
-  //TODO: Update Name
-  //if (pName == nullptr)
-  //  m_pName = udStrdup("<?>");
-  //else
-  //  m_pName = udStrdup(pName);
-
   m_loadStatus = vcSLS_Loaded;
 
-  vcModel_LoadMetadata(pProgramState, this, 1.0);
-
-  if (jumpToModelOnLoad)
-    vcProject_UseProjectionFromItem(pProgramState, this);
-  else if (pProgramState->gis.isProjected)
-    ChangeProjection(pProgramState->gis.zone);
+  vcModel_LoadMetadata(pProgramState, this);
 
   m_pNode->pUserData = this;
 }
 
-void vcModel::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
+void vcModel::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
+  if (m_changeZones)
+    ChangeProjection(pProgramState->gis.zone);
+
   pRenderData->models.PushBack(this);
 }
 
-void vcModel::OnNodeUpdate(vcState * /*pProgramState*/)
+void vcModel::OnNodeUpdate(vcState *pProgramState)
 {
-  //TODO: This should come from the m_pNode
+  udDouble3 *pPosition = nullptr;
+  double scale;
+  udDouble3 euler;
+
+  if (m_pNode->geomCount != 0)
+  {
+    if (m_pCurrentZone != nullptr)
+    {
+      vcProject_FetchNodeGeometryAsCartesian(pProgramState->activeProject.pProject, m_pNode, *m_pCurrentZone, &pPosition, nullptr);
+    }
+    else if (m_pPreferredProjection != nullptr)
+    {
+      vcProject_FetchNodeGeometryAsCartesian(pProgramState->activeProject.pProject, m_pNode, *m_pPreferredProjection, &pPosition, nullptr);
+      m_pCurrentZone = (udGeoZone*)udMemDup(m_pPreferredProjection, sizeof(udGeoZone), 0, udAF_None);
+    }
+    else
+    {
+      vcProject_FetchNodeGeometryAsCartesian(pProgramState->activeProject.pProject, m_pNode, pProgramState->gis.zone, &pPosition, nullptr);
+
+      if (pProgramState->gis.isProjected)
+        m_pCurrentZone = (udGeoZone*)udMemDup(&pProgramState->gis.zone, sizeof(udGeoZone), 0, udAF_None);
+    }
+
+    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &euler.x, 0.0);
+    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &euler.y, 0.0);
+    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &euler.z, 0.0);
+    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.scale", &scale, 1.0);
+
+    m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationYPR(UD_DEG2RAD(euler), *pPosition) * udDouble4x4::scaleUniform(scale) * udDouble4x4::translation(-m_pivot);
+  }
+
+  udFree(pPosition);
+
+  m_changeZones = true;
 }
 
 void vcModel::ChangeProjection(const udGeoZone &newZone)
 {
-  udDouble3 itemPos;
+  if (m_loadStatus != vcSLS_Loaded)
+  {
+    m_changeZones = true;
+    return;
+  }
 
-  if (m_pPreferredProjection == nullptr)
+  m_changeZones = false;
+
+  if (newZone.srid == 0)
     return;
 
-  //TODO: Fix this
+  if (m_pCurrentZone != nullptr)
+    m_sceneMatrix = udGeoZone_TransformMatrix(m_sceneMatrix, *m_pCurrentZone, newZone);
+  else if (m_pPreferredProjection != nullptr)
+    m_sceneMatrix = udGeoZone_TransformMatrix(m_baseMatrix, *m_pPreferredProjection, newZone);
 
-  itemPos = udGeoZone_ToLatLong(newZone, GetWorldSpacePivot());
+  if (m_pCurrentZone == nullptr)
+    m_pCurrentZone = udAllocType(udGeoZone, 1, udAF_None);
 
-  if (m_pBaseZone != nullptr)
-    m_sceneMatrix = udGeoZone_TransformMatrix(m_sceneMatrix, *m_pBaseZone, newZone);
+  if (m_pCurrentZone != nullptr) // In case it didn't allocate correctly
+    memcpy(m_pCurrentZone, &newZone, sizeof(newZone));
 }
 
-void vcModel::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
+void vcModel::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
   m_sceneMatrix = delta * m_sceneMatrix;
+
+  // Save it to the node...
+  if (m_pCurrentZone != nullptr)
+  {
+    udDouble3 position;
+    udDouble3 scale;
+    udDoubleQuat orientation;
+
+    (udDouble4x4::translation(-m_pivot) * m_sceneMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(position, scale, orientation);
+
+    udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
+
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState->activeProject.pProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &position, 1);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", scale.x);
+  }
 }
 
 void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
@@ -274,7 +255,7 @@ void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
   udDouble3 position;
   udDouble3 scale;
   udDoubleQuat orientation;
-  m_sceneMatrix.extractTransforms(position, scale, orientation);
+  (udDouble4x4::translation(-m_pivot) * m_sceneMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(position, scale, orientation);
 
   bool repackMatrix = false;
   if (ImGui::InputScalarN(vcString::Get("sceneModelPosition"), ImGuiDataType_Double, &position.x, 3))
@@ -291,7 +272,7 @@ void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
     repackMatrix = true;
 
   if (repackMatrix)
-    m_sceneMatrix = udDouble4x4::rotationQuat(orientation, position) * udDouble4x4::scaleUniform(scale.x);
+    m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientation, position) * udDouble4x4::scaleUniform(scale.x) * udDouble4x4::translation(-m_pivot);
 
   vcImGuiValueTreeObject(&m_metadata);
 }
@@ -299,6 +280,7 @@ void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
 void vcModel::Cleanup(vcState *pProgramState)
 {
   vdkPointCloud_Unload(pProgramState->pVDKContext, &m_pPointCloud);
+  udFree(m_pCurrentZone);
 
   if (m_pWatermark != nullptr)
   {
