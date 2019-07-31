@@ -580,12 +580,16 @@ void vcRenderOpaqueGeometry(vcState *pProgramState, vcRenderContext *pRenderCont
     vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
 
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
-      vcPolygonModel_Render(renderData.polyModels[i].pModel, renderData.polyModels[i].worldMat, pProgramState->pCamera->matrices.viewProjection);
+    {
+      // TODO: (EVC-553)
+      gpuBytesUploadedThisFrame = 0;
 
-    // TODO: (EVC-553) This is temporary
-    gpuBytesUploadedThisFrame = 0;
-    for (size_t i = 0; i < renderData.sceneLayers.length; ++i)
-      vcSceneLayerRenderer_Render(renderData.sceneLayers[i], pProgramState->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
+      vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
+      if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
+        vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection);
+      else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
+        vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
+    }
 
     for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
       vcWaterRenderer_Render(renderData.waterVolumes[i], pProgramState->pCamera->matrices.view, pProgramState->pCamera->matrices.viewProjection, pRenderContext->pSkyboxTexture, pProgramState->deltaTime);
@@ -699,20 +703,17 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
   udFloat4 selectionMask = udFloat4::create(1.0f); // mask selected object
   for (size_t i = 0; i < renderData.polyModels.length; ++i)
   {
-    vcRenderPolyInstance *pPolygon = &renderData.polyModels[i];
-
-    if (pPolygon->pSceneItem->IsSceneSelected(pPolygon->sceneItemInternalId))
+    vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
+    if (pInstance->pSceneItem->IsSceneSelected(pInstance->sceneItemInternalId))
     {
-      vcPolygonModel_Render(pPolygon->pModel, pPolygon->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &selectionMask);
+      if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
+        vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &selectionMask);
+      else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
+        vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pRenderContext->sceneResolution, &selectionMask);
+
       return true; // assuming only a single selection
     }
-  }
 
-  for (size_t i = 0; i < renderData.sceneLayers.length; ++i)
-  {
-    //vcSceneLayerRenderer *pSceneLayerRenderer = renderData.sceneLayers[i];
-    //if (pSceneLayerRenderer->)
-    //vcSceneLayerRenderer_Render(renderData.sceneLayers[i], pProgramState->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
   }
 
   return false;
@@ -1095,20 +1096,15 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 #endif
 
     // Polygon Models
+    for (size_t i = 0; i < renderData.polyModels.length; ++i)
     {
-      for (size_t i = 0; i < renderData.polyModels.length; ++i)
-      {
-        udFloat4 idAsColour = vcRender_EncodeIdAsColour((uint32_t)(modelId++));
-        vcPolygonModel_Render(renderData.polyModels[i].pModel, renderData.polyModels[i].worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &idAsColour);
-      }
+      vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
+      udFloat4 idAsColour = vcRender_EncodeIdAsColour((uint32_t)(modelId++));
 
-      /*
-      for (size_t i = 0; i < renderData.sceneLayers.length; ++i)
-      {
-        udFloat4 idAsColour = vcRender_EncodeIdAsColour((uint32_t)(modelId++));
-        //vcSceneLayerRenderer_Render(renderData.sceneLayers[i], pProgramState->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
-      }
-      */
+      if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
+        vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &idAsColour);
+      else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
+        vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pRenderContext->sceneResolution, &idAsColour);
     }
   }
 
@@ -1150,10 +1146,10 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 
     currentDist = udMag3(result.position - pProgramState->pCamera->position);
 
-    if (pickedPolygonId != -1)
-      result.pPolygon = &renderData.polyModels[pickedPolygonId];
-    else
+    if (udPickedId != -1)
       result.pModel = renderData.models[udPickedId];
+    else
+      result.pPolygon = &renderData.polyModels[pickedPolygonId];
   }
 
   if (pProgramState->settings.maptiles.mapEnabled && pProgramState->settings.maptiles.mouseInteracts)// check map tiles

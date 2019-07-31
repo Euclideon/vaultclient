@@ -25,6 +25,7 @@ public:
   udDouble4x4 GetWorldSpaceMatrix();
 private:
   vcSceneLayerRenderer *m_pSceneRenderer;
+  udDouble4x4 m_sceneMatrix; // This is the matrix used to render into the current projection
 };
 
 #endif //vcI3S_h__
