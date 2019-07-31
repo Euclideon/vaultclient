@@ -13,6 +13,8 @@ vcI3S::vcI3S(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState
   vcSceneItem(pProject, pNode, pProgramState),
   m_pSceneRenderer(nullptr)
 {
+  m_sceneMatrix = udDouble4x4::identity();
+
   if (vcSceneLayerRenderer_Create(&m_pSceneRenderer, pProgramState->pWorkerPool, pNode->pURI) == udR_Success)
   {
     m_loadStatus = vcSLS_Loaded;
@@ -45,12 +47,19 @@ void vcI3S::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
   if (!m_visible || m_pSceneRenderer == nullptr) // Nothing to render
     return;
 
-  pRenderData->sceneLayers.PushBack(m_pSceneRenderer);
+  vcRenderPolyInstance instance = {};
+  instance.renderType = vcRenderPolyInstance::RenderType_SceneLayer;
+  instance.pSceneLayer = m_pSceneRenderer;
+  instance.worldMat = m_sceneMatrix;
+  instance.pSceneItem = this;
+  instance.sceneItemInternalId = 0; // TODO: individual node picking
+
+  pRenderData->polyModels.PushBack(instance);
 }
 
 void vcI3S::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
 {
-  m_pSceneRenderer->sceneMatrix = delta * m_pSceneRenderer->sceneMatrix;
+  m_sceneMatrix = delta * m_sceneMatrix;
 }
 
 void vcI3S::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
@@ -74,9 +83,9 @@ void vcI3S::ChangeProjection(const udGeoZone &newZone)
     return;
 
   udDouble4x4 prevOrigin = udDouble4x4::translation(GetLocalSpacePivot());
-  udDouble4x4 newOffset = m_pSceneRenderer->sceneMatrix * prevOrigin;
+  udDouble4x4 newOffset = m_sceneMatrix * prevOrigin;
   newOffset = udGeoZone_TransformMatrix(newOffset, *pInternalZone, newZone);
-  m_pSceneRenderer->sceneMatrix = newOffset * udInverse(prevOrigin);
+  m_sceneMatrix = newOffset * udInverse(prevOrigin);
 }
 
 udDouble3 vcI3S::GetLocalSpacePivot()
@@ -89,5 +98,5 @@ udDouble3 vcI3S::GetLocalSpacePivot()
 
 udDouble4x4 vcI3S::GetWorldSpaceMatrix()
 {
-  return m_pSceneRenderer ? m_pSceneRenderer->sceneMatrix : udDouble4x4::identity();
+  return m_pSceneRenderer ? m_sceneMatrix : udDouble4x4::identity();
 }

@@ -22,7 +22,18 @@ struct udWorkerPool;
 
 struct vcRenderPolyInstance
 {
-  vcPolygonModel *pModel;
+  enum RenderType
+  {
+    RenderType_Polygon,
+    RenderType_SceneLayer
+  } renderType;
+
+  union
+  {
+    vcPolygonModel *pModel;
+    vcSceneLayerRenderer *pSceneLayer;
+  };
+
   udDouble4x4 worldMat; // will be converted to eye internally
 
   vcSceneItem *pSceneItem;
@@ -45,7 +56,6 @@ struct vcRenderData
   udChunkedArray<vcRenderPolyInstance> polyModels;
   udChunkedArray<vcWaterRenderer*> waterVolumes;
   udChunkedArray<vcImageRenderInfo*> images;
-  udChunkedArray<vcSceneLayerRenderer*> sceneLayers;
 };
 
 udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext, udWorkerPool *pWorkerPool, const udUInt2 &windowResolution);

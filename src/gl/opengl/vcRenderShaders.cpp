@@ -800,7 +800,7 @@ const char* const g_HighlightFragmentShader = FRAG_HEADER R"shader(
     result += softenEdge * step(texture(u_texture, v_uv3).x - middle.x, -0.00001);
     result += softenEdge * step(texture(u_texture, v_uv4).x - middle.x, -0.00001);
 
-    result = max(u_stepSizeThickness.w, result); // overlay colour
+    result = max(u_stepSizeThickness.w, result) * u_colour.w; // overlay colour
     out_Colour = vec4(u_colour.xyz, result);
   }
 
