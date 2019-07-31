@@ -155,6 +155,8 @@ project "vaultClient"
 	-- include common stuff
 	dofile "3rdParty/udcore/bin/premake-bin/common-proj.lua"
 
+	floatingpoint "default"
+
 	filter { "system:ios" }
 		removeflags { "FatalWarnings" }
 
