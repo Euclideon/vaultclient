@@ -63,7 +63,6 @@ public:
   void AddPoint(vcState *pProgramState, const udDouble3 &position);
   void RemovePoint(vcState *pProgramState, int index);
   void UpdatePoints();
-  void UpdateLabelInfo();
 
   void SetCameraPosition(vcState *pProgramState);
   udDouble4x4 GetWorldSpaceMatrix();

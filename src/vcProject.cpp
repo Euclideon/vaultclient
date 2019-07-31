@@ -264,15 +264,28 @@ bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pItem)
 
 bool vcProject_UpdateNodeGeometryFromCartesian(vdkProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, vdkProjectGeometryType newType, udDouble3 *pPoints, int numPoints)
 {
-  udDouble3 *pGeom = udAllocType(udDouble3, numPoints, udAF_Zero);
+  if (pProject == nullptr || pNode == nullptr)
+    return false;
 
-  // Change all points from the projection
-  for (int i = 0; i < numPoints; ++i)
-    pGeom[i] = udGeoZone_ToLatLong(zone, pPoints[i], true);
+  udDouble3 *pGeom = nullptr;
 
-  vdkError result = vdkProjectNode_SetGeometry(pProject, pNode, newType, numPoints, (double*)pGeom);
+  vdkError result = vE_Failure;
 
-  udFree(pGeom);
+  if (zone.srid != 0) //Geolocated
+  {
+    pGeom = udAllocType(udDouble3, numPoints, udAF_Zero);
+
+    // Change all points from the projection
+    for (int i = 0; i < numPoints; ++i)
+      pGeom[i] = udGeoZone_ToLatLong(zone, pPoints[i], true);
+
+    result = vdkProjectNode_SetGeometry(pProject, pNode, newType, numPoints, (double*)pGeom);
+    udFree(pGeom);
+  }
+  else
+  {
+    result = vdkProjectNode_SetGeometry(pProject, pNode, newType, numPoints, (double*)pPoints);
+  }
 
   return (result == vE_Success);
 }
@@ -282,14 +295,22 @@ bool vcProject_FetchNodeGeometryAsCartesian(vdkProject *pProject, vdkProjectNode
   if (pProject == nullptr || pNode == nullptr)
     return false;
 
+  udDouble3 *pPoints = udAllocType(udDouble3, pNode->geomCount, udAF_Zero);
+
   if (pNumPoints != nullptr)
     *pNumPoints = pNode->geomCount;
 
-  udDouble3 *pPoints = udAllocType(udDouble3, pNode->geomCount, udAF_Zero);
-
-  // Change all points from the projection
-  for (int i = 0; i < pNode->geomCount; ++i)
-    pPoints[i] = udGeoZone_ToCartesian(zone, ((udDouble3*)pNode->pCoordinates)[i], true);
+  if (zone.srid != 0) // Geolocated
+  {
+    // Change all points from the projection
+    for (int i = 0; i < pNode->geomCount; ++i)
+      pPoints[i] = udGeoZone_ToCartesian(zone, ((udDouble3*)pNode->pCoordinates)[i], true);
+  }
+  else
+  {
+    for (int i = 0; i < pNode->geomCount; ++i)
+      pPoints[i] = ((udDouble3*)pNode->pCoordinates)[i];
+  }
 
   *ppPoints = pPoints;
 
