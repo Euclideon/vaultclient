@@ -932,7 +932,7 @@ const char* const g_HighlightFragmentShader = R"shader(
     result += softenEdge * step(u_texture.Sample(sampler0, input.uv3).x - middle.x, -0.00001);
     result += softenEdge * step(u_texture.Sample(sampler0, input.uv4).x - middle.x, -0.00001);
     
-    result = max(input.stepSizeThickness.w, result); // overlay colour
+    result = max(input.stepSizeThickness.w, result) * input.colour.w; // overlay colour
     return float4(input.colour.xyz, result);
   }
 

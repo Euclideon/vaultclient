@@ -18,7 +18,6 @@ udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer
 
   pSceneLayerRenderer = udAllocType(vcSceneLayerRenderer, 1, udAF_Zero);
   UD_ERROR_NULL(pSceneLayerRenderer, udR_MemoryAllocationFailure);
-  pSceneLayerRenderer->sceneMatrix = udDouble4x4::identity();
 
   UD_ERROR_CHECK(vcSceneLayer_Create(&pSceneLayerRenderer->pSceneLayer, pWorkerThreadPool, pSceneLayerURL));
 
@@ -80,7 +79,7 @@ double vcSceneLayerRenderer_CalculateNodeScreenSize(vcSceneLayerNode *pNode, con
   return udMax(screenSize.x, screenSize.y);
 }
 
-void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udDouble4x4 &viewProjectionMatrix)
+void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udDouble4x4 &viewProjectionMatrix, const udFloat4 *pColourOverride)
 {
   udUnused(pSceneLayerRenderer);
 
@@ -93,13 +92,13 @@ void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayerRenderer, 
     if (pNode->textureDataCount > 0 && pNode->pTextureData[0].loaded)
       pDrawTexture = pNode->pTextureData[0].pTexture; // TODO: (EVC-542) read the actual material data
 
-    vcPolygonModel_Render(pNode->pGeometryData[geometry].pModel, pNode->pGeometryData[geometry].originMatrix, viewProjectionMatrix, vcPMP_Standard, pDrawTexture);
+    vcPolygonModel_Render(pNode->pGeometryData[geometry].pModel, pNode->pGeometryData[geometry].originMatrix, viewProjectionMatrix, (pColourOverride == nullptr) ? vcPMP_Standard : vcPMP_ColourOnly, pDrawTexture, pColourOverride);
 
     // TODO: (EVC-542) other geometry types
   }
 }
 
-bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution)
+bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution, const udFloat4 *pColourOverride)
 {
   if (!vcSceneLayerRenderer_IsNodeVisible(pNode, pSceneLayerRenderer->frustumPlanes))
     return true; // consume, but do nothing
@@ -110,7 +109,7 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRende
   double nodeScreenSize = vcSceneLayerRenderer_CalculateNodeScreenSize(pNode, viewProjectionMatrix, screenResolution);
   if (pNode->childrenCount == 0 || nodeScreenSize < pNode->lodSelectionValue)
   {
-    vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, viewProjectionMatrix);
+    vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, viewProjectionMatrix, pColourOverride);
     return true;
   }
 
@@ -118,26 +117,26 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRende
   for (size_t i = 0; i < pNode->childrenCount; ++i)
   {
     vcSceneLayerNode *pChildNode = &pNode->pChildren[i];
-    childrenAllRendered = vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, pChildNode, viewProjectionMatrix, screenResolution) && childrenAllRendered;
+    childrenAllRendered = vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, pChildNode, viewProjectionMatrix, screenResolution, pColourOverride) && childrenAllRendered;
   }
 
   // TODO: (EVC-548)
   // If children are not loaded in yet, render this LOD.
   // At the moment this can cause incorrect occlusion
   if (!childrenAllRendered)
-    vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, viewProjectionMatrix);
+    vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, viewProjectionMatrix, pColourOverride);
 
   return true;
 }
 
-bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayerRenderer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution)
+bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayerRenderer, const udDouble4x4 &worldMatrix, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution, const udFloat4 *pColourOverride /*= nullptr*/)
 {
   if (pSceneLayerRenderer == nullptr)
     return false;
 
   // TODO: (EVC-548) This is duplicated work across i3s models
   // extract frustum planes
-  udDouble4x4 worldViewProjectionMatrix = viewProjectionMatrix * pSceneLayerRenderer->sceneMatrix;
+  udDouble4x4 worldViewProjectionMatrix = viewProjectionMatrix * worldMatrix;
   udDouble4x4 transposedViewProjection = udTranspose(worldViewProjectionMatrix);
   pSceneLayerRenderer->frustumPlanes[0] = transposedViewProjection.c[3] + transposedViewProjection.c[0]; // Left
   pSceneLayerRenderer->frustumPlanes[1] = transposedViewProjection.c[3] - transposedViewProjection.c[0]; // Right
@@ -149,5 +148,5 @@ bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayerRenderer, cons
   for (int j = 0; j < 6; ++j)
     pSceneLayerRenderer->frustumPlanes[j] /= udMag3(pSceneLayerRenderer->frustumPlanes[j]);
 
-  return vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, &pSceneLayerRenderer->pSceneLayer->root, worldViewProjectionMatrix, screenResolution);
+  return vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, &pSceneLayerRenderer->pSceneLayer->root, worldViewProjectionMatrix, screenResolution, pColourOverride);
 }
