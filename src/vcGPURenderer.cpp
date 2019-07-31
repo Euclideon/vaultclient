@@ -117,12 +117,15 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
   vcGPURenderer *pBlockRenderer = (vcGPURenderer*)pContext;
   vcBlockRenderVertexBuffer *pVertexBuffer = nullptr;
   int base = 0;
+  float voxelHalfSize = 0.0f;
   uint32_t colorOffset = vdkGPURender_GetAttributeOffset(vdkAC_ARGB, pVertexData);
   size_t intensityOffset = vdkGPURender_GetAttributeOffset(vdkAC_Intensity, pVertexData);
 
   pVertexBuffer = udAllocType(vcBlockRenderVertexBuffer, 1, udAF_Zero);
+
   UD_ERROR_NULL(pVertexBuffer, udR_MemoryAllocationFailure);
   pVertexBuffer->totalPointCount = (int)vdkGPURender_GetPointCount(pVertexData);
+  voxelHalfSize = (float)vdkGPURender_GetVoxelHalfSize(pVertexData);
 
   pVertexBuffer->divisionCount = vdkGPURender_GetDivisionCount(pVertexData);
   for (int div = 0; div < pVertexBuffer->divisionCount; ++div)
@@ -135,15 +138,13 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
       vcBlockRenderVertexBuffer::QuadVertex *pVerts = udAllocType(vcBlockRenderVertexBuffer::QuadVertex, pVertexBuffer->divisionPointCounts[div] * pBlockRenderer->pointRendering.vertCountPerPoint, udAF_None);
       UD_ERROR_NULL(pVerts, udR_MemoryAllocationFailure);
 
-      float childSize = (float)vdkGPURender_GetChildSize(pVertexData);
-
       for (int j = 0; j < pVertexBuffer->divisionPointCounts[div]; ++j)
       {
         vcBlockRenderVertexBuffer::QuadVertex vert = {};
         double position[3] = {};
 
         vdkGPURender_GetPosition(pVertexData, base + j, position);
-        vert.pos = udFloat4::create(udFloat3::create((float)position[0], (float)position[1], (float)position[2]), childSize);
+        vert.pos = udFloat4::create(udFloat3::create((float)position[0], (float)position[1], (float)position[2]), voxelHalfSize);
 
         // triangle #1
         vert.corner[0] = -1;
@@ -179,13 +180,11 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
       vcBlockRenderVertexBuffer::Vertex *pVerts = udAllocType(vcBlockRenderVertexBuffer::Vertex, pVertexBuffer->divisionPointCounts[div] * pBlockRenderer->pointRendering.vertCountPerPoint, udAF_None);
       UD_ERROR_NULL(pVerts, udR_MemoryAllocationFailure);
 
-      float childSize = (float)vdkGPURender_GetChildSize(pVertexData);
-
       for (int j = 0; j < pVertexBuffer->divisionPointCounts[div]; ++j)
       {
         double position[3] = {};
         vdkGPURender_GetPosition(pVertexData, base + j, position);
-        pVerts[j].pos = udFloat4::create(udFloat3::create((float)position[0], (float)position[1], (float)position[2]), childSize);
+        pVerts[j].pos = udFloat4::create(udFloat3::create((float)position[0], (float)position[1], (float)position[2]), voxelHalfSize);
       }
 
       pVertexBuffer->pDivisionData[div] = pVerts;
@@ -282,10 +281,9 @@ epilogue:
   return (result == udR_Success) ? vE_Success : vE_Failure;
 }
 
-vdkError vcGPURenderer_UploadVertexBuffer(void *pContext, const vdkGPURenderModel * /*pModel*/, void *pVertexBuffer, uint16_t divisionsMask)
+vdkError vcGPURenderer_UploadVertexBuffer(void *pContext, const vdkGPURenderModel * /*pModel*/, void *pVertexBuffer)
 {
   udResult result;
-  udUnused(divisionsMask);
   vcGPURenderer *pBlockRenderer = (vcGPURenderer*)pContext;
   vcBlockRenderVertexBuffer *pVB = (vcBlockRenderVertexBuffer*)pVertexBuffer;
 
@@ -356,7 +354,7 @@ vdkError vcGPURenderer_DestroyVertexBuffer(void * /*pContext*/, void *pVertexBuf
   return vE_Success;
 }
 
-udResult vcGPURenderer_Create(vcGPURenderer **ppBlockRenderer, vcGPURendererPointRenderMode renderMode, int targetPointCount, float threshold /*= 0.6f*/)
+udResult vcGPURenderer_Create(vcGPURenderer **ppBlockRenderer, vcGPURendererPointRenderMode renderMode, int targetPointCount)
 {
   udResult result;
   vcGPURenderer *pBlockRenderer = nullptr;
@@ -373,7 +371,7 @@ udResult vcGPURenderer_Create(vcGPURenderer **ppBlockRenderer, vcGPURendererPoin
   pBlockRenderer->gpuInterface.pRenderVertexBuffer = vcGPURenderer_RenderVertexBuffer;
   pBlockRenderer->gpuInterface.pDestroyVertexBuffer = vcGPURenderer_DestroyVertexBuffer;
 
-  if (vdkGPURender_Create(&pBlockRenderer->pRenderer, &pBlockRenderer->gpuInterface, pBlockRenderer, targetPointCount, threshold) != vE_Success)
+  if (vdkGPURender_Create(&pBlockRenderer->pRenderer, &pBlockRenderer->gpuInterface, pBlockRenderer, targetPointCount) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
   UD_ERROR_CHECK(vcGPURenderer_CreatePointRenderingData(pBlockRenderer));

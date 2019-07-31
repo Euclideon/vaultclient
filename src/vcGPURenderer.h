@@ -22,7 +22,7 @@ enum vcGPURendererPointRenderMode
 
 struct vcGPURenderer;
 
-udResult vcGPURenderer_Create(vcGPURenderer **ppBlockRenderer, vcGPURendererPointRenderMode renderMode, int targetPointCount, float threshold = 0.6f);
+udResult vcGPURenderer_Create(vcGPURenderer **ppBlockRenderer, vcGPURendererPointRenderMode renderMode, int targetPointCount);
 udResult vcGPURenderer_Destroy(vcGPURenderer **ppBlockRenderer);
 
 #endif // ALLOW_EXPERIMENT_GPURENDER
