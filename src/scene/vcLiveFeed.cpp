@@ -184,15 +184,21 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
         udDouble3 dir = newPositionLatLong - pFeedItem->previousPositionLatLong;
         bool hasOrientation = !pNode->Get("data.orientation").IsVoid();
 
-        if (udMagSq3(dir) > 0)
+        if (dir.x != 0 || dir.y != 0 || dir.z != 0)
         {
-          dir = udNormalize3(dir);
-
           if (!hasOrientation)
+          {
+            //X and Y are latlong and Z is m so we need to fix it
+            if (pInfo->pProgramState->gis.isProjected)
+              dir = udNormalize3(udGeoZone_ToCartesian(pInfo->pProgramState->gis.zone, newPositionLatLong, true) - udGeoZone_ToCartesian(pInfo->pProgramState->gis.zone, pFeedItem->previousPositionLatLong, true));
+            else
+              dir = udNormalize3(dir);
+
             pFeedItem->ypr = udMath_DirToYPR(dir);
+          }
 
           pFeedItem->tweenAmount = 0;
-          pFeedItem->previousPositionLatLong = pFeedItem->displayPosition;
+          pFeedItem->previousPositionLatLong = pFeedItem->livePositionLatLong;
         }
 
         if (hasOrientation)
