@@ -680,6 +680,8 @@ udFloat4 vcRender_EncodeIdAsColour(uint32_t id)
 
 bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
+  bool active = false;
+
   // check UD first
   uint32_t modelIndex = 0; // index is based on certain models
   for (size_t i = 0; i < renderData.models.length; ++i)
@@ -694,7 +696,7 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
           splatId = (modelIndex + 1) / 255.0f;
 #endif
         vcRender_SplatUDWithId(pProgramState, pRenderContext, splatId);
-        return true; // assuming only a single selection
+        active = true;
       }
       ++modelIndex;
     }
@@ -711,12 +713,12 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
       else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
         vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pRenderContext->sceneResolution, &selectionMask);
 
-      return true; // assuming only a single selection
+      active = true;
     }
 
   }
 
-  return false;
+  return active;
 }
 
 bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
@@ -1068,8 +1070,10 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 {
   vcRenderPickResult result = {};
 
-  udFloat2 pickUV = udFloat2::create((float)renderData.mouse.position.x / (float)pRenderContext->originalSceneResolution.x, (float)renderData.mouse.position.y / (float)pRenderContext->originalSceneResolution.y);
+  if (renderData.models.length == 0 && renderData.polyModels.length == 0)
+    return result;
 
+  udFloat2 pickUV = udFloat2::create((float)renderData.mouse.position.x / (float)pRenderContext->originalSceneResolution.x, (float)renderData.mouse.position.y / (float)pRenderContext->originalSceneResolution.y);
   if (pickUV.x < 0 || pickUV.x > 1 || pickUV.y < 0 || pickUV.y > 1)
     return result;
 
