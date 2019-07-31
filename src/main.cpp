@@ -875,6 +875,7 @@ epilogue:
   vcString::FreeTable(&programState.languageInfo);
   vcSession_Logout(&programState);
 
+  vcProject_Deinit(&programState, &programState.activeProject);
   vcTexture_Destroy(&programState.image.pImage);
 
   vcGLState_Deinit();
