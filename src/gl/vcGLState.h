@@ -1,6 +1,8 @@
 #ifndef vcGLState_h__
 #define vcGLState_h__
 
+#include "udMath.h"
+
 // Define potentially missing defines
 #ifndef GRAPHICS_API_OPENGL
 #  define GRAPHICS_API_OPENGL 0
@@ -14,13 +16,11 @@
 #  define GRAPHICS_API_METAL 0
 #endif
 
-#if GRAPHICS_API_OPENGL || GRAPHICS_API_D3D11
+#if (GRAPHICS_API_OPENGL || GRAPHICS_API_D3D11) && !UDPLATFORM_EMSCRIPTEN
 #  define ALLOW_EXPERIMENT_GPURENDER 1
 #else
 #  define ALLOW_EXPERIMENT_GPURENDER 0
 #endif
-
-#include "udMath.h"
 
 enum
 {
