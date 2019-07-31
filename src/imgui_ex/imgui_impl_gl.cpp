@@ -58,11 +58,12 @@ void ImGuiGL_RenderDrawData(ImDrawData* draw_data)
   // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+  vcGLState_SetDepthStencilMode(vcGLSDM_None, false);
 
   // Setup viewport, orthographic projection matrix
   vcGLState_SetViewport(0, 0, fb_width, fb_height);
 
-#ifdef GRAPHICS_API_METAL
+#if GRAPHICS_API_METAL
   const udFloat4x4 ortho_projection = udFloat4x4::create(
     2.0f / io.DisplaySize.x, 0.0f, 0.0f, 0.0f,
     0.0f, 2.0f / -io.DisplaySize.y, 0.0f, 0.0f,
