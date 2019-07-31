@@ -84,7 +84,7 @@ struct vcUDPItemData
   };
 };
 
-vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char *pModelName, const char *pModelFilename, udDouble3 *pPosition, udDouble3 *pYPR, double scale)
+vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char *pModelName, const char *pModelFilename, int epsgCode, udDouble3 *pPosition, udDouble3 *pYPR, double scale)
 {
   // If the model filename is nullptr there's nothing to load
   if (pModelFilename == nullptr)
@@ -104,6 +104,13 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
   vdkProjectNode *pNode = nullptr;
   vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
   vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "UDS", pModelName, file.GetPath(), nullptr);
+
+  if (epsgCode != 0 && pPosition != nullptr)
+  {
+    udGeoZone tempZone = {};
+    if (udGeoZone_SetFromSRID(&tempZone, epsgCode) == udR_Success)
+      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &pPosition->x);
+  }
 
   if (pPosition != nullptr)
   {
@@ -324,6 +331,7 @@ void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::ve
 
   if (item.dataset.pPath != nullptr)
   {
+    int epsgCode = 0;
     udDouble3 position = udDouble3::zero();
     udDouble3 ypr = udDouble3::zero();
     double scale = 1.0;
@@ -333,12 +341,8 @@ void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::ve
 
     if (item.dataset.pLocation != nullptr)
     {
-      int epsgCode = 0;
-
       if (vcUDP_ReadGeolocation(item.dataset.pLocation, position, epsgCode))
         pPosition = &position;
-
-      udUnused(epsgCode); //TODO: Use this
     }
 
     if (item.dataset.pAngleX != nullptr || item.dataset.pAngleY != nullptr || item.dataset.pAngleZ != nullptr) // At least one of the angles is set
@@ -358,7 +362,7 @@ void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::ve
     if (item.dataset.pScale != nullptr)
       scale = udStrAtof64(item.dataset.pScale);
 
-    vdkProjectNode *pNode = vcUDP_AddModel(pProgramState, pFilename, item.dataset.pName, item.dataset.pPath, pPosition, pYPR, scale);
+    vdkProjectNode *pNode = vcUDP_AddModel(pProgramState, pFilename, item.dataset.pName, item.dataset.pPath, epsgCode, pPosition, pYPR, scale);
 
     vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
     pItemData->at(index).sceneFolder = { pParentNode, pNode };
@@ -608,7 +612,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
       const char *pName = dataEntries.Get("[%zu].Name", i).AsString();
       if (udStrEqual(pName, "AbsoluteModelPath"))
       {
-        vcUDP_AddModel(pProgramState, pFilename, nullptr, dataEntries.Get("[%zu].content", i).AsString(), nullptr, nullptr, 1.0);
+        vcUDP_AddModel(pProgramState, pFilename, nullptr, dataEntries.Get("[%zu].content", i).AsString(), 0, nullptr, nullptr, 1.0);
       }
     }
 

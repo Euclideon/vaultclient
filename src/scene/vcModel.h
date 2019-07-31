@@ -13,22 +13,22 @@ class vcModel : public vcSceneItem
 public:
   vdkPointCloud *m_pPointCloud;
 
-  udDouble3 m_pivot;
-  udDouble4x4 m_defaultMatrix; // This is the matrix that was originally loaded
-  udDouble4x4 m_sceneMatrix; // This is the matrix used to render into the current projection
+  udDouble3 m_pivot; // The models pivot in local space
+  udDouble4x4 m_defaultMatrix; // This is the matrix from the model header- in m_pPreferredZone space
 
+  udGeoZone *m_pCurrentZone; // The current zone that this model is in (used to fast transform)
+
+  udDouble4x4 m_sceneMatrix; // This is the matrix used to render in m_pCurrentZone (if specified) space
+  udDouble4x4 m_baseMatrix; // This is the scene matrix in m_pPreferredZone space
+
+  bool m_changeZones; // If true, this model needs to have its zone recalculated
   double m_meterScale;
-
-  udGeoZone *m_pBaseZone;
 
   bool m_hasWatermark; // True if the model has a watermark (might not be loaded)
   vcTexture *m_pWatermark; // If the watermark is loaded, it will be here
 
-  // TODO: (EVC-535) This works - but is sub-optimal (this is duplicated data)
-  udInt2 minMaxIntensity;
-
   vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
-  vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud, bool jumpToModelOnLoad = false);
+  vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud);
   ~vcModel() {};
 
   void OnNodeUpdate(vcState *pProgramState);

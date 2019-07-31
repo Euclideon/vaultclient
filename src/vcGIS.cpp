@@ -15,10 +15,12 @@ bool vcGIS_ChangeSpace(vcGISSpace *pSpace, const udGeoZone &newZone, udDouble3 *
 
   pSpace->SRID = newZone.srid;
   pSpace->isProjected = false;
-  memset(&pSpace->zone, 0, sizeof(pSpace->zone));
 
   if (pSpace->SRID == 0)
+  {
+    memset(&pSpace->zone, 0, sizeof(pSpace->zone));
     return true;
+  }
 
   if (currentlyProjected && pCameraPosition != nullptr)
     *pCameraPosition = udGeoZone_TransformPoint(*pCameraPosition, pSpace->zone, newZone);
