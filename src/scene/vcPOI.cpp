@@ -101,7 +101,6 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
 
   ChangeProjection(pProgramState->gis.zone);
   UpdatePoints();
-  UpdateLabelInfo();
 }
 
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -156,6 +155,8 @@ void vcPOI::UpdatePoints()
   m_calculatedLength = 0;
   m_calculatedArea = 0;
 
+  m_pLabelInfo->worldPosition = udDouble3::zero();
+
   // j = previous, i = current
   int j = udMax(0, m_line.numPoints - 1);
   for (int i = 0; i < m_line.numPoints; i++)
@@ -164,6 +165,7 @@ void vcPOI::UpdatePoints()
       m_calculatedArea = m_calculatedArea + (m_line.pPoints[j].x + m_line.pPoints[i].x) * (m_line.pPoints[j].y - m_line.pPoints[i].y);
 
     double lineLength = udMag3(m_line.pPoints[j] - m_line.pPoints[i]);
+    m_pLabelInfo->worldPosition += m_line.pPoints[i];
 
     if (m_line.closed || i > 0) // Calculate length
       m_calculatedLength += lineLength;
@@ -229,17 +231,15 @@ void vcPOI::UpdatePoints()
     if (m_pFence != nullptr)
       vcFenceRenderer_Destroy(&m_pFence);
   }
-}
 
-void vcPOI::UpdateLabelInfo()
-{
+  // Update the label as well
   m_pLabelInfo->pText = m_pNode->pName;
   m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
   m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
   m_pLabelInfo->textSize = m_namePt;
 
   if (m_line.numPoints > 0)
-    m_pLabelInfo->worldPosition = m_line.pPoints[0];
+    m_pLabelInfo->worldPosition /= m_line.numPoints;
 
   for (size_t i = 0; i < m_lengthLabels.length; ++i)
   {
@@ -429,7 +429,6 @@ void vcPOI::ChangeProjection(const udGeoZone &newZone)
   vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, newZone, &m_line.pPoints, &m_line.numPoints);
 
   UpdatePoints();
-  UpdateLabelInfo();
 }
 
 void vcPOI::Cleanup(vcState * /*pProgramState*/)
