@@ -15,6 +15,7 @@ bool vcGIS_ChangeSpace(vcGISSpace *pSpace, const udGeoZone &newZone, udDouble3 *
 
   pSpace->SRID = newZone.srid;
   pSpace->isProjected = false;
+  memset(&pSpace->zone, 0, sizeof(pSpace->zone));
 
   if (pSpace->SRID == 0)
     return true;
