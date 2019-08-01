@@ -1,26 +1,19 @@
 Euclideon Vault Client Version History
 
 Known Major Issues In Current Release
-  - LOTS OF ISSUES WITH THE SCENE EXPLORER AND PROJECTS
-    - Importing and Exporting projects doesn't work consistently or reliably
-	- Lots of issues with settings for scene items not applying correctly or resetting to bad defaults
-	- Scene items disappear randomly
-	- Changing zones or having non-geolocated items in the scene causes a lot of problems.
-  - UDP can't currently be imported
-  - User guide does not cover the entire application
   - Corrupted UDS files silently fail without notifying the user (EVC-20)
   - An issue is preventing macOS users from running the build directly because of signing issues (EVC-408)
   - Map mode only transitions nicely for items with z at 0 (EVC-460)
   - Images in the scene are not using thumbnails (EVC-513)
-  - Reordering the scene sometimes doesn't work properly now (EVC-591)
-  
-Version 0.3.0 (Pre-Release)
+
+Version 0.3.0
   - Improvements
-    - Projects can be (sort of) exported
+    - Projects can be exported as GeoJSON
       - Lots of preparation work for collaborative projects
-    - Native Metal rendering for macOS
-    - Updated to Experimental Docking branch for ImGui (native docking support instead of extension)
     - I3S/SLPK format support (rendering and convert)
+    - Selected items are highlighted in the scene and its possible to select items from the scene
+    - Updated convert interface
+    - Added experimental GPU renderer (this does not currently support all features)
   - Other Fixes and Changes
     - Fixed an issue where login message for bad username/password was wrong
     - Massive internal tidying up to better support Web and Mobile devices
@@ -28,14 +21,22 @@ Version 0.3.0 (Pre-Release)
     - Removed rounded borders to be more consistent throughout the application
     - Significant optimisations to how tiles are loaded
     - Language list is loaded from a file to make it easier to add custom languages
+    - Startup is faster with a quick 'loading' screen added
+      - Additionally possible to change languages from the System menu now
     - Lots of fixes to how GIS was handled (changing zones should be a lot less jarring now)
     - Improved handling of drag and drop so that files dropped onto the convert window are correctly handled by convert
+      - Items dropped outside of convert are not handled by convert now
     - Split out Media and saved Camera locations to specific nodes for this purpose (POI is now about marking up or measuring an area)
     - Added Delete to the scene explorer context menu
     - Fixed issues related to conversion from inside zip files
     - Fixed some files that were submitted to us as failing- Thanks to everyone that sent us files!
-    - Docked tabs can be closed correctly now
+    - Updated to Experimental Docking branch for ImGui (native docking support instead of extension)
+      - Docked tabs can be closed correctly now
     - Fixed issues with conversions completing too quickly making the UI look like the conversion stopped midway
+    - Login in slightly faster
+    - Auto detect proxy no longer crashes on Windows
+    - Minor improvements to line and area POI display and added the construction fence
+    - Live feeds are loaded in chunks to preserve performance
 
 Version 0.2.3
   - Improvements
