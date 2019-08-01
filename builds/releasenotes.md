@@ -11,7 +11,7 @@ Version 0.3.0
     - Projects can be exported as GeoJSON
       - Lots of preparation work for collaborative projects
     - I3S/SLPK format support (rendering and convert)
-    - Selected items are highlighted in the scene and its possible to select items from the scene
+    - Selected items are highlighted in the scene and it's possible to select items from the scene
     - Updated convert interface
     - Added experimental GPU renderer (this does not currently support all features)
   - Other Fixes and Changes
@@ -192,7 +192,7 @@ Version 0.1.2
   - Fixed an issue where the temp or output directories not being available caused convert to hand indefinately (EVC-115)
   - Fixed some bundling issues that prevented macOS 0.1.1 being released (EVC-153, EVC-88)
   - Fixed an issue with some convert settings being lost after reset (EVC-112)
-  - Fixed some issues related to sessions not being kept alive correctly, leaving Client in a mixed state where its partially logged out (EVA-54, EVC-282)
+  - Fixed some issues related to sessions not being kept alive correctly, leaving Client in a mixed state where it's partially logged out (EVA-54, EVC-282)
 
 Version 0.1.1
   - Now has UI to show when a new version is available
