@@ -42,8 +42,7 @@
 #include "vcSettingsUI.h"
 #include "vcSession.h"
 #include "vcPOI.h"
-
-#include "vCore/vStringFormat.h"
+#include "vcStringFormat.h"
 
 #include "gl/vcGLState.h"
 #include "gl/vcFramebuffer.h"
@@ -1006,7 +1005,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
           char tmpBuf[128];
           const char *latLongAltStrings[] = { udTempStr("%.7f", cameraLatLong.x), udTempStr("%.7f", cameraLatLong.y), udTempStr("%.2fm", cameraLatLong.z) };
-          ImGui::TextUnformatted(vStringFormat(tmpBuf, udLengthOf(tmpBuf), vcString::Get("sceneCameraLatLongAlt"), latLongAltStrings, udLengthOf(latLongAltStrings)));
+          ImGui::TextUnformatted(vcStringFormat(tmpBuf, udLengthOf(tmpBuf), vcString::Get("sceneCameraLatLongAlt"), latLongAltStrings, udLengthOf(latLongAltStrings)));
 
           if (pProgramState->gis.zone.latLongBoundMin != pProgramState->gis.zone.latLongBoundMax)
           {
@@ -1479,7 +1478,7 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
   if (pProgramState->loadList.length > 0)
   {
     const char *strings[] = { udTempStr("%zu", pProgramState->loadList.length) };
-    vStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFilesQueued"), strings, udLengthOf(strings));
+    vcStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFilesQueued"), strings, udLengthOf(strings));
     udStrcat(tempData, " / ");
 
     xPosition -= ImGui::CalcTextSize(tempData).x;
@@ -1498,7 +1497,7 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
     bool isClicked = false;
 
     const char *strings[] = { udTempStr("%zu", pProgramState->errorFiles.length) };
-    vStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFilesFailed"), strings, udLengthOf(strings));
+    vcStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFilesFailed"), strings, udLengthOf(strings));
     udStrcat(tempData, " / ");
 
     xPosition -= ImGui::CalcTextSize(tempData).x;
@@ -1549,7 +1548,7 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
   if (pProgramState->settings.presentation.showDiagnosticInfo)
   {
     const char *strings[] = { udTempStr("%.2f", 1.f / pProgramState->deltaTime), udTempStr("%.3f", pProgramState->deltaTime * 1000.f) };
-    vStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFPS"), strings, udLengthOf(strings));
+    vcStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFPS"), strings, udLengthOf(strings));
     udStrcat(tempData, " / ");
 
     xPosition -= ImGui::CalcTextSize(tempData).x;
@@ -1828,7 +1827,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   if (ImGui::Begin("LoginScreenSupportInfo", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
   {
     const char *issueTrackerStrings[] = { "https://github.com/euclideon/vaultclient/issues", "GitHub" };
-    const char *pIssueTrackerStr = vStringFormat(vcString::Get("loginSupportIssueTracker"), issueTrackerStrings, udLengthOf(issueTrackerStrings));
+    const char *pIssueTrackerStr = vcStringFormat(vcString::Get("loginSupportIssueTracker"), issueTrackerStrings, udLengthOf(issueTrackerStrings));
     ImGui::TextUnformatted(pIssueTrackerStr);
     udFree(pIssueTrackerStr);
     if (ImGui::IsItemClicked())
@@ -1836,7 +1835,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
     if (ImGui::IsItemHovered())
       ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 
-    const char *pSupportStr = vStringFormat(vcString::Get("loginSupportDirectEmail"), "support@euclideon.com");
+    const char *pSupportStr = vcStringFormat(vcString::Get("loginSupportDirectEmail"), "support@euclideon.com");
     ImGui::TextUnformatted(pSupportStr);
     udFree(pSupportStr);
     if (ImGui::IsItemClicked())
@@ -1851,7 +1850,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   if (ImGui::Begin("LoginScreenTranslationInfo", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
   {
     const char *translationStrings[] = { pProgramState->languageInfo.pLocalName, pProgramState->languageInfo.pTranslatorName, pProgramState->languageInfo.pTranslatorContactEmail };
-    const char *pTranslationInfo = vStringFormat(vcString::Get("loginTranslationBy"), translationStrings, udLengthOf(translationStrings));
+    const char *pTranslationInfo = vcStringFormat(vcString::Get("loginTranslationBy"), translationStrings, udLengthOf(translationStrings));
     ImGui::TextUnformatted(pTranslationInfo);
     udFree(pTranslationInfo);
     if (ImGui::IsItemClicked())

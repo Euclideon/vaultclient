@@ -9,8 +9,7 @@
 #include "vcStrings.h"
 #include "vcConvert.h"
 #include "vcProxyHelper.h"
-
-#include "vCore/vStringFormat.h"
+#include "vcStringFormat.h"
 
 #include "udFile.h"
 #include "udStringUtil.h"
@@ -159,7 +158,7 @@ void vcModals_DrawAbout(vcState *pProgramState)
 
     char strBuf[128];
     if (pProgramState->packageInfo.Get("success").AsBool())
-      ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "%s", vStringFormat(strBuf, udLengthOf(strBuf), vcString::Get("menuAboutPackageUpdate"), pProgramState->packageInfo.Get("package.versionstring").AsString()));
+      ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "%s", vcStringFormat(strBuf, udLengthOf(strBuf), vcString::Get("menuAboutPackageUpdate"), pProgramState->packageInfo.Get("package.versionstring").AsString()));
 
     ImGui::NextColumn();
     if (ImGui::Button(vcString::Get("menuAboutCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
@@ -360,7 +359,7 @@ bool vcModals_OverwriteExistingFile(const char *pFilename)
         { 255, 0, 255 }
       }
     };
-    pFileExistsMsg = vStringFormat(vcString::Get("convertFileExistsMessage"), pFilename);
+    pFileExistsMsg = vcStringFormat(vcString::Get("convertFileExistsMessage"), pFilename);
     SDL_MessageBoxData messageboxdata = {
       SDL_MESSAGEBOX_INFORMATION,
       NULL,
