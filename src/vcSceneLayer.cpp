@@ -88,7 +88,11 @@ void vcNormalizePath(const char **ppDest, const char *pRoot, const char *pAppend
       pNewRoot[index] = '\0';
       pRoot = pNewRoot;
 
-      pNewAppend += 3; // remove the "../"
+      // remove the "../"
+      char *pNewAppend2 = udStrdup(pNewAppend + 3); 
+      udFree(pNewAppend);
+      pNewAppend = pNewAppend2;
+
       len -= 3;
       pNewAppend[len] = '\0';
     }
