@@ -115,6 +115,8 @@
   "settingsMapsSetHeight": "Set to Camera Height",
 
   "settingsVis": "Visualisation",
+  "settingsVisHighlightColour": "Highlight Colour",
+  "settingsVisHighlightThickness": "Highlight Thickness",
   "settingsVisDisplayMode": "Display Mode",
   "settingsVisModeClassification": "Classification",
   "settingsVisModeColour": "Colour",
@@ -241,6 +243,7 @@
 
   "menuSystem": "System",
   "menuQuit": "Quit",
+  "menuLanguage": "Language",
   "menuExperimentalFeatures": "Experimental Features",
   "menuWindows": "Windows",
   "menuScene": "Scene",
