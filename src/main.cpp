@@ -4,17 +4,18 @@
 #include "vdkServerAPI.h"
 #include "vdkConfig.h"
 #include "vdkPointCloud.h"
+#include "vdkVersion.h"
 
 #include <chrono>
 
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "imgui_ex/imgui_impl_sdl.h"
 
 #if GRAPHICS_API_METAL
 #include "imgui_ex/imgui_impl_metal.h"
 #endif
 
+#include "imgui_ex/imgui_impl_sdl.h"
 #include "imgui_ex/imgui_impl_gl.h"
 #include "imgui_ex/imgui_udValue.h"
 #include "imgui_ex/ImGuizmo.h"
@@ -23,6 +24,7 @@
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
 
+#include "stb_image.h"
 #include "exif.h"
 
 #include "vcConvert.h"
@@ -39,11 +41,7 @@
 #include "vcProject.h"
 #include "vcSettingsUI.h"
 #include "vcSession.h"
-
 #include "vcPOI.h"
-#include "vcLiveFeed.h"
-#include "vcMedia.h"
-#include "vcViewpoint.h"
 
 #include "vCore/vStringFormat.h"
 
@@ -54,6 +52,7 @@
 
 #include "udFile.h"
 #include "udStringUtil.h"
+#include "udUUID.h"
 
 #if UDPLATFORM_EMSCRIPTEN
 #include "vHTTPRequest.h"
@@ -61,7 +60,8 @@
 #include <emscripten/emscripten.h>
 #endif
 
-#include "stb_image.h"
+
+UDCOMPILEASSERT(VDK_MAJOR_VERSION == 0 && VDK_MINOR_VERSION == 3, "This version of VDK is not compatible");
 
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
 #  include <crtdbg.h>
