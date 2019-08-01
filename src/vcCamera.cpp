@@ -778,6 +778,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
     pProgramState->cameraInput.progress = 0.0;
 
+    pProgramState->isUsingAnchorPoint = true;
     pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
 
     if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)

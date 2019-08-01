@@ -264,6 +264,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
           pProgramState->cameraInput.progress = 0.0;
 
+          pProgramState->isUsingAnchorPoint = true;
           pProgramState->worldAnchorPoint = pSceneItem->GetWorldSpacePivot();
         }
 
