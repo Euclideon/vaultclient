@@ -9,11 +9,11 @@
     - Convert
       - `convertWriteFailed`, `convertParseError`, `convertImageParseError`, `convertNoFile`, `convertAddFileTitle`, `convertSetOutputTitle`, `convertAddNewJob`, `convertAddFile`, `convertSetOutput`, `convertWatermark`, `convertBeginPendingFiles`, `convertPendingProcessInProgress`, `convertPendingProcessing`, `convertNoJobSelected`, `convertChangeDefaultWatermark`
     - Menus & Modals
-      - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`, `menuBarFilesFailed`, `menuBarFilesFailedTooltip`, `menuExperimentalFeatures`
+      - `menuProjectExport`, `menuProjectExportTitle`, `menuProjectImport`, `menuProjectImportTitle`, `menuBarFilesFailed`, `menuBarFilesFailedTooltip`, `menuLanguage`, `menuExperimentalFeatures`
     - Scene Explorer
       - `sceneExplorerRemoveItem`, `sceneExplorerUnknownCustomNode`, `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeFailedMessage`, `sceneExplorerProjectReadOnlyTitle`, `sceneExplorerProjectReadOnlyMessage`, `sceneExplorerUnsupportedFilesTitle`, `sceneExplorerUnsupportedFilesMessage`, `sceneExplorerCloseButton`, `sceneViewpointSetCamera`, `sceneViewpointPosition`, `sceneViewpointRotation`, `sceneExplorerAddViewpoint`, `viewpointDefaultName`, `liveFeedDefaultName`, `sceneExplorerExportButton`, `sceneExplorerProjectChangeSucceededTitle`, `sceneExplorerProjectChangeSucceededMessage`, `sceneResetRotation`, `sceneExplorerClearAllButton`, `scenePOILineShowAllLengths`, `scenePOILineStyleDiagonal`, `sceneModelPosition`, `sceneModelRotation`, `sceneModelScale`
     - Settings
-      - `settingsAppearanceTranslationDifferentVersion`, `settingsConvert`, `settingsConvertRestoreDefaults`
+      - `settingsAppearanceTranslationDifferentVersion`, `settingsConvert`, `settingsConvertRestoreDefaults`,  `settingsVisHighlightColour`, `settingsVisHighlightThickness`
   - Removed:
     - Menu strings
       - `menuRestoreDefaults`
@@ -221,6 +221,8 @@ Modules are currently:
 
 #### Visualization
 - `settingsVis`: Title of the Visualisation subheading in Settings
+- `settingsVisHighlightColour`: Label next to the colour picker for highlighting
+- `settingsVisHighlightThickness`: Label next to slider to select highlight edge thickness
 - `settingsVisDisplayMode`: Label next to dropdown list for selecting how the scene is displayed
 - `settingsVisModeClassification`: Option in display mode dropdown list where the colour of scene objects is determined by the objects classification
 - `settingsVisModeColour`: Option in display mode dropdown list where scene objects are shown in their true colour
@@ -371,6 +373,7 @@ Modules are currently:
 
 - `menuSystem`: Header for System menu
 - `menuQuit`: Option in System menu, exits the program
+- `menuLanguage`: Submenu heading in System Menu with language options
 - `menuExperimentalFeatures`: Submenu in System Menu for experimental features (not that experimental feature names are not localised as they are guaranteed to change in future versions)
 - `menuWindows`: Header for Windows menu
 - `menuScene`: Option in Windows menu to enable the Scene tab

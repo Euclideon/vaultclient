@@ -62,9 +62,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
       const char *voxelOptions[] = { vcString::Get("settingsAppearanceRectangles"), vcString::Get("settingsAppearanceCubes"), vcString::Get("settingsAppearancePoints") };
       ImGui::Combo(vcString::Get("settingsAppearanceVoxelShape"), &pProgramState->settings.presentation.pointMode, voxelOptions, (int)udLengthOf(voxelOptions));
-
-      ImGui::ColorEdit4("Highlight Colour##appearance", &pProgramState->settings.objectHighlighting.colour.x);
-      ImGui::SliderFloat("Highlight Thickness##apperance", &pProgramState->settings.objectHighlighting.thickness, 1.0f, 3.0f);
     }
 
     openedHeader = ImGui::CollapsingHeader(udTempStr("%s##InputSettings", vcString::Get("settingsControls")));
@@ -216,6 +213,9 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
     if (openedHeader)
     {
+      ImGui::ColorEdit4(vcString::Get("settingsVisHighlightColour"), &pProgramState->settings.objectHighlighting.colour.x);
+      ImGui::SliderFloat(vcString::Get("settingsVisHighlightThickness"), &pProgramState->settings.objectHighlighting.thickness, 1.0f, 3.0f);
+
       const char *visualizationModes[] = { vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification") };
       ImGui::Combo(vcString::Get("settingsVisDisplayMode"), (int*)&pProgramState->settings.visualization.mode, visualizationModes, (int)udLengthOf(visualizationModes));
 
