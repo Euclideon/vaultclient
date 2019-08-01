@@ -11,8 +11,7 @@
 
 #include "vcLabelRenderer.h"
 #include "vcPolygonModel.h"
-
-#include "vCore/vStringFormat.h"
+#include "vcStringFormat.h"
 
 #include "udFile.h"
 #include "udPlatformUtil.h"
@@ -462,7 +461,7 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
   if (pProgramState->settings.presentation.showDiagnosticInfo)
   {
     const char *strings[] = { udTempStr("%zu", m_feedItems.length), udTempStr("%zu", m_visibleItems), udTempStr("%.2f", (m_lastFeedSync + m_updateFrequency) - udGetEpochSecsUTCf()) };
-    const char *pBuffer = vStringFormat(vcString::Get("liveFeedDiagInfo"), strings, udLengthOf(strings));
+    const char *pBuffer = vcStringFormat(vcString::Get("liveFeedDiagInfo"), strings, udLengthOf(strings));
     ImGui::Text("%s", pBuffer);
     udFree(pBuffer);
   }

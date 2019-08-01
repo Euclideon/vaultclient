@@ -1,5 +1,6 @@
 #include "vcStrings.h"
-#include "vCore/vStringFormat.h"
+#include "vcStringFormat.h"
+
 #include "udFile.h"
 #include "udJSON.h"
 #include "udStringUtil.h"
@@ -32,7 +33,7 @@ namespace vcString
     if (pValue == nullptr)
     {
       // Caches the mising string-
-      (*g_pStringTable)[pKey] = vStringFormat("{{0}}", pKey);
+      (*g_pStringTable)[pKey] = vcStringFormat("{{0}}", pKey);
       return (*g_pStringTable)[pKey];
     }
     else
