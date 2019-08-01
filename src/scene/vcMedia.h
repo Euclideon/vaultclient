@@ -17,6 +17,7 @@ class vcMedia : public vcSceneItem
 {
 public:
   vcImageRenderInfo m_image;
+  const char *m_pLoadedURI; // The URI of the media we have loaded currently
 
   vcMedia(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcMedia();
