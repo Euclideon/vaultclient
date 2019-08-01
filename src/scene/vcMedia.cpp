@@ -18,7 +18,8 @@
 #include "stb_image.h"
 
 vcMedia::vcMedia(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
-  vcSceneItem(pProject, pNode, pProgramState)
+  vcSceneItem(pProject, pNode, pProgramState),
+  m_pLoadedURI(nullptr)
 {
   memset(&m_image, 0, sizeof(m_image));
   m_loadStatus = vcSLS_Loading;
@@ -33,13 +34,16 @@ vcMedia::~vcMedia()
 
 void vcMedia::OnNodeUpdate(vcState *pProgramState)
 {
-  if (m_image.pTexture != nullptr)
-    vcTexture_Destroy(&m_image.pTexture);
-
-  if (m_pNode->pURI != nullptr)
+  if (m_pNode->pURI != nullptr && !udStrEqual(m_pLoadedURI, m_pNode->pURI))
   {
+    udFree(m_pLoadedURI);
+    m_pLoadedURI = udStrdup(m_pNode->pURI);
+
     void *pFileData = nullptr;
     int64_t fileLen = 0;
+
+    if (m_image.pTexture != nullptr)
+      vcTexture_Destroy(&m_image.pTexture);
 
     if (udFile_Load(m_pNode->pURI, &pFileData, &fileLen) == udR_Success)
     {
@@ -127,7 +131,7 @@ void vcMedia::ChangeProjection(const udGeoZone &newZone)
 
 void vcMedia::Cleanup(vcState * /*pProgramState*/)
 {
-  // Nothing required
+  udFree(m_pLoadedURI);
 }
 
 void vcMedia::SetCameraPosition(vcState *pProgramState)
