@@ -1593,6 +1593,26 @@ int vcMainMenuGui(vcState *pProgramState)
       if (ImGui::MenuItem(vcString::Get("menuReleaseNotes")))
         vcModals_OpenModal(pProgramState, vcMT_ReleaseNotes);
 
+      if (pProgramState->settings.languageOptions.length > 0 && ImGui::BeginMenu(vcString::Get("menuLanguage")))
+      {
+        for (size_t i = 0; i < pProgramState->settings.languageOptions.length; ++i)
+        {
+          const char *pName = pProgramState->settings.languageOptions[i].languageName;
+          const char *pFilename = pProgramState->settings.languageOptions[i].filename;
+
+          if (ImGui::MenuItem(pName, nullptr, udStrEqual(pProgramState->settings.window.languageCode, pFilename)))
+          {
+            if (vcString::LoadTableFromFile(udTempStr("asset://assets/lang/%s.json", pFilename), &pProgramState->languageInfo) == udR_Success)
+              udStrcpy(pProgramState->settings.window.languageCode, pFilename);
+            else
+              vcString::LoadTableFromFile(udTempStr("asset://assets/lang/%s.json", pProgramState->settings.window.languageCode), &pProgramState->languageInfo);
+          }
+        }
+
+        ImGui::EndMenu();
+      }
+
+
       if (ImGui::BeginMenu(vcString::Get("menuExperimentalFeatures")))
       {
         ImGui::MenuItem("GPU Render", nullptr, &pProgramState->settings.experimental.useGPURenderer, ALLOW_EXPERIMENT_GPURENDER);
