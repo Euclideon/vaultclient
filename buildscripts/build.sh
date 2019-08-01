@@ -13,7 +13,7 @@ else
 fi
 
 export DEPLOYDIR="$DEV/Builds/vault/client/Pipeline_$CI_PIPELINE_ID"
-export VAULTSDK_HOME="$DEV/Builds/vault/linkedvdk/Pipeline_42520"
+export VAULTSDK_HOME="$DEV/Builds/vault/linkedvdk/Pipeline_42571"
 
 # Prepare UserGuide
 mkdir -p builds/userguide
