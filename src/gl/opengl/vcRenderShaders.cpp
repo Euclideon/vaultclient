@@ -111,7 +111,16 @@ vec3 colourizeByDepth(vec3 col, float depth)
 
 void main()
 {
-  vec4 col = texture(u_texture, v_texCoord);
+)shader"
+
+#if UDPLATFORM_EMSCRIPTEN
+"  vec4 col = texture(u_texture, v_texCoord).bgra;"
+#else
+"  vec4 col = texture(u_texture, v_texCoord);"
+#endif
+
+R"shader(
+
   float depth = texture(u_depth, v_texCoord).x;
 
   vec4 fragWorldPosition = u_inverseViewProjection * vec4(vec2(v_texCoord.x, 1.0 - v_texCoord.y) * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
