@@ -1,9 +1,9 @@
-#include "vStringFormat.h"
+#include "vcStringFormat.h"
 
 #include "udPlatformUtil.h"
 #include "udStringUtil.h"
 
-const char *vStringFormat(const char *pFormatString, const char **ppStrings, size_t numStrings)
+const char *vcStringFormat(const char *pFormatString, const char **ppStrings, size_t numStrings)
 {
   int len;
   for (len = 0; pFormatString[len] != '\0'; ++len)
@@ -89,7 +89,7 @@ const char *vStringFormat(const char *pFormatString, const char **ppStrings, siz
   return pBuf;
 }
 
-const char *vStringFormat(char *pBuffer, size_t bufLen, const char *pFormatString, const char **ppStrings, size_t numStrings)
+const char *vcStringFormat(char *pBuffer, size_t bufLen, const char *pFormatString, const char **ppStrings, size_t numStrings)
 {
   int len;
   for (len = 0; pFormatString[len] != '\0'; ++len)
@@ -176,12 +176,12 @@ const char *vStringFormat(char *pBuffer, size_t bufLen, const char *pFormatStrin
   return pBuffer;
 }
 
-const char *vStringFormat(const char *pFormatString, const char *pString)
+const char *vcStringFormat(const char *pFormatString, const char *pString)
 {
-  return vStringFormat(pFormatString, &pString, 1);
+  return vcStringFormat(pFormatString, &pString, 1);
 }
 
-const char *vStringFormat(char *pBuffer, size_t bufLen, const char *pFormatString, const char *pString)
+const char *vcStringFormat(char *pBuffer, size_t bufLen, const char *pFormatString, const char *pString)
 {
-  return vStringFormat(pBuffer, bufLen, pFormatString, &pString, 1);
+  return vcStringFormat(pBuffer, bufLen, pFormatString, &pString, 1);
 }

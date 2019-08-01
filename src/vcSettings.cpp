@@ -9,7 +9,7 @@
 #include "imgui_internal.h"
 
 #include "vcClassificationColours.h"
-#include "vCore/vStringFormat.h"
+#include "vcStringFormat.h"
 
 #if UDPLATFORM_EMSCRIPTEN
 # include <emscripten.h>

@@ -15,14 +15,14 @@ project "vaultClient"
 	files { "builds/releasenotes.md" }
 	files { "builds/defaultsettings.json" }
 	files { "builds/assets/lang/*.json" }
-		
+
 	--This project includes
 	includedirs { "src", "src/scene", "src/rendering" }
 	includedirs { "3rdParty/udcore/Include" }
 	includedirs { "3rdParty/Imgui" }
 	includedirs { "3rdParty/stb" }
 	includedirs { "3rdParty/easyexif" }
-	
+
 	links { "udCore" .. (projectSuffix or "") }
 
 	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS" }
@@ -45,7 +45,7 @@ project "vaultClient"
 		table.insert(excludedSourceFileNames, "src/vcWebFile.mm");
 	end
 
-	-- filters				
+	-- filters
 	filter { "configurations:Debug" }
 		kind "ConsoleApp"
 		optimize "Debug"
@@ -102,7 +102,6 @@ project "vaultClient"
 		linkoptions  { "-s USE_WEBGL2=1", "-s FULL_ES3=1", --[["-s DEMANGLE_SUPPORT=1",]] "-s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\", \"getValue\", \"setValue\", \"UTF8ToString\", \"stringToUTF8\"]'" }
 
 	filter { "system:emscripten", "options:force-vaultsdk" }
-		removefiles { "src/vCore/vUUID.*", "src/vCore/vSafeDeque.h" }
 		removeincludedirs { "3rdParty/udcore/Include" }
 		removelinks { "udCore" .. (projectSuffix or "") }
 
@@ -149,9 +148,9 @@ project "vaultClient"
 
 	filter { "system:not ios and not macosx", "files:src/**.mm" }
 		flags { "ExcludeFromBuild" }
-		
 
-		
+
+
 	-- include common stuff
 	dofile "3rdParty/udcore/bin/premake-bin/common-proj.lua"
 
@@ -163,8 +162,8 @@ project "vaultClient"
 	filter { "not options:gfxapi=opengl" }
 		objdir ("Output/intermediate/%{prj.name}/%{cfg.buildcfg}_%{cfg.platform}" .. _OPTIONS["gfxapi"])
 		targetname ("%{prj.name}_" .. _OPTIONS["gfxapi"])
-		
+
 	filter {}
-		
+
 	targetdir "builds"
 	debugdir "builds"
