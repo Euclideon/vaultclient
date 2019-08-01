@@ -96,7 +96,6 @@ struct vcState
 
   udDouble3 worldMousePosCartesian;
   udDouble3 worldMousePosLongLat;
-  udDouble3 worldMouseClickedPos;
   bool pickingSuccess;
   int udModelPickedIndex;
 
