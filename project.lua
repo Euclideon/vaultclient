@@ -46,21 +46,25 @@ project "vaultClient"
 	end
 
 	if os.isdir(_OPTIONS["fbxsdk"]) then
-		defines { "FBXSDK_ON" }
 		filter { "system:windows" }
-			libdirs { _OPTIONS["fbxsdk"] .. "/lib/*/x64/**" }
-			links { "libfbxsdk-mt.lib" }
+			defines { "FBXSDK_ON" }
+			links { "libfbxsdk-mt.lib", "libxml2-mt.lib", "zlib-mt.lib" }
 			includedirs { _OPTIONS["fbxsdk"] .. "/include/" }
+			includedirs { _OPTIONS["fbxsdk"] .. "/include/**" }
+		filter { "system:windows", "configurations:Debug" }
+			libdirs { _OPTIONS["fbxsdk"] .. "/lib/*/x64/debug/" }
+		filter { "system:windows", "configurations:Release" }
+			libdirs { _OPTIONS["fbxsdk"] .. "/lib/*/x64/release/" }
 		filter { "system:macosx" }
-			libdirs { _OPTIONS["fbxsdk"] .. '"/lib/clang/%{cfg.buildcfg}"' }
-			sysincludedirs { _OPTIONS["fbxsdk"] .. "/include/" }
-			prelinkcommands {
-				"cp -f '" .. _OPTIONS["fbxsdk"] .. "/lib/clang/release/libfbxsdk.dylib' %{prj.targetdir}/%{prj.targetname}.app/Contents/MacOS/",
-				"cp -f '" .. _OPTIONS["fbxsdk"] .. "/lib/clang/debug/libfbxsdk.dylib' %{prj.targetdir}/%{prj.targetname}.app/Contents/MacOS/",
-			}
+			defines { "FBXSDK_ON" }
+			links { "fbxsdk" }
+			libdirs { '"' .. _OPTIONS["fbxsdk"] .. '/lib/clang/%{cfg.buildcfg}"' }
+			includedirs { _OPTIONS["fbxsdk"] .. '/include/' }
+			xcodebuildsettings { 	["GCC_ENABLE_CPP_EXCEPTIONS"] = "YES",
+						["SYSTEM_HEADER_SEARCH_PATHS"] = '"' .. _OPTIONS["fbxsdk"] .. '/include"/**' }
 	end
 
-	-- filters				
+	-- filters
 	filter { "configurations:Debug" }
 		kind "ConsoleApp"
 		optimize "Debug"

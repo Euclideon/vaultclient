@@ -159,9 +159,9 @@ newoption {
 }
 
 if os.host() == premake.WINDOWS then
-	fbxDefault = "C:/Program Files/Autodesk/FBX/FBX SDK/2019.0"
+	fbxDefault = "C:/Program Files/Autodesk/FBX/FBX SDK/2019.5"
 elseif os.host() == premake.MACOSX then
-	fbxDefault = "/Applications/Autodesk/FBX SDK/2019.2"
+	fbxDefault = "/Applications/Autodesk/FBX SDK/2019.5"
 else
 	fbxDefault = "/home/$USER"
 end
