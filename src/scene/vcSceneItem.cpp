@@ -24,6 +24,8 @@ vcSceneItem::vcSceneItem(vdkProject *pProject, vdkProjectNode *pNode, vcState * 
   m_selected(false),
   m_expanded(false),
   m_editName(false),
+  m_pName(nullptr),
+  m_nameCapacity(0),
   m_pPreferredProjection(nullptr)
 {
   m_metadata.SetVoid();
