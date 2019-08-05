@@ -217,25 +217,8 @@ void vcTileRenderer_LoadThread(void *pThreadData)
       char localFileName[vcMaxPathLength];
       char serverAddress[vcMaxPathLength];
 
-      // TODO this functionality should not be here, let alone re-calculated every texture request
-      // Trim protocol
-      const char *protocolSeparators[] =
-      {
-        "//",
-        "/",
-      };
-      const char *pTrimmedTileServerAddress = pRenderer->pSettings->maptiles.tileServerAddress;
-      for (size_t i = 0; i < udLengthOf(protocolSeparators); ++i)
-      {
-        if (udStrstr(pRenderer->pSettings->maptiles.tileServerAddress, sizeof(pRenderer->pSettings->maptiles.tileServerAddress), protocolSeparators[i]))
-        {
-          pTrimmedTileServerAddress += sizeof(protocolSeparators[i]) - 1; // -1 for null character
-          break;
-        }
-      }
-
-      udSprintf(localFileName, sizeof(localFileName), "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, pTrimmedTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
-      udSprintf(serverAddress, sizeof(serverAddress), "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+      udSprintf(localFileName, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+      udSprintf(serverAddress, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
       udReleaseMutex(pCache->pMutex);
 
       bool downloadingFromServer = true;

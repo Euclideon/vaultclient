@@ -286,6 +286,8 @@ inline bool vcModals_TileThread(vcState *pProgramState)
   if (pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] == '/')
     pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] = '\0';
 
+  udUUID_GenerateFromString(&pProgramState->settings.maptiles.tileServerAddressUUID, pProgramState->settings.maptiles.tileServerAddress);
+
   udWorkerPool_AddTask(pProgramState->pWorkerPool, vcModals_SetTileImage, pProgramState, false, vcModals_SetTileTexture);
 
   return true;

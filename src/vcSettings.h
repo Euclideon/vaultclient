@@ -6,6 +6,7 @@
 #include "udPlatform.h"
 #include "udMath.h"
 #include "udChunkedArray.h"
+#include "udUUID.h"
 
 #include "vcCamera.h"
 #include "gl/vcGLState.h"
@@ -214,6 +215,7 @@ struct vcSettings
 
     float mapHeight;
     char tileServerAddress[vcMaxPathLength];
+    udUUID tileServerAddressUUID;
     char tileServerExtension[4];
 
     vcMapTileBlendMode blendMode;
