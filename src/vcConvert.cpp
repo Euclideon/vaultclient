@@ -478,7 +478,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
       ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 
       udSprintf(outputName, "%s", pSelectedJob->pConvertInfo->pOutputName);
-      if (ImGui::InputText("", outputName, udLengthOf(outputName)))
+      if (ImGui::InputText("##vcSetOutputFilenameText", outputName, udLengthOf(outputName)))
         vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pSelectedJob->pConvertContext, outputName);
 
       if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
@@ -492,7 +492,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
       ImGui::TextUnformatted(vcString::Get("convertOutputName"));
 
       udSprintf(tempDirectory, "%s", pSelectedJob->pConvertInfo->pTempFilesPrefix);
-      if (ImGui::InputText("", tempDirectory, udLengthOf(tempDirectory)))
+      if (ImGui::InputText("##vcSetTemporaryDirectoryText", tempDirectory, udLengthOf(tempDirectory)))
         vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pSelectedJob->pConvertContext, tempDirectory);
 
       if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
