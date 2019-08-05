@@ -52,10 +52,30 @@ bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
   return true;
 }
 
-bool vcFramebuffer_ReadPixels(vcFramebuffer * /*pFramebuffer*/, vcTexture * /*pAttachment*/, void * /*pPixels*/, uint32_t /*x*/, uint32_t /*y*/, uint32_t /*width*/, uint32_t /*height*/)
+bool vcFramebuffer_BeginReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
 {
-  //if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || (x + width) > pAttachment->width || (y + height) > pAttachment->height)
-    return false;
+  udUnused(pFramebuffer);
+  udUnused(pAttachment);
+  udUnused(x);
+  udUnused(y);
+  udUnused(width);
+  udUnused(height);
+  udUnused(pPixels);
 
-  //TODO: Implement this
+  // TODO (EVC-765): Implement me
+  return false;
+}
+
+bool vcFramebuffer_EndReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
+{
+  udUnused(pFramebuffer);
+  udUnused(pAttachment);
+  udUnused(x);
+  udUnused(y);
+  udUnused(width);
+  udUnused(height);
+  udUnused(pPixels);
+
+  // TODO (EVC-765): Implement me
+  return false;
 }

@@ -30,8 +30,13 @@ struct vcTexture
   bool isDynamic;
   bool isRenderTarget;
 
+  vcTextureCreationFlags flags;
   vcTextureFormat format;
   int width, height;
+
+  // Optional if texture created with `vcTCF_AsynchronousRead` flag, or a read back is requested
+  uint32_t stagingIndex; // Internally ping pongs between Begin()/End() calls for asynchronous functionality
+  ID3D11Texture2D *pStagingTextureD3D[2];
 };
 
 struct vcFramebuffer

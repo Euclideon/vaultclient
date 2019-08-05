@@ -32,10 +32,17 @@
 
 struct vcTexture
 {
+  vcTextureCreationFlags flags;
+
   GLuint id;
 
   vcTextureFormat format;
-  GLuint width, height;
+  int width, height;
+
+  // Optional if the texture is configured with the `vcTCF_AsynchronousRead` flag
+  // Provides asynchronous transfer. Internally ping pongs between these between Begin()/End() calls
+  uint32_t pboIndex;
+  GLuint pbos[2];
 };
 
 struct vcFramebuffer

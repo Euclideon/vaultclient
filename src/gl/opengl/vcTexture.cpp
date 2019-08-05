@@ -9,14 +9,19 @@
 
 #include "stb_image.h"
 
-udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags /*flags = vcTCF_None*/, int32_t aniFilter /* = 0 */)
+udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /* = 0 */)
 {
   if (ppTexture == nullptr || width == 0 || height == 0)
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
+  GLint internalFormat = GL_INVALID_ENUM;
+  GLenum type = GL_INVALID_ENUM;
+  GLint glFormat = GL_INVALID_ENUM;
+  int pixelBytes = 4;
 
   vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
+  UD_ERROR_NULL(pTexture, udR_MemoryAllocationFailure);
 
   glGenTextures(1, &pTexture->id);
   glBindTexture(GL_TEXTURE_2D, pTexture->id);
@@ -31,11 +36,6 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
     int32_t realAniso = vcGLState_GetMaxAnisotropy(aniFilter);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, realAniso);
   }
-
-  GLint internalFormat = GL_INVALID_ENUM;
-  GLenum type = GL_INVALID_ENUM;
-  GLint glFormat = GL_INVALID_ENUM;
-  int pixelBytes = 4;
 
   switch (format)
   {
@@ -79,13 +79,24 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   glBindTexture(GL_TEXTURE_2D, 0);
   VERIFY_GL();
 
+  if ((flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
+  {
+    glGenBuffers(2, pTexture->pbos);
+    for (int i = 0; i < 2; ++i)
+    {
+      glBindBuffer(GL_PIXEL_PACK_BUFFER, pTexture->pbos[i]);
+      glBufferData(GL_PIXEL_PACK_BUFFER, width * height * pixelBytes, 0, GL_STREAM_READ);
+    }
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+  }
+
+  pTexture->flags = flags;
   pTexture->format = format;
   pTexture->width = width;
   pTexture->height = height;
   vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
 
   *ppTexture = pTexture;
-
   pTexture = nullptr;
 
 epilogue:
@@ -205,6 +216,7 @@ void vcTexture_Destroy(vcTexture **ppTexture)
     return;
 
   glDeleteTextures(1, &(*ppTexture)->id);
+  glDeleteBuffers(2, (*ppTexture)->pbos);
   udFree(*ppTexture);
   *ppTexture = nullptr;
 }
