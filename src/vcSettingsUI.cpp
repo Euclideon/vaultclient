@@ -221,8 +221,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
       if (pProgramState->settings.visualization.mode == vcVM_Intensity)
       {
-        vcIGSW_StickyIntSlider(vcString::Get("settingsVisMinIntensity"), &pProgramState->settings.visualization.minIntensity, (int)vcSL_IntensityMin, pProgramState->settings.visualization.maxIntensity, 255);
-        vcIGSW_StickyIntSlider(vcString::Get("settingsVisMaxIntensity"), &pProgramState->settings.visualization.maxIntensity, pProgramState->settings.visualization.minIntensity, (int)vcSL_IntensityMax, 255);
+        ImGui::SliderInt(vcString::Get("settingsVisMinIntensity"), &pProgramState->settings.visualization.minIntensity, (int)vcSL_IntensityMin, pProgramState->settings.visualization.maxIntensity);
+        ImGui::SliderInt(vcString::Get("settingsVisMaxIntensity"), &pProgramState->settings.visualization.maxIntensity, pProgramState->settings.visualization.minIntensity, (int)vcSL_IntensityMax);
       }
 
       if (pProgramState->settings.visualization.mode == vcVM_Classification)
