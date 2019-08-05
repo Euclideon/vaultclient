@@ -235,6 +235,7 @@
   "convertSpaceLongLat": "Longitude then Latitude",
   "convertAddFileTitle": "Add Input File to Convert",
   "convertSetOutputTitle": "Set Output Name & Path",
+  "convertSetTempDirectoryTitle":  "Set Temporary Directory",
   "convertAddNewJob": "Create New Job",
   "convertAddFile": "Add Input File",
   "convertSetOutput": "Set Output Name",

@@ -2,6 +2,11 @@
 
 ## Changelist
 
+- Version 0.3.1 (or Version 0.4.0)
+  - Added:
+    - Convert
+      - `convertSetTempDirectoryTitle`
+
 - Version 0.3.0
   - Added:
     - Login Screen
@@ -363,6 +368,7 @@ Modules are currently:
 - `convertSpaceLongLat`: The label on the combobox item for a longitude, latitude ordered conversion input
 - `convertAddFileTitle`: Title of the file dialog used for adding files to the convert queue
 - `convertSetOutputTitle`: Title of the file dialog used for setting the convert output path
+- `convertSetTempDirectoryTitle`: Title of the file dialog used for setting the convert temporary directory
 - `convertAddNewJob`: Label for button used in convert window to create a blank new job in the convert job list
 - `convertAddFile`: Label for button used in convert window to open a file dialog and add a file to be converted
 - `convertSetOutput`: Label for button used in convert window to open a file dialog and set the destination filepath for the converted file output.

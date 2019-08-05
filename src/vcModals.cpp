@@ -389,6 +389,8 @@ void vcModals_DrawFileModal(vcState *pProgramState)
     ImGui::OpenPopup(vcString::Get("convertAddFileTitle"));
   if (pProgramState->openModals & (1 << vcMT_ConvertOutput))
     ImGui::OpenPopup(vcString::Get("convertSetOutputTitle"));
+  if (pProgramState->openModals & (1 << vcMT_ConvertTempDirectory))
+    ImGui::OpenPopup(vcString::Get("convertSetTempDirectoryTitle"));
 
   vcModalTypes mode = vcMT_Count;
 
@@ -411,6 +413,10 @@ void vcModals_DrawFileModal(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("convertSetOutputTitle")))
     mode = vcMT_ConvertOutput;
+
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("convertSetTempDirectoryTitle")))
+    mode = vcMT_ConvertTempDirectory;
 
   if (mode < vcMT_Count)
   {
@@ -466,6 +472,12 @@ void vcModals_DrawFileModal(vcState *pProgramState)
       if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), false, fileExtensions, udLengthOf(fileExtensions)))
         loadFile = true;
     }
+    else if (mode == vcMT_ConvertTempDirectory)
+    {
+      const char *fileExtensions[] = { "/", "\\" };
+      if (vcFileDialog_Show(pProgramState->modelPath, sizeof(pProgramState->modelPath), false, fileExtensions, udLengthOf(fileExtensions)))
+        loadFile = true;
+    }
 
     if (loadFile)
     {
@@ -481,6 +493,12 @@ void vcModals_DrawFileModal(vcState *pProgramState)
         vdkConvertContext *pConvertContext = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext;
         vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pConvertContext, loadFilename.GetPath());
         // SetOutputFilename() overwrites the temp directory automatically, unless the user has modified it
+      }
+      else if (mode == vcMT_ConvertTempDirectory)
+      {
+        // Set temporary directory
+        vdkConvertContext *pConvertContext = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext;
+        vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pConvertContext, pProgramState->modelPath);
       }
       else
       {
