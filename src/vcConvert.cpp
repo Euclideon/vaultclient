@@ -351,7 +351,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       ImGui::SameLine();
 
-      udSprintf(tempBuffer, "%s (%s)##convertjob_%zu", pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName, vcString::Get(statusNames[pProgramState->pConvertContext->jobs[i]->status]), i);
+      udSprintf(tempBuffer, "%s | %s##convertjob_%zu", vcString::Get(statusNames[pProgramState->pConvertContext->jobs[i]->status]), udFilename(pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName).GetFilenameWithExt(), i);
 
       ImVec2 selectablePos = ImVec2(ImGui::GetContentRegionMax().x - ImGui::GetStyle().ItemSpacing.x * 2, 0);
       if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
@@ -359,6 +359,9 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       if (ImGui::Selectable(tempBuffer, selected, ImGuiSelectableFlags_None, selectablePos))
         pProgramState->pConvertContext->selectedItem = i;
+
+      if (vcIGSW_IsItemHovered())
+        ImGui::SetTooltip("%s", pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName);
 
       if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
       {
