@@ -240,6 +240,34 @@ void vcModals_SetTileImage(void *pProgramStatePtr)
   udInterlockedExchangePointer(&pProgramState->tileModal.pImageData, pLocalData);
 }
 
+void vcModals_SetTileTexture(void *pProgramStatePtr)
+{
+  vcState *pProgramState = (vcState*)pProgramStatePtr;
+
+  // If there is loaded data, we turn it into a texture:
+  if (pProgramState->tileModal.loadStatus > 0)
+  {
+    if (pProgramState->tileModal.pServerIcon != nullptr)
+      vcTexture_Destroy(&pProgramState->tileModal.pServerIcon);
+
+    uint32_t width, height, channelCount;
+    uint8_t *pData = stbi_load_from_memory((stbi_uc*)pProgramState->tileModal.pImageData, (int)pProgramState->tileModal.loadStatus, (int*)&width, (int*)&height, (int*)&channelCount, 4);
+    udFree(pProgramState->tileModal.pImageData);
+
+    if (pData)
+      vcTexture_Create(&pProgramState->tileModal.pServerIcon, width, height, pData, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Repeat, vcTCF_None, 0);
+
+    stbi_image_free(pData);
+    pProgramState->tileModal.loadStatus = 0;
+  }
+
+  if (!pProgramState->modalOpen)
+  {
+    udFree(pProgramState->tileModal.pImageData);
+    vcRender_ClearTiles(pProgramState->pRenderContext);
+  }
+}
+
 inline bool vcModals_TileThread(vcState *pProgramState)
 {
   if (pProgramState->tileModal.loadStatus == -1)
@@ -258,7 +286,7 @@ inline bool vcModals_TileThread(vcState *pProgramState)
   if (pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] == '/')
     pProgramState->settings.maptiles.tileServerAddress[urlLen - 1] = '\0';
 
-  udWorkerPool_AddTask(pProgramState->pWorkerPool, vcModals_SetTileImage, pProgramState, false);
+  udWorkerPool_AddTask(pProgramState->pWorkerPool, vcModals_SetTileImage, pProgramState, false, vcModals_SetTileTexture);
 
   return true;
 }
@@ -276,22 +304,6 @@ void vcModals_DrawTileServer(vcState *pProgramState)
   if (ImGui::BeginPopupModal(vcString::Get("settingsMapsTileServerTitle")))
   {
     pProgramState->modalOpen = true;
-    // If there is loaded data, we turn it into a texture:
-    if (pProgramState->tileModal.loadStatus > 0)
-    {
-      if (pProgramState->tileModal.pServerIcon != nullptr)
-        vcTexture_Destroy(&pProgramState->tileModal.pServerIcon);
-
-      uint32_t width, height, channelCount;
-      uint8_t *pData = stbi_load_from_memory((stbi_uc*)pProgramState->tileModal.pImageData, (int)pProgramState->tileModal.loadStatus, (int*)&width, (int*)&height, (int*)&channelCount, 4);
-      udFree(pProgramState->tileModal.pImageData);
-
-      if (pData)
-        vcTexture_Create(&pProgramState->tileModal.pServerIcon, width, height, pData, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Repeat, vcTCF_None, 0);
-
-      stbi_image_free(pData);
-      pProgramState->tileModal.loadStatus = 0;
-    }
 
     static bool s_isDirty = false;
     static int s_currentItem = -1;
@@ -312,7 +324,6 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     if (ImGui::Combo(vcString::Get("settingsMapsTileServerImageFormat"), &s_currentItem, pItems, (int)udLengthOf(pItems)))
     {
       udStrcpy(pProgramState->settings.maptiles.tileServerExtension, udLengthOf(pProgramState->settings.maptiles.tileServerExtension), pItems[s_currentItem]);
-      vcModals_TileThread(pProgramState);
       s_isDirty = true;
     }
 
@@ -328,11 +339,15 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     else if (pProgramState->tileModal.pServerIcon != nullptr)
       ImGui::Image((ImTextureID)pProgramState->tileModal.pServerIcon, ImVec2(200, 200), ImVec2(0, 0), ImVec2(1, 1));
 
-    if (pProgramState->tileModal.loadStatus != -1 && (ImGui::Button(vcString::Get("settingsMapsTileServerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE]))
+    if (ImGui::Button(vcString::Get("settingsMapsTileServerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
+      if (pProgramState->tileModal.loadStatus == 0)
+      {
+        udFree(pProgramState->tileModal.pImageData);
+        vcRender_ClearTiles(pProgramState->pRenderContext);
+      }
+
       ImGui::CloseCurrentPopup();
-      udFree(pProgramState->tileModal.pImageData);
-      vcRender_ClearTiles(pProgramState->pRenderContext);
     }
 
     ImGui::EndPopup();
