@@ -6,6 +6,8 @@
   - Added:
     - Convert
       - `convertSetTempDirectoryTitle`
+    - Viewport
+      - `settingsViewportCameraLensCustom`, `settingsViewportCameraLens15mm`, `settingsViewportCameraLens24mm`, `settingsViewportCameraLens30mm`, `settingsViewportCameraLens50mm`, `settingsViewportCameraLens70mm`, `settingsViewportCameraLens100mm`
 
 - Version 0.3.0
   - Added:
@@ -204,6 +206,13 @@ Modules are currently:
 - `settingsViewportRestoreDefaults`: Used to restore default values for all viewport settings
 - `settingsViewportViewDistance`: Label next to slider for setting the viewable distance
 - `settingsViewportCameraLens`: Label next to dropdown list for selecting the camera's field of view
+- `settingsViewportCameraLensCustom`: Label for the custom lens option,
+- `settingsViewportCameraLens15mm`: Label for the 15mm lens option,
+- `settingsViewportCameraLens24mm`: Label for the 24mm lens option,
+- `settingsViewportCameraLens30mm`: Label for the 30mm lens option,
+- `settingsViewportCameraLens50mm`: Label for the 50mm lens option,
+- `settingsViewportCameraLens70mm`: Label for the 70mm lens option,
+- `settingsViewportCameraLens100mm`: Label for the 100mm lens option,
 - `settingsViewportFOV`: Label next to slider for setting a custom field of view
 - `settingsMaps`: Title of the Maps & Elevation subheading in Settings
 - `settingsMapsRestoreDefaults`: Used to restore default values for all maps settings

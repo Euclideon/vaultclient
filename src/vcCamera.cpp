@@ -6,29 +6,10 @@
 #include "imgui_ex/ImGuizmo.h"
 
 #define ONE_PIXEL_SQ 0.0001
-#define LENSNAME(x) #x+5
-
-const char *lensNameArray[] =
-{
-  LENSNAME(vcLS_Custom),
-  LENSNAME(vcLS_15mm),
-  LENSNAME(vcLS_24mm),
-  LENSNAME(vcLS_30mm),
-  LENSNAME(vcLS_50mm),
-  LENSNAME(vcLS_70mm),
-  LENSNAME(vcLS_100mm),
-};
-
-UDCOMPILEASSERT(udLengthOf(lensNameArray) == vcLS_TotalLenses, "Lens Name not in Strings");
 
 // higher == quicker smoothing
 static const double sCameraTranslationSmoothingSpeed = 22.0;
 static const double sCameraRotationSmoothingSpeed = 40.0;
-
-const char** vcCamera_GetLensNames()
-{
-  return lensNameArray;
-}
 
 udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera)
 {
