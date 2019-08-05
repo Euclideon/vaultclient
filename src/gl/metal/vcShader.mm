@@ -152,8 +152,8 @@ bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pSh
 
   vcShaderConstantBuffer *temp = udAllocType(vcShaderConstantBuffer, 1, udAF_Zero);
   temp->expectedSize = bufferSize;
-  udStrcpy(temp->name, 32, pBufferName);
-  udStrcpy(temp->ID, 32, bID.UTF8String);
+  udStrcpy(temp->name, pBufferName);
+  udStrcpy(temp->ID, bID.UTF8String);
 
   pShader->bufferObjects[pShader->numBufferObjects] = *temp;
   ++pShader->numBufferObjects;

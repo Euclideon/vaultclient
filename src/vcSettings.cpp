@@ -102,7 +102,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
   if (!forceReset && pSettings->docksLoaded != vcSettings::vcDockLoaded::vcDL_ForceReset && pSettings->pSaveFilePath != nullptr)
   {
     char buffer[vcMaxPathLength];
-    udSprintf(buffer, vcMaxPathLength, "%ssettings.json", pSettings->pSaveFilePath);
+    udSprintf(buffer, "%ssettings.json", pSettings->pSaveFilePath);
 
     if (udFile_Load(buffer, (void **)&pSavedData) != udR_Success)
       udFree(pSavedData); // Didn't load, let's free this in case it was allocated
@@ -267,19 +267,19 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       pSettings->window.maximized = data.Get("window.maximized").AsBool(false);
     }
 
-    udStrcpy(pSettings->window.languageCode, udLengthOf(pSettings->window.languageCode), data.Get("window.language").AsString("enAU"));
+    udStrcpy(pSettings->window.languageCode, data.Get("window.language").AsString("enAU"));
 
     // Login Info
     pSettings->loginInfo.rememberServer = data.Get("login.rememberServer").AsBool(false);
     if (pSettings->loginInfo.rememberServer)
-      udStrcpy(pSettings->loginInfo.serverURL, sizeof(pSettings->loginInfo.serverURL), data.Get("login.serverURL").AsString());
+      udStrcpy(pSettings->loginInfo.serverURL, data.Get("login.serverURL").AsString());
 
     pSettings->loginInfo.rememberUsername = data.Get("login.rememberUsername").AsBool(false);
     if (pSettings->loginInfo.rememberUsername)
-      udStrcpy(pSettings->loginInfo.username, sizeof(pSettings->loginInfo.username), data.Get("login.username").AsString());
+      udStrcpy(pSettings->loginInfo.username, data.Get("login.username").AsString());
 
-    udStrcpy(pSettings->loginInfo.proxy, udLengthOf(pSettings->loginInfo.proxy), data.Get("login.proxy").AsString());
-    udStrcpy(pSettings->loginInfo.proxyTestURL, udLengthOf(pSettings->loginInfo.proxyTestURL), data.Get("login.proxyTestURL").AsString("http://vaultmodels.euclideon.com/proxytest"));
+    udStrcpy(pSettings->loginInfo.proxy, data.Get("login.proxy").AsString());
+    udStrcpy(pSettings->loginInfo.proxyTestURL, data.Get("login.proxyTestURL").AsString("http://vaultmodels.euclideon.com/proxytest"));
     pSettings->loginInfo.autoDetectProxy = data.Get("login.autodetectproxy").AsBool();
 
     // Camera
@@ -635,7 +635,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   if (data.Export(&pSettingsStr, udJEO_JSON | udJEO_FormatWhiteSpace) == udR_Success)
   {
     char buffer[vcMaxPathLength];
-    udSprintf(buffer, vcMaxPathLength, "%ssettings.json", pSettings->pSaveFilePath);
+    udSprintf(buffer, "%ssettings.json", pSettings->pSaveFilePath);
 
     success = SDL_filewrite(buffer, pSettingsStr, udStrlen(pSettingsStr));
 

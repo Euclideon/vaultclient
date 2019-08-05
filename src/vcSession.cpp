@@ -109,7 +109,7 @@ void vcSession_Login(void *pProgramStatePtr)
       {
         if (info.Get("success").AsBool() == true)
         {
-          udStrcpy(pProgramState->username, udLengthOf(pProgramState->username), info.Get("user.realname").AsString("Guest"));
+          udStrcpy(pProgramState->username, info.Get("user.realname").AsString("Guest"));
           pProgramState->lastServerResponse = udGetEpochSecsUTCf();
         }
         else

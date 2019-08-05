@@ -19,7 +19,7 @@ const char *lensNameArray[] =
   LENSNAME(vcLS_100mm),
 };
 
-UDCOMPILEASSERT(UDARRAYSIZE(lensNameArray) == vcLS_TotalLenses, "Lens Name not in Strings");
+UDCOMPILEASSERT(udLengthOf(lensNameArray) == vcLS_TotalLenses, "Lens Name not in Strings");
 
 // higher == quicker smoothing
 static const double sCameraTranslationSmoothingSpeed = 22.0;

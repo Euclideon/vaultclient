@@ -273,7 +273,7 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
 epilogue:
   if (pVertexBuffer)
   {
-    for (size_t i = 0; i < UDARRAYSIZE(pVertexBuffer->pDivisionData); ++i)
+    for (size_t i = 0; i < udLengthOf(pVertexBuffer->pDivisionData); ++i)
       udFree(pVertexBuffer->pDivisionData[i]);
     udFree(pVertexBuffer);
   }

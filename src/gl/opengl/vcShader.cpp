@@ -176,7 +176,7 @@ bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pSh
       glBufferData(GL_UNIFORM_BUFFER, bufferSize, NULL, GL_DYNAMIC_DRAW);
       glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-      udStrcpy(pShader->bufferObjects[pShader->numBufferObjects].name, 32, pBufferName);
+      udStrcpy(pShader->bufferObjects[pShader->numBufferObjects].name, pBufferName);
       pShader->bufferObjects[pShader->numBufferObjects].bindPoint = pShader->numBufferObjects;
       *ppBuffer = &pShader->bufferObjects[pShader->numBufferObjects];
       ++pShader->numBufferObjects;
@@ -211,7 +211,7 @@ bool vcShader_GetSamplerIndex(vcShaderSampler **ppSampler, vcShader *pShader, co
   if (ppSampler == nullptr || pShader == nullptr || pSamplerName == nullptr || pShader->programID == GL_INVALID_INDEX)
     return false;
 
-  if (pShader->numSamplerIndexes >= (int)UDARRAYSIZE(pShader->samplerIndexes))
+  if (pShader->numSamplerIndexes >= (int)udLengthOf(pShader->samplerIndexes))
     return false;
 
   GLuint uID = glGetUniformLocation(pShader->programID, pSamplerName);
