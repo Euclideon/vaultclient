@@ -172,14 +172,16 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     // Map Tiles
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
     pSettings->maptiles.mouseInteracts = data.Get("maptiles.mouseInteracts").AsBool(true);
-    udStrcpy(pSettings->maptiles.tileServerAddress, sizeof(pSettings->maptiles.tileServerAddress), data.Get("maptiles.serverURL").AsString("http://slippy.vault.euclideon.com/"));
-    udStrcpy(pSettings->maptiles.tileServerExtension, sizeof(pSettings->maptiles.tileServerExtension), data.Get("maptiles.imgExtension").AsString("png"));
+    udStrcpy(pSettings->maptiles.tileServerAddress, data.Get("maptiles.serverURL").AsString("http://slippy.vault.euclideon.com/"));
+    if (udStrEquali(pSettings->maptiles.tileServerAddress, "http://20.188.211.58"))
+      udStrcpy(pSettings->maptiles.tileServerAddress, "http://slippy.vault.euclideon.com");
+
+    udUUID_GenerateFromString(&pSettings->maptiles.tileServerAddressUUID, pSettings->maptiles.tileServerAddress);
+
+    udStrcpy(pSettings->maptiles.tileServerExtension, data.Get("maptiles.imgExtension").AsString("png"));
     pSettings->maptiles.mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
     pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(1);
     pSettings->maptiles.transparency = data.Get("maptiles.transparency").AsFloat(1.f);
-
-    if (udStrEquali(pSettings->maptiles.tileServerAddress, "http://20.188.211.58"))
-      udStrcpy(pSettings->maptiles.tileServerAddress, sizeof(pSettings->maptiles.tileServerAddress), "http://slippy.vault.euclideon.com");
 
     pSettings->maptiles.mapQuality = (vcTileRendererMapQuality)data.Get("maptiles.mapQuality").AsInt(vcTRMQ_High);
     pSettings->maptiles.mapOptions = (vcTileRendererFlags)data.Get("maptiles.mapOptions").AsInt(vcTRF_None);
