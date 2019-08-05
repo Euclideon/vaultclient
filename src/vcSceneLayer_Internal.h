@@ -10,12 +10,6 @@
 struct vcPolygonModel;
 struct vcTexture;
 
-enum
-{
-  // TODO: (EVC-541) Determine actual max URL length of I3S
-  vcMaxURLLength = vcMaxPathLength,
-};
-
 enum vcSceneLayerLoadType
 {
   vcSLLT_None,
@@ -41,7 +35,7 @@ struct vcSceneLayerNode
   volatile vcLoadState loadState;
 
   int level;
-  char id[vcMaxURLLength];
+  char *pID;
   const char *pURL;
   vcSceneLayerNode *pChildren;
   size_t childrenCount;
@@ -120,7 +114,6 @@ struct vcSceneLayer
   udWorkerPool *pThreadPool;
   bool isActive;
 
-  char sceneLayerURL[vcMaxURLLength];
   char pathSeparatorChar; // '/' or '\\'
   udJSON description;
   udDouble4 extent;
