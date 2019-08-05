@@ -22,6 +22,7 @@ enum vcModalTypes
   vcMT_UnsupportedFile,
   vcMT_ConvertAdd,
   vcMT_ConvertOutput,
+  vcMT_ConvertTempDirectory,
 
   vcMT_Count
 };

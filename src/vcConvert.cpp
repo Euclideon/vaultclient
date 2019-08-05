@@ -484,7 +484,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
       if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
       {
         ImGui::SameLine(0.f, 0.f);
-        if (ImGui::Button("...", ImVec2(30, 0)))
+        if (ImGui::Button("...##vcSetOutputFilename", ImVec2(30, 0)))
           vcModals_OpenModal(pProgramState, vcMT_ConvertOutput);
       }
 
@@ -492,8 +492,18 @@ void vcConvert_ShowUI(vcState *pProgramState)
       ImGui::TextUnformatted(vcString::Get("convertOutputName"));
 
       udSprintf(tempDirectory, UDARRAYSIZE(tempDirectory), "%s", pSelectedJob->pConvertInfo->pTempFilesPrefix);
-      if (ImGui::InputText(vcString::Get("convertTempDirectory"), tempDirectory, UDARRAYSIZE(tempDirectory)))
+      if (ImGui::InputText("", tempDirectory, UDARRAYSIZE(tempDirectory)))
         vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pSelectedJob->pConvertContext, tempDirectory);
+
+      if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
+      {
+        ImGui::SameLine(0.f, 0.f);
+        if (ImGui::Button("...##vcSetTemporaryDirectory", ImVec2(30, 0)))
+          vcModals_OpenModal(pProgramState, vcMT_ConvertTempDirectory);
+      }
+
+      ImGui::SameLine();
+      ImGui::TextUnformatted(vcString::Get("convertTempDirectory"));
 
       ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 
