@@ -62,10 +62,10 @@ void vcNormalizePath(const char **ppDest, const char *pRoot, const char *pAppend
   size_t index = 0;
 
   // TODO: why are there '\\/' separator characters??
-  // Remove any '\\/' characters
+  // Replace any '\\/' character sequences with '/'
   while (udStrstr(pNewAppend, len, "\\/", &index) != nullptr)
   {
-    memcpy(pNewAppend + index + 1, pNewAppend + (index + 1 + 1), (len - index));
+    memmove(pNewAppend + index, pNewAppend + (index + 1), (len - (index + 1)));
     len -= 1;
     pNewAppend[len] = '\0';
   }
@@ -74,7 +74,7 @@ void vcNormalizePath(const char **ppDest, const char *pRoot, const char *pAppend
   if (udStrlen(pNewAppend) >= 2 && pNewAppend[0] == '.' && (pNewAppend[1] == '\\' || pNewAppend[1] == '/'))
   {
     len -= 2;
-    memcpy(pNewAppend, pNewAppend + 2, len);
+    memmove(pNewAppend, pNewAppend + 2, len);
     pNewAppend[len] = '\0';
   }
 
@@ -89,11 +89,8 @@ void vcNormalizePath(const char **ppDest, const char *pRoot, const char *pAppend
       pRoot = pNewRoot;
 
       // remove the "../"
-      char *pNewAppend2 = udStrdup(pNewAppend + 3); 
-      udFree(pNewAppend);
-      pNewAppend = pNewAppend2;
-
       len -= 3;
+      memmove(pNewAppend, pNewAppend + 3, len);
       pNewAppend[len] = '\0';
     }
   }
