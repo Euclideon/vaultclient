@@ -37,6 +37,9 @@ public:
   bool m_expanded;
   bool m_editName;
 
+  char *m_pName;
+  size_t m_nameCapacity;
+
   double m_lastUpdateTime; // The stored time that this node was last updated (compared with the node to see if the node updated outside of Client)
 
   udJSON m_metadata; // This points to a metadata (may be an empty object)

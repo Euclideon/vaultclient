@@ -164,21 +164,18 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         pSceneItem->m_expanded = ImGui::TreeNodeEx(udTempStr("###SXIName%zu", *pItemID), flags);
         ImGui::SameLine();
 
-		// TODO: (EVC-636) this `256` is wrong, that is not fixing the bug!
-        size_t length = udStrlen(pNode->pName);
-        char *pData = udAllocType(char, length + 256, udAF_None);
-        memcpy(pData, pNode->pName, length + 1); // factor in \0
-
-        length += 256;
-
-        vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &pData, &length);
-        if (ImGui::IsItemDeactivatedAfterEdit())
+        if (pSceneItem->m_pName == nullptr)
         {
-          if (vdkProjectNode_SetName(pProgramState->activeProject.pProject, pNode, pData) != vE_Success)
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+          pSceneItem->m_pName = udStrdup(pNode->pName);
+          pSceneItem->m_nameCapacity = udStrlen(pSceneItem->m_pName) + 1;
         }
 
-        udFree(pData);
+        vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &pSceneItem->m_pName, &pSceneItem->m_nameCapacity);
+        if (ImGui::IsItemDeactivatedAfterEdit())
+        {
+          if (vdkProjectNode_SetName(pProgramState->activeProject.pProject, pNode, pSceneItem->m_pName) != vE_Success)
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+        }
 
         if (ImGui::IsItemDeactivated() || !(pProgramState->sceneExplorer.selectedItems.back().pParent == m_pNode && pProgramState->sceneExplorer.selectedItems.back().pItem == pNode))
           pSceneItem->m_editName = false;
@@ -187,6 +184,12 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       }
       else
       {
+        if (pSceneItem->m_pName != nullptr)
+        {
+          udFree(pSceneItem->m_pName);
+          pSceneItem->m_nameCapacity = 0;
+        }
+
         pSceneItem->m_expanded = ImGui::TreeNodeEx(udTempStr("%s###SXIName%zu", pNode->pName, *pItemID), flags);
         if (pSceneItem->m_selected && pProgramState->sceneExplorer.selectedItems.back().pParent == m_pNode && pProgramState->sceneExplorer.selectedItems.back().pItem == pNode && ImGui::GetIO().KeysDown[SDL_SCANCODE_F2])
           pSceneItem->m_editName = true;
