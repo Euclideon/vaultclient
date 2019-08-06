@@ -446,9 +446,9 @@ udResult vcSceneLayer_RecursiveLoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerN
   UD_ERROR_CHECK(nodeJSON.Parse(pFileData));
 
   // potentially already calculated some node info (it's stored in this nodes parents 'children' array)
-  if (pNode->id[0] == '\0')
+  if (pNode->pID == nullptr)
   {
-    udStrcpy(pNode->id, nodeJSON.Get("id").AsString());
+    pNode->pID = udStrdup(nodeJSON.Get("id").AsString());
     vcSceneLayer_CalculateNodeBounds(pNode, nodeJSON.Get("mbs").AsDouble4());
   }
 
@@ -473,7 +473,7 @@ udResult vcSceneLayer_RecursiveLoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerN
       vcSceneLayerNode *pChildNode = &pNode->pChildren[i];
       pChildNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
 
-      udStrcpy(pChildNode->id, nodeJSON.Get("children[%zu].id", i).AsString());
+      pChildNode->pID = udStrdup(nodeJSON.Get("children[%zu].id", i).AsString());
       vcNormalizePath(&pChildNode->pURL, pNode->pURL, nodeJSON.Get("children[%zu].href", i).AsString(), pSceneLayer->pathSeparatorChar);
 
       vcSceneLayer_CalculateNodeBounds(pChildNode, nodeJSON.Get("children[%zu].mbs", i).AsDouble4());
@@ -538,9 +538,8 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, udWorkerPool *pWorkerT
 
   pSceneLayer->isActive = true;
   pSceneLayer->pThreadPool = pWorkerThreadPool;
-  udStrcpy(pSceneLayer->sceneLayerURL, pSceneLayerURL);
 
-  udSprintf(&pPathBuffer, "zip://%s:3dSceneLayer.json.gz", pSceneLayer->sceneLayerURL);
+  udSprintf(&pPathBuffer, "zip://%s:3dSceneLayer.json.gz", pSceneLayerURL);
   UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData));
   UD_ERROR_CHECK(pSceneLayer->description.Parse(pFileData));
 
@@ -552,7 +551,7 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, udWorkerPool *pWorkerT
   if (udStrchr(pRootPath, "\\") != nullptr)
     pSceneLayer->pathSeparatorChar = '\\';
 
-  vcNormalizePath(&pSceneLayer->root.pURL, pSceneLayer->sceneLayerURL, pRootPath, ':');
+  vcNormalizePath(&pSceneLayer->root.pURL, pSceneLayerURL, pRootPath, ':');
   UD_ERROR_CHECK(vcSceneLayer_LoadNode(pSceneLayer, &pSceneLayer->root));
 
   *ppSceneLayer = pSceneLayer;
@@ -617,6 +616,7 @@ void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode)
 
   udFree(pNode->pChildren);
   udFree(pNode->pURL);
+  udFree(pNode->pID);
 }
 
 udResult vcSceneLayer_Destroy(vcSceneLayer **ppSceneLayer)
