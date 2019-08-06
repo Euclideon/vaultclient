@@ -748,7 +748,7 @@ Euclideon Vault Client uses a number of third party libraries. Please view the `
 - `GLEW` from [SourceForge](http://glew.sourceforge.net/)
 - `Nothings/STB` single header libraries from [GitHub](https://github.com/nothings/stb)
 - `easyexif` available at [Euclideon's GitHub](https://github.com/euclideon/easyexif) forked originally from [GitHub](https://github.com/mayanklahiri/easyexif)
-- `Autodesk FBX SDK` from [Autodesk FBX SDK Download Page](https://www.autodesk.com/developer-network/platform-technologies/fbx-sdk-2019-0)
+- `Autodesk FBX SDK` from [Autodesk FBX SDK Download Page](https://www.autodesk.com/developer-network/platform-technologies/fbx-sdk-2019-5)
 
 Euclideon Vault Development Kit (VDK) uses the following additional libraries.
 

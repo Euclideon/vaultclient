@@ -74,7 +74,7 @@ function injectvaultsdkbin()
 			linkoptions  { "--js-library ../vault/vaultcore/src/vHTTPRequest.js" }
 		end
 	else
-		if _OPTIONS["vaultsdk"] == nil then
+		if os.getenv("VAULTSDK_HOME") == nil then
 			error "VaultSDK not installed correctly. (No VAULTSDK_HOME environment variable set!)"
 		end
 
@@ -82,21 +82,21 @@ function injectvaultsdkbin()
 			if _OPTIONS["gfxapi"] == "metal" then
 				_OPTIONS["gfxapi"] = "opengl"
 			end
-			os.execute('Robocopy "' .. _OPTIONS["vaultsdk"] .. '/Include" "Include" /s /purge')
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/win_x64/vaultSDK.dll", "builds/vaultSDK.dll")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/win_x64/vaultSDK.lib", "src/vaultSDK.lib")
+			os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.dll", "builds/vaultSDK.dll")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.lib", "src/vaultSDK.lib")
 			libdirs { "src" }
 		elseif os.target() == premake.MACOSX then
 			os.execute("mkdir -p builds")
 
 			-- copy dmg, mount, extract framework, unmount then remove.
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/osx_x64/vaultSDK.dmg", "builds/vaultSDK.dmg")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/osx_x64/vaultSDK.dmg", "builds/vaultSDK.dmg")
 			local device = os.outputof("/usr/bin/hdiutil attach -noverify -noautoopen builds/vaultSDK.dmg | egrep '^/dev/' | sed 1q | awk '{print $1}'")
 			os.execute("cp -a -f /Volumes/vaultSDK/vaultSDK.framework builds/")
 			os.execute("/usr/bin/hdiutil detach /Volumes/vaultSDK")
 			os.execute("/usr/bin/hdiutil detach " .. device)
 			os.execute("rm -r builds/vaultSDK.dmg")
-			os.execute("cp -R " .. _OPTIONS["vaultsdk"] .. "/Include .")
+			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			prelinkcommands {
 				"rm -rf %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
 				"mkdir -p %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
@@ -107,24 +107,24 @@ function injectvaultsdkbin()
 			frameworkdirs { "builds" }
 		elseif os.target() == premake.IOS then
 			os.execute("mkdir -p builds")
-			os.execute("lipo -create " .. _OPTIONS["vaultsdk"] .. "/lib/ios_arm64/libvaultSDK.dylib " .. _OPTIONS["vaultsdk"] .. "/lib/ios_x64/libvaultSDK.dylib -output builds/libvaultSDK.dylib")
+			os.execute("lipo -create " .. os.getenv("VAULTSDK_HOME") .. "/lib/ios_arm64/libvaultSDK.dylib " .. os.getenv("VAULTSDK_HOME") .. "/lib/ios_x64/libvaultSDK.dylib -output builds/libvaultSDK.dylib")
 			os.execute("codesign -s T6Q3JCVW77 builds/libvaultSDK.dylib") -- Is this required? Should this move to VaultSDK?
-			os.execute("cp -R " .. _OPTIONS["vaultsdk"] .. "/Include .")
+			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			libdirs { "builds" }
 			linkoptions { "-rpath @executable_path/" }
 		elseif os.target() == "emscripten" then
 			if os.host() == premake.WINDOWS then
-				os.execute('Robocopy "' .. _OPTIONS["vaultsdk"] .. '/Include" "Include" /s /purge')
+				os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
 			else
-				os.execute("cp -R " .. _OPTIONS["vaultsdk"] .. "/Include .")
+				os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			end
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/emscripten_wasm32/libvaultSDK.bc", "src/libvaultSDK.bc")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/emscripten_wasm32/libvaultcore.bc", "src/libvaultcore.bc")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/emscripten_wasm32/libudPointCloud.bc", "src/libudPointCloud.bc")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/emscripten_wasm32/vCore.h", "src/vCore.h")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/emscripten_wasm32/vHTTP.h", "src/vHTTP.h")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/emscripten_wasm32/vHTTPRequest.h", "src/vHTTPRequest.h")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/emscripten_wasm32/vHTTPRequest.js", "src/vHTTPRequest.js")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/libvaultSDK.bc", "src/libvaultSDK.bc")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/libvaultcore.bc", "src/libvaultcore.bc")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/libudPointCloud.bc", "src/libudPointCloud.bc")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/vCore.h", "src/vCore.h")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/vHTTP.h", "src/vHTTP.h")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/vHTTPRequest.h", "src/vHTTPRequest.h")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/vHTTPRequest.js", "src/vHTTPRequest.js")
 			libdirs { "src" }
 			linkoptions  { "--js-library src/vHTTPRequest.js" }
 		else
@@ -132,8 +132,8 @@ function injectvaultsdkbin()
 				_OPTIONS["gfxapi"] = "opengl"
 			end
 			os.execute("mkdir -p builds")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/linux_GCC_x64/libvaultSDK.so", "builds/libvaultSDK.so")
-			os.execute("cp -R " .. _OPTIONS["vaultsdk"] .. "/Include .")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/linux_GCC_x64/libvaultSDK.so", "builds/libvaultSDK.so")
+			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			libdirs { "builds" }
 		end
 
@@ -158,12 +158,14 @@ newoption {
 	}
 }
 
-if os.host() == premake.WINDOWS then
+if os.target() == premake.WINDOWS then
 	fbxDefault = "C:/Program Files/Autodesk/FBX/FBX SDK/2019.5"
-elseif os.host() == premake.MACOSX then
+elseif os.target() == premake.MACOSX then
 	fbxDefault = "/Applications/Autodesk/FBX SDK/2019.5"
+--elseif os.target() == premake.LINUX --This isn't properly tested or supported yet
+--	fbxDefault = "/usr/FBX20195_FBXFILESDK_LINUX"
 else
-	fbxDefault = "/home/$USER"
+	fbxDefault = nil
 end
 
 newoption {
@@ -171,13 +173,6 @@ newoption {
 	value       = "Path",
 	description = "Path to FBX SDK",
 	default     = fbxDefault
-}
-
-newoption {
-	trigger     = "vaultsdk",
-	value       = "Path",
-	description = "Path to Vault SDK",
-	default     = os.getenv("VAULTSDK_HOME")
 }
 
 solution "vaultClient"

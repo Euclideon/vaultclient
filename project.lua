@@ -45,23 +45,34 @@ project "vaultClient"
 		table.insert(excludedSourceFileNames, "src/vcWebFile.mm");
 	end
 
-	if os.isdir(_OPTIONS["fbxsdk"]) then
+	if (_OPTIONS["fbxsdk"] ~= nil and os.isdir(_OPTIONS["fbxsdk"])) then
+		defines { "FBXSDK_ON", "FBXSDK_SHARED" }
+		includedirs { "%{_OPTIONS[\"fbxsdk\"]}/include/" }
+
 		filter { "system:windows" }
-			defines { "FBXSDK_ON" }
-			links { "libfbxsdk-mt.lib", "libxml2-mt.lib", "zlib-mt.lib" }
-			includedirs { _OPTIONS["fbxsdk"] .. "/include/" }
-			includedirs { _OPTIONS["fbxsdk"] .. "/include/**" }
-		filter { "system:windows", "configurations:Debug" }
-			libdirs { _OPTIONS["fbxsdk"] .. "/lib/*/x64/debug/" }
-		filter { "system:windows", "configurations:Release" }
-			libdirs { _OPTIONS["fbxsdk"] .. "/lib/*/x64/release/" }
+			links { "libfbxsdk.lib" }
+			libdirs { "%{_OPTIONS[\"fbxsdk\"]}/lib/%{_ACTION}/x64/%{cfg.buildcfg}/" }
+			prelinkcommands {
+				'copy /B "' .. path.translate(_OPTIONS["fbxsdk"] .. '\\lib\\%{_ACTION}\\x64\\%{cfg.buildcfg}\\libfbxsdk.dll') .. '" %{prj.targetdir}'
+			}
+
 		filter { "system:macosx" }
-			defines { "FBXSDK_ON" }
 			links { "fbxsdk" }
-			libdirs { '"' .. _OPTIONS["fbxsdk"] .. '/lib/clang/%{cfg.buildcfg}"' }
-			includedirs { _OPTIONS["fbxsdk"] .. '/include/' }
-			xcodebuildsettings { 	["GCC_ENABLE_CPP_EXCEPTIONS"] = "YES",
-						["SYSTEM_HEADER_SEARCH_PATHS"] = '"' .. _OPTIONS["fbxsdk"] .. '/include"/**' }
+			local slashedfbx = _OPTIONS["fbxsdk"]:gsub(" ", "\\ ")
+			libdirs { '"' .. slashedfbx .. '"/lib/clang/%{cfg.buildcfg}"' }
+			xcodebuildsettings {
+				["GCC_ENABLE_CPP_EXCEPTIONS"] = "YES",
+				["SYSTEM_HEADER_SEARCH_PATHS"] = '"' .. slashedfbx .. '/include/"'
+			}
+			postbuildcommands {
+				'cp -af "' .. path.translate(_OPTIONS["fbxsdk"] .. '/lib/clang/release/libfbxsdk.dylib') .. '" %{prj.targetdir}/%{prj.targetname}.app/Contents/MacOS'
+			}
+
+		filter { "system:linux" }
+			links { "fbxsdk.so" }
+			prelinkcommands {
+				"cp -af \"" .. _OPTIONS["fbxsdk"] .. "/lib/gcc/x64/%{cfg.buildcfg}/libfbxsdk.so\" %{prj.targetdir}"
+			}
 	end
 
 	-- filters
@@ -84,13 +95,13 @@ project "vaultClient"
 		linkoptions( "/LARGEADDRESSAWARE" )
 		libdirs { "3rdParty/SDL2-2.0.8/lib/x64" }
 		links { "SDL2.lib", "SDL2main.lib", "opengl32.lib", "winmm.lib", "ws2_32", "winhttp", "imm32.lib" }
-		
+
 	filter { "system:linux" }
 		linkoptions { "-Wl,-rpath '-Wl,$$ORIGIN'" } -- Check beside the executable for the SDK
 		links { "SDL2", "GL" }
 		includedirs { "3rdParty" }
 		files { "3rdParty/GL/glext.h" }
-		
+
 	filter { "system:macosx" }
 		files { "macOS-Info.plist", "icons/macOSAppIcons.icns" }
 		frameworkdirs { "/Library/Frameworks/" }
