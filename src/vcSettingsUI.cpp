@@ -113,8 +113,18 @@ void vcSettingsUI_Show(vcState *pProgramState)
       if (ImGui::SliderFloat(vcString::Get("settingsViewportViewDistance"), &pProgramState->settings.camera.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "%.3fm", 2.f))
         pProgramState->settings.camera.nearPlane = pProgramState->settings.camera.farPlane * vcSL_CameraFarToNearPlaneRatio;
 
-      //const char *pLensOptions = " Custom FoV\0 7mm\0 11mm\0 15mm\0 24mm\0 30mm\0 50mm\0 70mm\0 100mm\0";
-      if (ImGui::Combo(vcString::Get("settingsViewportCameraLens"), &pProgramState->settings.camera.lensIndex, vcCamera_GetLensNames(), vcLS_TotalLenses))
+      const char *lensNameArray[] = {
+        vcString::Get("settingsViewportCameraLensCustom"),
+        vcString::Get("settingsViewportCameraLens15mm"),
+        vcString::Get("settingsViewportCameraLens24mm"),
+        vcString::Get("settingsViewportCameraLens30mm"),
+        vcString::Get("settingsViewportCameraLens50mm"),
+        vcString::Get("settingsViewportCameraLens70mm"),
+        vcString::Get("settingsViewportCameraLens100mm"),
+      };
+      UDCOMPILEASSERT(udLengthOf(lensNameArray) == vcLS_TotalLenses, "Lens name array length mismatch");
+
+      if (ImGui::Combo(vcString::Get("settingsViewportCameraLens"), &pProgramState->settings.camera.lensIndex, lensNameArray, (int)udLengthOf(lensNameArray)))
       {
         switch (pProgramState->settings.camera.lensIndex)
         {

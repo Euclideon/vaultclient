@@ -93,6 +93,13 @@
   "settingsViewportRestoreDefaults": "Restore Defaults",
   "settingsViewportViewDistance": "View Distance",
   "settingsViewportCameraLens": "Camera Lens (fov)",
+  "settingsViewportCameraLensCustom": "Custom",
+  "settingsViewportCameraLens15mm": "15mm",
+  "settingsViewportCameraLens24mm": "24mm",
+  "settingsViewportCameraLens30mm": "30mm",
+  "settingsViewportCameraLens50mm": "50mm",
+  "settingsViewportCameraLens70mm": "70mm",
+  "settingsViewportCameraLens100mm": "100mm",
   "settingsViewportFOV": "Field Of View",
 
   "settingsMaps": "Maps & Elevation",
