@@ -169,7 +169,7 @@ void vcModals_DrawAbout(vcState *pProgramState)
     ImGui::Separator();
 
     ImGui::BeginChild("Licenses");
-    for (int i = 0; i < (int)UDARRAYSIZE(ThirdPartyLicenses); i++)
+    for (int i = 0; i < (int)udLengthOf(ThirdPartyLicenses); i++)
     {
       // ImGui::Text has a limitation of 3072 bytes.
       ImGui::TextUnformatted(ThirdPartyLicenses[i].pName);
@@ -227,7 +227,7 @@ void vcModals_SetTileImage(void *pProgramStatePtr)
   vcState *pProgramState = (vcState*)pProgramStatePtr;
 
   char buf[256];
-  udSprintf(buf, udLengthOf(buf), "%s/0/0/0.%s", pProgramState->settings.maptiles.tileServerAddress, pProgramState->settings.maptiles.tileServerExtension);
+  udSprintf(buf, "%s/0/0/0.%s", pProgramState->settings.maptiles.tileServerAddress, pProgramState->settings.maptiles.tileServerExtension);
 
   int64_t imageSize;
   void *pLocalData = nullptr;
@@ -325,7 +325,7 @@ void vcModals_DrawTileServer(vcState *pProgramState)
 
     if (ImGui::Combo(vcString::Get("settingsMapsTileServerImageFormat"), &s_currentItem, pItems, (int)udLengthOf(pItems)))
     {
-      udStrcpy(pProgramState->settings.maptiles.tileServerExtension, udLengthOf(pProgramState->settings.maptiles.tileServerExtension), pItems[s_currentItem]);
+      udStrcpy(pProgramState->settings.maptiles.tileServerExtension, pItems[s_currentItem]);
       s_isDirty = true;
     }
 

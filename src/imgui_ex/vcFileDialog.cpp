@@ -90,13 +90,13 @@ bool vcFileDialog_ListFolder(const char *pFolderPath, char *pLoadPath, size_t lo
 
       if (ImGui::IsItemClicked())
       {
-        udSprintf(fullPath, udLengthOf(fullPath), "%s%s/", pFolderPath, pDir->pFilename);
+        udSprintf(fullPath, "%s%s/", pFolderPath, pDir->pFilename);
         udStrcpy(pLoadPath, loadPathLen, fullPath);
       }
 
       if (opened)
       {
-        udSprintf(fullPath, udLengthOf(fullPath), "%s%s/", pFolderPath, pDir->pFilename);
+        udSprintf(fullPath, "%s%s/", pFolderPath, pDir->pFilename);
         clicked |= vcFileDialog_ListFolder(fullPath, pLoadPath, loadPathLen, ppExtensions, extensionCount);
         ImGui::TreePop();
       }
@@ -114,7 +114,7 @@ bool vcFileDialog_ListFolder(const char *pFolderPath, char *pLoadPath, size_t lo
         ImGui::SameLine();
         if (ImGui::Button(pDir->pFilename))
         {
-          udSprintf(fullPath, udLengthOf(fullPath), "%s%s", pFolderPath, pDir->pFilename);
+          udSprintf(fullPath, "%s%s", pFolderPath, pDir->pFilename);
           udStrcpy(pLoadPath, loadPathLen, fullPath);
           clicked = true;
         }

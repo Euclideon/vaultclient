@@ -1992,7 +1992,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
         int UAIndex = -1;
         if (ImGui::Combo(udTempStr("%s###loginUserAgentPresets", vcString::Get("loginSelectUserAgent")), &UAIndex, UAOptions, (int)udLengthOf(UAOptions)))
         {
-          udStrcpy(pProgramState->settings.loginInfo.userAgent, vcMaxPathLength, UAStrings[UAIndex]);
+          udStrcpy(pProgramState->settings.loginInfo.userAgent, UAStrings[UAIndex]);
           vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
         }
 

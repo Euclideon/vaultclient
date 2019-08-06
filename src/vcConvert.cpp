@@ -33,7 +33,7 @@ const char *statusNames[] =
 void vcConvert_ResetConvert(vcState *pProgramState, vcConvertItem *pConvertItem, vdkConvertItemInfo *pItemInfo);
 void vcConvert_ProcessFile(vcState *pProgramState, vcConvertItem *pJob);
 
-UDCOMPILEASSERT(UDARRAYSIZE(statusNames) == vcCQS_Count, "Not Enough Status Names");
+UDCOMPILEASSERT(udLengthOf(statusNames) == vcCQS_Count, "Not Enough Status Names");
 
 uint32_t vcConvert_Thread(void *pVoidState)
 {
@@ -336,7 +336,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
     {
       bool selected = (pProgramState->pConvertContext->selectedItem == i);
 
-      udSprintf(tempBuffer, UDARRAYSIZE(tempBuffer), "X##convertjob_%zu", i);
+      udSprintf(tempBuffer, "X##convertjob_%zu", i);
       if (ImGui::Button(tempBuffer, ImVec2(20, 20)))
       {
         if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
@@ -351,7 +351,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       ImGui::SameLine();
 
-      udSprintf(tempBuffer, UDARRAYSIZE(tempBuffer), "%s (%s)##convertjob_%zu", pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName, vcString::Get(statusNames[pProgramState->pConvertContext->jobs[i]->status]), i);
+      udSprintf(tempBuffer, "%s (%s)##convertjob_%zu", pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName, vcString::Get(statusNames[pProgramState->pConvertContext->jobs[i]->status]), i);
 
       ImVec2 selectablePos = ImVec2(ImGui::GetContentRegionMax().x - ImGui::GetStyle().ItemSpacing.x * 2, 0);
       if (pProgramState->pConvertContext->jobs[i]->status == vcCQS_Running)
@@ -477,8 +477,8 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 
-      udSprintf(outputName, UDARRAYSIZE(outputName), "%s", pSelectedJob->pConvertInfo->pOutputName);
-      if (ImGui::InputText("", outputName, UDARRAYSIZE(outputName)))
+      udSprintf(outputName, "%s", pSelectedJob->pConvertInfo->pOutputName);
+      if (ImGui::InputText("", outputName, udLengthOf(outputName)))
         vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pSelectedJob->pConvertContext, outputName);
 
       if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
@@ -491,8 +491,8 @@ void vcConvert_ShowUI(vcState *pProgramState)
       ImGui::SameLine();
       ImGui::TextUnformatted(vcString::Get("convertOutputName"));
 
-      udSprintf(tempDirectory, UDARRAYSIZE(tempDirectory), "%s", pSelectedJob->pConvertInfo->pTempFilesPrefix);
-      if (ImGui::InputText("", tempDirectory, UDARRAYSIZE(tempDirectory)))
+      udSprintf(tempDirectory, "%s", pSelectedJob->pConvertInfo->pTempFilesPrefix);
+      if (ImGui::InputText("", tempDirectory, udLengthOf(tempDirectory)))
         vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pSelectedJob->pConvertContext, tempDirectory);
 
       if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)

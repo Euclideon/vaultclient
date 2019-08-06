@@ -179,7 +179,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
         const char* blendModes[] = { vcString::Get("settingsMapsHybrid"), vcString::Get("settingsMapsOverlay"), vcString::Get("settingsMapsUnderlay") };
         if (ImGui::BeginCombo(vcString::Get("settingsMapsBlending"), blendModes[pProgramState->settings.maptiles.blendMode]))
         {
-          for (size_t n = 0; n < UDARRAYSIZE(blendModes); ++n)
+          for (size_t n = 0; n < udLengthOf(blendModes); ++n)
           {
             bool isSelected = (pProgramState->settings.maptiles.blendMode == n);
 
@@ -271,8 +271,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
                 vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, vcString::Get("settingsVisClassUserDefined")), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
               else
                 vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, pProgramState->settings.visualization.customClassificationColorLabels[i]), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
-              udSprintf(buttonID, 12, "%s##%d", vcString::Get("settingsVisClassRename"), i);
-              udSprintf(inputID, 3, "##I%d", i);
+              udSprintf(buttonID, "%s##%d", vcString::Get("settingsVisClassRename"), i);
+              udSprintf(inputID, "##I%d", i);
               ImGui::SameLine();
               if (ImGui::Button(buttonID))
               {

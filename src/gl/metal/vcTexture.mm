@@ -126,7 +126,7 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
 
   if (savedSampler)
   {
-    udStrcpy(pText->samplerID, 32, key.UTF8String);
+    udStrcpy(pText->samplerID, key.UTF8String);
   }
   else
   {
@@ -144,7 +144,7 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
       pSamplerDesc.minFilter = MTLSamplerMinMagFilterLinear;
       pSamplerDesc.magFilter = MTLSamplerMinMagFilterLinear;
     }
-      
+
     if (wrapMode == vcTWM_Repeat)
     {
       pSamplerDesc.rAddressMode = MTLSamplerAddressModeRepeat;
@@ -163,16 +163,16 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
     else
       pSamplerDesc.maxAnisotropy = 1;
 
-    
+
 
     id<MTLSamplerState> sampler = [_device newSamplerStateWithDescriptor:pSamplerDesc];
 
-    udStrcpy(pText->samplerID, 32, key.UTF8String);
+    udStrcpy(pText->samplerID, key.UTF8String);
     [_viewCon.renderer.samplers setObject:sampler forKey:key];
   }
 
   NSString *txID = [NSString stringWithFormat:@"%u",g_textureIndex];
-  udStrcpy(pText->ID, 32, txID.UTF8String);
+  udStrcpy(pText->ID, txID.UTF8String);
   [_viewCon.renderer.textures setObject:texture forKey:txID];
   ++g_textureIndex;
 
@@ -311,7 +311,7 @@ bool vcTexture_LoadCubemap(struct vcTexture **ppTexture, const char *pFilename)
 
   if (savedSampler)
   {
-    udStrcpy(pTexture->samplerID, 32, key.UTF8String);
+    udStrcpy(pTexture->samplerID, key.UTF8String);
   }
   else
   {
@@ -327,12 +327,12 @@ bool vcTexture_LoadCubemap(struct vcTexture **ppTexture, const char *pFilename)
 
     id<MTLSamplerState> sampler = [_device newSamplerStateWithDescriptor:pSamplerDesc];
 
-    udStrcpy(pTexture->samplerID, 32, key.UTF8String);
+    udStrcpy(pTexture->samplerID, key.UTF8String);
     [_viewCon.renderer.samplers setObject:sampler forKey:key];
   }
 
   NSString *txID = [NSString stringWithFormat:@"%u",g_textureIndex];
-  udStrcpy(pTexture->ID, 32, txID.UTF8String);
+  udStrcpy(pTexture->ID, txID.UTF8String);
   [_viewCon.renderer.textures setObject:texture forKey:txID];
   ++g_textureIndex;
 

@@ -219,7 +219,7 @@ udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer
 {
   udResult result = udR_Success;
 
-  int layoutCount = (int)UDARRAYSIZE(vcRibbonVertexLayout);
+  int layoutCount = (int)udLengthOf(vcRibbonVertexLayout);
   float widthSquared = pFenceRenderer->config.ribbonWidth * pFenceRenderer->config.ribbonWidth;
   float uvFenceOffset = 0;
   int vertIndex = 0;

@@ -292,7 +292,7 @@ epilogue:
         {
           size_t index = 0;
           char localFolderPath[vcMaxPathLength];
-          udSprintf(localFolderPath, sizeof(localFolderPath), "%s", localFileName);
+          udSprintf(localFolderPath, "%s", localFileName);
           if (udStrrchr(localFileName, "\\/", &index) != nullptr)
             localFolderPath[index] = '\0';
 

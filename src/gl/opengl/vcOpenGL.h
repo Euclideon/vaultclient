@@ -83,10 +83,10 @@ struct vcMesh
 };
 
 static const GLuint vcTFMToGL[] = { GL_NEAREST, GL_LINEAR }; // Filter Mode
-UDCOMPILEASSERT(UDARRAYSIZE(vcTFMToGL) == vcTFM_Total, "TextureFilterModes not equal size");
+UDCOMPILEASSERT(udLengthOf(vcTFMToGL) == vcTFM_Total, "TextureFilterModes not equal size");
 
 static const GLuint vcTWMToGL[] = { GL_REPEAT, GL_CLAMP_TO_EDGE }; // Wrap Mode
-UDCOMPILEASSERT(UDARRAYSIZE(vcTWMToGL) == vcTFM_Total, "TextureFilterModes not equal size");
+UDCOMPILEASSERT(udLengthOf(vcTWMToGL) == vcTFM_Total, "TextureFilterModes not equal size");
 
 
 #endif // vcOpenGL_h__

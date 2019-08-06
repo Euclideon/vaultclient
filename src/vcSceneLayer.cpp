@@ -448,7 +448,7 @@ udResult vcSceneLayer_RecursiveLoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerN
   // potentially already calculated some node info (it's stored in this nodes parents 'children' array)
   if (pNode->id[0] == '\0')
   {
-    udStrcpy(pNode->id, sizeof(pNode->id), nodeJSON.Get("id").AsString());
+    udStrcpy(pNode->id, nodeJSON.Get("id").AsString());
     vcSceneLayer_CalculateNodeBounds(pNode, nodeJSON.Get("mbs").AsDouble4());
   }
 
@@ -473,7 +473,7 @@ udResult vcSceneLayer_RecursiveLoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerN
       vcSceneLayerNode *pChildNode = &pNode->pChildren[i];
       pChildNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
 
-      udStrcpy(pChildNode->id, sizeof(pChildNode->id), nodeJSON.Get("children[%zu].id", i).AsString());
+      udStrcpy(pChildNode->id, nodeJSON.Get("children[%zu].id", i).AsString());
       vcNormalizePath(&pChildNode->pURL, pNode->pURL, nodeJSON.Get("children[%zu].href", i).AsString(), pSceneLayer->pathSeparatorChar);
 
       vcSceneLayer_CalculateNodeBounds(pChildNode, nodeJSON.Get("children[%zu].mbs", i).AsDouble4());
@@ -538,7 +538,7 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, udWorkerPool *pWorkerT
 
   pSceneLayer->isActive = true;
   pSceneLayer->pThreadPool = pWorkerThreadPool;
-  udStrcpy(pSceneLayer->sceneLayerURL, sizeof(pSceneLayer->sceneLayerURL), pSceneLayerURL);
+  udStrcpy(pSceneLayer->sceneLayerURL, pSceneLayerURL);
 
   udSprintf(&pPathBuffer, "zip://%s:3dSceneLayer.json.gz", pSceneLayer->sceneLayerURL);
   UD_ERROR_CHECK(udFile_LoadGZIP(pPathBuffer, (void**)&pFileData));

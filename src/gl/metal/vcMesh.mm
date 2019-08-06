@@ -73,12 +73,12 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
       pMesh->indexType = MTLIndexTypeUInt32;
       pMesh->indexBytes = sizeof(uint32);
     }
-    udStrcpy(pMesh->iBufferIndex, 32, [NSString stringWithFormat:@"%d", g_currIndex].UTF8String);
+    udStrcpy(pMesh->iBufferIndex, [NSString stringWithFormat:@"%d", g_currIndex].UTF8String);
     [_viewCon.renderer.indexBuffers setObject:[_device newBufferWithBytes:pIndices length:currentIndices * pMesh->indexBytes options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pMesh->iBufferIndex]];
     ++g_currIndex;
   }
 
-  udStrcpy(pMesh->vBufferIndex, 32, [NSString stringWithFormat:@"%d", g_currVertex].UTF8String);
+  udStrcpy(pMesh->vBufferIndex, [NSString stringWithFormat:@"%d", g_currVertex].UTF8String);
   ++g_currVertex;
 
   @try

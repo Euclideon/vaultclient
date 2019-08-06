@@ -61,7 +61,7 @@ vdkError vcProxyHelper_AutoDetectProxy(vcState *pProgramState)
   if (WinHttpGetProxyForUrl(pHttpSession, udOSString(pProgramState->settings.loginInfo.serverURL), &autoProxyOptions, &proxyInfo))
   {
     if (proxyInfo.dwAccessType != WINHTTP_ACCESS_TYPE_NO_PROXY)
-      udStrcpy(pProgramState->settings.loginInfo.autoDetectProxyURL, udLengthOf(pProgramState->settings.loginInfo.autoDetectProxyURL), udOSString(proxyInfo.lpszProxy));
+      udStrcpy(pProgramState->settings.loginInfo.autoDetectProxyURL, udOSString(proxyInfo.lpszProxy));
   }
   else
   {
@@ -71,7 +71,7 @@ vdkError vcProxyHelper_AutoDetectProxy(vcState *pProgramState)
     {
       // Avoid crashing in udOSString
       if (proxyConfig.lpszProxy != nullptr)
-        udStrcpy(pProgramState->settings.loginInfo.autoDetectProxyURL, udLengthOf(pProgramState->settings.loginInfo.autoDetectProxyURL), udOSString(proxyConfig.lpszProxy));
+        udStrcpy(pProgramState->settings.loginInfo.autoDetectProxyURL, udOSString(proxyConfig.lpszProxy));
     }
 
     if (proxyConfig.lpszAutoConfigUrl != nullptr)
