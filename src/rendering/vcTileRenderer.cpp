@@ -635,7 +635,7 @@ void vcTileRenderer_RecursiveSetRendered(vcTileRenderer *pTileRenderer, vcQuadTr
 }
 
 // 'true' indicates the node was able to render itself (or it didn't want to render itself).
-// 'false' indicates that the nodes parent needs to be rendered.
+// 'false' indicates that the nodes ancestor needs to be rendered.
 bool vcTileRenderer_RecursiveBuildRenderQueue(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, bool canParentDraw)
 {
   if (!pNode->touched)
@@ -681,6 +681,7 @@ bool vcTileRenderer_RecursiveBuildRenderQueue(vcTileRenderer *pTileRenderer, vcQ
   return true;
 }
 
+// Depth first rendering, using stencil to ensure no overdraw
 void vcTileRenderer_DrawRenderQueue(vcTileRenderer *pTileRenderer, const udDouble4x4 &view)
 {
   for (int i = MaxVisibleTileLevel - 1; i >= 0; --i)
@@ -713,7 +714,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   stencil.onStencilAndDepthPass = vcGLSSOP_Increment;
 
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
-  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false, &stencil);
+  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true, &stencil);
 
   if (pTileRenderer->pSettings->maptiles.transparency >= 1.0f)
     vcGLState_SetBlendMode(vcGLSBM_None);
@@ -744,7 +745,17 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   // Draw transparent tiles
   if (pTileRenderer->pTransparentTiles->size() > 0)
   {
-    vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false, nullptr);
+    // We know there will always be a stenciled opaque tile behind every transparent tile, so draw
+    // with no depth testing, but stencil testing for map tiles
+    stencil.writeMask = 0xFF;
+    stencil.compareFunc = vcGLSSF_NotEqual;
+    stencil.compareValue = 0;
+    stencil.compareMask = 0xFF;
+    stencil.onStencilFail = vcGLSSOP_Keep;
+    stencil.onDepthFail = vcGLSSOP_Keep;
+    stencil.onStencilAndDepthPass = vcGLSSOP_Keep;
+
+    vcGLState_SetDepthStencilMode(vcGLSDM_Always, false, &stencil);
     vcGLState_SetBlendMode(vcGLSBM_Interpolative);
     for (auto tile : (*pTileRenderer->pTransparentTiles))
     {
