@@ -21,7 +21,7 @@ cp -r docs/images builds/userguide/images
 cp docs/UserGuide.md builds/userguide/UserGuide.md
 
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
-	export CERT_THUMBPRINT="bbee8d60b45735badf16f76e049b966981bd2751"
+	export CERT_THUMBPRINT="cfa975b624d31714cce95753ffcdee9465b6f073"
 
 	3rdParty/udcore/bin/premake-bin/premake5.exe vs2015 $3
 
