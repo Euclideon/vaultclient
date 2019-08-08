@@ -503,8 +503,6 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
                   int w = pFBX->textures[tex].width, h = pFBX->textures[tex].height;
                   FbxVector2 pointUV = pFBX->uvQueue[0] * pFBX->pTriWeights[point].x + pFBX->uvQueue[1] * pFBX->pTriWeights[point].y + pFBX->uvQueue[2] * pFBX->pTriWeights[point].z;
 
-                  pFBX->uvQueue.RemoveRange(0, 3);
-
                   int u = (int)udMod(udRound(pointUV[0] * w), w);
                   u = (pFBX->textures[tex].pTex->GetWrapModeU() == FbxTexture::eRepeat ? (u + w) % w : udClamp(u, 0, w));
                   int v = (int)udMod(udRound(pointUV[1] * h), h);
