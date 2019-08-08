@@ -63,7 +63,7 @@ bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
 
 bool vcFramebuffer_BeginReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
 {
-  if (pFramebuffer == nullptr || pAttachment == nullptr || int(x + width) > pAttachment->width || int(y + height) > pAttachment->height)
+  if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || int(x + width) > pAttachment->width || int(y + height) > pAttachment->height)
     return false;
 
   bool result = true;

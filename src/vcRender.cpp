@@ -815,6 +815,7 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
   return true;
 }
 
+// Asychronously read a 1x1 region of last frames depth buffer 
 udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
 {
   udResult result = udR_Success;
@@ -829,17 +830,23 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
 #endif
 
   UD_ERROR_IF(!vcFramebuffer_EndReadPixels(pRenderContext->pFramebuffer, pRenderContext->pDepthTexture, pickLocation.x, pickLocation.y, 1, 1, depthBytes), udR_InternalError); // read previous copy
-  UD_ERROR_IF(!vcFramebuffer_BeginReadPixels(pRenderContext->pFramebuffer, pRenderContext->pDepthTexture, pickLocation.x, pickLocation.y, 1, 1, depthBytes), udR_InternalError); // begin copy
+  UD_ERROR_IF(!vcFramebuffer_BeginReadPixels(pRenderContext->pFramebuffer, pRenderContext->pDepthTexture, pickLocation.x, pickLocation.y, 1, 1, depthBytes), udR_InternalError); // begin copy for next frame read
 
   // 24 bit unsigned int -> float
 #if GRAPHICS_API_OPENGL
   pRenderContext->previousFrameDepth = uint32_t((depthBytes[3] << 16) | (depthBytes[2] << 8) | (depthBytes[1] << 0)) / ((1 << 24) - 1.0f);
   //uint8_t stencil = depthBytes[0];
 #else
+  // TODO (EVC-765): validate this byte order for metal
   pRenderContext->previousFrameDepth = uint32_t((depthBytes[2] << 16) | (depthBytes[1] << 8) | (depthBytes[0] << 0)) / ((1 << 24) - 1.0f);
   //uint8_t stencil = depthBytes[3];
 #endif
-  // TODO (EVC-765): depth reconstruction for metal
+
+#if GRAPHICS_API_METAL // Hacky but idk what else to do, flushing all the command buffers and synchronising the textures before the read doesn't work
+  if (pRenderContext->previousFrameDepth == 0.0f)
+    pRenderContext->previousFrameDepth = 1.0f;
+#endif
+
 
 epilogue:
   return result;
@@ -1159,9 +1166,6 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   if (pRenderContext->currentMouseUV.x < 0 || pRenderContext->currentMouseUV.x > 1 || pRenderContext->currentMouseUV.y < 0 || pRenderContext->currentMouseUV.y > 1)
     return result;
 
-  udFloat2 pickUV = udFloat2::create((float)renderData.mouse.position.x / (float)pRenderContext->sceneResolution.x, (float)renderData.mouse.position.y / (float)pRenderContext->sceneResolution.y);
-  if (pickUV.x < 0 || pickUV.x > 1 || pickUV.y < 0 || pickUV.y > 1)
-    return result;
   pRenderContext->picking.location.x = (uint32_t)(pRenderContext->currentMouseUV.x * pRenderContext->effectResolution.x);
   pRenderContext->picking.location.y = (uint32_t)(pRenderContext->currentMouseUV.y * pRenderContext->effectResolution.y);
 
@@ -1195,10 +1199,11 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
         vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
         udFloat4 idAsColour = vcRender_EncodeIdAsColour((uint32_t)(modelId++));
 
-      if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
-        vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &idAsColour);
-      else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
-        vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution, &idAsColour);
+        if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
+          vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &idAsColour);
+        else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
+          vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution, &idAsColour);
+      }
     }
 
     uint8_t colourBytes[4] = {};
@@ -1225,7 +1230,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     //uint8_t stencil = depthBytes[3];
 #endif
 
-   // note `-1`, and BGRA format
+    // note `-1`, and BGRA format
     int udPickedId = -1;
 #ifdef ALLOW_EXPERIMENT_GPURENDER
     if (pProgramState->settings.experimental.useGPURenderer)

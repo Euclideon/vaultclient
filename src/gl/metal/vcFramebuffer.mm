@@ -54,16 +54,14 @@ bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
 
 bool vcFramebuffer_BeginReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
 {
-  udUnused(pFramebuffer);
-  udUnused(pAttachment);
-  udUnused(x);
-  udUnused(y);
-  udUnused(width);
-  udUnused(height);
-  udUnused(pPixels);
+  if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || (x + width) > pAttachment->width || (y + height) > pAttachment->height)
+    return false;
 
-  // TODO (EVC-765): Implement me
-  return false;
+  int pixelBytes = 4; // assumed
+  MTLRegion region = MTLRegionMake2D(x, y, width, height);
+  [_viewCon.renderer.textures[[NSString stringWithUTF8String:pAttachment->ID]] getBytes:pPixels bytesPerRow:pAttachment->width * pixelBytes fromRegion:region mipmapLevel:0];
+
+  return true;
 }
 
 bool vcFramebuffer_EndReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
@@ -76,6 +74,6 @@ bool vcFramebuffer_EndReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttach
   udUnused(height);
   udUnused(pPixels);
 
-  // TODO (EVC-765): Implement me
+  // Unnecessary for metal
   return false;
 }

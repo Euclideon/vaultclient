@@ -31,7 +31,6 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
   {
   case vcTextureFormat_Unknown:
     return udR_InvalidParameter_;
-    break;
   case vcTextureFormat_RGBA8:
     pTextureDesc.pixelFormat = MTLPixelFormatRGBA8Unorm;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
