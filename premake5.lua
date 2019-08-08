@@ -175,6 +175,10 @@ newoption {
 	default     = fbxDefault
 }
 
+if _ACTION == "xcode4" and os.target() == premake.MACOSX then
+	_OPTIONS["fbxsdk"] = _OPTIONS["fbxsdk"]:gsub(" ", "\\ ")
+end
+
 solution "vaultClient"
 	-- This hack just makes the VS project and also the makefile output their configurations in the idiomatic order
 	if _ACTION == "gmake" and os.target() == "linux" then

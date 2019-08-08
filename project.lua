@@ -47,24 +47,24 @@ project "vaultClient"
 
 	if (_OPTIONS["fbxsdk"] ~= nil and os.isdir(_OPTIONS["fbxsdk"])) then
 		defines { "FBXSDK_ON", "FBXSDK_SHARED" }
-		includedirs { "%{_OPTIONS[\"fbxsdk\"]}/include/" }
+		includedirs { '%{_OPTIONS["fbxsdk"]}/include/' }
 
 		filter { "system:windows" }
 			links { "libfbxsdk.lib" }
-			libdirs { "%{_OPTIONS[\"fbxsdk\"]}/lib/%{_ACTION}/x64/%{cfg.buildcfg}/" }
+			libdirs { '%{_OPTIONS["fbxsdk"]}/lib/%{_ACTION}/x64/%{cfg.buildcfg}/' }
 			prelinkcommands {
 				'copy /B "' .. path.translate(_OPTIONS["fbxsdk"] .. '\\lib\\%{_ACTION}\\x64\\%{cfg.buildcfg}\\libfbxsdk.dll') .. '" %{prj.targetdir}'
 			}
 
 		filter { "system:macosx" }
 			links { "fbxsdk" }
-			local slashedfbx = _OPTIONS["fbxsdk"]:gsub(" ", "\\ ")
-			libdirs { '"' .. slashedfbx .. '"/lib/clang/%{cfg.buildcfg}"' }
+			libdirs { '"' .. _OPTIONS["fbxsdk"] .. '"/lib/clang/%{cfg.buildcfg}"' }
 			xcodebuildsettings {
 				["GCC_ENABLE_CPP_EXCEPTIONS"] = "YES",
-				["SYSTEM_HEADER_SEARCH_PATHS"] = '"' .. slashedfbx .. '/include/"'
+				["SYSTEM_HEADER_SEARCH_PATHS"] = '"' .. _OPTIONS["fbxsdk"] .. '/include/"'
 			}
 			postbuildcommands {
+				-- Note that this copies the dylib directly into the .app which is not ideal
 				'cp -af "' .. path.translate(_OPTIONS["fbxsdk"] .. '/lib/clang/release/libfbxsdk.dylib') .. '" %{prj.targetdir}/%{prj.targetname}.app/Contents/MacOS'
 			}
 
