@@ -158,6 +158,27 @@ newoption {
 	}
 }
 
+if os.target() == premake.WINDOWS then
+	fbxDefault = "C:/Program Files/Autodesk/FBX/FBX SDK/2019.5"
+elseif os.target() == premake.MACOSX then
+	fbxDefault = "/Applications/Autodesk/FBX SDK/2019.5"
+--elseif os.target() == premake.LINUX --This isn't properly tested or supported yet
+--	fbxDefault = "/usr/FBX20195_FBXFILESDK_LINUX"
+else
+	fbxDefault = nil
+end
+
+newoption {
+	trigger     = "fbxsdk",
+	value       = "Path",
+	description = "Path to FBX SDK",
+	default     = fbxDefault
+}
+
+if _ACTION == "xcode4" and os.target() == premake.MACOSX then
+	_OPTIONS["fbxsdk"] = _OPTIONS["fbxsdk"]:gsub(" ", "\\ ")
+end
+
 solution "vaultClient"
 	-- This hack just makes the VS project and also the makefile output their configurations in the idiomatic order
 	if _ACTION == "gmake" and os.target() == "linux" then

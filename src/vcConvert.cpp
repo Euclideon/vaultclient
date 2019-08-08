@@ -9,6 +9,7 @@
 #include "vcSceneLayerConvert.h"
 #include "vcStringFormat.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
+#include "vcFBX.h"
 
 #include "udMath.h"
 #include "udChunkedArray.h"
@@ -810,6 +811,14 @@ void vcConvert_ProcessFile(vcState *pProgramState, vcConvertItem *pJob)
         UD_ERROR_SET(udR_Success);
       UD_ERROR_SET(udR_CorruptData);
     }
+#ifdef FBXSDK_ON
+    else if (udStrEquali(pExt, ".fbx"))
+    {
+      if (vcFBX_AddItem(pProgramState->pVDKContext, pJob->pConvertContext, pFilename) == vE_Success)
+        UD_ERROR_SET(udR_Success);
+      UD_ERROR_SET(udR_CorruptData);
+    }
+#endif
     else if (vdkConvert_AddItem(pProgramState->pVDKContext, pJob->pConvertContext, pFilename) == vE_Success)
     {
       UD_ERROR_SET(udR_Success);
