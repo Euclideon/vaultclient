@@ -21,6 +21,9 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 	# Create package zip
 	pushd package
 	/c/Program\ Files/7-Zip/7z.exe a ..\\vaultclient.zip assets\\ userguide\\ SDL2.dll vaultClient.exe vaultClient_OpenGL.exe vaultConvertCMD.exe vaultSDK.dll releasenotes.md defaultsettings.json
+	if [ -f "libfbxsdk.dll" ]; then
+		/c/Program\ Files/7-Zip/7z.exe a ..\\vaultclient.zip libfbxsdk.dll
+	fi
 	popd
 
 	# Deploy package zip

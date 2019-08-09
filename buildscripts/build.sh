@@ -59,6 +59,10 @@ if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 			cp -f builds/releasenotes.md $DEPLOYDIR/Windows/releasenotes.md
 			cp -f builds/defaultsettings.json $DEPLOYDIR/Windows/defaultsettings.json
 			cp -rf builds/userguide/ $DEPLOYDIR/Windows/userguide
+      
+			if [ -f "builds/libfbxsdk.dll" ]; then
+				cp -f builds/libfbxsdk.dll $DEPLOYDIR/Windows/libfbxsdk.dll
+			fi
 
 			# Technically this could be in any build; outputs the change list to the deploy dir
 			git log --no-merges --pretty=format:"%an (%ae) %ai%n%s%n%b" > $DEPLOYDIR/history.txt
