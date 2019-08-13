@@ -33,6 +33,8 @@ struct vcFBXTexture
   int width;
   int height;
   int channels;
+
+  int layerGroup;
 };
 
 struct vcFBX
@@ -73,22 +75,21 @@ struct vcFBX
 };
 
 // TODO: (EVC-719) Texture Blending
-/*
 inline void vcFBX_Alpha(uint8_t *pDest, const uint8_t *pSrc, bool premultiplied)
 {
   double multiply = premultiplied ? 1 : pSrc[3] / 0xFF;
-  pDest[0] = pDest[0] * ((0xFF - pSrc[0]) / 0xFF) + pSrc[0] * multiply;
-  pDest[1] = pDest[1] * ((0xFF - pSrc[1]) / 0xFF) + pSrc[1] * multiply;
-  pDest[2] = pDest[2] * ((0xFF - pSrc[2]) / 0xFF) + pSrc[2] * multiply;
-  pDest[3] = pDest[3] * ((0xFF - pSrc[3]) / 0xFF) + pSrc[3];
+  pDest[0] = (uint8_t)udMin((int)(pDest[0] * ((0xFF - pSrc[0]) / 0xFF) + pSrc[0] * multiply), 0xFF);
+  pDest[1] = (uint8_t)udMin((int)(pDest[1] * ((0xFF - pSrc[1]) / 0xFF) + pSrc[1] * multiply), 0xFF);
+  pDest[2] = (uint8_t)udMin((int)(pDest[2] * ((0xFF - pSrc[2]) / 0xFF) + pSrc[2] * multiply), 0xFF);
+  pDest[3] = (uint8_t)udMin((int)(pDest[3] * ((0xFF - pSrc[3]) / 0xFF) + pSrc[3]), 0xFF);
 }
 inline void vcFBX_Multiply(uint8_t *pDest, const uint8_t *pSrc)
 {
-  pDest[0] = udMin((pDest[0] / 0xFF) * (pSrc[0] / 0xFF), 0xFF);
-  pDest[1] = udMin((pDest[1] / 0xFF) * (pSrc[1] / 0xFF), 0xFF);
-  pDest[2] = udMin((pDest[2] / 0xFF) * (pSrc[2] / 0xFF), 0xFF);
-  pDest[3] = udMin((pDest[3] / 0xFF) * (pSrc[3] / 0xFF), 0xFF);
-}*/
+  pDest[0] = (uint8_t)udMin((pDest[0] / 0xFF) * (pSrc[0] / 0xFF), 0xFF);
+  pDest[1] = (uint8_t)udMin((pDest[1] / 0xFF) * (pSrc[1] / 0xFF), 0xFF);
+  pDest[2] = (uint8_t)udMin((pDest[2] / 0xFF) * (pSrc[2] / 0xFF), 0xFF);
+  pDest[3] = (uint8_t)udMin((pDest[3] / 0xFF) * (pSrc[3] / 0xFF), 0xFF);
+}
 inline void vcFBX_Additive(uint8_t *pDest, const uint8_t *pSrc, bool premultiplied)
 {
   double multiply = premultiplied ? 1 : pSrc[3] / 0xFF;
@@ -130,18 +131,68 @@ void vcFBX_GetUVSets(vcFBX *pFBX, FbxMesh *pMesh)
   }
 }
 
+udResult vcFBX_FileTexture(vcFBX *pFBX, FbxFileTexture *pTexture, int layerGroup)
+{
+  vcFBXTexture texture = {};
+  texture.uvSet = -1;
+  texture.layerGroup = layerGroup;
+
+  FbxTexture::EMappingType map = pTexture->GetMappingType();
+  FbxTexture::ETextureUse use = pTexture->GetTextureUse();
+  FbxString UVSet = pTexture->UVSet.Get();
+
+  if (pFBX->uvSets.GetCount() == 1)
+  {
+    texture.uvSet = 0;
+  }
+  else
+  {
+    for (int k = 0; k < pFBX->uvSets.GetCount(); ++k)
+    {
+      if (UVSet.Compare(pFBX->uvSets[k].pName) == 0)
+      {
+        texture.uvSet = k;
+        break;
+      }
+    }
+  }
+
+  if (!pTexture->UseMaterial || texture.uvSet == -1 || map != FbxTexture::eUV || use != FbxTexture::eStandard)
+    return udR_NothingToDo;
+
+  const char *pFilename = pTexture->GetFileName();
+
+  if (pFilename != nullptr && !udStrEqual(pFilename, ""))
+  {
+    void *pMem = nullptr;
+    int64_t fileLength;
+
+    udResult res = udFile_Load(pFilename, &pMem, &fileLength);
+    if (res == udR_Success)
+    {
+      texture.pPixels = (uint32_t*)stbi_load_from_memory((const stbi_uc*)pMem, (int)fileLength, &texture.width, &texture.height, &texture.channels, 4);
+      texture.pTex = pTexture;
+
+      udFree(pMem);
+    }
+    else
+    {
+      return res;
+    }
+  }
+
+  pFBX->textures.Add(texture);
+  return udR_Success;
+}
+
 udResult vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
 {
   // Process materials to prepare colour handling
-  const char *pFilename = nullptr;
-  int totalMats = pNode->GetSrcObjectCount<FbxSurfaceMaterial>();
+  int totalMats = pNode->GetMaterialCount();
 
   for (int i = 0; i < totalMats; ++i)
   {
-    vcFBXTexture texture = {};
-    texture.uvSet = -1;
-
-    FbxSurfaceMaterial *pMaterial = pFBX->pNode->GetSrcObject<FbxSurfaceMaterial>(i);
+    FbxSurfaceMaterial *pMaterial = pFBX->pNode->GetMaterial(i);
     if (!pMaterial)
       continue;
 
@@ -149,63 +200,47 @@ udResult vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
 
     if (diffuse.IsValid())
     {
-      const FbxDouble3 col = diffuse.Get<FbxDouble3>();
-
-      for (int j = 0; j < 3; ++j)
-        texture.diffuse += (uint8_t)(col[j] * 0xFF) << (24 - j * 8);
-
-      texture.diffuse += 0xFF;
-    }
-
-    int textureCount = diffuse.GetSrcObjectCount<FbxTexture>();
-    for (int j = 0; j < textureCount; ++j)
-    {
-      texture.uvSet = -1;
-      texture.pTex = nullptr;
-
-      FbxFileTexture *pTexture = FbxCast<FbxFileTexture>(diffuse.GetSrcObject<FbxFileTexture>(j));
-      FbxTexture::EMappingType map = pTexture->GetMappingType();
-      FbxTexture::ETextureUse use = pTexture->GetTextureUse();
-      FbxString UVSet = pTexture->UVSet.Get();
-
-      for (int k = 0; k < pFBX->uvSets.GetCount(); ++k)
+      if (diffuse.GetSrcObjectCount<FbxTexture>() > 0)
       {
-        if (UVSet.Compare(pFBX->uvSets[k].pName) == 0)
+        for (int j = 0; j < diffuse.GetSrcObjectCount<FbxFileTexture>(); ++j)
         {
-          texture.uvSet = k;
-          break;
+          FbxFileTexture *pTexture = diffuse.GetSrcObject<FbxFileTexture>(j);
+          vcFBX_FileTexture(pFBX, pTexture, -1);
+        }
+        for (int j = 0; j < diffuse.GetSrcObjectCount<FbxLayeredTexture>(); ++j)
+        {
+          FbxLayeredTexture *pLayer = diffuse.GetSrcObject<FbxLayeredTexture>(j);
+
+          for (int k = 0; k < pLayer->GetSrcObjectCount<FbxFileTexture>(); ++k)
+          {
+            vcFBX_FileTexture(pFBX, pLayer->GetSrcObject<FbxFileTexture>(k), j);
+          }
+        }/*
+        for (int j = 0; j < diffuse.GetSrcObjectCount<FbxProceduralTexture>(); ++j)
+        {
+          FbxProceduralTexture *lTex = diffuse.GetSrcObject<FbxProceduralTexture>(j);
+        }*/
+      }
+      else
+      {
+        vcFBXTexture texture = {};
+        texture.uvSet = -1;
+
+        FbxDataType type = diffuse.GetPropertyDataType();
+
+        if (FbxDouble3DT == type || FbxColor3DT == type)
+        {
+          const FbxDouble3 col = diffuse.Get<FbxDouble3>();
+
+          for (int j = 0; j < 3; ++j)
+            texture.diffuse += (uint8_t)(col[j] * 0xFF) << (24 - j * 8);
+
+          texture.diffuse += 0xFF;
+
+          pFBX->textures.Add(texture);
         }
       }
-
-      if (!pTexture->UseMaterial || texture.uvSet == -1 || map != FbxTexture::eUV || use != FbxTexture::eStandard)
-        continue;
-
-      pFilename = pTexture->GetFileName();
-      if (pFilename != nullptr && !udStrEqual(pFilename, ""))
-      {
-        void *pMem = nullptr;
-        int64_t fileLength;
-
-        udResult res = udFile_Load(pFilename, &pMem, &fileLength);
-        if (res == udR_Success)
-        {
-          texture.pPixels = (uint32_t*)stbi_load_from_memory((const stbi_uc*)pMem, (int)fileLength, &texture.width, &texture.height, &texture.channels, 4);
-          texture.pTex = pTexture;
-
-          // For now breaking with first texture loaded, because the test model I'm using has 3 of the same materials referencing a single texture
-          // with a single UVset, so actually applying them all uses the textures blend mode (additive) and outputs basically only white...
-          udFree(pMem);
-          break;
-        }
-        else
-        {
-          return res;
-        }
-      }
-
-      pFBX->textures.Add(texture);
     }
-    pFBX->textures.Add(texture);
   }
 
   return udR_Success;
@@ -238,6 +273,7 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   // Import File
   UD_ERROR_IF(!pImporter->Initialize(pConvertInput->pName, -1, pFBX->pManager->GetIOSettings()), vE_ReadFailure);
   pFBX->pScene = FbxScene::Create(pFBX->pManager, "");
+
   UD_ERROR_IF(!pImporter->Import(pFBX->pScene), vE_OpenFailure);
   pImporter->Destroy(); // Once file is imported, importer can be destroyed
 
@@ -350,6 +386,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
         if (pConvertInput->content & vdkAC_ARGB)
         {
           uint32_t colour = 0;
+          int layerGroup = -1;
 
           for (int tex = 0; tex < pFBX->textures.Size(); ++tex)
           {
@@ -357,6 +394,9 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
 
             if (pFBX->textures[tex].pTex != nullptr)
             {
+              if (layerGroup != -1 && pFBX->textures[tex].layerGroup != layerGroup)
+                continue;
+
               vcFBX_UVSet &UV = pFBX->uvSets[pFBX->textures[tex].uvSet];
 
               int w = pFBX->textures[tex].width;
@@ -372,6 +412,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
               int UVIndex = UV.indexed ? UV.pIndexes->GetAt(PolyVertIndex) : PolyVertIndex;
               FbxVector2 newVec = UV.pDirect->GetAt(UVIndex);
               newVec[1] = 1 - newVec[1];
+              layerGroup = pFBX->textures[tex].layerGroup;
 
               int u = (int)udMod(udRound(newVec[0] * w), w);
               u = (pFBX->textures[tex].pTex->GetWrapModeU() == FbxTexture::eRepeat ? (u + w) % w : udClamp(u, 0, w));
@@ -380,30 +421,34 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
 
               thisColour = pFBX->textures[tex].pPixels[u + v * w];
 
-              /*
-              bool premultiplied = pFBX->textures[tex].pTex->GetPremultiplyAlpha();
-
-              switch (pFBX->textures[tex].pTex->GetBlendMode())
+              if (layerGroup != -1)
               {
-              case FbxTexture::eTranslucent:
-                //vcFBX_Alpha((uint8_t*)&colour, (uint8_t*)&thisColour, premultiplied);
-                break;
-              case FbxTexture::eAdditive:
-                vcFBX_Additive((uint8_t*)&colour, (uint8_t*)&thisColour, premultiplied);
-                break;
-              case FbxTexture::eModulate:
-                //vcFBX_Multiply((uint8_t*)&colour, (uint8_t*)&thisColour);
-                break;
-              case FbxTexture::eModulate2:
-                break;
-              case FbxTexture::eOver:
-                colour = thisColour;
-                break;
-              }*/
+                bool premultiplied = pFBX->textures[tex].pTex->GetPremultiplyAlpha();
 
-              colour = thisColour;
+                switch (pFBX->textures[tex].pTex->GetBlendMode())
+                {
+                case FbxTexture::eTranslucent:
+                  vcFBX_Alpha((uint8_t*)&colour, (uint8_t*)&thisColour, premultiplied);
+                  break;
+                case FbxTexture::eAdditive:
+                  vcFBX_Additive((uint8_t*)&colour, (uint8_t*)&thisColour, premultiplied);
+                  break;
+                case FbxTexture::eModulate:
+                  vcFBX_Multiply((uint8_t*)&colour, (uint8_t*)&thisColour);
+                  break;
+                case FbxTexture::eModulate2:
+                  break;
+                case FbxTexture::eOver:
+                  colour = thisColour;
+                  break;
+                }
+              }
+              else
+              {
+                colour = thisColour;
+              }
             }
-            else
+            else if (colour == 0)
             {
               colour = pFBX->textures[tex].diffuse;
             }
@@ -448,114 +493,130 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
           ++pFBX->currProcessedPolygons;
         }
 
-        uint32_t numPoints = 0;
-        UD_ERROR_CHECK(vdkTriangleVoxelizer_GetPoints(pFBX->pTrivox, &pFBX->pTriPositions, (double**)&pFBX->pTriWeights, &numPoints, pBuffer->pointsAllocated - pBuffer->pointCount));
+        uint32_t numPoints = 1;
 
-        if (numPoints > 0)
+        while (numPoints != 0)
         {
-          if (pConvertInput->content & vdkAC_ARGB)
+          UD_ERROR_CHECK(vdkTriangleVoxelizer_GetPoints(pFBX->pTrivox, &pFBX->pTriPositions, (double**)&pFBX->pTriWeights, &numPoints, pBuffer->pointsAllocated - pBuffer->pointCount));
+
+          if (numPoints > 0)
           {
-            for (int tex = 0; tex < pFBX->textures.Size(); ++tex)
+            if (pConvertInput->content & vdkAC_ARGB)
             {
-              if (pFBX->textures[tex].uvSet >= 0)
+              int layerGroup = -1;
+
+              for (int tex = 0; tex < pFBX->textures.Size(); ++tex)
               {
-                vcFBX_UVSet &UV = pFBX->uvSets[pFBX->textures[tex].uvSet];
-
-                if (pFBX->textures[tex].pTex != nullptr)
+                if (pFBX->textures[tex].uvSet >= 0)
                 {
-                  for (int i = 0; i < 3; ++i)
+                  if (layerGroup != -1 && pFBX->textures[tex].layerGroup != layerGroup)
+                    continue;
+
+                  vcFBX_UVSet &UV = pFBX->uvSets[pFBX->textures[tex].uvSet];
+
+                  if (pFBX->textures[tex].pTex != nullptr)
                   {
-                    int PolyVertIndex = -1;
+                    layerGroup = pFBX->textures[tex].layerGroup;
+                    for (int i = 0; i < 3; ++i)
+                    {
+                      int PolyVertIndex = -1;
 
-                    if (UV.mapping == FbxGeometryElement::eByControlPoint)
-                      PolyVertIndex = pFBX->pMesh->GetPolygonVertex(pFBX->currMeshPolygon, i);
-                    else if (UV.mapping == FbxGeometryElement::eByPolygonVertex)
-                      PolyVertIndex = pFBX->currMeshPolygon * 3 + i;
+                      if (UV.mapping == FbxGeometryElement::eByControlPoint)
+                        PolyVertIndex = pFBX->pMesh->GetPolygonVertex(pFBX->currMeshPolygon, i);
+                      else if (UV.mapping == FbxGeometryElement::eByPolygonVertex)
+                        PolyVertIndex = pFBX->currMeshPolygon * 3 + i;
 
-                    int UVIndex = UV.indexed ? UV.pIndexes->GetAt(PolyVertIndex) : PolyVertIndex;
-                    FbxVector2 newVec = UV.pDirect->GetAt(UVIndex);
-                    newVec[1] = 1 - newVec[1];
-                    pFBX->uvQueue.Add(newVec);
+                      int UVIndex = UV.indexed ? UV.pIndexes->GetAt(PolyVertIndex) : PolyVertIndex;
+                      FbxVector2 newVec = UV.pDirect->GetAt(UVIndex);
+                      newVec[1] = 1 - newVec[1];
+                      pFBX->uvQueue.Add(newVec);
+                    }
                   }
                 }
               }
             }
+
+            // Write points from current triangle
+            for (uint32_t point = 0; point < numPoints; point += pFBX->everyNth)
+            {
+              // Position
+              for (int coord = 0; coord < 3; ++coord)
+                pBuffer->pPositions[pBuffer->pointCount + point / pFBX->everyNth][coord] = (int64_t)(pFBX->pTriPositions[3 * point + coord] / pConvertInput->sourceResolution);
+
+              // Colour
+              if (pConvertInput->content & vdkAC_ARGB)
+              {
+                uint32_t colour = 0;
+                int layerGroup = -1;
+
+                for (int tex = 0; tex < pFBX->textures.Size(); ++tex)
+                {
+                  uint32_t thisColour;
+
+                  if (layerGroup != -1 && pFBX->textures[tex].layerGroup != layerGroup)
+                    continue;
+
+                  layerGroup = pFBX->textures[tex].layerGroup;
+
+                  if (pFBX->textures[tex].uvSet >= 0 && pFBX->textures[tex].pTex != nullptr)
+                  {
+                    int w = pFBX->textures[tex].width, h = pFBX->textures[tex].height;
+                    FbxVector2 pointUV = pFBX->uvQueue[0] * pFBX->pTriWeights[point].x + pFBX->uvQueue[1] * pFBX->pTriWeights[point].y + pFBX->uvQueue[2] * pFBX->pTriWeights[point].z;
+
+                    int u = (int)udMod(udRound(pointUV[0] * w), w);
+                    u = (pFBX->textures[tex].pTex->GetWrapModeU() == FbxTexture::eRepeat ? (u + w) % w : udClamp(u, 0, w));
+                    int v = (int)udMod(udRound(pointUV[1] * h), h);
+                    v = (pFBX->textures[tex].pTex->GetWrapModeV() == FbxTexture::eRepeat ? (v + h) % h : udClamp(v, 0, h));
+
+                    uint32_t pixel = (uint32_t)u + v * w;
+                    thisColour = pFBX->textures[tex].pPixels[pixel];
+
+                    if (layerGroup != -1)
+                    {
+                      bool premultiplied = pFBX->textures[tex].pTex->GetPremultiplyAlpha();
+
+                      switch (pFBX->textures[tex].pTex->GetBlendMode())
+                      {
+                      case FbxTexture::eTranslucent:
+                        vcFBX_Alpha((uint8_t*)&colour, (uint8_t*)&thisColour, premultiplied);
+                        break;
+                      case FbxTexture::eAdditive:
+                        vcFBX_Additive((uint8_t*)&colour, (uint8_t*)&thisColour, premultiplied);
+                        break;
+                      case FbxTexture::eModulate:
+                        vcFBX_Multiply((uint8_t*)&colour, (uint8_t*)&thisColour);
+                        break;
+                      case FbxTexture::eModulate2:
+                        break;
+                      case FbxTexture::eOver:
+                        colour = thisColour;
+                        break;
+                      }
+                    }
+                    else if (colour == 0)
+                    {
+                      colour = thisColour;
+                    }
+                  }
+                }
+
+                colour = 0xff000000 | ((colour & 0xff) << 16) | (colour & 0xff00) | ((colour & 0xff0000) >> 16);
+                memcpy(pAttr, &colour, sizeof(uint32_t));
+                pAttr = &pAttr[sizeof(uint32_t)];
+              } // End if colour
+            } // End for numpoints
+            pBuffer->pointCount += numPoints / pFBX->everyNth;
           }
 
-          // Write points from current triangle
-          for (uint32_t point = 0; point < numPoints; point += pFBX->everyNth)
+          if (pBuffer->pointCount == pBuffer->pointsAllocated)
           {
-            // Position
-            for (int coord = 0; coord < 3; ++coord)
-              pBuffer->pPositions[pBuffer->pointCount + point / pFBX->everyNth][coord] = (int64_t)(pFBX->pTriPositions[3 * point + coord] / pConvertInput->sourceResolution);
+            pFBX->pointsReturned += pBuffer->pointCount;
 
-            // Colour
-            if (pConvertInput->content & vdkAC_ARGB)
-            {
-              uint32_t colour = 0;
+            // Improve estimate
+            pConvertInput->pointCount = pFBX->pointsReturned / pFBX->currProcessedPolygons * pFBX->totalPolygons;
 
-              for (int tex = 0; tex < pFBX->textures.Size(); ++tex)
-              {
-                uint32_t thisColour;
-
-                if (pFBX->textures[tex].uvSet >= 0)
-                {
-                  int w = pFBX->textures[tex].width, h = pFBX->textures[tex].height;
-                  FbxVector2 pointUV = pFBX->uvQueue[0] * pFBX->pTriWeights[point].x + pFBX->uvQueue[1] * pFBX->pTriWeights[point].y + pFBX->uvQueue[2] * pFBX->pTriWeights[point].z;
-
-                  int u = (int)udMod(udRound(pointUV[0] * w), w);
-                  u = (pFBX->textures[tex].pTex->GetWrapModeU() == FbxTexture::eRepeat ? (u + w) % w : udClamp(u, 0, w));
-                  int v = (int)udMod(udRound(pointUV[1] * h), h);
-                  v = (pFBX->textures[tex].pTex->GetWrapModeV() == FbxTexture::eRepeat ? (v + h) % h : udClamp(v, 0, h));
-
-                  uint32_t pixel = (uint32_t)u + v * w;
-                  thisColour = pFBX->textures[tex].pPixels[pixel];
-
-                  /*bool premultiplied = pFBX->textures[tex].pTex->GetPremultiplyAlpha();
-
-                  switch (pFBX->textures[tex].pTex->GetBlendMode())
-                  {
-                  case FbxTexture::eTranslucent:
-                    //vcFBX_Alpha((uint8_t*)&colour, (uint8_t*)&thisColour, premultiplied);
-                    break;
-                  case FbxTexture::eAdditive:
-                    vcFBX_Additive((uint8_t*)&colour, (uint8_t*)&thisColour, premultiplied);
-                    break;
-                  case FbxTexture::eModulate:
-                    //vcFBX_Multiply((uint8_t*)&colour, (uint8_t*)&thisColour);
-                    break;
-                  case FbxTexture::eModulate2:
-                    break;
-                  case FbxTexture::eOver:
-                    colour = thisColour;
-                    break;
-                  }
-                  */
-
-                  colour = thisColour;
-                }
-                else
-                {
-                  colour = pFBX->textures[tex].diffuse;
-                }
-              }
-
-              colour = 0xff000000 | ((colour & 0xff) << 16) | (colour & 0xff00) | ((colour & 0xff0000) >> 16);
-              memcpy(pAttr, &colour, sizeof(uint32_t));
-              pAttr = &pAttr[sizeof(uint32_t)];
-            } // End if colour
-          } // End for numpoints
-          pBuffer->pointCount += numPoints / pFBX->everyNth;
-        }
-
-        if (pBuffer->pointCount == pBuffer->pointsAllocated)
-        {
-          pFBX->pointsReturned += pBuffer->pointCount;
-
-          // Improve estimate
-          pConvertInput->pointCount = pFBX->pointsReturned / pFBX->currProcessedPolygons * pFBX->totalPolygons;
-
-          return vE_Success;
+            return vE_Success;
+          }
         }
 
         ++pFBX->currMeshPolygon;
