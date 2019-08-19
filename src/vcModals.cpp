@@ -703,24 +703,23 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
 
     for (size_t i = 0; i < pProgramState->errorFiles.length; ++i)
     {
-      if (ImGui::Button(udTempStr("X##errorFileRemove%zu", i)))
+      bool removeItem = ImGui::Button(udTempStr("X##errorFileRemove%zu", i));
+      ImGui::SameLine();
+      // Get the offset so the next column is offset by the same value to keep alignment
+      float offset = ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset;
+      ImGui::TextUnformatted(pProgramState->errorFiles[i].pFilename);
+      ImGui::NextColumn();
+
+      ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset = offset;
+      ImGui::TextUnformatted(udResultAsString(pProgramState->errorFiles[i].resultCode));
+      ImGui::NextColumn();
+
+      if (removeItem)
       {
         udFree(pProgramState->errorFiles[i].pFilename);
         pProgramState->errorFiles.RemoveAt(i);
         --i;
-
-        ImGui::NextColumn();
-        ImGui::NextColumn();
-
-        continue;
       }
-
-      ImGui::SameLine();
-      ImGui::TextUnformatted(pProgramState->errorFiles[i].pFilename);
-      ImGui::NextColumn();
-
-      ImGui::TextUnformatted(udResultAsString(pProgramState->errorFiles[i].resultCode));
-      ImGui::NextColumn();
     }
 
     ImGui::EndColumns();
