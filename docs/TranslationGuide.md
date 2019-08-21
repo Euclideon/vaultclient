@@ -2,7 +2,7 @@
 
 ## Changelist
 
-- Version 0.3.1 (or Version 0.4.0)
+- Version 0.3.1
   - Added:
     - Settings
       - `settingsAppearanceShowSkybox`, `settingsAppearanceSkyboxColour`
@@ -13,6 +13,8 @@
     - Scene Explorer
       - `scenePOIThumbnailSize`, `scenePOIThumbnailSizeNative`, `scenePOIThumbnailSizeSmall`, `scenePOIThumbnailSizeLarge`, `scenePOIReloadTime`
   - Changed:
+    - Settings
+      - `settingsVisDepth`, `settingsVisDepthColour`, `settingsVisDepthStart`, `settingsVisDepthEnd`
     - Scene Explorer
       - `scenePOILabelImageTypeStandard` (capitalised value), `scenePOILabelImageTypePanorama` (capitalised value), `scenePOILabelImageTypePhotosphere` (capitalised value)
 
@@ -262,10 +264,10 @@ Modules are currently:
 - `settingsVisHeightEndColour`: Label next to colour selector for setting the colour of objects towards the maximum height
 - `settingsVisHeightStart`: Label next to slider for setting the minimum height for colouration
 - `settingsVisHeightEnd`: Label next to slider for setting the maximum height for colouration
-- `settingsVisDepth`: Label next to checkbox for enabling colouration of scene objects based on their distance from the camera (depth)
+- `settingsVisDepth`: Label next to checkbox for enabling colouration of scene objects based on their distance from the camera (camera depth)
 - `settingsVisDepthColour`: Label next to colour selector for setting the colour of objects towards the maximum depth
-- `settingsVisDepthStart`: Label next to slider for setting the minimum depth for colouration
-- `settingsVisDepthEnd`: Label next to slider for setting the maximum depth for colouration
+- `settingsVisDepthStart`: Label next to slider for setting the minimum distance for colouration
+- `settingsVisDepthEnd`: Label next to slider for setting the maximum distance for colouration
 - `settingsVisContours`: Label next to checkbox for enabling an overlay of contours indicating the height of scene objects
 - `settingsVisContoursColour`: Label next to colour selector for setting the colour of contours
 - `settingsVisContoursDistances`: Label next to slider for setting the vertical distance between each contour

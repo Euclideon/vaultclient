@@ -6,6 +6,24 @@ Known Major Issues In Current Release
   - Map mode only transitions nicely for items with z at 0 (EVC-460)
   - Images in the scene are not using thumbnails (EVC-513)
 
+Version 0.3.1
+  - Improvements
+    - Added support for FBX (macOS and Windows)
+    - Previously used map tile servers names aren't leaked in the cache system
+    - Added support for selecting directories correctly in the temporary and output directory modals
+    - Reordered the convert jobs panel so the information that is more relevant is first
+    - Images in the scene can be set to reload over time
+  - Other Fixes and Changes
+    - Renaming of scene items works again
+    - Improved Chinese localization (submitted from Hongzhu Liu)
+    - Removed slider getting stuck issues in the settings panel
+    - Fixed issues with convert text boxes not allowing input
+    - SLPKs in long folder paths now function correctly
+    - Map tiles are correctly blended into the scene again
+    - Images in the scene correctly save and load their settings from the project and exif data again
+    - Updated code signing certificate on Windows (slightly different signature now)
+    - Improved conversion support for OBJ, PTX and PTS from broken files submitted by the community (thanks everyone!)
+
 Version 0.3.0
   - Improvements
     - Projects can be exported as GeoJSON
