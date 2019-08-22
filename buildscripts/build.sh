@@ -3,8 +3,12 @@ set -xeu
 git clean -ffxd
 git submodule foreach --recursive 'git clean -ffdx'
 
-git submodule sync --recursive
-git submodule update --init --recursive
+git submodule sync
+if [ $? -ne 0 ]; then exit 3; fi
+git submodule update --init
+if [ $? -ne 0 ]; then exit 3; fi
+git submodule foreach --recursive "git submodule sync && git submodule update --init"
+if [ $? -ne 0 ]; then exit 3; fi
 
 if [ $OSTYPE == "msys" ]; then # Windows, MinGW
 	export DEV="//bne-fs-fs-003.euclideon.local/Dev"

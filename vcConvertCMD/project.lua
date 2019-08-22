@@ -3,7 +3,7 @@ project "vaultConvertCMD"
 	kind "ConsoleApp"
 
 	language "C++"
-	flags { "StaticRuntime" }
+	staticruntime "On"
 
 	--Files to include
 	files { "src/**.cpp", "src/**.h" }

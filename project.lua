@@ -3,7 +3,8 @@ project "vaultClient"
 	kind "WindowedApp"
 
 	language "C++"
-	flags { "StaticRuntime", "FatalWarnings", "MultiProcessorCompile" }
+	staticruntime "On"
+	flags { "FatalWarnings", "MultiProcessorCompile" }
 
 	--Files to include
 	files { "src/**.cpp", "src/**.h", "src/**.c", "src/**.mm", "src/**.metal" }
@@ -86,7 +87,8 @@ project "vaultClient"
 
 	filter { "configurations:Release" }
 		optimize "Full"
-		flags { "NoFramePointer", "NoBufferSecurityCheck" }
+		omitframepointer "On"
+		flags { "NoBufferSecurityCheck" }
 
 	filter { "system:windows" }
 		defines { "GLEW_STATIC" }
