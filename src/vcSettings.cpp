@@ -125,6 +125,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.showCameraInfo = data.Get("showCameraInfo").AsBool(true);
     pSettings->presentation.showProjectionInfo = data.Get("showGISInfo").AsBool(true);
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvGISOptions").AsBool(false);
+    pSettings->presentation.showSkybox = data.Get("showSkybox").AsBool(true);
+    pSettings->presentation.skyboxColour = data.Get("skyboxColour").AsFloat4(udFloat4::create(0.39f, 0.58f, 0.93f, 1.f));
     pSettings->presentation.mouseAnchor = (vcAnchorStyle)data.Get("mouseAnchor").AsInt(vcAS_Orbit);
     pSettings->presentation.showCompass = data.Get("showCompass").AsBool(true);
     pSettings->presentation.POIFadeDistance = data.Get("POIfadeDistance").AsFloat(10000.f);
@@ -486,6 +488,8 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("showDiagnosticInfo = %s", pSettings->presentation.showDiagnosticInfo ? "true" : "false");
   data.Set("showCameraInfo = %s", pSettings->presentation.showCameraInfo ? "true" : "false");
   data.Set("showGISInfo = %s", pSettings->presentation.showProjectionInfo ? "true" : "false");
+  data.Set("showSkybox = %s", pSettings->presentation.showSkybox ? "true" : "false");
+  data.Set("skyboxColour = [%f, %f, %f, %f]", pSettings->presentation.skyboxColour.x, pSettings->presentation.skyboxColour.y, pSettings->presentation.skyboxColour.z, pSettings->presentation.skyboxColour.w);
   data.Set("showAdvancedGISOptions = %s", pSettings->presentation.showAdvancedGIS ? "true" : "false");
   data.Set("mouseAnchor = %d", pSettings->presentation.mouseAnchor);
   data.Set("showCompass = %s", pSettings->presentation.showCompass ? "true" : "false");

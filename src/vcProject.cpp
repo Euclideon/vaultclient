@@ -110,7 +110,7 @@ void vcProject_RecursiveDestroyUserData(vcState *pProgramData, vdkProjectNode *p
 
 void vcProject_Deinit(vcState *pProgramData, vcProject *pProject)
 {
-  if (pProject == nullptr)
+  if (pProject == nullptr || pProject->pProject == nullptr)
     return;
 
   vcProject_RecursiveDestroyUserData(pProgramData, pProject->pRoot);
