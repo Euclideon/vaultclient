@@ -66,7 +66,7 @@ project "vaultClient"
 			}
 			postbuildcommands {
 				-- Note that this copies the dylib directly into the .app which is not ideal
-				'cp -af "' .. path.translate(_OPTIONS["fbxsdk"] .. '/lib/clang/release/libfbxsdk.dylib') .. '" %{prj.targetdir}/%{prj.targetname}.app/Contents/MacOS'
+				'cp -af "' .. _OPTIONS["fbxsdk"]:gsub("\\ ", " ") .. '/lib/clang/release/libfbxsdk.dylib" %{prj.targetdir}/%{prj.targetname}.app/Contents/MacOS'
 			}
 
 		filter { "system:linux" }
@@ -178,7 +178,7 @@ project "vaultClient"
 	filter { "options:not gfxapi=metal", "files:src/gl/metal/*", "system:not macosx" }
 		flags { "ExcludeFromBuild" }
 
-	filter { "system:not ios and not macosx", "files:src/**.mm" }
+	filter { "system:not ios", "system:not macosx", "files:src/**.mm" }
 		flags { "ExcludeFromBuild" }
 
 
