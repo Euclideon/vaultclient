@@ -78,6 +78,7 @@ struct vcFBX
 
   FbxLayerElementArrayTemplate<int> *pIndex;
   FbxLayerElement::EMappingMode map;
+  FbxLayerElement::EReferenceMode ref;
 };
 
 inline void vcFBX_Alpha(uint8_t *pDest, const uint8_t *pSrc, bool premultiplied)
@@ -173,6 +174,8 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
 
   FbxMesh *pMesh = pNode->GetMesh();
   pFBX->map = pMesh->GetElementMaterial()->GetMappingMode();
+  pFBX->ref = pMesh->GetElementMaterial()->GetReferenceMode();
+
   pFBX->pIndex = &pMesh->GetElementMaterial()->GetIndexArray();
 
   for (int i = 0; i < totalMats; ++i)
@@ -263,8 +266,8 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   pImporter->Destroy(); // Once file is imported, importer can be destroyed
 
   // If model isn't already scaled to metres, resize model
-  //if (pFBX->pScene->GetGlobalSettings().GetSystemUnit() != FbxSystemUnit::m)
-  //  FbxSystemUnit::m.ConvertScene(pFBX->pScene);
+  if (pFBX->pScene->GetGlobalSettings().GetSystemUnit() != FbxSystemUnit::m)
+    FbxSystemUnit::m.ConvertScene(pFBX->pScene);
 
   pConvertInput->pointCountIsEstimate = true;
   pConvertInput->sourceResolution = pointResolution;
@@ -353,6 +356,8 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
         ++pFBX->currMesh;
         continue;
       }
+
+      pFBX->pMesh->SplitPoints(FbxLayerElement::eTextureDiffuse);
 
       // https://www.gamedev.net/forums/topic/698619-fbx-sdk-skinned-animation/
       // The global node transform is equal to your local skeleton root if there is no parent bone
@@ -545,7 +550,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
 
             if (pConvertInput->content & vdkAC_ARGB)
             {
-              if (pFBX->map != FbxLayerElement::eAllSame)
+              if (pFBX->map == FbxLayerElement::eByPolygon)
                 pMat = &pFBX->materials[pFBX->pIndex->GetAt(pFBX->currMeshPolygon)];
               else
                 pMat = &pFBX->materials[0];
@@ -561,10 +566,32 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
                   for (int i = 0; i < 3; ++i)
                   {
                     FbxVector2 newVec = { 0, 0 };
-                    bool unmapped;
-                    pFBX->pMesh->GetPolygonVertexUV(pFBX->currMeshPolygon, i, pTex->pName, newVec, unmapped);
-                    if (newVec[1] != 0)
-                      newVec[1] = 1 - newVec[1];
+                    int index = 0;
+                    switch (pFBX->map)
+                    {
+                    case FbxLayerElement::eByPolygon:
+                      index = pFBX->currMeshPolygon;
+                      break;
+                    case FbxLayerElement::eByPolygonVertex:
+                      index = pFBX->currMeshPolygon * 3 + i;
+                      break;
+                    case FbxLayerElement::eAllSame:
+                      index = 0;
+                      break;
+                    }
+
+                    index = pTex->pIArray->GetAt(index);
+
+                    newVec = pTex->pDArray->GetAt(index);
+                    newVec[1] = 1 - newVec[1];
+
+                    if (pTex->swap)
+                    {
+                      double swap = newVec[0];
+                      newVec[0] = newVec[1];
+                      newVec[1] = swap;
+                    }
+
                     pFBX->uvQueue.Add(newVec);
                   }
                 }
