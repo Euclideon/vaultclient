@@ -9,10 +9,10 @@
 #include "imgui.h"
 
 // These values were picked by visual inspection
-static const float vcISToPixelSize[] = { 100.0, 150.0 };
+static const float vcISToPixelSize[] = { -1.f, 100.f, 250.f };
 UDCOMPILEASSERT(udLengthOf(vcISToPixelSize) == vcIS_Count, "ImagePixelSize not equal size");
 
-static const float vcISToWorldSize[] = { 3.0, 10.0 };
+static const float vcISToWorldSize[] = { -1.f, 3.f, 10.f };
 UDCOMPILEASSERT(udLengthOf(vcISToWorldSize) == vcIS_Count, "ImageWorldSize not equal size");
 
 static vcMesh *vcITToMesh[] = { nullptr, nullptr, nullptr };
@@ -91,7 +91,11 @@ bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &vi
 
   pShader->everyObject.u_modelViewProjectionMatrix = udFloat4x4::create(mvp);
   pShader->everyObject.u_colour = pImageInfo->colour;
-  pShader->everyObject.u_screenSize = udFloat4::create(vcISToPixelSize[pImageInfo->size] / screenSize.x, vcISToPixelSize[pImageInfo->size] / screenSize.y * aspect, float(zScale), 0.0f);
+
+  if (pImageInfo->size == vcIS_Native)
+    pShader->everyObject.u_screenSize = udFloat4::create((float)imageSize.x / screenSize.x, (float)imageSize.y / screenSize.y, float(zScale), 0.0f);
+  else
+    pShader->everyObject.u_screenSize = udFloat4::create(vcISToPixelSize[pImageInfo->size] / screenSize.x, vcISToPixelSize[pImageInfo->size] / screenSize.y * aspect, float(zScale), 0.0f);
 
   vcShader_BindConstantBuffer(pShader->pShader, pShader->pEveryObjectConstantBuffer, &pShader->everyObject, sizeof(pShader->everyObject));
   vcShader_BindTexture(pShader->pShader, pImageInfo->pTexture, 0, pShader->pDiffuseSampler);

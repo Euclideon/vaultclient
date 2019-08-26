@@ -4,10 +4,12 @@
 #include "udMath.h"
 #include "gl/vcTexture.h"
 
-enum vcImageSize
+enum vcImageThumbnailSize
 {
-  vcIS_Small,
-  vcIS_Large,
+  vcIS_Native, // Renders at the native size of the image
+
+  vcIS_Small, // Renders a small thumbnail
+  vcIS_Large, // Renders a large thumbnail
 
   vcIS_Count,
 };
@@ -28,7 +30,7 @@ struct vcImageRenderInfo
   udDouble3 scale;
 
   vcTexture *pTexture;
-  vcImageSize size;
+  vcImageThumbnailSize size;
   vcImageType type;
   udFloat4 colour;
 };
