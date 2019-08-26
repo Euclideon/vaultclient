@@ -450,16 +450,17 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
                   thisColour = pTex->pPixels[u + v * w];
                 }
               }
-              else
-              {
-                int index = pFBX->currMeshPointCount;
-                if (pTex->pIArray)
-                  index = pTex->pIArray->GetAt(index);
-
-                FbxDouble2 uv = pTex->pDArray->GetAt(index);
-                int pixel = (int)(uv[0] + uv[1] * pTex->width);
-                pTex->pPixels[pixel];
-              }
+              //else // TODO: Do something with this pTex->pPixels[pixel] at the end of this block (EVC-802)
+              //{
+              //  
+              //  int index = pFBX->currMeshPointCount;
+              //  if (pTex->pIArray)
+              //    index = pTex->pIArray->GetAt(index);
+              //  
+              //  FbxDouble2 uv = pTex->pDArray->GetAt(index);
+              //  int pixel = (int)(uv[0] + uv[1] * pTex->width);
+              //  pTex->pPixels[pixel];
+              //}
 
               if (pTex->layered)
               {
