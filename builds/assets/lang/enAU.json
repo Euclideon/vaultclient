@@ -430,6 +430,7 @@
   "scenePOILabelImageTypeStandard": "Standard",
   "scenePOILabelImageTypePanorama": "Panorama",
   "scenePOILabelImageTypePhotosphere": "Photo Sphere",
+  "scenePOIReloadTime": "Reload Time (secs)",
 
   "scenePOILineSettings": "Line Settings",
   "scenePOILineShowLength": "Show Length",
