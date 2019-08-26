@@ -111,20 +111,15 @@ void vcFBX_FileTexture(vcFBX *pFBX, FbxFileTexture *pTexture, int material, bool
   FbxTexture::ETextureUse use = pTexture->GetTextureUse();
   FbxString UVSet = pTexture->UVSet.Get();
 
+  if (map != FbxTexture::eUV || use != FbxTexture::eStandard)
+    return;
+
   texture.layered = layered;
   texture.pName = udStrdup(UVSet);
 
   texture.scale = pTexture->Scaling;
   texture.translate = pTexture->Translation;
   texture.swap = pTexture->GetSwapUV();
-
-  if (map != FbxTexture::eUV || use != FbxTexture::eStandard)
-    return;
-
-  if (map != FbxGeometryElement::eByControlPoint)
-    texture.byControlPoint = false;
-  else
-    texture.byControlPoint = true;
 
   const FbxGeometryElementUV *pUVElement = pFBX->pMesh->GetElementUV(UVSet);
 
@@ -242,6 +237,7 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
   FbxVector4 min, max, center;
   pFBX->pManager = FbxManager::Create();
+  bool calcBounds = false;
 
   // Configure IO Settings
   FbxIOSettings *pIOS = FbxIOSettings::Create(pFBX->pManager, IOSROOT);
@@ -280,8 +276,7 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   UD_ERROR_IF(pFBX->totalMeshes < 1, vE_NotFound);
 
   UD_ERROR_IF(!geoCon.Triangulate(pFBX->pScene, true), vE_Failure);
-
-  bool calcBounds = false;
+  
   if (!pFBX->pScene->ComputeBoundingBoxMinMaxCenter(min, max, center))
   {
     calcBounds = true;
