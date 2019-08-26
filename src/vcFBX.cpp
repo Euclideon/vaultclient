@@ -16,6 +16,8 @@
 struct vcFBXTexture
 {
   FbxFileTexture *pTex;
+  FbxLayerElement::EMappingMode map;
+  FbxLayerElement::EReferenceMode ref;
   const char *pFilename;
   const char *pName;
 
@@ -31,7 +33,6 @@ struct vcFBXTexture
   bool swap;
 
   bool layered;
-  bool byControlPoint;
   FbxLayerElementArrayTemplate<int> *pIArray;
   FbxLayerElementArrayTemplate<FbxVector2> *pDArray;
 };
@@ -122,16 +123,17 @@ void vcFBX_FileTexture(vcFBX *pFBX, FbxFileTexture *pTexture, int material, bool
   texture.translate = pTexture->Translation;
   texture.swap = pTexture->GetSwapUV();
 
-  const FbxGeometryElementUV *pUVElement = pFBX->pMesh->GetElementUV(UVSet);
+  const FbxGeometryElementUV *pUV = pFBX->pMesh->GetElementUV(UVSet);
+  if (pUV == nullptr)
+    pUV = pFBX->pMesh->GetElementUV(0);
 
-  if (!pUVElement)
-    pUVElement = pFBX->pMesh->GetElementUV(0);
-
+  texture.map = pUV->GetMappingMode();
+  texture.ref = pUV->GetReferenceMode();
   texture.pFilename = pTexture->GetFileName();
   texture.pTex = pTexture;
 
-  texture.pIArray = &pUVElement->GetIndexArray();
-  texture.pDArray = &pUVElement->GetDirectArray();
+  texture.pIArray = &pUV->GetIndexArray();
+  texture.pDArray = &pUV->GetDirectArray();
 
   if (texture.pFilename != nullptr && !udStrEqual(texture.pFilename, ""))
   {
@@ -244,13 +246,10 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
 
   // Configure IO Settings
   FbxIOSettings *pIOS = FbxIOSettings::Create(pFBX->pManager, IOSROOT);
-  pIOS->SetBoolProp(IMP_FBX_MATERIAL, false);
-  pIOS->SetBoolProp(IMP_FBX_TEXTURE, false);
   pIOS->SetBoolProp(IMP_FBX_LINK, false);
   pIOS->SetBoolProp(IMP_FBX_SHAPE, false);
   pIOS->SetBoolProp(IMP_FBX_GOBO, false);
   pIOS->SetBoolProp(IMP_FBX_ANIMATION, false);
-  pIOS->SetBoolProp(IMP_FBX_GLOBAL_SETTINGS, false);
   pFBX->pManager->SetIOSettings(pIOS);
   FbxImporter *pImporter = FbxImporter::Create(pFBX->pManager, "");
   FbxGeometryConverter geoCon = FbxGeometryConverter(pFBX->pManager);
@@ -425,47 +424,13 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
             vcFBXTexture *pTex = &pMat->textures[tex];
             if (pTex->pTex != nullptr)
             {
-              if (!pTex->byControlPoint)
-              {
-                int w = pTex->width;
-                int h = pTex->height;
+              int index = pFBX->currMeshPointCount;
+              if (pFBX->ref != FbxGeometryElement::eDirect)
+                index = pTex->pIArray->GetAt(index);
 
-                FbxVector2 newVec = { 0, 0 };
-                bool unmapped = true;
-                if (pFBX->pMesh->GetPolygonVertexUV(pFBX->currMeshPolygon, 0, pTex->pName, newVec, unmapped))
-                {
-                  newVec[1] = 1 - newVec[1];
-
-                  if (pTex->swap)
-                  {
-                    double swap = newVec[0];
-                    newVec[0] = newVec[1];
-                    newVec[1] = swap;
-                  }
-
-                  int u = (int)udMod(udRound(newVec[0] * w), w);
-                  u = (pTex->pTex->GetWrapModeU() == FbxTexture::eRepeat ? (u + w) % w : udClamp(u, 0, w));
-                  int v = (int)udMod(udRound(newVec[1] * h), h);
-                  v = (pTex->pTex->GetWrapModeV() == FbxTexture::eRepeat ? (v + h) % h : udClamp(v, 0, h));
-
-                  // Change before wrapping?
-                  u = (int) (u / pTex->scale[0] + pTex->translate[0]);
-                  v = (int) (v / pTex->scale[1] + pTex->translate[1]);
-
-                  thisColour = pTex->pPixels[u + v * w];
-                }
-              }
-              //else // TODO: Do something with this pTex->pPixels[pixel] at the end of this block (EVC-802)
-              //{
-              //  
-              //  int index = pFBX->currMeshPointCount;
-              //  if (pTex->pIArray)
-              //    index = pTex->pIArray->GetAt(index);
-              //  
-              //  FbxDouble2 uv = pTex->pDArray->GetAt(index);
-              //  int pixel = (int)(uv[0] + uv[1] * pTex->width);
-              //  pTex->pPixels[pixel];
-              //}
+              FbxDouble2 uv = pTex->pDArray->GetAt(index);
+              int pixel = (int)(uv[0] + (1 - uv[1]) * pTex->width);
+              thisColour = pTex->pPixels[pixel];
 
               if (pTex->layered)
               {
@@ -567,23 +532,28 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
                   {
                     FbxVector2 newVec = { 0, 0 };
                     int index = 0;
-                    switch (pFBX->map)
+                    switch (pTex->map)
                     {
+                    case FbxLayerElement::eByControlPoint:
+                      index = pFBX->pMesh->GetPolygonVertex(pFBX->currMeshPolygon, i);
+                      break;
                     case FbxLayerElement::eByPolygon:
                       index = pFBX->currMeshPolygon;
                       break;
                     case FbxLayerElement::eByPolygonVertex:
                       index = pFBX->currMeshPolygon * 3 + i;
                       break;
+                    case FbxLayerElement::eNone: // falls through
+                    case FbxLayerElement::eByEdge: // falls through
                     case FbxLayerElement::eAllSame:
                       index = 0;
                       break;
                     }
 
-                    index = pTex->pIArray->GetAt(index);
+                    if (pTex->ref != FbxGeometryElement::eDirect)
+                      index = pTex->pIArray->GetAt(index);
 
                     newVec = pTex->pDArray->GetAt(index);
-                    newVec[1] = 1 - newVec[1];
 
                     if (pTex->swap)
                     {
@@ -591,6 +561,8 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
                       newVec[0] = newVec[1];
                       newVec[1] = swap;
                     }
+
+                    newVec[1] = 1 - newVec[1];
 
                     pFBX->uvQueue.Add(newVec);
                   }
@@ -621,7 +593,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
 
                       int u = (int)udMod(udRound(pointUV[0] * w), w);
                       u = (pTex->pTex->GetWrapModeU() == FbxTexture::eRepeat ? (u + w) % w : udClamp(u, 0, w));
-                      int v = (int)udMod(udRound(1 - pointUV[1] * h), h);
+                      int v = (int)udMod(udRound(pointUV[1] * h), h);
                       v = (pTex->pTex->GetWrapModeV() == FbxTexture::eRepeat ? (v + h) % h : udClamp(v, 0, h));
 
                       thisColour = pTex->pPixels[u + v * w];
