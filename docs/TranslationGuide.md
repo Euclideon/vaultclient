@@ -10,6 +10,11 @@
       - `convertSetTempDirectoryTitle`
     - Viewport
       - `settingsViewportCameraLensCustom`, `settingsViewportCameraLens15mm`, `settingsViewportCameraLens24mm`, `settingsViewportCameraLens30mm`, `settingsViewportCameraLens50mm`, `settingsViewportCameraLens70mm`, `settingsViewportCameraLens100mm`
+    - Scene Explorer
+      - `scenePOIThumbnailSize`, `scenePOIThumbnailSizeNative`, `scenePOIThumbnailSizeSmall`, `scenePOIThumbnailSizeLarge`
+  - Changed:
+    - Scene Explorer
+      - `scenePOILabelImageTypeStandard` (capitalised value), `scenePOILabelImageTypePanorama` (capitalised value), `scenePOILabelImageTypePhotosphere` (capitalised value)
 
 - Version 0.3.0
   - Added:
@@ -38,6 +43,7 @@
       - `errorTitle`, `errorUnknown`, `errorOpening`, `errorReading`, `errorWriting`, `errorCloseButton`
     - Settings
       - `settingsViewportDegrees`
+
 - Version 0.2.3
   - Added:
     - Login Screen
@@ -570,6 +576,10 @@ Modules are currently:
 - `scenePOILabelSizeSmall`: text on the drop down to select the smaller than default text size
 - `scenePOILabelSizeNormal`: text on the drop down to select the default text size
 - `scenePOILabelSizeLarge`: text on the drop down to select the larger than default text size
+- `scenePOIThumbnailSize`: Text on the label for the combo box to select the size of the thumbnail
+- `scenePOIThumbnailSizeNative`: Text on the combo option to select the size of the thumbnail that displays the image at the native size
+- `scenePOIThumbnailSizeSmall`: Text on the combo option to select the smallest size for the thumbnail
+- `scenePOIThumbnailSizeLarge`: Text on the combo option to select the largest size for the thumbnail
 - `scenePOILabelImageType`: Label for POI image type shown in the scene explorer
 - `scenePOILabelImageTypeStandard`: One of the POI image types as shown in the scene explorer
 - `scenePOILabelImageTypePanorama`: One of the POI image types as shown in the scene explorer

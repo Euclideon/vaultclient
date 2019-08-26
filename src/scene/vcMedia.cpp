@@ -17,6 +17,12 @@
 
 #include "stb_image.h"
 
+const char *s_imageTypes[] = { "standard", "panorama", "photosphere" };
+UDCOMPILEASSERT(udLengthOf(s_imageTypes) == vcIT_Count, "Update Image Types");
+
+const char *s_imageThumbnailSizes[] = { "native", "small", "large" };
+UDCOMPILEASSERT(udLengthOf(s_imageThumbnailSizes) == vcIS_Count, "Update Image Sizes");
+
 vcMedia::vcMedia(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_pLoadedURI(nullptr)
@@ -66,6 +72,26 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
   m_image.size = vcIS_Large;
   m_image.type = vcIT_StandardPhoto;
 
+  const char *pImageSize = nullptr;
+  if (vdkProjectNode_GetMetadataString(m_pNode, "imagesize", &pImageSize, nullptr) == vE_Success)
+  {
+    for (size_t i = 0; i < udLengthOf(s_imageThumbnailSizes); ++i)
+    {
+      if (udStrEquali(pImageSize, s_imageThumbnailSizes[i]))
+        m_image.size = (vcImageThumbnailSize)i;
+    }
+  }
+
+  const char *pImageType = nullptr;
+  if (vdkProjectNode_GetMetadataString(m_pNode, "imagetype", &pImageType, nullptr) == vE_Success)
+  {
+    for (size_t i = 0; i < udLengthOf(s_imageTypes); ++i)
+    {
+      if (udStrEquali(pImageType, s_imageTypes[i]))
+        m_image.type = (vcImageType)i;
+    }
+  }
+
   ChangeProjection(pProgramState->gis.zone);
 }
 
@@ -114,7 +140,12 @@ void vcMedia::HandleImGui(vcState *pProgramState, size_t *pItemID)
       pProgramState->pLoadImage = udStrdup(m_pNode->pURI);
 
     const char *imageTypeNames[] = { vcString::Get("scenePOILabelImageTypeStandard"), vcString::Get("scenePOILabelImageTypePanorama"), vcString::Get("scenePOILabelImageTypePhotosphere") };
-    ImGui::Combo(udTempStr("%s##scenePOILabelImageType%zu", vcString::Get("scenePOILabelImageType"), *pItemID), (int*)&m_image.type, imageTypeNames, (int)udLengthOf(imageTypeNames));
+    if (ImGui::Combo(udTempStr("%s##scenePOILabelImageType%zu", vcString::Get("scenePOILabelImageType"), *pItemID), (int *)&m_image.type, imageTypeNames, (int)udLengthOf(imageTypeNames)))
+      vdkProjectNode_SetMetadataString(m_pNode, "imagetype", s_imageTypes[(int)m_image.type]);
+
+    const char *imageThumbnailSizeNames[] = { vcString::Get("scenePOIThumbnailSizeNative"), vcString::Get("scenePOIThumbnailSizeSmall"), vcString::Get("scenePOIThumbnailSizeLarge") };
+    if (ImGui::Combo(udTempStr("%s##scenePOIThumbnailSize%zu", vcString::Get("scenePOIThumbnailSize"), *pItemID), (int *)&m_image.size, imageThumbnailSizeNames, (int)udLengthOf(imageThumbnailSizeNames)))
+      vdkProjectNode_SetMetadataString(m_pNode, "imagesize", s_imageThumbnailSizes[(int)m_image.size]);
   }
 }
 
