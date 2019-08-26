@@ -112,11 +112,27 @@ struct vcRenderContext
     vcShader *pProgram;
     vcShaderSampler *uniform_texture;
     vcShaderConstantBuffer *uniform_MatrixBlock;
-  } skyboxShader;
+
+    vcTexture* pSkyboxTexture;
+  } skyboxShaderPanorama;
+
+  struct
+  {
+    vcShader *pProgram;
+    vcShaderConstantBuffer *uniform_params;
+    vcShaderSampler *uniform_texture;
+
+    vcTexture* pLogoTexture;
+
+    struct
+    {
+      udFloat4 colour;
+      udFloat4 imageSize;
+    } params;
+  } skyboxShaderTintImage;
 
   vcMesh *pScreenQuadMesh;
   vcMesh *pFlippedScreenQuadMesh;
-  vcTexture *pSkyboxTexture;
 
   struct
   {
@@ -179,18 +195,23 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
 #endif
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcSimpleVertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShader.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShader, vcSimpleVertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderPanorama.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShaderPanarama, vcSimpleVertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderTintImage.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShaderImageColour, vcSimpleVertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.splatIdShader.pProgram, g_udVertexShader, g_udSplatIdFragmentShader, vcSimpleVertexLayout), udR_InternalError);
 
   vcMesh_Create(&pRenderContext->pScreenQuadMesh, vcSimpleVertexLayout, int(udLengthOf(vcSimpleVertexLayout)), screenQuadVertices, 4, screenQuadIndices, 6, vcMF_Dynamic);
   vcMesh_Create(&pRenderContext->pFlippedScreenQuadMesh, vcSimpleVertexLayout, int(udLengthOf(vcSimpleVertexLayout)), flippedScreenQuadVertices, 4, flippedScreenQuadIndices, 6, vcMF_Dynamic);
 
-  vcTexture_AsyncCreateFromFilename(&pRenderContext->pSkyboxTexture, pWorkerPool, "asset://assets/skyboxes/WaterClouds.jpg", vcTFM_Linear);
+  vcTexture_AsyncCreateFromFilename(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pWorkerPool, "asset://assets/skyboxes/WaterClouds.jpg", vcTFM_Linear);
   UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
 
-  vcShader_Bind(pRenderContext->skyboxShader.pProgram);
-  vcShader_GetSamplerIndex(&pRenderContext->skyboxShader.uniform_texture, pRenderContext->skyboxShader.pProgram, "u_texture");
-  vcShader_GetConstantBuffer(&pRenderContext->skyboxShader.uniform_MatrixBlock, pRenderContext->skyboxShader.pProgram, "u_EveryFrame", sizeof(udFloat4x4));
+  vcShader_Bind(pRenderContext->skyboxShaderPanorama.pProgram);
+  vcShader_GetSamplerIndex(&pRenderContext->skyboxShaderPanorama.uniform_texture, pRenderContext->skyboxShaderPanorama.pProgram, "u_texture");
+  vcShader_GetConstantBuffer(&pRenderContext->skyboxShaderPanorama.uniform_MatrixBlock, pRenderContext->skyboxShaderPanorama.pProgram, "u_EveryFrame", sizeof(udFloat4x4));
+
+  vcShader_Bind(pRenderContext->skyboxShaderTintImage.pProgram);
+  vcShader_GetSamplerIndex(&pRenderContext->skyboxShaderTintImage.uniform_texture, pRenderContext->skyboxShaderTintImage.pProgram, "u_texture");
+  vcShader_GetConstantBuffer(&pRenderContext->skyboxShaderTintImage.uniform_params, pRenderContext->skyboxShaderTintImage.pProgram, "u_EveryFrame", sizeof(pRenderContext->skyboxShaderTintImage.params));
 
   vcShader_Bind(pRenderContext->udRenderContext.presentShader.pProgram);
   vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.presentShader.uniform_texture, pRenderContext->udRenderContext.presentShader.pProgram, "u_texture");
@@ -257,7 +278,8 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
 #endif
 
   vcShader_DestroyShader(&pRenderContext->udRenderContext.presentShader.pProgram);
-  vcShader_DestroyShader(&pRenderContext->skyboxShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->skyboxShaderPanorama.pProgram);
+  vcShader_DestroyShader(&pRenderContext->skyboxShaderTintImage.pProgram);
   vcShader_DestroyShader(&pRenderContext->udRenderContext.splatIdShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->blurShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->selectionShader.pProgram);
@@ -265,7 +287,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   vcMesh_Destroy(&pRenderContext->pScreenQuadMesh);
   vcMesh_Destroy(&pRenderContext->pFlippedScreenQuadMesh);
 
-  vcTexture_Destroy(&pRenderContext->pSkyboxTexture);
+  vcTexture_Destroy(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture);
   UD_ERROR_CHECK(vcCompass_Destroy(&pRenderContext->pCompass));
 
   vcPolygonModel_DestroyShaders();
@@ -399,18 +421,43 @@ void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
   // Draw the skybox only at the far plane, where there is no geometry.
   // Drawing skybox here (after 'opaque' geometry) saves a bit on fill rate.
 
-  udFloat4x4 viewMatrixF = udFloat4x4::create(pProgramState->pCamera->matrices.view);
-  udFloat4x4 projectionMatrixF = udFloat4x4::create(pProgramState->pCamera->matrices.projectionNear);
-  udFloat4x4 inverseViewProjMatrixF = projectionMatrixF * viewMatrixF;
-  inverseViewProjMatrixF.axis.t = udFloat4::create(0, 0, 0, 1);
-  inverseViewProjMatrixF.inverse();
+  if (pProgramState->settings.presentation.showSkybox)
+  {
+    udFloat4x4 viewMatrixF = udFloat4x4::create(pProgramState->pCamera->matrices.view);
+    udFloat4x4 projectionMatrixF = udFloat4x4::create(pProgramState->pCamera->matrices.projectionNear);
+    udFloat4x4 inverseViewProjMatrixF = projectionMatrixF * viewMatrixF;
+    inverseViewProjMatrixF.axis.t = udFloat4::create(0, 0, 0, 1);
+    inverseViewProjMatrixF.inverse();
+
+    vcShader_Bind(pRenderContext->skyboxShaderPanorama.pProgram);
+    vcShader_BindTexture(pRenderContext->skyboxShaderPanorama.pProgram, pRenderContext->skyboxShaderPanorama.pSkyboxTexture, 0, pRenderContext->skyboxShaderPanorama.uniform_texture);
+    vcShader_BindConstantBuffer(pRenderContext->skyboxShaderPanorama.pProgram, pRenderContext->skyboxShaderPanorama.uniform_MatrixBlock, &inverseViewProjMatrixF, sizeof(inverseViewProjMatrixF));
+  }
+  else
+  {
+    pRenderContext->skyboxShaderTintImage.params.colour = pProgramState->settings.presentation.skyboxColour;
+
+    int x = 0;
+    int y = 0;
+
+    vcShader_Bind(pRenderContext->skyboxShaderTintImage.pProgram);
+
+    if (vcTexture_GetSize(pRenderContext->skyboxShaderTintImage.pLogoTexture, &x, &y) == udR_Success)
+    {
+      pRenderContext->skyboxShaderTintImage.params.imageSize.x = (float)x / pRenderContext->sceneResolution.x;
+      pRenderContext->skyboxShaderTintImage.params.imageSize.y = -(float)y / pRenderContext->sceneResolution.y;
+
+      vcShader_BindTexture(pRenderContext->skyboxShaderTintImage.pProgram, pRenderContext->skyboxShaderTintImage.pLogoTexture, 0, pRenderContext->skyboxShaderTintImage.uniform_texture);
+    }
+    else
+    {
+      pRenderContext->skyboxShaderTintImage.params.colour.w = 0.0;
+    }
+
+    vcShader_BindConstantBuffer(pRenderContext->skyboxShaderTintImage.pProgram, pRenderContext->skyboxShaderTintImage.uniform_params, &pRenderContext->skyboxShaderTintImage.params, sizeof(pRenderContext->skyboxShaderTintImage.params));
+  }
 
   vcGLState_SetViewportDepthRange(1.0f, 1.0f);
-
-  vcShader_Bind(pRenderContext->skyboxShader.pProgram);
-
-  vcShader_BindTexture(pRenderContext->skyboxShader.pProgram, pRenderContext->pSkyboxTexture, 0, pRenderContext->skyboxShader.uniform_texture);
-  vcShader_BindConstantBuffer(pRenderContext->skyboxShader.pProgram, pRenderContext->skyboxShader.uniform_MatrixBlock, &inverseViewProjMatrixF, sizeof(inverseViewProjMatrixF));
 
   vcMesh_Render(pRenderContext->pScreenQuadMesh, 2);
 
@@ -592,7 +639,7 @@ void vcRenderOpaqueGeometry(vcState *pProgramState, vcRenderContext *pRenderCont
     }
 
     for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
-      vcWaterRenderer_Render(renderData.waterVolumes[i], pProgramState->pCamera->matrices.view, pProgramState->pCamera->matrices.viewProjection, pRenderContext->pSkyboxTexture, pProgramState->deltaTime);
+      vcWaterRenderer_Render(renderData.waterVolumes[i], pProgramState->pCamera->matrices.view, pProgramState->pCamera->matrices.viewProjection, pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pProgramState->deltaTime);
   }
 }
 

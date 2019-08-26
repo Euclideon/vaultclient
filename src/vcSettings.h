@@ -116,6 +116,9 @@ struct vcSettings
     bool showDiagnosticInfo;
     bool showAdvancedGIS;
 
+    bool showSkybox;
+    udFloat4 skyboxColour;
+
     vcAnchorStyle mouseAnchor;
     bool showCompass;
     float POIFadeDistance;

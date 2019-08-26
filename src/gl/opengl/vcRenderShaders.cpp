@@ -255,7 +255,7 @@ void main()
 }
 )shader";
 
-const char* const g_vcSkyboxFragmentShader = FRAG_HEADER R"shader(
+const char* const g_vcSkyboxFragmentShaderPanarama = FRAG_HEADER R"shader(
 uniform sampler2D u_texture;
 layout (std140) uniform u_EveryFrame
 {
@@ -284,6 +284,29 @@ void main()
   vec4 c1 = texture(u_texture, directionToLatLong(point3D.xyz));
 
   out_Colour = c1;
+}
+)shader";
+
+
+const char* const g_vcSkyboxFragmentShaderImageColour = FRAG_HEADER R"shader(
+uniform sampler2D u_texture;
+layout (std140) uniform u_EveryFrame
+{
+  vec4 u_tintColour; //0 is full colour, 1 is full image
+  vec4 u_imageSize; //For purposes of tiling/stretching
+};
+
+//Input Format
+in vec2 v_texCoord;
+
+//Output Format
+out vec4 out_Colour;
+
+void main()
+{
+  vec4 colour = texture(u_texture, v_texCoord / u_imageSize.xy).rgba;
+  float effectiveAlpha = min(colour.a, u_tintColour.a);
+  out_Colour = vec4((colour.rgb * effectiveAlpha) + (u_tintColour.rgb * (1 - effectiveAlpha)), 1);
 }
 )shader";
 

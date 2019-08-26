@@ -4,6 +4,8 @@
 
 - Version 0.3.1 (or Version 0.4.0)
   - Added:
+    - Settings
+      - `settingsAppearanceShowSkybox`, `settingsAppearanceSkyboxColour`
     - Convert
       - `convertSetTempDirectoryTitle`
     - Viewport
@@ -168,6 +170,8 @@ Modules are currently:
 - `settingsAppearanceAdvancedGIS`: Label next to the checkbox that toggles the display of advanced GIS settings in the viewport
 - `settingsAppearanceLimitFPS`: Label next to checkbox for limiting the frame-rate while vault client window is inactive or unselected
 - `settingsAppearanceShowCompass`: Label next to checkbox that toggles the appearance of a compass in the viewport
+- `settingsAppearanceShowSkybox`: Label next to checkbox that toggles if the skybox is displayed
+- `settingsAppearanceSkyboxColour`: Label next to colour picker to decide the colour of the background if the skybox is disabled
 - `settingsAppearanceMouseAnchor`: Label next to dropdown list to select the appearance of the mouse cursor when hovering over objects in the scene
 - `settingsAppearanceNone`: "None" option for mouse cursor appearance. If selected, mouse cursor retains its default appearance
 - `settingsAppearanceCompass`: Compass option for mouse cursor appearance

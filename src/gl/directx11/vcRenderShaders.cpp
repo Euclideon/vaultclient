@@ -348,7 +348,7 @@ const char* const g_vcSkyboxVertexShader = R"shader(
   }
 )shader";
 
-const char* const g_vcSkyboxFragmentShader = R"shader(
+const char* const g_vcSkyboxFragmentShaderPanarama = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -377,6 +377,30 @@ const char* const g_vcSkyboxFragmentShader = R"shader(
     float4 point3D = mul(u_inverseViewProjection, float4(input.uv * float2(2.0, 2.0) - float2(1.0, 1.0), 1.0, 1.0));
     point3D.xyz = normalize(point3D.xyz / point3D.w);
     return u_texture.Sample(sampler0, directionToLatLong(point3D.xyz));
+  }
+)shader";
+
+const char* const g_vcSkyboxFragmentShaderImageColour = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD0;
+  };
+
+  cbuffer u_EveryFrame : register(b0)
+  {
+    float4 u_tintColour; //0 is full colour, 1 is full image
+    float4 u_imageSize; //For purposes of tiling/stretching
+  };
+
+  sampler sampler0;
+  Texture2D u_texture;
+
+  float4 main(PS_INPUT input) : SV_Target
+  {
+    float4 colour = u_texture.Sample(sampler0, input.uv / u_imageSize.xy).rgba;
+    float effectiveAlpha = min(colour.a, u_tintColour.a);
+    return float4((colour.rgb * effectiveAlpha) + (u_tintColour.rgb * (1 - effectiveAlpha)), 1);
   }
 )shader";
 
