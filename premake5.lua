@@ -1,4 +1,3 @@
-require "ios"
 require "vstudio"
 require "emscripten"
 
