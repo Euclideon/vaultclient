@@ -16,13 +16,14 @@ Version 0.3.1
   - Other Fixes and Changes
     - Renaming of scene items works again
     - Improved Chinese localization (submitted from Hongzhu Liu)
-    - Removed slider getting stuck issues in the settings panel
+    - Slider no longer has "sticky" points in the settings menu
     - Fixed issues with convert text boxes not allowing input
     - SLPKs in long folder paths now function correctly
     - Map tiles are correctly blended into the scene again
     - Images in the scene correctly save and load their settings from the project and exif data again
-    - Updated code signing certificate on Windows (slightly different signature now)
+    - Updated code signing certificate on Windows because the old one expired (different signature now)
     - Improved conversion support for OBJ, PTX and PTS from broken files submitted by the community (thanks everyone!)
+    - Restored initial licence request information and made it more clear when a license is being requested
 
 Version 0.3.0
   - Improvements
