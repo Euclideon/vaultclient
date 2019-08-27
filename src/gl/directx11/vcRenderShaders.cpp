@@ -8,7 +8,7 @@ const char* const g_udFragmentShader = R"shader(
     float2 uv : TEXCOORD0;
   };
 
-  struct PS_OUTPUT 
+  struct PS_OUTPUT
   {
     float4 Color0 : SV_Target;
     float Depth0 : SV_Depth;
@@ -85,7 +85,7 @@ const char* const g_udFragmentShader = R"shader(
     float contourDistance = u_contourParams.x;
     float contourBandHeight = u_contourParams.y;
 
-    float isCountour = step(contourBandHeight, fmod(fragWorldPosition.z, contourDistance));
+    float isCountour = step(contourBandHeight, abs(fmod(fragWorldPosition.z, contourDistance)));
     float3 contourColour = lerp(col.xyz, u_contourColour.xyz, u_contourColour.w);
     return lerp(contourColour, col.xyz, isCountour);
   }
@@ -170,7 +170,7 @@ const char* const g_udSplatIdFragmentShader = R"shader(
     float2 uv : TEXCOORD0;
   };
 
-  struct PS_OUTPUT 
+  struct PS_OUTPUT
   {
     float4 Color0 : SV_Target;
     float Depth0 : SV_Depth;
@@ -817,7 +817,7 @@ const char* const g_BlurVertexShader = R"shader(
     float3 pos : POSITION;
     float2 uv  : TEXCOORD0;
   };
-  
+
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -883,7 +883,7 @@ const char* const g_HighlightVertexShader = R"shader(
     float3 pos : POSITION;
     float2 uv  : TEXCOORD0;
   };
-  
+
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -939,23 +939,23 @@ const char* const g_HighlightFragmentShader = R"shader(
   Texture2D u_texture;
 
   float4 main(PS_INPUT input) : SV_Target
-  {   
+  {
     float4 middle = u_texture.Sample(sampler0, input.uv0);
     float result = middle.w;
 
     // 'outside' the geometry, just use the blurred 'distance'
     if (middle.x == 0.0)
       return float4(input.colour.xyz, result * input.stepSizeThickness.z * input.colour.a);
-    
+
     result = 1.0 - result;
-    
+
     // look for an edge, setting to full colour if found
     float softenEdge = 0.15 * input.colour.a;
     result += softenEdge * step(u_texture.Sample(sampler0, input.uv1).x - middle.x, -0.00001);
     result += softenEdge * step(u_texture.Sample(sampler0, input.uv2).x - middle.x, -0.00001);
     result += softenEdge * step(u_texture.Sample(sampler0, input.uv3).x - middle.x, -0.00001);
     result += softenEdge * step(u_texture.Sample(sampler0, input.uv4).x - middle.x, -0.00001);
-    
+
     result = max(input.stepSizeThickness.w, result) * input.colour.w; // overlay colour
     return float4(input.colour.xyz, result);
   }
@@ -1015,8 +1015,8 @@ const char *const g_udGPURenderQuadVertexShader = R"shader(
     maxPos = max(maxPos, pos6);
     maxPos = max(maxPos, pos7);
     output.pos = minPos + (maxPos - minPos) * 0.5;
-    
-    float2 pointSize = float2(maxPos.x - minPos.x, maxPos.y - minPos.y); 
+
+    float2 pointSize = float2(maxPos.x - minPos.x, maxPos.y - minPos.y);
     output.pos.xy += pointSize * input.corner * float2(0.5, 0.5);
     return output;
   }
@@ -1090,8 +1090,8 @@ const char *const g_udGPURenderGeomVertexShader = R"shader(
     maxPos = max(maxPos, pos6);
     maxPos = max(maxPos, pos7);
     output.pos = minPos + (maxPos - minPos) * 0.5;
-    
-    output.pointSize = float2(maxPos.x - minPos.x, maxPos.y - minPos.y); 
+
+    output.pointSize = float2(maxPos.x - minPos.x, maxPos.y - minPos.y);
     return output;
   }
 )shader";
@@ -1145,10 +1145,10 @@ const char *const g_udGPURenderGeomGeometryShader = R"shader(
 
     output.pos = input[0].pos + float4(-halfPointSize.x, halfPointSize.y, 0.0, 0.0);
     OutputStream.Append(output);
-    
+
     output.pos = input[0].pos + float4(halfPointSize.x, halfPointSize.y, 0.0, 0.0);
     OutputStream.Append(output);
-    
+
     output.pos = input[0].pos + float4(halfPointSize.x, -halfPointSize.y, 0.0, 0.0);
     OutputStream.Append(output);
 
