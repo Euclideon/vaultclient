@@ -11,7 +11,7 @@
     - Viewport
       - `settingsViewportCameraLensCustom`, `settingsViewportCameraLens15mm`, `settingsViewportCameraLens24mm`, `settingsViewportCameraLens30mm`, `settingsViewportCameraLens50mm`, `settingsViewportCameraLens70mm`, `settingsViewportCameraLens100mm`
     - Scene Explorer
-      - `scenePOIThumbnailSize`, `scenePOIThumbnailSizeNative`, `scenePOIThumbnailSizeSmall`, `scenePOIThumbnailSizeLarge`
+      - `scenePOIThumbnailSize`, `scenePOIThumbnailSizeNative`, `scenePOIThumbnailSizeSmall`, `scenePOIThumbnailSizeLarge`, `scenePOIReloadTime`
   - Changed:
     - Scene Explorer
       - `scenePOILabelImageTypeStandard` (capitalised value), `scenePOILabelImageTypePanorama` (capitalised value), `scenePOILabelImageTypePhotosphere` (capitalised value)
@@ -584,6 +584,7 @@ Modules are currently:
 - `scenePOILabelImageTypeStandard`: One of the POI image types as shown in the scene explorer
 - `scenePOILabelImageTypePanorama`: One of the POI image types as shown in the scene explorer
 - `scenePOILabelImageTypePhotosphere`: One of the POI image types as shown in the scene explorer
+- `scenePOIReloadTime`: Label on the reload time for the image on a media node (in seconds)
 - `scenePOILineSettings`: The header for the expansion for the other line settings
 - `scenePOILineShowLength`: Label on the checkbox for when the user wants the length displayed on the label in the scene
 - `scenePOILineShowAllLengths`: Label on the checkbox that will show each individual segment line length

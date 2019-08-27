@@ -16,9 +16,6 @@ struct vcState;
 class vcMedia : public vcSceneItem
 {
 public:
-  vcImageRenderInfo m_image;
-  const char *m_pLoadedURI; // The URI of the media we have loaded currently
-
   vcMedia(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcMedia();
 
@@ -32,6 +29,20 @@ public:
 
   void SetCameraPosition(vcState *pProgramState);
   udDouble4x4 GetWorldSpaceMatrix();
+
+  void SetImageData(void **ppImageData, int64_t imageSize); // This takes ownership if it can
+
+public:
+  const char *m_pLoadedURI; // The URI of the media we have (or are loading) currently
+
+private:
+  vcImageRenderInfo m_image;
+
+  double m_loadLoadTimeSec;
+  double m_reloadTimeSecs;
+
+  void *m_pImageData;
+  uint64_t m_imageDataSize;
 };
 
 #endif //vcPOI_h__
