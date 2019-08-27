@@ -303,6 +303,7 @@
   "menuBarSecondsAbbreviation": "秒",
   "menuBarLicenseExpired": "许可证（已过期）",
   "menuBarLicenseQueued": "申请中",
+  "menuBarWaitingForRenderLicense": "等待渲染许可",
   "menuBarInactive": "空闲中",
 
   "modalProxyInfo": "代理需要身份验证：",
@@ -423,7 +424,7 @@
   "scenePOILabelSizeNormal": "中",
   "scenePOILabelSizeLarge": "大",
   "scenePOIThumbnailSize": "预览尺寸",
-  "scenePOIThumbnailSizeNative": "全分辨率",
+  "scenePOIThumbnailSizeNative": "原始尺寸",
   "scenePOIThumbnailSizeSmall": "小",
   "scenePOIThumbnailSizeLarge": "大",
   "scenePOILabelImageType": "图像类型",

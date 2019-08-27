@@ -303,6 +303,7 @@
   "menuBarSecondsAbbreviation": "s",
   "menuBarLicenseExpired": "License (expired)",
   "menuBarLicenseQueued": "in Queue",
+  "menuBarWaitingForRenderLicense": "Waiting for Render license...",
   "menuBarInactive": "Inactive",
 
   "modalProxyInfo": "The proxy requires authentication:",

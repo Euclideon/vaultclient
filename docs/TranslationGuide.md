@@ -9,7 +9,7 @@
     - Convert
       - `convertSetTempDirectoryTitle`
     - Viewport
-      - `settingsViewportCameraLensCustom`, `settingsViewportCameraLens15mm`, `settingsViewportCameraLens24mm`, `settingsViewportCameraLens30mm`, `settingsViewportCameraLens50mm`, `settingsViewportCameraLens70mm`, `settingsViewportCameraLens100mm`
+      - `settingsViewportCameraLensCustom`, `settingsViewportCameraLens15mm`, `settingsViewportCameraLens24mm`, `settingsViewportCameraLens30mm`, `settingsViewportCameraLens50mm`, `settingsViewportCameraLens70mm`, `settingsViewportCameraLens100mm`, `menuBarWaitingForRenderLicense`
     - Scene Explorer
       - `scenePOIThumbnailSize`, `scenePOIThumbnailSizeNative`, `scenePOIThumbnailSizeSmall`, `scenePOIThumbnailSizeLarge`, `scenePOIReloadTime`
   - Changed:
@@ -452,6 +452,7 @@ Modules are currently:
 - `menuBarSecondsAbbreviation`: Abbreviation used to display the number of seconds remaining before license expiration
 - `menuBarLicenseExpired`: Used to indicate when the render or convert license has expired
 - `menuBarLicenseQueued`: Used to indicate the position of a file being imported in the import queue?
+- `menuBarWaitingForRenderLicense`: Message to let the user know the system is waiting for a render license
 - `menuBarInactive`: Used to indicate that vault client is not the currently selected window and is running in the background
 
 ### Proxy Login Modal
