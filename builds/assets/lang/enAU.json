@@ -6,7 +6,7 @@
     "englishname": "Australian English",
     "translationby": "Euclideon Pty Ltd",
     "contactemail": "support@euclideon.com",
-    "targetVersion": "0.3.0"
+    "targetVersion": "0.3.1"
   },
 
   "loginButton": "Login",
@@ -141,10 +141,10 @@
   "settingsVisHeightEndColour": "Colour by Height End Colour",
   "settingsVisHeightStart": "Colour by Height Start Height",
   "settingsVisHeightEnd": "Colour by Height End Height",
-  "settingsVisDepth": "Enable Colour by Depth",
-  "settingsVisDepthColour": "Colour by Depth Colour",
-  "settingsVisDepthStart": "Colour by Depth Start Depth",
-  "settingsVisDepthEnd": "Colour by Depth End Depth",
+  "settingsVisDepth": "Enable Colour by Distance to Camera",
+  "settingsVisDepthColour": "Colour by Distance to Camera Colour",
+  "settingsVisDepthStart": "Colour by Distance to Camera Start Depth",
+  "settingsVisDepthEnd": "Colour by Distance to Camera End Depth",
   "settingsVisContours": "Enable Contours",
   "settingsVisContoursColour": "Contours Colour",
   "settingsVisContoursDistances": "Contours Distances",
