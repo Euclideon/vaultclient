@@ -25,8 +25,13 @@ function getosinfo()
 	local osname = os.target()
 	local distroExtension = ""
 	if os.target() == premake.LINUX then
-		osname = os.outputof('lsb_release -ir | head -n2 | cut -d ":" -f 2 | tr -d "\n\t" | tr [:upper:] [:lower:] | cut -d "." -f 1')
-		distroExtension = iif(string.startswith(osname, "ubuntu"), "_deb", "_rpm")
+		osname = os.outputof('lsb_release -ir | head -n2 | cut -d ":" -f 2 | tr -d "\n\t" | tr [:upper:] [:lower:]')
+		if osname:startswith("centos") then
+			osname = os.outputof('lsb_release -ir | head -n2 | cut -d ":" -f 2 | tr -d "\n\t" | tr [:upper:] [:lower:] | cut -d "." -f 1')
+			distroExtension = "_rpm"
+		else
+			distroExtension = "_deb"
+		end
 	end
 
 	return osname, distroExtension
@@ -131,7 +136,7 @@ function injectvaultsdkbin()
 				_OPTIONS["gfxapi"] = "opengl"
 			end
 			os.execute("mkdir -p builds")
-			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/linux_GCC_x64/libvaultSDK.so", "builds/libvaultSDK.so")
+			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/" .. osname .. "_GCC_x64/libvaultSDK.so", "builds/libvaultSDK.so")
 			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			libdirs { "builds" }
 		end
