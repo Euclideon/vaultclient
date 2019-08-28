@@ -4,6 +4,7 @@
 
 #include "stb_image.h"
 
+#include "udChunkedArray.h"
 #include "udFile.h"
 #include "udStringUtil.h"
 #include "udPlatform.h"
@@ -16,8 +17,8 @@
 struct vcFBXTexture
 {
   FbxFileTexture *pTex;
-  FbxLayerElement::EMappingMode map;
-  FbxLayerElement::EReferenceMode ref;
+  fbxsdk::FbxLayerElement::EMappingMode map;
+  fbxsdk::FbxLayerElement::EReferenceMode ref;
   const char *pFilename;
   const char *pName;
 
@@ -39,7 +40,7 @@ struct vcFBXTexture
 
 struct vcFBXMaterial
 {
-  FbxArray<vcFBXTexture> textures;
+  udChunkedArray<vcFBXTexture> textures;
 };
 
 struct vcFBX
@@ -74,12 +75,12 @@ struct vcFBX
   uint32_t lastTouchedPoly;
   uint32_t lastTouchedMesh;
 
-  FbxArray<vcFBXMaterial> materials;
-  FbxArray<FbxVector2> uvQueue;
+  udChunkedArray<vcFBXMaterial> materials;
+  udChunkedArray<udDouble2> uvQueue;
 
   FbxLayerElementArrayTemplate<int> *pIndex;
-  FbxLayerElement::EMappingMode map;
-  FbxLayerElement::EReferenceMode ref;
+  fbxsdk::FbxLayerElement::EMappingMode map;
+  fbxsdk::FbxLayerElement::EReferenceMode ref;
 };
 
 inline void vcFBX_Alpha(uint8_t *pDest, const uint8_t *pSrc, bool premultiplied)
@@ -105,7 +106,8 @@ inline void vcFBX_Additive(uint8_t *pDest, const uint8_t *pSrc, bool premultipli
   pDest[2] = (uint8_t)udMin(pDest[2] + (uint8_t)(pSrc[2] * multiply), 0xFF);
 }
 
-void vcFBX_FileTexture(vcFBX *pFBX, FbxFileTexture *pTexture, int material, bool layered)
+// Loads a single file texture if it expects to be used in a 'correct' way
+void vcFBX_FileTexture(vcFBX *pFBX, FbxFileTexture *pTexture, vcFBXMaterial *pMaterial, fbxsdk::FbxTexture::EBlendMode blend)
 {
   vcFBXTexture texture = {};
 
@@ -116,7 +118,7 @@ void vcFBX_FileTexture(vcFBX *pFBX, FbxFileTexture *pTexture, int material, bool
   if (map != FbxTexture::eUV || use != FbxTexture::eStandard)
     return;
 
-  texture.layered = layered;
+  texture.layered = (blend != FbxTexture::eTranslucent);
   texture.pName = udStrdup(UVSet);
 
   texture.scale = pTexture->Scaling;
@@ -137,9 +139,9 @@ void vcFBX_FileTexture(vcFBX *pFBX, FbxFileTexture *pTexture, int material, bool
 
   if (texture.pFilename != nullptr && !udStrEqual(texture.pFilename, ""))
   {
-    for (int i = 0; i < pFBX->materials.Size(); ++i)
+    for (uint32_t i = 0; i < pFBX->materials.length; ++i)
     {
-      for (int j = 0; j < pFBX->materials[i].textures.Size(); ++j)
+      for (uint32_t j = 0; j < pFBX->materials[i].textures.length; ++j)
       {
         if (udStrEquali(texture.pFilename, pFBX->materials[i].textures[j].pFilename))
         {
@@ -147,7 +149,7 @@ void vcFBX_FileTexture(vcFBX *pFBX, FbxFileTexture *pTexture, int material, bool
           texture.width = pFBX->materials[i].textures[j].width;
           texture.height = pFBX->materials[i].textures[j].height;
           texture.channels = pFBX->materials[i].textures[j].channels;
-          pFBX->materials[material].textures.Add(texture);
+          pMaterial->textures.PushBack(texture);
           return;
         }
       }
@@ -162,13 +164,14 @@ void vcFBX_FileTexture(vcFBX *pFBX, FbxFileTexture *pTexture, int material, bool
       texture.pPixels = (uint32_t*)stbi_load_from_memory((const stbi_uc*)pMem, (int)fileLength, &texture.width, &texture.height, &texture.channels, 4);
 
       udFree(pMem);
-      pFBX->materials[material].textures.Add(texture);
+      pMaterial->textures.PushBack(texture);
     }
   }
 
   return;
 }
 
+// Gets all textures associated with a Mesh
 void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
 {
   // Process materials to prepare colour handling
@@ -187,8 +190,7 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
       continue;
 
     vcFBXMaterial mat = {};
-    // Adds unnecessary materials atm
-    pFBX->materials.Add(mat);
+    mat.textures.Init(2);
 
     FbxProperty diffuse = pMaterial->FindProperty(FbxSurfaceMaterial::sDiffuse);
 
@@ -199,7 +201,7 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
         for (int j = 0; j < diffuse.GetSrcObjectCount<FbxFileTexture>(); ++j)
         {
           FbxFileTexture *pTexture = diffuse.GetSrcObject<FbxFileTexture>(j);
-          vcFBX_FileTexture(pFBX, pTexture, i, false);
+          vcFBX_FileTexture(pFBX, pTexture, &mat, FbxTexture::eTranslucent);
         }
         for (int j = 0; j < diffuse.GetSrcObjectCount<FbxLayeredTexture>(); ++j)
         {
@@ -207,7 +209,7 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
 
           for (int k = 0; k < pLayer->GetSrcObjectCount<FbxFileTexture>(); ++k)
           {
-            vcFBX_FileTexture(pFBX, pLayer->GetSrcObject<FbxFileTexture>(k), i, true);
+            vcFBX_FileTexture(pFBX, pLayer->GetSrcObject<FbxFileTexture>(k), &mat, pLayer->GetBlendMode());
           }
         }
       }
@@ -222,15 +224,18 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
         {
           const FbxDouble3 col = diffuse.Get<FbxDouble3>();
 
-          for (int j = 0; j < 3; ++j)
-            texture.diffuse += (uint8_t)(col[j] * 0xFF) << (24 - j * 8);
+          for (int j = 1; j <= 3; ++j)
+            texture.diffuse += (uint8_t)(col[j] * 0xFF) << (j * 8);
 
           texture.diffuse += 0xFF;
 
-          mat.textures.Add(texture);
+          mat.textures.PushBack(texture);
         }
       }
     }
+
+    // Need filler mats even if no textures
+    pFBX->materials.PushBack(mat);
   }
 }
 
@@ -238,11 +243,13 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
 {
   udUnused(origin);
 
-  vdkError result;
+  vdkError result = vE_Failure;
   vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
-  FbxVector4 min, max, center;
+  FbxVector4 min, max, center; // Aren't used if not successfully set by ComputeBoundingBoxMinMaxCenter
   pFBX->pManager = FbxManager::Create();
   bool calcBounds = false;
+  pFBX->materials.Init(4);
+  pFBX->uvQueue.Init(4);
 
   // Configure IO Settings
   FbxIOSettings *pIOS = FbxIOSettings::Create(pFBX->pManager, IOSROOT);
@@ -279,7 +286,15 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
 
   UD_ERROR_IF(!geoCon.Triangulate(pFBX->pScene, true), vE_Failure);
   
-  if (!pFBX->pScene->ComputeBoundingBoxMinMaxCenter(min, max, center))
+  if (pFBX->pScene->ComputeBoundingBoxMinMaxCenter(min, max, center))
+  {
+    for (int j = 0; j < 3; ++j)
+    {
+      pConvertInput->boundMax[j] = max[j];
+      pConvertInput->boundMin[j] = min[j];
+    }
+  }
+  else
   {
     calcBounds = true;
   }
@@ -297,18 +312,11 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
         pConvertInput->boundMin[j] = udMin(tempMin[j], pConvertInput->boundMin[j]);
       }
     }
-    else
-    {
-      for (int j = 0; j < 3; ++j)
-      {
-        pConvertInput->boundMax[j] = max[j];
-        pConvertInput->boundMin[j] = min[j];
-      }
-      pConvertInput->boundsKnown = true;
-    }
 
     pFBX->totalPolygons += pFBX->pScene->GetGeometry(pFBX->currMesh)->GetNode()->GetMesh()->GetPolygonCount();
   }
+
+  pConvertInput->boundsKnown = true;
 
   pFBX->lastTouchedPoly = 1; // Forces handling 0, then gets set to 0
   pFBX->lastTouchedMesh = 1;
@@ -335,7 +343,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
     return vE_InvalidParameter;
 
   vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
-  vdkError result;
+  vdkError result = vE_Failure;
 
   pBuffer->pointCount = 0;
   memset(pBuffer->pAttributes, 0, pBuffer->attributeSize * pBuffer->pointsAllocated);
@@ -406,29 +414,48 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
         for (int coord = 0; coord < 3; ++coord)
           pBuffer->pPositions[pBuffer->pointCount][coord] = (int64_t)((currPoint[coord] - pConvertInput->boundMin[coord]) / pConvertInput->sourceResolution);
 
-        // Handle colour
-        if (pConvertInput->content & vdkAC_ARGB)
-        {
-          vcFBXMaterial *pMat;
+        vcFBXMaterial *pMat = nullptr;
 
+        // Handle colour
+        if (pConvertInput->content & vdkAC_ARGB && pFBX->materials.length > 0) // must be at least one material
+        {
           uint32_t colour = 0;
           uint32_t thisColour = 0;
 
-          if (pFBX->map != FbxLayerElement::eAllSame)
-            pMat = &pFBX->materials[pFBX->pIndex->GetAt(pFBX->currMeshPointCount)];
-          else
-            pMat = &pFBX->materials[0];
+          uint32_t index = 0;
 
-          for (int tex = 0; tex < pMat->textures.Size(); ++tex)
+          switch (pFBX->map)
+          {
+          case fbxsdk::FbxLayerElement::eByPolygonVertex: // falls through
+          case fbxsdk::FbxLayerElement::eByControlPoint:
+            index = pFBX->pIndex->GetAt(pFBX->currMeshPolygon * 3);
+            break;
+          case fbxsdk::FbxLayerElement::eByPolygon:
+            index = pFBX->pIndex->GetAt(pFBX->currMeshPolygon);
+            break;
+          case fbxsdk::FbxLayerElement::eByEdge: // falls through
+          case fbxsdk::FbxLayerElement::eAllSame:
+            index = (uint32_t)pFBX->materials.length - 1;
+            break;
+          case fbxsdk::FbxLayerElement::eNone:
+            break;
+          }
+
+          if (index < pFBX->materials.length)
+            pMat = &pFBX->materials[index];
+
+          UDASSERT(pMat != nullptr, "Material index incorrectly looked up, or FBX file corrupted");
+
+          for (uint32_t tex = 0; tex < pMat->textures.length; ++tex)
           {
             vcFBXTexture *pTex = &pMat->textures[tex];
             if (pTex->pTex != nullptr)
             {
-              int index = pFBX->currMeshPointCount;
+              uint32_t uvIndex = pFBX->currMeshPointCount;
               if (pFBX->ref != FbxGeometryElement::eDirect)
-                index = pTex->pIArray->GetAt(index);
+                uvIndex = pTex->pIArray->GetAt(uvIndex);
 
-              FbxDouble2 uv = pTex->pDArray->GetAt(index);
+              FbxDouble2 uv = pTex->pDArray->GetAt(uvIndex);
               int pixel = (int)(uv[0] + (1 - uv[1]) * pTex->width);
               thisColour = pTex->pPixels[pixel];
 
@@ -511,18 +538,37 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
 
           if (numPoints > 0)
           {
-            vcFBXMaterial *pMat;
+            vcFBXMaterial *pMat = nullptr;
 
-            if (pConvertInput->content & vdkAC_ARGB)
+            if (pConvertInput->content & vdkAC_ARGB && pFBX->materials.length > 0)
             {
-              if (pFBX->map == FbxLayerElement::eByPolygon)
-                pMat = &pFBX->materials[pFBX->pIndex->GetAt(pFBX->currMeshPolygon)];
-              else
-                pMat = &pFBX->materials[0];
+              uint32_t index = 0;
+
+              switch (pFBX->map)
+              {
+              case fbxsdk::FbxLayerElement::eByPolygonVertex: // falls through
+              case fbxsdk::FbxLayerElement::eByControlPoint:
+                index = pFBX->pIndex->GetAt(pFBX->currMeshPolygon * 3);
+                break;
+              case fbxsdk::FbxLayerElement::eByPolygon:
+                index = pFBX->pIndex->GetAt(pFBX->currMeshPolygon);
+                break;
+              case fbxsdk::FbxLayerElement::eByEdge: // falls through
+              case fbxsdk::FbxLayerElement::eAllSame:
+                index = (uint32_t)pFBX->materials.length - 1;
+                break;
+              case fbxsdk::FbxLayerElement::eNone:
+                break;
+              }
+
+              if (index < pFBX->materials.length)
+                pMat = &pFBX->materials[index];
+
+              UDASSERT(pMat != nullptr, "Material index incorrectly looked up, or FBX file corrupted");
 
               uint32_t thisColour = 0;
 
-              for (int currTex = 0; currTex < pMat->textures.Size(); ++currTex)
+              for (uint32_t currTex = 0; currTex < pMat->textures.length; ++currTex)
               {
                 vcFBXTexture *pTex = &pMat->textures[currTex];
 
@@ -531,40 +577,40 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
                   for (int i = 0; i < 3; ++i)
                   {
                     FbxVector2 newVec = { 0, 0 };
-                    int index = 0;
+                    uint32_t uvIndex = 0;
                     switch (pTex->map)
                     {
-                    case FbxLayerElement::eByControlPoint:
-                      index = pFBX->pMesh->GetPolygonVertex(pFBX->currMeshPolygon, i);
+                    case fbxsdk::FbxLayerElement::eByControlPoint:
+                      uvIndex = (uint32_t)pFBX->pMesh->GetPolygonVertex(pFBX->currMeshPolygon, i);
                       break;
-                    case FbxLayerElement::eByPolygon:
-                      index = pFBX->currMeshPolygon;
+                    case fbxsdk::FbxLayerElement::eByPolygon:
+                      uvIndex = pFBX->currMeshPolygon;
                       break;
-                    case FbxLayerElement::eByPolygonVertex:
-                      index = pFBX->currMeshPolygon * 3 + i;
+                    case fbxsdk::FbxLayerElement::eByPolygonVertex:
+                      uvIndex = pFBX->currMeshPolygon * 3 + i;
                       break;
-                    case FbxLayerElement::eNone: // falls through
-                    case FbxLayerElement::eByEdge: // falls through
-                    case FbxLayerElement::eAllSame:
-                      index = 0;
+                    case fbxsdk::FbxLayerElement::eNone: // falls through
+                    case fbxsdk::FbxLayerElement::eByEdge: // falls through
+                    case fbxsdk::FbxLayerElement::eAllSame:
+                      uvIndex = 0;
                       break;
                     }
 
                     if (pTex->ref != FbxGeometryElement::eDirect)
-                      index = pTex->pIArray->GetAt(index);
+                      uvIndex = pTex->pIArray->GetAt(uvIndex);
 
-                    newVec = pTex->pDArray->GetAt(index);
+                    newVec = pTex->pDArray->GetAt(uvIndex);
+
+                    udDouble2 UV = udDouble2::create(newVec[0], 1 - newVec[1]);
 
                     if (pTex->swap)
                     {
-                      double swap = newVec[0];
-                      newVec[0] = newVec[1];
-                      newVec[1] = swap;
+                      double swap = UV[0];
+                      UV[0] = UV[1];
+                      UV[1] = swap;
                     }
 
-                    newVec[1] = 1 - newVec[1];
-
-                    pFBX->uvQueue.Add(newVec);
+                    pFBX->uvQueue.PushBack(UV);
                   }
                 }
               }
@@ -580,7 +626,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
                 uint32_t colour = 0;
                 if (pConvertInput->content & vdkAC_ARGB)
                 {
-                  for (int currTex = 0; currTex < pMat->textures.Size(); ++currTex)
+                  for (uint32_t currTex = 0; currTex < pMat->textures.length; ++currTex)
                   {
                     vcFBXTexture *pTex = &pMat->textures[currTex];
 
@@ -589,7 +635,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
 
                     if (pTex->pTex != nullptr)
                     {
-                      FbxVector2 pointUV = pFBX->uvQueue[0 + currTex * 3] * pFBX->pTriWeights[point].x + pFBX->uvQueue[1 + currTex * 3] * pFBX->pTriWeights[point].y + pFBX->uvQueue[2 + currTex * 3] * pFBX->pTriWeights[point].z;
+                      udDouble2 pointUV = pFBX->uvQueue[currTex * 3] * pFBX->pTriWeights[point].x + pFBX->uvQueue[currTex * 3 + 1] * pFBX->pTriWeights[point].y + pFBX->uvQueue[currTex * 3 + 2] * pFBX->pTriWeights[point].z;
 
                       int u = (int)udMod(udRound(pointUV[0] * w), w);
                       u = (pTex->pTex->GetWrapModeU() == FbxTexture::eRepeat ? (u + w) % w : udClamp(u, 0, w));
@@ -659,9 +705,9 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
   }
 
   // Clean up
-  for (int i = 0; i < pFBX->materials.Size(); ++i)
+  for (uint32_t i = 0; i < pFBX->materials.length; ++i)
   {
-    for (int j = 0; j < pFBX->materials[i].textures.Size(); ++j)
+    for (uint32_t j = 0; j < pFBX->materials[i].textures.length; ++j)
     {
       if (pFBX->materials[i].textures[j].pPixels)
         stbi_image_free(pFBX->materials[i].textures[j].pPixels);
