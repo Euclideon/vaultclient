@@ -190,7 +190,7 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
       continue;
 
     vcFBXMaterial mat = {};
-    mat.textures.Init(2);
+    mat.textures.Init(1);
 
     FbxProperty diffuse = pMaterial->FindProperty(FbxSurfaceMaterial::sDiffuse);
 
@@ -220,12 +220,13 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
 
         FbxDataType type = diffuse.GetPropertyDataType();
 
-        if (FbxDouble3DT == type || FbxColor3DT == type)
+        if (FbxDouble3DT == type || FbxColor3DT == type || FbxColor4DT == type || FbxDouble4DT == type)
         {
-          const FbxDouble3 col = diffuse.Get<FbxDouble3>();
+          const FbxColor col = diffuse.Get<FbxColor>();
 
-          for (int j = 1; j <= 3; ++j)
-            texture.diffuse += (uint8_t)(col[j] * 0xFF) << (j * 8);
+          texture.diffuse += (uint8_t)(col.mRed * 0xFF) << 24;
+          texture.diffuse += (uint8_t)(col.mGreen * 0xFF) << 16;
+          texture.diffuse += (uint8_t)(col.mBlue * 0xFF) << 8;
 
           texture.diffuse += 0xFF;
 
@@ -234,7 +235,7 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
       }
     }
 
-    // Need filler mats even if no textures
+    // Need filler mats even if no textures to preserve material indices
     pFBX->materials.PushBack(mat);
   }
 }
@@ -249,7 +250,7 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   pFBX->pManager = FbxManager::Create();
   bool calcBounds = false;
   pFBX->materials.Init(4);
-  pFBX->uvQueue.Init(4);
+  pFBX->uvQueue.Init(1);
 
   // Configure IO Settings
   FbxIOSettings *pIOS = FbxIOSettings::Create(pFBX->pManager, IOSROOT);
@@ -738,6 +739,12 @@ void vcFBX_Close(vdkConvertCustomItem *pConvertInput)
 
     if (pFBX->pManager != nullptr)
       pFBX->pManager->Destroy();
+
+    for (uint32_t i = 0; i < pFBX->materials.length; ++i)
+      pFBX->materials[i].textures.Deinit();
+
+    pFBX->uvQueue.Deinit();
+    pFBX->materials.Deinit();
 
     udFree(pConvertInput->pName);
     udFree(pFBX);
