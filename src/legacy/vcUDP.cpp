@@ -84,7 +84,7 @@ struct vcUDPItemData
   };
 };
 
-vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char *pModelName, const char *pModelFilename, int epsgCode, udDouble3 *pPosition, udDouble3 *pYPR, double scale)
+vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char *pModelName, const char *pModelFilename, int epsgCode, udDouble3 *pPosition, udDouble3 *pYPR, double *pScale)
 {
   // If the model filename is nullptr there's nothing to load
   if (pModelFilename == nullptr)
@@ -126,8 +126,8 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
     vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.r", pPosition->z);
   }
 
-  if (scale != 1.0)
-    vdkProjectNode_SetMetadataDouble(pNode, "transform.scale", scale);
+  if (pScale != nullptr)
+    vdkProjectNode_SetMetadataDouble(pNode, "transform.scale", *pScale);
 
   return pNode;
 }
@@ -338,6 +338,7 @@ void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::ve
 
     udDouble3 *pPosition = nullptr;
     udDouble3 *pYPR = nullptr;
+    double *pScale = nullptr;
 
     if (item.dataset.pLocation != nullptr)
     {
@@ -360,9 +361,12 @@ void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::ve
     }
 
     if (item.dataset.pScale != nullptr)
+    {
       scale = udStrAtof64(item.dataset.pScale);
+      pScale = &scale;
+    }
 
-    vdkProjectNode *pNode = vcUDP_AddModel(pProgramState, pFilename, item.dataset.pName, item.dataset.pPath, epsgCode, pPosition, pYPR, scale);
+    vdkProjectNode *pNode = vcUDP_AddModel(pProgramState, pFilename, item.dataset.pName, item.dataset.pPath, epsgCode, pPosition, pYPR, pScale);
 
     vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
     pItemData->at(index).sceneFolder = { pParentNode, pNode };
@@ -612,7 +616,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
       const char *pName = dataEntries.Get("[%zu].Name", i).AsString();
       if (udStrEqual(pName, "AbsoluteModelPath"))
       {
-        vcUDP_AddModel(pProgramState, pFilename, nullptr, dataEntries.Get("[%zu].content", i).AsString(), 0, nullptr, nullptr, 1.0);
+        vcUDP_AddModel(pProgramState, pFilename, nullptr, dataEntries.Get("[%zu].content", i).AsString(), 0, nullptr, nullptr, nullptr);
       }
     }
 
