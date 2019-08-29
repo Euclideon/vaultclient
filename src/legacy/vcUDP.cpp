@@ -109,7 +109,10 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
   {
     udGeoZone tempZone = {};
     if (udGeoZone_SetFromSRID(&tempZone, epsgCode) == udR_Success)
-      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &pPosition->x);
+    {
+      udDouble3 longLat = udGeoZone_ToLatLong(tempZone, *pPosition, true);
+      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &longLat.x);
+    }
   }
 
   if (pPosition != nullptr)
@@ -121,9 +124,9 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
 
   if (pYPR != nullptr)
   {
-    vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", pPosition->x);
-    vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.p", pPosition->y);
-    vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.r", pPosition->z);
+    vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", pYPR->x);
+    vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.p", pYPR->y);
+    vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.r", pYPR->z);
   }
 
   if (pScale != nullptr)
