@@ -190,7 +190,7 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
       continue;
 
     vcFBXMaterial mat = {};
-    mat.textures.Init(1);
+    mat.textures.Init(4);
 
     FbxProperty diffuse = pMaterial->FindProperty(FbxSurfaceMaterial::sDiffuse);
 
