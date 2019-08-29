@@ -306,7 +306,7 @@ void main()
 {
   vec4 colour = texture(u_texture, v_texCoord / u_imageSize.xy).rgba;
   float effectiveAlpha = min(colour.a, u_tintColour.a);
-  out_Colour = vec4((colour.rgb * effectiveAlpha) + (u_tintColour.rgb * (1 - effectiveAlpha)), 1);
+  out_Colour = vec4((colour.rgb * effectiveAlpha) + (u_tintColour.rgb * (1.0 - effectiveAlpha)), 1);
 }
 )shader";
 
