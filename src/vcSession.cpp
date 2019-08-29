@@ -69,7 +69,15 @@ void vcSession_Login(void *pProgramStatePtr)
   vdkError result;
   vcState *pProgramState = (vcState*)pProgramStatePtr;
 
-  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "EuclideonVaultClient" VCVERSION_VERSION_STRING, pProgramState->settings.loginInfo.username, pProgramState->password);
+#ifdef GIT_TAG
+#  define TAG_SUFFIX VCVERSION_VERSION_STRING
+#elif VCVERSION_BUILD_NUMBER > 0
+#  define TAG_SUFFIX VCVERSION_VERSION_STRING " Internal Build"
+#else
+#  define TAG_SUFFIX VCSTRINGIFY(VCVERSION_VERSION_ARRAY_PARTIAL) " Developer Build"
+#endif
+
+  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, udTempStr("Euclideon Vault Client / " TAG_SUFFIX " (%s)", vcSession_GetOSName()), pProgramState->settings.loginInfo.username, pProgramState->password);
   if (result == vE_ConnectionFailure)
     pProgramState->loginStatus = vcLS_ConnectionError;
   else if (result == vE_AuthFailure)
