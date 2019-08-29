@@ -250,7 +250,7 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   pFBX->pManager = FbxManager::Create();
   bool calcBounds = false;
   pFBX->materials.Init(4);
-  pFBX->uvQueue.Init(1);
+  pFBX->uvQueue.Init(4);
 
   // Configure IO Settings
   FbxIOSettings *pIOS = FbxIOSettings::Create(pFBX->pManager, IOSROOT);
