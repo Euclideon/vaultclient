@@ -83,7 +83,7 @@ void vcI3S::ChangeProjection(const udGeoZone &newZone)
     return;
 
   udDouble4x4 prevOrigin = udDouble4x4::translation(GetLocalSpacePivot());
-  udDouble4x4 newOffset = m_sceneMatrix * prevOrigin;
+  udDouble4x4 newOffset = udDouble4x4::identity() * prevOrigin;
   newOffset = udGeoZone_TransformMatrix(newOffset, *pInternalZone, newZone);
   m_sceneMatrix = newOffset * udInverse(prevOrigin);
 }
