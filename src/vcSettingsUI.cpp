@@ -367,8 +367,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
           pProgramState->settings.postVisualization.contours.distances = udClamp(pProgramState->settings.postVisualization.contours.distances, vcSL_ContourDistanceMin, vcSL_GlobalLimitSmallf);
         if (ImGui::SliderFloat(vcString::Get("settingsVisContoursBandHeight"), &pProgramState->settings.postVisualization.contours.bandHeight, vcSL_ContourBandHeightMin, vcSL_ContourBandHeightMax, "%.3f", 2))
           pProgramState->settings.postVisualization.contours.bandHeight = udClamp(pProgramState->settings.postVisualization.contours.bandHeight, vcSL_ContourBandHeightMin, vcSL_GlobalLimitSmallf);
-        if (ImGui::SliderFloat(vcString::Get("settingsVisContoursRainboxRepeatRate"), &pProgramState->settings.postVisualization.contours.rainbowRepeat, 0.5f, 10.f, "%.3f", 2))
-          pProgramState->settings.postVisualization.contours.rainbowRepeat = udClamp(pProgramState->settings.postVisualization.contours.rainbowRepeat, 0.5f, 10.f);
+        if (ImGui::SliderFloat(vcString::Get("settingsVisContoursRainboxRepeatRate"), &pProgramState->settings.postVisualization.contours.rainbowRepeat, 0.1f, 10.f, "%.3f", 2))
+          pProgramState->settings.postVisualization.contours.rainbowRepeat = udClamp(pProgramState->settings.postVisualization.contours.rainbowRepeat, 0.1f, 10.f);
         if (ImGui::SliderFloat(vcString::Get("settingsVisContoursRainboxIntensity"), &pProgramState->settings.postVisualization.contours.rainbowIntensity, 0.f, 1.f, "%.3f", 2))
           pProgramState->settings.postVisualization.contours.rainbowIntensity = udClamp(pProgramState->settings.postVisualization.contours.rainbowIntensity, 0.f, 1.f);
       }

@@ -80,37 +80,11 @@ const char* const g_udFragmentShader = R"shader(
     return float4(lerp(col.xyz, edgeColour, isEdge), lerp(depth, minDepth, isEdge));
   }
 
-  float lerpVal(float val, float y0, float x0, float y1, float x1)
+  float3 hsv2rgb(float3 c)
   {
-    return (val - x0) * (y1 - y0) / (x1 - x0) + y0;
-  }
-
-  float3 GetColours(float intensity)
-  {
-    float blue = 0.0;
-    float green = 0.0;
-    float red = 0.0;
-
-    if (intensity < 0.33)
-    {
-      blue = 1.0;
-      green = lerpVal(intensity, 0.0, 0, 1.0, 0.33);
-      red = 0.0;
-    }
-    else if(intensity >= 0.33 && intensity <= 0.66)
-    {
-      blue = lerpVal(intensity, 1.0, 0.33, 0.0, 0.66);
-      green = 1.0;
-      red = lerpVal(intensity, 0.0, 0.33, 1.0, 0.66);
-    }
-    else
-    {
-      blue = 0.0;
-      green = lerpVal(intensity, 1.0, 0.66, 0.0, 1.0);
-      red = 1.0;
-    }
-
-    return float3(red, green, blue);
+    float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    float3 p = abs(frac(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * lerp(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
   }
 
   float3 contourColour(float3 col, float3 fragWorldPosition)
@@ -120,9 +94,11 @@ const char* const g_udFragmentShader = R"shader(
     float contourRainboxRepeat = u_contourParams.z;
     float contourRainboxIntensity = u_contourParams.w;
 
-    float isCountour = step(contourBandHeight, fmod(abs(fragWorldPosition.z), contourDistance));
-    float3 contourColour = lerp(col.xyz, u_contourColour.xyz, u_contourColour.w);
-    return lerp(contourColour, col.xyz, isCountour) * (1.0 - contourRainboxIntensity) + lerp(contourColour, GetColours(abs(1.0 - ((fmod(abs(fragWorldPosition.z), contourRainboxRepeat) / (contourRainboxRepeat)) * 2.0))), isCountour) * contourRainboxIntensity;
+    float3 rainbowColour = hsv2rgb(float3(fragWorldPosition.z * (1.0 / contourRainboxRepeat), 1.0, 1.0));
+    float3 baseColour = lerp(col.xyz, rainbowColour, contourRainboxIntensity);
+
+    float isContour = 1.0 - step(contourBandHeight, fmod(abs(fragWorldPosition.z), contourDistance));
+    return lerp(baseColour, u_contourColour.xyz, isContour * u_contourColour.w);
   }
 
   float3 colourizeByHeight(float3 col, float3 fragWorldPosition)
@@ -156,10 +132,10 @@ const char* const g_udFragmentShader = R"shader(
 
     float4 fragWorldPosition = mul(u_inverseViewProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, depth, 1.0));
     fragWorldPosition /= fragWorldPosition.w;
-
+    
     col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
     col.xyz = colourizeByDepth(col.xyz, depth);
-
+    
     float edgeOutlineWidth = u_outlineParams.x;
     if (edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
     {

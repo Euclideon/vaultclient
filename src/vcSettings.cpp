@@ -244,6 +244,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       pSettings->postVisualization.contours.colour[i] = data.Get("postVisualization.contours.colour[%d]", i).AsFloat((i == 3) ? 1.f : 0.f); // 0.f, 0.f, 0.f, 1.f
     pSettings->postVisualization.contours.distances = data.Get("postVisualization.contours.distances").AsFloat(50.f);
     pSettings->postVisualization.contours.bandHeight = data.Get("postVisualization.contours.bandHeight").AsFloat(1.f);
+    pSettings->postVisualization.contours.rainbowRepeat = data.Get("postVisualization.contours.rainbowRepeat").AsFloat(1.f);
+    pSettings->postVisualization.contours.rainbowIntensity = data.Get("postVisualization.contours.rainbowIntensity").AsFloat(0.f);
   }
 
   if (group == vcSC_Convert || group == vcSC_All)
@@ -594,6 +596,8 @@ bool vcSettings_Save(vcSettings *pSettings)
     data.Set("postVisualization.contours.colour[] = %f", pSettings->postVisualization.contours.colour[i]);
   data.Set("postVisualization.contours.distances = %f", pSettings->postVisualization.contours.distances);
   data.Set("postVisualization.contours.bandHeight = %f", pSettings->postVisualization.contours.bandHeight);
+  data.Set("postVisualization.contours.rainbowRepeat = %f", pSettings->postVisualization.contours.rainbowRepeat);
+  data.Set("postVisualization.contours.rainbowIntensity = %f", pSettings->postVisualization.contours.rainbowIntensity);
 
   // Convert Settings
   tempNode.SetString(pSettings->convertdefaults.tempDirectory);
