@@ -204,6 +204,8 @@ struct vcSettings
       udFloat4 colour;
       float distances;
       float bandHeight;
+      float rainbowRepeat;
+      float rainbowIntensity;
     } contours;
   } postVisualization;
 
