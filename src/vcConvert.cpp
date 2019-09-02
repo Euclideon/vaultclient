@@ -896,7 +896,15 @@ void vcConvert_ResetConvert(vcState *pProgramState, vcConvertItem *pConvertItem,
   for (size_t i = 0; i < pConvertItem->pConvertInfo->totalItems; i++)
   {
     vdkConvert_GetItemInfo(pProgramState->pVDKContext, pConvertItem->pConvertContext, i, pItemInfo);
-    vdkConvert_AddItem(pProgramState->pVDKContext, pConvertContext, pItemInfo->pFilename);
+
+    if (udStrEndsWithi(pItemInfo->pFilename, ".slpk"))
+      vcSceneLayerConvert_AddItem(pProgramState->pVDKContext, pConvertContext, pItemInfo->pFilename);
+#ifdef FBXSDK_ON
+    else if (udStrEndsWithi(pItemInfo->pFilename, ".fbx"))
+      vcFBX_AddItem(pProgramState->pVDKContext, pConvertContext, pItemInfo->pFilename);
+#endif
+    else
+      vdkConvert_AddItem(pProgramState->pVDKContext, pConvertContext, pItemInfo->pFilename);
   }
 
   vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pConvertContext, pConvertItem->pConvertInfo->pOutputName);
