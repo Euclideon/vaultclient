@@ -21,6 +21,28 @@
 #include "vcWaterNode.h"
 #include "vcViewpoint.h"
 
+void HandleNodeSelection(vcState* pProgramState, vcSceneItem* pSceneItem, vdkProjectNode* pNode)
+{
+  if (pProgramState->sceneExplorer.selectUUIDWhenPossible[0] == '\0' || !udStrEqual(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID))
+    return;
+
+  if (!ImGui::GetIO().KeyCtrl)
+    vcProject_ClearSelection(pProgramState);
+
+  if (pSceneItem->m_selected)
+  {
+    vcProject_UnselectItem(pProgramState, pSceneItem->m_pNode, pNode);
+    pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
+  }
+  else
+  {
+    vcProject_SelectItem(pProgramState, pSceneItem->m_pNode, pNode);
+    pProgramState->sceneExplorer.clickedItem = { pSceneItem->m_pNode, pNode };
+  }
+
+  memset(pProgramState->sceneExplorer.selectUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.selectUUIDWhenPossible));
+}
+
 vcFolder::vcFolder(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
 {
@@ -35,6 +57,8 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   vdkProjectNode *pNode = m_pNode->pFirstChild;
   while (pNode != nullptr)
   {
+    HandleNodeSelection(pProgramState, this, pNode);
+
     if (pNode->pUserData != nullptr)
     {
       vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
@@ -196,26 +220,8 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       }
 
       bool sceneExplorerItemClicked = ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!pSceneItem->m_selected && ImGui::IsItemActive()));
-      bool sceneItemClicked = (pProgramState->sceneExplorer.selectUUIDWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID));
-      if (sceneExplorerItemClicked || sceneItemClicked)
-      {
-        if (!ImGui::GetIO().KeyCtrl)
-          vcProject_ClearSelection(pProgramState);
-
-        if (pSceneItem->m_selected)
-        {
-          vcProject_UnselectItem(pProgramState, m_pNode, pNode);
-          pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
-        }
-        else
-        {
-          vcProject_SelectItem(pProgramState, m_pNode, pNode);
-          pProgramState->sceneExplorer.clickedItem = { m_pNode, pNode };
-        }
-
-        if (sceneItemClicked)
-          memset(pProgramState->sceneExplorer.selectUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.selectUUIDWhenPossible));
-      }
+      if (sceneExplorerItemClicked)
+        udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
 
       if (pSceneItem->m_loadStatus == vcSLS_Loaded && pProgramState->sceneExplorer.movetoUUIDWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID))
       {

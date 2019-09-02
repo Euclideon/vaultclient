@@ -285,6 +285,7 @@ void vcMain_MainLoop(vcState *pProgramState)
     vcRenderWindow(pProgramState);
   else
     vcMain_ShowStartupScreen(pProgramState);
+
   ImGui::Render();
 
 #if GRAPHICS_API_METAL
@@ -1207,11 +1208,15 @@ void vcRenderSceneWindow(vcState *pProgramState)
   if (!pProgramState->settings.window.presentationMode || pProgramState->settings.responsiveUI == vcPM_Show || pProgramState->showUI)
     vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
 
+  udUInt2 scaledSceneResolution = {};
+  udUInt2 sceneResolution = vcRender_GetSceneResolution(pProgramState->pRenderContext, &scaledSceneResolution);
+  udFloat2 uvSize = udFloat2::create(float(sceneResolution.x) / scaledSceneResolution.x, float(sceneResolution.y) / scaledSceneResolution.y);
+
   ImVec2 uv0 = ImVec2(0, 0);
-  ImVec2 uv1 = ImVec2(1, 1);
+  ImVec2 uv1 = ImVec2(uvSize.x, uvSize.y);
 #if GRAPHICS_API_OPENGL
   uv1.y = 0;
-  uv0.y = 1;
+  uv0.y = uvSize.y;
 #endif
 
   {

@@ -71,6 +71,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 void vcRender_SceneImGui(vcState *pProgramState, vcRenderContext *pRenderContext, const vcRenderData &renderData);
 
 vcTexture* vcRender_GetSceneTexture(vcState *pProgramState, vcRenderContext *pRenderContext);
+udUInt2 vcRender_GetSceneResolution(vcRenderContext* pRenderContext, udUInt2* pScaledSceneResolution);
 
 void vcRender_ClearTiles(vcRenderContext *pRenderContext);
 void vcRender_ClearPoints(vcRenderContext *pRenderContext);
