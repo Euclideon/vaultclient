@@ -229,6 +229,6 @@ bool vcMesh_Render(vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_t start
   else
     g_pd3dDeviceContext->DrawIndexed(elementCount * elementsPerPrimitive, startElement * elementsPerPrimitive, 0);
 
-  vcGLState_ReportGPUWork(1, elementCount - startElement, 0);
+  vcGLState_ReportGPUWork(1, elementCount * elementsPerPrimitive, 0);
   return true;
 }

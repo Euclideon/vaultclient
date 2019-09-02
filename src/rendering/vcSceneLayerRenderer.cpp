@@ -11,6 +11,7 @@ udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer
 {
   udResult result;
   vcSceneLayerRenderer *pSceneLayerRenderer = nullptr;
+  uint8_t grayPixel[4] = { 0x7f, 0x7f, 0x7f, 0xff };
 
   UD_ERROR_NULL(ppSceneLayerRenderer, udR_InvalidParameter_);
   UD_ERROR_NULL(pWorkerThreadPool, udR_InvalidParameter_);
@@ -20,6 +21,8 @@ udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer
   UD_ERROR_NULL(pSceneLayerRenderer, udR_MemoryAllocationFailure);
 
   UD_ERROR_CHECK(vcSceneLayer_Create(&pSceneLayerRenderer->pSceneLayer, pWorkerThreadPool, pSceneLayerURL));
+
+  UD_ERROR_CHECK(vcTexture_Create(&pSceneLayerRenderer->pEmptyTexture, 1, 1, grayPixel));
 
   *ppSceneLayerRenderer = pSceneLayerRenderer;
   pSceneLayerRenderer = nullptr;
@@ -37,21 +40,20 @@ epilogue:
 
 udResult vcSceneLayerRenderer_Destroy(vcSceneLayerRenderer **ppSceneLayerRenderer)
 {
-  udResult result;
-  vcSceneLayerRenderer *pSceneLayerRenderer = nullptr;
+  if (ppSceneLayerRenderer == nullptr || *ppSceneLayerRenderer == nullptr)
+    return udR_Success;
 
-  UD_ERROR_NULL(ppSceneLayerRenderer, udR_InvalidParameter_);
+  vcSceneLayerRenderer *pSceneLayerRenderer = nullptr;
 
   pSceneLayerRenderer = *ppSceneLayerRenderer;
   *ppSceneLayerRenderer = nullptr;
 
+  vcTexture_Destroy(&pSceneLayerRenderer->pEmptyTexture);
+
   vcSceneLayer_Destroy(&pSceneLayerRenderer->pSceneLayer);
   udFree(pSceneLayerRenderer);
 
-  result = udR_Success;
-
-epilogue:
-  return result;
+  return udR_Success;
 }
 
 bool vcSceneLayerRenderer_IsNodeVisible(vcSceneLayerNode *pNode, const udDouble4 frustumPlanes[6])
@@ -71,10 +73,8 @@ double vcSceneLayerRenderer_CalculateNodeScreenSize(vcSceneLayerNode *pNode, con
   p1 /= p1.w;
   p2 /= p2.w;
 
-  // TODO: (EVC-548) Verify this `2.0` is correct (because I only calculate the half size above)
-  // I'm 75% sure it is, but changing it to 1.0 does cause a very slight noticeable LOD pop, but is that meant to happen?
-  double r1 = udMag(center.toVector3() - p1.toVector3()) * 1.0; // 2.0 or 1.0?
-  double r2 = udMag(center.toVector3() - p2.toVector3()) * 1.0; // 2.0 or 1.0?
+  double r1 = udMag(center.toVector3() - p1.toVector3());
+  double r2 = udMag(center.toVector3() - p2.toVector3());
   udDouble2 screenSize = udDouble2::create(screenResolution.x * r1, screenResolution.y * r2);
   return udMax(screenSize.x, screenSize.y);
 }
@@ -88,7 +88,7 @@ void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayerRenderer, 
     if (!pNode->pGeometryData[geometry].loaded)
       continue;
 
-    vcTexture *pDrawTexture = nullptr;
+    vcTexture *pDrawTexture = pSceneLayerRenderer->pEmptyTexture;
     if (pNode->textureDataCount > 0 && pNode->pTextureData[0].loaded)
       pDrawTexture = pNode->pTextureData[0].pTexture; // TODO: (EVC-542) read the actual material data
 
@@ -101,38 +101,57 @@ void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayerRenderer, 
 bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution, const udFloat4 *pColourOverride)
 {
   if (!vcSceneLayerRenderer_IsNodeVisible(pNode, pSceneLayerRenderer->frustumPlanes))
+  {
+    vcSceneLayer_CheckNodePruneCandidancy(pSceneLayerRenderer->pSceneLayer, pNode);
     return true; // consume, but do nothing
+  }
 
-  if (!vcSceneLayer_TouchNode(pSceneLayerRenderer->pSceneLayer, pNode))
+  if (!vcSceneLayer_TouchNode(pSceneLayerRenderer->pSceneLayer, pNode, pSceneLayerRenderer->cameraPosition))
     return false;
 
   double nodeScreenSize = vcSceneLayerRenderer_CalculateNodeScreenSize(pNode, viewProjectionMatrix, screenResolution);
-  if (pNode->childrenCount == 0 || nodeScreenSize < pNode->lodSelectionValue)
+  bool shouldRender = (pNode->childrenCount == 0 || nodeScreenSize < pNode->lodSelectionValue);
+  
+  if (shouldRender)
   {
-    vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, viewProjectionMatrix, pColourOverride);
-    return true;
+    if (vcSceneLayer_ExpandNodeForRendering(pSceneLayerRenderer->pSceneLayer, pNode))
+    {
+      vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, viewProjectionMatrix, pColourOverride);
+      return true;
+    }
+
+    // continue, as child may be able to draw
   }
 
-  bool childrenAllRendered = true;
+  bool childNeedsParentRendering = true;
   for (size_t i = 0; i < pNode->childrenCount; ++i)
   {
     vcSceneLayerNode *pChildNode = &pNode->pChildren[i];
-    childrenAllRendered = vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, pChildNode, viewProjectionMatrix, screenResolution, pColourOverride) && childrenAllRendered;
+    childNeedsParentRendering = vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, pChildNode, viewProjectionMatrix, screenResolution, pColourOverride) && childNeedsParentRendering;
   }
 
-  // TODO: (EVC-548)
-  // If children are not loaded in yet, render this LOD.
-  // At the moment this can cause incorrect occlusion
-  if (!childrenAllRendered)
-    vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, viewProjectionMatrix, pColourOverride);
+  // If any children can't render, draw this node
+  // This *may* cause some occlusion sometimes with partial children loaded, but its
+  // better than sometimes no geometry being drawn.
+  if (!childNeedsParentRendering && pNode->internalsLoadState >= vcSceneLayerNode::vcILS_NodeInternals)
+  {
+    if (vcSceneLayer_ExpandNodeForRendering(pSceneLayerRenderer->pSceneLayer, pNode))
+    {
+      // note: only render at this point if node is completely expanded
+      vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, viewProjectionMatrix, pColourOverride);
+      return true;
+    }
+  }
 
-  return true;
+  return childNeedsParentRendering && !shouldRender;
 }
 
-bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayerRenderer, const udDouble4x4 &worldMatrix, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution, const udFloat4 *pColourOverride /*= nullptr*/)
+bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayerRenderer, const udDouble4x4 &worldMatrix, const udDouble4x4 &viewProjectionMatrix, const udDouble3 &cameraPosition, const udUInt2 &screenResolution, const udFloat4 *pColourOverride /*= nullptr*/)
 {
   if (pSceneLayerRenderer == nullptr)
     return false;
+
+  pSceneLayerRenderer->cameraPosition = cameraPosition;
 
   // TODO: (EVC-548) This is duplicated work across i3s models
   // extract frustum planes

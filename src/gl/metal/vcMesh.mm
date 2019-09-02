@@ -222,6 +222,6 @@ bool vcMesh_Render(struct vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_
     [_viewCon.renderer drawUnindexed:_viewCon.renderer.vertBuffers[[NSString stringWithUTF8String:pMesh->vBufferIndex]] vertexStart:startElement * pMesh->vertexBytes vertexCount:elementCount primitiveType:primitiveType];
   }
 
-  vcGLState_ReportGPUWork(1, elementCount - startElement, 0);
+  vcGLState_ReportGPUWork(1, elementCount * elementsPerPrimitive, 0);
   return true;
 }

@@ -24,15 +24,25 @@ struct vcSceneLayerNode
   {
     vcLS_NotLoaded,
     vcLS_Failed,
+
     vcLS_InQueue,
     vcLS_Loading,
 
-    vcLS_PartialLoad, // TODO: (EVC-569) Partial node uploading has not been fully tested
-    vcLS_InMemory,
     vcLS_Success,
   };
 
+  enum vcInternalsLoadState
+  {
+    vcILS_None,
+    vcILS_BasicNodeData,  // Enough information has been loaded to determine if this node should be rendered or not
+    vcILS_NodeInternals,  // All the node information has been loaded into main memory
+    vcILS_UploadedToGPU,  // The node is completely ready for rendering
+
+    vcILS_FreedGPUResources, // special state, the nodes texture data has been freed, and must be entirely reloaded
+  };
+
   volatile vcLoadState loadState;
+  volatile vcInternalsLoadState internalsLoadState;
 
   int level;
   char *pID;
@@ -122,11 +132,15 @@ struct vcSceneLayer
   vcSceneLayerNode root;
 };
 
-udResult vcSceneLayer_LoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode = nullptr, const vcSceneLayerLoadType &loadType = vcSLLT_None);
+udResult vcSceneLayer_LoadNode(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode = nullptr, const vcSceneLayerLoadType &loadType = vcSLLT_None);
+udResult vcSceneLayer_LoadNodeInternals(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
+
+void vcSceneLayer_CheckNodePruneCandidancy(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
 
 // Prepares the node for use
 // Returns true if the node is ready for use
-bool vcSceneLayer_TouchNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
+bool vcSceneLayer_TouchNode(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode, const udDouble3 &cameraPosition);
+bool vcSceneLayer_ExpandNodeForRendering(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
 
 // TODO: (EVC-540) ASSUMPTIONS! (assumed a specific vertex layout!)
 struct vcSceneLayerVertex

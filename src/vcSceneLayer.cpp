@@ -12,48 +12,212 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 #include "udWorkerPool.h"
+#include "udThread.h"
 
-// TODO: (EVC-553) This is temporary
-uint64_t gpuBytesUploadedThisFrame = 0;
+enum
+{
+  MaxNodeLoadQueueLength = 8, 
+};
+
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_EMSCRIPTEN || UDPLATFORM_ANDROID
+static int64_t gMaxAllowedGPUMemory = 2ull << 30; // 2 GB 
+#else
+static int64_t gMaxAllowedGPUMemory = 4ull << 30; // 4 GB 
+#endif
 
 struct vcSceneLayer_LoadNodeJobData
 {
-  vcSceneLayer *pSceneLayer;
+  const vcSceneLayer *pSceneLayer;
   vcSceneLayerNode *pNode;
-  vcSceneLayerLoadType loadType;
 };
 
-udResult vcSceneLayer_LoadNodeInternals(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
+struct
+{
+  int refCount;
+  int64_t gpuMemoryUsageBytes;
+  udChunkedArray<vcSceneLayerNode*> pruneList;
+
+  // safe queue
+  struct
+  {
+    bool keepLoading;
+    udMutex *pLock;
+    udChunkedArray<vcSceneLayer_LoadNodeJobData> queue; // stored in descending order of priority
+  } loadQueue;
+  
+} static gSceneLayer = {};
+
+void vcSceneLayer_RecursiveNodeFreeGPUResources(vcSceneLayerNode *pNode);
+udResult vcSceneLayer_LoadTextureData(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
+
+void vcSceneLayer_Init()
+{
+  gSceneLayer.refCount++;
+  if (gSceneLayer.refCount == 1)
+  {
+    gSceneLayer.loadQueue.pLock = udCreateMutex();
+    gSceneLayer.loadQueue.queue.Init(MaxNodeLoadQueueLength);
+    gSceneLayer.loadQueue.keepLoading = true;
+
+    gSceneLayer.pruneList.Init(256);
+  }
+}
+
+void vcSceneLayer_Destroy()
+{
+  gSceneLayer.refCount--;
+  if (gSceneLayer.refCount == 0)
+  {
+    udLockMutex(gSceneLayer.loadQueue.pLock);
+    gSceneLayer.loadQueue.keepLoading = false;
+
+    // at this point the queue will be empty because all scenelayers will have been destroyed, self removing
+    // any of their nodes in the queue
+
+    gSceneLayer.loadQueue.queue.Deinit();
+    udReleaseMutex(gSceneLayer.loadQueue.pLock);
+    udDestroyMutex(&gSceneLayer.loadQueue.pLock);
+
+    gSceneLayer.pruneList.Deinit();
+  }
+}
+
+void vcSceneLayer_BeginFrame()
+{
+  gSceneLayer.pruneList.Clear();
+}
+
+void vcSceneLayer_EndFrame()
+{
+  if (gSceneLayer.gpuMemoryUsageBytes < gMaxAllowedGPUMemory)
+    return;
+
+  while ((gSceneLayer.gpuMemoryUsageBytes >= gMaxAllowedGPUMemory) && gSceneLayer.pruneList.length > 0)
+  {
+    vcSceneLayerNode *pPruneCndidate = nullptr;
+    gSceneLayer.pruneList.PopFront(&pPruneCndidate);
+    vcSceneLayer_RecursiveNodeFreeGPUResources(pPruneCndidate);
+  }
+}
 
 void vcSceneLayer_LoadNodeJob(void *pData)
 {
-  vcSceneLayer_LoadNodeJobData *pLoadData = (vcSceneLayer_LoadNodeJobData*)pData;
+  udUnused(pData);
 
-  if (!pLoadData->pSceneLayer->isActive)
-  {
-    pLoadData->pNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
+  if (!gSceneLayer.loadQueue.keepLoading)
     return;
-  }
 
-  // TODO: (JIRA 548) this will load the entirety of the nodes data - which could be unnecessary?
-  vcSceneLayer_LoadNode(pLoadData->pSceneLayer, pLoadData->pNode, vcSLLT_Rendering);
+  vcSceneLayer_LoadNodeJobData bestJob = {};
+
+  udLockMutex(gSceneLayer.loadQueue.pLock);
+  gSceneLayer.loadQueue.queue.PopFront(&bestJob);
+  udReleaseMutex(gSceneLayer.loadQueue.pLock);
+
+  if (bestJob.pNode->internalsLoadState == vcSceneLayerNode::vcILS_None)
+  {
+    // Load basic node info
+    vcSceneLayer_LoadNode(bestJob.pSceneLayer, bestJob.pNode, vcSLLT_Rendering);
+  }
+  else if (bestJob.pNode->internalsLoadState == vcSceneLayerNode::vcILS_BasicNodeData)
+  {
+    // Load node internals to main memory
+    vcSceneLayer_LoadNodeInternals(bestJob.pSceneLayer, bestJob.pNode);
+  }
+  else if (bestJob.pNode->internalsLoadState == vcSceneLayerNode::vcILS_FreedGPUResources)
+  {
+    // only reload texture data to main memory
+    vcSceneLayer_LoadTextureData(bestJob.pSceneLayer, bestJob.pNode);
+
+    bestJob.pNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
+    bestJob.pNode->internalsLoadState = vcSceneLayerNode::vcILS_NodeInternals;
+  }
 }
 
-void vcSceneLayer_LoadNodeInternalsJob(void *pData)
+void vcSceneLayer_TrySortedRemove(vcSceneLayerNode *pNode)
 {
-  vcSceneLayer_LoadNodeJobData *pLoadData = (vcSceneLayer_LoadNodeJobData*)pData;
-
-  if (!pLoadData->pSceneLayer->isActive)
+  for (size_t i = 0; i < gSceneLayer.loadQueue.queue.length; ++i)
   {
-    pLoadData->pNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
-    return;
+    if (gSceneLayer.loadQueue.queue[i].pNode == pNode)
+    {
+      gSceneLayer.loadQueue.queue.RemoveAt(i);
+      pNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
+      break;
+    }
   }
-
-  // TODO: (JIRA 548) this will load the entirety of the nodes data - which could be unnecessary?
-  vcSceneLayer_LoadNodeInternals(pLoadData->pSceneLayer, pLoadData->pNode);
 }
 
-// TODO: (EVC-549) This should be in udCore
+void vcSceneLayer_InsertFront(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pInsertNode)
+{
+  udLockMutex(gSceneLayer.loadQueue.pLock);
+  vcSceneLayer_LoadNodeJobData jobData = { pSceneLayer, pInsertNode };
+  gSceneLayer.loadQueue.queue.PushFront(jobData);
+
+  pInsertNode->loadState = vcSceneLayerNode::vcLS_InQueue;
+  if (gSceneLayer.loadQueue.queue.length <= MaxNodeLoadQueueLength)
+  {
+    udWorkerPool_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeJob, nullptr);
+  }
+  else
+  {
+    vcSceneLayer_LoadNodeJobData *pRemovedJob = &gSceneLayer.loadQueue.queue[gSceneLayer.loadQueue.queue.length - 1];
+    pRemovedJob->pNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
+    gSceneLayer.loadQueue.queue.PopBack();
+  }
+
+  udReleaseMutex(gSceneLayer.loadQueue.pLock);
+}
+
+void vcSceneLayer_TryLoadNodeByDistance(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pInsertNode, const udDouble3 &cameraPosition)
+{
+  udResult result = udR_Failure_;
+  vcSceneLayer_LoadNodeJobData jobData = {};
+
+  size_t insertIndex = 0;
+  double nodeDistSqr = udMagSq3(cameraPosition - pInsertNode->minimumBoundingSphere.position) - (pInsertNode->minimumBoundingSphere.radius * pInsertNode->minimumBoundingSphere.radius);
+
+  udLockMutex(gSceneLayer.loadQueue.pLock);
+
+  for (insertIndex = 0; insertIndex < gSceneLayer.loadQueue.queue.length; ++insertIndex)
+  {
+    vcSceneLayerNode *pQueuedNode = gSceneLayer.loadQueue.queue[insertIndex].pNode;
+    double queuedNodeDistSqr = udMagSq3(cameraPosition - pQueuedNode->minimumBoundingSphere.position) - (pQueuedNode->minimumBoundingSphere.radius * pQueuedNode->minimumBoundingSphere.radius);
+    if (nodeDistSqr < queuedNodeDistSqr)
+      break;
+  }
+
+  UD_ERROR_IF(insertIndex == MaxNodeLoadQueueLength, udR_Failure_);
+
+  pInsertNode->loadState = vcSceneLayerNode::vcLS_InQueue;
+
+  jobData.pSceneLayer = pSceneLayer;
+  jobData.pNode = pInsertNode;
+  gSceneLayer.loadQueue.queue.Insert(insertIndex, &jobData); // note: this does a copy
+
+  if (gSceneLayer.loadQueue.queue.length <= MaxNodeLoadQueueLength)
+  {
+    // create a job for this index
+    udWorkerPool_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeJob, nullptr);
+  }
+  else
+  {
+    // update and pop last node
+    vcSceneLayer_LoadNodeJobData *pRemovedJob = &gSceneLayer.loadQueue.queue[gSceneLayer.loadQueue.queue.length - 1];
+    pRemovedJob->pNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
+    gSceneLayer.loadQueue.queue.PopBack();
+  }
+
+  result = udR_Success;
+epilogue:
+  udReleaseMutex(gSceneLayer.loadQueue.pLock);
+}
+
+void vcSceneLayer_AddPruneCandidate(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
+{
+  udUnused(pSceneLayer);
+  gSceneLayer.pruneList.PushBack(pNode);
+}
+
+// TODO: (EVC-549) This functionality should be in udCore
 void vcNormalizePath(const char **ppDest, const char *pRoot, const char *pAppend, char separator)
 {
   char *pNewRoot = nullptr;
@@ -141,7 +305,7 @@ epilogue:
   return result;
 }
 
-udResult vcSceneLayer_LoadFeatureData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
+udResult vcSceneLayer_LoadFeatureData(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
 {
   udUnused(pSceneLayer);
 
@@ -177,6 +341,8 @@ udResult vcSceneLayer_LoadFeatureData(vcSceneLayer *pSceneLayer, vcSceneLayerNod
 
     pNode->pFeatureData[i].pGeometryLayout = udAllocType(vcVertexLayoutTypes, pNode->pFeatureData[i].geometryLayoutCount, udAF_Zero);
     UD_ERROR_NULL(pNode->pFeatureData[i].pGeometryLayout, udR_MemoryAllocationFailure);
+
+    pNode->pGeometryData[i].vertexStride = 0;
 
     for (size_t a = 0; a < pNode->pFeatureData[i].geometryLayoutCount; ++a)
     {
@@ -217,7 +383,7 @@ epilogue:
 }
 
 // Assumed the nodes features have already been loaded
-udResult vcSceneLayer_LoadGeometryData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
+udResult vcSceneLayer_LoadGeometryData(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
 {
   udResult result;
   const char *pPathBuffer = nullptr;
@@ -321,7 +487,7 @@ epilogue:
 }
 
 // Assumed nodes features has already been loaded
-udResult vcSceneLayer_LoadTextureData(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
+udResult vcSceneLayer_LoadTextureData(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
 {
   udUnused(pSceneLayer);
 
@@ -414,7 +580,7 @@ void vcSceneLayer_CalculateNodeBounds(vcSceneLayerNode *pNode, const udDouble4 &
   pNode->minimumBoundingSphere.radius = latLongHeightRadius.w;
 }
 
-udResult vcSceneLayer_LoadNodeInternals(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
+udResult vcSceneLayer_LoadNodeInternals(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
 {
   udResult result;
 
@@ -424,14 +590,18 @@ udResult vcSceneLayer_LoadNodeInternals(vcSceneLayer *pSceneLayer, vcSceneLayerN
   UD_ERROR_CHECK(vcSceneLayer_LoadGeometryData(pSceneLayer, pNode));
   UD_ERROR_CHECK(vcSceneLayer_LoadTextureData(pSceneLayer, pNode));
 
-  pNode->loadState = vcSceneLayerNode::vcLS_InMemory;
+  pNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
+  pNode->internalsLoadState = vcSceneLayerNode::vcILS_NodeInternals;
   result = udR_Success;
 
 epilogue:
+  if (result != udR_Success)
+    pNode->loadState = vcSceneLayerNode::vcLS_Failed;
+
   return result;
 }
 
-udResult vcSceneLayer_RecursiveLoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode, const vcSceneLayerLoadType &loadType)
+udResult vcSceneLayer_RecursiveLoadNode(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode, const vcSceneLayerLoadType &loadType)
 {
   udResult result;
   udJSON nodeJSON;
@@ -472,7 +642,8 @@ udResult vcSceneLayer_RecursiveLoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerN
     {
       vcSceneLayerNode *pChildNode = &pNode->pChildren[i];
       pChildNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
-
+      pChildNode->internalsLoadState = vcSceneLayerNode::vcILS_None;
+      pChildNode->level = pNode->level + 1;
       pChildNode->pID = udStrdup(nodeJSON.Get("children[%zu].id", i).AsString());
       vcNormalizePath(&pChildNode->pURL, pNode->pURL, nodeJSON.Get("children[%zu].href", i).AsString(), pSceneLayer->pathSeparatorChar);
 
@@ -481,14 +652,14 @@ udResult vcSceneLayer_RecursiveLoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerN
   }
 
   // TODO: (EVC-548) - these may actually not be needed
-  // E.g. For rendering, we may not need the internals of certain nodes
-  if (loadType == vcSLLT_Rendering || (loadType == vcSLLT_Convert && pNode->childrenCount == 0))
+  // E.g. For rendering, we may not need the internals of certain nodes yet
+
+  pNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
+  pNode->internalsLoadState = vcSceneLayerNode::vcILS_BasicNodeData;
+  //if (loadType == vcSLLT_Rendering || (loadType == vcSLLT_Convert && pNode->childrenCount == 0))
+  if (loadType == vcSLLT_Convert && pNode->childrenCount == 0)
   {
     UD_ERROR_CHECK(vcSceneLayer_LoadNodeInternals(pSceneLayer, pNode));
-  }
-  else
-  {
-    pNode->loadState = vcSceneLayerNode::vcLS_PartialLoad;
   }
 
   if (loadType == vcSLLT_Convert)
@@ -508,7 +679,7 @@ epilogue:
   return result;
 }
 
-udResult vcSceneLayer_LoadNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode /*= nullptr*/, const vcSceneLayerLoadType &loadType /*= vcSLLT_None*/)
+udResult vcSceneLayer_LoadNode(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode /*= nullptr*/, const vcSceneLayerLoadType &loadType /*= vcSLLT_None*/)
 {
   udResult result;
 
@@ -532,6 +703,8 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, udWorkerPool *pWorkerT
   const char *pPathBuffer = nullptr;
   char *pFileData = nullptr;
   const char *pRootPath = nullptr;
+
+  vcSceneLayer_Init();
 
   pSceneLayer = udAllocType(vcSceneLayer, 1, udAF_Zero);
   UD_ERROR_NULL(pSceneLayer, udR_MemoryAllocationFailure);
@@ -570,21 +743,66 @@ epilogue:
   return result;
 }
 
+int64_t vcSceneLayer_GetTextureGPUMemoryUsage(const vcSceneLayerNode *pNode)
+{
+  int64_t usage = 0;
+
+  for (size_t i = 0; i < pNode->textureDataCount; ++i)
+  {
+    if (pNode->pTextureData[i].loaded)
+      usage += (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4);
+  }
+
+  return usage;
+}
+
+int64_t vcSceneLayer_GetGeometryGPUMemoryUsage(const vcSceneLayerNode *pNode)
+{
+  int64_t usage = 0;
+
+  for (size_t i = 0; i < pNode->geometryDataCount; ++i)
+  {
+    if (pNode->pGeometryData[i].loaded)
+      usage += vcLayout_GetSize(pNode->pFeatureData[i].pGeometryLayout, (int)pNode->pFeatureData[i].geometryLayoutCount) * pNode->pGeometryData[i].vertCount;
+  }
+
+  return usage;
+}
+
+void vcSceneLayer_RecursiveNodeFreeGPUResources(vcSceneLayerNode *pNode)
+{
+  if (pNode->internalsLoadState == vcSceneLayerNode::vcILS_UploadedToGPU)
+  {
+    gSceneLayer.gpuMemoryUsageBytes -= vcSceneLayer_GetTextureGPUMemoryUsage(pNode);
+
+    for (size_t i = 0; i < pNode->textureDataCount; ++i)
+    {
+      vcTexture_Destroy(&pNode->pTextureData[i].pTexture);
+      pNode->pTextureData[i].loaded = false;
+    }
+  
+    pNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
+    pNode->internalsLoadState = vcSceneLayerNode::vcILS_FreedGPUResources; // will need to reload some bits to render fully
+  }
+  
+  for (size_t i = 0; i < pNode->childrenCount; ++i)
+    vcSceneLayer_RecursiveNodeFreeGPUResources(&pNode->pChildren[i]);
+}
 
 void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode)
 {
-  while (pNode->loadState == vcSceneLayerNode::vcLS_InQueue || pNode->loadState == vcSceneLayerNode::vcLS_Loading)
+  if (pNode->loadState == vcSceneLayerNode::vcLS_InQueue)
+    vcSceneLayer_TrySortedRemove(pNode);
+
+  while (pNode->loadState == vcSceneLayerNode::vcLS_Loading)
     udYield();
 
   for (size_t i = 0; i < pNode->sharedResourceCount; ++i)
     udFree(pNode->pSharedResources[i].pURL);
 
-  for (size_t i = 0; i < pNode->featureDataCount; ++i)
-  {
-    udFree(pNode->pFeatureData[i].pURL);
 
-    udFree(pNode->pFeatureData[i].pGeometryLayout);
-  }
+  gSceneLayer.gpuMemoryUsageBytes -= vcSceneLayer_GetTextureGPUMemoryUsage(pNode);
+  gSceneLayer.gpuMemoryUsageBytes -= vcSceneLayer_GetGeometryGPUMemoryUsage(pNode);
 
   for (size_t i = 0; i < pNode->geometryDataCount; ++i)
   {
@@ -592,6 +810,13 @@ void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode)
 
     vcPolygonModel_Destroy(&pNode->pGeometryData[i].pModel);
     udFree(pNode->pGeometryData[i].pData);
+  }
+
+  for (size_t i = 0; i < pNode->featureDataCount; ++i)
+  {
+    udFree(pNode->pFeatureData[i].pURL);
+
+    udFree(pNode->pFeatureData[i].pGeometryLayout);
   }
 
   for (size_t i = 0; i < pNode->textureDataCount; ++i)
@@ -627,11 +852,17 @@ udResult vcSceneLayer_Destroy(vcSceneLayer **ppSceneLayer)
   UD_ERROR_NULL(ppSceneLayer, udR_InvalidParameter_);
   UD_ERROR_NULL(*ppSceneLayer, udR_InvalidParameter_);
 
+  vcSceneLayer_Destroy();
+
   pSceneLayer = *ppSceneLayer;
   *ppSceneLayer = nullptr;
 
   pSceneLayer->isActive = false;
+
+  udLockMutex(gSceneLayer.loadQueue.pLock);
   vcSceneLayer_RecursiveDestroyNode(&pSceneLayer->root);
+  udReleaseMutex(gSceneLayer.loadQueue.pLock);
+
   pSceneLayer->description.Destroy();
 
   udFree(pSceneLayer);
@@ -642,87 +873,77 @@ epilogue:
   return result;
 }
 
-udResult vcSceneLayer_UploadDataToGPUIfPossible(vcSceneLayerNode *pNode, bool force = false)
+void vcSceneLayer_CheckNodePruneCandidancy(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
 {
-  udResult result;
-
-  // TODO: (EVC-553)
-  if (!force && gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame)
-    UD_ERROR_SET(udR_Success);
-
-  // geometry
-  for (size_t i = 0; i < pNode->geometryDataCount; ++i)
-  {
-    if (pNode->pGeometryData[i].loaded || (pNode->pGeometryData[i].pData == nullptr))
-      continue;
-
-    // TODO: (EVC-553) Let `vcPolygonModel_CreateFromData()` handle this?
-    if (!force && gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame) // allow partial uploads
-      UD_ERROR_SET(udR_Success);
-
-    UD_ERROR_IF(pNode->pGeometryData[i].vertCount > UINT16_MAX, udR_Failure_);
-    UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&pNode->pGeometryData[i].pModel, pNode->pGeometryData[i].pData, (uint16_t)pNode->pGeometryData[i].vertCount, pNode->pFeatureData[i].pGeometryLayout, (int)pNode->pFeatureData[i].geometryLayoutCount));
-    udFree(pNode->pGeometryData[i].pData);
-
-    pNode->pGeometryData[i].loaded = true;
-    vcGLState_ReportGPUWork(0, 0, (pNode->pGeometryData[i].vertexStride * pNode->pGeometryData[i].vertCount));
-    gpuBytesUploadedThisFrame += (pNode->pGeometryData[i].vertexStride * pNode->pGeometryData[i].vertCount);
-  }
-
-  // textures
-  for (size_t i = 0; i < pNode->textureDataCount; ++i)
-  {
-    if (pNode->pTextureData[i].loaded || (pNode->pTextureData[i].pData == nullptr))
-      continue;
-
-    // TODO: (EVC-553) Let `vcTexture_Create()` handle this?
-    if (!force && gpuBytesUploadedThisFrame >= vcGLState_MaxUploadBytesPerFrame) // allow partial uploads
-      UD_ERROR_SET(udR_Success);
-
-    // Making an assumption here, use mip maps for 'flat' hierarchies
-    bool useMips = (pNode->level <= 2);
-    UD_ERROR_CHECK(vcTexture_Create(&pNode->pTextureData[i].pTexture, pNode->pTextureData[i].width, pNode->pTextureData[i].height, pNode->pTextureData[i].pData, vcTextureFormat_RGBA8, vcTFM_Linear, useMips));
-    udFree(pNode->pTextureData[i].pData);
-
-    pNode->pTextureData[i].loaded = true;
-    vcGLState_ReportGPUWork(0, 0, (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4));
-    gpuBytesUploadedThisFrame += (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4);
-  }
-
-  pNode->loadState = vcSceneLayerNode::vcLS_Success;
-  result = udR_Success;
-
-epilogue:
-  return result;
+  // only pruning nodes that actually have GPU data to prune
+  if (pNode->internalsLoadState == vcSceneLayerNode::vcILS_UploadedToGPU)
+    vcSceneLayer_AddPruneCandidate(pSceneLayer, pNode);
 }
 
-bool vcSceneLayer_TouchNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
+bool vcSceneLayer_ExpandNodeForRendering(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode)
 {
-  if (pNode->loadState == vcSceneLayerNode::vcLS_NotLoaded)
+  if ((pNode->loadState == vcSceneLayerNode::vcLS_NotLoaded) && 
+     ((pNode->internalsLoadState == vcSceneLayerNode::vcILS_BasicNodeData) || (pNode->internalsLoadState == vcSceneLayerNode::vcILS_FreedGPUResources)))
   {
-    pNode->loadState = vcSceneLayerNode::vcLS_InQueue;
+    vcSceneLayer_InsertFront(pSceneLayer, pNode);
 
-    // TODO: (EVC-548) Consider loading nodes based on distance (sound familiar?)
-    vcSceneLayer_LoadNodeJobData *pLoadData = udAllocType(vcSceneLayer_LoadNodeJobData, 1, udAF_Zero);
-    pLoadData->pSceneLayer = pSceneLayer;
-    pLoadData->pNode = pNode;
-
-    // TODO: (EVC-548)
-    udWorkerPool_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeJob, pLoadData);
-  }
-  else if (pNode->loadState == vcSceneLayerNode::vcLS_PartialLoad)
-  {
-    // TODO: (EVC-569) Partial node uploading has not been fully tested!
-    vcSceneLayer_LoadNodeJobData *pLoadData = udAllocType(vcSceneLayer_LoadNodeJobData, 1, udAF_Zero);
-    pLoadData->pSceneLayer = pSceneLayer;
-    pLoadData->pNode = pNode;
-    udWorkerPool_AddTask(pSceneLayer->pThreadPool, vcSceneLayer_LoadNodeInternalsJob, pLoadData);
+    return (pNode->internalsLoadState == vcSceneLayerNode::vcILS_FreedGPUResources);
   }
 
-  if (pNode->loadState == vcSceneLayerNode::vcLS_InMemory)
-    vcSceneLayer_UploadDataToGPUIfPossible(pNode);
+  // create gpu data now
+  if (pNode->internalsLoadState == vcSceneLayerNode::vcILS_NodeInternals)
+  {
+    // always allow geometry to load
+    for (size_t i = 0; i < pNode->geometryDataCount; ++i)
+    {
+      vcSceneLayerNode::GeometryData *pGeometryData = &pNode->pGeometryData[i];
+      vcSceneLayerNode::FeatureData *pFeatureData = &pNode->pFeatureData[i];
 
-  return pNode->loadState == vcSceneLayerNode::vcLS_Success;
+      if (pGeometryData->loaded)
+        continue;
+
+      gSceneLayer.gpuMemoryUsageBytes += vcLayout_GetSize(pNode->pFeatureData[i].pGeometryLayout, (int)pNode->pFeatureData[i].geometryLayoutCount) * pNode->pGeometryData[i].vertCount;
+
+      vcPolygonModel_CreateFromRawVertexData(&pGeometryData->pModel, pGeometryData->pData, (uint16_t)pGeometryData->vertCount, pFeatureData->pGeometryLayout, (int)pFeatureData->geometryLayoutCount);
+      udFree(pGeometryData->pData);
+      pGeometryData->loaded = true;
+    }
+
+    // don't always allow texture data to load
+    if (gSceneLayer.gpuMemoryUsageBytes < gMaxAllowedGPUMemory)
+    {
+      for (size_t i = 0; i < pNode->textureDataCount; ++i)
+      {
+        vcSceneLayerNode::TextureData *pTextureData = &pNode->pTextureData[i];
+
+        if (pTextureData->loaded)
+          continue;
+
+        if (pTextureData != nullptr && pTextureData->pData != nullptr)
+        {
+          gSceneLayer.gpuMemoryUsageBytes += (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4);
+
+          vcTexture_Create(&pTextureData->pTexture, pTextureData->width, pTextureData->height, pTextureData->pData, vcTextureFormat_RGBA8, vcTFM_Linear, false);
+          udFree(pTextureData->pData);
+          pTextureData->loaded = true;
+        }
+      }
+
+      pNode->loadState = vcSceneLayerNode::vcLS_Success;
+      pNode->internalsLoadState = vcSceneLayerNode::vcILS_UploadedToGPU;
+    }
+  }
+
+  // may be in a renderable state here depending on internal state
+  return (pNode->internalsLoadState == vcSceneLayerNode::vcILS_NodeInternals) || (pNode->internalsLoadState == vcSceneLayerNode::vcILS_UploadedToGPU) || (pNode->internalsLoadState == vcSceneLayerNode::vcILS_FreedGPUResources);
+}
+
+bool vcSceneLayer_TouchNode(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode, const udDouble3 &cameraPosition)
+{
+  if (pNode->loadState == vcSceneLayerNode::vcLS_NotLoaded && pNode->internalsLoadState == vcSceneLayerNode::vcILS_None)
+    vcSceneLayer_TryLoadNodeByDistance(pSceneLayer, pNode, cameraPosition);
+
+  return pNode->internalsLoadState != vcSceneLayerNode::vcILS_None;
 }
 
 vcSceneLayerVertex* vcSceneLayer_GetVertex(vcSceneLayerNode::GeometryData *pGeometry, uint64_t index)
