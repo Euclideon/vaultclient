@@ -258,7 +258,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     {
       udRay<double> transform, tempTransform;
       transform.position = pCamera->position;
-      transform.direction = udMath_DirFromYPR(pCamera->eulerRotation);
+      transform.direction = udDirectionFromYPR(pCamera->eulerRotation);
       if (pCamSettings->invertX)
         pCamInput->mouseInput.x *= -1.0;
       if (pCamSettings->invertY)
@@ -266,13 +266,13 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
       // Apply input
       tempTransform = udRay<double>::rotationAround(transform, pProgramState->worldAnchorPoint, { 0, 0, 1 }, pCamInput->mouseInput.x);
-      transform = udRay<double>::rotationAround(tempTransform, pProgramState->worldAnchorPoint, udDoubleQuat::create(udMath_DirToYPR(tempTransform.direction)).apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
+      transform = udRay<double>::rotationAround(tempTransform, pProgramState->worldAnchorPoint, udDoubleQuat::create(udDirectionToYPR(tempTransform.direction)).apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
 
       // Prevent flipping
       if ((transform.direction.x > 0 && tempTransform.direction.x < 0) || (transform.direction.x < 0 && tempTransform.direction.x > 0))
         transform = tempTransform;
 
-      udDouble3 euler = udMath_DirToYPR(transform.direction);
+      udDouble3 euler = udDirectionToYPR(transform.direction);
 
       // Handle special case where ATan2 is ambiguous
       if (pCamera->eulerRotation.y == -UD_HALF_PI)
@@ -288,7 +288,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
   case vcCIS_LookingAtPoint:
   {
-    udDouble3 targetEuler = udMath_DirToYPR(pCamInput->lookAtPosition - pCamInput->startPosition);
+    udDouble3 targetEuler = udDirectionToYPR(pCamInput->lookAtPosition - pCamInput->startPosition);
     if (isnan(targetEuler.x) || isnan(targetEuler.y) || isnan(targetEuler.z))
       targetEuler = udDouble3::zero();
 
@@ -373,7 +373,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     cam2Point = udNormalize3(distCam2Point == 0 ? moveVector : cam2Point); // avoids divide by zero
 
     // Smoothly rotate camera to face the leading point at all times
-    udDouble3 targetEuler = udMath_DirToYPR(cam2Point);
+    udDouble3 targetEuler = udDirectionToYPR(cam2Point);
     pCamera->eulerRotation = udSlerp(udDoubleQuat::create(pCamera->eulerRotation), udDoubleQuat::create(targetEuler), 0.2).eulerAngles();
     if (pCamera->eulerRotation.y > UD_PI)
       pCamera->eulerRotation.y -= UD_2PI;
@@ -416,7 +416,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     double travelProgress = udEase(pCamInput->progress, udET_CubicInOut);
     pCamera->position = pCamInput->startPosition + moveVector * travelProgress;
 
-    udDouble3 targetEuler = udMath_DirToYPR(pProgramState->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest));
+    udDouble3 targetEuler = udDirectionToYPR(pProgramState->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest));
     pCamera->eulerRotation = udSlerp(pCamInput->startAngle, udDoubleQuat::create(targetEuler), travelProgress).eulerAngles();
 
     if (pCamera->eulerRotation.y > UD_PI)
