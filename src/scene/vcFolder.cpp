@@ -22,6 +22,7 @@
 #include "vcWaterNode.h"
 #include "vcViewpoint.h"
 #include "vcViewShed.h"
+#include "vcQueryNode.h"
 
 void HandleNodeSelection(vcState* pProgramState, vdkProjectNode *pParent, vdkProjectNode* pNode)
 {
@@ -93,6 +94,8 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pNode->pUserData = new vcViewShed(pProgramState->activeProject.pProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "Polygon"))
         pNode->pUserData = new vcPolyModelNode(pProgramState->activeProject.pProject, pNode, pProgramState);
+      else if (udStrEqual(pNode->itemtypeStr, "QFilter"))
+        pNode->pUserData = new vcQueryNode(pProgramState->activeProject.pProject, pNode, pProgramState);
       else
         pNode->pUserData = new vcUnsupportedNode(pProgramState->activeProject.pProject, pNode, pProgramState); // Catch all
     }

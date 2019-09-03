@@ -296,6 +296,15 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
     ChangeProjection(pProgramState->gis.zone);
     ApplyDelta(pProgramState, udDouble4x4::identity());
   }
+
+  if (((m_pPreferredProjection == nullptr && pProgramState->gis.SRID == 0) || (m_pPreferredProjection != nullptr && m_pPreferredProjection->srid == pProgramState->gis.SRID)) && (m_defaultMatrix == m_sceneMatrix))
+  {
+    // Reenable in future
+    //if (ImGui::Selectable(vcString::Get("sceneExplorerExportLAS"), false))
+    //{
+    //  vdkPointCloud_Export(m_pPointCloud, "Testing.las", nullptr);
+    //}
+  }
 }
 
 void vcModel::Cleanup(vcState *pProgramState)

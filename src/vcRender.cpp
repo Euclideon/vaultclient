@@ -1212,6 +1212,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
   memset(&renderOptions, 0, sizeof(vdkRenderOptions));
   renderOptions.pPick = &picking;
 
+  renderOptions.pFilter = renderData.pQueryFilter;
   renderOptions.pointMode = (vdkRenderContextPointMode)pProgramState->settings.presentation.pointMode;
 
   vdkError result = vdkRenderContext_Render(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, pRenderView, pModels, numVisibleModels, &renderOptions);
