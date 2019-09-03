@@ -1208,23 +1208,19 @@ void vcRenderSceneWindow(vcState *pProgramState)
   if (!pProgramState->settings.window.presentationMode || pProgramState->settings.responsiveUI == vcPM_Show || pProgramState->showUI)
     vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
 
-  udUInt2 scaledSceneResolution = {};
-  udUInt2 sceneResolution = vcRender_GetSceneResolution(pProgramState->pRenderContext, &scaledSceneResolution);
-  udFloat2 uvSize = udFloat2::create(float(sceneResolution.x) / scaledSceneResolution.x, float(sceneResolution.y) / scaledSceneResolution.y);
+  {
+    vcRender_BeginFrame(pProgramState, pProgramState->pRenderContext, renderData);
 
-  ImVec2 uv0 = ImVec2(0, 0);
-  ImVec2 uv1 = ImVec2(uvSize.x, uvSize.y);
+    ImVec2 uv0 = ImVec2(0, 0);
+    ImVec2 uv1 = ImVec2(renderData.sceneScaling.x, renderData.sceneScaling.y);
 #if GRAPHICS_API_OPENGL
-  uv1.y = 0;
-  uv0.y = uvSize.y;
+    // flip vertically
+    uv1.y = 0;
+    uv0.y = renderData.sceneScaling.y;
 #endif
 
-  {
-    vcRender_BeginFrame(pProgramState, pProgramState->pRenderContext);
-
     // Actual rendering to this texture is deferred
-    vcTexture *pSceneTexture = vcRender_GetSceneTexture(pProgramState, pProgramState->pRenderContext);
-    ImGui::ImageButton(pSceneTexture, windowSize, uv0, uv1, 0);
+    ImGui::ImageButton(renderData.pSceneTexture, windowSize, uv0, uv1, 0);
 
     static bool wasContextMenuOpenLastFrame = false;
     bool selectItem = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold*io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();

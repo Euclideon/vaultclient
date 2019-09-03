@@ -682,7 +682,7 @@ void vcRenderTransparentGeometry(vcState *pProgramState, vcRenderContext *pRende
   }
 }
 
-void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext)
+void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
 #if ALLOW_EXPERIMENT_GPURENDER
   if (pProgramState->settings.experimental.useGPURenderer != pRenderContext->udRenderContext.usingGPURenderer)
@@ -694,19 +694,9 @@ void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext
   udUnused(pProgramState);
   udUnused(pRenderContext);
 #endif
-}
 
-vcTexture* vcRender_GetSceneTexture(vcState * /*pProgramState*/, vcRenderContext *pRenderContext)
-{
-  return pRenderContext->pTexture;
-}
-
-udUInt2 vcRender_GetSceneResolution(vcRenderContext *pRenderContext, udUInt2* pScaledSceneResolution)
-{
-  if (pScaledSceneResolution != nullptr)
-    *pScaledSceneResolution = pRenderContext->sceneResolution;
-
-  return pRenderContext->originalSceneResolution;
+  renderData.pSceneTexture = pRenderContext->pTexture;
+  renderData.sceneScaling = udFloat2::create(float(pRenderContext->originalSceneResolution.x) / pRenderContext->sceneResolution.x, float(pRenderContext->originalSceneResolution.y) / pRenderContext->sceneResolution.y);
 }
 
 void vcRender_ApplySelectionBuffer(vcState *pProgramState, vcRenderContext *pRenderContext)
@@ -1132,7 +1122,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   if (renderData.models.length == 0 && renderData.polyModels.length == 0)
     return result;
 
-  udFloat2 pickUV = udFloat2::create((float)renderData.mouse.position.x / (float)pRenderContext->originalSceneResolution.x, (float)renderData.mouse.position.y / (float)pRenderContext->originalSceneResolution.y);
+  udFloat2 pickUV = udFloat2::create((float)renderData.mouse.position.x / (float)pRenderContext->sceneResolution.x, (float)renderData.mouse.position.y / (float)pRenderContext->sceneResolution.y);
   if (pickUV.x < 0 || pickUV.x > 1 || pickUV.y < 0 || pickUV.y > 1)
     return result;
 

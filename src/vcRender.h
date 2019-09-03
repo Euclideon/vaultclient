@@ -56,6 +56,9 @@ struct vcRenderData
   udChunkedArray<vcRenderPolyInstance> polyModels;
   udChunkedArray<vcWaterRenderer*> waterVolumes;
   udChunkedArray<vcImageRenderInfo*> images;
+
+  vcTexture *pSceneTexture;
+  udFloat2 sceneScaling;
 };
 
 udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext, udWorkerPool *pWorkerPool, const udUInt2 &windowResolution);
@@ -65,13 +68,10 @@ udResult vcRender_SetVaultContext(vcState *pProgramState, vcRenderContext *pRend
 
 udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);
 
-void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext);
+void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData);
 
 void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer);
 void vcRender_SceneImGui(vcState *pProgramState, vcRenderContext *pRenderContext, const vcRenderData &renderData);
-
-vcTexture* vcRender_GetSceneTexture(vcState *pProgramState, vcRenderContext *pRenderContext);
-udUInt2 vcRender_GetSceneResolution(vcRenderContext* pRenderContext, udUInt2* pScaledSceneResolution);
 
 void vcRender_ClearTiles(vcRenderContext *pRenderContext);
 void vcRender_ClearPoints(vcRenderContext *pRenderContext);
