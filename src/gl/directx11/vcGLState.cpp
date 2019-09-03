@@ -17,7 +17,6 @@ ID3D11SamplerState* g_pFontSampler = nullptr;
 ID3D11RasterizerState *g_pRasterizerState = nullptr;
 ID3D11BlendState *g_pBlendState = nullptr;
 ID3D11DepthStencilState *g_pDepthStencilState = nullptr;
-int g_VertexBufferSize = 5000, g_IndexBufferSize = 10000;
 
 int32_t g_maxAnisotropy = 0;
 

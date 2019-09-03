@@ -355,7 +355,10 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
 
   pRenderContext->udRenderContext.pColorBuffer = udAllocType(uint32_t, pRenderContext->sceneResolution.x*pRenderContext->sceneResolution.y, udAF_Zero);
+  UD_ERROR_NULL(pRenderContext->udRenderContext.pColorBuffer, udR_MemoryAllocationFailure);
+
   pRenderContext->udRenderContext.pDepthBuffer = udAllocType(float, pRenderContext->sceneResolution.x*pRenderContext->sceneResolution.y, udAF_Zero);
+  UD_ERROR_NULL(pRenderContext->udRenderContext.pDepthBuffer, udR_MemoryAllocationFailure);
 
   //Resize GPU Targets
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
@@ -419,7 +422,6 @@ epilogue:
 void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
   // Draw the skybox only at the far plane, where there is no geometry.
-  // Drawing skybox here (after 'opaque' geometry) saves a bit on fill rate.
 
   if (pProgramState->settings.presentation.showSkybox)
   {
@@ -681,7 +683,7 @@ void vcRenderTransparentGeometry(vcState *pProgramState, vcRenderContext *pRende
   }
 }
 
-void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext)
+void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
 #if ALLOW_EXPERIMENT_GPURENDER
   if (pProgramState->settings.experimental.useGPURenderer != pRenderContext->udRenderContext.usingGPURenderer)
@@ -693,11 +695,9 @@ void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext
   udUnused(pProgramState);
   udUnused(pRenderContext);
 #endif
-}
 
-vcTexture* vcRender_GetSceneTexture(vcState * /*pProgramState*/, vcRenderContext *pRenderContext)
-{
-  return pRenderContext->pTexture;
+  renderData.pSceneTexture = pRenderContext->pTexture;
+  renderData.sceneScaling = udFloat2::create(float(pRenderContext->originalSceneResolution.x) / pRenderContext->sceneResolution.x, float(pRenderContext->originalSceneResolution.y) / pRenderContext->sceneResolution.y);
 }
 
 void vcRender_ApplySelectionBuffer(vcState *pProgramState, vcRenderContext *pRenderContext)
@@ -830,9 +830,11 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   vcRender_PresentUD(pProgramState, pRenderContext);
 
-  //vcGLState_SetBlendMode(vcGLSBM_None);
   vcRenderOpaqueGeometry(pProgramState, pRenderContext, renderData);
+
+  // Drawing skybox after opaque geometry saves a bit on fill rate.
   vcRenderSkybox(pProgramState, pRenderContext);
+
   vcRenderTerrain(pProgramState, pRenderContext);
   vcRenderTransparentGeometry(pProgramState, pRenderContext, renderData);
 
@@ -1121,7 +1123,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   if (renderData.models.length == 0 && renderData.polyModels.length == 0)
     return result;
 
-  udFloat2 pickUV = udFloat2::create((float)renderData.mouse.position.x / (float)pRenderContext->originalSceneResolution.x, (float)renderData.mouse.position.y / (float)pRenderContext->originalSceneResolution.y);
+  udFloat2 pickUV = udFloat2::create((float)renderData.mouse.position.x / (float)pRenderContext->sceneResolution.x, (float)renderData.mouse.position.y / (float)pRenderContext->sceneResolution.y);
   if (pickUV.x < 0 || pickUV.x > 1 || pickUV.y < 0 || pickUV.y > 1)
     return result;
 
@@ -1174,16 +1176,16 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
   // note `-1`, and BGRA format
-  int udPickedId = -1;
+  int pickedUdId = -1;
 #ifdef ALLOW_EXPERIMENT_GPURENDER
   if (pProgramState->settings.experimental.useGPURenderer)
-    udPickedId = (pickColourBGRA[2] << 0) - 1;
+    pickedUdId = (pickColourBGRA[2] << 0) - 1;
 #endif
 
   double currentDist = pProgramState->settings.camera.farPlane;
 
   int pickedPolygonId = (int)((pickColourBGRA[1] << 0) | (pickColourBGRA[0] << 8)) - 1;
-  if (pickedPolygonId != -1 || udPickedId != -1)
+  if (pickedPolygonId != -1 || pickedUdId != -1)
   {
     result.success = true;
 
@@ -1198,8 +1200,8 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 
     currentDist = udMag3(result.position - pProgramState->pCamera->position);
 
-    if (udPickedId != -1)
-      result.pModel = renderData.models[udPickedId];
+    if (pickedUdId != -1)
+      result.pModel = renderData.models[pickedUdId];
     else
       result.pPolygon = &renderData.polyModels[pickedPolygonId];
   }
