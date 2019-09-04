@@ -1,7 +1,7 @@
 #include "gl/vcRenderShaders.h"
 
 const char* const g_udFragmentShader = "udFragmentShader";
-const char* const g_udSplatIdFragmentShader = nullptr; //TODO: This shader
+const char *const g_udSplatIdFragmentShader = "udSplatIdFragmentShader";
 const char* const g_udVertexShader = "udVertexShader";
 
 const char* const g_tileFragmentShader = "tileFragmentShader";
@@ -29,21 +29,19 @@ const char* const g_PolygonP1N1UV1VertexShader = "PNUVVertexShader";
 const char* const g_PolygonP1UV1VertexShader = "PUVVertexShader";
 const char* const g_PolygonP1UV1FragmentShader = "PUVFragmentShader";
 
-const char* const g_FlatColour_FragmentShader = nullptr; // TODO: This shader
+const char* const g_FlatColour_FragmentShader = "flatColourFragmentShader";
 
 const char* const g_BillboardVertexShader = "billboardVertexShader";
 const char* const g_BillboardFragmentShader = "billboardFragmentShader";
 
-// TODO: Utility Shaders
-const char* const g_BlurVertexShader = nullptr;
-const char* const g_BlurFragmentShader = nullptr;
+const char *const g_BlurVertexShader = "blurVertexShader";
+const char *const g_BlurFragmentShader = "blurFragmentShader";
 
-const char* const g_HighlightVertexShader = nullptr;
-const char* const g_HighlightFragmentShader = nullptr;
+const char *const g_HighlightVertexShader = "highlightVertexShader";
+const char *const g_HighlightFragmentShader = "highlightFragmentShader";
 
-// TODO: GPU UD Renderer
-const char* const g_udGPURenderQuadVertexShader = nullptr;
-const char* const g_udGPURenderQuadFragmentShader = nullptr;
-const char* const g_udGPURenderGeomVertexShader = nullptr;
-const char* const g_udGPURenderGeomFragmentShader = nullptr;
-const char* const g_udGPURenderGeomGeometryShader = nullptr;
+const char *const g_udGPURenderQuadVertexShader = "gpuRenderQuadVertexShader";
+const char *const g_udGPURenderQuadFragmentShader = "gpuRenderQuadFragmentShader";
+const char *const g_udGPURenderGeomVertexShader = "secondPass";
+const char *const g_udGPURenderGeomFragmentShader = "secondPassFrag";
+const char *const g_udGPURenderGeomGeometryShader = "firstPass";
