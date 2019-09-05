@@ -168,7 +168,7 @@ void vcMedia::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   resultMatrix.extractTransforms(position, scale, rotation);
 
   m_image.position = position;
-  m_image.ypr = udMath_DirToYPR(rotation.apply(udDouble3::create(0, 1, 0)));
+  m_image.ypr = udDirectionToYPR(rotation.apply(udDouble3::create(0, 1, 0)));
   m_image.scale = scale;
 
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &m_image.position, 1);

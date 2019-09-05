@@ -86,32 +86,6 @@ inline double udClampWrap(double val, double min, double max)
 }
 
 template <typename T>
-static udVector3<T> udMath_DirFromYPR(const udVector3<T> &ypr)
-{
-  udVector3<T> r;
-
-  r.x = -udSin(ypr.x) * udCos(ypr.y);
-  r.y = udCos(ypr.x) * udCos(ypr.y);
-  r.z = udSin(ypr.y);
-
-  return r;
-}
-
-template <typename T>
-static udVector3<T> udMath_DirToYPR(const udVector3<T> &direction)
-{
-  udVector3<T> r;
-
-  udVector3<T> dir = udNormalize(direction);
-
-  r.x = -udATan2(dir.x, dir.y);
-  r.y = udASin(dir.z);
-  r.z = 0; // No Roll
-
-  return r;
-}
-
-template <typename T>
 static udVector3<T> udClosestPointOnOOBB(const udVector3<T> &point, const udMatrix4x4<T> &oobbMatrix)
 {
   udVector3<T> origin = udVector3<T>::zero();

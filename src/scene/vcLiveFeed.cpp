@@ -193,7 +193,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
             else
               dir = udNormalize3(dir);
 
-            pFeedItem->ypr = udMath_DirToYPR(dir);
+            pFeedItem->ypr = udDirectionToYPR(dir);
           }
 
           pFeedItem->tweenAmount = 0;
