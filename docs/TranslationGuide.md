@@ -2,6 +2,14 @@
 
 ## Changelist
 
+- Version 0.4.0
+  - Added:
+    - ?
+  - Changed:
+    - ?
+  - Removed:
+    - ?
+
 - Version 0.3.1
   - Added:
     - Settings

@@ -6,6 +6,12 @@ Known Major Issues In Current Release
   - Map mode only transitions nicely for items with z at 0 (EVC-460)
   - Images in the scene are not using thumbnails (EVC-513)
 
+Version 0.4.0 (WIP)
+  - Improvements
+    - ?
+  - Other Fixes and Changes
+    - ?
+
 Version 0.3.1
   - Improvements
     - Added support for FBX (macOS and Windows)
