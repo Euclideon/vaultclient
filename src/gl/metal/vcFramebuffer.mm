@@ -63,7 +63,7 @@ bool vcFramebuffer_BeginReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAtta
 
   int pixelBytes = 4; // assumed
   MTLRegion region = MTLRegionMake2D(x, y, width, height);
-  [_viewCon.renderer.textures[[NSString stringWithUTF8String:pAttachment->ID]] getBytes:pPixels bytesPerRow:pAttachment->width * pixelBytes fromRegion:region mipmapLevel:0];
+  [_renderer.textures[[NSString stringWithFormat:@"%u",pAttachment->ID]] getBytes:pPixels bytesPerRow:pAttachment->width * pixelBytes fromRegion:region mipmapLevel:0];
 
   return true;
 }
