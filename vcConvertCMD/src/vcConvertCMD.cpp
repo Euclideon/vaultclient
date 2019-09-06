@@ -22,6 +22,7 @@ void vcConvertCMD_ShowOptions()
   printf("Usage: vcConvertCMD [vault server] [username] [password] [options] -i inputfile [-i anotherInputFile] -o outputfile.uds\n");
   printf("   -resolution <res>           - override the resolution (0.01 = 1cm, 0.001 = 1mm)\n");
   printf("   -srid <sridCode>            - override the srid code for geolocation\n");
+  printf("   -globalOffset <x,y,z>       - add an offset to all points, no spaces allowed in the x,y,z value\n");
   printf("   -pause                      - Require enter key to be pressed before exiting\n");
   printf("   -pauseOnError               - If any error occurs, require enter key to be pressed before exiting\n");
   printf("   -proxyURL <url>             - Set the proxy URL\n");
@@ -59,6 +60,7 @@ struct vcConvertCMDSettings
   const char **ppInputFiles;
   int32_t inputFileCount;
   int32_t srid;
+  double globalOffset[3];
   bool pause;
   bool pauseOnError;
   bool autoOverwrite;
@@ -79,6 +81,23 @@ bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMD
     else if (udStrEquali(ppArgv[i], "-srid"))
     {
       pSettings->srid = udStrAtoi(ppArgv[i + 1]);
+      i += 2;
+    }
+    else if (udStrEquali(ppArgv[i], "-globalOffset"))
+    {
+      const char *pStr = ppArgv[i + 1];
+      for (int j = 0; j < 3; ++j)
+      {
+        int charCount;
+        pSettings->globalOffset[j] = udStrAtof64(pStr, &charCount);
+        if (charCount == 0 || (j < 2 && pStr[charCount] != ','))
+        {
+          printf("Error parsing component %d of option -globalOffset %s", j, ppArgv[i + 1]);
+          cmdlineError = true;
+          break;
+        }
+        pStr += charCount + 1; // +1 for , separator
+      }
       i += 2;
     }
     else if (udStrEquali(ppArgv[i], "-watermark"))
@@ -214,6 +233,15 @@ int main(int argc, const char **ppArgv)
     if (vdkConvert_SetSRID(pContext, pModel, true, settings.srid) != vE_Success)
     {
       printf("Error setting srid %d\n", settings.srid);
+      cmdlineError = true;
+    }
+  }
+
+  if (settings.globalOffset[0] != 0.0 || settings.globalOffset[1] != 0.0 || settings.globalOffset[2] != 0.0)
+  {
+    if (vdkConvert_SetGlobalOffset(pContext, pModel, settings.globalOffset) != vE_Success)
+    {
+      printf("Error setting global offset %1.1f,%1.1f,%1.1f\n", settings.globalOffset[0], settings.globalOffset[1], settings.globalOffset[2]);
       cmdlineError = true;
     }
   }
