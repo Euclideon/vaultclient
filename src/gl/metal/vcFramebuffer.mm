@@ -52,10 +52,28 @@ bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
   return true;
 }
 
-bool vcFramebuffer_ReadPixels(vcFramebuffer * /*pFramebuffer*/, vcTexture * /*pAttachment*/, void * /*pPixels*/, uint32_t /*x*/, uint32_t /*y*/, uint32_t /*width*/, uint32_t /*height*/)
+bool vcFramebuffer_BeginReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
 {
-  //if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || (x + width) > pAttachment->width || (y + height) > pAttachment->height)
+  if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || (x + width) > pAttachment->width || (y + height) > pAttachment->height)
     return false;
 
-  //TODO: Implement this
+  int pixelBytes = 4; // assumed
+  MTLRegion region = MTLRegionMake2D(x, y, width, height);
+  [_viewCon.renderer.textures[[NSString stringWithUTF8String:pAttachment->ID]] getBytes:pPixels bytesPerRow:pAttachment->width * pixelBytes fromRegion:region mipmapLevel:0];
+
+  return true;
+}
+
+bool vcFramebuffer_EndReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
+{
+  udUnused(pFramebuffer);
+  udUnused(pAttachment);
+  udUnused(x);
+  udUnused(y);
+  udUnused(width);
+  udUnused(height);
+  udUnused(pPixels);
+
+  // Unnecessary for metal
+  return false;
 }

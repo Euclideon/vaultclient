@@ -196,6 +196,26 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
     UD_ERROR_IF(g_pd3dDevice->CreateSamplerState(&sampDesc, &pTexture->pSampler) != S_OK, udR_InternalError);
   }
 
+  if ((flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
+  {
+    // Create two staging textures to be ping-ponged between for asynchronous reads
+    D3D11_TEXTURE2D_DESC stagingDesc;
+    ZeroMemory(&stagingDesc, sizeof(stagingDesc));
+    stagingDesc.Width = width;
+    stagingDesc.Height = height;
+    stagingDesc.MipLevels = 1;
+    stagingDesc.ArraySize = 1;
+    stagingDesc.Format = texFormat;
+    stagingDesc.SampleDesc.Count = 1;
+    stagingDesc.Usage = D3D11_USAGE_STAGING;
+    stagingDesc.BindFlags = 0;
+    stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+
+    for (int i = 0; i < 2; ++i)
+      UD_ERROR_IF(g_pd3dDevice->CreateTexture2D(&stagingDesc, nullptr, &pTexture->pStagingTextureD3D[i]) != S_OK, udR_InternalError);
+  }
+
+  pTexture->flags = flags;
   pTexture->d3dFormat = desc.Format;
   pTexture->format = format;
   pTexture->width = width;
@@ -292,6 +312,12 @@ void vcTexture_Destroy(vcTexture **ppTexture)
 
   if ((*ppTexture)->pTextureView != nullptr)
     (*ppTexture)->pTextureView->Release();
+
+  for (int i = 0; i < 2; ++i)
+  {
+    if ((*ppTexture)->pStagingTextureD3D[i] != nullptr)
+      (*ppTexture)->pStagingTextureD3D[i]->Release();
+  }
 
   udFree(*ppTexture);
   *ppTexture = nullptr;

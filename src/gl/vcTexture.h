@@ -39,6 +39,7 @@ enum vcTextureCreationFlags
   vcTCF_None,
   vcTCF_Dynamic = 1, // Texture gets reuploaded every frame
   vcTCF_RenderTarget = 2, // This texture needs to be able to be turned into a render target
+  vcTCF_AsynchronousRead = 4, // Read operations are asynchronous. TODO (EVC-765) Ignored in metal
 };
 
 inline vcTextureCreationFlags operator|(const vcTextureCreationFlags &a, const vcTextureCreationFlags &b) { return (vcTextureCreationFlags)(int(a) | int(b)); }

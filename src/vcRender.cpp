@@ -107,6 +107,9 @@ struct vcRenderContext
   vcTileRenderer *pTileRenderer;
   vcAnchor *pCompass;
 
+  float previousFrameDepth;
+  udFloat2 currentMouseUV;
+
   struct
   {
     vcShader *pProgram;
@@ -394,7 +397,7 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   }
 
   vcTexture_Create(&pRenderContext->pTexture, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
-  vcTexture_Create(&pRenderContext->pDepthTexture, widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
+  vcTexture_Create(&pRenderContext->pDepthTexture, widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget | vcTCF_AsynchronousRead);
   vcFramebuffer_Create(&pRenderContext->pFramebuffer, pRenderContext->pTexture, pRenderContext->pDepthTexture);
 
   pRenderContext->effectResolution.x = widthIncr >> vcRender_OutlineEffectDownscale;
@@ -812,6 +815,43 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
   return true;
 }
 
+// Asychronously read a 1x1 region of last frames depth buffer 
+udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
+{
+  udResult result = udR_Success;
+
+  if (pRenderContext->currentMouseUV.x < 0 || pRenderContext->currentMouseUV.x > 1 || pRenderContext->currentMouseUV.y < 0 || pRenderContext->currentMouseUV.y > 1)
+    return result;
+
+  uint8_t depthBytes[4] = {};
+  udUInt2 pickLocation = { (uint32_t)(pRenderContext->currentMouseUV.x * pRenderContext->sceneResolution.x), (uint32_t)(pRenderContext->currentMouseUV.y * pRenderContext->sceneResolution.y) };
+#if GRAPHICS_API_OPENGL
+  pickLocation.y = pRenderContext->sceneResolution.y - pickLocation.y - 1; // upside-down
+#endif
+
+  UD_ERROR_IF(!vcFramebuffer_EndReadPixels(pRenderContext->pFramebuffer, pRenderContext->pDepthTexture, pickLocation.x, pickLocation.y, 1, 1, depthBytes), udR_InternalError); // read previous copy
+  UD_ERROR_IF(!vcFramebuffer_BeginReadPixels(pRenderContext->pFramebuffer, pRenderContext->pDepthTexture, pickLocation.x, pickLocation.y, 1, 1, depthBytes), udR_InternalError); // begin copy for next frame read
+
+  // 24 bit unsigned int -> float
+#if GRAPHICS_API_OPENGL
+  pRenderContext->previousFrameDepth = uint32_t((depthBytes[3] << 16) | (depthBytes[2] << 8) | (depthBytes[1] << 0)) / ((1 << 24) - 1.0f);
+  //uint8_t stencil = depthBytes[0];
+#else
+  // TODO (EVC-765): validate this byte order for metal
+  pRenderContext->previousFrameDepth = uint32_t((depthBytes[2] << 16) | (depthBytes[1] << 8) | (depthBytes[0] << 0)) / ((1 << 24) - 1.0f);
+  //uint8_t stencil = depthBytes[3];
+#endif
+
+#if GRAPHICS_API_METAL // Hacky but idk what else to do, flushing all the command buffers and synchronising the textures before the read doesn't work
+  if (pRenderContext->previousFrameDepth == 0.0f)
+    pRenderContext->previousFrameDepth = 1.0f;
+#endif
+
+
+epilogue:
+  return result;
+}
+
 void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
 {
   udUnused(pDefaultFramebuffer);
@@ -831,6 +871,8 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcRender_PresentUD(pProgramState, pRenderContext);
 
   vcRenderOpaqueGeometry(pProgramState, pRenderContext, renderData);
+  vcRender_AsyncReadFrameDepth(pRenderContext); // note: one frame behind
+
 
   // Drawing skybox after opaque geometry saves a bit on fill rate.
   vcRenderSkybox(pProgramState, pRenderContext);
@@ -1116,81 +1158,106 @@ void vcRender_ClearPoints(vcRenderContext *pRenderContext)
   vcFenceRenderer_ClearPoints(pRenderContext->pDiagnosticFences);
 }
 
-vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
+vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, bool doSelectRender)
 {
   vcRenderPickResult result = {};
 
-  if (renderData.models.length == 0 && renderData.polyModels.length == 0)
+  pRenderContext->currentMouseUV = udFloat2::create((float)renderData.mouse.position.x / (float)pRenderContext->originalSceneResolution.x, (float)renderData.mouse.position.y / (float)pRenderContext->originalSceneResolution.y);
+  if (pRenderContext->currentMouseUV.x < 0 || pRenderContext->currentMouseUV.x > 1 || pRenderContext->currentMouseUV.y < 0 || pRenderContext->currentMouseUV.y > 1)
     return result;
 
-  udFloat2 pickUV = udFloat2::create((float)renderData.mouse.position.x / (float)pRenderContext->sceneResolution.x, (float)renderData.mouse.position.y / (float)pRenderContext->sceneResolution.y);
-  if (pickUV.x < 0 || pickUV.x > 1 || pickUV.y < 0 || pickUV.y > 1)
-    return result;
+  pRenderContext->picking.location.x = (uint32_t)(pRenderContext->currentMouseUV.x * pRenderContext->effectResolution.x);
+  pRenderContext->picking.location.y = (uint32_t)(pRenderContext->currentMouseUV.y * pRenderContext->effectResolution.y);
 
-  pRenderContext->picking.location.x = (uint32_t)(pickUV.x * pRenderContext->effectResolution.x);
-  pRenderContext->picking.location.y = (uint32_t)(pickUV.y * pRenderContext->effectResolution.y);
+  double currentDist = pProgramState->settings.camera.farPlane;
+  float pickDepth = 1.0f;
 
-  vcGLState_SetBlendMode(vcGLSBM_None);
-  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
-  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
-
-  vcFramebuffer_Bind(pRenderContext->picking.pFramebuffer);
-  vcFramebuffer_Clear(pRenderContext->picking.pFramebuffer, 0x0);
-
-  vcGLState_SetViewport(0, 0, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y);
-  vcGLState_Scissor(pRenderContext->picking.location.x, pRenderContext->picking.location.y, pRenderContext->picking.location.x + 1, pRenderContext->picking.location.y + 1);
-
-  // render pickable geometry
+  if (doSelectRender && (renderData.models.length > 0 || renderData.polyModels.length > 0))
   {
-    uint32_t modelId = 1; // note: start at 1, because 0 is 'null'
+    // render pickable geometry with id encoded in colour
+    vcGLState_SetBlendMode(vcGLSBM_None);
+    vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
+
+    vcFramebuffer_Bind(pRenderContext->picking.pFramebuffer);
+    vcFramebuffer_Clear(pRenderContext->picking.pFramebuffer, 0x0);
+
+    vcGLState_SetViewport(0, 0, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y);
+    vcGLState_Scissor(pRenderContext->picking.location.x, pRenderContext->picking.location.y, pRenderContext->picking.location.x + 1, pRenderContext->picking.location.y + 1);
+
+    {
+      uint32_t modelId = 1; // note: start at 1, because 0 is 'null'
 
 #if ALLOW_EXPERIMENT_GPURENDER
-    if (pRenderContext->udRenderContext.usingGPURenderer)
-      vcRender_SplatUDWithId(pProgramState, pRenderContext, 0.0f); // `0.0` is a sentinel to tell it to use the id encoded in the alpha channel
+      if (pRenderContext->udRenderContext.usingGPURenderer)
+        vcRender_SplatUDWithId(pProgramState, pRenderContext, 0.0f); // `0.0` is a sentinel to tell it to use the id encoded in the alpha channel
 #endif
 
     // Polygon Models
-    for (size_t i = 0; i < renderData.polyModels.length; ++i)
-    {
-      vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
-      udFloat4 idAsColour = vcRender_EncodeIdAsColour((uint32_t)(modelId++));
+      for (size_t i = 0; i < renderData.polyModels.length; ++i)
+      {
+        vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
+        udFloat4 idAsColour = vcRender_EncodeIdAsColour((uint32_t)(modelId++));
 
-      if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
-        vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &idAsColour);
-      else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
-        vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution, &idAsColour);
+        if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
+          vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &idAsColour);
+        else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
+          vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution, &idAsColour);
+      }
+    }
+
+    uint8_t colourBytes[4] = {};
+    uint8_t depthBytes[4] = {};
+
+    // Synchronously read back data
+#if GRAPHICS_API_OPENGL
+    // note: we render upside-down
+    vcFramebuffer_BeginReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pRenderContext->picking.location.x, pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1, 1, 1, colourBytes);
+    vcFramebuffer_BeginReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pDepth, pRenderContext->picking.location.x, pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1, 1, 1, depthBytes);
+#else // All others are the same direction
+    vcFramebuffer_BeginReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1, colourBytes);
+    vcFramebuffer_BeginReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pDepth, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1, depthBytes);
+#endif
+    vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+
+    // 24 bit unsigned int -> float
+#if GRAPHICS_API_OPENGL
+    pickDepth = uint32_t((depthBytes[3] << 16) | (depthBytes[2] << 8) | (depthBytes[1] << 0)) / ((1 << 24) - 1.0f);
+    //uint8_t stencil = depthBytes[0];
+#else
+  // TODO: byte order of metal etc.
+    pickDepth = uint32_t((depthBytes[2] << 16) | (depthBytes[1] << 8) | (depthBytes[0] << 0)) / ((1 << 24) - 1.0f);
+    //uint8_t stencil = depthBytes[3];
+#endif
+
+    // note `-1`, and BGRA format
+    int udPickedId = -1;
+#ifdef ALLOW_EXPERIMENT_GPURENDER
+    if (pProgramState->settings.experimental.useGPURenderer)
+      udPickedId = (colourBytes[2] << 0) - 1;
+#endif
+
+    int pickedPolygonId = (int)((colourBytes[1] << 0) | (colourBytes[0] << 8)) - 1;
+    if (pickedPolygonId != -1 || udPickedId != -1)
+    {
+      result.success = true;
+
+      if (udPickedId != -1)
+        result.pModel = renderData.models[udPickedId];
+      else
+        result.pPolygon = &renderData.polyModels[pickedPolygonId];
     }
   }
-
-  uint8_t pickColourBGRA[4] = {};
-  float pickDepth = 0.0f;
-
-#if GRAPHICS_API_OPENGL
-  // note: we render upside-down
-  vcFramebuffer_ReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pickColourBGRA, pRenderContext->picking.location.x, pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1, 1, 1);
-  vcFramebuffer_ReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pDepth, &pickDepth, pRenderContext->picking.location.x, pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1, 1, 1);
-#else // All others are the same direction
-  vcFramebuffer_ReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pickColourBGRA, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1);
-  vcFramebuffer_ReadPixels(pRenderContext->picking.pFramebuffer, pRenderContext->picking.pDepth, &pickDepth, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1);
-#endif
-  vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
-
-  // note `-1`, and BGRA format
-  int pickedUdId = -1;
-#ifdef ALLOW_EXPERIMENT_GPURENDER
-  if (pProgramState->settings.experimental.useGPURenderer)
-    pickedUdId = (pickColourBGRA[2] << 0) - 1;
-#endif
-
-  double currentDist = pProgramState->settings.camera.farPlane;
-
-  int pickedPolygonId = (int)((pickColourBGRA[1] << 0) | (pickColourBGRA[0] << 8)) - 1;
-  if (pickedPolygonId != -1 || pickedUdId != -1)
+  else
   {
     result.success = true;
+    pickDepth = pRenderContext->previousFrameDepth;
+  }
 
+  if (result.success)
+  {
     // note: upside down (1.0 - uv.y)
-    udDouble4 clipPos = udDouble4::create(pickUV.x * 2.0 - 1.0, (1.0 - pickUV.y) * 2.0 - 1.0, pickDepth, 1.0);
+    udDouble4 clipPos = udDouble4::create(pRenderContext->currentMouseUV.x * 2.0 - 1.0, (1.0 - pRenderContext->currentMouseUV.y) * 2.0 - 1.0, pickDepth, 1.0);
 #if GRAPHICS_API_OPENGL
     clipPos.z = clipPos.z * 2.0 - 1.0;
 #endif
@@ -1199,11 +1266,6 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     result.position = pickPosition.toVector3();
 
     currentDist = udMag3(result.position - pProgramState->pCamera->position);
-
-    if (pickedUdId != -1)
-      result.pModel = renderData.models[pickedUdId];
-    else
-      result.pPolygon = &renderData.polyModels[pickedPolygonId];
   }
 
   if (pProgramState->settings.maptiles.mapEnabled && pProgramState->settings.maptiles.mouseInteracts)// check map tiles
@@ -1215,7 +1277,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 
     if (mapPlane.intersects(pProgramState->pCamera->worldMouseRay, &hitPoint, &hitDistance))
     {
-      if (hitDistance < currentDist && (hitDistance > pProgramState->settings.camera.nearPlane))
+      if (hitDistance < currentDist)
       {
         result.success = true;
         result.position = hitPoint;

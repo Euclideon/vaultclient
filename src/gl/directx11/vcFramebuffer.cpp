@@ -67,79 +67,78 @@ bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
   return true;
 }
 
-bool vcFramebuffer_ReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, void *pPixels, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+bool vcFramebuffer_BeginReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
 {
   if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || int(x + width) > pAttachment->width || int(y + height) > pAttachment->height)
     return false;
 
   udResult result = udR_Success;
-  int pixelBytes = 4; // assumptions
-
-  // Create D3D11 texture
-  D3D11_TEXTURE2D_DESC desc;
-  ZeroMemory(&desc, sizeof(desc));
-  desc.Width = width;
-  desc.Height = height;
-  desc.MipLevels = 1;
-  desc.ArraySize = 1;
-  desc.Format = pAttachment->d3dFormat;
-  desc.SampleDesc.Count = 1;
-  desc.Usage = D3D11_USAGE_STAGING;
-  desc.BindFlags = 0;
-  desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-
-  if (pAttachment->format == vcTextureFormat_D24S8 || pAttachment->format == vcTextureFormat_D32F)
+  if ((pAttachment->flags & vcTCF_AsynchronousRead) != vcTCF_AsynchronousRead && pAttachment->pStagingTextureD3D[pAttachment->stagingIndex] == nullptr)
   {
+    // Texture not configured for pixel read back, create a single staging texture now for re-use.
+    // TODO: is creating a 1*1 staging texture every query more performant than creating a single width*height and re-using?
+    D3D11_TEXTURE2D_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = pAttachment->d3dFormat;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_STAGING;
+    desc.BindFlags = 0;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+
+    // Create a full res texture, because subsequent reads must work with different regions. 
+    // Might be some optimizations here, if not D24S8 format, and width != tex.width or height != tex.height,
+    // recreate the staging texture then.
     desc.Width = pAttachment->width;
     desc.Height = pAttachment->height;
+
+    UD_ERROR_IF(g_pd3dDevice->CreateTexture2D(&desc, nullptr, &pAttachment->pStagingTextureD3D[pAttachment->stagingIndex]) != S_OK, udR_InternalError);
   }
 
-  ID3D11Texture2D *pTextureD3D = nullptr;
-  HRESULT res = g_pd3dDevice->CreateTexture2D(&desc, nullptr, &pTextureD3D);
-  UD_ERROR_IF(res != S_OK, udR_InternalError);
-
+  // Begin asynchronous copy
   if (pAttachment->format == vcTextureFormat_D24S8 || pAttachment->format == vcTextureFormat_D32F)
   {
-    g_pd3dDeviceContext->CopyResource(pTextureD3D, pAttachment->pTextureD3D);
+    // If you use CopySubresourceRegion with a depth-stencil buffer or a multisampled resource, you must copy the whole subresource
+    // TODO: What about D32F format? (its not a depth-stencil)
+    g_pd3dDeviceContext->CopyResource(pAttachment->pStagingTextureD3D[pAttachment->stagingIndex], pAttachment->pTextureD3D);
   }
   else
   {
-    D3D11_BOX srcBox;
-    srcBox.left = x;
-    srcBox.right = srcBox.left + width;
-    srcBox.top = y;
-    srcBox.bottom = srcBox.top + height;
-    srcBox.front = 0;
-    srcBox.back = 1;
-    g_pd3dDeviceContext->CopySubresourceRegion(pTextureD3D, 0, 0, 0, 0, pAttachment->pTextureD3D, 0, &srcBox);
+    // left, top, front, right, bottom, back
+    D3D11_BOX srcBox = { x, y, 0, (x + width), (y + height), 1 };
+    g_pd3dDeviceContext->CopySubresourceRegion(pAttachment->pStagingTextureD3D[pAttachment->stagingIndex], 0, x, y, 0, pAttachment->pTextureD3D, 0, &srcBox);
   }
 
-  D3D11_MAPPED_SUBRESOURCE msr;
-  res = g_pd3dDeviceContext->Map(pTextureD3D, 0, D3D11_MAP_READ, 0, &msr);
-  UD_ERROR_IF(res != S_OK, udR_InternalError);
-
-  if (pAttachment->format == vcTextureFormat_D24S8)
+  if ((pAttachment->flags & vcTCF_AsynchronousRead) != vcTCF_AsynchronousRead)
   {
-    uint32_t *pPixel = ((uint32_t*)msr.pData) + (x + y * pAttachment->width);
-
-    // 24 bit unsigned int -> float
-    uint8_t r = (uint8_t)(((*pPixel) & 0xff) >> 0);
-    uint8_t g = (uint8_t)(((*pPixel) & 0xff00) >> 8);
-    uint8_t b = (uint8_t)(((*pPixel) & 0xff0000) >> 16);
-
-    uint32_t t = uint32_t((b << 16) | (g << 8) | (r << 0));
-    float v = t / ((1 << 24) - 1.0f);
-    memcpy(pPixels, &v, 4);
+    UD_ERROR_IF(!vcFramebuffer_EndReadPixels(pFramebuffer, pAttachment, x, y, width, height, pPixels), udR_InternalError);
+    pAttachment->stagingIndex = 0; // force only using single staging texture
   }
-  else
-  {
-    memcpy(pPixels, msr.pData, width * height * pixelBytes);
-  }
-
-  g_pd3dDeviceContext->Unmap(pTextureD3D, 0);
 
 epilogue:
-  pTextureD3D->Release();
 
+  return result == udR_Success;
+}
+
+bool vcFramebuffer_EndReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
+{
+  if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || int(x + width) > pAttachment->width || int(y + height) > pAttachment->height || (pAttachment->pStagingTextureD3D[pAttachment->stagingIndex] == nullptr))
+    return false;
+
+  udResult result = udR_Success;
+  int pixelBytes = 4; // assumptions
+  ID3D11Texture2D *pStagingTexture = pAttachment->pStagingTextureD3D[pAttachment->stagingIndex];
+  pAttachment->stagingIndex = (pAttachment->stagingIndex + 1) & 1;
+
+  D3D11_MAPPED_SUBRESOURCE msr;
+  UD_ERROR_IF(g_pd3dDeviceContext->Map(pStagingTexture, 0, D3D11_MAP_READ, 0, &msr) != S_OK, udR_InternalError);
+
+  uint32_t *pPixelData = ((uint32_t*)msr.pData) + (x + y * pAttachment->width);
+  memcpy(pPixels, pPixelData, width * height * pixelBytes);
+
+  g_pd3dDeviceContext->Unmap(pStagingTexture, 0);
+
+epilogue:
   return result == udR_Success;
 }

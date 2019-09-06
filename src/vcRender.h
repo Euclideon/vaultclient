@@ -84,6 +84,6 @@ struct vcRenderPickResult
   vcModel *pModel;
   vcRenderPolyInstance *pPolygon;
 };
-vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData);
+vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, bool doSelectRender);
 
 #endif//vcRender_h__
