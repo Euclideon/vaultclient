@@ -9,23 +9,49 @@
 #import "gl/vcFramebuffer.h"
 
 #import <Metal/Metal.h>
+#import <QuartzCore/CAMetalLayer.h>
+#import <Cocoa/Cocoa.h>
 #import "vcRenderer.h"
-#import "vcViewCon.h"
 
-#define BUFFER_COUNT 2
-#define METAL_DEBUG
+#define BUFFER_COUNT 6
+#define DRAWABLES 1
 
-extern vcViewCon *_viewCon;
+#define ForceUnwrap(type, nullableExpression) ^type _Nonnull () { \
+type _Nullable maybeValue___ = nullableExpression; \
+if (maybeValue___) { \
+return (type _Nonnull) maybeValue___; \
+} else { \
+NSLog(@"Attempted to force unwrap a null: " #nullableExpression); \
+abort(); \
+} \
+}()
+
 extern id<MTLDevice> _device;
 extern id<MTLLibrary> _library;
 
+enum vcRendererFramebufferActions
+{
+  vcRFA_Nothing = 0,
+  vcRFA_DrawAndRenew = 1,
+  vcRFA_Renew = 2,
+  vcRFA_SizeChanged = 3
+};
+
+enum vcRendererFlushOption
+{
+  vcRFO_None,
+  vcRFO_Flush,
+  vcRFO_Blit
+};
+
 struct vcTexture
 {
-  char ID[32];
+  uint32_t ID;
   char samplerID[32];
   uint32_t width;
   uint32_t height;
   vcTextureFormat format;
+  vcTextureCreationFlags flags;
 };
 
 struct vcFramebuffer
@@ -33,12 +59,13 @@ struct vcFramebuffer
   uint32_t ID;
   vcTexture *pColor;
   vcTexture *pDepth;
-  bool render;
+  uint32_t clear;
+  vcRendererFramebufferActions action;
 };
 
 struct vcShaderConstantBuffer
 {
-  char ID[32];
+  const void *pCB;
   char name[32];
   size_t expectedSize;
 };
@@ -52,10 +79,15 @@ struct vcShader
 {
   uint32_t ID;
 
+  //uint16_t gID;
+  //uint16_t geom;
+
   vcShaderConstantBuffer bufferObjects[16];
   int numBufferObjects;
   vcShaderSampler samplerIndexes[16];
   int numSamplerIndexes;
+
+  vcRendererFlushOption flush;
 };
 
 struct vcMesh
@@ -63,7 +95,7 @@ struct vcMesh
   char vBufferIndex[32];
   uint32_t vertexCount;
   uint32_t vertexBytes;
-  
+
   char iBufferIndex[32];
   MTLIndexType indexType;
   uint32_t indexCount;

@@ -74,23 +74,11 @@ void ImGui_ImplMetal_Shutdown()
 
 void ImGui_ImplMetal_NewFrame(SDL_Window *pWindow)
 {
-    IM_ASSERT(g_sharedMetalContext != nil && "No Metal context. Did you call ImGui_ImplMetal_Init?");
-
     if (!ImGui::GetIO().Fonts->IsBuilt())
-      ImGuiGL_CreateFontsTexture();
-
+        ImGuiGL_CreateFontsTexture();
+    
     ImGui_ImplSDL2_NewFrame(pWindow);
-
-    ImGuiIO& io = ImGui::GetIO();
-
-    io.DisplaySize = ImVec2((float)(_viewCon.Mview.drawableSize.width), (float)(_viewCon.Mview.drawableSize.height));
-    // FramebufferScale should stay at 1,1 because the drawable size is automatically resized from the view size
-    io.DisplayFramebufferScale = ImVec2(1,1);
-
     ImGui::NewFrame();
-
-    io.MousePos.x -= [_viewCon.Mview.window contentLayoutRect].origin.x;
-    io.MousePos.y -= [_viewCon.Mview.window contentLayoutRect].origin.y;
 }
 
 // Metal Render function.
@@ -210,7 +198,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     );
 
     vcShader_Bind(pMetalShader);
-    [_viewCon.renderer.encoders[0] setRenderPipelineState:_pipeline];
+    [_renderer.encoders[0] setRenderPipelineState:_pipeline];
 
     vcShader_BindConstantBuffer(pMetalShader, metalMatrix, &ortho_projection, sizeof(ortho_projection));
     vcShader_GetSamplerIndex(&pMetalSampler, pMetalShader, "Texture");

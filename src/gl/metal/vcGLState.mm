@@ -12,16 +12,14 @@
 #endif
 
 #import <Metal/Metal.h>
-#import <MetalKit/MTKView.h>
 
-#include "vcViewCon.h"
 #include "vcStrings.h"
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_ex/imgui_impl_metal.h"
 
 int32_t g_maxAnisotropy = 0;
-vcViewCon *_viewCon;
+vcRenderer *_renderer;
 
 id<MTLDevice> _device;
 id<MTLLibrary> _library;
@@ -74,11 +72,11 @@ void vcGLState_BuildDepthStates()
     depthStencilDesc.depthWriteEnabled = false;
     depthStencilDesc.depthCompareFunction = mapDepthMode[i];
     dsState = [_device newDepthStencilStateWithDescriptor:depthStencilDesc];
-    _viewCon.renderer.depthStates[j] = dsState;
+    _renderer.depthStates[j] = dsState;
 
     depthStencilDesc.depthWriteEnabled = true;
     dsState = [_device newDepthStencilStateWithDescriptor:depthStencilDesc];
-    _viewCon.renderer.depthStates[j+1] = dsState;
+    _renderer.depthStates[j+1] = dsState;
   }
 }
 
@@ -111,45 +109,14 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 #endif
 
   sdlview.autoresizesSubviews = true;
-
-  _viewCon = [vcViewCon alloc];
-  _viewCon.Mview = [[MTKView alloc] initWithFrame:sdlview.frame device:_device];
-  if(_viewCon.Mview == nullptr)
-  {
-      NSLog(@"MTKView wasn't created");
-      return false;
-  }
-  [sdlview addSubview:_viewCon.Mview];
-  _viewCon.Mview.device = _device;
-  _viewCon.Mview.framebufferOnly = false;
-  _viewCon.Mview.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
-  _viewCon.Mview.autoResizeDrawable = true;
-  _viewCon.Mview.preferredFramesPerSecond = 60;
-
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  _viewCon.Mview.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-#elif UDPLATFORM_OSX
-  _viewCon.Mview.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-#else
-# error "Unsupported platform!"
-#endif
-
-  // Overloading NSViewController/UIViewController function, initializes the view controller objects
-  [_viewCon viewDidLoad];
+  
+  _renderer = [vcRenderer alloc];
+  [_renderer initWithView:sdlview];
 
   vcTexture *defaultTexture, *defaultDepth;
   vcTexture_Create(&defaultTexture, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
   vcTexture_Create(&defaultDepth, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
-
-  _viewCon.renderer.renderPasses[0] = _viewCon.Mview.currentRenderPassDescriptor;
-  _viewCon.renderer.renderPasses[0].colorAttachments[0].loadAction = MTLLoadActionClear;
-  _viewCon.renderer.renderPasses[0].colorAttachments[0].storeAction = MTLStoreActionStore;
-  _viewCon.renderer.renderPasses[0].colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0);
-  _viewCon.renderer.renderPasses[0].depthAttachment.loadAction = MTLLoadActionClear;
-  _viewCon.renderer.renderPasses[0].depthAttachment.storeAction = MTLStoreActionStore;
-  _viewCon.renderer.renderPasses[0].depthAttachment.clearDepth = 1.0;
-  _viewCon.renderer.renderPasses[0].stencilAttachment.clearStencil = 0;
-
+  
   vcFramebuffer *pFramebuffer;
   vcFramebuffer_Create(&pFramebuffer, defaultTexture, defaultDepth);
   vcFramebuffer_Bind(pFramebuffer);
@@ -160,8 +127,6 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
   *ppDefaultFramebuffer = pFramebuffer;
 
-  s_internalState.viewportZone = udInt4::create(0,0,sdlview.frame.size.width, sdlview.frame.size.height);
-
   vcGLState_ResetState(true);
 
   return true;
@@ -169,7 +134,7 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
 void vcGLState_Deinit()
 {
-  [_viewCon.Mview removeFromSuperview];
+  return;
 }
 
 bool vcGLState_ApplyState(vcGLState *pState)
@@ -201,10 +166,10 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
     switch(fillMode)
     {
       case vcGLSFM_Solid:
-        [_viewCon.renderer setFillMode:MTLTriangleFillModeFill];
+        [_renderer setFillMode:MTLTriangleFillModeFill];
         break;
       case vcGLSFM_Wireframe:
-        [_viewCon.renderer setFillMode:MTLTriangleFillModeLines];
+        [_renderer setFillMode:MTLTriangleFillModeLines];
         break;
       case vcGLSFM_TotalModes:
         return false;
@@ -214,22 +179,22 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
     switch(cullMode)
     {
       case vcGLSCM_None:
-        [_viewCon.renderer setCullMode:MTLCullModeNone];
+        [_renderer setCullMode:MTLCullModeNone];
         break;
       case vcGLSCM_Front:
-        [_viewCon.renderer setCullMode:MTLCullModeFront];
+        [_renderer setCullMode:MTLCullModeFront];
         break;
       case vcGLSCM_Back:
-        [_viewCon.renderer setCullMode:MTLCullModeBack];
+        [_renderer setCullMode:MTLCullModeBack];
         break;
       case vcGLSCM_TotalModes:
         return false;
     }
 
     if (isFrontCCW)
-      [_viewCon.renderer setWindingMode:MTLWindingCounterClockwise];
+      [_renderer setWindingMode:MTLWindingCounterClockwise];
     else
-      [_viewCon.renderer setWindingMode:MTLWindingClockwise];
+      [_renderer setWindingMode:MTLWindingClockwise];
 
     s_internalState.fillMode = fillMode;
     s_internalState.cullMode = cullMode;
@@ -243,7 +208,7 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
   if (force || blendMode != s_internalState.blendMode)
   {
     s_internalState.blendMode = blendMode;
-    [_viewCon.renderer bindBlendState:blendMode];
+    [_renderer bindBlendState:blendMode];
   }
   return true;
 }
@@ -262,7 +227,7 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
 
     if (!enableStencil)
     {
-      [_viewCon.renderer bindDepthStencil:_viewCon.renderer.depthStates[((int)depthReadMode) * 2 + doDepthWrite] settings:nullptr];
+      [_renderer bindDepthStencil:_renderer.depthStates[((int)depthReadMode) * 2 + doDepthWrite] settings:nullptr];
       return true;
     }
 
@@ -297,7 +262,7 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
     s_internalState.stencil.onStencilAndDepthPass = pStencil->onStencilAndDepthPass;
 
     id<MTLDepthStencilState> dsState = [_device newDepthStencilStateWithDescriptor:depthStencilDesc];
-    [_viewCon.renderer bindDepthStencil:dsState settings:pStencil];
+    [_renderer bindDepthStencil:dsState settings:pStencil];
   }
 
   return true;
@@ -317,11 +282,11 @@ bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, 
     .znear = minDepth,
     .zfar = maxDepth
   };
-
-  [_viewCon.renderer bindViewport:vp];
+  
+  [_renderer bindViewport:vp];
   s_internalState.viewportZone = udInt4::create(x, y, width, height);
-
-  vcGLState_Scissor(x, y, width + x, height + y);
+  
+  vcGLState_Scissor(x, y, x + width, y + height);
 
   return true;
 }
@@ -337,7 +302,7 @@ bool vcGLState_Present(SDL_Window *pWindow)
     return false;
 
   @autoreleasepool {
-    [_viewCon.Mview draw];
+      [_renderer draw];
   }
 
   memset(&s_internalState.frameInfo, 0, sizeof(s_internalState.frameInfo));
@@ -346,25 +311,21 @@ bool vcGLState_Present(SDL_Window *pWindow)
 
 bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
 {
-  vcGLState_SetViewport(0, 0, width, height);
+  [_renderer setFrameSize:NSMakeSize(width, height)];
   return true;
 }
 
 void vcGLState_Scissor(int left, int top, int right, int bottom, bool force /*= false*/)
 {
   udUnused(force);
-  if ((NSUInteger)right > _viewCon.renderer.renderPasses[0].colorAttachments[0].texture.width || right - left < 1 || (NSUInteger)bottom > _viewCon.renderer.renderPasses[0].colorAttachments[0].texture.height || bottom - top < 1)
-    return;
 
-  udInt4 newScissor = udInt4::create(left, s_internalState.viewportZone.w - bottom, right - left, bottom - top);
   MTLScissorRect rect = {
       .x = (NSUInteger)left,
       .y = (NSUInteger)top,
       .width = (NSUInteger)right - left,
       .height = (NSUInteger)bottom - top
   };
-  [_viewCon.renderer setScissor:rect];
-  s_internalState.scissorZone = newScissor;
+  [_renderer setScissor:rect];
 }
 
 int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel)

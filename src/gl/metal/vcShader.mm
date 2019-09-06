@@ -6,7 +6,7 @@
 #import "udStringUtil.h"
 
 uint32_t g_pipeCount = 0;
-uint32_t g_bufferIndex = 0;
+uint16_t g_geomPipeCount = 0;
 
 // Takes shader function names instead of shader description string
 bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes, const char *pGeometryShader /*= nullptr*/)
@@ -79,19 +79,66 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   pDesc.fragmentFunction = fFunc;
 
   pDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+
+  if (udStrBeginsWithi(pFragmentShader, "blur") || udStrBeginsWithi(pFragmentShader, "flatCol"))
+  {
+    pDesc.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
+    pDesc.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
+  }
+  else
+  {
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
-  pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+    pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+    pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float;
 #elif UDPLATFORM_OSX
-  pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
-  pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
+    pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
+    pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
 #else
 # error "Unknown platform!"
 #endif
+  }
+    
+  if (udStrBeginsWithi(pFragmentShader, "udSplat") || udStrBeginsWithi(pFragmentShader, "blur"))
+    pShader->flush = vcRFO_Flush;
+  else if (udStrBeginsWithi(pFragmentShader, "udFrag"))
+    pShader->flush = vcRFO_Blit;
+  else
+    pShader->flush = vcRFO_None;
 
-  [_viewCon.renderer buildBlendPipelines:pDesc];
-  pShader->ID = (uint32_t)g_pipeCount;
+  [_renderer buildBlendPipelines:pDesc];
+  pShader->ID = g_pipeCount;
   ++g_pipeCount;
+
+  /*if (pGeometryShader != nullptr)
+  {
+    id<MTLFunction> kFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pGeometryShader]];
+    
+    MTLComputePipelineDescriptor *pCDesc = [[MTLComputePipelineDescriptor alloc] init];
+    
+    pCDesc.computeFunction = kFunc;
+    
+    [_device newComputePipelineStateWithDescriptor:pCDesc options:MTLPipelineOptionNone completionHandler:^(id<MTLComputePipelineState> _Nullable computePipelineState, MTLComputePipelineReflection * _Nullable reflection, NSError * _Nullable error)
+    {
+      udUnused(reflection);
+      
+      if (error != nil)
+      {
+        NSLog(@"Error: Compute pipeline failure: %@", error);
+        return;
+      }
+
+      [_renderer.gPipelines addObject:ForceUnwrap(id<MTLComputePipelineState>, computePipelineState)];
+      
+      // Ignore reflection data?
+    }];
+    
+    pShader->geom = 6; // Number of output primitives per input
+    pShader->gID = g_geomPipeCount++;
+  }
+  else
+  {
+    pShader->geom = 0;
+  }*/
 
   *ppShader = pShader;
   pShader = nullptr;
@@ -110,7 +157,7 @@ void vcShader_DestroyShader(vcShader **ppShader)
 bool vcShader_Bind(vcShader *pShader)
 {
   if (pShader != nullptr)
-    [_viewCon.renderer bindPipeline:pShader];
+    [_renderer bindPipeline:pShader];
 
   return true;
 }
@@ -120,13 +167,12 @@ bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t sampl
   udUnused(pShader);
   if (pTexture == nullptr)
     return false;
-
-  [_viewCon.renderer bindTexture:pTexture index:samplerIndex];
+  
+  [_renderer bindTexture:pTexture index:samplerIndex];
 
   if (pSampler)
-  {
-    [_viewCon.renderer bindSampler:pSampler index:samplerIndex];
-  }
+    [_renderer bindSampler:pSampler index:samplerIndex];
+
   return true;
 }
 
@@ -145,21 +191,16 @@ bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pSh
       return true;
     }
   }
+  
+  vcShaderConstantBuffer *pTemp = udAllocType(vcShaderConstantBuffer, 1, udAF_Zero);
+  pTemp->expectedSize = bufferSize;
+  udStrcpy(pTemp->name, pBufferName);
 
-  NSString *bID = [NSString stringWithFormat:@"%u",g_bufferIndex];
-  [_viewCon.renderer.constantBuffers setObject:[_device newBufferWithLength:bufferSize options:MTLStorageModeShared] forKey:bID];
-  ++g_bufferIndex;
-
-  vcShaderConstantBuffer *temp = udAllocType(vcShaderConstantBuffer, 1, udAF_Zero);
-  temp->expectedSize = bufferSize;
-  udStrcpy(temp->name, pBufferName);
-  udStrcpy(temp->ID, bID.UTF8String);
-
-  pShader->bufferObjects[pShader->numBufferObjects] = *temp;
+  pShader->bufferObjects[pShader->numBufferObjects] = *pTemp;
   ++pShader->numBufferObjects;
-
-  *ppBuffer = temp;
-  temp = nullptr;
+  
+  *ppBuffer = pTemp;
+  pTemp = nullptr;
 
   return true;
 }
@@ -175,22 +216,11 @@ bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuf
       found = i;
 
   if (found < 0)
-  {
-    pShader->bufferObjects[pShader->numBufferObjects] = *pBuffer;
-    ++pShader->numBufferObjects;
-  }
-
-  if (pBuffer->expectedSize == bufferSize)
-  {
-    //memcpy(_viewCon.renderer.constantBuffers[[NSString stringWithUTF8String:pBuffer->ID]].contents, pData, bufferSize);
-
-    [_viewCon.renderer.constantBuffers setObject:[_device newBufferWithBytes:pData length:bufferSize options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pBuffer->ID]];
-  }
-  else
-  {
-    [_viewCon.renderer.constantBuffers setObject:[_device newBufferWithBytes:pData length:bufferSize options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pBuffer->ID]];
-  }
-
+    found = pShader->numBufferObjects++;
+  
+  pBuffer->pCB = pData;
+  
+  pShader->bufferObjects[found] = *pBuffer;
   return true;
 }
 
@@ -199,7 +229,6 @@ bool vcShader_ReleaseConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *p
   if (pShader == nullptr || pBuffer == nullptr)
     return false;
 
-  [_viewCon.renderer.constantBuffers removeObjectForKey:[NSString stringWithUTF8String:pBuffer->ID]];
   pBuffer->expectedSize = 0;
 
   udFree(pBuffer);

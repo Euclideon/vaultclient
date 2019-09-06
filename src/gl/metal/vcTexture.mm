@@ -7,7 +7,6 @@
 #import "udPlatformUtil.h"
 #import "udStringUtil.h"
 
-#import "vcViewCon.h"
 #import "vcRenderer.h"
 
 #include "stb_image.h"
@@ -93,35 +92,44 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
   pText->width = (uint32_t)pTextureDesc.width;
   pText->height = (uint32_t)pTextureDesc.height;
   pText->format = format;
+    pText->ID = g_textureIndex;
+  pText->flags = flags;
 
-  id<MTLTexture> texture = [_device newTextureWithDescriptor:pTextureDesc];
-
-  if ((pTextureDesc.pixelFormat == MTLPixelFormatRGBA8Unorm) && (pTextureDesc.usage & MTLTextureUsageRenderTarget))
+  int count = (flags & vcTCF_RenderTarget) || (flags & vcTCF_Dynamic) ? DRAWABLES : 1;
+  
+  for (int i = 0; i < count; ++i)
   {
-    texture = [texture newTextureViewWithPixelFormat:MTLPixelFormatBGRA8Unorm];
-    pTextureDesc.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    pText->format = vcTextureFormat_BGRA8;
-  }
-  MTLRegion region = MTLRegionMake2D(0, 0, width, height);
-  NSUInteger row = pixelBytes * width;
-  NSUInteger len = row * height;
-
-  if (pPixels && (pTextureDesc.storageMode != MTLStorageModePrivate))
-  {
-    [texture replaceRegion:region mipmapLevel:0 withBytes:pPixels bytesPerRow:row];
+    id<MTLTexture> texture = [_device newTextureWithDescriptor:pTextureDesc];
+    
+    if ((pTextureDesc.pixelFormat == MTLPixelFormatRGBA8Unorm) && (pTextureDesc.usage & MTLTextureUsageRenderTarget))
+    {
+      texture = [texture newTextureViewWithPixelFormat:MTLPixelFormatBGRA8Unorm];
+      pTextureDesc.pixelFormat = MTLPixelFormatBGRA8Unorm;
+      pText->format = vcTextureFormat_BGRA8;
+    }
+    MTLRegion region = MTLRegionMake2D(0, 0, width, height);
+    NSUInteger row = pixelBytes * width;
+    NSUInteger len = row * height;
+    
+    if (pPixels && (pTextureDesc.storageMode != MTLStorageModePrivate))
+    {
+      [texture replaceRegion:region mipmapLevel:0 withBytes:pPixels bytesPerRow:row];
 #if UDPLATFORM_OSX
-    [_viewCon.renderer.blitEncoder synchronizeTexture:texture slice:0 level:0];
+      [_renderer.blitEncoder synchronizeTexture:texture slice:0 level:0];
 #endif
-  }
-  else if (pPixels)
-  {
-    id<MTLBuffer> temp = [_device newBufferWithBytes:pPixels length:len options:MTLStorageModeShared];
-    [_viewCon.renderer.blitEncoder copyFromBuffer:temp sourceOffset:0 sourceBytesPerRow:row sourceBytesPerImage:len sourceSize:MTLSizeMake(width, height, 1) toTexture:texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
+    }
+    else if (pPixels)
+    {
+      id<MTLBuffer> temp = [_device newBufferWithBytes:pPixels length:len options:MTLStorageModeShared];
+      [_renderer.blitEncoder copyFromBuffer:temp sourceOffset:0 sourceBytesPerRow:row sourceBytesPerImage:len sourceSize:MTLSizeMake(width, height, 1) toTexture:texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
+    }
+    
+    [_renderer.textures setObject:texture forKey:[NSString stringWithFormat:@"%u",g_textureIndex++]];
   }
 
   // Sampler
   NSString *key = [NSString stringWithFormat:@"%@%@", (filterMode == vcTFM_Nearest ? @"N" : @"L"), (wrapMode == vcTWM_Repeat ? @"R" : @"C")];
-  id<MTLSamplerState> savedSampler = [_viewCon.renderer.samplers valueForKey:key];
+  id<MTLSamplerState> savedSampler = [_renderer.samplers valueForKey:key];
 
   if (savedSampler)
   {
@@ -167,13 +175,8 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
     id<MTLSamplerState> sampler = [_device newSamplerStateWithDescriptor:pSamplerDesc];
 
     udStrcpy(pText->samplerID, key.UTF8String);
-    [_viewCon.renderer.samplers setObject:sampler forKey:key];
+    [_renderer.samplers setObject:sampler forKey:key];
   }
-
-  NSString *txID = [NSString stringWithFormat:@"%u",g_textureIndex];
-  udStrcpy(pText->ID, txID.UTF8String);
-  [_viewCon.renderer.textures setObject:texture forKey:txID];
-  ++g_textureIndex;
 
   vcGLState_ReportGPUWork(0, 0, pText->width * pText->height * pixelBytes);
   *ppTexture = pText;
@@ -235,13 +238,15 @@ udResult vcTexture_UploadPixels(struct vcTexture *pTexture, const void *pPixels,
   {
     id<MTLBuffer> pData = [_device newBufferWithBytes:pPixels length:width * height * pixelBytes options:MTLStorageModeShared];
 
-    [_viewCon.renderer.blitEncoder copyFromBuffer:pData sourceOffset:0 sourceBytesPerRow:width * pixelBytes sourceBytesPerImage:width * height * 4 sourceSize:MTLSizeMake(width, height, 1) toTexture:_viewCon.renderer.textures[[NSString stringWithUTF8String:pTexture->ID]] destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
+    [_renderer.blitEncoder copyFromBuffer:pData sourceOffset:0 sourceBytesPerRow:width * pixelBytes sourceBytesPerImage:width * height * 4 sourceSize:MTLSizeMake(width, height, 1) toTexture:_renderer.textures[[NSString stringWithFormat:@"%u",pTexture->ID]] destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
 #if UDPLATFORM_OSX
-    if (_viewCon.renderer.textures[[NSString stringWithUTF8String:pTexture->ID]].storageMode != MTLStorageModePrivate)
-      [_viewCon.renderer.blitEncoder synchronizeTexture:_viewCon.renderer.textures[[NSString stringWithUTF8String:pTexture->ID]] slice:0 level:0];
+    if (_renderer.textures[[NSString stringWithFormat:@"%u",pTexture->ID]].storageMode != MTLStorageModePrivate)
+      [_renderer.blitEncoder synchronizeTexture:_renderer.textures[[NSString stringWithFormat:@"%u",pTexture->ID]] slice:0 level:0];
 #endif
     result = udR_Success;
   }
+    
+  [_renderer flushBlit];
 
   vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
   return result;
@@ -249,10 +254,10 @@ udResult vcTexture_UploadPixels(struct vcTexture *pTexture, const void *pPixels,
 
 void vcTexture_Destroy(struct vcTexture **ppTexture)
 {
-  if (ppTexture == nullptr || *ppTexture == nullptr)
+  if (ppTexture == nullptr || *ppTexture == nullptr || !_renderer.textures[[NSString stringWithFormat:@"%u",(*ppTexture)->ID]])
     return;
 
-  [_viewCon.renderer.textures removeObjectForKey:[NSString stringWithUTF8String:(*ppTexture)->ID]];
+  [_renderer.textures removeObjectForKey:[NSString stringWithFormat:@"%u",(*ppTexture)->ID]];
 
   udFree(*ppTexture);
   *ppTexture = nullptr;
@@ -306,7 +311,7 @@ bool vcTexture_LoadCubemap(struct vcTexture **ppTexture, const char *pFilename)
   }
 
   NSString *key = [NSString stringWithFormat:@"CL"];
-  id<MTLSamplerState> savedSampler = [_viewCon.renderer.samplers valueForKey:key];
+  id<MTLSamplerState> savedSampler = [_renderer.samplers valueForKey:key];
 
   if (savedSampler)
   {
@@ -327,13 +332,11 @@ bool vcTexture_LoadCubemap(struct vcTexture **ppTexture, const char *pFilename)
     id<MTLSamplerState> sampler = [_device newSamplerStateWithDescriptor:pSamplerDesc];
 
     udStrcpy(pTexture->samplerID, key.UTF8String);
-    [_viewCon.renderer.samplers setObject:sampler forKey:key];
+    [_renderer.samplers setObject:sampler forKey:key];
   }
 
-  NSString *txID = [NSString stringWithFormat:@"%u",g_textureIndex];
-  udStrcpy(pTexture->ID, txID.UTF8String);
-  [_viewCon.renderer.textures setObject:texture forKey:txID];
-  ++g_textureIndex;
+  pTexture->ID = g_textureIndex++;
+  [_renderer.textures setObject:texture forKey:[NSString stringWithFormat:@"%u",pTexture->ID]];
 
   vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * depth * 6);
   *ppTexture = pTexture;

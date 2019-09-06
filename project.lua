@@ -169,7 +169,7 @@ project "vaultClient"
 		}
 
 	filter { "options:gfxapi=metal", "system:macosx" }
-		links { "AppKit.framework" }
+		links { "AppKit.framework", "QuartzCore.framework" }
 
 	filter { "options:not gfxapi=opengl", "files:src/gl/opengl/*", "system:not macosx" }
 		flags { "ExcludeFromBuild" }
