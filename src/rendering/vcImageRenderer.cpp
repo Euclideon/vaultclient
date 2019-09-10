@@ -15,7 +15,7 @@ UDCOMPILEASSERT(udLengthOf(vcISToPixelSize) == vcIS_Count, "ImagePixelSize not e
 static const float vcISToWorldSize[] = { -1.f, 3.f, 10.f };
 UDCOMPILEASSERT(udLengthOf(vcISToWorldSize) == vcIS_Count, "ImageWorldSize not equal size");
 
-static vcMesh *vcITToMesh[] = { nullptr, nullptr, nullptr };
+static vcInternalMeshType vcITToMesh[] = { vcIMT_Billboard, vcIMT_Tube, vcIMT_Sphere };
 UDCOMPILEASSERT(udLengthOf(vcITToMesh) == vcIT_Count, "ImageMesh does not equal size");
 
 static struct vcImageShader
@@ -39,13 +39,9 @@ void vcImageRenderer_Init()
   gRefCount++;
   if (gRefCount == 1)
   {
-    vcMesh_Create(&vcITToMesh[vcIT_StandardPhoto], vcP1UV1VertexLayout, (int)udLengthOf(vcP1UV1VertexLayout), billboardVertices, (int)udLengthOf(billboardVertices), billboardIndices, (int)udLengthOf(billboardIndices), vcMF_Dynamic | vcMF_IndexShort);
-    vcMesh_Create(&vcITToMesh[vcIT_PhotoSphere], vcP1UV1VertexLayout, (int)udLengthOf(vcP1UV1VertexLayout), pSphereVertices, (int)udLengthOf(sphereVerticesFltArray), sphereIndices, (int)udLengthOf(sphereIndices), vcMF_Dynamic | vcMF_IndexShort);
-    vcMesh_Create(&vcITToMesh[vcIT_Panorama], vcP1UV1VertexLayout, (int)udLengthOf(vcP1UV1VertexLayout), pTubeVertices, (int)udLengthOf(tubeVerticesFltArray), tubeIndices, (int)udLengthOf(tubeIndices), vcMF_Dynamic | vcMF_IndexShort);
-
-    vcShader_CreateFromText(&gShaders[vcIT_StandardPhoto].pShader, g_BillboardVertexShader, g_BillboardFragmentShader, vcP1UV1VertexLayout);
-    vcShader_CreateFromText(&gShaders[vcIT_PhotoSphere].pShader, g_PolygonP1UV1VertexShader, g_PolygonP1UV1FragmentShader, vcP1UV1VertexLayout);
-    vcShader_CreateFromText(&gShaders[vcIT_Panorama].pShader, g_PolygonP1UV1VertexShader, g_PolygonP1UV1FragmentShader, vcP1UV1VertexLayout);
+    vcShader_CreateFromText(&gShaders[vcIT_StandardPhoto].pShader, g_BillboardVertexShader, g_BillboardFragmentShader, vcP3UV2VertexLayout);
+    vcShader_CreateFromText(&gShaders[vcIT_PhotoSphere].pShader, g_PolygonP1UV1VertexShader, g_PolygonP1UV1FragmentShader, vcP3UV2VertexLayout);
+    vcShader_CreateFromText(&gShaders[vcIT_Panorama].pShader, g_PolygonP1UV1VertexShader, g_PolygonP1UV1FragmentShader, vcP3UV2VertexLayout);
 
     for (int i = 0; i < vcIT_Count; ++i)
     {
@@ -60,9 +56,6 @@ void vcImageRenderer_Destroy()
   --gRefCount;
   if (gRefCount == 0)
   {
-    for (int i = 0; i < vcIT_Count; ++i)
-      vcMesh_Destroy(&vcITToMesh[i]);
-
     for (int i = 0; i < vcIT_Count; ++i)
     {
       vcShader_DestroyShader(&gShaders[i].pShader);
@@ -100,7 +93,7 @@ bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &vi
   vcShader_BindConstantBuffer(pShader->pShader, pShader->pEveryObjectConstantBuffer, &pShader->everyObject, sizeof(pShader->everyObject));
   vcShader_BindTexture(pShader->pShader, pImageInfo->pTexture, 0, pShader->pDiffuseSampler);
 
-  vcMesh_Render(vcITToMesh[pImageInfo->type]);
+  vcMesh_Render(gInternalModels[vcITToMesh[pImageInfo->type]]);
 
   return true;
 }

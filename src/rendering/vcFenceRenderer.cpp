@@ -53,14 +53,6 @@ struct vcFenceRenderer
   } renderShader;
 };
 
-struct vcRibbonVertex
-{
-  udFloat3 position;
-  udFloat2 uv;
-  udFloat4 ribbonInfo; // xyz: expand vector; z: pair id (0 or 1)
-};
-const vcVertexLayoutTypes vcRibbonVertexLayout[] = { vcVLT_Position3, vcVLT_TextureCoords2, vcVLT_RibbonInfo4 };
-
 static int gRefCount = 0;
 static vcTexture *gArrowTexture = nullptr;
 static vcTexture *gGlowTexture = nullptr;
@@ -116,7 +108,7 @@ udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer)
   pFenceRenderer->config.imageMode = vcRRIM_Solid;
   pFenceRenderer->config.visualMode = vcRRVM_Fence;
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&pFenceRenderer->renderShader.pProgram, g_FenceVertexShader, g_FenceFragmentShader, vcRibbonVertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pFenceRenderer->renderShader.pProgram, g_FenceVertexShader, g_FenceFragmentShader, vcP3UV2RI4VertexLayout), udR_InternalError);
   vcShader_Bind(pFenceRenderer->renderShader.pProgram);
   vcShader_GetSamplerIndex(&pFenceRenderer->renderShader.uniform_texture, pFenceRenderer->renderShader.pProgram, "u_texture");
   vcShader_GetConstantBuffer(&pFenceRenderer->renderShader.uniform_everyFrame, pFenceRenderer->renderShader.pProgram, "u_EveryFrame", sizeof(pFenceRenderer->renderShader.everyFrameParams));
@@ -219,7 +211,7 @@ udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer
 {
   udResult result = udR_Success;
 
-  int layoutCount = (int)udLengthOf(vcRibbonVertexLayout);
+  int layoutCount = (int)udLengthOf(vcP3UV2RI4VertexLayout);
   float widthSquared = pFenceRenderer->config.ribbonWidth * pFenceRenderer->config.ribbonWidth;
   float uvFenceOffset = 0;
   int vertIndex = 0;
@@ -236,7 +228,7 @@ udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer
   float maxUV = 0.0f;
 
   int vertCount = int(pSegment->pointCount * 2 + udMax<size_t>(pSegment->pointCount - 2, 0) * 2);
-  vcRibbonVertex *pVerts = udAllocType(vcRibbonVertex, vertCount, udAF_Zero);
+  vcP3UV2RI4Vertex *pVerts = udAllocType(vcP3UV2RI4Vertex, vertCount, udAF_Zero);
   UD_ERROR_NULL(pVerts, udR_MemoryAllocationFailure);
   pSegment->vertCount = vertCount;
 
@@ -343,7 +335,7 @@ udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer
   if (pSegment->pMesh)
     vcMesh_Destroy(&pSegment->pMesh);
 
-  UD_ERROR_IF(vcMesh_Create(&pSegment->pMesh, vcRibbonVertexLayout, layoutCount, pVerts, pSegment->vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
+  UD_ERROR_IF(vcMesh_Create(&pSegment->pMesh, vcP3UV2RI4VertexLayout, layoutCount, pVerts, pSegment->vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
 
 epilogue:
   udFree(pVerts);

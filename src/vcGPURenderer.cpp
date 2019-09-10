@@ -19,7 +19,7 @@ struct vcGPURenderer
   struct
   {
     vcGPURendererPointRenderMode mode;
-    vcVertexLayoutTypes *pVertexLayout;
+    const vcVertexLayoutTypes *pVertexLayout;
     int vertexLayoutCount;
     int vertCountPerPoint;
   } pointRendering;
@@ -43,30 +43,13 @@ struct vcBlockRenderVertexBuffer
   enum { MAX_VBOS = 9 };
   vcMesh *pMesh;
 
-  // TEMP HARD CODED VERTEX
-  // The vertex buffer is divided into "pieces", which correspond to child block
-  // sizes. The main vbo is populated from pieces as required
-  struct Vertex
-  {
-    udFloat4 pos;
-    uint32_t color;
-  };
-
-  struct QuadVertex : Vertex
-  {
-    float corner[2];
-  };
-
-  Vertex *pDivisionData[MAX_VBOS]; // In-memory temp buffer of data waiting to be uploaded as a VBO before being freed
+  void *pDivisionData[MAX_VBOS]; // In-memory temp buffer of data waiting to be uploaded as a VBO before being freed
 
   int divisionPointCounts[MAX_VBOS]; // Count of points in each division
   //int divisionVertexStarts[MAX_VBOS]; // Start value of each division (sum of previous counts)
   int divisionCount;
   int totalPointCount;
 };
-
-vcVertexLayoutTypes vcGPURenderer_QuadVertexLayout[] = { vcVLT_Position4, vcVLT_ColourBGRA, vcVLT_QuadCorner };
-vcVertexLayoutTypes vcGPURenderer_PointVertexLayout[] = { vcVLT_Position4, vcVLT_ColourBGRA };
 
 udResult vcGPURenderer_CreatePointRenderingData(vcGPURenderer *pBlockRenderer)
 {
@@ -75,15 +58,15 @@ udResult vcGPURenderer_CreatePointRenderingData(vcGPURenderer *pBlockRenderer)
   if (pBlockRenderer->pointRendering.mode == vcBRPRM_Quads)
   {
     pBlockRenderer->pointRendering.vertCountPerPoint = 6;
-    pBlockRenderer->pointRendering.pVertexLayout = vcGPURenderer_QuadVertexLayout;
-    pBlockRenderer->pointRendering.vertexLayoutCount = (int)udLengthOf(vcGPURenderer_QuadVertexLayout);
+    pBlockRenderer->pointRendering.pVertexLayout = vcP4C1QC2VertexLayout;
+    pBlockRenderer->pointRendering.vertexLayoutCount = (int)udLengthOf(vcP4C1QC2VertexLayout);
     UD_ERROR_IF(!vcShader_CreateFromText(&pBlockRenderer->presentShader.pProgram, g_udGPURenderQuadVertexShader, g_udGPURenderQuadFragmentShader, pBlockRenderer->pointRendering.pVertexLayout, pBlockRenderer->pointRendering.vertexLayoutCount), udR_Failure_);
   }
   else if (pBlockRenderer->pointRendering.mode == vcBRPRM_GeometryShader)
   {
     pBlockRenderer->pointRendering.vertCountPerPoint = 1;
-    pBlockRenderer->pointRendering.pVertexLayout = vcGPURenderer_PointVertexLayout;
-    pBlockRenderer->pointRendering.vertexLayoutCount = (int)udLengthOf(vcGPURenderer_PointVertexLayout);
+    pBlockRenderer->pointRendering.pVertexLayout = vcP4C1VertexLayout;
+    pBlockRenderer->pointRendering.vertexLayoutCount = (int)udLengthOf(vcP4C1VertexLayout);
     UD_ERROR_IF(!vcShader_CreateFromText(&pBlockRenderer->presentShader.pProgram, g_udGPURenderGeomVertexShader, g_udGPURenderGeomFragmentShader, pBlockRenderer->pointRendering.pVertexLayout, pBlockRenderer->pointRendering.vertexLayoutCount, g_udGPURenderGeomGeometryShader), udR_Failure_);
   }
 
@@ -135,12 +118,12 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
     // HARD CODING TO fixed vert format for the moment
     if (pBlockRenderer->pointRendering.mode == vcBRPRM_Quads)
     {
-      vcBlockRenderVertexBuffer::QuadVertex *pVerts = udAllocType(vcBlockRenderVertexBuffer::QuadVertex, pVertexBuffer->divisionPointCounts[div] * pBlockRenderer->pointRendering.vertCountPerPoint, udAF_None);
+      vcP4C1QC2Vertex *pVerts = udAllocType(vcP4C1QC2Vertex, pVertexBuffer->divisionPointCounts[div] * pBlockRenderer->pointRendering.vertCountPerPoint, udAF_None);
       UD_ERROR_NULL(pVerts, udR_MemoryAllocationFailure);
 
       for (int j = 0; j < pVertexBuffer->divisionPointCounts[div]; ++j)
       {
-        vcBlockRenderVertexBuffer::QuadVertex vert = {};
+        vcP4C1QC2Vertex vert = {};
         double position[3] = {};
 
         vdkGPURender_GetPosition(pVertexData, base + j, position);
@@ -177,7 +160,7 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
     }
     else if (pBlockRenderer->pointRendering.mode == vcBRPRM_GeometryShader)
     {
-      vcBlockRenderVertexBuffer::Vertex *pVerts = udAllocType(vcBlockRenderVertexBuffer::Vertex, pVertexBuffer->divisionPointCounts[div] * pBlockRenderer->pointRendering.vertCountPerPoint, udAF_None);
+      vcP4C1Vertex *pVerts = udAllocType(vcP4C1Vertex, pVertexBuffer->divisionPointCounts[div] * pBlockRenderer->pointRendering.vertCountPerPoint, udAF_None);
       UD_ERROR_NULL(pVerts, udR_MemoryAllocationFailure);
 
       for (int j = 0; j < pVertexBuffer->divisionPointCounts[div]; ++j)
@@ -194,27 +177,27 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
     {
       if (pBlockRenderer->pointRendering.mode == vcBRPRM_Quads)
       {
-        vcBlockRenderVertexBuffer::QuadVertex **ppBuffer = (vcBlockRenderVertexBuffer::QuadVertex**)(pVertexBuffer->pDivisionData);
-
+        vcP4C1QC2Vertex **ppVerts = (vcP4C1QC2Vertex **)pVertexBuffer->pDivisionData;
         for (int j = 0; j < pVertexBuffer->divisionPointCounts[div]; ++j)
         {
           uint32_t col = *(uint32_t*)(vdkGPURender_GetAttributes(pVertexData, (base + j)) + colorOffset);
 
           for (int v = 0; v < pBlockRenderer->pointRendering.vertCountPerPoint; ++v)
           {
-            ppBuffer[div][j * pBlockRenderer->pointRendering.vertCountPerPoint + v].color = col;
+            ppVerts[div][j * pBlockRenderer->pointRendering.vertCountPerPoint + v].color = col;
           }
         }
       }
       else if (pBlockRenderer->pointRendering.mode == vcBRPRM_GeometryShader)
       {
+        vcP4C1Vertex **ppVerts = (vcP4C1Vertex **)pVertexBuffer->pDivisionData;
         for (int j = 0; j < pVertexBuffer->divisionPointCounts[div]; ++j)
         {
           uint32_t col = *(uint32_t*)(vdkGPURender_GetAttributes(pVertexData, (base + j)) + colorOffset);
 
           for (int v = 0; v < pBlockRenderer->pointRendering.vertCountPerPoint; ++v)
           {
-            pVertexBuffer->pDivisionData[div][j * pBlockRenderer->pointRendering.vertCountPerPoint + v].color = col;
+            ppVerts[div][j * pBlockRenderer->pointRendering.vertCountPerPoint + v].color = col;
           }
         }
       }
@@ -223,33 +206,34 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
     {
       if (pBlockRenderer->pointRendering.mode == vcBRPRM_Quads)
       {
-        vcBlockRenderVertexBuffer::QuadVertex **ppBuffer = (vcBlockRenderVertexBuffer::QuadVertex**)(pVertexBuffer->pDivisionData);
-
+        vcP4C1QC2Vertex **ppVerts = (vcP4C1QC2Vertex **)pVertexBuffer->pDivisionData;
         for (int j = 0; j < pVertexBuffer->divisionPointCounts[div]; ++j)
         {
           uint32_t col = 0xff000000 | *(uint16_t*)(vdkGPURender_GetAttributes(pVertexData, (base + j)) + intensityOffset);
 
           for (int v = 0; v < pBlockRenderer->pointRendering.vertCountPerPoint; ++v)
           {
-            ppBuffer[div][j * pBlockRenderer->pointRendering.vertCountPerPoint + v].color = col;
+            ppVerts[div][j * pBlockRenderer->pointRendering.vertCountPerPoint + v].color = col;
           }
         }
       }
       else if (pBlockRenderer->pointRendering.mode == vcBRPRM_GeometryShader)
       {
+        vcP4C1Vertex **ppVerts = (vcP4C1Vertex **)pVertexBuffer->pDivisionData;
         for (int j = 0; j < pVertexBuffer->divisionPointCounts[div]; ++j)
         {
           uint32_t col = 0xff000000 | *(uint16_t*)(vdkGPURender_GetAttributes(pVertexData, (base + j)) + intensityOffset);
 
           for (int v = 0; v < pBlockRenderer->pointRendering.vertCountPerPoint; ++v)
           {
-            pVertexBuffer->pDivisionData[div][j * pBlockRenderer->pointRendering.vertCountPerPoint + v].color = col;
+            ppVerts[div][j * pBlockRenderer->pointRendering.vertCountPerPoint + v].color = col;
           }
         }
       }
     }
     else // Colour by height in the absence of anything else
     {
+      vcP4C1Vertex **ppVerts = (vcP4C1Vertex * *)pVertexBuffer->pDivisionData;
       for (int j = 0; j < pVertexBuffer->divisionPointCounts[div]; ++j)
       {
         double res[3] = {};
@@ -257,7 +241,7 @@ vdkError vcGPURenderer_CreateVertexBuffer(void *pContext, const vdkGPURenderVert
         uint32_t col = 0xff000000 | (0x010101 * int(res[2] * 255));
         for (int v = 0; v < pBlockRenderer->pointRendering.vertCountPerPoint; ++v)
         {
-          pVertexBuffer->pDivisionData[div][j * pBlockRenderer->pointRendering.vertCountPerPoint + v].color = col;
+          ppVerts[div][j * pBlockRenderer->pointRendering.vertCountPerPoint + v].color = col;
         }
       }
     }

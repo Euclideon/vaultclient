@@ -9,8 +9,6 @@
 
 struct vcAnchor
 {
-  vcMesh *meshes[vcAS_Count];
-
   vcShader *pShader;
   vcShaderConstantBuffer *pShaderConstantBuffer;
 
@@ -23,24 +21,25 @@ struct vcAnchor
   } shaderBuffer;
 };
 
+static vcInternalMeshType vcASToMesh[] = { vcIMT_Count, vcIMT_Orbit, vcIMT_Compass };
+UDCOMPILEASSERT(udLengthOf(vcASToMesh) == vcAS_Count, "AnchorStyle does not equal size");
+
 udResult vcCompass_Create(vcAnchor **ppCompass)
 {
-  if (ppCompass == nullptr)
-    return udR_InvalidParameter_;
+  udResult result;
+  vcAnchor *pCompass = nullptr;
 
-  udResult result = udR_Failure_;
-  vcAnchor *pCompass = udAllocType(vcAnchor, 1, udAF_Zero);
+  UD_ERROR_NULL(ppCompass, udR_InvalidParameter_);
 
+  pCompass = udAllocType(vcAnchor, 1, udAF_Zero);
   UD_ERROR_NULL(pCompass, udR_MemoryAllocationFailure);
 
-  UD_ERROR_CHECK(vcMesh_Create(&pCompass->meshes[vcAS_Orbit], vcP1N1VertexLayout, (int)udLengthOf(vcP1N1VertexLayout), pOrbitVertices, (int)udLengthOf(orbitVerticesFltArray), orbitIndices, (int)udLengthOf(orbitIndices), vcMF_IndexShort));
-  UD_ERROR_CHECK(vcMesh_Create(&pCompass->meshes[vcAS_Compass], vcP1N1VertexLayout, (int)udLengthOf(vcP1N1VertexLayout), pCompassVerts, (int)udLengthOf(compassVertsFltArray), compassIndices, (int)udLengthOf(compassIndices), vcMF_IndexShort));
-
-  UD_ERROR_IF(!vcShader_CreateFromText(&pCompass->pShader, g_CompassVertexShader, g_CompassFragmentShader, vcP1N1VertexLayout), udR_InvalidConfiguration);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pCompass->pShader, g_CompassVertexShader, g_CompassFragmentShader, vcP3N3VertexLayout), udR_InvalidConfiguration);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pCompass->pShaderConstantBuffer, pCompass->pShader, "u_EveryObject", sizeof(vcAnchor::shaderBuffer)), udR_InvalidParameter_);
 
   *ppCompass = pCompass;
   pCompass = nullptr;
+  result = udR_Success;
 
 epilogue:
   if (pCompass != nullptr)
@@ -54,9 +53,6 @@ udResult vcCompass_Destroy(vcAnchor **ppCompass)
   if (ppCompass == nullptr || *ppCompass == nullptr)
     return udR_InvalidParameter_;
 
-  for (size_t i = 0; i < vcAS_Count; ++i)
-    vcMesh_Destroy(&(*ppCompass)->meshes[i]);
-
   vcShader_DestroyShader(&(*ppCompass)->pShader);
   udFree((*ppCompass));
 
@@ -65,7 +61,7 @@ udResult vcCompass_Destroy(vcAnchor **ppCompass)
 
 udResult vcCompass_Render(vcAnchor *pCompass, vcAnchorStyle anchorStyle, const udDouble4x4 &worldViewProj, const udDouble4 &colour /*= udDouble4::create(1.0, 1.0, 1.0, 1.0)*/)
 {
-  if (pCompass == nullptr || pCompass->meshes[anchorStyle] == nullptr)
+  if (pCompass == nullptr || anchorStyle >= vcAS_Count || vcASToMesh[anchorStyle] == vcIMT_Count)
     return udR_InvalidParameter_;
 
   udResult result = udR_Failure_;
@@ -76,7 +72,7 @@ udResult vcCompass_Render(vcAnchor *pCompass, vcAnchorStyle anchorStyle, const u
 
   UD_ERROR_IF(!vcShader_Bind(pCompass->pShader), udR_InternalError);
   UD_ERROR_IF(!vcShader_BindConstantBuffer(pCompass->pShader, pCompass->pShaderConstantBuffer, &pCompass->shaderBuffer, sizeof(vcAnchor::shaderBuffer)), udR_InputExhausted);
-  UD_ERROR_IF(!vcMesh_Render(pCompass->meshes[anchorStyle]), udR_InternalError);
+  UD_ERROR_IF(!vcMesh_Render(gInternalModels[vcASToMesh[anchorStyle]]), udR_InternalError);
 
   result = udR_Success;
 

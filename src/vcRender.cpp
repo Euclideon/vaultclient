@@ -131,9 +131,6 @@ struct vcRenderContext
     } params;
   } skyboxShaderTintImage;
 
-  vcMesh *pScreenQuadMesh;
-  vcMesh *pFlippedScreenQuadMesh;
-
   struct
   {
     udUInt2 location;
@@ -174,12 +171,14 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
 
 udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext, udWorkerPool *pWorkerPool, const udUInt2 &sceneResolution)
 {
-  udResult result = udR_Success;
+  udResult result;
   vcRenderContext *pRenderContext = nullptr;
 
   const int maxPointCount = 5 * 1000000; // TODO: calculate this from GPU information
 
   UD_ERROR_NULL(ppRenderContext, udR_InvalidParameter_);
+
+  UD_ERROR_CHECK(vcInternalModels_Init());
 
   pRenderContext = udAllocType(vcRenderContext, 1, udAF_Zero);
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
@@ -194,13 +193,10 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   udUnused(maxPointCount);
 #endif
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcSimpleVertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderPanorama.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShaderPanarama, vcSimpleVertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderTintImage.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShaderImageColour, vcSimpleVertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.splatIdShader.pProgram, g_udVertexShader, g_udSplatIdFragmentShader, vcSimpleVertexLayout), udR_InternalError);
-
-  vcMesh_Create(&pRenderContext->pScreenQuadMesh, vcSimpleVertexLayout, int(udLengthOf(vcSimpleVertexLayout)), screenQuadVertices, 4, screenQuadIndices, 6, vcMF_Dynamic);
-  vcMesh_Create(&pRenderContext->pFlippedScreenQuadMesh, vcSimpleVertexLayout, int(udLengthOf(vcSimpleVertexLayout)), flippedScreenQuadVertices, 4, flippedScreenQuadIndices, 6, vcMF_Dynamic);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderPanorama.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShaderPanarama, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderTintImage.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShaderImageColour, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.splatIdShader.pProgram, g_udVertexShader, g_udSplatIdFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
 
   vcTexture_AsyncCreateFromFilename(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pWorkerPool, "asset://assets/skyboxes/WaterClouds.jpg", vcTFM_Linear);
   UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
@@ -223,12 +219,12 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.splatIdShader.uniform_depth, pRenderContext->udRenderContext.splatIdShader.pProgram, "u_depth");
   vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.splatIdShader.uniform_texture, pRenderContext->udRenderContext.splatIdShader.pProgram, "u_texture");
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->blurShader.pProgram, g_BlurVertexShader, g_BlurFragmentShader, vcSimpleVertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->blurShader.pProgram, g_BlurVertexShader, g_BlurFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
   vcShader_Bind(pRenderContext->blurShader.pProgram);
   vcShader_GetSamplerIndex(&pRenderContext->blurShader.uniform_texture, pRenderContext->blurShader.pProgram, "u_texture");
   vcShader_GetConstantBuffer(&pRenderContext->blurShader.uniform_params, pRenderContext->blurShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->blurShader.params));
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->selectionShader.pProgram, g_HighlightVertexShader, g_HighlightFragmentShader, vcSimpleVertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->selectionShader.pProgram, g_HighlightVertexShader, g_HighlightFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
   vcShader_Bind(pRenderContext->selectionShader.pProgram);
   vcShader_GetSamplerIndex(&pRenderContext->selectionShader.uniform_texture, pRenderContext->selectionShader.pProgram, "u_texture");
   vcShader_GetConstantBuffer(&pRenderContext->selectionShader.uniform_params, pRenderContext->selectionShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->selectionShader.params));
@@ -241,13 +237,16 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, &pProgramState->settings));
   UD_ERROR_CHECK(vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences));
 
+  UD_ERROR_CHECK(vcRender_ResizeScene(pProgramState, pRenderContext, sceneResolution.x, sceneResolution.y));
+
   *ppRenderContext = pRenderContext;
-
-  result = vcRender_ResizeScene(pProgramState, pRenderContext, sceneResolution.x, sceneResolution.y);
-  if (result != udR_Success)
-    goto epilogue;
-
+  pRenderContext = nullptr;
+  result = udR_Success;
 epilogue:
+
+  if (pRenderContext != nullptr)
+    vcRender_Destroy(pProgramState, &pRenderContext);
+
   return result;
 }
 
@@ -284,9 +283,6 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   vcShader_DestroyShader(&pRenderContext->blurShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->selectionShader.pProgram);
 
-  vcMesh_Destroy(&pRenderContext->pScreenQuadMesh);
-  vcMesh_Destroy(&pRenderContext->pFlippedScreenQuadMesh);
-
   vcTexture_Destroy(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture);
   UD_ERROR_CHECK(vcCompass_Destroy(&pRenderContext->pCompass));
 
@@ -318,6 +314,7 @@ epilogue:
   }
 
   udFree(pRenderContext);
+  vcInternalModels_Deinit();
   return result;
 }
 
@@ -461,7 +458,7 @@ void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
 
   vcGLState_SetViewportDepthRange(1.0f, 1.0f);
 
-  vcMesh_Render(pRenderContext->pScreenQuadMesh, 2);
+  vcMesh_Render(gInternalModels[vcIMT_ScreenQuad]);
 
   vcGLState_SetViewportDepthRange(0.0f, 1.0f);
 
@@ -482,10 +479,10 @@ void vcRender_SplatUDWithId(vcState *pProgramState, vcRenderContext *pRenderCont
 
 #if ALLOW_EXPERIMENT_GPURENDER && GRAPHICS_API_OPENGL
   if (pProgramState->settings.experimental.useGPURenderer)
-    vcMesh_Render(pRenderContext->pFlippedScreenQuadMesh, 2);
+    vcMesh_Render(gInternalModels[vcIMT_FlippedScreenQuad]);
   else
 #endif
-    vcMesh_Render(pRenderContext->pScreenQuadMesh, 2);
+    vcMesh_Render(gInternalModels[vcIMT_ScreenQuad]);
 }
 
 void vcRender_PresentUD(vcState *pProgramState, vcRenderContext *pRenderContext)
@@ -559,10 +556,10 @@ void vcRender_PresentUD(vcState *pProgramState, vcRenderContext *pRenderContext)
 
 #if ALLOW_EXPERIMENT_GPURENDER && GRAPHICS_API_OPENGL
   if (pProgramState->settings.experimental.useGPURenderer)
-    vcMesh_Render(pRenderContext->pFlippedScreenQuadMesh, 2);
+    vcMesh_Render(gInternalModels[vcIMT_FlippedScreenQuad]);
   else
 #endif
-    vcMesh_Render(pRenderContext->pScreenQuadMesh, 2);
+    vcMesh_Render(gInternalModels[vcIMT_ScreenQuad]);
 }
 
 void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
@@ -718,7 +715,7 @@ void vcRender_ApplySelectionBuffer(vcState *pProgramState, vcRenderContext *pRen
   vcShader_BindTexture(pRenderContext->selectionShader.pProgram, pRenderContext->pAuxiliaryTextures[0], 0, pRenderContext->selectionShader.uniform_texture);
   vcShader_BindConstantBuffer(pRenderContext->selectionShader.pProgram, pRenderContext->selectionShader.uniform_params, &pRenderContext->selectionShader.params, sizeof(pRenderContext->selectionShader.params));
 
-  vcMesh_Render(pRenderContext->pScreenQuadMesh, 2);
+  vcMesh_Render(gInternalModels[vcIMT_ScreenQuad]);
 }
 
 udFloat4 vcRender_EncodeIdAsColour(uint32_t id)
@@ -804,7 +801,7 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
       vcShader_BindTexture(pRenderContext->blurShader.pProgram, pRenderContext->pAuxiliaryTextures[i], 0, pRenderContext->blurShader.uniform_texture);
       vcShader_BindConstantBuffer(pRenderContext->blurShader.pProgram, pRenderContext->blurShader.uniform_params, &pRenderContext->blurShader.params, sizeof(pRenderContext->blurShader.params));
 
-      vcMesh_Render(pRenderContext->pScreenQuadMesh, 2);
+      vcMesh_Render(gInternalModels[vcIMT_ScreenQuad]);
 
       vcShader_BindTexture(pRenderContext->blurShader.pProgram, nullptr, 0, pRenderContext->blurShader.uniform_texture);
     }

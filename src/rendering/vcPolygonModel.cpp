@@ -87,14 +87,6 @@ struct vcPolygonModel
   vcPolygonModelMesh *pMeshes;
 };
 
-struct vcPolygonModelVertex
-{
-  udFloat3 pos;
-  udFloat3 normal;
-  udFloat2 uv;
-};
-const vcVertexLayoutTypes vcPolygonModelVertexLayout[] = { vcVLT_Position3, vcVLT_Normal3, vcVLT_TextureCoords2 };
-
 vcPolygonModelShaderType vcPolygonModel_GetShaderType(const vcVertexLayoutTypes *pMeshLayout, int totalTypes)
 {
   if (totalTypes == 3 && (pMeshLayout[0] == vcVLT_Position3 && pMeshLayout[1] == vcVLT_Normal3 && pMeshLayout[2] == vcVLT_TextureCoords2))
@@ -207,13 +199,13 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
     // override material id for now
     pNewModel->pMeshes[i].materialID = vcPMST_P1N1UV1_Opaque;
 
-    vcPolygonModelVertex *pVerts = (vcPolygonModelVertex*)pFilePos;
+    vcP3N3UV2Vertex *pVerts = (vcP3N3UV2Vertex *)pFilePos;
     pFilePos += sizeof(*pVerts) * pNewModel->pMeshes[i].numVertices;
 
     // TODO: Assume these all need flipping
     for (uint16_t v = 0; v < pNewModel->pMeshes[i].numVertices; ++v)
     {
-      vcPolygonModelVertex *pVert = &pVerts[v];
+      vcP3N3UV2Vertex *pVert = &pVerts[v];
       pVert->uv.y = 1.0f - pVert->uv.y;
     }
 
@@ -237,7 +229,7 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
       pFilePos += textureFileSize;
     }
 
-    UD_ERROR_CHECK(vcMesh_Create(&pNewModel->pMeshes[i].pMesh, vcPolygonModelVertexLayout, (int)udLengthOf(vcPolygonModelVertexLayout), pVerts, pNewModel->pMeshes[i].numVertices, pIndices, pNewModel->pMeshes[i].numElements, vcMF_IndexShort));
+    UD_ERROR_CHECK(vcMesh_Create(&pNewModel->pMeshes[i].pMesh, vcP3N3UV2VertexLayout, (int)udLengthOf(vcP3N3UV2VertexLayout), pVerts, pNewModel->pMeshes[i].numVertices, pIndices, pNewModel->pMeshes[i].numElements, vcMF_IndexShort));
   }
 
   *ppModel = pNewModel;
@@ -351,13 +343,13 @@ udResult vcPolygonModel_CreateShaders()
   udResult result;
 
   vcPolygonModelShader *pPolygonShader = &gShaders[vcPMST_P1N1UV1_Opaque];
-  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP1N1UV1VertexShader, g_PolygonP1N1UV1FragmentShader, vcPolygonModelVertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP1N1UV1VertexShader, g_PolygonP1N1UV1FragmentShader, vcP3N3UV2VertexLayout), udR_InternalError);
   vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame));
   vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject));
   vcShader_GetSamplerIndex(&pPolygonShader->pDiffuseSampler, pPolygonShader->pShader, "u_texture");
 
   pPolygonShader = &gShaders[vcPMST_P1N1UV1_FlatColour];
-  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP1N1UV1VertexShader, g_FlatColour_FragmentShader, vcPolygonModelVertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP1N1UV1VertexShader, g_FlatColour_FragmentShader, vcP3N3UV2VertexLayout), udR_InternalError);
   vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame));
   vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject));
 

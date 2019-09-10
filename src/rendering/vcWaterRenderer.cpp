@@ -59,12 +59,6 @@ struct vcWaterRenderer
   } renderShader;
 };
 
-struct vcWaterVolumeVertex
-{
-  udFloat2 position;
-};
-const vcVertexLayoutTypes vcWaterVolumeVertexLayout[] = { vcVLT_Position2 };
-
 static int gRefCount = 0;
 void vcWaterRenderer_Init()
 {
@@ -95,7 +89,7 @@ udResult vcWaterRenderer_Create(vcWaterRenderer **ppWaterRenderer)
 
   pWaterRenderer->volumes.Init(32);
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&pWaterRenderer->renderShader.pProgram, g_WaterVertexShader, g_WaterFragmentShader, vcWaterVolumeVertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pWaterRenderer->renderShader.pProgram, g_WaterVertexShader, g_WaterFragmentShader, vcUV2VertexLayout), udR_InternalError);
   vcShader_Bind(pWaterRenderer->renderShader.pProgram);
   vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_normalMap, pWaterRenderer->renderShader.pProgram, "u_normalMap");
   vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_skybox, pWaterRenderer->renderShader.pProgram, "u_skybox");
@@ -140,7 +134,7 @@ udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, udDouble2 *p
   vcWaterVolume pVolume = {};
   std::vector<udDouble2> triangleList;
   udDouble2 *pLocalPoints = nullptr;
-  vcWaterVolumeVertex *pVerts = nullptr;
+  vcUV2Vertex *pVerts = nullptr;
 
   pLocalPoints = udAllocType(udDouble2, pointCount, udAF_Zero);
   UD_ERROR_NULL(pLocalPoints, udR_MemoryAllocationFailure);
@@ -168,13 +162,13 @@ udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, udDouble2 *p
   }
 
   pVolume.vertCount = int(triangleList.size());
-  pVerts = udAllocType(vcWaterVolumeVertex, pVolume.vertCount, udAF_Zero);
+  pVerts = udAllocType(vcUV2Vertex, pVolume.vertCount, udAF_Zero);
   UD_ERROR_NULL(pVerts, udR_MemoryAllocationFailure);
 
   for (size_t i = 0; i < triangleList.size(); ++i)
-    pVerts[i].position = udFloat2::create(triangleList[i]);
+    pVerts[i].uv = udFloat2::create(triangleList[i]);
 
-  UD_ERROR_IF(vcMesh_Create(&pVolume.pMesh, vcWaterVolumeVertexLayout, (int)udLengthOf(vcWaterVolumeVertexLayout), pVerts, pVolume.vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
+  UD_ERROR_IF(vcMesh_Create(&pVolume.pMesh, vcUV2VertexLayout, (int)udLengthOf(vcUV2VertexLayout), pVerts, pVolume.vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
 
   pWaterRenderer->volumes.PushBack(pVolume);
 

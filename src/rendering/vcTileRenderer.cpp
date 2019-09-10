@@ -74,13 +74,6 @@ struct vcTileRenderer
   } presentShader;
 };
 
-struct vcTileVertex
-{
-  udFloat2 uv;
-  float index;
-};
-const vcVertexLayoutTypes vcTileVertexLayout[] = { vcVLT_Position3 };
-
 // This functionality here for now until the cache module is implemented
 bool vcTileRenderer_TryWriteTile(const char *filename, void *pFileData, size_t fileLen)
 {
@@ -307,7 +300,7 @@ epilogue:
   }
 }
 
-void vcTileRenderer_BuildMeshVertices(vcTileVertex *pVerts, int *pIndicies, udFloat2 minUV, udFloat2 maxUV)
+void vcTileRenderer_BuildMeshVertices(vcP3Vertex *pVerts, int *pIndicies, udFloat2 minUV, udFloat2 maxUV)
 {
   for (int y = 0; y < TileIndexResolution; ++y)
   {
@@ -331,12 +324,12 @@ void vcTileRenderer_BuildMeshVertices(vcTileVertex *pVerts, int *pIndicies, udFl
     for (int x = 0; x < TileVertexResolution; ++x)
     {
       uint32_t index = y * TileVertexResolution + x;
-      pVerts[index].index = (float)index;
+      pVerts[index].position.z = (float)index;
 
       float normX = ((float)(x) / TileVertexResolution) * normalizeVertexPositionScale;
       float normY = ((float)(y) / TileVertexResolution) * normalizeVertexPositionScale;
-      pVerts[index].uv.x = minUV.x + normX * (maxUV.x - minUV.x);
-      pVerts[index].uv.y = minUV.y + normY * (maxUV.y - minUV.y);
+      pVerts[index].position.x = minUV.x + normX * (maxUV.x - minUV.x);
+      pVerts[index].position.y = minUV.y + normY * (maxUV.y - minUV.y);
 
     }
   }
@@ -346,8 +339,8 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
 {
   udResult result;
   vcTileRenderer *pTileRenderer = nullptr;
-  vcTileVertex verts[TileVertexResolution * TileVertexResolution];
-  int indicies[TileIndexResolution * TileIndexResolution * 6];
+  vcP3Vertex verts[TileVertexResolution * TileVertexResolution] = {};
+  int indicies[TileIndexResolution * TileIndexResolution * 6] = {};
   uint32_t greyPixel = 0xf3f3f3ff;
   UD_ERROR_NULL(ppTileRenderer, udR_InvalidParameter_);
 
@@ -367,18 +360,18 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   for (size_t i = 0; i < udLengthOf(pTileRenderer->cache.pThreads); ++i)
     udThread_Create(&pTileRenderer->cache.pThreads[i], (udThreadStart*)vcTileRenderer_LoadThread, pTileRenderer);
 
- vcShader_CreateFromText(&pTileRenderer->presentShader.pProgram, g_tileVertexShader, g_tileFragmentShader, vcTileVertexLayout);
- vcShader_GetConstantBuffer(&pTileRenderer->presentShader.pConstantBuffer, pTileRenderer->presentShader.pProgram, "u_EveryObject", sizeof(pTileRenderer->presentShader.everyObject));
- vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_texture, pTileRenderer->presentShader.pProgram, "u_texture");
-
- // build meshes
- vcTileRenderer_BuildMeshVertices(verts, indicies, udFloat2::create(0.0f, 0.0f), udFloat2::create(1.0f, 1.0f));
- vcMesh_Create(&pTileRenderer->pFullTileMesh, vcTileVertexLayout, (int)udLengthOf(vcTileVertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6);
- vcTexture_Create(&pTileRenderer->pEmptyTileTexture, 1, 1, &greyPixel);
-
- pTileRenderer->pTransparentTiles = new std::vector<vcQuadTreeNode*>();
- pTileRenderer->pRenderQueue = new std::vector<std::vector<vcQuadTreeNode*>>();
- for (int i = 0; i < MaxVisibleTileLevel; ++i)
+  vcShader_CreateFromText(&pTileRenderer->presentShader.pProgram, g_tileVertexShader, g_tileFragmentShader, vcP3VertexLayout);
+  vcShader_GetConstantBuffer(&pTileRenderer->presentShader.pConstantBuffer, pTileRenderer->presentShader.pProgram, "u_EveryObject", sizeof(pTileRenderer->presentShader.everyObject));
+  vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_texture, pTileRenderer->presentShader.pProgram, "u_texture");
+  
+  // build meshes
+  vcTileRenderer_BuildMeshVertices(verts, indicies, udFloat2::create(0.0f, 0.0f), udFloat2::create(1.0f, 1.0f));
+  vcMesh_Create(&pTileRenderer->pFullTileMesh, vcP3VertexLayout, (int)udLengthOf(vcP3VertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6);
+  vcTexture_Create(&pTileRenderer->pEmptyTileTexture, 1, 1, &greyPixel);
+  
+  pTileRenderer->pTransparentTiles = new std::vector<vcQuadTreeNode*>();
+  pTileRenderer->pRenderQueue = new std::vector<std::vector<vcQuadTreeNode*>>();
+  for (int i = 0; i < MaxVisibleTileLevel; ++i)
    pTileRenderer->pRenderQueue->push_back(std::vector<vcQuadTreeNode*>());
 
   *ppTileRenderer = pTileRenderer;
