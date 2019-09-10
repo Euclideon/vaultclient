@@ -1028,7 +1028,7 @@ void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcG
   vcGizmo_ComputeContext(pCamera, matrix, mode, allowedControls);
 
   if (pDeltaMatrix)
-    pDeltaMatrix->identity();
+    *pDeltaMatrix = udDouble4x4::identity();
 
   // behind camera
   udDouble4 camSpacePosition = sGizmoContext.mMVP.axis.t;
