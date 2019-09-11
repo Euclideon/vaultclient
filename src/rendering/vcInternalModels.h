@@ -1,23 +1,36 @@
 #ifndef vcInternalModels_h__
 #define vcInternalModels_h__
 
-#include "gl/vcMesh.h"
+#include "udResult.h"
+
+struct vcMesh;
+struct vcPolygonModel;
 
 enum vcInternalMeshType
 {
-  vcIMT_ScreenQuad,
-  vcIMT_FlippedScreenQuad,
+  vcInternalMeshType_ScreenQuad,
+  vcInternalMeshType_FlippedScreenQuad,
 
-  vcIMT_Billboard,
-  vcIMT_Sphere,
-  vcIMT_Tube,
+  vcInternalMeshType_Billboard,
+  vcInternalMeshType_Sphere,
+  vcInternalMeshType_Tube,
 
-  vcIMT_Compass,
-  vcIMT_Orbit,
+  vcInternalMeshType_Compass,
+  vcInternalMeshType_Orbit,
 
-  vcIMT_Count
+  vcInternalMeshType_Count
 };
-extern vcMesh *gInternalModels[vcIMT_Count];
+extern vcMesh *gInternalMeshes[vcInternalMeshType_Count];
+
+enum vcInternalModelType
+{
+  vcInternalModelType_Cube,
+  vcInternalModelType_Sphere,
+  vcInternalModelType_Cylinder,
+
+  vcInternalModelType_Count
+};
+extern vcPolygonModel *gInternalModels[vcInternalModelType_Count];
 
 udResult vcInternalModels_Init();
 udResult vcInternalModels_Deinit();

@@ -582,7 +582,14 @@ const char* const g_PolygonP1N1UV1FragmentShader = FRAG_HEADER R"shader(
   void main()
   {
     vec4 col = texture(u_texture, v_uv);
-    out_Colour = col * v_colour;
+    vec4 diffuseColour = col * v_colour;
+
+    // some fixed lighting
+    vec3 lightDirection = normalize(vec3(0.85, 0.15, 0.5));
+    float ndotl = dot(v_normal, lightDirection) * 0.5 + 0.5;
+    vec3 diffuse = diffuseColour.xyz * ndotl;
+
+    out_Colour = vec4(diffuse, diffuseColour.a);
   }
 )shader";
 

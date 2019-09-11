@@ -21,8 +21,8 @@ struct vcAnchor
   } shaderBuffer;
 };
 
-static vcInternalMeshType vcASToMesh[] = { vcIMT_Count, vcIMT_Orbit, vcIMT_Compass };
-UDCOMPILEASSERT(udLengthOf(vcASToMesh) == vcAS_Count, "AnchorStyle does not equal size");
+static vcInternalMeshType vcASToMeshType[] = { vcInternalMeshType_Count, vcInternalMeshType_Orbit, vcInternalMeshType_Compass };
+UDCOMPILEASSERT(udLengthOf(vcASToMeshType) == vcAS_Count, "AnchorStyle does not equal size");
 
 udResult vcCompass_Create(vcAnchor **ppCompass)
 {
@@ -61,7 +61,7 @@ udResult vcCompass_Destroy(vcAnchor **ppCompass)
 
 udResult vcCompass_Render(vcAnchor *pCompass, vcAnchorStyle anchorStyle, const udDouble4x4 &worldViewProj, const udDouble4 &colour /*= udDouble4::create(1.0, 1.0, 1.0, 1.0)*/)
 {
-  if (pCompass == nullptr || anchorStyle >= vcAS_Count || vcASToMesh[anchorStyle] == vcIMT_Count)
+  if (pCompass == nullptr || anchorStyle >= vcAS_Count || vcASToMeshType[anchorStyle] == vcInternalMeshType_Count)
     return udR_InvalidParameter_;
 
   udResult result = udR_Failure_;
@@ -72,7 +72,7 @@ udResult vcCompass_Render(vcAnchor *pCompass, vcAnchorStyle anchorStyle, const u
 
   UD_ERROR_IF(!vcShader_Bind(pCompass->pShader), udR_InternalError);
   UD_ERROR_IF(!vcShader_BindConstantBuffer(pCompass->pShader, pCompass->pShaderConstantBuffer, &pCompass->shaderBuffer, sizeof(vcAnchor::shaderBuffer)), udR_InputExhausted);
-  UD_ERROR_IF(!vcMesh_Render(gInternalModels[vcASToMesh[anchorStyle]]), udR_InternalError);
+  UD_ERROR_IF(!vcMesh_Render(gInternalMeshes[vcASToMeshType[anchorStyle]]), udR_InternalError);
 
   result = udR_Success;
 

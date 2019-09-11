@@ -657,7 +657,14 @@ const char* const g_PolygonP1N1UV1FragmentShader = R"shader(
   float4 main(PS_INPUT input) : SV_Target
   {
     float4 col = texture0.Sample(sampler0, input.uv);
-    return col * input.colour;
+    float4 diffuseColour = col * input.colour;
+
+    // some fixed lighting
+    float3 lightDirection = normalize(float3(0.85, 0.15, 0.5));
+    float ndotl = dot(input.normal, lightDirection) * 0.5 + 0.5;
+    float3 diffuse = diffuseColour.xyz * ndotl;
+
+    return float4(diffuse, diffuseColour.a);
   }
 )shader";
 

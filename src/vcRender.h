@@ -35,6 +35,7 @@ struct vcRenderPolyInstance
   };
 
   udDouble4x4 worldMat; // will be converted to eye internally
+  vcTexture *pDiffuseOverride; // optionally override diffuse texture. Only available on RenderType_Polygon
 
   vcSceneItem *pSceneItem;
   uint64_t sceneItemInternalId;

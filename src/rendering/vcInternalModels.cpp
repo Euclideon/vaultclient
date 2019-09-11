@@ -2,9 +2,11 @@
 #include "vcInternalModelsData.h"
 
 #include "gl/vcMesh.h"
+#include "vcPolygonModel.h"
 
 static int gRefCount = 0;
-vcMesh *gInternalModels[vcIMT_Count] = {};
+vcMesh *gInternalMeshes[vcInternalMeshType_Count] = {};
+vcPolygonModel *gInternalModels[vcInternalModelType_Count] = {};
 
 udResult vcInternalModels_Init()
 {
@@ -13,15 +15,19 @@ udResult vcInternalModels_Init()
   ++gRefCount;
   UD_ERROR_IF(gRefCount != 1, udR_Success);
 
-  UD_ERROR_CHECK(vcMesh_Create(&gInternalModels[vcIMT_ScreenQuad], vcP3UV2VertexLayout, int(udLengthOf(vcP3UV2VertexLayout)), screenQuadVertices, 4, screenQuadIndices, 6, vcMF_IndexShort));
-  UD_ERROR_CHECK(vcMesh_Create(&gInternalModels[vcIMT_FlippedScreenQuad], vcP3UV2VertexLayout, int(udLengthOf(vcP3UV2VertexLayout)), flippedScreenQuadVertices, 4, flippedScreenQuadIndices, 6, vcMF_IndexShort));
+  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_ScreenQuad], vcP3UV2VertexLayout, int(udLengthOf(vcP3UV2VertexLayout)), screenQuadVertices, 4, screenQuadIndices, 6, vcMF_IndexShort));
+  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_FlippedScreenQuad], vcP3UV2VertexLayout, int(udLengthOf(vcP3UV2VertexLayout)), flippedScreenQuadVertices, 4, flippedScreenQuadIndices, 6, vcMF_IndexShort));
 
-  UD_ERROR_CHECK(vcMesh_Create(&gInternalModels[vcIMT_Billboard], vcP3UV2VertexLayout, (int)udLengthOf(vcP3UV2VertexLayout), billboardVertices, (int)udLengthOf(billboardVertices), billboardIndices, (int)udLengthOf(billboardIndices), vcMF_IndexShort));
-  UD_ERROR_CHECK(vcMesh_Create(&gInternalModels[vcIMT_Sphere], vcP3UV2VertexLayout, (int)udLengthOf(vcP3UV2VertexLayout), pSphereVertices, (int)udLengthOf(sphereVerticesFltArray), sphereIndices, (int)udLengthOf(sphereIndices), vcMF_IndexShort));
-  UD_ERROR_CHECK(vcMesh_Create(&gInternalModels[vcIMT_Tube], vcP3UV2VertexLayout, (int)udLengthOf(vcP3UV2VertexLayout), pTubeVertices, (int)udLengthOf(tubeVerticesFltArray), tubeIndices, (int)udLengthOf(tubeIndices), vcMF_IndexShort));
+  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Billboard], vcP3UV2VertexLayout, (int)udLengthOf(vcP3UV2VertexLayout), billboardVertices, (int)udLengthOf(billboardVertices), billboardIndices, (int)udLengthOf(billboardIndices), vcMF_IndexShort));
+  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Sphere], vcP3UV2VertexLayout, (int)udLengthOf(vcP3UV2VertexLayout), pSphereVertices, (int)udLengthOf(sphereVerticesFltArray), sphereIndices, (int)udLengthOf(sphereIndices), vcMF_IndexShort));
+  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Tube], vcP3UV2VertexLayout, (int)udLengthOf(vcP3UV2VertexLayout), pTubeVertices, (int)udLengthOf(tubeVerticesFltArray), tubeIndices, (int)udLengthOf(tubeIndices), vcMF_IndexShort));
 
-  UD_ERROR_CHECK(vcMesh_Create(&gInternalModels[vcIMT_Orbit], vcP3N3VertexLayout, (int)udLengthOf(vcP3N3VertexLayout), pOrbitVertices, (int)udLengthOf(orbitVerticesFltArray), orbitIndices, (int)udLengthOf(orbitIndices), vcMF_IndexShort));
-  UD_ERROR_CHECK(vcMesh_Create(&gInternalModels[vcIMT_Compass], vcP3N3VertexLayout, int(udLengthOf(vcP3N3VertexLayout)), pCompassVerts, (int)udLengthOf(compassVertsFltArray), compassIndices, (int)udLengthOf(compassIndices), vcMF_IndexShort));
+  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Orbit], vcP3N3VertexLayout, (int)udLengthOf(vcP3N3VertexLayout), pOrbitVertices, (int)udLengthOf(orbitVerticesFltArray), orbitIndices, (int)udLengthOf(orbitIndices), vcMF_IndexShort));
+  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Compass], vcP3N3VertexLayout, int(udLengthOf(vcP3N3VertexLayout)), pCompassVerts, (int)udLengthOf(compassVertsFltArray), compassIndices, (int)udLengthOf(compassIndices), vcMF_IndexShort));
+
+  UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Cube], (void *)cubeVerticesFltArray, (uint16_t)udLengthOf(cubeVerticesFltArray), vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), cubeIndices, (uint16_t)udLengthOf(cubeIndices)));
+  UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Sphere], (void *)sphereVerticesFltArray, (uint16_t)udLengthOf(sphereVerticesFltArray), vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), sphereIndices, (uint16_t)udLengthOf(sphereIndices)));
+  UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Cylinder], (void *)cylinderVerticesFltArray, (uint16_t)udLengthOf(cylinderVerticesFltArray), vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), cylinderIndices, (uint16_t)udLengthOf(cylinderIndices)));
 
   result = udR_Success;
 epilogue:
@@ -37,8 +43,11 @@ udResult vcInternalModels_Deinit()
   --gRefCount;
   UD_ERROR_IF(gRefCount != 0, udR_Success);
 
-  for (int i = 0; i < vcIMT_Count; ++i)
-    vcMesh_Destroy(&gInternalModels[i]);
+  for (int i = 0; i < vcInternalMeshType_Count; ++i)
+    vcMesh_Destroy(&gInternalMeshes[i]);
+
+  for (int i = 0; i < vcInternalModelType_Count; ++i)
+    vcPolygonModel_Destroy(&gInternalModels[i]);
 
   result = udR_Success;
 epilogue:
