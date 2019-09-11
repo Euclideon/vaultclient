@@ -833,7 +833,7 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
   UD_ERROR_IF(!vcFramebuffer_BeginReadPixels(pRenderContext->pFramebuffer, pRenderContext->pDepthTexture, pickLocation.x, pickLocation.y, 1, 1, depthBytes), udR_InternalError); // begin copy for next frame read
 
   // 24 bit unsigned int -> float
-#if GRAPHICS_API_OPENGL
+#if GRAPHICS_API_OPENGL || GRAPHICS_API_METAL
   pRenderContext->previousFrameDepth = uint32_t((depthBytes[3] << 16) | (depthBytes[2] << 8) | (depthBytes[1] << 0)) / ((1 << 24) - 1.0f);
   //uint8_t stencil = depthBytes[0];
 #else
@@ -841,13 +841,7 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
   pRenderContext->previousFrameDepth = uint32_t((depthBytes[2] << 16) | (depthBytes[1] << 8) | (depthBytes[0] << 0)) / ((1 << 24) - 1.0f);
   //uint8_t stencil = depthBytes[3];
 #endif
-
-#if GRAPHICS_API_METAL // Hacky but idk what else to do, flushing all the command buffers and synchronising the textures before the read doesn't work
-  if (pRenderContext->previousFrameDepth == 0.0f)
-    pRenderContext->previousFrameDepth = 1.0f;
-#endif
-
-
+  
 epilogue:
   return result;
 }

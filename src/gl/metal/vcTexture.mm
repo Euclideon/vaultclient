@@ -24,109 +24,112 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
   int pixelBytes = 4;
   vcTexture *pText = udAllocType(vcTexture, 1, udAF_Zero);
 
-  MTLTextureDescriptor *pTextureDesc = [[MTLTextureDescriptor alloc] init];
-
-  switch (format)
+  @autoreleasepool
   {
-  case vcTextureFormat_Unknown:
-    return udR_InvalidParameter_;
-  case vcTextureFormat_RGBA8:
-    pTextureDesc.pixelFormat = MTLPixelFormatRGBA8Unorm;
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-    pTextureDesc.storageMode = MTLStorageModeShared;
-#elif UDPLATFORM_OSX
-    pTextureDesc.storageMode = MTLStorageModeManaged;
-#else
-# error "Unsupported platform!"
-#endif
-    pTextureDesc.usage = MTLTextureUsagePixelFormatView | MTLTextureUsageShaderRead;
-    pixelBytes = 4;
-    break;
-  case vcTextureFormat_BGRA8:
-    pTextureDesc.pixelFormat = MTLPixelFormatBGRA8Unorm;
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-    pTextureDesc.storageMode = MTLStorageModeShared;
-#elif UDPLATFORM_OSX
-    pTextureDesc.storageMode = MTLStorageModeManaged;
-#else
-# error "Unsupported platform!"
-#endif
-    pTextureDesc.usage = MTLTextureUsageShaderRead;
-    pixelBytes = 4;
-    break;
-  case vcTextureFormat_D32F:
-    pTextureDesc.pixelFormat = MTLPixelFormatDepth32Float;
-    pTextureDesc.usage = MTLTextureUsageShaderRead;
-    pTextureDesc.storageMode = MTLStorageModePrivate;
-    pixelBytes = 4;
-    break;
-  case vcTextureFormat_D24S8:
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-    pTextureDesc.pixelFormat = MTLPixelFormatDepth32Float;
-#elif UDPLATFORM_OSX
-    pTextureDesc.pixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
-#else
-# error "Unsupported platform!"
-#endif
-    pTextureDesc.usage = MTLTextureUsageShaderRead;
-    pTextureDesc.storageMode = MTLStorageModePrivate;
-    pixelBytes = 4;
-    break;
-  case vcTextureFormat_Cubemap:
-    return udR_InvalidParameter_;
-    break;
-  case vcTextureFormat_Count:
-    return udR_InvalidParameter_;
-    break;
-  }
+    MTLTextureDescriptor *pTextureDesc = [[MTLTextureDescriptor alloc] init];
 
-  pTextureDesc.width = width;
-  pTextureDesc.height = height;
-  pTextureDesc.mipmapLevelCount = 1;
-
-  if (flags & vcTCF_RenderTarget || flags & vcTCF_Dynamic)
-  {
-    pTextureDesc.usage |= MTLTextureUsageRenderTarget;
-  }
-
-  pText->width = (uint32_t)pTextureDesc.width;
-  pText->height = (uint32_t)pTextureDesc.height;
-  pText->format = format;
-    pText->ID = g_textureIndex;
-  pText->flags = flags;
-
-  int count = (flags & vcTCF_RenderTarget) || (flags & vcTCF_Dynamic) ? DRAWABLES : 1;
-  
-  for (int i = 0; i < count; ++i)
-  {
-    id<MTLTexture> texture = [_device newTextureWithDescriptor:pTextureDesc];
-    
-    if ((pTextureDesc.pixelFormat == MTLPixelFormatRGBA8Unorm) && (pTextureDesc.usage & MTLTextureUsageRenderTarget))
+    switch (format)
     {
-      texture = [texture newTextureViewWithPixelFormat:MTLPixelFormatBGRA8Unorm];
+    case vcTextureFormat_Unknown:
+      return udR_InvalidParameter_;
+    case vcTextureFormat_RGBA8:
+      pTextureDesc.pixelFormat = MTLPixelFormatRGBA8Unorm;
+  #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+      pTextureDesc.storageMode = MTLStorageModeShared;
+  #elif UDPLATFORM_OSX
+      pTextureDesc.storageMode = MTLStorageModeManaged;
+  #else
+  # error "Unsupported platform!"
+  #endif
+      pTextureDesc.usage = MTLTextureUsagePixelFormatView | MTLTextureUsageShaderRead;
+      pixelBytes = 4;
+      break;
+    case vcTextureFormat_BGRA8:
       pTextureDesc.pixelFormat = MTLPixelFormatBGRA8Unorm;
-      pText->format = vcTextureFormat_BGRA8;
+  #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+      pTextureDesc.storageMode = MTLStorageModeShared;
+  #elif UDPLATFORM_OSX
+      pTextureDesc.storageMode = MTLStorageModeManaged;
+  #else
+  # error "Unsupported platform!"
+  #endif
+      pTextureDesc.usage = MTLTextureUsageShaderRead;
+      pixelBytes = 4;
+      break;
+    case vcTextureFormat_D32F:
+      pTextureDesc.pixelFormat = MTLPixelFormatDepth32Float;
+      pTextureDesc.usage = MTLTextureUsageShaderRead;
+      pTextureDesc.storageMode = MTLStorageModePrivate;
+      pixelBytes = 4;
+      break;
+    case vcTextureFormat_D24S8:
+  #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+      pTextureDesc.pixelFormat = MTLPixelFormatDepth32Float;
+  #elif UDPLATFORM_OSX
+      pTextureDesc.pixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
+  #else
+  # error "Unsupported platform!"
+  #endif
+      pTextureDesc.usage = MTLTextureUsageShaderRead;
+      pTextureDesc.storageMode = MTLStorageModePrivate;
+      pixelBytes = 4;
+      break;
+    case vcTextureFormat_Cubemap:
+      return udR_InvalidParameter_;
+      break;
+    case vcTextureFormat_Count:
+      return udR_InvalidParameter_;
+      break;
     }
-    MTLRegion region = MTLRegionMake2D(0, 0, width, height);
-    NSUInteger row = pixelBytes * width;
-    NSUInteger len = row * height;
-    
-    if (pPixels && (pTextureDesc.storageMode != MTLStorageModePrivate))
-    {
-      [texture replaceRegion:region mipmapLevel:0 withBytes:pPixels bytesPerRow:row];
-#if UDPLATFORM_OSX
-      [_renderer.blitEncoder synchronizeTexture:texture slice:0 level:0];
-#endif
-    }
-    else if (pPixels)
-    {
-      id<MTLBuffer> temp = [_device newBufferWithBytes:pPixels length:len options:MTLStorageModeShared];
-      [_renderer.blitEncoder copyFromBuffer:temp sourceOffset:0 sourceBytesPerRow:row sourceBytesPerImage:len sourceSize:MTLSizeMake(width, height, 1) toTexture:texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
-    }
-    
-    [_renderer.textures setObject:texture forKey:[NSString stringWithFormat:@"%u",g_textureIndex++]];
-  }
 
+    pTextureDesc.width = width;
+    pTextureDesc.height = height;
+    pTextureDesc.mipmapLevelCount = 1;
+
+    if (flags & vcTCF_RenderTarget || flags & vcTCF_Dynamic)
+    {
+      pTextureDesc.usage |= MTLTextureUsageRenderTarget;
+    }
+
+    pText->width = (uint32_t)pTextureDesc.width;
+    pText->height = (uint32_t)pTextureDesc.height;
+    pText->format = format;
+      pText->ID = g_textureIndex;
+    pText->flags = flags;
+
+    int count = (flags & vcTCF_RenderTarget) || (flags & vcTCF_Dynamic) ? DRAWABLES : 1;
+    
+    for (int i = 0; i < count; ++i)
+    {
+      id<MTLTexture> texture = [_device newTextureWithDescriptor:pTextureDesc];
+      
+      if ((pTextureDesc.pixelFormat == MTLPixelFormatRGBA8Unorm) && (pTextureDesc.usage & MTLTextureUsageRenderTarget))
+      {
+        texture = [texture newTextureViewWithPixelFormat:MTLPixelFormatBGRA8Unorm];
+        pTextureDesc.pixelFormat = MTLPixelFormatBGRA8Unorm;
+        pText->format = vcTextureFormat_BGRA8;
+      }
+      MTLRegion region = MTLRegionMake2D(0, 0, width, height);
+      NSUInteger row = pixelBytes * width;
+      NSUInteger len = row * height;
+      
+      if (pPixels && (pTextureDesc.storageMode != MTLStorageModePrivate))
+      {
+        [texture replaceRegion:region mipmapLevel:0 withBytes:pPixels bytesPerRow:row];
+  #if UDPLATFORM_OSX
+        [_renderer.blitEncoder synchronizeTexture:texture slice:0 level:0];
+  #endif
+      }
+      else if (pPixels)
+      {
+        id<MTLBuffer> temp = [_device newBufferWithBytes:pPixels length:len options:MTLStorageModeShared];
+        [_renderer.blitEncoder copyFromBuffer:temp sourceOffset:0 sourceBytesPerRow:row sourceBytesPerImage:len sourceSize:MTLSizeMake(width, height, 1) toTexture:texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
+      }
+      
+      [_renderer.textures setObject:texture forKey:[NSString stringWithFormat:@"%u",g_textureIndex++]];
+    }
+  }
+  
   // Sampler
   NSString *key = [NSString stringWithFormat:@"%@%@", (filterMode == vcTFM_Nearest ? @"N" : @"L"), (wrapMode == vcTWM_Repeat ? @"R" : @"C")];
   id<MTLSamplerState> savedSampler = [_renderer.samplers valueForKey:key];
@@ -169,8 +172,6 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
       pSamplerDesc.maxAnisotropy = aniFilter;
     else
       pSamplerDesc.maxAnisotropy = 1;
-
-
 
     id<MTLSamplerState> sampler = [_device newSamplerStateWithDescriptor:pSamplerDesc];
 
@@ -245,9 +246,11 @@ udResult vcTexture_UploadPixels(struct vcTexture *pTexture, const void *pPixels,
 #endif
     result = udR_Success;
   }
-    
-  [_renderer flushBlit];
-
+  
+  @autoreleasepool {
+    [_renderer flushBlit];
+  }
+  
   vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
   return result;
 }
@@ -257,7 +260,10 @@ void vcTexture_Destroy(struct vcTexture **ppTexture)
   if (ppTexture == nullptr || *ppTexture == nullptr || !_renderer.textures[[NSString stringWithFormat:@"%u",(*ppTexture)->ID]])
     return;
 
-  [_renderer.textures removeObjectForKey:[NSString stringWithFormat:@"%u",(*ppTexture)->ID]];
+  @autoreleasepool
+  {
+    [_renderer.textures removeObjectForKey:[NSString stringWithFormat:@"%u",(*ppTexture)->ID]];
+  }
 
   udFree(*ppTexture);
   *ppTexture = nullptr;

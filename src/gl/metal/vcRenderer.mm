@@ -23,8 +23,8 @@
   _blitBuffer = [_queue commandBuffer];
   _blitEncoder = [_blitBuffer blitCommandEncoder];
   
-  //_computeBuffer = [_queue commandBuffer];
-  //_computeEncoder = [_computeBuffer computeCommandEncoder];
+  _computeBuffer = [_queue commandBuffer];
+  _computeEncoder = [_computeBuffer computeCommandEncoder];
 
   // Per framebuffer objects
   _commandBuffers = [NSMutableArray arrayWithCapacity:BUFFER_COUNT];
@@ -32,15 +32,15 @@
   _renderPasses = [NSMutableArray arrayWithCapacity:BUFFER_COUNT];
 
   _pipelines = [NSMutableArray arrayWithCapacity:100];
-  _gPipelines = [NSMutableArray arrayWithCapacity:20];
+  //_gPipelines = [NSMutableArray arrayWithCapacity:20];
   _depthStates = [NSMutableArray arrayWithCapacity:50];
+  _blitBuffers = [NSMutableArray arrayWithCapacity:3];
 
   _vertBuffers = [NSMutableDictionary dictionaryWithCapacity:200];
   _indexBuffers = [NSMutableDictionary dictionaryWithCapacity:80];
-  _gBuffers = [NSMutableDictionary dictionaryWithCapacity:40];
+  //_gBuffers = [NSMutableDictionary dictionaryWithCapacity:40];
   _textures = [NSMutableDictionary dictionaryWithCapacity:250];
   _samplers = [NSMutableDictionary dictionaryWithCapacity:20];
-  _constantBuffers = [NSMutableDictionary dictionaryWithCapacity:40];
 
   pMetalLayer = [self makeBackingLayer];
   pMetalLayer.drawableSize = CGSizeMake(view.frame.size.width, view.frame.size.height);
@@ -51,19 +51,15 @@
 {
   // Finalise last frame
 
+  //[self flushCompute];
+
   // End encoding
-  [_blitEncoder endEncoding];
-  [_blitBuffer commit];
-  [_blitBuffer waitUntilScheduled];
+  [self flushBlit];
 
   for (size_t i = 1; i < BUFFER_COUNT; ++i)
   {
-    if (pFramebuffers[i] != nullptr && (pFramebuffers[i]->action == vcRFA_DrawAndRenew || pFramebuffers[i]->action == vcRFA_SizeChanged))
-    {
-      [_encoders[i] endEncoding];
-      [_commandBuffers[i] commit];
-      [_commandBuffers[i] waitUntilScheduled];
-    }
+    if (pFramebuffers[i] != nullptr)
+      [self flush:i];
   }
 
   [_encoders[0] endEncoding];
@@ -81,23 +77,6 @@
 
   _commandBuffers[0] = [_queue commandBuffer];
   [_encoders replaceObjectAtIndex:0 withObject:[_commandBuffers[0] renderCommandEncoderWithDescriptor:_renderPasses[0]]];
-  pFramebuffers[0]->action = vcRFA_DrawAndRenew;
-
-  for (int i = 1; i < BUFFER_COUNT; ++i)
-  {
-    if (pFramebuffers[i] != nullptr)
-    {
-      if (pFramebuffers[i]->action >= vcRFA_DrawAndRenew)
-      {
-        _commandBuffers[i] = [_queue commandBuffer];
-        [_encoders replaceObjectAtIndex:i withObject:[_commandBuffers[i] renderCommandEncoderWithDescriptor:_renderPasses[i]]];
-        pFramebuffers[i]->action = vcRFA_Nothing;
-      }
-    }
-  }
-
-  _blitBuffer = [_queue commandBuffer];
-  _blitEncoder = [_blitBuffer blitCommandEncoder];
 }
 
 - (nullable CAMetalLayer*)makeBackingLayer
@@ -115,26 +94,24 @@
 
 - (void)setFrameSize:(NSSize)newSize
 {
-  @autoreleasepool {
-    if (pCurrFramebuffer->ID == 0 && ((int)newSize.width != (int)_renderPasses[0].colorAttachments[0].texture.width || (int)newSize.height != (int)_renderPasses[0].colorAttachments[0].texture.height))
+  if (pCurrFramebuffer->ID == 0 && ((int)newSize.width != (int)_renderPasses[0].colorAttachments[0].texture.width || (int)newSize.height != (int)_renderPasses[0].colorAttachments[0].texture.height))
+  {
+    pMetalLayer.drawableSize = CGSizeMake(newSize.width, newSize.height);
+    pCurrFramebuffer->pColor->width = newSize.width;
+    pCurrFramebuffer->pColor->height = newSize.height;
+    pCurrFramebuffer->actions |= vcRFA_Resize;
+
+    if (pFramebuffers[0]->pDepth)
     {
-      pMetalLayer.drawableSize = CGSizeMake(newSize.width, newSize.height);
-      pCurrFramebuffer->pColor->width = newSize.width;
-      pCurrFramebuffer->pColor->height = newSize.height;
-      pCurrFramebuffer->action = vcRFA_SizeChanged;
+      vcTexture *pIntermediate;
+      vcTexture_Create(&pIntermediate, newSize.width, newSize.height, nullptr, pFramebuffers[0]->pDepth->format, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget, 0);
 
-      if (pFramebuffers[0]->pDepth)
-      {
-        vcTexture *pIntermediate;
-        vcTexture_Create(&pIntermediate, newSize.width, newSize.height, nullptr, pFramebuffers[0]->pDepth->format, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget, 0);
+      vcTexture_Destroy(&pFramebuffers[0]->pDepth);
 
-        vcTexture_Destroy(&pFramebuffers[0]->pDepth);
-
-        pFramebuffers[0]->pDepth = pIntermediate;
-        _renderPasses[0].depthAttachment.texture = _textures[[NSString stringWithFormat:@"%u",pIntermediate->ID]];
-        if (pIntermediate->format == vcTextureFormat_D24S8)
-          _renderPasses[0].stencilAttachment.texture = _renderPasses[0].depthAttachment.texture;
-      }
+      pFramebuffers[0]->pDepth = pIntermediate;
+      _renderPasses[0].depthAttachment.texture = _textures[[NSString stringWithFormat:@"%u",pIntermediate->ID]];
+      if (pIntermediate->format == vcTextureFormat_D24S8)
+        _renderPasses[0].stencilAttachment.texture = _renderPasses[0].depthAttachment.texture;
     }
   }
 }
@@ -190,14 +167,20 @@
 
 - (void)flush:(uint32_t)i
 {
-  [_encoders[i] endEncoding];
-  [_commandBuffers[i] commit];
-  [_commandBuffers[i] waitUntilCompleted];
+  if ((pFramebuffers[i]->actions & vcRFA_Draw) == vcRFA_Draw)
+  {
+    [_encoders[i] endEncoding];
+    [_commandBuffers[i] commit];
+    [_commandBuffers[i] waitUntilCompleted];
+  }
   
-  _commandBuffers[i] = [_queue commandBuffer];
-  _encoders[i] = [_commandBuffers[i] renderCommandEncoderWithDescriptor:_renderPasses[i]];
+  if ((pFramebuffers[i]->actions & vcRFA_Renew) == vcRFA_Renew)
+  {
+    _commandBuffers[i] = [_queue commandBuffer];
+    _encoders[i] = [_commandBuffers[i] renderCommandEncoderWithDescriptor:_renderPasses[i]];
+  }
   
-  pFramebuffers[i]->action = vcRFA_Nothing;
+  pFramebuffers[i]->actions = pFramebuffers[i]->actions & vcRFA_Blit;
 }
 
 - (void)flushBlit
@@ -232,7 +215,7 @@
     id<MTLBuffer> gBuf = _gBuffers[[NSString stringWithFormat:@"%d", pCurrShader->gID]];
     if (!gBuf || gBuf.length < pCurrShader->geom * vertBuffer.length)
     {
-      gBuf = [_device newBufferWithLength:pCurrShader->geom * vertBuffer.length options:MTLResourceStorageModePrivate];
+      gBuf = [_device newBufferWithLength:pCurrShader->geom * vertBuffer.length options:MTLResourceStorageModeShared];
       _gBuffers[[NSString stringWithFormat:@"%d", pCurrShader->gID]] = gBuf;
     }
 
@@ -240,34 +223,30 @@
     [_computeEncoder setBuffer:gBuf offset:0 atIndex:2];
     
     // Should calulate an efficient spilt for dispatchThreadgroups automatically?
-    [_computeEncoder dispatchThreadgroups:MTLSizeMake(ceil(vCount / (state.threadExecutionWidth)), 1, 1) threadsPerThreadgroup:MTLSizeMake(state.threadExecutionWidth, state.maxTotalThreadsPerThreadgroup / state.threadExecutionWidth, 1)];
-    
-    [self flushCompute];
-    
+    [_computeEncoder dispatchThreadgroups:MTLSizeMake(vCount / (state.maxTotalThreadsPerThreadgroup), 1, 1) threadsPerThreadgroup:MTLSizeMake(state.threadExecutionWidth, state.maxTotalThreadsPerThreadgroup / state.threadExecutionWidth, 1)];
+      
     [self bindBlendState:(blendMode)];
     [_encoders[pCurrFramebuffer->ID] setVertexBuffer:gBuf offset:0 atIndex:0];
     [_encoders[pCurrFramebuffer->ID] drawPrimitives:type vertexStart:vStart * pCurrShader->geom vertexCount:vCount * pCurrShader->geom];
   }
-  else
-  {*/
+  else*/
+  {
     [_encoders[pCurrFramebuffer->ID] setVertexBuffer:vertBuffer offset:vStart atIndex:0];
     [_encoders[pCurrFramebuffer->ID] drawPrimitives:type vertexStart:vStart vertexCount:vCount];
-  //}
+  }
   
-  pCurrFramebuffer->action = vcRFA_DrawAndRenew;
+  pCurrFramebuffer->actions |= vcRFA_Draw | vcRFA_Renew;
 
-  @autoreleasepool {
-    switch(pCurrShader->flush)
-    {
-      case vcRFO_None:
-        break;
-      case vcRFO_Blit:
-        [self flushBlit];
-        break;
-      case vcRFO_Flush:
-        [self flush:pCurrFramebuffer->ID];
-        break;
-    }
+  switch(pCurrShader->flush)
+  {
+  case vcRFO_None:
+    break;
+  case vcRFO_Blit:
+    [self flushBlit];
+    break;
+  case vcRFO_Flush:
+    [self flush:pCurrFramebuffer->ID];
+    break;
   }
 }
 
@@ -275,24 +254,22 @@
 {
   for (int i = 0; i < pCurrShader->numBufferObjects; ++i)
     [self bindVB:&pCurrShader->bufferObjects[i] index:i+1];
-    
+  
   [_encoders[pCurrFramebuffer->ID] setVertexBuffer:vertBuffer offset:0 atIndex:0];
   [_encoders[pCurrFramebuffer->ID] drawIndexedPrimitives:type indexCount:indexCount indexType:indexType indexBuffer:indexBuffer indexBufferOffset:offset];
 
-  pCurrFramebuffer->action = vcRFA_DrawAndRenew;
+  pCurrFramebuffer->actions |= vcRFA_Draw | vcRFA_Renew;
 
-  @autoreleasepool {
-    switch(pCurrShader->flush)
-    {
-      case vcRFO_None:
-        break;
-      case vcRFO_Blit:
-        [self flushBlit];
-        break;
-      case vcRFO_Flush:
-        [self flush:pCurrFramebuffer->ID];
-        break;
-    }
+  switch(pCurrShader->flush)
+  {
+  case vcRFO_None:
+    break;
+  case vcRFO_Blit:
+    [self flushBlit];
+    break;
+  case vcRFO_Flush:
+    [self flush:pCurrFramebuffer->ID];
+    break;
   }
 }
 
@@ -325,13 +302,8 @@
 
 - (void)setScissor:(MTLScissorRect)rect
 {
-  if (pCurrFramebuffer->ID == 0)
-  {
-    if (pCurrFramebuffer->action == vcRFA_Nothing)
-      return;
-
+  if (pCurrFramebuffer->ID == 0 && (pCurrFramebuffer->actions & vcRFA_Resize) != vcRFA_Resize)
     [_encoders[pCurrFramebuffer->ID] setScissorRect:rect];
-  }
 }
 
 - (void)addFramebuffer:(nullable vcFramebuffer*)pFramebuffer
@@ -374,12 +346,12 @@
 
       pFramebuffers[i] = pFramebuffer;
       pFramebuffer->ID = i;
-      pFramebuffer->action = vcRFA_Nothing;
+      pFramebuffer->actions = 0;
 
       [_renderPasses setObject:pass atIndexedSubscript:i];
       [_commandBuffers setObject:[_queue commandBuffer] atIndexedSubscript:i];
       [_encoders setObject:[_commandBuffers[i] renderCommandEncoderWithDescriptor:pass] atIndexedSubscript:i];
-
+    
       return;
     }
   }
