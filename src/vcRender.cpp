@@ -107,6 +107,8 @@ struct vcRenderContext
   vcTileRenderer *pTileRenderer;
   vcAnchor *pCompass;
 
+  vcTexture *pWhiteTexture;
+
   float previousFrameDepth;
   udFloat2 currentMouseUV;
 
@@ -176,6 +178,7 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
 {
   udResult result;
   vcRenderContext *pRenderContext = nullptr;
+  uint8_t whitePixel[4] = { 0xff, 0xff, 0xff, 0xff };
 
   const int maxPointCount = 5 * 1000000; // TODO: calculate this from GPU information
 
@@ -195,6 +198,8 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
 #else
   udUnused(maxPointCount);
 #endif
+
+  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pWhiteTexture, 1, 1, whitePixel));
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderPanorama.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShaderPanarama, vcP3UV2VertexLayout), udR_InternalError);
@@ -299,6 +304,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   UD_ERROR_CHECK(vcFenceRenderer_Destroy(&pRenderContext->pDiagnosticFences));
 
 epilogue:
+  vcTexture_Destroy(&pRenderContext->pWhiteTexture);
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
   vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
   vcFramebuffer_Destroy(&pRenderContext->udRenderContext.pFramebuffer);
@@ -461,7 +467,7 @@ void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
 
   vcGLState_SetViewportDepthRange(1.0f, 1.0f);
 
-  vcMesh_Render(gInternalModels[vcIMT_ScreenQuad]);
+  vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 
   vcGLState_SetViewportDepthRange(0.0f, 1.0f);
 
@@ -482,10 +488,10 @@ void vcRender_SplatUDWithId(vcState *pProgramState, vcRenderContext *pRenderCont
 
 #if ALLOW_EXPERIMENT_GPURENDER && GRAPHICS_API_OPENGL
   if (pProgramState->settings.experimental.useGPURenderer)
-    vcMesh_Render(gInternalModels[vcIMT_FlippedScreenQuad]);
+    vcMesh_Render(gInternalMeshes[vcInternalMeshType_FlippedScreenQuad]);
   else
 #endif
-    vcMesh_Render(gInternalModels[vcIMT_ScreenQuad]);
+    vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
 
 void vcRender_PresentUD(vcState *pProgramState, vcRenderContext *pRenderContext)
@@ -575,10 +581,10 @@ void vcRender_PresentUD(vcState *pProgramState, vcRenderContext *pRenderContext)
 
 #if ALLOW_EXPERIMENT_GPURENDER && GRAPHICS_API_OPENGL
   if (pProgramState->settings.experimental.useGPURenderer)
-    vcMesh_Render(gInternalModels[vcIMT_FlippedScreenQuad]);
+    vcMesh_Render(gInternalMeshes[vcInternalMeshType_FlippedScreenQuad]);
   else
 #endif
-    vcMesh_Render(gInternalModels[vcIMT_ScreenQuad]);
+    vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
 
 void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
@@ -650,7 +656,7 @@ void vcRenderOpaqueGeometry(vcState *pProgramState, vcRenderContext *pRenderCont
     {
       vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
-        vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection);
+        vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride);
       else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
         vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution);
     }
@@ -734,7 +740,7 @@ void vcRender_ApplySelectionBuffer(vcState *pProgramState, vcRenderContext *pRen
   vcShader_BindTexture(pRenderContext->selectionShader.pProgram, pRenderContext->pAuxiliaryTextures[0], 0, pRenderContext->selectionShader.uniform_texture);
   vcShader_BindConstantBuffer(pRenderContext->selectionShader.pProgram, pRenderContext->selectionShader.uniform_params, &pRenderContext->selectionShader.params, sizeof(pRenderContext->selectionShader.params));
 
-  vcMesh_Render(gInternalModels[vcIMT_ScreenQuad]);
+  vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
 
 udFloat4 vcRender_EncodeIdAsColour(uint32_t id)
@@ -820,7 +826,7 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
       vcShader_BindTexture(pRenderContext->blurShader.pProgram, pRenderContext->pAuxiliaryTextures[i], 0, pRenderContext->blurShader.uniform_texture);
       vcShader_BindConstantBuffer(pRenderContext->blurShader.pProgram, pRenderContext->blurShader.uniform_params, &pRenderContext->blurShader.params, sizeof(pRenderContext->blurShader.params));
 
-      vcMesh_Render(gInternalModels[vcIMT_ScreenQuad]);
+      vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 
       vcShader_BindTexture(pRenderContext->blurShader.pProgram, nullptr, 0, pRenderContext->blurShader.uniform_texture);
     }

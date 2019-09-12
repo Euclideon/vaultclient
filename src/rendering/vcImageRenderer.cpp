@@ -15,8 +15,8 @@ UDCOMPILEASSERT(udLengthOf(vcISToPixelSize) == vcIS_Count, "ImagePixelSize not e
 static const float vcISToWorldSize[] = { -1.f, 3.f, 10.f };
 UDCOMPILEASSERT(udLengthOf(vcISToWorldSize) == vcIS_Count, "ImageWorldSize not equal size");
 
-static vcInternalMeshType vcITToMesh[] = { vcIMT_Billboard, vcIMT_Tube, vcIMT_Sphere };
-UDCOMPILEASSERT(udLengthOf(vcITToMesh) == vcIT_Count, "ImageMesh does not equal size");
+static vcInternalMeshType vcITToMeshType[] = { vcInternalMeshType_Billboard, vcInternalMeshType_Tube, vcInternalMeshType_Sphere };
+UDCOMPILEASSERT(udLengthOf(vcITToMeshType) == vcIT_Count, "ImageMesh does not equal size");
 
 static struct vcImageShader
 {
@@ -93,7 +93,7 @@ bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &vi
   vcShader_BindConstantBuffer(pShader->pShader, pShader->pEveryObjectConstantBuffer, &pShader->everyObject, sizeof(pShader->everyObject));
   vcShader_BindTexture(pShader->pShader, pImageInfo->pTexture, 0, pShader->pDiffuseSampler);
 
-  vcMesh_Render(gInternalModels[vcITToMesh[pImageInfo->type]]);
+  vcMesh_Render(gInternalMeshes[vcITToMeshType[pImageInfo->type]]);
 
   return true;
 }
