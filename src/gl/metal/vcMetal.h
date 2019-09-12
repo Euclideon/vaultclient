@@ -31,10 +31,10 @@ extern id<MTLLibrary> _library;
 
 enum vcRendererFramebufferActions
 {
-  vcRFA_Nothing = 0,
-  vcRFA_DrawAndRenew = 1,
+  vcRFA_Draw = 1,
   vcRFA_Renew = 2,
-  vcRFA_SizeChanged = 3
+  vcRFA_Blit = 4,
+  vcRFA_Resize = 8
 };
 
 enum vcRendererFlushOption
@@ -52,6 +52,7 @@ struct vcTexture
   uint32_t height;
   vcTextureFormat format;
   vcTextureCreationFlags flags;
+  uint32_t blitTarget;
 };
 
 struct vcFramebuffer
@@ -60,7 +61,7 @@ struct vcFramebuffer
   vcTexture *pColor;
   vcTexture *pDepth;
   uint32_t clear;
-  vcRendererFramebufferActions action;
+  int actions;
 };
 
 struct vcShaderConstantBuffer

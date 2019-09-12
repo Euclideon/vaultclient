@@ -1,6 +1,8 @@
 #import "gl/vcFramebuffer.h"
 #import "vcMetal.h"
 
+uint32_t g_blitTargetID = 0;
+
 bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, int level /*= 0*/)
 {
   if (ppFramebuffer == nullptr)
@@ -12,9 +14,12 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
   pFramebuffer->pColor = pTexture;
   pFramebuffer->pDepth = pDepth;
   pFramebuffer->clear = 0;
-
-  [_renderer addFramebuffer:pFramebuffer];
-
+  
+  @autoreleasepool
+  {
+    [_renderer addFramebuffer:pFramebuffer];
+  }
+  
   *ppFramebuffer = pFramebuffer;
   pFramebuffer = nullptr;
 
@@ -26,8 +31,11 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
   if (ppFramebuffer == nullptr || *ppFramebuffer == nullptr)
     return;
 
-  [_renderer destroyFramebuffer:*ppFramebuffer];
-
+  @autoreleasepool
+  {
+    [_renderer destroyFramebuffer:*ppFramebuffer];
+  }
+  
   udFree(*ppFramebuffer);
   *ppFramebuffer = nullptr;
 }
@@ -39,7 +47,6 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer)
   return true;
 }
 
-// Changing clear colour might not be necessary in release, as it doesn't commit any commandbuffers that haven't had their corresponding framebuffer bound (and presumably rendered to) in a frame
 bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
 {
   if (pFramebuffer == nullptr)
@@ -58,26 +65,54 @@ bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
 
 bool vcFramebuffer_BeginReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
 {
-  if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || (x + width) > pAttachment->width || (y + height) > pAttachment->height)
+  udUnused(pPixels);
+  
+  if (pFramebuffer == nullptr || pAttachment == nullptr || (x + width) > pAttachment->width || (y + height) > pAttachment->height)
     return false;
-
-  int pixelBytes = 4; // assumed
-  MTLRegion region = MTLRegionMake2D(x, y, width, height);
-  [_renderer.textures[[NSString stringWithFormat:@"%u",pAttachment->ID]] getBytes:pPixels bytesPerRow:pAttachment->width * pixelBytes fromRegion:region mipmapLevel:0];
-
+  
+  @autoreleasepool
+  {
+    if (pAttachment->blitTarget == 0)
+    {
+      int pixelBytes = 4;
+      [_renderer.blitBuffers addObject:[_device newBufferWithLength:pixelBytes * pAttachment->width * pAttachment->height options:MTLResourceStorageModeShared]];
+      
+      pAttachment->blitTarget = ++g_blitTargetID;
+      pFramebuffer->actions |= vcRFA_Blit;
+    }
+    else if (_renderer.blitBuffers[pAttachment->blitTarget - 1].length < 4 * pAttachment->width * pAttachment->height)
+    {
+      [_renderer.blitBuffers replaceObjectAtIndex:pAttachment->blitTarget - 1 withObject:[_device newBufferWithLength:4 * pAttachment->width * pAttachment->height options:MTLResourceStorageModeShared]];
+    }
+    
+    [_renderer.blitEncoder copyFromTexture:_renderer.textures[[NSString stringWithFormat:@"%u",pAttachment->ID]] sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(pAttachment->width, pAttachment->height, 1) toBuffer:_renderer.blitBuffers[pAttachment->blitTarget - 1] destinationOffset:0 destinationBytesPerRow:4 * pAttachment->width destinationBytesPerImage:4 * pAttachment->width * pAttachment->height];
+  
+    [_renderer flushBlit];
+  }
+  
   return true;
 }
 
 bool vcFramebuffer_EndReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
 {
-  udUnused(pFramebuffer);
-  udUnused(pAttachment);
-  udUnused(x);
-  udUnused(y);
-  udUnused(width);
-  udUnused(height);
-  udUnused(pPixels);
+  if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || (x + width) > pAttachment->width || (y + height) > pAttachment->height)
+    return false;
+  
+  if (pAttachment->blitTarget == 0)
+    return true;
+  
+  int pixelBytes = 4; // assumed
 
-  // Unnecessary for metal
-  return false;
+  uint32_t *pSource = (uint32_t*)[_renderer.blitBuffers[pAttachment->blitTarget - 1] contents];
+  pSource += ((y * pAttachment->width) + x);
+  
+  uint32_t rowBytes = pixelBytes * width;
+  
+  for (uint32_t i = 0; i < height; ++i)
+  {
+    for (uint32_t j = 0; j < width; ++j)
+      *((uint32_t*)pPixels + (i * rowBytes)) = *(pSource + (i * pAttachment->width) + j);
+  }
+  
+  return true;
 }

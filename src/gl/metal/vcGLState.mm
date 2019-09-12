@@ -225,44 +225,47 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
 
     s_internalState.stencil.enabled = enableStencil;
 
-    if (!enableStencil)
+    @autoreleasepool
     {
-      [_renderer bindDepthStencil:_renderer.depthStates[((int)depthReadMode) * 2 + doDepthWrite] settings:nullptr];
-      return true;
-    }
+      if (!enableStencil)
+      {
+        [_renderer bindDepthStencil:_renderer.depthStates[((int)depthReadMode) * 2 + doDepthWrite] settings:nullptr];
+        return true;
+      }
 
-    MTLDepthStencilDescriptor *depthStencilDesc = [[MTLDepthStencilDescriptor alloc]init];
+      MTLDepthStencilDescriptor *depthStencilDesc = [[MTLDepthStencilDescriptor alloc]init];
 
-    depthStencilDesc.depthCompareFunction = mapDepthMode[depthReadMode];
-    depthStencilDesc.depthWriteEnabled = doDepthWrite;
+      depthStencilDesc.depthCompareFunction = mapDepthMode[depthReadMode];
+      depthStencilDesc.depthWriteEnabled = doDepthWrite;
 
 #if UDPLATFORM_OSX
-    MTLStencilDescriptor *stencilDesc = [[MTLStencilDescriptor alloc] init];
+      MTLStencilDescriptor *stencilDesc = [[MTLStencilDescriptor alloc] init];
 
-    stencilDesc.readMask = (uint32)pStencil->compareMask;
-    stencilDesc.writeMask = (uint32)pStencil->writeMask;
-    stencilDesc.stencilCompareFunction = mapStencilFunction[pStencil->compareFunc];
-    stencilDesc.stencilFailureOperation = mapStencilOperation[pStencil->onStencilFail];
-    stencilDesc.depthFailureOperation = mapStencilOperation[pStencil->onDepthFail];
-    stencilDesc.depthStencilPassOperation = mapStencilOperation[pStencil->onStencilAndDepthPass];
+      stencilDesc.readMask = (uint32)pStencil->compareMask;
+      stencilDesc.writeMask = (uint32)pStencil->writeMask;
+      stencilDesc.stencilCompareFunction = mapStencilFunction[pStencil->compareFunc];
+      stencilDesc.stencilFailureOperation = mapStencilOperation[pStencil->onStencilFail];
+      stencilDesc.depthFailureOperation = mapStencilOperation[pStencil->onDepthFail];
+      stencilDesc.depthStencilPassOperation = mapStencilOperation[pStencil->onStencilAndDepthPass];
 
-    depthStencilDesc.frontFaceStencil = stencilDesc;
-    depthStencilDesc.backFaceStencil = stencilDesc;
+      depthStencilDesc.frontFaceStencil = stencilDesc;
+      depthStencilDesc.backFaceStencil = stencilDesc;
 #elif UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-    return false;
+      return false;
 #else
 # error "Unknown platform!"
 #endif
-    s_internalState.stencil.writeMask = pStencil->writeMask;
-    s_internalState.stencil.compareFunc = pStencil->compareFunc;
-    s_internalState.stencil.compareValue = pStencil->compareValue;
-    s_internalState.stencil.compareMask = pStencil->compareMask;
-    s_internalState.stencil.onStencilFail = pStencil->onStencilFail;
-    s_internalState.stencil.onDepthFail = pStencil->onDepthFail;
-    s_internalState.stencil.onStencilAndDepthPass = pStencil->onStencilAndDepthPass;
+      s_internalState.stencil.writeMask = pStencil->writeMask;
+      s_internalState.stencil.compareFunc = pStencil->compareFunc;
+      s_internalState.stencil.compareValue = pStencil->compareValue;
+      s_internalState.stencil.compareMask = pStencil->compareMask;
+      s_internalState.stencil.onStencilFail = pStencil->onStencilFail;
+      s_internalState.stencil.onDepthFail = pStencil->onDepthFail;
+      s_internalState.stencil.onStencilAndDepthPass = pStencil->onStencilAndDepthPass;
 
-    id<MTLDepthStencilState> dsState = [_device newDepthStencilStateWithDescriptor:depthStencilDesc];
-    [_renderer bindDepthStencil:dsState settings:pStencil];
+      id<MTLDepthStencilState> dsState = [_device newDepthStencilStateWithDescriptor:depthStencilDesc];
+      [_renderer bindDepthStencil:dsState settings:pStencil];
+    }
   }
 
   return true;
@@ -302,7 +305,7 @@ bool vcGLState_Present(SDL_Window *pWindow)
     return false;
 
   @autoreleasepool {
-      [_renderer draw];
+    [_renderer draw];
   }
 
   memset(&s_internalState.frameInfo, 0, sizeof(s_internalState.frameInfo));
