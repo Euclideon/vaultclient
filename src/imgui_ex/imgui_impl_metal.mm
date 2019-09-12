@@ -36,8 +36,6 @@ vcMesh *pMetalMesh = nullptr;
 vcShaderSampler *pMetalSampler = nullptr;
 static vcShaderConstantBuffer *metalMatrix = nullptr;
 
-const vcVertexLayoutTypes vcImGuiVertexLayout[] = { vcVLT_Position2, vcVLT_TextureCoords2, vcVLT_ColourBGRA };
-
 // A singleton that stores long-lived objects that are needed by the Metal
 // renderer backend. Stores the render pipeline state cache and the default
 // font texture, and manages the reusable buffer cache.

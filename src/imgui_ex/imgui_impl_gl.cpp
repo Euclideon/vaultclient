@@ -16,8 +16,6 @@ vcMesh *pImGuiMesh = nullptr;
 vcShaderSampler *pImGuiSampler = nullptr;
 static vcShaderConstantBuffer *g_pAttribLocationProjMtx = nullptr;
 
-const vcVertexLayoutTypes vcImGuiVertexLayout[] = { vcVLT_Position2, vcVLT_TextureCoords2, vcVLT_ColourBGRA };
-
 // Functions
 bool ImGuiGL_Init(SDL_Window *pWindow)
 {
