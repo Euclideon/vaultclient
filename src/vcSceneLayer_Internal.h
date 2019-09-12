@@ -122,7 +122,6 @@ struct vcSceneLayerNode
 struct vcSceneLayer
 {
   udWorkerPool *pThreadPool;
-  bool isActive;
 
   char pathSeparatorChar; // '/' or '\\'
   udJSON description;
@@ -130,6 +129,8 @@ struct vcSceneLayer
 
   char *pFileData;
   vcSceneLayerNode root;
+
+  udInterlockedInt32 loadNodeJobsInFlight;
 };
 
 udResult vcSceneLayer_LoadNode(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode = nullptr, const vcSceneLayerLoadType &loadType = vcSLLT_None);
@@ -139,8 +140,8 @@ void vcSceneLayer_CheckNodePruneCandidancy(const vcSceneLayer *pSceneLayer, vcSc
 
 // Prepares the node for use
 // Returns true if the node is ready for use
-bool vcSceneLayer_TouchNode(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode, const udDouble3 &cameraPosition);
-bool vcSceneLayer_ExpandNodeForRendering(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
+bool vcSceneLayer_TouchNode(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode, const udDouble3 &cameraPosition);
+bool vcSceneLayer_ExpandNodeForRendering(vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
 
 // TODO: (EVC-540) ASSUMPTIONS! (assumed a specific vertex layout!)
 struct vcSceneLayerVertex
