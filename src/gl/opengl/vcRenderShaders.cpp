@@ -26,7 +26,7 @@ layout (std140) uniform u_params
 
   // outlining
   vec4 u_outlineColour;
-  vec4 u_outlineParams;   // outlineWidth, edge threshold, (unused), (unused)
+  vec4 u_outlineParams;   // outlineWidth, edge threshold, (EVC-835) OPENGL ONLY: invert y-coordinate for world position reconstruction, (unused)
 
   // colour by height
   vec4 u_colourizeHeightColourMin;
@@ -39,7 +39,7 @@ layout (std140) uniform u_params
 
   // contours
   vec4 u_contourColour;
-  vec4 u_contourParams; // contour distance, contour band height, (unused), (unused)
+  vec4 u_contourParams; // contour distance, contour band height, contour rainbow repeat rate, contour rainbow factoring
 };
 
 float linearizeDepth(float depth)
@@ -78,14 +78,25 @@ vec4 edgeHighlight(vec3 col, vec2 uv, float depth, vec4 outlineColour, float edg
   return vec4(mix(col.xyz, edgeColour, isEdge), mix(depth, minDepth, isEdge));
 }
 
+vec3 hsv2rgb(vec3 c)
+{
+  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
 vec3 contourColour(vec3 col, vec3 fragWorldPosition)
 {
   float contourDistance = u_contourParams.x;
   float contourBandHeight = u_contourParams.y;
+  float contourRainboxRepeat = u_contourParams.z;
+  float contourRainboxIntensity = u_contourParams.w;
 
-  float isCountour = step(contourBandHeight, mod(fragWorldPosition.z, contourDistance));
-  vec3 contourColour = mix(col.xyz, u_contourColour.xyz, u_contourColour.w);
-  return mix(contourColour, col.xyz, isCountour);
+  vec3 rainbowColour = hsv2rgb(vec3(fragWorldPosition.z * (1.0 / contourRainboxRepeat), 1.0, 1.0));
+  vec3 baseColour = mix(col.xyz, rainbowColour, contourRainboxIntensity);
+
+  float isContour = 1.0 - step(contourBandHeight, mod(abs(fragWorldPosition.z), contourDistance));
+  return mix(baseColour, u_contourColour.xyz, isContour * u_contourColour.w);
 }
 
 vec3 colourizeByHeight(vec3 col, vec3 fragWorldPosition)
@@ -123,12 +134,14 @@ R"shader(
 
   float depth = texture(u_depth, v_texCoord).x;
 
-  vec4 fragWorldPosition = u_inverseViewProjection * vec4(vec2(v_texCoord.x, 1.0 - v_texCoord.y) * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
+  // (EVC-835) This is temporary until we sort out the flippyness issues
+  float yCoord = mix(1.0 - v_texCoord.y, v_texCoord.y, u_outlineParams.z);
+  vec4 fragWorldPosition = u_inverseViewProjection * vec4(vec2(v_texCoord.x, yCoord) * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
   fragWorldPosition /= fragWorldPosition.w;
 
   col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
   col.xyz = colourizeByDepth(col.xyz, depth);
-
+  
   float edgeOutlineWidth = u_outlineParams.x;
   float edgeOutlineThreshold = u_outlineParams.y;
   vec4 outlineColour = u_outlineColour;

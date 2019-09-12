@@ -55,7 +55,7 @@ struct vcUDRenderContext
 
       // outlining
       udFloat4 outlineColour;
-      udFloat4 outlineParams;   // outlineWidth, threshold, (unused), (unused)
+      udFloat4 outlineParams;   // outlineWidth, threshold, (EVC-835) OPENGL ONLY: invert y-coordinate for world position reconstruction, (unused)
 
       // colour by height
       udFloat4 colourizeHeightColourMin;
@@ -68,7 +68,7 @@ struct vcUDRenderContext
 
       // contours
       udFloat4 contourColour;
-      udFloat4 contourParams; // contour distance, contour band height, (unused), (unused)
+      udFloat4 contourParams; // contour distance, contour band height, contour rainbow repeat rate, contour rainbow factoring
     } params;
 
   } presentShader;
@@ -530,10 +530,16 @@ void vcRender_PresentUD(vcState *pProgramState, vcRenderContext *pRenderContext)
 
   // contours
   udFloat4 contourColour = pProgramState->settings.postVisualization.contours.colour;
-  if (!pProgramState->settings.postVisualization.contours.enable)
-    contourColour.w = 0.f;
   float contourDistances = pProgramState->settings.postVisualization.contours.distances;
   float contourBandHeight = pProgramState->settings.postVisualization.contours.bandHeight;
+  float contourRainboxRepeatRate = pProgramState->settings.postVisualization.contours.rainbowRepeat;
+  float contourRainboxIntensity = pProgramState->settings.postVisualization.contours.rainbowIntensity;
+
+  if (!pProgramState->settings.postVisualization.contours.enable)
+  {
+    contourColour.w = 0.f;
+    contourRainboxIntensity = 0.f;
+  }
 
   pRenderContext->udRenderContext.presentShader.params.inverseViewProjection = udFloat4x4::create(pProgramState->pCamera->matrices.inverseViewProjection);
   pRenderContext->udRenderContext.presentShader.params.screenParams.x = outlineWidth * (1.0f / pRenderContext->sceneResolution.x);
@@ -553,6 +559,16 @@ void vcRender_PresentUD(vcState *pProgramState, vcRenderContext *pRenderContext)
   pRenderContext->udRenderContext.presentShader.params.contourColour = contourColour;
   pRenderContext->udRenderContext.presentShader.params.contourParams.x = contourDistances;
   pRenderContext->udRenderContext.presentShader.params.contourParams.y = contourBandHeight;
+  pRenderContext->udRenderContext.presentShader.params.contourParams.z = contourRainboxRepeatRate;
+  pRenderContext->udRenderContext.presentShader.params.contourParams.w = contourRainboxIntensity;
+
+  // EVC-835
+  // Hack for OpenGL: invert y - coordinate for world position reconstruction
+  pRenderContext->udRenderContext.presentShader.params.outlineParams.z = 0.0f;
+#if ALLOW_EXPERIMENT_GPURENDER && GRAPHICS_API_OPENGL
+  if (pProgramState->settings.experimental.useGPURenderer)
+    pRenderContext->udRenderContext.presentShader.params.outlineParams.z = 1.0f; // flip it
+#endif
 
   vcShader_Bind(pRenderContext->udRenderContext.presentShader.pProgram);
 
