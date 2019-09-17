@@ -719,7 +719,10 @@ void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext
 #endif
 
   renderData.pSceneTexture = pRenderContext->pTexture;
-  renderData.sceneScaling = udFloat2::create(float(pRenderContext->originalSceneResolution.x) / pRenderContext->sceneResolution.x, float(pRenderContext->originalSceneResolution.y) / pRenderContext->sceneResolution.y);
+  renderData.sceneScaling = udFloat2::one();
+
+  // TODO (EVC-835): fix scene scaling
+  // udFloat2::create(float(pRenderContext->originalSceneResolution.x) / pRenderContext->sceneResolution.x, float(pRenderContext->originalSceneResolution.y) / pRenderContext->sceneResolution.y);
 }
 
 void vcRender_ApplySelectionBuffer(vcState *pProgramState, vcRenderContext *pRenderContext)
