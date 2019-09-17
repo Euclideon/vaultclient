@@ -58,6 +58,8 @@ struct vcFBX
   vdkConvertCustomItemFlags convertFlags;
   uint32_t everyNth;
 
+  bool noTextures;
+
   vdkTriangleVoxelizer *pTrivox;
   double *pTriPositions;
   udDouble3 *pTriWeights;
@@ -180,7 +182,7 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
   FbxMesh *pMesh = pNode->GetMesh();
   pFBX->map = pMesh->GetElementMaterial()->GetMappingMode();
   pFBX->ref = pMesh->GetElementMaterial()->GetReferenceMode();
-
+  pFBX->noTextures = true;
   pFBX->pIndex = &pMesh->GetElementMaterial()->GetIndexArray();
 
   for (int i = 0; i < totalMats; ++i)
@@ -198,6 +200,8 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
     {
       if (diffuse.GetSrcObjectCount<FbxTexture>() > 0)
       {
+        pFBX->noTextures = false;
+
         for (int j = 0; j < diffuse.GetSrcObjectCount<FbxFileTexture>(); ++j)
         {
           FbxFileTexture *pTexture = diffuse.GetSrcObject<FbxFileTexture>(j);
@@ -224,11 +228,11 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
         {
           const FbxColor col = diffuse.Get<FbxColor>();
 
-          texture.diffuse += (uint8_t)(col.mRed * 0xFF) << 24;
-          texture.diffuse += (uint8_t)(col.mGreen * 0xFF) << 16;
-          texture.diffuse += (uint8_t)(col.mBlue * 0xFF) << 8;
+          texture.diffuse |= (((uint8_t)(col.mBlue * 0xFF)) << 16);
+          texture.diffuse |= (((uint8_t)(col.mGreen * 0xFF)) << 8);
+          texture.diffuse |= ((uint8_t)(col.mRed * 0xFF));
 
-          texture.diffuse += 0xFF;
+          texture.diffuse |= 0xFF000000;
 
           mat.textures.PushBack(texture);
         }
@@ -240,15 +244,22 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
   }
 }
 
+FbxAMatrix vcFBX_GetGeometryTransformation(FbxNode *inNode)
+{
+  const FbxVector4 lT = inNode->GetGeometricTranslation(FbxNode::eSourcePivot);
+  const FbxVector4 lR = inNode->GetGeometricRotation(FbxNode::eSourcePivot);
+  const FbxVector4 lS = inNode->GetGeometricScaling(FbxNode::eSourcePivot);
+
+  return FbxAMatrix(lT, lR, lS);
+}
+
 vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, const double origin[3], double pointResolution, vdkConvertCustomItemFlags flags)
 {
   udUnused(origin);
 
   vdkError result = vE_Failure;
   vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
-  FbxVector4 min, max, center; // Aren't used if not successfully set by ComputeBoundingBoxMinMaxCenter
   pFBX->pManager = FbxManager::Create();
-  bool calcBounds = false;
   pFBX->materials.Init(4);
   pFBX->uvQueue.Init(4);
 
@@ -263,6 +274,15 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   FbxGeometryConverter geoCon = FbxGeometryConverter(pFBX->pManager);
   fbxsdk::FbxMaterialConverter matCon = fbxsdk::FbxMaterialConverter(*pFBX->pManager);
 
+  const fbxsdk::FbxSystemUnit::ConversionOptions conversionOptions = {
+    false, /* mConvertRrsNodes */
+    true, /* mConvertAllLimits */
+    true, /* mConvertClusters */
+    true, /* mConvertLightIntensity */
+    true, /* mConvertPhotometricLProperties */
+    true  /* mConvertCameraClipPlanes */
+  };
+
   // Import File
   UD_ERROR_IF(!pImporter->Initialize(pConvertInput->pName, -1, pFBX->pManager->GetIOSettings()), vE_ReadFailure);
   pFBX->pScene = FbxScene::Create(pFBX->pManager, "");
@@ -274,7 +294,7 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
 
   // If model isn't already scaled to metres, resize model
   if (pFBX->pScene->GetGlobalSettings().GetSystemUnit() != FbxSystemUnit::m)
-    FbxSystemUnit::m.ConvertScene(pFBX->pScene);
+    FbxSystemUnit::m.ConvertScene(pFBX->pScene, conversionOptions);
 
   pConvertInput->pointCountIsEstimate = true;
   pConvertInput->sourceResolution = pointResolution;
@@ -286,38 +306,14 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   UD_ERROR_IF(pFBX->totalMeshes < 1, vE_NotFound);
 
   UD_ERROR_IF(!geoCon.Triangulate(pFBX->pScene, true), vE_Failure);
-  
-  if (pFBX->pScene->ComputeBoundingBoxMinMaxCenter(min, max, center))
-  {
-    for (int j = 0; j < 3; ++j)
-    {
-      pConvertInput->boundMax[j] = max[j];
-      pConvertInput->boundMin[j] = min[j];
-    }
-  }
-  else
-  {
-    calcBounds = true;
-  }
 
   for (uint16_t i = 0; i < pFBX->totalMeshes; ++i)
   {
-    if (calcBounds)
-    {
-      pFBX->pMesh->ComputeBBox();
-      FbxDouble3 tempMax = pFBX->pMesh->BBoxMax.Get();
-      FbxDouble3 tempMin = pFBX->pMesh->BBoxMin.Get();
-      for (int j = 0; j < 3; ++j)
-      {
-        pConvertInput->boundMax[j] = udMax(tempMax[j], pConvertInput->boundMax[j]);
-        pConvertInput->boundMin[j] = udMin(tempMin[j], pConvertInput->boundMin[j]);
-      }
-    }
+    pFBX->pNode = pFBX->pScene->GetGeometry(i)->GetNode();
+    pFBX->pMesh = pFBX->pNode->GetMesh();
 
-    pFBX->totalPolygons += pFBX->pScene->GetGeometry(pFBX->currMesh)->GetNode()->GetMesh()->GetPolygonCount();
+    pFBX->totalPolygons += pFBX->pScene->GetGeometry(i)->GetNode()->GetMesh()->GetPolygonCount();
   }
-
-  pConvertInput->boundsKnown = true;
 
   pFBX->lastTouchedPoly = 1; // Forces handling 0, then gets set to 0
   pFBX->lastTouchedMesh = 1;
@@ -386,6 +382,8 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
         }
       }
 
+      LocalTransform = vcFBX_GetGeometryTransformation(pFBX->pNode) * LocalTransform;
+
       pFBX->pMesh->SetPivot(LocalTransform);
       pFBX->pMesh->ApplyPivot();
 
@@ -425,25 +423,34 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
 
           uint32_t index = 0;
 
-          switch (pFBX->map)
+          if (pFBX->noTextures)
           {
-          case fbxsdk::FbxLayerElement::eByPolygonVertex: // falls through
-          case fbxsdk::FbxLayerElement::eByControlPoint:
-            index = pFBX->pIndex->GetAt(pFBX->currMeshPolygon * 3);
-            break;
-          case fbxsdk::FbxLayerElement::eByPolygon:
-            index = pFBX->pIndex->GetAt(pFBX->currMeshPolygon);
-            break;
-          case fbxsdk::FbxLayerElement::eByEdge: // falls through
-          case fbxsdk::FbxLayerElement::eAllSame:
             index = (uint32_t)pFBX->materials.length - 1;
-            break;
-          case fbxsdk::FbxLayerElement::eNone:
-            break;
+          }
+          else
+          {
+            switch (pFBX->map)
+            {
+            case fbxsdk::FbxLayerElement::eByPolygonVertex: // falls through
+            case fbxsdk::FbxLayerElement::eByControlPoint:
+              index = pFBX->pIndex->GetAt(pFBX->currMeshPolygon * 3);
+              break;
+            case fbxsdk::FbxLayerElement::eByPolygon:
+              index = pFBX->pIndex->GetAt(pFBX->currMeshPolygon);
+              break;
+            case fbxsdk::FbxLayerElement::eByEdge: // falls through
+            case fbxsdk::FbxLayerElement::eAllSame:
+              index = (uint32_t)pFBX->materials.length - 1;
+              break;
+            case fbxsdk::FbxLayerElement::eNone:
+              break;
+            }
           }
 
           if (index < pFBX->materials.length)
             pMat = &pFBX->materials[index];
+
+
 
           UDASSERT(pMat != nullptr, "Material index incorrectly looked up, or FBX file corrupted");
 
@@ -453,7 +460,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
             if (pTex->pTex != nullptr)
             {
               uint32_t uvIndex = pFBX->currMeshPointCount;
-              if (pFBX->ref != FbxGeometryElement::eDirect)
+              if (pTex->ref != FbxGeometryElement::eDirect)
                 uvIndex = pTex->pIArray->GetAt(uvIndex);
 
               FbxDouble2 uv = pTex->pDArray->GetAt(uvIndex);
@@ -511,6 +518,13 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
         // If we need to set a new triangle
         if (pFBX->currMeshPolygon != pFBX->lastTouchedPoly)
         {
+          if (pFBX->pMesh->GetPolyHoleInfo(pFBX->currMeshPolygon))
+          {
+            ++pFBX->currProcessedPolygons;
+            ++pFBX->currMeshPolygon;
+            continue;
+          }
+
           double p0[3];
           double p1[3];
           double p2[3];
@@ -545,21 +559,28 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
             {
               uint32_t index = 0;
 
-              switch (pFBX->map)
+              if (pFBX->noTextures)
               {
-              case fbxsdk::FbxLayerElement::eByPolygonVertex: // falls through
-              case fbxsdk::FbxLayerElement::eByControlPoint:
-                index = pFBX->pIndex->GetAt(pFBX->currMeshPolygon * 3);
-                break;
-              case fbxsdk::FbxLayerElement::eByPolygon:
-                index = pFBX->pIndex->GetAt(pFBX->currMeshPolygon);
-                break;
-              case fbxsdk::FbxLayerElement::eByEdge: // falls through
-              case fbxsdk::FbxLayerElement::eAllSame:
                 index = (uint32_t)pFBX->materials.length - 1;
-                break;
-              case fbxsdk::FbxLayerElement::eNone:
-                break;
+              }
+              else
+              {
+                switch (pFBX->map)
+                {
+                case fbxsdk::FbxLayerElement::eByPolygonVertex: // falls through
+                case fbxsdk::FbxLayerElement::eByControlPoint:
+                  index = pFBX->pIndex->GetAt(pFBX->currMeshPolygon * 3);
+                  break;
+                case fbxsdk::FbxLayerElement::eByPolygon:
+                  index = pFBX->pIndex->GetAt(pFBX->currMeshPolygon);
+                  break;
+                case fbxsdk::FbxLayerElement::eByEdge: // falls through
+                case fbxsdk::FbxLayerElement::eAllSame:
+                  index = (uint32_t)pFBX->materials.length - 1;
+                  break;
+                case fbxsdk::FbxLayerElement::eNone:
+                  break;
+                }
               }
 
               if (index < pFBX->materials.length)
@@ -770,11 +791,12 @@ vdkError vcFBX_AddItem(vdkContext *pContext, vdkConvertContext *pConvertContext,
   customItem.pointCount = -1;
   customItem.content = vdkAC_ARGB; // Colour is the only content attribute in an fbx model
 
-  // Bounds will be overwritten
   customItem.boundsKnown = false;
   for (int i = 0; i < 3; ++i)
-    customItem.boundMax[i] = 1000000000;
-
+  {
+    customItem.boundMax[i] = 5000;
+    customItem.boundMin[i] = -5000;
+  }
   return vdkConvert_AddCustomItem(pContext, pConvertContext, &customItem);
 }
 
