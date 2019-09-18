@@ -306,7 +306,8 @@ void vcMain_MainLoop(vcState *pProgramState)
   else
     pProgramState->finishedStartup = ((udWorkerPool_DoPostWork(pProgramState->pWorkerPool, 1) == udR_NothingToDo) && !udWorkerPool_HasActiveWorkers(pProgramState->pWorkerPool));
 
-  ImGui::GetIO().KeysDown[SDL_SCANCODE_BACKSPACE] = false;
+  ImGuiIO &io = ImGui::GetIO();
+  io.KeysDown[SDL_SCANCODE_BACKSPACE] = false;
 
   if (pProgramState->hasContext)
   {
@@ -329,9 +330,7 @@ void vcMain_MainLoop(vcState *pProgramState)
           ImGuiWindow *pConvert = ImGui::FindWindowByName("###convertDock");
           if (pConvert != nullptr && ((pConvert->DockNode != nullptr && pConvert->DockTabIsVisible) || (pConvert->DockNode == nullptr && !pConvert->Collapsed)))
           {
-            int x, y;
-            SDL_GetMouseState(&x, &y); // ImGui mouse pos is -FLT_MAX during drag/drop operation
-            if (x > pConvert->Pos.x && x < pConvert->Pos.x + pConvert->Size.x && y > pConvert->Pos.y && y < pConvert->Pos.y + pConvert->Size.y)
+            if (io.MousePos.x < pConvert->Pos.x + pConvert->Size.x && io.MousePos.x > pConvert->Pos.x && io.MousePos.y > pConvert->Pos.y && io.MousePos.y < pConvert->Pos.y + pConvert->Size.y)
               convertDrop = true;
           }
         }
