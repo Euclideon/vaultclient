@@ -701,12 +701,11 @@ const char* const g_PolygonP1N1UV1VertexShader = R"shader(
     PS_INPUT output;
 
     // making the assumption that the model matrix won't contain non-uniform scale
-    float4 worldNormal = mul(u_modelMatrix, float4(input.normal, 0.0));
-    worldNormal.xyz = normalize(worldNormal.xyz);
+    float3 worldNormal = normalize(mul(u_modelMatrix, float4(input.normal, 0.0)).xyz);
 
     output.pos = mul(u_modelViewProjectionMatrix, float4(input.pos, 1.0));
     output.uv = input.uv;
-    output.normal = worldNormal.xyz;
+    output.normal = worldNormal;
     output.colour = u_colour;// * input.colour;
 
     return output;

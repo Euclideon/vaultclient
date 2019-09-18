@@ -490,12 +490,11 @@ PNUVVertexShader(PNUVSInput in [[stage_in]], constant PNUVSUniforms1& PNUVS1 [[b
   PNUVSOutput out;
 
   // making the assumption that the model matrix won't contain non-uniform scale
-  float4 worldNormal = PNUVS2.u_modelMatrix * float4(in.normal, 0.0);
-  worldNormal.xyz = normalize(worldNormal.xyz);
+  float3 worldNormal = normalize((PNUVS2.u_modelMatrix * float4(in.normal, 0.0)).xyz);
 
   out.pos = PNUVS1.u_modelViewProjectionMatrix * float4(in.pos, 1.0);
   out.uv = in.uv;
-  out.normal = worldNormal.xyz;
+  out.normal = worldNormal;
   out.color = PNUVS2.u_color;
   
   return out;

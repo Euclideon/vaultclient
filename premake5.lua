@@ -245,7 +245,7 @@ solution "vaultClient"
 	if os.getenv("UNIXTIME") then
 		defines { "BUILD_TIME=" .. os.getenv("UNIXTIME") }
 	end
-
+	
 	if _OPTIONS["force-vaultsdk"] then
 		projectSuffix = "VDK"
 

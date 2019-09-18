@@ -21,6 +21,7 @@ udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer
   UD_ERROR_NULL(pSceneLayerRenderer, udR_MemoryAllocationFailure);
 
   UD_ERROR_CHECK(vcSceneLayer_Create(&pSceneLayerRenderer->pSceneLayer, pWorkerThreadPool, pSceneLayerURL));
+  UD_ERROR_CHECK(vcSceneLayer_LoadNode(pSceneLayerRenderer->pSceneLayer, &pSceneLayerRenderer->pSceneLayer->root)); // load root data now
 
   UD_ERROR_CHECK(vcTexture_Create(&pSceneLayerRenderer->pEmptyTexture, 1, 1, grayPixel));
 
@@ -100,14 +101,14 @@ void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayerRenderer, 
 
 bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udUInt2 &screenResolution, const udFloat4 *pColourOverride)
 {
+  if (!vcSceneLayer_TouchNode(pSceneLayerRenderer->pSceneLayer, pNode, pSceneLayerRenderer->cameraPosition))
+    return false;
+
   if (!vcSceneLayerRenderer_IsNodeVisible(pNode, pSceneLayerRenderer->frustumPlanes))
   {
     vcSceneLayer_CheckNodePruneCandidancy(pSceneLayerRenderer->pSceneLayer, pNode);
     return true; // consume, but do nothing
   }
-
-  if (!vcSceneLayer_TouchNode(pSceneLayerRenderer->pSceneLayer, pNode, pSceneLayerRenderer->cameraPosition))
-    return false;
 
   double nodeScreenSize = vcSceneLayerRenderer_CalculateNodeScreenSize(pNode, pSceneLayerRenderer->worldViewProjectionMatrix, screenResolution);
   bool shouldRender = (pNode->childrenCount == 0 || nodeScreenSize < pNode->lodSelectionValue);
