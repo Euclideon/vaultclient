@@ -607,7 +607,7 @@ const char* const g_PolygonP1N1UV1VertexShader = VERT_HEADER R"shader(
 
   layout (std140) uniform u_EveryFrame
   {
-    mat4 u_viewProjectionMatrix;
+    mat4 u_modelViewProjectionMatrix;
   };
 
   layout (std140) uniform u_EveryObject
@@ -618,10 +618,14 @@ const char* const g_PolygonP1N1UV1VertexShader = VERT_HEADER R"shader(
 
   void main()
   {
-    gl_Position = u_viewProjectionMatrix * u_modelMatrix * vec4(a_pos, 1.0);
+    // making the assumption that the model matrix won't contain non-uniform scale
+    vec4 worldNormal = u_modelMatrix * vec4(a_normal, 0.0);
+    worldNormal.xyz = normalize(worldNormal.xyz);
+
+    gl_Position = u_modelViewProjectionMatrix * vec4(a_pos, 1.0);
 
     v_uv = a_uv;
-    v_normal = a_normal;
+    v_normal = worldNormal.xyz;
     v_colour = u_colour;// * a_colour;
   }
 )shader";
