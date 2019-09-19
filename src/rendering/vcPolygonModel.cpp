@@ -28,7 +28,7 @@ static struct vcPolygonModelShader
 
   struct
   {
-    udFloat4x4 u_viewProjectionMatrix;
+    udFloat4x4 u_modelViewProjectionMatrix;
   } everyFrame;
 
   struct
@@ -283,7 +283,7 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
 
     vcShader_Bind(pPolygonShader->pShader);
 
-    pPolygonShader->everyFrame.u_viewProjectionMatrix = udFloat4x4::create(viewProjectionMatrix * modelMatrix);
+    pPolygonShader->everyFrame.u_modelViewProjectionMatrix = udFloat4x4::create(viewProjectionMatrix * modelMatrix);
 
     float s = 1.0f / 255.0f;
     udFloat4 colour = udFloat4::create(
@@ -296,7 +296,7 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
       colour = *pColourOverride;
 
     pPolygonShader->everyObject.u_colour = colour;
-    pPolygonShader->everyObject.u_world = udFloat4x4::identity();
+    pPolygonShader->everyObject.u_world = udFloat4x4::create(modelMatrix);
 
     vcShader_BindConstantBuffer(pPolygonShader->pShader, pPolygonShader->pEveryObjectConstantBuffer, &pPolygonShader->everyObject, sizeof(vcPolygonModelShader::everyObject));
     vcShader_BindConstantBuffer(pPolygonShader->pShader, pPolygonShader->pEveryFrameConstantBuffer, &pPolygonShader->everyFrame, sizeof(vcPolygonModelShader::everyFrame));

@@ -12,6 +12,11 @@ struct vcSceneLayerRenderer
 
   vcTexture *pEmptyTexture;
   udDouble3 cameraPosition;
+
+  // cache some frame matrices
+  udDouble4x4 worldMatrix;
+  udDouble4x4 viewProjectionMatrix;
+  udDouble4x4 worldViewProjectionMatrix;
 };
 
 udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer, udWorkerPool *pWorkerThreadPool, const char *pSceneLayerURL);

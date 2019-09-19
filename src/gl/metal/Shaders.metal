@@ -475,7 +475,7 @@ struct PNUVSOutput
 
 struct PNUVSUniforms1
 {
-  float4x4 u_viewProjectionMatrix;
+  float4x4 u_modelViewProjectionMatrix;
 };
 
 struct PNUVSUniforms2
@@ -488,10 +488,14 @@ vertex PNUVSOutput
 PNUVVertexShader(PNUVSInput in [[stage_in]], constant PNUVSUniforms1& PNUVS1 [[buffer(1)]], constant PNUVSUniforms2& PNUVS2 [[buffer(2)]])
 {
   PNUVSOutput out;
-  
-  out.pos = PNUVS1.u_viewProjectionMatrix * (PNUVS2.u_modelMatrix * float4(in.pos, 1.0));
+
+  // making the assumption that the model matrix won't contain non-uniform scale
+  float4 worldNormal = PNUVS2.u_modelMatrix * float4(in.normal, 0.0);
+  worldNormal.xyz = normalize(worldNormal.xyz);
+
+  out.pos = PNUVS1.u_modelViewProjectionMatrix * float4(in.pos, 1.0);
   out.uv = in.uv;
-  out.normal = in.normal;
+  out.normal = worldNormal.xyz;
   out.color = PNUVS2.u_color;
   
   return out;
