@@ -578,13 +578,13 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   bool isBtnReleased[3] = { ImGui::IsMouseReleased(0), ImGui::IsMouseReleased(1), ImGui::IsMouseReleased(2) };
 
   isMouseBtnBeingHeld &= (isBtnHeld[0] || isBtnHeld[1] || isBtnHeld[2]);
-  bool isFocused = (ImGui::IsItemHovered() || isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
+  bool isFocused = (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_ChildWindows) || isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
 
   int totalButtonsHeld = 0;
   for (size_t i = 0; i < udLengthOf(isBtnHeld); ++i)
     totalButtonsHeld += isBtnHeld[i] ? 1 : 0;
 
-  bool forceClearMouseState = (!isMouseBtnBeingHeld && !ImGui::IsItemHovered());
+  bool forceClearMouseState = (!isMouseBtnBeingHeld && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_ChildWindows));
 
   // Was the gizmo just clicked on?
   gizmoCapturedMouse = gizmoCapturedMouse || (pProgramState->gizmo.operation != 0 && vcGizmo_IsHovered() && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]));
@@ -600,7 +600,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     memset(isBtnClicked, 0, sizeof(isBtnClicked));
     memset(isBtnDoubleClicked, 0, sizeof(isBtnDoubleClicked));
     memset(isBtnHeld, 0, sizeof(isBtnHeld));
-    //memset(isBtnReleased, 0, sizeof(isBtnReleased)); // 09/04/19 - commented out to fix pan-release bug, check back and review once more fully tested
+    memset(isBtnReleased, 0, sizeof(isBtnReleased));
     mouseDelta = ImVec2();
     mouseWheel = 0.0f;
   }
@@ -815,25 +815,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   if (!zooming && pProgramState->cameraInput.inputState == vcCIS_CommandZooming && previousLockTime < currentTime - timeout)
   {
     pProgramState->cameraInput.inputState = vcCIS_None;
-  }
-
-  // set pivot to send to apply function
-  pProgramState->cameraInput.currentPivotMode = vcCPM_Tumble;
-  if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-  {
-    if (io.MouseDown[0] || io.MouseDown[1] || io.MouseDown[2])
-      pProgramState->cameraInput.currentPivotMode = vcCPM_Pan;
-  }
-  else
-  {
-    if (io.MouseDown[0] && !io.MouseDown[1] && !io.MouseDown[2])
-      pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.cameraMouseBindings[0];
-
-    if (!io.MouseDown[0] && io.MouseDown[1] && !io.MouseDown[2])
-      pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.cameraMouseBindings[1];
-
-    if (!io.MouseDown[0] && !io.MouseDown[1] && io.MouseDown[2])
-      pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.cameraMouseBindings[2];
   }
 
   // Apply movement and rotation
