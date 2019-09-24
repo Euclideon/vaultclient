@@ -863,7 +863,11 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
   pRenderContext->previousFrameDepth = uint32_t((depthBytes[2] << 16) | (depthBytes[1] << 8) | (depthBytes[0] << 0)) / ((1 << 24) - 1.0f);
   //uint8_t stencil = depthBytes[3];
 #endif
-  
+
+  // fbo state may not be valid (e.g. first read back will be '0')
+  if (pRenderContext->previousFrameDepth == 0.0f)
+    pRenderContext->previousFrameDepth = 1.0f;
+
 epilogue:
   return result;
 }
