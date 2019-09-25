@@ -4,7 +4,7 @@
 
 - Version 0.4.0
   - Added:
-    - ?
+    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`
   - Changed:
     - ?
   - Removed:
@@ -280,6 +280,8 @@ Modules are currently:
 - `settingsVisContoursColour`: Label next to colour selector for setting the colour of contours
 - `settingsVisContoursDistances`: Label next to slider for setting the vertical distance between each contour
 - `settingsVisContoursBandHeight`: Label next to slider for setting the vertical size of each contour
+- `settingsVisContoursRainbowRepeatRate`: Label next to the slider for how quickly the rainbow mode for contours repeats
+- `settingsVisContoursRainbowIntensity`: Label next to the slider that sets how strongly the rainbow appears
 - `settingsVisRestoreDefaults`: Used to restore default values for all visualisation settings
 
 - `settingsVisClassRestoreDefaults`: Label on a button that restores default values for all classifications and colours
