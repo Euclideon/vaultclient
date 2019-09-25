@@ -78,21 +78,35 @@ epilogue:
   return result;
 }
 
-void vcSceneLayerConvert_RecursiveGenerateLeafNodeList(vcSceneLayerNode *pNode, udChunkedArray<vcSceneLayerNode*> &leafNodes)
+udResult vcSceneLayerConvert_RecursiveGenerateLeafNodeList(vcSceneLayerConvert *pSceneLayerConvert, vcSceneLayerNode *pNode, udChunkedArray<vcSceneLayerNode*> &leafNodes)
 {
+  udResult result;
+
+  // Root already loaded
+  if (pNode != &pSceneLayerConvert->pSceneLayer->root)
+    UD_ERROR_CHECK(vcSceneLayer_LoadNode(pSceneLayerConvert->pSceneLayer, pNode));
+
   if (pNode->childrenCount == 0)
   {
+    UD_ERROR_CHECK(vcSceneLayer_LoadNodeInternals(pSceneLayerConvert->pSceneLayer, pNode));
     leafNodes.PushBack(pNode);
-    return;
+    UD_ERROR_SET(udR_Success);
   }
 
   for (size_t i = 0; i < pNode->childrenCount; ++i)
-    vcSceneLayerConvert_RecursiveGenerateLeafNodeList(&pNode->pChildren[i], leafNodes);
+  {
+    UD_ERROR_CHECK(vcSceneLayerConvert_RecursiveGenerateLeafNodeList(pSceneLayerConvert, &pNode->pChildren[i], leafNodes));
+  }
+
+  result = udR_Success;
+
+epilogue:
+  return result;
 }
 
-void vcSceneLayerConvert_GenerateLeafNodeList(vcSceneLayerConvert *pSceneLayerConvert)
+udResult vcSceneLayerConvert_GenerateLeafNodeList(vcSceneLayerConvert *pSceneLayerConvert)
 {
-  vcSceneLayerConvert_RecursiveGenerateLeafNodeList(&pSceneLayerConvert->pSceneLayer->root, pSceneLayerConvert->leafNodes);
+  return vcSceneLayerConvert_RecursiveGenerateLeafNodeList(pSceneLayerConvert , &pSceneLayerConvert->pSceneLayer->root, pSceneLayerConvert->leafNodes);
 }
 
 /*
@@ -182,10 +196,10 @@ vdkError vcSceneLayerConvert_Open(vdkConvertCustomItem *pConvertInput, uint32_t 
   pSceneLayerConvert->lastPrimedPrimitive = 0xffffffff;
   pSceneLayerConvert->worldOrigin = udDouble3::create(origin[0], origin[1], origin[2]);
 
-  if (vcSceneLayer_LoadNode(pSceneLayerConvert->pSceneLayer, nullptr, vcSLLT_Convert) != udR_Success)
+  // Recursively load child nodes
+  if (vcSceneLayerConvert_GenerateLeafNodeList(pSceneLayerConvert) != udR_Success)
     UD_ERROR_SET(vE_Failure);
 
-  vcSceneLayerConvert_GenerateLeafNodeList(pSceneLayerConvert);
   if (vcSceneLayerConvert_GatherEstimates(pSceneLayerConvert, pConvertInput->sourceResolution) != udR_Success)
     UD_ERROR_SET(vE_Failure);
 
@@ -199,11 +213,12 @@ epilogue:
 
 void vcSceneLayerConvert_Close(vdkConvertCustomItem *pConvertInput)
 {
-  if (pConvertInput->pData != nullptr)
-  {
-    vcSceneLayerConvert *pSceneLayerConvert = (vcSceneLayerConvert*)pConvertInput->pData;
-    vcSceneLayerConvert_Destroy(&pSceneLayerConvert);
-  }
+  if (pConvertInput->pData == nullptr)
+    return;
+
+  vcSceneLayerConvert *pSceneLayerConvert = (vcSceneLayerConvert*)pConvertInput->pData;
+  vcSceneLayerConvert_Destroy(&pSceneLayerConvert);
+  pConvertInput->pData = nullptr;
 }
 
 vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPointBufferInt64 *pBuffer)
@@ -387,6 +402,10 @@ vdkError vcSceneLayerConvert_AddItem(vdkContext *pContext, vdkConvertContext *pC
   vdkConvertCustomItem customItem = {};
 
   if (vcSceneLayerConvert_Create(&pSceneLayerConvert, pSceneLayerURL) != udR_Success)
+    UD_ERROR_SET(vE_Failure);
+
+  // load root data now
+  if (vcSceneLayer_LoadNode(pSceneLayerConvert->pSceneLayer, &pSceneLayerConvert->pSceneLayer->root) != udR_Success)
     UD_ERROR_SET(vE_Failure);
 
   customItem.pData = pSceneLayerConvert;
