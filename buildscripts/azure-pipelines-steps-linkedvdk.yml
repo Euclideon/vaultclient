@@ -1,0 +1,11 @@
+steps:
+- task: DownloadSecureFile@1
+  name: linkedVDKFile
+  displayName: 'Download Linked VDK'
+  inputs:
+    secureFile: $(linkedVDK).zip
+- task: ExtractFiles@1
+  displayName: 'Extract Linked VDK'
+  inputs:
+    archiveFilePatterns: $(linkedVDKFile.secureFilePath)
+    destinationFolder: linkedVDK

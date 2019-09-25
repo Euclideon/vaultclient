@@ -1,0 +1,39 @@
+parameters:
+  name: ''
+  displayName: ''
+  gfxapi: ''
+
+jobs:
+- job: ${{ parameters.name }}
+  displayName: ${{ parameters.displayName }}
+  pool:
+    vmImage: 'macOS-latest'
+  strategy:
+    matrix:
+      Debug:
+        configuration: Debug
+      Release:
+        configuration: Release
+  steps:
+  - checkout: self
+    submodules: recursive
+  - script: |
+      curl -O https://www.libsdl.org/release/SDL2-2.0.8.dmg
+      /usr/bin/hdiutil attach -noverify -noautoopen SDL2-2.0.8.dmg
+      sudo cp -af /Volumes/SDL2/SDL2.framework /Library/Frameworks/
+    displayName: 'Install dependencies'
+  - template: azure-pipelines-steps-linkedvdk.yml
+  - script: 3rdParty/udcore/bin/premake-bin/premake5-osx xcode4 --gfxapi=${{ parameters.gfxapi }}
+    displayName: 'Run Premake'
+  - task: Xcode@5
+    displayName: 'Build Projects'
+    inputs:
+      xcWorkspacePath: 'vaultClient.xcodeproj'
+      sdk: 'macosx'
+      configuration: $(configuration)
+      packageApp: false
+  - script: buildscripts/macos-package.sh ${{ parameters.gfxapi }}
+  - publish: builds/vaultClient.dmg
+    displayName: 'Public Artifacts'
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+    artifact: ${{ parameters.name }}$(configuration)

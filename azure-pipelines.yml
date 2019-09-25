@@ -1,19 +1,38 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+variables:
+  linkedVDK: Pipeline_43776
+  VAULTSDK_HOME: $(Build.SourcesDirectory)/linkedVDK/$(linkedVDK)
 
-trigger:
-- master
-
-pool:
-  vmImage: 'ubuntu-latest'
-
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+stages:
+- stage: build
+  displayName: 'Build'
+  jobs:
+  - template: buildscripts/azure-pipelines-jobs-ubuntu.yml
+    parameters:
+      name: ubuntu1604
+      displayName: 'Ubuntu 16.04'
+      container: euclideon/vault:dev-xenial-v1
+  - template: buildscripts/azure-pipelines-jobs-ubuntu.yml
+    parameters:
+      name: ubuntu1804
+      displayName: 'Ubuntu 18.04'
+      container: euclideon/vault:dev-bionic-v1
+  - template: buildscripts/azure-pipelines-jobs-macos.yml
+    parameters:
+      name: macosOpenGL
+      displayName: 'macOS OpenGL'
+      gfxapi: 'opengl'
+  - template: buildscripts/azure-pipelines-jobs-macos.yml
+    parameters:
+      name: macosMetal
+      displayName: 'macOS Metal'
+      gfxapi: 'metal'
+  - template: buildscripts/azure-pipelines-jobs-windows.yml
+    parameters:
+      name: windowsOpenGL
+      displayName: 'Windows OpenGL'
+      gfxapi: 'opengl'
+  - template: buildscripts/azure-pipelines-jobs-windows.yml
+    parameters:
+      name: windowsDirectX11
+      displayName: 'Windows DirectX 11'
+      gfxapi: 'd3d11'
