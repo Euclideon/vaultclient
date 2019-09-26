@@ -1,8 +1,8 @@
 #include "gl/vcRenderShaders.h"
 #include "udPlatformUtil.h"
 
-const char* const g_udFragmentShader = R"shader(
-  struct PS_INPUT
+const char *const g_VisualizationFragmentShader = R"shader(
+ struct PS_INPUT
   {
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
@@ -13,6 +13,12 @@ const char* const g_udFragmentShader = R"shader(
     float4 Color0 : SV_Target;
     float Depth0 : SV_Depth;
   };
+
+  sampler sampler0;
+  Texture2D texture0;
+
+  sampler sampler1;
+  Texture2D texture1;
 
   cbuffer u_params : register(b0)
   {
@@ -36,12 +42,6 @@ const char* const g_udFragmentShader = R"shader(
     float4 u_contourColour;
     float4 u_contourParams; // contour distance, contour band height, contour rainbow repeat rate, contour rainbow factoring
   };
-
-  sampler sampler0;
-  Texture2D texture0;
-
-  sampler sampler1;
-  Texture2D texture1;
 
   float linearizeDepth(float depth)
   {
@@ -144,6 +144,61 @@ const char* const g_udFragmentShader = R"shader(
       depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
     }
     col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
+
+    output.Color0 = float4(col.xyz, 1.0);// UD always opaque
+    output.Depth0 = depth;
+    return output;
+  }
+
+)shader";
+
+const char *const g_VisualizationVertexShader = R"shader(
+  struct VS_INPUT
+  {
+    float3 pos : POSITION;
+    float2 uv  : TEXCOORD0;
+  };
+
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD0;
+  };
+
+  PS_INPUT main(VS_INPUT input)
+  {
+    PS_INPUT output;
+    output.pos = float4(input.pos.xy, 0.f, 1.f);
+    output.uv  = input.uv;
+    return output;
+  }
+)shader";
+
+const char* const g_udFragmentShader = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD0;
+  };
+
+  struct PS_OUTPUT
+  {
+    float4 Color0 : SV_Target;
+    float Depth0 : SV_Depth;
+  };
+
+  sampler sampler0;
+  Texture2D texture0;
+
+  sampler sampler1;
+  Texture2D texture1;
+
+  PS_OUTPUT main(PS_INPUT input)
+  {
+    PS_OUTPUT output;
+
+    float4 col = texture0.Sample(sampler0, input.uv);
+    float depth = texture1.Sample(sampler1, input.uv).x;
 
     output.Color0 = float4(col.xyz, 1.0);// UD always opaque
     output.Depth0 = depth;
@@ -275,8 +330,6 @@ const char* const g_tileVertexShader = R"shader(
     return output;
   }
 )shader";
-
-
 
 const char* const g_CompassFragmentShader = R"shader(
   struct PS_INPUT

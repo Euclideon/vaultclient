@@ -3,18 +3,21 @@
 
 #include "vcGLState.h"
 
-extern const char *const g_udFragmentShader;
-extern const char *const g_udSplatIdFragmentShader;
-extern const char *const g_udVertexShader;
-extern const char *const g_tileFragmentShader;
-extern const char *const g_tileVertexShader;
-extern const char *const g_vcSkyboxFragmentShaderPanarama;
-extern const char *const g_vcSkyboxFragmentShaderImageColour;
-extern const char *const g_vcSkyboxVertexShader;
-extern const char *const g_FenceVertexShader;
-extern const char *const g_FenceFragmentShader;
-extern const char *const g_WaterVertexShader;
-extern const char *const g_WaterFragmentShader;
+extern const char* const g_VisualizationFragmentShader;
+extern const char *const g_VisualizationVertexShader;
+
+extern const char* const g_udFragmentShader;
+extern const char* const g_udSplatIdFragmentShader;
+extern const char* const g_udVertexShader;
+extern const char* const g_tileFragmentShader;
+extern const char* const g_tileVertexShader;
+extern const char* const g_vcSkyboxFragmentShaderPanarama;
+extern const char* const g_vcSkyboxFragmentShaderImageColour;
+extern const char* const g_vcSkyboxVertexShader;
+extern const char* const g_FenceVertexShader;
+extern const char* const g_FenceFragmentShader;
+extern const char* const g_WaterVertexShader;
+extern const char* const g_WaterFragmentShader;
 
 extern const char *const g_CompassFragmentShader;
 extern const char *const g_CompassVertexShader;

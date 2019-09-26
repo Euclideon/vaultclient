@@ -9,11 +9,9 @@
 # define VERT_HEADER "#version 330 core\n#extension GL_ARB_explicit_attrib_location : enable\n"
 #endif
 
-const char* const g_udFragmentShader = FRAG_HEADER R"shader(
-//Input Format
+const char *const g_VisualizationFragmentShader = FRAG_HEADER R"shader(
 in vec2 v_texCoord;
 
-//Output Format
 out vec4 out_Colour;
 
 uniform sampler2D u_texture;
@@ -26,7 +24,7 @@ layout (std140) uniform u_params
 
   // outlining
   vec4 u_outlineColour;
-  vec4 u_outlineParams;   // outlineWidth, edge threshold, (EVC-835) OPENGL ONLY: invert y-coordinate for world position reconstruction, (unused)
+  vec4 u_outlineParams;   // outlineWidth, edge threshold, (unused), (unused)
 
   // colour by height
   vec4 u_colourizeHeightColourMin;
@@ -122,6 +120,60 @@ vec3 colourizeByDepth(vec3 col, float depth)
 
 void main()
 {
+  vec2 flippedUV = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
+  vec4 col = texture(u_texture, flippedUV);
+  float depth = texture(u_depth, flippedUV).x;
+  
+  vec4 fragWorldPosition = u_inverseViewProjection * vec4(flippedUV * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
+  fragWorldPosition /= fragWorldPosition.w;
+  
+  col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
+  col.xyz = colourizeByDepth(col.xyz, depth);
+  
+  float edgeOutlineWidth = u_outlineParams.x;
+  float edgeOutlineThreshold = u_outlineParams.y;
+  vec4 outlineColour = u_outlineColour;
+  if (outlineColour.w > 0.0 && edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
+  {
+    vec4 edgeResult = edgeHighlight(col.xyz, flippedUV, depth, outlineColour, edgeOutlineWidth, edgeOutlineThreshold);
+    col.xyz = edgeResult.xyz;
+    depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
+  }
+  col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
+  
+  out_Colour = vec4(col.xyz, 1.0);
+  gl_FragDepth = depth;
+}
+
+)shader";
+
+const char *const g_VisualizationVertexShader = FRAG_HEADER R"shader(
+//Input format
+layout(location = 0) in vec3 a_position;
+layout(location = 1) in vec2 a_texCoord;
+
+//Output Format
+out vec2 v_texCoord;
+
+void main()
+{
+  gl_Position = vec4(a_position.xy, 0.0, 1.0);
+  v_texCoord = a_texCoord;
+}
+)shader";
+
+const char* const g_udFragmentShader = FRAG_HEADER R"shader(
+//Input Format
+in vec2 v_texCoord;
+
+//Output Format
+out vec4 out_Colour;
+
+uniform sampler2D u_texture;
+uniform sampler2D u_depth;
+
+void main()
+{
 )shader"
 
 #if UDPLATFORM_EMSCRIPTEN
@@ -133,25 +185,6 @@ void main()
 R"shader(
 
   float depth = texture(u_depth, v_texCoord).x;
-
-  // (EVC-835) This is temporary until we sort out the flippyness issues
-  float yCoord = mix(1.0 - v_texCoord.y, v_texCoord.y, u_outlineParams.z);
-  vec4 fragWorldPosition = u_inverseViewProjection * vec4(vec2(v_texCoord.x, yCoord) * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
-  fragWorldPosition /= fragWorldPosition.w;
-
-  col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
-  col.xyz = colourizeByDepth(col.xyz, depth);
-  
-  float edgeOutlineWidth = u_outlineParams.x;
-  float edgeOutlineThreshold = u_outlineParams.y;
-  vec4 outlineColour = u_outlineColour;
-  if (outlineColour.w > 0.0 && edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
-  {
-    vec4 edgeResult = edgeHighlight(col.xyz, v_texCoord, depth, outlineColour, edgeOutlineWidth, edgeOutlineThreshold);
-    col.xyz = edgeResult.xyz;
-    depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
-  }
-  col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
 
   out_Colour = vec4(col.xyz, 1.0); // UD always opaque
   gl_FragDepth = depth;
