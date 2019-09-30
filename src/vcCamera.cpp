@@ -842,7 +842,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
   vcCamera_Apply(pProgramState, pProgramState->pCamera, &pProgramState->settings.camera, &pProgramState->cameraInput, pProgramState->deltaTime, speedModifier);
 
-  if (pProgramState->cameraInput.inputState == vcCIS_None)
+  if (pProgramState->cameraInput.inputState == vcCIS_None && pProgramState->cameraInput.smoothOrthographicChange == 0.0)
     pProgramState->isUsingAnchorPoint = false;
 
   vcCamera_UpdateMatrices(pProgramState->pCamera, pProgramState->settings.camera, windowSize, &mousePos);
