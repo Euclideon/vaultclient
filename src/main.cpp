@@ -199,6 +199,9 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
     case 1: ImGui::StyleColorsDark(); break;
     case 2: ImGui::StyleColorsLight(); break;
     }
+
+    SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
+    SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
   }
 }
 

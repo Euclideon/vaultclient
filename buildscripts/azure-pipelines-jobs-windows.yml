@@ -1,0 +1,36 @@
+parameters:
+  name: ''
+  displayName: ''
+  gfxapi: ''
+
+jobs:
+- job: ${{ parameters.name }}
+  displayName: ${{ parameters.displayName }}
+  pool:
+    vmImage: 'windows-latest'
+  variables:
+    platform: x64
+  strategy:
+    matrix:
+      Debug:
+        configuration: Debug
+      Release:
+        configuration: Release
+  steps:
+  - checkout: self
+    submodules: recursive
+  - template: azure-pipelines-steps-linkedvdk.yml
+  - script: 3rdParty\udcore\bin\premake-bin\premake5.exe vs2019 --gfxapi=${{ parameters.gfxapi }}
+    displayName: 'Run Premake'
+  - task: MSBuild@1
+    displayName: 'Build Projects'
+    inputs:
+      solution: vaultClient.sln
+      platform: $(platform)
+      configuration: $(configuration)
+      maximumCpuCount: true
+      msbuildArguments: '/v:m'
+  - publish: builds/
+    displayName: 'Public Artifacts'
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+    artifact: ${{ parameters.name }}$(configuration)

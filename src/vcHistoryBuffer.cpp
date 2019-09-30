@@ -63,7 +63,7 @@ udResult vcHistoryBuffer_DoAction(vcHistoryBuffer *pBuffer, vcHistoryBufferNode 
 
   while (pBuffer->offset > 0)
   {
-    vcHistoryBufferNode temp;
+    vcHistoryBufferNode temp = {};
     UD_ERROR_IF(pBuffer->buffer.PopBack(&temp), udR_InternalError);
     temp.pCleanupFunc(temp.pData);
     --pBuffer->offset;

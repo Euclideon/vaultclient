@@ -86,7 +86,7 @@ function injectvaultsdkbin()
 			if _OPTIONS["gfxapi"] == "metal" then
 				_OPTIONS["gfxapi"] = "opengl"
 			end
-			os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
+			os.execute('Robocopy "%VAULTSDK_HOME%/include" "include" /s /purge')
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.dll", "builds/vaultSDK.dll")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.lib", "src/vaultSDK.lib")
 			libdirs { "src" }
@@ -100,7 +100,7 @@ function injectvaultsdkbin()
 			os.execute("/usr/bin/hdiutil detach /Volumes/vaultSDK")
 			os.execute("/usr/bin/hdiutil detach " .. device)
 			os.execute("rm -r builds/vaultSDK.dmg")
-			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
+			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/include .")
 			prelinkcommands {
 				"rm -rf %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
 				"mkdir -p %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
@@ -113,14 +113,14 @@ function injectvaultsdkbin()
 			os.execute("mkdir -p builds")
 			os.execute("lipo -create " .. os.getenv("VAULTSDK_HOME") .. "/lib/ios_arm64/libvaultSDK.dylib " .. os.getenv("VAULTSDK_HOME") .. "/lib/ios_x64/libvaultSDK.dylib -output builds/libvaultSDK.dylib")
 			os.execute("codesign -s T6Q3JCVW77 builds/libvaultSDK.dylib") -- Is this required? Should this move to VaultSDK?
-			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
+			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/include .")
 			libdirs { "builds" }
 			linkoptions { "-rpath @executable_path/" }
 		elseif os.target() == "emscripten" then
 			if os.host() == premake.WINDOWS then
-				os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
+				os.execute('Robocopy "%VAULTSDK_HOME%/include" "include" /s /purge')
 			else
-				os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
+				os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/include .")
 			end
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/libvaultSDK.bc", "src/libvaultSDK.bc")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/libvaultcore.bc", "src/libvaultcore.bc")
@@ -137,11 +137,11 @@ function injectvaultsdkbin()
 			end
 			os.execute("mkdir -p builds")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/" .. osname .. "_GCC_x64/libvaultSDK.so", "builds/libvaultSDK.so")
-			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
+			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/include .")
 			libdirs { "builds" }
 		end
 
-		includedirs { "Include" }
+		includedirs { "include" }
 	end
 end
 
@@ -185,7 +185,7 @@ end
 
 solution "vaultClient"
 	-- This hack just makes the VS project and also the makefile output their configurations in the idiomatic order
-	if _ACTION == "gmake" and os.target() == "linux" then
+	if (_ACTION == "gmake" or _ACTION == "gmake2") and os.target() == "linux" then
 		configurations { "Release", "Debug", "ReleaseClang", "DebugClang" }
 		linkgroups "On"
 		filter { "configurations:*Clang" }
