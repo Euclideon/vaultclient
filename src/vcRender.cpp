@@ -19,11 +19,13 @@
 
 enum
 {
-  vcRender_SceneSizeIncrement = 32, // directX framebuffer can only be certain increments
+  // directX framebuffer can only be certain increments
+  vcRender_SceneSizeIncrement = 32,
 
   // certain effects don't need to be at 100% resolution (e.g. outline). 0 is highest quality
   vcRender_OutlineEffectDownscale = 1,
 
+  // number of buffers for primary rendering passes
   vcRender_RenderBufferCount = 2,
 };
 
@@ -181,7 +183,7 @@ struct vcRenderContext
 };
 
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext);
-udResult vcRender_RenderUDToTextures(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData);
+udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData);
 
 udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext, udWorkerPool *pWorkerPool, const udUInt2 &sceneResolution)
 {
@@ -422,9 +424,9 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
 
   for (int i = 0; i < vcRender_RenderBufferCount; ++i)
   {
-    vcTexture_Create(&pRenderContext->pTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
-    vcTexture_Create(&pRenderContext->pDepthTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget | vcTCF_AsynchronousRead);
-    vcFramebuffer_Create(&pRenderContext->pFramebuffer[i], pRenderContext->pTexture[i], pRenderContext->pDepthTexture[i]);
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget));
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pDepthTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
+    UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pFramebuffer[i], pRenderContext->pTexture[i], pRenderContext->pDepthTexture[i]), udR_InternalError);
   }
 
   pRenderContext->effectResolution.x = widthIncr >> vcRender_OutlineEffectDownscale;
@@ -955,7 +957,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
 
-  vcRender_RenderUDToTextures(pProgramState, pRenderContext, renderData);
+  vcRender_RenderAndUploadUD(pProgramState, pRenderContext, renderData);
 
   bool selectionBufferActive = vcRender_CreateSelectionBuffer(pProgramState, pRenderContext, renderData);
 
@@ -965,10 +967,11 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcRender_OpaquePass(pProgramState, pRenderContext, renderData); // first pass
   vcRender_VisualizationPass(pProgramState, pRenderContext); // final pass
 
-  // note: assuming pFramebuffer[1] is still bound at this point
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer[1]);
+  // no clear
 
-  vcRenderTerrain(pProgramState, pRenderContext);
   vcRenderSkybox(pProgramState, pRenderContext); // Drawing skybox after opaque geometry saves a bit on fill rate.
+  vcRenderTerrain(pProgramState, pRenderContext);
   vcRenderTransparentGeometry(pProgramState, pRenderContext, renderData);
 
   if (selectionBufferActive)
@@ -1047,7 +1050,7 @@ epilogue:
   return result;
 }
 
-udResult vcRender_RenderUDToTextures(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
+udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   if (pRenderContext == nullptr)
     return udR_InvalidParameter_;
