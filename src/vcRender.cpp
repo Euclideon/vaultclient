@@ -12,7 +12,6 @@
 
 #include "vcInternalModels.h"
 #include "vcSceneLayerRenderer.h"
-#include "vcGPURenderer.h"
 
 #include "stb_image.h"
 #include <vector>
@@ -39,11 +38,6 @@ struct vcUDRenderContext
   vcFramebuffer *pFramebuffer;
   vcTexture *pColourTex;
   vcTexture *pDepthTex;
-
-#if ALLOW_EXPERIMENT_GPURENDER
-  vcGPURenderer *pGPURenderer;
-  bool usingGPURenderer;
-#endif
 
   struct
   {
@@ -191,24 +185,12 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   vcRenderContext *pRenderContext = nullptr;
   uint8_t whitePixel[4] = { 0xff, 0xff, 0xff, 0xff };
 
-  const int maxPointCount = 5 * 1000000; // TODO: calculate this from GPU information
-
   UD_ERROR_NULL(ppRenderContext, udR_InvalidParameter_);
 
   UD_ERROR_CHECK(vcInternalModels_Init());
 
   pRenderContext = udAllocType(vcRenderContext, 1, udAF_Zero);
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
-
-#if ALLOW_EXPERIMENT_GPURENDER
-# if UDPLATFORM_EMSCRIPTEN
-  UD_ERROR_CHECK(vcGPURenderer_Create(&pRenderContext->udRenderContext.pGPURenderer, vcBRPRM_Quads, maxPointCount));
-# else
-  UD_ERROR_CHECK(vcGPURenderer_Create(&pRenderContext->udRenderContext.pGPURenderer, vcBRPRM_GeometryShader, maxPointCount));
-# endif
-#else
-  udUnused(maxPointCount);
-#endif
 
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pWhiteTexture, 1, 1, whitePixel));
 
@@ -295,10 +277,6 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
     if (vdkRenderContext_Destroy(pProgramState->pVDKContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)
       UD_ERROR_SET(udR_InternalError);
   }
-
-#if ALLOW_EXPERIMENT_GPURENDER
-  UD_ERROR_CHECK(vcGPURenderer_Destroy(&pRenderContext->udRenderContext.pGPURenderer));
-#endif
 
   vcShader_DestroyShader(&pRenderContext->udRenderContext.presentShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->visualizationShader.pProgram);
@@ -393,15 +371,6 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
   vcFramebuffer_Destroy(&pRenderContext->udRenderContext.pFramebuffer);
 
-#if ALLOW_EXPERIMENT_GPURENDER
-  if (pRenderContext->udRenderContext.usingGPURenderer)
-  {
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, widthIncr, heightIncr, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget));
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->udRenderContext.pDepthTex, widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget));
-    UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->udRenderContext.pFramebuffer, pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pDepthTex), udR_InternalError);
-  }
-  else
-#endif //ALLOW_EXPERIMENT_GPURENDER
   {
     UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pColorBuffer, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_Dynamic));
     UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->udRenderContext.pDepthTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pDepthBuffer, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_Dynamic));
@@ -551,12 +520,7 @@ void vcRender_SplatUDWithId(vcState *pProgramState, vcRenderContext *pRenderCont
   pRenderContext->udRenderContext.splatIdShader.params.id = udFloat4::create(0.0f, 0.0f, 0.0f, id);
   vcShader_BindConstantBuffer(pRenderContext->udRenderContext.splatIdShader.pProgram, pRenderContext->udRenderContext.splatIdShader.uniform_params, &pRenderContext->udRenderContext.splatIdShader.params, sizeof(pRenderContext->udRenderContext.splatIdShader.params));
 
-#if ALLOW_EXPERIMENT_GPURENDER && GRAPHICS_API_OPENGL
-  if (pProgramState->settings.experimental.useGPURenderer)
-    vcMesh_Render(gInternalMeshes[vcInternalMeshType_FlippedScreenQuad]);
-  else
-#endif
-    vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
+  vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
 
 void vcRender_SplatUD(vcState *pProgramState, vcRenderContext *pRenderContext)
@@ -568,12 +532,7 @@ void vcRender_SplatUD(vcState *pProgramState, vcRenderContext *pRenderContext)
   vcShader_BindTexture(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.pColourTex, 0, pRenderContext->udRenderContext.presentShader.uniform_texture);
   vcShader_BindTexture(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.pDepthTex, 1, pRenderContext->udRenderContext.presentShader.uniform_depth);
   
-#if ALLOW_EXPERIMENT_GPURENDER && GRAPHICS_API_OPENGL
-  if (pProgramState->settings.experimental.useGPURenderer)
-    vcMesh_Render(gInternalMeshes[vcInternalMeshType_FlippedScreenQuad]);
-  else
-#endif
-    vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
+  vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
 
 void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
@@ -789,16 +748,8 @@ void vcRenderTransparentGeometry(vcState *pProgramState, vcRenderContext *pRende
 
 void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-#if ALLOW_EXPERIMENT_GPURENDER
-  if (pProgramState->settings.experimental.useGPURenderer != pRenderContext->udRenderContext.usingGPURenderer)
-  {
-    pRenderContext->udRenderContext.usingGPURenderer = pProgramState->settings.experimental.useGPURenderer;
-    vcRender_ResizeScene(pProgramState, pRenderContext, pRenderContext->originalSceneResolution.x, pRenderContext->originalSceneResolution.y);
-  }
-#else
   udUnused(pProgramState);
   udUnused(pRenderContext);
-#endif
 
   renderData.pSceneTexture = pRenderContext->pTexture[1];
   renderData.sceneScaling = udFloat2::one();
@@ -846,10 +797,7 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
       if (renderData.models[i]->IsSceneSelected(0))
       {
         float splatId = 1.0f / 255.0f;
-#if ALLOW_EXPERIMENT_GPURENDER
-        if (pProgramState->settings.experimental.useGPURenderer)
-          splatId = (modelIndex + 1) / 255.0f;
-#endif
+
         vcRender_SplatUDWithId(pProgramState, pRenderContext, splatId);
         active = true;
       }
@@ -1027,10 +975,6 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
   int numVisibleModels = 0;
 
   double *pProjectionMatrix = pProgramState->pCamera->matrices.projectionUD.a;
-#if ALLOW_EXPERIMENT_GPURENDER
-  if (pProgramState->settings.experimental.useGPURenderer)
-    pProjectionMatrix = pProgramState->pCamera->matrices.projection.a; // native render space
-#endif
 
   vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pProjectionMatrix);
   vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pProgramState->pCamera->matrices.view.a);
@@ -1159,18 +1103,6 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
 
   renderOptions.pointMode = (vdkRenderContextPointMode)pProgramState->settings.presentation.pointMode;
 
-#if ALLOW_EXPERIMENT_GPURENDER
-  if (pProgramState->settings.experimental.useGPURenderer)
-  {
-    renderOptions.flags = (vdkRenderFlags)(renderOptions.flags | vdkRF_GPURender);
-
-    vcFramebuffer_Bind(pRenderContext->udRenderContext.pFramebuffer);
-    vcFramebuffer_Clear(pRenderContext->udRenderContext.pFramebuffer, 0x00000000);
-
-    vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
-  }
-#endif
-
   vdkError result = vdkRenderContext_Render(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, pModels, numVisibleModels, &renderOptions);
 
   pProgramState->udModelPickedIndex = -1;
@@ -1189,9 +1121,6 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
     //TODO: Clear the buffers
   }
 
-#if ALLOW_EXPERIMENT_GPURENDER
-  if (!pProgramState->settings.experimental.useGPURenderer)
-#endif
   {
     vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
     vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
@@ -1247,12 +1176,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     {
       uint32_t modelId = 1; // note: start at 1, because 0 is 'null'
 
-#if ALLOW_EXPERIMENT_GPURENDER
-      if (pRenderContext->udRenderContext.usingGPURenderer)
-        vcRender_SplatUDWithId(pProgramState, pRenderContext, 0.0f); // `0.0` is a sentinel to tell it to use the id encoded in the alpha channel
-#endif
-
-    // Polygon Models
+      // Polygon Models
       for (size_t i = 0; i < renderData.polyModels.length; ++i)
       {
         vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
@@ -1292,10 +1216,6 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 
     // note `-1`, and BGRA format
     int udPickedId = -1;
-#ifdef ALLOW_EXPERIMENT_GPURENDER
-    if (pProgramState->settings.experimental.useGPURenderer)
-      udPickedId = (colourBytes[2] << 0) - 1;
-#endif
 
     int pickedPolygonId = (int)((colourBytes[1] << 0) | (colourBytes[0] << 8)) - 1;
     if (pickedPolygonId != -1 || udPickedId != -1)

@@ -4,6 +4,7 @@
 #include "udChunkedArray.h"
 #include "udPlatformUtil.h"
 
+#include "vdkPointCloud.h"
 #include "vdkConvertCustom.h"
 #include "vdkTriangleVoxelizer.h"
 
@@ -221,7 +222,7 @@ void vcSceneLayerConvert_Close(vdkConvertCustomItem *pConvertInput)
   pConvertInput->pData = nullptr;
 }
 
-vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPointBufferInt64 *pBuffer)
+vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBufferI64 *pBuffer)
 {
   vdkError result;
   vcSceneLayerConvert *pSceneLayerConvert = nullptr;
@@ -236,7 +237,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
   UD_ERROR_NULL(pBuffer->pAttributes, vE_Failure);
 
   pSceneLayerConvert = (vcSceneLayerConvert*)pConvertInput->pData;
-  memset(pBuffer->pAttributes, 0, pBuffer->attributeSize * pBuffer->pointsAllocated);
+  memset(pBuffer->pAttributes, 0, pBuffer->attributeStride * pBuffer->pointsAllocated);
   pBuffer->pointCount = 0;
   sceneLayerOrigin = pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.position - udDouble3::create(pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.radius);
   localJobOriginOffset = sceneLayerOrigin - pSceneLayerConvert->worldOrigin;
@@ -308,20 +309,19 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
         for (uint64_t i = 0; i < pointCount; ++i)
         {
           for (size_t j = 0; j < 3; ++j)
-            pBuffer->pPositions[pBuffer->pointCount + i][j] = (int64_t)((pTriPositions[3 * i + j] + localJobOriginOffset[j]) / pConvertInput->sourceResolution);
+            pBuffer->pPositions[(pBuffer->pointCount + i) * 3 + j] = (int64_t)((pTriPositions[3 * i + j] + localJobOriginOffset[j]) / pConvertInput->sourceResolution);
         }
 
         // Assign attributes
-        if (pBuffer->attributes.content & vdkAC_ARGB)
+        if (pBuffer->attributes.standardContent & vdkSAC_ARGB)
         {
           // TODO: (EVC-540) other handle variant attribute layouts
           // Actually use `udAttribute_GetAttributeOffset(vdkCAC_ARGB, pBuffer->content)` correctly
-          uint32_t *pColour = (uint32_t*)udAddBytes(pBuffer->pAttributes, pBuffer->pointCount * pBuffer->attributeSize);
-
+          uint32_t *pColour = (uint32_t*)udAddBytes(pBuffer->pAttributes, pBuffer->pointCount * pBuffer->attributeStride);
 
           if (pTextureData != nullptr)
           {
-            for (uint64_t i = 0; i < pointCount; ++i, pColour = udAddBytes(pColour, pBuffer->attributeSize))
+            for (uint64_t i = 0; i < pointCount; ++i, pColour = udAddBytes(pColour, pBuffer->attributeStride))
             {
               udFloat2 pointUV = { 0, 0 };
               pointUV += v0->uv0 * pTriWeights[3 * i + 0];
@@ -338,7 +338,7 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
           }
           else
           {
-            for (uint64_t i = 0; i < pointCount; ++i, pColour = udAddBytes(pColour, pBuffer->attributeSize))
+            for (uint64_t i = 0; i < pointCount; ++i, pColour = udAddBytes(pColour, pBuffer->attributeStride))
               *pColour = 0xffffffff;
           }
         }
@@ -413,7 +413,7 @@ vdkError vcSceneLayerConvert_AddItem(vdkContext *pContext, vdkConvertContext *pC
   customItem.pClose = vcSceneLayerConvert_Close;
   customItem.pReadPointsInt = vcSceneLayerConvert_ReadPointsInt;
   customItem.pName = pSceneLayerURL;
-  customItem.content = vdkAC_ARGB;
+  customItem.content = vdkSAC_ARGB;
   customItem.srid = pSceneLayerConvert->pSceneLayer->root.zone.srid;
   customItem.sourceProjection = vdkCSP_SourceCartesian;
   customItem.pointCount = -1;
