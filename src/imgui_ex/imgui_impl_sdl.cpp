@@ -552,8 +552,9 @@ static void ImGui_ImplSDL2_CreateWindow(ImGuiViewport* viewport)
     }
 
     Uint32 sdl_flags = 0;
-  if (use_opengl)
-    sdl_flags |= SDL_WINDOW_OPENGL;
+    if (use_opengl)
+      sdl_flags |= SDL_WINDOW_OPENGL;
+
     sdl_flags |= SDL_GetWindowFlags(g_Window) & SDL_WINDOW_ALLOW_HIGHDPI;
     sdl_flags |= SDL_WINDOW_HIDDEN;
     sdl_flags |= (viewport->Flags & ImGuiViewportFlags_NoDecoration) ? SDL_WINDOW_BORDERLESS : 0;
