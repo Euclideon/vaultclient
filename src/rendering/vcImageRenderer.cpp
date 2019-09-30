@@ -40,8 +40,8 @@ void vcImageRenderer_Init()
   if (gRefCount == 1)
   {
     vcShader_CreateFromText(&gShaders[vcIT_StandardPhoto].pShader, g_BillboardVertexShader, g_BillboardFragmentShader, vcP3UV2VertexLayout);
-    vcShader_CreateFromText(&gShaders[vcIT_PhotoSphere].pShader, g_PolygonP1UV1VertexShader, g_PolygonP1UV1FragmentShader, vcP3UV2VertexLayout);
-    vcShader_CreateFromText(&gShaders[vcIT_Panorama].pShader, g_PolygonP1UV1VertexShader, g_PolygonP1UV1FragmentShader, vcP3UV2VertexLayout);
+    vcShader_CreateFromText(&gShaders[vcIT_PhotoSphere].pShader, g_PolygonP1N1UV1VertexShader, g_PolygonP1N1UV1FragmentShader, vcP3N3UV2VertexLayout);
+    vcShader_CreateFromText(&gShaders[vcIT_Panorama].pShader, g_PolygonP1N1UV1VertexShader, g_PolygonP1N1UV1FragmentShader, vcP3N3UV2VertexLayout);
 
     for (int i = 0; i < vcIT_Count; ++i)
     {
