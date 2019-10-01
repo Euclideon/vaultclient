@@ -518,7 +518,7 @@ PNUVFragmentShader(PNUVSOutput in [[stage_in]], texture2d<float, access::sample>
 }
 
 
-// g_PolygonP1UV1FragmentShader
+// g_ImageRendererFragmentShader
 struct PUC
 {
     float4 pos [[position]];
@@ -527,20 +527,21 @@ struct PUC
 };
 
 fragment float4
-PUVFragmentShader(PUC in [[stage_in]], texture2d<float, access::sample> PUFSimg [[texture(0)]], sampler PUFSsampler [[sampler(0)]])
+imageRendererFragmentShader(PUC in [[stage_in]], texture2d<float, access::sample> IRFSimg [[texture(0)]], sampler IRFSsampler [[sampler(0)]])
 {
-    float4 col = PUFSimg.sample(PUFSsampler, in.uv);
+    float4 col = IRFSimg.sample(PUFSsampler, in.uv);
     return col * in.color;
 }
 
-// g_PolygonP1UV1VertexShader
-struct PUVVSInput
+// g_ImageRendererMeshVertexShader
+struct PNUVVSInput
 {
     float3 pos [[attribute(0)]];
-    float2 uv [[attribute(1)]];
+    float3 normal [[attribute(1)]]; // unused
+    float2 uv [[attribute(2)]];
 };
 
-struct PUVVSUniforms
+struct IRMVSUniforms
 {
     float4x4 u_modelViewProjectionMatrix;
     float4 u_color;
@@ -548,7 +549,7 @@ struct PUVVSUniforms
 };
 
 vertex PUC
-PUVVertexShader(PUVVSInput in [[stage_in]], constant PUVVSUniforms& uniforms [[buffer(1)]])
+imageRendererMeshVertexShader(PNUVVSInput in [[stage_in]], constant IRMVSUniforms& uniforms [[buffer(1)]])
 {
     PUC out;
     
@@ -559,22 +560,14 @@ PUVVertexShader(PUVVSInput in [[stage_in]], constant PUVVSUniforms& uniforms [[b
     return out;
 }
 
-// g_BillboardFragmentShader
-fragment float4
-billboardFragmentShader(PUC in [[stage_in]], texture2d<float, access::sample> BFSimg [[texture(0)]], sampler BFSsampler [[sampler(0)]])
-{
-    float4 col = BFSimg.sample(BFSsampler, in.uv);
-    return col * in.color;
-}
-
-// g_BillboardVertexShader
-struct BVSInput
+// g_ImageRendererBillboardVertexShader
+struct IRBVSInput
 {
     float3 pos [[attribute(0)]];
     float2 uv [[attribute(1)]];
 };
 
-struct BVSUniforms
+struct IRBVSUniforms
 {
     float4x4 u_modelViewProjectionMatrix;
     float4 u_color;
@@ -582,7 +575,7 @@ struct BVSUniforms
 };
 
 vertex PUC
-billboardVertexShader(BVSInput in [[stage_in]], constant BVSUniforms& uniforms [[buffer(1)]])
+imageRendererBillboardVertexShader(IRBVSInput in [[stage_in]], constant IRBVSUniforms& uniforms [[buffer(1)]])
 {
     PUC out;
     

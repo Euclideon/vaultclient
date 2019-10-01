@@ -712,7 +712,7 @@ const char* const g_PolygonP1N1UV1VertexShader = R"shader(
   }
 )shader";
 
-const char* const g_PolygonP1UV1FragmentShader = R"shader(
+const char *const g_ImageRendererFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -730,10 +730,11 @@ const char* const g_PolygonP1UV1FragmentShader = R"shader(
   }
 )shader";
 
-const char* const g_PolygonP1UV1VertexShader = R"shader(
+const char *const g_ImageRendererMeshVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
+    float3 normal : NORMAL; // unused
     float2 uv  : TEXCOORD0;
   };
 
@@ -756,32 +757,14 @@ const char* const g_PolygonP1UV1VertexShader = R"shader(
     PS_INPUT output;
 
     output.pos = mul(u_modelViewProjectionMatrix, float4(input.pos, 1.0));
-    output.uv = float2(input.uv.x, 1.0 - input.uv.y);
+    output.uv = input.uv;
     output.colour = u_colour;
 
     return output;
   }
 )shader";
 
-const char* const g_BillboardFragmentShader = R"shader(
-  struct PS_INPUT
-  {
-    float4 pos : SV_POSITION;
-    float2 uv : TEXCOORD0;
-    float4 colour : COLOR0;
-  };
-
-  sampler sampler0;
-  Texture2D texture0;
-
-  float4 main(PS_INPUT input) : SV_Target
-  {
-    float4 col = texture0.Sample(sampler0, input.uv);
-    return col * input.colour;
-  }
-)shader";
-
-const char* const g_BillboardVertexShader = R"shader(
+const char *const g_ImageRendererBillboardVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
@@ -808,13 +791,13 @@ const char* const g_BillboardVertexShader = R"shader(
 
     output.pos = mul(u_modelViewProjectionMatrix, float4(input.pos, 1.0));
     output.pos.xy += u_screenSize.z * output.pos.w * u_screenSize.xy * float2(input.uv.x * 2.0 - 1.0, input.uv.y * 2.0 - 1.0); // expand billboard
+
     output.uv = float2(input.uv.x, 1.0 - input.uv.y);
     output.colour = u_colour;
 
     return output;
   }
 )shader";
-
 
 const char* const g_FlatColour_FragmentShader = R"shader(
   struct PS_INPUT
