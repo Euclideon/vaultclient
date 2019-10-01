@@ -381,8 +381,8 @@ void vcMain_MainLoop(vcState *pProgramState)
 
           if (udStrEquali(pExt, ".uds"))
           {
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pNextLoad, nullptr) != vE_Success)
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+            if ((pProgramState->lastError = vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pNextLoad, nullptr)) != vE_Success)
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
             else if (firstLoad) // Was successful
               udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
           }
@@ -726,6 +726,7 @@ int main(int argc, char **args)
   programState.renaming = -1;
   programState.getGeo = false;
   programState.pGotGeo = nullptr;
+  programState.lastError = vE_Success;
 
   programState.sceneExplorer.insertItem.pParent = nullptr;
   programState.sceneExplorer.insertItem.pItem = nullptr;
@@ -1679,9 +1680,9 @@ int vcMainMenuGui(vcState *pProgramState)
           for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
           {
             vdkProjectNode *pNode = nullptr;
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), nullptr) != vE_Success)
+            if ((pProgramState->lastError = vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), nullptr)) != vE_Success)
             {
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
             }
             else
             {
@@ -1696,8 +1697,8 @@ int vcMainMenuGui(vcState *pProgramState)
             const char *pFeedName = pProjectList->GetElement(i)->Get("feeds[%zu].name", j).AsString();
 
             vdkProjectNode *pNode = nullptr;
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", pFeedName, nullptr, nullptr) != vE_Success)
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+            if ((pProgramState->lastError = vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", pFeedName, nullptr, nullptr)) != vE_Success)
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
 
             if (udUUID_IsValid(pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString()))
               vdkProjectNode_SetMetadataString(pNode, "groupid", pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString());
@@ -2094,14 +2095,14 @@ void vcRenderWindow(vcState *pProgramState)
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
         {
           vdkProjectNode *pNode = nullptr;
-          if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Folder", vcString::Get("sceneExplorerFolderDefaultName"), nullptr, nullptr) != vE_Success)
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+          if ((pProgramState->lastError = vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Folder", vcString::Get("sceneExplorerFolderDefaultName"), nullptr, nullptr)) != vE_Success)
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
         }
 
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddViewpoint"), nullptr, vcMBBI_SaveViewport, vcMBBG_SameGroup))
         {
           vdkProjectNode *pNode;
-          if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == vE_Success)
+          if ((pProgramState->lastError = vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr)) == vE_Success)
           {
             if (pProgramState->gis.isProjected)
               vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&pProgramState->pCamera->positionInLongLat);
@@ -2112,7 +2113,7 @@ void vcRenderWindow(vcState *pProgramState)
           }
           else
           {
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
           }
         }
 
@@ -2134,14 +2135,8 @@ void vcRenderWindow(vcState *pProgramState)
           if (ImGui::MenuItem(vcString::Get("sceneExplorerAddFeed"), nullptr, nullptr))
           {
             vdkProjectNode *pNode = nullptr;
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", vcString::Get("liveFeedDefaultName"), nullptr, nullptr) == vE_Success)
-            {
-              //Do nothing (minimising changes)
-            }
-            else
-            {
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
-            }
+            if ((pProgramState->lastError = vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", vcString::Get("liveFeedDefaultName"), nullptr, nullptr)) != vE_Success)
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
           }
 
           ImGui::EndPopup();

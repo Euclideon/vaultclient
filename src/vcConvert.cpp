@@ -447,14 +447,14 @@ void vcConvert_ShowUI(vcState *pProgramState)
         if (ImGui::Button(udTempStr("%s##vcConvLoad_%zu", vcString::Get("convertAddToScene"), selectedJob), ImVec2(200, 50)))
         {
           vdkProjectNode *pNode = nullptr;
-          if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProgramState->pConvertContext->jobs[selectedJob]->pConvertInfo->pOutputName, nullptr) == vE_Success)
+          if ((pProgramState->lastError = vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProgramState->pConvertContext->jobs[selectedJob]->pConvertInfo->pOutputName, nullptr)) == vE_Success)
           {
             udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
             pProgramState->changeActiveDock = vcDocks_Scene;
           }
           else
           {
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
           }
         }
 

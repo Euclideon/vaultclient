@@ -197,8 +197,8 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &pSceneItem->m_pName, &pSceneItem->m_nameCapacity);
         if (ImGui::IsItemDeactivatedAfterEdit())
         {
-          if (vdkProjectNode_SetName(pProgramState->activeProject.pProject, pNode, pSceneItem->m_pName) != vE_Success)
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+          if ((pProgramState->lastError = vdkProjectNode_SetName(pProgramState->activeProject.pProject, pNode, pSceneItem->m_pName)) != vE_Success)
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
         }
 
         if (ImGui::IsItemDeactivated() || !(pProgramState->sceneExplorer.selectedItems.back().pParent == m_pNode && pProgramState->sceneExplorer.selectedItems.back().pItem == pNode))

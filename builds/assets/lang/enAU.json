@@ -386,9 +386,10 @@
   "sceneModelRotation": "Model Rotation",
   "sceneModelScale": "Model Scale",
 
-  "sceneExplorerProjectChangeFailedTitle": "Change Failure!",
   "sceneExplorerProjectChangeFailedMessage": "Sorry, this change you requested to the project was unable to be completed.",
-  "sceneExplorerProjectChangeSucceededTitle": "Success!",
+  "sceneExplorerProjectChangeFailedWrite": "Sorry, the project could not be exported.",
+  "sceneExplorerProjectChangeFailedLoad": "Sorry, the project file could not be interpreted.",
+
   "sceneExplorerProjectChangeSucceededMessage": "The requested operation has been completed successfully.",
   "sceneExplorerProjectReadOnlyTitle": "Read Only!",
   "sceneExplorerProjectReadOnlyMessage": "The project you tried to modify is marked read only. You do not have permission to make changes.",

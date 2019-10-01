@@ -36,7 +36,7 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
   if (result == udR_Success)
   {
     vdkProject *pProject = nullptr;
-    if (vdkProject_LoadFromMemory(&pProject, pMemory) == vE_Success)
+    if ((pProgramState->lastError = vdkProject_LoadFromMemory(&pProject, pMemory)) == vE_Success)
     {
       vcProject_Deinit(pProgramState, &pProgramState->activeProject);
 
@@ -59,8 +59,7 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
     }
     else
     {
-      // TODO: EVC-671 More descriptive error, code is vE_ParseError
-      vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+      vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
     }
 
     udFree(pMemory);

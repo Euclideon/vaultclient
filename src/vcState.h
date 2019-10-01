@@ -115,6 +115,8 @@ struct vcState
   vcLoginStatus loginStatus;
   vdkError logoutReason;
 
+  vdkError lastError;
+
   const char *pReleaseNotes; //Only loaded when requested
   bool passFocus;
 

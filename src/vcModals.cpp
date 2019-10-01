@@ -543,10 +543,10 @@ void vcModals_DrawFileModal(vcState *pProgramState)
         {
           pProgramState->modelPath[0] = '\0';
           ImGui::CloseCurrentPopup();
-          if (udFile_Save(exportFilename.GetPath(), (void*)pOutput, udStrlen(pOutput)) != udR_Success)
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
-          else
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeSucceeded);
+          if (udFile_Save(exportFilename.GetPath(), (void *)pOutput, udStrlen(pOutput)) != udR_Success)
+            pProgramState->lastError = vE_WriteFailure;
+
+          vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
         }
         if (pDir != nullptr)
           udFree(pDir);
@@ -624,28 +624,40 @@ void vcModals_DrawLoadWatermark(vcState *pProgramState)
 
 void vcModals_DrawProjectChangeResult(vcState *pProgramState)
 {
-  if (pProgramState->openModals & (1 << vcMT_ProjectChangeFailed))
-    ImGui::OpenPopup(vcString::Get("sceneExplorerProjectChangeFailedTitle"));
-  else if (pProgramState->openModals & (1 << vcMT_ProjectChangeSucceeded))
-    ImGui::OpenPopup(vcString::Get("sceneExplorerProjectChangeSucceededTitle"));
-
-  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerProjectChangeFailedTitle"), nullptr, ImGuiWindowFlags_NoResize))
+  if (pProgramState->openModals & (1 << vcMT_ProjectChange))
   {
-    pProgramState->modalOpen = true;
-    ImGui::TextUnformatted(vcString::Get("sceneExplorerProjectChangeFailedMessage"));
-
-    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
-      ImGui::CloseCurrentPopup();
-
-    ImGui::EndPopup();
+    ImGui::OpenPopup("###ProjectChange");
   }
-  else if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerProjectChangeSucceededTitle"), nullptr, ImGuiWindowFlags_NoResize))
+
+  if (ImGui::BeginPopupModal("###ProjectChange", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar))
   {
     pProgramState->modalOpen = true;
-    ImGui::TextUnformatted(vcString::Get("sceneExplorerProjectChangeSucceededMessage"));
+
+    const char *pMessage = nullptr;
+
+    switch (pProgramState->lastError)
+    {
+    case vE_Success:
+      pMessage = vcString::Get("sceneExplorerProjectChangeSucceededMessage");
+      break;
+    case vE_Failure:
+      pMessage = vcString::Get("sceneExplorerProjectChangeFailedMessage");
+      break;
+    case vE_WriteFailure:
+      pMessage = vcString::Get("sceneExplorerProjectChangeFailedWrite");
+      break;
+    case vE_ParseError:
+      pMessage = vcString::Get("sceneExplorerProjectChangeFailedLoad");
+      break;
+    }
+
+    ImGui::TextUnformatted(pMessage);
 
     if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    {
+      pProgramState->lastError = vE_Success;
       ImGui::CloseCurrentPopup();
+    }
 
     ImGui::EndPopup();
   }
