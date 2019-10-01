@@ -97,10 +97,10 @@ visualizationFragmentShader(VVSOutput in [[stage_in]],
     float3 sampleOffsets = float3(uVFS.u_screenParams.xy, 0.0);
     float edgeOutlineThreshold = uVFS.u_outlineParams.y;
     
-    float d1 = UDFSdepthTexture.sample(UDFSdepthSampler, in.uv + sampleOffsets.xz);
-    float d2 = UDFSdepthTexture.sample(UDFSdepthSampler, in.uv - sampleOffsets.xz);
-    float d3 = UDFSdepthTexture.sample(UDFSdepthSampler, in.uv + sampleOffsets.zy);
-    float d4 = UDFSdepthTexture.sample(UDFSdepthSampler, in.uv - sampleOffsets.zy);
+    float d1 = VFSdepthTexture.sample(VFSdepthSampler, in.uv + sampleOffsets.xz);
+    float d2 = VFSdepthTexture.sample(VFSdepthSampler, in.uv - sampleOffsets.xz);
+    float d3 = VFSdepthTexture.sample(VFSdepthSampler, in.uv + sampleOffsets.zy);
+    float d4 = VFSdepthTexture.sample(VFSdepthSampler, in.uv - sampleOffsets.zy);
     
     float wd0 = ((2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane))) * farPlane;
     float wd1 = ((2.0 * nearPlane) / (farPlane + nearPlane - d1 * (farPlane - nearPlane))) * farPlane;
@@ -406,13 +406,6 @@ struct UDFSOutput
   float4 out_Color [[color(0)]];
   float depth [[depth(any)]];
 };
-
-float3 hsv2rgb(float3 c)
-{
-  float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-  float3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
 
 fragment UDFSOutput
 udFragmentShader(UDVSOutput in [[stage_in]],

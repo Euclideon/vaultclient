@@ -523,6 +523,8 @@ void vcRender_SplatUDWithId(vcState *pProgramState, vcRenderContext *pRenderCont
 
 void vcRender_SplatUD(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
+  udUnused(pProgramState);
+
   vcShader_Bind(pRenderContext->udRenderContext.presentShader.pProgram);
 
   vcShader_BindTexture(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.pColourTex, 0, pRenderContext->udRenderContext.presentShader.uniform_texture);
@@ -1204,7 +1206,7 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
 #endif
 
   vdkError result = vdkRenderContext_Render(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, pModels, numVisibleModels, &renderOptions);
-  
+
   pProgramState->udModelPickedIndex = -1;
   if (result == vE_Success)
   {

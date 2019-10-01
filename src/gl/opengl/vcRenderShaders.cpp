@@ -123,13 +123,13 @@ void main()
   vec2 flippedUV = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
   vec4 col = texture(u_texture, flippedUV);
   float depth = texture(u_depth, flippedUV).x;
-  
+
   vec4 fragWorldPosition = u_inverseViewProjection * vec4(flippedUV * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
   fragWorldPosition /= fragWorldPosition.w;
-  
+
   col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
   col.xyz = colourizeByDepth(col.xyz, depth);
-  
+
   float edgeOutlineWidth = u_outlineParams.x;
   float edgeOutlineThreshold = u_outlineParams.y;
   vec4 outlineColour = u_outlineColour;
@@ -140,7 +140,7 @@ void main()
     depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
   }
   col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
-  
+
   out_Colour = vec4(col.xyz, 1.0);
   gl_FragDepth = depth;
 }
