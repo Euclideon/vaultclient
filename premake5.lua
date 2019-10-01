@@ -226,26 +226,15 @@ solution "vaultClient"
 		os.copyfile("3rdParty/SDL2-2.0.8/lib/x64/SDL2.dll", "builds/SDL2.dll")
 	end
 
-	-- Strings
-	if os.getenv("CI_BUILD_REF_NAME") then
-		defines { "GIT_BRANCH=\"" .. os.getenv("CI_BUILD_REF_NAME") .. "\"" }
-	end
-	if os.getenv("CI_BUILD_REF") then
-		defines { "GIT_REF=\"" .. os.getenv("CI_BUILD_REF") .. "\"" }
+	if os.getenv("BUILD_BUILDNUMBER") then
+		defines { "GIT_BUILD=" .. os.getenv("BUILD_BUILDNUMBER") }
+		xcodebuildsettings { ["INFOPLIST_PREPROCESSOR_DEFINITIONS"] = "GIT_BUILD=" .. os.getenv("BUILD_BUILDNUMBER") }
+
+		if os.getenv("BUILD_SOURCEBRANCH") and os.getenv("BUILD_SOURCEBRANCH"):startswith("refs/tags/") then
+			defines { "GIT_TAG=" .. os.getenv("BUILD_BUILDNUMBER") }
+		end
 	end
 
-	-- Numbers
-	if os.getenv("CI_COMMIT_TAG") then
-		defines { "GIT_TAG=" .. os.getenv("CI_PIPELINE_ID") }
-	end
-	if os.getenv("CI_PIPELINE_ID") then
-		defines { "GIT_BUILD=" .. os.getenv("CI_PIPELINE_ID") }
-		xcodebuildsettings { ["INFOPLIST_PREPROCESSOR_DEFINITIONS"] = "GIT_BUILD=" .. os.getenv("CI_PIPELINE_ID") }
-	end
-	if os.getenv("UNIXTIME") then
-		defines { "BUILD_TIME=" .. os.getenv("UNIXTIME") }
-	end
-	
 	if _OPTIONS["force-vaultsdk"] then
 		projectSuffix = "VDK"
 
