@@ -640,14 +640,15 @@ void vcModals_DrawProjectChangeResult(vcState *pProgramState)
     case vE_Success:
       pMessage = vcString::Get("sceneExplorerProjectChangeSucceededMessage");
       break;
-    case vE_Failure:
-      pMessage = vcString::Get("sceneExplorerProjectChangeFailedMessage");
-      break;
     case vE_WriteFailure:
       pMessage = vcString::Get("sceneExplorerProjectChangeFailedWrite");
       break;
     case vE_ParseError:
       pMessage = vcString::Get("sceneExplorerProjectChangeFailedLoad");
+      break;
+    case vE_Failure: // Falls through
+    default:
+      pMessage = vcString::Get("sceneExplorerProjectChangeFailedMessage");
       break;
     }
 
