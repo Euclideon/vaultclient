@@ -529,7 +529,7 @@ struct PUC
 fragment float4
 imageRendererFragmentShader(PUC in [[stage_in]], texture2d<float, access::sample> IRFSimg [[texture(0)]], sampler IRFSsampler [[sampler(0)]])
 {
-    float4 col = IRFSimg.sample(PUFSsampler, in.uv);
+    float4 col = IRFSimg.sample(IRFSsampler, in.uv);
     return col * in.color;
 }
 
