@@ -23,8 +23,8 @@ extern const char *const g_ImGuiVertexShader;
 extern const char *const g_ImGuiFragmentShader;
 
 // Polygon shaders
-extern const char *const g_PolygonP1N1UV1FragmentShader;
-extern const char *const g_PolygonP1N1UV1VertexShader;
+extern const char *const g_PolygonP3N3UV2FragmentShader;
+extern const char *const g_PolygonP3N3UV2VertexShader;
 extern const char *const g_FlatColour_FragmentShader;
 
 // Image Renderer shaders

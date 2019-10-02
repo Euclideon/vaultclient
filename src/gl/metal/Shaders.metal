@@ -457,7 +457,7 @@ waterFragmentShader(WVSOutput in [[stage_in]], constant WFSUniforms& uWFS [[buff
   return float4(finalColor, 1.0);
 }
 
-// g_PolygonP1N1UV1VertexShader
+// g_PolygonP3N3UV2VertexShader
 struct PNUVSInput
 {
   float3 pos [[attribute(0)]];
@@ -485,7 +485,7 @@ struct PNUVSUniforms2
 };
 
 vertex PNUVSOutput
-PNUVVertexShader(PNUVSInput in [[stage_in]], constant PNUVSUniforms1& PNUVS1 [[buffer(1)]], constant PNUVSUniforms2& PNUVS2 [[buffer(2)]])
+polygonP3N3UV2VertexShader(PNUVSInput in [[stage_in]], constant PNUVSUniforms1& PNUVS1 [[buffer(1)]], constant PNUVSUniforms2& PNUVS2 [[buffer(2)]])
 {
   PNUVSOutput out;
 
@@ -501,10 +501,10 @@ PNUVVertexShader(PNUVSInput in [[stage_in]], constant PNUVSUniforms1& PNUVS1 [[b
 }
 
 
-// g_PolygonP1N1UV1FragmentShader
+// g_PolygonP3N3UV2FragmentShader
 
 fragment float4
-PNUVFragmentShader(PNUVSOutput in [[stage_in]], texture2d<float, access::sample> PNUFSimg [[texture(0)]], sampler PNUFSsampler [[sampler(0)]])
+polygonP3N3UV2FragmentShader(PNUVSOutput in [[stage_in]], texture2d<float, access::sample> PNUFSimg [[texture(0)]], sampler PNUFSsampler [[sampler(0)]])
 {
     float4 col = PNUFSimg.sample(PNUFSsampler, in.uv);
     float4 diffuseColour = col * in.color;

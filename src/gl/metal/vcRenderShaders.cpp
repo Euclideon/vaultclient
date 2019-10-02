@@ -23,8 +23,8 @@ const char* const g_CompassVertexShader = "compassVertexShader";
 const char* const g_WaterFragmentShader = "waterFragmentShader";
 const char* const g_WaterVertexShader = "waterVertexShader";
 
-const char* const g_PolygonP1N1UV1FragmentShader = "PNUVFragmentShader";
-const char* const g_PolygonP1N1UV1VertexShader = "PNUVVertexShader";
+const char* const g_PolygonP3N3UV2FragmentShader = "polygonP3N3UV2FragmentShader";
+const char* const g_PolygonP3N3UV2VertexShader = "polygonP3N3UV2VertexShader";
 
 const char* const g_FlatColour_FragmentShader = "flatColourFragmentShader";
 
