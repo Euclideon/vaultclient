@@ -47,7 +47,6 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, bool isRender
     break;
 
   case vcTextureFormat_Unknown: // fall through
-  case vcTextureFormat_Cubemap: // fall through
   case vcTextureFormat_Count:
     break;
   }
@@ -61,7 +60,7 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, bool isRender
 
 udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
 {
-  if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count || format == vcTextureFormat_Cubemap)
+  if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
     return udR_InvalidParameter_;
 
   // only allow mip maps for certain formats
@@ -287,7 +286,7 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
   if (pTexture == nullptr || !pTexture->isDynamic || pTexture->width != width || pTexture->height != height || pTexture->pTextureD3D == nullptr)
     return udR_InvalidParameter_;
 
-  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count)
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
@@ -331,104 +330,6 @@ void vcTexture_Destroy(vcTexture **ppTexture)
   *ppTexture = nullptr;
 }
 
-bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
-{
-  vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
-  udFilename fileName(pFilename);
-
-  const char *names[] = { "_LF", "_RT", "_FR", "_BK", "_UP", "_DN" };
-  pTexture->format = vcTextureFormat_Cubemap;
-  uint8_t *pFacePixels[6];
-  int pixelBytes = 4;
-
-  for (int i = 0; i < 6; i++) // for each face of the cube map
-  {
-    int width, height, depth;
-
-    char fileNameNoExt[256] = "";
-    fileName.ExtractFilenameOnly(fileNameNoExt, (int)udLengthOf(fileNameNoExt));
-    pFacePixels[i] = stbi_load(vcSettings_GetAssetPath(udTempStr("assets/skyboxes/%s%s%s", fileNameNoExt, names[i], fileName.GetExt())), &width, &height, &depth, 4);
-
-    pTexture->height = height;
-    pTexture->width = width;
-
-    pixelBytes = depth; // assume they all have the same depth
-    VERIFY_GL();
-  }
-
-  // Create D3D11 texture
-  D3D11_TEXTURE2D_DESC desc;
-  ZeroMemory(&desc, sizeof(desc));
-  desc.Width = pTexture->width;
-  desc.Height = pTexture->height;
-  desc.MipLevels = 1;
-  desc.ArraySize = 6;
-  desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  desc.SampleDesc.Count = 1;
-  desc.Usage = D3D11_USAGE_DEFAULT;
-  desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-  desc.CPUAccessFlags = 0;
-
-  ID3D11Texture2D *pTextureD3D = nullptr;
-
-  D3D11_SUBRESOURCE_DATA subResource[6];
-
-  for (int i = 0; i < 6; i++) // for each face of the cube map
-  {
-    subResource[i].pSysMem = pFacePixels[i];
-    subResource[i].SysMemPitch = desc.Width * pixelBytes;
-    subResource[i].SysMemSlicePitch = 0;
-  }
-
-  g_pd3dDevice->CreateTexture2D(&desc, subResource, &pTextureD3D);
-
-  // Create texture view
-  D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-  ZeroMemory(&srvDesc, sizeof(srvDesc));
-  srvDesc.Format = desc.Format;
-  srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
-  srvDesc.Texture2DArray.MipLevels = desc.MipLevels;
-  srvDesc.Texture2DArray.MostDetailedMip = 0;
-  srvDesc.Texture2DArray.ArraySize = desc.ArraySize;
-
-  g_pd3dDevice->CreateShaderResourceView(pTextureD3D, &srvDesc, &pTexture->pTextureView);
-
-  if (pTextureD3D != nullptr)
-    pTextureD3D->Release();
-
-  D3D11_SAMPLER_DESC sampDesc;
-  ZeroMemory(&sampDesc, sizeof(sampDesc));
-  sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-  sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-  sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-  sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-  sampDesc.MipLODBias = 0.f;
-  sampDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
-  sampDesc.MinLOD = 0.f;
-  sampDesc.MaxLOD = 0.f;
-  g_pd3dDevice->CreateSamplerState(&sampDesc, &pTexture->pSampler);
-
-  pTexture->d3dFormat = desc.Format;
-  pTexture->format = vcTextureFormat_RGBA8;
-
-  *ppTexture = pTexture;
-
-  // Unload temp memory
-  for (int i = 0; i < 6; i++) // for each face of the cube map
-  {
-    stbi_image_free(pFacePixels[i]);
-  }
-
-  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pixelBytes * 6);
-
-#if UDPLATFORM_OSX
-  SDL_free(pBaseDir);
-#endif
-
-  *ppTexture = pTexture;
-  return true;
-}
-
 udResult vcTexture_GetSize(vcTexture *pTexture, int *pWidth, int *pHeight)
 {
   if (pTexture == nullptr)
@@ -450,7 +351,7 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
   if (pTexture == nullptr || pPixels == nullptr || int(x + width) > pTexture->width || int(y + height) > pTexture->height)
     return false;
 
-  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count)
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)
     return false;
 
   udResult result = udR_Success;
@@ -505,7 +406,7 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
   if (pTexture == nullptr || pPixels == nullptr || int(x + width) > pTexture->width || int(y + height) > pTexture->height)
     return false;
 
-  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count || pTexture->pStagingTextureD3D[pTexture->stagingIndex] == nullptr)
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count || pTexture->pStagingTextureD3D[pTexture->stagingIndex] == nullptr)
     return false;
 
   udResult result = udR_Success;

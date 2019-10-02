@@ -66,7 +66,6 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
     break;
 
   case vcTextureFormat_Unknown: // fall through
-  case vcTextureFormat_Cubemap: // fall through
   case vcTextureFormat_Count:
     break;
   }
@@ -86,7 +85,7 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
 
 udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags, int32_t aniFilter /* = 0 */)
 {
-  if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count || format == vcTextureFormat_Cubemap)
+  if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
     return udR_InvalidParameter_;
 
   udUnused(hasMipmaps);
@@ -257,7 +256,7 @@ udResult vcTexture_UploadPixels(struct vcTexture *pTexture, const void *pPixels,
   if (pTexture == nullptr || pPixels == nullptr || width == 0 || height == 0)
     return udR_InvalidParameter_;
 
-  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count)
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
@@ -298,87 +297,6 @@ void vcTexture_Destroy(struct vcTexture **ppTexture)
   *ppTexture = nullptr;
 }
 
-bool vcTexture_LoadCubemap(struct vcTexture **ppTexture, const char *pFilename)
-{
-  vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
-  udFilename fileName(pFilename);
-
-  pTexture->format = vcTextureFormat_Cubemap;
-
-  const char* names[] = { "_LF", "_RT", "_FR", "_BK", "_UP", "_DN" };
-  int width, height, depth;
-
-  char fileNameNoExt[256] = "";
-  fileName.ExtractFilenameOnly(fileNameNoExt, (int)udLengthOf(fileNameNoExt));
-  uint8_t* data = stbi_load(vcSettings_GetAssetPath(udTempStr("assets/skyboxes/%s%s%s", fileNameNoExt, names[0], fileName.GetExt())), &width, &height, &depth, 0);
-
-  MTLTextureDescriptor *pTextureDesc = [MTLTextureDescriptor textureCubeDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm size:width mipmapped:NO];
-
-  if (data)
-  {
-    if (depth == 3)
-      // ??? RGB No corresponding MTLPixelFormat that I can see, except in the compressed formats
-      pTextureDesc.pixelFormat = MTLPixelFormatInvalid;
-    else
-      pTextureDesc.pixelFormat = MTLPixelFormatRGBA8Unorm;
-  }
-
-  pTextureDesc.width = width;
-  pTextureDesc.height = height;
-
-  id<MTLTexture> texture = [_device newTextureWithDescriptor:pTextureDesc];
-
-
-  MTLRegion region = MTLRegionMake2D(0, 0, width, height);
-  [texture replaceRegion:region mipmapLevel:0 slice:0 withBytes:data bytesPerRow:4 * width bytesPerImage:4 * width * height];
-
-  stbi_image_free(data);
-
-  for (int i = 1; i < 6; ++i) // for each other face of the cube map
-  {
-    char fileNameNoExt[256] = "";
-    fileName.ExtractFilenameOnly(fileNameNoExt, (int)udLengthOf(fileNameNoExt));
-    uint8_t* data = stbi_load(vcSettings_GetAssetPath(udTempStr("assets/skyboxes/%s%s%s", fileNameNoExt, names[i], fileName.GetExt())), &width, &height, &depth, 0);
-
-    [texture replaceRegion:region mipmapLevel:0 slice:i withBytes:data bytesPerRow:4 * width bytesPerImage:4 * width * height];
-
-    stbi_image_free(data);
-  }
-
-  NSString *key = [NSString stringWithFormat:@"CL"];
-  id<MTLSamplerState> savedSampler = [_renderer.samplers valueForKey:key];
-
-  if (savedSampler)
-  {
-    udStrcpy(pTexture->samplerID, key.UTF8String);
-  }
-  else
-  {
-    // Sampler stuff
-    MTLSamplerDescriptor *pSamplerDesc = [MTLSamplerDescriptor new];
-    pSamplerDesc.mipFilter = MTLSamplerMipFilterLinear;
-    pSamplerDesc.rAddressMode = MTLSamplerAddressModeClampToEdge;
-    pSamplerDesc.sAddressMode = MTLSamplerAddressModeClampToEdge;
-    pSamplerDesc.tAddressMode = MTLSamplerAddressModeClampToEdge;
-
-    pSamplerDesc.minFilter = MTLSamplerMinMagFilterNearest;
-    pSamplerDesc.magFilter = MTLSamplerMinMagFilterLinear;
-
-    id<MTLSamplerState> sampler = [_device newSamplerStateWithDescriptor:pSamplerDesc];
-
-    udStrcpy(pTexture->samplerID, key.UTF8String);
-    [_renderer.samplers setObject:sampler forKey:key];
-  }
-
-  pTexture->ID = g_textureIndex++;
-  [_renderer.textures setObject:texture forKey:[NSString stringWithFormat:@"%u",pTexture->ID]];
-
-  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * depth * 6);
-  *ppTexture = pTexture;
-  pTexture = nullptr;
-  return true;
-}
-
 udResult vcTexture_GetSize(struct vcTexture *pTexture, int *pWidth, int *pHeight)
 {
   if (pTexture == nullptr)
@@ -400,7 +318,7 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
   if (pFramebuffer == nullptr || pTexture == nullptr || (x + width) > pTexture->width || (y + height) > pTexture->height)
     return false;
 
-  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count)
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)
     return false;
 
   udResult result = udR_Success;
@@ -434,7 +352,7 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
   if (pTexture == nullptr || pPixels == nullptr || (x + width) > pTexture->width || (y + height) > pTexture->height)
     return false;
 
-  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count || pTexture->blitTarget == 0)
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count || pTexture->blitTarget == 0)
     return false;
 
   udResult result = udR_Success;

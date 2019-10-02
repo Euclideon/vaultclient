@@ -49,7 +49,6 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
     break;
 
   case vcTextureFormat_Unknown: // fall through
-  case vcTextureFormat_Cubemap: // fall through
   case vcTextureFormat_Count:
     break;
   }
@@ -69,7 +68,7 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
 
 udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /* = 0 */)
 {
-  if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count || format == vcTextureFormat_Cubemap)
+  if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
@@ -181,7 +180,7 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
   if (pTexture == nullptr || pPixels == nullptr || width == 0 || height == 0)
     return udR_InvalidParameter_;
 
-  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count)
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
@@ -218,63 +217,6 @@ void vcTexture_Destroy(vcTexture **ppTexture)
   VERIFY_GL();
 }
 
-bool vcTexture_LoadCubemap(vcTexture **ppTexture, const char *pFilename)
-{
-  vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
-  udFilename fileName(pFilename);
-
-  pTexture->format = vcTextureFormat_Cubemap;
-
-  glGenTextures(1, &pTexture->id);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, pTexture->id);
-
-  const char *names[] = { "_LF", "_RT", "_FR", "_BK", "_UP", "_DN" };
-  const GLenum types[] = { GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X, GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
-  int pixelBytes = 4;
-
-  for (int i = 0; i < 6; i++) // for each face of the cube map
-  {
-    int width, height, depth;
-
-    char fileNameNoExt[256] = "";
-    fileName.ExtractFilenameOnly(fileNameNoExt, (int)udLengthOf(fileNameNoExt));
-    uint8_t *data = stbi_load(vcSettings_GetAssetPath(udTempStr("assets/skyboxes/%s%s%s", fileNameNoExt, names[i], fileName.GetExt())), &width, &height, &depth, 0);
-
-    pTexture->height = height;
-    pTexture->width = width;
-
-    if (data)
-    {
-      if (depth == 3)
-        glTexImage2D(types[i], 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-      else
-        glTexImage2D(types[i], 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-
-      stbi_image_free(data);
-    }
-
-    pixelBytes = depth; // assume they all have the same depth
-  }
-
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-  if (pTexture->id == GL_INVALID_INDEX)
-  {
-    udFree(pTexture);
-    return false;
-  }
-
-  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pixelBytes * 6);
-
-  *ppTexture = pTexture;
-  VERIFY_GL();
-  return true;
-}
-
 udResult vcTexture_GetSize(vcTexture *pTexture, int *pWidth, int *pHeight)
 {
   if (pTexture == nullptr)
@@ -294,7 +236,7 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
   if (pFramebuffer == nullptr || pTexture == nullptr || pPixels == nullptr || int(x + width) > pTexture->width || int(y + height) > pTexture->height)
     return false;
 
-  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count)
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)
     return false;
 
   udResult result = udR_Success;
@@ -328,7 +270,7 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
   if (pTexture == nullptr || pPixels == nullptr || int(x + width) > pTexture->width || int(y + height) > pTexture->height)
     return false;
 
-  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count || (pTexture->flags & vcTCF_AsynchronousRead) != vcTCF_AsynchronousRead)
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count || (pTexture->flags & vcTCF_AsynchronousRead) != vcTCF_AsynchronousRead)
     return false;
 
   udResult result = udR_Success;
