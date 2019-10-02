@@ -338,11 +338,12 @@ udResult vcPolygonModel_Destroy(vcPolygonModel **ppModel)
 udResult vcPolygonModel_CreateShaders()
 {
   udResult result;
+  vcPolygonModelShader *pPolygonShader = nullptr;
   ++gPolygonShaderRefCount;
 
   UD_ERROR_IF(gPolygonShaderRefCount != 1, udR_Success);
 
-  vcPolygonModelShader *pPolygonShader = &gShaders[vcPMST_P3N3UV2_Opaque];
+  pPolygonShader = &gShaders[vcPMST_P3N3UV2_Opaque];
   UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP3N3UV2VertexShader, g_PolygonP3N3UV2FragmentShader, vcP3N3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject)), udR_InternalError);
