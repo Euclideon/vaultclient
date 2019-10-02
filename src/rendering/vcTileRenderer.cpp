@@ -377,6 +377,7 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   *ppTileRenderer = pTileRenderer;
   pTileRenderer = nullptr;
   result = udR_Success;
+
 epilogue:
   if (pTileRenderer)
     vcTileRenderer_Destroy(&pTileRenderer);

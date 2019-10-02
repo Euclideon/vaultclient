@@ -355,6 +355,7 @@ udResult vcPolygonModel_CreateShaders()
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject)), udR_InternalError);
 
   result = udR_Success;
+
 epilogue:
   if (result != udR_Success)
     vcPolygonModel_DestroyShaders();
@@ -377,7 +378,7 @@ udResult vcPolygonModel_DestroyShaders()
   }
 
   result = udR_Success;
-epilogue:
 
+epilogue:
   return result;
 }

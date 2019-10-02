@@ -59,7 +59,7 @@ udResult vcCompass_Destroy(vcAnchor **ppCompass)
   return udR_Success;
 }
 
-bool vcCompass_Render(vcAnchor *pCompass, vcAnchorStyle anchorStyle, const udDouble4x4 &worldViewProj, const udDouble4 &colour /*= udDouble4::create(1.0, 1.0, 1.0, 1.0)*/)
+bool vcCompass_Render(vcAnchor *pCompass, vcAnchorStyle anchorStyle, const udDouble4x4 &worldViewProj, const udDouble4 &colour /*= udDouble4::create(1.0, 0.8431, 0.0, 1.0)*/)
 {
   if (pCompass == nullptr || anchorStyle >= vcAS_Count || vcASToMeshType[anchorStyle] == vcInternalMeshType_Count)
     return false;

@@ -322,8 +322,8 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
 
   UD_ERROR_CHECK(vcInternalModels_Deinit());
   result = udR_Success;
-epilogue:
 
+epilogue:
   vcTexture_Destroy(&pRenderContext->pWhiteTexture);
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
   vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);

@@ -57,7 +57,7 @@ udResult vcTexture_AsyncCreateFromFilename(vcTexture **ppTexture, udWorkerPool *
   UD_ERROR_CHECK(udWorkerPool_AddTask(pPool, vcTexture_AsyncLoadWorkerThreadWork, pLoadInfo, true, vcTexture_AsyncLoadMainThreadWork));
 
   result = udR_Success;
-epilogue:
 
+epilogue:
   return result;
 }

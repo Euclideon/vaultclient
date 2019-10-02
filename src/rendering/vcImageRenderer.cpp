@@ -52,8 +52,8 @@ udResult vcImageRenderer_Init()
   }
 
   result = udR_Success;
-epilogue:
 
+epilogue:
   if (result != udR_Success)
     vcImageRenderer_Destroy();
 
@@ -74,8 +74,8 @@ udResult vcImageRenderer_Destroy()
   }
 
   result = udR_Success;
-epilogue:
 
+epilogue:
   return result;
 }
 

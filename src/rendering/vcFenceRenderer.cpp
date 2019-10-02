@@ -78,8 +78,8 @@ udResult vcFenceRenderer_Init()
   UD_ERROR_CHECK(vcTexture_Create(&gSolidTexture, 1, 1, whitePixel));
 
   result = udR_Success;
-epilogue:
 
+epilogue:
   if (result != udR_Success)
     vcFenceRenderer_Destroy();
   return result;
@@ -98,8 +98,8 @@ udResult vcFenceRenderer_Destroy()
   vcTexture_Destroy(&gDiagonalTexture);
 
   result = udR_Success;
-epilogue:
 
+epilogue:
   return result;
 }
 
@@ -135,8 +135,8 @@ udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer)
   *ppFenceRenderer = pFenceRenderer;
   pFenceRenderer = nullptr;
   result = udR_Success;
-epilogue:
 
+epilogue:
   if (pFenceRenderer != nullptr)
     vcFenceRenderer_Destroy(&pFenceRenderer);
 

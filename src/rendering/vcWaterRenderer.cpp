@@ -70,8 +70,8 @@ udResult vcWaterRenderer_Init()
   UD_ERROR_IF(vcTexture_CreateFromFilename(&pNormalMapTexture, "asset://assets/textures/waterNormalMap.jpg", nullptr, nullptr, vcTFM_Linear, true, vcTWM_Repeat), udR_InternalError);
 
   result = udR_Success;
-epilogue:
 
+epilogue:
   return result;
 }
 
@@ -85,8 +85,8 @@ udResult vcWaterRenderer_Destroy()
   vcTexture_Destroy(&pNormalMapTexture);
 
   result = udR_Success;
-epilogue:
 
+epilogue:
   return result;
 }
 
@@ -114,8 +114,8 @@ udResult vcWaterRenderer_Create(vcWaterRenderer **ppWaterRenderer)
   *ppWaterRenderer = pWaterRenderer;
   pWaterRenderer = nullptr;
   result = udR_Success;
-epilogue:
 
+epilogue:
   if (pWaterRenderer != nullptr)
     vcWaterRenderer_Destroy(&pWaterRenderer);
   return result;
