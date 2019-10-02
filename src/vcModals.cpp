@@ -724,7 +724,7 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
     // Clear and close buttons
     if (ImGui::Button(vcString::Get("sceneExplorerClearAllButton")))
     {
-      for (int i = 0; i < pProgramState->errorItems.length; ++i)
+      for (uint32_t i = 0; i < pProgramState->errorItems.length; ++i)
       {
         if (pProgramState->errorItems[i].source == vcES_File)
         {
