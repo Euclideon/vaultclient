@@ -642,7 +642,7 @@ const char* const g_WaterVertexShader = R"shader(
   }
 )shader";
 
-const char* const g_PolygonP1N1UV1FragmentShader = R"shader(
+const char* const g_PolygonP3N3UV2FragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -668,7 +668,7 @@ const char* const g_PolygonP1N1UV1FragmentShader = R"shader(
   }
 )shader";
 
-const char* const g_PolygonP1N1UV1VertexShader = R"shader(
+const char* const g_PolygonP3N3UV2VertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;

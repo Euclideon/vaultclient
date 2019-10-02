@@ -568,7 +568,7 @@ const char* const g_WaterVertexShader = VERT_HEADER R"shader(
   }
 )shader";
 
-const char* const g_PolygonP1N1UV1FragmentShader = FRAG_HEADER R"shader(
+const char* const g_PolygonP3N3UV2FragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec2 v_uv;
   in vec4 v_colour;
@@ -593,7 +593,7 @@ const char* const g_PolygonP1N1UV1FragmentShader = FRAG_HEADER R"shader(
   }
 )shader";
 
-const char* const g_PolygonP1N1UV1VertexShader = VERT_HEADER R"shader(
+const char* const g_PolygonP3N3UV2VertexShader = VERT_HEADER R"shader(
   //Input Format
   layout(location = 0) in vec3 a_pos;
   layout(location = 1) in vec3 a_normal;
