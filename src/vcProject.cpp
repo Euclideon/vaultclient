@@ -6,6 +6,7 @@
 #include "vcModals.h"
 
 #include "udFile.h"
+#include "udStringUtil.h"
 
 void vcProject_InitBlankScene(vcState *pProgramState)
 {
@@ -36,7 +37,7 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
   if (result == udR_Success)
   {
     vdkProject *pProject = nullptr;
-    if ((pProgramState->lastError = vdkProject_LoadFromMemory(&pProject, pMemory)) == vE_Success)
+    if (vdkProject_LoadFromMemory(&pProject, pMemory) == vE_Success)
     {
       vcProject_Deinit(pProgramState, &pProgramState->activeProject);
 
@@ -59,6 +60,13 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
     }
     else
     {
+      vcState::ErrorItem projectError;
+      projectError.source = vcES_ProjectChange;
+      projectError.pImpetus = udStrdup(pFilename);
+      projectError.resultCode = udR_ParseError;
+
+      pProgramState->errorItems.PushBack(projectError);
+
       vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
     }
 

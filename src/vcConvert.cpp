@@ -447,13 +447,20 @@ void vcConvert_ShowUI(vcState *pProgramState)
         if (ImGui::Button(udTempStr("%s##vcConvLoad_%zu", vcString::Get("convertAddToScene"), selectedJob), ImVec2(200, 50)))
         {
           vdkProjectNode *pNode = nullptr;
-          if ((pProgramState->lastError = vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProgramState->pConvertContext->jobs[selectedJob]->pConvertInfo->pOutputName, nullptr)) == vE_Success)
+          if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProgramState->pConvertContext->jobs[selectedJob]->pConvertInfo->pOutputName, nullptr) == vE_Success)
           {
             udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
             pProgramState->changeActiveDock = vcDocks_Scene;
           }
           else
           {
+            vcState::ErrorItem projectError;
+            projectError.source = vcES_ProjectChange;
+            projectError.pImpetus = udStrdup(pProgramState->pConvertContext->jobs[selectedJob]->pConvertInfo->pOutputName);
+            projectError.resultCode = udR_Failure_;
+
+            pProgramState->errorItems.PushBack(projectError);
+
             vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
           }
         }
@@ -835,10 +842,11 @@ epilogue:
 
   if (pFilename != nullptr && result != udR_Success)
   {
-    vcState::FileError fileError;
-    fileError.pFilename = pFilename;
+    vcState::ErrorItem fileError;
+    fileError.source = vcES_File;
+    fileError.pImpetus = udStrdup(pFilename);
     fileError.resultCode = result;
-    pProgramState->errorFiles.PushBack(fileError);
+    pProgramState->errorItems.PushBack(fileError);
     pFilename = nullptr;
   }
 
@@ -869,10 +877,11 @@ void vcConvert_QueueFile(vcState *pProgramState, const char *pFilename)
       else
       {
         //TODO: Handle the udResult properly
-        vcState::FileError fileError;
-        fileError.pFilename = udStrdup(pFilename);
+        vcState::ErrorItem fileError;
+        fileError.source = vcES_File;
+        fileError.pImpetus = udStrdup(pFilename);
         fileError.resultCode = udR_Unsupported;
-        pProgramState->errorFiles.PushBack(fileError);
+        pProgramState->errorItems.PushBack(fileError);
       }
     }
     else

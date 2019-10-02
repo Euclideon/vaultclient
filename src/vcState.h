@@ -54,6 +54,12 @@ enum vcLoginStatus
   vcLS_OtherError
 };
 
+enum vcErrorSource
+{
+  vcES_File,
+  vcES_ProjectChange
+};
+
 struct vcState
 {
   bool programComplete;
@@ -65,15 +71,15 @@ struct vcState
 
   vcCamera *pCamera;
 
-
-  struct FileError
+  struct ErrorItem
   {
-    const char *pFilename;
+    vcErrorSource source;
+    const char *pImpetus;
     udResult resultCode;
   };
 
   udChunkedArray<const char*> loadList;
-  udChunkedArray<FileError> errorFiles;
+  udChunkedArray<ErrorItem> errorItems;
 
   const char *pLoadImage;
   udWorkerPool *pWorkerPool;
@@ -114,8 +120,6 @@ struct vcState
 
   vcLoginStatus loginStatus;
   vdkError logoutReason;
-
-  vdkError lastError;
 
   const char *pReleaseNotes; //Only loaded when requested
   bool passFocus;

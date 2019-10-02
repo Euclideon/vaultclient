@@ -543,8 +543,17 @@ void vcModals_DrawFileModal(vcState *pProgramState)
         {
           pProgramState->modelPath[0] = '\0';
           ImGui::CloseCurrentPopup();
+
+          vcState::ErrorItem projectError;
+          projectError.source = vcES_ProjectChange;
+          projectError.pImpetus = udStrdup(exportFilename.GetFilenameWithExt());
+
           if (udFile_Save(exportFilename.GetPath(), (void *)pOutput, udStrlen(pOutput)) != udR_Success)
-            pProgramState->lastError = vE_WriteFailure;
+            projectError.resultCode = udR_WriteFailure;
+          else
+            projectError.resultCode = udR_Success;
+
+          pProgramState->errorItems.PushBack(projectError);
 
           vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
         }
@@ -633,30 +642,50 @@ void vcModals_DrawProjectChangeResult(vcState *pProgramState)
   {
     pProgramState->modalOpen = true;
 
-    const char *pMessage = nullptr;
-
-    switch (pProgramState->lastError)
+    for (uint32_t i = 0; i < pProgramState->errorItems.length; ++i)
     {
-    case vE_Success:
-      pMessage = vcString::Get("sceneExplorerProjectChangeSucceededMessage");
-      break;
-    case vE_WriteFailure:
-      pMessage = vcString::Get("sceneExplorerProjectChangeFailedWrite");
-      break;
-    case vE_ParseError:
-      pMessage = vcString::Get("sceneExplorerProjectChangeFailedLoad");
-      break;
-    case vE_Failure: // Falls through
-    default:
-      pMessage = vcString::Get("sceneExplorerProjectChangeFailedMessage");
-      break;
-    }
+      const char *pMessage = nullptr;
 
-    ImGui::TextUnformatted(pMessage);
+      if (i > 0)
+        ImGui::NewLine();
+
+      if (pProgramState->errorItems[i].source == vcES_ProjectChange)
+      {
+        ImGui::TextUnformatted(pProgramState->errorItems[i].pImpetus);
+        switch (pProgramState->errorItems[i].resultCode)
+        {
+        case udR_WriteFailure:
+          pMessage = vcString::Get("sceneExplorerProjectChangeFailedWrite");
+          break;
+        case udR_ParseError:
+          pMessage = vcString::Get("sceneExplorerProjectChangeFailedParse");
+          break;
+        case udR_Success:
+          pMessage = vcString::Get("sceneExplorerProjectChangeSucceededMessage");
+          break;
+        case udR_ReadFailure:
+          pMessage = vcString::Get("sceneExplorerProjectChangeFailedRead");
+          break;
+        case udR_Failure_: // Falls through
+        default:
+          pMessage = vcString::Get("sceneExplorerProjectChangeFailedMessage");
+          break;
+        }
+        ImGui::TextUnformatted(pMessage);
+      }
+    }
 
     if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
-      pProgramState->lastError = vE_Success;
+      for (uint32_t i = 0; i < pProgramState->errorItems.length; ++i)
+      {
+        if (pProgramState->errorItems[i].source == vcES_ProjectChange)
+        {
+          udFree(pProgramState->errorItems[i].pImpetus);
+          pProgramState->errorItems.RemoveAt(i);
+          --i;
+        }
+      }
       ImGui::CloseCurrentPopup();
     }
 
@@ -695,11 +724,14 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
     // Clear and close buttons
     if (ImGui::Button(vcString::Get("sceneExplorerClearAllButton")))
     {
-      while (pProgramState->errorFiles.length)
+      for (int i = 0; i < pProgramState->errorItems.length; ++i)
       {
-        vcState::FileError errorFile;
-        pProgramState->errorFiles.PopBack(&errorFile);
-        udFree(errorFile.pFilename);
+        if (pProgramState->errorItems[i].source == vcES_File)
+        {
+          udFree(pProgramState->errorItems[i].pImpetus);
+          pProgramState->errorItems.RemoveAt(i);
+          --i;
+        }
       }
     }
 
@@ -714,23 +746,26 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
     ImGui::BeginChild("unsupportedFilesChild");
     ImGui::Columns(2);
 
-    for (size_t i = 0; i < pProgramState->errorFiles.length; ++i)
+    for (size_t i = 0; i < pProgramState->errorItems.length; ++i)
     {
+      if (pProgramState->errorItems[i].source != vcES_File)
+        continue;
+
       bool removeItem = ImGui::Button(udTempStr("X##errorFileRemove%zu", i));
       ImGui::SameLine();
       // Get the offset so the next column is offset by the same value to keep alignment
       float offset = ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset;
-      ImGui::TextUnformatted(pProgramState->errorFiles[i].pFilename);
+      ImGui::TextUnformatted(pProgramState->errorItems[i].pImpetus);
       ImGui::NextColumn();
 
       ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset = offset;
-      ImGui::TextUnformatted(udResultAsString(pProgramState->errorFiles[i].resultCode));
+      ImGui::TextUnformatted(udResultAsString(pProgramState->errorItems[i].resultCode));
       ImGui::NextColumn();
 
       if (removeItem)
       {
-        udFree(pProgramState->errorFiles[i].pFilename);
-        pProgramState->errorFiles.RemoveAt(i);
+        udFree(pProgramState->errorItems[i].pImpetus);
+        pProgramState->errorItems.RemoveAt(i);
         --i;
       }
     }
