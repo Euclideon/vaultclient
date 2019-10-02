@@ -548,7 +548,7 @@ const char* const g_FenceVertexShader = R"shader(
 
   cbuffer u_EveryObject : register(b1)
   {
-    float4x4 u_modelViewProjectionMatrix;
+    float4x4 u_worldViewProjectionMatrix;
   };
 
   PS_INPUT main(VS_INPUT input)
@@ -560,7 +560,7 @@ const char* const g_FenceVertexShader = R"shader(
     output.colour = lerp(u_bottomColour, u_topColour, input.ribbonInfo.w);
 
     float3 worldPosition = input.pos + lerp(float3(0, 0, input.ribbonInfo.w) * u_width, input.ribbonInfo.xyz, u_orientation);
-    output.pos = mul(u_modelViewProjectionMatrix, float4(worldPosition, 1.0));
+    output.pos = mul(u_worldViewProjectionMatrix, float4(worldPosition, 1.0));
     return output;
   }
 )shader";
@@ -672,8 +672,8 @@ const char* const g_WaterVertexShader = R"shader(
   cbuffer u_EveryObject : register(b1)
   {
     float4 u_colourAndSize;
-    float4x4 u_modelViewMatrix;
-    float4x4 u_modelViewProjectionMatrix;
+    float4x4 u_worldViewMatrix;
+    float4x4 u_worldViewProjectionMatrix;
   };
 
   PS_INPUT main(VS_INPUT input)
@@ -687,9 +687,9 @@ const char* const g_WaterVertexShader = R"shader(
     output.uv0 = uvScaleBodySize * input.pos.xy * float2(0.25, 0.25) - float2(uvOffset, uvOffset);
     output.uv1 = uvScaleBodySize * input.pos.yx * float2(0.50, 0.50) - float2(uvOffset, uvOffset * 0.75);
 
-    output.fragEyePos = mul(u_modelViewMatrix, float4(input.pos, 0.0, 1.0));
+    output.fragEyePos = mul(u_worldViewMatrix, float4(input.pos, 0.0, 1.0));
     output.colour = u_colourAndSize.xyz;
-    output.pos = mul(u_modelViewProjectionMatrix, float4(input.pos, 0.0, 1.0));
+    output.pos = mul(u_worldViewProjectionMatrix, float4(input.pos, 0.0, 1.0));
 
     return output;
   }
@@ -738,14 +738,10 @@ const char* const g_PolygonP3N3UV2VertexShader = R"shader(
     float4 colour : COLOR0;
   };
 
-  cbuffer u_EveryFrame : register(b0)
+  cbuffer u_EveryObject : register(b0)
   {
-    float4x4 u_modelViewProjectionMatrix;
-  };
-
-  cbuffer u_EveryObject : register(b1)
-  {
-    float4x4 u_modelMatrix;
+    float4x4 u_worldViewProjectionMatrix;
+    float4x4 u_worldMatrix;
     float4 u_colour;
   };
 
@@ -754,9 +750,9 @@ const char* const g_PolygonP3N3UV2VertexShader = R"shader(
     PS_INPUT output;
 
     // making the assumption that the model matrix won't contain non-uniform scale
-    float3 worldNormal = normalize(mul(u_modelMatrix, float4(input.normal, 0.0)).xyz);
+    float3 worldNormal = normalize(mul(u_worldMatrix, float4(input.normal, 0.0)).xyz);
 
-    output.pos = mul(u_modelViewProjectionMatrix, float4(input.pos, 1.0));
+    output.pos = mul(u_worldViewProjectionMatrix, float4(input.pos, 1.0));
     output.uv = input.uv;
     output.normal = worldNormal;
     output.colour = u_colour;// * input.colour;
@@ -800,7 +796,7 @@ const char *const g_ImageRendererMeshVertexShader = R"shader(
 
   cbuffer u_EveryObject : register(b0)
   {
-    float4x4 u_modelViewProjectionMatrix;
+    float4x4 u_worldViewProjectionMatrix;
     float4 u_colour;
     float4 u_screenSize; // unused
   };
@@ -809,7 +805,7 @@ const char *const g_ImageRendererMeshVertexShader = R"shader(
   {
     PS_INPUT output;
 
-    output.pos = mul(u_modelViewProjectionMatrix, float4(input.pos, 1.0));
+    output.pos = mul(u_worldViewProjectionMatrix, float4(input.pos, 1.0));
     output.uv = input.uv;
     output.colour = u_colour;
 
@@ -833,7 +829,7 @@ const char *const g_ImageRendererBillboardVertexShader = R"shader(
 
   cbuffer u_EveryObject : register(b0)
   {
-    float4x4 u_modelViewProjectionMatrix;
+    float4x4 u_worldViewProjectionMatrix;
     float4 u_colour;
     float4 u_screenSize;
   };
@@ -842,7 +838,7 @@ const char *const g_ImageRendererBillboardVertexShader = R"shader(
   {
     PS_INPUT output;
 
-    output.pos = mul(u_modelViewProjectionMatrix, float4(input.pos, 1.0));
+    output.pos = mul(u_worldViewProjectionMatrix, float4(input.pos, 1.0));
     output.pos.xy += u_screenSize.z * output.pos.w * u_screenSize.xy * float2(input.uv.x * 2.0 - 1.0, input.uv.y * 2.0 - 1.0); // expand billboard
 
     output.uv = float2(input.uv.x, 1.0 - input.uv.y);
@@ -1036,7 +1032,7 @@ const char *const g_udGPURenderQuadVertexShader = R"shader(
 
   cbuffer u_EveryObject : register(b0)
   {
-    float4x4 u_worldViewProj;
+    float4x4 u_worldViewProjectionMatrix;
   };
 
   PS_INPUT main(VS_INPUT input)
@@ -1047,14 +1043,14 @@ const char *const g_udGPURenderQuadVertexShader = R"shader(
 
     // Points
     float4 off = float4(input.pos.www * 2.0, 0);
-    float4 pos0 = mul(u_worldViewProj, float4(input.pos.xyz + off.www, 1.0));
-    float4 pos1 = mul(u_worldViewProj, float4(input.pos.xyz + off.xww, 1.0));
-    float4 pos2 = mul(u_worldViewProj, float4(input.pos.xyz + off.xyw, 1.0));
-    float4 pos3 = mul(u_worldViewProj, float4(input.pos.xyz + off.wyw, 1.0));
-    float4 pos4 = mul(u_worldViewProj, float4(input.pos.xyz + off.wwz, 1.0));
-    float4 pos5 = mul(u_worldViewProj, float4(input.pos.xyz + off.xwz, 1.0));
-    float4 pos6 = mul(u_worldViewProj, float4(input.pos.xyz + off.xyz, 1.0));
-    float4 pos7 = mul(u_worldViewProj, float4(input.pos.xyz + off.wyz, 1.0));
+    float4 pos0 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.www, 1.0));
+    float4 pos1 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.xww, 1.0));
+    float4 pos2 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.xyw, 1.0));
+    float4 pos3 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.wyw, 1.0));
+    float4 pos4 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.wwz, 1.0));
+    float4 pos5 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.xwz, 1.0));
+    float4 pos6 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.xyz, 1.0));
+    float4 pos7 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.wyz, 1.0));
 
     float4 minPos, maxPos;
     minPos = min(pos0, pos1);
@@ -1109,7 +1105,7 @@ const char *const g_udGPURenderGeomVertexShader = R"shader(
 
   cbuffer u_EveryObject : register(b0)
   {
-    float4x4 u_worldViewProj;
+    float4x4 u_worldViewProjectionMatrix;
     float4 u_colour;
   };
 
@@ -1122,14 +1118,14 @@ const char *const g_udGPURenderGeomVertexShader = R"shader(
 
     // Points
     float4 off = float4(input.pos.www * 2.0, 0);
-    float4 pos0 = mul(u_worldViewProj, float4(input.pos.xyz + off.www, 1.0));
-    float4 pos1 = mul(u_worldViewProj, float4(input.pos.xyz + off.xww, 1.0));
-    float4 pos2 = mul(u_worldViewProj, float4(input.pos.xyz + off.xyw, 1.0));
-    float4 pos3 = mul(u_worldViewProj, float4(input.pos.xyz + off.wyw, 1.0));
-    float4 pos4 = mul(u_worldViewProj, float4(input.pos.xyz + off.wwz, 1.0));
-    float4 pos5 = mul(u_worldViewProj, float4(input.pos.xyz + off.xwz, 1.0));
-    float4 pos6 = mul(u_worldViewProj, float4(input.pos.xyz + off.xyz, 1.0));
-    float4 pos7 = mul(u_worldViewProj, float4(input.pos.xyz + off.wyz, 1.0));
+    float4 pos0 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.www, 1.0));
+    float4 pos1 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.xww, 1.0));
+    float4 pos2 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.xyw, 1.0));
+    float4 pos3 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.wyw, 1.0));
+    float4 pos4 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.wwz, 1.0));
+    float4 pos5 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.xwz, 1.0));
+    float4 pos6 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.xyz, 1.0));
+    float4 pos7 = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz + off.wyz, 1.0));
 
     float4 minPos, maxPos;
     minPos = min(pos0, pos1);

@@ -47,7 +47,7 @@ struct vcFenceRenderer
 
     struct
     {
-      udFloat4x4 modelViewProjection;
+      udFloat4x4 u_worldViewProjection;
     } everyObjectParams;
 
   } renderShader;
@@ -461,7 +461,7 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
   {
     vcFenceSegment *pSegment = &pFenceRenderer->segments[i];
 
-    pFenceRenderer->renderShader.everyObjectParams.modelViewProjection = udFloat4x4::create(viewProjectionMatrix * pSegment->fenceOriginOffset);
+    pFenceRenderer->renderShader.everyObjectParams.u_worldViewProjection = udFloat4x4::create(viewProjectionMatrix * pSegment->fenceOriginOffset);
     vcShader_BindConstantBuffer(pFenceRenderer->renderShader.pProgram, pFenceRenderer->renderShader.uniform_everyObject, &pFenceRenderer->renderShader.everyObjectParams, sizeof(pFenceRenderer->renderShader.everyObjectParams));
 
     if (vcMesh_Render(pSegment->pMesh, pSegment->vertCount, 0, vcMRM_TriangleStrip) != udR_Success)

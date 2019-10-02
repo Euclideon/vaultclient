@@ -14,7 +14,7 @@ struct vcAnchor
 
   struct
   {
-    udFloat4x4 u_viewProjectionMatrix;
+    udFloat4x4 u_worldViewProjectionMatrix;
     udFloat4 u_colour;
     udFloat3 u_sunDirection;
     float _padding;
@@ -65,7 +65,7 @@ bool vcCompass_Render(vcAnchor *pCompass, vcAnchorStyle anchorStyle, const udDou
     return false;
 
   pCompass->shaderBuffer.u_colour = udFloat4::create(colour);
-  pCompass->shaderBuffer.u_viewProjectionMatrix = udFloat4x4::create(worldViewProj);
+  pCompass->shaderBuffer.u_worldViewProjectionMatrix = udFloat4x4::create(worldViewProj);
   pCompass->shaderBuffer.u_sunDirection = udNormalize(udFloat3::create(1.0f, 0.0f, -1.0f));
 
   vcShader_Bind(pCompass->pShader);
