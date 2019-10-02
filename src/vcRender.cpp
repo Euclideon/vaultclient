@@ -118,7 +118,7 @@ struct vcRenderContext
     vcShaderSampler *uniform_texture;
     vcShaderConstantBuffer *uniform_MatrixBlock;
 
-    vcTexture* pSkyboxTexture;
+    vcTexture *pSkyboxTexture;
   } skyboxShaderPanorama;
 
   struct
@@ -127,7 +127,7 @@ struct vcRenderContext
     vcShaderConstantBuffer *uniform_params;
     vcShaderSampler *uniform_texture;
 
-    vcTexture* pLogoTexture;
+    vcTexture *pLogoTexture;
 
     struct
     {
@@ -344,8 +344,8 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
 {
   udResult result = udR_Success;
 
-  uint32_t widthIncr = width +(width % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - width % vcRender_SceneSizeIncrement : 0);
-  uint32_t heightIncr = height +(height % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - height % vcRender_SceneSizeIncrement : 0);
+  uint32_t widthIncr = width + (width % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - width % vcRender_SceneSizeIncrement : 0);
+  uint32_t heightIncr = height + (height % vcRender_SceneSizeIncrement != 0 ? vcRender_SceneSizeIncrement - height % vcRender_SceneSizeIncrement : 0);
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
   UD_ERROR_IF(width == 0, udR_InvalidParameter_);
@@ -360,10 +360,10 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
 
-  pRenderContext->udRenderContext.pColorBuffer = udAllocType(uint32_t, pRenderContext->sceneResolution.x*pRenderContext->sceneResolution.y, udAF_Zero);
+  pRenderContext->udRenderContext.pColorBuffer = udAllocType(uint32_t, pRenderContext->sceneResolution.x * pRenderContext->sceneResolution.y, udAF_Zero);
   UD_ERROR_NULL(pRenderContext->udRenderContext.pColorBuffer, udR_MemoryAllocationFailure);
 
-  pRenderContext->udRenderContext.pDepthBuffer = udAllocType(float, pRenderContext->sceneResolution.x*pRenderContext->sceneResolution.y, udAF_Zero);
+  pRenderContext->udRenderContext.pDepthBuffer = udAllocType(float, pRenderContext->sceneResolution.x * pRenderContext->sceneResolution.y, udAF_Zero);
   UD_ERROR_NULL(pRenderContext->udRenderContext.pDepthBuffer, udR_MemoryAllocationFailure);
 
   //Resize GPU Targets
@@ -999,7 +999,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
     vdkRenderContext_ShowIntensity(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, pProgramState->settings.visualization.minIntensity, pProgramState->settings.visualization.maxIntensity);
     break;
   case vcVM_Classification:
-    vdkRenderContext_ShowClassification(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, (int*)pProgramState->settings.visualization.customClassificationColors, (int)udLengthOf(pProgramState->settings.visualization.customClassificationColors));
+    vdkRenderContext_ShowClassification(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, (int *)pProgramState->settings.visualization.customClassificationColors, (int)udLengthOf(pProgramState->settings.visualization.customClassificationColors));
     break;
   default: //Includes vcVM_Colour
     vdkRenderContext_ShowColor(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer);
@@ -1226,18 +1226,19 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
       }
     }
 
+    udUInt2 readLocation = { pRenderContext->picking.location.x, pRenderContext->picking.location.y };
     uint8_t colourBytes[4] = {};
     uint8_t depthBytes[4] = {};
 
-    // Synchronously read back data
 #if GRAPHICS_API_OPENGL
-    // note: we render upside-down
-    vcTexture_BeginReadPixels(pRenderContext->picking.pTexture, pRenderContext->picking.location.x, pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1, 1, 1, colourBytes, pRenderContext->picking.pFramebuffer);
-    vcTexture_BeginReadPixels(pRenderContext->picking.pDepth, pRenderContext->picking.location.x, pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1, 1, 1, depthBytes, pRenderContext->picking.pFramebuffer);
-#else // All others are the same direction
-    vcTexture_BeginReadPixels(pRenderContext->picking.pTexture, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1, colourBytes, pRenderContext->picking.pFramebuffer);
-    vcTexture_BeginReadPixels(pRenderContext->picking.pDepth, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1, depthBytes, pRenderContext->picking.pFramebuffer);
+    // read upside down
+    readLocation.y = pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1;
 #endif
+
+    // Synchronously read back data
+    vcTexture_BeginReadPixels(pRenderContext->picking.pTexture, readLocation.x, readLocation.y, 1, 1, colourBytes, pRenderContext->picking.pFramebuffer);
+    vcTexture_BeginReadPixels(pRenderContext->picking.pDepth, readLocation.x, readLocation.y, 1, 1, depthBytes, pRenderContext->picking.pFramebuffer);
+
     vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
     // 24 bit unsigned int -> float

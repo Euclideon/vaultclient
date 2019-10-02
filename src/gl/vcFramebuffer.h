@@ -6,7 +6,7 @@
 
 struct vcFramebuffer;
 
-bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth = nullptr, int level = 0);
+bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth = nullptr, uint32_t level = 0);
 void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer);
 
 bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer);

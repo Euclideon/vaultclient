@@ -1,12 +1,17 @@
 #include "gl/vcFramebuffer.h"
 #include "vcD3D11.h"
 
-bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, int level /*= 0*/)
+bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, uint32_t level /*= 0*/)
 {
-  vcFramebuffer *pFramebuffer = udAllocType(vcFramebuffer, 1, udAF_Zero);
+  if (ppFramebuffer == nullptr || pTexture == nullptr)
+    return false;
 
+  udResult result = udR_Success;
   D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
   memset(&renderTargetViewDesc, 0, sizeof(renderTargetViewDesc));
+
+  vcFramebuffer *pFramebuffer = udAllocType(vcFramebuffer, 1, udAF_Zero);
+  UD_ERROR_NULL(pFramebuffer, udR_MemoryAllocationFailure);
 
   renderTargetViewDesc.Format = pTexture->d3dFormat;
   renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
@@ -27,7 +32,13 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
   }
 
   *ppFramebuffer = pFramebuffer;
-  return true;
+  pFramebuffer = nullptr;
+
+epilogue:
+  if (pFramebuffer != nullptr)
+    vcFramebuffer_Destroy(&pFramebuffer);
+
+  return result == udR_Success;
 }
 
 void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
