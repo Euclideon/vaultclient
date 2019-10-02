@@ -32,8 +32,7 @@ udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer
 epilogue:
   if (pSceneLayerRenderer != nullptr)
   {
-    vcSceneLayer_Destroy(&pSceneLayerRenderer->pSceneLayer);
-    udFree(pSceneLayerRenderer);
+    vcSceneLayerRenderer_Destroy(&pSceneLayerRenderer);
   }
 
   return result;

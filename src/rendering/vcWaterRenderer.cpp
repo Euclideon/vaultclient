@@ -60,22 +60,34 @@ struct vcWaterRenderer
 };
 
 static int gRefCount = 0;
-void vcWaterRenderer_Init()
+udResult vcWaterRenderer_Init()
 {
+  udResult result;
   gRefCount++;
-  if (gRefCount == 1)
-  {
-    vcTexture_CreateFromFilename(&pNormalMapTexture, "asset://assets/textures/waterNormalMap.jpg", nullptr, nullptr, vcTFM_Linear, true, vcTWM_Repeat);
-  }
+
+  UD_ERROR_IF(gRefCount != 1, udR_Success);
+
+  UD_ERROR_IF(vcTexture_CreateFromFilename(&pNormalMapTexture, "asset://assets/textures/waterNormalMap.jpg", nullptr, nullptr, vcTFM_Linear, true, vcTWM_Repeat), udR_InternalError);
+
+  result = udR_Success;
+epilogue:
+
+  return result;
 }
 
-void vcWaterRenderer_Destroy()
+udResult vcWaterRenderer_Destroy()
 {
+  udResult result;
   --gRefCount;
-  if (gRefCount == 0)
-  {
-    vcTexture_Destroy(&pNormalMapTexture);
-  }
+
+  UD_ERROR_IF(gRefCount != 0, udR_Success);
+
+  vcTexture_Destroy(&pNormalMapTexture);
+
+  result = udR_Success;
+epilogue:
+
+  return result;
 }
 
 udResult vcWaterRenderer_Create(vcWaterRenderer **ppWaterRenderer)
@@ -87,23 +99,25 @@ udResult vcWaterRenderer_Create(vcWaterRenderer **ppWaterRenderer)
   pWaterRenderer = udAllocType(vcWaterRenderer, 1, udAF_Zero);
   UD_ERROR_NULL(pWaterRenderer, udR_MemoryAllocationFailure);
 
-  pWaterRenderer->volumes.Init(32);
+  UD_ERROR_CHECK(pWaterRenderer->volumes.Init(32));
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pWaterRenderer->renderShader.pProgram, g_WaterVertexShader, g_WaterFragmentShader, vcUV2VertexLayout), udR_InternalError);
-  vcShader_Bind(pWaterRenderer->renderShader.pProgram);
-  vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_normalMap, pWaterRenderer->renderShader.pProgram, "u_normalMap");
-  vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_skybox, pWaterRenderer->renderShader.pProgram, "u_skybox");
-  vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyFrameVert, pWaterRenderer->renderShader.pProgram, "u_EveryFrameVert", sizeof(pWaterRenderer->renderShader.everyFrameVertParams));
-  vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyFrameFrag, pWaterRenderer->renderShader.pProgram, "u_EveryFrameFrag", sizeof(pWaterRenderer->renderShader.everyFrameFragParams));
-  vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyObject, pWaterRenderer->renderShader.pProgram, "u_EveryObject", sizeof(pWaterRenderer->renderShader.everyObjectParams));
+  UD_ERROR_IF(!vcShader_Bind(pWaterRenderer->renderShader.pProgram), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_normalMap, pWaterRenderer->renderShader.pProgram, "u_normalMap"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_skybox, pWaterRenderer->renderShader.pProgram, "u_skybox"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyFrameVert, pWaterRenderer->renderShader.pProgram, "u_EveryFrameVert", sizeof(pWaterRenderer->renderShader.everyFrameVertParams)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyFrameFrag, pWaterRenderer->renderShader.pProgram, "u_EveryFrameFrag", sizeof(pWaterRenderer->renderShader.everyFrameFragParams)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyObject, pWaterRenderer->renderShader.pProgram, "u_EveryObject", sizeof(pWaterRenderer->renderShader.everyObjectParams)), udR_InternalError);
 
-  vcWaterRenderer_Init();
+  UD_ERROR_CHECK(vcWaterRenderer_Init());
+
   *ppWaterRenderer = pWaterRenderer;
   pWaterRenderer = nullptr;
-
   result = udR_Success;
 epilogue:
-  udFree(pWaterRenderer);
+
+  if (pWaterRenderer != nullptr)
+    vcWaterRenderer_Destroy(&pWaterRenderer);
   return result;
 }
 
@@ -121,7 +135,6 @@ udResult vcWaterRenderer_Destroy(vcWaterRenderer **ppWaterRenderer)
   pWaterRenderer->volumes.Deinit();
 
   udFree(pWaterRenderer);
-
   vcWaterRenderer_Destroy();
 
   return udR_Success;
@@ -170,7 +183,7 @@ udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, udDouble2 *p
 
   UD_ERROR_IF(vcMesh_Create(&pVolume.pMesh, vcUV2VertexLayout, (int)udLengthOf(vcUV2VertexLayout), pVerts, pVolume.vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
 
-  pWaterRenderer->volumes.PushBack(pVolume);
+  UD_ERROR_CHECK(pWaterRenderer->volumes.PushBack(pVolume));
 
   result = udR_Success;
 epilogue:

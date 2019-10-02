@@ -35,8 +35,8 @@ struct vcImageRenderInfo
   udFloat4 colour;
 };
 
-void vcImageRenderer_Init();
-void vcImageRenderer_Destroy();
+udResult vcImageRenderer_Init();
+udResult vcImageRenderer_Destroy();
 
 bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, double zScale);
 

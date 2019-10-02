@@ -36,9 +36,15 @@ void vcTexture_AsyncLoadMainThreadWork(void *pTextureLoadInfo)
   udFree(pLoadInfo->pData);
 }
 
-void vcTexture_AsyncCreateFromFilename(vcTexture **ppTexture, udWorkerPool *pPool, const char *pFilename, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/)
+udResult vcTexture_AsyncCreateFromFilename(vcTexture **ppTexture, udWorkerPool *pPool, const char *pFilename, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/)
 {
+  if (ppTexture == nullptr || pPool == nullptr || pFilename == nullptr)
+    return udR_InvalidParameter_;
+
+  udResult result;
+
   AsyncTextureLoadInfo *pLoadInfo = udAllocType(AsyncTextureLoadInfo, 1, udAF_Zero);
+  UD_ERROR_NULL(pLoadInfo, udR_MemoryAllocationFailure);
 
   *ppTexture = nullptr;
 
@@ -48,5 +54,10 @@ void vcTexture_AsyncCreateFromFilename(vcTexture **ppTexture, udWorkerPool *pPoo
   pLoadInfo->hasMips = hasMipmaps;
   pLoadInfo->wrapMode = wrapMode;
 
-  udWorkerPool_AddTask(pPool, vcTexture_AsyncLoadWorkerThreadWork, pLoadInfo, true, vcTexture_AsyncLoadMainThreadWork);
+  UD_ERROR_CHECK(udWorkerPool_AddTask(pPool, vcTexture_AsyncLoadWorkerThreadWork, pLoadInfo, true, vcTexture_AsyncLoadMainThreadWork));
+
+  result = udR_Success;
+epilogue:
+
+  return result;
 }

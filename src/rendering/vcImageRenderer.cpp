@@ -34,34 +34,49 @@ static struct vcImageShader
 } gShaders[vcIT_Count];
 
 static int gRefCount = 0;
-void vcImageRenderer_Init()
+udResult vcImageRenderer_Init()
 {
+  udResult result;
   gRefCount++;
-  if (gRefCount == 1)
-  {
-    vcShader_CreateFromText(&gShaders[vcIT_StandardPhoto].pShader, g_ImageRendererBillboardVertexShader, g_ImageRendererFragmentShader, vcP3UV2VertexLayout);
-    vcShader_CreateFromText(&gShaders[vcIT_PhotoSphere].pShader, g_ImageRendererMeshVertexShader, g_ImageRendererFragmentShader, vcP3N3UV2VertexLayout);
-    vcShader_CreateFromText(&gShaders[vcIT_Panorama].pShader, g_ImageRendererMeshVertexShader, g_ImageRendererFragmentShader, vcP3N3UV2VertexLayout);
 
-    for (int i = 0; i < vcIT_Count; ++i)
-    {
-      vcShader_GetConstantBuffer(&gShaders[i].pEveryObjectConstantBuffer, gShaders[i].pShader, "u_EveryObject", sizeof(gShaders[i].everyObject));
-      vcShader_GetSamplerIndex(&gShaders[i].pDiffuseSampler, gShaders[i].pShader, "u_texture");
-    }
+  UD_ERROR_IF(gRefCount != 1, udR_Success);
+
+  UD_ERROR_IF(!vcShader_CreateFromText(&gShaders[vcIT_StandardPhoto].pShader, g_ImageRendererBillboardVertexShader, g_ImageRendererFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&gShaders[vcIT_PhotoSphere].pShader, g_ImageRendererMeshVertexShader, g_ImageRendererFragmentShader, vcP3N3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&gShaders[vcIT_Panorama].pShader, g_ImageRendererMeshVertexShader, g_ImageRendererFragmentShader, vcP3N3UV2VertexLayout), udR_InternalError);
+
+  for (int i = 0; i < vcIT_Count; ++i)
+  {
+    UD_ERROR_IF(!vcShader_GetConstantBuffer(&gShaders[i].pEveryObjectConstantBuffer, gShaders[i].pShader, "u_EveryObject", sizeof(gShaders[i].everyObject)), udR_InternalError);
+    UD_ERROR_IF(!vcShader_GetSamplerIndex(&gShaders[i].pDiffuseSampler, gShaders[i].pShader, "u_texture"), udR_InternalError);
   }
+
+  result = udR_Success;
+epilogue:
+
+  if (result != udR_Success)
+    vcImageRenderer_Destroy();
+
+  return result;
 }
 
-void vcImageRenderer_Destroy()
+udResult vcImageRenderer_Destroy()
 {
+  udResult result;
   --gRefCount;
-  if (gRefCount == 0)
+
+  UD_ERROR_IF(gRefCount != 0, udR_Success);
+
+  for (int i = 0; i < vcIT_Count; ++i)
   {
-    for (int i = 0; i < vcIT_Count; ++i)
-    {
-      vcShader_DestroyShader(&gShaders[i].pShader);
-      vcShader_ReleaseConstantBuffer(gShaders[i].pShader, gShaders[i].pEveryObjectConstantBuffer);
-    }
+    UD_ERROR_IF(!vcShader_ReleaseConstantBuffer(gShaders[i].pShader, gShaders[i].pEveryObjectConstantBuffer), udR_InternalError);
+    vcShader_DestroyShader(&gShaders[i].pShader);
   }
+
+  result = udR_Success;
+epilogue:
+
+  return result;
 }
 
 bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, double zScale)
