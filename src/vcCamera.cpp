@@ -600,7 +600,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     memset(isBtnClicked, 0, sizeof(isBtnClicked));
     memset(isBtnDoubleClicked, 0, sizeof(isBtnDoubleClicked));
     memset(isBtnHeld, 0, sizeof(isBtnHeld));
-    memset(isBtnReleased, 0, sizeof(isBtnReleased));
+    //memset(isBtnReleased, 0, sizeof(isBtnReleased));
     mouseDelta = ImVec2();
     mouseWheel = 0.0f;
   }
