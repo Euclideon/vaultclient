@@ -451,6 +451,42 @@ epilogue:
   return result;
 }
 
+// Asychronously read a 1x1 region of last frames depth buffer 
+udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
+{
+  udResult result = udR_Success;
+
+  if (pRenderContext->currentMouseUV.x < 0 || pRenderContext->currentMouseUV.x > 1 || pRenderContext->currentMouseUV.y < 0 || pRenderContext->currentMouseUV.y > 1)
+    return result;
+
+  uint8_t depthBytes[4] = {};
+  udUInt2 pickLocation = { (uint32_t)(pRenderContext->currentMouseUV.x * pRenderContext->sceneResolution.x), (uint32_t)(pRenderContext->currentMouseUV.y * pRenderContext->sceneResolution.y) };
+#if GRAPHICS_API_OPENGL
+  pickLocation.y = pRenderContext->sceneResolution.y - pickLocation.y - 1; // upside-down
+#endif
+
+  static const int readBufferIndex = 0;
+  UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->pDepthTexture[readBufferIndex], pickLocation.x, pickLocation.y, 1, 1, depthBytes), udR_InternalError); // read previous copy
+  UD_ERROR_IF(!vcTexture_BeginReadPixels(pRenderContext->pDepthTexture[readBufferIndex], pickLocation.x, pickLocation.y, 1, 1, depthBytes, pRenderContext->pFramebuffer[readBufferIndex]), udR_InternalError); // begin copy for next frame read
+
+  // 24 bit unsigned int -> float
+#if GRAPHICS_API_OPENGL || GRAPHICS_API_METAL
+  pRenderContext->previousFrameDepth = uint32_t((depthBytes[3] << 16) | (depthBytes[2] << 8) | (depthBytes[1] << 0)) / ((1 << 24) - 1.0f);
+  //uint8_t stencil = depthBytes[0];
+#else
+  // TODO (EVC-765): validate this byte order for metal
+  pRenderContext->previousFrameDepth = uint32_t((depthBytes[2] << 16) | (depthBytes[1] << 8) | (depthBytes[0] << 0)) / ((1 << 24) - 1.0f);
+  //uint8_t stencil = depthBytes[3];
+#endif
+
+  // fbo state may not be valid (e.g. first read back will be '0')
+  if (pRenderContext->previousFrameDepth == 0.0f)
+    pRenderContext->previousFrameDepth = 1.0f;
+
+epilogue:
+  return result;
+}
+
 void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
   // Draw the skybox only at the far plane, where there is no geometry.
@@ -589,43 +625,6 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
     vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->gis, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, viewProjection);
     vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->pCamera->matrices.view, pProgramState->pCamera->matrices.projection);
   }
-}
-
-
-// Asychronously read a 1x1 region of last frames depth buffer 
-udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
-{
-  udResult result = udR_Success;
-
-  if (pRenderContext->currentMouseUV.x < 0 || pRenderContext->currentMouseUV.x > 1 || pRenderContext->currentMouseUV.y < 0 || pRenderContext->currentMouseUV.y > 1)
-    return result;
-
-  uint8_t depthBytes[4] = {};
-  udUInt2 pickLocation = { (uint32_t)(pRenderContext->currentMouseUV.x * pRenderContext->sceneResolution.x), (uint32_t)(pRenderContext->currentMouseUV.y * pRenderContext->sceneResolution.y) };
-#if GRAPHICS_API_OPENGL
-  pickLocation.y = pRenderContext->sceneResolution.y - pickLocation.y - 1; // upside-down
-#endif
-
-  static const int readBufferIndex = 0;
-  UD_ERROR_IF(!vcFramebuffer_EndReadPixels(pRenderContext->pFramebuffer[readBufferIndex], pRenderContext->pDepthTexture[readBufferIndex], pickLocation.x, pickLocation.y, 1, 1, depthBytes), udR_InternalError); // read previous copy
-  UD_ERROR_IF(!vcFramebuffer_BeginReadPixels(pRenderContext->pFramebuffer[readBufferIndex], pRenderContext->pDepthTexture[readBufferIndex], pickLocation.x, pickLocation.y, 1, 1, depthBytes), udR_InternalError); // begin copy for next frame read
-
-  // 24 bit unsigned int -> float
-#if GRAPHICS_API_OPENGL || GRAPHICS_API_METAL
-  pRenderContext->previousFrameDepth = uint32_t((depthBytes[3] << 16) | (depthBytes[2] << 8) | (depthBytes[1] << 0)) / ((1 << 24) - 1.0f);
-  //uint8_t stencil = depthBytes[0];
-#else
-  // TODO (EVC-765): validate this byte order for metal
-  pRenderContext->previousFrameDepth = uint32_t((depthBytes[2] << 16) | (depthBytes[1] << 8) | (depthBytes[0] << 0)) / ((1 << 24) - 1.0f);
-  //uint8_t stencil = depthBytes[3];
-#endif
-
-  // fbo state may not be valid (e.g. first read back will be '0')
-  if (pRenderContext->previousFrameDepth == 0.0f)
-    pRenderContext->previousFrameDepth = 1.0f;
-
-epilogue:
-  return result;
 }
 
 void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRenderContext)
@@ -916,41 +915,6 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
     }
   }
   return true;
-}
-
-// Asychronously read a 1x1 region of last frames depth buffer 
-udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
-{
-  udResult result = udR_Success;
-
-  if (pRenderContext->currentMouseUV.x < 0 || pRenderContext->currentMouseUV.x > 1 || pRenderContext->currentMouseUV.y < 0 || pRenderContext->currentMouseUV.y > 1)
-    return result;
-
-  uint8_t depthBytes[4] = {};
-  udUInt2 pickLocation = { (uint32_t)(pRenderContext->currentMouseUV.x * pRenderContext->sceneResolution.x), (uint32_t)(pRenderContext->currentMouseUV.y * pRenderContext->sceneResolution.y) };
-#if GRAPHICS_API_OPENGL
-  pickLocation.y = pRenderContext->sceneResolution.y - pickLocation.y - 1; // upside-down
-#endif
-
-  UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->pDepthTexture, pickLocation.x, pickLocation.y, 1, 1, depthBytes), udR_InternalError); // read previous copy
-  UD_ERROR_IF(!vcTexture_BeginReadPixels(pRenderContext->pDepthTexture, pickLocation.x, pickLocation.y, 1, 1, depthBytes, pRenderContext->pFramebuffer), udR_InternalError); // begin copy for next frame read
-
-  // 24 bit unsigned int -> float
-#if GRAPHICS_API_OPENGL || GRAPHICS_API_METAL
-  pRenderContext->previousFrameDepth = uint32_t((depthBytes[3] << 16) | (depthBytes[2] << 8) | (depthBytes[1] << 0)) / ((1 << 24) - 1.0f);
-  //uint8_t stencil = depthBytes[0];
-#else
-  // TODO (EVC-765): validate this byte order for metal
-  pRenderContext->previousFrameDepth = uint32_t((depthBytes[2] << 16) | (depthBytes[1] << 8) | (depthBytes[0] << 0)) / ((1 << 24) - 1.0f);
-  //uint8_t stencil = depthBytes[3];
-#endif
-
-  // fbo state may not be valid (e.g. first read back will be '0')
-  if (pRenderContext->previousFrameDepth == 0.0f)
-    pRenderContext->previousFrameDepth = 1.0f;
-
-epilogue:
-  return result;
 }
 
 void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
