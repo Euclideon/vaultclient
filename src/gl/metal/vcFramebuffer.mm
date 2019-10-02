@@ -1,13 +1,17 @@
 #import "gl/vcFramebuffer.h"
 #import "vcMetal.h"
 
-bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, int level /*= 0*/)
+bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, uint32_t level /*= 0*/)
 {
-  if (ppFramebuffer == nullptr)
+  udUnused(level);
+
+  if (ppFramebuffer == nullptr || pTexture == nullptr)
     return false;
 
-  udUnused(level);
+  udResult result = udR_Success;
+
   vcFramebuffer *pFramebuffer = udAllocType(vcFramebuffer, 1, udAF_Zero);
+  UD_ERROR_NULL(pFramebuffer, udR_MemoryAllocationFailure);
 
   pFramebuffer->pColor = pTexture;
   pFramebuffer->pDepth = pDepth;
@@ -21,7 +25,11 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
   *ppFramebuffer = pFramebuffer;
   pFramebuffer = nullptr;
 
-  return true;
+epilogue:
+  if (pFramebuffer != nullptr)
+    vcFramebuffer_Destroy(&pFramebuffer);
+
+  return result == udR_Success;
 }
 
 void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
