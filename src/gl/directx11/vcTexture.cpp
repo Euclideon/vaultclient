@@ -434,3 +434,88 @@ udResult vcTexture_GetSize(vcTexture *pTexture, int *pWidth, int *pHeight)
 
   return udR_Success;
 }
+
+bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels, vcFramebuffer *pFramebuffer)
+{
+  udUnused(pFramebuffer);
+
+  if (pTexture == nullptr || pPixels == nullptr || int(x + width) > pTexture->width || int(y + height) > pTexture->height)
+    return false;
+
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count)
+    return false;
+
+  udResult result = udR_Success;
+  if ((pTexture->flags & vcTCF_AsynchronousRead) != vcTCF_AsynchronousRead && pTexture->pStagingTextureD3D[pTexture->stagingIndex] == nullptr)
+  {
+    // Texture not configured for pixel read back, create a single temporary staging texture.
+    D3D11_TEXTURE2D_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = pTexture->d3dFormat;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_STAGING;
+    desc.BindFlags = 0;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+
+    // Create a full res texture, because subsequent reads may work with different regions. 
+    // Might be some optimizations here, if not D24S8 format, only recreate staging texture if sizes do not match.
+    desc.Width = pTexture->width;
+    desc.Height = pTexture->height;
+
+    UD_ERROR_IF(g_pd3dDevice->CreateTexture2D(&desc, nullptr, &pTexture->pStagingTextureD3D[pTexture->stagingIndex]) != S_OK, udR_InternalError);
+  }
+
+  // Begin asynchronous copy
+  if (pTexture->format == vcTextureFormat_D24S8 || pTexture->format == vcTextureFormat_D32F)
+  {
+    // If you use CopySubresourceRegion with a depth-stencil buffer or a multisampled resource, you must copy the whole subresource
+    // TODO: What about D32F format? (its not a depth-stencil)
+    g_pd3dDeviceContext->CopyResource(pTexture->pStagingTextureD3D[pTexture->stagingIndex], pTexture->pTextureD3D);
+  }
+  else
+  {
+    // left, top, front, right, bottom, back
+    D3D11_BOX srcBox = { x, y, 0, (x + width), (y + height), 1 };
+    g_pd3dDeviceContext->CopySubresourceRegion(pTexture->pStagingTextureD3D[pTexture->stagingIndex], 0, x, y, 0, pTexture->pTextureD3D, 0, &srcBox);
+  }
+
+  // If not configured for asynchronous read, perform copy immediately
+  if ((pTexture->flags & vcTCF_AsynchronousRead) != vcTCF_AsynchronousRead)
+  {
+    UD_ERROR_IF(!vcTexture_EndReadPixels(pTexture, x, y, width, height, pPixels), udR_InternalError);
+    pTexture->stagingIndex = 0; // force only using single staging texture
+  }
+
+epilogue:
+  return result == udR_Success;
+}
+
+bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
+{
+  if (pTexture == nullptr || pPixels == nullptr || int(x + width) > pTexture->width || int(y + height) > pTexture->height)
+    return false;
+
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count || pTexture->pStagingTextureD3D[pTexture->stagingIndex] == nullptr)
+    return false;
+
+  udResult result = udR_Success;
+  int pixelBytes = 4; // assumptions
+  uint32_t *pPixelData = nullptr;
+  D3D11_MAPPED_SUBRESOURCE msr;
+
+  ID3D11Texture2D *pStagingTexture = pTexture->pStagingTextureD3D[pTexture->stagingIndex];
+  pTexture->stagingIndex = (pTexture->stagingIndex + 1) & 1;
+
+  UD_ERROR_IF(g_pd3dDeviceContext->Map(pStagingTexture, 0, D3D11_MAP_READ, 0, &msr) != S_OK, udR_InternalError);
+
+  pPixelData = ((uint32_t *)msr.pData) + (x + y * pTexture->width);
+  memcpy(pPixels, pPixelData, width * height * pixelBytes);
+
+epilogue:
+  if (pStagingTexture != nullptr)
+    g_pd3dDeviceContext->Unmap(pStagingTexture, 0); // unmapping a non-mapped texture seems fine
+
+  return result == udR_Success;
+}
