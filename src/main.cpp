@@ -2065,7 +2065,14 @@ void vcRenderWindow(vcState *pProgramState)
     int margin = vcMainMenuGui(pProgramState);
 
     if (pProgramState->settings.docksLoaded != vcSettings::vcDockLoaded::vcDL_True)
+    {
+      ImGuiWindow *pWindow = ImGui::FindWindowByName("##MainMenuBar");
+      delete pWindow->Name;
+      pWindow->Name = new char[80];
+      vcStringFormat(pWindow->Name, 80, "{0}##MainMenuBar", vcString::Get("menuName"));
+
       pProgramState->settings.rootDock = ImGui::GetID("MyDockspace");
+    }
 
     ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
     ImGui::SetNextWindowPos(ImVec2(0, 0));

@@ -253,6 +253,7 @@
   "convertWatermark": "Watermark",
   "convertNoJobSelected": "No job is selected. Please select one on the left or create a new job.",
 
+  "menuName": "Main Menu Bar",
   "menuSystem": "System",
   "menuQuit": "Quit",
   "menuLanguage": "Language",
