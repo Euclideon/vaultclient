@@ -12,6 +12,7 @@
 #include "stb_image.h"
 
 uint32_t g_textureIndex = 0;
+uint32_t g_blitTargetID = 0;
 
 udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags, int32_t aniFilter /* = 0 */)
 {
@@ -362,4 +363,64 @@ udResult vcTexture_GetSize(struct vcTexture *pTexture, int *pWidth, int *pHeight
     *pHeight = (int)pTexture->height;
 
   return udR_Success;
+}
+
+bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels, vcFramebuffer *pFramebuffer)
+{
+  udUnused(pPixels);
+  
+  if (pFramebuffer == nullptr || pTexture == nullptr || (x + width) > pTexture->width || (y + height) > pTexture->height)
+    return false;
+
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count)
+    return false;
+
+  udResult result = udR_Success;
+  int pixelBytes = 4; // assumptions
+
+  @autoreleasepool
+  {
+    if (pTexture->blitTarget == 0)
+    {
+      [_renderer.blitBuffers addObject:[_device newBufferWithLength:pixelBytes * pTexture->width * pTexture->height options:MTLResourceStorageModeShared]];
+      
+      pTexture->blitTarget = ++g_blitTargetID;
+      pFramebuffer->actions |= vcRFA_Blit;
+    }
+    else if (_renderer.blitBuffers[pTexture->blitTarget - 1].length < 4 * pTexture->width * pTexture->height)
+    {
+      [_renderer.blitBuffers replaceObjectAtIndex:pTexture->blitTarget - 1 withObject:[_device newBufferWithLength:4 * pTexture->width * pTexture->height options:MTLResourceStorageModeShared]];
+    }
+    
+    [_renderer.blitEncoder copyFromTexture:_renderer.textures[[NSString stringWithFormat:@"%u",pTexture->ID]] sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(pTexture->width, pTexture->height, 1) toBuffer:_renderer.blitBuffers[pTexture->blitTarget - 1] destinationOffset:0 destinationBytesPerRow:4 * pTexture->width destinationBytesPerImage:4 * pTexture->width * pTexture->height];
+  
+    [_renderer flushBlit];
+  }
+  
+  return result == udR_Success;
+}
+
+bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
+{
+  if (pTexture == nullptr || pPixels == nullptr || (x + width) > pTexture->width || (y + height) > pTexture->height)
+    return false;
+
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count || pTexture->blitTarget == 0)
+    return false;
+
+  udResult result = udR_Success;
+  int pixelBytes = 4; // assumptions
+
+  uint32_t *pSource = (uint32_t*)[_renderer.blitBuffers[pTexture->blitTarget - 1] contents];
+  pSource += ((y * pTexture->width) + x);
+  
+  uint32_t rowBytes = pixelBytes * width;
+  
+  for (uint32_t i = 0; i < height; ++i)
+  {
+    for (uint32_t j = 0; j < width; ++j)
+      *((uint32_t*)pPixels + (i * rowBytes)) = *(pSource + (i * pTexture->width) + j);
+  }
+  
+  return result == udR_Success;
 }

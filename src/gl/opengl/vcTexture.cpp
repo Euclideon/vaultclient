@@ -2,6 +2,7 @@
 
 #include "vcSettings.h"
 #include "gl/vcTexture.h"
+#include "gl/vcFramebuffer.h"
 
 #include "udFile.h"
 #include "udPlatformUtil.h"
@@ -292,4 +293,82 @@ udResult vcTexture_GetSize(vcTexture *pTexture, int *pWidth, int *pHeight)
     *pHeight = (int)pTexture->height;
 
   return udR_Success;
+}
+
+bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels, vcFramebuffer *pFramebuffer)
+{
+  if (pFramebuffer == nullptr || pTexture == nullptr || pPixels == nullptr || int(x + width) > pTexture->width || int(y + height) > pTexture->height)
+    return false;
+
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count)
+    return false;
+
+  udResult result = udR_Success;
+  void *pPixelBuffer = pPixels;
+
+  UD_ERROR_IF(!vcFramebuffer_Bind(pFramebuffer), udR_InternalError);
+
+  // Only asychronously transfer if texture is configured for it
+  if ((pTexture->flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
+  {
+    // Copy to PBO
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, pTexture->pbos[pTexture->pboIndex]);
+    pPixelBuffer = nullptr;
+  }
+
+  switch (pTexture->format)
+  {
+  case vcTextureFormat_RGBA8:
+    glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pPixelBuffer);
+    break;
+  case vcTextureFormat_BGRA8:
+    glReadPixels(x, y, width, height, GL_BGRA, GL_UNSIGNED_BYTE, pPixelBuffer);
+    break;
+  case vcTextureFormat_D24S8:
+    glReadPixels(x, y, width, height, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, pPixelBuffer);
+    break;
+  case vcTextureFormat_D32F:
+    glReadPixels(x, y, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, pPixelBuffer);
+    break;
+
+  case vcTextureFormat_Unknown: // fall through
+  case vcTextureFormat_Cubemap: // fall through
+  case vcTextureFormat_Count:
+    break;
+  }
+
+  if ((pTexture->flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+
+epilogue:
+  VERIFY_GL();
+  return result == udR_Success;
+}
+
+bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
+{
+  if (pTexture == nullptr || pPixels == nullptr || int(x + width) > pTexture->width || int(y + height) > pTexture->height)
+    return false;
+
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Cubemap || pTexture->format == vcTextureFormat_Count || (pTexture->flags & vcTCF_AsynchronousRead) != vcTCF_AsynchronousRead)
+    return false;
+
+  udResult result = udR_Success;
+  int pixelBytes = 4; // assumptions
+
+  // Read previous PBO back to CPU
+  glBindBuffer(GL_PIXEL_PACK_BUFFER, pTexture->pbos[pTexture->pboIndex]);
+  pTexture->pboIndex = (pTexture->pboIndex + 1) & 1;
+
+  uint8_t *pData = (uint8_t *)glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, width * height * pixelBytes, GL_MAP_READ_BIT);
+  if (pData != nullptr)
+  {
+    glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+    memcpy(pPixels, pData, width * height * pixelBytes);
+  }
+  glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+
+//epilogue:
+  VERIFY_GL();
+  return result == udR_Success;
 }
