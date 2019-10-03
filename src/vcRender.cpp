@@ -629,8 +629,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
 
 void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer[1]);
-  vcFramebuffer_Clear(pRenderContext->pFramebuffer[1], 0x00FF8080);
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer[1], vcFramebufferClearOperation_All, 0x00FF8080);
 
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, true);
 
@@ -714,8 +713,7 @@ void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRender
 
 void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer[0]);
-  vcFramebuffer_Clear(pRenderContext->pFramebuffer[0], 0xFFFF8080);
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer[0], vcFramebufferClearOperation_All, 0xFFFF8080);
 
   vcGLState_ResetState();
 
@@ -884,8 +882,7 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
   vcGLState_SetBlendMode(vcGLSBM_None);
   vcGLState_SetViewport(0, 0, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y);
 
-  vcFramebuffer_Bind(pRenderContext->pAuxiliaryFramebuffers[0]);
-  vcFramebuffer_Clear(pRenderContext->pAuxiliaryFramebuffers[0], 0x00000000);
+  vcFramebuffer_Bind(pRenderContext->pAuxiliaryFramebuffers[0], vcFramebufferClearOperation_All);
 
   if (!vcRender_DrawSelectedGeometry(pProgramState, pRenderContext, renderData))
     return false;
@@ -898,8 +895,7 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
     vcGLState_SetBlendMode(vcGLSBM_None);
     for (int i = 0; i < 2; ++i)
     {
-      vcFramebuffer_Bind(pRenderContext->pAuxiliaryFramebuffers[1 - i]);
-      vcFramebuffer_Clear(pRenderContext->pAuxiliaryFramebuffers[1 - i], 0x00000000);
+      vcFramebuffer_Bind(pRenderContext->pAuxiliaryFramebuffers[1 - i], vcFramebufferClearOperation_All);
 
       pRenderContext->blurShader.params.stepSize.x = i == 0 ? sampleStepSize.x : 0.0f;
       pRenderContext->blurShader.params.stepSize.y = i == 0 ? 0.0f : sampleStepSize.y;
@@ -934,7 +930,6 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcRender_VisualizationPass(pProgramState, pRenderContext); // final pass
 
   vcFramebuffer_Bind(pRenderContext->pFramebuffer[1]);
-  // no clear
 
   vcRenderSkybox(pProgramState, pRenderContext); // Drawing skybox after opaque geometry saves a bit on fill rate.
   vcRenderTerrain(pProgramState, pRenderContext);
@@ -1162,8 +1157,7 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
   {
     renderOptions.flags = (vdkRenderFlags)(renderOptions.flags | vdkRF_GPURender);
 
-    vcFramebuffer_Bind(pRenderContext->udRenderContext.pFramebuffer);
-    vcFramebuffer_Clear(pRenderContext->udRenderContext.pFramebuffer, 0x00000000);
+    vcFramebuffer_Bind(pRenderContext->udRenderContext.pFramebuffer, vcFramebufferClearOperation_All);
 
     vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
   }
@@ -1236,8 +1230,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 
-    vcFramebuffer_Bind(pRenderContext->picking.pFramebuffer);
-    vcFramebuffer_Clear(pRenderContext->picking.pFramebuffer, 0x0);
+    vcFramebuffer_Bind(pRenderContext->picking.pFramebuffer, vcFramebufferClearOperation_All);
 
     vcGLState_SetViewport(0, 0, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y);
     vcGLState_Scissor(pRenderContext->picking.location.x, pRenderContext->picking.location.y, pRenderContext->picking.location.x + 1, pRenderContext->picking.location.y + 1);

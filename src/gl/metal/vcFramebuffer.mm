@@ -46,21 +46,20 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
   *ppFramebuffer = nullptr;
 }
 
-bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer)
+bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOperation clearOperation /*= vcFramebufferClearOperation_None*/, uint32_t clearColour /*= 0x0*/, const vcFramebufferClearOperation clearPreviousOperation /*= vcFramebufferClearOperation_None*/)
 {
-  [_renderer setFramebuffer:pFramebuffer];
+  udUnused(clearOperation);
+  udUnused(clearColour);
+  udUnused(clearPreviousOperation);
 
-  return true;
-}
-
-bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
-{
   if (pFramebuffer == nullptr)
     return false;
 
-  if (pFramebuffer->clear != colour)
+  [_renderer setFramebuffer:pFramebuffer];
+
+  if (pFramebuffer->clear != clearColour)
   {
-    udFloat4 col = udFloat4::create(((colour >> 16) & 0xFF) / 255.f, ((colour >> 8) & 0xFF) / 255.f, (colour & 0xFF) / 255.f, ((colour >> 24) & 0xFF) / 255.f);
+    udFloat4 col = udFloat4::create(((clearColour >> 16) & 0xFF) / 255.f, ((clearColour >> 8) & 0xFF) / 255.f, (clearColour & 0xFF) / 255.f, ((clearColour >> 24) & 0xFF) / 255.f);
 
     _renderer.renderPasses[pFramebuffer->ID].colorAttachments[0].clearColor = MTLClearColorMake(col.x,col.y,col.z,col.w);
     _renderer.renderPasses[pFramebuffer->ID].depthAttachment.clearDepth = 1.0;
