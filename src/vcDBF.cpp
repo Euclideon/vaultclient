@@ -1,6 +1,8 @@
 #include "udResult.h"
 #include "udStringUtil.h"
 #include "udChunkedArray.h"
+#include "udPlatform.h"
+#include "udThread.h"
 
 #include "vcDBF.h"
 #include "vcModals.h"
@@ -73,6 +75,25 @@ struct vcDBF
     uint32_t firstIndex;
   } memoData;
 };
+
+inline tm localtime_xp(time_t timer)
+{
+  tm bt{};
+#if UDPLATFORM_LINUX
+  localtime_r(&timer, &bt);
+#elif UDPLATFORM_WINDOWS
+  localtime_s(&bt, &timer);
+#else
+  static udMutex *pMtx;
+
+  pMtx = udLockMutex(pMtx);
+
+  bt = *localtime(&timer);
+
+  udReleaseMutex(pMtx);
+#endif
+  return bt;
+}
 
 udResult vcDBF_ReadRecord(vcDBF *pDBF, udFile *pFile);
 udResult vcDBF_WriteRecord(vcDBF *pDBF, udFile *pFile, vcDBF_Record *pRecord, udFile *pMemo = nullptr);
@@ -551,7 +572,7 @@ udResult vcDBF_Save(vcDBF *pDBF, const char *pFilename)
 
   vcDBF_Header dbfh = {};
   time_t currTime = time_t(0);
-  tm *pLocalTime;
+  tm localTime;
   uint8_t blank[20] = {};
   udFile *pFile = nullptr, *pMemo = nullptr;
 
@@ -574,11 +595,11 @@ udResult vcDBF_Save(vcDBF *pDBF, const char *pFilename)
   dbfh.recordCount = (int32_t)pDBF->records.length;
   dbfh.headerBytes = 32 * (pDBF->fieldCount + 1);
 
-  pLocalTime = localtime(&currTime);
+  localTime = localtime_xp(currTime);
 
-  dbfh.YMD[0] = (int8_t)pLocalTime->tm_year;
-  dbfh.YMD[1] = (int8_t)(pLocalTime->tm_mon + 1);
-  dbfh.YMD[2] = (int8_t)pLocalTime->tm_mday;
+  dbfh.YMD[0] = (int8_t)localTime.tm_year;
+  dbfh.YMD[1] = (int8_t)(localTime.tm_mon + 1);
+  dbfh.YMD[2] = (int8_t)localTime.tm_mday;
 
   for (int i = 0; i < pDBF->fieldCount; ++i)
     dbfh.recordBytes += pDBF->pFields[i].fieldLen;
