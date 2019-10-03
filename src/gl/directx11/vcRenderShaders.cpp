@@ -1,8 +1,8 @@
 #include "gl/vcRenderShaders.h"
 #include "udPlatformUtil.h"
 
-const char* const g_udFragmentShader = R"shader(
-  struct PS_INPUT
+const char *const g_VisualizationFragmentShader = R"shader(
+ struct PS_INPUT
   {
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
@@ -13,6 +13,12 @@ const char* const g_udFragmentShader = R"shader(
     float4 Color0 : SV_Target;
     float Depth0 : SV_Depth;
   };
+
+  sampler sampler0;
+  Texture2D texture0;
+
+  sampler sampler1;
+  Texture2D texture1;
 
   cbuffer u_params : register(b0)
   {
@@ -36,12 +42,6 @@ const char* const g_udFragmentShader = R"shader(
     float4 u_contourColour;
     float4 u_contourParams; // contour distance, contour band height, contour rainbow repeat rate, contour rainbow factoring
   };
-
-  sampler sampler0;
-  Texture2D texture0;
-
-  sampler sampler1;
-  Texture2D texture1;
 
   float linearizeDepth(float depth)
   {
@@ -144,6 +144,61 @@ const char* const g_udFragmentShader = R"shader(
       depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
     }
     col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
+
+    output.Color0 = float4(col.xyz, 1.0);// UD always opaque
+    output.Depth0 = depth;
+    return output;
+  }
+
+)shader";
+
+const char *const g_VisualizationVertexShader = R"shader(
+  struct VS_INPUT
+  {
+    float3 pos : POSITION;
+    float2 uv  : TEXCOORD0;
+  };
+
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD0;
+  };
+
+  PS_INPUT main(VS_INPUT input)
+  {
+    PS_INPUT output;
+    output.pos = float4(input.pos.xy, 0.f, 1.f);
+    output.uv  = input.uv;
+    return output;
+  }
+)shader";
+
+const char* const g_udFragmentShader = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD0;
+  };
+
+  struct PS_OUTPUT
+  {
+    float4 Color0 : SV_Target;
+    float Depth0 : SV_Depth;
+  };
+
+  sampler sampler0;
+  Texture2D texture0;
+
+  sampler sampler1;
+  Texture2D texture1;
+
+  PS_OUTPUT main(PS_INPUT input)
+  {
+    PS_OUTPUT output;
+
+    float4 col = texture0.Sample(sampler0, input.uv);
+    float depth = texture1.Sample(sampler1, input.uv).x;
 
     output.Color0 = float4(col.xyz, 1.0);// UD always opaque
     output.Depth0 = depth;
@@ -275,8 +330,6 @@ const char* const g_tileVertexShader = R"shader(
     return output;
   }
 )shader";
-
-
 
 const char* const g_CompassFragmentShader = R"shader(
   struct PS_INPUT
@@ -642,7 +695,7 @@ const char* const g_WaterVertexShader = R"shader(
   }
 )shader";
 
-const char* const g_PolygonP1N1UV1FragmentShader = R"shader(
+const char* const g_PolygonP3N3UV2FragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -668,7 +721,7 @@ const char* const g_PolygonP1N1UV1FragmentShader = R"shader(
   }
 )shader";
 
-const char* const g_PolygonP1N1UV1VertexShader = R"shader(
+const char* const g_PolygonP3N3UV2VertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
@@ -712,7 +765,7 @@ const char* const g_PolygonP1N1UV1VertexShader = R"shader(
   }
 )shader";
 
-const char* const g_PolygonP1UV1FragmentShader = R"shader(
+const char *const g_ImageRendererFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -730,10 +783,11 @@ const char* const g_PolygonP1UV1FragmentShader = R"shader(
   }
 )shader";
 
-const char* const g_PolygonP1UV1VertexShader = R"shader(
+const char *const g_ImageRendererMeshVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
+    float3 normal : NORMAL; // unused
     float2 uv  : TEXCOORD0;
   };
 
@@ -756,32 +810,14 @@ const char* const g_PolygonP1UV1VertexShader = R"shader(
     PS_INPUT output;
 
     output.pos = mul(u_modelViewProjectionMatrix, float4(input.pos, 1.0));
-    output.uv = float2(input.uv.x, 1.0 - input.uv.y);
+    output.uv = input.uv;
     output.colour = u_colour;
 
     return output;
   }
 )shader";
 
-const char* const g_BillboardFragmentShader = R"shader(
-  struct PS_INPUT
-  {
-    float4 pos : SV_POSITION;
-    float2 uv : TEXCOORD0;
-    float4 colour : COLOR0;
-  };
-
-  sampler sampler0;
-  Texture2D texture0;
-
-  float4 main(PS_INPUT input) : SV_Target
-  {
-    float4 col = texture0.Sample(sampler0, input.uv);
-    return col * input.colour;
-  }
-)shader";
-
-const char* const g_BillboardVertexShader = R"shader(
+const char *const g_ImageRendererBillboardVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
@@ -808,13 +844,13 @@ const char* const g_BillboardVertexShader = R"shader(
 
     output.pos = mul(u_modelViewProjectionMatrix, float4(input.pos, 1.0));
     output.pos.xy += u_screenSize.z * output.pos.w * u_screenSize.xy * float2(input.uv.x * 2.0 - 1.0, input.uv.y * 2.0 - 1.0); // expand billboard
+
     output.uv = float2(input.uv.x, 1.0 - input.uv.y);
     output.colour = u_colour;
 
     return output;
   }
 )shader";
-
 
 const char* const g_FlatColour_FragmentShader = R"shader(
   struct PS_INPUT

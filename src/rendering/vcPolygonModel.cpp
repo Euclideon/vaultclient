@@ -337,41 +337,48 @@ udResult vcPolygonModel_Destroy(vcPolygonModel **ppModel)
 
 udResult vcPolygonModel_CreateShaders()
 {
-  ++gPolygonShaderRefCount;
-  if (gPolygonShaderRefCount != 1)
-    return udR_Success;
-
   udResult result;
+  vcPolygonModelShader *pPolygonShader = nullptr;
+  ++gPolygonShaderRefCount;
 
-  vcPolygonModelShader *pPolygonShader = &gShaders[vcPMST_P3N3UV2_Opaque];
-  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP1N1UV1VertexShader, g_PolygonP1N1UV1FragmentShader, vcP3N3UV2VertexLayout), udR_InternalError);
-  vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame));
-  vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject));
-  vcShader_GetSamplerIndex(&pPolygonShader->pDiffuseSampler, pPolygonShader->pShader, "u_texture");
+  UD_ERROR_IF(gPolygonShaderRefCount != 1, udR_Success);
+
+  pPolygonShader = &gShaders[vcPMST_P3N3UV2_Opaque];
+  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP3N3UV2VertexShader, g_PolygonP3N3UV2FragmentShader, vcP3N3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pPolygonShader->pDiffuseSampler, pPolygonShader->pShader, "u_texture"), udR_InternalError);
 
   pPolygonShader = &gShaders[vcPMST_P3N3UV2_FlatColour];
-  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP1N1UV1VertexShader, g_FlatColour_FragmentShader, vcP3N3UV2VertexLayout), udR_InternalError);
-  vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame));
-  vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject));
+  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP3N3UV2VertexShader, g_FlatColour_FragmentShader, vcP3N3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject)), udR_InternalError);
 
   result = udR_Success;
 
 epilogue:
+  if (result != udR_Success)
+    vcPolygonModel_DestroyShaders();
+
   return result;
 }
 
 udResult vcPolygonModel_DestroyShaders()
 {
+  udResult result;
   --gPolygonShaderRefCount;
-  if (gPolygonShaderRefCount != 0)
-    return udR_Success;
+
+  UD_ERROR_IF(gPolygonShaderRefCount != 0, udR_Success);
 
   for (int i = 0; i < vcPMST_Count; ++i)
   {
-    vcShader_ReleaseConstantBuffer(gShaders[i].pShader, gShaders[i].pEveryObjectConstantBuffer);
-    vcShader_ReleaseConstantBuffer(gShaders[i].pShader, gShaders[i].pEveryFrameConstantBuffer);
+    UD_ERROR_IF(!vcShader_ReleaseConstantBuffer(gShaders[i].pShader, gShaders[i].pEveryObjectConstantBuffer), udR_InternalError);
+    UD_ERROR_IF(!vcShader_ReleaseConstantBuffer(gShaders[i].pShader, gShaders[i].pEveryFrameConstantBuffer), udR_InternalError);
     vcShader_DestroyShader(&gShaders[i].pShader);
   }
 
-  return udR_Success;
+  result = udR_Success;
+
+epilogue:
+  return result;
 }
