@@ -62,7 +62,7 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
     {
       vcState::ErrorItem projectError;
       projectError.source = vcES_ProjectChange;
-      projectError.pImpetus = udStrdup(pFilename);
+      projectError.pData = udStrdup(pFilename);
       projectError.resultCode = udR_ParseError;
 
       pProgramState->errorItems.PushBack(projectError);

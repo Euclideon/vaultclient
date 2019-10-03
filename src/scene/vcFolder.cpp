@@ -201,7 +201,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           {
             vcState::ErrorItem projectError;
             projectError.source = vcES_ProjectChange;
-            projectError.pImpetus = udStrdup(pSceneItem->m_pName);
+            projectError.pData = udStrdup(pSceneItem->m_pName);
             projectError.resultCode = udR_Failure_;
 
             pProgramState->errorItems.PushBack(projectError);

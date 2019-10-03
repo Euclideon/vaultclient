@@ -456,7 +456,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
           {
             vcState::ErrorItem projectError;
             projectError.source = vcES_ProjectChange;
-            projectError.pImpetus = udStrdup(pProgramState->pConvertContext->jobs[selectedJob]->pConvertInfo->pOutputName);
+            projectError.pData = udStrdup(pProgramState->pConvertContext->jobs[selectedJob]->pConvertInfo->pOutputName);
             projectError.resultCode = udR_Failure_;
 
             pProgramState->errorItems.PushBack(projectError);
@@ -844,7 +844,7 @@ epilogue:
   {
     vcState::ErrorItem fileError;
     fileError.source = vcES_File;
-    fileError.pImpetus = udStrdup(pFilename);
+    fileError.pData = udStrdup(pFilename);
     fileError.resultCode = result;
     pProgramState->errorItems.PushBack(fileError);
     pFilename = nullptr;
@@ -879,7 +879,7 @@ void vcConvert_QueueFile(vcState *pProgramState, const char *pFilename)
         //TODO: Handle the udResult properly
         vcState::ErrorItem fileError;
         fileError.source = vcES_File;
-        fileError.pImpetus = udStrdup(pFilename);
+        fileError.pData = udStrdup(pFilename);
         fileError.resultCode = udR_Unsupported;
         pProgramState->errorItems.PushBack(fileError);
       }
