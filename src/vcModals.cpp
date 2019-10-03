@@ -546,12 +546,12 @@ void vcModals_DrawFileModal(vcState *pProgramState)
 
           vcState::ErrorItem projectError;
           projectError.source = vcES_ProjectChange;
-          projectError.pImpetus = udStrdup(exportFilename.GetFilenameWithExt());
+          projectError.pData = udStrdup(exportFilename.GetFilenameWithExt());
 
-          if (udFile_Save(exportFilename.GetPath(), (void *)pOutput, udStrlen(pOutput)) != udR_Success)
-            projectError.resultCode = udR_WriteFailure;
-          else
+          if (udFile_Save(exportFilename.GetPath(), (void *)pOutput, udStrlen(pOutput)) == udR_Success)
             projectError.resultCode = udR_Success;
+          else
+            projectError.resultCode = udR_WriteFailure;
 
           pProgramState->errorItems.PushBack(projectError);
 
@@ -634,9 +634,7 @@ void vcModals_DrawLoadWatermark(vcState *pProgramState)
 void vcModals_DrawProjectChangeResult(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_ProjectChange))
-  {
     ImGui::OpenPopup("###ProjectChange");
-  }
 
   if (ImGui::BeginPopupModal("###ProjectChange", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar))
   {
@@ -651,7 +649,7 @@ void vcModals_DrawProjectChangeResult(vcState *pProgramState)
 
       if (pProgramState->errorItems[i].source == vcES_ProjectChange)
       {
-        ImGui::TextUnformatted(pProgramState->errorItems[i].pImpetus);
+        ImGui::TextUnformatted(pProgramState->errorItems[i].pData);
         switch (pProgramState->errorItems[i].resultCode)
         {
         case udR_WriteFailure:
@@ -681,7 +679,7 @@ void vcModals_DrawProjectChangeResult(vcState *pProgramState)
       {
         if (pProgramState->errorItems[i].source == vcES_ProjectChange)
         {
-          udFree(pProgramState->errorItems[i].pImpetus);
+          udFree(pProgramState->errorItems[i].pData);
           pProgramState->errorItems.RemoveAt(i);
           --i;
         }
@@ -728,7 +726,7 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
       {
         if (pProgramState->errorItems[i].source == vcES_File)
         {
-          udFree(pProgramState->errorItems[i].pImpetus);
+          udFree(pProgramState->errorItems[i].pData);
           pProgramState->errorItems.RemoveAt(i);
           --i;
         }
@@ -755,7 +753,7 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
       ImGui::SameLine();
       // Get the offset so the next column is offset by the same value to keep alignment
       float offset = ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset;
-      ImGui::TextUnformatted(pProgramState->errorItems[i].pImpetus);
+      ImGui::TextUnformatted(pProgramState->errorItems[i].pData);
       ImGui::NextColumn();
 
       ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset = offset;
@@ -764,7 +762,7 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
 
       if (removeItem)
       {
-        udFree(pProgramState->errorItems[i].pImpetus);
+        udFree(pProgramState->errorItems[i].pData);
         pProgramState->errorItems.RemoveAt(i);
         --i;
       }

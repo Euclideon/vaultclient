@@ -4,7 +4,7 @@
 
 - Version 0.4.0
   - Added:
-    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedLoad`
+    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`
   - Changed:
     - ?
   - Removed:

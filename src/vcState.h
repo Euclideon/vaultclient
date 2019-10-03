@@ -74,7 +74,7 @@ struct vcState
   struct ErrorItem
   {
     vcErrorSource source;
-    const char *pImpetus;
+    const char *pData;
     udResult resultCode;
   };
 

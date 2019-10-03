@@ -348,8 +348,10 @@ void vcMain_MainLoop(vcState *pProgramState)
         {
           vcState::ErrorItem status;
           status.source = vcES_File;
-          status.pImpetus = pNextLoad; // this takes ownership so we don't need to dup or free
+          status.pData = pNextLoad; // this takes ownership so we don't need to dup or free
           status.resultCode = result;
+
+          pNextLoad = nullptr;
 
           pProgramState->errorItems.PushBack(status);
 
@@ -386,12 +388,16 @@ void vcMain_MainLoop(vcState *pProgramState)
             {
               vcState::ErrorItem projectError;
               projectError.source = vcES_ProjectChange;
-              projectError.pImpetus = pNextLoad; // this takes ownership so we don't need to dup or free
+              projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
               projectError.resultCode = udR_ReadFailure;
+
+              pNextLoad = nullptr;
 
               pProgramState->errorItems.PushBack(projectError);
 
               vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+
+              continue;
             }
             else if (firstLoad) // Was successful
               udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
@@ -473,8 +479,10 @@ void vcMain_MainLoop(vcState *pProgramState)
           {
             vcState::ErrorItem status;
             status.source = vcES_File;
-            status.pImpetus = pNextLoad; // this takes ownership so we don't need to dup or free
+            status.pData = pNextLoad; // this takes ownership so we don't need to dup or free
             status.resultCode = udR_Unsupported;
+
+            pNextLoad = nullptr;
 
             pProgramState->errorItems.PushBack(status);
 
@@ -878,7 +886,7 @@ epilogue:
   programState.loadList.Deinit();
 
   for (size_t i = 0; i < programState.errorItems.length; i++)
-    udFree(programState.errorItems[i].pImpetus);
+    udFree(programState.errorItems[i].pData);
   programState.errorItems.Deinit();
 
   udWorkerPool_Destroy(&programState.pWorkerPool); // This needs to occur before logout
@@ -1694,7 +1702,7 @@ int vcMainMenuGui(vcState *pProgramState)
             {
               vcState::ErrorItem projectError;
               projectError.source = vcES_ProjectChange;
-              projectError.pImpetus = udStrdup(pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
+              projectError.pData = udStrdup(pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
               projectError.resultCode = udR_Failure_;
 
               pProgramState->errorItems.PushBack(projectError);
@@ -1718,7 +1726,7 @@ int vcMainMenuGui(vcState *pProgramState)
             {
               vcState::ErrorItem projectError;
               projectError.source = vcES_ProjectChange;
-              projectError.pImpetus = udStrdup(pFeedName);
+              projectError.pData = udStrdup(pFeedName);
               projectError.resultCode = udR_Failure_;
 
               pProgramState->errorItems.PushBack(projectError);
@@ -2125,7 +2133,7 @@ void vcRenderWindow(vcState *pProgramState)
           {
             vcState::ErrorItem projectError;
             projectError.source = vcES_ProjectChange;
-            projectError.pImpetus = udStrdup(vcString::Get("sceneExplorerAddFolder"));
+            projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFolder"));
             projectError.resultCode = udR_Failure_;
 
             pProgramState->errorItems.PushBack(projectError);
@@ -2150,7 +2158,7 @@ void vcRenderWindow(vcState *pProgramState)
           {
             vcState::ErrorItem projectError;
             projectError.source = vcES_ProjectChange;
-            projectError.pImpetus = udStrdup(vcString::Get("sceneExplorerAddViewpoint"));
+            projectError.pData = udStrdup(vcString::Get("sceneExplorerAddViewpoint"));
             projectError.resultCode = udR_Failure_;
 
             pProgramState->errorItems.PushBack(projectError);
@@ -2181,7 +2189,7 @@ void vcRenderWindow(vcState *pProgramState)
             {
               vcState::ErrorItem projectError;
               projectError.source = vcES_ProjectChange;
-              projectError.pImpetus = udStrdup(vcString::Get("sceneExplorerAddFeed"));
+              projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFeed"));
               projectError.resultCode = udR_Failure_;
 
               pProgramState->errorItems.PushBack(projectError);
