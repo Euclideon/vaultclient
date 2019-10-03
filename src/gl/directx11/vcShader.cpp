@@ -196,14 +196,14 @@ void vcShader_DestroyShader(vcShader **ppShader)
 
 bool vcShader_Bind(vcShader *pShader)
 {
-  if (pShader == nullptr)
-    return false;
+  if (pShader != nullptr)
+  {
+    g_pd3dDeviceContext->IASetInputLayout(pShader->pLayout);
 
-  g_pd3dDeviceContext->IASetInputLayout(pShader->pLayout);
-
-  g_pd3dDeviceContext->VSSetShader(pShader->pVertexShader, NULL, 0);
-  g_pd3dDeviceContext->PSSetShader(pShader->pPixelShader, NULL, 0);
-  g_pd3dDeviceContext->GSSetShader(pShader->pGeometryShader, NULL, 0);
+    g_pd3dDeviceContext->VSSetShader(pShader->pVertexShader, NULL, 0);
+    g_pd3dDeviceContext->PSSetShader(pShader->pPixelShader, NULL, 0);
+    g_pd3dDeviceContext->GSSetShader(pShader->pGeometryShader, NULL, 0);
+  }
 
   return true;
 }
