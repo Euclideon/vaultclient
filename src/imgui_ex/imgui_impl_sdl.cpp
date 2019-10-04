@@ -328,6 +328,8 @@ static bool    ImGui_ImplSDL2_Init(SDL_Window* window)
     if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) && (io.BackendFlags & ImGuiBackendFlags_PlatformHasViewports))
       ImGui_ImplSDL2_InitPlatformInterface(window);
 
+    SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
+
     return true;
 }
 
