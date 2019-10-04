@@ -290,18 +290,15 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
         // Handle everyNth here in one place, slightly inefficiently but with the benefit of simplicity for the rest of the function
         if (pSceneLayerConvert->everyNth > 1)
         {
-          uint32_t i, pc;
-          for (i = pc = 0; i < pointCount; ++i)
+          memcpy(&pTriPositions[0], &pTriPositions[0], sizeof(double) * 3);
+          memcpy(&pTriWeights[0], &pTriWeights[0], sizeof(double) * 3);
+
+          for (uint32_t i = (uint32_t)pSceneLayerConvert->everyNth; i < pointCount; i += (uint32_t)pSceneLayerConvert->everyNth)
           {
-            if (++pSceneLayerConvert->everyNthAccum >= pSceneLayerConvert->everyNth)
-            {
-              memcpy(&pTriPositions[pc * 3], &pTriPositions[i * 3], sizeof(double) * 3);
-              memcpy(&pTriWeights[pc * 3], &pTriWeights[i * 3], sizeof(double) * 3);
-              ++pc;
-              pSceneLayerConvert->everyNthAccum -= pSceneLayerConvert->everyNth;
-            }
+            memcpy(&pTriPositions[i / pSceneLayerConvert->everyNth], &pTriPositions[i], sizeof(double) * 3);
+            memcpy(&pTriWeights[i / pSceneLayerConvert->everyNth], &pTriWeights[i], sizeof(double) * 3);
           }
-          pointCount = pc;
+          pointCount /= (uint32_t)pSceneLayerConvert->everyNth;
         }
 
         // write all points from current triangle
