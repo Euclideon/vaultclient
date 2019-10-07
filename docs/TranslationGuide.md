@@ -4,7 +4,7 @@
 
 - Version 0.4.0
   - Added:
-    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `convertAllSpaceLabel`, `loginEnterURL`
+    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `convertSpaceECEF`, `convertAllSpaceLabel`, `loginEnterURL`
   - Changed:
     - ?
   - Removed:
@@ -399,6 +399,7 @@ Modules are currently:
 - `convertSpaceCartesian`: The label on the combobox item for a cartesian projected conversion input
 - `convertSpaceLatLong`: The label on the combobox item for a latitude, longitude ordered conversion input
 - `convertSpaceLongLat`: The label on the combobox item for a longitude, latitude ordered conversion input
+- `convertSpaceECEF`: The label on the combobox item for earth centered, earth fixed conversion inputs
 - `convertAddFileTitle`: Title of the file dialog used for adding files to the convert queue
 - `convertSetOutputTitle`: Title of the file dialog used for setting the convert output path
 - `convertSetTempDirectoryTitle`: Title of the file dialog used for setting the convert temporary directory

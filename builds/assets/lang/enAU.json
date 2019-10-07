@@ -246,6 +246,7 @@
   "convertSpaceCartesian": "Cartesian",
   "convertSpaceLatLong": "Latitude then Longitude",
   "convertSpaceLongLat": "Longitude then Latitude",
+  "convertSpaceECEF": "Earth Centered And Fixed",
   "convertAddFileTitle": "Add Input File to Convert",
   "convertSetOutputTitle": "Set Output Name & Path",
   "convertSetTempDirectoryTitle": "Set Temporary Directory",

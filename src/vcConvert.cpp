@@ -648,6 +648,9 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       uint64_t totalItems = pSelectedJob->pConvertInfo->totalItems + pSelectedJob->itemsToProcess.length + (pSelectedJob->pItemProcessing == nullptr ? 0 : 1);
 
+      const char *sourceSpaceNames[] = { vcString::Get("convertSpaceCartesian"), vcString::Get("convertSpaceLatLong"), vcString::Get("convertSpaceLongLat"), vcString::Get("convertSpaceECEF") };
+      UDCOMPILEASSERT(vdkCSP_Count == udLengthOf(sourceSpaceNames), "Please update to match number of convert spaces");
+
       if (totalItems > 0)
       {
         ImGui::SetNextTreeNodeOpen(true, ImGuiCond_FirstUseEver);
@@ -674,14 +677,11 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
           ImGui::NextColumn();
 
-          const char *sourceSpaceNames[] = { vcString::Get("convertSpaceCartesian"), vcString::Get("convertSpaceLatLong"), vcString::Get("convertSpaceLongLat") };
-
-          static int globalSource = 0;
-          const char *globalSourceSpaceNames[] = { "", vcString::Get("convertSpaceCartesian"), vcString::Get("convertSpaceLatLong"), vcString::Get("convertSpaceLongLat") };
-          if (ImGui::Combo(udTempStr("%s###convertallitemspace", vcString::Get("convertAllSpaceLabel")), &globalSource, globalSourceSpaceNames, (int)udLengthOf(globalSourceSpaceNames)) && globalSource > 0)
+          static int globalSource = -1;
+          if (ImGui::Combo(udTempStr("%s###convertallitemspace", vcString::Get("convertAllSpaceLabel")), &globalSource, sourceSpaceNames, (int)udLengthOf(sourceSpaceNames)) && globalSource > -1)
           {
             for (size_t i = 0; i < pSelectedJob->pConvertInfo->totalItems; ++i)
-              vdkConvert_SetInputSourceProjection(pSelectedJob->pConvertContext, i, (vdkConvertSourceProjection)(globalSource - 1));
+              vdkConvert_SetInputSourceProjection(pSelectedJob->pConvertContext, i, (vdkConvertSourceProjection)(globalSource));
           }
 
           ImGui::Columns(3);
@@ -716,10 +716,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
               ImGui::NextColumn();
 
-              //TODO: Localize this
               int sourceSpace = (int)itemInfo.sourceProjection;
-              UDCOMPILEASSERT(vdkCSP_Count == 3, "Please update to match number of convert spaces");
-
               if (ImGui::Combo(udTempStr("%s###converitemspace_%zu", vcString::Get("convertSpaceLabel"), i), &sourceSpace, sourceSpaceNames, (int)udLengthOf(sourceSpaceNames)))
                 vdkConvert_SetInputSourceProjection(pSelectedJob->pConvertContext, i, (vdkConvertSourceProjection)sourceSpace);
             }
