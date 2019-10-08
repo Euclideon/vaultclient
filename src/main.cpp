@@ -59,7 +59,6 @@
 #include <emscripten/emscripten.h>
 #endif
 
-
 UDCOMPILEASSERT(VDK_MAJOR_VERSION == 0 && VDK_MINOR_VERSION == 3, "This version of VDK is not compatible");
 
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
@@ -811,10 +810,6 @@ int main(int argc, char **args)
   ImGui::GetStyle().WindowRounding = 0.0f;
 
   vcMain_LoadSettings(&programState, false);
-
-#if UD_DEBUG
-  programState.settings.experimental.useGPURenderer = true;
-#endif
 
 #if UDPLATFORM_EMSCRIPTEN
   // This needs to be here because the settings will load with the incorrect resolution (1280x720)
@@ -1651,7 +1646,7 @@ int vcMainMenuGui(vcState *pProgramState)
 
       if (ImGui::BeginMenu(vcString::Get("menuExperimentalFeatures")))
       {
-        ImGui::MenuItem("GPU Render", nullptr, &pProgramState->settings.experimental.useGPURenderer, ALLOW_EXPERIMENT_GPURENDER);
+        ImGui::Separator();
 
         ImGui::EndMenu();
       }

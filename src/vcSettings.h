@@ -257,7 +257,7 @@ struct vcSettings
   // They will mostly be exposed via the System->Experiments menu to hide them away from most users
   struct
   {
-    bool useGPURenderer;
+    //No current experiments
   } experimental;
 
   udChunkedArray<vcLanguageOption> languageOptions;
