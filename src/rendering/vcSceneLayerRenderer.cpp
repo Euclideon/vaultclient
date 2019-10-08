@@ -77,7 +77,7 @@ double vcSceneLayerRenderer_CalculateNodeScreenSize(vcSceneLayerNode *pNode, con
   double r1 = udMag(center.toVector3() - p1.toVector3());
   double r2 = udMag(center.toVector3() - p2.toVector3());
   udDouble2 screenSize = udDouble2::create(screenResolution.x * r1, screenResolution.y * r2);
-  return udMax(screenSize.x, screenSize.y);
+  return 2.0 * udMax(screenSize.x, screenSize.y);
 }
 
 void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udFloat4 *pColourOverride)

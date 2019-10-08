@@ -376,7 +376,7 @@ udResult vcSceneLayer_LoadFeatureData(const vcSceneLayer *pSceneLayer, vcSceneLa
         pNode->pFeatureData[i].pGeometryLayout[a] = vcVLT_ColourBGRA;
       else
       {
-        // the renderer will ignore anything else
+        // attribute gets ignored
         pNode->pFeatureData[i].pGeometryLayout[a] = vcVLT_Unsupported;
         attributeSize = 0;
       }
@@ -451,6 +451,9 @@ udResult vcSceneLayer_LoadGeometryData(const vcSceneLayer *pSceneLayer, vcSceneL
       uint32_t attributeSize = vcLayout_GetSize(pNode->pFeatureData[i].pGeometryLayout[attributeIndex]);
       vcVertexLayoutTypes attributeType = pNode->pFeatureData[i].pGeometryLayout[attributeIndex];
       pCurrentFile = pFileData + pNode->pFeatureData[i].pAttributeOffset[attributeIndex];
+
+      if (attributeType == vcVLT_Unsupported)
+        continue;
 
       // positions require additional pre-processing
       if (attributeType == vcVLT_Position3)
