@@ -6,6 +6,7 @@
 #include "vcModals.h"
 
 #include "udFile.h"
+#include "udStringUtil.h"
 
 void vcProject_InitBlankScene(vcState *pProgramState)
 {
@@ -59,8 +60,14 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
     }
     else
     {
-      // TODO: EVC-671 More descriptive error, code is vE_ParseError
-      vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+      vcState::ErrorItem projectError;
+      projectError.source = vcES_ProjectChange;
+      projectError.pData = udStrdup(pFilename);
+      projectError.resultCode = udR_ParseError;
+
+      pProgramState->errorItems.PushBack(projectError);
+
+      vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
     }
 
     udFree(pMemory);

@@ -454,7 +454,14 @@ void vcConvert_ShowUI(vcState *pProgramState)
           }
           else
           {
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+            vcState::ErrorItem projectError;
+            projectError.source = vcES_ProjectChange;
+            projectError.pData = udStrdup(pProgramState->pConvertContext->jobs[selectedJob]->pConvertInfo->pOutputName);
+            projectError.resultCode = udR_Failure_;
+
+            pProgramState->errorItems.PushBack(projectError);
+
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
           }
         }
 
@@ -835,10 +842,11 @@ epilogue:
 
   if (pFilename != nullptr && result != udR_Success)
   {
-    vcState::FileError fileError;
-    fileError.pFilename = pFilename;
+    vcState::ErrorItem fileError;
+    fileError.source = vcES_File;
+    fileError.pData = udStrdup(pFilename);
     fileError.resultCode = result;
-    pProgramState->errorFiles.PushBack(fileError);
+    pProgramState->errorItems.PushBack(fileError);
     pFilename = nullptr;
   }
 
@@ -869,10 +877,11 @@ void vcConvert_QueueFile(vcState *pProgramState, const char *pFilename)
       else
       {
         //TODO: Handle the udResult properly
-        vcState::FileError fileError;
-        fileError.pFilename = udStrdup(pFilename);
+        vcState::ErrorItem fileError;
+        fileError.source = vcES_File;
+        fileError.pData = udStrdup(pFilename);
         fileError.resultCode = udR_Unsupported;
-        pProgramState->errorFiles.PushBack(fileError);
+        pProgramState->errorItems.PushBack(fileError);
       }
     }
     else
