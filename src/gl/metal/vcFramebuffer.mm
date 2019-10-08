@@ -49,7 +49,6 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
 bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOperation clearOperation /*= vcFramebufferClearOperation_None*/, uint32_t clearColour /*= 0x0*/, const vcFramebufferClearOperation clearPreviousOperation /*= vcFramebufferClearOperation_None*/)
 {
   udUnused(clearOperation);
-  udUnused(clearColour);
   udUnused(clearPreviousOperation);
 
   if (pFramebuffer == nullptr)
