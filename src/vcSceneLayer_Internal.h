@@ -76,6 +76,7 @@ struct vcSceneLayerNode
     udDouble4 minimumBoundingBox;
 
     vcVertexLayoutTypes *pGeometryLayout;
+    uint64_t *pAttributeOffset;
     size_t geometryLayoutCount;
 
   } *pFeatureData;
