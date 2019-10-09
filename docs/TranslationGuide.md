@@ -4,11 +4,11 @@
 
 - Version 0.4.0
   - Added:
-    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`
+    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`
   - Changed:
     - ?
   - Removed:
-    - ?
+    - `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeSucceededTitle`
 
 - Version 0.3.1
   - Added:

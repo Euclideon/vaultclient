@@ -198,7 +198,16 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         if (ImGui::IsItemDeactivatedAfterEdit())
         {
           if (vdkProjectNode_SetName(pProgramState->activeProject.pProject, pNode, pSceneItem->m_pName) != vE_Success)
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+          {
+            vcState::ErrorItem projectError;
+            projectError.source = vcES_ProjectChange;
+            projectError.pData = udStrdup(pSceneItem->m_pName);
+            projectError.resultCode = udR_Failure_;
+
+            pProgramState->errorItems.PushBack(projectError);
+
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+          }
         }
 
         if (ImGui::IsItemDeactivated() || !(pProgramState->sceneExplorer.selectedItems.back().pParent == m_pNode && pProgramState->sceneExplorer.selectedItems.back().pItem == pNode))

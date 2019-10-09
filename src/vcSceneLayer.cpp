@@ -353,6 +353,8 @@ udResult vcSceneLayer_LoadFeatureData(const vcSceneLayer *pSceneLayer, vcSceneLa
 
     pNode->pFeatureData[i].pGeometryLayout = udAllocType(vcVertexLayoutTypes, pNode->pFeatureData[i].geometryLayoutCount, udAF_Zero);
     UD_ERROR_NULL(pNode->pFeatureData[i].pGeometryLayout, udR_MemoryAllocationFailure);
+    pNode->pFeatureData[i].pAttributeOffset = udAllocType(uint64_t, pNode->pFeatureData[i].geometryLayoutCount, udAF_Zero);
+    UD_ERROR_NULL(pNode->pFeatureData[i].pAttributeOffset, udR_MemoryAllocationFailure);
 
     pNode->pGeometryData[i].vertexStride = 0;
 
@@ -376,10 +378,12 @@ udResult vcSceneLayer_LoadFeatureData(const vcSceneLayer *pSceneLayer, vcSceneLa
       {
         // the renderer will ignore anything else
         pNode->pFeatureData[i].pGeometryLayout[a] = vcVLT_Unsupported;
+        attributeSize = 0;
       }
 
       // store in geometry data
       pNode->pGeometryData[i].vertexStride += attributeSize;
+      pNode->pFeatureData[i].pAttributeOffset[a] = pVertexAttributeJSON->Get("byteOffset").AsInt64();
     }
 
     UD_ERROR_IF(pNode->pGeometryData[i].vertexStride == 0, udR_Unsupported);
@@ -403,7 +407,7 @@ udResult vcSceneLayer_LoadGeometryData(const vcSceneLayer *pSceneLayer, vcSceneL
   uint64_t featureCount = 0;
   uint64_t faceCount = 0;
   char *pCurrentFile = nullptr;
-  uint32_t attributeOffset = 0;
+  uint64_t attributeOffset = 0;
   int64_t fileLen = 0;
   udDouble3 originCartesian = {};
 
@@ -446,6 +450,7 @@ udResult vcSceneLayer_LoadGeometryData(const vcSceneLayer *pSceneLayer, vcSceneL
     {
       uint32_t attributeSize = vcLayout_GetSize(pNode->pFeatureData[i].pGeometryLayout[attributeIndex]);
       vcVertexLayoutTypes attributeType = pNode->pFeatureData[i].pGeometryLayout[attributeIndex];
+      pCurrentFile = pFileData + pNode->pFeatureData[i].pAttributeOffset[attributeIndex];
 
       // positions require additional pre-processing
       if (attributeType == vcVLT_Position3)
@@ -520,7 +525,6 @@ udResult vcSceneLayer_LoadGeometryData(const vcSceneLayer *pSceneLayer, vcSceneL
           {
             // A value of *vertex-reference-frame* indicates that normals are stored in the same reference frame as
             // vertices and is only valid for projected vertexCRS.
-
             // TODO: fixing in a future MR
           }
 
@@ -538,7 +542,6 @@ udResult vcSceneLayer_LoadGeometryData(const vcSceneLayer *pSceneLayer, vcSceneL
 
         pCurrentFile += attributeSize;
       }
-
       attributeOffset += attributeSize;
     }
 
@@ -868,8 +871,8 @@ void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode)
   for (size_t i = 0; i < pNode->featureDataCount; ++i)
   {
     udFree(pNode->pFeatureData[i].pURL);
-
     udFree(pNode->pFeatureData[i].pGeometryLayout);
+    udFree(pNode->pFeatureData[i].pAttributeOffset);
   }
 
   for (size_t i = 0; i < pNode->textureDataCount; ++i)
