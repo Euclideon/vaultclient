@@ -85,8 +85,6 @@ struct vcShader
 
   vcShaderConstantBuffer bufferObjects[16];
   int numBufferObjects;
-  vcShaderSampler samplerIndexes[16];
-  int numSamplerIndexes;
 
   vcRendererFlushOption flush;
 };

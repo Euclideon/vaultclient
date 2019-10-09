@@ -60,7 +60,6 @@
 //- (void)flushCompute;
 - (void)bindPipeline:(nonnull struct vcShader*)pShader;
 - (void)bindTexture:(nonnull struct vcTexture*)pTexture index:(NSInteger)samplerIndex;
-- (void)bindSampler:(nonnull struct vcShaderSampler*)pTexture index:(NSInteger)samplerIndex;
 - (void)bindDepthStencil:(nonnull id<MTLDepthStencilState>)dsState settings:(nullable struct vcGLStencilSettings *)pStencil;
 - (void)bindBlendState:(vcGLStateBlendMode)blendMode;
 - (void)drawUnindexed:(nonnull id<MTLBuffer>)vertBuffer vertexStart:(NSUInteger)vStart vertexCount:(NSUInteger)vCount primitiveType:(MTLPrimitiveType)type;
