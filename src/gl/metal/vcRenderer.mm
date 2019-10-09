@@ -138,12 +138,6 @@
   [_encoders[pCurrFramebuffer->ID] setFragmentSamplerState:_samplers[currID] atIndex:tIndex];
 }
 
-- (void)bindSampler:(nonnull struct vcShaderSampler *)pSampler index:(NSInteger)samplerIndex
-{
-  NSString *currID = [NSString stringWithUTF8String:pSampler->name];
-  [_encoders[pCurrFramebuffer->ID] setFragmentSamplerState:_samplers[currID] atIndex:samplerIndex];
-}
-
 - (void)bindDepthStencil:(nonnull id<MTLDepthStencilState>)dsState settings:(nullable vcGLStencilSettings *)pStencil
 {
   for (int i = 0; i < BUFFER_COUNT; ++i)

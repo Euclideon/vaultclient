@@ -165,13 +165,12 @@ bool vcShader_Bind(vcShader *pShader)
 bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderSampler *pSampler/* = nullptr*/)
 {
   udUnused(pShader);
+  udUnused(pSampler);
+
   if (pTexture == nullptr)
     return false;
   
   [_renderer bindTexture:pTexture index:samplerIndex];
-
-  if (pSampler)
-    [_renderer bindSampler:pSampler index:samplerIndex];
 
   return true;
 }
