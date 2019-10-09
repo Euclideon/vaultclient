@@ -21,6 +21,9 @@ udResult vcPolygonModel_DestroyShaders();
 udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel, const void *pVerts, const uint16_t vertCount, const vcVertexLayoutTypes *pMeshLayout, const int totalTypes, const uint16_t *pIndices = nullptr, const uint16_t indexCount = 0);
 udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL);
 
+// OBJ
+udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const char *pFilepath);
+
 udResult vcPolygonModel_Destroy(vcPolygonModel **ppModel);
 
 udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelMatrix, const udDouble4x4 &viewProjectionMatrix, const vcPolyModelPass &passType = vcPMP_Standard, vcTexture *pDiffuseOverride = nullptr, const udFloat4 *pColourOverride = nullptr);
