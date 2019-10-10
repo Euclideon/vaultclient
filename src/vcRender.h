@@ -47,6 +47,16 @@ struct vcMouseData
   bool clicked;
 };
 
+struct vcViewShedData
+{
+  //udUInt2 resolution; // TODO
+  udDouble3 position;
+  float fieldOfView;
+  udFloat2 nearFarPlane;
+  udFloat4 visibleColour;
+  udFloat4 notVisibleColour;
+};
+
 struct vcRenderData
 {
   vcMouseData mouse;
@@ -57,6 +67,8 @@ struct vcRenderData
   udChunkedArray<vcRenderPolyInstance> polyModels;
   udChunkedArray<vcWaterRenderer*> waterVolumes;
   udChunkedArray<vcImageRenderInfo*> images;
+
+  udChunkedArray<vcViewShedData> viewSheds;
 
   vcTexture *pSceneTexture;
   udFloat2 sceneScaling;
