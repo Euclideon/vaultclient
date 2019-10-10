@@ -165,13 +165,12 @@ bool vcShader_Bind(vcShader *pShader)
 bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderSampler *pSampler/* = nullptr*/)
 {
   udUnused(pShader);
+  udUnused(pSampler);
+
   if (pTexture == nullptr)
     return false;
   
   [_renderer bindTexture:pTexture index:samplerIndex];
-
-  if (pSampler)
-    [_renderer bindSampler:pSampler index:samplerIndex];
 
   return true;
 }
@@ -238,17 +237,9 @@ bool vcShader_ReleaseConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *p
 
 bool vcShader_GetSamplerIndex(vcShaderSampler **ppSampler, vcShader *pShader, const char *pSamplerName)
 {
-  if (pShader == nullptr)
-    return false;
+  udUnused(ppSampler);
+  udUnused(pShader);
+  udUnused(pSamplerName);
 
-  for (int i = 0; i < pShader->numBufferObjects; ++i)
-  {
-    if (udStrEquali(pShader->samplerIndexes[i].name, pSamplerName))
-    {
-      *ppSampler = &pShader->samplerIndexes[i];
-      return true;
-    }
-  }
-
-  return false;
+  return true;
 }

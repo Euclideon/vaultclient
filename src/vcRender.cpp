@@ -668,7 +668,7 @@ void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRender
   pRenderContext->visualizationShader.params.contourParams.z = contourRainboxRepeatRate;
   pRenderContext->visualizationShader.params.contourParams.w = contourRainboxIntensity;
 
-  vcShader_BindConstantBuffer(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->visualizationShader.uniform_params, &pRenderContext->visualizationShader.params, sizeof(pRenderContext->visualizationShader.params));
+  vcShader_BindConstantBuffer(pRenderContext->visualizationShader.pProgram, pRenderContext->visualizationShader.uniform_params, &pRenderContext->visualizationShader.params, sizeof(pRenderContext->visualizationShader.params));
 
   vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
