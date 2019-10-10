@@ -656,6 +656,8 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
         if (ImGui::TreeNodeEx(pSelectedJob->pConvertInfo, 0, "%s", localizationBuffer))
         {
+          ImGui::Columns(2);
+
           if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled) && ImGui::Button(vcString::Get("convertRemoveAll")))
           {
             while (pSelectedJob->pConvertInfo->totalItems > 0)
@@ -668,6 +670,18 @@ void vcConvert_ShowUI(vcState *pProgramState)
               pSelectedJob->itemsToProcess.PopFront();
             }
             udReleaseMutex(pSelectedJob->pMutex);
+          }
+
+          ImGui::NextColumn();
+
+          const char *sourceSpaceNames[] = { vcString::Get("convertSpaceCartesian"), vcString::Get("convertSpaceLatLong"), vcString::Get("convertSpaceLongLat") };
+
+          static int globalSource = 0;
+          const char *globalSourceSpaceNames[] = { "", vcString::Get("convertSpaceCartesian"), vcString::Get("convertSpaceLatLong"), vcString::Get("convertSpaceLongLat") };
+          if (ImGui::Combo(udTempStr("%s###convertallitemspace", vcString::Get("convertSpaceLabel")), &globalSource, globalSourceSpaceNames, (int)udLengthOf(globalSourceSpaceNames)) && globalSource > 0)
+          {
+            for (size_t i = 0; i < pSelectedJob->pConvertInfo->totalItems; ++i)
+              vdkConvert_SetInputSourceProjection(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i, (vdkConvertSourceProjection)(globalSource - 1));
           }
 
           ImGui::Columns(3);
@@ -706,7 +720,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
               int sourceSpace = (int)itemInfo.sourceProjection;
               UDCOMPILEASSERT(vdkCSP_Count == 3, "Please update to match number of convert spaces");
 
-              const char *sourceSpaceNames[] = { vcString::Get("convertSpaceCartesian"), vcString::Get("convertSpaceLatLong"), vcString::Get("convertSpaceLongLat") };
               if (ImGui::Combo(udTempStr("%s###converitemspace_%zu", vcString::Get("convertSpaceLabel"), i), &sourceSpace, sourceSpaceNames, (int)udLengthOf(sourceSpaceNames)))
                 vdkConvert_SetInputSourceProjection(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i, (vdkConvertSourceProjection)sourceSpace);
             }
