@@ -584,7 +584,11 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   for (size_t i = 0; i < udLengthOf(isBtnHeld); ++i)
     totalButtonsHeld += isBtnHeld[i] ? 1 : 0;
 
-  bool forceClearMouseState = (!isMouseBtnBeingHeld && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_ChildWindows));
+  // Start hold time
+  if (isFocused && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
+    isMouseBtnBeingHeld = true;
+
+  bool forceClearMouseState = !isFocused;
 
   // Was the gizmo just clicked on?
   gizmoCapturedMouse = gizmoCapturedMouse || (pProgramState->gizmo.operation != 0 && vcGizmo_IsHovered() && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]));
@@ -602,7 +606,16 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     memset(isBtnHeld, 0, sizeof(isBtnHeld));
     mouseDelta = ImVec2();
     mouseWheel = 0.0f;
+    isMouseBtnBeingHeld = false;
     // Leaving isBtnReleased unchanged as there should be no reason to ignore a mouse release while the window has mouse focus
+  }
+
+  // Accept mouse input
+  if (isMouseBtnBeingHeld)
+  {
+    mouseInput.x = -mouseDelta.x / 100.0;
+    mouseInput.y = -mouseDelta.y / 100.0;
+    mouseInput.z = 0.0;
   }
 
   // Controller Input
@@ -700,15 +713,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
         pProgramState->cameraInput.inputState = vcCIS_Panning;
       }
-    }
-
-    // Click and Hold
-    if (isBtnHeld[i] && !isBtnClicked[i])
-    {
-      isMouseBtnBeingHeld = true;
-      mouseInput.x = -mouseDelta.x / 100.0;
-      mouseInput.y = -mouseDelta.y / 100.0;
-      mouseInput.z = 0.0;
     }
 
     if (isBtnReleased[i])
