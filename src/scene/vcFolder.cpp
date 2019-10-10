@@ -294,6 +294,10 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           ((vcModel*)pSceneItem)->m_sceneMatrix = ((vcModel*)pSceneItem)->m_defaultMatrix;
           ((vcModel*)pSceneItem)->ChangeProjection(pProgramState->gis.zone);
         }
+        else if (udStrEquali(pNode->itemtypeStr, "I3S") && ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
+        {
+          ((vcI3S *)pSceneItem)->m_sceneMatrix = udDouble4x4::identity();
+        }
 
         if (ImGui::Selectable(vcString::Get("sceneExplorerRemoveItem")))
         {
