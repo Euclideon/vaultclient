@@ -21,18 +21,13 @@ enum vcPolygonModelShaderType
 static struct vcPolygonModelShader
 {
   vcShader *pShader;
-  vcShaderConstantBuffer *pEveryFrameConstantBuffer;
   vcShaderConstantBuffer *pEveryObjectConstantBuffer;
 
   vcShaderSampler *pDiffuseSampler;
 
   struct
   {
-    udFloat4x4 u_modelViewProjectionMatrix;
-  } everyFrame;
-
-  struct
-  {
+    udFloat4x4 u_worldViewProjectionMatrix;
     udFloat4x4 u_world;
     udFloat4 u_colour;
   } everyObject;
@@ -283,7 +278,6 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
 
     vcShader_Bind(pPolygonShader->pShader);
 
-    pPolygonShader->everyFrame.u_modelViewProjectionMatrix = udFloat4x4::create(viewProjectionMatrix * modelMatrix);
 
     float s = 1.0f / 255.0f;
     udFloat4 colour = udFloat4::create(
@@ -297,9 +291,9 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
 
     pPolygonShader->everyObject.u_colour = colour;
     pPolygonShader->everyObject.u_world = udFloat4x4::create(modelMatrix);
+    pPolygonShader->everyObject.u_worldViewProjectionMatrix = udFloat4x4::create(viewProjectionMatrix * modelMatrix);
 
     vcShader_BindConstantBuffer(pPolygonShader->pShader, pPolygonShader->pEveryObjectConstantBuffer, &pPolygonShader->everyObject, sizeof(vcPolygonModelShader::everyObject));
-    vcShader_BindConstantBuffer(pPolygonShader->pShader, pPolygonShader->pEveryFrameConstantBuffer, &pPolygonShader->everyFrame, sizeof(vcPolygonModelShader::everyFrame));
 
     vcTexture *pDiffuseTexture = pModelMesh->material.pTexture;
     if (pDiffuseOverride)
@@ -345,13 +339,11 @@ udResult vcPolygonModel_CreateShaders()
 
   pPolygonShader = &gShaders[vcPMST_P3N3UV2_Opaque];
   UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP3N3UV2VertexShader, g_PolygonP3N3UV2FragmentShader, vcP3N3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pPolygonShader->pDiffuseSampler, pPolygonShader->pShader, "u_texture"), udR_InternalError);
 
   pPolygonShader = &gShaders[vcPMST_P3N3UV2_FlatColour];
   UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP3N3UV2VertexShader, g_FlatColour_FragmentShader, vcP3N3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryFrameConstantBuffer, pPolygonShader->pShader, "u_EveryFrame", sizeof(vcPolygonModelShader::everyFrame)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject)), udR_InternalError);
 
   result = udR_Success;
@@ -373,7 +365,6 @@ udResult vcPolygonModel_DestroyShaders()
   for (int i = 0; i < vcPMST_Count; ++i)
   {
     UD_ERROR_IF(!vcShader_ReleaseConstantBuffer(gShaders[i].pShader, gShaders[i].pEveryObjectConstantBuffer), udR_InternalError);
-    UD_ERROR_IF(!vcShader_ReleaseConstantBuffer(gShaders[i].pShader, gShaders[i].pEveryFrameConstantBuffer), udR_InternalError);
     vcShader_DestroyShader(&gShaders[i].pShader);
   }
 

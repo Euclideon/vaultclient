@@ -393,7 +393,7 @@ const char* const g_CompassVertexShader = VERT_HEADER R"shader(
 
   layout (std140) uniform u_EveryObject
   {
-    mat4 u_viewProjectionMatrix;
+    mat4 u_worldViewProjectionMatrix;
     vec4 u_colour;
     vec3 u_sunDirection;
     float _padding;
@@ -401,7 +401,7 @@ const char* const g_CompassVertexShader = VERT_HEADER R"shader(
 
   void main()
   {
-    gl_Position = u_viewProjectionMatrix * vec4(a_pos, 1.0);
+    gl_Position = u_worldViewProjectionMatrix * vec4(a_pos, 1.0);
 
     v_normal = ((a_normal * 0.5) + 0.5);
     v_colour = u_colour;
@@ -469,7 +469,7 @@ layout (std140) uniform u_EveryFrame
 
 layout (std140) uniform u_EveryObject
 {
-  mat4 u_modelViewProjectionMatrix;
+  mat4 u_worldViewProjectionMatrix;
 };
 
 void main()
@@ -481,7 +481,7 @@ void main()
   // fence or flat
   vec3 worldPosition = a_position + mix(vec3(0, 0, a_ribbonInfo.w) * u_width, a_ribbonInfo.xyz, u_orientation);
 
-  gl_Position = u_modelViewProjectionMatrix * vec4(worldPosition, 1.0);
+  gl_Position = u_worldViewProjectionMatrix * vec4(worldPosition, 1.0);
 }
 )shader";
 
@@ -581,8 +581,8 @@ const char* const g_WaterVertexShader = VERT_HEADER R"shader(
   layout (std140) uniform u_EveryObject
   {
     vec4 u_colourAndSize;
-    mat4 u_modelViewMatrix;
-    mat4 u_modelViewProjectionMatrix;
+    mat4 u_worldViewMatrix;
+    mat4 u_worldViewProjectionMatrix;
   };
 
   void main()
@@ -594,10 +594,10 @@ const char* const g_WaterVertexShader = VERT_HEADER R"shader(
     v_uv0 = uvScaleBodySize * a_position.xy * vec2(0.25) - vec2(uvOffset, uvOffset);
     v_uv1 = uvScaleBodySize * a_position.yx * vec2(0.50) - vec2(uvOffset, uvOffset * 0.75);
 
-    v_fragEyePos = u_modelViewMatrix * vec4(a_position, 0.0, 1.0);
+    v_fragEyePos = u_worldViewMatrix * vec4(a_position, 0.0, 1.0);
     v_colour = u_colourAndSize.xyz;
 
-    gl_Position = u_modelViewProjectionMatrix * vec4(a_position, 0.0, 1.0);
+    gl_Position = u_worldViewProjectionMatrix * vec4(a_position, 0.0, 1.0);
   }
 )shader";
 
@@ -638,23 +638,19 @@ const char* const g_PolygonP3N3UV2VertexShader = VERT_HEADER R"shader(
   out vec4 v_colour;
   out vec3 v_normal;
 
-  layout (std140) uniform u_EveryFrame
-  {
-    mat4 u_modelViewProjectionMatrix;
-  };
-
   layout (std140) uniform u_EveryObject
   {
-    mat4 u_modelMatrix;
+    mat4 u_worldViewProjectionMatrix;
+    mat4 u_worldMatrix;
     vec4 u_colour;
   };
 
   void main()
   {
     // making the assumption that the model matrix won't contain non-uniform scale
-    vec3 worldNormal = normalize((u_modelMatrix * vec4(a_normal, 0.0)).xyz);
+    vec3 worldNormal = normalize((u_worldMatrix * vec4(a_normal, 0.0)).xyz);
 
-    gl_Position = u_modelViewProjectionMatrix * vec4(a_pos, 1.0);
+    gl_Position = u_worldViewProjectionMatrix * vec4(a_pos, 1.0);
 
     v_uv = a_uv;
     v_normal = worldNormal;
@@ -691,14 +687,14 @@ const char *const g_ImageRendererMeshVertexShader = VERT_HEADER R"shader(
 
   layout (std140) uniform u_EveryObject
   {
-    mat4 u_modelViewProjectionMatrix;
+    mat4 u_worldViewProjectionMatrix;
     vec4 u_colour;
     vec4 u_screenSize; // unused
   };
 
   void main()
   {
-    gl_Position = u_modelViewProjectionMatrix * vec4(a_pos, 1.0);
+    gl_Position = u_worldViewProjectionMatrix * vec4(a_pos, 1.0);
 
     v_uv = a_uv;
     v_colour = u_colour;
@@ -716,14 +712,14 @@ const char *const g_ImageRendererBillboardVertexShader = VERT_HEADER R"shader(
 
   layout (std140) uniform u_EveryObject
   {
-    mat4 u_modelViewProjectionMatrix;
+    mat4 u_worldViewProjectionMatrix;
     vec4 u_colour;
     vec4 u_screenSize;
   };
 
   void main()
   {
-    gl_Position = u_modelViewProjectionMatrix * vec4(a_pos, 1.0);
+    gl_Position = u_worldViewProjectionMatrix * vec4(a_pos, 1.0);
     gl_Position.xy += u_screenSize.z * gl_Position.w * u_screenSize.xy * vec2(a_uv.x * 2.0 - 1.0, a_uv.y * 2.0 - 1.0); // expand billboard
 
     v_uv = vec2(a_uv.x, 1.0 - a_uv.y);
@@ -888,7 +884,7 @@ const char *const g_udGPURenderQuadVertexShader = VERT_HEADER R"shader(
 
   layout (std140) uniform u_EveryObject
   {
-    mat4 u_worldViewProj;
+    mat4 u_worldViewProjectionMatrix;
   };
 
   void main()
@@ -897,14 +893,14 @@ const char *const g_udGPURenderQuadVertexShader = VERT_HEADER R"shader(
 
     // Points
     vec4 off = vec4(a_position.www * 2.0, 0);
-    vec4 pos0 = u_worldViewProj * vec4(a_position.xyz + off.www, 1.0);
-    vec4 pos1 = u_worldViewProj * vec4(a_position.xyz + off.xww, 1.0);
-    vec4 pos2 = u_worldViewProj * vec4(a_position.xyz + off.xyw, 1.0);
-    vec4 pos3 = u_worldViewProj * vec4(a_position.xyz + off.wyw, 1.0);
-    vec4 pos4 = u_worldViewProj * vec4(a_position.xyz + off.wwz, 1.0);
-    vec4 pos5 = u_worldViewProj * vec4(a_position.xyz + off.xwz, 1.0);
-    vec4 pos6 = u_worldViewProj * vec4(a_position.xyz + off.xyz, 1.0);
-    vec4 pos7 = u_worldViewProj * vec4(a_position.xyz + off.wyz, 1.0);
+    vec4 pos0 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.www, 1.0);
+    vec4 pos1 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xww, 1.0);
+    vec4 pos2 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xyw, 1.0);
+    vec4 pos3 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wyw, 1.0);
+    vec4 pos4 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wwz, 1.0);
+    vec4 pos5 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xwz, 1.0);
+    vec4 pos6 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xyz, 1.0);
+    vec4 pos7 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wyz, 1.0);
 
     vec4 minPos, maxPos;
     minPos = min(pos0, pos1);
@@ -949,7 +945,7 @@ const char *const g_udGPURenderGeomVertexShader = VERT_HEADER R"shader(
 
   layout (std140) uniform u_EveryObject
   {
-    mat4 u_worldViewProj;
+    mat4 u_worldViewProjectionMatrix;
     vec4 u_colour;
   };
 
@@ -959,14 +955,14 @@ const char *const g_udGPURenderGeomVertexShader = VERT_HEADER R"shader(
 
     // Points
     vec4 off = vec4(a_position.www * 2.0, 0);
-    vec4 pos0 = u_worldViewProj * vec4(a_position.xyz + off.www, 1.0);
-    vec4 pos1 = u_worldViewProj * vec4(a_position.xyz + off.xww, 1.0);
-    vec4 pos2 = u_worldViewProj * vec4(a_position.xyz + off.xyw, 1.0);
-    vec4 pos3 = u_worldViewProj * vec4(a_position.xyz + off.wyw, 1.0);
-    vec4 pos4 = u_worldViewProj * vec4(a_position.xyz + off.wwz, 1.0);
-    vec4 pos5 = u_worldViewProj * vec4(a_position.xyz + off.xwz, 1.0);
-    vec4 pos6 = u_worldViewProj * vec4(a_position.xyz + off.xyz, 1.0);
-    vec4 pos7 = u_worldViewProj * vec4(a_position.xyz + off.wyz, 1.0);
+    vec4 pos0 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.www, 1.0);
+    vec4 pos1 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xww, 1.0);
+    vec4 pos2 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xyw, 1.0);
+    vec4 pos3 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wyw, 1.0);
+    vec4 pos4 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wwz, 1.0);
+    vec4 pos5 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xwz, 1.0);
+    vec4 pos6 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xyz, 1.0);
+    vec4 pos7 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wyz, 1.0);
 
     vec4 minPos, maxPos;
     minPos = min(pos0, pos1);

@@ -153,7 +153,7 @@ visualizationFragmentShader(VVSOutput in [[stage_in]],
 
   struct CVSUniforms
   {
-    float4x4 u_viewProjectionMatrix;
+    float4x4 u_worldViewProjectionMatrix;
     float4 u_color;
     float3 u_sunDirection;
   };
@@ -162,7 +162,7 @@ visualizationFragmentShader(VVSOutput in [[stage_in]],
   compassVertexShader(CVSInput in [[stage_in]], constant CVSUniforms& uCVS [[buffer(1)]])
   {
     CVSOutput out;
-    out.v_fragClipPosition = uCVS.u_viewProjectionMatrix * float4(in.a_pos, 1.0);
+    out.v_fragClipPosition = uCVS.u_worldViewProjectionMatrix * float4(in.a_pos, 1.0);
     out.pos = out.v_fragClipPosition;
     out.v_normal = (in.a_normal * 0.5) + 0.5;
     out.v_color = uCVS.u_color;
@@ -329,7 +329,7 @@ visualizationFragmentShader(VVSOutput in [[stage_in]],
 
   struct FVSEveryObject
   {
-    float4x4 u_modelViewProjectionMatrix;
+    float4x4 u_worldViewProjectionMatrix;
   };
 
   struct FVSInput
@@ -351,7 +351,7 @@ visualizationFragmentShader(VVSOutput in [[stage_in]],
     // fence or flat
     float3 worldPosition = in.a_position + mix(float3(0, 0, in.a_ribbonInfo.w) * uFVS.u_width, in.a_ribbonInfo.xyz, uFVS.u_orientation);
 
-    out.v_position = uFVSEO.u_modelViewProjectionMatrix * float4(worldPosition, 1.0);
+    out.v_position = uFVSEO.u_worldViewProjectionMatrix * float4(worldPosition, 1.0);
     return out;
   }
 
@@ -449,8 +449,8 @@ struct WVSUniforms1
 struct WVSUniforms2
 {
     float4 u_colorAndSize;
-    float4x4 u_modelViewMatrix;
-    float4x4 u_modelViewProjectionMatrix;
+    float4x4 u_worldViewMatrix;
+    float4x4 u_worldViewProjectionMatrix;
 };
 
 vertex WVSOutput
@@ -465,9 +465,9 @@ waterVertexShader(WVSInput in [[stage_in]], constant WVSUniforms1& uWVS1 [[buffe
     out.uv0 = uvScaleBodySize * in.pos.xy * float2(0.25, 0.25) - float2(uvOffset);
     out.uv1 = uvScaleBodySize * in.pos.yx * float2(0.50, 0.50) - float2(uvOffset, uvOffset * 0.75);
     
-    out.fragEyePos = uWVS2.u_modelViewMatrix * float4(in.pos, 0.0, 1.0);
+    out.fragEyePos = uWVS2.u_worldViewMatrix * float4(in.pos, 0.0, 1.0);
     out.color = uWVS2.u_colorAndSize.xyz;
-    out.pos = uWVS2.u_modelViewProjectionMatrix * float4(in.pos, 0.0, 1.0);
+    out.pos = uWVS2.u_worldViewProjectionMatrix * float4(in.pos, 0.0, 1.0);
     
     return out;
 }
@@ -539,27 +539,23 @@ struct PNUVSOutput
 
 struct PNUVSUniforms1
 {
-  float4x4 u_modelViewProjectionMatrix;
-};
-
-struct PNUVSUniforms2
-{
-  float4x4 u_modelMatrix;
+  float4x4 u_worldViewProjectionMatrix;
+  float4x4 u_worldMatrix;
   float4 u_color;
 };
 
 vertex PNUVSOutput
-polygonP3N3UV2VertexShader(PNUVSInput in [[stage_in]], constant PNUVSUniforms1& PNUVS1 [[buffer(1)]], constant PNUVSUniforms2& PNUVS2 [[buffer(2)]])
+polygonP3N3UV2VertexShader(PNUVSInput in [[stage_in]], constant PNUVSUniforms1& PNUVS1 [[buffer(1)]])
 {
   PNUVSOutput out;
 
   // making the assumption that the model matrix won't contain non-uniform scale
-  float3 worldNormal = normalize((PNUVS2.u_modelMatrix * float4(in.normal, 0.0)).xyz);
+  float3 worldNormal = normalize((PNUVS1.u_worldMatrix * float4(in.normal, 0.0)).xyz);
 
-  out.pos = PNUVS1.u_modelViewProjectionMatrix * float4(in.pos, 1.0);
+  out.pos = PNUVS1.u_worldViewProjectionMatrix * float4(in.pos, 1.0);
   out.uv = in.uv;
   out.normal = worldNormal;
-  out.color = PNUVS2.u_color;
+  out.color = PNUVS1.u_color;
   
   return out;
 }
@@ -607,7 +603,7 @@ struct PNUVVSInput
 
 struct IRMVSUniforms
 {
-    float4x4 u_modelViewProjectionMatrix;
+    float4x4 u_worldViewProjectionMatrix;
     float4 u_color;
     float4 u_screenSize; // unused
 };
@@ -617,7 +613,7 @@ imageRendererMeshVertexShader(PNUVVSInput in [[stage_in]], constant IRMVSUniform
 {
     PUC out;
     
-    out.pos = uniforms.u_modelViewProjectionMatrix * float4(in.pos, 1.0);
+    out.pos = uniforms.u_worldViewProjectionMatrix * float4(in.pos, 1.0);
     out.uv = float2(in.uv[0], 1.0 - in.uv[1]);
     out.color = uniforms.u_color;
     
@@ -633,7 +629,7 @@ struct IRBVSInput
 
 struct IRBVSUniforms
 {
-    float4x4 u_modelViewProjectionMatrix;
+    float4x4 u_worldViewProjectionMatrix;
     float4 u_color;
     float4 u_screenSize;
 };
@@ -643,7 +639,7 @@ imageRendererBillboardVertexShader(IRBVSInput in [[stage_in]], constant IRBVSUni
 {
     PUC out;
     
-    out.pos = uniforms.u_modelViewProjectionMatrix * float4(in.pos, 1.0);
+    out.pos = uniforms.u_worldViewProjectionMatrix * float4(in.pos, 1.0);
     out.pos.xy += uniforms.u_screenSize.z * out.pos.w * uniforms.u_screenSize.xy * float2(in.uv.x * 2.0 - 1.0, in.uv.y * 2.0 - 1.0); // expand billboard
     out.uv = float2(in.uv.x, 1.0 - in.uv.y);
     
@@ -832,7 +828,7 @@ struct GQFSInput
 
 struct GQVSUniforms
 {
-    float4x4 u_worldViewProj;
+    float4x4 u_worldViewProjectionMatrix;
 };
 
 vertex GQFSInput
@@ -844,14 +840,14 @@ gpuRenderQuadVertexShader(GQVSInput in [[stage_in]], constant GQVSUniforms& unif
     
     // Points
     float4 off = float4(in.pos.www * 2.0, 0);
-    float4 pos0 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.www, 1.0);
-    float4 pos1 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.xww, 1.0);
-    float4 pos2 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.xyw, 1.0);
-    float4 pos3 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.wyw, 1.0);
-    float4 pos4 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.wwz, 1.0);
-    float4 pos5 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.xwz, 1.0);
-    float4 pos6 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.xyz, 1.0);
-    float4 pos7 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.wyz, 1.0);
+    float4 pos0 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.www, 1.0);
+    float4 pos1 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.xww, 1.0);
+    float4 pos2 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.xyw, 1.0);
+    float4 pos3 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.wyw, 1.0);
+    float4 pos4 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.wwz, 1.0);
+    float4 pos5 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.xwz, 1.0);
+    float4 pos6 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.xyz, 1.0);
+    float4 pos7 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.wyz, 1.0);
     
     float4 minPos, maxPos;
     minPos = min(pos0, pos1);
@@ -905,7 +901,7 @@ struct QuadOutput
 
 struct QuadUniforms
 {
-    float4x4 u_worldViewProj;
+    float4x4 u_worldViewProjectionMatrix;
     float4 u_color;
 };
 
@@ -918,14 +914,14 @@ firstPass(const device PCin *in [[buffer(0)]], constant QuadUniforms& uniforms [
     
     // Points
     float4 off = float4(in[v_id].pos.www * 2.0, 0);
-    float4 pos0 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.www, 1.0);
-    float4 pos1 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.xww, 1.0);
-    float4 pos2 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.xyw, 1.0);
-    float4 pos3 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.wyw, 1.0);
-    float4 pos4 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.wwz, 1.0);
-    float4 pos5 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.xwz, 1.0);
-    float4 pos6 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.xyz, 1.0);
-    float4 pos7 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.wyz, 1.0);
+    float4 pos0 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.www, 1.0);
+    float4 pos1 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.xww, 1.0);
+    float4 pos2 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.xyw, 1.0);
+    float4 pos3 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.wyw, 1.0);
+    float4 pos4 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.wwz, 1.0);
+    float4 pos5 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.xwz, 1.0);
+    float4 pos6 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.xyz, 1.0);
+    float4 pos7 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.wyz, 1.0);
     
     float4 minPos, maxPos;
     minPos = min(pos0, pos1);

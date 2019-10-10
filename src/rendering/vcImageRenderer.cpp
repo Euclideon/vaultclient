@@ -27,7 +27,7 @@ static struct vcImageShader
 
   struct
   {
-    udFloat4x4 u_modelViewProjectionMatrix;
+    udFloat4x4 u_worldViewProjectionMatrix;
     udFloat4 u_colour;
     udFloat4 u_screenSize;
   } everyObject;
@@ -97,7 +97,7 @@ bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &vi
   vcImageShader *pShader = &gShaders[pImageInfo->type];
   vcShader_Bind(pShader->pShader);
 
-  pShader->everyObject.u_modelViewProjectionMatrix = udFloat4x4::create(mvp);
+  pShader->everyObject.u_worldViewProjectionMatrix = udFloat4x4::create(mvp);
   pShader->everyObject.u_colour = pImageInfo->colour;
 
   if (pImageInfo->size == vcIS_Native)

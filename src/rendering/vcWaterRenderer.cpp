@@ -39,21 +39,21 @@ struct vcWaterRenderer
 
     struct
     {
-      udFloat4 time;
+      udFloat4 u_time;
     } everyFrameVertParams;
 
     struct
     {
-      udFloat4 specularDir;
-      udFloat4x4 eyeNormalMatrix;
-      udFloat4x4 inverseViewMatrix;
+      udFloat4 u_specularDir;
+      udFloat4x4 u_eyeNormalMatrix;
+      udFloat4x4 u_inverseViewMatrix;
     } everyFrameFragParams;
 
     struct
     {
-      udFloat4 colourAndSize;
-      udFloat4x4 modelViewMatrix;
-      udFloat4x4 modelViewProjectionMatrix;
+      udFloat4 u_colourAndSize;
+      udFloat4x4 u_modelViewMatrix;
+      udFloat4x4 u_worldViewProjectionMatrix;
     } everyObjectParams;
 
   } renderShader;
@@ -221,10 +221,10 @@ bool vcWaterRenderer_Render(vcWaterRenderer *pWaterRenderer, const udDouble4x4 &
 
   pWaterRenderer->totalTimePassed += deltaTime;
 
-  pWaterRenderer->renderShader.everyFrameVertParams.time = udFloat4::create((float)pWaterRenderer->totalTimePassed, 0.0f, 0.0f, 0.0f);
-  pWaterRenderer->renderShader.everyFrameFragParams.specularDir = udFloat4::create(specularDir.x, specularDir.y, specularDir.z, 0.0f);
-  pWaterRenderer->renderShader.everyFrameFragParams.eyeNormalMatrix = udFloat4x4::create(udTranspose(inverseView));
-  pWaterRenderer->renderShader.everyFrameFragParams.inverseViewMatrix = udFloat4x4::create(inverseView);
+  pWaterRenderer->renderShader.everyFrameVertParams.u_time = udFloat4::create((float)pWaterRenderer->totalTimePassed, 0.0f, 0.0f, 0.0f);
+  pWaterRenderer->renderShader.everyFrameFragParams.u_specularDir = udFloat4::create(specularDir.x, specularDir.y, specularDir.z, 0.0f);
+  pWaterRenderer->renderShader.everyFrameFragParams.u_eyeNormalMatrix = udFloat4x4::create(udTranspose(inverseView));
+  pWaterRenderer->renderShader.everyFrameFragParams.u_inverseViewMatrix = udFloat4x4::create(inverseView);
   vcShader_Bind(pWaterRenderer->renderShader.pProgram);
 
   vcShader_BindTexture(pWaterRenderer->renderShader.pProgram, pNormalMapTexture, 0, pWaterRenderer->renderShader.uniform_normalMap);
@@ -237,10 +237,10 @@ bool vcWaterRenderer_Render(vcWaterRenderer *pWaterRenderer, const udDouble4x4 &
   {
     vcWaterVolume *pVolume = &pWaterRenderer->volumes[i];
 
-    pWaterRenderer->renderShader.everyObjectParams.colourAndSize = udFloat4::create(0.0f, 102.0f / 255.0f, 204.0f / 255.0f, 0.0f);
-    pWaterRenderer->renderShader.everyObjectParams.colourAndSize.w = float(1.0 / (1.0 + (0.0025 * udMag2(pVolume->max - pVolume->min))));
-    pWaterRenderer->renderShader.everyObjectParams.modelViewMatrix = udFloat4x4::create(view * pVolume->origin);
-    pWaterRenderer->renderShader.everyObjectParams.modelViewProjectionMatrix = udFloat4x4::create(viewProjection * pVolume->origin);
+    pWaterRenderer->renderShader.everyObjectParams.u_colourAndSize = udFloat4::create(0.0f, 102.0f / 255.0f, 204.0f / 255.0f, 0.0f);
+    pWaterRenderer->renderShader.everyObjectParams.u_colourAndSize.w = float(1.0 / (1.0 + (0.0025 * udMag2(pVolume->max - pVolume->min))));
+    pWaterRenderer->renderShader.everyObjectParams.u_modelViewMatrix = udFloat4x4::create(view * pVolume->origin);
+    pWaterRenderer->renderShader.everyObjectParams.u_worldViewProjectionMatrix = udFloat4x4::create(viewProjection * pVolume->origin);
     vcShader_BindConstantBuffer(pWaterRenderer->renderShader.pProgram, pWaterRenderer->renderShader.uniform_everyObject, &pWaterRenderer->renderShader.everyObjectParams, sizeof(pWaterRenderer->renderShader.everyObjectParams));
 
     if (vcMesh_Render(pVolume->pMesh, pVolume->vertCount, 0, vcMRM_Triangles) != udR_Success)

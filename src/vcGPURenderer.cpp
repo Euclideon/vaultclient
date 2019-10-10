@@ -31,7 +31,7 @@ struct vcGPURenderer
 
     struct
     {
-      udFloat4x4 u_world;
+      udFloat4x4 u_worldMatrix;
       udFloat4 u_colour; // alpha is id
     } everyObject;
 
@@ -299,7 +299,7 @@ vdkError vcGPURenderer_RenderVertexBuffer(void *pContext, void *pVertexBuffer, u
   vcBlockRenderVertexBuffer *pVB = (vcBlockRenderVertexBuffer*)pVertexBuffer;
 
   // Upload shader constants
-  pBlockRenderer->presentShader.everyObject.u_world = udFloat4x4::create(udDouble4x4::create(matrix));
+  pBlockRenderer->presentShader.everyObject.u_worldMatrix = udFloat4x4::create(udDouble4x4::create(matrix));
   pBlockRenderer->presentShader.everyObject.u_colour = udFloat4::create(1, 1, 1, float(modelIndex + 1) / 255.0f); // encode id in alpha
   vcShader_BindConstantBuffer(pBlockRenderer->presentShader.pProgram, pBlockRenderer->presentShader.pEveryObjectConstantBuffer, &pBlockRenderer->presentShader.everyObject, sizeof(pBlockRenderer->presentShader.everyObject));
 
