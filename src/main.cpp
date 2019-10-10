@@ -1999,7 +1999,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
         tryLogin = true; // Retries the login after proxy info is entered
       }
 
-      if (ImGui::Button(vcString::Get("loginButton")) && *pProgramState->settings.loginInfo.serverURL != '\0' || tryLogin)
+      if ((ImGui::Button(vcString::Get("loginButton")) && *pProgramState->settings.loginInfo.serverURL != '\0') || tryLogin)
       {
         if (*pProgramState->settings.loginInfo.serverURL == '\0')
         {
