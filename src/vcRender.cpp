@@ -1325,12 +1325,12 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   {
     udPlane<double> mapPlane = udPlane<double>::create({ 0, 0, pProgramState->settings.maptiles.mapHeight }, { 0, 0, 1 });
 
-    double hitDistance;
-    udDouble3 hitPoint;
+    double hitDistance = 0.0;
+    udDouble3 hitPoint = {};
 
     if (mapPlane.intersects(pProgramState->pCamera->worldMouseRay, &hitPoint, &hitDistance))
     {
-      if (hitDistance < currentDist)
+      if (hitDistance < (currentDist - pProgramState->settings.camera.nearPlane))
       {
         result.success = true;
         result.position = hitPoint;
