@@ -2063,10 +2063,9 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
 
 void vcRenderWindow(vcState *pProgramState)
 {
-  vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   vcGLState_SetViewport(0, 0, pProgramState->settings.window.width, pProgramState->settings.window.height);
-  vcFramebuffer_Clear(pProgramState->pDefaultFramebuffer, 0xFF000000);
-
+  vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer, vcFramebufferClearOperation_All, 0xFF000000);
+  
   ImGuiIO &io = ImGui::GetIO(); // for future key commands as well
   ImVec2 size = io.DisplaySize;
 
