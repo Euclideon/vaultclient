@@ -3,12 +3,14 @@
 #include "udChunkedArray.h"
 #include "udPlatform.h"
 #include "udThread.h"
+#include "udMath.h"
 
 #include "vcDBF.h"
 #include "vcModals.h"
 
 #include <time.h>
 #include <unordered_map>
+#include <typeinfo>
 
 enum vcDBF_FieldTypes
 {
@@ -20,8 +22,7 @@ enum vcDBF_FieldTypes
   vcDBF_DateTime = 'T',
   vcDBF_Integer = 'I',
   vcDBF_Currency = 'Y',
-  vcDBF_Memo = 'M',
-  vcDBF_Count = 9
+  vcDBF_Memo = 'M'
 };
 
 struct vcDBF_Header
@@ -60,10 +61,8 @@ struct vcDBF_FieldDesc
 struct vcDBF
 {
   vcDBF_Header header;
-
   uint8_t fieldCount;
   vcDBF_FieldDesc *pFields;
-
   udChunkedArray<vcDBF_Record> records;
 
   bool memo;
@@ -76,7 +75,10 @@ struct vcDBF
   } memoData;
 };
 
-inline tm localtime_xp(time_t timer)
+static udMutex *pMtx = udCreateMutex();
+
+
+inline void vcDBF_GetLocalTime(time_t timer, vcDBF_Header *pHeader)
 {
   tm bt{};
 #if UDPLATFORM_LINUX
@@ -84,21 +86,23 @@ inline tm localtime_xp(time_t timer)
 #elif UDPLATFORM_WINDOWS
   localtime_s(&bt, &timer);
 #else
-  static udMutex *pMtx;
 
-  pMtx = udLockMutex(pMtx);
+  udMutex *pMtx = udLockMutex(pMtx);
 
   bt = *localtime(&timer);
 
   udReleaseMutex(pMtx);
 #endif
-  return bt;
+
+  pHeader->YMD[0] = (int8_t)bt.tm_year;
+  pHeader->YMD[1] = (int8_t)(bt.tm_mon + 1);
+  pHeader->YMD[2] = (int8_t)bt.tm_mday;
 }
 
 udResult vcDBF_ReadRecord(vcDBF *pDBF, udFile *pFile);
 udResult vcDBF_WriteRecord(vcDBF *pDBF, udFile *pFile, vcDBF_Record *pRecord, udFile *pMemo = nullptr);
 
-const char spaceBuffer[255] = { ' ' };
+static const char spaceBuffer[255] = { ' ' };
 
 template <typename T>
 void vcDBF_FlipEndian(T *pData)
@@ -121,26 +125,25 @@ udResult vcDBF_Create(vcDBF **ppDBF)
   if (ppDBF == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
 
   vcDBF *pDBF = udAllocType(vcDBF, 1, udAF_Zero);
   UD_ERROR_NULL(pDBF, udR_MemoryAllocationFailure);
-
-  pDBF->records.Init(32);
+  UD_ERROR_CHECK(pDBF->records.Init(32));
 
   *ppDBF = pDBF;
+  pDBF = nullptr;
 
-  result = udR_Success;
-
+  return udR_Success;
 epilogue:
-
+  vcDBF_Destroy(&pDBF);
   return result;
 }
 
-udResult vcDBF_Destroy(vcDBF **ppDBF)
+void vcDBF_Destroy(vcDBF **ppDBF)
 {
   if (ppDBF == nullptr || *ppDBF == nullptr)
-    return udR_InvalidParameter_;
+    return;
 
   if ((*ppDBF)->memo)
   {
@@ -165,38 +168,33 @@ udResult vcDBF_Destroy(vcDBF **ppDBF)
   (*ppDBF)->records.Deinit();
   udFree((*ppDBF)->pFields);
   udFree(*ppDBF);
-
-  *ppDBF = nullptr;
-
-  return udR_Success;
 }
 
 udResult vcDBF_ReadHeader(udFile *pFile, vcDBF_Header *pHeader)
 {
-  udResult result = udR_Failure_;
+  if (pFile == nullptr || pHeader == nullptr)
+    return udR_InvalidParameter_;
+
+  udResult result;
 
   UD_ERROR_CHECK(udFile_Read(pFile, &pHeader->flags, sizeof(pHeader->flags)));
   UD_ERROR_IF((pHeader->flags & 0b00000011) != 3, udR_VersionMismatch); // DBase IV
 
   UD_ERROR_CHECK(udFile_Read(pFile, pHeader->YMD, sizeof(pHeader->YMD)));
-  UD_ERROR_IF(pHeader->YMD[0] < 0 || pHeader->YMD[1] > 12 || pHeader->YMD[2] > 31, udR_ParseError);
+  UD_ERROR_IF(pHeader->YMD[0] < 0 || pHeader->YMD[1] < 0 || pHeader->YMD[1] > 12 || pHeader->YMD[2] < 0 || pHeader->YMD[2] > 31, udR_ParseError);
 
   UD_ERROR_CHECK(udFile_Read(pFile, &pHeader->recordCount, sizeof(pHeader->recordCount)));
-  UD_ERROR_IF(pHeader->recordCount < 1, udR_NothingToDo);
 
   UD_ERROR_CHECK(udFile_Read(pFile, &pHeader->headerBytes, sizeof(pHeader->headerBytes)));
-  UD_ERROR_IF(pHeader->headerBytes < 31, udR_NothingToDo);
+  UD_ERROR_IF(pHeader->headerBytes < 31, udR_ParseError);
 
   UD_ERROR_CHECK(udFile_Read(pFile, &pHeader->recordBytes, sizeof(pHeader->recordBytes)));
-  UD_ERROR_IF(pHeader->recordBytes < 1, udR_NothingToDo);
 
-  int8_t trash[20];
-  UD_ERROR_CHECK(udFile_Read(pFile, &trash, sizeof(uint8_t) * 20)); // Seek forward, 20 reserved bytes
+  int8_t buffer[20];
+  UD_ERROR_CHECK(udFile_Read(pFile, &buffer, sizeof(uint8_t) * 20)); // Seek forward, 20 reserved bytes
 
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
 
@@ -205,10 +203,10 @@ udResult vcDBF_ReadFieldDesc(udFile *pFile, vcDBF_FieldDesc *pDesc)
   if (pFile == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
 
   vcDBF_DataMappedType type = vcDBFDMT_Invalid;
-  uint8_t trash[10];
+  uint8_t buffer[10];
 
   // All in-use fields are single byte sized, no endianness concerns
   UD_ERROR_CHECK(udFile_Read(pFile, pDesc->fieldName, sizeof(char)));
@@ -218,16 +216,16 @@ udResult vcDBF_ReadFieldDesc(udFile *pFile, vcDBF_FieldDesc *pDesc)
   UD_ERROR_CHECK(udFile_Read(pFile, &pDesc->fieldName[1], sizeof(pDesc->fieldName) - sizeof(pDesc->fieldName[1])));
   UD_ERROR_CHECK(udFile_Read(pFile, &pDesc->fieldType, sizeof(char)));
 
-  UD_ERROR_CHECK(udFile_Read(pFile, &trash, sizeof(uint32_t)));
+  UD_ERROR_CHECK(udFile_Read(pFile, &buffer, sizeof(uint32_t)));
 
   UD_ERROR_CHECK(udFile_Read(pFile, &pDesc->fieldLen, sizeof(uint8_t)));
   UD_ERROR_CHECK(udFile_Read(pFile, &pDesc->fieldCount, sizeof(uint8_t)));
 
-  UD_ERROR_CHECK(udFile_Read(pFile, &trash, sizeof(uint16_t)));
+  UD_ERROR_CHECK(udFile_Read(pFile, &buffer, sizeof(uint16_t)));
 
   UD_ERROR_CHECK(udFile_Read(pFile, &pDesc->workAreaID, sizeof(uint8_t)));
 
-  UD_ERROR_CHECK(udFile_Read(pFile, &trash, sizeof(uint8_t) * 10));
+  UD_ERROR_CHECK(udFile_Read(pFile, &buffer, sizeof(uint8_t) * 10));
 
   UD_ERROR_CHECK(udFile_Read(pFile, &pDesc->setFieldsFlag, sizeof(uint8_t)));
 
@@ -261,9 +259,7 @@ udResult vcDBF_ReadFieldDesc(udFile *pFile, vcDBF_FieldDesc *pDesc)
   pDesc->mappedType = type;
 
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
 
@@ -272,9 +268,10 @@ udResult vcDBF_LoadMemoFile(vcDBF *pDBF, const char *pFilename)
   if (pDBF == nullptr || pFilename == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
 
-  char *pPos = nullptr, *pData = nullptr;
+  char *pPos = nullptr;
+  char *pData = nullptr;
   int64_t fileLength = 0;
   uint32_t numBlocks = 0;
   uint32_t i;
@@ -283,11 +280,8 @@ udResult vcDBF_LoadMemoFile(vcDBF *pDBF, const char *pFilename)
   
   pDBF->memoData.newIndex = (uint32_t)*pData;
   vcDBF_FlipEndian(&pDBF->memoData.newIndex);
-
   pDBF->memoData.memoBlockSize = *((uint16_t *)pData + 4);
-
-  pDBF->memoData.firstIndex = (uint32_t)(512 / pDBF->memoData.memoBlockSize + .5); // Round up
-
+  pDBF->memoData.firstIndex = (uint32_t)udCeil((float)512 / pDBF->memoData.memoBlockSize); // Round up
   numBlocks = (uint32_t)fileLength / pDBF->memoData.memoBlockSize;
 
   i = pDBF->memoData.firstIndex;
@@ -310,9 +304,7 @@ udResult vcDBF_LoadMemoFile(vcDBF *pDBF, const char *pFilename)
   pDBF->memoData.newIndex = i;
 
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
 
@@ -321,20 +313,18 @@ udResult vcDBF_Load(vcDBF **ppDBF, const char *pFilename)
   if (ppDBF == nullptr || pFilename == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
 
   int fieldCount = 0;
   int headerBytesRemaining = 0;
-  uint64_t trash = 0;
+  uint64_t buffer = 0;
   udFile *pFile = nullptr;
 
   vcDBF *pDBF = udAllocType(vcDBF, 1, udAF_Zero);
   UD_ERROR_NULL(pDBF, udR_MemoryAllocationFailure);
 
-  pDBF->records.Init(32);
-
+  UD_ERROR_CHECK(pDBF->records.Init(32));
   UD_ERROR_CHECK(udFile_Open(&pFile, pFilename, udFOF_Read));
-
   UD_ERROR_CHECK(vcDBF_ReadHeader(pFile, &pDBF->header));
 
   if ((pDBF->header.flags & 0b01000000) == 0b01000000) // Memo flag
@@ -373,11 +363,13 @@ udResult vcDBF_Load(vcDBF **ppDBF, const char *pFilename)
     }
   }
 
+  UD_ERROR_IF(pDBF->header.recordCount < 1 || pDBF->header.recordBytes < 1, udR_Success);
+
   // If we're not at the end of the header, seek to the end
   while (headerBytesRemaining > 0)
   {
-    UD_ERROR_CHECK(udFile_Read(pFile, &trash, udMin((int)sizeof(trash), headerBytesRemaining)));
-    headerBytesRemaining -= sizeof(trash);
+    UD_ERROR_CHECK(udFile_Read(pFile, &buffer, udMin((int)sizeof(buffer), headerBytesRemaining)));
+    headerBytesRemaining -= sizeof(buffer);
   }
   
   while ((result = vcDBF_ReadRecord(pDBF, pFile)) != udR_NothingToDo)
@@ -386,14 +378,10 @@ udResult vcDBF_Load(vcDBF **ppDBF, const char *pFilename)
   *ppDBF = pDBF;
 
   result = udR_Success;
-
 epilogue:
-
   udFile_Close(&pFile);
-
   if (result != udR_Success)
     vcDBF_Destroy(&pDBF);
-
   return result;
 }
 
@@ -402,23 +390,16 @@ udResult vcDBF_ReadRecord(vcDBF *pDBF, udFile *pFile)
   if (pDBF == nullptr || pFile == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
   char marker = '\0';
   uint32_t blockIndex = 0;
   vcDBF_Record record = {};
 
   UD_ERROR_CHECK(udFile_Read(pFile, &marker, sizeof(char)));
 
-  if (marker == '\x2A') // Deleted record
-  {
-    record.deleted = true;
-  }
-  else
-  {
-    record.deleted = false;
-    UD_ERROR_IF(marker == '\x1A', udR_NothingToDo); // End of file reached
-    UD_ERROR_IF(marker != '\x20', udR_ParseError); // Record marker
-  }
+  record.deleted = (marker == '\x2A');
+  UD_ERROR_IF(marker == '\x1A', udR_NothingToDo); // End of file reached
+  UD_ERROR_IF(marker != '\x20' && marker != '\x2A', udR_ParseError); // Record marker
 
   record.pFields = udAllocType(vcDBF_Record::vcDBF_RecordField, pDBF->fieldCount, udAF_Zero);
   UD_ERROR_NULL(record.pFields, udR_MemoryAllocationFailure);
@@ -483,9 +464,7 @@ udResult vcDBF_ReadRecord(vcDBF *pDBF, udFile *pFile)
   pDBF->records.PushBack(record);
 
   result = udR_Success;
-
 epilogue:
-
   return (uint32_t)pDBF->records.length >= (uint32_t)pDBF->header.recordCount ? udR_NothingToDo : result;
 }
 
@@ -494,13 +473,14 @@ udResult vcDBF_WriteFieldDesc(udFile *pFile, const vcDBF_FieldDesc *pDesc)
   if (pFile == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
 
   uint8_t blank[10] = {};
   uint8_t strLen = 0;
-  for (; pDesc->fieldName[strLen] != '\0' && strLen < 11; ++strLen);
+  for (; pDesc->fieldName[strLen] != '\0' && strLen < 12; ++strLen);
+  --strLen;
 
-  // All these fields are single byte numbers or unused, no need to flip endian
+  // All these fields are single byte/ordered data or unused, no need to flip endian
   UD_ERROR_CHECK(udFile_Write(pFile, &pDesc->fieldName, strLen));
 
   if (strLen < 11)
@@ -517,9 +497,7 @@ udResult vcDBF_WriteFieldDesc(udFile *pFile, const vcDBF_FieldDesc *pDesc)
   UD_ERROR_CHECK(udFile_Write(pFile, blank, 8));
 
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
 
@@ -528,18 +506,20 @@ udResult vcDBF_WriteMemoFile(vcDBF *pDBF, udFile *pFile)
   if (pDBF == nullptr || pFile == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
 
-  char *pSpaceBuffer = udAllocType(char, pDBF->memoData.memoBlockSize, udAF_None);
-  for (int i = 0; i < pDBF->memoData.memoBlockSize; ++i)
-    pSpaceBuffer[i] = ' ';
-
+  char spaceBuffer[256] = { ' ' };
+  uint16_t outBytes = pDBF->memoData.memoBlockSize - sizeof(uint16_t) - sizeof(uint32_t);
   uint32_t bigIndex = pDBF->memoData.newIndex;
   vcDBF_FlipEndian(&bigIndex);
 
   UD_ERROR_CHECK(udFile_Write(pFile, &bigIndex, sizeof(uint32_t)));
   UD_ERROR_CHECK(udFile_Write(pFile, &pDBF->memoData.memoBlockSize, sizeof(uint16_t)));
-  UD_ERROR_CHECK(udFile_Write(pFile, pSpaceBuffer, pDBF->memoData.memoBlockSize - sizeof(uint16_t) - sizeof(uint32_t)));
+  while (outBytes > 0)
+  {
+    UD_ERROR_CHECK(udFile_Write(pFile, spaceBuffer, udMin(outBytes, (uint16_t)udLengthOf(spaceBuffer))));
+    outBytes -= udLengthOf(spaceBuffer);
+  }
 
   for (uint32_t i = pDBF->memoData.firstIndex; i < pDBF->memos.size(); ++i)
   {
@@ -549,17 +529,18 @@ udResult vcDBF_WriteMemoFile(vcDBF *pDBF, udFile *pFile)
     UD_ERROR_CHECK(udFile_Write(pFile, &pBlock->length, sizeof(uint32_t)));
     UD_ERROR_CHECK(udFile_Write(pFile, pBlock->pMemo, pBlock->length));
 
-    UD_ERROR_CHECK(udFile_Write(pFile, pSpaceBuffer, pDBF->memoData.memoBlockSize - (pBlock->length + (sizeof(uint32_t) * 2)) % pDBF->memoData.memoBlockSize));
+    outBytes = pDBF->memoData.memoBlockSize - (pBlock->length + (sizeof(uint32_t) * 2)) % pDBF->memoData.memoBlockSize;
+    while (outBytes > 0)
+    {
+      UD_ERROR_CHECK(udFile_Write(pFile, spaceBuffer, udMin(outBytes, (uint16_t)udLengthOf(spaceBuffer))));
+      outBytes -= udLengthOf(spaceBuffer);
+    }
 
     i += (uint32_t)(pBlock->length / pDBF->memoData.memoBlockSize);
   }
 
   result = udR_Success;
-
 epilogue:
-
-  udFree(pSpaceBuffer);
-
   return result;
 }
 
@@ -568,13 +549,13 @@ udResult vcDBF_Save(vcDBF *pDBF, const char *pFilename)
   if (pDBF == nullptr || pFilename == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
 
   vcDBF_Header dbfh = {};
   time_t currTime = time_t(0);
-  tm localTime;
   uint8_t blank[20] = {};
-  udFile *pFile = nullptr, *pMemo = nullptr;
+  udFile *pFile = nullptr;
+  udFile *pMemo = nullptr;
 
   uint16_t filenameLen = 0;
   char *pMemoname = nullptr;
@@ -595,17 +576,12 @@ udResult vcDBF_Save(vcDBF *pDBF, const char *pFilename)
   dbfh.recordCount = (int32_t)pDBF->records.length;
   dbfh.headerBytes = 32 * (pDBF->fieldCount + 1);
 
-  localTime = localtime_xp(currTime);
-
-  dbfh.YMD[0] = (int8_t)localTime.tm_year;
-  dbfh.YMD[1] = (int8_t)(localTime.tm_mon + 1);
-  dbfh.YMD[2] = (int8_t)localTime.tm_mday;
+  vcDBF_GetLocalTime(currTime, &dbfh);
 
   for (int i = 0; i < pDBF->fieldCount; ++i)
     dbfh.recordBytes += pDBF->pFields[i].fieldLen;
 
   UD_ERROR_CHECK(udFile_Write(pFile, &dbfh, sizeof(vcDBF_Header)));
-
   UD_ERROR_CHECK(udFile_Write(pFile, blank, 20)); // Reserved bytes
 
   for (int i = 0; i < pDBF->fieldCount; ++i)
@@ -629,30 +605,23 @@ udResult vcDBF_Save(vcDBF *pDBF, const char *pFilename)
     }
 
     UD_ERROR_CHECK(udFile_Open(&pMemo, pMemoname, udFOF_Write));
-    udFree(pMemoname);
-
     UD_ERROR_CHECK(vcDBF_WriteMemoFile(pDBF, pMemo));
+    udFile_Close(&pMemo);
   }
 
   // Write records
   for (uint32_t i = 0; i < pDBF->records.length; ++i)
   {
     vcDBF_Record *pRecord = &pDBF->records[i];
-
-    if (pRecord->deleted)
-      UD_ERROR_CHECK(udFile_Write(pFile, "\x2A", sizeof(char)));
-    else
-      UD_ERROR_CHECK(udFile_Write(pFile, "\x20", sizeof(char)));
-
+    UD_ERROR_CHECK(udFile_Write(pFile, pRecord->deleted ? "\x2A" : "\x20", sizeof(char)));
     UD_ERROR_CHECK(vcDBF_WriteRecord(pDBF, pFile, pRecord, pMemo));
   }
 
   UD_ERROR_CHECK(udFile_Write(pFile, "\x1A", sizeof(char)));
 
   result = udR_Success;
-
 epilogue:
-
+  udFree(pMemoname);
   return result;
 }
 
@@ -661,20 +630,20 @@ udResult vcDBF_FindFieldIndex(vcDBF *pDBF, const char *pFieldName, uint16_t *pIn
   if (pDBF == nullptr || pFieldName == nullptr || pIndex == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
 
   uint16_t i = 0;
   for (; i < pDBF->fieldCount; ++i)
+  {
     if (udStrBeginsWithi(pDBF->pFields[i].fieldName, pFieldName) || udStrEndsWithi(pDBF->pFields[i].fieldName, pFieldName))
       break;
+  }
 
   UD_ERROR_IF(i == pDBF->fieldCount, udR_Failure_);
   *pIndex = i;
 
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
 
@@ -687,16 +656,16 @@ udResult vcDBF_GetFieldIndex(vcDBF *pDBF, const char *pFieldName, uint16_t *pInd
 
   uint16_t i = 0;
   for (; i < pDBF->fieldCount; ++i)
+  {
     if (udStrEquali(pDBF->pFields[i].fieldName, pFieldName))
       break;
+  }
 
   UD_ERROR_IF(i == pDBF->fieldCount, udR_Failure_);
   *pIndex = i;
 
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
 
@@ -721,7 +690,7 @@ udResult vcDBF_AddField(vcDBF *pDBF, char *pFieldName, char fieldType, uint8_t f
   if (pDBF == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
   vcDBF_FieldDesc *pDesc = nullptr;
 
   UD_ERROR_IF(pDBF->records.length > 0, udR_NotAllowed);
@@ -731,7 +700,6 @@ udResult vcDBF_AddField(vcDBF *pDBF, char *pFieldName, char fieldType, uint8_t f
   udStrncpy(pDesc[pDBF->fieldCount].fieldName, 11, pFieldName, 11);
   pDesc[pDBF->fieldCount].fieldType = fieldType;
   pDesc[pDBF->fieldCount].fieldLen = fieldLen;
-
   memcpy(pDesc, pDBF->pFields, sizeof(vcDBF_FieldDesc) * pDBF->fieldCount);
 
   ++pDBF->fieldCount;
@@ -740,9 +708,7 @@ udResult vcDBF_AddField(vcDBF *pDBF, char *pFieldName, char fieldType, uint8_t f
   pDBF->pFields = pDesc;
 
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
 
@@ -751,10 +717,9 @@ udResult vcDBF_RemoveField(vcDBF *pDBF, uint16_t fieldIndex)
   if (pDBF == nullptr || fieldIndex >= pDBF->fieldCount)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
 
   UD_ERROR_IF(pDBF->records.length > 0, udR_NotAllowed);
-
   --pDBF->fieldCount;
 
   // Shift fields back on top of removal target
@@ -762,9 +727,7 @@ udResult vcDBF_RemoveField(vcDBF *pDBF, uint16_t fieldIndex)
     pDBF->pFields[i] = pDBF->pFields[i + 1];
   
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
 
@@ -773,15 +736,13 @@ udResult vcDBF_GetRecord(vcDBF *pDBF, vcDBF_Record **ppRecord, uint32_t recordIn
   if (pDBF == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
 
   UD_ERROR_IF(pDBF->records.length <= recordIndex, udR_OutOfRange);
-  UD_ERROR_NULL((*ppRecord = &pDBF->records[recordIndex]), udR_MemoryAllocationFailure);
+  *ppRecord = &pDBF->records[recordIndex];
 
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
 
@@ -790,20 +751,16 @@ udResult vcDBF_CreateRecord(vcDBF *pDBF, vcDBF_Record **ppRecord)
   if (pDBF == nullptr || ppRecord == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
-
+  udResult result;
   vcDBF_Record rec = {};
 
   rec.pFields = udAllocType(vcDBF_Record::vcDBF_RecordField, pDBF->fieldCount, udAF_Zero);
-
+  UD_ERROR_NULL(rec.pFields, udR_MemoryAllocationFailure);
   pDBF->records.PushBack(rec);
-
-  UD_ERROR_NULL((*ppRecord = &pDBF->records[pDBF->records.length - 1]), udR_MemoryAllocationFailure);
+  *ppRecord = &pDBF->records[pDBF->records.length - 1];
 
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
 
@@ -822,24 +779,19 @@ udResult vcDBF_DeleteRecord(vcDBF *pDBF, uint32_t recordIndex)
   if (pDBF == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
   vcDBF_Record *pRecord = nullptr;
 
   UD_ERROR_IF(pDBF->records.length <= recordIndex, udR_OutOfRange);
-
   pRecord = &pDBF->records[recordIndex];
-  UD_ERROR_NULL(pRecord, udR_OutOfRange);
-
   pRecord->deleted = true;
 
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
 
-udResult vcDBF_RecordReadFieldBool(vcDBF_Record *pRecord, bool *pValue, uint16_t fieldIndex)
+udResult vcDBF_RecordReadFieldBool(vcDBF_Record *pRecord, uint16_t fieldIndex, bool *pValue)
 {
   if (pRecord == nullptr || pValue == nullptr)
     return udR_InvalidParameter_;
@@ -849,7 +801,7 @@ udResult vcDBF_RecordReadFieldBool(vcDBF_Record *pRecord, bool *pValue, uint16_t
   return udR_Success;
 }
 
-udResult vcDBF_RecordReadFieldDouble(vcDBF_Record *pRecord, double *pValue, uint16_t fieldIndex)
+udResult vcDBF_RecordReadFieldDouble(vcDBF_Record *pRecord, uint16_t fieldIndex, double *pValue)
 {
   if (pRecord == nullptr || pValue == nullptr)
     return udR_InvalidParameter_;
@@ -859,7 +811,7 @@ udResult vcDBF_RecordReadFieldDouble(vcDBF_Record *pRecord, double *pValue, uint
   return udR_Success;
 }
 
-udResult vcDBF_RecordReadFieldInt(vcDBF_Record *pRecord, int32_t *pValue, uint16_t fieldIndex)
+udResult vcDBF_RecordReadFieldInt(vcDBF_Record *pRecord, uint16_t fieldIndex, int32_t *pValue)
 {
   if (pRecord == nullptr || pValue == nullptr)
     return udR_InvalidParameter_;
@@ -869,7 +821,7 @@ udResult vcDBF_RecordReadFieldInt(vcDBF_Record *pRecord, int32_t *pValue, uint16
   return udR_Success;
 }
 
-udResult vcDBF_RecordReadFieldString(vcDBF_Record *pRecord, const char **ppValue, uint16_t fieldIndex)
+udResult vcDBF_RecordReadFieldString(vcDBF_Record *pRecord, uint16_t fieldIndex, const char **ppValue)
 {
   if (pRecord == nullptr || ppValue == nullptr)
     return udR_InvalidParameter_;
@@ -879,25 +831,22 @@ udResult vcDBF_RecordReadFieldString(vcDBF_Record *pRecord, const char **ppValue
   return udR_Success;
 }
 
-udResult vcDBF_RecordReadFieldMemo(vcDBF *pDBF, vcDBF_Record *pRecord, const char **ppValue, uint16_t fieldIndex)
+udResult vcDBF_RecordReadFieldMemo(vcDBF *pDBF, vcDBF_Record *pRecord, uint16_t fieldIndex, const char **ppValue)
 {
   if (pRecord == nullptr || ppValue == nullptr|| pDBF == nullptr)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
 
   UD_ERROR_IF(!pDBF->memo, udR_ObjectTypeMismatch);
-
   *ppValue = pDBF->memos[pRecord->pFields[fieldIndex].integer].pMemo;
 
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
 
-udResult vcDBF_RecordWriteFieldBool(vcDBF_Record *pRecord, bool value, uint16_t fieldIndex)
+udResult vcDBF_RecordWriteFieldBool(vcDBF_Record *pRecord, uint16_t fieldIndex, bool value)
 {
   if (pRecord == nullptr)
     return udR_InvalidParameter_;
@@ -907,7 +856,7 @@ udResult vcDBF_RecordWriteFieldBool(vcDBF_Record *pRecord, bool value, uint16_t 
   return udR_Success;
 }
 
-udResult vcDBF_RecordWriteFieldDouble(vcDBF_Record *pRecord, double value, uint16_t fieldIndex)
+udResult vcDBF_RecordWriteFieldDouble(vcDBF_Record *pRecord, uint16_t fieldIndex, double value)
 {
   if (pRecord == nullptr)
     return udR_InvalidParameter_;
@@ -917,7 +866,7 @@ udResult vcDBF_RecordWriteFieldDouble(vcDBF_Record *pRecord, double value, uint1
   return udR_Success;
 }
 
-udResult vcDBF_RecordWriteFieldInt(vcDBF_Record *pRecord, int32_t value, uint16_t fieldIndex)
+udResult vcDBF_RecordWriteFieldInt(vcDBF_Record *pRecord, uint16_t fieldIndex, int32_t value)
 {
   if (pRecord == nullptr)
     return udR_InvalidParameter_;
@@ -927,7 +876,7 @@ udResult vcDBF_RecordWriteFieldInt(vcDBF_Record *pRecord, int32_t value, uint16_
   return udR_Success;
 }
 
-udResult vcDBF_RecordWriteFieldString(vcDBF_Record *pRecord, const char *pValue, uint16_t fieldIndex)
+udResult vcDBF_RecordWriteFieldString(vcDBF_Record *pRecord, uint16_t fieldIndex, const char *pValue)
 {
   if (pRecord == nullptr)
     return udR_InvalidParameter_;
@@ -942,9 +891,9 @@ udResult vcDBF_RecordWriteFieldString(vcDBF_Record *pRecord, const char *pValue,
   return udR_Success;
 }
 
-udResult vcDBF_RecordWriteFieldMemo(vcDBF_Record *pRecord, vcDBF *pDBF, const char *pValue, uint16_t fieldIndex)
+udResult vcDBF_RecordWriteFieldMemo(vcDBF *pDBF, vcDBF_Record *pRecord, uint16_t fieldIndex, const char *pValue)
 {
-  if (pRecord == nullptr || pDBF == nullptr)
+  if (pRecord == nullptr || pDBF == nullptr || pValue == nullptr)
     return udR_InvalidParameter_;
 
   int32_t blockIndex = -1;
@@ -988,10 +937,9 @@ udResult vcDBF_WriteString(udFile *pFile, const char *pString, uint8_t fieldLen)
   if (pFile == nullptr || fieldLen < 1)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
 
-  uint32_t outputLen = (uint32_t) udStrlen(pString);
-
+  uint32_t outputLen = (uint32_t)udStrlen(pString);
   if (outputLen > fieldLen)
     outputLen = fieldLen; // Write out as much as will fit
   
@@ -1001,9 +949,7 @@ udResult vcDBF_WriteString(udFile *pFile, const char *pString, uint8_t fieldLen)
     UD_ERROR_CHECK(udFile_Write(pFile, spaceBuffer, fieldLen - outputLen));
 
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
 
@@ -1012,7 +958,7 @@ udResult vcDBF_WriteBool(udFile *pFile, const bool input, uint8_t fieldLen)
   if (pFile == nullptr || fieldLen < 1)
     return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
+  udResult result;
 
   if (fieldLen > 1)
     UD_ERROR_CHECK(udFile_Write(pFile, spaceBuffer, fieldLen - sizeof(char)));
@@ -1020,77 +966,76 @@ udResult vcDBF_WriteBool(udFile *pFile, const bool input, uint8_t fieldLen)
   UD_ERROR_CHECK(udFile_Write(pFile, (input) ? "T" : "F", sizeof(char)));
 
   result = udR_Success;
-
 epilogue:
+  return result;
+}
 
+template<typename T>
+uint32_t vcDBF_StrTtoa(char *pOutput, uint32_t strLen, T value, int minChars = 1)
+{
+  switch ((typeid(T)))
+  {
+  case typeid(float) :
+  case typeid(double) : // Not so sure about ideal precision value here
+    return (uint32_t)udStrFtoa(pOutput, strLen, value, 5, minChars);
+
+  case typeid(int) :
+  case typeid(uint16_t) : // Not 100% sure these types will map to unique 'case-able' values
+  case typeid(uint32_t) :
+  case typeid(uint64_t) :
+  case typeid(int16_t) :
+  case typeid(int32_t) :
+  case typeid(int64_t) :
+    return (uint32_t)udStrItoa(pOutput, strLen, value, 10, minChars);
+
+  default:
+    return 0;
+  }
+}
+
+template<typename T>
+udResult vcDBF_WriteT(udFile * pFile, const T input, uint8_t fieldLen)
+{
+  if (pFile == nullptr || fieldLen < 1)
+    return udR_InvalidParameter_;
+
+  udResult result;
+
+  uint32_t outputLen = 0;
+  char *pOutput = udAllocType(char, fieldLen + 1, udAF_Zero);
+  UD_ERROR_NULL(pOutput, udR_MemoryAllocationFailure);
+
+  outputLen = (uint32_t)vcDBF_StrTtoa(pOutput, fieldLen + 1, input) - 1;
+
+  if (outputLen > fieldLen)
+    outputLen = fieldLen; // Write out as much as will fit
+  else if (outputLen < fieldLen)
+    UD_ERROR_CHECK(udFile_Write(pFile, spaceBuffer, fieldLen - outputLen));
+
+  UD_ERROR_CHECK(udFile_Write(pFile, pOutput, outputLen));
+
+  result = udR_Success;
+epilogue:
+  udFree(pOutput);
   return result;
 }
 
 udResult vcDBF_WriteDouble(udFile *pFile, const double input, uint8_t fieldLen)
 {
-  if (pFile == nullptr || fieldLen < 1)
-    return udR_InvalidParameter_;
-
-  udResult result = udR_Failure_;
-
-  uint32_t outputLen = 0;
-  char *pOutput = udAllocType(char, fieldLen + 1, udAF_Zero);
-  UD_ERROR_NULL(pOutput, udR_MemoryAllocationFailure);
-
-  outputLen = (uint32_t)udStrFtoa(pOutput, fieldLen + 1, input, 5) - 1; //TODO: How much precision?
-
-  if (outputLen > fieldLen)
-    outputLen = fieldLen; // Write out as much as will fit
-  else if (outputLen < fieldLen)
-    UD_ERROR_CHECK(udFile_Write(pFile, spaceBuffer, fieldLen - outputLen));
-
-  UD_ERROR_CHECK(udFile_Write(pFile, pOutput, outputLen));
-
-  result = udR_Success;
-
-epilogue:
-
-  udFree(pOutput);
-
-  return result;
+  return vcDBF_WriteT(pFile, input, fieldLen);
 }
 
 udResult vcDBF_WriteInteger(udFile *pFile, const int32_t input, uint8_t fieldLen)
 {
-  if (pFile == nullptr || fieldLen < 1)
-    return udR_InvalidParameter_;
-
-  udResult result = udR_Failure_;
-
-  uint32_t outputLen = 0;
-  char *pOutput = udAllocType(char, fieldLen + 1, udAF_Zero);
-  UD_ERROR_NULL(pOutput, udR_MemoryAllocationFailure);
-
-  outputLen = (uint32_t)udStrItoa(pOutput, fieldLen + 1, input) - 1;
-
-  if (outputLen > fieldLen)
-    outputLen = fieldLen; // Write out as much as will fit
-  else if (outputLen < fieldLen)
-    UD_ERROR_CHECK(udFile_Write(pFile, spaceBuffer, fieldLen - outputLen));
-
-  UD_ERROR_CHECK(udFile_Write(pFile, pOutput, outputLen));
-
-  result = udR_Success;
-
-epilogue:
-
-  udFree(pOutput);
-
-  return result;
+  return vcDBF_WriteT(pFile, input, fieldLen);
 }
 
 udResult vcDBF_WriteMemoBlock(udFile *pMemo, const char *pString, uint16_t blockSize)
 {
   if (pMemo == nullptr || pString == nullptr)
-    return udR_Failure_;
+    return udR_InvalidParameter_;
 
-  udResult result = udR_Failure_;
-
+  udResult result;
   uint32_t strLen = (uint32_t)udStrlen(pString);
 
   UD_ERROR_CHECK(udFile_Write(pMemo, pString, strLen));
@@ -1105,15 +1050,16 @@ udResult vcDBF_WriteMemoBlock(udFile *pMemo, const char *pString, uint16_t block
   }
 
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
 
 udResult vcDBF_WriteRecord(vcDBF *pDBF, udFile *pFile, vcDBF_Record *pRecord, udFile *pMemo /*= nullptr*/)
 {
-  udResult result = udR_Failure_;
+  if (pDBF == nullptr || pFile == nullptr || pRecord == nullptr)
+    return udR_InvalidParameter_;
+
+  udResult result;
 
   for (int i = 0; i < pDBF->fieldCount; ++i)
   {
@@ -1152,8 +1098,6 @@ udResult vcDBF_WriteRecord(vcDBF *pDBF, udFile *pFile, vcDBF_Record *pRecord, ud
   }
 
   result = udR_Success;
-
 epilogue:
-
   return result;
 }
