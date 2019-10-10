@@ -1337,7 +1337,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 
     if (mapPlane.intersects(pProgramState->pCamera->worldMouseRay, &hitPoint, &hitDistance))
     {
-      if (hitDistance < currentDist - pProgramState->settings.camera.nearPlane)
+      if (hitDistance < (currentDist - pProgramState->settings.camera.nearPlane))
       {
         result.success = true;
         result.position = hitPoint;
