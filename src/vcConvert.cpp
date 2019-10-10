@@ -678,7 +678,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
           static int globalSource = 0;
           const char *globalSourceSpaceNames[] = { "", vcString::Get("convertSpaceCartesian"), vcString::Get("convertSpaceLatLong"), vcString::Get("convertSpaceLongLat") };
-          if (ImGui::Combo(udTempStr("%s###convertallitemspace", vcString::Get("convertSpaceLabel")), &globalSource, globalSourceSpaceNames, (int)udLengthOf(globalSourceSpaceNames)) && globalSource > 0)
+          if (ImGui::Combo(udTempStr("%s###convertallitemspace", vcString::Get("convertAllSpaceLabel")), &globalSource, globalSourceSpaceNames, (int)udLengthOf(globalSourceSpaceNames)) && globalSource > 0)
           {
             for (size_t i = 0; i < pSelectedJob->pConvertInfo->totalItems; ++i)
               vdkConvert_SetInputSourceProjection(pProgramState->pVDKContext, pSelectedJob->pConvertContext, i, (vdkConvertSourceProjection)(globalSource - 1));
