@@ -1999,7 +1999,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
         tryLogin = true; // Retries the login after proxy info is entered
       }
 
-      if (ImGui::Button(vcString::Get("loginButton")) || tryLogin)
+      if (ImGui::Button(vcString::Get("loginButton")) && *pProgramState->settings.loginInfo.serverURL != '\0' || tryLogin)
       {
         pProgramState->passFocus = false;
         pProgramState->loginStatus = vcLS_Pending;
