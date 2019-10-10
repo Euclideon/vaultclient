@@ -23,9 +23,10 @@ public:
   void ChangeProjection(const udGeoZone &newZone);
   udDouble3 GetLocalSpacePivot();
   udDouble4x4 GetWorldSpaceMatrix();
+
+  udDouble4x4 m_sceneMatrix; // This is the matrix used to render into the current projection
 private:
   vcSceneLayerRenderer *m_pSceneRenderer;
-  udDouble4x4 m_sceneMatrix; // This is the matrix used to render into the current projection
 };
 
 #endif //vcI3S_h__
