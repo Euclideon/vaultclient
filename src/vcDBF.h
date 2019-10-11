@@ -1,5 +1,5 @@
-#ifndef vcDBase_h__
-#define vcDBase_h__
+#ifndef vcDBF_h__
+#define vcDBF_h__
 
 #include "udResult.h"
 #include "udFile.h"
@@ -26,6 +26,22 @@ struct vcDBF_Record
     bool logical;
     int integer;
   } *pFields;
+};
+
+template <typename T>
+void vcDBF_FlipEndian(T *pData)
+{
+  uint8_t bytes[sizeof(T)];
+  memcpy(bytes, pData, sizeof(T));
+
+  for (uint32_t i = 0; i < (sizeof(T) / 2); ++i)
+  {
+    uint8_t temp = bytes[i];
+    bytes[i] = bytes[sizeof(T) - i - 1];
+    bytes[sizeof(T) - i - 1] = temp;
+  }
+
+  memcpy(pData, bytes, sizeof(T));
 };
 
 udResult vcDBF_Create(vcDBF **ppDBF);
@@ -61,4 +77,4 @@ udResult vcDBF_RecordWriteFieldInt(vcDBF_Record *pRecord, uint16_t fieldIndex, i
 udResult vcDBF_RecordWriteFieldString(vcDBF_Record *pRecord, uint16_t fieldIndex, const char *pValue);
 udResult vcDBF_RecordWriteFieldMemo(vcDBF *pDBF, vcDBF_Record *pRecord, uint16_t fieldIndex, const char *pValue);
 
-#endif //vcDBase_h__
+#endif //vcDBF_h__

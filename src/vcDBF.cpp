@@ -10,7 +10,6 @@
 
 #include <time.h>
 #include <unordered_map>
-#include <typeinfo>
 
 enum vcDBF_FieldTypes
 {
@@ -99,22 +98,6 @@ udResult vcDBF_ReadRecord(vcDBF *pDBF, udFile *pFile);
 udResult vcDBF_WriteRecord(vcDBF *pDBF, udFile *pFile, vcDBF_Record *pRecord, udFile *pMemo = nullptr);
 
 static const char spaceBuffer[255] = { ' ' };
-
-template <typename T>
-void vcDBF_FlipEndian(T *pData)
-{
-  uint8_t bytes[sizeof(T)];
-  memcpy(bytes, pData, sizeof(T));
-
-  for (uint32_t i = 0; i < (sizeof(T) / 2); ++i)
-  {
-    uint8_t temp = bytes[i];
-    bytes[i] = bytes[sizeof(T) - i - 1];
-    bytes[sizeof(T) - i - 1] = temp;
-  }
-
-  memcpy(pData, bytes, sizeof(T));
-};
 
 udResult vcDBF_Create(vcDBF **ppDBF)
 {
@@ -484,7 +467,6 @@ udResult vcDBF_WriteFieldDesc(udFile *pFile, const vcDBF_FieldDesc *pDesc)
   uint8_t blank[10] = {};
   uint8_t strLen = 0;
   for (; pDesc->fieldName[strLen] != '\0' && strLen < 12; ++strLen);
-  --strLen;
 
   // All these fields are single byte/ordered data or unused, no need to flip endian
   UD_ERROR_CHECK(udFile_Write(pFile, &pDesc->fieldName, strLen));
@@ -514,7 +496,6 @@ udResult vcDBF_WriteMemoFile(vcDBF *pDBF, udFile *pFile)
 
   udResult result;
 
-  char spaceBuffer[256] = { ' ' };
   uint16_t outBytes = pDBF->memoData.memoBlockSize - sizeof(uint16_t) - sizeof(uint32_t);
   uint32_t bigIndex = pDBF->memoData.newIndex;
   vcDBF_FlipEndian(&bigIndex);
@@ -524,7 +505,7 @@ udResult vcDBF_WriteMemoFile(vcDBF *pDBF, udFile *pFile)
   while (outBytes > 0)
   {
     UD_ERROR_CHECK(udFile_Write(pFile, spaceBuffer, udMin(outBytes, (uint16_t)udLengthOf(spaceBuffer))));
-    outBytes -= udLengthOf(spaceBuffer);
+    outBytes -= (uint16_t)udLengthOf(spaceBuffer);
   }
 
   for (uint32_t i = pDBF->memoData.firstIndex; i < pDBF->memos.size(); ++i)
@@ -539,7 +520,7 @@ udResult vcDBF_WriteMemoFile(vcDBF *pDBF, udFile *pFile)
     while (outBytes > 0)
     {
       UD_ERROR_CHECK(udFile_Write(pFile, spaceBuffer, udMin(outBytes, (uint16_t)udLengthOf(spaceBuffer))));
-      outBytes -= udLengthOf(spaceBuffer);
+      outBytes -= (uint16_t)udLengthOf(spaceBuffer);
     }
 
     i += (uint32_t)(pBlock->length / pDBF->memoData.memoBlockSize);
@@ -627,6 +608,7 @@ udResult vcDBF_Save(vcDBF *pDBF, const char *pFilename)
 
   result = udR_Success;
 epilogue:
+  UD_ERROR_CHECK(udFile_Close(&pFile));
   udFree(pMemoname);
   return result;
 }
