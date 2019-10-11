@@ -75,8 +75,7 @@ struct vcDBF
   } memoData;
 };
 
-static udMutex *pMtx = udCreateMutex();
-
+static udMutex *pMtx = nullptr;
 
 inline void vcDBF_GetLocalTime(time_t timer, vcDBF_Header *pHeader)
 {
@@ -86,12 +85,9 @@ inline void vcDBF_GetLocalTime(time_t timer, vcDBF_Header *pHeader)
 #elif UDPLATFORM_WINDOWS
   localtime_s(&bt, &timer);
 #else
-
-  udMutex *pMtx = udLockMutex(pMtx);
-
+  udMutex *pMutex = udLockMutex(pMtx);
   bt = *localtime(&timer);
-
-  udReleaseMutex(pMtx);
+  udReleaseMutex(pMutex);
 #endif
 
   pHeader->YMD[0] = (int8_t)bt.tm_year;
@@ -134,6 +130,9 @@ udResult vcDBF_Create(vcDBF **ppDBF)
   *ppDBF = pDBF;
   pDBF = nullptr;
 
+  if (pMtx == nullptr)
+    pMtx = udCreateMutex();
+
   return udR_Success;
 epilogue:
   vcDBF_Destroy(&pDBF);
@@ -152,6 +151,8 @@ void vcDBF_Destroy(vcDBF **ppDBF)
 
     (*ppDBF)->memos.clear();
   }
+
+  udDestroyMutex(&pMtx);
 
   for (uint32_t j = 0; j < (*ppDBF)->fieldCount; ++j)
   {
@@ -277,10 +278,12 @@ udResult vcDBF_LoadMemoFile(vcDBF *pDBF, const char *pFilename)
   uint32_t i;
 
   UD_ERROR_CHECK(udFile_Load(pFilename, &pData, &fileLength));
-  
-  pDBF->memoData.newIndex = (uint32_t)*pData;
+
+  memcpy(&pDBF->memoData.newIndex, pData, sizeof(uint32_t));
+
   vcDBF_FlipEndian(&pDBF->memoData.newIndex);
-  pDBF->memoData.memoBlockSize = *((uint16_t *)pData + 4);
+  memcpy(&pDBF->memoData.memoBlockSize, pData + 4, sizeof(uint16_t));
+
   pDBF->memoData.firstIndex = (uint32_t)udCeil((float)512 / pDBF->memoData.memoBlockSize); // Round up
   numBlocks = (uint32_t)fileLength / pDBF->memoData.memoBlockSize;
 
@@ -291,8 +294,8 @@ udResult vcDBF_LoadMemoFile(vcDBF *pDBF, const char *pFilename)
 
     vcDBF_MemoBlock memo = {};
 
-    memo.type = *((uint32_t *)pPos);
-    memo.length = *((uint32_t *)pPos + 4);
+    memcpy(&memo.type, pPos, sizeof(uint32_t));
+    memcpy(&memo.type, pPos + 4, sizeof(uint32_t));
     memo.pMemo = udAllocType(char, memo.length, udAF_Zero);
     memcpy(memo.pMemo, pPos + 8, memo.length);
     
@@ -326,6 +329,9 @@ udResult vcDBF_Load(vcDBF **ppDBF, const char *pFilename)
   UD_ERROR_CHECK(pDBF->records.Init(32));
   UD_ERROR_CHECK(udFile_Open(&pFile, pFilename, udFOF_Read));
   UD_ERROR_CHECK(vcDBF_ReadHeader(pFile, &pDBF->header));
+
+  if (pMtx == nullptr)
+    pMtx = udCreateMutex();
 
   if ((pDBF->header.flags & 0b01000000) == 0b01000000) // Memo flag
   {
@@ -914,7 +920,6 @@ udResult vcDBF_RecordWriteFieldMemo(vcDBF *pDBF, vcDBF_Record *pRecord, uint16_t
     if ((int)(strLen + 2 / pDBF->memoData.memoBlockSize) <= (int)(pBlock->length + 2 / pDBF->memoData.memoBlockSize)) // 2 terminating characters
     {
       pBlock->pMemo = udStrdup(pValue);
-
       return udR_Success;
     }
 
@@ -970,31 +975,7 @@ epilogue:
   return result;
 }
 
-template<typename T>
-uint32_t vcDBF_StrTtoa(char *pOutput, uint32_t strLen, T value, int minChars = 1)
-{
-  switch ((typeid(T)))
-  {
-  case typeid(float) :
-  case typeid(double) : // Not so sure about ideal precision value here
-    return (uint32_t)udStrFtoa(pOutput, strLen, value, 5, minChars);
-
-  case typeid(int) :
-  case typeid(uint16_t) : // Not 100% sure these types will map to unique 'case-able' values
-  case typeid(uint32_t) :
-  case typeid(uint64_t) :
-  case typeid(int16_t) :
-  case typeid(int32_t) :
-  case typeid(int64_t) :
-    return (uint32_t)udStrItoa(pOutput, strLen, value, 10, minChars);
-
-  default:
-    return 0;
-  }
-}
-
-template<typename T>
-udResult vcDBF_WriteT(udFile * pFile, const T input, uint8_t fieldLen)
+udResult vcDBF_WriteDouble(udFile *pFile, const double input, uint8_t fieldLen)
 {
   if (pFile == nullptr || fieldLen < 1)
     return udR_InvalidParameter_;
@@ -1005,7 +986,7 @@ udResult vcDBF_WriteT(udFile * pFile, const T input, uint8_t fieldLen)
   char *pOutput = udAllocType(char, fieldLen + 1, udAF_Zero);
   UD_ERROR_NULL(pOutput, udR_MemoryAllocationFailure);
 
-  outputLen = (uint32_t)vcDBF_StrTtoa(pOutput, fieldLen + 1, input) - 1;
+  outputLen = (uint32_t)udStrFtoa(pOutput, fieldLen + 1, input, 5) - 1; //TODO: How much precision?
 
   if (outputLen > fieldLen)
     outputLen = fieldLen; // Write out as much as will fit
@@ -1020,14 +1001,30 @@ epilogue:
   return result;
 }
 
-udResult vcDBF_WriteDouble(udFile *pFile, const double input, uint8_t fieldLen)
-{
-  return vcDBF_WriteT(pFile, input, fieldLen);
-}
-
 udResult vcDBF_WriteInteger(udFile *pFile, const int32_t input, uint8_t fieldLen)
 {
-  return vcDBF_WriteT(pFile, input, fieldLen);
+  if (pFile == nullptr || fieldLen < 1)
+    return udR_InvalidParameter_;
+
+  udResult result;
+
+  uint32_t outputLen = 0;
+  char *pOutput = udAllocType(char, fieldLen + 1, udAF_Zero);
+  UD_ERROR_NULL(pOutput, udR_MemoryAllocationFailure);
+
+  outputLen = (uint32_t)udStrItoa(pOutput, fieldLen + 1, input) - 1;
+
+  if (outputLen > fieldLen)
+    outputLen = fieldLen; // Write out as much as will fit
+  else if (outputLen < fieldLen)
+    UD_ERROR_CHECK(udFile_Write(pFile, spaceBuffer, fieldLen - outputLen));
+
+  UD_ERROR_CHECK(udFile_Write(pFile, pOutput, outputLen));
+
+  result = udR_Success;
+epilogue:
+  udFree(pOutput);
+  return result;
 }
 
 udResult vcDBF_WriteMemoBlock(udFile *pMemo, const char *pString, uint16_t blockSize)
