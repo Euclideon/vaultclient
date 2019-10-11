@@ -57,8 +57,6 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   vdkProjectNode *pNode = m_pNode->pFirstChild;
   while (pNode != nullptr)
   {
-    HandleNodeSelection(pProgramState, this, pNode);
-
     if (pNode->pUserData != nullptr)
     {
       vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
@@ -90,6 +88,8 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       else
         pNode->pUserData = new vcUnsupportedNode(pProgramState->activeProject.pProject, pNode, pProgramState); // Catch all
     }
+
+    HandleNodeSelection(pProgramState, this, pNode);
 
     pNode = pNode->pNextSibling;
   }
