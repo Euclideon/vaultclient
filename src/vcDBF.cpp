@@ -466,7 +466,7 @@ udResult vcDBF_WriteFieldDesc(udFile *pFile, const vcDBF_FieldDesc *pDesc)
 
   uint8_t blank[10] = {};
   uint8_t strLen = 0;
-  for (; pDesc->fieldName[strLen] != '\0' && strLen < 12; ++strLen);
+  for (; pDesc->fieldName[strLen] != '\0' && strLen < 11; ++strLen);
 
   // All these fields are single byte/ordered data or unused, no need to flip endian
   UD_ERROR_CHECK(udFile_Write(pFile, &pDesc->fieldName, strLen));
@@ -957,33 +957,18 @@ epilogue:
   return result;
 }
 
-udResult vcDBF_WriteDouble(udFile *pFile, const double input, uint8_t fieldLen)
+uint32_t vcDBF_StrTtoA(char *pOutput, uint32_t strLen, int input)
 {
-  if (pFile == nullptr || fieldLen < 1)
-    return udR_InvalidParameter_;
-
-  udResult result;
-
-  uint32_t outputLen = 0;
-  char *pOutput = udAllocType(char, fieldLen + 1, udAF_Zero);
-  UD_ERROR_NULL(pOutput, udR_MemoryAllocationFailure);
-
-  outputLen = (uint32_t)udStrFtoa(pOutput, fieldLen + 1, input, 5) - 1; //TODO: How much precision?
-
-  if (outputLen > fieldLen)
-    outputLen = fieldLen; // Write out as much as will fit
-  else if (outputLen < fieldLen)
-    UD_ERROR_CHECK(udFile_Write(pFile, spaceBuffer, fieldLen - outputLen));
-
-  UD_ERROR_CHECK(udFile_Write(pFile, pOutput, outputLen));
-
-  result = udR_Success;
-epilogue:
-  udFree(pOutput);
-  return result;
+  return udStrItoa(pOutput, strLen, input);
 }
 
-udResult vcDBF_WriteInteger(udFile *pFile, const int32_t input, uint8_t fieldLen)
+uint32_t vcDBF_StrTtoA(char *pOutput, uint32_t strLen, double input)
+{
+  return udStrFtoa(pOutput, strLen, input, 5);
+}
+
+template <typename T>
+udResult vcDBF_WriteNumber(udFile *pFile, const T input, uint8_t fieldLen)
 {
   if (pFile == nullptr || fieldLen < 1)
     return udR_InvalidParameter_;
@@ -994,7 +979,7 @@ udResult vcDBF_WriteInteger(udFile *pFile, const int32_t input, uint8_t fieldLen
   char *pOutput = udAllocType(char, fieldLen + 1, udAF_Zero);
   UD_ERROR_NULL(pOutput, udR_MemoryAllocationFailure);
 
-  outputLen = (uint32_t)udStrItoa(pOutput, fieldLen + 1, input) - 1;
+  outputLen = vcDBF_StrTtoA(pOutput, fieldLen + 1, input) - 1;
 
   if (outputLen > fieldLen)
     outputLen = fieldLen; // Write out as much as will fit
@@ -1049,7 +1034,7 @@ udResult vcDBF_WriteRecord(vcDBF *pDBF, udFile *pFile, vcDBF_Record *pRecord, ud
       break;
 
     case vcDBFDMT_Float:
-      vcDBF_WriteDouble(pFile, pRecord->pFields[i].floaty, pDBF->pFields[i].fieldLen);
+      vcDBF_WriteNumber(pFile, pRecord->pFields[i].floaty, pDBF->pFields[i].fieldLen);
       break;
 
     case vcDBFDMT_Logical:
@@ -1057,14 +1042,14 @@ udResult vcDBF_WriteRecord(vcDBF *pDBF, udFile *pFile, vcDBF_Record *pRecord, ud
       break;
 
     case vcDBFDMT_Integer:
-      vcDBF_WriteInteger(pFile, pRecord->pFields[i].integer, pDBF->pFields[i].fieldLen);
+      vcDBF_WriteNumber(pFile, pRecord->pFields[i].integer, pDBF->pFields[i].fieldLen);
       break;
 
     case vcDBFDMT_Memo:
       UD_ERROR_IF(!pDBF->memo, udR_Failure_);
 
       if (pDBF->pFields[i].fieldLen == 4) // write memo num
-        vcDBF_WriteInteger(pFile, pRecord->pFields[i].integer, pDBF->pFields[i].fieldLen);
+        vcDBF_WriteNumber(pFile, pRecord->pFields[i].integer, pDBF->pFields[i].fieldLen);
       else
         vcDBF_WriteString(pFile, pRecord->pFields[i].pString, pDBF->pFields[i].fieldLen);
 
