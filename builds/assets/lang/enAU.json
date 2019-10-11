@@ -240,6 +240,7 @@
   "convertGeneratingPreview": "Generating Preview...",
   "convertAddPreviewToScene": "Add Preview to Scene",
   "convertPreviewName": "Conversion Preview",
+  "convertAllSpaceLabel": "Set All Source XY",
   "convertSpaceLabel": "Source XY",
   "convertSpaceCartesian": "Cartesian",
   "convertSpaceLatLong": "Latitude then Longitude",

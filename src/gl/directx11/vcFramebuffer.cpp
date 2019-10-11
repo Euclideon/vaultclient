@@ -54,25 +54,41 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
   udFree(*ppFramebuffer);
 }
 
-bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer)
+bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOperation clearOperation /*= vcFramebufferClearOperation_None*/, uint32_t clearColour /*= 0x0*/, const vcFramebufferClearOperation clearPreviousOperation /*= vcFramebufferClearOperation_None*/)
 {
+  udUnused(clearPreviousOperation);
+
   if (pFramebuffer == nullptr || pFramebuffer->pRenderTargetView == nullptr)
     return false;
 
   g_pd3dDeviceContext->OMSetRenderTargets(1, &pFramebuffer->pRenderTargetView, pFramebuffer->pDepthStencilView);
 
-  return true;
-}
+  float colours[4] = { ((clearColour >> 16) & 0xFF) / 255.f, ((clearColour >> 8) & 0xFF) / 255.f, (clearColour & 0xFF) / 255.f, ((clearColour >> 24) & 0xFF) / 255.f };
 
-bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
-{
-  if (pFramebuffer == nullptr || pFramebuffer->pRenderTargetView == nullptr)
-    return false;
+  bool clearRenderTargetView = false;
+  bool clearDepthStencilView = false;
 
-  float colours[4] = { ((colour >> 16) & 0xFF) / 255.f, ((colour >> 8) & 0xFF) / 255.f, (colour & 0xFF) / 255.f, ((colour >> 24) & 0xFF) / 255.f };
+  switch (clearOperation)
+  {
+  case vcFramebufferClearOperation_None:
+    // Clear nothing
+    break;
+  case vcFramebufferClearOperation_Colour:
+    clearRenderTargetView = true;
+    break;
+  case vcFramebufferClearOperation_DepthStencil:
+    clearDepthStencilView = true;
+    break;
+  case vcFramebufferClearOperation_All:
+    clearRenderTargetView = true;
+    clearDepthStencilView = true;
+    break;
+  }
 
-  g_pd3dDeviceContext->ClearRenderTargetView(pFramebuffer->pRenderTargetView, colours);
-  if (pFramebuffer->pDepthStencilView)
+  if (clearRenderTargetView)
+    g_pd3dDeviceContext->ClearRenderTargetView(pFramebuffer->pRenderTargetView, colours);
+
+  if (clearDepthStencilView && pFramebuffer->pDepthStencilView)
     g_pd3dDeviceContext->ClearDepthStencilView(pFramebuffer->pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
 
   return true;

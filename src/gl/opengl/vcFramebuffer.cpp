@@ -54,28 +54,58 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
   VERIFY_GL();
 }
 
-bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer)
-{
-  if (pFramebuffer == nullptr || pFramebuffer->id == GL_INVALID_INDEX)
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  else
-    glBindFramebuffer(GL_FRAMEBUFFER, pFramebuffer->id);
-
-  VERIFY_GL();
-  return true;
-}
-
-bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
+bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOperation clearOperation /*= vcFramebufferClearOperation_None*/, uint32_t clearColour /*= 0x0*/, const vcFramebufferClearOperation clearPreviousOperation /*= vcFramebufferClearOperation_None*/)
 {
   if (pFramebuffer == nullptr)
     return false;
 
-  GLbitfield clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
-  if (pFramebuffer->pDepth && pFramebuffer->pDepth->format == vcTextureFormat_D24S8)
-    clearMask |= GL_STENCIL_BUFFER_BIT;
+  // OpenGL ES only
+  // glInvalidateFramebuffer() only available above our min spec OpenGL version, so disabled
+#if UDPLATFORM_ANDROID || UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+  static const GLenum attachments[] = { GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT, GL_STENCIL_ATTACHMENT };
+  switch (clearPreviousOperation)
+  {
+  case vcFramebufferClearOperation_None:
+    // No invalidation
+    break;
+  case vcFramebufferClearOperation_Colour:
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, &attachments[0]);
+    break;
+  case vcFramebufferClearOperation_DepthStencil:
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, 2, &attachments[1]);
+    break;
+  case vcFramebufferClearOperation_All:
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, 3, &attachments[0]);
+    break;
+  }
+#else
+  udUnused(clearPreviousOperation);
+#endif
 
-  glClearColor(((colour >> 16) & 0xFF) / 255.f, ((colour >> 8) & 0xFF) / 255.f, (colour & 0xFF) / 255.f, ((colour >> 24) & 0xFF) / 255.f);
-  glClear(clearMask);
+  if (pFramebuffer->id == GL_INVALID_INDEX)
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  else
+    glBindFramebuffer(GL_FRAMEBUFFER, pFramebuffer->id);
+
+
+  if (clearOperation == vcFramebufferClearOperation_Colour || clearOperation == vcFramebufferClearOperation_All)
+    glClearColor(((clearColour >> 16) & 0xFF) / 255.f, ((clearColour >> 8) & 0xFF) / 255.f, (clearColour & 0xFF) / 255.f, ((clearColour >> 24) & 0xFF) / 255.f);
+
+  switch (clearOperation)
+  {
+  case vcFramebufferClearOperation_None:
+    // Clear nothing
+    break;
+  case vcFramebufferClearOperation_Colour:
+    glClear(GL_COLOR_BUFFER_BIT);
+    break;
+  case vcFramebufferClearOperation_DepthStencil:
+    glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    break;
+  case vcFramebufferClearOperation_All:
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    break;
+  }
 
   VERIFY_GL();
   return true;

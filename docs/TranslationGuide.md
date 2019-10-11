@@ -4,7 +4,7 @@
 
 - Version 0.4.0
   - Added:
-    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`
+    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `convertAllSpaceLabel`
   - Changed:
     - ?
   - Removed:
@@ -393,6 +393,7 @@ Modules are currently:
 - `convertGeneratingPreview`: Displayed on the button while a preview is being generated
 - `convertAddPreviewToScene`: Displayed on the button that generates a preview model and adds it to the scene
 - `convertPreviewName`: The default name for a preview pointcloud when added to the scene
+- `convertAllSpaceLabel`: The label beside the dropdown to select the projection space for all inputs
 - `convertSpaceLabel`: The label beside the dropdown to select the projection space for the input
 - `convertSpaceCartesian`: The label on the combobox item for a cartesian projected conversion input
 - `convertSpaceLatLong`: The label on the combobox item for a latitude, longitude ordered conversion input
