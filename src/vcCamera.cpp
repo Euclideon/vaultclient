@@ -821,6 +821,26 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     pProgramState->cameraInput.inputState = vcCIS_None;
   }
 
+  /*
+  // set pivot to send to apply function
+  pProgramState->cameraInput.currentPivotMode = vcCPM_Tumble;
+  if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
+  {
+    if (io.MouseDown[0] || io.MouseDown[1] || io.MouseDown[2])
+      pProgramState->cameraInput.currentPivotMode = vcCPM_Pan;
+  }
+  else
+  {
+    if (io.MouseDown[0] && !io.MouseDown[1] && !io.MouseDown[2])
+      pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.cameraMouseBindings[0];
+
+    if (!io.MouseDown[0] && io.MouseDown[1] && !io.MouseDown[2])
+      pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.cameraMouseBindings[1];
+
+    if (!io.MouseDown[0] && !io.MouseDown[1] && io.MouseDown[2])
+      pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.cameraMouseBindings[2];
+  }*/
+
   // Apply movement and rotation
   pProgramState->cameraInput.keyboardInput = keyboardInput;
   pProgramState->cameraInput.mouseInput = mouseInput;
