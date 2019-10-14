@@ -57,6 +57,7 @@ struct vcFBX
   double pointResolution;
   vdkConvertCustomItemFlags convertFlags;
   uint32_t everyNth;
+  uint32_t everyNthAccum;
 
   bool noTextures;
 
@@ -637,12 +638,29 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
                 }
               }
 
+              // Handle everyNth here in one place, slightly inefficiently but with the benefit of simplicity for the rest of the function
+              if (pFBX->everyNth > 1)
+              {
+                uint32_t i, pc;
+                for (i = pc = 0; i < numPoints; ++i)
+                {
+                  if (++pFBX->everyNthAccum == pFBX->everyNth)
+                  {
+                    memcpy(&pFBX->pTriPositions[pc * 3], &pFBX->pTriPositions[i * 3], sizeof(double) * 3);
+                    memcpy(&pFBX->pTriWeights[pc * 3], &pFBX->pTriWeights[i * 3], sizeof(double) * 3);
+                    ++pc;
+                    pFBX->everyNthAccum = 0;
+                  }
+                }
+                numPoints = pc;
+              }
+
               // Write points from current triangle
-              for (uint32_t point = 0; point < numPoints; point += pFBX->everyNth)
+              for (uint32_t point = 0; point < numPoints; ++point)
               {
                 // Position
                 for (int coord = 0; coord < 3; ++coord)
-                  pBuffer->pPositions[pBuffer->pointCount + point / pFBX->everyNth][coord] = (int64_t)(pFBX->pTriPositions[3 * point + coord] / pConvertInput->sourceResolution);
+                  pBuffer->pPositions[pBuffer->pointCount + point][coord] = (int64_t)(pFBX->pTriPositions[3 * point + coord] / pConvertInput->sourceResolution);
 
                 // Colour
                 uint32_t colour = 0;
@@ -705,7 +723,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
                 } // End if colour
               } // End for numpoints
 
-              pBuffer->pointCount += numPoints / pFBX->everyNth;
+              pBuffer->pointCount += numPoints;
             } // End colour processing
 
             if (pBuffer->pointCount == pBuffer->pointsAllocated)
