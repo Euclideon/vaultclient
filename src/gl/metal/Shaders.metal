@@ -86,11 +86,22 @@ visualizationFragmentShader(VVSOutput in [[stage_in]],
   
   float linearDepth = ((2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane))) * farPlane;
   float2 depthColorMinMax = uVFS.u_colorizeDepthParams.xy;
-  
+
   float depthColorStrength = clamp((linearDepth - depthColorMinMax.x) / (depthColorMinMax.y - depthColorMinMax.x), 0.0, 1.0);
   
   col.xyz = mix(col.xyz, uVFS.u_colorizeDepthColor.xyz, depthColorStrength * uVFS.u_colorizeDepthColor.w);
-  
+
+  float contourBandHeight = uVFS.u_contourParams.y;
+  float contourRainboxRepeat = uVFS.u_contourParams.z;
+  float contourRainboxIntensity = uVFS.u_contourParams.w;
+
+  float3 rainbowColor = hsv2rgb(float3(fragWorldPosition.z * (1.0 / contourRainboxRepeat), 1.0, 1.0));
+  float3 baseColor = mix(col.xyz, rainbowColor, contourRainboxIntensity);
+
+  float isContour = 1.0 - step(contourBandHeight, fmod(abs(fragWorldPosition.z), uVFS.u_contourParams.x));
+
+  col.xyz = mix(baseColor, uVFS.u_contourColor.xyz, isContour * uVFS.u_contourColor.w);
+
   float edgeOutlineWidth = uVFS.u_outlineParams.x;
   if (edgeOutlineWidth > 0.0 && uVFS.u_outlineColor.w > 0.0)
   {
@@ -117,18 +128,7 @@ visualizationFragmentShader(VVSOutput in [[stage_in]],
     col.xyz = edgeResult.xyz;
     depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
   }
-  
-  float contourBandHeight = uVFS.u_contourParams.y;
-  float contourRainboxRepeat = uVFS.u_contourParams.z;
-  float contourRainboxIntensity = uVFS.u_contourParams.w;
-  
-  float3 rainbowColor = hsv2rgb(float3(fragWorldPosition.z * (1.0 / contourRainboxRepeat), 1.0, 1.0));
-  float3 baseColor = mix(col.xyz, rainbowColor, contourRainboxIntensity);
-  
-  float isContour = 1.0 - step(contourBandHeight, fmod(abs(fragWorldPosition.z), uVFS.u_contourParams.x));
-  
-  col.xyz = mix(baseColor, uVFS.u_contourColor.xyz, isContour * uVFS.u_contourColor.w);
-  
+
   out.out_Color = float4(col.rgb, 1.0);
   out.depth = depth;
   

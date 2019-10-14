@@ -130,6 +130,8 @@ void main()
   col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
   col.xyz = colourizeByDepth(col.xyz, depth);
 
+  col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
+
   float edgeOutlineWidth = u_outlineParams.x;
   float edgeOutlineThreshold = u_outlineParams.y;
   vec4 outlineColour = u_outlineColour;
@@ -139,7 +141,6 @@ void main()
     col.xyz = edgeResult.xyz;
     depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
   }
-  col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
 
   out_Colour = vec4(col.xyz, 1.0);
   gl_FragDepth = depth;

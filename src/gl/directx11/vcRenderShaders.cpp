@@ -132,10 +132,12 @@ const char *const g_VisualizationFragmentShader = R"shader(
 
     float4 fragWorldPosition = mul(u_inverseViewProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, depth, 1.0));
     fragWorldPosition /= fragWorldPosition.w;
-    
+
     col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
     col.xyz = colourizeByDepth(col.xyz, depth);
-    
+
+    col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
+
     float edgeOutlineWidth = u_outlineParams.x;
     if (edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
     {
@@ -143,7 +145,6 @@ const char *const g_VisualizationFragmentShader = R"shader(
       col.xyz = edgeResult.xyz;
       depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
     }
-    col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
 
     output.Color0 = float4(col.xyz, 1.0);// UD always opaque
     output.Depth0 = depth;
