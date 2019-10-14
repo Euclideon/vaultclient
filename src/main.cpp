@@ -853,6 +853,9 @@ int main(int argc, char **args)
   vcTexture_AsyncCreateFromFilename(&programState.pBuildingsTexture, programState.pWorkerPool, "asset://assets/textures/buildings.png", vcTFM_Nearest, false);
   vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png");
 
+  uint32_t whitePixel = 0xFFFFFFFF;
+  vcTexture_Create(&programState.pWhiteTexture, 1, 1, &whitePixel);
+
 #if UDPLATFORM_EMSCRIPTEN
   emscripten_set_main_loop_arg(vcMain_MainLoop, &programState, 0, 1);
 #else
@@ -880,6 +883,7 @@ epilogue:
   vcTexture_Destroy(&programState.pCompanyLogo);
   vcTexture_Destroy(&programState.pBuildingsTexture);
   vcTexture_Destroy(&programState.pUITexture);
+  vcTexture_Destroy(&programState.pWhiteTexture);
 
   for (size_t i = 0; i < programState.loadList.length; i++)
     udFree(programState.loadList[i]);
