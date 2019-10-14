@@ -21,10 +21,12 @@
 #include "vcWaterNode.h"
 #include "vcViewpoint.h"
 
-void HandleNodeSelection(vcState* pProgramState, vcSceneItem* pSceneItem, vdkProjectNode* pNode)
+void HandleNodeSelection(vcState* pProgramState, vdkProjectNode* pNode)
 {
-  if (pProgramState->sceneExplorer.selectUUIDWhenPossible[0] == '\0' || !udStrEqual(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID))
+  if (pProgramState->sceneExplorer.selectUUIDWhenPossible[0] == '\0' || !udStrEqual(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID) || pNode->pUserData == nullptr)
     return;
+
+  vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
 
   if (!ImGui::GetIO().KeyCtrl)
     vcProject_ClearSelection(pProgramState);
@@ -89,7 +91,7 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pNode->pUserData = new vcUnsupportedNode(pProgramState->activeProject.pProject, pNode, pProgramState); // Catch all
     }
 
-    HandleNodeSelection(pProgramState, this, pNode);
+    HandleNodeSelection(pProgramState, pNode);
 
     pNode = pNode->pNextSibling;
   }
