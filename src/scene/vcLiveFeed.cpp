@@ -289,6 +289,7 @@ epilogue:
 
 vcLiveFeed::vcLiveFeed(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
+  m_selectedItem(0),
   m_visibleItems(0),
   m_tweenPositionAndOrientation(true),
   m_updateFrequency(15.0),
@@ -440,7 +441,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         }
 
         if (pModel != nullptr)
-          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, { pModel }, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition), nullptr, this, (uint64_t)i });
+          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, { pModel }, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition), nullptr, this, (uint64_t)(i+1) });
       }
 
       break; // We got to the end so we should stop
@@ -572,7 +573,15 @@ udDouble3 vcLiveFeed::GetLocalSpacePivot()
   return udDouble3::zero();
 }
 
-bool vcLiveFeed::IsSceneSelected(uint64_t internalId)
+void vcLiveFeed::SelectSubitem(uint64_t internalId)
 {
-  return vcSceneItem::IsSceneSelected(internalId);// && m_feedItems[internalId]->selected;
+  this->m_selectedItem = internalId;
+}
+
+bool vcLiveFeed::IsSubitemSelected(uint64_t internalId)
+{
+  if (internalId == 0 || this->m_selectedItem == 0)
+    return m_selected;
+
+  return (m_selected && this->m_selectedItem == internalId);
 }

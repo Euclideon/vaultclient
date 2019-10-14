@@ -5,6 +5,7 @@
 #include "vcStrings.h"
 
 #include "vcFenceRenderer.h"
+#include "vcInternalModels.h"
 
 #include "udMath.h"
 #include "udFile.h"
@@ -108,6 +109,22 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   // if POI is invisible or if it exceeds maximum visible POI distance
   if (!m_visible || (pProgramState->settings.camera.cameraMode != vcCM_OrthoMap && udMag3(m_pLabelInfo->worldPosition - pProgramState->pCamera->position) > pProgramState->settings.presentation.POIFadeDistance))
     return;
+
+  if (m_selected)
+  {
+    for (int i = 0; i < m_line.numPoints; ++i)
+    {
+      vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
+
+      udDouble3 linearDistance = (pProgramState->pCamera->position - m_line.pPoints[i]);
+
+      pInstance->pModel = gInternalModels[vcInternalModelType_Sphere];
+      pInstance->worldMat = udDouble4x4::translation(m_line.pPoints[i]) * udDouble4x4::scaleUniform(udMag3(linearDistance) / 100.0); //This makes it ~1/100th of the screen size
+      pInstance->pSceneItem = this;
+      pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
+      pInstance->sceneItemInternalId = (uint64_t)(i+1);
+    }
+  }
 
   if (m_pFence != nullptr)
     pRenderData->fences.PushBack(m_pFence);
@@ -410,6 +427,8 @@ void vcPOI::AddPoint(vcState *pProgramState, const udDouble3 &position)
 
   UpdatePoints();
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
+
+  m_line.selectedPoint = m_line.numPoints - 1;
 }
 
 void vcPOI::RemovePoint(vcState *pProgramState, int index)
@@ -454,4 +473,14 @@ udDouble4x4 vcPOI::GetWorldSpaceMatrix()
     return udDouble4x4::translation(m_pLabelInfo->worldPosition);
   else
     return udDouble4x4::translation(m_line.pPoints[m_line.selectedPoint]);
+}
+
+void vcPOI::SelectSubitem(uint64_t internalId)
+{
+  m_line.selectedPoint = ((int)internalId) - 1;
+}
+
+bool vcPOI::IsSubitemSelected(uint64_t internalId)
+{
+  return (m_selected && (m_line.selectedPoint == ((int)internalId - 1) || m_line.selectedPoint == -1));
 }

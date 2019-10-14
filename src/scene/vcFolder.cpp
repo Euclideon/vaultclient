@@ -21,10 +21,12 @@
 #include "vcWaterNode.h"
 #include "vcViewpoint.h"
 
-void HandleNodeSelection(vcState* pProgramState, vcSceneItem* pSceneItem, vdkProjectNode* pNode)
+void HandleNodeSelection(vcState* pProgramState, vdkProjectNode* pNode)
 {
-  if (pProgramState->sceneExplorer.selectUUIDWhenPossible[0] == '\0' || !udStrEqual(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID))
+  if (pProgramState->sceneExplorer.selectUUIDWhenPossible[0] == '\0' || !udStrEqual(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID) || pNode->pUserData == nullptr)
     return;
+
+  vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
 
   if (!ImGui::GetIO().KeyCtrl)
     vcProject_ClearSelection(pProgramState);
@@ -57,8 +59,6 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   vdkProjectNode *pNode = m_pNode->pFirstChild;
   while (pNode != nullptr)
   {
-    HandleNodeSelection(pProgramState, this, pNode);
-
     if (pNode->pUserData != nullptr)
     {
       vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
@@ -90,6 +90,8 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       else
         pNode->pUserData = new vcUnsupportedNode(pProgramState->activeProject.pProject, pNode, pProgramState); // Catch all
     }
+
+    HandleNodeSelection(pProgramState, pNode);
 
     pNode = pNode->pNextSibling;
   }
@@ -230,7 +232,10 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
       bool sceneExplorerItemClicked = ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!pSceneItem->m_selected && ImGui::IsItemActive()));
       if (sceneExplorerItemClicked)
+      {
         udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+        pSceneItem->SelectSubitem(0);
+      }
 
       if (pSceneItem->m_loadStatus == vcSLS_Loaded && pProgramState->sceneExplorer.movetoUUIDWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID))
       {

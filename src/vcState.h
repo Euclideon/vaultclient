@@ -41,6 +41,7 @@ enum vcLoginStatus
 {
   vcLS_NoStatus, // Used temporarily at startup and after logout to set focus on the correct fields
   vcLS_EnterCredentials,
+  vcLS_NoServerURL,
   vcLS_Pending,
   vcLS_ConnectionError,
   vcLS_AuthError,
@@ -94,6 +95,7 @@ struct vcState
   vcTexture *pBuildingsTexture;
   vcTexture *pSceneWatermark;
   vcTexture *pUITexture;
+  vcTexture *pWhiteTexture;
 
   bool isUsingAnchorPoint;
   udDouble3 worldAnchorPoint;

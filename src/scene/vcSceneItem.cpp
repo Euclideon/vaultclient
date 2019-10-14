@@ -70,10 +70,15 @@ void vcSceneItem::UpdateNode(vcState *pProgramState)
   m_lastUpdateTime = m_pNode->lastUpdate;
 };
 
-bool vcSceneItem::IsSceneSelected(uint64_t internalId)
+void vcSceneItem::SelectSubitem(uint64_t internalId)
+{
+  // Does nothing
+  udUnused(internalId);
+}
+
+bool vcSceneItem::IsSubitemSelected(uint64_t internalId)
 {
   udUnused(internalId);
-
   return m_selected;
 }
 

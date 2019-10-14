@@ -112,8 +112,6 @@ struct vcRenderContext
   vcTileRenderer *pTileRenderer;
   vcAnchor *pCompass;
 
-  vcTexture *pWhiteTexture;
-
   float previousFrameDepth;
   udFloat2 currentMouseUV;
 
@@ -183,7 +181,6 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
 {
   udResult result;
   vcRenderContext *pRenderContext = nullptr;
-  uint8_t whitePixel[4] = { 0xff, 0xff, 0xff, 0xff };
 
   UD_ERROR_NULL(ppRenderContext, udR_InvalidParameter_);
 
@@ -191,8 +188,6 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
 
   pRenderContext = udAllocType(vcRenderContext, 1, udAF_Zero);
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
-
-  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pWhiteTexture, 1, 1, whitePixel));
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->visualizationShader.pProgram, g_VisualizationVertexShader, g_VisualizationFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
@@ -302,7 +297,6 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   result = udR_Success;
 
 epilogue:
-  vcTexture_Destroy(&pRenderContext->pWhiteTexture);
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
   vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
   vcFramebuffer_Destroy(&pRenderContext->udRenderContext.pFramebuffer);
@@ -792,7 +786,7 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
   {
     if (renderData.models[i]->m_visible && renderData.models[i]->m_loadStatus == vcSLS_Loaded)
     {
-      if (renderData.models[i]->IsSceneSelected(0))
+      if (renderData.models[i]->IsSubitemSelected(0))
       {
         float splatId = 1.0f / 255.0f;
 
@@ -807,7 +801,7 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
   for (size_t i = 0; i < renderData.polyModels.length; ++i)
   {
     vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
-    if (pInstance->pSceneItem->IsSceneSelected(pInstance->sceneItemInternalId))
+    if ((pInstance->sceneItemInternalId == 0 && pInstance->pSceneItem->m_selected) || (pInstance->sceneItemInternalId != 0 && pInstance->pSceneItem->IsSubitemSelected(pInstance->sceneItemInternalId)))
     {
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
         vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &selectionMask);
@@ -1000,7 +994,7 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
       // Copy to the contiguous array
       pModels[numVisibleModels].pPointCloud = renderData.models[i]->m_pPointCloud;
       memcpy(&pModels[numVisibleModels].matrix, renderData.models[i]->m_sceneMatrix.a, sizeof(pModels[numVisibleModels].matrix));
-      pModels[numVisibleModels].modelFlags = renderData.models[i]->IsSceneSelected(0) ? vdkRMF_Selected : vdkRMF_None;
+      pModels[numVisibleModels].modelFlags = renderData.models[i]->IsSubitemSelected(0) ? vdkRMF_Selected : vdkRMF_None;
       ++numVisibleModels;
 
       if (renderData.models[i]->m_hasWatermark)
