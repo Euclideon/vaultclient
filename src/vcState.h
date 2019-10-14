@@ -10,6 +10,7 @@
 #include "vcImageRenderer.h"
 #include "vcSettings.h"
 #include "vcSceneItem.h"
+#include "vcModel.h"
 #include "vcGIS.h"
 #include "vcFolder.h"
 #include "vcStrings.h"
@@ -173,7 +174,7 @@ struct vcState
   vcDocks changeActiveDock;
 
   bool getGeo;
-  udGeoZone *pGotGeo;
+  vcModel *pGotGeo;
 };
 
 #endif // !vcState_h__
