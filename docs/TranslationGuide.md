@@ -4,7 +4,7 @@
 
 - Version 0.4.0
   - Added:
-    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `convertAllSpaceLabel`
+    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `convertAllSpaceLabel`, `loginEnterURL`
   - Changed:
     - ?
   - Removed:
@@ -160,6 +160,7 @@ Modules are currently:
 - `loginIgnoreCertWarning`: This displays a warning to the user that disabling the security certificates is _very_ dangerous
 - `loginPending`: String used internally to set the login status to "pending"?
 - `loginMessageCredentials`: Prompts the user to enter their login information
+- `loginEnterURL`: Prompts the user to enter a server URL
 - `loginMessageChecking`: Tells the user to wait while their login information is confirmed
 - `loginErrorConnection`: Displays when the vault client fails to connect to the specified vault server
 - `loginErrorAuth`: Displays when the server rejects the specified username or password

@@ -35,6 +35,7 @@
   "loginPending": "Pending",
   "loginMessageCredentials": "Please enter your credentials...",
   "loginMessageChecking": "Checking with server...",
+  "loginEnterURL": "Please enter the server URL...",
   "loginErrorConnection": "Could not connect to server.",
   "loginErrorAuth": "Username or Password incorrect.",
   "loginErrorTimeSync": "Your clock doesn't match the remote server clock.",
