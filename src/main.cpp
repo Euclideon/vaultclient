@@ -1929,7 +1929,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
   ImGui::SetNextWindowPos(ImVec2(size.x / 2, size.y - vcLBS_LoginBoxY), ImGuiCond_Always, ImVec2(0.5, 1.0));
 
-  const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther" };
+  const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginEnterURL", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther" };
 
   if (pProgramState->loginStatus == vcLS_Pending)
   {
@@ -2012,9 +2012,16 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
 
       if (ImGui::Button(vcString::Get("loginButton")) || tryLogin)
       {
-        pProgramState->passFocus = false;
-        pProgramState->loginStatus = vcLS_Pending;
-        udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_Login, pProgramState, false);
+        if (*pProgramState->settings.loginInfo.serverURL == '\0')
+        {
+          pProgramState->loginStatus = vcLS_NoServerURL;
+        }
+        else
+        {
+          pProgramState->passFocus = false;
+          pProgramState->loginStatus = vcLS_Pending;
+          udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_Login, pProgramState, false);
+        }
       }
 
       if (SDL_GetModState() & KMOD_CAPS)
