@@ -668,6 +668,15 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
     if (ImGui::IsKeyPressed(SDL_SCANCODE_SPACE, false))
       pProgramState->settings.camera.moveMode = ((pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter);
+    if (ImGui::IsKeyPressed(SDL_SCANCODE_B, false))
+      pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Translate ? vcGO_NoGizmo : vcGO_Translate;
+    if (ImGui::IsKeyPressed(SDL_SCANCODE_N, false))
+      pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Rotate ? vcGO_NoGizmo : vcGO_Rotate;
+    if (!io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_M, false))
+      pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Scale ? vcGO_NoGizmo : vcGO_Scale;
+    if (ImGui::IsKeyPressed(SDL_SCANCODE_L, false))
+      pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
+
   }
 
   if (isFocused)
