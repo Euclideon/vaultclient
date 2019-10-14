@@ -835,7 +835,7 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
   {
     if (renderData.models[i]->m_visible && renderData.models[i]->m_loadStatus == vcSLS_Loaded)
     {
-      if (renderData.models[i]->IsSceneSelected(0))
+      if (renderData.models[i]->IsSubitemSelected(0))
       {
         float splatId = 1.0f / 255.0f;
 #if ALLOW_EXPERIMENT_GPURENDER
@@ -853,7 +853,7 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
   for (size_t i = 0; i < renderData.polyModels.length; ++i)
   {
     vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
-    if (pInstance->pSceneItem->IsSceneSelected(pInstance->sceneItemInternalId))
+    if ((pInstance->sceneItemInternalId == 0 && pInstance->pSceneItem->m_selected) || (pInstance->sceneItemInternalId != 0 && pInstance->pSceneItem->IsSubitemSelected(pInstance->sceneItemInternalId)))
     {
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
         vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &selectionMask);
@@ -1050,7 +1050,7 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
       // Copy to the contiguous array
       pModels[numVisibleModels].pPointCloud = renderData.models[i]->m_pPointCloud;
       memcpy(&pModels[numVisibleModels].matrix, renderData.models[i]->m_sceneMatrix.a, sizeof(pModels[numVisibleModels].matrix));
-      pModels[numVisibleModels].modelFlags = renderData.models[i]->IsSceneSelected(0) ? vdkRMF_Selected : vdkRMF_None;
+      pModels[numVisibleModels].modelFlags = renderData.models[i]->IsSubitemSelected(0) ? vdkRMF_Selected : vdkRMF_None;
       ++numVisibleModels;
 
       if (renderData.models[i]->m_hasWatermark)

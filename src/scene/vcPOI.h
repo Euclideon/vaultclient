@@ -66,6 +66,9 @@ public:
 
   void SetCameraPosition(vcState *pProgramState);
   udDouble4x4 GetWorldSpaceMatrix();
+
+  void SelectSubitem(uint64_t internalId);
+  bool IsSubitemSelected(uint64_t internalId);
 };
 
 #endif //vcPOI_h__

@@ -213,7 +213,7 @@ void vcProject_SelectItem(vcState *pProgramState, vdkProjectNode *pParent, vdkPr
 
 void vcProject_UnselectItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode)
 {
-  vcSceneItem *pItem = (vcSceneItem*)pNode->pUserData;
+  vcSceneItem *pItem = (vcSceneItem *)pNode->pUserData;
 
   if (pItem != nullptr && pItem->m_selected)
   {
