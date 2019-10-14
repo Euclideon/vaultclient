@@ -745,8 +745,6 @@ int main(int argc, char **args)
   programState.changeActiveDock = vcDocks_Count;
   programState.passFocus = true;
   programState.renaming = -1;
-  programState.getGeo = false;
-  programState.pGotGeo = nullptr;
 
   programState.sceneExplorer.insertItem.pParent = nullptr;
   programState.sceneExplorer.insertItem.pItem = nullptr;
@@ -985,19 +983,19 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->settings.presentation.showProjectionInfo = !pProgramState->settings.presentation.showProjectionInfo;
 
       // Gizmo Settings
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoTranslate"), vcString::Get("sceneGizmoTranslateKey"), vcMBBI_Translate, vcMBBG_NewGroup, (pProgramState->gizmo.operation == vcGO_Translate)) || (ImGui::IsKeyPressed(SDL_SCANCODE_B, false) && !pProgramState->modalOpen))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoTranslate"), vcString::Get("sceneGizmoTranslateKey"), vcMBBI_Translate, vcMBBG_NewGroup, pProgramState->gizmo.operation == vcGO_Translate))
         pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Translate ? vcGO_NoGizmo : vcGO_Translate;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoRotate"), vcString::Get("sceneGizmoRotateKey"), vcMBBI_Rotate, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Rotate)) || (ImGui::IsKeyPressed(SDL_SCANCODE_N, false) && !pProgramState->modalOpen))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoRotate"), vcString::Get("sceneGizmoRotateKey"), vcMBBI_Rotate, vcMBBG_SameGroup, pProgramState->gizmo.operation == vcGO_Rotate))
         pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Rotate ? vcGO_NoGizmo : vcGO_Rotate;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoScale"), vcString::Get("sceneGizmoScaleKey"), vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)) || (!io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_M, false) && !pProgramState->modalOpen))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoScale"), vcString::Get("sceneGizmoScaleKey"), vcMBBI_Scale, vcMBBG_SameGroup, pProgramState->gizmo.operation == vcGO_Scale))
         pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Scale ? vcGO_NoGizmo : vcGO_Scale;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), vcString::Get("sceneGizmoLocalSpaceKey"), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)) || (ImGui::IsKeyPressed(SDL_SCANCODE_C, false) && !pProgramState->modalOpen))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), vcString::Get("sceneGizmoLocalSpaceKey"), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, pProgramState->gizmo.coordinateSystem == vcGCS_Local))
         pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
-      // Fullscreen
+      // Fullscreens
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), vcString::Get("sceneFullscreenKey"), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode))
         vcMain_PresentationMode(pProgramState);
 
@@ -1929,7 +1927,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
   ImGui::SetNextWindowPos(ImVec2(size.x / 2, size.y - vcLBS_LoginBoxY), ImGuiCond_Always, ImVec2(0.5, 1.0));
 
-  const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther" };
+  const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginEnterURL", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther" };
 
   if (pProgramState->loginStatus == vcLS_Pending)
   {
@@ -2012,9 +2010,16 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
 
       if (ImGui::Button(vcString::Get("loginButton")) || tryLogin)
       {
-        pProgramState->passFocus = false;
-        pProgramState->loginStatus = vcLS_Pending;
-        udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_Login, pProgramState, false);
+        if (*pProgramState->settings.loginInfo.serverURL == '\0')
+        {
+          pProgramState->loginStatus = vcLS_NoServerURL;
+        }
+        else
+        {
+          pProgramState->passFocus = false;
+          pProgramState->loginStatus = vcLS_Pending;
+          udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_Login, pProgramState, false);
+        }
       }
 
       if (SDL_GetModState() & KMOD_CAPS)
