@@ -959,12 +959,12 @@ epilogue:
 
 uint32_t vcDBF_StrTtoA(char *pOutput, uint32_t strLen, int input)
 {
-  return udStrItoa(pOutput, strLen, input);
+  return (uint32_t)udStrItoa(pOutput, strLen, input);
 }
 
 uint32_t vcDBF_StrTtoA(char *pOutput, uint32_t strLen, double input)
 {
-  return udStrFtoa(pOutput, strLen, input, 5);
+  return (uint32_t)udStrFtoa(pOutput, strLen, input, 5);
 }
 
 template <typename T>
