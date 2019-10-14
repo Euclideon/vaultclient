@@ -140,6 +140,8 @@ enum vcLoginBackgroundSettings
   vcLBS_LogoH = 577,
 };
 
+const uint32_t WhitePixel = 0xFFFFFFFF;
+
 void vcMain_ShowStartupScreen(vcState *pProgramState);
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
@@ -853,6 +855,8 @@ int main(int argc, char **args)
   vcTexture_AsyncCreateFromFilename(&programState.pBuildingsTexture, programState.pWorkerPool, "asset://assets/textures/buildings.png", vcTFM_Nearest, false);
   vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png");
 
+  vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
+
 #if UDPLATFORM_EMSCRIPTEN
   emscripten_set_main_loop_arg(vcMain_MainLoop, &programState, 0, 1);
 #else
@@ -880,6 +884,7 @@ epilogue:
   vcTexture_Destroy(&programState.pCompanyLogo);
   vcTexture_Destroy(&programState.pBuildingsTexture);
   vcTexture_Destroy(&programState.pUITexture);
+  vcTexture_Destroy(&programState.pWhiteTexture);
 
   for (size_t i = 0; i < programState.loadList.length; i++)
     udFree(programState.loadList[i]);
@@ -1171,7 +1176,9 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
       if (pickResult.pPolygon != nullptr)
       {
         udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pPolygon->pSceneItem->m_pNode->UUID);
-        //pickResult.pPolygon->pSceneItem->OnSceneSelect(pickResult.pPolygon->sceneItemInternalId); //TODO: Handle the internal ID stuff as well
+
+        if (pickResult.pPolygon->sceneItemInternalId != 0)
+          pickResult.pPolygon->pSceneItem->SelectSubitem(pickResult.pPolygon->sceneItemInternalId);
       }
       else if (pickResult.pModel != nullptr)
       {
@@ -1286,6 +1293,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
             ImGui::CloseCurrentPopup();
           }
+
           if (ImGui::MenuItem(vcString::Get("sceneAddAOI")))
           {
             vcProject_ClearSelection(pProgramState);
@@ -1298,6 +1306,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
             ImGui::CloseCurrentPopup();
           }
+
           if (ImGui::MenuItem(vcString::Get("sceneBeginAreaMeasure")))
           {
             vcProject_ClearSelection(pProgramState);
@@ -1311,6 +1320,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
             ImGui::CloseCurrentPopup();
           }
+
           if (ImGui::MenuItem(vcString::Get("sceneAddLine")))
           {
             vcProject_ClearSelection(pProgramState);
@@ -1323,6 +1333,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
             ImGui::CloseCurrentPopup();
           }
+
           if (ImGui::MenuItem(vcString::Get("sceneBeginLineMeasure")))
           {
             vcProject_ClearSelection(pProgramState);

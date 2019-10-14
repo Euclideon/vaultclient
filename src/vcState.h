@@ -94,6 +94,7 @@ struct vcState
   vcTexture *pBuildingsTexture;
   vcTexture *pSceneWatermark;
   vcTexture *pUITexture;
+  vcTexture *pWhiteTexture;
 
   bool isUsingAnchorPoint;
   udDouble3 worldAnchorPoint;
