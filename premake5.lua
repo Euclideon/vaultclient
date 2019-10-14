@@ -220,6 +220,10 @@ solution "vaultClient"
 	pic "On"
 	editandcontinue "Off"
 
+	filter { "system:windows", "action:vs*" }
+		buildoptions { "/permissive-" }
+	filter {}
+
 	xcodebuildsettings { ["CLANG_CXX_LANGUAGE_STANDARD"] = "c++0x" }
 
 	if os.target() == premake.WINDOWS then
