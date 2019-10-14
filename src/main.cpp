@@ -986,7 +986,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoRotate"), vcString::Get("sceneGizmoRotateKey"), vcMBBI_Rotate, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Rotate)) || (io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_N, false) && !pProgramState->modalOpen))
         pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Rotate ? vcGO_NoGizmo : vcGO_Rotate;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoScale"), vcString::Get("sceneGizmoScaleKey"), vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)) || (io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_V, false) && !pProgramState->modalOpen))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoScale"), vcString::Get("sceneGizmoScaleKey"), vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)) || (io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_M, false) && !pProgramState->modalOpen))
         pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Scale ? vcGO_NoGizmo : vcGO_Scale;
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), vcString::Get("sceneGizmoLocalSpaceKey"), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)) || (io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_C, false) && !pProgramState->modalOpen))
