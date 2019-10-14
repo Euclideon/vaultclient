@@ -118,8 +118,6 @@ struct vcRenderContext
   vcTileRenderer *pTileRenderer;
   vcAnchor *pCompass;
 
-  vcTexture *pWhiteTexture;
-
   float previousFrameDepth;
   udFloat2 currentMouseUV;
 
@@ -189,7 +187,6 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
 {
   udResult result;
   vcRenderContext *pRenderContext = nullptr;
-  uint8_t whitePixel[4] = { 0xff, 0xff, 0xff, 0xff };
 
   const int maxPointCount = 5 * 1000000; // TODO: calculate this from GPU information
 
@@ -209,8 +206,6 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
 #else
   udUnused(maxPointCount);
 #endif
-
-  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pWhiteTexture, 1, 1, whitePixel));
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->visualizationShader.pProgram, g_VisualizationVertexShader, g_VisualizationFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
@@ -324,7 +319,6 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   result = udR_Success;
 
 epilogue:
-  vcTexture_Destroy(&pRenderContext->pWhiteTexture);
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
   vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
   vcFramebuffer_Destroy(&pRenderContext->udRenderContext.pFramebuffer);

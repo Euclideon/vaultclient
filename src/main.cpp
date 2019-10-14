@@ -140,6 +140,8 @@ enum vcLoginBackgroundSettings
   vcLBS_LogoH = 577,
 };
 
+const uint32_t WhitePixel = 0xFFFFFFFF;
+
 void vcMain_ShowStartupScreen(vcState *pProgramState);
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
@@ -853,6 +855,8 @@ int main(int argc, char **args)
   vcTexture_AsyncCreateFromFilename(&programState.pBuildingsTexture, programState.pWorkerPool, "asset://assets/textures/buildings.png", vcTFM_Nearest, false);
   vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png");
 
+  vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
+
 #if UDPLATFORM_EMSCRIPTEN
   emscripten_set_main_loop_arg(vcMain_MainLoop, &programState, 0, 1);
 #else
@@ -880,6 +884,7 @@ epilogue:
   vcTexture_Destroy(&programState.pCompanyLogo);
   vcTexture_Destroy(&programState.pBuildingsTexture);
   vcTexture_Destroy(&programState.pUITexture);
+  vcTexture_Destroy(&programState.pWhiteTexture);
 
   for (size_t i = 0; i < programState.loadList.length; i++)
     udFree(programState.loadList[i]);
