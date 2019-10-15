@@ -439,7 +439,6 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
   pRenderContext->previousFrameDepth = uint32_t((depthBytes[3] << 16) | (depthBytes[2] << 8) | (depthBytes[1] << 0)) / ((1 << 24) - 1.0f);
   //uint8_t stencil = depthBytes[0];
 #else
-  // TODO (EVC-765): validate this byte order for metal
   pRenderContext->previousFrameDepth = uint32_t((depthBytes[2] << 16) | (depthBytes[1] << 8) | (depthBytes[0] << 0)) / ((1 << 24) - 1.0f);
   //uint8_t stencil = depthBytes[3];
 #endif
@@ -1193,15 +1192,14 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
     // 24 bit unsigned int -> float
-#if GRAPHICS_API_OPENGL
+#if GRAPHICS_API_OPENGL || GRAPHICS_API_METAL
     pickDepth = uint32_t((depthBytes[3] << 16) | (depthBytes[2] << 8) | (depthBytes[1] << 0)) / ((1 << 24) - 1.0f);
     //uint8_t stencil = depthBytes[0];
 #else
-  // TODO: byte order of metal etc.
     pickDepth = uint32_t((depthBytes[2] << 16) | (depthBytes[1] << 8) | (depthBytes[0] << 0)) / ((1 << 24) - 1.0f);
     //uint8_t stencil = depthBytes[3];
 #endif
-
+    
     // note `-1`, and BGRA format
     int udPickedId = -1;
 
@@ -1221,6 +1219,9 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     result.success = true;
     pickDepth = pRenderContext->previousFrameDepth;
   }
+  
+  if (pickDepth == 0.0)
+    pickDepth = 1.0;
 
   if (result.success)
   {

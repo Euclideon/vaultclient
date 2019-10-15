@@ -105,40 +105,12 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   else
     pShader->flush = vcRFO_None;
 
+  pShader->inititalised = udStrBeginsWithi(pFragmentShader, "imgui") ? true : false;
+  
   [_renderer buildBlendPipelines:pDesc];
   pShader->ID = g_pipeCount;
   ++g_pipeCount;
 
-  /*if (pGeometryShader != nullptr)
-  {
-    id<MTLFunction> kFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pGeometryShader]];
-    
-    MTLComputePipelineDescriptor *pCDesc = [[MTLComputePipelineDescriptor alloc] init];
-    
-    pCDesc.computeFunction = kFunc;
-    
-    [_device newComputePipelineStateWithDescriptor:pCDesc options:MTLPipelineOptionNone completionHandler:^(id<MTLComputePipelineState> _Nullable computePipelineState, MTLComputePipelineReflection * _Nullable reflection, NSError * _Nullable error)
-    {
-      udUnused(reflection);
-      
-      if (error != nil)
-      {
-        NSLog(@"Error: Compute pipeline failure: %@", error);
-        return;
-      }
-
-      [_renderer.gPipelines addObject:ForceUnwrap(id<MTLComputePipelineState>, computePipelineState)];
-      
-      // Ignore reflection data?
-    }];
-    
-    pShader->geom = 6; // Number of output primitives per input
-    pShader->gID = g_geomPipeCount++;
-  }
-  else
-  {
-    pShader->geom = 0;
-  }*/
 
   *ppShader = pShader;
   pShader = nullptr;
@@ -157,8 +129,12 @@ void vcShader_DestroyShader(vcShader **ppShader)
 bool vcShader_Bind(vcShader *pShader)
 {
   if (pShader != nullptr)
-    [_renderer bindPipeline:pShader];
-
+  {
+    if (pShader->inititalised)
+      [_renderer bindPipeline:pShader];
+    else
+      pShader->inititalised = true;
+  }
   return true;
 }
 
