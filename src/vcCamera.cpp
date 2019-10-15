@@ -109,7 +109,7 @@ void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindi
   };
 }
 
-void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr)
+void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, vcCameraInput* pCamInput, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr)
 {
   // Update matrices
   double fov = settings.fieldOfView;
@@ -126,19 +126,42 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
   pCamera->matrices.projectionNear = udDouble4x4::perspectiveZO(fov, aspect, 0.5f, 10000.f);
 #endif
 
+  udDouble4x4 projectionPerspUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
+  udDouble4x4 projectionOrthoUD = udDouble4x4::orthoZO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
+#if GRAPHICS_API_OPENGL
+  udDouble4x4 projectionPersp = udDouble4x4::perspectiveNO(fov, aspect, zNear, zFar);
+  udDouble4x4 projectionOrtho = udDouble4x4::orthoNO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
+#endif
+
   switch (settings.cameraMode)
   {
   case vcCM_OrthoMap:
-    pCamera->matrices.projectionUD = udDouble4x4::orthoZO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
+    pCamera->matrices.projectionUD = projectionOrthoUD;
 #if GRAPHICS_API_OPENGL
-    pCamera->matrices.projection = udDouble4x4::orthoNO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
+    pCamera->matrices.projection = projectionOrtho;
 #endif
     break;
-  case vcCM_FreeRoam: // fall through
-  default:
-    pCamera->matrices.projectionUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
+  case vcCM_FreeRoam:
+    if (pCamInput->transitioningToMapMode && pCamInput->progress > 0.15)
+    {
+      //Switch to ortho projection soon after camera starts rotating downward, hence the progress threshold 0.15.
+      pCamera->matrices.projectionUD = projectionOrthoUD;
 #if GRAPHICS_API_OPENGL
-    pCamera->matrices.projection = udDouble4x4::perspectiveNO(fov, aspect, zNear, zFar);
+      pCamera->matrices.projection = projectionOrtho;
+#endif
+    }
+    else
+    {
+      pCamera->matrices.projectionUD = projectionPerspUD;
+#if GRAPHICS_API_OPENGL
+      pCamera->matrices.projection = projectionPersp;
+#endif
+    }
+    break;
+  default:
+    pCamera->matrices.projectionUD = projectionPerspUD;
+#if GRAPHICS_API_OPENGL
+    pCamera->matrices.projection = projectionPersp;
 #endif
   }
 
@@ -519,7 +542,6 @@ void vcCamera_SwapMapMode(vcState *pProgramState)
 
     // defer actually swapping projection mode
     pProgramState->cameraInput.transitioningToMapMode = true;
-
     lookAtPosition += udDouble3::create(0, 0, -1); // up
   }
   else
@@ -839,5 +861,5 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   if (pProgramState->cameraInput.inputState == vcCIS_None && pProgramState->cameraInput.smoothOrthographicChange == 0.0)
     pProgramState->isUsingAnchorPoint = false;
 
-  vcCamera_UpdateMatrices(pProgramState->pCamera, pProgramState->settings.camera, windowSize, &mousePos);
+  vcCamera_UpdateMatrices(pProgramState->pCamera, pProgramState->settings.camera, &pProgramState->cameraInput, windowSize, &mousePos);
 }
