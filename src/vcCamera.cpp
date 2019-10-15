@@ -655,7 +655,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
       {
         pProgramState->isUsingAnchorPoint = true;
         pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
-        pProgramState->cameraInput.inputState = vcCIS_Orbiting;
+        pProgramState->cameraInput.inputState = pProgramState->settings.camera.cameraMode == vcCM_OrthoMap ? vcCIS_Panning : vcCIS_Orbiting;
         vcCamera_StopSmoothing(&pProgramState->cameraInput);
       }
       if (io.NavInputs[ImGuiNavInput_FocusNext] < 0.85f) // Right Trigger
