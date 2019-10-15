@@ -61,7 +61,7 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   {
     if (pNode->pUserData != nullptr)
     {
-      vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
+      vcSceneItem *pSceneItem = (vcSceneItem *)pNode->pUserData;
 
       pSceneItem->AddToScene(pProgramState, pRenderData);
 
@@ -93,19 +93,20 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
     HandleNodeSelection(pProgramState, pNode);
 
-    if (pProgramState->pGotGeo == nullptr && pProgramState->getGeo && pNode->itemtype == vdkPNT_PointCloud && ((vcModel *)(pNode->pUserData))->m_pPreferredProjection != nullptr)
+    if (pProgramState->pGotGeo != nullptr)
+    {
+      ((vcSceneItem *)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
+    }
+    else if (pProgramState->pGotGeo == nullptr && pProgramState->getGeo && pNode->itemtype == vdkPNT_PointCloud && ((vcModel *)(pNode->pUserData))->m_pPreferredProjection != nullptr)
     {
       vcModel *pModel = (vcModel *)pNode->pUserData;
       if (pProgramState->pGotGeo == nullptr)
       {
         pProgramState->getGeo = false;
-        pProgramState->pGotGeo = pModel;
+        pProgramState->pGotGeo = pModel->m_pPreferredProjection;
         vcProject_UseProjectionFromItem(pProgramState, pModel);
       }
     }
-
-    if (pProgramState->pGotGeo != nullptr)
-      ((vcSceneItem *)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo->m_pPreferredProjection);
 
     pNode = pNode->pNextSibling;
   }

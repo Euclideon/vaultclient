@@ -174,7 +174,7 @@ struct vcState
   vcDocks changeActiveDock;
 
   bool getGeo;
-  vcModel *pGotGeo;
+  udGeoZone *pGotGeo;
 };
 
 #endif // !vcState_h__
