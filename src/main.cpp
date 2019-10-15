@@ -204,6 +204,8 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
 
     SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
     SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
+    if (pProgramState->settings.window.maximized)
+      SDL_MaximizeWindow(pProgramState->pWindow);
   }
 }
 
