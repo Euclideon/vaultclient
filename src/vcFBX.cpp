@@ -644,7 +644,9 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPoin
                 uint32_t i, pc;
                 for (i = pc = 0; i < numPoints; ++i)
                 {
-                  if (++pFBX->everyNthAccum == pFBX->everyNth)
+                  ++pFBX->everyNthAccum;
+
+                  if (pFBX->everyNthAccum == pFBX->everyNth)
                   {
                     memcpy(&pFBX->pTriPositions[pc * 3], &pFBX->pTriPositions[i * 3], sizeof(double) * 3);
                     memcpy(&pFBX->pTriWeights[pc * 3], &pFBX->pTriWeights[i * 3], sizeof(double) * 3);
