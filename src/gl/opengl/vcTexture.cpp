@@ -29,7 +29,7 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
     textureFormat = GL_RGBA8;
     pixelType = GL_UNSIGNED_BYTE;
 #if UDPLATFORM_EMSCRIPTEN
-    glFormat = GL_RGBA; // TODO: Fix this
+    pixelFormat = GL_RGBA; // TODO: Fix this
 #else
     pixelFormat = GL_BGRA;
 #endif
