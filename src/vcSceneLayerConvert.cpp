@@ -293,7 +293,9 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
           uint32_t i, pc;
           for (i = pc = 0; i < pointCount; ++i)
           {
-            if (++pSceneLayerConvert->everyNthAccum >= pSceneLayerConvert->everyNth)
+            ++pSceneLayerConvert->everyNthAccum;
+
+            if (pSceneLayerConvert->everyNthAccum >= pSceneLayerConvert->everyNth)
             {
               memcpy(&pTriPositions[pc * 3], &pTriPositions[i * 3], sizeof(double) * 3);
               memcpy(&pTriWeights[pc * 3], &pTriWeights[i * 3], sizeof(double) * 3);
