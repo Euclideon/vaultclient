@@ -97,7 +97,7 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       ((vcSceneItem *)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
     }
-    else if (pProgramState->pGotGeo == nullptr && pProgramState->getGeo && pNode->itemtype == vdkPNT_PointCloud && ((vcModel *)(pNode->pUserData))->m_pPreferredProjection != nullptr)
+    else if (pProgramState->getGeo && pNode->itemtype == vdkPNT_PointCloud && ((vcModel *)(pNode->pUserData))->m_pPreferredProjection != nullptr)
     {
       vcModel *pModel = (vcModel *)pNode->pUserData;
       if (pProgramState->pGotGeo == nullptr)
