@@ -249,7 +249,7 @@ void vcModel::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   }
 }
 
-void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
+void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
 {
   ImGui::TextWrapped("Path: %s", m_pNode->pURI);
   udDouble3 position;
@@ -272,7 +272,14 @@ void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
     repackMatrix = true;
 
   if (repackMatrix)
+  {
     m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientation, position) * udDouble4x4::scaleUniform(scale.x) * udDouble4x4::translation(-m_pivot);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState->activeProject.pProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &position, 1);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", scale.x);
+  }
 
   vcImGuiValueTreeObject(&m_metadata);
 }
