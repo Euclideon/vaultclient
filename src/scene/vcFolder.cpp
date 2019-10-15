@@ -61,7 +61,7 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   {
     if (pNode->pUserData != nullptr)
     {
-      vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
+      vcSceneItem *pSceneItem = (vcSceneItem *)pNode->pUserData;
 
       pSceneItem->AddToScene(pProgramState, pRenderData);
 
@@ -93,8 +93,25 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
     HandleNodeSelection(pProgramState, pNode);
 
+    if (pProgramState->pGotGeo != nullptr)
+    {
+      ((vcSceneItem *)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
+    }
+    else if (pProgramState->getGeo && pNode->itemtype == vdkPNT_PointCloud && ((vcModel *)(pNode->pUserData))->m_pPreferredProjection != nullptr)
+    {
+      vcModel *pModel = (vcModel *)pNode->pUserData;
+      if (pProgramState->pGotGeo == nullptr)
+      {
+        pProgramState->getGeo = false;
+        pProgramState->pGotGeo = pModel->m_pPreferredProjection;
+        vcProject_UseProjectionFromItem(pProgramState, pModel);
+      }
+    }
+
     pNode = pNode->pNextSibling;
   }
+
+  pProgramState->pGotGeo = nullptr;
 }
 
 void vcFolder::OnNodeUpdate(vcState * /*pProgramState*/)
@@ -139,31 +156,12 @@ void vcFolder_AddInsertSeparator()
 void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   vdkProjectNode *pNode = m_pNode->pFirstChild;
-  size_t i = 0;
   while (pNode != nullptr)
   {
     ++(*pItemID);
 
     if (pNode->pUserData != nullptr)
     {
-      if (pProgramState->pGotGeo != nullptr)
-        ((vcSceneItem*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
-
-      if (pProgramState->getGeo && pNode->itemtype == vdkPNT_PointCloud && ((vcModel*)(pNode->pUserData))->m_pPreferredProjection != nullptr)
-      {
-        vcModel *pModel = (vcModel*)pNode->pUserData;
-        if (pProgramState->pGotGeo == pModel->m_pPreferredProjection)
-        {
-          pProgramState->pGotGeo = nullptr;
-          pProgramState->getGeo = false;
-        }
-        else if (pProgramState->pGotGeo == nullptr)
-        {
-          pProgramState->pGotGeo = pModel->m_pPreferredProjection;
-          vcProject_UseProjectionFromItem(pProgramState, pModel);
-        }
-      }
-
       vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
 
       // This block is also after the loop
@@ -353,7 +351,6 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
     }
 
     pNode = pNode->pNextSibling;
-    ++i;
   }
 
   // This block is also in the loop above
