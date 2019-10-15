@@ -149,15 +149,21 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
 #if GRAPHICS_API_OPENGL
       pCamera->matrices.projection = projectionOrtho;
 #endif
-      break;
     }
+    else
+    {
+      pCamera->matrices.projectionUD = projectionPerspUD;
+#if GRAPHICS_API_OPENGL
+      pCamera->matrices.projection = projectionPersp;
+#endif
+    }
+    break;
   default:
     pCamera->matrices.projectionUD = projectionPerspUD;
 #if GRAPHICS_API_OPENGL
     pCamera->matrices.projection = projectionPersp;
 #endif
   }
-
 
 #if !GRAPHICS_API_OPENGL
   pCamera->matrices.projection = pCamera->matrices.projectionUD;
