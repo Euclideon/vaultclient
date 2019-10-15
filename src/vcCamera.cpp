@@ -456,10 +456,8 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
       if (udMagSq3(towards) > 0)
       {
         double maxDistance = 0.9 * pCamSettings->farPlane; // limit to 90% of visible distance
-        double distanceToPoint = udMag3(towards);
-        if (pCamInput->mouseInput.y < 0)
-          distanceToPoint = udClamp(maxDistance - distanceToPoint, 0.0, distanceToPoint);
-
+        double distanceToPoint = udMin(udMag3(towards), maxDistance);
+        
         addPos = distanceToPoint * pCamInput->mouseInput.y * udNormalize3(towards);
       }
     }
