@@ -116,6 +116,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
   if (pSavedData != nullptr)
     data.Parse(pSavedData);
 
+  udFree(pSavedData);
+
   if (group == vcSC_All || group == vcSC_Appearance)
   {
     // Misc Settings
@@ -394,7 +396,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       {
         if (languages.IsArray())
         {
-          pSettings->languageOptions.Init(4);
           pSettings->languageOptions.Clear();
           pSettings->languageOptions.ReserveBack(languages.ArrayLength());
 
@@ -406,13 +407,15 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
           }
         }
       }
+
+      languages.Destroy();
     }
 
     udFree(pFileContents);
   }
 
 epilogue:
-  udFree(pSavedData);
+  data.Destroy();
   return true;
 }
 
