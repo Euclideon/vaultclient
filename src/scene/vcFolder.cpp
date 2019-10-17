@@ -21,7 +21,7 @@
 #include "vcWaterNode.h"
 #include "vcViewpoint.h"
 
-void HandleNodeSelection(vcState* pProgramState, vdkProjectNode* pNode)
+void HandleNodeSelection(vcState* pProgramState, vdkProjectNode *pParent, vdkProjectNode* pNode)
 {
   if (pProgramState->sceneExplorer.selectUUIDWhenPossible[0] == '\0' || !udStrEqual(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID) || pNode->pUserData == nullptr)
     return;
@@ -33,13 +33,13 @@ void HandleNodeSelection(vcState* pProgramState, vdkProjectNode* pNode)
 
   if (pSceneItem->m_selected)
   {
-    vcProject_UnselectItem(pProgramState, pSceneItem->m_pNode, pNode);
+    vcProject_UnselectItem(pProgramState, pParent, pNode);
     pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
   }
   else
   {
-    vcProject_SelectItem(pProgramState, pSceneItem->m_pNode, pNode);
-    pProgramState->sceneExplorer.clickedItem = { pSceneItem->m_pNode, pNode };
+    vcProject_SelectItem(pProgramState, pParent, pNode);
+    pProgramState->sceneExplorer.clickedItem = { pParent, pNode };
   }
 
   memset(pProgramState->sceneExplorer.selectUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.selectUUIDWhenPossible));
@@ -91,7 +91,7 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pNode->pUserData = new vcUnsupportedNode(pProgramState->activeProject.pProject, pNode, pProgramState); // Catch all
     }
 
-    HandleNodeSelection(pProgramState, pNode);
+    HandleNodeSelection(pProgramState, m_pNode, pNode);
 
     if (pProgramState->pGotGeo != nullptr)
     {
@@ -247,8 +247,8 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         ImVec2 maxPos = ImGui::GetItemRectMax();
         ImVec2 mousePos = ImGui::GetMousePos();
 
-        if (pNode->itemtype == vdkPNT_Folder && mousePos.y > minPos.y && mousePos.y < maxPos.y)
-          pProgramState->sceneExplorer.insertItem = { pNode, pNode };
+        if ((pNode->itemtype == vdkPNT_Folder || pNode->itemtype == vdkPNT_PointOfInterest) && mousePos.y > minPos.y && mousePos.y < maxPos.y)
+          pProgramState->sceneExplorer.insertItem = { pNode, nullptr };
         else
           pProgramState->sceneExplorer.insertItem = { m_pNode, pNode }; // This will become pNode->pNextSibling after drop
       }
