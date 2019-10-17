@@ -247,7 +247,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         ImVec2 maxPos = ImGui::GetItemRectMax();
         ImVec2 mousePos = ImGui::GetMousePos();
 
-        if ((pNode->itemtype == vdkPNT_Folder || pNode->itemtype == vdkPNT_PointOfInterest) && mousePos.y > minPos.y && mousePos.y < maxPos.y)
+        if (pNode->itemtype == vdkPNT_Folder && mousePos.y > minPos.y && mousePos.y < maxPos.y)
           pProgramState->sceneExplorer.insertItem = { pNode, nullptr };
         else
           pProgramState->sceneExplorer.insertItem = { m_pNode, pNode }; // This will become pNode->pNextSibling after drop
