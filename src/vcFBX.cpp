@@ -792,7 +792,7 @@ void vcFBX_Close(vdkConvertCustomItem *pConvertInput)
   }
 }
 
-vdkError vcFBX_AddItem(vdkContext *pContext, vdkConvertContext *pConvertContext, const char *pFilename)
+vdkError vcFBX_AddItem(vdkConvertContext *pConvertContext, const char *pFilename)
 {
   vdkConvertCustomItem customItem = {};
 
@@ -817,7 +817,7 @@ vdkError vcFBX_AddItem(vdkContext *pContext, vdkConvertContext *pConvertContext,
     customItem.boundMax[i] = 5000;
     customItem.boundMin[i] = -5000;
   }
-  return vdkConvert_AddCustomItem(pContext, pConvertContext, &customItem);
+  return vdkConvert_AddCustomItem(pConvertContext, &customItem);
 }
 
 #endif
