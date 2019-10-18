@@ -91,8 +91,11 @@ void vcSettingsUI_Show(vcState *pProgramState)
         style.TouchExtraPadding = pProgramState->settings.window.touchscreenFriendly ? ImVec2(4, 4) : ImVec2();
       }
 
-      ImGui::Checkbox(vcString::Get("settingsControlsInvertX"), &pProgramState->settings.camera.invertX);
-      ImGui::Checkbox(vcString::Get("settingsControlsInvertY"), &pProgramState->settings.camera.invertY);
+      ImGui::Checkbox(vcString::Get("settingsControlsMouseInvertX"), &pProgramState->settings.camera.invertMouseX);
+      ImGui::Checkbox(vcString::Get("settingsControlsMouseInvertY"), &pProgramState->settings.camera.invertMouseY);
+
+      ImGui::Checkbox(vcString::Get("settingsControlsControllerInvertX"), &pProgramState->settings.camera.invertControllerX);
+      ImGui::Checkbox(vcString::Get("settingsControlsControllerInvertY"), &pProgramState->settings.camera.invertControllerY);
 
       ImGui::TextUnformatted(vcString::Get("settingsControlsMousePivot"));
       const char *mouseModes[] = { vcString::Get("settingsControlsTumble"), vcString::Get("settingsControlsOrbit"), vcString::Get("settingsControlsPan"), vcString::Get("settingsControlsForward") };
