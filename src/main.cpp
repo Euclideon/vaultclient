@@ -1213,6 +1213,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.waterVolumes.Init(32);
   renderData.polyModels.Init(64);
   renderData.images.Init(32);
+  renderData.viewSheds.Init(32);
   renderData.mouse.position.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.position.y = (uint32_t)(io.MousePos.y - windowPos.y);
   renderData.mouse.clicked = io.MouseClicked[1];
@@ -1347,6 +1348,19 @@ void vcRenderSceneWindow(vcState *pProgramState)
             ImGui::CloseCurrentPopup();
           }
 
+          if (ImGui::MenuItem(vcString::Get("sceneAddViewShed")))
+          {
+            vcProject_ClearSelection(pProgramState);
+
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "ViewMap", vcString::Get("sceneViewShedDefaultName"), nullptr, nullptr) == vE_Success)
+            {
+              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, 1, &mousePosLongLat.x);
+              udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+            }
+
+            ImGui::CloseCurrentPopup();
+          }
+
           ImGui::EndMenu();
         }
 
@@ -1466,6 +1480,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.waterVolumes.Deinit();
   renderData.polyModels.Deinit();
   renderData.images.Deinit();
+  renderData.viewSheds.Deinit();
 
   // Can only assign longlat positions in projected space
   if (pProgramState->gis.isProjected)

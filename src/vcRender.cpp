@@ -12,6 +12,7 @@
 
 #include "vcInternalModels.h"
 #include "vcSceneLayerRenderer.h"
+#include "vcCamera.h"
 
 #include "stb_image.h"
 #include <vector>
@@ -26,6 +27,19 @@ enum
 
   // number of buffers for primary rendering passes
   vcRender_RenderBufferCount = 2,
+};
+
+// Temp hard-coded view shed properties
+static const udUInt2 ViewShedMapRes = udUInt2::create(512, 512);
+static const int ViewShedMapCount = 3;
+
+struct vcViewShedRenderContext
+{
+  // re-use this memory
+  float *pDepthBuffer;
+  vcTexture *pDepthTex;
+
+  vdkRenderView *pRenderView; 
 };
 
 struct vcUDRenderContext
@@ -63,6 +77,8 @@ struct vcUDRenderContext
 
 struct vcRenderContext
 {
+  vcViewShedRenderContext viewShedRenderingContext;
+
   udUInt2 sceneResolution;
   udUInt2 originalSceneResolution;
 
@@ -105,6 +121,23 @@ struct vcRenderContext
     } params;
 
   } visualizationShader;
+
+  struct
+  {
+    vcShader *pProgram;
+    vcShaderSampler *uniform_depth;
+    vcShaderSampler *uniform_shadowMapAtlas;
+    vcShaderConstantBuffer *uniform_params;
+
+    struct
+    {
+      udFloat4x4 shadowMapVP[ViewShedMapCount];
+      udFloat4x4 inverseProjection;
+      udFloat4 visibleColour;
+      udFloat4 notVisibleColour;
+    } params;
+
+  } shadowShader;
 
   vcUDRenderContext udRenderContext;
   vcFenceRenderer *pDiagnosticFences;
@@ -175,7 +208,7 @@ struct vcRenderContext
 };
 
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext);
-udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData);
+udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, vdkRenderView *pRenderView, vcCamera *pCamera, vcRenderData &renderData);
 
 udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext, udWorkerPool *pWorkerPool, const udUInt2 &sceneResolution)
 {
@@ -189,8 +222,12 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   pRenderContext = udAllocType(vcRenderContext, 1, udAF_Zero);
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
 
+  pRenderContext->viewShedRenderingContext.pDepthBuffer = udAllocType(float, ViewShedMapRes.x * ViewShedMapRes.y, udAF_Zero);
+  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->viewShedRenderingContext.pDepthTex, ViewShedMapRes.x, ViewShedMapRes.y, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_Dynamic));
+
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->visualizationShader.pProgram, g_VisualizationVertexShader, g_VisualizationFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->shadowShader.pProgram, g_ViewShedVertexShader, g_ViewShedFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderPanorama.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShaderPanarama, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderTintImage.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShaderImageColour, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.splatIdShader.pProgram, g_udVertexShader, g_udSplatIdFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
@@ -202,6 +239,11 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->visualizationShader.uniform_texture, pRenderContext->visualizationShader.pProgram, "u_texture"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->visualizationShader.uniform_depth, pRenderContext->visualizationShader.pProgram, "u_depth"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->visualizationShader.uniform_params, pRenderContext->visualizationShader.pProgram, "u_params", sizeof(pRenderContext->visualizationShader.params)), udR_InternalError);
+
+  UD_ERROR_IF(!vcShader_Bind(pRenderContext->shadowShader.pProgram), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->shadowShader.uniform_depth, pRenderContext->shadowShader.pProgram, "u_depth"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->shadowShader.uniform_shadowMapAtlas, pRenderContext->shadowShader.pProgram, "u_shadowMapAtlas"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->shadowShader.uniform_params, pRenderContext->shadowShader.pProgram, "u_params", sizeof(pRenderContext->shadowShader.params)), udR_InternalError);
 
   UD_ERROR_IF(!vcShader_Bind(pRenderContext->skyboxShaderPanorama.pProgram), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->skyboxShaderPanorama.uniform_texture, pRenderContext->skyboxShaderPanorama.pProgram, "u_texture"), udR_InternalError);
@@ -266,6 +308,9 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
 
   if (pProgramState->pVDKContext != nullptr)
   {
+    if (pRenderContext->viewShedRenderingContext.pRenderView != nullptr && vdkRenderView_Destroy(pProgramState->pVDKContext, &pRenderContext->viewShedRenderingContext.pRenderView) != vE_Success)
+      UD_ERROR_SET(udR_InternalError);
+
     if (pRenderContext->udRenderContext.pRenderView != nullptr && vdkRenderView_Destroy(pProgramState->pVDKContext, &pRenderContext->udRenderContext.pRenderView) != vE_Success)
       UD_ERROR_SET(udR_InternalError);
 
@@ -275,6 +320,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
 
   vcShader_DestroyShader(&pRenderContext->udRenderContext.presentShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->visualizationShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->shadowShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->skyboxShaderPanorama.pProgram);
   vcShader_DestroyShader(&pRenderContext->skyboxShaderTintImage.pProgram);
   vcShader_DestroyShader(&pRenderContext->udRenderContext.splatIdShader.pProgram);
@@ -289,6 +335,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
+  udFree(pRenderContext->viewShedRenderingContext.pDepthBuffer);
 
   UD_ERROR_CHECK(vcTileRenderer_Destroy(&pRenderContext->pTileRenderer));
   UD_ERROR_CHECK(vcFenceRenderer_Destroy(&pRenderContext->pDiagnosticFences));
@@ -297,6 +344,8 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   result = udR_Success;
 
 epilogue:
+  vcTexture_Destroy(&pRenderContext->viewShedRenderingContext.pDepthTex);
+
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
   vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
   vcFramebuffer_Destroy(&pRenderContext->udRenderContext.pFramebuffer);
@@ -524,7 +573,7 @@ void vcRender_SplatUD(vcState *pProgramState, vcRenderContext *pRenderContext)
 
   vcShader_BindTexture(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.pColourTex, 0, pRenderContext->udRenderContext.presentShader.uniform_texture);
   vcShader_BindTexture(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.pDepthTex, 1, pRenderContext->udRenderContext.presentShader.uniform_depth);
-  
+
   vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
 
@@ -663,6 +712,69 @@ void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRender
   vcShader_BindConstantBuffer(pRenderContext->visualizationShader.pProgram, pRenderContext->visualizationShader.uniform_params, &pRenderContext->visualizationShader.params, sizeof(pRenderContext->visualizationShader.params));
 
   vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
+}
+
+void vcRender_ApplyViewShed(vcRenderContext *pRenderContext)
+{
+  vcShader_Bind(pRenderContext->shadowShader.pProgram);
+  vcShader_BindTexture(pRenderContext->shadowShader.pProgram, pRenderContext->pDepthTexture[0], 0, pRenderContext->shadowShader.uniform_depth);
+  vcShader_BindTexture(pRenderContext->shadowShader.pProgram, pRenderContext->viewShedRenderingContext.pDepthTex, 1, pRenderContext->shadowShader.uniform_shadowMapAtlas);
+
+  vcShader_BindConstantBuffer(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->shadowShader.uniform_params, &pRenderContext->shadowShader.params, sizeof(pRenderContext->shadowShader.params));
+
+  vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
+}
+
+void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
+{
+  if (renderData.viewSheds.length == 0)
+    return;
+
+  vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+  vcGLState_SetBlendMode(vcGLSBM_Additive);
+
+  pRenderContext->shadowShader.params.inverseProjection = udFloat4x4::create(udInverse(pProgramState->pCamera->matrices.projection));
+
+  if (pRenderContext->viewShedRenderingContext.pRenderView == nullptr)
+    vdkRenderView_Create(pProgramState->pVDKContext, &pRenderContext->viewShedRenderingContext.pRenderView, pRenderContext->udRenderContext.pRenderer, ViewShedMapRes.x / ViewShedMapCount, ViewShedMapRes.y);
+
+  for (size_t v = 0; v < renderData.viewSheds.length; ++v)
+  {
+    vcViewShedData *pViewShedData = &renderData.viewSheds[v];
+
+    // set up cameras for these renders
+    vcCamera shadowRenderCamera = {};
+    vcCameraSettings settings = {};
+    settings.cameraMode = vcCM_FreeRoam;
+    settings.nearPlane = pViewShedData->nearFarPlane.x;
+    settings.farPlane = pViewShedData->nearFarPlane.y;
+    settings.fieldOfView = pViewShedData->fieldOfView;
+    shadowRenderCamera.position = pViewShedData->position;
+
+    for (int i = 0; i < ViewShedMapCount; ++i)
+    {
+      float rot = (UD_DEG2RADf(360.0f) / ViewShedMapCount) * i;
+      shadowRenderCamera.eulerRotation = udDouble3::create(-rot, 0, 0);
+      vcCamera_UpdateMatrices(&shadowRenderCamera, settings, nullptr, udFloat2::create((float)ViewShedMapRes.x, (float)ViewShedMapRes.y), nullptr);
+
+      // configure UD render to only render into portion of buffer
+      vdkRenderView_SetTargetsWithPitch(pProgramState->pVDKContext, pRenderContext->viewShedRenderingContext.pRenderView, nullptr, 0, pRenderContext->viewShedRenderingContext.pDepthBuffer + (i * (ViewShedMapRes.x / ViewShedMapCount)), 0, ViewShedMapRes.x * 4);
+      vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderContext->viewShedRenderingContext.pRenderView, vdkRVM_Projection, shadowRenderCamera.matrices.projectionUD.a);
+
+      // render UD
+      vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->viewShedRenderingContext.pRenderView, &shadowRenderCamera, renderData);
+
+      pRenderContext->shadowShader.params.shadowMapVP[i] = udFloat4x4::create(shadowRenderCamera.matrices.projectionUD * (shadowRenderCamera.matrices.view * udInverse(pProgramState->pCamera->matrices.view)));
+    }
+
+    pRenderContext->shadowShader.params.visibleColour = pViewShedData->visibleColour;
+    pRenderContext->shadowShader.params.notVisibleColour = pViewShedData->notVisibleColour;
+    vcTexture_UploadPixels(pRenderContext->viewShedRenderingContext.pDepthTex, pRenderContext->viewShedRenderingContext.pDepthBuffer, ViewShedMapRes.x, ViewShedMapRes.y);
+
+    vcRender_ApplyViewShed(pRenderContext);
+  }
+
+  vcGLState_ResetState();
 }
 
 void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
@@ -862,7 +974,12 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
 
-  vcRender_RenderAndUploadUD(pProgramState, pRenderContext, renderData);
+  // Render and upload UD buffers
+  {
+    vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pRenderView, pProgramState->pCamera, renderData);
+    vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+    vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+  }
 
   bool selectionBufferActive = vcRender_CreateSelectionBuffer(pProgramState, pRenderContext, renderData);
 
@@ -873,6 +990,8 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcRender_VisualizationPass(pProgramState, pRenderContext); // final pass
 
   vcFramebuffer_Bind(pRenderContext->pFramebuffer[1]);
+
+  vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
 
   vcRenderSkybox(pProgramState, pRenderContext); // Drawing skybox after opaque geometry saves a bit on fill rate.
   vcRenderTerrain(pProgramState, pRenderContext);
@@ -954,7 +1073,7 @@ epilogue:
   return result;
 }
 
-udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
+udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, vdkRenderView *pRenderView, vcCamera *pCamera, vcRenderData &renderData)
 {
   if (pRenderContext == nullptr)
     return udR_InvalidParameter_;
@@ -962,10 +1081,8 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
   vdkRenderInstance *pModels = nullptr;
   int numVisibleModels = 0;
 
-  double *pProjectionMatrix = pProgramState->pCamera->matrices.projectionUD.a;
-
-  vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pProjectionMatrix);
-  vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pProgramState->pCamera->matrices.view.a);
+  vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderView, vdkRVM_Projection, pCamera->matrices.projectionUD.a);
+  vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderView, vdkRVM_View, pCamera->matrices.view.a);
 
   switch (pProgramState->settings.visualization.mode)
   {
@@ -998,7 +1115,7 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
 
       if (renderData.models[i]->m_hasWatermark)
       {
-        udDouble3 distVector = pProgramState->pCamera->position - renderData.models[i]->GetWorldSpacePivot();
+        udDouble3 distVector = pCamera->position - renderData.models[i]->GetWorldSpacePivot();
         if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
           distVector.z = 0.0;
 
@@ -1091,7 +1208,7 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
 
   renderOptions.pointMode = (vdkRenderContextPointMode)pProgramState->settings.presentation.pointMode;
 
-  vdkError result = vdkRenderContext_Render(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, pModels, numVisibleModels, &renderOptions);
+  vdkError result = vdkRenderContext_Render(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, pRenderView, pModels, numVisibleModels, &renderOptions);
 
   pProgramState->udModelPickedIndex = -1;
   if (result == vE_Success)
@@ -1107,11 +1224,6 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
   else
   {
     //TODO: Clear the buffers
-  }
-
-  {
-    vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
-    vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
   }
 
   udFreeStack(pModels);
