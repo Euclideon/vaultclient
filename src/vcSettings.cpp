@@ -394,7 +394,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       {
         if (languages.IsArray())
         {
-          pSettings->languageOptions.Init(4);
           pSettings->languageOptions.Clear();
           pSettings->languageOptions.ReserveBack(languages.ArrayLength());
 

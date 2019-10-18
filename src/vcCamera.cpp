@@ -43,6 +43,10 @@ void vcCamera_UpdateSmoothing(vcState *pProgramState, vcCamera *pCamera, vcCamer
       pCamera->position += step;
       pCamInput->smoothTranslation -= step;
     }
+    else
+    {
+      pCamInput->smoothTranslation = udDouble3::zero();
+    }
 
     // rotation
     if (udMagSq3(pCamInput->smoothRotation) > minSmoothingThreshold)
@@ -54,6 +58,10 @@ void vcCamera_UpdateSmoothing(vcState *pProgramState, vcCamera *pCamera, vcCamer
       pCamera->eulerRotation.y = udClamp(pCamera->eulerRotation.y, -UD_HALF_PI, UD_HALF_PI);
       pCamera->eulerRotation.x = udMod(pCamera->eulerRotation.x, UD_2PI);
       pCamera->eulerRotation.z = udMod(pCamera->eulerRotation.z, UD_2PI);
+    }
+    else
+    {
+      pCamInput->smoothRotation = udDouble3::zero();
     }
 
     // ortho zoom
@@ -71,6 +79,10 @@ void vcCamera_UpdateSmoothing(vcState *pProgramState, vcCamera *pCamera, vcCamer
         towards = (pProgramState->worldAnchorPoint.toVector2() - pCamera->position.toVector2()) / previousOrthoSize;
         pCamera->position += udDouble3::create(towards * -(pCamSettings->orthographicSize - previousOrthoSize), 0.0);
       }
+    }
+    else
+    {
+      pCamInput->smoothOrthographicChange = 0.0;
     }
   }
 }
@@ -643,8 +655,8 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   {
     keyboardInput.x += io.NavInputs[ImGuiNavInput_LStickLeft]; // Left Stick Horizontal
     keyboardInput.y += -io.NavInputs[ImGuiNavInput_LStickUp]; // Left Stick Vertical
-    mouseInput.x = -io.NavInputs[ImGuiNavInput_LStickRight] / 15.0f; // Right Stick Horizontal
-    mouseInput.y = io.NavInputs[ImGuiNavInput_LStickDown] / 25.0f; // Right Stick Vertical
+    mouseInput.x += -io.NavInputs[ImGuiNavInput_LStickRight] / 15.0f; // Right Stick Horizontal
+    mouseInput.y += io.NavInputs[ImGuiNavInput_LStickDown] / 25.0f; // Right Stick Vertical
 
     // In Imgui the DPAD is bound to navigation, so disable DPAD panning until the issue is resolved
     //pProgramState->cameraInput.controllerDPADInput = udDouble3::create(io.NavInputs[ImGuiNavInput_DpadRight] - io.NavInputs[ImGuiNavInput_DpadLeft], 0, io.NavInputs[ImGuiNavInput_DpadUp] - io.NavInputs[ImGuiNavInput_DpadDown]);
