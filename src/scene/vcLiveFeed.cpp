@@ -189,7 +189,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
           {
             //X and Y are latlong and Z is m so we need to fix it
             if (pInfo->pProgramState->gis.isProjected)
-              dir = udNormalize3(udGeoZone_ToCartesian(pInfo->pProgramState->gis.zone, newPositionLatLong, true) - udGeoZone_ToCartesian(pInfo->pProgramState->gis.zone, pFeedItem->previousPositionLatLong, true));
+              dir = udNormalize3(udGeoZone_LatLongToCartesian(pInfo->pProgramState->gis.zone, newPositionLatLong, true) - udGeoZone_LatLongToCartesian(pInfo->pProgramState->gis.zone, pFeedItem->previousPositionLatLong, true));
             else
               dir = udNormalize3(dir);
 
@@ -371,7 +371,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     pFeedItem->displayPosition = udLerp(pFeedItem->previousPositionLatLong, pFeedItem->livePositionLatLong, pFeedItem->tweenAmount);
 
     if (pProgramState->gis.isProjected)
-      pFeedItem->displayPosition = udGeoZone_ToCartesian(pProgramState->gis.zone, pFeedItem->displayPosition, true);
+      pFeedItem->displayPosition = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, pFeedItem->displayPosition, true);
 
     double distanceSq = udMagSq3(pFeedItem->displayPosition - cameraPosition);
 

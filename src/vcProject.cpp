@@ -287,7 +287,7 @@ bool vcProject_UpdateNodeGeometryFromCartesian(vdkProject *pProject, vdkProjectN
 
     // Change all points from the projection
     for (int i = 0; i < numPoints; ++i)
-      pGeom[i] = udGeoZone_ToLatLong(zone, pPoints[i], true);
+      pGeom[i] = udGeoZone_CartesianToLatLong(zone, pPoints[i], true);
 
     result = vdkProjectNode_SetGeometry(pProject, pNode, newType, numPoints, (double*)pGeom);
     udFree(pGeom);
@@ -314,7 +314,7 @@ bool vcProject_FetchNodeGeometryAsCartesian(vdkProject *pProject, vdkProjectNode
   {
     // Change all points from the projection
     for (int i = 0; i < pNode->geomCount; ++i)
-      pPoints[i] = udGeoZone_ToCartesian(zone, ((udDouble3*)pNode->pCoordinates)[i], true);
+      pPoints[i] = udGeoZone_LatLongToCartesian(zone, ((udDouble3*)pNode->pCoordinates)[i], true);
   }
   else
   {
