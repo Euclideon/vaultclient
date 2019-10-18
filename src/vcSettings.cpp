@@ -122,6 +122,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.styleIndex = data.Get("style").AsInt(1); // dark style by default
 
     pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
+    pSettings->presentation.showEuclideonLogo = data.Get("showEuclideonLogo").AsBool(false);
     pSettings->presentation.showCameraInfo = data.Get("showCameraInfo").AsBool(true);
     pSettings->presentation.showProjectionInfo = data.Get("showGISInfo").AsBool(true);
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvGISOptions").AsBool(false);
@@ -495,6 +496,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("style = %i", pSettings->presentation.styleIndex);
 
   data.Set("showDiagnosticInfo = %s", pSettings->presentation.showDiagnosticInfo ? "true" : "false");
+  data.Set("showEuclideonLogo = %s", pSettings->presentation.showEuclideonLogo ? "true" : "false");
   data.Set("showCameraInfo = %s", pSettings->presentation.showCameraInfo ? "true" : "false");
   data.Set("showGISInfo = %s", pSettings->presentation.showProjectionInfo ? "true" : "false");
   data.Set("loginRenderLicense = %s", pSettings->presentation.loginRenderLicense ? "true" : "false");

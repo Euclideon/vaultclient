@@ -55,6 +55,7 @@
   "settingsAppearanceLight": "Light Theme",
   "settingsAppearancePOIDistance": "Max POI Distance",
   "settingsAppearanceShowDiagnostics": "Show Diagnostic Information",
+  "settingsAppearanceShowEuclideonLogo": "Show Euclideon Logo",
   "settingsAppearanceAdvancedGIS": "Show Advanced GIS Settings",
   "settingsAppearanceLimitFPS": "Limit FPS In Background",
   "settingsAppearanceShowCompass": "Show Compass On Screen",
