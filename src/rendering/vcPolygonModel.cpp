@@ -8,6 +8,8 @@
 #include "gl/vcMesh.h"
 #include "gl/vcTexture.h"
 
+#include "parsers/vcOBJ.h"
+
 static int gPolygonShaderRefCount = 0;
 
 enum vcPolygonModelShaderType
@@ -69,8 +71,8 @@ struct vcPolygonModelMesh
   uint16_t flags;
   uint16_t materialID;
   uint16_t LOD;
-  uint16_t numVertices;
-  uint16_t numElements;
+  uint32_t numVertices;
+  uint32_t numElements;
 
   vcPolygonModelMaterial material; // TODO: materialID should reference a container of there. These should be shared between meshes, and rendering should be organized by material.
   vcMesh *pMesh;
@@ -259,6 +261,104 @@ epilogue:
     vcPolygonModel_Destroy(ppModel);
 
   udFree(pMemory);
+  return result;
+}
+
+udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const char *pFilepath)
+{
+  udResult result;
+  vcPolygonModel *pPolygonModel = nullptr;
+  vcOBJ *pOBJReader = nullptr;
+
+  const vcVertexLayoutTypes *pMeshLayout = vcP3N3UV2VertexLayout;
+  const int totalTypes = (int)udLengthOf(vcP3N3UV2VertexLayout);
+
+  UD_ERROR_NULL(ppPolygonModel, udR_InvalidParameter_);
+  UD_ERROR_NULL(pFilepath, udR_InvalidParameter_);
+
+  pPolygonModel = udAllocType(vcPolygonModel, 1, udAF_Zero);
+  UD_ERROR_NULL(pPolygonModel, udR_MemoryAllocationFailure);
+
+  UD_ERROR_CHECK(vcOBJ_Load(&pOBJReader, pFilepath));
+
+  pPolygonModel->pMeshes = udAllocType(vcPolygonModelMesh, pOBJReader->materials.length, udAF_Zero);
+  UD_ERROR_NULL(pPolygonModel->pMeshes, udR_MemoryAllocationFailure);
+
+  pPolygonModel->meshCount = (uint32_t)pOBJReader->materials.length;
+
+  for (int material = 0; material < (int)pOBJReader->materials.length; ++material)
+  {
+    vcOBJ::Material *pMaterial = &pOBJReader->materials[material];
+    vcPolygonModelMesh *pMesh = &pPolygonModel->pMeshes[material];
+
+    // brute force each materials vertex count
+    for (uint32_t f = 0; f < pOBJReader->faces.length; ++f)
+    {
+      vcOBJ::Face *pFace = &pOBJReader->faces[f];
+      if (pFace->mat != material)
+        continue;
+
+      pMesh->numVertices += 3;
+    }
+
+    vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, pMesh->numVertices, udAF_Zero);
+    uint32_t currentVert = 0;
+    for (uint32_t f = 0; f < pOBJReader->faces.length; ++f)
+    {
+      vcOBJ::Face *pFace = &pOBJReader->faces[f];
+      if (pFace->mat != material)
+        continue;
+
+      for (int i = 0; i < 3; ++i)
+      {
+        pVerts[currentVert + i].position = udFloat3::create(pOBJReader->positions[pFace->verts[i].pos]);
+        pVerts[currentVert + i].normal = udFloat3::create(pOBJReader->normals[pFace->verts[i].nrm]);
+
+        // NOTE: flipped y
+        if (pFace->verts[i].uv >= 0) // TODO: Better handle meshes without textures
+          pVerts[currentVert + i].uv = udFloat2::create(pOBJReader->uvs[pFace->verts[i].uv].x, 1.0f - pOBJReader->uvs[pFace->verts[i].uv].y);
+      }
+
+      currentVert += 3;
+    }
+
+    // BGRA
+    pMesh->material.colour = 0x000000ff | (uint32_t(pMaterial->Kd.x * 0xff) << 8) | (uint32_t(pMaterial->Kd.y * 0xff) << 16) | (uint32_t(pMaterial->Kd.z * 0xff) << 24);
+
+    // TODO: (EVC-570) Calculate and actually use flags
+    pMesh->flags = 0;//vcPMVF_Normals | vcPMVF_UVs;
+    pMesh->LOD = 0;
+    pMesh->numElements = 0;
+    pMesh->materialID = (uint16_t)vcPolygonModel_GetShaderType(pMeshLayout, totalTypes);
+
+    // Check for unsupported vertex format
+    if (pPolygonModel->pMeshes[0].materialID == vcPMST_Count)
+      UD_ERROR_SET(udR_Unsupported);
+
+    if (udStrlen(pMaterial->map_Kd) > 0)
+    {
+      UD_ERROR_IF(!vcTexture_CreateFromFilename(&pMesh->material.pTexture, udTempStr("%s%s", pOBJReader->basePath.GetPath(), pMaterial->map_Kd)), udR_InternalError);
+    }
+    else
+    {
+      uint32_t whitePixel = 0xffffffff;
+      UD_ERROR_CHECK(vcTexture_Create(&pMesh->material.pTexture, 1, 1, &whitePixel));
+    }
+
+    UD_ERROR_CHECK(vcMesh_Create(&pMesh->pMesh, pMeshLayout, totalTypes, pVerts, pMesh->numVertices, nullptr, 0, vcMF_NoIndexBuffer));
+
+    udFree(pVerts);
+  }
+
+  *ppPolygonModel = pPolygonModel;
+  pPolygonModel = nullptr;
+  result = udR_Success;
+epilogue:
+
+  if (pPolygonModel != nullptr)
+    vcPolygonModel_Destroy(&pPolygonModel);
+
+  vcOBJ_Destroy(&pOBJReader);
   return result;
 }
 
