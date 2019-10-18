@@ -191,6 +191,8 @@ void vcMain_PresentationMode(vcState *pProgramState)
 
 void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
 {
+  vcTexture_Destroy(&pProgramState->tileModal.pServerIcon);
+
   if (vcSettings_Load(&pProgramState->settings, forceDefaults))
   {
     vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
