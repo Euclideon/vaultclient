@@ -462,7 +462,7 @@ udResult vcSceneLayer_LoadGeometryData(const vcSceneLayer *pSceneLayer, vcSceneL
         // TODO: (EVC-540) Handle different sized positions
         udFloat3 currentVertPosition = *(udFloat3 *)pCurrentFile;
 
-        originCartesian = udGeoZone_ToCartesian(pNode->zone, udDouble3::create(pNode->latLong.x + currentVertPosition.x, pNode->latLong.y + currentVertPosition.y, 0.0), true);
+        originCartesian = udGeoZone_LatLongToCartesian(pNode->zone, udDouble3::create(pNode->latLong.x + currentVertPosition.x, pNode->latLong.y + currentVertPosition.y, 0.0), true);
         originCartesian.z = currentVertPosition.z + pNode->pFeatureData[i].position.z ; // Elevation (the z component of the vertex position) is specified in meters
 
         pNode->pGeometryData[i].originMatrix = udDouble4x4::translation(originCartesian);
@@ -480,7 +480,7 @@ udResult vcSceneLayer_LoadGeometryData(const vcSceneLayer *pSceneLayer, vcSceneL
           // Reposition data to be relative to the first vertex
           udFloat3 currentVertPosition = *(udFloat3 *)pCurrentFile;
 
-          udDouble3 pointCartesian = udGeoZone_ToCartesian(pNode->zone, udDouble3::create(pNode->latLong.x + currentVertPosition.x, pNode->latLong.y + currentVertPosition.y, 0.0), true);
+          udDouble3 pointCartesian = udGeoZone_LatLongToCartesian(pNode->zone, udDouble3::create(pNode->latLong.x + currentVertPosition.x, pNode->latLong.y + currentVertPosition.y, 0.0), true);
           pointCartesian.z = currentVertPosition.z; // Elevation (the z component of the vertex position) is specified in meters
 
           udFloat3 finalVertPosition = udFloat3::create(pointCartesian - originCartesian);
@@ -652,7 +652,7 @@ void vcSceneLayer_CalculateNodeBounds(vcSceneLayerNode *pNode, const udDouble4 &
   udGeoZone_FindSRID(&sridCode, originLatLong, true);
   udGeoZone_SetFromSRID(&pNode->zone, sridCode);
 
-  pNode->minimumBoundingSphere.position = udGeoZone_ToCartesian(pNode->zone, originLatLong, true);
+  pNode->minimumBoundingSphere.position = udGeoZone_LatLongToCartesian(pNode->zone, originLatLong, true);
   pNode->minimumBoundingSphere.position.z = latLongHeightRadius.z;
   pNode->minimumBoundingSphere.radius = latLongHeightRadius.w;
 }
