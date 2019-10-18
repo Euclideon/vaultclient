@@ -206,6 +206,9 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
     SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
     if (pProgramState->settings.window.maximized)
       SDL_MaximizeWindow(pProgramState->pWindow);
+
+    if (forceDefaults)
+      vcGLState_ResizeBackBuffer(pProgramState->settings.window.width, pProgramState->settings.window.height);
   }
 }
 
@@ -741,6 +744,7 @@ int main(int argc, char **args)
   programState.settings.window.windowsOpen[vcDocks_Settings] = true;
   programState.settings.window.windowsOpen[vcDocks_SceneExplorer] = true;
   programState.settings.window.windowsOpen[vcDocks_Convert] = true;
+  programState.settings.languageOptions.Init(4);
 
   programState.settings.hideIntervalSeconds = 3;
   programState.showUI = true;
