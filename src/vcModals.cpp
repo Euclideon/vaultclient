@@ -508,14 +508,14 @@ void vcModals_DrawFileModal(vcState *pProgramState)
         udFilename loadFilename(pProgramState->modelPath);
         loadFilename.SetExtension(".uds");
         vdkConvertContext *pConvertContext = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext;
-        vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pConvertContext, loadFilename.GetPath());
+        vdkConvert_SetOutputFilename(pConvertContext, loadFilename.GetPath());
         // SetOutputFilename() overwrites the temp directory automatically, unless the user has modified it
       }
       else if (mode == vcMT_ConvertTempDirectory)
       {
         // Set temporary directory
         vdkConvertContext *pConvertContext = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext;
-        vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pConvertContext, pProgramState->modelPath);
+        vdkConvert_SetTempDirectory(pConvertContext, pProgramState->modelPath);
       }
       else
       {
@@ -606,7 +606,7 @@ void vcModals_DrawLoadWatermark(vcState *pProgramState)
     {
       if (mode == vcMT_LoadWatermark)
       {
-        vdkConvert_AddWatermark(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext, pProgramState->modelPath);
+        vdkConvert_AddWatermark(pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext, pProgramState->modelPath);
         pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->watermark.isDirty = true;
       }
       else

@@ -3,6 +3,7 @@
 
 #include "vcSceneItem.h"
 #include "vdkRenderContext.h"
+#include "vdkPointCloud.h"
 
 struct vdkPointCloud;
 struct vcTexture;
@@ -12,6 +13,7 @@ class vcModel : public vcSceneItem
 {
 public:
   vdkPointCloud *m_pPointCloud;
+  vdkPointCloudHeader m_pointCloudHeader;
 
   udDouble3 m_pivot; // The models pivot in local space
   udDouble4x4 m_defaultMatrix; // This is the matrix from the model header- in m_pPreferredZone space

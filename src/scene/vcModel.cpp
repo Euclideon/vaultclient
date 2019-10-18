@@ -23,13 +23,13 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel)
 {
   const char *pMetadata;
 
-  if (vdkPointCloud_GetMetadata(pProgramState->pVDKContext, pModel->m_pPointCloud, &pMetadata) == vE_Success)
+  if (vdkPointCloud_GetMetadata(pModel->m_pPointCloud, &pMetadata) == vE_Success)
   {
     pModel->m_metadata.Parse(pMetadata);
     pModel->m_hasWatermark = pModel->m_metadata.Get("Watermark").IsString();
 
-    pModel->m_meterScale = pModel->m_metadata.Get("info.meterScale").AsDouble(1.0);
-    pModel->m_pivot = pModel->m_metadata.Get("info.pivot").AsDouble3();
+    pModel->m_meterScale = pModel->m_pointCloudHeader.unitMeterScale;
+    pModel->m_pivot = udDouble3::create(pModel->m_pointCloudHeader.pivot[0], pModel->m_pointCloudHeader.pivot[1], pModel->m_pointCloudHeader.pivot[2]);
 
     vcSRID srid = 0;
     const char *pSRID = pModel->m_metadata.Get("ProjectionID").AsString();
@@ -67,7 +67,7 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel)
     }
   }
 
-  vdkPointCloud_GetStoredMatrix(pProgramState->pVDKContext, pModel->m_pPointCloud, pModel->m_sceneMatrix.a);
+  pModel->m_sceneMatrix = udDouble4x4::create(pModel->m_pointCloudHeader.storedMatrix);
   pModel->m_defaultMatrix = pModel->m_sceneMatrix;
   pModel->m_baseMatrix = pModel->m_defaultMatrix;
 
@@ -87,7 +87,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
   if (status == vcSLS_Pending)
   {
-    vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->m_pPointCloud, pLoadInfo->pModel->m_pNode->pURI);
+    vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->m_pPointCloud, pLoadInfo->pModel->m_pNode->pURI, &pLoadInfo->pModel->m_pointCloudHeader);
 
     if (modelStatus == vE_Success)
     {
@@ -286,7 +286,7 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
 
 void vcModel::Cleanup(vcState *pProgramState)
 {
-  vdkPointCloud_Unload(pProgramState->pVDKContext, &m_pPointCloud);
+  vdkPointCloud_Unload(&m_pPointCloud);
   udFree(m_pCurrentZone);
 
   if (m_pWatermark != nullptr)

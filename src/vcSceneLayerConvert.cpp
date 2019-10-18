@@ -397,7 +397,7 @@ epilogue:
   return result;
 }
 
-vdkError vcSceneLayerConvert_AddItem(vdkContext *pContext, vdkConvertContext *pConvertContext, const char *pSceneLayerURL)
+vdkError vcSceneLayerConvert_AddItem(vdkConvertContext *pConvertContext, const char *pSceneLayerURL)
 {
   vdkError result;
   vcSceneLayerConvert *pSceneLayerConvert = nullptr;
@@ -429,7 +429,7 @@ vdkError vcSceneLayerConvert_AddItem(vdkContext *pContext, vdkConvertContext *pC
   customItem.boundMax[2] = customItem.boundMin[2] + pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.radius * 2.0;
   customItem.boundsKnown = true;
 
-  UD_ERROR_CHECK(vdkConvert_AddCustomItem(pContext, pConvertContext, &customItem));
+  UD_ERROR_CHECK(vdkConvert_AddCustomItem(pConvertContext, &customItem));
 
   result = vE_Success;
 
