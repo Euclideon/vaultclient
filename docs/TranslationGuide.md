@@ -4,7 +4,7 @@
 
 - Version 0.4.0
   - Added:
-    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `convertAllSpaceLabel`, `loginEnterURL`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`, `settingsControlsControllerInvertY`
+    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `convertAllSpaceLabel`, `loginEnterURL`, `settingsAppearanceLoginRenderLicense`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`, `settingsControlsControllerInvertY`
   - Changed:
     - ?
   - Removed:
@@ -187,6 +187,7 @@ Modules are currently:
 - `settingsAppearanceAdvancedGIS`: Label next to the checkbox that toggles the display of advanced GIS settings in the viewport
 - `settingsAppearanceLimitFPS`: Label next to checkbox for limiting the frame-rate while vault client window is inactive or unselected
 - `settingsAppearanceShowCompass`: Label next to checkbox that toggles the appearance of a compass in the viewport
+- `settingsAppearanceLoginRenderLicense`: Label next to checkbox that toggles acquiring a render license automatically on login
 - `settingsAppearanceShowSkybox`: Label next to checkbox that toggles if the skybox is displayed
 - `settingsAppearanceSkyboxColour`: Label next to colour picker to decide the colour of the background if the skybox is disabled
 - `settingsAppearanceMouseAnchor`: Label next to dropdown list to select the appearance of the mouse cursor when hovering over objects in the scene
