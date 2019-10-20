@@ -115,6 +115,7 @@ struct vcSettings
     bool showProjectionInfo;
     bool showDiagnosticInfo;
     bool showAdvancedGIS;
+    bool loginRenderLicense;
 
     bool showSkybox;
     udFloat4 skyboxColour;

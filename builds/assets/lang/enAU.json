@@ -58,6 +58,7 @@
   "settingsAppearanceAdvancedGIS": "Show Advanced GIS Settings",
   "settingsAppearanceLimitFPS": "Limit FPS In Background",
   "settingsAppearanceShowCompass": "Show Compass On Screen",
+  "settingsAppearanceLoginRenderLicense": "Checkout Render License On Login",
   "settingsAppearanceShowSkybox": "Show Skybox",
   "settingsAppearanceSkyboxColour": "Background Colour",
   "settingsAppearanceMouseAnchor": "Mouse Anchor Style",
