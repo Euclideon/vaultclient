@@ -58,32 +58,6 @@ struct VSMFHeader
   float maxXYZ[3];
 };
 
-struct vcPolygonModelMaterial
-{
-  uint16_t flags;
-  uint32_t colour; // bgra
-
-  vcTexture *pTexture;
-};
-
-struct vcPolygonModelMesh
-{
-  uint16_t flags;
-  uint16_t materialID;
-  uint16_t LOD;
-  uint32_t numVertices;
-  uint32_t numElements;
-
-  vcPolygonModelMaterial material; // TODO: materialID should reference a container of there. These should be shared between meshes, and rendering should be organized by material.
-  vcMesh *pMesh;
-};
-
-struct vcPolygonModel
-{
-  int meshCount;
-  vcPolygonModelMesh *pMeshes;
-};
-
 vcPolygonModelShaderType vcPolygonModel_GetShaderType(const vcVertexLayoutTypes *pMeshLayout, int totalTypes)
 {
   if (totalTypes == 3 && (pMeshLayout[0] == vcVLT_Position3 && pMeshLayout[1] == vcVLT_Normal3 && pMeshLayout[2] == vcVLT_TextureCoords2))
@@ -142,7 +116,6 @@ epilogue:
   return result;
 }
 
-
 udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *pData, int dataLength)
 {
   if (pData == nullptr || (size_t)dataLength < sizeof(VSMFHeader))
@@ -188,11 +161,22 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
   // Mesh
   for (int i = 0; i < header.numMeshes; ++i)
   {
-    UD_ERROR_CHECK(udReadFromPointer(&pNewModel->pMeshes[i].flags, pFilePos, &dataLength));
-    UD_ERROR_CHECK(udReadFromPointer(&pNewModel->pMeshes[i].materialID, pFilePos, &dataLength));
-    UD_ERROR_CHECK(udReadFromPointer(&pNewModel->pMeshes[i].LOD, pFilePos, &dataLength));
-    UD_ERROR_CHECK(udReadFromPointer(&pNewModel->pMeshes[i].numVertices, pFilePos, &dataLength));
-    UD_ERROR_CHECK(udReadFromPointer(&pNewModel->pMeshes[i].numElements, pFilePos, &dataLength));
+    uint16_t valueU16 = 0;
+
+    UD_ERROR_CHECK(udReadFromPointer(&valueU16, pFilePos, &dataLength));
+    pNewModel->pMeshes[i].flags = valueU16;
+
+    UD_ERROR_CHECK(udReadFromPointer(&valueU16, pFilePos, &dataLength));
+    pNewModel->pMeshes[i].materialID = valueU16;
+
+    UD_ERROR_CHECK(udReadFromPointer(&valueU16, pFilePos, &dataLength));
+    pNewModel->pMeshes[i].LOD = valueU16;
+
+    UD_ERROR_CHECK(udReadFromPointer(&valueU16, pFilePos, &dataLength));
+    pNewModel->pMeshes[i].numVertices = valueU16;
+
+    UD_ERROR_CHECK(udReadFromPointer(&valueU16, pFilePos, &dataLength));
+    pNewModel->pMeshes[i].numElements = valueU16;
 
     // override material id for now
     pNewModel->pMeshes[i].materialID = vcPMST_P3N3UV2_Opaque;
@@ -201,7 +185,7 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
     pFilePos += sizeof(*pVerts) * pNewModel->pMeshes[i].numVertices;
 
     // TODO: Assume these all need flipping
-    for (uint16_t v = 0; v < pNewModel->pMeshes[i].numVertices; ++v)
+    for (uint32_t v = 0; v < pNewModel->pMeshes[i].numVertices; ++v)
     {
       vcP3N3UV2Vertex *pVert = &pVerts[v];
       pVert->uv.y = 1.0f - pVert->uv.y;
@@ -242,25 +226,6 @@ epilogue:
     udFree(pNewModel->pMeshes);
     udFree(pNewModel);
   }
-  return result;
-}
-
-udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL)
-{
-  udResult result;
-  void *pMemory = nullptr;
-  int64_t fileLength = 0;
-
-  UD_ERROR_CHECK(udFile_Load(pURL, &pMemory, &fileLength));
-  UD_ERROR_CHECK(vcPolygonModel_CreateFromVSMFInMemory(ppModel, (char*)pMemory, (int)fileLength));
-
-  result = udR_Success;
-
-epilogue:
-  if (result != udR_Success)
-    vcPolygonModel_Destroy(ppModel);
-
-  udFree(pMemory);
   return result;
 }
 
@@ -324,6 +289,7 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
 
     // BGRA
     pMesh->material.colour = 0x000000ff | (uint32_t(pMaterial->Kd.x * 0xff) << 8) | (uint32_t(pMaterial->Kd.y * 0xff) << 16) | (uint32_t(pMaterial->Kd.z * 0xff) << 24);
+    pMesh->material.pName = udStrdup(pMaterial->name);
 
     // TODO: (EVC-570) Calculate and actually use flags
     pMesh->flags = 0;//vcPMVF_Normals | vcPMVF_UVs;
@@ -359,6 +325,38 @@ epilogue:
     vcPolygonModel_Destroy(&pPolygonModel);
 
   vcOBJ_Destroy(&pOBJReader);
+  return result;
+}
+
+udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL)
+{
+  udResult result;
+  void *pMemory = nullptr;
+  int64_t fileLength = 0;
+
+  udFilename fn(pURL);
+
+  if (udStrEquali(fn.GetExt(), ".obj"))
+  {
+    UD_ERROR_CHECK(vcPolygonModel_CreateFromOBJ(ppModel, pURL));
+  }
+  else if (udStrEquali(fn.GetExt(), ".vsm"))
+  {
+    UD_ERROR_CHECK(udFile_Load(pURL, &pMemory, &fileLength));
+    UD_ERROR_CHECK(vcPolygonModel_CreateFromVSMFInMemory(ppModel, (char *)pMemory, (int)fileLength));
+  }
+  else
+  {
+    UD_ERROR_SET(udR_Unsupported);
+  }
+
+  result = udR_Success;
+
+epilogue:
+  if (result != udR_Success)
+    vcPolygonModel_Destroy(ppModel);
+
+  udFree(pMemory);
   return result;
 }
 
@@ -420,6 +418,7 @@ udResult vcPolygonModel_Destroy(vcPolygonModel **ppModel)
   {
     vcTexture_Destroy(&pModel->pMeshes[i].material.pTexture);
     vcMesh_Destroy(&pModel->pMeshes[i].pMesh);
+    udFree(pModel->pMeshes[i].material.pName);
   }
 
   udFree(pModel->pMeshes);
