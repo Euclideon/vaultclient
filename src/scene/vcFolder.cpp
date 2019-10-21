@@ -237,7 +237,20 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       bool sceneExplorerItemClicked = ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!pSceneItem->m_selected && ImGui::IsItemActive()));
       if (sceneExplorerItemClicked)
       {
-        udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+        if (!ImGui::GetIO().KeyCtrl)
+          vcProject_ClearSelection(pProgramState);
+
+        if (pSceneItem->m_selected)
+        {
+          vcProject_UnselectItem(pProgramState, m_pNode, pNode);
+          pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
+        }
+        else
+        {
+          vcProject_SelectItem(pProgramState, m_pNode, pNode);
+          pProgramState->sceneExplorer.clickedItem = { m_pNode, pNode };
+        }
+
         pSceneItem->SelectSubitem(0);
       }
 

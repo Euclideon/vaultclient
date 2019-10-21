@@ -134,6 +134,9 @@ void vcSession_Login(void *pProgramStatePtr)
     vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pSessionRawData);
   }
 
+  if (pProgramState->settings.presentation.loginRenderLicense)
+    vdkContext_RequestLicense(pProgramState->pVDKContext, vdkLT_Render);
+
   //Context Login successful
   memset(pProgramState->password, 0, sizeof(pProgramState->password));
   if (!pProgramState->settings.loginInfo.rememberServer)

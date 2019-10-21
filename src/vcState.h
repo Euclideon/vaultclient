@@ -93,6 +93,7 @@ struct vcState
   char username[64];
 
   vcTexture *pCompanyLogo;
+  vcTexture *pCompanyWatermark;
   vcTexture *pBuildingsTexture;
   vcTexture *pSceneWatermark;
   vcTexture *pUITexture;

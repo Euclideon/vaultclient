@@ -103,8 +103,10 @@ struct vcCameraSettings
   float nearPlane;
   float farPlane;
   float fieldOfView;
-  bool invertX;
-  bool invertY;
+  bool invertMouseX;
+  bool invertMouseY;
+  bool invertControllerX;
+  bool invertControllerY;
   int lensIndex;
   vcCameraMoveMode moveMode;
   vcCameraPivotMode cameraMouseBindings[3]; // bindings for camera settings

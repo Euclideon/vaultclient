@@ -4,11 +4,11 @@
 
 - Version 0.4.0
   - Added:
-    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `convertSpaceECEF`, `convertAllSpaceLabel`, `loginEnterURL`
+    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `convertAllSpaceLabel`, `loginEnterURL`, `settingsAppearanceLoginRenderLicense`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`, `settingsControlsControllerInvertY`, `settingsAppearanceShowEuclideonLogo`, `convertSpaceECEF`
   - Changed:
     - ?
   - Removed:
-    - `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeSucceededTitle`
+    - `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeSucceededTitle`, `settingsControlsInvertX`, `settingsControlsInvertY`
 
 - Version 0.3.1
   - Added:
@@ -184,9 +184,11 @@ Modules are currently:
 - `settingsAppearanceLight`: Light option for appearance theme and login screen  dropdown lists
 - `settingsAppearancePOIDistance`: Label next to slider for setting the maximum distance at which POIs are visible
 - `settingsAppearanceShowDiagnostics`: Label next to the checkbox that toggles the display of diagnostic information in the menu bar
+- `settingsAppearanceShowEuclideonLogo`: Label next to the checkbox that toggles the display of the Euclideon logo over the scene
 - `settingsAppearanceAdvancedGIS`: Label next to the checkbox that toggles the display of advanced GIS settings in the viewport
 - `settingsAppearanceLimitFPS`: Label next to checkbox for limiting the frame-rate while vault client window is inactive or unselected
 - `settingsAppearanceShowCompass`: Label next to checkbox that toggles the appearance of a compass in the viewport
+- `settingsAppearanceLoginRenderLicense`: Label next to checkbox that toggles acquiring a render license automatically on login
 - `settingsAppearanceShowSkybox`: Label next to checkbox that toggles if the skybox is displayed
 - `settingsAppearanceSkyboxColour`: Label next to colour picker to decide the colour of the background if the skybox is disabled
 - `settingsAppearanceMouseAnchor`: Label next to dropdown list to select the appearance of the mouse cursor when hovering over objects in the scene
@@ -208,8 +210,10 @@ Modules are currently:
 - `settingsControlsRestoreDefaults`: Used to restore default values for all controls settings
 - `settingsControlsOSC`: Label next to checkbox that toggles the appearance of on-screen camera controls in the viewport
 - `settingsControlsTouchUI`: Label next to checkbox that toggles UI optimisation for a touchscreen
-- `settingsControlsInvertX`: Label next to checkbox that toggles the positive/negative X-axis for the purposes of camera movement
-- `settingsControlsInvertY`: Label next to checkbox that toggles the positive/negative Y-axis for the purposes of camera movement
+- `settingsControlsMouseInvertX`: Label next to checkbox that toggles the positive/negative X-axis for mouse inputs
+- `settingsControlsMouseInvertY`: Label next to checkbox that toggles the positive/negative Y-axis for mouse inputs
+- `settingsControlsControllerInvertX`: Label next to checkbox that toggles the positive/negative X-axis for controller inputs
+- `settingsControlsControllerInvertY`: Label next to checkbox that toggles the positive/negative Y-axis for controller inputs
 - `settingsControlsMousePivot`: Subheading for the four dropdown lists used to assign bindings for mouse input
 - `settingsControlsForward`: Option for Left, Middle and Right mouse button dropdown lists, moves the camera forwards (same as W key) and also allows tumbling
 - `settingsControlsTumble`: Option for Left, Middle and Right mouse button dropdown lists, rotates the camera without moving it
