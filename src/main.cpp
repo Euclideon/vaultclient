@@ -43,6 +43,7 @@
 #include "vcSession.h"
 #include "vcPOI.h"
 #include "vcStringFormat.h"
+#include "vcInternalTexturesData.h"
 
 #include "gl/vcGLState.h"
 #include "gl/vcFramebuffer.h"
@@ -863,6 +864,8 @@ int main(int argc, char **args)
 
   vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
 
+  vcTexture_CreateFromMemory(&programState.pCompanyWatermark, (void *)logoData, logoDataSize);
+
 #if UDPLATFORM_EMSCRIPTEN
   emscripten_set_main_loop_arg(vcMain_MainLoop, &programState, 0, 1);
 #else
@@ -888,6 +891,7 @@ epilogue:
   vcConvert_Deinit(&programState);
   vcCamera_Destroy(&programState.pCamera);
   vcTexture_Destroy(&programState.pCompanyLogo);
+  vcTexture_Destroy(&programState.pCompanyWatermark);
   vcTexture_Destroy(&programState.pBuildingsTexture);
   vcTexture_Destroy(&programState.pUITexture);
   vcTexture_Destroy(&programState.pWhiteTexture);
@@ -1113,12 +1117,31 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::End();
   }
 
+  udInt2 logoSize = udInt2::zero();
+  if (pProgramState->settings.presentation.showEuclideonLogo)
+  {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    vcTexture_GetSize(pProgramState->pCompanyWatermark, &logoSize.x, &logoSize.y);
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+    ImGui::SetNextWindowSize(ImVec2((float)logoSize.x, (float)logoSize.y));
+    ImGui::SetNextWindowBgAlpha(0.5f);
+
+    if (ImGui::Begin("LogoBox", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+      ImGui::Image(pProgramState->pCompanyWatermark, ImVec2((float)logoSize.x, (float)logoSize.y));
+    ImGui::End();
+    ImGui::PopStyleVar();
+  }
+
+  udInt2 sizei = udInt2::zero();
   if (pProgramState->pSceneWatermark != nullptr) // Watermark
   {
-    udInt2 sizei = udInt2::zero();
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     vcTexture_GetSize(pProgramState->pSceneWatermark, &sizei.x, &sizei.y);
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+
+    if (pProgramState->settings.presentation.showEuclideonLogo)
+      sizei *= .5;
+
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + windowSize.y - logoSize.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
     ImGui::SetNextWindowSize(ImVec2((float)sizei.x, (float)sizei.y));
     ImGui::SetNextWindowBgAlpha(0.5f);
 
