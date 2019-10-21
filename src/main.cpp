@@ -862,7 +862,7 @@ int main(int argc, char **args)
 
   vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
 
-  vcTexture_CreateFromMemory(&programState.pCompanyWatermark, (void *)logoData, sizeof(logoData));
+  vcTexture_CreateFromMemory(&programState.pCompanyWatermark, (void *)logoData, logoDataSize);
 
 #if UDPLATFORM_EMSCRIPTEN
   emscripten_set_main_loop_arg(vcMain_MainLoop, &programState, 0, 1);
