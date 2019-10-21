@@ -797,10 +797,17 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
     {
       vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
+
+      if (pInstance->insideOut)
+        vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
+
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
         vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride);
       else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
         vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution);
+
+      if (pInstance->insideOut)
+        vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     }
 
     vcSceneLayer_EndFrame();
@@ -1149,7 +1156,6 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
     }
   }
 
-
   if (pProgramState->settings.presentation.showDiagnosticInfo && pProgramState->gis.isProjected)
   {
     vcFenceRenderer_ClearPoints(pRenderContext->pDiagnosticFences);
@@ -1281,10 +1287,16 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
         vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
         udFloat4 idAsColour = vcRender_EncodeIdAsColour((uint32_t)(modelId++));
 
+        if (pInstance->insideOut)
+          vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
+
         if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
           vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &idAsColour);
         else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
           vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution, &idAsColour);
+
+        if (pInstance->insideOut)
+          vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
       }
     }
 
