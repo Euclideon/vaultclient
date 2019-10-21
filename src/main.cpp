@@ -408,6 +408,26 @@ void vcMain_MainLoop(vcState *pProgramState)
             else if (firstLoad) // Was successful
               udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
           }
+          else if (udStrEquali(pExt, ".vsm") || udStrEquali(pExt, ".obj"))
+          {
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Polygon", nullptr, pNextLoad, nullptr) != vE_Success)
+            {
+              vcState::ErrorItem projectError;
+              projectError.source = vcES_ProjectChange;
+              projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
+              projectError.resultCode = udR_ReadFailure;
+
+              pNextLoad = nullptr;
+
+              pProgramState->errorItems.PushBack(projectError);
+
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+
+              continue;
+            }
+            else if (firstLoad) // Was successful
+              udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+          }
           else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif"))
           {
             const vcSceneItemRef &clicked = pProgramState->sceneExplorer.clickedItem;

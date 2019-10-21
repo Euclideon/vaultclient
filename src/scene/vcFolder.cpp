@@ -18,6 +18,7 @@
 #include "vcLiveFeed.h"
 #include "vcUnsupportedNode.h"
 #include "vcI3S.h"
+#include "vcPolyModelNode.h"
 #include "vcWaterNode.h"
 #include "vcViewpoint.h"
 #include "vcViewShed.h"
@@ -90,6 +91,8 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pNode->pUserData = new vcWater(pProgramState->activeProject.pProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "ViewMap"))
         pNode->pUserData = new vcViewShed(pProgramState->activeProject.pProject, pNode, pProgramState);
+      else if (udStrEqual(pNode->itemtypeStr, "Polygon"))
+        pNode->pUserData = new vcPolyModelNode(pProgramState->activeProject.pProject, pNode, pProgramState);
       else
         pNode->pUserData = new vcUnsupportedNode(pProgramState->activeProject.pProject, pNode, pProgramState); // Catch all
     }

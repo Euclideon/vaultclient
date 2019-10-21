@@ -12,17 +12,41 @@ enum vcPolyModelPass
   //vcPMP_Shadows,
 };
 
-struct vcPolygonModel;
 struct vcTexture;
+struct vcMesh;
+
+struct vcPolygonModelMaterial
+{
+  uint16_t flags;
+  uint32_t colour; // bgra
+
+  const char *pName;
+  vcTexture *pTexture;
+};
+
+struct vcPolygonModelMesh
+{
+  uint16_t flags;
+  uint16_t materialID;
+  uint16_t LOD;
+  uint32_t numVertices;
+  uint32_t numElements;
+
+  vcPolygonModelMaterial material; // TODO: materialID should reference a container of there. These should be shared between meshes, and rendering should be organized by material.
+  vcMesh *pMesh;
+};
+
+struct vcPolygonModel
+{
+  int meshCount;
+  vcPolygonModelMesh *pMeshes;
+};
 
 udResult vcPolygonModel_CreateShaders();
 udResult vcPolygonModel_DestroyShaders();
 
 udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel, const void *pVerts, const uint16_t vertCount, const vcVertexLayoutTypes *pMeshLayout, const int totalTypes, const uint16_t *pIndices = nullptr, const uint16_t indexCount = 0);
 udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL);
-
-// OBJ
-udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const char *pFilepath);
 
 udResult vcPolygonModel_Destroy(vcPolygonModel **ppModel);
 
