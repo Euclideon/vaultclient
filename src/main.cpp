@@ -192,6 +192,8 @@ void vcMain_PresentationMode(vcState *pProgramState)
 
 void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
 {
+  vcTexture_Destroy(&pProgramState->tileModal.pServerIcon);
+
   if (vcSettings_Load(&pProgramState->settings, forceDefaults))
   {
     vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
@@ -1257,7 +1259,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
 
-  if (!pProgramState->modalOpen && (ImGui::IsKeyPressed(SDL_SCANCODE_F5, false) || (io.NavInputs[ImGuiNavInput_TweakFast] && !io.NavInputsDownDuration[ImGuiNavInput_TweakFast]))) // Start Button
+  if (!pProgramState->modalOpen && (ImGui::IsKeyPressed(SDL_SCANCODE_F5, false) || ImGui::IsNavInputPressed(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released)))
     vcMain_PresentationMode(pProgramState);
   if (pProgramState->settings.responsiveUI == vcPM_Show)
     pProgramState->showUI = true;

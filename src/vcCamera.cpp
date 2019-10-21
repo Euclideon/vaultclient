@@ -276,12 +276,6 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     if (isnan(pCamera->position.x) || isnan(pCamera->position.y) || isnan(pCamera->position.z))
       pCamera->position = udDouble3::zero();
 
-    // Rotation
-    if (pCamSettings->invertX)
-      pCamInput->mouseInput.x *= -1.0;
-    if (pCamSettings->invertY)
-      pCamInput->mouseInput.y *= -1.0;
-
     pCamInput->smoothRotation += pCamInput->mouseInput * 0.5;
   }
   break;
@@ -294,10 +288,6 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
       udRay<double> transform, tempTransform;
       transform.position = pCamera->position;
       transform.direction = udDirectionFromYPR(pCamera->eulerRotation);
-      if (pCamSettings->invertX)
-        pCamInput->mouseInput.x *= -1.0;
-      if (pCamSettings->invertY)
-        pCamInput->mouseInput.y *= -1.0;
 
       // Apply input
       tempTransform = udRay<double>::rotationAround(transform, pProgramState->worldAnchorPoint, { 0, 0, 1 }, pCamInput->mouseInput.x);
@@ -650,13 +640,23 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     mouseInput.z = 0.0;
   }
 
+  if (pProgramState->settings.camera.invertMouseX)
+    mouseInput.x *= -1.0;
+  if (pProgramState->settings.camera.invertMouseY)
+    mouseInput.y *= -1.0;
+
   // Controller Input
   if (io.NavActive)
   {
     keyboardInput.x += io.NavInputs[ImGuiNavInput_LStickLeft]; // Left Stick Horizontal
     keyboardInput.y += -io.NavInputs[ImGuiNavInput_LStickUp]; // Left Stick Vertical
     mouseInput.x += -io.NavInputs[ImGuiNavInput_LStickRight] / 15.0f; // Right Stick Horizontal
-    mouseInput.y += io.NavInputs[ImGuiNavInput_LStickDown] / 25.0f; // Right Stick Vertical
+    mouseInput.y += -io.NavInputs[ImGuiNavInput_LStickDown] / 25.0f; // Right Stick Vertical
+
+    if (pProgramState->settings.camera.invertControllerX)
+      mouseInput.x = -mouseInput.x;
+    if (pProgramState->settings.camera.invertControllerY)
+      mouseInput.y = -mouseInput.y;
 
     // In Imgui the DPAD is bound to navigation, so disable DPAD panning until the issue is resolved
     //pProgramState->cameraInput.controllerDPADInput = udDouble3::create(io.NavInputs[ImGuiNavInput_DpadRight] - io.NavInputs[ImGuiNavInput_DpadLeft], 0, io.NavInputs[ImGuiNavInput_DpadUp] - io.NavInputs[ImGuiNavInput_DpadDown]);
