@@ -154,8 +154,10 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 #else
     pSettings->onScreenControls = false;
 #endif
-    pSettings->camera.invertX = data.Get("camera.invertX").AsBool(false);
-    pSettings->camera.invertY = data.Get("camera.invertY").AsBool(false);
+    pSettings->camera.invertMouseX = data.Get("camera.invertMouseX").AsBool(false);
+    pSettings->camera.invertMouseY = data.Get("camera.invertMouseY").AsBool(false);
+    pSettings->camera.invertControllerX = data.Get("camera.invertControllerX").AsBool(false);
+    pSettings->camera.invertControllerY = data.Get("camera.invertControllerY").AsBool(false);
     pSettings->camera.cameraMouseBindings[0] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[0]").AsInt(vcCPM_Tumble);
     pSettings->camera.cameraMouseBindings[1] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[1]").AsInt(vcCPM_Pan);
     pSettings->camera.cameraMouseBindings[2] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[2]").AsInt(vcCPM_Orbit);
@@ -551,8 +553,11 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.farPlane = %f", pSettings->camera.farPlane);
   data.Set("camera.fieldOfView = %f", pSettings->camera.fieldOfView);
   data.Set("camera.lensId = %i", pSettings->camera.lensIndex);
-  data.Set("camera.invertX = %s", pSettings->camera.invertX ? "true" : "false");
-  data.Set("camera.invertY = %s", pSettings->camera.invertY ? "true" : "false");
+
+  data.Set("camera.invertMouseX = %s", pSettings->camera.invertMouseX ? "true" : "false");
+  data.Set("camera.invertMouseY = %s", pSettings->camera.invertMouseY ? "true" : "false");
+  data.Set("camera.invertControllerX = %s", pSettings->camera.invertControllerX ? "true" : "false");
+  data.Set("camera.invertControllerY = %s", pSettings->camera.invertControllerY ? "true" : "false");
   data.Set("camera.moveMode = %d", pSettings->camera.moveMode);
   data.Set("camera.cameraMouseBindings = [%d, %d, %d]", pSettings->camera.cameraMouseBindings[0], pSettings->camera.cameraMouseBindings[1], pSettings->camera.cameraMouseBindings[2]);
   data.Set("camera.scrollwheelBinding = %d", pSettings->camera.scrollWheelMode);

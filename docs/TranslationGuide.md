@@ -4,11 +4,11 @@
 
 - Version 0.4.0
   - Added:
-    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `convertAllSpaceLabel`, `loginEnterURL`, `settingsAppearanceLoginRenderLicense`
+    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `convertAllSpaceLabel`, `loginEnterURL`, `settingsAppearanceLoginRenderLicense`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`, `settingsControlsControllerInvertY`
   - Changed:
     - ?
   - Removed:
-    - `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeSucceededTitle`
+    - `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeSucceededTitle`, `settingsControlsInvertX`, `settingsControlsInvertY`
 
 - Version 0.3.1
   - Added:
@@ -209,8 +209,10 @@ Modules are currently:
 - `settingsControlsRestoreDefaults`: Used to restore default values for all controls settings
 - `settingsControlsOSC`: Label next to checkbox that toggles the appearance of on-screen camera controls in the viewport
 - `settingsControlsTouchUI`: Label next to checkbox that toggles UI optimisation for a touchscreen
-- `settingsControlsInvertX`: Label next to checkbox that toggles the positive/negative X-axis for the purposes of camera movement
-- `settingsControlsInvertY`: Label next to checkbox that toggles the positive/negative Y-axis for the purposes of camera movement
+- `settingsControlsMouseInvertX`: Label next to checkbox that toggles the positive/negative X-axis for mouse inputs
+- `settingsControlsMouseInvertY`: Label next to checkbox that toggles the positive/negative Y-axis for mouse inputs
+- `settingsControlsControllerInvertX`: Label next to checkbox that toggles the positive/negative X-axis for controller inputs
+- `settingsControlsControllerInvertY`: Label next to checkbox that toggles the positive/negative Y-axis for controller inputs
 - `settingsControlsMousePivot`: Subheading for the four dropdown lists used to assign bindings for mouse input
 - `settingsControlsForward`: Option for Left, Middle and Right mouse button dropdown lists, moves the camera forwards (same as W key) and also allows tumbling
 - `settingsControlsTumble`: Option for Left, Middle and Right mouse button dropdown lists, rotates the camera without moving it
