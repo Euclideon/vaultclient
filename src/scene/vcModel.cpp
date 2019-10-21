@@ -284,6 +284,20 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
   vcImGuiValueTreeObject(&m_metadata);
 }
 
+void vcModel::HandleContextMenu(vcState *pProgramState)
+{
+  ImGui::Separator();
+
+  if (ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
+  {
+    if (m_pPreferredProjection)
+      ChangeProjection(*m_pPreferredProjection);
+    m_sceneMatrix = m_defaultMatrix;
+    ChangeProjection(pProgramState->gis.zone);
+    ApplyDelta(pProgramState, udDouble4x4::identity());
+  }
+}
+
 void vcModel::Cleanup(vcState *pProgramState)
 {
   vdkPointCloud_Unload(&m_pPointCloud);

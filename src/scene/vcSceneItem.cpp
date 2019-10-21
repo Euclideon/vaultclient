@@ -44,6 +44,11 @@ vcSceneItem::~vcSceneItem()
   udFree(m_pPreferredProjection);
 }
 
+void vcSceneItem::HandleContextMenu(vcState * /*pProgramState*/)
+{
+  // No additional items
+}
+
 void vcSceneItem::SetCameraPosition(vcState *pProgramState)
 {
   pProgramState->pCamera->position = GetWorldSpacePivot();
