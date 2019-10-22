@@ -4,7 +4,8 @@
 
 - Version 0.4.0
   - Added:
-    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `convertAllSpaceLabel`, `loginEnterURL`, `settingsAppearanceLoginRenderLicense`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`, `settingsControlsControllerInvertY`, `settingsAppearanceShowEuclideonLogo`, `convertSpaceECEF`, `polyModelMesh`, `polyModelTexture`, `polyModelMatColour`, `sceneAddViewShed`, `sceneExplorerViewShedDefaultName`
+    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `convertAllSpaceLabel`, `loginEnterURL`, `settingsAppearanceLoginRenderLicense`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`, `settingsControlsControllerInvertY`, `settingsAppearanceShowEuclideonLogo`
+    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `sceneExplorerSetButton`, `convertAllSpaceLabel`, `loginEnterURL`, `settingsAppearanceLoginRenderLicense`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`, `settingsControlsControllerInvertY`, `settingsAppearanceShowEuclideonLogo`, `convertSpaceECEF`, `polyModelMesh`, `polyModelTexture`, `polyModelMatColour`, `sceneAddViewShed`, `sceneExplorerViewShedDefaultName`
   - Changed:
     - ?
   - Removed:
@@ -552,6 +553,7 @@ Modules are currently:
 - `sceneExplorerPathURL`: Label next to the text box containing the path of the currently selected file
 - `sceneExplorerLoadButton`: Label used for the Load button in the Add UDS and Import Project windows which loads the currently selected file and closes the window
 - `sceneExplorerExportButton`: Label used for the Export button in the Export Project window which saves the content of the current scene to the specified location and closes the window
+- `sceneExplorerSetButton`: Label used for the Set button in the Convert Output and Temporary Directory selection window
 - `sceneExplorerCancelButton`: Label used for the Close button of the Add UDS window
 - `sceneExplorerUnknownCustomNode`: Label used when unsupported nodes are loaded from a project
 
