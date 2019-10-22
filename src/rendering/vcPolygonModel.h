@@ -40,6 +40,8 @@ struct vcPolygonModel
 {
   int meshCount;
   vcPolygonModelMesh *pMeshes;
+
+  udDouble4x4 modelOffset;
 };
 
 udResult vcPolygonModel_CreateShaders();
