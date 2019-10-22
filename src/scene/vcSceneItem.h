@@ -63,6 +63,7 @@ public:
 
   // These are used to help with exposing item specific UI
   virtual void HandleImGui(vcState *pProgramState, size_t *pItemID) = 0; // Shows expanded settings in scene explorer
+  virtual void HandleContextMenu(vcState *pProgramState); // Show expanded context menu settings in scene explorer
 
   // Only calls this if its 'completed' loading and is 'vcSLS_Loaded'; note: this is called before other cleanup operations
   virtual void Cleanup(vcState *pProgramState) = 0;
