@@ -1406,46 +1406,51 @@ void vcRenderSceneWindow(vcState *pProgramState)
             ImGui::CloseCurrentPopup();
           }
 
-          if (ImGui::MenuItem(vcString::Get("sceneAddBoxFilter")))
+          if (ImGui::BeginMenu(vcString::Get("sceneAddBoxFilter")))
           {
-            vcProject_ClearSelection(pProgramState);
-
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerBoxFilterDefaultName"), nullptr, nullptr) == vE_Success)
+            if (ImGui::MenuItem(vcString::Get("sceneAddBoxFilter")))
             {
-              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
-              vdkProjectNode_SetMetadataString(pNode, "shape", "box");
-              udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+              vcProject_ClearSelection(pProgramState);
+
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerBoxFilterDefaultName"), nullptr, nullptr) == vE_Success)
+              {
+                vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
+                vdkProjectNode_SetMetadataString(pNode, "shape", "box");
+                udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+              }
+
+              ImGui::CloseCurrentPopup();
             }
 
-            ImGui::CloseCurrentPopup();
-          }
-
-          if (ImGui::MenuItem(vcString::Get("sceneAddSphereFilter")))
-          {
-            vcProject_ClearSelection(pProgramState);
-
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerSphereFilterDefaultName"), nullptr, nullptr) == vE_Success)
+            if (ImGui::MenuItem(vcString::Get("sceneAddSphereFilter")))
             {
-              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
-              vdkProjectNode_SetMetadataString(pNode, "shape", "sphere");
-              udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+              vcProject_ClearSelection(pProgramState);
+
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerSphereFilterDefaultName"), nullptr, nullptr) == vE_Success)
+              {
+                vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
+                vdkProjectNode_SetMetadataString(pNode, "shape", "sphere");
+                udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+              }
+
+              ImGui::CloseCurrentPopup();
             }
 
-            ImGui::CloseCurrentPopup();
-          }
-
-          if (ImGui::MenuItem(vcString::Get("sceneAddCylinderFilter")))
-          {
-            vcProject_ClearSelection(pProgramState);
-
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerCylinderFilterDefaultName"), nullptr, nullptr) == vE_Success)
+            if (ImGui::MenuItem(vcString::Get("sceneAddCylinderFilter")))
             {
-              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
-              vdkProjectNode_SetMetadataString(pNode, "shape", "cylinder");
-              udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+              vcProject_ClearSelection(pProgramState);
+
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerCylinderFilterDefaultName"), nullptr, nullptr) == vE_Success)
+              {
+                vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
+                vdkProjectNode_SetMetadataString(pNode, "shape", "cylinder");
+                udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+              }
+
+              ImGui::CloseCurrentPopup();
             }
 
-            ImGui::CloseCurrentPopup();
+            ImGui::EndMenu();
           }
 
           ImGui::EndMenu();
@@ -2305,26 +2310,6 @@ void vcRenderWindow(vcState *pProgramState)
           {
             vdkProjectNode *pNode = nullptr;
             if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", vcString::Get("liveFeedDefaultName"), nullptr, nullptr) != vE_Success)
-            {
-              vcState::ErrorItem projectError;
-              projectError.source = vcES_ProjectChange;
-              projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFeed"));
-              projectError.resultCode = udR_Failure_;
-
-              pProgramState->errorItems.PushBack(projectError);
-
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-            }
-          }
-
-          if (ImGui::MenuItem(vcString::Get("sceneExplorerAddFilter"), nullptr, nullptr))
-          {
-            vdkProjectNode *pNode = nullptr;
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("filterDefaultName"), nullptr, nullptr) == vE_Success)
-            {
-              //Do nothing (minimising changes)
-            }
-            else
             {
               vcState::ErrorItem projectError;
               projectError.source = vcES_ProjectChange;
