@@ -124,6 +124,7 @@ void vcProject_Deinit(vcState *pProgramData, vcProject *pProject)
   if (pProject == nullptr || pProject->pProject == nullptr)
     return;
 
+  udFree(pProject->pRelativeBase);
   vcProject_RecursiveDestroyUserData(pProgramData, pProject->pRoot);
   vdkProject_Release(&pProject->pProject);
 }
