@@ -1,6 +1,6 @@
 name: $(Date:yyyyMMdd)$(Rev:r)
 variables:
-  linkedVDK: Pipeline_2019101811
+  linkedVDK: Euclideon_vdk0.4.0
   VAULTSDK_HOME: $(Build.SourcesDirectory)/linkedVDK/$(linkedVDK)
 
 stages:
