@@ -249,8 +249,9 @@ struct PS_INPUT
       float shadowMapDepth = texture1.Sample(sampler1, sampleUV.xy).x;
       
       // TODO: this bias should not be constant, it should be based on UD resolution
-      // const float bias = 0.0005; // 1024x1024
-      const float bias = 0.00075; // 512x512
+      //const float bias = 0.0005; // 1024x1024
+      //const float bias = 0.00075; // 512x512
+      const float bias = 0.00025; // 2048x2048
       if (shadowMapDepth < sampleUV.z - bias)
         col = u_notVisibleColour;
     }
