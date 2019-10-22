@@ -56,6 +56,10 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
       pProgramState->activeProject.pFolder = new vcFolder(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState);
       pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
 
+      udFilename temp(pFilename);
+      temp.SetFilenameWithExt("");
+      pProgramState->activeProject.pRelativeBase = udStrdup(temp.GetPath());
+
       pProgramState->getGeo = true;
     }
     else

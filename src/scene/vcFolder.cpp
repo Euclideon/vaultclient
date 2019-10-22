@@ -5,8 +5,10 @@
 #include "vcRender.h" // Included just for "ClearTiles"
 #include "vcFenceRenderer.h"
 #include "vcModals.h"
+#include "vcStringFormat.h"
 
 #include "udStringUtil.h"
+#include "udFile.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
@@ -72,6 +74,9 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     }
     else
     {
+      if (pNode->pURI != nullptr && pProgramState->activeProject.pRelativeBase != nullptr && !udStrBeginsWithi(pNode->pURI, pProgramState->activeProject.pRelativeBase))
+        vdkProjectNode_SetURI(pProgramState->activeProject.pProject, pNode, udTempStr("%s%s", pProgramState->activeProject.pRelativeBase, pNode->pURI));
+
       // We need to create one
       if (pNode->itemtype == vdkPNT_Folder)
         pNode->pUserData = new vcFolder(pProgramState->activeProject.pProject, pNode, pProgramState);
