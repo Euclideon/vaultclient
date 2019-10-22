@@ -1124,7 +1124,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     vcTexture_GetSize(pProgramState->pCompanyWatermark, &logoSize.x, &logoSize.y);
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
     ImGui::SetNextWindowSize(ImVec2((float)logoSize.x, (float)logoSize.y));
-    ImGui::SetNextWindowBgAlpha(0.5f);
+    ImGui::SetNextWindowBgAlpha(1.0f);
 
     if (ImGui::Begin("LogoBox", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
       ImGui::Image(pProgramState->pCompanyWatermark, ImVec2((float)logoSize.x, (float)logoSize.y));
