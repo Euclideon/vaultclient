@@ -89,6 +89,9 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
   {
     vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->m_pPointCloud, pLoadInfo->pModel->m_pNode->pURI, &pLoadInfo->pModel->m_pointCloudHeader);
 
+    if (modelStatus == vE_OpenFailure)
+      modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->m_pPointCloud, udTempStr("%s%s", pLoadInfo->pProgramState->activeProject.pRelativeBase, pLoadInfo->pModel->m_pNode->pURI), &pLoadInfo->pModel->m_pointCloudHeader);
+
     if (modelStatus == vE_Success)
     {
       vcModel_LoadMetadata(pLoadInfo->pProgramState, pLoadInfo->pModel);

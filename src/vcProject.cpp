@@ -56,6 +56,10 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
       pProgramState->activeProject.pFolder = new vcFolder(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState);
       pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
 
+      udFilename temp(pFilename);
+      temp.SetFilenameWithExt("");
+      pProgramState->activeProject.pRelativeBase = udStrdup(temp.GetPath());
+
       pProgramState->getGeo = true;
     }
     else
@@ -120,6 +124,7 @@ void vcProject_Deinit(vcState *pProgramData, vcProject *pProject)
   if (pProject == nullptr || pProject->pProject == nullptr)
     return;
 
+  udFree(pProject->pRelativeBase);
   vcProject_RecursiveDestroyUserData(pProgramData, pProject->pRoot);
   vdkProject_Release(&pProject->pProject);
 }

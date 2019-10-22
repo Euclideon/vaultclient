@@ -15,6 +15,8 @@ struct vcProject
   // These are the same item pFolder->m_pNode == pRoot && pRoot-pUserdata == pFolder
   vdkProjectNode *pRoot;
   vcFolder *pFolder;
+
+  const char *pRelativeBase;
 };
 
 void vcProject_InitBlankScene(vcState *pProgramState);

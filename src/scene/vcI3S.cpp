@@ -5,6 +5,7 @@
 #include "vcRender.h"
 
 #include "udPlatform.h"
+#include "udStringUtil.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
@@ -15,7 +16,12 @@ vcI3S::vcI3S(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState
 {
   m_sceneMatrix = udDouble4x4::identity();
 
-  if (vcSceneLayerRenderer_Create(&m_pSceneRenderer, pProgramState->pWorkerPool, pNode->pURI) == udR_Success)
+  udResult result = vcSceneLayerRenderer_Create(&m_pSceneRenderer, pProgramState->pWorkerPool, pNode->pURI);
+
+  if (result == udR_OpenFailure)
+    result = vcSceneLayerRenderer_Create(&m_pSceneRenderer, pProgramState->pWorkerPool, udTempStr("%s%s", pProgramState->activeProject.pRelativeBase, pNode->pURI));
+
+  if (result == udR_Success)
   {
     m_loadStatus = vcSLS_Loaded;
 
