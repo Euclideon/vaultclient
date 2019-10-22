@@ -208,7 +208,7 @@ struct vcRenderContext
 };
 
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext);
-udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, vdkRenderView *pRenderView, vcCamera *pCamera, vcRenderData &renderData);
+udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, vdkRenderView *pRenderView, vcCamera *pCamera, vcRenderData &renderData, bool doPick);
 
 udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext, udWorkerPool *pWorkerPool, const udUInt2 &sceneResolution)
 {
@@ -762,7 +762,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
       vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderContext->viewShedRenderingContext.pRenderView, vdkRVM_Projection, shadowRenderCamera.matrices.projectionUD.a);
 
       // render UD
-      vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->viewShedRenderingContext.pRenderView, &shadowRenderCamera, renderData);
+      vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->viewShedRenderingContext.pRenderView, &shadowRenderCamera, renderData, false);
 
       pRenderContext->shadowShader.params.shadowMapVP[i] = udFloat4x4::create(shadowRenderCamera.matrices.projectionUD * (shadowRenderCamera.matrices.view * udInverse(pProgramState->pCamera->matrices.view)));
     }
@@ -983,7 +983,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   // Render and upload UD buffers
   {
-    vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pRenderView, pProgramState->pCamera, renderData);
+    vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pRenderView, pProgramState->pCamera, renderData, true);
     vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
     vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
   }
@@ -1080,7 +1080,7 @@ epilogue:
   return result;
 }
 
-udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, vdkRenderView *pRenderView, vcCamera *pCamera, vcRenderData &renderData)
+udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, vdkRenderView *pRenderView, vcCamera *pCamera, vcRenderData &renderData, bool doPick)
 {
   if (pRenderContext == nullptr)
     return udR_InvalidParameter_;
@@ -1210,7 +1210,9 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
 
   vdkRenderOptions renderOptions;
   memset(&renderOptions, 0, sizeof(vdkRenderOptions));
-  renderOptions.pPick = &picking;
+
+  if (doPick)
+    renderOptions.pPick = &picking;
 
   renderOptions.pFilter = renderData.pQueryFilter;
   renderOptions.pointMode = (vdkRenderContextPointMode)pProgramState->settings.presentation.pointMode;
@@ -1220,12 +1222,25 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
   pProgramState->udModelPickedIndex = -1;
   if (result == vE_Success)
   {
-    if (picking.hit)
+    if (doPick && picking.hit)
     {
       // More to be done here
       pProgramState->pickingSuccess = true;
       pProgramState->worldMousePosCartesian = udDouble3::create(picking.pointCenter[0], picking.pointCenter[1], picking.pointCenter[2]);
-      pProgramState->udModelPickedIndex = picking.modelIndex;
+
+      uint32_t j = 0;
+      for (size_t i = 0; i < renderData.models.length; ++i)
+      {
+        if (renderData.models[i]->m_visible && renderData.models[i]->m_loadStatus == vcSLS_Loaded)
+        {
+          if (j == picking.modelIndex)
+          {
+            pProgramState->udModelPickedIndex = (int)i;
+            break;
+          }
+          ++j;
+        }
+      }
     }
   }
   else
