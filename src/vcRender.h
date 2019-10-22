@@ -6,6 +6,7 @@
 
 #include "vdkRenderContext.h"
 #include "vdkRenderView.h"
+#include "vdkQuery.h"
 
 #include "gl/vcMesh.h"
 #include "vcFenceRenderer.h"
@@ -61,6 +62,7 @@ struct vcViewShedData
 struct vcRenderData
 {
   vcMouseData mouse;
+  vdkQueryFilter *pQueryFilter;
 
   udChunkedArray<vcModel*> models;
   udChunkedArray<vcFenceRenderer*> fences;

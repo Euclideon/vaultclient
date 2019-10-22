@@ -1406,6 +1406,53 @@ void vcRenderSceneWindow(vcState *pProgramState)
             ImGui::CloseCurrentPopup();
           }
 
+          if (ImGui::BeginMenu(vcString::Get("sceneAddBoxFilter")))
+          {
+            if (ImGui::MenuItem(vcString::Get("sceneAddBoxFilter")))
+            {
+              vcProject_ClearSelection(pProgramState);
+
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerBoxFilterDefaultName"), nullptr, nullptr) == vE_Success)
+              {
+                vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
+                vdkProjectNode_SetMetadataString(pNode, "shape", "box");
+                udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+              }
+
+              ImGui::CloseCurrentPopup();
+            }
+
+            if (ImGui::MenuItem(vcString::Get("sceneAddSphereFilter")))
+            {
+              vcProject_ClearSelection(pProgramState);
+
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerSphereFilterDefaultName"), nullptr, nullptr) == vE_Success)
+              {
+                vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
+                vdkProjectNode_SetMetadataString(pNode, "shape", "sphere");
+                udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+              }
+
+              ImGui::CloseCurrentPopup();
+            }
+
+            if (ImGui::MenuItem(vcString::Get("sceneAddCylinderFilter")))
+            {
+              vcProject_ClearSelection(pProgramState);
+
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerCylinderFilterDefaultName"), nullptr, nullptr) == vE_Success)
+              {
+                vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
+                vdkProjectNode_SetMetadataString(pNode, "shape", "cylinder");
+                udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+              }
+
+              ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndMenu();
+          }
+
           ImGui::EndMenu();
         }
 
@@ -1518,7 +1565,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   // Render scene to texture
   vcRender_RenderScene(pProgramState, pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
-
+  
+  // Clean up
   renderData.models.Deinit();
   renderData.fences.Deinit();
   renderData.labels.Deinit();
