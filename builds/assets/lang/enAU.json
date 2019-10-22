@@ -386,6 +386,7 @@
   "sceneExplorerPathURL": "Path/URL:",
   "sceneExplorerExportButton": "Export",
   "sceneExplorerLoadButton": "Load",
+  "sceneExplorerSetButton": "Set",
   "sceneExplorerCancelButton": "Cancel",
   "sceneExplorerUnknownCustomNode": "This custom node type is unsupported in the current version of Euclideon Vault Client.",
   "sceneModelPosition": "Model Position",
