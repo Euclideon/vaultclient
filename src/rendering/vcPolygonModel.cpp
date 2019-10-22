@@ -235,7 +235,6 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
   udResult result;
   vcPolygonModel *pPolygonModel = nullptr;
   vcOBJ *pOBJReader = nullptr;
-  udDouble3 modelOrigin = udDouble3::zero();
 
   const vcVertexLayoutTypes *pMeshLayout = vcP3N3UV2VertexLayout;
   const int totalTypes = (int)udLengthOf(vcP3N3UV2VertexLayout);
@@ -254,8 +253,8 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
   pPolygonModel->meshCount = (uint32_t)pOBJReader->materials.length;
 
   // just pick the first vert as the origin
-  modelOrigin = pOBJReader->positions[pOBJReader->faces[0].verts[0].pos];
-  pPolygonModel->modelOffset = udDouble4x4::translation(modelOrigin);
+  pPolygonModel->origin = pOBJReader->positions[pOBJReader->faces[0].verts[0].pos];
+  pPolygonModel->modelOffset = udDouble4x4::translation(pPolygonModel->origin);
 
   for (int material = 0; material < (int)pOBJReader->materials.length; ++material)
   {
@@ -283,7 +282,7 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
       for (int i = 0; i < 3; ++i)
       {
         // store every position relative to model origin
-        pVerts[currentVert + i].position = udFloat3::create(pOBJReader->positions[pFace->verts[i].pos] - modelOrigin);
+        pVerts[currentVert + i].position = udFloat3::create(pOBJReader->positions[pFace->verts[i].pos] - pPolygonModel->origin);
 
         // TODO: Better handle meshes with different vertex layouts
         if (pFace->verts[i].nrm >= 0)

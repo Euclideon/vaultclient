@@ -46,6 +46,9 @@ void vcPolyModelNode::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 
 
 void vcPolyModelNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
+  if (m_pModel == nullptr)
+    return;
+
   if (pProgramState->settings.presentation.showDiagnosticInfo)
   {
     for (int i = 0; i < m_pModel->meshCount; ++i)
@@ -88,5 +91,8 @@ udDouble4x4 vcPolyModelNode::GetWorldSpaceMatrix()
 
 udDouble3 vcPolyModelNode::GetLocalSpacePivot()
 {
-  return udDouble3::zero();
+  if (m_pModel == nullptr || m_pModel->meshCount == 0)
+    return udDouble3::zero();
+
+  return m_pModel->origin;
 }
