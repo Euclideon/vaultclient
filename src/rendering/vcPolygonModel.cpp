@@ -143,6 +143,7 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
   UD_ERROR_NULL(pNewModel->pMeshes, udR_MemoryAllocationFailure);
 
   pNewModel->meshCount = header.numMeshes;
+  pNewModel->modelOffset = udDouble4x4::identity();
 
   // Materials
   for (int i = 0; i < header.numMaterials; ++i)
@@ -234,6 +235,7 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
   udResult result;
   vcPolygonModel *pPolygonModel = nullptr;
   vcOBJ *pOBJReader = nullptr;
+  udDouble3 modelOrigin = udDouble3::zero();
 
   const vcVertexLayoutTypes *pMeshLayout = vcP3N3UV2VertexLayout;
   const int totalTypes = (int)udLengthOf(vcP3N3UV2VertexLayout);
@@ -250,6 +252,10 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
   UD_ERROR_NULL(pPolygonModel->pMeshes, udR_MemoryAllocationFailure);
 
   pPolygonModel->meshCount = (uint32_t)pOBJReader->materials.length;
+
+  // just pick the first vert as the origin
+  modelOrigin = pOBJReader->positions[pOBJReader->faces[0].verts[0].pos];
+  pPolygonModel->modelOffset = udDouble4x4::translation(modelOrigin);
 
   for (int material = 0; material < (int)pOBJReader->materials.length; ++material)
   {
@@ -276,11 +282,17 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
 
       for (int i = 0; i < 3; ++i)
       {
-        pVerts[currentVert + i].position = udFloat3::create(pOBJReader->positions[pFace->verts[i].pos]);
-        pVerts[currentVert + i].normal = udFloat3::create(pOBJReader->normals[pFace->verts[i].nrm]);
+        // store every position relative to model origin
+        pVerts[currentVert + i].position = udFloat3::create(pOBJReader->positions[pFace->verts[i].pos] - modelOrigin);
+
+        // TODO: Better handle meshes with different vertex layouts
+        if (pFace->verts[i].nrm >= 0)
+          pVerts[currentVert + i].normal = udFloat3::create(pOBJReader->normals[pFace->verts[i].nrm]);
+        else
+          pVerts[currentVert + i].normal = udFloat3::create(0.0f, 0.0f, 1.0f);
 
         // NOTE: flipped y
-        if (pFace->verts[i].uv >= 0) // TODO: Better handle meshes without textures
+        if (pFace->verts[i].uv >= 0)
           pVerts[currentVert + i].uv = udFloat2::create(pOBJReader->uvs[pFace->verts[i].uv].x, 1.0f - pOBJReader->uvs[pFace->verts[i].uv].y);
       }
 
@@ -301,12 +313,9 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
     if (pPolygonModel->pMeshes[0].materialID == vcPMST_Count)
       UD_ERROR_SET(udR_Unsupported);
 
-    if (udStrlen(pMaterial->map_Kd) > 0)
+    if (udStrlen(pMaterial->map_Kd) == 0 || !vcTexture_CreateFromFilename(&pMesh->material.pTexture, udTempStr("%s%s", pOBJReader->basePath.GetPath(), pMaterial->map_Kd)))
     {
-      UD_ERROR_IF(!vcTexture_CreateFromFilename(&pMesh->material.pTexture, udTempStr("%s%s", pOBJReader->basePath.GetPath(), pMaterial->map_Kd)), udR_InternalError);
-    }
-    else
-    {
+      // no texture specified, or failed to load it
       uint32_t whitePixel = 0xffffffff;
       UD_ERROR_CHECK(vcTexture_Create(&pMesh->material.pTexture, 1, 1, &whitePixel));
     }
@@ -376,7 +385,6 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
 
     vcShader_Bind(pPolygonShader->pShader);
 
-
     float s = 1.0f / 255.0f;
     udFloat4 colour = udFloat4::create(
       ((pModel->pMeshes[i].material.colour >> 8) & 0xFF) * s,
@@ -389,7 +397,7 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
 
     pPolygonShader->everyObject.u_colour = colour;
     pPolygonShader->everyObject.u_world = udFloat4x4::create(modelMatrix);
-    pPolygonShader->everyObject.u_worldViewProjectionMatrix = udFloat4x4::create(viewProjectionMatrix * modelMatrix);
+    pPolygonShader->everyObject.u_worldViewProjectionMatrix = udFloat4x4::create(viewProjectionMatrix * modelMatrix * pModel->modelOffset);
 
     vcShader_BindConstantBuffer(pPolygonShader->pShader, pPolygonShader->pEveryObjectConstantBuffer, &pPolygonShader->everyObject, sizeof(vcPolygonModelShader::everyObject));
 
