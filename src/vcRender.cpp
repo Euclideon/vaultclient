@@ -30,7 +30,7 @@ enum
 };
 
 // Temp hard-coded view shed properties
-static const udUInt2 ViewShedMapRes = udUInt2::create(512, 512);
+static const udUInt2 ViewShedMapRes = udUInt2::create(2048, 2048);
 static const int ViewShedMapCount = 3;
 
 struct vcViewShedRenderContext
