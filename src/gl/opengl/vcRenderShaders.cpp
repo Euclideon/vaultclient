@@ -126,10 +126,10 @@ void main()
 
   vec4 fragWorldPosition = u_inverseViewProjection * vec4(flippedUV * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
   fragWorldPosition /= fragWorldPosition.w;
-
+  
   col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
   col.xyz = colourizeByDepth(col.xyz, depth);
-
+  
   col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
 
   float edgeOutlineWidth = u_outlineParams.x;
@@ -149,6 +149,96 @@ void main()
 )shader";
 
 const char *const g_VisualizationVertexShader = FRAG_HEADER R"shader(
+//Input format
+layout(location = 0) in vec3 a_position;
+layout(location = 1) in vec2 a_texCoord;
+
+//Output Format
+out vec2 v_texCoord;
+
+void main()
+{
+  gl_Position = vec4(a_position.xy, 0.0, 1.0);
+  v_texCoord = a_texCoord;
+}
+)shader";
+
+const char *const g_ViewShedFragmentShader = FRAG_HEADER R"shader(
+in vec2 v_texCoord;
+
+out vec4 out_Colour;
+
+uniform sampler2D u_depth;
+uniform sampler2D u_shadowMapAtlas;
+
+#define MAP_COUNT 3
+
+layout (std140) uniform u_params
+{
+  mat4 u_shadowMapVP[MAP_COUNT];
+  mat4 u_inverseProjection;
+  vec4 u_visibleColour;
+  vec4 u_notVisibleColour;
+};
+
+void main()
+{
+  vec2 flippedUV = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
+  vec4 col = vec4(0.0, 0.0, 0.0, 0.0);
+  float depth = texture(u_depth, flippedUV).x;
+
+  vec4 fragEyePosition = u_inverseProjection * vec4(flippedUV * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
+  fragEyePosition /= fragEyePosition.w;
+
+  vec3 sampleUV = vec3(0.0);
+
+  // unrolled loop
+  vec4 shadowMapClip0 = u_shadowMapVP[0] * vec4(fragEyePosition.xyz, 1.0);
+  shadowMapClip0 /= shadowMapClip0.w;
+  shadowMapClip0.xy = (shadowMapClip0.xy * vec2(0.5)) + vec2(0.5);
+
+  vec4 shadowMapClip1 = u_shadowMapVP[1] * vec4(fragEyePosition.xyz, 1.0);
+  shadowMapClip1 /= shadowMapClip1.w;
+  shadowMapClip1.xy = (shadowMapClip1.xy * vec2(0.5)) + vec2(0.5);
+
+  vec4 shadowMapClip2 = u_shadowMapVP[2] * vec4(fragEyePosition.xyz, 1.0);
+  shadowMapClip2 /= shadowMapClip2.w;
+  shadowMapClip2.xy = (shadowMapClip2.xy * vec2(0.5)) + vec2(0.5);
+
+  float isInMap0 = float(shadowMapClip0.x >= 0 && shadowMapClip0.x <= 1 && shadowMapClip0.y >= 0 && shadowMapClip0.y <= 1 && shadowMapClip0.z >= -1 && shadowMapClip0.z <= 1);
+  float isInMap1 = float(shadowMapClip1.x >= 0 && shadowMapClip1.x <= 1 && shadowMapClip1.y >= 0 && shadowMapClip1.y <= 1 && shadowMapClip1.z >= -1 && shadowMapClip1.z <= 1);
+  float isInMap2 = float(shadowMapClip2.x >= 0 && shadowMapClip2.x <= 1 && shadowMapClip2.y >= 0 && shadowMapClip2.y <= 1 && shadowMapClip2.z >= -1 && shadowMapClip2.z <= 1);
+
+  // note depth is left [-1, 1]
+  vec3 shadowMapUV0 = vec3((0.0 / MAP_COUNT) + shadowMapClip0.x / MAP_COUNT, 1.0 - shadowMapClip0.y, shadowMapClip0.z);
+  vec3 shadowMapUV1 = vec3((1.0 / MAP_COUNT) + shadowMapClip1.x / MAP_COUNT, 1.0 - shadowMapClip1.y, shadowMapClip1.z);
+  vec3 shadowMapUV2 = vec3((2.0 / MAP_COUNT) + shadowMapClip2.x / MAP_COUNT, 1.0 - shadowMapClip2.y, shadowMapClip2.z);
+
+  sampleUV = mix(sampleUV, shadowMapUV0, isInMap0);
+  sampleUV = mix(sampleUV, shadowMapUV1, isInMap1);
+  sampleUV = mix(sampleUV, shadowMapUV2, isInMap2);
+
+  if (length(sampleUV) > 0.0)
+  {
+    // fragment is inside the view shed bounds
+    col = u_visibleColour;
+
+    float shadowMapDepth = texture(u_shadowMapAtlas, sampleUV.xy).x;
+    
+    // TODO: this bias should not be constant, it should be based on UD resolution
+    // const float bias = 0.0005; // 1024x1024
+    //const float bias = 0.00075; // 512x512
+    const float bias = 0.00025; // 2048x2048
+    if (shadowMapDepth < sampleUV.z - bias)
+      col = u_notVisibleColour;
+  }
+
+  out_Colour = vec4(col.xyz * col.w, 1.0); //additive
+}
+
+)shader";
+
+const char *const g_ViewShedVertexShader = FRAG_HEADER R"shader(
 //Input format
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_texCoord;

@@ -67,6 +67,16 @@ void vcI3S::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
   ImGui::TextUnformatted(vcString::Get("sceneExplorerI3S"));
 }
 
+void vcI3S::HandleContextMenu(vcState * /*pProgramState*/)
+{
+  ImGui::Separator();
+
+  if (ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
+  {
+    m_sceneMatrix = udDouble4x4::identity();
+  }
+}
+
 void vcI3S::Cleanup(vcState * /*pProgramState*/)
 {
   vcSceneLayerRenderer_Destroy(&m_pSceneRenderer);

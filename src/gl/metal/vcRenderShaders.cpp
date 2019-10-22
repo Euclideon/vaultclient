@@ -3,6 +3,8 @@
 const char *const g_VisualizationFragmentShader = "visualizationFragmentShader";
 const char *const g_VisualizationVertexShader = "visualizationVertexShader";
 
+const char *const g_ViewShedFragmentShader = "flatColorFragmentShader"; // not implemented
+const char *const g_ViewShedVertexShader = "udVertexShader"; // not implemented
 const char* const g_udFragmentShader = "udFragmentShader";
 const char *const g_udSplatIdFragmentShader = "udSplatIdFragmentShader";
 const char* const g_udVertexShader = "udVertexShader";
@@ -29,7 +31,7 @@ const char* const g_WaterVertexShader = "waterVertexShader";
 const char* const g_PolygonP3N3UV2FragmentShader = "polygonP3N3UV2FragmentShader";
 const char* const g_PolygonP3N3UV2VertexShader = "polygonP3N3UV2VertexShader";
 
-const char* const g_FlatColour_FragmentShader = "flatColourFragmentShader";
+const char* const g_FlatColour_FragmentShader = "flatColorFragmentShader";
 
 const char *const g_ImageRendererFragmentShader = "imageRendererFragmentShader";
 const char *const g_ImageRendererMeshVertexShader = "imageRendererMeshVertexShader";

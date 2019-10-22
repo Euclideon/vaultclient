@@ -60,8 +60,7 @@
 #include <emscripten/emscripten.h>
 #endif
 
-
-UDCOMPILEASSERT(VDK_MAJOR_VERSION == 0 && VDK_MINOR_VERSION == 3, "This version of VDK is not compatible");
+UDCOMPILEASSERT(VDK_MAJOR_VERSION == 0 && VDK_MINOR_VERSION == 4, "This version of VDK is not compatible");
 
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
 #  include <crtdbg.h>
@@ -395,6 +394,26 @@ void vcMain_MainLoop(vcState *pProgramState)
           if (udStrEquali(pExt, ".uds"))
           {
             if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pNextLoad, nullptr) != vE_Success)
+            {
+              vcState::ErrorItem projectError;
+              projectError.source = vcES_ProjectChange;
+              projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
+              projectError.resultCode = udR_ReadFailure;
+
+              pNextLoad = nullptr;
+
+              pProgramState->errorItems.PushBack(projectError);
+
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+
+              continue;
+            }
+            else if (firstLoad) // Was successful
+              udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+          }
+          else if (udStrEquali(pExt, ".vsm") || udStrEquali(pExt, ".obj"))
+          {
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Polygon", nullptr, pNextLoad, nullptr) != vE_Success)
             {
               vcState::ErrorItem projectError;
               projectError.source = vcES_ProjectChange;
@@ -821,10 +840,6 @@ int main(int argc, char **args)
 
   vcMain_LoadSettings(&programState, false);
 
-#if UD_DEBUG
-  programState.settings.experimental.useGPURenderer = true;
-#endif
-
 #if UDPLATFORM_EMSCRIPTEN
   // This needs to be here because the settings will load with the incorrect resolution (1280x720)
   programState.settings.window.width = (int)programState.sceneResolution.x;
@@ -1038,7 +1053,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         {
           ImGui::Separator();
 
-          udDouble3 cameraLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->pCamera->matrices.camera.axis.t.toVector3());
+          udDouble3 cameraLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->pCamera->matrices.camera.axis.t.toVector3());
 
           char tmpBuf[128];
           const char *latLongAltStrings[] = { udTempStr("%.7f", cameraLatLong.x), udTempStr("%.7f", cameraLatLong.y), udTempStr("%.2fm", cameraLatLong.z) };
@@ -1243,6 +1258,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.waterVolumes.Init(32);
   renderData.polyModels.Init(64);
   renderData.images.Init(32);
+  renderData.viewSheds.Init(32);
   renderData.mouse.position.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.position.y = (uint32_t)(io.MousePos.y - windowPos.y);
   renderData.mouse.clicked = io.MouseClicked[1];
@@ -1377,6 +1393,19 @@ void vcRenderSceneWindow(vcState *pProgramState)
             ImGui::CloseCurrentPopup();
           }
 
+          if (ImGui::MenuItem(vcString::Get("sceneAddViewShed")))
+          {
+            vcProject_ClearSelection(pProgramState);
+
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "ViewMap", vcString::Get("sceneExplorerViewShedDefaultName"), nullptr, nullptr) == vE_Success)
+            {
+              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, 1, &mousePosLongLat.x);
+              udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+            }
+
+            ImGui::CloseCurrentPopup();
+          }
+
           ImGui::EndMenu();
         }
 
@@ -1496,12 +1525,13 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.waterVolumes.Deinit();
   renderData.polyModels.Deinit();
   renderData.images.Deinit();
+  renderData.viewSheds.Deinit();
 
   // Can only assign longlat positions in projected space
   if (pProgramState->gis.isProjected)
   {
-    pProgramState->worldMousePosLongLat = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->worldMousePosCartesian, true);
-    pProgramState->pCamera->positionInLongLat = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->pCamera->position, true);
+    pProgramState->worldMousePosLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->worldMousePosCartesian, true);
+    pProgramState->pCamera->positionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->pCamera->position, true);
   }
   else
   {
@@ -1691,7 +1721,7 @@ int vcMainMenuGui(vcState *pProgramState)
 
       if (ImGui::BeginMenu(vcString::Get("menuExperimentalFeatures")))
       {
-        ImGui::MenuItem("GPU Render", nullptr, &pProgramState->settings.experimental.useGPURenderer, ALLOW_EXPERIMENT_GPURENDER);
+        ImGui::Separator();
 
         ImGui::EndMenu();
       }

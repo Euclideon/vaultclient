@@ -161,4 +161,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 void vcCamera_SwapMapMode(vcState *pProgramState);
 void vcCamera_LookAt(vcState *pProgramState, const udDouble3 &targetPosition);
 
+void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, vcCameraInput *pCamInput, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr);
+
 #endif//vcCamera_h__

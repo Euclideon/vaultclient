@@ -1,35 +1,32 @@
-#ifndef vcI3S_h__
-#define vcI3S_h__
+#ifndef vcPolyModelNode_h__
+#define vcPolyModelNode_h__
 
 #include "vcSceneItem.h"
-#include "vcSceneLayerRenderer.h"
 
 struct vcState;
 struct vcRenderData;
+struct vcPolygonModel;
 
-class vcI3S : public vcSceneItem
+class vcPolyModelNode : public vcSceneItem
 {
 public:
-  vcI3S(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
-  ~vcI3S();
+  vcPolyModelNode(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  ~vcPolyModelNode() {};
 
   void OnNodeUpdate(vcState *pProgramState);
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
-
   void HandleImGui(vcState *pProgramState, size_t *pItemID);
-  void HandleContextMenu(vcState *pProgramState);
-
   void Cleanup(vcState *pProgramState);
-
   void ChangeProjection(const udGeoZone &newZone);
-  udDouble3 GetLocalSpacePivot();
-  udDouble4x4 GetWorldSpaceMatrix();
 
-  udDouble4x4 m_sceneMatrix; // This is the matrix used to render into the current projection
+  udDouble4x4 GetWorldSpaceMatrix();
+  udDouble3 GetLocalSpacePivot();
+
 private:
-  vcSceneLayerRenderer *m_pSceneRenderer;
+  vcPolygonModel *m_pModel;
+  udDouble4x4 m_matrix;
 };
 
-#endif //vcI3S_h__
+#endif //vcPolyModelNode_h__

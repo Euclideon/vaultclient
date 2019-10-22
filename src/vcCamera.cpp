@@ -121,7 +121,7 @@ void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindi
   };
 }
 
-void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, vcCameraInput* pCamInput, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr)
+void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, vcCameraInput *pCamInput, const udFloat2 &windowSize, const udFloat2 *pMousePos /*= nullptr*/)
 {
   // Update matrices
   double fov = settings.fieldOfView;
@@ -154,7 +154,7 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
 #endif
     break;
   case vcCM_FreeRoam:
-    if (pCamInput->transitioningToMapMode && pCamInput->progress > 0.15)
+    if (pCamInput != nullptr && pCamInput->transitioningToMapMode && pCamInput->progress > 0.15)
     {
       //Switch to ortho projection soon after camera starts rotating downward, hence the progress threshold 0.15.
       pCamera->matrices.projectionUD = projectionOrthoUD;

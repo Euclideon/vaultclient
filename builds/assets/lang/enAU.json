@@ -250,6 +250,7 @@
   "convertSpaceCartesian": "Cartesian",
   "convertSpaceLatLong": "Latitude then Longitude",
   "convertSpaceLongLat": "Longitude then Latitude",
+  "convertSpaceECEF": "Earth Centered And Fixed",
   "convertAddFileTitle": "Add Input File to Convert",
   "convertSetOutputTitle": "Set Output Name & Path",
   "convertSetTempDirectoryTitle": "Set Temporary Directory",
@@ -342,6 +343,7 @@
   "sceneAddLine": "Begin Line Here",
   "sceneBeginLineMeasure": "Begin Line Measurement",
   "sceneResetRotation": "Reset Camera Rotation",
+  "sceneAddViewShed": "Add View Shed Here",
 
   "sceneLockAltitude": "Lock Altitude",
   "sceneLockAltitudeKey": "Space",
@@ -412,6 +414,7 @@
   "sceneExplorerLoading": "Loading",
   "sceneExplorerPOIDefaultName": "Point of interest",
   "sceneExplorerFolderDefaultName": "Folder",
+  "sceneExplorerViewShedDefaultName": "View Shed",
 
   "scenePOIDefaultName": "Point of Interest",
   "scenePOIAreaDefaultName": "Area of Interest",
@@ -476,5 +479,9 @@
   "liveFeedDisplayDistance": "Maximum distance to display",
   "liveFeedTween": "Enable Tweening / Position Smoothing",
   "liveFeedDiagInfo": "Total Cached Items: {0}\nCurrently displaying {1} items.\nNext Update in {2} seconds.",
-  "liveFeedGroupID": "Group ID"
+  "liveFeedGroupID": "Group ID",
+  
+  "polyModelMesh": "Mesh",
+  "polyModelTexture": "Texture",
+  "polyModelMatColour": "Material Colour"
 }

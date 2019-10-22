@@ -12,7 +12,7 @@
 
 #include "vcInternalModels.h"
 #include "vcSceneLayerRenderer.h"
-#include "vcGPURenderer.h"
+#include "vcCamera.h"
 
 #include "stb_image.h"
 #include <vector>
@@ -29,6 +29,19 @@ enum
   vcRender_RenderBufferCount = 2,
 };
 
+// Temp hard-coded view shed properties
+static const udUInt2 ViewShedMapRes = udUInt2::create(2048, 2048);
+static const int ViewShedMapCount = 3;
+
+struct vcViewShedRenderContext
+{
+  // re-use this memory
+  float *pDepthBuffer;
+  vcTexture *pDepthTex;
+
+  vdkRenderView *pRenderView; 
+};
+
 struct vcUDRenderContext
 {
   vdkRenderContext *pRenderer;
@@ -39,11 +52,6 @@ struct vcUDRenderContext
   vcFramebuffer *pFramebuffer;
   vcTexture *pColourTex;
   vcTexture *pDepthTex;
-
-#if ALLOW_EXPERIMENT_GPURENDER
-  vcGPURenderer *pGPURenderer;
-  bool usingGPURenderer;
-#endif
 
   struct
   {
@@ -69,6 +77,8 @@ struct vcUDRenderContext
 
 struct vcRenderContext
 {
+  vcViewShedRenderContext viewShedRenderingContext;
+
   udUInt2 sceneResolution;
   udUInt2 originalSceneResolution;
 
@@ -111,6 +121,23 @@ struct vcRenderContext
     } params;
 
   } visualizationShader;
+
+  struct
+  {
+    vcShader *pProgram;
+    vcShaderSampler *uniform_depth;
+    vcShaderSampler *uniform_shadowMapAtlas;
+    vcShaderConstantBuffer *uniform_params;
+
+    struct
+    {
+      udFloat4x4 shadowMapVP[ViewShedMapCount];
+      udFloat4x4 inverseProjection;
+      udFloat4 visibleColour;
+      udFloat4 notVisibleColour;
+    } params;
+
+  } shadowShader;
 
   vcUDRenderContext udRenderContext;
   vcFenceRenderer *pDiagnosticFences;
@@ -181,14 +208,12 @@ struct vcRenderContext
 };
 
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext);
-udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData);
+udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, vdkRenderView *pRenderView, vcCamera *pCamera, vcRenderData &renderData);
 
 udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext, udWorkerPool *pWorkerPool, const udUInt2 &sceneResolution)
 {
   udResult result;
   vcRenderContext *pRenderContext = nullptr;
-
-  const int maxPointCount = 5 * 1000000; // TODO: calculate this from GPU information
 
   UD_ERROR_NULL(ppRenderContext, udR_InvalidParameter_);
 
@@ -197,18 +222,12 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   pRenderContext = udAllocType(vcRenderContext, 1, udAF_Zero);
   UD_ERROR_NULL(pRenderContext, udR_MemoryAllocationFailure);
 
-#if ALLOW_EXPERIMENT_GPURENDER
-# if UDPLATFORM_EMSCRIPTEN
-  UD_ERROR_CHECK(vcGPURenderer_Create(&pRenderContext->udRenderContext.pGPURenderer, vcBRPRM_Quads, maxPointCount));
-# else
-  UD_ERROR_CHECK(vcGPURenderer_Create(&pRenderContext->udRenderContext.pGPURenderer, vcBRPRM_GeometryShader, maxPointCount));
-# endif
-#else
-  udUnused(maxPointCount);
-#endif
+  pRenderContext->viewShedRenderingContext.pDepthBuffer = udAllocType(float, ViewShedMapRes.x * ViewShedMapRes.y, udAF_Zero);
+  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->viewShedRenderingContext.pDepthTex, ViewShedMapRes.x, ViewShedMapRes.y, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_Dynamic));
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->visualizationShader.pProgram, g_VisualizationVertexShader, g_VisualizationFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->shadowShader.pProgram, g_ViewShedVertexShader, g_ViewShedFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderPanorama.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShaderPanarama, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderTintImage.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShaderImageColour, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.splatIdShader.pProgram, g_udVertexShader, g_udSplatIdFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
@@ -220,6 +239,11 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->visualizationShader.uniform_texture, pRenderContext->visualizationShader.pProgram, "u_texture"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->visualizationShader.uniform_depth, pRenderContext->visualizationShader.pProgram, "u_depth"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->visualizationShader.uniform_params, pRenderContext->visualizationShader.pProgram, "u_params", sizeof(pRenderContext->visualizationShader.params)), udR_InternalError);
+
+  UD_ERROR_IF(!vcShader_Bind(pRenderContext->shadowShader.pProgram), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->shadowShader.uniform_depth, pRenderContext->shadowShader.pProgram, "u_depth"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->shadowShader.uniform_shadowMapAtlas, pRenderContext->shadowShader.pProgram, "u_shadowMapAtlas"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->shadowShader.uniform_params, pRenderContext->shadowShader.pProgram, "u_params", sizeof(pRenderContext->shadowShader.params)), udR_InternalError);
 
   UD_ERROR_IF(!vcShader_Bind(pRenderContext->skyboxShaderPanorama.pProgram), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->skyboxShaderPanorama.uniform_texture, pRenderContext->skyboxShaderPanorama.pProgram, "u_texture"), udR_InternalError);
@@ -284,6 +308,9 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
 
   if (pProgramState->pVDKContext != nullptr)
   {
+    if (pRenderContext->viewShedRenderingContext.pRenderView != nullptr && vdkRenderView_Destroy(pProgramState->pVDKContext, &pRenderContext->viewShedRenderingContext.pRenderView) != vE_Success)
+      UD_ERROR_SET(udR_InternalError);
+
     if (pRenderContext->udRenderContext.pRenderView != nullptr && vdkRenderView_Destroy(pProgramState->pVDKContext, &pRenderContext->udRenderContext.pRenderView) != vE_Success)
       UD_ERROR_SET(udR_InternalError);
 
@@ -291,12 +318,9 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
       UD_ERROR_SET(udR_InternalError);
   }
 
-#if ALLOW_EXPERIMENT_GPURENDER
-  UD_ERROR_CHECK(vcGPURenderer_Destroy(&pRenderContext->udRenderContext.pGPURenderer));
-#endif
-
   vcShader_DestroyShader(&pRenderContext->udRenderContext.presentShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->visualizationShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->shadowShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->skyboxShaderPanorama.pProgram);
   vcShader_DestroyShader(&pRenderContext->skyboxShaderTintImage.pProgram);
   vcShader_DestroyShader(&pRenderContext->udRenderContext.splatIdShader.pProgram);
@@ -311,6 +335,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
+  udFree(pRenderContext->viewShedRenderingContext.pDepthBuffer);
 
   UD_ERROR_CHECK(vcTileRenderer_Destroy(&pRenderContext->pTileRenderer));
   UD_ERROR_CHECK(vcFenceRenderer_Destroy(&pRenderContext->pDiagnosticFences));
@@ -319,6 +344,8 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   result = udR_Success;
 
 epilogue:
+  vcTexture_Destroy(&pRenderContext->viewShedRenderingContext.pDepthTex);
+
   vcTexture_Destroy(&pRenderContext->udRenderContext.pColourTex);
   vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
   vcFramebuffer_Destroy(&pRenderContext->udRenderContext.pFramebuffer);
@@ -387,15 +414,6 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
   vcFramebuffer_Destroy(&pRenderContext->udRenderContext.pFramebuffer);
 
-#if ALLOW_EXPERIMENT_GPURENDER
-  if (pRenderContext->udRenderContext.usingGPURenderer)
-  {
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, widthIncr, heightIncr, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget));
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->udRenderContext.pDepthTex, widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget));
-    UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->udRenderContext.pFramebuffer, pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pDepthTex), udR_InternalError);
-  }
-  else
-#endif //ALLOW_EXPERIMENT_GPURENDER
   {
     UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pColorBuffer, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_Dynamic));
     UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->udRenderContext.pDepthTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pDepthBuffer, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_Dynamic));
@@ -470,7 +488,6 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
   pRenderContext->previousFrameDepth = uint32_t((depthBytes[3] << 16) | (depthBytes[2] << 8) | (depthBytes[1] << 0)) / ((1 << 24) - 1.0f);
   //uint8_t stencil = depthBytes[0];
 #else
-  // TODO (EVC-765): validate this byte order for metal
   pRenderContext->previousFrameDepth = uint32_t((depthBytes[2] << 16) | (depthBytes[1] << 8) | (depthBytes[0] << 0)) / ((1 << 24) - 1.0f);
   //uint8_t stencil = depthBytes[3];
 #endif
@@ -545,12 +562,7 @@ void vcRender_SplatUDWithId(vcState *pProgramState, vcRenderContext *pRenderCont
   pRenderContext->udRenderContext.splatIdShader.params.id = udFloat4::create(0.0f, 0.0f, 0.0f, id);
   vcShader_BindConstantBuffer(pRenderContext->udRenderContext.splatIdShader.pProgram, pRenderContext->udRenderContext.splatIdShader.uniform_params, &pRenderContext->udRenderContext.splatIdShader.params, sizeof(pRenderContext->udRenderContext.splatIdShader.params));
 
-#if ALLOW_EXPERIMENT_GPURENDER && GRAPHICS_API_OPENGL
-  if (pProgramState->settings.experimental.useGPURenderer)
-    vcMesh_Render(gInternalMeshes[vcInternalMeshType_FlippedScreenQuad]);
-  else
-#endif
-    vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
+  vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
 
 void vcRender_SplatUD(vcState *pProgramState, vcRenderContext *pRenderContext)
@@ -561,13 +573,8 @@ void vcRender_SplatUD(vcState *pProgramState, vcRenderContext *pRenderContext)
 
   vcShader_BindTexture(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.pColourTex, 0, pRenderContext->udRenderContext.presentShader.uniform_texture);
   vcShader_BindTexture(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->udRenderContext.pDepthTex, 1, pRenderContext->udRenderContext.presentShader.uniform_depth);
-  
-#if ALLOW_EXPERIMENT_GPURENDER && GRAPHICS_API_OPENGL
-  if (pProgramState->settings.experimental.useGPURenderer)
-    vcMesh_Render(gInternalMeshes[vcInternalMeshType_FlippedScreenQuad]);
-  else
-#endif
-    vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
+
+  vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
 
 void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
@@ -707,6 +714,69 @@ void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRender
   vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
 
+void vcRender_ApplyViewShed(vcRenderContext *pRenderContext)
+{
+  vcShader_Bind(pRenderContext->shadowShader.pProgram);
+  vcShader_BindTexture(pRenderContext->shadowShader.pProgram, pRenderContext->pDepthTexture[0], 0, pRenderContext->shadowShader.uniform_depth);
+  vcShader_BindTexture(pRenderContext->shadowShader.pProgram, pRenderContext->viewShedRenderingContext.pDepthTex, 1, pRenderContext->shadowShader.uniform_shadowMapAtlas);
+
+  vcShader_BindConstantBuffer(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->shadowShader.uniform_params, &pRenderContext->shadowShader.params, sizeof(pRenderContext->shadowShader.params));
+
+  vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
+}
+
+void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
+{
+  if (renderData.viewSheds.length == 0)
+    return;
+
+  vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+  vcGLState_SetBlendMode(vcGLSBM_Additive);
+
+  pRenderContext->shadowShader.params.inverseProjection = udFloat4x4::create(udInverse(pProgramState->pCamera->matrices.projection));
+
+  if (pRenderContext->viewShedRenderingContext.pRenderView == nullptr)
+    vdkRenderView_Create(pProgramState->pVDKContext, &pRenderContext->viewShedRenderingContext.pRenderView, pRenderContext->udRenderContext.pRenderer, ViewShedMapRes.x / ViewShedMapCount, ViewShedMapRes.y);
+
+  for (size_t v = 0; v < renderData.viewSheds.length; ++v)
+  {
+    vcViewShedData *pViewShedData = &renderData.viewSheds[v];
+
+    // set up cameras for these renders
+    vcCamera shadowRenderCamera = {};
+    vcCameraSettings settings = {};
+    settings.cameraMode = vcCM_FreeRoam;
+    settings.nearPlane = pViewShedData->nearFarPlane.x;
+    settings.farPlane = pViewShedData->nearFarPlane.y;
+    settings.fieldOfView = pViewShedData->fieldOfView;
+    shadowRenderCamera.position = pViewShedData->position;
+
+    for (int i = 0; i < ViewShedMapCount; ++i)
+    {
+      float rot = (UD_DEG2RADf(360.0f) / ViewShedMapCount) * i;
+      shadowRenderCamera.eulerRotation = udDouble3::create(-rot, 0, 0);
+      vcCamera_UpdateMatrices(&shadowRenderCamera, settings, nullptr, udFloat2::create((float)ViewShedMapRes.x, (float)ViewShedMapRes.y), nullptr);
+
+      // configure UD render to only render into portion of buffer
+      vdkRenderView_SetTargetsWithPitch(pProgramState->pVDKContext, pRenderContext->viewShedRenderingContext.pRenderView, nullptr, 0, pRenderContext->viewShedRenderingContext.pDepthBuffer + (i * (ViewShedMapRes.x / ViewShedMapCount)), 0, ViewShedMapRes.x * 4);
+      vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderContext->viewShedRenderingContext.pRenderView, vdkRVM_Projection, shadowRenderCamera.matrices.projectionUD.a);
+
+      // render UD
+      vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->viewShedRenderingContext.pRenderView, &shadowRenderCamera, renderData);
+
+      pRenderContext->shadowShader.params.shadowMapVP[i] = udFloat4x4::create(shadowRenderCamera.matrices.projectionUD * (shadowRenderCamera.matrices.view * udInverse(pProgramState->pCamera->matrices.view)));
+    }
+
+    pRenderContext->shadowShader.params.visibleColour = pViewShedData->visibleColour;
+    pRenderContext->shadowShader.params.notVisibleColour = pViewShedData->notVisibleColour;
+    vcTexture_UploadPixels(pRenderContext->viewShedRenderingContext.pDepthTex, pRenderContext->viewShedRenderingContext.pDepthBuffer, ViewShedMapRes.x, ViewShedMapRes.y);
+
+    vcRender_ApplyViewShed(pRenderContext);
+  }
+
+  vcGLState_ResetState();
+}
+
 void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   vcFramebuffer_Bind(pRenderContext->pFramebuffer[0], vcFramebufferClearOperation_All, 0xFFFF8080);
@@ -727,10 +797,17 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
     {
       vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
+
+      if (pInstance->insideOut)
+        vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
+
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
         vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride);
       else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
         vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution);
+
+      if (pInstance->insideOut)
+        vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     }
 
     vcSceneLayer_EndFrame();
@@ -781,16 +858,8 @@ void vcRenderTransparentGeometry(vcState *pProgramState, vcRenderContext *pRende
 
 void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-#if ALLOW_EXPERIMENT_GPURENDER
-  if (pProgramState->settings.experimental.useGPURenderer != pRenderContext->udRenderContext.usingGPURenderer)
-  {
-    pRenderContext->udRenderContext.usingGPURenderer = pProgramState->settings.experimental.useGPURenderer;
-    vcRender_ResizeScene(pProgramState, pRenderContext, pRenderContext->originalSceneResolution.x, pRenderContext->originalSceneResolution.y);
-  }
-#else
   udUnused(pProgramState);
   udUnused(pRenderContext);
-#endif
 
   renderData.pSceneTexture = pRenderContext->pTexture[1];
   renderData.sceneScaling = udFloat2::one();
@@ -838,10 +907,7 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
       if (renderData.models[i]->IsSubitemSelected(0))
       {
         float splatId = 1.0f / 255.0f;
-#if ALLOW_EXPERIMENT_GPURENDER
-        if (pProgramState->settings.experimental.useGPURenderer)
-          splatId = (modelIndex + 1) / 255.0f;
-#endif
+
         vcRender_SplatUDWithId(pProgramState, pRenderContext, splatId);
         active = true;
       }
@@ -915,7 +981,12 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
 
-  vcRender_RenderAndUploadUD(pProgramState, pRenderContext, renderData);
+  // Render and upload UD buffers
+  {
+    vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pRenderView, pProgramState->pCamera, renderData);
+    vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+    vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+  }
 
   bool selectionBufferActive = vcRender_CreateSelectionBuffer(pProgramState, pRenderContext, renderData);
 
@@ -926,6 +997,8 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcRender_VisualizationPass(pProgramState, pRenderContext); // final pass
 
   vcFramebuffer_Bind(pRenderContext->pFramebuffer[1]);
+
+  vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
 
   vcRenderSkybox(pProgramState, pRenderContext); // Drawing skybox after opaque geometry saves a bit on fill rate.
   vcRenderTerrain(pProgramState, pRenderContext);
@@ -964,9 +1037,9 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
     }
     else
     {
-      udDouble3 currentLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->pCamera->position);
+      udDouble3 currentLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->pCamera->position);
       currentLatLong.x = udClamp(currentLatLong.x, -90.0, 89.0);
-      udDouble3 norther = udGeoZone_ToCartesian(pProgramState->gis.zone, udDouble3::create(currentLatLong.x + 1.0, currentLatLong.y, currentLatLong.z));
+      udDouble3 norther = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, udDouble3::create(currentLatLong.x + 1.0, currentLatLong.y, currentLatLong.z));
       udDouble4x4 north = udDouble4x4::lookAt(pProgramState->pCamera->position, norther);
       vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspectiveZO(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udDouble4x4::rotationYPR(north.extractYPR()) * udInverse(cameraRotation));
     }
@@ -1007,7 +1080,7 @@ epilogue:
   return result;
 }
 
-udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
+udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, vdkRenderView *pRenderView, vcCamera *pCamera, vcRenderData &renderData)
 {
   if (pRenderContext == nullptr)
     return udR_InvalidParameter_;
@@ -1015,14 +1088,8 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
   vdkRenderInstance *pModels = nullptr;
   int numVisibleModels = 0;
 
-  double *pProjectionMatrix = pProgramState->pCamera->matrices.projectionUD.a;
-#if ALLOW_EXPERIMENT_GPURENDER
-  if (pProgramState->settings.experimental.useGPURenderer)
-    pProjectionMatrix = pProgramState->pCamera->matrices.projection.a; // native render space
-#endif
-
-  vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pProjectionMatrix);
-  vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_View, pProgramState->pCamera->matrices.view.a);
+  vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderView, vdkRVM_Projection, pCamera->matrices.projectionUD.a);
+  vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderView, vdkRVM_View, pCamera->matrices.view.a);
 
   switch (pProgramState->settings.visualization.mode)
   {
@@ -1055,7 +1122,7 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
 
       if (renderData.models[i]->m_hasWatermark)
       {
-        udDouble3 distVector = pProgramState->pCamera->position - renderData.models[i]->GetWorldSpacePivot();
+        udDouble3 distVector = pCamera->position - renderData.models[i]->GetWorldSpacePivot();
         if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
           distVector.z = 0.0;
 
@@ -1088,7 +1155,6 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
       }
     }
   }
-
 
   if (pProgramState->settings.presentation.showDiagnosticInfo && pProgramState->gis.isProjected)
   {
@@ -1148,18 +1214,7 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
 
   renderOptions.pointMode = (vdkRenderContextPointMode)pProgramState->settings.presentation.pointMode;
 
-#if ALLOW_EXPERIMENT_GPURENDER
-  if (pProgramState->settings.experimental.useGPURenderer)
-  {
-    renderOptions.flags = (vdkRenderFlags)(renderOptions.flags | vdkRF_GPURender);
-
-    vcFramebuffer_Bind(pRenderContext->udRenderContext.pFramebuffer, vcFramebufferClearOperation_All);
-
-    vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
-  }
-#endif
-
-  vdkError result = vdkRenderContext_Render(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, pRenderContext->udRenderContext.pRenderView, pModels, numVisibleModels, &renderOptions);
+  vdkError result = vdkRenderContext_Render(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, pRenderView, pModels, numVisibleModels, &renderOptions);
 
   pProgramState->udModelPickedIndex = -1;
   if (result == vE_Success)
@@ -1175,14 +1230,6 @@ udResult vcRender_RenderAndUploadUD(vcState *pProgramState, vcRenderContext *pRe
   else
   {
     //TODO: Clear the buffers
-  }
-
-#if ALLOW_EXPERIMENT_GPURENDER
-  if (!pProgramState->settings.experimental.useGPURenderer)
-#endif
-  {
-    vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
-    vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
   }
 
   udFreeStack(pModels);
@@ -1234,21 +1281,22 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     {
       uint32_t modelId = 1; // note: start at 1, because 0 is 'null'
 
-#if ALLOW_EXPERIMENT_GPURENDER
-      if (pRenderContext->udRenderContext.usingGPURenderer)
-        vcRender_SplatUDWithId(pProgramState, pRenderContext, 0.0f); // `0.0` is a sentinel to tell it to use the id encoded in the alpha channel
-#endif
-
-    // Polygon Models
+      // Polygon Models
       for (size_t i = 0; i < renderData.polyModels.length; ++i)
       {
         vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
         udFloat4 idAsColour = vcRender_EncodeIdAsColour((uint32_t)(modelId++));
 
+        if (pInstance->insideOut)
+          vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
+
         if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
           vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &idAsColour);
         else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
           vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution, &idAsColour);
+
+        if (pInstance->insideOut)
+          vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
       }
     }
 
@@ -1268,21 +1316,16 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
     // 24 bit unsigned int -> float
-#if GRAPHICS_API_OPENGL
+#if GRAPHICS_API_OPENGL || GRAPHICS_API_METAL
     pickDepth = uint32_t((depthBytes[3] << 16) | (depthBytes[2] << 8) | (depthBytes[1] << 0)) / ((1 << 24) - 1.0f);
     //uint8_t stencil = depthBytes[0];
 #else
-  // TODO: byte order of metal etc.
     pickDepth = uint32_t((depthBytes[2] << 16) | (depthBytes[1] << 8) | (depthBytes[0] << 0)) / ((1 << 24) - 1.0f);
     //uint8_t stencil = depthBytes[3];
 #endif
-
+    
     // note `-1`, and BGRA format
     int udPickedId = -1;
-#ifdef ALLOW_EXPERIMENT_GPURENDER
-    if (pProgramState->settings.experimental.useGPURenderer)
-      udPickedId = (colourBytes[2] << 0) - 1;
-#endif
 
     int pickedPolygonId = (int)((colourBytes[1] << 0) | (colourBytes[0] << 8)) - 1;
     if (pickedPolygonId != -1 || udPickedId != -1)
@@ -1300,6 +1343,9 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     result.success = true;
     pickDepth = pRenderContext->previousFrameDepth;
   }
+  
+  if (pickDepth == 0.0)
+    pickDepth = 1.0;
 
   if (result.success)
   {

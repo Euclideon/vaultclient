@@ -18,8 +18,10 @@
 #include "vcLiveFeed.h"
 #include "vcUnsupportedNode.h"
 #include "vcI3S.h"
+#include "vcPolyModelNode.h"
 #include "vcWaterNode.h"
 #include "vcViewpoint.h"
+#include "vcViewShed.h"
 
 void HandleNodeSelection(vcState* pProgramState, vdkProjectNode *pParent, vdkProjectNode* pNode)
 {
@@ -87,6 +89,10 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pNode->pUserData = new vcI3S(pProgramState->activeProject.pProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "Water"))
         pNode->pUserData = new vcWater(pProgramState->activeProject.pProject, pNode, pProgramState);
+      else if (udStrEqual(pNode->itemtypeStr, "ViewMap"))
+        pNode->pUserData = new vcViewShed(pProgramState->activeProject.pProject, pNode, pProgramState);
+      else if (udStrEqual(pNode->itemtypeStr, "Polygon"))
+        pNode->pUserData = new vcPolyModelNode(pProgramState->activeProject.pProject, pNode, pProgramState);
       else
         pNode->pUserData = new vcUnsupportedNode(pProgramState->activeProject.pProject, pNode, pProgramState); // Catch all
     }
@@ -302,19 +308,9 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           pProgramState->worldAnchorPoint = pSceneItem->GetWorldSpacePivot();
         }
 
-        // This is terrible but semi-required until we have undo
-        if (pNode->itemtype == vdkPNT_PointCloud && ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
-        {
-          if (pSceneItem->m_pPreferredProjection)
-            ((vcModel*)pSceneItem)->ChangeProjection(*pSceneItem->m_pPreferredProjection);
-          ((vcModel*)pSceneItem)->m_sceneMatrix = ((vcModel*)pSceneItem)->m_defaultMatrix;
-          ((vcModel*)pSceneItem)->ChangeProjection(pProgramState->gis.zone);
-          ((vcModel*)pSceneItem)->ApplyDelta(pProgramState, udDouble4x4::identity());
-        }
-        else if (udStrEquali(pNode->itemtypeStr, "I3S") && ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
-        {
-          ((vcI3S *)pSceneItem)->m_sceneMatrix = udDouble4x4::identity();
-        }
+        pSceneItem->HandleContextMenu(pProgramState);
+        
+        ImGui::Separator();
 
         if (ImGui::Selectable(vcString::Get("sceneExplorerRemoveItem")))
         {
