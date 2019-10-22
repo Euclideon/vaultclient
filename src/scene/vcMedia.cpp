@@ -17,6 +17,12 @@
 
 #include "stb_image.h"
 
+struct vcMediaLoadInfo
+{
+  vcState *pProgramState;
+  vcMedia *pMedia;
+};
+
 const char *s_imageTypes[] = { "standard", "panorama", "photosphere" };
 UDCOMPILEASSERT(udLengthOf(s_imageTypes) == vcIT_Count, "Update Image Types");
 
@@ -44,29 +50,32 @@ vcMedia::~vcMedia()
 
 void vcMedia_LoadImage(void* pMediaPtr)
 {
-  vcMedia* pMedia = (vcMedia*)pMediaPtr;
+  vcMediaLoadInfo *pData = (vcMediaLoadInfo *)pMediaPtr;
 
-  int32_t status = udInterlockedCompareExchange(&pMedia->m_loadStatus, vcSLS_Loading, vcSLS_Pending);
+  int32_t status = udInterlockedCompareExchange(&pData->pMedia->m_loadStatus, vcSLS_Loading, vcSLS_Pending);
 
   void *pFileData = nullptr;
   int64_t fileLen = 0;
 
   if (status == vcSLS_Pending)
   {
-    udResult result = udFile_Load(pMedia->m_pLoadedURI, &pFileData, &fileLen);
+    udResult result = udFile_Load(pData->pMedia->m_pLoadedURI, &pFileData, &fileLen);
+
+    if (result == udR_OpenFailure)
+      result = udFile_Load(udTempStr("%s%s", pData->pProgramState->activeProject.pRelativeBase, pData->pMedia->m_pLoadedURI), &pFileData, &fileLen);
 
     if (result == udR_Success)
     {
-      pMedia->SetImageData(&pFileData, fileLen); // Ownership is passed and pFileData should be null
-      pMedia->m_loadStatus = vcSLS_Loaded;
+      pData->pMedia->SetImageData(&pFileData, fileLen); // Ownership is passed and pFileData should be null
+      pData->pMedia->m_loadStatus = vcSLS_Loaded;
     }
     else if (result == udR_OpenFailure)
     {
-      pMedia->m_loadStatus = vcSLS_OpenFailure;
+      pData->pMedia->m_loadStatus = vcSLS_OpenFailure;
     }
     else
     {
-      pMedia->m_loadStatus = vcSLS_Failed;
+      pData->pMedia->m_loadStatus = vcSLS_Failed;
     }
 
     udFree(pFileData); // Should always be nullptr by this time
@@ -89,7 +98,8 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
     udFree(m_pLoadedURI);
     m_pLoadedURI = udStrdup(m_pNode->pURI);
 
-    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcMedia_LoadImage, this, false);
+    vcMediaLoadInfo *pMedia = udAllocType(vcMediaLoadInfo, 1, udAF_Zero);
+    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcMedia_LoadImage, pMedia, true);
     m_loadLoadTimeSec = udGetEpochSecsUTCf();
   }
 
