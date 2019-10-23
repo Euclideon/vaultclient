@@ -4,10 +4,24 @@
 
 - Version 0.4.0
   - Added:
-    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `convertAllSpaceLabel`, `loginEnterURL`, `settingsAppearanceLoginRenderLicense`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`, `settingsControlsControllerInvertY`, `settingsAppearanceShowEuclideonLogo`
-    - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `sceneExplorerSetButton`, `convertAllSpaceLabel`, `loginEnterURL`, `settingsAppearanceLoginRenderLicense`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`, `settingsControlsControllerInvertY`, `settingsAppearanceShowEuclideonLogo`, `convertSpaceECEF`, `polyModelMesh`, `polyModelTexture`, `polyModelMatColour`, `sceneAddViewShed`, `sceneExplorerViewShedDefaultName`
+    - Settings
+      - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `settingsAppearanceLoginRenderLicense`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`,`settingsControlsControllerInvertY`, `settingsAppearanceShowEuclideonLogo`
+    - Scene Explorer
+      - `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `sceneExplorerSetButton`
+    - Viewport (New Node Types)
+      - View Sheds
+        - `sceneAddViewShed`, `sceneExplorerViewShedDefaultName`
+      - Polygon Meshes
+        - `polyModelMesh`, `polyModelTexture`, `polyModelMatColour`
+      - Filters
+        - `sceneAddFilter`, `sceneAddFilterBox`, `sceneAddFilterSphere`, `sceneAddFilterCylinder`, `sceneExplorerFilterBoxDefaultName`, `sceneExplorerFilterSphereDefaultName`, `sceneExplorerFilterCylinderDefaultName`
+    - Convert
+      - `convertAllSpaceLabel`, `convertSpaceECEF`
+    - Misc
+      - `loginEnterURL`
   - Changed:
-    - ?
+    - Viewport
+      - `sceneAddAOI`, `sceneAddLine`,
   - Removed:
     - `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeSucceededTitle`, `settingsControlsInvertX`, `settingsControlsInvertY`
 
@@ -503,6 +517,10 @@ Modules are currently:
 - `sceneAddAOI`: Menu option when right-clicking within the scene, creates an AOI at the current mouse location
 - `sceneAddLine`: Menu option when right-clicking within the scene, creates a Line at the current mouse location
 - `sceneAddViewShed`: Menu option when right-clicking within the scene, creates a View Shed at the current mouse location
+- `sceneAddFilter`: Context menu option when right clicking in the scene to open another submenu with filter types
+- `sceneAddFilterBox`: Context menu option when right clicking in the scene to add a new Box filter
+- `sceneAddFilterSphere`: Context menu option when right clicking in the scene to add a new Sphere filter
+- `sceneAddFilterCylinder`: Context menu option when right clicking in the scene to add a new Cylinder filter
 - `sceneResetRotation`: Menu option when right-clicking within the scene, rotates the camera to default orientation
 - `sceneLockAltitude`: Tooltip displayed when mouse is hovered over the Lock Altitude button in the viewport controls window
 - `sceneLockAltitudeKey`: Used in Lock Altitude tooltip, shown in brackets
@@ -546,6 +564,9 @@ Modules are currently:
 - `sceneExplorerAddFeed`: Menu option in the Add Other menu which is displayed when the Add Other button is clicked, adds a Live Feed item to the scene
 - `sceneExplorerAddFolder`: Tooltip displayed when mouse is hovered over the Add Folder button in the scene explorer tab
 - `sceneExplorerViewShedDefaultName`: Default name of new View Sheds when they are added to the scene
+- `sceneExplorerFilterBoxDefaultName`: The default name when a new box filter is added
+- `sceneExplorerFilterSphereDefaultName`: The default name when a new sphere filter is added
+- `sceneExplorerFilterCylinderDefaultName`: The default name when a new cylinder filter is added
 - `sceneExplorerEditName`: Menu option when right-clicking on an item in the Scene Explorer, allows user to change the name of the item
 - `sceneExplorerUseProjection`: Menu option when right-clicking on an item in the Scene Explorer, changes the current SRID to that of the selected scene item
 - `sceneExplorerMoveTo`: Menu option when right-clicking on an item in the Scene Explorer, moves the camera to the location of the selected item
