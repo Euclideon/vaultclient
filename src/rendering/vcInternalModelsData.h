@@ -12,7 +12,7 @@ const vcP3UV2Vertex flippedScreenQuadVertices[4]{ { { -1.f, -1.f, 0.f },{ 0, 0 }
 const uint16_t flippedScreenQuadIndices[6] = { 2, 1, 0, 3, 2, 0 };
 
 // world quad
-const vcP3N3UV2Vertex worldQuadVertices[4]{ { { 0.f, 0.f, 0.f }, { 0.f, 1.f, 0.f }, { 0, 1 } },{ { 0.f, 0.f, 1.f }, { 0.f, 1.f, 0.f }, { 0, 0 } },{ { 1.f, 0.f, 1.f }, { 0.f, 1.f, 0.f }, { 1, 0 } },{ { 1.f, 0.f, 0.f }, { 0.f, 1.f, 0.f }, { 1, 1 } } };
+const vcP3N3UV2Vertex worldQuadVertices[4]{ { { -1.f, 0.f, -1.f }, { 0.f, 1.f, 0.f }, { 0, 1 } },{ { -1.f, 0.f, 1.f }, { 0.f, 1.f, 0.f }, { 0, 0 } },{ { 1.f, 0.f, 1.f }, { 0.f, 1.f, 0.f }, { 1, 0 } },{ { 1.f, 0.f, -1.f }, { 0.f, 1.f, 0.f }, { 1, 1 } } };
 const uint16_t worldQuadIndices[6] = { 0, 1, 2, 0, 2, 3 };
 
 // billboard
