@@ -1212,14 +1212,16 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
   memset(&renderOptions, 0, sizeof(vdkRenderOptions));
 
   if (doPick)
+  {
+    pProgramState->udModelPickedIndex = -1;
     renderOptions.pPick = &picking;
+  }
 
   renderOptions.pFilter = renderData.pQueryFilter;
   renderOptions.pointMode = (vdkRenderContextPointMode)pProgramState->settings.presentation.pointMode;
 
   vdkError result = vdkRenderContext_Render(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, pRenderView, pModels, numVisibleModels, &renderOptions);
 
-  pProgramState->udModelPickedIndex = -1;
   if (result == vE_Success)
   {
     if (doPick && picking.hit)
@@ -1341,17 +1343,11 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 #endif
     
     // note `-1`, and BGRA format
-    int udPickedId = -1;
-
     int pickedPolygonId = (int)((colourBytes[1] << 0) | (colourBytes[0] << 8)) - 1;
-    if (pickedPolygonId != -1 || udPickedId != -1)
+    if (pickedPolygonId != -1)
     {
       result.success = true;
-
-      if (udPickedId != -1)
-        result.pModel = renderData.models[udPickedId];
-      else
-        result.pPolygon = &renderData.polyModels[pickedPolygonId];
+      result.pPolygon = &renderData.polyModels[pickedPolygonId];
     }
   }
   else
