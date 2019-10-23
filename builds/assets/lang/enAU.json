@@ -491,5 +491,9 @@
 
   "polyModelMesh": "Mesh",
   "polyModelTexture": "Texture",
-  "polyModelMatColour": "Material Colour"
+  "polyModelMatColour": "Material Colour",
+
+  "viewShedDistance": "Distance",
+  "viewShedVisibleColour": "Highlight Visible",
+  "viewShedHiddenColour": "Highlight Hidden"
 }
