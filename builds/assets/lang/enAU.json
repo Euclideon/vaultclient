@@ -450,6 +450,7 @@
   "scenePOIThumbnailSizeLarge": "Large",
   "scenePOILabelImageType": "Image Type",
   "scenePOILabelImageTypeStandard": "Standard",
+  "scenePOILabelImageTypeOriented": "Oriented Image",
   "scenePOILabelImageTypePanorama": "Panorama",
   "scenePOILabelImageTypePhotosphere": "Photo Sphere",
   "scenePOIReloadTime": "Reload Time (secs)",
