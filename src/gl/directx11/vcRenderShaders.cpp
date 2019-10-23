@@ -201,6 +201,7 @@ struct PS_INPUT
     float4x4 u_inverseProjection;
     float4 u_visibleColour;
     float4 u_notVisibleColour;
+    float4 u_nearFarPlane; // .zw unused
   };
 
   PS_OUTPUT main(PS_INPUT input)
@@ -248,10 +249,7 @@ struct PS_INPUT
 
       float shadowMapDepth = texture1.Sample(sampler1, sampleUV.xy).x;
       
-      // TODO: this bias should not be constant, it should be based on UD resolution
-      //const float bias = 0.0005; // 1024x1024
-      //const float bias = 0.00075; // 512x512
-      const float bias = 0.00025; // 2048x2048
+      float bias = (u_nearFarPlane.y - u_nearFarPlane.x) * 0.00000003;
       if (shadowMapDepth < sampleUV.z - bias)
         col = u_notVisibleColour;
     }
