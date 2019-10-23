@@ -830,16 +830,16 @@ void vcRenderTransparentGeometry(vcState *pProgramState, vcRenderContext *pRende
 
     for (size_t i = 0; i < renderData.images.length; ++i)
     {
-      static const double distScalar = 600.0;
+      static const double distScalar = 600.0; // Param
 
       double zScale = 1.0;
-      if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
-        zScale -= udMag3(pProgramState->pCamera->position - renderData.images[i]->position) / distScalar;
-      else // map mode
-        zScale -= pProgramState->settings.camera.orthographicSize / distScalar;
+      //if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
+      //  zScale -= udMag3(pProgramState->pCamera->position - renderData.images[i]->position) / distScalar;
+      //else // map mode
+      //  zScale -= pProgramState->settings.camera.orthographicSize / distScalar;
 
-      if (zScale < 0) // too far
-        continue;
+      //if (zScale < 0) // too far
+      //  continue;
 
       vcImageRenderer_Render(renderData.images[i], pProgramState->pCamera->matrices.viewProjection, pRenderContext->sceneResolution, zScale);
     }
