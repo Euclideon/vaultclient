@@ -1071,6 +1071,17 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       }
     }
 
+    if (pProgramState->cameraInput.flyThroughActive)
+    {
+      if (ImGui::Button(vcString::Get("scenePOICancelFlyThrough")))
+      {
+        pProgramState->cameraInput.inputState = vcCIS_None;
+        pProgramState->cameraInput.flyThroughActive = false;
+        pProgramState->cameraInput.flyThroughPoint = 0;
+        pProgramState->cameraInput.pObjectInfo = nullptr;
+      }
+    }
+
     ImGui::End();
   }
 

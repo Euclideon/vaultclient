@@ -450,6 +450,7 @@
   "scenePOIThumbnailSizeLarge": "Large",
   "scenePOILabelImageType": "Image Type",
   "scenePOILabelImageTypeStandard": "Standard",
+  "scenePOILabelImageTypeOriented": "Oriented Image",
   "scenePOILabelImageTypePanorama": "Panorama",
   "scenePOILabelImageTypePhotosphere": "Photo Sphere",
   "scenePOIReloadTime": "Reload Time (secs)",
@@ -490,5 +491,9 @@
 
   "polyModelMesh": "Mesh",
   "polyModelTexture": "Texture",
-  "polyModelMatColour": "Material Colour"
+  "polyModelMatColour": "Material Colour",
+
+  "viewShedDistance": "Distance",
+  "viewShedVisibleColour": "Highlight Visible",
+  "viewShedHiddenColour": "Highlight Hidden"
 }
