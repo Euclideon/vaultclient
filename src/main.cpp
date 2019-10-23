@@ -2449,8 +2449,9 @@ void vcRenderWindow(vcState *pProgramState)
       vcSettings_Load(&pProgramState->settings, false, vcSC_Docks);
 
       // Don't show the window in a bad state
-      ImGui::EndFrame();
-      ImGui::NewFrame();
+      ImDrawData *pData = ImGui::GetDrawData();
+      if (pData != nullptr)
+        pData->Clear();
     }
   }
 
