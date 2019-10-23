@@ -15,7 +15,7 @@ UDCOMPILEASSERT(udLengthOf(vcISToPixelSize) == vcIS_Count, "ImagePixelSize not e
 static const float vcISToWorldSize[] = { -1.f, 3.f, 10.f };
 UDCOMPILEASSERT(udLengthOf(vcISToWorldSize) == vcIS_Count, "ImageWorldSize not equal size");
 
-static vcInternalMeshType vcITToMeshType[] = { vcInternalMeshType_Billboard, vcInternalMeshType_ScreenQuad, vcInternalMeshType_Tube, vcInternalMeshType_Sphere };
+static vcInternalMeshType vcITToMeshType[] = { vcInternalMeshType_Billboard, vcInternalMeshType_WorldQuad, vcInternalMeshType_Tube, vcInternalMeshType_Sphere };
 UDCOMPILEASSERT(udLengthOf(vcITToMeshType) == vcIT_Count, "ImageMesh does not equal size");
 
 static struct vcImageShader
