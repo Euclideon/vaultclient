@@ -88,7 +88,9 @@ bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &vi
 
   double worldScale = vcISToWorldSize[pImageInfo->size];
   udDouble4x4 mvp = viewProjectionMatrix * udDouble4x4::translation(pImageInfo->position) * udDouble4x4::rotationYPR(pImageInfo->ypr) * udDouble4x4::scaleUniform(pImageInfo->scale);
-  if (pImageInfo->type == vcIT_Panorama)
+  if (pImageInfo->type == vcIT_OrientedPhoto)
+    mvp = mvp * udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect * UD_PI);
+  else if (pImageInfo->type == vcIT_Panorama)
     mvp = mvp * udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect * UD_PI);
   else if (pImageInfo->type == vcIT_PhotoSphere)
     mvp = mvp * udDouble4x4::scaleUniform(worldScale);

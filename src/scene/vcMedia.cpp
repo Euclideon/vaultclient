@@ -280,3 +280,8 @@ void vcMedia::SetImageData(void **ppImageData, int64_t imageDataSize)
     m_imageDataSize = imageDataSize;
   }
 }
+
+vcGizmoAllowedControls vcMedia::GetAllowedControls()
+{
+  return (vcGizmoAllowedControls)(vcGAC_ScaleUniform | vcGAC_Translation | vcGAC_Rotation);
+}

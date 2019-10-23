@@ -35,6 +35,8 @@ public:
 
   void SetImageData(void **ppImageData, int64_t imageSize); // This takes ownership if it can
 
+  vcGizmoAllowedControls GetAllowedControls();
+
 public:
   const char *m_pLoadedURI; // The URI of the media we have (or are loading) currently
 
