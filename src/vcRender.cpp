@@ -135,6 +135,7 @@ struct vcRenderContext
       udFloat4x4 inverseProjection;
       udFloat4 visibleColour;
       udFloat4 notVisibleColour;
+      udFloat4 nearFarPlane; // .zw unused
     } params;
 
   } shadowShader;
@@ -767,6 +768,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
       pRenderContext->shadowShader.params.shadowMapVP[i] = udFloat4x4::create(shadowRenderCamera.matrices.projectionUD * (shadowRenderCamera.matrices.view * udInverse(pProgramState->pCamera->matrices.view)));
     }
 
+    pRenderContext->shadowShader.params.nearFarPlane = udFloat4::create(pViewShedData->nearFarPlane.x, pViewShedData->nearFarPlane.y, 0.0f, 0.0f);
     pRenderContext->shadowShader.params.visibleColour = pViewShedData->visibleColour;
     pRenderContext->shadowShader.params.notVisibleColour = pViewShedData->notVisibleColour;
     vcTexture_UploadPixels(pRenderContext->viewShedRenderingContext.pDepthTex, pRenderContext->viewShedRenderingContext.pDepthBuffer, ViewShedMapRes.x, ViewShedMapRes.y);
