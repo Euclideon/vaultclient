@@ -7,7 +7,7 @@
     - Settings
       - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `settingsAppearanceLoginRenderLicense`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`,`settingsControlsControllerInvertY`, `settingsAppearanceShowEuclideonLogo`
     - Scene Explorer
-      - `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `sceneExplorerSetButton`
+      - `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `sceneExplorerSetButton`, `scenePOILabelImageTypeOriented`
     - Viewport (New Node Types)
       - View Sheds
         - `sceneAddViewShed`, `sceneExplorerViewShedDefaultName`
@@ -21,7 +21,7 @@
       - `loginEnterURL`
   - Changed:
     - Viewport
-      - `sceneAddAOI`, `sceneAddLine`,
+      - `sceneAddAOI` (improved clarity), `sceneAddLine` (improved clarity),
   - Removed:
     - `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeSucceededTitle`, `settingsControlsInvertX`, `settingsControlsInvertY`
 
@@ -626,9 +626,10 @@ Modules are currently:
 - `scenePOIThumbnailSizeSmall`: Text on the combo option to select the smallest size for the thumbnail
 - `scenePOIThumbnailSizeLarge`: Text on the combo option to select the largest size for the thumbnail
 - `scenePOILabelImageType`: Label for POI image type shown in the scene explorer
-- `scenePOILabelImageTypeStandard`: One of the POI image types as shown in the scene explorer
-- `scenePOILabelImageTypePanorama`: One of the POI image types as shown in the scene explorer
-- `scenePOILabelImageTypePhotosphere`: One of the POI image types as shown in the scene explorer
+- `scenePOILabelImageTypeStandard`: One of the image types shown in the scene explorer
+- `scenePOILabelImageTypeOriented`: One of the image types shown in the scene explorer
+- `scenePOILabelImageTypePanorama`: One of the image types shown in the scene explorer
+- `scenePOILabelImageTypePhotosphere`: One of the image types shown in the scene explorer
 - `scenePOIReloadTime`: Label on the reload time for the image on a media node (in seconds)
 - `scenePOILineSettings`: The header for the expansion for the other line settings
 - `scenePOILineShowLength`: Label on the checkbox for when the user wants the length displayed on the label in the scene

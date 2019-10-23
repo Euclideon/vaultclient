@@ -832,7 +832,7 @@ void vcRenderTransparentGeometry(vcState *pProgramState, vcRenderContext *pRende
 
     for (size_t i = 0; i < renderData.images.length; ++i)
     {
-      static const double distScalar = 600.0;
+      static const double distScalar = 1000.0; // Param
 
       double zScale = 1.0;
       if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)

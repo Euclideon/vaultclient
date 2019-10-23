@@ -17,6 +17,7 @@ enum vcImageThumbnailSize
 enum vcImageType
 {
   vcIT_StandardPhoto,
+  vcIT_OrientedPhoto,
   vcIT_Panorama,
   vcIT_PhotoSphere,
 
@@ -27,7 +28,7 @@ struct vcImageRenderInfo
 {
   udDouble3 position;
   udDouble3 ypr;
-  udDouble3 scale;
+  double scale;
 
   vcTexture *pTexture;
   vcImageThumbnailSize size;
