@@ -10,7 +10,7 @@
       - `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `sceneExplorerSetButton`, `scenePOILabelImageTypeOriented`
     - Viewport (New Node Types)
       - View Sheds
-        - `sceneAddViewShed`, `sceneExplorerViewShedDefaultName`
+        - `sceneAddViewShed`, `sceneExplorerViewShedDefaultName`, `viewShedDistance`, `viewShedVisibleColour`, `viewShedHiddenColour`
       - Polygon Meshes
         - `polyModelMesh`, `polyModelTexture`, `polyModelMatColour`
       - Filters
@@ -672,3 +672,9 @@ Modules are currently:
 - `polyModelMesh`: Used on the label next to mesh information in the scene explorer with "Show Diagnostic Information" enabled 
 - `polyModelTexture`: Used on the label next to mesh texture information in the scene explorer with "Show Diagnostic Information" enabled 
 - `polyModelMatColour`: Used on the label next to mesh material colour information in the scene explorer with "Show Diagnostic Information" enabled 
+
+#### View Sheds
+
+- `viewShedDistance`: Label on slider to select view shed distance of effect
+- `viewShedVisibleColour`: Label on colour picker to select colour to highlight regions visible by the view shed
+- `viewShedHiddenColour`: Label on colour picker to select colour to highlight regions hidden from the view shed
