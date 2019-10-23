@@ -52,9 +52,9 @@ void vcQueryNode::OnNodeUpdate(vcState *pProgramState)
   vdkProjectNode_GetMetadataDouble(m_pNode, "size.y", &m_extents.y, 1.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "size.z", &m_extents.z, 1.0);
 
-  vdkProjectNode_GetMetadataDouble(m_pNode, "rotation.h", &m_ypr.x, 0.0);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "rotation.p", &m_ypr.y, 0.0);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "rotation.r", &m_ypr.z, 0.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &m_ypr.x, 0.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &m_ypr.y, 0.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &m_ypr.z, 0.0);
 
   ChangeProjection(pProgramState->gis.zone);
 
@@ -115,9 +115,9 @@ void vcQueryNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   vdkProjectNode_SetMetadataDouble(m_pNode, "size.y", m_extents.y);
   vdkProjectNode_SetMetadataDouble(m_pNode, "size.z", m_extents.z);
 
-  vdkProjectNode_SetMetadataDouble(m_pNode, "rotation.h", m_ypr.x);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "rotation.p", m_ypr.y);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "rotation.r", m_ypr.z);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "tranform.rotation.y", m_ypr.x);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "tranform.rotation.p", m_ypr.y);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "tranform.rotation.r", m_ypr.z);
 }
 
 void vcQueryNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
@@ -155,9 +155,9 @@ void vcQueryNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
     vdkProjectNode_SetMetadataDouble(m_pNode, "size.y", m_extents.y);
     vdkProjectNode_SetMetadataDouble(m_pNode, "size.z", m_extents.z);
 
-    vdkProjectNode_SetMetadataDouble(m_pNode, "rotation.h", m_ypr.x);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "rotation.p", m_ypr.y);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "rotation.r", m_ypr.z);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_ypr.x);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_ypr.y);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
 
     this->ApplyDelta(pProgramState, udDouble4x4::identity());
 
