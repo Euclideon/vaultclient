@@ -199,7 +199,7 @@ udFloat3 vcFenceRenderer_CreateSegmentJointExpandVector(const udFloat3 &previous
 {
   udFloat3 v1 = udMag3(center - previous) == 0 ? center - previous : udNormalize(center - previous);
   udFloat3 v2 = udMag3(next - center) == 0 ? next - center : udNormalize(next - center);
-  float d = udDot(v1, v2);
+  float d = udMin(udDot(v1, v2), 1.f);
   float theta = udACos(d);
 
   // limit angle to something reasonable

@@ -41,6 +41,7 @@ struct vcPolygonModel
   int meshCount;
   vcPolygonModelMesh *pMeshes;
 
+  udDouble3 origin;
   udDouble4x4 modelOffset;
 };
 
