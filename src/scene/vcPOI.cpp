@@ -305,25 +305,6 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
   if (m_line.numPoints > 1)
   {
-    if (!pProgramState->cameraInput.flyThroughActive)
-    {
-      if (ImGui::Button(vcString::Get("scenePOIPerformFlyThrough")))
-      {
-        pProgramState->cameraInput.inputState = vcCIS_FlyingThrough;
-        pProgramState->cameraInput.flyThroughActive = false; // set false to activate MoveTo, will be set true in vcCamera before next frame
-        pProgramState->cameraInput.pObjectInfo = &m_line;
-      }
-    }
-    else
-    {
-      if (ImGui::Button(vcString::Get("scenePOICancelFlyThrough")))
-      {
-        pProgramState->cameraInput.inputState = vcCIS_None;
-        pProgramState->cameraInput.flyThroughActive = false;
-        pProgramState->cameraInput.flyThroughPoint = 0;
-        pProgramState->cameraInput.pObjectInfo = nullptr;
-      }
-    }
 
     if (ImGui::SliderInt(vcString::Get("scenePOISelectedPoint"), &m_line.selectedPoint, -1, m_line.numPoints - 1))
       m_line.selectedPoint = udClamp(m_line.selectedPoint, -1, m_line.numPoints - 1);
@@ -340,65 +321,60 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
         RemovePoint(pProgramState, m_line.selectedPoint);
     }
 
-    if (ImGui::TreeNode("%s##POILineSettings%zu", vcString::Get("scenePOILineSettings"), *pItemID))
+    if (ImGui::Checkbox(udTempStr("%s##POIShowLength%zu", vcString::Get("scenePOILineShowLength"), *pItemID), &m_showLength))
     {
-      if (ImGui::Checkbox(udTempStr("%s##POIShowLength%zu", vcString::Get("scenePOILineShowLength"), *pItemID), &m_showLength))
-      {
-        UpdatePoints();
-        vdkProjectNode_SetMetadataBool(m_pNode, "showLength", m_showLength);
-      }
+      UpdatePoints();
+      vdkProjectNode_SetMetadataBool(m_pNode, "showLength", m_showLength);
+    }
 
-      if (ImGui::Checkbox(udTempStr("%s##POIShowAllLengths%zu", vcString::Get("scenePOILineShowAllLengths"), *pItemID), &m_showAllLengths))
-      {
-        UpdatePoints();
-        vdkProjectNode_SetMetadataBool(m_pNode, "showAllLengths", m_showAllLengths);
-      }
+    if (ImGui::Checkbox(udTempStr("%s##POIShowAllLengths%zu", vcString::Get("scenePOILineShowAllLengths"), *pItemID), &m_showAllLengths))
+    {
+      UpdatePoints();
+      vdkProjectNode_SetMetadataBool(m_pNode, "showAllLengths", m_showAllLengths);
+    }
 
-      if (ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), *pItemID), &m_showArea))
-      {
-        UpdatePoints();
-        vdkProjectNode_SetMetadataBool(m_pNode, "showArea", m_showArea);
-      }
+    if (ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), *pItemID), &m_showArea))
+    {
+      UpdatePoints();
+      vdkProjectNode_SetMetadataBool(m_pNode, "showArea", m_showArea);
+    }
 
-      if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOILineClosed"), *pItemID), &m_line.closed))
-      {
-        UpdatePoints();
-        vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
-      }
+    if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOILineClosed"), *pItemID), &m_line.closed))
+    {
+      UpdatePoints();
+      vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
+    }
 
-      if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourPrimary%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_line.colourPrimary, ImGuiColorEditFlags_None))
-      {
-        UpdatePoints();
-        vdkProjectNode_SetMetadataUint(m_pNode, "lineColourPrimary", m_line.colourPrimary);
-      }
+    if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourPrimary%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_line.colourPrimary, ImGuiColorEditFlags_None))
+    {
+      UpdatePoints();
+      vdkProjectNode_SetMetadataUint(m_pNode, "lineColourPrimary", m_line.colourPrimary);
+    }
 
-      if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineColour2"), *pItemID), &m_line.colourSecondary, ImGuiColorEditFlags_None))
-      {
-        UpdatePoints();
-        vdkProjectNode_SetMetadataUint(m_pNode, "lineColourSecondary", m_line.colourSecondary);
-      }
+    if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineColour2"), *pItemID), &m_line.colourSecondary, ImGuiColorEditFlags_None))
+    {
+      UpdatePoints();
+      vdkProjectNode_SetMetadataUint(m_pNode, "lineColourSecondary", m_line.colourSecondary);
+    }
 
-      if (ImGui::SliderFloat(udTempStr("%s##POILineWidth%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_line.lineWidth, 0.01f, 1000.f, "%.2f", 3.f))
-      {
-        UpdatePoints();
-        vdkProjectNode_SetMetadataDouble(m_pNode, "lineWidth", (double)m_line.lineWidth);
-      }
+    if (ImGui::SliderFloat(udTempStr("%s##POILineWidth%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_line.lineWidth, 0.01f, 1000.f, "%.2f", 3.f))
+    {
+      UpdatePoints();
+      vdkProjectNode_SetMetadataDouble(m_pNode, "lineWidth", (double)m_line.lineWidth);
+    }
 
-      const char *lineOptions[] = { vcString::Get("scenePOILineStyleArrow"), vcString::Get("scenePOILineStyleGlow"), vcString::Get("scenePOILineStyleSolid"), vcString::Get("scenePOILineStyleDiagonal") };
-      if (ImGui::Combo(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineStyle"), *pItemID), (int *)&m_line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
-      {
-        UpdatePoints();
-        vdkProjectNode_SetMetadataString(m_pNode, "lineStyle", vcFRIMStrings[m_line.lineStyle]);
-      }
+    const char *lineOptions[] = { vcString::Get("scenePOILineStyleArrow"), vcString::Get("scenePOILineStyleGlow"), vcString::Get("scenePOILineStyleSolid"), vcString::Get("scenePOILineStyleDiagonal") };
+    if (ImGui::Combo(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineStyle"), *pItemID), (int *)&m_line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
+    {
+      UpdatePoints();
+      vdkProjectNode_SetMetadataString(m_pNode, "lineStyle", vcFRIMStrings[m_line.lineStyle]);
+    }
 
-      const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
-      if (ImGui::Combo(udTempStr("%s##POIFenceStyle%zu", vcString::Get("scenePOILineOrientation"), *pItemID), (int *)&m_line.fenceMode, fenceOptions, (int)udLengthOf(fenceOptions)))
-      {
-        UpdatePoints();
-        vdkProjectNode_SetMetadataString(m_pNode, "lineMode", vcFRVMStrings[m_line.fenceMode]);
-      }
-
-      ImGui::TreePop();
+    const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
+    if (ImGui::Combo(udTempStr("%s##POIFenceStyle%zu", vcString::Get("scenePOILineOrientation"), *pItemID), (int *)&m_line.fenceMode, fenceOptions, (int)udLengthOf(fenceOptions)))
+    {
+      UpdatePoints();
+      vdkProjectNode_SetMetadataString(m_pNode, "lineMode", vcFRVMStrings[m_line.fenceMode]);
     }
   }
 
@@ -413,6 +389,18 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       if (ImGui::Button(vcString::Get("scenePOILabelOpenHyperlink")))
         pProgramState->pLoadImage = udStrdup(pHyperlink);
     }
+  }
+}
+
+void vcPOI::HandleContextMenu(vcState *pProgramState)
+{
+  ImGui::Separator();
+
+  if (ImGui::MenuItem(vcString::Get("scenePOIPerformFlyThrough")))
+  {
+    pProgramState->cameraInput.inputState = vcCIS_FlyingThrough;
+    pProgramState->cameraInput.flyThroughActive = false; // set false to activate MoveTo, will be set true in vcCamera before next frame
+    pProgramState->cameraInput.pObjectInfo = &m_line;
   }
 }
 
