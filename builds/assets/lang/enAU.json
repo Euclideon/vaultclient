@@ -247,6 +247,7 @@
   "convertPreviewName": "Conversion Preview",
   "convertAllSpaceLabel": "Set All Source XY",
   "convertSpaceLabel": "Source XY",
+  "convertSpaceDetected": "Use Detected Setting",
   "convertSpaceCartesian": "Cartesian",
   "convertSpaceLatLong": "Latitude then Longitude",
   "convertSpaceLongLat": "Longitude then Latitude",
