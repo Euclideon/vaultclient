@@ -247,6 +247,7 @@
   "convertPreviewName": "Conversion Preview",
   "convertAllSpaceLabel": "Set All Source XY",
   "convertSpaceLabel": "Source XY",
+  "convertSpaceDetected": "Use Detected Setting",
   "convertSpaceCartesian": "Cartesian",
   "convertSpaceLatLong": "Latitude then Longitude",
   "convertSpaceLongLat": "Longitude then Latitude",
@@ -338,12 +339,16 @@
   "sceneAddPOI": "Add POI Here",
   "sceneMoveTo": "Move To",
   "sceneAddMenu": "Add New Item",
-  "sceneAddAOI": "Begin AOI Here",
+  "sceneAddAOI": "Begin Area Of Interest Markup",
   "sceneBeginAreaMeasure": "Begin Area Measurement",
-  "sceneAddLine": "Begin Line Here",
+  "sceneAddLine": "Begin Line Markup",
   "sceneBeginLineMeasure": "Begin Line Measurement",
+  "sceneAddViewShed": "Add View Shed",
+  "sceneAddFilter": "Add Filter...",
+  "sceneAddFilterBox": "Add Box Filter",
+  "sceneAddFilterSphere": "Add Sphere Filter",
+  "sceneAddFilterCylinder": "Add Cylinder Filter",
   "sceneResetRotation": "Reset Camera Rotation",
-  "sceneAddViewShed": "Add View Shed Here",
 
   "sceneLockAltitude": "Lock Altitude",
   "sceneLockAltitudeKey": "Space",
@@ -400,7 +405,7 @@
   "sceneExplorerProjectChangeFailedParse": "Sorry, the project file could not be interpreted.",
   "sceneExplorerProjectChangeFailedRead": "Sorry, this file could not be loaded.",
   "sceneExplorerProjectChangeSucceededMessage": "The requested operation has been completed successfully.",
-  
+
   "sceneExplorerProjectReadOnlyTitle": "Read Only!",
   "sceneExplorerProjectReadOnlyMessage": "The project you tried to modify is marked read only. You do not have permission to make changes.",
   "sceneExplorerUnsupportedFilesTitle": "Unsupported Files",
@@ -415,6 +420,9 @@
   "sceneExplorerPOIDefaultName": "Point of interest",
   "sceneExplorerFolderDefaultName": "Folder",
   "sceneExplorerViewShedDefaultName": "View Shed",
+  "sceneExplorerFilterBoxDefaultName": "Box Filter",
+  "sceneExplorerFilterSphereDefaultName": "Sphere Filter",
+  "sceneExplorerFilterCylinderDefaultName": "Cylinder Filter",
 
   "scenePOIDefaultName": "Point of Interest",
   "scenePOIAreaDefaultName": "Area of Interest",
@@ -443,6 +451,7 @@
   "scenePOIThumbnailSizeLarge": "Large",
   "scenePOILabelImageType": "Image Type",
   "scenePOILabelImageTypeStandard": "Standard",
+  "scenePOILabelImageTypeOriented": "Oriented Image",
   "scenePOILabelImageTypePanorama": "Panorama",
   "scenePOILabelImageTypePhotosphere": "Photo Sphere",
   "scenePOIReloadTime": "Reload Time (secs)",
@@ -480,8 +489,12 @@
   "liveFeedTween": "Enable Tweening / Position Smoothing",
   "liveFeedDiagInfo": "Total Cached Items: {0}\nCurrently displaying {1} items.\nNext Update in {2} seconds.",
   "liveFeedGroupID": "Group ID",
-  
+
   "polyModelMesh": "Mesh",
   "polyModelTexture": "Texture",
-  "polyModelMatColour": "Material Colour"
+  "polyModelMatColour": "Material Colour",
+
+  "viewShedDistance": "Distance",
+  "viewShedVisibleColour": "Highlight Visible",
+  "viewShedHiddenColour": "Highlight Hidden"
 }

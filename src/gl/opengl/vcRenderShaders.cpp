@@ -179,6 +179,7 @@ layout (std140) uniform u_params
   mat4 u_inverseProjection;
   vec4 u_visibleColour;
   vec4 u_notVisibleColour;
+  vec4 u_nearFarPlane; // .zw unused
 };
 
 void main()
@@ -225,10 +226,7 @@ void main()
 
     float shadowMapDepth = texture(u_shadowMapAtlas, sampleUV.xy).x;
     
-    // TODO: this bias should not be constant, it should be based on UD resolution
-    // const float bias = 0.0005; // 1024x1024
-    //const float bias = 0.00075; // 512x512
-    const float bias = 0.00025; // 2048x2048
+    float bias = (u_nearFarPlane.y - u_nearFarPlane.x) * 0.00000003;
     if (shadowMapDepth < sampleUV.z - bias)
       col = u_notVisibleColour;
   }

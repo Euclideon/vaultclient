@@ -1071,6 +1071,17 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       }
     }
 
+    if (pProgramState->cameraInput.flyThroughActive)
+    {
+      if (ImGui::Button(vcString::Get("scenePOICancelFlyThrough")))
+      {
+        pProgramState->cameraInput.inputState = vcCIS_None;
+        pProgramState->cameraInput.flyThroughActive = false;
+        pProgramState->cameraInput.flyThroughPoint = 0;
+        pProgramState->cameraInput.pObjectInfo = nullptr;
+      }
+    }
+
     ImGui::End();
   }
 
@@ -1406,44 +1417,55 @@ void vcRenderSceneWindow(vcState *pProgramState)
             ImGui::CloseCurrentPopup();
           }
 
-          if (ImGui::BeginMenu(vcString::Get("sceneAddBoxFilter")))
+          if (ImGui::BeginMenu(vcString::Get("sceneAddFilter")))
           {
-            if (ImGui::MenuItem(vcString::Get("sceneAddBoxFilter")))
+            double scaleFactor = udMag3(pProgramState->pCamera->position - mousePosCartesian) / 10.0; // 1/10th of the screen
+
+            if (ImGui::MenuItem(vcString::Get("sceneAddFilterBox")))
             {
               vcProject_ClearSelection(pProgramState);
 
-              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerBoxFilterDefaultName"), nullptr, nullptr) == vE_Success)
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerFilterBoxDefaultName"), nullptr, nullptr) == vE_Success)
               {
                 vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
                 vdkProjectNode_SetMetadataString(pNode, "shape", "box");
+                vdkProjectNode_SetMetadataDouble(pNode, "size.x", scaleFactor);
+                vdkProjectNode_SetMetadataDouble(pNode, "size.y", scaleFactor);
+                vdkProjectNode_SetMetadataDouble(pNode, "size.z", scaleFactor);
                 udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
               }
 
               ImGui::CloseCurrentPopup();
             }
 
-            if (ImGui::MenuItem(vcString::Get("sceneAddSphereFilter")))
+            if (ImGui::MenuItem(vcString::Get("sceneAddFilterSphere")))
             {
               vcProject_ClearSelection(pProgramState);
 
-              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerSphereFilterDefaultName"), nullptr, nullptr) == vE_Success)
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerFilterSphereDefaultName"), nullptr, nullptr) == vE_Success)
               {
                 vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
                 vdkProjectNode_SetMetadataString(pNode, "shape", "sphere");
+                vdkProjectNode_SetMetadataDouble(pNode, "size.x", scaleFactor);
+                vdkProjectNode_SetMetadataDouble(pNode, "size.y", scaleFactor);
+                vdkProjectNode_SetMetadataDouble(pNode, "size.z", scaleFactor);
                 udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
               }
 
               ImGui::CloseCurrentPopup();
             }
 
-            if (ImGui::MenuItem(vcString::Get("sceneAddCylinderFilter")))
+            if (ImGui::MenuItem(vcString::Get("sceneAddFilterCylinder")))
             {
               vcProject_ClearSelection(pProgramState);
 
-              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerCylinderFilterDefaultName"), nullptr, nullptr) == vE_Success)
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerFilterCylinderDefaultName"), nullptr, nullptr) == vE_Success)
               {
                 vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
                 vdkProjectNode_SetMetadataString(pNode, "shape", "cylinder");
+                vdkProjectNode_SetMetadataDouble(pNode, "size.x", scaleFactor);
+                vdkProjectNode_SetMetadataDouble(pNode, "size.y", scaleFactor);
+                vdkProjectNode_SetMetadataDouble(pNode, "size.z", scaleFactor);
                 udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
               }
 
@@ -2427,8 +2449,9 @@ void vcRenderWindow(vcState *pProgramState)
       vcSettings_Load(&pProgramState->settings, false, vcSC_Docks);
 
       // Don't show the window in a bad state
-      ImGui::EndFrame();
-      ImGui::NewFrame();
+      ImDrawData *pData = ImGui::GetDrawData();
+      if (pData != nullptr)
+        pData->Clear();
     }
   }
 

@@ -42,6 +42,7 @@ struct vcConvertItem
 
   const char *pItemProcessing;
   udChunkedArray<const char*> itemsToProcess;
+  udChunkedArray<vdkConvertSourceProjection> detectedProjections;
 
   struct
   {
