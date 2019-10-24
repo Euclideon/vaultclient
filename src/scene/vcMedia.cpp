@@ -99,6 +99,8 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
     m_pLoadedURI = udStrdup(m_pNode->pURI);
 
     vcMediaLoadInfo *pMedia = udAllocType(vcMediaLoadInfo, 1, udAF_Zero);
+    pMedia->pMedia = this;
+    pMedia->pProgramState = pProgramState;
     udWorkerPool_AddTask(pProgramState->pWorkerPool, vcMedia_LoadImage, pMedia, true);
     m_loadLoadTimeSec = udGetEpochSecsUTCf();
   }
