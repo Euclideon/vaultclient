@@ -8,6 +8,7 @@
 #include "vcFenceRenderer.h"
 #include "vcLabelRenderer.h"
 #include "vcImageRenderer.h"
+#include "vcPolygonModel.h"
 
 struct vdkPointCloud;
 struct vcTexture;
@@ -39,6 +40,7 @@ public:
 
 public:
   const char *m_pLoadedURI; // The URI of the media we have (or are loading) currently
+  vcPolygonModel *m_pModel;
 
 private:
   vcImageRenderInfo m_image;

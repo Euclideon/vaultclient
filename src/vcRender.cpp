@@ -800,6 +800,9 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
     {
       vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
 
+      if (pInstance->pSceneItem->m_loadStatus != vcSLS_Loaded)
+        continue;
+
       if (pInstance->insideOut)
         vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
 

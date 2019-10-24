@@ -29,6 +29,9 @@ enum vcInternalModelType
   vcInternalModelType_Sphere,
   vcInternalModelType_Cylinder,
 
+  vcInternalModelType_Panorama,
+  vcInternalModelType_Photosphere,
+
   vcInternalModelType_Count
 };
 extern vcPolygonModel *gInternalModels[vcInternalModelType_Count];

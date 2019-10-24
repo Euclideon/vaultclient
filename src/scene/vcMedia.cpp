@@ -5,6 +5,9 @@
 #include "vcStrings.h"
 
 #include "vcFenceRenderer.h"
+#include "vcImageRenderer.h"
+#include "vcPolygonModel.h"
+#include "vcInternalModels.h"
 
 #include "udMath.h"
 #include "udFile.h"
@@ -35,7 +38,8 @@ vcMedia::vcMedia(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramS
   m_loadLoadTimeSec(0.0),
   m_reloadTimeSecs(0.0),
   m_pImageData(nullptr),
-  m_imageDataSize(0)
+  m_imageDataSize(0),
+  m_pModel(nullptr)
  {
   memset(&m_image, 0, sizeof(m_image));
   m_loadStatus = vcSLS_Loaded;
@@ -87,13 +91,13 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
   if (m_pNode->pURI == nullptr)
   {
     m_loadStatus = vcSLS_Failed;
-
-    if (m_image.pTexture != nullptr)
-      vcTexture_Destroy(&m_image.pTexture);
+    vcTexture_Destroy(&m_image.pTexture);
   }
-
-  if (m_loadStatus == vcSLS_Loaded && ((m_pNode->pURI != nullptr && !udStrEqual(m_pLoadedURI, m_pNode->pURI)) || (m_reloadTimeSecs != 0.0 && m_loadLoadTimeSec + m_reloadTimeSecs < udGetEpochSecsUTCf())))
+  else if ((m_loadStatus == vcSLS_Loaded && !udStrEqual(m_pLoadedURI, m_pNode->pURI)) ||
+    (m_reloadTimeSecs != 0.0 && m_loadLoadTimeSec + m_reloadTimeSecs < udGetEpochSecsUTCf()) ||
+    (m_loadStatus == vcSLS_Unloaded))
   {
+    vcTexture_Destroy(&m_image.pTexture);
     m_loadStatus = vcSLS_Pending;
     udFree(m_pLoadedURI);
     m_pLoadedURI = udStrdup(m_pNode->pURI);
@@ -136,6 +140,29 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
     }
   }
 
+  float aspect = 1.0f;
+  udInt2 imageSize = {};
+  vcTexture_GetSize(m_image.pTexture, &imageSize.x, &imageSize.y);
+  aspect = float(imageSize.y) / imageSize.x;
+
+  double worldScale = vcISToWorldSize[m_image.size];
+
+  // TODO: Billboards
+  if (m_image.type == vcIT_PhotoSphere)
+  {
+    m_pModel = gInternalModels[vcInternalModelType_Sphere];
+    m_pModel->modelOffset = udDouble4x4::scaleUniform(worldScale);
+  }
+  else if (m_image.type == vcIT_Panorama)
+  {
+    m_pModel = gInternalModels[vcInternalModelType_Panorama];
+    m_pModel->modelOffset = udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect * UD_PI);
+  }
+  else
+  {
+    m_pModel = nullptr;
+  }
+
   ChangeProjection(pProgramState->gis.zone);
 }
 
@@ -144,19 +171,33 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (!m_visible)
     return;
 
-  if (m_image.pTexture != nullptr)
+  if (m_image.pTexture != nullptr && m_loadStatus == vcSLS_Loaded)
   {
-    // For now brute force sorting (n^2)
-    double distToCameraSqr = udMagSq3(m_image.position - pProgramState->pCamera->position);
-    size_t i = 0;
-    for (; i < pRenderData->images.length; ++i)
+    if (m_image.type == vcIT_StandardPhoto || m_image.type == vcIT_OrientedPhoto)
     {
-      if (udMagSq3(pRenderData->images[i]->position - pProgramState->pCamera->position) < distToCameraSqr)
-        break;
-    }
+      // For now brute force sorting (n^2)
+      double distToCameraSqr = udMagSq3(m_image.position - pProgramState->pCamera->position);
+      size_t i = 0;
+      for (; i < pRenderData->images.length; ++i)
+      {
+        if (udMagSq3(pRenderData->images[i]->position - pProgramState->pCamera->position) < distToCameraSqr)
+          break;
+      }
 
-    vcImageRenderInfo *pImageInfo = &m_image;
-    pRenderData->images.Insert(i, &pImageInfo);
+      vcImageRenderInfo *pImageInfo = &m_image;
+      pRenderData->images.Insert(i, &pImageInfo);
+    }
+    else
+    {
+      vcRenderPolyInstance poly = {};
+      poly.pModel = m_pModel;
+      poly.renderType = vcRenderPolyInstance::RenderType_Polygon;
+      poly.pSceneItem = this;
+      poly.worldMat = udDouble4x4::rotationYPR(m_image.ypr, m_image.position) * udDouble4x4::scaleUniform(m_image.scale);
+      poly.pDiffuseOverride = m_image.pTexture;
+      poly.insideOut = true;
+      pRenderData->polyModels.PushBack(poly);
+    }
   }
 
   if (m_reloadTimeSecs != 0.0 && m_loadLoadTimeSec + m_reloadTimeSecs < udGetEpochSecsUTCf())
@@ -164,8 +205,7 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
   if (m_loadStatus == vcSLS_Loaded && m_pImageData != nullptr)
   {
-    if (m_image.pTexture != nullptr)
-      vcTexture_Destroy(&m_image.pTexture);
+    vcTexture_Destroy(&m_image.pTexture);
 
     if (!vcTexture_CreateFromMemory(&m_image.pTexture, m_pImageData, m_imageDataSize)) //If this doesn't load
       m_loadStatus = vcSLS_Failed;

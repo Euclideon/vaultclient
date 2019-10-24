@@ -26,7 +26,8 @@ struct vcRenderPolyInstance
   enum RenderType
   {
     RenderType_Polygon,
-    RenderType_SceneLayer
+    RenderType_SceneLayer,
+    RenderType_Image
   } renderType;
 
   union
@@ -99,6 +100,7 @@ struct vcRenderPickResult
 
   vcModel *pModel;
   vcRenderPolyInstance *pPolygon;
+  vcImageRenderInfo *pImage;
 };
 vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, bool doSelectRender);
 

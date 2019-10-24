@@ -29,6 +29,7 @@ udResult vcInternalModels_Init()
   UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Cube], (void *)cubeVerticesFltArray, (uint16_t)udLengthOf(cubeVerticesFltArray), vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), cubeIndices, (uint16_t)udLengthOf(cubeIndices)));
   UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Sphere], (void *)sphereVerticesFltArray, (uint16_t)udLengthOf(sphereVerticesFltArray), vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), sphereIndices, (uint16_t)udLengthOf(sphereIndices)));
   UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Cylinder], (void *)cylinderVerticesFltArray, (uint16_t)udLengthOf(cylinderVerticesFltArray), vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), cylinderIndices, (uint16_t)udLengthOf(cylinderIndices)));
+  UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Panorama], (void *)tubeVerticesFltArray, (uint16_t)udLengthOf(tubeVerticesFltArray), vcP3N3UV2VertexLayout, (int)udLengthOf(vcP3N3UV2VertexLayout), tubeIndices, (uint16_t)udLengthOf(tubeIndices)));
 
   result = udR_Success;
 epilogue:

@@ -32,6 +32,7 @@
 #include "vcGIS.h"
 #include "vcClassificationColours.h"
 #include "vcRender.h"
+#include "vcMedia.h"
 #include "vcWebFile.h"
 #include "vcStrings.h"
 #include "vcModals.h"
@@ -441,6 +442,7 @@ void vcMain_MainLoop(vcState *pProgramState)
             if (clicked.pParent != nullptr && clicked.pItem->itemtype == vdkPNT_Media)
             {
               vdkProjectNode_SetURI(pProgramState->activeProject.pProject, clicked.pItem, pNextLoad);
+              ((vcMedia *)clicked.pItem->pUserData)->m_loadStatus = vcSLS_Unloaded;
             }
             else
             {
