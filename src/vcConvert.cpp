@@ -154,9 +154,15 @@ uint32_t vcConvert_ProcessFilesThread(void *pVoidState)
     udReadLockRWLock(pConvertContext->pRWLock);
     for (size_t i = 0; i < pConvertContext->jobs.length; ++i)
     {
-      if (pConvertContext->jobs[i]->status == vcCQS_Preparing && pConvertContext->jobs[i]->itemsToProcess.length > 0)
+      vcConvertItem *pItem = pConvertContext->jobs[i];
+      if (pConvertContext->jobs[i]->status == vcCQS_Preparing && pItem->itemsToProcess.length > 0)
       {
         vcConvert_ProcessFile(pProgramState, pConvertContext->jobs[i]);
+
+        vdkConvertItemInfo info = {};
+        vdkConvert_GetItemInfo(pItem->pConvertContext, i, &info);
+        pItem->detectedProjections.PushBack(info.sourceProjection);
+
         break;
       }
     }
@@ -204,9 +210,11 @@ void vcConvert_RemoveJob(vcState *pProgramState, size_t index)
     udFree(pItem->itemsToProcess[0]);
     pItem->itemsToProcess.PopFront();
   }
+  pItem->detectedProjections.Clear();
   udReleaseMutex(pItem->pMutex);
 
   pItem->itemsToProcess.Deinit();
+  pItem->detectedProjections.Deinit();
 
   vdkConvert_DestroyContext(&pItem->pConvertContext);
 
@@ -254,6 +262,7 @@ void vcConvert_AddEmptyJob(vcState *pProgramState, vcConvertItem **ppNextItem)
 
   pNextItem->pMutex = udCreateMutex();
   pNextItem->itemsToProcess.Init(16);
+  pNextItem->detectedProjections.Init(16);
   pNextItem->status = vcCQS_Preparing;
 
   // Update with default settings
@@ -648,8 +657,8 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       uint64_t totalItems = pSelectedJob->pConvertInfo->totalItems + pSelectedJob->itemsToProcess.length + (pSelectedJob->pItemProcessing == nullptr ? 0 : 1);
 
-      const char *sourceSpaceNames[] = { vcString::Get("convertSpaceCartesian"), vcString::Get("convertSpaceLatLong"), vcString::Get("convertSpaceLongLat"), vcString::Get("convertSpaceECEF") };
-      UDCOMPILEASSERT(vdkCSP_Count == udLengthOf(sourceSpaceNames), "Please update to match number of convert spaces");
+      const char *sourceSpaceNames[] = { vcString::Get("convertSpaceDetected"), vcString::Get("convertSpaceCartesian"), vcString::Get("convertSpaceLatLong"), vcString::Get("convertSpaceLongLat"), vcString::Get("convertSpaceECEF") };
+      UDCOMPILEASSERT(vdkCSP_Count == udLengthOf(sourceSpaceNames) - 1, "Please update to match number of convert spaces");
 
       if (totalItems > 0)
       {
@@ -672,16 +681,17 @@ void vcConvert_ShowUI(vcState *pProgramState)
               udFree(pSelectedJob->itemsToProcess[0]);
               pSelectedJob->itemsToProcess.PopFront();
             }
+            pSelectedJob->detectedProjections.Clear();
             udReleaseMutex(pSelectedJob->pMutex);
           }
 
           ImGui::NextColumn();
 
-          static int globalSource = -1;
+          static int globalSource = 0;
           if (ImGui::Combo(udTempStr("%s###convertallitemspace", vcString::Get("convertAllSpaceLabel")), &globalSource, sourceSpaceNames, (int)udLengthOf(sourceSpaceNames)) && globalSource > -1)
           {
             for (size_t i = 0; i < pSelectedJob->pConvertInfo->totalItems; ++i)
-              vdkConvert_SetInputSourceProjection(pSelectedJob->pConvertContext, i, (vdkConvertSourceProjection)(globalSource));
+              vdkConvert_SetInputSourceProjection(pSelectedJob->pConvertContext, i, globalSource == 0 ? *pSelectedJob->detectedProjections.GetElement(i) : (vdkConvertSourceProjection)(globalSource - 1));
           }
 
           ImGui::Columns(3);
@@ -695,6 +705,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
               if (ImGui::Button(udTempStr("X##convertitemremove_%zu", i)))
               {
                 vdkConvert_RemoveItem(pSelectedJob->pConvertContext, i);
+                pSelectedJob->detectedProjections.RemoveAt(i);
                 --i;
               }
               ImGui::SameLine();
@@ -716,9 +727,9 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
               ImGui::NextColumn();
 
-              int sourceSpace = (int)itemInfo.sourceProjection;
+              int sourceSpace = (int)itemInfo.sourceProjection + 1;
               if (ImGui::Combo(udTempStr("%s###converitemspace_%zu", vcString::Get("convertSpaceLabel"), i), &sourceSpace, sourceSpaceNames, (int)udLengthOf(sourceSpaceNames)))
-                vdkConvert_SetInputSourceProjection(pSelectedJob->pConvertContext, i, (vdkConvertSourceProjection)sourceSpace);
+                  vdkConvert_SetInputSourceProjection(pSelectedJob->pConvertContext, i, sourceSpace == 0 ? pSelectedJob->detectedProjections[i] : (vdkConvertSourceProjection)(sourceSpace - 1));
             }
             else
             {
@@ -777,6 +788,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
               {
                 udFree(pSelectedJob->itemsToProcess[i]);
                 pSelectedJob->itemsToProcess.RemoveAt(i);
+                pSelectedJob->detectedProjections.RemoveAt(i);
                 --i;
               }
               else

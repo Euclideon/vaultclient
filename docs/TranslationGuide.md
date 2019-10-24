@@ -16,7 +16,7 @@
       - Filters
         - `sceneAddFilter`, `sceneAddFilterBox`, `sceneAddFilterSphere`, `sceneAddFilterCylinder`, `sceneExplorerFilterBoxDefaultName`, `sceneExplorerFilterSphereDefaultName`, `sceneExplorerFilterCylinderDefaultName`
     - Convert
-      - `convertAllSpaceLabel`, `convertSpaceECEF`
+      - `convertAllSpaceLabel`, `convertSpaceECEF`, `convertSpaceDetected`
     - Misc
       - `loginEnterURL`
   - Changed:
@@ -415,6 +415,7 @@ Modules are currently:
 - `convertPreviewName`: The default name for a preview pointcloud when added to the scene
 - `convertAllSpaceLabel`: The label beside the dropdown to select the projection space for all inputs
 - `convertSpaceLabel`: The label beside the dropdown to select the projection space for the input
+- `convertSpaceDetected`: The label on the combobox item to reset the projection space to the originally detected value
 - `convertSpaceCartesian`: The label on the combobox item for a cartesian projected conversion input
 - `convertSpaceLatLong`: The label on the combobox item for a latitude, longitude ordered conversion input
 - `convertSpaceLongLat`: The label on the combobox item for a longitude, latitude ordered conversion input
