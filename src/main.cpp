@@ -48,7 +48,7 @@
 #include "gl/vcGLState.h"
 #include "gl/vcFramebuffer.h"
 
-#include "legacy/vcUDP.h"
+#include "parsers/vcUDP.h"
 
 #include "udFile.h"
 #include "udStringUtil.h"
