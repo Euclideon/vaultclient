@@ -632,6 +632,10 @@ Modules are currently:
 - `scenePOILabelImageTypePanorama`: One of the image types shown in the scene explorer
 - `scenePOILabelImageTypePhotosphere`: One of the image types shown in the scene explorer
 - `scenePOIReloadTime`: Label on the reload time for the image on a media node (in seconds)
+- `scenePOIAttachModel`: Drop down menu in context menu and also button in submenu to attach a model to the POI
+- `scenePOIAttachModelURI`: The label beside the URL box when attaching a model
+- `scenePOIAttachModelFailed`: Error message that appears when the model fails to load
+- `scenePOIAttachmentSpeed`: Label beside slider that sets the speed for attached model
 - `scenePOILineSettings`: The header for the expansion for the other line settings
 - `scenePOILineShowLength`: Label on the checkbox for when the user wants the length displayed on the label in the scene
 - `scenePOILineShowAllLengths`: Label on the checkbox that will show each individual segment line length

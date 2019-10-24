@@ -13,6 +13,7 @@ struct vdkPointCloud;
 struct vcTexture;
 struct vcState;
 struct vcFenceRenderer;
+struct vcPolygonModel;
 
 struct vcLineInfo
 {
@@ -48,6 +49,22 @@ private:
   vcLabelInfo *m_pLabelInfo;
   const char *m_pLabelText;
 
+  struct
+  {
+    vcPolygonModel *pModel;
+    const char *pPathLoaded;
+
+    double moveSpeed; // Speed in m/s
+
+    int segmentIndex;
+    double segmentProgress;
+
+    udDouble3 currentPos;
+    udDouble3 segmentStartPos;
+    udDouble3 segmentEndPos;
+    udDouble3 eulerAngles;
+  } m_attachment;
+
 public:
   vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcPOI() {};
@@ -72,6 +89,9 @@ public:
 
   void SelectSubitem(uint64_t internalId);
   bool IsSubitemSelected(uint64_t internalId);
+
+private:
+  bool LoadAttachedModel(const char *pNewPath);
 };
 
 #endif //vcPOI_h__
