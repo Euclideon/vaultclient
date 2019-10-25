@@ -1,9 +1,10 @@
 #include "vcLabelRenderer.h"
+#include "vcState.h"
 #include "udPlatformUtil.h"
 
 #include "imgui.h"
 
-bool vcLabelRenderer_Render(vcLabelInfo *pLabelRenderer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize)
+bool vcLabelRenderer_Render(vcLabelInfo *pLabelRenderer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, const float textScale)
 {
   ImDrawList* drawList = ImGui::GetWindowDrawList();
   if (!drawList || !pLabelRenderer->pText)
@@ -11,9 +12,9 @@ bool vcLabelRenderer_Render(vcLabelInfo *pLabelRenderer, const udDouble4x4 &view
 
   // These values were picked by visual inspection
   if (pLabelRenderer->textSize == vcLFS_Large)
-    ImGui::SetWindowFontScale(1.2f);
+    ImGui::SetWindowFontScale(1.2f * textScale);
   else if (pLabelRenderer->textSize == vcLFS_Small)
-    ImGui::SetWindowFontScale(0.87f);
+    ImGui::SetWindowFontScale(0.87f * textScale);
 
   ImVec2 halfLabelSize = ImGui::CalcTextSize(pLabelRenderer->pText);
   halfLabelSize.x *= 0.5;

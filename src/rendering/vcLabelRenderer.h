@@ -23,6 +23,6 @@ struct vcLabelInfo
   uint32_t backColourRGBA;
 };
 
-bool vcLabelRenderer_Render(vcLabelInfo *pLabel, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize);
+bool vcLabelRenderer_Render(vcLabelInfo *pLabel, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, const float textScale = 1.0f);
 
 #endif//vcLabelRenderer_h__

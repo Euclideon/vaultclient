@@ -54,6 +54,7 @@
   "settingsAppearanceDark": "Dark Theme",
   "settingsAppearanceLight": "Light Theme",
   "settingsAppearancePOIDistance": "Max POI Distance",
+  "settingsAppearanceTextScale": "Label Text Scale",
   "settingsAppearanceShowDiagnostics": "Show Diagnostic Information",
   "settingsAppearanceShowEuclideonLogo": "Show Euclideon Logo",
   "settingsAppearanceAdvancedGIS": "Show Advanced GIS Settings",
