@@ -201,6 +201,8 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
   // 3 == top right
   for (uint32_t childQuadrant = 0; childQuadrant < NodeChildCount; ++childQuadrant)
   {
+    pCurrentNode->childMask |= 1 << childQuadrant;
+
     uint32_t childIndex = pCurrentNode->childBlockIndex + childQuadrant;
     vcQuadTreeNode *pChildNode = &pQuadTree->nodes.pPool[childIndex];
     pChildNode->touched = true;
@@ -383,7 +385,6 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
     pNode->touched = false;
     pNode->visible = false;
 
-    // do we need to do this when invalidating them?
     if (zoneChangeOccurred)
       vcQuadTree_CalculateNodeBounds(pQuadTree, pNode);
   }
