@@ -211,7 +211,7 @@ udFloat3 vcFenceRenderer_CreateSegmentJointExpandVector(const udFloat3 &previous
   if (*pJointFlipped)
     theta *= -1;
 
-  if (d == 1.0f) // straight edge case
+  if (d >= 0.99f) // straight edge case
   {
     udFloat3 up = udFloat3::create(0, 0, 1);
     udFloat3 right = udCross(v1, up);

@@ -99,6 +99,8 @@ udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel,
   pPolygonModel->pMeshes[0].material.pTexture = nullptr;
   pPolygonModel->pMeshes[0].materialID = (uint16_t)vcPolygonModel_GetShaderType(pMeshLayout, totalTypes);
 
+  pPolygonModel->modelOffset = udDouble4x4::identity();
+
   // Check for unsupported vertex format
   if (pPolygonModel->pMeshes[0].materialID == vcPMST_Count)
     UD_ERROR_SET(udR_Unsupported);
