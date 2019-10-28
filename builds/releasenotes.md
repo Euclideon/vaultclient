@@ -7,11 +7,47 @@ Known Major Issues In Current Release
   - Images in the scene are not using thumbnails (EVC-513)
 
 Version 0.4.0 (WIP)
-  - Improvements
-    - ?
-  - Other Fixes and Changes
-    - ?
-
+  - Conversion Improvements
+    - Fixed issue with resetting some conversion types
+    - Increased support for additional types of FBX files
+    - Added drop down to set all spaces in a conversion rather than doing it individually
+    - Convert CMD takes a global offset now (`-globaloffset X Y Z`)
+    - Added Earth Centered, Earth Fixed support to conversion
+    - Fixed some issues with estimation of resolution for conversion
+    - Added support for additional SRID codes from customers and the community
+  - Improvements to SLPK
+    - Loading prioritizes objects closer to the camera
+    - Fixed some crahes that occurred when loading lots of SLPK files at the same time from fast disks
+    - Added ability to reset I3S models positions from the context menu
+  - Various rendering improvements
+    - The scene is scaled properly to avoid aliasing affects
+    - Improved performance when moving the mouse over the scene window with lots of polygon objects
+    - Added basic lighting to Polygon models (including existing Live Feed and SLPK files)
+  - Added small selectable spheres when some types of scene nodes are selected to assist with editing
+  - Window Position and Size is remembered between sessions (including if it is maximised)
+  - Added support for oriented media nodes (photo's that can face a certain direction)
+  - Added ability to select a sub-item of a scene node
+  - Added an error message when the server URL is blank
+  - Added ability to pan and zoom from sky box (under review- will be tweaked. Feedback on this is appreciated)
+  - Added ability to natively render OBJ and VSM files
+  - Added panoramic viewsheds
+  - Added basic geometric filters for UDS files
+  - Added support for relative paths when loading JSON projects
+  - Added new settings
+    - Now possible to display a colour gradient in conjunction with contours
+    - Option to always show the Euclideon logo on the screen
+    - License check out as part of login
+    - Invert X and Y for controller inputs
+  - Fixed lots of minor bugs:
+    - Fixed an issue where random transform were taking place when using the gizmo's in specific circumstances
+    - Fixed edge cases where horizontal lines were forming corkscrews
+    - Input events are no longer lost when focus comes back
+    - Hotkeys no longer activate when the user is typing in a text field
+    - Increased the number of labels required to be on screen before graphical glitches occur (now millions rather than around a thousand)
+    - Going into and out of presentation mode many times quickly no longer stops the mouse working in the scene tab
+    - Media node images load correctly more often
+    - Sped up excessive login and license checkout times that were occuring when in very slow network environments with machines that have very fast per core CPUs
+  
 Version 0.3.1
   - Improvements
     - Added support for FBX (macOS and Windows)
