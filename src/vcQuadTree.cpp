@@ -85,6 +85,7 @@ uint32_t vcQuadTree_FindFreeChildBlock(vcQuadTree *pQuadTree)
   return pQuadTree->nodes.used - NodeChildCount;
 }
 
+// TODO: DEM effect
 double vcQuadTree_PointToRectDistance(udDouble2 edges[4], const udDouble3 &point)
 {
   static const udInt2 edgePairs[] =
@@ -216,11 +217,12 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
 
     if (pQuadTree->pSettings->camera.cameraMode == vcCM_FreeRoam)
     {
-      udInt2 slippyManhattanDist = udInt2::create(udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x), udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y));
-      if (udMagSq2(slippyManhattanDist) != 0)
+      int32_t slippyManhattanDist = udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x) + udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y);
+      if (slippyManhattanDist != 0)
       {
         distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraTreePosition);
-        pChildNode->visible = pChildNode->visible && (udAbs(udSin(pQuadTree->cameraTreePosition.z / distanceToQuadrant)) >= tileToCameraCullAngle);
+        bool withinHorizon = udAbs(udASin(pQuadTree->cameraTreePosition.z / distanceToQuadrant)) >= tileToCameraCullAngle;
+        pChildNode->visible = pChildNode->visible && withinHorizon;
       }
       else
       {
