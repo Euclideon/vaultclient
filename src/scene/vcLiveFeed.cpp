@@ -383,7 +383,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       vcLiveFeedItemLOD &lodRef = pFeedItem->lodLevels[lodI];
 
-      if (lodRef.distance != 0.0 && distanceSq > (lodRef.distance*lodRef.distance) / (pFeedItem->minBoundingRadius * pFeedItem->minBoundingRadius))
+      if (lodRef.distance != 0.0 && distanceSq * pProgramState->settings.presentation.labelLODModifier > (lodRef.distance*lodRef.distance) / (pFeedItem->minBoundingRadius * pFeedItem->minBoundingRadius))
         continue;
 
       if (lodRef.sspixels != 0.0)
@@ -511,6 +511,15 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
       {
         m_maxDisplayDistance = udClamp(m_maxDisplayDistance, displayDistanceMinValue, displayDistanceMaxValue);
         vdkProjectNode_SetMetadataDouble(m_pNode, "maxDisplayDistance", m_maxDisplayDistance);
+      }
+    }
+
+    // LOD Distances
+    {
+      if (ImGui::SliderFloat(vcString::Get("liveFeedLODModifier"), &pProgramState->settings.presentation.labelLODModifier, 0.01f, 5.0f, "%.2f"))
+      {
+        pProgramState->settings.presentation.labelLODModifier = udClamp(pProgramState->settings.presentation.labelLODModifier, 0.01f, 5.0f);
+        vdkProjectNode_SetMetadataDouble(m_pNode, "lodModifier", pProgramState->settings.presentation.labelLODModifier);
       }
     }
 

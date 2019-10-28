@@ -57,6 +57,8 @@ public:
 
   udMutex *m_pMutex;
 
+  float labelLODModifier;
+
   vcLiveFeed(vdkProject *pProject, vdkProjectNode *pProjectNode, vcState *pProgramState);
   ~vcLiveFeed() {};
 

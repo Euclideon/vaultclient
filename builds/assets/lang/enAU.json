@@ -54,7 +54,6 @@
   "settingsAppearanceDark": "Dark Theme",
   "settingsAppearanceLight": "Light Theme",
   "settingsAppearancePOIDistance": "Max POI Distance",
-  "settingsAppearanceTextScale": "Label Text Scale",
   "settingsAppearanceShowDiagnostics": "Show Diagnostic Information",
   "settingsAppearanceShowEuclideonLogo": "Show Euclideon Logo",
   "settingsAppearanceAdvancedGIS": "Show Advanced GIS Settings",
@@ -488,6 +487,7 @@
   "liveFeedTween": "Enable Tweening / Position Smoothing",
   "liveFeedDiagInfo": "Total Cached Items: {0}\nCurrently displaying {1} items.\nNext Update in {2} seconds.",
   "liveFeedGroupID": "Group ID",
+  "liveFeedLODModifier": "LOD Distance Modifier",
 
   "polyModelMesh": "Mesh",
   "polyModelTexture": "Texture",

@@ -48,8 +48,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
       if (ImGui::SliderFloat(vcString::Get("settingsAppearancePOIDistance"), &pProgramState->settings.presentation.POIFadeDistance, vcSL_POIFaderMin, vcSL_POIFaderMax, "%.3fm", 3.f))
         pProgramState->settings.presentation.POIFadeDistance = udClamp(pProgramState->settings.presentation.POIFadeDistance, vcSL_POIFaderMin, vcSL_GlobalLimitf);
-      if (ImGui::SliderFloat(vcString::Get("settingsAppearanceTextScale"), &pProgramState->settings.presentation.textScale, .01f, 3.0f, "%.2fx", 1.f))
-        pProgramState->settings.presentation.textScale = udClamp(pProgramState->settings.presentation.textScale, .01f, 3.0f);
       ImGui::Checkbox(vcString::Get("settingsAppearanceShowDiagnostics"), &pProgramState->settings.presentation.showDiagnosticInfo);
       ImGui::Checkbox(vcString::Get("settingsAppearanceShowEuclideonLogo"), &pProgramState->settings.presentation.showEuclideonLogo);
       ImGui::Checkbox(vcString::Get("settingsAppearanceAdvancedGIS"), &pProgramState->settings.presentation.showAdvancedGIS);

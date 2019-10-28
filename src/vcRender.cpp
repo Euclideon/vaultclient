@@ -1057,7 +1057,7 @@ void vcRender_SceneImGui(vcState *pProgramState, vcRenderContext *pRenderContext
 {
   // Labels
   for (size_t i = 0; i < renderData.labels.length; ++i)
-    vcLabelRenderer_Render(renderData.labels[i], pProgramState->pCamera->matrices.viewProjection, pRenderContext->sceneResolution, pProgramState->settings.presentation.textScale);
+    vcLabelRenderer_Render(renderData.labels[i], pProgramState->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
 }
 
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext)

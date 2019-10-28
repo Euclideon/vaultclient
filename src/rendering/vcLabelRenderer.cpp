@@ -4,7 +4,7 @@
 
 #include "imgui.h"
 
-bool vcLabelRenderer_Render(vcLabelInfo *pLabelRenderer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, const float textScale)
+bool vcLabelRenderer_Render(vcLabelInfo *pLabelRenderer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize)
 {
   ImDrawList* drawList = ImGui::GetWindowDrawList();
   if (!drawList || !pLabelRenderer->pText)
@@ -12,9 +12,9 @@ bool vcLabelRenderer_Render(vcLabelInfo *pLabelRenderer, const udDouble4x4 &view
 
   // These values were picked by visual inspection
   if (pLabelRenderer->textSize == vcLFS_Large)
-    ImGui::SetWindowFontScale(1.2f * textScale);
+    ImGui::SetWindowFontScale(1.2f);
   else if (pLabelRenderer->textSize == vcLFS_Small)
-    ImGui::SetWindowFontScale(0.87f * textScale);
+    ImGui::SetWindowFontScale(0.87f);
 
   ImVec2 halfLabelSize = ImGui::CalcTextSize(pLabelRenderer->pText);
   halfLabelSize.x *= 0.5;
@@ -33,9 +33,6 @@ bool vcLabelRenderer_Render(vcLabelInfo *pLabelRenderer, const udDouble4x4 &view
     drawList->AddQuadFilled(ImVec2(windowPosition.x - halfLabelSize.x, windowPosition.y - halfLabelSize.y), ImVec2(windowPosition.x + halfLabelSize.x, windowPosition.y - halfLabelSize.y), ImVec2(windowPosition.x + halfLabelSize.x, windowPosition.y + halfLabelSize.y), ImVec2(windowPosition.x - halfLabelSize.x, windowPosition.y + halfLabelSize.y), pLabelRenderer->backColourRGBA);
     drawList->AddText(ImVec2(windowPosition.x - halfLabelSize.x, windowPosition.y - halfLabelSize.y), pLabelRenderer->textColourRGBA, pLabelRenderer->pText);
   }
-
-  if (pLabelRenderer->textSize != vcLFS_Medium)
-    ImGui::SetWindowFontScale(1.f);
 
   return true;
 }

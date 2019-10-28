@@ -767,7 +767,7 @@ int main(int argc, char **args)
   programState.settings.window.windowsOpen[vcDocks_SceneExplorer] = true;
   programState.settings.window.windowsOpen[vcDocks_Convert] = true;
   programState.settings.languageOptions.Init(4);
-  programState.settings.presentation.textScale = 1.0;
+  programState.settings.presentation.labelLODModifier = 1.0;
 
   programState.settings.hideIntervalSeconds = 3;
   programState.showUI = true;
