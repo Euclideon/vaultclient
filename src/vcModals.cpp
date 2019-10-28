@@ -528,40 +528,9 @@ void vcModals_DrawFileModal(vcState *pProgramState)
     }
     else if (saveFile)
     {
-      const char *pOutput = nullptr;
-      if (vdkProject_WriteToMemory(pProgramState->activeProject.pProject, &pOutput) == vE_Success)
-      {
-        udFindDir *pDir = nullptr;
-        udFilename exportFilename(pProgramState->modelPath);
-        if (!udStrEquali(pProgramState->modelPath, "") && !udStrEndsWithi(pProgramState->modelPath, "/") && !udStrEndsWithi(pProgramState->modelPath, "\\") && udOpenDir(&pDir, pProgramState->modelPath) == udR_Success)
-          exportFilename.SetFromFullPath("%s/untitled_project.json", pProgramState->modelPath);
-        else if (exportFilename.HasFilename())
-          exportFilename.SetExtension(".json");
-        else
-          exportFilename.SetFilenameWithExt("untitled_project.json");
-
-        // Check if file path exists before writing to disk, and if so, the user will be presented with the option to overwrite or cancel
-        if (vcModals_OverwriteExistingFile(exportFilename.GetPath()))
-        {
-          pProgramState->modelPath[0] = '\0';
-          ImGui::CloseCurrentPopup();
-
-          vcState::ErrorItem projectError;
-          projectError.source = vcES_ProjectChange;
-          projectError.pData = udStrdup(exportFilename.GetFilenameWithExt());
-
-          if (udFile_Save(exportFilename.GetPath(), (void *)pOutput, udStrlen(pOutput)) == udR_Success)
-            projectError.resultCode = udR_Success;
-          else
-            projectError.resultCode = udR_WriteFailure;
-
-          pProgramState->errorItems.PushBack(projectError);
-
-          vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-        }
-        if (pDir != nullptr)
-          udFree(pDir);
-      }
+      vcProject_Save(pProgramState, pProgramState->modelPath, false);
+      pProgramState->modelPath[0] = '\0';
+      ImGui::CloseCurrentPopup();
     }
     ImGui::EndPopup();
   }

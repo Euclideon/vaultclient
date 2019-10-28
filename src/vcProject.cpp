@@ -60,7 +60,11 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
       temp.SetFilenameWithExt("");
       pProgramState->activeProject.pRelativeBase = udStrdup(temp.GetPath());
 
-      pProgramState->getGeo = true;
+      int32_t recommendedSRID = -1;
+      if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, -1) == vE_Success && recommendedSRID >= 0 && udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success)
+        vcGIS_ChangeSpace(&pProgramState->gis, zone);
+      else
+        pProgramState->getGeo = true;
     }
     else
     {
@@ -127,6 +131,50 @@ void vcProject_Deinit(vcState *pProgramData, vcProject *pProject)
   udFree(pProject->pRelativeBase);
   vcProject_RecursiveDestroyUserData(pProgramData, pProject->pRoot);
   vdkProject_Release(&pProject->pProject);
+}
+
+void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverride)
+{
+  if (pProgramState == nullptr || pPath == nullptr)
+    return;
+
+  const char *pOutput = nullptr;
+
+  if (pProgramState->gis.isProjected)
+    vdkProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", pProgramState->gis.SRID);
+
+  if (vdkProject_WriteToMemory(pProgramState->activeProject.pProject, &pOutput) == vE_Success)
+  {
+    udFindDir *pDir = nullptr;
+    udFilename exportFilename(pPath);
+
+    if (!udStrEquali(pPath, "") && !udStrEndsWithi(pPath, "/") && !udStrEndsWithi(pPath, "\\") && udOpenDir(&pDir, pPath) == udR_Success)
+      exportFilename.SetFromFullPath("%s/untitled_project.json", pPath);
+    else if (exportFilename.HasFilename())
+      exportFilename.SetExtension(".json");
+    else
+      exportFilename.SetFilenameWithExt("untitled_project.json");
+
+    // Check if file path exists before writing to disk, and if so, the user will be presented with the option to overwrite or cancel
+    if (allowOverride || vcModals_OverwriteExistingFile(exportFilename.GetPath()))
+    {
+      vcState::ErrorItem projectError;
+      projectError.source = vcES_ProjectChange;
+      projectError.pData = udStrdup(exportFilename.GetFilenameWithExt());
+
+      if (udFile_Save(exportFilename.GetPath(), (void *)pOutput, udStrlen(pOutput)) == udR_Success)
+        projectError.resultCode = udR_Success;
+      else
+        projectError.resultCode = udR_WriteFailure;
+
+      pProgramState->errorItems.PushBack(projectError);
+
+      vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+    }
+
+    if (pDir != nullptr)
+      udFree(pDir);
+  }
 }
 
 void vcProject_RemoveItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode)
