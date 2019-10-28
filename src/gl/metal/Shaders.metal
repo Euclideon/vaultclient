@@ -695,6 +695,20 @@ float4 flatColorFragmentShader(FCFSInput in [[stage_in]])
     return float4(in.color);
 }
 
+// g_DepthOnly_FragmentShader
+struct DOFSInput
+{
+    float4 pos [[attribute(0)]];
+    float2 uv [[attribute(1)]];
+    float3 normal [[attribute(2)]];
+    float4 color [[attribute(3)]];
+};
+
+float4 depthOnlyFragmentShader(DOFSInput in [[stage_in]])
+{
+    return float4(0.0, 0.0, 0.0, 0.0);
+}
+
 // g_BlurVertexShader
 struct BlVSInput
 {

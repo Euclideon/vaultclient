@@ -176,7 +176,7 @@ const char *const g_VisualizationVertexShader = R"shader(
 )shader";
 
 const char *const g_ViewShedFragmentShader = R"shader(
-struct PS_INPUT
+  struct PS_INPUT
   {
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
@@ -193,6 +193,7 @@ struct PS_INPUT
   sampler sampler1;
   Texture2D texture1;
 
+  // Should match CPU
   #define MAP_COUNT 3
 
   cbuffer u_params : register(b0)
@@ -203,6 +204,13 @@ struct PS_INPUT
     float4 u_notVisibleColour;
     float4 u_nearFarPlane; // .zw unused
   };
+
+  float linearizeDepth(float depth)
+  {
+    float nearPlane = u_nearFarPlane.x;
+    float farPlane = u_nearFarPlane.y;
+    return (2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
+  }
 
   PS_OUTPUT main(PS_INPUT input)
   {
@@ -216,28 +224,32 @@ struct PS_INPUT
 
     float3 sampleUV = float3(0, 0, 0);
 
+    float bias = 0.000000425 * u_nearFarPlane.y;
+
     // unrolled loop
-    float4 shadowMapClip0 = mul(u_shadowMapVP[0], float4(fragEyePosition.xyz, 1.0));
-    shadowMapClip0 /= shadowMapClip0.w;
-    shadowMapClip0.xy = (shadowMapClip0.xy * float2(0.5, 0.5)) + float2(0.5, 0.5);
+    float4 shadowMapCoord0 = mul(u_shadowMapVP[0], float4(fragEyePosition.xyz, 1.0));
+    float4 shadowMapCoord1 = mul(u_shadowMapVP[1], float4(fragEyePosition.xyz, 1.0));
+    float4 shadowMapCoord2 = mul(u_shadowMapVP[2], float4(fragEyePosition.xyz, 1.0));
+
+    // bias z before w divide
+    shadowMapCoord0.z -= bias;
+    shadowMapCoord1.z -= bias;
+    shadowMapCoord2.z -= bias;
     
-    float4 shadowMapClip1 = mul(u_shadowMapVP[1], float4(fragEyePosition.xyz, 1.0));
-    shadowMapClip1 /= shadowMapClip1.w;
-    shadowMapClip1.xy = (shadowMapClip1.xy * float2(0.5, 0.5)) + float2(0.5, 0.5);
+    // note: z has no scale & biased because we are using a [0, 1] depth projection matrix here
+    float3 shadowMapClip0 = (shadowMapCoord0.xyz / shadowMapCoord0.w) * float3(0.5, 0.5, 1.0) + float3(0.5, 0.5, 0.0);
+    float3 shadowMapClip1 = (shadowMapCoord1.xyz / shadowMapCoord1.w) * float3(0.5, 0.5, 1.0) + float3(0.5, 0.5, 0.0);
+    float3 shadowMapClip2 = (shadowMapCoord2.xyz / shadowMapCoord2.w) * float3(0.5, 0.5, 1.0) + float3(0.5, 0.5, 0.0);
     
-    float4 shadowMapClip2 = mul(u_shadowMapVP[2], float4(fragEyePosition.xyz, 1.0));
-    shadowMapClip2 /= shadowMapClip2.w;
-    shadowMapClip2.xy = (shadowMapClip2.xy * float2(0.5, 0.5)) + float2(0.5, 0.5);
-    
-    float isInMap0 = float(shadowMapClip0.x >= 0 && shadowMapClip0.x <= 1 && shadowMapClip0.y >= 0 && shadowMapClip0.y <= 1 && shadowMapClip0.z >= -1 && shadowMapClip0.z <= 1);
-    float isInMap1 = float(shadowMapClip1.x >= 0 && shadowMapClip1.x <= 1 && shadowMapClip1.y >= 0 && shadowMapClip1.y <= 1 && shadowMapClip1.z >= -1 && shadowMapClip1.z <= 1);
-    float isInMap2 = float(shadowMapClip2.x >= 0 && shadowMapClip2.x <= 1 && shadowMapClip2.y >= 0 && shadowMapClip2.y <= 1 && shadowMapClip2.z >= -1 && shadowMapClip2.z <= 1);
-    
-    // note depth is left [-1, 1]
-    float3 shadowMapUV0 = float3((0.0 / MAP_COUNT) + shadowMapClip0.x / MAP_COUNT, 1.0 - shadowMapClip0.y, shadowMapClip0.z);
-    float3 shadowMapUV1 = float3((1.0 / MAP_COUNT) + shadowMapClip1.x / MAP_COUNT, 1.0 - shadowMapClip1.y, shadowMapClip1.z);
-    float3 shadowMapUV2 = float3((2.0 / MAP_COUNT) + shadowMapClip2.x / MAP_COUNT, 1.0 - shadowMapClip2.y, shadowMapClip2.z);
-    
+    float isInMap0 = float(shadowMapClip0.x > 0.0 && shadowMapClip0.x < 1.0 && shadowMapClip0.y > 0.0 && shadowMapClip0.y < 1.0 && shadowMapClip0.z > 0.0 && shadowMapClip0.z < 1.0);
+    float isInMap1 = float(shadowMapClip1.x > 0.0 && shadowMapClip1.x < 1.0 && shadowMapClip1.y > 0.0 && shadowMapClip1.y < 1.0 && shadowMapClip1.z > 0.0 && shadowMapClip1.z < 1.0);
+    float isInMap2 = float(shadowMapClip2.x > 0.0 && shadowMapClip2.x < 1.0 && shadowMapClip2.y > 0.0 && shadowMapClip2.y < 1.0 && shadowMapClip2.z > 0.0 && shadowMapClip2.z < 1.0);
+
+    // atlas UVs
+    float3 shadowMapUV0 = float3((0.0 / float(MAP_COUNT)) + shadowMapClip0.x / float(MAP_COUNT), 1.0 - shadowMapClip0.y, shadowMapClip0.z);
+    float3 shadowMapUV1 = float3((1.0 / float(MAP_COUNT)) + shadowMapClip1.x / float(MAP_COUNT), 1.0 - shadowMapClip1.y, shadowMapClip1.z);
+    float3 shadowMapUV2 = float3((2.0 / float(MAP_COUNT)) + shadowMapClip2.x / float(MAP_COUNT), 1.0 - shadowMapClip2.y, shadowMapClip2.z);
+
     sampleUV = lerp(sampleUV, shadowMapUV0, isInMap0);
     sampleUV = lerp(sampleUV, shadowMapUV1, isInMap1);
     sampleUV = lerp(sampleUV, shadowMapUV2, isInMap2);
@@ -245,13 +257,9 @@ struct PS_INPUT
     if (length(sampleUV) > 0.0)
     {
       // fragment is inside the view shed bounds
-      col = u_visibleColour;
-
       float shadowMapDepth = texture1.Sample(sampler1, sampleUV.xy).x;
-      
-      float bias = (u_nearFarPlane.y - u_nearFarPlane.x) * 0.00000003;
-      if (shadowMapDepth < sampleUV.z - bias)
-        col = u_notVisibleColour;
+      float diff = (0.2 * u_nearFarPlane.y) * (linearizeDepth(sampleUV.z) - linearizeDepth(shadowMapDepth));
+      col = lerp(u_visibleColour, u_notVisibleColour, clamp(diff, 0.0, 1.0));
     }
 
     output.Color0 = float4(col.xyz * col.w, 1.0); //additive
@@ -282,7 +290,7 @@ const char *const g_ViewShedVertexShader = R"shader(
   }
 )shader";
 
-const char* const g_udFragmentShader = R"shader(
+const char *const g_udFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -310,11 +318,12 @@ const char* const g_udFragmentShader = R"shader(
 
     output.Color0 = float4(col.xyz, 1.0);// UD always opaque
     output.Depth0 = depth;
+
     return output;
   }
 )shader";
 
-const char* const g_udVertexShader = R"shader(
+const char *const g_udVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
@@ -337,7 +346,7 @@ const char* const g_udVertexShader = R"shader(
 )shader";
 
 
-const char* const g_udSplatIdFragmentShader = R"shader(
+const char *const g_udSplatIdFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -384,7 +393,7 @@ const char* const g_udSplatIdFragmentShader = R"shader(
 
 )shader";
 
-const char* const g_tileFragmentShader = R"shader(
+const char *const g_tileFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -402,7 +411,7 @@ const char* const g_tileFragmentShader = R"shader(
   }
 )shader";
 
-const char* const g_tileVertexShader = R"shader(
+const char *const g_tileVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
@@ -439,7 +448,7 @@ const char* const g_tileVertexShader = R"shader(
   }
 )shader";
 
-const char* const g_CompassFragmentShader = R"shader(
+const char *const g_CompassFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -461,7 +470,7 @@ const char* const g_CompassFragmentShader = R"shader(
   }
 )shader";
 
-const char* const g_CompassVertexShader = R"shader(
+const char *const g_CompassVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
@@ -498,7 +507,7 @@ const char* const g_CompassVertexShader = R"shader(
   }
   )shader";
 
-const char* const g_vcSkyboxVertexShader = R"shader(
+const char *const g_vcSkyboxVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
@@ -520,7 +529,7 @@ const char* const g_vcSkyboxVertexShader = R"shader(
   }
 )shader";
 
-const char* const g_vcSkyboxFragmentShaderPanarama = R"shader(
+const char *const g_vcSkyboxFragmentShaderPanarama = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -552,7 +561,7 @@ const char* const g_vcSkyboxFragmentShaderPanarama = R"shader(
   }
 )shader";
 
-const char* const g_vcSkyboxFragmentShaderImageColour = R"shader(
+const char *const g_vcSkyboxFragmentShaderImageColour = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -576,7 +585,7 @@ const char* const g_vcSkyboxFragmentShaderImageColour = R"shader(
   }
 )shader";
 
-const char* const g_ImGuiVertexShader = R"vert(
+const char *const g_ImGuiVertexShader = R"vert(
   cbuffer u_EveryFrame : register(b0)
   {
     float4x4 ProjectionMatrix;
@@ -606,7 +615,7 @@ const char* const g_ImGuiVertexShader = R"vert(
   }
 )vert";
 
-const char* const g_ImGuiFragmentShader = R"frag(
+const char *const g_ImGuiFragmentShader = R"frag(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -625,7 +634,7 @@ const char* const g_ImGuiFragmentShader = R"frag(
 )frag";
 
 
-const char* const g_FenceVertexShader = R"shader(
+const char *const g_FenceVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
@@ -673,7 +682,7 @@ const char* const g_FenceVertexShader = R"shader(
   }
 )shader";
 
-const char* const g_FenceFragmentShader = R"shader(
+const char *const g_FenceFragmentShader = R"shader(
   //Input Format
   struct PS_INPUT
   {
@@ -692,7 +701,7 @@ const char* const g_FenceFragmentShader = R"shader(
   }
 )shader";
 
-const char* const g_WaterFragmentShader = R"shader(
+const char *const g_WaterFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -757,7 +766,7 @@ const char* const g_WaterFragmentShader = R"shader(
   }
 )shader";
 
-const char* const g_WaterVertexShader = R"shader(
+const char *const g_WaterVertexShader = R"shader(
   struct VS_INPUT
   {
     float2 pos : POSITION;
@@ -803,7 +812,7 @@ const char* const g_WaterVertexShader = R"shader(
   }
 )shader";
 
-const char* const g_PolygonP3N3UV2FragmentShader = R"shader(
+const char *const g_PolygonP3N3UV2FragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -829,7 +838,7 @@ const char* const g_PolygonP3N3UV2FragmentShader = R"shader(
   }
 )shader";
 
-const char* const g_PolygonP3N3UV2VertexShader = R"shader(
+const char *const g_PolygonP3N3UV2VertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
@@ -956,7 +965,7 @@ const char *const g_ImageRendererBillboardVertexShader = R"shader(
   }
 )shader";
 
-const char* const g_FlatColour_FragmentShader = R"shader(
+const char *const g_FlatColour_FragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -971,8 +980,28 @@ const char* const g_FlatColour_FragmentShader = R"shader(
   }
 )shader";
 
+const char *const g_DepthOnly_FragmentShader = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+  };
 
-const char* const g_BlurVertexShader = R"shader(
+  struct PS_OUTPUT
+  {
+    float4 Color0 : SV_Target;
+  };
+
+  PS_OUTPUT main(PS_INPUT input)
+  {
+    PS_OUTPUT output;
+
+    output.Color0 = float4(0.0, 0.0, 0.0, 0.0);
+
+    return output;
+  }
+)shader";
+
+const char *const g_BlurVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
@@ -1009,7 +1038,7 @@ const char* const g_BlurVertexShader = R"shader(
   }
 )shader";
 
-const char* const g_BlurFragmentShader = R"shader(
+const char *const g_BlurFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -1038,7 +1067,7 @@ const char* const g_BlurFragmentShader = R"shader(
 
 )shader";
 
-const char* const g_HighlightVertexShader = R"shader(
+const char *const g_HighlightVertexShader = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
@@ -1083,7 +1112,7 @@ const char* const g_HighlightVertexShader = R"shader(
   }
 )shader";
 
-const char* const g_HighlightFragmentShader = R"shader(
+const char *const g_HighlightFragmentShader = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;

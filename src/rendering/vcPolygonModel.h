@@ -9,7 +9,7 @@ enum vcPolyModelPass
 {
   vcPMP_Standard,
   vcPMP_ColourOnly,
-  //vcPMP_Shadows,
+  vcPMP_Shadows, // depth only
 };
 
 struct vcTexture;

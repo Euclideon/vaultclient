@@ -63,6 +63,7 @@ void vcPolyModelNode::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRen
   pModel->pSceneItem = this;
   pModel->worldMat = m_matrix;
   pModel->insideOut = m_invert;
+  pModel->affectsViewShed = true;
 }
 
 void vcPolyModelNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
