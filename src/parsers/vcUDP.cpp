@@ -637,7 +637,6 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
         }
       }
     }
-    pProgramState->getGeo = true;
 
     for (size_t itemNum = 0; itemNum < itemData.size(); ++itemNum)
     {
