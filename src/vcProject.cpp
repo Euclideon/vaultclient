@@ -63,8 +63,6 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
       int32_t recommendedSRID = -1;
       if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, -1) == vE_Success && recommendedSRID >= 0 && udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success)
         vcGIS_ChangeSpace(&pProgramState->gis, zone);
-      else
-        pProgramState->getGeo = true;
     }
     else
     {

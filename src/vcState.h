@@ -174,9 +174,6 @@ struct vcState
   vcTranslationInfo languageInfo;
   bool showUI;
   vcDocks changeActiveDock;
-
-  bool getGeo;
-  udGeoZone *pGotGeo;
 };
 
 #endif // !vcState_h__
