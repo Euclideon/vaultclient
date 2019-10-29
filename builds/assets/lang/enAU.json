@@ -455,6 +455,10 @@
   "scenePOILabelImageTypePanorama": "Panorama",
   "scenePOILabelImageTypePhotosphere": "Photo Sphere",
   "scenePOIReloadTime": "Reload Time (secs)",
+  "scenePOIAttachModel": "Attach Model",
+  "scenePOIAttachModelURI": "URL",
+  "scenePOIAttachModelFailed": "Failed to load model",
+  "scenePOIAttachmentSpeed": "Attached Model Speed",
 
   "scenePOILineSettings": "Line Settings",
   "scenePOILineShowLength": "Show Length",
