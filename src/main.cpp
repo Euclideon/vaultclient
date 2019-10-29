@@ -409,7 +409,9 @@ void vcMain_MainLoop(vcState *pProgramState)
               continue;
             }
             else if (firstLoad) // Was successful
+            {
               udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+            }
           }
           else if (udStrEquali(pExt, ".vsm") || udStrEquali(pExt, ".obj"))
           {
@@ -429,7 +431,9 @@ void vcMain_MainLoop(vcState *pProgramState)
               continue;
             }
             else if (firstLoad) // Was successful
+            {
               udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+            }
           }
           else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif"))
           {
@@ -502,7 +506,25 @@ void vcMain_MainLoop(vcState *pProgramState)
           }
           else if (udStrEquali(pExt, ".slpk"))
           {
-            vdkProjectNode_Create(pProgramState->activeProject.pProject, nullptr, pProgramState->activeProject.pRoot, "I3S", loadFile.GetFilenameWithExt(), pNextLoad, nullptr);
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "I3S", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) != vE_Success)
+            {
+              vcState::ErrorItem projectError;
+              projectError.source = vcES_ProjectChange;
+              projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
+              projectError.resultCode = udR_ReadFailure;
+
+              pNextLoad = nullptr;
+
+              pProgramState->errorItems.PushBack(projectError);
+
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+
+              continue;
+            }
+            else if (firstLoad) // Was successful
+            {
+              udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+            }
           }
           else // This file isn't supported in the scene
           {
