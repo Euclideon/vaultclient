@@ -1,5 +1,4 @@
 #include "vcLabelRenderer.h"
-#include "vcState.h"
 #include "udPlatformUtil.h"
 
 #include "imgui.h"
