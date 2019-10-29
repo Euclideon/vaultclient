@@ -249,6 +249,13 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
 
   UD_ERROR_CHECK(vcOBJ_Load(&pOBJReader, pFilepath));
 
+  if (pOBJReader->materials.length == 0)
+  {
+    vcOBJ::Material *pMat = pOBJReader->materials.PushBack();
+    pMat->Ka = udFloat3::create(1.f);
+    pMat->Kd = udFloat3::create(1.f);
+  }
+
   pPolygonModel->pMeshes = udAllocType(vcPolygonModelMesh, pOBJReader->materials.length, udAF_Zero);
   UD_ERROR_NULL(pPolygonModel->pMeshes, udR_MemoryAllocationFailure);
 
@@ -267,7 +274,7 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
     for (uint32_t f = 0; f < pOBJReader->faces.length; ++f)
     {
       vcOBJ::Face *pFace = &pOBJReader->faces[f];
-      if (pFace->mat != material)
+      if (pFace->mat != material && pFace->mat != -1)
         continue;
 
       pMesh->numVertices += 3;
@@ -278,7 +285,7 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
     for (uint32_t f = 0; f < pOBJReader->faces.length; ++f)
     {
       vcOBJ::Face *pFace = &pOBJReader->faces[f];
-      if (pFace->mat != material)
+      if (pFace->mat != material && pFace->mat != -1)
         continue;
 
       for (int i = 0; i < 3; ++i)

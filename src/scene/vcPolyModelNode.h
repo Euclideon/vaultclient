@@ -27,6 +27,8 @@ public:
 private:
   vcPolygonModel *m_pModel;
   udDouble4x4 m_matrix;
+
+  bool m_invert;
 };
 
 #endif //vcPolyModelNode_h__

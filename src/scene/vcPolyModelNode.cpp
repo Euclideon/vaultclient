@@ -15,17 +15,23 @@ vcPolyModelNode::vcPolyModelNode(vdkProject *pProject, vdkProjectNode *pNode, vc
 {
   m_pModel = nullptr;
   m_matrix = udDouble4x4::identity();
+  m_invert = false;
 
   //TODO: Do this load async
   if (vcPolygonModel_CreateFromURL(&m_pModel, pNode->pURI) == udR_Success)
     m_loadStatus = vcSLS_Loaded;
   else
     m_loadStatus = vcSLS_Failed;
+
+  OnNodeUpdate(pProgramState);
 }
 
 void vcPolyModelNode::OnNodeUpdate(vcState * /*pProgramState*/)
 {
-  // Does nothing
+  const char *pTemp = nullptr;
+  vdkProjectNode_GetMetadataString(m_pNode, "culling", &pTemp, "back");
+
+  m_invert = !udStrEqual(pTemp, "back");
 }
 
 void vcPolyModelNode::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
@@ -37,6 +43,7 @@ void vcPolyModelNode::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRen
   pModel->pModel = m_pModel;
   pModel->pSceneItem = this;
   pModel->worldMat = m_matrix;
+  pModel->insideOut = m_invert;
 }
 
 void vcPolyModelNode::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
@@ -48,6 +55,9 @@ void vcPolyModelNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   if (m_pModel == nullptr)
     return;
+
+  if (ImGui::Checkbox(udTempStr("%s##%zu", vcString::Get("polyModelMatColour"), *pItemID), &m_invert))
+    vdkProjectNode_SetMetadataString(m_pNode, "culling", m_invert ? "front" : "back");
 
   if (pProgramState->settings.presentation.showDiagnosticInfo)
   {
