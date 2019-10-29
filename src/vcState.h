@@ -94,7 +94,6 @@ struct vcState
 
   vcTexture *pCompanyLogo;
   vcTexture *pCompanyWatermark;
-  vcTexture *pBuildingsTexture;
   vcTexture *pSceneWatermark;
   vcTexture *pUITexture;
   vcTexture *pWhiteTexture;
