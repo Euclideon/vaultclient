@@ -12,12 +12,12 @@ Version 0.4.0 (WIP)
     - Increased support for additional types of FBX files
     - Added drop down to set all spaces in a conversion rather than doing it individually
     - Convert CMD takes a global offset now (`-globaloffset X Y Z`)
-    - Added Earth Centered, Earth Fixed support to conversion
+    - Added Earth Centred, Earth Fixed support to conversion
     - Fixed some issues with estimation of resolution for conversion
     - Added support for additional SRID codes from customers and the community
   - Improvements to SLPK
     - Loading prioritizes objects closer to the camera
-    - Fixed some crahes that occurred when loading lots of SLPK files at the same time from fast disks
+    - Fixed some crashes that occurred when loading lots of SLPK files at the same time from fast disks
     - Added ability to reset I3S models positions from the context menu
   - Various rendering improvements
     - The scene is scaled properly to avoid aliasing affects
@@ -30,6 +30,7 @@ Version 0.4.0 (WIP)
   - Added an error message when the server URL is blank
   - Added ability to pan and zoom from sky box (under review- will be tweaked. Feedback on this is appreciated)
   - Added ability to natively render OBJ and VSM files
+  - Added feature to attach polygon models to move along lines and area perimeters
   - Added panoramic viewsheds
   - Added basic geometric filters for UDS files
   - Added support for relative paths when loading JSON projects
@@ -46,7 +47,7 @@ Version 0.4.0 (WIP)
     - Increased the number of labels required to be on screen before graphical glitches occur (now millions rather than around a thousand)
     - Going into and out of presentation mode many times quickly no longer stops the mouse working in the scene tab
     - Media node images load correctly more often
-    - Sped up excessive login and license checkout times that were occuring when in very slow network environments with machines that have very fast per core CPUs
+    - Sped up excessive login and license checkout times that were occurring when in very slow network environments with machines that have very fast per core CPUs
   
 Version 0.3.1
   - Improvements
@@ -57,7 +58,7 @@ Version 0.3.1
     - Images in the scene can be set to reload over time
   - Other Fixes and Changes
     - Renaming of scene items works again
-    - Improved Chinese localization (submitted from Hongzhu Liu)
+    - Improved Chinese localization (submitted from Hongzhi Liu)
     - Slider no longer has "sticky" points in the settings menu
     - Fixed issues with convert text boxes not allowing input
     - SLPKs in long folder paths now function correctly

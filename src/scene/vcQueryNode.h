@@ -41,6 +41,7 @@ public:
   void ChangeProjection(const udGeoZone &newZone);
 
   udDouble4x4 GetWorldSpaceMatrix();
+  vcGizmoAllowedControls GetAllowedControls();
 };
 
 #endif //vcViewpoint_h__
