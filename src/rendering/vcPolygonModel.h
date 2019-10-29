@@ -12,8 +12,38 @@ enum vcPolyModelPass
   //vcPMP_Shadows,
 };
 
-struct vcPolygonModel;
 struct vcTexture;
+struct vcMesh;
+
+struct vcPolygonModelMaterial
+{
+  uint16_t flags;
+  uint32_t colour; // bgra
+
+  const char *pName;
+  vcTexture *pTexture;
+};
+
+struct vcPolygonModelMesh
+{
+  uint16_t flags;
+  uint16_t materialID;
+  uint16_t LOD;
+  uint32_t numVertices;
+  uint32_t numElements;
+
+  vcPolygonModelMaterial material; // TODO: materialID should reference a container of there. These should be shared between meshes, and rendering should be organized by material.
+  vcMesh *pMesh;
+};
+
+struct vcPolygonModel
+{
+  int meshCount;
+  vcPolygonModelMesh *pMeshes;
+
+  udDouble3 origin;
+  udDouble4x4 modelOffset;
+};
 
 udResult vcPolygonModel_CreateShaders();
 udResult vcPolygonModel_DestroyShaders();

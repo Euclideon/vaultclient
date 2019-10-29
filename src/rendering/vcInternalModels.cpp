@@ -18,9 +18,10 @@ udResult vcInternalModels_Init()
   UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_ScreenQuad], vcP3UV2VertexLayout, int(udLengthOf(vcP3UV2VertexLayout)), screenQuadVertices, 4, screenQuadIndices, 6, vcMF_IndexShort));
   UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_FlippedScreenQuad], vcP3UV2VertexLayout, int(udLengthOf(vcP3UV2VertexLayout)), flippedScreenQuadVertices, 4, flippedScreenQuadIndices, 6, vcMF_IndexShort));
 
+  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_WorldQuad], vcP3N3UV2VertexLayout, int(udLengthOf(vcP3N3UV2VertexLayout)), worldQuadVertices, 4, worldQuadIndices, 6, vcMF_IndexShort));
   UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Billboard], vcP3UV2VertexLayout, (int)udLengthOf(vcP3UV2VertexLayout), billboardVertices, (int)udLengthOf(billboardVertices), billboardIndices, (int)udLengthOf(billboardIndices), vcMF_IndexShort));
-  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Sphere], vcP3UV2VertexLayout, (int)udLengthOf(vcP3UV2VertexLayout), pSphereVertices, (int)udLengthOf(sphereVerticesFltArray), sphereIndices, (int)udLengthOf(sphereIndices), vcMF_IndexShort));
-  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Tube], vcP3UV2VertexLayout, (int)udLengthOf(vcP3UV2VertexLayout), pTubeVertices, (int)udLengthOf(tubeVerticesFltArray), tubeIndices, (int)udLengthOf(tubeIndices), vcMF_IndexShort));
+  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Sphere], vcP3N3UV2VertexLayout, (int)udLengthOf(vcP3N3UV2VertexLayout), pSphereVertices, (int)udLengthOf(sphereVerticesFltArray), sphereIndices, (int)udLengthOf(sphereIndices), vcMF_IndexShort));
+  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Tube], vcP3N3UV2VertexLayout, (int)udLengthOf(vcP3N3UV2VertexLayout), pTubeVertices, (int)udLengthOf(tubeVerticesFltArray), tubeIndices, (int)udLengthOf(tubeIndices), vcMF_IndexShort));
 
   UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Orbit], vcP3N3VertexLayout, (int)udLengthOf(vcP3N3VertexLayout), pOrbitVertices, (int)udLengthOf(orbitVerticesFltArray), orbitIndices, (int)udLengthOf(orbitIndices), vcMF_IndexShort));
   UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Compass], vcP3N3VertexLayout, int(udLengthOf(vcP3N3VertexLayout)), pCompassVerts, (int)udLengthOf(compassVertsFltArray), compassIndices, (int)udLengthOf(compassIndices), vcMF_IndexShort));

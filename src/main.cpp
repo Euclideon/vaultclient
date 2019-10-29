@@ -43,11 +43,12 @@
 #include "vcSession.h"
 #include "vcPOI.h"
 #include "vcStringFormat.h"
+#include "vcInternalTexturesData.h"
 
 #include "gl/vcGLState.h"
 #include "gl/vcFramebuffer.h"
 
-#include "legacy/vcUDP.h"
+#include "parsers/vcUDP.h"
 
 #include "udFile.h"
 #include "udStringUtil.h"
@@ -59,8 +60,7 @@
 #include <emscripten/emscripten.h>
 #endif
 
-
-UDCOMPILEASSERT(VDK_MAJOR_VERSION == 0 && VDK_MINOR_VERSION == 3, "This version of VDK is not compatible");
+UDCOMPILEASSERT(VDK_MAJOR_VERSION == 0 && VDK_MINOR_VERSION == 4 && VDK_PATCH_VERSION == 1, "This version of VDK is not compatible");
 
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
 #  include <crtdbg.h>
@@ -140,6 +140,8 @@ enum vcLoginBackgroundSettings
   vcLBS_LogoH = 577,
 };
 
+const uint32_t WhitePixel = 0xFFFFFFFF;
+
 void vcMain_ShowStartupScreen(vcState *pProgramState);
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
@@ -189,6 +191,8 @@ void vcMain_PresentationMode(vcState *pProgramState)
 
 void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
 {
+  vcTexture_Destroy(&pProgramState->tileModal.pServerIcon);
+
   if (vcSettings_Load(&pProgramState->settings, forceDefaults))
   {
     vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
@@ -199,6 +203,14 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
     case 1: ImGui::StyleColorsDark(); break;
     case 2: ImGui::StyleColorsLight(); break;
     }
+
+    SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
+    SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
+    if (pProgramState->settings.window.maximized)
+      SDL_MaximizeWindow(pProgramState->pWindow);
+
+    if (forceDefaults)
+      vcGLState_ResizeBackBuffer(pProgramState->settings.window.width, pProgramState->settings.window.height);
   }
 }
 
@@ -343,11 +355,14 @@ void vcMain_MainLoop(vcState *pProgramState)
         }
         else
         {
-          vcState::FileError status;
-          status.pFilename = pNextLoad; // this takes ownership so we don't need to dup or free
+          vcState::ErrorItem status;
+          status.source = vcES_File;
+          status.pData = pNextLoad; // this takes ownership so we don't need to dup or free
           status.resultCode = result;
 
-          pProgramState->errorFiles.PushBack(status);
+          pNextLoad = nullptr;
+
+          pProgramState->errorItems.PushBack(status);
 
           continue;
         }
@@ -379,7 +394,40 @@ void vcMain_MainLoop(vcState *pProgramState)
           if (udStrEquali(pExt, ".uds"))
           {
             if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pNextLoad, nullptr) != vE_Success)
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+            {
+              vcState::ErrorItem projectError;
+              projectError.source = vcES_ProjectChange;
+              projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
+              projectError.resultCode = udR_ReadFailure;
+
+              pNextLoad = nullptr;
+
+              pProgramState->errorItems.PushBack(projectError);
+
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+
+              continue;
+            }
+            else if (firstLoad) // Was successful
+              udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+          }
+          else if (udStrEquali(pExt, ".vsm") || udStrEquali(pExt, ".obj"))
+          {
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Polygon", nullptr, pNextLoad, nullptr) != vE_Success)
+            {
+              vcState::ErrorItem projectError;
+              projectError.source = vcES_ProjectChange;
+              projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
+              projectError.resultCode = udR_ReadFailure;
+
+              pNextLoad = nullptr;
+
+              pProgramState->errorItems.PushBack(projectError);
+
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+
+              continue;
+            }
             else if (firstLoad) // Was successful
               udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
           }
@@ -458,11 +506,14 @@ void vcMain_MainLoop(vcState *pProgramState)
           }
           else // This file isn't supported in the scene
           {
-            vcState::FileError status;
-            status.pFilename = pNextLoad; // this takes ownership so we don't need to dup or free
+            vcState::ErrorItem status;
+            status.source = vcES_File;
+            status.pData = pNextLoad; // this takes ownership so we don't need to dup or free
             status.resultCode = udR_Unsupported;
 
-            pProgramState->errorFiles.PushBack(status);
+            pNextLoad = nullptr;
+
+            pProgramState->errorItems.PushBack(status);
 
             continue;
           }
@@ -715,21 +766,20 @@ int main(int argc, char **args)
   programState.settings.window.windowsOpen[vcDocks_Settings] = true;
   programState.settings.window.windowsOpen[vcDocks_SceneExplorer] = true;
   programState.settings.window.windowsOpen[vcDocks_Convert] = true;
+  programState.settings.languageOptions.Init(4);
 
   programState.settings.hideIntervalSeconds = 3;
   programState.showUI = true;
   programState.changeActiveDock = vcDocks_Count;
   programState.passFocus = true;
   programState.renaming = -1;
-  programState.getGeo = false;
-  programState.pGotGeo = nullptr;
 
   programState.sceneExplorer.insertItem.pParent = nullptr;
   programState.sceneExplorer.insertItem.pItem = nullptr;
   programState.sceneExplorer.clickedItem.pParent = nullptr;
   programState.sceneExplorer.clickedItem.pItem = nullptr;
 
-  programState.errorFiles.Init(16);
+  programState.errorItems.Init(16);
   programState.loadList.Init(16);
 
   vcProject_InitBlankScene(&programState);
@@ -790,10 +840,6 @@ int main(int argc, char **args)
 
   vcMain_LoadSettings(&programState, false);
 
-#if UD_DEBUG
-  programState.settings.experimental.useGPURenderer = true;
-#endif
-
 #if UDPLATFORM_EMSCRIPTEN
   // This needs to be here because the settings will load with the incorrect resolution (1280x720)
   programState.settings.window.width = (int)programState.sceneResolution.x;
@@ -831,6 +877,10 @@ int main(int argc, char **args)
   vcTexture_AsyncCreateFromFilename(&programState.pBuildingsTexture, programState.pWorkerPool, "asset://assets/textures/buildings.png", vcTFM_Nearest, false);
   vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png");
 
+  vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
+
+  vcTexture_CreateFromMemory(&programState.pCompanyWatermark, (void *)logoData, logoDataSize);
+
 #if UDPLATFORM_EMSCRIPTEN
   emscripten_set_main_loop_arg(vcMain_MainLoop, &programState, 0, 1);
 #else
@@ -856,16 +906,18 @@ epilogue:
   vcConvert_Deinit(&programState);
   vcCamera_Destroy(&programState.pCamera);
   vcTexture_Destroy(&programState.pCompanyLogo);
+  vcTexture_Destroy(&programState.pCompanyWatermark);
   vcTexture_Destroy(&programState.pBuildingsTexture);
   vcTexture_Destroy(&programState.pUITexture);
+  vcTexture_Destroy(&programState.pWhiteTexture);
 
   for (size_t i = 0; i < programState.loadList.length; i++)
     udFree(programState.loadList[i]);
   programState.loadList.Deinit();
 
-  for (size_t i = 0; i < programState.errorFiles.length; i++)
-    udFree(programState.errorFiles[i].pFilename);
-  programState.errorFiles.Deinit();
+  for (size_t i = 0; i < programState.errorItems.length; i++)
+    udFree(programState.errorItems[i].pData);
+  programState.errorItems.Deinit();
 
   udWorkerPool_Destroy(&programState.pWorkerPool); // This needs to occur before logout
   vcProject_Deinit(&programState, &programState.activeProject); // This needs to be destroyed before the renderer is shutdown
@@ -958,19 +1010,19 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->settings.presentation.showProjectionInfo = !pProgramState->settings.presentation.showProjectionInfo;
 
       // Gizmo Settings
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoTranslate"), vcString::Get("sceneGizmoTranslateKey"), vcMBBI_Translate, vcMBBG_NewGroup, (pProgramState->gizmo.operation == vcGO_Translate)) || (ImGui::IsKeyPressed(SDL_SCANCODE_B, false) && !pProgramState->modalOpen))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoTranslate"), vcString::Get("sceneGizmoTranslateKey"), vcMBBI_Translate, vcMBBG_NewGroup, pProgramState->gizmo.operation == vcGO_Translate))
         pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Translate ? vcGO_NoGizmo : vcGO_Translate;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoRotate"), vcString::Get("sceneGizmoRotateKey"), vcMBBI_Rotate, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Rotate)) || (ImGui::IsKeyPressed(SDL_SCANCODE_N, false) && !pProgramState->modalOpen))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoRotate"), vcString::Get("sceneGizmoRotateKey"), vcMBBI_Rotate, vcMBBG_SameGroup, pProgramState->gizmo.operation == vcGO_Rotate))
         pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Rotate ? vcGO_NoGizmo : vcGO_Rotate;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoScale"), vcString::Get("sceneGizmoScaleKey"), vcMBBI_Scale, vcMBBG_SameGroup, (pProgramState->gizmo.operation == vcGO_Scale)) || (!io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_M, false) && !pProgramState->modalOpen))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoScale"), vcString::Get("sceneGizmoScaleKey"), vcMBBI_Scale, vcMBBG_SameGroup, pProgramState->gizmo.operation == vcGO_Scale))
         pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Scale ? vcGO_NoGizmo : vcGO_Scale;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), vcString::Get("sceneGizmoLocalSpaceKey"), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, (pProgramState->gizmo.coordinateSystem == vcGCS_Local)) || (ImGui::IsKeyPressed(SDL_SCANCODE_C, false) && !pProgramState->modalOpen))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), vcString::Get("sceneGizmoLocalSpaceKey"), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, pProgramState->gizmo.coordinateSystem == vcGCS_Local))
         pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
-      // Fullscreen
+      // Fullscreens
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), vcString::Get("sceneFullscreenKey"), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode))
         vcMain_PresentationMode(pProgramState);
 
@@ -1001,7 +1053,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         {
           ImGui::Separator();
 
-          udDouble3 cameraLatLong = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->pCamera->matrices.camera.axis.t.toVector3());
+          udDouble3 cameraLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->pCamera->matrices.camera.axis.t.toVector3());
 
           char tmpBuf[128];
           const char *latLongAltStrings[] = { udTempStr("%.7f", cameraLatLong.x), udTempStr("%.7f", cameraLatLong.y), udTempStr("%.2fm", cameraLatLong.z) };
@@ -1016,6 +1068,17 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
               ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", vcString::Get("sceneCameraOutOfBounds"));
           }
         }
+      }
+    }
+
+    if (pProgramState->cameraInput.flyThroughActive)
+    {
+      if (ImGui::Button(vcString::Get("scenePOICancelFlyThrough")))
+      {
+        pProgramState->cameraInput.inputState = vcCIS_None;
+        pProgramState->cameraInput.flyThroughActive = false;
+        pProgramState->cameraInput.flyThroughPoint = 0;
+        pProgramState->cameraInput.pObjectInfo = nullptr;
       }
     }
 
@@ -1080,12 +1143,31 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::End();
   }
 
+  udInt2 logoSize = udInt2::zero();
+  if (pProgramState->settings.presentation.showEuclideonLogo)
+  {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    vcTexture_GetSize(pProgramState->pCompanyWatermark, &logoSize.x, &logoSize.y);
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+    ImGui::SetNextWindowSize(ImVec2((float)logoSize.x, (float)logoSize.y));
+    ImGui::SetNextWindowBgAlpha(1.0f);
+
+    if (ImGui::Begin("LogoBox", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+      ImGui::Image(pProgramState->pCompanyWatermark, ImVec2((float)logoSize.x, (float)logoSize.y));
+    ImGui::End();
+    ImGui::PopStyleVar();
+  }
+
+  udInt2 sizei = udInt2::zero();
   if (pProgramState->pSceneWatermark != nullptr) // Watermark
   {
-    udInt2 sizei = udInt2::zero();
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     vcTexture_GetSize(pProgramState->pSceneWatermark, &sizei.x, &sizei.y);
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+
+    if (pProgramState->settings.presentation.showEuclideonLogo)
+      sizei *= .5;
+
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + windowSize.y - logoSize.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
     ImGui::SetNextWindowSize(ImVec2((float)sizei.x, (float)sizei.y));
     ImGui::SetNextWindowBgAlpha(0.5f);
 
@@ -1149,7 +1231,9 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
       if (pickResult.pPolygon != nullptr)
       {
         udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pPolygon->pSceneItem->m_pNode->UUID);
-        //pickResult.pPolygon->pSceneItem->OnSceneSelect(pickResult.pPolygon->sceneItemInternalId); //TODO: Handle the internal ID stuff as well
+
+        if (pickResult.pPolygon->sceneItemInternalId != 0)
+          pickResult.pPolygon->pSceneItem->SelectSubitem(pickResult.pPolygon->sceneItemInternalId);
       }
       else if (pickResult.pModel != nullptr)
       {
@@ -1185,6 +1269,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.waterVolumes.Init(32);
   renderData.polyModels.Init(64);
   renderData.images.Init(32);
+  renderData.viewSheds.Init(32);
   renderData.mouse.position.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.position.y = (uint32_t)(io.MousePos.y - windowPos.y);
   renderData.mouse.clicked = io.MouseClicked[1];
@@ -1201,7 +1286,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
 
-  if (!pProgramState->modalOpen && (ImGui::IsKeyPressed(SDL_SCANCODE_F5, false) || (io.NavInputs[ImGuiNavInput_TweakFast] && !io.NavInputsDownDuration[ImGuiNavInput_TweakFast]))) // Start Button
+  if (!pProgramState->modalOpen && (ImGui::IsKeyPressed(SDL_SCANCODE_F5, false) || ImGui::IsNavInputPressed(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released)))
     vcMain_PresentationMode(pProgramState);
   if (pProgramState->settings.responsiveUI == vcPM_Show)
     pProgramState->showUI = true;
@@ -1264,6 +1349,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
             ImGui::CloseCurrentPopup();
           }
+
           if (ImGui::MenuItem(vcString::Get("sceneAddAOI")))
           {
             vcProject_ClearSelection(pProgramState);
@@ -1276,6 +1362,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
             ImGui::CloseCurrentPopup();
           }
+
           if (ImGui::MenuItem(vcString::Get("sceneBeginAreaMeasure")))
           {
             vcProject_ClearSelection(pProgramState);
@@ -1289,6 +1376,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
             ImGui::CloseCurrentPopup();
           }
+
           if (ImGui::MenuItem(vcString::Get("sceneAddLine")))
           {
             vcProject_ClearSelection(pProgramState);
@@ -1301,6 +1389,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
             ImGui::CloseCurrentPopup();
           }
+
           if (ImGui::MenuItem(vcString::Get("sceneBeginLineMeasure")))
           {
             vcProject_ClearSelection(pProgramState);
@@ -1313,6 +1402,77 @@ void vcRenderSceneWindow(vcState *pProgramState)
             }
 
             ImGui::CloseCurrentPopup();
+          }
+
+          if (ImGui::MenuItem(vcString::Get("sceneAddViewShed")))
+          {
+            vcProject_ClearSelection(pProgramState);
+
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "ViewMap", vcString::Get("sceneExplorerViewShedDefaultName"), nullptr, nullptr) == vE_Success)
+            {
+              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, 1, &mousePosLongLat.x);
+              udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+            }
+
+            ImGui::CloseCurrentPopup();
+          }
+
+          if (ImGui::BeginMenu(vcString::Get("sceneAddFilter")))
+          {
+            double scaleFactor = udMag3(pProgramState->pCamera->position - mousePosCartesian) / 10.0; // 1/10th of the screen
+
+            if (ImGui::MenuItem(vcString::Get("sceneAddFilterBox")))
+            {
+              vcProject_ClearSelection(pProgramState);
+
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerFilterBoxDefaultName"), nullptr, nullptr) == vE_Success)
+              {
+                vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
+                vdkProjectNode_SetMetadataString(pNode, "shape", "box");
+                vdkProjectNode_SetMetadataDouble(pNode, "size.x", scaleFactor);
+                vdkProjectNode_SetMetadataDouble(pNode, "size.y", scaleFactor);
+                vdkProjectNode_SetMetadataDouble(pNode, "size.z", scaleFactor);
+                udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+              }
+
+              ImGui::CloseCurrentPopup();
+            }
+
+            if (ImGui::MenuItem(vcString::Get("sceneAddFilterSphere")))
+            {
+              vcProject_ClearSelection(pProgramState);
+
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerFilterSphereDefaultName"), nullptr, nullptr) == vE_Success)
+              {
+                vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
+                vdkProjectNode_SetMetadataString(pNode, "shape", "sphere");
+                vdkProjectNode_SetMetadataDouble(pNode, "size.x", scaleFactor);
+                vdkProjectNode_SetMetadataDouble(pNode, "size.y", scaleFactor);
+                vdkProjectNode_SetMetadataDouble(pNode, "size.z", scaleFactor);
+                udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+              }
+
+              ImGui::CloseCurrentPopup();
+            }
+
+            if (ImGui::MenuItem(vcString::Get("sceneAddFilterCylinder")))
+            {
+              vcProject_ClearSelection(pProgramState);
+
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerFilterCylinderDefaultName"), nullptr, nullptr) == vE_Success)
+              {
+                vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
+                vdkProjectNode_SetMetadataString(pNode, "shape", "cylinder");
+                vdkProjectNode_SetMetadataDouble(pNode, "size.x", scaleFactor);
+                vdkProjectNode_SetMetadataDouble(pNode, "size.y", scaleFactor);
+                vdkProjectNode_SetMetadataDouble(pNode, "size.z", scaleFactor);
+                udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+              }
+
+              ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndMenu();
           }
 
           ImGui::EndMenu();
@@ -1427,19 +1587,21 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   // Render scene to texture
   vcRender_RenderScene(pProgramState, pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
-
+  
+  // Clean up
   renderData.models.Deinit();
   renderData.fences.Deinit();
   renderData.labels.Deinit();
   renderData.waterVolumes.Deinit();
   renderData.polyModels.Deinit();
   renderData.images.Deinit();
+  renderData.viewSheds.Deinit();
 
   // Can only assign longlat positions in projected space
   if (pProgramState->gis.isProjected)
   {
-    pProgramState->worldMousePosLongLat = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->worldMousePosCartesian, true);
-    pProgramState->pCamera->positionInLongLat = udGeoZone_ToLatLong(pProgramState->gis.zone, pProgramState->pCamera->position, true);
+    pProgramState->worldMousePosLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->worldMousePosCartesian, true);
+    pProgramState->pCamera->positionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->pCamera->position, true);
   }
   else
   {
@@ -1504,12 +1666,12 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
   }
 
   // Error List
-  if (pProgramState->errorFiles.length > 0)
+  if (pProgramState->errorItems.length > 0)
   {
     bool isHovered = false;
     bool isClicked = false;
 
-    const char *strings[] = { udTempStr("%zu", pProgramState->errorFiles.length) };
+    const char *strings[] = { udTempStr("%zu", pProgramState->errorItems.length) };
     vcStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFilesFailed"), strings, udLengthOf(strings));
     udStrcat(tempData, " / ");
 
@@ -1629,7 +1791,7 @@ int vcMainMenuGui(vcState *pProgramState)
 
       if (ImGui::BeginMenu(vcString::Get("menuExperimentalFeatures")))
       {
-        ImGui::MenuItem("GPU Render", nullptr, &pProgramState->settings.experimental.useGPURenderer, ALLOW_EXPERIMENT_GPURENDER);
+        ImGui::Separator();
 
         ImGui::EndMenu();
       }
@@ -1678,7 +1840,14 @@ int vcMainMenuGui(vcState *pProgramState)
             vdkProjectNode *pNode = nullptr;
             if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), nullptr) != vE_Success)
             {
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+              vcState::ErrorItem projectError;
+              projectError.source = vcES_ProjectChange;
+              projectError.pData = udStrdup(pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
+              projectError.resultCode = udR_Failure_;
+
+              pProgramState->errorItems.PushBack(projectError);
+
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
             }
             else
             {
@@ -1694,7 +1863,16 @@ int vcMainMenuGui(vcState *pProgramState)
 
             vdkProjectNode *pNode = nullptr;
             if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", pFeedName, nullptr, nullptr) != vE_Success)
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+            {
+              vcState::ErrorItem projectError;
+              projectError.source = vcES_ProjectChange;
+              projectError.pData = udStrdup(pFeedName);
+              projectError.resultCode = udR_Failure_;
+
+              pProgramState->errorItems.PushBack(projectError);
+
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+            }
 
             if (udUUID_IsValid(pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString()))
               vdkProjectNode_SetMetadataString(pNode, "groupid", pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString());
@@ -1880,7 +2058,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
   ImGui::SetNextWindowPos(ImVec2(size.x / 2, size.y - vcLBS_LoginBoxY), ImGuiCond_Always, ImVec2(0.5, 1.0));
 
-  const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther" };
+  const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginEnterURL", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther" };
 
   if (pProgramState->loginStatus == vcLS_Pending)
   {
@@ -1963,9 +2141,16 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
 
       if (ImGui::Button(vcString::Get("loginButton")) || tryLogin)
       {
-        pProgramState->passFocus = false;
-        pProgramState->loginStatus = vcLS_Pending;
-        udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_Login, pProgramState, false);
+        if (*pProgramState->settings.loginInfo.serverURL == '\0')
+        {
+          pProgramState->loginStatus = vcLS_NoServerURL;
+        }
+        else
+        {
+          pProgramState->passFocus = false;
+          pProgramState->loginStatus = vcLS_Pending;
+          udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_Login, pProgramState, false);
+        }
       }
 
       if (SDL_GetModState() & KMOD_CAPS)
@@ -2025,10 +2210,9 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
 
 void vcRenderWindow(vcState *pProgramState)
 {
-  vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   vcGLState_SetViewport(0, 0, pProgramState->settings.window.width, pProgramState->settings.window.height);
-  vcFramebuffer_Clear(pProgramState->pDefaultFramebuffer, 0xFF000000);
-
+  vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer, vcFramebufferClearOperation_All, 0xFF000000);
+  
   ImGuiIO &io = ImGui::GetIO(); // for future key commands as well
   ImVec2 size = io.DisplaySize;
 
@@ -2092,7 +2276,16 @@ void vcRenderWindow(vcState *pProgramState)
         {
           vdkProjectNode *pNode = nullptr;
           if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Folder", vcString::Get("sceneExplorerFolderDefaultName"), nullptr, nullptr) != vE_Success)
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+          {
+            vcState::ErrorItem projectError;
+            projectError.source = vcES_ProjectChange;
+            projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFolder"));
+            projectError.resultCode = udR_Failure_;
+
+            pProgramState->errorItems.PushBack(projectError);
+
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+          }
         }
 
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddViewpoint"), nullptr, vcMBBI_SaveViewport, vcMBBG_SameGroup))
@@ -2109,7 +2302,14 @@ void vcRenderWindow(vcState *pProgramState)
           }
           else
           {
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+            vcState::ErrorItem projectError;
+            projectError.source = vcES_ProjectChange;
+            projectError.pData = udStrdup(vcString::Get("sceneExplorerAddViewpoint"));
+            projectError.resultCode = udR_Failure_;
+
+            pProgramState->errorItems.PushBack(projectError);
+
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
           }
         }
 
@@ -2131,13 +2331,16 @@ void vcRenderWindow(vcState *pProgramState)
           if (ImGui::MenuItem(vcString::Get("sceneExplorerAddFeed"), nullptr, nullptr))
           {
             vdkProjectNode *pNode = nullptr;
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", vcString::Get("liveFeedDefaultName"), nullptr, nullptr) == vE_Success)
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", vcString::Get("liveFeedDefaultName"), nullptr, nullptr) != vE_Success)
             {
-              //Do nothing (minimising changes)
-            }
-            else
-            {
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+              vcState::ErrorItem projectError;
+              projectError.source = vcES_ProjectChange;
+              projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFeed"));
+              projectError.resultCode = udR_Failure_;
+
+              pProgramState->errorItems.PushBack(projectError);
+
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
             }
           }
 
@@ -2246,8 +2449,9 @@ void vcRenderWindow(vcState *pProgramState)
       vcSettings_Load(&pProgramState->settings, false, vcSC_Docks);
 
       // Don't show the window in a bad state
-      ImGui::EndFrame();
-      ImGui::NewFrame();
+      ImDrawData *pData = ImGui::GetDrawData();
+      if (pData != nullptr)
+        pData->Clear();
     }
   }
 

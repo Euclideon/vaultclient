@@ -134,6 +134,9 @@ void vcSession_Login(void *pProgramStatePtr)
     vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pSessionRawData);
   }
 
+  if (pProgramState->settings.presentation.loginRenderLicense)
+    vdkContext_RequestLicense(pProgramState->pVDKContext, vdkLT_Render);
+
   //Context Login successful
   memset(pProgramState->password, 0, sizeof(pProgramState->password));
   if (!pProgramState->settings.loginInfo.rememberServer)
@@ -159,7 +162,7 @@ void vcSession_Logout(vcState *pProgramState)
       // Cancel all jobs
       for (size_t i = 0; i < pProgramState->pConvertContext->jobs.length; i++)
       {
-        vdkConvert_Cancel(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[i]->pConvertContext);
+        vdkConvert_Cancel(pProgramState->pConvertContext->jobs[i]->pConvertContext);
       }
 
       // Wait for jobs to finish and destroy them

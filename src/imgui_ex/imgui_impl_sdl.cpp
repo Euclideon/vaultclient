@@ -328,6 +328,12 @@ static bool    ImGui_ImplSDL2_Init(SDL_Window* window)
     if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) && (io.BackendFlags & ImGuiBackendFlags_PlatformHasViewports))
       ImGui_ImplSDL2_InitPlatformInterface(window);
 
+    // Block here copied from InitPlatformInterface below
+    // SDL2 by default doesn't pass mouse clicks to the application when the click focused a window. This is getting in the way of our interactions and we disable that behavior.
+#if SDL_HAS_MOUSE_FOCUS_CLICKTHROUGH
+    SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
+#endif
+
     return true;
 }
 
@@ -552,8 +558,9 @@ static void ImGui_ImplSDL2_CreateWindow(ImGuiViewport* viewport)
     }
 
     Uint32 sdl_flags = 0;
-  if (use_opengl)
-    sdl_flags |= SDL_WINDOW_OPENGL;
+    if (use_opengl)
+      sdl_flags |= SDL_WINDOW_OPENGL;
+
     sdl_flags |= SDL_GetWindowFlags(g_Window) & SDL_WINDOW_ALLOW_HIGHDPI;
     sdl_flags |= SDL_WINDOW_HIDDEN;
     sdl_flags |= (viewport->Flags & ImGuiViewportFlags_NoDecoration) ? SDL_WINDOW_BORDERLESS : 0;

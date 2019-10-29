@@ -32,7 +32,6 @@ void vcConvertCMD_ShowOptions()
 
 struct vcConvertData
 {
-  vdkContext *pContext;
   vdkConvertContext *pConvertContext;
 
   bool ended;
@@ -43,7 +42,7 @@ uint32_t vcConvertCMD_DoConvert(void *pDataPtr)
 {
   vcConvertData *pConvData = (vcConvertData*)pDataPtr;
 
-  pConvData->response = vdkConvert_DoConvert(pConvData->pContext, pConvData->pConvertContext);
+  pConvData->response = vdkConvert_DoConvert(pConvData->pConvertContext);
   pConvData->ended = true;
 
   return 0;
@@ -222,15 +221,15 @@ int main(int argc, const char **ppArgv)
     exit(4);
   }
 
-  vdkConvert_GetInfo(pContext, pModel, &pInfo);
+  vdkConvert_GetInfo(pModel, &pInfo);
 
   // Process settings
   if (settings.resolution != 0)
-    vdkConvert_SetPointResolution(pContext, pModel, true, settings.resolution);
+    vdkConvert_SetPointResolution(pModel, true, settings.resolution);
 
   if (settings.srid != 0)
   {
-    if (vdkConvert_SetSRID(pContext, pModel, true, settings.srid) != vE_Success)
+    if (vdkConvert_SetSRID(pModel, true, settings.srid) != vE_Success)
     {
       printf("Error setting srid %d\n", settings.srid);
       cmdlineError = true;
@@ -239,7 +238,7 @@ int main(int argc, const char **ppArgv)
 
   if (settings.globalOffset[0] != 0.0 || settings.globalOffset[1] != 0.0 || settings.globalOffset[2] != 0.0)
   {
-    if (vdkConvert_SetGlobalOffset(pContext, pModel, settings.globalOffset) != vE_Success)
+    if (vdkConvert_SetGlobalOffset(pModel, settings.globalOffset) != vE_Success)
     {
       printf("Error setting global offset %1.1f,%1.1f,%1.1f\n", settings.globalOffset[0], settings.globalOffset[1], settings.globalOffset[2]);
       cmdlineError = true;
@@ -248,7 +247,7 @@ int main(int argc, const char **ppArgv)
 
   if (settings.pWatermark)
   {
-    if (vdkConvert_AddWatermark(pContext, pModel, settings.pWatermark) != vE_Success)
+    if (vdkConvert_AddWatermark(pModel, settings.pWatermark) != vE_Success)
       cmdlineError = true;
   }
 
@@ -265,7 +264,7 @@ int main(int argc, const char **ppArgv)
 
         udFilename foundFile(pFindDir->pFilename);
         foundFile.SetFolder(settings.ppInputFiles[i]);
-        result = vdkConvert_AddItem(pContext, pModel, foundFile.GetPath());
+        result = vdkConvert_AddItem(pModel, foundFile.GetPath());
         if (result != vE_Success)
           printf("Unable to convert %s [Error:%d]:\n", foundFile.GetPath(), result);
       } while (udReadDir(pFindDir) == udR_Success);
@@ -273,14 +272,14 @@ int main(int argc, const char **ppArgv)
     }
     else
     {
-      result = vdkConvert_AddItem(pContext, pModel, settings.ppInputFiles[i]);
+      result = vdkConvert_AddItem(pModel, settings.ppInputFiles[i]);
       if (result != vE_Success)
         printf("Unable to convert %s [Error:%d]:\n", settings.ppInputFiles[i], result);
     }
   }
 
   if (settings.pOutputFilename)
-    vdkConvert_SetOutputFilename(pContext, pModel, settings.pOutputFilename);
+    vdkConvert_SetOutputFilename(pModel, settings.pOutputFilename);
 
   if (cmdlineError || pInfo->totalItems == 0)
   {
@@ -301,7 +300,6 @@ int main(int argc, const char **ppArgv)
 #endif
 
     vcConvertData convdata = {};
-    convdata.pContext = pContext;
     convdata.pConvertContext = pModel;
 
     printf("Converting--\n");
@@ -319,7 +317,7 @@ int main(int argc, const char **ppArgv)
 
       if (currentItem < pInfo->totalItems)
       {
-        vdkConvert_GetItemInfo(pContext, pModel, currentItem, &itemInfo);
+        vdkConvert_GetItemInfo(pModel, currentItem, &itemInfo);
         printf("[%" PRIu64 "/%" PRIu64 "] %s: %s/%s    \r", currentItem +1, pInfo->totalItems, itemInfo.pFilename, udTempStr_CommaInt(itemInfo.pointsRead), udTempStr_CommaInt(itemInfo.pointsCount));
       }
       else
@@ -335,7 +333,7 @@ int main(int argc, const char **ppArgv)
 
     for (size_t inputFilesRead = 0; inputFilesRead < pInfo->currentInputItem; ++inputFilesRead)
     {
-      vdkConvert_GetItemInfo(pContext, pModel, inputFilesRead, &itemInfo);
+      vdkConvert_GetItemInfo(pModel, inputFilesRead, &itemInfo);
       printf("%s: %s/%s points read         \n", itemInfo.pFilename, udCommaInt(itemInfo.pointsRead), udCommaInt(itemInfo.pointsCount));
     }
 
@@ -355,7 +353,7 @@ int main(int argc, const char **ppArgv)
     getchar();
   }
 
-  vdkConvert_DestroyContext(pContext, &pModel);
+  vdkConvert_DestroyContext(&pModel);
   vdkContext_Disconnect(&pContext);
 
   return 0;

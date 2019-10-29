@@ -9,11 +9,9 @@
 # define VERT_HEADER "#version 330 core\n#extension GL_ARB_explicit_attrib_location : enable\n"
 #endif
 
-const char* const g_udFragmentShader = FRAG_HEADER R"shader(
-//Input Format
+const char *const g_VisualizationFragmentShader = FRAG_HEADER R"shader(
 in vec2 v_texCoord;
 
-//Output Format
 out vec4 out_Colour;
 
 uniform sampler2D u_texture;
@@ -26,7 +24,7 @@ layout (std140) uniform u_params
 
   // outlining
   vec4 u_outlineColour;
-  vec4 u_outlineParams;   // outlineWidth, edge threshold, (EVC-835) OPENGL ONLY: invert y-coordinate for world position reconstruction, (unused)
+  vec4 u_outlineParams;   // outlineWidth, edge threshold, (unused), (unused)
 
   // colour by height
   vec4 u_colourizeHeightColourMin;
@@ -122,6 +120,149 @@ vec3 colourizeByDepth(vec3 col, float depth)
 
 void main()
 {
+  vec2 flippedUV = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
+  vec4 col = texture(u_texture, flippedUV);
+  float depth = texture(u_depth, flippedUV).x;
+
+  vec4 fragWorldPosition = u_inverseViewProjection * vec4(flippedUV * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
+  fragWorldPosition /= fragWorldPosition.w;
+  
+  col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
+  col.xyz = colourizeByDepth(col.xyz, depth);
+  
+  col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
+
+  float edgeOutlineWidth = u_outlineParams.x;
+  float edgeOutlineThreshold = u_outlineParams.y;
+  vec4 outlineColour = u_outlineColour;
+  if (outlineColour.w > 0.0 && edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
+  {
+    vec4 edgeResult = edgeHighlight(col.xyz, flippedUV, depth, outlineColour, edgeOutlineWidth, edgeOutlineThreshold);
+    col.xyz = edgeResult.xyz;
+    depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
+  }
+
+  out_Colour = vec4(col.xyz, 1.0);
+  gl_FragDepth = depth;
+}
+
+)shader";
+
+const char *const g_VisualizationVertexShader = FRAG_HEADER R"shader(
+//Input format
+layout(location = 0) in vec3 a_position;
+layout(location = 1) in vec2 a_texCoord;
+
+//Output Format
+out vec2 v_texCoord;
+
+void main()
+{
+  gl_Position = vec4(a_position.xy, 0.0, 1.0);
+  v_texCoord = a_texCoord;
+}
+)shader";
+
+const char *const g_ViewShedFragmentShader = FRAG_HEADER R"shader(
+in vec2 v_texCoord;
+
+out vec4 out_Colour;
+
+uniform sampler2D u_depth;
+uniform sampler2D u_shadowMapAtlas;
+
+#define MAP_COUNT 3
+
+layout (std140) uniform u_params
+{
+  mat4 u_shadowMapVP[MAP_COUNT];
+  mat4 u_inverseProjection;
+  vec4 u_visibleColour;
+  vec4 u_notVisibleColour;
+  vec4 u_nearFarPlane; // .zw unused
+};
+
+void main()
+{
+  vec2 flippedUV = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
+  vec4 col = vec4(0.0, 0.0, 0.0, 0.0);
+  float depth = texture(u_depth, flippedUV).x;
+
+  vec4 fragEyePosition = u_inverseProjection * vec4(flippedUV * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
+  fragEyePosition /= fragEyePosition.w;
+
+  vec3 sampleUV = vec3(0.0);
+
+  // unrolled loop
+  vec4 shadowMapClip0 = u_shadowMapVP[0] * vec4(fragEyePosition.xyz, 1.0);
+  shadowMapClip0 /= shadowMapClip0.w;
+  shadowMapClip0.xy = (shadowMapClip0.xy * vec2(0.5)) + vec2(0.5);
+
+  vec4 shadowMapClip1 = u_shadowMapVP[1] * vec4(fragEyePosition.xyz, 1.0);
+  shadowMapClip1 /= shadowMapClip1.w;
+  shadowMapClip1.xy = (shadowMapClip1.xy * vec2(0.5)) + vec2(0.5);
+
+  vec4 shadowMapClip2 = u_shadowMapVP[2] * vec4(fragEyePosition.xyz, 1.0);
+  shadowMapClip2 /= shadowMapClip2.w;
+  shadowMapClip2.xy = (shadowMapClip2.xy * vec2(0.5)) + vec2(0.5);
+
+  float isInMap0 = float(shadowMapClip0.x >= 0 && shadowMapClip0.x <= 1 && shadowMapClip0.y >= 0 && shadowMapClip0.y <= 1 && shadowMapClip0.z >= -1 && shadowMapClip0.z <= 1);
+  float isInMap1 = float(shadowMapClip1.x >= 0 && shadowMapClip1.x <= 1 && shadowMapClip1.y >= 0 && shadowMapClip1.y <= 1 && shadowMapClip1.z >= -1 && shadowMapClip1.z <= 1);
+  float isInMap2 = float(shadowMapClip2.x >= 0 && shadowMapClip2.x <= 1 && shadowMapClip2.y >= 0 && shadowMapClip2.y <= 1 && shadowMapClip2.z >= -1 && shadowMapClip2.z <= 1);
+
+  // note depth is left [-1, 1]
+  vec3 shadowMapUV0 = vec3((0.0 / MAP_COUNT) + shadowMapClip0.x / MAP_COUNT, 1.0 - shadowMapClip0.y, shadowMapClip0.z);
+  vec3 shadowMapUV1 = vec3((1.0 / MAP_COUNT) + shadowMapClip1.x / MAP_COUNT, 1.0 - shadowMapClip1.y, shadowMapClip1.z);
+  vec3 shadowMapUV2 = vec3((2.0 / MAP_COUNT) + shadowMapClip2.x / MAP_COUNT, 1.0 - shadowMapClip2.y, shadowMapClip2.z);
+
+  sampleUV = mix(sampleUV, shadowMapUV0, isInMap0);
+  sampleUV = mix(sampleUV, shadowMapUV1, isInMap1);
+  sampleUV = mix(sampleUV, shadowMapUV2, isInMap2);
+
+  if (length(sampleUV) > 0.0)
+  {
+    // fragment is inside the view shed bounds
+    col = u_visibleColour;
+
+    float shadowMapDepth = texture(u_shadowMapAtlas, sampleUV.xy).x;
+    
+    float bias = (u_nearFarPlane.y - u_nearFarPlane.x) * 0.00000003;
+    if (shadowMapDepth < sampleUV.z - bias)
+      col = u_notVisibleColour;
+  }
+
+  out_Colour = vec4(col.xyz * col.w, 1.0); //additive
+}
+
+)shader";
+
+const char *const g_ViewShedVertexShader = FRAG_HEADER R"shader(
+//Input format
+layout(location = 0) in vec3 a_position;
+layout(location = 1) in vec2 a_texCoord;
+
+//Output Format
+out vec2 v_texCoord;
+
+void main()
+{
+  gl_Position = vec4(a_position.xy, 0.0, 1.0);
+  v_texCoord = a_texCoord;
+}
+)shader";
+
+const char* const g_udFragmentShader = FRAG_HEADER R"shader(
+//Input Format
+in vec2 v_texCoord;
+
+//Output Format
+out vec4 out_Colour;
+
+uniform sampler2D u_texture;
+uniform sampler2D u_depth;
+
+void main()
+{
 )shader"
 
 #if UDPLATFORM_EMSCRIPTEN
@@ -133,25 +274,6 @@ void main()
 R"shader(
 
   float depth = texture(u_depth, v_texCoord).x;
-
-  // (EVC-835) This is temporary until we sort out the flippyness issues
-  float yCoord = mix(1.0 - v_texCoord.y, v_texCoord.y, u_outlineParams.z);
-  vec4 fragWorldPosition = u_inverseViewProjection * vec4(vec2(v_texCoord.x, yCoord) * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
-  fragWorldPosition /= fragWorldPosition.w;
-
-  col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
-  col.xyz = colourizeByDepth(col.xyz, depth);
-  
-  float edgeOutlineWidth = u_outlineParams.x;
-  float edgeOutlineThreshold = u_outlineParams.y;
-  vec4 outlineColour = u_outlineColour;
-  if (outlineColour.w > 0.0 && edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
-  {
-    vec4 edgeResult = edgeHighlight(col.xyz, v_texCoord, depth, outlineColour, edgeOutlineWidth, edgeOutlineThreshold);
-    col.xyz = edgeResult.xyz;
-    depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
-  }
-  col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
 
   out_Colour = vec4(col.xyz, 1.0); // UD always opaque
   gl_FragDepth = depth;
@@ -360,7 +482,7 @@ const char* const g_CompassVertexShader = VERT_HEADER R"shader(
 
   layout (std140) uniform u_EveryObject
   {
-    mat4 u_viewProjectionMatrix;
+    mat4 u_worldViewProjectionMatrix;
     vec4 u_colour;
     vec3 u_sunDirection;
     float _padding;
@@ -368,7 +490,7 @@ const char* const g_CompassVertexShader = VERT_HEADER R"shader(
 
   void main()
   {
-    gl_Position = u_viewProjectionMatrix * vec4(a_pos, 1.0);
+    gl_Position = u_worldViewProjectionMatrix * vec4(a_pos, 1.0);
 
     v_normal = ((a_normal * 0.5) + 0.5);
     v_colour = u_colour;
@@ -436,7 +558,7 @@ layout (std140) uniform u_EveryFrame
 
 layout (std140) uniform u_EveryObject
 {
-  mat4 u_modelViewProjectionMatrix;
+  mat4 u_worldViewProjectionMatrix;
 };
 
 void main()
@@ -448,7 +570,7 @@ void main()
   // fence or flat
   vec3 worldPosition = a_position + mix(vec3(0, 0, a_ribbonInfo.w) * u_width, a_ribbonInfo.xyz, u_orientation);
 
-  gl_Position = u_modelViewProjectionMatrix * vec4(worldPosition, 1.0);
+  gl_Position = u_worldViewProjectionMatrix * vec4(worldPosition, 1.0);
 }
 )shader";
 
@@ -548,8 +670,8 @@ const char* const g_WaterVertexShader = VERT_HEADER R"shader(
   layout (std140) uniform u_EveryObject
   {
     vec4 u_colourAndSize;
-    mat4 u_modelViewMatrix;
-    mat4 u_modelViewProjectionMatrix;
+    mat4 u_worldViewMatrix;
+    mat4 u_worldViewProjectionMatrix;
   };
 
   void main()
@@ -561,14 +683,14 @@ const char* const g_WaterVertexShader = VERT_HEADER R"shader(
     v_uv0 = uvScaleBodySize * a_position.xy * vec2(0.25) - vec2(uvOffset, uvOffset);
     v_uv1 = uvScaleBodySize * a_position.yx * vec2(0.50) - vec2(uvOffset, uvOffset * 0.75);
 
-    v_fragEyePos = u_modelViewMatrix * vec4(a_position, 0.0, 1.0);
+    v_fragEyePos = u_worldViewMatrix * vec4(a_position, 0.0, 1.0);
     v_colour = u_colourAndSize.xyz;
 
-    gl_Position = u_modelViewProjectionMatrix * vec4(a_position, 0.0, 1.0);
+    gl_Position = u_worldViewProjectionMatrix * vec4(a_position, 0.0, 1.0);
   }
 )shader";
 
-const char* const g_PolygonP1N1UV1FragmentShader = FRAG_HEADER R"shader(
+const char* const g_PolygonP3N3UV2FragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec2 v_uv;
   in vec4 v_colour;
@@ -593,7 +715,7 @@ const char* const g_PolygonP1N1UV1FragmentShader = FRAG_HEADER R"shader(
   }
 )shader";
 
-const char* const g_PolygonP1N1UV1VertexShader = VERT_HEADER R"shader(
+const char* const g_PolygonP3N3UV2VertexShader = VERT_HEADER R"shader(
   //Input Format
   layout(location = 0) in vec3 a_pos;
   layout(location = 1) in vec3 a_normal;
@@ -605,28 +727,27 @@ const char* const g_PolygonP1N1UV1VertexShader = VERT_HEADER R"shader(
   out vec4 v_colour;
   out vec3 v_normal;
 
-  layout (std140) uniform u_EveryFrame
-  {
-    mat4 u_viewProjectionMatrix;
-  };
-
   layout (std140) uniform u_EveryObject
   {
-    mat4 u_modelMatrix;
+    mat4 u_worldViewProjectionMatrix;
+    mat4 u_worldMatrix;
     vec4 u_colour;
   };
 
   void main()
   {
-    gl_Position = u_viewProjectionMatrix * u_modelMatrix * vec4(a_pos, 1.0);
+    // making the assumption that the model matrix won't contain non-uniform scale
+    vec3 worldNormal = normalize((u_worldMatrix * vec4(a_normal, 0.0)).xyz);
+
+    gl_Position = u_worldViewProjectionMatrix * vec4(a_pos, 1.0);
 
     v_uv = a_uv;
-    v_normal = a_normal;
+    v_normal = worldNormal;
     v_colour = u_colour;// * a_colour;
   }
 )shader";
 
-const char* const g_PolygonP1UV1FragmentShader = FRAG_HEADER R"shader(
+const char *const g_ImageRendererFragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec2 v_uv;
   in vec4 v_colour;
@@ -643,10 +764,11 @@ const char* const g_PolygonP1UV1FragmentShader = FRAG_HEADER R"shader(
   }
 )shader";
 
-const char* const g_PolygonP1UV1VertexShader = VERT_HEADER R"shader(
+const char *const g_ImageRendererMeshVertexShader = VERT_HEADER R"shader(
   //Input Format
   layout(location = 0) in vec3 a_pos;
-  layout(location = 1) in vec2 a_uv;
+  layout(location = 1) in vec3 a_normal; //unused
+  layout(location = 2) in vec2 a_uv;
 
   //Output Format
   out vec2 v_uv;
@@ -654,38 +776,21 @@ const char* const g_PolygonP1UV1VertexShader = VERT_HEADER R"shader(
 
   layout (std140) uniform u_EveryObject
   {
-    mat4 u_modelViewProjectionMatrix;
+    mat4 u_worldViewProjectionMatrix;
     vec4 u_colour;
     vec4 u_screenSize; // unused
   };
 
   void main()
   {
-    gl_Position = u_modelViewProjectionMatrix * vec4(a_pos, 1.0);
+    gl_Position = u_worldViewProjectionMatrix * vec4(a_pos, 1.0);
 
-    v_uv = vec2(a_uv.x, 1.0 - a_uv.y);
+    v_uv = a_uv;
     v_colour = u_colour;
   }
 )shader";
 
-const char* const g_BillboardFragmentShader = FRAG_HEADER R"shader(
-  //Input Format
-  in vec2 v_uv;
-  in vec4 v_colour;
-
-  //Output Format
-  out vec4 out_Colour;
-
-  uniform sampler2D u_texture;
-
-  void main()
-  {
-    vec4 col = texture(u_texture, v_uv);
-    out_Colour = col * v_colour;
-  }
-)shader";
-
-const char* const g_BillboardVertexShader = VERT_HEADER R"shader(
+const char *const g_ImageRendererBillboardVertexShader = VERT_HEADER R"shader(
   //Input Format
   layout(location = 0) in vec3 a_pos;
   layout(location = 1) in vec2 a_uv;
@@ -696,14 +801,14 @@ const char* const g_BillboardVertexShader = VERT_HEADER R"shader(
 
   layout (std140) uniform u_EveryObject
   {
-    mat4 u_modelViewProjectionMatrix;
+    mat4 u_worldViewProjectionMatrix;
     vec4 u_colour;
     vec4 u_screenSize;
   };
 
   void main()
   {
-    gl_Position = u_modelViewProjectionMatrix * vec4(a_pos, 1.0);
+    gl_Position = u_worldViewProjectionMatrix * vec4(a_pos, 1.0);
     gl_Position.xy += u_screenSize.z * gl_Position.w * u_screenSize.xy * vec2(a_uv.x * 2.0 - 1.0, a_uv.y * 2.0 - 1.0); // expand billboard
 
     v_uv = vec2(a_uv.x, 1.0 - a_uv.y);
@@ -868,7 +973,7 @@ const char *const g_udGPURenderQuadVertexShader = VERT_HEADER R"shader(
 
   layout (std140) uniform u_EveryObject
   {
-    mat4 u_worldViewProj;
+    mat4 u_worldViewProjectionMatrix;
   };
 
   void main()
@@ -877,14 +982,14 @@ const char *const g_udGPURenderQuadVertexShader = VERT_HEADER R"shader(
 
     // Points
     vec4 off = vec4(a_position.www * 2.0, 0);
-    vec4 pos0 = u_worldViewProj * vec4(a_position.xyz + off.www, 1.0);
-    vec4 pos1 = u_worldViewProj * vec4(a_position.xyz + off.xww, 1.0);
-    vec4 pos2 = u_worldViewProj * vec4(a_position.xyz + off.xyw, 1.0);
-    vec4 pos3 = u_worldViewProj * vec4(a_position.xyz + off.wyw, 1.0);
-    vec4 pos4 = u_worldViewProj * vec4(a_position.xyz + off.wwz, 1.0);
-    vec4 pos5 = u_worldViewProj * vec4(a_position.xyz + off.xwz, 1.0);
-    vec4 pos6 = u_worldViewProj * vec4(a_position.xyz + off.xyz, 1.0);
-    vec4 pos7 = u_worldViewProj * vec4(a_position.xyz + off.wyz, 1.0);
+    vec4 pos0 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.www, 1.0);
+    vec4 pos1 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xww, 1.0);
+    vec4 pos2 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xyw, 1.0);
+    vec4 pos3 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wyw, 1.0);
+    vec4 pos4 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wwz, 1.0);
+    vec4 pos5 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xwz, 1.0);
+    vec4 pos6 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xyz, 1.0);
+    vec4 pos7 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wyz, 1.0);
 
     vec4 minPos, maxPos;
     minPos = min(pos0, pos1);
@@ -929,7 +1034,7 @@ const char *const g_udGPURenderGeomVertexShader = VERT_HEADER R"shader(
 
   layout (std140) uniform u_EveryObject
   {
-    mat4 u_worldViewProj;
+    mat4 u_worldViewProjectionMatrix;
     vec4 u_colour;
   };
 
@@ -939,14 +1044,14 @@ const char *const g_udGPURenderGeomVertexShader = VERT_HEADER R"shader(
 
     // Points
     vec4 off = vec4(a_position.www * 2.0, 0);
-    vec4 pos0 = u_worldViewProj * vec4(a_position.xyz + off.www, 1.0);
-    vec4 pos1 = u_worldViewProj * vec4(a_position.xyz + off.xww, 1.0);
-    vec4 pos2 = u_worldViewProj * vec4(a_position.xyz + off.xyw, 1.0);
-    vec4 pos3 = u_worldViewProj * vec4(a_position.xyz + off.wyw, 1.0);
-    vec4 pos4 = u_worldViewProj * vec4(a_position.xyz + off.wwz, 1.0);
-    vec4 pos5 = u_worldViewProj * vec4(a_position.xyz + off.xwz, 1.0);
-    vec4 pos6 = u_worldViewProj * vec4(a_position.xyz + off.xyz, 1.0);
-    vec4 pos7 = u_worldViewProj * vec4(a_position.xyz + off.wyz, 1.0);
+    vec4 pos0 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.www, 1.0);
+    vec4 pos1 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xww, 1.0);
+    vec4 pos2 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xyw, 1.0);
+    vec4 pos3 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wyw, 1.0);
+    vec4 pos4 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wwz, 1.0);
+    vec4 pos5 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xwz, 1.0);
+    vec4 pos6 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xyz, 1.0);
+    vec4 pos7 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wyz, 1.0);
 
     vec4 minPos, maxPos;
     minPos = min(pos0, pos1);

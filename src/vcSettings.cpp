@@ -122,9 +122,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.styleIndex = data.Get("style").AsInt(1); // dark style by default
 
     pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
+    pSettings->presentation.showEuclideonLogo = data.Get("showEuclideonLogo").AsBool(false);
     pSettings->presentation.showCameraInfo = data.Get("showCameraInfo").AsBool(true);
     pSettings->presentation.showProjectionInfo = data.Get("showGISInfo").AsBool(true);
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvGISOptions").AsBool(false);
+    pSettings->presentation.loginRenderLicense = data.Get("loginRenderLicense").AsBool(false);
     pSettings->presentation.showSkybox = data.Get("showSkybox").AsBool(true);
     pSettings->presentation.skyboxColour = data.Get("skyboxColour").AsFloat4(udFloat4::create(0.39f, 0.58f, 0.93f, 1.f));
     pSettings->presentation.mouseAnchor = (vcAnchorStyle)data.Get("mouseAnchor").AsInt(vcAS_Orbit);
@@ -153,8 +155,10 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 #else
     pSettings->onScreenControls = false;
 #endif
-    pSettings->camera.invertX = data.Get("camera.invertX").AsBool(false);
-    pSettings->camera.invertY = data.Get("camera.invertY").AsBool(false);
+    pSettings->camera.invertMouseX = data.Get("camera.invertMouseX").AsBool(false);
+    pSettings->camera.invertMouseY = data.Get("camera.invertMouseY").AsBool(false);
+    pSettings->camera.invertControllerX = data.Get("camera.invertControllerX").AsBool(false);
+    pSettings->camera.invertControllerY = data.Get("camera.invertControllerY").AsBool(false);
     pSettings->camera.cameraMouseBindings[0] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[0]").AsInt(vcCPM_Tumble);
     pSettings->camera.cameraMouseBindings[1] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[1]").AsInt(vcCPM_Pan);
     pSettings->camera.cameraMouseBindings[2] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[2]").AsInt(vcCPM_Orbit);
@@ -261,14 +265,21 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_All)
   {
-    if (pSettings->docksLoaded != vcSettings::vcDockLoaded::vcDL_True)
+    // Windows
+    pSettings->window.maximized = data.Get("window.maximized").AsBool(false);
+    if (pSettings->window.maximized)
     {
-      // Windows
+      pSettings->window.xpos = SDL_WINDOWPOS_CENTERED;
+      pSettings->window.ypos = SDL_WINDOWPOS_CENTERED;
+      pSettings->window.width = 1280;
+      pSettings->window.height = 720;
+    }
+    else
+    {
       pSettings->window.xpos = data.Get("window.position.x").AsInt(SDL_WINDOWPOS_CENTERED);
       pSettings->window.ypos = data.Get("window.position.y").AsInt(SDL_WINDOWPOS_CENTERED);
       pSettings->window.width = data.Get("window.width").AsInt(1280);
       pSettings->window.height = data.Get("window.height").AsInt(720);
-      pSettings->window.maximized = data.Get("window.maximized").AsBool(false);
     }
 
     udStrcpy(pSettings->window.languageCode, data.Get("window.language").AsString("enAU"));
@@ -387,7 +398,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       {
         if (languages.IsArray())
         {
-          pSettings->languageOptions.Init(4);
           pSettings->languageOptions.Clear();
           pSettings->languageOptions.ReserveBack(languages.ArrayLength());
 
@@ -488,8 +498,10 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("style = %i", pSettings->presentation.styleIndex);
 
   data.Set("showDiagnosticInfo = %s", pSettings->presentation.showDiagnosticInfo ? "true" : "false");
+  data.Set("showEuclideonLogo = %s", pSettings->presentation.showEuclideonLogo ? "true" : "false");
   data.Set("showCameraInfo = %s", pSettings->presentation.showCameraInfo ? "true" : "false");
   data.Set("showGISInfo = %s", pSettings->presentation.showProjectionInfo ? "true" : "false");
+  data.Set("loginRenderLicense = %s", pSettings->presentation.loginRenderLicense ? "true" : "false");
   data.Set("showSkybox = %s", pSettings->presentation.showSkybox ? "true" : "false");
   data.Set("skyboxColour = [%f, %f, %f, %f]", pSettings->presentation.skyboxColour.x, pSettings->presentation.skyboxColour.y, pSettings->presentation.skyboxColour.z, pSettings->presentation.skyboxColour.w);
   data.Set("showAdvancedGISOptions = %s", pSettings->presentation.showAdvancedGIS ? "true" : "false");
@@ -543,8 +555,11 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.farPlane = %f", pSettings->camera.farPlane);
   data.Set("camera.fieldOfView = %f", pSettings->camera.fieldOfView);
   data.Set("camera.lensId = %i", pSettings->camera.lensIndex);
-  data.Set("camera.invertX = %s", pSettings->camera.invertX ? "true" : "false");
-  data.Set("camera.invertY = %s", pSettings->camera.invertY ? "true" : "false");
+
+  data.Set("camera.invertMouseX = %s", pSettings->camera.invertMouseX ? "true" : "false");
+  data.Set("camera.invertMouseY = %s", pSettings->camera.invertMouseY ? "true" : "false");
+  data.Set("camera.invertControllerX = %s", pSettings->camera.invertControllerX ? "true" : "false");
+  data.Set("camera.invertControllerY = %s", pSettings->camera.invertControllerY ? "true" : "false");
   data.Set("camera.moveMode = %d", pSettings->camera.moveMode);
   data.Set("camera.cameraMouseBindings = [%d, %d, %d]", pSettings->camera.cameraMouseBindings[0], pSettings->camera.cameraMouseBindings[1], pSettings->camera.cameraMouseBindings[2]);
   data.Set("camera.scrollwheelBinding = %d", pSettings->camera.scrollWheelMode);

@@ -43,6 +43,10 @@ void vcCamera_UpdateSmoothing(vcState *pProgramState, vcCamera *pCamera, vcCamer
       pCamera->position += step;
       pCamInput->smoothTranslation -= step;
     }
+    else
+    {
+      pCamInput->smoothTranslation = udDouble3::zero();
+    }
 
     // rotation
     if (udMagSq3(pCamInput->smoothRotation) > minSmoothingThreshold)
@@ -54,6 +58,10 @@ void vcCamera_UpdateSmoothing(vcState *pProgramState, vcCamera *pCamera, vcCamer
       pCamera->eulerRotation.y = udClamp(pCamera->eulerRotation.y, -UD_HALF_PI, UD_HALF_PI);
       pCamera->eulerRotation.x = udMod(pCamera->eulerRotation.x, UD_2PI);
       pCamera->eulerRotation.z = udMod(pCamera->eulerRotation.z, UD_2PI);
+    }
+    else
+    {
+      pCamInput->smoothRotation = udDouble3::zero();
     }
 
     // ortho zoom
@@ -71,6 +79,10 @@ void vcCamera_UpdateSmoothing(vcState *pProgramState, vcCamera *pCamera, vcCamer
         towards = (pProgramState->worldAnchorPoint.toVector2() - pCamera->position.toVector2()) / previousOrthoSize;
         pCamera->position += udDouble3::create(towards * -(pCamSettings->orthographicSize - previousOrthoSize), 0.0);
       }
+    }
+    else
+    {
+      pCamInput->smoothOrthographicChange = 0.0;
     }
   }
 }
@@ -109,7 +121,7 @@ void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindi
   };
 }
 
-void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr)
+void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, vcCameraInput *pCamInput, const udFloat2 &windowSize, const udFloat2 *pMousePos /*= nullptr*/)
 {
   // Update matrices
   double fov = settings.fieldOfView;
@@ -126,19 +138,42 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
   pCamera->matrices.projectionNear = udDouble4x4::perspectiveZO(fov, aspect, 0.5f, 10000.f);
 #endif
 
+  udDouble4x4 projectionPerspUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
+  udDouble4x4 projectionOrthoUD = udDouble4x4::orthoZO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
+#if GRAPHICS_API_OPENGL
+  udDouble4x4 projectionPersp = udDouble4x4::perspectiveNO(fov, aspect, zNear, zFar);
+  udDouble4x4 projectionOrtho = udDouble4x4::orthoNO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
+#endif
+
   switch (settings.cameraMode)
   {
   case vcCM_OrthoMap:
-    pCamera->matrices.projectionUD = udDouble4x4::orthoZO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
+    pCamera->matrices.projectionUD = projectionOrthoUD;
 #if GRAPHICS_API_OPENGL
-    pCamera->matrices.projection = udDouble4x4::orthoNO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
+    pCamera->matrices.projection = projectionOrtho;
 #endif
     break;
-  case vcCM_FreeRoam: // fall through
-  default:
-    pCamera->matrices.projectionUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
+  case vcCM_FreeRoam:
+    if (pCamInput != nullptr && pCamInput->transitioningToMapMode && pCamInput->progress > 0.15)
+    {
+      //Switch to ortho projection soon after camera starts rotating downward, hence the progress threshold 0.15.
+      pCamera->matrices.projectionUD = projectionOrthoUD;
 #if GRAPHICS_API_OPENGL
-    pCamera->matrices.projection = udDouble4x4::perspectiveNO(fov, aspect, zNear, zFar);
+      pCamera->matrices.projection = projectionOrtho;
+#endif
+    }
+    else
+    {
+      pCamera->matrices.projectionUD = projectionPerspUD;
+#if GRAPHICS_API_OPENGL
+      pCamera->matrices.projection = projectionPersp;
+#endif
+    }
+    break;
+  default:
+    pCamera->matrices.projectionUD = projectionPerspUD;
+#if GRAPHICS_API_OPENGL
+    pCamera->matrices.projection = projectionPersp;
 #endif
   }
 
@@ -241,12 +276,6 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     if (isnan(pCamera->position.x) || isnan(pCamera->position.y) || isnan(pCamera->position.z))
       pCamera->position = udDouble3::zero();
 
-    // Rotation
-    if (pCamSettings->invertX)
-      pCamInput->mouseInput.x *= -1.0;
-    if (pCamSettings->invertY)
-      pCamInput->mouseInput.y *= -1.0;
-
     pCamInput->smoothRotation += pCamInput->mouseInput * 0.5;
   }
   break;
@@ -259,10 +288,6 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
       udRay<double> transform, tempTransform;
       transform.position = pCamera->position;
       transform.direction = udDirectionFromYPR(pCamera->eulerRotation);
-      if (pCamSettings->invertX)
-        pCamInput->mouseInput.x *= -1.0;
-      if (pCamSettings->invertY)
-        pCamInput->mouseInput.y *= -1.0;
 
       // Apply input
       tempTransform = udRay<double>::rotationAround(transform, pProgramState->worldAnchorPoint, { 0, 0, 1 }, pCamInput->mouseInput.x);
@@ -433,10 +458,8 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
       if (udMagSq3(towards) > 0)
       {
         double maxDistance = 0.9 * pCamSettings->farPlane; // limit to 90% of visible distance
-        double distanceToPoint = udMag3(towards);
-        if (pCamInput->mouseInput.y < 0)
-          distanceToPoint = udClamp(maxDistance - distanceToPoint, 0.0, distanceToPoint);
-
+        double distanceToPoint = udMin(udMag3(towards), maxDistance);
+        
         addPos = distanceToPoint * pCamInput->mouseInput.y * udNormalize3(towards);
       }
     }
@@ -519,7 +542,6 @@ void vcCamera_SwapMapMode(vcState *pProgramState)
 
     // defer actually swapping projection mode
     pProgramState->cameraInput.transitioningToMapMode = true;
-
     lookAtPosition += udDouble3::create(0, 0, -1); // up
   }
   else
@@ -578,13 +600,17 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   bool isBtnReleased[3] = { ImGui::IsMouseReleased(0), ImGui::IsMouseReleased(1), ImGui::IsMouseReleased(2) };
 
   isMouseBtnBeingHeld &= (isBtnHeld[0] || isBtnHeld[1] || isBtnHeld[2]);
-  bool isFocused = (ImGui::IsItemHovered() || isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
+  bool isFocused = (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_ChildWindows) || isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
 
   int totalButtonsHeld = 0;
   for (size_t i = 0; i < udLengthOf(isBtnHeld); ++i)
     totalButtonsHeld += isBtnHeld[i] ? 1 : 0;
 
-  bool forceClearMouseState = (!isMouseBtnBeingHeld && !ImGui::IsItemHovered());
+  // Start hold time
+  if (isFocused && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
+    isMouseBtnBeingHeld = true;
+
+  bool forceClearMouseState = !isFocused;
 
   // Was the gizmo just clicked on?
   gizmoCapturedMouse = gizmoCapturedMouse || (pProgramState->gizmo.operation != 0 && vcGizmo_IsHovered() && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]));
@@ -600,18 +626,37 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     memset(isBtnClicked, 0, sizeof(isBtnClicked));
     memset(isBtnDoubleClicked, 0, sizeof(isBtnDoubleClicked));
     memset(isBtnHeld, 0, sizeof(isBtnHeld));
-    //memset(isBtnReleased, 0, sizeof(isBtnReleased)); // 09/04/19 - commented out to fix pan-release bug, check back and review once more fully tested
     mouseDelta = ImVec2();
     mouseWheel = 0.0f;
+    isMouseBtnBeingHeld = false;
+    // Leaving isBtnReleased unchanged as there should be no reason to ignore a mouse release while the window has mouse focus
   }
+
+  // Accept mouse input
+  if (isMouseBtnBeingHeld)
+  {
+    mouseInput.x = -mouseDelta.x / 100.0;
+    mouseInput.y = -mouseDelta.y / 100.0;
+    mouseInput.z = 0.0;
+  }
+
+  if (pProgramState->settings.camera.invertMouseX)
+    mouseInput.x *= -1.0;
+  if (pProgramState->settings.camera.invertMouseY)
+    mouseInput.y *= -1.0;
 
   // Controller Input
   if (io.NavActive)
   {
     keyboardInput.x += io.NavInputs[ImGuiNavInput_LStickLeft]; // Left Stick Horizontal
     keyboardInput.y += -io.NavInputs[ImGuiNavInput_LStickUp]; // Left Stick Vertical
-    mouseInput.x = -io.NavInputs[ImGuiNavInput_LStickRight] / 15.0f; // Right Stick Horizontal
-    mouseInput.y = io.NavInputs[ImGuiNavInput_LStickDown] / 25.0f; // Right Stick Vertical
+    mouseInput.x += -io.NavInputs[ImGuiNavInput_LStickRight] / 15.0f; // Right Stick Horizontal
+    mouseInput.y += -io.NavInputs[ImGuiNavInput_LStickDown] / 25.0f; // Right Stick Vertical
+
+    if (pProgramState->settings.camera.invertControllerX)
+      mouseInput.x = -mouseInput.x;
+    if (pProgramState->settings.camera.invertControllerY)
+      mouseInput.y = -mouseInput.y;
 
     // In Imgui the DPAD is bound to navigation, so disable DPAD panning until the issue is resolved
     //pProgramState->cameraInput.controllerDPADInput = udDouble3::create(io.NavInputs[ImGuiNavInput_DpadRight] - io.NavInputs[ImGuiNavInput_DpadLeft], 0, io.NavInputs[ImGuiNavInput_DpadUp] - io.NavInputs[ImGuiNavInput_DpadDown]);
@@ -622,7 +667,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
       {
         pProgramState->isUsingAnchorPoint = true;
         pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
-        pProgramState->cameraInput.inputState = vcCIS_Orbiting;
+        pProgramState->cameraInput.inputState = pProgramState->settings.camera.cameraMode == vcCM_OrthoMap ? vcCIS_Panning : vcCIS_Orbiting;
         vcCamera_StopSmoothing(&pProgramState->cameraInput);
       }
       if (io.NavInputs[ImGuiNavInput_FocusNext] < 0.85f) // Right Trigger
@@ -655,6 +700,15 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
     if (ImGui::IsKeyPressed(SDL_SCANCODE_SPACE, false))
       pProgramState->settings.camera.moveMode = ((pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter);
+    if (ImGui::IsKeyPressed(SDL_SCANCODE_B, false))
+      pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Translate ? vcGO_NoGizmo : vcGO_Translate;
+    if (ImGui::IsKeyPressed(SDL_SCANCODE_N, false))
+      pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Rotate ? vcGO_NoGizmo : vcGO_Rotate;
+    if (!io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_M, false))
+      pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Scale ? vcGO_NoGizmo : vcGO_Scale;
+    if (ImGui::IsKeyPressed(SDL_SCANCODE_L, false))
+      pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
+
   }
 
   if (isFocused)
@@ -700,15 +754,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
         pProgramState->cameraInput.inputState = vcCIS_Panning;
       }
-    }
-
-    // Click and Hold
-    if (isBtnHeld[i] && !isBtnClicked[i])
-    {
-      isMouseBtnBeingHeld = true;
-      mouseInput.x = -mouseDelta.x / 100.0;
-      mouseInput.y = -mouseDelta.y / 100.0;
-      mouseInput.z = 0.0;
     }
 
     if (isBtnReleased[i])
@@ -817,33 +862,14 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     pProgramState->cameraInput.inputState = vcCIS_None;
   }
 
-  // set pivot to send to apply function
-  pProgramState->cameraInput.currentPivotMode = vcCPM_Tumble;
-  if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-  {
-    if (io.MouseDown[0] || io.MouseDown[1] || io.MouseDown[2])
-      pProgramState->cameraInput.currentPivotMode = vcCPM_Pan;
-  }
-  else
-  {
-    if (io.MouseDown[0] && !io.MouseDown[1] && !io.MouseDown[2])
-      pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.cameraMouseBindings[0];
-
-    if (!io.MouseDown[0] && io.MouseDown[1] && !io.MouseDown[2])
-      pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.cameraMouseBindings[1];
-
-    if (!io.MouseDown[0] && !io.MouseDown[1] && io.MouseDown[2])
-      pProgramState->cameraInput.currentPivotMode = pProgramState->settings.camera.cameraMouseBindings[2];
-  }
-
   // Apply movement and rotation
   pProgramState->cameraInput.keyboardInput = keyboardInput;
   pProgramState->cameraInput.mouseInput = mouseInput;
 
   vcCamera_Apply(pProgramState, pProgramState->pCamera, &pProgramState->settings.camera, &pProgramState->cameraInput, pProgramState->deltaTime, speedModifier);
 
-  if (pProgramState->cameraInput.inputState == vcCIS_None)
+  if (pProgramState->cameraInput.inputState == vcCIS_None && pProgramState->cameraInput.smoothOrthographicChange == 0.0)
     pProgramState->isUsingAnchorPoint = false;
 
-  vcCamera_UpdateMatrices(pProgramState->pCamera, pProgramState->settings.camera, windowSize, &mousePos);
+  vcCamera_UpdateMatrices(pProgramState->pCamera, pProgramState->settings.camera, &pProgramState->cameraInput, windowSize, &mousePos);
 }

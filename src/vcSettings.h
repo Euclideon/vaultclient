@@ -114,7 +114,9 @@ struct vcSettings
     bool showCameraInfo;
     bool showProjectionInfo;
     bool showDiagnosticInfo;
+    bool showEuclideonLogo;
     bool showAdvancedGIS;
+    bool loginRenderLicense;
 
     bool showSkybox;
     udFloat4 skyboxColour;
@@ -257,7 +259,7 @@ struct vcSettings
   // They will mostly be exposed via the System->Experiments menu to hide them away from most users
   struct
   {
-    bool useGPURenderer;
+    //No current experiments
   } experimental;
 
   udChunkedArray<vcLanguageOption> languageOptions;
@@ -314,9 +316,9 @@ const float vcSL_ColourByHeightMax = 1000.f;
 const float vcSL_ColourByDepthMin = 0.f;
 const float vcSL_ColourByDepthMax = 1000.f;
 const float vcSL_ContourDistanceMin = 0.f;
-const float vcSL_ContourDistanceMax = 1000.f;
+const float vcSL_ContourDistanceMax = 100.f;
 const float vcSL_ContourBandHeightMin = 0.f;
-const float vcSL_ContourBandHeightMax = 1000.f;
+const float vcSL_ContourBandHeightMax = 10.f;
 
 // Settings Functions
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset = false, vcSettingCategory group = vcSC_All);

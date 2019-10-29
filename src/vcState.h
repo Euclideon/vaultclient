@@ -10,6 +10,7 @@
 #include "vcImageRenderer.h"
 #include "vcSettings.h"
 #include "vcSceneItem.h"
+#include "vcModel.h"
 #include "vcGIS.h"
 #include "vcFolder.h"
 #include "vcStrings.h"
@@ -41,6 +42,7 @@ enum vcLoginStatus
 {
   vcLS_NoStatus, // Used temporarily at startup and after logout to set focus on the correct fields
   vcLS_EnterCredentials,
+  vcLS_NoServerURL,
   vcLS_Pending,
   vcLS_ConnectionError,
   vcLS_AuthError,
@@ -54,6 +56,12 @@ enum vcLoginStatus
   vcLS_OtherError
 };
 
+enum vcErrorSource
+{
+  vcES_File,
+  vcES_ProjectChange
+};
+
 struct vcState
 {
   bool programComplete;
@@ -65,15 +73,15 @@ struct vcState
 
   vcCamera *pCamera;
 
-
-  struct FileError
+  struct ErrorItem
   {
-    const char *pFilename;
+    vcErrorSource source;
+    const char *pData;
     udResult resultCode;
   };
 
   udChunkedArray<const char*> loadList;
-  udChunkedArray<FileError> errorFiles;
+  udChunkedArray<ErrorItem> errorItems;
 
   const char *pLoadImage;
   udWorkerPool *pWorkerPool;
@@ -85,9 +93,11 @@ struct vcState
   char username[64];
 
   vcTexture *pCompanyLogo;
+  vcTexture *pCompanyWatermark;
   vcTexture *pBuildingsTexture;
   vcTexture *pSceneWatermark;
   vcTexture *pUITexture;
+  vcTexture *pWhiteTexture;
 
   bool isUsingAnchorPoint;
   udDouble3 worldAnchorPoint;

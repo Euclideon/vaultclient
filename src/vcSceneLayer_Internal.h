@@ -10,12 +10,12 @@
 struct vcPolygonModel;
 struct vcTexture;
 
-enum vcSceneLayerLoadType
+enum vcSceneLayerNormalReferenceFrame
 {
-  vcSLLT_None,
+  vcSLNRF_EarthCentered, // default
+  vcSLNRF_EastNorthUp,
+  vcSLNRF_VertexReferenceFrame
 
-  vcSLLT_Convert,
-  vcSLLT_Rendering
 };
 
 struct vcSceneLayerNode
@@ -76,6 +76,7 @@ struct vcSceneLayerNode
     udDouble4 minimumBoundingBox;
 
     vcVertexLayoutTypes *pGeometryLayout;
+    uint64_t *pAttributeOffset;
     size_t geometryLayoutCount;
 
   } *pFeatureData;
@@ -126,14 +127,14 @@ struct vcSceneLayer
   char pathSeparatorChar; // '/' or '\\'
   udJSON description;
   udDouble4 extent;
+  vcSceneLayerNormalReferenceFrame normalReferenceFrame;
 
-  char *pFileData;
   vcSceneLayerNode root;
 
   udInterlockedInt32 loadNodeJobsInFlight;
 };
 
-udResult vcSceneLayer_LoadNode(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode = nullptr, const vcSceneLayerLoadType &loadType = vcSLLT_None);
+udResult vcSceneLayer_LoadNode(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
 udResult vcSceneLayer_LoadNodeInternals(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
 
 void vcSceneLayer_CheckNodePruneCandidancy(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);

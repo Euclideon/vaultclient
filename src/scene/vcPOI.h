@@ -13,6 +13,7 @@ struct vdkPointCloud;
 struct vcTexture;
 struct vcState;
 struct vcFenceRenderer;
+struct vcPolygonModel;
 
 struct vcLineInfo
 {
@@ -48,6 +49,22 @@ private:
   vcLabelInfo *m_pLabelInfo;
   const char *m_pLabelText;
 
+  struct
+  {
+    vcPolygonModel *pModel;
+    const char *pPathLoaded;
+
+    double moveSpeed; // Speed in m/s
+
+    int segmentIndex;
+    double segmentProgress;
+
+    udDouble3 currentPos;
+    udDouble3 segmentStartPos;
+    udDouble3 segmentEndPos;
+    udDouble3 eulerAngles;
+  } m_attachment;
+
 public:
   vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcPOI() {};
@@ -56,7 +73,10 @@ public:
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
+
   void HandleImGui(vcState *pProgramState, size_t *pItemID);
+  void HandleContextMenu(vcState *pProgramState);
+
   void Cleanup(vcState *pProgramState);
   void ChangeProjection(const udGeoZone &newZone);
 
@@ -66,6 +86,12 @@ public:
 
   void SetCameraPosition(vcState *pProgramState);
   udDouble4x4 GetWorldSpaceMatrix();
+
+  void SelectSubitem(uint64_t internalId);
+  bool IsSubitemSelected(uint64_t internalId);
+
+private:
+  bool LoadAttachedModel(const char *pNewPath);
 };
 
 #endif //vcPOI_h__

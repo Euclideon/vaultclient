@@ -132,10 +132,7 @@ bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t sampl
   glActiveTexture(GL_TEXTURE0 + samplerIndex);
   VERIFY_GL();
 
-  if (pTexture->format == vcTextureFormat_Cubemap)
-    glBindTexture(GL_TEXTURE_CUBE_MAP, pTexture->id);
-  else
-    glBindTexture(GL_TEXTURE_2D, pTexture->id);
+  glBindTexture(GL_TEXTURE_2D, pTexture->id);
   VERIFY_GL();
 
   if (pSampler != nullptr)

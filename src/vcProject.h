@@ -15,12 +15,16 @@ struct vcProject
   // These are the same item pFolder->m_pNode == pRoot && pRoot-pUserdata == pFolder
   vdkProjectNode *pRoot;
   vcFolder *pFolder;
+
+  const char *pRelativeBase;
 };
 
 void vcProject_InitBlankScene(vcState *pProgramState);
 bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename);
 
 void vcProject_Deinit(vcState *pProgramData, vcProject *pProject);
+
+void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverride);
 
 void vcProject_RemoveItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode);
 void vcProject_RemoveSelected(vcState *pProgramState);

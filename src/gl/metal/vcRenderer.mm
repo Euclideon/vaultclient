@@ -32,13 +32,11 @@
   _renderPasses = [NSMutableArray arrayWithCapacity:BUFFER_COUNT];
 
   _pipelines = [NSMutableArray arrayWithCapacity:100];
-  //_gPipelines = [NSMutableArray arrayWithCapacity:20];
   _depthStates = [NSMutableArray arrayWithCapacity:50];
   _blitBuffers = [NSMutableArray arrayWithCapacity:3];
 
   _vertBuffers = [NSMutableDictionary dictionaryWithCapacity:200];
   _indexBuffers = [NSMutableDictionary dictionaryWithCapacity:80];
-  //_gBuffers = [NSMutableDictionary dictionaryWithCapacity:40];
   _textures = [NSMutableDictionary dictionaryWithCapacity:250];
   _samplers = [NSMutableDictionary dictionaryWithCapacity:20];
 
@@ -50,8 +48,6 @@
 - (void)draw
 {
   // Finalise last frame
-
-  //[self flushCompute];
 
   // End encoding
   [self flushBlit];
@@ -120,13 +116,7 @@
 {
   pCurrShader = pShader;
 
-  if (pShader->numBufferObjects) // Prevents binding while initialising a shader, as this caused problems
-  {
-    /*if (pShader->gID)
-      [_computeEncoder setComputePipelineState:_gPipelines[pShader->gID]];
-    else*/
-      [self bindBlendState:blendMode];
-  }
+  [self bindBlendState:blendMode];
 }
 
 - (void)bindTexture:(nonnull struct vcTexture *)pTexture index:(NSInteger)tIndex
@@ -136,12 +126,6 @@
 
   currID = [NSString stringWithUTF8String:pTexture->samplerID];
   [_encoders[pCurrFramebuffer->ID] setFragmentSamplerState:_samplers[currID] atIndex:tIndex];
-}
-
-- (void)bindSampler:(nonnull struct vcShaderSampler *)pSampler index:(NSInteger)samplerIndex
-{
-  NSString *currID = [NSString stringWithUTF8String:pSampler->name];
-  [_encoders[pCurrFramebuffer->ID] setFragmentSamplerState:_samplers[currID] atIndex:samplerIndex];
 }
 
 - (void)bindDepthStencil:(nonnull id<MTLDepthStencilState>)dsState settings:(nullable vcGLStencilSettings *)pStencil
@@ -192,49 +176,14 @@
   _blitEncoder = [_blitBuffer blitCommandEncoder];
 }
 
-/*- (void)flushCompute
-{
-  [_computeEncoder endEncoding];
-  [_computeBuffer commit];
-  [_computeBuffer waitUntilCompleted];
-  _computeBuffer = [_queue commandBuffer];
-  _computeEncoder = [_computeBuffer computeCommandEncoder];
-}*/
-
 - (void)drawUnindexed:(id<MTLBuffer>)vertBuffer vertexStart:(NSUInteger)vStart vertexCount:(NSUInteger)vCount primitiveType:(MTLPrimitiveType)type
 {
   for (int i = 0; i < pCurrShader->numBufferObjects; ++i)
     [self bindVB:&pCurrShader->bufferObjects[i] index:i+1];
   
-  /*if (pCurrShader->geom)
-  {
-    [_computeEncoder setBuffer:vertBuffer offset:vStart atIndex:0];
-    [_computeEncoder setBytes:pCurrShader->bufferObjects[0].pCB length:pCurrShader->bufferObjects[0].expectedSize atIndex:1];
-    
-    id<MTLComputePipelineState> state = _gPipelines[pCurrShader->gID];
-    id<MTLBuffer> gBuf = _gBuffers[[NSString stringWithFormat:@"%d", pCurrShader->gID]];
-    if (!gBuf || gBuf.length < pCurrShader->geom * vertBuffer.length)
-    {
-      gBuf = [_device newBufferWithLength:pCurrShader->geom * vertBuffer.length options:MTLResourceStorageModeShared];
-      _gBuffers[[NSString stringWithFormat:@"%d", pCurrShader->gID]] = gBuf;
-    }
+  [_encoders[pCurrFramebuffer->ID] setVertexBuffer:vertBuffer offset:vStart atIndex:0];
+  [_encoders[pCurrFramebuffer->ID] drawPrimitives:type vertexStart:vStart vertexCount:vCount];
 
-    [_computeEncoder setComputePipelineState:state];
-    [_computeEncoder setBuffer:gBuf offset:0 atIndex:2];
-    
-    // Should calulate an efficient spilt for dispatchThreadgroups automatically?
-    [_computeEncoder dispatchThreadgroups:MTLSizeMake(vCount / (state.maxTotalThreadsPerThreadgroup), 1, 1) threadsPerThreadgroup:MTLSizeMake(state.threadExecutionWidth, state.maxTotalThreadsPerThreadgroup / state.threadExecutionWidth, 1)];
-      
-    [self bindBlendState:(blendMode)];
-    [_encoders[pCurrFramebuffer->ID] setVertexBuffer:gBuf offset:0 atIndex:0];
-    [_encoders[pCurrFramebuffer->ID] drawPrimitives:type vertexStart:vStart * pCurrShader->geom vertexCount:vCount * pCurrShader->geom];
-  }
-  else*/
-  {
-    [_encoders[pCurrFramebuffer->ID] setVertexBuffer:vertBuffer offset:vStart atIndex:0];
-    [_encoders[pCurrFramebuffer->ID] drawPrimitives:type vertexStart:vStart vertexCount:vCount];
-  }
-  
   pCurrFramebuffer->actions |= vcRFA_Draw | vcRFA_Renew;
 
   switch(pCurrShader->flush)
