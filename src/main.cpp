@@ -874,7 +874,6 @@ int main(int argc, char **args)
   vcMain_AsyncLoad(&programState, "asset://assets/fonts/NotoSansCJKjp-Regular.otf", vcMain_LoadFontMT);
 
   vcTexture_AsyncCreateFromFilename(&programState.pCompanyLogo, programState.pWorkerPool, "asset://assets/textures/logo.png");
-  vcTexture_AsyncCreateFromFilename(&programState.pBuildingsTexture, programState.pWorkerPool, "asset://assets/textures/buildings.png", vcTFM_Nearest, false);
   vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png");
 
   vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
@@ -907,7 +906,6 @@ epilogue:
   vcCamera_Destroy(&programState.pCamera);
   vcTexture_Destroy(&programState.pCompanyLogo);
   vcTexture_Destroy(&programState.pCompanyWatermark);
-  vcTexture_Destroy(&programState.pBuildingsTexture);
   vcTexture_Destroy(&programState.pUITexture);
   vcTexture_Destroy(&programState.pWhiteTexture);
 
@@ -1935,37 +1933,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   ImGuiIO io = ImGui::GetIO();
   ImVec2 size = io.DisplaySize;
 
-  ImDrawList *pDrawList = ImGui::GetBackgroundDrawList();
-
-  {
-    ImVec2 p0 = ImVec2((size.x - 2048) / 2, size.y - 512);
-    ImVec2 p1 = ImVec2((size.x + 2048) / 2, size.y);
-
-    static float mouseX = 0.f;
-    static float mouseY = 0.f;
-    if (io.MousePos.x != -FLT_MAX)
-    {
-      mouseX = (io.MousePos.x / size.x) * 2.f - 1.f;
-      mouseY = (io.MousePos.y / size.y);
-    }
-
-    pDrawList->AddRectFilledMultiColor(ImVec2(0, 0), size, 0xFFB5A245, 0xFFE3D9A8, 0xFFCDBC71, 0xFF998523);
-
-    if (pProgramState->pBuildingsTexture != nullptr)
-    {
-      pDrawList->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 03.f + 100.f, p0.y + mouseY * 0.f), ImVec2(p1.x + mouseX * 03.f + 100.f, p1.y + mouseY * 0.f), ImVec2(0, 0.75), ImVec2(1, 1.00));
-      pDrawList->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 15.f + 350.f, p0.y + mouseY * 1.f), ImVec2(p1.x + mouseX * 15.f + 350.f, p1.y + mouseY * 1.f), ImVec2(0, 0.50), ImVec2(1, 0.75));
-      pDrawList->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 40.f - 230.f, p0.y + mouseY * 2.f), ImVec2(p1.x + mouseX * 40.f - 230.f, p1.y + mouseY * 2.f), ImVec2(0, 0.25), ImVec2(1, 0.50));
-      pDrawList->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 70.f - 080.f, p0.y + mouseY * 3.f), ImVec2(p1.x + mouseX * 70.f - 080.f, p1.y + mouseY * 3.f), ImVec2(0, 0.00), ImVec2(1, 0.25));
-    }
-
-    if (pProgramState->pCompanyLogo != nullptr)
-    {
-      float scaling = udMin(0.9f * (size.y - vcLBS_LoginBoxH) / vcLBS_LogoH, 1.f);
-      float yOff = (size.y - vcLBS_LoginBoxH) / 2.f;
-      pDrawList->AddImage(pProgramState->pCompanyLogo, ImVec2((size.x - vcLBS_LogoW * scaling) / 2.f, yOff - (vcLBS_LogoH * scaling * 0.5f)), ImVec2((size.x + vcLBS_LogoW * scaling) / 2, yOff + (vcLBS_LogoH * scaling * 0.5f)));
-    }
-  }
+  vcMain_ShowStartupScreen(pProgramState);
 
   ImGui::SetNextWindowBgAlpha(0.f);
   ImGui::SetNextWindowPos(ImVec2(0, size.y), ImGuiCond_Always, ImVec2(0, 1));
