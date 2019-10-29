@@ -7,21 +7,21 @@
     - Settings
       - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `settingsAppearanceLoginRenderLicense`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`,`settingsControlsControllerInvertY`, `settingsAppearanceShowEuclideonLogo`
     - Scene Explorer
-      - `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `sceneExplorerSetButton`, `scenePOILabelImageTypeOriented`
+      - `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `sceneExplorerSetButton`, `scenePOILabelImageTypeOriented`, `scenePOIAttachModel`, `scenePOIAttachModelURI`, `scenePOIAttachModelFailed`, `scenePOIAttachmentSpeed`
     - Viewport (New Node Types)
       - View Sheds
         - `sceneAddViewShed`, `sceneExplorerViewShedDefaultName`, `viewShedDistance`, `viewShedVisibleColour`, `viewShedHiddenColour`
       - Polygon Meshes
         - `polyModelMesh`, `polyModelTexture`, `polyModelMatColour`
       - Filters
-        - `sceneAddFilter`, `sceneAddFilterBox`, `sceneAddFilterSphere`, `sceneAddFilterCylinder`, `sceneExplorerFilterBoxDefaultName`, `sceneExplorerFilterSphereDefaultName`, `sceneExplorerFilterCylinderDefaultName`
+        - `sceneAddFilter`, `sceneAddFilterBox`, `sceneAddFilterSphere`, `sceneAddFilterCylinder`, `sceneExplorerFilterBoxDefaultName`, `sceneExplorerFilterSphereDefaultName`, `sceneExplorerFilterCylinderDefaultName`, `sceneFilterPosition`, `sceneFilterRotation`, `sceneFilterExtents`, `sceneFilterShape`, `sceneFilterShapeBox`, `sceneFilterShapeSphere`, `sceneFilterShapeCylinder`, `sceneFilterInverted`
     - Convert
       - `convertAllSpaceLabel`, `convertSpaceECEF`, `convertSpaceDetected`
     - Misc
       - `loginEnterURL`
   - Changed:
     - Viewport
-      - `sceneAddAOI` (improved clarity), `sceneAddLine` (improved clarity),
+      - `sceneAddAOI` (improved clarity), `sceneAddLine` (improved clarity)
   - Removed:
     - `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeSucceededTitle`, `settingsControlsInvertX`, `settingsControlsInvertY`
 
@@ -654,6 +654,15 @@ Modules are currently:
 - `scenePOILineOrientationHorz`: Text on the drop down item for the "Horizontal / Path" orientation
 - `scenePOICancelFlyThrough`: Label for button that appears during fly-through, allows user to cancel the fly-through
 - `scenePOIPerformFlyThrough`: Label for button that appears when POI has multiple nodes, will trigger a fly-through
+
+- `sceneFilterPosition`: Label beside inputs to set the (center) position of the filter
+- `sceneFilterRotation`: Label beside YPR inputs for filter rotation
+- `sceneFilterExtents`: Label beside inputs to specify the half size of the filter
+- `sceneFilterShape`: Label beside drop down 
+- `sceneFilterShapeBox`: Label on drop down item to specify a box filter
+- `sceneFilterShapeSphere`: Label on drop down item to specify a sphere filter
+- `sceneFilterShapeCylinder`: Label on drop down item to specify a cylinder filter
+- `sceneFilterInverted`: Label on checkbox to invert the result of the filter
 
 - `sceneViewpointSetCamera`: Label for button that bookmarks the current camera position and orientation
 - `sceneViewpointPosition`: Label for displaying the current stored camera position
