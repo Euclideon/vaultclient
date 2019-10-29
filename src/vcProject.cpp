@@ -158,7 +158,7 @@ void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverrid
     // Check if file path exists before writing to disk, and if so, the user will be presented with the option to overwrite or cancel
     if (allowOverride || vcModals_OverwriteExistingFile(exportFilename.GetPath()))
     {
-      vcState::ErrorItem projectError;
+      vcState::ErrorItem projectError = {};
       projectError.source = vcES_ProjectChange;
       projectError.pData = udStrdup(exportFilename.GetFilenameWithExt());
 
@@ -172,8 +172,7 @@ void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverrid
       vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
     }
 
-    if (pDir != nullptr)
-      udFree(pDir);
+    udCloseDir(&pDir);
   }
 }
 
