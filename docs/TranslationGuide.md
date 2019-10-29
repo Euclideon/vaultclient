@@ -12,7 +12,7 @@
       - View Sheds
         - `sceneAddViewShed`, `sceneExplorerViewShedDefaultName`, `viewShedDistance`, `viewShedVisibleColour`, `viewShedHiddenColour`
       - Polygon Meshes
-        - `polyModelMesh`, `polyModelTexture`, `polyModelMatColour`
+        - `polyModelInvertFaces`, `polyModelMesh`, `polyModelTexture`, `polyModelMatColour`
       - Filters
         - `sceneAddFilter`, `sceneAddFilterBox`, `sceneAddFilterSphere`, `sceneAddFilterCylinder`, `sceneExplorerFilterBoxDefaultName`, `sceneExplorerFilterSphereDefaultName`, `sceneExplorerFilterCylinderDefaultName`, `sceneFilterPosition`, `sceneFilterRotation`, `sceneFilterExtents`, `sceneFilterShape`, `sceneFilterShapeBox`, `sceneFilterShapeSphere`, `sceneFilterShapeCylinder`, `sceneFilterInverted`
     - Convert
@@ -683,6 +683,7 @@ Modules are currently:
 - `liveFeedGroupID`: When in `liveFeedModeGroups` mode, this is the input for the Group ID. [Will eventually be a drop down to select by group name]
 
 #### Polygon Models
+- `polyModelInvertFaces`: Label on check box to invert the winding order of the triangles
 - `polyModelMesh`: Used on the label next to mesh information in the scene explorer with "Show Diagnostic Information" enabled 
 - `polyModelTexture`: Used on the label next to mesh texture information in the scene explorer with "Show Diagnostic Information" enabled 
 - `polyModelMatColour`: Used on the label next to mesh material colour information in the scene explorer with "Show Diagnostic Information" enabled 
