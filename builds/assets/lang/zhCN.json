@@ -6,7 +6,7 @@
     "englishname": "Simplified Chinese",
     "translationby": "深圳优立全息科技有限公司",
     "contactemail": "info@euclideon.com.cn",
-    "targetVersion": "0.3.1"
+    "targetVersion": "0.4.0"
   },
 
   "loginButton": "登录",
@@ -331,7 +331,7 @@
   "sceneAddMenu": "添加新项目",
   "sceneAddAOI": "在这里开始AOI",
   "sceneBeginAreaMeasure": "开始区域测量",
-  "sceneAddLine": "在这里开始",
+  "sceneAddLine": "开始画线",
   "sceneBeginLineMeasure": "开始线测量",
   "sceneResetRotation": "重置相机旋转",
 
@@ -407,7 +407,7 @@
   "scenePOIAreaMeasureDefaultName": "面积测量",
   "scenePOILineDefaultName": "兴趣点",
   "scenePOILineMeasureDefaultName": "线路测量",
-  "scenePOIAddPoint": "新增点",
+  "scenePOIAddPoint": "新增节点",
   "scenePOIRemovePoint": "删除节点",
   "scenePOIPointPosition": "点位置",
   "scenePOISelectedPoint": "已选点",
