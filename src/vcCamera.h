@@ -58,7 +58,7 @@ enum vcInputState
   vcCIS_PinchZooming,
   vcCIS_Panning,
   vcCIS_MovingForward,
-  vcCIS_FlyingThrough,
+  vcCIS_FlyThrough,
 
   vcCIS_Count
 };
@@ -87,7 +87,6 @@ struct vcCameraInput
   udDouble3 controllerDPADInput;
   void *pObjectInfo;
 
-  bool flyThroughActive;
   int flyThroughPoint;
   bool transitioningToMapMode;
   bool stabilize;

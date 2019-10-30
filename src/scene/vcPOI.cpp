@@ -469,8 +469,8 @@ void vcPOI::HandleContextMenu(vcState *pProgramState)
 
     if (ImGui::MenuItem(vcString::Get("scenePOIPerformFlyThrough")))
     {
-      pProgramState->cameraInput.inputState = vcCIS_FlyingThrough;
-      pProgramState->cameraInput.flyThroughActive = false; // set false to activate MoveTo, will be set true in vcCamera before next frame
+      pProgramState->cameraInput.inputState = vcCIS_FlyThrough;
+      pProgramState->cameraInput.flyThroughPoint = -1;
       pProgramState->cameraInput.pObjectInfo = &m_line;
     }
 
