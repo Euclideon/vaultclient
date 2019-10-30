@@ -1,4 +1,13 @@
 name: $(Date:yyyyMMdd)$(Rev:r)
+
+trigger:
+  tags:
+    include:
+    - Release_*
+  branches:
+    include:
+    - '*'  # must quote since "*" is a YAML reserved character; we want a string
+
 variables:
   linkedVDK: Euclideon_vdk0.4.1
   VAULTSDK_HOME: $(Build.SourcesDirectory)/linkedVDK/$(linkedVDK)
