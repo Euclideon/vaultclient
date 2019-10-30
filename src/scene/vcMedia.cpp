@@ -37,12 +37,12 @@ vcMedia::vcMedia(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramS
   m_pLoadedURI(nullptr),
   m_loadLoadTimeSec(0.0),
   m_reloadTimeSecs(0.0),
-  m_pImageData(nullptr),
-  m_pModel(nullptr),
   m_imageDataSize(0)
  {
   memset(&m_image, 0, sizeof(m_image));
   m_loadStatus = vcSLS_Loaded;
+  m_pImageData = nullptr;
+  m_pModel = nullptr;
 
   OnNodeUpdate(pProgramState);
 }
