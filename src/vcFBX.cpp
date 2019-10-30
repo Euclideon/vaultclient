@@ -1,5 +1,12 @@
 #ifdef FBXSDK_ON
 
+#include "udPlatform.h"
+
+#if UDPLATFORM_MACOSX
+# pragma GCC diagnostic ignored "-Wpragma-pack"
+# pragma clang diagnostic ignored "-Wpragma-pack"
+#endif
+
 #include "fbxsdk.h"
 
 #include "stb_image.h"
@@ -7,7 +14,6 @@
 #include "udChunkedArray.h"
 #include "udFile.h"
 #include "udStringUtil.h"
-#include "udPlatform.h"
 #include "udMath.h"
 #include "udPlatformUtil.h"
 
