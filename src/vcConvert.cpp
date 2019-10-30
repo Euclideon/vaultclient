@@ -452,23 +452,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
     }
     else if (pSelectedJob->status == vcCQS_Running)
     {
-      // Preview is temporarily disabled
-      if (false && ImGui::Button(udTempStr("%s##vcAddPreview", pSelectedJob->previewRequested ? vcString::Get("convertGeneratingPreview") : vcString::Get("convertAddPreviewToScene")), ImVec2(-1, 40)) || pSelectedJob->previewRequested)
-      {
-        vdkPointCloud *pPointCloud = nullptr;
-        vdkError result = vdkConvert_GeneratePreview(pSelectedJob->pConvertContext, &pPointCloud);
-
-        if (result == vE_Success)
-        {
-          pSelectedJob->previewRequested = false;
-          new vcModel(pProgramState, vcString::Get("convertPreviewName"), pPointCloud);
-        }
-        else if (result == vE_Pending)
-        {
-          pSelectedJob->previewRequested = true; // This might already be true
-        }
-      }
-
       if (pSelectedJob->status == vcCQS_Running)
       {
         const float progressRatio = 0.7f; // How much reading is compared to writing (0.8 would be 80% of the progress is writing)
@@ -492,6 +475,25 @@ void vcConvert_ShowUI(vcState *pProgramState)
           ImGui::ProgressBar(progressRatio + (1.f - progressRatio) * pointsWritten / pointsTotal, ImVec2(-1, 0), vcStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertWritingPoints"), strings, udLengthOf(strings)));
         }
       }
+
+      // Preview is temporarily disabled as it doesn't work in shipped VDK0.4.1
+      /*
+      if (ImGui::Button(udTempStr("%s##vcAddPreview", pSelectedJob->previewRequested ? vcString::Get("convertGeneratingPreview") : vcString::Get("convertAddPreviewToScene")), ImVec2(-1, 40)) || pSelectedJob->previewRequested)
+      {
+        vdkPointCloud *pPointCloud = nullptr;
+        vdkError result = vdkConvert_GeneratePreview(pSelectedJob->pConvertContext, &pPointCloud);
+
+        if (result == vE_Success)
+        {
+          pSelectedJob->previewRequested = false;
+          new vcModel(pProgramState, vcString::Get("convertPreviewName"), pPointCloud);
+        }
+        else if (result == vE_Pending)
+        {
+          pSelectedJob->previewRequested = true; // This might already be true
+        }
+      }
+      */
     }
 
     if (ImGui::BeginChild("ConvertJobInfoColumn"))
