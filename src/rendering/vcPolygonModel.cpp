@@ -307,6 +307,9 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
       currentVert += 3;
     }
 
+    if (currentVert == 0)
+      continue;
+
     // BGRA
     pMesh->material.colour = 0x000000ff | (uint32_t(pMaterial->Kd.x * 0xff) << 8) | (uint32_t(pMaterial->Kd.y * 0xff) << 16) | (uint32_t(pMaterial->Kd.z * 0xff) << 24);
     pMesh->material.pName = udStrdup(pMaterial->name);
