@@ -3,7 +3,6 @@
 
 #include "udMath.h"
 #include "gl/vcTexture.h"
-#include "vcSceneItem.h"
 
 enum vcImageThumbnailSize
 {

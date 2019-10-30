@@ -30,7 +30,6 @@ enum vcInternalModelType
   vcInternalModelType_Cylinder,
 
   vcInternalModelType_Panorama,
-  vcInternalModelType_Photosphere,
 
   vcInternalModelType_Count
 };
