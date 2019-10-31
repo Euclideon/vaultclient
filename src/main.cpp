@@ -2222,10 +2222,10 @@ void vcRenderWindow(vcState *pProgramState)
 #if UDPLATFORM_WINDOWS
   if (io.KeyAlt && ImGui::IsKeyPressed(SDL_SCANCODE_F4))
     pProgramState->programComplete = true;
+#endif
 
   if (io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_M))
     vcCamera_SwapMapMode(pProgramState);
-#endif
 
   //end keyboard/mouse handling
 
