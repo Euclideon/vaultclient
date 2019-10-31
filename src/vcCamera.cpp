@@ -534,6 +534,9 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
 void vcCamera_SwapMapMode(vcState *pProgramState)
 {
+  if (pProgramState->cameraInput.transitioningToMapMode)
+    return;
+
   udDouble3 lookAtPosition = pProgramState->pCamera->position;
   double cameraHeight = pProgramState->pCamera->position.z;
   if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
@@ -543,6 +546,8 @@ void vcCamera_SwapMapMode(vcState *pProgramState)
     // defer actually swapping projection mode
     pProgramState->cameraInput.transitioningToMapMode = true;
     lookAtPosition += udDouble3::create(0, 0, -1); // up
+
+    cameraHeight = pProgramState->settings.camera.farPlane;
   }
   else
   {
