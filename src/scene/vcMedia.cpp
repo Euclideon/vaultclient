@@ -42,7 +42,6 @@ vcMedia::vcMedia(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramS
   memset(&m_image, 0, sizeof(m_image));
   m_loadStatus = vcSLS_Loaded;
   m_pImageData = nullptr;
-  m_pModel = nullptr;
 
   OnNodeUpdate(pProgramState);
 }
@@ -93,9 +92,7 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
     m_loadStatus = vcSLS_Failed;
     vcTexture_Destroy(&m_image.pTexture);
   }
-  else if ((m_loadStatus == vcSLS_Loaded && !udStrEqual(m_pLoadedURI, m_pNode->pURI)) ||
-    (m_reloadTimeSecs != 0.0 && m_loadLoadTimeSec + m_reloadTimeSecs < udGetEpochSecsUTCf()) ||
-    (m_loadStatus == vcSLS_Unloaded))
+  else if ((m_loadStatus == vcSLS_Loaded && !udStrEqual(m_pLoadedURI, m_pNode->pURI)) || (m_reloadTimeSecs != 0.0 && m_loadLoadTimeSec + m_reloadTimeSecs < udGetEpochSecsUTCf()) || (m_loadStatus == vcSLS_Unloaded))
   {
     vcTexture_Destroy(&m_image.pTexture);
     m_loadStatus = vcSLS_Pending;
@@ -140,29 +137,6 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
     }
   }
 
-  float aspect = 1.0f;
-  udInt2 imageSize = {};
-  vcTexture_GetSize(m_image.pTexture, &imageSize.x, &imageSize.y);
-  aspect = float(imageSize.y) / imageSize.x;
-
-  double worldScale = vcISToWorldSize[m_image.size];
-
-  // TODO: Billboards
-  if (m_image.type == vcIT_PhotoSphere)
-  {
-    m_pModel = gInternalModels[vcInternalModelType_Sphere];
-    m_pModel->modelOffset = udDouble4x4::scaleUniform(worldScale);
-  }
-  else if (m_image.type == vcIT_Panorama)
-  {
-    m_pModel = gInternalModels[vcInternalModelType_Panorama];
-    m_pModel->modelOffset = udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect * UD_PI);
-  }
-  else
-  {
-    m_pModel = nullptr;
-  }
-
   ChangeProjection(pProgramState->gis.zone);
 }
 
@@ -189,14 +163,31 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     }
     else
     {
-      vcRenderPolyInstance poly = {};
-      poly.pModel = m_pModel;
-      poly.renderType = vcRenderPolyInstance::RenderType_Polygon;
-      poly.pSceneItem = this;
-      poly.worldMat = udDouble4x4::rotationYPR(m_image.ypr, m_image.position) * udDouble4x4::scaleUniform(m_image.scale);
-      poly.pDiffuseOverride = m_image.pTexture;
-      poly.insideOut = true;
-      pRenderData->polyModels.PushBack(poly);
+      vcRenderPolyInstance *pPoly = pRenderData->polyModels.PushBack();
+      pPoly->worldMat = udDouble4x4::rotationYPR(m_image.ypr, m_image.position) * udDouble4x4::scaleUniform(m_image.scale);
+      pPoly->renderType = vcRenderPolyInstance::RenderType_Polygon;
+      pPoly->pSceneItem = this;
+      pPoly->pDiffuseOverride = m_image.pTexture;
+      pPoly->insideOut = true;
+
+      double worldScale = vcISToWorldSize[m_image.size];
+
+      // TODO: Billboards
+      if (m_image.type == vcIT_PhotoSphere)
+      {
+        pPoly->pModel = gInternalModels[vcInternalModelType_Sphere];
+        pPoly->worldMat *= udDouble4x4::scaleUniform(worldScale);
+      }
+      else if (m_image.type == vcIT_Panorama)
+      {
+        float aspect = 1.0f;
+        udInt2 imageSize = {};
+        vcTexture_GetSize(m_image.pTexture, &imageSize.x, &imageSize.y);
+        aspect = float(imageSize.y) / imageSize.x;
+
+        pPoly->pModel = gInternalModels[vcInternalModelType_Tube];
+        pPoly->worldMat *= udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect * UD_PI);
+      }
     }
   }
 

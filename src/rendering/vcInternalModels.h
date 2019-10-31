@@ -28,8 +28,7 @@ enum vcInternalModelType
   vcInternalModelType_Cube,
   vcInternalModelType_Sphere,
   vcInternalModelType_Cylinder,
-
-  vcInternalModelType_Panorama,
+  vcInternalModelType_Tube,
 
   vcInternalModelType_Count
 };

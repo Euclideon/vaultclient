@@ -40,7 +40,6 @@ public:
 
 public:
   const char *m_pLoadedURI; // The URI of the media we have (or are loading) currently
-  vcPolygonModel *m_pModel;
 
 private:
   vcImageRenderInfo m_image;
