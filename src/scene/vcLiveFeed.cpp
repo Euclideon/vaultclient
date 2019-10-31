@@ -297,7 +297,6 @@ vcLiveFeed::vcLiveFeed(vdkProject *pProject, vdkProjectNode *pNode, vcState *pPr
   m_maxDisplayDistance(50000.0),
   m_pMutex(udCreateMutex()),
   m_labelLODModifier(1.0)
-
 {
   m_feedItems.Init(512);
   m_polygonModels.Init(16);

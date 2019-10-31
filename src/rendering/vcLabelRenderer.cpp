@@ -33,5 +33,8 @@ bool vcLabelRenderer_Render(vcLabelInfo *pLabelRenderer, const udDouble4x4 &view
     drawList->AddText(ImVec2(windowPosition.x - halfLabelSize.x, windowPosition.y - halfLabelSize.y), pLabelRenderer->textColourRGBA, pLabelRenderer->pText);
   }
 
+  if (pLabelRenderer->textSize != vcLFS_Medium)
+    ImGui::SetWindowFontScale(1.f);
+
   return true;
 }
