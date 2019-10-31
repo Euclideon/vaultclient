@@ -98,7 +98,7 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
 #endif
   }
     
-  if (udStrBeginsWithi(pFragmentShader, "udSplat") || udStrBeginsWithi(pFragmentShader, "blur"))
+  if (udStrBeginsWithi(pFragmentShader, "udSplat") || udStrBeginsWithi(pFragmentShader, "blur") || udStrBeginsWithi(pFragmentShader, "flat"))
     pShader->flush = vcRFO_Flush;
   else if (udStrBeginsWithi(pFragmentShader, "udFrag"))
     pShader->flush = vcRFO_Blit;
