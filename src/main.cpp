@@ -781,6 +781,7 @@ int main(int argc, char **args)
   programState.settings.camera.nearPlane = 0.5f;
   programState.settings.camera.farPlane = 10000.f;
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
+  programState.cameraInput.progMultiplier = 1.0;
 
   // Dock setting
   programState.settings.docksLoaded = vcSettings::vcDockLoaded::vcDL_False;
