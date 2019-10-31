@@ -447,7 +447,7 @@ void vcModals_DrawFileModal(vcState *pProgramState)
     if (mode == vcMT_ExportProject)
       saveFile = (ImGui::Button(vcString::Get("sceneExplorerExportButton"), ImVec2(100.f, 0)) || pressedEnter);
     else if (mode == vcMT_ConvertOutput || mode == vcMT_ConvertTempDirectory)
-      saveFile = (ImGui::Button(vcString::Get("sceneExplorerSetButton"), ImVec2(100.f, 0)) || pressedEnter);
+      loadFile = (ImGui::Button(vcString::Get("sceneExplorerSetButton"), ImVec2(100.f, 0)) || pressedEnter);
     else
       loadFile = (ImGui::Button(vcString::Get("sceneExplorerLoadButton"), ImVec2(100.f, 0)) || pressedEnter);
 
