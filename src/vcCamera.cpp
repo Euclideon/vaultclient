@@ -504,11 +504,10 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
       pCamera->eulerRotation.z -= UD_2PI;
 
     pCamInput->progress += deltaTime * 2; // .5 second stabilize time
-    if (pCamInput->progress > 1.0)
+    if (pCamInput->progress >= 1.0)
     {
       pCamInput->progress = 1.0;
       pCamInput->stabilize = false;
-      pCamInput->inputState = vcCIS_None;
     }
 
     double travelProgress = udEase(pCamInput->progress, udET_CubicOut);
