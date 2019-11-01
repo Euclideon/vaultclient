@@ -317,12 +317,12 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     if (isnan(targetEuler.x) || isnan(targetEuler.y) || isnan(targetEuler.z))
       targetEuler = udDouble3::zero();
 
-    pCamInput->progress += deltaTime * pCamInput->progMultiplier; // 1 second
+    pCamInput->progress += deltaTime * pCamInput->progressMultiplier; // 1 second
     if (pCamInput->progress >= 1.0)
     {
       pCamInput->progress = 1.0;
       pCamInput->inputState = vcCIS_None;
-      pCamInput->progMultiplier = 1.0;
+      pCamInput->progressMultiplier = 1.0;
     }
 
     double progress = udEase(pCamInput->progress, udET_QuadraticOut);
@@ -548,7 +548,7 @@ void vcCamera_SwapMapMode(vcState *pProgramState)
     pProgramState->cameraInput.transitioningToMapMode = true;
     lookAtPosition += udDouble3::create(0, 0, -1); // up
 
-    cameraHeight = pProgramState->settings.camera.farPlane;
+    cameraHeight = pProgramState->settings.camera.farPlane * 0.5;
   }
   else
   {
@@ -579,7 +579,7 @@ void vcCamera_LookAt(vcState *pProgramState, const udDouble3 &targetPosition, do
   pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
   pProgramState->cameraInput.lookAtPosition = targetPosition;
   pProgramState->cameraInput.progress = 0.0;
-  pProgramState->cameraInput.progMultiplier = speedMultiplier;
+  pProgramState->cameraInput.progressMultiplier = speedMultiplier;
 }
 
 void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos)

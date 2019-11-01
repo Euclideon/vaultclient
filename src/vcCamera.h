@@ -79,7 +79,7 @@ struct vcCameraInput
   udDouble3 lookAtPosition; // for 'look at'
   udDoubleQuat startAngle;
   double progress;
-  double progMultiplier;
+  double progressMultiplier;
 
   vcCameraPivotMode currentPivotMode;
 
