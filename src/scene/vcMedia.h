@@ -8,7 +8,6 @@
 #include "vcFenceRenderer.h"
 #include "vcLabelRenderer.h"
 #include "vcImageRenderer.h"
-#include "vcPolygonModel.h"
 
 struct vdkPointCloud;
 struct vcTexture;

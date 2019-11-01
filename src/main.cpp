@@ -441,7 +441,6 @@ void vcMain_MainLoop(vcState *pProgramState)
             if (clicked.pParent != nullptr && clicked.pItem->itemtype == vdkPNT_Media)
             {
               vdkProjectNode_SetURI(pProgramState->activeProject.pProject, clicked.pItem, pNextLoad);
-              ((vcSceneItem *)clicked.pItem->pUserData)->m_loadStatus = vcSLS_Unloaded;
             }
             else
             {

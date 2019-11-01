@@ -29,6 +29,7 @@ enum vcInternalModelType
   vcInternalModelType_Sphere,
   vcInternalModelType_Cylinder,
   vcInternalModelType_Tube,
+  vcInternalModelType_Quad,
 
   vcInternalModelType_Count
 };

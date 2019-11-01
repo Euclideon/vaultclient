@@ -83,10 +83,7 @@ bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &vi
   vcTexture_GetSize(pImageInfo->pTexture, &imageSize.x, &imageSize.y);
   aspect = float(imageSize.y) / imageSize.x;
 
-  double worldScale = vcISToWorldSize[pImageInfo->size];
   udDouble4x4 mvp = viewProjectionMatrix * udDouble4x4::translation(pImageInfo->position) * udDouble4x4::rotationYPR(pImageInfo->ypr) * udDouble4x4::scaleUniform(pImageInfo->scale);
-  if (pImageInfo->type == vcIT_OrientedPhoto)
-    mvp = mvp * udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect);
 
   vcImageShader *pShader = &gShaders[pImageInfo->type == vcIT_StandardPhoto ? 0 : 1];
   vcShader_Bind(pShader->pShader);

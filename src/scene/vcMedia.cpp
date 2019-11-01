@@ -4,7 +4,6 @@
 #include "vcRender.h"
 #include "vcStrings.h"
 
-#include "vcFenceRenderer.h"
 #include "vcImageRenderer.h"
 #include "vcPolygonModel.h"
 #include "vcInternalModels.h"
@@ -94,7 +93,6 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
   }
   else if ((m_loadStatus == vcSLS_Loaded && !udStrEqual(m_pLoadedURI, m_pNode->pURI)) || (m_reloadTimeSecs != 0.0 && m_loadLoadTimeSec + m_reloadTimeSecs < udGetEpochSecsUTCf()) || (m_loadStatus == vcSLS_Unloaded))
   {
-    vcTexture_Destroy(&m_image.pTexture);
     m_loadStatus = vcSLS_Pending;
     udFree(m_pLoadedURI);
     m_pLoadedURI = udStrdup(m_pNode->pURI);
@@ -145,65 +143,106 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (!m_visible)
     return;
 
-  if (m_image.pTexture != nullptr && m_loadStatus == vcSLS_Loaded)
+  if (m_loadStatus == vcSLS_Loaded)
   {
-    if (m_image.type == vcIT_StandardPhoto || m_image.type == vcIT_OrientedPhoto)
+    udInt2 imageSize = {};
+    if (m_pImageData != nullptr)
     {
-      // For now brute force sorting (n^2)
-      double distToCameraSqr = udMagSq3(m_image.position - pProgramState->pCamera->position);
-      size_t i = 0;
-      for (; i < pRenderData->images.length; ++i)
-      {
-        if (udMagSq3(pRenderData->images[i]->position - pProgramState->pCamera->position) < distToCameraSqr)
-          break;
-      }
+      uint32_t width, height, channelCount;
 
-      vcImageRenderInfo *pImageInfo = &m_image;
-      pRenderData->images.Insert(i, &pImageInfo);
+      uint8_t *pData = stbi_load_from_memory((stbi_uc *)m_pImageData, (int)m_imageDataSize, (int *)& width, (int *)& height, (int *)& channelCount, 4);
+      udFree(m_pImageData);
+      m_imageDataSize = 0;
+
+      if (pData != nullptr)
+      {
+        if (m_image.pTexture != nullptr)
+          vcTexture_GetSize(m_image.pTexture, &imageSize.x, &imageSize.y);
+
+        if ((uint32_t)imageSize.x == width && (uint32_t)imageSize.y == height) // imageSize will not == for null pTexture
+        {
+          vcTexture_UploadPixels(m_image.pTexture, pData, width, height);
+        }
+        else
+        {
+          vcTexture_Destroy(&m_image.pTexture);
+
+          if (vcTexture_Create(&m_image.pTexture, width, height, pData, vcTextureFormat_RGBA8) != udR_Success)
+            m_loadStatus = vcSLS_Failed;
+        }
+
+        stbi_image_free(pData);
+      }
+      else
+      {
+        m_loadStatus = vcSLS_Failed;
+      }
     }
-    else
+
+    if (m_image.pTexture != nullptr)
     {
-      vcRenderPolyInstance *pPoly = pRenderData->polyModels.PushBack();
-      pPoly->worldMat = udDouble4x4::rotationYPR(m_image.ypr, m_image.position) * udDouble4x4::scaleUniform(m_image.scale);
-      pPoly->renderType = vcRenderPolyInstance::RenderType_Polygon;
-      pPoly->pSceneItem = this;
-      pPoly->pDiffuseOverride = m_image.pTexture;
-      pPoly->insideOut = true;
-
-      double worldScale = vcISToWorldSize[m_image.size];
-
-      // TODO: Billboards
-      if (m_image.type == vcIT_PhotoSphere)
+      if (m_image.type == vcIT_StandardPhoto)
       {
-        pPoly->pModel = gInternalModels[vcInternalModelType_Sphere];
-        pPoly->worldMat *= udDouble4x4::scaleUniform(worldScale);
+        // For now brute force sorting (n^2)
+        double distToCameraSqr = udMagSq3(m_image.position - pProgramState->pCamera->position);
+        size_t i = 0;
+        for (; i < pRenderData->images.length; ++i)
+        {
+          if (udMagSq3(pRenderData->images[i]->position - pProgramState->pCamera->position) < distToCameraSqr)
+            break;
+        }
+
+        vcImageRenderInfo *pImageInfo = &m_image;
+        pRenderData->images.Insert(i, &pImageInfo);
       }
-      else if (m_image.type == vcIT_Panorama)
+      else
       {
+        vcRenderPolyInstance *pPoly = pRenderData->polyModels.PushBack();
+        pPoly->worldMat = udDouble4x4::rotationYPR(m_image.ypr, m_image.position) * udDouble4x4::scaleUniform(m_image.scale);
+        pPoly->renderType = vcRenderPolyInstance::RenderType_Polygon;
+        pPoly->pSceneItem = this;
+        pPoly->pDiffuseOverride = m_image.pTexture;
+
+        double worldScale = vcISToWorldSize[m_image.size];
         float aspect = 1.0f;
-        udInt2 imageSize = {};
         vcTexture_GetSize(m_image.pTexture, &imageSize.x, &imageSize.y);
         aspect = float(imageSize.y) / imageSize.x;
 
-        pPoly->pModel = gInternalModels[vcInternalModelType_Tube];
-        pPoly->worldMat *= udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect * UD_PI);
+        
+        if (m_image.type == vcIT_PhotoSphere)
+        {
+          pPoly->pModel = gInternalModels[vcInternalModelType_Sphere];
+          pPoly->worldMat *= udDouble4x4::scaleUniform(worldScale);
+          pPoly->insideOut = true;
+        }
+        else if (m_image.type == vcIT_Panorama)
+        {
+          pPoly->pModel = gInternalModels[vcInternalModelType_Tube];
+          pPoly->worldMat *= udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect * UD_PI);
+          pPoly->insideOut = true;
+        }
+        else if (m_image.type == vcIT_OrientedPhoto)
+        {
+          pPoly->pModel = gInternalModels[vcInternalModelType_Quad];
+          pPoly->worldMat *= udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect) * udDouble4x4::rotationZ(UD_PI);
+          pPoly->insideOut = true;
+        } // TODO: Billboards, this renders at the correct relative scale and everything, but looks odd when actually rendered into the scene
+        /*else if (m_image.type == vcIT_StandardPhoto)
+        {
+          udDouble3 baseScale = udDouble3::create(worldScale, worldScale, worldScale * aspect);
+          udDouble3 distanceVector = m_image.position - pProgramState->pCamera->position;
+          double distance = udMag3(distanceVector);
+
+          pPoly->pModel = gInternalModels[vcInternalModelType_Quad];
+          pPoly->worldMat *= udDouble4x4::scaleNonUniform(baseScale * (distance / 25)) * udDouble4x4::rotationYPR(udDirectionToYPR(distanceVector));
+          pPoly->insideOut = true;
+        }*/
       }
     }
   }
 
   if (m_reloadTimeSecs != 0.0 && m_loadLoadTimeSec + m_reloadTimeSecs < udGetEpochSecsUTCf())
     OnNodeUpdate(pProgramState);
-
-  if (m_loadStatus == vcSLS_Loaded && m_pImageData != nullptr)
-  {
-    vcTexture_Destroy(&m_image.pTexture);
-
-    if (!vcTexture_CreateFromMemory(&m_image.pTexture, m_pImageData, m_imageDataSize)) //If this doesn't load
-      m_loadStatus = vcSLS_Failed;
-
-    udFree(m_pImageData);
-    m_imageDataSize = 0;
-  }
 }
 
 void vcMedia::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
