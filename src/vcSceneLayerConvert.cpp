@@ -219,6 +219,7 @@ void vcSceneLayerConvert_Close(vdkConvertCustomItem *pConvertInput)
 
   vcSceneLayerConvert *pSceneLayerConvert = (vcSceneLayerConvert*)pConvertInput->pData;
   vcSceneLayerConvert_Destroy(&pSceneLayerConvert);
+  vdkAttributeSet_Free(&pConvertInput->attributes);
   pConvertInput->pData = nullptr;
 }
 
@@ -415,7 +416,7 @@ vdkError vcSceneLayerConvert_AddItem(vdkConvertContext *pConvertContext, const c
   customItem.pClose = vcSceneLayerConvert_Close;
   customItem.pReadPointsInt = vcSceneLayerConvert_ReadPointsInt;
   customItem.pName = pSceneLayerURL;
-  customItem.content = vdkSAC_ARGB;
+  vdkAttributeSet_Generate(&customItem.attributes, vdkSAC_ARGB, 0);
   customItem.srid = pSceneLayerConvert->pSceneLayer->root.zone.srid;
   customItem.sourceProjection = vdkCSP_SourceCartesian;
   customItem.pointCount = -1;

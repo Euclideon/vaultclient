@@ -11,6 +11,7 @@
 #include "udSafeDeque.h"
 #include "udJSON.h"
 #include "udPlatformUtil.h"
+#include "udStringUtil.h"
 
 enum vcBPAEdgeStatus
 {
@@ -753,7 +754,7 @@ double vcBPA_DistanceToTriangle(vcBPAGrid *pOldGrid, size_t triangleIndex, udDou
 size_t vcBPA_FindClosestTriangle(vcBPAGrid *pOldGrid, udDouble3 position)
 {
   size_t closest = 0;
-  double closestDistance = DBL_MAX;
+  double closestDistance = FLT_MAX;
 
   for (size_t i = 0; i < pOldGrid->triangles.length; ++i)
   {
@@ -885,12 +886,21 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
   vcBPAConvertItem *pData = (vcBPAConvertItem *)pConvertInput->pData;
   bool getNextGrid = true;
 
+  uint32_t colourOffset = 0;
+  uint32_t displacementOffset = 0;
+  vdkError error = vE_Failure;
+
   static int gridCount = 0;
   if (pData->activeItem.pointIndex == 0)
     ++gridCount;
 
   if (pData->activeItem.pointIndex == 0 && pData->activeItem.pGrid == nullptr)
     goto epilogue;
+
+  vdkAttributeSet_GetOffsetOfStandardAttribute(&pBuffer->attributes, vdkSA_ARGB, &colourOffset);
+  error = vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacement", &displacementOffset);
+  if (error != vE_Success)
+    return error;
 
   for (size_t i = pData->activeItem.pointIndex; i < pData->activeItem.pGrid->vertices.length; ++i)
   {
@@ -904,7 +914,7 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
     udDouble3 position = pData->activeItem.pGrid->vertices[i].position;
     size_t triangle = vcBPA_FindClosestTriangle(&pData->activeItem.oldGrid, position);
 
-    double distance = DBL_MAX;
+    double distance = FLT_MAX;
     if (triangle < pData->activeItem.oldGrid.triangles.length)
       distance = udAbs(vcBPA_DistanceToTriangle(&pData->activeItem.oldGrid, triangle, position));
 
@@ -913,19 +923,13 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
 
     // Colour
     ptrdiff_t pointAttrOffset = ptrdiff_t(pBuffer->pointCount) * pBuffer->attributeStride;
-    uint32_t attrOffset = 0;
-    vdkAttributeSet_GetOffsetOfStandardAttribute(&pBuffer->attributes, vdkSA_ARGB, &attrOffset);
-    uint32_t *pColour = (uint32_t *)udAddBytes(pBuffer->pAttributes, pointAttrOffset + attrOffset);
+    uint32_t *pColour = (uint32_t *)udAddBytes(pBuffer->pAttributes, pointAttrOffset + colourOffset);
     uint32_t *pOldColour = (uint32_t *)udAddBytes(pData->activeItem.pGrid->pBuffer->pAttributes, i * pData->activeItem.pGrid->pBuffer->attributeStride);
     *pColour = *pOldColour;
 
-    // Intensity TODO: Change to displacement when it exists
-    vdkAttributeSet_GetOffsetOfStandardAttribute(&pBuffer->attributes, vdkSA_Intensity, &attrOffset);
-    uint16_t *pIntensity = (uint16_t *)udAddBytes(pBuffer->pAttributes, pointAttrOffset + attrOffset);
-    if (distance == DBL_MAX)
-      *pIntensity = UINT16_MAX;
-    else
-      *pIntensity = uint16_t(distance * 1000);
+    // Displacement
+    float *pDisplacement = (float*)udAddBytes(pBuffer->pAttributes, pointAttrOffset + displacementOffset);
+    *pDisplacement = (float)distance;
 
     // TODO: Copy all of the original attributes
 
@@ -983,10 +987,16 @@ void vcBPA_CompareExport(vdkContext *pContext, vdkPointCloud *pOldModel, vdkPoin
   
   vdkConvertCustomItem item = {};
   item.pName = "DisplacementComparison";
-  item.content = vdkSAC_ARGB | vdkSAC_Intensity;
+
+  vdkAttributeSet_Generate(&item.attributes, vdkSAC_ARGB, 1);
+  item.attributes.pDescriptors[item.attributes.count].blendMode = vdkABM_SingleValue;
+  item.attributes.pDescriptors[item.attributes.count].typeInfo = vdkAttributeTypeInfo_float32;
+  udStrcpy(item.attributes.pDescriptors[item.attributes.count].name, "udDisplacement");
+  ++item.attributes.count;
+
   item.sourceResolution = header.convertedResolution;
   item.pointCount = metadata.Get("SourcePointCount").AsInt64();
-  item.pointCountIsEstimate = true;
+  item.pointCountIsEstimate = false;
   item.pData = &bpa;
   item.pOpen = vcBPA_ConvertOpen;
   item.pReadPointsFloat = vcBPA_ConvertReadPoints;
