@@ -52,9 +52,9 @@ project "vaultClient"
 
 		filter { "system:windows" }
 			links { "libfbxsdk.lib" }
-			libdirs { '%{_OPTIONS["fbxsdk"]}/lib/vs2015/x64/%{cfg.buildcfg}/' }
+			libdirs { '%{_OPTIONS["fbxsdk"]}/lib/vs2017/x64/%{cfg.buildcfg}/' }
 			prelinkcommands {
-				'copy /B "' .. path.translate(_OPTIONS["fbxsdk"] .. '\\lib\\vs2015\\x64\\%{cfg.buildcfg}\\libfbxsdk.dll') .. '" %{prj.targetdir}'
+				'copy /B "' .. path.translate(_OPTIONS["fbxsdk"] .. '\\lib\\vs2017\\x64\\%{cfg.buildcfg}\\libfbxsdk.dll') .. '" %{prj.targetdir}'
 			}
 
 		filter { "system:macosx" }

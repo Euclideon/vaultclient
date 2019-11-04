@@ -139,7 +139,12 @@ bool vcFileDialog_Show(char *pPath, size_t pathLength, bool loadOnly /*= true*/,
 
   for (uint8_t i = 0; i < length; ++i)
   {
-    if (ImGui::TreeNode(ppDrives[i]))
+    bool opened = ImGui::TreeNode(ppDrives[i]);
+    
+    if (ImGui::IsItemClicked())
+      udStrcpy(pPath, pathLength, ppDrives[i]);
+
+    if (opened)
     {
       clickedFile |= vcFileDialog_ListFolder(ppDrives[i], pPath, pathLength, ppExtensions, extensionCount);
       ImGui::TreePop();
