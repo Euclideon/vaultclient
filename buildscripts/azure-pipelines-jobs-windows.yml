@@ -20,7 +20,16 @@ jobs:
   - checkout: self
     submodules: recursive
   - template: azure-pipelines-steps-linkedvdk.yml
-  - script: 3rdParty\udcore\bin\premake-bin\premake5.exe vs2019 --gfxapi=${{ parameters.gfxapi }}
+  - script: curl -OL https://github.com/zellski/FBXSDK-Windows/archive/2019.2.tar.gz
+    displayName: 'Download Dependencies'
+  - powershell: |
+      7z e 2019.2.tar.gz
+      7z x 2019.2.tar
+      move -v .\FBXSDK-Windows-2019.2\sdk\ .
+      choco install zstandard
+      zstd -d -r --rm sdk
+    displayName: 'Install Dependencies'
+  - script: 3rdParty\udcore\bin\premake-bin\premake5.exe vs2019 --gfxapi=${{ parameters.gfxapi }} --fbxsdk=$(Build.SourcesDirectory)/sdk/Windows/2019.2
     displayName: 'Run Premake'
   - task: MSBuild@1
     displayName: 'Build Projects'
