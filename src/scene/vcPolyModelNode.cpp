@@ -18,7 +18,7 @@ vcPolyModelNode::vcPolyModelNode(vdkProject *pProject, vdkProjectNode *pNode, vc
   m_invert = false;
 
   //TODO: Do this load async
-  if (vcPolygonModel_CreateFromURL(&m_pModel, pNode->pURI) == udR_Success)
+  if (vcPolygonModel_CreateFromURL(&m_pModel, pNode->pURI, pProgramState->pWorkerPool) == udR_Success)
     m_loadStatus = vcSLS_Loaded;
   else
     m_loadStatus = vcSLS_Failed;

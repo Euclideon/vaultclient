@@ -14,6 +14,7 @@ enum vcPolyModelPass
 
 struct vcTexture;
 struct vcMesh;
+struct udWorkerPool;
 
 struct vcPolygonModelMaterial
 {
@@ -49,7 +50,7 @@ udResult vcPolygonModel_CreateShaders();
 udResult vcPolygonModel_DestroyShaders();
 
 udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel, const void *pVerts, const uint16_t vertCount, const vcVertexLayoutTypes *pMeshLayout, const int totalTypes, const uint16_t *pIndices = nullptr, const uint16_t indexCount = 0);
-udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL);
+udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL, udWorkerPool *pWorkerPool = nullptr);
 
 udResult vcPolygonModel_Destroy(vcPolygonModel **ppModel);
 

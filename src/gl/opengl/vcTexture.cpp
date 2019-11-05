@@ -66,7 +66,7 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
     *pPixelFormat = pixelFormat;
 }
 
-udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /* = 0 */)
+udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /* = 0 */, uint32_t limitTextureSize /*= -1*/)
 {
   if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
     return udR_InvalidParameter_;
@@ -95,6 +95,69 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, realAniso);
   }
 
+  // GLint maxSize;
+  // glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
+
+   //static int64_t textureSizes = 0;
+   //textureSizes += width * height * 4;
+   //printf("Texture: %d x %d. mips=%d...%zu\n", width, height, hasMipmaps ? 1 : 0, (textureSizes >> 20));
+   //width = udMin(width, 4096u);
+   //height = udMin(height, 4096u);
+
+  if (width > limitTextureSize || height > limitTextureSize)
+  {
+    uint32_t max = udMax(width, height);
+    int passes = 0;
+    while (max > limitTextureSize)
+    {
+      ++passes;
+      max >>= 1;
+    }
+
+    const void *pLastPixels = pPixels;
+    uint32_t lastWidth = width;
+    uint32_t lastHeight = height;
+
+    for (int i = 0; i < passes; ++i)
+    {
+      lastWidth >>= 1;
+      lastHeight >>= 1;
+      uint32_t *pMippedPixels = udAllocType(uint32_t, lastWidth * lastHeight, udAF_Zero);
+
+      for (uint32_t y = 0; y < lastHeight; ++y)
+      {
+        for (uint32_t x = 0; x < lastWidth; ++x)
+        {
+          uint8_t r = 0, g = 0, b = 0, a = 0;
+
+          // 4x4 bilinear sampling
+          for (int s = 0; s < 4; ++s)
+          {
+            uint32_t sample = ((uint32_t *)pLastPixels)[(y * 2 + s / 2) * lastWidth * 2 + (x * 2 + s % 2)];
+            r += ((sample >> 0) & 0xff) >> 2;
+            g += ((sample >> 8) & 0xff) >> 2;
+            b += ((sample >> 16) & 0xff) >> 2;
+            a += ((sample >> 24) & 0xff) >> 2;
+          }
+          pMippedPixels[y * lastWidth + x] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
+        }
+      }
+
+      if (i != 0 && i != passes - 1)
+        udFree(pLastPixels);
+
+      pLastPixels = pMippedPixels;
+    }
+
+    printf("%d x %d...passes=%d, %d x %d\n", width, height, passes, lastWidth, lastHeight);
+
+    pPixels = pLastPixels;
+    width = lastWidth;
+    height = lastHeight;
+  }
+
+
+  //if (width < 8192 && height < 8192)
   glTexImage2D(GL_TEXTURE_2D, 0, textureFormat, width, height, 0, pixelFormat, pixelType, pPixels);
 
   if (hasMipmaps)
@@ -132,7 +195,7 @@ epilogue:
 
 }
 
-bool vcTexture_CreateFromMemory(vcTexture **ppTexture, void *pFileData, size_t fileLength, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
+bool vcTexture_CreateFromMemory(vcTexture **ppTexture, void *pFileData, size_t fileLength, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/, uint32_t limitTextureSize /*= -1*/)
 {
   if (ppTexture == nullptr || pFileData == nullptr || fileLength == 0)
     return false;
@@ -140,10 +203,17 @@ bool vcTexture_CreateFromMemory(vcTexture **ppTexture, void *pFileData, size_t f
   uint32_t width, height, channelCount;
   vcTexture *pTexture = nullptr;
 
+  static int totalSize = 0;
+  totalSize += (int)fileLength;
+
+  printf("Begin load: %zu...%d\n", fileLength, totalSize >> 20);
   uint8_t *pData = stbi_load_from_memory((stbi_uc *)pFileData, (int)fileLength, (int *)& width, (int *)& height, (int *)& channelCount, 4);
+  printf("End load, begin upload\n");
 
   if (pData)
-    vcTexture_Create(&pTexture, width, height, pData, vcTextureFormat_RGBA8, filterMode, hasMipmaps, wrapMode, flags, aniFilter);
+    vcTexture_Create(&pTexture, width, height, pData, vcTextureFormat_RGBA8, filterMode, hasMipmaps, wrapMode, flags, aniFilter, limitTextureSize);
+
+  printf("End upload\n");
 
   stbi_image_free(pData);
 
@@ -158,7 +228,7 @@ bool vcTexture_CreateFromMemory(vcTexture **ppTexture, void *pFileData, size_t f
   return (pTexture != nullptr);
 }
 
-bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
+bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/, uint32_t limitTextureSize /*= -1*/)
 {
   if (ppTexture == nullptr || pFilename == nullptr)
     return false;
@@ -169,7 +239,7 @@ bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, 
   if (udFile_Load(pFilename, &pFileData, &fileLen) != udR_Success)
     return false;
 
-  bool result = vcTexture_CreateFromMemory(ppTexture, pFileData, fileLen, pWidth, pHeight, filterMode, hasMipmaps, wrapMode, flags, aniFilter);
+  bool result = vcTexture_CreateFromMemory(ppTexture, pFileData, fileLen, pWidth, pHeight, filterMode, hasMipmaps, wrapMode, flags, aniFilter, limitTextureSize);
 
   udFree(pFileData);
   return result;
