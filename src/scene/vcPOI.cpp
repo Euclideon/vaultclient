@@ -456,8 +456,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
     if (ImGui::SliderScalar(vcString::Get("scenePOIAttachmentSpeed"), ImGuiDataType_Double, &m_attachment.moveSpeed, &minSpeed, &maxSpeed))
     {
-      if (m_attachment.moveSpeed < 0.0)
-        m_attachment.moveSpeed = 0.0;
+      m_attachment.moveSpeed = udClamp(m_attachment.moveSpeed, minSpeed, maxSpeed);
       vdkProjectNode_SetMetadataDouble(m_pNode, "attachmentSpeed", m_attachment.moveSpeed);
     }
   }
