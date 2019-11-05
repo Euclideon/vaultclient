@@ -172,8 +172,6 @@ SDL_Window* ImGui_ImplSDL2_CreateWindow(const char* title, int x, int y, int w, 
 bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
 {
     ImGuiIO& io = ImGui::GetIO();
-    bool down = false;
-    
     switch (event->type)
     {
     case SDL_MOUSEWHEEL:
@@ -197,8 +195,6 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
             return true;
         }
     case SDL_KEYDOWN:
-        down = true; 
-        // Falls through
     case SDL_KEYUP:
         {
             // Prevents backspace being grabbed by ImGui if IME composition is in progress
@@ -224,18 +220,14 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
               key = SDL_SCANCODE_RETURN;
 
             if (key != SDL_SCANCODE_BACKSPACE)
-              io.KeysDown[key] = down;
+              io.KeysDown[key] = (event->type == SDL_KEYDOWN);
             else
-              io.KeysDown[key] = io.KeysDown[key] || down;
+              io.KeysDown[key] = io.KeysDown[key] || (event->type == SDL_KEYDOWN);
 
             io.KeyShift = ((SDL_GetModState() & KMOD_SHIFT) != 0);
             io.KeyCtrl = ((SDL_GetModState() & KMOD_CTRL) != 0);
             io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
             io.KeySuper = ((SDL_GetModState() & KMOD_GUI) != 0);
-            
-#if UDPLATFORM_MACOS
-            io.KeyCtrl |= io.KeySuper;
-#endif
             return true;
         }
     // Multi-viewport support
@@ -371,13 +363,13 @@ void ImGui_ImplSDL2_Shutdown()
 // This code is incredibly messy because some of the functions we need for full viewport support are not available in SDL < 2.0.4.
 static void ImGui_ImplSDL2_UpdateMousePosAndButtons()
 {
-  ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
   io.MouseHoveredViewport = 0;
 
   // [1]
   // Only when requested by io.WantSetMousePos: set OS mouse pos from Dear ImGui mouse pos.
   // (rarely used, mostly when ImGuiConfigFlags_NavEnableSetMousePos is enabled by user)
-  if (io.WantSetMousePos)
+    if (io.WantSetMousePos)
   {
 #if SDL_HAS_CAPTURE_AND_GLOBAL_MOUSE
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)

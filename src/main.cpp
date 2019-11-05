@@ -2224,8 +2224,10 @@ void vcRenderWindow(vcState *pProgramState)
     pProgramState->programComplete = true;
 #endif
 
+#if !UDPLATFORM_LINUX
   if (io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_M))
     vcCamera_SwapMapMode(pProgramState);
+#endif
 
   //end keyboard/mouse handling
 
