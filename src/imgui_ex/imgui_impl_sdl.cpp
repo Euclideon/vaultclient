@@ -197,9 +197,8 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
             return true;
         }
     case SDL_KEYDOWN:
-        {
-          down = true; // Falls through
-        }
+        down = true; 
+        // Falls through
     case SDL_KEYUP:
         {
             // Prevents backspace being grabbed by ImGui if IME composition is in progress
