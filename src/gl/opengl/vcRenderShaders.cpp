@@ -206,14 +206,14 @@ void main()
   shadowMapClip2 /= shadowMapClip2.w;
   shadowMapClip2.xy = (shadowMapClip2.xy * vec2(0.5)) + vec2(0.5);
 
-  float isInMap0 = float(shadowMapClip0.x >= 0 && shadowMapClip0.x <= 1 && shadowMapClip0.y >= 0 && shadowMapClip0.y <= 1 && shadowMapClip0.z >= -1 && shadowMapClip0.z <= 1);
-  float isInMap1 = float(shadowMapClip1.x >= 0 && shadowMapClip1.x <= 1 && shadowMapClip1.y >= 0 && shadowMapClip1.y <= 1 && shadowMapClip1.z >= -1 && shadowMapClip1.z <= 1);
-  float isInMap2 = float(shadowMapClip2.x >= 0 && shadowMapClip2.x <= 1 && shadowMapClip2.y >= 0 && shadowMapClip2.y <= 1 && shadowMapClip2.z >= -1 && shadowMapClip2.z <= 1);
+  float isInMap0 = float(shadowMapClip0.x >= 0.0 && shadowMapClip0.x <= 1.0 && shadowMapClip0.y >= 0.0 && shadowMapClip0.y <= 1.0 && shadowMapClip0.z >= -1.0 && shadowMapClip0.z <= 1.0);
+  float isInMap1 = float(shadowMapClip1.x >= 0.0 && shadowMapClip1.x <= 1.0 && shadowMapClip1.y >= 0.0 && shadowMapClip1.y <= 1.0 && shadowMapClip1.z >= -1.0 && shadowMapClip1.z <= 1.0);
+  float isInMap2 = float(shadowMapClip2.x >= 0.0 && shadowMapClip2.x <= 1.0 && shadowMapClip2.y >= 0.0 && shadowMapClip2.y <= 1.0 && shadowMapClip2.z >= -1.0 && shadowMapClip2.z <= 1.0);
 
   // note depth is left [-1, 1]
-  vec3 shadowMapUV0 = vec3((0.0 / MAP_COUNT) + shadowMapClip0.x / MAP_COUNT, 1.0 - shadowMapClip0.y, shadowMapClip0.z);
-  vec3 shadowMapUV1 = vec3((1.0 / MAP_COUNT) + shadowMapClip1.x / MAP_COUNT, 1.0 - shadowMapClip1.y, shadowMapClip1.z);
-  vec3 shadowMapUV2 = vec3((2.0 / MAP_COUNT) + shadowMapClip2.x / MAP_COUNT, 1.0 - shadowMapClip2.y, shadowMapClip2.z);
+  vec3 shadowMapUV0 = vec3((0.0 / float(MAP_COUNT)) + shadowMapClip0.x / float(MAP_COUNT), 1.0 - shadowMapClip0.y, shadowMapClip0.z);
+  vec3 shadowMapUV1 = vec3((1.0 / float(MAP_COUNT)) + shadowMapClip1.x / float(MAP_COUNT), 1.0 - shadowMapClip1.y, shadowMapClip1.z);
+  vec3 shadowMapUV2 = vec3((2.0 / float(MAP_COUNT)) + shadowMapClip2.x / float(MAP_COUNT), 1.0 - shadowMapClip2.y, shadowMapClip2.z);
 
   sampleUV = mix(sampleUV, shadowMapUV0, isInMap0);
   sampleUV = mix(sampleUV, shadowMapUV1, isInMap1);

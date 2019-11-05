@@ -390,6 +390,7 @@
   "sceneExplorerUseProjection": "Use Projection",
   "sceneExplorerMoveTo": "Move To",
   "sceneExplorerResetPosition": "Reset Position",
+  "sceneExplorerCompareModels": "Compare Models",
   "sceneExplorerPathURL": "Path/URL:",
   "sceneExplorerExportButton": "Export",
   "sceneExplorerLoadButton": "Load",

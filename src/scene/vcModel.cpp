@@ -2,6 +2,7 @@
 
 #include "vcState.h"
 #include "vcRender.h"
+#include "vcBPA.h"
 
 #include "gl/vcTexture.h"
 
@@ -287,6 +288,40 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
   vcImGuiValueTreeObject(&m_metadata);
 }
 
+void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode)
+{
+  vdkProjectNode *pChildNode = pParentNode->pFirstChild;
+  while (pChildNode != nullptr)
+  {
+    if (pChildNode->itemtype == vdkPNT_Folder)
+    {
+      ContextMenuListModels(pProgramState, pChildNode);
+    }
+    else if (pChildNode->itemtype == vdkPNT_PointCloud && pChildNode->pUserData != this)
+    {
+      //udTempStr("%s###SXIName%zu", pNode->pName, *pItemID)
+      if (ImGui::Selectable(pChildNode->pName))
+      {
+        this->m_compareData.pContext = pProgramState->pVDKContext;
+        this->m_compareData.pOldModel = (vcModel *)pChildNode->pUserData;
+        this->m_compareData.pNewModel = this;
+        this->m_compareData.ballRadius = 0.15; // TODO: Expose this to the user
+        udWorkerPoolCallback *pCallback = [](void *pUserData) {
+          vcModelCompareData *pCompareData = (vcModelCompareData *)pUserData;
+          vcBPA_CompareExport(pCompareData->pContext, pCompareData->pOldModel->m_pPointCloud, pCompareData->pNewModel->m_pPointCloud, pCompareData->ballRadius);
+          pCompareData->pContext = nullptr;
+          pCompareData->pOldModel = nullptr;
+          pCompareData->pNewModel = nullptr;
+          pCompareData->ballRadius = 0.0;
+        };
+        udWorkerPool_AddTask(pProgramState->pWorkerPool, pCallback, &this->m_compareData, false);
+      }
+    }
+
+    pChildNode = pChildNode->pNextSibling;
+  }
+}
+
 void vcModel::HandleContextMenu(vcState *pProgramState)
 {
   ImGui::Separator();
@@ -307,6 +342,13 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
     //{
     //  vdkPointCloud_Export(m_pPointCloud, "Testing.las", nullptr);
     //}
+  }
+
+  // Compare models
+  if (ImGui::BeginMenu(vcString::Get("sceneExplorerCompareModels")))
+  {
+    ContextMenuListModels(pProgramState, pProgramState->activeProject.pFolder->m_pNode);
+    ImGui::EndMenu();
   }
 }
 
