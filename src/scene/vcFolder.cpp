@@ -304,6 +304,10 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
 
           ImGui::EndPopup();
+
+          if (pSceneItem->m_expanded)
+            ImGui::TreePop();
+
           return;
         }
 
