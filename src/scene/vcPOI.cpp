@@ -106,7 +106,9 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
 
   if (vdkProjectNode_GetMetadataString(m_pNode, "attachmentURI", &pTemp, nullptr) == vE_Success)
   {
-    LoadAttachedModel(pTemp);
+    if (!LoadAttachedModel(pTemp))
+      LoadAttachedModel(udTempStr("%s%s", pProgramState->activeProject.pRelativeBase, pTemp));
+
     vdkProjectNode_GetMetadataDouble(m_pNode, "attachmentSpeed", &m_attachment.moveSpeed, 16.667); //60km/hr
   }
 
@@ -486,7 +488,12 @@ void vcPOI::HandleContextMenu(vcState *pProgramState)
 
       if (ImGui::Button(vcString::Get("scenePOIAttachModel")))
       {
-        if (LoadAttachedModel(uriBuffer))
+        bool result = LoadAttachedModel(uriBuffer);
+
+        if (!result)
+          result = LoadAttachedModel(udTempStr("%s%s", pProgramState->activeProject.pRelativeBase, uriBuffer));
+
+        if (result)
         {
           vdkProjectNode_SetMetadataString(m_pNode, "attachmentURI", uriBuffer);
           ImGui::CloseCurrentPopup();
