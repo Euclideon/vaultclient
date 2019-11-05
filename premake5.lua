@@ -64,6 +64,9 @@ function injectvaultsdkbin()
 		links { "vaultSDK.framework" }
 	elseif os.target() == "emscripten" and not _OPTIONS["force-vaultsdk"] then
 		linkoptions { "src/libvaultSDK.bc", "src/libudPointCloud.bc", "src/libvaultcore.bc" }
+	elseif os.target() == "emscripten" then
+		links { "udPointCloudVDK", "udCoreVDK" }
+		links { "vaultSDK" }
 	else
 		links { "vaultSDK" }
 	end
@@ -200,8 +203,8 @@ solution "vaultClient"
 
 	if os.target() == "emscripten" then
 		platforms { "Emscripten" }
-		buildoptions { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", "-s PROXY_TO_PTHREAD=1", --[["-s OFFSCREEN_FRAMEBUFFER=1",]] "-s OFFSCREENCANVAS_SUPPORT=1", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-s BINARYEN_TRAP_MODE='clamp'", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=2147418112" }
-		linkoptions  { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", "-s PROXY_TO_PTHREAD=1", --[["-s OFFSCREEN_FRAMEBUFFER=1",]] "-s OFFSCREENCANVAS_SUPPORT=1", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-s BINARYEN_TRAP_MODE='clamp'", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=2147418112" }
+		buildoptions { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", "-s PROXY_TO_PTHREAD=1", --[["-s OFFSCREEN_FRAMEBUFFER=1",]] "-s OFFSCREENCANVAS_SUPPORT=1", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-mnontrapping-fptoint", "-s FORCE_FILESYSTEM=1", "-lidbfs.js", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=2147418112" }
+		linkoptions  { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", "-s PROXY_TO_PTHREAD=1", --[["-s OFFSCREEN_FRAMEBUFFER=1",]] "-s OFFSCREENCANVAS_SUPPORT=1", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-mnontrapping-fptoint", "-s FORCE_FILESYSTEM=1", "-lidbfs.js", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=2147418112" }
 		linkoptions { "-O3" } -- TODO: This might not be required once `-s PROXY_TO_PTHREAD` is working.
 		targetextension ".bc"
 		linkgroups "On"
@@ -209,6 +212,8 @@ solution "vaultClient"
 			targetextension ".js"
 		filter { "files:**.cpp" }
 			buildoptions { "-std=c++11" }
+		filter { "system:emscripten" }
+			disablewarnings "string-plus-int"
 		filter {}
 	else
 		platforms { "x64" }
@@ -220,6 +225,8 @@ solution "vaultClient"
 	pic "On"
 	editandcontinue "Off"
 
+	filter { "system:emscripten" }
+		pic "Off"
 	filter { "system:windows", "action:vs*" }
 		buildoptions { "/permissive-" }
 	filter {}
