@@ -79,6 +79,7 @@ struct vcCameraInput
   udDouble3 lookAtPosition; // for 'look at'
   udDoubleQuat startAngle;
   double progress;
+  double progressMultiplier;
 
   vcCameraPivotMode currentPivotMode;
 
@@ -158,7 +159,7 @@ void vcCamera_Destroy(vcCamera **ppCamera);
 void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos);
 
 void vcCamera_SwapMapMode(vcState *pProgramState);
-void vcCamera_LookAt(vcState *pProgramState, const udDouble3 &targetPosition);
+void vcCamera_LookAt(vcState *pProgramState, const udDouble3 &targetPosition, double speedMultiplier = 1.0);
 
 void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, vcCameraInput *pCamInput, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr);
 
