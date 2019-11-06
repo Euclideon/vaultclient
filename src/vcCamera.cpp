@@ -534,12 +534,9 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
 void vcCamera_SwapMapMode(vcState *pProgramState)
 {
-  if (pProgramState->cameraInput.transitioningToMapMode)
-    return;
-
   udDouble3 lookAtPosition = pProgramState->pCamera->position;
   double cameraHeight = pProgramState->pCamera->position.z;
-  if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
+  if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam && !pProgramState->cameraInput.transitioningToMapMode)
   {
     pProgramState->settings.camera.orthographicSize = udMax(1.0, pProgramState->pCamera->position.z / vcCamera_HeightToOrthoFOVRatios[pProgramState->settings.camera.lensIndex]);
 
@@ -562,7 +559,7 @@ void vcCamera_SwapMapMode(vcState *pProgramState)
     pProgramState->settings.camera.nearPlane = pProgramState->settings.camera.farPlane * vcSL_CameraFarToNearPlaneRatio;
   }
 
-  vcCamera_LookAt(pProgramState, lookAtPosition, 2.5);
+  vcCamera_LookAt(pProgramState, lookAtPosition);
 
   pProgramState->pCamera->position.z = cameraHeight;
 }
