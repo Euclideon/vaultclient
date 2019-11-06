@@ -66,7 +66,7 @@ double vcSceneLayerRenderer_CalculateNodeScreenSize(vcSceneLayerNode *pNode, con
 {
   udDouble4 center = viewProjectionMatrix * udDouble4::create(pNode->minimumBoundingSphere.position, 1.0);
   if (center.w == 0.0) // if you're on the node position
-    return 0;
+    return (double)udMax(screenResolution.x, screenResolution.y);
 
   udDouble4 p1 = viewProjectionMatrix * udDouble4::create(pNode->minimumBoundingSphere.position + udDouble3::create(pNode->minimumBoundingSphere.radius, 0.0, 0.0), 1.0);
   udDouble4 p2 = viewProjectionMatrix * udDouble4::create(pNode->minimumBoundingSphere.position + udDouble3::create(0.0, pNode->minimumBoundingSphere.radius, 0.0), 1.0);
@@ -118,7 +118,8 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRende
 
   double nodeScreenSize = vcSceneLayerRenderer_CalculateNodeScreenSize(pNode, pSceneLayerRenderer->worldViewProjectionMatrix, screenResolution);
   bool shouldRender = (pNode->childrenCount == 0 || nodeScreenSize < pNode->lodSelectionValue);
-  
+  bool canRender = (pNode->internalsLoadState >= vcSceneLayerNode::vcILS_NodeInternals);
+
   if (shouldRender)
   {
     if (vcSceneLayer_ExpandNodeForRendering(pSceneLayerRenderer->pSceneLayer, pNode))
@@ -130,27 +131,26 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRende
     // continue, as child may be able to draw
   }
 
-  bool childNeedsParentRendering = true;
+  bool allChildrenWereRendered = true;
   for (size_t i = 0; i < pNode->childrenCount; ++i)
   {
     vcSceneLayerNode *pChildNode = &pNode->pChildren[i];
-    childNeedsParentRendering = vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, pChildNode, screenResolution, pColourOverride, shadowsPass) && childNeedsParentRendering;
+    allChildrenWereRendered = vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, pChildNode, screenResolution, pColourOverride, shadowsPass) && allChildrenWereRendered;
   }
 
   // If any children can't render, draw this node
   // This *may* cause some occlusion sometimes with partial children loaded, but its
   // better than sometimes no geometry being drawn.
-  if (!childNeedsParentRendering && pNode->internalsLoadState >= vcSceneLayerNode::vcILS_NodeInternals)
+  if (!allChildrenWereRendered && canRender)
   {
     if (vcSceneLayer_ExpandNodeForRendering(pSceneLayerRenderer->pSceneLayer, pNode))
     {
-      // note: only render at this point if node is completely expanded
       vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, pColourOverride, shadowsPass);
       return true;
     }
   }
 
-  return childNeedsParentRendering && !shouldRender;
+  return allChildrenWereRendered && !shouldRender;
 }
 
 bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayerRenderer, const udDouble4x4 &worldMatrix, const udDouble4x4 &viewProjectionMatrix, const udDouble3 &cameraPosition, const udUInt2 &screenResolution, const udFloat4 *pColourOverride /*= nullptr*/, bool shadowsPass /*= false*/)

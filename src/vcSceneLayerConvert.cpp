@@ -89,7 +89,6 @@ udResult vcSceneLayerConvert_RecursiveGenerateLeafNodeList(vcSceneLayerConvert *
 
   if (pNode->childrenCount == 0)
   {
-    UD_ERROR_CHECK(vcSceneLayer_LoadNodeInternals(pSceneLayerConvert->pSceneLayer, pNode));
     leafNodes.PushBack(pNode);
     UD_ERROR_SET(udR_Success);
   }
@@ -247,6 +246,8 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
   while (pBuffer->pointCount < pBuffer->pointsAllocated && pSceneLayerConvert->leafIndex < pSceneLayerConvert->leafNodes.length)
   {
     vcSceneLayerNode *pNode = pSceneLayerConvert->leafNodes[pSceneLayerConvert->leafIndex];
+    if (pNode->internalsLoadState == vcSceneLayerNode::vcILS_BasicNodeData) // begin the node
+      vcSceneLayer_LoadNodeInternals(pSceneLayerConvert->pSceneLayer, pNode);
 
     // For each geometry
     while (pBuffer->pointCount < pBuffer->pointsAllocated && pSceneLayerConvert->geometryIndex < pNode->geometryDataCount)
@@ -376,6 +377,8 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
     if (pSceneLayerConvert->geometryIndex >= pNode->geometryDataCount)
     {
       // current leaf done, move onto next
+      vcSceneLayer_RecursiveDestroyNode(pNode);
+
       ++pSceneLayerConvert->leafIndex;
       pSceneLayerConvert->primIndex = 0;
       pSceneLayerConvert->geometryIndex = 0;
