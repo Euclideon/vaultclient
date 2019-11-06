@@ -13,6 +13,7 @@
 #include "udPlatformUtil.h"
 #include "udChunkedArray.h"
 #include "udStringUtil.h"
+#include "udMath.h"
 
 #include "stb_image.h"
 
@@ -30,6 +31,12 @@ enum
 };
 
 static const float sTileFadeSpeed = 2.15f;
+
+struct vcTileLoadPacked
+{
+  double priority;
+  vcQuadTreeNode *pNode;
+};
 
 struct vcTileRenderer
 {
@@ -54,7 +61,7 @@ struct vcTileRenderer
     udThread *pThreads[8];
     udSemaphore *pSemaphore;
     udMutex *pMutex;
-    udChunkedArray<vcQuadTreeNode*> tileLoadList;
+    udChunkedArray<vcTileLoadPacked> tileLoadList;
     udChunkedArray<vcQuadTreeNode*> tileTimeoutList;
   } cache;
 
@@ -72,6 +79,20 @@ struct vcTileRenderer
     } everyObject;
   } presentShader;
 };
+
+double vcTileRenderer_CalculatePriority(vcTileRenderer *pRenderer, vcQuadTreeNode *pNode)
+{
+  // root (special case)
+  if (pNode == &pRenderer->quadTree.nodes.pPool[pRenderer->quadTree.rootIndex])
+    return 0.0;
+
+  double priority = udMagSq3(udDouble3::create(pNode->tileCenter, pRenderer->pSettings->maptiles.mapHeight) - pRenderer->cameraPosition);
+
+  if (!pNode->visible /*|| pNode->pNode->rendered*/)
+    priority *= priority;
+
+  return priority;
+}
 
 // This functionality here for now until the cache module is implemented
 bool vcTileRenderer_TryWriteTile(const char *filename, void *pFileData, size_t fileLen)
@@ -128,173 +149,152 @@ bool vcTileRenderer_ShouldLoadNode(vcQuadTreeNode *pNode)
   return pNode->renderInfo.tryLoad && pNode->touched && (pNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_InQueue);
 }
 
+void vcTileRenderer_PriorityInsert(udChunkedArray<vcTileLoadPacked> *pInput, vcTileRenderer *pRenderer, vcQuadTreeNode *pNode)
+{
+  vcTileLoadPacked newEntry = {};
+  newEntry.pNode = pNode;
+  newEntry.priority = vcTileRenderer_CalculatePriority(pRenderer, pNode);
+
+  int target = 0;
+
+  // Observed likely that latest entry is highest priority
+  if (!pInput->length || pInput->GetElement(pInput->length - 1)->priority > newEntry.priority)
+  {
+    pInput->PushBack(newEntry);
+    return;
+  }
+  else if (pInput->length > 1)
+  {
+    int interval = pInput->length * .5;
+    target = interval;
+
+    while (interval > 1 && target > 0 && target < pInput->length)
+    {
+      vcTileLoadPacked *pEntry = pInput->GetElement(target);
+
+      interval = udCeil(interval * .5);
+
+      if (pEntry->priority > newEntry.priority)
+        target += interval;
+      else
+        target -= interval;
+    }
+  }
+
+  target = udClamp(target, 0, (int)pInput->length - 1);
+
+  if (pInput->GetElement(target)->priority > newEntry.priority)
+    ++target;
+
+  pInput->Insert(target, &newEntry);
+  udIncrementSemaphore(pRenderer->cache.pSemaphore);
+}
+
 void vcTileRenderer_LoadThread(void *pThreadData)
 {
-  vcTileRenderer *pRenderer = (vcTileRenderer*)pThreadData;
-  vcTileRenderer::vcTileCache *pCache = &pRenderer->cache;
+  vcTileRenderer *pRenderer = (vcTileRenderer *)pThreadData;
 
-  while (pCache->keepLoading)
+  while (pRenderer->cache.keepLoading)
   {
-    int loadStatus = udWaitSemaphore(pCache->pSemaphore, 1000);
-
-    if (loadStatus != 0 && pCache->tileLoadList.length == 0)
+    if (udWaitSemaphore(pRenderer->cache.pSemaphore, 1000) != 0 || pRenderer->cache.tileLoadList.length < 1)
       continue;
 
-    while (pCache->tileLoadList.length > 0 && pCache->keepLoading)
+    udLockMutex(pRenderer->cache.pMutex);
+
+    vcQuadTreeNode *pNode = pRenderer->cache.tileLoadList.GetElement(pRenderer->cache.tileLoadList.length - 1)->pNode;
+    pRenderer->cache.tileLoadList.RemoveAt(pRenderer->cache.tileLoadList.length - 1);
+    udReleaseMutex(pRenderer->cache.pMutex);
+
+    pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Downloading;
+
+    char localFileName[vcMaxPathLength];
+    char serverAddress[vcMaxPathLength];
+
+    bool downloadingFromServer = true;
+    char *pTileURL = localFileName;
+    udSprintf(localFileName, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.tileServerAddressUUID), pNode->slippyPosition.z, pNode->slippyPosition.x, pNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+
+    if (udFileExists(localFileName) == udR_Success)
     {
-      udLockMutex(pCache->pMutex);
+      downloadingFromServer = false;
+    }
+    else
+    {
+      udSprintf(serverAddress, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pNode->slippyPosition.z, pNode->slippyPosition.x, pNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+      pTileURL = serverAddress;
+    }
 
-      // TODO: Store in priority order and recalculate on insert/delete
-      int best = -1;
-      vcQuadTreeNode *pNode = nullptr;
-      udDouble3 tileCenter = udDouble3::zero();
-      double bestDistancePrioritySqr = FLT_MAX;
+    udResult result = udR_Failure_;
+    void *pFileData = nullptr;
+    int64_t fileLen = -1;
+    int width = 0;
+    int height = 0;
+    int channelCount = 0;
+    uint8_t *pFData = nullptr;
 
-      for (int i = 0; i < (int)pCache->tileLoadList.length; ++i)
+    UD_ERROR_CHECK(udFile_Load(pTileURL, &pFileData, &fileLen));
+    UD_ERROR_IF(fileLen == 0, udR_InternalError);
+
+    // Node has been invalidated since download started
+    if (!pNode->touched)
+    {
+      // TODO: Put into LRU texture cache (but for now just throw it out)
+      pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
+
+      // Even though the node is now invalidated - since we have the data, it may be put into local disk cache
+      UD_ERROR_SET(udR_Success);
+    }
+
+    pFData = stbi_load_from_memory((stbi_uc *)pFileData, (int)fileLen, (int *)&width, (int *)&height, (int *)&channelCount, 4);
+    UD_ERROR_NULL(pFData, udR_InternalError);
+    udFree(pFileData);
+
+    pNode->renderInfo.transparency = 0.0f;
+    pNode->renderInfo.width = width;
+    pNode->renderInfo.height = height;
+    pNode->renderInfo.pData = udMemDup(pFData, sizeof(uint32_t) * width * height, 0, udAF_None);
+    stbi_image_free(pFData);
+
+    pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Downloaded;
+
+  epilogue:
+
+    if (result != udR_Success)
+    {
+      pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Failed;
+      if (result == udR_Pending)
       {
-        pNode = pCache->tileLoadList[i];
+        pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_InQueue;
 
-        if (!vcTileRenderer_ShouldLoadNode(pNode))
+        udLockMutex(pRenderer->cache.pMutex);
+        if (pNode->slippyPosition.z <= 10)
         {
-          pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
-          pCache->tileLoadList.RemoveSwapLast(i);
-          --i;
-          continue;
+          // TODO: server prioritizes these tiles, so will be available much sooner. Requeue immediately
+          vcTileRenderer_PriorityInsert(&pRenderer->cache.tileLoadList, pRenderer, pNode);
         }
-
-        tileCenter = udDouble3::create(pNode->renderInfo.center, pRenderer->pSettings->maptiles.mapHeight);
-        double distanceToCameraSqr = udMagSq3(tileCenter - pRenderer->cameraPosition);
-
-        // root (special case)
-        if (pNode == &pRenderer->quadTree.nodes.pPool[pRenderer->quadTree.rootIndex])
+        else
         {
-          best = i;
-          break;
+          pNode->renderInfo.timeoutTime = pRenderer->totalTime + 15.f; // 15 seconds
+          pRenderer->cache.tileTimeoutList.PushBack(pNode); // timeout it, inserted last
         }
-
-        bool betterNode = true;
-        if (best != -1)
-        {
-          vcQuadTreeNode *pBestNode = pCache->tileLoadList[best];
-
-          // priorities: visibility > failed to render visible area > distance
-          betterNode = pNode->visible && !pBestNode->visible;
-          if (pNode->visible == pBestNode->visible)
-          {
-            betterNode = !pNode->rendered && pBestNode->rendered;
-            if (pNode->rendered == pBestNode->rendered)
-            {
-              betterNode = distanceToCameraSqr < bestDistancePrioritySqr;
-            }
-          }
-        }
-
-        if (betterNode)
-        {
-          bestDistancePrioritySqr = distanceToCameraSqr;
-          best = int(i);
-        }
+        udReleaseMutex(pRenderer->cache.pMutex);
       }
+    }
 
-      if (best == -1)
+    // This functionality here for now until the cache module is implemented
+    if (pFileData && fileLen > 0 && downloadingFromServer && pRenderer->cache.keepLoading)
+    {
+      if (!vcTileRenderer_TryWriteTile(localFileName, pFileData, fileLen))
       {
-        udReleaseMutex(pCache->pMutex);
-        break;
+        size_t index = 0;
+        char localFolderPath[vcMaxPathLength];
+        udSprintf(localFolderPath, "%s", localFileName);
+        if (udStrrchr(localFileName, "\\/", &index) != nullptr)
+          localFolderPath[index] = '\0';
+
+        if (vcTileRenderer_CreateDirRecursive(localFolderPath) == udR_Success)
+          vcTileRenderer_TryWriteTile(localFileName, pFileData, fileLen);
       }
-
-      vcQuadTreeNode *pBestNode = pCache->tileLoadList[best];
-      pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Downloading;
-      pCache->tileLoadList.RemoveSwapLast(best);
-
-      char localFileName[vcMaxPathLength];
-      char serverAddress[vcMaxPathLength];
-
-      udSprintf(localFileName, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
-      udSprintf(serverAddress, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
-      udReleaseMutex(pCache->pMutex);
-
-      bool downloadingFromServer = true;
-      char *pTileURL = serverAddress;
-
-      if (udFileExists(localFileName) == udR_Success)
-      {
-        pTileURL = localFileName;
-        downloadingFromServer = false;
-      }
-
-      udResult result = udR_Failure_;
-      void *pFileData = nullptr;
-      int64_t fileLen = -1;
-      int width = 0;
-      int height = 0;
-      int channelCount = 0;
-      uint8_t *pData = nullptr;
-
-      UD_ERROR_CHECK(udFile_Load(pTileURL, &pFileData, &fileLen));
-      UD_ERROR_IF(fileLen == 0, udR_InternalError);
-
-      // Node has been invalidated since download started
-      if (!pBestNode->touched)
-      {
-        // TODO: Put into LRU texture cache (but for now just throw it out)
-        pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
-
-        // Even though the node is now invalid - since we the data, it may be put into local disk cache
-        UD_ERROR_SET(udR_Success);
-      }
-
-      pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
-      UD_ERROR_NULL(pData, udR_InternalError);
-
-      pBestNode->renderInfo.transparency = 0.0f;
-      pBestNode->renderInfo.width = width;
-      pBestNode->renderInfo.height = height;
-      pBestNode->renderInfo.pData = udMemDup(pData, sizeof(uint32_t)*width*height, 0, udAF_None);
-
-      pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Downloaded;
-
-epilogue:
-
-      if (result != udR_Success)
-      {
-        pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Failed;
-        if (result == udR_Pending)
-        {
-          pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_InQueue;
-
-          udLockMutex(pCache->pMutex);
-          if (pBestNode->slippyPosition.z <= 10)
-          {
-            // TODO: server prioritizes these tiles, so will be available much sooner. Requeue immediately
-            pCache->tileLoadList.PushBack(pBestNode);
-          }
-          else
-          {
-            pBestNode->renderInfo.timeoutTime = pRenderer->totalTime + 15.0f; // 15 seconds
-            pCache->tileTimeoutList.PushBack(pBestNode); // timeout it, inserted last
-          }
-          udReleaseMutex(pCache->pMutex);
-        }
-      }
-
-      // This functionality here for now until the cache module is implemented
-      if (pFileData && fileLen > 0 && downloadingFromServer && pCache->keepLoading)
-      {
-        if (!vcTileRenderer_TryWriteTile(localFileName, pFileData, fileLen))
-        {
-          size_t index = 0;
-          char localFolderPath[vcMaxPathLength];
-          udSprintf(localFolderPath, "%s", localFileName);
-          if (udStrrchr(localFileName, "\\/", &index) != nullptr)
-            localFolderPath[index] = '\0';
-
-          if (vcTileRenderer_CreateDirRecursive(localFolderPath) == udR_Success)
-            vcTileRenderer_TryWriteTile(localFileName, pFileData, fileLen);
-        }
-      }
-
-      udFree(pFileData);
-      stbi_image_free(pData);
     }
   }
 }
@@ -394,9 +394,6 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
   pTileRenderer->cache.keepLoading = false;
 
   for (size_t i = 0; i < udLengthOf(pTileRenderer->cache.pThreads); ++i)
-    udIncrementSemaphore(pTileRenderer->cache.pSemaphore);
-
-  for (size_t i = 0; i < udLengthOf(pTileRenderer->cache.pThreads); ++i)
   {
     udThread_Join(pTileRenderer->cache.pThreads[i]);
     udThread_Destroy(&pTileRenderer->cache.pThreads[i]);
@@ -438,10 +435,9 @@ bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeN
 
     udDouble2 min = udDouble2::create(pNode->worldBounds[0].x, pNode->worldBounds[2].y);
     udDouble2 max = udDouble2::create(pNode->worldBounds[3].x, pNode->worldBounds[1].y);
-    pNode->renderInfo.center = (max + min) * 0.5;
+    pNode->renderInfo.center = min + (max - min) * 0.5;
 
-    pTileCache->tileLoadList.PushBack(pNode);
-    udIncrementSemaphore(pTileCache->pSemaphore);
+    vcTileRenderer_PriorityInsert(&pTileRenderer->cache.tileLoadList, pTileRenderer, pNode);
   }
 
   pNode->renderInfo.tryLoad = true;
@@ -484,11 +480,29 @@ void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, 
   }
 }
 
+// Determined insertion sort to be quickest on nearly sorted input data
+void vcTileRenderer_InsertionSort(udChunkedArray<vcTileLoadPacked> *pArr)
+{
+  for (int i = 0; i < pArr->length; ++i)
+  {
+    vcTileLoadPacked *pTemp = pArr->GetElement(i);
+    int j = i;
+
+    while (j > 0 && pTemp->priority > pArr->GetElement(j - 1)->priority)
+    {
+      pArr->SetElement(j, *pArr->GetElement(j - 1));
+      --j;
+    }
+
+    pArr->SetElement(j, *pTemp);
+  }
+}
+
 void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
 {
   // invalidate current queue
   for (size_t i = 0; i < pTileRenderer->cache.tileLoadList.length; ++i)
-    pTileRenderer->cache.tileLoadList[i]->renderInfo.tryLoad = false;
+    pTileRenderer->cache.tileLoadList[i].pNode->renderInfo.tryLoad = false;
 
   // Limit the max number of tiles uploaded per frame
   // TODO: use timings instead
@@ -503,13 +517,15 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
   // remove from the queue any tiles that are invalid
   for (int i = 0; i < (int)pTileRenderer->cache.tileLoadList.length; ++i)
   {
-    if (!pTileRenderer->cache.tileLoadList[i]->renderInfo.tryLoad)
+    if (!pTileRenderer->cache.tileLoadList[i].pNode->renderInfo.tryLoad)
     {
-      pTileRenderer->cache.tileLoadList[i]->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
-      pTileRenderer->cache.tileLoadList.RemoveSwapLast(i);
+      pTileRenderer->cache.tileLoadList[i].pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
+      pTileRenderer->cache.tileLoadList.RemoveAt(i);
       --i;
     }
   }
+
+  vcTileRenderer_InsertionSort(&pTileRenderer->cache.tileLoadList);
 
   // Note: this is a FIFO queue, so only need to check the head
   while (pTileRenderer->cache.tileTimeoutList.length > 0)
@@ -518,7 +534,7 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
     if (vcTileRenderer_ShouldLoadNode(pNode) && (pNode->renderInfo.timeoutTime - pTileRenderer->totalTime) > 0.0f)
       break;
 
-    pTileRenderer->cache.tileLoadList.PushBack(pNode);
+    vcTileRenderer_PriorityInsert(&pTileRenderer->cache.tileLoadList, pTileRenderer, pNode);
     pTileRenderer->cache.tileTimeoutList.RemoveSwapLast(0);
   }
 
@@ -786,6 +802,7 @@ void vcTileRenderer_ClearTiles(vcTileRenderer *pTileRenderer)
 
   pTileRenderer->pTransparentTiles->clear();
   pTileRenderer->cache.tileLoadList.Clear();
+  pTileRenderer->cache.tileTimeoutList.Clear();
   vcQuadTree_Reset(&pTileRenderer->quadTree);
 
   udReleaseMutex(pTileRenderer->cache.pMutex);
