@@ -260,6 +260,38 @@ FbxAMatrix vcFBX_GetGeometryTransformation(FbxNode *inNode)
   return FbxAMatrix(lT, lR, lS);
 }
 
+void vcFBX_CleanMaterials(udChunkedArray<vcFBXMaterial> *pMats)
+{
+  // Clean up
+  for (uint32_t i = 0; i < pMats->length; ++i)
+  {
+    for (uint32_t j = 0; j < (*pMats)[i].textures.length; ++j)
+    {
+      if ((*pMats)[i].textures[j].pPixels)
+      {
+        stbi_image_free((*pMats)[i].textures[j].pPixels);
+
+        // Clean up all references to this allocation
+        void *pPtr = (*pMats)[i].textures[j].pPixels;
+        for (uint32_t k = i; k < pMats->length; ++k)
+        {
+          for (uint32_t l = j + 1; l < (*pMats)[k].textures.length; ++l)
+          {
+            if (pPtr == (*pMats)[k].textures[l].pPixels)
+              (*pMats)[k].textures[l].pPixels = nullptr;
+          }
+        }
+      }
+      udFree((*pMats)[i].textures[j].pName);
+    }
+    (*pMats)[i].textures.Clear();
+    (*pMats)[i].textures.Deinit();
+  }
+
+  pMats->Clear();
+  pMats->Deinit();
+}
+
 vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, const double origin[3], double pointResolution, vdkConvertCustomItemFlags flags)
 {
   udUnused(origin);
@@ -752,19 +784,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
     ++pFBX->currMesh;
   }
 
-  // Clean up
-  for (uint32_t i = 0; i < pFBX->materials.length; ++i)
-  {
-    for (uint32_t j = 0; j < pFBX->materials[i].textures.length; ++j)
-    {
-      if (pFBX->materials[i].textures[j].pPixels)
-        stbi_image_free(pFBX->materials[i].textures[j].pPixels);
-      udFree(pFBX->materials[i].textures[j].pName);
-    }
-    pFBX->materials[i].textures.Clear();
-  }
-
-  pFBX->materials.Clear();
+  vcFBX_CleanMaterials(&pFBX->materials);
 
   // If finished update point counts
   pFBX->pointsReturned += pBuffer->pointCount;
@@ -787,14 +807,14 @@ void vcFBX_Close(vdkConvertCustomItem *pConvertInput)
     if (pFBX->pManager != nullptr)
       pFBX->pManager->Destroy();
 
-    for (uint32_t i = 0; i < pFBX->materials.length; ++i)
-      pFBX->materials[i].textures.Deinit();
-
     pFBX->uvQueue.Deinit();
-    pFBX->materials.Deinit();
+
+    vcFBX_CleanMaterials(&pFBX->materials);
 
     udFree(pConvertInput->pName);
     udFree(pFBX);
+
+    pConvertInput->pData = nullptr;
   }
 }
 
