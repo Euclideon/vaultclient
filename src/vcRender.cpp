@@ -9,6 +9,7 @@
 #include "vcTileRenderer.h"
 #include "vcCompass.h"
 #include "vcState.h"
+#include "vcVoxelShaders.h"
 
 #include "vcInternalModels.h"
 #include "vcSceneLayerRenderer.h"
@@ -1088,26 +1089,18 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
     return udR_InvalidParameter_;
 
   vdkRenderInstance *pModels = nullptr;
+  vcUDRSData *pVoxelShaderData = nullptr;
+
   int numVisibleModels = 0;
 
   vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderView, vdkRVM_Projection, pCamera->matrices.projectionUD.a);
   vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderView, vdkRVM_View, pCamera->matrices.view.a);
 
-  switch (pProgramState->settings.visualization.mode)
-  {
-  case vcVM_Intensity:
-    vdkRenderContext_ShowIntensity(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, pProgramState->settings.visualization.minIntensity, pProgramState->settings.visualization.maxIntensity);
-    break;
-  case vcVM_Classification:
-    vdkRenderContext_ShowClassification(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, (int *)pProgramState->settings.visualization.customClassificationColors, (int)udLengthOf(pProgramState->settings.visualization.customClassificationColors));
-    break;
-  default: //Includes vcVM_Colour
-    vdkRenderContext_ShowColor(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer);
-    break;
-  }
-
   if (renderData.models.length > 0)
-    pModels = udAllocStack(vdkRenderInstance, renderData.models.length, udAF_None);
+  {
+    pModels = udAllocType(vdkRenderInstance, renderData.models.length, udAF_None);
+    pVoxelShaderData = udAllocType(vcUDRSData, renderData.models.length, udAF_None);
+  }
 
   double maxDistSqr = pProgramState->settings.camera.farPlane * pProgramState->settings.camera.farPlane;
   pProgramState->pSceneWatermark = nullptr;
@@ -1119,7 +1112,52 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
       // Copy to the contiguous array
       pModels[numVisibleModels].pPointCloud = renderData.models[i]->m_pPointCloud;
       memcpy(&pModels[numVisibleModels].matrix, renderData.models[i]->m_sceneMatrix.a, sizeof(pModels[numVisibleModels].matrix));
-      pModels[numVisibleModels].modelFlags = renderData.models[i]->IsSubitemSelected(0) ? vdkRMF_Selected : vdkRMF_None;
+      pModels[numVisibleModels].modelFlags = vdkRMF_None;
+
+      pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Black;
+      pModels[numVisibleModels].pVoxelUserData = &pVoxelShaderData[numVisibleModels];
+
+      pVoxelShaderData[numVisibleModels].pModel = renderData.models[i];
+      pVoxelShaderData[numVisibleModels].pProgramData = pProgramState;
+
+      switch (pProgramState->settings.visualization.mode)
+      {
+      case vcVM_Intensity:
+        if (vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_Intensity, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+        {
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Intensity;
+
+          pVoxelShaderData[numVisibleModels].data.intensity.maxIntensity = (uint16_t)pProgramState->settings.visualization.maxIntensity;
+          pVoxelShaderData[numVisibleModels].data.intensity.minIntensity = (uint16_t)pProgramState->settings.visualization.minIntensity;
+          pVoxelShaderData[numVisibleModels].data.intensity.intensityRange = (float)(pProgramState->settings.visualization.maxIntensity - pProgramState->settings.visualization.minIntensity);
+        }
+
+        break;
+      case vcVM_Classification:
+        if (vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_Classification, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+        {
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Classification;
+        }
+
+        break;
+      case vcVM_Displacement:
+        if (vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+        {
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Displacement;
+
+          pVoxelShaderData[numVisibleModels].data.displacement.minThreshold = pProgramState->settings.visualization.displacement.x;
+          pVoxelShaderData[numVisibleModels].data.displacement.maxThreshold = pProgramState->settings.visualization.displacement.y;
+        }
+
+        break;
+      default: //Includes vcVM_Colour
+        if (vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_ARGB, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+        {
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Colour;
+        }
+        break;
+      }
+
       ++numVisibleModels;
 
       if (renderData.models[i]->m_hasWatermark)
@@ -1252,7 +1290,8 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
     //TODO: Clear the buffers
   }
 
-  udFreeStack(pModels);
+  udFree(pModels);
+  udFree(pVoxelShaderData);
   return udR_Success;
 }
 

@@ -402,7 +402,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
       pFBX->pIndices = pFBX->pMesh->GetPolygonVertices();
 
       // Colour processing
-      if (pConvertInput->content & vdkSAC_ARGB)
+      if (pConvertInput->attributes.standardContent & vdkSAC_ARGB)
         vcFBX_GetTextures(pFBX, pFBX->pNode);
 
     } // End new mesh handling
@@ -423,7 +423,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
         vcFBXMaterial *pMat = nullptr;
 
         // Handle colour
-        if (pConvertInput->content & vdkSAC_ARGB && pFBX->materials.length > 0) // must be at least one material
+        if (pConvertInput->attributes.standardContent & vdkSAC_ARGB && pFBX->materials.length > 0) // must be at least one material
         {
           uint32_t colour = 0;
           uint32_t thisColour = 0;
@@ -562,7 +562,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
           {
             vcFBXMaterial *pMat = nullptr;
 
-            if (pConvertInput->content & vdkSAC_ARGB && pFBX->materials.length > 0)
+            if (pConvertInput->attributes.standardContent & vdkSAC_ARGB && pFBX->materials.length > 0)
             {
               uint32_t index = 0;
 
@@ -672,7 +672,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
 
                 // Colour
                 uint32_t colour = 0;
-                if (pConvertInput->content & vdkSAC_ARGB)
+                if (pConvertInput->attributes.standardContent & vdkSAC_ARGB)
                 {
                   for (uint32_t currTex = 0; currTex < pMat->textures.length; ++currTex)
                   {
@@ -793,6 +793,8 @@ void vcFBX_Close(vdkConvertCustomItem *pConvertInput)
     pFBX->uvQueue.Deinit();
     pFBX->materials.Deinit();
 
+    vdkAttributeSet_Free(&pConvertInput->attributes);
+
     udFree(pConvertInput->pName);
     udFree(pFBX);
   }
@@ -815,7 +817,7 @@ vdkError vcFBX_AddItem(vdkConvertContext *pConvertContext, const char *pFilename
   customItem.srid = 0;
   customItem.sourceProjection = vdkCSP_SourceCartesian;
   customItem.pointCount = -1;
-  customItem.content = vdkSAC_ARGB; // Colour is the only content attribute in an fbx model
+  vdkAttributeSet_Generate(&customItem.attributes, vdkSAC_ARGB, 0);
 
   customItem.boundsKnown = false;
   for (int i = 0; i < 3; ++i)

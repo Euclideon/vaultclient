@@ -39,6 +39,7 @@ enum vcVisualizatationMode
   vcVM_Colour,
   vcVM_Intensity,
   vcVM_Classification,
+  vcVM_Displacement,
 
   vcVM_Count
 };
@@ -167,6 +168,8 @@ struct vcSettings
 
     int minIntensity;
     int maxIntensity;
+
+    udFloat2 displacement;
 
     bool useCustomClassificationColours;
     uint32_t customClassificationColors[256];

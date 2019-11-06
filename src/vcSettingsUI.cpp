@@ -240,7 +240,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
       ImGui::ColorEdit4(vcString::Get("settingsVisHighlightColour"), &pProgramState->settings.objectHighlighting.colour.x);
       ImGui::SliderFloat(vcString::Get("settingsVisHighlightThickness"), &pProgramState->settings.objectHighlighting.thickness, 1.0f, 3.0f);
 
-      const char *visualizationModes[] = { vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification") };
+      const char *visualizationModes[] = { vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacement") };
       ImGui::Combo(vcString::Get("settingsVisDisplayMode"), (int*)&pProgramState->settings.visualization.mode, visualizationModes, (int)udLengthOf(visualizationModes));
 
       if (pProgramState->settings.visualization.mode == vcVM_Intensity)
@@ -320,6 +320,9 @@ void vcSettingsUI_Show(vcState *pProgramState)
           }
         }
       }
+
+      if (pProgramState->settings.visualization.mode == vcVM_Displacement)
+        ImGui::InputFloat2(vcString::Get("settingsVisDisplacementRange"), &pProgramState->settings.visualization.displacement.x);
 
       // Post visualization - Edge Highlighting
       ImGui::Checkbox(vcString::Get("settingsVisEdge"), &pProgramState->settings.postVisualization.edgeOutlines.enable);
