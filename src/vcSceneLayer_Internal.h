@@ -9,6 +9,8 @@
 
 struct vcPolygonModel;
 struct vcTexture;
+struct udFile;
+struct udMutex;
 
 enum vcSceneLayerNormalReferenceFrame
 {
@@ -122,6 +124,8 @@ struct vcSceneLayerNode
 
 struct vcSceneLayer
 {
+  udFile *pFile;
+  udMutex *pFileReadMutex;
   udWorkerPool *pThreadPool;
 
   char pathSeparatorChar; // '/' or '\\'
@@ -136,6 +140,7 @@ struct vcSceneLayer
 
 udResult vcSceneLayer_LoadNode(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
 udResult vcSceneLayer_LoadNodeInternals(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
+void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode);
 
 void vcSceneLayer_CheckNodePruneCandidancy(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
 
