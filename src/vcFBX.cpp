@@ -273,9 +273,9 @@ void vcFBX_CleanMaterials(udChunkedArray<vcFBXMaterial> *pMats)
 
         // Clean up all references to this allocation
         void *pPtr = (*pMats)[i].textures[j].pPixels;
-        for (uint32_t k = 0; k < pMats->length; ++k)
+        for (uint32_t k = i; k < pMats->length; ++k)
         {
-          for (uint32_t l = 0; l < (*pMats)[k].textures.length; ++l)
+          for (uint32_t l = j + 1; l < (*pMats)[k].textures.length; ++l)
           {
             if (pPtr == (*pMats)[k].textures[l].pPixels)
               (*pMats)[k].textures[l].pPixels = nullptr;
