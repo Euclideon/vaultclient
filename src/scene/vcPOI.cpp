@@ -162,6 +162,10 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
   if (m_attachment.pModel != nullptr)
   {
+    double remainingMovementThisFrame = m_attachment.moveSpeed * pProgramState->deltaTime;
+    udDouble3 startYPR = m_attachment.eulerAngles;
+    udDouble3 startPosDiff = pProgramState->pCamera->position - m_attachment.currentPos;
+
     // Move to first point if segment -1
     if (m_attachment.segmentIndex == -1)
     {
@@ -174,9 +178,6 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       m_attachment.currentPos = m_line.pPoints[0];
       m_attachment.segmentProgress = 1.0;
     }
-
-    double remainingMovementThisFrame = m_attachment.moveSpeed * pProgramState->deltaTime;
-    udDouble3 startYPR = m_attachment.eulerAngles;
 
     while (remainingMovementThisFrame > 0.01)
     {
@@ -226,14 +227,28 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       }
     }
 
+
+    udDouble4x4 attachmentMat = udDouble4x4::rotationYPR(m_attachment.eulerAngles, m_attachment.currentPos);
+
     // Render the attachment if we know where it is
     if (m_attachment.segmentIndex != -1)
     { 
+
       // Add to the scene
       vcRenderPolyInstance *pModel = pRenderData->polyModels.PushBack();
       pModel->pModel = m_attachment.pModel;
       pModel->pSceneItem = this;
-      pModel->worldMat = udDouble4x4::rotationYPR(m_attachment.eulerAngles, m_attachment.currentPos);
+      pModel->worldMat = attachmentMat;
+    }
+
+    // Update the camera if the camera is coming along
+    if (pProgramState->cameraInput.pAttachedToSceneItem == this)
+    {
+      udRay<double> rotRay = udRay<double>::create(startPosDiff, udDirectionFromYPR(pProgramState->pCamera->eulerRotation));
+      rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.z.toVector3(), m_attachment.eulerAngles.x - startYPR.x);
+      rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.x.toVector3(), m_attachment.eulerAngles.y - startYPR.y);
+      pProgramState->pCamera->position = m_attachment.currentPos + rotRay.position;
+      pProgramState->pCamera->eulerRotation = udDirectionToYPR(rotRay.direction);
     }
   }
 }
@@ -474,6 +489,9 @@ void vcPOI::HandleContextMenu(vcState *pProgramState)
       pProgramState->cameraInput.flyThroughPoint = -1;
       pProgramState->cameraInput.pObjectInfo = &m_line;
     }
+
+    if (m_attachment.pModel != nullptr && ImGui::MenuItem(vcString::Get("scenePOIAttachCameraToAttachment")))
+      pProgramState->cameraInput.pAttachedToSceneItem = this;
 
     if (ImGui::BeginMenu(vcString::Get("scenePOIAttachModel")))
     {

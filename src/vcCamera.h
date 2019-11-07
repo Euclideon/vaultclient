@@ -47,6 +47,7 @@ struct vcCamera
 };
 
 struct vcState;
+class vcSceneItem;
 
 enum vcInputState
 {
@@ -95,6 +96,8 @@ struct vcCameraInput
   udDouble3 smoothTranslation;
   udDouble3 smoothRotation;
   double smoothOrthographicChange;
+
+  vcSceneItem *pAttachedToSceneItem; // This does nothing in the camera module but the scene item is allowed to override the camera if this variable is set
 };
 
 struct vcCameraSettings

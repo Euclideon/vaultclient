@@ -4,7 +4,10 @@
 
 - Version 0.4.1
   - Added:
-    - 
+    - Scene
+      - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
+    - Scene Explorer
+      - `scenePOIAttachCameraToAttachment`
   - Changed:
     - 
   - Removed:
@@ -531,6 +534,11 @@ Modules are currently:
 - `sceneAddFilterSphere`: Context menu option when right clicking in the scene to add a new Sphere filter
 - `sceneAddFilterCylinder`: Context menu option when right clicking in the scene to add a new Cylinder filter
 - `sceneResetRotation`: Menu option when right-clicking within the scene, rotates the camera to default orientation
+
+- `sceneCameraAttachmentWarning` Warning text at the top of the window when the camera is attached to a scene item
+  - {0} the name of the scene item the camera is attached to
+- `sceneCameraAttachmentDetach` Button at the top of the screen to detach the camera when it is attached to a scene item
+
 - `sceneLockAltitude`: Tooltip displayed when mouse is hovered over the Lock Altitude button in the viewport controls window
 - `sceneLockAltitudeKey`: Used in Lock Altitude tooltip, shown in brackets
 - `sceneCameraInfo`: Tooltip displayed when mouse is hovered over the Show Camera Information button in the viewport controls window
@@ -645,6 +653,8 @@ Modules are currently:
 - `scenePOIAttachModelURI`: The label beside the URL box when attaching a model
 - `scenePOIAttachModelFailed`: Error message that appears when the model fails to load
 - `scenePOIAttachmentSpeed`: Label beside slider that sets the speed for attached model
+- `scenePOIAttachCameraToAttachment`: The label on the context menu to link the camera to the attached model
+
 - `scenePOILineSettings`: The header for the expansion for the other line settings
 - `scenePOILineShowLength`: Label on the checkbox for when the user wants the length displayed on the label in the scene
 - `scenePOILineShowAllLengths`: Label on the checkbox that will show each individual segment line length
