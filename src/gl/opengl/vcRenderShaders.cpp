@@ -218,9 +218,9 @@ void main()
   vec3 shadowMapClip1 = (shadowMapCoord1.xyz / shadowMapCoord1.w) * vec3(0.5, 0.5, 1.0) + vec3(0.5, 0.5, 0.0);
   vec3 shadowMapClip2 = (shadowMapCoord2.xyz / shadowMapCoord2.w) * vec3(0.5, 0.5, 1.0) + vec3(0.5, 0.5, 0.0);
 
-  float isInMap0 = float(shadowMapClip0.x > 0.0 && shadowMapClip0.x < 1.0 && shadowMapClip0.y > 0.0 && shadowMapClip0.y < 1.0 && shadowMapClip0.z > 0.0 && shadowMapClip0.z < 1.0);
-  float isInMap1 = float(shadowMapClip1.x > 0.0 && shadowMapClip1.x < 1.0 && shadowMapClip1.y > 0.0 && shadowMapClip1.y < 1.0 && shadowMapClip1.z > 0.0 && shadowMapClip1.z < 1.0);
-  float isInMap2 = float(shadowMapClip2.x > 0.0 && shadowMapClip2.x < 1.0 && shadowMapClip2.y > 0.0 && shadowMapClip2.y < 1.0 && shadowMapClip2.z > 0.0 && shadowMapClip2.z < 1.0);
+  float isInMap0 = float(shadowMapClip0.x >= 0.0 && shadowMapClip0.x <= 1.0 && shadowMapClip0.y >= 0.0 && shadowMapClip0.y <= 1.0 && shadowMapClip0.z >= 0.0 && shadowMapClip0.z <= 1.0);
+  float isInMap1 = float(shadowMapClip1.x >= 0.0 && shadowMapClip1.x <= 1.0 && shadowMapClip1.y >= 0.0 && shadowMapClip1.y <= 1.0 && shadowMapClip1.z >= 0.0 && shadowMapClip1.z <= 1.0);
+  float isInMap2 = float(shadowMapClip2.x >= 0.0 && shadowMapClip2.x <= 1.0 && shadowMapClip2.y >= 0.0 && shadowMapClip2.y <= 1.0 && shadowMapClip2.z >= 0.0 && shadowMapClip2.z <= 1.0);
 
   // atlas UVs
   vec3 shadowMapUV0 = vec3((0.0 / float(MAP_COUNT)) + shadowMapClip0.x / float(MAP_COUNT), shadowMapClip0.y, shadowMapClip0.z);
