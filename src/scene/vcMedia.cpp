@@ -4,7 +4,9 @@
 #include "vcRender.h"
 #include "vcStrings.h"
 
-#include "vcFenceRenderer.h"
+#include "vcImageRenderer.h"
+#include "vcPolygonModel.h"
+#include "vcInternalModels.h"
 
 #include "udMath.h"
 #include "udFile.h"
@@ -34,11 +36,11 @@ vcMedia::vcMedia(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramS
   m_pLoadedURI(nullptr),
   m_loadLoadTimeSec(0.0),
   m_reloadTimeSecs(0.0),
-  m_pImageData(nullptr),
   m_imageDataSize(0)
  {
   memset(&m_image, 0, sizeof(m_image));
   m_loadStatus = vcSLS_Loaded;
+  m_pImageData = nullptr;
 
   OnNodeUpdate(pProgramState);
 }
@@ -87,12 +89,9 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
   if (m_pNode->pURI == nullptr)
   {
     m_loadStatus = vcSLS_Failed;
-
-    if (m_image.pTexture != nullptr)
-      vcTexture_Destroy(&m_image.pTexture);
+    vcTexture_Destroy(&m_image.pTexture);
   }
-
-  if (m_loadStatus == vcSLS_Loaded && ((m_pNode->pURI != nullptr && !udStrEqual(m_pLoadedURI, m_pNode->pURI)) || (m_reloadTimeSecs != 0.0 && m_loadLoadTimeSec + m_reloadTimeSecs < udGetEpochSecsUTCf())))
+  else if ((m_loadStatus == vcSLS_Loaded && !udStrEqual(m_pLoadedURI, m_pNode->pURI)) || (m_reloadTimeSecs != 0.0 && m_loadLoadTimeSec + m_reloadTimeSecs < udGetEpochSecsUTCf()) || (m_loadStatus == vcSLS_Unloaded))
   {
     m_loadStatus = vcSLS_Pending;
     udFree(m_pLoadedURI);
@@ -144,35 +143,106 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (!m_visible)
     return;
 
-  if (m_image.pTexture != nullptr)
+  if (m_loadStatus == vcSLS_Loaded)
   {
-    // For now brute force sorting (n^2)
-    double distToCameraSqr = udMagSq3(m_image.position - pProgramState->pCamera->position);
-    size_t i = 0;
-    for (; i < pRenderData->images.length; ++i)
+    udInt2 imageSize = {};
+    if (m_pImageData != nullptr)
     {
-      if (udMagSq3(pRenderData->images[i]->position - pProgramState->pCamera->position) < distToCameraSqr)
-        break;
+      uint32_t width, height, channelCount;
+
+      uint8_t *pData = stbi_load_from_memory((stbi_uc *)m_pImageData, (int)m_imageDataSize, (int *)& width, (int *)& height, (int *)& channelCount, 4);
+      udFree(m_pImageData);
+      m_imageDataSize = 0;
+
+      if (pData != nullptr)
+      {
+        if (m_image.pTexture != nullptr)
+          vcTexture_GetSize(m_image.pTexture, &imageSize.x, &imageSize.y);
+
+        if ((uint32_t)imageSize.x == width && (uint32_t)imageSize.y == height) // imageSize will not == for null pTexture
+        {
+          vcTexture_UploadPixels(m_image.pTexture, pData, width, height);
+        }
+        else
+        {
+          vcTexture_Destroy(&m_image.pTexture);
+
+          if (vcTexture_Create(&m_image.pTexture, width, height, pData, vcTextureFormat_RGBA8) != udR_Success)
+            m_loadStatus = vcSLS_Failed;
+        }
+
+        stbi_image_free(pData);
+      }
+      else
+      {
+        m_loadStatus = vcSLS_Failed;
+      }
     }
 
-    vcImageRenderInfo *pImageInfo = &m_image;
-    pRenderData->images.Insert(i, &pImageInfo);
+    if (m_image.pTexture != nullptr)
+    {
+      if (m_image.type == vcIT_StandardPhoto)
+      {
+        // For now brute force sorting (n^2)
+        double distToCameraSqr = udMagSq3(m_image.position - pProgramState->pCamera->position);
+        size_t i = 0;
+        for (; i < pRenderData->images.length; ++i)
+        {
+          if (udMagSq3(pRenderData->images[i]->position - pProgramState->pCamera->position) < distToCameraSqr)
+            break;
+        }
+
+        vcImageRenderInfo *pImageInfo = &m_image;
+        pRenderData->images.Insert(i, &pImageInfo);
+      }
+      else
+      {
+        vcRenderPolyInstance *pPoly = pRenderData->polyModels.PushBack();
+        pPoly->worldMat = udDouble4x4::rotationYPR(m_image.ypr, m_image.position) * udDouble4x4::scaleUniform(m_image.scale);
+        pPoly->renderType = vcRenderPolyInstance::RenderType_Polygon;
+        pPoly->pSceneItem = this;
+        pPoly->pDiffuseOverride = m_image.pTexture;
+
+        double worldScale = vcISToWorldSize[m_image.size];
+        float aspect = 1.0f;
+        vcTexture_GetSize(m_image.pTexture, &imageSize.x, &imageSize.y);
+        aspect = float(imageSize.y) / imageSize.x;
+
+        
+        if (m_image.type == vcIT_PhotoSphere)
+        {
+          pPoly->pModel = gInternalModels[vcInternalModelType_Sphere];
+          pPoly->worldMat *= udDouble4x4::scaleUniform(worldScale);
+          pPoly->insideOut = true;
+        }
+        else if (m_image.type == vcIT_Panorama)
+        {
+          pPoly->pModel = gInternalModels[vcInternalModelType_Tube];
+          pPoly->worldMat *= udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect * UD_PI);
+          pPoly->insideOut = true;
+        }
+        else if (m_image.type == vcIT_OrientedPhoto)
+        {
+          pPoly->pModel = gInternalModels[vcInternalModelType_Quad];
+          pPoly->worldMat *= udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect) * udDouble4x4::rotationZ(UD_PI);
+          pPoly->insideOut = true;
+        } // TODO: Billboards, this renders at the correct relative scale and everything, but looks odd when actually rendered into the scene
+        /*else if (m_image.type == vcIT_StandardPhoto)
+        {
+          udDouble3 baseScale = udDouble3::create(worldScale, worldScale, worldScale * aspect);
+          udDouble3 distanceVector = m_image.position - pProgramState->pCamera->position;
+          double distance = udMag3(distanceVector);
+
+          pPoly->pModel = gInternalModels[vcInternalModelType_Quad];
+          pPoly->worldMat *= udDouble4x4::scaleNonUniform(baseScale * (distance / 25)) * udDouble4x4::rotationYPR(udDirectionToYPR(distanceVector));
+          pPoly->insideOut = true;
+        }*/
+      }
+    }
   }
 
   if (m_reloadTimeSecs != 0.0 && m_loadLoadTimeSec + m_reloadTimeSecs < udGetEpochSecsUTCf())
     OnNodeUpdate(pProgramState);
-
-  if (m_loadStatus == vcSLS_Loaded && m_pImageData != nullptr)
-  {
-    if (m_image.pTexture != nullptr)
-      vcTexture_Destroy(&m_image.pTexture);
-
-    if (!vcTexture_CreateFromMemory(&m_image.pTexture, m_pImageData, m_imageDataSize)) //If this doesn't load
-      m_loadStatus = vcSLS_Failed;
-
-    udFree(m_pImageData);
-    m_imageDataSize = 0;
-  }
 }
 
 void vcMedia::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)

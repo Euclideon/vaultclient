@@ -12,9 +12,6 @@
 static const float vcISToPixelSize[] = { -1.f, 100.f, 250.f };
 UDCOMPILEASSERT(udLengthOf(vcISToPixelSize) == vcIS_Count, "ImagePixelSize not equal size");
 
-static const float vcISToWorldSize[] = { -1.f, 3.f, 10.f };
-UDCOMPILEASSERT(udLengthOf(vcISToWorldSize) == vcIS_Count, "ImageWorldSize not equal size");
-
 static vcInternalMeshType vcITToMeshType[] = { vcInternalMeshType_Billboard, vcInternalMeshType_WorldQuad, vcInternalMeshType_Tube, vcInternalMeshType_Sphere };
 UDCOMPILEASSERT(udLengthOf(vcITToMeshType) == vcIT_Count, "ImageMesh does not equal size");
 
@@ -86,14 +83,7 @@ bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &vi
   vcTexture_GetSize(pImageInfo->pTexture, &imageSize.x, &imageSize.y);
   aspect = float(imageSize.y) / imageSize.x;
 
-  double worldScale = vcISToWorldSize[pImageInfo->size];
   udDouble4x4 mvp = viewProjectionMatrix * udDouble4x4::translation(pImageInfo->position) * udDouble4x4::rotationYPR(pImageInfo->ypr) * udDouble4x4::scaleUniform(pImageInfo->scale);
-  if (pImageInfo->type == vcIT_OrientedPhoto)
-    mvp = mvp * udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect);
-  else if (pImageInfo->type == vcIT_Panorama)
-    mvp = mvp * udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect * UD_PI);
-  else if (pImageInfo->type == vcIT_PhotoSphere)
-    mvp = mvp * udDouble4x4::scaleUniform(worldScale);
 
   vcImageShader *pShader = &gShaders[pImageInfo->type == vcIT_StandardPhoto ? 0 : 1];
   vcShader_Bind(pShader->pShader);

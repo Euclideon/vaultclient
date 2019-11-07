@@ -24,6 +24,9 @@ enum vcImageType
   vcIT_Count
 };
 
+static const float vcISToWorldSize[] = { -1.f, 3.f, 10.f };
+UDCOMPILEASSERT(udLengthOf(vcISToWorldSize) == vcIS_Count, "ImageWorldSize not equal size");
+
 struct vcImageRenderInfo
 {
   udDouble3 position;
