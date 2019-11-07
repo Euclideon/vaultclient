@@ -965,6 +965,27 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   ImGuiIO &io = ImGui::GetIO();
   float bottomLeftOffset = 0.f;
 
+  if (pProgramState->cameraInput.pAttachedToSceneItem != nullptr)
+  {
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x / 2, windowPos.y), ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+    ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
+    ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
+
+    if (ImGui::Begin("exitAttachedModeWindow", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
+    {
+      const char *pStr = vcStringFormat(vcString::Get("sceneCameraAttachmentWarning"), pProgramState->cameraInput.pAttachedToSceneItem->m_pNode->pName);
+      ImGui::TextUnformatted(pStr);
+      udFree(pStr);
+
+      if (ImGui::Button(vcString::Get("sceneCameraAttachmentDetach"), ImVec2(-1, 0)))
+      {
+        pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
+      }
+    }
+
+    ImGui::End();
+  }
+
   if (pProgramState->settings.presentation.showProjectionInfo || pProgramState->settings.presentation.showAdvancedGIS)
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
