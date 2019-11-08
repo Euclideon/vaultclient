@@ -184,11 +184,11 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       if (m_image.type == vcIT_StandardPhoto)
       {
         // For now brute force sorting (n^2)
-        double distToCameraSqr = udMagSq3(m_image.position - pProgramState->pCamera->position);
+        double distToCameraSqr = udMagSq3(m_image.position - pProgramState->camera.position);
         size_t i = 0;
         for (; i < pRenderData->images.length; ++i)
         {
-          if (udMagSq3(pRenderData->images[i]->position - pProgramState->pCamera->position) < distToCameraSqr)
+          if (udMagSq3(pRenderData->images[i]->position - pProgramState->camera.position) < distToCameraSqr)
             break;
         }
 
@@ -336,7 +336,7 @@ void vcMedia::Cleanup(vcState * /*pProgramState*/)
 
 void vcMedia::SetCameraPosition(vcState *pProgramState)
 {
-  pProgramState->pCamera->position = m_image.position;
+  pProgramState->camera.position = m_image.position;
 }
 
 udDouble4x4 vcMedia::GetWorldSpaceMatrix()

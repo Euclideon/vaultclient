@@ -43,7 +43,7 @@ void vcViewShed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
     pInstance->transparent = true;
 
-    udDouble3 linearDistance = (pProgramState->pCamera->position - m_position);
+    udDouble3 linearDistance = (pProgramState->camera.position - m_position);
 
     pInstance->pModel = gInternalModels[vcInternalModelType_Sphere];
     pInstance->worldMat = udDouble4x4::translation(m_position) * udDouble4x4::scaleUniform(udMag3(linearDistance) / 100.0); //This makes it ~1/100th of the screen size

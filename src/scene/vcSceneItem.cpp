@@ -56,7 +56,7 @@ void vcSceneItem::HandleAttachmentUI(vcState * /*pProgramState*/)
 
 void vcSceneItem::SetCameraPosition(vcState *pProgramState)
 {
-  pProgramState->pCamera->position = GetWorldSpacePivot();
+  pProgramState->camera.position = GetWorldSpacePivot();
 }
 
 udDouble3 vcSceneItem::GetWorldSpacePivot()
