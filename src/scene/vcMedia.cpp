@@ -203,11 +203,15 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pPoly->pSceneItem = this;
         pPoly->pDiffuseOverride = m_image.pTexture;
 
-        double worldScale = vcISToWorldSize[m_image.size];
         float aspect = 1.0f;
         vcTexture_GetSize(m_image.pTexture, &imageSize.x, &imageSize.y);
         aspect = float(imageSize.y) / imageSize.x;
 
+        double worldScale = 1.0;
+        if (m_image.size == vcIS_Native)
+          worldScale = (double)imageSize.x / pProgramState->sceneResolution.x;
+        else
+          worldScale = vcISToWorldSize[m_image.size];
         
         if (m_image.type == vcIT_PhotoSphere)
         {
