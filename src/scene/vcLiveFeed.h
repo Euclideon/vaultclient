@@ -52,12 +52,11 @@ public:
   double m_updateFrequency; // Delay in seconds between updates
   double m_decayFrequency; // Remove items if they haven't updated more recently than this
   double m_maxDisplayDistance; // Distance to stop displaying entirely
+  double m_labelLODModifier; // Distance modifier for label LOD
 
   udUUID m_groupID; // Required for updating group mode
 
   udMutex *m_pMutex;
-
-  float m_labelLODModifier;
 
   vcLiveFeed(vdkProject *pProject, vdkProjectNode *pProjectNode, vcState *pProgramState);
   ~vcLiveFeed() {};
