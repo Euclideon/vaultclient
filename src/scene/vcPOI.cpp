@@ -188,7 +188,7 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
         if (m_attachment.segmentIndex >= m_line.numPoints)
         {
-          if (m_line.closed)
+          if (m_line.closed && m_line.numPoints > 1)
           {
             m_attachment.segmentIndex = 0;
           }
@@ -227,19 +227,13 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       }
     }
 
-
     udDouble4x4 attachmentMat = udDouble4x4::rotationYPR(m_attachment.eulerAngles, m_attachment.currentPos);
 
-    // Render the attachment if we know where it is
-    if (m_attachment.segmentIndex != -1)
-    { 
-
-      // Add to the scene
-      vcRenderPolyInstance *pModel = pRenderData->polyModels.PushBack();
-      pModel->pModel = m_attachment.pModel;
-      pModel->pSceneItem = this;
-      pModel->worldMat = attachmentMat;
-    }
+    // Render the attachment
+    vcRenderPolyInstance *pModel = pRenderData->polyModels.PushBack();
+    pModel->pModel = m_attachment.pModel;
+    pModel->pSceneItem = this;
+    pModel->worldMat = attachmentMat;
 
     // Update the camera if the camera is coming along
     if (pProgramState->cameraInput.pAttachedToSceneItem == this)
@@ -568,7 +562,7 @@ void vcPOI::ChangeProjection(const udGeoZone &newZone)
   UpdatePoints();
 }
 
-void vcPOI::Cleanup(vcState * /*pProgramState*/)
+void vcPOI::Cleanup(vcState *pProgramState)
 {
   udFree(m_line.pPoints);
   udFree(m_pLabelText);
@@ -581,6 +575,9 @@ void vcPOI::Cleanup(vcState * /*pProgramState*/)
   m_lengthLabels.Deinit();
   vcFenceRenderer_Destroy(&m_pFence);
   udFree(m_pLabelInfo);
+
+  if (pProgramState->cameraInput.pAttachedToSceneItem == this)
+    pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
 }
 
 void vcPOI::SetCameraPosition(vcState *pProgramState)
