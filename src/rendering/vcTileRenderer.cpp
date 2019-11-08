@@ -58,7 +58,7 @@ struct vcTileRenderer
   struct vcTileCache
   {
     volatile bool keepLoading;
-    udThread *pThreads[8];
+    udThread *pThreads[10];
     udSemaphore *pSemaphore;
     udMutex *pMutex;
     udChunkedArray<vcTileLoadPacked> tileLoadList;
@@ -165,14 +165,14 @@ void vcTileRenderer_PriorityInsert(udChunkedArray<vcTileLoadPacked> *pInput, vcT
   }
   else if (pInput->length > 1)
   {
-    int interval = pInput->length * .5;
+    int interval = (int)(pInput->length * .5);
     target = interval;
 
-    while (interval > 1 && target > 0 && target < pInput->length)
+    while (interval > 1 && target > 0 && target < (int)pInput->length)
     {
       vcTileLoadPacked *pEntry = pInput->GetElement(target);
 
-      interval = udCeil(interval * .5);
+      interval = (int)udCeil(interval * .5);
 
       if (pEntry->priority > newEntry.priority)
         target += interval;
@@ -196,10 +196,15 @@ void vcTileRenderer_LoadThread(void *pThreadData)
 
   while (pRenderer->cache.keepLoading)
   {
-    if (udWaitSemaphore(pRenderer->cache.pSemaphore, 1000) != 0 || pRenderer->cache.tileLoadList.length < 1)
+    if (udWaitSemaphore(pRenderer->cache.pSemaphore, 1000) != 0)
       continue;
 
     udLockMutex(pRenderer->cache.pMutex);
+    if (pRenderer->cache.tileLoadList.length < 1)
+    {
+      udReleaseMutex(pRenderer->cache.pMutex);
+      continue;
+    }
 
     vcQuadTreeNode *pNode = pRenderer->cache.tileLoadList.GetElement(pRenderer->cache.tileLoadList.length - 1)->pNode;
     pRenderer->cache.tileLoadList.RemoveAt(pRenderer->cache.tileLoadList.length - 1);
@@ -424,7 +429,6 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
 
 bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
 {
-  vcTileRenderer::vcTileCache *pTileCache = &pTileRenderer->cache;
   if (pNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_None)
   {
     pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_InQueue;
@@ -483,7 +487,7 @@ void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, 
 // Determined insertion sort to be quickest on nearly sorted input data
 void vcTileRenderer_InsertionSort(udChunkedArray<vcTileLoadPacked> *pArr)
 {
-  for (int i = 0; i < pArr->length; ++i)
+  for (int i = 0; i < (int)pArr->length; ++i)
   {
     vcTileLoadPacked *pTemp = pArr->GetElement(i);
     int j = i;

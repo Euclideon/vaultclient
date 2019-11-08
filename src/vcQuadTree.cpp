@@ -86,37 +86,26 @@ uint32_t vcQuadTree_FindFreeChildBlock(vcQuadTree *pQuadTree)
 }
 
 // TODO: DEM effect
-double vcQuadTree_PointToRectDistance(udDouble2 edges[4], const udDouble3 &point)
+double vcQuadTree_PointToRectDistance(udDouble2 center, udDouble2 extents, const udDouble3 &point)
 {
-  static const udInt2 edgePairs[] =
-  {
-    udInt2::create(0, 1), // top
-    udInt2::create(0, 2), // left
-    udInt2::create(2, 3), // bottom
-    udInt2::create(1, 3), // right
-  };
+  // Not true distance
+  udDouble2 closestPoint;
 
-  // Not true distance, XY plane distance has more weighting
-  double closestEdgeDistance = 0.0;
+  if (point.x < center.x - extents.x)
+    closestPoint.x = center.x - extents.x;
+  else if (point.x > center.x + extents.x)
+    closestPoint.x = center.x + extents.x;
+  else
+    closestPoint.x = point.x;
 
-  // test each edge to find minimum distance to quadrant shape (2d)
-  for (int e = 0; e < 4; ++e)
-  {
-    udDouble2 p1 = edges[edgePairs[e].x];
-    udDouble2 p2 = edges[edgePairs[e].y];
+  if (point.y < center.y - extents.y)
+    closestPoint.y = center.y - extents.y;
+  else if (point.y > center.y + extents.y)
+    closestPoint.y = center.y + extents.y;
+  else
+    closestPoint.y = point.y;
 
-    udDouble2 edge = p2 - p1;
-    double r = udDot2(edge, (point.toVector2() - p1)) / udMagSq2(edge);
-
-    // 2d edge has been found, now factor in z for distances to camera
-    // TODO: tile heights (DEM)
-    udDouble3 closestPointOnEdge = udDouble3::create(p1 + udClamp(r, 0.0, 1.0) * edge, 0.0);
-
-    double distToEdge = udMag3(closestPointOnEdge - point);
-    closestEdgeDistance = (e == 0) ? distToEdge : udMin(closestEdgeDistance, distToEdge);
-  }
-
-  return closestEdgeDistance;
+  return udMag3(udDouble3::create(closestPoint.x, closestPoint.y, 0) - point);
 }
 
 void vcQuadTree_CleanupNode(vcQuadTreeNode *pNode)
@@ -220,7 +209,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
       int32_t slippyManhattanDist = udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x) + udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y);
       if (slippyManhattanDist != 0)
       {
-        distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraTreePosition);
+        distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->tileCenter, pChildNode->tileExtents, pQuadTree->cameraTreePosition);
         bool withinHorizon = udAbs(udASin(pQuadTree->cameraTreePosition.z / distanceToQuadrant)) >= tileToCameraCullAngle;
         pChildNode->visible = pChildNode->visible && withinHorizon;
       }
