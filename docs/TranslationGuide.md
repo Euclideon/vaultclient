@@ -7,7 +7,7 @@
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
     - Scene Explorer
-      - `scenePOIAttachCameraToAttachment`
+      - `scenePOIAttachCameraToAttachment`, `liveFeedLODModifier`
   - Changed:
     - 
   - Removed:
@@ -700,6 +700,7 @@ Modules are currently:
   - {1} total number of visible items
   - {2} number of second until the next update (or negative for seconds since starting the last update)
 - `liveFeedGroupID`: When in `liveFeedModeGroups` mode, this is the input for the Group ID. [Will eventually be a drop down to select by group name]
+- `liveFeedLODModifier`: Label on slider that modifies the distance at which to show particular levels of detail on live feed item labels
 
 #### Polygon Models
 - `polyModelInvertFaces`: Label on check box to invert the winding order of the triangles

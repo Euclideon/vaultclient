@@ -295,7 +295,8 @@ vcLiveFeed::vcLiveFeed(vdkProject *pProject, vdkProjectNode *pNode, vcState *pPr
   m_updateFrequency(15.0),
   m_decayFrequency(300.0),
   m_maxDisplayDistance(50000.0),
-  m_pMutex(udCreateMutex())
+  m_pMutex(udCreateMutex()),
+  m_labelLODModifier(1.0)
 {
   m_feedItems.Init(512);
   m_polygonModels.Init(16);
@@ -383,7 +384,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       vcLiveFeedItemLOD &lodRef = pFeedItem->lodLevels[lodI];
 
-      if (lodRef.distance != 0.0 && distanceSq > (lodRef.distance*lodRef.distance) / (pFeedItem->minBoundingRadius * pFeedItem->minBoundingRadius))
+      if (lodRef.distance != 0.0 && distanceSq * m_labelLODModifier > (lodRef.distance*lodRef.distance) / (pFeedItem->minBoundingRadius * pFeedItem->minBoundingRadius))
         continue;
 
       if (lodRef.sspixels != 0.0)
@@ -511,6 +512,15 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
       {
         m_maxDisplayDistance = udClamp(m_maxDisplayDistance, displayDistanceMinValue, displayDistanceMaxValue);
         vdkProjectNode_SetMetadataDouble(m_pNode, "maxDisplayDistance", m_maxDisplayDistance);
+      }
+    }
+
+    // LOD Distances
+    {
+      if (ImGui::SliderFloat(vcString::Get("liveFeedLODModifier"), &m_labelLODModifier, 0.01f, 5.0f, "%.2f"))
+      {
+        m_labelLODModifier = udClamp(m_labelLODModifier, 0.01f, 5.0f);
+        vdkProjectNode_SetMetadataDouble(m_pNode, "lodModifier", m_labelLODModifier);
       }
     }
 

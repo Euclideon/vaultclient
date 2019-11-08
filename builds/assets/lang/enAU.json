@@ -507,6 +507,7 @@
   "liveFeedTween": "Enable Tweening / Position Smoothing",
   "liveFeedDiagInfo": "Total Cached Items: {0}\nCurrently displaying {1} items.\nNext Update in {2} seconds.",
   "liveFeedGroupID": "Group ID",
+  "liveFeedLODModifier": "LOD Distance Modifier",
 
   "polyModelInvertFaces": "Flip Faces",
   "polyModelMesh": "Mesh",
