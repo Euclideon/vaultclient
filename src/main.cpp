@@ -1639,15 +1639,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   // Can only assign longlat positions in projected space
   if (pProgramState->gis.isProjected)
-  {
     pProgramState->worldMousePosLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->worldMousePosCartesian, true);
-    pProgramState->pCamera->positionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->pCamera->position, true);
-  }
   else
-  {
     pProgramState->worldMousePosLongLat = pProgramState->worldMousePosCartesian;
-    pProgramState->pCamera->positionInLongLat = pProgramState->pCamera->position;
-  }
 
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 }
@@ -2305,8 +2299,10 @@ void vcRenderWindow(vcState *pProgramState)
           vdkProjectNode *pNode;
           if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == vE_Success)
           {
+            udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->pCamera->position, true);
+
             if (pProgramState->gis.isProjected)
-              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&pProgramState->pCamera->positionInLongLat);
+              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&cameraPositionInLongLat);
 
             vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.x", pProgramState->pCamera->eulerRotation.x);
             vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", pProgramState->pCamera->eulerRotation.y);

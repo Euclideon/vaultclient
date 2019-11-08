@@ -131,7 +131,6 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
 
   pCamera->matrices.camera = vcCamera_GetMatrix(pCamera);
 
-
 #if GRAPHICS_API_OPENGL
   pCamera->matrices.projectionNear = udDouble4x4::perspectiveNO(fov, aspect, 0.5f, 10000.f);
 #else
