@@ -6,7 +6,7 @@
     "englishname": "Australian English",
     "translationby": "Euclideon Pty Ltd",
     "contactemail": "support@euclideon.com",
-    "targetVersion": "0.4.0"
+    "targetVersion": "0.4.1"
   },
 
   "loginButton": "Login",
@@ -247,6 +247,7 @@
   "convertPreviewName": "Conversion Preview",
   "convertAllSpaceLabel": "Set All Source XY",
   "convertSpaceLabel": "Source XY",
+  "convertSpaceDetected": "Use Detected Setting",
   "convertSpaceCartesian": "Cartesian",
   "convertSpaceLatLong": "Latitude then Longitude",
   "convertSpaceLongLat": "Longitude then Latitude",
@@ -349,6 +350,9 @@
   "sceneAddFilterCylinder": "Add Cylinder Filter",
   "sceneResetRotation": "Reset Camera Rotation",
 
+  "sceneCameraAttachmentWarning": "The camera is currently attached to '{0}'",
+  "sceneCameraAttachmentDetach": "Detach",
+
   "sceneLockAltitude": "Lock Altitude",
   "sceneLockAltitudeKey": "Space",
   "sceneCameraInfo": "Show Camera Information",
@@ -389,6 +393,7 @@
   "sceneExplorerUseProjection": "Use Projection",
   "sceneExplorerMoveTo": "Move To",
   "sceneExplorerResetPosition": "Reset Position",
+  "sceneExplorerCompareModels": "Compare Models",
   "sceneExplorerPathURL": "Path/URL:",
   "sceneExplorerExportButton": "Export",
   "sceneExplorerLoadButton": "Load",
@@ -450,9 +455,15 @@
   "scenePOIThumbnailSizeLarge": "Large",
   "scenePOILabelImageType": "Image Type",
   "scenePOILabelImageTypeStandard": "Standard",
+  "scenePOILabelImageTypeOriented": "Oriented Image",
   "scenePOILabelImageTypePanorama": "Panorama",
   "scenePOILabelImageTypePhotosphere": "Photo Sphere",
   "scenePOIReloadTime": "Reload Time (secs)",
+  "scenePOIAttachModel": "Attach Model",
+  "scenePOIAttachModelURI": "URL",
+  "scenePOIAttachModelFailed": "Failed to load model",
+  "scenePOIAttachmentSpeed": "Attached Model Speed",
+  "scenePOIAttachCameraToAttachment": "Link camera to attachment",
 
   "scenePOILineSettings": "Line Settings",
   "scenePOILineShowLength": "Show Length",
@@ -474,6 +485,15 @@
   "scenePOICancelFlyThrough": "Cancel Fly Through",
   "scenePOIPerformFlyThrough": "Fly Camera Through All Points",
 
+  "sceneFilterPosition": "Position",
+  "sceneFilterRotation": "Rotation",
+  "sceneFilterExtents": "Size",
+  "sceneFilterShape": "Shape",
+  "sceneFilterShapeBox": "Box",
+  "sceneFilterShapeSphere": "Sphere",
+  "sceneFilterShapeCylinder": "Cylinder",
+  "sceneFilterInverted": "Invert Filter",
+
   "sceneViewpointSetCamera": "Set Viewpoint to Camera",
   "sceneViewpointPosition": "Viewpoint Position",
   "sceneViewpointRotation": "Viewpoint Rotation",
@@ -489,7 +509,12 @@
   "liveFeedGroupID": "Group ID",
   "liveFeedLODModifier": "LOD Distance Modifier",
 
+  "polyModelInvertFaces": "Flip Faces",
   "polyModelMesh": "Mesh",
   "polyModelTexture": "Texture",
-  "polyModelMatColour": "Material Colour"
+  "polyModelMatColour": "Material Colour",
+
+  "viewShedDistance": "Distance",
+  "viewShedVisibleColour": "Highlight Visible",
+  "viewShedHiddenColour": "Highlight Hidden"
 }

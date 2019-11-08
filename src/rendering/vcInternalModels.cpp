@@ -18,6 +18,7 @@ udResult vcInternalModels_Init()
   UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_ScreenQuad], vcP3UV2VertexLayout, int(udLengthOf(vcP3UV2VertexLayout)), screenQuadVertices, 4, screenQuadIndices, 6, vcMF_IndexShort));
   UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_FlippedScreenQuad], vcP3UV2VertexLayout, int(udLengthOf(vcP3UV2VertexLayout)), flippedScreenQuadVertices, 4, flippedScreenQuadIndices, 6, vcMF_IndexShort));
 
+  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_WorldQuad], vcP3N3UV2VertexLayout, int(udLengthOf(vcP3N3UV2VertexLayout)), worldQuadVertices, 4, worldQuadIndices, 6, vcMF_IndexShort));
   UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Billboard], vcP3UV2VertexLayout, (int)udLengthOf(vcP3UV2VertexLayout), billboardVertices, (int)udLengthOf(billboardVertices), billboardIndices, (int)udLengthOf(billboardIndices), vcMF_IndexShort));
   UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Sphere], vcP3N3UV2VertexLayout, (int)udLengthOf(vcP3N3UV2VertexLayout), pSphereVertices, (int)udLengthOf(sphereVerticesFltArray), sphereIndices, (int)udLengthOf(sphereIndices), vcMF_IndexShort));
   UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Tube], vcP3N3UV2VertexLayout, (int)udLengthOf(vcP3N3UV2VertexLayout), pTubeVertices, (int)udLengthOf(tubeVerticesFltArray), tubeIndices, (int)udLengthOf(tubeIndices), vcMF_IndexShort));
@@ -28,6 +29,8 @@ udResult vcInternalModels_Init()
   UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Cube], (void *)cubeVerticesFltArray, (uint16_t)udLengthOf(cubeVerticesFltArray), vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), cubeIndices, (uint16_t)udLengthOf(cubeIndices)));
   UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Sphere], (void *)sphereVerticesFltArray, (uint16_t)udLengthOf(sphereVerticesFltArray), vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), sphereIndices, (uint16_t)udLengthOf(sphereIndices)));
   UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Cylinder], (void *)cylinderVerticesFltArray, (uint16_t)udLengthOf(cylinderVerticesFltArray), vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), cylinderIndices, (uint16_t)udLengthOf(cylinderIndices)));
+  UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Tube], (void *)tubeVerticesFltArray, (uint16_t)udLengthOf(tubeVerticesFltArray), vcP3N3UV2VertexLayout, (int)udLengthOf(vcP3N3UV2VertexLayout), tubeIndices, (uint16_t)udLengthOf(tubeIndices)));
+  UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Quad], (void *)worldQuadVertices, 4, vcP3N3UV2VertexLayout, (int)udLengthOf(vcP3N3UV2VertexLayout), worldQuadIndices, 6));
 
   result = udR_Success;
 epilogue:

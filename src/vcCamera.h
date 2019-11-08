@@ -47,6 +47,7 @@ struct vcCamera
 };
 
 struct vcState;
+class vcSceneItem;
 
 enum vcInputState
 {
@@ -58,7 +59,7 @@ enum vcInputState
   vcCIS_PinchZooming,
   vcCIS_Panning,
   vcCIS_MovingForward,
-  vcCIS_FlyingThrough,
+  vcCIS_FlyThrough,
 
   vcCIS_Count
 };
@@ -79,6 +80,7 @@ struct vcCameraInput
   udDouble3 lookAtPosition; // for 'look at'
   udDoubleQuat startAngle;
   double progress;
+  double progressMultiplier;
 
   vcCameraPivotMode currentPivotMode;
 
@@ -87,7 +89,6 @@ struct vcCameraInput
   udDouble3 controllerDPADInput;
   void *pObjectInfo;
 
-  bool flyThroughActive;
   int flyThroughPoint;
   bool transitioningToMapMode;
   bool stabilize;
@@ -95,6 +96,8 @@ struct vcCameraInput
   udDouble3 smoothTranslation;
   udDouble3 smoothRotation;
   double smoothOrthographicChange;
+
+  vcSceneItem *pAttachedToSceneItem; // This does nothing in the camera module but the scene item is allowed to override the camera if this variable is set
 };
 
 struct vcCameraSettings
@@ -159,7 +162,7 @@ void vcCamera_Destroy(vcCamera **ppCamera);
 void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos);
 
 void vcCamera_SwapMapMode(vcState *pProgramState);
-void vcCamera_LookAt(vcState *pProgramState, const udDouble3 &targetPosition);
+void vcCamera_LookAt(vcState *pProgramState, const udDouble3 &targetPosition, double speedMultiplier = 1.0);
 
 void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, vcCameraInput *pCamInput, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr);
 

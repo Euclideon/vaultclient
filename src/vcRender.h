@@ -39,6 +39,7 @@ struct vcRenderPolyInstance
   vcTexture *pDiffuseOverride; // optionally override diffuse texture. Only available on RenderType_Polygon
 
   bool insideOut;
+  bool affectsViewShed;
   vcSceneItem *pSceneItem;
   uint64_t sceneItemInternalId; // 0 is entire model; for most systems this will be +1 compared to internal arrays
 };

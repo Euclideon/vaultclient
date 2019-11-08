@@ -11,6 +11,10 @@ const uint16_t screenQuadIndices[6] = { 0, 1, 2, 0, 2, 3 };
 const vcP3UV2Vertex flippedScreenQuadVertices[4]{ { { -1.f, -1.f, 0.f },{ 0, 0 } },{ { -1.f, 1.f, 0.f },{ 0, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 0 } } };
 const uint16_t flippedScreenQuadIndices[6] = { 2, 1, 0, 3, 2, 0 };
 
+// world quad
+const vcP3N3UV2Vertex worldQuadVertices[4]{ { { -1.f, 0.f, -1.f }, { 0.f, 1.f, 0.f }, { 0, 1 } },{ { -1.f, 0.f, 1.f }, { 0.f, 1.f, 0.f }, { 0, 0 } },{ { 1.f, 0.f, 1.f }, { 0.f, 1.f, 0.f }, { 1, 0 } },{ { 1.f, 0.f, -1.f }, { 0.f, 1.f, 0.f }, { 1, 1 } } };
+const uint16_t worldQuadIndices[6] = { 0, 1, 2, 0, 2, 3 };
+
 // billboard
 const vcP3UV2Vertex billboardVertices[4]{ { { 0.f, 0.f, 0.f },{ 0, 0 } },{ { 0.f, 0.f, 0.f },{ 0, 1 } },{ { 0.f, 0.f, 0.f },{ 1, 1 } },{ { 0.f, 0.f, 0.f },{ 1, 0 } } };
 const uint16_t billboardIndices[6] = { 0, 1, 2, 0, 2, 3 };
@@ -6670,8 +6674,8 @@ const uint16_t orbitIndices[] = {
   574, 575, 398, 398, 396, 574, 575, 569, 384, 384, 398, 575
 };
 
-const vcP3UV2Vertex *pTubeVertices = (vcP3UV2Vertex *)tubeVerticesFltArray;
-const vcP3UV2Vertex *pSphereVertices = (vcP3UV2Vertex *)sphereVerticesFltArray;
+const vcP3N3UV2Vertex *pTubeVertices = (vcP3N3UV2Vertex *)tubeVerticesFltArray;
+const vcP3N3UV2Vertex *pSphereVertices = (vcP3N3UV2Vertex *)sphereVerticesFltArray;
 const vcP3N3Vertex *pCompassVerts = (vcP3N3Vertex *)compassVertsFltArray;
 const vcP3N3Vertex *pOrbitVertices = (vcP3N3Vertex *)orbitVerticesFltArray;
 //const vcP3N3Vertex *pCubeVertices = (vcP3N3Vertex *)cubeVerticesFltArray;

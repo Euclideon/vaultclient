@@ -48,7 +48,7 @@
 #include "gl/vcGLState.h"
 #include "gl/vcFramebuffer.h"
 
-#include "legacy/vcUDP.h"
+#include "parsers/vcUDP.h"
 
 #include "udFile.h"
 #include "udStringUtil.h"
@@ -60,7 +60,7 @@
 #include <emscripten/emscripten.h>
 #endif
 
-UDCOMPILEASSERT(VDK_MAJOR_VERSION == 0 && VDK_MINOR_VERSION == 4, "This version of VDK is not compatible");
+UDCOMPILEASSERT(VDK_MAJOR_VERSION == 0 && VDK_MINOR_VERSION == 4 && VDK_PATCH_VERSION == 1, "This version of VDK is not compatible");
 
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
 #  include <crtdbg.h>
@@ -409,7 +409,9 @@ void vcMain_MainLoop(vcState *pProgramState)
               continue;
             }
             else if (firstLoad) // Was successful
+            {
               udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+            }
           }
           else if (udStrEquali(pExt, ".vsm") || udStrEquali(pExt, ".obj"))
           {
@@ -429,7 +431,9 @@ void vcMain_MainLoop(vcState *pProgramState)
               continue;
             }
             else if (firstLoad) // Was successful
+            {
               udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+            }
           }
           else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif"))
           {
@@ -502,7 +506,25 @@ void vcMain_MainLoop(vcState *pProgramState)
           }
           else if (udStrEquali(pExt, ".slpk"))
           {
-            vdkProjectNode_Create(pProgramState->activeProject.pProject, nullptr, pProgramState->activeProject.pRoot, "I3S", loadFile.GetFilenameWithExt(), pNextLoad, nullptr);
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "I3S", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) != vE_Success)
+            {
+              vcState::ErrorItem projectError;
+              projectError.source = vcES_ProjectChange;
+              projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
+              projectError.resultCode = udR_ReadFailure;
+
+              pNextLoad = nullptr;
+
+              pProgramState->errorItems.PushBack(projectError);
+
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+
+              continue;
+            }
+            else if (firstLoad) // Was successful
+            {
+              udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+            }
           }
           else // This file isn't supported in the scene
           {
@@ -759,6 +781,7 @@ int main(int argc, char **args)
   programState.settings.camera.nearPlane = 0.5f;
   programState.settings.camera.farPlane = 10000.f;
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
+  programState.cameraInput.progressMultiplier = 1.0;
 
   // Dock setting
   programState.settings.docksLoaded = vcSettings::vcDockLoaded::vcDL_False;
@@ -874,7 +897,6 @@ int main(int argc, char **args)
   vcMain_AsyncLoad(&programState, "asset://assets/fonts/NotoSansCJKjp-Regular.otf", vcMain_LoadFontMT);
 
   vcTexture_AsyncCreateFromFilename(&programState.pCompanyLogo, programState.pWorkerPool, "asset://assets/textures/logo.png");
-  vcTexture_AsyncCreateFromFilename(&programState.pBuildingsTexture, programState.pWorkerPool, "asset://assets/textures/buildings.png", vcTFM_Nearest, false);
   vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png");
 
   vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
@@ -907,7 +929,6 @@ epilogue:
   vcCamera_Destroy(&programState.pCamera);
   vcTexture_Destroy(&programState.pCompanyLogo);
   vcTexture_Destroy(&programState.pCompanyWatermark);
-  vcTexture_Destroy(&programState.pBuildingsTexture);
   vcTexture_Destroy(&programState.pUITexture);
   vcTexture_Destroy(&programState.pWhiteTexture);
 
@@ -943,6 +964,27 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 {
   ImGuiIO &io = ImGui::GetIO();
   float bottomLeftOffset = 0.f;
+
+  if (pProgramState->cameraInput.pAttachedToSceneItem != nullptr)
+  {
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x / 2, windowPos.y), ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+    ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
+    ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
+
+    if (ImGui::Begin("exitAttachedModeWindow", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
+    {
+      const char *pStr = vcStringFormat(vcString::Get("sceneCameraAttachmentWarning"), pProgramState->cameraInput.pAttachedToSceneItem->m_pNode->pName);
+      ImGui::TextUnformatted(pStr);
+      udFree(pStr);
+
+      if (ImGui::Button(vcString::Get("sceneCameraAttachmentDetach"), ImVec2(-1, 0)))
+      {
+        pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
+      }
+    }
+
+    ImGui::End();
+  }
 
   if (pProgramState->settings.presentation.showProjectionInfo || pProgramState->settings.presentation.showAdvancedGIS)
   {
@@ -1068,6 +1110,15 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
               ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", vcString::Get("sceneCameraOutOfBounds"));
           }
         }
+      }
+    }
+
+    if (pProgramState->cameraInput.inputState == vcCIS_FlyThrough)
+    {
+      if (ImGui::Button(vcString::Get("scenePOICancelFlyThrough")))
+      {
+        pProgramState->cameraInput.inputState = vcCIS_None;
+        pProgramState->cameraInput.pObjectInfo = nullptr;
       }
     }
 
@@ -1924,37 +1975,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   ImGuiIO io = ImGui::GetIO();
   ImVec2 size = io.DisplaySize;
 
-  ImDrawList *pDrawList = ImGui::GetBackgroundDrawList();
-
-  {
-    ImVec2 p0 = ImVec2((size.x - 2048) / 2, size.y - 512);
-    ImVec2 p1 = ImVec2((size.x + 2048) / 2, size.y);
-
-    static float mouseX = 0.f;
-    static float mouseY = 0.f;
-    if (io.MousePos.x != -FLT_MAX)
-    {
-      mouseX = (io.MousePos.x / size.x) * 2.f - 1.f;
-      mouseY = (io.MousePos.y / size.y);
-    }
-
-    pDrawList->AddRectFilledMultiColor(ImVec2(0, 0), size, 0xFFB5A245, 0xFFE3D9A8, 0xFFCDBC71, 0xFF998523);
-
-    if (pProgramState->pBuildingsTexture != nullptr)
-    {
-      pDrawList->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 03.f + 100.f, p0.y + mouseY * 0.f), ImVec2(p1.x + mouseX * 03.f + 100.f, p1.y + mouseY * 0.f), ImVec2(0, 0.75), ImVec2(1, 1.00));
-      pDrawList->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 15.f + 350.f, p0.y + mouseY * 1.f), ImVec2(p1.x + mouseX * 15.f + 350.f, p1.y + mouseY * 1.f), ImVec2(0, 0.50), ImVec2(1, 0.75));
-      pDrawList->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 40.f - 230.f, p0.y + mouseY * 2.f), ImVec2(p1.x + mouseX * 40.f - 230.f, p1.y + mouseY * 2.f), ImVec2(0, 0.25), ImVec2(1, 0.50));
-      pDrawList->AddImage(pProgramState->pBuildingsTexture, ImVec2(p0.x + mouseX * 70.f - 080.f, p0.y + mouseY * 3.f), ImVec2(p1.x + mouseX * 70.f - 080.f, p1.y + mouseY * 3.f), ImVec2(0, 0.00), ImVec2(1, 0.25));
-    }
-
-    if (pProgramState->pCompanyLogo != nullptr)
-    {
-      float scaling = udMin(0.9f * (size.y - vcLBS_LoginBoxH) / vcLBS_LogoH, 1.f);
-      float yOff = (size.y - vcLBS_LoginBoxH) / 2.f;
-      pDrawList->AddImage(pProgramState->pCompanyLogo, ImVec2((size.x - vcLBS_LogoW * scaling) / 2.f, yOff - (vcLBS_LogoH * scaling * 0.5f)), ImVec2((size.x + vcLBS_LogoW * scaling) / 2, yOff + (vcLBS_LogoH * scaling * 0.5f)));
-    }
-  }
+  vcMain_ShowStartupScreen(pProgramState);
 
   ImGui::SetNextWindowBgAlpha(0.f);
   ImGui::SetNextWindowPos(ImVec2(0, size.y), ImGuiCond_Always, ImVec2(0, 1));
@@ -2223,7 +2244,9 @@ void vcRenderWindow(vcState *pProgramState)
 #if UDPLATFORM_WINDOWS
   if (io.KeyAlt && ImGui::IsKeyPressed(SDL_SCANCODE_F4))
     pProgramState->programComplete = true;
+#endif
 
+#if !UDPLATFORM_LINUX
   if (io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_M))
     vcCamera_SwapMapMode(pProgramState);
 #endif
@@ -2438,8 +2461,9 @@ void vcRenderWindow(vcState *pProgramState)
       vcSettings_Load(&pProgramState->settings, false, vcSC_Docks);
 
       // Don't show the window in a bad state
-      ImGui::EndFrame();
-      ImGui::NewFrame();
+      ImDrawData *pData = ImGui::GetDrawData();
+      if (pData != nullptr)
+        pData->Clear();
     }
   }
 

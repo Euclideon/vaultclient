@@ -94,7 +94,6 @@ struct vcState
 
   vcTexture *pCompanyLogo;
   vcTexture *pCompanyWatermark;
-  vcTexture *pBuildingsTexture;
   vcTexture *pSceneWatermark;
   vcTexture *pUITexture;
   vcTexture *pWhiteTexture;
@@ -175,9 +174,6 @@ struct vcState
   vcTranslationInfo languageInfo;
   bool showUI;
   vcDocks changeActiveDock;
-
-  bool getGeo;
-  udGeoZone *pGotGeo;
 };
 
 #endif // !vcState_h__

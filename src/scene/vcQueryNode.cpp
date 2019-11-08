@@ -115,22 +115,18 @@ void vcQueryNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   vdkProjectNode_SetMetadataDouble(m_pNode, "size.y", m_extents.y);
   vdkProjectNode_SetMetadataDouble(m_pNode, "size.z", m_extents.z);
 
-  vdkProjectNode_SetMetadataDouble(m_pNode, "tranform.rotation.y", m_ypr.x);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "tranform.rotation.p", m_ypr.y);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "tranform.rotation.r", m_ypr.z);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_ypr.x);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_ypr.y);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
 }
 
 void vcQueryNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   bool changed = false;
 
-  changed |= ImGui::InputScalarN(udTempStr("%s##FilterPosition%zu", vcString::Get("sceneFilterPosition"), *pItemID), ImGuiDataType_Double, &m_center.x, 3);
-  changed |= ImGui::InputScalarN(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), ImGuiDataType_Double, &m_ypr.x, 3);
-  changed |= ImGui::InputScalarN(udTempStr("%s##FilterExtents%zu", vcString::Get("sceneFilterExtents"), *pItemID), ImGuiDataType_Double, &m_extents.x, 3);
-
   const char *filterShapeNames[] = { vcString::Get("sceneFilterShapeBox"), vcString::Get("sceneFilterShapeCylinder"), vcString::Get("sceneFilterShapeSphere") };
   int shape = m_shape;
-  if (ImGui::Combo(udTempStr("%s##FilterShape%zu", vcString::Get("sceneFilterExtents"), *pItemID), &shape, filterShapeNames, (int)udLengthOf(filterShapeNames)))
+  if (ImGui::Combo(udTempStr("%s##FilterShape%zu", vcString::Get("sceneFilterShape"), *pItemID), &shape, filterShapeNames, (int)udLengthOf(filterShapeNames)))
   {
     changed = true;
     m_shape = (vcQueryNodeFilterShape)shape;
@@ -141,6 +137,18 @@ void vcQueryNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
       vdkProjectNode_SetMetadataString(m_pNode, "shape", "sphere");
     else if (m_shape == vcQNFS_Cylinder)
       vdkProjectNode_SetMetadataString(m_pNode, "shape", "cylinder");
+  }
+
+  changed |= ImGui::InputScalarN(udTempStr("%s##FilterPosition%zu", vcString::Get("sceneFilterPosition"), *pItemID), ImGuiDataType_Double, &m_center.x, 3);
+
+  if (m_shape != vcQNFS_Sphere)
+  {
+    changed |= ImGui::InputScalarN(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), ImGuiDataType_Double, &m_ypr.x, 3);
+    changed |= ImGui::InputScalarN(udTempStr("%s##FilterExtents%zu", vcString::Get("sceneFilterExtents"), *pItemID), ImGuiDataType_Double, &m_extents.x, 3);
+  }
+  else // Is a sphere
+  {
+    changed |= ImGui::InputDouble(udTempStr("%s##FilterExtents%zu", vcString::Get("sceneFilterExtents"), *pItemID), &m_extents.x);
   }
 
   if (ImGui::Checkbox(udTempStr("%s##FilterInverted%zu", vcString::Get("sceneFilterInverted"), *pItemID), &m_inverted))
@@ -206,4 +214,12 @@ udDouble4x4 vcQueryNode::GetWorldSpaceMatrix()
     return udDouble4x4::rotationYPR(m_ypr, m_center) * udDouble4x4::scaleNonUniform(udDouble3::create(m_extents.x, m_extents.x, m_extents.z));
 
   return udDouble4x4::rotationYPR(m_ypr, m_center) * udDouble4x4::scaleNonUniform(m_extents);
+}
+
+vcGizmoAllowedControls vcQueryNode::GetAllowedControls()
+{
+  if (m_shape == vcQNFS_Sphere)
+    return (vcGizmoAllowedControls)(vcGAC_ScaleUniform | vcGAC_Translation | vcGAC_Rotation);
+  else
+    return vcGAC_All;
 }

@@ -338,11 +338,9 @@ bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, 
 
   g_pd3dDeviceContext->RSSetViewports(1, &viewport);
 
-  s_internalState.viewportZone = udInt4::create(0, 0, width, height);
+  s_internalState.viewportZone = udInt4::create(x, y, width, height);
 
-  //Reset the scissor back to the full viewport
-  D3D11_RECT scissorRect = { (LONG)0, (LONG)0, (LONG)width, (LONG)height };
-  g_pd3dDeviceContext->RSSetScissorRects(1, &scissorRect);
+  vcGLState_Scissor(s_internalState.viewportZone.x, s_internalState.viewportZone.y, s_internalState.viewportZone.x + s_internalState.viewportZone.z, s_internalState.viewportZone.y + s_internalState.viewportZone.w);
 
   return true;
 }

@@ -32,6 +32,7 @@ const char* const g_PolygonP3N3UV2FragmentShader = "polygonP3N3UV2FragmentShader
 const char* const g_PolygonP3N3UV2VertexShader = "polygonP3N3UV2VertexShader";
 
 const char* const g_FlatColour_FragmentShader = "flatColorFragmentShader";
+const char *const g_DepthOnly_FragmentShader = "depthOnlyFragmentShader";
 
 const char *const g_ImageRendererFragmentShader = "imageRendererFragmentShader";
 const char *const g_ImageRendererMeshVertexShader = "imageRendererMeshVertexShader";

@@ -16,6 +16,7 @@ enum vcPolygonModelShaderType
 {
   vcPMST_P3N3UV2_Opaque,
   vcPMST_P3N3UV2_FlatColour,
+  vcPMST_P3N3UV2_DepthOnly,
 
   vcPMST_Count
 };
@@ -98,6 +99,8 @@ udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel,
   pPolygonModel->pMeshes[0].numElements = indexCount;
   pPolygonModel->pMeshes[0].material.pTexture = nullptr;
   pPolygonModel->pMeshes[0].materialID = (uint16_t)vcPolygonModel_GetShaderType(pMeshLayout, totalTypes);
+
+  pPolygonModel->modelOffset = udDouble4x4::identity();
 
   // Check for unsupported vertex format
   if (pPolygonModel->pMeshes[0].materialID == vcPMST_Count)
@@ -247,6 +250,13 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
 
   UD_ERROR_CHECK(vcOBJ_Load(&pOBJReader, pFilepath));
 
+  if (pOBJReader->materials.length == 0)
+  {
+    vcOBJ::Material *pMat = pOBJReader->materials.PushBack();
+    pMat->Ka = udFloat3::create(1.f);
+    pMat->Kd = udFloat3::create(1.f);
+  }
+
   pPolygonModel->pMeshes = udAllocType(vcPolygonModelMesh, pOBJReader->materials.length, udAF_Zero);
   UD_ERROR_NULL(pPolygonModel->pMeshes, udR_MemoryAllocationFailure);
 
@@ -265,7 +275,7 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
     for (uint32_t f = 0; f < pOBJReader->faces.length; ++f)
     {
       vcOBJ::Face *pFace = &pOBJReader->faces[f];
-      if (pFace->mat != material)
+      if (pFace->mat != material && pFace->mat != -1)
         continue;
 
       pMesh->numVertices += 3;
@@ -276,7 +286,7 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
     for (uint32_t f = 0; f < pOBJReader->faces.length; ++f)
     {
       vcOBJ::Face *pFace = &pOBJReader->faces[f];
-      if (pFace->mat != material)
+      if (pFace->mat != material && pFace->mat != -1)
         continue;
 
       for (int i = 0; i < 3; ++i)
@@ -297,6 +307,9 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
 
       currentVert += 3;
     }
+
+    if (currentVert == 0)
+      continue;
 
     // BGRA
     pMesh->material.colour = 0x000000ff | (uint32_t(pMaterial->Kd.x * 0xff) << 8) | (uint32_t(pMaterial->Kd.y * 0xff) << 16) | (uint32_t(pMaterial->Kd.z * 0xff) << 24);
@@ -379,8 +392,12 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
   {
     vcPolygonModelMesh *pModelMesh = &pModel->pMeshes[i];
     vcPolygonModelShader *pPolygonShader = &gShaders[pModelMesh->materialID];
+
+    // conditionally override
     if (passType == vcPMP_ColourOnly)
       pPolygonShader = &gShaders[vcPMST_P3N3UV2_FlatColour];
+    else if (passType == vcPMP_Shadows)
+      pPolygonShader = &gShaders[vcPMST_P3N3UV2_DepthOnly];
 
     vcShader_Bind(pPolygonShader->pShader);
 
@@ -450,6 +467,10 @@ udResult vcPolygonModel_CreateShaders()
 
   pPolygonShader = &gShaders[vcPMST_P3N3UV2_FlatColour];
   UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP3N3UV2VertexShader, g_FlatColour_FragmentShader, vcP3N3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject)), udR_InternalError);
+
+  pPolygonShader = &gShaders[vcPMST_P3N3UV2_DepthOnly];
+  UD_ERROR_IF(!vcShader_CreateFromText(&pPolygonShader->pShader, g_PolygonP3N3UV2VertexShader, g_DepthOnly_FragmentShader, vcP3N3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject)), udR_InternalError);
 
   result = udR_Success;

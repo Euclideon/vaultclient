@@ -15,17 +15,42 @@ vcPolyModelNode::vcPolyModelNode(vdkProject *pProject, vdkProjectNode *pNode, vc
 {
   m_pModel = nullptr;
   m_matrix = udDouble4x4::identity();
+  m_invert = false;
 
   //TODO: Do this load async
   if (vcPolygonModel_CreateFromURL(&m_pModel, pNode->pURI) == udR_Success)
     m_loadStatus = vcSLS_Loaded;
   else
     m_loadStatus = vcSLS_Failed;
+
+  OnNodeUpdate(pProgramState);
 }
 
-void vcPolyModelNode::OnNodeUpdate(vcState * /*pProgramState*/)
+void vcPolyModelNode::OnNodeUpdate(vcState *pProgramState)
 {
-  // Does nothing
+  const char *pTemp = nullptr;
+  if (vdkProjectNode_GetMetadataString(m_pNode, "culling", &pTemp, "back") == vE_Success)
+    m_invert = !udStrEqual(pTemp, "back");
+
+  if (m_pNode->geomCount != 0)
+  {
+    udDouble3 *pPosition = nullptr;
+    udDouble3 scale;
+    udDouble3 euler;
+
+    vcProject_FetchNodeGeometryAsCartesian(pProgramState->activeProject.pProject, m_pNode, pProgramState->gis.zone, &pPosition, nullptr);
+
+    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &euler.x, 0.0);
+    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &euler.y, 0.0);
+    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &euler.z, 0.0);
+    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.scale.x", &scale.x, 1.0);
+    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.scale.y", &scale.y, 1.0);
+    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.scale.z", &scale.z, 1.0);
+
+    m_matrix = udDouble4x4::rotationYPR(UD_DEG2RAD(euler), *pPosition) * udDouble4x4::scaleNonUniform(scale);
+
+    udFree(pPosition);
+  }
 }
 
 void vcPolyModelNode::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
@@ -37,17 +62,74 @@ void vcPolyModelNode::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRen
   pModel->pModel = m_pModel;
   pModel->pSceneItem = this;
   pModel->worldMat = m_matrix;
+  pModel->insideOut = m_invert;
+  pModel->affectsViewShed = true;
 }
 
-void vcPolyModelNode::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
+void vcPolyModelNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
   m_matrix = delta * m_matrix;
+
+  // Save it to the node...
+  udDouble3 position;
+  udDouble3 scale;
+  udDoubleQuat orientation;
+
+  m_matrix.extractTransforms(position, scale, orientation);
+
+  udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
+
+  vcProject_UpdateNodeGeometryFromCartesian(pProgramState->activeProject.pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &position, 1);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale.x", scale.x);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale.y", scale.y);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale.z", scale.z);
 }
 
 void vcPolyModelNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   if (m_pModel == nullptr)
     return;
+
+  if (ImGui::Checkbox(udTempStr("%s##%zu", vcString::Get("polyModelInvertFaces"), *pItemID), &m_invert))
+    vdkProjectNode_SetMetadataString(m_pNode, "culling", m_invert ? "front" : "back");
+
+  // Transform Info
+  {
+    udDouble3 position;
+    udDouble3 scale;
+    udDoubleQuat orientation;
+    m_matrix.extractTransforms(position, scale, orientation);
+
+    bool repackMatrix = false;
+    if (ImGui::InputScalarN(vcString::Get("sceneModelPosition"), ImGuiDataType_Double, &position.x, 3))
+      repackMatrix = true;
+
+    udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
+    if (ImGui::InputScalarN(vcString::Get("sceneModelRotation"), ImGuiDataType_Double, &eulerRotation.x, 3))
+    {
+      repackMatrix = true;
+      orientation = udDoubleQuat::create(UD_DEG2RAD(eulerRotation));
+    }
+
+    if (ImGui::InputScalarN(vcString::Get("sceneModelScale"), ImGuiDataType_Double, &scale.x, 3))
+      repackMatrix = true;
+
+    if (repackMatrix)
+    {
+      m_matrix = udDouble4x4::rotationQuat(orientation, position) * udDouble4x4::scaleNonUniform(scale);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState->activeProject.pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &position, 1);
+      vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
+      vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
+      vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
+      vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale.x", scale.x);
+      vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale.y", scale.y);
+      vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale.z", scale.z);
+    }
+
+  }
 
   if (pProgramState->settings.presentation.showDiagnosticInfo)
   {

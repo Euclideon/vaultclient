@@ -20,7 +20,16 @@ jobs:
   - checkout: self
     submodules: recursive
   - template: azure-pipelines-steps-linkedvdk.yml
-  - script: 3rdParty\udcore\bin\premake-bin\premake5.exe vs2019 --gfxapi=${{ parameters.gfxapi }}
+  - script: curl -OL https://github.com/zellski/FBXSDK-Windows/archive/2019.2.tar.gz
+    displayName: 'Download Dependencies'
+  - powershell: |
+      7z e 2019.2.tar.gz
+      7z x 2019.2.tar
+      move -v .\FBXSDK-Windows-2019.2\sdk\ .
+      choco install zstandard
+      zstd -d -r --rm sdk
+    displayName: 'Install Dependencies'
+  - script: 3rdParty\udcore\bin\premake-bin\premake5.exe vs2019 --gfxapi=${{ parameters.gfxapi }} --fbxsdk=$(Build.SourcesDirectory)/sdk/Windows/2019.2
     displayName: 'Run Premake'
   - task: MSBuild@1
     displayName: 'Build Projects'
@@ -30,6 +39,27 @@ jobs:
       configuration: $(configuration)
       maximumCpuCount: true
       msbuildArguments: '/v:m'
+  - script: choco install pandoc
+    displayName: 'Install Documentation Dependencies'
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+  - bash: |
+      mkdir builds/userguide
+      cp -r docs/images builds/userguide/images
+      cp docs/UserGuide.md builds/userguide/UserGuide.md
+    displayName: 'Setup Documentation Folder'
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+  - script: |
+      pandoc.exe -f gfm --tab-stop 2 docs\UserGuide.md -o __temp.html
+      type docs\misc\header.html __temp.html docs\misc\footer.html > builds\userguide\UserGuide.html
+      rm __temp.html
+    displayName: 'Generate User Guide'
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+  - script: |
+      pandoc.exe -f gfm --tab-stop 2 docs\TranslationGuide.md -o __temp.html
+      type docs\misc\header.html __temp.html docs\misc\footer.html > builds\userguide\TranslationGuide.html
+      rm __temp.html
+    displayName: 'Generate Translation Guide'
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
   - publish: builds/
     displayName: 'Public Artifacts'
     condition: and(succeeded(), eq(variables['configuration'], 'Release'))

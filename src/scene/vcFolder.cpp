@@ -102,25 +102,8 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
     HandleNodeSelection(pProgramState, m_pNode, pNode);
 
-    if (pProgramState->pGotGeo != nullptr)
-    {
-      ((vcSceneItem *)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
-    }
-    else if (pProgramState->getGeo && pNode->itemtype == vdkPNT_PointCloud && ((vcModel *)(pNode->pUserData))->m_pPreferredProjection != nullptr)
-    {
-      vcModel *pModel = (vcModel *)pNode->pUserData;
-      if (pProgramState->pGotGeo == nullptr)
-      {
-        pProgramState->getGeo = false;
-        pProgramState->pGotGeo = pModel->m_pPreferredProjection;
-        vcProject_UseProjectionFromItem(pProgramState, pModel);
-      }
-    }
-
     pNode = pNode->pNextSibling;
   }
-
-  pProgramState->pGotGeo = nullptr;
 }
 
 void vcFolder::OnNodeUpdate(vcState * /*pProgramState*/)
@@ -321,6 +304,10 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
 
           ImGui::EndPopup();
+
+          if (pSceneItem->m_expanded)
+            ImGui::TreePop();
+
           return;
         }
 

@@ -2,28 +2,37 @@
 
 ## Changelist
 
+- Version 0.4.1
+  - Added:
+    - Scene
+      - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
+    - Scene Explorer
+      - `scenePOIAttachCameraToAttachment`, `liveFeedLODModifier`
+  - Changed:
+    - 
+  - Removed:
+    - 
+
 - Version 0.4.0
   - Added:
     - Settings
       - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `settingsAppearanceLoginRenderLicense`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`,`settingsControlsControllerInvertY`, `settingsAppearanceShowEuclideonLogo`
     - Scene Explorer
-      - `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `sceneExplorerSetButton`
-    - Live Feeds
-      - `liveFeedLODModifier`
+      - `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `sceneExplorerSetButton`, `scenePOILabelImageTypeOriented`, `scenePOIAttachModel`, `scenePOIAttachModelURI`, `scenePOIAttachModelFailed`, `scenePOIAttachmentSpeed`, `sceneExplorerCompareModels`
     - Viewport (New Node Types)
       - View Sheds
-        - `sceneAddViewShed`, `sceneExplorerViewShedDefaultName`
+        - `sceneAddViewShed`, `sceneExplorerViewShedDefaultName`, `viewShedDistance`, `viewShedVisibleColour`, `viewShedHiddenColour`
       - Polygon Meshes
-        - `polyModelMesh`, `polyModelTexture`, `polyModelMatColour`
+        - `polyModelInvertFaces`, `polyModelMesh`, `polyModelTexture`, `polyModelMatColour`
       - Filters
-        - `sceneAddFilter`, `sceneAddFilterBox`, `sceneAddFilterSphere`, `sceneAddFilterCylinder`, `sceneExplorerFilterBoxDefaultName`, `sceneExplorerFilterSphereDefaultName`, `sceneExplorerFilterCylinderDefaultName`
+        - `sceneAddFilter`, `sceneAddFilterBox`, `sceneAddFilterSphere`, `sceneAddFilterCylinder`, `sceneExplorerFilterBoxDefaultName`, `sceneExplorerFilterSphereDefaultName`, `sceneExplorerFilterCylinderDefaultName`, `sceneFilterPosition`, `sceneFilterRotation`, `sceneFilterExtents`, `sceneFilterShape`, `sceneFilterShapeBox`, `sceneFilterShapeSphere`, `sceneFilterShapeCylinder`, `sceneFilterInverted`
     - Convert
-      - `convertAllSpaceLabel`, `convertSpaceECEF`
+      - `convertAllSpaceLabel`, `convertSpaceECEF`, `convertSpaceDetected`
     - Misc
       - `loginEnterURL`
   - Changed:
     - Viewport
-      - `sceneAddAOI`, `sceneAddLine`,
+      - `sceneAddAOI` (improved clarity), `sceneAddLine` (improved clarity)
   - Removed:
     - `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeSucceededTitle`, `settingsControlsInvertX`, `settingsControlsInvertY`
 
@@ -417,6 +426,7 @@ Modules are currently:
 - `convertPreviewName`: The default name for a preview pointcloud when added to the scene
 - `convertAllSpaceLabel`: The label beside the dropdown to select the projection space for all inputs
 - `convertSpaceLabel`: The label beside the dropdown to select the projection space for the input
+- `convertSpaceDetected`: The label on the combobox item to reset the projection space to the originally detected value
 - `convertSpaceCartesian`: The label on the combobox item for a cartesian projected conversion input
 - `convertSpaceLatLong`: The label on the combobox item for a latitude, longitude ordered conversion input
 - `convertSpaceLongLat`: The label on the combobox item for a longitude, latitude ordered conversion input
@@ -524,6 +534,11 @@ Modules are currently:
 - `sceneAddFilterSphere`: Context menu option when right clicking in the scene to add a new Sphere filter
 - `sceneAddFilterCylinder`: Context menu option when right clicking in the scene to add a new Cylinder filter
 - `sceneResetRotation`: Menu option when right-clicking within the scene, rotates the camera to default orientation
+
+- `sceneCameraAttachmentWarning` Warning text at the top of the window when the camera is attached to a scene item
+  - {0} the name of the scene item the camera is attached to
+- `sceneCameraAttachmentDetach` Button at the top of the screen to detach the camera when it is attached to a scene item
+
 - `sceneLockAltitude`: Tooltip displayed when mouse is hovered over the Lock Altitude button in the viewport controls window
 - `sceneLockAltitudeKey`: Used in Lock Altitude tooltip, shown in brackets
 - `sceneCameraInfo`: Tooltip displayed when mouse is hovered over the Show Camera Information button in the viewport controls window
@@ -573,6 +588,7 @@ Modules are currently:
 - `sceneExplorerUseProjection`: Menu option when right-clicking on an item in the Scene Explorer, changes the current SRID to that of the selected scene item
 - `sceneExplorerMoveTo`: Menu option when right-clicking on an item in the Scene Explorer, moves the camera to the location of the selected item
 - `sceneExplorerResetPosition`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to that position if it has been moved
+- `sceneExplorerCompareModels`: Menu option when right-clicking on an item in the Scene Explorer that can be compared with another item, a model with displacement values will be generated on disk.
 - `sceneExplorerPathURL`: Label next to the text box containing the path of the currently selected file
 - `sceneExplorerLoadButton`: Label used for the Load button in the Add UDS and Import Project windows which loads the currently selected file and closes the window
 - `sceneExplorerExportButton`: Label used for the Export button in the Export Project window which saves the content of the current scene to the specified location and closes the window
@@ -628,10 +644,17 @@ Modules are currently:
 - `scenePOIThumbnailSizeSmall`: Text on the combo option to select the smallest size for the thumbnail
 - `scenePOIThumbnailSizeLarge`: Text on the combo option to select the largest size for the thumbnail
 - `scenePOILabelImageType`: Label for POI image type shown in the scene explorer
-- `scenePOILabelImageTypeStandard`: One of the POI image types as shown in the scene explorer
-- `scenePOILabelImageTypePanorama`: One of the POI image types as shown in the scene explorer
-- `scenePOILabelImageTypePhotosphere`: One of the POI image types as shown in the scene explorer
+- `scenePOILabelImageTypeStandard`: One of the image types shown in the scene explorer
+- `scenePOILabelImageTypeOriented`: One of the image types shown in the scene explorer
+- `scenePOILabelImageTypePanorama`: One of the image types shown in the scene explorer
+- `scenePOILabelImageTypePhotosphere`: One of the image types shown in the scene explorer
 - `scenePOIReloadTime`: Label on the reload time for the image on a media node (in seconds)
+- `scenePOIAttachModel`: Drop down menu in context menu and also button in submenu to attach a model to the POI
+- `scenePOIAttachModelURI`: The label beside the URL box when attaching a model
+- `scenePOIAttachModelFailed`: Error message that appears when the model fails to load
+- `scenePOIAttachmentSpeed`: Label beside slider that sets the speed for attached model
+- `scenePOIAttachCameraToAttachment`: The label on the context menu to link the camera to the attached model
+
 - `scenePOILineSettings`: The header for the expansion for the other line settings
 - `scenePOILineShowLength`: Label on the checkbox for when the user wants the length displayed on the label in the scene
 - `scenePOILineShowAllLengths`: Label on the checkbox that will show each individual segment line length
@@ -650,6 +673,15 @@ Modules are currently:
 - `scenePOILineOrientationHorz`: Text on the drop down item for the "Horizontal / Path" orientation
 - `scenePOICancelFlyThrough`: Label for button that appears during fly-through, allows user to cancel the fly-through
 - `scenePOIPerformFlyThrough`: Label for button that appears when POI has multiple nodes, will trigger a fly-through
+
+- `sceneFilterPosition`: Label beside inputs to set the (center) position of the filter
+- `sceneFilterRotation`: Label beside YPR inputs for filter rotation
+- `sceneFilterExtents`: Label beside inputs to specify the half size of the filter
+- `sceneFilterShape`: Label beside drop down 
+- `sceneFilterShapeBox`: Label on drop down item to specify a box filter
+- `sceneFilterShapeSphere`: Label on drop down item to specify a sphere filter
+- `sceneFilterShapeCylinder`: Label on drop down item to specify a cylinder filter
+- `sceneFilterInverted`: Label on checkbox to invert the result of the filter
 
 - `sceneViewpointSetCamera`: Label for button that bookmarks the current camera position and orientation
 - `sceneViewpointPosition`: Label for displaying the current stored camera position
@@ -671,6 +703,13 @@ Modules are currently:
 - `liveFeedLODModifier`: Label on slider that modifies the distance at which to show particular levels of detail on live feed item labels
 
 #### Polygon Models
+- `polyModelInvertFaces`: Label on check box to invert the winding order of the triangles
 - `polyModelMesh`: Used on the label next to mesh information in the scene explorer with "Show Diagnostic Information" enabled 
 - `polyModelTexture`: Used on the label next to mesh texture information in the scene explorer with "Show Diagnostic Information" enabled 
 - `polyModelMatColour`: Used on the label next to mesh material colour information in the scene explorer with "Show Diagnostic Information" enabled 
+
+#### View Sheds
+
+- `viewShedDistance`: Label on slider to select view shed distance of effect
+- `viewShedVisibleColour`: Label on colour picker to select colour to highlight regions visible by the view shed
+- `viewShedHiddenColour`: Label on colour picker to select colour to highlight regions hidden from the view shed
