@@ -132,9 +132,9 @@ struct vcGLState
 };
 
 struct SDL_Window;
-struct vcFramebuffer;
+struct vcBackbuffer;
 
-bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer);
+bool vcGLState_Init(SDL_Window *pWindow, vcBackbuffer **ppDefaultFramebuffer);
 void vcGLState_Deinit();
 
 bool vcGLState_ApplyState(vcGLState *pState);
@@ -146,10 +146,6 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
 
 bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, float minDepth = 0.f, float maxDepth = 1.f);
 bool vcGLState_SetViewportDepthRange(float minDepth, float maxDepth);
-
-bool vcGLState_Present(SDL_Window *pWindow);
-
-bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height);
 
 void vcGLState_Scissor(int left, int top, int right, int bottom, bool force = false);
 

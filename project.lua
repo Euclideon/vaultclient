@@ -92,7 +92,7 @@ project "vaultClient"
 
 	filter { "system:windows" }
 		defines { "GLEW_STATIC" }
-		sysincludedirs { "3rdParty/glew/include", "3rdParty/SDL2-2.0.8/include" }
+		sysincludedirs { "3rdParty/glew/include", "3rdParty/SDL2-2.0.8/include/SDL2" }
 		files { "3rdParty/glew/glew.c", "src/**.rc" }
 		linkoptions( "/LARGEADDRESSAWARE" )
 		libdirs { "3rdParty/SDL2-2.0.8/lib/x64" }
@@ -116,7 +116,7 @@ project "vaultClient"
 
 	filter { "system:ios" }
 		files { "iOS-Info.plist", "builds/libvaultSDK.dylib", "icons/Images.xcassets", "src/vcWebFile.mm" }
-		sysincludedirs { "3rdParty/SDL2-2.0.8/include" }
+		sysincludedirs { "3rdParty/SDL2-2.0.8/include/SDL2" }
 		xcodebuildresources { "libvaultSDK", "Images.xcassets" }
 		xcodebuildsettings { ["ASSETCATALOG_COMPILER_APPICON_NAME"] = "AppIcon" }
 		removefiles { "3rdParty/glew/glew.c" }

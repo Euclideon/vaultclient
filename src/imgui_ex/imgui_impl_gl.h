@@ -13,7 +13,7 @@ struct SDL_Window;
 
 IMGUI_IMPL_API bool     ImGuiGL_Init(SDL_Window *pWindow);
 IMGUI_IMPL_API void     ImGuiGL_Shutdown();
-IMGUI_IMPL_API void     ImGuiGL_NewFrame(SDL_Window *pWindow);
+IMGUI_IMPL_API void     ImGuiGL_NewFrame();
 IMGUI_IMPL_API void     ImGuiGL_RenderDrawData(ImDrawData* draw_data);
 
 // Called by Init/NewFrame/Shutdown

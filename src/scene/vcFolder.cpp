@@ -170,7 +170,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       vcIGSW_ShowLoadStatusIndicator((vcSceneLoadStatus)pSceneItem->m_loadStatus);
 
       // The actual model
-      ImGui::SetNextTreeNodeOpen(pSceneItem->m_expanded, ImGuiCond_Always);
+      ImGui::SetNextItemOpen(pSceneItem->m_expanded, ImGuiCond_Always);
       ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
       if (pSceneItem->m_selected)
         flags |= ImGuiTreeNodeFlags_Selected;

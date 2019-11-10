@@ -1050,10 +1050,8 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
   return true;
 }
 
-void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
+void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-  udUnused(pDefaultFramebuffer);
-
   float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
 
   // Render and upload UD buffers

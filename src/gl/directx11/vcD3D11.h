@@ -45,6 +45,12 @@ struct vcFramebuffer
   ID3D11DepthStencilView *pDepthStencilView;
 };
 
+struct vcBackbuffer
+{
+  IDXGISwapChain *pSwapChain;
+  vcFramebuffer frameBuffer;
+};
+
 struct vcShaderConstantBuffer
 {
   int type; // 0 = VSConstantBuffer, 1 = PSConstantBuffer
@@ -98,5 +104,6 @@ UDCOMPILEASSERT(udLengthOf(vcTWMToD3D) == vcTFM_Total, "TextureFilterModes not e
 
 extern ID3D11Device *g_pd3dDevice;
 extern ID3D11DeviceContext *g_pd3dDeviceContext;
+extern IDXGIFactory *g_pd3dFactory;
 
 #endif // vcOpenGL_h__

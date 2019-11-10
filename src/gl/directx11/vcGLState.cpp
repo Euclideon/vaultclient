@@ -1,16 +1,16 @@
 #include "vcD3D11.h"
 
-#include "SDL2/SDL.h"
-#include "SDL2/SDL_syswm.h"
+#include <SDL.h>
+#include <SDL_syswm.h>
 
 static vcGLState s_internalState;
 
 // Data
 ID3D11Device *g_pd3dDevice = nullptr;
 ID3D11DeviceContext *g_pd3dDeviceContext = nullptr;
-IDXGISwapChain *g_pSwapChain = nullptr;
+IDXGIFactory *g_pd3dFactory = nullptr;
 
-vcFramebuffer g_defaultFramebuffer;
+vcBackbuffer g_defaultWindow;
 
 // Other Data
 ID3D11SamplerState* g_pFontSampler = nullptr;
@@ -25,7 +25,7 @@ UDCOMPILEASSERT(udLengthOf(vcGLSSOPToD3D) == vcGLSSOP_Total, "Not Enough DirectX
 static const D3D11_COMPARISON_FUNC vcGLSSFToD3D[] = { D3D11_COMPARISON_ALWAYS, D3D11_COMPARISON_NEVER, D3D11_COMPARISON_LESS, D3D11_COMPARISON_LESS_EQUAL, D3D11_COMPARISON_GREATER, D3D11_COMPARISON_GREATER_EQUAL, D3D11_COMPARISON_EQUAL, D3D11_COMPARISON_NOT_EQUAL };
 UDCOMPILEASSERT(udLengthOf(vcGLSSFToD3D) == vcGLSSF_Total, "Not Enough DirectX Stencil Functions");
 
-bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
+bool vcGLState_Init(SDL_Window *pWindow, vcBackbuffer **ppDefaultBackbuffer)
 {
   SDL_SysWMinfo windowInfo;
   SDL_VERSION(&windowInfo.version);
@@ -52,18 +52,18 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   UINT createDeviceFlags = 0;
   D3D_FEATURE_LEVEL featureLevel;
   const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
-  if (D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext) != S_OK)
+  if (D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_defaultWindow.pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext) != S_OK)
     return false;
 
   // Get Default Framebuffer
-  memset(&g_defaultFramebuffer, 0, sizeof(g_defaultFramebuffer));
+  memset(&g_defaultWindow.frameBuffer, 0, sizeof(g_defaultWindow.frameBuffer));
 
   ID3D11Texture2D* pBackBuffer;
-  g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.pRenderTargetView);
+  g_defaultWindow.pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
+  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultWindow.frameBuffer.pRenderTargetView);
   pBackBuffer->Release();
 
-  *ppDefaultFramebuffer = &g_defaultFramebuffer;
+  *ppDefaultBackbuffer = &g_defaultWindow;
 
   // Set rasterizer state
   D3D11_RASTERIZER_DESC desc;
@@ -83,15 +83,29 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
   g_maxAnisotropy = D3D11_DEFAULT_MAX_ANISOTROPY;
 
+  // Get factory from device
+  IDXGIDevice *pDXGIDevice = NULL;
+  IDXGIAdapter *pDXGIAdapter = NULL;
+  IDXGIFactory *pFactory = NULL;
+
+  if (g_pd3dDevice->QueryInterface(IID_PPV_ARGS(&pDXGIDevice)) == S_OK)
+    if (pDXGIDevice->GetParent(IID_PPV_ARGS(&pDXGIAdapter)) == S_OK)
+      if (pDXGIAdapter->GetParent(IID_PPV_ARGS(&pFactory)) == S_OK)
+      {
+        g_pd3dFactory = pFactory;
+      }
+  if (pDXGIDevice) pDXGIDevice->Release();
+  if (pDXGIAdapter) pDXGIAdapter->Release();
+
   return vcGLState_ResetState(true);
 }
 
 void vcGLState_Deinit()
 {
-  if (g_defaultFramebuffer.pRenderTargetView != nullptr)
+  if (g_defaultWindow.frameBuffer.pRenderTargetView != nullptr)
   {
-    g_defaultFramebuffer.pRenderTargetView->Release();
-    g_defaultFramebuffer.pRenderTargetView = nullptr;
+    g_defaultWindow.frameBuffer.pRenderTargetView->Release();
+    g_defaultWindow.frameBuffer.pRenderTargetView = nullptr;
   }
 
   if (g_pRasterizerState != nullptr)
@@ -106,10 +120,16 @@ void vcGLState_Deinit()
     g_pBlendState = nullptr;
   }
 
-  if (g_pSwapChain != nullptr)
+  if (g_defaultWindow.pSwapChain != nullptr)
   {
-    g_pSwapChain->Release();
-    g_pSwapChain = nullptr;
+    g_defaultWindow.pSwapChain->Release();
+    g_defaultWindow.pSwapChain = nullptr;
+  }
+
+  if (g_pd3dFactory != nullptr)
+  {
+    g_pd3dFactory->Release();
+    g_pd3dFactory = nullptr;
   }
 
   if (g_pd3dDeviceContext != nullptr)
@@ -348,30 +368,6 @@ bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, 
 bool vcGLState_SetViewportDepthRange(float minDepth, float maxDepth)
 {
   return vcGLState_SetViewport(s_internalState.viewportZone.x, s_internalState.viewportZone.y, s_internalState.viewportZone.x + s_internalState.viewportZone.z, s_internalState.viewportZone.y + s_internalState.viewportZone.w, minDepth, maxDepth);
-}
-
-bool vcGLState_Present(SDL_Window * /*pWindow*/)
-{
-  if (g_pSwapChain == nullptr)
-    return false;
-
-  g_pSwapChain->Present(1, 0); // Present with vsync
-
-  memset(&s_internalState.frameInfo, 0, sizeof(s_internalState.frameInfo));
-  return true;
-}
-
-bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
-{
-  g_defaultFramebuffer.pRenderTargetView->Release();
-  g_pSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
-
-  ID3D11Texture2D* pBackBuffer;
-  g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.pRenderTargetView);
-  pBackBuffer->Release();
-
-  return true;
 }
 
 void vcGLState_Scissor(int left, int top, int right, int bottom, bool force /*= false*/)

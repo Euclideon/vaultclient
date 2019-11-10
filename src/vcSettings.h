@@ -1,7 +1,7 @@
 #ifndef vcSettings_h__
 #define vcSettings_h__
 
-#include "SDL2/SDL.h"
+#include <SDL.h>
 
 #include "udPlatform.h"
 #include "udMath.h"
@@ -73,7 +73,6 @@ enum vcSettingCategory
   vcSC_MapsElevation,
   vcSC_Visualization,
   vcSC_Convert,
-  vcSC_Docks,
   vcSC_Languages,
   vcSC_All
 };
@@ -124,7 +123,6 @@ struct vcSettings
     vcAnchorStyle mouseAnchor;
     bool showCompass;
     float POIFadeDistance;
-    bool limitFPSInBackground;
 
     int pointMode;
   } presentation;
@@ -267,12 +265,6 @@ struct vcSettings
   vcPresentationMode responsiveUI;
   int hideIntervalSeconds;
 
-  enum vcDockLoaded {
-    vcDL_True,
-    vcDL_False,
-    vcDL_ForceReset,
-  } docksLoaded;
-  ImGuiID rootDock;
   ImGuiWindow *pActive[vcDocks_Count];
 };
 

@@ -1,6 +1,5 @@
 #include "imgui.h"
 #include "imgui_impl_gl.h"
-#include "imgui_impl_sdl.h"
 
 #include "gl/vcGLState.h"
 #include "gl/vcShader.h"
@@ -8,6 +7,7 @@
 #include "gl/vcFramebuffer.h"
 #include "gl/vcMesh.h"
 #include "gl/vcLayout.h"
+#include "gl/vcBackBuffer.h"
 
 //GL Data
 vcTexture *g_pFontTexture = nullptr;
@@ -16,29 +16,39 @@ vcMesh *pImGuiMesh = nullptr;
 vcShaderSampler *pImGuiSampler = nullptr;
 static vcShaderConstantBuffer *g_pAttribLocationProjMtx = nullptr;
 
+vcBackbuffer* pDefaultFramebuffer = nullptr;
+
+static void ImGuiGL_InitPlatformInterface();
+static void ImGuiGL_ShutdownPlatformInterface();
+
 // Functions
 bool ImGuiGL_Init(SDL_Window *pWindow)
 {
-  ImGui_ImplSDL2_InitForOpenGL(pWindow);
-  return true;
+  ImGuiIO& io = ImGui::GetIO();
+
+  io.BackendRendererName = "imgui_vcgl";
+  io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
+
+  if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    ImGuiGL_InitPlatformInterface();
+
+  return vcGLState_Init(pWindow, &pDefaultFramebuffer);
 }
 
 void ImGuiGL_Shutdown()
 {
-  ImGui_ImplSDL2_Shutdown();
+  ImGuiGL_ShutdownPlatformInterface();
   ImGuiGL_DestroyDeviceObjects();
+  vcGLState_Deinit();
 }
 
-void ImGuiGL_NewFrame(SDL_Window *pWindow)
+void ImGuiGL_NewFrame()
 {
   if (g_pFontTexture == nullptr)
     ImGuiGL_CreateDeviceObjects();
 
   if (!ImGui::GetIO().Fonts->IsBuilt())
     ImGuiGL_CreateFontsTexture();
-
-  ImGui_ImplSDL2_NewFrame(pWindow);
-  ImGui::NewFrame();
 }
 
 // Render function.
@@ -47,10 +57,6 @@ void ImGuiGL_RenderDrawData(ImDrawData* draw_data)
 {
   // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
   ImGuiIO& io = ImGui::GetIO();
-  int fb_width = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
-  int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
-  if (fb_width <= 0 || fb_height <= 0)
-    return;
   draw_data->ScaleClipRects(io.DisplayFramebufferScale);
 
   // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
@@ -59,7 +65,7 @@ void ImGuiGL_RenderDrawData(ImDrawData* draw_data)
   vcGLState_SetDepthStencilMode(vcGLSDM_None, false);
 
   // Setup viewport, orthographic projection matrix
-  vcGLState_SetViewport(0, 0, fb_width, fb_height);
+  vcGLState_SetViewport(0, 0, (int32_t)draw_data->DisplaySize.x, (int32_t)draw_data->DisplaySize.y);
 
 #if GRAPHICS_API_METAL
   const udFloat4x4 ortho_projection = udFloat4x4::create(
@@ -69,11 +75,15 @@ void ImGuiGL_RenderDrawData(ImDrawData* draw_data)
     -1.0f, 1.0f, 0.0f, 1.0f
   );
 #else
-  const udFloat4x4 ortho_projection = udFloat4x4::create(
-    2.0f / io.DisplaySize.x, 0.0f, 0.0f, 0.0f,
-    0.0f, 2.0f / -io.DisplaySize.y, 0.0f, 0.0f,
-    0.0f, 0.0f, -1.0f, 0.0f,
-    -1.0f, 1.0f, 0.0f, 1.0f
+  float L = draw_data->DisplayPos.x;
+  float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
+  float T = draw_data->DisplayPos.y;
+  float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
+  udFloat4x4 ortho_projection = udFloat4x4::create(
+      2.0f / (R - L),   0.0f,           0.0f,       0.0f,
+      0.0f,         2.0f / (T - B),     0.0f,       0.0f,
+      0.0f,         0.0f,           0.5f,       0.0f,
+      (R + L) / (L - R),  (T + B) / (B - T),    0.5f,       1.0f
   );
 #endif
   vcShader_Bind(pImGuiShader);
@@ -124,7 +134,8 @@ bool ImGuiGL_CreateFontsTexture()
 
   io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits for OpenGL3 demo because it is more likely to be compatible with user's existing shader.
 
-  vcTexture_Create(&g_pFontTexture, width, height, pixels);
+  if (width > 0 && height > 0 && pixels != nullptr)
+    vcTexture_Create(&g_pFontTexture, width, height, pixels);
 
   // Store our identifier
   io.Fonts->TexID = g_pFontTexture;
@@ -157,4 +168,65 @@ void ImGuiGL_DestroyDeviceObjects()
     vcShader_DestroyShader(&pImGuiShader);
     vcMesh_Destroy(&pImGuiMesh);
     ImGuiGL_DestroyFontsTexture();
+}
+
+///////////////////// MULTI WINDOW SUPPORT
+
+static void ImGuiGL_CreateWindow(ImGuiViewport *viewport)
+{
+  vcBackbuffer *pWindow = nullptr;
+  vcBackbuffer_Create(&pWindow, (SDL_Window*)viewport->PlatformHandle, (int)viewport->Size.x, (int)viewport->Size.y);
+  viewport->RendererUserData = pWindow;
+}
+
+static void ImGuiGL_DestroyWindow(ImGuiViewport *viewport)
+{
+  // The main viewport (owned by the application) will always have RendererUserData == NULL since we didn't create the data for it.
+  vcBackbuffer *pWindow = (vcBackbuffer *)viewport->RendererUserData;
+
+  if(pWindow == nullptr)
+    vcBackbuffer_Destroy(&pWindow);
+
+  viewport->RendererUserData = NULL;
+}
+
+static void ImGuiGL_SetWindowSize(ImGuiViewport *viewport, ImVec2 size)
+{
+  vcBackbuffer *pWindow = (vcBackbuffer *)viewport->RendererUserData;
+
+  if (pWindow != nullptr)
+    vcBackbuffer_WindowResized(pWindow, (int)size.x, (int)size.y);
+}
+
+static void ImGuiGL_RenderWindow(ImGuiViewport *viewport, void *)
+{
+  vcBackbuffer *pWindow = (vcBackbuffer *)viewport->RendererUserData;
+
+  vcFramebufferClearOperation clear = vcFramebufferClearOperation_None;
+  if (!(viewport->Flags & ImGuiViewportFlags_NoRendererClear))
+    clear = vcFramebufferClearOperation_All;
+
+  vcBackbuffer_Bind(pWindow, clear, 0xFF0000FF);
+  ImGuiGL_RenderDrawData(viewport->DrawData);
+}
+
+static void ImGuiGL_SwapBuffers(ImGuiViewport *viewport, void *)
+{
+  vcBackbuffer *pWindow = (vcBackbuffer *)viewport->RendererUserData;
+  vcBackbuffer_Present(pWindow);
+}
+
+static void ImGuiGL_InitPlatformInterface()
+{
+  ImGuiPlatformIO &platform_io = ImGui::GetPlatformIO();
+  platform_io.Renderer_CreateWindow = ImGuiGL_CreateWindow;
+  platform_io.Renderer_DestroyWindow = ImGuiGL_DestroyWindow;
+  platform_io.Renderer_SetWindowSize = ImGuiGL_SetWindowSize;
+  platform_io.Renderer_RenderWindow = ImGuiGL_RenderWindow;
+  platform_io.Renderer_SwapBuffers = ImGuiGL_SwapBuffers;
+}
+
+static void ImGuiGL_ShutdownPlatformInterface()
+{
+  ImGui::DestroyPlatformWindows();
 }

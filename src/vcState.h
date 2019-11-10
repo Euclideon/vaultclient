@@ -26,7 +26,7 @@ struct SDL_Window;
 
 struct vdkContext;
 
-struct vcFramebuffer;
+struct vcBackbuffer;
 struct vcRenderContext;
 struct vcCamera;
 struct vcTexture;
@@ -66,7 +66,7 @@ struct vcState
 {
   bool programComplete;
   SDL_Window *pWindow;
-  vcFramebuffer *pDefaultFramebuffer;
+  vcBackbuffer *pDefaultBackbuffer;
 
   int openModals; // This is controlled inside vcModals.cpp
   bool modalOpen;
@@ -92,7 +92,6 @@ struct vcState
   vcGISSpace gis;
   char username[64];
 
-  vcTexture *pCompanyLogo;
   vcTexture *pCompanyWatermark;
   vcTexture *pSceneWatermark;
   vcTexture *pUITexture;

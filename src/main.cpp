@@ -21,8 +21,9 @@
 #include "imgui_ex/ImGuizmo.h"
 #include "imgui_ex/vcMenuButtons.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
-#include "SDL2/SDL.h"
-#include "SDL2/SDL_syswm.h"
+
+#include <SDL.h>
+#include <SDL_syswm.h>
 
 #include "stb_image.h"
 #include "exif.h"
@@ -46,7 +47,7 @@
 #include "vcInternalTexturesData.h"
 
 #include "gl/vcGLState.h"
-#include "gl/vcFramebuffer.h"
+#include "gl/vcBackbuffer.h"
 
 #include "parsers/vcUDP.h"
 
@@ -132,17 +133,8 @@ int SDL_main(int argc, char **args)
 }
 #endif
 
-enum vcLoginBackgroundSettings
-{
-  vcLBS_LoginBoxY = 40,
-  vcLBS_LoginBoxH = 280,
-  vcLBS_LogoW = 375,
-  vcLBS_LogoH = 577,
-};
-
 const uint32_t WhitePixel = 0xFFFFFFFF;
 
-void vcMain_ShowStartupScreen(vcState *pProgramState);
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
@@ -174,7 +166,6 @@ void vcMain_PresentationMode(vcState *pProgramState)
 {
   if (pProgramState->settings.window.presentationMode)
   {
-    pProgramState->settings.docksLoaded = vcSettings::vcDockLoaded::vcDL_False;
     SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
   }
   else
@@ -210,7 +201,7 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
       SDL_MaximizeWindow(pProgramState->pWindow);
 
     if (forceDefaults)
-      vcGLState_ResizeBackBuffer(pProgramState->settings.window.width, pProgramState->settings.window.height);
+      vcBackbuffer_WindowResized(pProgramState->pDefaultBackbuffer, pProgramState->settings.window.width, pProgramState->settings.window.height);
   }
 }
 
@@ -239,7 +230,7 @@ void vcMain_MainLoop(vcState *pProgramState)
         {
           pProgramState->settings.window.width = event.window.data1;
           pProgramState->settings.window.height = event.window.data2;
-          vcGLState_ResizeBackBuffer(event.window.data1, event.window.data2);
+          vcBackbuffer_WindowResized(pProgramState->pDefaultBackbuffer, event.window.data1, event.window.data2);
         }
         else if (event.window.event == SDL_WINDOWEVENT_MOVED)
         {
@@ -262,7 +253,7 @@ void vcMain_MainLoop(vcState *pProgramState)
       {
         // TODO: pinch to zoom
       }
-      else if (event.type == SDL_DROPFILE && pProgramState->hasContext)
+      else if (event.type == SDL_DROPFILE)
       {
         pProgramState->loadList.PushBack(udStrdup(event.drop.file));
       }
@@ -278,8 +269,6 @@ void vcMain_MainLoop(vcState *pProgramState)
   pProgramState->deltaTime = double(NOW - LAST) / SDL_GetPerformanceFrequency();
 
   frametimeMS = 0.0166666667; // 60 FPS cap
-  if ((SDL_GetWindowFlags(pProgramState->pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0 && pProgramState->settings.presentation.limitFPSInBackground)
-    frametimeMS = 0.250; // 4 FPS cap when not focused
 
   sleepMS = (uint32_t)udMax((frametimeMS - pProgramState->deltaTime) * 1000.0, 0.0);
   udSleep(sleepMS);
@@ -288,15 +277,18 @@ void vcMain_MainLoop(vcState *pProgramState)
 #if GRAPHICS_API_METAL
   ImGui_ImplMetal_NewFrame(pProgramState->pWindow);
 #else
-  ImGuiGL_NewFrame(pProgramState->pWindow);
+  ImGuiGL_NewFrame();
 #endif
+  ImGui_ImplSDL2_NewFrame(pProgramState->pWindow);
+  ImGui::NewFrame();
 
   vcGizmo_BeginFrame();
   vcGLState_ResetState(true);
+
   if (pProgramState->finishedStartup)
     vcRenderWindow(pProgramState);
-  else
-    vcMain_ShowStartupScreen(pProgramState);
+  
+  vcBackbuffer_Bind(pProgramState->pDefaultBackbuffer, vcFramebufferClearOperation_All, 0xFFFF0000);
 
   ImGui::Render();
 
@@ -306,9 +298,13 @@ void vcMain_MainLoop(vcState *pProgramState)
   ImGuiGL_RenderDrawData(ImGui::GetDrawData());
 #endif
 
-  ImGui::UpdatePlatformWindows();
+  if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+  {
+    ImGui::UpdatePlatformWindows();
+    ImGui::RenderPlatformWindowsDefault();
+  }
 
-  vcGLState_Present(pProgramState->pWindow);
+  vcBackbuffer_Present(pProgramState->pDefaultBackbuffer);
 
   if (ImGui::GetIO().WantSaveIniSettings)
     vcSettings_Save(&pProgramState->settings);
@@ -784,7 +780,6 @@ int main(int argc, char **args)
   programState.cameraInput.progressMultiplier = 1.0;
 
   // Dock setting
-  programState.settings.docksLoaded = vcSettings::vcDockLoaded::vcDL_False;
   programState.settings.window.windowsOpen[vcDocks_Scene] = true;
   programState.settings.window.windowsOpen[vcDocks_Settings] = true;
   programState.settings.window.windowsOpen[vcDocks_SceneExplorer] = true;
@@ -854,11 +849,13 @@ int main(int argc, char **args)
   // Stop window from being minimized while fullscreened and focus is lost
   SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 
-  programState.pWindow = ImGui_ImplSDL2_CreateWindow(VCVERSION_WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, programState.sceneResolution.x, programState.sceneResolution.y, windowFlags);
+  programState.pWindow = SDL_CreateWindow(VCVERSION_WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, programState.sceneResolution.x, programState.sceneResolution.y, windowFlags);
   if (!programState.pWindow)
     goto epilogue;
 
   ImGui::CreateContext();
+
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
   ImGui::GetStyle().WindowRounding = 0.0f;
 
   vcMain_LoadSettings(&programState, false);
@@ -869,7 +866,8 @@ int main(int argc, char **args)
   programState.settings.window.height = (int)programState.sceneResolution.y;
 #endif
 
-  if (!vcGLState_Init(programState.pWindow, &programState.pDefaultFramebuffer))
+  ImGui_ImplSDL2_InitForD3D(programState.pWindow);
+  if (!vcGLState_Init(programState.pWindow, &programState.pDefaultBackbuffer))
     goto epilogue;
 
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -887,7 +885,7 @@ int main(int argc, char **args)
 
   // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
   // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
-  vcFramebuffer_Bind(programState.pDefaultFramebuffer);
+  vcBackbuffer_Bind(programState.pDefaultBackbuffer);
 
   SDL_DisableScreenSaver();
 
@@ -896,7 +894,6 @@ int main(int argc, char **args)
   vcMain_AsyncLoad(&programState, "asset://assets/icons/EuclideonClientIcon.png", vcMain_LoadIconMT);
   vcMain_AsyncLoad(&programState, "asset://assets/fonts/NotoSansCJKjp-Regular.otf", vcMain_LoadFontMT);
 
-  vcTexture_AsyncCreateFromFilename(&programState.pCompanyLogo, programState.pWorkerPool, "asset://assets/textures/logo.png");
   vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png");
 
   vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
@@ -927,7 +924,6 @@ epilogue:
 
   vcConvert_Deinit(&programState);
   vcCamera_Destroy(&programState.pCamera);
-  vcTexture_Destroy(&programState.pCompanyLogo);
   vcTexture_Destroy(&programState.pCompanyWatermark);
   vcTexture_Destroy(&programState.pUITexture);
   vcTexture_Destroy(&programState.pWhiteTexture);
@@ -1323,7 +1319,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
     // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
     // this isn't valid on iOS when using UIKit.
-    vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+    vcBackbuffer_Bind(pProgramState->pDefaultBackbuffer);
   }
 
   if (!pProgramState->modalOpen && (ImGui::IsKeyPressed(SDL_SCANCODE_F5, false) || ImGui::IsNavInputPressed(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released)))
@@ -1626,7 +1622,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   vcRender_SceneImGui(pProgramState, pProgramState->pRenderContext, renderData);
 
   // Render scene to texture
-  vcRender_RenderScene(pProgramState, pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
+  vcRender_RenderScene(pProgramState, pProgramState->pRenderContext, renderData);
   
   // Clean up
   renderData.models.Deinit();
@@ -1649,7 +1645,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     pProgramState->pCamera->positionInLongLat = pProgramState->pCamera->position;
   }
 
-  vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+  vcBackbuffer_Bind(pProgramState->pDefaultBackbuffer);
 }
 
 void vcMain_UpdateStatusBar(vcState *pProgramState)
@@ -1942,43 +1938,30 @@ void vcChangeTab(vcState *pProgramState, vcDocks dock)
   }
 }
 
-void vcMain_ShowStartupScreen(vcState *pProgramState)
-{
-  ImGuiIO &io = ImGui::GetIO();
-  ImVec2 size = io.DisplaySize;
-
-  static double logoFade = 0.0;
-
-  ImDrawList *pDrawList = ImGui::GetBackgroundDrawList();
-
-  pDrawList->AddRectFilledMultiColor(ImVec2(0, 0), size, 0xFFB5A245, 0xFFE3D9A8, 0xFFCDBC71, 0xFF998523);
-
-  float amt = (float)udSin(ImGui::GetTime()) * 50.f;
-  float baseY = size.y * 0.75f;
-  pDrawList->AddBezierCurve(ImVec2(0, baseY), ImVec2(size.x * 0.33f, baseY + amt), ImVec2(size.x * 0.67f, baseY - amt), ImVec2(size.x, baseY), 0xFFFFFFFF, 4.f);
-
-  if (pProgramState->pCompanyLogo != nullptr)
-  {
-    logoFade += pProgramState->deltaTime * 10; // Fade in really fast
-    uint32_t fadeIn = (0xFFFFFF | (udMin(uint32_t(logoFade * 255), 255U) << 24));
-
-    float scaling = udMin(0.9f * (size.y - vcLBS_LoginBoxH) / vcLBS_LogoH, 1.f);
-    float yOff = (size.y - vcLBS_LoginBoxH) / 2.f;
-    pDrawList->AddImage(pProgramState->pCompanyLogo, ImVec2((size.x - vcLBS_LogoW * scaling) / 2.f, yOff - (vcLBS_LogoH * scaling * 0.5f)), ImVec2((size.x + vcLBS_LogoW * scaling) / 2, yOff + (vcLBS_LogoH * scaling * 0.5f)), ImVec2(0, 0), ImVec2(1, 1), fadeIn);
-  }
-}
-
 void vcMain_ShowLoginWindow(vcState *pProgramState)
 {
   ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f, 0.f, 0.f, 0.f));
 
   ImGuiIO io = ImGui::GetIO();
   ImVec2 size = io.DisplaySize;
+  ImVec2 pos = ImGui::GetMainViewport()->Pos;
 
-  vcMain_ShowStartupScreen(pProgramState);
+  if (ImGui::BeginPopupModal("login"))
+  {
+    ImGui::Button("Testing!");
+  }
+
+  ImGui::SetNextWindowBgAlpha(0.5f);
+  ImGui::SetNextWindowPos(pos, ImGuiCond_Always, ImVec2(0, 0));
+  ImGui::SetNextWindowSize(size, ImGuiCond_Always);
+  if (ImGui::Begin("LoginScreenBlackout", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
+  {
+    ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(0, 0), size, 0xFF000000);
+  }
+  ImGui::End();
 
   ImGui::SetNextWindowBgAlpha(0.f);
-  ImGui::SetNextWindowPos(ImVec2(0, size.y), ImGuiCond_Always, ImVec2(0, 1));
+  ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y + size.y), ImGuiCond_Always, ImVec2(0, 1));
   if (ImGui::Begin("LoginScreenPopups", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
   {
     ImGui::PushItemWidth(130.f);
@@ -2026,7 +2009,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   ImGui::End();
 
   ImGui::SetNextWindowBgAlpha(0.1f);
-  ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always, ImVec2(0, 0));
+  ImGui::SetNextWindowPos(ImVec2(pos.x + 10, pos.y + 10), ImGuiCond_Always, ImVec2(0, 0));
   if (ImGui::Begin("LoginScreenSupportInfo", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
   {
     const char *issueTrackerStrings[] = { "https://github.com/euclideon/vaultclient/issues", "GitHub" };
@@ -2049,7 +2032,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   ImGui::End();
 
   ImGui::SetNextWindowBgAlpha(0.1f);
-  ImGui::SetNextWindowPos(ImVec2(size.x - 10, 10), ImGuiCond_Always, ImVec2(1, 0));
+  ImGui::SetNextWindowPos(ImVec2(pos.x + size.x - 10, pos.y + 10), ImGuiCond_Always, ImVec2(1, 0));
   if (ImGui::Begin("LoginScreenTranslationInfo", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
   {
     const char *translationStrings[] = { pProgramState->languageInfo.pLocalName, pProgramState->languageInfo.pTranslatorName, pProgramState->languageInfo.pTranslatorContactEmail };
@@ -2066,7 +2049,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   ImGui::PopStyleColor(); // Border Colour
 
   ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
-  ImGui::SetNextWindowPos(ImVec2(size.x / 2, size.y - vcLBS_LoginBoxY), ImGuiCond_Always, ImVec2(0.5, 1.0));
+  ImGui::SetNextWindowPos(ImVec2(pos.x + size.x / 2, pos.y + size.y / 2), ImGuiCond_Always, ImVec2(0.5, 0.5));
 
   const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginEnterURL", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther" };
 
@@ -2216,17 +2199,13 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
     }
     ImGui::End();
   }
+
 }
 
 void vcRenderWindow(vcState *pProgramState)
 {
-  vcGLState_SetViewport(0, 0, pProgramState->settings.window.width, pProgramState->settings.window.height);
-  vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer, vcFramebufferClearOperation_All, 0xFF000000);
-  
   ImGuiIO &io = ImGui::GetIO(); // for future key commands as well
   ImVec2 size = io.DisplaySize;
-
-  ImGui::RenderPlatformWindowsDefault();
 
   if (pProgramState->settings.responsiveUI == vcPM_Responsive)
   {
@@ -2253,29 +2232,22 @@ void vcRenderWindow(vcState *pProgramState)
 
   //end keyboard/mouse handling
 
-  if (pProgramState->hasContext && !pProgramState->settings.window.presentationMode)
+  if (!pProgramState->settings.window.presentationMode)
   {
     int margin = vcMainMenuGui(pProgramState);
 
-    if (pProgramState->settings.docksLoaded != vcSettings::vcDockLoaded::vcDL_True)
-      pProgramState->settings.rootDock = ImGui::GetID("MyDockspace");
-
-    ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos);
+    ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size);
     ImGui::SetNextWindowBgAlpha(0.f);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::Begin("RootDockContainer", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoSavedSettings);
     ImGui::PopStyleVar();
-    ImGui::DockSpace(pProgramState->settings.rootDock, ImVec2(size.x, size.y - margin));
+    ImGui::DockSpace(ImGui::GetID("MyDockspace"), ImVec2(size.x, size.y - margin));
     ImGui::End();
   }
 
-  if (!pProgramState->hasContext)
-  {
-    vcMain_ShowLoginWindow(pProgramState);
-  }
-  else
+  // UI
   {
     if (pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer] && !pProgramState->settings.window.presentationMode)
     {
@@ -2420,6 +2392,8 @@ void vcRenderWindow(vcState *pProgramState)
     {
       if (!pProgramState->settings.window.presentationMode)
       {
+        ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_Appearing);
+
         if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
           vcRenderSceneWindow(pProgramState);
         vcChangeTab(pProgramState, vcDocks_Scene);
@@ -2455,17 +2429,10 @@ void vcRenderWindow(vcState *pProgramState)
         pProgramState->settings.pActive[i] = nullptr;
       }
     }
-
-    if (pProgramState->settings.docksLoaded != vcSettings::vcDockLoaded::vcDL_True)
-    {
-      vcSettings_Load(&pProgramState->settings, false, vcSC_Docks);
-
-      // Don't show the window in a bad state
-      ImDrawData *pData = ImGui::GetDrawData();
-      if (pData != nullptr)
-        pData->Clear();
-    }
   }
 
   vcModals_DrawModals(pProgramState);
+
+  if (!pProgramState->hasContext)
+    vcMain_ShowLoginWindow(pProgramState);
 }

@@ -665,7 +665,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       if (totalItems > 0)
       {
-        ImGui::SetNextTreeNodeOpen(true, ImGuiCond_FirstUseEver);
+        ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
 
         vcStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertInputFiles"), udCommaInt(totalItems));
 
