@@ -352,6 +352,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   result = udR_Success;
 
 epilogue:
+  vcTexture_Destroy(&pRenderContext->viewShedRenderingContext.pUDDepthTexture);
   vcTexture_Destroy(&pRenderContext->viewShedRenderingContext.pDepthTex);
   vcTexture_Destroy(&pRenderContext->viewShedRenderingContext.pDummyColour);
   vcFramebuffer_Destroy(&pRenderContext->viewShedRenderingContext.pFramebuffer);
