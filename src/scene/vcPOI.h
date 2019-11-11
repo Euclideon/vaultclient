@@ -8,6 +8,7 @@
 #include "vcFenceRenderer.h"
 #include "vcLabelRenderer.h"
 #include "vcImageRenderer.h"
+#include "gl/vcGLState.h"
 
 struct vdkPointCloud;
 struct vcTexture;
@@ -55,6 +56,7 @@ private:
     const char *pPathLoaded;
 
     double moveSpeed; // Speed in m/s
+    vcGLStateCullMode cullMode;
 
     int segmentIndex;
     double segmentProgress;

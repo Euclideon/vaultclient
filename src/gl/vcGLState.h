@@ -33,9 +33,10 @@ enum vcGLStateFillMode
 
 enum vcGLStateCullMode
 {
-  vcGLSCM_None,
-  vcGLSCM_Front,
   vcGLSCM_Back,
+  vcGLSCM_Front,
+
+  vcGLSCM_None,
 
   vcGLSCM_TotalModes
 };

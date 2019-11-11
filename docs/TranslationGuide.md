@@ -6,12 +6,14 @@
   - Added:
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
+      - Polygon Meshes
+        - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`
     - Scene Explorer
       - `scenePOIAttachCameraToAttachment`, `liveFeedLODModifier`
   - Changed:
     - 
   - Removed:
-    - 
+    - `polyModelInvertFaces`
 
 - Version 0.4.0
   - Added:
@@ -703,7 +705,10 @@ Modules are currently:
 - `liveFeedLODModifier`: Label on slider that modifies the distance at which to show particular levels of detail on live feed item labels
 
 #### Polygon Models
-- `polyModelInvertFaces`: Label on check box to invert the winding order of the triangles
+- `polyModelCullFace`: Label on combo box to select which face culling mode
+- `polyModelCullFaceBack`: Combo box item for back-face culling (default setting)
+- `polyModelCullFaceFront`: Combo box item for front-face culling (inverted faces)
+- `polyModelCullFaceNone`: Combo box item for no-culling (not recommended)
 - `polyModelMesh`: Used on the label next to mesh information in the scene explorer with "Show Diagnostic Information" enabled 
 - `polyModelTexture`: Used on the label next to mesh texture information in the scene explorer with "Show Diagnostic Information" enabled 
 - `polyModelMatColour`: Used on the label next to mesh material colour information in the scene explorer with "Show Diagnostic Information" enabled 

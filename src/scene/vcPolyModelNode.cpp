@@ -15,7 +15,7 @@ vcPolyModelNode::vcPolyModelNode(vdkProject *pProject, vdkProjectNode *pNode, vc
 {
   m_pModel = nullptr;
   m_matrix = udDouble4x4::identity();
-  m_invert = false;
+  m_cullFace = vcGLSCM_Back;
 
   //TODO: Do this load async
   if (vcPolygonModel_CreateFromURL(&m_pModel, pNode->pURI) == udR_Success)
@@ -30,7 +30,14 @@ void vcPolyModelNode::OnNodeUpdate(vcState *pProgramState)
 {
   const char *pTemp = nullptr;
   if (vdkProjectNode_GetMetadataString(m_pNode, "culling", &pTemp, "back") == vE_Success)
-    m_invert = !udStrEqual(pTemp, "back");
+  {
+    if (udStrEquali(pTemp, "none"))
+      m_cullFace = vcGLSCM_None;
+    else if (udStrEquali(pTemp, "front"))
+      m_cullFace = vcGLSCM_Front;
+    else // Default to backface
+      m_cullFace = vcGLSCM_Back;
+  }
 
   if (m_pNode->geomCount != 0)
   {
@@ -62,7 +69,7 @@ void vcPolyModelNode::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRen
   pModel->pModel = m_pModel;
   pModel->pSceneItem = this;
   pModel->worldMat = m_matrix;
-  pModel->insideOut = m_invert;
+  pModel->cullFace = m_cullFace;
   pModel->affectsViewShed = true;
 }
 
@@ -93,8 +100,10 @@ void vcPolyModelNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
   if (m_pModel == nullptr)
     return;
 
-  if (ImGui::Checkbox(udTempStr("%s##%zu", vcString::Get("polyModelInvertFaces"), *pItemID), &m_invert))
-    vdkProjectNode_SetMetadataString(m_pNode, "culling", m_invert ? "front" : "back");
+  const char *uiStrings[] = { vcString::Get("polyModelCullFaceBack"), vcString::Get("polyModelCullFaceFront"), vcString::Get("polyModelCullFaceNone") };
+  const char *optStrings[] = { "back", "front", "none" };
+  if (ImGui::Combo(udTempStr("%s##%zu", vcString::Get("polyModelCullFace"), *pItemID), (int*)&m_cullFace, uiStrings, (int)udLengthOf(uiStrings)))
+    vdkProjectNode_SetMetadataString(m_pNode, "culling", optStrings[m_cullFace]);
 
   // Transform Info
   {
