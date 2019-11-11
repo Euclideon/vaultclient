@@ -17,7 +17,10 @@
 #include "imgui.h"
 #include "imgui_ex/vcFileDialog.h"
 
+#include "udPlatformUtil.h"
 #include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 void vcModals_DrawLoggedOut(vcState *pProgramState)
 {
@@ -746,29 +749,154 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
   }
 }
 
+bool vcModals_TakeScreenshot(vcState *pProgramState, char *pFilename, uint32_t bufLen, int *pSuffix)
+{
+  if (pFilename == nullptr || pProgramState == nullptr)
+    return false;
+
+  if (pProgramState->screenshot.resize)
+  {
+    pProgramState->sceneResolution.x = resses[pProgramState->screenshot.res].x;
+    pProgramState->sceneResolution.y = resses[pProgramState->screenshot.res].y;
+
+    pProgramState->screenshot.resize = false;
+    return true;
+  }
+  else if (pProgramState->image.pImage == nullptr)
+  {
+    return true;
+  }
+
+  if (pFilename == "")
+    udStrcpy(pFilename, bufLen, vcString::Get("screenshotDefaultName"));
+
+  pProgramState->screenshot.pPixels = udAllocType(uint8_t, pProgramState->sceneResolution.x * pProgramState->sceneResolution.y * 4, udAF_Zero);
+
+  vcTexture_BeginReadPixels(pProgramState->image.pImage, 0, 0, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y, pProgramState->screenshot.pPixels, pProgramState->pRenderContext->pFramebuffer[1]);
+  vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+
+  if (!udStrBeginsWithi(pFilename, pProgramState->settings.pSaveFilePath))
+  {
+    int length = (int)udStrlen(pProgramState->settings.pSaveFilePath);
+    int outLen = (int)udStrlen(pFilename);
+
+    if (length + outLen > (int)bufLen)
+      return false;
+
+    memcpy(&pFilename[length], pFilename, outLen);
+    memcpy(pFilename, pProgramState->settings.pSaveFilePath, length);
+  }
+
+  if (!udStrEndsWithi(pFilename, pFormat[pProgramState->screenshot.format]))
+    udSprintf(pFilename, bufLen, "%s.%s", pFilename, pFormat[pProgramState->screenshot.format]);
+
+#ifdef GRAPHICS_API_OPENGL
+  stbi_flip_vertically_on_write(1);
+#endif
+
+  vcModals_SequencialFilename(pFilename, bufLen, pSuffix);
+
+  switch (pProgramState->screenshot.format)
+  {
+  case 0:
+    stbi_write_png(pFilename, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y, 4, pProgramState->screenshot.pPixels, pProgramState->sceneResolution.x * 4);
+    break;
+
+  case 1:
+    stbi_write_bmp(pFilename, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y, 4, pProgramState->screenshot.pPixels);
+    break;
+
+  case 2:
+    stbi_write_tga(pFilename, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y, 4, pProgramState->screenshot.pPixels);
+    break;
+
+  case 3:
+    stbi_write_jpg(pFilename, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y, 4, pProgramState->screenshot.pPixels, 100);
+    break;
+
+  }
+
+  udFree(pProgramState->screenshot.pPixels);
+  pProgramState->screenshot.taking = false;
+
+  return true;
+}
+
+// If path + filename exists, adds next available number suffix before the extension, starting from pSuffix
+bool vcModals_SequencialFilename(char* pBuffer, uint32_t bufLen, int* pSuffix)
+{
+  if (pBuffer == nullptr || udFileExists(pBuffer) != udR_Success)
+    return false;
+
+  bool result = false;
+
+  static int suffix = 0;
+  int suffixLen = 0;
+
+  if (pSuffix != nullptr)
+    suffix = *pSuffix;
+
+  if (suffix > 0)
+    suffixLen = 1 + (int)udLog10((float)suffix);
+
+  size_t extIndex;
+  udStrrchr(pBuffer, ".", &extIndex);
+
+  int length = (int)udStrlen(pBuffer) - suffixLen;
+  int extLen = length - (int)extIndex;
+
+  char* pExt = udAllocType(char, extLen, udAF_None);
+  memcpy(pExt, &pBuffer[extIndex], extLen);
+  
+  do
+  {
+    int target = length - extLen - suffixLen;
+    suffixLen = (int)udStrItoa(&pBuffer[target], 256, suffix);
+
+    if (length + suffixLen > (int)bufLen)
+      goto epilogue;
+
+    target += suffixLen;
+    memcpy(&pBuffer[target], pExt, extLen);
+    ++suffix;
+  } while (udFileExists(pBuffer) == udR_Success);
+
+  result = true;
+epilogue:
+  udFree(pExt);
+
+  for (int i = length + suffixLen; i < bufLen && pBuffer[i] != '\0'; ++i)
+    pBuffer[i] = '\0';
+
+  if (pSuffix != nullptr)
+    *pSuffix = suffix;
+
+  return result;
+}
+
 void vcModals_DrawImageViewer(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_ImageViewer))
     ImGui::OpenPopup(vcString::Get("sceneImageViewerTitle"));
 
-  // Use 75% of the window
-  int maxX, maxY;
-  SDL_GetWindowSize(pProgramState->pWindow, &maxX, &maxY);
-  ImGui::SetNextWindowSize(ImVec2(maxX * 0.75f, maxY * 0.75f), ImGuiCond_Always);
-
+  ImGui::SetNextWindowSize(ImVec2((float)pProgramState->image.width + 325, (float)pProgramState->image.height + 50), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("sceneImageViewerTitle"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
   {
     pProgramState->modalOpen = true;
-    if (ImGui::Button(vcString::Get("sceneImageViewerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
-      ImGui::CloseCurrentPopup();
 
-    if (ImGui::BeginChild("ImageViewerImage", ImVec2(0, 0), false, ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
+    ImGui::Columns(2);
+    ImGui::SetColumnWidth(0, (float)pProgramState->image.width + 25);
+    if (ImGui::BeginChild("ImageViewerImage", ImVec2(-1, 0), false, ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
     {
       ImGuiIO io = ImGui::GetIO();
       ImVec2 window = ImGui::GetWindowSize();
       ImVec2 windowPos = ImGui::GetWindowPos();
 
+#ifdef GRAPHICS_API_OPENGL
+      ImGui::Image(pProgramState->image.pImage, ImVec2((float)pProgramState->image.width, (float)pProgramState->image.height), ImVec2(0, 1), ImVec2(1, 0));
+#else
       ImGui::Image(pProgramState->image.pImage, ImVec2((float)pProgramState->image.width, (float)pProgramState->image.height));
+#endif
 
       if (ImGui::IsWindowHovered())
       {
@@ -817,6 +945,59 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
     }
     ImGui::EndChild();
 
+    ImGui::SetColumnWidth(1, 300);
+    ImGui::NextColumn();
+    if (ImGui::Button(vcString::Get("sceneImageViewerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    {
+      ImGui::CloseCurrentPopup();
+      pProgramState->image.pImage = nullptr;
+    }
+
+    ImGui::EndPopup();
+  }
+}
+
+void vcModals_DrawScreenshot(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_screenshot))
+    ImGui::OpenPopup(vcString::Get("screenshotTitle"));
+
+  ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("screenshotTitle"), nullptr, ImGuiWindowFlags_None))
+  {
+    pProgramState->modalOpen = true;
+
+    if (ImGui::Button(vcString::Get("screenshotClose"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+    {
+      pProgramState->screenshot.taking = false;
+      pProgramState->image.pImage = nullptr;
+      ImGui::CloseCurrentPopup();
+    }
+
+    // Resolution
+    static const char* pRes[3] = { vcString::Get("screenshotRes720p"), vcString::Get("screenshotRes1080p"), vcString::Get("screenshotRes4K") };
+    if (ImGui::Combo(vcString::Get("screenshotResLabel"), &pProgramState->screenshot.res, pRes, 3))
+    {
+      pProgramState->sceneResolution.x = resses[pProgramState->screenshot.res].x;
+      pProgramState->sceneResolution.y = resses[pProgramState->screenshot.res].y;
+
+      pProgramState->screenshot.resize = true;
+    }
+
+    // Hide Labels/Measurements
+    ImGui::Checkbox(vcString::Get("screenshotHideLabels"), &pProgramState->screenshot.renderLabels);
+    ImGui::Checkbox(vcString::Get("settingsAppearanceShowCompass"), &pProgramState->settings.presentation.showCompass);
+
+    // Output format
+    ImGui::Combo(vcString::Get("screenshotFormatLabel"), &pProgramState->screenshot.format, pFormat, 4);
+
+    static int suffix = 0;
+    if (ImGui::InputText(vcString::Get("screenshotFilename"), pProgramState->screenshot.outputName, udLengthOf(pProgramState->screenshot.outputName)))
+      suffix = 0;
+
+    if (ImGui::Button(vcString::Get("screenshotSave"), ImVec2(-1, 0)))
+      vcModals_TakeScreenshot(pProgramState, pProgramState->screenshot.outputName, vcMaxPathLength, &suffix);
+
     ImGui::EndPopup();
   }
 }
@@ -841,6 +1022,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawProjectReadOnly(pProgramState);
   vcModals_DrawImageViewer(pProgramState);
   vcModals_DrawUnsupportedFiles(pProgramState);
+  vcModals_DrawScreenshot(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_NewVersionAvailable) | (1 << vcMT_LoggedOut) | (1 << vcMT_ProxyAuth));
 }

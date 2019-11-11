@@ -796,6 +796,9 @@ int main(int argc, char **args)
   programState.changeActiveDock = vcDocks_Count;
   programState.passFocus = true;
   programState.renaming = -1;
+  programState.screenshot.taking = false;
+  programState.screenshot.renderLabels = true;
+  programState.screenshot.resize = false;
 
   programState.sceneExplorer.insertItem.pParent = nullptr;
   programState.sceneExplorer.insertItem.pItem = nullptr;
@@ -913,6 +916,9 @@ int main(int argc, char **args)
   vcSettings_Save(&programState.settings);
 
 epilogue:
+  if (programState.screenshot.taking)
+    programState.image.pImage = nullptr;
+
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
 
@@ -1318,7 +1324,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   udDouble3 cameraMoveOffset = udDouble3::zero();
 
-  if (pProgramState->sceneResolution.x != windowSize.x || pProgramState->sceneResolution.y != windowSize.y) //Resize buffers
+  if (!pProgramState->screenshot.taking && (pProgramState->sceneResolution.x != windowSize.x || pProgramState->sceneResolution.y != windowSize.y)) //Resize buffers
   {
     pProgramState->sceneResolution = udUInt2::create((uint32_t)windowSize.x, (uint32_t)windowSize.y);
     vcRender_ResizeScene(pProgramState, pProgramState->pRenderContext, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y);
@@ -1326,6 +1332,12 @@ void vcRenderSceneWindow(vcState *pProgramState)
     // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
     // this isn't valid on iOS when using UIKit.
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+  }
+  else if (pProgramState->screenshot.resize)
+  {
+    vcRender_ResizeScene(pProgramState, pProgramState->pRenderContext, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y);
+    vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+    pProgramState->screenshot.resize = false;
   }
 
   if (!pProgramState->modalOpen && (ImGui::IsKeyPressed(SDL_SCANCODE_F5, false) || ImGui::IsNavInputPressed(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released)))
@@ -1349,6 +1361,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
     // Actual rendering to this texture is deferred
     ImGui::ImageButton(renderData.pSceneTexture, windowSize, uv0, uv1, 0);
+
+    if (pProgramState->screenshot.taking)
+      pProgramState->image.pImage = renderData.pSceneTexture;
 
     static bool wasContextMenuOpenLastFrame = false;
     bool selectItem = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold*io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
@@ -1625,7 +1640,8 @@ void vcRenderSceneWindow(vcState *pProgramState)
     }
   }
 
-  vcRender_SceneImGui(pProgramState, pProgramState->pRenderContext, renderData);
+  if (pProgramState->screenshot.renderLabels)
+    vcRender_SceneImGui(pProgramState, pProgramState->pRenderContext, renderData);
 
   // Render scene to texture
   vcRender_RenderScene(pProgramState, pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
@@ -1914,6 +1930,20 @@ int vcMainMenuGui(vcState *pProgramState)
               vdkProjectNode_SetMetadataString(pNode, "groupid", pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString());
           }
         }
+      }
+
+      ImGui::Separator();
+
+      if (ImGui::MenuItem(vcString::Get("screenshotTake"), nullptr, nullptr) || (!pProgramState->modalOpen && pProgramState->screenshot.taking))
+      {
+        pProgramState->screenshot.taking = true;
+        vcModals_TakeScreenshot(pProgramState, pProgramState->screenshot.outputName, vcMaxPathLength);
+      }
+
+      if (ImGui::MenuItem(vcString::Get("screenshotSettings"), nullptr, nullptr))
+      {
+        pProgramState->screenshot.taking = true;
+        vcModals_OpenModal(pProgramState, vcMT_screenshot);
       }
 
       ImGui::EndMenu();
@@ -2246,6 +2276,12 @@ void vcRenderWindow(vcState *pProgramState)
   if (io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_M))
     vcCamera_SwapMapMode(pProgramState);
 #endif
+
+  if (ImGui::IsKeyPressed(SDL_SCANCODE_F8))
+  {
+    pProgramState->screenshot.taking = true;
+    vcModals_TakeScreenshot(pProgramState, pProgramState->screenshot.outputName, vcMaxPathLength);
+  }
 
   //end keyboard/mouse handling
 

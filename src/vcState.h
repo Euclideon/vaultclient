@@ -174,6 +174,17 @@ struct vcState
   vcTranslationInfo languageInfo;
   bool showUI;
   vcDocks changeActiveDock;
+
+  struct screenshot
+  {
+    bool taking;
+    bool renderLabels;
+    bool resize;
+    int format;
+    int res;
+    uint8_t* pPixels;
+    char outputName[vcMaxPathLength];
+  } screenshot;
 };
 
 #endif // !vcState_h__

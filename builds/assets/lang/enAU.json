@@ -545,5 +545,20 @@
   "attributeBlending": "Blending: {0}",
   "attributeBlendingMean": "Average Value",
   "attributeBlendingSingle": "Single Value",
-  "attributeBlendingUnknown": "Unknown"
+  "attributeBlendingUnknown": "Unknown",
+  
+  "screenshotTitle": "Screenshot",
+  "screenshotSave": "Save Image",
+  "screenshotClose": "Close",
+  "screenshotResLabel": "Resolution",
+  "screenshotRes720p": "720p Resolution",
+  "screenshotRes1080p": "1080p Resolution",
+  "screenshotRes4K": "4K Resolution",
+  "screenshotFormatLabel": "Image Format",
+  "screenshotHideLabels": "Hide Labels",
+  "screenshotFilename": "Filename",
+  "screenshotSettings": "Setup Screenshot",
+  "screenshotTake": "Take Screenshot",
+  "screenshotDefaultName": "Screen Capture"
+  
 }
