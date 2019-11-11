@@ -404,6 +404,11 @@
   "sceneModelRotation": "Model Rotation",
   "sceneModelScale": "Model Scale",
 
+  "sceneModelMeterScale": "Meter Scale: {0}",
+  "sceneModelLODLayers": "LODs: {0}",
+  "sceneModelResolution": "Resolution: {0}",
+  "sceneModelAttributes": "Attributes ({0} total)",
+
   "sceneExplorerProjectChangeFailedMessage": "Sorry, this change you requested to the project was unable to be completed.",
   "sceneExplorerProjectChangeFailedWrite": "Sorry, the project could not be exported.",
   "sceneExplorerProjectChangeFailedParse": "Sorry, the project file could not be interpreted.",
@@ -516,5 +521,26 @@
 
   "viewShedDistance": "Distance",
   "viewShedVisibleColour": "Highlight Visible",
-  "viewShedHiddenColour": "Highlight Hidden"
+  "viewShedHiddenColour": "Highlight Hidden",
+
+  "attributeType": "Type: {0}",
+  "attributeTypeUint8": "Uint8",
+  "attributeTypeUint16": "Uint16",
+  "attributeTypeUint32": "Uint32",
+  "attributeTypeUint64": "Uint64,",
+  "attributeTypeInt8": "Int8",
+  "attributeTypeInt16": "Int16",
+  "attributeTypeInt32": "Int32",
+  "attributeTypeInt64": "Int64,",
+  "attributeTypeFloat32": "Float32",
+  "attributeTypeFloat64": "Float64,",
+  "attributeTypeColour": "Colour",
+  "attributeTypeNormal": "Packed Normal",
+  "attributeTypeVec3F32": "3D Vector",
+  "attributeTypeUnknown": "Unknown",
+
+  "attributeBlending": "Blending: {0}",
+  "attributeBlendingMean": "Average Value",
+  "attributeBlendingSingle": "Single Value",
+  "attributeBlendingUnknown": "Unknown"
 }

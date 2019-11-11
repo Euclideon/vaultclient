@@ -3,6 +3,7 @@
 #include "vcState.h"
 #include "vcRender.h"
 #include "vcBPA.h"
+#include "vcStringFormat.h"
 
 #include "gl/vcTexture.h"
 
@@ -283,6 +284,87 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", scale.x);
+  }
+
+  // Show MetaData Info
+  {
+    char buffer[128];
+
+    ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("sceneModelMeterScale"), udTempStr("%.4f", m_pointCloudHeader.unitMeterScale)));
+    ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("sceneModelLODLayers"), udTempStr("%u", m_pointCloudHeader.totalLODLayers)));
+    ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("sceneModelResolution"), udTempStr("%.4f", m_pointCloudHeader.convertedResolution)));
+
+    ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("sceneModelAttributes"), udTempStr("%u", m_pointCloudHeader.attributes.count)));
+    ImGui::Indent();
+    for (uint32_t i = 0; i < m_pointCloudHeader.attributes.count; ++i)
+    {
+      ImGui::BulletText("%s", m_pointCloudHeader.attributes.pDescriptors[i].name);
+
+      if (pProgramState->settings.presentation.showDiagnosticInfo)
+      {
+        ImGui::Indent();
+        switch (m_pointCloudHeader.attributes.pDescriptors[i].typeInfo)
+        {
+        case vdkAttributeTypeInfo_uint8:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint8")));
+          break;
+        case vdkAttributeTypeInfo_uint16:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint16")));
+          break;
+        case vdkAttributeTypeInfo_uint32:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint32")));
+          break;
+        case vdkAttributeTypeInfo_uint64:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint64")));
+          break;
+        case vdkAttributeTypeInfo_int8:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt8")));
+          break;
+        case vdkAttributeTypeInfo_int16:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt16")));
+          break;
+        case vdkAttributeTypeInfo_int32:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt32")));
+          break;
+        case vdkAttributeTypeInfo_int64:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt64")));
+          break;
+        case vdkAttributeTypeInfo_float32:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeFloat32")));
+          break;
+        case vdkAttributeTypeInfo_float64:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeFloat64")));
+          break;
+        case vdkAttributeTypeInfo_color32:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeColour")));
+          break;
+        case vdkAttributeTypeInfo_normal32:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeNormal")));
+          break;
+        case vdkAttributeTypeInfo_vec3f32:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeVec3F32")));
+          break;
+        default:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUnknown")));
+          break;
+        }
+
+        switch (m_pointCloudHeader.attributes.pDescriptors[i].blendMode)
+        {
+        case vdkABM_Mean:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeBlending"), vcString::Get("attributeBlendingMean")));
+          break;
+        case vdkABM_SingleValue:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeBlending"), vcString::Get("attributeBlendingSingle")));
+          break;
+        default:
+          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeBlending"), vcString::Get("attributeBlendingUnknown")));
+          break;
+        }
+        ImGui::Unindent();
+      }
+    }
+    ImGui::Unindent();
   }
 
   vcImGuiValueTreeObject(&m_metadata);
