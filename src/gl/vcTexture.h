@@ -66,4 +66,6 @@ udResult vcTexture_GetSize(vcTexture *pTexture, int *pWidth, int *pHeight);
 bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels, vcFramebuffer *pFramebuffer);
 bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels);
 
+void vcTexture_ResizePixels(const void* pPixels, uint32_t width, uint32_t height, uint32_t maxDimensionSize, const void **ppResultPixels, uint32_t* pResultWidth, uint32_t* pResultHeight);
+
 #endif//vcTexture_h__

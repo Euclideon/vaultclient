@@ -106,54 +106,15 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
 
   if (width > limitTextureSize || height > limitTextureSize)
   {
-    uint32_t max = udMax(width, height);
-    int passes = 0;
-    while (max > limitTextureSize)
-    {
-      ++passes;
-      max >>= 1;
-    }
+    const void* pResizedPixels = nullptr;
+    uint32_t resizedWidth = 0;
+    uint32_t resizedHeight = 0;
 
-    const void *pLastPixels = pPixels;
-    uint32_t lastWidth = width;
-    uint32_t lastHeight = height;
+    vcTexture_ResizePixels(pPixels, width, height, limitTextureSize, &pResizedPixels, &resizedWidth, &resizedHeight);
 
-    for (int i = 0; i < passes; ++i)
-    {
-      lastWidth >>= 1;
-      lastHeight >>= 1;
-      uint32_t *pMippedPixels = udAllocType(uint32_t, lastWidth * lastHeight, udAF_Zero);
-
-      for (uint32_t y = 0; y < lastHeight; ++y)
-      {
-        for (uint32_t x = 0; x < lastWidth; ++x)
-        {
-          uint8_t r = 0, g = 0, b = 0, a = 0;
-
-          // 4x4 bilinear sampling
-          for (int s = 0; s < 4; ++s)
-          {
-            uint32_t sample = ((uint32_t *)pLastPixels)[(y * 2 + s / 2) * lastWidth * 2 + (x * 2 + s % 2)];
-            r += ((sample >> 0) & 0xff) >> 2;
-            g += ((sample >> 8) & 0xff) >> 2;
-            b += ((sample >> 16) & 0xff) >> 2;
-            a += ((sample >> 24) & 0xff) >> 2;
-          }
-          pMippedPixels[y * lastWidth + x] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
-        }
-      }
-
-      if (i != 0 && i != passes - 1)
-        udFree(pLastPixels);
-
-      pLastPixels = pMippedPixels;
-    }
-
-    printf("%d x %d...passes=%d, %d x %d\n", width, height, passes, lastWidth, lastHeight);
-
-    pPixels = pLastPixels;
-    width = lastWidth;
-    height = lastHeight;
+    pPixels = pResizedPixels;
+    width = resizedWidth;
+    height = resizedHeight;
   }
 
 

@@ -233,16 +233,28 @@ epilogue:
   return result;
 }
 
-uint32_t vcPolygonModel_EstimateTextureSizeLimit(const udChunkedArray<vcOBJ::Material> &/*materials*/)
+
+#include "udWorkerPool.h"
+
+
+struct vcPolygonModelLoadMeshData
 {
-  //uint32_t totalSize = 0;
-  //for (int material = 0; material < (int)materials.length; ++material)
-  //{
-  //  //const vcOBJ::Material *pMaterial = &materials[material];
-  //  // get width * height * 4
-  //}
-  //
-  return 0;
+  vcPolygonModelMesh* pMesh;
+  vcP3N3UV2Vertex* pVerts;
+};
+
+void vcPolygonModel_LoadMesh(void* pData)
+{
+  vcPolygonModelLoadMeshData* pD = (vcPolygonModelLoadMeshData*)pData;
+
+
+  const vcVertexLayoutTypes* pMeshLayout = vcP3N3UV2VertexLayout;
+  const int totalTypes = (int)udLengthOf(vcP3N3UV2VertexLayout);
+
+  printf("Main thread loading mesh\n");
+  vcMesh_Create(&pD->pMesh->pMesh, pMeshLayout, totalTypes, pD->pVerts, pD->pMesh->numVertices, nullptr, 0, vcMF_NoIndexBuffer);
+
+  udFree(pD->pVerts);
 }
 
 udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const char *pFilepath, udWorkerPool *pWorkerPool)
@@ -250,6 +262,8 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
   udResult result;
   vcPolygonModel *pPolygonModel = nullptr;
   vcOBJ *pOBJReader = nullptr;
+
+  printf("Worker thread load OBJ\n");
 
   const vcVertexLayoutTypes *pMeshLayout = vcP3N3UV2VertexLayout;
   const int totalTypes = (int)udLengthOf(vcP3N3UV2VertexLayout);
@@ -339,22 +353,31 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
     if (pPolygonModel->pMeshes[0].materialID == vcPMST_Count)
       UD_ERROR_SET(udR_Unsupported);
 
-    if (udStrlen(pMaterial->map_Kd) == 0)
-    {
-      // no texture specified
-      uint32_t whitePixel = 0xffffffff;
-      UD_ERROR_CHECK(vcTexture_Create(&pMesh->material.pTexture, 1, 1, &whitePixel));
-    }
-    else
-    {
-      const char *pTextureFilepath = udTempStr("%s%s", pOBJReader->basePath.GetPath(), pMaterial->map_Kd);
-      if (pWorkerPool != nullptr)
-        vcTexture_AsyncCreateFromFilename(&pMesh->material.pTexture, pWorkerPool, pTextureFilepath, vcTFM_Linear, false, vcTWM_Repeat, 1024);
-      else
-        vcTexture_CreateFromFilename(&pMesh->material.pTexture, pTextureFilepath);
-    }
+    //if (udStrlen(pMaterial->map_Kd) == 0)
+    //{
+    //  // no texture specified
+    //  //uint32_t whitePixel = 0xffffffff;
+    //  //UD_ERROR_CHECK(vcTexture_Create(&pMesh->material.pTexture, 1, 1, &whitePixel));
+    //}
+    //else
+    //{
+    //  const char *pTextureFilepath = udTempStr("%s%s", pOBJReader->basePath.GetPath(), pMaterial->map_Kd);
+    //  //if (pWorkerPool != nullptr)
+    //    vcTexture_AsyncCreateFromFilename(&pMesh->material.pTexture, pWorkerPool, pTextureFilepath, vcTFM_Linear, false, vcTWM_Repeat, 1024);
+    //  //else
+    //  //  vcTexture_CreateFromFilename(&pMesh->material.pTexture, pTextureFilepath);
+    //}
 
-    UD_ERROR_CHECK(vcMesh_Create(&pMesh->pMesh, pMeshLayout, totalTypes, pVerts, pMesh->numVertices, nullptr, 0, vcMF_NoIndexBuffer));
+
+    //vcPolygonModelLoadMeshData* pLoadInfo = udAllocType(vcPolygonModelLoadMeshData, 1, udAF_Zero);
+    //UD_ERROR_NULL(pLoadInfo, udR_MemoryAllocationFailure);
+    //
+    //pLoadInfo->pMesh = pMesh;
+    //pLoadInfo->pVerts = pVerts;
+    //
+    //UD_ERROR_CHECK(udWorkerPool_AddTask(pWorkerPool, nullptr, pLoadInfo, true, vcPolygonModel_LoadMesh));
+
+    //UD_ERROR_CHECK(vcMesh_Create(&pMesh->pMesh, pMeshLayout, totalTypes, pVerts, pMesh->numVertices, nullptr, 0, vcMF_NoIndexBuffer));
 
     udFree(pVerts);
   }
@@ -371,6 +394,22 @@ epilogue:
   return result;
 }
 
+struct AsyncPolygonModelLoadInfo
+{
+  vcPolygonModel** ppPolygonModel;
+  const char* pURL;
+
+  udWorkerPool* pPool;
+};
+
+void vcPolygonModel_AsyncLoadWorkerThreadWork(void* pModelLoadInfo)
+{
+  AsyncPolygonModelLoadInfo* pLoadInfo = (AsyncPolygonModelLoadInfo*)pModelLoadInfo;
+  vcPolygonModel_CreateFromOBJ(pLoadInfo->ppPolygonModel, pLoadInfo->pURL, pLoadInfo->pPool);
+
+  udFree(pLoadInfo->pURL);
+}
+
 udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL, udWorkerPool *pWorkerPool /*= nullptr*/)
 {
   udResult result;
@@ -381,7 +420,20 @@ udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL
 
   if (udStrEquali(fn.GetExt(), ".obj"))
   {
-    UD_ERROR_CHECK(vcPolygonModel_CreateFromOBJ(ppModel, pURL, pWorkerPool));
+
+    AsyncPolygonModelLoadInfo* pLoadInfo = udAllocType(AsyncPolygonModelLoadInfo, 1, udAF_Zero);
+    UD_ERROR_NULL(pLoadInfo, udR_MemoryAllocationFailure);
+
+    *ppModel = nullptr;
+
+    pLoadInfo->ppPolygonModel = ppModel;
+    pLoadInfo->pURL = udStrdup(pURL);
+    pLoadInfo->pPool = pWorkerPool;
+
+    UD_ERROR_CHECK(udWorkerPool_AddTask(pWorkerPool, vcPolygonModel_AsyncLoadWorkerThreadWork, pLoadInfo, true));
+
+
+    //UD_ERROR_CHECK(vcPolygonModel_CreateFromOBJ(ppModel, pURL, nullptr));
   }
   else if (udStrEquali(fn.GetExt(), ".vsm"))
   {

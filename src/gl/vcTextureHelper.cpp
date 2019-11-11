@@ -64,3 +64,56 @@ udResult vcTexture_AsyncCreateFromFilename(vcTexture **ppTexture, udWorkerPool *
 epilogue:
   return result;
 }
+
+#include <stdio.h>
+
+void vcTexture_ResizePixels(const void* pPixels, uint32_t width, uint32_t height, uint32_t maxDimensionSize, const void **ppResultPixels, uint32_t *pResultWidth, uint32_t *pResultHeight)
+{
+  uint32_t maxSize = udMax(width, height);
+  int passes = 0;
+  //while ((maxSize >> passes) > maxDimensionSize)
+  //  ++passes;
+
+  const void* pLastPixels = pPixels;
+  uint32_t lastWidth = width;
+  uint32_t lastHeight = height;
+
+  //for (int i = 0; i < passes; ++i)
+  while ((maxSize >> passes) > maxDimensionSize)
+  {
+    lastWidth >>= 1;
+    lastHeight >>= 1;
+    uint32_t* pDownsampledPixels = udAllocType(uint32_t, lastWidth * lastHeight, udAF_Zero);
+
+    for (uint32_t y = 0; y < lastHeight; ++y)
+    {
+      for (uint32_t x = 0; x < lastWidth; ++x)
+      {
+        uint8_t r = 0, g = 0, b = 0, a = 0;
+
+        // 4x4 bilinear sampling
+        for (int s = 0; s < 4; ++s)
+        {
+          uint32_t sample = ((uint32_t*)pLastPixels)[(y * 2 + s / 2) * lastWidth * 2 + (x * 2 + s % 2)];
+          r += ((sample >> 0) & 0xff) >> 2;
+          g += ((sample >> 8) & 0xff) >> 2;
+          b += ((sample >> 16) & 0xff) >> 2;
+          a += ((sample >> 24) & 0xff) >> 2;
+        }
+        pDownsampledPixels[y * lastWidth + x] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
+      }
+    }
+
+    if (passes != 0)// && i != passes - 1)
+      udFree(pLastPixels);
+
+    pLastPixels = pDownsampledPixels;
+    ++passes;
+  }
+
+  printf("%d x %d...passes=%d, %d x %d\n", width, height, passes, lastWidth, lastHeight);
+
+  *ppResultPixels = pLastPixels;
+  *pResultWidth = lastWidth;
+  *pResultHeight = lastHeight;
+}
