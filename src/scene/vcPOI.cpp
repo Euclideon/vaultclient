@@ -526,6 +526,21 @@ void vcPOI::HandleContextMenu(vcState *pProgramState)
   }
 }
 
+void vcPOI::HandleAttachmentUI(vcState * /*pProgramState*/)
+{
+  if (m_attachment.pModel != nullptr)
+  {
+    const double minSpeed = 0.0;
+    const double maxSpeed = 1000.0;
+
+    if (ImGui::SliderScalar(vcString::Get("scenePOIAttachmentSpeed"), ImGuiDataType_Double, &m_attachment.moveSpeed, &minSpeed, &maxSpeed))
+    {
+      m_attachment.moveSpeed = udClamp(m_attachment.moveSpeed, minSpeed, maxSpeed);
+      vdkProjectNode_SetMetadataDouble(m_pNode, "attachmentSpeed", m_attachment.moveSpeed);
+    }
+  }
+}
+
 void vcPOI::AddPoint(vcState *pProgramState, const udDouble3 &position)
 {
   udDouble3 *pNewPoints = udAllocType(udDouble3, m_line.numPoints + 1, udAF_Zero);

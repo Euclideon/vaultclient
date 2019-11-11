@@ -977,6 +977,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       ImGui::TextUnformatted(pStr);
       udFree(pStr);
 
+      pProgramState->cameraInput.pAttachedToSceneItem->HandleAttachmentUI(pProgramState);
+
       if (ImGui::Button(vcString::Get("sceneCameraAttachmentDetach"), ImVec2(-1, 0)))
       {
         pProgramState->cameraInput.pAttachedToSceneItem = nullptr;

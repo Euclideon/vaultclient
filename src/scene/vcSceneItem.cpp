@@ -49,6 +49,11 @@ void vcSceneItem::HandleContextMenu(vcState * /*pProgramState*/)
   // No additional items
 }
 
+void vcSceneItem::HandleAttachmentUI(vcState * /*pProgramState*/)
+{
+  // No additional items
+}
+
 void vcSceneItem::SetCameraPosition(vcState *pProgramState)
 {
   pProgramState->pCamera->position = GetWorldSpacePivot();
