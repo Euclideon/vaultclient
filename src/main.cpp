@@ -762,7 +762,6 @@ int main(int argc, char **args)
   vcWebFile_RegisterFileHandlers();
 
   // default values
-  programState.settings.camera.moveMode = vcCMM_Plane;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   // TODO: Query device and fill screen
   programState.sceneResolution.x = 1920;
@@ -777,6 +776,7 @@ int main(int argc, char **args)
 #endif
   vcCamera_Create(&programState.pCamera);
 
+  programState.settings.camera.lockAltitude = false;
   programState.settings.camera.moveSpeed = 3.f;
   programState.settings.camera.nearPlane = 0.5f;
   programState.settings.camera.farPlane = 10000.f;
@@ -1042,8 +1042,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     if (ImGui::Begin(vcString::Get("sceneCameraSettings"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
     {
       // Basic Settings
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneLockAltitude"), vcString::Get("sceneLockAltitudeKey"), vcMBBI_LockAltitude, vcMBBG_FirstItem, (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)))
-        pProgramState->settings.camera.moveMode = (pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter;
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneLockAltitude"), vcString::Get("sceneLockAltitudeKey"), vcMBBI_LockAltitude, vcMBBG_FirstItem, pProgramState->settings.camera.lockAltitude))
+        pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneCameraInfo"), nullptr, vcMBBI_ShowCameraSettings, vcMBBG_SameGroup, pProgramState->settings.presentation.showCameraInfo))
         pProgramState->settings.presentation.showCameraInfo = !pProgramState->settings.presentation.showCameraInfo;

@@ -299,7 +299,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
     // Camera
     pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
-    pSettings->camera.moveMode = (vcCameraMoveMode)data.Get("camera.moveMode").AsInt(0);
+    pSettings->camera.lockAltitude = (data.Get("camera.moveMode").AsInt(0) == 1);
   }
 
   if (forceReset)
@@ -560,7 +560,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.invertMouseY = %s", pSettings->camera.invertMouseY ? "true" : "false");
   data.Set("camera.invertControllerX = %s", pSettings->camera.invertControllerX ? "true" : "false");
   data.Set("camera.invertControllerY = %s", pSettings->camera.invertControllerY ? "true" : "false");
-  data.Set("camera.moveMode = %d", pSettings->camera.moveMode);
+  data.Set("camera.moveMode = %d", pSettings->camera.lockAltitude ? 1 : 0);
   data.Set("camera.cameraMouseBindings = [%d, %d, %d]", pSettings->camera.cameraMouseBindings[0], pSettings->camera.cameraMouseBindings[1], pSettings->camera.cameraMouseBindings[2]);
   data.Set("camera.scrollwheelBinding = %d", pSettings->camera.scrollWheelMode);
 

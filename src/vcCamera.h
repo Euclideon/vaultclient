@@ -4,12 +4,6 @@
 #include "udMath.h"
 #include "vcMath.h"
 
-enum vcCameraMoveMode
-{
-  vcCMM_Plane,
-  vcCMM_Helicopter,
-};
-
 enum vcCameraPivotMode
 {
   vcCPM_Tumble,
@@ -110,7 +104,7 @@ struct vcCameraSettings
   bool invertControllerX;
   bool invertControllerY;
   int lensIndex;
-  vcCameraMoveMode moveMode;
+  bool lockAltitude;
   vcCameraPivotMode cameraMouseBindings[3]; // bindings for camera settings
   vcCameraScrollWheelMode scrollWheelMode;
 
