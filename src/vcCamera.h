@@ -4,12 +4,6 @@
 #include "udMath.h"
 #include "vcMath.h"
 
-enum vcCameraMoveMode
-{
-  vcCMM_Plane,
-  vcCMM_Helicopter,
-};
-
 enum vcCameraPivotMode
 {
   vcCPM_Tumble,
@@ -27,7 +21,6 @@ enum vcCameraScrollWheelMode
 struct vcCamera
 {
   udDouble3 position;
-  udDouble3 positionInLongLat;
   udDouble3 eulerRotation;
 
   udRay<double> worldMouseRay;
@@ -47,6 +40,7 @@ struct vcCamera
 };
 
 struct vcState;
+class vcSceneItem;
 
 enum vcInputState
 {
@@ -95,6 +89,8 @@ struct vcCameraInput
   udDouble3 smoothTranslation;
   udDouble3 smoothRotation;
   double smoothOrthographicChange;
+
+  vcSceneItem *pAttachedToSceneItem; // This does nothing in the camera module but the scene item is allowed to override the camera if this variable is set
 };
 
 struct vcCameraSettings
@@ -108,7 +104,7 @@ struct vcCameraSettings
   bool invertControllerX;
   bool invertControllerY;
   int lensIndex;
-  vcCameraMoveMode moveMode;
+  bool lockAltitude;
   vcCameraPivotMode cameraMouseBindings[3]; // bindings for camera settings
   vcCameraScrollWheelMode scrollWheelMode;
 

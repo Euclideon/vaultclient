@@ -76,6 +76,7 @@ public:
 
   void HandleImGui(vcState *pProgramState, size_t *pItemID);
   void HandleContextMenu(vcState *pProgramState);
+  void HandleAttachmentUI(vcState *pProgramState);
 
   void Cleanup(vcState *pProgramState);
   void ChangeProjection(const udGeoZone &newZone);

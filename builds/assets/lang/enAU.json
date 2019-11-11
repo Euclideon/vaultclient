@@ -6,7 +6,7 @@
     "englishname": "Australian English",
     "translationby": "Euclideon Pty Ltd",
     "contactemail": "support@euclideon.com",
-    "targetVersion": "0.4.0"
+    "targetVersion": "0.4.1"
   },
 
   "loginButton": "Login",
@@ -350,6 +350,9 @@
   "sceneAddFilterCylinder": "Add Cylinder Filter",
   "sceneResetRotation": "Reset Camera Rotation",
 
+  "sceneCameraAttachmentWarning": "The camera is currently attached to '{0}'",
+  "sceneCameraAttachmentDetach": "Detach",
+
   "sceneLockAltitude": "Lock Altitude",
   "sceneLockAltitudeKey": "Space",
   "sceneCameraInfo": "Show Camera Information",
@@ -460,6 +463,7 @@
   "scenePOIAttachModelURI": "URL",
   "scenePOIAttachModelFailed": "Failed to load model",
   "scenePOIAttachmentSpeed": "Attached Model Speed",
+  "scenePOIAttachCameraToAttachment": "Link camera to attachment",
 
   "scenePOILineSettings": "Line Settings",
   "scenePOILineShowLength": "Show Length",
@@ -503,6 +507,7 @@
   "liveFeedTween": "Enable Tweening / Position Smoothing",
   "liveFeedDiagInfo": "Total Cached Items: {0}\nCurrently displaying {1} items.\nNext Update in {2} seconds.",
   "liveFeedGroupID": "Group ID",
+  "liveFeedLODModifier": "LOD Distance Modifier",
 
   "polyModelInvertFaces": "Flip Faces",
   "polyModelMesh": "Mesh",

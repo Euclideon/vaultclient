@@ -762,7 +762,6 @@ int main(int argc, char **args)
   vcWebFile_RegisterFileHandlers();
 
   // default values
-  programState.settings.camera.moveMode = vcCMM_Plane;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   // TODO: Query device and fill screen
   programState.sceneResolution.x = 1920;
@@ -777,6 +776,7 @@ int main(int argc, char **args)
 #endif
   vcCamera_Create(&programState.pCamera);
 
+  programState.settings.camera.lockAltitude = false;
   programState.settings.camera.moveSpeed = 3.f;
   programState.settings.camera.nearPlane = 0.5f;
   programState.settings.camera.farPlane = 10000.f;
@@ -965,6 +965,29 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   ImGuiIO &io = ImGui::GetIO();
   float bottomLeftOffset = 0.f;
 
+  if (pProgramState->cameraInput.pAttachedToSceneItem != nullptr)
+  {
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x / 2, windowPos.y), ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+    ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
+    ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
+
+    if (ImGui::Begin("exitAttachedModeWindow", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
+    {
+      const char *pStr = vcStringFormat(vcString::Get("sceneCameraAttachmentWarning"), pProgramState->cameraInput.pAttachedToSceneItem->m_pNode->pName);
+      ImGui::TextUnformatted(pStr);
+      udFree(pStr);
+
+      pProgramState->cameraInput.pAttachedToSceneItem->HandleAttachmentUI(pProgramState);
+
+      if (ImGui::Button(vcString::Get("sceneCameraAttachmentDetach"), ImVec2(-1, 0)))
+      {
+        pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
+      }
+    }
+
+    ImGui::End();
+  }
+
   if (pProgramState->settings.presentation.showProjectionInfo || pProgramState->settings.presentation.showAdvancedGIS)
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
@@ -1021,8 +1044,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     if (ImGui::Begin(vcString::Get("sceneCameraSettings"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
     {
       // Basic Settings
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneLockAltitude"), vcString::Get("sceneLockAltitudeKey"), vcMBBI_LockAltitude, vcMBBG_FirstItem, (pProgramState->settings.camera.moveMode == vcCMM_Helicopter)))
-        pProgramState->settings.camera.moveMode = (pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter;
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneLockAltitude"), vcString::Get("sceneLockAltitudeKey"), vcMBBI_LockAltitude, vcMBBG_FirstItem, pProgramState->settings.camera.lockAltitude))
+        pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneCameraInfo"), nullptr, vcMBBI_ShowCameraSettings, vcMBBG_SameGroup, pProgramState->settings.presentation.showCameraInfo))
         pProgramState->settings.presentation.showCameraInfo = !pProgramState->settings.presentation.showCameraInfo;
@@ -1618,15 +1641,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   // Can only assign longlat positions in projected space
   if (pProgramState->gis.isProjected)
-  {
     pProgramState->worldMousePosLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->worldMousePosCartesian, true);
-    pProgramState->pCamera->positionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->pCamera->position, true);
-  }
   else
-  {
     pProgramState->worldMousePosLongLat = pProgramState->worldMousePosCartesian;
-    pProgramState->pCamera->positionInLongLat = pProgramState->pCamera->position;
-  }
 
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 }
@@ -2223,7 +2240,9 @@ void vcRenderWindow(vcState *pProgramState)
 #if UDPLATFORM_WINDOWS
   if (io.KeyAlt && ImGui::IsKeyPressed(SDL_SCANCODE_F4))
     pProgramState->programComplete = true;
+#endif
 
+#if !UDPLATFORM_LINUX
   if (io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_M))
     vcCamera_SwapMapMode(pProgramState);
 #endif
@@ -2282,8 +2301,10 @@ void vcRenderWindow(vcState *pProgramState)
           vdkProjectNode *pNode;
           if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == vE_Success)
           {
+            udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->pCamera->position, true);
+
             if (pProgramState->gis.isProjected)
-              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&pProgramState->pCamera->positionInLongLat);
+              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&cameraPositionInLongLat);
 
             vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.x", pProgramState->pCamera->eulerRotation.x);
             vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", pProgramState->pCamera->eulerRotation.y);

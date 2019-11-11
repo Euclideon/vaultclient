@@ -162,6 +162,10 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
   if (m_attachment.pModel != nullptr)
   {
+    double remainingMovementThisFrame = m_attachment.moveSpeed * pProgramState->deltaTime;
+    udDouble3 startYPR = m_attachment.eulerAngles;
+    udDouble3 startPosDiff = pProgramState->pCamera->position - m_attachment.currentPos;
+
     // Move to first point if segment -1
     if (m_attachment.segmentIndex == -1)
     {
@@ -175,9 +179,6 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       m_attachment.segmentProgress = 1.0;
     }
 
-    double remainingMovementThisFrame = m_attachment.moveSpeed * pProgramState->deltaTime;
-    udDouble3 startYPR = m_attachment.eulerAngles;
-
     while (remainingMovementThisFrame > 0.01)
     {
       if (m_attachment.segmentProgress == 1.0)
@@ -187,7 +188,7 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
         if (m_attachment.segmentIndex >= m_line.numPoints)
         {
-          if (m_line.closed)
+          if (m_line.closed && m_line.numPoints > 1)
           {
             m_attachment.segmentIndex = 0;
           }
@@ -226,14 +227,22 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       }
     }
 
-    // Render the attachment if we know where it is
-    if (m_attachment.segmentIndex != -1)
-    { 
-      // Add to the scene
-      vcRenderPolyInstance *pModel = pRenderData->polyModels.PushBack();
-      pModel->pModel = m_attachment.pModel;
-      pModel->pSceneItem = this;
-      pModel->worldMat = udDouble4x4::rotationYPR(m_attachment.eulerAngles, m_attachment.currentPos);
+    udDouble4x4 attachmentMat = udDouble4x4::rotationYPR(m_attachment.eulerAngles, m_attachment.currentPos);
+
+    // Render the attachment
+    vcRenderPolyInstance *pModel = pRenderData->polyModels.PushBack();
+    pModel->pModel = m_attachment.pModel;
+    pModel->pSceneItem = this;
+    pModel->worldMat = attachmentMat;
+
+    // Update the camera if the camera is coming along
+    if (pProgramState->cameraInput.pAttachedToSceneItem == this)
+    {
+      udRay<double> rotRay = udRay<double>::create(startPosDiff, udDirectionFromYPR(pProgramState->pCamera->eulerRotation));
+      rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.z.toVector3(), m_attachment.eulerAngles.x - startYPR.x);
+      rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.x.toVector3(), m_attachment.eulerAngles.y - startYPR.y);
+      pProgramState->pCamera->position = m_attachment.currentPos + rotRay.position;
+      pProgramState->pCamera->eulerRotation = udDirectionToYPR(rotRay.direction);
     }
   }
 }
@@ -475,6 +484,9 @@ void vcPOI::HandleContextMenu(vcState *pProgramState)
       pProgramState->cameraInput.pObjectInfo = &m_line;
     }
 
+    if (m_attachment.pModel != nullptr && ImGui::MenuItem(vcString::Get("scenePOIAttachCameraToAttachment")))
+      pProgramState->cameraInput.pAttachedToSceneItem = this;
+
     if (ImGui::BeginMenu(vcString::Get("scenePOIAttachModel")))
     {
       static char uriBuffer[1024];
@@ -510,6 +522,21 @@ void vcPOI::HandleContextMenu(vcState *pProgramState)
       }
 
       ImGui::EndMenu();
+    }
+  }
+}
+
+void vcPOI::HandleAttachmentUI(vcState * /*pProgramState*/)
+{
+  if (m_attachment.pModel != nullptr)
+  {
+    const double minSpeed = 0.0;
+    const double maxSpeed = 1000.0;
+
+    if (ImGui::SliderScalar(vcString::Get("scenePOIAttachmentSpeed"), ImGuiDataType_Double, &m_attachment.moveSpeed, &minSpeed, &maxSpeed))
+    {
+      m_attachment.moveSpeed = udClamp(m_attachment.moveSpeed, minSpeed, maxSpeed);
+      vdkProjectNode_SetMetadataDouble(m_pNode, "attachmentSpeed", m_attachment.moveSpeed);
     }
   }
 }
@@ -550,7 +577,7 @@ void vcPOI::ChangeProjection(const udGeoZone &newZone)
   UpdatePoints();
 }
 
-void vcPOI::Cleanup(vcState * /*pProgramState*/)
+void vcPOI::Cleanup(vcState *pProgramState)
 {
   udFree(m_line.pPoints);
   udFree(m_pLabelText);
@@ -563,6 +590,9 @@ void vcPOI::Cleanup(vcState * /*pProgramState*/)
   m_lengthLabels.Deinit();
   vcFenceRenderer_Destroy(&m_pFence);
   udFree(m_pLabelInfo);
+
+  if (pProgramState->cameraInput.pAttachedToSceneItem == this)
+    pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
 }
 
 void vcPOI::SetCameraPosition(vcState *pProgramState)

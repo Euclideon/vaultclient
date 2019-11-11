@@ -131,7 +131,6 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
 
   pCamera->matrices.camera = vcCamera_GetMatrix(pCamera);
 
-
 #if GRAPHICS_API_OPENGL
   pCamera->matrices.projectionNear = udDouble4x4::perspectiveNO(fov, aspect, 0.5f, 10000.f);
 #else
@@ -239,11 +238,11 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     // Translation
     if (pCamSettings->cameraMode == vcCM_FreeRoam)
     {
-      if (pCamSettings->moveMode == vcCMM_Plane)
+      if (!pCamSettings->lockAltitude)
       {
         addPos = (udDouble4x4::rotationYPR(pCamera->eulerRotation) * udDouble4::create(addPos, 1)).toVector3();
       }
-      else if (pCamSettings->moveMode == vcCMM_Helicopter)
+      else // Lock Altitude
       {
         addPos = (udDouble4x4::rotationYPR(udDouble3::create(pCamera->eulerRotation.x, 0.0, 0.0)) * udDouble4::create(addPos, 1)).toVector3();
         addPos.z = 0.0; // might be unnecessary now
@@ -263,7 +262,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     // Panning - DPAD
     pCamInput->controllerDPADInput = (udDouble4x4::rotationYPR(pCamera->eulerRotation) * udDouble4::create(pCamInput->controllerDPADInput, 1)).toVector3();
 
-    if (pCamSettings->cameraMode == vcCM_OrthoMap || pCamSettings->moveMode == vcCMM_Helicopter)
+    if (pCamSettings->cameraMode == vcCM_OrthoMap || pCamSettings->lockAltitude)
       pCamInput->controllerDPADInput.z = 0.0;
 
     addPos += pCamInput->controllerDPADInput;
@@ -406,7 +405,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
           if (pCamera->eulerRotation.y > UD_PI)
             pCamera->eulerRotation.y -= UD_2PI;
 
-          if (pCamSettings->moveMode == vcCMM_Helicopter)
+          if (pCamSettings->lockAltitude)
             cam2Point.z = 0;
 
           pCamera->position += cam2Point * remainingMovementThisFrame;
@@ -424,7 +423,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     if (moveVector == udDouble3::zero())
       break;
 
-    if (pCamSettings->moveMode == vcCMM_Helicopter || pCamSettings->cameraMode == vcCM_OrthoMap)
+    if (pCamSettings->lockAltitude || pCamSettings->cameraMode == vcCM_OrthoMap)
       moveVector.z = 0;
 
     double length = udMag3(moveVector);
@@ -485,7 +484,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
     if (pCamSettings->cameraMode == vcCM_OrthoMap)
       plane.point.z = 0;
-    else if (pCamSettings->moveMode == vcCMM_Plane)
+    else if (!pCamSettings->lockAltitude) // generate a plane facing the camera
       plane.normal = udDoubleQuat::create(pCamera->eulerRotation).apply({ 0, 1, 0 });
 
     udDouble3 offset = udDouble3::create(0, 0, 0);
@@ -534,12 +533,9 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
 void vcCamera_SwapMapMode(vcState *pProgramState)
 {
-  if (pProgramState->cameraInput.transitioningToMapMode)
-    return;
-
   udDouble3 lookAtPosition = pProgramState->pCamera->position;
   double cameraHeight = pProgramState->pCamera->position.z;
-  if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
+  if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam && !pProgramState->cameraInput.transitioningToMapMode)
   {
     pProgramState->settings.camera.orthographicSize = udMax(1.0, pProgramState->pCamera->position.z / vcCamera_HeightToOrthoFOVRatios[pProgramState->settings.camera.lensIndex]);
 
@@ -562,7 +558,7 @@ void vcCamera_SwapMapMode(vcState *pProgramState)
     pProgramState->settings.camera.nearPlane = pProgramState->settings.camera.farPlane * vcSL_CameraFarToNearPlaneRatio;
   }
 
-  vcCamera_LookAt(pProgramState, lookAtPosition, 2.5);
+  vcCamera_LookAt(pProgramState, lookAtPosition);
 
   pProgramState->pCamera->position.z = cameraHeight;
 }
@@ -689,7 +685,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     if (io.NavInputs[ImGuiNavInput_Input] && !io.NavInputsDownDuration[ImGuiNavInput_Input]) // Y Button
       vcCamera_SwapMapMode(pProgramState);
     if (io.NavInputs[ImGuiNavInput_Activate] && !io.NavInputsDownDuration[ImGuiNavInput_Activate]) // A Button
-      pProgramState->settings.camera.moveMode = ((pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter);
+      pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
   }
 
   if (io.KeyCtrl)
@@ -705,15 +701,15 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     keyboardInput.z += io.KeysDown[SDL_SCANCODE_R] - io.KeysDown[SDL_SCANCODE_F];
 
     if (ImGui::IsKeyPressed(SDL_SCANCODE_SPACE, false))
-      pProgramState->settings.camera.moveMode = ((pProgramState->settings.camera.moveMode == vcCMM_Helicopter) ? vcCMM_Plane : vcCMM_Helicopter);
+      pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
     if (ImGui::IsKeyPressed(SDL_SCANCODE_B, false))
-      pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Translate ? vcGO_NoGizmo : vcGO_Translate;
+      pProgramState->gizmo.operation = ((pProgramState->gizmo.operation == vcGO_Translate) ? vcGO_NoGizmo : vcGO_Translate);
     if (ImGui::IsKeyPressed(SDL_SCANCODE_N, false))
-      pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Rotate ? vcGO_NoGizmo : vcGO_Rotate;
+      pProgramState->gizmo.operation = ((pProgramState->gizmo.operation == vcGO_Rotate) ? vcGO_NoGizmo : vcGO_Rotate);
     if (!io.KeyCtrl && ImGui::IsKeyPressed(SDL_SCANCODE_M, false))
-      pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Scale ? vcGO_NoGizmo : vcGO_Scale;
+      pProgramState->gizmo.operation = ((pProgramState->gizmo.operation == vcGO_Scale) ? vcGO_NoGizmo : vcGO_Scale);
     if (ImGui::IsKeyPressed(SDL_SCANCODE_L, false))
-      pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
+      pProgramState->gizmo.coordinateSystem = ((pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene);
 
   }
 

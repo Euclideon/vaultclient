@@ -171,6 +171,7 @@ out vec4 out_Colour;
 uniform sampler2D u_depth;
 uniform sampler2D u_shadowMapAtlas;
 
+// Should match CPU
 #define MAP_COUNT 3
 
 layout (std140) uniform u_params
@@ -181,6 +182,13 @@ layout (std140) uniform u_params
   vec4 u_notVisibleColour;
   vec4 u_nearFarPlane; // .zw unused
 };
+
+float linearizeDepth(float depth)
+{
+  float nearPlane = u_nearFarPlane.x;
+  float farPlane = u_nearFarPlane.y;
+  return (2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
+}
 
 void main()
 {
@@ -193,27 +201,31 @@ void main()
 
   vec3 sampleUV = vec3(0.0);
 
+  float bias = 0.000000425 * u_nearFarPlane.y;
+
   // unrolled loop
-  vec4 shadowMapClip0 = u_shadowMapVP[0] * vec4(fragEyePosition.xyz, 1.0);
-  shadowMapClip0 /= shadowMapClip0.w;
-  shadowMapClip0.xy = (shadowMapClip0.xy * vec2(0.5)) + vec2(0.5);
+  vec4 shadowMapCoord0 = u_shadowMapVP[0] * vec4(fragEyePosition.xyz, 1.0);
+  vec4 shadowMapCoord1 = u_shadowMapVP[1] * vec4(fragEyePosition.xyz, 1.0);
+  vec4 shadowMapCoord2 = u_shadowMapVP[2] * vec4(fragEyePosition.xyz, 1.0);
 
-  vec4 shadowMapClip1 = u_shadowMapVP[1] * vec4(fragEyePosition.xyz, 1.0);
-  shadowMapClip1 /= shadowMapClip1.w;
-  shadowMapClip1.xy = (shadowMapClip1.xy * vec2(0.5)) + vec2(0.5);
+  // bias z before w divide
+  shadowMapCoord0.z -= bias;
+  shadowMapCoord1.z -= bias;
+  shadowMapCoord2.z -= bias;
 
-  vec4 shadowMapClip2 = u_shadowMapVP[2] * vec4(fragEyePosition.xyz, 1.0);
-  shadowMapClip2 /= shadowMapClip2.w;
-  shadowMapClip2.xy = (shadowMapClip2.xy * vec2(0.5)) + vec2(0.5);
+  // note: z has no scale & biased because we are using a [0,1] depth projection matrix here
+  vec3 shadowMapClip0 = (shadowMapCoord0.xyz / shadowMapCoord0.w) * vec3(0.5, 0.5, 1.0) + vec3(0.5, 0.5, 0.0);
+  vec3 shadowMapClip1 = (shadowMapCoord1.xyz / shadowMapCoord1.w) * vec3(0.5, 0.5, 1.0) + vec3(0.5, 0.5, 0.0);
+  vec3 shadowMapClip2 = (shadowMapCoord2.xyz / shadowMapCoord2.w) * vec3(0.5, 0.5, 1.0) + vec3(0.5, 0.5, 0.0);
 
-  float isInMap0 = float(shadowMapClip0.x >= 0.0 && shadowMapClip0.x <= 1.0 && shadowMapClip0.y >= 0.0 && shadowMapClip0.y <= 1.0 && shadowMapClip0.z >= -1.0 && shadowMapClip0.z <= 1.0);
-  float isInMap1 = float(shadowMapClip1.x >= 0.0 && shadowMapClip1.x <= 1.0 && shadowMapClip1.y >= 0.0 && shadowMapClip1.y <= 1.0 && shadowMapClip1.z >= -1.0 && shadowMapClip1.z <= 1.0);
-  float isInMap2 = float(shadowMapClip2.x >= 0.0 && shadowMapClip2.x <= 1.0 && shadowMapClip2.y >= 0.0 && shadowMapClip2.y <= 1.0 && shadowMapClip2.z >= -1.0 && shadowMapClip2.z <= 1.0);
+  float isInMap0 = float(shadowMapClip0.x >= 0.0 && shadowMapClip0.x <= 1.0 && shadowMapClip0.y >= 0.0 && shadowMapClip0.y <= 1.0 && shadowMapClip0.z >= 0.0 && shadowMapClip0.z <= 1.0);
+  float isInMap1 = float(shadowMapClip1.x >= 0.0 && shadowMapClip1.x <= 1.0 && shadowMapClip1.y >= 0.0 && shadowMapClip1.y <= 1.0 && shadowMapClip1.z >= 0.0 && shadowMapClip1.z <= 1.0);
+  float isInMap2 = float(shadowMapClip2.x >= 0.0 && shadowMapClip2.x <= 1.0 && shadowMapClip2.y >= 0.0 && shadowMapClip2.y <= 1.0 && shadowMapClip2.z >= 0.0 && shadowMapClip2.z <= 1.0);
 
-  // note depth is left [-1, 1]
-  vec3 shadowMapUV0 = vec3((0.0 / float(MAP_COUNT)) + shadowMapClip0.x / float(MAP_COUNT), 1.0 - shadowMapClip0.y, shadowMapClip0.z);
-  vec3 shadowMapUV1 = vec3((1.0 / float(MAP_COUNT)) + shadowMapClip1.x / float(MAP_COUNT), 1.0 - shadowMapClip1.y, shadowMapClip1.z);
-  vec3 shadowMapUV2 = vec3((2.0 / float(MAP_COUNT)) + shadowMapClip2.x / float(MAP_COUNT), 1.0 - shadowMapClip2.y, shadowMapClip2.z);
+  // atlas UVs
+  vec3 shadowMapUV0 = vec3((0.0 / float(MAP_COUNT)) + shadowMapClip0.x / float(MAP_COUNT), shadowMapClip0.y, shadowMapClip0.z);
+  vec3 shadowMapUV1 = vec3((1.0 / float(MAP_COUNT)) + shadowMapClip1.x / float(MAP_COUNT), shadowMapClip1.y, shadowMapClip1.z);
+  vec3 shadowMapUV2 = vec3((2.0 / float(MAP_COUNT)) + shadowMapClip2.x / float(MAP_COUNT), shadowMapClip2.y, shadowMapClip2.z);
 
   sampleUV = mix(sampleUV, shadowMapUV0, isInMap0);
   sampleUV = mix(sampleUV, shadowMapUV1, isInMap1);
@@ -221,14 +233,9 @@ void main()
 
   if (length(sampleUV) > 0.0)
   {
-    // fragment is inside the view shed bounds
-    col = u_visibleColour;
-
     float shadowMapDepth = texture(u_shadowMapAtlas, sampleUV.xy).x;
-    
-    float bias = (u_nearFarPlane.y - u_nearFarPlane.x) * 0.00000003;
-    if (shadowMapDepth < sampleUV.z - bias)
-      col = u_notVisibleColour;
+    float diff = (0.2 * u_nearFarPlane.y) * (linearizeDepth(sampleUV.z) - linearizeDepth(shadowMapDepth));
+    col = mix(u_visibleColour, u_notVisibleColour, clamp(diff, 0.0, 1.0));
   }
 
   out_Colour = vec4(col.xyz * col.w, 1.0); //additive
@@ -251,7 +258,7 @@ void main()
 }
 )shader";
 
-const char* const g_udFragmentShader = FRAG_HEADER R"shader(
+const char *const g_udFragmentShader = FRAG_HEADER R"shader(
 //Input Format
 in vec2 v_texCoord;
 
@@ -280,7 +287,7 @@ R"shader(
 }
 )shader";
 
-const char* const g_udSplatIdFragmentShader = FRAG_HEADER R"shader(
+const char *const g_udSplatIdFragmentShader = FRAG_HEADER R"shader(
 //Input Format
 in vec2 v_texCoord;
 
@@ -313,7 +320,7 @@ void main()
 }
 )shader";
 
-const char* const g_udVertexShader = VERT_HEADER R"shader(
+const char *const g_udVertexShader = VERT_HEADER R"shader(
 //Input format
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_texCoord;
@@ -328,7 +335,7 @@ void main()
 }
 )shader";
 
-const char* const g_tileFragmentShader = FRAG_HEADER R"shader(
+const char *const g_tileFragmentShader = FRAG_HEADER R"shader(
 //Input Format
 in vec4 v_colour;
 in vec2 v_uv;
@@ -345,7 +352,7 @@ void main()
 }
 )shader";
 
-const char* const g_tileVertexShader = VERT_HEADER R"shader(
+const char *const g_tileVertexShader = VERT_HEADER R"shader(
 //Input format
 layout(location = 0) in vec3 a_uv;
 
@@ -375,7 +382,7 @@ void main()
 )shader";
 
 
-const char* const g_vcSkyboxVertexShader = VERT_HEADER R"shader(
+const char *const g_vcSkyboxVertexShader = VERT_HEADER R"shader(
 //Input format
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_texCoord;
@@ -390,7 +397,7 @@ void main()
 }
 )shader";
 
-const char* const g_vcSkyboxFragmentShaderPanarama = FRAG_HEADER R"shader(
+const char *const g_vcSkyboxFragmentShaderPanarama = FRAG_HEADER R"shader(
 uniform sampler2D u_texture;
 layout (std140) uniform u_EveryFrame
 {
@@ -423,7 +430,7 @@ void main()
 )shader";
 
 
-const char* const g_vcSkyboxFragmentShaderImageColour = FRAG_HEADER R"shader(
+const char *const g_vcSkyboxFragmentShaderImageColour = FRAG_HEADER R"shader(
 uniform sampler2D u_texture;
 layout (std140) uniform u_EveryFrame
 {
@@ -446,7 +453,7 @@ void main()
 )shader";
 
 
-const char* const g_CompassFragmentShader = FRAG_HEADER R"shader(
+const char *const g_CompassFragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec4 v_colour;
   in vec3 v_normal;
@@ -469,7 +476,7 @@ const char* const g_CompassFragmentShader = FRAG_HEADER R"shader(
   }
 )shader";
 
-const char* const g_CompassVertexShader = VERT_HEADER R"shader(
+const char *const g_CompassVertexShader = VERT_HEADER R"shader(
   //Input Format
   layout(location = 0) in vec3 a_pos;
   layout(location = 1) in vec3 a_normal;
@@ -499,7 +506,7 @@ const char* const g_CompassVertexShader = VERT_HEADER R"shader(
   }
 )shader";
 
-const char* const g_ImGuiVertexShader = VERT_HEADER R"shader(
+const char *const g_ImGuiVertexShader = VERT_HEADER R"shader(
 layout (std140) uniform u_EveryFrame
 {
   mat4 ProjMtx;
@@ -520,7 +527,7 @@ void main()
 }
 )shader";
 
-const char* const g_ImGuiFragmentShader = FRAG_HEADER R"shader(
+const char *const g_ImGuiFragmentShader = FRAG_HEADER R"shader(
 uniform sampler2D Texture;
 
 in vec2 Frag_UV;
@@ -534,7 +541,7 @@ void main()
 }
 )shader";
 
-const char* const g_FenceVertexShader = VERT_HEADER R"shader(
+const char *const g_FenceVertexShader = VERT_HEADER R"shader(
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_uv;
 layout(location = 2) in vec4 a_ribbonInfo; // xyz: expand vector; z: pair id (0 or 1)
@@ -574,7 +581,7 @@ void main()
 }
 )shader";
 
-const char* const g_FenceFragmentShader = FRAG_HEADER R"shader(
+const char *const g_FenceFragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec2 v_uv;
   in vec4 v_colour;
@@ -591,7 +598,7 @@ const char* const g_FenceFragmentShader = FRAG_HEADER R"shader(
   }
 )shader";
 
-const char* const g_WaterFragmentShader = FRAG_HEADER R"shader(
+const char *const g_WaterFragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec2 v_uv0;
   in vec2 v_uv1;
@@ -654,7 +661,7 @@ const char* const g_WaterFragmentShader = FRAG_HEADER R"shader(
   }
 )shader";
 
-const char* const g_WaterVertexShader = VERT_HEADER R"shader(
+const char *const g_WaterVertexShader = VERT_HEADER R"shader(
   layout(location = 0) in vec2 a_position;
 
   out vec2 v_uv0;
@@ -690,7 +697,7 @@ const char* const g_WaterVertexShader = VERT_HEADER R"shader(
   }
 )shader";
 
-const char* const g_PolygonP3N3UV2FragmentShader = FRAG_HEADER R"shader(
+const char *const g_PolygonP3N3UV2FragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec2 v_uv;
   in vec4 v_colour;
@@ -715,7 +722,7 @@ const char* const g_PolygonP3N3UV2FragmentShader = FRAG_HEADER R"shader(
   }
 )shader";
 
-const char* const g_PolygonP3N3UV2VertexShader = VERT_HEADER R"shader(
+const char *const g_PolygonP3N3UV2VertexShader = VERT_HEADER R"shader(
   //Input Format
   layout(location = 0) in vec3 a_pos;
   layout(location = 1) in vec3 a_normal;
@@ -816,7 +823,7 @@ const char *const g_ImageRendererBillboardVertexShader = VERT_HEADER R"shader(
   }
 )shader";
 
-const char* const g_FlatColour_FragmentShader = FRAG_HEADER R"shader(
+const char *const g_FlatColour_FragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec4 v_colour;
 
@@ -829,8 +836,17 @@ const char* const g_FlatColour_FragmentShader = FRAG_HEADER R"shader(
   }
 )shader";
 
+const char *const g_DepthOnly_FragmentShader = FRAG_HEADER R"shader(
+  //Output Format
+  out vec4 out_Colour;
 
-const char* const g_BlurVertexShader = VERT_HEADER R"shader(
+  void main()
+  {
+    out_Colour = vec4(0.0);
+  }
+)shader";
+
+const char *const g_BlurVertexShader = VERT_HEADER R"shader(
   //Input format
   layout(location = 0) in vec3 a_position;
   layout(location = 1) in vec2 a_texCoord;
@@ -858,7 +874,7 @@ const char* const g_BlurVertexShader = VERT_HEADER R"shader(
   }
 )shader";
 
-const char* const g_BlurFragmentShader = FRAG_HEADER R"shader(
+const char *const g_BlurFragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec2 v_uv0;
   in vec2 v_uv1;
@@ -886,7 +902,7 @@ const char* const g_BlurFragmentShader = FRAG_HEADER R"shader(
 
 )shader";
 
-const char* const g_HighlightVertexShader = VERT_HEADER R"shader(
+const char *const g_HighlightVertexShader = VERT_HEADER R"shader(
   //Input format
   layout(location = 0) in vec3 a_position;
   layout(location = 1) in vec2 a_texCoord;
@@ -918,7 +934,7 @@ const char* const g_HighlightVertexShader = VERT_HEADER R"shader(
   }
 )shader";
 
-const char* const g_HighlightFragmentShader = FRAG_HEADER R"shader(
+const char *const g_HighlightFragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec2 v_uv0;
   in vec2 v_uv1;

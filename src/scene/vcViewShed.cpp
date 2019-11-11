@@ -9,6 +9,9 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
+const double DistMin = 100.0;
+const double DistMax = 1500.0;
+
 vcViewShed::vcViewShed(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_position(udDouble3::zero()),
@@ -22,7 +25,7 @@ vcViewShed::vcViewShed(vdkProject *pProject, vdkProjectNode *pNode, vcState *pPr
 
 void vcViewShed::OnNodeUpdate(vcState *pProgramState)
 {
-  vdkProjectNode_GetMetadataDouble(m_pNode, "distance", &m_distance, 2500.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "distance", &m_distance, DistMax);
   vdkProjectNode_GetMetadataUint(m_pNode, "visibleColour", &m_visibleColour, 0x3F00FF00);
   vdkProjectNode_GetMetadataUint(m_pNode, "hiddenColour", &m_hiddenColour, 0x3FFF0000);
 
@@ -38,6 +41,7 @@ void vcViewShed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (m_selected)
   {
     vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
+    pInstance->affectsViewShed = false;
 
     udDouble3 linearDistance = (pProgramState->pCamera->position - m_position);
 
@@ -63,9 +67,6 @@ void vcViewShed::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 
 void vcViewShed::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
 {
-  const double DistMin = 100.0;
-  const double DistMax = 10000.0;
-
   if (ImGui::SliderScalarN(udTempStr("%s##viewShedHiddenColor%zu", vcString::Get("viewShedDistance"), *pItemID), ImGuiDataType_Double, &m_distance, 1, &DistMin, &DistMax))
     vdkProjectNode_SetMetadataDouble(m_pNode, "distance", m_distance);
 
