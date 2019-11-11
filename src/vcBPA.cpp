@@ -78,13 +78,12 @@ struct vcBPAGrid
     return grid;
   }
 
-  void Init(bool initPointBuffer = true)
+  void Init(vdkStandardAttributeContent standardContent)
   {
     vertices.Init(512);
     triangles.Init(512);
     edges.Init(512);
-    if (initPointBuffer)
-      vdkPointBufferF64_Create(&pBuffer, vdkSAC_ARGB, 1 << 20, nullptr, 0);
+    vdkPointBufferF64_Create(&pBuffer, standardContent, 1 << 20, nullptr, 0);
   }
 
   void Deinit()
@@ -159,9 +158,9 @@ void vcBPA_AddGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, udDouble3 ce
   }
 }
 
-void vcBPA_PopulateGrid(vdkContext *pContext, vdkPointCloud *pModel, udDouble3 aabbCenter, udDouble3 aabbExtents, vcBPAGrid *pGrid, bool *pHasPoints, bool *pHasNeighbours)
+void vcBPA_PopulateGrid(vdkContext *pContext, vdkPointCloud *pModel, vdkStandardAttributeContent standardContent, udDouble3 aabbCenter, udDouble3 aabbExtents, vcBPAGrid *pGrid, bool *pHasPoints, bool *pHasNeighbours)
 {
-  pGrid->Init();
+  pGrid->Init(standardContent);
 
   vdkQueryFilter *pFilter = nullptr;
   vdkQueryFilter_Create(&pFilter);
@@ -187,7 +186,7 @@ void vcBPA_PopulateGrid(vdkContext *pContext, vdkPointCloud *pModel, udDouble3 a
   }
 }
 
-bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vcBPAGrid **ppGrid, bool addOverlap)
+bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vdkStandardAttributeContent standardContent, vcBPAGrid **ppGrid, bool addOverlap)
 {
   for (size_t i = 0; i < pManifold->grids.length; ++i)
   {
@@ -204,7 +203,7 @@ bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vcBPAGrid **
 
     bool hasPoints = false;
     bool hasNeighbours = false;
-    vcBPA_PopulateGrid(pManifold->pContext, pModel, aabbCenter, aabbExtents, pManifold->grids.GetElement(i), &hasPoints, &hasNeighbours);
+    vcBPA_PopulateGrid(pManifold->pContext, pModel, standardContent, aabbCenter, aabbExtents, pManifold->grids.GetElement(i), &hasPoints, &hasNeighbours);
 
     if (!hasPoints && !pManifold->foundFirstGrid)
     {
@@ -785,6 +784,7 @@ struct vcBPAConvertItem
   vcBPAManifold *pManifold;
   vdkPointCloud *pOldModel;
   vdkPointCloud *pNewModel;
+  vdkStandardAttributeContent standardContent;
 
   udSafeDeque<vcBPAConvertItemData> *pQueueItems;
   udSafeDeque<vcBPAConvertItemData> *pConvertItemData;
@@ -809,7 +809,7 @@ void vcBPA_GridPopulationThread(void *pDataPtr)
 
   bool hasPoints = false;
   bool hasNeighbours = false;
-  vcBPA_PopulateGrid(itemData.pManifold->pContext, itemData.pOldModel, aabbCenter, aabbExtents, &itemData.oldGrid, &hasPoints, &hasNeighbours);
+  vcBPA_PopulateGrid(itemData.pManifold->pContext, itemData.pOldModel, vdkSAC_None, aabbCenter, aabbExtents, &itemData.oldGrid, &hasPoints, &hasNeighbours);
   vcBPA_DoGrid(&itemData.oldGrid, itemData.pManifold->ballRadius);
 
   udSafeDeque_PushBack(pData->pConvertItemData, itemData);
@@ -821,7 +821,7 @@ uint32_t vcBPA_GridGeneratorThread(void *pDataPtr)
 
   vcBPAGrid *pGrid = nullptr;
   int i = 0;
-  while (vcBPA_GetGrid(pData->pManifold, pData->pNewModel, &pGrid, false))
+  while (vcBPA_GetGrid(pData->pManifold, pData->pNewModel, pData->standardContent, &pGrid, false))
   {
     vcBPAConvertItemData data = {};
     data.pManifold = pData->pManifold;
@@ -867,6 +867,7 @@ vdkError vcBPA_ConvertOpen(vdkConvertCustomItem *pConvertInput, uint32_t everyNt
   vdkPointCloud_GetHeader(pData->pNewModel, &header);
   udDouble4x4 storedMatrix = udDouble4x4::create(header.storedMatrix);
   udDouble3 startAABBCenter = (storedMatrix * udDouble4::create(header.pivot[0], header.pivot[1], header.pivot[2], 1.0)).toVector3();
+  pData->standardContent = header.attributes.standardContent;
 
   udDouble3 halfGrid = udDouble3::create(pData->pManifold->gridSize / 2.0);
   pData->pManifold->grids.PushBack(vcBPAGrid::create(startAABBCenter, startAABBCenter - halfGrid, startAABBCenter + halfGrid));
@@ -886,7 +887,6 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
   vcBPAConvertItem *pData = (vcBPAConvertItem *)pConvertInput->pData;
   bool getNextGrid = true;
 
-  uint32_t colourOffset = 0;
   uint32_t displacementOffset = 0;
   vdkError error = vE_Failure;
 
@@ -897,7 +897,6 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
   if (pData->activeItem.pointIndex == 0 && pData->activeItem.pGrid == nullptr)
     goto epilogue;
 
-  vdkAttributeSet_GetOffsetOfStandardAttribute(&pBuffer->attributes, vdkSA_ARGB, &colourOffset);
   error = vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacement", &displacementOffset);
   if (error != vE_Success)
     return error;
@@ -921,17 +920,34 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
     // Position XYZ
     memcpy(&pBuffer->pPositions[pBuffer->pointCount * 3], &pData->activeItem.pGrid->pBuffer->pPositions[i * 3], sizeof(double) * 3);
 
-    // Colour
+    // Copy all of the original attributes
     ptrdiff_t pointAttrOffset = ptrdiff_t(pBuffer->pointCount) * pBuffer->attributeStride;
-    uint32_t *pColour = (uint32_t *)udAddBytes(pBuffer->pAttributes, pointAttrOffset + colourOffset);
-    uint32_t *pOldColour = (uint32_t *)udAddBytes(pData->activeItem.pGrid->pBuffer->pAttributes, i * pData->activeItem.pGrid->pBuffer->attributeStride);
-    *pColour = *pOldColour;
+    for (uint32_t j = 0; j < pData->activeItem.pGrid->pBuffer->attributes.count; ++j)
+    {
+      vdkAttributeDescriptor &oldAttrDesc = pData->activeItem.pGrid->pBuffer->attributes.pDescriptors[j];
+      uint32_t attributeSize = (oldAttrDesc.typeInfo & (vdkAttributeTypeInfo_SizeMask << vdkAttributeTypeInfo_SizeShift));
+
+      // Get attribute old offset and pointer
+      uint32_t attrOldOffset = 0;
+      if (vdkAttributeSet_GetOffsetOfNamedAttribute(&pData->activeItem.pGrid->pBuffer->attributes, oldAttrDesc.name, &attrOldOffset) != vE_Success)
+        continue;
+
+      void *pOldAttr = udAddBytes(pData->activeItem.pGrid->pBuffer->pAttributes, i * pData->activeItem.pGrid->pBuffer->attributeStride + attrOldOffset);
+
+      // Get attribute new offset and pointer
+      uint32_t attrNewOffset = 0;
+      if (vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, oldAttrDesc.name, &attrNewOffset) != vE_Success)
+        continue;
+
+      void *pNewAttr = udAddBytes(pBuffer->pAttributes, pointAttrOffset + attrNewOffset);
+
+      // Copy attribute data
+      memcpy(pNewAttr, pOldAttr, attributeSize);
+    }
 
     // Displacement
     float *pDisplacement = (float*)udAddBytes(pBuffer->pAttributes, pointAttrOffset + displacementOffset);
     *pDisplacement = (float)distance;
-
-    // TODO: Copy all of the original attributes
 
     ++pBuffer->pointCount;
   }
@@ -988,7 +1004,7 @@ void vcBPA_CompareExport(vdkContext *pContext, vdkPointCloud *pOldModel, vdkPoin
   vdkConvertCustomItem item = {};
   item.pName = "DisplacementComparison";
 
-  vdkAttributeSet_Generate(&item.attributes, vdkSAC_ARGB, 1);
+  vdkAttributeSet_Generate(&item.attributes, header.attributes.standardContent, 1);
   item.attributes.pDescriptors[item.attributes.count].blendMode = vdkABM_SingleValue;
   item.attributes.pDescriptors[item.attributes.count].typeInfo = vdkAttributeTypeInfo_float32;
   udStrcpy(item.attributes.pDescriptors[item.attributes.count].name, "udDisplacement");
