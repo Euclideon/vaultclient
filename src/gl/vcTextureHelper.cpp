@@ -162,25 +162,21 @@ epilogue:
   return result;
 }
 
-#include <stdio.h>
-
-void vcTexture_ResizePixels(const void* pPixels, uint32_t width, uint32_t height, uint32_t maxDimensionSize, const void **ppResultPixels, uint32_t *pResultWidth, uint32_t *pResultHeight)
+udResult vcTexture_ResizePixels(const void* pPixels, uint32_t width, uint32_t height, uint32_t maxDimensionSize, const void **ppResultPixels, uint32_t *pResultWidth, uint32_t *pResultHeight)
 {
-  uint32_t maxSize = udMax(width, height);
-  int passes = 0;
-  //while ((maxSize >> passes) > maxDimensionSize)
-  //  ++passes;
-
+  udResult result;
+  uint32_t maxDimension = udMax(width, height);
+  int passCount = 0;
   const void* pLastPixels = pPixels;
   uint32_t lastWidth = width;
   uint32_t lastHeight = height;
 
-  //for (int i = 0; i < passes; ++i)
-  while ((maxSize >> passes) > maxDimensionSize)
+  while ((maxDimension >> passCount) > maxDimensionSize)
   {
     lastWidth >>= 1;
     lastHeight >>= 1;
     uint32_t* pDownsampledPixels = udAllocType(uint32_t, lastWidth * lastHeight, udAF_Zero);
+    UD_ERROR_NULL(pDownsampledPixels, udR_MemoryAllocationFailure);
 
     for (uint32_t y = 0; y < lastHeight; ++y)
     {
@@ -201,16 +197,18 @@ void vcTexture_ResizePixels(const void* pPixels, uint32_t width, uint32_t height
       }
     }
 
-    if (passes != 0)// && i != passes - 1)
+    if (passCount != 0)
       udFree(pLastPixels);
 
+    ++passCount;
     pLastPixels = pDownsampledPixels;
-    ++passes;
   }
 
-  //printf("%d x %d...passes=%d, %d x %d\n", width, height, passes, lastWidth, lastHeight);
-
+  result = udR_Success;
   *ppResultPixels = pLastPixels;
   *pResultWidth = lastWidth;
   *pResultHeight = lastHeight;
+
+epilogue:
+  return result;
 }

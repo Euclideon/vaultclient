@@ -46,6 +46,8 @@ struct vcPolygonModel
   udDouble4x4 modelOffset;
 
   bool finishedLoading;
+
+  // TODO before commit: state to indicate stop loading thread stuff
 };
 
 udResult vcPolygonModel_CreateShaders();
