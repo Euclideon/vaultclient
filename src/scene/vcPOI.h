@@ -49,6 +49,8 @@ private:
   vcLabelInfo *m_pLabelInfo;
   const char *m_pLabelText;
 
+  udWorkerPool* m_pWorkerPool;
+
   struct
   {
     vcPolygonModel *pModel;

@@ -104,20 +104,19 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
    //width = udMin(width, 4096u);
    //height = udMin(height, 4096u);
 
-  if (width > limitTextureSize || height > limitTextureSize)
-  {
-    const void* pResizedPixels = nullptr;
-    uint32_t resizedWidth = 0;
-    uint32_t resizedHeight = 0;
-
-    uint64_t start = udPerfCounterStart();
-    vcTexture_ResizePixels(pPixels, width, height, limitTextureSize, &pResizedPixels, &resizedWidth, &resizedHeight);
-    printf("Resize time: %fms\n", udPerfCounterMilliseconds(start));
-
-    pPixels = pResizedPixels;
-    width = resizedWidth;
-    height = resizedHeight;
-  }
+  udUnused(limitTextureSize);
+  //if (width > limitTextureSize || height > limitTextureSize)
+  //{
+  //  const void* pResizedPixels = nullptr;
+  //  uint32_t resizedWidth = 0;
+  //  uint32_t resizedHeight = 0;
+  //
+  //  vcTexture_ResizePixels(pPixels, width, height, limitTextureSize, &pResizedPixels, &resizedWidth, &resizedHeight);
+  //
+  //  pPixels = pResizedPixels;
+  //  width = resizedWidth;
+  //  height = resizedHeight;
+  //}
 
 
   //if (width < 8192 && height < 8192)
@@ -166,7 +165,9 @@ bool vcTexture_CreateFromMemory(vcTexture **ppTexture, void *pFileData, size_t f
   uint32_t width, height, channelCount;
   vcTexture *pTexture = nullptr;
 
+  //uint64_t startTime = udPerfCounterStart();
   uint8_t *pData = stbi_load_from_memory((stbi_uc *)pFileData, (int)fileLength, (int *)& width, (int *)& height, (int *)& channelCount, 4);
+  //printf("Decode time: %fms\n", udPerfCounterMilliseconds(startTime));
 
   if (pData)
     vcTexture_Create(&pTexture, width, height, pData, vcTextureFormat_RGBA8, filterMode, hasMipmaps, wrapMode, flags, aniFilter, limitTextureSize);

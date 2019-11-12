@@ -61,8 +61,6 @@ void vcPolyModelNode::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRen
   {
     if (m_pModel->finishedLoading)
       m_loadStatus = vcSLS_Loaded;
-    //else
-    //  return;
   }
 
   vcRenderPolyInstance *pModel = pRenderData->polyModels.PushBack();
