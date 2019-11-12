@@ -626,7 +626,7 @@ Modules are currently:
   - {0} the number of LOD layers in this model
 - `sceneModelResolution`: Label for metadata on resolution at time of conversion for this model
   - {0} the resolution of the model
-- `sceneModelAttributes: Label for metadata on number of attributes for this model
+- `sceneModelAttributes`: Label for metadata on number of attributes for this model
   - {0} number of attributes
 
 #### Point of Interest
@@ -742,8 +742,8 @@ Modules are currently:
 - `attributeTypeVec3F32`: label when the attribute is a 3x 32-bit floating point values (3D Vector)
 - `attributeTypeUnknown`: label when the attribute is an unknown format
 
-- `attributeBlending": Label when showing the attribute blending mode
+- `attributeBlending`: Label when showing the attribute blending mode
   - {0} one of the attributeBlendingX strings below
-- `attributeBlendingMean": Label when the value is averaged from the next highest resolution LOD layer
-- `attributeBlendingSingle": Label when the value is one of the points in the next highest resolution LOD layer
-- `attributeBlendingUnknown": Label when the blending is an unknown format
+- `attributeBlendingMean`: Label when the value is averaged from the next highest resolution LOD layer
+- `attributeBlendingSingle`: Label when the value is one of the points in the next highest resolution LOD layer
+- `attributeBlendingUnknown`: Label when the blending is an unknown format

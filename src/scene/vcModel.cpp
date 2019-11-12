@@ -306,61 +306,66 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
         switch (m_pointCloudHeader.attributes.pDescriptors[i].typeInfo)
         {
         case vdkAttributeTypeInfo_uint8:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint8")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint8"));
           break;
         case vdkAttributeTypeInfo_uint16:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint16")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint16"));
           break;
         case vdkAttributeTypeInfo_uint32:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint32")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint32"));
           break;
         case vdkAttributeTypeInfo_uint64:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint64")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint64"));
           break;
         case vdkAttributeTypeInfo_int8:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt8")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt8"));
           break;
         case vdkAttributeTypeInfo_int16:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt16")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt16"));
           break;
         case vdkAttributeTypeInfo_int32:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt32")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt32"));
           break;
         case vdkAttributeTypeInfo_int64:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt64")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt64"));
           break;
         case vdkAttributeTypeInfo_float32:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeFloat32")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeFloat32"));
           break;
         case vdkAttributeTypeInfo_float64:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeFloat64")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeFloat64"));
           break;
         case vdkAttributeTypeInfo_color32:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeColour")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeColour"));
           break;
         case vdkAttributeTypeInfo_normal32:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeNormal")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeNormal"));
           break;
         case vdkAttributeTypeInfo_vec3f32:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeVec3F32")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeVec3F32"));
           break;
         default:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUnknown")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUnknown"));
           break;
         }
+
+        ImGui::BulletText("%s", buffer);
 
         switch (m_pointCloudHeader.attributes.pDescriptors[i].blendMode)
         {
         case vdkABM_Mean:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeBlending"), vcString::Get("attributeBlendingMean")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeBlending"), vcString::Get("attributeBlendingMean"));
           break;
         case vdkABM_SingleValue:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeBlending"), vcString::Get("attributeBlendingSingle")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeBlending"), vcString::Get("attributeBlendingSingle"));
           break;
         default:
-          ImGui::BulletText(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeBlending"), vcString::Get("attributeBlendingUnknown")));
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeBlending"), vcString::Get("attributeBlendingUnknown"));
           break;
         }
+
+        ImGui::BulletText("%s", buffer);
+
         ImGui::Unindent();
       }
     }
