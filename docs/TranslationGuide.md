@@ -7,7 +7,7 @@
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
     - Scene Explorer
-      - `scenePOIAttachCameraToAttachment`, `liveFeedLODModifier`, `sceneModelMeterScale`, `sceneModelLODLayers`, `sceneModelResolution`, `sceneModelAttributes`
+      - `scenePOIAttachCameraToAttachment`, `liveFeedLODModifier`, `sceneModelMetreScale`, `sceneModelLODLayers`, `sceneModelResolution`, `sceneModelAttributes`
     - Other
       - `attributeType`, Lots of `attributeType*` strings, `attributeBlending`, `attributeBlendingMean`, `attributeBlendingSingle`, `attributeBlendingUnknown`
   - Changed:
@@ -620,7 +620,7 @@ Modules are currently:
 - `sceneModelPosition`: Label used for the model position
 - `sceneModelRotation`: Label used for the model rotation
 - `sceneModelScale`: Label used for the model scale
-- `sceneModelMeterScale`: Label for metadata on meter scale for this model (how many units per metric meter)
+- `sceneModelMetreScale`: Label for metadata on metre scale for this model (how many units per metric metre)
   - {0} the actual scale amount
 - `sceneModelLODLayers`: Label for metadata on number of LOD layers for this model
   - {0} the number of LOD layers in this model

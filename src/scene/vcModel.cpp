@@ -290,7 +290,7 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
   {
     char buffer[128];
 
-    ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("sceneModelMeterScale"), udTempStr("%.4f", m_pointCloudHeader.unitMeterScale)));
+    ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("sceneModelMetreScale"), udTempStr("%.4f", m_pointCloudHeader.unitMeterScale)));
     ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("sceneModelLODLayers"), udTempStr("%u", m_pointCloudHeader.totalLODLayers)));
     ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("sceneModelResolution"), udTempStr("%.4f", m_pointCloudHeader.convertedResolution)));
 

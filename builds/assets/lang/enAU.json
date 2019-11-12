@@ -404,7 +404,7 @@
   "sceneModelRotation": "Model Rotation",
   "sceneModelScale": "Model Scale",
 
-  "sceneModelMeterScale": "Meter Scale: {0}",
+  "sceneModelMetreScale": "Metre Scale: {0}",
   "sceneModelLODLayers": "LODs: {0}",
   "sceneModelResolution": "Resolution: {0}",
   "sceneModelAttributes": "Attributes ({0} total)",
