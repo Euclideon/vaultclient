@@ -110,7 +110,9 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
     uint32_t resizedWidth = 0;
     uint32_t resizedHeight = 0;
 
+    uint64_t start = udPerfCounterStart();
     vcTexture_ResizePixels(pPixels, width, height, limitTextureSize, &pResizedPixels, &resizedWidth, &resizedHeight);
+    printf("Resize time: %fms\n", udPerfCounterMilliseconds(start));
 
     pPixels = pResizedPixels;
     width = resizedWidth;
@@ -164,17 +166,10 @@ bool vcTexture_CreateFromMemory(vcTexture **ppTexture, void *pFileData, size_t f
   uint32_t width, height, channelCount;
   vcTexture *pTexture = nullptr;
 
-  static int totalSize = 0;
-  totalSize += (int)fileLength;
-
-  printf("Begin load: %zu...%d\n", fileLength, totalSize >> 20);
   uint8_t *pData = stbi_load_from_memory((stbi_uc *)pFileData, (int)fileLength, (int *)& width, (int *)& height, (int *)& channelCount, 4);
-  printf("End load, begin upload\n");
 
   if (pData)
     vcTexture_Create(&pTexture, width, height, pData, vcTextureFormat_RGBA8, filterMode, hasMipmaps, wrapMode, flags, aniFilter, limitTextureSize);
-
-  printf("End upload\n");
 
   stbi_image_free(pData);
 

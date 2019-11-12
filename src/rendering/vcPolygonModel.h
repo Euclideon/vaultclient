@@ -44,6 +44,8 @@ struct vcPolygonModel
 
   udDouble3 origin;
   udDouble4x4 modelOffset;
+
+  bool finishedLoading;
 };
 
 udResult vcPolygonModel_CreateShaders();

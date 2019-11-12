@@ -1,6 +1,6 @@
 project "vaultClient"
 	--Settings
-	kind "WindowedApp"
+	kind "ConsoleApp"
 
 	language "C++"
 	staticruntime "On"

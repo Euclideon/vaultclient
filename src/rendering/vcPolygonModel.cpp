@@ -262,8 +262,7 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
   udResult result;
   vcPolygonModel *pPolygonModel = nullptr;
   vcOBJ *pOBJReader = nullptr;
-
-  printf("Worker thread load OBJ\n");
+  uint64_t startTime = 0;
 
   const vcVertexLayoutTypes *pMeshLayout = vcP3N3UV2VertexLayout;
   const int totalTypes = (int)udLengthOf(vcP3N3UV2VertexLayout);
@@ -274,7 +273,9 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
   pPolygonModel = udAllocType(vcPolygonModel, 1, udAF_Zero);
   UD_ERROR_NULL(pPolygonModel, udR_MemoryAllocationFailure);
 
+  startTime = udPerfCounterStart();
   UD_ERROR_CHECK(vcOBJ_Load(&pOBJReader, pFilepath));
+  printf("Load took: %fms\n", udPerfCounterMilliseconds(startTime));
 
   if (pOBJReader->materials.length == 0)
   {
@@ -294,8 +295,6 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
 
   for (int material = 0; material < (int)pOBJReader->materials.length; ++material)
   {
-    printf("Doing material %d/%zu\n", material, pOBJReader->materials.length);
-
     vcOBJ::Material *pMaterial = &pOBJReader->materials[material];
     vcPolygonModelMesh *pMesh = &pPolygonModel->pMeshes[material];
 
@@ -353,33 +352,32 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
     if (pPolygonModel->pMeshes[0].materialID == vcPMST_Count)
       UD_ERROR_SET(udR_Unsupported);
 
-    //if (udStrlen(pMaterial->map_Kd) == 0)
-    //{
-    //  // no texture specified
-    //  //uint32_t whitePixel = 0xffffffff;
-    //  //UD_ERROR_CHECK(vcTexture_Create(&pMesh->material.pTexture, 1, 1, &whitePixel));
-    //}
-    //else
-    //{
-    //  const char *pTextureFilepath = udTempStr("%s%s", pOBJReader->basePath.GetPath(), pMaterial->map_Kd);
-    //  //if (pWorkerPool != nullptr)
-    //    vcTexture_AsyncCreateFromFilename(&pMesh->material.pTexture, pWorkerPool, pTextureFilepath, vcTFM_Linear, false, vcTWM_Repeat, 1024);
-    //  //else
-    //  //  vcTexture_CreateFromFilename(&pMesh->material.pTexture, pTextureFilepath);
-    //}
+    if (udStrlen(pMaterial->map_Kd) == 0)
+    {
+      // no texture specified
+      uint32_t whitePixel = 0xffffffff;
+      UD_ERROR_CHECK(vcTexture_AsyncCreate(&pMesh->material.pTexture, pWorkerPool, 1, 1, &whitePixel));
+    }
+    else
+    {
+      const char *pTextureFilepath = udTempStr("%s%s", pOBJReader->basePath.GetPath(), pMaterial->map_Kd);
+      //if (pWorkerPool != nullptr)
+        vcTexture_AsyncCreateFromFilename(&pMesh->material.pTexture, pWorkerPool, pTextureFilepath, vcTFM_Linear, false, vcTWM_Repeat, 1024);
+      //else
+      //  vcTexture_CreateFromFilename(&pMesh->material.pTexture, pTextureFilepath);
+    }
 
 
-    //vcPolygonModelLoadMeshData* pLoadInfo = udAllocType(vcPolygonModelLoadMeshData, 1, udAF_Zero);
-    //UD_ERROR_NULL(pLoadInfo, udR_MemoryAllocationFailure);
-    //
-    //pLoadInfo->pMesh = pMesh;
-    //pLoadInfo->pVerts = pVerts;
-    //
-    //UD_ERROR_CHECK(udWorkerPool_AddTask(pWorkerPool, nullptr, pLoadInfo, true, vcPolygonModel_LoadMesh));
+    vcPolygonModelLoadMeshData* pLoadInfo = udAllocType(vcPolygonModelLoadMeshData, 1, udAF_Zero);
+    UD_ERROR_NULL(pLoadInfo, udR_MemoryAllocationFailure);
+    
+    pLoadInfo->pMesh = pMesh;
+    pLoadInfo->pVerts = pVerts;
+    
+    UD_ERROR_CHECK(udWorkerPool_AddTask(pWorkerPool, nullptr, pLoadInfo, true, vcPolygonModel_LoadMesh));
 
     //UD_ERROR_CHECK(vcMesh_Create(&pMesh->pMesh, pMeshLayout, totalTypes, pVerts, pMesh->numVertices, nullptr, 0, vcMF_NoIndexBuffer));
-
-    udFree(pVerts);
+    //udFree(pVerts);
   }
 
   *ppPolygonModel = pPolygonModel;
@@ -461,11 +459,18 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
+  pModel->finishedLoading = true;
 
   for (int i = 0; i < pModel->meshCount; ++i)
   {
     vcPolygonModelMesh *pModelMesh = &pModel->pMeshes[i];
     vcPolygonModelShader *pPolygonShader = &gShaders[pModelMesh->materialID];
+
+    if (pModelMesh->pMesh == nullptr || pModelMesh->material.pTexture == nullptr)
+    {
+      pModel->finishedLoading = false;
+      continue;
+    }
 
     // conditionally override
     if (passType == vcPMP_ColourOnly)
