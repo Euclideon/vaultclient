@@ -262,7 +262,10 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
   udResult result;
   vcPolygonModel *pPolygonModel = nullptr;
   vcOBJ *pOBJReader = nullptr;
+  uint64_t startTime2 = 0;
   //uint64_t startTime = 0;
+
+  uint64_t startTime3 = udPerfCounterStart();
 
   const vcVertexLayoutTypes *pMeshLayout = vcP3N3UV2VertexLayout;
   const int totalTypes = (int)udLengthOf(vcP3N3UV2VertexLayout);
@@ -275,12 +278,12 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
   pPolygonModel = udAllocType(vcPolygonModel, 1, udAF_Zero);
   UD_ERROR_NULL(pPolygonModel, udR_MemoryAllocationFailure);
 
-  *ppPolygonModel = pPolygonModel;
-
   //startTime = udPerfCounterStart();
+  //printf("STart parse\n");
   UD_ERROR_CHECK(vcOBJ_Load(&pOBJReader, pFilepath));
   //printf("Load took: %fms\n", udPerfCounterMilliseconds(startTime));
 
+  //printf("end parse\n");
   if (pOBJReader->materials.length == 0)
   {
     vcOBJ::Material *pMat = pOBJReader->materials.PushBack();
@@ -296,7 +299,9 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
   // just pick the first vert as the origin
   pPolygonModel->origin = pOBJReader->positions[pOBJReader->faces[0].verts[0].pos];
   pPolygonModel->modelOffset = udDouble4x4::translation(pPolygonModel->origin);
+  *ppPolygonModel = pPolygonModel;
 
+  startTime2 = udPerfCounterStart();
   pCounts = udAllocType(udChunkedArray<vcOBJ::Face::Vert>, pOBJReader->materials.length, udAF_Zero);
   for (int i = 0; i < pOBJReader->materials.length; ++i)
     pCounts[i].Init(1 << 16);
@@ -312,12 +317,14 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
     pCounts[pFace->mat].PushBack(pFace->verts[2]);
   }
 
+  //printf("Initial parse took %fms\n", udPerfCounterMilliseconds(startTime2));
+
   for (int material = 0; material < (int)pOBJReader->materials.length; ++material)
   {
     vcOBJ::Material *pMaterial = &pOBJReader->materials[material];
     vcPolygonModelMesh *pMesh = &pPolygonModel->pMeshes[material];
 
-    uint64_t startTime = udPerfCounterStart();
+   // uint64_t startTime = udPerfCounterStart();
 
     //printf("Doing material %d/%zu...%zu\n", material, pOBJReader->materials.length, pOBJReader->faces.length);
 
@@ -387,7 +394,7 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
     
     UD_ERROR_CHECK(udWorkerPool_AddTask(pWorkerPool, nullptr, pLoadInfo, true, vcPolygonModel_LoadMesh));
 
-    printf("Done material %d, time=%fms\n", material, udPerfCounterMilliseconds(startTime));
+    //printf("Done material %d, faces=%zu, time=%fms\n", material, pVertList->length, udPerfCounterMilliseconds(startTime));
     //UD_ERROR_CHECK(vcMesh_Create(&pMesh->pMesh, pMeshLayout, totalTypes, pVerts, pMesh->numVertices, nullptr, 0, vcMF_NoIndexBuffer));
     //udFree(pVerts);
   }
@@ -401,6 +408,7 @@ epilogue:
     vcPolygonModel_Destroy(&pPolygonModel);
 
   vcOBJ_Destroy(&pOBJReader);
+  printf("Done: total time=%fms\n", udPerfCounterMilliseconds(startTime3));
   return result;
 }
 
