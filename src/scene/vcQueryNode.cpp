@@ -93,7 +93,7 @@ void vcQueryNode::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
     pInstance->worldMat = this->GetWorldSpaceMatrix();
     pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
-    pInstance->insideOut = true;
+    pInstance->cullFace = vcGLSCM_Front;
     pInstance->pSceneItem = this;
   }
 

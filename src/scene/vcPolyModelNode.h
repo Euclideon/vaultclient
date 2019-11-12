@@ -2,6 +2,7 @@
 #define vcPolyModelNode_h__
 
 #include "vcSceneItem.h"
+#include "gl/vcGLState.h"
 
 struct vcState;
 struct vcRenderData;
@@ -28,7 +29,7 @@ private:
   vcPolygonModel *m_pModel;
   udDouble4x4 m_matrix;
 
-  bool m_invert;
+  vcGLStateCullMode m_cullFace;
 };
 
 #endif //vcPolyModelNode_h__
