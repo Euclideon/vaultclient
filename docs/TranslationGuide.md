@@ -7,7 +7,9 @@
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
     - Scene Explorer
-      - `scenePOIAttachCameraToAttachment`, `liveFeedLODModifier`
+      - `scenePOIAttachCameraToAttachment`, `liveFeedLODModifier`, `sceneModelMetreScale`, `sceneModelLODLayers`, `sceneModelResolution`, `sceneModelAttributes`
+    - Other
+      - `attributeType`, Lots of `attributeType*` strings, `attributeBlending`, `attributeBlendingMean`, `attributeBlendingSingle`, `attributeBlendingUnknown`
   - Changed:
     - 
   - Removed:
@@ -618,6 +620,14 @@ Modules are currently:
 - `sceneModelPosition`: Label used for the model position
 - `sceneModelRotation`: Label used for the model rotation
 - `sceneModelScale`: Label used for the model scale
+- `sceneModelMetreScale`: Label for metadata on metre scale for this model (how many units per metric metre)
+  - {0} the actual scale amount
+- `sceneModelLODLayers`: Label for metadata on number of LOD layers for this model
+  - {0} the number of LOD layers in this model
+- `sceneModelResolution`: Label for metadata on resolution at time of conversion for this model
+  - {0} the resolution of the model
+- `sceneModelAttributes`: Label for metadata on number of attributes for this model
+  - {0} number of attributes
 
 #### Point of Interest
 - `scenePOIDefaultName`: Default name of new POI objects when they are added to the Scene Explorer
@@ -713,3 +723,27 @@ Modules are currently:
 - `viewShedDistance`: Label on slider to select view shed distance of effect
 - `viewShedVisibleColour`: Label on colour picker to select colour to highlight regions visible by the view shed
 - `viewShedHiddenColour`: Label on colour picker to select colour to highlight regions hidden from the view shed
+
+### Attributes
+- `attributeType`: Label when showing the attribute type
+  - {0} one of the attributeTypeX strings below
+- `attributeTypeUint8`: label when the attribute is a 8-bit unsigned integer
+- `attributeTypeUint16`: label when the attribute is a 16-bit unsigned integer
+- `attributeTypeUint32`: label when the attribute is a 32-bit unsigned integer
+- `attributeTypeUint64`: label when the attribute is a 64-bit unsigned integer
+- `attributeTypeInt8`: label when the attribute is a 8-bit signed integer
+- `attributeTypeInt16`: label when the attribute is a 16-bit signed integer
+- `attributeTypeInt32`: label when the attribute is a 32-bit signed integer
+- `attributeTypeInt64`: label when the attribute is a 64-bit signed integer
+- `attributeTypeFloat32`: label when the attribute is a 32-bit floating point value
+- `attributeTypeFloat64`: label when the attribute is a 64-bit floating point value
+- `attributeTypeColour`: label when the attribute is the special colour format
+- `attributeTypeNormal`: label when the attribute is a packed normal
+- `attributeTypeVec3F32`: label when the attribute is a 3x 32-bit floating point values (3D Vector)
+- `attributeTypeUnknown`: label when the attribute is an unknown format
+
+- `attributeBlending`: Label when showing the attribute blending mode
+  - {0} one of the attributeBlendingX strings below
+- `attributeBlendingMean`: Label when the value is averaged from the next highest resolution LOD layer
+- `attributeBlendingSingle`: Label when the value is one of the points in the next highest resolution LOD layer
+- `attributeBlendingUnknown`: Label when the blending is an unknown format
