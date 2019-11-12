@@ -251,7 +251,7 @@ void vcPolygonModel_LoadMesh(void* pData)
   const vcVertexLayoutTypes* pMeshLayout = vcP3N3UV2VertexLayout;
   const int totalTypes = (int)udLengthOf(vcP3N3UV2VertexLayout);
 
-  printf("Main thread loading mesh\n");
+ // printf("Main thread loading mesh\n");
   vcMesh_Create(&pD->pMesh->pMesh, pMeshLayout, totalTypes, pD->pVerts, pD->pMesh->numVertices, nullptr, 0, vcMF_NoIndexBuffer);
 
   udFree(pD->pVerts);
@@ -266,6 +266,8 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
 
   const vcVertexLayoutTypes *pMeshLayout = vcP3N3UV2VertexLayout;
   const int totalTypes = (int)udLengthOf(vcP3N3UV2VertexLayout);
+
+  udChunkedArray<vcOBJ::Face::Vert>* pCounts = nullptr;
 
   UD_ERROR_NULL(ppPolygonModel, udR_InvalidParameter_);
   UD_ERROR_NULL(pFilepath, udR_InvalidParameter_);
@@ -295,6 +297,21 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
   pPolygonModel->origin = pOBJReader->positions[pOBJReader->faces[0].verts[0].pos];
   pPolygonModel->modelOffset = udDouble4x4::translation(pPolygonModel->origin);
 
+  pCounts = udAllocType(udChunkedArray<vcOBJ::Face::Vert>, pOBJReader->materials.length, udAF_Zero);
+  for (int i = 0; i < pOBJReader->materials.length; ++i)
+    pCounts[i].Init(1 << 16);
+
+  for (uint32_t f = 0; f < pOBJReader->faces.length; ++f)
+  {
+    vcOBJ::Face* pFace = &pOBJReader->faces[f];
+    if (pFace->mat == -1)
+      continue;
+
+    pCounts[pFace->mat].PushBack(pFace->verts[0]);
+    pCounts[pFace->mat].PushBack(pFace->verts[1]);
+    pCounts[pFace->mat].PushBack(pFace->verts[2]);
+  }
+
   for (int material = 0; material < (int)pOBJReader->materials.length; ++material)
   {
     vcOBJ::Material *pMaterial = &pOBJReader->materials[material];
@@ -302,47 +319,48 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
 
     uint64_t startTime = udPerfCounterStart();
 
-    printf("Doing material %d/%zu...%zu\n", material, pOBJReader->materials.length, pOBJReader->faces.length);
+    //printf("Doing material %d/%zu...%zu\n", material, pOBJReader->materials.length, pOBJReader->faces.length);
 
     // brute force each materials vertex count
-    for (uint32_t f = 0; f < pOBJReader->faces.length; ++f)
-    {
-      vcOBJ::Face *pFace = &pOBJReader->faces[f];
-      if (pFace->mat != material && pFace->mat != -1)
-        continue;
+    //for (uint32_t f = 0; f < pOBJReader->faces.length; ++f)
+    //{
+    //  vcOBJ::Face *pFace = &pOBJReader->faces[f];
+    //  if (pFace->mat != material && pFace->mat != -1)
+    //    continue;
+    //
+    //  pMesh->numVertices += 3;
+    //}
+    udChunkedArray<vcOBJ::Face::Vert>* pVertList = &pCounts[material];
+    pMesh->numVertices = (uint32_t)pVertList->length;
 
-      pMesh->numVertices += 3;
-    }
+    if (pMesh->numVertices == 0)
+      continue; // TODO
 
     vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, pMesh->numVertices, udAF_Zero);
-    uint32_t currentVert = 0;
-    for (uint32_t f = 0; f < pOBJReader->faces.length; ++f)
+    for (uint32_t f = 0; f < pMesh->numVertices / 3; ++f)
     {
-      vcOBJ::Face *pFace = &pOBJReader->faces[f];
-      if (pFace->mat != material && pFace->mat != -1)
-        continue;
+      //vcOBJ::Face *pFace = &pOBJReader->faces[f];
+      //if (pFace->mat != material && pFace->mat != -1)
+      //  continue;
 
       for (int i = 0; i < 3; ++i)
       {
+        uint32_t index = i + f * 3;
+        vcOBJ::Face::Vert* pVertex = pVertList->GetElement(index);
         // store every position relative to model origin
-        pVerts[currentVert + i].position = udFloat3::create(pOBJReader->positions[pFace->verts[i].pos] - pPolygonModel->origin);
+        pVerts[index].position = udFloat3::create(pOBJReader->positions[pVertex->pos] - pPolygonModel->origin);
 
         // TODO: Better handle meshes with different vertex layouts
-        if (pFace->verts[i].nrm >= 0)
-          pVerts[currentVert + i].normal = udFloat3::create(pOBJReader->normals[pFace->verts[i].nrm]);
+        if (pVertex->nrm >= 0)
+          pVerts[index].normal = udFloat3::create(pOBJReader->normals[pVertex->nrm]);
         else
-          pVerts[currentVert + i].normal = udFloat3::create(0.0f, 0.0f, 1.0f);
+          pVerts[index].normal = udFloat3::create(0.0f, 0.0f, 1.0f);
 
         // NOTE: flipped y
-        if (pFace->verts[i].uv >= 0)
-          pVerts[currentVert + i].uv = udFloat2::create(pOBJReader->uvs[pFace->verts[i].uv].x, 1.0f - pOBJReader->uvs[pFace->verts[i].uv].y);
+        if (pVertex->uv >= 0)
+          pVerts[index].uv = udFloat2::create(pOBJReader->uvs[pVertex->uv].x, 1.0f - pOBJReader->uvs[pVertex->uv].y);
       }
-
-      currentVert += 3;
     }
-
-    if (currentVert == 0)
-      continue;
 
     // BGRA
     pMesh->material.colour = 0x000000ff | (uint32_t(pMaterial->Kd.x * 0xff) << 8) | (uint32_t(pMaterial->Kd.y * 0xff) << 16) | (uint32_t(pMaterial->Kd.z * 0xff) << 24);
@@ -422,9 +440,6 @@ udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL
     pLoadInfo->pPool = pWorkerPool;
 
     UD_ERROR_CHECK(udWorkerPool_AddTask(pWorkerPool, vcPolygonModel_AsyncLoadWorkerThreadWork, pLoadInfo, true));
-
-
-    //UD_ERROR_CHECK(vcPolygonModel_CreateFromOBJ(ppModel, pURL, nullptr));
   }
   else if (udStrEquali(fn.GetExt(), ".vsm"))
   {

@@ -36,11 +36,11 @@ void vcTexture_AsyncLoadWorkerThreadWork(void *pTextureLoadInfo)
 
   if (pLoadInfo->pFilename != nullptr)
   {
-    printf("Loading pixels from file: %s...\n", pLoadInfo->pFilename);
+   // printf("Loading pixels from file: %s...\n", pLoadInfo->pFilename);
     if (udFile_Load(pLoadInfo->pFilename, &pData, &dataLen) != udR_Success)
       pLoadInfo->loadedSuccess = false;
 
-    printf("Decoding pixels...\n");
+    //printf("Decoding pixels...\n");
     uint8_t* pPixels = stbi_load_from_memory((stbi_uc*)pData, (int)dataLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
 
     if (pPixels == nullptr)
@@ -62,7 +62,7 @@ void vcTexture_AsyncLoadWorkerThreadWork(void *pTextureLoadInfo)
     uint32_t resizedHeight = 0;
 
     vcTexture_ResizePixels(pLoadInfo->pPixels, pLoadInfo->width, pLoadInfo->height, pLoadInfo->limitTextureSize, &pResizedPixels, &resizedWidth, &resizedHeight);
-    printf("Resized from %dx%d to %dx%d...\n", pLoadInfo->width, pLoadInfo->height, resizedWidth, resizedHeight);
+   // printf("Resized from %dx%d to %dx%d...\n", pLoadInfo->width, pLoadInfo->height, resizedWidth, resizedHeight);
 
     udFree(pLoadInfo->pPixels);
 
@@ -208,7 +208,7 @@ void vcTexture_ResizePixels(const void* pPixels, uint32_t width, uint32_t height
     ++passes;
   }
 
-  printf("%d x %d...passes=%d, %d x %d\n", width, height, passes, lastWidth, lastHeight);
+  //printf("%d x %d...passes=%d, %d x %d\n", width, height, passes, lastWidth, lastHeight);
 
   *ppResultPixels = pLastPixels;
   *pResultWidth = lastWidth;
