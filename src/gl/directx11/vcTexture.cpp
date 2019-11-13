@@ -112,41 +112,29 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
     // Manually generate MaxMipLevels levels of mip maps
     if (hasMipmaps && !isRenderTarget)
     {
-      const void *pLastPixels = pPixels;
+      const void* pLastPixels = pPixels;
       uint32_t lastWidth = width;
       uint32_t lastHeight = height;
 
+      const void* pResizedPixels = nullptr;
+      uint32_t resizedWidth = 0;
+      uint32_t resizedHeight = 0;
+
       for (int i = 1; i < MaxMipLevels; ++i)
       {
-        lastWidth >>= 1;
-        lastHeight >>= 1;
-        uint32_t *pMippedPixels = udAllocType(uint32_t, lastWidth * lastHeight, udAF_Zero);
+        // Ignore any errors on resize, black is fine on failure
+        uint32_t targetSize = udMax(lastWidth, lastHeight) >> 1;
+        vcTexture_ResizePixels(pLastPixels, lastWidth, lastHeight, targetSize, &pResizedPixels, &resizedWidth, &resizedHeight);
+       
+        pLastPixels = pResizedPixels;
+        lastWidth = resizedWidth;
+        lastHeight = resizedHeight;
 
-        for (uint32_t y = 0; y < lastHeight; ++y)
-        {
-          for (uint32_t x = 0; x < lastWidth; ++x)
-          {
-            uint8_t r = 0, g = 0, b = 0, a = 0;
-
-            // 4x4 bilinear sampling
-            for (int s = 0; s < 4; ++s)
-            {
-              uint32_t sample = ((uint32_t *)pLastPixels)[(y * 2 + s / 2) * lastWidth * 2 + (x * 2 + s % 2)];
-              r += ((sample >> 0) & 0xff) >> 2;
-              g += ((sample >> 8) & 0xff) >> 2;
-              b += ((sample >> 16) & 0xff) >> 2;
-              a += ((sample >> 24) & 0xff) >> 2;
-            }
-            pMippedPixels[y * lastWidth + x] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
-          }
-        }
-
-        subResource[i].pSysMem = pMippedPixels;
+        subResource[i].pSysMem = pResizedPixels;
         subResource[i].SysMemPitch = lastWidth * pixelBytes;
         subResource[i].SysMemSlicePitch = 0;
-
-        pLastPixels = pMippedPixels;
       }
+
     }
   }
 
