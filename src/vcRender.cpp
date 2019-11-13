@@ -353,6 +353,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   result = udR_Success;
 
 epilogue:
+  vcTexture_Destroy(&pRenderContext->viewShedRenderingContext.pUDDepthTexture);
   vcTexture_Destroy(&pRenderContext->viewShedRenderingContext.pDepthTex);
   vcTexture_Destroy(&pRenderContext->viewShedRenderingContext.pDummyColour);
   vcFramebuffer_Destroy(&pRenderContext->viewShedRenderingContext.pFramebuffer);
@@ -816,16 +817,10 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
           if (!pInstance->affectsViewShed)
             continue;
 
-          if (pInstance->insideOut)
-            vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
-
           if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
             vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, viewProjection, vcPMP_Shadows);
           else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
             vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, viewProjection, shadowRenderCameras[r].position, ViewShedMapRes, nullptr, true);
-
-          if (pInstance->insideOut)
-            vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
         }
       }
     }
@@ -868,18 +863,15 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
     {
       vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
 
-      if (pInstance->insideOut)
-        vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
+      vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
         vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride);
       else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
         vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution);
-
-      if (pInstance->insideOut)
-        vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     }
 
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     vcSceneLayer_EndFrame();
 
     for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
@@ -991,21 +983,19 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
     vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
     if ((pInstance->sceneItemInternalId == 0 && pInstance->pSceneItem->m_selected) || (pInstance->sceneItemInternalId != 0 && pInstance->pSceneItem->IsSubitemSelected(pInstance->sceneItemInternalId)))
     {
-      if (pInstance->insideOut)
-        vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
+      vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
         vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &selectionMask);
       else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
         vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution, &selectionMask);
 
-      if (pInstance->insideOut)
-        vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
-
       active = true;
     }
 
   }
+
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 
   return active;
 }
@@ -1419,17 +1409,16 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
         vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
         udFloat4 idAsColour = vcRender_EncodeIdAsColour((uint32_t)(modelId++));
 
-        if (pInstance->insideOut)
-          vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
+        vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
         if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
           vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &idAsColour);
         else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
           vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution, &idAsColour);
 
-        if (pInstance->insideOut)
-          vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
       }
+
+      vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     }
 
     udUInt2 readLocation = { pRenderContext->picking.location.x, pRenderContext->picking.location.y };

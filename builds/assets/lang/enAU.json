@@ -514,7 +514,10 @@
   "liveFeedGroupID": "Group ID",
   "liveFeedLODModifier": "LOD Distance Modifier",
 
-  "polyModelInvertFaces": "Flip Faces",
+  "polyModelCullFace": "Face Culling",
+  "polyModelCullFaceBack": "Standard",
+  "polyModelCullFaceFront": "Inverted",
+  "polyModelCullFaceNone": "None",
   "polyModelMesh": "Mesh",
   "polyModelTexture": "Texture",
   "polyModelMatColour": "Material Colour",

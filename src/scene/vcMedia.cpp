@@ -217,19 +217,19 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         {
           pPoly->pModel = gInternalModels[vcInternalModelType_Sphere];
           pPoly->worldMat *= udDouble4x4::scaleUniform(worldScale);
-          pPoly->insideOut = true;
+          pPoly->cullFace = vcGLSCM_Front;
         }
         else if (m_image.type == vcIT_Panorama)
         {
           pPoly->pModel = gInternalModels[vcInternalModelType_Tube];
           pPoly->worldMat *= udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect * UD_PI);
-          pPoly->insideOut = true;
+          pPoly->cullFace = vcGLSCM_Front;
         }
         else if (m_image.type == vcIT_OrientedPhoto)
         {
           pPoly->pModel = gInternalModels[vcInternalModelType_Quad];
           pPoly->worldMat *= udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect) * udDouble4x4::rotationZ(UD_PI);
-          pPoly->insideOut = true;
+          pPoly->cullFace = vcGLSCM_Front;
         } // TODO: Billboards, this renders at the correct relative scale and everything, but looks odd when actually rendered into the scene
         /*else if (m_image.type == vcIT_StandardPhoto)
         {

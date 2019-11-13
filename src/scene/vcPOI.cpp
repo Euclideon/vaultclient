@@ -110,6 +110,16 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
       LoadAttachedModel(udTempStr("%s%s", pProgramState->activeProject.pRelativeBase, pTemp));
 
     vdkProjectNode_GetMetadataDouble(m_pNode, "attachmentSpeed", &m_attachment.moveSpeed, 16.667); //60km/hr
+
+    if (vdkProjectNode_GetMetadataString(m_pNode, "attachmentCulling", &pTemp, "back") == vE_Success)
+    {
+      if (udStrEquali(pTemp, "none"))
+        m_attachment.cullMode = vcGLSCM_None;
+      else if (udStrEquali(pTemp, "front"))
+        m_attachment.cullMode = vcGLSCM_Front;
+      else // Default to backface
+        m_attachment.cullMode = vcGLSCM_Back;
+    }
   }
 
   ChangeProjection(pProgramState->gis.zone);
@@ -234,6 +244,7 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     pModel->pModel = m_attachment.pModel;
     pModel->pSceneItem = this;
     pModel->worldMat = attachmentMat;
+    pModel->cullFace = m_attachment.cullMode;
 
     // Update the camera if the camera is coming along
     if (pProgramState->cameraInput.pAttachedToSceneItem == this)
@@ -468,6 +479,11 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       m_attachment.moveSpeed = udClamp(m_attachment.moveSpeed, minSpeed, maxSpeed);
       vdkProjectNode_SetMetadataDouble(m_pNode, "attachmentSpeed", m_attachment.moveSpeed);
     }
+
+    const char *uiStrings[] = { vcString::Get("polyModelCullFaceBack"), vcString::Get("polyModelCullFaceFront"), vcString::Get("polyModelCullFaceNone") };
+    const char *optStrings[] = { "back", "front", "none" };
+    if (ImGui::Combo(udTempStr("%s##%zu", vcString::Get("polyModelCullFace"), *pItemID), (int *)&m_attachment.cullMode, uiStrings, (int)udLengthOf(uiStrings)))
+      vdkProjectNode_SetMetadataString(m_pNode, "culling", optStrings[m_attachment.cullMode]);
   }
 }
 
