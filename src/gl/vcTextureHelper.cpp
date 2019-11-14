@@ -162,24 +162,23 @@ epilogue:
   return result;
 }
 
-udResult vcTexture_ResizePixels(const void* pPixels, uint32_t width, uint32_t height, uint32_t targetSize, const void** ppResultPixels, uint32_t* pResultWidth, uint32_t* pResultHeight)
+udResult vcTexture_ResizePixels(const void *pPixels, uint32_t width, uint32_t height, uint32_t targetSize, const void **ppResultPixels, uint32_t *pResultWidth, uint32_t *pResultHeight)
 {
   // TODO: Add ability to upscale
   udResult result;
 
-  const void* pLastPixels = pPixels;
+  const void *pLastPixels = pPixels;
   uint32_t lastWidth = width;
   uint32_t lastHeight = height;
-  int passCount = 0;
 
-  uint32_t currentSize = udMax(width, height);
-  UD_ERROR_IF(currentSize <= targetSize, udR_Failure_);
+  uint32_t totalPassCount = uint32_t(udLog2(float(udMax(width, height))) - udLog2(float(targetSize)));
+  UD_ERROR_IF(totalPassCount <= 0, udR_Failure_);
 
-  while ((currentSize >> passCount) > targetSize)
+  for (uint32_t p = 0; p < totalPassCount; ++p)
   {
     lastWidth >>= 1;
     lastHeight >>= 1;
-    uint32_t* pDownsampledPixels = udAllocType(uint32_t, lastWidth * lastHeight, udAF_Zero);
+    uint32_t *pDownsampledPixels = udAllocType(uint32_t, lastWidth * lastHeight, udAF_Zero);
     UD_ERROR_NULL(pDownsampledPixels, udR_MemoryAllocationFailure);
 
     for (uint32_t y = 0; y < lastHeight; ++y)
@@ -201,10 +200,9 @@ udResult vcTexture_ResizePixels(const void* pPixels, uint32_t width, uint32_t he
       }
     }
 
-    if (passCount != 0)
+    if (p != 0)
       udFree(pLastPixels);
 
-    ++passCount;
     pLastPixels = pDownsampledPixels;
   }
 

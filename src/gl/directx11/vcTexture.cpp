@@ -94,7 +94,7 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   // Upload texture to graphics system
   desc.Width = width;
   desc.Height = height;
-  desc.MipLevels = hasMipmaps ? MaxMipLevels : 1;
+  desc.MipLevels = 1;
   desc.ArraySize = 1;
   desc.Format = texFormat;
   desc.SampleDesc.Count = 1;
@@ -112,20 +112,20 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
     // Manually generate MaxMipLevels levels of mip maps
     if (hasMipmaps && !isRenderTarget)
     {
-      const void* pLastPixels = pPixels;
+      const void *pLastPixels = pPixels;
       uint32_t lastWidth = width;
       uint32_t lastHeight = height;
 
-      const void* pResizedPixels = nullptr;
+      const void *pResizedPixels = nullptr;
       uint32_t resizedWidth = 0;
       uint32_t resizedHeight = 0;
 
       for (int i = 1; i < MaxMipLevels; ++i)
       {
-        // Ignore any errors on resize, black is fine on failure
         uint32_t targetSize = udMax(lastWidth, lastHeight) >> 1;
-        vcTexture_ResizePixels(pLastPixels, lastWidth, lastHeight, targetSize, &pResizedPixels, &resizedWidth, &resizedHeight);
-       
+        if (vcTexture_ResizePixels(pLastPixels, lastWidth, lastHeight, targetSize, &pResizedPixels, &resizedWidth, &resizedHeight) != udR_Success)
+          break;
+
         pLastPixels = pResizedPixels;
         lastWidth = resizedWidth;
         lastHeight = resizedHeight;
@@ -133,6 +133,8 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
         subResource[i].pSysMem = pResizedPixels;
         subResource[i].SysMemPitch = lastWidth * pixelBytes;
         subResource[i].SysMemSlicePitch = 0;
+
+        ++desc.MipLevels;
       }
 
     }
@@ -143,7 +145,7 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   // Free mip map memory
   if (hasMipmaps && pPixels && !isRenderTarget)
   {
-    for (int i = 1; i < MaxMipLevels; ++i)
+    for (unsigned int i = 1; i < desc.MipLevels; ++i)
     {
       udFree(subResource[i].pSysMem);
     }
