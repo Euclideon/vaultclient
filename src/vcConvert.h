@@ -75,6 +75,7 @@ void vcConvert_Deinit(vcState *pProgramState);
 
 void vcConvert_ShowUI(vcState *pProgramState);
 
+void vcConvert_AddEmptyJob(vcState *pProgramState, vcConvertItem **ppNextItem);
 void vcConvert_QueueFile(vcState *pProgramState, const char *pFilename);
 void vcConvert_RemoveJob(vcState *pProgramState, size_t index);
 
