@@ -17,14 +17,13 @@
 #include "vcProject.h"
 
 #include "vdkError.h"
+#include "vdkContext.h"
 
 #include "imgui_ex/ImGuizmo.h"
 
 #include <vector>
 
 struct SDL_Window;
-
-struct vdkContext;
 
 struct vcFramebuffer;
 struct vcRenderContext;
@@ -90,7 +89,6 @@ struct vcState
   udUInt2 sceneResolution;
 
   vcGISSpace gis;
-  char username[64];
 
   vcTexture *pCompanyLogo;
   vcTexture *pCompanyWatermark;
@@ -111,11 +109,12 @@ struct vcState
   vcCameraInput cameraInput;
 
   bool finishedStartup;
-  bool hasContext;
   bool forceLogout;
-  double lastServerAttempt;
-  double lastServerResponse;
+
+  bool hasContext;
+  vdkSessionInfo vdkSessionInfo;
   vdkContext *pVDKContext;
+
   vcRenderContext *pRenderContext;
   vcConvertContext *pConvertContext;
 

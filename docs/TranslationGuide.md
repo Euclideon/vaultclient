@@ -15,7 +15,7 @@
   - Changed:
     - 
   - Removed:
-    - `polyModelInvertFaces`
+    - `polyModelInvertFaces`, `menuBarConnectionStatus`
 
 - Version 0.4.0
   - Added:
@@ -493,7 +493,6 @@ Modules are currently:
 - `menuBarConvert`: Used to display the status of the convert license
 - `menuBarLicense`: Used to display that the menu bar is showing the status of the convert or render licenses
 - `menuBarRender`: Used to display the status of the render license
-- `menuBarConnectionStatus`: Used to display the current connection status between vault client and the server
 - `menuBarFPS`: Displays vault client's current framerate in both frames per second (fps) and milliseconds (ms)
   - {0} = framerate in frames/s
   - {1} = framerate in ms/frame

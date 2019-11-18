@@ -100,8 +100,7 @@ int SDL_main(int argc, char **args)
     printf("%s\n", "Memory leaks in VDK found");
 
     // You've hit this because you've introduced a memory leak!
-    // If you need help, defines {"__MEMORY_DEBUG__"} in the premake5.lua just before:
-    // if _OPTIONS["force-vaultsdk"] then
+    // If you need help, uncomment `defines {"__MEMORY_DEBUG__"}` in the premake5.lua
     // This will emit filenames of what is leaking to assist in tracking down what's leaking.
     // Additionally, you can set _CrtSetBreakAlloc(<allocationNumber>);
     // inside vdkConfig_TrackMemoryEnd().
@@ -118,8 +117,7 @@ int SDL_main(int argc, char **args)
     printf("%s\n", "Memory leaks found");
 
     // You've hit this because you've introduced a memory leak!
-    // If you need help, defines {"__MEMORY_DEBUG__"} in the premake5.lua just before:
-    // if _OPTIONS["force-vaultsdk"] then
+    // If you need help, uncomment `defines {"__MEMORY_DEBUG__"}` in the premake5.lua
     // This will emit filenames of what is leaking to assist in tracking down what's leaking.
     // Additionally, you can set _CrtSetBreakAlloc(<allocationNumber>);
     // back up where the initial checkpoint is made.
@@ -293,6 +291,10 @@ void vcMain_MainLoop(vcState *pProgramState)
 
   vcGizmo_BeginFrame();
   vcGLState_ResetState(true);
+
+  vcGLState_SetViewport(0, 0, pProgramState->settings.window.width, pProgramState->settings.window.height);
+  vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer, vcFramebufferClearOperation_All, 0xFF000000);
+
   if (pProgramState->finishedStartup)
     vcRenderWindow(pProgramState);
   else
@@ -307,6 +309,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 #endif
 
   ImGui::UpdatePlatformWindows();
+  ImGui::RenderPlatformWindowsDefault();
 
   vcGLState_Present(pProgramState->pWindow);
 
@@ -321,7 +324,7 @@ void vcMain_MainLoop(vcState *pProgramState)
   ImGuiIO &io = ImGui::GetIO();
   io.KeysDown[SDL_SCANCODE_BACKSPACE] = false;
 
-  if (pProgramState->hasContext)
+  if (pProgramState->finishedStartup && pProgramState->hasContext)
   {
     bool firstLoad = true;
 
@@ -572,11 +575,8 @@ void vcMain_MainLoop(vcState *pProgramState)
     }
 
     // Ping the server every 30 seconds
-    if (udGetEpochSecsUTCf() > pProgramState->lastServerAttempt + 30.0)
-    {
-      pProgramState->lastServerAttempt = udGetEpochSecsUTCf();
+    if (pProgramState->hasContext && udGetEpochSecsUTCf() > pProgramState->vdkSessionInfo.expiresTimestamp - 300)
       udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
-    }
 
     if (pProgramState->forceLogout)
     {
@@ -729,6 +729,12 @@ void vcMain_AsyncLoad(vcState *pProgramState, const char *pFilename, udWorkerPoo
   pInfo->pFilename = udStrdup(pFilename);
   pInfo->pProgramState = pProgramState;
   udWorkerPool_AddTask(pProgramState->pWorkerPool, vcMain_AsyncLoadWT, pInfo, true, mainThreadFn);
+}
+
+void vcMain_AsyncResumeSession(void *pProgramStatePtr)
+{
+  vcState *pProgramState = (vcState *)pProgramStatePtr;
+  vcSession_Resume(pProgramState);
 }
 
 int main(int argc, char **args)
@@ -902,6 +908,8 @@ int main(int argc, char **args)
   vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
 
   vcTexture_CreateFromMemory(&programState.pCompanyWatermark, (void *)logoData, logoDataSize);
+
+  udWorkerPool_AddTask(programState.pWorkerPool, vcMain_AsyncResumeSession, &programState, false);
 
 #if UDPLATFORM_EMSCRIPTEN
   emscripten_set_main_loop_arg(vcMain_MainLoop, &programState, 0, 1);
@@ -1655,34 +1663,18 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
   int64_t currentTime = udGetEpochSecsUTCd();
   float xPosition = ImGui::GetContentRegionMax().x - 20.f;
 
+  vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->vdkSessionInfo);
+
   char tempData[128] = {};
-
-  // Connection status indicator
-  {
-    ImGui::SameLine(xPosition);
-    if (pProgramState->lastServerResponse + 30 > currentTime)
-      ImGui::TextColored(ImVec4(0.f, 1.f, 0.f, 1.f), "\xE2\x97\x8F");
-    else if (pProgramState->lastServerResponse + 60 > currentTime)
-      ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x97\x8F");
-    else
-      ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x97\x8F");
-
-    if (ImGui::IsItemHovered())
-    {
-      ImGui::BeginTooltip();
-      ImGui::TextUnformatted(vcString::Get("menuBarConnectionStatus"));
-      ImGui::EndTooltip();
-    }
-
-    xPosition -= 5.f;
-  }
 
   // Username
   {
-    xPosition -= ImGui::CalcTextSize(pProgramState->username).x;
+    const char *pTemp = udTempStr("%s (%.3f)", pProgramState->vdkSessionInfo.displayName, pProgramState->vdkSessionInfo.expiresTimestamp - udGetEpochSecsUTCf());
 
+    xPosition -= ImGui::CalcTextSize(pTemp).x;
+    
     ImGui::SameLine(xPosition);
-    ImGui::TextUnformatted(pProgramState->username);
+    ImGui::TextUnformatted(pTemp);
   }
 
   // Load List
@@ -2216,13 +2208,8 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
 
 void vcRenderWindow(vcState *pProgramState)
 {
-  vcGLState_SetViewport(0, 0, pProgramState->settings.window.width, pProgramState->settings.window.height);
-  vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer, vcFramebufferClearOperation_All, 0xFF000000);
-  
   ImGuiIO &io = ImGui::GetIO(); // for future key commands as well
   ImVec2 size = io.DisplaySize;
-
-  ImGui::RenderPlatformWindowsDefault();
 
   if (pProgramState->settings.responsiveUI == vcPM_Responsive)
   {

@@ -245,6 +245,9 @@ solution "vaultClient"
 			defines { "GIT_TAG=" .. os.getenv("BUILD_BUILDNUMBER") }
 		end
 	end
+	
+	-- Uncomment this to help with finding memory leaks
+	--defines {"__MEMORY_DEBUG__"}
 
 	if _OPTIONS["force-vaultsdk"] then
 		projectSuffix = "VDK"
