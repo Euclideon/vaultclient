@@ -94,7 +94,7 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   // Upload texture to graphics system
   desc.Width = width;
   desc.Height = height;
-  desc.MipLevels = hasMipmaps ? MaxMipLevels : 1;
+  desc.MipLevels = 1;
   desc.ArraySize = 1;
   desc.Format = texFormat;
   desc.SampleDesc.Count = 1;
@@ -116,37 +116,27 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
       uint32_t lastWidth = width;
       uint32_t lastHeight = height;
 
+      const void *pResizedPixels = nullptr;
+      uint32_t resizedWidth = 0;
+      uint32_t resizedHeight = 0;
+
       for (int i = 1; i < MaxMipLevels; ++i)
       {
-        lastWidth >>= 1;
-        lastHeight >>= 1;
-        uint32_t *pMippedPixels = udAllocType(uint32_t, lastWidth * lastHeight, udAF_Zero);
+        uint32_t targetSize = udMax(lastWidth, lastHeight) >> 1;
+        if (vcTexture_ResizePixels(pLastPixels, lastWidth, lastHeight, targetSize, &pResizedPixels, &resizedWidth, &resizedHeight) != udR_Success)
+          break;
 
-        for (uint32_t y = 0; y < lastHeight; ++y)
-        {
-          for (uint32_t x = 0; x < lastWidth; ++x)
-          {
-            uint8_t r = 0, g = 0, b = 0, a = 0;
+        pLastPixels = pResizedPixels;
+        lastWidth = resizedWidth;
+        lastHeight = resizedHeight;
 
-            // 4x4 bilinear sampling
-            for (int s = 0; s < 4; ++s)
-            {
-              uint32_t sample = ((uint32_t *)pLastPixels)[(y * 2 + s / 2) * lastWidth * 2 + (x * 2 + s % 2)];
-              r += ((sample >> 0) & 0xff) >> 2;
-              g += ((sample >> 8) & 0xff) >> 2;
-              b += ((sample >> 16) & 0xff) >> 2;
-              a += ((sample >> 24) & 0xff) >> 2;
-            }
-            pMippedPixels[y * lastWidth + x] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
-          }
-        }
-
-        subResource[i].pSysMem = pMippedPixels;
+        subResource[i].pSysMem = pResizedPixels;
         subResource[i].SysMemPitch = lastWidth * pixelBytes;
         subResource[i].SysMemSlicePitch = 0;
 
-        pLastPixels = pMippedPixels;
+        ++desc.MipLevels;
       }
+
     }
   }
 
@@ -155,7 +145,7 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   // Free mip map memory
   if (hasMipmaps && pPixels && !isRenderTarget)
   {
-    for (int i = 1; i < MaxMipLevels; ++i)
+    for (unsigned int i = 1; i < desc.MipLevels; ++i)
     {
       udFree(subResource[i].pSysMem);
     }
