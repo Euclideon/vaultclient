@@ -31,7 +31,7 @@ public:
 
   struct vcModelCompareData
   {
-    vdkContext *pContext;
+    vcState *pProgramState;
     vcModel *pOldModel;
     vcModel *pNewModel;
     double ballRadius;

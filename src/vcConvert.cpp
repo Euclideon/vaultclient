@@ -31,7 +31,7 @@ const char *statusNames[] =
   "convertFailed",
 };
 
-void vcConvert_ResetConvert(vcState *pProgramState, vcConvertItem *pConvertItem, vdkConvertItemInfo *pItemInfo);
+void vcConvert_ResetConvert(vcConvertItem *pConvertItem);
 void vcConvert_ProcessFile(vcState *pProgramState, vcConvertItem *pJob);
 
 UDCOMPILEASSERT(udLengthOf(statusNames) == vcCQS_Count, "Not Enough Status Names");
@@ -410,7 +410,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
         if (ImGui::Button(vcString::Get("convertBeginConvert"), ImVec2(-1, 40)))
         {
           if (pSelectedJob->status == vcCQS_Cancelled)
-            vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
+            vcConvert_ResetConvert(pSelectedJob);
           pSelectedJob->status = vcCQS_Queued;
           udIncrementSemaphore(pProgramState->pConvertContext->pConversionSemaphore);
         }
@@ -448,7 +448,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
       ImGui::SameLine();
 
       if (ImGui::Button(vcString::Get("convertReset"), ImVec2(-1, 40)))
-        vcConvert_ResetConvert(pProgramState, pSelectedJob, &itemInfo);
+        vcConvert_ResetConvert(pSelectedJob);
     }
     else if (pSelectedJob->status == vcCQS_Running)
     {
@@ -928,47 +928,8 @@ void vcConvert_QueueFile(vcState *pProgramState, const char *pFilename)
   }
 }
 
-void vcConvert_ResetConvert(vcState *pProgramState, vcConvertItem *pConvertItem, vdkConvertItemInfo *pItemInfo)
+void vcConvert_ResetConvert(vcConvertItem *pConvertItem)
 {
-  vdkConvertContext *pConvertContext = nullptr;
-  const vdkConvertInfo *pConvertInfo = nullptr;
-  vdkConvert_CreateContext(pProgramState->pVDKContext, &pConvertContext);
-  vdkConvert_GetInfo(pConvertContext, &pConvertInfo);
-
-  for (size_t i = 0; i < pConvertItem->pConvertInfo->totalItems; i++)
-  {
-    vdkConvert_GetItemInfo(pConvertItem->pConvertContext, i, pItemInfo);
-
-    if (udStrEndsWithi(pItemInfo->pFilename, ".slpk"))
-      vcSceneLayerConvert_AddItem(pConvertContext, pItemInfo->pFilename);
-#ifdef FBXSDK_ON
-    else if (udStrEndsWithi(pItemInfo->pFilename, ".fbx"))
-      vcFBX_AddItem(pConvertContext, pItemInfo->pFilename);
-#endif
-    else
-      vdkConvert_AddItem(pConvertContext, pItemInfo->pFilename);
-  }
-
-  vdkConvert_SetOutputFilename(pConvertContext, pConvertItem->pConvertInfo->pOutputName);
-  vdkConvert_SetTempDirectory(pConvertContext, pConvertItem->pConvertInfo->pTempFilesPrefix);
-  vdkConvert_SetPointResolution(pConvertContext, pConvertItem->pConvertInfo->overrideResolution != 0, pConvertItem->pConvertInfo->pointResolution);
-  vdkConvert_SetSRID(pConvertContext, pConvertItem->pConvertInfo->overrideSRID != 0, pConvertItem->pConvertInfo->srid);
-
-  vdkConvert_SetSkipErrorsWherePossible(pConvertContext, pConvertItem->pConvertInfo->skipErrorsWherePossible);
-  vdkConvert_SetEveryNth(pConvertContext, pConvertItem->pConvertInfo->everyNth);
-
-  vdkConvert_SetGlobalOffset(pConvertContext, pConvertItem->pConvertInfo->globalOffset);
-
-  vdkConvert_AddWatermark(pConvertContext, pConvertItem->watermark.pFilename);
-
-  vdkConvert_SetMetadata(pConvertContext, "Author", pConvertItem->author);
-  vdkConvert_SetMetadata(pConvertContext, "Comment", pConvertItem->comment);
-  vdkConvert_SetMetadata(pConvertContext, "Copyright", pConvertItem->copyright);
-  vdkConvert_SetMetadata(pConvertContext, "License", pConvertItem->license);
-
-  vdkConvert_DestroyContext(&pConvertItem->pConvertContext);
-
-  pConvertItem->pConvertContext = pConvertContext;
-  pConvertItem->pConvertInfo = pConvertInfo;
+  vdkConvert_Reset(pConvertItem->pConvertContext);
   pConvertItem->status = vcCQS_Preparing;
 }

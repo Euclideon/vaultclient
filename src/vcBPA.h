@@ -6,7 +6,8 @@
 // https://lidarwidgets.com/samples/bpa_tvcg.pdf
 
 #include "vdkPointCloud.h"
+struct vcState;
 
-void vcBPA_CompareExport(vdkContext *pContext, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius);
+void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius);
 
 #endif //vcBPA_h__

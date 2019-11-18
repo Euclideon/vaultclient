@@ -1,6 +1,7 @@
 #include "vcBPA.h"
 
 #include "vcMath.h"
+#include "vcConvert.h"
 
 #include "vdkConvert.h"
 #include "vdkConvertCustom.h"
@@ -117,6 +118,9 @@ void vcBPA_Init(vcBPAManifold **ppManifold, vdkContext *pContext)
 
 void vcBPA_Deinit(vcBPAManifold **ppManifold)
 {
+  if (ppManifold == nullptr || *ppManifold == nullptr)
+    return;
+
   vcBPAManifold *pManifold = *ppManifold;
   *ppManifold = nullptr;
   udWorkerPool_Destroy(&pManifold->pPool);
@@ -171,6 +175,7 @@ void vcBPA_PopulateGrid(vdkContext *pContext, vdkPointCloud *pModel, vdkStandard
   vdkQuery_Create(pContext, &pQuery, pModel, pFilter);
   vdkQuery_ExecuteF64(pQuery, pGrid->pBuffer);
   vdkQuery_Destroy(&pQuery);
+  vdkQueryFilter_Destroy(&pFilter);
 
   pGrid->vertices.ReserveBack(pGrid->pBuffer->pointCount);
   for (uint32_t j = 0; j < pGrid->pBuffer->pointCount; ++j)
@@ -782,13 +787,18 @@ struct vcBPAConvertItemData
 struct vcBPAConvertItem
 {
   vcBPAManifold *pManifold;
+  vdkContext *pContext;
   vdkPointCloud *pOldModel;
   vdkPointCloud *pNewModel;
+  vcConvertItem *pConvertItem;
   vdkStandardAttributeContent standardContent;
+  double gridSize;
+  double ballRadius;
 
   udSafeDeque<vcBPAConvertItemData> *pQueueItems;
   udSafeDeque<vcBPAConvertItemData> *pConvertItemData;
   vcBPAConvertItemData activeItem;
+  udThread *pThread;
   udInterlockedBool running;
 };
 
@@ -821,7 +831,7 @@ uint32_t vcBPA_GridGeneratorThread(void *pDataPtr)
 
   vcBPAGrid *pGrid = nullptr;
   int i = 0;
-  while (vcBPA_GetGrid(pData->pManifold, pData->pNewModel, pData->standardContent, &pGrid, false))
+  while (vcBPA_GetGrid(pData->pManifold, pData->pNewModel, pData->standardContent, &pGrid, false) && pData->running)
   {
     vcBPAConvertItemData data = {};
     data.pManifold = pData->pManifold;
@@ -846,7 +856,7 @@ uint32_t vcBPA_GridGeneratorThread(void *pDataPtr)
           break;
 
         udSleep(500);
-      } while (true);
+      } while (pData->running);
     }
   }
 
@@ -862,6 +872,11 @@ vdkError vcBPA_ConvertOpen(vdkConvertCustomItem *pConvertInput, uint32_t everyNt
   udUnused(flags);
 
   vcBPAConvertItem *pData = (vcBPAConvertItem*)pConvertInput->pData;
+  pData->running = true;
+
+  vcBPA_Init(&pData->pManifold, pData->pContext);
+  pData->pManifold->ballRadius = pData->ballRadius;
+  pData->pManifold->gridSize = pData->gridSize;
 
   vdkPointCloudHeader header = {};
   vdkPointCloud_GetHeader(pData->pNewModel, &header);
@@ -872,7 +887,10 @@ vdkError vcBPA_ConvertOpen(vdkConvertCustomItem *pConvertInput, uint32_t everyNt
   udDouble3 halfGrid = udDouble3::create(pData->pManifold->gridSize / 2.0);
   pData->pManifold->grids.PushBack(vcBPAGrid::create(startAABBCenter, startAABBCenter - halfGrid, startAABBCenter + halfGrid));
 
-  udThread_Create(nullptr, vcBPA_GridGeneratorThread, pData);
+  udSafeDeque_Create(&pData->pQueueItems, 32);
+  udSafeDeque_Create(&pData->pConvertItemData, 128);
+
+  udThread_Create(&pData->pThread, vcBPA_GridGeneratorThread, pData, udTCF_None, "BPAGridGeneratorThread");
   while (pData->running && udSafeDeque_PopFront(pData->pConvertItemData, &pData->activeItem) != udR_Success)
     continue;
 
@@ -971,24 +989,48 @@ epilogue:
   return vE_Success;
 }
 
-void vcBPA_CompareExport(vdkContext *pContext, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius)
+void vcBPA_ConvertClose(vdkConvertCustomItem *pConvertInput)
 {
-  vcBPAManifold *pManifold = nullptr;
-  vcBPA_Init(&pManifold, pContext);
+  vcBPAConvertItem *pBPA = (vcBPAConvertItem *)pConvertInput->pData;
+  pBPA->running = false;
+  udThread_Join(pBPA->pThread);
+  udThread_Destroy(&pBPA->pThread);
+  pBPA->activeItem.oldGrid.Deinit();
+  pBPA->activeItem = {};
 
-  vdkConvertContext *pConvert = nullptr;
-  vdkConvert_CreateContext(pManifold->pContext, &pConvert);
+  vcBPAConvertItemData itemData;
+  while (udSafeDeque_PopFront(pBPA->pQueueItems, &itemData) == udR_Success)
+    itemData.oldGrid.Deinit();
+  udSafeDeque_Destroy(&pBPA->pQueueItems);
 
-  pManifold->ballRadius = ballRadius;
-  pManifold->gridSize = 1; // metres
+  while (udSafeDeque_PopFront(pBPA->pConvertItemData, &itemData) == udR_Success)
+    itemData.oldGrid.Deinit();
+  udSafeDeque_Destroy(&pBPA->pConvertItemData);
 
-  vcBPAConvertItem bpa = {};
-  bpa.pManifold = pManifold;
-  bpa.pOldModel = pOldModel;
-  bpa.pNewModel = pNewModel;
-  udSafeDeque_Create(&bpa.pQueueItems, 32);
-  udSafeDeque_Create(&bpa.pConvertItemData, 128);
-  bpa.running = true;
+  vcBPA_Deinit(&pBPA->pManifold);
+}
+
+void vcBPA_ConvertDestroy(vdkConvertCustomItem *pConvertInput)
+{
+  vdkAttributeSet_Free(&pConvertInput->attributes);
+  udFree(pConvertInput->pData);
+}
+
+void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius)
+{
+  vcConvertItem *pConvertItem = nullptr;
+  vcConvert_AddEmptyJob(pProgramState, &pConvertItem);
+
+  udLockMutex(pConvertItem->pMutex);
+
+  vcBPAConvertItem *pBPA = udAllocType(vcBPAConvertItem, 1, udAF_Zero);
+  pBPA->pContext = pProgramState->pVDKContext;
+  pBPA->pOldModel = pOldModel;
+  pBPA->pNewModel = pNewModel;
+  pBPA->pConvertItem = pConvertItem;
+  pBPA->running = true;
+  pBPA->ballRadius = ballRadius;
+  pBPA->gridSize = 1; // metres
 
   vdkPointCloudHeader header = {};
   vdkPointCloud_GetHeader(pNewModel, &header);
@@ -1000,7 +1042,7 @@ void vcBPA_CompareExport(vdkContext *pContext, vdkPointCloud *pOldModel, vdkPoin
   vdkPointCloud_GetMetadata(pNewModel, &pMetadata);
   udJSON metadata = {};
   metadata.Parse(pMetadata);
-  
+
   vdkConvertCustomItem item = {};
   item.pName = "DisplacementComparison";
 
@@ -1013,9 +1055,11 @@ void vcBPA_CompareExport(vdkContext *pContext, vdkPointCloud *pOldModel, vdkPoin
   item.sourceResolution = header.convertedResolution;
   item.pointCount = metadata.Get("SourcePointCount").AsInt64();
   item.pointCountIsEstimate = false;
-  item.pData = &bpa;
+  item.pData = pBPA;
   item.pOpen = vcBPA_ConvertOpen;
   item.pReadPointsFloat = vcBPA_ConvertReadPoints;
+  item.pClose = vcBPA_ConvertClose;
+  item.pDestroy = vcBPA_ConvertDestroy;
   udDouble4 temp = storedMatrix * udDouble4::create(boundingBoxCenter - boundingBoxExtents, 1.0);
   for (uint32_t i = 0; i < udLengthOf(item.boundMin); ++i)
     item.boundMin[i] = temp[i];
@@ -1025,12 +1069,7 @@ void vcBPA_CompareExport(vdkContext *pContext, vdkPointCloud *pOldModel, vdkPoin
     item.boundMax[i] = temp[i];
 
   item.boundsKnown = true;
-  vdkConvert_AddCustomItem(pConvert, &item);
+  vdkConvert_AddCustomItem(pConvertItem->pConvertContext, &item);
 
-  vdkConvert_DoConvert(pConvert);
-  vdkConvert_DestroyContext(&pConvert);
-  udSafeDeque_Destroy(&bpa.pQueueItems);
-  udSafeDeque_Destroy(&bpa.pConvertItemData);
-
-  vcBPA_Deinit(&pManifold);
+  udReleaseMutex(pBPA->pConvertItem->pMutex);
 }
