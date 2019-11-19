@@ -281,7 +281,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
   }
 
 epilogue:
-  vdkServerAPI_ReleaseResult(pInfo->pProgramState->pVDKContext, &pFeedsJSON);
+  vdkServerAPI_ReleaseResult(&pFeedsJSON);
 
   pInfo->pFeed->m_loadStatus = vcSLS_Loaded;
 }

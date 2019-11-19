@@ -79,12 +79,12 @@ struct vcBPAGrid
     return grid;
   }
 
-  void Init(vdkStandardAttributeContent standardContent)
+  void Init(vdkAttributeSet *pAttributes)
   {
     vertices.Init(512);
     triangles.Init(512);
     edges.Init(512);
-    vdkPointBufferF64_Create(&pBuffer, standardContent, 1 << 20, nullptr, 0);
+    vdkPointBufferF64_Create(&pBuffer, 1 << 20, pAttributes);
   }
 
   void Deinit()
@@ -162,9 +162,9 @@ void vcBPA_AddGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, udDouble3 ce
   }
 }
 
-void vcBPA_PopulateGrid(vdkContext *pContext, vdkPointCloud *pModel, vdkStandardAttributeContent standardContent, udDouble3 aabbCenter, udDouble3 aabbExtents, vcBPAGrid *pGrid, bool *pHasPoints, bool *pHasNeighbours)
+void vcBPA_PopulateGrid(vdkContext *pContext, vdkPointCloud *pModel, vdkAttributeSet *pAttributes, udDouble3 aabbCenter, udDouble3 aabbExtents, vcBPAGrid *pGrid, bool *pHasPoints, bool *pHasNeighbours)
 {
-  pGrid->Init(standardContent);
+  pGrid->Init(pAttributes);
 
   vdkQueryFilter *pFilter = nullptr;
   vdkQueryFilter_Create(&pFilter);
@@ -191,7 +191,7 @@ void vcBPA_PopulateGrid(vdkContext *pContext, vdkPointCloud *pModel, vdkStandard
   }
 }
 
-bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vdkStandardAttributeContent standardContent, vcBPAGrid **ppGrid, bool addOverlap)
+bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vdkAttributeSet *pAttributes, vcBPAGrid **ppGrid, bool addOverlap)
 {
   for (size_t i = 0; i < pManifold->grids.length; ++i)
   {
@@ -208,7 +208,7 @@ bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vdkStandardA
 
     bool hasPoints = false;
     bool hasNeighbours = false;
-    vcBPA_PopulateGrid(pManifold->pContext, pModel, standardContent, aabbCenter, aabbExtents, pManifold->grids.GetElement(i), &hasPoints, &hasNeighbours);
+    vcBPA_PopulateGrid(pManifold->pContext, pModel, pAttributes, aabbCenter, aabbExtents, pManifold->grids.GetElement(i), &hasPoints, &hasNeighbours);
 
     if (!hasPoints && !pManifold->foundFirstGrid)
     {
@@ -259,11 +259,19 @@ bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vdkStandardA
 int vcBPA_GetPointsInBallCount(vcBPAGrid *pGrid, const udChunkedArray<uint64_t> &nearbyPoints, udDouble3 ballCenter, double ballRadius)
 {
   int count = 0;
-  for (size_t i = 0; i < nearbyPoints.length; ++i)
+
+  for (size_t i = 0; i < nearbyPoints.length; )
   {
-    double diff = (ballRadius * ballRadius) - udMagSq3(pGrid->vertices[nearbyPoints[i]].position - ballCenter);
-    if (diff > (-FLT_EPSILON))
-      ++count;
+    size_t runLen = nearbyPoints.GetElementRunLength(i);
+    const uint64_t *pVertex = nearbyPoints.GetElement(i);
+    for (size_t j = 0; j < runLen; ++j)
+    {
+      double diff = (ballRadius * ballRadius) - udMagSq3(pGrid->vertices[pVertex[j]].position - ballCenter);
+      if (diff > (-FLT_EPSILON))
+        ++count;
+    }
+
+    i += runLen;
   }
 
   return count;
@@ -272,11 +280,19 @@ int vcBPA_GetPointsInBallCount(vcBPAGrid *pGrid, const udChunkedArray<uint64_t> 
 int vcBPA_GetPointsInBallCount(vcBPAGrid *pGrid, udDouble3 ballCenter, double ballRadius)
 {
   int count = 0;
-  for (size_t i = 0; i < pGrid->vertices.length; ++i)
+  for (size_t i = 0; i < pGrid->vertices.length; )
   {
-    double diff = (ballRadius * ballRadius) - udMagSq3(pGrid->vertices[i].position - ballCenter);
-    if (diff > (-FLT_EPSILON))
-      ++count;
+    size_t runLen = pGrid->vertices.GetElementRunLength(i);
+    const vcBPAVertex *pVertex = pGrid->vertices.GetElement(i);
+
+    for (size_t j = 0; j < runLen; ++j)
+    {
+      double diff = (ballRadius * ballRadius) - udMagSq3(pVertex[j].position - ballCenter);
+      if (diff > (-FLT_EPSILON))
+        ++count;
+    }
+
+    i += runLen;
   }
 
   return count;
@@ -791,7 +807,6 @@ struct vcBPAConvertItem
   vdkPointCloud *pOldModel;
   vdkPointCloud *pNewModel;
   vcConvertItem *pConvertItem;
-  vdkStandardAttributeContent standardContent;
   double gridSize;
   double ballRadius;
 
@@ -819,7 +834,7 @@ void vcBPA_GridPopulationThread(void *pDataPtr)
 
   bool hasPoints = false;
   bool hasNeighbours = false;
-  vcBPA_PopulateGrid(itemData.pManifold->pContext, itemData.pOldModel, vdkSAC_None, aabbCenter, aabbExtents, &itemData.oldGrid, &hasPoints, &hasNeighbours);
+  vcBPA_PopulateGrid(itemData.pManifold->pContext, itemData.pOldModel, nullptr, aabbCenter, aabbExtents, &itemData.oldGrid, &hasPoints, &hasNeighbours);
   vcBPA_DoGrid(&itemData.oldGrid, itemData.pManifold->ballRadius);
 
   udSafeDeque_PushBack(pData->pConvertItemData, itemData);
@@ -831,7 +846,11 @@ uint32_t vcBPA_GridGeneratorThread(void *pDataPtr)
 
   vcBPAGrid *pGrid = nullptr;
   int i = 0;
-  while (vcBPA_GetGrid(pData->pManifold, pData->pNewModel, pData->standardContent, &pGrid, false) && pData->running)
+
+  vdkPointCloudHeader header;
+  vdkPointCloud_GetHeader(pData->pNewModel, &header);
+
+  while (vcBPA_GetGrid(pData->pManifold, pData->pNewModel, &header.attributes, &pGrid, false) && pData->running)
   {
     vcBPAConvertItemData data = {};
     data.pManifold = pData->pManifold;
@@ -882,7 +901,6 @@ vdkError vcBPA_ConvertOpen(vdkConvertCustomItem *pConvertInput, uint32_t everyNt
   vdkPointCloud_GetHeader(pData->pNewModel, &header);
   udDouble4x4 storedMatrix = udDouble4x4::create(header.storedMatrix);
   udDouble3 startAABBCenter = (storedMatrix * udDouble4::create(header.pivot[0], header.pivot[1], header.pivot[2], 1.0)).toVector3();
-  pData->standardContent = header.attributes.standardContent;
 
   udDouble3 halfGrid = udDouble3::create(pData->pManifold->gridSize / 2.0);
   pData->pManifold->grids.PushBack(vcBPAGrid::create(startAABBCenter, startAABBCenter - halfGrid, startAABBCenter + halfGrid));
@@ -1046,11 +1064,28 @@ void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPo
   vdkConvertCustomItem item = {};
   item.pName = "DisplacementComparison";
 
-  vdkAttributeSet_Generate(&item.attributes, header.attributes.standardContent, 1);
-  item.attributes.pDescriptors[item.attributes.count].blendMode = vdkABM_SingleValue;
-  item.attributes.pDescriptors[item.attributes.count].typeInfo = vdkAttributeTypeInfo_float32;
-  udStrcpy(item.attributes.pDescriptors[item.attributes.count].name, "udDisplacement");
-  ++item.attributes.count;
+  uint32_t displacementOffset = 0;
+  bool addDisplacement = true;
+  if (vdkAttributeSet_GetOffsetOfNamedAttribute(&header.attributes, "udDisplacement", &displacementOffset) == vE_Success)
+    addDisplacement = false;
+
+  vdkAttributeSet_Generate(&item.attributes, vdkSAC_None, header.attributes.count + (addDisplacement ? 1 : 0));
+
+  for (uint32_t i = 0; i < header.attributes.count; ++i)
+  {
+    item.attributes.pDescriptors[i].blendMode = header.attributes.pDescriptors[i].blendMode;
+    item.attributes.pDescriptors[i].typeInfo = header.attributes.pDescriptors[i].typeInfo;
+    udStrcpy(item.attributes.pDescriptors[i].name, header.attributes.pDescriptors[i].name);
+    ++item.attributes.count;
+  }
+
+  if (addDisplacement)
+  {
+    item.attributes.pDescriptors[item.attributes.count].blendMode = vdkABM_SingleValue;
+    item.attributes.pDescriptors[item.attributes.count].typeInfo = vdkAttributeTypeInfo_float32;
+    udStrcpy(item.attributes.pDescriptors[item.attributes.count].name, "udDisplacement");
+    ++item.attributes.count;
+  }
 
   item.sourceResolution = header.convertedResolution;
   item.pointCount = metadata.Get("SourcePointCount").AsInt64();

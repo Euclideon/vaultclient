@@ -38,7 +38,7 @@ void vcSession_GetProjectsWT(void *pProgramStatePtr)
   const char *pProjData = nullptr;
   if (vdkServerAPI_Query(pProgramState->pVDKContext, "dev/projects", nullptr, &pProjData) == vE_Success)
     pProgramState->projects.Parse(pProjData);
-  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pProjData);
+  vdkServerAPI_ReleaseResult(&pProjData);
 }
 
 void vcSession_GetPackagesWT(void *pProgramStatePtr)
@@ -49,7 +49,7 @@ void vcSession_GetPackagesWT(void *pProgramStatePtr)
   if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/packages/latest", pPostJSON, &pPackageData) == vE_Success)
     pProgramState->packageInfo.Parse(pPackageData);
 
-  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pPackageData);
+  vdkServerAPI_ReleaseResult(&pPackageData);
 }
 
 void vcSession_GetPackagesMT(void *pProgramStatePtr)
@@ -131,7 +131,7 @@ void vcSession_Login(void *pProgramStatePtr)
       }
     }
 
-    vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pSessionRawData);
+    vdkServerAPI_ReleaseResult(&pSessionRawData);
   }
 
   if (pProgramState->settings.presentation.loginRenderLicense)

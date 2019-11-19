@@ -29,14 +29,6 @@ public:
   bool m_hasWatermark; // True if the model has a watermark (might not be loaded)
   vcTexture *m_pWatermark; // If the watermark is loaded, it will be here
 
-  struct vcModelCompareData
-  {
-    vcState *pProgramState;
-    vcModel *pOldModel;
-    vcModel *pNewModel;
-    double ballRadius;
-  } m_compareData;
-
   vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud);
   ~vcModel() {};

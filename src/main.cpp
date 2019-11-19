@@ -723,12 +723,12 @@ void vcMain_LoadStringTableMT(void *pLoadInfoPtr)
   udFree(pLoadInfo->pFilename);
 }
 
-void vcMain_AsyncLoad(vcState *pProgramState, const char *pFilename, udWorkerPoolCallback *pMainThreadFn)
+void vcMain_AsyncLoad(vcState *pProgramState, const char *pFilename, udWorkerPoolCallback &&mainThreadFn)
 {
   vcMainLoadDataInfo *pInfo = udAllocType(vcMainLoadDataInfo, 1, udAF_Zero);
   pInfo->pFilename = udStrdup(pFilename);
   pInfo->pProgramState = pProgramState;
-  udWorkerPool_AddTask(pProgramState->pWorkerPool, vcMain_AsyncLoadWT, pInfo, true, pMainThreadFn);
+  udWorkerPool_AddTask(pProgramState->pWorkerPool, vcMain_AsyncLoadWT, pInfo, true, mainThreadFn);
 }
 
 int main(int argc, char **args)
