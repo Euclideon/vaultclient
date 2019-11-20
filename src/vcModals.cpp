@@ -264,7 +264,8 @@ void vcModals_SetTileTexture(void *pProgramStatePtr)
   if (!pProgramState->modalOpen)
   {
     udFree(pProgramState->tileModal.pImageData);
-    vcRender_ClearTiles(pProgramState->pRenderContext);
+	vcRender_ClearTiles(pProgramState->pRenderContext[vcContext_Scene]);
+	vcRender_ClearTiles(pProgramState->pRenderContext[vcContext_History]); 
   }
 }
 
@@ -346,7 +347,8 @@ void vcModals_DrawTileServer(vcState *pProgramState)
       if (pProgramState->tileModal.loadStatus == 0)
       {
         udFree(pProgramState->tileModal.pImageData);
-        vcRender_ClearTiles(pProgramState->pRenderContext);
+		vcRender_ClearTiles(pProgramState->pRenderContext[vcContext_Scene]);
+		vcRender_ClearTiles(pProgramState->pRenderContext[vcContext_History]); 
       }
 
       ImGui::CloseCurrentPopup();

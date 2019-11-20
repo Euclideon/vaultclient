@@ -307,15 +307,16 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   pRenderContext = *ppRenderContext;
   *ppRenderContext = nullptr;
 
-  if (pProgramState->pVDKContext != nullptr)
+
+  if (pProgramState->pVDKContext[pProgramState->eCurrentContextIndex] != nullptr)
   {
-    if (pRenderContext->viewShedRenderingContext.pRenderView != nullptr && vdkRenderView_Destroy(pProgramState->pVDKContext, &pRenderContext->viewShedRenderingContext.pRenderView) != vE_Success)
+    if (pRenderContext->viewShedRenderingContext.pRenderView != nullptr && vdkRenderView_Destroy(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], &pRenderContext->viewShedRenderingContext.pRenderView) != vE_Success)
       UD_ERROR_SET(udR_InternalError);
 
-    if (pRenderContext->udRenderContext.pRenderView != nullptr && vdkRenderView_Destroy(pProgramState->pVDKContext, &pRenderContext->udRenderContext.pRenderView) != vE_Success)
+    if (pRenderContext->udRenderContext.pRenderView != nullptr && vdkRenderView_Destroy(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], &pRenderContext->udRenderContext.pRenderView) != vE_Success)
       UD_ERROR_SET(udR_InternalError);
 
-    if (vdkRenderContext_Destroy(pProgramState->pVDKContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)
+    if (vdkRenderContext_Destroy(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], &pRenderContext->udRenderContext.pRenderer) != vE_Success)
       UD_ERROR_SET(udR_InternalError);
   }
 
@@ -377,7 +378,7 @@ udResult vcRender_SetVaultContext(vcState *pProgramState, vcRenderContext *pRend
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
 
-  if (vdkRenderContext_Create(pProgramState->pVDKContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)
+  if (vdkRenderContext_Create(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], &pRenderContext->udRenderContext.pRenderer) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
 epilogue:
@@ -459,7 +460,7 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pDepth, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget));
   UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pRenderContext->picking.pDepth), udR_InternalError);
 
-  if (pProgramState->pVDKContext)
+  if (pProgramState->pVDKContext[pProgramState->eCurrentContextIndex])
     UD_ERROR_CHECK(vcRender_RecreateUDView(pProgramState, pRenderContext));
 
 epilogue:
@@ -737,7 +738,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
   pRenderContext->shadowShader.params.inverseProjection = udFloat4x4::create(udInverse(pProgramState->pCamera->matrices.projection));
 
   if (pRenderContext->viewShedRenderingContext.pRenderView == nullptr)
-    vdkRenderView_Create(pProgramState->pVDKContext, &pRenderContext->viewShedRenderingContext.pRenderView, pRenderContext->udRenderContext.pRenderer, ViewShedMapRes.x / ViewShedMapCount, ViewShedMapRes.y);
+    vdkRenderView_Create(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], &pRenderContext->viewShedRenderingContext.pRenderView, pRenderContext->udRenderContext.pRenderer, ViewShedMapRes.x / ViewShedMapCount, ViewShedMapRes.y);
 
   for (size_t v = 0; v < renderData.viewSheds.length; ++v)
   {
@@ -759,8 +760,8 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
       vcCamera_UpdateMatrices(&shadowRenderCamera, settings, nullptr, udFloat2::create((float)ViewShedMapRes.x, (float)ViewShedMapRes.y), nullptr);
 
       // configure UD render to only render into portion of buffer
-      vdkRenderView_SetTargetsWithPitch(pProgramState->pVDKContext, pRenderContext->viewShedRenderingContext.pRenderView, nullptr, 0, pRenderContext->viewShedRenderingContext.pDepthBuffer + (i * (ViewShedMapRes.x / ViewShedMapCount)), 0, ViewShedMapRes.x * 4);
-      vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderContext->viewShedRenderingContext.pRenderView, vdkRVM_Projection, shadowRenderCamera.matrices.projectionUD.a);
+      vdkRenderView_SetTargetsWithPitch(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], pRenderContext->viewShedRenderingContext.pRenderView, nullptr, 0, pRenderContext->viewShedRenderingContext.pDepthBuffer + (i * (ViewShedMapRes.x / ViewShedMapCount)), 0, ViewShedMapRes.x * 4);
+      vdkRenderView_SetMatrix(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], pRenderContext->viewShedRenderingContext.pRenderView, vdkRVM_Projection, shadowRenderCamera.matrices.projectionUD.a);
 
       // render UD
       vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->viewShedRenderingContext.pRenderView, &shadowRenderCamera, renderData, false);
@@ -1066,16 +1067,16 @@ udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRende
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
 
-  if (pRenderContext->udRenderContext.pRenderView && vdkRenderView_Destroy(pProgramState->pVDKContext, &pRenderContext->udRenderContext.pRenderView) != vE_Success)
+  if (pRenderContext->udRenderContext.pRenderView && vdkRenderView_Destroy(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], &pRenderContext->udRenderContext.pRenderView) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vdkRenderView_Create(pProgramState->pVDKContext, &pRenderContext->udRenderContext.pRenderView, pRenderContext->udRenderContext.pRenderer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y) != vE_Success)
+  if (vdkRenderView_Create(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], &pRenderContext->udRenderContext.pRenderView, pRenderContext->udRenderContext.pRenderer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vdkRenderView_SetTargets(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderView, pRenderContext->udRenderContext.pColorBuffer, 0, pRenderContext->udRenderContext.pDepthBuffer) != vE_Success)
+  if (vdkRenderView_SetTargets(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], pRenderContext->udRenderContext.pRenderView, pRenderContext->udRenderContext.pColorBuffer, 0, pRenderContext->udRenderContext.pDepthBuffer) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pProgramState->pCamera->matrices.projectionUD.a) != vE_Success)
+  if (vdkRenderView_SetMatrix(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pProgramState->pCamera->matrices.projectionUD.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
 epilogue:
@@ -1090,19 +1091,19 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
   vdkRenderInstance *pModels = nullptr;
   int numVisibleModels = 0;
 
-  vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderView, vdkRVM_Projection, pCamera->matrices.projectionUD.a);
-  vdkRenderView_SetMatrix(pProgramState->pVDKContext, pRenderView, vdkRVM_View, pCamera->matrices.view.a);
+  vdkRenderView_SetMatrix(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], pRenderView, vdkRVM_Projection, pCamera->matrices.projectionUD.a);
+  vdkRenderView_SetMatrix(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], pRenderView, vdkRVM_View, pCamera->matrices.view.a);
 
   switch (pProgramState->settings.visualization.mode)
   {
   case vcVM_Intensity:
-    vdkRenderContext_ShowIntensity(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, pProgramState->settings.visualization.minIntensity, pProgramState->settings.visualization.maxIntensity);
+    vdkRenderContext_ShowIntensity(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], pRenderContext->udRenderContext.pRenderer, pProgramState->settings.visualization.minIntensity, pProgramState->settings.visualization.maxIntensity);
     break;
   case vcVM_Classification:
-    vdkRenderContext_ShowClassification(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, (int *)pProgramState->settings.visualization.customClassificationColors, (int)udLengthOf(pProgramState->settings.visualization.customClassificationColors));
+    vdkRenderContext_ShowClassification(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], pRenderContext->udRenderContext.pRenderer, (int *)pProgramState->settings.visualization.customClassificationColors, (int)udLengthOf(pProgramState->settings.visualization.customClassificationColors));
     break;
   default: //Includes vcVM_Colour
-    vdkRenderContext_ShowColor(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer);
+    vdkRenderContext_ShowColor(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], pRenderContext->udRenderContext.pRenderer);
     break;
   }
 
@@ -1222,7 +1223,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
   renderOptions.pFilter = renderData.pQueryFilter;
   renderOptions.pointMode = (vdkRenderContextPointMode)pProgramState->settings.presentation.pointMode;
 
-  vdkError result = vdkRenderContext_Render(pProgramState->pVDKContext, pRenderContext->udRenderContext.pRenderer, pRenderView, pModels, numVisibleModels, &renderOptions);
+  vdkError result = vdkRenderContext_Render(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], pRenderContext->udRenderContext.pRenderer, pRenderView, pModels, numVisibleModels, &renderOptions);
 
   if (result == vE_Success)
   {
@@ -1270,6 +1271,15 @@ void vcRender_ClearPoints(vcRenderContext *pRenderContext)
     return;
 
   vcFenceRenderer_ClearPoints(pRenderContext->pDiagnosticFences);
+}
+
+void vcRender_SwitchContext(vcState *pProgramState, vcContextIndex eIndex)
+{
+	if (pProgramState == nullptr)
+		return;
+
+	pProgramState->eCurrentContextIndex = eIndex;
+	pProgramState->eCurrentProjectIndex = (vcProjectIndex)eIndex;
 }
 
 vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, bool doSelectRender)

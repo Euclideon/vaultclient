@@ -10,11 +10,12 @@
 
 void vcProject_InitBlankScene(vcState *pProgramState)
 {
-  if (pProgramState->activeProject.pProject != nullptr)
+  if (pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex] != nullptr)
     vcProject_Deinit(pProgramState, &pProgramState->activeProject);
 
   udGeoZone zone = {};
-  vcRender_ClearTiles(pProgramState->pRenderContext);
+  vcRender_ClearTiles(pProgramState->pRenderContext[vcContext_Scene]);
+  vcRender_ClearTiles(pProgramState->pRenderContext[vcContext_History]); 
   vcGIS_ChangeSpace(&pProgramState->gis, zone);
 
   if (pProgramState->pCamera != nullptr) // This is destroyed before the scene
@@ -23,10 +24,15 @@ void vcProject_InitBlankScene(vcState *pProgramState)
   pProgramState->sceneExplorer.selectedItems.clear();
   pProgramState->sceneExplorer.clickedItem = {};
 
-  vdkProject_CreateLocal(&pProgramState->activeProject.pProject, "New Project");
-  vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
-  pProgramState->activeProject.pFolder = new vcFolder(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState);
-  pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
+  vdkProject_CreateLocal(&pProgramState->activeProject.pProject[vcProject_Scene], "New Project");
+  vdkProject_GetProjectRoot(pProgramState->activeProject.pProject[vcProject_Scene], &pProgramState->activeProject.pRoot[vcProject_Scene]);
+  pProgramState->activeProject.pFolder[vcProject_Scene] = new vcFolder(pProgramState->activeProject.pProject[vcProject_Scene], pProgramState->activeProject.pRoot[vcProject_Scene], pProgramState);
+  pProgramState->activeProject.pRoot[vcProject_Scene]->pUserData = pProgramState->activeProject.pFolder[vcProject_Scene];
+
+  vdkProject_CreateLocal(&pProgramState->activeProject.pProject[vcProject_History], "New History");
+  vdkProject_GetProjectRoot(pProgramState->activeProject.pProject[vcProject_History], &pProgramState->activeProject.pRoot[vcProject_History]);
+  pProgramState->activeProject.pFolder[vcProject_History] = new vcFolder(pProgramState->activeProject.pProject[vcProject_History], pProgramState->activeProject.pRoot[vcProject_History], pProgramState);
+  pProgramState->activeProject.pRoot[vcProject_History]->pUserData = pProgramState->activeProject.pFolder[vcProject_History];
 }
 
 bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
@@ -42,7 +48,8 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
       vcProject_Deinit(pProgramState, &pProgramState->activeProject);
 
       udGeoZone zone = {};
-      vcRender_ClearTiles(pProgramState->pRenderContext);
+	  vcRender_ClearTiles(pProgramState->pRenderContext[vcContext_Scene]);
+	  vcRender_ClearTiles(pProgramState->pRenderContext[vcContext_History]);
       vcGIS_ChangeSpace(&pProgramState->gis, zone);
 
       if (pProgramState->pCamera != nullptr) // This is destroyed before the scene
@@ -51,17 +58,17 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
       pProgramState->sceneExplorer.selectedItems.clear();
       pProgramState->sceneExplorer.clickedItem = {};
 
-      pProgramState->activeProject.pProject = pProject;
-      vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
-      pProgramState->activeProject.pFolder = new vcFolder(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState);
-      pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
+      pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex] = pProject;
+      vdkProject_GetProjectRoot(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], &pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex]);
+      pProgramState->activeProject.pFolder[pProgramState->eCurrentProjectIndex] = new vcFolder(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex], pProgramState);
+      pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex]->pUserData = pProgramState->activeProject.pFolder[pProgramState->eCurrentProjectIndex];
 
       udFilename temp(pFilename);
       temp.SetFilenameWithExt("");
       pProgramState->activeProject.pRelativeBase = udStrdup(temp.GetPath());
 
       int32_t recommendedSRID = -1;
-      if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, -1) == vE_Success && recommendedSRID >= 0 && udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success)
+      if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex], "defaultcrs", &recommendedSRID, -1) == vE_Success && recommendedSRID >= 0 && udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success)
         vcGIS_ChangeSpace(&pProgramState->gis, zone);
     }
     else
@@ -123,12 +130,12 @@ void vcProject_RecursiveDestroyUserData(vcState *pProgramData, vdkProjectNode *p
 
 void vcProject_Deinit(vcState *pProgramData, vcProject *pProject)
 {
-  if (pProject == nullptr || pProject->pProject == nullptr)
+  if (pProject == nullptr || pProject->pProject[pProgramData->eCurrentProjectIndex] == nullptr)
     return;
 
   udFree(pProject->pRelativeBase);
-  vcProject_RecursiveDestroyUserData(pProgramData, pProject->pRoot);
-  vdkProject_Release(&pProject->pProject);
+  vcProject_RecursiveDestroyUserData(pProgramData, pProject->pRoot[pProgramData->eCurrentProjectIndex]);
+  vdkProject_Release(&pProject->pProject[pProgramData->eCurrentProjectIndex]);
 }
 
 void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverride)
@@ -139,9 +146,9 @@ void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverrid
   const char *pOutput = nullptr;
 
   if (pProgramState->gis.isProjected)
-    vdkProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", pProgramState->gis.SRID);
+    vdkProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex], "defaultcrs", pProgramState->gis.SRID);
 
-  if (vdkProject_WriteToMemory(pProgramState->activeProject.pProject, &pOutput) == vE_Success)
+  if (vdkProject_WriteToMemory(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], &pOutput) == vE_Success)
   {
     udFindDir *pDir = nullptr;
     udFilename exportFilename(pPath);
@@ -203,7 +210,7 @@ void vcProject_RemoveItem(vcState *pProgramState, vdkProjectNode *pParent, vdkPr
     }
   }
 
-  vdkProjectNode_RemoveChild(pProgramState->activeProject.pProject, pParent, pNode);
+  vdkProjectNode_RemoveChild(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pParent, pNode);
 }
 
 void vcProject_RemoveSelectedFolder(vcState *pProgramState, vdkProjectNode *pFolderNode)
@@ -226,7 +233,7 @@ void vcProject_RemoveSelectedFolder(vcState *pProgramState, vdkProjectNode *pFol
 
 void vcProject_RemoveSelected(vcState *pProgramState)
 {
-  vcProject_RemoveSelectedFolder(pProgramState, pProgramState->activeProject.pRoot);
+  vcProject_RemoveSelectedFolder(pProgramState, pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex]);
 
   pProgramState->sceneExplorer.selectedItems.clear();
   pProgramState->sceneExplorer.clickedItem = {};
@@ -300,7 +307,7 @@ void vcProject_ClearSelection(vdkProjectNode *pParentNode)
 
 void vcProject_ClearSelection(vcState *pProgramState)
 {
-  vcProject_ClearSelection(pProgramState->activeProject.pRoot);
+  vcProject_ClearSelection(pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex]);
   pProgramState->sceneExplorer.selectedItems.clear();
   pProgramState->sceneExplorer.clickedItem = {};
 }
@@ -311,10 +318,11 @@ bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pItem)
     return false;
 
   if (vcGIS_ChangeSpace(&pProgramState->gis, *pItem->m_pPreferredProjection))
-    pProgramState->activeProject.pFolder->ChangeProjection(*pItem->m_pPreferredProjection);
+    pProgramState->activeProject.pFolder[pProgramState->eCurrentProjectIndex]->ChangeProjection(*pItem->m_pPreferredProjection);
 
   // refresh map tiles when geozone changes
-  vcRender_ClearTiles(pProgramState->pRenderContext);
+  vcRender_ClearTiles(pProgramState->pRenderContext[vcContext_Scene]);
+  vcRender_ClearTiles(pProgramState->pRenderContext[vcContext_History]); 
 
   // move camera to the new item's position
   pItem->SetCameraPosition(pProgramState);

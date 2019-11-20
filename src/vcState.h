@@ -62,6 +62,13 @@ enum vcErrorSource
   vcES_ProjectChange
 };
 
+enum vcContextIndex
+{
+	vcContext_Scene,
+	vcContext_History,
+	vcContext_Count
+};
+
 struct vcState
 {
   bool programComplete;
@@ -115,9 +122,11 @@ struct vcState
   bool forceLogout;
   double lastServerAttempt;
   double lastServerResponse;
-  vdkContext *pVDKContext;
-  vcRenderContext *pRenderContext;
+  vcContextIndex eCurrentContextIndex;
+  vdkContext *pVDKContext[vcContext_Count];
+  vcRenderContext *pRenderContext[vcContext_Count];
   vcConvertContext *pConvertContext;
+
 
   char password[vcMaxPathLength];
 
@@ -174,6 +183,11 @@ struct vcState
   vcTranslationInfo languageInfo;
   bool showUI;
   vcDocks changeActiveDock;
+
+
+  vcProjectIndex eCurrentProjectIndex;
+
+  vcContextIndex eLoadModelFormCurIndex;
 };
 
 #endif // !vcState_h__

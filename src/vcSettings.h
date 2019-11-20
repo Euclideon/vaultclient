@@ -30,6 +30,8 @@ enum vcDocks
   vcDocks_Settings,
   vcDocks_SceneExplorer,
   vcDocks_Convert,
+  vcDocks_History,
+  vcDocks_HistoryExplorer,
 
   vcDocks_Count
 };

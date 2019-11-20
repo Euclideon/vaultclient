@@ -114,7 +114,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
   const char *pServerAddr = "v1/feeds/fetch";
   const char *pMessage = udTempStr("{ \"groupid\": \"%s\", \"time\": %f, \"newer\": %s }", udUUID_GetAsString(&pInfo->pFeed->m_groupID), pInfo->newer ? pInfo->pFeed->m_newestFeedUpdate : pInfo->pFeed->m_oldestFeedUpdate, pInfo->newer ? "true" : "false");
 
-  vdkError vError = vdkServerAPI_Query(pInfo->pProgramState->pVDKContext, pServerAddr, pMessage, &pFeedsJSON);
+  vdkError vError = vdkServerAPI_Query(pInfo->pProgramState->pVDKContext[pInfo->pProgramState->eCurrentContextIndex], pServerAddr, pMessage, &pFeedsJSON);
 
   double updatedTime = 0.0;
 
@@ -281,7 +281,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
   }
 
 epilogue:
-  vdkServerAPI_ReleaseResult(pInfo->pProgramState->pVDKContext, &pFeedsJSON);
+  vdkServerAPI_ReleaseResult(pInfo->pProgramState->pVDKContext[pInfo->pProgramState->eCurrentContextIndex], &pFeedsJSON);
 
   pInfo->pFeed->m_loadStatus = vcSLS_Loaded;
 }

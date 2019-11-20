@@ -102,8 +102,8 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
     file.SetFromFullPath(pModelFilename);
 
   vdkProjectNode *pNode = nullptr;
-  vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
-  vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "UDS", pModelName, file.GetPath(), nullptr);
+  vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex];
+  vdkProjectNode_Create(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], &pNode, pParentNode, "UDS", pModelName, file.GetPath(), nullptr);
 
   if (epsgCode != 0 && pPosition != nullptr)
   {
@@ -111,7 +111,7 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
     if (udGeoZone_SetFromSRID(&tempZone, epsgCode) == udR_Success)
     {
       udDouble3 longLat = udGeoZone_CartesianToLatLong(tempZone, *pPosition, true);
-      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &longLat.x);
+      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, vdkPGT_Point, 1, &longLat.x);
     }
   }
 
@@ -371,7 +371,7 @@ void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::ve
 
     vdkProjectNode *pNode = vcUDP_AddModel(pProgramState, pFilename, item.dataset.pName, item.dataset.pPath, epsgCode, pPosition, pYPR, pScale);
 
-    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
+    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex];
     pItemData->at(index).sceneFolder = { pParentNode, pNode };
   }
 }
@@ -383,8 +383,8 @@ void vcUPD_AddBookmarkData(vcState *pProgramState, std::vector<vcUDPItemData> *p
   if (item.bookmark.pName != nullptr && item.bookmark.pGeoLocation != nullptr)
   {
     vdkProjectNode *pNode = nullptr;
-    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
-    vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "Camera", item.bookmark.pName, nullptr, nullptr);
+    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex];
+    vdkProjectNode_Create(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], &pNode, pParentNode, "Camera", item.bookmark.pName, nullptr, nullptr);
 
     udGeoZone zone;
     int epsgCode = 0;
@@ -394,7 +394,7 @@ void vcUPD_AddBookmarkData(vcState *pProgramState, std::vector<vcUDPItemData> *p
       udGeoZone_SetFromSRID(&zone, (int32_t)epsgCode);
 
       temp = udGeoZone_CartesianToLatLong(zone, temp, true);
-      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
+      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, vdkPGT_Point, 1, (double*)&temp);
     }
 
     temp = udDouble3::zero();
@@ -416,9 +416,9 @@ void vcUPD_AddMeasureData(vcState *pProgramState, std::vector<vcUDPItemData> *pI
   if (item.measure.pName != nullptr && item.measure.geoLocation[0] != nullptr && item.measure.geoLocation[1] != nullptr)
   {
     vdkProjectNode *pNode = nullptr;
-    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
+    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex];
 
-    vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "POI", item.bookmark.pName, nullptr, nullptr);
+    vdkProjectNode_Create(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], &pNode, pParentNode, "POI", item.bookmark.pName, nullptr, nullptr);
 
     int epsgCode = 0;
     udDouble3 temp[2];
@@ -441,7 +441,7 @@ void vcUPD_AddMeasureData(vcState *pProgramState, std::vector<vcUDPItemData> *pI
       temp[1] = udGeoZone_CartesianToLatLong(zone, temp[1], true);
     }
 
-    vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_LineString, 2, (double*)&temp[0]);
+    vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, vdkPGT_LineString, 2, (double*)&temp[0]);
 
     pItemData->at(index).sceneFolder = { pParentNode, pNode };
   }
@@ -453,9 +453,9 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
   if (item.label.pName != nullptr && item.label.pGeoLocation != nullptr)
   {
     vdkProjectNode *pNode = nullptr;
-    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
+    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex];
 
-    vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "POI", item.label.pName, nullptr, nullptr);
+    vdkProjectNode_Create(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], &pNode, pParentNode, "POI", item.label.pName, nullptr, nullptr);
 
     udDouble3 position = udDouble3::zero();
     int32_t epsgCode = 0;
@@ -480,7 +480,7 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
       udGeoZone_SetFromSRID(pZone, epsgCode);
 
       udDouble3 temp = udGeoZone_CartesianToLatLong(*pZone, position, true);
-      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
+      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, vdkPGT_Point, 1, (double*)&temp);
     }
 
     pLabelData->at(index).sceneFolder = { pParentNode, pNode };
@@ -494,9 +494,9 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
   if (item.polygon.pName != nullptr && item.polygon.pPoints != nullptr && item.polygon.numPoints > 0)
   {
     vdkProjectNode *pNode = nullptr;
-    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
+    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex];
 
-    vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "POI", item.polygon.pName, nullptr, nullptr);
+    vdkProjectNode_Create(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], &pNode, pParentNode, "POI", item.polygon.pName, nullptr, nullptr);
 
     udGeoZone zone;
     if (udGeoZone_SetFromSRID(&zone, item.polygon.epsgCode) != udR_Success)
@@ -509,9 +509,9 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
       item.polygon.pPoints[i] = udGeoZone_CartesianToLatLong(zone, item.polygon.pPoints[i], true);
 
     if (item.polygon.isClosed)
-      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)item.polygon.pPoints);
+      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)item.polygon.pPoints);
     else
-      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)item.polygon.pPoints);
+      vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, vdkPGT_MultiPoint, item.polygon.numPoints, (double*)item.polygon.pPoints);
 
     udDouble3 *pTemp = item.polygon.pPoints;
     udFree(pTemp);
@@ -554,10 +554,10 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
     if (pItemData->at(index).sceneFolder.pParent == nullptr)
     {
       vdkProjectNode *pNode = nullptr;
-      vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
-      vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "Folder", item.dataset.pName, nullptr, nullptr);
+      vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex];
+      vdkProjectNode_Create(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], &pNode, pParentNode, "Folder", item.dataset.pName, nullptr, nullptr);
 
-      vcFolder *pFolder = new vcFolder(pProgramState->activeProject.pProject, pNode, pProgramState);
+      vcFolder *pFolder = new vcFolder(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, pProgramState);
       pNode->pUserData = pFolder;
 
       pItemData->at(index).sceneFolder = { pParentNode, pNode };
@@ -659,8 +659,9 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
       }
 
       // If any found then do the move, otherwise this node should bubble to the front
-      if (minGTIndex != itemNum)
-        vdkProjectNode_MoveChild(pProgramState->activeProject.pProject, item.sceneFolder.pParent, item.sceneFolder.pParent, item.sceneFolder.pItem, itemData.at(itemNum).sceneFolder.pItem);
+	  if (minGTIndex != itemNum)
+		  vdkProjectNode_MoveChild(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], item.sceneFolder.pParent, item.sceneFolder.pParent, item.sceneFolder.pItem, itemData.at(itemNum).sceneFolder.pItem);
+        
     }
   }
 

@@ -267,8 +267,10 @@
   "menuExperimentalFeatures": "Experimental Features",
   "menuWindows": "Windows",
   "menuScene": "Scene",
+  "menuHistory": "History",
   "menuConvert": "Convert",
   "menuSceneExplorer": "Scene Explorer",
+  "menuHistoryExplorer": "History Explorer",
   "menuSettings": "Settings",
   "menuProjects": "Projects",
   "menuNewScene": "New Scene",
@@ -324,6 +326,7 @@
   "modalProxyAuthCancelButton": "Cancel",
 
   "sceneTitle": "Scene",
+  "historyTitle": "History",
   "sceneImageViewerTitle": "Image Viewer",
   "sceneImageViewerCloseButton": "Close",
   "sceneGeographicInfo": "Geographic Information",
@@ -375,6 +378,8 @@
   "sceneCameraOutOfBounds": "Camera is outside recommended limits of this GeoZone",
   "sceneCameraOSCMove": "Move Camera",
   "sceneCameraOSCUpDown": "U/D",
+
+  "historyExplorerTitle": "History Explorer",
 
   "sceneExplorerTitle": "Scene Explorer",
   "sceneExplorerRemove": "Remove Selected",

@@ -8,13 +8,21 @@ struct vcState;
 class vcSceneItem;
 class vcFolder;
 
+enum vcProjectIndex
+{
+	vcProject_Scene,
+	vcProject_History,
+	vcProject_Count
+};
+
 struct vcProject
 {
-  vdkProject *pProject;
+  vdkProject *pProject[vcProject_Count];
 
   // These are the same item pFolder->m_pNode == pRoot && pRoot-pUserdata == pFolder
-  vdkProjectNode *pRoot;
-  vcFolder *pFolder;
+  vdkProjectNode *pRoot[vcProject_Count];
+
+  vcFolder *pFolder[vcProject_Count];
 
   const char *pRelativeBase;
 };

@@ -92,6 +92,8 @@ void vcRender_SceneImGui(vcState *pProgramState, vcRenderContext *pRenderContext
 void vcRender_ClearTiles(vcRenderContext *pRenderContext);
 void vcRender_ClearPoints(vcRenderContext *pRenderContext);
 
+void vcRender_SwitchContext(vcState *pProgramState, vcContextIndex eIndex);
+
 struct vcRenderPickResult
 {
   bool success;

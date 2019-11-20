@@ -267,8 +267,10 @@
   "menuExperimentalFeatures": "实验特性",
   "menuWindows": "窗口",
   "menuScene": "场景",
+  "menuHistory": "历史",
   "menuConvert": "转换",
   "menuSceneExplorer": "场景资源管理器",
+  "menuHistoryExplorer": "历史资源管理器",
   "menuSettings": "设置",
   "menuProjects": "项目",
   "menuNewScene": "新建场景",
@@ -324,6 +326,7 @@
   "modalProxyAuthCancelButton": "取消",
 
   "sceneTitle": "场景",
+  "historyTitle": "历史",
   "sceneImageViewerTitle": "图片查看器",
   "sceneImageViewerCloseButton": "关闭",
   "sceneGeographicInfo": "地理信息",
@@ -375,6 +378,8 @@
   "sceneCameraOutOfBounds": "摄像机不在地理区域的推荐范围之内",
   "sceneCameraOSCMove": "移动摄像机",
   "sceneCameraOSCUpDown": "上/下（U/D）",
+
+  "historyExplorerTitle": "历史资源管理器",
 
   "sceneExplorerTitle": "场景资源管理器",
   "sceneExplorerRemove": "删除",

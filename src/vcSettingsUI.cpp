@@ -180,7 +180,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
       if (ImGui::Selectable(udTempStr("%s##MapRestore", vcString::Get("settingsMapsRestoreDefaults"))))
       {
         vcSettings_Load(&pProgramState->settings, true, vcSC_MapsElevation);
-        vcRender_ClearTiles(pProgramState->pRenderContext); // refresh map tiles since they just got updated
+		vcRender_ClearTiles(pProgramState->pRenderContext[vcContext_Scene]); // refresh map tiles since they just got updated
+		vcRender_ClearTiles(pProgramState->pRenderContext[vcContext_History]);
       }
 
       ImGui::EndPopup();

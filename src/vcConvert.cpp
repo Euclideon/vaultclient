@@ -257,7 +257,7 @@ void vcConvert_AddEmptyJob(vcState *pProgramState, vcConvertItem **ppNextItem)
 {
   vcConvertItem *pNextItem = udAllocType(vcConvertItem, 1, udAF_Zero);
 
-  vdkConvert_CreateContext(pProgramState->pVDKContext, &pNextItem->pConvertContext);
+  vdkConvert_CreateContext(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], &pNextItem->pConvertContext);
   vdkConvert_GetInfo(pNextItem->pConvertContext, &pNextItem->pConvertInfo);
 
   pNextItem->pMutex = udCreateMutex();
@@ -427,7 +427,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
       if (ImGui::Button(udTempStr("%s##vcConvLoad_%zu", vcString::Get("convertAddToScene"), selectedJob), ImVec2(200, 40)))
       {
         vdkProjectNode *pNode = nullptr;
-        if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProgramState->pConvertContext->jobs[selectedJob]->pConvertInfo->pOutputName, nullptr) == vE_Success)
+        if (vdkProjectNode_Create(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], &pNode, pProgramState->activeProject.pRoot[pProgramState->eCurrentProjectIndex], "UDS", nullptr, pProgramState->pConvertContext->jobs[selectedJob]->pConvertInfo->pOutputName, nullptr) == vE_Success)
         {
           udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
           pProgramState->changeActiveDock = vcDocks_Scene;
@@ -932,7 +932,7 @@ void vcConvert_ResetConvert(vcState *pProgramState, vcConvertItem *pConvertItem,
 {
   vdkConvertContext *pConvertContext = nullptr;
   const vdkConvertInfo *pConvertInfo = nullptr;
-  vdkConvert_CreateContext(pProgramState->pVDKContext, &pConvertContext);
+  vdkConvert_CreateContext(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], &pConvertContext);
   vdkConvert_GetInfo(pConvertContext, &pConvertInfo);
 
   for (size_t i = 0; i < pConvertItem->pConvertInfo->totalItems; i++)

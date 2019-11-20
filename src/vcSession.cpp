@@ -36,9 +36,9 @@ void vcSession_GetProjectsWT(void *pProgramStatePtr)
   vcState *pProgramState = (vcState*)pProgramStatePtr;
 
   const char *pProjData = nullptr;
-  if (vdkServerAPI_Query(pProgramState->pVDKContext, "dev/projects", nullptr, &pProjData) == vE_Success)
+  if (vdkServerAPI_Query(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], "dev/projects", nullptr, &pProjData) == vE_Success)
     pProgramState->projects.Parse(pProjData);
-  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pProjData);
+  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], &pProjData);
 }
 
 void vcSession_GetPackagesWT(void *pProgramStatePtr)
@@ -46,10 +46,10 @@ void vcSession_GetPackagesWT(void *pProgramStatePtr)
   vcState *pProgramState = (vcState*)pProgramStatePtr;
   const char *pPackageData = nullptr;
   const char *pPostJSON = udTempStr("{ \"packagename\": \"EuclideonVaultClient\", \"packagevariant\": \"%s\" }", vcSession_GetOSName());
-  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/packages/latest", pPostJSON, &pPackageData) == vE_Success)
+  if (vdkServerAPI_Query(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], "v1/packages/latest", pPostJSON, &pPackageData) == vE_Success)
     pProgramState->packageInfo.Parse(pPackageData);
 
-  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pPackageData);
+  vdkServerAPI_ReleaseResult(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], &pPackageData);
 }
 
 void vcSession_GetPackagesMT(void *pProgramStatePtr)
@@ -77,7 +77,8 @@ void vcSession_Login(void *pProgramStatePtr)
 #  define TAG_SUFFIX VCSTRINGIFY(VCVERSION_VERSION_ARRAY_PARTIAL) " Developer Build"
 #endif
 
-  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, udTempStr("Euclideon Vault Client / " TAG_SUFFIX " (%s)", vcSession_GetOSName()), pProgramState->settings.loginInfo.username, pProgramState->password);
+  result = vdkContext_Connect(&pProgramState->pVDKContext[vcContext_Scene], pProgramState->settings.loginInfo.serverURL, udTempStr("Euclideon Vault Client / " TAG_SUFFIX " (%s)", vcSession_GetOSName()), pProgramState->settings.loginInfo.username, pProgramState->password);
+  result = vdkContext_Connect(&pProgramState->pVDKContext[vcContext_History], pProgramState->settings.loginInfo.serverURL, udTempStr("Euclideon Vault Client / " TAG_SUFFIX " (%s)", vcSession_GetOSName()), pProgramState->settings.loginInfo.username, pProgramState->password);
   if (result == vE_ConnectionFailure)
     pProgramState->loginStatus = vcLS_ConnectionError;
   else if (result == vE_AuthFailure)
@@ -100,7 +101,8 @@ void vcSession_Login(void *pProgramStatePtr)
   if (result != vE_Success)
     return;
 
-  vcRender_SetVaultContext(pProgramState, pProgramState->pRenderContext);
+  vcRender_SetVaultContext(pProgramState, pProgramState->pRenderContext[vcContext_Scene]);
+  vcRender_SetVaultContext(pProgramState, pProgramState->pRenderContext[vcContext_History]);
 
   udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetProjectsWT, pProgramState, false);
   udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetPackagesWT, pProgramState, false, vcSession_GetPackagesMT);
@@ -110,7 +112,7 @@ void vcSession_Login(void *pProgramStatePtr)
     const char *pSessionRawData = nullptr;
     udJSON info;
 
-    vdkError response = vdkServerAPI_Query(pProgramState->pVDKContext, "v1/session/info", nullptr, &pSessionRawData);
+    vdkError response = vdkServerAPI_Query(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], "v1/session/info", nullptr, &pSessionRawData);
     if (response == vE_Success)
     {
       if (info.Parse(pSessionRawData) == udR_Success)
@@ -131,11 +133,11 @@ void vcSession_Login(void *pProgramStatePtr)
       }
     }
 
-    vdkServerAPI_ReleaseResult(pProgramState->pVDKContext, &pSessionRawData);
+    vdkServerAPI_ReleaseResult(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], &pSessionRawData);
   }
 
   if (pProgramState->settings.presentation.loginRenderLicense)
-    vdkContext_RequestLicense(pProgramState->pVDKContext, vdkLT_Render);
+    vdkContext_RequestLicense(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex], vdkLT_Render);
 
   //Context Login successful
   memset(pProgramState->password, 0, sizeof(pProgramState->password));
@@ -182,10 +184,11 @@ void vcSession_Logout(vcState *pProgramState)
     pProgramState->modelPath[0] = '\0';
     vcProject_InitBlankScene(pProgramState);
     pProgramState->projects.Destroy();
-    vcRender_ClearPoints(pProgramState->pRenderContext);
+    vcRender_ClearPoints(pProgramState->pRenderContext[vcContext_Scene]);
+	vcRender_ClearPoints(pProgramState->pRenderContext[vcContext_History]);
 
     memset(&pProgramState->gis, 0, sizeof(pProgramState->gis));
-    vdkContext_Disconnect(&pProgramState->pVDKContext);
+    vdkContext_Disconnect(&pProgramState->pVDKContext[pProgramState->eCurrentContextIndex]);
 
     vcModals_OpenModal(pProgramState, vcMT_LoggedOut);
   }
@@ -194,7 +197,7 @@ void vcSession_Logout(vcState *pProgramState)
 void vcSession_UpdateInfo(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
-  vdkError response = vdkContext_KeepAlive(pProgramState->pVDKContext);
+  vdkError response = vdkContext_KeepAlive(pProgramState->pVDKContext[pProgramState->eCurrentContextIndex]);
 
   pProgramState->logoutReason = response;
   double now = udGetEpochSecsUTCf();

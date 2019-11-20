@@ -75,29 +75,29 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       // We need to create one
       if (pNode->itemtype == vdkPNT_Folder)
-        pNode->pUserData = new vcFolder(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcFolder(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_PointOfInterest)
-        pNode->pUserData = new vcPOI(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcPOI(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_PointCloud)
-        pNode->pUserData = new vcModel(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcModel(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_LiveFeed)
-        pNode->pUserData = new vcLiveFeed(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcLiveFeed(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_Media)
-        pNode->pUserData = new vcMedia(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcMedia(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_Viewpoint)
-        pNode->pUserData = new vcViewpoint(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcViewpoint(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "I3S"))
-        pNode->pUserData = new vcI3S(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcI3S(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "Water"))
-        pNode->pUserData = new vcWater(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcWater(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "ViewMap"))
-        pNode->pUserData = new vcViewShed(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcViewShed(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "Polygon"))
-        pNode->pUserData = new vcPolyModelNode(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcPolyModelNode(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "QFilter"))
-        pNode->pUserData = new vcQueryNode(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcQueryNode(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, pProgramState);
       else
-        pNode->pUserData = new vcUnsupportedNode(pProgramState->activeProject.pProject, pNode, pProgramState); // Catch all
+        pNode->pUserData = new vcUnsupportedNode(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, pProgramState); // Catch all
     }
 
     HandleNodeSelection(pProgramState, m_pNode, pNode);
@@ -189,7 +189,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &pSceneItem->m_pName, &pSceneItem->m_nameCapacity);
         if (ImGui::IsItemDeactivatedAfterEdit())
         {
-          if (vdkProjectNode_SetName(pProgramState->activeProject.pProject, pNode, pSceneItem->m_pName) != vE_Success)
+          if (vdkProjectNode_SetName(pProgramState->activeProject.pProject[pProgramState->eCurrentProjectIndex], pNode, pSceneItem->m_pName) != vE_Success)
           {
             vcState::ErrorItem projectError;
             projectError.source = vcES_ProjectChange;
@@ -276,9 +276,11 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         {
           if (vcGIS_ChangeSpace(&pProgramState->gis, *pSceneItem->m_pPreferredProjection, &pProgramState->pCamera->position))
           {
-            pProgramState->activeProject.pFolder->ChangeProjection(*pSceneItem->m_pPreferredProjection);
+            if(pProgramState->activeProject.pFolder[pProgramState->eCurrentProjectIndex] != nullptr)
+				pProgramState->activeProject.pFolder[pProgramState->eCurrentProjectIndex]->ChangeProjection(*pSceneItem->m_pPreferredProjection);
             // refresh map tiles when geozone changes
-            vcRender_ClearTiles(pProgramState->pRenderContext);
+            vcRender_ClearTiles(pProgramState->pRenderContext[vcContext_Scene]);
+			vcRender_ClearTiles(pProgramState->pRenderContext[vcContext_History]);
           }
         }
 
