@@ -112,7 +112,7 @@ struct vcState
   bool forceLogout;
 
   bool hasContext;
-  vdkSessionInfo vdkSessionInfo;
+  vdkSessionInfo sessionInfo;
   vdkContext *pVDKContext;
 
   vcRenderContext *pRenderContext;

@@ -90,7 +90,7 @@ void vcSession_ChangeSession(vcState *pProgramState)
   if (!pProgramState->settings.loginInfo.rememberUsername)
     memset(pProgramState->settings.loginInfo.username, 0, sizeof(pProgramState->settings.loginInfo.username));
 
-  vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->vdkSessionInfo);
+  vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->sessionInfo);
 
   pProgramState->logoutReason = vE_Success;
   pProgramState->loginStatus = vcLS_NoStatus;
@@ -192,5 +192,5 @@ void vcSession_UpdateInfo(void *pProgramStatePtr)
   if (response == vE_SessionExpired)
     pProgramState->forceLogout = true;
   else
-    vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->vdkSessionInfo);
+    vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->sessionInfo);
 }

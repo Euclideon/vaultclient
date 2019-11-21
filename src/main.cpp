@@ -575,7 +575,7 @@ void vcMain_MainLoop(vcState *pProgramState)
     }
 
     // Ping the server every 30 seconds
-    if (pProgramState->hasContext && udGetEpochSecsUTCf() > pProgramState->vdkSessionInfo.expiresTimestamp - 300)
+    if (pProgramState->hasContext && udGetEpochSecsUTCf() > pProgramState->sessionInfo.expiresTimestamp - 300)
       udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
 
     if (pProgramState->forceLogout)
@@ -1663,13 +1663,13 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
   int64_t currentTime = udGetEpochSecsUTCd();
   float xPosition = ImGui::GetContentRegionMax().x - 20.f;
 
-  vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->vdkSessionInfo);
+  vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->sessionInfo);
 
   char tempData[128] = {};
 
   // Username
   {
-    const char *pTemp = udTempStr("%s (%.3f)", pProgramState->vdkSessionInfo.displayName, pProgramState->vdkSessionInfo.expiresTimestamp - udGetEpochSecsUTCf());
+    const char *pTemp = udTempStr("%s (%.3f)", pProgramState->sessionInfo.displayName, pProgramState->sessionInfo.expiresTimestamp - udGetEpochSecsUTCf());
 
     xPosition -= ImGui::CalcTextSize(pTemp).x;
     
