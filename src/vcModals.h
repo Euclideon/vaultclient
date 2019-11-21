@@ -29,9 +29,6 @@ enum vcModalTypes
   vcMT_Count
 };
 
-static const char* pFormat[4] = { "PNG", "BMP", "TGA", "JPG" };
-static const udUInt2 resses[3] = { {1280, 720}, {1920, 1080}, {4096, 2160} };
-
 struct vcState;
 
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type);

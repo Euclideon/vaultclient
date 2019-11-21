@@ -5,6 +5,7 @@
 #include "vcThirdPartyLicenses.h"
 #include "vcPOI.h"
 #include "gl/vcTexture.h"
+#include "gl/vcFramebuffer.h"
 #include "vcRender.h"
 #include "vcStrings.h"
 #include "vcConvert.h"
@@ -749,6 +750,9 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
   }
 }
 
+static const char* pFormat[4] = { "PNG", "BMP", "TGA", "JPG" };
+static const udUInt2 resses[3] = { {1280, 720}, {1920, 1080}, {4096, 2160} };
+
 bool vcModals_TakeScreenshot(vcState *pProgramState, char *pFilename, uint32_t bufLen, int *pSuffix)
 {
   if (pFilename == nullptr || pProgramState == nullptr)
@@ -767,12 +771,12 @@ bool vcModals_TakeScreenshot(vcState *pProgramState, char *pFilename, uint32_t b
     return true;
   }
 
-  if (pFilename == "")
+  if (udStrEqual(pFilename, ""))
     udStrcpy(pFilename, bufLen, vcString::Get("screenshotDefaultName"));
 
   pProgramState->screenshot.pPixels = udAllocType(uint8_t, pProgramState->sceneResolution.x * pProgramState->sceneResolution.y * 4, udAF_Zero);
 
-  vcTexture_BeginReadPixels(pProgramState->image.pImage, 0, 0, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y, pProgramState->screenshot.pPixels, pProgramState->pRenderContext->pFramebuffer[1]);
+  vcTexture_BeginReadPixels(pProgramState->image.pImage, 0, 0, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y, pProgramState->screenshot.pPixels, vcRender_GetSceneFramebuffer(pProgramState->pRenderContext));
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 
   if (!udStrBeginsWithi(pFilename, pProgramState->settings.pSaveFilePath))
@@ -865,7 +869,7 @@ bool vcModals_SequencialFilename(char* pBuffer, uint32_t bufLen, int* pSuffix)
 epilogue:
   udFree(pExt);
 
-  for (int i = length + suffixLen; i < bufLen && pBuffer[i] != '\0'; ++i)
+  for (uint32_t i = length + suffixLen; i < bufLen && pBuffer[i] != '\0'; ++i)
     pBuffer[i] = '\0';
 
   if (pSuffix != nullptr)
