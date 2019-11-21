@@ -520,6 +520,7 @@
   "polyModelMesh": "Mesh",
   "polyModelTexture": "Texture",
   "polyModelMatColour": "Material Colour",
+  "polyModelIgnoreTint": "Ignore Tint",
 
   "viewShedDistance": "Distance",
   "viewShedVisibleColour": "Highlight Visible",

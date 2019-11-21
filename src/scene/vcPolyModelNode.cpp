@@ -16,6 +16,7 @@ vcPolyModelNode::vcPolyModelNode(vdkProject *pProject, vdkProjectNode *pNode, vc
   m_pModel = nullptr;
   m_matrix = udDouble4x4::identity();
   m_cullFace = vcGLSCM_Back;
+  m_ignoreTint = false;
 
   //TODO: Do this load async
   if (vcPolygonModel_CreateFromURL(&m_pModel, pNode->pURI) == udR_Success)
@@ -38,6 +39,8 @@ void vcPolyModelNode::OnNodeUpdate(vcState *pProgramState)
     else // Default to backface
       m_cullFace = vcGLSCM_Back;
   }
+ 
+  vdkProjectNode_GetMetadataBool(m_pNode, "ignoreTint", &m_ignoreTint, false);
 
   if (m_pNode->geomCount != 0)
   {
@@ -71,6 +74,7 @@ void vcPolyModelNode::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRen
   pModel->worldMat = m_matrix;
   pModel->cullFace = m_cullFace;
   pModel->transparent = false;
+  pModel->ignoreTint = m_ignoreTint;
 }
 
 void vcPolyModelNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
@@ -104,6 +108,9 @@ void vcPolyModelNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
   const char *optStrings[] = { "back", "front", "none" };
   if (ImGui::Combo(udTempStr("%s##%zu", vcString::Get("polyModelCullFace"), *pItemID), (int*)&m_cullFace, uiStrings, (int)udLengthOf(uiStrings)))
     vdkProjectNode_SetMetadataString(m_pNode, "culling", optStrings[m_cullFace]);
+
+  if (ImGui::Checkbox(udTempStr("%s##%zu", vcString::Get("polyModelIgnoreTint"), *pItemID), &m_ignoreTint))
+    vdkProjectNode_SetMetadataBool(m_pNode, "ignoreTint", m_ignoreTint);
 
   // Transform Info
   {

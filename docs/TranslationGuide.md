@@ -7,7 +7,7 @@
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
       - Polygon Meshes
-        - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`
+        - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`, `polyModelIgnoreTint`
     - Scene Explorer
       - `scenePOIAttachCameraToAttachment`, `liveFeedLODModifier`, `sceneModelMetreScale`, `sceneModelLODLayers`, `sceneModelResolution`, `sceneModelAttributes`
     - Other
