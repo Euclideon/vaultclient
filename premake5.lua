@@ -211,7 +211,7 @@ solution "vaultClient"
 		filter { "kind:*App" }
 			targetextension ".js"
 		filter { "files:**.cpp" }
-			buildoptions { "-std=c++11" }
+			buildoptions { "-std=c++14" }
 		filter { "system:emscripten" }
 			disablewarnings "string-plus-int"
 		filter {}
@@ -221,7 +221,7 @@ solution "vaultClient"
 
 	editorintegration "on"
 	startproject "vaultClient"
-	cppdialect "C++11"
+	cppdialect "C++14"
 	pic "On"
 	editandcontinue "Off"
 
@@ -230,8 +230,6 @@ solution "vaultClient"
 	filter { "system:windows", "action:vs*" }
 		buildoptions { "/permissive-" }
 	filter {}
-
-	xcodebuildsettings { ["CLANG_CXX_LANGUAGE_STANDARD"] = "c++0x" }
 
 	if os.target() == premake.WINDOWS then
 		os.copyfile("3rdParty/SDL2-2.0.8/lib/x64/SDL2.dll", "builds/SDL2.dll")
