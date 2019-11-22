@@ -442,7 +442,31 @@ void vcSettingsUI_Show(vcState *pProgramState)
       ImGui::InputText(vcString::Get("convertCopyright"), pProgramState->settings.convertdefaults.copyright, udLengthOf(pProgramState->settings.convertdefaults.copyright));
       ImGui::InputText(vcString::Get("convertLicense"), pProgramState->settings.convertdefaults.license, udLengthOf(pProgramState->settings.convertdefaults.license));
     }
-  }
 
+    openedHeader = ImGui::CollapsingHeader(udTempStr("%s##ScreenshotSettings", vcString::Get("settingsScreenshot")));
+    if (ImGui::BeginPopupContextItem("ScreenshotContext"))
+    {
+      if (ImGui::Selectable(udTempStr("%s##ScreenshotRestore", vcString::Get("settingsScreenshotRestoreDefaults"))))
+        vcSettings_Load(&pProgramState->settings, true, vcSC_Screenshot);
+
+      ImGui::EndPopup();
+    }
+
+    if (openedHeader)
+    {
+      // Resolution
+      static const char* pRes[3] = { vcString::Get("settingsScreenshotRes720p"), vcString::Get("settingsScreenshotRes1080p"), vcString::Get("settingsScreenshotRes4K") };
+      ImGui::Combo(vcString::Get("settingsScreenshotResLabel"), (int*)&pProgramState->settings.screenshot.res, pRes, 3);
+
+      // Hide Labels/Measurements
+      ImGui::Checkbox(vcString::Get("settingsScreenshotHideLabels"), &pProgramState->settings.screenshot.hideLabels);
+      ImGui::Checkbox(vcString::Get("settingsAppearanceShowCompass"), &pProgramState->settings.presentation.showCompass);
+
+      // Output format
+      ImGui::Combo(vcString::Get("settingsScreenshotFormatLabel"), (int*)&pProgramState->settings.screenshot.format, ScreenshotExportFormats, 4);
+      ImGui::InputText(vcString::Get("settingsScreenshotFilename"), pProgramState->settings.screenshot.outputName, udLengthOf(pProgramState->settings.screenshot.outputName));
+    }
+  }
+  
   ImGui::End();
 }

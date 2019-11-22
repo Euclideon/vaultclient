@@ -4,6 +4,7 @@
 #include "SDL2/SDL.h"
 
 #include "udPlatform.h"
+#include "udPlatformUtil.h"
 #include "udMath.h"
 #include "udChunkedArray.h"
 #include "udUUID.h"
@@ -76,6 +77,7 @@ enum vcSettingCategory
   vcSC_Convert,
   vcSC_Docks,
   vcSC_Languages,
+  vcSC_Screenshot,
   vcSC_All
 };
 
@@ -92,6 +94,21 @@ enum vcTileRendererFlags
 {
   vcTRF_None = 0,
   vcTRF_OnlyRequestVisibleTiles = 0x1,
+};
+
+enum vcImageFormats
+{
+  vcIF_PNG,
+  vcIF_BMP,
+  vcIF_TGA,
+  vcIF_JPG
+};
+
+enum vcImageResolutions
+{
+  vcIR_720p,
+  vcIR_1080p,
+  vcIR_4k
 };
 
 struct vcLanguageOption
@@ -258,6 +275,18 @@ struct vcSettings
     char license[vcMetadataMaxLength];
   } convertdefaults;
 
+  struct screenshot
+  {
+    bool taking;
+    bool resize;
+    uint8_t* pPixels;
+
+    bool hideLabels;
+    vcImageFormats format;
+    vcImageResolutions res;
+    char outputName[vcMaxPathLength];
+  } screenshot;
+
   // These are experimental features that will eventually be removed or moved to another setting.
   // They will mostly be exposed via the System->Experiments menu to hide them away from most users
   struct
@@ -322,6 +351,10 @@ const float vcSL_ContourDistanceMin = 0.f;
 const float vcSL_ContourDistanceMax = 100.f;
 const float vcSL_ContourBandHeightMin = 0.f;
 const float vcSL_ContourBandHeightMax = 10.f;
+
+const udUInt2 ScreenshotResolutions[3] = { {1280, 720}, {1920, 1080}, {4096, 2160} };
+
+udFilename vcSettings_SequentialFilename(vcSettings* pSettings, const char* pName, const char* pExt);
 
 // Settings Functions
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset = false, vcSettingCategory group = vcSC_All);

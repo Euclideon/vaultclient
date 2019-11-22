@@ -10,6 +10,7 @@
 
 #include "vcClassificationColours.h"
 #include "vcStringFormat.h"
+#include "vcStrings.h"
 
 #if UDPLATFORM_EMSCRIPTEN
 # include <emscripten.h>
@@ -88,6 +89,31 @@ bool SDL_filewrite(const char* filename, const char *pStr, size_t bytes)
   }
 
   return success;
+}
+
+// If path + filename exists, adds next available number suffix before the extension
+udFilename vcSettings_SequentialFilename(vcSettings* pSettings, const char* pName, const char *pExt)
+{
+  if (pName == nullptr)
+    return pName;
+
+  const char* pFilename = pName;
+
+  if (!udStrBeginsWithi(pFilename, pSettings->pSaveFilePath))
+    pFilename = udTempStr("%s%s", pSettings->pSaveFilePath, pName);
+
+  udFilename temp(pFilename);
+  temp.SetExtension(udTempStr(".%s", pExt));
+
+  int i = 1;
+  while (udFileExists(temp.GetPath()) == udR_Success)
+  {
+    temp.SetFromFullPath(pFilename);
+    temp.SetExtension(udTempStr("-%d.%s", i, pExt));
+    ++i;
+  }
+
+  return temp;
 }
 
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSettingCategory group /*= vcSC_All*/)
@@ -414,6 +440,14 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     udFree(pFileContents);
   }
 
+  if (group == vcSC_Screenshot || group == vcSC_All)
+  {
+    pSettings->screenshot.hideLabels = data.Get("screenshot.hideLabels").AsBool(false);
+    pSettings->screenshot.format = (vcImageFormats)data.Get("screenshot.format").AsInt(vcIF_PNG);
+    pSettings->screenshot.res = (vcImageResolutions)data.Get("screenshot.res").AsInt(vcIR_720p);
+    udStrcpy(pSettings->screenshot.outputName, data.Get("screenshot.outputName").AsString());
+  }
+
 epilogue:
   udFree(pSavedData);
   return true;
@@ -632,6 +666,12 @@ bool vcSettings_Save(vcSettings *pSettings)
 
   tempNode.SetString(pSettings->convertdefaults.license);
   data.Set(&tempNode, "convert.license");
+
+  // Screenshots
+  data.Set("screenshot.enabled = %s", pSettings->screenshot.hideLabels ? "true" : "false");
+  data.Set("screenshot.format = %d", pSettings->screenshot.format);
+  data.Set("screenshot.res = %d", pSettings->screenshot.res);
+  data.Set("screenshot.outputName = '%s'", pSettings->screenshot.outputName);
 
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");

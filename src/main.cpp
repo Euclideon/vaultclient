@@ -54,6 +54,11 @@
 #include "udStringUtil.h"
 #include "udUUID.h"
 
+#include "udPlatformUtil.h"
+#include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 #if UDPLATFORM_EMSCRIPTEN
 #include "vHTTPRequest.h"
 #include <emscripten/threading.h>
@@ -187,6 +192,58 @@ void vcMain_PresentationMode(vcState *pProgramState)
 
   if (pProgramState->settings.responsiveUI == vcPM_Responsive)
     pProgramState->lastEventTime = udGetEpochSecsUTCd();
+}
+
+bool vcMain_TakeScreenshot(vcState* pProgramState, const char* pFilename)
+{
+  if (pFilename == nullptr || pProgramState == nullptr)
+    return false;
+
+  if (pProgramState->image.pImage == nullptr // Or hasn't been resized yet
+    || udAbs(pProgramState->sceneResolution.x - ScreenshotResolutions[pProgramState->settings.screenshot.res].x) > 32
+    || udAbs(pProgramState->sceneResolution.y - ScreenshotResolutions[pProgramState->settings.screenshot.res].y) > 32)
+    return true;
+
+  if (udStrEqual(pFilename, ""))
+    pFilename = vcString::Get("screenshotDefaultName");
+
+  pProgramState->settings.screenshot.pPixels = udAllocType(uint8_t, pProgramState->sceneResolution.x * pProgramState->sceneResolution.y * 4, udAF_Zero);
+  if (pProgramState->settings.screenshot.pPixels == nullptr)
+    return false;
+
+  vcTexture_BeginReadPixels(pProgramState->image.pImage, 0, 0, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y, pProgramState->settings.screenshot.pPixels, vcRender_GetSceneFramebuffer(pProgramState->pRenderContext));
+  vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+
+#if (GRAPHICS_API_OPENGL)
+  stbi_flip_vertically_on_write(1);
+#endif
+
+  udFilename temp = vcSettings_SequentialFilename(&pProgramState->settings, pFilename, ScreenshotExportFormats[pProgramState->settings.screenshot.format]);
+
+  switch (pProgramState->settings.screenshot.format)
+  {
+  case vcIF_PNG:
+    stbi_write_png(temp.GetPath(), pProgramState->sceneResolution.x, pProgramState->sceneResolution.y, 4, pProgramState->settings.screenshot.pPixels, pProgramState->sceneResolution.x * 4);
+    break;
+
+  case vcIF_BMP:
+    stbi_write_bmp(temp.GetPath(), pProgramState->sceneResolution.x, pProgramState->sceneResolution.y, 4, pProgramState->settings.screenshot.pPixels);
+    break;
+
+  case vcIF_TGA:
+    stbi_write_tga(temp.GetPath(), pProgramState->sceneResolution.x, pProgramState->sceneResolution.y, 4, pProgramState->settings.screenshot.pPixels);
+    break;
+
+  case vcIF_JPG:
+    stbi_write_jpg(temp.GetPath(), pProgramState->sceneResolution.x, pProgramState->sceneResolution.y, 4, pProgramState->settings.screenshot.pPixels, 100);
+    break;
+
+  }
+
+  udFree(pProgramState->settings.screenshot.pPixels);
+  pProgramState->settings.screenshot.taking = false;
+
+  return true;
 }
 
 void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
@@ -796,9 +853,8 @@ int main(int argc, char **args)
   programState.changeActiveDock = vcDocks_Count;
   programState.passFocus = true;
   programState.renaming = -1;
-  programState.screenshot.taking = false;
-  programState.screenshot.renderLabels = true;
-  programState.screenshot.resize = false;
+  programState.settings.screenshot.taking = false;
+  programState.settings.screenshot.hideLabels = false;
 
   programState.sceneExplorer.insertItem.pParent = nullptr;
   programState.sceneExplorer.insertItem.pItem = nullptr;
@@ -916,7 +972,7 @@ int main(int argc, char **args)
   vcSettings_Save(&programState.settings);
 
 epilogue:
-  if (programState.screenshot.taking)
+  if (programState.settings.screenshot.taking)
     programState.image.pImage = nullptr;
 
   udFree(programState.pReleaseNotes);
@@ -1321,10 +1377,10 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.mouse.position.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.position.y = (uint32_t)(io.MousePos.y - windowPos.y);
   renderData.mouse.clicked = io.MouseClicked[1];
-
+  
   udDouble3 cameraMoveOffset = udDouble3::zero();
 
-  if (!pProgramState->screenshot.taking && (pProgramState->sceneResolution.x != windowSize.x || pProgramState->sceneResolution.y != windowSize.y)) //Resize buffers
+  if (!pProgramState->settings.screenshot.taking && (pProgramState->sceneResolution.x != windowSize.x || pProgramState->sceneResolution.y != windowSize.y)) //Resize buffers
   {
     pProgramState->sceneResolution = udUInt2::create((uint32_t)windowSize.x, (uint32_t)windowSize.y);
     vcRender_ResizeScene(pProgramState, pProgramState->pRenderContext, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y);
@@ -1333,11 +1389,13 @@ void vcRenderSceneWindow(vcState *pProgramState)
     // this isn't valid on iOS when using UIKit.
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
-  else if (pProgramState->screenshot.resize)
+  else if (pProgramState->settings.screenshot.taking && (pProgramState->sceneResolution.x != ScreenshotResolutions[pProgramState->settings.screenshot.res].x || pProgramState->sceneResolution.y != ScreenshotResolutions[pProgramState->settings.screenshot.res].y))
   {
-    vcRender_ResizeScene(pProgramState, pProgramState->pRenderContext, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y);
+    pProgramState->sceneResolution.x = ScreenshotResolutions[pProgramState->settings.screenshot.res].x;
+    pProgramState->sceneResolution.y = ScreenshotResolutions[pProgramState->settings.screenshot.res].y;
+
+    vcRender_ResizeScene(pProgramState, pProgramState->pRenderContext, ScreenshotResolutions[pProgramState->settings.screenshot.res].x, ScreenshotResolutions[pProgramState->settings.screenshot.res].y);
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
-    pProgramState->screenshot.resize = false;
   }
 
   if (!pProgramState->modalOpen && (ImGui::IsKeyPressed(SDL_SCANCODE_F5, false) || ImGui::IsNavInputPressed(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released)))
@@ -1362,7 +1420,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     // Actual rendering to this texture is deferred
     ImGui::ImageButton(renderData.pSceneTexture, windowSize, uv0, uv1, 0);
 
-    if (pProgramState->screenshot.taking)
+    if (pProgramState->settings.screenshot.taking)
       pProgramState->image.pImage = renderData.pSceneTexture;
 
     static bool wasContextMenuOpenLastFrame = false;
@@ -1640,7 +1698,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     }
   }
 
-  if (pProgramState->screenshot.renderLabels)
+  if (!pProgramState->settings.screenshot.taking || pProgramState->settings.screenshot.hideLabels)
     vcRender_SceneImGui(pProgramState, pProgramState->pRenderContext, renderData);
 
   // Render scene to texture
@@ -1934,16 +1992,10 @@ int vcMainMenuGui(vcState *pProgramState)
 
       ImGui::Separator();
 
-      if (ImGui::MenuItem(vcString::Get("screenshotTake"), nullptr, nullptr) || (!pProgramState->modalOpen && pProgramState->screenshot.taking))
+      if (ImGui::MenuItem(vcString::Get("screenshotTake"), nullptr, nullptr))
       {
-        pProgramState->screenshot.taking = true;
-        vcModals_TakeScreenshot(pProgramState, pProgramState->screenshot.outputName, vcMaxPathLength);
-      }
-
-      if (ImGui::MenuItem(vcString::Get("screenshotSettings"), nullptr, nullptr))
-      {
-        pProgramState->screenshot.taking = true;
-        vcModals_OpenModal(pProgramState, vcMT_screenshot);
+        pProgramState->settings.screenshot.taking = true;
+        vcMain_TakeScreenshot(pProgramState, pProgramState->settings.screenshot.outputName);
       }
 
       ImGui::EndMenu();
@@ -2277,10 +2329,10 @@ void vcRenderWindow(vcState *pProgramState)
     vcCamera_SwapMapMode(pProgramState);
 #endif
 
-  if (ImGui::IsKeyPressed(SDL_SCANCODE_F8))
+  if (ImGui::IsKeyPressed(SDL_SCANCODE_F8) || pProgramState->settings.screenshot.taking)
   {
-    pProgramState->screenshot.taking = true;
-    vcModals_TakeScreenshot(pProgramState, pProgramState->screenshot.outputName, vcMaxPathLength);
+    pProgramState->settings.screenshot.taking = true;
+    vcMain_TakeScreenshot(pProgramState, pProgramState->settings.screenshot.outputName);
   }
 
   //end keyboard/mouse handling
