@@ -194,14 +194,17 @@ void vcMain_PresentationMode(vcState *pProgramState)
     pProgramState->lastEventTime = udGetEpochSecsUTCd();
 }
 
-bool vcMain_TakeScreenshot(vcState* pProgramState, const char* pFilename)
+bool vcMain_TakeScreenshot(vcState* pProgramState, const char* pFilename, vcTexture *pTexture, vcFramebuffer *pFramebuffer, udUInt2 size)
 {
   if (pFilename == nullptr || pProgramState == nullptr)
     return false;
 
-  if (pProgramState->image.pImage == nullptr // Or hasn't been resized yet
-    || udAbs(pProgramState->sceneResolution.x - ScreenshotResolutions[pProgramState->settings.screenshot.res].x) > 32
-    || udAbs(pProgramState->sceneResolution.y - ScreenshotResolutions[pProgramState->settings.screenshot.res].y) > 32)
+  udInt2 currSize = udInt2::zero();
+  vcTexture_GetSize(pTexture, &currSize.x, &currSize.y);
+
+  if (pTexture == nullptr // Or hasn't been resized yet
+    || abs((int)(currSize.x - ScreenshotResolutions[pProgramState->settings.screenshot.res].x)) > 32
+    || abs((int)(currSize.y - ScreenshotResolutions[pProgramState->settings.screenshot.res].y)) > 32)
     return true;
 
   if (udStrEqual(pFilename, ""))

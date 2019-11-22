@@ -174,6 +174,9 @@ struct vcState
   vcTranslationInfo languageInfo;
   bool showUI;
   vcDocks changeActiveDock;
+
+  int picWidth;
+  int picHeight;
 };
 
 #endif // !vcState_h__
