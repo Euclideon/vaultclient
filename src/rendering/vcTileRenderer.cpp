@@ -128,7 +128,7 @@ bool vcTileRenderer_ShouldLoadNode(vcQuadTreeNode *pNode)
   return pNode->renderInfo.tryLoad && pNode->touched && (pNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_InQueue);
 }
 
-void vcTileRenderer_LoadThread(void *pThreadData)
+uint32_t vcTileRenderer_LoadThread(void *pThreadData)
 {
   vcTileRenderer *pRenderer = (vcTileRenderer*)pThreadData;
   vcTileRenderer::vcTileCache *pCache = &pRenderer->cache;
@@ -297,6 +297,8 @@ epilogue:
       stbi_image_free(pData);
     }
   }
+
+  return 0;
 }
 
 void vcTileRenderer_BuildMeshVertices(vcP3Vertex *pVerts, int *pIndicies, udFloat2 minUV, udFloat2 maxUV)
@@ -357,7 +359,7 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   pTileRenderer->cache.tileTimeoutList.Init(128);
 
   for (size_t i = 0; i < udLengthOf(pTileRenderer->cache.pThreads); ++i)
-    UD_ERROR_CHECK(udThread_Create(&pTileRenderer->cache.pThreads[i], (udThreadStart*)vcTileRenderer_LoadThread, pTileRenderer));
+    UD_ERROR_CHECK(udThread_Create(&pTileRenderer->cache.pThreads[i], vcTileRenderer_LoadThread, pTileRenderer));
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pTileRenderer->presentShader.pProgram, g_tileVertexShader, g_tileFragmentShader, vcP3VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pTileRenderer->presentShader.pConstantBuffer, pTileRenderer->presentShader.pProgram, "u_EveryObject", sizeof(pTileRenderer->presentShader.everyObject)), udR_InternalError);
