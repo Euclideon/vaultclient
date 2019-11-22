@@ -136,7 +136,9 @@ void vcBPA_AddGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, udDouble3 ce
   if (!pManifold->foundFirstGrid)
   {
     vdkPointCloudHeader header = {};
-    vdkPointCloud_GetHeader(pModel, &header);
+    if (vdkPointCloud_GetHeader(pModel, &header) != vE_Success)
+      return;
+
     udDouble4x4 storedMatrix = udDouble4x4::create(header.storedMatrix);
     udDouble3 boundingBoxCenter = udDouble3::create(header.boundingBoxCenter[0], header.boundingBoxCenter[1], header.boundingBoxCenter[2]);
     udDouble3 boundingBoxExtents = udDouble3::create(header.boundingBoxExtents[0], header.boundingBoxExtents[1], header.boundingBoxExtents[2]);

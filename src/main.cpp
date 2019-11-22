@@ -575,7 +575,7 @@ void vcMain_MainLoop(vcState *pProgramState)
     }
 
     // Ping the server every 30 seconds
-    if (pProgramState->hasContext && udGetEpochSecsUTCf() > pProgramState->sessionInfo.expiresTimestamp - 300)
+    if (pProgramState->hasContext && (udGetEpochSecsUTCf() > pProgramState->sessionInfo.expiresTimestamp - 300))
       udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
 
     if (pProgramState->forceLogout)
