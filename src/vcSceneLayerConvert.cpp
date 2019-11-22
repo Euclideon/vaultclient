@@ -47,7 +47,6 @@ udResult vcSceneLayerConvert_Create(vcSceneLayerConvert **ppSceneLayerConvert, c
 
   // Convert doesn't use a worker pool at the moment
   UD_ERROR_CHECK(vcSceneLayer_Create(&pSceneLayerConvert->pSceneLayer, nullptr, pSceneLayerURL));
-  UD_ERROR_CHECK(pSceneLayerConvert->leafNodes.Init(128));
 
   *ppSceneLayerConvert = pSceneLayerConvert;
   pSceneLayerConvert = nullptr;
@@ -69,8 +68,6 @@ udResult vcSceneLayerConvert_Destroy(vcSceneLayerConvert **ppSceneLayerConvert)
   *ppSceneLayerConvert = nullptr;
 
   vcSceneLayer_Destroy(&pSceneLayerConvert->pSceneLayer);
-  vdkTriangleVoxelizer_Destroy(&pSceneLayerConvert->pTrivox);
-  pSceneLayerConvert->leafNodes.Deinit();
   udFree(pSceneLayerConvert);
 
   result = udR_Success;
@@ -196,7 +193,11 @@ vdkError vcSceneLayerConvert_Open(vdkConvertCustomItem *pConvertInput, uint32_t 
   pSceneLayerConvert->totalPrimIndex = 0;
   pSceneLayerConvert->lastPrimedPrimitive = 0xffffffff;
   pSceneLayerConvert->worldOrigin = udDouble3::create(origin[0], origin[1], origin[2]);
+  pSceneLayerConvert->leafIndex = 0;
 
+  if (pSceneLayerConvert->leafNodes.Init(128) != udR_Success)
+    UD_ERROR_SET(vE_Failure);
+  
   // Recursively load child nodes
   if (vcSceneLayerConvert_GenerateLeafNodeList(pSceneLayerConvert) != udR_Success)
     UD_ERROR_SET(vE_Failure);
@@ -214,10 +215,14 @@ epilogue:
 
 void vcSceneLayerConvert_Close(vdkConvertCustomItem *pConvertInput)
 {
-  if (pConvertInput->pData == nullptr)
-    return;
-
   vcSceneLayerConvert *pSceneLayerConvert = (vcSceneLayerConvert*)pConvertInput->pData;
+  pSceneLayerConvert->leafNodes.Deinit();
+  vdkTriangleVoxelizer_Destroy(&pSceneLayerConvert->pTrivox);
+}
+
+void vcSceneLayerConvert_Destroy(vdkConvertCustomItem *pConvertInput)
+{
+  vcSceneLayerConvert *pSceneLayerConvert = (vcSceneLayerConvert *)pConvertInput->pData;
   vcSceneLayerConvert_Destroy(&pSceneLayerConvert);
   vdkAttributeSet_Free(&pConvertInput->attributes);
   pConvertInput->pData = nullptr;
@@ -414,6 +419,7 @@ vdkError vcSceneLayerConvert_AddItem(vdkConvertContext *pConvertContext, const c
   customItem.pData = pSceneLayerConvert;
   customItem.pOpen = vcSceneLayerConvert_Open;
   customItem.pClose = vcSceneLayerConvert_Close;
+  customItem.pDestroy = vcSceneLayerConvert_Destroy;
   customItem.pReadPointsInt = vcSceneLayerConvert_ReadPointsInt;
   customItem.pName = pSceneLayerURL;
   vdkAttributeSet_Generate(&customItem.attributes, vdkSAC_ARGB, 0);

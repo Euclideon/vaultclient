@@ -665,6 +665,7 @@ udResult vcSceneLayer_LoadNodeInternals(const vcSceneLayer *pSceneLayer, vcScene
   udResult result;
 
   UD_ERROR_NULL(pNode, udR_InvalidParameter_);
+  UD_ERROR_IF(pNode->internalsLoadState != vcSceneLayerNode::vcILS_BasicNodeData, udR_Success);
 
   UD_ERROR_CHECK(vcSceneLayer_LoadFeatureData(pSceneLayer, pNode));
   UD_ERROR_CHECK(vcSceneLayer_LoadGeometryData(pSceneLayer, pNode));
@@ -687,6 +688,8 @@ udResult vcSceneLayer_LoadNode(const vcSceneLayer *pSceneLayer, vcSceneLayerNode
   udJSON nodeJSON;
   const char *pPathBuffer = nullptr;
   char *pFileData = nullptr;
+
+  UD_ERROR_IF(pNode->internalsLoadState != vcSceneLayerNode::vcILS_None, udR_Success);
 
   pNode->loadState = vcSceneLayerNode::vcLS_Loading;
 
