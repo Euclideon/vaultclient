@@ -41,7 +41,7 @@ void vcViewShed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (m_selected)
   {
     vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
-    pInstance->affectsViewShed = false;
+    pInstance->transparent = true;
 
     udDouble3 linearDistance = (pProgramState->pCamera->position - m_position);
 

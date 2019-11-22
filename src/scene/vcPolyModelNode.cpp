@@ -70,7 +70,7 @@ void vcPolyModelNode::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRen
   pModel->pSceneItem = this;
   pModel->worldMat = m_matrix;
   pModel->cullFace = m_cullFace;
-  pModel->affectsViewShed = true;
+  pModel->transparent = false;
 }
 
 void vcPolyModelNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)

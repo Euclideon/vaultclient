@@ -747,7 +747,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
   bool doUDRender = renderData.models.length > 0;
   bool doPolygonRender = false;
   for (size_t p = 0; p < renderData.polyModels.length && !doPolygonRender; ++p)
-    doPolygonRender = renderData.polyModels[p].affectsViewShed;
+    doPolygonRender = !renderData.polyModels[p].transparent;
 
   if (!doUDRender && !doPolygonRender)
     return;
@@ -814,7 +814,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
         for (size_t p = 0; p < renderData.polyModels.length; ++p)
         {
           vcRenderPolyInstance *pInstance = &renderData.polyModels[p];
-          if (!pInstance->affectsViewShed)
+          if (pInstance->transparent)
             continue;
 
           if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
@@ -862,6 +862,8 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
     {
       vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
+      if (pInstance->transparent)
+        continue;
 
       vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
@@ -881,7 +883,7 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
   vcRender_AsyncReadFrameDepth(pRenderContext); // note: one frame behind
 }
 
-void vcRenderTransparentGeometry(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
+void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
@@ -916,6 +918,23 @@ void vcRenderTransparentGeometry(vcState *pProgramState, vcRenderContext *pRende
     for (size_t i = 0; i < renderData.fences.length; ++i)
       vcFenceRenderer_Render(renderData.fences[i], pProgramState->pCamera->matrices.viewProjection, pProgramState->deltaTime);
   }
+
+  udFloat4 transparentColour = udFloat4::create(1, 1, 1, 0.65f);
+  for (size_t i = 0; i < renderData.polyModels.length; ++i)
+  {
+    vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
+    if (!pInstance->transparent)
+      continue;
+
+    vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
+
+    if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
+      vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride, &transparentColour);
+    else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
+      vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution);
+  }
+
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 }
 
 void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
@@ -1068,7 +1087,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   vcRenderSkybox(pProgramState, pRenderContext); // Drawing skybox after opaque geometry saves a bit on fill rate.
   vcRenderTerrain(pProgramState, pRenderContext);
-  vcRenderTransparentGeometry(pProgramState, pRenderContext, renderData);
+  vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
 
   if (selectionBufferActive)
     vcRender_ApplySelectionBuffer(pProgramState, pRenderContext);
