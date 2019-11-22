@@ -30,6 +30,7 @@ private:
   udDouble4x4 m_matrix;
 
   vcGLStateCullMode m_cullFace;
+  bool m_ignoreTint;
 };
 
 #endif //vcPolyModelNode_h__

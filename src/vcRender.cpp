@@ -859,6 +859,7 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
 
     vcSceneLayer_BeginFrame();
 
+    udFloat4 whiteColour = udFloat4::one();
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
     {
       vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
@@ -868,7 +869,7 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
       vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
-        vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride);
+        vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride, pInstance->ignoreTint ? &whiteColour : nullptr);
       else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
         vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution);
     }

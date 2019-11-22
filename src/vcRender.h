@@ -39,6 +39,7 @@ struct vcRenderPolyInstance
   vcTexture *pDiffuseOverride; // optionally override diffuse texture. Only available on RenderType_Polygon
 
   vcGLStateCullMode cullFace;
+  bool ignoreTint;
 
   bool transparent; // TODO: turn this into appropriate flags
   vcSceneItem *pSceneItem;
