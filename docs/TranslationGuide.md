@@ -721,6 +721,7 @@ Modules are currently:
 - `polyModelMesh`: Used on the label next to mesh information in the scene explorer with "Show Diagnostic Information" enabled 
 - `polyModelTexture`: Used on the label next to mesh texture information in the scene explorer with "Show Diagnostic Information" enabled 
 - `polyModelMatColour`: Used on the label next to mesh material colour information in the scene explorer with "Show Diagnostic Information" enabled 
+- `polyModelIgnoreTint`: Checkbox to ignoring any tint material colour
 
 #### View Sheds
 
