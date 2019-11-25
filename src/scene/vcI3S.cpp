@@ -59,7 +59,6 @@ void vcI3S::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
   instance.worldMat = m_sceneMatrix;
   instance.pSceneItem = this;
   instance.sceneItemInternalId = 0; // TODO: individual node picking
-  instance.transparent = false;
 
   pRenderData->polyModels.PushBack(instance);
 }
