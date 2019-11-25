@@ -22,10 +22,9 @@ void vcCamera_StopSmoothing(vcCameraInput *pCamInput)
 {
   pCamInput->smoothTranslation = udDouble3::zero();
   pCamInput->smoothRotation = udDouble3::zero();
-  pCamInput->smoothOrthographicChange = 0.0;
 }
 
-void vcCamera_UpdateSmoothing(vcState *pProgramState, vcCamera *pCamera, vcCameraInput *pCamInput, vcCameraSettings *pCamSettings, double deltaTime)
+void vcCamera_UpdateSmoothing(vcCamera *pCamera, vcCameraInput *pCamInput, double deltaTime)
 {
   static const double minSmoothingThreshold = 0.00001;
   static const double stepAmount = 0.001666667;
@@ -62,27 +61,6 @@ void vcCamera_UpdateSmoothing(vcState *pProgramState, vcCamera *pCamera, vcCamer
     else
     {
       pCamInput->smoothRotation = udDouble3::zero();
-    }
-
-    // ortho zoom
-    if (udAbs(pCamInput->smoothOrthographicChange) > minSmoothingThreshold)
-    {
-      double previousOrthoSize = pCamSettings->orthographicSize;
-
-      double step = pCamInput->smoothOrthographicChange * udMin(1.0, stepAmount * sCameraTranslationSmoothingSpeed);
-      pCamSettings->orthographicSize = udClamp(pCamSettings->orthographicSize * (1.0 - step), vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
-      pCamInput->smoothOrthographicChange -= step;
-
-      udDouble2 towards = pProgramState->worldAnchorPoint.toVector2() - pCamera->position.toVector2();
-      if (udMagSq2(towards) > 0)
-      {
-        towards = (pProgramState->worldAnchorPoint.toVector2() - pCamera->position.toVector2()) / previousOrthoSize;
-        pCamera->position += udDouble3::create(towards * -(pCamSettings->orthographicSize - previousOrthoSize), 0.0);
-      }
-    }
-    else
-    {
-      pCamInput->smoothOrthographicChange = 0.0;
     }
   }
 }
@@ -121,7 +99,7 @@ void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindi
   };
 }
 
-void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, vcCameraInput * /*pCamInput*/, const udFloat2 &windowSize, const udFloat2 *pMousePos /*= nullptr*/)
+void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos /*= nullptr*/)
 {
   // Update matrices
   double fov = settings.fieldOfView;
@@ -137,7 +115,7 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
   pCamera->matrices.projectionNear = udDouble4x4::perspectiveZO(fov, aspect, 0.5f, 10000.f);
 #endif
 
-  *(double*)(&settings.orthographicSize) = pCamera->position.z * udTan(settings.fieldOfView / 2.0);
+  double orthoSize = pCamera->position.z * udTan(settings.fieldOfView / 2.0);
 
   double mapModeAmt = udDot(-udDirectionFromYPR(pCamera->eulerRotation), udDouble3::create(0, 0, 1));
 
@@ -147,7 +125,7 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
     mapModeAmt = 0.0;
 
   udDouble4x4 projectionPerspUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
-  udDouble4x4 projectionOrthoUD = udDouble4x4::orthoZO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
+  udDouble4x4 projectionOrthoUD = udDouble4x4::orthoZO(-orthoSize * aspect, orthoSize * aspect, -orthoSize, orthoSize, zNear, zFar);
   pCamera->matrices.projectionUD = udLerp(projectionPerspUD, projectionOrthoUD, mapModeAmt);
 
 #if GRAPHICS_API_OPENGL
@@ -354,7 +332,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
       pCamera->eulerRotation.y -= UD_2PI;
   }
 
-  vcCamera_UpdateSmoothing(pProgramState, pCamera, pCamInput, pCamSettings, deltaTime);
+  vcCamera_UpdateSmoothing(pCamera, pCamInput, deltaTime);
 }
 
 void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos)
@@ -596,8 +574,8 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
   vcCamera_Apply(pProgramState, &pProgramState->camera, &pProgramState->settings.camera, &pProgramState->cameraInput, pProgramState->deltaTime, speedModifier);
 
-  if (pProgramState->cameraInput.inputState == vcCIS_None && pProgramState->cameraInput.smoothOrthographicChange == 0.0)
+  if (pProgramState->cameraInput.inputState == vcCIS_None)
     pProgramState->isUsingAnchorPoint = false;
 
-  vcCamera_UpdateMatrices(&pProgramState->camera, pProgramState->settings.camera, &pProgramState->cameraInput, windowSize, &mousePos);
+  vcCamera_UpdateMatrices(&pProgramState->camera, pProgramState->settings.camera, windowSize, &mousePos);
 }

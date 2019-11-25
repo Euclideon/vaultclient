@@ -762,7 +762,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
 
       double rot = (UD_DEG2RAD(360.0) / ViewShedMapCount) * r;
       shadowRenderCameras[r].eulerRotation = udDouble3::create(-rot, 0, 0);
-      vcCamera_UpdateMatrices(&shadowRenderCameras[r], cameraSettings, nullptr, atlasSize, nullptr);
+      vcCamera_UpdateMatrices(&shadowRenderCameras[r], cameraSettings, atlasSize, nullptr);
 
       pRenderContext->shadowShader.params.shadowMapVP[r] = udFloat4x4::create(shadowRenderCameras[r].matrices.projectionUD * (shadowRenderCameras[r].matrices.view * udInverse(pProgramState->camera.matrices.view)));
     }

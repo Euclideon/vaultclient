@@ -73,8 +73,7 @@ struct vcCameraInput
 
   udDouble3 smoothTranslation;
   udDouble3 smoothRotation;
-  double smoothOrthographicChange;
-
+  
   vcSceneItem *pAttachedToSceneItem; // This does nothing in the camera module but the scene item is allowed to override the camera if this variable is set
 };
 
@@ -92,8 +91,6 @@ struct vcCameraSettings
   bool lockAltitude;
   vcCameraPivotMode cameraMouseBindings[3]; // bindings for camera settings
   vcCameraScrollWheelMode scrollWheelMode;
-
-  double orthographicSize;
 };
 
 // Lens Sizes
@@ -121,6 +118,6 @@ enum vcLensSizes
 // Applies movement to camera
 void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos);
 
-void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, vcCameraInput *pCamInput, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr);
+void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr);
 
 #endif//vcCamera_h__
