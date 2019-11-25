@@ -8,39 +8,50 @@ enum vcDistanceUnit
   vcDistance_Kilometres,
   vcDistance_Centimetres,
   vcDistance_Millimetres,
-
   // Imperial
   vcDistance_USSurveyFeet,
   vcDistance_USSurveyMiles,
   vcDistance_USSurveyInches,
-
   // Nautical
   vcDistance_NauticalMiles,
-
   vcDistance_Count
 };
 
 enum vcAreaUnit
 {
-  vcDistance_SquareMetres,
+  // Metric
+  vcAreaUnit_SquareMetres,
+  vcAreaUnit_SquareKilometers,
+  vcAreaUnit_Hectare,
 
-  vcDistance_Count
+  // Imperial_us
+  vcAreaUnit_SquareFoot,
+  vcAreaUnit_SquareMiles,
+  vcAreaUnit_Acre,
+  vcArea_Count
 };
 
 enum vcVolumeUnit
 {
-  vcVolume_CubicMetres,
+  vcVolumeUnit_USSGallons,
+  vcVolumeUnit_USSQuart,
+  vcVolumeUnit_Liter,
+  vcVolumeUnit_CubicMeter,
+  vcVolumeUnit_CubicInch,
+  vcVolumeUnit_CubicFoot,
+  vcVolumeUnit_MegaLiter,
+  vcVolumeUnit_CubicYard,
 
-  vcDistance_Count
+  vcVolumeUnit_Count
 };
 
 enum vcSpeedUnit
 {
   vcSpeed_MetresPerSecond,
   vcSpeed_KilometresPerHour,
-
   vcSpeed_USSurveyMilesPerHour,
   vcSpeed_NauticalMilesPerHour, //Knots
+  vcSpeed_FootPerSecound,
 
   vcSpeed_Count
 };
