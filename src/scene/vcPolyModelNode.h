@@ -11,6 +11,8 @@ struct vcPolygonModel;
 class vcPolyModelNode : public vcSceneItem
 {
 public:
+  vcPolygonModel *m_pModel;
+
   vcPolyModelNode(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcPolyModelNode() {};
 
@@ -26,7 +28,6 @@ public:
   udDouble3 GetLocalSpacePivot();
 
 private:
-  vcPolygonModel *m_pModel;
   udDouble4x4 m_matrix;
 
   vcGLStateCullMode m_cullFace;

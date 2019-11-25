@@ -56,6 +56,8 @@ vcPOI::vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState
   m_pFence = nullptr;
   m_pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
 
+  m_pWorkerPool = pProgramState->pWorkerPool;
+
   memset(&m_attachment, 0, sizeof(m_attachment));
   m_attachment.segmentIndex = -1;
   m_attachment.moveSpeed = 16.667; //60km/hr
@@ -648,7 +650,7 @@ bool vcPOI::LoadAttachedModel(const char *pNewPath)
   vcPolygonModel_Destroy(&m_attachment.pModel);
   udFree(m_attachment.pPathLoaded);
 
-  if (vcPolygonModel_CreateFromURL(&m_attachment.pModel, pNewPath) == udR_Success)
+  if (vcPolygonModel_CreateFromURL(&m_attachment.pModel, pNewPath, m_pWorkerPool) == udR_Success)
   {
     m_attachment.pPathLoaded = udStrdup(pNewPath);
     return true;

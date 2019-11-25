@@ -10,6 +10,7 @@
 #include "vcImageRenderer.h"
 #include "gl/vcGLState.h"
 
+struct udWorkerPool;
 struct vdkPointCloud;
 struct vcTexture;
 struct vcState;
@@ -49,6 +50,8 @@ private:
   vcFenceRenderer *m_pFence;
   vcLabelInfo *m_pLabelInfo;
   const char *m_pLabelText;
+
+  udWorkerPool *m_pWorkerPool;
 
   struct
   {

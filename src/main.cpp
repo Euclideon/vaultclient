@@ -317,7 +317,7 @@ void vcMain_MainLoop(vcState *pProgramState)
     vcSettings_Save(&pProgramState->settings);
 
   if (pProgramState->finishedStartup)
-    udWorkerPool_DoPostWork(pProgramState->pWorkerPool);
+    udWorkerPool_DoPostWork(pProgramState->pWorkerPool, 8);
   else
     pProgramState->finishedStartup = ((udWorkerPool_DoPostWork(pProgramState->pWorkerPool, 1) == udR_NothingToDo) && !udWorkerPool_HasActiveWorkers(pProgramState->pWorkerPool));
 
