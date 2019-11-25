@@ -442,7 +442,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         }
 
         if (pModel != nullptr)
-          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, { pModel }, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition), nullptr, vcGLSCM_Back, false, false, this, (uint64_t)(i+1) });
+          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, vcRenderPolyInstance::RenderFlags_None, { pModel }, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition), nullptr, vcGLSCM_Back, this, (uint64_t)(i+1) });
       }
 
       break; // We got to the end so we should stop

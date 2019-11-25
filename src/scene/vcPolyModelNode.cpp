@@ -103,8 +103,8 @@ void vcPolyModelNode::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRen
   pModel->pSceneItem = this;
   pModel->worldMat = m_matrix;
   pModel->cullFace = m_cullFace;
-  pModel->transparent = false;
-  pModel->ignoreTint = m_ignoreTint;
+  if (m_ignoreTint)
+    pModel->renderFlags = vcRenderPolyInstance::RenderFlags_IgnoreTint;
 }
 
 void vcPolyModelNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
