@@ -130,7 +130,7 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
 
 #if GRAPHICS_API_OPENGL
   udDouble4x4 projectionPersp = udDouble4x4::perspectiveNO(fov, aspect, zNear, zFar);
-  udDouble4x4 projectionOrtho = udDouble4x4::orthoNO(-settings.orthographicSize * aspect, settings.orthographicSize * aspect, -settings.orthographicSize, settings.orthographicSize, vcSL_CameraOrthoNearFarPlane.x, vcSL_CameraOrthoNearFarPlane.y);
+  udDouble4x4 projectionOrtho = udDouble4x4::orthoNO(-orthoSize * aspect, orthoSize * aspect, -orthoSize, orthoSize, zNear, zFar);
   pCamera->matrices.projection = udLerp(projectionPersp, projectionOrtho, mapModeAmt);
 #else
   pCamera->matrices.projection = pCamera->matrices.projectionUD;
