@@ -1111,6 +1111,14 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           ImGui::TextUnformatted(vcString::Get("toolMeasureStart"));
         }
       }
+      else if (pProgramState->activeTool == vcActiveTool_Inspect)
+      {
+        ImGui::TextUnformatted(vcString::Get("toolInspectRunning"));
+        ImGui::Separator();
+
+        if (pProgramState->udModelNodeAttributes.IsObject())
+          vcImGuiValueTreeObject(&pProgramState->udModelNodeAttributes);
+      }
     }
 
     ImGui::End();
@@ -1414,6 +1422,10 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->activeTool = vcActiveTool_Select;
 
       // Activate Measure
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolInspect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleInspectTool)), vcMBBI_FilterSphere, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Inspect)) || (vcHotkey::IsPressed(vcB_ToggleInspectTool) && !ImGui::IsAnyItemActive()))
+        pProgramState->activeTool = vcActiveTool_Inspect;
+
+      // Activate Measure
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureLine"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_MeasureLine, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureLine)) || (vcHotkey::IsPressed(vcB_ToggleMeasureLineTool) && !ImGui::IsAnyItemActive()))
       {
         vcProject_ClearSelection(pProgramState);
@@ -1554,6 +1566,10 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
       }
       break;
 
+    case vcActiveTool_Inspect:
+      // Does nothing during operation
+      break;
+
     case vcActiveTool_Count:
       // Does nothing
       break;
@@ -1571,6 +1587,98 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         // Preview Point
         vcPOI *pPOI = (vcPOI*)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
         pPOI->AddPoint(pProgramState, pProgramState->worldMousePosCartesian, true);
+      }
+      break;
+
+    case vcActiveTool_Inspect:
+      if (pProgramState->udModelPickedIndex >= 0 && pProgramState->udModelPickedNode != 0)
+      {
+        uint8_t *pAttributePtr = nullptr;
+        static int lastIndex = -1;
+        static uint64_t lastVoxelID = uint64_t(-1);
+
+        if ((lastIndex != pProgramState->udModelPickedIndex || lastVoxelID != pProgramState->udModelPickedNode) && vdkPointCloud_GetAttributeAddress(renderData.models[pProgramState->udModelPickedIndex]->m_pPointCloud, pProgramState->udModelPickedNode, 0, (const void**)&pAttributePtr) == vE_Success)
+        {
+          pProgramState->udModelNodeAttributes.SetVoid();
+
+          vdkPointCloudHeader *pHeader = &renderData.models[pProgramState->udModelPickedIndex]->m_pointCloudHeader;
+
+          for (uint32_t i = 0; i < pHeader->attributes.count; ++i)
+          {
+            if (pHeader->attributes.pDescriptors[i].typeInfo == vdkAttributeTypeInfo_uint8 && udStrEqual(pHeader->attributes.pDescriptors[i].name, "udClassification"))
+            {
+              uint8_t classificationID = *(uint8_t *)pAttributePtr;
+              pAttributePtr += 1;
+
+              const char *pClassificationName = vcSettingsUI_GetClassificationName(pProgramState, classificationID);
+
+              pProgramState->udModelNodeAttributes.Set("%s = '%s'", pHeader->attributes.pDescriptors[i].name, pClassificationName);
+              continue;
+            }
+
+            // Do Stuff
+            switch (pHeader->attributes.pDescriptors[i].typeInfo)
+            {
+            case vdkAttributeTypeInfo_uint8:
+              pProgramState->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, *(uint8_t *)pAttributePtr);
+              pAttributePtr += 1;
+              break;
+            case vdkAttributeTypeInfo_uint16:
+              pProgramState->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, *(uint16_t*)pAttributePtr);
+              pAttributePtr += 2;
+              break;
+            case vdkAttributeTypeInfo_uint32:
+              pProgramState->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, *(uint32_t *)pAttributePtr);
+              pAttributePtr += 4;
+              break;
+            case vdkAttributeTypeInfo_uint64:
+              pProgramState->udModelNodeAttributes.Set("%s = %" PRIu64, pHeader->attributes.pDescriptors[i].name, *(uint64_t *)pAttributePtr);
+              pAttributePtr += 8;
+              break;
+            case vdkAttributeTypeInfo_int8:
+              pProgramState->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, *(int8_t *)pAttributePtr);
+              pAttributePtr += 1;
+              break;
+            case vdkAttributeTypeInfo_int16:
+              pProgramState->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, *(int16_t *)pAttributePtr);
+              pAttributePtr += 2;
+              break;
+            case vdkAttributeTypeInfo_int32:
+              pProgramState->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, *(int32_t *)pAttributePtr);
+              pAttributePtr += 4;
+              break;
+            case vdkAttributeTypeInfo_int64:
+              pProgramState->udModelNodeAttributes.Set("%s = %" PRId64, pHeader->attributes.pDescriptors[i].name, *(int64_t *)pAttributePtr);
+              pAttributePtr += 8;
+              break;
+            case vdkAttributeTypeInfo_float32:
+              pProgramState->udModelNodeAttributes.Set("%s = %f", pHeader->attributes.pDescriptors[i].name, *(float *)pAttributePtr);
+              pAttributePtr += 4;
+              break;
+            case vdkAttributeTypeInfo_float64:
+              pProgramState->udModelNodeAttributes.Set("%s = %f", pHeader->attributes.pDescriptors[i].name, *(double *)pAttributePtr);
+              pAttributePtr += 8;
+              break;
+            case vdkAttributeTypeInfo_color32:
+              pProgramState->udModelNodeAttributes.Set("%s = \"RGB(%u, %u, %u)\"", pHeader->attributes.pDescriptors[i].name, pAttributePtr[3], pAttributePtr[2], pAttributePtr[1]); //BGRA internally
+              pAttributePtr += 4;
+              break;
+            case vdkAttributeTypeInfo_normal32:
+              pProgramState->udModelNodeAttributes.Set("%s = 'NORMAL'", pHeader->attributes.pDescriptors[i].name);
+              break;
+            case vdkAttributeTypeInfo_vec3f32:
+              pProgramState->udModelNodeAttributes.Set("%s = '[ %f, %f, %f ]'", pHeader->attributes.pDescriptors[i].name, *(float *)&pAttributePtr[0], *(float *)&pAttributePtr[4], *(float *)&pAttributePtr[8]); //BGRA internally
+              pAttributePtr += 12;
+              break;
+            default:
+              pProgramState->udModelNodeAttributes.Set("%s = 'UNKNOWN'", pHeader->attributes.pDescriptors[i].name);
+              break;
+            }
+          }
+        }
+
+        lastIndex = pProgramState->udModelPickedIndex;
+        lastVoxelID = pProgramState->udModelPickedNode;
       }
       break;
 

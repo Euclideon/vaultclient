@@ -744,6 +744,47 @@ bool vcSettingsUI_LangCombo(vcState *pProgramState)
   return true;
 }
 
+const char *vcSettingsUI_GetClassificationName(vcState *pProgramState, uint8_t classification)
+{
+  if (classification < 19)
+  {
+    const char *localizations[] = {
+      "settingsVisClassNeverClassified",
+      "settingsVisClassUnclassified",
+      "settingsVisClassGround",
+      "settingsVisClassLowVegetation",
+      "settingsVisClassMediumVegetation",
+      "settingsVisClassHighVegetation",
+      "settingsVisClassBuilding",
+      "settingsVisClassLowPoint",
+      "settingsVisClassKeyPoint",
+      "settingsVisClassWater",
+      "settingsVisClassRail",
+      "settingsVisClassRoadSurface",
+      "settingsVisClassReserved",
+      "settingsVisClassWireGuard",
+      "settingsVisClassWireConductor",
+      "settingsVisClassTransmissionTower",
+      "settingsVisClassWireStructureConnector",
+      "settingsVisClassBridgeDeck",
+      "settingsVisClassHighNoise"
+    };
+
+    return udTempStr("%d. %s", classification, vcString::Get(localizations[classification]));
+  }
+  else if (classification <= 64)
+  {
+    return udTempStr("%d. %s", classification, vcString::Get("settingsVisClassReservedLabels"));
+  }
+  else // User defined
+  {
+    if (pProgramState->settings.visualization.customClassificationColorLabels[classification] == nullptr)
+      return udTempStr("%d. %s", classification, vcString::Get("settingsVisClassUserDefined"));
+    else
+      return udTempStr("%d. %s", classification, pProgramState->settings.visualization.customClassificationColorLabels[classification]);
+  }
+}
+
 void vcSettingsUI_VisualizationSettings(vcState *pProgramState, vcVisualizationSettings *pVisualizationSettings)
 {
   const char *visualizationModes[] = { vcString::Get("settingsVisModeDefault"), vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacement") };
@@ -762,80 +803,28 @@ void vcSettingsUI_VisualizationSettings(vcState *pProgramState, vcVisualizationS
     if (pVisualizationSettings->useCustomClassificationColours)
     {
       ImGui::SameLine();
-      if (ImGui::Button(udTempStr("%s##RestoreClassificationColors", vcString::Get("settingsRestoreDefaults"))))
-        memcpy(pVisualizationSettings->customClassificationColors, GeoverseClassificationColours, sizeof(pVisualizationSettings->customClassificationColors));
-
-      static const char *s_customClassifications[] =
-      {
-        "settingsVisClassUnclassified",
-        "settingsVisClassGround",
-        "settingsVisClassLowVegetation",
-        "settingsVisClassMediumVegetation",
-        "settingsVisClassHighVegetation",
-        "settingsVisClassBuilding",
-        "settingsVisClassLowPoint",
-        "settingsVisClassKeyPoint",
-        "settingsVisClassWater",
-        "settingsVisClassRail",
-        "settingsVisClassRoadSurface",
-        "settingsVisClassReserved",
-        "settingsVisClassWireGuard",
-        "settingsVisClassWireConductor",
-        "settingsVisClassTransmissionTower",
-        "settingsVisClassWireStructureConnector",
-        "settingsVisClassBridgeDeck",
-        "settingsVisClassHighNoise"
-      };
-
-      if (ImGui::Button(vcString::Get("settingsVisClassShowAll")))
-      {
-        for (size_t i = 0; i < udLengthOf(pVisualizationSettings->customClassificationToggles); i++)
-          pVisualizationSettings->customClassificationToggles[i] = true;
-      }
-
       ImGui::SameLine();
-      if (ImGui::Button(vcString::Get("settingsVisClassDisableAll")))
-      {
-        for (size_t i = 0; i < udLengthOf(pVisualizationSettings->customClassificationToggles); i++)
-          pVisualizationSettings->customClassificationToggles[i] = false;
-      }
+      if (ImGui::Button(udTempStr("%s##RestoreClassificationColors", vcString::Get("settingsRestoreDefaults"))))
+        memcpy(pProgramState->settings.visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pProgramState->settings.visualization.customClassificationColors));
 
-      for (size_t i = 0; i < udLengthOf(s_customClassifications); i++)
-      {
-        ImGui::PushID((int)i);
-        ImGui::Checkbox("", &pVisualizationSettings->customClassificationToggles[i]);
-        ImGui::PopID();
-        ImGui::SameLine();
-        vcIGSW_ColorPickerU32(vcString::Get(s_customClassifications[i]), &pVisualizationSettings->customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
-      }
+      for (uint8_t i = 0; i < 19; ++i)
+        vcIGSW_ColorPickerU32(vcSettingsUI_GetClassificationName(pProgramState, i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
 
       if (ImGui::TreeNode(vcString::Get("settingsVisClassReservedColours")))
       {
-        for (int i = 19; i < 64; ++i)
-        {
-          ImGui::PushID(i);
-          ImGui::Checkbox("", &pVisualizationSettings->customClassificationToggles[i]);
-          ImGui::PopID();
-          ImGui::SameLine();
-          vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, vcString::Get("settingsVisClassReservedLabels")), &pVisualizationSettings->customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
-        }
+        for (uint8_t i = 19; i < 64; ++i)
+          vcIGSW_ColorPickerU32(vcSettingsUI_GetClassificationName(pProgramState, i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
         ImGui::TreePop();
       }
 
       if (ImGui::TreeNode(vcString::Get("settingsVisClassUserDefinable")))
       {
-        for (int i = 64; i <= 255; ++i)
+        for (int xi = 64; xi <= 255; ++xi)
         {
-          ImGui::PushID(i);
-          ImGui::Checkbox("", &pVisualizationSettings->customClassificationToggles[i]);
-          ImGui::PopID();
-          ImGui::SameLine();
+          uint8_t i = (uint8_t)xi;
 
           char buttonID[12], inputID[3];
-          if (pVisualizationSettings->customClassificationColorLabels[i] == nullptr)
-            vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, vcString::Get("settingsVisClassUserDefined")), &pVisualizationSettings->customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
-          else
-            vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, pVisualizationSettings->customClassificationColorLabels[i]), &pVisualizationSettings->customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+          vcIGSW_ColorPickerU32(vcSettingsUI_GetClassificationName(pProgramState, i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
           udSprintf(buttonID, "%s##%d", vcString::Get("settingsVisClassRename"), i);
           udSprintf(inputID, "##I%d", i);
           ImGui::SameLine();
@@ -846,13 +835,13 @@ void vcSettingsUI_VisualizationSettings(vcState *pProgramState, vcVisualizationS
           }
           if (pProgramState->renaming == i)
           {
-            vcIGSW_InputText(inputID, pProgramState->renameText, 30, ImGuiInputTextFlags_AutoSelectAll);
+            ImGui::InputText(inputID, pProgramState->renameText, 30, ImGuiInputTextFlags_AutoSelectAll);
             ImGui::SameLine();
             if (ImGui::Button(vcString::Get("settingsVisClassSet")))
             {
-              if (pVisualizationSettings->customClassificationColorLabels[i] != nullptr)
-                udFree(pVisualizationSettings->customClassificationColorLabels[i]);
-              pVisualizationSettings->customClassificationColorLabels[i] = udStrdup(pProgramState->renameText);
+              if (pProgramState->settings.visualization.customClassificationColorLabels[i] != nullptr)
+                udFree(pProgramState->settings.visualization.customClassificationColorLabels[i]);
+              pProgramState->settings.visualization.customClassificationColorLabels[i] = udStrdup(pProgramState->renameText);
               pProgramState->renaming = -1;
             }
           }
