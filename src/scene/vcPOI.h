@@ -51,6 +51,8 @@ private:
   vcLabelInfo *m_pLabelInfo;
   const char *m_pLabelText;
 
+  bool m_cameraFollowingAttachment; //True if following attachment, false if flying through points
+
   udWorkerPool *m_pWorkerPool;
 
   struct
@@ -65,10 +67,14 @@ private:
     double segmentProgress;
 
     udDouble3 currentPos;
-    udDouble3 segmentStartPos;
-    udDouble3 segmentEndPos;
     udDouble3 eulerAngles;
   } m_attachment;
+
+  struct
+  {
+    int segmentIndex;
+    double segmentProgress;
+  } m_flyThrough;
 
 public:
   vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
@@ -98,6 +104,7 @@ public:
 
 private:
   bool LoadAttachedModel(const char *pNewPath);
+  bool GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int *pSegmentIndex, double *pSegmentProgress);
 };
 
 #endif //vcPOI_h__

@@ -517,8 +517,8 @@ void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
 
   if (pProgramState->settings.presentation.showSkybox)
   {
-    udFloat4x4 viewMatrixF = udFloat4x4::create(pProgramState->pCamera->matrices.view);
-    udFloat4x4 projectionMatrixF = udFloat4x4::create(pProgramState->pCamera->matrices.projectionNear);
+    udFloat4x4 viewMatrixF = udFloat4x4::create(pProgramState->camera.matrices.view);
+    udFloat4x4 projectionMatrixF = udFloat4x4::create(pProgramState->camera.matrices.projectionNear);
     udFloat4x4 inverseViewProjMatrixF = projectionMatrixF * viewMatrixF;
     inverseViewProjMatrixF.axis.t = udFloat4::create(0, 0, 0, 1);
     inverseViewProjMatrixF.inverse();
@@ -591,17 +591,17 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
   if (pProgramState->gis.isProjected && pProgramState->settings.maptiles.mapEnabled)
   {
-    udDouble4x4 cameraMatrix = pProgramState->pCamera->matrices.camera;
-    udDouble4x4 viewProjection = pProgramState->pCamera->matrices.viewProjection;
+    udDouble4x4 cameraMatrix = pProgramState->camera.matrices.camera;
+    udDouble4x4 viewProjection = pProgramState->camera.matrices.viewProjection;
 
 #ifndef GIT_BUILD
     static bool debugDetachCamera = false;
     static udDouble4x4 gRealCameraMatrix = udDouble4x4::identity();
     if (!debugDetachCamera)
-      gRealCameraMatrix = pProgramState->pCamera->matrices.camera;
+      gRealCameraMatrix = pProgramState->camera.matrices.camera;
 
     cameraMatrix = gRealCameraMatrix;
-    viewProjection = pProgramState->pCamera->matrices.projection * udInverse(cameraMatrix);
+    viewProjection = pProgramState->camera.matrices.projection * udInverse(cameraMatrix);
 #endif
     udDouble3 localCamPos = cameraMatrix.axis.t.toVector3();
 
@@ -612,8 +612,6 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
     int currentZoom = 21;
 
     double farPlane = pProgramState->settings.camera.farPlane;
-    if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-      farPlane = udMax(farPlane, pProgramState->settings.camera.orthographicSize * 2.0);
 
     // Cardinal Limits
     localCorners[0] = localCamPos + udDouble3::create(-farPlane, +farPlane, 0);
@@ -636,7 +634,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
       vcGIS_SlippyToLocal(&pProgramState->gis, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
     vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->gis, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, viewProjection);
-    vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->pCamera->matrices.view, pProgramState->pCamera->matrices.projection);
+    vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection);
   }
 }
 
@@ -659,14 +657,6 @@ void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRender
   udFloat4 outlineColour = pProgramState->settings.postVisualization.edgeOutlines.colour;
   if (!pProgramState->settings.postVisualization.edgeOutlines.enable)
     outlineColour.w = 0.0f;
-
-  if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-  {
-    // adjust some visuals in map mode
-    nearPlane = float(vcSL_CameraOrthoNearFarPlane.x);
-    farPlane = float(vcSL_CameraOrthoNearFarPlane.y);
-    outlineEdgeThreshold /= float(vcSL_CameraOrthoNearFarPlane.y * 0.15);
-  }
 
   // colour by height
   udFloat4 colourByHeightMinColour = pProgramState->settings.postVisualization.colourByHeight.minColour;
@@ -698,7 +688,7 @@ void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRender
     contourRainboxIntensity = 0.f;
   }
 
-  pRenderContext->visualizationShader.params.inverseViewProjection = udFloat4x4::create(pProgramState->pCamera->matrices.inverseViewProjection);
+  pRenderContext->visualizationShader.params.inverseViewProjection = udFloat4x4::create(pProgramState->camera.matrices.inverseViewProjection);
   pRenderContext->visualizationShader.params.screenParams.x = outlineWidth * (1.0f / pRenderContext->sceneResolution.x);
   pRenderContext->visualizationShader.params.screenParams.y = outlineWidth * (1.0f / pRenderContext->sceneResolution.y);
   pRenderContext->visualizationShader.params.screenParams.z = nearPlane;
@@ -760,7 +750,6 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
     vcViewShedData *pViewShedData = &renderData.viewSheds[v];
 
     vcCameraSettings cameraSettings = {};
-    cameraSettings.cameraMode = vcCM_FreeRoam;
     cameraSettings.nearPlane = pViewShedData->nearFarPlane.x;
     cameraSettings.farPlane = pViewShedData->nearFarPlane.y;
     cameraSettings.fieldOfView = pViewShedData->fieldOfView;
@@ -773,9 +762,9 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
 
       double rot = (UD_DEG2RAD(360.0) / ViewShedMapCount) * r;
       shadowRenderCameras[r].eulerRotation = udDouble3::create(-rot, 0, 0);
-      vcCamera_UpdateMatrices(&shadowRenderCameras[r], cameraSettings, nullptr, atlasSize, nullptr);
+      vcCamera_UpdateMatrices(&shadowRenderCameras[r], cameraSettings, atlasSize, nullptr);
 
-      pRenderContext->shadowShader.params.shadowMapVP[r] = udFloat4x4::create(shadowRenderCameras[r].matrices.projectionUD * (shadowRenderCameras[r].matrices.view * udInverse(pProgramState->pCamera->matrices.view)));
+      pRenderContext->shadowShader.params.shadowMapVP[r] = udFloat4x4::create(shadowRenderCameras[r].matrices.projectionUD * (shadowRenderCameras[r].matrices.view * udInverse(pProgramState->camera.matrices.view)));
     }
 
     // Texture uploads first (Unlimited Detail)
@@ -825,7 +814,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
       }
     }
 
-    pRenderContext->shadowShader.params.inverseProjection = udFloat4x4::create(udInverse(pProgramState->pCamera->matrices.projection));
+    pRenderContext->shadowShader.params.inverseProjection = udFloat4x4::create(udInverse(pProgramState->camera.matrices.projection));
     pRenderContext->shadowShader.params.nearFarPlane = udFloat4::create(pViewShedData->nearFarPlane.x, pViewShedData->nearFarPlane.y, 0.0f, 0.0f);
     pRenderContext->shadowShader.params.visibleColour = pViewShedData->visibleColour;
     pRenderContext->shadowShader.params.notVisibleColour = pViewShedData->notVisibleColour;
@@ -869,16 +858,16 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
       vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
-        vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride, pInstance->ignoreTint ? &whiteColour : nullptr);
+        vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride, pInstance->ignoreTint ? &whiteColour : nullptr);
       else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
-        vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution);
+        vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, pProgramState->camera.position, pRenderContext->sceneResolution);
     }
 
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     vcSceneLayer_EndFrame();
 
     for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
-      vcWaterRenderer_Render(renderData.waterVolumes[i], pProgramState->pCamera->matrices.view, pProgramState->pCamera->matrices.viewProjection, pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pProgramState->deltaTime);
+      vcWaterRenderer_Render(renderData.waterVolumes[i], pProgramState->camera.matrices.view, pProgramState->camera.matrices.viewProjection, pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pProgramState->deltaTime);
   }
 
   vcRender_AsyncReadFrameDepth(pRenderContext); // note: one frame behind
@@ -898,15 +887,12 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
       static const double distScalar = 1000.0; // Param
 
       double zScale = 1.0;
-      if (pProgramState->settings.camera.cameraMode == vcCM_FreeRoam)
-        zScale -= udMag3(pProgramState->pCamera->position - renderData.images[i]->position) / distScalar;
-      else // map mode
-        zScale -= pProgramState->settings.camera.orthographicSize / distScalar;
+      zScale -= udMag3(pProgramState->camera.position - renderData.images[i]->position) / distScalar;
 
       if (zScale < 0) // too far
         continue;
 
-      vcImageRenderer_Render(renderData.images[i], pProgramState->pCamera->matrices.viewProjection, pRenderContext->sceneResolution, zScale);
+      vcImageRenderer_Render(renderData.images[i], pProgramState->camera.matrices.viewProjection, pRenderContext->sceneResolution, zScale);
     }
   }
 
@@ -914,10 +900,10 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
   {
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
     if (pProgramState->settings.presentation.showDiagnosticInfo)
-      vcFenceRenderer_Render(pRenderContext->pDiagnosticFences, pProgramState->pCamera->matrices.viewProjection, pProgramState->deltaTime);
+      vcFenceRenderer_Render(pRenderContext->pDiagnosticFences, pProgramState->camera.matrices.viewProjection, pProgramState->deltaTime);
 
     for (size_t i = 0; i < renderData.fences.length; ++i)
-      vcFenceRenderer_Render(renderData.fences[i], pProgramState->pCamera->matrices.viewProjection, pProgramState->deltaTime);
+      vcFenceRenderer_Render(renderData.fences[i], pProgramState->camera.matrices.viewProjection, pProgramState->deltaTime);
   }
 
   udFloat4 transparentColour = udFloat4::create(1, 1, 1, 0.65f);
@@ -930,9 +916,9 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
     vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
     if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
-      vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride, &transparentColour);
+      vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride, &transparentColour);
     else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
-      vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution);
+      vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, pProgramState->camera.position, pRenderContext->sceneResolution);
   }
 
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
@@ -1006,9 +992,9 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
       vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
-        vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &selectionMask);
+        vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_ColourOnly, nullptr, &selectionMask);
       else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
-        vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution, &selectionMask);
+        vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, pProgramState->camera.position, pRenderContext->sceneResolution, &selectionMask);
 
       active = true;
     }
@@ -1069,7 +1055,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   // Render and upload UD buffers
   {
-    vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pRenderView, pProgramState->pCamera, renderData, true);
+    vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pRenderView, &pProgramState->camera, renderData, true);
     vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
     vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
   }
@@ -1095,7 +1081,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   if (pProgramState->settings.presentation.mouseAnchor != vcAS_None && (pProgramState->pickingSuccess || pProgramState->isUsingAnchorPoint))
   {
-    udDouble4x4 mvp = pProgramState->pCamera->matrices.viewProjection * udDouble4x4::translation(pProgramState->isUsingAnchorPoint ? pProgramState->worldAnchorPoint : pProgramState->worldMousePosCartesian);
+    udDouble4x4 mvp = pProgramState->camera.matrices.viewProjection * udDouble4x4::translation(pProgramState->isUsingAnchorPoint ? pProgramState->worldAnchorPoint : pProgramState->worldMousePosCartesian);
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 
     // Render highlighting any occlusion
@@ -1113,7 +1099,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   if (pProgramState->settings.presentation.showCompass)
   {
-    udDouble4x4 cameraRotation = udDouble4x4::rotationYPR(pProgramState->pCamera->matrices.camera.extractYPR());
+    udDouble4x4 cameraRotation = udDouble4x4::rotationYPR(pProgramState->camera.matrices.camera.extractYPR());
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
 
@@ -1123,10 +1109,10 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
     }
     else
     {
-      udDouble3 currentLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->pCamera->position);
+      udDouble3 currentLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
       currentLatLong.x = udClamp(currentLatLong.x, -90.0, 89.0);
       udDouble3 norther = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, udDouble3::create(currentLatLong.x + 1.0, currentLatLong.y, currentLatLong.z));
-      udDouble4x4 north = udDouble4x4::lookAt(pProgramState->pCamera->position, norther);
+      udDouble4x4 north = udDouble4x4::lookAt(pProgramState->camera.position, norther);
       vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspectiveZO(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udDouble4x4::rotationYPR(north.extractYPR()) * udInverse(cameraRotation));
     }
 
@@ -1141,7 +1127,7 @@ void vcRender_SceneImGui(vcState *pProgramState, vcRenderContext *pRenderContext
 {
   // Labels
   for (size_t i = 0; i < renderData.labels.length; ++i)
-    vcLabelRenderer_Render(renderData.labels[i], pProgramState->pCamera->matrices.viewProjection, pRenderContext->sceneResolution);
+    vcLabelRenderer_Render(renderData.labels[i], pProgramState->camera.matrices.viewProjection, pRenderContext->sceneResolution);
 }
 
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext)
@@ -1159,7 +1145,7 @@ udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRende
   if (vdkRenderView_SetTargets(pRenderContext->udRenderContext.pRenderView, pRenderContext->udRenderContext.pColorBuffer, 0, pRenderContext->udRenderContext.pDepthBuffer) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vdkRenderView_SetMatrix(pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pProgramState->pCamera->matrices.projectionUD.a) != vE_Success)
+  if (vdkRenderView_SetMatrix(pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pProgramState->camera.matrices.projectionUD.a) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
 epilogue:
@@ -1246,8 +1232,6 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
       if (renderData.models[i]->m_hasWatermark)
       {
         udDouble3 distVector = pCamera->position - renderData.models[i]->GetWorldSpacePivot();
-        if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-          distVector.z = 0.0;
 
         double cameraDistSqr = udMagSq(distVector);
         if (cameraDistSqr < maxDistSqr)
@@ -1432,9 +1416,9 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
         vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
         if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
-          vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, vcPMP_ColourOnly, nullptr, &idAsColour);
+          vcPolygonModel_Render(pInstance->pModel, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_ColourOnly, nullptr, &idAsColour);
         else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
-          vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->pCamera->matrices.viewProjection, pProgramState->pCamera->position, pRenderContext->sceneResolution, &idAsColour);
+          vcSceneLayerRenderer_Render(pInstance->pSceneLayer, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, pProgramState->camera.position, pRenderContext->sceneResolution, &idAsColour);
 
       }
 
@@ -1489,11 +1473,11 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 #if GRAPHICS_API_OPENGL
     clipPos.z = clipPos.z * 2.0 - 1.0;
 #endif
-    udDouble4 pickPosition = pProgramState->pCamera->matrices.inverseViewProjection * clipPos;
+    udDouble4 pickPosition = pProgramState->camera.matrices.inverseViewProjection * clipPos;
     pickPosition = pickPosition / pickPosition.w;
     result.position = pickPosition.toVector3();
 
-    currentDist = udMag3(result.position - pProgramState->pCamera->position);
+    currentDist = udMag3(result.position - pProgramState->camera.position);
   }
 
   if (pProgramState->settings.maptiles.mapEnabled && pProgramState->settings.maptiles.mouseInteracts)// check map tiles
@@ -1503,7 +1487,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     double hitDistance = 0.0;
     udDouble3 hitPoint = {};
 
-    if (mapPlane.intersects(pProgramState->pCamera->worldMouseRay, &hitPoint, &hitDistance))
+    if (mapPlane.intersects(pProgramState->camera.worldMouseRay, &hitPoint, &hitDistance))
     {
       if (hitDistance < (currentDist - pProgramState->settings.camera.nearPlane))
       {

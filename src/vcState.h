@@ -70,7 +70,8 @@ struct vcState
   int openModals; // This is controlled inside vcModals.cpp
   bool modalOpen;
 
-  vcCamera *pCamera;
+  vcCamera camera;
+  vcCameraInput cameraInput;
 
   struct ErrorItem
   {
@@ -105,8 +106,6 @@ struct vcState
   udDouble3 worldMousePosLongLat;
   bool pickingSuccess;
   int udModelPickedIndex;
-
-  vcCameraInput cameraInput;
 
   bool finishedStartup;
   bool forceLogout;

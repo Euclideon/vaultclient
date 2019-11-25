@@ -293,8 +293,6 @@ const float vcSL_CameraMaxMoveSpeed = 10000.f;
 const float vcSL_CameraFieldOfViewMin = 5;
 const float vcSL_CameraFieldOfViewMax = 100;
 
-static const udDouble2 vcSL_CameraOrthoNearFarPlane = { 1.0, 1000000.0 };
-
 const float vcSL_OSCPixelRatio = 100.f;
 
 const float vcSL_POIFaderMin = 0.f;
