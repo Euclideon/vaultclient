@@ -300,13 +300,13 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
         if (ImGui::Selectable(vcString::Get("sceneExplorerRemoveItem")))
         {
-          vcProject_RemoveItem(pProgramState, m_pNode, pNode);
-          pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
-
           ImGui::EndPopup();
 
           if (pSceneItem->m_expanded)
             ImGui::TreePop();
+
+          vcProject_RemoveItem(pProgramState, m_pNode, pNode);
+          pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
 
           return;
         }

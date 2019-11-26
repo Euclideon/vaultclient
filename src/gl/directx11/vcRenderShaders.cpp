@@ -22,8 +22,9 @@ const char *const g_VisualizationFragmentShader = R"shader(
 
   cbuffer u_params : register(b0)
   {
-    float4 u_screenParams;  // sampleStepX, sampleStepSizeY, near plane, far plane
+    float4 u_screenParams;  // sampleStepSizeX, sampleStepSizeY, near plane, far plane
     float4x4 u_inverseViewProjection;
+    float4x4 u_inverseProjection;
 
     // outlining
     float4 u_outlineColour;
@@ -47,6 +48,7 @@ const char *const g_VisualizationFragmentShader = R"shader(
   {
     float nearPlane = u_screenParams.z;
     float farPlane = u_screenParams.w;
+
     return (2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
   }
 
@@ -55,28 +57,45 @@ const char *const g_VisualizationFragmentShader = R"shader(
     return clamp((v - min) / (max - min), 0.0, 1.0);
   }
 
-  // depth is packed into .w component
-  float4 edgeHighlight(float3 col, float2 uv, float depth)
+  // note: an adjusted depth is packed into the returned .w component
+  // this is to show the edge highlights against the skybox
+  float4 edgeHighlight(float3 col, float2 uv, float depth, float4 outlineColour, float edgeOutlineWidth, float edgeOutlineThreshold)
   {
-    float3 sampleOffsets = float3(u_screenParams.xy, 0.0);
-    float edgeOutlineThreshold = u_outlineParams.y;
-    float farPlane = u_screenParams.w;
+    float3 sampleOffsets = float3(u_screenParams.xy, 0.0) * edgeOutlineWidth;
+  
+    float4 eyePosition0 = mul(u_inverseProjection, float4(uv.x * 2.0 - 1.0, (1.0 - uv.y) * 2.0 - 1.0, depth, 1.0));
+    eyePosition0 /= eyePosition0.w;
+    
+    float2 sampleUV1 = uv + sampleOffsets.xz;
+    float2 sampleUV2 = uv - sampleOffsets.xz;
+    float2 sampleUV3 = uv + sampleOffsets.zy;
+    float2 sampleUV4 = uv - sampleOffsets.zy;
 
-    float d1 = texture1.Sample(sampler1, uv + sampleOffsets.xz).x;
-    float d2 = texture1.Sample(sampler1, uv - sampleOffsets.xz).x;
-    float d3 = texture1.Sample(sampler1, uv + sampleOffsets.zy).x;
-    float d4 = texture1.Sample(sampler1, uv - sampleOffsets.zy).x;
+    float sampleDepth1 = texture1.Sample(sampler1, sampleUV1).x;
+    float sampleDepth2 = texture1.Sample(sampler1, sampleUV2).x;
+    float sampleDepth3 = texture1.Sample(sampler1, sampleUV3).x;
+    float sampleDepth4 = texture1.Sample(sampler1, sampleUV4).x;
 
-    float wd0 = linearizeDepth(depth) * farPlane;
-    float wd1 = linearizeDepth(d1) * farPlane;
-    float wd2 = linearizeDepth(d2) * farPlane;
-    float wd3 = linearizeDepth(d3) * farPlane;
-    float wd4 = linearizeDepth(d4) * farPlane;
-
-    float isEdge = 1.0 - step(wd0 - wd1, edgeOutlineThreshold) * step(wd0 - wd2, edgeOutlineThreshold) * step(wd0 - wd3, edgeOutlineThreshold) * step(wd0 - wd4, edgeOutlineThreshold);
-
+    float4 eyePosition1 = mul(u_inverseProjection, float4(sampleUV1.x * 2.0 - 1.0, (1.0 - sampleUV1.y) * 2.0 - 1.0, sampleDepth1, 1.0));
+    float4 eyePosition2 = mul(u_inverseProjection, float4(sampleUV2.x * 2.0 - 1.0, (1.0 - sampleUV2.y) * 2.0 - 1.0, sampleDepth2, 1.0));
+    float4 eyePosition3 = mul(u_inverseProjection, float4(sampleUV3.x * 2.0 - 1.0, (1.0 - sampleUV3.y) * 2.0 - 1.0, sampleDepth3, 1.0));
+    float4 eyePosition4 = mul(u_inverseProjection, float4(sampleUV4.x * 2.0 - 1.0, (1.0 - sampleUV4.y) * 2.0 - 1.0, sampleDepth4, 1.0));
+    
+    eyePosition1 /= eyePosition1.w;
+    eyePosition2 /= eyePosition2.w;
+    eyePosition3 /= eyePosition3.w;
+    eyePosition4 /= eyePosition4.w;
+    
+    float3 diff1 = eyePosition0.xyz - eyePosition1.xyz;
+    float3 diff2 = eyePosition0.xyz - eyePosition2.xyz;
+    float3 diff3 = eyePosition0.xyz - eyePosition3.xyz;
+    float3 diff4 = eyePosition0.xyz - eyePosition4.xyz;
+    
+    // note: the sign(diff.z) is to ensure only highlight a single pixel on the outside of the geometry
+    float isEdge = 1.0 - step(sign(diff1.z) * length(diff1), edgeOutlineThreshold) * step(sign(diff2.z) * length(diff2), edgeOutlineThreshold) * step(sign(diff3.z) * length(diff3), edgeOutlineThreshold) * step(sign(diff4.z) * length(diff4), edgeOutlineThreshold);
+    
     float3 edgeColour = lerp(col.xyz, u_outlineColour.xyz, u_outlineColour.w);
-    float minDepth = min(min(min(d1, d2), d3), d4);
+    float minDepth = min(min(min(sampleDepth1, sampleDepth2), sampleDepth3), sampleDepth4);
     return float4(lerp(col.xyz, edgeColour, isEdge), lerp(depth, minDepth, isEdge));
   }
 
@@ -112,14 +131,11 @@ const char *const g_VisualizationFragmentShader = R"shader(
     return lerp(minColour, maxColour, minMaxColourStrength);
   }
 
-  float3 colourizeByDepth(float3 col, float depth)
+  float3 colourizeByEyeDistance(float3 col, float3 fragEyePos)
   {
-    float farPlane = u_screenParams.w;
-    float linearDepth = linearizeDepth(depth) * farPlane;
     float2 depthColourMinMax = u_colourizeDepthParams.xy;
 
-    float depthColourStrength = getNormalizedPosition(linearDepth, depthColourMinMax.x, depthColourMinMax.y);
-
+    float depthColourStrength = getNormalizedPosition(length(fragEyePos), depthColourMinMax.x, depthColourMinMax.y);
     return lerp(col.xyz, u_colourizeDepthColour.xyz, depthColourStrength * u_colourizeDepthColour.w);
   }
 
@@ -130,18 +146,24 @@ const char *const g_VisualizationFragmentShader = R"shader(
     float4 col = texture0.Sample(sampler0, input.uv);
     float depth = texture1.Sample(sampler1, input.uv).x;
 
+    // TODO: I'm fairly certain this is actually wrong (world space calculations), and will have precision issues
     float4 fragWorldPosition = mul(u_inverseViewProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, depth, 1.0));
     fragWorldPosition /= fragWorldPosition.w;
 
+    float4 fragEyePosition = mul(u_inverseProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, depth, 1.0));
+    fragEyePosition /= fragEyePosition.w;
+
     col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
-    col.xyz = colourizeByDepth(col.xyz, depth);
+    col.xyz = colourizeByEyeDistance(col.xyz, fragEyePosition.xyz);
 
     col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
 
     float edgeOutlineWidth = u_outlineParams.x;
+    float edgeOutlineThreshold = u_outlineParams.y;
+    float4 outlineColour = u_outlineColour;
     if (edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
     {
-      float4 edgeResult = edgeHighlight(col.xyz, input.uv, depth);
+      float4 edgeResult = edgeHighlight(col.xyz, input.uv, depth, outlineColour, edgeOutlineWidth, edgeOutlineThreshold);
       col.xyz = edgeResult.xyz;
       depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
     }

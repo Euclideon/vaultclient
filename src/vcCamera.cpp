@@ -115,7 +115,7 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
   pCamera->matrices.projectionNear = udDouble4x4::perspectiveZO(fov, aspect, 0.5f, 10000.f);
 #endif
 
-  double orthoSize = pCamera->position.z * udTan(settings.fieldOfView / 2.0);
+  double orthoSize = udMax(1.0, pCamera->position.z * udTan(settings.fieldOfView / 2.0)); // don't allow a 0 ortho size
 
   double mapModeAmt = udDot(-udDirectionFromYPR(pCamera->eulerRotation), udDouble3::create(0, 0, 1));
 
@@ -360,7 +360,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   bool isBtnReleased[3] = { ImGui::IsMouseReleased(0), ImGui::IsMouseReleased(1), ImGui::IsMouseReleased(2) };
 
   isMouseBtnBeingHeld &= (isBtnHeld[0] || isBtnHeld[1] || isBtnHeld[2]);
-  bool isFocused = (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_ChildWindows) || isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
+  bool isFocused = (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) || isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
 
   int totalButtonsHeld = 0;
   for (size_t i = 0; i < udLengthOf(isBtnHeld); ++i)
