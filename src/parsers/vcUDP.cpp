@@ -146,7 +146,8 @@ bool vcUDP_ReadGeolocation(const char *pStr, udDouble3 &position, int &epsg)
     position[count] = udStrAtof64(pStr, &charCount);
     pStr += charCount;
     pStr = udStrchr(pStr, ",");
-    ++pStr;
+    if (pStr != nullptr)
+      ++pStr;
   }
 
   if (charCount > 0)
