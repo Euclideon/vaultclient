@@ -652,13 +652,15 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   {
     keyboardInput.x += io.NavInputs[ImGuiNavInput_LStickLeft]; // Left Stick Horizontal
     keyboardInput.y += -io.NavInputs[ImGuiNavInput_LStickUp]; // Left Stick Vertical
-    mouseInput.x += -io.NavInputs[ImGuiNavInput_LStickRight] / 15.0f; // Right Stick Horizontal
-    mouseInput.y += -io.NavInputs[ImGuiNavInput_LStickDown] / 25.0f; // Right Stick Vertical
 
     if (pProgramState->settings.camera.invertControllerX)
-      mouseInput.x = -mouseInput.x;
+      mouseInput.x = -io.NavInputs[ImGuiNavInput_LStickRight] / 15.0f; // Right Stick Horizontal
+    else
+      mouseInput.x = io.NavInputs[ImGuiNavInput_LStickRight] / 15.0f;
     if (pProgramState->settings.camera.invertControllerY)
-      mouseInput.y = -mouseInput.y;
+      mouseInput.y = -io.NavInputs[ImGuiNavInput_LStickDown] / 25.0f; // Right Stick Vertical
+    else
+      mouseInput.y = io.NavInputs[ImGuiNavInput_LStickDown] / 25.0f;
 
     // In Imgui the DPAD is bound to navigation, so disable DPAD panning until the issue is resolved
     //pProgramState->cameraInput.controllerDPADInput = udDouble3::create(io.NavInputs[ImGuiNavInput_DpadRight] - io.NavInputs[ImGuiNavInput_DpadLeft], 0, io.NavInputs[ImGuiNavInput_DpadUp] - io.NavInputs[ImGuiNavInput_DpadDown]);
