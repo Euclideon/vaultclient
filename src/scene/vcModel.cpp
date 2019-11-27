@@ -44,15 +44,7 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel)
         srid = udStrAtou(&pSRID[1]);
 
       pModel->m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-      if (udGeoZone_SetFromSRID(pModel->m_pPreferredProjection, srid) != udR_Success)
-        udFree(pModel->m_pPreferredProjection);
-    }
-
-    if (pModel->m_pPreferredProjection == nullptr && pWKT != nullptr)
-    {
-      pModel->m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
-
-      if (udGeoZone_SetFromWKT(pModel->m_pPreferredProjection, pWKT) != udR_Success)
+      if (udGeoZone_SetFromSRID(pModel->m_pPreferredProjection, srid) != udR_Success && (pWKT != nullptr && udGeoZone_SetFromWKT(pModel->m_pPreferredProjection, pWKT) != udR_Success))
         udFree(pModel->m_pPreferredProjection);
     }
 
