@@ -8,6 +8,8 @@
 #include "gl/vcShader.h"
 #include "gl/vcMesh.h"
 
+#include "vdkWeb.h"
+
 #include "udThread.h"
 #include "udFile.h"
 #include "udPlatformUtil.h"
@@ -214,24 +216,36 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       udReleaseMutex(pCache->pMutex);
 
       bool downloadingFromServer = true;
-      char *pTileURL = serverAddress;
-
-      if (udFileExists(localFileName) == udR_Success)
-      {
-        pTileURL = localFileName;
-        downloadingFromServer = false;
-      }
 
       udResult result = udR_Failure_;
-      void *pFileData = nullptr;
-      int64_t fileLen = -1;
+      void* pFileData = nullptr;
+      uint64_t fileLen = 0;
       int width = 0;
       int height = 0;
       int channelCount = 0;
-      uint8_t *pData = nullptr;
+      uint8_t* pData = nullptr;
 
-      UD_ERROR_CHECK(udFile_Load(pTileURL, &pFileData, &fileLen));
-      UD_ERROR_IF(fileLen == 0, udR_InternalError);
+      if (udFileExists(localFileName) == udR_Success)
+      {
+        UD_ERROR_CHECK(udFile_Load(localFileName, &pFileData, (int64_t*)&fileLen));
+        downloadingFromServer = false;
+      }
+      else
+      {
+        int responseCode = 0;
+
+        UD_ERROR_IF(vdkWeb_Request(serverAddress, (const char **)&pFileData, &fileLen, &responseCode) != vE_Success, udR_OpenFailure);
+        UD_ERROR_IF(fileLen == 0 || pFileData == nullptr, udR_InternalError);
+
+        if (responseCode == 403)
+          UD_ERROR_SET(udR_NotAllowed);
+        else if (responseCode == 503)
+          UD_ERROR_SET(udR_Pending);
+        else if (responseCode >= 500 && responseCode <= 599)
+          UD_ERROR_SET(udR_ServerError);
+        else if (responseCode < 200 || responseCode >= 300)
+          UD_ERROR_SET(udR_OpenFailure);
+      }
 
       // Node has been invalidated since download started
       if (!pBestNode->touched)
@@ -252,6 +266,8 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       pBestNode->renderInfo.pData = udMemDup(pData, sizeof(uint32_t)*width*height, 0, udAF_None);
 
       pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Downloaded;
+
+      result = udR_Success;
 
 epilogue:
 
@@ -280,7 +296,7 @@ epilogue:
       // This functionality here for now until the cache module is implemented
       if (pFileData && fileLen > 0 && downloadingFromServer && pCache->keepLoading)
       {
-        if (!vcTileRenderer_TryWriteTile(localFileName, pFileData, fileLen))
+        if (!vcTileRenderer_TryWriteTile(localFileName, (void*)pFileData, fileLen))
         {
           size_t index = 0;
           char localFolderPath[vcMaxPathLength];
@@ -289,11 +305,15 @@ epilogue:
             localFolderPath[index] = '\0';
 
           if (vcTileRenderer_CreateDirRecursive(localFolderPath) == udR_Success)
-            vcTileRenderer_TryWriteTile(localFileName, pFileData, fileLen);
+            vcTileRenderer_TryWriteTile(localFileName, (void *)pFileData, fileLen);
         }
       }
 
-      udFree(pFileData);
+      if (downloadingFromServer)
+        vdkWeb_ReleaseResponse((const char **)&pFileData);
+      else
+        udFree(pFileData);
+
       stbi_image_free(pData);
     }
   }
