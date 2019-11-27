@@ -106,6 +106,7 @@ struct vcRenderContext
     {
       udFloat4 screenParams;  // sampleStepX, sampleStepSizeY, near plane, far plane
       udFloat4x4 inverseViewProjection;
+      udFloat4x4 inverseProjection;
 
       // outlining
       udFloat4 outlineColour;
@@ -689,6 +690,7 @@ void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRender
   }
 
   pRenderContext->visualizationShader.params.inverseViewProjection = udFloat4x4::create(pProgramState->camera.matrices.inverseViewProjection);
+  pRenderContext->visualizationShader.params.inverseProjection = udFloat4x4::create(udInverse(pProgramState->camera.matrices.projection));
   pRenderContext->visualizationShader.params.screenParams.x = outlineWidth * (1.0f / pRenderContext->sceneResolution.x);
   pRenderContext->visualizationShader.params.screenParams.y = outlineWidth * (1.0f / pRenderContext->sceneResolution.y);
   pRenderContext->visualizationShader.params.screenParams.z = nearPlane;
