@@ -37,11 +37,14 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel)
     const char *pSRID = pModel->m_metadata.Get("ProjectionID").AsString();
     const char *pWKT = pModel->m_metadata.Get("ProjectionWKT").AsString();
 
-    if (pSRID != nullptr)
+    if (pSRID != nullptr || pWKT != nullptr)
     {
-      pSRID = udStrchr(pSRID, ":");
       if (pSRID != nullptr)
-        srid = udStrAtou(&pSRID[1]);
+      {
+        pSRID = udStrchr(pSRID, ":");
+        if (pSRID != nullptr)
+          srid = udStrAtou(&pSRID[1]);
+      }
 
       pModel->m_pPreferredProjection = udAllocType(udGeoZone, 1, udAF_Zero);
       if (udGeoZone_SetFromSRID(pModel->m_pPreferredProjection, srid) != udR_Success && (pWKT != nullptr && udGeoZone_SetFromWKT(pModel->m_pPreferredProjection, pWKT) != udR_Success))
