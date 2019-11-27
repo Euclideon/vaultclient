@@ -637,15 +637,10 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   // Accept mouse input
   if (isMouseBtnBeingHeld)
   {
-    mouseInput.x = -mouseDelta.x / 100.0;
-    mouseInput.y = -mouseDelta.y / 100.0;
+    mouseInput.x = (pProgramState->settings.camera.invertMouseX ? mouseDelta.x : -mouseDelta.x) / 100.0;
+    mouseInput.y = (pProgramState->settings.camera.invertMouseY ? mouseDelta.y : -mouseDelta.y) / 100.0;
     mouseInput.z = 0.0;
   }
-
-  if (pProgramState->settings.camera.invertMouseX)
-    mouseInput.x *= -1.0;
-  if (pProgramState->settings.camera.invertMouseY)
-    mouseInput.y *= -1.0;
 
   // Controller Input
   if (io.NavActive)
@@ -653,14 +648,8 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     keyboardInput.x += io.NavInputs[ImGuiNavInput_LStickLeft]; // Left Stick Horizontal
     keyboardInput.y += -io.NavInputs[ImGuiNavInput_LStickUp]; // Left Stick Vertical
 
-    if (pProgramState->settings.camera.invertControllerX)
-      mouseInput.x = -io.NavInputs[ImGuiNavInput_LStickRight] / 15.0f; // Right Stick Horizontal
-    else
-      mouseInput.x = io.NavInputs[ImGuiNavInput_LStickRight] / 15.0f;
-    if (pProgramState->settings.camera.invertControllerY)
-      mouseInput.y = -io.NavInputs[ImGuiNavInput_LStickDown] / 25.0f; // Right Stick Vertical
-    else
-      mouseInput.y = io.NavInputs[ImGuiNavInput_LStickDown] / 25.0f;
+    mouseInput.x += (pProgramState->settings.camera.invertControllerX ? io.NavInputs[ImGuiNavInput_LStickRight] : -io.NavInputs[ImGuiNavInput_LStickRight]) / 15.0f; // Right Stick Horizontal
+    mouseInput.y += (pProgramState->settings.camera.invertControllerY ? io.NavInputs[ImGuiNavInput_LStickDown] : -io.NavInputs[ImGuiNavInput_LStickDown]) / 25.0f; // Right Stick Vertical
 
     // In Imgui the DPAD is bound to navigation, so disable DPAD panning until the issue is resolved
     //pProgramState->cameraInput.controllerDPADInput = udDouble3::create(io.NavInputs[ImGuiNavInput_DpadRight] - io.NavInputs[ImGuiNavInput_DpadLeft], 0, io.NavInputs[ImGuiNavInput_DpadUp] - io.NavInputs[ImGuiNavInput_DpadDown]);
