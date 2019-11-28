@@ -298,6 +298,7 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
 
   vdkError result = vE_Failure;
   vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
+
   pFBX->pManager = FbxManager::Create();
   pFBX->materials.Init(4);
   pFBX->uvQueue.Init(4);
@@ -357,6 +358,9 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   pFBX->lastTouchedPoly = 1; // Forces handling 0, then gets set to 0
   pFBX->lastTouchedMesh = 1;
 
+  if (pFBX->pTrivox != nullptr)
+    vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
+
   UD_ERROR_CHECK(vdkTriangleVoxelizer_Create(&pFBX->pTrivox, pointResolution));
 
   result = vE_Success;
@@ -365,7 +369,7 @@ epilogue:
 
   if (result != vE_Success)
   {
-    pFBX->pManager->Destroy(); // Destroying manager destroys all objects that were created with it
+    pFBX->pManager->Destroy();
     udFree(pFBX);
     pFBX = nullptr;
   }
@@ -488,8 +492,6 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
 
           if (index < pFBX->materials.length)
             pMat = &pFBX->materials[index];
-
-
 
           UDASSERT(pMat != nullptr, "Material index incorrectly looked up, or FBX file corrupted");
 
@@ -804,8 +806,43 @@ void vcFBX_Close(vdkConvertCustomItem *pConvertInput)
     if (pFBX->pTrivox)
       vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
 
+    if (pFBX->pScene != nullptr)
+    {
+      pFBX->pScene->Destroy(true);
+      pFBX->pScene = nullptr;
+    }
+
     if (pFBX->pManager != nullptr)
+    {
       pFBX->pManager->Destroy();
+      pFBX->pManager = nullptr;
+    }
+
+    pFBX->uvQueue.Deinit();
+
+    vcFBX_CleanMaterials(&pFBX->materials);
+  }
+}
+
+void vcFBX_Destroy(vdkConvertCustomItem* pConvertInput)
+{
+  if (pConvertInput->pData != nullptr)
+  {
+    vcFBX* pFBX = (vcFBX*)pConvertInput->pData;
+    if (pFBX->pTrivox)
+      vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
+
+    if (pFBX->pScene != nullptr)
+    {
+      pFBX->pScene->Destroy(true);
+      pFBX->pScene = nullptr;
+    }
+
+    if (pFBX->pManager != nullptr)
+    {
+      pFBX->pManager->Destroy(); 
+      pFBX->pManager = nullptr;
+    }
 
     pFBX->uvQueue.Deinit();
 
@@ -832,6 +869,7 @@ vdkError vcFBX_AddItem(vdkConvertContext *pConvertContext, const char *pFilename
   customItem.pData = pFBX;
   customItem.pOpen = vcFBX_Open;
   customItem.pClose = vcFBX_Close;
+  customItem.pDestroy = vcFBX_Destroy;
   customItem.pReadPointsInt = vcFBX_ReadPointsInt;
   customItem.pName = udStrdup(pFilename);
   customItem.srid = 0;
