@@ -52,8 +52,8 @@ void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
   if (ImGui::Button(vcString::Get("sceneViewpointSetCamera")))
   {
     changed = true;
-    m_CameraRotation = pProgramState->pCamera->eulerRotation;
-    m_CameraPosition = pProgramState->pCamera->position;
+    m_CameraRotation = pProgramState->camera.eulerRotation;
+    m_CameraPosition = pProgramState->camera.position;
   }
 
   if (changed)
@@ -85,8 +85,8 @@ void vcViewpoint::Cleanup(vcState * /*pProgramState*/)
 
 void vcViewpoint::SetCameraPosition(vcState *pProgramState)
 {
-  pProgramState->pCamera->position = m_CameraPosition;
-  pProgramState->pCamera->eulerRotation = m_CameraRotation;
+  pProgramState->camera.position = m_CameraPosition;
+  pProgramState->camera.eulerRotation = m_CameraRotation;
 }
 
 udDouble4x4 vcViewpoint::GetWorldSpaceMatrix()

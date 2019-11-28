@@ -596,10 +596,13 @@ udResult vcSceneLayer_LoadTextureData(const vcSceneLayer *pSceneLayer, vcSceneLa
         continue;
 
       pPixelData = (uint8_t*)stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
-
-      pNode->pTextureData[i].width = width;
-      pNode->pTextureData[i].height = height;
-      pNode->pTextureData[i].pData = (uint8_t*)udMemDup(pPixelData, sizeof(uint32_t)*width*height, 0, udAF_None);
+      
+      if (pPixelData != nullptr)
+      {
+        pNode->pTextureData[i].width = width;
+        pNode->pTextureData[i].height = height;
+        pNode->pTextureData[i].pData = (uint8_t *)udMemDup(pPixelData, sizeof(uint32_t) * width * height, 0, udAF_None);
+      }
 
       udFree(pFileData);
       stbi_image_free(pPixelData);

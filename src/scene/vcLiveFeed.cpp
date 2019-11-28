@@ -281,7 +281,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
   }
 
 epilogue:
-  vdkServerAPI_ReleaseResult(pInfo->pProgramState->pVDKContext, &pFeedsJSON);
+  vdkServerAPI_ReleaseResult(&pFeedsJSON);
 
   pInfo->pFeed->m_loadStatus = vcSLS_Loaded;
 }
@@ -366,10 +366,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       continue;
     }
 
-    udDouble3 cameraPosition = pProgramState->pCamera->position;
-
-    if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-      cameraPosition.z = pProgramState->settings.camera.orthographicSize * vcCamera_HeightToOrthoFOVRatios[pProgramState->settings.camera.lensIndex];
+    udDouble3 cameraPosition = pProgramState->camera.position;
 
     pFeedItem->tweenAmount = m_tweenPositionAndOrientation ? udMin(1.0, pFeedItem->tweenAmount + pProgramState->deltaTime * 0.02) : 1.0;
     pFeedItem->displayPosition = udLerp(pFeedItem->previousPositionLatLong, pFeedItem->livePositionLatLong, pFeedItem->tweenAmount);
@@ -445,7 +442,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         }
 
         if (pModel != nullptr)
-          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, { pModel }, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition), nullptr, vcGLSCM_Back, true, this, (uint64_t)(i+1) });
+          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, vcRenderPolyInstance::RenderFlags_None, { pModel }, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition), nullptr, vcGLSCM_Back, this, (uint64_t)(i+1) });
       }
 
       break; // We got to the end so we should stop

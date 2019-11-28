@@ -308,7 +308,6 @@
   "menuBarConvert": "Convert",
   "menuBarLicense": "License",
   "menuBarRender": "Render",
-  "menuBarConnectionStatus": "Connection Status",
   "menuBarFPS": "FPS: {0} ({1}ms)",
   "menuBarSecondsAbbreviation": "s",
   "menuBarLicenseExpired": "License (expired)",
@@ -521,6 +520,7 @@
   "polyModelMesh": "Mesh",
   "polyModelTexture": "Texture",
   "polyModelMatColour": "Material Colour",
+  "polyModelIgnoreTint": "Ignore Tint",
 
   "viewShedDistance": "Distance",
   "viewShedVisibleColour": "Highlight Visible",

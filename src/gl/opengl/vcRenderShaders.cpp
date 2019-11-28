@@ -19,8 +19,9 @@ uniform sampler2D u_depth;
 
 layout (std140) uniform u_params
 {
-  vec4 u_screenParams;  // sampleStepX, sampleStepSizeY, near plane, far plane
+  vec4 u_screenParams;  // sampleStepSizex, sampleStepSizeY, near plane, far plane
   mat4 u_inverseViewProjection;
+  mat4 u_inverseProjection;
 
   // outlining
   vec4 u_outlineColour;
@@ -44,6 +45,7 @@ float linearizeDepth(float depth)
 {
   float nearPlane = u_screenParams.z;
   float farPlane = u_screenParams.w;
+
   return (2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
 }
 
@@ -52,27 +54,45 @@ float getNormalizedPosition(float v, float min, float max)
   return clamp((v - min) / (max - min), 0.0, 1.0);
 }
 
-// depth is packed into .w component
+// note: an adjusted depth is packed into the returned .w component
+// this is to show the edge highlights against the skybox
 vec4 edgeHighlight(vec3 col, vec2 uv, float depth, vec4 outlineColour, float edgeOutlineWidth, float edgeOutlineThreshold)
 {
   vec3 sampleOffsets = vec3(u_screenParams.xy, 0.0) * edgeOutlineWidth;
-  float farPlane = u_screenParams.w;
 
-  float d1 = texture(u_depth, uv + sampleOffsets.xz).x;
-  float d2 = texture(u_depth, uv - sampleOffsets.xz).x;
-  float d3 = texture(u_depth, uv + sampleOffsets.zy).x;
-  float d4 = texture(u_depth, uv - sampleOffsets.zy).x;
+  vec4 eyePosition0 = u_inverseProjection * vec4(uv * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
+  eyePosition0 /= eyePosition0.w;
 
-  float wd0 = linearizeDepth(depth) * farPlane;
-  float wd1 = linearizeDepth(d1) * farPlane;
-  float wd2 = linearizeDepth(d2) * farPlane;
-  float wd3 = linearizeDepth(d3) * farPlane;
-  float wd4 = linearizeDepth(d4) * farPlane;
+  vec2 sampleUV1 = uv + sampleOffsets.xz;
+  vec2 sampleUV2 = uv - sampleOffsets.xz;
+  vec2 sampleUV3 = uv + sampleOffsets.zy;
+  vec2 sampleUV4 = uv - sampleOffsets.zy;
 
-  float isEdge = 1.0 - step(wd0 - wd1, edgeOutlineThreshold) * step(wd0 - wd2, edgeOutlineThreshold) * step(wd0 - wd3, edgeOutlineThreshold) * step(wd0 - wd4, edgeOutlineThreshold);
+  float sampleDepth1 = texture(u_depth, sampleUV1).x;
+  float sampleDepth2 = texture(u_depth, sampleUV2).x;
+  float sampleDepth3 = texture(u_depth, sampleUV3).x;
+  float sampleDepth4 = texture(u_depth, sampleUV4).x;
+
+  vec4 eyePosition1 = u_inverseProjection * vec4(sampleUV1 * vec2(2.0) - vec2(1.0), sampleDepth1 * 2.0 - 1.0, 1.0);
+  vec4 eyePosition2 = u_inverseProjection * vec4(sampleUV2 * vec2(2.0) - vec2(1.0), sampleDepth2 * 2.0 - 1.0, 1.0);
+  vec4 eyePosition3 = u_inverseProjection * vec4(sampleUV3 * vec2(2.0) - vec2(1.0), sampleDepth3 * 2.0 - 1.0, 1.0);
+  vec4 eyePosition4 = u_inverseProjection * vec4(sampleUV4 * vec2(2.0) - vec2(1.0), sampleDepth4 * 2.0 - 1.0, 1.0);
+
+  eyePosition1 /= eyePosition1.w;
+  eyePosition2 /= eyePosition2.w;
+  eyePosition3 /= eyePosition3.w;
+  eyePosition4 /= eyePosition4.w;
+
+  vec3 diff1 = eyePosition0.xyz - eyePosition1.xyz;
+  vec3 diff2 = eyePosition0.xyz - eyePosition2.xyz;
+  vec3 diff3 = eyePosition0.xyz - eyePosition3.xyz;
+  vec3 diff4 = eyePosition0.xyz - eyePosition4.xyz;
+
+  // note: the sign(diff.z) is to ensure only highlight a single pixel on the outside of the geometry
+  float isEdge = 1.0 - step(sign(diff1.z) * length(diff1), edgeOutlineThreshold) * step(sign(diff2.z) * length(diff2), edgeOutlineThreshold) * step(sign(diff3.z) * length(diff3), edgeOutlineThreshold) * step(sign(diff4.z) * length(diff4), edgeOutlineThreshold);
 
   vec3 edgeColour = mix(col.xyz, outlineColour.xyz, outlineColour.w);
-  float minDepth = min(min(min(d1, d2), d3), d4);
+  float minDepth = min(min(min(sampleDepth1, sampleDepth2), sampleDepth3), sampleDepth4);
   return vec4(mix(col.xyz, edgeColour, isEdge), mix(depth, minDepth, isEdge));
 }
 
@@ -108,13 +128,11 @@ vec3 colourizeByHeight(vec3 col, vec3 fragWorldPosition)
   return mix(minColour, maxColour, minMaxColourStrength);
 }
 
-vec3 colourizeByDepth(vec3 col, float depth)
+vec3 colourizeByEyeDistance(vec3 col, vec3 fragEyePos)
 {
-  float farPlane = u_screenParams.w;
-  float linearDepth = linearizeDepth(depth) * farPlane;
   vec2 depthColourMinMax = u_colourizeDepthParams.xy;
 
-  float depthColourStrength = getNormalizedPosition(linearDepth, depthColourMinMax.x, depthColourMinMax.y);
+  float depthColourStrength = getNormalizedPosition(length(fragEyePos), depthColourMinMax.x, depthColourMinMax.y);
   return mix(col.xyz, u_colourizeDepthColour.xyz, depthColourStrength * u_colourizeDepthColour.w);
 }
 
@@ -124,11 +142,15 @@ void main()
   vec4 col = texture(u_texture, flippedUV);
   float depth = texture(u_depth, flippedUV).x;
 
+  // TODO: I'm fairly certain this is actually wrong (world space calculations), and will have precision issues
   vec4 fragWorldPosition = u_inverseViewProjection * vec4(flippedUV * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
   fragWorldPosition /= fragWorldPosition.w;
+
+  vec4 fragEyePosition = u_inverseProjection * vec4(flippedUV * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
+  fragEyePosition /= fragEyePosition.w;
   
   col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
-  col.xyz = colourizeByDepth(col.xyz, depth);
+  col.xyz = colourizeByEyeDistance(col.xyz, fragEyePosition.xyz);
   
   col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
 

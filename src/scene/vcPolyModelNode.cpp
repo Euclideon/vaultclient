@@ -10,18 +10,49 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
+struct vcPolygonModelLoadInfo
+{
+  vcState *pProgramState;
+  vcPolyModelNode *pNode;
+};
+
+void vcPolyModelNode_LoadModel(void *pLoadInfoPtr)
+{
+  vcPolygonModelLoadInfo *pLoadInfo = (vcPolygonModelLoadInfo *)pLoadInfoPtr;
+  if (pLoadInfo->pProgramState->programComplete)
+    return;
+
+  udInterlockedCompareExchange(&pLoadInfo->pNode->m_loadStatus, vcSLS_Loading, vcSLS_Pending);
+  if (vcPolygonModel_CreateFromURL(&pLoadInfo->pNode->m_pModel, pLoadInfo->pNode->m_pNode->pURI, pLoadInfo->pProgramState->pWorkerPool) == udR_Success)
+    udInterlockedCompareExchange(&pLoadInfo->pNode->m_loadStatus, vcSLS_Loaded, vcSLS_Loading);
+  else
+    udInterlockedCompareExchange(&pLoadInfo->pNode->m_loadStatus, vcSLS_Failed, vcSLS_Loading);
+
+}
+
 vcPolyModelNode::vcPolyModelNode(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
 {
   m_pModel = nullptr;
   m_matrix = udDouble4x4::identity();
   m_cullFace = vcGLSCM_Back;
+  m_ignoreTint = false;
+  m_loadStatus = vcSLS_Pending;
 
-  //TODO: Do this load async
-  if (vcPolygonModel_CreateFromURL(&m_pModel, pNode->pURI) == udR_Success)
-    m_loadStatus = vcSLS_Loaded;
+  vcPolygonModelLoadInfo *pLoadInfo = udAllocType(vcPolygonModelLoadInfo, 1, udAF_Zero);
+  if (pLoadInfo != nullptr)
+  {
+    // Prepare the load info
+    pLoadInfo->pNode = this;
+    pLoadInfo->pProgramState = pProgramState;
+
+    // Queue for load
+    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcPolyModelNode_LoadModel, pLoadInfo, true);
+  }
   else
+  {
     m_loadStatus = vcSLS_Failed;
+  }
 
   OnNodeUpdate(pProgramState);
 }
@@ -38,6 +69,8 @@ void vcPolyModelNode::OnNodeUpdate(vcState *pProgramState)
     else // Default to backface
       m_cullFace = vcGLSCM_Back;
   }
+
+  vdkProjectNode_GetMetadataBool(m_pNode, "ignoreTint", &m_ignoreTint, false);
 
   if (m_pNode->geomCount != 0)
   {
@@ -62,7 +95,7 @@ void vcPolyModelNode::OnNodeUpdate(vcState *pProgramState)
 
 void vcPolyModelNode::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
 {
-  if (m_loadStatus != vcSLS_Loaded || !m_visible)
+  if (!m_visible || m_pModel == nullptr)
     return;
 
   vcRenderPolyInstance *pModel = pRenderData->polyModels.PushBack();
@@ -70,7 +103,8 @@ void vcPolyModelNode::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRen
   pModel->pSceneItem = this;
   pModel->worldMat = m_matrix;
   pModel->cullFace = m_cullFace;
-  pModel->affectsViewShed = true;
+  if (m_ignoreTint)
+    pModel->renderFlags = vcRenderPolyInstance::RenderFlags_IgnoreTint;
 }
 
 void vcPolyModelNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
@@ -102,8 +136,11 @@ void vcPolyModelNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
   const char *uiStrings[] = { vcString::Get("polyModelCullFaceBack"), vcString::Get("polyModelCullFaceFront"), vcString::Get("polyModelCullFaceNone") };
   const char *optStrings[] = { "back", "front", "none" };
-  if (ImGui::Combo(udTempStr("%s##%zu", vcString::Get("polyModelCullFace"), *pItemID), (int*)&m_cullFace, uiStrings, (int)udLengthOf(uiStrings)))
+  if (ImGui::Combo(udTempStr("%s##%zu", vcString::Get("polyModelCullFace"), *pItemID), (int *)&m_cullFace, uiStrings, (int)udLengthOf(uiStrings)))
     vdkProjectNode_SetMetadataString(m_pNode, "culling", optStrings[m_cullFace]);
+
+  if (ImGui::Checkbox(udTempStr("%s##%zu", vcString::Get("polyModelIgnoreTint"), *pItemID), &m_ignoreTint))
+    vdkProjectNode_SetMetadataBool(m_pNode, "ignoreTint", m_ignoreTint);
 
   // Transform Info
   {

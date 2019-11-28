@@ -29,6 +29,14 @@ struct vcRenderPolyInstance
     RenderType_SceneLayer
   } renderType;
 
+  enum RenderFlags
+  {
+    RenderFlags_None        = 0,
+
+    RenderFlags_IgnoreTint  = 1 << 0,
+    RenderFlags_Transparent = 1 << 1
+  } renderFlags;
+
   union
   {
     vcPolygonModel *pModel;
@@ -40,10 +48,14 @@ struct vcRenderPolyInstance
 
   vcGLStateCullMode cullFace;
 
-  bool affectsViewShed;
   vcSceneItem *pSceneItem;
   uint64_t sceneItemInternalId; // 0 is entire model; for most systems this will be +1 compared to internal arrays
+
+  // Helper to determine if flag is set
+  bool HasFlag(const enum RenderFlags flag) { return (renderFlags & flag) == flag; }
 };
+
+inline enum vcRenderPolyInstance::RenderFlags operator|(const enum vcRenderPolyInstance::RenderFlags a, const enum vcRenderPolyInstance::RenderFlags b) { return (enum vcRenderPolyInstance::RenderFlags)(int(a) | int(b)); }
 
 struct vcMouseData
 {

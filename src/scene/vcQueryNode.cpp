@@ -95,6 +95,7 @@ void vcQueryNode::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
     pInstance->cullFace = vcGLSCM_Front;
     pInstance->pSceneItem = this;
+    pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
   }
 
   if (m_pFilter != nullptr)

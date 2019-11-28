@@ -274,7 +274,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
         if (pSceneItem->m_pPreferredProjection != nullptr && pSceneItem->m_pPreferredProjection->srid != 0 && ImGui::Selectable(vcString::Get("sceneExplorerUseProjection")))
         {
-          if (vcGIS_ChangeSpace(&pProgramState->gis, *pSceneItem->m_pPreferredProjection, &pProgramState->pCamera->position))
+          if (vcGIS_ChangeSpace(&pProgramState->gis, *pSceneItem->m_pPreferredProjection, &pProgramState->camera.position))
           {
             pProgramState->activeProject.pFolder->ChangeProjection(*pSceneItem->m_pPreferredProjection);
             // refresh map tiles when geozone changes
@@ -286,8 +286,8 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         {
           // Trigger a camera movement path
           pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
-          pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
-          pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
+          pProgramState->cameraInput.startPosition = pProgramState->camera.position;
+          pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->camera.eulerRotation);
           pProgramState->cameraInput.progress = 0.0;
 
           pProgramState->isUsingAnchorPoint = true;
@@ -300,13 +300,13 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
         if (ImGui::Selectable(vcString::Get("sceneExplorerRemoveItem")))
         {
-          vcProject_RemoveItem(pProgramState, m_pNode, pNode);
-          pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
-
           ImGui::EndPopup();
 
           if (pSceneItem->m_expanded)
             ImGui::TreePop();
+
+          vcProject_RemoveItem(pProgramState, m_pNode, pNode);
+          pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
 
           return;
         }

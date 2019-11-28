@@ -7,7 +7,7 @@
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
       - Polygon Meshes
-        - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`
+        - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`, `polyModelIgnoreTint`
     - Scene Explorer
       - `scenePOIAttachCameraToAttachment`, `liveFeedLODModifier`, `sceneModelMetreScale`, `sceneModelLODLayers`, `sceneModelResolution`, `sceneModelAttributes`
     - Other
@@ -15,7 +15,7 @@
   - Changed:
     - 
   - Removed:
-    - `polyModelInvertFaces`
+    - `polyModelInvertFaces`, `menuBarConnectionStatus`
 
 - Version 0.4.0
   - Added:
@@ -507,7 +507,6 @@ Modules are currently:
 - `menuBarConvert`: Used to display the status of the convert license
 - `menuBarLicense`: Used to display that the menu bar is showing the status of the convert or render licenses
 - `menuBarRender`: Used to display the status of the render license
-- `menuBarConnectionStatus`: Used to display the current connection status between vault client and the server
 - `menuBarFPS`: Displays vault client's current framerate in both frames per second (fps) and milliseconds (ms)
   - {0} = framerate in frames/s
   - {1} = framerate in ms/frame
@@ -736,6 +735,7 @@ Modules are currently:
 - `polyModelMesh`: Used on the label next to mesh information in the scene explorer with "Show Diagnostic Information" enabled 
 - `polyModelTexture`: Used on the label next to mesh texture information in the scene explorer with "Show Diagnostic Information" enabled 
 - `polyModelMatColour`: Used on the label next to mesh material colour information in the scene explorer with "Show Diagnostic Information" enabled 
+- `polyModelIgnoreTint`: Checkbox to ignoring any tint material colour
 
 #### View Sheds
 

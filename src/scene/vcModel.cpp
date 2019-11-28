@@ -389,19 +389,13 @@ void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pPar
       //udTempStr("%s###SXIName%zu", pNode->pName, *pItemID)
       if (ImGui::Selectable(pChildNode->pName))
       {
-        this->m_compareData.pProgramState = pProgramState;
-        this->m_compareData.pOldModel = (vcModel *)pChildNode->pUserData;
-        this->m_compareData.pNewModel = this;
-        this->m_compareData.ballRadius = 0.15; // TODO: Expose this to the user
-        udWorkerPoolCallback *pCallback = [](void *pUserData) {
-          vcModelCompareData *pCompareData = (vcModelCompareData *)pUserData;
-          vcBPA_CompareExport(pCompareData->pProgramState, pCompareData->pOldModel->m_pPointCloud, pCompareData->pNewModel->m_pPointCloud, pCompareData->ballRadius);
-          pCompareData->pProgramState = nullptr;
-          pCompareData->pOldModel = nullptr;
-          pCompareData->pNewModel = nullptr;
-          pCompareData->ballRadius = 0.0;
+        vcModel *pOldModel = (vcModel *)pChildNode->pUserData;
+        const double ballRadius = 0.15; // TODO: Expose this to the user
+        udWorkerPoolCallback callback = [this, pProgramState, pOldModel, ballRadius](void*)
+        {
+          vcBPA_CompareExport(pProgramState, pOldModel->m_pPointCloud, this->m_pPointCloud, ballRadius);
         };
-        udWorkerPool_AddTask(pProgramState->pWorkerPool, pCallback, &this->m_compareData, false);
+        udWorkerPool_AddTask(pProgramState->pWorkerPool, callback, nullptr, false);
       }
     }
 

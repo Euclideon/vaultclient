@@ -17,14 +17,13 @@
 #include "vcProject.h"
 
 #include "vdkError.h"
+#include "vdkContext.h"
 
 #include "imgui_ex/ImGuizmo.h"
 
 #include <vector>
 
 struct SDL_Window;
-
-struct vdkContext;
 
 struct vcFramebuffer;
 struct vcRenderContext;
@@ -71,7 +70,8 @@ struct vcState
   int openModals; // This is controlled inside vcModals.cpp
   bool modalOpen;
 
-  vcCamera *pCamera;
+  vcCamera camera;
+  vcCameraInput cameraInput;
 
   struct ErrorItem
   {
@@ -90,7 +90,6 @@ struct vcState
   udUInt2 sceneResolution;
 
   vcGISSpace gis;
-  char username[64];
 
   vcTexture *pCompanyLogo;
   vcTexture *pCompanyWatermark;
@@ -108,14 +107,13 @@ struct vcState
   bool pickingSuccess;
   int udModelPickedIndex;
 
-  vcCameraInput cameraInput;
-
   bool finishedStartup;
-  bool hasContext;
   bool forceLogout;
-  double lastServerAttempt;
-  double lastServerResponse;
+
+  bool hasContext;
+  vdkSessionInfo sessionInfo;
   vdkContext *pVDKContext;
+
   vcRenderContext *pRenderContext;
   vcConvertContext *pConvertContext;
 

@@ -43,6 +43,8 @@ vcPOI::vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState
 
   memset(&m_line, 0, sizeof(m_line));
 
+  m_cameraFollowingAttachment = false;
+
   m_line.selectedPoint = -1; // Sentinel for no point selected
 
   m_line.colourPrimary = 0xFFFFFFFF;
@@ -56,9 +58,13 @@ vcPOI::vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState
   m_pFence = nullptr;
   m_pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
 
+  m_pWorkerPool = pProgramState->pWorkerPool;
+
   memset(&m_attachment, 0, sizeof(m_attachment));
   m_attachment.segmentIndex = -1;
   m_attachment.moveSpeed = 16.667; //60km/hr
+
+  memset(&m_flyThrough, 0, sizeof(m_flyThrough));
 
   OnNodeUpdate(pProgramState);
 
@@ -126,10 +132,60 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
   UpdatePoints();
 }
 
+bool vcPOI::GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int *pSegmentIndex, double *pSegmentProgress)
+{
+  if (m_line.numPoints < 2)
+    return false;
+
+  double totalDist = 0.0;
+  double segmentProgress = (pSegmentProgress == nullptr ? 0.0 : *pSegmentProgress);
+
+  int startPoint = 0;
+
+  if (pSegmentIndex != nullptr)
+    startPoint = udMax(0, *pSegmentIndex);
+
+  for (int i = startPoint; (i < m_line.numPoints - 1) || m_line.closed; ++i)
+  {
+    int seg0 = i % m_line.numPoints;
+    int seg1 = (i + 1) % m_line.numPoints;
+
+    udDouble3 segment = m_line.pPoints[seg1] - m_line.pPoints[seg0];
+    double segmentLength = udMag3(segment) - segmentProgress;
+    
+    if (totalDist + segmentLength > distance)
+    {
+      if (pPoint != nullptr)
+        *pPoint = m_line.pPoints[seg0] + udNormalize(segment) * (distance - totalDist + segmentProgress);
+
+      if (pSegmentIndex != nullptr)
+        *pSegmentIndex = seg0;
+
+      if (pSegmentProgress != nullptr)
+        *pSegmentProgress = (distance - totalDist + segmentProgress);
+
+      return true;
+    }
+    else
+    {
+      totalDist += segmentLength;
+      segmentProgress = 0.0;
+    }
+  }
+
+  if (pSegmentIndex != nullptr)
+    *pSegmentIndex = 0;
+
+  if (pSegmentProgress != nullptr)
+    *pSegmentProgress = 0.0;
+
+  return false;
+}
+
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
   // if POI is invisible or if it exceeds maximum visible POI distance
-  if (!m_visible || (pProgramState->settings.camera.cameraMode != vcCM_OrthoMap && udMag3(m_pLabelInfo->worldPosition - pProgramState->pCamera->position) > pProgramState->settings.presentation.POIFadeDistance))
+  if (!m_visible || (udMag3(m_pLabelInfo->worldPosition - pProgramState->camera.position) > pProgramState->settings.presentation.POIFadeDistance))
     return;
 
   if (m_selected)
@@ -138,7 +194,7 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
 
-      udDouble3 linearDistance = (pProgramState->pCamera->position - m_line.pPoints[i]);
+      udDouble3 linearDistance = (pProgramState->camera.position - m_line.pPoints[i]);
 
       pInstance->pModel = gInternalModels[vcInternalModelType_Sphere];
       pInstance->worldMat = udDouble4x4::translation(m_line.pPoints[i]) * udDouble4x4::scaleUniform(udMag3(linearDistance) / 100.0); //This makes it ~1/100th of the screen size
@@ -170,70 +226,30 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     }
   }
 
+  // Model attached to the camera
   if (m_attachment.pModel != nullptr)
   {
     double remainingMovementThisFrame = m_attachment.moveSpeed * pProgramState->deltaTime;
     udDouble3 startYPR = m_attachment.eulerAngles;
-    udDouble3 startPosDiff = pProgramState->pCamera->position - m_attachment.currentPos;
+    udDouble3 startPosDiff = pProgramState->camera.position - m_attachment.currentPos;
 
-    // Move to first point if segment -1
-    if (m_attachment.segmentIndex == -1)
+    udDouble3 updatedPosition = {};
+
+    if (remainingMovementThisFrame > 0)
     {
-      m_attachment.segmentStartPos = m_line.pPoints[0];
-      m_attachment.segmentEndPos = m_line.pPoints[0];
-
-      if (m_line.numPoints > 1)
-        m_attachment.eulerAngles = udDirectionToYPR(m_line.pPoints[1] - m_line.pPoints[0]);
-
-      m_attachment.currentPos = m_line.pPoints[0];
-      m_attachment.segmentProgress = 1.0;
-    }
-
-    while (remainingMovementThisFrame > 0.01)
-    {
-      if (m_attachment.segmentProgress == 1.0)
+      if (!GetPointAtDistanceAlongLine(remainingMovementThisFrame, &updatedPosition, &m_attachment.segmentIndex, &m_attachment.segmentProgress))
       {
-        m_attachment.segmentProgress = 0.0;
-        ++m_attachment.segmentIndex;
+        if (m_line.numPoints > 1)
+          m_attachment.eulerAngles = udDirectionToYPR(m_line.pPoints[1] - m_line.pPoints[0]);
 
-        if (m_attachment.segmentIndex >= m_line.numPoints)
-        {
-          if (m_line.closed && m_line.numPoints > 1)
-          {
-            m_attachment.segmentIndex = 0;
-          }
-          else
-          {
-            m_attachment.segmentIndex = -1;
-            break;
-          }
-        }
-
-        m_attachment.segmentStartPos = m_attachment.segmentEndPos;
-        m_attachment.segmentEndPos = m_line.pPoints[m_attachment.segmentIndex];
-      }
-
-      udDouble3 moveVector = m_attachment.segmentEndPos - m_attachment.segmentStartPos;
-
-      // If consecutive points are in the same position (avoids divide by zero)
-      if (moveVector == udDouble3::zero())
-      {
-        m_attachment.segmentProgress = 1.0;
+        m_attachment.currentPos = m_line.pPoints[0];
       }
       else
       {
-        // Smoothly rotate model to face the leading point at all times
-        udDouble3 targetEuler = udDirectionToYPR(moveVector);
+        udDouble3 targetEuler = udDirectionToYPR(updatedPosition - m_attachment.currentPos);
+
         m_attachment.eulerAngles = udSlerp(udDoubleQuat::create(startYPR), udDoubleQuat::create(targetEuler), 0.2).eulerAngles();
-
-        m_attachment.segmentProgress = udMin(m_attachment.segmentProgress + remainingMovementThisFrame / udMag3(moveVector), 1.0);
-        udDouble3 leadingPoint = m_attachment.segmentStartPos + moveVector * m_attachment.segmentProgress;
-        udDouble3 cam2Point = leadingPoint - m_attachment.currentPos;
-        double distCam2Point = udMag3(cam2Point);
-        cam2Point = udNormalize3(distCam2Point == 0 ? moveVector : cam2Point); // avoids divide by zero
-
-        m_attachment.currentPos += cam2Point * remainingMovementThisFrame;
-        remainingMovementThisFrame -= distCam2Point; // This should be calculated
+        m_attachment.currentPos = updatedPosition;
       }
     }
 
@@ -247,13 +263,36 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     pModel->cullFace = m_attachment.cullMode;
 
     // Update the camera if the camera is coming along
-    if (pProgramState->cameraInput.pAttachedToSceneItem == this)
+    if (pProgramState->cameraInput.pAttachedToSceneItem == this && m_cameraFollowingAttachment)
     {
-      udRay<double> rotRay = udRay<double>::create(startPosDiff, udDirectionFromYPR(pProgramState->pCamera->eulerRotation));
+      udRay<double> rotRay = udRay<double>::create(startPosDiff, udDirectionFromYPR(pProgramState->camera.eulerRotation));
       rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.z.toVector3(), m_attachment.eulerAngles.x - startYPR.x);
       rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.x.toVector3(), m_attachment.eulerAngles.y - startYPR.y);
-      pProgramState->pCamera->position = m_attachment.currentPos + rotRay.position;
-      pProgramState->pCamera->eulerRotation = udDirectionToYPR(rotRay.direction);
+      pProgramState->camera.position = m_attachment.currentPos + rotRay.position;
+      pProgramState->camera.eulerRotation = udDirectionToYPR(rotRay.direction);
+    }
+  }
+
+  // Flythrough
+  if (pProgramState->cameraInput.pAttachedToSceneItem == this && !m_cameraFollowingAttachment)
+  {
+    if (m_line.numPoints <= 1)
+    {
+      pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
+    }
+    else
+    {
+      double remainingMovementThisFrame = pProgramState->settings.camera.moveSpeed * pProgramState->deltaTime;
+      udDouble3 startYPR = pProgramState->camera.eulerRotation;
+
+      udDouble3 updatedPosition = {};
+
+      if (!GetPointAtDistanceAlongLine(remainingMovementThisFrame, &updatedPosition, &m_flyThrough.segmentIndex, &m_flyThrough.segmentProgress))
+        pProgramState->camera.eulerRotation = udDirectionToYPR(m_line.pPoints[1] - m_line.pPoints[0]);
+      else
+        pProgramState->camera.eulerRotation = udSlerp(udDoubleQuat::create(startYPR), udDoubleQuat::create(udDirectionToYPR(updatedPosition - pProgramState->camera.position)), 0.2).eulerAngles();
+
+      pProgramState->camera.position = updatedPosition;
     }
   }
 }
@@ -495,13 +534,15 @@ void vcPOI::HandleContextMenu(vcState *pProgramState)
 
     if (ImGui::MenuItem(vcString::Get("scenePOIPerformFlyThrough")))
     {
-      pProgramState->cameraInput.inputState = vcCIS_FlyThrough;
-      pProgramState->cameraInput.flyThroughPoint = -1;
-      pProgramState->cameraInput.pObjectInfo = &m_line;
+      pProgramState->cameraInput.pAttachedToSceneItem = this;
+      m_cameraFollowingAttachment = false;
     }
 
     if (m_attachment.pModel != nullptr && ImGui::MenuItem(vcString::Get("scenePOIAttachCameraToAttachment")))
+    {
       pProgramState->cameraInput.pAttachedToSceneItem = this;
+      m_cameraFollowingAttachment = true;
+    }
 
     if (ImGui::BeginMenu(vcString::Get("scenePOIAttachModel")))
     {
@@ -544,7 +585,7 @@ void vcPOI::HandleContextMenu(vcState *pProgramState)
 
 void vcPOI::HandleAttachmentUI(vcState * /*pProgramState*/)
 {
-  if (m_attachment.pModel != nullptr)
+  if (m_cameraFollowingAttachment)
   {
     const double minSpeed = 0.0;
     const double maxSpeed = 1000.0;
@@ -554,6 +595,10 @@ void vcPOI::HandleAttachmentUI(vcState * /*pProgramState*/)
       m_attachment.moveSpeed = udClamp(m_attachment.moveSpeed, minSpeed, maxSpeed);
       vdkProjectNode_SetMetadataDouble(m_pNode, "attachmentSpeed", m_attachment.moveSpeed);
     }
+  }
+  else
+  {
+    // Settings?
   }
 }
 
@@ -614,9 +659,9 @@ void vcPOI::Cleanup(vcState *pProgramState)
 void vcPOI::SetCameraPosition(vcState *pProgramState)
 {
   if (m_attachment.pModel)
-    pProgramState->pCamera->position = m_attachment.currentPos;
+    pProgramState->camera.position = m_attachment.currentPos;
   else
-    pProgramState->pCamera->position = m_pLabelInfo->worldPosition;
+    pProgramState->camera.position = m_pLabelInfo->worldPosition;
 }
 
 udDouble4x4 vcPOI::GetWorldSpaceMatrix()
@@ -648,7 +693,7 @@ bool vcPOI::LoadAttachedModel(const char *pNewPath)
   vcPolygonModel_Destroy(&m_attachment.pModel);
   udFree(m_attachment.pPathLoaded);
 
-  if (vcPolygonModel_CreateFromURL(&m_attachment.pModel, pNewPath) == udR_Success)
+  if (vcPolygonModel_CreateFromURL(&m_attachment.pModel, pNewPath, m_pWorkerPool) == udR_Success)
   {
     m_attachment.pPathLoaded = udStrdup(pNewPath);
     return true;

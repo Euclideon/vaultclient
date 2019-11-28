@@ -221,7 +221,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           pProgramState->settings.maptiles.transparency = udClamp(pProgramState->settings.maptiles.transparency, vcSL_OpacityMin, vcSL_OpacityMax);
 
         if (ImGui::Button(vcString::Get("settingsMapsSetHeight")))
-          pProgramState->settings.maptiles.mapHeight = (float)pProgramState->pCamera->position.z;
+          pProgramState->settings.maptiles.mapHeight = (float)pProgramState->camera.position.z;
       }
     }
 

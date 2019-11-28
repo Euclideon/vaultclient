@@ -17,8 +17,7 @@ void vcProject_InitBlankScene(vcState *pProgramState)
   vcRender_ClearTiles(pProgramState->pRenderContext);
   vcGIS_ChangeSpace(&pProgramState->gis, zone);
 
-  if (pProgramState->pCamera != nullptr) // This is destroyed before the scene
-    pProgramState->pCamera->position = udDouble3::zero();
+  pProgramState->camera.position = udDouble3::zero();
 
   pProgramState->sceneExplorer.selectedItems.clear();
   pProgramState->sceneExplorer.clickedItem = {};
@@ -45,8 +44,7 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
       vcRender_ClearTiles(pProgramState->pRenderContext);
       vcGIS_ChangeSpace(&pProgramState->gis, zone);
 
-      if (pProgramState->pCamera != nullptr) // This is destroyed before the scene
-        pProgramState->pCamera->position = udDouble3::zero();
+      pProgramState->camera.position = udDouble3::zero();
 
       pProgramState->sceneExplorer.selectedItems.clear();
       pProgramState->sceneExplorer.clickedItem = {};
