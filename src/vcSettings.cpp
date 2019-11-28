@@ -91,6 +91,26 @@ bool SDL_filewrite(const char* filename, const char *pStr, size_t bytes)
   return success;
 }
 
+// If path + filename exists, adds next available number suffix before the extension
+udFilename vcSettings_SequentialFilename(const char *pName)
+{
+  if (pName == nullptr)
+    return nullptr;
+
+  udFilename temp(pName);
+  const char *pExtension = temp.GetExt();
+
+  int i = 1;
+  while (udFileExists(temp.GetPath()) == udR_Success)
+  {
+    temp.SetFromFullPath(pName);
+    temp.SetExtension(udTempStr("%d%s", i, pExtension));
+    ++i;
+  }
+
+  return temp;
+}
+
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSettingCategory group /*= vcSC_All*/)
 {
   ImGui::GetIO().IniFilename = NULL; // Disables auto save and load
@@ -361,6 +381,26 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     udFree(pFileContents);
   }
 
+  if (group == vcSC_Screenshot || group == vcSC_All)
+  {
+    pSettings->screenshot.hideLabels = data.Get("screenshot.hideLabels").AsBool(false);
+    const char *pTemp = data.Get("screenshot.format").AsString(".PNG");
+    for (int i = 0; i < (int)udLengthOf(ScreenshotExportFormats); ++i)
+    {
+      if (udStrEquali(ScreenshotExportFormats[i], pTemp))
+        pSettings->screenshot.format = (vcImageFormats)i;
+    }
+
+    pTemp = data.Get("screenshot.res").AsString("1080");
+    for (int i = 0; i < (int)udLengthOf(ScreenshotResolutionStrings); ++i)
+    {
+      if (udStrEquali(ScreenshotResolutionStrings[i], pTemp))
+        pSettings->screenshot.res = (vcScreenshotOutputResolution)i;
+    }
+
+    udStrcpy(pSettings->screenshot.outputName, data.Get("screenshot.outputName").AsString());
+  }
+
   udFree(pSavedData);
   return true;
 }
@@ -529,6 +569,12 @@ bool vcSettings_Save(vcSettings *pSettings)
 
   tempNode.SetString(pSettings->convertdefaults.license);
   data.Set(&tempNode, "convert.license");
+
+  // Screenshots
+  data.Set("screenshot.hideLabels = %s", pSettings->screenshot.hideLabels ? "true" : "false");
+  data.Set("screenshot.format = '%s'", ScreenshotExportFormats[(int)pSettings->screenshot.format]);
+  data.Set("screenshot.res = '%s'", ScreenshotResolutionStrings[(int)pSettings->screenshot.res]);
+  data.Set("screenshot.outputName = '%s'", pSettings->screenshot.outputName);
 
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");

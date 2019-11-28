@@ -561,24 +561,27 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
   if (pProgramState->openModals & (1 << vcMT_ImageViewer))
     ImGui::OpenPopup(vcString::Get("sceneImageViewerTitle"));
 
-  // Use 75% of the window
-  int maxX, maxY;
-  SDL_GetWindowSize(pProgramState->pWindow, &maxX, &maxY);
-  ImGui::SetNextWindowSize(ImVec2(maxX * 0.75f, maxY * 0.75f), ImGuiCond_Always);
-
+  ImGui::SetNextWindowSizeConstraints(ImVec2(50.f, 50.f), ImVec2((float)pProgramState->settings.window.width, (float)pProgramState->settings.window.height));
+  ImGui::SetNextWindowSize(ImVec2((float)pProgramState->image.width + 25, (float)pProgramState->image.height + 50), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("sceneImageViewerTitle"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
   {
     pProgramState->modalOpen = true;
     if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       ImGui::CloseCurrentPopup();
 
-    if (ImGui::BeginChild("ImageViewerImage", ImVec2(0, 0), false, ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
+    if (ImGui::BeginChild("ImageViewerImage", ImVec2(-1, 0), false, ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
     {
       ImGuiIO io = ImGui::GetIO();
       ImVec2 window = ImGui::GetWindowSize();
       ImVec2 windowPos = ImGui::GetWindowPos();
 
-      ImGui::Image(pProgramState->image.pImage, ImVec2((float)pProgramState->image.width, (float)pProgramState->image.height));
+#if GRAPHICS_API_OPENGL
+      ImVec2 uvs[2] = { {0,1}, {1,0} };
+#else
+      ImVec2 uvs[2] = { {0,0}, {1,1} };
+#endif
+      
+      ImGui::Image(pProgramState->image.pImage, ImVec2((float)pProgramState->image.width, (float)pProgramState->image.height), uvs[0], uvs[1]);
 
       if (ImGui::IsWindowHovered())
       {
@@ -625,6 +628,10 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
         }
       }
     }
+
+    if (ImGui::Button(vcString::Get("sceneImageViewerCloseButton"), ImVec2((float)pProgramState->image.width, 0.f)) || vcHotkey::IsPressed(vcB_Close))
+      ImGui::CloseCurrentPopup();
+
     ImGui::EndChild();
 
     ImGui::EndPopup();

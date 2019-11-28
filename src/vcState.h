@@ -172,7 +172,8 @@ struct vcState
     int height;
 
     vcImageType imageType;
-  } image;
+  } image, screenshot;
+  bool destroyImage;
 
   vcFileDialog fileDialog;
 

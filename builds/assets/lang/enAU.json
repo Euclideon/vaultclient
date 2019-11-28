@@ -577,5 +577,19 @@
   "errorCorruptData": "Corrupt data.",
   "errorUnsupported": "Unsupported file formats.",
   "errorOpenFailure": "Failed to open.",
-  "errorReadFailure": "Failed to read."
+  "errorReadFailure": "Failed to read.",
+
+  "settingsScreenshot": "Screenshot",
+  "settingsScreenshotHideLabels": "Hide Labels",
+  "settingsScreenshotResLabel": "Resolution",
+  "settingsScreenshotRes720p": "720p Resolution",
+  "settingsScreenshotRes1080p": "1080p Resolution",
+  "settingsScreenshotRes4K": "4K Resolution",
+  "settingsScreenshotResScene": "Scene Resolution",
+  "settingsScreenshotFormatLabel": "Image Format",
+  "settingsScreenshotFilename": "Filename",
+  "settingsScreenshotView": "View Once Taken",
+
+  "screenshotTake": "Take Screenshot",
+  "screenshotDefaultName": "Screen Capture"
 }
