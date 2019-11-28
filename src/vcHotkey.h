@@ -32,7 +32,6 @@ enum vcBind
   vcB_Save,
   vcB_Load,
   vcB_AddUDS,
-  vcB_MapMode,
   vcB_BindingsInterface,
   vcB_Count
 };

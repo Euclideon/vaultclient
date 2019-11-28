@@ -34,7 +34,6 @@ namespace vcHotkey
     "Save",
     "Load",
     "AddUDS",
-    "MapMode",
     "BindingsInterface"
   };
 
@@ -56,7 +55,20 @@ namespace vcHotkey
 
   bool IsDown(vcBind key)
   {
-    return ImGui::GetIO().KeysDown[keyBinds[key]];
+    ImGuiIO io = ImGui::GetIO();
+
+    int keyNum = keyBinds[key];
+
+    if ((keyNum & vcMOD_Shift) && !io.KeyShift)
+      return false;
+    if ((keyNum & vcMOD_Ctrl) && !io.KeyCtrl)
+      return false;
+    if ((keyNum & vcMOD_Alt) && !io.KeyAlt)
+      return false;
+    if ((keyNum & vcMOD_Super) && !io.KeySuper)
+      return false;
+
+    return io.KeysDown[keyNum];
   }
 
   bool IsPressed(vcBind key)
