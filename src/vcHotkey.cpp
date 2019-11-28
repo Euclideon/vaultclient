@@ -54,6 +54,11 @@ namespace vcHotkey
     vcMOD_Super
   };
 
+  bool IsDown(vcBind key)
+  {
+    return ImGui::GetIO().KeysDown[keyBinds[key]];
+  }
+
   bool IsPressed(vcBind key)
   {
     ImGuiIO io = ImGui::GetIO();

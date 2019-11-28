@@ -243,7 +243,6 @@
 	"Save": "Ctrl + S",
 	"Load": "Ctrl + L",
 	"AddUDS": "Ctrl + U",
-	"MapMode": "Ctrl + M",
 	"BindingsInterface": "Ctrl + B"
   }
 }

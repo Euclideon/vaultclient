@@ -536,7 +536,7 @@
   "attributeBlending": "Blending: {0}",
   "attributeBlendingMean": "Average Value",
   "attributeBlendingSingle": "Single Value",
-  "attributeBlendingUnknown": "Unknown"
+  "attributeBlendingUnknown": "Unknown",
 
   "bindingsModalTitle": "Key Bindings",
   "bindingsModalClose": "Close",
@@ -548,7 +548,6 @@
   "bindingsErrorUnbound": "Duplicate key binding has been unbound!",
   "bindingsClear": "Clear",
   
-  "bindingsMapMode": "Toggles map display mode, which displays the scene top down and orthographically.",
   "bindingsLockAltitude": "Toggles altitude lock, preventing up/down movement",
   "bindingsGizmoTranslate": "Sets the gizmo to translation mode, allowing you to move objects.",
   "bindingsGizmoRotate": "Sets the gizmo to rotation mode, allowing you to rotate objects.",

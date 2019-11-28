@@ -445,9 +445,9 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
   if ((!ImGui::GetIO().WantCaptureKeyboard || isFocused) && !pProgramState->modalOpen)
   {
-    keyboardInput.y += io.KeysDown[vcHotkey::Get(vcB_Forward)] - io.KeysDown[vcHotkey::Get(vcB_Backward)];
-    keyboardInput.x += io.KeysDown[vcHotkey::Get(vcB_Right)] - io.KeysDown[vcHotkey::Get(vcB_Left)];
-    keyboardInput.z += io.KeysDown[vcHotkey::Get(vcB_Up)] - io.KeysDown[vcHotkey::Get(vcB_Down)];
+    keyboardInput.y += vcHotkey::IsDown(vcB_Forward) - vcHotkey::IsDown(vcB_Backward);
+    keyboardInput.x += vcHotkey::IsDown(vcB_Right) - vcHotkey::IsDown(vcB_Left);
+    keyboardInput.z += vcHotkey::IsDown(vcB_Up) - vcHotkey::IsDown(vcB_Down);
 
     if (vcHotkey::IsPressed(vcB_LockAltitude))
       pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
