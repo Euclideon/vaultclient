@@ -22,6 +22,7 @@ enum vcModalTypes
   vcMT_ConvertAdd,
   vcMT_ConvertOutput,
   vcMT_ConvertTempDirectory,
+  vcMT_Bindings,
 
   vcMT_Count
 };

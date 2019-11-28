@@ -223,5 +223,27 @@
       "wr": 0.000000,
       "hr": 394.000000
     }
-  ]
+  ],
+  "keys": {
+	"CameraForward": "W",
+	"CameraBackward": "S",
+	"CameraLeft": "A",
+	"CameraUp": "R",
+	"CameraRight": "D",
+	"CameraDown": "F",
+	"Remove": "Delete",
+	"Close": "Escape",
+	"LockAltitude": "Space",
+	"GizmoTranslate": "B",
+	"GizmoRotate": "N",
+	"GizmoScale": "M",
+	"GizmoLocalSpace": "C",
+	"Fullscreen": "F5",
+	"RenameSceneItem": "F2",
+	"Save": "Ctrl + S",
+	"Load": "Ctrl + L",
+	"AddUDS": "Ctrl + U",
+	"MapMode": "Ctrl + M",
+	"BindingsInterface": "Ctrl + B"
+  }
 }
