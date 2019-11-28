@@ -1,10 +1,13 @@
 #include "vcTexture.h"
+#include "vcSettings.h"
 
 #include "udWorkerPool.h"
 #include "udStringUtil.h"
 #include "udFile.h"
 
 #include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 struct AsyncTextureLoadInfo
 {
@@ -232,5 +235,43 @@ udResult vcTexture_ResizePixels(const void *pPixels, uint32_t width, uint32_t he
   *pResultHeight = lastHeight;
 
 epilogue:
+  return result;
+}
+
+udResult vcTexture_SaveImage(vcTexture *pTexture, vcFramebuffer *pFramebuffer, const char *pFilename, vcImageFormats format)
+{
+  if (pTexture == nullptr || pFramebuffer == nullptr || pFilename == nullptr)
+    return udR_InvalidParameter_;
+
+  udResult result;
+
+  udInt2 currSize = udInt2::zero();
+  vcTexture_GetSize(pTexture, &currSize.x, &currSize.y);
+
+  uint8_t *pPixels = udAllocType(uint8_t, currSize.x * currSize.y * 4, udAF_Zero);
+  UD_ERROR_NULL(pPixels, udR_MemoryAllocationFailure);
+
+  vcTexture_BeginReadPixels(pTexture, 0, 0, currSize.x, currSize.y, pPixels, pFramebuffer);
+
+#if (GRAPHICS_API_OPENGL)
+  stbi_flip_vertically_on_write(1);
+#endif
+
+  switch (format)
+  {
+  case vcImageFormats::vcIF_PNG:
+    stbi_write_png(pFilename, currSize.x, currSize.y, 4, pPixels, currSize.x * 4);
+    break;
+
+  case vcImageFormats::vcIF_JPG:
+    stbi_write_jpg(pFilename, currSize.x, currSize.y, 4, pPixels, 100);
+    break;
+
+  }
+
+  result = udR_Success;
+epilogue:
+  udFree(pPixels);
+
   return result;
 }

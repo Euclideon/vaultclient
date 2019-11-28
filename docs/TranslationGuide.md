@@ -10,12 +10,14 @@
     - Bindings Key Descriptions
       - `bindingsLockAltitude`, `bindingsGizmoTranslate`, `bindingsGizmoRotate`, `bindingsGizmoScale`, `bindingsGizmoLocalSpace`, `bindingsFullscreen`, `bindingsAddUDS`, `bindingsRemove`, `bindingsCameraForward`, `bindingsCameraBackward`, `bindingsCameraLeft`, `bindingsCameraRight`, `bindingsCameraUp`, `bindingsCameraDown`, `bindingsBindingsInterface`, `bindingsCancel`, `bindingsRenameSceneItem`, `bindingsSave`, `bindingsLoad`, `bindingsUndo`
     - Scene
+      - `settingsScreenshot`, `settingsScreenshotHideLabels`, `settingsScreenshotResLabel`, `settingsScreenshotRes720p`, `settingsScreenshotRes1080p`, `settingsScreenshotRes4K`, `settingsScreenshotFormatLabel`, `settingsScreenshotFilename`, `settingsScreenshotView`, `screenshotTake`, `screenshotDefaultName`    - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
     - Polygon Meshes
       - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`, `polyModelIgnoreTint`
   - Changed:
     - 
   - Removed:
+    - `sceneLockAltitudeKey`, `sceneGizmoTranslateKey`, `sceneGizmoRotateKey`, `sceneGizmoScaleKey`, `sceneGizmoLocalSpaceKey`, `sceneFullscreenKey`, `sceneMapModeKey`, `sceneExplorerRemoveKey`, `sceneExplorerAddUDSKey`
     - Legacy Key Bindings
 	    - `sceneLockAltitudeKey`, `sceneGizmoTranslateKey`, `sceneGizmoRotateKey`, `sceneGizmoScaleKey`, `sceneGizmoLocalSpaceKey`, `sceneFullscreenKey`, `sceneMapModeKey`, `sceneExplorerRemoveKey`, `sceneExplorerAddUDSKey`
     - Other
@@ -354,6 +356,21 @@ Modules are currently:
 - `settingsVisClassUserDefinable`: Title for expandable subheading containing classifications #64 to #255
 - `settingsVisClassUserDefined`: Default label used for unnamed classifications #64 to #255
 
+### Screenshot Settings Strings
+- `settingsScreenshot`: Label for Screenshot settings tab
+- `settingsScreenshotHideLabels`: Label for checkbox to hide labels in the scene
+- `settingsScreenshotResLabel`: Label for dropdown box to select screenshot resolution
+- `settingsScreenshotRes720p`: 720p Resolution Option
+- `settingsScreenshotRes1080p`: 1080p Resolution Option
+- `settingsScreenshotRes4K`: 4K Resolution Option
+- `settingsScreenshotFormatLabel`: Label for output image format
+- `settingsScreenshotFilename`: Label for input text box for screenshot filename
+- `settingsScreenshotView`: Label for checkbox that opens new screenshots in image viewer
+
+### Screenshot Strings
+- `screenshotTake`: Text on menu item to take a screenshot
+- `screenshotDefaultName`: Default filename for a screenshot
+  
 ### Convert Default Settings Strings
 
 - `settingsConvert`: Label used on the section heading for convert default settings
