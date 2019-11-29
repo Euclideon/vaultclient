@@ -172,6 +172,8 @@ struct vcState
   vcTranslationInfo languageInfo;
   bool showUI;
   vcDocks changeActiveDock;
+
+  int currentKey;
 };
 
 #endif // !vcState_h__

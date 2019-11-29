@@ -76,6 +76,7 @@ enum vcSettingCategory
   vcSC_Convert,
   vcSC_Docks,
   vcSC_Languages,
+  vcSC_Bindings,
   vcSC_All
 };
 

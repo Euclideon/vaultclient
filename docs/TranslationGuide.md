@@ -1,6 +1,14 @@
 # **Euclideon Vault Client Translation Guide**
 
 ## Changelist
+- Version 0.5.0
+  - Added:
+    -
+  - Changed:
+    - 
+  - Removed:
+    - Key Bindings
+	  - `sceneLockAltitudeKey`, `sceneGizmoTranslateKey`, `sceneGizmoRotateKey`, `sceneGizmoScaleKey`, `sceneGizmoLocalSpaceKey`, `sceneFullscreenKey`, `sceneMapModeKey`, `sceneExplorerRemoveKey`, `sceneExplorerAddUDSKey`
 
 - Version 0.4.1
   - Added:
@@ -16,7 +24,7 @@
     - 
   - Removed:
     - `polyModelInvertFaces`, `menuBarConnectionStatus`
-
+	
 - Version 0.4.0
   - Added:
     - Settings
@@ -752,3 +760,38 @@ Modules are currently:
 - `attributeBlendingMean`: Label when the value is averaged from the next highest resolution LOD layer
 - `attributeBlendingSingle`: Label when the value is one of the points in the next highest resolution LOD layer
 - `attributeBlendingUnknown`: Label when the blending is an unknown format
+
+#### Bindings Interface
+
+- `bindingsModalTitle`: Title for key bindings window
+- `bindingsModalClose`: Label for close button on key bindings window
+- `bindingsModalSave`: Label for button that saves current key bindings
+- `bindingsModalDefaults`: Label for button that loads default key bindings
+- `bindingsColumnName`: Header for key binding name column
+- `bindingsColumnKeyCombination`: Header for key binding key combination column
+- `bindingsColumnDescription`: Header for key binding description column
+- `bindingsErrorUnbound`: Text warning when user binds an already bound key combination
+- `bindingsUnset`: Text that displays instead of key combination when key binding isn't set
+  
+##### Bindings Descriptions
+
+- `bindingsMapMode`: Key binding description displayed next to Map Mode binding
+- `bindingsLockAltitude`: Key binding description displayed next to Lock Altitude binding
+- `bindingsGizmoTranslate`: Key binding description displayed next to Gizmo Translate binding
+- `bindingsGizmoRotate`: Key binding description displayed next to Gizmo Rotate binding
+- `bindingsGizmoScale`: Key binding description displayed next to Gizmo Scale binding
+- `bindingsGizmoLocalSpace`: Key binding description displayed next to Gizmo Local Space binding
+- `bindingsFullscreen`: Key binding description displayed next to Presentation Mode (Fullscreen) binding
+- `bindingsAddUDS`: Key binding description displayed next to Add UDS binding
+- `bindingsRemove`: Key binding description displayed next to Remove binding
+- `bindingsForward`: Key binding description displayed next to Forward binding
+- `bindingsBackward`: Key binding description displayed next to Backward binding
+- `bindingsLeft`: Key binding description displayed next to Left binding
+- `bindingsRight`: Key binding description displayed next to Right binding
+- `bindingsUp`: Key binding description displayed next to Up binding
+- `bindingsDown`: Key binding description displayed next to Down binding
+- `bindingsBindingsInterface`: Key binding description displayed next to Bindings Interface binding
+- `bindingsClose`: Key binding description displayed next to Close binding
+- `bindingsRenameSceneItem`: Key binding description displayed next to Rename Scene Item binding
+- `bindingsSave`: Key binding description displayed next to Save binding
+- `bindingsLoad`: Key binding description displayed next to Load binding

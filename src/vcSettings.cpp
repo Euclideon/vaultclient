@@ -10,6 +10,7 @@
 
 #include "vcClassificationColours.h"
 #include "vcStringFormat.h"
+#include "vcHotkey.h"
 
 #if UDPLATFORM_EMSCRIPTEN
 # include <emscripten.h>
@@ -261,6 +262,19 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     udStrcpy(pSettings->convertdefaults.comment, data.Get("convert.comment").AsString(""));
     udStrcpy(pSettings->convertdefaults.copyright, data.Get("convert.copyright").AsString(""));
     udStrcpy(pSettings->convertdefaults.license, data.Get("convert.license").AsString(""));
+  }
+
+  if (group == vcSC_Bindings || group == vcSC_All)
+  {
+    if (!data.Get("keys").IsObject())
+    {
+      vcSettings_Load(pSettings, true, vcSC_Bindings);
+    }
+    else
+    {
+      for (int i = 0; i < vcB_Count; ++i)
+        vcHotkey::Set((vcBind)i, vcHotkey::DecodeKeyString(data.Get("keys.%s", vcHotkey::GetBindName((vcBind)i)).AsString()));
+    }
   }
 
   if (group == vcSC_All)
@@ -646,6 +660,13 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set(&tempNode, "maptiles.serverURL");
   tempNode.SetString(pSettings->maptiles.tileServerExtension);
   data.Set(&tempNode, "maptiles.imgExtension");
+
+  char keyBuffer[50] = {};
+  for (size_t i = 0; i < vcB_Count; ++i)
+  {
+    vcHotkey::GetKeyName((vcBind)i, keyBuffer, (uint32_t)udLengthOf(keyBuffer));
+    data.Set("keys.%s = '%s'", vcHotkey::GetBindName((vcBind)i), keyBuffer);
+  }
 
   int depth = 0;
   ImGuiDockNode *pRootNode = ImGui::DockBuilderGetNode(pSettings->rootDock);
