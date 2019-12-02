@@ -3,7 +3,11 @@
 ## Changelist
 - Version 0.5.0
   - Added:
-    -
+    - `menuBindings`
+    - Bindings Interface
+      - `bindingsModalTitle`, `bindingsModalClose`, `bindingsModalSave`, `bindingsModalDefaults`, `bindingsColumnName`, `bindingsColumnKeyCombination`, `bindingsColumnDescriptions`, `bindingsErrorUnbound`, `bindingsClear`
+      - Bindings Key Descriptions
+        - `bindingsLockAltitude`, `bindingsGizmoTranslate`, `bindingsGizmoRotate`, `bindingsGizmoScale`, `bindingsGizmoLocalSpace`, `bindingsFullscreen`, `bindingsAddUDS`, `bindingsRemove`, `bindingsCameraForward`, `bindingsCameraBackward`, `bindingsCameraLeft`, `bindingsCameraRight`, `bindingsCameraUp`, `bindingsCameraDown`, `bindingsBindingsInterface`, `bindingsClose`, `bindingsRenameSceneItem`, `bindingsSave`, `bindingsLoad`
   - Changed:
     - 
   - Removed:
@@ -465,6 +469,7 @@ Modules are currently:
 - `menuSettings`: Option in Windows menu to enable the Settings tab
 - `menuProjects`: Header for Projects menu
 - `menuNewScene`: Option in Projects menu to remove all objects in the current scene and creating a new, empty scene
+- `menuBindings`: Submenu in System Menu for the hotkey binding interface
 - `menuProjectExport`: Menu button to open the export project modal
 - `menuProjectExportTitle`: Title on the modal when exporting project files
 - `menuProjectImport`: Menu button to open the import project modal
@@ -771,7 +776,7 @@ Modules are currently:
 - `bindingsColumnKeyCombination`: Header for key binding key combination column
 - `bindingsColumnDescription`: Header for key binding description column
 - `bindingsErrorUnbound`: Text warning when user binds an already bound key combination
-- `bindingsUnset`: Text that displays instead of key combination when key binding isn't set
+- `bindingsClear`: Text that displays instead of key combination when key binding isn't set
   
 ##### Bindings Descriptions
 

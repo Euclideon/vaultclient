@@ -1779,6 +1779,9 @@ int vcMainMenuGui(vcState *pProgramState)
       if (ImGui::MenuItem(vcString::Get("menuReleaseNotes")))
         vcModals_OpenModal(pProgramState, vcMT_ReleaseNotes);
 
+      if (ImGui::MenuItem(vcString::Get("menuBindings")))
+        vcModals_OpenModal(pProgramState, vcMT_Bindings);
+
       if (pProgramState->settings.languageOptions.length > 0 && ImGui::BeginMenu(vcString::Get("menuLanguage")))
       {
         for (size_t i = 0; i < pProgramState->settings.languageOptions.length; ++i)
