@@ -6,6 +6,10 @@ const char *const g_VisualizationFragmentShader = R"shader(
   {
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
+    float2 edgeSampleUV0 : TEXCOORD1;
+    float2 edgeSampleUV1 : TEXCOORD2;
+    float2 edgeSampleUV2 : TEXCOORD3;
+    float2 edgeSampleUV3 : TEXCOORD4;
   };
 
   struct PS_OUTPUT
@@ -20,7 +24,7 @@ const char *const g_VisualizationFragmentShader = R"shader(
   sampler sampler1;
   Texture2D texture1;
 
-  cbuffer u_params : register(b0)
+  cbuffer u_fragParams : register(b0)
   {
     float4 u_screenParams;  // sampleStepSizeX, sampleStepSizeY, near plane, far plane
     float4x4 u_inverseViewProjection;
@@ -59,44 +63,36 @@ const char *const g_VisualizationFragmentShader = R"shader(
 
   // note: an adjusted depth is packed into the returned .w component
   // this is to show the edge highlights against the skybox
-  float4 edgeHighlight(float3 col, float2 uv, float depth, float4 outlineColour, float edgeOutlineWidth, float edgeOutlineThreshold)
+  float4 edgeHighlight(PS_INPUT input, float3 col, float depth, float4 outlineColour, float edgeOutlineThreshold)
   {
-    float3 sampleOffsets = float3(u_screenParams.xy, 0.0) * edgeOutlineWidth;
-  
-    float4 eyePosition0 = mul(u_inverseProjection, float4(uv.x * 2.0 - 1.0, (1.0 - uv.y) * 2.0 - 1.0, depth, 1.0));
+    float4 eyePosition = mul(u_inverseProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, depth, 1.0));
+    eyePosition /= eyePosition.w;
+
+    float sampleDepth0 = texture1.Sample(sampler1, input.edgeSampleUV0).x;
+    float sampleDepth1 = texture1.Sample(sampler1, input.edgeSampleUV1).x;
+    float sampleDepth2 = texture1.Sample(sampler1, input.edgeSampleUV2).x;
+    float sampleDepth3 = texture1.Sample(sampler1, input.edgeSampleUV3).x;
+
+    float4 eyePosition0 = mul(u_inverseProjection, float4(input.edgeSampleUV0.x * 2.0 - 1.0, (1.0 - input.edgeSampleUV0.y) * 2.0 - 1.0, sampleDepth0, 1.0));
+    float4 eyePosition1 = mul(u_inverseProjection, float4(input.edgeSampleUV1.x * 2.0 - 1.0, (1.0 - input.edgeSampleUV1.y) * 2.0 - 1.0, sampleDepth1, 1.0));
+    float4 eyePosition2 = mul(u_inverseProjection, float4(input.edgeSampleUV2.x * 2.0 - 1.0, (1.0 - input.edgeSampleUV2.y) * 2.0 - 1.0, sampleDepth2, 1.0));
+    float4 eyePosition3 = mul(u_inverseProjection, float4(input.edgeSampleUV3.x * 2.0 - 1.0, (1.0 - input.edgeSampleUV3.y) * 2.0 - 1.0, sampleDepth3, 1.0));
+    
     eyePosition0 /= eyePosition0.w;
-    
-    float2 sampleUV1 = uv + sampleOffsets.xz;
-    float2 sampleUV2 = uv - sampleOffsets.xz;
-    float2 sampleUV3 = uv + sampleOffsets.zy;
-    float2 sampleUV4 = uv - sampleOffsets.zy;
-
-    float sampleDepth1 = texture1.Sample(sampler1, sampleUV1).x;
-    float sampleDepth2 = texture1.Sample(sampler1, sampleUV2).x;
-    float sampleDepth3 = texture1.Sample(sampler1, sampleUV3).x;
-    float sampleDepth4 = texture1.Sample(sampler1, sampleUV4).x;
-
-    float4 eyePosition1 = mul(u_inverseProjection, float4(sampleUV1.x * 2.0 - 1.0, (1.0 - sampleUV1.y) * 2.0 - 1.0, sampleDepth1, 1.0));
-    float4 eyePosition2 = mul(u_inverseProjection, float4(sampleUV2.x * 2.0 - 1.0, (1.0 - sampleUV2.y) * 2.0 - 1.0, sampleDepth2, 1.0));
-    float4 eyePosition3 = mul(u_inverseProjection, float4(sampleUV3.x * 2.0 - 1.0, (1.0 - sampleUV3.y) * 2.0 - 1.0, sampleDepth3, 1.0));
-    float4 eyePosition4 = mul(u_inverseProjection, float4(sampleUV4.x * 2.0 - 1.0, (1.0 - sampleUV4.y) * 2.0 - 1.0, sampleDepth4, 1.0));
-    
     eyePosition1 /= eyePosition1.w;
     eyePosition2 /= eyePosition2.w;
     eyePosition3 /= eyePosition3.w;
-    eyePosition4 /= eyePosition4.w;
     
-    float3 diff1 = eyePosition0.xyz - eyePosition1.xyz;
-    float3 diff2 = eyePosition0.xyz - eyePosition2.xyz;
-    float3 diff3 = eyePosition0.xyz - eyePosition3.xyz;
-    float3 diff4 = eyePosition0.xyz - eyePosition4.xyz;
-    
-    // note: the sign(diff.z) is to ensure only highlight a single pixel on the outside of the geometry
-    float isEdge = 1.0 - step(sign(diff1.z) * length(diff1), edgeOutlineThreshold) * step(sign(diff2.z) * length(diff2), edgeOutlineThreshold) * step(sign(diff3.z) * length(diff3), edgeOutlineThreshold) * step(sign(diff4.z) * length(diff4), edgeOutlineThreshold);
+    float3 diff0 = eyePosition.xyz - eyePosition0.xyz;
+    float3 diff1 = eyePosition.xyz - eyePosition1.xyz;
+    float3 diff2 = eyePosition.xyz - eyePosition2.xyz;
+    float3 diff3 = eyePosition.xyz - eyePosition3.xyz;
+
+    float isEdge = 1.0 - step(length(diff0), edgeOutlineThreshold) * step(length(diff1), edgeOutlineThreshold) * step(length(diff2), edgeOutlineThreshold) * step(length(diff3), edgeOutlineThreshold);
     
     float3 edgeColour = lerp(col.xyz, u_outlineColour.xyz, u_outlineColour.w);
-    float minDepth = min(min(min(sampleDepth1, sampleDepth2), sampleDepth3), sampleDepth4);
-    return float4(lerp(col.xyz, edgeColour, isEdge), lerp(depth, minDepth, isEdge));
+    float edgeDepth = min(min(min(sampleDepth0, sampleDepth1), sampleDepth2), sampleDepth3);
+    return float4(lerp(col.xyz, edgeColour, isEdge), lerp(depth, edgeDepth, isEdge));
   }
 
   float3 hsv2rgb(float3 c)
@@ -163,7 +159,7 @@ const char *const g_VisualizationFragmentShader = R"shader(
     float4 outlineColour = u_outlineColour;
     if (edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
     {
-      float4 edgeResult = edgeHighlight(col.xyz, input.uv, depth, outlineColour, edgeOutlineWidth, edgeOutlineThreshold);
+      float4 edgeResult = edgeHighlight(input, col.xyz, depth, outlineColour, edgeOutlineThreshold);
       col.xyz = edgeResult.xyz;
       depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
     }
@@ -186,13 +182,29 @@ const char *const g_VisualizationVertexShader = R"shader(
   {
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
+    float2 edgeSampleUV0 : TEXCOORD1;
+    float2 edgeSampleUV1 : TEXCOORD2;
+    float2 edgeSampleUV2 : TEXCOORD3;
+    float2 edgeSampleUV3 : TEXCOORD4;
   };
+
+  cbuffer u_vertParams : register(b1)
+  {
+    float4 u_outlineStepSize; // outlineStepSize.xy (in uv space), (unused), (unused)
+  }
 
   PS_INPUT main(VS_INPUT input)
   {
     PS_INPUT output;
     output.pos = float4(input.pos.xy, 0.f, 1.f);
     output.uv  = input.uv;
+
+    float3 sampleOffsets = float3(u_outlineStepSize.xy, 0.0);
+    output.edgeSampleUV0 = output.uv + sampleOffsets.xz;
+    output.edgeSampleUV1 = output.uv - sampleOffsets.xz;
+    output.edgeSampleUV2 = output.uv + sampleOffsets.zy;
+    output.edgeSampleUV3 = output.uv - sampleOffsets.zy;
+
     return output;
   }
 )shader";
@@ -529,7 +541,7 @@ const char *const g_CompassVertexShader = R"shader(
   }
   )shader";
 
-const char *const g_vcSkyboxVertexShader = R"shader(
+const char *const g_vcSkyboxVertexShaderPanorama = R"shader(
   struct VS_INPUT
   {
     float3 pos : POSITION;
@@ -551,7 +563,7 @@ const char *const g_vcSkyboxVertexShader = R"shader(
   }
 )shader";
 
-const char *const g_vcSkyboxFragmentShaderPanarama = R"shader(
+const char *const g_vcSkyboxFragmentShaderPanorama = R"shader(
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
@@ -583,11 +595,18 @@ const char *const g_vcSkyboxFragmentShaderPanarama = R"shader(
   }
 )shader";
 
-const char *const g_vcSkyboxFragmentShaderImageColour = R"shader(
+const char *const g_vcSkyboxVertexShaderImageColour = R"shader(
+  struct VS_INPUT
+  {
+    float3 pos : POSITION;
+    float2 uv  : TEXCOORD0;
+  };
+
   struct PS_INPUT
   {
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
+    float4 tintColour : COLOR0;
   };
 
   cbuffer u_EveryFrame : register(b0)
@@ -596,14 +615,32 @@ const char *const g_vcSkyboxFragmentShaderImageColour = R"shader(
     float4 u_imageSize; //For purposes of tiling/stretching
   };
 
+  PS_INPUT main(VS_INPUT input)
+  {
+    PS_INPUT output;
+    output.pos = float4(input.pos.xy, 0.f, 1.f);
+    output.uv  = float2(input.uv.x, 1.0 - input.uv.y) / u_imageSize.xy;
+    output.tintColour = u_tintColour;
+    return output;
+  }
+)shader";
+
+const char *const g_vcSkyboxFragmentShaderImageColour = R"shader(
+  struct PS_INPUT
+  {
+    float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD0;
+    float4 tintColour : COLOR0;
+  };
+
   sampler sampler0;
   Texture2D u_texture;
 
   float4 main(PS_INPUT input) : SV_Target
   {
-    float4 colour = u_texture.Sample(sampler0, input.uv / u_imageSize.xy).rgba;
-    float effectiveAlpha = min(colour.a, u_tintColour.a);
-    return float4((colour.rgb * effectiveAlpha) + (u_tintColour.rgb * (1 - effectiveAlpha)), 1);
+    float4 colour = u_texture.Sample(sampler0, input.uv).rgba;
+    float effectiveAlpha = min(colour.a, input.tintColour.a);
+    return float4((colour.rgb * effectiveAlpha) + (input.tintColour.rgb * (1 - effectiveAlpha)), 1);
   }
 )shader";
 

@@ -10,14 +10,18 @@
 #endif
 
 const char *const g_VisualizationFragmentShader = FRAG_HEADER R"shader(
-in vec2 v_texCoord;
+in vec2 v_uv;
+in vec2 v_edgeSampleUV0;
+in vec2 v_edgeSampleUV1;
+in vec2 v_edgeSampleUV2;
+in vec2 v_edgeSampleUV3;
 
 out vec4 out_Colour;
 
 uniform sampler2D u_texture;
 uniform sampler2D u_depth;
 
-layout (std140) uniform u_params
+layout (std140) uniform u_fragParams
 {
   vec4 u_screenParams;  // sampleStepSizex, sampleStepSizeY, near plane, far plane
   mat4 u_inverseViewProjection;
@@ -56,44 +60,36 @@ float getNormalizedPosition(float v, float min, float max)
 
 // note: an adjusted depth is packed into the returned .w component
 // this is to show the edge highlights against the skybox
-vec4 edgeHighlight(vec3 col, vec2 uv, float depth, vec4 outlineColour, float edgeOutlineWidth, float edgeOutlineThreshold)
+vec4 edgeHighlight(vec3 col, vec2 uv, float depth, vec4 outlineColour, float edgeOutlineThreshold)
 {
-  vec3 sampleOffsets = vec3(u_screenParams.xy, 0.0) * edgeOutlineWidth;
+  vec4 eyePosition = u_inverseProjection * vec4(uv * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
+  eyePosition /= eyePosition.w;
 
-  vec4 eyePosition0 = u_inverseProjection * vec4(uv * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
+  float sampleDepth0 = texture(u_depth, v_edgeSampleUV0).x;
+  float sampleDepth1 = texture(u_depth, v_edgeSampleUV1).x;
+  float sampleDepth2 = texture(u_depth, v_edgeSampleUV2).x;
+  float sampleDepth3 = texture(u_depth, v_edgeSampleUV3).x;
+
+  vec4 eyePosition0 = u_inverseProjection * vec4(v_edgeSampleUV0 * vec2(2.0) - vec2(1.0), sampleDepth0 * 2.0 - 1.0, 1.0);
+  vec4 eyePosition1 = u_inverseProjection * vec4(v_edgeSampleUV1 * vec2(2.0) - vec2(1.0), sampleDepth1 * 2.0 - 1.0, 1.0);
+  vec4 eyePosition2 = u_inverseProjection * vec4(v_edgeSampleUV2 * vec2(2.0) - vec2(1.0), sampleDepth2 * 2.0 - 1.0, 1.0);
+  vec4 eyePosition3 = u_inverseProjection * vec4(v_edgeSampleUV3 * vec2(2.0) - vec2(1.0), sampleDepth3 * 2.0 - 1.0, 1.0);
+
   eyePosition0 /= eyePosition0.w;
-
-  vec2 sampleUV1 = uv + sampleOffsets.xz;
-  vec2 sampleUV2 = uv - sampleOffsets.xz;
-  vec2 sampleUV3 = uv + sampleOffsets.zy;
-  vec2 sampleUV4 = uv - sampleOffsets.zy;
-
-  float sampleDepth1 = texture(u_depth, sampleUV1).x;
-  float sampleDepth2 = texture(u_depth, sampleUV2).x;
-  float sampleDepth3 = texture(u_depth, sampleUV3).x;
-  float sampleDepth4 = texture(u_depth, sampleUV4).x;
-
-  vec4 eyePosition1 = u_inverseProjection * vec4(sampleUV1 * vec2(2.0) - vec2(1.0), sampleDepth1 * 2.0 - 1.0, 1.0);
-  vec4 eyePosition2 = u_inverseProjection * vec4(sampleUV2 * vec2(2.0) - vec2(1.0), sampleDepth2 * 2.0 - 1.0, 1.0);
-  vec4 eyePosition3 = u_inverseProjection * vec4(sampleUV3 * vec2(2.0) - vec2(1.0), sampleDepth3 * 2.0 - 1.0, 1.0);
-  vec4 eyePosition4 = u_inverseProjection * vec4(sampleUV4 * vec2(2.0) - vec2(1.0), sampleDepth4 * 2.0 - 1.0, 1.0);
-
   eyePosition1 /= eyePosition1.w;
   eyePosition2 /= eyePosition2.w;
   eyePosition3 /= eyePosition3.w;
-  eyePosition4 /= eyePosition4.w;
 
-  vec3 diff1 = eyePosition0.xyz - eyePosition1.xyz;
-  vec3 diff2 = eyePosition0.xyz - eyePosition2.xyz;
-  vec3 diff3 = eyePosition0.xyz - eyePosition3.xyz;
-  vec3 diff4 = eyePosition0.xyz - eyePosition4.xyz;
+  vec3 diff0 = eyePosition.xyz - eyePosition0.xyz;
+  vec3 diff1 = eyePosition.xyz - eyePosition1.xyz;
+  vec3 diff2 = eyePosition.xyz - eyePosition2.xyz;
+  vec3 diff3 = eyePosition.xyz - eyePosition3.xyz;
 
-  // note: the sign(diff.z) is to ensure only highlight a single pixel on the outside of the geometry
-  float isEdge = 1.0 - step(sign(diff1.z) * length(diff1), edgeOutlineThreshold) * step(sign(diff2.z) * length(diff2), edgeOutlineThreshold) * step(sign(diff3.z) * length(diff3), edgeOutlineThreshold) * step(sign(diff4.z) * length(diff4), edgeOutlineThreshold);
+  float isEdge = 1.0 - step(length(diff0), edgeOutlineThreshold) * step(length(diff1), edgeOutlineThreshold) * step(length(diff2), edgeOutlineThreshold) * step(length(diff3), edgeOutlineThreshold);
 
   vec3 edgeColour = mix(col.xyz, outlineColour.xyz, outlineColour.w);
-  float minDepth = min(min(min(sampleDepth1, sampleDepth2), sampleDepth3), sampleDepth4);
-  return vec4(mix(col.xyz, edgeColour, isEdge), mix(depth, minDepth, isEdge));
+  float edgeDepth = min(min(min(sampleDepth0, sampleDepth1), sampleDepth2), sampleDepth3);
+  return vec4(mix(col.xyz, edgeColour, isEdge), mix(depth, edgeDepth, isEdge));
 }
 
 vec3 hsv2rgb(vec3 c)
@@ -138,15 +134,14 @@ vec3 colourizeByEyeDistance(vec3 col, vec3 fragEyePos)
 
 void main()
 {
-  vec2 flippedUV = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
-  vec4 col = texture(u_texture, flippedUV);
-  float depth = texture(u_depth, flippedUV).x;
+  vec4 col = texture(u_texture, v_uv);
+  float depth = texture(u_depth, v_uv).x;
 
   // TODO: I'm fairly certain this is actually wrong (world space calculations), and will have precision issues
-  vec4 fragWorldPosition = u_inverseViewProjection * vec4(flippedUV * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
+  vec4 fragWorldPosition = u_inverseViewProjection * vec4(v_uv * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
   fragWorldPosition /= fragWorldPosition.w;
 
-  vec4 fragEyePosition = u_inverseProjection * vec4(flippedUV * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
+  vec4 fragEyePosition = u_inverseProjection * vec4(v_uv * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
   fragEyePosition /= fragEyePosition.w;
   
   col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
@@ -159,7 +154,7 @@ void main()
   vec4 outlineColour = u_outlineColour;
   if (outlineColour.w > 0.0 && edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
   {
-    vec4 edgeResult = edgeHighlight(col.xyz, flippedUV, depth, outlineColour, edgeOutlineWidth, edgeOutlineThreshold);
+    vec4 edgeResult = edgeHighlight(col.xyz, v_uv, depth, outlineColour, edgeOutlineThreshold);
     col.xyz = edgeResult.xyz;
     depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
   }
@@ -176,17 +171,32 @@ layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_texCoord;
 
 //Output Format
-out vec2 v_texCoord;
+out vec2 v_uv;
+out vec2 v_edgeSampleUV0;
+out vec2 v_edgeSampleUV1;
+out vec2 v_edgeSampleUV2;
+out vec2 v_edgeSampleUV3;
+
+layout (std140) uniform u_vertParams
+{
+  vec4 u_outlineStepSize; // outlineStepSize.xy (in uv space), (unused), (unused)
+};
 
 void main()
 {
   gl_Position = vec4(a_position.xy, 0.0, 1.0);
-  v_texCoord = a_texCoord;
+  v_uv = vec2(a_texCoord.x, 1.0 - a_texCoord.y);
+
+  vec3 sampleOffsets = vec3(u_outlineStepSize.xy, 0.0);
+  v_edgeSampleUV0 = v_uv + sampleOffsets.xz;
+  v_edgeSampleUV1 = v_uv - sampleOffsets.xz;
+  v_edgeSampleUV2 = v_uv + sampleOffsets.zy;
+  v_edgeSampleUV3 = v_uv - sampleOffsets.zy;
 }
 )shader";
 
 const char *const g_ViewShedFragmentShader = FRAG_HEADER R"shader(
-in vec2 v_texCoord;
+in vec2 v_uv;
 
 out vec4 out_Colour;
 
@@ -214,11 +224,10 @@ float linearizeDepth(float depth)
 
 void main()
 {
-  vec2 flippedUV = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
   vec4 col = vec4(0.0, 0.0, 0.0, 0.0);
-  float depth = texture(u_depth, flippedUV).x;
+  float depth = texture(u_depth, v_uv).x;
 
-  vec4 fragEyePosition = u_inverseProjection * vec4(flippedUV * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
+  vec4 fragEyePosition = u_inverseProjection * vec4(v_uv * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
   fragEyePosition /= fragEyePosition.w;
 
   vec3 sampleUV = vec3(0.0);
@@ -271,18 +280,18 @@ layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_texCoord;
 
 //Output Format
-out vec2 v_texCoord;
+out vec2 v_uv;
 
 void main()
 {
   gl_Position = vec4(a_position.xy, 0.0, 1.0);
-  v_texCoord = a_texCoord;
+  v_uv = vec2(a_texCoord.x, 1.0 - a_texCoord.y);
 }
 )shader";
 
 const char *const g_udFragmentShader = FRAG_HEADER R"shader(
 //Input Format
-in vec2 v_texCoord;
+in vec2 v_uv;
 
 //Output Format
 out vec4 out_Colour;
@@ -295,14 +304,14 @@ void main()
 )shader"
 
 #if UDPLATFORM_EMSCRIPTEN
-"  vec4 col = texture(u_texture, v_texCoord).bgra;"
+"  vec4 col = texture(u_texture, v_uv).bgra;"
 #else
-"  vec4 col = texture(u_texture, v_texCoord);"
+"  vec4 col = texture(u_texture, v_uv);"
 #endif
 
 R"shader(
 
-  float depth = texture(u_depth, v_texCoord).x;
+  float depth = texture(u_depth, v_uv).x;
 
   out_Colour = vec4(col.xyz, 1.0); // UD always opaque
   gl_FragDepth = depth;
@@ -311,7 +320,7 @@ R"shader(
 
 const char *const g_udSplatIdFragmentShader = FRAG_HEADER R"shader(
 //Input Format
-in vec2 v_texCoord;
+in vec2 v_uv;
 
 //Output Format
 out vec4 out_Colour;
@@ -331,10 +340,10 @@ bool floatEquals(float a, float b)
 
 void main()
 {
-  gl_FragDepth = texture(u_depth, v_texCoord).x;
+  gl_FragDepth = texture(u_depth, v_uv).x;
   out_Colour = vec4(0.0);
 
-  vec4 col = texture(u_texture, v_texCoord);
+  vec4 col = texture(u_texture, v_uv);
   if (u_idOverride.w == 0.0 || floatEquals(u_idOverride.w, col.w))
   {
     out_Colour = vec4(col.w, 0, 0, 1.0);
@@ -348,12 +357,12 @@ layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_texCoord;
 
 //Output Format
-out vec2 v_texCoord;
+out vec2 v_uv;
 
 void main()
 {
   gl_Position = vec4(a_position.xy, 0.0, 1.0);
-  v_texCoord = a_texCoord;
+  v_uv = a_texCoord;
 }
 )shader";
 
@@ -404,22 +413,22 @@ void main()
 )shader";
 
 
-const char *const g_vcSkyboxVertexShader = VERT_HEADER R"shader(
+const char *const g_vcSkyboxVertexShaderPanorama = VERT_HEADER R"shader(
 //Input format
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_texCoord;
 
 //Output Format
-out vec2 v_texCoord;
+out vec2 v_uv;
 
 void main()
 {
   gl_Position = vec4(a_position.x, a_position.y, 0.0, 1.0);
-  v_texCoord = vec2(a_texCoord.x, 1.0 - a_texCoord.y);
+  v_uv = vec2(a_texCoord.x, 1.0 - a_texCoord.y);
 }
 )shader";
 
-const char *const g_vcSkyboxFragmentShaderPanarama = FRAG_HEADER R"shader(
+const char *const g_vcSkyboxFragmentShaderPanorama = FRAG_HEADER R"shader(
 uniform sampler2D u_texture;
 layout (std140) uniform u_EveryFrame
 {
@@ -427,7 +436,7 @@ layout (std140) uniform u_EveryFrame
 };
 
 //Input Format
-in vec2 v_texCoord;
+in vec2 v_uv;
 
 //Output Format
 out vec4 out_Colour;
@@ -443,7 +452,7 @@ vec2 directionToLatLong(vec3 dir)
 void main()
 {
   // work out 3D point
-  vec4 point3D = u_inverseViewProjection * vec4(v_texCoord * vec2(2.0) - vec2(1.0), 1.0, 1.0);
+  vec4 point3D = u_inverseViewProjection * vec4(v_uv * vec2(2.0) - vec2(1.0), 1.0, 1.0);
   point3D.xyz = normalize(point3D.xyz / point3D.w);
   vec4 c1 = texture(u_texture, directionToLatLong(point3D.xyz));
 
@@ -451,26 +460,44 @@ void main()
 }
 )shader";
 
+const char *const g_vcSkyboxVertexShaderImageColour = VERT_HEADER R"shader(
+//Input format
+layout(location = 0) in vec3 a_position;
+layout(location = 1) in vec2 a_texCoord;
 
-const char *const g_vcSkyboxFragmentShaderImageColour = FRAG_HEADER R"shader(
-uniform sampler2D u_texture;
+//Output Format
+out vec2 v_uv;
+out vec4 v_tintColour;
+
 layout (std140) uniform u_EveryFrame
 {
   vec4 u_tintColour; //0 is full colour, 1 is full image
   vec4 u_imageSize; //For purposes of tiling/stretching
 };
 
+void main()
+{
+  gl_Position = vec4(a_position.x, a_position.y, 0.0, 1.0);
+  v_uv = vec2(a_texCoord.x, 1.0 - a_texCoord.y) / u_imageSize.xy;
+  v_tintColour = u_tintColour;
+}
+)shader";
+
+const char *const g_vcSkyboxFragmentShaderImageColour = FRAG_HEADER R"shader(
+uniform sampler2D u_texture;
+
 //Input Format
-in vec2 v_texCoord;
+in vec2 v_uv;
+in vec4 v_tintColour;
 
 //Output Format
 out vec4 out_Colour;
 
 void main()
 {
-  vec4 colour = texture(u_texture, v_texCoord / u_imageSize.xy).rgba;
-  float effectiveAlpha = min(colour.a, u_tintColour.a);
-  out_Colour = vec4((colour.rgb * effectiveAlpha) + (u_tintColour.rgb * (1.0 - effectiveAlpha)), 1);
+  vec4 colour = texture(u_texture, v_uv).rgba;
+  float effectiveAlpha = min(colour.a, v_tintColour.a);
+  out_Colour = vec4((colour.rgb * effectiveAlpha) + (v_tintColour.rgb * (1.0 - effectiveAlpha)), 1);
 }
 )shader";
 

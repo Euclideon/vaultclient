@@ -100,7 +100,8 @@ struct vcRenderContext
     vcShader *pProgram;
     vcShaderSampler *uniform_texture;
     vcShaderSampler *uniform_depth;
-    vcShaderConstantBuffer *uniform_params;
+    vcShaderConstantBuffer *uniform_vertParams;
+    vcShaderConstantBuffer *uniform_fragParams;
 
     struct
     {
@@ -124,7 +125,12 @@ struct vcRenderContext
       // contours
       udFloat4 contourColour;
       udFloat4 contourParams; // contour distance, contour band height, contour rainbow repeat rate, contour rainbow factoring
-    } params;
+    } fragParams;
+
+    struct
+    {
+      udFloat4 outlineStepSize; // outlineStepSize.xy (in uv space), (unused), (unused)
+    } vertParams;
 
   } visualizationShader;
 
@@ -238,8 +244,8 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.presentShader.pProgram, g_udVertexShader, g_udFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->visualizationShader.pProgram, g_VisualizationVertexShader, g_VisualizationFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->shadowShader.pProgram, g_ViewShedVertexShader, g_ViewShedFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderPanorama.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShaderPanarama, vcP3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderTintImage.pProgram, g_vcSkyboxVertexShader, g_vcSkyboxFragmentShaderImageColour, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderPanorama.pProgram, g_vcSkyboxVertexShaderPanorama, g_vcSkyboxFragmentShaderPanorama, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderTintImage.pProgram, g_vcSkyboxVertexShaderImageColour, g_vcSkyboxFragmentShaderImageColour, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.splatIdShader.pProgram, g_udVertexShader, g_udSplatIdFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
 
   UD_ERROR_CHECK(vcTexture_AsyncCreateFromFilename(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pWorkerPool, "asset://assets/skyboxes/WaterClouds.jpg", vcTFM_Linear));
@@ -248,7 +254,8 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_Bind(pRenderContext->visualizationShader.pProgram), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->visualizationShader.uniform_texture, pRenderContext->visualizationShader.pProgram, "u_texture"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->visualizationShader.uniform_depth, pRenderContext->visualizationShader.pProgram, "u_depth"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->visualizationShader.uniform_params, pRenderContext->visualizationShader.pProgram, "u_params", sizeof(pRenderContext->visualizationShader.params)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->visualizationShader.uniform_vertParams, pRenderContext->visualizationShader.pProgram, "u_vertParams", sizeof(pRenderContext->visualizationShader.vertParams)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->visualizationShader.uniform_fragParams, pRenderContext->visualizationShader.pProgram, "u_fragParams", sizeof(pRenderContext->visualizationShader.fragParams)), udR_InternalError);
 
   UD_ERROR_IF(!vcShader_Bind(pRenderContext->shadowShader.pProgram), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->shadowShader.uniform_depth, pRenderContext->shadowShader.pProgram, "u_depth"), udR_InternalError);
@@ -689,29 +696,33 @@ void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRender
     contourRainboxIntensity = 0.f;
   }
 
-  pRenderContext->visualizationShader.params.inverseViewProjection = udFloat4x4::create(pProgramState->camera.matrices.inverseViewProjection);
-  pRenderContext->visualizationShader.params.inverseProjection = udFloat4x4::create(udInverse(pProgramState->camera.matrices.projection));
-  pRenderContext->visualizationShader.params.screenParams.x = outlineWidth * (1.0f / pRenderContext->sceneResolution.x);
-  pRenderContext->visualizationShader.params.screenParams.y = outlineWidth * (1.0f / pRenderContext->sceneResolution.y);
-  pRenderContext->visualizationShader.params.screenParams.z = nearPlane;
-  pRenderContext->visualizationShader.params.screenParams.w = farPlane;
-  pRenderContext->visualizationShader.params.outlineColour = outlineColour;
-  pRenderContext->visualizationShader.params.outlineParams.x = (float)outlineWidth;
-  pRenderContext->visualizationShader.params.outlineParams.y = outlineEdgeThreshold;
-  pRenderContext->visualizationShader.params.colourizeHeightColourMin = colourByHeightMinColour;
-  pRenderContext->visualizationShader.params.colourizeHeightColourMax = colourByHeightMaxColour;
-  pRenderContext->visualizationShader.params.colourizeHeightParams.x = colourByHeightStartHeight;
-  pRenderContext->visualizationShader.params.colourizeHeightParams.y = colourByHeightEndHeight;
-  pRenderContext->visualizationShader.params.colourizeDepthColour = colourByDepthColour;
-  pRenderContext->visualizationShader.params.colourizeDepthParams.x = colourByDepthStart;
-  pRenderContext->visualizationShader.params.colourizeDepthParams.y = colourByDepthEnd;
-  pRenderContext->visualizationShader.params.contourColour = contourColour;
-  pRenderContext->visualizationShader.params.contourParams.x = contourDistances;
-  pRenderContext->visualizationShader.params.contourParams.y = contourBandHeight;
-  pRenderContext->visualizationShader.params.contourParams.z = contourRainboxRepeatRate;
-  pRenderContext->visualizationShader.params.contourParams.w = contourRainboxIntensity;
+  pRenderContext->visualizationShader.fragParams.inverseViewProjection = udFloat4x4::create(pProgramState->camera.matrices.inverseViewProjection);
+  pRenderContext->visualizationShader.fragParams.inverseProjection = udFloat4x4::create(udInverse(pProgramState->camera.matrices.projection));
+  pRenderContext->visualizationShader.fragParams.screenParams.x = (1.0f / pRenderContext->sceneResolution.x);
+  pRenderContext->visualizationShader.fragParams.screenParams.y = (1.0f / pRenderContext->sceneResolution.y);
+  pRenderContext->visualizationShader.fragParams.screenParams.z = nearPlane;
+  pRenderContext->visualizationShader.fragParams.screenParams.w = farPlane;
+  pRenderContext->visualizationShader.fragParams.outlineColour = outlineColour;
+  pRenderContext->visualizationShader.fragParams.outlineParams.x = (float)outlineWidth;
+  pRenderContext->visualizationShader.fragParams.outlineParams.y = outlineEdgeThreshold;
+  pRenderContext->visualizationShader.fragParams.colourizeHeightColourMin = colourByHeightMinColour;
+  pRenderContext->visualizationShader.fragParams.colourizeHeightColourMax = colourByHeightMaxColour;
+  pRenderContext->visualizationShader.fragParams.colourizeHeightParams.x = colourByHeightStartHeight;
+  pRenderContext->visualizationShader.fragParams.colourizeHeightParams.y = colourByHeightEndHeight;
+  pRenderContext->visualizationShader.fragParams.colourizeDepthColour = colourByDepthColour;
+  pRenderContext->visualizationShader.fragParams.colourizeDepthParams.x = colourByDepthStart;
+  pRenderContext->visualizationShader.fragParams.colourizeDepthParams.y = colourByDepthEnd;
+  pRenderContext->visualizationShader.fragParams.contourColour = contourColour;
+  pRenderContext->visualizationShader.fragParams.contourParams.x = contourDistances;
+  pRenderContext->visualizationShader.fragParams.contourParams.y = contourBandHeight;
+  pRenderContext->visualizationShader.fragParams.contourParams.z = contourRainboxRepeatRate;
+  pRenderContext->visualizationShader.fragParams.contourParams.w = contourRainboxIntensity;
 
-  vcShader_BindConstantBuffer(pRenderContext->visualizationShader.pProgram, pRenderContext->visualizationShader.uniform_params, &pRenderContext->visualizationShader.params, sizeof(pRenderContext->visualizationShader.params));
+  pRenderContext->visualizationShader.vertParams.outlineStepSize.x = outlineWidth * (1.0f / pRenderContext->sceneResolution.x);
+  pRenderContext->visualizationShader.vertParams.outlineStepSize.y = outlineWidth * (1.0f / pRenderContext->sceneResolution.y);
+
+  vcShader_BindConstantBuffer(pRenderContext->visualizationShader.pProgram, pRenderContext->visualizationShader.uniform_vertParams, &pRenderContext->visualizationShader.vertParams, sizeof(pRenderContext->visualizationShader.vertParams));
+  vcShader_BindConstantBuffer(pRenderContext->visualizationShader.pProgram, pRenderContext->visualizationShader.uniform_fragParams, &pRenderContext->visualizationShader.fragParams, sizeof(pRenderContext->visualizationShader.fragParams));
 
   vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
@@ -788,7 +799,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
     vcGLState_SetBlendMode(vcGLSBM_None);
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
     vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
-    
+
     vcGLState_SetViewport(0, 0, ViewShedMapRes.x, ViewShedMapRes.y);
     vcFramebuffer_Bind(pRenderContext->viewShedRenderingContext.pFramebuffer, vcFramebufferClearOperation_All);
 
