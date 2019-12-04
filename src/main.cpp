@@ -1613,6 +1613,10 @@ void vcRenderSceneWindow(vcState *pProgramState)
         }
       }
     }
+    else
+    {
+      vcGizmo_ResetState();
+    }
   }
 
   vcRender_SceneImGui(pProgramState, pProgramState->pRenderContext, renderData);
