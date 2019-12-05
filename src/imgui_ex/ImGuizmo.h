@@ -41,6 +41,7 @@ bool vcGizmo_IsActive(); // return true if mouse vcGizmo_IsHovered or if the giz
 void vcGizmo_SetRect(float x, float y, float width, float height);
 
 void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcGizmoCoordinateSystem mode, const udDouble4x4 &matrix, udDouble4x4 *pDeltaMatrix, vcGizmoAllowedControls allowedControls, double snap = 0.0);
+void vcGizmo_ResetState();
 
 #endif
 
