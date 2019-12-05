@@ -384,7 +384,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       vcLiveFeedItemLOD &lodRef = pFeedItem->lodLevels[lodI];
 
-      if (lodRef.distance != 0.0 && distanceSq / m_labelLODModifier > (lodRef.distance*lodRef.distance) / (pFeedItem->minBoundingRadius * pFeedItem->minBoundingRadius))
+      if (lodI < pFeedItem->lodLevels.length - 1 && distanceSq != 0.0 && distanceSq / m_labelLODModifier > (lodRef.distance*lodRef.distance) / (pFeedItem->minBoundingRadius * pFeedItem->minBoundingRadius))
         continue;
 
       if (lodRef.sspixels != 0.0)
