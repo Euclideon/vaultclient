@@ -62,6 +62,7 @@
   "settingsAppearanceLoginRenderLicense": "Checkout Render License On Login",
   "settingsAppearanceShowSkybox": "Show Skybox",
   "settingsAppearanceSkyboxColour": "Background Colour",
+  "settingsAppearanceEnableAntiAliasing": "Enable Anti-Aliasing",
   "settingsAppearanceMouseAnchor": "Mouse Anchor Style",
   "settingsAppearanceNone": "None",
   "settingsAppearanceCompass": "Compass",

@@ -87,6 +87,8 @@ struct vcRenderContext
   udUInt2 sceneResolution;
   udUInt2 originalSceneResolution;
 
+  uint32_t activeRenderTarget;
+
   vcFramebuffer *pFramebuffer[vcRender_RenderBufferCount];
   vcTexture *pTexture[vcRender_RenderBufferCount];
   vcTexture *pDepthTexture[vcRender_RenderBufferCount];
@@ -133,6 +135,20 @@ struct vcRenderContext
     } vertParams;
 
   } visualizationShader;
+
+  struct
+  {
+    vcShader *pProgram;
+    vcShaderSampler *uniform_texture;
+    vcShaderSampler *uniform_depth;
+    vcShaderConstantBuffer *uniform_params;
+
+    struct
+    {
+      udFloat4 screenParams;  // sampleStepX, sampleStepSizeY, near plane, far plane
+    } params;
+
+  } fxaaShader;
 
   struct
   {
@@ -247,6 +263,7 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderPanorama.pProgram, g_vcSkyboxVertexShaderPanorama, g_vcSkyboxFragmentShaderPanorama, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderTintImage.pProgram, g_vcSkyboxVertexShaderImageColour, g_vcSkyboxFragmentShaderImageColour, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.splatIdShader.pProgram, g_udVertexShader, g_udSplatIdFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->fxaaShader.pProgram, g_FXAAVertexShader, g_FXAAFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
 
   UD_ERROR_CHECK(vcTexture_AsyncCreateFromFilename(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pWorkerPool, "asset://assets/skyboxes/WaterClouds.jpg", vcTFM_Linear));
   UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
@@ -278,6 +295,11 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->udRenderContext.splatIdShader.uniform_params, pRenderContext->udRenderContext.splatIdShader.pProgram, "u_params", sizeof(pRenderContext->udRenderContext.splatIdShader.params)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.splatIdShader.uniform_depth, pRenderContext->udRenderContext.splatIdShader.pProgram, "u_depth"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.splatIdShader.uniform_texture, pRenderContext->udRenderContext.splatIdShader.pProgram, "u_texture"), udR_InternalError);
+
+  UD_ERROR_IF(!vcShader_Bind(pRenderContext->fxaaShader.pProgram), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->fxaaShader.uniform_texture, pRenderContext->fxaaShader.pProgram, "u_texture"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->fxaaShader.uniform_depth, pRenderContext->fxaaShader.pProgram, "u_depth"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->fxaaShader.uniform_params, pRenderContext->fxaaShader.pProgram, "u_params", sizeof(pRenderContext->fxaaShader.params)), udR_InternalError);
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->blurShader.pProgram, g_BlurVertexShader, g_BlurFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_Bind(pRenderContext->blurShader.pProgram), udR_InternalError);
@@ -337,6 +359,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
 
   vcShader_DestroyShader(&pRenderContext->udRenderContext.presentShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->visualizationShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->fxaaShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->shadowShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->skyboxShaderPanorama.pProgram);
   vcShader_DestroyShader(&pRenderContext->skyboxShaderTintImage.pProgram);
@@ -456,8 +479,8 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
 
   for (int i = 0; i < vcRender_RenderBufferCount; ++i)
   {
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget));
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pDepthTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Clamp, vcTCF_RenderTarget));
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pDepthTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Linear, false, vcTWM_Clamp, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
     UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pFramebuffer[i], pRenderContext->pTexture[i], pRenderContext->pDepthTexture[i]), udR_InternalError);
   }
 
@@ -646,15 +669,42 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
   }
 }
 
+void vcRender_FXAAPass(vcState *pProgramState, vcRenderContext *pRenderContext)
+{
+  udUnused(pProgramState);
+
+  if (!pProgramState->settings.presentation.antiAliasingOn)
+    return;
+
+  vcGLState_SetBlendMode(vcGLSBM_None);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
+  vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+
+  pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0x00FF8080);
+
+  vcShader_Bind(pRenderContext->fxaaShader.pProgram);
+  vcShader_BindTexture(pRenderContext->fxaaShader.pProgram, pRenderContext->pTexture[1 - pRenderContext->activeRenderTarget], 0, pRenderContext->fxaaShader.uniform_texture);
+  vcShader_BindTexture(pRenderContext->fxaaShader.pProgram, pRenderContext->pDepthTexture[1 - pRenderContext->activeRenderTarget], 1, pRenderContext->fxaaShader.uniform_depth);
+
+  pRenderContext->fxaaShader.params.screenParams.x = (1.0f / pRenderContext->sceneResolution.x);
+  pRenderContext->fxaaShader.params.screenParams.y = (1.0f / pRenderContext->sceneResolution.y);
+
+  vcShader_BindConstantBuffer(pRenderContext->fxaaShader.pProgram, pRenderContext->fxaaShader.uniform_params, &pRenderContext->fxaaShader.params, sizeof(pRenderContext->fxaaShader.params));
+
+  vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
+}
+
 void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer[1], vcFramebufferClearOperation_All, 0x00FF8080);
-
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, true);
 
+  pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0x00FF8080);
+
   vcShader_Bind(pRenderContext->visualizationShader.pProgram);
-  vcShader_BindTexture(pRenderContext->visualizationShader.pProgram, pRenderContext->pTexture[0], 0, pRenderContext->visualizationShader.uniform_texture);
-  vcShader_BindTexture(pRenderContext->visualizationShader.pProgram, pRenderContext->pDepthTexture[0], 1, pRenderContext->visualizationShader.uniform_depth);
+  vcShader_BindTexture(pRenderContext->visualizationShader.pProgram, pRenderContext->pTexture[1 - pRenderContext->activeRenderTarget], 0, pRenderContext->visualizationShader.uniform_texture);
+  vcShader_BindTexture(pRenderContext->visualizationShader.pProgram, pRenderContext->pDepthTexture[1 - pRenderContext->activeRenderTarget], 1, pRenderContext->visualizationShader.uniform_depth);
 
   float nearPlane = pProgramState->settings.camera.nearPlane;
   float farPlane = pProgramState->settings.camera.farPlane;
@@ -846,7 +896,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
 
 void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer[0], vcFramebufferClearOperation_All, 0xFFFF8080);
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0xFFFF8080);
 
   vcGLState_ResetState();
 
@@ -946,8 +996,12 @@ void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext
   udUnused(pProgramState);
   udUnused(pRenderContext);
 
-  renderData.pSceneTexture = pRenderContext->pTexture[1];
+  // Would be nice to use 'pRenderContext->activeRenderTarget' here, but this causes
+  // a single frame 'flicker' if options are changed at run time.
+  renderData.pSceneTexture = pRenderContext->pTexture[pProgramState->settings.presentation.antiAliasingOn ? 0 :  1];
   renderData.sceneScaling = udFloat2::one();
+
+  pRenderContext->activeRenderTarget = 0;
 
   // TODO (EVC-835): fix scene scaling
   // udFloat2::create(float(pRenderContext->originalSceneResolution.x) / pRenderContext->sceneResolution.x, float(pRenderContext->originalSceneResolution.y) / pRenderContext->sceneResolution.y);
@@ -1083,15 +1137,17 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
   vcRender_OpaquePass(pProgramState, pRenderContext, renderData); // first pass
-  vcRender_VisualizationPass(pProgramState, pRenderContext); // final pass
+  vcRender_VisualizationPass(pProgramState, pRenderContext);
 
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer[1]);
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget]);
 
   vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
 
   vcRenderSkybox(pProgramState, pRenderContext); // Drawing skybox after opaque geometry saves a bit on fill rate.
   vcRenderTerrain(pProgramState, pRenderContext);
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
+
+  vcRender_FXAAPass(pProgramState, pRenderContext);
 
   if (selectionBufferActive)
     vcRender_ApplySelectionBuffer(pProgramState, pRenderContext);
