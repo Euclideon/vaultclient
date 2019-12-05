@@ -3,6 +3,9 @@
 const char *const g_VisualizationFragmentShader = "visualizationFragmentShader";
 const char *const g_VisualizationVertexShader = "visualizationVertexShader";
 
+const char *const g_FXAAFragmentShader = "fxaaFragmentShader";
+const char *const g_FXAAVertexShader = "fxaaVertexShader";
+
 const char *const g_ViewShedFragmentShader = "flatColorFragmentShader"; // not implemented
 const char *const g_ViewShedVertexShader = "udVertexShader"; // not implemented
 const char* const g_udFragmentShader = "udFragmentShader";
@@ -12,9 +15,10 @@ const char* const g_udVertexShader = "udVertexShader";
 const char* const g_tileFragmentShader = "tileFragmentShader";
 const char* const g_tileVertexShader = "tileVertexShader";
 
-const char* const g_vcSkyboxVertexShader = "skyboxVertexShader";
-const char* const g_vcSkyboxFragmentShaderPanarama = "skyboxFragmentShaderPanarama";
-const char* const g_vcSkyboxFragmentShaderImageColour = "skyboxFragmentShaderImageColour";
+const char* const g_vcSkyboxVertexShaderPanorama = "skyboxVertexShaderPanorama";
+const char* const g_vcSkyboxFragmentShaderPanorama = "skyboxFragmentShaderPanorama";
+const char *const g_vcSkyboxVertexShaderImageColour = "skyboxVertexShaderPanorama"; // not implemented
+const char* const g_vcSkyboxFragmentShaderImageColour = "skyboxFragmentShaderImageColor";
 
 const char* const g_ImGuiVertexShader = "imguiVertexShader";
 const char* const g_ImGuiFragmentShader = "imguiFragmentShader";

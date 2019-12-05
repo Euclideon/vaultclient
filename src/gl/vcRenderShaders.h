@@ -3,8 +3,10 @@
 
 #include "vcGLState.h"
 
-extern const char* const g_VisualizationFragmentShader;
-extern const char *const g_VisualizationVertexShader;
+extern const char* const g_VisualizationVertexShader;
+extern const char *const g_VisualizationFragmentShader;
+extern const char *const g_FXAAVertexShader;
+extern const char *const g_FXAAFragmentShader;
 extern const char *const g_ViewShedFragmentShader;
 extern const char *const g_ViewShedVertexShader;
 
@@ -13,9 +15,10 @@ extern const char* const g_udSplatIdFragmentShader;
 extern const char* const g_udVertexShader;
 extern const char* const g_tileFragmentShader;
 extern const char* const g_tileVertexShader;
-extern const char* const g_vcSkyboxFragmentShaderPanarama;
+extern const char* const g_vcSkyboxFragmentShaderPanorama;
 extern const char* const g_vcSkyboxFragmentShaderImageColour;
-extern const char* const g_vcSkyboxVertexShader;
+extern const char* const g_vcSkyboxVertexShaderPanorama;
+extern const char *const g_vcSkyboxVertexShaderImageColour;
 extern const char* const g_FenceVertexShader;
 extern const char* const g_FenceFragmentShader;
 extern const char* const g_WaterVertexShader;

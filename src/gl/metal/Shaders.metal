@@ -224,7 +224,7 @@ visualizationFragmentShader(VVSOutput in [[stage_in]],
     return float4(col.xyz * in.v_color.xyz, in.v_color.w);
   };
 
-// Skybox Vertex Shader - g_vcSkyboxVertexShader
+// Skybox Vertex Shader Panorama - g_vcSkyboxVertexShaderPanorama
   struct SVSInput
   {
     float3 a_position [[attribute(0)]];
@@ -238,7 +238,7 @@ visualizationFragmentShader(VVSOutput in [[stage_in]],
   };
 
   vertex SVSOutput
-  skyboxVertexShader(SVSInput in [[stage_in]])
+  skyboxVertexShaderPanorama(SVSInput in [[stage_in]])
   {
     SVSOutput out;
     out.position = float4(in.a_position.xy, 0.0, 1.0);
@@ -247,14 +247,14 @@ visualizationFragmentShader(VVSOutput in [[stage_in]],
   }
 
 
-// Skybox Fragment Shader Panorama - skyboxFragmentShaderPanarama
+// Skybox Fragment Shader Panorama - skyboxFragmentShaderPanorama
   struct SFSPUniforms
   {
     float4x4 u_inverseViewProjection;
   };
 
   fragment float4
-  skyboxFragmentShaderPanarama(SVSOutput in [[stage_in]], constant SFSPUniforms& uSFS [[buffer(1)]], texture2d<float, access::sample> SFSimg [[texture(0)]], sampler SFSsampler [[sampler(0)]])
+  skyboxFragmentShaderPanorama(SVSOutput in [[stage_in]], constant SFSPUniforms& uSFS [[buffer(1)]], texture2d<float, access::sample> SFSimg [[texture(0)]], sampler SFSsampler [[sampler(0)]])
   {
     // work out 3D point
     float4 point3D = uSFS.u_inverseViewProjection * float4(in.v_texCoord * float2(2.0) - float2(1.0), 1.0, 1.0);

@@ -3,7 +3,7 @@
 ## Changelist
 - Version 0.5.0
   - Added:
-    - `menuBindings`
+    - `menuBindings`, `settingsAppearanceEnableAntiAliasing`
     - Bindings Interface
       - `bindingsModalTitle`, `bindingsModalClose`, `bindingsModalSave`, `bindingsModalDefaults`, `bindingsColumnName`, `bindingsColumnKeyCombination`, `bindingsColumnDescriptions`, `bindingsErrorUnbound`, `bindingsClear`
       - Bindings Key Descriptions
@@ -233,6 +233,7 @@ Modules are currently:
 - `settingsAppearanceLoginRenderLicense`: Label next to checkbox that toggles acquiring a render license automatically on login
 - `settingsAppearanceShowSkybox`: Label next to checkbox that toggles if the skybox is displayed
 - `settingsAppearanceSkyboxColour`: Label next to colour picker to decide the colour of the background if the skybox is disabled
+- `settingsAppearanceEnableAntiAliasing`: Label next to checkbox that toggles anti-aliasing effect
 - `settingsAppearanceMouseAnchor`: Label next to dropdown list to select the appearance of the mouse cursor when hovering over objects in the scene
 - `settingsAppearanceNone`: "None" option for mouse cursor appearance. If selected, mouse cursor retains its default appearance
 - `settingsAppearanceCompass`: Compass option for mouse cursor appearance

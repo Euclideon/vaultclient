@@ -123,6 +123,8 @@ struct vcSettings
     bool showSkybox;
     udFloat4 skyboxColour;
 
+    bool antiAliasingOn;
+
     vcAnchorStyle mouseAnchor;
     bool showCompass;
     float POIFadeDistance;
