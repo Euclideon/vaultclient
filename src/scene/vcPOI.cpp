@@ -145,15 +145,28 @@ bool vcPOI::GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int 
   if (pSegmentIndex != nullptr)
     startPoint = udMax(0, *pSegmentIndex);
 
-  for (int i = startPoint; (i < m_line.numPoints - 1) || m_line.closed; ++i)
+  for (int i = startPoint; i < m_line.numPoints || m_line.closed; ++i)
   {
     int seg0 = i % m_line.numPoints;
     int seg1 = (i + 1) % m_line.numPoints;
 
     udDouble3 segment = m_line.pPoints[seg1] - m_line.pPoints[seg0];
     double segmentLength = udMag3(segment) - segmentProgress;
-    
-    if (totalDist + segmentLength > distance)
+
+    if (!m_line.closed && seg0 == m_line.numPoints - 1)
+    {
+      if (pPoint != nullptr)
+        *pPoint = m_line.pPoints[seg0];
+
+      if (pSegmentIndex != nullptr)
+        *pSegmentIndex = seg0;
+
+      if (pSegmentProgress != nullptr)
+        *pSegmentProgress = 0.0;
+
+      return true;
+    }
+    else if (totalDist + segmentLength > distance)
     {
       if (pPoint != nullptr)
         *pPoint = m_line.pPoints[seg0] + udNormalize(segment) * (distance - totalDist + segmentProgress);
@@ -288,9 +301,15 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       udDouble3 updatedPosition = {};
 
       if (!GetPointAtDistanceAlongLine(remainingMovementThisFrame, &updatedPosition, &m_flyThrough.segmentIndex, &m_flyThrough.segmentProgress))
+      {
         pProgramState->camera.eulerRotation = udDirectionToYPR(m_line.pPoints[1] - m_line.pPoints[0]);
+      }
       else
-        pProgramState->camera.eulerRotation = udSlerp(udDoubleQuat::create(startYPR), udDoubleQuat::create(udDirectionToYPR(updatedPosition - pProgramState->camera.position)), 0.2).eulerAngles();
+      {
+        udDouble3 direction = updatedPosition - pProgramState->camera.position;
+        udDouble3 endYPR = udDirectionToYPR(direction == udDouble3::zero() ? m_line.pPoints[m_line.numPoints - 1] - m_line.pPoints[m_line.numPoints - 2] : direction);
+        pProgramState->camera.eulerRotation = udSlerp(udDoubleQuat::create(startYPR), udDoubleQuat::create(endYPR), 0.2).eulerAngles();
+      }
 
       pProgramState->camera.position = updatedPosition;
     }
