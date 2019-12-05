@@ -11,6 +11,7 @@
 #include "vcProxyHelper.h"
 #include "vcStringFormat.h"
 #include "vcHotkey.h"
+#include "vcWebFile.h"
 
 #include "udFile.h"
 #include "udStringUtil.h"
@@ -166,6 +167,19 @@ void vcModals_DrawAbout(vcState *pProgramState)
       ImGui::CloseCurrentPopup();
 
     ImGui::Columns(1);
+    ImGui::NewLine();
+    const char *issueTrackerStrings[] = { "https://github.com/euclideon/vaultclient/issues", "GitHub" };
+    const char *pIssueTrackerStr = vcStringFormat(vcString::Get("loginSupportIssueTracker"), issueTrackerStrings, udLengthOf(issueTrackerStrings));
+    ImGui::TextUnformatted(pIssueTrackerStr);
+    udFree(pIssueTrackerStr);
+    if (ImGui::IsItemClicked())
+      vcWebFile_OpenBrowser("https://github.com/euclideon/vaultclient/issues");
+    if (ImGui::IsItemHovered())
+      ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+
+    const char *pSupportStr = vcStringFormat(vcString::Get("loginSupportDirectEmail"), "support@euclideon.com");
+    ImGui::TextUnformatted(pSupportStr);
+    udFree(pSupportStr);
 
     ImGui::Separator();
 
