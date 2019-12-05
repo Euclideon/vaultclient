@@ -12,6 +12,7 @@
 
 namespace vcHotkey
 {
+  static int target = -1;
   static int keyBinds[vcB_Count] = {};
 
   const char* bindNames[] =
@@ -53,40 +54,70 @@ namespace vcHotkey
     vcMOD_Super
   };
 
-  bool IsDown(vcBind key)
+  enum KeyErrorStrings
   {
+    vcKES_Unbound = 0,
+    vcKES_Select = 1,
+    vcKES_Count = 2
+  };
+  ImVec4 KeyErrorColours[] =
+  {
+    ImVec4(1, 0, 0, 1),
+    ImVec4(1, 1, 1, 1)
+  };
+  static const char *pKeyErrors[] =
+  {
+    "bindingsErrorUnbound",
+    "bindingsSelectKey"
+  };
+
+
+  bool IsDown(int keyNum)
+  {
+    if (target != -1)
+      return false;
+
     ImGuiIO io = ImGui::GetIO();
 
-    int keyNum = keyBinds[key];
-
-    if ((keyNum & vcMOD_Shift) && !io.KeyShift)
+    if (((keyNum & vcMOD_Shift) == vcMOD_Shift) != io.KeyShift)
       return false;
-    if ((keyNum & vcMOD_Ctrl) && !io.KeyCtrl)
+    if (((keyNum & vcMOD_Ctrl) == vcMOD_Ctrl) != io.KeyCtrl)
       return false;
-    if ((keyNum & vcMOD_Alt) && !io.KeyAlt)
+    if (((keyNum & vcMOD_Alt) == vcMOD_Alt) != io.KeyAlt)
       return false;
-    if ((keyNum & vcMOD_Super) && !io.KeySuper)
+    if (((keyNum & vcMOD_Super) == vcMOD_Super) != io.KeySuper)
       return false;
 
     return io.KeysDown[keyNum];
   }
 
-  bool IsPressed(vcBind key)
+  bool IsDown(vcBind key)
   {
+    return IsDown(keyBinds[key]);
+  }
+
+  bool IsPressed(int keyNum)
+  {
+    if (target != -1)
+      return false;
+
     ImGuiIO io = ImGui::GetIO();
 
-    int keyNum = keyBinds[key];
-
-    if ((keyNum & vcMOD_Shift) && !io.KeyShift)
+    if (((keyNum & vcMOD_Shift) == vcMOD_Shift) != io.KeyShift)
       return false;
-    if ((keyNum & vcMOD_Ctrl) && !io.KeyCtrl)
+    if (((keyNum & vcMOD_Ctrl) == vcMOD_Ctrl) != io.KeyCtrl)
       return false;
-    if ((keyNum & vcMOD_Alt) && !io.KeyAlt)
+    if (((keyNum & vcMOD_Alt) == vcMOD_Alt) != io.KeyAlt)
       return false;
-    if ((keyNum & vcMOD_Super) && !io.KeySuper)
+    if (((keyNum & vcMOD_Super) == vcMOD_Super) != io.KeySuper)
       return false;
 
     return ImGui::IsKeyPressed((keyNum & 0x1FF), false);
+  }
+
+  bool IsPressed(vcBind key)
+  {
+    return IsPressed(keyBinds[key]);
   }
 
   void GetKeyName(vcBind key, char *pBuffer, uint32_t bufferLen)
@@ -186,27 +217,34 @@ namespace vcHotkey
 
   void DisplayBindings(vcState *pProgramState)
   {
-    static int target = -1; // TODO: Document/reconsider limitation of 50 chars
-    static const char *pError = "";
+    // TODO: Document/reconsider limitation of 50 chars
+    int errors = 0;
 
-    if (target != -1 && pProgramState->currentKey)
+    if (target != -1)
     {
-      for (int i = 0; i < vcB_Count; ++i)
+      errors |= (1 << vcKES_Select);
+
+      if (pProgramState->currentKey)
       {
-        if (keyBinds[i] == pProgramState->currentKey)
+        if (target >= 0)
         {
-          pError = vcString::Get("bindingsErrorUnbound");
-          Set((vcBind)i, 0);
-          break;
+          for (int i = 0; i < vcB_Count; ++i)
+          {
+            if (keyBinds[i] == pProgramState->currentKey)
+            {
+              Set((vcBind)i, 0);
+              break;
+            }
+          }
+
+          Set((vcBind)target, pProgramState->currentKey);
+          target *= -1;
         }
+
+        if (!ImGui::IsKeyPressed((pProgramState->currentKey & 0x1FF), true))
+          target = -1;
       }
-
-      Set((vcBind)target, pProgramState->currentKey);
-      target = -1;
     }
-
-    if (*pError != '\0')
-      ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", pError);
 
     ImGui::Columns(3);
     ImGui::SetColumnWidth(0, 125);
@@ -227,7 +265,7 @@ namespace vcHotkey
     {
       if (ImGui::Button(bindNames[i], ImVec2(-1, 0)))
       {
-        pError = "";
+        errors = 0;
         if (target == i)
         {
           Set((vcBind)i, 0);
@@ -238,6 +276,17 @@ namespace vcHotkey
           pProgramState->currentKey = 0;
           target = i;
         }
+      }
+
+      if (vcHotkey::Get((vcBind)i) == 0)
+      {
+        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImU32(0xFF0000FF), 0.0f, ImDrawCornerFlags_All, 2.0f);
+
+        errors |= (1 << vcKES_Unbound);
+      }
+      else if (target == i)
+      {
+        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImU32(0xFFFFFFFF), 0.0f, ImDrawCornerFlags_All, 2.0f);
       }
 
       ImGui::NextColumn();
@@ -253,6 +302,16 @@ namespace vcHotkey
     }
 
     ImGui::EndColumns();
+
+    if (errors != 0)
+    {
+      for (int i = 0; i < vcKES_Count; ++i)
+      {
+        if (errors & (1 << i))
+          ImGui::TextColored(KeyErrorColours[i], "%s", vcString::Get(pKeyErrors[i]));
+      }
+    }
+      
   }
 
   int DecodeKeyString(const char *pBind)

@@ -38,7 +38,9 @@ enum vcBind
 
 namespace vcHotkey
 {
+  bool IsDown(int keyNum);
   bool IsDown(vcBind key);
+  bool IsPressed(int keyNum);
   bool IsPressed(vcBind key);
   void GetKeyName(vcBind key, char *pBuffer, uint32_t bufferLen);
   const char* GetBindName(vcBind key);
