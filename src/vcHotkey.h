@@ -41,6 +41,13 @@ namespace vcHotkey
   bool IsDown(vcBind key);
   bool IsPressed(vcBind key);
   void GetKeyName(vcBind key, char *pBuffer, uint32_t bufferLen);
+
+  template <size_t N>
+  void GetKeyName(vcBind key, char(&buffer)[N])
+  {
+    GetKeyName(key, buffer, N);
+  };
+
   const char* GetBindName(vcBind key);
   vcBind BindFromName(const char* pName);
   int GetMod(int key);
