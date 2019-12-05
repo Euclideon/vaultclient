@@ -342,7 +342,12 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         ImGui::Indent();
         ImGui::PushID(udTempStr("SXIExpanded%zu", *pItemID));
 
+        ImGui::BeginGroup();
         pSceneItem->HandleImGui(pProgramState, pItemID);
+        ImGui::EndGroup();
+
+        if (ImGui::IsItemClicked(0))
+          vcProject_SelectItem(pProgramState, m_pNode, pNode);
 
         ImGui::PopID();
         ImGui::Unindent();
