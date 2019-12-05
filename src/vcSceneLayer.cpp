@@ -786,7 +786,6 @@ udResult vcSceneLayer_Create(vcSceneLayer **ppSceneLayer, udWorkerPool *pWorkerT
     "vertex-reference-frame"
   };
 
-
   vcSceneLayer_Init();
 
   pSceneLayer = udAllocType(vcSceneLayer, 1, udAF_Zero);
@@ -938,11 +937,7 @@ void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode)
   udFree(pNode->pURL);
   udFree(pNode->pID);
 
-  pNode->sharedResourceCount = 0;
-  pNode->attributeDataCount = 0;
-  pNode->textureDataCount = 0;
-  pNode->featureDataCount = 0;
-  pNode->geometryDataCount = 0;
+  memset(pNode, 0, sizeof(vcSceneLayerNode));
 }
 
 udResult vcSceneLayer_Destroy(vcSceneLayer **ppSceneLayer)
