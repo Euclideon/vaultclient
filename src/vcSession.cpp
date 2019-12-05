@@ -102,7 +102,7 @@ void vcSession_Login(void *pProgramStatePtr)
   vdkError result;
   vcState *pProgramState = (vcState*)pProgramStatePtr;
 
-  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, udTempStr("Euclideon Vault Client / " TAG_SUFFIX " (%s)", vcSession_GetOSName()), pProgramState->settings.loginInfo.username, pProgramState->password);
+  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "Euclideon Vault Client / " TAG_SUFFIX, pProgramState->settings.loginInfo.username, pProgramState->password);
   if (result == vE_ConnectionFailure)
     pProgramState->loginStatus = vcLS_ConnectionError;
   else if (result == vE_AuthFailure)
@@ -178,7 +178,7 @@ void vcSession_Resume(vcState *pProgramState)
   tryDongle = !IsDebuggerPresent();
 #endif
 
-  if (vdkContext_TryResume(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, udTempStr("Euclideon Vault Client / " TAG_SUFFIX " (%s)", vcSession_GetOSName()), pProgramState->settings.loginInfo.username, tryDongle) == vE_Success)
+  if (vdkContext_TryResume(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, "Euclideon Vault Client / " TAG_SUFFIX, pProgramState->settings.loginInfo.username, tryDongle) == vE_Success)
     vcSession_ChangeSession(pProgramState);
 }
 
