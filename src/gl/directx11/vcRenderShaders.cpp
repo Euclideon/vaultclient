@@ -1715,7 +1715,7 @@ FxaaFloat4 FxaaPixelShader(
     float depth2 = texture1.Sample(sampler1, input.edgeSampleUV2).x;
     float depth3 = texture1.Sample(sampler1, input.edgeSampleUV3).x;
 
-    const float edgeThreshold = 0.0001;
+    const float edgeThreshold = 0.003;
     float isEdge = 1.0 - (step(abs(depth0 - depth), edgeThreshold) * step(abs(depth1 - depth), edgeThreshold) * step(abs(depth2 - depth), edgeThreshold) * step(abs(depth3 - depth), edgeThreshold));
     if (isEdge == 0.0)
     {
@@ -1733,7 +1733,7 @@ FxaaFloat4 FxaaPixelShader(
       samplerInfo,
       samplerInfo,
       samplerInfo,
-      float2(input.sampleStepSize.x, input.sampleStepSize.y),
+      input.sampleStepSize,
       float4(0, 0, 0, 0),
       float4(0, 0, 0, 0),
       float4(0, 0, 0, 0),

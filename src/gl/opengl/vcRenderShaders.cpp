@@ -1468,7 +1468,7 @@ void main()
   float depth2 = texture(u_depth, v_edgeSampleUV2).x;
   float depth3 = texture(u_depth, v_edgeSampleUV3).x;
 	
-  const float edgeThreshold = 0.0001;
+  const float edgeThreshold = 0.003;
   float isEdge = 1.0 - (step(abs(depth0 - depth), edgeThreshold) * step(abs(depth1 - depth), edgeThreshold) * step(abs(depth2 - depth), edgeThreshold) * step(abs(depth3 - depth), edgeThreshold));
   if (isEdge == 0.0)
   {
@@ -1482,7 +1482,7 @@ void main()
     u_texture,
     u_texture,
     u_texture,
-    vec2(v_sampleStepSize.x, v_sampleStepSize.y),
+    v_sampleStepSize,
     vec4(0),
     vec4(0),
     vec4(0),
