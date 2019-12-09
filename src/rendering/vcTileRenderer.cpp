@@ -87,42 +87,6 @@ bool vcTileRenderer_TryWriteTile(const char *filename, void *pFileData, size_t f
   return false;
 }
 
-// This functionality here for now. In the future will be migrated to udPlatformUtils.
-udResult vcTileRenderer_CreateDirRecursive(const char *pFolderPath)
-{
-  udResult result = udR_Success;
-  char *pMutableDirectoryPath = nullptr;
-
-  UD_ERROR_NULL(pFolderPath, udR_InvalidParameter_);
-
-  pMutableDirectoryPath = udStrdup(pFolderPath);
-  UD_ERROR_NULL(pMutableDirectoryPath, udR_MemoryAllocationFailure);
-
-  for (uint32_t i = 0;; ++i)
-  {
-    if (pMutableDirectoryPath[i] == '\0' || pMutableDirectoryPath[i] == '/' || pMutableDirectoryPath[i] == '\\')
-    {
-      pMutableDirectoryPath[i] = '\0';
-      result = udCreateDir(pMutableDirectoryPath);
-
-      // TODO: handle directories already existing
-      // TODO: handle path not found
-      //if (result != udR_Success)
-      //  UD_ERROR_HANDLE();
-
-      pMutableDirectoryPath[i] = pFolderPath[i];
-
-      if (pMutableDirectoryPath[i] == '\0')
-        break;
-    }
-  }
-
-epilogue:
-  udFree(pMutableDirectoryPath);
-
-  return result;
-}
-
 bool vcTileRenderer_ShouldLoadNode(vcQuadTreeNode *pNode)
 {
   return pNode->renderInfo.tryLoad && pNode->touched && (pNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_InQueue);
@@ -288,8 +252,7 @@ epilogue:
           if (udStrrchr(localFileName, "\\/", &index) != nullptr)
             localFolderPath[index] = '\0';
 
-          if (vcTileRenderer_CreateDirRecursive(localFolderPath) == udR_Success)
-            vcTileRenderer_TryWriteTile(localFileName, pFileData, fileLen);
+          vcTileRenderer_TryWriteTile(localFileName, pFileData, fileLen);
         }
       }
 
