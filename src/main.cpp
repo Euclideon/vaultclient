@@ -1348,7 +1348,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     static bool wasContextMenuOpenLastFrame = false;
     bool selectItem = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold*io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
  
-    if (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext"))
+    if (pProgramState->settings.camera.cameraMouseBindings[1] != vcCPM_Forward && (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
     {
       static bool hadMouse = false;
       static udDouble3 mousePosCartesian;
