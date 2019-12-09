@@ -77,18 +77,7 @@ namespace vcHotkey
     if (target != -1)
       return false;
 
-    ImGuiIO io = ImGui::GetIO();
-
-    if (((keyNum & vcMOD_Shift) == vcMOD_Shift) != io.KeyShift)
-      return false;
-    if (((keyNum & vcMOD_Ctrl) == vcMOD_Ctrl) != io.KeyCtrl)
-      return false;
-    if (((keyNum & vcMOD_Alt) == vcMOD_Alt) != io.KeyAlt)
-      return false;
-    if (((keyNum & vcMOD_Super) == vcMOD_Super) != io.KeySuper)
-      return false;
-
-    return io.KeysDown[keyNum];
+    return ImGui::GetIO().KeysDown[keyNum];
   }
 
   bool IsDown(vcBind key)
