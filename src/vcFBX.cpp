@@ -803,8 +803,6 @@ void vcFBX_Close(vdkConvertCustomItem *pConvertInput)
   if (pConvertInput->pData != nullptr)
   {
     vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
-    if (pFBX->pTrivox)
-      vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
 
     if (pFBX->pScene != nullptr)
     {
@@ -831,20 +829,6 @@ void vcFBX_Destroy(vdkConvertCustomItem* pConvertInput)
     vcFBX* pFBX = (vcFBX*)pConvertInput->pData;
     if (pFBX->pTrivox)
       vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
-
-    if (pFBX->pScene != nullptr)
-    {
-      pFBX->pScene->Destroy(true);
-      pFBX->pScene = nullptr;
-    }
-
-    if (pFBX->pManager != nullptr)
-    {
-      pFBX->pManager->Destroy(); 
-      pFBX->pManager = nullptr;
-    }
-
-    pFBX->uvQueue.Deinit();
 
     vcFBX_CleanMaterials(&pFBX->materials);
 
