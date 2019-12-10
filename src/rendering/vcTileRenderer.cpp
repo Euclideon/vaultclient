@@ -209,22 +209,23 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       char localFileName[vcMaxPathLength];
       char serverAddress[vcMaxPathLength];
 
-	  switch (pRenderer->pSettings->maptiles.serverFlag)
-	  {
-	  case vcMTSF_Unknown:
-		  break;
-	  case vcMTSF_Slippy:
-		  udSprintf(localFileName, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
-		  udSprintf(serverAddress, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
-		  break;
-	  case vcMTSF_Google:
-		  udSprintf(localFileName, "%s?lyrs=%s&x=%d&y=%d&z=%d", pRenderer->pSettings->cacheAssetPath, vcSettings_GetMapTileTypeName(pRenderer->pSettings), pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
-		  udSprintf(serverAddress, "%s?lyrs=%s&x=%d&y=%d&z=%d", pRenderer->pSettings->maptiles.tileServerAddress, vcSettings_GetMapTileTypeName(pRenderer->pSettings), pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
-		  break;
-	  default:
-		  break;
-	  }
-	  udReleaseMutex(pCache->pMutex);
+      switch (pRenderer->pSettings->maptiles.serverFlag)
+      {
+      case vcMTSF_Slippy:
+         udSprintf(localFileName, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+         udSprintf(serverAddress, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+         break;
+      case vcMTSF_Google:
+         udSprintf(localFileName, "%s?lyrs=%s&x=%d&y=%d&z=%d", pRenderer->pSettings->cacheAssetPath, vcSettings_GetMapTileTypeName(pRenderer->pSettings), pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
+         udSprintf(serverAddress, "%s?lyrs=%s&x=%d&y=%d&z=%d", pRenderer->pSettings->maptiles.tileServerAddress, vcSettings_GetMapTileTypeName(pRenderer->pSettings), pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
+         break;
+      default:
+         udSprintf(localFileName, "%s", pRenderer->pSettings->cacheAssetPath);
+         udSprintf(serverAddress, "%s", pRenderer->pSettings->maptiles.tileServerAddress);
+         break;
+      }
+      
+      udReleaseMutex(pCache->pMutex);
 
       bool downloadingFromServer = true;
       char *pTileURL = serverAddress;

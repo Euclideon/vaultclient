@@ -186,7 +186,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     if (udStrEquali(pSettings->maptiles.tileServerAddress, "http://20.188.211.58"))
       udStrcpy(pSettings->maptiles.tileServerAddress, "http://slippy.vault.euclideon.com");
 
-	vcSettings_UpdateServerFlag(pSettings);
+    vcSettings_UpdateServerFlag(pSettings);
 
     udUUID_GenerateFromString(&pSettings->maptiles.tileServerAddressUUID, pSettings->maptiles.tileServerAddress);
 
@@ -194,7 +194,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->maptiles.mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
     pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(1);
     pSettings->maptiles.transparency = data.Get("maptiles.transparency").AsFloat(1.f);
-	pSettings->maptiles.mapTileType = (vcMapTileType)data.Get("maptiles.mapTileType").AsInt(0);
+    pSettings->maptiles.mapTileType = (vcMapTileType)data.Get("maptiles.mapTileType").AsInt(0);
 
     pSettings->maptiles.mapQuality = (vcTileRendererMapQuality)data.Get("maptiles.mapQuality").AsInt(vcTRMQ_High);
     pSettings->maptiles.mapOptions = (vcTileRendererFlags)data.Get("maptiles.mapOptions").AsInt(vcTRF_None);
@@ -830,21 +830,21 @@ epilogue:
 
 void vcSettings_UpdateServerFlag(vcSettings *pSettings)
 {
-	UDCOMPILEASSERT(udLengthOf(g_vcMapTileServerName) == vcMTSF_Count, "Update array");
+    UDCOMPILEASSERT(udLengthOf(g_vcMapTileServerName) == vcMTSF_Count, "Update array");
 
-	pSettings->maptiles.serverFlag = vcMTSF_Unknown;
-	for (size_t i = 0; i < vcMTSF_Count; i++)
-	{
-		if (udStrstr(pSettings->maptiles.tileServerAddress, udStrlen(pSettings->maptiles.tileServerAddress),g_vcMapTileServerName[i]) != 0)
-		{
-			pSettings->maptiles.serverFlag = (vcMapTileServerFlag)i;
-			break;
-		}
-	}
+    pSettings->maptiles.serverFlag = vcMTSF_Unknown;
+    for (size_t i = 0; i < vcMTSF_Count; i++)
+    {
+        if (udStrstr(pSettings->maptiles.tileServerAddress, udStrlen(pSettings->maptiles.tileServerAddress),g_vcMapTileServerName[i]) != 0)
+        {
+            pSettings->maptiles.serverFlag = (vcMapTileServerFlag)i;
+            break;
+        }
+    }
 }
 
 const char * vcSettings_GetMapTileTypeName(vcSettings *pSettings)
 {
-	UDCOMPILEASSERT(udLengthOf(g_vcMapTileTypeName) == vcMTT_Count, "Update array");
-	return g_vcMapTileTypeName[pSettings->maptiles.mapTileType];
+    UDCOMPILEASSERT(udLengthOf(g_vcMapTileTypeName) == vcMTT_Count, "Update array");
+    return g_vcMapTileTypeName[pSettings->maptiles.mapTileType];
 }

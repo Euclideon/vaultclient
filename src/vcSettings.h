@@ -61,20 +61,20 @@ enum
 
 enum vcMapTileServerFlag
 {
-	vcMTSF_Unknown,
-	vcMTSF_Slippy,
-	vcMTSF_Google,
+    vcMTSF_Unknown,
+    vcMTSF_Slippy,
+    vcMTSF_Google,
 
-	vcMTSF_Count
+    vcMTSF_Count
 };
 
 enum vcMapTileType
 {
-	vcMTT_Plan,		//Planar map
-	vcMTT_Image,	//Image map
-	vcMTT_Terrain,	//Terrain map
+    vcMTT_Plan,     //Planar map
+    vcMTT_Image,    //Image map
+    vcMTT_Terrain,  //Terrain map
 
-	vcMTT_Count
+    vcMTT_Count
 };
 
 enum vcPresentationMode
@@ -254,8 +254,8 @@ struct vcSettings
 
     bool mouseInteracts;
 
-	vcMapTileServerFlag serverFlag;
-	vcMapTileType		mapTileType;
+    vcMapTileServerFlag serverFlag;
+    vcMapTileType       mapTileType;
   } maptiles;
 
   struct
