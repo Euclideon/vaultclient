@@ -250,7 +250,7 @@ void vcModals_SetTileImage(void *pProgramStatePtr)
 	  udSprintf(buf, "%s/0/0/0.%s", pProgramState->settings.maptiles.tileServerAddress, pProgramState->settings.maptiles.tileServerExtension);
 	  break;
   case vcMTSF_Google:
-	  udSprintf(buf, "%s?\lyrs=s\%40781&\hl=\zh-CN&\gl=CN&x=0&y=0&z=0", pProgramState->settings.maptiles.tileServerAddress);
+	  udSprintf(buf, "%s?lyrs=s&hl=zh-CN&gl=CN&x=0&y=0&z=0", pProgramState->settings.maptiles.tileServerAddress);
 	  break;
   default:
 	  break;
@@ -352,8 +352,8 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     if (ImGui::InputText(vcString::Get("settingsMapsTileServer"), pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength))
       s_isDirty = true;
 
-    if (ImGui::Combo(vcString::Get("settingsMapsTileServerImageFormat"), &s_currentItem, pItems, (int)udLengthOf(pItems))&&
-		pProgramState->settings.maptiles.serverFlag == vcMTSF_Slippy)
+    if (pProgramState->settings.maptiles.serverFlag == vcMTSF_Slippy&&
+		ImGui::Combo(vcString::Get("settingsMapsTileServerImageFormat"), &s_currentItem, pItems, (int)udLengthOf(pItems)))
     {
       udStrcpy(pProgramState->settings.maptiles.tileServerExtension, pItems[s_currentItem]);
       s_isDirty = true;
