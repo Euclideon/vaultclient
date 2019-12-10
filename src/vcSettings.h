@@ -61,7 +61,6 @@ enum
 
 enum vcMapTileServerFlag
 {
-    vcMTSF_Unknown,
     vcMTSF_Slippy,
     vcMTSF_Google,
 

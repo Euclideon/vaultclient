@@ -18,7 +18,7 @@
 #endif
 
 const char DefaultFilename[] = "asset://defaultsettings.json";
-const char *g_vcMapTileServerName[] = { "unknown", "slippy", "google" };
+const char *g_vcMapTileServerName[] = { "slippy", "google" };
 const char *g_vcMapTileTypeName[] = { "m","s","t" };
 
 void vcSettings_InitializePrefPath(vcSettings *pSettings)
@@ -832,7 +832,7 @@ void vcSettings_UpdateServerFlag(vcSettings *pSettings)
 {
     UDCOMPILEASSERT(udLengthOf(g_vcMapTileServerName) == vcMTSF_Count, "Update array");
 
-    pSettings->maptiles.serverFlag = vcMTSF_Unknown;
+    pSettings->maptiles.serverFlag = vcMTSF_Count;
     for (size_t i = 0; i < vcMTSF_Count; i++)
     {
         if (udStrstr(pSettings->maptiles.tileServerAddress, udStrlen(pSettings->maptiles.tileServerAddress),g_vcMapTileServerName[i]) != 0)
