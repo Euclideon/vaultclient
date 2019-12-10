@@ -250,7 +250,7 @@ void vcModals_SetTileImage(void *pProgramStatePtr)
 	  udSprintf(buf, "%s/0/0/0.%s", pProgramState->settings.maptiles.tileServerAddress, pProgramState->settings.maptiles.tileServerExtension);
 	  break;
   case vcMTSF_Google:
-	  udSprintf(buf, "%s?lyrs=s%40781&hl=zh-CN&gl=CN&x=0&y=0&z=0", pProgramState->settings.maptiles.tileServerAddress);
+	  udSprintf(buf, "%s?\lyrs=s\%40781&\hl=\zh-CN&\gl=CN&x=0&y=0&z=0", pProgramState->settings.maptiles.tileServerAddress);
 	  break;
   default:
 	  break;

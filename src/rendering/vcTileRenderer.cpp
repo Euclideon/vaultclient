@@ -218,8 +218,8 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
 		  udSprintf(serverAddress, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
 		  break;
 	  case vcMTSF_Google:
-		  udSprintf(localFileName, "%s?lyrs=s%40781&hl=zh-CN&gl=CN&x=%d&y=%d&z=%d", pRenderer->pSettings->cacheAssetPath, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
-		  udSprintf(serverAddress, "%s?lyrs=s%40781&hl=zh-CN&gl=CN&x=%d&y=%d&z=%d", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
+		  udSprintf(localFileName, "%s?\lyrs=s\%40781&\hl=\zh-CN&\gl=CN&x=%d&y=%d&z=%d", pRenderer->pSettings->cacheAssetPath, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
+		  udSprintf(serverAddress, "%s?\lyrs=s\%40781&\hl=\zh-CN&\gl=CN&x=%d&y=%d&z=%d", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
 		  break;
 	  default:
 		  break;
