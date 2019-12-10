@@ -184,6 +184,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     if (udStrEquali(pSettings->maptiles.tileServerAddress, "http://20.188.211.58"))
       udStrcpy(pSettings->maptiles.tileServerAddress, "http://slippy.vault.euclideon.com");
 
+	vcSettings_UpdateServerFlag(pSettings);
+
     udUUID_GenerateFromString(&pSettings->maptiles.tileServerAddressUUID, pSettings->maptiles.tileServerAddress);
 
     udStrcpy(pSettings->maptiles.tileServerExtension, data.Get("maptiles.imgExtension").AsString("png"));
@@ -821,4 +823,17 @@ udResult vcSettings_UpdateLanguageOptions(vcSettings *pSetting)
 
 epilogue:
   return result;
+}
+
+void vcSettings_UpdateServerFlag(vcSettings *pSettings)
+{
+	pSettings->maptiles.serverFlag = vcMTSF_Unknown;
+	for (size_t i = 0; i < vcMTSF_Count; i++)
+	{
+		if (udStrstr(pSettings->maptiles.tileServerAddress, udStrlen(pSettings->maptiles.tileServerAddress), g_vcMapTileServerName[i]) != 0)
+		{
+			pSettings->maptiles.serverFlag = (vcMapTileServerFlag)i;
+			break;
+		}
+	}
 }

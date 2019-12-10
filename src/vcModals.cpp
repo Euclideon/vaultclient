@@ -242,7 +242,19 @@ void vcModals_SetTileImage(void *pProgramStatePtr)
   vcState *pProgramState = (vcState*)pProgramStatePtr;
 
   char buf[256];
-  udSprintf(buf, "%s/0/0/0.%s", pProgramState->settings.maptiles.tileServerAddress, pProgramState->settings.maptiles.tileServerExtension);
+  switch (pProgramState->settings.maptiles.serverFlag)
+  {
+  case vcMTSF_Unknown:
+	  break;
+  case vcMTSF_Slippy:
+	  udSprintf(buf, "%s/0/0/0.%s", pProgramState->settings.maptiles.tileServerAddress, pProgramState->settings.maptiles.tileServerExtension);
+	  break;
+  case vcMTSF_Google:
+	  udSprintf(buf, "%s?lyrs=s%40781&hl=zh-CN&gl=CN&x=0&y=0&z=0", pProgramState->settings.maptiles.tileServerAddress);
+	  break;
+  default:
+	  break;
+  }
 
   int64_t imageSize;
   void *pLocalData = nullptr;
@@ -303,6 +315,8 @@ inline bool vcModals_TileThread(vcState *pProgramState)
 
   udUUID_GenerateFromString(&pProgramState->settings.maptiles.tileServerAddressUUID, pProgramState->settings.maptiles.tileServerAddress);
 
+  vcSettings_UpdateServerFlag(&pProgramState->settings);
+
   udWorkerPool_AddTask(pProgramState->pWorkerPool, vcModals_SetTileImage, pProgramState, false, vcModals_SetTileTexture);
 
   return true;
@@ -338,7 +352,8 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     if (ImGui::InputText(vcString::Get("settingsMapsTileServer"), pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength))
       s_isDirty = true;
 
-    if (ImGui::Combo(vcString::Get("settingsMapsTileServerImageFormat"), &s_currentItem, pItems, (int)udLengthOf(pItems)))
+    if (ImGui::Combo(vcString::Get("settingsMapsTileServerImageFormat"), &s_currentItem, pItems, (int)udLengthOf(pItems))&&
+		pProgramState->settings.maptiles.serverFlag == vcMTSF_Slippy)
     {
       udStrcpy(pProgramState->settings.maptiles.tileServerExtension, pItems[s_currentItem]);
       s_isDirty = true;

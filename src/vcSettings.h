@@ -59,6 +59,21 @@ enum
   vcMetadataMaxLength = 256,
 };
 
+enum vcMapTileServerFlag
+{
+	vcMTSF_Unknown,
+	vcMTSF_Slippy,
+	vcMTSF_Google,
+
+	vcMTSF_Count
+};
+
+const char g_vcMapTileServerName[vcMTSF_Count][64] = {
+	{ "unknown" },
+	{ "slippy" },
+	{ "google" }
+};
+
 enum vcPresentationMode
 {
   vcPM_Hide,
@@ -235,6 +250,8 @@ struct vcSettings
     float transparency;
 
     bool mouseInteracts;
+
+	vcMapTileServerFlag serverFlag;
   } maptiles;
 
   struct
@@ -338,5 +355,7 @@ udResult vcSettings_RegisterAssetFileHandler();
 
 // Various settings helpers
 udResult vcSettings_UpdateLanguageOptions(vcSettings *pSettings);
+
+void vcSettings_UpdateServerFlag(vcSettings *pSettings);
 
 #endif // !vcSettings_h__
