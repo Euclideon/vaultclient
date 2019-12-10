@@ -18,6 +18,8 @@
 #endif
 
 const char DefaultFilename[] = "asset://defaultsettings.json";
+const char *g_vcMapTileServerName[] = { "unknown", "slippy", "google" };
+const char *g_vcMapTileTypeName[] = { "m","s","t" };
 
 void vcSettings_InitializePrefPath(vcSettings *pSettings)
 {
@@ -192,6 +194,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->maptiles.mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
     pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(1);
     pSettings->maptiles.transparency = data.Get("maptiles.transparency").AsFloat(1.f);
+	pSettings->maptiles.mapTileType = (vcMapTileType)data.Get("maptiles.mapTileType").AsInt(0);
 
     pSettings->maptiles.mapQuality = (vcTileRendererMapQuality)data.Get("maptiles.mapQuality").AsInt(vcTRMQ_High);
     pSettings->maptiles.mapOptions = (vcTileRendererFlags)data.Get("maptiles.mapOptions").AsInt(vcTRF_None);
@@ -827,13 +830,21 @@ epilogue:
 
 void vcSettings_UpdateServerFlag(vcSettings *pSettings)
 {
+	UDCOMPILEASSERT(udLengthOf(g_vcMapTileServerName) == vcMTSF_Count, "Update array");
+
 	pSettings->maptiles.serverFlag = vcMTSF_Unknown;
 	for (size_t i = 0; i < vcMTSF_Count; i++)
 	{
-		if (udStrstr(pSettings->maptiles.tileServerAddress, udStrlen(pSettings->maptiles.tileServerAddress), g_vcMapTileServerName[i]) != 0)
+		if (udStrstr(pSettings->maptiles.tileServerAddress, udStrlen(pSettings->maptiles.tileServerAddress),g_vcMapTileServerName[i]) != 0)
 		{
 			pSettings->maptiles.serverFlag = (vcMapTileServerFlag)i;
 			break;
 		}
 	}
+}
+
+const char * vcSettings_GetMapTileTypeName(vcSettings *pSettings)
+{
+	UDCOMPILEASSERT(udLengthOf(g_vcMapTileTypeName) == vcMTT_Count, "Update array");
+	return g_vcMapTileTypeName[pSettings->maptiles.mapTileType];
 }

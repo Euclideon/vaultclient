@@ -120,6 +120,7 @@
   "settingsMapsTileServerLoading": "Loading... Please Wait",
   "settingsMapsTileServerErrorFetching": "Error fetching texture from url",
   "settingsMapsTileServerImageFormat": "Image Format",
+  "settingsMapsTileType": "Map Type",
   "settingsMapsTileServerCloseButton": "Close",
   "settingsMapsMapHeight": "Map Height",
   "settingsMapsHybrid": "Hybrid",

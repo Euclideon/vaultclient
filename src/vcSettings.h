@@ -68,10 +68,13 @@ enum vcMapTileServerFlag
 	vcMTSF_Count
 };
 
-const char g_vcMapTileServerName[vcMTSF_Count][64] = {
-	{ "unknown" },
-	{ "slippy" },
-	{ "google" }
+enum vcMapTileType
+{
+	vcMTT_Plan,		//Planar map
+	vcMTT_Image,	//Image map
+	vcMTT_Terrain,	//Terrain map
+
+	vcMTT_Count
 };
 
 enum vcPresentationMode
@@ -252,6 +255,7 @@ struct vcSettings
     bool mouseInteracts;
 
 	vcMapTileServerFlag serverFlag;
+	vcMapTileType		mapTileType;
   } maptiles;
 
   struct
@@ -357,5 +361,7 @@ udResult vcSettings_RegisterAssetFileHandler();
 udResult vcSettings_UpdateLanguageOptions(vcSettings *pSettings);
 
 void vcSettings_UpdateServerFlag(vcSettings *pSettings);
+
+const char * vcSettings_GetMapTileTypeName(vcSettings *pSettings);
 
 #endif // !vcSettings_h__

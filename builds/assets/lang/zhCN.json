@@ -119,6 +119,7 @@
   "settingsMapsTileServerLoading": "加载中",
   "settingsMapsTileServerErrorFetching": "从URL获取纹理时出错",
   "settingsMapsTileServerImageFormat": "图片格式",
+  "settingsMapsTileType": "地图类型",
   "settingsMapsTileServerCloseButton": "关闭",
   "settingsMapsMapHeight": "地图高度",
   "settingsMapsHybrid": "模型和地图融合",

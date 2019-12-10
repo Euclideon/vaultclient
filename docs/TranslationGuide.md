@@ -292,6 +292,7 @@ Modules are currently:
 - `settingsMapsTileServerLoading`: Message displayed in tile server window while vault client tries contacting the specified server
 - `settingsMapsTileServerErrorFetching`: Message displayed in tile server window when vault client fails to contact the specified server
 - `settingsMapsTileServerImageFormat`: Label next to dropdown list for selecting the file format of images obtained from the tile server
+- `settingsMapsTileType`: Label next to dropdown list for map types
 - `settingsMapsTileServerCloseButton`: Label used on button for closing tile server window
 - `settingsMapsMapHeight`: Label next to slider for setting the height of map tiles in the scene
 - `settingsMapsHybrid`: Option in map blending dropdown list, will display map tiles only over scene objects which are below the specified map height

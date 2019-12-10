@@ -90,7 +90,8 @@
     "mapHeight": 0.000000,
     "mouseInteracts": true,
     "serverURL": "http://slippy.vault.euclideon.com",
-    "imgExtension": "png"
+    "imgExtension": "png",
+    "mapTileType": 0
   },
   "dock": [
     {
