@@ -44,6 +44,7 @@
 #include "vcStringFormat.h"
 #include "vcInternalTexturesData.h"
 #include "vcHotkey.h"
+#include "vcConstants.h"
 
 #include "gl/vcGLState.h"
 #include "gl/vcFramebuffer.h"
@@ -773,8 +774,8 @@ int main(int argc, char **args)
 
   programState.settings.camera.lockAltitude = false;
   programState.settings.camera.moveSpeed = 3.f;
-  programState.settings.camera.nearPlane = 0.5f;
-  programState.settings.camera.farPlane = 10000.f;
+  programState.settings.camera.nearPlane = s_CameraNearPlane;
+  programState.settings.camera.farPlane = s_CameraFarPlane;
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
   // Dock setting
@@ -1214,7 +1215,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
 void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderData, bool doSelect)
 {
-  const double farPlaneDist = 3 * (pProgramState->settings.camera.farPlane * pProgramState->settings.camera.farPlane);
+  const double farPlaneDist = pProgramState->settings.camera.farPlane * pProgramState->settings.camera.farPlane;
 
   // We have to resolve UD vs. Polygon
   bool selectUD = pProgramState->pickingSuccess && (pProgramState->udModelPickedIndex != -1); // UD was successfully picked (last frame)

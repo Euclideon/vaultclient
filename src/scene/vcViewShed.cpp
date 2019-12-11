@@ -54,7 +54,7 @@ void vcViewShed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   vcViewShedData *pViewShed = pRenderData->viewSheds.PushBack();
   pViewShed->position = m_position;
   pViewShed->fieldOfView = UD_DEG2RADf(120.0f);
-  pViewShed->nearFarPlane = udFloat2::create((float)m_distance / 10000.f, (float)m_distance);
+  pViewShed->viewDistance = (float)m_distance;
   pViewShed->visibleColour = vcIGSW_BGRAToImGui(m_visibleColour);
   pViewShed->notVisibleColour = vcIGSW_BGRAToImGui(m_hiddenColour);
 }
