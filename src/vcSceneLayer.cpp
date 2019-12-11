@@ -934,13 +934,24 @@ void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode)
   udFree(pNode->pAttributeData);
 
   for (size_t i = 0; i < pNode->childrenCount; ++i)
+  {
+    udFree(pNode->pChildren[i].pURL); // parents are responsible for this memory
     vcSceneLayer_RecursiveDestroyNode(&pNode->pChildren[i]);
+  }
 
   udFree(pNode->pChildren);
-  udFree(pNode->pURL);
   udFree(pNode->pID);
+  // Note: `pNode->pURL` is not cleaned up here - remember the parent is responsible for that memory
 
-  memset(pNode, 0, sizeof(vcSceneLayerNode));
+  pNode->sharedResourceCount = 0;
+  pNode->attributeDataCount = 0;
+  pNode->textureDataCount = 0;
+  pNode->featureDataCount = 0;
+  pNode->geometryDataCount = 0;
+  pNode->childrenCount = 0;
+
+  pNode->loadState = vcSceneLayerNode::vcLS_NotLoaded;
+  pNode->internalsLoadState = vcSceneLayerNode::vcILS_None;
 }
 
 udResult vcSceneLayer_Destroy(vcSceneLayer **ppSceneLayer)
@@ -968,6 +979,7 @@ udResult vcSceneLayer_Destroy(vcSceneLayer **ppSceneLayer)
   udReleaseMutex(gSceneLayer.loadQueue.pLock);
 
   vcSceneLayer_RecursiveDestroyNode(&pSceneLayer->root);
+  udFree(pSceneLayer->root.pURL);
   pSceneLayer->description.Destroy();
 
   udFile_Close(&pSceneLayer->pFile);

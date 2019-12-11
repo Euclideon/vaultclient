@@ -48,7 +48,7 @@ struct vcSceneLayerNode
 
   int level;
   char *pID;
-  const char *pURL;
+  const char *pURL; // Note: the parent of this node is responsible for this memory. Placing this memory here just simplifies the loading processes of nodes.
   vcSceneLayerNode *pChildren;
   size_t childrenCount;
 
