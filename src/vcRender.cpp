@@ -146,9 +146,10 @@ struct vcRenderContext
     struct
     {
       udFloat4 screenParams;  // sampleStepX, sampleStepSizeY, near plane, far plane
+      udFloat4 saturation;
     } params;
 
-  } fxaaShader;
+  } postEffectsShader;
 
   struct
   {
@@ -263,7 +264,7 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderPanorama.pProgram, g_vcSkyboxVertexShaderPanorama, g_vcSkyboxFragmentShaderPanorama, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->skyboxShaderTintImage.pProgram, g_vcSkyboxVertexShaderImageColour, g_vcSkyboxFragmentShaderImageColour, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.splatIdShader.pProgram, g_udVertexShader, g_udSplatIdFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->fxaaShader.pProgram, g_FXAAVertexShader, g_FXAAFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->postEffectsShader.pProgram, g_PostEffectsVertexShader, g_PostEffectsFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
 
   UD_ERROR_CHECK(vcTexture_AsyncCreateFromFilename(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pWorkerPool, "asset://assets/skyboxes/WaterClouds.jpg", vcTFM_Linear));
   UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
@@ -296,10 +297,10 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.splatIdShader.uniform_depth, pRenderContext->udRenderContext.splatIdShader.pProgram, "u_depth"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.splatIdShader.uniform_texture, pRenderContext->udRenderContext.splatIdShader.pProgram, "u_texture"), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_Bind(pRenderContext->fxaaShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->fxaaShader.uniform_texture, pRenderContext->fxaaShader.pProgram, "u_texture"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->fxaaShader.uniform_depth, pRenderContext->fxaaShader.pProgram, "u_depth"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->fxaaShader.uniform_params, pRenderContext->fxaaShader.pProgram, "u_params", sizeof(pRenderContext->fxaaShader.params)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_Bind(pRenderContext->postEffectsShader.pProgram), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->postEffectsShader.uniform_texture, pRenderContext->postEffectsShader.pProgram, "u_texture"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->postEffectsShader.uniform_depth, pRenderContext->postEffectsShader.pProgram, "u_depth"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->postEffectsShader.uniform_params, pRenderContext->postEffectsShader.pProgram, "u_params", sizeof(pRenderContext->postEffectsShader.params)), udR_InternalError);
 
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->blurShader.pProgram, g_BlurVertexShader, g_BlurFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_Bind(pRenderContext->blurShader.pProgram), udR_InternalError);
@@ -359,7 +360,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
 
   vcShader_DestroyShader(&pRenderContext->udRenderContext.presentShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->visualizationShader.pProgram);
-  vcShader_DestroyShader(&pRenderContext->fxaaShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->postEffectsShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->shadowShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->skyboxShaderPanorama.pProgram);
   vcShader_DestroyShader(&pRenderContext->skyboxShaderTintImage.pProgram);
@@ -669,12 +670,9 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
   }
 }
 
-void vcRender_FXAAPass(vcState *pProgramState, vcRenderContext *pRenderContext)
+void vcRender_PostProcessPass(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
   udUnused(pProgramState);
-
-  if (!pProgramState->settings.presentation.antiAliasingOn)
-    return;
 
   vcGLState_SetBlendMode(vcGLSBM_None);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
@@ -683,14 +681,15 @@ void vcRender_FXAAPass(vcState *pProgramState, vcRenderContext *pRenderContext)
   pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
   vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0x00FF8080);
 
-  vcShader_Bind(pRenderContext->fxaaShader.pProgram);
-  vcShader_BindTexture(pRenderContext->fxaaShader.pProgram, pRenderContext->pTexture[1 - pRenderContext->activeRenderTarget], 0, pRenderContext->fxaaShader.uniform_texture);
-  vcShader_BindTexture(pRenderContext->fxaaShader.pProgram, pRenderContext->pDepthTexture[1 - pRenderContext->activeRenderTarget], 1, pRenderContext->fxaaShader.uniform_depth);
+  vcShader_Bind(pRenderContext->postEffectsShader.pProgram);
+  vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->pTexture[1 - pRenderContext->activeRenderTarget], 0, pRenderContext->postEffectsShader.uniform_texture);
+  vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->pDepthTexture[1 - pRenderContext->activeRenderTarget], 1, pRenderContext->postEffectsShader.uniform_depth);
 
-  pRenderContext->fxaaShader.params.screenParams.x = (1.0f / pRenderContext->sceneResolution.x);
-  pRenderContext->fxaaShader.params.screenParams.y = (1.0f / pRenderContext->sceneResolution.y);
+  pRenderContext->postEffectsShader.params.screenParams.x = (1.0f / pRenderContext->sceneResolution.x);
+  pRenderContext->postEffectsShader.params.screenParams.y = (1.0f / pRenderContext->sceneResolution.y);
+  pRenderContext->postEffectsShader.params.saturation.x = pProgramState->settings.presentation.saturation;
 
-  vcShader_BindConstantBuffer(pRenderContext->fxaaShader.pProgram, pRenderContext->fxaaShader.uniform_params, &pRenderContext->fxaaShader.params, sizeof(pRenderContext->fxaaShader.params));
+  vcShader_BindConstantBuffer(pRenderContext->postEffectsShader.pProgram, pRenderContext->postEffectsShader.uniform_params, &pRenderContext->postEffectsShader.params, sizeof(pRenderContext->postEffectsShader.params));
 
   vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
@@ -994,11 +993,8 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
 void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   udUnused(pProgramState);
-  udUnused(pRenderContext);
 
-  // Would be nice to use 'pRenderContext->activeRenderTarget' here, but this causes
-  // a single frame 'flicker' if options are changed at run time.
-  renderData.pSceneTexture = pRenderContext->pTexture[pProgramState->settings.presentation.antiAliasingOn ? 0 :  1];
+  renderData.pSceneTexture = pRenderContext->pTexture[pRenderContext->activeRenderTarget];
   renderData.sceneScaling = udFloat2::one();
 
   pRenderContext->activeRenderTarget = 0;
@@ -1147,8 +1143,6 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcRenderTerrain(pProgramState, pRenderContext);
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
 
-  vcRender_FXAAPass(pProgramState, pRenderContext);
-
   if (selectionBufferActive)
     vcRender_ApplySelectionBuffer(pProgramState, pRenderContext);
 
@@ -1192,6 +1186,9 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
     vcGLState_ResetState();
   }
 
+  vcRender_PostProcessPass(pProgramState, pRenderContext);
+
+  vcGLState_ResetState();
   vcShader_Bind(nullptr);
   vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 }

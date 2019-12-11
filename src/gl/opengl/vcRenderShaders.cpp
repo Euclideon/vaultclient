@@ -1180,7 +1180,7 @@ const char *const g_udGPURenderGeomGeometryShader = FRAG_HEADER R"shader(
   }
 )shader";
 
-const char *const g_FXAAVertexShader = FRAG_HEADER R"shader(
+const char *const g_PostEffectsVertexShader = FRAG_HEADER R"shader(
 //Input format
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_texCoord;
@@ -1192,10 +1192,12 @@ out vec2 v_edgeSampleUV1;
 out vec2 v_edgeSampleUV2;
 out vec2 v_edgeSampleUV3;
 out vec2 v_sampleStepSize;
+out float v_saturation;
 
 layout (std140) uniform u_params
 {
   vec4 u_screenParams;  // sampleStepSizex, sampleStepSizeY, (unused), (unused)
+  vec4 u_saturation; // saturation, (unused), (unused), (unused)
 };
 
 void main()
@@ -1209,10 +1211,12 @@ void main()
   v_edgeSampleUV1 = v_uv - u_screenParams.xy;
   v_edgeSampleUV2 = v_uv + vec2(u_screenParams.x, -u_screenParams.y);
   v_edgeSampleUV3 = v_uv + vec2(-u_screenParams.x, u_screenParams.y);
+
+  v_saturation = u_saturation.x;
 }
 )shader";
 
-const char *const g_FXAAFragmentShader = FRAG_HEADER R"shader(
+const char *const g_PostEffectsFragmentShader = FRAG_HEADER R"shader(
 
 /*
 ============================================================================
@@ -1444,6 +1448,13 @@ FxaaFloat4 FxaaPixelShader(
     return FxaaFloat4(FxaaTexTop(tex, posM).xyz, lumaM);
 }
 
+vec3 saturation(vec3 rgb, float adjustment)
+{
+  const vec3 W = vec3(0.2125, 0.7154, 0.0721);
+  float intensity = dot(rgb, W);
+  return mix(vec3(intensity), rgb, adjustment);
+}
+
 uniform sampler2D u_texture;
 uniform sampler2D u_depth;
   
@@ -1454,13 +1465,15 @@ in vec2 v_edgeSampleUV1;
 in vec2 v_edgeSampleUV2;
 in vec2 v_edgeSampleUV3;
 in vec2 v_sampleStepSize;
+in float v_saturation;
 
 //Output Format
 out vec4 out_Colour;
 
 void main()
 {
-	float depth = texture(u_depth, v_uv).x;
+  vec4 colour = vec4(0.0, 0.0, 0.0, 0.0);
+  float depth = texture(u_depth, v_uv).x;
 
   // only run FXAA on edges (simple edge detection)
   float depth0 = texture(u_depth, v_edgeSampleUV0).x;
@@ -1472,25 +1485,18 @@ void main()
   float isEdge = 1.0 - (step(abs(depth0 - depth), edgeThreshold) * step(abs(depth1 - depth), edgeThreshold) * step(abs(depth2 - depth), edgeThreshold) * step(abs(depth3 - depth), edgeThreshold));
   if (isEdge == 0.0)
   {
-    out_Colour = texture(u_texture, v_uv);
-    return;
+    colour = texture(u_texture, v_uv);
+  }
+  else
+  {
+    colour = FxaaPixelShader(v_uv, vec4(0), u_texture, u_texture, u_texture, v_sampleStepSize,
+                             vec4(0), vec4(0), vec4(0),
+                             0.75,  //fxaaQualitySubpix
+                             0.125, // fxaaQualityEdgeThreshold
+                             0.0, // fxaaQualityEdgeThresholdMin
+                             0, 0, vec4(0.0));
   }
    
-  vec4 color = FxaaPixelShader(
-    v_uv,
-    vec4(0),
-    u_texture,
-    u_texture,
-    u_texture,
-    v_sampleStepSize,
-    vec4(0),
-    vec4(0),
-    vec4(0),
-    0.75,  //fxaaQualitySubpix
-    0.125, // fxaaQualityEdgeThreshold
-    0.0, // fxaaQualityEdgeThresholdMin
-    0, 0, vec4(0.0));
-   
-  out_Colour = vec4(color.xyz, 1.0);
+  out_Colour = vec4(saturation(colour.xyz, v_saturation), 1.0);
 }
 )shader";
