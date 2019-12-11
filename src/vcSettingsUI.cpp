@@ -64,7 +64,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
         ImGui::Unindent();
       }
 
-      ImGui::Checkbox(vcString::Get("settingsAppearanceEnableAntiAliasing"), &pProgramState->settings.presentation.antiAliasingOn);
+      ImGui::SliderFloat(vcString::Get("settingsAppearanceSaturation"), &pProgramState->settings.presentation.saturation, 0.0f, 5.0f);
 
       const char *presentationOptions[] = { vcString::Get("settingsAppearanceHide"), vcString::Get("settingsAppearanceShow"), vcString::Get("settingsAppearanceResponsive") };
       if (ImGui::Combo(vcString::Get("settingsAppearancePresentationUI"), (int*)&pProgramState->settings.responsiveUI, presentationOptions, (int)udLengthOf(presentationOptions)))

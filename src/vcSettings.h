@@ -123,7 +123,7 @@ struct vcSettings
     bool showSkybox;
     udFloat4 skyboxColour;
 
-    bool antiAliasingOn;
+    float saturation;
 
     vcAnchorStyle mouseAnchor;
     bool showCompass;
