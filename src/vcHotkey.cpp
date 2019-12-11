@@ -91,10 +91,7 @@ namespace vcHotkey
 
   bool IsDown(int keyNum)
   {
-    if (target != -1)
-      return false;
-
-    return ImGui::GetIO().KeysDown[keyNum];
+    return ImGui::GetIO().KeysDown[keyNum & 0x1FF];
   }
 
   bool IsDown(vcBind key)
@@ -134,41 +131,42 @@ namespace vcHotkey
       return;
     }
 
-    const char *pStrings[5] = {};
+    const char *strings[5] = {};
+    const char *strings[6] = {};
 
     if ((key & vcMOD_Shift) == vcMOD_Shift)
-      pStrings[0] = "Shift + ";
+      strings[0] = "Shift + ";
     else
-      pStrings[0] = "";
+      strings[0] = "";
 
     if ((key & vcMOD_Ctrl) == vcMOD_Ctrl)
-      pStrings[1] = "Ctrl + ";
+      strings[1] = "Ctrl + ";
     else
-      pStrings[1] = "";
+      strings[1] = "";
 
     if ((key & vcMOD_Alt) == vcMOD_Alt)
-      pStrings[2] = "Alt + ";
+      strings[2] = "Alt + ";
     else
-      pStrings[2] = "";
+      strings[2] = "";
 
     if ((key & vcMOD_Super) == vcMOD_Super)
     {
 #ifdef UDPLATFORM_WINDOWS
-      pStrings[3] = "Win + ";
+      strings[3] = "Win + ";
 #elif UDPLATFORM_OSX
-      pStrings[3] = "Cmd + ";
+      strings[3] = "Cmd + ";
 #else
-      pStrings[3] = "Super + ";
+      strings[3] = "Super + ";
 #endif
     }
     else
     {
-      pStrings[3] = "";
+      strings[3] = "";
     }
 
-    pStrings[4] = SDL_GetScancodeName((SDL_Scancode)(key & 0x1FF));
-
-    vcStringFormat(pBuffer, bufferLen, "{0}{1}{2}{3}{4}", pStrings, 5);
+    strings[4] = SDL_GetScancodeName((SDL_Scancode)(mappedKey & 0x1FF));
+    strings[5] = key >= vcB_Forward && key <= vcB_Down ? ", [Shift] Speed + | [Ctrl] Speed -" : "";
+    vcStringFormat(pBuffer, bufferLen, "{0}{1}{2}{3}{4}{5}", strings, 5);
   }
 
   void GetKeyName(vcBind key, char *pBuffer, uint32_t bufferLen)
@@ -280,8 +278,8 @@ namespace vcHotkey
 
     ImGui::Columns(3);
     ImGui::SetColumnWidth(0, 125);
-    ImGui::SetColumnWidth(1, 125);
-    ImGui::SetColumnWidth(2, 650);
+    ImGui::SetColumnWidth(1, 175);
+    ImGui::SetColumnWidth(2, 600);
 
     // Header Row
     ImGui::SetWindowFontScale(1.05f);
@@ -323,8 +321,7 @@ namespace vcHotkey
 
       ImGui::NextColumn();
 
-      // TODO: Document/reconsider limitation of 50 chars
-      char key[50];
+      char key[100];
       GetPendingKeyName((vcBind)i, key, (uint32_t)udLengthOf(key));
       ImGui::TextUnformatted(key);
 

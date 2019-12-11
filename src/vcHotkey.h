@@ -14,12 +14,16 @@ enum modifierFlags
 
 enum vcBind
 {
+  // Down bindings
   vcB_Forward,
   vcB_Backward,
   vcB_Left,
   vcB_Up,
   vcB_Right,
   vcB_Down,
+  vcB_Space,
+
+  // Other Bindings
   vcB_Remove,
   vcB_Cancel,
   vcB_LockAltitude,

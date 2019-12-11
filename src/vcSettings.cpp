@@ -267,10 +267,17 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_Bindings || group == vcSC_All)
   {
-    for (int i = 0; i < vcB_Count; ++i)
-      vcHotkey::Set((vcBind)i, vcHotkey::DecodeKeyString(data.Get("keys.%s", vcHotkey::GetBindName((vcBind)i)).AsString()));
+    if (!data.Get("keys").IsObject())
+    {
+      vcSettings_Load(pSettings, true, vcSC_Bindings);
+    }
+    else
+    {
+      for (int i = 0; i < vcB_Count; ++i)
+        vcHotkey::Set((vcBind)i, data.Get("keys.%s", vcHotkey::GetBindName((vcBind)i)).AsInt());
 
-    vcHotkey::ApplyPendingChanges();
+      vcHotkey::ApplyPendingChanges();
+    }
   }
 
   if (group == vcSC_All)
@@ -658,10 +665,7 @@ bool vcSettings_Save(vcSettings *pSettings)
 
   char keyBuffer[50] = {};
   for (size_t i = 0; i < vcB_Count; ++i)
-  {
-    vcHotkey::GetKeyName((vcBind)i, keyBuffer, (uint32_t)udLengthOf(keyBuffer));
-    data.Set("keys.%s = '%s'", vcHotkey::GetBindName((vcBind)i), keyBuffer);
-  }
+    data.Set("keys.%s = %d", vcHotkey::GetBindName((vcBind)i), vcHotkey::Get((vcBind)i));
 
   int depth = 0;
   ImGuiDockNode *pRootNode = ImGui::DockBuilderGetNode(pSettings->rootDock);

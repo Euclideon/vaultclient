@@ -542,7 +542,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
         mouseInput.y = mouseWheel / 10.f;
         mouseInput.z = 0.0;
         previousLockTime = currentTime;
-
+        
         pProgramState->cameraInput.startPosition = pProgramState->camera.position;
       }
     }
@@ -562,7 +562,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     pProgramState->cameraInput.inputState = vcCIS_None;
   }
 
-  // Apply movement and rotation
+  // Apply movement and rotationf
   pProgramState->cameraInput.keyboardInput = keyboardInput;
   pProgramState->cameraInput.mouseInput = mouseInput;
 
