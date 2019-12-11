@@ -68,7 +68,7 @@ struct vcViewShedData
   //udUInt2 resolution; // TODO
   udDouble3 position;
   float fieldOfView;
-  udFloat2 nearFarPlane;
+  float viewDistance;
   udFloat4 visibleColour;
   udFloat4 notVisibleColour;
 };

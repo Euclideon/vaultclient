@@ -10,6 +10,7 @@
 #include "vcCompass.h"
 #include "vcState.h"
 #include "vcVoxelShaders.h"
+#include "vcConstants.h"
 
 #include "vcInternalModels.h"
 #include "vcSceneLayerRenderer.h"
@@ -107,7 +108,7 @@ struct vcRenderContext
 
     struct
     {
-      udFloat4 screenParams;  // sampleStepX, sampleStepSizeY, near plane, far plane
+      udFloat4 screenParams;  // sampleStepX, sampleStepSizeY, (unused), (unused)
       udFloat4x4 inverseViewProjection;
       udFloat4x4 inverseProjection;
 
@@ -164,7 +165,7 @@ struct vcRenderContext
       udFloat4x4 inverseProjection;
       udFloat4 visibleColour;
       udFloat4 notVisibleColour;
-      udFloat4 nearFarPlane; // .zw unused
+      udFloat4 viewDistance; // .yzw unused
     } params;
 
   } shadowShader;
@@ -717,9 +718,6 @@ void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRender
   vcShader_BindTexture(pRenderContext->visualizationShader.pProgram, pRenderContext->pTexture[1 - pRenderContext->activeRenderTarget], 0, pRenderContext->visualizationShader.uniform_texture);
   vcShader_BindTexture(pRenderContext->visualizationShader.pProgram, pRenderContext->pDepthTexture[1 - pRenderContext->activeRenderTarget], 1, pRenderContext->visualizationShader.uniform_depth);
 
-  float nearPlane = pProgramState->settings.camera.nearPlane;
-  float farPlane = pProgramState->settings.camera.farPlane;
-
   // edge outlines
   int outlineWidth = pProgramState->settings.postVisualization.edgeOutlines.width;
   float outlineEdgeThreshold = pProgramState->settings.postVisualization.edgeOutlines.threshold;
@@ -761,8 +759,6 @@ void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRender
   pRenderContext->visualizationShader.fragParams.inverseProjection = udFloat4x4::create(udInverse(pProgramState->camera.matrices.projection));
   pRenderContext->visualizationShader.fragParams.screenParams.x = (1.0f / pRenderContext->sceneResolution.x);
   pRenderContext->visualizationShader.fragParams.screenParams.y = (1.0f / pRenderContext->sceneResolution.y);
-  pRenderContext->visualizationShader.fragParams.screenParams.z = nearPlane;
-  pRenderContext->visualizationShader.fragParams.screenParams.w = farPlane;
   pRenderContext->visualizationShader.fragParams.outlineColour = outlineColour;
   pRenderContext->visualizationShader.fragParams.outlineParams.x = (float)outlineWidth;
   pRenderContext->visualizationShader.fragParams.outlineParams.y = outlineEdgeThreshold;
@@ -824,8 +820,8 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
     vcViewShedData *pViewShedData = &renderData.viewSheds[v];
 
     vcCameraSettings cameraSettings = {};
-    cameraSettings.nearPlane = pViewShedData->nearFarPlane.x;
-    cameraSettings.farPlane = pViewShedData->nearFarPlane.y;
+    cameraSettings.nearPlane = s_CameraNearPlane;
+    cameraSettings.farPlane = s_CameraFarPlane;
     cameraSettings.fieldOfView = pViewShedData->fieldOfView;
 
     // set up cameras for these renders
@@ -889,7 +885,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
     }
 
     pRenderContext->shadowShader.params.inverseProjection = udFloat4x4::create(udInverse(pProgramState->camera.matrices.projection));
-    pRenderContext->shadowShader.params.nearFarPlane = udFloat4::create(pViewShedData->nearFarPlane.x, pViewShedData->nearFarPlane.y, 0.0f, 0.0f);
+    pRenderContext->shadowShader.params.viewDistance = udFloat4::create(pViewShedData->viewDistance, 0.0f, 0.0f, 0.0f);
     pRenderContext->shadowShader.params.visibleColour = pViewShedData->visibleColour;
     pRenderContext->shadowShader.params.notVisibleColour = pViewShedData->notVisibleColour;
 
@@ -1153,11 +1149,13 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   vcRenderSkybox(pProgramState, pRenderContext); // Drawing skybox after opaque geometry saves a bit on fill rate.
   vcRenderTerrain(pProgramState, pRenderContext);
+
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
 
   if (selectionBufferActive)
     vcRender_ApplySelectionBuffer(pProgramState, pRenderContext);
 
+  // Draw Compass
   if (pProgramState->settings.presentation.mouseAnchor != vcAS_None && (pProgramState->pickingSuccess || pProgramState->isUsingAnchorPoint))
   {
     udDouble4x4 mvp = pProgramState->camera.matrices.viewProjection * udDouble4x4::translation(pProgramState->isUsingAnchorPoint ? pProgramState->worldAnchorPoint : pProgramState->worldMousePosCartesian);
@@ -1408,6 +1406,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
 
   renderOptions.pFilter = renderData.pQueryFilter;
   renderOptions.pointMode = (vdkRenderContextPointMode)pProgramState->settings.presentation.pointMode;
+  renderOptions.flags = vdkRF_LogarithmicDepth;
 
   vdkError result = vdkRenderContext_Render(pRenderContext->udRenderContext.pRenderer, pRenderView, pModels, numVisibleModels, &renderOptions);
 
@@ -1550,8 +1549,14 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 
   if (result.success)
   {
+    // reconstruct clip depth from log z
+    float a = pProgramState->settings.camera.farPlane / (pProgramState->settings.camera.farPlane - pProgramState->settings.camera.nearPlane);
+    float b = pProgramState->settings.camera.farPlane * pProgramState->settings.camera.nearPlane / (pProgramState->settings.camera.nearPlane - pProgramState->settings.camera.farPlane);
+    double worldDepth = udPow(2.0, pickDepth * udLog2(pProgramState->settings.camera.farPlane + 1.0)) - 1.0;
+    double depth = a + b / worldDepth;
+
     // note: upside down (1.0 - uv.y)
-    udDouble4 clipPos = udDouble4::create(pRenderContext->currentMouseUV.x * 2.0 - 1.0, (1.0 - pRenderContext->currentMouseUV.y) * 2.0 - 1.0, pickDepth, 1.0);
+    udDouble4 clipPos = udDouble4::create(pRenderContext->currentMouseUV.x * 2.0 - 1.0, (1.0 - pRenderContext->currentMouseUV.y) * 2.0 - 1.0, depth, 1.0);
 #if GRAPHICS_API_OPENGL
     clipPos.z = clipPos.z * 2.0 - 1.0;
 #endif
