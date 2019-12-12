@@ -104,6 +104,13 @@ project "vaultClient"
 		includedirs { "3rdParty" }
 		files { "3rdParty/GL/glext.h" }
 
+	filter { "system:android" }
+		links { "m", "android", "SDL2", "GLESv3" }
+		sysincludedirs { "3rdParty/SDL2-2.0.8/include" }
+		includedirs { "3rdParty" }
+		libdirs { "3rdParty/SDL2-2.0.8/lib/android/%{cfg.platform}" }
+		kind "SharedLib"
+
 	filter { "system:macosx" }
 		files { "macOS-Info.plist", "icons/macOSAppIcons.icns" }
 		frameworkdirs { "/Library/Frameworks/" }

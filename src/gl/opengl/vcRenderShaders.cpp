@@ -1,7 +1,7 @@
 #include "gl/vcRenderShaders.h"
 #include "udPlatformUtil.h"
 
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_EMSCRIPTEN
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_EMSCRIPTEN || UDPLATFORM_ANDROID
 # define FRAG_HEADER "#version 300 es\nprecision highp float;\n"
 # define VERT_HEADER "#version 300 es\n"
 #else
@@ -1258,7 +1258,7 @@ DAMAGES.
 #define FxaaHalf2 vec2
 #define FxaaHalf3 vec3
 #define FxaaHalf4 vec4
-#define FxaaInt2 ivec2
+#define FxaaInt2 vec2
 #define FxaaSat(x) clamp(x, 0.0, 1.0)
 #define FxaaTex sampler2D
 
@@ -1489,12 +1489,12 @@ void main()
   }
   else
   {
-    colour = FxaaPixelShader(v_uv, vec4(0), u_texture, u_texture, u_texture, v_sampleStepSize,
-                             vec4(0), vec4(0), vec4(0),
+    colour = FxaaPixelShader(v_uv, vec4(0.0, 0.0, 0.0, 0.0), u_texture, u_texture, u_texture, v_sampleStepSize,
+                             vec4(0.0, 0.0, 0.0, 0.0), vec4(0.0, 0.0, 0.0, 0.0), vec4(0.0, 0.0, 0.0, 0.0),
                              0.75,  //fxaaQualitySubpix
                              0.125, // fxaaQualityEdgeThreshold
                              0.0, // fxaaQualityEdgeThresholdMin
-                             0, 0, vec4(0.0));
+                             0.0, 0.0, vec4(0.0, 0.0, 0.0, 0.0));
   }
    
   out_Colour = vec4(saturation(colour.xyz, v_saturation), 1.0);

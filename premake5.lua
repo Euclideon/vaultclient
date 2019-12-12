@@ -215,6 +215,8 @@ solution "vaultClient"
 		filter { "system:emscripten" }
 			disablewarnings "string-plus-int"
 		filter {}
+	elseif os.target() == "android" or os.target() == "ios" then
+		platforms { "x64", "arm64" }
 	else
 		platforms { "x64" }
 	end
@@ -280,6 +282,10 @@ solution "vaultClient"
 	removeflags { "FatalWarnings" }
 
 	dofile "project.lua"
+
+	if os.target() == "android" then
+		dofile "buildscripts/android/packaging.lua"
+	end
 
 	if os.target() ~= premake.IOS and os.target() ~= premake.ANDROID and os.target() ~= "emscripten" then
 		dofile "vcConvertCMD/project.lua"

@@ -29,7 +29,9 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
   glGetError(); // throw out first error
 
+#if !UDPLATFORM_ANDROID
   glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &g_maxAnisotropy);
+#endif
 
   memset(&g_defaultFramebuffer, 0, sizeof(vcFramebuffer));
 
@@ -113,7 +115,7 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
 
   if (s_internalState.fillMode != fillMode || force)
   {
-#if !UDPLATFORM_IOS && !UDPLATFORM_IOS_SIMULATOR && !UDPLATFORM_EMSCRIPTEN
+#if !UDPLATFORM_IOS && !UDPLATFORM_IOS_SIMULATOR && !UDPLATFORM_EMSCRIPTEN && !UDPLATFORM_ANDROID
     if (fillMode == vcGLSFM_Solid)
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     else

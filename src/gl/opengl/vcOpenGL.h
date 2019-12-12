@@ -14,6 +14,9 @@
 # include "GL/gl.h"
 # include "GL/glu.h"
 # include "GL/glext.h"
+#elif UDPLATFORM_ANDROID
+#include <GLES3/gl3.h>
+#include <GLES3/gl3ext.h>
 #else
 # include "GL/glew.h"
 #endif

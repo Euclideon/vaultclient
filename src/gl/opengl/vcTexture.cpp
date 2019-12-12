@@ -28,7 +28,7 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
   case vcTextureFormat_BGRA8:
     textureFormat = GL_RGBA8;
     pixelType = GL_UNSIGNED_BYTE;
-#if UDPLATFORM_EMSCRIPTEN
+#if UDPLATFORM_EMSCRIPTEN || UDPLATFORM_ANDROID
     pixelFormat = GL_RGBA; // TODO: Fix this
 #else
     pixelFormat = GL_BGRA;
@@ -41,12 +41,14 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
     pixelFormat = GL_DEPTH_COMPONENT;
     pixelSize = 4;
     break;
+#if VCGL_HASSTENCIL
   case vcTextureFormat_D24S8:
     textureFormat = GL_DEPTH24_STENCIL8;
     pixelType = GL_UNSIGNED_INT_24_8;
     pixelFormat = GL_DEPTH_STENCIL;
     pixelSize = 4;
     break;
+#endif
 
   case vcTextureFormat_Unknown: // fall through
   case vcTextureFormat_Count:
@@ -92,7 +94,11 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   if (aniFilter > 0)
   {
     int32_t realAniso = vcGLState_GetMaxAnisotropy(aniFilter);
+#if UDPLATFORM_ANDROID
+    udUnused(realAniso);
+#else
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, realAniso);
+#endif
   }
 
   glTexImage2D(GL_TEXTURE_2D, 0, textureFormat, width, height, 0, pixelFormat, pixelType, pPixels);
@@ -233,7 +239,7 @@ udResult vcTexture_GetSize(vcTexture *pTexture, int *pWidth, int *pHeight)
 
 bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels, vcFramebuffer *pFramebuffer)
 {
-  if (pFramebuffer == nullptr || pTexture == nullptr || pPixels == nullptr || int(x + width) > pTexture->width || int(y + height) > pTexture->height)
+  if (pFramebuffer == nullptr || pTexture == nullptr || pPixels == nullptr || int(x + width) > pTexture->width || int(y + height) > pTexture->height || UDPLATFORM_ANDROID)
     return false;
 
   if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)
@@ -246,6 +252,7 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
   vcTexture_GetFormatAndPixelSize(pTexture->format, nullptr, nullptr, &pixelType, &pixelFormat);
 
   UD_ERROR_IF(!vcFramebuffer_Bind(pFramebuffer), udR_InternalError);
+  VERIFY_GL();
 
   // Only asychronously transfer if texture is configured for it
   if ((pTexture->flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
@@ -254,8 +261,10 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
     glBindBuffer(GL_PIXEL_PACK_BUFFER, pTexture->pbos[pTexture->pboIndex]);
     pPixelBuffer = nullptr;
   }
+  VERIFY_GL();
 
   glReadPixels(x, y, width, height, pixelFormat, pixelType, pPixelBuffer);
+  VERIFY_GL();
 
   if ((pTexture->flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
     glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
