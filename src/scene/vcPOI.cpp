@@ -153,31 +153,34 @@ bool vcPOI::GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int 
     udDouble3 segment = m_line.pPoints[seg1] - m_line.pPoints[seg0];
     double segmentLength = udMag3(segment) - segmentProgress;
 
-    if (!m_line.closed && seg0 == m_line.numPoints - 1)
+    if (totalDist + segmentLength > distance)
     {
-      if (pPoint != nullptr)
-        *pPoint = m_line.pPoints[seg0];
+      if (!m_line.closed && seg0 == m_line.numPoints - 1)
+      {
+        if (pPoint != nullptr)
+          *pPoint = m_line.pPoints[0];
 
-      if (pSegmentIndex != nullptr)
-        *pSegmentIndex = seg0;
+        if (pSegmentIndex != nullptr)
+          *pSegmentIndex = 0;
 
-      if (pSegmentProgress != nullptr)
-        *pSegmentProgress = 0.0;
+        if (pSegmentProgress != nullptr)
+          *pSegmentProgress = 0.0;
 
-      return true;
-    }
-    else if (totalDist + segmentLength > distance)
-    {
-      if (pPoint != nullptr)
-        *pPoint = m_line.pPoints[seg0] + udNormalize(segment) * (distance - totalDist + segmentProgress);
+        return true;
+      }
+      else
+      {
+        if (pPoint != nullptr)
+          *pPoint = m_line.pPoints[seg0] + udNormalize(segment) * (distance - totalDist + segmentProgress);
 
-      if (pSegmentIndex != nullptr)
-        *pSegmentIndex = seg0;
+        if (pSegmentIndex != nullptr)
+          *pSegmentIndex = seg0;
 
-      if (pSegmentProgress != nullptr)
-        *pSegmentProgress = (distance - totalDist + segmentProgress);
+        if (pSegmentProgress != nullptr)
+          *pSegmentProgress = (distance - totalDist + segmentProgress);
 
-      return true;
+        return true;
+      }
     }
     else
     {
