@@ -21,9 +21,12 @@ jobs:
       curl -O https://www.libsdl.org/release/SDL2-2.0.8.dmg
       /usr/bin/hdiutil attach -noverify -noautoopen SDL2-2.0.8.dmg
       sudo cp -af /Volumes/SDL2/SDL2.framework /Library/Frameworks/
+      curl -sL "https://github.com/zellski/FBXSDK-Darwin/archive/2019.2.tar.gz" | tar xz --strip-components=1 --include */sdk/
+      brew install zstd
+      zstd -d -r --rm sdk
     displayName: 'Install dependencies'
   - template: azure-pipelines-steps-linkedvdk.yml
-  - script: 3rdParty/udcore/bin/premake-bin/premake5-osx xcode4 --gfxapi=${{ parameters.gfxapi }}
+  - script: 3rdParty/udcore/bin/premake-bin/premake5-osx xcode4 --gfxapi=${{ parameters.gfxapi }} --fbxsdk=$(Build.SourcesDirectory)/sdk/Darwin/2019.2
     displayName: 'Run Premake'
   - task: Xcode@5
     displayName: 'Build Projects'

@@ -305,6 +305,8 @@ vcLiveFeed::vcLiveFeed(vdkProject *pProject, vdkProjectNode *pNode, vcState *pPr
   m_oldestFeedUpdate = m_newestFeedUpdate;
   m_fetchNow = true;
 
+  m_labelLODModifier = 1.0;
+
   OnNodeUpdate(pProgramState);
 
   m_loadStatus = vcSLS_Pending;
@@ -321,6 +323,8 @@ void vcLiveFeed::OnNodeUpdate(vcState *pProgramState)
   vdkProjectNode_GetMetadataDouble(m_pNode, "updateFrequency", &m_updateFrequency, 30.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayTime", &m_decayFrequency, 300.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayDistance", &m_maxDisplayDistance, 50000.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "lodModifier", &m_labelLODModifier, 1.0);
+
   vdkProjectNode_GetMetadataBool(m_pNode, "tweenEnabled", &m_tweenPositionAndOrientation, true);
 
   ChangeProjection(pProgramState->gis.zone);
@@ -383,7 +387,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       vcLiveFeedItemLOD &lodRef = pFeedItem->lodLevels[lodI];
 
-      if (lodRef.distance != 0.0 && distanceSq > (lodRef.distance*lodRef.distance) / (pFeedItem->minBoundingRadius * pFeedItem->minBoundingRadius))
+      if (lodRef.distance != 0.0 && distanceSq / m_labelLODModifier > (lodRef.distance*lodRef.distance) / (pFeedItem->minBoundingRadius * pFeedItem->minBoundingRadius))
         continue;
 
       if (lodRef.sspixels != 0.0)
@@ -441,7 +445,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         }
 
         if (pModel != nullptr)
-          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, { pModel }, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition), nullptr, false, this, (uint64_t)(i+1) });
+          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, { pModel }, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition), nullptr, vcGLSCM_Back, true, this, (uint64_t)(i+1) });
       }
 
       break; // We got to the end so we should stop
@@ -511,6 +515,18 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
       {
         m_maxDisplayDistance = udClamp(m_maxDisplayDistance, displayDistanceMinValue, displayDistanceMaxValue);
         vdkProjectNode_SetMetadataDouble(m_pNode, "maxDisplayDistance", m_maxDisplayDistance);
+      }
+    }
+
+    // LOD Distances
+    {
+      const double minLODModifier = 0.01;
+      const double maxLODModifier = 5.0;
+
+      if (ImGui::SliderScalar(vcString::Get("liveFeedLODModifier"), ImGuiDataType_Double, &m_labelLODModifier, &minLODModifier, &maxLODModifier, "%.2f", 2.f))
+      {
+        m_labelLODModifier = udClamp(m_labelLODModifier, minLODModifier, maxLODModifier);
+        vdkProjectNode_SetMetadataDouble(m_pNode, "lodModifier", m_labelLODModifier);
       }
     }
 

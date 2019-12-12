@@ -2,12 +2,25 @@
 
 ## Changelist
 
+- Version 0.4.1
+  - Added:
+    - Scene
+      - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
+      - Polygon Meshes
+        - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`
+    - Scene Explorer
+      - `scenePOIAttachCameraToAttachment`, `liveFeedLODModifier`
+  - Changed:
+    - 
+  - Removed:
+    - `polyModelInvertFaces`
+
 - Version 0.4.0
   - Added:
     - Settings
       - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `settingsAppearanceLoginRenderLicense`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`,`settingsControlsControllerInvertY`, `settingsAppearanceShowEuclideonLogo`
     - Scene Explorer
-      - `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `sceneExplorerSetButton`, `scenePOILabelImageTypeOriented`, `scenePOIAttachModel`, `scenePOIAttachModelURI`, `scenePOIAttachModelFailed`, `scenePOIAttachmentSpeed`
+      - `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `sceneExplorerSetButton`, `scenePOILabelImageTypeOriented`, `scenePOIAttachModel`, `scenePOIAttachModelURI`, `scenePOIAttachModelFailed`, `scenePOIAttachmentSpeed`, `sceneExplorerCompareModels`
     - Viewport (New Node Types)
       - View Sheds
         - `sceneAddViewShed`, `sceneExplorerViewShedDefaultName`, `viewShedDistance`, `viewShedVisibleColour`, `viewShedHiddenColour`
@@ -523,6 +536,11 @@ Modules are currently:
 - `sceneAddFilterSphere`: Context menu option when right clicking in the scene to add a new Sphere filter
 - `sceneAddFilterCylinder`: Context menu option when right clicking in the scene to add a new Cylinder filter
 - `sceneResetRotation`: Menu option when right-clicking within the scene, rotates the camera to default orientation
+
+- `sceneCameraAttachmentWarning` Warning text at the top of the window when the camera is attached to a scene item
+  - {0} the name of the scene item the camera is attached to
+- `sceneCameraAttachmentDetach` Button at the top of the screen to detach the camera when it is attached to a scene item
+
 - `sceneLockAltitude`: Tooltip displayed when mouse is hovered over the Lock Altitude button in the viewport controls window
 - `sceneLockAltitudeKey`: Used in Lock Altitude tooltip, shown in brackets
 - `sceneCameraInfo`: Tooltip displayed when mouse is hovered over the Show Camera Information button in the viewport controls window
@@ -572,6 +590,7 @@ Modules are currently:
 - `sceneExplorerUseProjection`: Menu option when right-clicking on an item in the Scene Explorer, changes the current SRID to that of the selected scene item
 - `sceneExplorerMoveTo`: Menu option when right-clicking on an item in the Scene Explorer, moves the camera to the location of the selected item
 - `sceneExplorerResetPosition`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to that position if it has been moved
+- `sceneExplorerCompareModels`: Menu option when right-clicking on an item in the Scene Explorer that can be compared with another item, a model with displacement values will be generated on disk.
 - `sceneExplorerPathURL`: Label next to the text box containing the path of the currently selected file
 - `sceneExplorerLoadButton`: Label used for the Load button in the Add UDS and Import Project windows which loads the currently selected file and closes the window
 - `sceneExplorerExportButton`: Label used for the Export button in the Export Project window which saves the content of the current scene to the specified location and closes the window
@@ -636,6 +655,8 @@ Modules are currently:
 - `scenePOIAttachModelURI`: The label beside the URL box when attaching a model
 - `scenePOIAttachModelFailed`: Error message that appears when the model fails to load
 - `scenePOIAttachmentSpeed`: Label beside slider that sets the speed for attached model
+- `scenePOIAttachCameraToAttachment`: The label on the context menu to link the camera to the attached model
+
 - `scenePOILineSettings`: The header for the expansion for the other line settings
 - `scenePOILineShowLength`: Label on the checkbox for when the user wants the length displayed on the label in the scene
 - `scenePOILineShowAllLengths`: Label on the checkbox that will show each individual segment line length
@@ -681,9 +702,13 @@ Modules are currently:
   - {1} total number of visible items
   - {2} number of second until the next update (or negative for seconds since starting the last update)
 - `liveFeedGroupID`: When in `liveFeedModeGroups` mode, this is the input for the Group ID. [Will eventually be a drop down to select by group name]
+- `liveFeedLODModifier`: Label on slider that modifies the distance at which to show particular levels of detail on live feed item labels
 
 #### Polygon Models
-- `polyModelInvertFaces`: Label on check box to invert the winding order of the triangles
+- `polyModelCullFace`: Label on combo box to select which face culling mode
+- `polyModelCullFaceBack`: Combo box item for back-face culling (default setting)
+- `polyModelCullFaceFront`: Combo box item for front-face culling (inverted faces)
+- `polyModelCullFaceNone`: Combo box item for no-culling (not recommended)
 - `polyModelMesh`: Used on the label next to mesh information in the scene explorer with "Show Diagnostic Information" enabled 
 - `polyModelTexture`: Used on the label next to mesh texture information in the scene explorer with "Show Diagnostic Information" enabled 
 - `polyModelMatColour`: Used on the label next to mesh material colour information in the scene explorer with "Show Diagnostic Information" enabled 

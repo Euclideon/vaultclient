@@ -4,9 +4,11 @@ Known Issues In Current Release
   - Please see https://dev.azure.com/euclideon/vaultclient/_workitems/recentlyupdated for up to date information
   - Corrupted UDS files silently fail without notifying the user
   - An issue is preventing macOS users from running the build directly because of signing issues
-  - View Sheds don't work on polygon models
   - Intermittent crash when moving between SLPK/OBJ models
-  - Conversion to FBX has been disabled
+
+Version 0.4.1
+  - Reenabled FBX on Windows and macOS
+  - Viewsheds work on polygon models
 
 Version 0.4.0
   - Conversion Improvements

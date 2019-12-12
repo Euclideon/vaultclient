@@ -93,7 +93,7 @@ void vcQueryNode::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
     pInstance->worldMat = this->GetWorldSpaceMatrix();
     pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
-    pInstance->insideOut = true;
+    pInstance->cullFace = vcGLSCM_Front;
     pInstance->pSceneItem = this;
   }
 
@@ -115,9 +115,9 @@ void vcQueryNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   vdkProjectNode_SetMetadataDouble(m_pNode, "size.y", m_extents.y);
   vdkProjectNode_SetMetadataDouble(m_pNode, "size.z", m_extents.z);
 
-  vdkProjectNode_SetMetadataDouble(m_pNode, "tranform.rotation.y", m_ypr.x);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "tranform.rotation.p", m_ypr.y);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "tranform.rotation.r", m_ypr.z);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_ypr.x);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_ypr.y);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
 }
 
 void vcQueryNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
