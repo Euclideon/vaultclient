@@ -3,31 +3,23 @@
 ## Changelist
 - Version 0.5.0
   - Added:
-    - `menuBindings`, `settingsAppearanceSaturation`
+    - Menus
+      - `menuBindings`, `settingsAppearanceSaturation`
     - Bindings Interface
       - `bindingsModalTitle`, `bindingsModalClose`, `bindingsModalSave`, `bindingsModalDefaults`, `bindingsColumnName`, `bindingsColumnKeyCombination`, `bindingsColumnDescriptions`, `bindingsErrorUnbound`, `bindingsClear`
-      - Bindings Key Descriptions
-        - `bindingsLockAltitude`, `bindingsGizmoTranslate`, `bindingsGizmoRotate`, `bindingsGizmoScale`, `bindingsGizmoLocalSpace`, `bindingsFullscreen`, `bindingsAddUDS`, `bindingsRemove`, `bindingsCameraForward`, `bindingsCameraBackward`, `bindingsCameraLeft`, `bindingsCameraRight`, `bindingsCameraUp`, `bindingsCameraDown`, `bindingsBindingsInterface`, `bindingsClose`, `bindingsRenameSceneItem`, `bindingsSave`, `bindingsLoad`
-  - Changed:
-    - 
-  - Removed:
-    - Key Bindings
-	  - `sceneLockAltitudeKey`, `sceneGizmoTranslateKey`, `sceneGizmoRotateKey`, `sceneGizmoScaleKey`, `sceneGizmoLocalSpaceKey`, `sceneFullscreenKey`, `sceneMapModeKey`, `sceneExplorerRemoveKey`, `sceneExplorerAddUDSKey`
-
-- Version 0.4.1
-  - Added:
+    - Bindings Key Descriptions
+      - `bindingsLockAltitude`, `bindingsGizmoTranslate`, `bindingsGizmoRotate`, `bindingsGizmoScale`, `bindingsGizmoLocalSpace`, `bindingsFullscreen`, `bindingsAddUDS`, `bindingsRemove`, `bindingsCameraForward`, `bindingsCameraBackward`, `bindingsCameraLeft`, `bindingsCameraRight`, `bindingsCameraUp`, `bindingsCameraDown`, `bindingsBindingsInterface`, `bindingsClose`, `bindingsRenameSceneItem`, `bindingsSave`, `bindingsLoad`
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
-      - Polygon Meshes
-        - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`, `polyModelIgnoreTint`
-    - Scene Explorer
-      - `scenePOIAttachCameraToAttachment`, `liveFeedLODModifier`, `sceneModelMetreScale`, `sceneModelLODLayers`, `sceneModelResolution`, `sceneModelAttributes`
-    - Other
-      - `attributeType`, Lots of `attributeType*` strings, `attributeBlending`, `attributeBlendingMean`, `attributeBlendingSingle`, `attributeBlendingUnknown`
+    - Polygon Meshes
+      - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`, `polyModelIgnoreTint`
   - Changed:
     - 
   - Removed:
-    - `polyModelInvertFaces`, `menuBarConnectionStatus`
+    - Legacy Key Bindings
+	    - `sceneLockAltitudeKey`, `sceneGizmoTranslateKey`, `sceneGizmoRotateKey`, `sceneGizmoScaleKey`, `sceneGizmoLocalSpaceKey`, `sceneFullscreenKey`, `sceneMapModeKey`, `sceneExplorerRemoveKey`, `sceneExplorerAddUDSKey`
+    - Other
+      - `polyModelInvertFaces`, `menuBarConnectionStatus`
 	
 - Version 0.4.0
   - Added:

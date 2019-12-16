@@ -150,3 +150,7 @@ Makefile
 /builds/imgui_dock.layout
 /builds/userguide
 Android
+/ARM64/
+/bin/
+/x64/
+/*.androidproj
