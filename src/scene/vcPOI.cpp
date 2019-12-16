@@ -137,62 +137,51 @@ bool vcPOI::GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int 
   if (m_line.numPoints < 2)
     return false;
 
-  double totalDist = 0.0;
   double segmentProgress = (pSegmentProgress == nullptr ? 0.0 : *pSegmentProgress);
+  double totalDist = 0;
 
-  int startPoint = 0;
-
-  if (pSegmentIndex != nullptr)
-    startPoint = udMax(0, *pSegmentIndex);
-
-  for (int i = startPoint; i < m_line.numPoints || m_line.closed; ++i)
+  int i = (pSegmentIndex != nullptr) ? udMax(0, *pSegmentIndex) : 0;
+  while (true)
   {
-    int seg0 = i % m_line.numPoints;
-    int seg1 = (i + 1) % m_line.numPoints;
+    int p0 = i % m_line.numPoints;
+    int p1 = (i + 1) % m_line.numPoints;
 
-    udDouble3 segment = m_line.pPoints[seg1] - m_line.pPoints[seg0];
-    double segmentLength = udMag3(segment) - segmentProgress;
+    udDouble3 segment = m_line.pPoints[p1] - m_line.pPoints[p0];
+    double segmentLength = udMag3(segment);
 
-    if (!m_line.closed && seg0 == m_line.numPoints - 1)
+    if (totalDist + (segmentLength - segmentProgress) > distance)
     {
-      if (pPoint != nullptr)
-        *pPoint = m_line.pPoints[seg0];
+      segmentProgress += (distance - totalDist);
 
       if (pSegmentIndex != nullptr)
-        *pSegmentIndex = seg0;
+        *pSegmentIndex = p0;
 
+      if (pPoint != nullptr)
+        *pPoint = m_line.pPoints[p0] + udNormalize(segment) * segmentProgress;
+
+      if (pSegmentProgress != nullptr)
+        *pSegmentProgress = segmentProgress;
+
+      return true;
+    }
+    else if (!m_line.closed && p1 == m_line.numPoints - 1)
+    {
       if (pSegmentProgress != nullptr)
         *pSegmentProgress = 0.0;
 
-      return true;
-    }
-    else if (totalDist + segmentLength > distance)
-    {
       if (pPoint != nullptr)
-        *pPoint = m_line.pPoints[seg0] + udNormalize(segment) * (distance - totalDist + segmentProgress);
+        *pPoint = m_line.pPoints[0];
 
       if (pSegmentIndex != nullptr)
-        *pSegmentIndex = seg0;
+        *pSegmentIndex = 0;
 
-      if (pSegmentProgress != nullptr)
-        *pSegmentProgress = (distance - totalDist + segmentProgress);
+      return false;
+    }
 
-      return true;
-    }
-    else
-    {
-      totalDist += segmentLength;
-      segmentProgress = 0.0;
-    }
+    totalDist += (segmentLength - segmentProgress);
+    segmentProgress = 0;
+    ++i;
   }
-
-  if (pSegmentIndex != nullptr)
-    *pSegmentIndex = 0;
-
-  if (pSegmentProgress != nullptr)
-    *pSegmentProgress = 0.0;
-
-  return false;
 }
 
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -244,7 +233,6 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   {
     double remainingMovementThisFrame = m_attachment.moveSpeed * pProgramState->deltaTime;
     udDouble3 startYPR = m_attachment.eulerAngles;
-    udDouble3 startPosDiff = pProgramState->camera.position - m_attachment.currentPos;
 
     udDouble3 updatedPosition = {};
 
@@ -278,6 +266,7 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     // Update the camera if the camera is coming along
     if (pProgramState->cameraInput.pAttachedToSceneItem == this && m_cameraFollowingAttachment)
     {
+      udDouble3 startPosDiff = pProgramState->camera.position - m_attachment.currentPos;
       udRay<double> rotRay = udRay<double>::create(startPosDiff, udDirectionFromYPR(pProgramState->camera.eulerRotation));
       rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.z.toVector3(), m_attachment.eulerAngles.x - startYPR.x);
       rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.x.toVector3(), m_attachment.eulerAngles.y - startYPR.y);
@@ -296,7 +285,6 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     else
     {
       double remainingMovementThisFrame = pProgramState->settings.camera.moveSpeed * pProgramState->deltaTime;
-      udDouble3 startYPR = pProgramState->camera.eulerRotation;
 
       udDouble3 updatedPosition = {};
 
@@ -306,9 +294,8 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       }
       else
       {
-        udDouble3 direction = updatedPosition - pProgramState->camera.position;
-        udDouble3 endYPR = udDirectionToYPR(direction == udDouble3::zero() ? m_line.pPoints[m_line.numPoints - 1] - m_line.pPoints[m_line.numPoints - 2] : direction);
-        pProgramState->camera.eulerRotation = udSlerp(udDoubleQuat::create(startYPR), udDoubleQuat::create(endYPR), 0.2).eulerAngles();
+        udDouble3 endYPR = udDirectionToYPR(updatedPosition - pProgramState->camera.position);
+        pProgramState->camera.eulerRotation = udSlerp(udDoubleQuat::create(pProgramState->camera.eulerRotation), udDoubleQuat::create(endYPR), 0.2).eulerAngles();
       }
 
       pProgramState->camera.position = updatedPosition;
@@ -554,12 +541,16 @@ void vcPOI::HandleContextMenu(vcState *pProgramState)
     if (ImGui::MenuItem(vcString::Get("scenePOIPerformFlyThrough")))
     {
       pProgramState->cameraInput.pAttachedToSceneItem = this;
+      m_flyThrough.segmentIndex = m_attachment.segmentIndex;
+      m_flyThrough.segmentProgress = 0.0;
       m_cameraFollowingAttachment = false;
     }
 
     if (m_attachment.pModel != nullptr && ImGui::MenuItem(vcString::Get("scenePOIAttachCameraToAttachment")))
     {
       pProgramState->cameraInput.pAttachedToSceneItem = this;
+      m_flyThrough.segmentIndex = m_attachment.segmentIndex;
+      m_flyThrough.segmentProgress = 0.0;
       m_cameraFollowingAttachment = true;
     }
 
