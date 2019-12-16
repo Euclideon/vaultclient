@@ -452,7 +452,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     keyboardInput.x += vcHotkey::IsDown(vcB_Right) - vcHotkey::IsDown(vcB_Left);
     keyboardInput.z += vcHotkey::IsDown(vcB_Up) - vcHotkey::IsDown(vcB_Down);
 
-    if (vcHotkey::IsPressed(vcB_LockAltitude))
+    if (vcHotkey::IsPressed(vcB_LockAltitude, false))
       pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
     if (vcHotkey::IsPressed(vcB_GizmoTranslate))
       pProgramState->gizmo.operation = ((pProgramState->gizmo.operation == vcGO_Translate) ? vcGO_NoGizmo : vcGO_Translate);
@@ -542,7 +542,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
         mouseInput.y = mouseWheel / 10.f;
         mouseInput.z = 0.0;
         previousLockTime = currentTime;
-        
+
         pProgramState->cameraInput.startPosition = pProgramState->camera.position;
       }
     }
@@ -562,7 +562,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     pProgramState->cameraInput.inputState = vcCIS_None;
   }
 
-  // Apply movement and rotationf
+  // Apply movement and rotation
   pProgramState->cameraInput.keyboardInput = keyboardInput;
   pProgramState->cameraInput.mouseInput = mouseInput;
 

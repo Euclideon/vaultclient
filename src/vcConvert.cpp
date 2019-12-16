@@ -388,7 +388,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
       pSelectedJob = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem];
   }
   ImGui::EndChild();
-  
+
   // Options pane --------------------------------
   ImGui::NextColumn();
 

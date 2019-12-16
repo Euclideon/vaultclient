@@ -91,6 +91,17 @@ namespace vcHotkey
 
   bool IsDown(int keyNum)
   {
+    ImGuiIO io = ImGui::GetIO();
+
+    if (keyNum == vcMOD_Shift)
+      return io.KeyShift;
+    if (keyNum == vcMOD_Ctrl)
+      return io.KeyCtrl;
+    if (keyNum == vcMOD_Alt)
+      return io.KeyAlt;
+    if (keyNum == vcMOD_Super)
+      return io.KeySuper;
+
     return ImGui::GetIO().KeysDown[keyNum & 0x1FF];
   }
 
@@ -99,28 +110,31 @@ namespace vcHotkey
     return IsDown(keyBinds[key]);
   }
 
-  bool IsPressed(int keyNum)
+  bool IsPressed(int keyNum, bool unique)
   {
     if (target != -1)
       return false;
 
     ImGuiIO io = ImGui::GetIO();
 
-    if (((keyNum & vcMOD_Shift) == vcMOD_Shift) != io.KeyShift)
-      return false;
-    if (((keyNum & vcMOD_Ctrl) == vcMOD_Ctrl) != io.KeyCtrl)
-      return false;
-    if (((keyNum & vcMOD_Alt) == vcMOD_Alt) != io.KeyAlt)
-      return false;
-    if (((keyNum & vcMOD_Super) == vcMOD_Super) != io.KeySuper)
-      return false;
+    if (unique)
+    {
+      if (((keyNum & vcMOD_Shift) == vcMOD_Shift) != io.KeyShift)
+        return false;
+      if (((keyNum & vcMOD_Ctrl) == vcMOD_Ctrl) != io.KeyCtrl)
+        return false;
+      if (((keyNum & vcMOD_Alt) == vcMOD_Alt) != io.KeyAlt)
+        return false;
+      if (((keyNum & vcMOD_Super) == vcMOD_Super) != io.KeySuper)
+        return false;
+    }
 
     return ImGui::IsKeyPressed((keyNum & 0x1FF), false);
   }
 
-  bool IsPressed(vcBind key)
+  bool IsPressed(vcBind key, bool unique)
   {
-    return IsPressed(keyBinds[key]);
+    return IsPressed(keyBinds[key], unique);
   }
 
   void NameFromKey(int key, char *pBuffer, uint32_t bufferLen)

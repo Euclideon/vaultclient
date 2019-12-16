@@ -1579,7 +1579,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
         for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
           allowedControls = (vcGizmoAllowedControls)(allowedControls & ((vcSceneItem*)ref.pItem->pUserData)->GetAllowedControls());
 
-        vcGizmo_Manipulate(&pProgramState->camera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, temp, &delta, allowedControls, vcHotkey::IsDown(vcB_Space) ? snapAmt : 0.0);
+        vcGizmo_Manipulate(&pProgramState->camera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : 0.0);
 
         if (!(delta == udDouble4x4::identity()))
         {
