@@ -11,10 +11,12 @@
 #include "vcState.h"
 #include "vcVoxelShaders.h"
 #include "vcConstants.h"
+#include "vcAtmosphereRenderer.h"
 
 #include "vcInternalModels.h"
 #include "vcSceneLayerRenderer.h"
 #include "vcCamera.h"
+#include "udStringUtil.h"
 
 #include "stb_image.h"
 #include <vector>
@@ -97,6 +99,8 @@ struct vcRenderContext
   vcFramebuffer *pAuxiliaryFramebuffers[2];
   vcTexture *pAuxiliaryTextures[2];
   udUInt2 effectResolution;
+
+  vcAtmosphereRenderer *pAtmosphereRenderer;
 
   struct
   {
@@ -271,7 +275,7 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->udRenderContext.splatIdShader.pProgram, g_udVertexShader, g_udSplatIdFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->postEffectsShader.pProgram, g_PostEffectsVertexShader, g_PostEffectsFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
 
-  UD_ERROR_CHECK(vcTexture_AsyncCreateFromFilename(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pWorkerPool, "asset://assets/skyboxes/WaterClouds.jpg", vcTFM_Linear));
+  UD_ERROR_CHECK(vcTexture_AsyncCreateFromFilename(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pWorkerPool, "asset://assets/skyboxes/stars.jpg", vcTFM_Linear));
   UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
 
   UD_ERROR_IF(!vcShader_Bind(pRenderContext->visualizationShader.pProgram), udR_InternalError);
@@ -319,6 +323,8 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
 
   UD_ERROR_CHECK(vcPolygonModel_CreateShaders());
   UD_ERROR_CHECK(vcImageRenderer_Init());
+
+  UD_ERROR_CHECK(vcAtmosphereRenderer_Create(&pRenderContext->pAtmosphereRenderer));
 
   UD_ERROR_IF(!vcShader_Bind(nullptr), udR_InternalError);
 
@@ -385,6 +391,8 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
 
   UD_ERROR_CHECK(vcTileRenderer_Destroy(&pRenderContext->pTileRenderer));
   UD_ERROR_CHECK(vcFenceRenderer_Destroy(&pRenderContext->pDiagnosticFences));
+
+  UD_ERROR_CHECK(vcAtmosphereRenderer_Destroy(&pRenderContext->pAtmosphereRenderer));
 
   UD_ERROR_CHECK(vcInternalModels_Deinit());
   result = udR_Success;
@@ -603,6 +611,14 @@ void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
   vcGLState_SetViewportDepthRange(0.0f, 1.0f);
 
   vcShader_Bind(nullptr);
+}
+
+void vcRenderAtmosphere(vcState *pProgramState, vcRenderContext *pRenderContext)
+{
+  pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0x000000ff);
+
+  vcAtmosphereRenderer_Render(pRenderContext->pAtmosphereRenderer, pProgramState, pRenderContext->pTexture[1 - pRenderContext->activeRenderTarget], pRenderContext->pDepthTexture[1 - pRenderContext->activeRenderTarget]);
 }
 
 void vcRender_SplatUDWithId(vcState *pProgramState, vcRenderContext *pRenderContext, float id)
@@ -1002,7 +1018,9 @@ void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext
 {
   udUnused(pProgramState);
 
-  renderData.pSceneTexture = pRenderContext->pTexture[pRenderContext->activeRenderTarget];
+  // Would be nice to use 'pRenderContext->activeRenderTarget' here, but this causes
+  // a single frame 'flicker' if options are changed at run time.
+  renderData.pSceneTexture = pRenderContext->pTexture[0];//pProgramState->settings.presentation.antiAliasingOn ? 0 : 1];
   renderData.sceneScaling = udFloat2::one();
 
   pRenderContext->activeRenderTarget = 0;
@@ -1134,12 +1152,11 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
     vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
     vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
   }
-
+  
   bool selectionBufferActive = vcRender_CreateSelectionBuffer(pProgramState, pRenderContext, renderData);
-
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
   vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
-
+  
   vcRender_OpaquePass(pProgramState, pRenderContext, renderData); // first pass
   vcRender_VisualizationPass(pProgramState, pRenderContext);
 
@@ -1151,6 +1168,8 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcRenderTerrain(pProgramState, pRenderContext);
 
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
+
+  vcRenderAtmosphere(pProgramState, pRenderContext);
 
   if (selectionBufferActive)
     vcRender_ApplySelectionBuffer(pProgramState, pRenderContext);

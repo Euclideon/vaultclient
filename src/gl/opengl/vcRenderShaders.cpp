@@ -1547,3 +1547,255 @@ void main()
   out_Colour = vec4(saturation(colour.xyz, v_saturation), 1.0);
 }
 )shader";
+
+
+const char *const g_AtmosphereVertexShader = R"shader(
+    #version 330
+
+    layout (std140) uniform u_vertParams
+    {
+      mat4 u_modelFromView;
+      mat4 u_viewFromClip;
+    };
+
+    uniform ;
+    uniform ;
+    layout(location = 0) in vec4 vertex;
+    out vec3 view_ray;
+    out vec2 v_uv;
+    void main() {
+      view_ray =
+          (u_modelFromView * vec4((u_viewFromClip * vertex).xyz, 0.0)).xyz;
+      gl_Position = vertex;
+      v_uv = vertex.xy * vec2(0.5, 0.5) + vec2(0.5, 0.5);
+}
+)shader";
+
+/**
+ * Copyright (c) 2017 Eric Bruneton
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holders nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
+const char *const g_AtmosphereFragmentShader = R"shader(
+
+layout (std140) uniform u_fragParams
+{
+  vec4 u_camera; // (camera position).xyz, exposure.w
+  vec4 u_white_point; // w unused
+  vec4 u_earth_center; // w unused
+  vec4 u_sun_direction;// w unused
+  vec4 u_sun_size; //zw unused
+  mat4 u_inverseViewProjection;
+};
+
+uniform sampler2D u_sceneColour;
+uniform sampler2D u_sceneDepth;
+
+in vec3 view_ray;
+in vec2 v_uv;
+layout(location = 0) out vec4 color;
+
+const vec3 kGroundAlbedo = vec3(0.0, 0.0, 0.04);
+
+#ifdef USE_LUMINANCE
+#define GetSolarRadiance GetSolarLuminance
+#define GetSkyRadiance GetSkyLuminance
+#define GetSkyRadianceToPoint GetSkyLuminanceToPoint
+#define GetSunAndSkyIrradiance GetSunAndSkyIlluminance
+#endif
+
+vec3 GetSolarRadiance();
+vec3 GetSkyRadiance(vec3 camera, vec3 view_ray, float shadow_length,
+    vec3 sun_direction, out vec3 transmittance);
+vec3 GetSkyRadianceToPoint(vec3 camera, vec3 point, float shadow_length,
+    vec3 sun_direction, out vec3 transmittance);
+vec3 GetSunAndSkyIrradiance(
+    vec3 p, vec3 normal, vec3 sun_direction, out vec3 sky_irradiance);
+
+float GetSunVisibility(vec3 point, vec3 sun_direction, float sceneDepth) {
+  return float(sceneDepth == 1.0);
+}
+
+float GetSkyVisibility(vec3 point, float sceneDepth) {
+  return float(sceneDepth == 1.0);
+} 
+
+void GetSphereShadowInOut(vec3 view_direction, vec3 sun_direction,
+    out float d_in, out float d_out) {
+    d_in = 0.0;
+    d_out = 0.0;
+}
+
+void main()
+{
+  vec3 camera = u_camera.xyz;
+  float exposure = u_camera.w;
+  vec3 earth_center = u_earth_center.xyz;
+  vec3 sun_direction = u_sun_direction.xyz;
+  vec2 sun_size = u_sun_size.xy;
+
+  // Normalized view direction vector.
+  vec3 view_direction = normalize(view_ray);
+  // Tangent of the angle subtended by this fragment.
+  float fragment_angular_size =
+      length(dFdx(view_ray) + dFdy(view_ray)) / length(view_ray);
+
+  float sceneDepth = texture(u_sceneDepth, v_uv).x;
+  vec4 sceneColour = texture(u_sceneColour, v_uv);
+  sceneColour.xyz = pow(sceneColour.xyz, vec3(2.2));
+
+  gl_FragDepth = sceneDepth;
+
+  float shadow_in;
+  float shadow_out;
+  //GetSphereShadowInOut(view_direction, sun_direction, shadow_in, shadow_out);
+
+  // Hack to fade out light shafts when the Sun is very close to the horizon.
+  float lightshaft_fadein_hack = smoothstep(
+      0.02, 0.04, dot(normalize(camera - earth_center), sun_direction));
+
+/*
+<p>We then test whether the view ray intersects the sphere S or not. If it does,
+we compute an approximate (and biased) opacity value, using the same
+approximation as in <code>GetSunVisibility</code>:
+*/
+
+  float distance_to_geom_intersection = sqrt(-1.0);
+  vec4 worldPos = u_inverseViewProjection * vec4(v_uv * 2.0 - vec2(1.0), sceneDepth * 2.0 - 1.0, 1.0);
+  worldPos /= worldPos.w;
+
+  // Compute the distance between the view ray line and the sphere center,
+  // and the distance between the camera and the intersection of the view
+  // ray with the sphere (or NaN if there is no intersection).
+  vec3 p = worldPos.xyz;
+  float p_dot_v = dot(p, view_direction);
+  float p_dot_p = dot(p, p);
+
+  if (sceneDepth < 1.0)
+    distance_to_geom_intersection = length(camera - p);
+
+  // Compute the radiance reflected by the sphere, if the ray intersects it.
+  float geometry_alpha = 0.0;
+  vec3 geometry_radiance = vec3(0.0);
+  if (distance_to_geom_intersection > 0.0) {
+    geometry_alpha = 1.0;
+
+/*
+<p>We can then compute the intersection point and its normal, and use them to
+get the sun and sky irradiance received at this point. The reflected radiance
+follows, by multiplying the irradiance with the sphere BRDF:
+*/
+    vec3 point = camera + view_direction * distance_to_geom_intersection;
+    vec3 normal = vec3(0,0,1);//normalize(point - kSphereCenter);
+
+    // Compute the radiance reflected by the sphere.
+    vec3 sky_irradiance;
+    vec3 sun_irradiance = GetSunAndSkyIrradiance(
+        point - earth_center, normal, sun_direction, sky_irradiance);
+    geometry_radiance =
+        sceneColour.xyz * (1.0 / PI) * (sun_irradiance + sky_irradiance);
+
+/*
+<p>Finally, we take into account the aerial perspective between the camera and
+the sphere, which depends on the length of this segment which is in shadow:
+*/
+    float shadow_length = 0;
+    vec3 transmittance;
+    vec3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,
+        point - earth_center, shadow_length, sun_direction, transmittance);
+    geometry_radiance = geometry_radiance * transmittance + in_scatter;// * (1.0 - height_scatter_blend_hack);
+  }
+
+/*
+<p>In the following we repeat the same steps as above, but for the planet sphere
+P instead of the sphere S (a smooth opacity is not really needed here, so we
+don't compute it. Note also how we modulate the sun and sky irradiance received
+on the ground by the sun and sky visibility factors):
+*/
+
+  // Compute the distance between the view ray line and the Earth center,
+  // and the distance between the camera and the intersection of the view
+  // ray with the ground (or NaN if there is no intersection).
+  p = camera - earth_center;
+  p_dot_v = dot(p, view_direction);
+  p_dot_p = dot(p, p);
+  float ray_earth_center_squared_distance = p_dot_p - p_dot_v * p_dot_v;
+  float distance_to_intersection = -p_dot_v - sqrt(
+      earth_center.z * earth_center.z - ray_earth_center_squared_distance);
+
+  // Compute the radiance reflected by the ground, if the ray intersects it.
+  float ground_alpha = 0.0;
+  vec3 ground_radiance = vec3(0.0);
+  if (distance_to_intersection > 0.0) {
+    vec3 point = camera + view_direction * distance_to_intersection;
+    vec3 normal = normalize(point - earth_center);
+
+    // Compute the radiance reflected by the ground.
+    vec3 sky_irradiance;
+    vec3 sun_irradiance = GetSunAndSkyIrradiance(
+        point - earth_center, normal, sun_direction, sky_irradiance);
+    ground_radiance = kGroundAlbedo * (1.0 / PI) * (
+        sun_irradiance * GetSunVisibility(point, sun_direction, sceneDepth) +
+        sky_irradiance * GetSkyVisibility(point, sceneDepth));
+
+
+    float shadow_length =
+        max(0.0, min(shadow_out, distance_to_intersection) - shadow_in) *
+        lightshaft_fadein_hack;
+    vec3 transmittance;
+    vec3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,
+        point - earth_center, shadow_length, sun_direction, transmittance);
+    ground_radiance = ground_radiance * transmittance + in_scatter;// * height_scatter_blend_hack;
+    ground_alpha = 1.0;
+  }
+
+/*
+<p>Finally, we compute the radiance and transmittance of the sky, and composite
+together, from back to front, the radiance and opacities of all the objects of
+the scene:
+*/
+
+  // Compute the radiance of the sky.
+  float shadow_length = max(0.0, shadow_out - shadow_in) *
+      lightshaft_fadein_hack;
+  vec3 transmittance;
+  vec3 radiance = GetSkyRadiance(
+      camera - earth_center, view_direction, shadow_length, sun_direction,
+      transmittance);
+
+  // If the view ray intersects the Sun, add the Sun radiance.
+  if (dot(view_direction, sun_direction) > sun_size.y) {
+    radiance = radiance + transmittance * GetSolarRadiance();
+  }
+
+  radiance = mix(radiance, ground_radiance, ground_alpha);
+  radiance = mix(radiance, geometry_radiance, geometry_alpha);
+
+  color.rgb = 
+      pow(vec3(1.0) - exp(-radiance / u_white_point.xyz * exposure), vec3(1.0 / 2.2));
+  color.a = 1.0;
+}
+)shader";

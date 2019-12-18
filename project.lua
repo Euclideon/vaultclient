@@ -16,6 +16,7 @@ project "vaultClient"
 	files { "builds/releasenotes.md" }
 	files { "builds/defaultsettings.json" }
 	files { "builds/assets/lang/*.json" }
+    files { "3rdParty/atmosphere/atmosphere/**", "3rdParty/atmosphere/external/dimensional_types/math/**" }
 
 	--This project includes
 	includedirs { "src", "src/scene", "src/rendering" }
@@ -23,6 +24,7 @@ project "vaultClient"
 	includedirs { "3rdParty/Imgui" }
 	includedirs { "3rdParty/stb" }
 	includedirs { "3rdParty/easyexif" }
+    includedirs { "3rdParty/atmosphere", "3rdParty/atmosphere/external/dimensional_types" }
 
 	links { "udCore" .. (projectSuffix or "") }
 
