@@ -358,9 +358,6 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   pFBX->lastTouchedPoly = 1; // Forces handling 0, then gets set to 0
   pFBX->lastTouchedMesh = 1;
 
-  if (pFBX->pTrivox != nullptr)
-    vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
-
   UD_ERROR_CHECK(vdkTriangleVoxelizer_Create(&pFBX->pTrivox, pointResolution));
 
   result = vE_Success;
@@ -800,45 +797,33 @@ epilogue:
 
 void vcFBX_Close(vdkConvertCustomItem *pConvertInput)
 {
-  if (pConvertInput->pData != nullptr)
+  vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
+  if (pFBX->pScene != nullptr)
   {
-    vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
-
-    if (pFBX->pScene != nullptr)
-    {
-      pFBX->pScene->Destroy(true);
-      pFBX->pScene = nullptr;
-    }
-
-    if (pFBX->pManager != nullptr)
-    {
-      pFBX->pManager->Destroy();
-      pFBX->pManager = nullptr;
-    }
-
-    pFBX->uvQueue.Deinit();
-
-    vcFBX_CleanMaterials(&pFBX->materials);
+    pFBX->pScene->Destroy();
+    pFBX->pScene = nullptr;
   }
+  if (pFBX->pManager != nullptr)
+  {
+    pFBX->pManager->Destroy();
+    pFBX->pManager = nullptr;
+  }
+  pFBX->uvQueue.Deinit();
+
+  vcFBX_CleanMaterials(&pFBX->materials);
 }
 
 void vcFBX_Destroy(vdkConvertCustomItem* pConvertInput)
 {
-  if (pConvertInput->pData != nullptr)
-  {
-    vcFBX* pFBX = (vcFBX*)pConvertInput->pData;
-    if (pFBX->pTrivox)
-      vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
+  vcFBX* pFBX = (vcFBX*)pConvertInput->pData;
+  if (pFBX->pTrivox)
+    vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
 
-    vcFBX_CleanMaterials(&pFBX->materials);
+  vcFBX_CleanMaterials(&pFBX->materials);
+  vdkAttributeSet_Free(&pConvertInput->attributes);
 
-    vdkAttributeSet_Free(&pConvertInput->attributes);
-
-    udFree(pConvertInput->pName);
-    udFree(pFBX);
-
-    pConvertInput->pData = nullptr;
-  }
+  udFree(pConvertInput->pName);
+  udFree(pFBX);
 }
 
 vdkError vcFBX_AddItem(vdkConvertContext *pConvertContext, const char *pFilename)
