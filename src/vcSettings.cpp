@@ -21,6 +21,9 @@ const char DefaultFilename[] = "asset://defaultsettings.json";
 const char *g_vcMapTileServerName[] = { "slippy", "google" };
 const char *g_vcMapTileTypeName[] = { "m","s","t" };
 
+UDCOMPILEASSERT(udLengthOf(g_vcMapTileServerName) == vcMTSF_Count, "Update map tile server name");
+UDCOMPILEASSERT(udLengthOf(g_vcMapTileTypeName) == vcMTT_Count, "Update map tile type name");
+
 void vcSettings_InitializePrefPath(vcSettings *pSettings)
 {
   if (pSettings->noLocalStorage)
@@ -830,12 +833,11 @@ epilogue:
 
 void vcSettings_UpdateServerFlag(vcSettings *pSettings)
 {
-    UDCOMPILEASSERT(udLengthOf(g_vcMapTileServerName) == vcMTSF_Count, "Update array");
-
+    size_t sLength = udStrlen(pSettings->maptiles.tileServerAddress);
     pSettings->maptiles.serverFlag = vcMTSF_Count;
-    for (size_t i = 0; i < vcMTSF_Count; i++)
+    for (size_t i = 0; i < vcMTSF_Count; ++i)
     {
-        if (udStrstr(pSettings->maptiles.tileServerAddress, udStrlen(pSettings->maptiles.tileServerAddress),g_vcMapTileServerName[i]) != 0)
+        if (udStrstr(pSettings->maptiles.tileServerAddress, sLength, g_vcMapTileServerName[i]) != 0)
         {
             pSettings->maptiles.serverFlag = (vcMapTileServerFlag)i;
             break;
@@ -845,6 +847,5 @@ void vcSettings_UpdateServerFlag(vcSettings *pSettings)
 
 const char * vcSettings_GetMapTileTypeName(vcSettings *pSettings)
 {
-    UDCOMPILEASSERT(udLengthOf(g_vcMapTileTypeName) == vcMTT_Count, "Update array");
     return g_vcMapTileTypeName[pSettings->maptiles.mapTileType];
 }

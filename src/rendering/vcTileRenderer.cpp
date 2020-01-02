@@ -220,8 +220,7 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
          udSprintf(serverAddress, "%s?lyrs=%s&x=%d&y=%d&z=%d", pRenderer->pSettings->maptiles.tileServerAddress, vcSettings_GetMapTileTypeName(pRenderer->pSettings), pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
          break;
       default:
-         udSprintf(localFileName, "%s", pRenderer->pSettings->cacheAssetPath);
-         udSprintf(serverAddress, "%s", pRenderer->pSettings->maptiles.tileServerAddress);
+        // Do nothing
          break;
       }
       

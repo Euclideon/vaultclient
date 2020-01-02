@@ -339,15 +339,18 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     static int s_currentItem = -1;
 
     const char *pSlippyItems[] = { "png", "jpg" };
-	const char *pGoogleItems[] = { "Plan","Image","Terrain" };
+    const char *pGoogleItems[] = { "Plan","Image","Terrain" };
     if (s_currentItem == -1)
     {
         if (pProgramState->settings.maptiles.serverFlag == vcMTSF_Slippy)
         {
             for (int i = 0; i < (int)udLengthOf(pSlippyItems); ++i)
             {
-                if (udStrEquali(pSlippyItems[i], pProgramState->settings.maptiles.tileServerExtension))
-                    s_currentItem = i;
+              if (udStrEquali(pSlippyItems[i], pProgramState->settings.maptiles.tileServerExtension))
+              {
+                s_currentItem = i;
+                break;
+              }
             }
         }
         else if (pProgramState->settings.maptiles.serverFlag == vcMTSF_Google)
@@ -359,13 +362,13 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     if (ImGui::InputText(vcString::Get("settingsMapsTileServer"), pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength))
       s_isDirty = true;
 
-    if (pProgramState->settings.maptiles.serverFlag == vcMTSF_Slippy&&
+    if (pProgramState->settings.maptiles.serverFlag == vcMTSF_Slippy &&
         ImGui::Combo(vcString::Get("settingsMapsTileServerImageFormat"), &s_currentItem, pSlippyItems, (int)udLengthOf(pSlippyItems)))
     {
       udStrcpy(pProgramState->settings.maptiles.tileServerExtension, pSlippyItems[s_currentItem]);
       s_isDirty = true;
     }
-    else if (pProgramState->settings.maptiles.serverFlag == vcMTSF_Google&&
+    else if (pProgramState->settings.maptiles.serverFlag == vcMTSF_Google &&
         ImGui::Combo(vcString::Get("settingsMapsTileType"), &s_currentItem, pGoogleItems, (int)udLengthOf(pGoogleItems)))
     {
         pProgramState->settings.maptiles.mapTileType = (vcMapTileType)s_currentItem;
