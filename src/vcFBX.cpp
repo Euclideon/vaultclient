@@ -678,6 +678,12 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
               // Handle everyNth here in one place, slightly inefficiently but with the benefit of simplicity for the rest of the function
               if (pFBX->everyNth > 1)
               {
+                if (pFBX->everyNthAccum + numPoints < pFBX->everyNth)
+                {
+                  pFBX->everyNthAccum += numPoints;
+                  continue;
+                }
+
                 uint32_t i, pc;
                 for (i = pc = 0; i < numPoints; ++i)
                 {
@@ -699,7 +705,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
               {
                 // Position
                 for (int coord = 0; coord < 3; ++coord)
-                  pBuffer->pPositions[(pBuffer->pointCount + point / pFBX->everyNth) * 3 + coord] = (int64_t)(pFBX->pTriPositions[3 * point + coord] / pConvertInput->sourceResolution);
+                  pBuffer->pPositions[(pBuffer->pointCount + point) * 3 + coord] = (int64_t)(pFBX->pTriPositions[3 * point + coord] / pConvertInput->sourceResolution);
 
                 // Colour
                 uint32_t colour = 0;
@@ -849,8 +855,8 @@ vdkError vcFBX_AddItem(vdkConvertContext *pConvertContext, const char *pFilename
   customItem.boundsKnown = false;
   for (int i = 0; i < 3; ++i)
   {
-    customItem.boundMax[i] = 5000;
-    customItem.boundMin[i] = -5000;
+    customItem.boundMax[i] = 5000000;
+    customItem.boundMin[i] = -5000000;
   }
   return vdkConvert_AddCustomItem(pConvertContext, &customItem);
 }
