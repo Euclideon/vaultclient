@@ -369,7 +369,10 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
   // Start hold time
   if (isFocused && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
+  {
     isMouseBtnBeingHeld = true;
+    mouseDelta = { 0, 0 };
+  }
 
   bool forceClearMouseState = !isFocused;
 
