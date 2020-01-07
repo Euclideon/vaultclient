@@ -298,6 +298,7 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
 
   vdkError result = vE_Failure;
   vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
+
   pFBX->pManager = FbxManager::Create();
   pFBX->materials.Init(4);
   pFBX->uvQueue.Init(4);
@@ -365,7 +366,7 @@ epilogue:
 
   if (result != vE_Success)
   {
-    pFBX->pManager->Destroy(); // Destroying manager destroys all objects that were created with it
+    pFBX->pManager->Destroy();
     udFree(pFBX);
     pFBX = nullptr;
   }
@@ -488,8 +489,6 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
 
           if (index < pFBX->materials.length)
             pMat = &pFBX->materials[index];
-
-
 
           UDASSERT(pMat != nullptr, "Material index incorrectly looked up, or FBX file corrupted");
 
@@ -679,6 +678,12 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
               // Handle everyNth here in one place, slightly inefficiently but with the benefit of simplicity for the rest of the function
               if (pFBX->everyNth > 1)
               {
+                if (pFBX->everyNthAccum + numPoints < pFBX->everyNth)
+                {
+                  pFBX->everyNthAccum += numPoints;
+                  continue;
+                }
+
                 uint32_t i, pc;
                 for (i = pc = 0; i < numPoints; ++i)
                 {
@@ -700,7 +705,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
               {
                 // Position
                 for (int coord = 0; coord < 3; ++coord)
-                  pBuffer->pPositions[(pBuffer->pointCount + point / pFBX->everyNth) * 3 + coord] = (int64_t)(pFBX->pTriPositions[3 * point + coord] / pConvertInput->sourceResolution);
+                  pBuffer->pPositions[(pBuffer->pointCount + point) * 3 + coord] = (int64_t)(pFBX->pTriPositions[3 * point + coord] / pConvertInput->sourceResolution);
 
                 // Colour
                 uint32_t colour = 0;
@@ -798,26 +803,33 @@ epilogue:
 
 void vcFBX_Close(vdkConvertCustomItem *pConvertInput)
 {
-  if (pConvertInput->pData != nullptr)
+  vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
+  if (pFBX->pScene != nullptr)
   {
-    vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
-    if (pFBX->pTrivox)
-      vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
-
-    if (pFBX->pManager != nullptr)
-      pFBX->pManager->Destroy();
-
-    pFBX->uvQueue.Deinit();
-
-    vcFBX_CleanMaterials(&pFBX->materials);
-
-    vdkAttributeSet_Free(&pConvertInput->attributes);
-
-    udFree(pConvertInput->pName);
-    udFree(pFBX);
-
-    pConvertInput->pData = nullptr;
+    pFBX->pScene->Destroy();
+    pFBX->pScene = nullptr;
   }
+  if (pFBX->pManager != nullptr)
+  {
+    pFBX->pManager->Destroy();
+    pFBX->pManager = nullptr;
+  }
+  pFBX->uvQueue.Deinit();
+
+  vcFBX_CleanMaterials(&pFBX->materials);
+}
+
+void vcFBX_Destroy(vdkConvertCustomItem* pConvertInput)
+{
+  vcFBX* pFBX = (vcFBX*)pConvertInput->pData;
+  if (pFBX->pTrivox)
+    vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
+
+  vcFBX_CleanMaterials(&pFBX->materials);
+  vdkAttributeSet_Free(&pConvertInput->attributes);
+
+  udFree(pConvertInput->pName);
+  udFree(pFBX);
 }
 
 vdkError vcFBX_AddItem(vdkConvertContext *pConvertContext, const char *pFilename)
@@ -832,6 +844,7 @@ vdkError vcFBX_AddItem(vdkConvertContext *pConvertContext, const char *pFilename
   customItem.pData = pFBX;
   customItem.pOpen = vcFBX_Open;
   customItem.pClose = vcFBX_Close;
+  customItem.pDestroy = vcFBX_Destroy;
   customItem.pReadPointsInt = vcFBX_ReadPointsInt;
   customItem.pName = udStrdup(pFilename);
   customItem.srid = 0;
@@ -842,8 +855,8 @@ vdkError vcFBX_AddItem(vdkConvertContext *pConvertContext, const char *pFilename
   customItem.boundsKnown = false;
   for (int i = 0; i < 3; ++i)
   {
-    customItem.boundMax[i] = 5000;
-    customItem.boundMin[i] = -5000;
+    customItem.boundMax[i] = 5000000;
+    customItem.boundMin[i] = -5000000;
   }
   return vdkConvert_AddCustomItem(pConvertContext, &customItem);
 }
