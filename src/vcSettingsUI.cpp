@@ -182,6 +182,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
       if (ImGui::Selectable(udTempStr("%s##MapRestore", vcString::Get("settingsMapsRestoreDefaults"))))
       {
         vcSettings_Load(&pProgramState->settings, true, vcSC_MapsElevation);
+        if (pProgramState->tileModal.pServerIcon != nullptr)
+          vcTexture_Destroy(&pProgramState->tileModal.pServerIcon);
         vcRender_ClearTiles(pProgramState->pRenderContext); // refresh map tiles since they just got updated
       }
 
