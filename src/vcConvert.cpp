@@ -398,7 +398,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
   }
   else
   {
-    if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled))
+    if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_WriteFailed || pSelectedJob->status == vcCQS_ParseFailed || pSelectedJob->status == vcCQS_ImageParseFailed || pSelectedJob->status == vcCQS_Failed)
     {
       if (ImGui::Button(vcString::Get("convertAddFile"), ImVec2(200, 40)))
         vcModals_OpenModal(pProgramState, vcMT_ConvertAdd);
