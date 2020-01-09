@@ -213,7 +213,7 @@ namespace vcHotkey
     {
       errors |= (1 << vcKES_Select);
 
-      if (pProgramState->currentKey)
+      if (pProgramState->currentKey && pProgramState->currentKey != vcMOD_Alt + SDL_SCANCODE_F4)
       {
         if (target >= 0)
         {
