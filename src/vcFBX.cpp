@@ -678,25 +678,28 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
               // Handle everyNth here in one place, slightly inefficiently but with the benefit of simplicity for the rest of the function
               if (pFBX->everyNth > 1)
               {
-                if (pFBX->everyNthAccum + numPoints < pFBX->everyNth)
-                {
-                  pFBX->everyNthAccum += numPoints;
-                  continue;
-                }
+                uint32_t i = 0;
+                uint32_t pc = 0;
 
-                uint32_t i, pc;
-                for (i = pc = 0; i < numPoints; ++i)
+                do
                 {
-                  ++pFBX->everyNthAccum;
-
-                  if (pFBX->everyNthAccum == pFBX->everyNth)
+                  uint32_t remaining = numPoints - i;
+                  if (pFBX->everyNthAccum + remaining < pFBX->everyNth)
                   {
+                    pFBX->everyNthAccum += remaining;
+                    break;
+                  }
+                  else
+                  {
+                    i += (pFBX->everyNth - pFBX->everyNthAccum);
                     memcpy(&pFBX->pTriPositions[pc * 3], &pFBX->pTriPositions[i * 3], sizeof(double) * 3);
-                    memcpy(&pFBX->pTriWeights[pc * 3], &pFBX->pTriWeights[i * 3], sizeof(double) * 3);
+                    memcpy(&pFBX->pTriWeights[pc], &pFBX->pTriWeights[i], sizeof(double) * 3);
                     ++pc;
                     pFBX->everyNthAccum = 0;
                   }
-                }
+
+                } while (i < numPoints);
+
                 numPoints = pc;
               }
 
