@@ -2251,7 +2251,7 @@ void vcRenderWindow(vcState *pProgramState)
       if (ImGui::Begin(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
       {
         char buffer[50] = {};
-        vcHotkey::GetKeyName(vcB_AddUDS, buffer);
+        vcHotkey::GetKeyName(vcB_AddUDS, buffer, false);
 
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddUDS"), buffer, vcMBBI_AddPointCloud, vcMBBG_FirstItem) || vcHotkey::IsPressed(vcB_AddUDS))
           vcModals_OpenModal(pProgramState, vcMT_AddUDS);
@@ -2333,7 +2333,7 @@ void vcRenderWindow(vcState *pProgramState)
           ImGui::EndPopup();
         }
 
-        vcHotkey::GetKeyName(vcB_Remove, buffer);
+        vcHotkey::GetKeyName(vcB_Remove, buffer, false);
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerRemove"), buffer, vcMBBI_Remove, vcMBBG_NewGroup) || (vcHotkey::IsPressed(vcB_Remove) && !ImGui::IsAnyItemActive()))
           vcProject_RemoveSelected(pProgramState);
 

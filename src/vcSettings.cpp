@@ -275,6 +275,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     {
       for (int i = 0; i < vcB_Count; ++i)
         vcHotkey::Set((vcBind)i, vcHotkey::DecodeKeyString(data.Get("keys.%s", vcHotkey::GetBindName((vcBind)i)).AsString()));
+
+      vcHotkey::FinalisePendingChanges(true);
     }
   }
 
@@ -666,7 +668,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   char keyBuffer[50] = {};
   for (size_t i = 0; i < vcB_Count; ++i)
   {
-    vcHotkey::GetKeyName((vcBind)i, keyBuffer, (uint32_t)udLengthOf(keyBuffer));
+    vcHotkey::GetKeyName((vcBind)i, keyBuffer, (uint32_t)udLengthOf(keyBuffer), false);
     data.Set("keys.%s = '%s'", vcHotkey::GetBindName((vcBind)i), keyBuffer);
   }
 

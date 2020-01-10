@@ -14,6 +14,7 @@ namespace vcHotkey
 {
   static int target = -1;
   static int keyBinds[vcB_Count] = {};
+  static int pendingKeyBinds[vcB_Count] = {};
 
   const char* bindNames[] =
   {
@@ -24,7 +25,7 @@ namespace vcHotkey
     "CameraRight",
     "CameraDown",
     "Remove",
-    "Close",
+    "Cancel",
     "LockAltitude",
     "GizmoTranslate",
     "GizmoRotate",
@@ -35,8 +36,10 @@ namespace vcHotkey
     "Save",
     "Load",
     "AddUDS",
-    "BindingsInterface"
+    "BindingsInterface",
+    "Undo"
   };
+  UDCOMPILEASSERT(udLengthOf(vcHotkey::bindNames) == vcB_Count, "Hotkey count discrepancy.");
 
   static const char *pModText[] =
   {
@@ -71,6 +74,13 @@ namespace vcHotkey
     "bindingsSelectKey"
   };
 
+  void FinalisePendingChanges(bool apply)
+  {
+    if (apply)
+      memcpy(keyBinds, pendingKeyBinds, sizeof(keyBinds));
+    else
+      memcpy(pendingKeyBinds, keyBinds, sizeof(keyBinds));
+  }
 
   bool IsDown(int keyNum)
   {
@@ -109,15 +119,15 @@ namespace vcHotkey
     return IsPressed(keyBinds[key]);
   }
 
-  void GetKeyName(vcBind key, char *pBuffer, uint32_t bufferLen)
+  void GetKeyName(vcBind key, char *pBuffer, uint32_t bufferLen, bool pending)
   {
-    if (key == vcB_Count || keyBinds[key] == 0)
+    if (key == vcB_Count || ((pending ? pendingKeyBinds[key] : keyBinds[key]) == 0))
     {
       udStrcpy(pBuffer, (size_t)bufferLen, vcString::Get("bindingsClear"));
       return;
     }
 
-    int mappedKey = keyBinds[key];
+    int mappedKey = pending ? pendingKeyBinds[key] : keyBinds[key];
 
     const char *pStrings[5] = {};
 
@@ -196,30 +206,29 @@ namespace vcHotkey
 
   void Set(vcBind key, int value)
   {
-    keyBinds[(int)key] = value;
+    pendingKeyBinds[(int)key] = value;
   }
 
-  int Get(vcBind key)
+  int Get(vcBind key, bool pending)
   {
-    return keyBinds[key];
+    return pending ? pendingKeyBinds[key] : keyBinds[key];
   }
 
   void DisplayBindings(vcState *pProgramState)
   {
-    // TODO: Document/reconsider limitation of 50 chars
     int errors = 0;
 
     if (target != -1)
     {
       errors |= (1 << vcKES_Select);
 
-      if (pProgramState->currentKey && pProgramState->currentKey != vcMOD_Alt + SDL_SCANCODE_F4)
+      if (pProgramState->currentKey)
       {
         if (target >= 0)
         {
           for (int i = 0; i < vcB_Count; ++i)
           {
-            if (keyBinds[i] == pProgramState->currentKey)
+            if (pendingKeyBinds[i] == pProgramState->currentKey)
             {
               Set((vcBind)i, 0);
               break;
@@ -267,21 +276,22 @@ namespace vcHotkey
         }
       }
 
-      if (vcHotkey::Get((vcBind)i) == 0)
+      if (vcHotkey::Get((vcBind)i, true) == 0)
       {
-        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImU32(0xFF0000FF), 0.0f, ImDrawCornerFlags_All, 2.0f);
+        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::ColorConvertFloat4ToU32(KeyErrorColours[vcKES_Unbound]), 0.0f, ImDrawCornerFlags_All, 2.0f);
 
         errors |= (1 << vcKES_Unbound);
       }
       else if (target == i)
       {
-        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImU32(0xFFFFFFFF), 0.0f, ImDrawCornerFlags_All, 2.0f);
+        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::ColorConvertFloat4ToU32(KeyErrorColours[vcKES_Select]), 0.0f, ImDrawCornerFlags_All, 2.0f);
       }
 
       ImGui::NextColumn();
 
+      // TODO: Document/reconsider limitation of 50 chars
       char key[50];
-      GetKeyName((vcBind)i, key, (uint32_t)udLengthOf(key));
+      GetKeyName((vcBind)i, key, (uint32_t)udLengthOf(key), true);
       ImGui::TextUnformatted(key);
 
       ImGui::NextColumn();
@@ -300,7 +310,6 @@ namespace vcHotkey
           ImGui::TextColored(KeyErrorColours[i], "%s", vcString::Get(pKeyErrors[i]));
       }
     }
-      
   }
 
   int DecodeKeyString(const char *pBind)
@@ -331,5 +340,3 @@ namespace vcHotkey
     return value;
   }
 }
-
-UDCOMPILEASSERT(udLengthOf(vcHotkey::bindNames) == vcB_Count, "Hotkey count discrepancy.");
