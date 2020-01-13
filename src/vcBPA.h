@@ -5,9 +5,12 @@
 // Fausto Bernardini, Joshua Mittleman, Holly Rushmeier, Cláudio Silva, and Gabriel Taubin
 // https://lidarwidgets.com/samples/bpa_tvcg.pdf
 
+#include "vcFeatures.h"
 #include "vdkPointCloud.h"
 struct vcState;
 
+#if VC_HASCONVERT
 void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius);
+#endif
 
 #endif //vcBPA_h__

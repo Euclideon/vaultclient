@@ -515,6 +515,7 @@ void vcModals_DrawFileModal(vcState *pProgramState)
 
     if (loadFile)
     {
+#if VC_HASCONVERT
       if (mode == vcMT_ConvertAdd)
       {
         vcConvert_QueueFile(pProgramState, pProgramState->modelPath);
@@ -535,6 +536,7 @@ void vcModals_DrawFileModal(vcState *pProgramState)
         vdkConvert_SetTempDirectory(pConvertContext, pProgramState->modelPath);
       }
       else
+#endif //VC_HASCONVERT
       {
         pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
       }

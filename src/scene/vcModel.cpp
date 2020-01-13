@@ -377,6 +377,10 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
 
 void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode)
 {
+  udUnused(pProgramState);
+  udUnused(pParentNode);
+
+#if VC_HASCONVERT
   vdkProjectNode *pChildNode = pParentNode->pFirstChild;
   while (pChildNode != nullptr)
   {
@@ -401,6 +405,7 @@ void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pPar
 
     pChildNode = pChildNode->pNextSibling;
   }
+#endif
 }
 
 void vcModel::HandleContextMenu(vcState *pProgramState)

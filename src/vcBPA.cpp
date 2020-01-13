@@ -14,6 +14,7 @@
 #include "udPlatformUtil.h"
 #include "udStringUtil.h"
 
+#if VC_HASCONVERT
 enum vcBPAEdgeStatus
 {
   vcBPAES_Active, // This an edge that will be used for pivoting
@@ -1110,3 +1111,5 @@ void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPo
 
   udReleaseMutex(pBPA->pConvertItem->pMutex);
 }
+
+#endif //VC_HASCONVERT
