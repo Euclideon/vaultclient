@@ -3,12 +3,10 @@
 
 #include "vcMath.h"
 #include "vcSceneItem.h"
+#include "imgui.h"
 
-typedef int ImGuiColorEditFlags;
-typedef int ImGuiInputTextFlags;
-typedef int ImGuiHoveredFlags;
-
-bool vcIGSW_InputTextWithResize(const char *pLabel, char **ppBuffer, size_t *pBufferSize, ImGuiInputTextFlags flags = 0);
+bool vcIGSW_InputText(const char *pLabel, char *pBuffer, size_t bufferSize, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None);
+bool vcIGSW_InputTextWithResize(const char *pLabel, char **ppBuffer, size_t *pBufferSize, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None);
 bool vcIGSW_ColorPickerU32(const char *pLabel, uint32_t *pColor, ImGuiColorEditFlags flags);
 bool vcIGSW_StickyIntSlider(const char* label, int* v, int v_min, int v_max, int sticky);
 
