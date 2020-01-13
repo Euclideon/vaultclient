@@ -340,9 +340,8 @@ void vcMain_MainLoop(vcState *pProgramState)
 
       if (pNextLoad != nullptr)
       {
-        // test to see if specified filepath is valid
+#if VC_HASCONVERT
         bool convertDrop = false;
-
         //TODO: Use ImGui drag and drop on the docks rather than globally here
         if (pProgramState->settings.window.windowsOpen[vcDocks_Convert])
         {
@@ -353,7 +352,9 @@ void vcMain_MainLoop(vcState *pProgramState)
               convertDrop = true;
           }
         }
+#endif //VC_HASCONVERT
 
+        // test to see if specified filepath is valid
         udFile *pTestFile = nullptr;
         udResult result = udFile_Open(&pTestFile, pNextLoad, udFOF_Read);
         if (result == udR_Success)
@@ -390,10 +391,12 @@ void vcMain_MainLoop(vcState *pProgramState)
           vcUDP_Load(pProgramState, pNextLoad);
           pProgramState->changeActiveDock = vcDocks_Scene;
         }
+#if VC_HASCONVERT
         else if (convertDrop) // Everything else depends on where it was dropped
         {
           vcConvert_QueueFile(pProgramState, pNextLoad);
         }
+#endif // VC_HASCONVERT
         else // We need to add it to the scene (hopefully)
         {
           vdkProjectNode *pNode = nullptr;
@@ -1825,7 +1828,9 @@ int vcMainMenuGui(vcState *pProgramState)
       ImGui::MenuItem(vcString::Get("menuScene"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Scene]);
       ImGui::MenuItem(vcString::Get("menuSceneExplorer"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]);
       ImGui::MenuItem(vcString::Get("menuSettings"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Settings]);
+#if VC_HASCONVERT
       ImGui::MenuItem(vcString::Get("menuConvert"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Convert]);
+#endif //VC_HASCONVERT
       ImGui::Separator();
       ImGui::EndMenu();
     }
@@ -2382,6 +2387,7 @@ void vcRenderWindow(vcState *pProgramState)
       ImGui::End();
     }
 
+#if VC_HASCONVERT
     if (pProgramState->settings.window.windowsOpen[vcDocks_Convert] && !pProgramState->settings.window.presentationMode)
     {
       if (ImGui::Begin(udTempStr("%s###convertDock", vcString::Get("convertTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
@@ -2390,6 +2396,7 @@ void vcRenderWindow(vcState *pProgramState)
       vcChangeTab(pProgramState, vcDocks_Convert);
       ImGui::End();
     }
+#endif //VC_HASCONVERT
 
     if (pProgramState->settings.window.windowsOpen[vcDocks_Scene])
     {

@@ -135,6 +135,7 @@ void vcSession_Logout(vcState *pProgramState)
 
   if (pProgramState->pVDKContext != nullptr)
   {
+#if VC_HASCONVERT
     // Cancel all convert jobs
     if (pProgramState->pConvertContext != nullptr)
     {
@@ -157,6 +158,7 @@ void vcSession_Logout(vcState *pProgramState)
         }
       }
     }
+#endif //VC_HASCONVERT
 
     pProgramState->modelPath[0] = '\0';
     vcProject_InitBlankScene(pProgramState);

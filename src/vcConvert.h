@@ -3,6 +3,7 @@
 
 #include "vdkConvert.h"
 
+#include "vcFeatures.h"
 #include "vcState.h"
 #include "gl/vcTexture.h"
 
@@ -73,10 +74,12 @@ struct vcConvertContext
 void vcConvert_Init(vcState *pProgramState);
 void vcConvert_Deinit(vcState *pProgramState);
 
+#if VC_HASCONVERT
 void vcConvert_ShowUI(vcState *pProgramState);
 
 void vcConvert_AddEmptyJob(vcState *pProgramState, vcConvertItem **ppNextItem);
 void vcConvert_QueueFile(vcState *pProgramState, const char *pFilename);
 void vcConvert_RemoveJob(vcState *pProgramState, size_t index);
+#endif // VC_HASCONVERT
 
 #endif // !vcConvert_h__
