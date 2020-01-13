@@ -2076,14 +2076,14 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
       bool tryLogin = false;
 
       // Server URL
-      tryLogin |= ImGui::InputText(vcString::Get("loginServerURL"), pProgramState->settings.loginInfo.serverURL, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+      tryLogin |= vcIGSW_InputText(vcString::Get("loginServerURL"), pProgramState->settings.loginInfo.serverURL, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
       if (pProgramState->loginStatus == vcLS_NoStatus && !pProgramState->settings.loginInfo.rememberServer)
         ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
       ImGui::SameLine();
       ImGui::Checkbox(udTempStr("%s##rememberServerURL", vcString::Get("loginRememberServer")), &pProgramState->settings.loginInfo.rememberServer);
 
       // Username
-      tryLogin |= ImGui::InputText(vcString::Get("loginUsername"), pProgramState->settings.loginInfo.username, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+      tryLogin |= vcIGSW_InputText(vcString::Get("loginUsername"), pProgramState->settings.loginInfo.username, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
       if (pProgramState->loginStatus == vcLS_NoStatus && pProgramState->settings.loginInfo.rememberServer && !pProgramState->settings.loginInfo.rememberUsername)
         ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
       ImGui::SameLine();
@@ -2098,9 +2098,9 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
         buttonSize = ImGui::GetItemRectSize();
       }
       if (ImGui::IsItemActive() && pProgramState->passFocus)
-        tryLogin |= ImGui::InputText(vcString::Get("loginPassword"), pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+        tryLogin |= vcIGSW_InputText(vcString::Get("loginPassword"), pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
       else
-        tryLogin |= ImGui::InputText(vcString::Get("loginPassword"), pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
+        tryLogin |= vcIGSW_InputText(vcString::Get("loginPassword"), pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
 
       if (pProgramState->passFocus && ImGui::IsMouseClicked(0))
       {
@@ -2158,7 +2158,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
         if (ImGui::Checkbox(vcString::Get("loginProxyAutodetect"), &pProgramState->settings.loginInfo.autoDetectProxy) && pProgramState->settings.loginInfo.autoDetectProxy)
           vcProxyHelper_AutoDetectProxy(pProgramState);
 
-        if (ImGui::InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy, vcMaxPathLength, pProgramState->settings.loginInfo.autoDetectProxy ? ImGuiInputTextFlags_ReadOnly : ImGuiInputTextFlags_None) && !pProgramState->settings.loginInfo.autoDetectProxy)
+        if (vcIGSW_InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy, vcMaxPathLength, pProgramState->settings.loginInfo.autoDetectProxy ? ImGuiInputTextFlags_ReadOnly : ImGuiInputTextFlags_None) && !pProgramState->settings.loginInfo.autoDetectProxy)
           vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
 
         ImGui::SameLine();
@@ -2172,7 +2172,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
             vcModals_OpenModal(pProgramState, vcMT_ProxyAuth);
         }
 
-        if (ImGui::InputText(vcString::Get("loginUserAgent"), pProgramState->settings.loginInfo.userAgent, vcMaxPathLength))
+        if (vcIGSW_InputText(vcString::Get("loginUserAgent"), pProgramState->settings.loginInfo.userAgent, vcMaxPathLength))
           vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
 
         // TODO: Consider reading user agent strings from a file

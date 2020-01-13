@@ -41,6 +41,24 @@ int vcIGSW_ResizeString(ImGuiInputTextCallbackData *pData)
   return 0;
 }
 
+bool vcIGSW_InputText(const char *pLabel, char *pBuffer, size_t bufferSize, ImGuiInputTextFlags flags /*= ImGuiInputTextFlags_None*/)
+{
+  bool retVal = ImGui::InputText(pLabel, pBuffer, bufferSize, flags);
+
+  if (ImGui::BeginPopupContextItem())
+  {
+    if (ImGui::MenuItem("Copy", nullptr, nullptr, (flags & ImGuiInputTextFlags_Password) == 0))
+      ImGui::SetClipboardText(pBuffer);
+
+    if (ImGui::MenuItem("Paste"))
+      udStrcpy(pBuffer, bufferSize, ImGui::GetClipboardText());
+
+    ImGui::EndPopup();
+  }
+
+  return retVal;
+}
+
 bool vcIGSW_InputTextWithResize(const char *pLabel, char **ppBuffer, size_t *pBufferSize, ImGuiInputTextFlags flags /*= ImGuiInputTextFlags_None*/)
 {
   vcIGSWResizeContainer info;
@@ -50,7 +68,20 @@ bool vcIGSW_InputTextWithResize(const char *pLabel, char **ppBuffer, size_t *pBu
   if (*pBufferSize == 0)
     *pBufferSize = udStrlen(*ppBuffer) + 1; //+1 for '\0'
 
-  return ImGui::InputText(pLabel, *ppBuffer, *pBufferSize, ImGuiInputTextFlags_CallbackResize | flags, vcIGSW_ResizeString, &info);
+  bool retVal = ImGui::InputText(pLabel, *ppBuffer, *pBufferSize, ImGuiInputTextFlags_CallbackResize | flags, vcIGSW_ResizeString, &info);
+
+  if (ImGui::BeginPopupContextItem())
+  {
+    if (ImGui::MenuItem("Copy", nullptr, nullptr, (flags & ImGuiInputTextFlags_Password) == 0))
+      ImGui::SetClipboardText(*ppBuffer);
+
+    if (ImGui::MenuItem("Paste"))
+      udStrcpy(*ppBuffer, *pBufferSize, ImGui::GetClipboardText());
+
+    ImGui::EndPopup();
+  }
+
+  return retVal;
 }
 
 bool vcIGSW_ColorPickerU32(const char *pLabel, uint32_t *pColor, ImGuiColorEditFlags flags)
