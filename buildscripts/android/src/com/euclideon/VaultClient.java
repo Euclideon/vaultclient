@@ -6,7 +6,7 @@ import android.util.*;
 
 import org.libsdl.app.SDLActivity;
 
-public class EuclideonVaultClient extends SDLActivity
+public class VaultClient extends SDLActivity
 {
   @Override
   protected String[] getLibraries() {
@@ -16,5 +16,11 @@ public class EuclideonVaultClient extends SDLActivity
             "vaultSDK",
             "vaultClient"
         };
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        VaultSDK.setupJNI(this);
     }
 }
