@@ -49,15 +49,11 @@ void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
   changed |= ImGui::InputScalarN(udTempStr("%s##ViewpointPosition%zu", vcString::Get("sceneViewpointPosition"), *pItemID), ImGuiDataType_Double, &m_CameraPosition.x, 3);
   changed |= ImGui::InputScalarN(udTempStr("%s##ViewpointRotation%zu", vcString::Get("sceneViewpointRotation"), *pItemID), ImGuiDataType_Double, &m_CameraRotation.x, 3);
 
-  if (ImGui::Button(vcString::Get("sceneViewpointSetCamera")))
+  if (ImGui::Button(vcString::Get("sceneViewpointSetCamera")) || changed)
   {
-    changed = true;
-    m_CameraRotation = pProgramState->camera.eulerRotation;
-    m_CameraPosition = pProgramState->camera.position;
-  }
+    m_CameraRotation = pProgramState->pCamera->eulerRotation;
+    m_CameraPosition = pProgramState->pCamera->position;
 
-  if (changed)
-  {
     vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &m_CameraPosition, 1);
 
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.x", m_CameraRotation.x);
@@ -85,8 +81,8 @@ void vcViewpoint::Cleanup(vcState * /*pProgramState*/)
 
 void vcViewpoint::SetCameraPosition(vcState *pProgramState)
 {
-  pProgramState->camera.position = m_CameraPosition;
-  pProgramState->camera.eulerRotation = m_CameraRotation;
+  pProgramState->pCamera->position = m_CameraPosition;
+  pProgramState->pCamera->eulerRotation = m_CameraRotation;
 }
 
 udDouble4x4 vcViewpoint::GetWorldSpaceMatrix()

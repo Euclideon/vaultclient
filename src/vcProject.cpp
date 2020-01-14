@@ -6,7 +6,6 @@
 #include "vcModals.h"
 
 #include "udFile.h"
-#include "udStringUtil.h"
 
 void vcProject_InitBlankScene(vcState *pProgramState)
 {
@@ -17,7 +16,8 @@ void vcProject_InitBlankScene(vcState *pProgramState)
   vcRender_ClearTiles(pProgramState->pRenderContext);
   vcGIS_ChangeSpace(&pProgramState->gis, zone);
 
-  pProgramState->camera.position = udDouble3::zero();
+  if (pProgramState->pCamera != nullptr) // This is destroyed before the scene
+    pProgramState->pCamera->position = udDouble3::zero();
 
   pProgramState->sceneExplorer.selectedItems.clear();
   pProgramState->sceneExplorer.clickedItem = {};
@@ -44,7 +44,8 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
       vcRender_ClearTiles(pProgramState->pRenderContext);
       vcGIS_ChangeSpace(&pProgramState->gis, zone);
 
-      pProgramState->camera.position = udDouble3::zero();
+      if (pProgramState->pCamera != nullptr) // This is destroyed before the scene
+        pProgramState->pCamera->position = udDouble3::zero();
 
       pProgramState->sceneExplorer.selectedItems.clear();
       pProgramState->sceneExplorer.clickedItem = {};
@@ -54,24 +55,12 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
       pProgramState->activeProject.pFolder = new vcFolder(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState);
       pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
 
-      udFilename temp(pFilename);
-      temp.SetFilenameWithExt("");
-      pProgramState->activeProject.pRelativeBase = udStrdup(temp.GetPath());
-
-      int32_t recommendedSRID = -1;
-      if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, -1) == vE_Success && recommendedSRID >= 0 && udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success)
-        vcGIS_ChangeSpace(&pProgramState->gis, zone);
+      pProgramState->getGeo = true;
     }
     else
     {
-      vcState::ErrorItem projectError;
-      projectError.source = vcES_ProjectChange;
-      projectError.pData = udStrdup(pFilename);
-      projectError.resultCode = udR_ParseError;
-
-      pProgramState->errorItems.PushBack(projectError);
-
-      vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+      // TODO: EVC-671 More descriptive error, code is vE_ParseError
+      vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
     }
 
     udFree(pMemory);
@@ -124,52 +113,8 @@ void vcProject_Deinit(vcState *pProgramData, vcProject *pProject)
   if (pProject == nullptr || pProject->pProject == nullptr)
     return;
 
-  udFree(pProject->pRelativeBase);
   vcProject_RecursiveDestroyUserData(pProgramData, pProject->pRoot);
   vdkProject_Release(&pProject->pProject);
-}
-
-void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverride)
-{
-  if (pProgramState == nullptr || pPath == nullptr)
-    return;
-
-  const char *pOutput = nullptr;
-
-  if (pProgramState->gis.isProjected)
-    vdkProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", pProgramState->gis.SRID);
-
-  if (vdkProject_WriteToMemory(pProgramState->activeProject.pProject, &pOutput) == vE_Success)
-  {
-    udFindDir *pDir = nullptr;
-    udFilename exportFilename(pPath);
-
-    if (!udStrEquali(pPath, "") && !udStrEndsWithi(pPath, "/") && !udStrEndsWithi(pPath, "\\") && udOpenDir(&pDir, pPath) == udR_Success)
-      exportFilename.SetFromFullPath("%s/untitled_project.json", pPath);
-    else if (exportFilename.HasFilename())
-      exportFilename.SetExtension(".json");
-    else
-      exportFilename.SetFilenameWithExt("untitled_project.json");
-
-    // Check if file path exists before writing to disk, and if so, the user will be presented with the option to overwrite or cancel
-    if (allowOverride || vcModals_OverwriteExistingFile(exportFilename.GetPath()))
-    {
-      vcState::ErrorItem projectError = {};
-      projectError.source = vcES_ProjectChange;
-      projectError.pData = udStrdup(exportFilename.GetFilenameWithExt());
-
-      if (udFile_Save(exportFilename.GetPath(), (void *)pOutput, udStrlen(pOutput)) == udR_Success)
-        projectError.resultCode = udR_Success;
-      else
-        projectError.resultCode = udR_WriteFailure;
-
-      pProgramState->errorItems.PushBack(projectError);
-
-      vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-    }
-
-    udCloseDir(&pDir);
-  }
 }
 
 void vcProject_RemoveItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode)
@@ -261,7 +206,7 @@ void vcProject_SelectItem(vcState *pProgramState, vdkProjectNode *pParent, vdkPr
 
 void vcProject_UnselectItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode)
 {
-  vcSceneItem *pItem = (vcSceneItem *)pNode->pUserData;
+  vcSceneItem *pItem = (vcSceneItem*)pNode->pUserData;
 
   if (pItem != nullptr && pItem->m_selected)
   {
@@ -335,7 +280,7 @@ bool vcProject_UpdateNodeGeometryFromCartesian(vdkProject *pProject, vdkProjectN
 
     // Change all points from the projection
     for (int i = 0; i < numPoints; ++i)
-      pGeom[i] = udGeoZone_CartesianToLatLong(zone, pPoints[i], true);
+      pGeom[i] = udGeoZone_ToLatLong(zone, pPoints[i], true);
 
     result = vdkProjectNode_SetGeometry(pProject, pNode, newType, numPoints, (double*)pGeom);
     udFree(pGeom);
@@ -362,7 +307,7 @@ bool vcProject_FetchNodeGeometryAsCartesian(vdkProject *pProject, vdkProjectNode
   {
     // Change all points from the projection
     for (int i = 0; i < pNode->geomCount; ++i)
-      pPoints[i] = udGeoZone_LatLongToCartesian(zone, ((udDouble3*)pNode->pCoordinates)[i], true);
+      pPoints[i] = udGeoZone_ToCartesian(zone, ((udDouble3*)pNode->pCoordinates)[i], true);
   }
   else
   {

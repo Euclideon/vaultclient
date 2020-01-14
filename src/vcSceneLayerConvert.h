@@ -7,10 +7,11 @@
 
 struct vcSceneLayerConvert;
 
+struct vdkContext;
 struct vdkConvertContext;
 struct vWorkerThreadPool;
 
-vdkError vcSceneLayerConvert_AddItem(vdkConvertContext *pConvertContext, const char *pSceneLayerURL);
+vdkError vcSceneLayerConvert_AddItem(vdkContext *pContext, vdkConvertContext *pConvertContext, const char *pSceneLayerURL);
 
 #endif//vcSceneLayerConvert_h__
 

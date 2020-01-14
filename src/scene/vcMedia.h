@@ -23,10 +23,7 @@ public:
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
-
   void HandleImGui(vcState *pProgramState, size_t *pItemID);
-  void HandleContextMenu(vcState *pProgramState);
-
   void Cleanup(vcState *pProgramState);
   void ChangeProjection(const udGeoZone &newZone);
 
@@ -34,8 +31,6 @@ public:
   udDouble4x4 GetWorldSpaceMatrix();
 
   void SetImageData(void **ppImageData, int64_t imageSize); // This takes ownership if it can
-
-  vcGizmoAllowedControls GetAllowedControls();
 
 public:
   const char *m_pLoadedURI; // The URI of the media we have (or are loading) currently

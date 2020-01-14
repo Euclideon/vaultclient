@@ -1,12 +1,5 @@
 #ifdef FBXSDK_ON
 
-#include "udPlatform.h"
-
-#if UDPLATFORM_MACOSX
-# pragma GCC diagnostic ignored "-Wpragma-pack"
-# pragma clang diagnostic ignored "-Wpragma-pack"
-#endif
-
 #include "fbxsdk.h"
 
 #include "stb_image.h"
@@ -14,6 +7,7 @@
 #include "udChunkedArray.h"
 #include "udFile.h"
 #include "udStringUtil.h"
+#include "udPlatform.h"
 #include "udMath.h"
 #include "udPlatformUtil.h"
 
@@ -63,7 +57,6 @@ struct vcFBX
   double pointResolution;
   vdkConvertCustomItemFlags convertFlags;
   uint32_t everyNth;
-  uint32_t everyNthAccum;
 
   bool noTextures;
 
@@ -260,45 +253,12 @@ FbxAMatrix vcFBX_GetGeometryTransformation(FbxNode *inNode)
   return FbxAMatrix(lT, lR, lS);
 }
 
-void vcFBX_CleanMaterials(udChunkedArray<vcFBXMaterial> *pMats)
-{
-  // Clean up
-  for (uint32_t i = 0; i < pMats->length; ++i)
-  {
-    for (uint32_t j = 0; j < (*pMats)[i].textures.length; ++j)
-    {
-      if ((*pMats)[i].textures[j].pPixels)
-      {
-        stbi_image_free((*pMats)[i].textures[j].pPixels);
-
-        // Clean up all references to this allocation
-        void *pPtr = (*pMats)[i].textures[j].pPixels;
-        for (uint32_t k = i; k < pMats->length; ++k)
-        {
-          for (uint32_t l = j; l < (*pMats)[k].textures.length; ++l)
-          {
-            if (pPtr == (*pMats)[k].textures[l].pPixels)
-              (*pMats)[k].textures[l].pPixels = nullptr;
-          }
-        }
-      }
-      udFree((*pMats)[i].textures[j].pName);
-    }
-    (*pMats)[i].textures.Clear();
-    (*pMats)[i].textures.Deinit();
-  }
-
-  pMats->Clear();
-  pMats->Deinit();
-}
-
 vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, const double origin[3], double pointResolution, vdkConvertCustomItemFlags flags)
 {
   udUnused(origin);
 
   vdkError result = vE_Failure;
   vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
-
   pFBX->pManager = FbxManager::Create();
   pFBX->materials.Init(4);
   pFBX->uvQueue.Init(4);
@@ -366,7 +326,7 @@ epilogue:
 
   if (result != vE_Success)
   {
-    pFBX->pManager->Destroy();
+    pFBX->pManager->Destroy(); // Destroying manager destroys all objects that were created with it
     udFree(pFBX);
     pFBX = nullptr;
   }
@@ -374,7 +334,7 @@ epilogue:
   return result;
 }
 
-vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBufferI64 *pBuffer)
+vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkConvertPointBufferInt64 *pBuffer)
 {
   if (pBuffer == nullptr || pBuffer->pAttributes == nullptr || pConvertInput == nullptr || pConvertInput->pData == nullptr)
     return vE_InvalidParameter;
@@ -383,7 +343,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
   vdkError result = vE_Failure;
 
   pBuffer->pointCount = 0;
-  memset(pBuffer->pAttributes, 0, pBuffer->attributeStride * pBuffer->pointsAllocated);
+  memset(pBuffer->pAttributes, 0, pBuffer->attributeSize * pBuffer->pointsAllocated);
 
   // For each mesh
   while (pFBX->currMesh < pFBX->totalMeshes)
@@ -435,7 +395,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
       pFBX->pIndices = pFBX->pMesh->GetPolygonVertices();
 
       // Colour processing
-      if (pConvertInput->attributes.standardContent & vdkSAC_ARGB)
+      if (pConvertInput->content & vdkAC_ARGB)
         vcFBX_GetTextures(pFBX, pFBX->pNode);
 
     } // End new mesh handling
@@ -446,17 +406,17 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
       // For each vertex
       while (pFBX->currMeshPointCount < pFBX->totalMeshPoints)
       {
-        uint8_t *pAttr = &pBuffer->pAttributes[pBuffer->pointCount * pBuffer->attributeStride];
+        uint8_t *pAttr = &pBuffer->pAttributes[pBuffer->pointCount * pBuffer->attributeSize];
 
         // Write point to buffer
         FbxVector4 currPoint = pFBX->pPoints[pFBX->pIndices[pFBX->currMeshPointCount]];
         for (int coord = 0; coord < 3; ++coord)
-          pBuffer->pPositions[pBuffer->pointCount * 3 + coord] = (int64_t)((currPoint[coord] - pConvertInput->boundMin[coord]) / pConvertInput->sourceResolution);
+          pBuffer->pPositions[pBuffer->pointCount][coord] = (int64_t)((currPoint[coord] - pConvertInput->boundMin[coord]) / pConvertInput->sourceResolution);
 
         vcFBXMaterial *pMat = nullptr;
 
         // Handle colour
-        if (pConvertInput->attributes.standardContent & vdkSAC_ARGB && pFBX->materials.length > 0) // must be at least one material
+        if (pConvertInput->content & vdkAC_ARGB && pFBX->materials.length > 0) // must be at least one material
         {
           uint32_t colour = 0;
           uint32_t thisColour = 0;
@@ -489,6 +449,8 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
 
           if (index < pFBX->materials.length)
             pMat = &pFBX->materials[index];
+
+
 
           UDASSERT(pMat != nullptr, "Material index incorrectly looked up, or FBX file corrupted");
 
@@ -551,7 +513,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
       // For each polygon
       while (pFBX->currMeshPolygon < pFBX->totalMeshPolygons)
       {
-        uint8_t *pAttr = &pBuffer->pAttributes[pBuffer->pointCount * pBuffer->attributeStride];
+        uint8_t *pAttr = &pBuffer->pAttributes[pBuffer->pointCount * pBuffer->attributeSize];
 
         // If we need to set a new triangle
         if (pFBX->currMeshPolygon != pFBX->lastTouchedPoly)
@@ -593,7 +555,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
           {
             vcFBXMaterial *pMat = nullptr;
 
-            if (pConvertInput->attributes.standardContent & vdkSAC_ARGB && pFBX->materials.length > 0)
+            if (pConvertInput->content & vdkAC_ARGB && pFBX->materials.length > 0)
             {
               uint32_t index = 0;
 
@@ -675,41 +637,16 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
                 }
               }
 
-              // Handle everyNth here in one place, slightly inefficiently but with the benefit of simplicity for the rest of the function
-              if (pFBX->everyNth > 1)
-              {
-                if (pFBX->everyNthAccum + numPoints < pFBX->everyNth)
-                {
-                  pFBX->everyNthAccum += numPoints;
-                  continue;
-                }
-
-                uint32_t i, pc;
-                for (i = pc = 0; i < numPoints; ++i)
-                {
-                  ++pFBX->everyNthAccum;
-
-                  if (pFBX->everyNthAccum == pFBX->everyNth)
-                  {
-                    memcpy(&pFBX->pTriPositions[pc * 3], &pFBX->pTriPositions[i * 3], sizeof(double) * 3);
-                    memcpy(&pFBX->pTriWeights[pc * 3], &pFBX->pTriWeights[i * 3], sizeof(double) * 3);
-                    ++pc;
-                    pFBX->everyNthAccum = 0;
-                  }
-                }
-                numPoints = pc;
-              }
-
               // Write points from current triangle
-              for (uint32_t point = 0; point < numPoints; ++point)
+              for (uint32_t point = 0; point < numPoints; point += pFBX->everyNth)
               {
                 // Position
                 for (int coord = 0; coord < 3; ++coord)
-                  pBuffer->pPositions[(pBuffer->pointCount + point) * 3 + coord] = (int64_t)(pFBX->pTriPositions[3 * point + coord] / pConvertInput->sourceResolution);
+                  pBuffer->pPositions[pBuffer->pointCount + point / pFBX->everyNth][coord] = (int64_t)(pFBX->pTriPositions[3 * point + coord] / pConvertInput->sourceResolution);
 
                 // Colour
                 uint32_t colour = 0;
-                if (pConvertInput->attributes.standardContent & vdkSAC_ARGB)
+                if (pConvertInput->content & vdkAC_ARGB)
                 {
                   for (uint32_t currTex = 0; currTex < pMat->textures.length; ++currTex)
                   {
@@ -768,7 +705,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
                 } // End if colour
               } // End for numpoints
 
-              pBuffer->pointCount += numPoints;
+              pBuffer->pointCount += numPoints / pFBX->everyNth;
             } // End colour processing
 
             if (pBuffer->pointCount == pBuffer->pointsAllocated)
@@ -789,7 +726,19 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
     ++pFBX->currMesh;
   }
 
-  vcFBX_CleanMaterials(&pFBX->materials);
+  // Clean up
+  for (uint32_t i = 0; i < pFBX->materials.length; ++i)
+  {
+    for (uint32_t j = 0; j < pFBX->materials[i].textures.length; ++j)
+    {
+      if (pFBX->materials[i].textures[j].pPixels)
+        stbi_image_free(pFBX->materials[i].textures[j].pPixels);
+      udFree(pFBX->materials[i].textures[j].pName);
+    }
+    pFBX->materials[i].textures.Clear();
+  }
+
+  pFBX->materials.Clear();
 
   // If finished update point counts
   pFBX->pointsReturned += pBuffer->pointCount;
@@ -803,36 +752,27 @@ epilogue:
 
 void vcFBX_Close(vdkConvertCustomItem *pConvertInput)
 {
-  vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
-  if (pFBX->pScene != nullptr)
+  if (pConvertInput->pData != nullptr)
   {
-    pFBX->pScene->Destroy();
-    pFBX->pScene = nullptr;
-  }
-  if (pFBX->pManager != nullptr)
-  {
-    pFBX->pManager->Destroy();
-    pFBX->pManager = nullptr;
-  }
-  pFBX->uvQueue.Deinit();
+    vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
+    if (pFBX->pTrivox)
+      vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
 
-  vcFBX_CleanMaterials(&pFBX->materials);
+    if (pFBX->pManager != nullptr)
+      pFBX->pManager->Destroy();
+
+    for (uint32_t i = 0; i < pFBX->materials.length; ++i)
+      pFBX->materials[i].textures.Deinit();
+
+    pFBX->uvQueue.Deinit();
+    pFBX->materials.Deinit();
+
+    udFree(pConvertInput->pName);
+    udFree(pFBX);
+  }
 }
 
-void vcFBX_Destroy(vdkConvertCustomItem* pConvertInput)
-{
-  vcFBX* pFBX = (vcFBX*)pConvertInput->pData;
-  if (pFBX->pTrivox)
-    vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
-
-  vcFBX_CleanMaterials(&pFBX->materials);
-  vdkAttributeSet_Free(&pConvertInput->attributes);
-
-  udFree(pConvertInput->pName);
-  udFree(pFBX);
-}
-
-vdkError vcFBX_AddItem(vdkConvertContext *pConvertContext, const char *pFilename)
+vdkError vcFBX_AddItem(vdkContext *pContext, vdkConvertContext *pConvertContext, const char *pFilename)
 {
   vdkConvertCustomItem customItem = {};
 
@@ -844,21 +784,20 @@ vdkError vcFBX_AddItem(vdkConvertContext *pConvertContext, const char *pFilename
   customItem.pData = pFBX;
   customItem.pOpen = vcFBX_Open;
   customItem.pClose = vcFBX_Close;
-  customItem.pDestroy = vcFBX_Destroy;
   customItem.pReadPointsInt = vcFBX_ReadPointsInt;
   customItem.pName = udStrdup(pFilename);
   customItem.srid = 0;
   customItem.sourceProjection = vdkCSP_SourceCartesian;
   customItem.pointCount = -1;
-  vdkAttributeSet_Generate(&customItem.attributes, vdkSAC_ARGB, 0);
+  customItem.content = vdkAC_ARGB; // Colour is the only content attribute in an fbx model
 
   customItem.boundsKnown = false;
   for (int i = 0; i < 3; ++i)
   {
-    customItem.boundMax[i] = 5000000;
-    customItem.boundMin[i] = -5000000;
+    customItem.boundMax[i] = 5000;
+    customItem.boundMin[i] = -5000;
   }
-  return vdkConvert_AddCustomItem(pConvertContext, &customItem);
+  return vdkConvert_AddCustomItem(pContext, pConvertContext, &customItem);
 }
 
 #endif

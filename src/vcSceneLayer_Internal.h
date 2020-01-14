@@ -9,15 +9,13 @@
 
 struct vcPolygonModel;
 struct vcTexture;
-struct udFile;
-struct udMutex;
 
-enum vcSceneLayerNormalReferenceFrame
+enum vcSceneLayerLoadType
 {
-  vcSLNRF_EarthCentered, // default
-  vcSLNRF_EastNorthUp,
-  vcSLNRF_VertexReferenceFrame
+  vcSLLT_None,
 
+  vcSLLT_Convert,
+  vcSLLT_Rendering
 };
 
 struct vcSceneLayerNode
@@ -48,7 +46,7 @@ struct vcSceneLayerNode
 
   int level;
   char *pID;
-  const char *pURL; // Note: the parent of this node is responsible for this memory. Placing this memory here just simplifies the loading processes of nodes.
+  const char *pURL;
   vcSceneLayerNode *pChildren;
   size_t childrenCount;
 
@@ -78,7 +76,6 @@ struct vcSceneLayerNode
     udDouble4 minimumBoundingBox;
 
     vcVertexLayoutTypes *pGeometryLayout;
-    uint64_t *pAttributeOffset;
     size_t geometryLayoutCount;
 
   } *pFeatureData;
@@ -124,23 +121,20 @@ struct vcSceneLayerNode
 
 struct vcSceneLayer
 {
-  udFile *pFile;
-  udMutex *pFileReadMutex;
   udWorkerPool *pThreadPool;
 
   char pathSeparatorChar; // '/' or '\\'
   udJSON description;
   udDouble4 extent;
-  vcSceneLayerNormalReferenceFrame normalReferenceFrame;
 
+  char *pFileData;
   vcSceneLayerNode root;
 
   udInterlockedInt32 loadNodeJobsInFlight;
 };
 
-udResult vcSceneLayer_LoadNode(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
+udResult vcSceneLayer_LoadNode(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode = nullptr, const vcSceneLayerLoadType &loadType = vcSLLT_None);
 udResult vcSceneLayer_LoadNodeInternals(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
-void vcSceneLayer_RecursiveDestroyNode(vcSceneLayerNode *pNode);
 
 void vcSceneLayer_CheckNodePruneCandidancy(const vcSceneLayer *pSceneLayer, vcSceneLayerNode *pNode);
 

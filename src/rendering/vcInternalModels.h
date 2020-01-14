@@ -11,7 +11,6 @@ enum vcInternalMeshType
   vcInternalMeshType_ScreenQuad,
   vcInternalMeshType_FlippedScreenQuad,
 
-  vcInternalMeshType_WorldQuad,
   vcInternalMeshType_Billboard,
   vcInternalMeshType_Sphere,
   vcInternalMeshType_Tube,
@@ -28,8 +27,6 @@ enum vcInternalModelType
   vcInternalModelType_Cube,
   vcInternalModelType_Sphere,
   vcInternalModelType_Cylinder,
-  vcInternalModelType_Tube,
-  vcInternalModelType_Quad,
 
   vcInternalModelType_Count
 };

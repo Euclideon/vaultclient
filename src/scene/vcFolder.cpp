@@ -5,7 +5,6 @@
 #include "vcRender.h" // Included just for "ClearTiles"
 #include "vcFenceRenderer.h"
 #include "vcModals.h"
-#include "vcHotkey.h"
 
 #include "udStringUtil.h"
 
@@ -19,31 +18,26 @@
 #include "vcLiveFeed.h"
 #include "vcUnsupportedNode.h"
 #include "vcI3S.h"
-#include "vcPolyModelNode.h"
 #include "vcWaterNode.h"
 #include "vcViewpoint.h"
-#include "vcViewShed.h"
-#include "vcQueryNode.h"
 
-void HandleNodeSelection(vcState* pProgramState, vdkProjectNode *pParent, vdkProjectNode* pNode)
+void HandleNodeSelection(vcState* pProgramState, vcSceneItem* pSceneItem, vdkProjectNode* pNode)
 {
-  if (pProgramState->sceneExplorer.selectUUIDWhenPossible[0] == '\0' || !udStrEqual(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID) || pNode->pUserData == nullptr)
+  if (pProgramState->sceneExplorer.selectUUIDWhenPossible[0] == '\0' || !udStrEqual(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID))
     return;
-
-  vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
 
   if (!ImGui::GetIO().KeyCtrl)
     vcProject_ClearSelection(pProgramState);
 
   if (pSceneItem->m_selected)
   {
-    vcProject_UnselectItem(pProgramState, pParent, pNode);
+    vcProject_UnselectItem(pProgramState, pSceneItem->m_pNode, pNode);
     pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
   }
   else
   {
-    vcProject_SelectItem(pProgramState, pParent, pNode);
-    pProgramState->sceneExplorer.clickedItem = { pParent, pNode };
+    vcProject_SelectItem(pProgramState, pSceneItem->m_pNode, pNode);
+    pProgramState->sceneExplorer.clickedItem = { pSceneItem->m_pNode, pNode };
   }
 
   memset(pProgramState->sceneExplorer.selectUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.selectUUIDWhenPossible));
@@ -63,9 +57,11 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   vdkProjectNode *pNode = m_pNode->pFirstChild;
   while (pNode != nullptr)
   {
+    HandleNodeSelection(pProgramState, this, pNode);
+
     if (pNode->pUserData != nullptr)
     {
-      vcSceneItem *pSceneItem = (vcSceneItem *)pNode->pUserData;
+      vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
 
       pSceneItem->AddToScene(pProgramState, pRenderData);
 
@@ -91,17 +87,9 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pNode->pUserData = new vcI3S(pProgramState->activeProject.pProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "Water"))
         pNode->pUserData = new vcWater(pProgramState->activeProject.pProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "ViewMap"))
-        pNode->pUserData = new vcViewShed(pProgramState->activeProject.pProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "Polygon"))
-        pNode->pUserData = new vcPolyModelNode(pProgramState->activeProject.pProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "QFilter"))
-        pNode->pUserData = new vcQueryNode(pProgramState->activeProject.pProject, pNode, pProgramState);
       else
         pNode->pUserData = new vcUnsupportedNode(pProgramState->activeProject.pProject, pNode, pProgramState); // Catch all
     }
-
-    HandleNodeSelection(pProgramState, m_pNode, pNode);
 
     pNode = pNode->pNextSibling;
   }
@@ -149,12 +137,31 @@ void vcFolder_AddInsertSeparator()
 void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   vdkProjectNode *pNode = m_pNode->pFirstChild;
+  size_t i = 0;
   while (pNode != nullptr)
   {
     ++(*pItemID);
 
     if (pNode->pUserData != nullptr)
     {
+      if (pProgramState->pGotGeo != nullptr)
+        ((vcSceneItem*)(pNode->pUserData))->ChangeProjection(*pProgramState->pGotGeo);
+
+      if (pProgramState->getGeo && pNode->itemtype == vdkPNT_PointCloud && ((vcModel*)(pNode->pUserData))->m_pPreferredProjection != nullptr)
+      {
+        vcModel *pModel = (vcModel*)pNode->pUserData;
+        if (pProgramState->pGotGeo == pModel->m_pPreferredProjection)
+        {
+          pProgramState->pGotGeo = nullptr;
+          pProgramState->getGeo = false;
+        }
+        else if (pProgramState->pGotGeo == nullptr)
+        {
+          pProgramState->pGotGeo = pModel->m_pPreferredProjection;
+          vcProject_UseProjectionFromItem(pProgramState, pModel);
+        }
+      }
+
       vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
 
       // This block is also after the loop
@@ -191,16 +198,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         if (ImGui::IsItemDeactivatedAfterEdit())
         {
           if (vdkProjectNode_SetName(pProgramState->activeProject.pProject, pNode, pSceneItem->m_pName) != vE_Success)
-          {
-            vcState::ErrorItem projectError;
-            projectError.source = vcES_ProjectChange;
-            projectError.pData = udStrdup(pSceneItem->m_pName);
-            projectError.resultCode = udR_Failure_;
-
-            pProgramState->errorItems.PushBack(projectError);
-
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-          }
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
         }
 
         if (ImGui::IsItemDeactivated() || !(pProgramState->sceneExplorer.selectedItems.back().pParent == m_pNode && pProgramState->sceneExplorer.selectedItems.back().pItem == pNode))
@@ -217,29 +215,13 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         }
 
         pSceneItem->m_expanded = ImGui::TreeNodeEx(udTempStr("%s###SXIName%zu", pNode->pName, *pItemID), flags);
-        if (pSceneItem->m_selected && pProgramState->sceneExplorer.selectedItems.back().pParent == m_pNode && pProgramState->sceneExplorer.selectedItems.back().pItem == pNode && ImGui::GetIO().KeysDown[vcHotkey::Get(vcB_RenameSceneItem)])
+        if (pSceneItem->m_selected && pProgramState->sceneExplorer.selectedItems.back().pParent == m_pNode && pProgramState->sceneExplorer.selectedItems.back().pItem == pNode && ImGui::GetIO().KeysDown[SDL_SCANCODE_F2])
           pSceneItem->m_editName = true;
       }
 
       bool sceneExplorerItemClicked = ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!pSceneItem->m_selected && ImGui::IsItemActive()));
       if (sceneExplorerItemClicked)
-      {
-        if (!ImGui::GetIO().KeyCtrl)
-          vcProject_ClearSelection(pProgramState);
-
-        if (pSceneItem->m_selected)
-        {
-          vcProject_UnselectItem(pProgramState, m_pNode, pNode);
-          pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
-        }
-        else
-        {
-          vcProject_SelectItem(pProgramState, m_pNode, pNode);
-          pProgramState->sceneExplorer.clickedItem = { m_pNode, pNode };
-        }
-
-        pSceneItem->SelectSubitem(0);
-      }
+        udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
 
       if (pSceneItem->m_loadStatus == vcSLS_Loaded && pProgramState->sceneExplorer.movetoUUIDWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID))
       {
@@ -254,7 +236,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         ImVec2 mousePos = ImGui::GetMousePos();
 
         if (pNode->itemtype == vdkPNT_Folder && mousePos.y > minPos.y && mousePos.y < maxPos.y)
-          pProgramState->sceneExplorer.insertItem = { pNode, nullptr };
+          pProgramState->sceneExplorer.insertItem = { pNode, pNode };
         else
           pProgramState->sceneExplorer.insertItem = { m_pNode, pNode }; // This will become pNode->pNextSibling after drop
       }
@@ -275,7 +257,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
         if (pSceneItem->m_pPreferredProjection != nullptr && pSceneItem->m_pPreferredProjection->srid != 0 && ImGui::Selectable(vcString::Get("sceneExplorerUseProjection")))
         {
-          if (vcGIS_ChangeSpace(&pProgramState->gis, *pSceneItem->m_pPreferredProjection, &pProgramState->camera.position))
+          if (vcGIS_ChangeSpace(&pProgramState->gis, *pSceneItem->m_pPreferredProjection, &pProgramState->pCamera->position))
           {
             pProgramState->activeProject.pFolder->ChangeProjection(*pSceneItem->m_pPreferredProjection);
             // refresh map tiles when geozone changes
@@ -287,28 +269,29 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         {
           // Trigger a camera movement path
           pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
-          pProgramState->cameraInput.startPosition = pProgramState->camera.position;
-          pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->camera.eulerRotation);
+          pProgramState->cameraInput.startPosition = pProgramState->pCamera->position;
+          pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->pCamera->eulerRotation);
           pProgramState->cameraInput.progress = 0.0;
 
           pProgramState->isUsingAnchorPoint = true;
           pProgramState->worldAnchorPoint = pSceneItem->GetWorldSpacePivot();
         }
 
-        pSceneItem->HandleContextMenu(pProgramState);
-        
-        ImGui::Separator();
+        // This is terrible but semi-required until we have undo
+        if (pNode->itemtype == vdkPNT_PointCloud && ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
+        {
+          if (pSceneItem->m_pPreferredProjection)
+            ((vcModel*)pSceneItem)->ChangeProjection(*pSceneItem->m_pPreferredProjection);
+          ((vcModel*)pSceneItem)->m_sceneMatrix = ((vcModel*)pSceneItem)->m_defaultMatrix;
+          ((vcModel*)pSceneItem)->ChangeProjection(pProgramState->gis.zone);
+        }
 
         if (ImGui::Selectable(vcString::Get("sceneExplorerRemoveItem")))
         {
-          ImGui::EndPopup();
-
-          if (pSceneItem->m_expanded)
-            ImGui::TreePop();
-
           vcProject_RemoveItem(pProgramState, m_pNode, pNode);
           pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
 
+          ImGui::EndPopup();
           return;
         }
 
@@ -351,6 +334,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
     }
 
     pNode = pNode->pNextSibling;
+    ++i;
   }
 
   // This block is also in the loop above

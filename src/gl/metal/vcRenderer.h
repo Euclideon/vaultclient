@@ -38,6 +38,10 @@
 
 @property(nonatomic,strong,nonnull) NSMutableArray<id<MTLBuffer>> *blitBuffers;
 
+// Geometry shader emulation objects
+//@property(nonatomic,strong,nonnull) NSMutableArray<id<MTLComputePipelineState>> *gPipelines;
+//@property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLBuffer>> *gBuffers;
+
 // Permutables
 @property(nonatomic,strong,nonnull) NSMutableArray<id<MTLDepthStencilState>> *depthStates;
 @property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLSamplerState>> *samplers;
@@ -53,8 +57,10 @@
 - (void)draw;
 - (void)flush:(uint32_t)i;
 - (void)flushBlit;
+//- (void)flushCompute;
 - (void)bindPipeline:(nonnull struct vcShader*)pShader;
 - (void)bindTexture:(nonnull struct vcTexture*)pTexture index:(NSInteger)samplerIndex;
+- (void)bindSampler:(nonnull struct vcShaderSampler*)pTexture index:(NSInteger)samplerIndex;
 - (void)bindDepthStencil:(nonnull id<MTLDepthStencilState>)dsState settings:(nullable struct vcGLStencilSettings *)pStencil;
 - (void)bindBlendState:(vcGLStateBlendMode)blendMode;
 - (void)drawUnindexed:(nonnull id<MTLBuffer>)vertBuffer vertexStart:(NSUInteger)vStart vertexCount:(NSUInteger)vCount primitiveType:(MTLPrimitiveType)type;

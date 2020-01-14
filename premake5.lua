@@ -64,9 +64,6 @@ function injectvaultsdkbin()
 		links { "vaultSDK.framework" }
 	elseif os.target() == "emscripten" and not _OPTIONS["force-vaultsdk"] then
 		linkoptions { "src/libvaultSDK.bc", "src/libudPointCloud.bc", "src/libvaultcore.bc" }
-	elseif os.target() == "emscripten" then
-		links { "udPointCloudVDK", "udCoreVDK" }
-		links { "vaultSDK" }
 	else
 		links { "vaultSDK" }
 	end
@@ -89,7 +86,7 @@ function injectvaultsdkbin()
 			if _OPTIONS["gfxapi"] == "metal" then
 				_OPTIONS["gfxapi"] = "opengl"
 			end
-			os.execute('Robocopy "%VAULTSDK_HOME%/include" "include" /s /purge')
+			os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.dll", "builds/vaultSDK.dll")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/win_x64/vaultSDK.lib", "src/vaultSDK.lib")
 			libdirs { "src" }
@@ -103,7 +100,7 @@ function injectvaultsdkbin()
 			os.execute("/usr/bin/hdiutil detach /Volumes/vaultSDK")
 			os.execute("/usr/bin/hdiutil detach " .. device)
 			os.execute("rm -r builds/vaultSDK.dmg")
-			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/include .")
+			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			prelinkcommands {
 				"rm -rf %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
 				"mkdir -p %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
@@ -116,14 +113,14 @@ function injectvaultsdkbin()
 			os.execute("mkdir -p builds")
 			os.execute("lipo -create " .. os.getenv("VAULTSDK_HOME") .. "/lib/ios_arm64/libvaultSDK.dylib " .. os.getenv("VAULTSDK_HOME") .. "/lib/ios_x64/libvaultSDK.dylib -output builds/libvaultSDK.dylib")
 			os.execute("codesign -s T6Q3JCVW77 builds/libvaultSDK.dylib") -- Is this required? Should this move to VaultSDK?
-			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/include .")
+			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			libdirs { "builds" }
 			linkoptions { "-rpath @executable_path/" }
 		elseif os.target() == "emscripten" then
 			if os.host() == premake.WINDOWS then
-				os.execute('Robocopy "%VAULTSDK_HOME%/include" "include" /s /purge')
+				os.execute('Robocopy "%VAULTSDK_HOME%/Include" "Include" /s /purge')
 			else
-				os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/include .")
+				os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			end
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/libvaultSDK.bc", "src/libvaultSDK.bc")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/libvaultcore.bc", "src/libvaultcore.bc")
@@ -140,11 +137,11 @@ function injectvaultsdkbin()
 			end
 			os.execute("mkdir -p builds")
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/" .. osname .. "_GCC_x64/libvaultSDK.so", "builds/libvaultSDK.so")
-			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/include .")
+			os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/Include .")
 			libdirs { "builds" }
 		end
 
-		includedirs { "include" }
+		includedirs { "Include" }
 	end
 end
 
@@ -188,7 +185,7 @@ end
 
 solution "vaultClient"
 	-- This hack just makes the VS project and also the makefile output their configurations in the idiomatic order
-	if (_ACTION == "gmake" or _ACTION == "gmake2") and os.target() == "linux" then
+	if _ACTION == "gmake" and os.target() == "linux" then
 		configurations { "Release", "Debug", "ReleaseClang", "DebugClang" }
 		linkgroups "On"
 		filter { "configurations:*Clang" }
@@ -203,17 +200,15 @@ solution "vaultClient"
 
 	if os.target() == "emscripten" then
 		platforms { "Emscripten" }
-		buildoptions { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", "-s PROXY_TO_PTHREAD=1", --[["-s OFFSCREEN_FRAMEBUFFER=1",]] "-s OFFSCREENCANVAS_SUPPORT=1", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-mnontrapping-fptoint", "-s FORCE_FILESYSTEM=1", "-lidbfs.js", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=2147418112" }
-		linkoptions  { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", "-s PROXY_TO_PTHREAD=1", --[["-s OFFSCREEN_FRAMEBUFFER=1",]] "-s OFFSCREENCANVAS_SUPPORT=1", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-mnontrapping-fptoint", "-s FORCE_FILESYSTEM=1", "-lidbfs.js", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=2147418112" }
+		buildoptions { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", "-s PROXY_TO_PTHREAD=1", --[["-s OFFSCREEN_FRAMEBUFFER=1",]] "-s OFFSCREENCANVAS_SUPPORT=1", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-s BINARYEN_TRAP_MODE='clamp'", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=2147418112" }
+		linkoptions  { "-s USE_SDL=2", "-s USE_PTHREADS=1", "-s PTHREAD_POOL_SIZE=20", "-s PROXY_TO_PTHREAD=1", --[["-s OFFSCREEN_FRAMEBUFFER=1",]] "-s OFFSCREENCANVAS_SUPPORT=1", --[["-s ASSERTIONS=2",]] "-s EMULATE_FUNCTION_POINTER_CASTS=1", "-s ABORTING_MALLOC=0", "-s WASM=1", "-s BINARYEN_TRAP_MODE='clamp'", --[["-g", "-s SAFE_HEAP=1",]] "-s TOTAL_MEMORY=2147418112" }
 		linkoptions { "-O3" } -- TODO: This might not be required once `-s PROXY_TO_PTHREAD` is working.
 		targetextension ".bc"
 		linkgroups "On"
 		filter { "kind:*App" }
 			targetextension ".js"
 		filter { "files:**.cpp" }
-			buildoptions { "-std=c++14" }
-		filter { "system:emscripten" }
-			disablewarnings "string-plus-int"
+			buildoptions { "-std=c++11" }
 		filter {}
 	else
 		platforms { "x64" }
@@ -221,31 +216,35 @@ solution "vaultClient"
 
 	editorintegration "on"
 	startproject "vaultClient"
-	cppdialect "C++14"
+	cppdialect "C++11"
 	pic "On"
 	editandcontinue "Off"
 
-	filter { "system:emscripten" }
-		pic "Off"
-	filter { "system:windows", "action:vs*" }
-		buildoptions { "/permissive-" }
-	filter {}
+	xcodebuildsettings { ["CLANG_CXX_LANGUAGE_STANDARD"] = "c++0x" }
 
 	if os.target() == premake.WINDOWS then
 		os.copyfile("3rdParty/SDL2-2.0.8/lib/x64/SDL2.dll", "builds/SDL2.dll")
 	end
 
-	if os.getenv("BUILD_BUILDNUMBER") then
-		defines { "GIT_BUILD=" .. os.getenv("BUILD_BUILDNUMBER") }
-		xcodebuildsettings { ["INFOPLIST_PREPROCESSOR_DEFINITIONS"] = "GIT_BUILD=" .. os.getenv("BUILD_BUILDNUMBER") }
-
-		if os.getenv("BUILD_SOURCEBRANCH") and os.getenv("BUILD_SOURCEBRANCH"):startswith("refs/tags/") then
-			defines { "GIT_TAG=" .. os.getenv("BUILD_BUILDNUMBER") }
-		end
+	-- Strings
+	if os.getenv("CI_BUILD_REF_NAME") then
+		defines { "GIT_BRANCH=\"" .. os.getenv("CI_BUILD_REF_NAME") .. "\"" }
 	end
-	
-	-- Uncomment this to help with finding memory leaks
-	--defines {"__MEMORY_DEBUG__"}
+	if os.getenv("CI_BUILD_REF") then
+		defines { "GIT_REF=\"" .. os.getenv("CI_BUILD_REF") .. "\"" }
+	end
+
+	-- Numbers
+	if os.getenv("CI_COMMIT_TAG") then
+		defines { "GIT_TAG=" .. os.getenv("CI_PIPELINE_ID") }
+	end
+	if os.getenv("CI_PIPELINE_ID") then
+		defines { "GIT_BUILD=" .. os.getenv("CI_PIPELINE_ID") }
+		xcodebuildsettings { ["INFOPLIST_PREPROCESSOR_DEFINITIONS"] = "GIT_BUILD=" .. os.getenv("CI_PIPELINE_ID") }
+	end
+	if os.getenv("UNIXTIME") then
+		defines { "BUILD_TIME=" .. os.getenv("UNIXTIME") }
+	end
 
 	if _OPTIONS["force-vaultsdk"] then
 		projectSuffix = "VDK"

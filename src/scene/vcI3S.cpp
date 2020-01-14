@@ -5,7 +5,6 @@
 #include "vcRender.h"
 
 #include "udPlatform.h"
-#include "udStringUtil.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
@@ -16,12 +15,7 @@ vcI3S::vcI3S(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState
 {
   m_sceneMatrix = udDouble4x4::identity();
 
-  udResult result = vcSceneLayerRenderer_Create(&m_pSceneRenderer, pProgramState->pWorkerPool, pNode->pURI);
-
-  if (result == udR_OpenFailure)
-    result = vcSceneLayerRenderer_Create(&m_pSceneRenderer, pProgramState->pWorkerPool, udTempStr("%s%s", pProgramState->activeProject.pRelativeBase, pNode->pURI));
-
-  if (result == udR_Success)
+  if (vcSceneLayerRenderer_Create(&m_pSceneRenderer, pProgramState->pWorkerPool, pNode->pURI) == udR_Success)
   {
     m_loadStatus = vcSLS_Loaded;
 
@@ -71,16 +65,6 @@ void vcI3S::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
 void vcI3S::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
 {
   ImGui::TextUnformatted(vcString::Get("sceneExplorerI3S"));
-}
-
-void vcI3S::HandleContextMenu(vcState * /*pProgramState*/)
-{
-  ImGui::Separator();
-
-  if (ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
-  {
-    m_sceneMatrix = udDouble4x4::identity();
-  }
 }
 
 void vcI3S::Cleanup(vcState * /*pProgramState*/)

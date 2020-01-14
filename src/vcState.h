@@ -10,20 +10,20 @@
 #include "vcImageRenderer.h"
 #include "vcSettings.h"
 #include "vcSceneItem.h"
-#include "vcModel.h"
 #include "vcGIS.h"
 #include "vcFolder.h"
 #include "vcStrings.h"
 #include "vcProject.h"
 
 #include "vdkError.h"
-#include "vdkContext.h"
 
 #include "imgui_ex/ImGuizmo.h"
 
 #include <vector>
 
 struct SDL_Window;
+
+struct vdkContext;
 
 struct vcFramebuffer;
 struct vcRenderContext;
@@ -41,7 +41,6 @@ enum vcLoginStatus
 {
   vcLS_NoStatus, // Used temporarily at startup and after logout to set focus on the correct fields
   vcLS_EnterCredentials,
-  vcLS_NoServerURL,
   vcLS_Pending,
   vcLS_ConnectionError,
   vcLS_AuthError,
@@ -55,12 +54,6 @@ enum vcLoginStatus
   vcLS_OtherError
 };
 
-enum vcErrorSource
-{
-  vcES_File,
-  vcES_ProjectChange
-};
-
 struct vcState
 {
   bool programComplete;
@@ -70,18 +63,17 @@ struct vcState
   int openModals; // This is controlled inside vcModals.cpp
   bool modalOpen;
 
-  vcCamera camera;
-  vcCameraInput cameraInput;
+  vcCamera *pCamera;
 
-  struct ErrorItem
+
+  struct FileError
   {
-    vcErrorSource source;
-    const char *pData;
+    const char *pFilename;
     udResult resultCode;
   };
 
   udChunkedArray<const char*> loadList;
-  udChunkedArray<ErrorItem> errorItems;
+  udChunkedArray<FileError> errorFiles;
 
   const char *pLoadImage;
   udWorkerPool *pWorkerPool;
@@ -90,12 +82,12 @@ struct vcState
   udUInt2 sceneResolution;
 
   vcGISSpace gis;
+  char username[64];
 
   vcTexture *pCompanyLogo;
-  vcTexture *pCompanyWatermark;
+  vcTexture *pBuildingsTexture;
   vcTexture *pSceneWatermark;
   vcTexture *pUITexture;
-  vcTexture *pWhiteTexture;
 
   bool isUsingAnchorPoint;
   udDouble3 worldAnchorPoint;
@@ -107,13 +99,14 @@ struct vcState
   bool pickingSuccess;
   int udModelPickedIndex;
 
+  vcCameraInput cameraInput;
+
   bool finishedStartup;
-  bool forceLogout;
-
   bool hasContext;
-  vdkSessionInfo sessionInfo;
+  bool forceLogout;
+  double lastServerAttempt;
+  double lastServerResponse;
   vdkContext *pVDKContext;
-
   vcRenderContext *pRenderContext;
   vcConvertContext *pConvertContext;
 
@@ -173,7 +166,8 @@ struct vcState
   bool showUI;
   vcDocks changeActiveDock;
 
-  int currentKey;
+  bool getGeo;
+  udGeoZone *pGotGeo;
 };
 
 #endif // !vcState_h__

@@ -8,14 +8,11 @@
 #include "vcFenceRenderer.h"
 #include "vcLabelRenderer.h"
 #include "vcImageRenderer.h"
-#include "gl/vcGLState.h"
 
-struct udWorkerPool;
 struct vdkPointCloud;
 struct vcTexture;
 struct vcState;
 struct vcFenceRenderer;
-struct vcPolygonModel;
 
 struct vcLineInfo
 {
@@ -51,31 +48,6 @@ private:
   vcLabelInfo *m_pLabelInfo;
   const char *m_pLabelText;
 
-  bool m_cameraFollowingAttachment; //True if following attachment, false if flying through points
-
-  udWorkerPool *m_pWorkerPool;
-
-  struct
-  {
-    vcPolygonModel *pModel;
-    const char *pPathLoaded;
-
-    double moveSpeed; // Speed in m/s
-    vcGLStateCullMode cullMode;
-
-    int segmentIndex;
-    double segmentProgress;
-
-    udDouble3 currentPos;
-    udDouble3 eulerAngles;
-  } m_attachment;
-
-  struct
-  {
-    int segmentIndex;
-    double segmentProgress;
-  } m_flyThrough;
-
 public:
   vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcPOI() {};
@@ -84,11 +56,7 @@ public:
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
-
   void HandleImGui(vcState *pProgramState, size_t *pItemID);
-  void HandleContextMenu(vcState *pProgramState);
-  void HandleAttachmentUI(vcState *pProgramState);
-
   void Cleanup(vcState *pProgramState);
   void ChangeProjection(const udGeoZone &newZone);
 
@@ -98,13 +66,6 @@ public:
 
   void SetCameraPosition(vcState *pProgramState);
   udDouble4x4 GetWorldSpaceMatrix();
-
-  void SelectSubitem(uint64_t internalId);
-  bool IsSubitemSelected(uint64_t internalId);
-
-private:
-  bool LoadAttachedModel(const char *pNewPath);
-  bool GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int *pSegmentIndex, double *pSegmentProgress);
 };
 
 #endif //vcPOI_h__

@@ -14,7 +14,7 @@ struct vcAnchor
 
   struct
   {
-    udFloat4x4 u_worldViewProjectionMatrix;
+    udFloat4x4 u_viewProjectionMatrix;
     udFloat4 u_colour;
     udFloat3 u_sunDirection;
     float _padding;
@@ -59,18 +59,23 @@ udResult vcCompass_Destroy(vcAnchor **ppCompass)
   return udR_Success;
 }
 
-bool vcCompass_Render(vcAnchor *pCompass, vcAnchorStyle anchorStyle, const udDouble4x4 &worldViewProj, const udDouble4 &colour /*= udDouble4::create(1.0, 0.8431, 0.0, 1.0)*/)
+udResult vcCompass_Render(vcAnchor *pCompass, vcAnchorStyle anchorStyle, const udDouble4x4 &worldViewProj, const udDouble4 &colour /*= udDouble4::create(1.0, 1.0, 1.0, 1.0)*/)
 {
   if (pCompass == nullptr || anchorStyle >= vcAS_Count || vcASToMeshType[anchorStyle] == vcInternalMeshType_Count)
-    return false;
+    return udR_InvalidParameter_;
+
+  udResult result = udR_Failure_;
 
   pCompass->shaderBuffer.u_colour = udFloat4::create(colour);
-  pCompass->shaderBuffer.u_worldViewProjectionMatrix = udFloat4x4::create(worldViewProj);
+  pCompass->shaderBuffer.u_viewProjectionMatrix = udFloat4x4::create(worldViewProj);
   pCompass->shaderBuffer.u_sunDirection = udNormalize(udFloat3::create(1.0f, 0.0f, -1.0f));
 
-  vcShader_Bind(pCompass->pShader);
-  vcShader_BindConstantBuffer(pCompass->pShader, pCompass->pShaderConstantBuffer, &pCompass->shaderBuffer, sizeof(vcAnchor::shaderBuffer));
-  vcMesh_Render(gInternalMeshes[vcASToMeshType[anchorStyle]]);
+  UD_ERROR_IF(!vcShader_Bind(pCompass->pShader), udR_InternalError);
+  UD_ERROR_IF(!vcShader_BindConstantBuffer(pCompass->pShader, pCompass->pShaderConstantBuffer, &pCompass->shaderBuffer, sizeof(vcAnchor::shaderBuffer)), udR_InputExhausted);
+  UD_ERROR_IF(!vcMesh_Render(gInternalMeshes[vcASToMeshType[anchorStyle]]), udR_InternalError);
 
-  return true;
+  result = udR_Success;
+
+epilogue:
+  return result;
 }

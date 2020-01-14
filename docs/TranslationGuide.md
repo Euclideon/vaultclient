@@ -1,48 +1,14 @@
 # **Euclideon Vault Client Translation Guide**
 
 ## Changelist
-- Version 0.5.0
-  - Added:
-    - Menus
-      - `menuBindings`, `settingsAppearanceSaturation`
-    - Bindings Interface
-      - `bindingsModalTitle`, `bindingsModalClose`, `bindingsModalSave`, `bindingsModalDefaults`, `bindingsColumnName`, `bindingsColumnKeyCombination`, `bindingsColumnDescriptions`, `bindingsErrorUnbound`, `bindingsClear`
-    - Bindings Key Descriptions
-      - `bindingsLockAltitude`, `bindingsGizmoTranslate`, `bindingsGizmoRotate`, `bindingsGizmoScale`, `bindingsGizmoLocalSpace`, `bindingsFullscreen`, `bindingsAddUDS`, `bindingsRemove`, `bindingsCameraForward`, `bindingsCameraBackward`, `bindingsCameraLeft`, `bindingsCameraRight`, `bindingsCameraUp`, `bindingsCameraDown`, `bindingsBindingsInterface`, `bindingsClose`, `bindingsRenameSceneItem`, `bindingsSave`, `bindingsLoad`
-    - Scene
-      - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
-    - Polygon Meshes
-      - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`, `polyModelIgnoreTint`
-  - Changed:
-    - 
-  - Removed:
-    - Legacy Key Bindings
-	    - `sceneLockAltitudeKey`, `sceneGizmoTranslateKey`, `sceneGizmoRotateKey`, `sceneGizmoScaleKey`, `sceneGizmoLocalSpaceKey`, `sceneFullscreenKey`, `sceneMapModeKey`, `sceneExplorerRemoveKey`, `sceneExplorerAddUDSKey`
-    - Other
-      - `polyModelInvertFaces`, `menuBarConnectionStatus`
-	
+
 - Version 0.4.0
   - Added:
-    - Settings
-      - `settingsVisContoursRainbowRepeatRate`, `settingsVisContoursRainbowIntensity`, `settingsAppearanceLoginRenderLicense`, `settingsControlsMouseInvertX`, `settingsControlsMouseInvertY`, `settingsControlsControllerInvertX`,`settingsControlsControllerInvertY`, `settingsAppearanceShowEuclideonLogo`
-    - Scene Explorer
-      - `sceneExplorerProjectChangeFailedWrite`, `sceneExplorerProjectChangeFailedRead`, `sceneExplorerProjectChangeFailedParse`, `sceneExplorerSetButton`, `scenePOILabelImageTypeOriented`, `scenePOIAttachModel`, `scenePOIAttachModelURI`, `scenePOIAttachModelFailed`, `scenePOIAttachmentSpeed`, `sceneExplorerCompareModels`
-    - Viewport (New Node Types)
-      - View Sheds
-        - `sceneAddViewShed`, `sceneExplorerViewShedDefaultName`, `viewShedDistance`, `viewShedVisibleColour`, `viewShedHiddenColour`
-      - Polygon Meshes
-        - `polyModelInvertFaces`, `polyModelMesh`, `polyModelTexture`, `polyModelMatColour`
-      - Filters
-        - `sceneAddFilter`, `sceneAddFilterBox`, `sceneAddFilterSphere`, `sceneAddFilterCylinder`, `sceneExplorerFilterBoxDefaultName`, `sceneExplorerFilterSphereDefaultName`, `sceneExplorerFilterCylinderDefaultName`, `sceneFilterPosition`, `sceneFilterRotation`, `sceneFilterExtents`, `sceneFilterShape`, `sceneFilterShapeBox`, `sceneFilterShapeSphere`, `sceneFilterShapeCylinder`, `sceneFilterInverted`
-    - Convert
-      - `convertAllSpaceLabel`, `convertSpaceECEF`, `convertSpaceDetected`
-    - Misc
-      - `loginEnterURL`
+    - ?
   - Changed:
-    - Viewport
-      - `sceneAddAOI` (improved clarity), `sceneAddLine` (improved clarity)
+    - ?
   - Removed:
-    - `sceneExplorerProjectChangeFailedTitle`, `sceneExplorerProjectChangeSucceededTitle`, `settingsControlsInvertX`, `settingsControlsInvertY`
+    - ?
 
 - Version 0.3.1
   - Added:
@@ -194,7 +160,6 @@ Modules are currently:
 - `loginIgnoreCertWarning`: This displays a warning to the user that disabling the security certificates is _very_ dangerous
 - `loginPending`: String used internally to set the login status to "pending"?
 - `loginMessageCredentials`: Prompts the user to enter their login information
-- `loginEnterURL`: Prompts the user to enter a server URL
 - `loginMessageChecking`: Tells the user to wait while their login information is confirmed
 - `loginErrorConnection`: Displays when the vault client fails to connect to the specified vault server
 - `loginErrorAuth`: Displays when the server rejects the specified username or password
@@ -218,14 +183,11 @@ Modules are currently:
 - `settingsAppearanceLight`: Light option for appearance theme and login screen  dropdown lists
 - `settingsAppearancePOIDistance`: Label next to slider for setting the maximum distance at which POIs are visible
 - `settingsAppearanceShowDiagnostics`: Label next to the checkbox that toggles the display of diagnostic information in the menu bar
-- `settingsAppearanceShowEuclideonLogo`: Label next to the checkbox that toggles the display of the Euclideon logo over the scene
 - `settingsAppearanceAdvancedGIS`: Label next to the checkbox that toggles the display of advanced GIS settings in the viewport
 - `settingsAppearanceLimitFPS`: Label next to checkbox for limiting the frame-rate while vault client window is inactive or unselected
 - `settingsAppearanceShowCompass`: Label next to checkbox that toggles the appearance of a compass in the viewport
-- `settingsAppearanceLoginRenderLicense`: Label next to checkbox that toggles acquiring a render license automatically on login
 - `settingsAppearanceShowSkybox`: Label next to checkbox that toggles if the skybox is displayed
 - `settingsAppearanceSkyboxColour`: Label next to colour picker to decide the colour of the background if the skybox is disabled
-- `settingsAppearanceSaturation`: Slider that applies saturation to the scene
 - `settingsAppearanceMouseAnchor`: Label next to dropdown list to select the appearance of the mouse cursor when hovering over objects in the scene
 - `settingsAppearanceNone`: "None" option for mouse cursor appearance. If selected, mouse cursor retains its default appearance
 - `settingsAppearanceCompass`: Compass option for mouse cursor appearance
@@ -245,10 +207,8 @@ Modules are currently:
 - `settingsControlsRestoreDefaults`: Used to restore default values for all controls settings
 - `settingsControlsOSC`: Label next to checkbox that toggles the appearance of on-screen camera controls in the viewport
 - `settingsControlsTouchUI`: Label next to checkbox that toggles UI optimisation for a touchscreen
-- `settingsControlsMouseInvertX`: Label next to checkbox that toggles the positive/negative X-axis for mouse inputs
-- `settingsControlsMouseInvertY`: Label next to checkbox that toggles the positive/negative Y-axis for mouse inputs
-- `settingsControlsControllerInvertX`: Label next to checkbox that toggles the positive/negative X-axis for controller inputs
-- `settingsControlsControllerInvertY`: Label next to checkbox that toggles the positive/negative Y-axis for controller inputs
+- `settingsControlsInvertX`: Label next to checkbox that toggles the positive/negative X-axis for the purposes of camera movement
+- `settingsControlsInvertY`: Label next to checkbox that toggles the positive/negative Y-axis for the purposes of camera movement
 - `settingsControlsMousePivot`: Subheading for the four dropdown lists used to assign bindings for mouse input
 - `settingsControlsForward`: Option for Left, Middle and Right mouse button dropdown lists, moves the camera forwards (same as W key) and also allows tumbling
 - `settingsControlsTumble`: Option for Left, Middle and Right mouse button dropdown lists, rotates the camera without moving it
@@ -320,8 +280,6 @@ Modules are currently:
 - `settingsVisContoursColour`: Label next to colour selector for setting the colour of contours
 - `settingsVisContoursDistances`: Label next to slider for setting the vertical distance between each contour
 - `settingsVisContoursBandHeight`: Label next to slider for setting the vertical size of each contour
-- `settingsVisContoursRainbowRepeatRate`: Label next to the slider for how quickly the rainbow mode for contours repeats
-- `settingsVisContoursRainbowIntensity`: Label next to the slider that sets how strongly the rainbow appears
 - `settingsVisRestoreDefaults`: Used to restore default values for all visualisation settings
 
 - `settingsVisClassRestoreDefaults`: Label on a button that restores default values for all classifications and colours
@@ -433,13 +391,10 @@ Modules are currently:
 - `convertGeneratingPreview`: Displayed on the button while a preview is being generated
 - `convertAddPreviewToScene`: Displayed on the button that generates a preview model and adds it to the scene
 - `convertPreviewName`: The default name for a preview pointcloud when added to the scene
-- `convertAllSpaceLabel`: The label beside the dropdown to select the projection space for all inputs
 - `convertSpaceLabel`: The label beside the dropdown to select the projection space for the input
-- `convertSpaceDetected`: The label on the combobox item to reset the projection space to the originally detected value
 - `convertSpaceCartesian`: The label on the combobox item for a cartesian projected conversion input
 - `convertSpaceLatLong`: The label on the combobox item for a latitude, longitude ordered conversion input
 - `convertSpaceLongLat`: The label on the combobox item for a longitude, latitude ordered conversion input
-- `convertSpaceECEF`: The label on the combobox item for earth centered, earth fixed conversion inputs
 - `convertAddFileTitle`: Title of the file dialog used for adding files to the convert queue
 - `convertSetOutputTitle`: Title of the file dialog used for setting the convert output path
 - `convertSetTempDirectoryTitle`: Title of the file dialog used for setting the convert temporary directory
@@ -462,7 +417,6 @@ Modules are currently:
 - `menuSettings`: Option in Windows menu to enable the Settings tab
 - `menuProjects`: Header for Projects menu
 - `menuNewScene`: Option in Projects menu to remove all objects in the current scene and creating a new, empty scene
-- `menuBindings`: Submenu in System Menu for the hotkey binding interface
 - `menuProjectExport`: Menu button to open the export project modal
 - `menuProjectExportTitle`: Title on the modal when exporting project files
 - `menuProjectImport`: Menu button to open the import project modal
@@ -499,6 +453,7 @@ Modules are currently:
 - `menuBarConvert`: Used to display the status of the convert license
 - `menuBarLicense`: Used to display that the menu bar is showing the status of the convert or render licenses
 - `menuBarRender`: Used to display the status of the render license
+- `menuBarConnectionStatus`: Used to display the current connection status between vault client and the server
 - `menuBarFPS`: Displays vault client's current framerate in both frames per second (fps) and milliseconds (ms)
   - {0} = framerate in frames/s
   - {1} = framerate in ms/frame
@@ -537,17 +492,7 @@ Modules are currently:
 - `sceneAddMenu`: Sub-menu menu option when right-clicking within the scene, contains AddPOI, AddAOI and AddLine
 - `sceneAddAOI`: Menu option when right-clicking within the scene, creates an AOI at the current mouse location
 - `sceneAddLine`: Menu option when right-clicking within the scene, creates a Line at the current mouse location
-- `sceneAddViewShed`: Menu option when right-clicking within the scene, creates a View Shed at the current mouse location
-- `sceneAddFilter`: Context menu option when right clicking in the scene to open another submenu with filter types
-- `sceneAddFilterBox`: Context menu option when right clicking in the scene to add a new Box filter
-- `sceneAddFilterSphere`: Context menu option when right clicking in the scene to add a new Sphere filter
-- `sceneAddFilterCylinder`: Context menu option when right clicking in the scene to add a new Cylinder filter
 - `sceneResetRotation`: Menu option when right-clicking within the scene, rotates the camera to default orientation
-
-- `sceneCameraAttachmentWarning` Warning text at the top of the window when the camera is attached to a scene item
-  - {0} the name of the scene item the camera is attached to
-- `sceneCameraAttachmentDetach` Button at the top of the screen to detach the camera when it is attached to a scene item
-
 - `sceneLockAltitude`: Tooltip displayed when mouse is hovered over the Lock Altitude button in the viewport controls window
 - `sceneLockAltitudeKey`: Used in Lock Altitude tooltip, shown in brackets
 - `sceneCameraInfo`: Tooltip displayed when mouse is hovered over the Show Camera Information button in the viewport controls window
@@ -589,19 +534,13 @@ Modules are currently:
 - `sceneExplorerAddOther`: Tooltip displayed when mouse is hovered over the Add Other button in the scene explorer tab
 - `sceneExplorerAddFeed`: Menu option in the Add Other menu which is displayed when the Add Other button is clicked, adds a Live Feed item to the scene
 - `sceneExplorerAddFolder`: Tooltip displayed when mouse is hovered over the Add Folder button in the scene explorer tab
-- `sceneExplorerViewShedDefaultName`: Default name of new View Sheds when they are added to the scene
-- `sceneExplorerFilterBoxDefaultName`: The default name when a new box filter is added
-- `sceneExplorerFilterSphereDefaultName`: The default name when a new sphere filter is added
-- `sceneExplorerFilterCylinderDefaultName`: The default name when a new cylinder filter is added
 - `sceneExplorerEditName`: Menu option when right-clicking on an item in the Scene Explorer, allows user to change the name of the item
 - `sceneExplorerUseProjection`: Menu option when right-clicking on an item in the Scene Explorer, changes the current SRID to that of the selected scene item
 - `sceneExplorerMoveTo`: Menu option when right-clicking on an item in the Scene Explorer, moves the camera to the location of the selected item
 - `sceneExplorerResetPosition`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to that position if it has been moved
-- `sceneExplorerCompareModels`: Menu option when right-clicking on an item in the Scene Explorer that can be compared with another item, a model with displacement values will be generated on disk.
 - `sceneExplorerPathURL`: Label next to the text box containing the path of the currently selected file
 - `sceneExplorerLoadButton`: Label used for the Load button in the Add UDS and Import Project windows which loads the currently selected file and closes the window
 - `sceneExplorerExportButton`: Label used for the Export button in the Export Project window which saves the content of the current scene to the specified location and closes the window
-- `sceneExplorerSetButton`: Label used for the Set button in the Convert Output and Temporary Directory selection window
 - `sceneExplorerCancelButton`: Label used for the Close button of the Add UDS window
 - `sceneExplorerUnknownCustomNode`: Label used when unsupported nodes are loaded from a project
 
@@ -627,14 +566,6 @@ Modules are currently:
 - `sceneModelPosition`: Label used for the model position
 - `sceneModelRotation`: Label used for the model rotation
 - `sceneModelScale`: Label used for the model scale
-- `sceneModelMetreScale`: Label for metadata on metre scale for this model (how many units per metric metre)
-  - {0} the actual scale amount
-- `sceneModelLODLayers`: Label for metadata on number of LOD layers for this model
-  - {0} the number of LOD layers in this model
-- `sceneModelResolution`: Label for metadata on resolution at time of conversion for this model
-  - {0} the resolution of the model
-- `sceneModelAttributes`: Label for metadata on number of attributes for this model
-  - {0} number of attributes
 
 #### Point of Interest
 - `scenePOIDefaultName`: Default name of new POI objects when they are added to the Scene Explorer
@@ -661,17 +592,10 @@ Modules are currently:
 - `scenePOIThumbnailSizeSmall`: Text on the combo option to select the smallest size for the thumbnail
 - `scenePOIThumbnailSizeLarge`: Text on the combo option to select the largest size for the thumbnail
 - `scenePOILabelImageType`: Label for POI image type shown in the scene explorer
-- `scenePOILabelImageTypeStandard`: One of the image types shown in the scene explorer
-- `scenePOILabelImageTypeOriented`: One of the image types shown in the scene explorer
-- `scenePOILabelImageTypePanorama`: One of the image types shown in the scene explorer
-- `scenePOILabelImageTypePhotosphere`: One of the image types shown in the scene explorer
+- `scenePOILabelImageTypeStandard`: One of the POI image types as shown in the scene explorer
+- `scenePOILabelImageTypePanorama`: One of the POI image types as shown in the scene explorer
+- `scenePOILabelImageTypePhotosphere`: One of the POI image types as shown in the scene explorer
 - `scenePOIReloadTime`: Label on the reload time for the image on a media node (in seconds)
-- `scenePOIAttachModel`: Drop down menu in context menu and also button in submenu to attach a model to the POI
-- `scenePOIAttachModelURI`: The label beside the URL box when attaching a model
-- `scenePOIAttachModelFailed`: Error message that appears when the model fails to load
-- `scenePOIAttachmentSpeed`: Label beside slider that sets the speed for attached model
-- `scenePOIAttachCameraToAttachment`: The label on the context menu to link the camera to the attached model
-
 - `scenePOILineSettings`: The header for the expansion for the other line settings
 - `scenePOILineShowLength`: Label on the checkbox for when the user wants the length displayed on the label in the scene
 - `scenePOILineShowAllLengths`: Label on the checkbox that will show each individual segment line length
@@ -691,15 +615,6 @@ Modules are currently:
 - `scenePOICancelFlyThrough`: Label for button that appears during fly-through, allows user to cancel the fly-through
 - `scenePOIPerformFlyThrough`: Label for button that appears when POI has multiple nodes, will trigger a fly-through
 
-- `sceneFilterPosition`: Label beside inputs to set the (center) position of the filter
-- `sceneFilterRotation`: Label beside YPR inputs for filter rotation
-- `sceneFilterExtents`: Label beside inputs to specify the half size of the filter
-- `sceneFilterShape`: Label beside drop down 
-- `sceneFilterShapeBox`: Label on drop down item to specify a box filter
-- `sceneFilterShapeSphere`: Label on drop down item to specify a sphere filter
-- `sceneFilterShapeCylinder`: Label on drop down item to specify a cylinder filter
-- `sceneFilterInverted`: Label on checkbox to invert the result of the filter
-
 - `sceneViewpointSetCamera`: Label for button that bookmarks the current camera position and orientation
 - `sceneViewpointPosition`: Label for displaying the current stored camera position
 - `sceneViewpointRotation`: Label for displaying the current stored camera orientation
@@ -717,79 +632,3 @@ Modules are currently:
   - {1} total number of visible items
   - {2} number of second until the next update (or negative for seconds since starting the last update)
 - `liveFeedGroupID`: When in `liveFeedModeGroups` mode, this is the input for the Group ID. [Will eventually be a drop down to select by group name]
-- `liveFeedLODModifier`: Label on slider that modifies the distance at which to show particular levels of detail on live feed item labels
-
-#### Polygon Models
-- `polyModelCullFace`: Label on combo box to select which face culling mode
-- `polyModelCullFaceBack`: Combo box item for back-face culling (default setting)
-- `polyModelCullFaceFront`: Combo box item for front-face culling (inverted faces)
-- `polyModelCullFaceNone`: Combo box item for no-culling (not recommended)
-- `polyModelMesh`: Used on the label next to mesh information in the scene explorer with "Show Diagnostic Information" enabled 
-- `polyModelTexture`: Used on the label next to mesh texture information in the scene explorer with "Show Diagnostic Information" enabled 
-- `polyModelMatColour`: Used on the label next to mesh material colour information in the scene explorer with "Show Diagnostic Information" enabled 
-- `polyModelIgnoreTint`: Checkbox to ignoring any tint material colour
-
-#### View Sheds
-
-- `viewShedDistance`: Label on slider to select view shed distance of effect
-- `viewShedVisibleColour`: Label on colour picker to select colour to highlight regions visible by the view shed
-- `viewShedHiddenColour`: Label on colour picker to select colour to highlight regions hidden from the view shed
-
-### Attributes
-- `attributeType`: Label when showing the attribute type
-  - {0} one of the attributeTypeX strings below
-- `attributeTypeUint8`: label when the attribute is a 8-bit unsigned integer
-- `attributeTypeUint16`: label when the attribute is a 16-bit unsigned integer
-- `attributeTypeUint32`: label when the attribute is a 32-bit unsigned integer
-- `attributeTypeUint64`: label when the attribute is a 64-bit unsigned integer
-- `attributeTypeInt8`: label when the attribute is a 8-bit signed integer
-- `attributeTypeInt16`: label when the attribute is a 16-bit signed integer
-- `attributeTypeInt32`: label when the attribute is a 32-bit signed integer
-- `attributeTypeInt64`: label when the attribute is a 64-bit signed integer
-- `attributeTypeFloat32`: label when the attribute is a 32-bit floating point value
-- `attributeTypeFloat64`: label when the attribute is a 64-bit floating point value
-- `attributeTypeColour`: label when the attribute is the special colour format
-- `attributeTypeNormal`: label when the attribute is a packed normal
-- `attributeTypeVec3F32`: label when the attribute is a 3x 32-bit floating point values (3D Vector)
-- `attributeTypeUnknown`: label when the attribute is an unknown format
-
-- `attributeBlending`: Label when showing the attribute blending mode
-  - {0} one of the attributeBlendingX strings below
-- `attributeBlendingMean`: Label when the value is averaged from the next highest resolution LOD layer
-- `attributeBlendingSingle`: Label when the value is one of the points in the next highest resolution LOD layer
-- `attributeBlendingUnknown`: Label when the blending is an unknown format
-
-#### Bindings Interface
-
-- `bindingsModalTitle`: Title for key bindings window
-- `bindingsModalClose`: Label for close button on key bindings window
-- `bindingsModalSave`: Label for button that saves current key bindings
-- `bindingsModalDefaults`: Label for button that loads default key bindings
-- `bindingsColumnName`: Header for key binding name column
-- `bindingsColumnKeyCombination`: Header for key binding key combination column
-- `bindingsColumnDescription`: Header for key binding description column
-- `bindingsErrorUnbound`: Text warning when user binds an already bound key combination
-- `bindingsClear`: Text that displays instead of key combination when key binding isn't set
-  
-##### Bindings Descriptions
-
-- `bindingsMapMode`: Key binding description displayed next to Map Mode binding
-- `bindingsLockAltitude`: Key binding description displayed next to Lock Altitude binding
-- `bindingsGizmoTranslate`: Key binding description displayed next to Gizmo Translate binding
-- `bindingsGizmoRotate`: Key binding description displayed next to Gizmo Rotate binding
-- `bindingsGizmoScale`: Key binding description displayed next to Gizmo Scale binding
-- `bindingsGizmoLocalSpace`: Key binding description displayed next to Gizmo Local Space binding
-- `bindingsFullscreen`: Key binding description displayed next to Presentation Mode (Fullscreen) binding
-- `bindingsAddUDS`: Key binding description displayed next to Add UDS binding
-- `bindingsRemove`: Key binding description displayed next to Remove binding
-- `bindingsForward`: Key binding description displayed next to Forward binding
-- `bindingsBackward`: Key binding description displayed next to Backward binding
-- `bindingsLeft`: Key binding description displayed next to Left binding
-- `bindingsRight`: Key binding description displayed next to Right binding
-- `bindingsUp`: Key binding description displayed next to Up binding
-- `bindingsDown`: Key binding description displayed next to Down binding
-- `bindingsBindingsInterface`: Key binding description displayed next to Bindings Interface binding
-- `bindingsClose`: Key binding description displayed next to Close binding
-- `bindingsRenameSceneItem`: Key binding description displayed next to Rename Scene Item binding
-- `bindingsSave`: Key binding description displayed next to Save binding
-- `bindingsLoad`: Key binding description displayed next to Load binding

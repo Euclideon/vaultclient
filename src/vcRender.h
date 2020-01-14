@@ -6,7 +6,6 @@
 
 #include "vdkRenderContext.h"
 #include "vdkRenderView.h"
-#include "vdkQuery.h"
 
 #include "gl/vcMesh.h"
 #include "vcFenceRenderer.h"
@@ -29,14 +28,6 @@ struct vcRenderPolyInstance
     RenderType_SceneLayer
   } renderType;
 
-  enum RenderFlags
-  {
-    RenderFlags_None        = 0,
-
-    RenderFlags_IgnoreTint  = 1 << 0,
-    RenderFlags_Transparent = 1 << 1
-  } renderFlags;
-
   union
   {
     vcPolygonModel *pModel;
@@ -46,16 +37,9 @@ struct vcRenderPolyInstance
   udDouble4x4 worldMat; // will be converted to eye internally
   vcTexture *pDiffuseOverride; // optionally override diffuse texture. Only available on RenderType_Polygon
 
-  vcGLStateCullMode cullFace;
-
   vcSceneItem *pSceneItem;
-  uint64_t sceneItemInternalId; // 0 is entire model; for most systems this will be +1 compared to internal arrays
-
-  // Helper to determine if flag is set
-  bool HasFlag(const enum RenderFlags flag) { return (renderFlags & flag) == flag; }
+  uint64_t sceneItemInternalId;
 };
-
-inline enum vcRenderPolyInstance::RenderFlags operator|(const enum vcRenderPolyInstance::RenderFlags a, const enum vcRenderPolyInstance::RenderFlags b) { return (enum vcRenderPolyInstance::RenderFlags)(int(a) | int(b)); }
 
 struct vcMouseData
 {
@@ -63,20 +47,9 @@ struct vcMouseData
   bool clicked;
 };
 
-struct vcViewShedData
-{
-  //udUInt2 resolution; // TODO
-  udDouble3 position;
-  float fieldOfView;
-  udFloat2 nearFarPlane;
-  udFloat4 visibleColour;
-  udFloat4 notVisibleColour;
-};
-
 struct vcRenderData
 {
   vcMouseData mouse;
-  vdkQueryFilter *pQueryFilter;
 
   udChunkedArray<vcModel*> models;
   udChunkedArray<vcFenceRenderer*> fences;
@@ -84,8 +57,6 @@ struct vcRenderData
   udChunkedArray<vcRenderPolyInstance> polyModels;
   udChunkedArray<vcWaterRenderer*> waterVolumes;
   udChunkedArray<vcImageRenderInfo*> images;
-
-  udChunkedArray<vcViewShedData> viewSheds;
 
   vcTexture *pSceneTexture;
   udFloat2 sceneScaling;

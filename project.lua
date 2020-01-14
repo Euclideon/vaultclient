@@ -52,9 +52,9 @@ project "vaultClient"
 
 		filter { "system:windows" }
 			links { "libfbxsdk.lib" }
-			libdirs { '%{_OPTIONS["fbxsdk"]}/lib/vs2017/x64/%{cfg.buildcfg}/' }
+			libdirs { '%{_OPTIONS["fbxsdk"]}/lib/vs2015/x64/%{cfg.buildcfg}/' }
 			prelinkcommands {
-				'copy /B "' .. path.translate(_OPTIONS["fbxsdk"] .. '\\lib\\vs2017\\x64\\%{cfg.buildcfg}\\libfbxsdk.dll') .. '" %{prj.targetdir}'
+				'copy /B "' .. path.translate(_OPTIONS["fbxsdk"] .. '\\lib\\vs2015\\x64\\%{cfg.buildcfg}\\libfbxsdk.dll') .. '" %{prj.targetdir}'
 			}
 
 		filter { "system:macosx" }
@@ -91,11 +91,12 @@ project "vaultClient"
 		flags { "NoBufferSecurityCheck" }
 
 	filter { "system:windows" }
-		sysincludedirs { "3rdParty/SDL2-2.0.8/include" }
-		files { "src/**.rc" }
+		defines { "GLEW_STATIC" }
+		sysincludedirs { "3rdParty/glew/include", "3rdParty/SDL2-2.0.8/include" }
+		files { "3rdParty/glew/glew.c", "src/**.rc" }
 		linkoptions( "/LARGEADDRESSAWARE" )
 		libdirs { "3rdParty/SDL2-2.0.8/lib/x64" }
-		links { "SDL2.lib", "SDL2main.lib", "winmm.lib", "ws2_32", "winhttp", "imm32.lib" }
+		links { "SDL2.lib", "SDL2main.lib", "opengl32.lib", "winmm.lib", "ws2_32", "winhttp", "imm32.lib" }
 
 	filter { "system:linux" }
 		linkoptions { "-Wl,-rpath '-Wl,$$ORIGIN'" } -- Check beside the executable for the SDK
@@ -147,12 +148,6 @@ project "vaultClient"
 
 	filter { "options:gfxapi=opengl" }
 		defines { "GRAPHICS_API_OPENGL=1" }
-
-	filter { "options:gfxapi=opengl", "system:windows" }
-		defines { "GLEW_STATIC" }
-		sysincludedirs { "3rdParty/glew/include" }
-		files { "3rdParty/glew/glew.c" }
-		links { "opengl32.lib" }
 
 	filter { "options:gfxapi=d3d11" }
 		libdirs { "$(DXSDK_DIR)/Lib/x64;" }

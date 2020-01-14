@@ -45,14 +45,12 @@ public:
   udChunkedArray<vcLiveFeedItem*> m_feedItems;
   udChunkedArray<vcLiveFeedPolyCache> m_polygonModels;
 
-  uint64_t m_selectedItem;
   size_t m_visibleItems;
 
   bool m_tweenPositionAndOrientation; // Should this feed make up data to smooth out updates
   double m_updateFrequency; // Delay in seconds between updates
   double m_decayFrequency; // Remove items if they haven't updated more recently than this
   double m_maxDisplayDistance; // Distance to stop displaying entirely
-  double m_labelLODModifier; // Distance modifier for label LOD
 
   udUUID m_groupID; // Required for updating group mode
 
@@ -71,8 +69,7 @@ public:
 
   udDouble3 GetLocalSpacePivot();
 
-  void SelectSubitem(uint64_t internalId);
-  bool IsSubitemSelected(uint64_t internalId);
+  bool IsSceneSelected(uint64_t internalId);
 };
 
 #endif //vcLiveFeed_h__

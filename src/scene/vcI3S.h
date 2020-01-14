@@ -17,19 +17,15 @@ public:
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
-
   void HandleImGui(vcState *pProgramState, size_t *pItemID);
-  void HandleContextMenu(vcState *pProgramState);
-
   void Cleanup(vcState *pProgramState);
 
   void ChangeProjection(const udGeoZone &newZone);
   udDouble3 GetLocalSpacePivot();
   udDouble4x4 GetWorldSpaceMatrix();
-
-  udDouble4x4 m_sceneMatrix; // This is the matrix used to render into the current projection
 private:
   vcSceneLayerRenderer *m_pSceneRenderer;
+  udDouble4x4 m_sceneMatrix; // This is the matrix used to render into the current projection
 };
 
 #endif //vcI3S_h__

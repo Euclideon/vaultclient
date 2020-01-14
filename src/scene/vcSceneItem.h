@@ -52,8 +52,7 @@ public:
   // This lets SceneItems know that their vdkProjectNode has changed
   virtual void OnNodeUpdate(vcState *pProgramState) = 0;
 
-  virtual void SelectSubitem(uint64_t internalId);
-  virtual bool IsSubitemSelected(uint64_t internalId);
+  virtual bool IsSceneSelected(uint64_t internalId);
 
   // This is used to help with adding the item to the renderer
   virtual void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) = 0;
@@ -63,8 +62,6 @@ public:
 
   // These are used to help with exposing item specific UI
   virtual void HandleImGui(vcState *pProgramState, size_t *pItemID) = 0; // Shows expanded settings in scene explorer
-  virtual void HandleContextMenu(vcState *pProgramState); // Show expanded context menu settings in scene explorer
-  virtual void HandleAttachmentUI(vcState *pProgramState); // Show additional settings in the scene when attached to this item
 
   // Only calls this if its 'completed' loading and is 'vcSLS_Loaded'; note: this is called before other cleanup operations
   virtual void Cleanup(vcState *pProgramState) = 0;

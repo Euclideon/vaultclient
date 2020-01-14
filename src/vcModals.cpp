@@ -10,8 +10,6 @@
 #include "vcConvert.h"
 #include "vcProxyHelper.h"
 #include "vcStringFormat.h"
-#include "vcHotkey.h"
-#include "vcWebFile.h"
 
 #include "udFile.h"
 #include "udStringUtil.h"
@@ -31,7 +29,7 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
     pProgramState->modalOpen = true;
     ImGui::TextUnformatted(vcString::Get("menuLogoutMessage"));
 
-    if (ImGui::Button(vcString::Get("menuLogoutCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Close))
+    if (ImGui::Button(vcString::Get("menuLogoutCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
       ImGui::CloseCurrentPopup();
       pProgramState->openModals &= ~(1 << vcMT_LoggedOut);
@@ -81,7 +79,7 @@ void vcModals_DrawProxyAuth(vcState *pProgramState)
 
     ImGui::SameLine();
 
-    if (ImGui::Button(vcString::Get("modalProxyAuthCancelButton")) || vcHotkey::IsPressed(vcB_Close))
+    if (ImGui::Button(vcString::Get("modalProxyAuthCancelButton")) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
       pProgramState->loginStatus = vcLS_ProxyAuthFailed; // Change the error so it doesn't try login when the modal closes
       closePopup = true;
@@ -118,7 +116,7 @@ void vcModals_DrawReleaseNotes(vcState *pProgramState)
     ImGui::Text("%s: %s", vcString::Get("menuCurrentVersion"), VCVERSION_PRODUCT_STRING);
 
     ImGui::NextColumn();
-    if (ImGui::Button(vcString::Get("menuReleaseNotesCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Close))
+    if (ImGui::Button(vcString::Get("menuReleaseNotesCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::Columns(1);
@@ -163,23 +161,10 @@ void vcModals_DrawAbout(vcState *pProgramState)
       ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "%s", vcStringFormat(strBuf, udLengthOf(strBuf), vcString::Get("menuAboutPackageUpdate"), pProgramState->packageInfo.Get("package.versionstring").AsString()));
 
     ImGui::NextColumn();
-    if (ImGui::Button(vcString::Get("menuAboutCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Close))
+    if (ImGui::Button(vcString::Get("menuAboutCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::Columns(1);
-    ImGui::NewLine();
-    const char *issueTrackerStrings[] = { "https://github.com/euclideon/vaultclient/issues", "GitHub" };
-    const char *pIssueTrackerStr = vcStringFormat(vcString::Get("loginSupportIssueTracker"), issueTrackerStrings, udLengthOf(issueTrackerStrings));
-    ImGui::TextUnformatted(pIssueTrackerStr);
-    udFree(pIssueTrackerStr);
-    if (ImGui::IsItemClicked())
-      vcWebFile_OpenBrowser("https://github.com/euclideon/vaultclient/issues");
-    if (ImGui::IsItemHovered())
-      ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-
-    const char *pSupportStr = vcStringFormat(vcString::Get("loginSupportDirectEmail"), "support@euclideon.com");
-    ImGui::TextUnformatted(pSupportStr);
-    udFree(pSupportStr);
 
     ImGui::Separator();
 
@@ -219,7 +204,7 @@ void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
     ImGui::TextWrapped("%s", vcString::Get("menuNewVersionDownloadPrompt"));
 
     ImGui::NextColumn();
-    if (ImGui::Button(vcString::Get("menuNewVersionCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Close))
+    if (ImGui::Button(vcString::Get("menuNewVersionCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
       ImGui::CloseCurrentPopup();
       pProgramState->openModals &= ~(1 << vcMT_NewVersionAvailable);
@@ -356,7 +341,7 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     else if (pProgramState->tileModal.pServerIcon != nullptr)
       ImGui::Image((ImTextureID)pProgramState->tileModal.pServerIcon, ImVec2(200, 200), ImVec2(0, 0), ImVec2(1, 1));
 
-    if (ImGui::Button(vcString::Get("settingsMapsTileServerCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Close))
+    if (ImGui::Button(vcString::Get("settingsMapsTileServerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
       if (pProgramState->tileModal.loadStatus == 0)
       {
@@ -461,14 +446,12 @@ void vcModals_DrawFileModal(vcState *pProgramState)
     bool saveFile = false;
     if (mode == vcMT_ExportProject)
       saveFile = (ImGui::Button(vcString::Get("sceneExplorerExportButton"), ImVec2(100.f, 0)) || pressedEnter);
-    else if (mode == vcMT_ConvertOutput || mode == vcMT_ConvertTempDirectory)
-      loadFile = (ImGui::Button(vcString::Get("sceneExplorerSetButton"), ImVec2(100.f, 0)) || pressedEnter);
     else
       loadFile = (ImGui::Button(vcString::Get("sceneExplorerLoadButton"), ImVec2(100.f, 0)) || pressedEnter);
 
     ImGui::SameLine();
 
-    if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Close))
+    if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
     {
       pProgramState->modelPath[0] = '\0';
       ImGui::CloseCurrentPopup();
@@ -525,14 +508,14 @@ void vcModals_DrawFileModal(vcState *pProgramState)
         udFilename loadFilename(pProgramState->modelPath);
         loadFilename.SetExtension(".uds");
         vdkConvertContext *pConvertContext = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext;
-        vdkConvert_SetOutputFilename(pConvertContext, loadFilename.GetPath());
+        vdkConvert_SetOutputFilename(pProgramState->pVDKContext, pConvertContext, loadFilename.GetPath());
         // SetOutputFilename() overwrites the temp directory automatically, unless the user has modified it
       }
       else if (mode == vcMT_ConvertTempDirectory)
       {
         // Set temporary directory
         vdkConvertContext *pConvertContext = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext;
-        vdkConvert_SetTempDirectory(pConvertContext, pProgramState->modelPath);
+        vdkConvert_SetTempDirectory(pProgramState->pVDKContext, pConvertContext, pProgramState->modelPath);
       }
       else
       {
@@ -543,9 +526,31 @@ void vcModals_DrawFileModal(vcState *pProgramState)
     }
     else if (saveFile)
     {
-      vcProject_Save(pProgramState, pProgramState->modelPath, false);
-      pProgramState->modelPath[0] = '\0';
-      ImGui::CloseCurrentPopup();
+      const char *pOutput = nullptr;
+      if (vdkProject_WriteToMemory(pProgramState->activeProject.pProject, &pOutput) == vE_Success)
+      {
+        udFindDir *pDir = nullptr;
+        udFilename exportFilename(pProgramState->modelPath);
+        if (!udStrEquali(pProgramState->modelPath, "") && !udStrEndsWithi(pProgramState->modelPath, "/") && !udStrEndsWithi(pProgramState->modelPath, "\\") && udOpenDir(&pDir, pProgramState->modelPath) == udR_Success)
+          exportFilename.SetFromFullPath("%s/untitled_project.json", pProgramState->modelPath);
+        else if (exportFilename.HasFilename())
+          exportFilename.SetExtension(".json");
+        else
+          exportFilename.SetFilenameWithExt("untitled_project.json");
+
+        // Check if file path exists before writing to disk, and if so, the user will be presented with the option to overwrite or cancel
+        if (vcModals_OverwriteExistingFile(exportFilename.GetPath()))
+        {
+          pProgramState->modelPath[0] = '\0';
+          ImGui::CloseCurrentPopup();
+          if (udFile_Save(exportFilename.GetPath(), (void*)pOutput, udStrlen(pOutput)) != udR_Success)
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeFailed);
+          else
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChangeSucceeded);
+        }
+        if (pDir != nullptr)
+          udFree(pDir);
+      }
     }
     ImGui::EndPopup();
   }
@@ -579,7 +584,7 @@ void vcModals_DrawLoadWatermark(vcState *pProgramState)
       loadFile = true;
     ImGui::SameLine();
 
-    if (ImGui::Button(vcString::Get("convertCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Close))
+    if (ImGui::Button(vcString::Get("convertCancelButton"), ImVec2(100.f, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::Separator();
@@ -592,7 +597,7 @@ void vcModals_DrawLoadWatermark(vcState *pProgramState)
     {
       if (mode == vcMT_LoadWatermark)
       {
-        vdkConvert_AddWatermark(pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext, pProgramState->modelPath);
+        vdkConvert_AddWatermark(pProgramState->pVDKContext, pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext, pProgramState->modelPath);
         pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->watermark.isDirty = true;
       }
       else
@@ -619,59 +624,28 @@ void vcModals_DrawLoadWatermark(vcState *pProgramState)
 
 void vcModals_DrawProjectChangeResult(vcState *pProgramState)
 {
-  if (pProgramState->openModals & (1 << vcMT_ProjectChange))
-    ImGui::OpenPopup("###ProjectChange");
+  if (pProgramState->openModals & (1 << vcMT_ProjectChangeFailed))
+    ImGui::OpenPopup(vcString::Get("sceneExplorerProjectChangeFailedTitle"));
+  else if (pProgramState->openModals & (1 << vcMT_ProjectChangeSucceeded))
+    ImGui::OpenPopup(vcString::Get("sceneExplorerProjectChangeSucceededTitle"));
 
-  if (ImGui::BeginPopupModal("###ProjectChange", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar))
+  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerProjectChangeFailedTitle"), nullptr, ImGuiWindowFlags_NoResize))
   {
     pProgramState->modalOpen = true;
+    ImGui::TextUnformatted(vcString::Get("sceneExplorerProjectChangeFailedMessage"));
 
-    for (uint32_t i = 0; i < pProgramState->errorItems.length; ++i)
-    {
-      const char *pMessage = nullptr;
-
-      if (i > 0)
-        ImGui::NewLine();
-
-      if (pProgramState->errorItems[i].source == vcES_ProjectChange)
-      {
-        ImGui::TextUnformatted(pProgramState->errorItems[i].pData);
-        switch (pProgramState->errorItems[i].resultCode)
-        {
-        case udR_WriteFailure:
-          pMessage = vcString::Get("sceneExplorerProjectChangeFailedWrite");
-          break;
-        case udR_ParseError:
-          pMessage = vcString::Get("sceneExplorerProjectChangeFailedParse");
-          break;
-        case udR_Success:
-          pMessage = vcString::Get("sceneExplorerProjectChangeSucceededMessage");
-          break;
-        case udR_ReadFailure:
-          pMessage = vcString::Get("sceneExplorerProjectChangeFailedRead");
-          break;
-        case udR_Failure_: // Falls through
-        default:
-          pMessage = vcString::Get("sceneExplorerProjectChangeFailedMessage");
-          break;
-        }
-        ImGui::TextUnformatted(pMessage);
-      }
-    }
-
-    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Close))
-    {
-      for (uint32_t i = 0; i < pProgramState->errorItems.length; ++i)
-      {
-        if (pProgramState->errorItems[i].source == vcES_ProjectChange)
-        {
-          udFree(pProgramState->errorItems[i].pData);
-          pProgramState->errorItems.RemoveAt(i);
-          --i;
-        }
-      }
+    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
-    }
+
+    ImGui::EndPopup();
+  }
+  else if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerProjectChangeSucceededTitle"), nullptr, ImGuiWindowFlags_NoResize))
+  {
+    pProgramState->modalOpen = true;
+    ImGui::TextUnformatted(vcString::Get("sceneExplorerProjectChangeSucceededMessage"));
+
+    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
+      ImGui::CloseCurrentPopup();
 
     ImGui::EndPopup();
   }
@@ -687,7 +661,7 @@ void vcModals_DrawProjectReadOnly(vcState *pProgramState)
     pProgramState->modalOpen = true;
     ImGui::TextUnformatted(vcString::Get("sceneExplorerProjectReadOnlyMessage"));
 
-    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Close))
+    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::EndPopup();
@@ -708,20 +682,17 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
     // Clear and close buttons
     if (ImGui::Button(vcString::Get("sceneExplorerClearAllButton")))
     {
-      for (uint32_t i = 0; i < pProgramState->errorItems.length; ++i)
+      while (pProgramState->errorFiles.length)
       {
-        if (pProgramState->errorItems[i].source == vcES_File)
-        {
-          udFree(pProgramState->errorItems[i].pData);
-          pProgramState->errorItems.RemoveAt(i);
-          --i;
-        }
+        vcState::FileError errorFile;
+        pProgramState->errorFiles.PopBack(&errorFile);
+        udFree(errorFile.pFilename);
       }
     }
 
     ImGui::SameLine();
 
-    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton")) || vcHotkey::IsPressed(vcB_Close))
+    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton")) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     ImGui::Separator();
@@ -730,26 +701,23 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
     ImGui::BeginChild("unsupportedFilesChild");
     ImGui::Columns(2);
 
-    for (size_t i = 0; i < pProgramState->errorItems.length; ++i)
+    for (size_t i = 0; i < pProgramState->errorFiles.length; ++i)
     {
-      if (pProgramState->errorItems[i].source != vcES_File)
-        continue;
-
       bool removeItem = ImGui::Button(udTempStr("X##errorFileRemove%zu", i));
       ImGui::SameLine();
       // Get the offset so the next column is offset by the same value to keep alignment
       float offset = ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset;
-      ImGui::TextUnformatted(pProgramState->errorItems[i].pData);
+      ImGui::TextUnformatted(pProgramState->errorFiles[i].pFilename);
       ImGui::NextColumn();
 
       ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset = offset;
-      ImGui::TextUnformatted(udResultAsString(pProgramState->errorItems[i].resultCode));
+      ImGui::TextUnformatted(udResultAsString(pProgramState->errorFiles[i].resultCode));
       ImGui::NextColumn();
 
       if (removeItem)
       {
-        udFree(pProgramState->errorItems[i].pData);
-        pProgramState->errorItems.RemoveAt(i);
+        udFree(pProgramState->errorFiles[i].pFilename);
+        pProgramState->errorFiles.RemoveAt(i);
         --i;
       }
     }
@@ -774,7 +742,7 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
   if (ImGui::BeginPopupModal(vcString::Get("sceneImageViewerTitle"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
   {
     pProgramState->modalOpen = true;
-    if (ImGui::Button(vcString::Get("sceneImageViewerCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Close))
+    if (ImGui::Button(vcString::Get("sceneImageViewerCloseButton"), ImVec2(-1, 0)) || ImGui::GetIO().KeysDown[SDL_SCANCODE_ESCAPE])
       ImGui::CloseCurrentPopup();
 
     if (ImGui::BeginChild("ImageViewerImage", ImVec2(0, 0), false, ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
@@ -836,40 +804,6 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
   }
 }
 
-void vcModals_DrawBindings(vcState *pProgramState)
-{
-  if (pProgramState->openModals & (1 << vcMT_Bindings))
-    ImGui::OpenPopup(vcString::Get("bindingsModalTitle"));
-
-  ImGui::SetNextWindowSize(ImVec2(915, 605));
-  if (ImGui::BeginPopupModal(vcString::Get("bindingsModalTitle"), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-  {
-    pProgramState->modalOpen = true;
-
-    ImGui::BeginChild("bindingsInterfaceChild", ImVec2(-1, -1));
-
-    vcHotkey::DisplayBindings(pProgramState);
-
-    ImGui::Columns(3, "ButtonRow");
-    if (ImGui::Button(udTempStr("%s###bindingsClose" , vcString::Get("bindingsModalClose")), ImVec2(-1, 25)) || vcHotkey::IsPressed(vcB_Close))
-      ImGui::CloseCurrentPopup();
-
-    ImGui::NextColumn();
-    if (ImGui::Button(udTempStr("%s###bindingsLoad", vcString::Get("bindingsModalDefaults")), ImVec2(-1, 25)) || vcHotkey::IsPressed(vcB_Load))
-      vcSettings_Load(&pProgramState->settings, true, vcSC_Bindings);
-
-    ImGui::NextColumn();
-    if (ImGui::Button(udTempStr("%s###bindingsSave", vcString::Get("bindingsModalSave")), ImVec2(-1, 25)) || vcHotkey::IsPressed(vcB_Save))
-      vcSettings_Save(&pProgramState->settings);
-
-    ImGui::EndColumns();
-
-    ImGui::EndChild();
-
-    ImGui::EndPopup();
-  }
-}
-
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 {
   pProgramState->openModals |= (1 << type);
@@ -890,7 +824,6 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawProjectReadOnly(pProgramState);
   vcModals_DrawImageViewer(pProgramState);
   vcModals_DrawUnsupportedFiles(pProgramState);
-  vcModals_DrawBindings(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_NewVersionAvailable) | (1 << vcMT_LoggedOut) | (1 << vcMT_ProxyAuth));
 }

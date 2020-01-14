@@ -1,16 +1,10 @@
 #include "gl/vcFramebuffer.h"
 #include "vcOpenGL.h"
 
-bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, uint32_t level /*= 0*/)
+bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, int level /*= 0*/)
 {
-  if (ppFramebuffer == nullptr || pTexture == nullptr)
-    return false;
-
-  udResult result = udR_Success;
-  static const GLenum DrawBuffers[] = { GL_COLOR_ATTACHMENT0 };
-
   vcFramebuffer *pFramebuffer = udAllocType(vcFramebuffer, 1, udAF_Zero);
-  UD_ERROR_NULL(pFramebuffer, udR_MemoryAllocationFailure);
+  GLenum DrawBuffers[] = { GL_COLOR_ATTACHMENT0 };
 
   glGenFramebuffers(1, &pFramebuffer->id);
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, pFramebuffer->id);
@@ -33,14 +27,7 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
   pFramebuffer->pDepth = pDepth;
 
   *ppFramebuffer = pFramebuffer;
-  pFramebuffer = nullptr;
-
-epilogue:
-  if (pFramebuffer != nullptr)
-    vcFramebuffer_Destroy(&pFramebuffer);
-
-  VERIFY_GL();
-  return result == udR_Success;
+  return true;
 }
 
 void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
@@ -50,63 +37,90 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
 
   glDeleteFramebuffers(1, &(*ppFramebuffer)->id);
   udFree(*ppFramebuffer);
-
-  VERIFY_GL();
 }
 
-bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOperation clearOperation /*= vcFramebufferClearOperation_None*/, uint32_t clearColour /*= 0x0*/, const vcFramebufferClearOperation clearPreviousOperation /*= vcFramebufferClearOperation_None*/)
+bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer)
 {
-  if (pFramebuffer == nullptr)
-    return false;
-
-  // OpenGL ES only
-  // glInvalidateFramebuffer() only available above our min spec OpenGL version, so disabled
-#if UDPLATFORM_ANDROID || UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  static const GLenum attachments[] = { GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT, GL_STENCIL_ATTACHMENT };
-  switch (clearPreviousOperation)
-  {
-  case vcFramebufferClearOperation_None:
-    // No invalidation
-    break;
-  case vcFramebufferClearOperation_Colour:
-    glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, &attachments[0]);
-    break;
-  case vcFramebufferClearOperation_DepthStencil:
-    glInvalidateFramebuffer(GL_FRAMEBUFFER, 2, &attachments[1]);
-    break;
-  case vcFramebufferClearOperation_All:
-    glInvalidateFramebuffer(GL_FRAMEBUFFER, 3, &attachments[0]);
-    break;
-  }
-#else
-  udUnused(clearPreviousOperation);
-#endif
-
-  if (pFramebuffer->id == GL_INVALID_INDEX)
+  if (pFramebuffer == nullptr || pFramebuffer->id == GL_INVALID_INDEX)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
   else
     glBindFramebuffer(GL_FRAMEBUFFER, pFramebuffer->id);
 
+  return true;
+}
 
-  if (clearOperation == vcFramebufferClearOperation_Colour || clearOperation == vcFramebufferClearOperation_All)
-    glClearColor(((clearColour >> 16) & 0xFF) / 255.f, ((clearColour >> 8) & 0xFF) / 255.f, (clearColour & 0xFF) / 255.f, ((clearColour >> 24) & 0xFF) / 255.f);
+bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
+{
+  GLbitfield clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
+  if (pFramebuffer->pDepth && pFramebuffer->pDepth->format == vcTextureFormat_D24S8)
+    clearMask |= GL_STENCIL_BUFFER_BIT;
 
-  switch (clearOperation)
+  glClearColor(((colour >> 16) & 0xFF) / 255.f, ((colour >> 8) & 0xFF) / 255.f, (colour & 0xFF) / 255.f, ((colour >> 24) & 0xFF) / 255.f);
+  glClear(clearMask);
+
+  return true;
+}
+
+bool vcFramebuffer_BeginReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
+{
+  if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || int(x + width) > pAttachment->width || int(y + height) > pAttachment->height)
+    return false;
+
+  bool result = true;
+  void *pPixelBuffer = pPixels;
+  glBindFramebuffer(GL_FRAMEBUFFER, pFramebuffer->id);
+
+  if ((pAttachment->flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
   {
-  case vcFramebufferClearOperation_None:
-    // Clear nothing
-    break;
-  case vcFramebufferClearOperation_Colour:
-    glClear(GL_COLOR_BUFFER_BIT);
-    break;
-  case vcFramebufferClearOperation_DepthStencil:
-    glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    break;
-  case vcFramebufferClearOperation_All:
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    break;
+    // Copy to PBO
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, pAttachment->pbos[pAttachment->pboIndex]);
+    pPixelBuffer = nullptr;
   }
 
-  VERIFY_GL();
+  switch (pAttachment->format)
+  {
+  case vcTextureFormat_RGBA8:
+    glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pPixelBuffer);
+    break;
+  case vcTextureFormat_BGRA8:
+    glReadPixels(x, y, width, height, GL_BGRA, GL_UNSIGNED_BYTE, pPixelBuffer);
+    break;
+  case vcTextureFormat_D24S8:
+    glReadPixels(x, y, width, height, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, pPixelBuffer);
+    break;
+  case vcTextureFormat_D32F:
+    glReadPixels(x, y, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, pPixelBuffer);
+    break;
+  case vcTextureFormat_Unknown: // fall through
+  case vcTextureFormat_Cubemap: // fall through
+  case vcTextureFormat_Count:
+    result = false;
+  }
+
+  if ((pAttachment->flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+  
+  return result;
+}
+
+bool vcFramebuffer_EndReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
+{
+  if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || int(x + width) > pAttachment->width || int(y + height) > pAttachment->height || (pAttachment->flags & vcTCF_AsynchronousRead) != vcTCF_AsynchronousRead)
+    return false;
+
+  int pixelBytes = 4; // assumptions
+
+  // Read previous PBO back to CPU
+  glBindBuffer(GL_PIXEL_PACK_BUFFER, pAttachment->pbos[pAttachment->pboIndex]);
+  pAttachment->pboIndex = (pAttachment->pboIndex + 1) & 1;
+
+  uint8_t *pData = (uint8_t*)glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, width * height * pixelBytes, GL_MAP_READ_BIT);
+  if (pData != nullptr)
+  {
+    glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+    memcpy(pPixels, pData, width * height * pixelBytes);
+  } 
+
+  glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
   return true;
 }

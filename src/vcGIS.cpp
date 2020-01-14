@@ -59,7 +59,7 @@ bool vcGIS_LocalToSlippy(const vcGISSpace *pSpace, udInt2 *pSlippyCoords, const 
   if (!pSpace->isProjected)
     return false;
 
-  return vcGIS_LatLongToSlippy(pSlippyCoords, udGeoZone_CartesianToLatLong(pSpace->zone, localCoords), zoomLevel);
+  return vcGIS_LatLongToSlippy(pSlippyCoords, udGeoZone_ToLatLong(pSpace->zone, localCoords), zoomLevel);
 }
 
 bool vcGIS_SlippyToLocal(const vcGISSpace *pSpace, udDouble3 *pLocalCoords, const udInt2 &slippyCoords, const int zoomLevel)
@@ -69,6 +69,6 @@ bool vcGIS_SlippyToLocal(const vcGISSpace *pSpace, udDouble3 *pLocalCoords, cons
 
   udDouble3 latLong;
   bool success = vcGIS_SlippyToLatLong(&latLong, slippyCoords, zoomLevel);
-  *pLocalCoords = udGeoZone_LatLongToCartesian(pSpace->zone, latLong);
+  *pLocalCoords = udGeoZone_ToCartesian(pSpace->zone, latLong);
   return success;
 }

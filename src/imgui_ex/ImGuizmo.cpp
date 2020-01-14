@@ -1057,8 +1057,3 @@ void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcG
     break;
   }
 }
-
-void vcGizmo_ResetState()
-{
-  sGizmoContext.mbUsing = false;
-}

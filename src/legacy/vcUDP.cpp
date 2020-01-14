@@ -110,7 +110,7 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
     udGeoZone tempZone = {};
     if (udGeoZone_SetFromSRID(&tempZone, epsgCode) == udR_Success)
     {
-      udDouble3 longLat = udGeoZone_CartesianToLatLong(tempZone, *pPosition, true);
+      udDouble3 longLat = udGeoZone_ToLatLong(tempZone, *pPosition, true);
       vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &longLat.x);
     }
   }
@@ -146,8 +146,7 @@ bool vcUDP_ReadGeolocation(const char *pStr, udDouble3 &position, int &epsg)
     position[count] = udStrAtof64(pStr, &charCount);
     pStr += charCount;
     pStr = udStrchr(pStr, ",");
-    if (pStr != nullptr)
-      ++pStr;
+    ++pStr;
   }
 
   if (charCount > 0)
@@ -394,7 +393,7 @@ void vcUPD_AddBookmarkData(vcState *pProgramState, std::vector<vcUDPItemData> *p
     {
       udGeoZone_SetFromSRID(&zone, (int32_t)epsgCode);
 
-      temp = udGeoZone_CartesianToLatLong(zone, temp, true);
+      temp = udGeoZone_ToLatLong(zone, temp, true);
       vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
     }
 
@@ -433,13 +432,13 @@ void vcUPD_AddMeasureData(vcState *pProgramState, std::vector<vcUDPItemData> *pI
     if (vcUDP_ReadGeolocation(item.measure.geoLocation[0], temp[0], epsgCode))
     {
       udGeoZone_SetFromSRID(&zone, (int32_t)epsgCode);
-      temp[0] = udGeoZone_CartesianToLatLong(zone, temp[0], true);
+      temp[0] = udGeoZone_ToLatLong(zone, temp[0], true);
     }
 
     if (vcUDP_ReadGeolocation(item.measure.geoLocation[1], temp[1], epsgCode))
     {
       udGeoZone_SetFromSRID(&zone, (int32_t)epsgCode);
-      temp[1] = udGeoZone_CartesianToLatLong(zone, temp[1], true);
+      temp[1] = udGeoZone_ToLatLong(zone, temp[1], true);
     }
 
     vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_LineString, 2, (double*)&temp[0]);
@@ -480,7 +479,7 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
       udGeoZone *pZone = udAllocType(udGeoZone, 1, udAF_Zero);
       udGeoZone_SetFromSRID(pZone, epsgCode);
 
-      udDouble3 temp = udGeoZone_CartesianToLatLong(*pZone, position, true);
+      udDouble3 temp = udGeoZone_ToLatLong(*pZone, position, true);
       vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, (double*)&temp);
     }
 
@@ -507,7 +506,7 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
     }
 
     for (int i = 0; i < item.polygon.numPoints; ++i)
-      item.polygon.pPoints[i] = udGeoZone_CartesianToLatLong(zone, item.polygon.pPoints[i], true);
+      item.polygon.pPoints[i] = udGeoZone_ToLatLong(zone, item.polygon.pPoints[i], true);
 
     if (item.polygon.isClosed)
       vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, item.polygon.numPoints, (double*)item.polygon.pPoints);
@@ -638,6 +637,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
         }
       }
     }
+    pProgramState->getGeo = true;
 
     for (size_t itemNum = 0; itemNum < itemData.size(); ++itemNum)
     {
