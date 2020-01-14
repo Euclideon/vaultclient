@@ -311,6 +311,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     vcHotkey::Set(vcB_AddUDS, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddUDS)).AsInt(1048));
     vcHotkey::Set(vcB_BindingsInterface, data.Get("keys.%s", vcHotkey::GetBindName(vcB_BindingsInterface)).AsInt(1029));
     vcHotkey::Set(vcB_Undo, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Undo)).AsInt(1053));
+    vcHotkey::Set(vcB_TakeScreenshot, data.Get("keys.%s", vcHotkey::GetBindName(vcB_TakeScreenshot)).AsInt(70));
   }
 
   if (group == vcSC_All || group == vcSC_Connection)
@@ -383,22 +384,15 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_Screenshot || group == vcSC_All)
   {
-    pSettings->screenshot.hideLabels = data.Get("screenshot.hideLabels").AsBool(false);
-    const char *pTemp = data.Get("screenshot.format").AsString(".PNG");
-    for (int i = 0; i < (int)udLengthOf(ScreenshotExportFormats); ++i)
-    {
-      if (udStrEquali(ScreenshotExportFormats[i], pTemp))
-        pSettings->screenshot.format = (vcImageFormats)i;
-    }
-
-    pTemp = data.Get("screenshot.res").AsString("1080");
-    for (int i = 0; i < (int)udLengthOf(ScreenshotResolutionStrings); ++i)
-    {
-      if (udStrEquali(ScreenshotResolutionStrings[i], pTemp))
-        pSettings->screenshot.res = (vcScreenshotOutputResolution)i;
-    }
-
     udStrcpy(pSettings->screenshot.outputName, data.Get("screenshot.outputName").AsString());
+    pSettings->screenshot.resolution.x = data.Get("screenshot.resolution.width").AsInt(4096); // Defaults to 4K
+    pSettings->screenshot.resolution.y = data.Get("screenshot.resolution.height").AsInt(2160);
+
+    for (pSettings->screenshot.resolutionIndex = 0; pSettings->screenshot.resolutionIndex < (int)udLengthOf(ScreenshotResolutions); ++pSettings->screenshot.resolutionIndex)
+    {
+      if (pSettings->screenshot.resolution == ScreenshotResolutions[pSettings->screenshot.resolutionIndex])
+        break;
+    }
   }
 
   udFree(pSavedData);
@@ -571,9 +565,8 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set(&tempNode, "convert.license");
 
   // Screenshots
-  data.Set("screenshot.hideLabels = %s", pSettings->screenshot.hideLabels ? "true" : "false");
-  data.Set("screenshot.format = '%s'", ScreenshotExportFormats[(int)pSettings->screenshot.format]);
-  data.Set("screenshot.res = '%s'", ScreenshotResolutionStrings[(int)pSettings->screenshot.res]);
+  data.Set("screenshot.resolution.width = %d", pSettings->screenshot.resolution.x);
+  data.Set("screenshot.resolution.height = %d", pSettings->screenshot.resolution.y);
   data.Set("screenshot.outputName = '%s'", pSettings->screenshot.outputName);
 
   // Map Tiles

@@ -177,7 +177,7 @@ bool vcMain_TakeScreenshot(vcState *pProgramState, const char *pFilename = nullp
   udInt2 currSize = udInt2::zero();
   vcTexture_GetSize(pProgramState->screenshot.pImage, &currSize.x, &currSize.y);
 
-  if (currSize.x - ScreenshotResolutions[pProgramState->settings.screenshot.res].x > 32 || currSize.y - ScreenshotResolutions[pProgramState->settings.screenshot.res].y > 32)
+  if (currSize.x - pProgramState->settings.screenshot.resolution.x > 32 || currSize.y - pProgramState->settings.screenshot.resolution.y > 32)
     return true;
 
   if (pFilename == nullptr || *pFilename == '\0')
@@ -187,10 +187,10 @@ bool vcMain_TakeScreenshot(vcState *pProgramState, const char *pFilename = nullp
   if (!udStrBeginsWithi(pFilename, pProgramState->settings.pSaveFilePath))
     temp.SetFromFullPath("%s%s", pProgramState->settings.pSaveFilePath, pFilename);
 
-  temp.SetExtension(ScreenshotExportFormats[(int)pProgramState->settings.screenshot.format]);
+  temp.SetExtension(".png");
   temp = vcSettings_SequentialFilename(temp.GetPath());
 
-  vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pRenderContext), temp.GetPath(), vcImageFormats::vcIF_JPG);
+  vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pRenderContext), temp.GetPath());
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 
   if (pProgramState->settings.screenshot.viewShot)
@@ -339,6 +339,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
   ImGuiIO &io = ImGui::GetIO();
   io.KeysDown[SDL_SCANCODE_BACKSPACE] = false;
+  io.KeysDown[SDL_SCANCODE_PRINTSCREEN] = false;
 
   if (vcHotkey::IsPressed(vcB_BindingsInterface))
   {
@@ -817,7 +818,6 @@ int main(int argc, char **args)
   programState.passFocus = true;
   programState.renaming = -1;
   programState.settings.screenshot.taking = false;
-  programState.settings.screenshot.hideLabels = false;
   programState.destroyImage = false;
 
   programState.sceneExplorer.insertItem.pParent = nullptr;
@@ -1477,16 +1477,17 @@ void vcRenderSceneWindow(vcState *pProgramState)
     // this isn't valid on iOS when using UIKit.
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
-  else if (pProgramState->settings.screenshot.taking && (pProgramState->sceneResolution.x != ScreenshotResolutions[pProgramState->settings.screenshot.res].x || pProgramState->sceneResolution.y != ScreenshotResolutions[pProgramState->settings.screenshot.res].y))
+  else if (pProgramState->settings.screenshot.taking && pProgramState->sceneResolution != pProgramState->settings.screenshot.resolution)
   {
-    pProgramState->sceneResolution.x = ScreenshotResolutions[pProgramState->settings.screenshot.res].x;
-    pProgramState->sceneResolution.y = ScreenshotResolutions[pProgramState->settings.screenshot.res].y;
+    pProgramState->sceneResolution = pProgramState->settings.screenshot.resolution;
 
-    vcRender_ResizeScene(pProgramState, pProgramState->pRenderContext, ScreenshotResolutions[pProgramState->settings.screenshot.res].x, ScreenshotResolutions[pProgramState->settings.screenshot.res].y);
+    vcRender_ResizeScene(pProgramState, pProgramState->pRenderContext, pProgramState->settings.screenshot.resolution.x, pProgramState->settings.screenshot.resolution.y);
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
+
   if (!pProgramState->modalOpen && (vcHotkey::IsPressed(vcB_Fullscreen) || ImGui::IsNavInputPressed(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released)))
     vcMain_PresentationMode(pProgramState);
+
   if (pProgramState->settings.responsiveUI == vcPM_Show)
     pProgramState->showUI = true;
 
@@ -1783,8 +1784,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     }
   }
 
-  if (!pProgramState->settings.screenshot.taking || pProgramState->settings.screenshot.hideLabels)
-    vcRender_SceneImGui(pProgramState, pProgramState->pRenderContext, renderData);
+  vcRender_SceneImGui(pProgramState, pProgramState->pRenderContext, renderData);
 
   // Render scene to texture
   vcRender_RenderScene(pProgramState, pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
@@ -2011,15 +2011,6 @@ float vcMain_MenuGui(vcState *pProgramState)
       else // No projects
       {
         ImGui::MenuItem(vcString::Get("menuProjectNone"), nullptr, nullptr, false);
-      }
-
-      ImGui::Separator();
-
-      if (ImGui::MenuItem(vcString::Get("screenshotTake"), nullptr, nullptr))
-      {
-        ScreenshotResolutions[3] = pProgramState->sceneResolution;
-        vcMain_TakeScreenshot(pProgramState, pProgramState->settings.screenshot.outputName);
-        // TODO: if (!take) Error
       }
 
       ImGui::EndMenu();
@@ -2275,12 +2266,8 @@ void vcRenderWindow(vcState *pProgramState)
     pProgramState->programComplete = true;
 #endif
 
-  if (ImGui::IsKeyPressed(SDL_SCANCODE_F8, false) || pProgramState->settings.screenshot.taking)
-  {
-    ScreenshotResolutions[3] = pProgramState->sceneResolution;
+  if (vcHotkey::IsPressed(vcB_TakeScreenshot) || pProgramState->settings.screenshot.taking)
     vcMain_TakeScreenshot(pProgramState, pProgramState->settings.screenshot.outputName);
-    // TODO: if (!take) error
-  }
 
   //end keyboard/mouse handling
 

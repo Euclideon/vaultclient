@@ -40,7 +40,8 @@ namespace vcHotkey
     "Load",
     "AddUDS",
     "BindingsInterface",
-    "Undo"
+    "Undo",
+    "TakeScreenshot"
   };
   UDCOMPILEASSERT(udLengthOf(vcHotkey::bindNames) == vcB_Count, "Hotkey count discrepancy.");
 

@@ -238,12 +238,14 @@ epilogue:
   return result;
 }
 
-udResult vcTexture_SaveImage(vcTexture *pTexture, vcFramebuffer *pFramebuffer, const char *pFilename, vcImageFormats format)
+udResult vcTexture_SaveImage(vcTexture *pTexture, vcFramebuffer *pFramebuffer, const char *pFilename)
 {
   if (pTexture == nullptr || pFramebuffer == nullptr || pFilename == nullptr)
     return udR_InvalidParameter_;
 
   udResult result;
+  int outLen = 0;
+  unsigned char *pWriteData = nullptr;
 
   udInt2 currSize = udInt2::zero();
   vcTexture_GetSize(pTexture, &currSize.x, &currSize.y);
@@ -257,20 +259,16 @@ udResult vcTexture_SaveImage(vcTexture *pTexture, vcFramebuffer *pFramebuffer, c
   stbi_flip_vertically_on_write(1);
 #endif
 
-  switch (format)
-  {
-  case vcImageFormats::vcIF_PNG:
-    stbi_write_png(pFilename, currSize.x, currSize.y, 4, pPixels, currSize.x * 4);
-    break;
+  pWriteData = stbi_write_png_to_mem(pPixels, 0, currSize.x, currSize.y, 4, &outLen);
+  UD_ERROR_NULL(pWriteData, udR_InternalError);
 
-  case vcImageFormats::vcIF_JPG:
-    stbi_write_jpg(pFilename, currSize.x, currSize.y, 4, pPixels, 100);
-    break;
-
-  }
-
+  UD_ERROR_CHECK(udFile_Save(pFilename, pWriteData, outLen));
+  
   result = udR_Success;
 epilogue:
+  if (pWriteData != nullptr)
+    STBIW_FREE(pWriteData);
+
   udFree(pPixels);
 
   return result;

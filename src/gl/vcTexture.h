@@ -70,6 +70,8 @@ udResult vcTexture_AsyncCreateFromMemory(vcTexture **ppTexture, udWorkerPool *pP
 void vcTexture_Destroy(vcTexture **ppTexture);
 
 udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height);
+udResult vcTexture_SaveImage(vcTexture *pTexture, vcFramebuffer *pFramebuffer, const char *pFilename);
+
 udResult vcTexture_GetSize(vcTexture *pTexture, int *pWidth, int *pHeight);
 
 // If 'pTexture' is created with `AsynchronousRead` flag, BeginReadPixels() / EndReadPixels() will perform
@@ -84,7 +86,5 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
 // Downsample a CPU pixel buffer to a desired size. Maintains aspect ratio.
 // Will fail if width and height are <= targetSize. On failure, will not allocate any memory.
 udResult vcTexture_ResizePixels(const void *pPixels, uint32_t width, uint32_t height, uint32_t targetSize, const void **ppResultPixels, uint32_t *pResultWidth, uint32_t *pResultHeight);
-
-udResult vcTexture_SaveImage(vcTexture *pTexture, vcFramebuffer *pFramebuffer, const char *pFilename, vcImageFormats format);
 
 #endif//vcTexture_h__
