@@ -74,6 +74,8 @@ static Uint64       g_Time = 0;
 static bool         g_MousePressed[3] = { false, false, false };
 static SDL_Cursor*  g_MouseCursors[ImGuiMouseCursor_COUNT] = { 0 };
 static char*        g_ClipboardTextData = NULL;
+static float        g_Scaling = 1.0;
+
 #ifdef _WIN32
 static uint16_t     g_PrevCursorPos = 0;
 static HIMC         g_InputContext = NULL;
@@ -373,10 +375,10 @@ static void ImGui_ImplSDL2_UpdateMousePosAndButtons()
   {
 #if SDL_HAS_CAPTURE_AND_GLOBAL_MOUSE
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-            SDL_WarpMouseGlobal((int)io.MousePos.x, (int)io.MousePos.y);
+            SDL_WarpMouseGlobal((int)(io.MousePos.x * g_Scaling), (int)(io.MousePos.y * g_Scaling));
         else
 #endif
-        SDL_WarpMouseInWindow(g_Window, (int)io.MousePos.x, (int)io.MousePos.y);
+        SDL_WarpMouseInWindow(g_Window, (int)(io.MousePos.x * g_Scaling), (int)(io.MousePos.y * g_Scaling));
     }
     else
     {
@@ -403,14 +405,14 @@ static void ImGui_ImplSDL2_UpdateMousePosAndButtons()
         // Multi-viewport mode: mouse position in OS absolute coordinates (io.MousePos is (0,0) when the mouse is on the upper-left of the primary monitor)
         if (SDL_Window* focused_window = SDL_GetKeyboardFocus())
             if (ImGui::FindViewportByPlatformHandle((void*)focused_window) != NULL)
-                io.MousePos = ImVec2((float)mouse_x_global, (float)mouse_y_global);
+                io.MousePos = ImVec2((float)mouse_x_global / g_Scaling, (float)mouse_y_global / g_Scaling);
     }
     else
     {
         // Single-viewport mode: mouse position in client window coordinatesio.MousePos is (0,0) when the mouse is on the upper-left corner of the app window)
         int window_x, window_y;
         SDL_GetWindowPosition(g_Window, &window_x, &window_y);
-        io.MousePos = ImVec2((float)(mouse_x_global - window_x), (float)(mouse_y_global - window_y));
+        io.MousePos = ImVec2((float)(mouse_x_global - window_x) / g_Scaling, (float)(mouse_y_global - window_y) / g_Scaling);
     }
 
     // SDL_CaptureMouse() let the OS know e.g. that our imgui drag outside the SDL window boundaries shouldn't e.g. trigger the OS window resize cursor.
@@ -494,10 +496,16 @@ void ImGui_ImplSDL2_NewFrame(SDL_Window* window)
     int w, h;
     int display_w, display_h;
     SDL_GetWindowSize(window, &w, &h);
+    int displayIndex = SDL_GetWindowDisplayIndex(window);
     SDL_GL_GetDrawableSize(window, &display_w, &display_h);
-    io.DisplaySize = ImVec2((float)w, (float)h);
+
+    float dpi = 0.0f;
+    if (!SDL_GetDisplayDPI(displayIndex, &dpi, NULL, NULL))
+      g_Scaling = dpi / 96.0f;
+
+    io.DisplaySize = ImVec2((float)w / g_Scaling, (float)h / g_Scaling);
     if (w > 0 && h > 0)
-      io.DisplayFramebufferScale = ImVec2((float)display_w / w, (float)display_h / h);
+      io.DisplayFramebufferScale = ImVec2((float)display_w / w * g_Scaling, (float)display_h / h * g_Scaling);
 
     // Setup time step (we don't use SDL_GetTicks() because it is using millisecond resolution)
     static Uint64 frequency = SDL_GetPerformanceFrequency();

@@ -760,7 +760,7 @@ int main(int argc, char **args)
   emscripten_sync_run_in_main_runtime_thread(EM_FUNC_SIG_V, vcMain_SyncFS);
 #endif
 
-  uint32_t windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+  uint32_t windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   windowFlags |= SDL_WINDOW_FULLSCREEN;
 #endif
