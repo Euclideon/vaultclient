@@ -275,6 +275,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     {
       for (int i = 0; i < vcB_Count; ++i)
         vcHotkey::Set((vcBind)i, vcHotkey::DecodeKeyString(data.Get("keys.%s", vcHotkey::GetBindName((vcBind)i)).AsString()));
+
+      vcHotkey::ApplyPendingChanges();
     }
   }
 

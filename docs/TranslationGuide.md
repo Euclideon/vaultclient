@@ -6,9 +6,9 @@
     - Menus
       - `menuBindings`, `settingsAppearanceSaturation`
     - Bindings Interface
-      - `bindingsModalTitle`, `bindingsModalClose`, `bindingsModalSave`, `bindingsModalDefaults`, `bindingsColumnName`, `bindingsColumnKeyCombination`, `bindingsColumnDescriptions`, `bindingsErrorUnbound`, `bindingsClear`
+      - `bindingsModalTitle`, `bindingsModalRevert`, `bindingsModalSave`, `bindingsModalDefaults`, `bindingsColumnName`, `bindingsColumnKeyCombination`, `bindingsColumnDescriptions`, `bindingsErrorUnbound`, `bindingsClear`
     - Bindings Key Descriptions
-      - `bindingsLockAltitude`, `bindingsGizmoTranslate`, `bindingsGizmoRotate`, `bindingsGizmoScale`, `bindingsGizmoLocalSpace`, `bindingsFullscreen`, `bindingsAddUDS`, `bindingsRemove`, `bindingsCameraForward`, `bindingsCameraBackward`, `bindingsCameraLeft`, `bindingsCameraRight`, `bindingsCameraUp`, `bindingsCameraDown`, `bindingsBindingsInterface`, `bindingsClose`, `bindingsRenameSceneItem`, `bindingsSave`, `bindingsLoad`
+      - `bindingsLockAltitude`, `bindingsGizmoTranslate`, `bindingsGizmoRotate`, `bindingsGizmoScale`, `bindingsGizmoLocalSpace`, `bindingsFullscreen`, `bindingsAddUDS`, `bindingsRemove`, `bindingsCameraForward`, `bindingsCameraBackward`, `bindingsCameraLeft`, `bindingsCameraRight`, `bindingsCameraUp`, `bindingsCameraDown`, `bindingsBindingsInterface`, `bindingsCancel`, `bindingsRenameSceneItem`, `bindingsSave`, `bindingsLoad`, `bindingsUndo`
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
     - Polygon Meshes
@@ -762,9 +762,9 @@ Modules are currently:
 #### Bindings Interface
 
 - `bindingsModalTitle`: Title for key bindings window
-- `bindingsModalClose`: Label for close button on key bindings window
-- `bindingsModalSave`: Label for button that saves current key bindings
-- `bindingsModalDefaults`: Label for button that loads default key bindings
+- `bindingsModalRevert`: Label for revert button on key bindings window
+- `bindingsModalSave`: Label for save/close button on key bindings window
+- `bindingsModalDefaults`: Label for button that loads defaults on key bindings window
 - `bindingsColumnName`: Header for key binding name column
 - `bindingsColumnKeyCombination`: Header for key binding key combination column
 - `bindingsColumnDescription`: Header for key binding description column
@@ -789,7 +789,8 @@ Modules are currently:
 - `bindingsUp`: Key binding description displayed next to Up binding
 - `bindingsDown`: Key binding description displayed next to Down binding
 - `bindingsBindingsInterface`: Key binding description displayed next to Bindings Interface binding
-- `bindingsClose`: Key binding description displayed next to Close binding
+- `bindingsCancel`: Key binding description displayed next to Cancel binding
 - `bindingsRenameSceneItem`: Key binding description displayed next to Rename Scene Item binding
 - `bindingsSave`: Key binding description displayed next to Save binding
 - `bindingsLoad`: Key binding description displayed next to Load binding
+- `bindingsUndo`: Key binding description displayed next to Undo binding

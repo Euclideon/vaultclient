@@ -541,14 +541,15 @@
   "attributeBlendingUnknown": "Unknown",
 
   "bindingsModalTitle": "Key Bindings",
-  "bindingsModalClose": "Close",
-  "bindingsModalSave": "Save Bindings",
+  "bindingsModalRevert": "Revert",
+  "bindingsModalSave": "Save Bindings/Close",
   "bindingsModalDefaults": "Load Defaults",
   "bindingsColumnName": "Name",
   "bindingsColumnKeyCombination": "Key Combination",
   "bindingsColumnDescription": "Description",
   "bindingsErrorUnbound": "Duplicate key binding has been unbound!",
   "bindingsClear": "Clear",
+  "bindingsSelectKey": "Press a key combination to bind.",
   
   "bindingsLockAltitude": "Toggles altitude lock, preventing up/down movement",
   "bindingsGizmoTranslate": "Sets the gizmo to translation mode, allowing you to move objects.",
@@ -565,9 +566,9 @@
   "bindingsCameraUp": "Key to move camera upwards.",
   "bindingsCameraDown": "Key to move camera downwards.",
   "bindingsBindingsInterface": "Opens the bindings interface.",
-  "bindingsClose": "Key to close current popup.",
+  "bindingsCancel": "Key to trigger cancel or close action.",
   "bindingsRenameSceneItem": "Key to rename selected scene item.",
-  "bindingsSave": "Key to save key bindings.",
-  "bindingsLoad": "Key to load key bindings.",
-  "bindingsSelectKey": "Press a key combination to bind."
+  "bindingsSave": "Key to trigger save action.",
+  "bindingsLoad": "Key to trigger load or open action.",
+  "bindingsUndo": "Key to trigger undo action"
 }

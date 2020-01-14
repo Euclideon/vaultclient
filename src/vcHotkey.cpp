@@ -14,6 +14,7 @@ namespace vcHotkey
 {
   static int target = -1;
   static int keyBinds[vcB_Count] = {};
+  static int pendingKeyBinds[vcB_Count] = {};
 
   const char* bindNames[] =
   {
@@ -24,7 +25,7 @@ namespace vcHotkey
     "CameraRight",
     "CameraDown",
     "Remove",
-    "Close",
+    "Cancel",
     "LockAltitude",
     "GizmoTranslate",
     "GizmoRotate",
@@ -35,8 +36,10 @@ namespace vcHotkey
     "Save",
     "Load",
     "AddUDS",
-    "BindingsInterface"
+    "BindingsInterface",
+    "Undo"
   };
+  UDCOMPILEASSERT(udLengthOf(vcHotkey::bindNames) == vcB_Count, "Hotkey count discrepancy.");
 
   static const char *pModText[] =
   {
@@ -71,6 +74,16 @@ namespace vcHotkey
     "bindingsSelectKey"
   };
 
+
+  void ApplyPendingChanges()
+  {
+    memcpy(keyBinds, pendingKeyBinds, sizeof(keyBinds));
+  }
+
+  void RevertPendingChanges()
+  {
+    memcpy(pendingKeyBinds, keyBinds, sizeof(keyBinds));
+  }
 
   bool IsDown(int keyNum)
   {
@@ -109,34 +122,32 @@ namespace vcHotkey
     return IsPressed(keyBinds[key]);
   }
 
-  void GetKeyName(vcBind key, char *pBuffer, uint32_t bufferLen)
+  void NameFromKey(int key, char *pBuffer, uint32_t bufferLen)
   {
-    if (key == vcB_Count || keyBinds[key] == 0)
+    if (key == 0)
     {
       udStrcpy(pBuffer, (size_t)bufferLen, vcString::Get("bindingsClear"));
       return;
     }
 
-    int mappedKey = keyBinds[key];
-
     const char *pStrings[5] = {};
 
-    if ((mappedKey & vcMOD_Shift) == vcMOD_Shift)
+    if ((key & vcMOD_Shift) == vcMOD_Shift)
       pStrings[0] = "Shift + ";
     else
       pStrings[0] = "";
 
-    if ((mappedKey & vcMOD_Ctrl) == vcMOD_Ctrl)
+    if ((key & vcMOD_Ctrl) == vcMOD_Ctrl)
       pStrings[1] = "Ctrl + ";
     else
       pStrings[1] = "";
 
-    if ((mappedKey & vcMOD_Alt) == vcMOD_Alt)
+    if ((key & vcMOD_Alt) == vcMOD_Alt)
       pStrings[2] = "Alt + ";
     else
       pStrings[2] = "";
 
-    if ((mappedKey & vcMOD_Super) == vcMOD_Super)
+    if ((key & vcMOD_Super) == vcMOD_Super)
     {
 #ifdef UDPLATFORM_WINDOWS
       pStrings[3] = "Win + ";
@@ -151,9 +162,33 @@ namespace vcHotkey
       pStrings[3] = "";
     }
 
-    pStrings[4] = SDL_GetScancodeName((SDL_Scancode)(mappedKey & 0x1FF));
-   
+    pStrings[4] = SDL_GetScancodeName((SDL_Scancode)(key & 0x1FF));
+
     vcStringFormat(pBuffer, bufferLen, "{0}{1}{2}{3}{4}", pStrings, 5);
+  }
+
+  void GetKeyName(vcBind key, char *pBuffer, uint32_t bufferLen)
+  {
+    int mappedKey;
+
+    if (key == vcB_Count)
+      mappedKey = 0;
+    else
+      mappedKey = keyBinds[key];
+
+    NameFromKey(mappedKey, pBuffer, bufferLen);
+  }
+
+  void GetPendingKeyName(vcBind key, char *pBuffer, uint32_t bufferLen)
+  {
+    int mappedKey;
+
+    if (key == vcB_Count)
+      mappedKey = 0;
+    else
+      mappedKey = pendingKeyBinds[key];
+
+    NameFromKey(mappedKey, pBuffer, bufferLen);
   }
 
   vcBind BindFromName(const char* pName)
@@ -196,7 +231,7 @@ namespace vcHotkey
 
   void Set(vcBind key, int value)
   {
-    keyBinds[(int)key] = value;
+    pendingKeyBinds[(int)key] = value;
   }
 
   int Get(vcBind key)
@@ -204,9 +239,13 @@ namespace vcHotkey
     return keyBinds[key];
   }
 
+  int GetPending(vcBind key)
+  {
+    return pendingKeyBinds[key];
+  }
+
   void DisplayBindings(vcState *pProgramState)
   {
-    // TODO: Document/reconsider limitation of 50 chars
     int errors = 0;
 
     if (target != -1)
@@ -219,7 +258,7 @@ namespace vcHotkey
         {
           for (int i = 0; i < vcB_Count; ++i)
           {
-            if (keyBinds[i] == pProgramState->currentKey)
+            if (pendingKeyBinds[i] == pProgramState->currentKey)
             {
               Set((vcBind)i, 0);
               break;
@@ -267,21 +306,22 @@ namespace vcHotkey
         }
       }
 
-      if (vcHotkey::Get((vcBind)i) == 0)
+      if (vcHotkey::GetPending((vcBind)i) == 0)
       {
-        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImU32(0xFF0000FF), 0.0f, ImDrawCornerFlags_All, 2.0f);
+        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::ColorConvertFloat4ToU32(KeyErrorColours[vcKES_Unbound]), 0.0f, ImDrawCornerFlags_All, 2.0f);
 
         errors |= (1 << vcKES_Unbound);
       }
       else if (target == i)
       {
-        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImU32(0xFFFFFFFF), 0.0f, ImDrawCornerFlags_All, 2.0f);
+        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::ColorConvertFloat4ToU32(KeyErrorColours[vcKES_Select]), 0.0f, ImDrawCornerFlags_All, 2.0f);
       }
 
       ImGui::NextColumn();
 
+      // TODO: Document/reconsider limitation of 50 chars
       char key[50];
-      GetKeyName((vcBind)i, key, (uint32_t)udLengthOf(key));
+      GetPendingKeyName((vcBind)i, key, (uint32_t)udLengthOf(key));
       ImGui::TextUnformatted(key);
 
       ImGui::NextColumn();
@@ -300,7 +340,6 @@ namespace vcHotkey
           ImGui::TextColored(KeyErrorColours[i], "%s", vcString::Get(pKeyErrors[i]));
       }
     }
-      
   }
 
   int DecodeKeyString(const char *pBind)
@@ -331,5 +370,3 @@ namespace vcHotkey
     return value;
   }
 }
-
-UDCOMPILEASSERT(udLengthOf(vcHotkey::bindNames) == vcB_Count, "Hotkey count discrepancy.");
