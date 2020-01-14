@@ -501,7 +501,15 @@ void ImGui_ImplSDL2_NewFrame(SDL_Window* window)
 
     float dpi = 0.0f;
     if (!SDL_GetDisplayDPI(displayIndex, &dpi, NULL, NULL))
+    {
+#if UDPLATFORM_ANDROID
+      g_Scaling = dpi / 160.0f;
+#elif UDPLATFORM_OSX || UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+      g_Scaling = dpi / 72.0f;
+#else
       g_Scaling = dpi / 96.0f;
+#endif
+    }
 
     io.DisplaySize = ImVec2((float)w / g_Scaling, (float)h / g_Scaling);
     if (w > 0 && h > 0)
