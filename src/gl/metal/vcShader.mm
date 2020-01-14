@@ -98,47 +98,19 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
 #endif
   }
     
-  if (udStrBeginsWithi(pFragmentShader, "udSplat") || udStrBeginsWithi(pFragmentShader, "blur"))
+  if (udStrBeginsWithi(pFragmentShader, "udSplat") || udStrBeginsWithi(pFragmentShader, "blur") || udStrBeginsWithi(pFragmentShader, "flat"))
     pShader->flush = vcRFO_Flush;
   else if (udStrBeginsWithi(pFragmentShader, "udFrag"))
     pShader->flush = vcRFO_Blit;
   else
     pShader->flush = vcRFO_None;
 
+  pShader->inititalised = udStrBeginsWithi(pFragmentShader, "imgui") ? true : false;
+  
   [_renderer buildBlendPipelines:pDesc];
   pShader->ID = g_pipeCount;
   ++g_pipeCount;
 
-  /*if (pGeometryShader != nullptr)
-  {
-    id<MTLFunction> kFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pGeometryShader]];
-    
-    MTLComputePipelineDescriptor *pCDesc = [[MTLComputePipelineDescriptor alloc] init];
-    
-    pCDesc.computeFunction = kFunc;
-    
-    [_device newComputePipelineStateWithDescriptor:pCDesc options:MTLPipelineOptionNone completionHandler:^(id<MTLComputePipelineState> _Nullable computePipelineState, MTLComputePipelineReflection * _Nullable reflection, NSError * _Nullable error)
-    {
-      udUnused(reflection);
-      
-      if (error != nil)
-      {
-        NSLog(@"Error: Compute pipeline failure: %@", error);
-        return;
-      }
-
-      [_renderer.gPipelines addObject:ForceUnwrap(id<MTLComputePipelineState>, computePipelineState)];
-      
-      // Ignore reflection data?
-    }];
-    
-    pShader->geom = 6; // Number of output primitives per input
-    pShader->gID = g_geomPipeCount++;
-  }
-  else
-  {
-    pShader->geom = 0;
-  }*/
 
   *ppShader = pShader;
   pShader = nullptr;
@@ -157,21 +129,24 @@ void vcShader_DestroyShader(vcShader **ppShader)
 bool vcShader_Bind(vcShader *pShader)
 {
   if (pShader != nullptr)
-    [_renderer bindPipeline:pShader];
-
+  {
+    if (pShader->inititalised)
+      [_renderer bindPipeline:pShader];
+    else
+      pShader->inititalised = true;
+  }
   return true;
 }
 
 bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderSampler *pSampler/* = nullptr*/)
 {
   udUnused(pShader);
+  udUnused(pSampler);
+
   if (pTexture == nullptr)
     return false;
   
   [_renderer bindTexture:pTexture index:samplerIndex];
-
-  if (pSampler)
-    [_renderer bindSampler:pSampler index:samplerIndex];
 
   return true;
 }
@@ -238,17 +213,9 @@ bool vcShader_ReleaseConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *p
 
 bool vcShader_GetSamplerIndex(vcShaderSampler **ppSampler, vcShader *pShader, const char *pSamplerName)
 {
-  if (pShader == nullptr)
-    return false;
+  udUnused(ppSampler);
+  udUnused(pShader);
+  udUnused(pSamplerName);
 
-  for (int i = 0; i < pShader->numBufferObjects; ++i)
-  {
-    if (udStrEquali(pShader->samplerIndexes[i].name, pSamplerName))
-    {
-      *ppSampler = &pShader->samplerIndexes[i];
-      return true;
-    }
-  }
-
-  return false;
+  return true;
 }

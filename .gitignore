@@ -145,8 +145,12 @@ Makefile
 /*.nvuser
 /*.VC.opendb
 /*.VC.db
-/.vs/config
+/.vs
 /builds/imgui.ini
 /builds/imgui_dock.layout
 /builds/userguide
 Android
+/ARM64/
+/bin/
+/x64/
+/*.androidproj

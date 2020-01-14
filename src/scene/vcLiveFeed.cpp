@@ -189,7 +189,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
           {
             //X and Y are latlong and Z is m so we need to fix it
             if (pInfo->pProgramState->gis.isProjected)
-              dir = udNormalize3(udGeoZone_ToCartesian(pInfo->pProgramState->gis.zone, newPositionLatLong, true) - udGeoZone_ToCartesian(pInfo->pProgramState->gis.zone, pFeedItem->previousPositionLatLong, true));
+              dir = udNormalize3(udGeoZone_LatLongToCartesian(pInfo->pProgramState->gis.zone, newPositionLatLong, true) - udGeoZone_LatLongToCartesian(pInfo->pProgramState->gis.zone, pFeedItem->previousPositionLatLong, true));
             else
               dir = udNormalize3(dir);
 
@@ -281,7 +281,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
   }
 
 epilogue:
-  vdkServerAPI_ReleaseResult(pInfo->pProgramState->pVDKContext, &pFeedsJSON);
+  vdkServerAPI_ReleaseResult(&pFeedsJSON);
 
   pInfo->pFeed->m_loadStatus = vcSLS_Loaded;
 }
@@ -289,6 +289,7 @@ epilogue:
 
 vcLiveFeed::vcLiveFeed(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
+  m_selectedItem(0),
   m_visibleItems(0),
   m_tweenPositionAndOrientation(true),
   m_updateFrequency(15.0),
@@ -303,6 +304,8 @@ vcLiveFeed::vcLiveFeed(vdkProject *pProject, vdkProjectNode *pNode, vcState *pPr
   m_newestFeedUpdate = udGetEpochSecsUTCf() - m_decayFrequency;
   m_oldestFeedUpdate = m_newestFeedUpdate;
   m_fetchNow = true;
+
+  m_labelLODModifier = 1.0;
 
   OnNodeUpdate(pProgramState);
 
@@ -320,6 +323,8 @@ void vcLiveFeed::OnNodeUpdate(vcState *pProgramState)
   vdkProjectNode_GetMetadataDouble(m_pNode, "updateFrequency", &m_updateFrequency, 30.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayTime", &m_decayFrequency, 300.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayDistance", &m_maxDisplayDistance, 50000.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "lodModifier", &m_labelLODModifier, 1.0);
+
   vdkProjectNode_GetMetadataBool(m_pNode, "tweenEnabled", &m_tweenPositionAndOrientation, true);
 
   ChangeProjection(pProgramState->gis.zone);
@@ -361,16 +366,13 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       continue;
     }
 
-    udDouble3 cameraPosition = pProgramState->pCamera->position;
-
-    if (pProgramState->settings.camera.cameraMode == vcCM_OrthoMap)
-      cameraPosition.z = pProgramState->settings.camera.orthographicSize * vcCamera_HeightToOrthoFOVRatios[pProgramState->settings.camera.lensIndex];
+    udDouble3 cameraPosition = pProgramState->camera.position;
 
     pFeedItem->tweenAmount = m_tweenPositionAndOrientation ? udMin(1.0, pFeedItem->tweenAmount + pProgramState->deltaTime * 0.02) : 1.0;
     pFeedItem->displayPosition = udLerp(pFeedItem->previousPositionLatLong, pFeedItem->livePositionLatLong, pFeedItem->tweenAmount);
 
     if (pProgramState->gis.isProjected)
-      pFeedItem->displayPosition = udGeoZone_ToCartesian(pProgramState->gis.zone, pFeedItem->displayPosition, true);
+      pFeedItem->displayPosition = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, pFeedItem->displayPosition, true);
 
     double distanceSq = udMagSq3(pFeedItem->displayPosition - cameraPosition);
 
@@ -382,7 +384,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       vcLiveFeedItemLOD &lodRef = pFeedItem->lodLevels[lodI];
 
-      if (lodRef.distance != 0.0 && distanceSq > (lodRef.distance*lodRef.distance) / (pFeedItem->minBoundingRadius * pFeedItem->minBoundingRadius))
+      if (lodI < pFeedItem->lodLevels.length - 1 && distanceSq != 0.0 && distanceSq / m_labelLODModifier > (lodRef.distance*lodRef.distance) / (pFeedItem->minBoundingRadius * pFeedItem->minBoundingRadius))
         continue;
 
       if (lodRef.sspixels != 0.0)
@@ -440,7 +442,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         }
 
         if (pModel != nullptr)
-          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, { pModel }, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition), nullptr, this, (uint64_t)i });
+          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, vcRenderPolyInstance::RenderFlags_None, { pModel }, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition), nullptr, vcGLSCM_Back, this, (uint64_t)(i+1) });
       }
 
       break; // We got to the end so we should stop
@@ -513,6 +515,18 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
       }
     }
 
+    // LOD Distances
+    {
+      const double minLODModifier = 0.01;
+      const double maxLODModifier = 5.0;
+
+      if (ImGui::SliderScalar(vcString::Get("liveFeedLODModifier"), ImGuiDataType_Double, &m_labelLODModifier, &minLODModifier, &maxLODModifier, "%.2f", 2.f))
+      {
+        m_labelLODModifier = udClamp(m_labelLODModifier, minLODModifier, maxLODModifier);
+        vdkProjectNode_SetMetadataDouble(m_pNode, "lodModifier", m_labelLODModifier);
+      }
+    }
+
     // Tween
     if (ImGui::Checkbox(vcString::Get("liveFeedTween"), &m_tweenPositionAndOrientation))
       vdkProjectNode_SetMetadataBool(m_pNode, "tweenEnabled", m_tweenPositionAndOrientation);
@@ -572,7 +586,15 @@ udDouble3 vcLiveFeed::GetLocalSpacePivot()
   return udDouble3::zero();
 }
 
-bool vcLiveFeed::IsSceneSelected(uint64_t internalId)
+void vcLiveFeed::SelectSubitem(uint64_t internalId)
 {
-  return vcSceneItem::IsSceneSelected(internalId);// && m_feedItems[internalId]->selected;
+  this->m_selectedItem = internalId;
+}
+
+bool vcLiveFeed::IsSubitemSelected(uint64_t internalId)
+{
+  if (internalId == 0 || this->m_selectedItem == 0)
+    return m_selected;
+
+  return (m_selected && this->m_selectedItem == internalId);
 }

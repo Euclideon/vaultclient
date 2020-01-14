@@ -13,7 +13,7 @@ enum
   NodeChildCount = 4,
 };
 
-static const int vcTRMQToDepthModifiers[vcCM_Count][vcTRMQ_Total] = { { 4, 2, 0 }, { 2, 1, 0 } };
+static const int vcTRMQToDepthModifiers[vcTRMQ_Total] = { 4, 2, 0 };
 
 // Returns -1=outside, 0=inside, >0=partial (bits of planes crossed)
 static int vcQuadTree_FrustumTest(const udDouble4 frustumPlanes[6], const udDouble3 &boundCenter, const udDouble3 &boundExtents)
@@ -85,6 +85,7 @@ uint32_t vcQuadTree_FindFreeChildBlock(vcQuadTree *pQuadTree)
   return pQuadTree->nodes.used - NodeChildCount;
 }
 
+// TODO: DEM effect
 double vcQuadTree_PointToRectDistance(udDouble2 edges[4], const udDouble3 &point)
 {
   static const udInt2 edgePairs[] =
@@ -163,7 +164,7 @@ bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode 
 
 inline bool vcQuadTree_ShouldSubdivide(vcQuadTree *pQuadTree, double distanceMS, int depth)
 {
-  return distanceMS < (1.0 / (1 << (depth + vcTRMQToDepthModifiers[pQuadTree->pSettings->camera.cameraMode][pQuadTree->pSettings->maptiles.mapQuality])));
+  return distanceMS < (1.0 / (1 << (depth + vcTRMQToDepthModifiers[pQuadTree->pSettings->maptiles.mapQuality])));
 }
 
 void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeIndex, int currentDepth)
@@ -214,35 +215,29 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
     // TODO: tile heights (DEM)
     double distanceToQuadrant;
 
-    if (pQuadTree->pSettings->camera.cameraMode == vcCM_FreeRoam)
+    int32_t slippyManhattanDist = udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x) + udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y);
+    if (slippyManhattanDist != 0)
     {
-      udInt2 slippyManhattanDist = udInt2::create(udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x), udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y));
-      if (udMagSq2(slippyManhattanDist) != 0)
-      {
-        distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraTreePosition);
-        pChildNode->visible = pChildNode->visible && (udAbs(udSin(pQuadTree->cameraTreePosition.z / distanceToQuadrant)) >= tileToCameraCullAngle);
-      }
-      else
-      {
-        distanceToQuadrant = udAbs(pQuadTree->cameraTreePosition.z);
-      }
-
-      // Artificially change the distances of tiles based on their relative depths.
-      // Flattens out lower layers, while raising levels of tiles further away.
-      // This is done because of perspectiveness, we actually want a non-uniform quad tree.
-      // Note: these values were just 'trial and error'ed
-      int nodeDepthToTreeDepth = pQuadTree->expectedTreeDepth - currentDepth;
-      distanceToQuadrant *= udLerp(1.0, (0.6 + 0.25 * nodeDepthToTreeDepth), udClamp(nodeDepthToTreeDepth, 0, 1));
+      distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraTreePosition);
+      bool withinHorizon = udAbs(udASin(pQuadTree->cameraTreePosition.z / distanceToQuadrant)) >= tileToCameraCullAngle;
+      pChildNode->visible = pChildNode->visible && withinHorizon;
     }
     else
     {
-      distanceToQuadrant = pQuadTree->pSettings->camera.orthographicSize * 2.0;
+      distanceToQuadrant = udAbs(pQuadTree->cameraTreePosition.z);
     }
+
+    // Artificially change the distances of tiles based on their relative depths.
+    // Flattens out lower layers, while raising levels of tiles further away.
+    // This is done because of perspectiveness, we actually want a non-uniform quad tree.
+    // Note: these values were just 'trial and error'ed
+    int nodeDepthToTreeDepth = pQuadTree->expectedTreeDepth - currentDepth;
+    distanceToQuadrant *= udLerp(1.0, (0.6 + 0.25 * nodeDepthToTreeDepth), udClamp(nodeDepthToTreeDepth, 0, 1));
 
     ++pQuadTree->metaData.nodeTouchedCount;
     if (pChildNode->visible)
       ++pQuadTree->metaData.visibleNodeCount;
-    else if (pQuadTree->pSettings->camera.cameraMode == vcCM_OrthoMap || (pQuadTree->pSettings->maptiles.mapOptions & vcTRF_OnlyRequestVisibleTiles) != 0)
+    else if ((pQuadTree->pSettings->maptiles.mapOptions & vcTRF_OnlyRequestVisibleTiles) != 0)
       continue;
 
     // this `10000000.0` is arbitrary trial and error'd

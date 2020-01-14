@@ -39,6 +39,7 @@ enum vcVisualizatationMode
   vcVM_Colour,
   vcVM_Intensity,
   vcVM_Classification,
+  vcVM_Displacement,
 
   vcVM_Count
 };
@@ -75,6 +76,7 @@ enum vcSettingCategory
   vcSC_Convert,
   vcSC_Docks,
   vcSC_Languages,
+  vcSC_Bindings,
   vcSC_All
 };
 
@@ -114,10 +116,14 @@ struct vcSettings
     bool showCameraInfo;
     bool showProjectionInfo;
     bool showDiagnosticInfo;
+    bool showEuclideonLogo;
     bool showAdvancedGIS;
+    bool loginRenderLicense;
 
     bool showSkybox;
     udFloat4 skyboxColour;
+
+    float saturation;
 
     vcAnchorStyle mouseAnchor;
     bool showCompass;
@@ -165,6 +171,8 @@ struct vcSettings
 
     int minIntensity;
     int maxIntensity;
+
+    udFloat2 displacement;
 
     bool useCustomClassificationColours;
     uint32_t customClassificationColors[256];
@@ -257,7 +265,7 @@ struct vcSettings
   // They will mostly be exposed via the System->Experiments menu to hide them away from most users
   struct
   {
-    bool useGPURenderer;
+    //No current experiments
   } experimental;
 
   udChunkedArray<vcLanguageOption> languageOptions;
@@ -288,8 +296,6 @@ const float vcSL_CameraMaxMoveSpeed = 10000.f;
 const float vcSL_CameraFieldOfViewMin = 5;
 const float vcSL_CameraFieldOfViewMax = 100;
 
-static const udDouble2 vcSL_CameraOrthoNearFarPlane = { 1.0, 1000000.0 };
-
 const float vcSL_OSCPixelRatio = 100.f;
 
 const float vcSL_POIFaderMin = 0.f;
@@ -314,9 +320,9 @@ const float vcSL_ColourByHeightMax = 1000.f;
 const float vcSL_ColourByDepthMin = 0.f;
 const float vcSL_ColourByDepthMax = 1000.f;
 const float vcSL_ContourDistanceMin = 0.f;
-const float vcSL_ContourDistanceMax = 1000.f;
+const float vcSL_ContourDistanceMax = 100.f;
 const float vcSL_ContourBandHeightMin = 0.f;
-const float vcSL_ContourBandHeightMax = 1000.f;
+const float vcSL_ContourBandHeightMax = 10.f;
 
 // Settings Functions
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset = false, vcSettingCategory group = vcSC_All);

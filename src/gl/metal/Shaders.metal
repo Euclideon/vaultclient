@@ -7,6 +7,134 @@ using namespace metal;
 // This should match CPU struct size
 #define VERTEX_COUNT 2
 
+
+// Visualization Vertex Shader - g_VisualizationVertexShader
+  struct VVSInput
+  {
+    float3 a_position [[attribute(0)]];
+    float2 a_texCoord [[attribute(1)]];
+  };
+
+  struct VVSOutput
+  {
+    float4 v_position [[position]];
+    float2 uv;
+  };
+
+  vertex VVSOutput
+  visualizationVertexShader(VVSInput in [[stage_in]])
+  {
+    VVSOutput out;
+    out.v_position = float4(in.a_position.xy, 0.0, 1.0);
+    out.uv = in.a_texCoord;
+    return out;
+  }
+
+// Visualization Fragment Shader - g_VisualizationFragmentShader
+struct VFSUniforms
+{
+  float4 u_screenParams;
+  float4x4 u_inverseViewProjection;
+  float4 u_outlineColor;
+  float4 u_outlineParams;
+  float4 u_colorizeHeightColorMin;
+  float4 u_colorizeHeightColorMax;
+  float4 u_colorizeHeightParams;
+  float4 u_colorizeDepthColor;
+  float4 u_colorizeDepthParams;
+  float4 u_contourColor;
+  float4 u_contourParams;
+};
+
+struct VFSOutput
+{
+  float4 out_Color [[color(0)]];
+  float depth [[depth(any)]];
+};
+
+float3 hsv2rgb(float3 c)
+{
+  float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+  float3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+fragment VFSOutput
+visualizationFragmentShader(VVSOutput in [[stage_in]],
+                 constant VFSUniforms& uVFS [[buffer(1)]],
+                 texture2d<float, access::sample> VFStexture [[texture(0)]],
+                 sampler VFSsampler [[sampler(0)]],
+                 depth2d<float, access::sample> VFSdepthTexture [[texture(1)]],
+                 sampler VFSdepthSampler [[sampler(1)]])
+{
+  VFSOutput out;
+  
+  float4 col = VFStexture.sample(VFSsampler, in.uv);
+  float depth = VFSdepthTexture.sample(VFSdepthSampler, in.uv);
+  
+  float farPlane = uVFS.u_screenParams.w;
+  float nearPlane = uVFS.u_screenParams.z;
+  
+  float4 fragWorldPosition = uVFS.u_inverseViewProjection * float4(in.uv.x * 2.0 - 1.0, (1.0 - in.uv.y) * 2.0 - 1.0, depth, 1.0);
+  fragWorldPosition = fragWorldPosition / fragWorldPosition.w;
+  
+  float2 worldColorMinMax = uVFS.u_colorizeHeightParams.xy;
+  float minMaxColorStrength = clamp((fragWorldPosition.z - worldColorMinMax.x) / (worldColorMinMax.y - worldColorMinMax.x), 0.0, 1.0);
+  float3 minColor = mix(col.xyz, uVFS.u_colorizeHeightColorMin.xyz, uVFS.u_colorizeHeightColorMin.w);
+  float3 maxColor = mix(col.xyz, uVFS.u_colorizeHeightColorMax.xyz, uVFS.u_colorizeHeightColorMax.w);
+  col.xyz = mix(minColor, maxColor, minMaxColorStrength);
+  
+  float linearDepth = ((2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane))) * farPlane;
+  float2 depthColorMinMax = uVFS.u_colorizeDepthParams.xy;
+
+  float depthColorStrength = clamp((linearDepth - depthColorMinMax.x) / (depthColorMinMax.y - depthColorMinMax.x), 0.0, 1.0);
+  
+  col.xyz = mix(col.xyz, uVFS.u_colorizeDepthColor.xyz, depthColorStrength * uVFS.u_colorizeDepthColor.w);
+
+  float contourBandHeight = uVFS.u_contourParams.y;
+  float contourRainboxRepeat = uVFS.u_contourParams.z;
+  float contourRainboxIntensity = uVFS.u_contourParams.w;
+
+  float3 rainbowColor = hsv2rgb(float3(fragWorldPosition.z * (1.0 / contourRainboxRepeat), 1.0, 1.0));
+  float3 baseColor = mix(col.xyz, rainbowColor, contourRainboxIntensity);
+
+  float isContour = 1.0 - step(contourBandHeight, fmod(abs(fragWorldPosition.z), uVFS.u_contourParams.x));
+
+  col.xyz = mix(baseColor, uVFS.u_contourColor.xyz, isContour * uVFS.u_contourColor.w);
+
+  float edgeOutlineWidth = uVFS.u_outlineParams.x;
+  if (edgeOutlineWidth > 0.0 && uVFS.u_outlineColor.w > 0.0)
+  {
+    float3 sampleOffsets = float3(uVFS.u_screenParams.xy, 0.0);
+    float edgeOutlineThreshold = uVFS.u_outlineParams.y;
+    
+    float d1 = VFSdepthTexture.sample(VFSdepthSampler, in.uv + sampleOffsets.xz);
+    float d2 = VFSdepthTexture.sample(VFSdepthSampler, in.uv - sampleOffsets.xz);
+    float d3 = VFSdepthTexture.sample(VFSdepthSampler, in.uv + sampleOffsets.zy);
+    float d4 = VFSdepthTexture.sample(VFSdepthSampler, in.uv - sampleOffsets.zy);
+    
+    float wd0 = ((2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane))) * farPlane;
+    float wd1 = ((2.0 * nearPlane) / (farPlane + nearPlane - d1 * (farPlane - nearPlane))) * farPlane;
+    float wd2 = ((2.0 * nearPlane) / (farPlane + nearPlane - d2 * (farPlane - nearPlane))) * farPlane;
+    float wd3 = ((2.0 * nearPlane) / (farPlane + nearPlane - d3 * (farPlane - nearPlane))) * farPlane;
+    float wd4 = ((2.0 * nearPlane) / (farPlane + nearPlane - d4 * (farPlane - nearPlane))) * farPlane;
+    
+    float isEdge = 1.0 - step(wd0 - wd1, edgeOutlineThreshold) * step(wd0 - wd2, edgeOutlineThreshold) * step(wd0 - wd3, edgeOutlineThreshold) * step(wd0 - wd4, edgeOutlineThreshold);
+    
+    float3 edgeColor = mix(col.xyz, uVFS.u_outlineColor.xyz, uVFS.u_outlineColor.w);
+    float minDepth = min(min(min(d1, d2), d3), d4);
+    float4 edgeResult = float4(mix(col.xyz, edgeColor, isEdge), (depth + isEdge * (minDepth - depth)));
+    
+    col.xyz = edgeResult.xyz;
+    depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
+  }
+
+  out.out_Color = float4(col.rgb, 1.0);
+  out.depth = depth;
+  
+  return out;
+}
+
 // Compass Vertex Shader - g_CompassVertexShader
   struct CVSInput
   {
@@ -25,7 +153,7 @@ using namespace metal;
 
   struct CVSUniforms
   {
-    float4x4 u_viewProjectionMatrix;
+    float4x4 u_worldViewProjectionMatrix;
     float4 u_color;
     float3 u_sunDirection;
   };
@@ -34,7 +162,7 @@ using namespace metal;
   compassVertexShader(CVSInput in [[stage_in]], constant CVSUniforms& uCVS [[buffer(1)]])
   {
     CVSOutput out;
-    out.v_fragClipPosition = uCVS.u_viewProjectionMatrix * float4(in.a_pos, 1.0);
+    out.v_fragClipPosition = uCVS.u_worldViewProjectionMatrix * float4(in.a_pos, 1.0);
     out.pos = out.v_fragClipPosition;
     out.v_normal = (in.a_normal * 0.5) + 0.5;
     out.v_color = uCVS.u_color;
@@ -96,7 +224,7 @@ using namespace metal;
     return float4(col.xyz * in.v_color.xyz, in.v_color.w);
   };
 
-// Skybox Vertex Shader - g_vcSkyboxVertexShader
+// Skybox Vertex Shader Panorama - g_vcSkyboxVertexShaderPanorama
   struct SVSInput
   {
     float3 a_position [[attribute(0)]];
@@ -110,7 +238,7 @@ using namespace metal;
   };
 
   vertex SVSOutput
-  skyboxVertexShader(SVSInput in [[stage_in]])
+  skyboxVertexShaderPanorama(SVSInput in [[stage_in]])
   {
     SVSOutput out;
     out.position = float4(in.a_position.xy, 0.0, 1.0);
@@ -119,14 +247,14 @@ using namespace metal;
   }
 
 
-// Skybox Fragment Shader Panorama - skyboxFragmentShaderPanarama
+// Skybox Fragment Shader Panorama - skyboxFragmentShaderPanorama
   struct SFSPUniforms
   {
     float4x4 u_inverseViewProjection;
   };
 
   fragment float4
-  skyboxFragmentShaderPanarama(SVSOutput in [[stage_in]], constant SFSPUniforms& uSFS [[buffer(1)]], texture2d<float, access::sample> SFSimg [[texture(0)]], sampler SFSsampler [[sampler(0)]])
+  skyboxFragmentShaderPanorama(SVSOutput in [[stage_in]], constant SFSPUniforms& uSFS [[buffer(1)]], texture2d<float, access::sample> SFSimg [[texture(0)]], sampler SFSsampler [[sampler(0)]])
   {
     // work out 3D point
     float4 point3D = uSFS.u_inverseViewProjection * float4(in.v_texCoord * float2(2.0) - float2(1.0), 1.0, 1.0);
@@ -201,7 +329,7 @@ using namespace metal;
 
   struct FVSEveryObject
   {
-    float4x4 u_modelViewProjectionMatrix;
+    float4x4 u_worldViewProjectionMatrix;
   };
 
   struct FVSInput
@@ -223,7 +351,7 @@ using namespace metal;
     // fence or flat
     float3 worldPosition = in.a_position + mix(float3(0, 0, in.a_ribbonInfo.w) * uFVS.u_width, in.a_ribbonInfo.xyz, uFVS.u_orientation);
 
-    out.v_position = uFVSEO.u_modelViewProjectionMatrix * float4(worldPosition, 1.0);
+    out.v_position = uFVSEO.u_worldViewProjectionMatrix * float4(worldPosition, 1.0);
     return out;
   }
 
@@ -279,13 +407,6 @@ struct UDFSOutput
   float depth [[depth(any)]];
 };
 
-float3 hsv2rgb(float3 c)
-{
-  float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-  float3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
-
 fragment UDFSOutput
 udFragmentShader(UDVSOutput in [[stage_in]],
                  constant UDFSUniforms& uUDFS [[buffer(1)]],
@@ -298,63 +419,6 @@ udFragmentShader(UDVSOutput in [[stage_in]],
   
   float4 col = UDFStexture.sample(UDFSsampler, in.uv);
   float depth = UDFSdepthTexture.sample(UDFSdepthSampler, in.uv);
-  
-  float farPlane = uUDFS.u_screenParams.w;
-  float nearPlane = uUDFS.u_screenParams.z;
-  
-  float4 fragWorldPosition = uUDFS.u_inverseViewProjection * float4(in.uv.x * 2.0 - 1.0, (1.0 - in.uv.y) * 2.0 - 1.0, depth, 1.0);
-  fragWorldPosition = fragWorldPosition / fragWorldPosition.w;
-  
-  float2 worldColorMinMax = uUDFS.u_colorizeHeightParams.xy;
-  float minMaxColorStrength = clamp((fragWorldPosition.z - worldColorMinMax.x) / (worldColorMinMax.y - worldColorMinMax.x), 0.0, 1.0);
-  float3 minColor = mix(col.xyz, uUDFS.u_colorizeHeightColorMin.xyz, uUDFS.u_colorizeHeightColorMin.w);
-  float3 maxColor = mix(col.xyz, uUDFS.u_colorizeHeightColorMax.xyz, uUDFS.u_colorizeHeightColorMax.w);
-  col.xyz = mix(minColor, maxColor, minMaxColorStrength);
-  
-  float linearDepth = ((2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane))) * farPlane;
-  float2 depthColorMinMax = uUDFS.u_colorizeDepthParams.xy;
-  
-  float depthColorStrength = clamp((linearDepth - depthColorMinMax.x) / (depthColorMinMax.y - depthColorMinMax.x), 0.0, 1.0);
-  
-  col.xyz = mix(col.xyz, uUDFS.u_colorizeDepthColor.xyz, depthColorStrength * uUDFS.u_colorizeDepthColor.w);
-  
-  float edgeOutlineWidth = uUDFS.u_outlineParams.x;
-  if (edgeOutlineWidth > 0.0 && uUDFS.u_outlineColor.w > 0.0)
-  {
-    float3 sampleOffsets = float3(uUDFS.u_screenParams.xy, 0.0);
-    float edgeOutlineThreshold = uUDFS.u_outlineParams.y;
-    
-    float d1 = UDFSdepthTexture.sample(UDFSdepthSampler, in.uv + sampleOffsets.xz);
-    float d2 = UDFSdepthTexture.sample(UDFSdepthSampler, in.uv - sampleOffsets.xz);
-    float d3 = UDFSdepthTexture.sample(UDFSdepthSampler, in.uv + sampleOffsets.zy);
-    float d4 = UDFSdepthTexture.sample(UDFSdepthSampler, in.uv - sampleOffsets.zy);
-    
-    float wd0 = ((2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane))) * farPlane;
-    float wd1 = ((2.0 * nearPlane) / (farPlane + nearPlane - d1 * (farPlane - nearPlane))) * farPlane;
-    float wd2 = ((2.0 * nearPlane) / (farPlane + nearPlane - d2 * (farPlane - nearPlane))) * farPlane;
-    float wd3 = ((2.0 * nearPlane) / (farPlane + nearPlane - d3 * (farPlane - nearPlane))) * farPlane;
-    float wd4 = ((2.0 * nearPlane) / (farPlane + nearPlane - d4 * (farPlane - nearPlane))) * farPlane;
-    
-    float isEdge = 1.0 - step(wd0 - wd1, edgeOutlineThreshold) * step(wd0 - wd2, edgeOutlineThreshold) * step(wd0 - wd3, edgeOutlineThreshold) * step(wd0 - wd4, edgeOutlineThreshold);
-    
-    float3 edgeColor = mix(col.xyz, uUDFS.u_outlineColor.xyz, uUDFS.u_outlineColor.w);
-    float minDepth = min(min(min(d1, d2), d3), d4);
-    float4 edgeResult = float4(mix(col.xyz, edgeColor, isEdge), (depth + isEdge * (minDepth - depth)));
-    
-    col.xyz = edgeResult.xyz;
-    depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
-  }
-  
-  float contourBandHeight = uUDFS.u_contourParams.y;
-  float contourRainboxRepeat = uUDFS.u_contourParams.z;
-  float contourRainboxIntensity = uUDFS.u_contourParams.w;
-  
-  float3 rainbowColor = hsv2rgb(float3(fragWorldPosition.z * (1.0 / contourRainboxRepeat), 1.0, 1.0));
-  float3 baseColor = mix(col.xyz, rainbowColor, contourRainboxIntensity);
-  
-  float isContour = 1.0 - step(contourBandHeight, fmod(abs(fragWorldPosition.z), uUDFS.u_contourParams.x));
-  
-  col.xyz = mix(baseColor, uUDFS.u_contourColor.xyz, isContour * uUDFS.u_contourColor.w);
   
   out.out_Color = float4(col.rgb, 1.0);// UD always opaque
   out.depth = depth;
@@ -385,8 +449,8 @@ struct WVSUniforms1
 struct WVSUniforms2
 {
     float4 u_colorAndSize;
-    float4x4 u_modelViewMatrix;
-    float4x4 u_modelViewProjectionMatrix;
+    float4x4 u_worldViewMatrix;
+    float4x4 u_worldViewProjectionMatrix;
 };
 
 vertex WVSOutput
@@ -401,9 +465,9 @@ waterVertexShader(WVSInput in [[stage_in]], constant WVSUniforms1& uWVS1 [[buffe
     out.uv0 = uvScaleBodySize * in.pos.xy * float2(0.25, 0.25) - float2(uvOffset);
     out.uv1 = uvScaleBodySize * in.pos.yx * float2(0.50, 0.50) - float2(uvOffset, uvOffset * 0.75);
     
-    out.fragEyePos = uWVS2.u_modelViewMatrix * float4(in.pos, 0.0, 1.0);
+    out.fragEyePos = uWVS2.u_worldViewMatrix * float4(in.pos, 0.0, 1.0);
     out.color = uWVS2.u_colorAndSize.xyz;
-    out.pos = uWVS2.u_modelViewProjectionMatrix * float4(in.pos, 0.0, 1.0);
+    out.pos = uWVS2.u_worldViewProjectionMatrix * float4(in.pos, 0.0, 1.0);
     
     return out;
 }
@@ -457,7 +521,7 @@ waterFragmentShader(WVSOutput in [[stage_in]], constant WFSUniforms& uWFS [[buff
   return float4(finalColor, 1.0);
 }
 
-// g_PolygonP1N1UV1VertexShader
+// g_PolygonP3N3UV2VertexShader
 struct PNUVSInput
 {
   float3 pos [[attribute(0)]];
@@ -475,33 +539,32 @@ struct PNUVSOutput
 
 struct PNUVSUniforms1
 {
-  float4x4 u_viewProjectionMatrix;
-};
-
-struct PNUVSUniforms2
-{
-  float4x4 u_modelMatrix;
+  float4x4 u_worldViewProjectionMatrix;
+  float4x4 u_worldMatrix;
   float4 u_color;
 };
 
 vertex PNUVSOutput
-PNUVVertexShader(PNUVSInput in [[stage_in]], constant PNUVSUniforms1& PNUVS1 [[buffer(1)]], constant PNUVSUniforms2& PNUVS2 [[buffer(2)]])
+polygonP3N3UV2VertexShader(PNUVSInput in [[stage_in]], constant PNUVSUniforms1& PNUVS1 [[buffer(1)]])
 {
   PNUVSOutput out;
-  
-  out.pos = PNUVS1.u_viewProjectionMatrix * (PNUVS2.u_modelMatrix * float4(in.pos, 1.0));
+
+  // making the assumption that the model matrix won't contain non-uniform scale
+  float3 worldNormal = normalize((PNUVS1.u_worldMatrix * float4(in.normal, 0.0)).xyz);
+
+  out.pos = PNUVS1.u_worldViewProjectionMatrix * float4(in.pos, 1.0);
   out.uv = in.uv;
-  out.normal = in.normal;
-  out.color = PNUVS2.u_color;
+  out.normal = worldNormal;
+  out.color = PNUVS1.u_color;
   
   return out;
 }
 
 
-// g_PolygonP1N1UV1FragmentShader
+// g_PolygonP3N3UV2FragmentShader
 
 fragment float4
-PNUVFragmentShader(PNUVSOutput in [[stage_in]], texture2d<float, access::sample> PNUFSimg [[texture(0)]], sampler PNUFSsampler [[sampler(0)]])
+polygonP3N3UV2FragmentShader(PNUVSOutput in [[stage_in]], texture2d<float, access::sample> PNUFSimg [[texture(0)]], sampler PNUFSsampler [[sampler(0)]])
 {
     float4 col = PNUFSimg.sample(PNUFSsampler, in.uv);
     float4 diffuseColour = col * in.color;
@@ -515,7 +578,7 @@ PNUVFragmentShader(PNUVSOutput in [[stage_in]], texture2d<float, access::sample>
 }
 
 
-// g_PolygonP1UV1FragmentShader
+// g_ImageRendererFragmentShader
 struct PUC
 {
     float4 pos [[position]];
@@ -524,66 +587,59 @@ struct PUC
 };
 
 fragment float4
-PUVFragmentShader(PUC in [[stage_in]], texture2d<float, access::sample> PUFSimg [[texture(0)]], sampler PUFSsampler [[sampler(0)]])
+imageRendererFragmentShader(PUC in [[stage_in]], texture2d<float, access::sample> IRFSimg [[texture(0)]], sampler IRFSsampler [[sampler(0)]])
 {
-    float4 col = PUFSimg.sample(PUFSsampler, in.uv);
+    float4 col = IRFSimg.sample(IRFSsampler, in.uv);
     return col * in.color;
 }
 
-// g_PolygonP1UV1VertexShader
-struct PUVVSInput
+// g_ImageRendererMeshVertexShader
+struct PNUVVSInput
 {
     float3 pos [[attribute(0)]];
-    float2 uv [[attribute(1)]];
+    float3 normal [[attribute(1)]]; // unused
+    float2 uv [[attribute(2)]];
 };
 
-struct PUVVSUniforms
+struct IRMVSUniforms
 {
-    float4x4 u_modelViewProjectionMatrix;
+    float4x4 u_worldViewProjectionMatrix;
     float4 u_color;
     float4 u_screenSize; // unused
 };
 
 vertex PUC
-PUVVertexShader(PUVVSInput in [[stage_in]], constant PUVVSUniforms& uniforms [[buffer(1)]])
+imageRendererMeshVertexShader(PNUVVSInput in [[stage_in]], constant IRMVSUniforms& uniforms [[buffer(1)]])
 {
     PUC out;
     
-    out.pos = uniforms.u_modelViewProjectionMatrix * float4(in.pos, 1.0);
+    out.pos = uniforms.u_worldViewProjectionMatrix * float4(in.pos, 1.0);
     out.uv = float2(in.uv[0], 1.0 - in.uv[1]);
     out.color = uniforms.u_color;
     
     return out;
 }
 
-// g_BillboardFragmentShader
-fragment float4
-billboardFragmentShader(PUC in [[stage_in]], texture2d<float, access::sample> BFSimg [[texture(0)]], sampler BFSsampler [[sampler(0)]])
-{
-    float4 col = BFSimg.sample(BFSsampler, in.uv);
-    return col * in.color;
-}
-
-// g_BillboardVertexShader
-struct BVSInput
+// g_ImageRendererBillboardVertexShader
+struct IRBVSInput
 {
     float3 pos [[attribute(0)]];
     float2 uv [[attribute(1)]];
 };
 
-struct BVSUniforms
+struct IRBVSUniforms
 {
-    float4x4 u_modelViewProjectionMatrix;
+    float4x4 u_worldViewProjectionMatrix;
     float4 u_color;
     float4 u_screenSize;
 };
 
 vertex PUC
-billboardVertexShader(BVSInput in [[stage_in]], constant BVSUniforms& uniforms [[buffer(1)]])
+imageRendererBillboardVertexShader(IRBVSInput in [[stage_in]], constant IRBVSUniforms& uniforms [[buffer(1)]])
 {
     PUC out;
     
-    out.pos = uniforms.u_modelViewProjectionMatrix * float4(in.pos, 1.0);
+    out.pos = uniforms.u_worldViewProjectionMatrix * float4(in.pos, 1.0);
     out.pos.xy += uniforms.u_screenSize.z * out.pos.w * uniforms.u_screenSize.xy * float2(in.uv.x * 2.0 - 1.0, in.uv.y * 2.0 - 1.0); // expand billboard
     out.uv = float2(in.uv.x, 1.0 - in.uv.y);
     
@@ -637,6 +693,20 @@ struct FCFSInput
 float4 flatColorFragmentShader(FCFSInput in [[stage_in]])
 {
     return float4(in.color);
+}
+
+// g_DepthOnly_FragmentShader
+struct DOFSInput
+{
+    float4 pos [[attribute(0)]];
+    float2 uv [[attribute(1)]];
+    float3 normal [[attribute(2)]];
+    float4 color [[attribute(3)]];
+};
+
+float4 depthOnlyFragmentShader(DOFSInput in [[stage_in]])
+{
+    return float4(0.0, 0.0, 0.0, 0.0);
 }
 
 // g_BlurVertexShader
@@ -772,7 +842,7 @@ struct GQFSInput
 
 struct GQVSUniforms
 {
-    float4x4 u_worldViewProj;
+    float4x4 u_worldViewProjectionMatrix;
 };
 
 vertex GQFSInput
@@ -784,14 +854,14 @@ gpuRenderQuadVertexShader(GQVSInput in [[stage_in]], constant GQVSUniforms& unif
     
     // Points
     float4 off = float4(in.pos.www * 2.0, 0);
-    float4 pos0 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.www, 1.0);
-    float4 pos1 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.xww, 1.0);
-    float4 pos2 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.xyw, 1.0);
-    float4 pos3 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.wyw, 1.0);
-    float4 pos4 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.wwz, 1.0);
-    float4 pos5 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.xwz, 1.0);
-    float4 pos6 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.xyz, 1.0);
-    float4 pos7 = uniforms.u_worldViewProj * float4(in.pos.xyz + off.wyz, 1.0);
+    float4 pos0 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.www, 1.0);
+    float4 pos1 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.xww, 1.0);
+    float4 pos2 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.xyw, 1.0);
+    float4 pos3 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.wyw, 1.0);
+    float4 pos4 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.wwz, 1.0);
+    float4 pos5 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.xwz, 1.0);
+    float4 pos6 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.xyz, 1.0);
+    float4 pos7 = uniforms.u_worldViewProjectionMatrix * float4(in.pos.xyz + off.wyz, 1.0);
     
     float4 minPos, maxPos;
     minPos = min(pos0, pos1);
@@ -845,7 +915,7 @@ struct QuadOutput
 
 struct QuadUniforms
 {
-    float4x4 u_worldViewProj;
+    float4x4 u_worldViewProjectionMatrix;
     float4 u_color;
 };
 
@@ -858,14 +928,14 @@ firstPass(const device PCin *in [[buffer(0)]], constant QuadUniforms& uniforms [
     
     // Points
     float4 off = float4(in[v_id].pos.www * 2.0, 0);
-    float4 pos0 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.www, 1.0);
-    float4 pos1 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.xww, 1.0);
-    float4 pos2 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.xyw, 1.0);
-    float4 pos3 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.wyw, 1.0);
-    float4 pos4 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.wwz, 1.0);
-    float4 pos5 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.xwz, 1.0);
-    float4 pos6 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.xyz, 1.0);
-    float4 pos7 = uniforms.u_worldViewProj * float4(in[v_id].pos.xyz + off.wyz, 1.0);
+    float4 pos0 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.www, 1.0);
+    float4 pos1 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.xww, 1.0);
+    float4 pos2 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.xyw, 1.0);
+    float4 pos3 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.wyw, 1.0);
+    float4 pos4 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.wwz, 1.0);
+    float4 pos5 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.xwz, 1.0);
+    float4 pos6 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.xyz, 1.0);
+    float4 pos7 = uniforms.u_worldViewProjectionMatrix * float4(in[v_id].pos.xyz + off.wyz, 1.0);
     
     float4 minPos, maxPos;
     minPos = min(pos0, pos1);

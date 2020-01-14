@@ -12,10 +12,7 @@
 static const float vcISToPixelSize[] = { -1.f, 100.f, 250.f };
 UDCOMPILEASSERT(udLengthOf(vcISToPixelSize) == vcIS_Count, "ImagePixelSize not equal size");
 
-static const float vcISToWorldSize[] = { -1.f, 3.f, 10.f };
-UDCOMPILEASSERT(udLengthOf(vcISToWorldSize) == vcIS_Count, "ImageWorldSize not equal size");
-
-static vcInternalMeshType vcITToMeshType[] = { vcInternalMeshType_Billboard, vcInternalMeshType_Tube, vcInternalMeshType_Sphere };
+static vcInternalMeshType vcITToMeshType[] = { vcInternalMeshType_Billboard, vcInternalMeshType_WorldQuad, vcInternalMeshType_Tube, vcInternalMeshType_Sphere };
 UDCOMPILEASSERT(udLengthOf(vcITToMeshType) == vcIT_Count, "ImageMesh does not equal size");
 
 static struct vcImageShader
@@ -27,41 +24,55 @@ static struct vcImageShader
 
   struct
   {
-    udFloat4x4 u_modelViewProjectionMatrix;
+    udFloat4x4 u_worldViewProjectionMatrix;
     udFloat4 u_colour;
     udFloat4 u_screenSize;
   } everyObject;
-} gShaders[vcIT_Count];
+} gShaders[2]; // 0 for billboards, 1 for everything else
 
 static int gRefCount = 0;
-void vcImageRenderer_Init()
+udResult vcImageRenderer_Init()
 {
+  udResult result;
   gRefCount++;
-  if (gRefCount == 1)
-  {
-    vcShader_CreateFromText(&gShaders[vcIT_StandardPhoto].pShader, g_BillboardVertexShader, g_BillboardFragmentShader, vcP3UV2VertexLayout);
-    vcShader_CreateFromText(&gShaders[vcIT_PhotoSphere].pShader, g_PolygonP1UV1VertexShader, g_PolygonP1UV1FragmentShader, vcP3UV2VertexLayout);
-    vcShader_CreateFromText(&gShaders[vcIT_Panorama].pShader, g_PolygonP1UV1VertexShader, g_PolygonP1UV1FragmentShader, vcP3UV2VertexLayout);
 
-    for (int i = 0; i < vcIT_Count; ++i)
-    {
-      vcShader_GetConstantBuffer(&gShaders[i].pEveryObjectConstantBuffer, gShaders[i].pShader, "u_EveryObject", sizeof(gShaders[i].everyObject));
-      vcShader_GetSamplerIndex(&gShaders[i].pDiffuseSampler, gShaders[i].pShader, "u_texture");
-    }
+  UD_ERROR_IF(gRefCount != 1, udR_Success);
+
+  UD_ERROR_IF(!vcShader_CreateFromText(&gShaders[0].pShader, g_ImageRendererBillboardVertexShader, g_ImageRendererFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&gShaders[1].pShader, g_ImageRendererMeshVertexShader, g_ImageRendererFragmentShader, vcP3N3UV2VertexLayout), udR_InternalError);
+
+  for (size_t i = 0; i < udLengthOf(gShaders); ++i)
+  {
+    UD_ERROR_IF(!vcShader_GetConstantBuffer(&gShaders[i].pEveryObjectConstantBuffer, gShaders[i].pShader, "u_EveryObject", sizeof(gShaders[i].everyObject)), udR_InternalError);
+    UD_ERROR_IF(!vcShader_GetSamplerIndex(&gShaders[i].pDiffuseSampler, gShaders[i].pShader, "u_texture"), udR_InternalError);
   }
+
+  result = udR_Success;
+
+epilogue:
+  if (result != udR_Success)
+    vcImageRenderer_Destroy();
+
+  return result;
 }
 
-void vcImageRenderer_Destroy()
+udResult vcImageRenderer_Destroy()
 {
+  udResult result;
   --gRefCount;
-  if (gRefCount == 0)
+
+  UD_ERROR_IF(gRefCount != 0, udR_Success);
+
+  for (size_t i = 0; i < udLengthOf(gShaders); ++i)
   {
-    for (int i = 0; i < vcIT_Count; ++i)
-    {
-      vcShader_DestroyShader(&gShaders[i].pShader);
-      vcShader_ReleaseConstantBuffer(gShaders[i].pShader, gShaders[i].pEveryObjectConstantBuffer);
-    }
+    UD_ERROR_IF(!vcShader_ReleaseConstantBuffer(gShaders[i].pShader, gShaders[i].pEveryObjectConstantBuffer), udR_InternalError);
+    vcShader_DestroyShader(&gShaders[i].pShader);
   }
+
+  result = udR_Success;
+
+epilogue:
+  return result;
 }
 
 bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, double zScale)
@@ -72,17 +83,12 @@ bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &vi
   vcTexture_GetSize(pImageInfo->pTexture, &imageSize.x, &imageSize.y);
   aspect = float(imageSize.y) / imageSize.x;
 
-  double worldScale = vcISToWorldSize[pImageInfo->size];
-  udDouble4x4 mvp = viewProjectionMatrix * udDouble4x4::translation(pImageInfo->position) * udDouble4x4::rotationYPR(pImageInfo->ypr) * udDouble4x4::scaleNonUniform(pImageInfo->scale);
-  if (pImageInfo->type == vcIT_Panorama)
-    mvp = mvp * udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect * UD_PI);
-  else if (pImageInfo->type == vcIT_PhotoSphere)
-    mvp = mvp * udDouble4x4::scaleUniform(worldScale);
+  udDouble4x4 mvp = viewProjectionMatrix * udDouble4x4::translation(pImageInfo->position) * udDouble4x4::rotationYPR(pImageInfo->ypr) * udDouble4x4::scaleUniform(pImageInfo->scale);
 
-  vcImageShader *pShader = &gShaders[pImageInfo->type];
+  vcImageShader *pShader = &gShaders[pImageInfo->type == vcIT_StandardPhoto ? 0 : 1];
   vcShader_Bind(pShader->pShader);
 
-  pShader->everyObject.u_modelViewProjectionMatrix = udFloat4x4::create(mvp);
+  pShader->everyObject.u_worldViewProjectionMatrix = udFloat4x4::create(mvp);
   pShader->everyObject.u_colour = pImageInfo->colour;
 
   if (pImageInfo->size == vcIS_Native)

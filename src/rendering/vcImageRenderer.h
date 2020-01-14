@@ -17,17 +17,21 @@ enum vcImageThumbnailSize
 enum vcImageType
 {
   vcIT_StandardPhoto,
+  vcIT_OrientedPhoto,
   vcIT_Panorama,
   vcIT_PhotoSphere,
 
   vcIT_Count
 };
 
+static const float vcISToWorldSize[] = { -1.f, 3.f, 10.f };
+UDCOMPILEASSERT(udLengthOf(vcISToWorldSize) == vcIS_Count, "ImageWorldSize not equal size");
+
 struct vcImageRenderInfo
 {
   udDouble3 position;
   udDouble3 ypr;
-  udDouble3 scale;
+  double scale;
 
   vcTexture *pTexture;
   vcImageThumbnailSize size;
@@ -35,8 +39,8 @@ struct vcImageRenderInfo
   udFloat4 colour;
 };
 
-void vcImageRenderer_Init();
-void vcImageRenderer_Destroy();
+udResult vcImageRenderer_Init();
+udResult vcImageRenderer_Destroy();
 
 bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, double zScale);
 

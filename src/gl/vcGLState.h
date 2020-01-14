@@ -16,12 +16,6 @@
 #  define GRAPHICS_API_METAL 0
 #endif
 
-#if (GRAPHICS_API_OPENGL || GRAPHICS_API_D3D11) && !UDPLATFORM_EMSCRIPTEN
-#  define ALLOW_EXPERIMENT_GPURENDER 1
-#else
-#  define ALLOW_EXPERIMENT_GPURENDER 0
-#endif
-
 enum
 {
   // TODO: (EVC-547) This is arbitrary. Should be platform based.
@@ -39,9 +33,10 @@ enum vcGLStateFillMode
 
 enum vcGLStateCullMode
 {
-  vcGLSCM_None,
-  vcGLSCM_Front,
   vcGLSCM_Back,
+  vcGLSCM_Front,
+
+  vcGLSCM_None,
 
   vcGLSCM_TotalModes
 };
@@ -50,7 +45,7 @@ enum vcGLStateBlendMode
 {
   vcGLSBM_None,
 
-  vcGLSBM_Interpolative, // (source alpha * source fragment) + ((1 – source alpha) * destination fragment)
+  vcGLSBM_Interpolative, // (source alpha * source fragment) + ((1 â€“ source alpha) * destination fragment)
   vcGLSBM_Additive, // (1 * source fragment) + (1 * destination fragment)
   vcGLSBM_Multiplicative, // source fragment * destination fragment
 

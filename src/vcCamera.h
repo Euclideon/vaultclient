@@ -4,12 +4,6 @@
 #include "udMath.h"
 #include "vcMath.h"
 
-enum vcCameraMoveMode
-{
-  vcCMM_Plane,
-  vcCMM_Helicopter,
-};
-
 enum vcCameraPivotMode
 {
   vcCPM_Tumble,
@@ -27,7 +21,6 @@ enum vcCameraScrollWheelMode
 struct vcCamera
 {
   udDouble3 position;
-  udDouble3 positionInLongLat;
   udDouble3 eulerRotation;
 
   udRay<double> worldMouseRay;
@@ -47,28 +40,19 @@ struct vcCamera
 };
 
 struct vcState;
+class vcSceneItem;
 
 enum vcInputState
 {
   vcCIS_None,
   vcCIS_Orbiting,
   vcCIS_MovingToPoint,
-  vcCIS_LookingAtPoint,
-  vcCIS_CommandZooming,
+  vcCIS_ZoomTo,
   vcCIS_PinchZooming,
   vcCIS_Panning,
   vcCIS_MovingForward,
-  vcCIS_FlyingThrough,
 
   vcCIS_Count
-};
-
-enum vcCameraMode
-{
-  vcCM_FreeRoam,
-  vcCM_OrthoMap,
-
-  vcCM_Count,
 };
 
 struct vcCameraInput
@@ -76,7 +60,6 @@ struct vcCameraInput
   vcInputState inputState;
 
   udDouble3 startPosition; // for zoom to
-  udDouble3 lookAtPosition; // for 'look at'
   udDoubleQuat startAngle;
   double progress;
 
@@ -85,16 +68,13 @@ struct vcCameraInput
   udDouble3 keyboardInput;
   udDouble3 mouseInput;
   udDouble3 controllerDPADInput;
-  void *pObjectInfo;
 
-  bool flyThroughActive;
-  int flyThroughPoint;
-  bool transitioningToMapMode;
   bool stabilize;
 
   udDouble3 smoothTranslation;
   udDouble3 smoothRotation;
-  double smoothOrthographicChange;
+  
+  vcSceneItem *pAttachedToSceneItem; // This does nothing in the camera module but the scene item is allowed to override the camera if this variable is set
 };
 
 struct vcCameraSettings
@@ -103,27 +83,14 @@ struct vcCameraSettings
   float nearPlane;
   float farPlane;
   float fieldOfView;
-  bool invertX;
-  bool invertY;
+  bool invertMouseX;
+  bool invertMouseY;
+  bool invertControllerX;
+  bool invertControllerY;
   int lensIndex;
-  vcCameraMoveMode moveMode;
+  bool lockAltitude;
   vcCameraPivotMode cameraMouseBindings[3]; // bindings for camera settings
   vcCameraScrollWheelMode scrollWheelMode;
-
-  vcCameraMode cameraMode;
-  double orthographicSize;
-};
-
-// 0.05745 per mm of FOV
-static const double vcCamera_HeightToOrthoFOVRatios[] =
-{
-  1.0, // custom: TODO fix me
-  0.86175,
-  1.3788,
-  1.7235,
-  2.8725,
-  4.0215,
-  5.745,
 };
 
 // Lens Sizes
@@ -148,15 +115,9 @@ enum vcLensSizes
   vcLS_TotalLenses
 };
 
-const char** vcCamera_GetLensNames();
-
-void vcCamera_Create(vcCamera **ppCamera);
-void vcCamera_Destroy(vcCamera **ppCamera);
-
 // Applies movement to camera
 void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos);
 
-void vcCamera_SwapMapMode(vcState *pProgramState);
-void vcCamera_LookAt(vcState *pProgramState, const udDouble3 &targetPosition);
+void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr);
 
 #endif//vcCamera_h__

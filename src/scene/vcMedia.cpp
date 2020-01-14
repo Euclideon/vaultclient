@@ -4,7 +4,9 @@
 #include "vcRender.h"
 #include "vcStrings.h"
 
-#include "vcFenceRenderer.h"
+#include "vcImageRenderer.h"
+#include "vcPolygonModel.h"
+#include "vcInternalModels.h"
 
 #include "udMath.h"
 #include "udFile.h"
@@ -17,7 +19,13 @@
 
 #include "stb_image.h"
 
-const char *s_imageTypes[] = { "standard", "panorama", "photosphere" };
+struct vcMediaLoadInfo
+{
+  vcState *pProgramState;
+  vcMedia *pMedia;
+};
+
+const char *s_imageTypes[] = { "standard", "oriented", "panorama", "photosphere" };
 UDCOMPILEASSERT(udLengthOf(s_imageTypes) == vcIT_Count, "Update Image Types");
 
 const char *s_imageThumbnailSizes[] = { "native", "small", "large" };
@@ -28,11 +36,11 @@ vcMedia::vcMedia(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramS
   m_pLoadedURI(nullptr),
   m_loadLoadTimeSec(0.0),
   m_reloadTimeSecs(0.0),
-  m_pImageData(nullptr),
   m_imageDataSize(0)
  {
   memset(&m_image, 0, sizeof(m_image));
   m_loadStatus = vcSLS_Loaded;
+  m_pImageData = nullptr;
 
   OnNodeUpdate(pProgramState);
 }
@@ -44,29 +52,32 @@ vcMedia::~vcMedia()
 
 void vcMedia_LoadImage(void* pMediaPtr)
 {
-  vcMedia* pMedia = (vcMedia*)pMediaPtr;
+  vcMediaLoadInfo *pData = (vcMediaLoadInfo *)pMediaPtr;
 
-  int32_t status = udInterlockedCompareExchange(&pMedia->m_loadStatus, vcSLS_Loading, vcSLS_Pending);
+  int32_t status = udInterlockedCompareExchange(&pData->pMedia->m_loadStatus, vcSLS_Loading, vcSLS_Pending);
 
   void *pFileData = nullptr;
   int64_t fileLen = 0;
 
   if (status == vcSLS_Pending)
   {
-    udResult result = udFile_Load(pMedia->m_pLoadedURI, &pFileData, &fileLen);
+    udResult result = udFile_Load(pData->pMedia->m_pLoadedURI, &pFileData, &fileLen);
+
+    if (result == udR_OpenFailure)
+      result = udFile_Load(udTempStr("%s%s", pData->pProgramState->activeProject.pRelativeBase, pData->pMedia->m_pLoadedURI), &pFileData, &fileLen);
 
     if (result == udR_Success)
     {
-      pMedia->SetImageData(&pFileData, fileLen); // Ownership is passed and pFileData should be null
-      pMedia->m_loadStatus = vcSLS_Loaded;
+      pData->pMedia->SetImageData(&pFileData, fileLen); // Ownership is passed and pFileData should be null
+      pData->pMedia->m_loadStatus = vcSLS_Loaded;
     }
     else if (result == udR_OpenFailure)
     {
-      pMedia->m_loadStatus = vcSLS_OpenFailure;
+      pData->pMedia->m_loadStatus = vcSLS_OpenFailure;
     }
     else
     {
-      pMedia->m_loadStatus = vcSLS_Failed;
+      pData->pMedia->m_loadStatus = vcSLS_Failed;
     }
 
     udFree(pFileData); // Should always be nullptr by this time
@@ -78,25 +89,28 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
   if (m_pNode->pURI == nullptr)
   {
     m_loadStatus = vcSLS_Failed;
-
-    if (m_image.pTexture != nullptr)
-      vcTexture_Destroy(&m_image.pTexture);
+    vcTexture_Destroy(&m_image.pTexture);
   }
-
-  if (m_loadStatus == vcSLS_Loaded && ((m_pNode->pURI != nullptr && !udStrEqual(m_pLoadedURI, m_pNode->pURI)) || (m_reloadTimeSecs != 0.0 && m_loadLoadTimeSec + m_reloadTimeSecs < udGetEpochSecsUTCf())))
+  else if ((m_loadStatus == vcSLS_Loaded && !udStrEqual(m_pLoadedURI, m_pNode->pURI)) || (m_reloadTimeSecs != 0.0 && m_loadLoadTimeSec + m_reloadTimeSecs < udGetEpochSecsUTCf()) || (m_loadStatus == vcSLS_Unloaded))
   {
     m_loadStatus = vcSLS_Pending;
     udFree(m_pLoadedURI);
     m_pLoadedURI = udStrdup(m_pNode->pURI);
 
-    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcMedia_LoadImage, this, false);
+    vcMediaLoadInfo *pMedia = udAllocType(vcMediaLoadInfo, 1, udAF_Zero);
+    pMedia->pMedia = this;
+    pMedia->pProgramState = pProgramState;
+    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcMedia_LoadImage, pMedia, true);
     m_loadLoadTimeSec = udGetEpochSecsUTCf();
   }
 
   vdkProjectNode_GetMetadataDouble(m_pNode, "reloadRate", &m_reloadTimeSecs, 0.0);
 
-  m_image.ypr = udDouble3::zero();
-  m_image.scale = udDouble3::one();
+  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &m_image.ypr.x, 0.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &m_image.ypr.y, 0.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &m_image.ypr.z, 0.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.scale", &m_image.scale, 1.0);
+
   m_image.colour = udFloat4::create(1.0f, 1.0f, 1.0f, 1.0f);
   m_image.size = vcIS_Large;
   m_image.type = vcIT_StandardPhoto;
@@ -129,49 +143,129 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (!m_visible)
     return;
 
-  if (m_image.pTexture != nullptr)
+  if (m_loadStatus == vcSLS_Loaded)
   {
-    // For now brute force sorting (n^2)
-    double distToCameraSqr = udMagSq3(m_image.position - pProgramState->pCamera->position);
-    size_t i = 0;
-    for (; i < pRenderData->images.length; ++i)
+    udInt2 imageSize = {};
+    if (m_pImageData != nullptr)
     {
-      if (udMagSq3(pRenderData->images[i]->position - pProgramState->pCamera->position) < distToCameraSqr)
-        break;
+      uint32_t width, height, channelCount;
+
+      uint8_t *pData = stbi_load_from_memory((stbi_uc *)m_pImageData, (int)m_imageDataSize, (int *)& width, (int *)& height, (int *)& channelCount, 4);
+      udFree(m_pImageData);
+      m_imageDataSize = 0;
+
+      if (pData != nullptr)
+      {
+        if (m_image.pTexture != nullptr)
+          vcTexture_GetSize(m_image.pTexture, &imageSize.x, &imageSize.y);
+
+        if ((uint32_t)imageSize.x == width && (uint32_t)imageSize.y == height) // imageSize will not == for null pTexture
+        {
+          vcTexture_UploadPixels(m_image.pTexture, pData, width, height);
+        }
+        else
+        {
+          vcTexture_Destroy(&m_image.pTexture);
+
+          if (vcTexture_Create(&m_image.pTexture, width, height, pData, vcTextureFormat_RGBA8) != udR_Success)
+            m_loadStatus = vcSLS_Failed;
+        }
+
+        stbi_image_free(pData);
+      }
+      else
+      {
+        m_loadStatus = vcSLS_Failed;
+      }
     }
 
-    vcImageRenderInfo *pImageInfo = &m_image;
-    pRenderData->images.Insert(i, &pImageInfo);
+    if (m_image.pTexture != nullptr)
+    {
+      if (m_image.type == vcIT_StandardPhoto)
+      {
+        // For now brute force sorting (n^2)
+        double distToCameraSqr = udMagSq3(m_image.position - pProgramState->camera.position);
+        size_t i = 0;
+        for (; i < pRenderData->images.length; ++i)
+        {
+          if (udMagSq3(pRenderData->images[i]->position - pProgramState->camera.position) < distToCameraSqr)
+            break;
+        }
+
+        vcImageRenderInfo *pImageInfo = &m_image;
+        pRenderData->images.Insert(i, &pImageInfo);
+      }
+      else
+      {
+        vcRenderPolyInstance *pPoly = pRenderData->polyModels.PushBack();
+        pPoly->worldMat = udDouble4x4::rotationYPR(m_image.ypr, m_image.position) * udDouble4x4::scaleUniform(m_image.scale);
+        pPoly->renderType = vcRenderPolyInstance::RenderType_Polygon;
+        pPoly->pSceneItem = this;
+        pPoly->pDiffuseOverride = m_image.pTexture;
+
+        float aspect = 1.0f;
+        vcTexture_GetSize(m_image.pTexture, &imageSize.x, &imageSize.y);
+        aspect = float(imageSize.y) / imageSize.x;
+
+        double worldScale = 1.0;
+        if (m_image.size == vcIS_Native)
+          worldScale = (double)imageSize.x / pProgramState->sceneResolution.x;
+        else
+          worldScale = vcISToWorldSize[m_image.size];
+        
+        if (m_image.type == vcIT_PhotoSphere)
+        {
+          pPoly->pModel = gInternalModels[vcInternalModelType_Sphere];
+          pPoly->worldMat *= udDouble4x4::scaleUniform(worldScale);
+          pPoly->cullFace = vcGLSCM_Front;
+        }
+        else if (m_image.type == vcIT_Panorama)
+        {
+          pPoly->pModel = gInternalModels[vcInternalModelType_Tube];
+          pPoly->worldMat *= udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect * UD_PI);
+          pPoly->cullFace = vcGLSCM_Front;
+        }
+        else if (m_image.type == vcIT_OrientedPhoto)
+        {
+          pPoly->pModel = gInternalModels[vcInternalModelType_Quad];
+          pPoly->worldMat *= udDouble4x4::scaleNonUniform(worldScale, worldScale, worldScale * aspect) * udDouble4x4::rotationZ(UD_PI);
+          pPoly->cullFace = vcGLSCM_Front;
+        } // TODO: Billboards, this renders at the correct relative scale and everything, but looks odd when actually rendered into the scene
+        /*else if (m_image.type == vcIT_StandardPhoto)
+        {
+          udDouble3 baseScale = udDouble3::create(worldScale, worldScale, worldScale * aspect);
+          udDouble3 distanceVector = m_image.position - pProgramState->pCamera->position;
+          double distance = udMag3(distanceVector);
+
+          pPoly->pModel = gInternalModels[vcInternalModelType_Quad];
+          pPoly->worldMat *= udDouble4x4::scaleNonUniform(baseScale * (distance / 25)) * udDouble4x4::rotationYPR(udDirectionToYPR(distanceVector));
+          pPoly->insideOut = true;
+        }*/
+      }
+    }
   }
 
   if (m_reloadTimeSecs != 0.0 && m_loadLoadTimeSec + m_reloadTimeSecs < udGetEpochSecsUTCf())
     OnNodeUpdate(pProgramState);
-
-  if (m_loadStatus == vcSLS_Loaded && m_pImageData != nullptr)
-  {
-    if (m_image.pTexture != nullptr)
-      vcTexture_Destroy(&m_image.pTexture);
-
-    if (!vcTexture_CreateFromMemory(&m_image.pTexture, m_pImageData, m_imageDataSize)) //If this doesn't load
-      m_loadStatus = vcSLS_Failed;
-
-    udFree(m_pImageData);
-    m_imageDataSize = 0;
-  }
 }
 
 void vcMedia::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
-  udDouble4x4 resultMatrix = delta * udDouble4x4::translation(m_image.position) * udDouble4x4::rotationYPR(m_image.ypr) * udDouble4x4::scaleNonUniform(m_image.scale);
+  udDouble4x4 resultMatrix = delta * udDouble4x4::translation(m_image.position) * udDouble4x4::rotationYPR(m_image.ypr) * udDouble4x4::scaleUniform(m_image.scale);
   udDouble3 position, scale;
   udQuaternion<double> rotation;
   resultMatrix.extractTransforms(position, scale, rotation);
 
   m_image.position = position;
-  m_image.ypr = udDirectionToYPR(rotation.apply(udDouble3::create(0, 1, 0)));
-  m_image.scale = scale;
+  m_image.ypr = rotation.eulerAngles();
+  m_image.scale = scale.x;
 
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &m_image.position, 1);
+
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_image.ypr.x);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_image.ypr.y);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_image.ypr.z);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", m_image.scale);
 }
 
 void vcMedia::HandleImGui(vcState *pProgramState, size_t *pItemID)
@@ -179,17 +273,30 @@ void vcMedia::HandleImGui(vcState *pProgramState, size_t *pItemID)
   // Handle imageurl
   if (m_pNode->pURI != nullptr)
   {
-    ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageURL"), m_pNode->pURI);
-    if (ImGui::Button(vcString::Get("scenePOILabelOpenImageURL")))
-      pProgramState->pLoadImage = udStrdup(m_pNode->pURI);
+    if (pProgramState->settings.presentation.showDiagnosticInfo)
+      ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageURL"), m_pNode->pURI);
 
-    const char *imageTypeNames[] = { vcString::Get("scenePOILabelImageTypeStandard"), vcString::Get("scenePOILabelImageTypePanorama"), vcString::Get("scenePOILabelImageTypePhotosphere") };
+    const char *imageTypeNames[] = { vcString::Get("scenePOILabelImageTypeStandard"), vcString::Get("scenePOILabelImageTypeOriented"), vcString::Get("scenePOILabelImageTypePanorama"), vcString::Get("scenePOILabelImageTypePhotosphere") };
+    UDCOMPILEASSERT(udLengthOf(imageTypeNames) == vcIT_Count, "Update image names");
     if (ImGui::Combo(udTempStr("%s##scenePOILabelImageType%zu", vcString::Get("scenePOILabelImageType"), *pItemID), (int *)&m_image.type, imageTypeNames, (int)udLengthOf(imageTypeNames)))
       vdkProjectNode_SetMetadataString(m_pNode, "imagetype", s_imageTypes[(int)m_image.type]);
 
     const char *imageThumbnailSizeNames[] = { vcString::Get("scenePOIThumbnailSizeNative"), vcString::Get("scenePOIThumbnailSizeSmall"), vcString::Get("scenePOIThumbnailSizeLarge") };
     if (ImGui::Combo(udTempStr("%s##scenePOIThumbnailSize%zu", vcString::Get("scenePOIThumbnailSize"), *pItemID), (int *)&m_image.size, imageThumbnailSizeNames, (int)udLengthOf(imageThumbnailSizeNames)))
       vdkProjectNode_SetMetadataString(m_pNode, "imagesize", s_imageThumbnailSizes[(int)m_image.size]);
+  }
+
+  if (m_image.type != vcIT_StandardPhoto)
+  {
+    if (ImGui::InputScalarN(udTempStr("%s##scenePOILabelImageYPR%zu", vcString::Get("scenePOILabelImageYPR"), *pItemID), ImGuiDataType_Double, &m_image.ypr, 3))
+    {
+      vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_image.ypr.x);
+      vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_image.ypr.y);
+      vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_image.ypr.z);
+    }
+
+    if (ImGui::InputDouble(udTempStr("%s##scenePOILabelImageYPR%zu", vcString::Get("scenePOILabelImageYPR"), *pItemID), &m_image.scale))
+      vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", m_image.scale);
   }
 
   double reloadTimeMin = 0;
@@ -199,6 +306,14 @@ void vcMedia::HandleImGui(vcState *pProgramState, size_t *pItemID)
     m_reloadTimeSecs = udClamp(m_reloadTimeSecs, reloadTimeMin, reloadTimeMax);
     vdkProjectNode_SetMetadataDouble(m_pNode, "reloadRate", m_reloadTimeSecs);
   }
+}
+
+void vcMedia::HandleContextMenu(vcState *pProgramState)
+{
+  ImGui::Separator();
+
+  if (ImGui::MenuItem(vcString::Get("scenePOILabelOpenImageURL")))
+    pProgramState->pLoadImage = udStrdup(m_pNode->pURI);
 }
 
 void vcMedia::ChangeProjection(const udGeoZone &newZone)
@@ -221,7 +336,7 @@ void vcMedia::Cleanup(vcState * /*pProgramState*/)
 
 void vcMedia::SetCameraPosition(vcState *pProgramState)
 {
-  pProgramState->pCamera->position = m_image.position;
+  pProgramState->camera.position = m_image.position;
 }
 
 udDouble4x4 vcMedia::GetWorldSpaceMatrix()
@@ -238,4 +353,9 @@ void vcMedia::SetImageData(void **ppImageData, int64_t imageDataSize)
     *ppImageData = nullptr;
     m_imageDataSize = imageDataSize;
   }
+}
+
+vcGizmoAllowedControls vcMedia::GetAllowedControls()
+{
+  return (vcGizmoAllowedControls)(vcGAC_ScaleUniform | vcGAC_Translation | vcGAC_Rotation);
 }

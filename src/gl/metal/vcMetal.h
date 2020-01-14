@@ -16,16 +16,6 @@
 #define BUFFER_COUNT 6
 #define DRAWABLES 1
 
-#define ForceUnwrap(type, nullableExpression) ^type _Nonnull () { \
-type _Nullable maybeValue___ = nullableExpression; \
-if (maybeValue___) { \
-return (type _Nonnull) maybeValue___; \
-} else { \
-NSLog(@"Attempted to force unwrap a null: " #nullableExpression); \
-abort(); \
-} \
-}()
-
 extern id<MTLDevice> _device;
 extern id<MTLLibrary> _library;
 
@@ -80,13 +70,10 @@ struct vcShader
 {
   uint32_t ID;
 
-  //uint16_t gID;
-  //uint16_t geom;
+  bool inititalised;
 
   vcShaderConstantBuffer bufferObjects[16];
   int numBufferObjects;
-  vcShaderSampler samplerIndexes[16];
-  int numSamplerIndexes;
 
   vcRendererFlushOption flush;
 };

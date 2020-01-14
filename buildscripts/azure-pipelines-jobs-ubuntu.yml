@@ -1,0 +1,36 @@
+parameters:
+  name: ''
+  displayName: ''
+  container: ''
+
+jobs:
+- job: ${{ parameters.name }}
+  displayName: ${{ parameters.displayName }}
+  pool:
+    vmImage: 'ubuntu-latest'
+  container:
+    image: ${{ parameters.container }}
+  variables:
+    platform: x64
+  strategy:
+    matrix:
+      Debug:
+        configuration: debug
+      Release:
+        configuration: release
+      DebugClang:
+        configuration: debugclang
+      ReleaseClang:
+        configuration: releaseclang
+  steps:
+  - checkout: self
+    submodules: recursive
+  - template: azure-pipelines-steps-linkedvdk.yml
+  - script: 3rdParty/udcore/bin/premake-bin/premake5 gmake2
+    displayName: 'Run Premake'
+  - script: make -j4 config=$(configuration)_$(platform)
+    displayName: 'Build Projects'
+  - publish: builds/
+    displayName: 'Public Artifacts'
+    condition: and(succeeded(), or(eq(variables['configuration'], 'release'), eq(variables['configuration'], 'releaseclang')))
+    artifact: ${{ parameters.name }}$(configuration)

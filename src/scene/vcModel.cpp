@@ -2,6 +2,8 @@
 
 #include "vcState.h"
 #include "vcRender.h"
+#include "vcBPA.h"
+#include "vcStringFormat.h"
 
 #include "gl/vcTexture.h"
 
@@ -23,13 +25,13 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel)
 {
   const char *pMetadata;
 
-  if (vdkPointCloud_GetMetadata(pProgramState->pVDKContext, pModel->m_pPointCloud, &pMetadata) == vE_Success)
+  if (vdkPointCloud_GetMetadata(pModel->m_pPointCloud, &pMetadata) == vE_Success)
   {
     pModel->m_metadata.Parse(pMetadata);
     pModel->m_hasWatermark = pModel->m_metadata.Get("Watermark").IsString();
 
-    pModel->m_meterScale = pModel->m_metadata.Get("info.meterScale").AsDouble(1.0);
-    pModel->m_pivot = pModel->m_metadata.Get("info.pivot").AsDouble3();
+    pModel->m_meterScale = pModel->m_pointCloudHeader.unitMeterScale;
+    pModel->m_pivot = udDouble3::create(pModel->m_pointCloudHeader.pivot[0], pModel->m_pointCloudHeader.pivot[1], pModel->m_pointCloudHeader.pivot[2]);
 
     vcSRID srid = 0;
     const char *pSRID = pModel->m_metadata.Get("ProjectionID").AsString();
@@ -67,7 +69,7 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel)
     }
   }
 
-  vdkPointCloud_GetStoredMatrix(pProgramState->pVDKContext, pModel->m_pPointCloud, pModel->m_sceneMatrix.a);
+  pModel->m_sceneMatrix = udDouble4x4::create(pModel->m_pointCloudHeader.storedMatrix);
   pModel->m_defaultMatrix = pModel->m_sceneMatrix;
   pModel->m_baseMatrix = pModel->m_defaultMatrix;
 
@@ -87,7 +89,10 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
   if (status == vcSLS_Pending)
   {
-    vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->m_pPointCloud, pLoadInfo->pModel->m_pNode->pURI);
+    vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->m_pPointCloud, pLoadInfo->pModel->m_pNode->pURI, &pLoadInfo->pModel->m_pointCloudHeader);
+
+    if (modelStatus == vE_OpenFailure)
+      modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->m_pPointCloud, udTempStr("%s%s", pLoadInfo->pProgramState->activeProject.pRelativeBase, pLoadInfo->pModel->m_pNode->pURI), &pLoadInfo->pModel->m_pointCloudHeader);
 
     if (modelStatus == vE_Success)
     {
@@ -249,7 +254,7 @@ void vcModel::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   }
 }
 
-void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
+void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
 {
   ImGui::TextWrapped("Path: %s", m_pNode->pURI);
   udDouble3 position;
@@ -272,14 +277,165 @@ void vcModel::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
     repackMatrix = true;
 
   if (repackMatrix)
+  {
     m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientation, position) * udDouble4x4::scaleUniform(scale.x) * udDouble4x4::translation(-m_pivot);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState->activeProject.pProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &position, 1);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", scale.x);
+  }
+
+  // Show MetaData Info
+  {
+    char buffer[128];
+
+    ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("sceneModelMetreScale"), udTempStr("%.4f", m_pointCloudHeader.unitMeterScale)));
+    ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("sceneModelLODLayers"), udTempStr("%u", m_pointCloudHeader.totalLODLayers)));
+    ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("sceneModelResolution"), udTempStr("%.4f", m_pointCloudHeader.convertedResolution)));
+
+    ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("sceneModelAttributes"), udTempStr("%u", m_pointCloudHeader.attributes.count)));
+    ImGui::Indent();
+    for (uint32_t i = 0; i < m_pointCloudHeader.attributes.count; ++i)
+    {
+      ImGui::BulletText("%s", m_pointCloudHeader.attributes.pDescriptors[i].name);
+
+      if (pProgramState->settings.presentation.showDiagnosticInfo)
+      {
+        ImGui::Indent();
+        switch (m_pointCloudHeader.attributes.pDescriptors[i].typeInfo)
+        {
+        case vdkAttributeTypeInfo_uint8:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint8"));
+          break;
+        case vdkAttributeTypeInfo_uint16:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint16"));
+          break;
+        case vdkAttributeTypeInfo_uint32:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint32"));
+          break;
+        case vdkAttributeTypeInfo_uint64:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint64"));
+          break;
+        case vdkAttributeTypeInfo_int8:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt8"));
+          break;
+        case vdkAttributeTypeInfo_int16:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt16"));
+          break;
+        case vdkAttributeTypeInfo_int32:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt32"));
+          break;
+        case vdkAttributeTypeInfo_int64:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt64"));
+          break;
+        case vdkAttributeTypeInfo_float32:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeFloat32"));
+          break;
+        case vdkAttributeTypeInfo_float64:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeFloat64"));
+          break;
+        case vdkAttributeTypeInfo_color32:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeColour"));
+          break;
+        case vdkAttributeTypeInfo_normal32:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeNormal"));
+          break;
+        case vdkAttributeTypeInfo_vec3f32:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeVec3F32"));
+          break;
+        default:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUnknown"));
+          break;
+        }
+
+        ImGui::BulletText("%s", buffer);
+
+        switch (m_pointCloudHeader.attributes.pDescriptors[i].blendMode)
+        {
+        case vdkABM_Mean:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeBlending"), vcString::Get("attributeBlendingMean"));
+          break;
+        case vdkABM_SingleValue:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeBlending"), vcString::Get("attributeBlendingSingle"));
+          break;
+        default:
+          vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeBlending"), vcString::Get("attributeBlendingUnknown"));
+          break;
+        }
+
+        ImGui::BulletText("%s", buffer);
+
+        ImGui::Unindent();
+      }
+    }
+    ImGui::Unindent();
+  }
 
   vcImGuiValueTreeObject(&m_metadata);
 }
 
+void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode)
+{
+  vdkProjectNode *pChildNode = pParentNode->pFirstChild;
+  while (pChildNode != nullptr)
+  {
+    if (pChildNode->itemtype == vdkPNT_Folder)
+    {
+      ContextMenuListModels(pProgramState, pChildNode);
+    }
+    else if (pChildNode->itemtype == vdkPNT_PointCloud && pChildNode->pUserData != this)
+    {
+      //udTempStr("%s###SXIName%zu", pNode->pName, *pItemID)
+      if (ImGui::Selectable(pChildNode->pName))
+      {
+        vcModel *pOldModel = (vcModel *)pChildNode->pUserData;
+        const double ballRadius = 0.15; // TODO: Expose this to the user
+        udWorkerPoolCallback callback = [this, pProgramState, pOldModel, ballRadius](void*)
+        {
+          vcBPA_CompareExport(pProgramState, pOldModel->m_pPointCloud, this->m_pPointCloud, ballRadius);
+        };
+        udWorkerPool_AddTask(pProgramState->pWorkerPool, callback, nullptr, false);
+      }
+    }
+
+    pChildNode = pChildNode->pNextSibling;
+  }
+}
+
+void vcModel::HandleContextMenu(vcState *pProgramState)
+{
+  ImGui::Separator();
+
+  if (ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
+  {
+    if (m_pPreferredProjection)
+      ChangeProjection(*m_pPreferredProjection);
+    m_sceneMatrix = m_defaultMatrix;
+    ChangeProjection(pProgramState->gis.zone);
+    ApplyDelta(pProgramState, udDouble4x4::identity());
+  }
+
+  if (((m_pPreferredProjection == nullptr && pProgramState->gis.SRID == 0) || (m_pPreferredProjection != nullptr && m_pPreferredProjection->srid == pProgramState->gis.SRID)) && (m_defaultMatrix == m_sceneMatrix))
+  {
+    // Reenable in future
+    //if (ImGui::Selectable(vcString::Get("sceneExplorerExportLAS"), false))
+    //{
+    //  vdkPointCloud_Export(m_pPointCloud, "Testing.las", nullptr);
+    //}
+  }
+
+  // Compare models
+  if (ImGui::BeginMenu(vcString::Get("sceneExplorerCompareModels")))
+  {
+    ContextMenuListModels(pProgramState, pProgramState->activeProject.pFolder->m_pNode);
+    ImGui::EndMenu();
+  }
+}
+
 void vcModel::Cleanup(vcState *pProgramState)
 {
-  vdkPointCloud_Unload(pProgramState->pVDKContext, &m_pPointCloud);
+  vdkPointCloud_Unload(&m_pPointCloud);
   udFree(m_pCurrentZone);
 
   if (m_pWatermark != nullptr)

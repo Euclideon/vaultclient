@@ -1,15 +1,17 @@
 #import "gl/vcFramebuffer.h"
 #import "vcMetal.h"
 
-uint32_t g_blitTargetID = 0;
-
-bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, int level /*= 0*/)
+bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, uint32_t level /*= 0*/)
 {
-  if (ppFramebuffer == nullptr)
+  udUnused(level);
+
+  if (ppFramebuffer == nullptr || pTexture == nullptr)
     return false;
 
-  udUnused(level);
+  udResult result = udR_Success;
+
   vcFramebuffer *pFramebuffer = udAllocType(vcFramebuffer, 1, udAF_Zero);
+  UD_ERROR_NULL(pFramebuffer, udR_MemoryAllocationFailure);
 
   pFramebuffer->pColor = pTexture;
   pFramebuffer->pDepth = pDepth;
@@ -23,7 +25,11 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
   *ppFramebuffer = pFramebuffer;
   pFramebuffer = nullptr;
 
-  return true;
+epilogue:
+  if (pFramebuffer != nullptr)
+    vcFramebuffer_Destroy(&pFramebuffer);
+
+  return result == udR_Success;
 }
 
 void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
@@ -40,79 +46,23 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
   *ppFramebuffer = nullptr;
 }
 
-bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer)
+bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOperation clearOperation /*= vcFramebufferClearOperation_None*/, uint32_t clearColour /*= 0x0*/, const vcFramebufferClearOperation clearPreviousOperation /*= vcFramebufferClearOperation_None*/)
 {
-  [_renderer setFramebuffer:pFramebuffer];
+  udUnused(clearOperation);
+  udUnused(clearPreviousOperation);
 
-  return true;
-}
-
-bool vcFramebuffer_Clear(vcFramebuffer *pFramebuffer, uint32_t colour)
-{
   if (pFramebuffer == nullptr)
     return false;
 
-  if (pFramebuffer->clear != colour)
+  [_renderer setFramebuffer:pFramebuffer];
+
+  if (pFramebuffer->clear != clearColour)
   {
-    udFloat4 col = udFloat4::create(((colour >> 16) & 0xFF) / 255.f, ((colour >> 8) & 0xFF) / 255.f, (colour & 0xFF) / 255.f, ((colour >> 24) & 0xFF) / 255.f);
+    udFloat4 col = udFloat4::create(((clearColour >> 16) & 0xFF) / 255.f, ((clearColour >> 8) & 0xFF) / 255.f, (clearColour & 0xFF) / 255.f, ((clearColour >> 24) & 0xFF) / 255.f);
 
     _renderer.renderPasses[pFramebuffer->ID].colorAttachments[0].clearColor = MTLClearColorMake(col.x,col.y,col.z,col.w);
     _renderer.renderPasses[pFramebuffer->ID].depthAttachment.clearDepth = 1.0;
   }
 
-  return true;
-}
-
-bool vcFramebuffer_BeginReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
-{
-  udUnused(pPixels);
-  
-  if (pFramebuffer == nullptr || pAttachment == nullptr || (x + width) > pAttachment->width || (y + height) > pAttachment->height)
-    return false;
-  
-  @autoreleasepool
-  {
-    if (pAttachment->blitTarget == 0)
-    {
-      int pixelBytes = 4;
-      [_renderer.blitBuffers addObject:[_device newBufferWithLength:pixelBytes * pAttachment->width * pAttachment->height options:MTLResourceStorageModeShared]];
-      
-      pAttachment->blitTarget = ++g_blitTargetID;
-      pFramebuffer->actions |= vcRFA_Blit;
-    }
-    else if (_renderer.blitBuffers[pAttachment->blitTarget - 1].length < 4 * pAttachment->width * pAttachment->height)
-    {
-      [_renderer.blitBuffers replaceObjectAtIndex:pAttachment->blitTarget - 1 withObject:[_device newBufferWithLength:4 * pAttachment->width * pAttachment->height options:MTLResourceStorageModeShared]];
-    }
-    
-    [_renderer.blitEncoder copyFromTexture:_renderer.textures[[NSString stringWithFormat:@"%u",pAttachment->ID]] sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(pAttachment->width, pAttachment->height, 1) toBuffer:_renderer.blitBuffers[pAttachment->blitTarget - 1] destinationOffset:0 destinationBytesPerRow:4 * pAttachment->width destinationBytesPerImage:4 * pAttachment->width * pAttachment->height];
-  
-    [_renderer flushBlit];
-  }
-  
-  return true;
-}
-
-bool vcFramebuffer_EndReadPixels(vcFramebuffer *pFramebuffer, vcTexture *pAttachment, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels)
-{
-  if (pFramebuffer == nullptr || pAttachment == nullptr || pPixels == nullptr || (x + width) > pAttachment->width || (y + height) > pAttachment->height)
-    return false;
-  
-  if (pAttachment->blitTarget == 0)
-    return true;
-  
-  int pixelBytes = 4; // assumed
-
-  uint32_t *pSource = (uint32_t*)[_renderer.blitBuffers[pAttachment->blitTarget - 1] contents];
-  pSource += ((y * pAttachment->width) + x);
-  
-  uint32_t rowBytes = pixelBytes * width;
-  
-  for (uint32_t i = 0; i < height; ++i)
-  {
-    for (uint32_t j = 0; j < width; ++j)
-      *((uint32_t*)pPixels + (i * rowBytes)) = *(pSource + (i * pAttachment->width) + j);
-  }
-  
   return true;
 }

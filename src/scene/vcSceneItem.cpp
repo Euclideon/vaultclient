@@ -44,9 +44,19 @@ vcSceneItem::~vcSceneItem()
   udFree(m_pPreferredProjection);
 }
 
+void vcSceneItem::HandleContextMenu(vcState * /*pProgramState*/)
+{
+  // No additional items
+}
+
+void vcSceneItem::HandleAttachmentUI(vcState * /*pProgramState*/)
+{
+  // No additional items
+}
+
 void vcSceneItem::SetCameraPosition(vcState *pProgramState)
 {
-  pProgramState->pCamera->position = GetWorldSpacePivot();
+  pProgramState->camera.position = GetWorldSpacePivot();
 }
 
 udDouble3 vcSceneItem::GetWorldSpacePivot()
@@ -70,10 +80,15 @@ void vcSceneItem::UpdateNode(vcState *pProgramState)
   m_lastUpdateTime = m_pNode->lastUpdate;
 };
 
-bool vcSceneItem::IsSceneSelected(uint64_t internalId)
+void vcSceneItem::SelectSubitem(uint64_t internalId)
+{
+  // Does nothing
+  udUnused(internalId);
+}
+
+bool vcSceneItem::IsSubitemSelected(uint64_t internalId)
 {
   udUnused(internalId);
-
   return m_selected;
 }
 
