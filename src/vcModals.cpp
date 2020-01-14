@@ -852,7 +852,7 @@ void vcModals_DrawBindings(vcState *pProgramState)
 
     ImGui::Columns(3, "ButtonRow");
     if (ImGui::Button(udTempStr("%s###bindingsRevert", vcString::Get("bindingsModalRevert")), ImVec2(-1, 25)) || vcHotkey::IsPressed(vcB_Undo))
-      vcHotkey::FinalisePendingChanges(false);
+      vcHotkey::RevertPendingChanges();
 
     ImGui::NextColumn();
     if (ImGui::Button(udTempStr("%s###bindingsLoad", vcString::Get("bindingsModalDefaults")), ImVec2(-1, 25)) || vcHotkey::IsPressed(vcB_Load))
@@ -861,7 +861,7 @@ void vcModals_DrawBindings(vcState *pProgramState)
     ImGui::NextColumn();
     if (ImGui::Button(udTempStr("%s###bindingsSave", vcString::Get("bindingsModalSave")), ImVec2(-1, 25)) || vcHotkey::IsPressed(vcB_Save))
     {
-      vcHotkey::FinalisePendingChanges(true);
+      vcHotkey::ApplyPendingChanges();
       vcSettings_Save(&pProgramState->settings);
       ImGui::CloseCurrentPopup();
     }

@@ -8,7 +8,7 @@
     - Bindings Interface
       - `bindingsModalTitle`, `bindingsModalRevert`, `bindingsModalSave`, `bindingsModalDefaults`, `bindingsColumnName`, `bindingsColumnKeyCombination`, `bindingsColumnDescriptions`, `bindingsErrorUnbound`, `bindingsClear`
     - Bindings Key Descriptions
-      - `bindingsLockAltitude`, `bindingsGizmoTranslate`, `bindingsGizmoRotate`, `bindingsGizmoScale`, `bindingsGizmoLocalSpace`, `bindingsFullscreen`, `bindingsAddUDS`, `bindingsRemove`, `bindingsCameraForward`, `bindingsCameraBackward`, `bindingsCameraLeft`, `bindingsCameraRight`, `bindingsCameraUp`, `bindingsCameraDown`, `bindingsBindingsInterface`, `bindingsCancel`, `bindingsRenameSceneItem`, `bindingsSave`, `bindingsLoad`, `BindingsUndo`
+      - `bindingsLockAltitude`, `bindingsGizmoTranslate`, `bindingsGizmoRotate`, `bindingsGizmoScale`, `bindingsGizmoLocalSpace`, `bindingsFullscreen`, `bindingsAddUDS`, `bindingsRemove`, `bindingsCameraForward`, `bindingsCameraBackward`, `bindingsCameraLeft`, `bindingsCameraRight`, `bindingsCameraUp`, `bindingsCameraDown`, `bindingsBindingsInterface`, `bindingsCancel`, `bindingsRenameSceneItem`, `bindingsSave`, `bindingsLoad`, `bindingsUndo`
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
     - Polygon Meshes
@@ -793,4 +793,4 @@ Modules are currently:
 - `bindingsRenameSceneItem`: Key binding description displayed next to Rename Scene Item binding
 - `bindingsSave`: Key binding description displayed next to Save binding
 - `bindingsLoad`: Key binding description displayed next to Load binding
-- `BindingsUndo`: Key binding description displayed next to Undo binding
+- `bindingsUndo`: Key binding description displayed next to Undo binding

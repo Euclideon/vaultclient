@@ -39,24 +39,33 @@ enum vcBind
 
 namespace vcHotkey
 {
-  void FinalisePendingChanges(bool apply);
+  void ApplyPendingChanges();
+  void RevertPendingChanges();
   bool IsDown(int keyNum);
   bool IsDown(vcBind key);
   bool IsPressed(int keyNum);
   bool IsPressed(vcBind key);
-  void GetKeyName(vcBind key, char *pBuffer, uint32_t bufferLen, bool pending);
 
+  void GetKeyName(vcBind key, char *pBuffer, uint32_t bufferLen);
   template <size_t N>
-  void GetKeyName(vcBind key, char(&buffer)[N], bool pending)
+  void GetKeyName(vcBind key, char(&buffer)[N])
   {
-    GetKeyName(key, buffer, N, pending);
+    GetKeyName(key, buffer, N);
+  };
+
+  void GetPendingKeyName(vcBind key, char *pBuffer, uint32_t bufferLen);
+  template <size_t N>
+  void GetPendingKeyName(vcBind key, char(&buffer)[N])
+  {
+    GetPendingKeyName(key, buffer, N);
   };
 
   const char* GetBindName(vcBind key);
   vcBind BindFromName(const char* pName);
   int GetMod(int key);
   void Set(vcBind key, int value);
-  int Get(vcBind key, bool pending = true);
+  int Get(vcBind key);
+  int GetPending(vcBind key);
 
   void DisplayBindings(vcState *pProgramState);
   int DecodeKeyString(const char* pBind);
