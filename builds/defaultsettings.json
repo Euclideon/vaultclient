@@ -244,6 +244,7 @@
     "Load": "Ctrl + L",
     "AddUDS": "Ctrl + U",
     "BindingsInterface": "Ctrl + B",
-    "Undo": "Ctrl + Z"
+    "Undo": "Ctrl + Z",
+    "TakeScreenshot": "Printscreen"
   }
 }

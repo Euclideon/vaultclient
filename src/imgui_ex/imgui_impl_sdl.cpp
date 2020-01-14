@@ -221,7 +221,7 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
             if (key == SDL_SCANCODE_KP_ENTER)
               key = SDL_SCANCODE_RETURN;
 
-            if (key != SDL_SCANCODE_BACKSPACE)
+            if (key != SDL_SCANCODE_BACKSPACE && key != SDL_SCANCODE_PRINTSCREEN)
               io.KeysDown[key] = (event->type == SDL_KEYDOWN);
             else
               io.KeysDown[key] = io.KeysDown[key] || (event->type == SDL_KEYDOWN);

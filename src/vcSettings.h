@@ -77,6 +77,7 @@ enum vcSettingsUIRegions
   vcSR_Visualisations,
   vcSR_KeyBindings,
   vcSR_ConvertDefaults,
+  vcSR_Screenshot,
   vcSR_Connection,
 
   vcSR_ReleaseNotes,
@@ -114,23 +115,7 @@ enum vcTileRendererFlags
   vcTRF_OnlyRequestVisibleTiles = 0x1,
 };
 
-enum vcScreenshotOutputResolution
-{
-  vcIR_720p,
-  vcIR_1080p,
-  vcIR_4k,
-  vcIR_SceneSize
-};
-
-enum class vcImageFormats
-{
-  vcIF_PNG,
-  vcIF_JPG
-};
-
-static udUInt2 ScreenshotResolutions[] = { {1280, 720}, {1920, 1080}, {4096, 2160}, {1920, 1080} };
-static const char *ScreenshotResolutionStrings[4] = { "720", "1080", "4k", "Scene" };
-static const char *ScreenshotExportFormats[2] = { ".PNG", ".JPG" };
+static udUInt2 ScreenshotResolutions[] = { { 1280, 720 }, { 1920, 1080 }, { 4096, 2160 } };
 
 struct vcLanguageOption
 {
@@ -304,9 +289,10 @@ struct vcSettings
     uint8_t* pPixels;
 
     bool viewShot;
-    bool hideLabels;
-    vcImageFormats format;
-    vcScreenshotOutputResolution res;
+
+    int resolutionIndex; // Not saved
+    udUInt2 resolution;
+
     char outputName[vcMaxPathLength];
   } screenshot;
 
