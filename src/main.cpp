@@ -1836,7 +1836,7 @@ int vcMainMenuGui(vcState *pProgramState)
     }
 
     udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
-    if (ImGui::BeginMenu(vcString::Get("menuProjects"), pProjectList != nullptr && pProjectList->length > 0))
+    if (ImGui::BeginMenu(vcString::Get("menuProjects")))
     {
       if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr))
         vcProject_InitBlankScene(pProgramState);
@@ -1849,56 +1849,63 @@ int vcMainMenuGui(vcState *pProgramState)
 
       ImGui::Separator();
 
-      for (size_t i = 0; i < pProjectList->length; ++i)
+      if (pProjectList != nullptr && pProjectList->length > 0)
       {
-        if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr))
+        for (size_t i = 0; i < pProjectList->length; ++i)
         {
-          vcProject_InitBlankScene(pProgramState);
-          bool moveTo = true;
-
-          for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
+          if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr))
           {
-            vdkProjectNode *pNode = nullptr;
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), nullptr) != vE_Success)
+            vcProject_InitBlankScene(pProgramState);
+            bool moveTo = true;
+
+            for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
             {
-              vcState::ErrorItem projectError;
-              projectError.source = vcES_ProjectChange;
-              projectError.pData = udStrdup(pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
-              projectError.resultCode = udR_Failure_;
+              vdkProjectNode *pNode = nullptr;
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), nullptr) != vE_Success)
+              {
+                vcState::ErrorItem projectError;
+                projectError.source = vcES_ProjectChange;
+                projectError.pData = udStrdup(pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
+                projectError.resultCode = udR_Failure_;
 
-              pProgramState->errorItems.PushBack(projectError);
+                pProgramState->errorItems.PushBack(projectError);
 
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-            }
-            else
-            {
-              if (moveTo)
-                udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
-              moveTo = false;
-            }
-          }
-
-          for (size_t j = 0; j < pProjectList->GetElement(i)->Get("feeds").ArrayLength(); ++j)
-          {
-            const char *pFeedName = pProjectList->GetElement(i)->Get("feeds[%zu].name", j).AsString();
-
-            vdkProjectNode *pNode = nullptr;
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", pFeedName, nullptr, nullptr) != vE_Success)
-            {
-              vcState::ErrorItem projectError;
-              projectError.source = vcES_ProjectChange;
-              projectError.pData = udStrdup(pFeedName);
-              projectError.resultCode = udR_Failure_;
-
-              pProgramState->errorItems.PushBack(projectError);
-
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+                vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+              }
+              else
+              {
+                if (moveTo)
+                  udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+                moveTo = false;
+              }
             }
 
-            if (udUUID_IsValid(pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString()))
-              vdkProjectNode_SetMetadataString(pNode, "groupid", pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString());
+            for (size_t j = 0; j < pProjectList->GetElement(i)->Get("feeds").ArrayLength(); ++j)
+            {
+              const char *pFeedName = pProjectList->GetElement(i)->Get("feeds[%zu].name", j).AsString();
+
+              vdkProjectNode *pNode = nullptr;
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", pFeedName, nullptr, nullptr) != vE_Success)
+              {
+                vcState::ErrorItem projectError;
+                projectError.source = vcES_ProjectChange;
+                projectError.pData = udStrdup(pFeedName);
+                projectError.resultCode = udR_Failure_;
+
+                pProgramState->errorItems.PushBack(projectError);
+
+                vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+              }
+
+              if (udUUID_IsValid(pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString()))
+                vdkProjectNode_SetMetadataString(pNode, "groupid", pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString());
+            }
           }
         }
+      }
+      else // No projects
+      {
+        ImGui::MenuItem(vcString::Get("menuProjectNone"), nullptr, nullptr, false);
       }
 
       ImGui::EndMenu();

@@ -4,7 +4,7 @@
 - Version 0.5.0
   - Added:
     - Menus
-      - `menuBindings`, `settingsAppearanceSaturation`
+      - `menuBindings`, `settingsAppearanceSaturation`, `menuProjectNone`
     - Bindings Interface
       - `bindingsModalTitle`, `bindingsModalRevert`, `bindingsModalSave`, `bindingsModalDefaults`, `bindingsColumnName`, `bindingsColumnKeyCombination`, `bindingsColumnDescriptions`, `bindingsErrorUnbound`, `bindingsClear`
     - Bindings Key Descriptions
@@ -467,6 +467,7 @@ Modules are currently:
 - `menuProjectExportTitle`: Title on the modal when exporting project files
 - `menuProjectImport`: Menu button to open the import project modal
 - `menuProjectImportTitle`: Title on modal when importing a project file (UDP or JSON files)
+- `menuProjectNone`: Label displayed when no server projects are available
 - `menuLogout`: Logout option in System menu, logs the user out and opens the logout window
 - `menuLogoutTitle`: Title of logout window
 - `menuLogoutMessage`: Message displayed in logout window, informs the user that they have been logged out
