@@ -278,6 +278,7 @@
   "menuProjectExportTitle": "Export Project to Disk",
   "menuProjectImport": "Import",
   "menuProjectImportTitle": "Import Project to Scene",
+  "menuProjectNone": "No server projects",
 
   "menuLogout": "Logout",
   "menuLogoutTitle": "Logged Out",
