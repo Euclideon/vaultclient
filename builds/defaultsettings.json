@@ -77,7 +77,7 @@
       "colour": [ 0.000000, 0.000000, 0.000000, 1.000000 ],
       "distances": 50.000000,
       "bandHeight": 1.000000
-    }
+    },
     "objectHighlighting": {
       "colour": [ 0.925, 0.553, 0.263, 1.0 ],
       "thickness": 2.0
@@ -228,8 +228,8 @@
     "CameraForward": 26,
     "CameraBackward": 22,
     "CameraLeft": 4,
-    "CameraUp": 21,
     "CameraRight": 7,
+    "CameraUp": 21,
     "CameraDown": 9,
     "Remove": 76,
     "Cancel": 41,
@@ -240,10 +240,10 @@
     "GizmoLocalSpace": 6,
     "Fullscreen": 62,
     "RenameSceneItem": 60,
-    "Save": 2070,
-    "Load": 2063,
-    "AddUDS": 2072,
-    "BindingsInterface": 2053,
-    "Undo": 2077
+    "Save": 1046,
+    "Load": 1039,
+    "AddUDS": 1048,
+    "BindingsInterface": 1029,
+    "Undo": 1053
   }
 }

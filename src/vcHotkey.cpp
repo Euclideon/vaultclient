@@ -21,8 +21,8 @@ namespace vcHotkey
     "CameraForward",
     "CameraBackward",
     "CameraLeft",
-    "CameraUp",
     "CameraRight",
+    "CameraUp",
     "CameraDown",
     "Remove",
     "Cancel",
@@ -79,6 +79,11 @@ namespace vcHotkey
     return memcmp(keyBinds, pendingKeyBinds, sizeof(keyBinds));
   }
 
+  void ClearState()
+  {
+    target = -1;
+  }
+
   void ApplyPendingChanges()
   {
     memcpy(keyBinds, pendingKeyBinds, sizeof(keyBinds));
@@ -102,7 +107,7 @@ namespace vcHotkey
     if (keyNum == vcMOD_Super)
       return io.KeySuper;
 
-    return ImGui::GetIO().KeysDown[keyNum & 0x1FF];
+    return ImGui::GetIO().KeysDown[keyNum & vcMOD_Mask];
   }
 
   bool IsDown(vcBind key)
@@ -129,7 +134,7 @@ namespace vcHotkey
         return false;
     }
 
-    return ImGui::IsKeyPressed((keyNum & 0x1FF), false);
+    return ImGui::IsKeyPressed((keyNum & vcMOD_Mask), false);
   }
 
   bool IsPressed(vcBind key, bool unique)
@@ -147,20 +152,9 @@ namespace vcHotkey
 
     const char *strings[5] = {};
 
-    if ((key & vcMOD_Shift) == vcMOD_Shift)
-      strings[0] = "Shift + ";
-    else
-      strings[0] = "";
-
-    if ((key & vcMOD_Ctrl) == vcMOD_Ctrl)
-      strings[1] = "Ctrl + ";
-    else
-      strings[1] = "";
-
-    if ((key & vcMOD_Alt) == vcMOD_Alt)
-      strings[2] = "Alt + ";
-    else
-      strings[2] = "";
+    strings[0] = (key & vcMOD_Shift) == vcMOD_Shift ? "Shift + " : "";
+    strings[1] = (key & vcMOD_Ctrl) == vcMOD_Ctrl ? "Ctrl + " : "";
+    strings[2] = (key & vcMOD_Alt) == vcMOD_Alt ? "Alt + " : "";
 
     if ((key & vcMOD_Super) == vcMOD_Super)
     {
@@ -177,7 +171,7 @@ namespace vcHotkey
       strings[3] = "";
     }
 
-    strings[4] = SDL_GetScancodeName((SDL_Scancode)(key & 0x1FF));
+    strings[4] = SDL_GetScancodeName((SDL_Scancode)(key & vcMOD_Mask));
     vcStringFormat(pBuffer, bufferLen, "{0}{1}{2}{3}{4}", strings, 5);
   }
 
@@ -274,7 +268,7 @@ namespace vcHotkey
           target *= -1;
         }
 
-        if (!ImGui::IsKeyPressed((pProgramState->currentKey & 0x1FF), true))
+        if (!ImGui::IsKeyPressed((pProgramState->currentKey & vcMOD_Mask), true))
           target = -1;
       }
     }

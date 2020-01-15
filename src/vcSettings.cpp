@@ -319,7 +319,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->camera.lockAltitude = (data.Get("camera.moveMode").AsInt(0) == 1);
   }
 
-  if (forceReset)
+  if (forceReset && (group == vcSC_Docks || group == vcSC_All))
   {
     pSettings->docksLoaded = vcSettings::vcDockLoaded::vcDL_ForceReset;
   }
