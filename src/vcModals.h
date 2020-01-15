@@ -7,18 +7,12 @@ enum vcModalTypes
   vcMT_LoggedOut,
   vcMT_ProxyAuth,
   vcMT_TileServer,
-  vcMT_AddUDS,
-  vcMT_ImportProject,
+  vcMT_AddSceneItem,
   vcMT_ExportProject,
-  vcMT_LoadWatermark,
-  vcMT_ChangeDefaultWatermark,
   vcMT_ImageViewer,
   vcMT_ProjectChange,
   vcMT_ProjectReadOnly,
   vcMT_UnsupportedFile,
-  vcMT_ConvertAdd,
-  vcMT_ConvertOutput,
-  vcMT_ConvertTempDirectory,
 
   vcMT_Count
 };

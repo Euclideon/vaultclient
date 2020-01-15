@@ -126,7 +126,7 @@ bool vcFileDialog_ListFolder(const char *pFolderPath, char *pLoadPath, size_t lo
   return clicked;
 }
 
-bool vcFileDialog_Show(char *pPath, size_t pathLength, bool loadOnly /*= true*/, const char **ppExtensions /*= nullptr*/, size_t extensionCount /*= 0*/)
+bool vcFileDialog_DrawImGui(char *pPath, size_t pathLength, bool loadOnly /*= true*/, const char **ppExtensions /*= nullptr*/, size_t extensionCount /*= 0*/)
 {
   udUnused(loadOnly);
 

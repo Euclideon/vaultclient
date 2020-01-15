@@ -292,6 +292,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       pSettings->window.height = data.Get("window.height").AsInt(720);
     }
 
+    pSettings->window.useNativeUI = data.Get("window.showNativeUI").AsBool();
     udStrcpy(pSettings->window.languageCode, data.Get("window.language").AsString("enAU"));
 
     // Login Info
@@ -534,6 +535,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("window.maximized = %s", pSettings->window.maximized ? "true" : "false");
   data.Set("window.touchscreenFriendly = %s", pSettings->window.touchscreenFriendly ? "true" : "false");
   data.Set("window.language = '%s'", pSettings->window.languageCode);
+  data.Set("window.showNativeUI = %s", pSettings->window.useNativeUI ? "true" : "false");
 
   data.Set("frames.scene = %s", pSettings->window.windowsOpen[vcDocks_Scene] ? "true" : "false");
   data.Set("frames.explorer = %s", pSettings->window.windowsOpen[vcDocks_SceneExplorer] ? "true" : "false");

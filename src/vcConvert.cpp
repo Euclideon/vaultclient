@@ -317,7 +317,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
   vdkConvertItemInfo itemInfo;
   char tempBuffer[256];
   char localizationBuffer[512];
-  char outputName[vcMaxPathLength];
   char tempDirectory[vcMaxPathLength];
 
   // Convert Jobs --------------------------------
@@ -401,7 +400,11 @@ void vcConvert_ShowUI(vcState *pProgramState)
     if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_WriteFailed || pSelectedJob->status == vcCQS_ParseFailed || pSelectedJob->status == vcCQS_ImageParseFailed || pSelectedJob->status == vcCQS_Failed)
     {
       if (ImGui::Button(vcString::Get("convertAddFile"), ImVec2(200, 40)))
-        vcModals_OpenModal(pProgramState, vcMT_ConvertAdd);
+      {
+        vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_ConvertImport, true, [pProgramState] {
+          vcConvert_QueueFile(pProgramState, pProgramState->modelPath);
+        });
+      }
 
       ImGui::SameLine();
 
@@ -500,16 +503,10 @@ void vcConvert_ShowUI(vcState *pProgramState)
     {
       ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 
-      udSprintf(outputName, "%s", pSelectedJob->pConvertInfo->pOutputName);
-      if (ImGui::InputText("##vcSetOutputFilenameText", outputName, udLengthOf(outputName)))
-        vdkConvert_SetOutputFilename(pSelectedJob->pConvertContext, outputName);
-
-      if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
-      {
-        ImGui::SameLine(0.f, 0.f);
-        if (ImGui::Button("...##vcSetOutputFilename", ImVec2(30, 0)))
-          vcModals_OpenModal(pProgramState, vcMT_ConvertOutput);
-      }
+      udSprintf(pProgramState->modelPath, "%s", pSelectedJob->pConvertInfo->pOutputName);
+      vcIGSW_FilePicker(pProgramState, "", pProgramState->modelPath, SupportedTileTypes_ConvertExport, false, [pProgramState, pSelectedJob] {
+        vdkConvert_SetOutputFilename(pSelectedJob->pConvertContext, pProgramState->modelPath);
+      });
 
       ImGui::SameLine();
       ImGui::TextUnformatted(vcString::Get("convertOutputName"));
@@ -518,6 +515,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
       if (ImGui::InputText("##vcSetTemporaryDirectoryText", tempDirectory, udLengthOf(tempDirectory)))
         vdkConvert_SetTempDirectory(pSelectedJob->pConvertContext, tempDirectory);
 
+      /*
       if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
       {
         ImGui::SameLine(0.f, 0.f);
@@ -527,6 +525,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       ImGui::SameLine();
       ImGui::TextUnformatted(vcString::Get("convertTempDirectory"));
+      */
 
       ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 
@@ -613,7 +612,12 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
         // Watermark
         if (ImGui::Button(vcString::Get("convertLoadWatermark")))
-          vcModals_OpenModal(pProgramState, vcMT_LoadWatermark);
+        {
+          vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_Images, true, [pProgramState] {
+            vdkConvert_AddWatermark(pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext, pProgramState->modelPath);
+            pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->watermark.isDirty = true;
+          });
+        }
 
         if (pSelectedJob->watermark.pTexture != nullptr)
         {
