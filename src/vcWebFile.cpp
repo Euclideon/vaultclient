@@ -7,6 +7,29 @@
 #include "udFileHandler.h"
 #include "udStringUtil.h"
 
+static udResult vcWebFile_Load(udFile *pFile, void **ppBuffer, int64_t *pBufferLength)
+{
+  UDTRACE();
+  udResult result = udR_Success;
+  vdkWebOptions options = {};
+  const char *pData = nullptr;
+  uint64_t dataLength = 0;
+  int responseCode = 0;
+
+  options.method = vdkWM_GET;
+
+  UD_ERROR_IF(vdkWeb_RequestAdv(pFile->pFilenameCopy, options, &pData, &dataLength, &responseCode) != vE_Success, udR_ReadFailure);
+
+  *ppBuffer = udMemDup(pData, dataLength, 0, udAF_None);
+  UD_ERROR_NULL(*ppBuffer, udR_MemoryAllocationFailure);
+  *pBufferLength = (int64_t)dataLength;
+
+epilogue:
+  if (pData)
+    vdkWeb_ReleaseResponse(&pData);
+  return result;
+}
+
 static udResult vcWebFile_SeekRead(udFile *pFile, void *pBuffer, size_t bufferLength, int64_t seekOffset, size_t *pActualRead, udFilePipelinedRequest * /*pPipelinedRequest*/)
 {
   UDTRACE();
@@ -61,6 +84,7 @@ udResult vcWebFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags 
   pFile = udAllocType(udFile, 1, udAF_Zero);
   UD_ERROR_NULL(pFile, udR_MemoryAllocationFailure);
 
+  pFile->fpLoad = vcWebFile_Load;
   pFile->fpRead = vcWebFile_SeekRead;
   pFile->fpClose = vcWebFile_Close;
 
