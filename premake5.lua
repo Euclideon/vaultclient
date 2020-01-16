@@ -134,6 +134,19 @@ function injectvaultsdkbin()
 			os.copyfile(os.getenv("VAULTSDK_HOME") .. "/lib/emscripten_wasm32/vHTTPRequest.js", "src/vHTTPRequest.js")
 			libdirs { "src" }
 			linkoptions  { "--js-library src/vHTTPRequest.js" }
+		elseif os.target() == premake.ANDROID then
+			if os.host() == premake.WINDOWS then
+				os.execute('Robocopy "%VAULTSDK_HOME%/include" "include" /s /purge')
+				--os.execute('Robocopy "%VAULTSDK_HOME%/lib/android_arm64/src" "buildscripts/android/src" /s')
+			else
+				os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/include .")
+				--os.execute("cp -R " .. os.getenv("VAULTSDK_HOME") .. "/lib/android_arm64/src buildscripts/android")
+			end
+			filter { "architecture:x64" }
+				libdirs { os.getenv("VAULTSDK_HOME") .. "/lib/android_x64" }
+			filter { "architecture:arm64" }
+				libdirs { os.getenv("VAULTSDK_HOME") .. "/lib/android_arm64" }
+			filter {}
 		else
 			if _OPTIONS["gfxapi"] == "metal" then
 				_OPTIONS["gfxapi"] = "opengl"
