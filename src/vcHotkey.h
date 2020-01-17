@@ -15,7 +15,6 @@ enum modifierFlags
 
 enum vcBind
 {
-  // Down bindings
   vcB_Forward,
   vcB_Backward,
   vcB_Left,
@@ -47,10 +46,10 @@ namespace vcHotkey
   bool HasPendingChanges();
   void ApplyPendingChanges();
   void RevertPendingChanges();
-  bool IsDown(int keyNum);
-  bool IsDown(vcBind key);
-  bool IsPressed(int keyNum, bool unique = true);
-  bool IsPressed(vcBind key, bool unique = true);
+  bool IsDown(int keyNum, bool consume);
+  bool IsDown(vcBind key, bool consume);
+  bool IsPressed(int keyNum, bool consume);
+  bool IsPressed(vcBind key, bool consume);
 
   void GetKeyName(vcBind key, char *pBuffer, uint32_t bufferLen);
   template <size_t N>

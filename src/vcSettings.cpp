@@ -271,6 +271,13 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     {
       vcSettings_Load(pSettings, true, vcSC_Bindings);
     }
+    else if (data.Get("keys.%s", vcHotkey::GetBindName((vcBind)0)).IsString())
+    {
+      for (int i = 0; i < vcB_Count; ++i)
+        vcHotkey::Set((vcBind)i, vcHotkey::DecodeKeyString(data.Get("keys.%s", vcHotkey::GetBindName((vcBind)i)).AsString()));
+
+      vcHotkey::ApplyPendingChanges();
+    }
     else
     {
       for (int i = 0; i < vcB_Count; ++i)

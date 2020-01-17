@@ -94,35 +94,48 @@ namespace vcHotkey
     memcpy(pendingKeyBinds, keyBinds, sizeof(keyBinds));
   }
 
-  bool IsDown(int keyNum)
+  bool IsDown(int keyNum, bool consume)
   {
     ImGuiIO io = ImGui::GetIO();
 
-    if (keyNum == vcMOD_Shift)
-      return io.KeyShift;
-    if (keyNum == vcMOD_Ctrl)
-      return io.KeyCtrl;
-    if (keyNum == vcMOD_Alt)
-      return io.KeyAlt;
-    if (keyNum == vcMOD_Super)
-      return io.KeySuper;
+    if (keyNum > vcMOD_Mask)
+    {
+      if ((keyNum & vcMOD_Shift) == vcMOD_Shift)
+      {
+        if (!io.KeyShift)
+          return false;
 
-    return ImGui::GetIO().KeysDown[keyNum & vcMOD_Mask];
+        io.KeyShift = false;
+      }
+      if (((keyNum & vcMOD_Ctrl) == vcMOD_Ctrl) != io.KeyCtrl)
+        return false;
+      if (((keyNum & vcMOD_Alt) == vcMOD_Alt) != io.KeyAlt)
+        return false;
+      if (((keyNum & vcMOD_Super) == vcMOD_Super) != io.KeySuper)
+        return false;
+    }
+
+    bool down = io.KeysDown[keyNum & vcMOD_Mask];
+
+    if (down && consume)
+      io.KeysDown[keyNum & vcMOD_Mask] = false;
+
+    return down;
   }
 
-  bool IsDown(vcBind key)
+  bool IsDown(vcBind key, bool consume)
   {
-    return IsDown(keyBinds[key]);
+    return IsDown(keyBinds[key], consume);
   }
 
-  bool IsPressed(int keyNum, bool unique)
+  bool IsPressed(int keyNum, bool consume)
   {
     if (target != -1)
       return false;
 
     ImGuiIO io = ImGui::GetIO();
 
-    if (unique)
+    if (keyNum > vcMOD_Mask)
     {
       if (((keyNum & vcMOD_Shift) == vcMOD_Shift) != io.KeyShift)
         return false;
@@ -134,12 +147,17 @@ namespace vcHotkey
         return false;
     }
 
-    return ImGui::IsKeyPressed((keyNum & vcMOD_Mask), false);
+    bool pressed = ImGui::IsKeyPressed((keyNum & vcMOD_Mask), false);
+
+    if (pressed && consume)
+      io.KeysDownDuration[keyNum & vcMOD_Mask] = 1.f;
+
+    return pressed;
   }
 
-  bool IsPressed(vcBind key, bool unique)
+  bool IsPressed(vcBind key, bool consume)
   {
-    return IsPressed(keyBinds[key], unique);
+    return IsPressed(keyBinds[key], consume);
   }
 
   void NameFromKey(int key, char *pBuffer, uint32_t bufferLen)
