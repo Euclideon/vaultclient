@@ -813,6 +813,8 @@ struct vcBPAConvertItem
   double gridSize;
   double ballRadius;
 
+  bool destroyPointClouds;
+
   udSafeDeque<vcBPAConvertItemData> *pQueueItems;
   udSafeDeque<vcBPAConvertItemData> *pConvertItemData;
   vcBPAConvertItemData activeItem;
@@ -1034,10 +1036,19 @@ void vcBPA_ConvertClose(vdkConvertCustomItem *pConvertInput)
 void vcBPA_ConvertDestroy(vdkConvertCustomItem *pConvertInput)
 {
   vdkAttributeSet_Free(&pConvertInput->attributes);
+
+  vcBPAConvertItem *pBPA = (vcBPAConvertItem *)pConvertInput->pData;
+
+  if (pBPA->destroyPointClouds)
+  {
+    vdkPointCloud_Unload(&pBPA->pOldModel);
+    vdkPointCloud_Unload(&pBPA->pNewModel);
+  }
+
   udFree(pConvertInput->pData);
 }
 
-void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius)
+bool *vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius)
 {
   vcConvertItem *pConvertItem = nullptr;
   vcConvert_AddEmptyJob(pProgramState, &pConvertItem);
@@ -1110,6 +1121,8 @@ void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPo
   vdkConvert_AddCustomItem(pConvertItem->pConvertContext, &item);
 
   udReleaseMutex(pBPA->pConvertItem->pMutex);
+
+  return &pBPA->destroyPointClouds;
 }
 
 #endif //VC_HASCONVERT

@@ -113,6 +113,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 vcModel::vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_pPointCloud(nullptr),
+  m_pConverting(nullptr),
   m_pivot(udDouble3::zero()),
   m_defaultMatrix(udDouble4x4::identity()),
   m_pCurrentZone(nullptr),
@@ -142,6 +143,7 @@ vcModel::vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramS
 vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud) :
   vcSceneItem(pProgramState, "UDS", pName),
   m_pPointCloud(nullptr),
+  m_pConverting(nullptr),
   m_pivot(udDouble3::zero()),
   m_defaultMatrix(udDouble4x4::identity()),
   m_pCurrentZone(nullptr),
@@ -395,9 +397,11 @@ void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pPar
       {
         vcModel *pOldModel = (vcModel *)pChildNode->pUserData;
         const double ballRadius = 0.15; // TODO: Expose this to the user
-        udWorkerPoolCallback callback = [this, pProgramState, pOldModel, ballRadius](void*)
+
+        udWorkerPoolCallback callback = [this, pProgramState, pOldModel, ballRadius](void *)
         {
-          vcBPA_CompareExport(pProgramState, pOldModel->m_pPointCloud, this->m_pPointCloud, ballRadius);
+          this->m_pConverting = vcBPA_CompareExport(pProgramState, pOldModel->m_pPointCloud, this->m_pPointCloud, ballRadius);
+          pOldModel->m_pConverting = this->m_pConverting;
         };
         udWorkerPool_AddTask(pProgramState->pWorkerPool, callback, nullptr, false);
       }
@@ -440,7 +444,11 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 
 void vcModel::Cleanup(vcState *pProgramState)
 {
-  vdkPointCloud_Unload(&m_pPointCloud);
+  if (m_pConverting == nullptr)
+    vdkPointCloud_Unload(&m_pPointCloud);
+  else
+    *m_pConverting = true;
+
   udFree(m_pCurrentZone);
 
   if (m_pWatermark != nullptr)
