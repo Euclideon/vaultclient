@@ -2,7 +2,6 @@
 
 #include "vcState.h"
 #include "vcVersion.h"
-#include "vcThirdPartyLicenses.h"
 #include "vcPOI.h"
 #include "gl/vcTexture.h"
 #include "vcRender.h"
@@ -31,7 +30,7 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
     pProgramState->modalOpen = true;
     ImGui::TextUnformatted(vcString::Get("menuLogoutMessage"));
 
-    if (ImGui::Button(vcString::Get("menuLogoutCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
     {
       ImGui::CloseCurrentPopup();
       pProgramState->openModals &= ~(1 << vcMT_LoggedOut);
@@ -97,141 +96,6 @@ void vcModals_DrawProxyAuth(vcState *pProgramState)
       ImGui::CloseCurrentPopup();
       pProgramState->openModals &= ~(1 << vcMT_ProxyAuth);
     }
-
-    ImGui::EndPopup();
-  }
-}
-
-void vcModals_DrawReleaseNotes(vcState *pProgramState)
-{
-  if (pProgramState->openModals & (1 << vcMT_ReleaseNotes))
-    ImGui::OpenPopup(vcString::Get("menuReleaseNotesTitle"));
-
-  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(vcString::Get("menuReleaseNotesTitle")))
-  {
-    pProgramState->modalOpen = true;
-    ImGui::Columns(2, NULL, false);
-    ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-    ImGui::Text("Euclideon Vault Client / %s", vcString::Get("menuReleaseNotesTitle"));
-
-    ImGui::Text("%s: %s", vcString::Get("menuCurrentVersion"), VCVERSION_PRODUCT_STRING);
-
-    ImGui::NextColumn();
-    if (ImGui::Button(vcString::Get("menuReleaseNotesCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
-      ImGui::CloseCurrentPopup();
-
-    ImGui::Columns(1);
-
-    ImGui::Separator();
-
-    if (pProgramState->pReleaseNotes == nullptr)
-      udFile_Load("asset://releasenotes.md", (void**)&pProgramState->pReleaseNotes);
-
-    if (pProgramState->pReleaseNotes != nullptr)
-    {
-      ImGui::BeginChild(vcString::Get("menuReleaseNotesShort"));
-      ImGui::TextUnformatted(pProgramState->pReleaseNotes);
-      ImGui::EndChild();
-    }
-    else
-    {
-      ImGui::TextUnformatted(vcString::Get("menuReleaseNotesFail"));
-    }
-
-    ImGui::EndPopup();
-  }
-}
-
-void vcModals_DrawAbout(vcState *pProgramState)
-{
-  if (pProgramState->openModals & (1 << vcMT_About))
-    ImGui::OpenPopup(vcString::Get("menuAboutTitle"));
-
-  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(vcString::Get("menuAboutTitle")))
-  {
-    pProgramState->modalOpen = true;
-    ImGui::Columns(2, NULL, false);
-    ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-    ImGui::Text("Euclideon Vault Client / %s", vcString::Get("menuAboutLicenseInfo"));
-
-    ImGui::Text("%s: %s", vcString::Get("menuAboutVersion"), VCVERSION_PRODUCT_STRING);
-
-    char strBuf[128];
-    if (pProgramState->packageInfo.Get("success").AsBool())
-      ImGui::TextColored(ImVec4(0.5f, 1.f, 0.5f, 1.f), "%s", vcStringFormat(strBuf, udLengthOf(strBuf), vcString::Get("menuAboutPackageUpdate"), pProgramState->packageInfo.Get("package.versionstring").AsString()));
-
-    ImGui::NextColumn();
-    if (ImGui::Button(vcString::Get("menuAboutCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
-      ImGui::CloseCurrentPopup();
-
-    ImGui::Columns(1);
-    ImGui::NewLine();
-    const char *issueTrackerStrings[] = { "https://github.com/euclideon/vaultclient/issues", "GitHub" };
-    const char *pIssueTrackerStr = vcStringFormat(vcString::Get("loginSupportIssueTracker"), issueTrackerStrings, udLengthOf(issueTrackerStrings));
-    ImGui::TextUnformatted(pIssueTrackerStr);
-    udFree(pIssueTrackerStr);
-    if (ImGui::IsItemClicked())
-      vcWebFile_OpenBrowser("https://github.com/euclideon/vaultclient/issues");
-    if (ImGui::IsItemHovered())
-      ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-
-    const char *pSupportStr = vcStringFormat(vcString::Get("loginSupportDirectEmail"), "support@euclideon.com");
-    ImGui::TextUnformatted(pSupportStr);
-    udFree(pSupportStr);
-
-    ImGui::Separator();
-
-    ImGui::BeginChild("Licenses");
-    for (int i = 0; i < (int)udLengthOf(ThirdPartyLicenses); i++)
-    {
-      // ImGui::Text has a limitation of 3072 bytes.
-      ImGui::TextUnformatted(ThirdPartyLicenses[i].pName);
-      ImGui::TextUnformatted(ThirdPartyLicenses[i].pLicense);
-      ImGui::Separator();
-    }
-    ImGui::EndChild();
-
-    ImGui::EndPopup();
-  }
-}
-
-void vcModals_DrawNewVersionAvailable(vcState *pProgramState)
-{
-  if (pProgramState->openModals & (1 << vcMT_NewVersionAvailable))
-    ImGui::OpenPopup(vcString::Get("menuNewVersionAvailableTitle"));
-
-  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(vcString::Get("menuNewVersionAvailableTitle"), nullptr, ImGuiWindowFlags_NoResize))
-  {
-    pProgramState->modalOpen = true;
-    ImGui::Columns(2, NULL, false);
-    ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
-    ImGui::Text("Euclideon Vault Client");
-
-    ImGui::Text("%s: %s", vcString::Get("menuCurrentVersion"), VCVERSION_PRODUCT_STRING);
-
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 1.f, 0.5f, 1.f));
-    ImGui::TextWrapped("%s: %s", vcString::Get("menuNewVersion"), pProgramState->packageInfo.Get("package.versionstring").AsString());
-    ImGui::PopStyleColor();
-
-    ImGui::TextWrapped("%s", vcString::Get("menuNewVersionDownloadPrompt"));
-
-    ImGui::NextColumn();
-    if (ImGui::Button(vcString::Get("menuNewVersionCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
-    {
-      ImGui::CloseCurrentPopup();
-      pProgramState->openModals &= ~(1 << vcMT_NewVersionAvailable);
-    }
-
-    ImGui::Columns(1);
-
-    ImGui::Separator();
-
-    ImGui::BeginChild(vcString::Get("menuReleaseNotesTitle"), ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
-    ImGui::TextUnformatted(pProgramState->packageInfo.Get("package.releasenotes").AsString(""));
-    ImGui::EndChild();
 
     ImGui::EndPopup();
   }
@@ -356,7 +220,7 @@ void vcModals_DrawTileServer(vcState *pProgramState)
     else if (pProgramState->tileModal.pServerIcon != nullptr)
       ImGui::Image((ImTextureID)pProgramState->tileModal.pServerIcon, ImVec2(200, 200), ImVec2(0, 0), ImVec2(1, 1));
 
-    if (ImGui::Button(vcString::Get("settingsMapsTileServerCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
     {
       if (pProgramState->tileModal.loadStatus == 0)
       {
@@ -661,7 +525,7 @@ void vcModals_DrawProjectChangeResult(vcState *pProgramState)
       }
     }
 
-    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
     {
       for (uint32_t i = 0; i < pProgramState->errorItems.length; ++i)
       {
@@ -689,7 +553,7 @@ void vcModals_DrawProjectReadOnly(vcState *pProgramState)
     pProgramState->modalOpen = true;
     ImGui::TextUnformatted(vcString::Get("sceneExplorerProjectReadOnlyMessage"));
 
-    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       ImGui::CloseCurrentPopup();
 
     ImGui::EndPopup();
@@ -723,7 +587,7 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
 
     ImGui::SameLine();
 
-    if (ImGui::Button(vcString::Get("sceneExplorerCloseButton")) || vcHotkey::IsPressed(vcB_Cancel))
+    if (ImGui::Button(vcString::Get("popupClose")) || vcHotkey::IsPressed(vcB_Cancel))
       ImGui::CloseCurrentPopup();
 
     ImGui::Separator();
@@ -776,7 +640,7 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
   if (ImGui::BeginPopupModal(vcString::Get("sceneImageViewerTitle"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
   {
     pProgramState->modalOpen = true;
-    if (ImGui::Button(vcString::Get("sceneImageViewerCloseButton"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       ImGui::CloseCurrentPopup();
 
     if (ImGui::BeginChild("ImageViewerImage", ImVec2(0, 0), false, ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
@@ -838,44 +702,6 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
   }
 }
 
-void vcModals_DrawBindings(vcState *pProgramState)
-{
-  if (pProgramState->openModals & (1 << vcMT_Bindings))
-    ImGui::OpenPopup(vcString::Get("bindingsModalTitle"));
-
-  ImGui::SetNextWindowSize(ImVec2(915, 605));
-  if (ImGui::BeginPopupModal(vcString::Get("bindingsModalTitle"), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-  {
-    pProgramState->modalOpen = true;
-
-    ImGui::BeginChild("bindingsInterfaceChild", ImVec2(-1, -1));
-
-    vcHotkey::DisplayBindings(pProgramState);
-
-    ImGui::Columns(3, "ButtonRow");
-    if (ImGui::Button(udTempStr("%s###bindingsRevert", vcString::Get("bindingsModalRevert")), ImVec2(-1, 25)) || vcHotkey::IsPressed(vcB_Undo))
-      vcHotkey::RevertPendingChanges();
-
-    ImGui::NextColumn();
-    if (ImGui::Button(udTempStr("%s###bindingsLoad", vcString::Get("bindingsModalDefaults")), ImVec2(-1, 25)) || vcHotkey::IsPressed(vcB_Load))
-      vcSettings_Load(&pProgramState->settings, true, vcSC_Bindings);
-
-    ImGui::NextColumn();
-    if (ImGui::Button(udTempStr("%s###bindingsSave", vcString::Get("bindingsModalSave")), ImVec2(-1, 25)) || vcHotkey::IsPressed(vcB_Save))
-    {
-      vcHotkey::ApplyPendingChanges();
-      vcSettings_Save(&pProgramState->settings);
-      ImGui::CloseCurrentPopup();
-    }
-
-    ImGui::EndColumns();
-
-    ImGui::EndChild();
-
-    ImGui::EndPopup();
-  }
-}
-
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 {
   pProgramState->openModals |= (1 << type);
@@ -886,9 +712,6 @@ void vcModals_DrawModals(vcState *pProgramState)
   pProgramState->modalOpen = false;
   vcModals_DrawLoggedOut(pProgramState);
   vcModals_DrawProxyAuth(pProgramState);
-  vcModals_DrawReleaseNotes(pProgramState);
-  vcModals_DrawAbout(pProgramState);
-  vcModals_DrawNewVersionAvailable(pProgramState);
   vcModals_DrawTileServer(pProgramState);
   vcModals_DrawFileModal(pProgramState);
   vcModals_DrawLoadWatermark(pProgramState);
@@ -896,7 +719,6 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawProjectReadOnly(pProgramState);
   vcModals_DrawImageViewer(pProgramState);
   vcModals_DrawUnsupportedFiles(pProgramState);
-  vcModals_DrawBindings(pProgramState);
 
-  pProgramState->openModals &= ((1 << vcMT_NewVersionAvailable) | (1 << vcMT_LoggedOut) | (1 << vcMT_ProxyAuth));
+  pProgramState->openModals &= ((1 << vcMT_LoggedOut) | (1 << vcMT_ProxyAuth));
 }

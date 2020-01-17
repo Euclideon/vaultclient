@@ -9,10 +9,10 @@
     "targetVersion": "0.5.0"
   },
 
+  "popupClose": "Close",
+
   "loginButton": "Login",
   "loginAbout": "About",
-  "loginRestoreDefaults": "Restore Defaults",
-  "loginReleaseNotes": "Release Notes",
   "loginServerURL": "ServerURL",
   "loginRememberServer": "Remember",
   "loginUsername": "Username",
@@ -47,9 +47,10 @@
   "loginErrorOther": "Unknown error occurred, please try again later.",
 
   "settingsTitle": "Settings",
+  "settingsRestoreDefaults": "Restore Defaults",
 
   "settingsAppearance": "Appearance",
-  "settingsAppearanceRestoreDefaults": "Restore Defaults",
+  "settingsAppearanceLanguage": "Language",
   "settingsAppearanceTheme": "Theme",
   "settingsAppearanceDark": "Dark Theme",
   "settingsAppearanceLight": "Light Theme",
@@ -78,7 +79,6 @@
   "settingsAppearanceTranslationDifferentVersion": "This language package is not intended to be used with this version of the software.\nSome text may be displayed incorrectly.",
 
   "settingsControls": "Input & Controls",
-  "settingsControlsRestoreDefaults": "Restore Defaults",
   "settingsControlsOSC": "On Screen Controls",
   "settingsControlsTouchUI": "Touch Friendly UI",
   "settingsControlsMouseInvertX": "Invert Mouse X-axis",
@@ -98,7 +98,6 @@
   "settingsControlsScrollWheel": "Scroll Wheel",
 
   "settingsViewport": "Viewport",
-  "settingsViewportRestoreDefaults": "Restore Defaults",
   "settingsViewportViewDistance": "View Distance",
   "settingsViewportCameraLens": "Camera Lens (fov)",
   "settingsViewportCameraLensCustom": "Custom",
@@ -111,7 +110,6 @@
   "settingsViewportFOV": "Field Of View",
 
   "settingsMaps": "Maps & Elevation",
-  "settingsMapsRestoreDefaults": "Restore Defaults",
   "settingsMapsMapTiles": "Map Tiles",
   "settingsMapsMouseLock": "Mouse can lock to maps",
   "settingsMapsTileServerTitle": "Tile Server",
@@ -120,7 +118,6 @@
   "settingsMapsTileServerLoading": "Loading... Please Wait",
   "settingsMapsTileServerErrorFetching": "Error fetching texture from url",
   "settingsMapsTileServerImageFormat": "Image Format",
-  "settingsMapsTileServerCloseButton": "Close",
   "settingsMapsMapHeight": "Map Height",
   "settingsMapsHybrid": "Hybrid",
   "settingsMapsOverlay": "Overlay",
@@ -157,9 +154,7 @@
   "settingsVisContoursBandHeight": "Contours Band Height",
   "settingsVisContoursRainbowRepeatRate": "Rainbow Repeat Distance",
   "settingsVisContoursRainbowIntensity": "Rainbow Intensity",
-  "settingsVisRestoreDefaults": "Restore Defaults",
 
-  "settingsVisClassRestoreDefaults": "Restore Defaults",
   "settingsVisClassShowColourTable": "Show Custom Classification Colour Table",
   "settingsVisClassNeverClassified": "0. Never Classified",
   "settingsVisClassUnclassified": "1. Unclassified",
@@ -188,7 +183,6 @@
   "settingsVisClassSet": "Set",
 
   "settingsConvert": "Convert Defaults",
-  "settingsConvertRestoreDefaults": "Restore Defaults",
 
   "convertTitle": "Convert",
   "convertReadingFile": "Reading File {0}/{1}",
@@ -263,9 +257,6 @@
   "convertNoJobSelected": "No job is selected. Please select one on the left or create a new job.",
 
   "menuSystem": "System",
-  "menuQuit": "Quit",
-  "menuLanguage": "Language",
-  "menuBindings": "Key Bindings",
   "menuExperimentalFeatures": "Experimental Features",
   "menuWindows": "Windows",
   "menuScene": "Scene",
@@ -283,26 +274,21 @@
   "menuLogout": "Logout",
   "menuLogoutTitle": "Logged Out",
   "menuLogoutMessage": "You were logged out.",
-  "menuLogoutCloseButton": "Close",
 
   "menuReleaseNotes": "Release Notes",
   "menuReleaseNotesTitle": "Release Notes",
   "menuReleaseNotesFail": "Unable to load release notes from package.",
   "menuReleaseNotesShort": "ReleaseNotes",
-  "menuReleaseNotesCloseButton": "Close",
 
   "menuAbout": "About",
   "menuAboutTitle": "About",
   "menuAboutVersion": "Version",
   "menuAboutLicenseInfo": "Third Party License Information",
-  "menuAboutCloseButton": "Close",
   "menuAboutPackageUpdate": "Package Update",
 
-  "menuCurrentVersion": "Current Version",
   "menuNewVersionAvailableTitle": "New Version Available",
   "menuNewVersion": "New Version",
   "menuNewVersionDownloadPrompt": "Please visit the Vault server in your browser to download the package.",
-  "menuNewVersionCloseButton": "Close",
 
   "menuBarUpdateAvailable": "Update Available",
   "menuBarFilesQueued": "{0} Files Queued",
@@ -327,7 +313,6 @@
 
   "sceneTitle": "Scene",
   "sceneImageViewerTitle": "Image Viewer",
-  "sceneImageViewerCloseButton": "Close",
   "sceneGeographicInfo": "Geographic Information",
   "sceneNotGeolocated": "Not Geolocated",
   "sceneUnsupportedSRID": "Unsupported SRID",
@@ -413,7 +398,6 @@
   "sceneExplorerUnsupportedFilesTitle": "Unsupported Files",
   "sceneExplorerUnsupportedFilesMessage": "The files you tried to add are currently unsupported by Euclideon Vault Client.",
   "sceneExplorerClearAllButton": "Clear All",
-  "sceneExplorerCloseButton": "Close",
 
   "sceneExplorerErrorOpen": "Could not open the model, perhaps it is missing or you don't have permission to access it.",
   "sceneExplorerErrorLoad": "Failed to load model",
@@ -541,17 +525,16 @@
   "attributeBlendingSingle": "Single Value",
   "attributeBlendingUnknown": "Unknown",
 
+  "bindingsTitle": "Key Bindings",
   "bindingsModalTitle": "Key Bindings",
   "bindingsModalRevert": "Revert",
-  "bindingsModalSave": "Save Bindings/Close",
-  "bindingsModalDefaults": "Load Defaults",
   "bindingsColumnName": "Name",
   "bindingsColumnKeyCombination": "Key Combination",
   "bindingsColumnDescription": "Description",
   "bindingsErrorUnbound": "Duplicate key binding has been unbound!",
   "bindingsClear": "Clear",
   "bindingsSelectKey": "Press a key combination to bind.",
-  
+
   "bindingsLockAltitude": "Toggles altitude lock, preventing up/down movement",
   "bindingsGizmoTranslate": "Sets the gizmo to translation mode, allowing you to move objects.",
   "bindingsGizmoRotate": "Sets the gizmo to rotation mode, allowing you to rotate objects.",

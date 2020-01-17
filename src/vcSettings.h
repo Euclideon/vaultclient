@@ -27,7 +27,6 @@ enum vcMapTileBlendMode
 enum vcDocks
 {
   vcDocks_Scene,
-  vcDocks_Settings,
   vcDocks_SceneExplorer,
   vcDocks_Convert,
 
@@ -64,6 +63,21 @@ enum vcPresentationMode
   vcPM_Hide,
   vcPM_Show,
   vcPM_Responsive
+};
+
+enum vcSettingsUIRegions
+{
+  vcSR_Appearance,
+  vcSR_Inputs,
+  vcSR_Viewports,
+  vcSR_Maps,
+  vcSR_Visualisations,
+  vcSR_KeyBindings,
+  vcSR_ConvertDefaults,
+
+  vcSR_ReleaseNotes,
+  vcSR_Update,
+  vcSR_About
 };
 
 enum vcSettingCategory

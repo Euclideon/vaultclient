@@ -5,4 +5,6 @@ struct vcState;
 
 void vcSettingsUI_Show(vcState *pProgramState);
 
+bool vcSettingsUI_LangCombo(vcState *pProgramState);
+
 #endif

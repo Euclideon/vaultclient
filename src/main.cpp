@@ -145,30 +145,6 @@ void vcMain_ShowStartupScreen(vcState *pProgramState);
 void vcRenderWindow(vcState *pProgramState);
 int vcMainMenuGui(vcState *pProgramState);
 
-bool vcMain_LangCombo(vcState *pProgramState)
-{
-  if (!ImGui::BeginCombo("##langCode", pProgramState->languageInfo.pLocalName))
-    return false;
-
-  for (size_t i = 0; i < pProgramState->settings.languageOptions.length; ++i)
-  {
-    const char *pName = pProgramState->settings.languageOptions[i].languageName;
-    const char *pFilename = pProgramState->settings.languageOptions[i].filename;
-
-    if (ImGui::Selectable(pName))
-    {
-      if (vcString::LoadTableFromFile(udTempStr("asset://assets/lang/%s.json", pFilename), &pProgramState->languageInfo) == udR_Success)
-        udStrcpy(pProgramState->settings.window.languageCode, pFilename);
-      else
-        vcString::LoadTableFromFile(udTempStr("asset://assets/lang/%s.json", pProgramState->settings.window.languageCode), &pProgramState->languageInfo);
-    }
-  }
-
-  ImGui::EndCombo();
-
-  return true;
-}
-
 void vcMain_PresentationMode(vcState *pProgramState)
 {
   if (pProgramState->settings.window.presentationMode)
@@ -188,11 +164,11 @@ void vcMain_PresentationMode(vcState *pProgramState)
     pProgramState->lastEventTime = udGetEpochSecsUTCd();
 }
 
-void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
+void vcMain_LoadSettings(vcState *pProgramState)
 {
   vcTexture_Destroy(&pProgramState->tileModal.pServerIcon);
 
-  if (vcSettings_Load(&pProgramState->settings, forceDefaults))
+  if (vcSettings_Load(&pProgramState->settings))
   {
     vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
 
@@ -207,9 +183,6 @@ void vcMain_LoadSettings(vcState *pProgramState, bool forceDefaults)
     SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
     if (pProgramState->settings.window.maximized)
       SDL_MaximizeWindow(pProgramState->pWindow);
-
-    if (forceDefaults)
-      vcGLState_ResizeBackBuffer(pProgramState->settings.window.width, pProgramState->settings.window.height);
   }
 }
 
@@ -797,7 +770,6 @@ int main(int argc, char **args)
   // Dock setting
   programState.settings.docksLoaded = vcSettings::vcDockLoaded::vcDL_False;
   programState.settings.window.windowsOpen[vcDocks_Scene] = true;
-  programState.settings.window.windowsOpen[vcDocks_Settings] = true;
   programState.settings.window.windowsOpen[vcDocks_SceneExplorer] = true;
   programState.settings.window.windowsOpen[vcDocks_Convert] = true;
   programState.settings.languageOptions.Init(4);
@@ -871,7 +843,7 @@ int main(int argc, char **args)
   ImGui::CreateContext();
   ImGui::GetStyle().WindowRounding = 0.0f;
 
-  vcMain_LoadSettings(&programState, false);
+  vcMain_LoadSettings(&programState);
 
 #if UDPLATFORM_EMSCRIPTEN
   // This needs to be here because the settings will load with the incorrect resolution (1280x720)
@@ -1663,6 +1635,9 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
     
     ImGui::SameLine(xPosition);
     ImGui::TextUnformatted(pTemp);
+
+    if (ImGui::IsItemClicked())
+      vcSession_Logout(pProgramState);
   }
 
   // Load List
@@ -1774,64 +1749,13 @@ int vcMainMenuGui(vcState *pProgramState)
 
   if (ImGui::BeginMainMenuBar())
   {
-    if (ImGui::BeginMenu(vcString::Get("menuSystem")))
-    {
-      if (ImGui::MenuItem(vcString::Get("menuLogout")))
-        vcSession_Logout(pProgramState);
-
-      if (ImGui::MenuItem(vcString::Get("menuAbout")))
-        vcModals_OpenModal(pProgramState, vcMT_About);
-
-      if (ImGui::MenuItem(vcString::Get("menuReleaseNotes")))
-        vcModals_OpenModal(pProgramState, vcMT_ReleaseNotes);
-
-      if (ImGui::MenuItem(vcString::Get("menuBindings")))
-        vcModals_OpenModal(pProgramState, vcMT_Bindings);
-
-      if (pProgramState->settings.languageOptions.length > 0 && ImGui::BeginMenu(vcString::Get("menuLanguage")))
-      {
-        for (size_t i = 0; i < pProgramState->settings.languageOptions.length; ++i)
-        {
-          const char *pName = pProgramState->settings.languageOptions[i].languageName;
-          const char *pFilename = pProgramState->settings.languageOptions[i].filename;
-
-          if (ImGui::MenuItem(pName, nullptr, udStrEqual(pProgramState->settings.window.languageCode, pFilename)))
-          {
-            if (vcString::LoadTableFromFile(udTempStr("asset://assets/lang/%s.json", pFilename), &pProgramState->languageInfo) == udR_Success)
-              udStrcpy(pProgramState->settings.window.languageCode, pFilename);
-            else
-              vcString::LoadTableFromFile(udTempStr("asset://assets/lang/%s.json", pProgramState->settings.window.languageCode), &pProgramState->languageInfo);
-          }
-        }
-
-        ImGui::EndMenu();
-      }
-
-
-      if (ImGui::BeginMenu(vcString::Get("menuExperimentalFeatures")))
-      {
-        ImGui::Separator();
-
-        ImGui::EndMenu();
-      }
-
-#if UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX
-      if (ImGui::MenuItem(vcString::Get("menuQuit"), "Alt+F4"))
-        pProgramState->programComplete = true;
-#endif
-
-      ImGui::EndMenu();
-    }
-
     if (ImGui::BeginMenu(vcString::Get("menuWindows")))
     {
       ImGui::MenuItem(vcString::Get("menuScene"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Scene]);
       ImGui::MenuItem(vcString::Get("menuSceneExplorer"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]);
-      ImGui::MenuItem(vcString::Get("menuSettings"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Settings]);
 #if VC_HASCONVERT
       ImGui::MenuItem(vcString::Get("menuConvert"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Convert]);
 #endif //VC_HASCONVERT
-      ImGui::Separator();
       ImGui::EndMenu();
     }
 
@@ -1911,6 +1835,9 @@ int vcMainMenuGui(vcState *pProgramState)
       ImGui::EndMenu();
     }
 
+    if (ImGui::MenuItem("Settings"))
+      pProgramState->openSettings = true;
+
     vcMain_UpdateStatusBar(pProgramState);
 
     menuHeight = (int)ImGui::GetWindowSize().y;
@@ -1971,21 +1898,13 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   {
     ImGui::PushItemWidth(130.f);
 
-    if (ImGui::Button(vcString::Get("loginRestoreDefaults")))
-      vcMain_LoadSettings(pProgramState, true);
-
-    ImGui::SameLine();
-    if (ImGui::Button(vcString::Get("loginReleaseNotes")))
-      vcModals_OpenModal(pProgramState, vcMT_ReleaseNotes);
-
-    ImGui::SameLine();
-    if (ImGui::Button(vcString::Get("loginAbout")))
-      vcModals_OpenModal(pProgramState, vcMT_About);
+    if (ImGui::Button(vcString::Get("settingsTitle")))
+      pProgramState->openSettings = true;
 
     ImGui::SameLine();
 
     // Show the language combo, if its not visible and the selected translation isn't for the current version, display an error tooltip
-    if (!vcMain_LangCombo(pProgramState) && !udStrEqual(pProgramState->languageInfo.pTargetVersion, VCSTRINGIFY(VCVERSION_VERSION_ARRAY_PARTIAL)))
+    if (!vcSettingsUI_LangCombo(pProgramState) && !udStrEqual(pProgramState->languageInfo.pTargetVersion, VCSTRINGIFY(VCVERSION_VERSION_ARRAY_PARTIAL)))
     {
       ImGui::SetNextWindowBgAlpha(0.5f);
       ImGui::SetNextWindowPos(ImGui::GetItemRectMin(), ImGuiCond_Always, ImVec2(0, 1));
@@ -2229,9 +2148,6 @@ void vcRenderWindow(vcState *pProgramState)
     pProgramState->programComplete = true;
 #endif
 
-  if (vcHotkey::IsPressed(vcB_BindingsInterface))
-    vcModals_OpenModal(pProgramState, vcMT_Bindings);
-
   //end keyboard/mouse handling
 
   if (pProgramState->hasContext && !pProgramState->settings.window.presentationMode)
@@ -2430,9 +2346,6 @@ void vcRenderWindow(vcState *pProgramState)
       }
     }
 
-    if (pProgramState->settings.window.windowsOpen[vcDocks_Settings] && !pProgramState->settings.window.presentationMode)
-      vcSettingsUI_Show(pProgramState);
-
     if (pProgramState->settings.pActive[0] != nullptr)
     {
       for (int i = 0; i < vcDocks_Count; ++i)
@@ -2456,5 +2369,6 @@ void vcRenderWindow(vcState *pProgramState)
     }
   }
 
+  vcSettingsUI_Show(pProgramState);
   vcModals_DrawModals(pProgramState);
 }

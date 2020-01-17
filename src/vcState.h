@@ -67,6 +67,9 @@ struct vcState
   SDL_Window *pWindow;
   vcFramebuffer *pDefaultFramebuffer;
 
+  bool openSettings;
+  int activeSetting;
+
   int openModals; // This is controlled inside vcModals.cpp
   bool modalOpen;
 

@@ -66,9 +66,14 @@ void vcSession_GetPackagesMT(void *pProgramStatePtr)
   if (pProgramState->packageInfo.Get("success").AsBool())
   {
     if (pProgramState->packageInfo.Get("package.versionnumber").AsInt() <= VCVERSION_BUILD_NUMBER || VCVERSION_BUILD_NUMBER == 0)
+    {
       pProgramState->packageInfo.Destroy();
+    }
     else
-      vcModals_OpenModal(pProgramState, vcMT_NewVersionAvailable);
+    {
+      pProgramState->openSettings = true;
+      pProgramState->activeSetting = vcSR_Update;
+    }
   }
 }
 
