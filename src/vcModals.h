@@ -6,9 +6,6 @@ enum vcModalTypes
   // These are handled by DrawModals
   vcMT_LoggedOut,
   vcMT_ProxyAuth,
-  vcMT_ReleaseNotes,
-  vcMT_About,
-  vcMT_NewVersionAvailable,
   vcMT_TileServer,
   vcMT_AddUDS,
   vcMT_ImportProject,
@@ -22,7 +19,6 @@ enum vcModalTypes
   vcMT_ConvertAdd,
   vcMT_ConvertOutput,
   vcMT_ConvertTempDirectory,
-  vcMT_Bindings,
 
   vcMT_Count
 };

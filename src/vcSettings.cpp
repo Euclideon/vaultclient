@@ -330,7 +330,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       pSettings->docksLoaded = vcSettings::vcDockLoaded::vcDL_True;
 
       pSettings->window.windowsOpen[vcDocks_Scene] = data.Get("frames.scene").AsBool(true);
-      pSettings->window.windowsOpen[vcDocks_Settings] = data.Get("frames.settings").AsBool(true);
       pSettings->window.windowsOpen[vcDocks_SceneExplorer] = data.Get("frames.explorer").AsBool(true);
       pSettings->window.windowsOpen[vcDocks_Convert] = data.Get("frames.convert").AsBool(false);
 
@@ -544,7 +543,6 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("window.language = '%s'", pSettings->window.languageCode);
 
   data.Set("frames.scene = %s", pSettings->window.windowsOpen[vcDocks_Scene] ? "true" : "false");
-  data.Set("frames.settings = %s", pSettings->window.windowsOpen[vcDocks_Settings] ? "true" : "false");
   data.Set("frames.explorer = %s", pSettings->window.windowsOpen[vcDocks_SceneExplorer] ? "true" : "false");
   data.Set("frames.convert = %s", pSettings->window.windowsOpen[vcDocks_Convert] ? "true" : "false");
 
