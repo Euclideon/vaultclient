@@ -14,6 +14,7 @@ class vcModel : public vcSceneItem
 public:
   vdkPointCloud *m_pPointCloud;
   vdkPointCloudHeader m_pointCloudHeader;
+  uint16_t m_refCount; // This value indicates whether a conversion is using the point cloud, and it shouldn't be freed until after
 
   udDouble3 m_pivot; // The models pivot in local space
   udDouble4x4 m_defaultMatrix; // This is the matrix from the model header- in m_pPreferredZone space

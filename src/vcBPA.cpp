@@ -813,6 +813,9 @@ struct vcBPAConvertItem
   double gridSize;
   double ballRadius;
 
+  bool destroyPointClouds;
+  bool **ppFinished;
+
   udSafeDeque<vcBPAConvertItemData> *pQueueItems;
   udSafeDeque<vcBPAConvertItemData> *pConvertItemData;
   vcBPAConvertItemData activeItem;
@@ -1034,9 +1037,23 @@ void vcBPA_ConvertClose(vdkConvertCustomItem *pConvertInput)
 void vcBPA_ConvertDestroy(vdkConvertCustomItem *pConvertInput)
 {
   vdkAttributeSet_Free(&pConvertInput->attributes);
+
+  vcBPAConvertItem *pBPA = (vcBPAConvertItem *)pConvertInput->pData;
+
+  if (pBPA->destroyPointClouds)
+  {
+    vdkPointCloud_Unload(&pBPA->pOldModel);
+    vdkPointCloud_Unload(&pBPA->pNewModel);
+  } // If destroying pointclouds, there will be no model to reference below
+  else if (pBPA->ppFinished != nullptr)
+  {
+    *pBPA->ppFinished = nullptr;
+  }
+
   udFree(pConvertInput->pData);
 }
 
+bool *vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius, bool **ppFinished)
 void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius, const char *pName)
 {
   vcConvertItem *pConvertItem = nullptr;
@@ -1052,6 +1069,7 @@ void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPo
   pBPA->running = true;
   pBPA->ballRadius = ballRadius;
   pBPA->gridSize = 1; // metres
+  pBPA->ppFinished = ppFinished;
 
   vdkPointCloudHeader header = {};
   vdkPointCloud_GetHeader(pNewModel, &header);
@@ -1118,6 +1136,8 @@ void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPo
 
   udFree(item.pName);
   udReleaseMutex(pBPA->pConvertItem->pMutex);
+
+  return &pBPA->destroyPointClouds;
 }
 
 #endif //VC_HASCONVERT
