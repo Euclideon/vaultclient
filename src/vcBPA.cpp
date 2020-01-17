@@ -1037,7 +1037,7 @@ void vcBPA_ConvertDestroy(vdkConvertCustomItem *pConvertInput)
   udFree(pConvertInput->pData);
 }
 
-void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius)
+void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius, const char *pName)
 {
   vcConvertItem *pConvertItem = nullptr;
   vcConvert_AddEmptyJob(pProgramState, &pConvertItem);
@@ -1065,7 +1065,7 @@ void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPo
   metadata.Parse(pMetadata);
 
   vdkConvertCustomItem item = {};
-  item.pName = "DisplacementComparison";
+  item.pName = pName;
 
   uint32_t displacementOffset = 0;
   bool addDisplacement = true;
@@ -1109,6 +1109,7 @@ void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPo
   item.boundsKnown = true;
   vdkConvert_AddCustomItem(pConvertItem->pConvertContext, &item);
 
+  udFree(item.pName);
   udReleaseMutex(pBPA->pConvertItem->pMutex);
 }
 

@@ -395,9 +395,20 @@ void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pPar
       {
         vcModel *pOldModel = (vcModel *)pChildNode->pUserData;
         const double ballRadius = 0.15; // TODO: Expose this to the user
-        udWorkerPoolCallback callback = [this, pProgramState, pOldModel, ballRadius](void*)
+
+        char newName[vcMaxPathLength] = {};
+        char oldName[vcMaxPathLength] = {};
+        udFilename(this->m_pNode->pName).ExtractFilenameOnly(newName, sizeof(newName));
+        udFilename(pOldModel->m_pNode->pName).ExtractFilenameOnly(oldName, sizeof(oldName));
+        newName[10] = '\0';
+        oldName[10] = '\0';
+
+        const char *pNameBuffer = nullptr;
+        udSprintf(&pNameBuffer, "D_%s_%s", oldName, newName);
+
+        udWorkerPoolCallback callback = [this, pProgramState, pOldModel, ballRadius, pNameBuffer](void*)
         {
-          vcBPA_CompareExport(pProgramState, pOldModel->m_pPointCloud, this->m_pPointCloud, ballRadius);
+          vcBPA_CompareExport(pProgramState, pOldModel->m_pPointCloud, this->m_pPointCloud, ballRadius, pNameBuffer);
         };
         udWorkerPool_AddTask(pProgramState->pWorkerPool, callback, nullptr, false);
       }

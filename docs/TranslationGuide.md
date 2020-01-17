@@ -15,14 +15,16 @@
       - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`, `polyModelIgnoreTint`
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
+    - Settings
+      - `settingsVisModeDisplacement`, `settingsVisDisplacementRange`
   - Changed:
     - 
   - Removed:
     - Legacy Key Bindings
-	    - `sceneLockAltitudeKey`, `sceneGizmoTranslateKey`, `sceneGizmoRotateKey`, `sceneGizmoScaleKey`, `sceneGizmoLocalSpaceKey`, `sceneFullscreenKey`, `sceneMapModeKey`, `sceneExplorerRemoveKey`, `sceneExplorerAddUDSKey`
+      - `sceneLockAltitudeKey`, `sceneGizmoTranslateKey`, `sceneGizmoRotateKey`, `sceneGizmoScaleKey`, `sceneGizmoLocalSpaceKey`, `sceneFullscreenKey`, `sceneMapModeKey`, `sceneExplorerRemoveKey`, `sceneExplorerAddUDSKey`
     - Other
       - `polyModelInvertFaces`, `menuBarConnectionStatus`
-	
+
 - Version 0.4.0
   - Added:
     - Settings
@@ -303,6 +305,7 @@ Modules are currently:
 - `settingsVisDisplayMode`: Label next to dropdown list for selecting how the scene is displayed
 - `settingsVisModeClassification`: Option in display mode dropdown list where the colour of scene objects is determined by the objects classification
 - `settingsVisModeColour`: Option in display mode dropdown list where scene objects are shown in their true colour
+- `settingsVisModeDisplacement`: Option in display mode dropdown list where scene objects are shown with colour to indicate displacement range
 - `settingsVisModeIntensity`: ?
 - `settingsVisMinIntensity`: ?
 - `settingsVisMaxIntensity`: ?
@@ -325,6 +328,7 @@ Modules are currently:
 - `settingsVisContoursBandHeight`: Label next to slider for setting the vertical size of each contour
 - `settingsVisContoursRainbowRepeatRate`: Label next to the slider for how quickly the rainbow mode for contours repeats
 - `settingsVisContoursRainbowIntensity`: Label next to the slider that sets how strongly the rainbow appears
+- `settingsVisDisplacementRange`: Label next to the input fields to specify displacement range values
 - `settingsVisRestoreDefaults`: Used to restore default values for all visualisation settings
 
 - `settingsVisClassRestoreDefaults`: Label on a button that restores default values for all classifications and colours
