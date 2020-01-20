@@ -35,6 +35,12 @@ struct vcFileDialog
 
 inline void vcFileDialog_Show(vcFileDialog *pDialog, char *pPath, size_t pathLen, const char **ppExtensions, size_t numExtensions, bool loadOnly, vcFileDialogCallback callback)
 {
+  udUnused(SupportedFileTypes_Images);
+  udUnused(SupportedFileTypes_Projects);
+  udUnused(SupportedFileTypes_SceneItems);
+  udUnused(SupportedTileTypes_ConvertExport);
+  udUnused(SupportedFileTypes_ConvertImport);
+
   memset(pDialog, 0, sizeof(vcFileDialog));
 
   pDialog->showDialog = true;
