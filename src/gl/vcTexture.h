@@ -4,7 +4,7 @@
 #include "udPlatform.h"
 #include "udMath.h"
 
-#define VCGL_HASSTENCIL UDPLATFORM_WINDOWS | UDPLATFORM_LINUX | UDPLATFORM_OSX
+#define VCGL_HASSTENCIL (UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX)
 
 enum vcTextureFormat
 {

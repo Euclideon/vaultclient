@@ -274,8 +274,6 @@ void vcMain_MainLoop(vcState *pProgramState)
   vcGLState_SetViewport(0, 0, pProgramState->settings.window.width, pProgramState->settings.window.height);
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer, vcFramebufferClearOperation_All, 0xFF000000);
 
-  vcGLState_ResizeBackBuffer(pProgramState->settings.window.width, pProgramState->settings.window.height);
-
   if (pProgramState->finishedStartup)
     vcRenderWindow(pProgramState);
   else
@@ -739,7 +737,7 @@ int main(int argc, char **args)
 
   uint32_t windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_ANDROID
-  windowFlags |= SDL_WINDOW_FULLSCREEN | SDL_WINDOW_ALLOW_HIGHDPI;
+  windowFlags |= SDL_WINDOW_FULLSCREEN;
 #endif
 
   vcState programState = {};
