@@ -74,6 +74,10 @@ namespace vcHotkey
     "bindingsSelectKey"
   };
 
+  bool HasPendingChanges()
+  {
+    return memcmp(keyBinds, pendingKeyBinds, sizeof(keyBinds));
+  }
 
   void ApplyPendingChanges()
   {

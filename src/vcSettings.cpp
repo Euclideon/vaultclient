@@ -267,19 +267,10 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_Bindings || group == vcSC_All)
   {
-    /*
-    if (!data.Get("keys").IsObject())
-    {
-      vcSettings_Load(pSettings, true, vcSC_Bindings);
-    }
-    else
-    {
-      for (int i = 0; i < vcB_Count; ++i)
-        vcHotkey::Set((vcBind)i, vcHotkey::DecodeKeyString(data.Get("keys.%s", vcHotkey::GetBindName((vcBind)i)).AsString()));
+    for (int i = 0; i < vcB_Count; ++i)
+      vcHotkey::Set((vcBind)i, vcHotkey::DecodeKeyString(data.Get("keys.%s", vcHotkey::GetBindName((vcBind)i)).AsString()));
 
-      vcHotkey::ApplyPendingChanges();
-    }
-    */
+    vcHotkey::ApplyPendingChanges();
   }
 
   if (group == vcSC_All)
