@@ -6,16 +6,13 @@
 const char *vcStringFormat(const char *pFormatString, const char **ppStrings, size_t numStrings)
 {
   int len;
-  for (len = 0; pFormatString[len] != '\0'; ++len)
-    if (pFormatString[len] == '|')
-      ++len;
-  char *pBuf = nullptr;
   int newChars = 0;
   int currArg;
+  int i;
 
-  for (int i = 0; pFormatString[i] != '\0'; ++i)
+  for (i = 0; pFormatString[i] != '\0'; ++i)
   {
-    if (pFormatString[i] == '|')
+    if (pFormatString[i] == '|' && pFormatString[i + 1] != '\0')
     {
       ++i;
       --newChars;
@@ -24,7 +21,7 @@ const char *vcStringFormat(const char *pFormatString, const char **ppStrings, si
     // Format specifier
     if (pFormatString[i] == '{')
     {
-      if (len <= i + 1 || pFormatString[i + 1] < '0' || pFormatString[i + 1] > '9')
+      if (pFormatString[i + 1] == '\0' || pFormatString[i + 1] < '0' || pFormatString[i + 1] > '9')
         continue;
 
       int length;
@@ -38,13 +35,18 @@ const char *vcStringFormat(const char *pFormatString, const char **ppStrings, si
     }
   }
 
+  len = i;
+
+  if (len == 0)
+    return pFormatString;
+
   int newLength = len + newChars + 1;
-  pBuf = udAllocType(char, newLength, udAF_None);
+  char *pBuf = udAllocType(char, newLength, udAF_None);
 
   int outPos = 0;
-  for (int i = 0; pFormatString[i] != '\0'; ++i)
+  for (i = 0; pFormatString[i] != '\0'; ++i)
   {
-    if (pFormatString[i] == '|')
+    if (pFormatString[i] == '|' && pFormatString[i + 1] != '\0')
     {
       ++i;
       pBuf[outPos] = pFormatString[i];
@@ -92,15 +94,13 @@ const char *vcStringFormat(const char *pFormatString, const char **ppStrings, si
 const char *vcStringFormat(char *pBuffer, size_t bufLen, const char *pFormatString, const char **ppStrings, size_t numStrings)
 {
   int len;
-  for (len = 0; pFormatString[len] != '\0'; ++len)
-    if (pFormatString[len] == '|')
-      ++len;
   int newChars = 0;
   int currArg;
+  int i;
 
-  for (int i = 0; pFormatString[i] != '\0'; ++i)
+  for (i = 0; pFormatString[i] != '\0'; ++i)
   {
-    if (pFormatString[i] == '|')
+    if (pFormatString[i] == '|' && pFormatString[i + 1] != '\0')
     {
       ++i;
       --newChars;
@@ -109,7 +109,7 @@ const char *vcStringFormat(char *pBuffer, size_t bufLen, const char *pFormatStri
     // Format specifier
     if (pFormatString[i] == '{')
     {
-      if (len <= i + 1 || pFormatString[i + 1] < '0' || pFormatString[i + 1] > '9')
+      if (pFormatString[i + 1] == '\0' || pFormatString[i + 1] < '0' || pFormatString[i + 1] > '9')
         continue;
 
       int length;
@@ -123,15 +123,16 @@ const char *vcStringFormat(char *pBuffer, size_t bufLen, const char *pFormatStri
     }
   }
 
+  len = i;
   int newLength = len + newChars + 1;
 
-  if ((int)bufLen < newLength)
+  if ((int)bufLen < newLength || len == 0)
     return pFormatString;
 
   int outPos = 0;
-  for (int i = 0; pFormatString[i] != '\0'; ++i)
+  for (i = 0; pFormatString[i] != '\0'; ++i)
   {
-    if (pFormatString[i] == '|')
+    if (pFormatString[i] == '|' && pFormatString[i + 1] != '\0')
     {
       ++i;
       pBuffer[outPos] = pFormatString[i];
@@ -141,7 +142,7 @@ const char *vcStringFormat(char *pBuffer, size_t bufLen, const char *pFormatStri
     // Format Specifier
     if (pFormatString[i] == '{')
     {
-      if (len <= i + 1 || pFormatString[i + 1] < '0' || pFormatString[i + 1] > '9')
+      if (pFormatString[i + 1] == '\0' || pFormatString[i + 1] < '0' || pFormatString[i + 1] > '9')
       {
         pBuffer[outPos] = pFormatString[i];
         ++outPos;
