@@ -37,7 +37,6 @@
 #include "vcModals.h"
 #include "vcPolygonModel.h"
 #include "vcImageRenderer.h"
-#include "vcProxyHelper.h"
 #include "vcProject.h"
 #include "vcSettingsUI.h"
 #include "vcSession.h"
@@ -1323,9 +1322,9 @@ void vcRenderSceneWindow(vcState *pProgramState)
     ImGui::ImageButton(renderData.pSceneTexture, windowSize, uv0, uv1, 0);
 
     static bool wasContextMenuOpenLastFrame = false;
-    bool selectItem = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold*io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
- 
-    if (io.MouseDownDurationPrev[1] < 0.1 && (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
+    bool selectItem = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
+
+    if (io.MouseDownDurationPrev[1] < 0.1 && (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
     {
       static bool hadMouse = false;
       static udDouble3 mousePosCartesian;
@@ -1599,7 +1598,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   // Render scene to texture
   vcRender_RenderScene(pProgramState, pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
-  
+
   // Clean up
   renderData.models.Deinit();
   renderData.fences.Deinit();
@@ -1634,7 +1633,7 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
     const char *pTemp = udTempStr("%s (%.3f)", pProgramState->sessionInfo.displayName, pProgramState->sessionInfo.expiresTimestamp - udGetEpochSecsUTCf());
 
     xPosition -= ImGui::CalcTextSize(pTemp).x;
-    
+
     ImGui::SameLine(xPosition);
     ImGui::TextUnformatted(pTemp);
 
@@ -1916,20 +1915,6 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
       ImGui::End();
     }
 
-    // Let the user change the look and feel on the login page
-    const char *themeOptions[] = { vcString::Get("settingsAppearanceDark"), vcString::Get("settingsAppearanceLight") };
-    ImGui::SameLine();
-    int styleIndex = pProgramState->settings.presentation.styleIndex - 1;
-    if (ImGui::Combo("##theme", &styleIndex, themeOptions, (int)udLengthOf(themeOptions)))
-    {
-      pProgramState->settings.presentation.styleIndex = styleIndex + 1;
-      switch (styleIndex)
-      {
-      case 0: ImGui::StyleColorsDark(); break;
-      case 1: ImGui::StyleColorsLight(); break;
-      }
-    }
-
     ImGui::PopItemWidth();
   }
   ImGui::End();
@@ -2076,51 +2061,6 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
       {
         ImGui::SameLine();
         ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "%s", vcString::Get("loginCapsWarning"));
-      }
-
-      ImGui::Separator();
-
-      if (ImGui::TreeNode(vcString::Get("loginAdvancedSettings")))
-      {
-        // Make sure its actually off before doing the auto-proxy check
-        if (ImGui::Checkbox(vcString::Get("loginProxyAutodetect"), &pProgramState->settings.loginInfo.autoDetectProxy) && pProgramState->settings.loginInfo.autoDetectProxy)
-          vcProxyHelper_AutoDetectProxy(pProgramState);
-
-        if (vcIGSW_InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy, vcMaxPathLength, pProgramState->settings.loginInfo.autoDetectProxy ? ImGuiInputTextFlags_ReadOnly : ImGuiInputTextFlags_None) && !pProgramState->settings.loginInfo.autoDetectProxy)
-          vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
-
-        ImGui::SameLine();
-        if (ImGui::Button(vcString::Get("loginProxyTest")))
-        {
-          if (pProgramState->settings.loginInfo.autoDetectProxy)
-            vcProxyHelper_AutoDetectProxy(pProgramState);
-
-          //TODO: Decide what to do with other errors
-          if (vcProxyHelper_TestProxy(pProgramState) == vE_ProxyAuthRequired)
-            vcModals_OpenModal(pProgramState, vcMT_ProxyAuth);
-        }
-
-        if (vcIGSW_InputText(vcString::Get("loginUserAgent"), pProgramState->settings.loginInfo.userAgent, vcMaxPathLength))
-          vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
-
-        // TODO: Consider reading user agent strings from a file
-        const char *UAOptions[] = { "Mozilla" };
-        const char *UAStrings[] = { "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:53.0) Gecko/20100101 Firefox/53.0" };
-
-        int UAIndex = -1;
-        if (ImGui::Combo(udTempStr("%s###loginUserAgentPresets", vcString::Get("loginSelectUserAgent")), &UAIndex, UAOptions, (int)udLengthOf(UAOptions)))
-        {
-          udStrcpy(pProgramState->settings.loginInfo.userAgent, UAStrings[UAIndex]);
-          vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
-        }
-
-        if (ImGui::Checkbox(vcString::Get("loginIgnoreCert"), &pProgramState->settings.loginInfo.ignoreCertificateVerification))
-          vdkConfig_IgnoreCertificateVerification(pProgramState->settings.loginInfo.ignoreCertificateVerification);
-
-        if (pProgramState->settings.loginInfo.ignoreCertificateVerification)
-          ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "%s", vcString::Get("loginIgnoreCertWarning"));
-
-        ImGui::TreePop();
       }
     }
     ImGui::End();
