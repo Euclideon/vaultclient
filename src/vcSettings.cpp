@@ -267,6 +267,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_Bindings || group == vcSC_All)
   {
+    /*
     if (!data.Get("keys").IsObject())
     {
       vcSettings_Load(pSettings, true, vcSC_Bindings);
@@ -278,6 +279,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
       vcHotkey::ApplyPendingChanges();
     }
+    */
   }
 
   if (group == vcSC_All)
@@ -406,7 +408,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
   {
     const char *pFileContents = nullptr;
 
-    if (udFile_Load(vcSettings_GetAssetPath("assets/lang/languages.json"), (void**)&pFileContents) == udR_Success)
+    if (udFile_Load("asset://assets/lang/languages.json", (void**)&pFileContents) == udR_Success)
     {
       udJSON languages;
 
@@ -744,10 +746,76 @@ const char *vcSettings_GetAssetPath(const char *pFilename)
 #endif
 }
 
+struct vcSDLFile : udFile
+{
+  SDL_RWops *pSDLHandle;
+};
+
+udResult vcSDLFile_SeekRead(udFile *pFile, void *pBuffer, size_t bufferLength, int64_t seekOffset, size_t *pActualRead, udFilePipelinedRequest * /*pPipelinedRequest*/)
+{
+  vcSDLFile *pFILE = static_cast<vcSDLFile*>(pFile);
+  udResult result;
+  size_t actualRead;
+
+  UD_ERROR_NULL(pFILE->pSDLHandle, udR_ReadFailure);
+
+  pFILE->pSDLHandle->seek(pFILE->pSDLHandle, seekOffset, RW_SEEK_SET);
+
+  actualRead = pFILE->pSDLHandle->read(pFILE->pSDLHandle, pBuffer, 1, bufferLength);
+
+  if (pActualRead)
+    *pActualRead = actualRead;
+
+  result = udR_Success;
+
+epilogue:
+  return result;
+}
+
+udResult vcSDLFile_Close(udFile **ppFile)
+{
+  udResult result = udR_Success;
+  vcSDLFile *pFILE = static_cast<vcSDLFile*>(*ppFile);
+  *ppFile = nullptr;
+
+  if (pFILE->pSDLHandle)
+    pFILE->pSDLHandle->close(pFILE->pSDLHandle);
+
+  udFree(pFILE);
+
+  return result;
+}
+
 udResult vcSettings_FileHandlerAssetOpen(udFile **ppFile, const char *pFilename, udFileOpenFlags flags)
 {
   size_t fileStart = 8; // length of asset://
   const char *pNewFilename = vcSettings_GetAssetPath(pFilename + fileStart);
+
+#if UDPLATFORM_ANDROID
+  udResult result;
+
+  vcSDLFile *pFile = udAllocType(vcSDLFile, 1, udAF_Zero);
+  UD_ERROR_NULL(pFile, udR_MemoryAllocationFailure);
+
+  pFile->pSDLHandle = SDL_RWFromFile(pNewFilename, "rb");
+  UD_ERROR_NULL(pFile->pSDLHandle, udR_OpenFailure);
+
+  pFile->fpRead = vcSDLFile_SeekRead;
+  pFile->fpClose = vcSDLFile_Close;
+
+  *ppFile = pFile;
+  pFile = nullptr;
+  result = udR_Success;
+
+epilogue:
+  if (pFile)
+  {
+    udFree(pFile->pFilenameCopy);
+    udFree(pFile);
+  }
+
+  return result;
+#else
   udResult res = udFile_Open(ppFile, pNewFilename, flags);
   if (res == udR_Success)
   {
@@ -755,6 +823,7 @@ udResult vcSettings_FileHandlerAssetOpen(udFile **ppFile, const char *pFilename,
     (*ppFile)->pFilenameCopy = udStrdup(pNewFilename);
   }
   return res;
+#endif
 }
 
 udResult vcSettings_RegisterAssetFileHandler()
@@ -765,11 +834,12 @@ udResult vcSettings_RegisterAssetFileHandler()
 udResult vcSettings_UpdateLanguageOptions(vcSettings *pSetting)
 {
   udResult result = udR_Unsupported;
+
+#if UDPLATFORM_WINDOWS || UDPLATFORM_OSX || UDPLATFORM_LINUX
   udFindDir *pDir = nullptr;
   bool rewrite = false;
 
   // Check directory for files not included in languages.json, then update if necessary
-#if defined(UDPLATFORM_WINDOWS) || defined(UDPLATFORM_OSX) || defined(UDPLATFORM_LINUX)
   UD_ERROR_CHECK(udOpenDir(&pDir, vcSettings_GetAssetPath("assets/lang")));
 
   do
@@ -817,8 +887,8 @@ udResult vcSettings_UpdateLanguageOptions(vcSettings *pSetting)
     //  udFree(pLanguageStr);
     //}
   }
-#endif
 
 epilogue:
+#endif
   return result;
 }

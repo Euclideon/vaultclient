@@ -5,7 +5,7 @@
 
 GLint vcBuildShader(GLenum type, const GLchar *shaderCode)
 {
-#if !(UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR)
+#if !(UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_ANDROID)
   if (type == GL_GEOMETRY_SHADER && shaderCode == nullptr)
     return (GLint)-1;
 #endif
@@ -81,7 +81,7 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   vcShader *pShader = udAllocType(vcShader, 1, udAF_Zero);
 
   GLint geometryShaderId = (GLint)-1;
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_EMSCRIPTEN
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_EMSCRIPTEN || UDPLATFORM_ANDROID
   if (pGeometryShader != nullptr)
     return false;
 #else// UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR

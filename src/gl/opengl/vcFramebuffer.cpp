@@ -18,8 +18,10 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
   if (pDepth)
   {
     GLenum attachment = GL_DEPTH_ATTACHMENT;
+#if VCGL_HASSTENCIL
     if (pDepth->format == vcTextureFormat_D24S8)
       attachment = GL_DEPTH_STENCIL_ATTACHMENT;
+#endif
 
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, attachment, GL_TEXTURE_2D, pDepth->id, 0);
   }

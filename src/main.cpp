@@ -179,10 +179,12 @@ void vcMain_LoadSettings(vcState *pProgramState)
     case 2: ImGui::StyleColorsLight(); break;
     }
 
+#if !(UDPLATFORM_ANDROID || UDPLATFORM_EMSCRIPTEN || UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR)
     SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
     SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
     if (pProgramState->settings.window.maximized)
       SDL_MaximizeWindow(pProgramState->pWindow);
+#endif
   }
 }
 
@@ -271,6 +273,8 @@ void vcMain_MainLoop(vcState *pProgramState)
 
   vcGLState_SetViewport(0, 0, pProgramState->settings.window.width, pProgramState->settings.window.height);
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer, vcFramebufferClearOperation_All, 0xFF000000);
+
+  vcGLState_ResizeBackBuffer(pProgramState->settings.window.width, pProgramState->settings.window.height);
 
   if (pProgramState->finishedStartup)
     vcRenderWindow(pProgramState);
@@ -734,8 +738,8 @@ int main(int argc, char **args)
 #endif
 
   uint32_t windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  windowFlags |= SDL_WINDOW_FULLSCREEN;
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_ANDROID
+  windowFlags |= SDL_WINDOW_FULLSCREEN | SDL_WINDOW_ALLOW_HIGHDPI;
 #endif
 
   vcState programState = {};
@@ -748,7 +752,7 @@ int main(int argc, char **args)
   vcWebFile_RegisterFileHandlers();
 
   // default values
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_ANDROID
   // TODO: Query device and fill screen
   programState.sceneResolution.x = 1920;
   programState.sceneResolution.y = 1080;
@@ -811,7 +815,7 @@ int main(int argc, char **args)
   windowFlags |= SDL_WINDOW_OPENGL;
 
   // Setup window
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_EMSCRIPTEN
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_EMSCRIPTEN || UDPLATFORM_ANDROID
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 
   if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3) != 0)

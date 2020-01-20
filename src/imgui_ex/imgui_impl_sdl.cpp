@@ -149,7 +149,7 @@ static void ImGui_ImplSDL2_FixKeyboardState()
 
 SDL_Window* ImGui_ImplSDL2_CreateWindow(const char* title, int x, int y, int w, int h, ImU32 flags)
 {
-  SDL_Window* window = SDL_CreateWindow(title, x, y, w, h, (Uint32)(flags | SDL_WINDOW_HIDDEN));
+  SDL_Window* window = SDL_CreateWindow(title, x, y, w, h, (Uint32)(flags));
 
   if (window)
   {
@@ -495,6 +495,7 @@ void ImGui_ImplSDL2_NewFrame(SDL_Window* window)
     // Setup display size (every frame to accommodate for window resizing)
     int w, h;
     int display_w, display_h;
+
     SDL_GetWindowSize(window, &w, &h);
     int displayIndex = SDL_GetWindowDisplayIndex(window);
     SDL_GL_GetDrawableSize(window, &display_w, &display_h);
