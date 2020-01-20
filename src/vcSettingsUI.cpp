@@ -11,6 +11,9 @@
 #include "vcThirdPartyLicenses.h"
 #include "vcWebFile.h"
 
+#include "vcProxyHelper.h"
+#include "vdkConfig.h"
+
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 #include "stb_image.h"
 
@@ -60,6 +63,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
         ImGui::RadioButton(udTempStr("%s##VisualisationSettings", vcString::Get("settingsVis")), &pProgramState->activeSetting, vcSR_Visualisations);
         ImGui::RadioButton(udTempStr("%s##KeyBindings", vcString::Get("bindingsTitle")), &pProgramState->activeSetting, vcSR_KeyBindings);
         ImGui::RadioButton(udTempStr("%s##ConvertSettings", vcString::Get("settingsConvert")), &pProgramState->activeSetting, vcSR_ConvertDefaults);
+        ImGui::RadioButton(udTempStr("%s##ConnectionSettings", vcString::Get("settingsConnection")), &pProgramState->activeSetting, vcSR_Connection);
 
         ImGui::Separator();
 
@@ -492,6 +496,48 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::InputText(vcString::Get("convertComment"), pProgramState->settings.convertdefaults.comment, udLengthOf(pProgramState->settings.convertdefaults.comment));
           ImGui::InputText(vcString::Get("convertCopyright"), pProgramState->settings.convertdefaults.copyright, udLengthOf(pProgramState->settings.convertdefaults.copyright));
           ImGui::InputText(vcString::Get("convertLicense"), pProgramState->settings.convertdefaults.license, udLengthOf(pProgramState->settings.convertdefaults.license));
+        }
+
+        if (pProgramState->activeSetting == vcSR_Connection)
+        {
+          // Make sure its actually off before doing the auto-proxy check
+          if (ImGui::Checkbox(vcString::Get("loginProxyAutodetect"), &pProgramState->settings.loginInfo.autoDetectProxy) && pProgramState->settings.loginInfo.autoDetectProxy)
+            vcProxyHelper_AutoDetectProxy(pProgramState);
+
+          if (vcIGSW_InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy, vcMaxPathLength, pProgramState->settings.loginInfo.autoDetectProxy ? ImGuiInputTextFlags_ReadOnly : ImGuiInputTextFlags_None) && !pProgramState->settings.loginInfo.autoDetectProxy)
+            vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
+
+          ImGui::SameLine();
+          if (ImGui::Button(vcString::Get("loginProxyTest")))
+          {
+            if (pProgramState->settings.loginInfo.autoDetectProxy)
+              vcProxyHelper_AutoDetectProxy(pProgramState);
+
+            //TODO: Decide what to do with other errors
+            if (vcProxyHelper_TestProxy(pProgramState) == vE_ProxyAuthRequired)
+              vcModals_OpenModal(pProgramState, vcMT_ProxyAuth);
+          }
+
+          if (vcIGSW_InputText(vcString::Get("loginUserAgent"), pProgramState->settings.loginInfo.userAgent, vcMaxPathLength))
+            vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
+
+          // TODO: Consider reading user agent strings from a file
+          const char *UAOptions[] = { "Mozilla" };
+          const char *UAStrings[] = { "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:53.0) Gecko/20100101 Firefox/53.0" };
+
+          int UAIndex = -1;
+          if (ImGui::Combo(udTempStr("%s###loginUserAgentPresets", vcString::Get("loginSelectUserAgent")), &UAIndex, UAOptions, (int)udLengthOf(UAOptions)))
+          {
+            udStrcpy(pProgramState->settings.loginInfo.userAgent, UAStrings[UAIndex]);
+            vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
+          }
+
+          if (ImGui::Checkbox(vcString::Get("loginIgnoreCert"), &pProgramState->settings.loginInfo.ignoreCertificateVerification))
+            vdkConfig_IgnoreCertificateVerification(pProgramState->settings.loginInfo.ignoreCertificateVerification);
+
+          if (pProgramState->settings.loginInfo.ignoreCertificateVerification)
+            ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "%s", vcString::Get("loginIgnoreCertWarning"));
+
         }
 
         if (pProgramState->activeSetting == vcSR_ReleaseNotes)

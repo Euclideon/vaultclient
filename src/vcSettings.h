@@ -74,6 +74,7 @@ enum vcSettingsUIRegions
   vcSR_Visualisations,
   vcSR_KeyBindings,
   vcSR_ConvertDefaults,
+  vcSR_Connection,
 
   vcSR_ReleaseNotes,
   vcSR_Update,
