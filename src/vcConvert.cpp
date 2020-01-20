@@ -32,6 +32,7 @@ const char *statusNames[] =
 };
 
 void vcConvert_ResetConvert(vcConvertItem *pConvertItem);
+void vcConvert_QueueFile(vcState *pProgramState, const char *pFilename);
 void vcConvert_ProcessFile(vcState *pProgramState, vcConvertItem *pJob);
 
 UDCOMPILEASSERT(udLengthOf(statusNames) == vcCQS_Count, "Not Enough Status Names");
