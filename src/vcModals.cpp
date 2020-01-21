@@ -330,27 +330,7 @@ void vcModals_DrawFileModal(vcState *pProgramState)
 
     if (loadFile)
     {
-#if VC_HASCONVERT
-      /*if (mode == vcMT_ConvertOutput)
-      {
-        // Set output path and filename
-        udFilename loadFilename(pProgramState->modelPath);
-        loadFilename.SetExtension(".uds");
-        vdkConvertContext *pConvertContext = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext;
-        vdkConvert_SetOutputFilename(pConvertContext, loadFilename.GetPath());
-        // SetOutputFilename() overwrites the temp directory automatically, unless the user has modified it
-      }
-      else if (mode == vcMT_ConvertTempDirectory)
-      {
-        // Set temporary directory
-        vdkConvertContext *pConvertContext = pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext;
-        vdkConvert_SetTempDirectory(pConvertContext, pProgramState->modelPath);
-      }
-      else*/
-#endif //VC_HASCONVERT
-      {
-        pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
-      }
+      pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
       pProgramState->modelPath[0] = '\0';
       ImGui::CloseCurrentPopup();
     }

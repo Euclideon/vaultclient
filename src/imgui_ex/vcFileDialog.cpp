@@ -4,6 +4,23 @@
 #include "vcState.h"
 #include "imgui.h"
 
+void vcFileDialog_Show(vcFileDialog *pDialog, char *pPath, size_t pathLen, const char **ppExtensions, size_t numExtensions, bool openFile, vcFileDialogCallback callback)
+{
+  memset(pDialog, 0, sizeof(vcFileDialog));
+
+  pDialog->showDialog = true;
+  pDialog->folderOnly = false;
+  pDialog->openFile = openFile;
+
+  pDialog->pPath = pPath;
+  pDialog->pathLen = pathLen;
+
+  pDialog->ppExtensions = ppExtensions;
+  pDialog->numExtensions = numExtensions;
+
+  pDialog->onSelect = callback;
+}
+
 void vcFileDialog_FreeDrives(const char ***ppDrives, uint8_t *pDriveCount)
 {
   if (ppDrives == nullptr || pDriveCount == nullptr)

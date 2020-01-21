@@ -195,7 +195,7 @@ void vcMain_MainLoop(void *pArgs)
 {
   vcState *pProgramState = (vcState*)pArgs;
 #else
-void vcMain_MainLoop(vcState * pProgramState)
+void vcMain_MainLoop(vcState *pProgramState)
 {
 #endif
   static Uint64 NOW = SDL_GetPerformanceCounter();
@@ -2326,18 +2326,18 @@ void vcRenderWindow(vcState *pProgramState)
   {
     if (pProgramState->fileDialog.showDialog)
     {
-      HRESULT hr;
-      IFileDialog *pFileOpen;
+      HRESULT hr = 0;
+      IFileDialog *pFileOpen = nullptr;
 
       // Create the FileOpenDialog object.
-      if (pProgramState->fileDialog.loadOnly)
+      if (pProgramState->fileDialog.openFile)
         hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
       else
         hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_ALL, IID_IFileSaveDialog, reinterpret_cast<void**>(&pFileOpen));
 
       if (SUCCEEDED(hr))
       {
-        char extBuffer[1024];
+        char extBuffer[1024] = "\0";
         COMDLG_FILTERSPEC spec = {};
         udOSString *pOSStr = nullptr;
 
@@ -2370,12 +2370,12 @@ void vcRenderWindow(vcState *pProgramState)
 
           if (SUCCEEDED(hr))
           {
-            IShellItem *pItem;
+            IShellItem *pItem = nullptr;
             hr = pFileOpen->GetResult(&pItem);
 
             if (SUCCEEDED(hr))
             {
-              PWSTR pszFilePath;
+              PWSTR pszFilePath = nullptr;
               hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
 
               // Display the file name to the user.
@@ -2427,7 +2427,7 @@ void vcRenderWindow(vcState *pProgramState)
 
       ImGui::Separator();
 
-      if (vcFileDialog_DrawImGui(pProgramState->fileDialog.pPath, pProgramState->fileDialog.pathLen, pProgramState->fileDialog.loadOnly, pProgramState->fileDialog.ppExtensions, pProgramState->fileDialog.numExtensions))
+      if (vcFileDialog_DrawImGui(pProgramState->fileDialog.pPath, pProgramState->fileDialog.pathLen, pProgramState->fileDialog.openFile, pProgramState->fileDialog.ppExtensions, pProgramState->fileDialog.numExtensions))
         loadFile = true;
 
       if (loadFile)
