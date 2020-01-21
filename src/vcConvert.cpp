@@ -409,11 +409,12 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       ImGui::SameLine();
 
-      if (pSelectedJob->itemsToProcess.length == 0 && pSelectedJob->pItemProcessing == nullptr)
+      if (pSelectedJob->pConvertInfo->totalItems > 0 && pSelectedJob->itemsToProcess.length == 0 && pSelectedJob->pItemProcessing == nullptr)
       {
-        if (ImGui::Button(vcString::Get("convertBeginConvert"), ImVec2(-1, 40)))
+        const char *pButtonLabel = pSelectedJob->status == vcCQS_Preparing ? vcString::Get("convertBeginConvert") : vcString::Get("convertRestart");
+        if (ImGui::Button(pButtonLabel, ImVec2(-1, 40)))
         {
-          if (pSelectedJob->status == vcCQS_Cancelled)
+          if (pSelectedJob->status != vcCQS_Preparing)
             vcConvert_ResetConvert(pSelectedJob);
           pSelectedJob->status = vcCQS_Queued;
           udIncrementSemaphore(pProgramState->pConvertContext->pConversionSemaphore);
@@ -509,6 +510,13 @@ void vcConvert_ShowUI(vcState *pProgramState)
         vdkConvert_SetOutputFilename(pSelectedJob->pConvertContext, pProgramState->modelPath);
       });
 
+      if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_WriteFailed || pSelectedJob->status == vcCQS_ParseFailed || pSelectedJob->status == vcCQS_ImageParseFailed || pSelectedJob->status == vcCQS_Failed)
+      {
+        ImGui::SameLine(0.f, 0.f);
+        if (ImGui::Button("...##vcSetOutputFilename", ImVec2(30, 0)))
+          vcModals_OpenModal(pProgramState, vcMT_ConvertOutput);
+      }
+
       ImGui::SameLine();
       ImGui::TextUnformatted(vcString::Get("convertOutputName"));
 
@@ -516,8 +524,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
       if (ImGui::InputText("##vcSetTemporaryDirectoryText", tempDirectory, udLengthOf(tempDirectory)))
         vdkConvert_SetTempDirectory(pSelectedJob->pConvertContext, tempDirectory);
 
-      /*
-      if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
+      if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_WriteFailed || pSelectedJob->status == vcCQS_ParseFailed || pSelectedJob->status == vcCQS_ImageParseFailed || pSelectedJob->status == vcCQS_Failed)
       {
         ImGui::SameLine(0.f, 0.f);
         if (ImGui::Button("...##vcSetTemporaryDirectory", ImVec2(30, 0)))
@@ -530,7 +537,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 
-      if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
+      if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_WriteFailed || pSelectedJob->status == vcCQS_ParseFailed || pSelectedJob->status == vcCQS_ImageParseFailed || pSelectedJob->status == vcCQS_Failed)
       {
         bool skipErrorsWherePossible = pSelectedJob->pConvertInfo->skipErrorsWherePossible;
         if (ImGui::Checkbox(vcString::Get("convertContinueOnCorrupt"), &skipErrorsWherePossible))
@@ -549,7 +556,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
       }
 
       // Override Resolution
-      if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
+      if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_WriteFailed || pSelectedJob->status == vcCQS_ParseFailed || pSelectedJob->status == vcCQS_ImageParseFailed || pSelectedJob->status == vcCQS_Failed)
       {
         bool overrideResolution = pSelectedJob->pConvertInfo->overrideResolution;
         double resolution = pSelectedJob->pConvertInfo->pointResolution;
@@ -678,7 +685,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
         {
           ImGui::Columns(3);
 
-          if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled) && ImGui::Button(vcString::Get("convertRemoveAll")))
+          if ((pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_WriteFailed || pSelectedJob->status == vcCQS_ParseFailed || pSelectedJob->status == vcCQS_ImageParseFailed || pSelectedJob->status == vcCQS_Failed) && ImGui::Button(vcString::Get("convertRemoveAll")))
           {
             while (pSelectedJob->pConvertInfo->totalItems > 0)
               vdkConvert_RemoveItem(pSelectedJob->pConvertContext, 0);
@@ -697,7 +704,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
           // Skip the middle column
           ImGui::NextColumn();
 
-          if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
+          if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_WriteFailed || pSelectedJob->status == vcCQS_ParseFailed || pSelectedJob->status == vcCQS_ImageParseFailed || pSelectedJob->status == vcCQS_Failed)
           {
             static int globalSource = 0;
             if (ImGui::Combo(udTempStr("%s###convertallitemspace", vcString::Get("convertAllSpaceLabel")), &globalSource, sourceSpaceNames, (int)udLengthOf(sourceSpaceNames)) && globalSource > -1)
@@ -716,7 +723,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
           {
             vdkConvert_GetItemInfo(pSelectedJob->pConvertContext, i, &itemInfo);
 
-            if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
+            if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_WriteFailed || pSelectedJob->status == vcCQS_ParseFailed || pSelectedJob->status == vcCQS_ImageParseFailed || pSelectedJob->status == vcCQS_Failed)
             {
               if (ImGui::Button(udTempStr("X##convertitemremove_%zu", i)))
               {
@@ -732,7 +739,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
             const char *ptCountStrings[] = { udCommaInt(itemInfo.pointsCount), udCommaInt(itemInfo.pointsRead) };
 
-            if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
+            if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_WriteFailed || pSelectedJob->status == vcCQS_ParseFailed || pSelectedJob->status == vcCQS_ImageParseFailed || pSelectedJob->status == vcCQS_Failed)
             {
               if (itemInfo.pointsCount == -1)
                 vcStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertPendingNoEstimate"), ptCountStrings, udLengthOf(ptCountStrings));
@@ -783,7 +790,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
             ImGui::NextColumn();
           }
 
-          if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled)
+          if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_WriteFailed || pSelectedJob->status == vcCQS_ParseFailed || pSelectedJob->status == vcCQS_ImageParseFailed || pSelectedJob->status == vcCQS_Failed)
           {
             udLockMutex(pSelectedJob->pMutex);
 
