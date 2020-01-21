@@ -3,16 +3,18 @@
 ## Changelist
 - Version 0.5.0
   - Added:
-    - Menus
-      - `menuBindings`, `settingsAppearanceSaturation`, `menuProjectNone`
     - Bindings Interface
       - `bindingsModalTitle`, `bindingsModalRevert`, `bindingsModalSave`, `bindingsModalDefaults`, `bindingsColumnName`, `bindingsColumnKeyCombination`, `bindingsColumnDescriptions`, `bindingsErrorUnbound`, `bindingsClear`
     - Bindings Key Descriptions
       - `bindingsLockAltitude`, `bindingsGizmoTranslate`, `bindingsGizmoRotate`, `bindingsGizmoScale`, `bindingsGizmoLocalSpace`, `bindingsFullscreen`, `bindingsAddUDS`, `bindingsRemove`, `bindingsCameraForward`, `bindingsCameraBackward`, `bindingsCameraLeft`, `bindingsCameraRight`, `bindingsCameraUp`, `bindingsCameraDown`, `bindingsBindingsInterface`, `bindingsCancel`, `bindingsRenameSceneItem`, `bindingsSave`, `bindingsLoad`, `bindingsUndo`
-    - Scene
-      - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
+    - Convert
+      - `convertRestart`
+    - Menus
+      - `menuBindings`, `settingsAppearanceSaturation`, `menuProjectNone`
     - Polygon Meshes
       - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`, `polyModelIgnoreTint`
+    - Scene
+      - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
   - Changed:
     - 
   - Removed:
@@ -388,6 +390,7 @@ Modules are currently:
 - `convertAuthor`: Label next to text box where user can set the value of the author field in the output file
 - `convertReset`: Label used for button that resets a completed (or cancelled?) convert job
 - `convertBeginConvert`: Label used for button that commences the currently selected convert job(s)
+- `convertRestart`: Label used for button that commences the previously cancelled or failed convert job(s)
 - `convertBeginPendingFiles`: Label used for convert button when files are still being processed
   - {0} is how many files are left to be processed
 - `convertPendingEstimate`: label used when the item is pending and has estimated point count
