@@ -94,19 +94,14 @@ namespace vcHotkey
     memcpy(pendingKeyBinds, keyBinds, sizeof(keyBinds));
   }
 
-  bool IsDown(int keyNum, bool consume)
+  bool IsDown(int keyNum)
   {
     ImGuiIO io = ImGui::GetIO();
 
     if (keyNum > vcMOD_Mask)
     {
-      if ((keyNum & vcMOD_Shift) == vcMOD_Shift)
-      {
-        if (!io.KeyShift)
-          return false;
-
-        io.KeyShift = false;
-      }
+      if (((keyNum & vcMOD_Shift) == vcMOD_Shift) != io.KeyCtrl)
+        return false;
       if (((keyNum & vcMOD_Ctrl) == vcMOD_Ctrl) != io.KeyCtrl)
         return false;
       if (((keyNum & vcMOD_Alt) == vcMOD_Alt) != io.KeyAlt)
@@ -115,49 +110,46 @@ namespace vcHotkey
         return false;
     }
 
-    bool down = io.KeysDown[keyNum & vcMOD_Mask];
-
-    if (down && consume)
-      io.KeysDown[keyNum & vcMOD_Mask] = false;
-
-    return down;
+    return io.KeysDown[keyNum & vcMOD_Mask];
   }
 
-  bool IsDown(vcBind key, bool consume)
+  bool IsDown(vcBind key)
   {
-    return IsDown(keyBinds[key], consume);
+    return IsDown(keyBinds[key]);
   }
 
-  bool IsPressed(int keyNum, bool consume)
+  bool IsPressed(int keyNum, bool checkMod)
   {
     if (target != -1)
       return false;
 
     ImGuiIO io = ImGui::GetIO();
 
-    if (keyNum > vcMOD_Mask)
+    if (keyNum > vcMOD_Mask || checkMod)
     {
-      if (((keyNum & vcMOD_Shift) == vcMOD_Shift) != io.KeyShift)
+      bool contains = (keyNum & vcMOD_Shift) == vcMOD_Shift;
+      if ((contains && !io.KeyShift) || (checkMod && !contains && io.KeyShift))
         return false;
-      if (((keyNum & vcMOD_Ctrl) == vcMOD_Ctrl) != io.KeyCtrl)
+
+      contains = (keyNum & vcMOD_Ctrl) == vcMOD_Ctrl;
+      if ((contains && !io.KeyCtrl) || (checkMod && !contains && io.KeyCtrl))
         return false;
-      if (((keyNum & vcMOD_Alt) == vcMOD_Alt) != io.KeyAlt)
+
+      contains = (keyNum & vcMOD_Alt) == vcMOD_Alt;
+      if ((contains && !io.KeyAlt) || (checkMod && !contains && io.KeyAlt))
         return false;
-      if (((keyNum & vcMOD_Super) == vcMOD_Super) != io.KeySuper)
+
+      contains = (keyNum & vcMOD_Super) == vcMOD_Super;
+      if ((contains && !io.KeySuper) || (checkMod && !contains && io.KeySuper))
         return false;
     }
 
-    bool pressed = ImGui::IsKeyPressed((keyNum & vcMOD_Mask), false);
-
-    if (pressed && consume)
-      io.KeysDownDuration[keyNum & vcMOD_Mask] = 1.f;
-
-    return pressed;
+    return ImGui::IsKeyPressed((keyNum & vcMOD_Mask), false);
   }
 
-  bool IsPressed(vcBind key, bool consume)
+  bool IsPressed(vcBind key, bool checkMod)
   {
-    return IsPressed(keyBinds[key], consume);
+    return IsPressed(keyBinds[key], checkMod);
   }
 
   void NameFromKey(int key, char *pBuffer, uint32_t bufferLen)
