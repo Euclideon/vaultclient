@@ -39,6 +39,7 @@ enum vcBind
 
 namespace vcHotkey
 {
+  bool HasPendingChanges();
   void ApplyPendingChanges();
   void RevertPendingChanges();
   bool IsDown(int keyNum);

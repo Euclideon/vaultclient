@@ -41,7 +41,10 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
     ImGui::NextColumn();
     if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    {
+      vcSettings_Save(&pProgramState->settings);
       ImGui::CloseCurrentPopup();
+    }
 
     ImGui::NextColumn();
     ImGui::Columns(1);
@@ -422,25 +425,20 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
         if (pProgramState->activeSetting == vcSR_KeyBindings)
         {
-          vcHotkey::DisplayBindings(pProgramState);
-
-          ImGui::Columns(3, "ButtonRow");
-          if (ImGui::Button(udTempStr("%s###bindingsRevert", vcString::Get("bindingsModalRevert")), ImVec2(-1, 25)) || vcHotkey::IsPressed(vcB_Undo))
-            vcHotkey::RevertPendingChanges();
-
-          ImGui::NextColumn();
-          if (ImGui::Button(udTempStr("%s###bindingsLoad", vcString::Get("bindingsModalDefaults")), ImVec2(-1, 25)) || vcHotkey::IsPressed(vcB_Load))
+          if (ImGui::Button(udTempStr("%s###bindingsLoad", vcString::Get("settingsRestoreDefaults"))) || vcHotkey::IsPressed(vcB_Load))
             vcSettings_Load(&pProgramState->settings, true, vcSC_Bindings);
 
-          ImGui::NextColumn();
-          if (ImGui::Button(udTempStr("%s###bindingsSave", vcString::Get("bindingsModalSave")), ImVec2(-1, 25)) || vcHotkey::IsPressed(vcB_Save))
+          if (vcHotkey::HasPendingChanges())
           {
-            vcHotkey::ApplyPendingChanges();
-            vcSettings_Save(&pProgramState->settings);
-            ImGui::CloseCurrentPopup();
+            ImGui::SameLine();
+            if (ImGui::Button(udTempStr("%s###bindingsRevert", vcString::Get("bindingsModalRevert"))) || vcHotkey::IsPressed(vcB_Undo))
+              vcHotkey::RevertPendingChanges();
+            ImGui::SameLine();
+            if (ImGui::Button(udTempStr("%s###bindingsSave", vcString::Get("bindingsModalSave"))) || vcHotkey::IsPressed(vcB_Save))
+              vcHotkey::ApplyPendingChanges();
           }
 
-          ImGui::EndColumns();
+          vcHotkey::DisplayBindings(pProgramState);
         }
 
         if (pProgramState->activeSetting == vcSR_ConvertDefaults)
