@@ -12,5 +12,6 @@
 #endif
 
 #define VC_HASCONVERT (!VC_SIMPLEUI)
+#define VC_HASNATIVEFILEPICKER UDPLATFORM_WINDOWS
 
 #endif //vcFeatures_h__

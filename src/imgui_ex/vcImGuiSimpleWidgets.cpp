@@ -7,6 +7,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
+#include "vcState.h"
 #include "vcStrings.h"
 
 struct vcIGSWResizeContainer
@@ -82,6 +83,40 @@ bool vcIGSW_InputTextWithResize(const char *pLabel, char **ppBuffer, size_t *pBu
   }
 
   return retVal;
+}
+
+void vcIGSW_FilePicker(vcState *pProgramState, const char *pLabel, char *pBuffer, size_t bufferSize, const char **ppExtensions, size_t numExtensions, vcFileDialogType dialogType, vcFileDialogCallback onChange)
+{
+  const float ButtonWidth = 20.f;
+
+  float itemSize = ImGui::GetNextItemWidth();
+  ImGui::SetNextItemWidth(itemSize - ButtonWidth + 3.f);
+
+  if (ImGui::InputText(udTempStr("##%s_fpicker", pLabel), pBuffer, bufferSize))
+    onChange();
+
+  if (ImGui::BeginPopupContextItem())
+  {
+    if (ImGui::MenuItem("Copy"))
+      ImGui::SetClipboardText(pBuffer);
+
+    if (ImGui::MenuItem("Paste"))
+    {
+      udStrcpy(pBuffer, bufferSize, ImGui::GetClipboardText());
+      onChange();
+    }
+
+    ImGui::EndPopup();
+  }
+
+  ImGui::SameLine(0, 0);
+
+  if (ImGui::Button(udTempStr("...##%s_fpicker_openmore", pLabel)))
+    vcFileDialog_Show(&pProgramState->fileDialog, pBuffer, bufferSize, ppExtensions, numExtensions, dialogType, onChange);
+
+  ImGui::SameLine();
+
+  ImGui::TextUnformatted(pLabel);
 }
 
 bool vcIGSW_ColorPickerU32(const char *pLabel, uint32_t *pColor, ImGuiColorEditFlags flags)
