@@ -10,8 +10,9 @@
 #include "vcVersion.h"
 #include "vcThirdPartyLicenses.h"
 #include "vcWebFile.h"
-
+#include "vcFeatures.h"
 #include "vcProxyHelper.h"
+
 #include "vdkConfig.h"
 
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
@@ -116,6 +117,10 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::Checkbox(vcString::Get("settingsAppearanceLimitFPS"), &pProgramState->settings.presentation.limitFPSInBackground);
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowCompass"), &pProgramState->settings.presentation.showCompass);
           ImGui::Checkbox(vcString::Get("settingsAppearanceLoginRenderLicense"), &pProgramState->settings.presentation.loginRenderLicense);
+
+#if VC_HASNATIVEFILEPICKER
+          ImGui::Checkbox(vcString::Get("settingsAppearanceShowNativeDialogs"), &pProgramState->settings.window.useNativeUI);
+#endif
 
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowSkybox"), &pProgramState->settings.presentation.showSkybox);
 
@@ -447,9 +452,11 @@ void vcSettingsUI_Show(vcState *pProgramState)
             vcSettings_Load(&pProgramState->settings, true, vcSC_Convert);
 
           // Temp directory
-          ImGui::InputText(vcString::Get("convertTempDirectory"), pProgramState->settings.convertdefaults.tempDirectory, udLengthOf(pProgramState->settings.convertdefaults.tempDirectory));
+          vcIGSW_FilePicker(pProgramState, vcString::Get("convertTempDirectory"), pProgramState->settings.convertdefaults.tempDirectory, udLengthOf(pProgramState->settings.convertdefaults.tempDirectory), nullptr, 0, vcFDT_SelectDirectory, [pProgramState] {
+            // Nothing needs to happen here
+          });
 
-          vcIGSW_FilePicker(pProgramState, vcString::Get("convertChangeDefaultWatermark"), pProgramState->settings.convertdefaults.watermark.filename, SupportedFileTypes_Images, true, [pProgramState] {
+          vcIGSW_FilePicker(pProgramState, vcString::Get("convertChangeDefaultWatermark"), pProgramState->settings.convertdefaults.watermark.filename, SupportedFileTypes_Images, vcFDT_OpenFile, [pProgramState] {
             //reload stuff
             udFilename filename = pProgramState->settings.convertdefaults.watermark.filename;
             uint8_t *pData = nullptr;
@@ -463,7 +470,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
             }
             udStrcpy(pProgramState->settings.convertdefaults.watermark.filename, filename.GetFilenameWithExt());
             pProgramState->settings.convertdefaults.watermark.isDirty = true;
-            });
+          });
 
           ImGui::Indent();
           {

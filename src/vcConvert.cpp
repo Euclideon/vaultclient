@@ -318,7 +318,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
   vdkConvertItemInfo itemInfo;
   char tempBuffer[256];
   char localizationBuffer[512];
-  char tempDirectory[vcMaxPathLength];
 
   // Convert Jobs --------------------------------
   ImGui::Columns(2);
@@ -402,7 +401,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
     {
       if (ImGui::Button(vcString::Get("convertAddFile"), ImVec2(200, 40)))
       {
-        vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_ConvertImport, true, [pProgramState] {
+        vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_ConvertImport, vcFDT_OpenFile, [pProgramState] {
           vcConvert_QueueFile(pProgramState, pProgramState->modelPath);
         });
       }
@@ -505,35 +504,23 @@ void vcConvert_ShowUI(vcState *pProgramState)
     {
       ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 
-      udSprintf(pProgramState->modelPath, "%s", pSelectedJob->pConvertInfo->pOutputName);
-      vcIGSW_FilePicker(pProgramState, "", pProgramState->modelPath, SupportedTileTypes_ConvertExport, false, [pProgramState, pSelectedJob] {
-        vdkConvert_SetOutputFilename(pSelectedJob->pConvertContext, pProgramState->modelPath);
-      });
-
       if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_WriteFailed || pSelectedJob->status == vcCQS_ParseFailed || pSelectedJob->status == vcCQS_ImageParseFailed || pSelectedJob->status == vcCQS_Failed)
       {
-        ImGui::SameLine(0.f, 0.f);
-        if (ImGui::Button("...##vcSetOutputFilename", ImVec2(30, 0)))
-          vcModals_OpenModal(pProgramState, vcMT_ConvertOutput);
+        udSprintf(pProgramState->pConvertContext->tempOutputFileName, "%s", pSelectedJob->pConvertInfo->pOutputName);
+        vcIGSW_FilePicker(pProgramState, vcString::Get("convertOutputName"), pProgramState->pConvertContext->tempOutputFileName, SupportedTileTypes_ConvertExport, vcFDT_SaveFile, [pProgramState, pSelectedJob] {
+          vdkConvert_SetOutputFilename(pSelectedJob->pConvertContext, pProgramState->pConvertContext->tempOutputFileName);
+        });
+
+        udSprintf(pProgramState->pConvertContext->tampTemporaryPathName, "%s", pSelectedJob->pConvertInfo->pTempFilesPrefix);
+        vcIGSW_FilePicker(pProgramState, vcString::Get("convertTempDirectory"), pProgramState->pConvertContext->tampTemporaryPathName, SupportedTileTypes_ConvertExport, vcFDT_SelectDirectory, [pProgramState, pSelectedJob] {
+          vdkConvert_SetTempDirectory(pSelectedJob->pConvertContext, pProgramState->pConvertContext->tampTemporaryPathName);
+        });
       }
-
-      ImGui::SameLine();
-      ImGui::TextUnformatted(vcString::Get("convertOutputName"));
-
-      udSprintf(tempDirectory, "%s", pSelectedJob->pConvertInfo->pTempFilesPrefix);
-      if (ImGui::InputText("##vcSetTemporaryDirectoryText", tempDirectory, udLengthOf(tempDirectory)))
-        vdkConvert_SetTempDirectory(pSelectedJob->pConvertContext, tempDirectory);
-
-      if (pSelectedJob->status == vcCQS_Preparing || pSelectedJob->status == vcCQS_Cancelled || pSelectedJob->status == vcCQS_WriteFailed || pSelectedJob->status == vcCQS_ParseFailed || pSelectedJob->status == vcCQS_ImageParseFailed || pSelectedJob->status == vcCQS_Failed)
+      else
       {
-        ImGui::SameLine(0.f, 0.f);
-        if (ImGui::Button("...##vcSetTemporaryDirectory", ImVec2(30, 0)))
-          vcModals_OpenModal(pProgramState, vcMT_ConvertTempDirectory);
+        ImGui::TextUnformatted(udTempStr("%s: %s", vcString::Get("convertOutputName"), pSelectedJob->pConvertInfo->pOutputName));
+        ImGui::TextUnformatted(udTempStr("%s: %s", vcString::Get("convertTempDirectory"), pSelectedJob->pConvertInfo->pTempFilesPrefix));
       }
-
-      ImGui::SameLine();
-      ImGui::TextUnformatted(vcString::Get("convertTempDirectory"));
-      */
 
       ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 
@@ -621,7 +608,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
         // Watermark
         if (ImGui::Button(vcString::Get("convertLoadWatermark")))
         {
-          vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_Images, true, [pProgramState] {
+          vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_Images, vcFDT_OpenFile, [pProgramState] {
             vdkConvert_AddWatermark(pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext, pProgramState->modelPath);
             pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->watermark.isDirty = true;
           });

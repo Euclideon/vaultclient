@@ -85,7 +85,7 @@ bool vcIGSW_InputTextWithResize(const char *pLabel, char **ppBuffer, size_t *pBu
   return retVal;
 }
 
-void vcIGSW_FilePicker(vcState *pProgramState, const char *pLabel, char *pBuffer, size_t bufferSize, const char **ppExtensions, size_t numExtensions, bool read, vcFileDialogCallback onChange)
+void vcIGSW_FilePicker(vcState *pProgramState, const char *pLabel, char *pBuffer, size_t bufferSize, const char **ppExtensions, size_t numExtensions, vcFileDialogType dialogType, vcFileDialogCallback onChange)
 {
   const float ButtonWidth = 20.f;
 
@@ -111,8 +111,8 @@ void vcIGSW_FilePicker(vcState *pProgramState, const char *pLabel, char *pBuffer
 
   ImGui::SameLine(0, 0);
 
-  if (ImGui::Button("..."))
-    vcFileDialog_Show(&pProgramState->fileDialog, pBuffer, bufferSize, ppExtensions, numExtensions, read, onChange);
+  if (ImGui::Button(udTempStr("...##%s_fpicker_openmore", pLabel)))
+    vcFileDialog_Show(&pProgramState->fileDialog, pBuffer, bufferSize, ppExtensions, numExtensions, dialogType, onChange);
 
   ImGui::SameLine();
 

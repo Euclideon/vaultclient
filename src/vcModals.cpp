@@ -317,14 +317,14 @@ void vcModals_DrawFileModal(vcState *pProgramState)
 
     if (mode == vcMT_AddSceneItem)
     {
-      vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_SceneItems, true, [pProgramState] {
+      vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_SceneItems, vcFDT_OpenFile, [pProgramState] {
         pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
       });
     }
     else if (mode == vcMT_ExportProject)
     {
       const char *fileExtensions[] = { ".json" };
-      if (vcFileDialog_DrawImGui(pProgramState->modelPath, sizeof(pProgramState->modelPath), false, fileExtensions, udLengthOf(fileExtensions)))
+      if (vcFileDialog_DrawImGui(pProgramState->modelPath, sizeof(pProgramState->modelPath), vcFDT_SaveFile, fileExtensions, udLengthOf(fileExtensions)))
         saveFile = true;
     }
 

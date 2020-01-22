@@ -69,6 +69,8 @@ struct vcConvertContext
   udSemaphore *pProcessingSemaphore;
   udThread *pProcessingThread;
 
+  char tempOutputFileName[vcMetadataMaxLength];
+  char tampTemporaryPathName[vcMetadataMaxLength];
 };
 
 void vcConvert_Init(vcState *pProgramState);

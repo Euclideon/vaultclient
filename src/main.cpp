@@ -1774,7 +1774,7 @@ int vcMainMenuGui(vcState *pProgramState)
 
       if (ImGui::MenuItem(vcString::Get("menuProjectImport"), nullptr, nullptr))
       {
-        vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_Projects, true, [pProgramState]() {
+        vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_Projects, vcFDT_OpenFile, [pProgramState]() {
           pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
           });
       }
@@ -2330,68 +2330,74 @@ void vcRenderWindow(vcState *pProgramState)
       IFileDialog *pFileOpen = nullptr;
 
       // Create the FileOpenDialog object.
-      if (pProgramState->fileDialog.openFile)
+      if (pProgramState->fileDialog.dialogType == vcFDT_OpenFile || pProgramState->fileDialog.dialogType == vcFDT_SelectDirectory)
         hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
-      else
+      else // if (pProgramState->fileDialog.dialogType == vcFDT_SaveFile)
         hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_ALL, IID_IFileSaveDialog, reinterpret_cast<void**>(&pFileOpen));
 
       if (SUCCEEDED(hr))
       {
-        char extBuffer[1024] = "\0";
-        COMDLG_FILTERSPEC spec = {};
-        udOSString *pOSStr = nullptr;
+        if (pProgramState->fileDialog.dialogType == vcFDT_SelectDirectory)
+          hr = pFileOpen->SetOptions(FOS_PICKFOLDERS);
 
-        if (pProgramState->fileDialog.numExtensions > 0)
-        {
-          for (size_t i = 0; i < pProgramState->fileDialog.numExtensions; ++i)
-          {
-            if (i == 0)
-              udStrcpy(extBuffer, "*");
-            else
-              udStrcat(extBuffer, ";*");
-
-            udStrcat(extBuffer, pProgramState->fileDialog.ppExtensions[i]);
-          }
-
-          pOSStr = new udOSString(extBuffer);
-
-          spec.pszName = L"Any Supported";
-          spec.pszSpec = pOSStr->pWide;
-
-          hr = pFileOpen->SetFileTypes(1U, &spec);
-          hr = pFileOpen->SetDefaultExtension(spec.pszSpec);
-        }
-
-        // Get the file name from the dialog box.
         if (SUCCEEDED(hr))
         {
-          // Show the Open dialog box.
-          hr = pFileOpen->Show(NULL);
+          char extBuffer[1024] = "\0";
+          COMDLG_FILTERSPEC spec = {};
+          udOSString *pOSStr = nullptr;
 
+          if (pProgramState->fileDialog.numExtensions > 0)
+          {
+            for (size_t i = 0; i < pProgramState->fileDialog.numExtensions; ++i)
+            {
+              if (i == 0)
+                udStrcpy(extBuffer, "*");
+              else
+                udStrcat(extBuffer, ";*");
+
+              udStrcat(extBuffer, pProgramState->fileDialog.ppExtensions[i]);
+            }
+
+            pOSStr = new udOSString(extBuffer);
+
+            spec.pszName = L"Any Supported";
+            spec.pszSpec = pOSStr->pWide;
+
+            hr = pFileOpen->SetFileTypes(1U, &spec);
+            hr = pFileOpen->SetDefaultExtension(spec.pszSpec);
+          }
+
+          // Get the file name from the dialog box.
           if (SUCCEEDED(hr))
           {
-            IShellItem *pItem = nullptr;
-            hr = pFileOpen->GetResult(&pItem);
+            // Show the Open dialog box.
+            hr = pFileOpen->Show(NULL);
 
             if (SUCCEEDED(hr))
             {
-              PWSTR pszFilePath = nullptr;
-              hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+              IShellItem *pItem = nullptr;
+              hr = pFileOpen->GetResult(&pItem);
 
-              // Display the file name to the user.
               if (SUCCEEDED(hr))
               {
-                udStrcpy(pProgramState->fileDialog.pPath, pProgramState->fileDialog.pathLen, udOSString(pszFilePath).pUTF8);
-                pProgramState->fileDialog.onSelect();
-                CoTaskMemFree(pszFilePath);
+                PWSTR pszFilePath = nullptr;
+                hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+
+                // Display the file name to the user.
+                if (SUCCEEDED(hr))
+                {
+                  udStrcpy(pProgramState->fileDialog.pPath, pProgramState->fileDialog.pathLen, udOSString(pszFilePath).pUTF8);
+                  pProgramState->fileDialog.onSelect();
+                  CoTaskMemFree(pszFilePath);
+                }
+                pItem->Release();
               }
-              pItem->Release();
             }
           }
-        }
 
-        if (pOSStr != nullptr)
-          delete pOSStr;
+          if (pOSStr != nullptr)
+            delete pOSStr;
+        }
 
         pFileOpen->Release();
       }
@@ -2427,7 +2433,7 @@ void vcRenderWindow(vcState *pProgramState)
 
       ImGui::Separator();
 
-      if (vcFileDialog_DrawImGui(pProgramState->fileDialog.pPath, pProgramState->fileDialog.pathLen, pProgramState->fileDialog.openFile, pProgramState->fileDialog.ppExtensions, pProgramState->fileDialog.numExtensions))
+      if (vcFileDialog_DrawImGui(pProgramState->fileDialog.pPath, pProgramState->fileDialog.pathLen, pProgramState->fileDialog.dialogType, pProgramState->fileDialog.ppExtensions, pProgramState->fileDialog.numExtensions))
         loadFile = true;
 
       if (loadFile)

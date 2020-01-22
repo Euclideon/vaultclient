@@ -4,13 +4,13 @@
 #include "vcState.h"
 #include "imgui.h"
 
-void vcFileDialog_Show(vcFileDialog *pDialog, char *pPath, size_t pathLen, const char **ppExtensions, size_t numExtensions, bool openFile, vcFileDialogCallback callback)
+void vcFileDialog_Show(vcFileDialog *pDialog, char *pPath, size_t pathLen, const char **ppExtensions, size_t numExtensions, vcFileDialogType dialogType, vcFileDialogCallback callback)
 {
   memset(pDialog, 0, sizeof(vcFileDialog));
 
   pDialog->showDialog = true;
   pDialog->folderOnly = false;
-  pDialog->openFile = openFile;
+  pDialog->dialogType = dialogType;
 
   pDialog->pPath = pPath;
   pDialog->pathLen = pathLen;
@@ -86,7 +86,7 @@ void vcFileDialog_GetDrives(const char ***ppDrives, uint8_t *pDriveCount)
 #endif
 }
 
-bool vcFileDialog_ListFolder(const char *pFolderPath, char *pLoadPath, size_t loadPathLen, const char **ppExtensions, size_t extensionCount)
+bool vcFileDialog_ListFolder(const char *pFolderPath, char *pLoadPath, size_t loadPathLen, const char **ppExtensions, size_t extensionCount, bool showFiles)
 {
   udFindDir *pDir;
   bool clicked = false;
@@ -111,16 +111,27 @@ bool vcFileDialog_ListFolder(const char *pFolderPath, char *pLoadPath, size_t lo
         udStrcpy(pLoadPath, loadPathLen, fullPath);
       }
 
+      if (!showFiles)
+      {
+        ImGui::SameLine();
+        if (ImGui::SmallButton(udTempStr("%s##%s", vcString::Get("filepickerSelect"), pDir->pFilename)))
+        {
+          udSprintf(fullPath, "%s%s", pFolderPath, pDir->pFilename);
+          udStrcpy(pLoadPath, loadPathLen, fullPath);
+          clicked = true;
+        }
+      }
+
       if (opened)
       {
         udSprintf(fullPath, "%s%s/", pFolderPath, pDir->pFilename);
-        clicked |= vcFileDialog_ListFolder(fullPath, pLoadPath, loadPathLen, ppExtensions, extensionCount);
+        clicked |= vcFileDialog_ListFolder(fullPath, pLoadPath, loadPathLen, ppExtensions, extensionCount, showFiles);
         ImGui::TreePop();
       }
     }
     else
     {
-      bool show = (ppExtensions == nullptr || extensionCount == 0);
+      bool show = (showFiles && (ppExtensions == nullptr || extensionCount == 0));
 
       for (size_t i = 0; i < extensionCount && !show; ++i)
         show = udStrEndsWithi(pDir->pFilename, ppExtensions[i]);
@@ -143,10 +154,8 @@ bool vcFileDialog_ListFolder(const char *pFolderPath, char *pLoadPath, size_t lo
   return clicked;
 }
 
-bool vcFileDialog_DrawImGui(char *pPath, size_t pathLength, bool loadOnly /*= true*/, const char **ppExtensions /*= nullptr*/, size_t extensionCount /*= 0*/)
+bool vcFileDialog_DrawImGui(char *pPath, size_t pathLength, vcFileDialogType dialogType /*= true*/, const char **ppExtensions /*= nullptr*/, size_t extensionCount /*= 0*/)
 {
-  udUnused(loadOnly);
-
   const char **ppDrives = nullptr;
   uint8_t length = 0;
   bool clickedFile = false;
@@ -163,7 +172,7 @@ bool vcFileDialog_DrawImGui(char *pPath, size_t pathLength, bool loadOnly /*= tr
 
     if (opened)
     {
-      clickedFile |= vcFileDialog_ListFolder(ppDrives[i], pPath, pathLength, ppExtensions, extensionCount);
+      clickedFile |= vcFileDialog_ListFolder(ppDrives[i], pPath, pathLength, ppExtensions, extensionCount, (dialogType != vcFDT_SelectDirectory));
       ImGui::TreePop();
     }
   }
