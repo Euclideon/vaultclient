@@ -1601,6 +1601,9 @@ const char *const g_AtmosphereVertexShader = R"shader(
  */
 const char *const g_AtmosphereFragmentShader = R"shader(
 
+float s_CameraNearPlane=0.1;
+float s_CameraFarPlane=6000000.0;
+
 layout (std140) uniform u_fragParams
 {
   vec4 u_camera; // (camera position).xyz, exposure.w
@@ -1649,6 +1652,14 @@ void GetSphereShadowInOut(vec3 view_direction, vec3 sun_direction,
     d_out = 0.0;
 }
 
+float logToLinearDepth(float logDepth)
+{
+  float a = s_CameraFarPlane / (s_CameraFarPlane - s_CameraNearPlane);
+  float b = s_CameraFarPlane * s_CameraNearPlane / (s_CameraNearPlane - s_CameraFarPlane);
+  float worldDepth = pow(2.0, logDepth * log2(s_CameraFarPlane + 1.0)) - 1.0;
+  return a + b / worldDepth;
+}
+
 void main()
 {
   vec3 camera = u_camera.xyz;
@@ -1663,11 +1674,12 @@ void main()
   float fragment_angular_size =
       length(dFdx(view_ray) + dFdy(view_ray)) / length(view_ray);
 
-  float sceneDepth = texture(u_sceneDepth, v_uv).x;
+  float sceneLogDepth = texture(u_sceneDepth, v_uv).x; 
+  float sceneDepth = logToLinearDepth(sceneLogDepth);
   vec4 sceneColour = texture(u_sceneColour, v_uv);
   sceneColour.xyz = pow(sceneColour.xyz, vec3(2.2));
 
-  gl_FragDepth = sceneDepth;
+  gl_FragDepth = sceneLogDepth;
 
   float shadow_in;
   float shadow_out;
@@ -1684,18 +1696,18 @@ approximation as in <code>GetSunVisibility</code>:
 */
 
   float distance_to_geom_intersection = sqrt(-1.0);
-  vec4 worldPos = u_inverseViewProjection * vec4(v_uv * 2.0 - vec2(1.0), sceneDepth * 2.0 - 1.0, 1.0);
-  worldPos /= worldPos.w;
+  vec4 eyePos = u_inverseViewProjection * vec4(v_uv * 2.0 - vec2(1.0), sceneDepth * 2.0 - 1.0, 1.0);
+  eyePos /= eyePos.w;
 
   // Compute the distance between the view ray line and the sphere center,
   // and the distance between the camera and the intersection of the view
   // ray with the sphere (or NaN if there is no intersection).
-  vec3 p = worldPos.xyz;
+  vec3 p = eyePos.xyz;
   float p_dot_v = dot(p, view_direction);
   float p_dot_p = dot(p, p);
 
   if (sceneDepth < 1.0)
-    distance_to_geom_intersection = length(camera - p);
+    distance_to_geom_intersection = length(p);//camera - p);
 
   // Compute the radiance reflected by the sphere, if the ray intersects it.
   float geometry_alpha = 0.0;
