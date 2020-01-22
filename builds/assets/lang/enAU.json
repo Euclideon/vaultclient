@@ -61,6 +61,7 @@
   "settingsAppearanceLimitFPS": "Limit FPS In Background",
   "settingsAppearanceShowCompass": "Show Compass On Screen",
   "settingsAppearanceLoginRenderLicense": "Checkout Render License On Login",
+  "settingsAppearanceShowNativeDialogs": "Show Native Dialogs",
   "settingsAppearanceShowSkybox": "Show Skybox",
   "settingsAppearanceSkyboxColour": "Background Colour",
   "settingsAppearanceSaturation": "Saturation",
