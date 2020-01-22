@@ -454,6 +454,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           // Temp directory
           vcIGSW_FilePicker(pProgramState, vcString::Get("convertTempDirectory"), pProgramState->settings.convertdefaults.tempDirectory, udLengthOf(pProgramState->settings.convertdefaults.tempDirectory), nullptr, 0, vcFDT_SelectDirectory, [pProgramState] {
             // Nothing needs to happen here
+            udUnused(pProgramState);
           });
 
           vcIGSW_FilePicker(pProgramState, vcString::Get("convertChangeDefaultWatermark"), pProgramState->settings.convertdefaults.watermark.filename, SupportedFileTypes_Images, vcFDT_OpenFile, [pProgramState] {
