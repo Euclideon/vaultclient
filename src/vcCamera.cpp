@@ -452,7 +452,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     keyboardInput.x += vcHotkey::IsDown(vcB_Right) - vcHotkey::IsDown(vcB_Left);
     keyboardInput.z += vcHotkey::IsDown(vcB_Up) - vcHotkey::IsDown(vcB_Down);
 
-    if (vcHotkey::IsPressed(vcB_LockAltitude))
+    if (vcHotkey::IsPressed(vcB_LockAltitude, false))
       pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
     if (vcHotkey::IsPressed(vcB_GizmoTranslate))
       pProgramState->gizmo.operation = ((pProgramState->gizmo.operation == vcGO_Translate) ? vcGO_NoGizmo : vcGO_Translate);

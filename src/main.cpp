@@ -305,6 +305,12 @@ void vcMain_MainLoop(vcState *pProgramState)
   ImGuiIO &io = ImGui::GetIO();
   io.KeysDown[SDL_SCANCODE_BACKSPACE] = false;
 
+  if (vcHotkey::IsPressed(vcB_BindingsInterface))
+  {
+    pProgramState->activeSetting = vcSR_KeyBindings;
+    pProgramState->openSettings = true;
+  }
+
   if (pProgramState->finishedStartup && pProgramState->hasContext)
   {
     bool firstLoad = true;

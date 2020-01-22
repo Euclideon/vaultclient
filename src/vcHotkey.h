@@ -6,10 +6,11 @@
 
 enum modifierFlags
 {
-  vcMOD_Shift = 1024,
-  vcMOD_Ctrl = 2048,
-  vcMOD_Alt = 4096,
-  vcMOD_Super = 8192
+  vcMOD_Mask = 511,
+  vcMOD_Shift = 512,
+  vcMOD_Ctrl = 1024,
+  vcMOD_Alt = 2048,
+  vcMOD_Super = 4096
 };
 
 enum vcBind
@@ -17,9 +18,11 @@ enum vcBind
   vcB_Forward,
   vcB_Backward,
   vcB_Left,
-  vcB_Up,
   vcB_Right,
+  vcB_Up,
   vcB_Down,
+
+  // Other Bindings
   vcB_Remove,
   vcB_Cancel,
   vcB_LockAltitude,
@@ -39,27 +42,22 @@ enum vcBind
 
 namespace vcHotkey
 {
+  void ClearState();
   bool HasPendingChanges();
   void ApplyPendingChanges();
   void RevertPendingChanges();
   bool IsDown(int keyNum);
   bool IsDown(vcBind key);
-  bool IsPressed(int keyNum);
-  bool IsPressed(vcBind key);
+  bool IsPressed(int keyNum, bool checkMod = true);
+  bool IsPressed(vcBind key, bool checkMod = true);
 
   void GetKeyName(vcBind key, char *pBuffer, uint32_t bufferLen);
   template <size_t N>
-  void GetKeyName(vcBind key, char(&buffer)[N])
-  {
-    GetKeyName(key, buffer, N);
-  };
+  void GetKeyName(vcBind key, char(&buffer)[N]) { GetKeyName(key, buffer, N); };
 
   void GetPendingKeyName(vcBind key, char *pBuffer, uint32_t bufferLen);
   template <size_t N>
-  void GetPendingKeyName(vcBind key, char(&buffer)[N])
-  {
-    GetPendingKeyName(key, buffer, N);
-  };
+  void GetPendingKeyName(vcBind key, char(&buffer)[N]) { GetPendingKeyName(key, buffer, N); };
 
   const char* GetBindName(vcBind key);
   vcBind BindFromName(const char* pName);

@@ -267,10 +267,24 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_Bindings || group == vcSC_All)
   {
-    for (int i = 0; i < vcB_Count; ++i)
-      vcHotkey::Set((vcBind)i, vcHotkey::DecodeKeyString(data.Get("keys.%s", vcHotkey::GetBindName((vcBind)i)).AsString()));
+    if (!data.Get("keys").IsObject())
+    {
+      vcSettings_Load(pSettings, true, vcSC_Bindings);
+    }
+    else if (data.Get("keys.%s", vcHotkey::GetBindName((vcBind)0)).IsString())
+    {
+      for (int i = 0; i < vcB_Count; ++i)
+        vcHotkey::Set((vcBind)i, vcHotkey::DecodeKeyString(data.Get("keys.%s", vcHotkey::GetBindName((vcBind)i)).AsString()));
 
-    vcHotkey::ApplyPendingChanges();
+      vcHotkey::ApplyPendingChanges();
+    }
+    else
+    {
+      for (int i = 0; i < vcB_Count; ++i)
+        vcHotkey::Set((vcBind)i, data.Get("keys.%s", vcHotkey::GetBindName((vcBind)i)).AsInt());
+
+      vcHotkey::ApplyPendingChanges();
+    }
   }
 
   if (group == vcSC_All)
@@ -313,7 +327,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->camera.lockAltitude = (data.Get("camera.moveMode").AsInt(0) == 1);
   }
 
-  if (forceReset)
+  if (forceReset && (group == vcSC_Docks || group == vcSC_All))
   {
     pSettings->docksLoaded = vcSettings::vcDockLoaded::vcDL_ForceReset;
   }
@@ -658,12 +672,8 @@ bool vcSettings_Save(vcSettings *pSettings)
   tempNode.SetString(pSettings->maptiles.tileServerExtension);
   data.Set(&tempNode, "maptiles.imgExtension");
 
-  char keyBuffer[50] = {};
   for (size_t i = 0; i < vcB_Count; ++i)
-  {
-    vcHotkey::GetKeyName((vcBind)i, keyBuffer, (uint32_t)udLengthOf(keyBuffer));
-    data.Set("keys.%s = '%s'", vcHotkey::GetBindName((vcBind)i), keyBuffer);
-  }
+    data.Set("keys.%s = %d", vcHotkey::GetBindName((vcBind)i), vcHotkey::Get((vcBind)i));
 
   int depth = 0;
   ImGuiDockNode *pRootNode = ImGui::DockBuilderGetNode(pSettings->rootDock);
