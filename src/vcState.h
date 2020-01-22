@@ -20,6 +20,7 @@
 #include "vdkContext.h"
 
 #include "imgui_ex/ImGuizmo.h"
+#include "imgui_ex/vcFileDialog.h"
 
 #include <vector>
 
@@ -170,6 +171,8 @@ struct vcState
 
     vcImageType imageType;
   } image;
+
+  vcFileDialog fileDialog;
 
   int64_t lastEventTime;
   vcTranslationInfo languageInfo;

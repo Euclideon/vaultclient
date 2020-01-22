@@ -10,8 +10,9 @@
 #include "vcVersion.h"
 #include "vcThirdPartyLicenses.h"
 #include "vcWebFile.h"
-
+#include "vcFeatures.h"
 #include "vcProxyHelper.h"
+
 #include "vdkConfig.h"
 
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
@@ -121,6 +122,10 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::Checkbox(vcString::Get("settingsAppearanceLimitFPS"), &pProgramState->settings.presentation.limitFPSInBackground);
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowCompass"), &pProgramState->settings.presentation.showCompass);
           ImGui::Checkbox(vcString::Get("settingsAppearanceLoginRenderLicense"), &pProgramState->settings.presentation.loginRenderLicense);
+
+#if VC_HASNATIVEFILEPICKER
+          ImGui::Checkbox(vcString::Get("settingsAppearanceShowNativeDialogs"), &pProgramState->settings.window.useNativeUI);
+#endif
 
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowSkybox"), &pProgramState->settings.presentation.showSkybox);
 
@@ -457,47 +462,65 @@ void vcSettingsUI_Show(vcState *pProgramState)
             vcSettings_Load(&pProgramState->settings, true, vcSC_Convert);
 
           // Temp directory
-          ImGui::InputText(vcString::Get("convertTempDirectory"), pProgramState->settings.convertdefaults.tempDirectory, udLengthOf(pProgramState->settings.convertdefaults.tempDirectory));
+          vcIGSW_FilePicker(pProgramState, vcString::Get("convertTempDirectory"), pProgramState->settings.convertdefaults.tempDirectory, udLengthOf(pProgramState->settings.convertdefaults.tempDirectory), nullptr, 0, vcFDT_SelectDirectory, [pProgramState] {
+            // Nothing needs to happen here
+            udUnused(pProgramState);
+          });
 
-          if (ImGui::Button(vcString::Get("convertChangeDefaultWatermark")))
-            vcModals_OpenModal(pProgramState, vcMT_ChangeDefaultWatermark);
-
-          if (pProgramState->settings.convertdefaults.watermark.pTexture != nullptr)
-          {
-            ImGui::SameLine();
-            if (ImGui::Button(vcString::Get("convertRemoveWatermark")))
-            {
-              memset(pProgramState->settings.convertdefaults.watermark.filename, 0, sizeof(pProgramState->settings.convertdefaults.watermark.filename));
-              pProgramState->settings.convertdefaults.watermark.width = 0;
-              pProgramState->settings.convertdefaults.watermark.height = 0;
-              vcTexture_Destroy(&pProgramState->settings.convertdefaults.watermark.pTexture);
-            }
-          }
-
-          if (pProgramState->settings.convertdefaults.watermark.isDirty)
-          {
-            pProgramState->settings.convertdefaults.watermark.isDirty = false;
-            vcTexture_Destroy(&pProgramState->settings.convertdefaults.watermark.pTexture);
+          vcIGSW_FilePicker(pProgramState, vcString::Get("convertChangeDefaultWatermark"), pProgramState->settings.convertdefaults.watermark.filename, SupportedFileTypes_Images, vcFDT_OpenFile, [pProgramState] {
+            //reload stuff
+            udFilename filename = pProgramState->settings.convertdefaults.watermark.filename;
             uint8_t *pData = nullptr;
-            int64_t dataSize = 0;
-            char buffer[vcMaxPathLength];
-            udStrcpy(buffer, pProgramState->settings.pSaveFilePath);
-            udStrcat(buffer, pProgramState->settings.convertdefaults.watermark.filename);
-            if (udFile_Load(buffer, (void**)&pData, &dataSize) == udR_Success)
+            int64_t dataLength = 0;
+            if (udFile_Load(pProgramState->settings.convertdefaults.watermark.filename, (void**)&pData, &dataLength) == udR_Success)
             {
-              int comp;
-              stbi_uc *pImg = stbi_load_from_memory(pData, (int)dataSize, &pProgramState->settings.convertdefaults.watermark.width, &pProgramState->settings.convertdefaults.watermark.height, &comp, 4);
+              // TODO: Resize watermark to the same dimensions as vdkConvert does - maybe requires additional VDK functionality?
+              filename.SetFolder(pProgramState->settings.pSaveFilePath);
+              udFile_Save(filename, pData, (size_t)dataLength);
+              udFree(pData);
+            }
+            udStrcpy(pProgramState->settings.convertdefaults.watermark.filename, filename.GetFilenameWithExt());
+            pProgramState->settings.convertdefaults.watermark.isDirty = true;
+          });
 
-              vcTexture_Create(&pProgramState->settings.convertdefaults.watermark.pTexture, pProgramState->settings.convertdefaults.watermark.width, pProgramState->settings.convertdefaults.watermark.height, pImg);
+          ImGui::Indent();
+          {
+            if (pProgramState->settings.convertdefaults.watermark.isDirty)
+            {
+              pProgramState->settings.convertdefaults.watermark.isDirty = false;
+              vcTexture_Destroy(&pProgramState->settings.convertdefaults.watermark.pTexture);
+              uint8_t *pData = nullptr;
+              int64_t dataSize = 0;
+              char buffer[vcMaxPathLength];
+              udStrcpy(buffer, pProgramState->settings.pSaveFilePath);
+              udStrcat(buffer, pProgramState->settings.convertdefaults.watermark.filename);
+              if (udFile_Load(buffer, (void**)&pData, &dataSize) == udR_Success)
+              {
+                int comp;
+                stbi_uc *pImg = stbi_load_from_memory(pData, (int)dataSize, &pProgramState->settings.convertdefaults.watermark.width, &pProgramState->settings.convertdefaults.watermark.height, &comp, 4);
 
-              stbi_image_free(pImg);
+                vcTexture_Create(&pProgramState->settings.convertdefaults.watermark.pTexture, pProgramState->settings.convertdefaults.watermark.width, pProgramState->settings.convertdefaults.watermark.height, pImg);
+
+                stbi_image_free(pImg);
+              }
+
+              udFree(pData);
             }
 
-            udFree(pData);
-          }
+            if (pProgramState->settings.convertdefaults.watermark.pTexture != nullptr)
+            {
+              ImGui::Image(pProgramState->settings.convertdefaults.watermark.pTexture, ImVec2(256, 256));
 
-          if (pProgramState->settings.convertdefaults.watermark.pTexture != nullptr)
-            ImGui::Image(pProgramState->settings.convertdefaults.watermark.pTexture, ImVec2(256, 256));
+              if (ImGui::Button(vcString::Get("convertRemoveWatermark")))
+              {
+                memset(pProgramState->settings.convertdefaults.watermark.filename, 0, sizeof(pProgramState->settings.convertdefaults.watermark.filename));
+                pProgramState->settings.convertdefaults.watermark.width = 0;
+                pProgramState->settings.convertdefaults.watermark.height = 0;
+                vcTexture_Destroy(&pProgramState->settings.convertdefaults.watermark.pTexture);
+              }
+            }
+          }
+          ImGui::Unindent();
 
           // Metadata
           ImGui::InputText(vcString::Get("convertAuthor"), pProgramState->settings.convertdefaults.author, udLengthOf(pProgramState->settings.convertdefaults.author));

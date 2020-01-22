@@ -225,6 +225,7 @@ Modules are currently:
 - `settingsAppearanceLimitFPS`: Label next to checkbox for limiting the frame-rate while vault client window is inactive or unselected
 - `settingsAppearanceShowCompass`: Label next to checkbox that toggles the appearance of a compass in the viewport
 - `settingsAppearanceLoginRenderLicense`: Label next to checkbox that toggles acquiring a render license automatically on login
+- `settingsAppearanceShowNativeDialogs`: Label next to checkbox that toggles displaying native dialogs
 - `settingsAppearanceShowSkybox`: Label next to checkbox that toggles if the skybox is displayed
 - `settingsAppearanceSkyboxColour`: Label next to colour picker to decide the colour of the background if the skybox is disabled
 - `settingsAppearanceSaturation`: Slider that applies saturation to the scene
