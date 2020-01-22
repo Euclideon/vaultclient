@@ -1611,7 +1611,7 @@ layout (std140) uniform u_fragParams
   vec4 u_earth_center; // w unused
   vec4 u_sun_direction;// w unused
   vec4 u_sun_size; //zw unused
-  mat4 u_inverseViewProjection;
+  mat4 u_inverseProjection;
 };
 
 uniform sampler2D u_sceneColour;
@@ -1660,6 +1660,11 @@ float logToLinearDepth(float logDepth)
   return a + b / worldDepth;
 }
 
+float linearizeDepth(float depth)
+{
+  return (2.0 * s_CameraNearPlane) / (s_CameraFarPlane + s_CameraNearPlane - depth * (s_CameraFarPlane - s_CameraNearPlane));
+}
+
 void main()
 {
   vec3 camera = u_camera.xyz;
@@ -1695,24 +1700,20 @@ we compute an approximate (and biased) opacity value, using the same
 approximation as in <code>GetSunVisibility</code>:
 */
 
-  float distance_to_geom_intersection = sqrt(-1.0);
-  vec4 eyePos = u_inverseViewProjection * vec4(v_uv * 2.0 - vec2(1.0), sceneDepth * 2.0 - 1.0, 1.0);
-  eyePos /= eyePos.w;
-
   // Compute the distance between the view ray line and the sphere center,
   // and the distance between the camera and the intersection of the view
   // ray with the sphere (or NaN if there is no intersection).
-  vec3 p = eyePos.xyz;
+  vec3 p = vec3(0.0);
   float p_dot_v = dot(p, view_direction);
   float p_dot_p = dot(p, p);
 
-  if (sceneDepth < 1.0)
-    distance_to_geom_intersection = length(p);//camera - p);
+  float distance_to_geom_intersection = linearizeDepth(sceneDepth) * 6000000.0;
 
   // Compute the radiance reflected by the sphere, if the ray intersects it.
   float geometry_alpha = 0.0;
   vec3 geometry_radiance = vec3(0.0);
-  if (distance_to_geom_intersection > 0.0) {
+  if (sceneDepth < 1.0)
+  {
     geometry_alpha = 1.0;
 
 /*
@@ -1721,12 +1722,14 @@ get the sun and sky irradiance received at this point. The reflected radiance
 follows, by multiplying the irradiance with the sphere BRDF:
 */
     vec3 point = camera + view_direction * distance_to_geom_intersection;
-    vec3 normal = vec3(0,0,1);//normalize(point - kSphereCenter);
+
+    vec3 normal = normalize(point - earth_center); // once we actually have normals...
 
     // Compute the radiance reflected by the sphere.
     vec3 sky_irradiance;
     vec3 sun_irradiance = GetSunAndSkyIrradiance(
         point - earth_center, normal, sun_direction, sky_irradiance);
+
     geometry_radiance =
         sceneColour.xyz * (1.0 / PI) * (sun_irradiance + sky_irradiance);
 
@@ -1738,7 +1741,7 @@ the sphere, which depends on the length of this segment which is in shadow:
     vec3 transmittance;
     vec3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,
         point - earth_center, shadow_length, sun_direction, transmittance);
-    geometry_radiance = geometry_radiance * transmittance + in_scatter;// * (1.0 - height_scatter_blend_hack);
+    geometry_radiance = geometry_radiance * transmittance + in_scatter;
   }
 
 /*
@@ -1773,14 +1776,13 @@ on the ground by the sun and sky visibility factors):
         sun_irradiance * GetSunVisibility(point, sun_direction, sceneDepth) +
         sky_irradiance * GetSkyVisibility(point, sceneDepth));
 
-
     float shadow_length =
         max(0.0, min(shadow_out, distance_to_intersection) - shadow_in) *
         lightshaft_fadein_hack;
     vec3 transmittance;
     vec3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,
         point - earth_center, shadow_length, sun_direction, transmittance);
-    ground_radiance = ground_radiance * transmittance + in_scatter;// * height_scatter_blend_hack;
+    ground_radiance = ground_radiance * transmittance + in_scatter;
     ground_alpha = 1.0;
   }
 
