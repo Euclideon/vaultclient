@@ -528,12 +528,11 @@
   "attributeBlendingUnknown": "Unknown",
 
   "bindingsTitle": "Key Bindings",
-  "bindingsSettingsRevert": "Revert",
   "bindingsSettingsSave": "Save",
   "bindingsColumnName": "Name",
   "bindingsColumnKeyCombination": "Key Combination",
   "bindingsColumnDescription": "Description",
-  "bindingsErrorUnbound": "Duplicate key binding has been unbound!",
+  "bindingsErrorBound": "Key not bound due to existing key binding",
   "bindingsClear": "Clear",
   "bindingsSelectKey": "Press a key combination to bind.",
 

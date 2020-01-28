@@ -4,7 +4,7 @@
 - Version 0.5.0
   - Added:
     - Bindings Interface
-      - `bindingsTitle`, `bindingsSettingsRevert`, `bindingsSettingsSave`, `bindingsColumnName`, `bindingsColumnKeyCombination`, `bindingsColumnDescriptions`, `bindingsErrorUnbound`, `bindingsClear`
+      - `bindingsTitle`, `bindingsSettingsSave`, `bindingsColumnName`, `bindingsColumnKeyCombination`, `bindingsColumnDescriptions`, `bindingsErrorUnbound`, `bindingsClear`
     - Bindings Key Descriptions
       - `bindingsLockAltitude`, `bindingsGizmoTranslate`, `bindingsGizmoRotate`, `bindingsGizmoScale`, `bindingsGizmoLocalSpace`, `bindingsFullscreen`, `bindingsAddUDS`, `bindingsRemove`, `bindingsCameraForward`, `bindingsCameraBackward`, `bindingsCameraLeft`, `bindingsCameraRight`, `bindingsCameraUp`, `bindingsCameraDown`, `bindingsBindingsInterface`, `bindingsCancel`, `bindingsRenameSceneItem`, `bindingsSave`, `bindingsLoad`, `bindingsUndo`
     - Convert
@@ -767,7 +767,6 @@ Modules are currently:
 #### Bindings Interface
 
 - `bindingsTitle`: Title for key bindings window
-- `bindingsSettingsRevert`: Label for revert button on key bindings window
 - `bindingsSettingsSave`: Label for save button on key bindings window
 - `bindingsColumnName`: Header for key binding name column
 - `bindingsColumnKeyCombination`: Header for key binding key combination column

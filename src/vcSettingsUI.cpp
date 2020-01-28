@@ -438,17 +438,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
           if (ImGui::Button(udTempStr("%s###bindingsLoad", vcString::Get("settingsRestoreDefaults"))) || vcHotkey::IsPressed(vcB_Load))
             vcSettings_Load(&pProgramState->settings, true, vcSC_Bindings);
 
-          if (vcHotkey::HasPendingChanges())
-          {
-            ImGui::SameLine();
-            if (ImGui::Button(udTempStr("%s###bindingsRevert", vcString::Get("bindingsSettingsRevert"))) || vcHotkey::IsPressed(vcB_Undo))
-              vcHotkey::RevertPendingChanges();
-
-            ImGui::SameLine();
-            if (ImGui::Button(udTempStr("%s###bindingsSave", vcString::Get("bindingsSettingsSave"))) || vcHotkey::IsPressed(vcB_Save))
-              vcHotkey::ApplyPendingChanges();
-          }
-
           vcHotkey::DisplayBindings(pProgramState);
         }
         else

@@ -14,7 +14,6 @@ namespace vcHotkey
 {
   static int target = -1;
   static int keyBinds[vcB_Count] = {};
-  static int pendingKeyBinds[vcB_Count] = {};
 
   const char* bindNames[] =
   {
@@ -73,25 +72,9 @@ namespace vcHotkey
     "bindingsErrorUnbound",
     "bindingsSelectKey"
   };
-
-  bool HasPendingChanges()
-  {
-    return memcmp(keyBinds, pendingKeyBinds, sizeof(keyBinds));
-  }
-
   void ClearState()
   {
     target = -1;
-  }
-
-  void ApplyPendingChanges()
-  {
-    memcpy(keyBinds, pendingKeyBinds, sizeof(keyBinds));
-  }
-
-  void RevertPendingChanges()
-  {
-    memcpy(pendingKeyBinds, keyBinds, sizeof(keyBinds));
   }
 
   bool IsDown(int keyNum)
@@ -189,12 +172,6 @@ namespace vcHotkey
   {
     int mappedKey = (key == vcB_Count ? 0 : keyBinds[key]);
     NameFromKey(mappedKey, pBuffer, bufferLen);
-  }
-
-  void GetPendingKeyName(vcBind key, char *pBuffer, uint32_t bufferLen)
-  {
-    int mappedKey = (key == vcB_Count ? 0 : pendingKeyBinds[key]);
-    NameFromKey(mappedKey, pBuffer, bufferLen);
 
     if (key >= vcB_Forward && key <= vcB_Down)
       udStrcat(pBuffer, bufferLen, "* [Shift] Speed + | [Ctrl] Speed -");
@@ -240,17 +217,12 @@ namespace vcHotkey
 
   void Set(vcBind key, int value)
   {
-    pendingKeyBinds[(int)key] = value;
+    keyBinds[(int)key] = value;
   }
 
   int Get(vcBind key)
   {
     return keyBinds[key];
-  }
-
-  int GetPending(vcBind key)
-  {
-    return pendingKeyBinds[key];
   }
 
   void DisplayBindings(vcState *pProgramState)
@@ -267,7 +239,7 @@ namespace vcHotkey
         {
           for (int i = 0; i < vcB_Count; ++i)
           {
-            if (pendingKeyBinds[i] == pProgramState->currentKey)
+            if (keyBinds[i] == pProgramState->currentKey)
             {
               Set((vcBind)i, 0);
               break;
@@ -315,7 +287,7 @@ namespace vcHotkey
         }
       }
 
-      if (vcHotkey::GetPending((vcBind)i) == 0)
+      if (vcHotkey::Get((vcBind)i) == 0)
       {
         ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::ColorConvertFloat4ToU32(keyErrorColours[vcKES_Unbound]), 0.0f, ImDrawCornerFlags_All, 2.0f);
 
@@ -329,7 +301,7 @@ namespace vcHotkey
       ImGui::NextColumn();
 
       char key[100];
-      GetPendingKeyName((vcBind)i, key, (uint32_t)udLengthOf(key));
+      GetKeyName((vcBind)i, key, (uint32_t)udLengthOf(key));
       ImGui::TextUnformatted(key);
 
       ImGui::NextColumn();
