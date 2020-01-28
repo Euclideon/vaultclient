@@ -904,7 +904,8 @@ int main(int argc, char **args)
     vcMain_MainLoop(&programState);
 #endif
 
-  vcSettings_Save(&programState.settings);
+  if (!programState.openSettings || programState.activeSetting != vcSR_KeyBindings)
+    vcSettings_Save(&programState.settings);
 
 epilogue:
   udFree(programState.pReleaseNotes);

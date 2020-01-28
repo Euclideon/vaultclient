@@ -2,6 +2,7 @@
 
 #include "vcStrings.h"
 #include "vcStringFormat.h"
+#include "vcSettingsUI.h"
 
 #include "udStringUtil.h"
 
@@ -56,22 +57,6 @@ namespace vcHotkey
     vcMOD_Super
   };
 
-  enum KeyErrorStrings
-  {
-    vcKES_Unbound = 0,
-    vcKES_Select = 1,
-    vcKES_Count = 2
-  };
-  ImVec4 keyErrorColours[] =
-  {
-    ImVec4(1, 0, 0, 1),
-    ImVec4(1, 1, 1, 1)
-  };
-  static const char *keyErrors[] =
-  {
-    "bindingsErrorUnbound",
-    "bindingsSelectKey"
-  };
   void ClearState()
   {
     target = -1;
@@ -227,32 +212,33 @@ namespace vcHotkey
 
   void DisplayBindings(vcState *pProgramState)
   {
-    int errors = 0;
-
     if (target != -1)
     {
-      errors |= (1 << vcKES_Select);
-
       if (pProgramState->currentKey)
       {
-        if (target >= 0)
+        int i = 0;
+        for (; i < vcB_Count; ++i)
         {
-          for (int i = 0; i < vcB_Count; ++i)
-          {
-            if (keyBinds[i] == pProgramState->currentKey)
-            {
-              Set((vcBind)i, 0);
-              break;
-            }
-          }
-
-          Set((vcBind)target, pProgramState->currentKey);
-          target *= -1;
+          if (keyBinds[i] == pProgramState->currentKey)
+            break;
         }
 
-        if (!ImGui::IsKeyPressed((pProgramState->currentKey & vcMOD_Mask), true))
+        if (i == vcB_Count)
+        {
+          Set((vcBind)target, pProgramState->currentKey);
+          vcSettingsUI_UnsetError(vcSE_Bound);
           target = -1;
+        }
+        else
+        {
+          vcSettingsUI_SetError(vcSE_Bound);
+        }
       }
+    }
+    else
+    {
+      vcSettingsUI_UnsetError(vcSE_Bound);
+      vcSettingsUI_UnsetError(vcSE_Select);
     }
 
     ImGui::Columns(3);
@@ -274,7 +260,7 @@ namespace vcHotkey
     {
       if (ImGui::Button(bindNames[i], ImVec2(-1, 0)))
       {
-        errors = 0;
+        vcSettingsUI_UnsetError(vcSE_Bound);
         if (target == i)
         {
           Set((vcBind)i, 0);
@@ -283,20 +269,13 @@ namespace vcHotkey
         else
         {
           pProgramState->currentKey = 0;
+          vcSettingsUI_SetError(vcSE_Select);
           target = i;
         }
       }
 
-      if (vcHotkey::Get((vcBind)i) == 0)
-      {
-        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::ColorConvertFloat4ToU32(keyErrorColours[vcKES_Unbound]), 0.0f, ImDrawCornerFlags_All, 2.0f);
-
-        errors |= (1 << vcKES_Unbound);
-      }
-      else if (target == i)
-      {
-        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::ColorConvertFloat4ToU32(keyErrorColours[vcKES_Select]), 0.0f, ImDrawCornerFlags_All, 2.0f);
-      }
+      if (target == i)
+        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::ColorConvertFloat4ToU32(vcSettingsUI_GetErrorColour(vcSE_Select)), 0.0f, ImDrawCornerFlags_All, 2.0f);
 
       ImGui::NextColumn();
 
@@ -311,15 +290,6 @@ namespace vcHotkey
     }
 
     ImGui::EndColumns();
-
-    if (errors != 0)
-    {
-      for (int i = 0; i < vcKES_Count; ++i)
-      {
-        if (errors & (1 << i))
-          ImGui::TextColored(keyErrorColours[i], "%s", vcString::Get(keyErrors[i]));
-      }
-    }
   }
 
   int DecodeKeyString(const char *pBind)

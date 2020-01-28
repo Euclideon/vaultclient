@@ -21,7 +21,62 @@
 #include "udStringUtil.h"
 #include "udFile.h"
 
-#define MAX_DISPLACEMENT 1000.f
+#define MAX_DISPLACEMENT 10000.f
+
+/*
+Add errors by placing an entry in the language file with the error message, this entry name goes below in settingsErrors[].
+Add a colour in vec4 RGBA format below, and add to the error enum vcSE_ vcSettingsErrors then use vcSettingsUI_Set/Unset/Check Error functions
+*/
+static const char *settingsErrors[] =
+{
+  "bindingsErrorBound",
+  "bindingsSelectKey"
+};
+
+static const ImVec4 settingsErrorColours[] =
+{
+  ImVec4(1, 0, 0, 1),
+  ImVec4(1, 1, 1, 1)
+};
+
+static const vcSettingCategory categoryMapping[] =
+{
+  vcSC_Appearance,
+  vcSC_InputControls,
+  vcSC_Viewport,
+  vcSC_MapsElevation,
+  vcSC_Visualization,
+  vcSC_Bindings,
+  vcSC_Convert,
+  vcSC_Count,
+  vcSC_Count,
+  vcSC_Count,
+  vcSC_Count
+};
+UDCOMPILEASSERT(vcSC_Count == 10, "Update the above mapping if necessary");
+UDCOMPILEASSERT(vcSR_Count == 11, "Update the above mapping if necessary");
+
+static int errors = 0;
+
+void vcSettingsUI_SetError(vcSettingsErrors error)
+{
+  errors = errors | error;
+}
+
+void vcSettingsUI_UnsetError(vcSettingsErrors error)
+{
+  errors = errors & ~error;
+}
+
+bool vcSettingsUI_CheckError(vcSettingsErrors error)
+{
+  return ((errors & error) == error);
+}
+
+ImVec4 vcSettingsUI_GetErrorColour(vcSettingsErrors error)
+{
+  return settingsErrorColours[int(udLog2((float)error))];
+}
 
 void vcSettingsUI_Show(vcState *pProgramState)
 {
@@ -35,7 +90,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
   if (ImGui::BeginPopupModal(udTempStr("%s###settingsDock", vcString::Get("settingsTitle"))))
   {
     ImGui::Columns(2, NULL, false);
-    ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 100.f);
+    ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 125.f);
     ImGui::Text("Euclideon Vault Client %s", VCVERSION_PRODUCT_STRING);
 
     char strBuf[128];
@@ -51,8 +106,36 @@ void vcSettingsUI_Show(vcState *pProgramState)
     }
 
     ImGui::NextColumn();
-    ImGui::Columns(1);
+    ImGui::Separator();
 
+    if (errors != 0)
+    {
+      for (int i = 0; i < vcSE_Count; ++i)
+      {
+        if (errors & (1 << i))
+          ImGui::TextColored(settingsErrorColours[i], "%s", vcString::Get(settingsErrors[i]));
+      }
+    }
+    else
+    {
+      ImGui::Text("%s", "");
+    }
+
+    ImGui::NextColumn();
+
+    if (categoryMapping[pProgramState->activeSetting] != vcSC_Count && (ImGui::Button(udTempStr("%s##CategoryRestore", vcString::Get("settingsRestoreDefaults")), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Load)))
+    {
+      vcSettings_Load(&pProgramState->settings, true, categoryMapping[pProgramState->activeSetting]);
+      if (categoryMapping[pProgramState->activeSetting] == vcSC_MapsElevation)
+      {
+        if (pProgramState->tileModal.pServerIcon != nullptr)
+          vcTexture_Destroy(&pProgramState->tileModal.pServerIcon);
+        vcRender_ClearTiles(pProgramState->pRenderContext); // refresh map tiles since they just got updated
+      }
+      vcHotkey::ClearState();
+    }
+
+    ImGui::EndColumns();
     ImGui::Separator();
 
     if (ImGui::BeginChild("__settingsPane"))
@@ -93,9 +176,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
       {
         if (pProgramState->activeSetting == vcSR_Appearance)
         {
-          if (ImGui::Button(udTempStr("%s##AppearanceRestore", vcString::Get("settingsRestoreDefaults"))))
-            vcSettings_Load(&pProgramState->settings, true, vcSC_Appearance);
-
           vcSettingsUI_LangCombo(pProgramState);
           ImGui::SameLine();
           ImGui::TextUnformatted(vcString::Get("settingsAppearanceLanguage"));
@@ -153,9 +233,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
         if (pProgramState->activeSetting == vcSR_Inputs)
         {
-          if (ImGui::Button(udTempStr("%s##ControlsRestore", vcString::Get("settingsRestoreDefaults"))))
-            vcSettings_Load(&pProgramState->settings, true, vcSC_InputControls);
-
           ImGui::Checkbox(vcString::Get("settingsControlsOSC"), &pProgramState->settings.onScreenControls);
           if (ImGui::Checkbox(vcString::Get("settingsControlsTouchUI"), &pProgramState->settings.window.touchscreenFriendly))
           {
@@ -185,9 +262,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
         if (pProgramState->activeSetting == vcSR_Viewports)
         {
-          if (ImGui::Button(udTempStr("%s##ViewportRestore", vcString::Get("settingsRestoreDefaults"))))
-            vcSettings_Load(&pProgramState->settings, true, vcSC_Viewport);
-
           if (ImGui::SliderFloat(vcString::Get("settingsViewportViewDistance"), &pProgramState->settings.camera.farPlane, vcSL_CameraFarPlaneMin, vcSL_CameraFarPlaneMax, "%.3fm", 2.f))
             pProgramState->settings.camera.nearPlane = pProgramState->settings.camera.farPlane * vcSL_CameraFarToNearPlaneRatio;
 
@@ -240,14 +314,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
         if (pProgramState->activeSetting == vcSR_Maps)
         {
-          if (ImGui::Button(udTempStr("%s##MapRestore", vcString::Get("settingsRestoreDefaults"))))
-          {
-            vcSettings_Load(&pProgramState->settings, true, vcSC_MapsElevation);
-            if (pProgramState->tileModal.pServerIcon != nullptr)
-              vcTexture_Destroy(&pProgramState->tileModal.pServerIcon);
-            vcRender_ClearTiles(pProgramState->pRenderContext); // refresh map tiles since they just got updated
-          }
-
           ImGui::Checkbox(vcString::Get("settingsMapsMapTiles"), &pProgramState->settings.maptiles.mapEnabled);
 
           if (pProgramState->settings.maptiles.mapEnabled)
@@ -287,9 +353,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
         if (pProgramState->activeSetting == vcSR_Visualisations)
         {
-          if (ImGui::Button(udTempStr("%s##VisRestore", vcString::Get("settingsRestoreDefaults"))))
-            vcSettings_Load(&pProgramState->settings, true, vcSC_Visualization);
-
           ImGui::ColorEdit4(vcString::Get("settingsVisHighlightColour"), &pProgramState->settings.objectHighlighting.colour.x);
           ImGui::SliderFloat(vcString::Get("settingsVisHighlightThickness"), &pProgramState->settings.objectHighlighting.thickness, 1.0f, 3.0f);
 
@@ -442,22 +505,12 @@ void vcSettingsUI_Show(vcState *pProgramState)
         }
 
         if (pProgramState->activeSetting == vcSR_KeyBindings)
-        {
-          if (ImGui::Button(udTempStr("%s###bindingsLoad", vcString::Get("settingsRestoreDefaults"))) || vcHotkey::IsPressed(vcB_Load))
-            vcSettings_Load(&pProgramState->settings, true, vcSC_Bindings);
-
           vcHotkey::DisplayBindings(pProgramState);
-        }
         else
-        {
           vcHotkey::ClearState();
-        }
 
         if (pProgramState->activeSetting == vcSR_ConvertDefaults)
         {
-          if (ImGui::Button(udTempStr("%s##ConvertRestore", vcString::Get("settingsRestoreDefaults"))))
-            vcSettings_Load(&pProgramState->settings, true, vcSC_Convert);
-
           // Temp directory
           vcIGSW_FilePicker(pProgramState, vcString::Get("convertTempDirectory"), pProgramState->settings.convertdefaults.tempDirectory, udLengthOf(pProgramState->settings.convertdefaults.tempDirectory), nullptr, 0, vcFDT_SelectDirectory, [pProgramState] {
             // Nothing needs to happen here
