@@ -223,5 +223,27 @@
       "wr": 0.000000,
       "hr": 394.000000
     }
-  ]
+  ],
+  "keys": {
+    "CameraForward": 26,
+    "CameraBackward": 22,
+    "CameraLeft": 4,
+    "CameraRight": 7,
+    "CameraUp": 21,
+    "CameraDown": 9,
+    "Remove": 76,
+    "Cancel": 41,
+    "LockAltitude": 44,
+    "GizmoTranslate": 5,
+    "GizmoRotate": 17,
+    "GizmoScale": 16,
+    "GizmoLocalSpace": 6,
+    "Fullscreen": 62,
+    "RenameSceneItem": 60,
+    "Save": 1046,
+    "Load": 1039,
+    "AddUDS": 1048,
+    "BindingsInterface": 1029,
+    "Undo": 1053
+  }
 }
