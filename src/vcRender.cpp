@@ -542,6 +542,19 @@ epilogue:
   return result;
 }
 
+udDouble3 vcRender_DepthToWorldPosition(vcState *pProgramState, vcRenderContext *pRenderContext, double depth)
+{
+  double nonZeroDepth = (depth == 0.0) ? 1.0 : depth;
+
+  // note: upside down (1.0 - uv.y)
+  udDouble4 clipPos = udDouble4::create(pRenderContext->currentMouseUV.x * 2.0 - 1.0, (1.0 - pRenderContext->currentMouseUV.y) * 2.0 - 1.0, nonZeroDepth, 1.0);
+#if GRAPHICS_API_OPENGL
+  clipPos.z = clipPos.z * 2.0 - 1.0;
+#endif
+  udDouble4 pickPosition4 = pProgramState->camera.matrices.inverseViewProjection * clipPos;
+  return pickPosition4.toVector3() / pickPosition4.w;
+}
+
 void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
   // Draw the skybox only at the far plane, where there is no geometry.
@@ -1148,6 +1161,11 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   if (pProgramState->settings.presentation.mouseAnchor != vcAS_None && (pProgramState->pickingSuccess || pProgramState->isUsingAnchorPoint))
   {
+    // resolve (last frame) polygon vs. (current frame) UD here
+    udDouble3 pickPosition = vcRender_DepthToWorldPosition(pProgramState, pRenderContext, pRenderContext->previousFrameDepth);
+    if (udMagSq(pickPosition - pProgramState->camera.position) < udMagSq(pProgramState->worldMousePosCartesian - pProgramState->camera.position))
+      pProgramState->worldMousePosCartesian = pickPosition;
+
     udDouble4x4 mvp = pProgramState->camera.matrices.viewProjection * udDouble4x4::translation(pProgramState->isUsingAnchorPoint ? pProgramState->worldAnchorPoint : pProgramState->worldMousePosCartesian);
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 
@@ -1533,20 +1551,9 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     pickDepth = pRenderContext->previousFrameDepth;
   }
 
-  if (pickDepth == 0.0)
-    pickDepth = 1.0;
-
   if (result.success)
   {
-    // note: upside down (1.0 - uv.y)
-    udDouble4 clipPos = udDouble4::create(pRenderContext->currentMouseUV.x * 2.0 - 1.0, (1.0 - pRenderContext->currentMouseUV.y) * 2.0 - 1.0, pickDepth, 1.0);
-#if GRAPHICS_API_OPENGL
-    clipPos.z = clipPos.z * 2.0 - 1.0;
-#endif
-    udDouble4 pickPosition = pProgramState->camera.matrices.inverseViewProjection * clipPos;
-    pickPosition = pickPosition / pickPosition.w;
-    result.position = pickPosition.toVector3();
-
+    result.position = vcRender_DepthToWorldPosition(pProgramState, pRenderContext, pickDepth);
     currentDist = udMag3(result.position - pProgramState->camera.position);
   }
 
