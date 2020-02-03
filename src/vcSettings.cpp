@@ -267,24 +267,28 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_Bindings || group == vcSC_All)
   {
-    if (!data.Get("keys").IsObject())
-    {
-      vcSettings_Load(pSettings, true, vcSC_Bindings);
-    }
-    else if (data.Get("keys.%s", vcHotkey::GetBindName((vcBind)0)).IsString())
-    {
-      for (int i = 0; i < vcB_Count; ++i)
-        vcHotkey::Set((vcBind)i, vcHotkey::DecodeKeyString(data.Get("keys.%s", vcHotkey::GetBindName((vcBind)i)).AsString()));
+    vcHotkey::Set(vcB_Forward, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Forward)).AsInt(26));
+    vcHotkey::Set(vcB_Backward, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Backward)).AsInt(22));
+    vcHotkey::Set(vcB_Left, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Left)).AsInt(4));
+    vcHotkey::Set(vcB_Right, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Right)).AsInt(7));
+    vcHotkey::Set(vcB_Up, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Up)).AsInt(21));
+    vcHotkey::Set(vcB_Down, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Down)).AsInt(9));
+    vcHotkey::Set(vcB_Remove, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Remove)).AsInt(76));
+    vcHotkey::Set(vcB_Cancel, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Cancel)).AsInt(41));
+    vcHotkey::Set(vcB_LockAltitude, data.Get("keys.%s", vcHotkey::GetBindName(vcB_LockAltitude)).AsInt(44));
+    vcHotkey::Set(vcB_GizmoTranslate, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoTranslate)).AsInt(5));
+    vcHotkey::Set(vcB_GizmoRotate, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoRotate)).AsInt(17));
+    vcHotkey::Set(vcB_GizmoScale, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoScale)).AsInt(16));
+    vcHotkey::Set(vcB_GizmoLocalSpace, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoLocalSpace)).AsInt(6));
+    vcHotkey::Set(vcB_Fullscreen, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Fullscreen)).AsInt(62));
+    vcHotkey::Set(vcB_RenameSceneItem, data.Get("keys.%s", vcHotkey::GetBindName(vcB_RenameSceneItem)).AsInt(60));
+    vcHotkey::Set(vcB_Save, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Save)).AsInt(1046));
+    vcHotkey::Set(vcB_Load, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Load)).AsInt(1039));
+    vcHotkey::Set(vcB_AddUDS, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddUDS)).AsInt(1048));
+    vcHotkey::Set(vcB_BindingsInterface, data.Get("keys.%s", vcHotkey::GetBindName(vcB_BindingsInterface)).AsInt(1029));
+    vcHotkey::Set(vcB_Undo, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Undo)).AsInt(1053));
 
-      vcHotkey::ApplyPendingChanges();
-    }
-    else
-    {
-      for (int i = 0; i < vcB_Count; ++i)
-        vcHotkey::Set((vcBind)i, data.Get("keys.%s", vcHotkey::GetBindName((vcBind)i)).AsInt());
-
-      vcHotkey::ApplyPendingChanges();
-    }
+    vcHotkey::ApplyPendingChanges();
   }
 
   if (group == vcSC_All)
