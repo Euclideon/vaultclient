@@ -83,7 +83,7 @@ namespace vcHotkey
 
     if (keyNum > vcMOD_Mask)
     {
-      if (((keyNum & vcMOD_Shift) == vcMOD_Shift) != io.KeyCtrl)
+      if (((keyNum & vcMOD_Shift) == vcMOD_Shift) != io.KeyShift)
         return false;
       if (((keyNum & vcMOD_Ctrl) == vcMOD_Ctrl) != io.KeyCtrl)
         return false;
