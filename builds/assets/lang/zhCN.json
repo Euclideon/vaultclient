@@ -540,10 +540,8 @@
   "attributeBlendingSingle": "单一值",
   "attributeBlendingUnknown": "未知",
 
-  "bindingsModalTitle": "快捷键设置",
-  "bindingsModalClose": "关闭",
-  "bindingsModalSave": "保存设置",
-  "bindingsModalDefaults": "恢复默认",
+  "bindingsTitle": "快捷键设置",
+  "bindingsSettingsSave": "保存设置",
   "bindingsColumnName": "功能",
   "bindingsColumnKeyCombination": "键盘组合",
   "bindingsColumnDescription": "描述",

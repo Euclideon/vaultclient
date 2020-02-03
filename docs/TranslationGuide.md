@@ -4,7 +4,7 @@
 - Version 0.5.0
   - Added:
     - Bindings Interface
-      - `bindingsModalTitle`, `bindingsModalRevert`, `bindingsModalSave`, `bindingsModalDefaults`, `bindingsColumnName`, `bindingsColumnKeyCombination`, `bindingsColumnDescriptions`, `bindingsErrorUnbound`, `bindingsClear`
+      - `bindingsTitle`, `bindingsSettingsRevert`, `bindingsSettingsSave`, `bindingsColumnName`, `bindingsColumnKeyCombination`, `bindingsColumnDescriptions`, `bindingsErrorUnbound`, `bindingsClear`
     - Bindings Key Descriptions
       - `bindingsLockAltitude`, `bindingsGizmoTranslate`, `bindingsGizmoRotate`, `bindingsGizmoScale`, `bindingsGizmoLocalSpace`, `bindingsFullscreen`, `bindingsAddUDS`, `bindingsRemove`, `bindingsCameraForward`, `bindingsCameraBackward`, `bindingsCameraLeft`, `bindingsCameraRight`, `bindingsCameraUp`, `bindingsCameraDown`, `bindingsBindingsInterface`, `bindingsCancel`, `bindingsRenameSceneItem`, `bindingsSave`, `bindingsLoad`, `bindingsUndo`
     - Convert
@@ -770,10 +770,9 @@ Modules are currently:
 
 #### Bindings Interface
 
-- `bindingsModalTitle`: Title for key bindings window
-- `bindingsModalRevert`: Label for revert button on key bindings window
-- `bindingsModalSave`: Label for save/close button on key bindings window
-- `bindingsModalDefaults`: Label for button that loads defaults on key bindings window
+- `bindingsTitle`: Title for key bindings window
+- `bindingsSettingsRevert`: Label for revert button on key bindings window
+- `bindingsSettingsSave`: Label for save button on key bindings window
 - `bindingsColumnName`: Header for key binding name column
 - `bindingsColumnKeyCombination`: Header for key binding key combination column
 - `bindingsColumnDescription`: Header for key binding description column

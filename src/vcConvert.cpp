@@ -557,7 +557,10 @@ void vcConvert_ShowUI(vcState *pProgramState)
           ImGui::Indent();
 
           if (ImGui::InputDouble(udTempStr("%s##ConvertResolution", vcString::Get("convertPointResolution")), &resolution, 0.0001, 0.01, "%.6f"))
+          {
+            resolution = udClamp(resolution, 0.000001, 10000.0);
             vdkConvert_SetPointResolution(pSelectedJob->pConvertContext, 1, resolution);
+          }
 
           ImGui::Unindent();
         }

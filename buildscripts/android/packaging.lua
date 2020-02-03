@@ -1,4 +1,4 @@
-VAULTSDK_HOME = path.translate(os.getenv('VAULTSDK_HOME'))
+VAULTSDK_HOME = path.translate(os.getenv('VAULTSDK_HOME') or '')
 
 project "EuclideonVaultClient"
 	-- Settings

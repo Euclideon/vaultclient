@@ -4,18 +4,15 @@
 #include "udPlatform.h"
 #include "udMath.h"
 
-#define VCGL_HASSTENCIL (UDPLATFORM_WINDOWS || UDPLATFORM_LINUX || UDPLATFORM_OSX)
-
 enum vcTextureFormat
 {
   vcTextureFormat_Unknown,
 
   vcTextureFormat_RGBA8,
   vcTextureFormat_BGRA8,
-#if VCGL_HASSTENCIL
-  vcTextureFormat_D24S8,
-#endif
+
   vcTextureFormat_D32F,
+  vcTextureFormat_D24S8,
 
   vcTextureFormat_Count
 };

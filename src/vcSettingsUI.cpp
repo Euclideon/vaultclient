@@ -47,6 +47,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
     {
       vcSettings_Save(&pProgramState->settings);
       ImGui::CloseCurrentPopup();
+      vcHotkey::ClearState();
     }
 
     ImGui::NextColumn();
@@ -62,23 +63,27 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
       if (ImGui::BeginChild("__settingsPaneCategories"))
       {
-        ImGui::RadioButton(udTempStr("%s##AppearanceSettings", vcString::Get("settingsAppearance")), &pProgramState->activeSetting, vcSR_Appearance);
-        ImGui::RadioButton(udTempStr("%s##InputSettings", vcString::Get("settingsControls")), &pProgramState->activeSetting, vcSR_Inputs);
-        ImGui::RadioButton(udTempStr("%s##ViewportSettings", vcString::Get("settingsViewport")), &pProgramState->activeSetting, vcSR_Viewports);
-        ImGui::RadioButton(udTempStr("%s##MapSettings", vcString::Get("settingsMaps")), &pProgramState->activeSetting, vcSR_Maps);
-        ImGui::RadioButton(udTempStr("%s##VisualisationSettings", vcString::Get("settingsVis")), &pProgramState->activeSetting, vcSR_Visualisations);
-        ImGui::RadioButton(udTempStr("%s##KeyBindings", vcString::Get("bindingsTitle")), &pProgramState->activeSetting, vcSR_KeyBindings);
-        ImGui::RadioButton(udTempStr("%s##ConvertSettings", vcString::Get("settingsConvert")), &pProgramState->activeSetting, vcSR_ConvertDefaults);
-        ImGui::RadioButton(udTempStr("%s##ConnectionSettings", vcString::Get("settingsConnection")), &pProgramState->activeSetting, vcSR_Connection);
+        bool change = false;
+        change |= ImGui::RadioButton(udTempStr("%s##AppearanceSettings", vcString::Get("settingsAppearance")), &pProgramState->activeSetting, vcSR_Appearance);
+        change |= ImGui::RadioButton(udTempStr("%s##InputSettings", vcString::Get("settingsControls")), &pProgramState->activeSetting, vcSR_Inputs);
+        change |= ImGui::RadioButton(udTempStr("%s##ViewportSettings", vcString::Get("settingsViewport")), &pProgramState->activeSetting, vcSR_Viewports);
+        change |= ImGui::RadioButton(udTempStr("%s##MapSettings", vcString::Get("settingsMaps")), &pProgramState->activeSetting, vcSR_Maps);
+        change |= ImGui::RadioButton(udTempStr("%s##VisualisationSettings", vcString::Get("settingsVis")), &pProgramState->activeSetting, vcSR_Visualisations);
+        change |= ImGui::RadioButton(udTempStr("%s##KeyBindings", vcString::Get("bindingsTitle")), &pProgramState->activeSetting, vcSR_KeyBindings);
+        change |= ImGui::RadioButton(udTempStr("%s##ConvertSettings", vcString::Get("settingsConvert")), &pProgramState->activeSetting, vcSR_ConvertDefaults);
+        change |= ImGui::RadioButton(udTempStr("%s##ConnectionSettings", vcString::Get("settingsConnection")), &pProgramState->activeSetting, vcSR_Connection);
 
         ImGui::Separator();
 
-        ImGui::RadioButton(udTempStr("%s##ReleaseNotes", vcString::Get("menuReleaseNotes")), &pProgramState->activeSetting, vcSR_ReleaseNotes);
+        change |= ImGui::RadioButton(udTempStr("%s##ReleaseNotes", vcString::Get("menuReleaseNotes")), &pProgramState->activeSetting, vcSR_ReleaseNotes);
 
         if (pProgramState->packageInfo.Get("success").AsBool())
-          ImGui::RadioButton(udTempStr("%s##UpdateAvailable", vcString::Get("menuNewVersion")), &pProgramState->activeSetting, vcSR_Update);
+          change |= ImGui::RadioButton(udTempStr("%s##UpdateAvailable", vcString::Get("menuNewVersion")), &pProgramState->activeSetting, vcSR_Update);
 
-        ImGui::RadioButton(udTempStr("%s##About", vcString::Get("menuAbout")), &pProgramState->activeSetting, vcSR_About);
+        change |= ImGui::RadioButton(udTempStr("%s##About", vcString::Get("menuAbout")), &pProgramState->activeSetting, vcSR_About);
+
+        if (change)
+          vcHotkey::ClearState();
       }
       ImGui::EndChild();
 
@@ -444,14 +449,19 @@ void vcSettingsUI_Show(vcState *pProgramState)
           if (vcHotkey::HasPendingChanges())
           {
             ImGui::SameLine();
-            if (ImGui::Button(udTempStr("%s###bindingsRevert", vcString::Get("bindingsModalRevert"))) || vcHotkey::IsPressed(vcB_Undo))
+            if (ImGui::Button(udTempStr("%s###bindingsRevert", vcString::Get("bindingsSettingsRevert"))) || vcHotkey::IsPressed(vcB_Undo))
               vcHotkey::RevertPendingChanges();
+
             ImGui::SameLine();
-            if (ImGui::Button(udTempStr("%s###bindingsSave", vcString::Get("bindingsModalSave"))) || vcHotkey::IsPressed(vcB_Save))
+            if (ImGui::Button(udTempStr("%s###bindingsSave", vcString::Get("bindingsSettingsSave"))) || vcHotkey::IsPressed(vcB_Save))
               vcHotkey::ApplyPendingChanges();
           }
 
           vcHotkey::DisplayBindings(pProgramState);
+        }
+        else
+        {
+          vcHotkey::ClearState();
         }
 
         if (pProgramState->activeSetting == vcSR_ConvertDefaults)

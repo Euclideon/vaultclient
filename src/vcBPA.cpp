@@ -1064,6 +1064,13 @@ void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPo
   udJSON metadata = {};
   metadata.Parse(pMetadata);
 
+  for (uint32_t i = 0; i < metadata.MemberCount() ; ++i)
+  {
+    const udJSON *pElement = metadata.GetMember(i);
+    // Removed error checking because convertInfo metadata triggers vE_NotSupported
+    vdkConvert_SetMetadata(pConvertItem->pConvertContext, metadata.GetMemberName(i), pElement->AsString());
+  }
+
   vdkConvertCustomItem item = {};
   item.pName = pName;
 

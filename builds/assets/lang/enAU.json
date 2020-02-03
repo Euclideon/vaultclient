@@ -530,8 +530,8 @@
   "attributeBlendingUnknown": "Unknown",
 
   "bindingsTitle": "Key Bindings",
-  "bindingsModalTitle": "Key Bindings",
-  "bindingsModalRevert": "Revert",
+  "bindingsSettingsRevert": "Revert",
+  "bindingsSettingsSave": "Save",
   "bindingsColumnName": "Name",
   "bindingsColumnKeyCombination": "Key Combination",
   "bindingsColumnDescription": "Description",
