@@ -287,8 +287,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     vcHotkey::Set(vcB_AddUDS, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddUDS)).AsInt(1048));
     vcHotkey::Set(vcB_BindingsInterface, data.Get("keys.%s", vcHotkey::GetBindName(vcB_BindingsInterface)).AsInt(1029));
     vcHotkey::Set(vcB_Undo, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Undo)).AsInt(1053));
-
-    vcHotkey::ApplyPendingChanges();
   }
 
   if (group == vcSC_All)
