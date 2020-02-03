@@ -21,6 +21,8 @@
 #include "udStringUtil.h"
 #include "udFile.h"
 
+#define MAX_DISPLACEMENT 1000.f
+
 void vcSettingsUI_Show(vcState *pProgramState)
 {
   if (pProgramState->openSettings)
@@ -373,7 +375,13 @@ void vcSettingsUI_Show(vcState *pProgramState)
           }
 
           if (pProgramState->settings.visualization.mode == vcVM_Displacement)
-            ImGui::InputFloat2(vcString::Get("settingsVisDisplacementRange"), &pProgramState->settings.visualization.displacement.x);
+          {
+            if (ImGui::InputFloat2(vcString::Get("settingsVisDisplacementRange"), &pProgramState->settings.visualization.displacement.x))
+            {
+              pProgramState->settings.visualization.displacement.x = udClamp(pProgramState->settings.visualization.displacement.x, 0.f, MAX_DISPLACEMENT);
+              pProgramState->settings.visualization.displacement.y = udClamp(pProgramState->settings.visualization.displacement.y, pProgramState->settings.visualization.displacement.x, MAX_DISPLACEMENT);
+            }
+          }
 
           // Post visualization - Edge Highlighting
           ImGui::Checkbox(vcString::Get("settingsVisEdge"), &pProgramState->settings.postVisualization.edgeOutlines.enable);

@@ -134,6 +134,7 @@
   "settingsVisModeClassification": "Classification",
   "settingsVisModeColour": "Colour",
   "settingsVisModeIntensity": "Intensity",
+  "settingsVisModeDisplacement": "Displacement",
   "settingsVisMinIntensity": "Min Intensity",
   "settingsVisMaxIntensity": "Max Intensity",
   "settingsVisEdge": "Enable Edge Highlighting",
@@ -155,6 +156,7 @@
   "settingsVisContoursBandHeight": "Contours Band Height",
   "settingsVisContoursRainbowRepeatRate": "Rainbow Repeat Distance",
   "settingsVisContoursRainbowIntensity": "Rainbow Intensity",
+  "settingsVisDisplacementRange": "Displacement Range",
 
   "settingsVisClassShowColourTable": "Show Custom Classification Colour Table",
   "settingsVisClassNeverClassified": "0. Never Classified",
