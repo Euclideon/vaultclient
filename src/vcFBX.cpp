@@ -299,6 +299,7 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   vdkError result = vE_Failure;
   vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
 
+  memset(pFBX, 0, sizeof(vcFBX));
   pFBX->pManager = FbxManager::Create();
   pFBX->materials.Init(4);
   pFBX->uvQueue.Init(4);
@@ -820,15 +821,15 @@ void vcFBX_Close(vdkConvertCustomItem *pConvertInput)
   pFBX->uvQueue.Deinit();
 
   vcFBX_CleanMaterials(&pFBX->materials);
+
+  if (pFBX->pTrivox)
+    vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
 }
 
 void vcFBX_Destroy(vdkConvertCustomItem* pConvertInput)
 {
   vcFBX* pFBX = (vcFBX*)pConvertInput->pData;
-  if (pFBX->pTrivox)
-    vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
 
-  vcFBX_CleanMaterials(&pFBX->materials);
   vdkAttributeSet_Free(&pConvertInput->attributes);
 
   udFree(pConvertInput->pName);
