@@ -402,11 +402,15 @@ void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pPar
         udFilename(pOldModel->m_pNode->pName).ExtractFilenameOnly(oldName, sizeof(oldName));
 
         const char *pNameBuffer = nullptr;
-        udSprintf(&pNameBuffer, "D_%s_%s", oldName, newName);
+        udSprintf(&pNameBuffer, "Displacement_%s_%s", oldName, newName);
+        udFilename temp;
+        temp.SetFromFullPath(this->m_pNode->pURI);
+        temp.SetFilenameNoExt(pNameBuffer);
+        const char *pName = udStrdup(temp.GetPath());
 
-        udWorkerPoolCallback callback = [this, pProgramState, pOldModel, ballRadius, pNameBuffer](void*)
+        udWorkerPoolCallback callback = [this, pProgramState, pOldModel, ballRadius, pName](void*)
         {
-          vcBPA_CompareExport(pProgramState, pOldModel->m_pPointCloud, this->m_pPointCloud, ballRadius, pNameBuffer);
+          vcBPA_CompareExport(pProgramState, pOldModel->m_pPointCloud, this->m_pPointCloud, ballRadius, pName);
         };
         udWorkerPool_AddTask(pProgramState->pWorkerPool, callback, nullptr, false);
       }
