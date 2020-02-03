@@ -400,8 +400,6 @@ void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pPar
         char oldName[vcMaxPathLength] = {};
         udFilename(this->m_pNode->pName).ExtractFilenameOnly(newName, sizeof(newName));
         udFilename(pOldModel->m_pNode->pName).ExtractFilenameOnly(oldName, sizeof(oldName));
-        newName[10] = '\0';
-        oldName[10] = '\0';
 
         const char *pNameBuffer = nullptr;
         udSprintf(&pNameBuffer, "D_%s_%s", oldName, newName);
