@@ -303,7 +303,7 @@ void main()
 {
 )shader"
 
-#if UDPLATFORM_EMSCRIPTEN
+#if UDPLATFORM_EMSCRIPTEN || UDPLATFORM_ANDROID
 "  vec4 col = texture(u_texture, v_uv).bgra;"
 #else
 "  vec4 col = texture(u_texture, v_uv);"

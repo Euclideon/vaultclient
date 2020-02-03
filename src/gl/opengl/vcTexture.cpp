@@ -41,14 +41,12 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
     pixelFormat = GL_DEPTH_COMPONENT;
     pixelSize = 4;
     break;
-#if VCGL_HASSTENCIL
   case vcTextureFormat_D24S8:
     textureFormat = GL_DEPTH24_STENCIL8;
     pixelType = GL_UNSIGNED_INT_24_8;
     pixelFormat = GL_DEPTH_STENCIL;
     pixelSize = 4;
     break;
-#endif
 
   case vcTextureFormat_Unknown: // fall through
   case vcTextureFormat_Count:

@@ -422,7 +422,7 @@ static void ImGui_ImplSDL2_UpdateMousePosAndButtons()
 #else
     // SDL 2.0.3 and before: single-viewport only
     if (SDL_GetWindowFlags(g_Window) & SDL_WINDOW_INPUT_FOCUS)
-        io.MousePos = ImVec2((float)mouse_x_local, (float)mouse_y_local);
+        io.MousePos = ImVec2(mouse_x_local / g_Scaling, mouse_y_local / g_Scaling);
 #endif
 }
 

@@ -254,11 +254,7 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
 
   pRenderContext->viewShedRenderingContext.pDepthBuffer = udAllocType(float, ViewShedMapRes.x * ViewShedMapRes.y, udAF_Zero);
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->viewShedRenderingContext.pUDDepthTexture, ViewShedMapRes.x, ViewShedMapRes.y, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_Dynamic));
-#if VCGL_HASSTENCIL
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->viewShedRenderingContext.pDepthTex, ViewShedMapRes.x, ViewShedMapRes.y, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget));
-#else
-  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->viewShedRenderingContext.pDepthTex, ViewShedMapRes.x, ViewShedMapRes.y, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget));
-#endif
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->viewShedRenderingContext.pDummyColour, ViewShedMapRes.x, ViewShedMapRes.y, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget));
   UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->viewShedRenderingContext.pFramebuffer, pRenderContext->viewShedRenderingContext.pDummyColour, pRenderContext->viewShedRenderingContext.pDepthTex), udR_InternalError);
 
@@ -485,11 +481,7 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   for (int i = 0; i < vcRender_RenderBufferCount; ++i)
   {
     UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Clamp, vcTCF_RenderTarget));
-#if VCGL_HASSTENCIL
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pDepthTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Linear, false, vcTWM_Clamp, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
-#else
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pDepthTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_D32F, vcTFM_Linear, false, vcTWM_Clamp, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
-#endif
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pDepthTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
     UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pFramebuffer[i], pRenderContext->pTexture[i], pRenderContext->pDepthTexture[i]), udR_InternalError);
   }
 
@@ -505,11 +497,7 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   }
 
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pTexture, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget));
-#if VCGL_HASSTENCIL
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pDepth, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget));
-#else
-  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pDepth, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget));
-#endif
   UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pRenderContext->picking.pDepth), udR_InternalError);
 
   if (pProgramState->pVDKContext)
@@ -552,6 +540,19 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
 
 epilogue:
   return result;
+}
+
+udDouble3 vcRender_DepthToWorldPosition(vcState *pProgramState, vcRenderContext *pRenderContext, double depth)
+{
+  double nonZeroDepth = (depth == 0.0) ? 1.0 : depth;
+
+  // note: upside down (1.0 - uv.y)
+  udDouble4 clipPos = udDouble4::create(pRenderContext->currentMouseUV.x * 2.0 - 1.0, (1.0 - pRenderContext->currentMouseUV.y) * 2.0 - 1.0, nonZeroDepth, 1.0);
+#if GRAPHICS_API_OPENGL
+  clipPos.z = clipPos.z * 2.0 - 1.0;
+#endif
+  udDouble4 pickPosition4 = pProgramState->camera.matrices.inverseViewProjection * clipPos;
+  return pickPosition4.toVector3() / pickPosition4.w;
 }
 
 void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
@@ -1160,6 +1161,11 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   if (pProgramState->settings.presentation.mouseAnchor != vcAS_None && (pProgramState->pickingSuccess || pProgramState->isUsingAnchorPoint))
   {
+    // resolve (last frame) polygon vs. (current frame) UD here
+    udDouble3 pickPosition = vcRender_DepthToWorldPosition(pProgramState, pRenderContext, pRenderContext->previousFrameDepth);
+    if (udMagSq(pickPosition - pProgramState->camera.position) < udMagSq(pProgramState->worldMousePosCartesian - pProgramState->camera.position))
+      pProgramState->worldMousePosCartesian = pickPosition;
+
     udDouble4x4 mvp = pProgramState->camera.matrices.viewProjection * udDouble4x4::translation(pProgramState->isUsingAnchorPoint ? pProgramState->worldAnchorPoint : pProgramState->worldMousePosCartesian);
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 
@@ -1545,20 +1551,9 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     pickDepth = pRenderContext->previousFrameDepth;
   }
 
-  if (pickDepth == 0.0)
-    pickDepth = 1.0;
-
   if (result.success)
   {
-    // note: upside down (1.0 - uv.y)
-    udDouble4 clipPos = udDouble4::create(pRenderContext->currentMouseUV.x * 2.0 - 1.0, (1.0 - pRenderContext->currentMouseUV.y) * 2.0 - 1.0, pickDepth, 1.0);
-#if GRAPHICS_API_OPENGL
-    clipPos.z = clipPos.z * 2.0 - 1.0;
-#endif
-    udDouble4 pickPosition = pProgramState->camera.matrices.inverseViewProjection * clipPos;
-    pickPosition = pickPosition / pickPosition.w;
-    result.position = pickPosition.toVector3();
-
+    result.position = vcRender_DepthToWorldPosition(pProgramState, pRenderContext, pickDepth);
     currentDist = udMag3(result.position - pProgramState->camera.position);
   }
 
