@@ -77,6 +77,7 @@ struct vcState
   vcCamera camera;
   vcCameraInput cameraInput;
 
+  int settingsErrors;
   struct ErrorItem
   {
     vcErrorSource source;

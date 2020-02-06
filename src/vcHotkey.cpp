@@ -226,19 +226,19 @@ namespace vcHotkey
         if (i == vcB_Count)
         {
           Set((vcBind)target, pProgramState->currentKey);
-          vcSettingsUI_UnsetError(vcSE_Bound);
+          vcSettingsUI_UnsetError(pProgramState, vcSE_Bound);
           target = -1;
         }
         else
         {
-          vcSettingsUI_SetError(vcSE_Bound);
+          vcSettingsUI_SetError(pProgramState, vcSE_Bound);
         }
       }
     }
     else
     {
-      vcSettingsUI_UnsetError(vcSE_Bound);
-      vcSettingsUI_UnsetError(vcSE_Select);
+      vcSettingsUI_UnsetError(pProgramState, vcSE_Bound);
+      vcSettingsUI_UnsetError(pProgramState, vcSE_Select);
     }
 
     ImGui::Columns(3);
@@ -260,7 +260,7 @@ namespace vcHotkey
     {
       if (ImGui::Button(bindNames[i], ImVec2(-1, 0)))
       {
-        vcSettingsUI_UnsetError(vcSE_Bound);
+        vcSettingsUI_UnsetError(pProgramState, vcSE_Bound);
         if (target == i)
         {
           Set((vcBind)i, 0);
@@ -269,7 +269,7 @@ namespace vcHotkey
         else
         {
           pProgramState->currentKey = 0;
-          vcSettingsUI_SetError(vcSE_Select);
+          vcSettingsUI_SetError(pProgramState, vcSE_Select);
           target = i;
         }
       }

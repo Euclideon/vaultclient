@@ -41,36 +41,37 @@ static const ImVec4 settingsErrorColours[] =
 
 static const vcSettingCategory categoryMapping[] =
 {
-  vcSC_Appearance,
-  vcSC_InputControls,
-  vcSC_Viewport,
-  vcSC_MapsElevation,
-  vcSC_Visualization,
-  vcSC_Bindings,
-  vcSC_Convert,
-  vcSC_Count,
-  vcSC_Count,
-  vcSC_Count,
-  vcSC_Count
+  vcSC_Appearance, //vcSR_Appearance
+  vcSC_InputControls, //vcSR_Inputs
+  vcSC_Viewport, //vcSR_Viewports
+  vcSC_MapsElevation, //vcSR_Maps
+  vcSC_Visualization, //vcSR_Visualisations
+  vcSC_Bindings, //vcSR_KeyBindings
+  vcSC_Convert, //vcSR_ConvertDefaults
+  vcSC_Count, //vcSR_Connection
+  vcSC_Count, //vcSR_ReleaseNotes
+  vcSC_Count, //vcSR_Update
+  vcSC_Count //vcSR_About
 };
-UDCOMPILEASSERT(vcSC_Count == 10, "Update the above mapping if necessary");
-UDCOMPILEASSERT(vcSR_Count == 11, "Update the above mapping if necessary");
+// Entries in categoryMapping above must contain the vcSettingCategory that corresponds to a vcSettingsUIRegion
+// if any, in the order they appear in the vcSR_ enum. If no category applies or you don't wish to offer a reset
+// defaults option then enter vcSC_Count for the corresponding vcSettingsUIRegion.
+UDCOMPILEASSERT(vcSC_Count == 10, "Update the above mapping (in vcSettingsUI.cpp) if necessary, as per the comments");
+UDCOMPILEASSERT(vcSR_Count == 11, "Update the above mapping (in vcSettingsUI.cpp) if necessary, as per the comments");
 
-static int errors = 0;
-
-void vcSettingsUI_SetError(vcSettingsErrors error)
+void vcSettingsUI_SetError(vcState *pProgramState, vcSettingsErrors error)
 {
-  errors = errors | error;
+  pProgramState->settingsErrors = pProgramState->settingsErrors | error;
 }
 
-void vcSettingsUI_UnsetError(vcSettingsErrors error)
+void vcSettingsUI_UnsetError(vcState *pProgramState, vcSettingsErrors error)
 {
-  errors = errors & ~error;
+  pProgramState->settingsErrors = pProgramState->settingsErrors & ~error;
 }
 
-bool vcSettingsUI_CheckError(vcSettingsErrors error)
+bool vcSettingsUI_CheckError(vcState *pProgramState, vcSettingsErrors error)
 {
-  return ((errors & error) == error);
+  return ((pProgramState->settingsErrors & error) == error);
 }
 
 ImVec4 vcSettingsUI_GetErrorColour(vcSettingsErrors error)
@@ -108,11 +109,11 @@ void vcSettingsUI_Show(vcState *pProgramState)
     ImGui::NextColumn();
     ImGui::Separator();
 
-    if (errors != 0)
+    if (pProgramState->settingsErrors != 0)
     {
       for (int i = 0; i < vcSE_Count; ++i)
       {
-        if (errors & (1 << i))
+        if (pProgramState->settingsErrors & (1 << i))
           ImGui::TextColored(settingsErrorColours[i], "%s", vcString::Get(settingsErrors[i]));
       }
     }

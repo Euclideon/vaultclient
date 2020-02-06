@@ -13,9 +13,9 @@ enum vcSettingsErrors
   vcSE_Count = 2
 };
 
-void vcSettingsUI_SetError(vcSettingsErrors error);
-void vcSettingsUI_UnsetError(vcSettingsErrors error);
-bool vcSettingsUI_CheckError(vcSettingsErrors error);
+void vcSettingsUI_SetError(vcState *pProgramState, vcSettingsErrors error);
+void vcSettingsUI_UnsetError(vcState *pProgramState, vcSettingsErrors error);
+bool vcSettingsUI_CheckError(vcState *pProgramState, vcSettingsErrors error);
 ImVec4 vcSettingsUI_GetErrorColour(vcSettingsErrors error);
 
 void vcSettingsUI_Show(vcState *pProgramState);
