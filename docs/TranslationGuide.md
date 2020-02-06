@@ -775,7 +775,7 @@ Modules are currently:
 - `bindingsColumnName`: Header for key binding name column
 - `bindingsColumnKeyCombination`: Header for key binding key combination column
 - `bindingsColumnDescription`: Header for key binding description column
-- `bindingsErrorUnbound`: Text warning when user binds an already bound key combination
+- `bindingsErrorBound`: Text warning when user attempts to bind an already bound key combination
 - `bindingsClear`: Text that displays instead of key combination when key binding isn't set
   
 ##### Bindings Descriptions

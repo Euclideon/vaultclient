@@ -78,7 +78,8 @@ enum vcSettingsUIRegions
 
   vcSR_ReleaseNotes,
   vcSR_Update,
-  vcSR_About
+  vcSR_About,
+  vcSR_Count
 };
 
 enum vcSettingCategory
@@ -92,7 +93,8 @@ enum vcSettingCategory
   vcSC_Docks,
   vcSC_Languages,
   vcSC_Bindings,
-  vcSC_All
+  vcSC_All,
+  vcSC_Count
 };
 
 enum vcTileRendererMapQuality
