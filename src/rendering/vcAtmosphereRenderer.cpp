@@ -49,7 +49,7 @@ int previous_mouse_y_ = 0;
 constexpr double kPi = 3.1415926;
 constexpr double kSunAngularRadius = 0.00935 / 2.0;
 constexpr double kSunSolidAngle = kPi * kSunAngularRadius * kSunAngularRadius;
-constexpr double kLengthUnitInMeters = 0.1;
+constexpr double kLengthUnitInMeters = 1.0;
 
 //#include "atmosphere/demo/demo.glsl.inc"
 
