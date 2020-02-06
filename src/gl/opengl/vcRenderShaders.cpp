@@ -1811,5 +1811,11 @@ the scene:
   color.rgb = 
       pow(vec3(1.0) - exp(-radiance / u_white_point.xyz * exposure), vec3(1.0 / 2.2));
   color.a = 1.0;
+
+  //if (camera.z + view_direction.z < 0.0)
+  //  color.rgb = pow(sceneColour.xyz, vec3(1.0 / 2.2));
+
+  //vec4 tt = texture(transmittance_texture, v_uv);
+  //color.rgb = color.rgb * 0.000001 + tt.xyz;
 }
 )shader";

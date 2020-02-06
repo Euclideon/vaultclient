@@ -49,7 +49,7 @@ int previous_mouse_y_ = 0;
 constexpr double kPi = 3.1415926;
 constexpr double kSunAngularRadius = 0.00935 / 2.0;
 constexpr double kSunSolidAngle = kPi * kSunAngularRadius * kSunAngularRadius;
-constexpr double kLengthUnitInMeters = 1.0;
+constexpr double kLengthUnitInMeters = 0.1;
 
 //#include "atmosphere/demo/demo.glsl.inc"
 
@@ -75,7 +75,6 @@ bool use_half_precision_ = true;
 bool use_combined_textures_ = true;
 bool do_white_balance_ = false;
 
-double view_distance_meters_ = 9000.0;
 double view_zenith_angle_radians_ = 1.47;
 double view_azimuth_angle_radians_ = -0.1;
 double sun_zenith_angle_radians_ = 1.3;
@@ -131,8 +130,8 @@ udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer
   // Wavelength independent solar irradiance "spectrum" (not physically
   // realistic, but was used in the original implementation).
   constexpr double kConstantSolarIrradiance = 1.5;
-  constexpr double kBottomRadius = 6378137.0;//6360000.0;
-  constexpr double kTopRadius = 6420000.0 + 18137.0;
+  constexpr double kBottomRadius = (6378137.0);//6360000.0;
+  constexpr double kTopRadius = (6420000.0 + 18137.0);
   constexpr double kRayleigh = 1.24062e-6;
   constexpr double kRayleighScaleHeight = 8000.0;
   constexpr double kMieScaleHeight = 1200.0;
@@ -222,6 +221,8 @@ udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer
   pAtmosphereRenderer->renderShader.fragParams.sun_size.x = (float)udTan(kSunAngularRadius);
   pAtmosphereRenderer->renderShader.fragParams.sun_size.y = (float)udCos(kSunAngularRadius);
 
+ //pAtmosphereRenderer->pModel->SetProgramUniforms(pAtmosphereRenderer->renderShader.pProgram->programID, 0, 1, 2, 3);
+
   *ppAtmosphereRenderer = pAtmosphereRenderer;
   result = udR_Success;
 epilogue:
@@ -265,6 +266,8 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
     udGeoZone_SetFromSRID(&destZone, 4978);
     earthCenter = udGeoZone_TransformPoint(pProgramState->camera.position, pProgramState->gis.zone, destZone);
   }
+
+  earthCenter.z /= kLengthUnitInMeters;
 
   udDouble4 earthCenterEyePos = udDouble4::create(earthCenter, 1.0);//pProgramState->camera.matrices.view *udDouble4::create(earthCenter, 1.0);
 
