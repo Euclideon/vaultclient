@@ -194,7 +194,7 @@ udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer
     ozone_density, absorption_extinction, ground_albedo, max_sun_zenith_angle,
     kLengthUnitInMeters, use_luminance_ == PRECOMPUTED ? 15 : 3,
     use_combined_textures_, use_half_precision_);
-  pAtmosphereRenderer->pModel->Init();
+  pAtmosphereRenderer->pModel->LoadPrecomputedTextures();
 
   udSprintf(&pCompleteAtmosphereShaderSource, "%s\n%s", pAtmosphereRenderer->pModel->shaderHeader().c_str(), g_AtmosphereFragmentShader);
   UD_ERROR_IF(!vcShader_CreateFromText(&pAtmosphereRenderer->renderShader.pProgram, g_AtmosphereVertexShader, pCompleteAtmosphereShaderSource, vcP3UV2VertexLayout), udR_InternalError);
