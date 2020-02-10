@@ -936,83 +936,91 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
   // Reset point count to avoid infinite loop
   pBuffer->pointCount = 0;
 
-  vcBPAConvertItem *pData = (vcBPAConvertItem *)pConvertInput->pData;
-  uint32_t maxPointIndex;
-
-  static int gridCount = 0;
-  if (pData->activeItem.pointIndex == 0)
+  while (pBuffer->pointCount == 0)
   {
-    do
+    vcBPAConvertItem *pData = (vcBPAConvertItem *)pConvertInput->pData;
+    uint32_t maxPointIndex;
+
+    static int gridCount = 0;
+    if (pData->activeItem.pointIndex == 0)
     {
-      if (udSafeDeque_PopFront(pData->pConvertItemData, &pData->activeItem) == udR_Success)
-        break;
+      do
+      {
+        if (udSafeDeque_PopFront(pData->pConvertItemData, &pData->activeItem) == udR_Success)
+          break;
 
-      if (gridCount && !udWorkerPool_HasActiveWorkers(pData->pManifold->pPool))
-        goto epilogue;
+        if (gridCount && !udWorkerPool_HasActiveWorkers(pData->pManifold->pPool))
+          goto epilogue;
 
-      udSleep(100);
-    } while (pData->running);
+        udSleep(100);
+      } while (pData->running);
 
-    ++gridCount;
-    udIncrementSemaphore(pData->pConvertSemaphore);
-  }
-
-  maxPointIndex = udMin((uint32_t)pData->activeItem.pGrid->vertices.length, pBuffer->pointsAllocated - pBuffer->pointCount);
-  pBuffer->pointCount += maxPointIndex - pData->activeItem.pointIndex;
-
-  for (size_t i = pData->activeItem.pointIndex; i < maxPointIndex; ++i)
-  {
-    udDouble3 position = pData->activeItem.pGrid->vertices[i].position;
-    size_t triangle = vcBPA_FindClosestTriangle(pData->activeItem.pOldGrid, position);
-
-    double distance = FLT_MAX;
-    if (triangle < pData->activeItem.pOldGrid->triangles.length)
-      distance = udAbs(vcBPA_DistanceToTriangle(pData->activeItem.pOldGrid, triangle, position));
-
-    // Position XYZ
-    memcpy(&pBuffer->pPositions[pBuffer->pointCount * 3], &pData->activeItem.pGrid->vertices[i].position.x, sizeof(double) * 3);
-
-    // Copy all of the original attributes
-    ptrdiff_t pointAttrOffset = ptrdiff_t(pBuffer->pointCount) * pBuffer->attributeStride;
-    for (uint32_t j = 0; j < pData->activeItem.pGrid->pBuffer->attributes.count; ++j)
-    {
-      vdkAttributeDescriptor &oldAttrDesc = pData->activeItem.pGrid->pBuffer->attributes.pDescriptors[j];
-      uint32_t attributeSize = (oldAttrDesc.typeInfo & (vdkAttributeTypeInfo_SizeMask << vdkAttributeTypeInfo_SizeShift));
-
-      // Get attribute old offset and pointer
-      uint32_t attrOldOffset = 0;
-      if (vdkAttributeSet_GetOffsetOfNamedAttribute(&pData->activeItem.pGrid->pBuffer->attributes, oldAttrDesc.name, &attrOldOffset) != vE_Success)
-        continue;
-
-      void *pOldAttr = udAddBytes(pData->activeItem.pGrid->pBuffer->pAttributes, i * pData->activeItem.pGrid->pBuffer->attributeStride + attrOldOffset);
-
-      // Get attribute new offset and pointer
-      uint32_t attrNewOffset = 0;
-      if (vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, oldAttrDesc.name, &attrNewOffset) != vE_Success)
-        continue;
-
-      void *pNewAttr = udAddBytes(pBuffer->pAttributes, pointAttrOffset + attrNewOffset);
-
-      // Copy attribute data
-      memcpy(pNewAttr, pOldAttr, attributeSize);
+      ++gridCount;
+      udIncrementSemaphore(pData->pConvertSemaphore);
     }
 
-    // Displacement
-    float *pDisplacement = (float *)udAddBytes(pBuffer->pAttributes, pointAttrOffset + pData->displacementOffset);
-    *pDisplacement = (float)distance;
-  }
+    maxPointIndex = udMin((uint32_t)pData->activeItem.pGrid->vertices.length, pBuffer->pointsAllocated - pBuffer->pointCount);
 
-  if (pBuffer->pointCount == pBuffer->pointsAllocated)
-  {
-    pData->activeItem.pointIndex = maxPointIndex;
-    goto epilogue;
-  }
+    for (size_t i = pData->activeItem.pointIndex; i < maxPointIndex; ++i)
+    {
+      udDouble3 position = pData->activeItem.pGrid->vertices[i].position;
 
-  pData->activeItem.pGrid->Deinit();
-  pData->activeItem.pOldGrid->Deinit();
-  udFree(pData->activeItem.pGrid);
-  udFree(pData->activeItem.pOldGrid);
-  pData->activeItem.pointIndex = 0;
+      if (!udPointInAABB(position, pData->activeItem.pGrid->minPos, pData->activeItem.pGrid->maxPos))
+        continue;
+
+      size_t triangle = vcBPA_FindClosestTriangle(pData->activeItem.pOldGrid, position);
+
+      double distance = FLT_MAX;
+      if (triangle < pData->activeItem.pOldGrid->triangles.length)
+        distance = udAbs(vcBPA_DistanceToTriangle(pData->activeItem.pOldGrid, triangle, position));
+
+      // Position XYZ
+      memcpy(&pBuffer->pPositions[pBuffer->pointCount * 3], &pData->activeItem.pGrid->vertices[i].position.x, sizeof(double) * 3);
+
+      // Copy all of the original attributes
+      ptrdiff_t pointAttrOffset = ptrdiff_t(pBuffer->pointCount) * pBuffer->attributeStride;
+      for (uint32_t j = 0; j < pData->activeItem.pGrid->pBuffer->attributes.count; ++j)
+      {
+        vdkAttributeDescriptor &oldAttrDesc = pData->activeItem.pGrid->pBuffer->attributes.pDescriptors[j];
+        uint32_t attributeSize = (oldAttrDesc.typeInfo & (vdkAttributeTypeInfo_SizeMask << vdkAttributeTypeInfo_SizeShift));
+
+        // Get attribute old offset and pointer
+        uint32_t attrOldOffset = 0;
+        if (vdkAttributeSet_GetOffsetOfNamedAttribute(&pData->activeItem.pGrid->pBuffer->attributes, oldAttrDesc.name, &attrOldOffset) != vE_Success)
+          continue;
+
+        void *pOldAttr = udAddBytes(pData->activeItem.pGrid->pBuffer->pAttributes, i * pData->activeItem.pGrid->pBuffer->attributeStride + attrOldOffset);
+
+        // Get attribute new offset and pointer
+        uint32_t attrNewOffset = 0;
+        if (vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, oldAttrDesc.name, &attrNewOffset) != vE_Success)
+          continue;
+
+        void *pNewAttr = udAddBytes(pBuffer->pAttributes, pointAttrOffset + attrNewOffset);
+
+        // Copy attribute data
+        memcpy(pNewAttr, pOldAttr, attributeSize);
+      }
+
+      // Displacement
+      float *pDisplacement = (float *)udAddBytes(pBuffer->pAttributes, pointAttrOffset + pData->displacementOffset);
+      *pDisplacement = (float)distance;
+
+      ++pBuffer->pointCount;
+    }
+
+    if (pBuffer->pointCount == pBuffer->pointsAllocated)
+    {
+      pData->activeItem.pointIndex = maxPointIndex;
+      goto epilogue;
+    }
+
+    pData->activeItem.pGrid->Deinit();
+    pData->activeItem.pOldGrid->Deinit();
+    udFree(pData->activeItem.pGrid);
+    udFree(pData->activeItem.pOldGrid);
+    pData->activeItem.pointIndex = 0;
+  }
 
 epilogue:
   return vE_Success;
