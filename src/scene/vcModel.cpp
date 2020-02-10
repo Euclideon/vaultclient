@@ -14,6 +14,7 @@
 #include "vdkPointCloud.h"
 
 #include "udStringUtil.h"
+#include "udThread.h"
 
 struct vcModelLoadInfo
 {
@@ -124,6 +125,8 @@ vcModel::vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramS
   m_hasWatermark(false),
   m_pWatermark(nullptr)
 {
+  m_pMutex = udCreateMutex();
+
   vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
   if (pLoadInfo != nullptr)
   {
@@ -157,6 +160,7 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
   m_pPointCloud = pCloud;
   m_loadStatus = vcSLS_Loaded;
 
+  m_pMutex = udCreateMutex();
   vcModel_LoadMetadata(pProgramState, this);
 
   m_pNode->pUserData = this;
@@ -415,8 +419,7 @@ void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pPar
 
         udWorkerPoolCallback callback = [this, pProgramState, pOldModel, ballRadius, pName](void*)
         {
-          vcBPA_CompareExport(pProgramState, pOldModel->m_pPointCloud, this->m_pPointCloud, ballRadius, pName);
-          vcBPA_CompareExport(pProgramState, pOldModel->m_pPointCloud, this->m_pPointCloud, ballRadius, &this->m_pConverting);
+          vcBPA_CompareExport(pProgramState, pOldModel, this, ballRadius, pName);
         };
         udWorkerPool_AddTask(pProgramState->pWorkerPool, callback, nullptr, false);
       }
@@ -459,19 +462,27 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 
 void vcModel::Cleanup(vcState *pProgramState)
 {
-  if (m_pConverting == nullptr)
-    vdkPointCloud_Unload(&m_pPointCloud);
-  else
-    *m_pConverting = true;
-
-  udFree(m_pCurrentZone);
-
-  if (m_pWatermark != nullptr)
+  udLockMutex(m_pMutex);
+  --m_refCount;
+  if (m_refCount == 0)
   {
-    if (pProgramState->pSceneWatermark == m_pWatermark)
-      pProgramState->pSceneWatermark = nullptr;
+    vdkPointCloud_Unload(&m_pPointCloud);
+    udFree(m_pCurrentZone);
 
-    vcTexture_Destroy(&m_pWatermark);
+    udReleaseMutex(m_pMutex);
+    udDestroyMutex(&m_pMutex);
+
+    if (m_pWatermark != nullptr)
+    {
+      if (pProgramState->pSceneWatermark == m_pWatermark)
+        pProgramState->pSceneWatermark = nullptr;
+
+      vcTexture_Destroy(&m_pWatermark);
+    }
+  }
+  else
+  {
+    udReleaseMutex(m_pMutex);
   }
 }
 

@@ -6,12 +6,12 @@
 // https://lidarwidgets.com/samples/bpa_tvcg.pdf
 
 #include "vcFeatures.h"
+#include "vcModel.h"
 #include "vdkPointCloud.h"
 struct vcState;
 
 #if VC_HASCONVERT
-bool *vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius, bool **ppFinished = nullptr);
-void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius, const char *pName);
+void vcBPA_CompareExport(vcState *pProgramState, vcModel *pOldModel, vcModel *pNewModel, double ballRadius, const char *pName);
 #endif
 
 #endif //vcBPA_h__

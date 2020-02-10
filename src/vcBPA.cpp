@@ -807,14 +807,12 @@ struct vcBPAConvertItem
 {
   vcBPAManifold *pManifold;
   vdkContext *pContext;
-  vdkPointCloud *pOldModel;
-  vdkPointCloud *pNewModel;
+  vcState *pProgramState;
+  vcModel *pOldModel;
+  vcModel *pNewModel;
   vcConvertItem *pConvertItem;
   double gridSize;
   double ballRadius;
-
-  bool destroyPointClouds;
-  bool **ppFinished;
 
   udSafeDeque<vcBPAConvertItemData> *pQueueItems;
   udSafeDeque<vcBPAConvertItemData> *pConvertItemData;
@@ -854,15 +852,15 @@ uint32_t vcBPA_GridGeneratorThread(void *pDataPtr)
   int i = 0;
 
   vdkPointCloudHeader header;
-  vdkPointCloud_GetHeader(pData->pNewModel, &header);
+  vdkPointCloud_GetHeader(pData->pNewModel->m_pPointCloud, &header);
 
-  while (vcBPA_GetGrid(pData->pManifold, pData->pNewModel, &header.attributes, &pGrid, false) && pData->running)
+  while (vcBPA_GetGrid(pData->pManifold, pData->pNewModel->m_pPointCloud, &header.attributes, &pGrid, false) && pData->running)
   {
     vcBPAConvertItemData data = {};
     data.pManifold = pData->pManifold;
     data.pGrid = pGrid;
     data.pointIndex = 0;
-    data.pOldModel = pData->pOldModel;
+    data.pOldModel = pData->pOldModel->m_pPointCloud;
 
     udSafeDeque_PushBack(pData->pQueueItems, data);
     udWorkerPool_AddTask(pData->pManifold->pPool, vcBPA_GridPopulationThread, pData, false);
@@ -904,7 +902,7 @@ vdkError vcBPA_ConvertOpen(vdkConvertCustomItem *pConvertInput, uint32_t everyNt
   pData->pManifold->gridSize = pData->gridSize;
 
   vdkPointCloudHeader header = {};
-  vdkPointCloud_GetHeader(pData->pNewModel, &header);
+  vdkPointCloud_GetHeader(pData->pNewModel->m_pPointCloud, &header);
   udDouble4x4 storedMatrix = udDouble4x4::create(header.storedMatrix);
   udDouble3 startAABBCenter = (storedMatrix * udDouble4::create(header.pivot[0], header.pivot[1], header.pivot[2], 1.0)).toVector3();
 
@@ -1040,21 +1038,13 @@ void vcBPA_ConvertDestroy(vdkConvertCustomItem *pConvertInput)
 
   vcBPAConvertItem *pBPA = (vcBPAConvertItem *)pConvertInput->pData;
 
-  if (pBPA->destroyPointClouds)
-  {
-    vdkPointCloud_Unload(&pBPA->pOldModel);
-    vdkPointCloud_Unload(&pBPA->pNewModel);
-  } // If destroying pointclouds, there will be no model to reference below
-  else if (pBPA->ppFinished != nullptr)
-  {
-    *pBPA->ppFinished = nullptr;
-  }
+  pBPA->pOldModel->Cleanup(pBPA->pProgramState);
+  pBPA->pNewModel->Cleanup(pBPA->pProgramState);
 
   udFree(pConvertInput->pData);
 }
 
-bool *vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius, bool **ppFinished)
-void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius, const char *pName)
+void vcBPA_CompareExport(vcState *pProgramState, vcModel *pOldModel, vcModel *pNewModel, double ballRadius, const char *pName)
 {
   vcConvertItem *pConvertItem = nullptr;
   vcConvert_AddEmptyJob(pProgramState, &pConvertItem);
@@ -1069,16 +1059,15 @@ void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPo
   pBPA->running = true;
   pBPA->ballRadius = ballRadius;
   pBPA->gridSize = 1; // metres
-  pBPA->ppFinished = ppFinished;
 
   vdkPointCloudHeader header = {};
-  vdkPointCloud_GetHeader(pNewModel, &header);
+  vdkPointCloud_GetHeader(pNewModel->m_pPointCloud, &header);
   udDouble4x4 storedMatrix = udDouble4x4::create(header.storedMatrix);
   udDouble3 boundingBoxCenter = udDouble3::create(header.boundingBoxCenter[0], header.boundingBoxCenter[1], header.boundingBoxCenter[2]);
   udDouble3 boundingBoxExtents = udDouble3::create(header.boundingBoxExtents[0], header.boundingBoxExtents[1], header.boundingBoxExtents[2]);
 
   const char *pMetadata = nullptr;
-  vdkPointCloud_GetMetadata(pNewModel, &pMetadata);
+  vdkPointCloud_GetMetadata(pNewModel->m_pPointCloud, &pMetadata);
   udJSON metadata = {};
   metadata.Parse(pMetadata);
 
@@ -1136,8 +1125,6 @@ void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPo
 
   udFree(item.pName);
   udReleaseMutex(pBPA->pConvertItem->pMutex);
-
-  return &pBPA->destroyPointClouds;
 }
 
 #endif //VC_HASCONVERT
