@@ -11,6 +11,7 @@
 #include "vcStringFormat.h"
 #include "vcHotkey.h"
 #include "vcWebFile.h"
+#include "vcSession.h"
 
 #include "udFile.h"
 #include "udStringUtil.h"
@@ -563,6 +564,35 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
   }
 }
 
+void vcModals_DrawProfile(vcState* pProgramState)
+{
+  const char* userName = pProgramState->settings.loginInfo.username;
+  const char* profile = vcString::Get("menuProfileTitle");
+
+  if (pProgramState->openModals & (1 << vcMT_Profile))
+    ImGui::OpenPopup(profile);
+
+  float width = 300.f;
+  float height = 250.f;
+  float btw = 80.f;
+  ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiCond_Always);
+
+  if (ImGui::BeginPopupModal(profile, nullptr, ImGuiWindowFlags_NoResize))
+  {
+    pProgramState->modalOpen = true;
+    ImGui::TextUnformatted(userName);
+
+    if (ImGui::Button(vcString::Get("menuLogout"), ImVec2(btw, 0)))
+      vcSession_Logout(pProgramState);
+
+    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(btw, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+      ImGui::CloseCurrentPopup();    
+
+    ImGui::EndPopup();
+  }
+
+}
+
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 {
   pProgramState->openModals |= (1 << type);
@@ -579,6 +609,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawProjectReadOnly(pProgramState);
   vcModals_DrawImageViewer(pProgramState);
   vcModals_DrawUnsupportedFiles(pProgramState);
+  vcModals_DrawProfile(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_LoggedOut) | (1 << vcMT_ProxyAuth));
 }

@@ -279,6 +279,8 @@
   "menuLogoutTitle": "Logged Out",
   "menuLogoutMessage": "You were logged out.",
 
+  "menuProfileTitle": "Profile",
+
   "menuReleaseNotes": "Release Notes",
   "menuReleaseNotesTitle": "Release Notes",
   "menuReleaseNotesFail": "Unable to load release notes from package.",

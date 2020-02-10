@@ -1648,7 +1648,7 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
     ImGui::TextUnformatted(pTemp);
 
     if (ImGui::IsItemClicked())
-      vcSession_Logout(pProgramState);
+      vcModals_OpenModal(pProgramState, vcMT_Profile);
   }
 
   // Load List
