@@ -57,7 +57,6 @@ struct vcBPATriangle
 struct vcBPAGrid
 {
   udDouble3 center;
-  bool visited;
 
   vdkPointBufferF64 *pBuffer;
   udChunkedArray<vcBPAVertex> vertices;
@@ -69,15 +68,14 @@ struct vcBPAGrid
   udDouble3 minPos;
   udDouble3 maxPos;
 
-  static vcBPAGrid create(udDouble3 center, udDouble3 minPos, udDouble3 maxPos)
+  static vcBPAGrid *Create(udDouble3 center, udDouble3 minPos, udDouble3 maxPos)
   {
-    vcBPAGrid grid = {};
-    grid.center = center;
-    grid.visited = false;
-    grid.activeEdgeIndex = 0;
-    grid.minPos = minPos;
-    grid.maxPos = maxPos;
-    return grid;
+    vcBPAGrid *pGrid = udAllocType(vcBPAGrid, 1, udAF_Zero);
+    pGrid->center = center;
+    pGrid->activeEdgeIndex = 0;
+    pGrid->minPos = minPos;
+    pGrid->maxPos = maxPos;
+    return pGrid;
   }
 
   void Init(vdkAttributeSet *pAttributes)
@@ -99,8 +97,8 @@ struct vcBPAGrid
 
 struct vcBPAManifold
 {
-  udChunkedArray<vcBPAGrid> grids;
   udWorkerPool *pPool;
+  vdkAttributeSet *pAttributes;
 
   bool foundFirstGrid;
   double gridSize;
@@ -108,12 +106,69 @@ struct vcBPAManifold
   vdkContext *pContext;
 };
 
+struct vcBPAConvertItemData
+{
+  vcBPAManifold *pManifold;
+
+  vcBPAGrid *pGrid;
+  vcBPAGrid *pOldGrid;
+
+  uint32_t pointIndex;
+};
+
+struct vcBPAOctNode
+{
+  udDouble3 center;
+  udDouble3 extents;
+
+  void Init(udDouble3 inCenter, udDouble3 inExtents)
+  {
+    center = inCenter;
+    extents = inExtents;
+  }
+};
+
+struct vcBPAConvertItem
+{
+  vcBPAManifold *pManifold;
+  vdkContext *pContext;
+  vdkPointCloud *pOldModel;
+  vdkPointCloud *pNewModel;
+  vcConvertItem *pConvertItem;
+  double gridSize;
+  double ballRadius;
+
+  uint8_t shortAxis;
+  udDouble3 center;
+  udDouble3 extents;
+
+  udSafeDeque<vcBPAConvertItemData> *pConvertItemData;
+  vcBPAConvertItemData activeItem;
+  udInterlockedBool running;
+
+  udThread *pThread;
+  udSafeDeque<vcBPAOctNode> *pLoadList;
+
+  vcBPAOctNode rootNode;
+};
+
+static const udDouble3 octantPositions[8] = {
+  {-1, -1, -1},
+  {-1, -1, 1},
+  {-1, 1, -1},
+  {-1, 1, 1},
+  {1, -1, -1},
+  {1, -1, 1},
+  {1, 1, -1},
+  {1, 1, 1}
+};
+
 void vcBPA_Init(vcBPAManifold **ppManifold, vdkContext *pContext)
 {
   vcBPAManifold *pManifold = udAllocType(vcBPAManifold, 1, udAF_Zero);
-  pManifold->grids.Init(1024);
   udWorkerPool_Create(&pManifold->pPool, 8, "vcBPAPool");
   pManifold->pContext = pContext;
+
   *ppManifold = pManifold;
 }
 
@@ -123,140 +178,10 @@ void vcBPA_Deinit(vcBPAManifold **ppManifold)
     return;
 
   vcBPAManifold *pManifold = *ppManifold;
-  *ppManifold = nullptr;
   udWorkerPool_Destroy(&pManifold->pPool);
-  for (size_t i = 0; i < pManifold->grids.length; ++i)
-    pManifold->grids[i].Deinit();
+  *ppManifold = nullptr;
 
-  pManifold->grids.Deinit();
   udFree(pManifold);
-}
-
-void vcBPA_AddGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, udDouble3 center)
-{
-  if (!pManifold->foundFirstGrid)
-  {
-    vdkPointCloudHeader header = {};
-    if (vdkPointCloud_GetHeader(pModel, &header) != vE_Success)
-      return;
-
-    udDouble4x4 storedMatrix = udDouble4x4::create(header.storedMatrix);
-    udDouble3 boundingBoxCenter = udDouble3::create(header.boundingBoxCenter[0], header.boundingBoxCenter[1], header.boundingBoxCenter[2]);
-    udDouble3 boundingBoxExtents = udDouble3::create(header.boundingBoxExtents[0], header.boundingBoxExtents[1], header.boundingBoxExtents[2]);
-    udDouble3 modelMin = (storedMatrix * udDouble4::create(boundingBoxCenter - boundingBoxExtents, 1.0)).toVector3();
-    udDouble3 modelMax = (storedMatrix * udDouble4::create(boundingBoxCenter + boundingBoxExtents, 1.0)).toVector3();
-
-    if (center.x < modelMin.x || center.y < modelMin.y || center.z < modelMin.z || center.x > modelMax.x || center.y > modelMax.y || center.z > modelMax.z)
-      return;
-  }
-
-  size_t i = 0;
-  for (; i < pManifold->grids.length; ++i)
-  {
-    if (pManifold->grids[i].center == center)
-      break;
-  }
-
-  if (i == pManifold->grids.length)
-  {
-    udDouble3 minPos = center - udDouble3::create(pManifold->gridSize / 2.0);
-    udDouble3 maxPos = center + udDouble3::create(pManifold->gridSize / 2.0);
-    pManifold->grids.PushBack(vcBPAGrid::create(center, minPos, maxPos));
-  }
-}
-
-void vcBPA_PopulateGrid(vdkContext *pContext, vdkPointCloud *pModel, vdkAttributeSet *pAttributes, udDouble3 aabbCenter, udDouble3 aabbExtents, vcBPAGrid *pGrid, bool *pHasPoints, bool *pHasNeighbours)
-{
-  pGrid->Init(pAttributes);
-
-  vdkQueryFilter *pFilter = nullptr;
-  vdkQueryFilter_Create(&pFilter);
-  udDouble3 zero = udDouble3::zero();
-  vdkQueryFilter_SetAsBox(pFilter, &aabbCenter.x, &aabbExtents.x, &zero.x);
-
-  vdkQuery *pQuery = nullptr;
-  vdkQuery_Create(pContext, &pQuery, pModel, pFilter);
-  vdkQuery_ExecuteF64(pQuery, pGrid->pBuffer);
-  vdkQuery_Destroy(&pQuery);
-  vdkQueryFilter_Destroy(&pFilter);
-
-  pGrid->vertices.ReserveBack(pGrid->pBuffer->pointCount);
-  for (uint32_t j = 0; j < pGrid->pBuffer->pointCount; ++j)
-  {
-    udDouble3 position = udDouble3::create(pGrid->pBuffer->pPositions[j * 3 + 0], pGrid->pBuffer->pPositions[j * 3 + 1], pGrid->pBuffer->pPositions[j * 3 + 2]);
-
-    if (udPointInAABB(position, pGrid->minPos, pGrid->maxPos))
-      *pHasPoints = true;
-    else
-      *pHasNeighbours = true;
-
-    pGrid->vertices.PushBack({ position, false });
-  }
-}
-
-bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vdkAttributeSet *pAttributes, vcBPAGrid **ppGrid, bool addOverlap)
-{
-  for (size_t i = 0; i < pManifold->grids.length; ++i)
-  {
-    if (pManifold->grids[i].visited)
-      continue;
-
-    pManifold->grids[i].visited = true;
-
-    udDouble3 aabbCenter = pManifold->grids[i].center;
-    udDouble3 aabbExtents = udDouble3::create(pManifold->gridSize / 2.0);
-
-    if (addOverlap)
-      aabbExtents += udDouble3::create(2 * pManifold->ballRadius); // Add overlap
-
-    bool hasPoints = false;
-    bool hasNeighbours = false;
-    vcBPA_PopulateGrid(pManifold->pContext, pModel, pAttributes, aabbCenter, aabbExtents, pManifold->grids.GetElement(i), &hasPoints, &hasNeighbours);
-
-    if (!hasPoints && !pManifold->foundFirstGrid)
-    {
-      // Head in one direction first (prioritize up/down)
-      for (int j = 2; j >= 0; --j)
-      {
-        size_t gridCount = pManifold->grids.length;
-        udDouble3 offset = udDouble3::zero();
-        offset[j] = pManifold->gridSize;
-        vcBPA_AddGrid(pManifold, pModel, aabbCenter + offset);
-        vcBPA_AddGrid(pManifold, pModel, aabbCenter - offset);
-
-        // If any new grids were added break
-        if (gridCount != pManifold->grids.length)
-          break;
-      }
-    }
-    else if (hasNeighbours || (!addOverlap && hasPoints))
-    {
-      // TODO: Consider calculating which neighbours to add
-      for (int j = 0; j < 3; j++)
-      {
-        udDouble3 offset = udDouble3::zero();
-        offset[j] = pManifold->gridSize;
-        vcBPA_AddGrid(pManifold, pModel, aabbCenter + offset);
-        vcBPA_AddGrid(pManifold, pModel, aabbCenter - offset);
-      }
-    }
-
-    if (!hasPoints)
-    {
-      pManifold->grids[i].Deinit();
-      continue;
-    }
-
-    if (pManifold->grids[i].vertices.length == 0)
-      continue;
-
-    pManifold->foundFirstGrid = true;
-
-    *ppGrid = pManifold->grids.GetElement(i);
-    return true;
-  }
-
-  return false;
 }
 
 int vcBPA_GetPointsInBallCount(vcBPAGrid *pGrid, const udChunkedArray<uint64_t> &nearbyPoints, udDouble3 ballCenter, double ballRadius)
@@ -792,97 +717,155 @@ size_t vcBPA_FindClosestTriangle(vcBPAGrid *pOldGrid, udDouble3 position)
   return closest;
 }
 
-struct vcBPAConvertItemData
+bool vcBPA_AddGrid(vcBPAConvertItem *pData, udDouble3 center, vcBPAConvertItemData *pConvertData)
 {
-  vcBPAManifold *pManifold;
+  bool result = false;
 
-  vcBPAGrid *pGrid;
-  uint32_t pointIndex;
+  udDouble3 extents = udDouble3::create(pData->pManifold->gridSize / 2.0);
 
-  vdkPointCloud *pOldModel;
-  vcBPAGrid oldGrid;
-};
+  udDouble3 minPos = center - extents;
+  udDouble3 maxPos = center + extents;
+  pConvertData->pGrid = vcBPAGrid::Create(center, minPos, maxPos);
+  pConvertData->pGrid->Init(pData->pManifold->pAttributes);
 
-struct vcBPAConvertItem
+  extents += udDouble3::create(2 * pData->pManifold->ballRadius);
+  vdkQueryFilter *pFilter = nullptr;
+  vdkQueryFilter_Create(&pFilter);
+  udDouble3 zero = udDouble3::zero();
+  vdkQueryFilter_SetAsBox(pFilter, &center.x, &extents.x, &zero.x);
+
+  vdkQuery *pQuery = nullptr;
+  vdkQuery_Create(pData->pManifold->pContext, &pQuery, pData->pNewModel, pFilter);
+  vdkQuery_ExecuteF64(pQuery, pConvertData->pGrid->pBuffer);
+
+  if (pConvertData->pGrid->pBuffer->pointCount > 0)
+  {
+    result = true;
+
+    pConvertData->pGrid->vertices.ReserveBack(pConvertData->pGrid->pBuffer->pointCount);
+
+    for (uint32_t i = 0; i < pConvertData->pGrid->pBuffer->pointCount; ++i)
+    {
+      udDouble3 position = udDouble3::create(pConvertData->pGrid->pBuffer->pPositions[i * 3 + 0], pConvertData->pGrid->pBuffer->pPositions[i * 3 + 1], pConvertData->pGrid->pBuffer->pPositions[i * 3 + 2]);
+      pConvertData->pGrid->vertices.PushBack({ position, false });
+    }
+
+    // Need attributes?
+    pConvertData->pOldGrid = vcBPAGrid::Create(center, center - udDouble3::create(pData->gridSize / 2), center + udDouble3::create(pData->gridSize / 2));
+    pConvertData->pOldGrid->Init(pData->pManifold->pAttributes);
+
+    vdkQuery_Create(pData->pManifold->pContext, &pQuery, pData->pOldModel, pFilter);
+    vdkQuery_ExecuteF64(pQuery, pConvertData->pOldGrid->pBuffer);
+
+    for (uint32_t i = 0; i < pConvertData->pOldGrid->pBuffer->pointCount; ++i)
+    {
+      udDouble3 position = udDouble3::create(pConvertData->pOldGrid->pBuffer->pPositions[i * 3 + 0], pConvertData->pOldGrid->pBuffer->pPositions[i * 3 + 1], pConvertData->pOldGrid->pBuffer->pPositions[i * 3 + 2]);
+      pConvertData->pOldGrid->vertices.PushBack({ position, false });
+    }
+
+    vcBPA_DoGrid(pConvertData->pOldGrid, pData->pManifold->ballRadius);
+  }
+  else
+  {
+    pConvertData->pGrid->Deinit();
+    udFree(pConvertData->pGrid);
+  }
+
+  vdkQuery_Destroy(&pQuery);
+  vdkQueryFilter_Destroy(&pFilter);
+
+  return result;
+}
+
+void vcBPA_ProcessOctant(udDouble3 center, udDouble3 extents, vcBPAConvertItem *pData)
 {
-  vcBPAManifold *pManifold;
-  vdkContext *pContext;
-  vdkPointCloud *pOldModel;
-  vdkPointCloud *pNewModel;
-  vcConvertItem *pConvertItem;
-  double gridSize;
-  double ballRadius;
+  vdkPointBufferF64 *pBuffer = nullptr;
+  vdkPointBufferF64_Create(&pBuffer, 1, nullptr);
 
-  udSafeDeque<vcBPAConvertItemData> *pQueueItems;
-  udSafeDeque<vcBPAConvertItemData> *pConvertItemData;
-  vcBPAConvertItemData activeItem;
-  udThread *pThread;
-  udInterlockedBool running;
-};
+  vdkQueryFilter *pFilter = nullptr;
+  vdkQueryFilter_Create(&pFilter);
+  udDouble3 zero = udDouble3::zero();
+  vdkQueryFilter_SetAsBox(pFilter, &center.x, &extents.x, &zero.x);
 
-void vcBPA_GridPopulationThread(void *pDataPtr)
-{
-  vcBPAConvertItem *pData = (vcBPAConvertItem *)pDataPtr;
-  vcBPAConvertItemData itemData = {};
-  if (udSafeDeque_PopFront(pData->pQueueItems, &itemData) != udR_Success)
-    return;
+  vdkQuery *pQuery = nullptr;
+  vdkQuery_Create(pData->pContext, &pQuery, pData->pNewModel, pFilter);
+  vdkQuery_ExecuteF64(pQuery, pBuffer);
+  vdkQuery_Destroy(&pQuery);
+  vdkQueryFilter_Destroy(&pFilter);
 
-  udDouble3 minPos = itemData.pGrid->center - udDouble3::create(itemData.pManifold->gridSize / 2.0);
-  udDouble3 maxPos = itemData.pGrid->center + udDouble3::create(itemData.pManifold->gridSize / 2.0);
-  itemData.oldGrid = vcBPAGrid::create(itemData.pGrid->center, minPos, maxPos);
+  if (pBuffer->pointCount > 0)
+  {
+    vcBPAOctNode child;
+    child.Init(center, extents);
 
-  udDouble3 aabbCenter = itemData.oldGrid.center;
-  udDouble3 aabbExtents = udDouble3::create(itemData.pManifold->gridSize / 2.0);
-  aabbExtents += udDouble3::create(2 * itemData.pManifold->ballRadius); // Add overlap
+    if (extents[pData->shortAxis] > pData->gridSize)
+    {
+      // If node size is still bigger than gridSize, continue to descend
+      udSafeDeque_PushBack(pData->pLoadList, child);
+    }
+    else
+    {
+      udDouble3 minPos = center - extents;
+      udDouble3 maxPos = center + extents;
 
-  bool hasPoints = false;
-  bool hasNeighbours = false;
-  vcBPA_PopulateGrid(itemData.pManifold->pContext, itemData.pOldModel, nullptr, aabbCenter, aabbExtents, &itemData.oldGrid, &hasPoints, &hasNeighbours);
-  vcBPA_DoGrid(&itemData.oldGrid, itemData.pManifold->ballRadius);
+      for (int i = 0; i < 3; ++i)
+      {
+        // Adjust range to grab gridsize sections within a halfsize of min/max pos so 
+        // that we don't need to store grids and check if we've already added them
+        // This creates potential for errors on octree boundaries?
+        double minmod = udMod(minPos[i], pData->gridSize);
+        double maxmod = pData->gridSize - udMod(maxPos[i], pData->gridSize);
+        minPos[i] = minPos[i] - minmod + (minmod > pData->gridSize / 2 ? pData->gridSize : 0);
+        maxPos[i] = maxPos[i] + maxmod - (maxmod > pData->gridSize / 2 ? pData->gridSize : 0);
+      }
 
-  udSafeDeque_PushBack(pData->pConvertItemData, itemData);
+      udDouble3 currPos;
+      for (currPos.x = minPos.x + pData->gridSize / 2; currPos.x < maxPos.x && pData->running; currPos.x += pData->gridSize)
+      {
+        for (currPos.y = minPos.y + pData->gridSize / 2; currPos.y < maxPos.y && pData->running; currPos.y += pData->gridSize)
+        {
+          for (currPos.z = minPos.z + pData->gridSize / 2; currPos.z < maxPos.z && pData->running; currPos.z += pData->gridSize)
+          {
+            vcBPAConvertItemData data = {};
+            data.pManifold = pData->pManifold;
+
+            if (vcBPA_AddGrid(pData, currPos, &data))
+            {
+              udSafeDeque_PushBack(pData->pConvertItemData, data);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  vdkPointBufferF64_Destroy(&pBuffer);
 }
 
 uint32_t vcBPA_GridGeneratorThread(void *pDataPtr)
 {
   vcBPAConvertItem *pData = (vcBPAConvertItem *)pDataPtr;
 
-  vcBPAGrid *pGrid = nullptr;
-  int i = 0;
-
-  vdkPointCloudHeader header;
-  vdkPointCloud_GetHeader(pData->pNewModel, &header);
-
-  while (vcBPA_GetGrid(pData->pManifold, pData->pNewModel, &header.attributes, &pGrid, false) && pData->running)
+  while (pData->running)
   {
-    vcBPAConvertItemData data = {};
-    data.pManifold = pData->pManifold;
-    data.pGrid = pGrid;
-    data.pointIndex = 0;
-    data.pOldModel = pData->pOldModel;
-
-    udSafeDeque_PushBack(pData->pQueueItems, data);
-    udWorkerPool_AddTask(pData->pManifold->pPool, vcBPA_GridPopulationThread, pData, false);
-    ++i;
-
-    // Catch up to avoid running out of memory
-    if (i >= 100)
+    vcBPAOctNode node;
+    if (udSafeDeque_PopBack(pData->pLoadList, &node) != udR_Success)
     {
-      do
+      udSleep(250);
+      continue;
+    }
+
+    for (int i = 0; i < 8 && pData->running; ++i)
+    {
+      udWorkerPoolCallback callback = [node, i, pData](void *)
       {
-        udLockMutex(pData->pQueueItems->pMutex);
-        i = (int)pData->pQueueItems->chunkedArray.length;
-        udReleaseMutex(pData->pQueueItems->pMutex);
-
-        if (i < 50)
-          break;
-
-        udSleep(500);
-      } while (pData->running);
+        udDouble3 childExtents = node.extents * .5;
+        vcBPA_ProcessOctant(node.center + (octantPositions[i] * childExtents), childExtents, pData);
+      };
+      udWorkerPool_AddTask(pData->pManifold->pPool, callback, nullptr, false);
     }
   }
 
-  pData->running = false;
   return 0;
 }
 
@@ -900,22 +883,20 @@ vdkError vcBPA_ConvertOpen(vdkConvertCustomItem *pConvertInput, uint32_t everyNt
   pData->pManifold->ballRadius = pData->ballRadius;
   pData->pManifold->gridSize = pData->gridSize;
 
-  vdkPointCloudHeader header = {};
-  vdkPointCloud_GetHeader(pData->pNewModel, &header);
-  udDouble4x4 storedMatrix = udDouble4x4::create(header.storedMatrix);
-  udDouble3 startAABBCenter = (storedMatrix * udDouble4::create(header.pivot[0], header.pivot[1], header.pivot[2], 1.0)).toVector3();
+  for (uint8_t i = 1; i < 3; ++i)
+  {
+    if (pData->extents[i] < pData->extents[pData->shortAxis])
+      pData->shortAxis = i;
+  }
 
-  udDouble3 halfGrid = udDouble3::create(pData->pManifold->gridSize / 2.0);
-  pData->pManifold->grids.PushBack(vcBPAGrid::create(startAABBCenter, startAABBCenter - halfGrid, startAABBCenter + halfGrid));
+  pData->rootNode.Init(pData->center, pData->extents);
+  udSafeDeque_Create(&pData->pConvertItemData, 64);
+  udSafeDeque_Create(&pData->pLoadList, 64);
 
-  udSafeDeque_Create(&pData->pQueueItems, 32);
-  udSafeDeque_Create(&pData->pConvertItemData, 128);
-
+  udSafeDeque_PushBack(pData->pLoadList, pData->rootNode);
   udThread_Create(&pData->pThread, vcBPA_GridGeneratorThread, pData, udTCF_None, "BPAGridGeneratorThread");
-  while (pData->running && udSafeDeque_PopFront(pData->pConvertItemData, &pData->activeItem) != udR_Success)
-    continue;
 
-  return (!pData->running && pData->activeItem.pointIndex == 0 && pData->activeItem.pGrid == nullptr) ? vE_InvalidConfiguration : vE_Success;
+  return vE_Success;
 }
 
 vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBufferF64 *pBuffer)
@@ -950,11 +931,11 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
     }
 
     udDouble3 position = pData->activeItem.pGrid->vertices[i].position;
-    size_t triangle = vcBPA_FindClosestTriangle(&pData->activeItem.oldGrid, position);
+    size_t triangle = vcBPA_FindClosestTriangle(pData->activeItem.pOldGrid, position);
 
     double distance = FLT_MAX;
-    if (triangle < pData->activeItem.oldGrid.triangles.length)
-      distance = udAbs(vcBPA_DistanceToTriangle(&pData->activeItem.oldGrid, triangle, position));
+    if (triangle < pData->activeItem.pOldGrid->triangles.length)
+      distance = udAbs(vcBPA_DistanceToTriangle(pData->activeItem.pOldGrid, triangle, position));
 
     // Position XYZ
     memcpy(&pBuffer->pPositions[pBuffer->pointCount * 3], &pData->activeItem.pGrid->pBuffer->pPositions[i * 3], sizeof(double) * 3);
@@ -994,8 +975,9 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
   if (getNextGrid)
   {
     pData->activeItem.pGrid->Deinit();
-    pData->activeItem.oldGrid.Deinit();
+    pData->activeItem.pOldGrid->Deinit();
     pData->activeItem.pGrid = nullptr;
+    pData->activeItem.pOldGrid = nullptr;
     pData->activeItem.pointIndex = 0;
 
     do
@@ -1015,17 +997,37 @@ void vcBPA_ConvertClose(vdkConvertCustomItem *pConvertInput)
   vcBPAConvertItem *pBPA = (vcBPAConvertItem *)pConvertInput->pData;
   pBPA->running = false;
   udThread_Join(pBPA->pThread);
+  while (udSafeDeque_PopFront(pBPA->pLoadList, &pBPA->rootNode) == udR_Success);
   udThread_Destroy(&pBPA->pThread);
-  pBPA->activeItem.oldGrid.Deinit();
-  pBPA->activeItem = {};
+  udSafeDeque_Destroy(&pBPA->pLoadList);
+
+  if (pBPA->activeItem.pOldGrid)
+  {
+    pBPA->activeItem.pOldGrid->Deinit();
+    udFree(pBPA->activeItem.pOldGrid);
+  }
+
+  if (pBPA->activeItem.pGrid)
+  {
+    pBPA->activeItem.pGrid->Deinit();
+    udFree(pBPA->activeItem.pGrid);
+  }
 
   vcBPAConvertItemData itemData;
-  while (udSafeDeque_PopFront(pBPA->pQueueItems, &itemData) == udR_Success)
-    itemData.oldGrid.Deinit();
-  udSafeDeque_Destroy(&pBPA->pQueueItems);
-
   while (udSafeDeque_PopFront(pBPA->pConvertItemData, &itemData) == udR_Success)
-    itemData.oldGrid.Deinit();
+  {
+    if (itemData.pOldGrid)
+    {
+      itemData.pOldGrid->Deinit();
+      udFree(itemData.pOldGrid);
+    }
+
+    if (itemData.pGrid)
+    {
+      itemData.pGrid->Deinit();
+      udFree(itemData.pGrid);
+    }
+  }
   udSafeDeque_Destroy(&pBPA->pConvertItemData);
 
   vcBPA_Deinit(&pBPA->pManifold);
