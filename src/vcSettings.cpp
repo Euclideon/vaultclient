@@ -419,10 +419,6 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("window.language = '%s'", pSettings->window.languageCode);
   data.Set("window.showNativeUI = %s", pSettings->window.useNativeUI ? "true" : "false");
 
-  data.Set("frames.scene = %s", pSettings->window.windowsOpen[vcDocks_Scene] ? "true" : "false");
-  data.Set("frames.explorer = %s", pSettings->window.windowsOpen[vcDocks_SceneExplorer] ? "true" : "false");
-  data.Set("frames.convert = %s", pSettings->window.windowsOpen[vcDocks_Convert] ? "true" : "false");
-
   // Login Info
   data.Set("login.rememberServer = %s", pSettings->loginInfo.rememberServer ? "true" : "false");
   if (pSettings->loginInfo.rememberServer)
