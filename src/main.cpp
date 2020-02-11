@@ -151,7 +151,6 @@ void vcMain_PresentationMode(vcState *pProgramState)
 {
   if (pProgramState->settings.window.isFullscreen)
   {
-    pProgramState->settings.docksLoaded = vcSettings::vcDockLoaded::vcDL_False;
     SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
   }
   else
@@ -778,7 +777,6 @@ int main(int argc, char **args)
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
   // Dock setting
-  programState.settings.docksLoaded = vcSettings::vcDockLoaded::vcDL_False;
   programState.settings.window.windowsOpen[vcDocks_Scene] = true;
   programState.settings.window.windowsOpen[vcDocks_SceneExplorer] = true;
   programState.settings.window.windowsOpen[vcDocks_Convert] = true;
@@ -2107,22 +2105,7 @@ void vcRenderWindow(vcState *pProgramState)
   //end keyboard/mouse handling
 
   if (pProgramState->hasContext && !pProgramState->settings.window.isFullscreen)
-  {
-    int margin = vcMainMenuGui(pProgramState);
-
-    if (pProgramState->settings.docksLoaded != vcSettings::vcDockLoaded::vcDL_True)
-      pProgramState->settings.rootDock = ImGui::GetID("MyDockspace");
-
-    ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
-    ImGui::SetNextWindowBgAlpha(0.f);
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    ImGui::Begin("RootDockContainer", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoSavedSettings);
-    ImGui::PopStyleVar();
-    ImGui::DockSpace(pProgramState->settings.rootDock, ImVec2(size.x, size.y - margin));
-    ImGui::End();
-  }
+    vcMainMenuGui(pProgramState);
 
   if (!pProgramState->hasContext)
   {
@@ -2312,16 +2295,6 @@ void vcRenderWindow(vcState *pProgramState)
         ImGui::SetWindowFocus(pProgramState->settings.pActive[i]->Name);
         pProgramState->settings.pActive[i] = nullptr;
       }
-    }
-
-    if (pProgramState->settings.docksLoaded != vcSettings::vcDockLoaded::vcDL_True)
-    {
-      vcSettings_Load(&pProgramState->settings, false, vcSC_Docks);
-
-      // Don't show the window in a bad state
-      ImDrawData *pData = ImGui::GetDrawData();
-      if (pData != nullptr)
-        pData->Clear();
     }
   }
 
