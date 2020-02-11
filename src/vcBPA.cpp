@@ -98,8 +98,6 @@ struct vcBPAGrid
 
 struct vcBPAManifold
 {
-  udMutex *pMutex;
-
   udSemaphore *pOctSemaphore;
   udWorkerPool *pPool;
   vdkAttributeSet *pAttributes;
@@ -148,8 +146,8 @@ struct vcBPAConvertItem
   uint8_t shortAxis;
   udDouble3 center;
   udDouble3 extents;
+  volatile int32_t convertQueue;
 
-  udSemaphore *pConvertSemaphore;
   udSafeDeque<vcBPAConvertItemData> *pConvertItemData;
   vcBPAConvertItemData activeItem;
   udInterlockedBool running;
@@ -190,7 +188,6 @@ void vcBPA_Deinit(vcBPAManifold **ppManifold)
 
   vcBPAManifold *pManifold = *ppManifold;
   udWorkerPool_Destroy(&pManifold->pPool);
-  udDestroyMutex(&pManifold->pMutex);
   udDestroySemaphore(&pManifold->pOctSemaphore);
   *ppManifold = nullptr;
 
@@ -841,28 +838,22 @@ void vcBPA_ProcessOctant(udDouble3 center, udDouble3 extents, vcBPAConvertItem *
       udDouble3 currPos;
       for (currPos.x = minPos.x + pData->halfSize; currPos.x < maxPos.x && pData->running; currPos.x += pData->gridSize)
       {
-        udLockMutex(pData->pConvertItemData->pMutex);
-        while (pData->pConvertItemData->chunkedArray.length > 10)
-        {
-          udReleaseMutex(pData->pConvertItemData->pMutex);
-          udSleep(1000);
-          udLockMutex(pData->pConvertItemData->pMutex);
-          continue;
-        }
-        udReleaseMutex(pData->pConvertItemData->pMutex);
-
         for (currPos.y = minPos.y + pData->halfSize; currPos.y < maxPos.y && pData->running; currPos.y += pData->gridSize)
         {
           for (currPos.z = minPos.z + pData->halfSize; currPos.z < maxPos.z && pData->running; currPos.z += pData->gridSize)
           {
             vcBPAConvertItemData data = {};
             data.pManifold = pData->pManifold;
+
+            while (pData->convertQueue > 50)
+              udSleep(1000);
+
             if (vcBPA_AddGrid(pData, currPos, &data))
             {
               if (!pData->running)
                 goto epilogue;
 
-              udWaitSemaphore(pData->pConvertSemaphore);
+              udInterlockedPreIncrement(&pData->convertQueue);
               udSafeDeque_PushBack(pData->pConvertItemData, data);
             }
           }
@@ -872,7 +863,6 @@ void vcBPA_ProcessOctant(udDouble3 center, udDouble3 extents, vcBPAConvertItem *
       }
     }
   }
-  udIncrementSemaphore(pData->pManifold->pOctSemaphore);
 
 epilogue:
   vdkPointBufferF64_Destroy(&pBuffer);
@@ -905,6 +895,7 @@ uint32_t vcBPA_GridGeneratorThread(void *pDataPtr)
 
         udWaitSemaphore(pData->pManifold->pOctSemaphore);
         vcBPA_ProcessOctant(node.center + (octantPositions[i] * childExtents), childExtents, pData);
+        udIncrementSemaphore(pData->pManifold->pOctSemaphore);
       };
       udWorkerPool_AddTask(pData->pManifold->pPool, callback, nullptr, false);
     }
@@ -928,7 +919,6 @@ vdkError vcBPA_ConvertOpen(vdkConvertCustomItem *pConvertInput, uint32_t everyNt
   pData->pManifold->ballRadius = pData->ballRadius;
   pData->pManifold->gridSize = pData->gridSize;
   pData->pManifold->pAttributes = &pData->attributes;
-  pData->pManifold->pMutex = udCreateMutex();
 
   for (uint8_t i = 1; i < 3; ++i)
   {
@@ -937,10 +927,8 @@ vdkError vcBPA_ConvertOpen(vdkConvertCustomItem *pConvertInput, uint32_t everyNt
   }
 
   pData->rootNode.Init(pData->center, pData->extents);
-  udSafeDeque_Create(&pData->pConvertItemData, 128);
-  udSafeDeque_Create(&pData->pLoadList, 128);
-  pData->pConvertSemaphore = udCreateSemaphore();
-  udIncrementSemaphore(pData->pConvertSemaphore, 64);
+  udSafeDeque_Create(&pData->pConvertItemData, 64);
+  udSafeDeque_Create(&pData->pLoadList, 64);
 
   udSafeDeque_PushBack(pData->pLoadList, pData->rootNode);
   udThread_Create(&pData->pThread, vcBPA_GridGeneratorThread, pData, udTCF_None, "BPAGridGeneratorThread");
@@ -973,8 +961,8 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
         udSleep(100);
       } while (pData->running);
 
+      udInterlockedPreDecrement(&pData->convertQueue);
       ++gridCount;
-      udIncrementSemaphore(pData->pConvertSemaphore);
     }
 
     maxPointIndex = udMin((uint32_t)pData->activeItem.pGrid->vertices.length, pBuffer->pointsAllocated - pBuffer->pointCount);
@@ -1055,9 +1043,6 @@ void vcBPA_ConvertClose(vdkConvertCustomItem *pConvertInput)
   udSafeDeque_Destroy(&pBPA->pLoadList);
 
   vcBPA_Deinit(&pBPA->pManifold);
-
-  if (pBPA->pConvertSemaphore)
-    udDestroySemaphore(&pBPA->pConvertSemaphore);
 
   if (pBPA->activeItem.pOldGrid)
   {
