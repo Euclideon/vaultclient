@@ -569,10 +569,7 @@ void vcMain_MainLoop(vcState *pProgramState)
       udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
 
     if (pProgramState->forceLogout)
-    {
       vcSession_Logout(pProgramState);
-      vcModals_OpenModal(pProgramState, vcMT_LoggedOut);
-    }
   }
 }
 
