@@ -9,8 +9,10 @@ struct vcProgramState;
 using vcFileDialogCallback = udCallback<void(void)>;
 
 static const char *SupportedFileTypes_Images[] = { ".jpg", ".png", ".tga", ".bmp", ".gif" };
-static const char *SupportedFileTypes_Projects[] = { ".json", ".udp" };
-static const char *SupportedFileTypes_SceneItems[] = { ".uds", ".ssf", ".udg" };
+static const char *SupportedFileTypes_SceneItems[] = { ".uds", ".ssf", ".udg", ".jpg", ".png" };
+
+static const char *SupportedFileTypes_ProjectsExport[] = { ".json" };
+static const char *SupportedFileTypes_ProjectsImport[] = { ".json", ".udp" };
 
 static const char *SupportedTileTypes_ConvertExport[] = { ".uds" };
 static const char *SupportedFileTypes_ConvertImport[] = { ".uds", ".ssf", ".udg", ".las", ".laz", ".e57", ".txt", ".csv", ".asc", ".pts", ".ptx", ".xyz", ".obj"
@@ -58,8 +60,9 @@ template <size_t N, size_t M> inline void vcFileDialog_Show(vcFileDialog *pDialo
 
   // These unused are required for compiling to work
   udUnused(SupportedFileTypes_Images);
-  udUnused(SupportedFileTypes_Projects);
   udUnused(SupportedFileTypes_SceneItems);
+  udUnused(SupportedFileTypes_ProjectsExport);
+  udUnused(SupportedFileTypes_ProjectsImport);
   udUnused(SupportedTileTypes_ConvertExport);
   udUnused(SupportedFileTypes_ConvertImport);
 }
