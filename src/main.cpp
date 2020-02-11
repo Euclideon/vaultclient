@@ -1781,9 +1781,9 @@ int vcMainMenuGui(vcState *pProgramState)
 
       if (ImGui::MenuItem(vcString::Get("menuProjectImport"), nullptr, nullptr))
       {
-        vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_Projects, vcFDT_OpenFile, [pProgramState]() {
+        vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_ProjectsImport, vcFDT_OpenFile, [pProgramState]() {
           pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
-          });
+        });
       }
 
       ImGui::Separator();
