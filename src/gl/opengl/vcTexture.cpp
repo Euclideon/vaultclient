@@ -84,12 +84,18 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
     *pPixelFormat = pixelFormat;
 }
 
-udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /* = 0 */)
+udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, vcTextureCreationFlags flags /*= vcTCF_None*/)
+{
+  return vcTexture_CreateAdv(ppTexture, vcTextureType_Texture2D, width, height, 1, pPixels, format, filterMode, false, vcTWM_Repeat, flags);
+}
+
+udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t width, uint32_t height, uint32_t depth, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
 {
   if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
+  GLenum target = vcTTToGL[type];
   GLint textureFormat = GL_INVALID_ENUM;
   GLenum pixelType = GL_INVALID_ENUM;
   GLint pixelFormat = GL_INVALID_ENUM;
@@ -100,12 +106,15 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   UD_ERROR_NULL(pTexture, udR_MemoryAllocationFailure);
 
   glGenTextures(1, &pTexture->id);
-  glBindTexture(GL_TEXTURE_2D, pTexture->id);
+  glBindTexture(target, pTexture->id);
 
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, vcTFMToGL[filterMode]);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, hasMipmaps ? GL_LINEAR_MIPMAP_NEAREST : vcTFMToGL[filterMode]);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, vcTWMToGL[wrapMode]);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, vcTWMToGL[wrapMode]);
+  glTexParameteri(target, GL_TEXTURE_MAG_FILTER, vcTFMToGL[filterMode]);
+  glTexParameteri(target, GL_TEXTURE_MIN_FILTER, hasMipmaps ? GL_LINEAR_MIPMAP_NEAREST : vcTFMToGL[filterMode]);
+  glTexParameteri(target, GL_TEXTURE_WRAP_S, vcTWMToGL[wrapMode]);
+  glTexParameteri(target, GL_TEXTURE_WRAP_T, vcTWMToGL[wrapMode]);
+
+  if (type == vcTextureType_Texture3D)
+    glTexParameteri(target, GL_TEXTURE_WRAP_R, vcTWMToGL[wrapMode]);
 
   if (aniFilter > 0)
   {
@@ -113,14 +122,23 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
 #if UDPLATFORM_ANDROID
     udUnused(realAniso);
 #else
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, realAniso);
+    glTexParameteri(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, realAniso);
 #endif
   }
 
-  glTexImage2D(GL_TEXTURE_2D, 0, textureFormat, width, height, 0, pixelFormat, pixelType, pPixels);
+  switch (type)
+  {
+  case vcTextureType_Texture2D:
+    glTexImage2D(target, 0, textureFormat, width, height, 0, pixelFormat, pixelType, pPixels);
+    break;
+  case vcTextureType_Texture3D: // fall through
+  case vcTextureType_TextureArray:
+    glTexImage3D(target, 0, textureFormat, width, height, depth, 0, pixelFormat, pixelType, pPixels);
+    break;
+  };
 
   if (hasMipmaps)
-    glGenerateMipmap(GL_TEXTURE_2D);
+    glGenerateMipmap(target);
 
   if ((flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
   {
@@ -133,14 +151,16 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
     glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
   }
 
-  glBindTexture(GL_TEXTURE_2D, 0);
+  glBindTexture(target, 0);
 
+  pTexture->type = type;
   pTexture->flags = flags;
   pTexture->format = format;
   pTexture->width = width;
   pTexture->height = height;
+  pTexture->depth = depth;
 
-  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
+  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pTexture->depth * pixelBytes);
 
   *ppTexture = pTexture;
   pTexture = nullptr;
@@ -165,7 +185,7 @@ bool vcTexture_CreateFromMemory(vcTexture **ppTexture, void *pFileData, size_t f
   uint8_t *pData = stbi_load_from_memory((stbi_uc *)pFileData, (int)fileLength, (int *)& width, (int *)& height, (int *)& channelCount, 4);
 
   if (pData)
-    vcTexture_Create(&pTexture, width, height, pData, vcTextureFormat_RGBA8, filterMode, hasMipmaps, wrapMode, flags, aniFilter);
+    vcTexture_CreateAdv(&pTexture, vcTextureType_Texture2D, width, height, 1, pData, vcTextureFormat_RGBA8, filterMode, hasMipmaps, wrapMode, flags, aniFilter);
 
   stbi_image_free(pData);
 
@@ -197,7 +217,7 @@ bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, 
   return result;
 }
 
-udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height)
+udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height, int depth /*= 1*/)
 {
   if (pTexture == nullptr || pPixels == nullptr || width == 0 || height == 0)
     return udR_InvalidParameter_;
@@ -207,19 +227,32 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
 
   udResult result = udR_Success;
 
+  GLenum target = vcTTToGL[pTexture->type];
   GLint textureFormat = GL_INVALID_ENUM;
   GLenum pixelType = GL_INVALID_ENUM;
   GLint pixelFormat = GL_INVALID_ENUM;
   int pixelBytes = 0;
-  vcTexture_GetFormatAndPixelSize(pTexture->format, &pixelBytes, &textureFormat, &pixelType, &pixelFormat);
+  vcTexture_GetFormatAndPixelSize(pTexture->format, nullptr, &textureFormat, &pixelType, &pixelFormat);
 
-  glBindTexture(GL_TEXTURE_2D, pTexture->id);
-  glTexImage2D(GL_TEXTURE_2D, 0, textureFormat, pTexture->width, pTexture->height, 0, pixelFormat, pixelType, pPixels);
-  glBindTexture(GL_TEXTURE_2D, 0);
+  glBindTexture(target, pTexture->id);
+
+  switch (pTexture->type)
+  {
+  case vcTextureType_Texture2D:
+    glTexImage2D(target, 0, textureFormat, width, height, 0, pixelFormat, pixelType, pPixels);
+    break;
+  case vcTextureType_Texture3D: // fall through
+  case vcTextureType_TextureArray:
+    glTexImage3D(target, 0, textureFormat, width, height, depth, 0, pixelFormat, pixelType, pPixels);
+    break;
+  };
+
+  glBindTexture(target, 0);
 
   pTexture->width = width;
   pTexture->height = height;
-  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
+  pTexture->depth = depth;
+  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pTexture->depth * pixelBytes);
 
 //epilogue:
   VERIFY_GL();

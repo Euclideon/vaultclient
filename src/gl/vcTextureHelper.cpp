@@ -24,10 +24,12 @@ struct AsyncTextureLoadInfo
   int64_t memoryLen;
 
   // resulting unpacked pixel data
+  vcTextureType type;
   const void* pPixels;
   vcTextureFormat format;
   uint32_t width;
   uint32_t height;
+  uint32_t depth;
 };
 
 void vcTexture_AsyncLoadWorkerThreadWork(void* pTextureLoadInfo)
@@ -48,6 +50,7 @@ void vcTexture_AsyncLoadWorkerThreadWork(void* pTextureLoadInfo)
     pLoadInfo->format = vcTextureFormat_RGBA8;
     pLoadInfo->width = width;
     pLoadInfo->height = height;
+    pLoadInfo->depth = 1;
 
     stbi_image_free(pPixels);
   }
@@ -84,7 +87,7 @@ void vcTexture_AsyncLoadMainThreadWork(void* pTextureLoadInfo)
   AsyncTextureLoadInfo* pLoadInfo = (AsyncTextureLoadInfo*)pTextureLoadInfo;
   UD_ERROR_CHECK(pLoadInfo->loadResult);
   
-  UD_ERROR_CHECK(vcTexture_Create(pLoadInfo->ppTexture, pLoadInfo->width, pLoadInfo->height, pLoadInfo->pPixels, pLoadInfo->format, pLoadInfo->filterMode, pLoadInfo->hasMips, pLoadInfo->wrapMode));
+  UD_ERROR_CHECK(vcTexture_CreateAdv(pLoadInfo->ppTexture, pLoadInfo->type, pLoadInfo->width, pLoadInfo->height, pLoadInfo->depth, pLoadInfo->pPixels, pLoadInfo->format, pLoadInfo->filterMode, pLoadInfo->hasMips, pLoadInfo->wrapMode));
 
   result = udR_Success;
 epilogue:
@@ -114,6 +117,8 @@ udResult vcTexture_AsyncCreate(vcTexture** ppTexture, udWorkerPool* pPool, uint3
   pLoadInfo->pPixels = udMemDup(pPixels, width * height * pixelBytes, 0, udAF_None);
   pLoadInfo->width = width;
   pLoadInfo->height = height;
+  pLoadInfo->depth = 1;
+  pLoadInfo->type = vcTextureType_Texture2D;
   pLoadInfo->format = format;
   pLoadInfo->filterMode = filterMode;
   pLoadInfo->hasMips = hasMipmaps;
@@ -141,6 +146,8 @@ udResult vcTexture_AsyncCreateFromFilename(vcTexture **ppTexture, udWorkerPool *
 
   pLoadInfo->ppTexture = ppTexture;
   pLoadInfo->pFilename = udStrdup(pFilename);
+  pLoadInfo->type = vcTextureType_Texture2D;
+  pLoadInfo->format = vcTextureFormat_RGBA8;
   pLoadInfo->filterMode = filterMode;
   pLoadInfo->hasMips = hasMipmaps;
   pLoadInfo->wrapMode = wrapMode;
@@ -168,6 +175,8 @@ udResult vcTexture_AsyncCreateFromMemory(vcTexture** ppTexture, udWorkerPool* pP
   pLoadInfo->ppTexture = ppTexture;
   pLoadInfo->pMemory = udMemDup(pFileData, fileLength, 0, udAF_None);
   pLoadInfo->memoryLen = fileLength;
+  pLoadInfo->type = vcTextureType_Texture2D;
+  pLoadInfo->format = vcTextureFormat_RGBA8;
   pLoadInfo->filterMode = filterMode;
   pLoadInfo->hasMips = hasMipmaps;
   pLoadInfo->wrapMode = wrapMode;

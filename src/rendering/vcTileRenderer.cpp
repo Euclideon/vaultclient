@@ -453,7 +453,7 @@ bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeN
     pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Loaded;
     pNode->renderInfo.tryLoad = false;
 
-    vcTexture_Create(&pNode->renderInfo.pTexture, pNode->renderInfo.width, pNode->renderInfo.height, pNode->renderInfo.pData, vcTextureFormat_RGBA8, vcTFM_Linear, true, vcTWM_Clamp, vcTCF_None, 16);
+    vcTexture_CreateAdv(&pNode->renderInfo.pTexture, vcTextureType_Texture2D, pNode->renderInfo.width, pNode->renderInfo.height, 1, pNode->renderInfo.pData, vcTextureFormat_RGBA8, vcTFM_Linear, true, vcTWM_Clamp, vcTCF_None, 16);
     udFree(pNode->renderInfo.pData);
 
     return true;

@@ -132,7 +132,7 @@ bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t sampl
   glActiveTexture(GL_TEXTURE0 + samplerIndex);
   VERIFY_GL();
 
-  glBindTexture(GL_TEXTURE_2D, pTexture->id);
+  glBindTexture(vcTTToGL[pTexture->type], pTexture->id);
   VERIFY_GL();
 
   if (pSampler != nullptr)
