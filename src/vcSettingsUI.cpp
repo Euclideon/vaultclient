@@ -219,7 +219,9 @@ void vcSettingsUI_Show(vcState *pProgramState)
             ImGui::Unindent();
           }
 
-          ImGui::SliderFloat(vcString::Get("settingsAppearanceSaturation"), &pProgramState->settings.presentation.saturation, 0.0f, 5.0f);
+          // limit the value between 0-5.
+          if (ImGui::SliderFloat(vcString::Get("settingsAppearanceSaturation"), &pProgramState->settings.presentation.saturation, 0.0f, 5.0f))
+            pProgramState->settings.presentation.saturation = udClamp(pProgramState->settings.presentation.saturation, 0.0f, 5.0f);
 
           const char *presentationOptions[] = { vcString::Get("settingsAppearanceHide"), vcString::Get("settingsAppearanceShow"), vcString::Get("settingsAppearanceResponsive") };
           if (ImGui::Combo(vcString::Get("settingsAppearancePresentationUI"), (int*)&pProgramState->settings.responsiveUI, presentationOptions, (int)udLengthOf(presentationOptions)))
