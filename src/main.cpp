@@ -149,7 +149,7 @@ int vcMainMenuGui(vcState *pProgramState);
 
 void vcMain_PresentationMode(vcState *pProgramState)
 {
-  if (pProgramState->settings.window.presentationMode)
+  if (pProgramState->settings.window.isFullscreen)
   {
     pProgramState->settings.docksLoaded = vcSettings::vcDockLoaded::vcDL_False;
     SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
@@ -160,7 +160,7 @@ void vcMain_PresentationMode(vcState *pProgramState)
     SDL_SetWindowFullscreen(pProgramState->pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
   }
 
-  pProgramState->settings.window.presentationMode = !pProgramState->settings.window.presentationMode;
+  pProgramState->settings.window.isFullscreen = !pProgramState->settings.window.isFullscreen;
 
   if (pProgramState->settings.responsiveUI == vcPM_Responsive)
     pProgramState->lastEventTime = udGetEpochSecsUTCd();
@@ -222,7 +222,7 @@ void vcMain_MainLoop(vcState *pProgramState)
         }
         else if (event.window.event == SDL_WINDOWEVENT_MOVED)
         {
-          if (!pProgramState->settings.window.presentationMode)
+          if (!pProgramState->settings.window.isFullscreen)
           {
             pProgramState->settings.window.xpos = event.window.data1;
             pProgramState->settings.window.ypos = event.window.data2;
@@ -1061,7 +1061,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
       // Fullscreens
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_Fullscreen)), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.presentationMode))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_Fullscreen)), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.isFullscreen))
         vcMain_PresentationMode(pProgramState);
 
       if (pProgramState->settings.presentation.showCameraInfo)
@@ -1314,7 +1314,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   if (pProgramState->settings.responsiveUI == vcPM_Show)
     pProgramState->showUI = true;
 
-  if (!pProgramState->settings.window.presentationMode || pProgramState->settings.responsiveUI == vcPM_Show || pProgramState->showUI)
+  if (!pProgramState->settings.window.isFullscreen || pProgramState->settings.responsiveUI == vcPM_Show || pProgramState->showUI)
     vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
 
   {
@@ -1547,7 +1547,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
       renderData.mouse.position = centrePoint;
 
       // Need to adjust crosshair position slightly
-      centrePoint += pProgramState->settings.window.presentationMode ? udInt2::create(-8, -8) : udInt2::create(-2, -2);
+      centrePoint += pProgramState->settings.window.isFullscreen ? udInt2::create(-8, -8) : udInt2::create(-2, -2);
 
       ImVec2 sceneWindowPos = ImGui::GetWindowPos();
       sceneWindowPos = ImVec2(sceneWindowPos.x + centrePoint.x, sceneWindowPos.y + centrePoint.y);
@@ -2106,7 +2106,7 @@ void vcRenderWindow(vcState *pProgramState)
 
   //end keyboard/mouse handling
 
-  if (pProgramState->hasContext && !pProgramState->settings.window.presentationMode)
+  if (pProgramState->hasContext && !pProgramState->settings.window.isFullscreen)
   {
     int margin = vcMainMenuGui(pProgramState);
 
@@ -2130,7 +2130,7 @@ void vcRenderWindow(vcState *pProgramState)
   }
   else
   {
-    if (pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer] && !pProgramState->settings.window.presentationMode)
+    if (pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer] && !pProgramState->settings.window.isFullscreen)
     {
       if (ImGui::Begin(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
       {
@@ -2267,7 +2267,7 @@ void vcRenderWindow(vcState *pProgramState)
     }
 
 #if VC_HASCONVERT
-    if (pProgramState->settings.window.windowsOpen[vcDocks_Convert] && !pProgramState->settings.window.presentationMode)
+    if (pProgramState->settings.window.windowsOpen[vcDocks_Convert] && !pProgramState->settings.window.isFullscreen)
     {
       if (ImGui::Begin(udTempStr("%s###convertDock", vcString::Get("convertTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
         vcConvert_ShowUI(pProgramState);
@@ -2279,7 +2279,7 @@ void vcRenderWindow(vcState *pProgramState)
 
     if (pProgramState->settings.window.windowsOpen[vcDocks_Scene])
     {
-      if (!pProgramState->settings.window.presentationMode)
+      if (!pProgramState->settings.window.isFullscreen)
       {
         if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
           vcRenderSceneWindow(pProgramState);
