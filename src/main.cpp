@@ -363,15 +363,13 @@ void vcMain_MainLoop(vcState *pProgramState)
         // Project Files
         if (udStrEquali(pExt, ".json"))
         {
-          if (vcProject_InitFromURI(pProgramState, pNextLoad))
-            pProgramState->changeActiveDock = vcDocks_Scene;
+          vcProject_InitFromURI(pProgramState, pNextLoad);
         }
         else if (udStrEquali(pExt, ".udp"))
         {
           vcProject_InitBlankScene(pProgramState);
 
           vcUDP_Load(pProgramState, pNextLoad);
-          pProgramState->changeActiveDock = vcDocks_Scene;
         }
 #if VC_HASCONVERT
         else if (convertDrop) // Everything else depends on where it was dropped
@@ -784,7 +782,6 @@ int main(int argc, char **args)
 
   programState.settings.hideIntervalSeconds = 3;
   programState.showUI = true;
-  programState.changeActiveDock = vcDocks_Count;
   programState.passFocus = true;
   programState.renaming = -1;
 
@@ -1993,15 +1990,6 @@ int vcMainMenuGui(vcState *pProgramState)
   return menuHeight;
 }
 
-void vcChangeTab(vcState *pProgramState, vcDocks dock)
-{
-  if (pProgramState->changeActiveDock == dock)
-  {
-    ImGui::SetWindowFocus();
-    pProgramState->changeActiveDock = vcDocks_Count;
-  }
-}
-
 void vcMain_ShowStartupScreen(vcState *pProgramState)
 {
   ImGuiIO &io = ImGui::GetIO();
@@ -2259,7 +2247,6 @@ void vcRenderWindow(vcState *pProgramState)
       if (ImGui::Begin(udTempStr("%s###convertDock", vcString::Get("convertTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
         vcConvert_ShowUI(pProgramState);
 
-      vcChangeTab(pProgramState, vcDocks_Convert);
       ImGui::End();
     }
 #endif //VC_HASCONVERT
@@ -2270,7 +2257,6 @@ void vcRenderWindow(vcState *pProgramState)
       {
         if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
           vcRenderSceneWindow(pProgramState);
-        vcChangeTab(pProgramState, vcDocks_Scene);
         ImGui::End();
       }
       else
