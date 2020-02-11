@@ -38,7 +38,7 @@ struct vcBPAEdge
 
   vcBPATriangle *pTriangle;
 
-  static vcBPAEdge create(udULong2 edge, vcBPAEdgeStatus status, vcBPATriangle *pTriangle)
+  static vcBPAEdge Create(udULong2 edge, vcBPAEdgeStatus status, vcBPATriangle *pTriangle)
   {
     return{ edge, status, pTriangle };
   }
@@ -49,7 +49,7 @@ struct vcBPATriangle
   udULong3 vertices;
   udDouble3 ballCenter; // Ball used to construct triangle
 
-  static vcBPATriangle create(udULong3 vertices, udDouble3 ballCenter)
+  static vcBPATriangle Create(udULong3 vertices, udDouble3 ballCenter)
   {
     return{ vertices, ballCenter };
   }
@@ -69,7 +69,7 @@ struct vcBPAGrid
   udDouble3 minPos;
   udDouble3 maxPos;
 
-  static vcBPAGrid *create(udDouble3 center, udDouble3 minPos, udDouble3 maxPos)
+  static vcBPAGrid *Create(udDouble3 center, udDouble3 minPos, udDouble3 maxPos)
   {
     vcBPAGrid *pGrid = udAllocType(vcBPAGrid, 1, udAF_Zero);
     pGrid->center = center;
@@ -189,10 +189,10 @@ void vcBPA_Deinit(vcBPAManifold **ppManifold)
     return;
 
   vcBPAManifold *pManifold = *ppManifold;
-  *ppManifold = nullptr;
   udWorkerPool_Destroy(&pManifold->pPool);
   udDestroyMutex(&pManifold->pMutex);
   udDestroySemaphore(&pManifold->pOctSemaphore);
+  *ppManifold = nullptr;
 
   udFree(pManifold);
 }
@@ -351,7 +351,7 @@ vcBPATriangle vcBPA_FindSeedTriangle(vcBPAGrid *pGrid, double ballRadius)
         pGrid->lastSeedTriangleIndex = pointIndex;
 
         // Return first valid triangle
-        return vcBPATriangle::create(triangle, ballCenter);
+        return vcBPATriangle::Create(triangle, ballCenter);
       }
     }
 
@@ -360,7 +360,7 @@ vcBPATriangle vcBPA_FindSeedTriangle(vcBPAGrid *pGrid, double ballRadius)
   } while (pointIndex < pGrid->vertices.length);
 
   pGrid->lastSeedTriangleIndex = pGrid->vertices.length;
-  return vcBPATriangle::create(udULong3::zero(), udDouble3::zero());
+  return vcBPATriangle::Create(udULong3::zero(), udDouble3::zero());
 }
 
 vcBPATriangle *vcBPA_OutputTriangle(vcBPAGrid *pGrid, vcBPATriangle triangle)
@@ -465,7 +465,7 @@ bool vcBPA_BallPivot(vcBPAGrid *pGrid, double ballRadius, vcBPAEdge edge, uint64
 
     UDASSERT(pointsInBall == 3, "The ball should contain at least the three points of the triangle!");
 
-    triangles.PushBack(vcBPATriangle::create(udULong3::create(edge.edge.x, i, edge.edge.y), ballCenter));
+    triangles.PushBack(vcBPATriangle::Create(udULong3::create(edge.edge.x, i, edge.edge.y), ballCenter));
   }
 
   vcBPATriangle triangle = {};
@@ -574,10 +574,10 @@ void vcBPA_Join(vcBPAGrid *pGrid, udULong2 edge, uint64_t vertex, vcBPATriangle 
 {
   pGrid->edges.RemoveAt(pGrid->activeEdgeIndex);
   if (!vcBPA_FrontContains(pGrid, { vertex, edge.y }))
-    vcBPA_InsertEdge(pGrid, vcBPAEdge::create({ vertex, edge.y }, vcBPAES_Active, pTriangle));
+    vcBPA_InsertEdge(pGrid, vcBPAEdge::Create({ vertex, edge.y }, vcBPAES_Active, pTriangle));
 
   if (!vcBPA_FrontContains(pGrid, { edge.x, vertex }))
-    vcBPA_InsertEdge(pGrid, vcBPAEdge::create({ edge.x, vertex }, vcBPAES_Active, pTriangle));
+    vcBPA_InsertEdge(pGrid, vcBPAEdge::Create({ edge.x, vertex }, vcBPAES_Active, pTriangle));
 }
 
 void vcBPA_Glue(vcBPAGrid *pGrid, udULong2 edge)
@@ -669,7 +669,7 @@ void vcBPA_DoGrid(vcBPAGrid *pGrid, double ballRadius)
             }
           }
 
-          vcBPATriangle *pTriangle = vcBPA_OutputTriangle(pGrid, vcBPATriangle::create(udULong3::create(edge.edge.x, vertex, edge.edge.y), ballCenter));
+          vcBPATriangle *pTriangle = vcBPA_OutputTriangle(pGrid, vcBPATriangle::Create(udULong3::create(edge.edge.x, vertex, edge.edge.y), ballCenter));
           vcBPA_Join(pGrid, edge.edge, vertex, pTriangle);
 
           udULong2 edges[2] = { udULong2::create(vertex, edge.edge.x), udULong2::create(edge.edge.y, vertex) };
@@ -695,9 +695,9 @@ void vcBPA_DoGrid(vcBPAGrid *pGrid, double ballRadius)
       break;
 
     vcBPATriangle *pTriangle = vcBPA_OutputTriangle(pGrid, triangle);
-    vcBPA_InsertEdge(pGrid, vcBPAEdge::create({ triangle.vertices.z, triangle.vertices.x }, vcBPAES_Active, pTriangle));
-    vcBPA_InsertEdge(pGrid, vcBPAEdge::create({ triangle.vertices.y, triangle.vertices.z }, vcBPAES_Active, pTriangle));
-    vcBPA_InsertEdge(pGrid, vcBPAEdge::create({ triangle.vertices.x, triangle.vertices.y }, vcBPAES_Active, pTriangle));
+    vcBPA_InsertEdge(pGrid, vcBPAEdge::Create({ triangle.vertices.z, triangle.vertices.x }, vcBPAES_Active, pTriangle));
+    vcBPA_InsertEdge(pGrid, vcBPAEdge::Create({ triangle.vertices.y, triangle.vertices.z }, vcBPAES_Active, pTriangle));
+    vcBPA_InsertEdge(pGrid, vcBPAEdge::Create({ triangle.vertices.x, triangle.vertices.y }, vcBPAES_Active, pTriangle));
   }
 }
 
@@ -741,7 +741,7 @@ bool vcBPA_AddGrid(vcBPAConvertItem *pData, udDouble3 center, vcBPAConvertItemDa
 
   udDouble3 minPos = center - extents;
   udDouble3 maxPos = center + extents;
-  pConvertData->pGrid = vcBPAGrid::create(center, minPos, maxPos);
+  pConvertData->pGrid = vcBPAGrid::Create(center, minPos, maxPos);
   pConvertData->pGrid->Init(pData->pManifold->pAttributes);
 
   extents += udDouble3::create(2 * pData->pManifold->ballRadius);
@@ -767,7 +767,7 @@ bool vcBPA_AddGrid(vcBPAConvertItem *pData, udDouble3 center, vcBPAConvertItemDa
     }
 
     // Need attributes?
-    pConvertData->pOldGrid = vcBPAGrid::create(center, center - udDouble3::create(pData->halfSize), center + udDouble3::create(pData->halfSize));
+    pConvertData->pOldGrid = vcBPAGrid::Create(center, center - udDouble3::create(pData->halfSize), center + udDouble3::create(pData->halfSize));
     pConvertData->pOldGrid->Init(pData->pManifold->pAttributes);
 
     vdkQuery_Create(pData->pManifold->pContext, &pQuery, pData->pOldModel, pFilter);
