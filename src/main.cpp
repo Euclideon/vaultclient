@@ -1285,7 +1285,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
     vdkProjectNode *pNode = nullptr;
     if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Folder", vcString::Get("sceneExplorerFolderDefaultName"), nullptr, nullptr) != vE_Success)
     {
-      vcState::ErrorItem projectError;
+      vcState::ErrorItem projectError = {};
       projectError.source = vcES_ProjectChange;
       projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFolder"));
       projectError.resultCode = udR_Failure_;
@@ -1298,7 +1298,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
 
   if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddViewpoint"), nullptr, vcMBBI_SaveViewport, vcMBBG_SameGroup))
   {
-    vdkProjectNode *pNode;
+    vdkProjectNode *pNode = nullptr;
     if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == vE_Success)
     {
       udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position, true);
@@ -1312,7 +1312,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
     }
     else
     {
-      vcState::ErrorItem projectError;
+      vcState::ErrorItem projectError = {};
       projectError.source = vcES_ProjectChange;
       projectError.pData = udStrdup(vcString::Get("sceneExplorerAddViewpoint"));
       projectError.resultCode = udR_Failure_;
