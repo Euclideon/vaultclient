@@ -910,6 +910,7 @@ int main(int argc, char **args)
 epilogue:
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
+  programState.profileInfo.Destroy();
 
   vcSettings_Cleanup(&programState.settings);
 

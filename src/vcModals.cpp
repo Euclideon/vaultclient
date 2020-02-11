@@ -19,6 +19,9 @@
 #include "imgui.h"
 #include "imgui_ex/vcFileDialog.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
+#include "imgui_ex/imgui_udValue.h"
+
+#include "vdkServerAPI.h"
 
 #include "stb_image.h"
 
@@ -565,27 +568,34 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
 }
 
 void vcModals_DrawProfile(vcState* pProgramState)
-{
-  const char* userName = pProgramState->settings.loginInfo.username;
-  const char* profile = vcString::Get("menuProfileTitle");
+{ 
+  const char *profile = vcString::Get("menuProfileTitle");
 
   if (pProgramState->openModals & (1 << vcMT_Profile))
     ImGui::OpenPopup(profile);
 
   float width = 300.f;
   float height = 250.f;
-  float btw = 80.f;
+  float buttonWidth = 80.f;
   ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiCond_Always);
 
   if (ImGui::BeginPopupModal(profile, nullptr, ImGuiWindowFlags_NoResize))
   {
     pProgramState->modalOpen = true;
-    ImGui::TextUnformatted(userName);
 
-    if (ImGui::Button(vcString::Get("menuLogout"), ImVec2(btw, 0)))
+    const char *userName = pProgramState->profileInfo.Get("user.username").AsString("");
+    ImGui::TextUnformatted(udTempStr("%s: %s", vcString::Get("menuUserNameLabel"), userName));
+
+    const char *realName = pProgramState->profileInfo.Get("user.realname").AsString("");
+    ImGui::TextUnformatted(udTempStr("%s: %s", vcString::Get("menuRealNameLabel"), realName));
+
+    const char *email = pProgramState->profileInfo.Get("user.email").AsString("");
+    ImGui::TextUnformatted(udTempStr("%s: %s", vcString::Get("menuEmailLabel"), email));
+
+    if (ImGui::Button(vcString::Get("menuLogout"), ImVec2(buttonWidth, 0)))
       vcSession_Logout(pProgramState);
 
-    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(btw, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(buttonWidth, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       ImGui::CloseCurrentPopup();    
 
     ImGui::EndPopup();

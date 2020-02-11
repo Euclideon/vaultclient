@@ -10,7 +10,7 @@
     - Convert
       - `convertRestart`
     - Menus
-      - `menuBindings`, `settingsAppearanceSaturation`, `menuProjectNone`, `menuProfileTitle`
+      - `menuBindings`, `settingsAppearanceSaturation`, `menuProjectNone`, `menuProfileTitle`, `menuUserNameLabel`, `menuRealNameLabel`, `menuEmailLabel`
     - Polygon Meshes
       - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`, `polyModelIgnoreTint`
     - Scene
@@ -481,6 +481,9 @@ Modules are currently:
 - `menuLogoutMessage`: Message displayed in logout window, informs the user that they have been logged out
 - `menuLogoutCloseButton`: Label for button that closes the logout window
 - `menuProfileTitle`: Title of the profile modal
+- `menuUserNameLabel`: Label of user name in the profile modal
+- `menuRealNameLabel`: Label of real name in the profile modal
+- `menuEmailLabel`: Label of email in the profile modal
 - `menuReleaseNotes`: Option in System menu, opens the Release Notes window
 - `menuReleaseNotesTitle`: Title of Release Notes window
 - `menuReleaseNotesFail`: Displayed when client fails to load text from the Release Notes file

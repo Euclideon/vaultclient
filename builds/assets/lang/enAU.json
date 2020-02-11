@@ -280,6 +280,9 @@
   "menuLogoutMessage": "You were logged out.",
 
   "menuProfileTitle": "Profile",
+  "menuUserNameLabel": "userName",
+  "menuRealNameLabel": "realName",
+  "menuEmailLabel": "email",
 
   "menuReleaseNotes": "Release Notes",
   "menuReleaseNotesTitle": "Release Notes",

@@ -287,6 +287,9 @@
   "menuLogoutCloseButton": "关闭",
 
   "menuProfileTitle": "资料",
+  "menuUserNameLabel": "用户名",
+  "menuRealNameLabel": "全名",
+  "menuEmailLabel": "邮箱",
 
   "menuReleaseNotes": "版本说明",
   "menuReleaseNotesTitle": "版本说明",
