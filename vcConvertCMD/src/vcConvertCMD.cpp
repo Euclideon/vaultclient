@@ -190,19 +190,24 @@ int main(int argc, const char **ppArgv)
   if (settings.pProxyUsername)
     vdkConfig_SetProxyAuth(settings.pProxyUsername, settings.pProxyPassword);
 
-  result = vdkContext_Connect(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], ppArgv[3]);
-  if (result == vE_ConnectionFailure)
-    printf("Could not connect to server.");
-  else if (result == vE_NotAllowed)
-    printf("Username or Password incorrect.");
-  else if (result == vE_OutOfSync)
-    printf("Your clock doesn't match the remote server clock.");
-  else if (result == vE_SecurityFailure)
-    printf("Could not open a secure channel to the server.");
-  else if (result == vE_ServerFailure)
-    printf("Unable to negotiate with server, please confirm the server address");
-  else if (result != vE_Success)
-    printf("Unknown error occurred (Error=%d), please try again later.", result);
+  result = vdkContext_TryResume(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], true);
+
+  if (result != vE_Success)
+  {
+    result = vdkContext_Connect(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], ppArgv[3]);
+    if (result == vE_ConnectionFailure)
+      printf("Could not connect to server.");
+    else if (result == vE_NotAllowed)
+      printf("Username or Password incorrect.");
+    else if (result == vE_OutOfSync)
+      printf("Your clock doesn't match the remote server clock.");
+    else if (result == vE_SecurityFailure)
+      printf("Could not open a secure channel to the server.");
+    else if (result == vE_ServerFailure)
+      printf("Unable to negotiate with server, please confirm the server address");
+    else if (result != vE_Success)
+      printf("Unknown error occurred (Error=%d), please try again later.", result);
+  }
 
   if (result != vE_Success)
     exit(2);
