@@ -3,6 +3,10 @@
 #include "udPlatformUtil.h"
 #include "udStringUtil.h"
 
+#define VC_STRING_FORMAT_BUFFER_COUNT 16
+static volatile int32_t s_vcStringBufferIndex = 0;
+static char s_vcStringBuffers[VC_STRING_FORMAT_BUFFER_COUNT][64];
+
 const char *vcStringFormat(const char *pFormatString, const char **ppStrings, size_t numStrings)
 {
   int len;
@@ -185,4 +189,68 @@ const char *vcStringFormat(const char *pFormatString, const char *pString)
 const char *vcStringFormat(char *pBuffer, size_t bufLen, const char *pFormatString, const char *pString)
 {
   return vcStringFormat(pBuffer, bufLen, pFormatString, &pString, 1);
+}
+
+// ****************************************************************************
+// Author: Damian Madden, February 2020
+const char *vcStringFormat_ImGuiClean(const char *pStr)
+{
+  const char *pPos = pStr;
+
+  char *pBuf = s_vcStringBuffers[udInterlockedPostIncrement(&s_vcStringBufferIndex) & (VC_STRING_FORMAT_BUFFER_COUNT - 1)];
+  char *pOut = pBuf;
+
+  int len = (int)udStrlen(pStr);
+  if (len > 64)
+    return nullptr;
+
+  char hexCode[2];
+
+  for (int i = 0; i < len; ++i)
+  {
+    char c = *pPos;
+
+    switch (c)
+    {
+    // Processes URI encoding like %0xXX
+    case '%':
+      char temp;
+      int chars;
+
+      if (i + 2 < len)
+      {
+        hexCode[0] = *(pPos + 1);
+        hexCode[1] = *(pPos + 2);
+      }
+
+      temp = (char)udStrAtoi(hexCode, &chars, 16);
+
+      if (chars != 2)
+      {
+        // Escape the % symbol
+        *pOut = '\\';
+        *(++pOut) = c;
+      }
+      else
+      {
+        *pOut = temp;
+      }
+
+      break;
+    case '|':
+      --pOut;
+      ++pPos;
+      break;
+    default:
+      *pOut = c;
+      break;
+    }
+
+    ++pOut;
+    ++pPos;
+  }
+
+  *pOut = '\0';
+
+  return pBuf;
 }

@@ -3,6 +3,9 @@
 #include "vcState.h"
 #include "vcRender.h"
 
+#include "udStringUtil.h"
+#include "vcStringFormat.h"
+
 vdkProjectNode* vcSceneItem_CreateNodeInProject(vdkProject *pProject, const char *pType, const char *pName)
 {
   vdkProjectNode *pNode = nullptr;
@@ -30,6 +33,20 @@ vcSceneItem::vcSceneItem(vdkProject *pProject, vdkProjectNode *pNode, vcState * 
 {
   m_metadata.SetVoid();
   m_pNode = pNode;
+
+  if (pNode->pName != nullptr && udStrchr(pNode->pName, "%") != nullptr && udStrlen(pNode->pName) <= 64)
+  {
+    const char *pSafeName = vcStringFormat_ImGuiClean(pNode->pName);
+    if (!udStrEquali(pSafeName, pNode->pName))
+      vdkProjectNode_SetName(pProject, pNode, pSafeName);
+  }
+
+  if (pNode->pURI != nullptr && udStrchr(pNode->pURI, "%") != nullptr && udStrlen(pNode->pURI) <= 64)
+  {
+    const char *pSafeURI = vcStringFormat_ImGuiClean(pNode->pURI);
+    if (!udStrEquali(pSafeURI, pNode->pURI))
+      vdkProjectNode_SetURI(pProject, pNode, pSafeURI);
+  }
 }
 
 vcSceneItem::vcSceneItem(vcState *pProgramState, const char *pType, const char *pName) :
