@@ -63,7 +63,7 @@
 #include <shobjidl.h> 
 #endif
 
-UDCOMPILEASSERT(VDK_MAJOR_VERSION == 0 && VDK_MINOR_VERSION == 5 && VDK_PATCH_VERSION == 0, "This version of VDK is not compatible");
+UDCOMPILEASSERT(VDK_MAJOR_VERSION == 0 && VDK_MINOR_VERSION == 5 && VDK_PATCH_VERSION == 1, "This version of VDK is not compatible");
 
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
 #  include <crtdbg.h>
