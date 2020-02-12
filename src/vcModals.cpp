@@ -474,11 +474,7 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
       const char *pFileName = pProgramState->errorItems[i].pData;
       ImGui::TextUnformatted(pFileName);
       if (ImGui::IsItemHovered())
-      {
-        ImGui::BeginTooltip();
-        ImGui::TextUnformatted(pFileName);
-        ImGui::EndTooltip();
-      }
+        ImGui::SetTooltip("%s", pFileName);
       ImGui::NextColumn();
 
       ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset = offset;
