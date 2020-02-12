@@ -574,5 +574,10 @@
   "bindingsRenameSceneItem": "重命名所选场景对象",
   "bindingsSave": "保存键绑定。",
   "bindingsLoad": "加载键绑定。",
-  "bindingsSelectKey": "按组合键进行绑定。"
+  "bindingsSelectKey": "按组合键进行绑定。",
+
+  "errorCorruptData": "数据损坏",
+  "errorUnsupported": "文件格式不支持",
+  "errorOpenFailure": "打开文件失败",
+  "errorReadFailure": "读取文件失败"
 }

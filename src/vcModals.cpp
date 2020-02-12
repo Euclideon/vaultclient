@@ -479,7 +479,9 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
       ImGui::NextColumn();
 
       ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset = offset;
-      ImGui::TextUnformatted(udResultAsString(pProgramState->errorItems[i].resultCode));
+
+      const char *errorStr = udTempStr("error%s", udResultAsString(pProgramState->errorItems[i].resultCode));
+      ImGui::TextUnformatted(vcString::Get(errorStr));
       ImGui::NextColumn();
 
       if (removeItem)

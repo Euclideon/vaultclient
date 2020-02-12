@@ -17,6 +17,8 @@
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
     - Settings
       - `settingsVisModeDisplacement`, `settingsVisDisplacementRange`
+    - Errors
+      - `errorCorruptData`, `errorUnsupported`, `errorOpenFailure`, `errorReadFailure`
   - Changed:
     - 
   - Removed:
@@ -805,3 +807,9 @@ Modules are currently:
 - `bindingsSave`: Key binding description displayed next to Save binding
 - `bindingsLoad`: Key binding description displayed next to Load binding
 - `bindingsUndo`: Key binding description displayed next to Undo binding
+
+##### Errors
+- `errorCorruptData`: Corrupt data error shown in "Unsupported Files window" when converting files
+- `errorUnsupported`: Unsupported file formats error shown in "Unsupported Files window" when converting files
+- `errorOpenFailure`: Failed to open files error shown in "Unsupported Files window" when converting files
+- `errorReadFailure`: Failed to read files error shown in "Unsupported Files window" when converting files

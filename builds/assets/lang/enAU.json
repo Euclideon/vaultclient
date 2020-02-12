@@ -562,5 +562,10 @@
   "bindingsRenameSceneItem": "Key to rename selected scene item.",
   "bindingsSave": "Key to trigger save action.",
   "bindingsLoad": "Key to trigger load or open action.",
-  "bindingsUndo": "Key to trigger undo action"
+  "bindingsUndo": "Key to trigger undo action",
+
+  "errorCorruptData": "Corrupt data",
+  "errorUnsupported": "Unsupported file formats",
+  "errorOpenFailure": "Failed to open",
+  "errorReadFailure": "Failed to read"
 }
