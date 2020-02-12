@@ -593,10 +593,10 @@ void vcModals_DrawProfile(vcState* pProgramState)
     ImGui::TextUnformatted(udTempStr("%s: %s", vcString::Get("menuEmailLabel"), email));
 
     if (ImGui::Button(vcString::Get("menuLogout"), ImVec2(buttonWidth, 0)))
-      vcSession_Logout(pProgramState);
+      pProgramState->forceLogout = true;
 
     if (ImGui::Button(vcString::Get("popupClose"), ImVec2(buttonWidth, 0)) || vcHotkey::IsPressed(vcB_Cancel))
-      ImGui::CloseCurrentPopup();    
+      ImGui::CloseCurrentPopup();
 
     ImGui::EndPopup();
   }
