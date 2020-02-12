@@ -18,7 +18,7 @@
     - Settings
       - `settingsVisModeDisplacement`, `settingsVisDisplacementRange`
     - Errors
-      - `errorCorruptData`, `errorUnsupported`, `errorOpenFailure`, `errorReadFailure`
+      - `errorUnknown`, `errorCorruptData`, `errorUnsupported`, `errorOpenFailure`, `errorReadFailure`
   - Changed:
     - 
   - Removed:
@@ -809,6 +809,7 @@ Modules are currently:
 - `bindingsUndo`: Key binding description displayed next to Undo binding
 
 ##### Errors
+- `errorUnknown`: An unexpected error occurred.
 - `errorCorruptData`: Corrupt data error shown in "Unsupported Files window" when converting files
 - `errorUnsupported`: Unsupported file formats error shown in "Unsupported Files window" when converting files
 - `errorOpenFailure`: Failed to open files error shown in "Unsupported Files window" when converting files

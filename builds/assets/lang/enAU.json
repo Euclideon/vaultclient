@@ -564,8 +564,9 @@
   "bindingsLoad": "Key to trigger load or open action.",
   "bindingsUndo": "Key to trigger undo action",
 
-  "errorCorruptData": "Corrupt data",
-  "errorUnsupported": "Unsupported file formats",
-  "errorOpenFailure": "Failed to open",
-  "errorReadFailure": "Failed to read"
+  "errorUnknown": "An unexpected error occurred.",
+  "errorCorruptData": "Corrupt data.",
+  "errorUnsupported": "Unsupported file formats.",
+  "errorOpenFailure": "Failed to open.",
+  "errorReadFailure": "Failed to read."
 }

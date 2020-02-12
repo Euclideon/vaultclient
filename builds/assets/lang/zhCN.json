@@ -576,6 +576,7 @@
   "bindingsLoad": "加载键绑定。",
   "bindingsSelectKey": "按组合键进行绑定。",
 
+  "errorUnknown": "未知错误",
   "errorCorruptData": "数据损坏",
   "errorUnsupported": "文件格式不支持",
   "errorOpenFailure": "打开文件失败",
