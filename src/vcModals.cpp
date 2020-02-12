@@ -1,7 +1,6 @@
 #include "vcModals.h"
 
 #include "vcState.h"
-#include "vcVersion.h"
 #include "vcPOI.h"
 #include "gl/vcTexture.h"
 #include "vcRender.h"
@@ -278,36 +277,26 @@ bool vcModals_OverwriteExistingFile(const char *pFilename)
   return result;
 }
 
-void vcModals_DrawFileModal(vcState *pProgramState)
+void vcModals_DrawAddSceneItem(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_AddSceneItem))
-    ImGui::OpenPopup(vcString::Get("sceneExplorerAddUDSTitle"));
-  if (pProgramState->openModals & (1 << vcMT_ExportProject))
-    ImGui::OpenPopup(vcString::Get("menuProjectExportTitle"));
-
-  vcModalTypes mode = vcMT_Count;
+    ImGui::OpenPopup(vcString::Get("sceneExplorerAddSceneItemTitle"));
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerAddUDSTitle")))
-    mode = vcMT_AddSceneItem;
-
-  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(vcString::Get("menuProjectExportTitle")))
-    mode = vcMT_ExportProject;
-
-  if (mode < vcMT_Count)
+  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerAddSceneItemTitle")))
   {
     pProgramState->modalOpen = true;
-    bool pressedEnter = ImGui::InputText(vcString::Get("sceneExplorerPathURL"), pProgramState->modelPath, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
 
-    ImGui::SameLine();
+    vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_SceneItems, vcFDT_OpenFile, [] {
+      // Do nothing
+    });
 
-    bool loadFile = false;
-    bool saveFile = false;
-    if (mode == vcMT_ExportProject)
-      saveFile = (ImGui::Button(vcString::Get("sceneExplorerExportButton"), ImVec2(100.f, 0)) || pressedEnter);
-    else
-      loadFile = (ImGui::Button(vcString::Get("sceneExplorerLoadButton"), ImVec2(100.f, 0)) || pressedEnter);
+    if (ImGui::Button(vcString::Get("sceneExplorerLoadButton"), ImVec2(100.f, 0)))
+    {
+      pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
+      pProgramState->modelPath[0] = '\0';
+      ImGui::CloseCurrentPopup();
+    }
 
     ImGui::SameLine();
 
@@ -319,31 +308,47 @@ void vcModals_DrawFileModal(vcState *pProgramState)
 
     ImGui::Separator();
 
-    if (mode == vcMT_AddSceneItem)
-    {
-      vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_SceneItems, vcFDT_OpenFile, [pProgramState] {
-        pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
-      });
-    }
-    else if (mode == vcMT_ExportProject)
-    {
-      const char *fileExtensions[] = { ".json" };
-      if (vcFileDialog_DrawImGui(pProgramState->modelPath, sizeof(pProgramState->modelPath), vcFDT_SaveFile, fileExtensions, udLengthOf(fileExtensions)))
-        saveFile = true;
-    }
+    //TODO: UI depending on what file is selected
 
-    if (loadFile)
-    {
-      pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
-      pProgramState->modelPath[0] = '\0';
-      ImGui::CloseCurrentPopup();
-    }
-    else if (saveFile)
+    ImGui::EndPopup();
+  }
+}
+
+void vcModals_DrawExportProject(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_ExportProject))
+    ImGui::OpenPopup(vcString::Get("menuProjectExportTitle"));
+
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("menuProjectExportTitle")))
+  {
+    pProgramState->modalOpen = true;
+    
+    vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, [] {
+      // Do nothing
+    });
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("sceneExplorerExportButton"), ImVec2(100.f, 0)))
     {
       vcProject_Save(pProgramState, pProgramState->modelPath, false);
       pProgramState->modelPath[0] = '\0';
       ImGui::CloseCurrentPopup();
     }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    {
+      pProgramState->modelPath[0] = '\0';
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::Separator();
+
+    //TODO: Additional export settings
+
     ImGui::EndPopup();
   }
 }
@@ -614,7 +619,8 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawLoggedOut(pProgramState);
   vcModals_DrawProxyAuth(pProgramState);
   vcModals_DrawTileServer(pProgramState);
-  vcModals_DrawFileModal(pProgramState);
+  vcModals_DrawAddSceneItem(pProgramState);
+  vcModals_DrawExportProject(pProgramState);
   vcModals_DrawProjectChangeResult(pProgramState);
   vcModals_DrawProjectReadOnly(pProgramState);
   vcModals_DrawImageViewer(pProgramState);

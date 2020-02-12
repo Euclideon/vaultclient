@@ -507,7 +507,7 @@ void vcSettings_SyncFS()
 
 bool vcSettings_Save(vcSettings *pSettings)
 {
-  if (pSettings->noLocalStorage || pSettings->window.presentationMode)
+  if (pSettings->noLocalStorage || pSettings->window.isFullscreen)
     return false;
 
   bool success = false;
