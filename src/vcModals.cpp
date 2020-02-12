@@ -471,7 +471,14 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
       ImGui::SameLine();
       // Get the offset so the next column is offset by the same value to keep alignment
       float offset = ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset;
-      ImGui::TextUnformatted(pProgramState->errorItems[i].pData);
+      const char *pFileName = pProgramState->errorItems[i].pData;
+      ImGui::TextUnformatted(pFileName);
+      if (ImGui::IsItemHovered())
+      {
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(pFileName);
+        ImGui::EndTooltip();
+      }
       ImGui::NextColumn();
 
       ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset = offset;
