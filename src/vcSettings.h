@@ -56,6 +56,12 @@ enum vcPresentationMode
   vcPM_Responsive
 };
 
+enum vcWindowLayout
+{
+  vcWL_SceneLeft,
+  vcWL_SceneRight
+};
+
 enum vcSettingsUIRegions
 {
   vcSR_Appearance,
@@ -138,6 +144,8 @@ struct vcSettings
     bool limitFPSInBackground;
 
     int pointMode;
+
+    vcWindowLayout layout;
   } presentation;
 
   struct
