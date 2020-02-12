@@ -325,14 +325,11 @@ void vcMain_MainLoop(vcState *pProgramState)
 #if VC_HASCONVERT
         bool convertDrop = false;
         //TODO: Use ImGui drag and drop on the docks rather than globally here
-        if (pProgramState->settings.window.windowsOpen[vcDocks_Convert])
+        ImGuiWindow *pConvert = ImGui::FindWindowByName("###convertDock");
+        if (pConvert != nullptr && ((pConvert->DockNode != nullptr && pConvert->DockTabIsVisible) || (pConvert->DockNode == nullptr && !pConvert->Collapsed)))
         {
-          ImGuiWindow *pConvert = ImGui::FindWindowByName("###convertDock");
-          if (pConvert != nullptr && ((pConvert->DockNode != nullptr && pConvert->DockTabIsVisible) || (pConvert->DockNode == nullptr && !pConvert->Collapsed)))
-          {
-            if (io.MousePos.x < pConvert->Pos.x + pConvert->Size.x && io.MousePos.x > pConvert->Pos.x && io.MousePos.y > pConvert->Pos.y && io.MousePos.y < pConvert->Pos.y + pConvert->Size.y)
-              convertDrop = true;
-          }
+          if (io.MousePos.x < pConvert->Pos.x + pConvert->Size.x && io.MousePos.x > pConvert->Pos.x && io.MousePos.y > pConvert->Pos.y && io.MousePos.y < pConvert->Pos.y + pConvert->Size.y)
+            convertDrop = true;
         }
 #endif //VC_HASCONVERT
 
@@ -774,10 +771,6 @@ int main(int argc, char **args)
   programState.settings.camera.farPlane = 10000.f;
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
-  // Dock setting
-  programState.settings.window.windowsOpen[vcDocks_Scene] = true;
-  programState.settings.window.windowsOpen[vcDocks_SceneExplorer] = true;
-  programState.settings.window.windowsOpen[vcDocks_Convert] = true;
   programState.settings.languageOptions.Init(4);
 
   programState.settings.hideIntervalSeconds = 3;
@@ -1887,15 +1880,9 @@ int vcMainMenuGui(vcState *pProgramState)
 
   if (ImGui::BeginMainMenuBar())
   {
-    if (ImGui::BeginMenu(vcString::Get("menuWindows")))
-    {
-      ImGui::MenuItem(vcString::Get("menuScene"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Scene]);
-      ImGui::MenuItem(vcString::Get("menuSceneExplorer"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]);
 #if VC_HASCONVERT
-      ImGui::MenuItem(vcString::Get("menuConvert"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Convert]);
+    ImGui::MenuItem(vcString::Get("menuConvert"));
 #endif //VC_HASCONVERT
-      ImGui::EndMenu();
-    }
 
     udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
     if (ImGui::BeginMenu(vcString::Get("menuProjects")))
@@ -2233,58 +2220,43 @@ void vcRenderWindow(vcState *pProgramState)
   }
   else
   {
-    if (pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer] && !pProgramState->settings.window.isFullscreen)
+    if (!pProgramState->settings.window.isFullscreen)
     {
-      if (ImGui::Begin(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
+      if (ImGui::Begin(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
         vcMain_ShowSceneExplorerWindow(pProgramState);
 
       ImGui::End();
     }
 
 #if VC_HASCONVERT
-    if (pProgramState->settings.window.windowsOpen[vcDocks_Convert] && !pProgramState->settings.window.isFullscreen)
+    if (!pProgramState->settings.window.isFullscreen)
     {
-      if (ImGui::Begin(udTempStr("%s###convertDock", vcString::Get("convertTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
+      if (ImGui::Begin(udTempStr("%s###convertDock", vcString::Get("convertTitle"))))
         vcConvert_ShowUI(pProgramState);
 
       ImGui::End();
     }
 #endif //VC_HASCONVERT
 
-    if (pProgramState->settings.window.windowsOpen[vcDocks_Scene])
+    if (!pProgramState->settings.window.isFullscreen)
     {
-      if (!pProgramState->settings.window.isFullscreen)
-      {
-        if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
-          vcRenderSceneWindow(pProgramState);
-        ImGui::End();
-      }
-      else
-      {
-        ImGui::SetNextWindowSize(size);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
-        ImGui::SetNextWindowPos(ImVec2(0, 0));
-
-        bool sceneWindow = ImGui::Begin(udTempStr("%s###scenePresentation", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus);
-        ImGui::PopStyleVar();
-
-        if (sceneWindow)
-          vcRenderSceneWindow(pProgramState);
-
-        ImGui::End();
-      }
+      if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
+        vcRenderSceneWindow(pProgramState);
+      ImGui::End();
     }
-
-    if (pProgramState->settings.pActive[0] != nullptr)
+    else
     {
-      for (int i = 0; i < vcDocks_Count; ++i)
-      {
-        if (pProgramState->settings.pActive[i] == nullptr)
-          break;
+      ImGui::SetNextWindowSize(size);
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
+      ImGui::SetNextWindowPos(ImVec2(0, 0));
 
-        ImGui::SetWindowFocus(pProgramState->settings.pActive[i]->Name);
-        pProgramState->settings.pActive[i] = nullptr;
-      }
+      bool sceneWindow = ImGui::Begin(udTempStr("%s###scenePresentation", vcString::Get("sceneTitle")), nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus);
+      ImGui::PopStyleVar();
+
+      if (sceneWindow)
+        vcRenderSceneWindow(pProgramState);
+
+      ImGui::End();
     }
   }
 

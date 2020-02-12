@@ -24,16 +24,6 @@ enum vcMapTileBlendMode
   vcMTBM_Count
 };
 
-// This is getting removed in a future commit (11/02/2020)
-enum vcDocks
-{
-  vcDocks_Scene,
-  vcDocks_SceneExplorer,
-  vcDocks_Convert,
-
-  vcDocks_Count
-};
-
 enum vcVisualizatationMode
 {
   vcVM_Colour,
@@ -162,8 +152,6 @@ struct vcSettings
     bool isFullscreen;
     bool useNativeUI;
 
-    bool windowsOpen[vcDocks_Count];
-
     char languageCode[16];
   } window;
 
@@ -290,8 +278,6 @@ struct vcSettings
 
   vcPresentationMode responsiveUI;
   int hideIntervalSeconds;
-
-  ImGuiWindow *pActive[vcDocks_Count];
 };
 
 // Settings Limits (vcSL prefix)
