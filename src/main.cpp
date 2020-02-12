@@ -145,7 +145,7 @@ const uint32_t WhitePixel = 0xFFFFFFFF;
 
 void vcMain_ShowStartupScreen(vcState *pProgramState);
 void vcRenderWindow(vcState *pProgramState);
-int vcMainMenuGui(vcState *pProgramState);
+float vcMain_MenuGui(vcState *pProgramState);
 
 void vcMain_PresentationMode(vcState *pProgramState)
 {
@@ -1874,9 +1874,9 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
   }
 }
 
-int vcMainMenuGui(vcState *pProgramState)
+float vcMain_MenuGui(vcState *pProgramState)
 {
-  int menuHeight = 0;
+  float menuHeight = 0;
 
   if (ImGui::BeginMainMenuBar())
   {
@@ -1969,7 +1969,7 @@ int vcMainMenuGui(vcState *pProgramState)
 
     vcMain_UpdateStatusBar(pProgramState);
 
-    menuHeight = (int)ImGui::GetWindowSize().y;
+    menuHeight = ImGui::GetWindowSize().y;
 
     ImGui::EndMainMenuBar();
   }
@@ -2211,9 +2211,6 @@ void vcRenderWindow(vcState *pProgramState)
 
   //end keyboard/mouse handling
 
-  if (pProgramState->hasContext && !pProgramState->settings.window.isFullscreen)
-    vcMainMenuGui(pProgramState);
-
   if (!pProgramState->hasContext)
   {
     vcMain_ShowLoginWindow(pProgramState);
@@ -2222,26 +2219,30 @@ void vcRenderWindow(vcState *pProgramState)
   {
     if (!pProgramState->settings.window.isFullscreen)
     {
-      if (ImGui::Begin(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
-        vcMain_ShowSceneExplorerWindow(pProgramState);
+      float menuBarSize = vcMain_MenuGui(pProgramState);
 
-      ImGui::End();
-    }
+      ImGui::SetNextWindowSize(ImVec2(size.x, size.y - menuBarSize));
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
+      ImGui::SetNextWindowPos(ImVec2(0, menuBarSize));
 
-#if VC_HASCONVERT
-    if (!pProgramState->settings.window.isFullscreen)
-    {
-      if (ImGui::Begin(udTempStr("%s###convertDock", vcString::Get("convertTitle"))))
-        vcConvert_ShowUI(pProgramState);
+      if (ImGui::Begin("rootdockTesting", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
+      {
+        ImGui::PopStyleVar();
 
-      ImGui::End();
-    }
-#endif //VC_HASCONVERT
+        ImGui::Columns(2);
 
-    if (!pProgramState->settings.window.isFullscreen)
-    {
-      if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
-        vcRenderSceneWindow(pProgramState);
+        if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
+          vcMain_ShowSceneExplorerWindow(pProgramState);
+        ImGui::EndChild();
+
+        ImGui::NextColumn();
+
+        if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
+          vcRenderSceneWindow(pProgramState);
+        ImGui::EndChild();
+
+        ImGui::Columns(1);
+      }
       ImGui::End();
     }
     else
@@ -2258,6 +2259,16 @@ void vcRenderWindow(vcState *pProgramState)
 
       ImGui::End();
     }
+
+#if VC_HASCONVERT
+    if (!pProgramState->settings.window.isFullscreen)
+    {
+      if (ImGui::Begin(udTempStr("%s###convertDock", vcString::Get("convertTitle"))))
+        vcConvert_ShowUI(pProgramState);
+
+      ImGui::End();
+    }
+#endif //VC_HASCONVERT
   }
 
   vcSettingsUI_Show(pProgramState);
