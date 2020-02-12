@@ -324,7 +324,7 @@ void vcBPA_GetNearbyPoints(vcBPAGrid *pGrid, udChunkedArray<uint64_t> *pPoints, 
     size_t j = 0;
     for (; j < pPoints->length; ++j)
     {
-      udDouble3 p2 = pGrid->vertices[j].position;
+      udDouble3 p2 = pGrid->vertices[*pPoints->GetElement(j)].position;
 
       if (udMagSq3(p0 - p2) > d01)
         break;
@@ -387,9 +387,6 @@ vcBPATriangle vcBPA_FindSeedTriangle(vcBPAGrid *pGrid, double ballRadius)
         {
           triangle.x = (uint64_t)nearbyPoints[i];
           triangle.y = (uint64_t)pointIndex;
-          a = p0 - p1;
-          b = p2 - p1;
-          triangleNormal = udNormalize(udCross(a, b));
         }
 
         // Test that a p-ball with center in the outward halfspace touches all three vertices and contains no other points
@@ -923,87 +920,94 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
   // Reset point count to avoid infinite loop
   pBuffer->pointCount = 0;
 
-  vcBPAConvertItem *pData = (vcBPAConvertItem *)pConvertInput->pData;
-  bool getNextGrid = true;
-
-  uint32_t displacementOffset = 0;
-  vdkError error = vE_Failure;
-
-  static int gridCount = 0;
-  if (pData->activeItem.pointIndex == 0)
-    ++gridCount;
-
-  if (pData->activeItem.pointIndex == 0 && pData->activeItem.pGrid == nullptr)
-    goto epilogue;
-
-  error = vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacement", &displacementOffset);
-  if (error != vE_Success)
-    return error;
-
-  for (size_t i = pData->activeItem.pointIndex; i < pData->activeItem.pGrid->vertices.length; ++i)
+  while (pBuffer->pointCount == 0)
   {
-    if (pBuffer->pointCount == pBuffer->pointsAllocated)
+    vcBPAConvertItem *pData = (vcBPAConvertItem *)pConvertInput->pData;
+    bool getNextGrid = true;
+
+    uint32_t displacementOffset = 0;
+    vdkError error = vE_Failure;
+
+    static int gridCount = 0;
+    if (pData->activeItem.pointIndex == 0)
+      ++gridCount;
+
+    if (pData->activeItem.pointIndex == 0 && pData->activeItem.pGrid == nullptr)
+      goto epilogue;
+
+    error = vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacement", &displacementOffset);
+    if (error != vE_Success)
+      return error;
+
+    for (size_t i = pData->activeItem.pointIndex; i < pData->activeItem.pGrid->vertices.length; ++i)
     {
-      getNextGrid = false;
-      pData->activeItem.pointIndex = (uint32_t)i;
-      break;
-    }
-
-    udDouble3 position = pData->activeItem.pGrid->vertices[i].position;
-    size_t triangle = vcBPA_FindClosestTriangle(&pData->activeItem.oldGrid, position);
-
-    double distance = FLT_MAX;
-    if (triangle < pData->activeItem.oldGrid.triangles.length)
-      distance = udAbs(vcBPA_DistanceToTriangle(&pData->activeItem.oldGrid, triangle, position));
-
-    // Position XYZ
-    memcpy(&pBuffer->pPositions[pBuffer->pointCount * 3], &pData->activeItem.pGrid->pBuffer->pPositions[i * 3], sizeof(double) * 3);
-
-    // Copy all of the original attributes
-    ptrdiff_t pointAttrOffset = ptrdiff_t(pBuffer->pointCount) * pBuffer->attributeStride;
-    for (uint32_t j = 0; j < pData->activeItem.pGrid->pBuffer->attributes.count; ++j)
-    {
-      vdkAttributeDescriptor &oldAttrDesc = pData->activeItem.pGrid->pBuffer->attributes.pDescriptors[j];
-      uint32_t attributeSize = (oldAttrDesc.typeInfo & (vdkAttributeTypeInfo_SizeMask << vdkAttributeTypeInfo_SizeShift));
-
-      // Get attribute old offset and pointer
-      uint32_t attrOldOffset = 0;
-      if (vdkAttributeSet_GetOffsetOfNamedAttribute(&pData->activeItem.pGrid->pBuffer->attributes, oldAttrDesc.name, &attrOldOffset) != vE_Success)
-        continue;
-
-      void *pOldAttr = udAddBytes(pData->activeItem.pGrid->pBuffer->pAttributes, i * pData->activeItem.pGrid->pBuffer->attributeStride + attrOldOffset);
-
-      // Get attribute new offset and pointer
-      uint32_t attrNewOffset = 0;
-      if (vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, oldAttrDesc.name, &attrNewOffset) != vE_Success)
-        continue;
-
-      void *pNewAttr = udAddBytes(pBuffer->pAttributes, pointAttrOffset + attrNewOffset);
-
-      // Copy attribute data
-      memcpy(pNewAttr, pOldAttr, attributeSize);
-    }
-
-    // Displacement
-    float *pDisplacement = (float*)udAddBytes(pBuffer->pAttributes, pointAttrOffset + displacementOffset);
-    *pDisplacement = (float)distance;
-
-    ++pBuffer->pointCount;
-  }
-
-  if (getNextGrid)
-  {
-    pData->activeItem.pGrid->Deinit();
-    pData->activeItem.oldGrid.Deinit();
-    pData->activeItem.pGrid = nullptr;
-    pData->activeItem.pointIndex = 0;
-
-    do
-    {
-      if (udSafeDeque_PopFront(pData->pConvertItemData, &pData->activeItem) == udR_Success)
+      if (pBuffer->pointCount == pBuffer->pointsAllocated)
+      {
+        getNextGrid = false;
+        pData->activeItem.pointIndex = (uint32_t)i;
         break;
-      udSleep(100);
-    } while (pData->running);
+      }
+
+      udDouble3 position = pData->activeItem.pGrid->vertices[i].position;
+
+      if (!udPointInAABB(position, pData->activeItem.pGrid->minPos, pData->activeItem.pGrid->maxPos))
+          continue;
+
+      size_t triangle = vcBPA_FindClosestTriangle(&pData->activeItem.oldGrid, position);
+
+      double distance = FLT_MAX;
+      if (triangle < pData->activeItem.oldGrid.triangles.length)
+        distance = udAbs(vcBPA_DistanceToTriangle(&pData->activeItem.oldGrid, triangle, position));
+
+      // Position XYZ
+      memcpy(&pBuffer->pPositions[pBuffer->pointCount * 3], &pData->activeItem.pGrid->pBuffer->pPositions[i * 3], sizeof(double) * 3);
+
+      // Copy all of the original attributes
+      ptrdiff_t pointAttrOffset = ptrdiff_t(pBuffer->pointCount) * pBuffer->attributeStride;
+      for (uint32_t j = 0; j < pData->activeItem.pGrid->pBuffer->attributes.count; ++j)
+      {
+        vdkAttributeDescriptor &oldAttrDesc = pData->activeItem.pGrid->pBuffer->attributes.pDescriptors[j];
+        uint32_t attributeSize = (oldAttrDesc.typeInfo & (vdkAttributeTypeInfo_SizeMask << vdkAttributeTypeInfo_SizeShift));
+
+        // Get attribute old offset and pointer
+        uint32_t attrOldOffset = 0;
+        if (vdkAttributeSet_GetOffsetOfNamedAttribute(&pData->activeItem.pGrid->pBuffer->attributes, oldAttrDesc.name, &attrOldOffset) != vE_Success)
+          continue;
+
+        void *pOldAttr = udAddBytes(pData->activeItem.pGrid->pBuffer->pAttributes, i * pData->activeItem.pGrid->pBuffer->attributeStride + attrOldOffset);
+
+        // Get attribute new offset and pointer
+        uint32_t attrNewOffset = 0;
+        if (vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, oldAttrDesc.name, &attrNewOffset) != vE_Success)
+          continue;
+
+        void *pNewAttr = udAddBytes(pBuffer->pAttributes, pointAttrOffset + attrNewOffset);
+
+        // Copy attribute data
+        memcpy(pNewAttr, pOldAttr, attributeSize);
+      }
+
+      // Displacement
+      float *pDisplacement = (float*)udAddBytes(pBuffer->pAttributes, pointAttrOffset + displacementOffset);
+      *pDisplacement = (float)distance;
+
+      ++pBuffer->pointCount;
+    }
+
+    if (getNextGrid)
+    {
+      pData->activeItem.pGrid->Deinit();
+      pData->activeItem.oldGrid.Deinit();
+      pData->activeItem.pGrid = nullptr;
+      pData->activeItem.pointIndex = 0;
+
+      do
+      {
+        if (udSafeDeque_PopFront(pData->pConvertItemData, &pData->activeItem) == udR_Success)
+          break;
+        udSleep(100);
+      } while (pData->running);
+    }
   }
 
 epilogue:
@@ -1064,7 +1068,7 @@ void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPo
   udJSON metadata = {};
   metadata.Parse(pMetadata);
 
-  for (uint32_t i = 0; i < metadata.MemberCount() ; ++i)
+  for (uint32_t i = 0; i < metadata.MemberCount(); ++i)
   {
     const udJSON *pElement = metadata.GetMember(i);
     // Removed error checking because convertInfo metadata triggers vE_NotSupported
