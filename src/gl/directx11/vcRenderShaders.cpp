@@ -750,6 +750,7 @@ const char *const g_FenceVertexShader = VERT_HEADER R"shader(
     float4 pos : SV_POSITION;
     float4 colour : COLOR0;
     float2 uv  : TEXCOORD0;
+    float2 fLogDepth : TEXCOORD1;
   };
 
   cbuffer u_EveryFrame : register(b0)
@@ -781,6 +782,8 @@ const char *const g_FenceVertexShader = VERT_HEADER R"shader(
 
     float3 worldPosition = input.pos + lerp(float3(0, 0, input.ribbonInfo.w) * u_width, input.ribbonInfo.xyz, u_orientation);
     output.pos = mul(u_worldViewProjectionMatrix, float4(worldPosition, 1.0));
+    output.fLogDepth.x = 1.0 + output.pos.w;
+
     return output;
   }
 )shader";
@@ -792,15 +795,31 @@ const char *const g_FenceFragmentShader = FRAG_HEADER R"shader(
     float4 pos : SV_POSITION;
     float4 colour : COLOR0;
     float2 uv  : TEXCOORD0;
+    float2 fLogDepth : TEXCOORD1;
   };
+
+  //Output Format
+  struct PS_OUTPUT
+  {
+    float4 Color0 : SV_Target;
+    float Depth0 : SV_Depth;
+  };
+
 
   sampler sampler0;
   Texture2D texture0;
 
-  float4 main(PS_INPUT input) : SV_Target
+  PS_OUTPUT main(PS_INPUT input)
   {
+    PS_OUTPUT output;
+
     float4 texCol = texture0.Sample(sampler0, input.uv);
-    return float4(texCol.xyz * input.colour.xyz, texCol.w * input.colour.w);
+    output.Color0 = float4(texCol.xyz * input.colour.xyz, texCol.w * input.colour.w);
+
+    float halfFcoef  = 1.0 / log2(s_CameraFarPlane + 1.0);
+    output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;
+
+    return output;
   }
 )shader";
 

@@ -545,8 +545,6 @@ epilogue:
 
 udDouble3 vcRender_DepthToWorldPosition(vcState *pProgramState, vcRenderContext *pRenderContext, double depthIn)
 {
-  double nonZeroDepth = (depthIn == 0.0) ? 1.0 : depthIn;
-
   // reconstruct clip depth from log z
   float a = pProgramState->settings.camera.farPlane / (pProgramState->settings.camera.farPlane - pProgramState->settings.camera.nearPlane);
   float b = pProgramState->settings.camera.farPlane * pProgramState->settings.camera.nearPlane / (pProgramState->settings.camera.nearPlane - pProgramState->settings.camera.farPlane);

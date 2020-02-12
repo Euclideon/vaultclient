@@ -627,6 +627,7 @@ layout(location = 2) in vec4 a_ribbonInfo; // xyz: expand vector; z: pair id (0 
 
 out vec2 v_uv;
 out vec4 v_colour;
+out float v_fLogDepth;
 
 layout (std140) uniform u_EveryFrame
 {
@@ -657,6 +658,7 @@ void main()
   vec3 worldPosition = a_position + mix(vec3(0, 0, a_ribbonInfo.w) * u_width, a_ribbonInfo.xyz, u_orientation);
 
   gl_Position = u_worldViewProjectionMatrix * vec4(worldPosition, 1.0);
+  v_fLogDepth = 1.0 + gl_Position.w;
 }
 )shader";
 
@@ -664,6 +666,7 @@ const char *const g_FenceFragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec2 v_uv;
   in vec4 v_colour;
+  in float v_fLogDepth;
 
   //Output Format
   out vec4 out_Colour;
@@ -674,6 +677,9 @@ const char *const g_FenceFragmentShader = FRAG_HEADER R"shader(
   {
     vec4 texCol = texture(u_texture, v_uv);
     out_Colour = vec4(texCol.xyz * v_colour.xyz, texCol.w * v_colour.w);
+
+    float halfFcoef  = 1.0 / log2(s_CameraFarPlane + 1.0);
+    gl_FragDepth = log2(v_fLogDepth) * halfFcoef;
   }
 )shader";
 
