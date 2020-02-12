@@ -239,6 +239,9 @@ Modules are currently:
 - `settingsAppearanceRectangles`: Rectangles option for voxel shape dropdown list
 - `settingsAppearanceCubes`: Cubes option for voxel shape dropdown list
 - `settingsAppearancePoints`: Points option for voxel shape dropdown list
+- `settingsAppearanceWindowLayout`: Label next to combo list to select the layout
+- `settingsAppearanceWindowLayoutScSx`: Combo option for when the user wants the Scene on left and scene explorer on right
+- `settingsAppearanceWindowLayoutSxSc`: Combo option for when the user wants the Scene explorer on left and scene on right
 - `settingsAppearancePresentationUI`: Label for dropdown list to select whether the user interface (UI) is visible in presentation/fullscreen mode
 - `settingsAppearanceHide`: Hide option for presentation UI dropdown list, in fullscreen mode the UI will not be visible
 - `settingsAppearanceShow`: Show option for presentation UI dropdown list, in fullscreen mode the UI will be visible

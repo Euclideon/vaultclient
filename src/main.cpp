@@ -2222,28 +2222,51 @@ void vcRenderWindow(vcState *pProgramState)
       float menuBarSize = vcMain_MenuGui(pProgramState);
 
       ImGui::SetNextWindowSize(ImVec2(size.x, size.y - menuBarSize));
-      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
       ImGui::SetNextWindowPos(ImVec2(0, menuBarSize));
 
       if (ImGui::Begin("rootdockTesting", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
       {
         ImGui::PopStyleVar();
 
-        ImGui::Columns(2);
+        switch (pProgramState->settings.presentation.layout)
+        {
+        case vcWL_SceneLeft:
+          ImGui::Columns(2);
 
-        if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
-          vcMain_ShowSceneExplorerWindow(pProgramState);
-        ImGui::EndChild();
+          if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
+            vcRenderSceneWindow(pProgramState);
+          ImGui::EndChild();
 
-        ImGui::NextColumn();
+          ImGui::NextColumn();
 
-        if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
-          vcRenderSceneWindow(pProgramState);
-        ImGui::EndChild();
+          if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
+            vcMain_ShowSceneExplorerWindow(pProgramState);
+          ImGui::EndChild();
 
-        ImGui::Columns(1);
+          ImGui::Columns(1);
+          break;
+
+        case vcWL_SceneRight:
+          ImGui::Columns(2);
+
+          if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
+            vcMain_ShowSceneExplorerWindow(pProgramState);
+          ImGui::EndChild();
+
+          ImGui::NextColumn();
+
+          if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
+            vcRenderSceneWindow(pProgramState);
+          ImGui::EndChild();
+
+          ImGui::Columns(1);
+          break;
+        }
       }
+
       ImGui::End();
+
     }
     else
     {

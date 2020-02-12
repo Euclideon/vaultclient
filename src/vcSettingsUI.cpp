@@ -230,6 +230,9 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
           const char *voxelOptions[] = { vcString::Get("settingsAppearanceRectangles"), vcString::Get("settingsAppearanceCubes"), vcString::Get("settingsAppearancePoints") };
           ImGui::Combo(vcString::Get("settingsAppearanceVoxelShape"), &pProgramState->settings.presentation.pointMode, voxelOptions, (int)udLengthOf(voxelOptions));
+
+          const char *layoutOptions[] = { vcString::Get("settingsAppearanceWindowLayoutScSx"), vcString::Get("settingsAppearanceWindowLayoutSxSc") };
+          ImGui::Combo(vcString::Get("settingsAppearanceWindowLayout"), (int*)&pProgramState->settings.presentation.layout, layoutOptions, (int)udLengthOf(layoutOptions));
         }
 
         if (pProgramState->activeSetting == vcSR_Inputs)
