@@ -48,6 +48,26 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
     storageMode = MTLStorageModeManaged;
 #endif
     break;
+  case vcTextureFormat_RGBA16F:
+    pixelFormat = MTLPixelFormatRGBA16Float;
+    usage = MTLTextureUsageShaderRead;
+    pixelSize = 8;
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+    storageMode = MTLStorageModeShared;
+#elif UDPLATFORM_OSX
+    storageMode = MTLStorageModeManaged;
+#endif
+    break;
+  case vcTextureFormat_RGBA32F:
+    pixelFormat = MTLPixelFormatRGBA32Float;
+    usage = MTLTextureUsageShaderRead;
+    pixelSize = 16;
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+    storageMode = MTLStorageModeShared;
+#elif UDPLATFORM_OSX
+    storageMode = MTLStorageModeManaged;
+#endif
+    break;
   case vcTextureFormat_D32F:
     pixelFormat = MTLPixelFormatDepth32Float;
     usage = MTLTextureUsageShaderRead;
