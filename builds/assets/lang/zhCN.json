@@ -9,6 +9,8 @@
     "targetVersion": "0.5.0"
   },
 
+  "popupClose": "关闭",
+
   "loginButton": "登录",
   "loginAbout": "关于",
   "loginRestoreDefaults": "恢复默认",
@@ -284,6 +286,11 @@
   "menuLogoutMessage": "您已退出登录。",
   "menuLogoutCloseButton": "关闭",
 
+  "menuProfileTitle": "资料",
+  "menuUserNameLabel": "用户名",
+  "menuRealNameLabel": "全名",
+  "menuEmailLabel": "邮箱",
+
   "menuReleaseNotes": "版本说明",
   "menuReleaseNotesTitle": "版本说明",
   "menuReleaseNotesFail": "无法获取版本说明。",
@@ -517,7 +524,7 @@
 
   "viewShedDistance": "查看距离",
   "viewShedVisibleColour": "可见面颜色",
-  "viewShedHiddenColour": "背面颜色"
+  "viewShedHiddenColour": "背面颜色",
 
   "attributeType": "类型: {0}",
   "attributeTypeUint8": "Uint8",
