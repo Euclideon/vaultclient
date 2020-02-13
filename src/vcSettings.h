@@ -257,6 +257,7 @@ struct vcSettings
 
   struct
   {
+    bool enable;
     udFloat4 colour;
     float thickness;
   } objectHighlighting;
