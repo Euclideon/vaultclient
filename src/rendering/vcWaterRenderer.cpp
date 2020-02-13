@@ -67,7 +67,7 @@ udResult vcWaterRenderer_Init()
 
   UD_ERROR_IF(gRefCount != 1, udR_Success);
 
-  UD_ERROR_IF(vcTexture_CreateFromFilename(&pNormalMapTexture, "asset://assets/textures/waterNormalMap.jpg", nullptr, nullptr, vcTFM_Linear, true, vcTWM_Repeat), udR_InternalError);
+  UD_ERROR_IF(!vcTexture_CreateFromFilename(&pNormalMapTexture, "asset://assets/textures/waterNormalMap.jpg", nullptr, nullptr, vcTFM_Linear, true, vcTWM_Repeat), udR_InternalError);
 
   result = udR_Success;
 
@@ -208,6 +208,8 @@ void vcWaterRenderer_ClearAllVolumes(vcWaterRenderer *pWaterRenderer)
   pWaterRenderer->volumes.Clear();
 }
 
+int hackyGlobalWaterPass = 0;
+
 bool vcWaterRenderer_Render(vcWaterRenderer *pWaterRenderer, const udDouble4x4 &view, const udDouble4x4 &viewProjection, vcTexture *pSkyboxTexture, double deltaTime)
 {
   bool success = true;
@@ -238,6 +240,13 @@ bool vcWaterRenderer_Render(vcWaterRenderer *pWaterRenderer, const udDouble4x4 &
     vcWaterVolume *pVolume = &pWaterRenderer->volumes[i];
 
     pWaterRenderer->renderShader.everyObjectParams.u_colourAndSize = udFloat4::create(0.0f, 102.0f / 255.0f, 204.0f / 255.0f, 0.0f);
+    if (hackyGlobalWaterPass == 1)
+    {
+      pWaterRenderer->renderShader.everyObjectParams.u_colourAndSize.x = 1.0f;
+      pWaterRenderer->renderShader.everyObjectParams.u_colourAndSize.y = 1.0f;
+      pWaterRenderer->renderShader.everyObjectParams.u_colourAndSize.z = 0.0f;
+    }
+
     pWaterRenderer->renderShader.everyObjectParams.u_colourAndSize.w = float(1.0 / (1.0 + (0.0025 * udMag2(pVolume->max - pVolume->min))));
     pWaterRenderer->renderShader.everyObjectParams.u_modelViewMatrix = udFloat4x4::create(view * pVolume->origin);
     pWaterRenderer->renderShader.everyObjectParams.u_worldViewProjectionMatrix = udFloat4x4::create(viewProjection * pVolume->origin);

@@ -24,6 +24,10 @@
 
 #include "vcTriangulate.h"
 
+// decide if point p is inside triangle defined by a,b,c
+bool vcTriangulate_InsideTriangle(const udDouble2 &p, const udDouble2 &a, const udDouble2 &b, const udDouble2 &c);
+
+
 bool vcTriangulate_Snip(const udDouble2 *pCountours, int u, int v, int w, int n, int *V)
 {
   int p;

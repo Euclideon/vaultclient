@@ -30,11 +30,4 @@
 // triangulate a contour/polygon, places results in STL vector as series of triangles.
 bool vcTriangulate_Process(const udDouble2 *pCountours, int counterCount, std::vector<udDouble2> *pResult);
 
-// compute area of a contour/polygon
-double vcTriangulate_CalculateArea(const udDouble2 *pCountours, int counterCount);
-
-// decide if point p is inside triangle defined by a,b,c
-bool vcTriangulate_InsideTriangle(const udDouble2 &p, const udDouble2 &a, const udDouble2 &b, const udDouble2 &c);
-
-
 #endif//vcTriangulate_h__

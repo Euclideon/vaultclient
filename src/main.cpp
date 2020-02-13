@@ -44,6 +44,7 @@
 #include "vcStringFormat.h"
 #include "vcInternalTexturesData.h"
 #include "vcHotkey.h"
+#include "vcWaterRenderer.h"
 
 #include "gl/vcGLState.h"
 #include "gl/vcFramebuffer.h"
@@ -1422,6 +1423,46 @@ void vcRenderSceneWindow(vcState *pProgramState)
   renderData.mouse.position.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.position.y = (uint32_t)(io.MousePos.y - windowPos.y);
   renderData.mouse.clicked = io.MouseClicked[1];
+
+  static vcWaterRenderer *pWaterRenderer = nullptr;
+  if (pWaterRenderer == nullptr)
+  {
+    // these points must contiguously define the perimeter
+
+#if 1
+    // THIS WORKS
+    udDouble2 points[] =
+    {
+      udDouble2::create(-1.0, -1.0),
+      udDouble2::create(1.0, -1.0),
+      udDouble2::create(1.0, 1.0),
+      udDouble2::create(-1.0, 1.0)
+    };
+#else
+    // THIS DOES NOT WORK! (it has a hole in the middle)
+    udDouble2 points[] =
+    {
+      udDouble2::create(-1.0, -1.0),
+      udDouble2::create(1.0,  -1.0),
+      udDouble2::create(1.0,   1.0),
+      udDouble2::create(-1.0,  1.0),
+
+      udDouble2::create(-0.5, -0.5),
+      udDouble2::create(0.5,  -0.5),
+      udDouble2::create(0.5,   0.5),
+      udDouble2::create(-0.5,  0.5),
+    };
+#endif
+
+    vcWaterRenderer_Create(&pWaterRenderer); // assume success
+    udResult res = vcWaterRenderer_AddVolume(pWaterRenderer, points, udLengthOf(points));
+    if (res != udR_Success)
+    {
+      printf("Something went wrong :(\n");
+      __debugbreak();
+    }
+  }
+  renderData.waterVolumes.PushBack(pWaterRenderer);
 
   udDouble3 cameraMoveOffset = udDouble3::zero();
 

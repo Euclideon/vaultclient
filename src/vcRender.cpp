@@ -945,8 +945,25 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     vcSceneLayer_EndFrame();
 
-    for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
-      vcWaterRenderer_Render(renderData.waterVolumes[i], pProgramState->camera.matrices.view, pProgramState->camera.matrices.viewProjection, pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pProgramState->deltaTime);
+    // draw it twice...the second time in wireframe
+    extern int hackyGlobalWaterPass;
+    for (hackyGlobalWaterPass = 0; hackyGlobalWaterPass < 2; ++hackyGlobalWaterPass)
+    {
+      if (hackyGlobalWaterPass == 1)
+      {
+        vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+        vcGLState_SetFaceMode(vcGLSFM_Wireframe, vcGLSCM_None);
+      }
+      else
+      {
+        vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+      }
+
+      for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
+        vcWaterRenderer_Render(renderData.waterVolumes[i], pProgramState->camera.matrices.view, pProgramState->camera.matrices.viewProjection, pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pProgramState->deltaTime);
+    }
+
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
   }
 
   vcRender_AsyncReadFrameDepth(pRenderContext); // note: one frame behind
@@ -1142,6 +1159,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
   vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+
 
   vcRender_OpaquePass(pProgramState, pRenderContext, renderData); // first pass
   vcRender_VisualizationPass(pProgramState, pRenderContext);
