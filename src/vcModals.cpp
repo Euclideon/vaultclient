@@ -475,11 +475,35 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
       ImGui::SameLine();
       // Get the offset so the next column is offset by the same value to keep alignment
       float offset = ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset;
-      ImGui::TextUnformatted(pProgramState->errorItems[i].pData);
+      const char *pFileName = pProgramState->errorItems[i].pData;
+      ImGui::TextUnformatted(pFileName);
+      if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("%s", pFileName);
       ImGui::NextColumn();
 
       ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset = offset;
-      ImGui::TextUnformatted(udResultAsString(pProgramState->errorItems[i].resultCode));
+
+      int errorCode = pProgramState->errorItems[i].resultCode;
+      const char *pErrorString = nullptr;
+      switch (errorCode)
+      {
+      case udR_CorruptData:
+        pErrorString = vcString::Get("errorCorruptData");
+        break;
+      case udR_Unsupported:
+        pErrorString = vcString::Get("errorUnsupported");
+        break;
+      case udR_OpenFailure:
+        pErrorString = vcString::Get("errorOpenFailure");
+        break;
+      case udR_ReadFailure:
+        pErrorString = vcString::Get("errorReadFailure");
+        break;
+      default:
+        pErrorString = vcString::Get("errorUnknown");
+        break;
+      }
+      ImGui::TextUnformatted(pErrorString);
       ImGui::NextColumn();
 
       if (removeItem)
