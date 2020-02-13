@@ -540,7 +540,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("pointMode = %d", pSettings->presentation.pointMode);
   data.Set("responsiveUI = %d", pSettings->responsiveUI);
 
-  data.Set("objectHighlighting.enable = %f", pSettings->objectHighlighting.enable);
+  data.Set("objectHighlighting.enable = %s", pSettings->objectHighlighting.enable ? "true" : "false");
   for (int i = 0; i < 4; i++)
     data.Set("objectHighlighting.colour[] = %f", pSettings->objectHighlighting.colour[i]);
   data.Set("objectHighlighting.thickness = %f", pSettings->objectHighlighting.thickness);
