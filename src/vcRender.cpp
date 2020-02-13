@@ -1088,7 +1088,7 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
 
 bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-  if (pProgramState->settings.objectHighlighting.colour.w == 0.0f) // disabled
+  if (pProgramState->settings.objectHighlighting.colour.w == 0.0f || !pProgramState->settings.objectHighlighting.enable) // disabled
     return false;
 
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);

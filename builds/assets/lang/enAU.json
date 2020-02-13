@@ -130,6 +130,7 @@
   "settingsMapsSetHeight": "Set to Camera Height",
 
   "settingsVis": "Visualisation",
+  "settingsVisObjectHighlight": "Enable Selected Objects Highlighting",
   "settingsVisHighlightColour": "Highlight Colour",
   "settingsVisHighlightThickness": "Highlight Thickness",
   "settingsVisDisplayMode": "Display Mode",

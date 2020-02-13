@@ -16,7 +16,7 @@
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
     - Settings
-      - `settingsVisModeDisplacement`, `settingsVisDisplacementRange`, `settingsAppearanceCompassColour`, `settingsAppearanceCompassRearColour`
+      - `settingsVisModeDisplacement`, `settingsVisDisplacementRange`, `settingsAppearanceCompassColour`, `settingsAppearanceCompassRearColour`, `settingsVisObjectHighlight`
     - Errors
       - `errorUnknown`, `errorCorruptData`, `errorUnsupported`, `errorOpenFailure`, `errorReadFailure`
   - Changed:
@@ -304,6 +304,7 @@ Modules are currently:
 
 #### Visualization
 - `settingsVis`: Title of the Visualisation subheading in Settings
+- `settingsVisObjectHighlight`: Label next to checkbox for enabling highlighting selected objects
 - `settingsVisHighlightColour`: Label next to the colour picker for highlighting
 - `settingsVisHighlightThickness`: Label next to slider to select highlight edge thickness
 - `settingsVisDisplayMode`: Label next to dropdown list for selecting how the scene is displayed
