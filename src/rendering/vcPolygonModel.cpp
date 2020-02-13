@@ -308,7 +308,7 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
   {
     vcOBJ::Face *pFace = &pOBJReader->faces[f];
     if (pFace->mat == -1)
-      continue;
+      pFace->mat = 0;
 
     pMaterialVerticesMap[pFace->mat].PushBack(pFace->verts[0]);
     pMaterialVerticesMap[pFace->mat].PushBack(pFace->verts[1]);
