@@ -59,12 +59,12 @@ udResult vcCompass_Destroy(vcAnchor **ppCompass)
   return udR_Success;
 }
 
-bool vcCompass_Render(vcAnchor *pCompass, vcAnchorStyle anchorStyle, const udDouble4x4 &worldViewProj, const udDouble4 &colour /*= udDouble4::create(1.0, 0.8431, 0.0, 1.0)*/)
+bool vcCompass_Render(vcAnchor *pCompass, vcAnchorStyle anchorStyle, const udDouble4x4 &worldViewProj, const udFloat4 &colour)
 {
   if (pCompass == nullptr || anchorStyle >= vcAS_Count || vcASToMeshType[anchorStyle] == vcInternalMeshType_Count)
     return false;
 
-  pCompass->shaderBuffer.u_colour = udFloat4::create(colour);
+  pCompass->shaderBuffer.u_colour = colour;
   pCompass->shaderBuffer.u_worldViewProjectionMatrix = udFloat4x4::create(worldViewProj);
   pCompass->shaderBuffer.u_sunDirection = udNormalize(udFloat3::create(1.0f, 0.0f, -1.0f));
 

@@ -11,6 +11,6 @@ struct vcAnchor;
 udResult vcCompass_Create(vcAnchor **ppCompass);
 udResult vcCompass_Destroy(vcAnchor **ppCompass);
 
-bool vcCompass_Render(vcAnchor *pCompass, vcAnchorStyle anchorStyle, const udDouble4x4 &worldViewProj, const udDouble4 &colour = udDouble4::create(1.0, 0.8431, 0.0, 1.0));
+bool vcCompass_Render(vcAnchor *pCompass, vcAnchorStyle anchorStyle, const udDouble4x4 &worldViewProj, const udFloat4 &colour);
 
 #endif //vcCompass_h__

@@ -61,6 +61,8 @@
   "settingsAppearanceAdvancedGIS": "显示高级GIS设置",
   "settingsAppearanceLimitFPS": "后台限制帧率",
   "settingsAppearanceShowCompass": "显示指南针",
+  "settingsAppearanceCompassColour": "指南针颜色",
+  "settingsAppearanceCompassRearColour": "指南针背面颜色",
   "settingsAppearanceLoginRenderLicense": "登录时检查渲染许可证",
   "settingsAppearanceShowSkybox": "显示天空",
   "settingsAppearanceSkyboxColour": "背景色",

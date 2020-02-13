@@ -133,6 +133,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.saturation = data.Get("saturation").AsFloat(1.0f);
     pSettings->presentation.mouseAnchor = (vcAnchorStyle)data.Get("mouseAnchor").AsInt(vcAS_Orbit);
     pSettings->presentation.showCompass = data.Get("showCompass").AsBool(true);
+    pSettings->presentation.compassColour = data.Get("campassColour").AsFloat4(udFloat4::create(1.0f, 0.8431f, 0.0f, 1.0f));
+    pSettings->presentation.compassRearColour = data.Get("campassRearColour").AsFloat4(udFloat4::create(0.0f, 0.15f, 1.0f, 0.5f));
     pSettings->presentation.POIFadeDistance = data.Get("POIfadeDistance").AsFloat(10000.f);
     pSettings->presentation.limitFPSInBackground = data.Get("limitFPSInBackground").AsBool(true);
     pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
@@ -534,6 +536,8 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("showAdvancedGISOptions = %s", pSettings->presentation.showAdvancedGIS ? "true" : "false");
   data.Set("mouseAnchor = %d", pSettings->presentation.mouseAnchor);
   data.Set("showCompass = %s", pSettings->presentation.showCompass ? "true" : "false");
+  data.Set("compassColour = [%f, %f, %f, %f]", pSettings->presentation.compassColour.x, pSettings->presentation.compassColour.y, pSettings->presentation.compassColour.z, pSettings->presentation.compassColour.w);
+  data.Set("compassRearColour = [%f, %f, %f, %f]", pSettings->presentation.compassRearColour.x, pSettings->presentation.compassRearColour.y, pSettings->presentation.compassRearColour.z, pSettings->presentation.compassRearColour.w);
   data.Set("limitFPSInBackground = %s", pSettings->presentation.limitFPSInBackground ? "true" : "false");
   data.Set("POIfadeDistance = %f", pSettings->presentation.POIFadeDistance);
   data.Set("pointMode = %d", pSettings->presentation.pointMode);

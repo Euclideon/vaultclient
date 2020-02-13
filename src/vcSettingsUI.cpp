@@ -232,6 +232,9 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
           const char *voxelOptions[] = { vcString::Get("settingsAppearanceRectangles"), vcString::Get("settingsAppearanceCubes"), vcString::Get("settingsAppearancePoints") };
           ImGui::Combo(vcString::Get("settingsAppearanceVoxelShape"), &pProgramState->settings.presentation.pointMode, voxelOptions, (int)udLengthOf(voxelOptions));
+
+          ImGui::ColorEdit4(vcString::Get("settingsAppearanceCompassColour"), &pProgramState->settings.presentation.compassColour.x);
+          ImGui::ColorEdit4(vcString::Get("settingsAppearanceCompassRearColour"), &pProgramState->settings.presentation.compassRearColour.x);
         }
 
         if (pProgramState->activeSetting == vcSR_Inputs)

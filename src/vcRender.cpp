@@ -1172,12 +1172,12 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
     // Render highlighting any occlusion
     vcGLState_SetBlendMode(vcGLSBM_Additive);
     vcGLState_SetDepthStencilMode(vcGLSDM_Greater, false);
-    vcCompass_Render(pRenderContext->pCompass, pProgramState->settings.presentation.mouseAnchor, mvp, udDouble4::create(0.0, 0.15, 1.0, 0.5));
+    vcCompass_Render(pRenderContext->pCompass, pProgramState->settings.presentation.mouseAnchor, mvp, pProgramState->settings.presentation.compassRearColour);
 
     // Render non-occluded
     vcGLState_SetBlendMode(vcGLSBM_Interpolative);
     vcGLState_SetDepthStencilMode(vcGLSDM_Less, true);
-    vcCompass_Render(pRenderContext->pCompass, pProgramState->settings.presentation.mouseAnchor, mvp);
+    vcCompass_Render(pRenderContext->pCompass, pProgramState->settings.presentation.mouseAnchor, mvp, pProgramState->settings.presentation.compassColour);
 
     vcGLState_ResetState();
   }
@@ -1185,12 +1185,13 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   if (pProgramState->settings.presentation.showCompass)
   {
     udDouble4x4 cameraRotation = udDouble4x4::rotationYPR(pProgramState->camera.matrices.camera.extractYPR());
+    udDouble4x4 mvpTemp = udDouble4x4::perspectiveZO(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0);
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
 
     if (!pProgramState->gis.isProjected)
     {
-      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspectiveZO(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udInverse(cameraRotation));
+      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, mvpTemp * udInverse(cameraRotation), pProgramState->settings.presentation.compassColour);
     }
     else
     {
@@ -1198,7 +1199,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
       currentLatLong.x = udClamp(currentLatLong.x, -90.0, 89.0);
       udDouble3 norther = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, udDouble3::create(currentLatLong.x + 1.0, currentLatLong.y, currentLatLong.z));
       udDouble4x4 north = udDouble4x4::lookAt(pProgramState->camera.position, norther);
-      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspectiveZO(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udDouble4x4::rotationYPR(north.extractYPR()) * udInverse(cameraRotation));
+      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, mvpTemp * udDouble4x4::rotationYPR(north.extractYPR()) * udInverse(cameraRotation), pProgramState->settings.presentation.compassColour);
     }
 
     vcGLState_ResetState();

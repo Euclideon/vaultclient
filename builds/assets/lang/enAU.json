@@ -60,6 +60,8 @@
   "settingsAppearanceAdvancedGIS": "Show Advanced GIS Settings",
   "settingsAppearanceLimitFPS": "Limit FPS In Background",
   "settingsAppearanceShowCompass": "Show Compass On Screen",
+  "settingsAppearanceCompassColour": "Compass Colour",
+  "settingsAppearanceCompassRearColour": "Compass Rear Colour",
   "settingsAppearanceLoginRenderLicense": "Checkout Render License On Login",
   "settingsAppearanceShowNativeDialogs": "Show Native Dialogs",
   "settingsAppearanceShowSkybox": "Show Skybox",

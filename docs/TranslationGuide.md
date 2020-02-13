@@ -16,7 +16,7 @@
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
     - Settings
-      - `settingsVisModeDisplacement`, `settingsVisDisplacementRange`
+      - `settingsVisModeDisplacement`, `settingsVisDisplacementRange`, `settingsAppearanceCompassColour`, `settingsAppearanceCompassRearColour`
     - Errors
       - `errorUnknown`, `errorCorruptData`, `errorUnsupported`, `errorOpenFailure`, `errorReadFailure`
   - Changed:
@@ -236,6 +236,8 @@ Modules are currently:
 - `settingsAppearanceMouseAnchor`: Label next to dropdown list to select the appearance of the mouse cursor when hovering over objects in the scene
 - `settingsAppearanceNone`: "None" option for mouse cursor appearance. If selected, mouse cursor retains its default appearance
 - `settingsAppearanceCompass`: Compass option for mouse cursor appearance
+- `settingsAppearanceCompassColour`: Compass colour.
+- `settingsAppearanceCompassRearColour`: Compass rear colour.
 - `settingsAppearanceOrbit`: Orbit option for mouse cursor appearance
 - `settingsAppearanceVoxelShape`: Label next to dropdown list to select the shape of the voxels that make up the models in the scene
 - `settingsAppearanceRectangles`: Rectangles option for voxel shape dropdown list

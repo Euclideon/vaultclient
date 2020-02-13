@@ -144,6 +144,8 @@ struct vcSettings
 
     vcAnchorStyle mouseAnchor;
     bool showCompass;
+    udFloat4 compassColour;
+    udFloat4 compassRearColour;
     float POIFadeDistance;
     bool limitFPSInBackground;
 
