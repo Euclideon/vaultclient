@@ -13,6 +13,7 @@ enum vcModalTypes
   vcMT_ProjectChange,
   vcMT_ProjectReadOnly,
   vcMT_UnsupportedFile,
+  vcMT_Profile,
 
   vcMT_Count
 };

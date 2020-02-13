@@ -910,6 +910,7 @@ int main(int argc, char **args)
 epilogue:
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
+  programState.profileInfo.Destroy();
 
   vcSettings_Cleanup(&programState.settings);
 
@@ -1648,7 +1649,7 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
     ImGui::TextUnformatted(pTemp);
 
     if (ImGui::IsItemClicked())
-      vcSession_Logout(pProgramState);
+      vcModals_OpenModal(pProgramState, vcMT_Profile);
   }
 
   // Load List

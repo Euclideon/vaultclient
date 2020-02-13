@@ -77,6 +77,33 @@ void vcSession_GetPackagesMT(void *pProgramStatePtr)
   }
 }
 
+void vcSession_GetProfileInfo(void *pProgramStatePtr)
+{
+  vcState *pProgramState = (vcState*)pProgramStatePtr;
+
+  const char *pJSONInfo = nullptr;
+  udJSON sessionInfo = {};
+
+  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/session/info", nullptr, &pJSONInfo) == vE_Success)
+    sessionInfo.Parse(pJSONInfo);
+  vdkServerAPI_ReleaseResult(&pJSONInfo);
+
+  udJSON v;
+  const char *pExportString = nullptr;
+  v.Set("userid = '%s'", sessionInfo.Get("user.userid").AsString(""));
+  v.Export(&pExportString, udJEO_JSON); // or udJEO_XML
+
+  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/user", pExportString, &pJSONInfo) == vE_Success)
+    pProgramState->profileInfo.Parse(pJSONInfo);
+
+  vdkServerAPI_ReleaseResult(&pJSONInfo);
+  udFree(pExportString);
+  v.Destroy();
+
+  sessionInfo.Destroy();
+
+}
+
 void vcSession_ChangeSession(vcState *pProgramState)
 {
   vcRender_SetVaultContext(pProgramState, pProgramState->pRenderContext);
@@ -100,6 +127,8 @@ void vcSession_ChangeSession(vcState *pProgramState)
   pProgramState->logoutReason = vE_Success;
   pProgramState->loginStatus = vcLS_NoStatus;
   pProgramState->hasContext = true;
+
+  udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetProfileInfo, pProgramState, false);
 }
 
 void vcSession_Login(void *pProgramStatePtr)
@@ -168,6 +197,7 @@ void vcSession_Logout(vcState *pProgramState)
     pProgramState->modelPath[0] = '\0';
     vcProject_InitBlankScene(pProgramState);
     pProgramState->projects.Destroy();
+    pProgramState->profileInfo.Destroy();
     vcRender_ClearPoints(pProgramState->pRenderContext);
 
     memset(&pProgramState->gis, 0, sizeof(pProgramState->gis));

@@ -10,13 +10,15 @@
     - Convert
       - `convertRestart`
     - Menus
-      - `menuBindings`, `settingsAppearanceSaturation`, `menuProjectNone`
+      - `menuBindings`, `settingsAppearanceSaturation`, `menuProjectNone`, `menuProfileTitle`, `menuUserNameLabel`, `menuRealNameLabel`, `menuEmailLabel`
     - Polygon Meshes
       - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`, `polyModelIgnoreTint`
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
     - Settings
       - `settingsVisModeDisplacement`, `settingsVisDisplacementRange`
+    - Errors
+      - `errorUnknown`, `errorCorruptData`, `errorUnsupported`, `errorOpenFailure`, `errorReadFailure`
   - Changed:
     - 
   - Removed:
@@ -480,6 +482,10 @@ Modules are currently:
 - `menuLogoutTitle`: Title of logout window
 - `menuLogoutMessage`: Message displayed in logout window, informs the user that they have been logged out
 - `menuLogoutCloseButton`: Label for button that closes the logout window
+- `menuProfileTitle`: Title of the profile modal
+- `menuUserNameLabel`: Label of user name in the profile modal
+- `menuRealNameLabel`: Label of real name in the profile modal
+- `menuEmailLabel`: Label of email in the profile modal
 - `menuReleaseNotes`: Option in System menu, opens the Release Notes window
 - `menuReleaseNotesTitle`: Title of Release Notes window
 - `menuReleaseNotesFail`: Displayed when client fails to load text from the Release Notes file
@@ -801,3 +807,10 @@ Modules are currently:
 - `bindingsSave`: Key binding description displayed next to Save binding
 - `bindingsLoad`: Key binding description displayed next to Load binding
 - `bindingsUndo`: Key binding description displayed next to Undo binding
+
+##### Errors
+- `errorUnknown`: An unexpected error occurred.
+- `errorCorruptData`: Corrupt data error shown in "Unsupported Files window" when converting files
+- `errorUnsupported`: Unsupported file formats error shown in "Unsupported Files window" when converting files
+- `errorOpenFailure`: Failed to open files error shown in "Unsupported Files window" when converting files
+- `errorReadFailure`: Failed to read files error shown in "Unsupported Files window" when converting files

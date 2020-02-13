@@ -138,6 +138,7 @@ struct vcState
   vcSettings settings;
   udJSON projects;
   udJSON packageInfo;
+  udJSON profileInfo;
 
   struct
   {
