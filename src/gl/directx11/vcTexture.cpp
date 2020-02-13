@@ -66,7 +66,7 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, bool isRender
     *pTextureFormat = textureFormat;
 }
 
-udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
+udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /* = 0 */)
 {
   if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
     return udR_InvalidParameter_;
@@ -85,8 +85,11 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   UINT bindFlags = D3D11_BIND_SHADER_RESOURCE;
   D3D11_SUBRESOURCE_DATA subResource[MaxMipLevels] = {};
   D3D11_SUBRESOURCE_DATA *pSubData = nullptr;
-  D3D11_TEXTURE2D_DESC desc;
-  ZeroMemory(&desc, sizeof(desc));
+  UINT mipLevels = 1;
+
+  // These is temporary until API MR goes through 
+  vcTextureType type = vcTextureType_Texture2D;
+  int depth = 1;
 
   vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
   UD_ERROR_NULL(pTexture, udR_MemoryAllocationFailure);
@@ -99,21 +102,11 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
       bindFlags |= D3D11_BIND_RENDER_TARGET;
   }
 
-  // Upload texture to graphics system
-  desc.Width = width;
-  desc.Height = height;
-  desc.MipLevels = 1;
-  desc.ArraySize = 1;
-  desc.Format = texFormat;
-  desc.SampleDesc.Count = 1;
-  desc.Usage = (isDynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT);
-  desc.BindFlags = bindFlags;
-  desc.CPUAccessFlags = (isDynamic ? D3D11_CPU_ACCESS_WRITE : 0);
 
   if (pPixels != nullptr)
   {
     subResource[0].pSysMem = pPixels;
-    subResource[0].SysMemPitch = desc.Width * pixelBytes;
+    subResource[0].SysMemPitch = width * pixelBytes;
     subResource[0].SysMemSlicePitch = 0;
     pSubData = subResource;
 
@@ -142,18 +135,54 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
         subResource[i].SysMemPitch = lastWidth * pixelBytes;
         subResource[i].SysMemSlicePitch = 0;
 
-        ++desc.MipLevels;
+        ++mipLevels;
       }
 
     }
   }
 
-  UD_ERROR_IF(g_pd3dDevice->CreateTexture2D(&desc, pSubData, &pTexture->pTextureD3D) != S_OK, udR_InternalError);
+  // Upload texture to graphics system
+  if (type == vcTextureType_Texture2D || type == vcTextureType_TextureArray)
+  {
+    D3D11_TEXTURE2D_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    desc.Width = width;
+    desc.Height = height;
+    desc.MipLevels = mipLevels;
+    desc.ArraySize = depth;
+    desc.Format = texFormat;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = (isDynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT);
+    desc.BindFlags = bindFlags;
+    desc.CPUAccessFlags = (isDynamic ? D3D11_CPU_ACCESS_WRITE : 0);
+
+    ID3D11Texture2D *pTexture2D = nullptr;
+    UD_ERROR_IF(g_pd3dDevice->CreateTexture2D(&desc, pSubData, &pTexture2D) != S_OK, udR_InternalError);
+    pTexture->pTextureD3D = pTexture2D;
+  }
+  else if (type == vcTextureType_Texture3D)
+  {
+    D3D11_TEXTURE3D_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+
+    desc.Width = width;
+    desc.Height = height;
+    desc.Depth = depth;
+    desc.MipLevels = mipLevels;
+    desc.Format = texFormat;
+    desc.Usage = (isDynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT);
+    desc.BindFlags = bindFlags;
+    desc.CPUAccessFlags = (isDynamic ? D3D11_CPU_ACCESS_WRITE : 0);
+
+    ID3D11Texture3D *pTexture3D = nullptr;
+    UD_ERROR_IF(g_pd3dDevice->CreateTexture3D(&desc, pSubData, &pTexture3D) != S_OK, udR_InternalError);
+    pTexture->pTextureD3D = pTexture3D;
+  }
 
   // Free mip map memory
   if (hasMipmaps && pPixels && !isRenderTarget)
   {
-    for (unsigned int i = 1; i < desc.MipLevels; ++i)
+    for (unsigned int i = 1; i < mipLevels; ++i)
     {
       udFree(subResource[i].pSysMem);
     }
@@ -173,9 +202,28 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
         srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
     }
 
-    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-    srvDesc.Texture2D.MipLevels = desc.MipLevels;
-    srvDesc.Texture2D.MostDetailedMip = 0;
+    switch (type)
+    {
+    case vcTextureType_Texture2D:
+      srvDesc.Texture2D.MipLevels = mipLevels;
+      srvDesc.Texture2D.MostDetailedMip = 0;
+      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+      break;
+    case vcTextureType_Texture3D:
+      srvDesc.Texture3D.MipLevels = mipLevels;
+      srvDesc.Texture3D.MostDetailedMip = 0;
+      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
+      break;
+    case vcTextureType_TextureArray:
+      srvDesc.Texture2DArray.MipLevels = mipLevels;
+      srvDesc.Texture2DArray.MostDetailedMip = 0;
+      srvDesc.Texture2DArray.FirstArraySlice = 0;
+      srvDesc.Texture2DArray.ArraySize = depth;
+      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+      break;
+    case vcTextureType_Count:
+      break;
+    }
 
     UD_ERROR_IF(g_pd3dDevice->CreateShaderResourceView(pTexture->pTextureD3D, &srvDesc, &pTexture->pTextureView) != S_OK, udR_InternalError);
 
@@ -216,14 +264,16 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
       UD_ERROR_IF(g_pd3dDevice->CreateTexture2D(&stagingDesc, nullptr, &pTexture->pStagingTextureD3D[i]) != S_OK, udR_InternalError);
   }
 
+  pTexture->type = type;
   pTexture->flags = flags;
   pTexture->format = format;
   pTexture->width = width;
   pTexture->height = height;
+  pTexture->depth = depth;
   pTexture->isDynamic = isDynamic;
   pTexture->isRenderTarget = isRenderTarget;
-  pTexture->d3dFormat = desc.Format;
-  vcGLState_ReportGPUWork(0, 0, size_t((pTexture->width * pTexture->height * pixelBytes) * (hasMipmaps ? 1.3333f : 1.0f)));
+  pTexture->d3dFormat = texFormat;
+  vcGLState_ReportGPUWork(0, 0, size_t((pTexture->width * pTexture->height * pTexture->depth * pixelBytes) * (hasMipmaps ? 1.3333f : 1.0f)));
 
   *ppTexture = pTexture;
   pTexture = nullptr;
@@ -244,7 +294,7 @@ bool vcTexture_CreateFromMemory(vcTexture **ppTexture, void *pFileData, size_t f
   uint32_t width, height, channelCount;
   vcTexture *pTexture = nullptr;
 
-  uint8_t *pData = stbi_load_from_memory((stbi_uc *)pFileData, (int)fileLength, (int *)& width, (int *)& height, (int *)& channelCount, 4);
+  uint8_t *pData = stbi_load_from_memory((stbi_uc *)pFileData, (int)fileLength, (int *)&width, (int *)&height, (int *)&channelCount, 4);
 
   if (pData)
     vcTexture_Create(&pTexture, width, height, pData, vcTextureFormat_RGBA8, filterMode, hasMipmaps, wrapMode, flags, aniFilter);
@@ -287,18 +337,20 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
   if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)
     return udR_InvalidParameter_;
 
+  // These are temporary until API MR goes through 
+  int depth = 1;
+
   udResult result = udR_Success;
 
-  DXGI_FORMAT texFormat = DXGI_FORMAT_UNKNOWN;
   int pixelBytes = 0;
-  vcTexture_GetFormatAndPixelSize(pTexture->format, pTexture->isRenderTarget, &pixelBytes, &texFormat);
+  vcTexture_GetFormatAndPixelSize(pTexture->format, pTexture->isRenderTarget, &pixelBytes);
 
   D3D11_MAPPED_SUBRESOURCE mappedResource;
   UD_ERROR_IF(g_pd3dDeviceContext->Map(pTexture->pTextureD3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource) != S_OK, udR_InternalError);
-  memcpy(mappedResource.pData, pPixels, width * height * pixelBytes);
+  memcpy(mappedResource.pData, pPixels, width * height * depth * pixelBytes);
   g_pd3dDeviceContext->Unmap(pTexture->pTextureD3D, 0);
 
-  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pixelBytes);
+  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pTexture->depth * pixelBytes);
 
 epilogue:
   return result;
@@ -421,7 +473,7 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
   pPixelData = ((uint32_t *)msr.pData) + (x + y * pTexture->width);
   for (int i = 0; i < (int)height; ++i)
   {
-    memcpy((uint8_t*)pPixels + (i * pTexture->width), pPixelData, width * pixelBytes);
+    memcpy((uint8_t *)pPixels + (i * pTexture->width), pPixelData, width * pixelBytes);
     pPixelData += pTexture->width;
   }
 

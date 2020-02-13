@@ -23,16 +23,18 @@ struct vcTexture
 {
   ID3D11SamplerState *pSampler;
   ID3D11ShaderResourceView *pTextureView;
-  ID3D11Texture2D *pTextureD3D;
+
+  ID3D11Resource *pTextureD3D;
 
   DXGI_FORMAT d3dFormat;
 
   bool isDynamic;
   bool isRenderTarget;
 
+  vcTextureType type;
   vcTextureCreationFlags flags;
   vcTextureFormat format;
-  int width, height;
+  int width, height, depth;
 
   // Optional if texture created with `vcTCF_AsynchronousRead` flag, or a read back is requested
   uint32_t stagingIndex; // Internally ping pongs between Begin()/End() calls for asynchronous functionality
@@ -58,8 +60,8 @@ struct vcShaderConstantBuffer
 struct vcShader
 {
   ID3D11VertexShader *pVertexShader;
-  ID3D11PixelShader* pPixelShader;
-  ID3D11GeometryShader* pGeometryShader;
+  ID3D11PixelShader *pPixelShader;
+  ID3D11GeometryShader *pGeometryShader;
 
   ID3D11InputLayout *pLayout;
 
