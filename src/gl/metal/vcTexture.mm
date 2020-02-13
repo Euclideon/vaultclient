@@ -103,12 +103,19 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
     *pPixelSize = pixelSize;
 }
 
-udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags, int32_t aniFilter /* = 0 */)
+udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, vcTextureCreationFlags flags /*= vcTCF_None*/)
+{
+  return vcTexture_CreateAdv(ppTexture, vcTextureType_Texture2D, width, height, 1, pPixels, format, filterMode, false, vcTWM_Repeat, flags);
+}
+
+udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t width, uint32_t height, uint32_t depth, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
 {
   if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
     return udR_InvalidParameter_;
 
   udUnused(hasMipmaps);
+  udUnused(depth);
+  udUnused(type);
 
   udResult result = udR_Success;
   MTLPixelFormat pixelFormat = MTLPixelFormatRGBA8Unorm;
@@ -230,7 +237,7 @@ udResult vcTexture_Create(struct vcTexture **ppTexture, uint32_t width, uint32_t
   return result;
 }
 
-bool vcTexture_CreateFromMemory(struct vcTexture **ppTexture, void *pFileData, size_t fileLength, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
+bool vcTexture_CreateFromMemory(struct vcTexture **ppTexture, void *pFileData, size_t fileLength, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
 {
   if (ppTexture == nullptr || pFileData == nullptr || fileLength == 0)
     return false;
@@ -241,7 +248,7 @@ bool vcTexture_CreateFromMemory(struct vcTexture **ppTexture, void *pFileData, s
   uint8_t *pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLength, (int*)&width, (int*)&height, (int*)&channelCount, 4);
 
   if (pData)
-    result = (vcTexture_Create(ppTexture, width, height, pData, vcTextureFormat_RGBA8, filterMode, hasMipmaps, wrapMode, flags, aniFilter) == udR_Success);
+    result = (vcTexture_CreateAdv(ppTexture, vcTextureType_Texture2D, width, height, 1, pData, vcTextureFormat_RGBA8, filterMode, hasMipmaps, wrapMode, flags, aniFilter) == udR_Success);
 
   stbi_image_free(pData);
 
@@ -254,7 +261,7 @@ bool vcTexture_CreateFromMemory(struct vcTexture **ppTexture, void *pFileData, s
   return result;
 }
 
-bool vcTexture_CreateFromFilename(struct vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
+bool vcTexture_CreateFromFilename(struct vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
 {
   if (ppTexture == nullptr || pFilename == nullptr)
     return false;
@@ -271,7 +278,7 @@ bool vcTexture_CreateFromFilename(struct vcTexture **ppTexture, const char *pFil
   return result;
 }
 
-udResult vcTexture_UploadPixels(struct vcTexture *pTexture, const void *pPixels, int width, int height)
+udResult vcTexture_UploadPixels(struct vcTexture *pTexture, const void *pPixels, int width, int height, int depth /*= 1*/)
 {
   if (pTexture == nullptr || pPixels == nullptr || width == 0 || height == 0)
     return udR_InvalidParameter_;
@@ -279,6 +286,7 @@ udResult vcTexture_UploadPixels(struct vcTexture *pTexture, const void *pPixels,
   if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)
     return udR_InvalidParameter_;
 
+    udUnused(depth);
   udResult result = udR_Success;
   int pixelBytes = 0;
   vcTexture_GetFormatAndPixelSize(pTexture->format, &pixelBytes);

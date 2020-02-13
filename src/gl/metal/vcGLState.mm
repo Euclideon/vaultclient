@@ -114,8 +114,8 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   [_renderer initWithView:sdlview];
 
   vcTexture *defaultTexture, *defaultDepth;
-  vcTexture_Create(&defaultTexture, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
-  vcTexture_Create(&defaultDepth, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, false, vcTWM_Clamp, vcTCF_RenderTarget);
+  vcTexture_Create(&defaultTexture, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, vcTCF_RenderTarget);
+  vcTexture_Create(&defaultDepth, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, vcTCF_RenderTarget);
   
   vcFramebuffer *pFramebuffer;
   vcFramebuffer_Create(&pFramebuffer, defaultTexture, defaultDepth);
