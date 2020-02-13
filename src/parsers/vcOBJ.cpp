@@ -406,7 +406,7 @@ udResult vcOBJ_Load(vcOBJ **ppOBJ, const char *pFilename)
 
       //Allow to load an object file without a material file.
       result = vcOBJ_LoadMtlLib(pOBJ, pOBJ->basePath.GetPath());
-      if (result != udR_OpenFailure || result != udR_Success)
+      if (result != udR_OpenFailure && result != udR_Success)
         UD_ERROR_SET(result);
     }
     else
