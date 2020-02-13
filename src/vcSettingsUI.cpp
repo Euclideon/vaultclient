@@ -88,6 +88,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
     ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
   }
 
+  ImGui::SetNextWindowFocus();
   if (ImGui::BeginPopupModal(udTempStr("%s###settingsDock", vcString::Get("settingsTitle"))))
   {
     ImGui::Columns(2, NULL, false);
