@@ -108,6 +108,18 @@ struct vcBPAManifold
   vdkContext *pContext;
 };
 
+struct vcBPAOctNode
+{
+  udDouble3 center;
+  udDouble3 extents;
+
+  void Init(udDouble3 inCenter, udDouble3 inExtents)
+  {
+    center = inCenter;
+    extents = inExtents;
+  }
+};
+
 void vcBPA_Init(vcBPAManifold **ppManifold, vdkContext *pContext)
 {
   vcBPAManifold *pManifold = udAllocType(vcBPAManifold, 1, udAF_Zero);
@@ -818,6 +830,9 @@ struct vcBPAConvertItem
   vcBPAConvertItemData activeItem;
   udThread *pThread;
   udInterlockedBool running;
+
+  udSafeDeque<vcBPAOctNode> *pLoadList;
+  vcBPAOctNode rootNode;
 };
 
 void vcBPA_GridPopulationThread(void *pDataPtr)
@@ -910,6 +925,13 @@ vdkError vcBPA_ConvertOpen(vdkConvertCustomItem *pConvertInput, uint32_t everyNt
 
   udSafeDeque_Create(&pData->pQueueItems, 32);
   udSafeDeque_Create(&pData->pConvertItemData, 128);
+
+  udDouble3 boundingBoxExtents = udDouble3::create(header.boundingBoxExtents[0], header.boundingBoxExtents[1], header.boundingBoxExtents[2]);
+  udDouble4 temp = storedMatrix * udDouble4::create(boundingBoxExtents, 1.0);
+
+  pData->rootNode.Init(startAABBCenter, temp.toVector3());
+  udSafeDeque_Create(&pData->pLoadList, 64);
+  udSafeDeque_PushBack(pData->pLoadList, pData->rootNode);
 
   udThread_Create(&pData->pThread, vcBPA_GridGeneratorThread, pData, udTCF_None, "BPAGridGeneratorThread");
   while (pData->running && udSafeDeque_PopFront(pData->pConvertItemData, &pData->activeItem) != udR_Success)
@@ -1023,6 +1045,9 @@ void vcBPA_ConvertClose(vdkConvertCustomItem *pConvertInput)
   while (udSafeDeque_PopFront(pBPA->pQueueItems, &itemData) == udR_Success)
     itemData.oldGrid.Deinit();
   udSafeDeque_Destroy(&pBPA->pQueueItems);
+
+  while (udSafeDeque_PopFront(pBPA->pLoadList, &pBPA->rootNode) == udR_Success);
+  udSafeDeque_Destroy(&pBPA->pLoadList);
 
   while (udSafeDeque_PopFront(pBPA->pConvertItemData, &itemData) == udR_Success)
     itemData.oldGrid.Deinit();
