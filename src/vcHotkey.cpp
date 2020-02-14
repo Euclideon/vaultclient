@@ -258,7 +258,17 @@ namespace vcHotkey
 
     for (int i = 0; i < vcB_Count; ++i)
     {
-      if (ImGui::Button(bindNames[i], ImVec2(-1, 0)))
+      ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2);
+      if (target == i)
+        ImGui::PushStyleColor(ImGuiCol_Border, vcSettingsUI_GetErrorColour(vcSE_Select));
+
+      bool pressed = ImGui::Button(bindNames[i], ImVec2(-1, 0));
+
+      if (target == i)
+        ImGui::PopStyleColor();
+      ImGui::PopStyleVar();
+
+      if (pressed)
       {
         vcSettingsUI_UnsetError(pProgramState, vcSE_Bound);
         if (target == i)
@@ -273,9 +283,6 @@ namespace vcHotkey
           target = i;
         }
       }
-
-      if (target == i)
-        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::ColorConvertFloat4ToU32(vcSettingsUI_GetErrorColour(vcSE_Select)), 0.0f, ImDrawCornerFlags_All, 2.0f);
 
       ImGui::NextColumn();
 
