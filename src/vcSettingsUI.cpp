@@ -142,7 +142,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
     if (ImGui::BeginChild("__settingsPane"))
     {
-      ImGui::Columns(2);
+      ImGui::BeginColumns("###settingsColumns", 2, ImGuiColumnsFlags_NoResize);
 
       ImGui::SetColumnWidth(0, 200.f);
 
