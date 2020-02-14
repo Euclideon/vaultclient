@@ -101,7 +101,7 @@ udResult vcWaterRenderer_Create(vcWaterRenderer **ppWaterRenderer)
 
   UD_ERROR_CHECK(pWaterRenderer->volumes.Init(32));
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&pWaterRenderer->renderShader.pProgram, g_WaterVertexShader, g_WaterFragmentShader, vcUV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromText(&pWaterRenderer->renderShader.pProgram, g_WaterVertexShader, g_WaterFragmentShader, vcP2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_Bind(pWaterRenderer->renderShader.pProgram), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_normalMap, pWaterRenderer->renderShader.pProgram, "u_normalMap"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_skybox, pWaterRenderer->renderShader.pProgram, "u_skybox"), udR_InternalError);
@@ -181,7 +181,7 @@ udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, udDouble2 *p
   for (size_t i = 0; i < triangleList.size(); ++i)
     pVerts[i].uv = udFloat2::create(triangleList[i]);
 
-  UD_ERROR_IF(vcMesh_Create(&pVolume.pMesh, vcUV2VertexLayout, (int)udLengthOf(vcUV2VertexLayout), pVerts, pVolume.vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
+  UD_ERROR_IF(vcMesh_Create(&pVolume.pMesh, vcP2VertexLayout, (int)udLengthOf(vcP2VertexLayout), pVerts, pVolume.vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
 
   UD_ERROR_CHECK(pWaterRenderer->volumes.PushBack(pVolume));
 
