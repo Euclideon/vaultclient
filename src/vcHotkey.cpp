@@ -262,9 +262,13 @@ namespace vcHotkey
       if (target == i)
         ImGui::PushStyleColor(ImGuiCol_Border, vcSettingsUI_GetErrorColour(vcSE_Select));
 
+      bool bound = vcSettingsUI_CheckError(pProgramState, vcSE_Bound) && (vcHotkey::Get((vcBind)i) == pProgramState->currentKey);
+      if (bound)
+        ImGui::PushStyleColor(ImGuiCol_Border, vcSettingsUI_GetErrorColour(vcSE_Bound));
+
       bool pressed = ImGui::Button(bindNames[i], ImVec2(-1, 0));
 
-      if (target == i)
+      if (target == i || bound)
         ImGui::PopStyleColor();
       ImGui::PopStyleVar();
 
