@@ -145,13 +145,12 @@ const uint32_t WhitePixel = 0xFFFFFFFF;
 
 void vcMain_ShowStartupScreen(vcState *pProgramState);
 void vcRenderWindow(vcState *pProgramState);
-int vcMainMenuGui(vcState *pProgramState);
+float vcMain_MenuGui(vcState *pProgramState);
 
 void vcMain_PresentationMode(vcState *pProgramState)
 {
   if (pProgramState->settings.window.isFullscreen)
   {
-    pProgramState->settings.docksLoaded = vcSettings::vcDockLoaded::vcDL_False;
     SDL_SetWindowFullscreen(pProgramState->pWindow, 0);
   }
   else
@@ -326,14 +325,11 @@ void vcMain_MainLoop(vcState *pProgramState)
 #if VC_HASCONVERT
         bool convertDrop = false;
         //TODO: Use ImGui drag and drop on the docks rather than globally here
-        if (pProgramState->settings.window.windowsOpen[vcDocks_Convert])
+        ImGuiWindow *pConvert = ImGui::FindWindowByName("###convertDock");
+        if (pConvert != nullptr && ((pConvert->DockNode != nullptr && pConvert->DockTabIsVisible) || (pConvert->DockNode == nullptr && !pConvert->Collapsed)))
         {
-          ImGuiWindow *pConvert = ImGui::FindWindowByName("###convertDock");
-          if (pConvert != nullptr && ((pConvert->DockNode != nullptr && pConvert->DockTabIsVisible) || (pConvert->DockNode == nullptr && !pConvert->Collapsed)))
-          {
-            if (io.MousePos.x < pConvert->Pos.x + pConvert->Size.x && io.MousePos.x > pConvert->Pos.x && io.MousePos.y > pConvert->Pos.y && io.MousePos.y < pConvert->Pos.y + pConvert->Size.y)
-              convertDrop = true;
-          }
+          if (io.MousePos.x < pConvert->Pos.x + pConvert->Size.x && io.MousePos.x > pConvert->Pos.x && io.MousePos.y > pConvert->Pos.y && io.MousePos.y < pConvert->Pos.y + pConvert->Size.y)
+            convertDrop = true;
         }
 #endif //VC_HASCONVERT
 
@@ -364,15 +360,13 @@ void vcMain_MainLoop(vcState *pProgramState)
         // Project Files
         if (udStrEquali(pExt, ".json"))
         {
-          if (vcProject_InitFromURI(pProgramState, pNextLoad))
-            pProgramState->changeActiveDock = vcDocks_Scene;
+          vcProject_InitFromURI(pProgramState, pNextLoad);
         }
         else if (udStrEquali(pExt, ".udp"))
         {
           vcProject_InitBlankScene(pProgramState);
 
           vcUDP_Load(pProgramState, pNextLoad);
-          pProgramState->changeActiveDock = vcDocks_Scene;
         }
 #if VC_HASCONVERT
         else if (convertDrop) // Everything else depends on where it was dropped
@@ -777,16 +771,10 @@ int main(int argc, char **args)
   programState.settings.camera.farPlane = 10000.f;
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
-  // Dock setting
-  programState.settings.docksLoaded = vcSettings::vcDockLoaded::vcDL_False;
-  programState.settings.window.windowsOpen[vcDocks_Scene] = true;
-  programState.settings.window.windowsOpen[vcDocks_SceneExplorer] = true;
-  programState.settings.window.windowsOpen[vcDocks_Convert] = true;
   programState.settings.languageOptions.Init(4);
 
   programState.settings.hideIntervalSeconds = 3;
   programState.showUI = true;
-  programState.changeActiveDock = vcDocks_Count;
   programState.passFocus = true;
   programState.renaming = -1;
 
@@ -1280,6 +1268,138 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
   }
 }
 
+void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
+{
+  char buffer[50] = {};
+  vcHotkey::GetKeyName(vcB_AddUDS, buffer);
+
+  if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddUDS"), buffer, vcMBBI_AddPointCloud, vcMBBG_FirstItem) || vcHotkey::IsPressed(vcB_AddUDS))
+    vcModals_OpenModal(pProgramState, vcMT_AddSceneItem);
+
+  if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
+  {
+    vdkProjectNode *pNode = nullptr;
+    if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Folder", vcString::Get("sceneExplorerFolderDefaultName"), nullptr, nullptr) != vE_Success)
+    {
+      vcState::ErrorItem projectError = {};
+      projectError.source = vcES_ProjectChange;
+      projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFolder"));
+      projectError.resultCode = udR_Failure_;
+
+      pProgramState->errorItems.PushBack(projectError);
+
+      vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+    }
+  }
+
+  if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddViewpoint"), nullptr, vcMBBI_SaveViewport, vcMBBG_SameGroup))
+  {
+    vdkProjectNode *pNode = nullptr;
+    if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == vE_Success)
+    {
+      udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position, true);
+
+      if (pProgramState->gis.isProjected)
+        vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &cameraPositionInLongLat.x);
+
+      vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.x", pProgramState->camera.eulerRotation.x);
+      vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", pProgramState->camera.eulerRotation.y);
+      vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.z", pProgramState->camera.eulerRotation.z);
+    }
+    else
+    {
+      vcState::ErrorItem projectError = {};
+      projectError.source = vcES_ProjectChange;
+      projectError.pData = udStrdup(vcString::Get("sceneExplorerAddViewpoint"));
+      projectError.resultCode = udR_Failure_;
+
+      pProgramState->errorItems.PushBack(projectError);
+
+      vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+    }
+  }
+
+  vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddOther"), nullptr, vcMBBI_AddOther, vcMBBG_SameGroup);
+  if (ImGui::BeginPopupContextItem(vcString::Get("sceneExplorerAddOther"), 0))
+  {
+    if (pProgramState->sceneExplorer.selectedItems.size() == 1)
+    {
+      const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
+      if (item.pItem->itemtype == vdkPNT_PointOfInterest)
+      {
+        vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
+
+        if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
+          pPOI->AddPoint(pProgramState, pProgramState->worldAnchorPoint);
+      }
+    }
+
+    if (ImGui::MenuItem(vcString::Get("sceneExplorerAddFeed"), nullptr, nullptr))
+    {
+      vdkProjectNode *pNode = nullptr;
+      if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", vcString::Get("liveFeedDefaultName"), nullptr, nullptr) != vE_Success)
+      {
+        vcState::ErrorItem projectError;
+        projectError.source = vcES_ProjectChange;
+        projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFeed"));
+        projectError.resultCode = udR_Failure_;
+
+        pProgramState->errorItems.PushBack(projectError);
+
+        vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+      }
+    }
+
+    ImGui::EndPopup();
+  }
+
+  vcHotkey::GetKeyName(vcB_Remove, buffer);
+  if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerRemove"), buffer, vcMBBI_Remove, vcMBBG_NewGroup) || (vcHotkey::IsPressed(vcB_Remove) && !ImGui::IsAnyItemActive()))
+    vcProject_RemoveSelected(pProgramState);
+
+  // Tree view for the scene
+  ImGui::Separator();
+
+  if (ImGui::BeginChild("SceneExplorerList", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
+  {
+    if (!ImGui::IsMouseDragging() && pProgramState->sceneExplorer.insertItem.pParent != nullptr)
+    {
+      // Ensure a circular reference is not created
+      bool itemFound = false;
+      for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size() && !itemFound; ++i)
+      {
+        const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
+        if (item.pItem->itemtype == vdkPNT_Folder)
+          itemFound = vcProject_ContainsItem(item.pItem, pProgramState->sceneExplorer.insertItem.pItem);
+
+        itemFound = itemFound || item.pItem == pProgramState->sceneExplorer.insertItem.pItem;
+      }
+
+      if (!itemFound)
+      {
+        for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size(); ++i)
+        {
+          const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
+          vdkProjectNode* pNode = item.pItem;
+
+          vdkProjectNode_MoveChild(pProgramState->activeProject.pProject, item.pParent, pProgramState->sceneExplorer.insertItem.pParent, pNode, pProgramState->sceneExplorer.insertItem.pItem);
+
+          // Update the selected item information to repeat drag and drop
+          pProgramState->sceneExplorer.selectedItems[i].pParent = pProgramState->sceneExplorer.insertItem.pParent;
+
+          pProgramState->sceneExplorer.clickedItem = pProgramState->sceneExplorer.selectedItems[i];
+        }
+      }
+      pProgramState->sceneExplorer.insertItem = { nullptr, nullptr };
+    }
+
+    size_t i = 0;
+    if (pProgramState->activeProject.pFolder)
+      pProgramState->activeProject.pFolder->HandleImGui(pProgramState, &i);
+  }
+  ImGui::EndChild();
+}
+
 void vcRenderSceneWindow(vcState *pProgramState)
 {
   //Rendering
@@ -1760,21 +1880,15 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
   }
 }
 
-int vcMainMenuGui(vcState *pProgramState)
+float vcMain_MenuGui(vcState *pProgramState)
 {
-  int menuHeight = 0;
+  float menuHeight = 0;
 
   if (ImGui::BeginMainMenuBar())
   {
-    if (ImGui::BeginMenu(vcString::Get("menuWindows")))
-    {
-      ImGui::MenuItem(vcString::Get("menuScene"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Scene]);
-      ImGui::MenuItem(vcString::Get("menuSceneExplorer"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]);
 #if VC_HASCONVERT
-      ImGui::MenuItem(vcString::Get("menuConvert"), nullptr, &pProgramState->settings.window.windowsOpen[vcDocks_Convert]);
+    ImGui::MenuItem(vcString::Get("menuConvert"));
 #endif //VC_HASCONVERT
-      ImGui::EndMenu();
-    }
 
     udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
     if (ImGui::BeginMenu(vcString::Get("menuProjects")))
@@ -1861,21 +1975,12 @@ int vcMainMenuGui(vcState *pProgramState)
 
     vcMain_UpdateStatusBar(pProgramState);
 
-    menuHeight = (int)ImGui::GetWindowSize().y;
+    menuHeight = ImGui::GetWindowSize().y;
 
     ImGui::EndMainMenuBar();
   }
 
   return menuHeight;
-}
-
-void vcChangeTab(vcState *pProgramState, vcDocks dock)
-{
-  if (pProgramState->changeActiveDock == dock)
-  {
-    ImGui::SetWindowFocus();
-    pProgramState->changeActiveDock = vcDocks_Count;
-  }
 }
 
 void vcMain_ShowStartupScreen(vcState *pProgramState)
@@ -2112,223 +2217,87 @@ void vcRenderWindow(vcState *pProgramState)
 
   //end keyboard/mouse handling
 
-  if (pProgramState->hasContext && !pProgramState->settings.window.isFullscreen)
-  {
-    int margin = vcMainMenuGui(pProgramState);
-
-    if (pProgramState->settings.docksLoaded != vcSettings::vcDockLoaded::vcDL_True)
-      pProgramState->settings.rootDock = ImGui::GetID("MyDockspace");
-
-    ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
-    ImGui::SetNextWindowBgAlpha(0.f);
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    ImGui::Begin("RootDockContainer", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoSavedSettings);
-    ImGui::PopStyleVar();
-    ImGui::DockSpace(pProgramState->settings.rootDock, ImVec2(size.x, size.y - margin));
-    ImGui::End();
-  }
-
   if (!pProgramState->hasContext)
   {
     vcMain_ShowLoginWindow(pProgramState);
   }
   else
   {
-    if (pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer] && !pProgramState->settings.window.isFullscreen)
+    if (!pProgramState->settings.window.isFullscreen)
     {
-      if (ImGui::Begin(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_SceneExplorer]))
+      float menuBarSize = vcMain_MenuGui(pProgramState);
+
+      ImGui::SetNextWindowSize(ImVec2(size.x, size.y - menuBarSize));
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+      ImGui::SetNextWindowPos(ImVec2(0, menuBarSize));
+
+      if (ImGui::Begin("rootdockTesting", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
       {
-        char buffer[50] = {};
-        vcHotkey::GetKeyName(vcB_AddUDS, buffer);
+        ImGui::PopStyleVar();
 
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddUDS"), buffer, vcMBBI_AddPointCloud, vcMBBG_FirstItem) || vcHotkey::IsPressed(vcB_AddUDS))
-          vcModals_OpenModal(pProgramState, vcMT_AddSceneItem);
-
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddFolder"), nullptr, vcMBBI_AddFolder, vcMBBG_SameGroup))
+        switch (pProgramState->settings.presentation.layout)
         {
-          vdkProjectNode *pNode = nullptr;
-          if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Folder", vcString::Get("sceneExplorerFolderDefaultName"), nullptr, nullptr) != vE_Success)
-          {
-            vcState::ErrorItem projectError;
-            projectError.source = vcES_ProjectChange;
-            projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFolder"));
-            projectError.resultCode = udR_Failure_;
+        case vcWL_SceneLeft:
+          ImGui::Columns(2);
 
-            pProgramState->errorItems.PushBack(projectError);
+          if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
+            vcRenderSceneWindow(pProgramState);
+          ImGui::EndChild();
 
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-          }
+          ImGui::NextColumn();
+
+          if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
+            vcMain_ShowSceneExplorerWindow(pProgramState);
+          ImGui::EndChild();
+
+          ImGui::Columns(1);
+          break;
+
+        case vcWL_SceneRight:
+          ImGui::Columns(2);
+
+          if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
+            vcMain_ShowSceneExplorerWindow(pProgramState);
+          ImGui::EndChild();
+
+          ImGui::NextColumn();
+
+          if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
+            vcRenderSceneWindow(pProgramState);
+          ImGui::EndChild();
+
+          ImGui::Columns(1);
+          break;
         }
-
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddViewpoint"), nullptr, vcMBBI_SaveViewport, vcMBBG_SameGroup))
-        {
-          vdkProjectNode *pNode;
-          if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == vE_Success)
-          {
-            udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position, true);
-
-            if (pProgramState->gis.isProjected)
-              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &cameraPositionInLongLat.x);
-
-            vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.x", pProgramState->camera.eulerRotation.x);
-            vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", pProgramState->camera.eulerRotation.y);
-            vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.z", pProgramState->camera.eulerRotation.z);
-          }
-          else
-          {
-            vcState::ErrorItem projectError;
-            projectError.source = vcES_ProjectChange;
-            projectError.pData = udStrdup(vcString::Get("sceneExplorerAddViewpoint"));
-            projectError.resultCode = udR_Failure_;
-
-            pProgramState->errorItems.PushBack(projectError);
-
-            vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-          }
-        }
-
-        vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddOther"), nullptr, vcMBBI_AddOther, vcMBBG_SameGroup);
-        if (ImGui::BeginPopupContextItem(vcString::Get("sceneExplorerAddOther"), 0))
-        {
-          if (pProgramState->sceneExplorer.selectedItems.size() == 1)
-          {
-            const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
-            if (item.pItem->itemtype == vdkPNT_PointOfInterest)
-            {
-              vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
-
-              if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
-                pPOI->AddPoint(pProgramState, pProgramState->worldAnchorPoint);
-            }
-          }
-
-          if (ImGui::MenuItem(vcString::Get("sceneExplorerAddFeed"), nullptr, nullptr))
-          {
-            vdkProjectNode *pNode = nullptr;
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", vcString::Get("liveFeedDefaultName"), nullptr, nullptr) != vE_Success)
-            {
-              vcState::ErrorItem projectError;
-              projectError.source = vcES_ProjectChange;
-              projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFeed"));
-              projectError.resultCode = udR_Failure_;
-
-              pProgramState->errorItems.PushBack(projectError);
-
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-            }
-          }
-
-          ImGui::EndPopup();
-        }
-
-        vcHotkey::GetKeyName(vcB_Remove, buffer);
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerRemove"), buffer, vcMBBI_Remove, vcMBBG_NewGroup) || (vcHotkey::IsPressed(vcB_Remove) && !ImGui::IsAnyItemActive()))
-          vcProject_RemoveSelected(pProgramState);
-
-        // Tree view for the scene
-        ImGui::Separator();
-
-        if (ImGui::BeginChild("SceneExplorerList", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
-        {
-          if (!ImGui::IsMouseDragging() && pProgramState->sceneExplorer.insertItem.pParent != nullptr)
-          {
-            // Ensure a circular reference is not created
-            bool itemFound = false;
-            for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size() && !itemFound; ++i)
-            {
-              const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
-              if (item.pItem->itemtype == vdkPNT_Folder)
-                itemFound = vcProject_ContainsItem(item.pItem, pProgramState->sceneExplorer.insertItem.pItem);
-
-              itemFound = itemFound || item.pItem == pProgramState->sceneExplorer.insertItem.pItem;
-            }
-
-            if (!itemFound)
-            {
-              for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size(); ++i)
-              {
-                const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
-                vdkProjectNode* pNode = item.pItem;
-
-                vdkProjectNode_MoveChild(pProgramState->activeProject.pProject, item.pParent, pProgramState->sceneExplorer.insertItem.pParent, pNode, pProgramState->sceneExplorer.insertItem.pItem);
-
-                // Update the selected item information to repeat drag and drop
-                pProgramState->sceneExplorer.selectedItems[i].pParent = pProgramState->sceneExplorer.insertItem.pParent;
-
-                pProgramState->sceneExplorer.clickedItem = pProgramState->sceneExplorer.selectedItems[i];
-              }
-            }
-            pProgramState->sceneExplorer.insertItem = { nullptr, nullptr };
-          }
-
-          size_t i = 0;
-          if (pProgramState->activeProject.pFolder)
-            pProgramState->activeProject.pFolder->HandleImGui(pProgramState, &i);
-        }
-        ImGui::EndChild();
       }
+
+      ImGui::End();
+
+    }
+    else
+    {
+      ImGui::SetNextWindowSize(size);
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
+      ImGui::SetNextWindowPos(ImVec2(0, 0));
+
+      bool sceneWindow = ImGui::Begin(udTempStr("%s###scenePresentation", vcString::Get("sceneTitle")), nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus);
+      ImGui::PopStyleVar();
+
+      if (sceneWindow)
+        vcRenderSceneWindow(pProgramState);
+
       ImGui::End();
     }
 
 #if VC_HASCONVERT
-    if (pProgramState->settings.window.windowsOpen[vcDocks_Convert] && !pProgramState->settings.window.isFullscreen)
+    if (!pProgramState->settings.window.isFullscreen)
     {
-      if (ImGui::Begin(udTempStr("%s###convertDock", vcString::Get("convertTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Convert]))
+      if (ImGui::Begin(udTempStr("%s###convertDock", vcString::Get("convertTitle"))))
         vcConvert_ShowUI(pProgramState);
 
-      vcChangeTab(pProgramState, vcDocks_Convert);
       ImGui::End();
     }
 #endif //VC_HASCONVERT
-
-    if (pProgramState->settings.window.windowsOpen[vcDocks_Scene])
-    {
-      if (!pProgramState->settings.window.isFullscreen)
-      {
-        if (ImGui::Begin(udTempStr("%s###sceneDock", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
-          vcRenderSceneWindow(pProgramState);
-        vcChangeTab(pProgramState, vcDocks_Scene);
-        ImGui::End();
-      }
-      else
-      {
-        ImGui::SetNextWindowSize(size);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
-        ImGui::SetNextWindowPos(ImVec2(0, 0));
-
-        bool sceneWindow = ImGui::Begin(udTempStr("%s###scenePresentation", vcString::Get("sceneTitle")), &pProgramState->settings.window.windowsOpen[vcDocks_Scene], ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus);
-        ImGui::PopStyleVar();
-
-        if (sceneWindow)
-          vcRenderSceneWindow(pProgramState);
-
-        ImGui::End();
-      }
-    }
-
-    if (pProgramState->settings.pActive[0] != nullptr)
-    {
-      for (int i = 0; i < vcDocks_Count; ++i)
-      {
-        if (pProgramState->settings.pActive[i] == nullptr)
-          break;
-
-        ImGui::SetWindowFocus(pProgramState->settings.pActive[i]->Name);
-        pProgramState->settings.pActive[i] = nullptr;
-      }
-    }
-
-    if (pProgramState->settings.docksLoaded != vcSettings::vcDockLoaded::vcDL_True)
-    {
-      vcSettings_Load(&pProgramState->settings, false, vcSC_Docks);
-
-      // Don't show the window in a bad state
-      ImDrawData *pData = ImGui::GetDrawData();
-      if (pData != nullptr)
-        pData->Clear();
-    }
   }
 
   vcSettingsUI_Show(pProgramState);

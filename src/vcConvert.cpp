@@ -434,7 +434,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
         if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProgramState->pConvertContext->jobs[selectedJob]->pConvertInfo->pOutputName, nullptr) == vE_Success)
         {
           udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
-          pProgramState->changeActiveDock = vcDocks_Scene;
         }
         else
         {

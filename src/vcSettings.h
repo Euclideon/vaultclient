@@ -24,15 +24,6 @@ enum vcMapTileBlendMode
   vcMTBM_Count
 };
 
-enum vcDocks
-{
-  vcDocks_Scene,
-  vcDocks_SceneExplorer,
-  vcDocks_Convert,
-
-  vcDocks_Count
-};
-
 enum vcVisualizatationMode
 {
   vcVM_Colour,
@@ -65,6 +56,12 @@ enum vcPresentationMode
   vcPM_Responsive
 };
 
+enum vcWindowLayout
+{
+  vcWL_SceneLeft,
+  vcWL_SceneRight
+};
+
 enum vcSettingsUIRegions
 {
   vcSR_Appearance,
@@ -90,7 +87,6 @@ enum vcSettingCategory
   vcSC_MapsElevation,
   vcSC_Visualization,
   vcSC_Convert,
-  vcSC_Docks,
   vcSC_Languages,
   vcSC_Bindings,
   vcSC_All,
@@ -148,6 +144,8 @@ struct vcSettings
     bool limitFPSInBackground;
 
     int pointMode;
+
+    vcWindowLayout layout;
   } presentation;
 
   struct
@@ -161,8 +159,6 @@ struct vcSettings
 
     bool isFullscreen;
     bool useNativeUI;
-
-    bool windowsOpen[vcDocks_Count];
 
     char languageCode[16];
   } window;
@@ -291,14 +287,6 @@ struct vcSettings
 
   vcPresentationMode responsiveUI;
   int hideIntervalSeconds;
-
-  enum vcDockLoaded {
-    vcDL_True,
-    vcDL_False,
-    vcDL_ForceReset,
-  } docksLoaded;
-  ImGuiID rootDock;
-  ImGuiWindow *pActive[vcDocks_Count];
 };
 
 // Settings Limits (vcSL prefix)
