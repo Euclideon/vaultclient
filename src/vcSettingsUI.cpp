@@ -35,8 +35,8 @@ static const char *settingsErrors[] =
 
 static const ImVec4 settingsErrorColours[] =
 {
-  ImVec4(1, 0, 0, 1),
-  ImVec4(1, 1, 1, 1)
+  ImVec4(1.f, 0.f, 0.f, 1.f),
+  ImVec4(.31176f, .76176f, .39843f, 1.f)
 };
 
 static const vcSettingCategory categoryMapping[] =
