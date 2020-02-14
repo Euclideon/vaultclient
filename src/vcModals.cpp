@@ -1,7 +1,6 @@
 #include "vcModals.h"
 
 #include "vcState.h"
-#include "vcVersion.h"
 #include "vcPOI.h"
 #include "gl/vcTexture.h"
 #include "vcRender.h"
@@ -11,6 +10,7 @@
 #include "vcStringFormat.h"
 #include "vcHotkey.h"
 #include "vcWebFile.h"
+#include "vcSession.h"
 
 #include "udFile.h"
 #include "udStringUtil.h"
@@ -18,6 +18,9 @@
 #include "imgui.h"
 #include "imgui_ex/vcFileDialog.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
+#include "imgui_ex/imgui_udValue.h"
+
+#include "vdkServerAPI.h"
 
 #include "stb_image.h"
 
@@ -274,36 +277,26 @@ bool vcModals_OverwriteExistingFile(const char *pFilename)
   return result;
 }
 
-void vcModals_DrawFileModal(vcState *pProgramState)
+void vcModals_DrawAddSceneItem(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_AddSceneItem))
-    ImGui::OpenPopup(vcString::Get("sceneExplorerAddUDSTitle"));
-  if (pProgramState->openModals & (1 << vcMT_ExportProject))
-    ImGui::OpenPopup(vcString::Get("menuProjectExportTitle"));
-
-  vcModalTypes mode = vcMT_Count;
+    ImGui::OpenPopup(vcString::Get("sceneExplorerAddSceneItemTitle"));
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerAddUDSTitle")))
-    mode = vcMT_AddSceneItem;
-
-  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(vcString::Get("menuProjectExportTitle")))
-    mode = vcMT_ExportProject;
-
-  if (mode < vcMT_Count)
+  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerAddSceneItemTitle")))
   {
     pProgramState->modalOpen = true;
-    bool pressedEnter = ImGui::InputText(vcString::Get("sceneExplorerPathURL"), pProgramState->modelPath, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
 
-    ImGui::SameLine();
+    vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_SceneItems, vcFDT_OpenFile, [] {
+      // Do nothing
+    });
 
-    bool loadFile = false;
-    bool saveFile = false;
-    if (mode == vcMT_ExportProject)
-      saveFile = (ImGui::Button(vcString::Get("sceneExplorerExportButton"), ImVec2(100.f, 0)) || pressedEnter);
-    else
-      loadFile = (ImGui::Button(vcString::Get("sceneExplorerLoadButton"), ImVec2(100.f, 0)) || pressedEnter);
+    if (ImGui::Button(vcString::Get("sceneExplorerLoadButton"), ImVec2(100.f, 0)))
+    {
+      pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
+      pProgramState->modelPath[0] = '\0';
+      ImGui::CloseCurrentPopup();
+    }
 
     ImGui::SameLine();
 
@@ -315,31 +308,47 @@ void vcModals_DrawFileModal(vcState *pProgramState)
 
     ImGui::Separator();
 
-    if (mode == vcMT_AddSceneItem)
-    {
-      vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_SceneItems, vcFDT_OpenFile, [pProgramState] {
-        pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
-      });
-    }
-    else if (mode == vcMT_ExportProject)
-    {
-      const char *fileExtensions[] = { ".json" };
-      if (vcFileDialog_DrawImGui(pProgramState->modelPath, sizeof(pProgramState->modelPath), vcFDT_SaveFile, fileExtensions, udLengthOf(fileExtensions)))
-        saveFile = true;
-    }
+    //TODO: UI depending on what file is selected
 
-    if (loadFile)
-    {
-      pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
-      pProgramState->modelPath[0] = '\0';
-      ImGui::CloseCurrentPopup();
-    }
-    else if (saveFile)
+    ImGui::EndPopup();
+  }
+}
+
+void vcModals_DrawExportProject(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_ExportProject))
+    ImGui::OpenPopup(vcString::Get("menuProjectExportTitle"));
+
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("menuProjectExportTitle")))
+  {
+    pProgramState->modalOpen = true;
+    
+    vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, [] {
+      // Do nothing
+    });
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("sceneExplorerExportButton"), ImVec2(100.f, 0)))
     {
       vcProject_Save(pProgramState, pProgramState->modelPath, false);
       pProgramState->modelPath[0] = '\0';
       ImGui::CloseCurrentPopup();
     }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    {
+      pProgramState->modelPath[0] = '\0';
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::Separator();
+
+    //TODO: Additional export settings
+
     ImGui::EndPopup();
   }
 }
@@ -466,11 +475,35 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
       ImGui::SameLine();
       // Get the offset so the next column is offset by the same value to keep alignment
       float offset = ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset;
-      ImGui::TextUnformatted(pProgramState->errorItems[i].pData);
+      const char *pFileName = pProgramState->errorItems[i].pData;
+      ImGui::TextUnformatted(pFileName);
+      if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("%s", pFileName);
       ImGui::NextColumn();
 
       ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset = offset;
-      ImGui::TextUnformatted(udResultAsString(pProgramState->errorItems[i].resultCode));
+
+      int errorCode = pProgramState->errorItems[i].resultCode;
+      const char *pErrorString = nullptr;
+      switch (errorCode)
+      {
+      case udR_CorruptData:
+        pErrorString = vcString::Get("errorCorruptData");
+        break;
+      case udR_Unsupported:
+        pErrorString = vcString::Get("errorUnsupported");
+        break;
+      case udR_OpenFailure:
+        pErrorString = vcString::Get("errorOpenFailure");
+        break;
+      case udR_ReadFailure:
+        pErrorString = vcString::Get("errorReadFailure");
+        break;
+      default:
+        pErrorString = vcString::Get("errorUnknown");
+        break;
+      }
+      ImGui::TextUnformatted(pErrorString);
       ImGui::NextColumn();
 
       if (removeItem)
@@ -563,6 +596,42 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
   }
 }
 
+void vcModals_DrawProfile(vcState* pProgramState)
+{ 
+  const char *profile = vcString::Get("menuProfileTitle");
+
+  if (pProgramState->openModals & (1 << vcMT_Profile))
+    ImGui::OpenPopup(profile);
+
+  float width = 300.f;
+  float height = 250.f;
+  float buttonWidth = 80.f;
+  ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiCond_Always);
+
+  if (ImGui::BeginPopupModal(profile, nullptr, ImGuiWindowFlags_NoResize))
+  {
+    pProgramState->modalOpen = true;
+
+    const char *userName = pProgramState->profileInfo.Get("user.username").AsString("");
+    ImGui::TextUnformatted(udTempStr("%s: %s", vcString::Get("menuUserNameLabel"), userName));
+
+    const char *realName = pProgramState->profileInfo.Get("user.realname").AsString("");
+    ImGui::TextUnformatted(udTempStr("%s: %s", vcString::Get("menuRealNameLabel"), realName));
+
+    const char *email = pProgramState->profileInfo.Get("user.email").AsString("");
+    ImGui::TextUnformatted(udTempStr("%s: %s", vcString::Get("menuEmailLabel"), email));
+
+    if (ImGui::Button(vcString::Get("menuLogout"), ImVec2(buttonWidth, 0)))
+      pProgramState->forceLogout = true;
+
+    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(buttonWidth, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+      ImGui::CloseCurrentPopup();
+
+    ImGui::EndPopup();
+  }
+
+}
+
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 {
   pProgramState->openModals |= (1 << type);
@@ -574,11 +643,13 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawLoggedOut(pProgramState);
   vcModals_DrawProxyAuth(pProgramState);
   vcModals_DrawTileServer(pProgramState);
-  vcModals_DrawFileModal(pProgramState);
+  vcModals_DrawAddSceneItem(pProgramState);
+  vcModals_DrawExportProject(pProgramState);
   vcModals_DrawProjectChangeResult(pProgramState);
   vcModals_DrawProjectReadOnly(pProgramState);
   vcModals_DrawImageViewer(pProgramState);
   vcModals_DrawUnsupportedFiles(pProgramState);
+  vcModals_DrawProfile(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_LoggedOut) | (1 << vcMT_ProxyAuth));
 }

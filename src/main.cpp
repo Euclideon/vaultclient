@@ -898,6 +898,7 @@ int main(int argc, char **args)
 epilogue:
   udFree(programState.pReleaseNotes);
   programState.projects.Destroy();
+  programState.profileInfo.Destroy();
 
   vcSettings_Cleanup(&programState.settings);
 
@@ -1164,7 +1165,12 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::SetNextWindowBgAlpha(1.0f);
 
     if (ImGui::Begin("LogoBox", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+    {
       ImGui::Image(pProgramState->pCompanyWatermark, ImVec2((float)logoSize.x, (float)logoSize.y));
+      if (ImGui::IsWindowAppearing())
+        ImGui::SetWindowFocus("###settingsDock");
+    }
+
     ImGui::End();
     ImGui::PopStyleVar();
   }
@@ -1768,7 +1774,7 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
     ImGui::TextUnformatted(pTemp);
 
     if (ImGui::IsItemClicked())
-      vcSession_Logout(pProgramState);
+      vcModals_OpenModal(pProgramState, vcMT_Profile);
   }
 
   // Load List
@@ -1895,9 +1901,9 @@ float vcMain_MenuGui(vcState *pProgramState)
 
       if (ImGui::MenuItem(vcString::Get("menuProjectImport"), nullptr, nullptr))
       {
-        vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_Projects, vcFDT_OpenFile, [pProgramState]() {
+        vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_ProjectsImport, vcFDT_OpenFile, [pProgramState]() {
           pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
-          });
+        });
       }
 
       ImGui::Separator();

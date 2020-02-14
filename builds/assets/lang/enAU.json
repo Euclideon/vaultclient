@@ -131,6 +131,7 @@
   "settingsMapsSetHeight": "Set to Camera Height",
 
   "settingsVis": "Visualisation",
+  "settingsVisObjectHighlight": "Enable Selected Objects Highlighting",
   "settingsVisHighlightColour": "Highlight Colour",
   "settingsVisHighlightThickness": "Highlight Thickness",
   "settingsVisDisplayMode": "Display Mode",
@@ -281,6 +282,11 @@
   "menuLogout": "Logout",
   "menuLogoutTitle": "Logged Out",
   "menuLogoutMessage": "You were logged out.",
+
+  "menuProfileTitle": "Profile",
+  "menuUserNameLabel": "User Name",
+  "menuRealNameLabel": "Real Name",
+  "menuEmailLabel": "Email",
 
   "menuReleaseNotes": "Release Notes",
   "menuReleaseNotesTitle": "Release Notes",
@@ -560,5 +566,11 @@
   "bindingsRenameSceneItem": "Key to rename selected scene item.",
   "bindingsSave": "Key to trigger save action.",
   "bindingsLoad": "Key to trigger load or open action.",
-  "bindingsUndo": "Key to trigger undo action"
+  "bindingsUndo": "Key to trigger undo action",
+
+  "errorUnknown": "An unexpected error occurred.",
+  "errorCorruptData": "Corrupt data.",
+  "errorUnsupported": "Unsupported file formats.",
+  "errorOpenFailure": "Failed to open.",
+  "errorReadFailure": "Failed to read."
 }

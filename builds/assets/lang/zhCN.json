@@ -9,6 +9,8 @@
     "targetVersion": "0.5.0"
   },
 
+  "popupClose": "关闭",
+
   "loginButton": "登录",
   "loginAbout": "关于",
   "loginRestoreDefaults": "恢复默认",
@@ -130,15 +132,16 @@
   "settingsMapsSetHeight": "设置为摄像机高度",
 
   "settingsVis": "可视化",
-  "settingsVisHighlightColour": "突出显示颜色",
-  "settingsVisHighlightThickness": "突出厚度",
+  "settingsVisObjectHighlight": "高亮选中物体",
+  "settingsVisHighlightColour": "高亮颜色",
+  "settingsVisHighlightThickness": "高亮厚度",
   "settingsVisDisplayMode": "显示模式",
   "settingsVisModeClassification": "分类",
   "settingsVisModeColour": "颜色",
   "settingsVisModeIntensity": "强度",
   "settingsVisMinIntensity": "最小强度",
   "settingsVisMaxIntensity": "最大强度",
-  "settingsVisEdge": "突出边缘",
+  "settingsVisEdge": "高亮边缘",
   "settingsVisEdgeWidth": "边缘宽度",
   "settingsVisEdgeThreshold": "边缘阈值",
   "settingsVisEdgeColour": "边缘颜色",
@@ -283,6 +286,11 @@
   "menuLogoutTitle": "已退出登录",
   "menuLogoutMessage": "您已退出登录。",
   "menuLogoutCloseButton": "关闭",
+
+  "menuProfileTitle": "资料",
+  "menuUserNameLabel": "用户名",
+  "menuRealNameLabel": "全名",
+  "menuEmailLabel": "邮箱",
 
   "menuReleaseNotes": "版本说明",
   "menuReleaseNotesTitle": "版本说明",
@@ -517,7 +525,7 @@
 
   "viewShedDistance": "查看距离",
   "viewShedVisibleColour": "可见面颜色",
-  "viewShedHiddenColour": "背面颜色"
+  "viewShedHiddenColour": "背面颜色",
 
   "attributeType": "类型: {0}",
   "attributeTypeUint8": "Uint8",
@@ -567,5 +575,11 @@
   "bindingsRenameSceneItem": "重命名所选场景对象",
   "bindingsSave": "保存键绑定。",
   "bindingsLoad": "加载键绑定。",
-  "bindingsSelectKey": "按组合键进行绑定。"
+  "bindingsSelectKey": "按组合键进行绑定。",
+
+  "errorUnknown": "未知错误",
+  "errorCorruptData": "数据损坏",
+  "errorUnsupported": "文件格式不支持",
+  "errorOpenFailure": "打开文件失败",
+  "errorReadFailure": "读取文件失败"
 }

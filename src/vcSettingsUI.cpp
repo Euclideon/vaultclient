@@ -219,7 +219,9 @@ void vcSettingsUI_Show(vcState *pProgramState)
             ImGui::Unindent();
           }
 
-          ImGui::SliderFloat(vcString::Get("settingsAppearanceSaturation"), &pProgramState->settings.presentation.saturation, 0.0f, 5.0f);
+          // limit the value between 0-5.
+          if (ImGui::SliderFloat(vcString::Get("settingsAppearanceSaturation"), &pProgramState->settings.presentation.saturation, 0.0f, 5.0f))
+            pProgramState->settings.presentation.saturation = udClamp(pProgramState->settings.presentation.saturation, 0.0f, 5.0f);
 
           const char *presentationOptions[] = { vcString::Get("settingsAppearanceHide"), vcString::Get("settingsAppearanceShow"), vcString::Get("settingsAppearanceResponsive") };
           if (ImGui::Combo(vcString::Get("settingsAppearancePresentationUI"), (int*)&pProgramState->settings.responsiveUI, presentationOptions, (int)udLengthOf(presentationOptions)))
@@ -357,9 +359,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
         if (pProgramState->activeSetting == vcSR_Visualisations)
         {
-          ImGui::ColorEdit4(vcString::Get("settingsVisHighlightColour"), &pProgramState->settings.objectHighlighting.colour.x);
-          ImGui::SliderFloat(vcString::Get("settingsVisHighlightThickness"), &pProgramState->settings.objectHighlighting.thickness, 1.0f, 3.0f);
-
           const char *visualizationModes[] = { vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacement") };
           ImGui::Combo(vcString::Get("settingsVisDisplayMode"), (int*)&pProgramState->settings.visualization.mode, visualizationModes, (int)udLengthOf(visualizationModes));
 
@@ -448,6 +447,14 @@ void vcSettingsUI_Show(vcState *pProgramState)
               pProgramState->settings.visualization.displacement.x = udClamp(pProgramState->settings.visualization.displacement.x, 0.f, MAX_DISPLACEMENT);
               pProgramState->settings.visualization.displacement.y = udClamp(pProgramState->settings.visualization.displacement.y, pProgramState->settings.visualization.displacement.x, MAX_DISPLACEMENT);
             }
+          }
+
+          // Selected Object Highlighting
+          ImGui::Checkbox(vcString::Get("settingsVisObjectHighlight"), &pProgramState->settings.objectHighlighting.enable);
+          if (pProgramState->settings.objectHighlighting.enable)
+          {
+            ImGui::ColorEdit4(vcString::Get("settingsVisHighlightColour"), &pProgramState->settings.objectHighlighting.colour.x);
+            ImGui::SliderFloat(vcString::Get("settingsVisHighlightThickness"), &pProgramState->settings.objectHighlighting.thickness, 1.0f, 3.0f);
           }
 
           // Post visualization - Edge Highlighting
