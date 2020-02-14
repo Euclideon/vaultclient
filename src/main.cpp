@@ -1177,7 +1177,12 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::SetNextWindowBgAlpha(1.0f);
 
     if (ImGui::Begin("LogoBox", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+    {
       ImGui::Image(pProgramState->pCompanyWatermark, ImVec2((float)logoSize.x, (float)logoSize.y));
+      if (ImGui::IsWindowAppearing())
+        ImGui::SetWindowFocus("###settingsDock");
+    }
+
     ImGui::End();
     ImGui::PopStyleVar();
   }
