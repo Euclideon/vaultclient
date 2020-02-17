@@ -786,6 +786,7 @@ Modules are currently:
 - `bindingsColumnKeyCombination`: Header for key binding key combination column
 - `bindingsColumnDescription`: Header for key binding description column
 - `bindingsErrorBound`: Text warning when user attempts to bind an already bound key combination
+  - {0} the key that it conflicts with
 - `bindingsClear`: Text that displays instead of key combination when key binding isn't set
   
 ##### Bindings Descriptions

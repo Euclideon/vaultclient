@@ -317,6 +317,7 @@
   "menuBarWaitingForRenderLicense": "Waiting for Render license...",
   "menuBarInactive": "Inactive",
 
+  "settingsConnection": "Connection",
   "modalProxyInfo": "The proxy requires authentication:",
   "modalProxyBadCreds": "The specified proxy credentials were incorrect, please confirm and try again.",
   "modalProxyUsername": "Proxy Username",
@@ -543,7 +544,7 @@
   "bindingsColumnName": "Name",
   "bindingsColumnKeyCombination": "Key Combination",
   "bindingsColumnDescription": "Description",
-  "bindingsErrorBound": "Key not bound due to existing key binding",
+  "bindingsErrorBound": "Already bound to \"{0}\"",
   "bindingsClear": "Clear",
   "bindingsSelectKey": "Press a key combination to bind.",
 
@@ -552,7 +553,7 @@
   "bindingsGizmoRotate": "Sets the gizmo to rotation mode, allowing you to rotate objects.",
   "bindingsGizmoScale": "Sets the gizmo to scaling mode, allowing you to resize objects.",
   "bindingsGizmoLocalSpace": "Toggles the gizmo's operational coordinate system between local coordinates and world coordinates.",
-  "bindingsFullscreen": "Toggles presentation mode and sets the client to fullscreen. Presentation mode hides everything except the Scene window.",
+  "bindingsFullscreen": "Toggles between fullscreen and windowed modes.",
   "bindingsAddUDS": "Opens the dialog box to add a UDS model to the scene.",
   "bindingsRemove": "Deletes all selected items from the scene.",
   "bindingsCameraForward": "Key to move camera forwards.",

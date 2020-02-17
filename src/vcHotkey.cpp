@@ -8,6 +8,7 @@
 
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "imgui_ex/vcImGuiSimpleWidgets.h"
 
 #include <SDL2/SDL.h>
 
@@ -15,6 +16,8 @@ namespace vcHotkey
 {
   static int target = -1;
   static int keyBinds[vcB_Count] = {};
+
+  static int alreadyBoundKey = -1;
 
   const char* bindNames[] =
   {
@@ -60,6 +63,7 @@ namespace vcHotkey
   void ClearState()
   {
     target = -1;
+    alreadyBoundKey = -1;
   }
 
   bool IsDown(int keyNum)
@@ -219,26 +223,21 @@ namespace vcHotkey
         int i = 0;
         for (; i < vcB_Count; ++i)
         {
-          if (keyBinds[i] == pProgramState->currentKey)
+          if (keyBinds[i] == pProgramState->currentKey && i != target)
             break;
         }
 
         if (i == vcB_Count)
         {
           Set((vcBind)target, pProgramState->currentKey);
-          vcSettingsUI_UnsetError(pProgramState, vcSE_Bound);
+          alreadyBoundKey = -1;
           target = -1;
         }
         else
         {
-          vcSettingsUI_SetError(pProgramState, vcSE_Bound);
+          alreadyBoundKey = i;
         }
       }
-    }
-    else
-    {
-      vcSettingsUI_UnsetError(pProgramState, vcSE_Bound);
-      vcSettingsUI_UnsetError(pProgramState, vcSE_Select);
     }
 
     ImGui::Columns(3);
@@ -260,22 +259,26 @@ namespace vcHotkey
     {
       if (ImGui::Button(bindNames[i], ImVec2(-1, 0)))
       {
-        vcSettingsUI_UnsetError(pProgramState, vcSE_Bound);
         if (target == i)
         {
           Set((vcBind)i, 0);
           target = -1;
+          alreadyBoundKey = -1;
         }
         else
         {
           pProgramState->currentKey = 0;
-          vcSettingsUI_SetError(pProgramState, vcSE_Select);
           target = i;
         }
       }
 
       if (target == i)
-        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::ColorConvertFloat4ToU32(vcSettingsUI_GetErrorColour(vcSE_Select)), 0.0f, ImDrawCornerFlags_All, 2.0f);
+      {
+        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::GetColorU32(ImGuiCol_ButtonActive), 0.0f, ImDrawCornerFlags_All, 2.0f);
+
+        vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
+        ImGui::TextWrapped("%s", vcString::Get("bindingsSelectKey"));
+      }
 
       ImGui::NextColumn();
 
@@ -283,8 +286,18 @@ namespace vcHotkey
       GetKeyName((vcBind)i, key, (uint32_t)udLengthOf(key));
       ImGui::TextUnformatted(key);
 
+      if (target == i)
+      {
+        if (alreadyBoundKey != -1)
+        {
+          vcIGSW_ShowLoadStatusIndicator(vcSLS_Failed);
+          ImGui::TextWrapped("%s", vcStringFormat(key, udLengthOf(key), vcString::Get("bindingsErrorBound"), bindNames[alreadyBoundKey]));
+        }
+      }
+
       ImGui::NextColumn();
-      ImGui::TextUnformatted(vcString::Get(udTempStr("bindings%s", bindNames[i])));
+
+      ImGui::TextWrapped("%s", vcString::Get(udTempStr("bindings%s", bindNames[i])));
 
       ImGui::NextColumn();
     }
