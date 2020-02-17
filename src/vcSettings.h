@@ -89,6 +89,8 @@ enum vcSettingCategory
   vcSC_Convert,
   vcSC_Languages,
   vcSC_Bindings,
+  vcSC_Connection,
+
   vcSC_All,
   vcSC_Count
 };

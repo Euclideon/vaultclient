@@ -48,7 +48,7 @@ static const vcSettingCategory categoryMapping[] =
   vcSC_Visualization, //vcSR_Visualisations
   vcSC_Bindings, //vcSR_KeyBindings
   vcSC_Convert, //vcSR_ConvertDefaults
-  vcSC_Count, //vcSR_Connection
+  vcSC_Connection, //vcSR_Connection
   vcSC_Count, //vcSR_ReleaseNotes
   vcSC_Count, //vcSR_Update
   vcSC_Count //vcSR_About
@@ -56,7 +56,7 @@ static const vcSettingCategory categoryMapping[] =
 // Entries in categoryMapping above must contain the vcSettingCategory that corresponds to a vcSettingsUIRegion
 // if any, in the order they appear in the vcSR_ enum. If no category applies or you don't wish to offer a reset
 // defaults option then enter vcSC_Count for the corresponding vcSettingsUIRegion.
-UDCOMPILEASSERT(vcSC_Count == 9, "Update the above mapping (in vcSettingsUI.cpp) if necessary, as per the comments");
+UDCOMPILEASSERT(vcSC_Count == 10, "Update the above mapping (in vcSettingsUI.cpp) if necessary, as per the comments");
 UDCOMPILEASSERT(vcSR_Count == 11, "Update the above mapping (in vcSettingsUI.cpp) if necessary, as per the comments");
 
 void vcSettingsUI_SetError(vcState *pProgramState, vcSettingsErrors error)
