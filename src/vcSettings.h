@@ -91,8 +91,7 @@ enum vcSettingCategory
   vcSC_Bindings,
   vcSC_Connection,
 
-  vcSC_All,
-  vcSC_Count
+  vcSC_All
 };
 
 enum vcTileRendererMapQuality
