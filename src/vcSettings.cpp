@@ -119,7 +119,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_All || group == vcSC_Appearance)
   {
-    // Misc Settings
+    pSettings->window.useNativeUI = data.Get("window.showNativeUI").AsBool();
+    udStrcpy(pSettings->window.languageCode, data.Get("window.language").AsString("enAU"));
     pSettings->presentation.styleIndex = data.Get("style").AsInt(1); // dark style by default
 
     pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
@@ -138,10 +139,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
     pSettings->presentation.layout = (vcWindowLayout)data.Get("layout").AsInt(vcWL_SceneLeft);
     pSettings->responsiveUI = (vcPresentationMode)data.Get("responsiveUI").AsInt(vcPM_Hide);
-
-    pSettings->objectHighlighting.enable = data.Get("objectHighlighting.enable").AsBool(true);
-    pSettings->objectHighlighting.colour = data.Get("objectHighlighting.colour").AsFloat4(udFloat4::create(0.925f, 0.553f, 0.263f, 1.0f));
-    pSettings->objectHighlighting.thickness = data.Get("objectHighlighting.thickness").AsFloat(2.0f);
 
     switch (pSettings->presentation.styleIndex)
     {
@@ -199,6 +196,10 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_All || group == vcSC_Visualization)
   {
+    pSettings->objectHighlighting.enable = data.Get("objectHighlighting.enable").AsBool(true);
+    pSettings->objectHighlighting.colour = data.Get("objectHighlighting.colour").AsFloat4(udFloat4::create(0.925f, 0.553f, 0.263f, 1.0f));
+    pSettings->objectHighlighting.thickness = data.Get("objectHighlighting.thickness").AsFloat(2.0f);
+
     pSettings->visualization.mode = (vcVisualizatationMode)data.Get("visualization.mode").AsInt(0);
     pSettings->postVisualization.edgeOutlines.enable = data.Get("postVisualization.edgeOutlines.enabled").AsBool(false);
     pSettings->postVisualization.colourByHeight.enable = data.Get("postVisualization.colourByHeight.enabled").AsBool(false);
@@ -291,6 +292,13 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     vcHotkey::Set(vcB_Undo, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Undo)).AsInt(1053));
   }
 
+  if (group == vcSC_All || group == vcSC_Connection)
+  {
+    udStrcpy(pSettings->loginInfo.proxy, data.Get("login.proxy").AsString());
+    udStrcpy(pSettings->loginInfo.proxyTestURL, data.Get("login.proxyTestURL").AsString("http://vaultmodels.euclideon.com/proxytest"));
+    pSettings->loginInfo.autoDetectProxy = data.Get("login.autodetectproxy").AsBool();
+  }
+
   if (group == vcSC_All)
   {
     // Windows
@@ -310,9 +318,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       pSettings->window.height = data.Get("window.height").AsInt(720);
     }
 
-    pSettings->window.useNativeUI = data.Get("window.showNativeUI").AsBool();
-    udStrcpy(pSettings->window.languageCode, data.Get("window.language").AsString("enAU"));
-
     // Login Info
     pSettings->loginInfo.rememberServer = data.Get("login.rememberServer").AsBool(false);
     if (pSettings->loginInfo.rememberServer)
@@ -321,10 +326,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->loginInfo.rememberUsername = data.Get("login.rememberUsername").AsBool(false);
     if (pSettings->loginInfo.rememberUsername)
       udStrcpy(pSettings->loginInfo.username, data.Get("login.username").AsString());
-
-    udStrcpy(pSettings->loginInfo.proxy, data.Get("login.proxy").AsString());
-    udStrcpy(pSettings->loginInfo.proxyTestURL, data.Get("login.proxyTestURL").AsString("http://vaultmodels.euclideon.com/proxytest"));
-    pSettings->loginInfo.autoDetectProxy = data.Get("login.autodetectproxy").AsBool();
 
     // Camera
     pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
