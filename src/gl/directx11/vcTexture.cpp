@@ -473,7 +473,7 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
   pPixelData = ((uint32_t *)msr.pData) + (x + y * pTexture->width);
   for (int i = 0; i < (int)height; ++i)
   {
-    memcpy((uint8_t *)pPixels + (i * pTexture->width), pPixelData, width * pixelBytes);
+    memcpy((uint8_t*)pPixels + (i * pTexture->width), pPixelData, width * pixelBytes);
     pPixelData += pTexture->width;
   }
 

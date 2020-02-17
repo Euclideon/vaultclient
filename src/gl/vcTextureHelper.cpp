@@ -33,7 +33,7 @@ struct AsyncTextureLoadInfo
 void vcTexture_AsyncLoadWorkerThreadWork(void *pTextureLoadInfo)
 {
   udResult result;
-  AsyncTextureLoadInfo *pLoadInfo = (AsyncTextureLoadInfo *)pTextureLoadInfo;
+  AsyncTextureLoadInfo *pLoadInfo = (AsyncTextureLoadInfo*)pTextureLoadInfo;
 
   if (pLoadInfo->pFilename)
     UD_ERROR_CHECK(udFile_Load(pLoadInfo->pFilename, &pLoadInfo->pMemory, &pLoadInfo->memoryLen));
@@ -81,7 +81,7 @@ epilogue:
 void vcTexture_AsyncLoadMainThreadWork(void *pTextureLoadInfo)
 {
   udResult result;
-  AsyncTextureLoadInfo *pLoadInfo = (AsyncTextureLoadInfo *)pTextureLoadInfo;
+  AsyncTextureLoadInfo *pLoadInfo = (AsyncTextureLoadInfo*)pTextureLoadInfo;
   UD_ERROR_CHECK(pLoadInfo->loadResult);
 
   UD_ERROR_CHECK(vcTexture_Create(pLoadInfo->ppTexture, pLoadInfo->width, pLoadInfo->height, pLoadInfo->pPixels, pLoadInfo->format, pLoadInfo->filterMode, pLoadInfo->hasMips, pLoadInfo->wrapMode));
@@ -210,7 +210,7 @@ udResult vcTexture_ResizePixels(const void *pPixels, uint32_t width, uint32_t he
         // 4x4 bilinear sampling
         for (int s = 0; s < 4; ++s)
         {
-          uint32_t sample = ((uint32_t *)pLastPixels)[(y * 2 + s / 2) * lastWidth * 2 + (x * 2 + s % 2)];
+          uint32_t sample = ((uint32_t*)pLastPixels)[(y * 2 + s / 2) * lastWidth * 2 + (x * 2 + s % 2)];
           r += ((sample >> 0) & 0xff) >> 2;
           g += ((sample >> 8) & 0xff) >> 2;
           b += ((sample >> 16) & 0xff) >> 2;

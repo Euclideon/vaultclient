@@ -254,7 +254,7 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
   pTexture->depth = depth;
   vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pTexture->depth * pixelBytes);
 
-  //epilogue:
+//epilogue:
   VERIFY_GL();
   return result;
 }
@@ -347,7 +347,7 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
   }
   glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
-  //epilogue:
+//epilogue:
   VERIFY_GL();
   return result == udR_Success;
 }
