@@ -44,22 +44,19 @@ double vcUnitConversion_ConvertTemperature(double sourceValue, vcTemperatureUnit
   if (sourceUnit == requiredUnit)
     return sourceValue;
 
-  double scalar = 1.0;
+  double celciusVal = sourceValue;
 
   //Source Unit 
-  if (sourceUnit == vcTemperature_Celcius)
-    scalar *= 1.0;
-  else if (sourceUnit == vcTemperature_Kelvin)
-    scalar *= sourceValue - 273.15;
+  if (sourceUnit == vcTemperature_Kelvin)
+    celciusVal = sourceValue - 273.15;
   else if (sourceUnit == vcTemperature_Farenheit)
-    scalar = (9.0 / 5.0) * sourceValue + 32;
+    celciusVal = (5.0 / 9.0) * (sourceValue - 32);
 
   //Required Unit
-  if (requiredUnit == vcTemperature_Celcius)
-    scalar *= 1.0;
-  else if (requiredUnit == vcTemperature_Kelvin)
-    scalar *= sourceValue + 273.15;
+  if (requiredUnit == vcTemperature_Kelvin)
+    return (celciusVal + 273.15);
   else if (requiredUnit == vcTemperature_Farenheit)
-    scalar *= (9.0 / 5.0) * sourceValue + 32;
-  return scalar;
+    return (9.0 / 5.0) * celciusVal + 32;
+
+  return celciusVal;
 }

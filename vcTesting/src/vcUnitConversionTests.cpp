@@ -34,7 +34,7 @@ TEST(UnitConversion, Volume)
   EXPECT_DOUBLE_EQ(0.00260554317599999983, vcUnitConversion_ConvertVolume(159, vcVolume_CubicInch, vcVolume_CubicMeter));
   EXPECT_DOUBLE_EQ(1.30795061586555, vcUnitConversion_ConvertVolume(1, vcVolume_CubicMeter, vcVolume_CubicYard));
   EXPECT_DOUBLE_EQ(35.31466621266132221990, vcUnitConversion_ConvertVolume(1, vcVolume_CubicMeter, vcVolume_CubicFoot));
-  EXPECT_DOUBLE_EQ(0.764554859999999995, vcUnitConversion_ConvertVolume(1,vcVolume_CubicYard, vcVolume_CubicMeter));
+  EXPECT_DOUBLE_EQ(0.764554859999999995, vcUnitConversion_ConvertVolume(1, vcVolume_CubicYard, vcVolume_CubicMeter));
 }
 
 TEST(UnitConversion, Speed)
@@ -48,6 +48,9 @@ TEST(UnitConversion, Speed)
 
 TEST(UnitConversion, Temperature)
 {
-  EXPECT_DOUBLE_EQ(212, vcUnitConversion_ConvertTemperature(100.0, vcTemperature_Celcius, vcTemperature_Farenheit));
+  EXPECT_DOUBLE_EQ(212.0, vcUnitConversion_ConvertTemperature(100.0, vcTemperature_Celcius, vcTemperature_Farenheit));
   EXPECT_DOUBLE_EQ(373.15, vcUnitConversion_ConvertTemperature(100.0, vcTemperature_Celcius, vcTemperature_Kelvin));
+
+  EXPECT_DOUBLE_EQ(100.0, vcUnitConversion_ConvertTemperature(212.0, vcTemperature_Farenheit, vcTemperature_Celcius));
+  EXPECT_DOUBLE_EQ(100.0, vcUnitConversion_ConvertTemperature(373.15, vcTemperature_Kelvin, vcTemperature_Celcius));
 }
