@@ -342,7 +342,7 @@ void vcBPA_GetNearbyPoints(vcBPAGrid *pGrid, udChunkedArray<uint64_t> *pPoints, 
     size_t j = 0;
     for (; j < pPoints->length; ++j)
     {
-      udDouble3 p2 = pGrid->vertices[j].position;
+      udDouble3 p2 = pGrid->vertices[*pPoints->GetElement(j)].position;
 
       if (udMagSq3(p0 - p2) > d01)
         break;
