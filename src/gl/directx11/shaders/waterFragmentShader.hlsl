@@ -80,5 +80,7 @@ PS_OUTPUT main(PS_INPUT input)
   float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
   output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;
   
+  // dull colour until sort out ECEF water
+  output.Color0 = output.Color0 * 0.3 + float4(0.2, 0.4, 0.7, 1.0);
   return output;
 }

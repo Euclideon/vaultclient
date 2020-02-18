@@ -8,7 +8,7 @@
 #include "gl/vcTexture.h"
 
 #include "vcCamera.h"
-#include "vcTriangulate.h"
+#include "vcCDT.h"
 
 struct vcWaterVolume
 {
@@ -139,35 +139,21 @@ udResult vcWaterRenderer_Destroy(vcWaterRenderer **ppWaterRenderer)
   return udR_Success;
 }
 
-udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, const udGeoZone &geoZone, double altitude, udDouble3 *pPoints, size_t pointCount)
+udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, const udGeoZone &geoZone, double altitude, udDouble3 *pPoints, size_t pointCount, const std::vector< std::pair<const udDouble3 *, size_t> > &islandPoints)
 {
   udResult result;
 
   vcWaterVolume pVolume = {};
   std::vector<udDouble2> triangleList;
-  udDouble2 *pLocalPoints = nullptr;
   vcP3UV2Vertex *pVerts = nullptr;
-  udDouble3 p0 = udDouble3::zero();
-
-  pLocalPoints = udAllocType(udDouble2, pointCount, udAF_Zero);
-  UD_ERROR_NULL(pLocalPoints, udR_MemoryAllocationFailure);
-
-  pVolume.min = udDouble2::zero();
-  pVolume.max = udDouble2::zero();
-  for (size_t i = 0; i < pointCount; ++i)
-  {
-    udDouble2 p = pPoints[i].toVector2() - pPoints[0].toVector2();
-
-    pVolume.min.x = udMin(pVolume.min.x, p.x);
-    pVolume.min.y = udMin(pVolume.min.y, p.y);
-    pVolume.max.x = udMax(pVolume.max.x, p.x);
-    pVolume.max.y = udMax(pVolume.max.y, p.y);
-
-    pLocalPoints[i] = p;
-  }
+  udDouble3 origin = udDouble3::zero();
 
   // TODO: Consider putting this function work in another thread.
-  if (!vcTriangulate_Process(pLocalPoints, (int)pointCount, &triangleList))
+  // 'pointCount - 1' because I've assumed point list is a closed loop (last node matches first)
+  if (!vcCDT_ProcessOrignal(pPoints, pointCount - 1, islandPoints
+    , pVolume.min
+    , pVolume.max
+    , &triangleList))
   {
     // Failed to triangulate the entire polygon
     // TODO: Not sure how to handle this as the polygon it generates could still be almost complete.
@@ -177,12 +163,13 @@ udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, const udGeoZ
   pVerts = udAllocType(vcP3UV2Vertex, pVolume.vertCount, udAF_Zero);
   UD_ERROR_NULL(pVerts, udR_MemoryAllocationFailure);
 
-  pVolume.origin = udDouble4x4::translation(udGeoZone_LatLongToCartesian(geoZone, pPoints[0], true));
-  p0 = pVolume.origin.axis.t.toVector3();
+  origin = udGeoZone_LatLongToCartesian(geoZone, pPoints[0], true);
+  pVolume.origin = udDouble4x4::translation(origin);
   for (size_t i = 0; i < triangleList.size(); ++i)
   {
     udDouble3 p = udGeoZone_LatLongToCartesian(geoZone, pPoints[0] + udDouble3::create(triangleList[i].x, triangleList[i].y, altitude), true);
-    pVerts[i].position = udFloat3::create(p - p0);
+
+    pVerts[i].position = udFloat3::create(p - origin);
     pVerts[i].uv = udFloat2::create(triangleList[i]);
   }
 
@@ -192,7 +179,6 @@ udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, const udGeoZ
 
   result = udR_Success;
 epilogue:
-  udFree(pLocalPoints);
   udFree(pVerts);
 
   if (result != udR_Success)
