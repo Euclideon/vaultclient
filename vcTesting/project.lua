@@ -7,7 +7,7 @@ project "vcTesting"
 	files { "src/**.cpp", "src/**.h" }
 	files { "project.lua" }
 
-	includedirs { "src", "../3rdParty/udcore/include", "../3rdParty/udcore/3rdParty/googletest/include", "../src" }
+	includedirs { "src", "../3rdParty/udcore/Include", "../3rdParty/udcore/3rdParty/googletest/include", "../src" }
 
 	-- files to test
 	files { "../src/vcUnitConversion.*" }

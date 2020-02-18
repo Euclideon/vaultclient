@@ -19,6 +19,7 @@ double vcUnitConversion_ConvertArea(double sourceValue, vcAreaUnit sourceUnit, v
 
   return sourceValue * sqmTable[sourceUnit] / sqmTable[requiredUnit];
 }
+
 double vcUnitConversion_ConvertVolume(double sourceValue, vcVolumeUnit sourceUnit, vcVolumeUnit requiredUnit)
 {
   if (sourceUnit == requiredUnit)

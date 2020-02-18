@@ -1,56 +1,122 @@
 #include "vcUnitConversion.h"
 #include "vcTesting.h"
 
+void VerifyDistance(vcDistanceUnit sourceType, double in, vcDistanceUnit destType, double out)
+{
+  EXPECT_NEAR(out, vcUnitConversion_ConvertDistance(in, sourceType, destType), 0.01) << "fwd-" << sourceType << " to " << destType;
+  EXPECT_NEAR(in, vcUnitConversion_ConvertDistance(out, destType, sourceType), 0.01) << "back-" << sourceType << " to " << destType;
+}
+
 TEST(UnitConversion, Distance)
 {
-  EXPECT_NEAR(53.995680, vcUnitConversion_ConvertDistance(100.0, vcDistance_Kilometres, vcDistance_NauticalMiles), 0.00001);
-  EXPECT_NEAR(10000.0, vcUnitConversion_ConvertDistance(100.0, vcDistance_Metres, vcDistance_Centimetres), 0.000001);
-  EXPECT_NEAR(304.800610, vcUnitConversion_ConvertDistance(1.0, vcDistance_USSurveyFeet, vcDistance_Millimetres), 0.00001);
-  EXPECT_NEAR(1.578283, vcUnitConversion_ConvertDistance(100000.0, vcDistance_USSurveyInches, vcDistance_USSurveyMiles), 0.00001);
-  EXPECT_NEAR(1.27, vcUnitConversion_ConvertDistance(0.5, vcDistance_USSurveyInches, vcDistance_Centimetres), 0.00001);
-  EXPECT_NEAR(1, vcUnitConversion_ConvertDistance(100000, vcDistance_Centimetres, vcDistance_Kilometres), 0.00001);
+  VerifyDistance(vcDistance_Kilometres, 100.0, vcDistance_NauticalMiles, 53.995680);
+  VerifyDistance(vcDistance_Metres, 100.0, vcDistance_Centimetres, 10000.0);
+  VerifyDistance(vcDistance_USSurveyFeet, 1.0, vcDistance_Millimetres, 304.800610);
+  VerifyDistance(vcDistance_USSurveyInches, 100000.0, vcDistance_USSurveyMiles, 1.57828282);
+  VerifyDistance(vcDistance_USSurveyInches, 0.5, vcDistance_Centimetres, 1.27);
+  VerifyDistance(vcDistance_Centimetres, 100000.0, vcDistance_Kilometres, 1.0);
 
-  // Round trips
   for (int i = 0; i < vcDistance_Count; ++i)
+  {
+    // Round trips
     EXPECT_DOUBLE_EQ(10000.0, vcUnitConversion_ConvertDistance(vcUnitConversion_ConvertDistance(10000.0, vcDistance_Metres, (vcDistanceUnit)i), (vcDistanceUnit)i, vcDistance_Metres));
+
+    // All should be 0 from 0
+    EXPECT_DOUBLE_EQ(0.0, vcUnitConversion_ConvertDistance(0.0, vcDistance_Metres, (vcDistanceUnit)i));
+  }
+}
+
+void VerifyArea(vcAreaUnit sourceType, double in, vcAreaUnit destType, double out)
+{
+  EXPECT_NEAR(out, vcUnitConversion_ConvertArea(in, sourceType, destType), 0.01) << "fwd-" << sourceType << " to " << destType;
+  EXPECT_NEAR(in, vcUnitConversion_ConvertArea(out, destType, sourceType), 0.01) << "back-" << sourceType << " to " << destType;
 }
 
 TEST(UnitConversion, Area)
 {
-  EXPECT_NEAR(0.0001, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_SquareKilometers), 0.00001);
-  EXPECT_NEAR(0.01, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_Hectare), 0.00001);
-  EXPECT_NEAR(1076.391041670972072097356431186199188232421875, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_SquareFoot), 0.005);
-  EXPECT_NEAR(0.0000386102160083283757, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_SquareMiles), 0.00001);
-  EXPECT_NEAR(0.0247105382834933301472446487423, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_Acre), 0.00001);
+  VerifyArea(vcArea_SquareMetres, 100.0, vcArea_SquareKilometers, 0.0001);
+  VerifyArea(vcArea_SquareMetres, 100.0, vcArea_Hectare, 0.01);
+  VerifyArea(vcArea_SquareMetres, 100.0, vcArea_SquareFoot, 1076.391041670972072097356431186199188232421875);
+  VerifyArea(vcArea_SquareMetres, 100.0, vcArea_SquareMiles, 0.0000386102160083283757);
+  VerifyArea(vcArea_SquareMetres, 100.0, vcArea_Acre, 0.0247105382834933301472446487423);
+
+  for (int i = 0; i < vcArea_Count; ++i)
+  {
+    // Round trips
+    EXPECT_DOUBLE_EQ(10000.0, vcUnitConversion_ConvertArea(vcUnitConversion_ConvertArea(10000.0, vcArea_SquareMetres, (vcAreaUnit)i), (vcAreaUnit)i, vcArea_SquareMetres));
+
+    // All should be 0 from 0
+    EXPECT_DOUBLE_EQ(0.0, vcUnitConversion_ConvertArea(0.0, vcArea_SquareMetres, (vcAreaUnit)i));
+  }
+}
+
+void VerifyVolume(vcVolumeUnit sourceType, double in, vcVolumeUnit destType, double out)
+{
+  EXPECT_NEAR(out, vcUnitConversion_ConvertVolume(in, sourceType, destType), 0.01) << "fwd-" << sourceType << " to " << destType;
+  EXPECT_NEAR(in, vcUnitConversion_ConvertVolume(out, destType, sourceType), 0.01) << "back-" << sourceType << " to " << destType;
 }
 
 TEST(UnitConversion, Volume)
 {
-  EXPECT_DOUBLE_EQ(1056.6882607957347, vcUnitConversion_ConvertVolume(1, vcVolume_CubicMeter, vcVolume_USSQuart));
-  EXPECT_DOUBLE_EQ(264.17203728418462, vcUnitConversion_ConvertVolume(1, vcVolume_CubicMeter, vcVolume_USSGallons));
-  EXPECT_DOUBLE_EQ(9702775.311062432825565, vcUnitConversion_ConvertVolume(159, vcVolume_CubicMeter, vcVolume_CubicInch));
-  EXPECT_DOUBLE_EQ(1, vcUnitConversion_ConvertVolume(1, vcVolume_CubicMeter, vcVolume_CubicMeter));
-  EXPECT_DOUBLE_EQ(0.001, vcUnitConversion_ConvertVolume(1, vcVolume_CubicMeter, vcVolume_MegaLiter));
-  EXPECT_DOUBLE_EQ(0.00260554317599999983, vcUnitConversion_ConvertVolume(159, vcVolume_CubicInch, vcVolume_CubicMeter));
-  EXPECT_DOUBLE_EQ(1.30795061586555, vcUnitConversion_ConvertVolume(1, vcVolume_CubicMeter, vcVolume_CubicYard));
-  EXPECT_DOUBLE_EQ(35.31466621266132221990, vcUnitConversion_ConvertVolume(1, vcVolume_CubicMeter, vcVolume_CubicFoot));
-  EXPECT_DOUBLE_EQ(0.764554859999999995, vcUnitConversion_ConvertVolume(1, vcVolume_CubicYard, vcVolume_CubicMeter));
+  VerifyVolume(vcVolume_CubicMeter, 1.0, vcVolume_USSQuart, 1056.6882607957347);
+  VerifyVolume(vcVolume_CubicMeter, 1.0, vcVolume_USSGallons, 264.17203728418462);
+  VerifyVolume(vcVolume_CubicMeter, 159.0, vcVolume_CubicInch, 9702775.311062432825565);
+  VerifyVolume(vcVolume_CubicMeter, 1.0, vcVolume_CubicMeter, 1.0);
+  VerifyVolume(vcVolume_CubicMeter, 1.0, vcVolume_MegaLiter, 0.001);
+  VerifyVolume(vcVolume_CubicInch, 159.0, vcVolume_CubicMeter, 0.00260554317599999983);
+  VerifyVolume(vcVolume_CubicMeter, 1.0, vcVolume_CubicYard, 1.30795061586555);
+  VerifyVolume(vcVolume_CubicMeter, 1.0, vcVolume_CubicFoot, 35.31466621266132221990);
+  VerifyVolume(vcVolume_CubicYard, 1.0, vcVolume_CubicMeter, 0.764554859999999995);
+
+  for (int i = 0; i < vcVolume_Count; ++i)
+  {
+    // Round trips
+    EXPECT_DOUBLE_EQ(10000.0, vcUnitConversion_ConvertVolume(vcUnitConversion_ConvertVolume(10000.0, vcVolume_CubicMeter, (vcVolumeUnit)i), (vcVolumeUnit)i, vcVolume_CubicMeter));
+
+    // All should be 0 from 0
+    EXPECT_DOUBLE_EQ(0.0, vcUnitConversion_ConvertVolume(0.0, vcVolume_CubicMeter, (vcVolumeUnit)i));
+  }
+}
+
+void VerifySpeed(vcSpeedUnit sourceType, double in, vcSpeedUnit destType, double out)
+{
+  EXPECT_NEAR(out, vcUnitConversion_ConvertSpeed(in, sourceType, destType), 0.01) << "fwd-" << sourceType << " to " << destType;
+  EXPECT_NEAR(in, vcUnitConversion_ConvertSpeed(out, destType, sourceType), 0.01) << "back-" << sourceType << " to " << destType;
 }
 
 TEST(UnitConversion, Speed)
 {
-  EXPECT_DOUBLE_EQ(360.0, vcUnitConversion_ConvertSpeed(100, vcSpeed_MetresPerSecond, vcSpeed_KilometresPerHour));
-  EXPECT_DOUBLE_EQ(223.69362920544023154, vcUnitConversion_ConvertSpeed(100, vcSpeed_MetresPerSecond, vcSpeed_USSurveyMilesPerHour));
-  EXPECT_DOUBLE_EQ(194.38444924406047675, vcUnitConversion_ConvertSpeed(100, vcSpeed_MetresPerSecond, vcSpeed_NauticalMilesPerHour));
-  EXPECT_DOUBLE_EQ(328.08398950131231686100363, vcUnitConversion_ConvertSpeed(100, vcSpeed_MetresPerSecond, vcSpeed_FeetPerSecond));
-  EXPECT_DOUBLE_EQ(340.29, vcUnitConversion_ConvertSpeed(1.0, vcSpeed_Mach, vcSpeed_MetresPerSecond));
+  VerifySpeed(vcSpeed_MetresPerSecond, 100, vcSpeed_KilometresPerHour, 360.0);
+  VerifySpeed(vcSpeed_MetresPerSecond, 100, vcSpeed_USSurveyMilesPerHour, 223.69362920544023154);
+  VerifySpeed(vcSpeed_MetresPerSecond, 100, vcSpeed_NauticalMilesPerHour, 194.38444924406047675);
+  VerifySpeed(vcSpeed_MetresPerSecond, 100, vcSpeed_FeetPerSecond, 328.08398950131231686100363);
+  VerifySpeed(vcSpeed_Mach, 1.0, vcSpeed_MetresPerSecond, 340.29);
+
+  for (int i = 0; i < vcSpeed_Count; ++i)
+  {
+    // Round trips
+    EXPECT_DOUBLE_EQ(10000.0, vcUnitConversion_ConvertSpeed(vcUnitConversion_ConvertSpeed(10000.0, vcSpeed_MetresPerSecond, (vcSpeedUnit)i), (vcSpeedUnit)i, vcSpeed_MetresPerSecond));
+
+    // All should be 0 from 0
+    EXPECT_DOUBLE_EQ(0.0, vcUnitConversion_ConvertSpeed(0.0, vcSpeed_MetresPerSecond, (vcSpeedUnit)i));
+  }
+}
+
+void VerifyTemperature(vcTemperatureUnit sourceType, double in, vcTemperatureUnit destType, double out)
+{
+  EXPECT_NEAR(out, vcUnitConversion_ConvertTemperature(in, sourceType, destType), 0.01) << "fwd-" << sourceType << " to " << destType;
+  EXPECT_NEAR(in, vcUnitConversion_ConvertTemperature(out, destType, sourceType), 0.01) << "back-" << sourceType << " to " << destType;
 }
 
 TEST(UnitConversion, Temperature)
 {
-  EXPECT_DOUBLE_EQ(212.0, vcUnitConversion_ConvertTemperature(100.0, vcTemperature_Celcius, vcTemperature_Farenheit));
-  EXPECT_DOUBLE_EQ(373.15, vcUnitConversion_ConvertTemperature(100.0, vcTemperature_Celcius, vcTemperature_Kelvin));
+  VerifyTemperature(vcTemperature_Celcius, 0.0, vcTemperature_Farenheit, 32.0);
+  VerifyTemperature(vcTemperature_Celcius, 0.0, vcTemperature_Kelvin, 273.15);
 
-  EXPECT_DOUBLE_EQ(100.0, vcUnitConversion_ConvertTemperature(212.0, vcTemperature_Farenheit, vcTemperature_Celcius));
-  EXPECT_DOUBLE_EQ(100.0, vcUnitConversion_ConvertTemperature(373.15, vcTemperature_Kelvin, vcTemperature_Celcius));
+  VerifyTemperature(vcTemperature_Celcius, 100.0, vcTemperature_Farenheit, 212.0);
+  VerifyTemperature(vcTemperature_Celcius, 100.0, vcTemperature_Kelvin, 373.15);
+
+  // Round trips
+  for (int i = 0; i < vcTemperature_Count; ++i)
+    EXPECT_DOUBLE_EQ(10000.0, vcUnitConversion_ConvertTemperature(vcUnitConversion_ConvertTemperature(10000.0, vcTemperature_Celcius, (vcTemperatureUnit)i), (vcTemperatureUnit)i, vcTemperature_Celcius));
 }
