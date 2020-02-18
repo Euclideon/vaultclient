@@ -9,7 +9,7 @@
 #include "gl/vcTexture.h"
 
 #include "vcCamera.h"
-#include "vcTriangulate.h"
+#include "vcCDT.h"
 
 struct vcWaterVolume
 {
@@ -140,35 +140,21 @@ udResult vcWaterRenderer_Destroy(vcWaterRenderer **ppWaterRenderer)
   return udR_Success;
 }
 
-udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, udDouble2 *pPoints, size_t pointCount)
+udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, udDouble2 *pPoints, size_t pointCount
+  , const std::vector< std::pair<const udDouble2 *, size_t> > &islandPoints)
 {
   udResult result;
 
   vcWaterVolume pVolume = {};
-  std::vector<udDouble2> triangleList;
-  udDouble2 *pLocalPoints = nullptr;
-  vcUV2Vertex *pVerts = nullptr;
-
-  pLocalPoints = udAllocType(udDouble2, pointCount, udAF_Zero);
-  UD_ERROR_NULL(pLocalPoints, udR_MemoryAllocationFailure);
-
-  pVolume.min = udDouble2::zero();
-  pVolume.max = udDouble2::zero();
-  pVolume.origin = udDouble4x4::translation(pPoints[0].x, pPoints[0].y, 0.0f);
-  for (size_t i = 0; i < pointCount; ++i)
-  {
-    udDouble2 p = pPoints[i] - pPoints[0];
-
-    pVolume.min.x = udMin(pVolume.min.x, p.x);
-    pVolume.min.y = udMin(pVolume.min.y, p.y);
-    pVolume.max.x = udMax(pVolume.max.x, p.x);
-    pVolume.max.y = udMax(pVolume.max.y, p.y);
-
-    pLocalPoints[i] = p;
-  }
+  std::vector<udDouble2> triangleList;  
+  vcUV2Vertex *pVerts = nullptr; 
 
   // TODO: Consider putting this function work in another thread.
-  if (!vcTriangulate_Process(pLocalPoints, (int)pointCount, &triangleList))
+  if (!vcCDT_ProcessOrignal(pPoints, pointCount, islandPoints
+    , pVolume.min
+    , pVolume.max
+    , pVolume.origin
+    , &triangleList))
   {
     // Failed to triangulate the entire polygon
     // TODO: Not sure how to handle this as the polygon it generates could still be almost complete.
@@ -187,7 +173,6 @@ udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, udDouble2 *p
 
   result = udR_Success;
 epilogue:
-  udFree(pLocalPoints);
   udFree(pVerts);
 
   if (result != udR_Success)

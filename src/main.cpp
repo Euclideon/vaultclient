@@ -1268,6 +1268,10 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
   }
 }
 
+#include <iostream>     // std::cout
+#include <fstream>      // std::ifstream
+#include <sstream>
+
 void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
 {
   char buffer[50] = {};
@@ -1429,7 +1433,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   {
     // these points must contiguously define the perimeter
 
-#if 1
+#if 0
     // THIS WORKS
     udDouble2 points[] =
     {
@@ -1439,28 +1443,64 @@ void vcRenderSceneWindow(vcState *pProgramState)
       udDouble2::create(-1.0, 1.0)
     };
 #else
-    // THIS DOES NOT WORK! (it has a hole in the middle)
-    udDouble2 points[] =
-    {
-      udDouble2::create(-1.0, -1.0),
-      udDouble2::create(1.0,  -1.0),
-      udDouble2::create(1.0,   1.0),
-      udDouble2::create(-1.0,  1.0),
+    udDouble2 *pWater = nullptr;
+    size_t pointNum = 0;
+    std::vector< std::pair<const udDouble2 *, size_t> > islandPoints;
 
-      udDouble2::create(-0.5, -0.5),
-      udDouble2::create(0.5,  -0.5),
-      udDouble2::create(0.5,   0.5),
-      udDouble2::create(-0.5,  0.5),
-    };
+    std::ifstream f("wivenhoeDam.txt", std::ifstream::in);
+    std::stringstream buffer;
+    buffer << f.rdbuf();
+    f.close();
+
+    std::string str = buffer.str();
+    udJSON js;
+    udResult re = js.Parse(str.c_str());
+    if (re == udR_Success)
+    {
+      const udJSONArray *pArrWater = js.Get("water").AsArray();
+      pointNum = pArrWater->length;
+      pWater = udAllocType(udDouble2, pArrWater->length, udAF_Zero);
+      for (int i = 0; i < pArrWater->length; i++)
+      {
+        const udJSONArray *p = pArrWater->GetElement(i)->AsArray();
+        pWater[i] = udDouble2::create(p->GetElement(0)->AsDouble(), p->GetElement(1)->AsDouble());
+      }
+
+      const udJSONArray *pArrIslands = js.Get("island").AsArray();
+      if (pArrIslands)
+      {
+        size_t islandNum = pArrIslands->length;
+        for (int i = 0; i < islandNum; i++)
+        {
+          const udJSONArray *pOneIsland = pArrIslands->GetElement(i)->AsArray();
+          udDouble2 *pIsland = udAllocType(udDouble2, pOneIsland->length, udAF_Zero);
+          for (int j = 0; j < pOneIsland->length; j++)
+          {
+            const udJSONArray *p = pOneIsland->GetElement(j)->AsArray();
+            pIsland[j] = udDouble2::create(p->GetElement(0)->AsDouble(), p->GetElement(1)->AsDouble());
+          }
+          islandPoints.push_back(std::make_pair(pIsland, pOneIsland->length));
+        }        
+      }
+    }
+
+    js.Destroy();
+    buffer.clear();
+    str.clear();
 #endif
 
     vcWaterRenderer_Create(&pWaterRenderer); // assume success
-    udResult res = vcWaterRenderer_AddVolume(pWaterRenderer, points, udLengthOf(points));
+    udResult res = vcWaterRenderer_AddVolume(pWaterRenderer, pWater, pointNum, islandPoints);
     if (res != udR_Success)
     {
       printf("Something went wrong :(\n");
       __debugbreak();
     }
+
+    udFree(pWater);
+    for (auto p : islandPoints)
+      udFree(p.first);
+    islandPoints.clear();
   }
   renderData.waterVolumes.PushBack(pWaterRenderer);
 

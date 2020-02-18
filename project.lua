@@ -18,7 +18,7 @@ project "vaultClient"
 	files { "builds/assets/lang/*.json" }
 
 	--This project includes
-	includedirs { "src", "src/scene", "src/rendering" }
+	includedirs { "src", "src/scene", "src/rendering", "src/rendering/poly2tri" }
 	includedirs { "3rdParty/udcore/Include" }
 	includedirs { "3rdParty/Imgui" }
 	includedirs { "3rdParty/stb" }

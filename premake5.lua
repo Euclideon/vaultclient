@@ -260,7 +260,7 @@ solution "vaultClient"
 	end
 	
 	-- Uncomment this to help with finding memory leaks
-	--defines {"__MEMORY_DEBUG__"}
+	defines {"__MEMORY_DEBUG__"}
 
 	if _OPTIONS["force-vaultsdk"] then
 		projectSuffix = "VDK"
