@@ -24,7 +24,7 @@ GLint vcBuildShader(GLenum type, const GLchar *shaderCode)
     glGetShaderiv(shaderObject, GL_INFO_LOG_LENGTH, &blen);
     if (blen > 1)
     {
-      GLchar* compiler_log = (GLchar*)udAlloc(blen);
+      GLchar *compiler_log = (GLchar*)udAlloc(blen);
       glGetShaderInfoLog(shaderObject, blen, &slen, compiler_log);
       udDebugPrintf("%s", compiler_log);
       udFree(compiler_log);
@@ -55,7 +55,7 @@ GLint vcBuildProgram(GLint vertexShader, GLint fragmentShader, GLint geometrySha
     glGetProgramiv(programObject, GL_INFO_LOG_LENGTH, &blen);
     if (blen > 1)
     {
-      GLchar* linker_log = (GLchar*)udAlloc(blen);
+      GLchar *linker_log = (GLchar*)udAlloc(blen);
       glGetProgramInfoLog(programObject, blen, &slen, linker_log);
       udDebugPrintf("%s", linker_log);
       udFree(linker_log);
@@ -132,7 +132,7 @@ bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t sampl
   glActiveTexture(GL_TEXTURE0 + samplerIndex);
   VERIFY_GL();
 
-  glBindTexture(GL_TEXTURE_2D, pTexture->id);
+  glBindTexture(vcTTToGL[pTexture->type], pTexture->id);
   VERIFY_GL();
 
   if (pSampler != nullptr)
