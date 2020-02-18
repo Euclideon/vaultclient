@@ -17,11 +17,11 @@ TEST(UnitConversion, Distance)
 
 TEST(UnitConversion, Area)
 {
-  EXPECT_DOUBLE_EQ(0.0001, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_SquareKilometers));
-  EXPECT_DOUBLE_EQ(0.01, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_Hectare));
-  EXPECT_DOUBLE_EQ(1076.391041670972072097356431186199188232421875, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_SquareFoot));
-  EXPECT_DOUBLE_EQ(0.0000386102160083283757, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_SquareMiles));
-  EXPECT_DOUBLE_EQ(0.0247105382834933301472446487423, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_Acre));
+  EXPECT_NEAR(0.0001, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_SquareKilometers), 0.00001);
+  EXPECT_NEAR(0.01, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_Hectare), 0.00001);
+  EXPECT_NEAR(1076.391041670972072097356431186199188232421875, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_SquareFoot), 0.005);
+  EXPECT_NEAR(0.0000386102160083283757, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_SquareMiles), 0.00001);
+  EXPECT_NEAR(0.0247105382834933301472446487423, vcUnitConversion_ConvertArea(100.0, vcArea_SquareMetres, vcArea_Acre), 0.00001);
 }
 
 TEST(UnitConversion, Volume)

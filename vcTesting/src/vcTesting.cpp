@@ -1,7 +1,5 @@
 #include "vcTesting.h"
 
-#include "udSocket.h"
-#include "udFile.h"
 #include "udPlatformUtil.h"
 #include "udStringUtil.h"
 

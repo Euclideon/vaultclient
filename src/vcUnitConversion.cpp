@@ -15,7 +15,7 @@ double vcUnitConversion_ConvertArea(double sourceValue, vcAreaUnit sourceUnit, v
   if (sourceUnit == requiredUnit)
     return sourceValue;
 
-  const double sqmTable[vcArea_Count] = { 1.0, 1000000.0, 1000.0, 1200.0 / 3937.0 * 1200.0 / 3937.0, 5280.0 * 1200.0 / 3937.0 * 5280.0 * 1200.0 / 3937.0, 5280.0 * 1200.0 / 3937.0 * 5280.0 * 1200.0 / 3937.0 * 1.0 / 640.0 };
+  const double sqmTable[vcArea_Count] = { 1.0, 1000000.0, 10000.0, 1200.0 / 3937.0 * 1200.0 / 3937.0, 5280.0 * 1200.0 / 3937.0 * 5280.0 * 1200.0 / 3937.0, 5280.0 * 1200.0 / 3937.0 * 5280.0 * 1200.0 / 3937.0 * 1.0 / 640.0 };
 
   return sourceValue * sqmTable[sourceUnit] / sqmTable[requiredUnit];
 }
