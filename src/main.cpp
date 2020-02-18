@@ -1366,11 +1366,12 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
     {
       // Ensure a circular reference is not created
       bool itemFound = false;
+
       for (size_t i = 0; i < pProgramState->sceneExplorer.selectedItems.size() && !itemFound; ++i)
       {
         const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[i];
         if (item.pItem->itemtype == vdkPNT_Folder)
-          itemFound = vcProject_ContainsItem(item.pItem, pProgramState->sceneExplorer.insertItem.pItem);
+          itemFound = vcProject_ContainsItem(item.pItem, pProgramState->sceneExplorer.insertItem.pParent);
 
         itemFound = itemFound || item.pItem == pProgramState->sceneExplorer.insertItem.pItem;
       }
