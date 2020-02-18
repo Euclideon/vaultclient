@@ -11,7 +11,7 @@ GLint vcBuildShader(GLenum type, const GLchar *shaderCode)
 #endif
 
   GLint compiled;
-  GLint shaderCodeLen = (GLint)strlen(shaderCode);
+  GLint shaderCodeLen = (GLint)udStrlen(shaderCode);
   GLint shaderObject = glCreateShader(type);
   glShaderSource(shaderObject, 1, &shaderCode, &shaderCodeLen);
   glCompileShader(shaderObject);
@@ -28,7 +28,7 @@ GLint vcBuildShader(GLenum type, const GLchar *shaderCode)
       glGetShaderInfoLog(shaderObject, blen, &slen, compiler_log);
       udDebugPrintf("%s", compiler_log);
       udFree(compiler_log);
-    }
+    } 
     return -1;
   }
 

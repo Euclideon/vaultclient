@@ -1,12 +1,13 @@
 #include "gl/vcRenderShaders.h"
 #include "udPlatformUtil.h"
+#include "vcConstants.h"
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_EMSCRIPTEN || UDPLATFORM_ANDROID
-# define FRAG_HEADER "#version 300 es\nprecision highp float;\n"
-# define VERT_HEADER "#version 300 es\n"
+# define FRAG_HEADER "#version 300 es\nprecision highp float;\nfloat s_CameraNearPlane=" UDSTRINGIFY(s_CameraNearPlane) ";\nfloat s_CameraFarPlane=" UDSTRINGIFY(s_CameraFarPlane) ";\n"
+# define VERT_HEADER "#version 300 es\nfloat s_CameraNearPlane=" UDSTRINGIFY(s_CameraNearPlane) ";\nfloat s_CameraFarPlane=" UDSTRINGIFY(s_CameraFarPlane) ";\n"
 #else
-# define FRAG_HEADER "#version 330 core\n#extension GL_ARB_explicit_attrib_location : enable\n"
-# define VERT_HEADER "#version 330 core\n#extension GL_ARB_explicit_attrib_location : enable\n"
+# define FRAG_HEADER "#version 330 core\n#extension GL_ARB_explicit_attrib_location : enable\nfloat s_CameraNearPlane=" UDSTRINGIFY(s_CameraNearPlane) ";\nfloat s_CameraFarPlane=" UDSTRINGIFY(s_CameraFarPlane) ";\n"
+# define VERT_HEADER "#version 330 core\n#extension GL_ARB_explicit_attrib_location : enable\nfloat s_CameraNearPlane=" UDSTRINGIFY(s_CameraNearPlane) ";\nfloat s_CameraFarPlane=" UDSTRINGIFY(s_CameraFarPlane) ";\n"
 #endif
 
 const char *const g_VisualizationFragmentShader = FRAG_HEADER R"shader(
@@ -23,7 +24,7 @@ uniform sampler2D u_depth;
 
 layout (std140) uniform u_fragParams
 {
-  vec4 u_screenParams;  // sampleStepSizex, sampleStepSizeY, near plane, far plane
+  vec4 u_screenParams;  // sampleStepSizex, sampleStepSizeY, (unused), (unused)
   mat4 u_inverseViewProjection;
   mat4 u_inverseProjection;
 
@@ -45,12 +46,12 @@ layout (std140) uniform u_fragParams
   vec4 u_contourParams; // contour distance, contour band height, contour rainbow repeat rate, contour rainbow factoring
 };
 
-float linearizeDepth(float depth)
+float logToLinearDepth(float logDepth)
 {
-  float nearPlane = u_screenParams.z;
-  float farPlane = u_screenParams.w;
-
-  return (2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
+  float a = s_CameraFarPlane / (s_CameraFarPlane - s_CameraNearPlane);
+  float b = s_CameraFarPlane * s_CameraNearPlane / (s_CameraNearPlane - s_CameraFarPlane);
+  float worldDepth = pow(2.0, logDepth * log2(s_CameraFarPlane + 1.0)) - 1.0;
+  return a + b / worldDepth;
 }
 
 float getNormalizedPosition(float v, float min, float max)
@@ -60,7 +61,7 @@ float getNormalizedPosition(float v, float min, float max)
 
 // note: an adjusted depth is packed into the returned .w component
 // this is to show the edge highlights against the skybox
-vec4 edgeHighlight(vec3 col, vec2 uv, float depth, vec4 outlineColour, float edgeOutlineThreshold)
+vec4 edgeHighlight(vec3 col, vec2 uv, float depth, float logDepth, vec4 outlineColour, float edgeOutlineThreshold)
 {
   vec4 eyePosition = u_inverseProjection * vec4(uv * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
   eyePosition /= eyePosition.w;
@@ -70,10 +71,10 @@ vec4 edgeHighlight(vec3 col, vec2 uv, float depth, vec4 outlineColour, float edg
   float sampleDepth2 = texture(u_depth, v_edgeSampleUV2).x;
   float sampleDepth3 = texture(u_depth, v_edgeSampleUV3).x;
 
-  vec4 eyePosition0 = u_inverseProjection * vec4(v_edgeSampleUV0 * vec2(2.0) - vec2(1.0), sampleDepth0 * 2.0 - 1.0, 1.0);
-  vec4 eyePosition1 = u_inverseProjection * vec4(v_edgeSampleUV1 * vec2(2.0) - vec2(1.0), sampleDepth1 * 2.0 - 1.0, 1.0);
-  vec4 eyePosition2 = u_inverseProjection * vec4(v_edgeSampleUV2 * vec2(2.0) - vec2(1.0), sampleDepth2 * 2.0 - 1.0, 1.0);
-  vec4 eyePosition3 = u_inverseProjection * vec4(v_edgeSampleUV3 * vec2(2.0) - vec2(1.0), sampleDepth3 * 2.0 - 1.0, 1.0);
+  vec4 eyePosition0 = u_inverseProjection * vec4(v_edgeSampleUV0 * vec2(2.0) - vec2(1.0), logToLinearDepth(sampleDepth0) * 2.0 - 1.0, 1.0);
+  vec4 eyePosition1 = u_inverseProjection * vec4(v_edgeSampleUV1 * vec2(2.0) - vec2(1.0), logToLinearDepth(sampleDepth1) * 2.0 - 1.0, 1.0);
+  vec4 eyePosition2 = u_inverseProjection * vec4(v_edgeSampleUV2 * vec2(2.0) - vec2(1.0), logToLinearDepth(sampleDepth2) * 2.0 - 1.0, 1.0);
+  vec4 eyePosition3 = u_inverseProjection * vec4(v_edgeSampleUV3 * vec2(2.0) - vec2(1.0), logToLinearDepth(sampleDepth3) * 2.0 - 1.0, 1.0);
 
   eyePosition0 /= eyePosition0.w;
   eyePosition1 /= eyePosition1.w;
@@ -88,8 +89,8 @@ vec4 edgeHighlight(vec3 col, vec2 uv, float depth, vec4 outlineColour, float edg
   float isEdge = 1.0 - step(length(diff0), edgeOutlineThreshold) * step(length(diff1), edgeOutlineThreshold) * step(length(diff2), edgeOutlineThreshold) * step(length(diff3), edgeOutlineThreshold);
 
   vec3 edgeColour = mix(col.xyz, outlineColour.xyz, outlineColour.w);
-  float edgeDepth = min(min(min(sampleDepth0, sampleDepth1), sampleDepth2), sampleDepth3);
-  return vec4(mix(col.xyz, edgeColour, isEdge), mix(depth, edgeDepth, isEdge));
+  float edgeLogDepth = min(min(min(sampleDepth0, sampleDepth1), sampleDepth2), sampleDepth3);
+  return mix(vec4(col.xyz, logDepth), vec4(edgeColour, edgeLogDepth), isEdge);
 }
 
 vec3 hsv2rgb(vec3 c)
@@ -135,7 +136,8 @@ vec3 colourizeByEyeDistance(vec3 col, vec3 fragEyePos)
 void main()
 {
   vec4 col = texture(u_texture, v_uv);
-  float depth = texture(u_depth, v_uv).x;
+  float logDepth = texture(u_depth, v_uv).x; 
+  float depth = logToLinearDepth(logDepth);
 
   // TODO: I'm fairly certain this is actually wrong (world space calculations), and will have precision issues
   vec4 fragWorldPosition = u_inverseViewProjection * vec4(v_uv * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
@@ -154,18 +156,18 @@ void main()
   vec4 outlineColour = u_outlineColour;
   if (outlineColour.w > 0.0 && edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
   {
-    vec4 edgeResult = edgeHighlight(col.xyz, v_uv, depth, outlineColour, edgeOutlineThreshold);
+    vec4 edgeResult = edgeHighlight(col.xyz, v_uv, depth, logDepth, outlineColour, edgeOutlineThreshold);
     col.xyz = edgeResult.xyz;
-    depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
+    logDepth = edgeResult.w; // to preserve outlines, depth written may be adjusted
   }
 
   out_Colour = vec4(col.xyz, 1.0);
-  gl_FragDepth = depth;
+  gl_FragDepth = logDepth;
 }
 
 )shader";
 
-const char *const g_VisualizationVertexShader = FRAG_HEADER R"shader(
+const char *const g_VisualizationVertexShader = VERT_HEADER R"shader(
 //Input format
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_texCoord;
@@ -212,37 +214,37 @@ layout (std140) uniform u_params
   mat4 u_inverseProjection;
   vec4 u_visibleColour;
   vec4 u_notVisibleColour;
-  vec4 u_nearFarPlane; // .zw unused
+  vec4 u_viewDistance; // .yzw unused
 };
 
 float linearizeDepth(float depth)
 {
-  float nearPlane = u_nearFarPlane.x;
-  float farPlane = u_nearFarPlane.y;
-  return (2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
+  return (2.0 * s_CameraNearPlane) / (s_CameraFarPlane + s_CameraNearPlane - depth * (s_CameraFarPlane - s_CameraNearPlane));
+}
+
+float logToLinearDepth(float logDepth)
+{
+  float a = s_CameraFarPlane / (s_CameraFarPlane - s_CameraNearPlane);
+  float b = s_CameraFarPlane * s_CameraNearPlane / (s_CameraNearPlane - s_CameraFarPlane);
+  float worldDepth = pow(2.0, logDepth * log2(s_CameraFarPlane + 1.0)) - 1.0;
+  return a + b / worldDepth;
 }
 
 void main()
 {
   vec4 col = vec4(0.0, 0.0, 0.0, 0.0);
-  float depth = texture(u_depth, v_uv).x;
+  float logDepth = texture(u_depth, v_uv).x;
+  float depth = logToLinearDepth(logDepth);
 
   vec4 fragEyePosition = u_inverseProjection * vec4(v_uv * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
   fragEyePosition /= fragEyePosition.w;
 
-  vec3 sampleUV = vec3(0.0);
-
-  float bias = 0.000000425 * u_nearFarPlane.y;
+  vec4 shadowUV = vec4(0.0);
 
   // unrolled loop
   vec4 shadowMapCoord0 = u_shadowMapVP[0] * vec4(fragEyePosition.xyz, 1.0);
   vec4 shadowMapCoord1 = u_shadowMapVP[1] * vec4(fragEyePosition.xyz, 1.0);
   vec4 shadowMapCoord2 = u_shadowMapVP[2] * vec4(fragEyePosition.xyz, 1.0);
-
-  // bias z before w divide
-  shadowMapCoord0.z -= bias;
-  shadowMapCoord1.z -= bias;
-  shadowMapCoord2.z -= bias;
 
   // note: z has no scale & biased because we are using a [0,1] depth projection matrix here
   vec3 shadowMapClip0 = (shadowMapCoord0.xyz / shadowMapCoord0.w) * vec3(0.5, 0.5, 1.0) + vec3(0.5, 0.5, 0.0);
@@ -254,18 +256,23 @@ void main()
   float isInMap2 = float(shadowMapClip2.x >= 0.0 && shadowMapClip2.x <= 1.0 && shadowMapClip2.y >= 0.0 && shadowMapClip2.y <= 1.0 && shadowMapClip2.z >= 0.0 && shadowMapClip2.z <= 1.0);
 
   // atlas UVs
-  vec3 shadowMapUV0 = vec3((0.0 / float(MAP_COUNT)) + shadowMapClip0.x / float(MAP_COUNT), shadowMapClip0.y, shadowMapClip0.z);
-  vec3 shadowMapUV1 = vec3((1.0 / float(MAP_COUNT)) + shadowMapClip1.x / float(MAP_COUNT), shadowMapClip1.y, shadowMapClip1.z);
-  vec3 shadowMapUV2 = vec3((2.0 / float(MAP_COUNT)) + shadowMapClip2.x / float(MAP_COUNT), shadowMapClip2.y, shadowMapClip2.z);
+  vec4 shadowMapUV0 = vec4((0.0 / float(MAP_COUNT)) + shadowMapClip0.x / float(MAP_COUNT), shadowMapClip0.y, shadowMapClip0.z, shadowMapCoord0.w);
+  vec4 shadowMapUV1 = vec4((1.0 / float(MAP_COUNT)) + shadowMapClip1.x / float(MAP_COUNT), shadowMapClip1.y, shadowMapClip1.z, shadowMapCoord1.w);
+  vec4 shadowMapUV2 = vec4((2.0 / float(MAP_COUNT)) + shadowMapClip2.x / float(MAP_COUNT), shadowMapClip2.y, shadowMapClip2.z, shadowMapCoord2.w);
 
-  sampleUV = mix(sampleUV, shadowMapUV0, isInMap0);
-  sampleUV = mix(sampleUV, shadowMapUV1, isInMap1);
-  sampleUV = mix(sampleUV, shadowMapUV2, isInMap2);
+  shadowUV = mix(shadowUV, shadowMapUV0, isInMap0);
+  shadowUV = mix(shadowUV, shadowMapUV1, isInMap1);
+  shadowUV = mix(shadowUV, shadowMapUV2, isInMap2);
 
-  if (length(sampleUV) > 0.0)
+  if (length(shadowUV.xyz) > 0.0 && (linearizeDepth(shadowUV.z) * s_CameraFarPlane) <= u_viewDistance.x)
   {
-    float shadowMapDepth = texture(u_shadowMapAtlas, sampleUV.xy).x;
-    float diff = (0.2 * u_nearFarPlane.y) * (linearizeDepth(sampleUV.z) - linearizeDepth(shadowMapDepth));
+    // fragment is inside the view shed bounds
+    float shadowMapLogDepth = texture(u_shadowMapAtlas, shadowUV.xy).x; // log z
+  
+    float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
+    float logDepthSample = log2(1.0 + shadowUV.w) * halfFcoef;
+
+    float diff = (0.00004 * s_CameraFarPlane) * (logDepthSample - shadowMapLogDepth);
     col = mix(u_visibleColour, u_notVisibleColour, clamp(diff, 0.0, 1.0));
   }
 
@@ -274,7 +281,7 @@ void main()
 
 )shader";
 
-const char *const g_ViewShedVertexShader = FRAG_HEADER R"shader(
+const char *const g_ViewShedVertexShader = VERT_HEADER R"shader(
 //Input format
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_texCoord;
@@ -370,6 +377,7 @@ const char *const g_tileFragmentShader = FRAG_HEADER R"shader(
 //Input Format
 in vec4 v_colour;
 in vec2 v_uv;
+in float v_fLogDepth;
 
 //Output Format
 out vec4 out_Colour;
@@ -380,6 +388,9 @@ void main()
 {
   vec4 col = texture(u_texture, v_uv);
   out_Colour = vec4(col.xyz * v_colour.xyz, v_colour.w);
+
+  float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
+  gl_FragDepth = log2(v_fLogDepth) * halfFcoef;
 }
 )shader";
 
@@ -390,6 +401,7 @@ layout(location = 0) in vec3 a_uv;
 //Output Format
 out vec4 v_colour;
 out vec2 v_uv;
+out float v_fLogDepth;
 
 // This should match CPU struct size
 #define VERTEX_COUNT 2
@@ -401,6 +413,14 @@ layout (std140) uniform u_EveryObject
   vec4 u_colour;
 };
 
+// this could be used instead instead of writing to depth directly,
+// for highly tesselated geometry (hopefully tiles in the future)
+//float CalcuteLogDepth(vec4 clipPos)
+//{
+//  float Fcoef  = 2.0 / log2(s_CameraFarPlane + 1.0);
+//  return log2(max(1e-6, 1.0 + clipPos.w)) * Fcoef - 1.0;
+//}
+
 void main()
 {
   // TODO: could have precision issues on some devices
@@ -409,6 +429,9 @@ void main()
   v_uv = a_uv.xy;
   v_colour = u_colour;
   gl_Position = finalClipPos;
+  v_fLogDepth = 1.0 + gl_Position.w;
+
+  //gl_Position.z = CalcuteLogDepth(gl_Position);
 }
 )shader";
 
@@ -508,6 +531,7 @@ const char *const g_CompassFragmentShader = FRAG_HEADER R"shader(
   in vec3 v_normal;
   in vec4 v_fragClipPosition;
   in vec3 v_sunDirection;
+  in float v_fLogDepth;
 
   //Output Format
   out vec4 out_Colour;
@@ -522,6 +546,9 @@ const char *const g_CompassFragmentShader = FRAG_HEADER R"shader(
     edotr = pow(edotr, 60.0);
     vec3 sheenColour = vec3(1.0, 1.0, 0.9);
     out_Colour = vec4(v_colour.a * (ndotl * v_colour.xyz + edotr * sheenColour), 1.0);
+
+    float halfFcoef  = 1.0 / log2(s_CameraFarPlane + 1.0);
+    gl_FragDepth = log2(v_fLogDepth) * halfFcoef;
   }
 )shader";
 
@@ -535,6 +562,7 @@ const char *const g_CompassVertexShader = VERT_HEADER R"shader(
   out vec3 v_normal;
   out vec4 v_fragClipPosition;
   out vec3 v_sunDirection;
+  out float v_fLogDepth;
 
   layout (std140) uniform u_EveryObject
   {
@@ -552,6 +580,8 @@ const char *const g_CompassVertexShader = VERT_HEADER R"shader(
     v_colour = u_colour;
     v_sunDirection = u_sunDirection;
     v_fragClipPosition = gl_Position;
+
+    v_fLogDepth = 1.0 + gl_Position.w;
   }
 )shader";
 
@@ -597,6 +627,7 @@ layout(location = 2) in vec4 a_ribbonInfo; // xyz: expand vector; z: pair id (0 
 
 out vec2 v_uv;
 out vec4 v_colour;
+out float v_fLogDepth;
 
 layout (std140) uniform u_EveryFrame
 {
@@ -627,6 +658,7 @@ void main()
   vec3 worldPosition = a_position + mix(vec3(0, 0, a_ribbonInfo.w) * u_width, a_ribbonInfo.xyz, u_orientation);
 
   gl_Position = u_worldViewProjectionMatrix * vec4(worldPosition, 1.0);
+  v_fLogDepth = 1.0 + gl_Position.w;
 }
 )shader";
 
@@ -634,6 +666,7 @@ const char *const g_FenceFragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec2 v_uv;
   in vec4 v_colour;
+  in float v_fLogDepth;
 
   //Output Format
   out vec4 out_Colour;
@@ -644,6 +677,9 @@ const char *const g_FenceFragmentShader = FRAG_HEADER R"shader(
   {
     vec4 texCol = texture(u_texture, v_uv);
     out_Colour = vec4(texCol.xyz * v_colour.xyz, texCol.w * v_colour.w);
+
+    float halfFcoef  = 1.0 / log2(s_CameraFarPlane + 1.0);
+    gl_FragDepth = log2(v_fLogDepth) * halfFcoef;
   }
 )shader";
 
@@ -751,6 +787,7 @@ const char *const g_PolygonP3N3UV2FragmentShader = FRAG_HEADER R"shader(
   in vec2 v_uv;
   in vec4 v_colour;
   in vec3 v_normal;
+  in float v_fLogDepth;
 
   //Output Format
   out vec4 out_Colour;
@@ -768,6 +805,9 @@ const char *const g_PolygonP3N3UV2FragmentShader = FRAG_HEADER R"shader(
     vec3 diffuse = diffuseColour.xyz * ndotl;
 
     out_Colour = vec4(diffuse, diffuseColour.a);
+
+    float halfFcoef  = 1.0 / log2(s_CameraFarPlane + 1.0);
+    gl_FragDepth = log2(v_fLogDepth) * halfFcoef;
   }
 )shader";
 
@@ -782,6 +822,7 @@ const char *const g_PolygonP3N3UV2VertexShader = VERT_HEADER R"shader(
   out vec2 v_uv;
   out vec4 v_colour;
   out vec3 v_normal;
+  out float v_fLogDepth;
 
   layout (std140) uniform u_EveryObject
   {
@@ -796,6 +837,7 @@ const char *const g_PolygonP3N3UV2VertexShader = VERT_HEADER R"shader(
     vec3 worldNormal = normalize((u_worldMatrix * vec4(a_normal, 0.0)).xyz);
 
     gl_Position = u_worldViewProjectionMatrix * vec4(a_pos, 1.0);
+    v_fLogDepth = 1.0 + gl_Position.w;
 
     v_uv = a_uv;
     v_normal = worldNormal;
@@ -875,6 +917,7 @@ const char *const g_ImageRendererBillboardVertexShader = VERT_HEADER R"shader(
 const char *const g_FlatColour_FragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec4 v_colour;
+  in float v_fLogDepth;
 
   //Output Format
   out vec4 out_Colour;
@@ -882,16 +925,25 @@ const char *const g_FlatColour_FragmentShader = FRAG_HEADER R"shader(
   void main()
   {
     out_Colour = v_colour;
+
+    float halfFcoef  = 1.0 / log2(s_CameraFarPlane + 1.0);
+    gl_FragDepth = log2(v_fLogDepth) * halfFcoef;
   }
 )shader";
 
 const char *const g_DepthOnly_FragmentShader = FRAG_HEADER R"shader(
+  // Input format
+  in float v_fLogDepth;
+
   //Output Format
   out vec4 out_Colour;
 
   void main()
   {
     out_Colour = vec4(0.0);
+
+    float halfFcoef  = 1.0 / log2(s_CameraFarPlane + 1.0);
+    gl_FragDepth = log2(v_fLogDepth) * halfFcoef;
   }
 )shader";
 
@@ -1150,7 +1202,7 @@ const char *const g_udGPURenderGeomFragmentShader = FRAG_HEADER R"shader(
   }
 )shader";
 
-const char *const g_udGPURenderGeomGeometryShader = FRAG_HEADER R"shader(
+const char *const g_udGPURenderGeomGeometryShader = VERT_HEADER R"shader(
   layout(points) in;
   layout(triangle_strip, max_vertices=4) out;
 
@@ -1180,7 +1232,8 @@ const char *const g_udGPURenderGeomGeometryShader = FRAG_HEADER R"shader(
   }
 )shader";
 
-const char *const g_PostEffectsVertexShader = FRAG_HEADER R"shader(
+const char *const g_PostEffectsVertexShader = VERT_HEADER R"shader(
+
 //Input format
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_texCoord;

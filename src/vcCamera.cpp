@@ -116,23 +116,10 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
   pCamera->matrices.projectionNear = udDouble4x4::perspectiveZO(fov, aspect, 0.5f, 10000.f);
 #endif
 
-  double orthoSize = udMax(1.0, pCamera->position.z * udTan(settings.fieldOfView / 2.0)); // don't allow a 0 ortho size
-
-  double mapModeAmt = udDot(-udDirectionFromYPR(pCamera->eulerRotation), udDouble3::create(0, 0, 1));
-
-  if (mapModeAmt > 0.8)
-    mapModeAmt = (mapModeAmt - 0.8) * 5;
-  else
-    mapModeAmt = 0.0;
-
-  udDouble4x4 projectionPerspUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
-  udDouble4x4 projectionOrthoUD = udDouble4x4::orthoZO(-orthoSize * aspect, orthoSize * aspect, -orthoSize, orthoSize, zNear, zFar);
-  pCamera->matrices.projectionUD = udLerp(projectionPerspUD, projectionOrthoUD, mapModeAmt);
+  pCamera->matrices.projectionUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
 
 #if GRAPHICS_API_OPENGL
-  udDouble4x4 projectionPersp = udDouble4x4::perspectiveNO(fov, aspect, zNear, zFar);
-  udDouble4x4 projectionOrtho = udDouble4x4::orthoNO(-orthoSize * aspect, orthoSize * aspect, -orthoSize, orthoSize, zNear, zFar);
-  pCamera->matrices.projection = udLerp(projectionPersp, projectionOrtho, mapModeAmt);
+  pCamera->matrices.projection = udDouble4x4::perspectiveNO(fov, aspect, zNear, zFar);
 #else
   pCamera->matrices.projection = pCamera->matrices.projectionUD;
 #endif
