@@ -477,8 +477,6 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
   }
   else
   {
-    //TODO: This block is bugged. Does not do a complete copy.
-
     pPixelData = ((uint32_t *)msr.pData) + (x + y * pTexture->width);
     for (int i = 0; i < (int)height; ++i)
     {

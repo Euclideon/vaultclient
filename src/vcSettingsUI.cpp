@@ -539,12 +539,22 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
         if (pProgramState->activeSetting == vcSR_Screenshot)
         {
-          if (ImGui::Button(udTempStr("%s##ScreenshotRestore", vcString::Get("settingsRestoreDefaults"))))
-            vcSettings_Load(&pProgramState->settings, true, vcSC_Screenshot);
+          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsScreenshot"), vcSC_Screenshot);
 
-          // Resolution
+          static udUInt2 ScreenshotResolutions[] = { { 1280, 720 }, { 1920, 1080 }, { 4096, 2160 } };
           static const char* ResolutionNames[] = { vcString::Get("settingsScreenshotRes720p"), vcString::Get("settingsScreenshotRes1080p"), vcString::Get("settingsScreenshotRes4K"), vcString::Get("settingsScreenshotResCustom") };
           UDCOMPILEASSERT(udLengthOf(ResolutionNames) == udLengthOf(ScreenshotResolutions) + 1, "Update strings!");
+
+          if (pProgramState->settings.screenshot.resolutionIndex != udLengthOf(ScreenshotResolutions))
+          {
+            for (pProgramState->settings.screenshot.resolutionIndex = 0; pProgramState->settings.screenshot.resolutionIndex < (int)udLengthOf(ScreenshotResolutions); ++pProgramState->settings.screenshot.resolutionIndex)
+            {
+              if (pProgramState->settings.screenshot.resolution == ScreenshotResolutions[pProgramState->settings.screenshot.resolutionIndex])
+                break;
+            }
+          }
+
+          // Resolution
           if (ImGui::Combo(vcString::Get("settingsScreenshotResLabel"), &pProgramState->settings.screenshot.resolutionIndex, ResolutionNames, (int)udLengthOf(ResolutionNames)))
           {
             if (pProgramState->settings.screenshot.resolutionIndex < udLengthOf(ScreenshotResolutions))
@@ -559,7 +569,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           }
 
           // Output filename
-          ImGui::InputText(vcString::Get("settingsScreenshotFilename"), pProgramState->settings.screenshot.outputName, sizeof(pProgramState->settings.screenshot.outputName));
+          vcIGSW_FilePicker(pProgramState, vcString::Get("settingsScreenshotFilename"), pProgramState->settings.screenshot.outputPath, udLengthOf(pProgramState->settings.screenshot.outputPath), nullptr, 0, vcFDT_SelectDirectory, nullptr);
 
           // Show Picture
           ImGui::Checkbox(vcString::Get("settingsScreenshotView"), &pProgramState->settings.screenshot.viewShot);

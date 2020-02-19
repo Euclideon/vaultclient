@@ -112,8 +112,6 @@ enum vcTileRendererFlags
   vcTRF_OnlyRequestVisibleTiles = 0x1,
 };
 
-static udUInt2 ScreenshotResolutions[] = { { 1280, 720 }, { 1920, 1080 }, { 4096, 2160 } };
-
 struct vcLanguageOption
 {
   // Arbitrary limits
@@ -295,7 +293,7 @@ struct vcSettings
     int resolutionIndex; // Not saved
     udUInt2 resolution;
 
-    char outputName[vcMaxPathLength];
+    char outputPath[vcMaxPathLength];
   } screenshot;
 
   // These are experimental features that will eventually be removed or moved to another setting.
@@ -352,8 +350,6 @@ const float vcSL_ContourDistanceMin = 0.f;
 const float vcSL_ContourDistanceMax = 100.f;
 const float vcSL_ContourBandHeightMin = 0.f;
 const float vcSL_ContourBandHeightMax = 10.f;
-
-udFilename vcSettings_SequentialFilename(const char* pName);
 
 // Settings Functions
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset = false, vcSettingCategory group = vcSC_All);

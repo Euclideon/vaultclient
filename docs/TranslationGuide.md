@@ -16,7 +16,7 @@
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
     - Settings
-      - `settingsVisModeDisplacement`, `settingsVisDisplacementRange`, `settingsVisObjectHighlight`, `settingsScreenshot`, `settingsScreenshotHideLabels`, `settingsScreenshotResLabel`, `settingsScreenshotRes720p`, `settingsScreenshotRes1080p`, `settingsScreenshotRes4K`, `settingsScreenshotFormatLabel`, `settingsScreenshotFilename`, `settingsScreenshotView`, `screenshotDefaultName`
+      - `settingsVisModeDisplacement`, `settingsVisDisplacementRange`, `settingsVisObjectHighlight`, `settingsScreenshot`, `settingsScreenshotHideLabels`, `settingsScreenshotResLabel`, `settingsScreenshotRes720p`, `settingsScreenshotRes1080p`, `settingsScreenshotRes4K`, `settingsScreenshotFormatLabel`, `settingsScreenshotFilename`, `settingsScreenshotView`
     - Errors
       - `errorUnknown`, `errorCorruptData`, `errorUnsupported`, `errorOpenFailure`, `errorReadFailure`
   - Changed:
@@ -379,7 +379,6 @@ Modules are currently:
 - `settingsScreenshotFormatLabel`: Label for output image format
 - `settingsScreenshotFilename`: Label for input text box for screenshot filename
 - `settingsScreenshotView`: Label for checkbox that opens new screenshots in image viewer
-- `screenshotDefaultName`: Default filename for a screenshot
   
 ### Convert Default Settings Strings
 

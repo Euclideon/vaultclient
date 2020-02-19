@@ -587,6 +587,5 @@
   "settingsScreenshotRes4K": "4K",
   "settingsScreenshotResCustom": "Custom",
   "settingsScreenshotFilename": "Filename",
-  "settingsScreenshotView": "View Once Taken",
-  "screenshotDefaultName": "Screen Capture"
+  "settingsScreenshotView": "View Once Taken"
 }

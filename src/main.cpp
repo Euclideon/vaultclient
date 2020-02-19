@@ -7,6 +7,7 @@
 #include "vdkVersion.h"
 
 #include <chrono>
+#include <ctime>
 
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -167,7 +168,7 @@ void vcMain_PresentationMode(vcState *pProgramState)
     pProgramState->lastEventTime = udGetEpochSecsUTCd();
 }
 
-bool vcMain_TakeScreenshot(vcState *pProgramState, const char *pFilename = nullptr)
+bool vcMain_TakeScreenshot(vcState *pProgramState)
 {
   pProgramState->settings.screenshot.taking = true;
 
@@ -180,21 +181,26 @@ bool vcMain_TakeScreenshot(vcState *pProgramState, const char *pFilename = nullp
   if (currSize.x - pProgramState->settings.screenshot.resolution.x > 32 || currSize.y - pProgramState->settings.screenshot.resolution.y > 32)
     return true;
 
-  if (pFilename == nullptr || *pFilename == '\0')
-    pFilename = vcString::Get("screenshotDefaultName");
+  char buffer[vcMaxPathLength];
+  time_t rawtime;
+  tm timeval;
+  tm *pTime = &timeval;
 
-  udFilename temp(pFilename);
-  if (!udStrBeginsWithi(pFilename, pProgramState->settings.pSaveFilePath))
-    temp.SetFromFullPath("%s%s", pProgramState->settings.pSaveFilePath, pFilename);
+#if UDPLATFORM_WINDOWS
+  time(&rawtime);
+  localtime_s(&timeval, &rawtime);
+#else
+  time(&rawtime);
+  pTime = localtime(&rawtime);
+#endif
 
-  temp.SetExtension(".png");
-  temp = vcSettings_SequentialFilename(temp.GetPath());
+  udSprintf(buffer, "%s%.4d-%.2d-%.2d-%.2d-%.2d-%.2d.png", pProgramState->settings.screenshot.outputPath, 1900+pTime->tm_year, 1+pTime->tm_mon, pTime->tm_mday, pTime->tm_hour, pTime->tm_min, pTime->tm_sec);
 
-  vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pRenderContext), temp.GetPath());
+  vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pRenderContext), buffer);
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 
   if (pProgramState->settings.screenshot.viewShot)
-    pProgramState->pLoadImage = udStrdup(temp.GetPath());
+    pProgramState->pLoadImage = udStrdup(buffer);
 
   pProgramState->settings.screenshot.taking = false;
 
@@ -2266,7 +2272,7 @@ void vcRenderWindow(vcState *pProgramState)
 #endif
 
   if (vcHotkey::IsPressed(vcB_TakeScreenshot) || pProgramState->settings.screenshot.taking)
-    vcMain_TakeScreenshot(pProgramState, pProgramState->settings.screenshot.outputName);
+    vcMain_TakeScreenshot(pProgramState);
 
   //end keyboard/mouse handling
 

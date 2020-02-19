@@ -91,26 +91,6 @@ bool SDL_filewrite(const char* filename, const char *pStr, size_t bytes)
   return success;
 }
 
-// If path + filename exists, adds next available number suffix before the extension
-udFilename vcSettings_SequentialFilename(const char *pName)
-{
-  if (pName == nullptr)
-    return nullptr;
-
-  udFilename temp(pName);
-  const char *pExtension = temp.GetExt();
-
-  int i = 1;
-  while (udFileExists(temp.GetPath()) == udR_Success)
-  {
-    temp.SetFromFullPath(pName);
-    temp.SetExtension(udTempStr("%d%s", i, pExtension));
-    ++i;
-  }
-
-  return temp;
-}
-
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSettingCategory group /*= vcSC_All*/)
 {
   ImGui::GetIO().IniFilename = NULL; // Disables auto save and load
@@ -384,15 +364,13 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_Screenshot || group == vcSC_All)
   {
-    udStrcpy(pSettings->screenshot.outputName, data.Get("screenshot.outputName").AsString());
+    const char *pTempStr = data.Get("screenshot.outputPath").AsString();
+    if (pTempStr == nullptr)
+      udStrcpy(pSettings->screenshot.outputPath, pSettings->pSaveFilePath);
+    else
+      udStrcpy(pSettings->screenshot.outputPath, data.Get("screenshot.outputPath").AsString());
     pSettings->screenshot.resolution.x = data.Get("screenshot.resolution.width").AsInt(4096); // Defaults to 4K
     pSettings->screenshot.resolution.y = data.Get("screenshot.resolution.height").AsInt(2160);
-
-    for (pSettings->screenshot.resolutionIndex = 0; pSettings->screenshot.resolutionIndex < (int)udLengthOf(ScreenshotResolutions); ++pSettings->screenshot.resolutionIndex)
-    {
-      if (pSettings->screenshot.resolution == ScreenshotResolutions[pSettings->screenshot.resolutionIndex])
-        break;
-    }
   }
 
   udFree(pSavedData);
@@ -567,7 +545,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   // Screenshots
   data.Set("screenshot.resolution.width = %d", pSettings->screenshot.resolution.x);
   data.Set("screenshot.resolution.height = %d", pSettings->screenshot.resolution.y);
-  data.Set("screenshot.outputName = '%s'", pSettings->screenshot.outputName);
+  data.Set("screenshot.outputName = '%s'", pSettings->screenshot.outputPath);
 
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");
