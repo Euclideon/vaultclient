@@ -14,6 +14,7 @@
 #include "vdkPointCloud.h"
 
 #include "udStringUtil.h"
+#include "udMath.h"
 
 struct vcModelLoadInfo
 {
@@ -425,14 +426,72 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 {
   ImGui::Separator();
 
+  if (ImGui::Selectable(vcString::Get("sceneExplorerResetAll"), false))
+  {
+    if (m_pPreferredProjection)
+      ChangeProjection(*m_pPreferredProjection);
+
+    m_sceneMatrix = m_defaultMatrix;
+
+    ChangeProjection(pProgramState->gis.zone);
+    ApplyDelta(pProgramState, udDouble4x4::identity());
+  }
+
   if (ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
   {
     if (m_pPreferredProjection)
       ChangeProjection(*m_pPreferredProjection);
-    m_sceneMatrix = m_defaultMatrix;
+
+    udDouble3 positionCurrent, positionDefault;
+    udDouble3 scaleCurrent, scaleDefault;
+    udDoubleQuat orientationCurrent, orientationDefault;
+
+    (udDouble4x4::translation(-m_pivot) * m_sceneMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(positionCurrent, scaleCurrent, orientationCurrent);
+    (udDouble4x4::translation(-m_pivot) * m_defaultMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(positionDefault, scaleDefault, orientationDefault);
+
+    m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientationCurrent, positionDefault) * udDouble4x4::scaleNonUniform(scaleCurrent) * udDouble4x4::translation(-m_pivot);;
+
     ChangeProjection(pProgramState->gis.zone);
     ApplyDelta(pProgramState, udDouble4x4::identity());
   }
+
+  if (ImGui::Selectable(vcString::Get("sceneExplorerResetOrientation"), false))
+  {
+    if (m_pPreferredProjection)
+      ChangeProjection(*m_pPreferredProjection);
+
+    udDouble3 positionCurrent, positionDefault;
+    udDouble3 scaleCurrent, scaleDefault;
+    udDoubleQuat orientationCurrent, orientationDefault;
+
+    (udDouble4x4::translation(-m_pivot) * m_sceneMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(positionCurrent, scaleCurrent, orientationCurrent);
+    (udDouble4x4::translation(-m_pivot) * m_defaultMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(positionDefault, scaleDefault, orientationDefault);
+
+    m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientationDefault, positionCurrent) * udDouble4x4::scaleNonUniform(scaleCurrent) * udDouble4x4::translation(-m_pivot);;
+
+    ChangeProjection(pProgramState->gis.zone);
+    ApplyDelta(pProgramState, udDouble4x4::identity());
+  }
+
+  if (ImGui::Selectable(vcString::Get("sceneExplorerResetScale"), false))
+  {
+    if (m_pPreferredProjection)
+      ChangeProjection(*m_pPreferredProjection);
+
+    udDouble3 positionCurrent, positionDefault;
+    udDouble3 scaleCurrent, scaleDefault;
+    udDoubleQuat orientationCurrent, orientationDefault;
+
+    (udDouble4x4::translation(-m_pivot) * m_sceneMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(positionCurrent, scaleCurrent, orientationCurrent);
+    (udDouble4x4::translation(-m_pivot) * m_defaultMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(positionDefault, scaleDefault, orientationDefault);
+
+    m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientationCurrent, positionCurrent) * udDouble4x4::scaleNonUniform(scaleDefault) * udDouble4x4::translation(-m_pivot);;
+
+    ChangeProjection(pProgramState->gis.zone);
+    ApplyDelta(pProgramState, udDouble4x4::identity());
+  }
+
+  ImGui::Separator();
 
   if (((m_pPreferredProjection == nullptr && pProgramState->gis.SRID == 0) || (m_pPreferredProjection != nullptr && m_pPreferredProjection->srid == pProgramState->gis.SRID)) && (m_defaultMatrix == m_sceneMatrix))
   {
