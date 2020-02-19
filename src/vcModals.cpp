@@ -633,6 +633,7 @@ void vcModals_DrawProfile(vcState* pProgramState)
 
 void vcModals_DrawConvert(vcState* pProgramState)
 {
+#if VC_HASCONVERT
   const char *pModalName = udTempStr("%s###convertDock", vcString::Get("convertTitle"));
   
   if (pProgramState->openModals & (1 << vcMT_Convert))
@@ -663,6 +664,7 @@ void vcModals_DrawConvert(vcState* pProgramState)
 
     ImGui::EndPopup();
   }
+#endif
 }
 
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
