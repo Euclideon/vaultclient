@@ -16,8 +16,6 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
-struct vcTexture;
-
 enum vcMapTileBlendMode
 {
   vcMTBM_Hybrid,

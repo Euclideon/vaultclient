@@ -408,7 +408,7 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
   if ((pTexture->flags & vcTCF_AsynchronousRead) != vcTCF_AsynchronousRead && pTexture->pStagingTextureD3D[pTexture->stagingIndex] == nullptr)
   {
     // Texture not configured for pixel read back, create a single temporary staging texture.
-    D3D11_TEXTURE2D_DESC desc = {};
+    D3D11_TEXTURE2D_DESC desc;
     ZeroMemory(&desc, sizeof(desc));
     desc.MipLevels = 1;
     desc.ArraySize = 1;
@@ -470,7 +470,7 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
 
   UD_ERROR_IF(g_pd3dDeviceContext->Map(pStagingTexture, 0, D3D11_MAP_READ, 0, &msr) != S_OK, udR_InternalError);
 
-  if (x == 0 && y == 0 && width == pTexture->width && height == pTexture->height)
+  if (x == 0 && y == 0 && width == (uint32_t)pTexture->width && height == (uint32_t)pTexture->height)
   {
     pPixelData = (uint32_t*)msr.pData;
     memcpy((uint8_t*)pPixels, pPixelData, height * width * pixelBytes);
@@ -482,7 +482,7 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
     pPixelData = ((uint32_t *)msr.pData) + (x + y * pTexture->width);
     for (int i = 0; i < (int)height; ++i)
     {
-      memcpy((uint8_t*)pPixels + (i * pTexture->width), pPixelData, width * pixelBytes);
+      memcpy((uint8_t*)pPixels + (i * pTexture->width * pixelBytes), pPixelData, width * pixelBytes);
       pPixelData += pTexture->width;
     }
   }

@@ -173,7 +173,6 @@ struct vcState
 
     vcImageType imageType;
   } image, screenshot;
-  bool destroyImage;
 
   vcFileDialog fileDialog;
 

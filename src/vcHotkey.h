@@ -15,7 +15,7 @@ enum modifierFlags
 
 enum vcBind
 {
-  vcB_Forward,                 
+  vcB_Forward,
   vcB_Backward,
   vcB_Left,
   vcB_Right,
@@ -38,6 +38,7 @@ enum vcBind
   vcB_BindingsInterface,
   vcB_Undo,
   vcB_TakeScreenshot,
+
   vcB_Count
 };
 

@@ -818,7 +818,6 @@ int main(int argc, char **args)
   programState.passFocus = true;
   programState.renaming = -1;
   programState.settings.screenshot.taking = false;
-  programState.destroyImage = false;
 
   programState.sceneExplorer.insertItem.pParent = nullptr;
   programState.sceneExplorer.insertItem.pItem = nullptr;

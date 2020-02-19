@@ -588,7 +588,5 @@
   "settingsScreenshotResCustom": "Custom",
   "settingsScreenshotFilename": "Filename",
   "settingsScreenshotView": "View Once Taken",
-
-  "screenshotTake": "Take Screenshot",
   "screenshotDefaultName": "Screen Capture"
 }

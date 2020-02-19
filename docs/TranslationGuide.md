@@ -14,10 +14,9 @@
     - Polygon Meshes
       - `polyModelCullFace`, `polyModelCullFaceBack`, `polyModelCullFaceFront`, `polyModelCullFaceNone`, `polyModelIgnoreTint`
     - Scene
-      - `settingsScreenshot`, `settingsScreenshotHideLabels`, `settingsScreenshotResLabel`, `settingsScreenshotRes720p`, `settingsScreenshotRes1080p`, `settingsScreenshotRes4K`, `settingsScreenshotFormatLabel`, `settingsScreenshotFilename`, `settingsScreenshotView`, `screenshotTake`, `screenshotDefaultName`    - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
     - Settings
-      - `settingsVisModeDisplacement`, `settingsVisDisplacementRange`, `settingsVisObjectHighlight`
+      - `settingsVisModeDisplacement`, `settingsVisDisplacementRange`, `settingsVisObjectHighlight`, `settingsScreenshot`, `settingsScreenshotHideLabels`, `settingsScreenshotResLabel`, `settingsScreenshotRes720p`, `settingsScreenshotRes1080p`, `settingsScreenshotRes4K`, `settingsScreenshotFormatLabel`, `settingsScreenshotFilename`, `settingsScreenshotView`, `screenshotDefaultName`
     - Errors
       - `errorUnknown`, `errorCorruptData`, `errorUnsupported`, `errorOpenFailure`, `errorReadFailure`
   - Changed:
@@ -380,9 +379,6 @@ Modules are currently:
 - `settingsScreenshotFormatLabel`: Label for output image format
 - `settingsScreenshotFilename`: Label for input text box for screenshot filename
 - `settingsScreenshotView`: Label for checkbox that opens new screenshots in image viewer
-
-### Screenshot Strings
-- `screenshotTake`: Text on menu item to take a screenshot
 - `screenshotDefaultName`: Default filename for a screenshot
   
 ### Convert Default Settings Strings
