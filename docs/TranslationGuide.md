@@ -616,7 +616,10 @@ Modules are currently:
 - `sceneExplorerEditName`: Menu option when right-clicking on an item in the Scene Explorer, allows user to change the name of the item
 - `sceneExplorerUseProjection`: Menu option when right-clicking on an item in the Scene Explorer, changes the current SRID to that of the selected scene item
 - `sceneExplorerMoveTo`: Menu option when right-clicking on an item in the Scene Explorer, moves the camera to the location of the selected item
-- `sceneExplorerResetPosition`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to that position if it has been moved
+- `sceneExplorerResetAll`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to that position, orientation and scale if any or all of these have changed
+- `sceneExplorerResetPosition`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to the original position if it has changed
+- `sceneExplorerResetOrientation`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to the original orientation if it has changed
+- `sceneExplorerResetScale`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to the original scale if it has changed
 - `sceneExplorerCompareModels`: Menu option when right-clicking on an item in the Scene Explorer that can be compared with another item, a model with displacement values will be generated on disk.
 - `sceneExplorerPathURL`: Label next to the text box containing the path of the currently selected file
 - `sceneExplorerLoadButton`: Label used for the Load button in the Add UDS and Import Project windows which loads the currently selected file and closes the window
