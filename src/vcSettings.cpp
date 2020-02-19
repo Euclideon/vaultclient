@@ -135,6 +135,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.mouseAnchor = (vcAnchorStyle)data.Get("mouseAnchor").AsInt(vcAS_Orbit);
     pSettings->presentation.showCompass = data.Get("showCompass").AsBool(true);
     pSettings->presentation.POIFadeDistance = data.Get("POIfadeDistance").AsFloat(10000.f);
+    pSettings->presentation.imageRescaleDistance = data.Get("ImageRescaleDistance").AsFloat(10000.f);
     pSettings->presentation.limitFPSInBackground = data.Get("limitFPSInBackground").AsBool(true);
     pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
     pSettings->presentation.layout = (vcWindowLayout)data.Get("layout").AsInt(vcWL_SceneLeft);
@@ -407,6 +408,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("showCompass = %s", pSettings->presentation.showCompass ? "true" : "false");
   data.Set("limitFPSInBackground = %s", pSettings->presentation.limitFPSInBackground ? "true" : "false");
   data.Set("POIfadeDistance = %f", pSettings->presentation.POIFadeDistance);
+  data.Set("ImageRescaleDistance = %f", pSettings->presentation.imageRescaleDistance);
   data.Set("pointMode = %d", pSettings->presentation.pointMode);
   data.Set("layout = %d", pSettings->presentation.layout);
   data.Set("layoutSceneExplorerSize = %d", pSettings->presentation.sceneExplorerSize);

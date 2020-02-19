@@ -963,10 +963,8 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
 
     for (size_t i = 0; i < renderData.images.length; ++i)
     {
-      static const double distScalar = 1000.0; // Param
-
       double zScale = 1.0;
-      zScale -= udMag3(pProgramState->camera.position - renderData.images[i]->position) / distScalar;
+      zScale -= udMag3(pProgramState->camera.position - renderData.images[i]->position) / pProgramState->settings.presentation.imageRescaleDistance;
 
       if (zScale < 0) // too far
         continue;

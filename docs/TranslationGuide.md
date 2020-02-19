@@ -223,6 +223,7 @@ Modules are currently:
 - `settingsAppearanceDark`: Dark option for appearance theme and login screen dropdown lists
 - `settingsAppearanceLight`: Light option for appearance theme and login screen  dropdown lists
 - `settingsAppearancePOIDistance`: Label next to slider for setting the maximum distance at which POIs are visible
+- `settingsAppearanceImageRescale`: Label next to slider for setting the distance when images in the scene start to shrink
 - `settingsAppearanceShowDiagnostics`: Label next to the checkbox that toggles the display of diagnostic information in the menu bar
 - `settingsAppearanceShowEuclideonLogo`: Label next to the checkbox that toggles the display of the Euclideon logo over the scene
 - `settingsAppearanceAdvancedGIS`: Label next to the checkbox that toggles the display of advanced GIS settings in the viewport

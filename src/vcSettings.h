@@ -142,6 +142,7 @@ struct vcSettings
     vcAnchorStyle mouseAnchor;
     bool showCompass;
     float POIFadeDistance;
+    float imageRescaleDistance;
     bool limitFPSInBackground;
 
     int pointMode;
@@ -310,6 +311,9 @@ const float vcSL_OSCPixelRatio = 100.f;
 
 const float vcSL_POIFaderMin = 0.f;
 const float vcSL_POIFaderMax = 1000000.f;
+
+const float vcSL_ImageRescaleMin = 0.f;
+const float vcSL_ImageRescaleMax = 1000000.f;
 
 const float vcSL_MapHeightMin = -1000.f;
 const float vcSL_MapHeightMax = 1000.f;
