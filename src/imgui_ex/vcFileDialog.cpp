@@ -2,23 +2,156 @@
 
 #include "udStringUtil.h"
 #include "vcState.h"
+#include "vcHotkey.h"
 #include "imgui.h"
 
-void vcFileDialog_Show(vcFileDialog *pDialog, char *pPath, size_t pathLen, const char **ppExtensions, size_t numExtensions, vcFileDialogType dialogType, vcFileDialogCallback callback)
+#if UDPLATFORM_WINDOWS
+# include <shobjidl.h> 
+#endif
+
+bool vcFileDialog_DrawImGui(char *pPath, size_t pathLength, vcFileDialogType dialogType = vcFDT_OpenFile, const char **ppExtensions = nullptr, size_t extensionCount = 0);
+
+void vcFileDialog_Open(vcState *pProgramState, const char *pLabel, char *pPath, size_t pathLen, const char **ppExtensions, size_t numExtensions, vcFileDialogType dialogType, vcFileDialogCallback callback)
 {
-  memset(pDialog, 0, sizeof(vcFileDialog));
+  memset(&pProgramState->fileDialog, 0, sizeof(pProgramState->fileDialog));
 
-  pDialog->showDialog = true;
-  pDialog->folderOnly = false;
-  pDialog->dialogType = dialogType;
+  pProgramState->fileDialog.pLabel = pLabel;
+  pProgramState->fileDialog.dialogType = dialogType;
 
-  pDialog->pPath = pPath;
-  pDialog->pathLen = pathLen;
+  pProgramState->fileDialog.pPath = pPath;
+  pProgramState->fileDialog.pathLen = pathLen;
 
-  pDialog->ppExtensions = ppExtensions;
-  pDialog->numExtensions = numExtensions;
+  pProgramState->fileDialog.ppExtensions = ppExtensions;
+  pProgramState->fileDialog.numExtensions = numExtensions;
 
-  pDialog->onSelect = callback;
+  pProgramState->fileDialog.onSelect = callback;
+
+  ImGui::OpenPopup(udTempStr("%s##embeddedFileDialog", pLabel));
+}
+
+void vcFileDialog_ShowModal(vcState *pProgramState)
+{
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(udTempStr("%s##embeddedFileDialog", pProgramState->fileDialog.pLabel)))
+  {
+#if UDPLATFORM_WINDOWS
+    if (pProgramState->settings.window.useNativeUI)
+    {
+      HRESULT hr = 0;
+      IFileDialog *pFileOpen = nullptr;
+
+      // Create the FileOpenDialog object.
+      if (pProgramState->fileDialog.dialogType == vcFDT_OpenFile || pProgramState->fileDialog.dialogType == vcFDT_SelectDirectory)
+        hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
+      else // if (pProgramState->fileDialog.dialogType == vcFDT_SaveFile)
+        hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_ALL, IID_IFileSaveDialog, reinterpret_cast<void**>(&pFileOpen));
+
+      if (SUCCEEDED(hr) && pProgramState->fileDialog.dialogType == vcFDT_SelectDirectory)
+        hr = pFileOpen->SetOptions(FOS_PICKFOLDERS);
+
+      if (SUCCEEDED(hr))
+      {
+        char extBuffer[1024] = "\0";
+        COMDLG_FILTERSPEC spec = {};
+        udOSString *pOSStr = nullptr;
+
+        if (pProgramState->fileDialog.numExtensions > 0)
+        {
+          for (size_t i = 0; i < pProgramState->fileDialog.numExtensions; ++i)
+          {
+            if (i == 0)
+              udStrcpy(extBuffer, "*");
+            else
+              udStrcat(extBuffer, ";*");
+
+            udStrcat(extBuffer, pProgramState->fileDialog.ppExtensions[i]);
+          }
+
+          pOSStr = new udOSString(extBuffer);
+
+          spec.pszName = L"Any Supported";
+          spec.pszSpec = pOSStr->pWide;
+
+          hr = pFileOpen->SetFileTypes(1U, &spec);
+          hr = pFileOpen->SetDefaultExtension(spec.pszSpec);
+        }
+
+        // Get the file name from the dialog box.
+        if (SUCCEEDED(hr))
+        {
+          // Show the Open dialog box.
+          hr = pFileOpen->Show(NULL);
+
+          if (SUCCEEDED(hr))
+          {
+            IShellItem *pItem = nullptr;
+            hr = pFileOpen->GetResult(&pItem);
+
+            if (SUCCEEDED(hr))
+            {
+              PWSTR pszFilePath = nullptr;
+              hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+
+              // Display the file name to the user.
+              if (SUCCEEDED(hr))
+              {
+                udStrcpy(pProgramState->fileDialog.pPath, pProgramState->fileDialog.pathLen, udOSString(pszFilePath).pUTF8);
+                if (pProgramState->fileDialog.onSelect != nullptr)
+                  pProgramState->fileDialog.onSelect();
+                CoTaskMemFree(pszFilePath);
+              }
+
+              pItem->Release();
+            }
+          }
+        }
+
+        if (pOSStr != nullptr)
+          delete pOSStr;
+      }
+
+      if (pFileOpen != nullptr)
+        pFileOpen->Release();
+
+      memset(&pProgramState->fileDialog, 0, sizeof(vcFileDialog));
+      ImGui::CloseCurrentPopup();
+    }
+    else
+#endif
+    {
+      pProgramState->modalOpen = true;
+
+      ImGui::SetNextItemWidth(-270.f);
+      bool loadFile = ImGui::InputText(vcString::Get("convertPathURL"), pProgramState->modelPath, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+
+      ImGui::SameLine();
+
+      if (ImGui::Button(vcString::Get("convertLoadButton"), ImVec2(100.f, 0)))
+        loadFile = true;
+      ImGui::SameLine();
+
+      if (ImGui::Button(vcString::Get("convertCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+      {
+        memset(&pProgramState->fileDialog, 0, sizeof(vcFileDialog));
+        ImGui::CloseCurrentPopup();
+      }
+
+      ImGui::Separator();
+
+      if (vcFileDialog_DrawImGui(pProgramState->fileDialog.pPath, pProgramState->fileDialog.pathLen, pProgramState->fileDialog.dialogType, pProgramState->fileDialog.ppExtensions, pProgramState->fileDialog.numExtensions))
+        loadFile = true;
+
+      if (loadFile)
+      {
+        if (pProgramState->fileDialog.onSelect != nullptr)
+          pProgramState->fileDialog.onSelect();
+        memset(&pProgramState->fileDialog, 0, sizeof(vcFileDialog));
+        ImGui::CloseCurrentPopup();
+      }
+    }
+
+    ImGui::EndPopup();
+  }
 }
 
 void vcFileDialog_FreeDrives(const char ***ppDrives, uint8_t *pDriveCount)
