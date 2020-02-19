@@ -2242,6 +2242,15 @@ void vcRenderWindow(vcState *pProgramState)
         case vcWL_SceneLeft:
           ImGui::Columns(2);
 
+          if (!pProgramState->settings.presentation.columnSizeCorrect)
+          {
+            ImGui::SetColumnWidth(0, size.x - pProgramState->settings.presentation.sceneExplorerSize);
+            pProgramState->settings.presentation.columnSizeCorrect = true;
+          }
+
+          if (ImGui::GetColumnWidth(0) != size.x - pProgramState->settings.presentation.sceneExplorerSize)
+            pProgramState->settings.presentation.sceneExplorerSize = (int)(size.x - ImGui::GetColumnWidth());
+
           if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
             vcRenderSceneWindow(pProgramState);
           ImGui::EndChild();
@@ -2257,6 +2266,15 @@ void vcRenderWindow(vcState *pProgramState)
 
         case vcWL_SceneRight:
           ImGui::Columns(2);
+
+          if (!pProgramState->settings.presentation.columnSizeCorrect)
+          {
+            ImGui::SetColumnWidth(0, (float)pProgramState->settings.presentation.sceneExplorerSize);
+            pProgramState->settings.presentation.columnSizeCorrect = true;
+          }
+
+          if (ImGui::GetColumnWidth(0) != pProgramState->settings.presentation.sceneExplorerSize)
+            pProgramState->settings.presentation.sceneExplorerSize = (int)ImGui::GetColumnWidth();
 
           if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
             vcMain_ShowSceneExplorerWindow(pProgramState);

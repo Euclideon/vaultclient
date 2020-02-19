@@ -138,6 +138,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.limitFPSInBackground = data.Get("limitFPSInBackground").AsBool(true);
     pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
     pSettings->presentation.layout = (vcWindowLayout)data.Get("layout").AsInt(vcWL_SceneLeft);
+    pSettings->presentation.sceneExplorerSize = data.Get("layoutSceneExplorerSize").AsInt(350);
+    pSettings->presentation.columnSizeCorrect = false;
     pSettings->responsiveUI = (vcPresentationMode)data.Get("responsiveUI").AsInt(vcPM_Hide);
 
     switch (pSettings->presentation.styleIndex)
@@ -407,6 +409,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("POIfadeDistance = %f", pSettings->presentation.POIFadeDistance);
   data.Set("pointMode = %d", pSettings->presentation.pointMode);
   data.Set("layout = %d", pSettings->presentation.layout);
+  data.Set("layoutSceneExplorerSize = %d", pSettings->presentation.sceneExplorerSize);
   data.Set("responsiveUI = %d", pSettings->responsiveUI);
 
   data.Set("objectHighlighting.enable = %s", pSettings->objectHighlighting.enable ? "true" : "false");
