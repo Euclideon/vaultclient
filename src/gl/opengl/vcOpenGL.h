@@ -36,11 +36,12 @@
 struct vcTexture
 {
   vcTextureCreationFlags flags;
+  vcTextureType type;
 
   GLuint id;
 
   vcTextureFormat format;
-  int width, height;
+  int width, height, depth;
 
   // Optional if the texture is configured with the `vcTCF_AsynchronousRead` flag
   // Provides asynchronous transfer. Internally ping pongs between these between Begin()/End() calls
@@ -92,10 +93,13 @@ struct vcMesh
   uint32_t vertexSize;
 };
 
-static const GLuint vcTFMToGL[] = { GL_NEAREST, GL_LINEAR }; // Filter Mode
+static const GLenum vcTTToGL[] = { GL_TEXTURE_2D, GL_TEXTURE_3D, GL_TEXTURE_2D_ARRAY }; // Texture Type
+UDCOMPILEASSERT(udLengthOf(vcTTToGL) == vcTextureType_Count, "TextureTypes not equal size");
+
+static const GLenum vcTFMToGL[] = { GL_NEAREST, GL_LINEAR }; // Filter Mode
 UDCOMPILEASSERT(udLengthOf(vcTFMToGL) == vcTFM_Total, "TextureFilterModes not equal size");
 
-static const GLuint vcTWMToGL[] = { GL_REPEAT, GL_CLAMP_TO_EDGE }; // Wrap Mode
+static const GLenum vcTWMToGL[] = { GL_REPEAT, GL_CLAMP_TO_EDGE }; // Wrap Mode
 UDCOMPILEASSERT(udLengthOf(vcTWMToGL) == vcTFM_Total, "TextureFilterModes not equal size");
 
 

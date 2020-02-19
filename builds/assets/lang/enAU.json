@@ -55,6 +55,7 @@
   "settingsAppearanceDark": "Dark Theme",
   "settingsAppearanceLight": "Light Theme",
   "settingsAppearancePOIDistance": "Max POI Distance",
+  "settingsAppearanceImageRescale": "Image Rescale Distance",
   "settingsAppearanceShowDiagnostics": "Show Diagnostic Information",
   "settingsAppearanceShowEuclideonLogo": "Show Euclideon Logo",
   "settingsAppearanceAdvancedGIS": "Show Advanced GIS Settings",
@@ -73,6 +74,9 @@
   "settingsAppearanceRectangles": "Rectangles",
   "settingsAppearanceCubes": "Cubes",
   "settingsAppearancePoints": "Points",
+  "settingsAppearanceWindowLayout": "Layout",
+  "settingsAppearanceWindowLayoutScSx": "Scene on left and scene explorer on right",
+  "settingsAppearanceWindowLayoutSxSc": "Scene explorer on left and scene on right",
   "settingsAppearancePresentationUI": "Presentation UI",
   "settingsAppearanceHide": "Hide",
   "settingsAppearanceShow": "Show",
@@ -128,6 +132,7 @@
   "settingsMapsSetHeight": "Set to Camera Height",
 
   "settingsVis": "Visualisation",
+  "settingsVisObjectHighlight": "Enable Selected Objects Highlighting",
   "settingsVisHighlightColour": "Highlight Colour",
   "settingsVisHighlightThickness": "Highlight Thickness",
   "settingsVisDisplayMode": "Display Mode",
@@ -313,6 +318,7 @@
   "menuBarWaitingForRenderLicense": "Waiting for Render license...",
   "menuBarInactive": "Inactive",
 
+  "settingsConnection": "Connection",
   "modalProxyInfo": "The proxy requires authentication:",
   "modalProxyBadCreds": "The specified proxy credentials were incorrect, please confirm and try again.",
   "modalProxyUsername": "Proxy Username",
@@ -379,7 +385,10 @@
   "sceneExplorerEditName": "Edit Name",
   "sceneExplorerUseProjection": "Use Projection",
   "sceneExplorerMoveTo": "Move To",
+  "sceneExplorerResetAll": "Reset All",
   "sceneExplorerResetPosition": "Reset Position",
+  "sceneExplorerResetOrientation": "Reset Orientation",
+  "sceneExplorerResetScale": "Reset Scale",
   "sceneExplorerCompareModels": "Compare Models",
   "sceneExplorerPathURL": "Path/URL:",
   "sceneExplorerExportButton": "Export",
@@ -539,7 +548,7 @@
   "bindingsColumnName": "Name",
   "bindingsColumnKeyCombination": "Key Combination",
   "bindingsColumnDescription": "Description",
-  "bindingsErrorBound": "Key not bound due to existing key binding",
+  "bindingsErrorBound": "Already bound to \"{0}\"",
   "bindingsClear": "Clear",
   "bindingsSelectKey": "Press a key combination to bind.",
 
@@ -548,7 +557,7 @@
   "bindingsGizmoRotate": "Sets the gizmo to rotation mode, allowing you to rotate objects.",
   "bindingsGizmoScale": "Sets the gizmo to scaling mode, allowing you to resize objects.",
   "bindingsGizmoLocalSpace": "Toggles the gizmo's operational coordinate system between local coordinates and world coordinates.",
-  "bindingsFullscreen": "Toggles presentation mode and sets the client to fullscreen. Presentation mode hides everything except the Scene window.",
+  "bindingsFullscreen": "Toggles between fullscreen and windowed modes.",
   "bindingsAddUDS": "Opens the dialog box to add a UDS model to the scene.",
   "bindingsRemove": "Deletes all selected items from the scene.",
   "bindingsCameraForward": "Key to move camera forwards.",
@@ -562,5 +571,11 @@
   "bindingsRenameSceneItem": "Key to rename selected scene item.",
   "bindingsSave": "Key to trigger save action.",
   "bindingsLoad": "Key to trigger load or open action.",
-  "bindingsUndo": "Key to trigger undo action"
+  "bindingsUndo": "Key to trigger undo action",
+
+  "errorUnknown": "An unexpected error occurred.",
+  "errorCorruptData": "Corrupt data.",
+  "errorUnsupported": "Unsupported file formats.",
+  "errorOpenFailure": "Failed to open.",
+  "errorReadFailure": "Failed to read."
 }

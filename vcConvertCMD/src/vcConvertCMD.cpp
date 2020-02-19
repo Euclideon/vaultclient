@@ -3,6 +3,7 @@
 #include "udThread.h"
 #include "udStringUtil.h"
 #include "udFile.h"
+#include "udChunkedArray.h"
 
 #include "vdkConvert.h"
 #include "vdkContext.h"
@@ -56,19 +57,18 @@ struct vcConvertCMDSettings
   const char *pProxyURL;
   const char *pProxyUsername;
   const char *pProxyPassword;
-  const char **ppInputFiles;
-  int32_t inputFileCount;
   int32_t srid;
   double globalOffset[3];
   bool pause;
   bool pauseOnError;
   bool autoOverwrite;
+
+  udChunkedArray<const char*> files;
 };
 
 bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMDSettings *pSettings)
 {
   bool cmdlineError = false;
-  int32_t currentInputFile = 0;
 
   for (int i = 4; i < argc; )
   {
@@ -106,20 +106,11 @@ bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMD
     }
     else if (udStrEquali(ppArgv[i], "-i"))
     {
-      // First time encountering input files, count them
-      if (pSettings->inputFileCount == 0)
+      ++i; // Skip "-i"
+      do
       {
-        for (int j = i; j < argc; j++)
-        {
-          if (udStrEquali(ppArgv[j], "-i"))
-            ++pSettings->inputFileCount;
-        }
-        pSettings->ppInputFiles = udAllocType(const char *, pSettings->inputFileCount, udAF_None);
-      }
-      pSettings->ppInputFiles[currentInputFile] = ppArgv[i + 1];
-      ++currentInputFile;
-
-      i += 2;
+        pSettings->files.PushBack(udStrdup(ppArgv[i++]));
+      } while (i < argc && ppArgv[i][0] != '-'); // Continue until another option is seen
     }
     else if (udStrEquali(ppArgv[i], "-pause"))
     {
@@ -174,6 +165,8 @@ int main(int argc, const char **ppArgv)
   vdkConvertContext *pModel = nullptr;
   vcConvertCMDSettings settings = {};
 
+  settings.files.Init(256);
+
   printf("vcConvertCMD %s\n", CONVERTCMD_VERSION);
 
   if (argc < 4)
@@ -190,19 +183,24 @@ int main(int argc, const char **ppArgv)
   if (settings.pProxyUsername)
     vdkConfig_SetProxyAuth(settings.pProxyUsername, settings.pProxyPassword);
 
-  result = vdkContext_Connect(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], ppArgv[3]);
-  if (result == vE_ConnectionFailure)
-    printf("Could not connect to server.");
-  else if (result == vE_NotAllowed)
-    printf("Username or Password incorrect.");
-  else if (result == vE_OutOfSync)
-    printf("Your clock doesn't match the remote server clock.");
-  else if (result == vE_SecurityFailure)
-    printf("Could not open a secure channel to the server.");
-  else if (result == vE_ServerFailure)
-    printf("Unable to negotiate with server, please confirm the server address");
-  else if (result != vE_Success)
-    printf("Unknown error occurred (Error=%d), please try again later.", result);
+  result = vdkContext_TryResume(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], true);
+
+  if (result != vE_Success)
+  {
+    result = vdkContext_Connect(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], ppArgv[3]);
+    if (result == vE_ConnectionFailure)
+      printf("Could not connect to server.");
+    else if (result == vE_NotAllowed)
+      printf("Username or Password incorrect.");
+    else if (result == vE_OutOfSync)
+      printf("Your clock doesn't match the remote server clock.");
+    else if (result == vE_SecurityFailure)
+      printf("Could not open a secure channel to the server.");
+    else if (result == vE_ServerFailure)
+      printf("Unable to negotiate with server, please confirm the server address");
+    else if (result != vE_Success)
+      printf("Unknown error occurred (Error=%d), please try again later.", result);
+  }
 
   if (result != vE_Success)
     exit(2);
@@ -251,10 +249,10 @@ int main(int argc, const char **ppArgv)
       cmdlineError = true;
   }
 
-  for (int i = 0; i < settings.inputFileCount; ++i)
+  for (int i = 0; i < settings.files.length; ++i)
   {
     udFindDir *pFindDir = nullptr;
-    udResult res = udOpenDir(&pFindDir, settings.ppInputFiles[i]);
+    udResult res = udOpenDir(&pFindDir, settings.files[i]);
     if (res == udR_Success)
     {
       do
@@ -263,7 +261,7 @@ int main(int argc, const char **ppArgv)
           continue;
 
         udFilename foundFile(pFindDir->pFilename);
-        foundFile.SetFolder(settings.ppInputFiles[i]);
+        foundFile.SetFolder(settings.files[i]);
         result = vdkConvert_AddItem(pModel, foundFile.GetPath());
         if (result != vE_Success)
           printf("Unable to convert %s [Error:%d]:\n", foundFile.GetPath(), result);
@@ -272,10 +270,12 @@ int main(int argc, const char **ppArgv)
     }
     else
     {
-      result = vdkConvert_AddItem(pModel, settings.ppInputFiles[i]);
+      result = vdkConvert_AddItem(pModel, settings.files[i]);
       if (result != vE_Success)
-        printf("Unable to convert %s [Error:%d]:\n", settings.ppInputFiles[i], result);
+        printf("Unable to convert %s [Error:%d]:\n", settings.files[i], result);
     }
+
+    udFree(settings.files[i]);
   }
 
   if (settings.pOutputFilename)
@@ -355,6 +355,7 @@ int main(int argc, const char **ppArgv)
 
   vdkConvert_DestroyContext(&pModel);
   vdkContext_Disconnect(&pContext);
+  settings.files.Deinit();
 
   return 0;
 }

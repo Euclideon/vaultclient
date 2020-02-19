@@ -8,12 +8,14 @@ enum vcModalTypes
   vcMT_ProxyAuth,
   vcMT_TileServer,
   vcMT_AddSceneItem,
+  vcMT_ImportProject,
   vcMT_ExportProject,
   vcMT_ImageViewer,
   vcMT_ProjectChange,
   vcMT_ProjectReadOnly,
   vcMT_UnsupportedFile,
   vcMT_Profile,
+  vcMT_Convert,
 
   vcMT_Count
 };

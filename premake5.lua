@@ -302,5 +302,7 @@ solution "vaultClient"
 
 	if os.target() ~= premake.IOS and os.target() ~= premake.ANDROID and os.target() ~= "emscripten" then
 		dofile "vcConvertCMD/project.lua"
+		dofile "3rdParty/udcore/3rdParty/googletest/project.lua"
+		dofile "vcTesting/project.lua"
 	end
 

@@ -8,6 +8,7 @@
   "showCompass": true,
   "limitFPSInBackground": true,
   "POIFadeDistance": 10000,
+  "ImageRescaleDistance": 10000,
   "pointMode": 0,
   "responsiveUI": 0,
   "window": {

@@ -404,7 +404,10 @@ udResult vcOBJ_Load(vcOBJ **ppOBJ, const char *pFilename)
       pTextBuffer[bufferPos + charCount] = temp;
       pOBJ->basePath.SetFilenameWithExt(f.GetFilenameWithExt());
 
-      UD_ERROR_CHECK(vcOBJ_LoadMtlLib(pOBJ, pOBJ->basePath.GetPath()));
+      //Allow to load an object file without a material file.
+      result = vcOBJ_LoadMtlLib(pOBJ, pOBJ->basePath.GetPath());
+      if (result != udR_OpenFailure && result != udR_Success)
+        UD_ERROR_SET(result);
     }
     else
     {

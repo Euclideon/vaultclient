@@ -23,60 +23,19 @@
 
 #define MAX_DISPLACEMENT 10000.f
 
-/*
-Add errors by placing an entry in the language file with the error message, this entry name goes below in settingsErrors[].
-Add a colour in vec4 RGBA format below, and add to the error enum vcSE_ vcSettingsErrors then use vcSettingsUI_Set/Unset/Check Error functions
-*/
-static const char *settingsErrors[] =
+void vcSettingsUI_ShowHeader(vcState *pProgramState, const char *pSettingTitle, vcSettingCategory category = vcSC_All)
 {
-  "bindingsErrorBound",
-  "bindingsSelectKey"
-};
-
-static const ImVec4 settingsErrorColours[] =
-{
-  ImVec4(1, 0, 0, 1),
-  ImVec4(1, 1, 1, 1)
-};
-
-static const vcSettingCategory categoryMapping[] =
-{
-  vcSC_Appearance, //vcSR_Appearance
-  vcSC_InputControls, //vcSR_Inputs
-  vcSC_Viewport, //vcSR_Viewports
-  vcSC_MapsElevation, //vcSR_Maps
-  vcSC_Visualization, //vcSR_Visualisations
-  vcSC_Bindings, //vcSR_KeyBindings
-  vcSC_Convert, //vcSR_ConvertDefaults
-  vcSC_Count, //vcSR_Connection
-  vcSC_Count, //vcSR_ReleaseNotes
-  vcSC_Count, //vcSR_Update
-  vcSC_Count //vcSR_About
-};
-// Entries in categoryMapping above must contain the vcSettingCategory that corresponds to a vcSettingsUIRegion
-// if any, in the order they appear in the vcSR_ enum. If no category applies or you don't wish to offer a reset
-// defaults option then enter vcSC_Count for the corresponding vcSettingsUIRegion.
-UDCOMPILEASSERT(vcSC_Count == 10, "Update the above mapping (in vcSettingsUI.cpp) if necessary, as per the comments");
-UDCOMPILEASSERT(vcSR_Count == 11, "Update the above mapping (in vcSettingsUI.cpp) if necessary, as per the comments");
-
-void vcSettingsUI_SetError(vcState *pProgramState, vcSettingsErrors error)
-{
-  pProgramState->settingsErrors = pProgramState->settingsErrors | error;
-}
-
-void vcSettingsUI_UnsetError(vcState *pProgramState, vcSettingsErrors error)
-{
-  pProgramState->settingsErrors = pProgramState->settingsErrors & ~error;
-}
-
-bool vcSettingsUI_CheckError(vcState *pProgramState, vcSettingsErrors error)
-{
-  return ((pProgramState->settingsErrors & error) == error);
-}
-
-ImVec4 vcSettingsUI_GetErrorColour(vcSettingsErrors error)
-{
-  return settingsErrorColours[int(udLog2((float)error))];
+  ImGui::Columns(2, nullptr, false);
+  ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 125.f);
+  ImGui::TextUnformatted(pSettingTitle);
+  ImGui::NextColumn();
+  if (category != vcSC_All)
+  {
+    if (ImGui::Button(udTempStr("%s##CategoryRestore", vcString::Get("settingsRestoreDefaults")), ImVec2(-1, 0)))
+      vcSettings_Load(&pProgramState->settings, true, category);
+  }
+  ImGui::Columns(1);
+  ImGui::Separator();
 }
 
 void vcSettingsUI_Show(vcState *pProgramState)
@@ -106,42 +65,12 @@ void vcSettingsUI_Show(vcState *pProgramState)
       vcHotkey::ClearState();
     }
 
-    ImGui::NextColumn();
-    ImGui::Separator();
-
-    if (pProgramState->settingsErrors != 0)
-    {
-      for (int i = 0; i < vcSE_Count; ++i)
-      {
-        if (pProgramState->settingsErrors & (1 << i))
-          ImGui::TextColored(settingsErrorColours[i], "%s", vcString::Get(settingsErrors[i]));
-      }
-    }
-    else
-    {
-      ImGui::Text("%s", "");
-    }
-
-    ImGui::NextColumn();
-
-    if (categoryMapping[pProgramState->activeSetting] != vcSC_Count && (ImGui::Button(udTempStr("%s##CategoryRestore", vcString::Get("settingsRestoreDefaults")), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Load)))
-    {
-      vcSettings_Load(&pProgramState->settings, true, categoryMapping[pProgramState->activeSetting]);
-      if (categoryMapping[pProgramState->activeSetting] == vcSC_MapsElevation)
-      {
-        if (pProgramState->tileModal.pServerIcon != nullptr)
-          vcTexture_Destroy(&pProgramState->tileModal.pServerIcon);
-        vcRender_ClearTiles(pProgramState->pRenderContext); // refresh map tiles since they just got updated
-      }
-      vcHotkey::ClearState();
-    }
-
     ImGui::EndColumns();
     ImGui::Separator();
 
     if (ImGui::BeginChild("__settingsPane"))
     {
-      ImGui::Columns(2);
+      ImGui::BeginColumns("###settingsColumns", 2, ImGuiColumnsFlags_NoResize);
 
       ImGui::SetColumnWidth(0, 200.f);
 
@@ -177,6 +106,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
       {
         if (pProgramState->activeSetting == vcSR_Appearance)
         {
+          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsAppearance"), vcSC_Appearance);
+
           vcSettingsUI_LangCombo(pProgramState);
           ImGui::SameLine();
           ImGui::TextUnformatted(vcString::Get("settingsAppearanceLanguage"));
@@ -199,6 +130,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
           if (ImGui::SliderFloat(vcString::Get("settingsAppearancePOIDistance"), &pProgramState->settings.presentation.POIFadeDistance, vcSL_POIFaderMin, vcSL_POIFaderMax, "%.3fm", 3.f))
             pProgramState->settings.presentation.POIFadeDistance = udClamp(pProgramState->settings.presentation.POIFadeDistance, vcSL_POIFaderMin, vcSL_GlobalLimitf);
+          ImGui::SliderFloat(vcString::Get("settingsAppearanceImageRescale"), &pProgramState->settings.presentation.imageRescaleDistance, vcSL_ImageRescaleMin, vcSL_ImageRescaleMax, "%.3fm", 3.f);
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowDiagnostics"), &pProgramState->settings.presentation.showDiagnosticInfo);
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowEuclideonLogo"), &pProgramState->settings.presentation.showEuclideonLogo);
           ImGui::Checkbox(vcString::Get("settingsAppearanceAdvancedGIS"), &pProgramState->settings.presentation.showAdvancedGIS);
@@ -232,10 +164,16 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
           const char *voxelOptions[] = { vcString::Get("settingsAppearanceRectangles"), vcString::Get("settingsAppearanceCubes"), vcString::Get("settingsAppearancePoints") };
           ImGui::Combo(vcString::Get("settingsAppearanceVoxelShape"), &pProgramState->settings.presentation.pointMode, voxelOptions, (int)udLengthOf(voxelOptions));
+
+          const char *layoutOptions[] = { vcString::Get("settingsAppearanceWindowLayoutScSx"), vcString::Get("settingsAppearanceWindowLayoutSxSc") };
+          if (ImGui::Combo(vcString::Get("settingsAppearanceWindowLayout"), (int*)&pProgramState->settings.presentation.layout, layoutOptions, (int)udLengthOf(layoutOptions)))
+            pProgramState->settings.presentation.columnSizeCorrect = false;
         }
 
         if (pProgramState->activeSetting == vcSR_Inputs)
         {
+          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsControls"), vcSC_InputControls);
+
           ImGui::Checkbox(vcString::Get("settingsControlsOSC"), &pProgramState->settings.onScreenControls);
           if (ImGui::Checkbox(vcString::Get("settingsControlsTouchUI"), &pProgramState->settings.window.touchscreenFriendly))
           {
@@ -265,6 +203,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
         if (pProgramState->activeSetting == vcSR_Viewports)
         {
+          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsViewport"), vcSC_Viewport);
+
           const char *lensNameArray[] = {
             vcString::Get("settingsViewportCameraLensCustom"),
             vcString::Get("settingsViewportCameraLens15mm"),
@@ -314,6 +254,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
         if (pProgramState->activeSetting == vcSR_Maps)
         {
+          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsMaps"), vcSC_MapsElevation);
+
           ImGui::Checkbox(vcString::Get("settingsMapsMapTiles"), &pProgramState->settings.maptiles.mapEnabled);
 
           if (pProgramState->settings.maptiles.mapEnabled)
@@ -353,8 +295,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
         if (pProgramState->activeSetting == vcSR_Visualisations)
         {
-          ImGui::ColorEdit4(vcString::Get("settingsVisHighlightColour"), &pProgramState->settings.objectHighlighting.colour.x);
-          ImGui::SliderFloat(vcString::Get("settingsVisHighlightThickness"), &pProgramState->settings.objectHighlighting.thickness, 1.0f, 3.0f);
+          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsVis"), vcSC_Visualization);
 
           const char *visualizationModes[] = { vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacement") };
           ImGui::Combo(vcString::Get("settingsVisDisplayMode"), (int*)&pProgramState->settings.visualization.mode, visualizationModes, (int)udLengthOf(visualizationModes));
@@ -446,6 +387,14 @@ void vcSettingsUI_Show(vcState *pProgramState)
             }
           }
 
+          // Selected Object Highlighting
+          ImGui::Checkbox(vcString::Get("settingsVisObjectHighlight"), &pProgramState->settings.objectHighlighting.enable);
+          if (pProgramState->settings.objectHighlighting.enable)
+          {
+            ImGui::ColorEdit4(vcString::Get("settingsVisHighlightColour"), &pProgramState->settings.objectHighlighting.colour.x);
+            ImGui::SliderFloat(vcString::Get("settingsVisHighlightThickness"), &pProgramState->settings.objectHighlighting.thickness, 1.0f, 3.0f);
+          }
+
           // Post visualization - Edge Highlighting
           ImGui::Checkbox(vcString::Get("settingsVisEdge"), &pProgramState->settings.postVisualization.edgeOutlines.enable);
           if (pProgramState->settings.postVisualization.edgeOutlines.enable)
@@ -505,12 +454,20 @@ void vcSettingsUI_Show(vcState *pProgramState)
         }
 
         if (pProgramState->activeSetting == vcSR_KeyBindings)
+        {
+          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("bindingsTitle"), vcSC_Bindings);
+
           vcHotkey::DisplayBindings(pProgramState);
+        }
         else
+        {
           vcHotkey::ClearState();
+        }
 
         if (pProgramState->activeSetting == vcSR_ConvertDefaults)
         {
+          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsConvert"), vcSC_Convert);
+
           // Temp directory
           vcIGSW_FilePicker(pProgramState, vcString::Get("convertTempDirectory"), pProgramState->settings.convertdefaults.tempDirectory, udLengthOf(pProgramState->settings.convertdefaults.tempDirectory), nullptr, 0, vcFDT_SelectDirectory, [pProgramState] {
             // Nothing needs to happen here
@@ -581,6 +538,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
         if (pProgramState->activeSetting == vcSR_Connection)
         {
+          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsConnection"), vcSC_Connection);
+
           // Make sure its actually off before doing the auto-proxy check
           if (ImGui::Checkbox(vcString::Get("loginProxyAutodetect"), &pProgramState->settings.loginInfo.autoDetectProxy) && pProgramState->settings.loginInfo.autoDetectProxy)
             vcProxyHelper_AutoDetectProxy(pProgramState);

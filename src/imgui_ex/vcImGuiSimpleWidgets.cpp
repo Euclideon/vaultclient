@@ -9,6 +9,7 @@
 
 #include "vcState.h"
 #include "vcStrings.h"
+#include "vcHotkey.h"
 
 struct vcIGSWResizeContainer
 {
@@ -92,7 +93,7 @@ void vcIGSW_FilePicker(vcState *pProgramState, const char *pLabel, char *pBuffer
   float itemSize = ImGui::GetNextItemWidth();
   ImGui::SetNextItemWidth(itemSize - ButtonWidth + 3.f);
 
-  if (ImGui::InputText(udTempStr("##%s_fpicker", pLabel), pBuffer, bufferSize))
+  if (ImGui::InputText(udTempStr("##%s_fpicker", pLabel), pBuffer, bufferSize) && onChange != nullptr)
     onChange();
 
   if (ImGui::BeginPopupContextItem())
@@ -103,7 +104,9 @@ void vcIGSW_FilePicker(vcState *pProgramState, const char *pLabel, char *pBuffer
     if (ImGui::MenuItem("Paste"))
     {
       udStrcpy(pBuffer, bufferSize, ImGui::GetClipboardText());
-      onChange();
+
+      if (onChange != nullptr)
+        onChange();
     }
 
     ImGui::EndPopup();
@@ -112,7 +115,9 @@ void vcIGSW_FilePicker(vcState *pProgramState, const char *pLabel, char *pBuffer
   ImGui::SameLine(0, 0);
 
   if (ImGui::Button(udTempStr("...##%s_fpicker_openmore", pLabel)))
-    vcFileDialog_Show(&pProgramState->fileDialog, pBuffer, bufferSize, ppExtensions, numExtensions, dialogType, onChange);
+    vcFileDialog_Open(pProgramState, pLabel, pBuffer, bufferSize, ppExtensions, numExtensions, dialogType, onChange);
+
+  vcFileDialog_ShowModal(pProgramState);
 
   ImGui::SameLine();
 

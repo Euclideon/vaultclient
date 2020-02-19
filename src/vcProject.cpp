@@ -232,6 +232,9 @@ void vcProject_RemoveSelected(vcState *pProgramState)
 
 bool vcProject_ContainsItem(vdkProjectNode *pParentNode, vdkProjectNode *pItem)
 {
+  if (pParentNode == pItem)
+    return true;
+
   vdkProjectNode *pNode = pParentNode->pFirstChild;
 
   while (pNode != nullptr)

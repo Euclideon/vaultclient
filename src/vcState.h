@@ -179,7 +179,6 @@ struct vcState
   int64_t lastEventTime;
   vcTranslationInfo languageInfo;
   bool showUI;
-  vcDocks changeActiveDock;
 
   int currentKey;
 };

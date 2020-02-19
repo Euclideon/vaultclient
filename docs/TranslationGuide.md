@@ -16,7 +16,9 @@
     - Scene
       - `sceneCameraAttachmentWarning`, `sceneCameraAttachmentDetach`
     - Settings
-      - `settingsVisModeDisplacement`, `settingsVisDisplacementRange`
+      - `settingsVisModeDisplacement`, `settingsVisDisplacementRange`, `settingsVisObjectHighlight`
+    - Errors
+      - `errorUnknown`, `errorCorruptData`, `errorUnsupported`, `errorOpenFailure`, `errorReadFailure`
   - Changed:
     - 
   - Removed:
@@ -221,6 +223,7 @@ Modules are currently:
 - `settingsAppearanceDark`: Dark option for appearance theme and login screen dropdown lists
 - `settingsAppearanceLight`: Light option for appearance theme and login screen  dropdown lists
 - `settingsAppearancePOIDistance`: Label next to slider for setting the maximum distance at which POIs are visible
+- `settingsAppearanceImageRescale`: Label next to slider for setting the distance when images in the scene start to shrink
 - `settingsAppearanceShowDiagnostics`: Label next to the checkbox that toggles the display of diagnostic information in the menu bar
 - `settingsAppearanceShowEuclideonLogo`: Label next to the checkbox that toggles the display of the Euclideon logo over the scene
 - `settingsAppearanceAdvancedGIS`: Label next to the checkbox that toggles the display of advanced GIS settings in the viewport
@@ -239,6 +242,9 @@ Modules are currently:
 - `settingsAppearanceRectangles`: Rectangles option for voxel shape dropdown list
 - `settingsAppearanceCubes`: Cubes option for voxel shape dropdown list
 - `settingsAppearancePoints`: Points option for voxel shape dropdown list
+- `settingsAppearanceWindowLayout`: Label next to combo list to select the layout
+- `settingsAppearanceWindowLayoutScSx`: Combo option for when the user wants the Scene on left and scene explorer on right
+- `settingsAppearanceWindowLayoutSxSc`: Combo option for when the user wants the Scene explorer on left and scene on right
 - `settingsAppearancePresentationUI`: Label for dropdown list to select whether the user interface (UI) is visible in presentation/fullscreen mode
 - `settingsAppearanceHide`: Hide option for presentation UI dropdown list, in fullscreen mode the UI will not be visible
 - `settingsAppearanceShow`: Show option for presentation UI dropdown list, in fullscreen mode the UI will be visible
@@ -300,6 +306,7 @@ Modules are currently:
 
 #### Visualization
 - `settingsVis`: Title of the Visualisation subheading in Settings
+- `settingsVisObjectHighlight`: Label next to checkbox for enabling highlighting selected objects
 - `settingsVisHighlightColour`: Label next to the colour picker for highlighting
 - `settingsVisHighlightThickness`: Label next to slider to select highlight edge thickness
 - `settingsVisDisplayMode`: Label next to dropdown list for selecting how the scene is displayed
@@ -609,7 +616,10 @@ Modules are currently:
 - `sceneExplorerEditName`: Menu option when right-clicking on an item in the Scene Explorer, allows user to change the name of the item
 - `sceneExplorerUseProjection`: Menu option when right-clicking on an item in the Scene Explorer, changes the current SRID to that of the selected scene item
 - `sceneExplorerMoveTo`: Menu option when right-clicking on an item in the Scene Explorer, moves the camera to the location of the selected item
-- `sceneExplorerResetPosition`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to that position if it has been moved
+- `sceneExplorerResetAll`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to that position, orientation and scale if any or all of these have changed
+- `sceneExplorerResetPosition`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to the original position if it has changed
+- `sceneExplorerResetOrientation`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to the original orientation if it has changed
+- `sceneExplorerResetScale`: Menu option when right-clicking on an item in the Scene Explorer that has an original geolocation, will return the object to the original scale if it has changed
 - `sceneExplorerCompareModels`: Menu option when right-clicking on an item in the Scene Explorer that can be compared with another item, a model with displacement values will be generated on disk.
 - `sceneExplorerPathURL`: Label next to the text box containing the path of the currently selected file
 - `sceneExplorerLoadButton`: Label used for the Load button in the Add UDS and Import Project windows which loads the currently selected file and closes the window
@@ -780,6 +790,7 @@ Modules are currently:
 - `bindingsColumnKeyCombination`: Header for key binding key combination column
 - `bindingsColumnDescription`: Header for key binding description column
 - `bindingsErrorBound`: Text warning when user attempts to bind an already bound key combination
+  - {0} the key that it conflicts with
 - `bindingsClear`: Text that displays instead of key combination when key binding isn't set
   
 ##### Bindings Descriptions
@@ -805,3 +816,10 @@ Modules are currently:
 - `bindingsSave`: Key binding description displayed next to Save binding
 - `bindingsLoad`: Key binding description displayed next to Load binding
 - `bindingsUndo`: Key binding description displayed next to Undo binding
+
+##### Errors
+- `errorUnknown`: An unexpected error occurred.
+- `errorCorruptData`: Corrupt data error shown in "Unsupported Files window" when converting files
+- `errorUnsupported`: Unsupported file formats error shown in "Unsupported Files window" when converting files
+- `errorOpenFailure`: Failed to open files error shown in "Unsupported Files window" when converting files
+- `errorReadFailure`: Failed to read files error shown in "Unsupported Files window" when converting files

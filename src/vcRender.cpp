@@ -964,10 +964,8 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
 
     for (size_t i = 0; i < renderData.images.length; ++i)
     {
-      static const double distScalar = 1000.0; // Param
-
       double zScale = 1.0;
-      zScale -= udMag3(pProgramState->camera.position - renderData.images[i]->position) / distScalar;
+      zScale -= udMag3(pProgramState->camera.position - renderData.images[i]->position) / pProgramState->settings.presentation.imageRescaleDistance;
 
       if (zScale < 0) // too far
         continue;
@@ -1089,7 +1087,7 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
 
 bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-  if (pProgramState->settings.objectHighlighting.colour.w == 0.0f) // disabled
+  if (pProgramState->settings.objectHighlighting.colour.w == 0.0f || !pProgramState->settings.objectHighlighting.enable) // disabled
     return false;
 
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);

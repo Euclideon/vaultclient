@@ -17,23 +17,23 @@ struct AsyncTextureLoadInfo
   uint32_t limitTextureSize;
 
   // optional filename to load
-  const char* pFilename;
+  const char *pFilename;
 
   // optional raw data to create pixels from
-  void* pMemory;
+  void *pMemory;
   int64_t memoryLen;
 
   // resulting unpacked pixel data
-  const void* pPixels;
+  const void *pPixels;
   vcTextureFormat format;
   uint32_t width;
   uint32_t height;
 };
 
-void vcTexture_AsyncLoadWorkerThreadWork(void* pTextureLoadInfo)
+void vcTexture_AsyncLoadWorkerThreadWork(void *pTextureLoadInfo)
 {
   udResult result;
-  AsyncTextureLoadInfo* pLoadInfo = (AsyncTextureLoadInfo*)pTextureLoadInfo;
+  AsyncTextureLoadInfo *pLoadInfo = (AsyncTextureLoadInfo*)pTextureLoadInfo;
 
   if (pLoadInfo->pFilename)
     UD_ERROR_CHECK(udFile_Load(pLoadInfo->pFilename, &pLoadInfo->pMemory, &pLoadInfo->memoryLen));
@@ -41,7 +41,7 @@ void vcTexture_AsyncLoadWorkerThreadWork(void* pTextureLoadInfo)
   if (pLoadInfo->pMemory)
   {
     uint32_t width, height, channelCount;
-    uint8_t* pPixels = stbi_load_from_memory((stbi_uc*)pLoadInfo->pMemory, (int)pLoadInfo->memoryLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
+    uint8_t *pPixels = stbi_load_from_memory((stbi_uc *)pLoadInfo->pMemory, (int)pLoadInfo->memoryLen, (int *)&width, (int *)&height, (int *)&channelCount, 4);
     UD_ERROR_NULL(pPixels, udR_InternalError);
 
     pLoadInfo->pPixels = udMemDup(pPixels, width * height * 4, 0, udAF_Zero);
@@ -78,12 +78,12 @@ epilogue:
   udFree(pLoadInfo->pMemory);
 }
 
-void vcTexture_AsyncLoadMainThreadWork(void* pTextureLoadInfo)
+void vcTexture_AsyncLoadMainThreadWork(void *pTextureLoadInfo)
 {
   udResult result;
-  AsyncTextureLoadInfo* pLoadInfo = (AsyncTextureLoadInfo*)pTextureLoadInfo;
+  AsyncTextureLoadInfo *pLoadInfo = (AsyncTextureLoadInfo*)pTextureLoadInfo;
   UD_ERROR_CHECK(pLoadInfo->loadResult);
-  
+
   UD_ERROR_CHECK(vcTexture_Create(pLoadInfo->ppTexture, pLoadInfo->width, pLoadInfo->height, pLoadInfo->pPixels, pLoadInfo->format, pLoadInfo->filterMode, pLoadInfo->hasMips, pLoadInfo->wrapMode));
 
   result = udR_Success;
@@ -99,7 +99,7 @@ epilogue:
   udFree(pLoadInfo->pPixels);
 }
 
-udResult vcTexture_AsyncCreate(vcTexture** ppTexture, udWorkerPool* pPool, uint32_t width, uint32_t height, const void* pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, uint32_t limitTextureSize /*= -1*/)
+udResult vcTexture_AsyncCreate(vcTexture **ppTexture, udWorkerPool *pPool, uint32_t width, uint32_t height, const void *pPixels, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Linear*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, uint32_t limitTextureSize /*= -1*/)
 {
   if (ppTexture == nullptr || pPool == nullptr || width == 0 || height == 0 || pPixels == nullptr || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
     return udR_InvalidParameter_;
@@ -107,7 +107,7 @@ udResult vcTexture_AsyncCreate(vcTexture** ppTexture, udWorkerPool* pPool, uint3
   udResult result;
   int pixelBytes = 4; // assumptions
 
-  AsyncTextureLoadInfo* pLoadInfo = udAllocType(AsyncTextureLoadInfo, 1, udAF_Zero);
+  AsyncTextureLoadInfo *pLoadInfo = udAllocType(AsyncTextureLoadInfo, 1, udAF_Zero);
   UD_ERROR_NULL(pLoadInfo, udR_MemoryAllocationFailure);
 
   pLoadInfo->ppTexture = ppTexture;
@@ -155,14 +155,14 @@ epilogue:
   return result;
 }
 
-udResult vcTexture_AsyncCreateFromMemory(vcTexture** ppTexture, udWorkerPool* pPool, void* pFileData, size_t fileLength, vcTextureFilterMode filterMode /*= vcTFM_Linear */, bool hasMipmaps /*= false */, vcTextureWrapMode wrapMode /*= vcTWM_Repeat */, uint32_t limitTextureSize /*= -1*/)
+udResult vcTexture_AsyncCreateFromMemory(vcTexture **ppTexture, udWorkerPool *pPool, void *pFileData, size_t fileLength, vcTextureFilterMode filterMode /*= vcTFM_Linear */, bool hasMipmaps /*= false */, vcTextureWrapMode wrapMode /*= vcTWM_Repeat */, uint32_t limitTextureSize /*= -1*/)
 {
   if (ppTexture == nullptr || pPool == nullptr || pFileData == nullptr || fileLength == 0)
     return udR_InvalidParameter_;
 
   udResult result;
 
-  AsyncTextureLoadInfo* pLoadInfo = udAllocType(AsyncTextureLoadInfo, 1, udAF_Zero);
+  AsyncTextureLoadInfo *pLoadInfo = udAllocType(AsyncTextureLoadInfo, 1, udAF_Zero);
   UD_ERROR_NULL(pLoadInfo, udR_MemoryAllocationFailure);
 
   pLoadInfo->ppTexture = ppTexture;

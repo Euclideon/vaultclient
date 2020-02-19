@@ -100,7 +100,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
   if (!pSettings->noLocalStorage && pSettings->pSaveFilePath == nullptr)
     vcSettings_InitializePrefPath(pSettings);
 
-  if (!forceReset && pSettings->docksLoaded != vcSettings::vcDockLoaded::vcDL_ForceReset && pSettings->pSaveFilePath != nullptr)
+  if (!forceReset && pSettings->pSaveFilePath != nullptr)
   {
     char buffer[vcMaxPathLength];
     udSprintf(buffer, "%ssettings.json", pSettings->pSaveFilePath);
@@ -119,7 +119,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_All || group == vcSC_Appearance)
   {
-    // Misc Settings
+    pSettings->window.useNativeUI = data.Get("window.showNativeUI").AsBool();
+    udStrcpy(pSettings->window.languageCode, data.Get("window.language").AsString("enAU"));
     pSettings->presentation.styleIndex = data.Get("style").AsInt(1); // dark style by default
 
     pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
@@ -134,12 +135,13 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.mouseAnchor = (vcAnchorStyle)data.Get("mouseAnchor").AsInt(vcAS_Orbit);
     pSettings->presentation.showCompass = data.Get("showCompass").AsBool(true);
     pSettings->presentation.POIFadeDistance = data.Get("POIfadeDistance").AsFloat(10000.f);
+    pSettings->presentation.imageRescaleDistance = data.Get("ImageRescaleDistance").AsFloat(10000.f);
     pSettings->presentation.limitFPSInBackground = data.Get("limitFPSInBackground").AsBool(true);
     pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
+    pSettings->presentation.layout = (vcWindowLayout)data.Get("layout").AsInt(vcWL_SceneLeft);
+    pSettings->presentation.sceneExplorerSize = data.Get("layoutSceneExplorerSize").AsInt(350);
+    pSettings->presentation.columnSizeCorrect = false;
     pSettings->responsiveUI = (vcPresentationMode)data.Get("responsiveUI").AsInt(vcPM_Hide);
-
-    pSettings->objectHighlighting.colour = data.Get("objectHighlighting.colour").AsFloat4(udFloat4::create(0.925f, 0.553f, 0.263f, 1.0f));
-    pSettings->objectHighlighting.thickness = data.Get("objectHighlighting.thickness").AsFloat(2.0f);
 
     switch (pSettings->presentation.styleIndex)
     {
@@ -195,6 +197,10 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_All || group == vcSC_Visualization)
   {
+    pSettings->objectHighlighting.enable = data.Get("objectHighlighting.enable").AsBool(true);
+    pSettings->objectHighlighting.colour = data.Get("objectHighlighting.colour").AsFloat4(udFloat4::create(0.925f, 0.553f, 0.263f, 1.0f));
+    pSettings->objectHighlighting.thickness = data.Get("objectHighlighting.thickness").AsFloat(2.0f);
+
     pSettings->visualization.mode = (vcVisualizatationMode)data.Get("visualization.mode").AsInt(0);
     pSettings->postVisualization.edgeOutlines.enable = data.Get("postVisualization.edgeOutlines.enabled").AsBool(false);
     pSettings->postVisualization.colourByHeight.enable = data.Get("postVisualization.colourByHeight.enabled").AsBool(false);
@@ -287,6 +293,13 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     vcHotkey::Set(vcB_Undo, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Undo)).AsInt(1053));
   }
 
+  if (group == vcSC_All || group == vcSC_Connection)
+  {
+    udStrcpy(pSettings->loginInfo.proxy, data.Get("login.proxy").AsString());
+    udStrcpy(pSettings->loginInfo.proxyTestURL, data.Get("login.proxyTestURL").AsString("http://vaultmodels.euclideon.com/proxytest"));
+    pSettings->loginInfo.autoDetectProxy = data.Get("login.autodetectproxy").AsBool();
+  }
+
   if (group == vcSC_All)
   {
     // Windows
@@ -306,9 +319,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       pSettings->window.height = data.Get("window.height").AsInt(720);
     }
 
-    pSettings->window.useNativeUI = data.Get("window.showNativeUI").AsBool();
-    udStrcpy(pSettings->window.languageCode, data.Get("window.language").AsString("enAU"));
-
     // Login Info
     pSettings->loginInfo.rememberServer = data.Get("login.rememberServer").AsBool(false);
     if (pSettings->loginInfo.rememberServer)
@@ -318,96 +328,9 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     if (pSettings->loginInfo.rememberUsername)
       udStrcpy(pSettings->loginInfo.username, data.Get("login.username").AsString());
 
-    udStrcpy(pSettings->loginInfo.proxy, data.Get("login.proxy").AsString());
-    udStrcpy(pSettings->loginInfo.proxyTestURL, data.Get("login.proxyTestURL").AsString("http://vaultmodels.euclideon.com/proxytest"));
-    pSettings->loginInfo.autoDetectProxy = data.Get("login.autodetectproxy").AsBool();
-
     // Camera
     pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
     pSettings->camera.lockAltitude = (data.Get("camera.moveMode").AsInt(0) == 1);
-  }
-
-  if (forceReset && (group == vcSC_Docks || group == vcSC_All))
-  {
-    pSettings->docksLoaded = vcSettings::vcDockLoaded::vcDL_ForceReset;
-  }
-  else if (group == vcSC_Docks)
-  {
-    if (data.Get("dock").IsArray())
-    {
-      pSettings->docksLoaded = vcSettings::vcDockLoaded::vcDL_True;
-
-      pSettings->window.windowsOpen[vcDocks_Scene] = data.Get("frames.scene").AsBool(true);
-      pSettings->window.windowsOpen[vcDocks_SceneExplorer] = data.Get("frames.explorer").AsBool(true);
-      pSettings->window.windowsOpen[vcDocks_Convert] = data.Get("frames.convert").AsBool(false);
-
-      udJSONArray *pDocks = data.Get("dock").AsArray();
-      size_t numNodes = pDocks->length;
-
-      ImGui::DockContextClearNodes(GImGui, 0, true);
-
-      ImGuiDockNodeSettings *pDockNodes = udAllocType(ImGuiDockNodeSettings, numNodes, udAF_Zero);
-
-      for (size_t i = 0; i < pDocks->length; ++i)
-      {
-        udJSON *pDock = pDocks->GetElement(i);
-
-        pDockNodes[i].ID = pDock->Get("id").AsInt();
-        pDockNodes[i].Pos = ImVec2ih((short)pDock->Get("x").AsInt(), (short)pDock->Get("y").AsInt());
-        pDockNodes[i].Size = ImVec2ih((short)pDock->Get("w").AsInt(), (short)pDock->Get("h").AsInt());
-        pDockNodes[i].SizeRef = ImVec2ih((short)pDock->Get("wr").AsInt(), (short)pDock->Get("hr").AsInt());
-
-        if (pDock->Get("parent").IsNumeric())
-          pDockNodes[i].ParentID = pDock->Get("parent").AsInt();
-
-        if (pDock->Get("split").IsString())
-          pDockNodes[i].SplitAxis = (*(pDock->Get("split").AsString()) == 'X') ? (signed char)ImGuiAxis_X : (signed char)ImGuiAxis_Y;
-        else
-          pDockNodes[i].SplitAxis = ImGuiAxis_None;
-
-        pDockNodes[i].IsCentralNode = (char)pDock->Get("central").AsInt();
-        pDockNodes[i].IsDockSpace = (char)pDock->Get("dockspace").AsInt();
-        pDockNodes[i].IsHiddenTabBar = (char)pDock->Get("hiddentabbar").AsInt();
-        pDockNodes[i].Depth = (char)pDock->Get("depth").AsInt();
-
-        if (pDock->Get("windows").IsArray())
-        {
-          udJSONArray *pWindows = pDock->Get("windows").AsArray();
-
-          for (size_t j = 0; j < pWindows->length; ++j)
-          {
-            udJSON *pJSONWindow = pWindows->GetElement(j);
-
-            ImGuiWindow* pWindow = ImGui::FindWindowByName(pJSONWindow->Get("name").AsString());
-            if (pWindow)
-            {
-              pWindow->DockId = pDockNodes[i].ID;
-              pWindow->DockOrder = (short)pJSONWindow->Get("index").AsInt();
-              pWindow->Collapsed = pJSONWindow->Get("collapsed").AsBool();
-              if (pJSONWindow->Get("visible").AsBool())
-              {
-                for (size_t k = 0; k < sizeof(pSettings->pActive); ++k)
-                {
-                  if (pSettings->pActive[k] == nullptr)
-                  {
-                    pSettings->pActive[k] = pWindow;
-                    break;
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      ImGui::DockContextBuildNodesFromSettings(GImGui, pDockNodes, (int)numNodes);
-      udFree(pDockNodes);
-    }
-    else
-    {
-      vcSettings_Load(pSettings, true, vcSC_Docks);
-      goto epilogue;
-    }
   }
 
   if (group == vcSC_Languages || group == vcSC_All)
@@ -438,59 +361,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     udFree(pFileContents);
   }
 
-epilogue:
   udFree(pSavedData);
   return true;
-}
-
-void vcSettings_RecurseDocks(ImGuiDockNode *pNode, udJSON &out, int *pDepth)
-{
-  udJSON data;
-  data.Set("id = %d", (int)pNode->ID);
-  if (pNode->ParentNode)
-    data.Set("parent = %d", (int)pNode->ParentNode->ID);
-
-  data.Set("central = %d", (int)pNode->IsCentralNode());
-  data.Set("dockspace = %d", (int)pNode->IsDockSpace());
-  data.Set("hiddentabbar = %d", (int)pNode->IsHiddenTabBar());
-  data.Set("depth = %d", *pDepth);
-
-  for (int i = 0; i < pNode->Windows.size(); ++i)
-  {
-    udJSON window;
-
-    // Only want the part '###xxxxDock' so any language works
-    const char *pIDName = udStrchr(pNode->Windows[i]->Name, "#");
-
-    window.Set("name = '%s'", pIDName);
-    window.Set("index = %d", i);
-    window.Set("collapsed = %d", (int)pNode->Windows[i]->Collapsed);
-    window.Set("visible = %d", (int)pNode->Windows[i]->DockTabIsVisible);
-
-    data.Set(&window, "windows[]");
-  }
-
-  data.Set("x = %f", pNode->Pos.x);
-  data.Set("y = %f", pNode->Pos.y);
-  data.Set("w = %f", pNode->Size.x);
-  data.Set("h = %f", pNode->Size.y);
-  data.Set("wr = %f", pNode->SizeRef.x);
-  data.Set("hr = %f", pNode->SizeRef.y);
-
-  if (pNode->IsSplitNode())
-    data.Set("split = '%s'", (pNode->SplitAxis == 1) ? "Y" : "X");
-
-  out.Set(&data, "dock[]");
-  ++(*pDepth);
-
-  for (size_t i = 0; i < udLengthOf(pNode->ChildNodes); ++i)
-  {
-    if (pNode->ChildNodes[i] != nullptr)
-    {
-      vcSettings_RecurseDocks(pNode->ChildNodes[i], out, pDepth);
-      --(*pDepth);
-    }
-  }
 }
 
 #if UDPLATFORM_EMSCRIPTEN
@@ -534,9 +406,13 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("showCompass = %s", pSettings->presentation.showCompass ? "true" : "false");
   data.Set("limitFPSInBackground = %s", pSettings->presentation.limitFPSInBackground ? "true" : "false");
   data.Set("POIfadeDistance = %f", pSettings->presentation.POIFadeDistance);
+  data.Set("ImageRescaleDistance = %f", pSettings->presentation.imageRescaleDistance);
   data.Set("pointMode = %d", pSettings->presentation.pointMode);
+  data.Set("layout = %d", pSettings->presentation.layout);
+  data.Set("layoutSceneExplorerSize = %d", pSettings->presentation.sceneExplorerSize);
   data.Set("responsiveUI = %d", pSettings->responsiveUI);
 
+  data.Set("objectHighlighting.enable = %s", pSettings->objectHighlighting.enable ? "true" : "false");
   for (int i = 0; i < 4; i++)
     data.Set("objectHighlighting.colour[] = %f", pSettings->objectHighlighting.colour[i]);
   data.Set("objectHighlighting.thickness = %f", pSettings->objectHighlighting.thickness);
@@ -550,10 +426,6 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("window.touchscreenFriendly = %s", pSettings->window.touchscreenFriendly ? "true" : "false");
   data.Set("window.language = '%s'", pSettings->window.languageCode);
   data.Set("window.showNativeUI = %s", pSettings->window.useNativeUI ? "true" : "false");
-
-  data.Set("frames.scene = %s", pSettings->window.windowsOpen[vcDocks_Scene] ? "true" : "false");
-  data.Set("frames.explorer = %s", pSettings->window.windowsOpen[vcDocks_SceneExplorer] ? "true" : "false");
-  data.Set("frames.convert = %s", pSettings->window.windowsOpen[vcDocks_Convert] ? "true" : "false");
 
   // Login Info
   data.Set("login.rememberServer = %s", pSettings->loginInfo.rememberServer ? "true" : "false");
@@ -674,11 +546,6 @@ bool vcSettings_Save(vcSettings *pSettings)
 
   for (size_t i = 0; i < vcB_Count; ++i)
     data.Set("keys.%s = %d", vcHotkey::GetBindName((vcBind)i), vcHotkey::Get((vcBind)i));
-
-  int depth = 0;
-  ImGuiDockNode *pRootNode = ImGui::DockBuilderGetNode(pSettings->rootDock);
-  if (pRootNode != nullptr && !pRootNode->IsEmpty())
-    vcSettings_RecurseDocks(ImGui::DockNodeGetRootNode(pRootNode), data, &depth);
 
   // Save
   const char *pSettingsStr;
