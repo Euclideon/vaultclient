@@ -629,7 +629,42 @@ void vcModals_DrawProfile(vcState* pProgramState)
 
     ImGui::EndPopup();
   }
+}
 
+void vcModals_DrawConvert(vcState* pProgramState)
+{
+#if VC_HASCONVERT
+  const char *pModalName = udTempStr("%s###convertDock", vcString::Get("convertTitle"));
+  
+  if (pProgramState->openModals & (1 << vcMT_Convert))
+  {
+    ImGui::OpenPopup(pModalName);
+    ImGui::SetNextWindowSize(ImVec2(900, 600), ImGuiCond_FirstUseEver);
+  }
+
+  if (ImGui::BeginPopupModal(pModalName))
+  {
+    pProgramState->modalOpen = true;
+
+    ImGui::Columns(2, NULL, false);
+    ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 125.f);
+
+    ImGui::TextUnformatted(vcString::Get("convertTitle"));
+
+    ImGui::NextColumn();
+    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+      ImGui::CloseCurrentPopup();
+
+    ImGui::EndColumns();
+    ImGui::Separator();
+
+    if (ImGui::BeginChild("__convertPane"))
+      vcConvert_ShowUI(pProgramState);
+    ImGui::EndChild();
+
+    ImGui::EndPopup();
+  }
+#endif
 }
 
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
@@ -650,6 +685,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawImageViewer(pProgramState);
   vcModals_DrawUnsupportedFiles(pProgramState);
   vcModals_DrawProfile(pProgramState);
+  vcModals_DrawConvert(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_LoggedOut) | (1 << vcMT_ProxyAuth));
 }

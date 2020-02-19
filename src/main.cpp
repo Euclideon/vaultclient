@@ -1887,10 +1887,6 @@ float vcMain_MenuGui(vcState *pProgramState)
 
   if (ImGui::BeginMainMenuBar())
   {
-#if VC_HASCONVERT
-    ImGui::MenuItem(vcString::Get("menuConvert"));
-#endif //VC_HASCONVERT
-
     udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
     if (ImGui::BeginMenu(vcString::Get("menuProjects")))
     {
@@ -1973,6 +1969,11 @@ float vcMain_MenuGui(vcState *pProgramState)
 
     if (ImGui::MenuItem("Settings"))
       pProgramState->openSettings = true;
+
+#if VC_HASCONVERT
+    if (ImGui::MenuItem(vcString::Get("menuConvert")))
+      vcModals_OpenModal(pProgramState, vcMT_Convert);
+#endif //VC_HASCONVERT
 
     vcMain_UpdateStatusBar(pProgramState);
 
@@ -2289,16 +2290,6 @@ void vcRenderWindow(vcState *pProgramState)
 
       ImGui::End();
     }
-
-#if VC_HASCONVERT
-    if (!pProgramState->settings.window.isFullscreen)
-    {
-      if (ImGui::Begin(udTempStr("%s###convertDock", vcString::Get("convertTitle"))))
-        vcConvert_ShowUI(pProgramState);
-
-      ImGui::End();
-    }
-#endif //VC_HASCONVERT
   }
 
   vcSettingsUI_Show(pProgramState);
