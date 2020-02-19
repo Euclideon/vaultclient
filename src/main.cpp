@@ -55,12 +55,11 @@
 #include "udUUID.h"
 
 #if UDPLATFORM_EMSCRIPTEN
-#include "vHTTPRequest.h"
-#include <emscripten/threading.h>
-#include <emscripten/emscripten.h>
+# include "vHTTPRequest.h"
+# include <emscripten/threading.h>
+# include <emscripten/emscripten.h>
 #elif UDPLATFORM_WINDOWS
-#include <windows.h>
-#include <shobjidl.h> 
+# include <windows.h>
 #endif
 
 UDCOMPILEASSERT(VDK_MAJOR_VERSION == 0 && VDK_MINOR_VERSION == 5 && VDK_PATCH_VERSION == 0, "This version of VDK is not compatible");
@@ -1897,11 +1896,7 @@ float vcMain_MenuGui(vcState *pProgramState)
         vcModals_OpenModal(pProgramState, vcMT_ExportProject);
 
       if (ImGui::MenuItem(vcString::Get("menuProjectImport"), nullptr, nullptr))
-      {
-        vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_ProjectsImport, vcFDT_OpenFile, [pProgramState]() {
-          pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
-        });
-      }
+        vcModals_OpenModal(pProgramState, vcMT_ImportProject);
 
       ImGui::Separator();
 
@@ -2312,130 +2307,4 @@ void vcRenderWindow(vcState *pProgramState)
 
   vcSettingsUI_Show(pProgramState);
   vcModals_DrawModals(pProgramState);
-
-#if UDPLATFORM_WINDOWS
-  if (pProgramState->settings.window.useNativeUI)
-  {
-    if (pProgramState->fileDialog.showDialog)
-    {
-      HRESULT hr = 0;
-      IFileDialog *pFileOpen = nullptr;
-
-      // Create the FileOpenDialog object.
-      if (pProgramState->fileDialog.dialogType == vcFDT_OpenFile || pProgramState->fileDialog.dialogType == vcFDT_SelectDirectory)
-        hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
-      else // if (pProgramState->fileDialog.dialogType == vcFDT_SaveFile)
-        hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_ALL, IID_IFileSaveDialog, reinterpret_cast<void**>(&pFileOpen));
-
-      if (SUCCEEDED(hr))
-      {
-        if (pProgramState->fileDialog.dialogType == vcFDT_SelectDirectory)
-          hr = pFileOpen->SetOptions(FOS_PICKFOLDERS);
-
-        if (SUCCEEDED(hr))
-        {
-          char extBuffer[1024] = "\0";
-          COMDLG_FILTERSPEC spec = {};
-          udOSString *pOSStr = nullptr;
-
-          if (pProgramState->fileDialog.numExtensions > 0)
-          {
-            for (size_t i = 0; i < pProgramState->fileDialog.numExtensions; ++i)
-            {
-              if (i == 0)
-                udStrcpy(extBuffer, "*");
-              else
-                udStrcat(extBuffer, ";*");
-
-              udStrcat(extBuffer, pProgramState->fileDialog.ppExtensions[i]);
-            }
-
-            pOSStr = new udOSString(extBuffer);
-
-            spec.pszName = L"Any Supported";
-            spec.pszSpec = pOSStr->pWide;
-
-            hr = pFileOpen->SetFileTypes(1U, &spec);
-            hr = pFileOpen->SetDefaultExtension(spec.pszSpec);
-          }
-
-          // Get the file name from the dialog box.
-          if (SUCCEEDED(hr))
-          {
-            // Show the Open dialog box.
-            hr = pFileOpen->Show(NULL);
-
-            if (SUCCEEDED(hr))
-            {
-              IShellItem *pItem = nullptr;
-              hr = pFileOpen->GetResult(&pItem);
-
-              if (SUCCEEDED(hr))
-              {
-                PWSTR pszFilePath = nullptr;
-                hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
-
-                // Display the file name to the user.
-                if (SUCCEEDED(hr))
-                {
-                  udStrcpy(pProgramState->fileDialog.pPath, pProgramState->fileDialog.pathLen, udOSString(pszFilePath).pUTF8);
-                  pProgramState->fileDialog.onSelect();
-                  CoTaskMemFree(pszFilePath);
-                }
-                pItem->Release();
-              }
-            }
-          }
-
-          if (pOSStr != nullptr)
-            delete pOSStr;
-        }
-
-        pFileOpen->Release();
-      }
-
-      memset(&pProgramState->fileDialog, 0, sizeof(vcFileDialog));
-    }
-  }
-  else
-#endif
-  {
-    if (pProgramState->fileDialog.showDialog)
-      ImGui::OpenPopup("_embeddedFileDialog");
-
-    ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-    if (ImGui::BeginPopupModal("_embeddedFileDialog"))
-    {
-      pProgramState->modalOpen = true;
-
-      ImGui::SetNextItemWidth(-270.f);
-      bool loadFile = ImGui::InputText(vcString::Get("convertPathURL"), pProgramState->modelPath, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
-
-      ImGui::SameLine();
-
-      if (ImGui::Button(vcString::Get("convertLoadButton"), ImVec2(100.f, 0)))
-        loadFile = true;
-      ImGui::SameLine();
-
-      if (ImGui::Button(vcString::Get("convertCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
-      {
-        memset(&pProgramState->fileDialog, 0, sizeof(vcFileDialog));
-        ImGui::CloseCurrentPopup();
-      }
-
-      ImGui::Separator();
-
-      if (vcFileDialog_DrawImGui(pProgramState->fileDialog.pPath, pProgramState->fileDialog.pathLen, pProgramState->fileDialog.dialogType, pProgramState->fileDialog.ppExtensions, pProgramState->fileDialog.numExtensions))
-        loadFile = true;
-
-      if (loadFile)
-      {
-        pProgramState->fileDialog.onSelect();
-        memset(&pProgramState->fileDialog, 0, sizeof(vcFileDialog));
-        ImGui::CloseCurrentPopup();
-      }
-
-      ImGui::EndPopup();
-    }
-  }
 }

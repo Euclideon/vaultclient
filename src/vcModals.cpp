@@ -287,9 +287,9 @@ void vcModals_DrawAddSceneItem(vcState *pProgramState)
   {
     pProgramState->modalOpen = true;
 
-    vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_SceneItems, vcFDT_OpenFile, [] {
-      // Do nothing
-    });
+    vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_SceneItems, vcFDT_OpenFile, nullptr);
+
+    ImGui::SameLine();
 
     if (ImGui::Button(vcString::Get("sceneExplorerLoadButton"), ImVec2(100.f, 0)))
     {
@@ -324,9 +324,7 @@ void vcModals_DrawExportProject(vcState *pProgramState)
   {
     pProgramState->modalOpen = true;
     
-    vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, [] {
-      // Do nothing
-    });
+    vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
 
     ImGui::SameLine();
 
@@ -348,6 +346,43 @@ void vcModals_DrawExportProject(vcState *pProgramState)
     ImGui::Separator();
 
     //TODO: Additional export settings
+
+    ImGui::EndPopup();
+  }
+}
+
+void vcModals_DrawImportProject(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_ImportProject))
+    ImGui::OpenPopup(vcString::Get("menuProjectImportTitle"));
+
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("menuProjectImportTitle")))
+  {
+    pProgramState->modalOpen = true;
+
+    vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_ProjectsImport, vcFDT_OpenFile, nullptr);
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("sceneExplorerImportButton"), ImVec2(100.f, 0)))
+    {
+      pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
+      pProgramState->modelPath[0] = '\0';
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    {
+      pProgramState->modelPath[0] = '\0';
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::Separator();
+
+    //TODO: Additional import settings
 
     ImGui::EndPopup();
   }
@@ -680,6 +715,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawTileServer(pProgramState);
   vcModals_DrawAddSceneItem(pProgramState);
   vcModals_DrawExportProject(pProgramState);
+  vcModals_DrawImportProject(pProgramState);
   vcModals_DrawProjectChangeResult(pProgramState);
   vcModals_DrawProjectReadOnly(pProgramState);
   vcModals_DrawImageViewer(pProgramState);

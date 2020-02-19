@@ -401,10 +401,12 @@ void vcConvert_ShowUI(vcState *pProgramState)
     {
       if (ImGui::Button(vcString::Get("convertAddFile"), ImVec2(200, 40)))
       {
-        vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_ConvertImport, vcFDT_OpenFile, [pProgramState] {
+        vcFileDialog_Open(pProgramState, vcString::Get("convertAddFile"), pProgramState->modelPath, SupportedFileTypes_ConvertImport, vcFDT_OpenFile, [pProgramState] {
           vcConvert_QueueFile(pProgramState, pProgramState->modelPath);
         });
       }
+
+      vcFileDialog_ShowModal(pProgramState);
 
       ImGui::SameLine();
 
@@ -610,11 +612,13 @@ void vcConvert_ShowUI(vcState *pProgramState)
         // Watermark
         if (ImGui::Button(vcString::Get("convertLoadWatermark")))
         {
-          vcFileDialog_Show(&pProgramState->fileDialog, pProgramState->modelPath, SupportedFileTypes_Images, vcFDT_OpenFile, [pProgramState] {
+          vcFileDialog_Open(pProgramState, vcString::Get("convertLoadWatermark"), pProgramState->modelPath, SupportedFileTypes_Images, vcFDT_OpenFile, [pProgramState] {
             vdkConvert_AddWatermark(pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext, pProgramState->modelPath);
             pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->watermark.isDirty = true;
           });
         }
+
+        vcFileDialog_ShowModal(pProgramState);
 
         if (pSelectedJob->watermark.pTexture != nullptr)
         {
