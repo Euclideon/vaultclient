@@ -1021,15 +1021,28 @@ const char *const g_ImageRendererFragmentShader = FRAG_HEADER R"shader(
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
     float4 colour : COLOR0;
+    float2 fLogDepth : TEXCOORD1;
   };
 
   sampler sampler0;
   Texture2D texture0;
 
-  float4 main(PS_INPUT input) : SV_Target
+  struct PS_OUTPUT
   {
+    float4 Color0 : SV_Target;
+    float Depth0 : SV_Depth;
+  };
+
+  PS_OUTPUT main(PS_INPUT input)
+  {
+    PS_OUTPUT output;
     float4 col = texture0.Sample(sampler0, input.uv);
-    return col * input.colour;
+    output.Color0 = col * input.colour;
+
+    float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
+    output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;
+
+    return output;
   }
 )shader";
 
@@ -1046,6 +1059,7 @@ const char *const g_ImageRendererMeshVertexShader = VERT_HEADER R"shader(
     float4 pos : SV_POSITION;
     float2 uv  : TEXCOORD0;
     float4 colour : COLOR0;
+    float2 fLogDepth : TEXCOORD1;
   };
 
   cbuffer u_EveryObject : register(b0)
@@ -1062,6 +1076,7 @@ const char *const g_ImageRendererMeshVertexShader = VERT_HEADER R"shader(
     output.pos = mul(u_worldViewProjectionMatrix, float4(input.pos, 1.0));
     output.uv = input.uv;
     output.colour = u_colour;
+    output.fLogDepth.x = 1.0 + output.pos.w;
 
     return output;
   }
@@ -1079,6 +1094,7 @@ const char *const g_ImageRendererBillboardVertexShader = VERT_HEADER R"shader(
     float4 pos : SV_POSITION;
     float2 uv  : TEXCOORD0;
     float4 colour : COLOR0;
+    float2 fLogDepth : TEXCOORD1;
   };
 
   cbuffer u_EveryObject : register(b0)
@@ -1097,6 +1113,7 @@ const char *const g_ImageRendererBillboardVertexShader = VERT_HEADER R"shader(
 
     output.uv = float2(input.uv.x, 1.0 - input.uv.y);
     output.colour = u_colour;
+    output.fLogDepth.x = 1.0 + output.pos.w;
 
     return output;
   }
