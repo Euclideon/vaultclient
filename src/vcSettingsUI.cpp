@@ -557,11 +557,11 @@ void vcSettingsUI_Show(vcState *pProgramState)
           // Resolution
           if (ImGui::Combo(vcString::Get("settingsScreenshotResLabel"), &pProgramState->settings.screenshot.resolutionIndex, ResolutionNames, (int)udLengthOf(ResolutionNames)))
           {
-            if (pProgramState->settings.screenshot.resolutionIndex < udLengthOf(ScreenshotResolutions))
+            if (pProgramState->settings.screenshot.resolutionIndex < (int)udLengthOf(ScreenshotResolutions))
               pProgramState->settings.screenshot.resolution = ScreenshotResolutions[pProgramState->settings.screenshot.resolutionIndex];
           }
 
-          if (pProgramState->settings.screenshot.resolutionIndex == udLengthOf(ScreenshotResolutions))
+          if (pProgramState->settings.screenshot.resolutionIndex == (int)udLengthOf(ScreenshotResolutions))
           {
             ImGui::Indent();
             ImGui::InputInt2(vcString::Get("settingsScreenshotResLabel"), (int*)&pProgramState->settings.screenshot.resolution.x);
