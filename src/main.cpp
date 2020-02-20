@@ -1432,21 +1432,21 @@ void vcRenderSceneWindow(vcState *pProgramState)
   if (pWaterRenderer == nullptr)
   {
     // these points must contiguously define the perimeter
-
-#if 0
-    // THIS WORKS
-    udDouble2 points[] =
-    {
-      udDouble2::create(-1.0, -1.0),
-      udDouble2::create(1.0, -1.0),
-      udDouble2::create(1.0, 1.0),
-      udDouble2::create(-1.0, 1.0)
-    };
-#else
-    udDouble2 *pWater = nullptr;
+    
     size_t pointNum = 0;
     std::vector< std::pair<const udDouble2 *, size_t> > islandPoints;
 
+#if 1
+    // THIS WORKS
+    pointNum = 4;
+    udDouble2 *pWater = udAllocType(udDouble2, pointNum, udAF_Zero);
+    pWater[0] = udDouble2::create(-1.0, -1.0);
+    pWater[1] = udDouble2::create(1.0, -1.0);
+    pWater[2] = udDouble2::create(1.0, 1.0);
+    pWater[3] = udDouble2::create(-1.0, 1.0);
+    
+#else
+    udDouble2 *pWater = nullptr;
     std::ifstream f("wivenhoeDam.txt", std::ifstream::in);
     std::stringstream buffer;
     buffer << f.rdbuf();

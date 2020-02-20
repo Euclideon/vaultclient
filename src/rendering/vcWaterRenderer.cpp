@@ -146,11 +146,11 @@ udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, udDouble2 *p
   udResult result;
 
   vcWaterVolume pVolume = {};
-  std::vector<udDouble2> triangleList;  
-  vcUV2Vertex *pVerts = nullptr; 
-
+  vcUV2Vertex *pVerts = nullptr;
+  std::vector<udDouble2> triangleList;
+  
   // TODO: Consider putting this function work in another thread.
-  if (!vcCDT_ProcessOrignal(pPoints, pointCount, islandPoints
+  if (!vcCDT_Process(pPoints, pointCount, islandPoints
     , pVolume.min
     , pVolume.max
     , pVolume.origin
@@ -160,11 +160,11 @@ udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, udDouble2 *p
     // TODO: Not sure how to handle this as the polygon it generates could still be almost complete.
   }
 
-  pVolume.vertCount = int(triangleList.size());
+  pVolume.vertCount = (int)triangleList.size();
   pVerts = udAllocType(vcUV2Vertex, pVolume.vertCount, udAF_Zero);
   UD_ERROR_NULL(pVerts, udR_MemoryAllocationFailure);
 
-  for (size_t i = 0; i < triangleList.size(); ++i)
+  for (size_t i = 0; i < pVolume.vertCount; ++i)
     pVerts[i].uv = udFloat2::create(triangleList[i]);
 
   UD_ERROR_IF(vcMesh_Create(&pVolume.pMesh, vcP2VertexLayout, (int)udLengthOf(vcP2VertexLayout), pVerts, pVolume.vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
@@ -172,6 +172,7 @@ udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, udDouble2 *p
   UD_ERROR_CHECK(pWaterRenderer->volumes.PushBack(pVolume));
 
   result = udR_Success;
+  
 epilogue:
   udFree(pVerts);
 

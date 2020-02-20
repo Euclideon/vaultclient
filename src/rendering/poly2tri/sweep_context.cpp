@@ -34,159 +34,82 @@
 
 namespace p2t {
 
-SweepContext::SweepContext(const std::vector<Point*>& polyline) : points_(polyline),
-  front_(0),
-  head_(0),
-  tail_(0),
-  af_head_(0),
-  af_middle_(0),
-  af_tail_(0)
-{
-  InitEdges(points_);
-}
-
-void SweepContext::AddHole(const std::vector<Point*>& polyline)
-{
-  InitEdges(polyline);
-  for(unsigned int i = 0; i < polyline.size(); i++) {
-    points_.push_back(polyline[i]);
-  }
-}
-
-void SweepContext::AddPoint(Point* point) {
-  points_.push_back(point);
-}
-
-std::vector<Triangle*> &SweepContext::GetTriangles()
-{
-  return triangles_;
-}
-
-std::list<Triangle*> &SweepContext::GetMap()
-{
-  return map_;
-}
-
-void SweepContext::InitTriangulation()
-{
-  double xmax(points_[0]->x), xmin(points_[0]->x);
-  double ymax(points_[0]->y), ymin(points_[0]->y);
-
-  // Calculate bounds.
-  for (unsigned int i = 0; i < points_.size(); i++) {
-    Point& p = *points_[i];
-    if (p.x > xmax)
-      xmax = p.x;
-    if (p.x < xmin)
-      xmin = p.x;
-    if (p.y > ymax)
-      ymax = p.y;
-    if (p.y < ymin)
-      ymin = p.y;
+  SweepContext::SweepContext() : points_(),
+    front_(0),
+    head_(0),
+    tail_(0),
+    af_head_(0),
+    af_middle_(0),
+    af_tail_(0)
+  {
   }
 
-  double dx = kAlpha * (xmax - xmin);
-  double dy = kAlpha * (ymax - ymin);
-  head_ = new Point(xmax + dx, ymin - dy);
-  tail_ = new Point(xmin - dx, ymin - dy);
-
-  // Sort points along y-axis
-  std::sort(points_.begin(), points_.end(), cmp);
-
-}
-
-void SweepContext::InitEdges(const std::vector<Point*>& polyline)
-{
-  size_t num_points = polyline.size();
-  for (size_t i = 0; i < num_points; i++) {
-    size_t j = i < num_points - 1 ? i + 1 : 0;
-    edge_list.push_back(new Edge(*polyline[i], *polyline[j]));
+  std::list<Triangle *> &SweepContext::GetMap()
+  {
+    return map_;
   }
-}
 
-Point* SweepContext::GetPoint(size_t index)
-{
-  return points_[index];
-}
-
-void SweepContext::AddToMap(Triangle* triangle)
-{
-  map_.push_back(triangle);
-}
-
-Node& SweepContext::LocateNode(const Point& point)
-{
-  // TODO implement search tree
-  return *front_->LocateNode(point.x);
-}
-
-void SweepContext::CreateAdvancingFront()
-{
-
-  // Initial triangle
-  Triangle* triangle = new Triangle(*points_[0], *tail_, *head_);
-
-  map_.push_back(triangle);
-
-  af_head_ = new Node(*triangle->GetPoint(1), *triangle);
-  af_middle_ = new Node(*triangle->GetPoint(0), *triangle);
-  af_tail_ = new Node(*triangle->GetPoint(2));
-  front_ = new AdvancingFront(*af_head_, *af_tail_);
-
-  // TODO: More intuitive if head is middles next and not previous?
-  //       so swap head and tail
-  af_head_->next = af_middle_;
-  af_middle_->next = af_tail_;
-  af_middle_->prev = af_head_;
-  af_tail_->prev = af_middle_;
-}
-
-void SweepContext::RemoveNode(Node* node)
-{
-  delete node;
-}
-
-void SweepContext::MapTriangleToNodes(Triangle& t)
-{
-  for (int i = 0; i < 3; i++) {
-    if (!t.GetNeighbor(i)) {
-      Node* n = front_->LocatePoint(t.PointCW(*t.GetPoint(i)));
-      if (n)
-        n->triangle = &t;
-    }
+  void SweepContext::AddToMap(Triangle *triangle)
+  {
+    map_.push_back(triangle);
   }
-}
 
-void SweepContext::RemoveFromMap(Triangle* triangle)
-{
-  map_.remove(triangle);
-}
+  Node &SweepContext::LocateNode(const Point &point)
+  {
+    // TODO implement search tree
+    return *front_->LocateNode(point.x);
+  }
 
-void SweepContext::MeshClean(Triangle& triangle)
-{
-  std::vector<Triangle *> triangles;
-  triangles.push_back(&triangle);
+  void SweepContext::CreateAdvancingFront()
+  {
+    // Initial triangle
+    Triangle *triangle = new Triangle(*points_[0], *tail_, *head_);
 
-  while(!triangles.empty()){
-	Triangle *t = triangles.back();
-	triangles.pop_back();
+    map_.push_back(triangle);
 
-    if (t != NULL && !t->IsInterior()) {
-      t->IsInterior(true);
-      triangles_.push_back(t);
-      for (int i = 0; i < 3; i++) {
-        if (!t->constrained_edge[i])
-          triangles.push_back(t->GetNeighbor(i));
+    af_head_ = new Node(*triangle->points_[1], *triangle);
+    af_middle_ = new Node(*triangle->points_[0], *triangle);
+    af_tail_ = new Node(*triangle->points_[2]);
+    front_ = new AdvancingFront(*af_head_, *af_tail_);
+
+    // TODO: More intuitive if head is middles next and not previous?
+    //       so swap head and tail
+    af_head_->next = af_middle_;
+    af_middle_->next = af_tail_;
+    af_middle_->prev = af_head_;
+    af_tail_->prev = af_middle_;
+  }
+
+  void SweepContext::RemoveNode(Node *node)
+  {
+    delete node;
+  }
+
+  void SweepContext::MapTriangleToNodes(Triangle &t)
+  {
+    for (int i = 0; i < 3; i++) {
+      if (!t.neighbors_[i]) {
+        Node *n = front_->LocatePoint(t.PointCW(*t.points_[i]));
+        if (n)
+          n->triangle = &t;
       }
     }
   }
-}
 
-SweepContext::~SweepContext()
-{
+  void SweepContext::RemoveFromMap(Triangle *triangle)
+  {
+    map_.remove(triangle);
+  }
 
+  void SweepContext::MeshClean(Triangle &triangle)
+  {
+    std::vector<Triangle *> triangles;
+    triangles.push_back(&triangle);
+  }
+
+  SweepContext::~SweepContext()
+  {
     // Clean up memory
-
     delete head_;
     delete tail_;
     delete front_;
@@ -194,17 +117,10 @@ SweepContext::~SweepContext()
     delete af_middle_;
     delete af_tail_;
 
-    typedef std::list<Triangle*> type_list;
+    for (auto ptr : map_)
+      delete ptr;
+    map_.clear();
 
-    for(type_list::iterator iter = map_.begin(); iter != map_.end(); ++iter) {
-        Triangle* ptr = *iter;
-        delete ptr;
-    }
-
-     for(unsigned int i = 0; i < edge_list.size(); i++) {
-        delete edge_list[i];
-    }
-
-}
+  }
 
 }
