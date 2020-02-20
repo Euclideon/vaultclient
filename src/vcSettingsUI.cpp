@@ -564,11 +564,12 @@ void vcSettingsUI_Show(vcState *pProgramState)
           if (pProgramState->settings.screenshot.resolutionIndex == (int)udLengthOf(ScreenshotResolutions))
           {
             ImGui::Indent();
-            ImGui::InputInt2(vcString::Get("settingsScreenshotResLabel"), (int*)&pProgramState->settings.screenshot.resolution.x);
+            if (ImGui::InputInt2(vcString::Get("settingsScreenshotResLabel"), (int*)&pProgramState->settings.screenshot.resolution.x))
+            {
+              pProgramState->settings.screenshot.resolution.x = udClamp(pProgramState->settings.screenshot.resolution.x, 32u, 16384u);
+              pProgramState->settings.screenshot.resolution.y = udClamp(pProgramState->settings.screenshot.resolution.y, 32u, 16384u);
+            }
             ImGui::Unindent();
-
-            pProgramState->settings.screenshot.resolution.x = udClamp(pProgramState->settings.screenshot.resolution.x, 32u, 16384u);
-            pProgramState->settings.screenshot.resolution.y = udClamp(pProgramState->settings.screenshot.resolution.y, 32u, 16384u);
           }
 
           // Output filename
