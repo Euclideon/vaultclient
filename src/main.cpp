@@ -325,7 +325,7 @@ void vcMain_MainLoop(vcState *pProgramState)
         bool convertDrop = false;
         //TODO: Use ImGui drag and drop on the docks rather than globally here
         ImGuiWindow *pConvert = ImGui::FindWindowByName("###convertDock");
-        if (pConvert != nullptr && ((pConvert->DockNode != nullptr && pConvert->DockTabIsVisible) || (pConvert->DockNode == nullptr && !pConvert->Collapsed)))
+        if (pConvert != nullptr && pConvert->Active && ((pConvert->DockNode != nullptr && pConvert->DockTabIsVisible) || (pConvert->DockNode == nullptr && !pConvert->Collapsed)))
         {
           if (io.MousePos.x < pConvert->Pos.x + pConvert->Size.x && io.MousePos.x > pConvert->Pos.x && io.MousePos.y > pConvert->Pos.y && io.MousePos.y < pConvert->Pos.y + pConvert->Size.y)
             convertDrop = true;
