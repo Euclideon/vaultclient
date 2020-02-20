@@ -849,6 +849,7 @@ const char *const g_ImageRendererFragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec2 v_uv;
   in vec4 v_colour;
+  in float v_fLogDepth;
 
   //Output Format
   out vec4 out_Colour;
@@ -859,6 +860,9 @@ const char *const g_ImageRendererFragmentShader = FRAG_HEADER R"shader(
   {
     vec4 col = texture(u_texture, v_uv);
     out_Colour = col * v_colour;
+
+    float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
+    gl_FragDepth = log2(v_fLogDepth) * halfFcoef;
   }
 )shader";
 
@@ -871,6 +875,7 @@ const char *const g_ImageRendererMeshVertexShader = VERT_HEADER R"shader(
   //Output Format
   out vec2 v_uv;
   out vec4 v_colour;
+  out float v_fLogDepth;
 
   layout (std140) uniform u_EveryObject
   {
@@ -885,6 +890,7 @@ const char *const g_ImageRendererMeshVertexShader = VERT_HEADER R"shader(
 
     v_uv = a_uv;
     v_colour = u_colour;
+    v_fLogDepth = 1.0 + gl_Position.w;
   }
 )shader";
 
@@ -896,6 +902,7 @@ const char *const g_ImageRendererBillboardVertexShader = VERT_HEADER R"shader(
   //Output Format
   out vec2 v_uv;
   out vec4 v_colour;
+  out float v_fLogDepth;
 
   layout (std140) uniform u_EveryObject
   {
@@ -911,6 +918,7 @@ const char *const g_ImageRendererBillboardVertexShader = VERT_HEADER R"shader(
 
     v_uv = vec2(a_uv.x, 1.0 - a_uv.y);
     v_colour = u_colour;
+    v_fLogDepth = 1.0 + gl_Position.w;
   }
 )shader";
 
