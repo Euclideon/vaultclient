@@ -194,7 +194,7 @@ bool vcMain_TakeScreenshot(vcState *pProgramState)
   pTime = localtime(&rawtime);
 #endif
 
-  udSprintf(buffer, "%s%.4d-%.2d-%.2d-%.2d-%.2d-%.2d.png", pProgramState->settings.screenshot.outputPath, 1900+pTime->tm_year, 1+pTime->tm_mon, pTime->tm_mday, pTime->tm_hour, pTime->tm_min, pTime->tm_sec);
+  udSprintf(buffer, "%s/%.4d-%.2d-%.2d-%.2d-%.2d-%.2d.png", pProgramState->settings.screenshot.outputPath, 1900+pTime->tm_year, 1+pTime->tm_mon, pTime->tm_mday, pTime->tm_hour, pTime->tm_min, pTime->tm_sec);
 
   vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pRenderContext), buffer);
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
