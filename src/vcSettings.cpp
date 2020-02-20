@@ -545,7 +545,8 @@ bool vcSettings_Save(vcSettings *pSettings)
   // Screenshots
   data.Set("screenshot.resolution.width = %d", pSettings->screenshot.resolution.x);
   data.Set("screenshot.resolution.height = %d", pSettings->screenshot.resolution.y);
-  data.Set("screenshot.outputName = '%s'", pSettings->screenshot.outputPath);
+  tempNode.SetString(pSettings->screenshot.outputPath);
+  data.Set(&tempNode, "screenshot.outputPath");
 
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");
