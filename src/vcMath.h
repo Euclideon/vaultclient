@@ -154,7 +154,7 @@ static udVector3<T> udGetSphereCenterFromPoints(T ballRadius, udVector3<T> p0, u
 }
 
 template <typename T>
-static T udDistanceToTriangle(udVector3<T> p0, udVector3<T> p1, udVector3<T> p2, udVector3<T> point)
+static T udDistanceToTriangle(udVector3<T> p0, udVector3<T> p1, udVector3<T> p2, udVector3<T> point, udVector3<T> *pclosestPoint = nullptr)
 {
   // See https://math.stackexchange.com/q/544946 for more details
   udVector3<T> u = p1 - p0;
@@ -163,32 +163,59 @@ static T udDistanceToTriangle(udVector3<T> p0, udVector3<T> p1, udVector3<T> p2,
   udVector3<T> w = point - p0;
 
   T gamma = udDot(udCross3(u, w), n) / udDot(n, n);
-  T beta = udDot(udCross3(v, w), n) / udDot(n, n);
+  T beta = udDot(udCross3(w, v), n) / udDot(n, n);
   T alpha = 1 - gamma - beta;
 
-  if (0 <= alpha && alpha <= 1 && 0 <= beta && beta <= 1 && 0 <= gamma && gamma <= 1)
+  if (T(0) <= alpha && alpha <= T(1) && T(0) <= beta && beta <= T(1) && T(0) <= gamma && gamma <= T(1))
   {
+    if (pclosestPoint)
+      *pclosestPoint = point;
     return T(0);
   }
   else
   {
-    // TODO: Determine if point along any edge is closer than the triangle vertices
-    T d0 = udMag3(p0 - point);
-    T d1 = udMag3(p1 - point);
-    T d2 = udMag3(p2 - point);
+    udVector3<T> triangle[3] = { p0, p1, p2 };
+    udVector3<T> bestcp = {};
+    T bestDistSq = T(0);
+    for (int i = 0; i < 3; i++)
+    {
+      udVector3<T> const& origin = triangle[i];
+      udVector3<T> const& direction = triangle[(i + 1) % 3] - origin;
+      udVector3<T> w0 = point - origin;
+      udVector3<T> cp = {};
+      T u0 = T(0);
 
-    if (d0 < d1 && d0 < d2)
-    {
-      return d0;
+      T proj = udDot3(w0, direction);
+      if (proj < T(0))
+      {
+        u0 = T(0);
+      }
+      else
+      {
+        T vsq = udDot(direction, direction);
+        if (proj >= vsq)
+          u0 = T(1);
+        else
+          u0 = (proj / vsq);
+      }
+      cp = origin + u0 * direction;
+      T distSq = udMagSq3(cp - point);
+
+      if (i == 0)
+      {
+        bestcp = cp;
+        bestDistSq = distSq;
+      }
+      else if(distSq < bestDistSq)
+      {
+        bestDistSq = distSq;
+        bestcp = cp;
+      }
     }
-    else if (d1 < d2)
-    {
-      return d1;
-    }
-    else
-    {
-      return d2;
-    }
+
+    if (pclosestPoint)
+      *pclosestPoint = bestcp;
+    return udSqrt(bestDistSq);
   }
 }
 
