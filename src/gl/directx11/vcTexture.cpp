@@ -470,11 +470,19 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
 
   UD_ERROR_IF(g_pd3dDeviceContext->Map(pStagingTexture, 0, D3D11_MAP_READ, 0, &msr) != S_OK, udR_InternalError);
 
-  pPixelData = ((uint32_t *)msr.pData) + (x + y * pTexture->width);
-  for (int i = 0; i < (int)height; ++i)
+  if (x == 0 && y == 0 && width == (uint32_t)pTexture->width && height == (uint32_t)pTexture->height)
   {
-    memcpy((uint8_t*)pPixels + (i * pTexture->width), pPixelData, width * pixelBytes);
-    pPixelData += pTexture->width;
+    pPixelData = (uint32_t*)msr.pData;
+    memcpy((uint8_t*)pPixels, pPixelData, height * width * pixelBytes);
+  }
+  else
+  {
+    pPixelData = ((uint32_t *)msr.pData) + (x + y * pTexture->width);
+    for (int i = 0; i < (int)height; ++i)
+    {
+      memcpy((uint8_t*)pPixels + (i * pTexture->width * pixelBytes), pPixelData, width * pixelBytes);
+      pPixelData += pTexture->width;
+    }
   }
 
 epilogue:

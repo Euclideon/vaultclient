@@ -245,6 +245,7 @@
     "Load": 1039,
     "AddUDS": 1048,
     "BindingsInterface": 1029,
-    "Undo": 1053
+    "Undo": 1053,
+    "TakeScreenshot": 70
   }
 }

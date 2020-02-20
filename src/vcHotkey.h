@@ -37,6 +37,8 @@ enum vcBind
   vcB_AddUDS,
   vcB_BindingsInterface,
   vcB_Undo,
+  vcB_TakeScreenshot,
+
   vcB_Count
 };
 

@@ -568,6 +568,7 @@
   "bindingsCameraDown": "Key to move camera downwards.",
   "bindingsBindingsInterface": "Opens the bindings interface.",
   "bindingsCancel": "Key to trigger cancel or close action.",
+  "bindingsTakeScreenshot": "Take a screen capture",
   "bindingsRenameSceneItem": "Key to rename selected scene item.",
   "bindingsSave": "Key to trigger save action.",
   "bindingsLoad": "Key to trigger load or open action.",
@@ -577,5 +578,14 @@
   "errorCorruptData": "Corrupt data.",
   "errorUnsupported": "Unsupported file formats.",
   "errorOpenFailure": "Failed to open.",
-  "errorReadFailure": "Failed to read."
+  "errorReadFailure": "Failed to read.",
+
+  "settingsScreenshot": "Screenshot",
+  "settingsScreenshotResLabel": "Resolution",
+  "settingsScreenshotRes720p": "720p",
+  "settingsScreenshotRes1080p": "1080p",
+  "settingsScreenshotRes4K": "4K",
+  "settingsScreenshotResCustom": "Custom",
+  "settingsScreenshotFilename": "Filename",
+  "settingsScreenshotView": "View Once Taken"
 }

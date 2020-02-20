@@ -70,6 +70,8 @@ udResult vcTexture_AsyncCreateFromMemory(vcTexture **ppTexture, udWorkerPool *pP
 void vcTexture_Destroy(vcTexture **ppTexture);
 
 udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height);
+udResult vcTexture_SaveImage(vcTexture *pTexture, vcFramebuffer *pFramebuffer, const char *pFilename);
+
 udResult vcTexture_GetSize(vcTexture *pTexture, int *pWidth, int *pHeight);
 
 // If 'pTexture' is created with `AsynchronousRead` flag, BeginReadPixels() / EndReadPixels() will perform

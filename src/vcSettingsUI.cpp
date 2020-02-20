@@ -84,6 +84,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
         change |= ImGui::RadioButton(udTempStr("%s##VisualisationSettings", vcString::Get("settingsVis")), &pProgramState->activeSetting, vcSR_Visualisations);
         change |= ImGui::RadioButton(udTempStr("%s##KeyBindings", vcString::Get("bindingsTitle")), &pProgramState->activeSetting, vcSR_KeyBindings);
         change |= ImGui::RadioButton(udTempStr("%s##ConvertSettings", vcString::Get("settingsConvert")), &pProgramState->activeSetting, vcSR_ConvertDefaults);
+        change |= ImGui::RadioButton(udTempStr("%s##ScreenshotSettings", vcString::Get("settingsScreenshot")), &pProgramState->activeSetting, vcSR_Screenshot);
         change |= ImGui::RadioButton(udTempStr("%s##ConnectionSettings", vcString::Get("settingsConnection")), &pProgramState->activeSetting, vcSR_Connection);
 
         ImGui::Separator();
@@ -534,6 +535,44 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::InputText(vcString::Get("convertComment"), pProgramState->settings.convertdefaults.comment, udLengthOf(pProgramState->settings.convertdefaults.comment));
           ImGui::InputText(vcString::Get("convertCopyright"), pProgramState->settings.convertdefaults.copyright, udLengthOf(pProgramState->settings.convertdefaults.copyright));
           ImGui::InputText(vcString::Get("convertLicense"), pProgramState->settings.convertdefaults.license, udLengthOf(pProgramState->settings.convertdefaults.license));
+        }
+
+        if (pProgramState->activeSetting == vcSR_Screenshot)
+        {
+          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsScreenshot"), vcSC_Screenshot);
+
+          static udUInt2 ScreenshotResolutions[] = { { 1280, 720 }, { 1920, 1080 }, { 4096, 2160 } };
+          static const char* ResolutionNames[] = { vcString::Get("settingsScreenshotRes720p"), vcString::Get("settingsScreenshotRes1080p"), vcString::Get("settingsScreenshotRes4K"), vcString::Get("settingsScreenshotResCustom") };
+          UDCOMPILEASSERT(udLengthOf(ResolutionNames) == udLengthOf(ScreenshotResolutions) + 1, "Update strings!");
+
+          if (pProgramState->settings.screenshot.resolutionIndex != udLengthOf(ScreenshotResolutions))
+          {
+            for (pProgramState->settings.screenshot.resolutionIndex = 0; pProgramState->settings.screenshot.resolutionIndex < (int)udLengthOf(ScreenshotResolutions); ++pProgramState->settings.screenshot.resolutionIndex)
+            {
+              if (pProgramState->settings.screenshot.resolution == ScreenshotResolutions[pProgramState->settings.screenshot.resolutionIndex])
+                break;
+            }
+          }
+
+          // Resolution
+          if (ImGui::Combo(vcString::Get("settingsScreenshotResLabel"), &pProgramState->settings.screenshot.resolutionIndex, ResolutionNames, (int)udLengthOf(ResolutionNames)))
+          {
+            if (pProgramState->settings.screenshot.resolutionIndex < (int)udLengthOf(ScreenshotResolutions))
+              pProgramState->settings.screenshot.resolution = ScreenshotResolutions[pProgramState->settings.screenshot.resolutionIndex];
+          }
+
+          if (pProgramState->settings.screenshot.resolutionIndex == (int)udLengthOf(ScreenshotResolutions))
+          {
+            ImGui::Indent();
+            ImGui::InputInt2(vcString::Get("settingsScreenshotResLabel"), (int*)&pProgramState->settings.screenshot.resolution.x);
+            ImGui::Unindent();
+          }
+
+          // Output filename
+          vcIGSW_FilePicker(pProgramState, vcString::Get("settingsScreenshotFilename"), pProgramState->settings.screenshot.outputPath, udLengthOf(pProgramState->settings.screenshot.outputPath), nullptr, 0, vcFDT_SelectDirectory, nullptr);
+
+          // Show Picture
+          ImGui::Checkbox(vcString::Get("settingsScreenshotView"), &pProgramState->settings.screenshot.viewShot);
         }
 
         if (pProgramState->activeSetting == vcSR_Connection)

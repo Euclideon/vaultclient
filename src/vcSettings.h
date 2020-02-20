@@ -4,6 +4,7 @@
 #include "SDL2/SDL.h"
 
 #include "udPlatform.h"
+#include "udPlatformUtil.h"
 #include "udMath.h"
 #include "udChunkedArray.h"
 #include "udUUID.h"
@@ -71,6 +72,7 @@ enum vcSettingsUIRegions
   vcSR_Visualisations,
   vcSR_KeyBindings,
   vcSR_ConvertDefaults,
+  vcSR_Screenshot,
   vcSR_Connection,
 
   vcSR_ReleaseNotes,
@@ -89,6 +91,7 @@ enum vcSettingCategory
   vcSC_Convert,
   vcSC_Languages,
   vcSC_Bindings,
+  vcSC_Screenshot,
   vcSC_Connection,
 
   vcSC_All
@@ -279,6 +282,19 @@ struct vcSettings
     char copyright[vcMetadataMaxLength];
     char license[vcMetadataMaxLength];
   } convertdefaults;
+
+  struct
+  {
+    bool taking;
+    uint8_t* pPixels;
+
+    bool viewShot;
+
+    int resolutionIndex; // Not saved
+    udUInt2 resolution;
+
+    char outputPath[vcMaxPathLength];
+  } screenshot;
 
   // These are experimental features that will eventually be removed or moved to another setting.
   // They will mostly be exposed via the System->Experiments menu to hide them away from most users

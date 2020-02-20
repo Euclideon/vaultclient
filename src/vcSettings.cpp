@@ -291,6 +291,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     vcHotkey::Set(vcB_AddUDS, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddUDS)).AsInt(1048));
     vcHotkey::Set(vcB_BindingsInterface, data.Get("keys.%s", vcHotkey::GetBindName(vcB_BindingsInterface)).AsInt(1029));
     vcHotkey::Set(vcB_Undo, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Undo)).AsInt(1053));
+    vcHotkey::Set(vcB_TakeScreenshot, data.Get("keys.%s", vcHotkey::GetBindName(vcB_TakeScreenshot)).AsInt(70));
   }
 
   if (group == vcSC_All || group == vcSC_Connection)
@@ -359,6 +360,17 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     }
 
     udFree(pFileContents);
+  }
+
+  if (group == vcSC_Screenshot || group == vcSC_All)
+  {
+    const char *pTempStr = data.Get("screenshot.outputPath").AsString();
+    if (pTempStr == nullptr)
+      udStrcpy(pSettings->screenshot.outputPath, pSettings->pSaveFilePath);
+    else
+      udStrcpy(pSettings->screenshot.outputPath, data.Get("screenshot.outputPath").AsString());
+    pSettings->screenshot.resolution.x = data.Get("screenshot.resolution.width").AsInt(4096); // Defaults to 4K
+    pSettings->screenshot.resolution.y = data.Get("screenshot.resolution.height").AsInt(2160);
   }
 
   udFree(pSavedData);
@@ -529,6 +541,11 @@ bool vcSettings_Save(vcSettings *pSettings)
 
   tempNode.SetString(pSettings->convertdefaults.license);
   data.Set(&tempNode, "convert.license");
+
+  // Screenshots
+  data.Set("screenshot.resolution.width = %d", pSettings->screenshot.resolution.x);
+  data.Set("screenshot.resolution.height = %d", pSettings->screenshot.resolution.y);
+  data.Set("screenshot.outputName = '%s'", pSettings->screenshot.outputPath);
 
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");

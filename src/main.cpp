@@ -7,6 +7,7 @@
 #include "vdkVersion.h"
 
 #include <chrono>
+#include <ctime>
 
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -54,6 +55,8 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 #include "udUUID.h"
+
+#include "udPlatformUtil.h"
 
 #if UDPLATFORM_EMSCRIPTEN
 # include "vHTTPRequest.h"
@@ -163,6 +166,45 @@ void vcMain_PresentationMode(vcState *pProgramState)
 
   if (pProgramState->settings.responsiveUI == vcPM_Responsive)
     pProgramState->lastEventTime = udGetEpochSecsUTCd();
+}
+
+bool vcMain_TakeScreenshot(vcState *pProgramState)
+{
+  pProgramState->settings.screenshot.taking = true;
+
+  if (pProgramState == nullptr)
+    return false;
+
+  udInt2 currSize = udInt2::zero();
+  vcTexture_GetSize(pProgramState->screenshot.pImage, &currSize.x, &currSize.y);
+
+  if (currSize.x - pProgramState->settings.screenshot.resolution.x > 32 || currSize.y - pProgramState->settings.screenshot.resolution.y > 32)
+    return true;
+
+  char buffer[vcMaxPathLength];
+  time_t rawtime;
+  tm timeval;
+  tm *pTime = &timeval;
+
+#if UDPLATFORM_WINDOWS
+  time(&rawtime);
+  localtime_s(&timeval, &rawtime);
+#else
+  time(&rawtime);
+  pTime = localtime(&rawtime);
+#endif
+
+  udSprintf(buffer, "%s%.4d-%.2d-%.2d-%.2d-%.2d-%.2d.png", pProgramState->settings.screenshot.outputPath, 1900+pTime->tm_year, 1+pTime->tm_mon, pTime->tm_mday, pTime->tm_hour, pTime->tm_min, pTime->tm_sec);
+
+  vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pRenderContext), buffer);
+  vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+
+  if (pProgramState->settings.screenshot.viewShot)
+    pProgramState->pLoadImage = udStrdup(buffer);
+
+  pProgramState->settings.screenshot.taking = false;
+
+  return true;
 }
 
 void vcMain_LoadSettings(vcState *pProgramState)
@@ -303,6 +345,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
   ImGuiIO &io = ImGui::GetIO();
   io.KeysDown[SDL_SCANCODE_BACKSPACE] = false;
+  io.KeysDown[SDL_SCANCODE_PRINTSCREEN] = false;
 
   if (vcHotkey::IsPressed(vcB_BindingsInterface))
   {
@@ -549,6 +592,9 @@ void vcMain_MainLoop(vcState *pProgramState)
         vcTexture_Create(&pProgramState->image.pImage, pProgramState->image.width, pProgramState->image.height, pImg);
 
         stbi_image_free(pImg);
+
+        pProgramState->image.width = pProgramState->sceneResolution.x;
+        pProgramState->image.height = pProgramState->sceneResolution.y;
       }
 
       udFree(pFileData);
@@ -777,6 +823,7 @@ int main(int argc, char **args)
   programState.showUI = true;
   programState.passFocus = true;
   programState.renaming = -1;
+  programState.settings.screenshot.taking = false;
 
   programState.sceneExplorer.insertItem.pParent = nullptr;
   programState.sceneExplorer.insertItem.pItem = nullptr;
@@ -1426,7 +1473,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 
   udDouble3 cameraMoveOffset = udDouble3::zero();
 
-  if (pProgramState->sceneResolution.x != windowSize.x || pProgramState->sceneResolution.y != windowSize.y) //Resize buffers
+  if (!pProgramState->settings.screenshot.taking && (pProgramState->sceneResolution.x != windowSize.x || pProgramState->sceneResolution.y != windowSize.y)) //Resize buffers
   {
     pProgramState->sceneResolution = udUInt2::create((uint32_t)windowSize.x, (uint32_t)windowSize.y);
     vcRender_ResizeScene(pProgramState, pProgramState->pRenderContext, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y);
@@ -1435,9 +1482,17 @@ void vcRenderSceneWindow(vcState *pProgramState)
     // this isn't valid on iOS when using UIKit.
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
+  else if (pProgramState->settings.screenshot.taking && pProgramState->sceneResolution != pProgramState->settings.screenshot.resolution)
+  {
+    pProgramState->sceneResolution = pProgramState->settings.screenshot.resolution;
+
+    vcRender_ResizeScene(pProgramState, pProgramState->pRenderContext, pProgramState->settings.screenshot.resolution.x, pProgramState->settings.screenshot.resolution.y);
+    vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+  }
 
   if (!pProgramState->modalOpen && (vcHotkey::IsPressed(vcB_Fullscreen) || ImGui::IsNavInputPressed(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released)))
     vcMain_PresentationMode(pProgramState);
+
   if (pProgramState->settings.responsiveUI == vcPM_Show)
     pProgramState->showUI = true;
 
@@ -1458,10 +1513,13 @@ void vcRenderSceneWindow(vcState *pProgramState)
     // Actual rendering to this texture is deferred
     ImGui::ImageButton(renderData.pSceneTexture, windowSize, uv0, uv1, 0);
 
-    static bool wasContextMenuOpenLastFrame = false;
-    bool selectItem = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
+    if (pProgramState->settings.screenshot.taking)
+      pProgramState->screenshot.pImage = renderData.pSceneTexture;
 
-    if (io.MouseDownDurationPrev[1] < 0.1 && (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
+    static bool wasContextMenuOpenLastFrame = false;
+    bool selectItem = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold*io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
+ 
+    if (io.MouseDownDurationPrev[1] < 0.1 && (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
     {
       static bool hadMouse = false;
       static udDouble3 mousePosCartesian;
@@ -2212,6 +2270,9 @@ void vcRenderWindow(vcState *pProgramState)
   if (io.KeyAlt && ImGui::IsKeyPressed(SDL_SCANCODE_F4))
     pProgramState->programComplete = true;
 #endif
+
+  if (vcHotkey::IsPressed(vcB_TakeScreenshot) || pProgramState->settings.screenshot.taking)
+    vcMain_TakeScreenshot(pProgramState);
 
   //end keyboard/mouse handling
 
