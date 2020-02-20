@@ -170,7 +170,7 @@ void vcMain_PresentationMode(vcState *pProgramState)
 
 bool vcMain_TakeScreenshot(vcState *pProgramState)
 {
-  pProgramState->settings.screenshot.taking = true;
+  pProgramState->settings.screenshot.taking = false;
 
   if (pProgramState == nullptr)
     return false;
@@ -202,7 +202,6 @@ bool vcMain_TakeScreenshot(vcState *pProgramState)
   if (pProgramState->settings.screenshot.viewShot)
     pProgramState->pLoadImage = udStrdup(buffer);
 
-  pProgramState->settings.screenshot.taking = false;
 
   return true;
 }
@@ -2271,8 +2270,14 @@ void vcRenderWindow(vcState *pProgramState)
     pProgramState->programComplete = true;
 #endif
 
-  if (vcHotkey::IsPressed(vcB_TakeScreenshot) || pProgramState->settings.screenshot.taking)
+
+  // screenshot waits an entire frame to allow correct setup
+  if (pProgramState->settings.screenshot.taking)
     vcMain_TakeScreenshot(pProgramState);
+
+  if (vcHotkey::IsPressed(vcB_TakeScreenshot))
+    pProgramState->settings.screenshot.taking = true;
+
 
   //end keyboard/mouse handling
 
