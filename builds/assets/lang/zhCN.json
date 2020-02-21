@@ -580,6 +580,7 @@
   "bindingsCameraDown": "向下移动相机。",
   "bindingsBindingsInterface": "打开快捷键设置对话框",
   "bindingsCancel": "关闭当前弹出窗口。",
+  "bindingsTakeScreenshot": "截图",
   "bindingsRenameSceneItem": "重命名所选场景对象",
   "bindingsSave": "保存键绑定。",
   "bindingsLoad": "加载键绑定。",
@@ -589,5 +590,14 @@
   "errorCorruptData": "数据损坏",
   "errorUnsupported": "文件格式不支持",
   "errorOpenFailure": "打开文件失败",
-  "errorReadFailure": "读取文件失败"
+  "errorReadFailure": "读取文件失败",
+
+  "settingsScreenshot": "截图",
+  "settingsScreenshotResLabel": "分辨率",
+  "settingsScreenshotRes720p": "720p",
+  "settingsScreenshotRes1080p": "1080p",
+  "settingsScreenshotRes4K": "4K",
+  "settingsScreenshotResCustom": "自定义",
+  "settingsScreenshotFilename": "更改保存目录",
+  "settingsScreenshotView": "立即查看"
 }
