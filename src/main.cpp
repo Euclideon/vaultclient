@@ -1506,10 +1506,11 @@ void vcRenderSceneWindow(vcState *pProgramState)
   if (!pProgramState->modalOpen && (vcHotkey::IsPressed(vcB_Fullscreen) || ImGui::IsNavInputPressed(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released)))
     vcMain_PresentationMode(pProgramState);
 
-  if (pProgramState->settings.responsiveUI == vcPM_Show)
-    pProgramState->showUI = true;
+  bool showUI = true;
+  if (pProgramState->settings.window.isFullscreen)
+    showUI = (pProgramState->settings.responsiveUI != vcPM_Hide);
 
-  if (!pProgramState->settings.window.isFullscreen || pProgramState->settings.responsiveUI == vcPM_Show || pProgramState->showUI)
+  if (showUI)
     vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
 
   {
