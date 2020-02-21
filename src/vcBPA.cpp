@@ -1057,7 +1057,7 @@ void vcBPA_ConvertDestroy(vdkConvertCustomItem *pConvertInput)
   udFree(pConvertInput->pData);
 }
 
-void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius, const char *pName)
+void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius, double gridSize, const char *pName)
 {
   vcConvertItem *pConvertItem = nullptr;
   vcConvert_AddEmptyJob(pProgramState, &pConvertItem);
@@ -1071,7 +1071,7 @@ void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPo
   pBPA->pConvertItem = pConvertItem;
   pBPA->running = true;
   pBPA->ballRadius = ballRadius;
-  pBPA->gridSize = 1; // metres
+  pBPA->gridSize = gridSize; // metres
 
   vdkPointCloudHeader header = {};
   vdkPointCloud_GetHeader(pNewModel, &header);
@@ -1118,8 +1118,8 @@ void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPo
   }
 
   item.sourceResolution = header.convertedResolution;
-  item.pointCount = metadata.Get("SourcePointCount").AsInt64();
-  item.pointCountIsEstimate = false;
+  item.pointCount = metadata.Get("UniquePointCount").AsInt64(); // This will need a small scale applied (~1.2 seems to be correct for models pfox tested)
+  item.pointCountIsEstimate = true;
   item.pData = pBPA;
   item.pOpen = vcBPA_ConvertOpen;
   item.pReadPointsFloat = vcBPA_ConvertReadPoints;

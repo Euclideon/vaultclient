@@ -4,6 +4,7 @@
 #include "vcRender.h"
 #include "vcBPA.h"
 #include "vcStringFormat.h"
+#include "vcModals.h"
 
 #include "gl/vcTexture.h"
 
@@ -376,50 +377,26 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
   vcImGuiValueTreeObject(&m_metadata);
 }
 
-void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode)
+void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode, vcModel **ppCurrentSelectedModel)
 {
-  udUnused(pProgramState);
-  udUnused(pParentNode);
-
-#if VC_HASCONVERT
   vdkProjectNode *pChildNode = pParentNode->pFirstChild;
   while (pChildNode != nullptr)
   {
     if (pChildNode->itemtype == vdkPNT_Folder)
     {
-      ContextMenuListModels(pProgramState, pChildNode);
+      ContextMenuListModels(pProgramState, pChildNode, ppCurrentSelectedModel);
     }
     else if (pChildNode->itemtype == vdkPNT_PointCloud && pChildNode->pUserData != this)
     {
-      //udTempStr("%s###SXIName%zu", pNode->pName, *pItemID)
-      if (ImGui::Selectable(pChildNode->pName))
-      {
-        vcModel *pOldModel = (vcModel *)pChildNode->pUserData;
-        const double ballRadius = 0.15; // TODO: Expose this to the user
+      if (*ppCurrentSelectedModel == nullptr) // If nothing is selected, it will pick the first thing it can
+        *ppCurrentSelectedModel = (vcModel *)pChildNode->pUserData;
 
-        char newName[vcMaxPathLength] = {};
-        char oldName[vcMaxPathLength] = {};
-        udFilename(this->m_pNode->pName).ExtractFilenameOnly(newName, sizeof(newName));
-        udFilename(pOldModel->m_pNode->pName).ExtractFilenameOnly(oldName, sizeof(oldName));
-
-        const char *pNameBuffer = nullptr;
-        udSprintf(&pNameBuffer, "Displacement_%s_%s", oldName, newName);
-        udFilename temp;
-        temp.SetFromFullPath(this->m_pNode->pURI);
-        temp.SetFilenameNoExt(pNameBuffer);
-        const char *pName = udStrdup(temp.GetPath());
-
-        udWorkerPoolCallback callback = [this, pProgramState, pOldModel, ballRadius, pName](void*)
-        {
-          vcBPA_CompareExport(pProgramState, pOldModel->m_pPointCloud, this->m_pPointCloud, ballRadius, pName);
-        };
-        udWorkerPool_AddTask(pProgramState->pWorkerPool, callback, nullptr, false);
-      }
+      if (ImGui::MenuItem(pChildNode->pName, nullptr, (pChildNode->pUserData == *ppCurrentSelectedModel)))
+        *ppCurrentSelectedModel = (vcModel *)pChildNode->pUserData;
     }
 
     pChildNode = pChildNode->pNextSibling;
   }
-#endif
 }
 
 void vcModel::HandleContextMenu(vcState *pProgramState)
@@ -502,12 +479,59 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
     //}
   }
 
+#if VC_HASCONVERT
   // Compare models
   if (ImGui::BeginMenu(vcString::Get("sceneExplorerCompareModels")))
   {
-    ContextMenuListModels(pProgramState, pProgramState->activeProject.pFolder->m_pNode);
+    static vcModel *s_pOldModel = nullptr;
+    static double s_ballRadius = 0.15;
+    static double s_gridSize = 1.0;
+
+    if (ImGui::IsWindowAppearing())
+      s_pOldModel = nullptr;
+
+    if (ImGui::BeginCombo(vcString::Get("displacementModel"), (s_pOldModel == nullptr ? "..." : s_pOldModel->m_pNode->pName)))
+    {
+      ContextMenuListModels(pProgramState, pProgramState->activeProject.pFolder->m_pNode, &s_pOldModel);
+      ImGui::EndCombo();
+    }
+
+    if (ImGui::InputDouble(vcString::Get("sceneExplorerCompareModelsBallRadius"), &s_ballRadius))
+      s_ballRadius = udClamp(s_ballRadius, DBL_EPSILON, 100.0);
+
+    if (ImGui::InputDouble(vcString::Get("sceneExplorerCompareModelsGridSize"), &s_gridSize))
+      s_gridSize = udClamp(s_gridSize, 0.25, 100.0);
+
+    if (ImGui::ButtonEx(vcString::Get("sceneExplorerCompareModels"), ImVec2(0, 0), (s_pOldModel == nullptr ? ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
+    {
+      char newName[vcMaxPathLength] = {};
+      char oldName[vcMaxPathLength] = {};
+      udFilename(this->m_pNode->pName).ExtractFilenameOnly(newName, sizeof(newName));
+      udFilename(s_pOldModel->m_pNode->pName).ExtractFilenameOnly(oldName, sizeof(oldName));
+
+      const char *pNameBuffer = nullptr;
+      udSprintf(&pNameBuffer, "Displacement_%s_%s", oldName, newName);
+      udFilename temp;
+      temp.SetFromFullPath(this->m_pNode->pURI);
+      temp.SetFilenameNoExt(pNameBuffer);
+      const char *pName = udStrdup(temp.GetPath());
+
+      vcModel *pOldModel = s_pOldModel;
+      double ballRadius = s_ballRadius;
+      double gridSize = s_gridSize;
+
+      udWorkerPoolCallback callback = [this, pProgramState, pOldModel, ballRadius, gridSize, pName](void*)
+      {
+        vcBPA_CompareExport(pProgramState, pOldModel->m_pPointCloud, this->m_pPointCloud, ballRadius, gridSize, pName);
+      };
+      udWorkerPool_AddTask(pProgramState->pWorkerPool, callback, nullptr, false);
+      vcModals_OpenModal(pProgramState, vcMT_Convert);
+      ImGui::CloseCurrentPopup();
+    }
+
     ImGui::EndMenu();
   }
+#endif //VC_HASCONVERT
 }
 
 void vcModel::Cleanup(vcState *pProgramState)

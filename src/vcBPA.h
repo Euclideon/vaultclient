@@ -10,7 +10,7 @@
 struct vcState;
 
 #if VC_HASCONVERT
-void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius, const char *pName);
+void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius, double gridSize, const char *pName);
 #endif
 
 #endif //vcBPA_h__
