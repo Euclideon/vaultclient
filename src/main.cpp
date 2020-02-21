@@ -196,12 +196,26 @@ bool vcMain_TakeScreenshot(vcState *pProgramState)
 
   udSprintf(buffer, "%s/%.4d-%.2d-%.2d-%.2d-%.2d-%.2d.png", pProgramState->settings.screenshot.outputPath, 1900+pTime->tm_year, 1+pTime->tm_mon, pTime->tm_mday, pTime->tm_hour, pTime->tm_min, pTime->tm_sec);
 
-  vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pRenderContext), buffer);
+  udResult result = vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pRenderContext), buffer);
+
+  // This must be run here as vcTexture_SaveImage will change which framebuffer is bound but not reset it
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+
+  if (result != udR_Success)
+  {
+    vcState::ErrorItem status;
+    status.source = vcES_File;
+    status.pData = udStrdup(buffer);
+    status.resultCode = result;
+
+    pProgramState->errorItems.PushBack(status);
+
+    udFileDelete(buffer);
+    return false;
+  }
 
   if (pProgramState->settings.screenshot.viewShot)
     pProgramState->pLoadImage = udStrdup(buffer);
-
 
   return true;
 }
