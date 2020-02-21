@@ -522,7 +522,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 
       udWorkerPoolCallback callback = [this, pProgramState, pOldModel, ballRadius, gridSize, pName](void*)
       {
-        vcBPA_CompareExport(pProgramState, pOldModel->m_pPointCloud, this->m_pPointCloud, ballRadius, gridSize, pName);
+        vcBPA_CompareExport(pProgramState, pOldModel->m_pNode->pURI, this->m_pNode->pURI, ballRadius, gridSize, pName);
       };
       udWorkerPool_AddTask(pProgramState->pWorkerPool, callback, nullptr, false);
       vcModals_OpenModal(pProgramState, vcMT_Convert);

@@ -1053,34 +1053,37 @@ void vcBPA_ConvertClose(vdkConvertCustomItem *pConvertInput)
 
 void vcBPA_ConvertDestroy(vdkConvertCustomItem *pConvertInput)
 {
+  vcBPAConvertItem *pBPA = (vcBPAConvertItem*)pConvertInput->pData;
+  vdkPointCloud_Unload(&pBPA->pOldModel);
+  vdkPointCloud_Unload(&pBPA->pNewModel);
   vdkAttributeSet_Free(&pConvertInput->attributes);
   udFree(pConvertInput->pData);
 }
 
-void vcBPA_CompareExport(vcState *pProgramState, vdkPointCloud *pOldModel, vdkPointCloud *pNewModel, double ballRadius, double gridSize, const char *pName)
+void vcBPA_CompareExport(vcState *pProgramState, const char *pOldModelPath, const char *pNewModelPath, double ballRadius, double gridSize, const char *pName)
 {
   vcConvertItem *pConvertItem = nullptr;
   vcConvert_AddEmptyJob(pProgramState, &pConvertItem);
 
   udLockMutex(pConvertItem->pMutex);
 
+  vdkPointCloudHeader header = {};
+
   vcBPAConvertItem *pBPA = udAllocType(vcBPAConvertItem, 1, udAF_Zero);
   pBPA->pContext = pProgramState->pVDKContext;
-  pBPA->pOldModel = pOldModel;
-  pBPA->pNewModel = pNewModel;
+  vdkPointCloud_Load(pBPA->pContext, &pBPA->pOldModel, pOldModelPath, nullptr);
+  vdkPointCloud_Load(pBPA->pContext, &pBPA->pNewModel, pNewModelPath, &header);
   pBPA->pConvertItem = pConvertItem;
   pBPA->running = true;
   pBPA->ballRadius = ballRadius;
   pBPA->gridSize = gridSize; // metres
 
-  vdkPointCloudHeader header = {};
-  vdkPointCloud_GetHeader(pNewModel, &header);
   udDouble4x4 storedMatrix = udDouble4x4::create(header.storedMatrix);
   udDouble3 boundingBoxCenter = udDouble3::create(header.boundingBoxCenter[0], header.boundingBoxCenter[1], header.boundingBoxCenter[2]);
   udDouble3 boundingBoxExtents = udDouble3::create(header.boundingBoxExtents[0], header.boundingBoxExtents[1], header.boundingBoxExtents[2]);
 
   const char *pMetadata = nullptr;
-  vdkPointCloud_GetMetadata(pNewModel, &pMetadata);
+  vdkPointCloud_GetMetadata(pBPA->pNewModel, &pMetadata);
   udJSON metadata = {};
   metadata.Parse(pMetadata);
 
