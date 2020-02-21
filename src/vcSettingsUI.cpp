@@ -542,7 +542,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsScreenshot"), vcSC_Screenshot);
 
           static udUInt2 ScreenshotResolutions[] = { { 1280, 720 }, { 1920, 1080 }, { 4096, 2160 } };
-          static const char* ResolutionNames[] = { vcString::Get("settingsScreenshotRes720p"), vcString::Get("settingsScreenshotRes1080p"), vcString::Get("settingsScreenshotRes4K"), vcString::Get("settingsScreenshotResCustom") };
+          const char* ResolutionNames[] = { vcString::Get("settingsScreenshotRes720p"), vcString::Get("settingsScreenshotRes1080p"), vcString::Get("settingsScreenshotRes4K"), vcString::Get("settingsScreenshotResCustom") };
           UDCOMPILEASSERT(udLengthOf(ResolutionNames) == udLengthOf(ScreenshotResolutions) + 1, "Update strings!");
 
           if (pProgramState->settings.screenshot.resolutionIndex != udLengthOf(ScreenshotResolutions))
