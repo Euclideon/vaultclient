@@ -262,14 +262,13 @@ namespace vcHotkey
       {
         if (target == i)
         {
-          Set((vcBind)i, 0);
-          target = -1;
-          alreadyBoundKey = -1;
+          ClearState();
         }
         else
         {
           pProgramState->currentKey = 0;
           target = i;
+          alreadyBoundKey = -1;
         }
       }
 
