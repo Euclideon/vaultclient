@@ -241,7 +241,8 @@ namespace vcHotkey
       }
     }
 
-    ImGui::Columns(3);
+    ImGui::BeginColumns(nullptr, 3, ImGuiColumnsFlags_NoResize);
+
     ImGui::SetColumnWidth(0, 125);
     ImGui::SetColumnWidth(1, 175);
     ImGui::SetColumnWidth(2, 600);
