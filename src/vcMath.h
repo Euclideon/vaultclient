@@ -154,7 +154,7 @@ static udVector3<T> udGetSphereCenterFromPoints(T ballRadius, udVector3<T> p0, u
 }
 
 template <typename T>
-static T udDistanceToTriangle(udVector3<T> p0, udVector3<T> p1, udVector3<T> p2, udVector3<T> point, udVector3<T> *pclosestPoint = nullptr)
+static T udDistanceToTriangle(udVector3<T> p0, udVector3<T> p1, udVector3<T> p2, udVector3<T> point, udVector3<T> *pClosestPoint = nullptr)
 {
   // Solution taken from 'Real Time Collision Detection' by Christer Ericson,
   // p.141: 'Closest Point on Triangle to Point
@@ -169,11 +169,13 @@ static T udDistanceToTriangle(udVector3<T> p0, udVector3<T> p1, udVector3<T> p2,
   T tnom = udDot(point - p0, p0_p2);
   T tdenom = udDot(point - p2, p0 - p2);
 
+  udVector3<T> closestPoint = {};
+
   do
   {
     if (snom <= T(0) && tnom <= T(0))
     {
-      *pclosestPoint = p0;
+      closestPoint = p0;
       break;
     }
 
@@ -182,13 +184,13 @@ static T udDistanceToTriangle(udVector3<T> p0, udVector3<T> p1, udVector3<T> p2,
 
     if (sdenom <= T(0) && unom <= T(0))
     {
-      *pclosestPoint = p1;
+      closestPoint = p1;
       break;
     }
 
     if (tdenom <= T(0) && udenom <= T(0))
     {
-      *pclosestPoint = p2;
+      closestPoint = p2;
       break;
     }
 
@@ -196,31 +198,34 @@ static T udDistanceToTriangle(udVector3<T> p0, udVector3<T> p1, udVector3<T> p2,
     T v_p2 = udDot(n, udCross3(p0 - point, p1 - point));
     if (v_p2 <= T(0) && snom >= T(0) && sdenom >= T(0))
     {
-      *pclosestPoint = p0 + p0_p1 * (snom / (snom + sdenom));
+      closestPoint = p0 + p0_p1 * (snom / (snom + sdenom));
       break;
     }
 
     T v_p0 = udDot(n, udCross(p1 - point, p2 - point));
     if (v_p0 <= T(0) && unom >= T(0) && udenom >= T(0))
     {
-      *pclosestPoint = p1 + p1_p2 * (unom / (unom + udenom));
+      closestPoint = p1 + p1_p2 * (unom / (unom + udenom));
       break;
     }
 
     T v_p1 = udDot(n, udCross(p2 - point, p0 - point));
     if (v_p1 <= T(0) && tnom >= T(0) && tdenom >= T(0))
     {
-      *pclosestPoint = p0 + p0_p2 * (tnom / (tnom + tdenom));
+      closestPoint = p0 + p0_p2 * (tnom / (tnom + tdenom));
       break;
     }
 
     T u = v_p0 / (v_p0 + v_p1 + v_p2);
     T v = v_p1 / (v_p0 + v_p1 + v_p2);
     T w = T(1) - u - v;
-    *pclosestPoint = u * p0 + v * p1 + w * p2;
+    closestPoint = u * p0 + v * p1 + w * p2;
   } while (false);
 
-  return udMag3(*pclosestPoint - point);
+  if (pClosestPoint != nullptr)
+    *pClosestPoint = closestPoint;
+
+  return udMag3(closestPoint - point);
 }
 
 #endif //vcMath_h__
