@@ -49,7 +49,7 @@ public:
   udDouble4x4 GetWorldSpaceMatrix();
   vcGizmoAllowedControls GetAllowedControls();
 
-  void ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode);
+  void ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode, vcModel **ppCurrentSelectedModel);
 };
 
 #endif //vcModel_h__
