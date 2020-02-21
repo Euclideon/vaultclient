@@ -379,6 +379,7 @@ Modules are currently:
 - `settingsScreenshotFormatLabel`: Label for output image format
 - `settingsScreenshotFilename`: Label for input text box for screenshot filename
 - `settingsScreenshotView`: Label for checkbox that opens new screenshots in image viewer
+- `settingsScreenshotPathAlert`: A message alerting that the output path does not exist and will be created
   
 ### Convert Default Settings Strings
 

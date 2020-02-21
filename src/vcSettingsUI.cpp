@@ -577,6 +577,13 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
           // Show Picture
           ImGui::Checkbox(vcString::Get("settingsScreenshotView"), &pProgramState->settings.screenshot.viewShot);
+
+          udFindDir* poutputPath(nullptr);
+          udResult result = udOpenDir(&poutputPath, pProgramState->settings.screenshot.outputPath);
+          if (result != udR_Success)
+            ImGui::Text(vcString::Get("settingsScreenshotPathAlert"));
+          udCloseDir(&poutputPath);
+
         }
 
         if (pProgramState->activeSetting == vcSR_Connection)
