@@ -7,6 +7,17 @@
 EXPECT_NEAR(v0.y, v1.y, EPSILON_DOUBLE);\
 EXPECT_NEAR(v0.z, v1.z, EPSILON_DOUBLE)
 
+TEST(vcMath, TriangleTest_NoOutput)
+{
+  udDouble3 p0{ 0.0, 1.0, 0.0 };
+  udDouble3 p1{ -1.0, 0.0, 0.0 };
+  udDouble3 p2{ 1.0, 0.0, 0.0 };
+  udDouble3 testPoint = {};
+
+  testPoint = udDouble3::create(0.0, 0.5, 0.0);
+  EXPECT_DOUBLE_EQ(udDistanceToTriangle(p0, p1, p2, testPoint), 0.0);
+}
+
 TEST(vcMath, TriangleTest_PointOnTrianglePlane)
 {
   udDouble3 p0{ 0.0, 1.0, 0.0 };
