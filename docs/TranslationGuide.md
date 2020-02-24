@@ -553,7 +553,6 @@ Modules are currently:
 
 - `sceneTitle`: Title of the Scene tab
 - `sceneImageViewerTitle`: Title of the Image Viewer window
-- `sceneImageViewerCloseButton`: Label used for the close button of the Image Viewer window
 - `sceneGeographicInfo`: Used to display the geographic information in the corner of the viewport
 - `sceneNotGeolocated`: Displays when the current location of the camera is not in a known geographic area
 - `sceneUnsupportedSRID`: Displays when the current location has an SRID that is invalid

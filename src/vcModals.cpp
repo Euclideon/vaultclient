@@ -635,9 +635,6 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
       }
     }
 
-    if (ImGui::Button(vcString::Get("sceneImageViewerCloseButton"), ImVec2((float)pProgramState->image.width, 0.f)))
-      ImGui::CloseCurrentPopup();
-
     ImGui::EndChild();
 
     ImGui::EndPopup();
