@@ -518,20 +518,17 @@ void vcSettingsUI_Show(vcState *pProgramState)
             if (pProgramState->settings.convertdefaults.watermark.pTexture != nullptr)
             {
               //Since we're allowing images of any dimensions, we need to make sure it fits in the UI.
-              int dimension[2] = { pProgramState->settings.convertdefaults.watermark.width,
-                                   pProgramState->settings.convertdefaults.watermark.height };
-
-              int maxDimension[2] = {512, 256};
+              udInt2 dimension = {pProgramState->settings.convertdefaults.watermark.width, pProgramState->settings.convertdefaults.watermark.height};
+              udInt2 maxDimension = {512, 256};
               int minDimension = 2;
 
-              for (int i = 0; i < 2; i++)
+              for (int i = 0; i < udInt2::ElementCount; i++)
               {
                 if (dimension[i] > maxDimension[i])
                 {
                   float factor = float(dimension[i]) / maxDimension[i];
-                  dimension[i] = int(float(dimension[i]) / factor);
-                  int j = (i + 1) % 2;
-                  dimension[j] = int(float(dimension[j]) / factor);
+                  dimension /= factor;
+                  int j = (i + 1) % udInt2::ElementCount;
 
                   //Is the other dimension too thin now?
                   if (dimension[j] < minDimension)
