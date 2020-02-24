@@ -831,7 +831,9 @@ Modules are currently:
 
 ##### Errors
 - `errorUnknown`: An unexpected error occurred.
-- `errorCorruptData`: Corrupt data error shown in "Unsupported Files window" when converting files
-- `errorUnsupported`: Unsupported file formats error shown in "Unsupported Files window" when converting files
-- `errorOpenFailure`: Failed to open files error shown in "Unsupported Files window" when converting files
-- `errorReadFailure`: Failed to read files error shown in "Unsupported Files window" when converting files
+- `errorCorruptData`: 'Corrupt data' error shown in "Unsupported Files window" when converting files
+- `errorUnsupported`: 'Unsupported file formats' error shown in "Unsupported Files window" when converting files
+- `errorOpenFailure`: 'Failed to open files' error shown in "Unsupported Files window" when converting files
+- `errorReadFailure`: 'Failed to read files' error shown in "Unsupported Files window" when converting files
+- `errorWriteFailure`: 'Failed to write files' error shown in "Unsupported Files window" when converting or saving a screenshot, including suggested causes: 1) destination drive is full 2) file may already be open
+- `errorCloseFailure`: 'Failure to close a file' error shown in "Unsupported Files window" when converting or saving a screenshot, including a warning that the file data may be corrupt.

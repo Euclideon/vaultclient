@@ -534,6 +534,12 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
       case udR_ReadFailure:
         pErrorString = vcString::Get("errorReadFailure");
         break;
+      case udR_WriteFailure:
+        pErrorString = vcString::Get("errorWriteFailure");
+        break;
+      case udR_CloseFailure:
+        pErrorString = vcString::Get("errorCloseFailure");
+        break;
       default:
         pErrorString = vcString::Get("errorUnknown");
         break;
