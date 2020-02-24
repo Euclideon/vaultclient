@@ -404,13 +404,14 @@ out vec2 v_uv;
 out float v_fLogDepth;
 
 // This should match CPU struct size
-#define VERTEX_COUNT 2
+#define VERTEX_COUNT 3
 
 layout (std140) uniform u_EveryObject
 {
   mat4 u_projection;
   vec4 u_eyePositions[VERTEX_COUNT * VERTEX_COUNT];
   vec4 u_colour;
+  vec4 u_uvOffsetScale;
 };
 
 // this could be used instead instead of writing to depth directly,
@@ -426,7 +427,7 @@ void main()
   // TODO: could have precision issues on some devices
   vec4 finalClipPos = u_projection * u_eyePositions[int(a_uv.z)];
 
-  v_uv = a_uv.xy;
+  v_uv = u_uvOffsetScale.xy + u_uvOffsetScale.zw * a_uv.xy;
   v_colour = u_colour;
   gl_Position = finalClipPos;
   v_fLogDepth = 1.0 + gl_Position.w;

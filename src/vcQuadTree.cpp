@@ -86,14 +86,14 @@ uint32_t vcQuadTree_FindFreeChildBlock(vcQuadTree *pQuadTree)
 }
 
 // TODO: DEM effect
-double vcQuadTree_PointToRectDistance(udDouble2 edges[4], const udDouble3 &point)
+double vcQuadTree_PointToRectDistance(udDouble2 edges[9], const udDouble3 &point)
 {
   static const udInt2 edgePairs[] =
   {
-    udInt2::create(0, 1), // top
-    udInt2::create(0, 2), // left
-    udInt2::create(2, 3), // bottom
-    udInt2::create(1, 3), // right
+    udInt2::create(0, 2), // top
+    udInt2::create(0, 6), // left
+    udInt2::create(6, 8), // bottom
+    udInt2::create(2, 8), // right
   };
 
   // Not true distance, XY plane distance has more weighting
@@ -129,17 +129,20 @@ void vcQuadTree_CleanupNode(vcQuadTreeNode *pNode)
 
 void vcQuadTree_CalculateNodeBounds(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
 {
-  for (int edge = 0; edge < 4; ++edge)
+  udDouble2 boundsMin = udDouble2::create(FLT_MAX, FLT_MAX);
+  udDouble2 boundsMax = udDouble2::create(-FLT_MAX, -FLT_MAX);
+  for (int edge = 0; edge < 9; ++edge)
   {
-    udDouble3 localCorner;
-    vcGIS_SlippyToLocal(&pQuadTree->gisSpace, &localCorner, udInt2::create(pNode->slippyPosition.x + (edge & 1), pNode->slippyPosition.y + (edge >> 1)), pNode->slippyPosition.z);
-    pNode->worldBounds[edge] = localCorner.toVector2();
-  }
+    udInt2 slippySampleCoord = udInt2::create((pNode->slippyPosition.x * 2) + (edge % 3),
+      (pNode->slippyPosition.y * 2) + (edge / 3));
 
-  udDouble2 boundsMin = udDouble2::create(udMin(udMin(udMin(pNode->worldBounds[0].x, pNode->worldBounds[1].x), pNode->worldBounds[2].x), pNode->worldBounds[3].x),
-    udMin(udMin(udMin(pNode->worldBounds[0].y, pNode->worldBounds[1].y), pNode->worldBounds[2].y), pNode->worldBounds[3].y));
-  udDouble2 boundsMax = udDouble2::create(udMax(udMax(udMax(pNode->worldBounds[0].x, pNode->worldBounds[1].x), pNode->worldBounds[2].x), pNode->worldBounds[3].x),
-    udMax(udMax(udMax(pNode->worldBounds[0].y, pNode->worldBounds[1].y), pNode->worldBounds[2].y), pNode->worldBounds[3].y));
+    udDouble3 localCorner;
+    vcGIS_SlippyToLocal(&pQuadTree->gisSpace, &localCorner, slippySampleCoord, pNode->slippyPosition.z + 1);
+    pNode->worldBounds[edge] = localCorner.toVector2();
+
+    boundsMin = udMin(pNode->worldBounds[edge], boundsMin);
+    boundsMax = udMax(pNode->worldBounds[edge], boundsMax);
+  }
 
   pNode->tileCenter = (boundsMax + boundsMin) * 0.5;
   pNode->tileExtents = (boundsMax - boundsMin) * 0.5;
@@ -162,9 +165,10 @@ bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode 
   return -1 < vcQuadTree_FrustumTest(pQuadTree->frustumPlanes, udDouble3::create(pNode->tileCenter, pQuadTree->quadTreeHeightOffset), udDouble3::create(pNode->tileExtents, 0.0));
 }
 
-inline bool vcQuadTree_ShouldSubdivide(vcQuadTree *pQuadTree, double distanceMS, int depth)
+inline bool vcQuadTree_ShouldSubdivide(double distance, int depth)
 {
-  return distanceMS < (1.0 / (1 << (depth + vcTRMQToDepthModifiers[pQuadTree->pSettings->maptiles.mapQuality])));
+  // trial and error'd this heuristic
+  return distance < (10000000 >> depth);
 }
 
 void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeIndex, int currentDepth)
@@ -213,7 +217,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
     pChildNode->visible = pCurrentNode->visible && vcQuadTree_IsNodeVisible(pQuadTree, pChildNode);
 
     // TODO: tile heights (DEM)
-    double distanceToQuadrant;
+    double distanceToQuadrant = 0;
 
     int32_t slippyManhattanDist = udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x) + udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y);
     if (slippyManhattanDist != 0)
@@ -227,22 +231,15 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
       distanceToQuadrant = udAbs(pQuadTree->cameraTreePosition.z);
     }
 
-    // Artificially change the distances of tiles based on their relative depths.
-    // Flattens out lower layers, while raising levels of tiles further away.
-    // This is done because of perspectiveness, we actually want a non-uniform quad tree.
-    // Note: these values were just 'trial and error'ed
-    int nodeDepthToTreeDepth = pQuadTree->expectedTreeDepth - currentDepth;
-    distanceToQuadrant *= udLerp(1.0, (0.6 + 0.25 * nodeDepthToTreeDepth), udClamp(nodeDepthToTreeDepth, 0, 1));
-
     ++pQuadTree->metaData.nodeTouchedCount;
     if (pChildNode->visible)
       ++pQuadTree->metaData.visibleNodeCount;
     else if ((pQuadTree->pSettings->maptiles.mapOptions & vcTRF_OnlyRequestVisibleTiles) != 0)
       continue;
 
-    // this `10000000.0` is arbitrary trial and error'd
-    double distanceMS = (distanceToQuadrant / udMin(10000000.0, pQuadTree->quadTreeWorldSize));
-    if (vcQuadTree_ShouldSubdivide(pQuadTree, distanceMS, currentDepth))
+    int totalDepth = pQuadTree->slippyCoords.z + currentDepth;
+    bool alwaysSubdivide = pChildNode->visible && totalDepth <= 2;
+    if (alwaysSubdivide || vcQuadTree_ShouldSubdivide(distanceToQuadrant, totalDepth))
       vcQuadTree_RecurseGenerateTree(pQuadTree, childIndex, currentDepth + 1);
     else
       ++pQuadTree->metaData.leafNodeCount;
@@ -384,7 +381,6 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
 
   pQuadTree->slippyCoords = viewInfo.slippyCoords;
   pQuadTree->cameraWorldPosition = viewInfo.cameraPosition;
-  pQuadTree->quadTreeWorldSize = viewInfo.quadTreeWorldSize;
   pQuadTree->quadTreeHeightOffset = viewInfo.quadTreeHeightOffset;
 
   pQuadTree->metaData.nodeTouchedCount = 0;
@@ -395,11 +391,6 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
 
   pQuadTree->cameraTreePosition = pQuadTree->cameraWorldPosition;
   pQuadTree->cameraTreePosition.z -= pQuadTree->quadTreeHeightOffset; // relative height
-
-  pQuadTree->expectedTreeDepth = 0;
-  double distanceToQuadrant = udAbs(pQuadTree->cameraTreePosition.z) / pQuadTree->quadTreeWorldSize;
-  while (pQuadTree->expectedTreeDepth < (viewInfo.maxVisibleTileLevel - 1) && vcQuadTree_ShouldSubdivide(pQuadTree, distanceToQuadrant, pQuadTree->expectedTreeDepth))
-    ++pQuadTree->expectedTreeDepth;
 
   // extract frustum planes
   udDouble4x4 transposedViewProjection = udTranspose(viewInfo.viewProjectionMatrix);
@@ -436,29 +427,12 @@ bool vcQuadTree_IsBlockUsed(vcQuadTree *pQuadTree, uint32_t blockIndex)
   return isUsed;
 }
 
-bool vcQuadTree_RecursiveDescendentHasRenderData(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
-{
-  if (pNode->renderInfo.pTexture)
-    return true;
-
-  if (!vcQuadTree_IsLeafNode(pNode))
-  {
-    for (uint32_t c = 0; c < NodeChildCount; ++c)
-    {
-      if (vcQuadTree_RecursiveDescendentHasRenderData(pQuadTree, &pQuadTree->nodes.pPool[pNode->childBlockIndex + c]))
-        return true;
-    }
-  }
-
-  return false;
-}
-
 bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
 {
   for (uint32_t c = 0; c < NodeChildCount; ++c)
   {
     vcQuadTreeNode *pChildNode = &pQuadTree->nodes.pPool[blockIndex + c];
-    if (pChildNode->touched || pChildNode->renderInfo.fadingIn || pChildNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_Downloading)
+    if (pChildNode->touched || pChildNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_Downloading)
       return false;
   }
 
@@ -467,8 +441,11 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
   {
     vcQuadTreeNode *pNode = &pQuadTree->nodes.pPool[blockIndex + c];
 
+    if (!vcQuadTree_IsLeafNode(pNode))
+      return false;
+
     // case #1: its a leaf node that could be being used for rendering by an ancestor
-    if (vcQuadTree_IsLeafNode(pNode) && pNode->renderInfo.pTexture)
+    if (pNode->renderInfo.pTexture)
     {
       uint32_t parentIndex = pNode->parentIndex;
       while (parentIndex != INVALID_NODE_INDEX)
@@ -476,26 +453,16 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
         vcQuadTreeNode *pParentNode = &pQuadTree->nodes.pPool[parentIndex];
         if (pParentNode->touched)
         {
-          // We have an ancestor that has no texture, or is fading
-          if (!pParentNode->renderInfo.pTexture || pParentNode->renderInfo.fadingIn)
+          // We have an ancestor that has no texture
+          if (!pParentNode->renderInfo.pTexture)
             return false;
-
+    
           break;
         }
-        else if (pParentNode->renderInfo.pTexture && !pParentNode->renderInfo.fadingIn)
+        else if (pParentNode->renderInfo.pTexture)
           return true;
-
+    
         parentIndex = pParentNode->parentIndex;
-      }
-    }
-
-    // case #2: its not a leaf node, it cannot be used for rendering BUT one of its descendents could be used for rendering
-    else if (!vcQuadTree_IsLeafNode(pNode))
-    {
-      if (!pNode->renderInfo.pTexture)
-      {
-        if (vcQuadTree_RecursiveDescendentHasRenderData(pQuadTree, pNode))
-          return false;
       }
     }
   }

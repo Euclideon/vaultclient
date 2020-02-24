@@ -686,13 +686,15 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
 
     int currentZoom = 21;
 
-    double farPlane = pProgramState->settings.camera.farPlane;
+    // This technique won't work with ECEF
+    // This 'value' was trial and errored. 
+    double visibleFarPlane = 1000.0 + udAbs(localCamPos.z) * 150.0;
 
     // Cardinal Limits
-    localCorners[0] = localCamPos + udDouble3::create(-farPlane, +farPlane, 0);
-    localCorners[1] = localCamPos + udDouble3::create(+farPlane, +farPlane, 0);
-    localCorners[2] = localCamPos + udDouble3::create(-farPlane, -farPlane, 0);
-    localCorners[3] = localCamPos + udDouble3::create(+farPlane, -farPlane, 0);
+    localCorners[0] = localCamPos + udDouble3::create(-visibleFarPlane, +visibleFarPlane, 0);
+    localCorners[1] = localCamPos + udDouble3::create(+visibleFarPlane, +visibleFarPlane, 0);
+    localCorners[2] = localCamPos + udDouble3::create(-visibleFarPlane, -visibleFarPlane, 0);
+    localCorners[3] = localCamPos + udDouble3::create(+visibleFarPlane, -visibleFarPlane, 0);
 
     for (int i = 0; i < 4; ++i)
       vcGIS_LocalToSlippy(&pProgramState->gis, &slippyCorners[i], localCorners[i], currentZoom);
@@ -708,7 +710,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
     for (int i = 0; i < 4; ++i)
       vcGIS_SlippyToLocal(&pProgramState->gis, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
-    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->gis, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, viewProjection);
+    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->gis, udInt3::create(slippyCorners[0], currentZoom), localCamPos, viewProjection);
     vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection);
   }
 }
