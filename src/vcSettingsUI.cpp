@@ -542,6 +542,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
           vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsScreenshot"), vcSC_Screenshot);
 
           static udUInt2 ScreenshotResolutions[] = { { 1280, 720 }, { 1920, 1080 }, { 4096, 2160 } };
+          static udUInt2 ScreenshotResolutionsMax = { 4096, 4096 };
+          static udUInt2 ScreenshotResolutionsMin = { 32, 32 };
           const char* ResolutionNames[] = { vcString::Get("settingsScreenshotRes720p"), vcString::Get("settingsScreenshotRes1080p"), vcString::Get("settingsScreenshotRes4K"), vcString::Get("settingsScreenshotResCustom") };
           UDCOMPILEASSERT(udLengthOf(ResolutionNames) == udLengthOf(ScreenshotResolutions) + 1, "Update strings!");
 
@@ -566,8 +568,10 @@ void vcSettingsUI_Show(vcState *pProgramState)
             ImGui::Indent();
             if (ImGui::InputInt2(vcString::Get("settingsScreenshotResLabel"), (int*)&pProgramState->settings.screenshot.resolution.x))
             {
-              pProgramState->settings.screenshot.resolution.x = udClamp(pProgramState->settings.screenshot.resolution.x, 32u, 16384u);
-              pProgramState->settings.screenshot.resolution.y = udClamp(pProgramState->settings.screenshot.resolution.y, 32u, 16384u);
+              pProgramState->settings.screenshot.resolution.x = udClamp(pProgramState->settings.screenshot.resolution.x
+                , ScreenshotResolutionsMin.x, ScreenshotResolutionsMax.x);
+              pProgramState->settings.screenshot.resolution.y = udClamp(pProgramState->settings.screenshot.resolution.y
+                , ScreenshotResolutionsMin.y, ScreenshotResolutionsMax.y);
             }
             ImGui::Unindent();
           }
