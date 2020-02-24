@@ -341,7 +341,6 @@
 
   "sceneTitle": "场景",
   "sceneImageViewerTitle": "图片查看器",
-  "sceneImageViewerCloseButton": "关闭",
   "sceneGeographicInfo": "地理信息",
   "sceneNotGeolocated": "未指定地理定位",
   "sceneUnsupportedSRID": "不支持的SRID",
