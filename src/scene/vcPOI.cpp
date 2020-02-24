@@ -552,7 +552,7 @@ void vcPOI::HandleContextMenu(vcState *pProgramState)
       if (ImGui::IsWindowAppearing())
         pErrorBuffer = nullptr;
 
-      ImGui::InputText(vcString::Get("scenePOIAttachModelURI"), uriBuffer, udLengthOf(uriBuffer));
+      vcIGSW_FilePicker(pProgramState, vcString::Get("scenePOIAttachModelURI"), uriBuffer, SupportedFileTypes_PolygonModels, vcFDT_OpenFile, nullptr);
 
       if (ImGui::Button(vcString::Get("scenePOIAttachModel")))
       {
