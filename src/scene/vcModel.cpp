@@ -490,7 +490,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
     if (ImGui::IsWindowAppearing())
       s_pOldModel = nullptr;
 
-    if (ImGui::BeginCombo(vcString::Get("displacementModel"), (s_pOldModel == nullptr ? "..." : s_pOldModel->m_pNode->pName)))
+    if (ImGui::BeginCombo(vcString::Get("sceneExplorerDisplacementModel"), (s_pOldModel == nullptr ? "..." : s_pOldModel->m_pNode->pName)))
     {
       ContextMenuListModels(pProgramState, pProgramState->activeProject.pFolder->m_pNode, &s_pOldModel);
       ImGui::EndCombo();
