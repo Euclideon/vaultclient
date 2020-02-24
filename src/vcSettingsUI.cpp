@@ -539,7 +539,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
                 }
               }
 
-              ImGui::Image(pProgramState->settings.convertdefaults.watermark.pTexture, ImVec2(dimension[0], dimension[1]));
+              ImGui::Image(pProgramState->settings.convertdefaults.watermark.pTexture, ImVec2(float(dimension[0]), float(dimension[1])));
 
               if (ImGui::Button(vcString::Get("convertRemoveWatermark")))
               {
