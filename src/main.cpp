@@ -725,6 +725,7 @@ void vcMain_LoadFontMT(void *pLoadInfoPtr)
       0x2010, 0x205E, // Punctuations
       0x25A0, 0x25FF, // Geometric Shapes
       0x26A0, 0x26A1, // Exclamation in Triangle
+      0x2713, 0x2714, // Checkmark
       0x2DE0, 0x2DFF, // Cyrillic Extended-A
       0x3000, 0x30FF, // Punctuations, Hiragana, Katakana
       0x3131, 0x3163, // Korean alphabets
@@ -745,6 +746,7 @@ void vcMain_LoadFontMT(void *pLoadInfoPtr)
       0x2010, 0x205E, // Punctuations
       0x25A0, 0x25FF, // Geometric Shapes
       0x26A0, 0x26A1, // Exclamation in Triangle
+      0x2713, 0x2714, // Checkmark
       0
     };
 
@@ -2229,12 +2231,10 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
       }
       else if (pProgramState->loginStatus == vcLS_ProxyAuthRequired)
       {
-        pProgramState->loginStatus = vcLS_ProxyAuthPending;
-        vcModals_OpenModal(pProgramState, vcMT_ProxyAuth);
-      }
-      else if (pProgramState->loginStatus == vcLS_ProxyAuthPending && !pProgramState->modalOpen)
-      {
-        tryLogin = true; // Retries the login after proxy info is entered
+        pProgramState->openSettings = true;
+        pProgramState->activeSetting = vcSR_Connection;
+        pProgramState->settings.loginInfo.tested = true;
+        pProgramState->settings.loginInfo.testStatus = vcLS_ProxyAuthRequired;
       }
 
       if (ImGui::Button(vcString::Get("loginButton")) || tryLogin)

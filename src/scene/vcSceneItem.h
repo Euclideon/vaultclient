@@ -18,6 +18,7 @@ enum vcSceneLoadStatus
   vcSLS_Failed,
   vcSLS_OpenFailure,
   vcSLS_Unloaded,
+  vcSLS_Success, // Rarely used to show something specifically succeeded
 
   vcSLS_Count
 };

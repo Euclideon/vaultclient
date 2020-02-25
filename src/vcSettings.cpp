@@ -12,6 +12,8 @@
 #include "vcStringFormat.h"
 #include "vcHotkey.h"
 
+#include "vdkConfig.h"
+
 #if UDPLATFORM_EMSCRIPTEN
 # include <emscripten.h>
 # include <emscripten/threading.h>
@@ -89,6 +91,16 @@ bool SDL_filewrite(const char* filename, const char *pStr, size_t bytes)
   }
 
   return success;
+}
+
+bool vcSettings_ApplyConnectionSettings(vcSettings *pSettings)
+{
+  vdkConfig_ForceProxy(pSettings->loginInfo.proxy);
+  vdkConfig_SetUserAgent(pSettings->loginInfo.userAgent);
+  vdkConfig_IgnoreCertificateVerification(pSettings->loginInfo.ignoreCertificateVerification);
+  vdkConfig_SetProxyAuth(pSettings->loginInfo.proxyUsername, pSettings->loginInfo.proxyPassword);
+
+  return true;
 }
 
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSettingCategory group /*= vcSC_All*/)
@@ -297,8 +309,18 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
   if (group == vcSC_All || group == vcSC_Connection)
   {
     udStrcpy(pSettings->loginInfo.proxy, data.Get("login.proxy").AsString());
-    udStrcpy(pSettings->loginInfo.proxyTestURL, data.Get("login.proxyTestURL").AsString("http://vaultmodels.euclideon.com/proxytest"));
-    pSettings->loginInfo.autoDetectProxy = data.Get("login.autodetectproxy").AsBool();
+    udStrcpy(pSettings->loginInfo.proxyTestURL, data.Get("login.proxyTestURL").AsString("https://az.vault.euclideon.com/proxytest"));
+
+    udStrcpy(pSettings->loginInfo.userAgent, data.Get("login.useragent").AsString());
+
+    pSettings->loginInfo.ignoreCertificateVerification = data.Get("login.ignoreCertificateErrors").AsBool();
+    pSettings->loginInfo.requiresProxyAuth = data.Get("login.proxyRequiresAuth").AsBool();
+
+    pSettings->loginInfo.rememberProxyUsername = data.Get("login.rememberProxyUsername").AsBool();
+    if (pSettings->loginInfo.rememberProxyUsername)
+      udStrcpy(pSettings->loginInfo.proxyUsername, data.Get("login.proxyUsername").AsString());
+
+    vcSettings_ApplyConnectionSettings(pSettings);
   }
 
   if (group == vcSC_All)
@@ -456,7 +478,19 @@ bool vcSettings_Save(vcSettings *pSettings)
 
   tempNode.SetString(pSettings->loginInfo.proxy);
   data.Set(&tempNode, "login.proxy");
-  data.Set("login.autodetectproxy = %s", pSettings->loginInfo.autoDetectProxy ? "true" : "false");
+
+  tempNode.SetString(pSettings->loginInfo.userAgent);
+  data.Set(&tempNode, "login.useragent");
+
+  data.Set("login.ignoreCertificateErrors = %s", pSettings->loginInfo.ignoreCertificateVerification ? "true" : "false");
+  data.Set("login.proxyRequiresAuth = %s", pSettings->loginInfo.requiresProxyAuth ? "true" : "false");
+
+  data.Set("login.rememberProxyUsername = %s", pSettings->loginInfo.rememberProxyUsername ? "true" : "false");
+  if (pSettings->loginInfo.rememberProxyUsername)
+  {
+    tempNode.SetString(pSettings->loginInfo.proxyUsername);
+    data.Set(&tempNode, "login.proxyUsername");
+  }
 
   // Camera
   data.Set("camera.moveSpeed = %f", pSettings->camera.moveSpeed);

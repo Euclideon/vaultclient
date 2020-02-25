@@ -583,44 +583,140 @@ void vcSettingsUI_Show(vcState *pProgramState)
         {
           vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsConnection"), vcSC_Connection);
 
-          // Make sure its actually off before doing the auto-proxy check
-          if (ImGui::Checkbox(vcString::Get("loginProxyAutodetect"), &pProgramState->settings.loginInfo.autoDetectProxy) && pProgramState->settings.loginInfo.autoDetectProxy)
-            vcProxyHelper_AutoDetectProxy(pProgramState);
-
-          if (vcIGSW_InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy, vcMaxPathLength, pProgramState->settings.loginInfo.autoDetectProxy ? ImGuiInputTextFlags_ReadOnly : ImGuiInputTextFlags_None) && !pProgramState->settings.loginInfo.autoDetectProxy)
-            vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
-
-          ImGui::SameLine();
-          if (ImGui::Button(vcString::Get("loginProxyTest")))
+          if (ImGui::Button(vcString::Get("loginProxyTest")) && !pProgramState->settings.loginInfo.testing)
           {
-            if (pProgramState->settings.loginInfo.autoDetectProxy)
-              vcProxyHelper_AutoDetectProxy(pProgramState);
-
-            //TODO: Decide what to do with other errors
-            if (vcProxyHelper_TestProxy(pProgramState) == vE_ProxyAuthRequired)
-              vcModals_OpenModal(pProgramState, vcMT_ProxyAuth);
+            pProgramState->settings.loginInfo.testing = true;
+            udWorkerPool_AddTask(pProgramState->pWorkerPool, [pProgramState] (void*){
+              pProgramState->settings.loginInfo.testStatus = vcProxyHelper_TestProxy(pProgramState);
+              pProgramState->settings.loginInfo.testing = false;
+              pProgramState->settings.loginInfo.tested = true;
+            }, nullptr, true, [pProgramState](void*) {
+              if (pProgramState->settings.loginInfo.testStatus == vE_ProxyAuthRequired)
+                pProgramState->settings.loginInfo.requiresProxyAuth = true;
+            });
           }
 
-          if (vcIGSW_InputText(vcString::Get("loginUserAgent"), pProgramState->settings.loginInfo.userAgent, vcMaxPathLength))
-            vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
-
-          // TODO: Consider reading user agent strings from a file
-          const char *UAOptions[] = { "Mozilla" };
-          const char *UAStrings[] = { "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:53.0) Gecko/20100101 Firefox/53.0" };
-
-          int UAIndex = -1;
-          if (ImGui::Combo(udTempStr("%s###loginUserAgentPresets", vcString::Get("loginSelectUserAgent")), &UAIndex, UAOptions, (int)udLengthOf(UAOptions)))
+          if (pProgramState->settings.loginInfo.testing)
           {
-            udStrcpy(pProgramState->settings.loginInfo.userAgent, UAStrings[UAIndex]);
-            vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
+            ImGui::SameLine();
+            vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
+            ImGui::TextUnformatted(vcString::Get("loginProxyTestRunning"));
+          }
+          else if (pProgramState->settings.loginInfo.tested)
+          {
+            ImGui::SameLine();
+            if (pProgramState->settings.loginInfo.testStatus == vE_Success)
+            {
+              vcIGSW_ShowLoadStatusIndicator(vcSLS_Success);
+              ImGui::TextUnformatted(vcString::Get("loginProxyTestSuccess"));
+            }
+            else
+            {
+              char buffer[256];
+              vcIGSW_ShowLoadStatusIndicator(vcSLS_Failed);
+
+              if (pProgramState->settings.loginInfo.testStatus == vE_SecurityFailure)
+                ImGui::TextUnformatted(vcString::Get("loginErrorSecurity"));
+              else if (pProgramState->settings.loginInfo.testStatus == vE_ConnectionFailure)
+                ImGui::TextUnformatted(vcString::Get("loginProxyTestCouldNotConnect"));
+              else if (pProgramState->settings.loginInfo.testStatus == vE_ProxyError)
+                ImGui::TextUnformatted(vcString::Get("loginErrorProxy"));
+              else if (pProgramState->settings.loginInfo.testStatus == vE_ProxyAuthRequired)
+                ImGui::TextUnformatted(vcString::Get("loginErrorProxyAuthFailed"));
+              else
+                ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("loginProxyTestFailed"), udTempStr("%d", pProgramState->settings.loginInfo.testStatus)));
+            }
           }
 
-          if (ImGui::Checkbox(vcString::Get("loginIgnoreCert"), &pProgramState->settings.loginInfo.ignoreCertificateVerification))
-            vdkConfig_IgnoreCertificateVerification(pProgramState->settings.loginInfo.ignoreCertificateVerification);
+          if (!pProgramState->settings.loginInfo.testing)
+          {
+            ImGui::Separator();
 
-          if (pProgramState->settings.loginInfo.ignoreCertificateVerification)
-            ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "%s", vcString::Get("loginIgnoreCertWarning"));
+            if (vcIGSW_InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy, vcMaxPathLength))
+            {
+              vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
+              pProgramState->settings.loginInfo.tested = false;
+            }
 
+            ImGui::SameLine();
+            if (ImGui::Button(vcString::Get("loginProxyAutodetect")))
+            {
+              if (vcProxyHelper_AutoDetectProxy(pProgramState) == vE_Success)
+              {
+                udStrcpy(pProgramState->settings.loginInfo.proxy, pProgramState->settings.loginInfo.autoDetectProxyURL);
+                vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
+              }
+            }
+
+            if (vcIGSW_InputText(vcString::Get("loginUserAgent"), pProgramState->settings.loginInfo.userAgent, vcMaxPathLength))
+            {
+              vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
+              pProgramState->settings.loginInfo.tested = false;
+            }
+
+            ImGui::SameLine();
+
+            // TODO: Consider reading user agent strings from a file
+            const char *UAOptions[] = { "Firefox on Windows", "Chrome on Windows" };
+            const char *UAStrings[] = { "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/73.0", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36" };
+
+            if (ImGui::BeginCombo("###loginUserAgentPresets", nullptr, ImGuiComboFlags_NoPreview))
+            {
+              for (size_t i = 0; i < udLengthOf(UAOptions); ++i)
+              {
+                if (ImGui::MenuItem(UAOptions[i]))
+                {
+                  udStrcpy(pProgramState->settings.loginInfo.userAgent, UAStrings[i]);
+                  vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
+                  pProgramState->settings.loginInfo.tested = false;
+                }
+              }
+              ImGui::EndCombo();
+            }
+
+            if (ImGui::Checkbox(vcString::Get("loginIgnoreCert"), &pProgramState->settings.loginInfo.ignoreCertificateVerification))
+            {
+              vdkConfig_IgnoreCertificateVerification(pProgramState->settings.loginInfo.ignoreCertificateVerification);
+              pProgramState->settings.loginInfo.tested = false;
+            }
+
+            if (pProgramState->settings.loginInfo.ignoreCertificateVerification)
+            {
+              ImGui::SameLine();
+              ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.5f, 0.5f, 1.f));
+              ImGui::TextWrapped("%s", vcString::Get("loginIgnoreCertWarning"));
+              ImGui::PopStyleColor();
+            }
+
+            if (ImGui::Checkbox(vcString::Get("loginProxyRequiresAuth"), &pProgramState->settings.loginInfo.requiresProxyAuth))
+              pProgramState->settings.loginInfo.tested = false;
+
+            if (pProgramState->settings.loginInfo.requiresProxyAuth)
+            {
+              ImGui::Indent();
+
+              bool updateInfo = false;
+
+              updateInfo |= vcIGSW_InputText(vcString::Get("modalProxyUsername"), pProgramState->settings.loginInfo.proxyUsername, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+              if (ImGui::IsItemDeactivatedAfterEdit())
+                updateInfo = true;
+
+              ImGui::SameLine();
+              ImGui::Checkbox(udTempStr("%s##rememberProxyUser", vcString::Get("loginRememberUser")), &pProgramState->settings.loginInfo.rememberProxyUsername);
+
+              updateInfo |= ImGui::InputText(vcString::Get("modalProxyPassword"), pProgramState->settings.loginInfo.proxyPassword, udLengthOf(pProgramState->settings.loginInfo.proxyPassword), ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
+              if (ImGui::IsItemDeactivatedAfterEdit())
+                updateInfo = true;
+
+              if (updateInfo)
+              {
+                pProgramState->settings.loginInfo.tested = false;
+                vdkConfig_SetProxyAuth(pProgramState->settings.loginInfo.proxyUsername, pProgramState->settings.loginInfo.proxyPassword);
+              }
+
+              ImGui::Unindent();
+            }
+          }
         }
 
         if (pProgramState->activeSetting == vcSR_ReleaseNotes)

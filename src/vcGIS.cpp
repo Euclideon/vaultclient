@@ -36,11 +36,20 @@ bool vcGIS_LatLongToSlippy(udInt2 *pSlippyCoords, udDouble3 latLong, int zoomLev
   if (pSlippyCoords == nullptr)
     return false;
 
-  pSlippyCoords->x = (int)udFloor((latLong.y + 180.0) / 360.0 * udPow(2.0, zoomLevel)); // Long
-  pSlippyCoords->y = (int)(udFloor((1.0 - udLogN(udTan(latLong.x * UD_PI / 180.0) + 1.0 / udCos(latLong.x * UD_PI / 180.0)) / UD_PI) / 2.0 * udPow(2.0, zoomLevel))); //Lat
+  pSlippyCoords->x = int((latLong.y + 180.0) / 360.0 * udPow(2.0, zoomLevel)); // Long
+  pSlippyCoords->y = int((1.0 - udLogN(udTan(latLong.x * UD_PI / 180.0) + 1.0 / udCos(latLong.x * UD_PI / 180.0)) / UD_PI) / 2.0 * udPow(2.0, zoomLevel)); //Lat
+
+  int maxx = (int)udPow(2.0, zoomLevel);
+
+  while (pSlippyCoords->x < 0)
+    pSlippyCoords->x += maxx;
+
+  while (pSlippyCoords->x > maxx - 1)
+    pSlippyCoords->x -= maxx;
 
   return true;
 }
+
 
 bool vcGIS_SlippyToLatLong(udDouble3 *pLatLong, udInt2 slippyCoords, int zoomLevel)
 {

@@ -23,7 +23,12 @@
   "loginAdvancedSettings": "Advanced Connection Settings",
   "loginProxyAddress": "Proxy Address",
   "loginProxyAutodetect": "Auto-detect Proxy",
-  "loginProxyTest": "Test Proxy",
+  "loginProxyTest": "Test Connection",
+  "loginProxyTestRunning": "Testing Connection...",
+  "loginProxyTestSuccess": "Connection succeeded!",
+  "loginProxyTestFailed": "Test Failed (Error:{0})",
+  "loginProxyTestCouldNotConnect": "Could not connect. Verify your network is working & proxy details are correct",
+
   "loginUserAgent": "User Agent",
   "loginSelectUserAgent": "Select User Agent",
   "loginIgnoreCert": "Ignore Certificate Verification",
@@ -319,12 +324,8 @@
   "menuBarInactive": "Inactive",
 
   "settingsConnection": "Connection",
-  "modalProxyInfo": "The proxy requires authentication:",
-  "modalProxyBadCreds": "The specified proxy credentials were incorrect, please confirm and try again.",
   "modalProxyUsername": "Proxy Username",
   "modalProxyPassword": "Proxy Password",
-  "modalProxyAuthContinueButton": "Test",
-  "modalProxyAuthCancelButton": "Cancel",
 
   "sceneTitle": "Scene",
   "sceneImageViewerTitle": "Image Viewer",
