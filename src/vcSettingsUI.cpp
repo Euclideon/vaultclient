@@ -517,7 +517,26 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
             if (pProgramState->settings.convertdefaults.watermark.pTexture != nullptr)
             {
-              ImGui::Image(pProgramState->settings.convertdefaults.watermark.pTexture, ImVec2(256, 256));
+              //Since we're allowing images of any dimensions, we need to make sure it fits in the UI.
+              udInt2 dimension = {pProgramState->settings.convertdefaults.watermark.width, pProgramState->settings.convertdefaults.watermark.height};
+              udInt2 maxDimension = {512, 256};
+              int minDimension = 2;
+
+              for (int i = 0; i < udInt2::ElementCount; i++)
+              {
+                if (dimension[i] > maxDimension[i])
+                {
+                  float factor = float(dimension[i]) / maxDimension[i];
+                  dimension /= factor;
+                  int j = (i + 1) % udInt2::ElementCount;
+
+                  //Is the other dimension too thin now?
+                  if (dimension[j] < minDimension)
+                    dimension[j] = minDimension;
+                }
+              }
+
+              ImGui::Image(pProgramState->settings.convertdefaults.watermark.pTexture, ImVec2(float(dimension[0]), float(dimension[1])));
 
               if (ImGui::Button(vcString::Get("convertRemoveWatermark")))
               {
