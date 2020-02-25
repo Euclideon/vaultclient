@@ -181,6 +181,15 @@ bool vcMain_TakeScreenshot(vcState *pProgramState)
   if (currSize.x - pProgramState->settings.screenshot.resolution.x > 32 || currSize.y - pProgramState->settings.screenshot.resolution.y > 32)
     return true;
 
+  udFindDir* poutputPath = nullptr;
+  if (udOpenDir(&poutputPath, pProgramState->settings.screenshot.outputPath) != udR_Success)
+  {
+    //Folder may not exist, try to create.
+    if (udCreateDir(pProgramState->settings.screenshot.outputPath) != udR_Success)
+      return false;
+  }
+  udCloseDir(&poutputPath);
+
   char buffer[vcMaxPathLength];
   time_t rawtime;
   tm timeval;

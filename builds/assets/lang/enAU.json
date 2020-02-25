@@ -597,5 +597,6 @@
   "settingsScreenshotRes4K": "4K",
   "settingsScreenshotResCustom": "Custom",
   "settingsScreenshotFilename": "Filename",
-  "settingsScreenshotView": "View Once Taken"
+  "settingsScreenshotView": "View Once Taken",
+  "settingsScreenshotPathAlert": "This folder will be created when you first take a photo"
 }
