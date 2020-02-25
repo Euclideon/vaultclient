@@ -184,18 +184,12 @@ void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine 
     ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Yellow Exclamation in Triangle
     if (vcIGSW_IsItemHovered())
       ImGui::SetTooltip("%s", vcString::Get("sceneExplorerPending"));
-
-    if (sameLine)
-      ImGui::SameLine();
   }
   else if (loadStatus == vcSLS_Loading)
   {
     ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", loadingChars[currentLoadingChar % udLengthOf(loadingChars)]); // Yellow Spinning clock
     if (vcIGSW_IsItemHovered())
       ImGui::SetTooltip("%s", vcString::Get("sceneExplorerLoading"));
-
-    if (sameLine)
-      ImGui::SameLine();
   }
   else if (loadStatus == vcSLS_Failed || loadStatus == vcSLS_OpenFailure)
   {
@@ -207,10 +201,14 @@ void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine 
       else
         ImGui::SetTooltip("%s", vcString::Get("sceneExplorerErrorLoad"));
     }
-
-    if (sameLine)
-      ImGui::SameLine();
   }
+  else if (loadStatus == vcSLS_Success)
+  {
+    ImGui::TextColored(ImVec4(0.f, 1.f, 0.f, 1.f), "\xE2\x9C\x93"); // Green Checkmark
+  }
+
+  if (sameLine)
+    ImGui::SameLine();
 }
 
 bool vcIGSW_StickyIntSlider(const char* label, int* v, int v_min, int v_max, int sticky)

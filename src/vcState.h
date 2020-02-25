@@ -51,7 +51,6 @@ enum vcLoginStatus
   vcLS_NegotiationError,
   vcLS_ProxyError,
   vcLS_ProxyAuthRequired,
-  vcLS_ProxyAuthPending,
   vcLS_ProxyAuthFailed,
   vcLS_OtherError
 };

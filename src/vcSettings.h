@@ -180,10 +180,20 @@ struct vcSettings
 
     char proxy[vcMaxPathLength];
     char proxyTestURL[vcMaxPathLength];
-    bool autoDetectProxy;
     char autoDetectProxyURL[vcMaxPathLength];
     char userAgent[vcMaxPathLength];
     bool ignoreCertificateVerification;
+
+    bool requiresProxyAuth;
+
+    bool rememberProxyUsername;
+    char proxyUsername[vcMaxPathLength];
+    char proxyPassword[vcMaxPathLength];
+
+    // These are not saved but are required testing information
+    udInterlockedBool testing;
+    bool tested;
+    int testStatus;
   } loginInfo;
 
   struct

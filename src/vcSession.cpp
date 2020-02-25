@@ -154,6 +154,14 @@ void vcSession_Login(void *pProgramStatePtr)
   else if (result != vE_Success)
     pProgramState->loginStatus = vcLS_OtherError;
 
+  if (pProgramState->loginStatus == vcLS_ConnectionError || pProgramState->loginStatus == vcLS_SecurityError || pProgramState->loginStatus == vcLS_ProxyError || pProgramState->loginStatus == vcLS_ProxyAuthRequired)
+  {
+    pProgramState->openSettings = true;
+    pProgramState->activeSetting = vcSR_Connection;
+    pProgramState->settings.loginInfo.tested = true;
+    pProgramState->settings.loginInfo.testStatus = result;
+  }
+
   pProgramState->logoutReason = result;
 
   if (result != vE_Success)

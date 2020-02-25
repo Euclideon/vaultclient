@@ -259,6 +259,10 @@ void vcModel::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
 {
   ImGui::TextWrapped("Path: %s", m_pNode->pURI);
+
+  if (m_pPointCloud == nullptr)
+    return; // Nothing else we can do yet
+
   udDouble3 position;
   udDouble3 scale;
   udDoubleQuat orientation;
