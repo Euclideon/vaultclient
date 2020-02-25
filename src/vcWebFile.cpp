@@ -22,7 +22,9 @@ static udResult vcWebFile_Load(udFile *pFile, void **ppBuffer, int64_t *pBufferL
 
   *ppBuffer = udMemDup(pData, dataLength, 0, udAF_None);
   UD_ERROR_NULL(*ppBuffer, udR_MemoryAllocationFailure);
-  *pBufferLength = (int64_t)dataLength;
+
+  if (pBufferLength != nullptr)
+    *pBufferLength = (int64_t)dataLength;
 
 epilogue:
   if (pData)
