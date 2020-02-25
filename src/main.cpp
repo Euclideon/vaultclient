@@ -1762,7 +1762,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     vcRenderScene_HandlePicking(pProgramState, renderData, selectItem);
 
     // Camera update has to be here because it depends on previous ImGui state
-    vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create(windowSize.x, windowSize.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
+    vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create((float)pProgramState->sceneResolution.x, (float)pProgramState->sceneResolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
 
     if (pProgramState->sceneExplorer.clickedItem.pParent && pProgramState->sceneExplorer.clickedItem.pItem && !pProgramState->modalOpen)
     {
