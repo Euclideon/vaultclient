@@ -181,7 +181,7 @@ bool vcMain_TakeScreenshot(vcState *pProgramState)
   if (currSize.x - pProgramState->settings.screenshot.resolution.x > 32 || currSize.y - pProgramState->settings.screenshot.resolution.y > 32)
     return true;
 
-  udFindDir* poutputPath(nullptr);
+  udFindDir* poutputPath = nullptr;
   udResult result = udOpenDir(&poutputPath, pProgramState->settings.screenshot.outputPath);
   if (result != udR_Success)
   {

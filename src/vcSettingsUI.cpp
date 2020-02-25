@@ -581,7 +581,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           udFindDir* poutputPath(nullptr);
           udResult result = udOpenDir(&poutputPath, pProgramState->settings.screenshot.outputPath);
           if (result != udR_Success)
-            ImGui::Text(vcString::Get("settingsScreenshotPathAlert"));
+            ImGui::Text("%s", vcString::Get("settingsScreenshotPathAlert"));
           udCloseDir(&poutputPath);
 
         }
