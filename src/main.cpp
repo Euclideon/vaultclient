@@ -2037,7 +2037,7 @@ float vcMain_MenuGui(vcState *pProgramState)
       ImGui::EndMenu();
     }
 
-    if (ImGui::MenuItem("Settings"))
+    if (ImGui::MenuItem(vcString::Get("menuSettings")))
       pProgramState->openSettings = true;
 
 #if VC_HASCONVERT

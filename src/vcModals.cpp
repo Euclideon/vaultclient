@@ -226,7 +226,7 @@ void vcModals_DrawAddSceneItem(vcState *pProgramState)
   {
     pProgramState->modalOpen = true;
 
-    vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_SceneItems, vcFDT_OpenFile, nullptr);
+    vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_SceneItems, vcFDT_OpenFile, nullptr);
 
     ImGui::SameLine();
 
@@ -263,7 +263,7 @@ void vcModals_DrawExportProject(vcState *pProgramState)
   {
     pProgramState->modalOpen = true;
     
-    vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
+    vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
 
     ImGui::SameLine();
 
@@ -300,7 +300,7 @@ void vcModals_DrawImportProject(vcState *pProgramState)
   {
     pProgramState->modalOpen = true;
 
-    vcIGSW_FilePicker(pProgramState, "Filename", pProgramState->modelPath, SupportedFileTypes_ProjectsImport, vcFDT_OpenFile, nullptr);
+    vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_ProjectsImport, vcFDT_OpenFile, nullptr);
 
     ImGui::SameLine();
 
