@@ -182,12 +182,10 @@ bool vcMain_TakeScreenshot(vcState *pProgramState)
     return true;
 
   udFindDir* poutputPath = nullptr;
-  udResult result = udOpenDir(&poutputPath, pProgramState->settings.screenshot.outputPath);
-  if (result != udR_Success)
+  if (udOpenDir(&poutputPath, pProgramState->settings.screenshot.outputPath) != udR_Success)
   {
     //Folder may not exist, try to create.
-    result = udCreateDir(pProgramState->settings.screenshot.outputPath);
-    if (result != udR_Success)
+    if (udCreateDir(pProgramState->settings.screenshot.outputPath) != udR_Success)
       return false;
   }
   udCloseDir(&poutputPath);
