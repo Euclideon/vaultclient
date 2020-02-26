@@ -35,8 +35,24 @@ jobs:
       sdk: 'macosx'
       configuration: $(configuration)
       packageApp: false
+  - task: Xcode@5
+    displayName: 'Build Projects'
+    inputs:
+      xcWorkspacePath: 'vcTesting/vcTesting.xcodeproj'
+      sdk: 'macosx'
+      configuration: $(configuration)
+      packageApp: false
+  - script: builds/tests/vcTesting --gtest_shuffle --gtest_output=xml
+    displayName: 'Run Tests'
+  - task: PublishTestResults@2
+    displayName: 'Publish Test Results'
+    condition: always()
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: 'test_detail.xml'
+      testRunTitle: ${{ parameters.name }}_$(platform)_$(configuration)
   - script: buildscripts/macos-package.sh ${{ parameters.gfxapi }}
   - publish: builds/vaultClient.dmg
-    displayName: 'Public Artifacts'
+    displayName: 'Publish Artifacts'
     condition: and(succeeded(), eq(variables['configuration'], 'Release'))
     artifact: ${{ parameters.name }}$(configuration)
