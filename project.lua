@@ -28,7 +28,6 @@ project "vaultClient"
 
 	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS" }
 
-	symbols "On"
 	injectvaultsdkbin()
 
 	local excludedSourceFileNames = {}
@@ -209,6 +208,7 @@ project "vaultClient"
 		targetname ("%{prj.name}_" .. _OPTIONS["gfxapi"])
 
 	filter {}
-
+	
+	symbols "On"
 	targetdir "builds"
 	debugdir "builds"
