@@ -221,7 +221,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->visualization.minIntensity = data.Get("visualization.minIntensity").AsInt(0);
     pSettings->visualization.maxIntensity = data.Get("visualization.maxIntensity").AsInt(65535);
 
-    for (int i = 0; i < udLengthOf(pSettings->visualization.customClassificationToggles); i++)
+    for (size_t i = 0; i < udLengthOf(pSettings->visualization.customClassificationToggles); i++)
       pSettings->visualization.customClassificationToggles[i] = true;
 
     if (data.Get("visualization.classificationToggles").IsArray())
@@ -523,7 +523,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("visualization.minIntensity = %d", pSettings->visualization.minIntensity);
   data.Set("visualization.maxIntensity = %d", pSettings->visualization.maxIntensity);
 
-  int lastFalseIndex = udLengthOf(pSettings->visualization.customClassificationToggles) - 1;
+  int lastFalseIndex = (int)udLengthOf(pSettings->visualization.customClassificationToggles) - 1;
   for (; lastFalseIndex >= 0; --lastFalseIndex)
   {
     if (!pSettings->visualization.customClassificationToggles[lastFalseIndex])

@@ -341,20 +341,20 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
               if (ImGui::Button(vcString::Get("settingsVisClassShowAll")))
               {
-                for (int i = 0; i < udLengthOf(pProgramState->settings.visualization.customClassificationToggles); i++)
+                for (size_t i = 0; i < udLengthOf(pProgramState->settings.visualization.customClassificationToggles); i++)
                   pProgramState->settings.visualization.customClassificationToggles[i] = true;
               }
 
               ImGui::SameLine();
               if (ImGui::Button(vcString::Get("settingsVisClassDisableAll")))
               {
-                for (int i = 0; i < udLengthOf(pProgramState->settings.visualization.customClassificationToggles); i++)
+                for (size_t i = 0; i < udLengthOf(pProgramState->settings.visualization.customClassificationToggles); i++)
                   pProgramState->settings.visualization.customClassificationToggles[i] = false;
               }
 
-              for (int i = 0; i < udLengthOf(s_customClassifications); i++)
+              for (size_t i = 0; i < udLengthOf(s_customClassifications); i++)
               {
-                ImGui::PushID(i);
+                ImGui::PushID((int)i);
                 ImGui::Checkbox("", &pProgramState->settings.visualization.customClassificationToggles[i]);
                 ImGui::PopID();
                 ImGui::SameLine();
@@ -412,7 +412,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
                 ImGui::TreePop();
               }
 
-              for (int i = 0; i < udLengthOf(pProgramState->settings.visualization.customClassificationToggles); i++)
+              for (size_t i = 0; i < udLengthOf(pProgramState->settings.visualization.customClassificationToggles); i++)
               {
                 if (pProgramState->settings.visualization.customClassificationToggles[i])
                   pProgramState->settings.visualization.customClassificationColors[i] = pProgramState->settings.visualization.customClassificationColors[i] | 0xFF000000;
