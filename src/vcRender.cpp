@@ -1149,6 +1149,7 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
   }
   return true;
 }
+
 void vcRenderWatermark(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
   if (!pProgramState->pSceneWatermark)
@@ -1173,6 +1174,7 @@ void vcRenderWatermark(vcState *pProgramState, vcRenderContext *pRenderContext)
   vcGLState_ResetState();
   vcShader_Bind(nullptr);
 }
+
 void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
 {
   udUnused(pDefaultFramebuffer);
