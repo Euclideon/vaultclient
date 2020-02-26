@@ -341,6 +341,8 @@ Modules are currently:
 
 - `settingsVisClassRestoreDefaults`: Label on a button that restores default values for all classifications and colours
 - `settingsVisClassShowColourTable`: Label next to checkbox that opens table for defining colours for each classification
+- `settingsVisClassShowAll`: Label for button that turns on all classifications
+- `settingsVisClassDisableAll`: Label for button that turns off all classifications
 - `settingsVisClassRename`: Label for rename button beside each user definable classification
 - `settingsVisClassSet`: Label for button that appears beside a textbox when renaming a user definable classification, used to confirm the new name
 

@@ -169,6 +169,8 @@
   "settingsVisDisplacementRange": "Displacement Range",
 
   "settingsVisClassShowColourTable": "Show Custom Classification Colour Table",
+  "settingsVisClassShowAll": "Show All Classifications",
+  "settingsVisClassDisableAll": "Disable All Classifications",
   "settingsVisClassNeverClassified": "0. Never Classified",
   "settingsVisClassUnclassified": "1. Unclassified",
   "settingsVisClassGround": "2. Ground",

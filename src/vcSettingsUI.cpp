@@ -317,30 +317,63 @@ void vcSettingsUI_Show(vcState *pProgramState)
               if (ImGui::Button(udTempStr("%s##RestoreClassificationColors", vcString::Get("settingsRestoreDefaults"))))
                 memcpy(pProgramState->settings.visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pProgramState->settings.visualization.customClassificationColors));
 
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassNeverClassified"), &pProgramState->settings.visualization.customClassificationColors[0], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassUnclassified"), &pProgramState->settings.visualization.customClassificationColors[1], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassGround"), &pProgramState->settings.visualization.customClassificationColors[2], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassLowVegetation"), &pProgramState->settings.visualization.customClassificationColors[3], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassMediumVegetation"), &pProgramState->settings.visualization.customClassificationColors[4], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassHighVegetation"), &pProgramState->settings.visualization.customClassificationColors[5], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassBuilding"), &pProgramState->settings.visualization.customClassificationColors[6], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassLowPoint"), &pProgramState->settings.visualization.customClassificationColors[7], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassKeyPoint"), &pProgramState->settings.visualization.customClassificationColors[8], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassWater"), &pProgramState->settings.visualization.customClassificationColors[9], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassRail"), &pProgramState->settings.visualization.customClassificationColors[10], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassRoadSurface"), &pProgramState->settings.visualization.customClassificationColors[11], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassReserved"), &pProgramState->settings.visualization.customClassificationColors[12], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassWireGuard"), &pProgramState->settings.visualization.customClassificationColors[13], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassWireConductor"), &pProgramState->settings.visualization.customClassificationColors[14], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassTransmissionTower"), &pProgramState->settings.visualization.customClassificationColors[15], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassWireStructureConnector"), &pProgramState->settings.visualization.customClassificationColors[16], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassBridgeDeck"), &pProgramState->settings.visualization.customClassificationColors[17], ImGuiColorEditFlags_NoAlpha);
-              vcIGSW_ColorPickerU32(vcString::Get("settingsVisClassHighNoise"), &pProgramState->settings.visualization.customClassificationColors[18], ImGuiColorEditFlags_NoAlpha);
+              const int customClassicationCount = 18;
+              const int classicationCount = 256;
+              static const char* s_customClassifications[customClassicationCount] =
+              {
+                "settingsVisClassUnclassified",
+                "settingsVisClassGround",
+                "settingsVisClassLowVegetation",
+                "settingsVisClassMediumVegetation",
+                "settingsVisClassHighVegetation",
+                "settingsVisClassBuilding",
+                "settingsVisClassLowPoint",
+                "settingsVisClassKeyPoint",
+                "settingsVisClassWater",
+                "settingsVisClassRail",
+                "settingsVisClassRoadSurface",
+                "settingsVisClassReserved",
+                "settingsVisClassWireGuard",
+                "settingsVisClassWireConductor",
+                "settingsVisClassTransmissionTower",
+                "settingsVisClassWireStructureConnector",
+                "settingsVisClassBridgeDeck",
+                "settingsVisClassHighNoise"
+              };
+
+              if (ImGui::Button(vcString::Get("settingsVisClassShowAll")))
+              {
+                for (int i = 0; i < classicationCount; i++)
+                  pProgramState->settings.visualization.customClassificationToggles[i] = true;
+              }
+
+              ImGui::SameLine();
+              //TODO add to schema
+              if (ImGui::Button(vcString::Get("settingsVisClassDisableAll")))
+              {
+                for (int i = 0; i < classicationCount; i++)
+                  pProgramState->settings.visualization.customClassificationToggles[i] = false;
+              }
+
+              for (int i = 0; i < customClassicationCount; i++)
+              {
+                ImGui::PushID(i);
+                ImGui::Checkbox("", &pProgramState->settings.visualization.customClassificationToggles[i]);
+                ImGui::PopID();
+                ImGui::SameLine();
+                vcIGSW_ColorPickerU32(vcString::Get(s_customClassifications[i]), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+              }
 
               if (ImGui::TreeNode(vcString::Get("settingsVisClassReservedColours")))
               {
                 for (int i = 19; i < 64; ++i)
+                {
+                  ImGui::PushID(i);
+                  ImGui::Checkbox("", &pProgramState->settings.visualization.customClassificationToggles[i]);
+                  ImGui::PopID();
+                  ImGui::SameLine();
                   vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, vcString::Get("settingsVisClassReservedLabels")), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+                }
                 ImGui::TreePop();
               }
 
@@ -348,6 +381,11 @@ void vcSettingsUI_Show(vcState *pProgramState)
               {
                 for (int i = 64; i <= 255; ++i)
                 {
+                  ImGui::PushID(i);
+                  ImGui::Checkbox("", &pProgramState->settings.visualization.customClassificationToggles[i]);
+                  ImGui::PopID();
+                  ImGui::SameLine();
+
                   char buttonID[12], inputID[3];
                   if (pProgramState->settings.visualization.customClassificationColorLabels[i] == nullptr)
                     vcIGSW_ColorPickerU32(udTempStr("%d. %s", i, vcString::Get("settingsVisClassUserDefined")), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
@@ -375,6 +413,14 @@ void vcSettingsUI_Show(vcState *pProgramState)
                   }
                 }
                 ImGui::TreePop();
+              }
+
+              for (int i = 0; i < 256; i++)
+              {
+                if (pProgramState->settings.visualization.customClassificationToggles[i])
+                  pProgramState->settings.visualization.customClassificationColors[i] = pProgramState->settings.visualization.customClassificationColors[i] | 0xFF000000;
+                else
+                  pProgramState->settings.visualization.customClassificationColors[i] = pProgramState->settings.visualization.customClassificationColors[i] & 0x00FFFFFF;
               }
             }
           }

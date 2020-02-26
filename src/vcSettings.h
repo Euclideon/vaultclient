@@ -206,6 +206,7 @@ struct vcSettings
     udFloat2 displacement;
 
     bool useCustomClassificationColours;
+    bool customClassificationToggles[256];
     uint32_t customClassificationColors[256];
     const char *customClassificationColorLabels[256];
   } visualization;
