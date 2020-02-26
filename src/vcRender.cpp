@@ -1160,26 +1160,14 @@ void vcRenderWatermark(vcState *pProgramState, vcRenderContext *pRenderContext)
   udInt2 imageSize = udInt2::zero();
   vcTexture_GetSize(pProgramState->pSceneWatermark, &imageSize.x, &imageSize.y);
 
-  udDouble3 position = udDouble3::create((double)imageSize.x / pRenderContext->sceneResolution.x - 1,
-    (double)imageSize.y / pRenderContext->sceneResolution.y - 1, 0);
-
-  vcShader_Bind(pRenderContext->watermarkShader.pProgram);
+  udDouble3 position = udDouble3::create((double)imageSize.x / pRenderContext->sceneResolution.x - 1,(double)imageSize.y / pRenderContext->sceneResolution.y - 1, 0);
   pRenderContext->watermarkShader.params.u_worldViewProjectionMatrix = udFloat4x4::create(udDouble4x4::translation(position) * udDouble4x4::scaleUniform(1.0f));
-  pRenderContext->watermarkShader.params.u_screenSize = udFloat4::create((float)imageSize.x / pRenderContext->sceneResolution.x
-    , (float)imageSize.y / pRenderContext->sceneResolution.y
-    , 1.0f, 0.0f);
+  pRenderContext->watermarkShader.params.u_screenSize = udFloat4::create((float)imageSize.x / pRenderContext->sceneResolution.x, (float)imageSize.y / pRenderContext->sceneResolution.y, 1.0f, 0.0f);
   pRenderContext->watermarkShader.params.u_colour = udFloat4::create(1, 1, 1, 1);
 
-  vcShader_BindConstantBuffer(pRenderContext->watermarkShader.pProgram
-    , pRenderContext->watermarkShader.uniform_params
-    , &pRenderContext->watermarkShader.params
-    , sizeof(pRenderContext->watermarkShader.params));
-
-  vcShader_BindTexture(pRenderContext->watermarkShader.pProgram
-    , pProgramState->pSceneWatermark
-    , 0
-    , pRenderContext->watermarkShader.uniform_texture);
-
+  vcShader_Bind(pRenderContext->watermarkShader.pProgram);
+  vcShader_BindConstantBuffer(pRenderContext->watermarkShader.pProgram, pRenderContext->watermarkShader.uniform_params, &pRenderContext->watermarkShader.params, sizeof(pRenderContext->watermarkShader.params));
+  vcShader_BindTexture(pRenderContext->watermarkShader.pProgram, pProgramState->pSceneWatermark, 0, pRenderContext->watermarkShader.uniform_texture);
   vcMesh_Render(gInternalMeshes[vcInternalMeshType_Billboard]);
 
   vcGLState_ResetState();
