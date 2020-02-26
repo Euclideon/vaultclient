@@ -317,9 +317,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
               if (ImGui::Button(udTempStr("%s##RestoreClassificationColors", vcString::Get("settingsRestoreDefaults"))))
                 memcpy(pProgramState->settings.visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pProgramState->settings.visualization.customClassificationColors));
 
-              const int customClassicationCount = 18;
-              const int classicationCount = 256;
-              static const char* s_customClassifications[customClassicationCount] =
+              static const char* s_customClassifications[] =
               {
                 "settingsVisClassUnclassified",
                 "settingsVisClassGround",
@@ -343,19 +341,18 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
               if (ImGui::Button(vcString::Get("settingsVisClassShowAll")))
               {
-                for (int i = 0; i < classicationCount; i++)
+                for (int i = 0; i < udLengthOf(pProgramState->settings.visualization.customClassificationToggles); i++)
                   pProgramState->settings.visualization.customClassificationToggles[i] = true;
               }
 
               ImGui::SameLine();
-              //TODO add to schema
               if (ImGui::Button(vcString::Get("settingsVisClassDisableAll")))
               {
-                for (int i = 0; i < classicationCount; i++)
+                for (int i = 0; i < udLengthOf(pProgramState->settings.visualization.customClassificationToggles); i++)
                   pProgramState->settings.visualization.customClassificationToggles[i] = false;
               }
 
-              for (int i = 0; i < customClassicationCount; i++)
+              for (int i = 0; i < udLengthOf(s_customClassifications); i++)
               {
                 ImGui::PushID(i);
                 ImGui::Checkbox("", &pProgramState->settings.visualization.customClassificationToggles[i]);
@@ -415,7 +412,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
                 ImGui::TreePop();
               }
 
-              for (int i = 0; i < 256; i++)
+              for (int i = 0; i < udLengthOf(pProgramState->settings.visualization.customClassificationToggles); i++)
               {
                 if (pProgramState->settings.visualization.customClassificationToggles[i])
                   pProgramState->settings.visualization.customClassificationColors[i] = pProgramState->settings.visualization.customClassificationColors[i] | 0xFF000000;

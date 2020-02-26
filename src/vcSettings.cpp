@@ -221,8 +221,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->visualization.minIntensity = data.Get("visualization.minIntensity").AsInt(0);
     pSettings->visualization.maxIntensity = data.Get("visualization.maxIntensity").AsInt(65535);
 
-    const int classificationsCount = 256;
-    for (int i = 0; i < classificationsCount; i++)
+    for (int i = 0; i < udLengthOf(pSettings->visualization.customClassificationToggles); i++)
       pSettings->visualization.customClassificationToggles[i] = true;
 
     if (data.Get("visualization.classificationToggles").IsArray())
@@ -230,10 +229,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       const udJSONArray* pToggles = data.Get("visualization.classificationToggles").AsArray();
 
       for (size_t i = 0; i < pToggles->length; ++i)
-      {
-        bool val = (pToggles->GetElement(i)->AsInt(1) != 0) ? true : false;
         pSettings->visualization.customClassificationToggles[i] = (pToggles->GetElement(i)->AsInt(1) != 0) ? true : false;
-      }
     }
 
     memcpy(pSettings->visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pSettings->visualization.customClassificationColors));
@@ -527,7 +523,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("visualization.minIntensity = %d", pSettings->visualization.minIntensity);
   data.Set("visualization.maxIntensity = %d", pSettings->visualization.maxIntensity);
 
-  int lastFalseIndex = 255;
+  int lastFalseIndex = udLengthOf(pSettings->visualization.customClassificationToggles) - 1;
   for (; lastFalseIndex >= 0; --lastFalseIndex)
   {
     if (!pSettings->visualization.customClassificationToggles[lastFalseIndex])
