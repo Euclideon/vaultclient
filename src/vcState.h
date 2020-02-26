@@ -90,6 +90,11 @@ struct vcState
   const char *pLoadImage;
   udWorkerPool *pWorkerPool;
 
+  struct 
+  {
+    udInterlockedInt32 exportsRunning;
+  } backgroundWork;
+
   double deltaTime;
   udUInt2 sceneResolution;
 

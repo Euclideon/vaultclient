@@ -5,6 +5,7 @@
 #include "vcBPA.h"
 #include "vcStringFormat.h"
 #include "vcModals.h"
+#include "vcQueryNode.h"
 
 #include "gl/vcTexture.h"
 
@@ -381,18 +382,19 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
   vcImGuiValueTreeObject(&m_metadata);
 }
 
-void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode, vcModel **ppCurrentSelectedModel)
+void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode, vcSceneItem **ppCurrentSelectedModel, const char *pProjectNodeType, bool allowEmpty)
 {
   vdkProjectNode *pChildNode = pParentNode->pFirstChild;
+
   while (pChildNode != nullptr)
   {
     if (pChildNode->itemtype == vdkPNT_Folder)
     {
-      ContextMenuListModels(pProgramState, pChildNode, ppCurrentSelectedModel);
+      ContextMenuListModels(pProgramState, pChildNode, ppCurrentSelectedModel, pProjectNodeType, allowEmpty);
     }
-    else if (pChildNode->itemtype == vdkPNT_PointCloud && pChildNode->pUserData != this)
+    else if (udStrEqual(pChildNode->itemtypeStr, pProjectNodeType) && pChildNode->pUserData != this)
     {
-      if (*ppCurrentSelectedModel == nullptr) // If nothing is selected, it will pick the first thing it can
+      if (!allowEmpty && *ppCurrentSelectedModel == nullptr) // If nothing is selected, it will pick the first thing it can
         *ppCurrentSelectedModel = (vcModel *)pChildNode->pUserData;
 
       if (ImGui::MenuItem(pChildNode->pName, nullptr, (pChildNode->pUserData == *ppCurrentSelectedModel)))
@@ -474,16 +476,53 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 
   ImGui::Separator();
 
+#if VC_HASCONVERT
   if (((m_pPreferredProjection == nullptr && pProgramState->gis.SRID == 0) || (m_pPreferredProjection != nullptr && m_pPreferredProjection->srid == pProgramState->gis.SRID)) && (m_defaultMatrix == m_sceneMatrix))
   {
-    // Reenable in future
-    //if (ImGui::Selectable(vcString::Get("sceneExplorerExportLAS"), false))
-    //{
-    //  vdkPointCloud_Export(m_pPointCloud, "Testing.las", nullptr);
-    //}
+    if (ImGui::BeginMenu(vcString::Get("sceneExplorerExportPointCloud")))
+    {
+      static vcQueryNode *s_pQuery = nullptr;
+
+      if (ImGui::IsWindowAppearing())
+        s_pQuery = nullptr;
+
+      if (ImGui::BeginCombo(vcString::Get("sceneExplorerExportQueryFilter"), (s_pQuery == nullptr ? vcString::Get("sceneExplorerExportEntireModel") : s_pQuery->m_pNode->pName)))
+      {
+        if (ImGui::MenuItem(vcString::Get("sceneExplorerExportEntireModel"), nullptr, (s_pQuery == nullptr)))
+          s_pQuery = nullptr;
+
+        ContextMenuListModels(pProgramState, pProgramState->activeProject.pFolder->m_pNode, (vcSceneItem**)&s_pQuery, "QFilter", true);
+        ImGui::EndCombo();
+      }
+
+      vcIGSW_FilePicker(pProgramState, vcString::Get("sceneExplorerExportFilename"), pProgramState->modelPath, SupportedTileTypes_QueryExport, vcFDT_SaveFile, nullptr);
+
+      if (ImGui::Button(vcString::Get("sceneExplorerExportBegin")))
+      {
+        if (udFileExists(pProgramState->modelPath) != udR_Success || vcModals_OverwriteExistingFile(pProgramState->modelPath))
+        {
+          vdkQueryFilter *pFilter = ((s_pQuery == nullptr) ? nullptr : s_pQuery->m_pFilter);
+          vdkPointCloud *pCloud = m_pPointCloud;
+
+          ++pProgramState->backgroundWork.exportsRunning;
+
+          udWorkerPoolCallback callback = [pProgramState, pCloud, pFilter](void*)
+          {
+            vdkPointCloud_Export(pCloud, pProgramState->modelPath, pFilter);
+            --pProgramState->backgroundWork.exportsRunning;
+          };
+
+          // Add post callback
+
+          udWorkerPool_AddTask(pProgramState->pWorkerPool, callback, nullptr, false);
+          ImGui::CloseCurrentPopup();
+        }
+      }
+
+      ImGui::EndMenu();
+    }
   }
 
-#if VC_HASCONVERT
   // Compare models
   if (ImGui::BeginMenu(vcString::Get("sceneExplorerCompareModels")))
   {
@@ -496,7 +535,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 
     if (ImGui::BeginCombo(vcString::Get("sceneExplorerDisplacementModel"), (s_pOldModel == nullptr ? "..." : s_pOldModel->m_pNode->pName)))
     {
-      ContextMenuListModels(pProgramState, pProgramState->activeProject.pFolder->m_pNode, &s_pOldModel);
+      ContextMenuListModels(pProgramState, pProgramState->activeProject.pFolder->m_pNode, (vcSceneItem**)&s_pOldModel, "UDS", false);
       ImGui::EndCombo();
     }
 
