@@ -1254,8 +1254,8 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
     vcGLState_ResetState();
   }
 
-  vcRenderWatermark(pProgramState, pRenderContext);
   vcRender_PostProcessPass(pProgramState, pRenderContext);
+  vcRenderWatermark(pProgramState, pRenderContext);
 
   vcGLState_ResetState();
   vcShader_Bind(nullptr);
