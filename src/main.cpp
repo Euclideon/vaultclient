@@ -1943,6 +1943,22 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
       ImGui::TextUnformatted(tempData);
     }
   }
+
+  // Background work
+  {
+    if (pProgramState->backgroundWork.exportsRunning.Get() > 0)
+    {
+      udSprintf(tempData, "%s / ", vcString::Get("sceneExplorerExportRunning"));
+
+      xPosition -= ImGui::CalcTextSize(tempData).x;
+      ImGui::SameLine(xPosition);
+      ImGui::TextUnformatted(tempData);
+
+      xPosition -= 20;
+      ImGui::SameLine(xPosition);
+      vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
+    }
+  }
 }
 
 float vcMain_MenuGui(vcState *pProgramState)

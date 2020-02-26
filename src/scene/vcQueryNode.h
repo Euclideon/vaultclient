@@ -26,8 +26,6 @@ private:
   udDouble3 m_extents;
   udDouble3 m_ypr;
 
-  vdkQueryFilter *m_pFilter;
-
 public:
   vcQueryNode(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcQueryNode();
@@ -42,6 +40,8 @@ public:
 
   udDouble4x4 GetWorldSpaceMatrix();
   vcGizmoAllowedControls GetAllowedControls();
+
+  vdkQueryFilter *m_pFilter;
 };
 
 #endif //vcViewpoint_h__

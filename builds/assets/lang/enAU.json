@@ -406,6 +406,13 @@
   "sceneModelRotation": "Model Rotation",
   "sceneModelScale": "Model Scale",
 
+  "sceneExplorerExportPointCloud": "Export Pointcloud",
+  "sceneExplorerExportQueryFilter": "Filter",
+  "sceneExplorerExportFilename": "Filename",
+  "sceneExplorerExportBegin": "Start Export",
+  "sceneExplorerExportRunning": "Exporting...",
+  "sceneExplorerExportEntireModel": "Export entire model",
+
   "sceneModelMetreScale": "Metre Scale: {0}",
   "sceneModelLODLayers": "LODs: {0}",
   "sceneModelResolution": "Resolution: {0}",
