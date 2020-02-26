@@ -109,7 +109,14 @@ void vcSettingsUI_Show(vcState *pProgramState)
         {
           vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsAppearance"), vcSC_Appearance);
 
-          vcSettingsUI_LangCombo(pProgramState);
+          bool languageWasJustChanged = false;
+          static bool languageWasChangedLastFrame = false;
+          vcSettingsUI_LangCombo(pProgramState, &languageWasJustChanged);
+          // Reset focus to the settings window (fixes a window ordering bug when language is changed for the first time)
+          if (languageWasChangedLastFrame)
+            ImGui::SetWindowFocus();
+          languageWasChangedLastFrame = languageWasJustChanged;
+
           ImGui::SameLine();
           ImGui::TextUnformatted(vcString::Get("settingsAppearanceLanguage"));
 
@@ -131,7 +138,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
           if (ImGui::SliderFloat(vcString::Get("settingsAppearancePOIDistance"), &pProgramState->settings.presentation.POIFadeDistance, vcSL_POIFaderMin, vcSL_POIFaderMax, "%.3fm", 3.f))
             pProgramState->settings.presentation.POIFadeDistance = udClamp(pProgramState->settings.presentation.POIFadeDistance, vcSL_POIFaderMin, vcSL_GlobalLimitf);
-          if(ImGui::SliderFloat(vcString::Get("settingsAppearanceImageRescale"), &pProgramState->settings.presentation.imageRescaleDistance, vcSL_ImageRescaleMin, vcSL_ImageRescaleMax, "%.3fm", 3.f))
+          if (ImGui::SliderFloat(vcString::Get("settingsAppearanceImageRescale"), &pProgramState->settings.presentation.imageRescaleDistance, vcSL_ImageRescaleMin, vcSL_ImageRescaleMax, "%.3fm", 3.f))
             pProgramState->settings.presentation.imageRescaleDistance = udClamp(pProgramState->settings.presentation.imageRescaleDistance, vcSL_ImageRescaleMin, vcSL_ImageRescaleMax);
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowDiagnostics"), &pProgramState->settings.presentation.showDiagnosticInfo);
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowEuclideonLogo"), &pProgramState->settings.presentation.showEuclideonLogo);
@@ -474,7 +481,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           vcIGSW_FilePicker(pProgramState, vcString::Get("convertTempDirectory"), pProgramState->settings.convertdefaults.tempDirectory, udLengthOf(pProgramState->settings.convertdefaults.tempDirectory), nullptr, 0, vcFDT_SelectDirectory, [pProgramState] {
             // Nothing needs to happen here
             udUnused(pProgramState);
-          });
+            });
 
           vcIGSW_FilePicker(pProgramState, vcString::Get("convertChangeDefaultWatermark"), pProgramState->settings.convertdefaults.watermark.filename, SupportedFileTypes_Images, vcFDT_OpenFile, [pProgramState] {
             //reload stuff
@@ -490,7 +497,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
             }
             udStrcpy(pProgramState->settings.convertdefaults.watermark.filename, filename.GetFilenameWithExt());
             pProgramState->settings.convertdefaults.watermark.isDirty = true;
-          });
+            });
 
           ImGui::Indent();
           {
@@ -519,8 +526,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
             if (pProgramState->settings.convertdefaults.watermark.pTexture != nullptr)
             {
               //Since we're allowing images of any dimensions, we need to make sure it fits in the UI.
-              udInt2 dimension = {pProgramState->settings.convertdefaults.watermark.width, pProgramState->settings.convertdefaults.watermark.height};
-              udInt2 maxDimension = {512, 256};
+              udInt2 dimension = { pProgramState->settings.convertdefaults.watermark.width, pProgramState->settings.convertdefaults.watermark.height };
+              udInt2 maxDimension = { 512, 256 };
               int minDimension = 2;
 
               for (int i = 0; i < udInt2::ElementCount; i++)
@@ -614,14 +621,14 @@ void vcSettingsUI_Show(vcState *pProgramState)
           if (ImGui::Button(vcString::Get("loginProxyTest")) && !pProgramState->settings.loginInfo.testing)
           {
             pProgramState->settings.loginInfo.testing = true;
-            udWorkerPool_AddTask(pProgramState->pWorkerPool, [pProgramState] (void*){
+            udWorkerPool_AddTask(pProgramState->pWorkerPool, [pProgramState](void*) {
               pProgramState->settings.loginInfo.testStatus = vcProxyHelper_TestProxy(pProgramState);
               pProgramState->settings.loginInfo.testing = false;
               pProgramState->settings.loginInfo.tested = true;
-            }, nullptr, true, [pProgramState](void*) {
-              if (pProgramState->settings.loginInfo.testStatus == vE_ProxyAuthRequired)
-                pProgramState->settings.loginInfo.requiresProxyAuth = true;
-            });
+              }, nullptr, true, [pProgramState](void*) {
+                if (pProgramState->settings.loginInfo.testStatus == vE_ProxyAuthRequired)
+                  pProgramState->settings.loginInfo.requiresProxyAuth = true;
+              });
           }
 
           if (pProgramState->settings.loginInfo.testing)
@@ -809,7 +816,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
   }
 }
 
-bool vcSettingsUI_LangCombo(vcState *pProgramState)
+bool vcSettingsUI_LangCombo(vcState *pProgramState, bool *pLanguageHasBeenChanged /*= nullptr*/)
 {
   if (!ImGui::BeginCombo("##langCode", pProgramState->languageInfo.pLocalName))
     return false;
@@ -825,6 +832,8 @@ bool vcSettingsUI_LangCombo(vcState *pProgramState)
         udStrcpy(pProgramState->settings.window.languageCode, pFilename);
       else
         vcString::LoadTableFromFile(udTempStr("asset://assets/lang/%s.json", pProgramState->settings.window.languageCode), &pProgramState->languageInfo);
+      if (pLanguageHasBeenChanged)
+        *pLanguageHasBeenChanged = true;
     }
   }
 
