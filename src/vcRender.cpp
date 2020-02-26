@@ -236,6 +236,20 @@ struct vcRenderContext
       udFloat4 colour;    // rgb, (unused)
     } params;
   } selectionShader;
+
+  struct
+  {
+    vcShader *pProgram;
+    vcShaderSampler *uniform_texture;
+    vcShaderConstantBuffer *uniform_params;
+    struct
+    {
+      udFloat4x4 u_worldViewProjectionMatrix;
+      udFloat4 u_colour;
+      udFloat4 u_screenSize;
+    } params;
+    
+  } watermarkShader;
 };
 
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext);
@@ -317,6 +331,11 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_Bind(pRenderContext->selectionShader.pProgram), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->selectionShader.uniform_texture, pRenderContext->selectionShader.pProgram, "u_texture"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->selectionShader.uniform_params, pRenderContext->selectionShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->selectionShader.params)), udR_InternalError);
+
+  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->watermarkShader.pProgram, g_ImageRendererBillboardVertexShader, g_ImageRendererFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_Bind(pRenderContext->watermarkShader.pProgram), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->watermarkShader.uniform_params, pRenderContext->watermarkShader.pProgram, "u_EveryObject", sizeof(pRenderContext->watermarkShader.params)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->watermarkShader.uniform_texture, pRenderContext->watermarkShader.pProgram, "u_texture"), udR_InternalError);
 
   UD_ERROR_CHECK(vcPolygonModel_CreateShaders());
   UD_ERROR_CHECK(vcImageRenderer_Init());
@@ -1131,6 +1150,31 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
   return true;
 }
 
+void vcRenderWatermark(vcState *pProgramState, vcRenderContext *pRenderContext)
+{
+  if (!pProgramState->pSceneWatermark)
+    return;
+
+  vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+
+  udInt2 imageSize = udInt2::zero();
+  vcTexture_GetSize(pProgramState->pSceneWatermark, &imageSize.x, &imageSize.y);
+
+  udDouble3 position = udDouble3::create((double)imageSize.x / pRenderContext->sceneResolution.x - 1,(double)imageSize.y / pRenderContext->sceneResolution.y - 1, 0);
+  pRenderContext->watermarkShader.params.u_worldViewProjectionMatrix = udFloat4x4::create(udDouble4x4::translation(position) * udDouble4x4::scaleUniform(1.0f));
+  pRenderContext->watermarkShader.params.u_screenSize = udFloat4::create((float)imageSize.x / pRenderContext->sceneResolution.x, (float)imageSize.y / pRenderContext->sceneResolution.y, 1.0f, 0.0f);
+  pRenderContext->watermarkShader.params.u_colour = udFloat4::create(1, 1, 1, 1);
+
+  vcShader_Bind(pRenderContext->watermarkShader.pProgram);
+  vcShader_BindConstantBuffer(pRenderContext->watermarkShader.pProgram, pRenderContext->watermarkShader.uniform_params, &pRenderContext->watermarkShader.params, sizeof(pRenderContext->watermarkShader.params));
+  vcShader_BindTexture(pRenderContext->watermarkShader.pProgram, pProgramState->pSceneWatermark, 0, pRenderContext->watermarkShader.uniform_texture);
+  vcMesh_Render(gInternalMeshes[vcInternalMeshType_Billboard]);
+
+  vcGLState_ResetState();
+  vcShader_Bind(nullptr);
+}
+
 void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
 {
   udUnused(pDefaultFramebuffer);
@@ -1211,6 +1255,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   }
 
   vcRender_PostProcessPass(pProgramState, pRenderContext);
+  vcRenderWatermark(pProgramState, pRenderContext);
 
   vcGLState_ResetState();
   vcShader_Bind(nullptr);

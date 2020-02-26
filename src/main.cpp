@@ -1246,25 +1246,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::PopStyleVar();
   }
 
-  udInt2 sizei = udInt2::zero();
-  if (pProgramState->pSceneWatermark != nullptr) // Watermark
-  {
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    vcTexture_GetSize(pProgramState->pSceneWatermark, &sizei.x, &sizei.y);
-
-    if (pProgramState->settings.presentation.showEuclideonLogo)
-      sizei *= .5;
-
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + windowSize.y - logoSize.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
-    ImGui::SetNextWindowSize(ImVec2((float)sizei.x, (float)sizei.y));
-    ImGui::SetNextWindowBgAlpha(0.5f);
-
-    if (ImGui::Begin("ModelWatermark", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
-      ImGui::Image(pProgramState->pSceneWatermark, ImVec2((float)sizei.x, (float)sizei.y));
-    ImGui::End();
-    ImGui::PopStyleVar();
-  }
-
   if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected)
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
