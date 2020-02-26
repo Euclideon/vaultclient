@@ -568,10 +568,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
             ImGui::Indent();
             if (ImGui::InputInt2(vcString::Get("settingsScreenshotResLabel"), (int*)&pProgramState->settings.screenshot.resolution.x))
             {
-              pProgramState->settings.screenshot.resolution.x = udClamp(pProgramState->settings.screenshot.resolution.x
-                , ScreenshotResolutionsMin.x, ScreenshotResolutionsMax.x);
-              pProgramState->settings.screenshot.resolution.y = udClamp(pProgramState->settings.screenshot.resolution.y
-                , ScreenshotResolutionsMin.y, ScreenshotResolutionsMax.y);
+              pProgramState->settings.screenshot.resolution = udClamp(pProgramState->settings.screenshot.resolution, ScreenshotResolutionsMin, ScreenshotResolutionsMax);
             }
             ImGui::Unindent();
           }
