@@ -26,6 +26,12 @@
   "loginProxyAddress": "代理服务器地址",
   "loginProxyAutodetect": "自动检测代理",
   "loginProxyTest": "测试代理",
+  "loginProxyTestRunning": "测试代理中...",
+  "loginProxyTestSuccess": "连接成功!",
+  "loginProxyTestFailed": "连接失败 (错误:{0})",
+  "loginProxyTestCouldNotConnect": "不可连接. 请确认网络和代理设置是否正确",
+  "loginProxyRequiresAuth": "需要身份验证",
+
   "loginUserAgent": "用户代理",
   "loginSelectUserAgent": "选择用户代理",
   "loginIgnoreCert": "忽略证书验证",

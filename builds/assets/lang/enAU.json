@@ -28,6 +28,7 @@
   "loginProxyTestSuccess": "Connection succeeded!",
   "loginProxyTestFailed": "Test Failed (Error:{0})",
   "loginProxyTestCouldNotConnect": "Could not connect. Verify your network is working & proxy details are correct",
+  "loginProxyRequiresAuth": "Require Proxy Authentication",
 
   "loginUserAgent": "User Agent",
   "loginSelectUserAgent": "Select User Agent",
