@@ -111,13 +111,14 @@ vcPolygonModelShaderType vcPolygonModel_GetShaderType(const vcVertexLayoutTypes 
   return vcPMST_Count;
 }
 
-udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel, const void *pVerts, const uint32_t vertCount, const vcVertexLayoutTypes *pMeshLayout, const int totalTypes, const uint16_t *pIndices /*= nullptr*/, const uint32_t indexCount /*= 0*/)
+udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel, const void *pVerts, const uint32_t vertCount, const vcVertexLayoutTypes *pMeshLayout, const int totalTypes, const void *pIndices /*= nullptr*/, const uint32_t indexCount /*= 0*/, vcPolyModelFlags flags /*= vcPMF_None*/)
 {
   if (ppPolygonModel == nullptr || pVerts == nullptr || pMeshLayout == nullptr || vertCount == 0 || totalTypes <= 0)
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
   vcPolygonModel *pPolygonModel = nullptr;
+  vcMeshFlags meshFlags = vcMF_None;
 
   pPolygonModel = udAllocType(vcPolygonModel, 1, udAF_Zero);
   UD_ERROR_NULL(pPolygonModel, udR_MemoryAllocationFailure);
@@ -144,7 +145,12 @@ udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel,
   if (pPolygonModel->pMeshes[0].materialID == vcPMST_Count)
     UD_ERROR_SET(udR_Unsupported);
 
-  UD_ERROR_CHECK(vcMesh_Create(&pPolygonModel->pMeshes[0].pMesh, pMeshLayout, totalTypes, pVerts, pPolygonModel->pMeshes[0].numVertices, pIndices, indexCount, (pIndices == nullptr) ? vcMF_NoIndexBuffer : vcMF_IndexShort));
+  if (pIndices == nullptr)
+    meshFlags = meshFlags | vcMF_NoIndexBuffer;
+  else if (flags & vcPMF_IndexShort)
+    meshFlags = meshFlags | vcMF_IndexShort;
+
+  UD_ERROR_CHECK(vcMesh_Create(&pPolygonModel->pMeshes[0].pMesh, pMeshLayout, totalTypes, pVerts, pPolygonModel->pMeshes[0].numVertices, pIndices, indexCount, meshFlags));
 
   *ppPolygonModel = pPolygonModel;
   pPolygonModel = nullptr;
