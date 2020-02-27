@@ -38,6 +38,7 @@ static udResult vcWebFile_SeekRead(udFile *pFile, void *pBuffer, size_t bufferLe
   udResult result = udR_Success;
   vdkWebOptions options = {};
   const char *pData = nullptr;
+  const char *pDataOffset = nullptr;
   uint64_t dataLength = 0;
   int responseCode = 0;
 
@@ -46,9 +47,18 @@ static udResult vcWebFile_SeekRead(udFile *pFile, void *pBuffer, size_t bufferLe
   options.rangeEnd = (uint64_t)(seekOffset + bufferLength - 1);
 
   UD_ERROR_IF(vdkWeb_RequestAdv(pFile->pFilenameCopy, options, &pData, &dataLength, &responseCode) != vE_Success, udR_ReadFailure);
-  UD_ERROR_IF(dataLength > bufferLength, udR_ReadFailure);
+  pDataOffset = pData;
 
-  memcpy(pBuffer, pData, dataLength);
+  // If the range was specified and the server responded with a 200 then this handles getting the correct part of the buffer
+  // This is acceptable according to the standard: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Range
+  if (pData != nullptr && responseCode == 200 && seekOffset != 0)
+  {
+    pDataOffset += seekOffset;
+    dataLength = udMin<int64_t>(dataLength - seekOffset, bufferLength - 1);
+  }
+
+  UD_ERROR_IF(dataLength > bufferLength, udR_ReadFailure);
+  memcpy(pBuffer, pDataOffset, dataLength);
   if (pActualRead)
     *pActualRead = dataLength;
 
