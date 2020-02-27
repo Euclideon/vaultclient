@@ -181,7 +181,7 @@ udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, udDouble2 *p
   for (size_t i = 0; i < triangleList.size(); ++i)
     pVerts[i].uv = udFloat2::create(triangleList[i]);
 
-  UD_ERROR_IF(vcMesh_Create(&pVolume.pMesh, vcUV2VertexLayout, (int)udLengthOf(vcUV2VertexLayout), pVerts, pVolume.vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
+  UD_ERROR_IF(vcMesh_Create(&pVolume.pMesh, vcUV2VertexLayout, (int)udLengthOf(vcUV2VertexLayout), pVerts, (uint32_t)pVolume.vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
 
   UD_ERROR_CHECK(pWaterRenderer->volumes.PushBack(pVolume));
 
