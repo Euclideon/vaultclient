@@ -1026,7 +1026,7 @@ bool vcSceneLayer_ExpandNodeForRendering(vcSceneLayer *pSceneLayer, vcSceneLayer
 
       gSceneLayer.gpuMemoryUsageBytes += vcLayout_GetSize(pNode->pFeatureData[i].pGeometryLayout, (int)pNode->pFeatureData[i].geometryLayoutCount) * pNode->pGeometryData[i].vertCount;
 
-      vcPolygonModel_CreateFromRawVertexData(&pGeometryData->pModel, pGeometryData->pData, (uint16_t)pGeometryData->vertCount, pFeatureData->pGeometryLayout, (int)pFeatureData->geometryLayoutCount);
+      vcPolygonModel_CreateFromRawVertexData(&pGeometryData->pModel, pGeometryData->pData, (uint32_t)pGeometryData->vertCount, pFeatureData->pGeometryLayout, (int)pFeatureData->geometryLayoutCount);
       udFree(pGeometryData->pData);
       pGeometryData->loaded = true;
     }

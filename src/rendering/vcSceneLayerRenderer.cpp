@@ -120,13 +120,12 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRende
   bool shouldRender = (pNode->childrenCount == 0 || nodeScreenSize < pNode->lodSelectionValue);
   bool canRender = (pNode->internalsLoadState >= vcSceneLayerNode::vcILS_NodeInternals);
 
-  bool hasNodeRendered = false;
   if (shouldRender)
   {
     if (vcSceneLayer_ExpandNodeForRendering(pSceneLayerRenderer->pSceneLayer, pNode))
     {
       vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, pColourOverride, shadowsPass);
-      hasNodeRendered = true;
+      return true;
     }
 
     // continue, as child may be able to draw
@@ -138,9 +137,6 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRende
     vcSceneLayerNode *pChildNode = &pNode->pChildren[i];
     allChildrenWereRendered = vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, pChildNode, screenResolution, pColourOverride, shadowsPass) && allChildrenWereRendered;
   }
-
-  if (hasNodeRendered)
-    return hasNodeRendered;
 
   // If any children can't render, draw this node
   // This *may* cause some occlusion sometimes with partial children loaded, but its
