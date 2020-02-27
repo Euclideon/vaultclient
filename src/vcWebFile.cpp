@@ -54,7 +54,7 @@ static udResult vcWebFile_SeekRead(udFile *pFile, void *pBuffer, size_t bufferLe
   if (pData != nullptr && responseCode == 200 && seekOffset != 0)
   {
     pDataOffset += seekOffset;
-    dataLength = udMin(dataLength - seekOffset, bufferLength - 1);
+    dataLength = udMin<int64_t>(dataLength - seekOffset, bufferLength - 1);
   }
 
   UD_ERROR_IF(dataLength > bufferLength, udR_ReadFailure);
