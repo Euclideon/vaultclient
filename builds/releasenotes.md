@@ -1,6 +1,6 @@
 Euclideon Vault Client Version History
 
-Known Major Issues In Current Release
+Known Issues In Current Release
   - Please see https://dev.azure.com/euclideon/vaultclient/_workitems/recentlyupdated for up to date information
   - Pointcloud Export
     - Round trip for exporting pointclouds doesn't always give the same model
@@ -84,7 +84,7 @@ Version 0.4.0
     - Going into and out of presentation mode many times quickly no longer stops the mouse working in the scene tab
     - Media node images load correctly more often
     - Sped up excessive login and license checkout times that were occurring when in very slow network environments with machines that have very fast per core CPUs
-  
+
 Version 0.3.1
   - Improvements
     - Added support for FBX (macOS and Windows)
