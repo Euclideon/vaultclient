@@ -7,7 +7,7 @@
 uint32_t g_currIndex = 0;
 uint32_t g_currVertex = 0;
 
-udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, int totalTypes, const void *pVerts, int currentVerts, const void *pIndices, int currentIndices, vcMeshFlags flags/* = vcMF_None*/)
+udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, int totalTypes, const void *pVerts, uint32_t currentVerts, const void *pIndices, uint32_t currentIndices, vcMeshFlags flags/* = vcMF_None*/)
 {
   bool invalidIndexSetup = (flags & vcMF_NoIndexBuffer) || ((pIndices == nullptr && currentIndices > 0) || currentIndices == 0);
   if (ppMesh == nullptr || pMeshLayout == nullptr || totalTypes == 0)
