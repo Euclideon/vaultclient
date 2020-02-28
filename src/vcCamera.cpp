@@ -289,6 +289,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
       pCamInput->progress = 1.0;
     }
   }
+  break;
 
   case vcCIS_PinchZooming:
   {
