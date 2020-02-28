@@ -46,8 +46,7 @@ vcPolyModelNode::vcPolyModelNode(vdkProject *pProject, vdkProjectNode *pNode, vc
     pLoadInfo->pNode = this;
     pLoadInfo->pProgramState = pProgramState;
 
-    // Queue for load
-    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcPolyModelNode_LoadModel, pLoadInfo, true);
+    vcPolyModelNode_LoadModel(pLoadInfo);
   }
   else
   {
