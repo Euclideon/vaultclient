@@ -392,6 +392,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   vcShader_DestroyShader(&pRenderContext->udRenderContext.splatIdShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->blurShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->selectionShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->watermarkShader.pProgram);
 
   vcTexture_Destroy(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture);
   UD_ERROR_CHECK(vcCompass_Destroy(&pRenderContext->pCompass));
