@@ -12,6 +12,7 @@ udResult vcHTTP_StatusToudResult(vcHTTPStatus statusCode)
   case vcHTTP_ProxyAuthenticationRequired: return udR_AuthError;
   case vcHTTP_RequestTimeout: return udR_SessionExpired;
   case vcHTTP_ServiceUnavailable: return udR_Pending;
+  default: break; //Nothing
   }
 
   if (statusCode >= 500 && statusCode <= 599)
