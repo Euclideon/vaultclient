@@ -31,9 +31,6 @@ struct vcNodeRenderInfo
   vcTexture *pDrawTexture; // which texture to draw this node with for this frame. Note: may belong to an ancestor node.
   udFloat2 uvStart;
   udFloat2 uvEnd;
-
-  // cached
-  udDouble2 center;
 };
 
 struct vcQuadTreeNode
@@ -51,8 +48,8 @@ struct vcQuadTreeNode
   bool rendered;
 
   // cached
-  udDouble2 tileCenter, tileExtents;
-  udDouble2 worldBounds[9]; // 3x3 grid of cartesian points
+  udDouble3 tileCenter, tileExtents;
+  udDouble3 worldBounds[9]; // 3x3 grid of cartesian points
                             // [0, 1, 2,
                             //  3, 4, 5,
                             //  6, 7, 8]
@@ -81,8 +78,7 @@ struct vcQuadTree
   vcGISSpace gisSpace;
   udInt3 slippyCoords;
   udDouble3 cameraWorldPosition;
-  udDouble3 cameraTreePosition;
-  double quadTreeHeightOffset;
+  double cameraDistanceZeroAltitude;
 
   uint32_t rootIndex;
   bool completeRerootRequired;
@@ -99,6 +95,7 @@ struct vcQuadTreeViewInfo
   vcGISSpace *pSpace;
   udInt3 slippyCoords;
   udDouble3 cameraPosition;
+  udDouble3 cameraPositionZeroAltitude;
   double quadTreeHeightOffset;
   udDouble4x4 viewProjectionMatrix;
   int maxVisibleTileLevel;
