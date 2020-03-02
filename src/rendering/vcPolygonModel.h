@@ -12,13 +12,6 @@ enum vcPolyModelPass
   vcPMP_Shadows, // depth only
 };
 
-enum vcPolyModelFlags
-{
-  vcPMF_None        = 0,
-  vcPMF_IndexShort  = 1 << 0,
-};
-inline vcPolyModelFlags operator|(vcPolyModelFlags a, vcPolyModelFlags b) { return (vcPolyModelFlags)(int(a) | int(b)); }
-
 struct vcTexture;
 struct vcMesh;
 struct udWorkerPool;
@@ -58,7 +51,7 @@ struct vcPolygonModel
 udResult vcPolygonModel_CreateShaders();
 udResult vcPolygonModel_DestroyShaders();
 
-udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel, const void *pVerts, const uint32_t vertCount, const vcVertexLayoutTypes *pMeshLayout, const int totalTypes, const void *pIndices = nullptr, const uint32_t indexCount = 0, vcPolyModelFlags flags = vcPMF_None);
+udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel, const void *pVerts, const uint32_t vertCount, const vcVertexLayoutTypes *pMeshLayout, const int totalTypes, const uint32_t *pIndices = nullptr, const uint32_t indexCount = 0);
 udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL, udWorkerPool *pWorkerPool);
 
 udResult vcPolygonModel_Destroy(vcPolygonModel **ppModel);

@@ -5,19 +5,19 @@
 
 // screen quad
 const vcP3UV2Vertex screenQuadVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
-const uint16_t screenQuadIndices[6] = { 0, 1, 2, 0, 2, 3 };
+const uint32_t screenQuadIndices[6] = { 0, 1, 2, 0, 2, 3 };
 
 // inverted screen quad
 const vcP3UV2Vertex flippedScreenQuadVertices[4]{ { { -1.f, -1.f, 0.f },{ 0, 0 } },{ { -1.f, 1.f, 0.f },{ 0, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 0 } } };
-const uint16_t flippedScreenQuadIndices[6] = { 2, 1, 0, 3, 2, 0 };
+const uint32_t flippedScreenQuadIndices[6] = { 2, 1, 0, 3, 2, 0 };
 
 // world quad
 const vcP3N3UV2Vertex worldQuadVertices[4]{ { { -1.f, 0.f, -1.f }, { 0.f, 1.f, 0.f }, { 0, 1 } },{ { -1.f, 0.f, 1.f }, { 0.f, 1.f, 0.f }, { 0, 0 } },{ { 1.f, 0.f, 1.f }, { 0.f, 1.f, 0.f }, { 1, 0 } },{ { 1.f, 0.f, -1.f }, { 0.f, 1.f, 0.f }, { 1, 1 } } };
-const uint16_t worldQuadIndices[6] = { 0, 1, 2, 0, 2, 3 };
+const uint32_t worldQuadIndices[6] = { 0, 1, 2, 0, 2, 3 };
 
 // billboard
 const vcP3UV2Vertex billboardVertices[4]{ { { 0.f, 0.f, 0.f },{ 0, 0 } },{ { 0.f, 0.f, 0.f },{ 0, 1 } },{ { 0.f, 0.f, 0.f },{ 1, 1 } },{ { 0.f, 0.f, 0.f },{ 1, 0 } } };
-const uint16_t billboardIndices[6] = { 0, 1, 2, 0, 2, 3 };
+const uint32_t billboardIndices[6] = { 0, 1, 2, 0, 2, 3 };
 
 const float cylinderVerticesFltArray[][8] = {
 { 0.000000f, 1.000000f, -1.000000f, 0.0000f, 1.0000f, 0.0000f, 1.000000f, 0.500000f },
@@ -152,7 +152,7 @@ const float cylinderVerticesFltArray[][8] = {
 { -0.382682f, 0.923880f, -1.000000f, -0.0000f, 0.0000f, -1.0000f, 0.658156f, 0.471731f }
 };
 
-const uint16_t cylinderIndices[] = {
+const uint32_t cylinderIndices[] = {
 0, 1, 2, 2, 3, 0, 3, 2, 4, 4, 5, 3, 5, 4, 6, 6, 7, 5, 7, 6, 8,
 8, 9, 7, 9, 8, 10, 10, 11, 9, 11, 10, 12, 12, 13, 11, 13, 12, 14, 14, 15, 13,
 15, 14, 16, 16, 17, 15, 17, 16, 18, 18, 19, 17, 19, 18, 20, 20, 21, 19, 21, 20, 22,
@@ -200,7 +200,7 @@ const float cubeVerticesFltArray[][8] = {
 { 1.000000f, -1.000000f, 1.000000f, 0.0000f, 0.0000f, 1.0000f, 0.625000f, 0.750000f }
 };
 
-const uint16_t cubeIndices[] = {
+const uint32_t cubeIndices[] = {
   0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14,
   14, 15, 12, 16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20
 };
@@ -274,7 +274,7 @@ const float tubeVerticesFltArray[][8] = {
 { 1.000000f, -0.000000f, -1.000000f, 1.0000f, 0.0000f, 0.0000f, 1.000000f, 1.000000f }
 };
 
-const uint16_t tubeIndices[] = {
+const uint32_t tubeIndices[] = {
   0, 1, 2, 2, 3, 0, 3, 2, 4, 4, 5, 3, 5, 4, 6, 6, 7, 5, 7, 6, 8,
   8, 9, 7, 9, 8, 10, 10, 11, 9, 11, 10, 12, 12, 13, 11, 13, 12, 14, 14, 15, 13,
   15, 14, 16, 16, 17, 15, 17, 16, 18, 18, 19, 17, 19, 18, 20, 20, 21, 19, 21, 20, 22,
@@ -852,7 +852,7 @@ const float sphereVerticesFltArray[][8] = {
 { -0.000000f, -0.000000f, -1.000068f, 0.0983f, 0.0000f, -0.9951f, 0.000000f, 1.0f }
 };
 
-const uint16_t sphereIndices[] = {
+const uint32_t sphereIndices[] = {
   0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 0, 3, 3, 9, 8, 10, 4, 7,
   7, 11, 10, 12, 8, 9, 9, 13, 12, 14, 10, 11, 11, 15, 14, 16, 12, 13, 13, 17, 16,
   18, 14, 15, 15, 19, 18, 20, 16, 17, 17, 21, 20, 22, 18, 19, 19, 23, 22, 24, 20, 21,
@@ -5341,7 +5341,7 @@ const float compassVertsFltArray[][6] = {
   { 0.04045685f, 1.26273712f, -0.02013009f, 0.0000f, -0.0000f, 1.0000f },
 };
 
-const uint16_t compassIndices[] = {
+const uint32_t compassIndices[] = {
   0, 1, 2, 2, 3, 0, 4, 5, 1, 1, 0, 4, 6, 7, 5, 5, 4, 6, 8, 9, 7,
   7, 6, 8, 10, 11, 9, 9, 8, 10, 12, 13, 11, 11, 10, 12, 14, 15, 13, 13, 12, 14,
   16, 17, 15, 15, 14, 16, 18, 19, 17, 17, 16, 18, 20, 21, 19, 19, 18, 20, 22, 23, 21,
@@ -6506,7 +6506,7 @@ const float orbitVerticesFltArray[][6] = {
   { -0.1385604f, 0.5171135f, -0.0353553f, -0.186957f, 0.697732f, -0.691533f }
 };
 
-const uint16_t orbitIndices[] = {
+const uint32_t orbitIndices[] = {
   0, 1, 2, 2, 3, 0, 1, 4, 5, 5, 2, 1, 4, 6, 7, 7, 5, 4, 6, 8, 9,
   9, 7, 6, 8, 10, 11, 11, 9, 8, 10, 12, 13, 13, 11, 10, 12, 14, 15, 15, 13, 12,
   14, 0, 3, 3, 15, 14, 3, 2, 16, 16, 17, 3, 2, 5, 18, 18, 16, 2, 5, 7, 19,
