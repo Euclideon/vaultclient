@@ -1246,6 +1246,32 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::PopStyleVar();
   }
 
+  if (pProgramState->settings.presentation.showCompass)
+  {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    float min = udMin(windowSize.x, windowSize.y);
+    udFloat2 compassSize = udFloat2::create(min, min) * vcLens30mm * 0.13;
+    udFloat2 compassPostion = udFloat2::create(windowPos.x, windowPos.y) + udFloat2::create(windowSize.x, windowSize.y)*0.91f - compassSize*0.5;
+    udFloat2 rectMax = compassPostion + compassSize;
+    ImVec2 rectMin = ImVec2(compassPostion.x, compassPostion.y);
+    ImGui::SetNextWindowPos(rectMin, ImGuiCond_Always, ImVec2(0.0f, 0.0f));
+    ImGui::SetNextWindowBgAlpha(0.0f);
+    ImGui::SetNextWindowSize(ImVec2(compassSize.x, compassSize.y));
+
+    if (ImGui::Begin("sceneCompass", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+    {
+      if (ImGui::IsMouseHoveringRect(rectMin, ImVec2(rectMax.x, rectMax.y)) && (ImGui::IsMouseClicked(0) || ImGui::IsMouseDoubleClicked(0)))
+      {
+        pProgramState->cameraInput.targetEulerRotation = UD_DEG2RAD(udDouble3::create(0, -90, 0));
+        pProgramState->cameraInput.inputState = vcCIS_Rotate;
+        pProgramState->cameraInput.progress = 0.0;
+      }
+    }
+
+    ImGui::End();
+    ImGui::PopStyleVar();
+  }
+
   if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected)
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(1.0f, 1.0f));

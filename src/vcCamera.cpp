@@ -276,6 +276,21 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
   }
   break;
 
+  case vcCIS_Rotate:
+  {
+    // Not good to use udSlerp because the camera may keep unexpected rolling angle if smooth interrupted by mouse button clicked.
+    udDouble3 diff = pCamInput->targetEulerRotation - pCamera->eulerRotation;
+    pCamera->eulerRotation += diff * 0.05f;
+    if (udEqualApprox(pCamera->eulerRotation, pCamInput->targetEulerRotation, 0.05f))
+    {
+      pProgramState->camera.eulerRotation = pCamInput->targetEulerRotation;
+      pCamInput->targetEulerRotation = udDouble3::zero();
+      pCamInput->inputState = vcCIS_None;
+      pCamInput->progress = 1.0;
+    }
+  }
+  break;
+
   case vcCIS_PinchZooming:
   {
     // TODO
