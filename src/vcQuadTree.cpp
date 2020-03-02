@@ -159,7 +159,7 @@ void vcQuadTree_InitNode(vcQuadTree *pQuadTree, uint32_t slotIndex, const udInt3
 
 bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode)
 {
-  return -1 < vcQuadTree_FrustumTest(pQuadTree->frustumPlanes, udDouble3::create(pNode->tileCenter, pQuadTree->quadTreeHeightOffset), udDouble3::create(pNode->tileExtents, 0.0));
+  return -1 < vcQuadTree_FrustumTest(pQuadTree->frustumPlanes, udDouble3::create(pNode->tileCenter, 0.0), udDouble3::create(pNode->tileExtents, 0.0));
 }
 
 inline bool vcQuadTree_ShouldSubdivide(vcQuadTree *pQuadTree, double distanceMS, int depth)
@@ -227,13 +227,6 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
       distanceToQuadrant = udAbs(pQuadTree->cameraTreePosition.z);
     }
 
-    // Artificially change the distances of tiles based on their relative depths.
-    // Flattens out lower layers, while raising levels of tiles further away.
-    // This is done because of perspectiveness, we actually want a non-uniform quad tree.
-    // Note: these values were just 'trial and error'ed
-    int nodeDepthToTreeDepth = pQuadTree->expectedTreeDepth - currentDepth;
-    distanceToQuadrant *= udLerp(1.0, (0.6 + 0.25 * nodeDepthToTreeDepth), udClamp(nodeDepthToTreeDepth, 0, 1));
-
     ++pQuadTree->metaData.nodeTouchedCount;
     if (pChildNode->visible)
       ++pQuadTree->metaData.visibleNodeCount;
@@ -241,7 +234,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
       continue;
 
     // this `10000000.0` is arbitrary trial and error'd
-    double distanceMS = (distanceToQuadrant / udMin(10000000.0, pQuadTree->quadTreeWorldSize));
+    double distanceMS = (distanceToQuadrant / 10000000.0);
     if (vcQuadTree_ShouldSubdivide(pQuadTree, distanceMS, currentDepth))
       vcQuadTree_RecurseGenerateTree(pQuadTree, childIndex, currentDepth + 1);
     else
@@ -384,8 +377,6 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
 
   pQuadTree->slippyCoords = viewInfo.slippyCoords;
   pQuadTree->cameraWorldPosition = viewInfo.cameraPosition;
-  pQuadTree->quadTreeWorldSize = viewInfo.quadTreeWorldSize;
-  pQuadTree->quadTreeHeightOffset = viewInfo.quadTreeHeightOffset;
 
   pQuadTree->metaData.nodeTouchedCount = 0;
   pQuadTree->metaData.leafNodeCount = 0;
@@ -394,12 +385,6 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
   pQuadTree->metaData.maxTreeDepth = udMax(0, (viewInfo.maxVisibleTileLevel - 1) - viewInfo.slippyCoords.z);
 
   pQuadTree->cameraTreePosition = pQuadTree->cameraWorldPosition;
-  pQuadTree->cameraTreePosition.z -= pQuadTree->quadTreeHeightOffset; // relative height
-
-  pQuadTree->expectedTreeDepth = 0;
-  double distanceToQuadrant = udAbs(pQuadTree->cameraTreePosition.z) / pQuadTree->quadTreeWorldSize;
-  while (pQuadTree->expectedTreeDepth < (viewInfo.maxVisibleTileLevel - 1) && vcQuadTree_ShouldSubdivide(pQuadTree, distanceToQuadrant, pQuadTree->expectedTreeDepth))
-    ++pQuadTree->expectedTreeDepth;
 
   // extract frustum planes
   udDouble4x4 transposedViewProjection = udTranspose(viewInfo.viewProjectionMatrix);
@@ -458,7 +443,7 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
   for (uint32_t c = 0; c < NodeChildCount; ++c)
   {
     vcQuadTreeNode *pChildNode = &pQuadTree->nodes.pPool[blockIndex + c];
-    if (pChildNode->touched || pChildNode->renderInfo.fadingIn || pChildNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_Downloading)
+    if (pChildNode->touched || pChildNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_Downloading)
       return false;
   }
 
@@ -477,12 +462,12 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
         if (pParentNode->touched)
         {
           // We have an ancestor that has no texture, or is fading
-          if (!pParentNode->renderInfo.pTexture || pParentNode->renderInfo.fadingIn)
+          if (!pParentNode->renderInfo.pTexture)
             return false;
 
           break;
         }
-        else if (pParentNode->renderInfo.pTexture && !pParentNode->renderInfo.fadingIn)
+        else if (pParentNode->renderInfo.pTexture)
           return true;
 
         parentIndex = pParentNode->parentIndex;
