@@ -39,8 +39,9 @@ enum vcMenuBarButtonIcon
 
   vcMBBI_FullScreen = 33,
   vcMBBI_MapMode = 34,
+  vcMBBI_ToggleScreenExplorer = 35,
 
-  //Reserved = 35 - 39
+  //Reserved = 36 - 39
 
   vcMBBI_Crosshair = 40,
 

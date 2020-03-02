@@ -387,6 +387,7 @@
   "sceneGizmoLocalSpace": "本地坐标",
   "sceneFullscreen": "全屏",
   "sceneMapMode": "地图模式",
+  "toggleSceneExplorer": "显示/隐藏场景资源管理器",
 
   "sceneCameraSettings": "摄像机设置",
   "sceneCameraLatLongAlt": "纬度: {0}°, 经度: {1}°, 海拔 {2}",
@@ -603,6 +604,7 @@
   "bindingsSave": "保存键绑定。",
   "bindingsLoad": "加载键绑定。",
   "bindingsUndo": "撤销",
+  "bindingsToggleSceneExplorer": "显示/隐藏场景资源管理器",
 
   "errorUnknown": "未知错误",
   "errorCorruptData": "数据损坏",

@@ -369,6 +369,7 @@
   "sceneGizmoLocalSpace": "Gizmo Local Space",
   "sceneFullscreen": "Fullscreen",
   "sceneMapMode": "Map Mode",
+  "toggleSceneExplorer": "Show/Hide Scene Explorer",
 
   "sceneCameraSettings": "Camera Settings",
   "sceneCameraLatLongAlt": "Lat: {0}°, Lon: {1}°, Alt {2}",
@@ -591,6 +592,7 @@
   "bindingsSave": "Key to trigger save action.",
   "bindingsLoad": "Key to trigger load or open action.",
   "bindingsUndo": "Key to trigger undo action",
+  "bindingsToggleSceneExplorer": "Key to show/hide scene explorer",
 
   "errorUnknown": "An unexpected error occurred.",
   "errorCorruptData": "Corrupt data.",
