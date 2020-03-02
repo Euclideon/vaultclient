@@ -29,8 +29,6 @@ enum
   MaxTextureUploadsPerFrame = 3,
 };
 
-static const float sTileFadeSpeed = 2.15f;
-
 struct vcTileRenderer
 {
   float frameDeltaTime;
@@ -45,7 +43,6 @@ struct vcTileRenderer
   udDouble3 cameraPosition;
 
   std::vector<std::vector<vcQuadTreeNode*>> *pRenderQueue;
-  std::vector<vcQuadTreeNode*> *pTransparentTiles;
 
   // cache textures
   struct vcTileCache
@@ -246,7 +243,6 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
       UD_ERROR_NULL(pData, udR_InternalError);
 
-      pBestNode->renderInfo.transparency = 0.0f;
       pBestNode->renderInfo.width = width;
       pBestNode->renderInfo.height = height;
       pBestNode->renderInfo.pData = udMemDup(pData, sizeof(uint32_t)*width*height, 0, udAF_None);
@@ -370,7 +366,6 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   UD_ERROR_CHECK(vcMesh_Create(&pTileRenderer->pFullTileMesh, vcP3VertexLayout, (int)udLengthOf(vcP3VertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6));
   UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyTileTexture, 1, 1, &greyPixel));
 
-  pTileRenderer->pTransparentTiles = new std::vector<vcQuadTreeNode*>();
   pTileRenderer->pRenderQueue = new std::vector<std::vector<vcQuadTreeNode*>>();
   for (int i = 0; i < MaxVisibleTileLevel; ++i)
     pTileRenderer->pRenderQueue->push_back(std::vector<vcQuadTreeNode*>());
@@ -415,9 +410,7 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
   vcMesh_Destroy(&pTileRenderer->pFullTileMesh);
   vcTexture_Destroy(&pTileRenderer->pEmptyTileTexture);
 
-  delete pTileRenderer->pTransparentTiles;
   delete pTileRenderer->pRenderQueue;
-  pTileRenderer->pTransparentTiles = nullptr;
   pTileRenderer->pRenderQueue = nullptr;
 
   vcQuadTree_Destroy(&(*ppTileRenderer)->quadTree);
@@ -478,12 +471,6 @@ void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, 
     if (vcTileRenderer_UpdateTileTexture(pTileRenderer, pNode))
       ++tileUploadCount;
   }
-
-  if (pNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_Loaded && !pNode->renderInfo.fadingIn && pNode->renderInfo.transparency == 0.0f)
-  {
-    pNode->renderInfo.fadingIn = true;
-    pTileRenderer->pTransparentTiles->push_back(pNode);
-  }
 }
 
 void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
@@ -527,19 +514,17 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
   // TODO: For each tile in cache, LRU destroy
 }
 
-void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, vcGISSpace *pSpace, const udDouble3 worldCorners[4], const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const udDouble4x4 &viewProjectionMatrix)
+void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, vcGISSpace *pSpace, const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const udDouble4x4 &viewProjectionMatrix)
 {
   pTileRenderer->frameDeltaTime = (float)deltaTime;
   pTileRenderer->totalTime += pTileRenderer->frameDeltaTime;
   pTileRenderer->cameraPosition = cameraWorldPos;
 
-  double slippyCornersViewSize = udMag3(worldCorners[1] - worldCorners[2]) * 0.5;
   vcQuadTreeViewInfo viewInfo =
   {
     pSpace,
     slippyCoords,
     cameraWorldPos,
-    slippyCornersViewSize,
     pTileRenderer->pSettings->maptiles.mapHeight,
     viewProjectionMatrix,
     MaxVisibleTileLevel
@@ -571,7 +556,7 @@ bool vcTileRenderer_IsRootNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pN
 
 bool vcTileRenderer_CanNodeDraw(vcQuadTreeNode *pNode)
 {
-  if (!pNode->renderInfo.pTexture || pNode->renderInfo.fadingIn)
+  if (!pNode->renderInfo.pTexture)
     return false;
 
   return vcTileRenderer_NodeHasValidBounds(pNode);
@@ -580,7 +565,7 @@ bool vcTileRenderer_CanNodeDraw(vcQuadTreeNode *pNode)
 bool vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, vcMesh *pMesh, const udDouble4x4 &view, bool parentCanDraw)
 {
   vcTexture *pTexture = pNode->renderInfo.pTexture;
-  float tileTransparency = pNode->renderInfo.transparency * pTileRenderer->pSettings->maptiles.transparency;
+  float tileTransparency = pTileRenderer->pSettings->maptiles.transparency;
   if (pTexture == nullptr)
   {
 #if !VISUALIZE_DEBUG_TILES
@@ -638,7 +623,7 @@ bool vcTileRenderer_RecursiveBuildRenderQueue(vcTileRenderer *pTileRenderer, vcQ
     vcQuadTreeNode *pParentNode = &pTileRenderer->quadTree.nodes.pPool[pNode->parentIndex];
 
     // parent can render itself (opaque), so this tile is not needed
-    if (pParentNode->renderInfo.pTexture && !pParentNode->renderInfo.fadingIn)
+    if (pParentNode->renderInfo.pTexture)
       return false;
 
     // re-test visibility
@@ -657,9 +642,6 @@ bool vcTileRenderer_RecursiveBuildRenderQueue(vcTileRenderer *pTileRenderer, vcQ
       childrenNeedThisTileRendered = !vcTileRenderer_RecursiveBuildRenderQueue(pTileRenderer, pChildNode, canParentDraw || vcTileRenderer_CanNodeDraw(pChildNode)) || childrenNeedThisTileRendered;
     }
   }
-
-  if (pNode->renderInfo.fadingIn)
-    return false;
 
   if (childrenNeedThisTileRendered)
   {
@@ -729,46 +711,12 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcShader_Bind(pTileRenderer->presentShader.pProgram);
   pTileRenderer->presentShader.everyObject.projectionMatrix = udFloat4x4::create(proj);
 
-  pRootNode->renderInfo.transparency = 1.0f;
   vcTileRenderer_RecursiveBuildRenderQueue(pTileRenderer, pRootNode, vcTileRenderer_CanNodeDraw(pRootNode));
   vcTileRenderer_DrawRenderQueue(pTileRenderer, viewWithMapTranslation);
 
   // Render the root tile again (if it hasn't already been rendered normally) to cover up gaps between tiles
   if (!pRootNode->rendered && pRootNode->renderInfo.pTexture && vcTileRenderer_NodeHasValidBounds(pRootNode))
     vcTileRenderer_DrawNode(pTileRenderer, pRootNode, pTileRenderer->pFullTileMesh, viewWithMapTranslation, false);
-
-  // Draw transparent tiles
-  if (pTileRenderer->pTransparentTiles->size() > 0)
-  {
-    // We know there will always be a stenciled opaque tile behind every transparent tile, so draw
-    // with no depth testing, but stencil testing for map tiles
-    stencil.writeMask = 0xFF;
-    stencil.compareFunc = vcGLSSF_NotEqual;
-    stencil.compareValue = 0;
-    stencil.compareMask = 0xFF;
-    stencil.onStencilFail = vcGLSSOP_Keep;
-    stencil.onDepthFail = vcGLSSOP_Keep;
-    stencil.onStencilAndDepthPass = vcGLSSOP_Keep;
-
-    vcGLState_SetDepthStencilMode(vcGLSDM_Always, false, &stencil);
-    vcGLState_SetBlendMode(vcGLSBM_Interpolative);
-    for (auto tile : (*pTileRenderer->pTransparentTiles))
-    {
-      tile->renderInfo.transparency = udMin(1.0f, tile->renderInfo.transparency + pTileRenderer->frameDeltaTime * sTileFadeSpeed);
-      if (tile->visible && vcTileRenderer_NodeHasValidBounds(tile))
-        vcTileRenderer_DrawNode(pTileRenderer, tile, pTileRenderer->pFullTileMesh, viewWithMapTranslation, false);
-    }
-
-    for (int i = 0; i < int(pTileRenderer->pTransparentTiles->size()); ++i)
-    {
-      if (pTileRenderer->pTransparentTiles->at(i)->renderInfo.transparency >= 1.0f)
-      {
-        pTileRenderer->pTransparentTiles->at(i)->renderInfo.fadingIn = false;
-        pTileRenderer->pTransparentTiles->erase(pTileRenderer->pTransparentTiles->begin() + i);
-        --i;
-      }
-    }
-  }
 
   vcTileRenderer_RecursiveSetRendered(pTileRenderer, pRootNode, pRootNode->rendered);
 
@@ -786,7 +734,6 @@ void vcTileRenderer_ClearTiles(vcTileRenderer *pTileRenderer)
 {
   udLockMutex(pTileRenderer->cache.pMutex);
 
-  pTileRenderer->pTransparentTiles->clear();
   pTileRenderer->cache.tileLoadList.Clear();
   vcQuadTree_Reset(&pTileRenderer->quadTree);
 

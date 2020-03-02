@@ -708,7 +708,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
     for (int i = 0; i < 4; ++i)
       vcGIS_SlippyToLocal(&pProgramState->gis, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
-    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->gis, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, viewProjection);
+    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->gis, udInt3::create(slippyCorners[0], currentZoom), localCamPos, viewProjection);
     vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection);
   }
 }

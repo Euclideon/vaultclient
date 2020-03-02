@@ -28,9 +28,6 @@ struct vcNodeRenderInfo
   int32_t width, height;
   void *pData;
 
-  bool fadingIn;
-  float transparency;
-
   // cached
   udDouble2 center;
 };
@@ -79,9 +76,6 @@ struct vcQuadTree
   udInt3 slippyCoords;
   udDouble3 cameraWorldPosition;
   udDouble3 cameraTreePosition;
-  int expectedTreeDepth; // depth of the deepest node
-  double quadTreeWorldSize;
-  double quadTreeHeightOffset;
 
   uint32_t rootIndex;
   bool completeRerootRequired;
@@ -98,7 +92,6 @@ struct vcQuadTreeViewInfo
   vcGISSpace *pSpace;
   udInt3 slippyCoords;
   udDouble3 cameraPosition;
-  double quadTreeWorldSize;
   double quadTreeHeightOffset;
   udDouble4x4 viewProjectionMatrix;
   int maxVisibleTileLevel;
