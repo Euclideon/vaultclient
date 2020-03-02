@@ -2355,9 +2355,7 @@ void vcRenderWindow(vcState *pProgramState)
 
         int sceneExplorerSize = pProgramState->settings.presentation.sceneExplorerSize;
         if (pProgramState->sceneExplorerCollapsed)
-        {
           sceneExplorerSize = 0;
-        }
 
         switch (pProgramState->settings.presentation.layout)
         {
