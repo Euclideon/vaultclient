@@ -6,19 +6,27 @@
 #include "udFile.h"
 #include "udFileHandler.h"
 #include "udStringUtil.h"
+#include "vcHTTP.h"
 
 static udResult vcWebFile_Load(udFile *pFile, void **ppBuffer, int64_t *pBufferLength)
 {
   UDTRACE();
-  udResult result = udR_Success;
   vdkWebOptions options = {};
   const char *pData = nullptr;
   uint64_t dataLength = 0;
   int responseCode = 0;
+  udResult result = udR_Success;
+  vdkError err = vE_Success;
 
   options.method = vdkWM_GET;
 
-  UD_ERROR_IF(vdkWeb_RequestAdv(pFile->pFilenameCopy, options, &pData, &dataLength, &responseCode) != vE_Success, udR_ReadFailure);
+  err = vdkWeb_RequestAdv(pFile->pFilenameCopy, options, &pData, &dataLength, &responseCode);
+  result = vcHTTP_StatusToudResult((vcHTTPStatus)responseCode);
+  if (result == udR_Failure_)
+    result = udR_ReadFailure;
+
+  if (err != vE_Success || result != udR_Success)
+    UD_ERROR_HANDLE();
 
   *ppBuffer = udMemDup(pData, dataLength, 0, udAF_None);
   UD_ERROR_NULL(*ppBuffer, udR_MemoryAllocationFailure);
@@ -35,18 +43,26 @@ epilogue:
 static udResult vcWebFile_SeekRead(udFile *pFile, void *pBuffer, size_t bufferLength, int64_t seekOffset, size_t *pActualRead, udFilePipelinedRequest * /*pPipelinedRequest*/)
 {
   UDTRACE();
-  udResult result = udR_Success;
   vdkWebOptions options = {};
   const char *pData = nullptr;
   const char *pDataOffset = nullptr;
   uint64_t dataLength = 0;
   int responseCode = 0;
+  udResult result = udR_Success;
+  vdkError err = vE_Success;
 
   options.method = vdkWM_GET;
   options.rangeBegin = (uint64_t)seekOffset;
   options.rangeEnd = (uint64_t)(seekOffset + bufferLength - 1);
 
-  UD_ERROR_IF(vdkWeb_RequestAdv(pFile->pFilenameCopy, options, &pData, &dataLength, &responseCode) != vE_Success, udR_ReadFailure);
+  err = vdkWeb_RequestAdv(pFile->pFilenameCopy, options, &pData, &dataLength, &responseCode);
+  result = vcHTTP_StatusToudResult((vcHTTPStatus)responseCode);
+  if (result == udR_Failure_)
+    result = udR_ReadFailure;
+
+  if (err != vE_Success || result != udR_Success)
+    UD_ERROR_HANDLE();
+
   pDataOffset = pData;
 
   // If the range was specified and the server responded with a 200 then this handles getting the correct part of the buffer
@@ -82,11 +98,12 @@ udResult vcWebFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags 
 {
   UDTRACE();
   udFile *pFile = nullptr;
-  udResult result;
   vdkWebOptions options = {};
   const char *pData = nullptr;
   uint64_t dataLength = 0;
   int responseCode = 0;
+  udResult result = udR_Success;
+  vdkError err = vE_Success;
 
   options.method = vdkWM_HEAD;
 
@@ -100,24 +117,19 @@ udResult vcWebFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags 
   pFile->fpRead = vcWebFile_SeekRead;
   pFile->fpClose = vcWebFile_Close;
 
-  UD_ERROR_IF(vdkWeb_RequestAdv(pFilename, options, &pData, &dataLength, &responseCode) != vE_Success, udR_OpenFailure);
+  err = vdkWeb_RequestAdv(pFilename, options, &pData, &dataLength, &responseCode);
+  result = vcHTTP_StatusToudResult((vcHTTPStatus)responseCode);
+  if (result == udR_Failure_)
+    result = udR_OpenFailure;
 
-  // TODO: (EVC-615) JIRA task to expand these
-  if (responseCode == 403)
-    UD_ERROR_SET(udR_NotAllowed);
-  else if (responseCode == 503)
-    UD_ERROR_SET(udR_Pending);
-  else if (responseCode >= 500 && responseCode <= 599)
-    UD_ERROR_SET(udR_ServerError);
-  else if (responseCode < 200 || responseCode >= 300)
-    UD_ERROR_SET(udR_OpenFailure);
+  if (err != vE_Success || result != udR_Success)
+    UD_ERROR_HANDLE();
 
   pFile->totalBytes = dataLength;
   pFile->fileLength = dataLength;
 
   *ppFile = pFile;
   pFile = nullptr;
-  result = udR_Success;
 
 epilogue:
   if (pFile != nullptr)
