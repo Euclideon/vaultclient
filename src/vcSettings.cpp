@@ -221,6 +221,17 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->visualization.minIntensity = data.Get("visualization.minIntensity").AsInt(0);
     pSettings->visualization.maxIntensity = data.Get("visualization.maxIntensity").AsInt(65535);
 
+    for (size_t i = 0; i < udLengthOf(pSettings->visualization.customClassificationToggles); i++)
+      pSettings->visualization.customClassificationToggles[i] = true;
+
+    if (data.Get("visualization.classificationToggles").IsArray())
+    {
+      const udJSONArray* pToggles = data.Get("visualization.classificationToggles").AsArray();
+
+      for (size_t i = 0; i < pToggles->length; ++i)
+        pSettings->visualization.customClassificationToggles[i] = (pToggles->GetElement(i)->AsInt(1) != 0) ? true : false;
+    }
+
     memcpy(pSettings->visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pSettings->visualization.customClassificationColors));
     if (data.Get("visualization.classificationColours").IsArray())
     {
@@ -511,6 +522,15 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("visualization.mode = %d", pSettings->visualization.mode);
   data.Set("visualization.minIntensity = %d", pSettings->visualization.minIntensity);
   data.Set("visualization.maxIntensity = %d", pSettings->visualization.maxIntensity);
+
+  int lastFalseIndex = (int)udLengthOf(pSettings->visualization.customClassificationToggles) - 1;
+  for (; lastFalseIndex >= 0; --lastFalseIndex)
+  {
+    if (!pSettings->visualization.customClassificationToggles[lastFalseIndex])
+      break;
+  }
+  for (int i = 0; i <= lastFalseIndex; ++i)
+    data.Set("visualization.classificationToggles[] = %u", pSettings->visualization.customClassificationToggles[i] ? 1 : 0);
 
   int uniqueColoursEnd = 255;
   for (; uniqueColoursEnd >= 0; --uniqueColoursEnd) // Loop from the end so we only write
