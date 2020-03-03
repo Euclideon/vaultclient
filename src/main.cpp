@@ -626,15 +626,12 @@ void vcMain_MainLoop(vcState *pProgramState)
       udFree(pProgramState->pLoadImage);
     }
 
-    // Ping the server every 30 seconds
-    if (pProgramState->hasContext && (udGetEpochSecsUTCf() > pProgramState->sessionInfo.expiresTimestamp - 300))
-      udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
-
+    // Check this first because vcSession_UpdateInfo doesn't update session info if the session has expired
     if (pProgramState->forceLogout)
-    {
       vcSession_Logout(pProgramState);
-      vcModals_OpenModal(pProgramState, vcMT_LoggedOut);
-    }
+    // Ping the server every 300 seconds
+    else if (pProgramState->hasContext && (udGetEpochSecsUTCf() > pProgramState->sessionInfo.expiresTimestamp - 300))
+      udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
   }
 }
 
