@@ -15,6 +15,7 @@ public:
 
   void ChangeProjection(const udGeoZone &newZone);
 
+  bool Is3DSceneObject() const override { return false; }
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
   void HandleImGui(vcState *pProgramState, size_t *pItemID);

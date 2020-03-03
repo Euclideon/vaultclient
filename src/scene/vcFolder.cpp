@@ -315,7 +315,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         ImGui::EndPopup();
       }
 
-      if (pNode->itemtype != vdkPNT_Folder /*&& pSceneItem->GetWorldSpacePivot() != udDouble3::zero()*/ && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
+      if (pSceneItem->Is3DSceneObject() && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
       {
         if (pSceneItem->m_pPreferredProjection != nullptr)
           vcProject_UseProjectionFromItem(pProgramState, pSceneItem);
