@@ -420,7 +420,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
             if (pItem->loadStatus == vcLiveFeedPolyCache::LS_Downloaded)
             {
               pItem->loadStatus = vcLiveFeedPolyCache::LS_Loaded;
-              if (vcPolygonModel_CreateFromVSMFInMemory(&pItem->pModel, (char*)pItem->pModelData, (int)pItem->modelDataLength) != udR_Success)
+              if (vcPolygonModel_CreateFromVSMFInMemory(&pItem->pModel, (char*)pItem->pModelData, (int)pItem->modelDataLength, pProgramState->pWorkerPool) != udR_Success)
               {
                 // TODO: (EVC-570) retry? draw some error mesh?
                 pItem->loadStatus = vcLiveFeedPolyCache::LS_Failed;
