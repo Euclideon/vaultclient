@@ -84,9 +84,9 @@ struct AsyncPolygonModelLoadMeshInfo
   vcPolygonModel *pPolygonModel;
   vcPolygonModelMesh *pMesh;
   vcP3N3UV2Vertex *pVerts;
-  const vcVertexLayoutTypes* pMeshLayout;
+  const vcVertexLayoutTypes *pMeshLayout;
   int totalTypes;
-  void* pIndices;
+  void *pIndices;
   uint32_t currentIndices;
   vcMeshFlags flags;
 };
@@ -162,7 +162,7 @@ epilogue:
   return result;
 }
 
-udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *pData, int dataLength, udWorkerPool* pWorkerPool)
+udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *pData, int dataLength, udWorkerPool *pWorkerPool)
 {
   if (pData == nullptr || (size_t)dataLength < sizeof(VSMFHeader))
     return udR_InvalidParameter_;
@@ -228,9 +228,9 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
 
     // override material id for now
     pNewModel->pMeshes[i].materialID = vcPMST_P3N3UV2_Opaque;
-
+    
     size_t vertArraySize = sizeof(vcP3N3UV2Vertex) * pNewModel->pMeshes[i].numVertices;
-    vcP3N3UV2Vertex* pVerts = (vcP3N3UV2Vertex*)pFilePos;
+    vcP3N3UV2Vertex *pVerts = (vcP3N3UV2Vertex*)pFilePos;
     pFilePos += vertArraySize;
 
     // TODO: Assume these all need flipping
@@ -241,7 +241,7 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
     }
 
     size_t indexArraySize = sizeof(uint16_t) * pNewModel->pMeshes[i].numElements;
-    uint16_t *pIndices = (uint16_t *)pFilePos;
+    uint16_t *pIndices = (uint16_t*)pFilePos;
     pFilePos += indexArraySize;
 
     for (int t = 0; t < header.numTextures; ++t)
@@ -261,17 +261,15 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
       pFilePos += textureFileSize;
     }
 
-    AsyncPolygonModelLoadMeshInfo* pLoadInfo = udAllocType(AsyncPolygonModelLoadMeshInfo, 1, udAF_Zero);
+    AsyncPolygonModelLoadMeshInfo *pLoadInfo = udAllocType(AsyncPolygonModelLoadMeshInfo, 1, udAF_Zero);
     UD_ERROR_NULL(pLoadInfo, udR_MemoryAllocationFailure);
 
     pLoadInfo->pPolygonModel = pNewModel;
     pLoadInfo->pMesh = &pNewModel->pMeshes[i];
-    pLoadInfo->pVerts = (vcP3N3UV2Vertex*)udAlloc(vertArraySize);
-    memcpy(pLoadInfo->pVerts, pVerts, vertArraySize);
+    pLoadInfo->pVerts = (vcP3N3UV2Vertex*)udMemDup(pVerts, vertArraySize, 0, udAF_None);
     pLoadInfo->pMeshLayout = vcP3N3UV2VertexLayout;
     pLoadInfo->totalTypes = (int)udLengthOf(vcP3N3UV2VertexLayout);
-    pLoadInfo->pIndices = (uint16_t*)udAlloc(indexArraySize);
-    memcpy(pLoadInfo->pIndices, pIndices, indexArraySize);
+    pLoadInfo->pIndices = (uint16_t*)udMemDup(pIndices, indexArraySize, 0, udAF_None);
     pLoadInfo->currentIndices = pNewModel->pMeshes[i].numElements;
     pLoadInfo->flags = vcMF_IndexShort;
 
@@ -471,7 +469,7 @@ udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL
     int64_t fileLength = 0;
 
     UD_ERROR_CHECK(udFile_Load(pURL, &pMemory, &fileLength));
-    UD_ERROR_CHECK(vcPolygonModel_CreateFromVSMFInMemory(ppModel, (char *)pMemory, (int)fileLength, pWorkerPool));
+    UD_ERROR_CHECK(vcPolygonModel_CreateFromVSMFInMemory(ppModel, (char*)pMemory, (int)fileLength, pWorkerPool));
 
     udFree(pMemory);
   }
