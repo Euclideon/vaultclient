@@ -688,8 +688,10 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
     int currentZoom = 21;
 
     // This technique won't work with ECEF
-    // This 'value' was trial and errored. 
-    double visibleFarPlane = 1000.0 + udAbs(localCamPos.z) * 150.0;
+    // This 'value' was trial and errored.
+    const double MinimumViewDistance = 1000.0;
+    const double HeightViewDistanceScale = 150.0;
+    double visibleFarPlane = MinimumViewDistance + udAbs(localCamPos.z) * HeightViewDistanceScale;
 
     // Cardinal Limits
     localCorners[0] = localCamPos + udDouble3::create(-visibleFarPlane, +visibleFarPlane, 0);

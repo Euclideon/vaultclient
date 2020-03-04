@@ -166,7 +166,8 @@ bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode 
 inline bool vcQuadTree_ShouldSubdivide(double distance, int depth)
 {
   // trial and error'd this heuristic
-  return distance < (10000000 >> depth);
+  const int RootRegionSize = 10000000;
+  return distance < (RootRegionSize >> depth);
 }
 
 void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeIndex, int currentDepth)
@@ -211,7 +212,6 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
 
     // leave this here as we could be fixing up a re-root
     pChildNode->parentIndex = currentNodeIndex;
-    pChildNode->level = currentDepth + 1;
     pChildNode->visible = pCurrentNode->visible && vcQuadTree_IsNodeVisible(pQuadTree, pChildNode);
 
     // TODO: tile heights (DEM)
@@ -454,12 +454,12 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
           // We have an ancestor that has no texture
           if (!pParentNode->renderInfo.pTexture)
             return false;
-    
+
           break;
         }
         else if (pParentNode->renderInfo.pTexture)
           return true;
-    
+
         parentIndex = pParentNode->parentIndex;
       }
     }

@@ -560,8 +560,8 @@ bool vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
   }
 #endif
 
-  pTileRenderer->presentShader.everyObject.uvOffsetScale = udFloat4::create( pNode->renderInfo.uvStart.x, pNode->renderInfo.uvStart.y,
-    pNode->renderInfo.uvEnd.x - pNode->renderInfo.uvStart.x, pNode->renderInfo.uvEnd.y - pNode->renderInfo.uvStart.y);
+  udFloat2 size = pNode->renderInfo.uvEnd - pNode->renderInfo.uvStart;
+  pTileRenderer->presentShader.everyObject.uvOffsetScale = udFloat4::create(pNode->renderInfo.uvStart, size.x, size.y);
 
   vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pTexture, 0);
   vcShader_BindConstantBuffer(pTileRenderer->presentShader.pProgram, pTileRenderer->presentShader.pConstantBuffer, &pTileRenderer->presentShader.everyObject, sizeof(pTileRenderer->presentShader.everyObject));
@@ -621,22 +621,22 @@ bool vcTileRenderer_RecursiveBuildRenderQueue(vcTileRenderer *pTileRenderer, vcQ
   {
     // calculate what portion of ancestors colour to display at this tile
     pNode->renderInfo.pDrawTexture = pBestTexturedAncestor->renderInfo.pDrawTexture;
-    int depthDiff = pNode->level - pBestTexturedAncestor->level;
+    int depthDiff = pNode->slippyPosition.z - pBestTexturedAncestor->slippyPosition.z;
     int slippyRange = (int)udPow(2.0f, (float)depthDiff);
+    udFloat2 boundsRange = udFloat2::create(slippyRange);
 
     // top-left, and bottom-right corners
     udInt2 slippy0 = pNode->slippyPosition.toVector2();
     udInt2 slippy1 = slippy0 + udInt2::one();
 
     udInt2 ancestorSlippyLocal0 = udInt2::create(pBestTexturedAncestor->slippyPosition.x * slippyRange, pBestTexturedAncestor->slippyPosition.y * slippyRange);
-    udInt2 ancestorSlippyLocal1 = udInt2::create((pBestTexturedAncestor->slippyPosition.x + 1) * slippyRange, (pBestTexturedAncestor->slippyPosition.y + 1) * slippyRange);
-    udFloat2 boundsRange = udFloat2::create(ancestorSlippyLocal1 - ancestorSlippyLocal0);
+    udInt2 ancestorSlippyLocal1 = ancestorSlippyLocal0 + udInt2::create(slippyRange);
 
     pNode->renderInfo.uvStart = udFloat2::create(slippy0 - ancestorSlippyLocal0) / boundsRange;
     pNode->renderInfo.uvEnd = udFloat2::one() - (udFloat2::create(ancestorSlippyLocal1 - slippy1) / boundsRange);
   }
 
-  pTileRenderer->pRenderQueue->at(pNode->level).push_back(pNode);
+  pTileRenderer->pRenderQueue->at(pNode->slippyPosition.z).push_back(pNode);
 
   // This child doesn't need parent to draw itself
   return true;
@@ -701,8 +701,9 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcGLState_SetBlendMode(vcGLSBM_None);
   vcShader_Bind(nullptr);
 
-  // debugging
-  //printf("touched=%d, visible=%d, rendered=%d, leaves=%d, build=%f\n", pTileRenderer->quadTree.metaData.nodeTouchedCount, pTileRenderer->quadTree.metaData.visibleNodeCount, pTileRenderer->quadTree.metaData.nodeRenderCount, pTileRenderer->quadTree.metaData.leafNodeCount, pTileRenderer->quadTree.metaData.generateTimeMs);
+#if 0
+  printf("touched=%d, visible=%d, rendered=%d, leaves=%d, build=%f\n", pTileRenderer->quadTree.metaData.nodeTouchedCount, pTileRenderer->quadTree.metaData.visibleNodeCount, pTileRenderer->quadTree.metaData.nodeRenderCount, pTileRenderer->quadTree.metaData.leafNodeCount, pTileRenderer->quadTree.metaData.generateTimeMs);
+#endif
 }
 
 void vcTileRenderer_ClearTiles(vcTileRenderer *pTileRenderer)
