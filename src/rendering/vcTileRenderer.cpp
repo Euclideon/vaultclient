@@ -16,8 +16,6 @@
 
 #include "stb_image.h"
 
-#include <vector>
-
 // Debug tiles with colour information
 #define VISUALIZE_DEBUG_TILES 0
 
@@ -41,8 +39,6 @@ struct vcTileRenderer
   vcTexture *pEmptyTileTexture;
 
   udDouble3 cameraPosition;
-
-  std::vector<std::vector<vcQuadTreeNode*>> *pRenderQueue;
 
   // cache textures
   struct vcTileCache
@@ -360,10 +356,6 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   UD_ERROR_CHECK(vcMesh_Create(&pTileRenderer->pFullTileMesh, vcP3VertexLayout, (int)udLengthOf(vcP3VertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6));
   UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyTileTexture, 1, 1, &greyPixel));
 
-  pTileRenderer->pRenderQueue = new std::vector<std::vector<vcQuadTreeNode*>>();
-  for (int i = 0; i < MaxVisibleTileLevel; ++i)
-    pTileRenderer->pRenderQueue->push_back(std::vector<vcQuadTreeNode*>());
-
   *ppTileRenderer = pTileRenderer;
   pTileRenderer = nullptr;
   result = udR_Success;
@@ -403,9 +395,6 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
   vcShader_DestroyShader(&(pTileRenderer->presentShader.pProgram));
   vcMesh_Destroy(&pTileRenderer->pFullTileMesh);
   vcTexture_Destroy(&pTileRenderer->pEmptyTileTexture);
-
-  delete pTileRenderer->pRenderQueue;
-  pTileRenderer->pRenderQueue = nullptr;
 
   vcQuadTree_Destroy(&(*ppTileRenderer)->quadTree);
   udFree(*ppTileRenderer);
@@ -585,7 +574,7 @@ void vcTileRenderer_RecursiveSetRendered(vcTileRenderer *pTileRenderer, vcQuadTr
 
 // 'true' indicates the node was able to render itself (or it didn't want to render itself).
 // 'false' indicates that the nodes ancestor needs to be rendered.
-bool vcTileRenderer_RecursiveBuildRenderQueue(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, vcQuadTreeNode *pBestTexturedAncestor)
+bool vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, vcQuadTreeNode *pNode, vcQuadTreeNode *pBestTexturedAncestor)
 {
   if (!pNode->touched)
   {
@@ -608,7 +597,7 @@ bool vcTileRenderer_RecursiveBuildRenderQueue(vcTileRenderer *pTileRenderer, vcQ
     for (int c = 0; c < 4; ++c)
     {
       vcQuadTreeNode *pChildNode = &pTileRenderer->quadTree.nodes.pPool[pNode->childBlockIndex + c];
-      vcTileRenderer_RecursiveBuildRenderQueue(pTileRenderer, pChildNode, pBestTexturedAncestor);
+      vcTileRenderer_RecursiveRenderNodes(pTileRenderer, view, pChildNode, pBestTexturedAncestor);
     }
 
     // only draw leaves
@@ -623,7 +612,7 @@ bool vcTileRenderer_RecursiveBuildRenderQueue(vcTileRenderer *pTileRenderer, vcQ
     pNode->renderInfo.pDrawTexture = pBestTexturedAncestor->renderInfo.pDrawTexture;
     int depthDiff = pNode->slippyPosition.z - pBestTexturedAncestor->slippyPosition.z;
     int slippyRange = (int)udPow(2.0f, (float)depthDiff);
-    udFloat2 boundsRange = udFloat2::create(slippyRange);
+    udFloat2 boundsRange = udFloat2::create((float)slippyRange);
 
     // top-left, and bottom-right corners
     udInt2 slippy0 = pNode->slippyPosition.toVector2();
@@ -636,22 +625,10 @@ bool vcTileRenderer_RecursiveBuildRenderQueue(vcTileRenderer *pTileRenderer, vcQ
     pNode->renderInfo.uvEnd = udFloat2::one() - (udFloat2::create(ancestorSlippyLocal1 - slippy1) / boundsRange);
   }
 
-  pTileRenderer->pRenderQueue->at(pNode->slippyPosition.z).push_back(pNode);
+  vcTileRenderer_DrawNode(pTileRenderer, pNode, pTileRenderer->pFullTileMesh, view);
 
   // This child doesn't need parent to draw itself
   return true;
-}
-
-// Depth first rendering, using stencil to ensure no overdraw
-void vcTileRenderer_DrawRenderQueue(vcTileRenderer *pTileRenderer, const udDouble4x4 &view)
-{
-  for (int i = MaxVisibleTileLevel - 1; i >= 0; --i)
-  {
-    for (size_t t = 0; t < pTileRenderer->pRenderQueue->at(i).size(); ++t)
-    {
-      vcTileRenderer_DrawNode(pTileRenderer, pTileRenderer->pRenderQueue->at(i).at(t), pTileRenderer->pFullTileMesh, view);
-    }
-  }
 }
 
 void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, const udDouble4x4 &proj)
@@ -659,9 +636,6 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcQuadTreeNode *pRootNode = &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex];
   if (!pRootNode->touched) // can occur on failed re-roots
     return;
-
-  for (int i = 0; i < MaxVisibleTileLevel; ++i)
-    pTileRenderer->pRenderQueue->at(i).clear();
 
   udDouble4x4 viewWithMapTranslation = view * udDouble4x4::translation(0, 0, pTileRenderer->pSettings->maptiles.mapHeight);
 
@@ -687,13 +661,13 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
     vcGLState_SetViewportDepthRange(1.0f, 1.0f);
   }
 
-  vcTileRenderer_RecursiveBuildRenderQueue(pTileRenderer, pRootNode, nullptr);
 
   vcShader_Bind(pTileRenderer->presentShader.pProgram);
   pTileRenderer->presentShader.everyObject.projectionMatrix = udFloat4x4::create(proj);
   pTileRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.transparency);
 
-  vcTileRenderer_DrawRenderQueue(pTileRenderer, viewWithMapTranslation);
+  vcTileRenderer_RecursiveRenderNodes(pTileRenderer, viewWithMapTranslation, pRootNode, nullptr);
+
   vcTileRenderer_RecursiveSetRendered(pTileRenderer, pRootNode, pRootNode->rendered);
 
   vcGLState_SetViewportDepthRange(0.0f, 1.0f);
