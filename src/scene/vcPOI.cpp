@@ -294,7 +294,9 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
       }
       else
+      {
         pProgramState->camera.eulerRotation = udSlerp(udDoubleQuat::create(startYPR), udDoubleQuat::create(udDirectionToYPR(updatedPosition - pProgramState->camera.position)), 0.2).eulerAngles();
+      }
 
       pProgramState->camera.position = updatedPosition;
     }
