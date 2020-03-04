@@ -483,13 +483,14 @@ const char *const g_tileVertexShader = VERT_HEADER R"shader(
   };
 
   // This should match CPU struct size
-  #define VERTEX_COUNT 2
+  #define VERTEX_COUNT 3
 
   cbuffer u_EveryObject : register(b0)
   {
     float4x4 u_projection;
     float4 u_eyePositions[VERTEX_COUNT * VERTEX_COUNT];
     float4 u_colour;
+    float4 u_uvOffsetScale;
   };
 
   PS_INPUT main(VS_INPUT input)
@@ -499,7 +500,7 @@ const char *const g_tileVertexShader = VERT_HEADER R"shader(
     // note: could have precision issues on some devices
     float4 finalClipPos = mul(u_projection, u_eyePositions[int(input.pos.z)]);
     output.colour = u_colour;
-    output.uv = input.pos.xy;
+    output.uv = u_uvOffsetScale.xy + u_uvOffsetScale.zw * input.pos.xy;
     output.pos = finalClipPos;
 
     output.fLogDepth.x = 1.0 + output.pos.w;
