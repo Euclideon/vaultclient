@@ -648,6 +648,8 @@ void vcModals_DrawConvert(vcState* pProgramState)
 
     ImGui::EndPopup();
   }
+#else
+  udUnused(pProgramState);
 #endif
 }
 

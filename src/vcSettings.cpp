@@ -831,6 +831,8 @@ udResult vcSettings_UpdateLanguageOptions(vcSettings *pSetting)
   }
 
 epilogue:
+#else
+  udUnused(pSetting);
 #endif
   return result;
 }
