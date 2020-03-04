@@ -1011,6 +1011,41 @@ epilogue:
   return 0;
 }
 
+void vcExtractAttributionText(vdkProjectNode *pNode, const char **ppCurrentText)
+{
+  if (pNode == nullptr)
+    return;
+
+  vcModel *pModel = nullptr;
+  const char *pBuffer = nullptr;
+  const char *pAttributionText = nullptr;
+
+  if (pNode->itemtype == vdkProjectNodeType::vdkPNT_PointCloud)
+  {
+    pModel = (vcModel *)pNode->pUserData;
+
+    if (pModel == nullptr)
+      goto epilogue;
+
+    pAttributionText = pModel->m_metadata.Get("Author").AsString(pModel->m_metadata.Get("License").AsString(pModel->m_metadata.Get("Copyright").AsString()));
+    if (pAttributionText)
+    {
+      if (*ppCurrentText != nullptr)
+        udSprintf(&pBuffer, "%s, %s", *ppCurrentText, pAttributionText);
+      else
+        udSprintf(&pBuffer, "%s", pAttributionText);
+
+      udFree(*ppCurrentText);
+      *ppCurrentText = pBuffer;
+    }
+  }
+
+  epilogue:
+
+  vcExtractAttributionText(pNode->pFirstChild, ppCurrentText);
+  vcExtractAttributionText(pNode->pNextSibling, ppCurrentText);
+}
+
 void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
 {
   ImGuiIO &io = ImGui::GetIO();
@@ -1163,6 +1198,69 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     }
 
     ImGui::End();
+  }
+
+  // Attribution
+  {
+    vdkProjectNode *pNode = pProgramState->activeProject.pRoot;
+    const char *pBuffer = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum tincidunt quis odio in fermentum. Nulla non placerat turpis. Nulla elementum";
+    //const char *pBuffer = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum tincidunt quis odio in fermentum. Nulla non placerat turpis. Nulla elementum tristique ligula, in auctor nisi. Morbi vitae lobortis urna. Nulla varius nunc et sapien rutrum, sit amet cursus ante varius. Quisque lacinia id odio at sollicitudin. Pellentesque egestas lorem vitae dapibus rutrum. Maecenas ac sapien mattis, hendrerit ipsum at, viverra dolor. Cras a commodo lacus. Vivamus tempus cursus tortor at tempus. Nullam sollicitudin rutrum metus et pharetra. Vivamus eu volutpat erat, eget tincidunt justo. Nam eu semper purus. Morbi ligula magna, tempor et molestie sed, condimentum tempor lorem. Integer ornare iaculis pretium.";
+    //const char *pBuffer = nullptr;
+    //vcExtractAttributionText(pNode, &pBuffer);
+
+    static double s_timeSinceLastUpdate = 0.0;
+    static uint64_t s_textPos = 0;
+    s_timeSinceLastUpdate += pProgramState->deltaTime;
+    static double s_pauseTime = 0.0;
+    if (s_timeSinceLastUpdate > 0.25)
+    {
+      ++s_textPos;
+      s_timeSinceLastUpdate = 0.0;
+    }
+
+    if (pBuffer != nullptr)
+    {
+      float MAGIC_bottomMargin = 20.0f;
+      float MAGIC_leftMargin = 10.0f;
+      const int MAGIC_maxTextLength = 100;
+
+      ImGui::SetNextWindowPos(ImVec2(MAGIC_leftMargin, windowSize.y - MAGIC_bottomMargin), ImGuiCond_Always, ImVec2(0.f, 0.f));
+      ImGui::SetNextWindowBgAlpha(0.5f);
+      if (ImGui::Begin("My Text", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav| ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
+      {
+        size_t len = udStrlen(pBuffer);
+        char choppedBuf[100]{};
+        if (len < 99)
+        {
+          udStrcpy(choppedBuf, 99, pBuffer);
+        }
+        else
+        {
+          uint64_t pos = (s_textPos % len);
+          if (pos + 99 > len)
+          {
+            if (s_pauseTime == 0.0)
+              s_pauseTime = 0.0001;
+            if (s_pauseTime < 5.0)
+            {
+              pos = len - 99;
+              s_pauseTime += pProgramState->deltaTime;
+            }
+            else
+            {
+              s_textPos = 0;
+              pos = 0;
+              s_pauseTime = 0.0;
+            }
+          }
+          memcpy(choppedBuf, pBuffer + pos, 99 * sizeof(char));
+        }
+
+        ImGui::Text("%s", choppedBuf);
+      }
+      
+      ImGui::End();
+    }
   }
 
   // Alert for no render license
