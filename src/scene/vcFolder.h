@@ -19,7 +19,7 @@ public:
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override;
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
   void HandleImGui(vcState *pProgramState, size_t *pItemID) override;
-  void Cleanup(vcState *pProgramState);
+  void Cleanup(vcState *pProgramState) override;
 };
 
 #endif //vcFolder_h__
