@@ -46,6 +46,9 @@ static udResult vcWebFile_SeekRead(udFile *pFile, void *pBuffer, size_t bufferLe
   options.rangeBegin = (uint64_t)seekOffset;
   options.rangeEnd = (uint64_t)(seekOffset + bufferLength - 1);
 
+  if ((int64_t)options.rangeEnd >= pFile->fileLength && pFile->fileLength > 0)
+    options.rangeEnd = (uint64_t)(pFile->fileLength - 1);
+
   UD_ERROR_IF(vdkWeb_RequestAdv(pFile->pFilenameCopy, options, &pData, &dataLength, &responseCode) != vE_Success, udR_ReadFailure);
   pDataOffset = pData;
 
