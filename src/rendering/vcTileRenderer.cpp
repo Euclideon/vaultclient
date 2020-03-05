@@ -141,7 +141,6 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       // TODO: Store in priority order and recalculate on insert/delete
       int best = -1;
       vcQuadTreeNode *pNode = nullptr;
-      udDouble3 tileCenter = udDouble3::zero();
       double bestDistancePrioritySqr = FLT_MAX;
 
       for (int i = 0; i < (int)pCache->tileLoadList.length; ++i)
@@ -156,8 +155,7 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
           continue;
         }
 
-        tileCenter = udDouble3::create(pNode->renderInfo.center, pRenderer->pSettings->maptiles.mapHeight);
-        double distanceToCameraSqr = udMagSq3(tileCenter - pRenderer->cameraPosition);
+        double distanceToCameraSqr = udMagSq3(pNode->tileCenter - pRenderer->cameraPosition);
 
         bool betterNode = true;
         if (best != -1)
@@ -414,10 +412,6 @@ bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeN
     pNode->renderInfo.pTexture = nullptr;
     pNode->renderInfo.timeoutTime = pTileRenderer->totalTime;
 
-    udDouble2 min = udDouble2::create(pNode->worldBounds[0].x, pNode->worldBounds[6].y);
-    udDouble2 max = udDouble2::create(pNode->worldBounds[8].x, pNode->worldBounds[2].y);
-    pNode->renderInfo.center = (max + min) * 0.5;
-
     pTileCache->tileLoadList.PushBack(pNode);
     udIncrementSemaphore(pTileCache->pSemaphore);
   }
@@ -494,7 +488,7 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
   // TODO: For each tile in cache, LRU destroy
 }
 
-void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, vcGISSpace *pSpace, const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const udDouble4x4 &viewProjectionMatrix)
+void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, vcGISSpace *pSpace, const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const udDouble3& cameraZeroAltitude, const udDouble4x4 &viewProjectionMatrix)
 {
   pTileRenderer->frameDeltaTime = (float)deltaTime;
   pTileRenderer->totalTime += pTileRenderer->frameDeltaTime;
@@ -505,6 +499,7 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
     pSpace,
     slippyCoords,
     cameraWorldPos,
+    cameraZeroAltitude,
     pTileRenderer->pSettings->maptiles.mapHeight,
     viewProjectionMatrix,
     MaxVisibleTileLevel
@@ -535,7 +530,7 @@ bool vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
 
   for (int t = 0; t < TileVertexResolution * TileVertexResolution; ++t)
   {
-    udFloat4 eyeSpaceVertexPosition = udFloat4::create(view * udDouble4::create(pNode->worldBounds[t], 0.0, 1.0));
+    udFloat4 eyeSpaceVertexPosition = udFloat4::create(view * udDouble4::create(pNode->worldBounds[t], 1.0));
     pTileRenderer->presentShader.everyObject.eyePositions[t] = eyeSpaceVertexPosition;
   }
 
@@ -631,7 +626,7 @@ bool vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const ud
   return true;
 }
 
-void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, const udDouble4x4 &proj)
+void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, const udDouble4x4 &proj, const bool cameraInsideGround)
 {
   vcQuadTreeNode *pRootNode = &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex];
   if (!pRootNode->touched) // can occur on failed re-roots
@@ -640,7 +635,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   udDouble4x4 viewWithMapTranslation = view * udDouble4x4::translation(0, 0, pTileRenderer->pSettings->maptiles.mapHeight);
 
   vcGLStateCullMode cullMode = vcGLSCM_Back;
-  if (pTileRenderer->cameraPosition.z < 0)
+  if (cameraInsideGround)
     cullMode = vcGLSCM_Front;
 
   vcGLState_SetFaceMode(vcGLSFM_Solid, cullMode);
@@ -661,18 +656,17 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
     vcGLState_SetViewportDepthRange(1.0f, 1.0f);
   }
 
-
   vcShader_Bind(pTileRenderer->presentShader.pProgram);
   pTileRenderer->presentShader.everyObject.projectionMatrix = udFloat4x4::create(proj);
   pTileRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.transparency);
 
   vcTileRenderer_RecursiveRenderNodes(pTileRenderer, viewWithMapTranslation, pRootNode, nullptr);
-
   vcTileRenderer_RecursiveSetRendered(pTileRenderer, pRootNode, pRootNode->rendered);
 
   vcGLState_SetViewportDepthRange(0.0f, 1.0f);
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true, nullptr);
   vcGLState_SetBlendMode(vcGLSBM_None);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
   vcShader_Bind(nullptr);
 
 #if 0

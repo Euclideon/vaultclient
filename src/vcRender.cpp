@@ -687,11 +687,25 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
 
     int currentZoom = 21;
 
-    // This technique won't work with ECEF
-    // This 'value' was trial and errored.
-    const double MinimumViewDistance = 1000.0;
-    const double HeightViewDistanceScale = 150.0;
-    double visibleFarPlane = MinimumViewDistance + udAbs(localCamPos.z) * HeightViewDistanceScale;
+    // project camera position to base altitude
+    udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
+    cameraPositionInLongLat.z = 0.0;
+    udDouble3 cameraZeroAltitude = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, cameraPositionInLongLat);
+    udDouble3 cameraToZeroAltitude = localCamPos - cameraZeroAltitude;
+    double cameraDistanceToAltitudeZero = udMag3(cameraToZeroAltitude);
+
+    // TODO: Fix this
+    // determine if camera is 'inside' the ground
+    //udDouble3 zoneRoot = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, udDouble3::zero());
+    //udDouble3 surfaceNormal = udNormalize3(cameraZeroAltitude - zoneRoot);
+    //if (udAbs(surfaceNormal.z) <= UD_EPSILON) // can this be assumed?
+    //  surfaceNormal = udDouble3::create(0.0, 0.0, 1.0);
+    bool cameraInsideGround = false;//udDot3(cameraToZeroAltitude, surfaceNormal) < 0;
+
+    // These values were trial and errored.
+    const double BaseViewDistance = 10000.0;
+    const double HeightViewDistanceScale = 30.0;
+    double visibleFarPlane = udMin((double)s_CameraFarPlane, BaseViewDistance + cameraDistanceToAltitudeZero * HeightViewDistanceScale);
 
     // Cardinal Limits
     localCorners[0] = localCamPos + udDouble3::create(-visibleFarPlane, +visibleFarPlane, 0);
@@ -713,8 +727,8 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
     for (int i = 0; i < 4; ++i)
       vcGIS_SlippyToLocal(&pProgramState->gis, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
-    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->gis, udInt3::create(slippyCorners[0], currentZoom), localCamPos, viewProjection);
-    vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection);
+    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->gis, udInt3::create(slippyCorners[0], currentZoom), localCamPos, cameraZeroAltitude, viewProjection);
+    vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection, cameraInsideGround);
   }
 }
 
