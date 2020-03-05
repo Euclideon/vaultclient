@@ -650,7 +650,7 @@ void vcMain_SyncFS()
 {
   EM_ASM({
     // Sync from persisted state into memory
-    FS.syncfs(true, function(err) { assert(!err); });
+    FS.syncfs(true, function(err) { });
   });
 }
 #endif
