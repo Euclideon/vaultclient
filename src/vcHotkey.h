@@ -38,6 +38,7 @@ enum vcBind
   vcB_BindingsInterface,
   vcB_Undo,
   vcB_TakeScreenshot,
+  vcB_ToggleSceneExplorer,
 
   vcB_Count
 };

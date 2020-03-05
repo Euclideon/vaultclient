@@ -1121,6 +1121,13 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_Fullscreen)), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.isFullscreen))
         vcMain_PresentationMode(pProgramState);
 
+      // Hide/show screen explorer
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toggleSceneExplorer"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_ToggleScreenExplorer, vcMBBG_SameGroup) || (vcHotkey::IsPressed(vcB_ToggleSceneExplorer) && !ImGui::IsAnyItemActive()))
+      {
+        pProgramState->sceneExplorerCollapsed = !pProgramState->sceneExplorerCollapsed;
+        pProgramState->settings.presentation.columnSizeCorrect = false;
+      }
+
       if (pProgramState->settings.presentation.showCameraInfo)
       {
         ImGui::Separator();
@@ -2343,6 +2350,10 @@ void vcRenderWindow(vcState *pProgramState)
       {
         ImGui::PopStyleVar();
 
+        int sceneExplorerSize = pProgramState->settings.presentation.sceneExplorerSize;
+        if (pProgramState->sceneExplorerCollapsed)
+          sceneExplorerSize = 0;
+
         switch (pProgramState->settings.presentation.layout)
         {
         case vcWL_SceneLeft:
@@ -2350,11 +2361,11 @@ void vcRenderWindow(vcState *pProgramState)
 
           if (!pProgramState->settings.presentation.columnSizeCorrect)
           {
-            ImGui::SetColumnWidth(0, size.x - pProgramState->settings.presentation.sceneExplorerSize);
+            ImGui::SetColumnWidth(0, size.x - sceneExplorerSize);
             pProgramState->settings.presentation.columnSizeCorrect = true;
           }
 
-          if (ImGui::GetColumnWidth(0) != size.x - pProgramState->settings.presentation.sceneExplorerSize)
+          if (ImGui::GetColumnWidth(0) != size.x - sceneExplorerSize && !pProgramState->sceneExplorerCollapsed)
             pProgramState->settings.presentation.sceneExplorerSize = (int)(size.x - ImGui::GetColumnWidth());
 
           if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
@@ -2375,11 +2386,11 @@ void vcRenderWindow(vcState *pProgramState)
 
           if (!pProgramState->settings.presentation.columnSizeCorrect)
           {
-            ImGui::SetColumnWidth(0, (float)pProgramState->settings.presentation.sceneExplorerSize);
+            ImGui::SetColumnWidth(0, (float)sceneExplorerSize);
             pProgramState->settings.presentation.columnSizeCorrect = true;
           }
 
-          if (ImGui::GetColumnWidth(0) != pProgramState->settings.presentation.sceneExplorerSize)
+          if (ImGui::GetColumnWidth(0) != sceneExplorerSize && !pProgramState->sceneExplorerCollapsed)
             pProgramState->settings.presentation.sceneExplorerSize = (int)ImGui::GetColumnWidth();
 
           if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
