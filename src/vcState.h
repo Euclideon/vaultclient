@@ -100,6 +100,8 @@ struct vcState
 
   vcGISSpace gis;
 
+  bool showWatermark;
+
   vcTexture *pCompanyLogo;
   vcTexture *pCompanyWatermark;
   vcTexture *pSceneWatermark;

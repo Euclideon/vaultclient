@@ -854,6 +854,8 @@ int main(int argc, char **args)
   programState.errorItems.Init(16);
   programState.loadList.Init(16);
 
+  programState.showWatermark = true;
+
   vcProject_InitBlankScene(&programState);
 
   for (int i = 1; i < argc; ++i)
@@ -1027,13 +1029,14 @@ void vcExtractAttributionText(vdkProjectNode *pNode, const char **ppCurrentText)
     if (pModel == nullptr)
       goto epilogue;
 
+    //Priority: Author -> License -> Copyright
     pAttributionText = pModel->m_metadata.Get("Author").AsString(pModel->m_metadata.Get("License").AsString(pModel->m_metadata.Get("Copyright").AsString()));
     if (pAttributionText)
     {
       if (*ppCurrentText != nullptr)
-        udSprintf(&pBuffer, "%s, %s", *ppCurrentText, pAttributionText);
+        udSprintf(&pBuffer, "%s       %s      ", *ppCurrentText, pAttributionText);
       else
-        udSprintf(&pBuffer, "%s", pAttributionText);
+        udSprintf(&pBuffer, "%s      ", pAttributionText);
 
       udFree(*ppCurrentText);
       *ppCurrentText = pBuffer;
@@ -1203,63 +1206,91 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   // Attribution
   {
     vdkProjectNode *pNode = pProgramState->activeProject.pRoot;
-    const char *pBuffer = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum tincidunt quis odio in fermentum. Nulla non placerat turpis. Nulla elementum";
-    //const char *pBuffer = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum tincidunt quis odio in fermentum. Nulla non placerat turpis. Nulla elementum tristique ligula, in auctor nisi. Morbi vitae lobortis urna. Nulla varius nunc et sapien rutrum, sit amet cursus ante varius. Quisque lacinia id odio at sollicitudin. Pellentesque egestas lorem vitae dapibus rutrum. Maecenas ac sapien mattis, hendrerit ipsum at, viverra dolor. Cras a commodo lacus. Vivamus tempus cursus tortor at tempus. Nullam sollicitudin rutrum metus et pharetra. Vivamus eu volutpat erat, eget tincidunt justo. Nam eu semper purus. Morbi ligula magna, tempor et molestie sed, condimentum tempor lorem. Integer ornare iaculis pretium.";
-    //const char *pBuffer = nullptr;
-    //vcExtractAttributionText(pNode, &pBuffer);
+    const char *pBuffer = nullptr;
+    vcExtractAttributionText(pNode, &pBuffer);
 
-    static double s_timeSinceLastUpdate = 0.0;
-    static uint64_t s_textPos = 0;
-    s_timeSinceLastUpdate += pProgramState->deltaTime;
-    static double s_pauseTime = 0.0;
-    if (s_timeSinceLastUpdate > 0.25)
+    if (pBuffer == nullptr)
     {
-      ++s_textPos;
-      s_timeSinceLastUpdate = 0.0;
+      pProgramState->showWatermark = true;
     }
-
-    if (pBuffer != nullptr)
+    else
     {
-      float MAGIC_bottomMargin = 20.0f;
-      float MAGIC_leftMargin = 10.0f;
-      const int MAGIC_maxTextLength = 100;
+      pProgramState->showWatermark = false;
 
-      ImGui::SetNextWindowPos(ImVec2(MAGIC_leftMargin, windowSize.y - MAGIC_bottomMargin), ImGuiCond_Always, ImVec2(0.f, 0.f));
-      ImGui::SetNextWindowBgAlpha(0.5f);
-      if (ImGui::Begin("My Text", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav| ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
+      static double s_timeSinceLastUpdate = 0.0;
+      static double s_pauseTime = 0.0;
+      static bool   s_pauseOn = false;
+      static uint64_t s_currentTextPos = 0;
+
+      //Should we be able to change any of these? Should these bet settings?
+      const float bottomMargin = 20.0f;
+      const float leftMargin = 10.0f;
+      const double timePerCharacter = 0.25;
+      const double maxPauseTime = 5.0;
+      const float screenCoverage = 0.5;
+      const float windowHeight = 20.0;
+
+      //If the text string is too long, we automatically scroll the text. Once we scroll to the end
+      //of the string, we pause for a few seconds. This is a great candidate for a state machine,
+      //but shorter to write out explicitly
+      ImVec2 textDimensions = ImGui::CalcTextSize(pBuffer);
+      float maxTextWidth = screenCoverage * windowSize.x;
+      if (maxTextWidth > textDimensions.x)
+        maxTextWidth = textDimensions.x;
+      size_t len = udStrlen(pBuffer);
+      //Text buffer will fit in the window
+      if (textDimensions.x <= maxTextWidth)
       {
-        size_t len = udStrlen(pBuffer);
-        char choppedBuf[100]{};
-        if (len < 99)
+        s_currentTextPos = 0;
+      }
+      //Text buffer too long for window
+      else
+      {
+        //Text scrolling has reached the end. Pause a while
+        if (s_pauseOn)
         {
-          udStrcpy(choppedBuf, 99, pBuffer);
+          s_pauseTime += pProgramState->deltaTime;
+          if (s_pauseTime > maxPauseTime)
+          {
+            s_currentTextPos = 0;
+            s_pauseTime = 0.0;
+            s_pauseOn = false;
+          }
         }
+        //Scroll the text
         else
         {
-          uint64_t pos = (s_textPos % len);
-          if (pos + 99 > len)
+          s_timeSinceLastUpdate += pProgramState->deltaTime;
+          if (s_timeSinceLastUpdate > timePerCharacter)
           {
-            if (s_pauseTime == 0.0)
-              s_pauseTime = 0.0001;
-            if (s_pauseTime < 5.0)
-            {
-              pos = len - 99;
-              s_pauseTime += pProgramState->deltaTime;
-            }
-            else
-            {
-              s_textPos = 0;
-              pos = 0;
-              s_pauseTime = 0.0;
-            }
+            ++s_currentTextPos;
+            s_timeSinceLastUpdate = 0.0;
           }
-          memcpy(choppedBuf, pBuffer + pos, 99 * sizeof(char));
-        }
+          s_currentTextPos = (s_currentTextPos % len);
+          textDimensions = ImGui::CalcTextSize(&pBuffer[s_currentTextPos], &pBuffer[len]);
 
-        ImGui::Text("%s", choppedBuf);
+          //We have reached the end of the text
+          if (textDimensions.x < maxTextWidth)
+          {
+            --s_currentTextPos;
+            s_pauseOn = true;
+          }
+        }
       }
-      
+
+      ImGui::SetNextWindowPos(ImVec2(leftMargin, windowSize.y - bottomMargin), ImGuiCond_Always, ImVec2(0.f, 0.f));
+      ImGui::SetNextWindowSize(ImVec2(maxTextWidth, windowHeight));
+      ImGui::SetNextWindowBgAlpha(0.5f);
+      if (ImGui::Begin("My Text", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
+      {
+        size_t textCount = len - s_currentTextPos;
+        char *pClippedText = udAllocType(char, textCount + 1, udAF_Zero);
+        memcpy(pClippedText, pBuffer + s_currentTextPos, textCount * sizeof(char));
+        ImGui::Text("%s", pClippedText);
+        udFree(pClippedText);
+      }
       ImGui::End();
+      udFree(pBuffer);
     }
   }
 

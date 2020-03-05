@@ -1373,7 +1373,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
 
       ++numVisibleModels;
 
-      if (renderData.models[i]->m_hasWatermark)
+      if (renderData.models[i]->m_hasWatermark && pProgramState->showWatermark)
       {
         udDouble3 distVector = pCamera->position - renderData.models[i]->GetWorldSpacePivot();
 
