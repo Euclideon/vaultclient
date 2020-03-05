@@ -415,7 +415,7 @@ void vcSettings_SyncFS()
 {
   EM_ASM({
     // Sync from memory into persisted state
-    FS.syncfs(false, function(err) { assert(!err); });
+    FS.syncfs(false, function(err) { });
   });
 }
 #endif
