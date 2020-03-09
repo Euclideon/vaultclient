@@ -62,6 +62,7 @@
 # include "vHTTPRequest.h"
 # include <emscripten/threading.h>
 # include <emscripten/emscripten.h>
+# include <emscripten/html5.h>
 #elif UDPLATFORM_WINDOWS
 # include <windows.h>
 #endif
@@ -956,6 +957,16 @@ int main(int argc, char **args)
   udWorkerPool_AddTask(programState.pWorkerPool, vcMain_AsyncResumeSession, &programState, false);
 
 #if UDPLATFORM_EMSCRIPTEN
+  // Toggle fullscreen if it changed, most likely via pressing escape key
+  emscripten_set_fullscreenchange_callback("#canvas", &programState, true, [](int /*eventType*/, const EmscriptenFullscreenChangeEvent *pEvent, void *pUserData) -> EM_BOOL {
+    vcState *pProgramState = (vcState*)pUserData;
+
+    if (!pEvent->isFullscreen && pProgramState->settings.window.isFullscreen)
+      vcMain_PresentationMode(pProgramState);
+
+    return true;
+  });
+
   emscripten_set_main_loop_arg(vcMain_MainLoop, &programState, 0, 1);
 #else
   while (!programState.programComplete)
@@ -1155,8 +1166,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoLocalSpace)), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, pProgramState->gizmo.coordinateSystem == vcGCS_Local))
         pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
-      // Fullscreens
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_Fullscreen)), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.isFullscreen))
+      // Fullscreens - needs to trigger on mouse down, not mouse up in Emscripten to avoid problems
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_Fullscreen)), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.isFullscreen) || ImGui::IsItemClicked(0))
         vcMain_PresentationMode(pProgramState);
 
       // Hide/show screen explorer
