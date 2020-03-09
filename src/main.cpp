@@ -854,6 +854,8 @@ int main(int argc, char **args)
   programState.errorItems.Init(16);
   programState.loadList.Init(16);
 
+  programState.showWatermark = true;
+
   vcProject_InitBlankScene(&programState);
 
   for (int i = 1; i < argc; ++i)
@@ -1009,6 +1011,42 @@ epilogue:
 #endif
 
   return 0;
+}
+
+void vcExtractAttributionText(vdkProjectNode *pNode, const char **ppCurrentText)
+{
+  if (pNode == nullptr)
+    return;
+
+  vcModel *pModel = nullptr;
+  const char *pBuffer = nullptr;
+  const char *pAttributionText = nullptr;
+
+  if (pNode->itemtype == vdkProjectNodeType::vdkPNT_PointCloud)
+  {
+    pModel = (vcModel *)pNode->pUserData;
+
+    if (pModel == nullptr)
+      goto epilogue;
+
+    //Priority: Author -> License -> Copyright
+    pAttributionText = pModel->m_metadata.Get("Author").AsString(pModel->m_metadata.Get("License").AsString(pModel->m_metadata.Get("Copyright").AsString()));
+    if (pAttributionText)
+    {
+      if (*ppCurrentText != nullptr)
+        udSprintf(&pBuffer, "%s       %s      ", *ppCurrentText, pAttributionText);
+      else
+        udSprintf(&pBuffer, "%s      ", pAttributionText);
+
+      udFree(*ppCurrentText);
+      *ppCurrentText = pBuffer;
+    }
+  }
+
+  epilogue:
+
+  vcExtractAttributionText(pNode->pFirstChild, ppCurrentText);
+  vcExtractAttributionText(pNode->pNextSibling, ppCurrentText);
 }
 
 void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
@@ -1170,6 +1208,97 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     }
 
     ImGui::End();
+  }
+
+  // Attribution
+  {
+    vdkProjectNode *pNode = pProgramState->activeProject.pRoot;
+    const char *pBuffer = nullptr;
+    vcExtractAttributionText(pNode, &pBuffer);
+
+    if (pBuffer == nullptr)
+    {
+      pProgramState->showWatermark = true;
+    }
+    else
+    {
+      pProgramState->showWatermark = false;
+
+      static double s_timeSinceLastUpdate = 0.0;
+      static double s_pauseTime = 0.0;
+      static bool   s_pauseOn = false;
+      static uint64_t s_currentTextPos = 0;
+
+      //Should we be able to change any of these? Should these bet settings?
+      const float bottomMargin = 20.0f;
+      const float leftMargin = 10.0f;
+      const double timePerCharacter = 0.25;
+      const double maxPauseTime = 5.0;
+      const float screenCoverage = 0.5;
+      const float windowHeight = 20.0;
+
+      //If the text string is too long, we automatically scroll the text. Once we scroll to the end
+      //of the string, we pause for a few seconds. This is a great candidate for a state machine,
+      //but shorter to write out explicitly
+      ImVec2 textDimensions = ImGui::CalcTextSize(pBuffer);
+      float maxTextWidth = screenCoverage * windowSize.x;
+      if (maxTextWidth > textDimensions.x)
+        maxTextWidth = textDimensions.x;
+      size_t len = udStrlen(pBuffer);
+      //Text buffer will fit in the window
+      if (textDimensions.x <= maxTextWidth)
+      {
+        s_currentTextPos = 0;
+      }
+      //Text buffer too long for window
+      else
+      {
+        //Text scrolling has reached the end. Pause a while
+        if (s_pauseOn)
+        {
+          s_pauseTime += pProgramState->deltaTime;
+          if (s_pauseTime > maxPauseTime)
+          {
+            s_currentTextPos = 0;
+            s_pauseTime = 0.0;
+            s_pauseOn = false;
+          }
+        }
+        //Scroll the text
+        else
+        {
+          s_timeSinceLastUpdate += pProgramState->deltaTime;
+          if (s_timeSinceLastUpdate > timePerCharacter)
+          {
+            ++s_currentTextPos;
+            s_timeSinceLastUpdate = 0.0;
+          }
+          s_currentTextPos = (s_currentTextPos % len);
+          textDimensions = ImGui::CalcTextSize(&pBuffer[s_currentTextPos], &pBuffer[len]);
+
+          //We have reached the end of the text
+          if (textDimensions.x < maxTextWidth)
+          {
+            --s_currentTextPos;
+            s_pauseOn = true;
+          }
+        }
+      }
+
+      ImGui::SetNextWindowPos(ImVec2(leftMargin, windowSize.y - bottomMargin), ImGuiCond_Always, ImVec2(0.f, 0.f));
+      ImGui::SetNextWindowSize(ImVec2(maxTextWidth, windowHeight));
+      ImGui::SetNextWindowBgAlpha(0.5f);
+      if (ImGui::Begin("My Text", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
+      {
+        size_t textCount = len - s_currentTextPos;
+        char *pClippedText = udAllocType(char, textCount + 1, udAF_Zero);
+        memcpy(pClippedText, pBuffer + s_currentTextPos, textCount * sizeof(char));
+        ImGui::Text("%s", pClippedText);
+        udFree(pClippedText);
+      }
+      ImGui::End();
+      udFree(pBuffer);
+    }
   }
 
   // Alert for no render license
