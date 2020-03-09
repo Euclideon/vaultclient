@@ -28,6 +28,7 @@ extern const char *const g_CompassFragmentShader;
 extern const char *const g_CompassVertexShader;
 
 extern const char *const g_ImGuiVertexShader;
+extern const char *const g_ImGuiVertexShader3D;
 extern const char *const g_ImGuiFragmentShader;
 
 // Polygon shaders

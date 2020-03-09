@@ -23,6 +23,11 @@ struct vcLabelInfo
   uint32_t backColourRGBA;
 };
 
-bool vcLabelRenderer_Render(vcLabelInfo *pLabel, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize);
+struct ImDrawList;
+struct vcTexture;
 
+udResult vcLabelRenderer_Init();
+udResult vcLabelRenderer_Destroy();
+
+bool vcLabelRenderer_Render(ImDrawList *drawList, vcLabelInfo *pLabel, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize);
 #endif//vcLabelRenderer_h__

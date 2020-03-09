@@ -1821,8 +1821,6 @@ void vcRenderSceneWindow(vcState *pProgramState)
     }
   }
 
-  vcRender_SceneImGui(pProgramState, pProgramState->pRenderContext, renderData);
-
   // Render scene to texture
   vcRender_RenderScene(pProgramState, pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
 

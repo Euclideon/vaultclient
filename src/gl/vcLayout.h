@@ -71,6 +71,13 @@ struct vcP4C1QC2Vertex
   float corner[2];
 };
 
+struct vcP2UV2C1Vertex
+{
+  udFloat2 position;  
+  udFloat2 uv;
+  uint32_t color;
+};
+
 const vcVertexLayoutTypes vcP3VertexLayout[] = { vcVLT_Position3 }; // tiles
 const vcVertexLayoutTypes vcUV2VertexLayout[] = { vcVLT_TextureCoords2 }; // water
 const vcVertexLayoutTypes vcP3N3VertexLayout[] = { vcVLT_Position3, vcVLT_Normal3 }; // compass / anchor
