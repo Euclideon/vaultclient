@@ -517,7 +517,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   if (m_attachment.pModel != nullptr)
   {
     const double minSpeed = 0.0;
-    const double maxSpeed = 1000.0;
+    const double maxSpeed = vcSL_CameraMaxMoveSpeed;
 
     if (ImGui::SliderScalar(vcString::Get("scenePOIAttachmentSpeed"), ImGuiDataType_Double, &m_attachment.moveSpeed, &minSpeed, &maxSpeed))
     {
@@ -594,7 +594,7 @@ void vcPOI::HandleAttachmentUI(vcState * /*pProgramState*/)
   if (m_cameraFollowingAttachment)
   {
     const double minSpeed = 0.0;
-    const double maxSpeed = 1000.0;
+    const double maxSpeed = vcSL_CameraMaxMoveSpeed;
 
     if (ImGui::SliderScalar(vcString::Get("scenePOIAttachmentSpeed"), ImGuiDataType_Double, &m_attachment.moveSpeed, &minSpeed, &maxSpeed))
     {
