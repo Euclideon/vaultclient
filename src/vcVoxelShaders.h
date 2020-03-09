@@ -18,6 +18,10 @@ struct vcUDRSData
     } intensity;
     struct
     {
+      const uint32_t *pCustomClassificationColors;
+    } classification;
+    struct
+    {
       float minThreshold;
       float maxThreshold;
     } displacement;

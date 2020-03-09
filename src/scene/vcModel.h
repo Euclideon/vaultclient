@@ -2,6 +2,7 @@
 #define vcModel_h__
 
 #include "vcSceneItem.h"
+#include "vcSettings.h"
 #include "vdkRenderContext.h"
 #include "vdkPointCloud.h"
 
@@ -28,6 +29,8 @@ public:
 
   bool m_hasWatermark; // True if the model has a watermark (might not be loaded)
   vcTexture *m_pWatermark; // If the watermark is loaded, it will be here
+
+  vcVisualizationSettings m_visualization; // Overrides global visualization settings
 
   vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud);

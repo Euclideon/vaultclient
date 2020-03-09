@@ -27,12 +27,11 @@ enum vcMapTileBlendMode
 
 enum vcVisualizatationMode
 {
+  vcVM_Default,
   vcVM_Colour,
   vcVM_Intensity,
   vcVM_Classification,
-  vcVM_Displacement,
-
-  vcVM_Count
+  vcVM_Displacement
 };
 
 enum vcAnchorStyle
@@ -119,6 +118,21 @@ struct vcLanguageOption
   char filename[16];
 };
 
+struct vcVisualizationSettings
+{
+  vcVisualizatationMode mode;
+
+  int minIntensity;
+  int maxIntensity;
+
+  udFloat2 displacement;
+
+  bool useCustomClassificationColours;
+  bool customClassificationToggles[256];
+  uint32_t customClassificationColors[256];
+  const char *customClassificationColorLabels[256];
+};
+
 struct vcSettings
 {
   bool noLocalStorage; //If set to true; cannot save or load from local storage
@@ -196,20 +210,7 @@ struct vcSettings
     int testStatus;
   } loginInfo;
 
-  struct
-  {
-    vcVisualizatationMode mode;
-
-    int minIntensity;
-    int maxIntensity;
-
-    udFloat2 displacement;
-
-    bool useCustomClassificationColours;
-    bool customClassificationToggles[256];
-    uint32_t customClassificationColors[256];
-    const char *customClassificationColorLabels[256];
-  } visualization;
+  vcVisualizationSettings visualization;
 
   struct
   {

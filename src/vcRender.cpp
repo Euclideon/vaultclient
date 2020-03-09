@@ -1347,42 +1347,34 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
       pVoxelShaderData[numVisibleModels].pModel = renderData.models[i];
       pVoxelShaderData[numVisibleModels].pProgramData = pProgramState;
 
-      switch (pProgramState->settings.visualization.mode)
+      // Fallback to global settings when model is default
+      const vcVisualizationSettings *pVisSettings = (renderData.models[i]->m_visualization.mode != vcVM_Default ? &renderData.models[i]->m_visualization : &pProgramState->settings.visualization);
+
+      // Fallback to the first available option when default, if all else fails, render black.
+      if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Colour) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_ARGB, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
       {
-      case vcVM_Intensity:
-        if (vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_Intensity, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
-        {
-          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Intensity;
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Colour;
+      }
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Intensity) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_Intensity, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      {
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Intensity;
 
-          pVoxelShaderData[numVisibleModels].data.intensity.maxIntensity = (uint16_t)pProgramState->settings.visualization.maxIntensity;
-          pVoxelShaderData[numVisibleModels].data.intensity.minIntensity = (uint16_t)pProgramState->settings.visualization.minIntensity;
-          pVoxelShaderData[numVisibleModels].data.intensity.intensityRange = (float)(pProgramState->settings.visualization.maxIntensity - pProgramState->settings.visualization.minIntensity);
-        }
+        pVoxelShaderData[numVisibleModels].data.intensity.maxIntensity = (uint16_t)pVisSettings->maxIntensity;
+        pVoxelShaderData[numVisibleModels].data.intensity.minIntensity = (uint16_t)pVisSettings->minIntensity;
+        pVoxelShaderData[numVisibleModels].data.intensity.intensityRange = (float)(pVisSettings->maxIntensity - pVisSettings->minIntensity);
+      }
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Classification) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_Classification, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      {
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Classification;
 
-        break;
-      case vcVM_Classification:
-        if (vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_Classification, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
-        {
-          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Classification;
-        }
+        pVoxelShaderData[numVisibleModels].data.classification.pCustomClassificationColors = pVisSettings->customClassificationColors;
+      }
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Displacement) && vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      {
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Displacement;
 
-        break;
-      case vcVM_Displacement:
-        if (vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
-        {
-          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Displacement;
-
-          pVoxelShaderData[numVisibleModels].data.displacement.minThreshold = pProgramState->settings.visualization.displacement.x;
-          pVoxelShaderData[numVisibleModels].data.displacement.maxThreshold = pProgramState->settings.visualization.displacement.y;
-        }
-
-        break;
-      default: //Includes vcVM_Colour
-        if (vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_ARGB, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
-        {
-          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Colour;
-        }
-        break;
+        pVoxelShaderData[numVisibleModels].data.displacement.minThreshold = pVisSettings->displacement.x;
+        pVoxelShaderData[numVisibleModels].data.displacement.maxThreshold = pVisSettings->displacement.y;
       }
 
       ++numVisibleModels;

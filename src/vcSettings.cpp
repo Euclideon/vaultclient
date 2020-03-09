@@ -213,7 +213,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->objectHighlighting.colour = data.Get("objectHighlighting.colour").AsFloat4(udFloat4::create(0.925f, 0.553f, 0.263f, 1.0f));
     pSettings->objectHighlighting.thickness = data.Get("objectHighlighting.thickness").AsFloat(2.0f);
 
-    pSettings->visualization.mode = (vcVisualizatationMode)data.Get("visualization.mode").AsInt(0);
+    pSettings->visualization.mode = (vcVisualizatationMode)(data.Get("visualization.mode").AsInt(-1) + 1);
     pSettings->postVisualization.edgeOutlines.enable = data.Get("postVisualization.edgeOutlines.enabled").AsBool(false);
     pSettings->postVisualization.colourByHeight.enable = data.Get("postVisualization.colourByHeight.enabled").AsBool(false);
     pSettings->postVisualization.colourByDepth.enable = data.Get("postVisualization.colourByDepth.enabled").AsBool(false);
@@ -520,7 +520,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.scrollwheelBinding = %d", pSettings->camera.scrollWheelMode);
 
   // Visualization
-  data.Set("visualization.mode = %d", pSettings->visualization.mode);
+  data.Set("visualization.mode = %d", pSettings->visualization.mode - 1);
   data.Set("visualization.minIntensity = %d", pSettings->visualization.minIntensity);
   data.Set("visualization.maxIntensity = %d", pSettings->visualization.maxIntensity);
 
