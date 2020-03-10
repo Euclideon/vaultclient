@@ -50,6 +50,8 @@ public:
   vcSceneItem(vcState *pProgramState, const char *pType, const char *pName);
   virtual ~vcSceneItem();
 
+  virtual bool Is3DSceneObject() const { return true; }
+
   // This lets SceneItems know that their vdkProjectNode has changed
   virtual void OnNodeUpdate(vcState *pProgramState) = 0;
 

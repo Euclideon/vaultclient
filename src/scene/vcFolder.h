@@ -11,14 +11,15 @@ public:
   vcFolder(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcFolder() {};
 
-  void OnNodeUpdate(vcState *pProgramState);
+  void OnNodeUpdate(vcState *pProgramState) override;
 
-  void ChangeProjection(const udGeoZone &newZone);
+  void ChangeProjection(const udGeoZone &newZone) override;
 
-  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
-  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
-  void HandleImGui(vcState *pProgramState, size_t *pItemID);
-  void Cleanup(vcState *pProgramState);
+  bool Is3DSceneObject() const override { return false; }
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override;
+  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
+  void HandleImGui(vcState *pProgramState, size_t *pItemID) override;
+  void Cleanup(vcState *pProgramState) override;
 };
 
 #endif //vcFolder_h__
