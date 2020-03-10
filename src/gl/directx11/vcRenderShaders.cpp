@@ -1,9 +1,8 @@
 #include "gl/vcRenderShaders.h"
 #include "udPlatformUtil.h"
-#include "vcConstants.h"
 
-#define FRAG_HEADER "static float s_CameraNearPlane=" UDSTRINGIFY(s_CameraNearPlane) ";\nstatic float s_CameraFarPlane=" UDSTRINGIFY(s_CameraFarPlane) ";\n"
-#define VERT_HEADER "static float s_CameraNearPlane=" UDSTRINGIFY(s_CameraNearPlane) ";\nstatic float s_CameraFarPlane=" UDSTRINGIFY(s_CameraFarPlane) ";\n"
+#define FRAG_HEADER "cbuffer u_cameraPlaneParams { float s_CameraNearPlane; float s_CameraFarPlane; float u_unused1; float u_unused2; };"
+#define VERT_HEADER "cbuffer u_cameraPlaneParams { float s_CameraNearPlane; float s_CameraFarPlane; float u_unused1; float u_unused2; };"
 
 const char *const g_VisualizationFragmentShader = FRAG_HEADER R"shader(
  struct PS_INPUT

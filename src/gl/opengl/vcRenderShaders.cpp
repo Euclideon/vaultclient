@@ -1,13 +1,12 @@
 #include "gl/vcRenderShaders.h"
 #include "udPlatformUtil.h"
-#include "vcConstants.h"
 
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_EMSCRIPTEN || UDPLATFORM_ANDROID
-# define FRAG_HEADER "#version 300 es\nprecision highp float;\nfloat s_CameraNearPlane=" UDSTRINGIFY(s_CameraNearPlane) ";\nfloat s_CameraFarPlane=" UDSTRINGIFY(s_CameraFarPlane) ";\n"
-# define VERT_HEADER "#version 300 es\nfloat s_CameraNearPlane=" UDSTRINGIFY(s_CameraNearPlane) ";\nfloat s_CameraFarPlane=" UDSTRINGIFY(s_CameraFarPlane) ";\n"
+# define FRAG_HEADER "#version 300 es\nprecision highp float;\nlayout (std140) uniform u_cameraPlaneParams { float s_CameraNearPlane; float s_CameraFarPlane; float u_unused1; float u_unused2; };\n"
+# define VERT_HEADER "#version 300 es\nlayout (std140) uniform u_cameraPlaneParams { float s_CameraNearPlane; float s_CameraFarPlane; float u_unused1; float u_unused2; };\n"
 #else
-# define FRAG_HEADER "#version 330 core\n#extension GL_ARB_explicit_attrib_location : enable\nfloat s_CameraNearPlane=" UDSTRINGIFY(s_CameraNearPlane) ";\nfloat s_CameraFarPlane=" UDSTRINGIFY(s_CameraFarPlane) ";\n"
-# define VERT_HEADER "#version 330 core\n#extension GL_ARB_explicit_attrib_location : enable\nfloat s_CameraNearPlane=" UDSTRINGIFY(s_CameraNearPlane) ";\nfloat s_CameraFarPlane=" UDSTRINGIFY(s_CameraFarPlane) ";\n"
+# define FRAG_HEADER "#version 330 core\n#extension GL_ARB_explicit_attrib_location : enable\nlayout (std140) uniform u_cameraPlaneParams { float s_CameraNearPlane; float s_CameraFarPlane; float u_unused1; float u_unused2; };\n"
+# define VERT_HEADER "#version 330 core\n#extension GL_ARB_explicit_attrib_location : enable\nlayout (std140) uniform u_cameraPlaneParams { float s_CameraNearPlane; float s_CameraFarPlane; float u_unused1; float u_unused2; };\n"
 #endif
 
 const char *const g_VisualizationFragmentShader = FRAG_HEADER R"shader(

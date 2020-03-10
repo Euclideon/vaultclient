@@ -1,5 +1,6 @@
 #include "gl/vcShader.h"
 #include "vcOpenGL.h"
+#include "vcConstants.h"
 #include "udPlatformUtil.h"
 #include "udStringUtil.h"
 #include "udFile.h"
@@ -82,6 +83,9 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   if (pShader->programID == GL_INVALID_INDEX)
     udFree(pShader);
 
+  if (pShader)
+    vcShader_GetConstantBuffer(&pShader->pCameraPlaneParams, pShader, "u_cameraPlaneParams", sizeof(float) * 4);
+
   *ppShader = pShader;
 
   return (pShader != nullptr);
@@ -121,6 +125,18 @@ bool vcShader_Bind(vcShader *pShader)
     glUseProgram(0);
   else
     glUseProgram(pShader->programID);
+
+  if (pShader)
+  {
+    struct
+    {
+      float cameraNearPlane;
+      float cameraFarPlane;
+      float unused1;
+      float unused2;
+    } cameraPlane = { s_CameraNearPlane, s_CameraFarPlane, 0.f, 0.f };
+    vcShader_BindConstantBuffer(pShader, pShader->pCameraPlaneParams, &cameraPlane, sizeof(cameraPlane));
+  }
 
   VERIFY_GL();
 

@@ -49,11 +49,12 @@ struct vcFramebuffer
 
 struct vcShaderConstantBuffer
 {
-  int type; // 0 = VSConstantBuffer, 1 = PSConstantBuffer
-  int expectedSize;
-  uint32_t registerSlot;
-
-  ID3D11Buffer *pBuffer;
+  struct {
+    int type; // 0 = VSConstantBuffer, 1 = PSConstantBuffer
+    int expectedSize;
+    uint32_t registerSlot;
+    ID3D11Buffer *pBuffer;
+  } buffers[2]; // One for each shader stage
   char bufferName[32];
 };
 
@@ -66,6 +67,8 @@ struct vcShader
 
   vcShaderConstantBuffer bufferObjects[16];
   int numBufferObjects;
+
+  vcShaderConstantBuffer *pCameraPlaneParams;
 };
 
 struct vcShaderSampler
