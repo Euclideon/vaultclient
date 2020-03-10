@@ -2,6 +2,7 @@
 #include "vcOpenGL.h"
 #include "udPlatformUtil.h"
 #include "udStringUtil.h"
+#include "udFile.h"
 
 GLint vcBuildShader(GLenum type, const GLchar *shaderCode)
 {
@@ -84,6 +85,22 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   *ppShader = pShader;
 
   return (pShader != nullptr);
+}
+
+bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs)
+{
+  const char *pVertexShaderText = nullptr;
+  const char *pFragmentShaderText = nullptr;
+
+  udFile_Load(pVertexShader, &pVertexShaderText);
+  udFile_Load(pFragmentShader, &pFragmentShaderText);
+
+  bool success = vcShader_CreateFromText(ppShader, pVertexShaderText, pFragmentShaderText, pInputTypes, totalInputs);
+
+  udFree(pFragmentShaderText);
+  udFree(pVertexShaderText);
+
+  return success;
 }
 
 void vcShader_DestroyShader(vcShader **ppShader)
