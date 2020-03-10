@@ -50,8 +50,5 @@ extern const char *const g_HighlightFragmentShader;
 // GPU UD Renderer
 extern const char *const g_udGPURenderQuadVertexShader;
 extern const char *const g_udGPURenderQuadFragmentShader;
-extern const char *const g_udGPURenderGeomVertexShader;
-extern const char *const g_udGPURenderGeomFragmentShader;
-extern const char *const g_udGPURenderGeomGeometryShader;
 
 #endif//vcRenderShaders_h__

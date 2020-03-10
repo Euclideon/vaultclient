@@ -35,15 +35,13 @@ GLint vcBuildShader(GLenum type, const GLchar *shaderCode)
   return shaderObject;
 }
 
-GLint vcBuildProgram(GLint vertexShader, GLint fragmentShader, GLint geometryShader)
+GLint vcBuildProgram(GLint vertexShader, GLint fragmentShader)
 {
   GLint programObject = glCreateProgram();
   if (vertexShader != -1)
     glAttachShader(programObject, vertexShader);
   if (fragmentShader != -1)
     glAttachShader(programObject, fragmentShader);
-  if (geometryShader != -1)
-    glAttachShader(programObject, geometryShader);
 
   glLinkProgram(programObject);
   GLint linked;
@@ -67,28 +65,18 @@ GLint vcBuildProgram(GLint vertexShader, GLint fragmentShader, GLint geometrySha
     glDeleteShader(vertexShader);
   if (fragmentShader != -1)
     glDeleteShader(fragmentShader);
-  if (geometryShader != -1)
-    glDeleteShader(geometryShader);
 
   return programObject;
 }
 
-bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes * /*pInputTypes*/, uint32_t /*totalInputs*/, const char *pGeometryShader /*= nullptr*/)
+bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes * /*pInputTypes*/, uint32_t /*totalInputs*/)
 {
   if (ppShader == nullptr || pVertexShader == nullptr || pFragmentShader == nullptr)
     return false;
 
   vcShader *pShader = udAllocType(vcShader, 1, udAF_Zero);
 
-  GLint geometryShaderId = (GLint)-1;
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_EMSCRIPTEN || UDPLATFORM_ANDROID
-  if (pGeometryShader != nullptr)
-    return false;
-#else// UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-  geometryShaderId = vcBuildShader(GL_GEOMETRY_SHADER, pGeometryShader);
-#endif
-
-  pShader->programID = vcBuildProgram(vcBuildShader(GL_VERTEX_SHADER, pVertexShader), vcBuildShader(GL_FRAGMENT_SHADER, pFragmentShader), geometryShaderId);
+  pShader->programID = vcBuildProgram(vcBuildShader(GL_VERTEX_SHADER, pVertexShader), vcBuildShader(GL_FRAGMENT_SHADER, pFragmentShader));
 
   if (pShader->programID == GL_INVALID_INDEX)
     udFree(pShader);
