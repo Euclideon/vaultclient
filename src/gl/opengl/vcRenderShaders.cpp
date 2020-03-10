@@ -404,13 +404,14 @@ out vec2 v_uv;
 out float v_fLogDepth;
 
 // This should match CPU struct size
-#define VERTEX_COUNT 2
+#define VERTEX_COUNT 3
 
 layout (std140) uniform u_EveryObject
 {
   mat4 u_projection;
   vec4 u_eyePositions[VERTEX_COUNT * VERTEX_COUNT];
   vec4 u_colour;
+  vec4 u_uvOffsetScale;
 };
 
 // this could be used instead instead of writing to depth directly,
@@ -426,7 +427,7 @@ void main()
   // TODO: could have precision issues on some devices
   vec4 finalClipPos = u_projection * u_eyePositions[int(a_uv.z)];
 
-  v_uv = a_uv.xy;
+  v_uv = u_uvOffsetScale.xy + u_uvOffsetScale.zw * a_uv.xy;
   v_colour = u_colour;
   gl_Position = finalClipPos;
   v_fLogDepth = 1.0 + gl_Position.w;
@@ -1146,97 +1147,6 @@ const char *const g_udGPURenderQuadFragmentShader = FRAG_HEADER R"shader(
   void main()
   {
     out_Colour = v_colour;
-  }
-)shader";
-
-
-const char *const g_udGPURenderGeomVertexShader = VERT_HEADER R"shader(
-  layout(location = 0) in vec4 a_position;
-  layout(location = 1) in vec4 a_colour;
-
-  out vec4 v_colour;
-  out vec2 v_pointSize;
-
-  layout (std140) uniform u_EveryObject
-  {
-    mat4 u_worldViewProjectionMatrix;
-    vec4 u_colour;
-  };
-
-  void main()
-  {
-    v_colour = vec4(a_colour.bgr * u_colour.xyz, u_colour.w);
-
-    // Points
-    vec4 off = vec4(a_position.www * 2.0, 0);
-    vec4 pos0 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.www, 1.0);
-    vec4 pos1 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xww, 1.0);
-    vec4 pos2 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xyw, 1.0);
-    vec4 pos3 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wyw, 1.0);
-    vec4 pos4 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wwz, 1.0);
-    vec4 pos5 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xwz, 1.0);
-    vec4 pos6 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.xyz, 1.0);
-    vec4 pos7 = u_worldViewProjectionMatrix * vec4(a_position.xyz + off.wyz, 1.0);
-
-    vec4 minPos, maxPos;
-    minPos = min(pos0, pos1);
-    minPos = min(minPos, pos2);
-    minPos = min(minPos, pos3);
-    minPos = min(minPos, pos4);
-    minPos = min(minPos, pos5);
-    minPos = min(minPos, pos6);
-    minPos = min(minPos, pos7);
-    maxPos = max(pos0, pos1);
-    maxPos = max(maxPos, pos2);
-    maxPos = max(maxPos, pos3);
-    maxPos = max(maxPos, pos4);
-    maxPos = max(maxPos, pos5);
-    maxPos = max(maxPos, pos6);
-    maxPos = max(maxPos, pos7);
-    gl_Position = (minPos + (maxPos - minPos) * 0.5);
-
-    v_pointSize = vec2(maxPos.x - minPos.x, maxPos.y - minPos.y);
-  }
-)shader";
-
-const char *const g_udGPURenderGeomFragmentShader = FRAG_HEADER R"shader(
-  in vec4 g_colour;
-
-  out vec4 out_Colour;
-
-  void main()
-  {
-    out_Colour = g_colour;
-  }
-)shader";
-
-const char *const g_udGPURenderGeomGeometryShader = VERT_HEADER R"shader(
-  layout(points) in;
-  layout(triangle_strip, max_vertices=4) out;
-
-  in vec2 v_pointSize[];
-  in vec4 v_colour[];
-  out vec4 g_colour;
-
-  void main()
-  {
-    g_colour = v_colour[0];
-
-    vec2 halfPointSize = v_pointSize[0] * vec2(0.5);
-
-    gl_Position = gl_in[0].gl_Position + vec4(-halfPointSize.x, -halfPointSize.y, 0.0, 0.0);
-    EmitVertex();
-
-    gl_Position = gl_in[0].gl_Position + vec4(-halfPointSize.x, halfPointSize.y, 0.0, 0.0);
-    EmitVertex();
-
-    gl_Position = gl_in[0].gl_Position + vec4(halfPointSize.x, -halfPointSize.y, 0.0, 0.0);
-    EmitVertex();
-
-    gl_Position = gl_in[0].gl_Position + vec4(halfPointSize.x, halfPointSize.y, 0.0, 0.0);
-    EmitVertex();
-
-    EndPrimitive();
   }
 )shader";
 

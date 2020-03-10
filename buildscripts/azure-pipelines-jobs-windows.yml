@@ -39,6 +39,15 @@ jobs:
       configuration: $(configuration)
       maximumCpuCount: true
       msbuildArguments: '/v:m'
+  - script: builds\tests\vcTesting.exe --gtest_shuffle --gtest_output=xml
+    displayName: 'Run Tests'
+  - task: PublishTestResults@2
+    displayName: 'Publish Test Results'
+    condition: always()
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: 'test_detail.xml'
+      testRunTitle: ${{ parameters.name }}_$(platform)_$(configuration)
   - script: choco install pandoc
     displayName: 'Install Documentation Dependencies'
     condition: and(succeeded(), eq(variables['configuration'], 'Release'))
@@ -60,7 +69,9 @@ jobs:
       rm __temp.html
     displayName: 'Generate Translation Guide'
     condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+  - bash: pushd builds && rm -rf tests *.pdb && popd
+    displayName: 'Clean up Artifacts'
   - publish: builds/
-    displayName: 'Public Artifacts'
+    displayName: 'Publish Artifacts'
     condition: and(succeeded(), eq(variables['configuration'], 'Release'))
     artifact: ${{ parameters.name }}$(configuration)

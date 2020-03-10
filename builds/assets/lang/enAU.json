@@ -28,6 +28,7 @@
   "loginProxyTestSuccess": "Connection succeeded!",
   "loginProxyTestFailed": "Test Failed (Error:{0})",
   "loginProxyTestCouldNotConnect": "Could not connect. Verify your network is working & proxy details are correct",
+  "loginProxyRequiresAuth": "Require Proxy Authentication",
 
   "loginUserAgent": "User Agent",
   "loginSelectUserAgent": "Select User Agent",
@@ -141,6 +142,7 @@
   "settingsVisHighlightColour": "Highlight Colour",
   "settingsVisHighlightThickness": "Highlight Thickness",
   "settingsVisDisplayMode": "Display Mode",
+  "settingsVisModeDefault":  "Default",
   "settingsVisModeClassification": "Classification",
   "settingsVisModeColour": "Colour",
   "settingsVisModeIntensity": "Intensity",
@@ -169,6 +171,8 @@
   "settingsVisDisplacementRange": "Displacement Range",
 
   "settingsVisClassShowColourTable": "Show Custom Classification Colour Table",
+  "settingsVisClassShowAll": "Show All Classifications",
+  "settingsVisClassDisableAll": "Disable All Classifications",
   "settingsVisClassNeverClassified": "0. Never Classified",
   "settingsVisClassUnclassified": "1. Unclassified",
   "settingsVisClassGround": "2. Ground",
@@ -366,6 +370,7 @@
   "sceneGizmoLocalSpace": "Gizmo Local Space",
   "sceneFullscreen": "Fullscreen",
   "sceneMapMode": "Map Mode",
+  "toggleSceneExplorer": "Show/Hide Scene Explorer",
 
   "sceneCameraSettings": "Camera Settings",
   "sceneCameraLatLongAlt": "Lat: {0}°, Lon: {1}°, Alt {2}",
@@ -405,6 +410,13 @@
   "sceneModelPosition": "Model Position",
   "sceneModelRotation": "Model Rotation",
   "sceneModelScale": "Model Scale",
+
+  "sceneExplorerExportPointCloud": "Export Pointcloud",
+  "sceneExplorerExportQueryFilter": "Filter",
+  "sceneExplorerExportFilename": "Filename",
+  "sceneExplorerExportBegin": "Start Export",
+  "sceneExplorerExportRunning": "Exporting...",
+  "sceneExplorerExportEntireModel": "Export entire model",
 
   "sceneModelMetreScale": "Metre Scale: {0}",
   "sceneModelLODLayers": "LODs: {0}",
@@ -581,6 +593,7 @@
   "bindingsSave": "Key to trigger save action.",
   "bindingsLoad": "Key to trigger load or open action.",
   "bindingsUndo": "Key to trigger undo action",
+  "bindingsToggleSceneExplorer": "Key to show/hide scene explorer",
 
   "errorUnknown": "An unexpected error occurred.",
   "errorCorruptData": "Corrupt data.",

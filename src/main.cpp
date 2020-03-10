@@ -62,6 +62,7 @@
 # include "vHTTPRequest.h"
 # include <emscripten/threading.h>
 # include <emscripten/emscripten.h>
+# include <emscripten/html5.h>
 #elif UDPLATFORM_WINDOWS
 # include <windows.h>
 #endif
@@ -626,15 +627,12 @@ void vcMain_MainLoop(vcState *pProgramState)
       udFree(pProgramState->pLoadImage);
     }
 
-    // Ping the server every 30 seconds
-    if (pProgramState->hasContext && (udGetEpochSecsUTCf() > pProgramState->sessionInfo.expiresTimestamp - 300))
-      udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
-
+    // Check this first because vcSession_UpdateInfo doesn't update session info if the session has expired
     if (pProgramState->forceLogout)
-    {
       vcSession_Logout(pProgramState);
-      vcModals_OpenModal(pProgramState, vcMT_LoggedOut);
-    }
+    // Ping the server every 300 seconds
+    else if (pProgramState->hasContext && (udGetEpochSecsUTCf() > pProgramState->sessionInfo.expiresTimestamp - 300))
+      udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
   }
 }
 
@@ -653,7 +651,7 @@ void vcMain_SyncFS()
 {
   EM_ASM({
     // Sync from persisted state into memory
-    FS.syncfs(true, function(err) { assert(!err); });
+    FS.syncfs(true, function(err) { });
   });
 }
 #endif
@@ -857,6 +855,8 @@ int main(int argc, char **args)
   programState.errorItems.Init(16);
   programState.loadList.Init(16);
 
+  programState.showWatermark = true;
+
   vcProject_InitBlankScene(&programState);
 
   for (int i = 1; i < argc; ++i)
@@ -957,6 +957,16 @@ int main(int argc, char **args)
   udWorkerPool_AddTask(programState.pWorkerPool, vcMain_AsyncResumeSession, &programState, false);
 
 #if UDPLATFORM_EMSCRIPTEN
+  // Toggle fullscreen if it changed, most likely via pressing escape key
+  emscripten_set_fullscreenchange_callback("#canvas", &programState, true, [](int /*eventType*/, const EmscriptenFullscreenChangeEvent *pEvent, void *pUserData) -> EM_BOOL {
+    vcState *pProgramState = (vcState*)pUserData;
+
+    if (!pEvent->isFullscreen && pProgramState->settings.window.isFullscreen)
+      vcMain_PresentationMode(pProgramState);
+
+    return true;
+  });
+
   emscripten_set_main_loop_arg(vcMain_MainLoop, &programState, 0, 1);
 #else
   while (!programState.programComplete)
@@ -1012,6 +1022,42 @@ epilogue:
 #endif
 
   return 0;
+}
+
+void vcExtractAttributionText(vdkProjectNode *pNode, const char **ppCurrentText)
+{
+  if (pNode == nullptr)
+    return;
+
+  vcModel *pModel = nullptr;
+  const char *pBuffer = nullptr;
+  const char *pAttributionText = nullptr;
+
+  if (pNode->itemtype == vdkProjectNodeType::vdkPNT_PointCloud)
+  {
+    pModel = (vcModel *)pNode->pUserData;
+
+    if (pModel == nullptr)
+      goto epilogue;
+
+    //Priority: Author -> License -> Copyright
+    pAttributionText = pModel->m_metadata.Get("Author").AsString(pModel->m_metadata.Get("License").AsString(pModel->m_metadata.Get("Copyright").AsString()));
+    if (pAttributionText)
+    {
+      if (*ppCurrentText != nullptr)
+        udSprintf(&pBuffer, "%s       %s      ", *ppCurrentText, pAttributionText);
+      else
+        udSprintf(&pBuffer, "%s      ", pAttributionText);
+
+      udFree(*ppCurrentText);
+      *ppCurrentText = pBuffer;
+    }
+  }
+
+  epilogue:
+
+  vcExtractAttributionText(pNode->pFirstChild, ppCurrentText);
+  vcExtractAttributionText(pNode->pNextSibling, ppCurrentText);
 }
 
 void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
@@ -1120,9 +1166,16 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoLocalSpace)), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, pProgramState->gizmo.coordinateSystem == vcGCS_Local))
         pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
-      // Fullscreens
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_Fullscreen)), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.isFullscreen))
+      // Fullscreens - needs to trigger on mouse down, not mouse up in Emscripten to avoid problems
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_Fullscreen)), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.isFullscreen) || ImGui::IsItemClicked(0))
         vcMain_PresentationMode(pProgramState);
+
+      // Hide/show screen explorer
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toggleSceneExplorer"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_ToggleScreenExplorer, vcMBBG_SameGroup) || (vcHotkey::IsPressed(vcB_ToggleSceneExplorer) && !ImGui::IsAnyItemActive()))
+      {
+        pProgramState->sceneExplorerCollapsed = !pProgramState->sceneExplorerCollapsed;
+        pProgramState->settings.presentation.columnSizeCorrect = false;
+      }
 
       if (pProgramState->settings.presentation.showCameraInfo)
       {
@@ -1141,7 +1194,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->camera.eulerRotation = UD_DEG2RAD(pProgramState->camera.eulerRotation);
 
         if (ImGui::SliderFloat(vcString::Get("sceneCameraMoveSpeed"), &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
-          pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_GlobalLimitSmallf);
+          pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
 
         if (pProgramState->gis.isProjected)
         {
@@ -1166,6 +1219,97 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     }
 
     ImGui::End();
+  }
+
+  // Attribution
+  {
+    vdkProjectNode *pNode = pProgramState->activeProject.pRoot;
+    const char *pBuffer = nullptr;
+    vcExtractAttributionText(pNode, &pBuffer);
+
+    if (pBuffer == nullptr)
+    {
+      pProgramState->showWatermark = true;
+    }
+    else
+    {
+      pProgramState->showWatermark = false;
+
+      static double s_timeSinceLastUpdate = 0.0;
+      static double s_pauseTime = 0.0;
+      static bool   s_pauseOn = false;
+      static uint64_t s_currentTextPos = 0;
+
+      //Should we be able to change any of these? Should these bet settings?
+      const float bottomMargin = 20.0f;
+      const float leftMargin = 10.0f;
+      const double timePerCharacter = 0.25;
+      const double maxPauseTime = 5.0;
+      const float screenCoverage = 0.5;
+      const float windowHeight = 20.0;
+
+      //If the text string is too long, we automatically scroll the text. Once we scroll to the end
+      //of the string, we pause for a few seconds. This is a great candidate for a state machine,
+      //but shorter to write out explicitly
+      ImVec2 textDimensions = ImGui::CalcTextSize(pBuffer);
+      float maxTextWidth = screenCoverage * windowSize.x;
+      if (maxTextWidth > textDimensions.x)
+        maxTextWidth = textDimensions.x;
+      size_t len = udStrlen(pBuffer);
+      //Text buffer will fit in the window
+      if (textDimensions.x <= maxTextWidth)
+      {
+        s_currentTextPos = 0;
+      }
+      //Text buffer too long for window
+      else
+      {
+        //Text scrolling has reached the end. Pause a while
+        if (s_pauseOn)
+        {
+          s_pauseTime += pProgramState->deltaTime;
+          if (s_pauseTime > maxPauseTime)
+          {
+            s_currentTextPos = 0;
+            s_pauseTime = 0.0;
+            s_pauseOn = false;
+          }
+        }
+        //Scroll the text
+        else
+        {
+          s_timeSinceLastUpdate += pProgramState->deltaTime;
+          if (s_timeSinceLastUpdate > timePerCharacter)
+          {
+            ++s_currentTextPos;
+            s_timeSinceLastUpdate = 0.0;
+          }
+          s_currentTextPos = (s_currentTextPos % len);
+          textDimensions = ImGui::CalcTextSize(&pBuffer[s_currentTextPos], &pBuffer[len]);
+
+          //We have reached the end of the text
+          if (textDimensions.x < maxTextWidth)
+          {
+            --s_currentTextPos;
+            s_pauseOn = true;
+          }
+        }
+      }
+
+      ImGui::SetNextWindowPos(ImVec2(leftMargin, windowSize.y - bottomMargin), ImGuiCond_Always, ImVec2(0.f, 0.f));
+      ImGui::SetNextWindowSize(ImVec2(maxTextWidth, windowHeight));
+      ImGui::SetNextWindowBgAlpha(0.5f);
+      if (ImGui::Begin("My Text", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
+      {
+        size_t textCount = len - s_currentTextPos;
+        char *pClippedText = udAllocType(char, textCount + 1, udAF_Zero);
+        memcpy(pClippedText, pBuffer + s_currentTextPos, textCount * sizeof(char));
+        ImGui::Text("%s", pClippedText);
+        udFree(pClippedText);
+      }
+      ImGui::End();
+      udFree(pBuffer);
+    }
   }
 
   // Alert for no render license
@@ -1240,6 +1384,32 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       ImGui::Image(pProgramState->pCompanyWatermark, ImVec2((float)logoSize.x, (float)logoSize.y));
       if (ImGui::IsWindowAppearing())
         ImGui::SetWindowFocus("###settingsDock");
+    }
+
+    ImGui::End();
+    ImGui::PopStyleVar();
+  }
+
+  if (pProgramState->settings.presentation.showCompass)
+  {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    float min = udMin(windowSize.x, windowSize.y);
+    udFloat2 compassSize = udFloat2::create(min, min) * vcLens30mm * 0.13;
+    udFloat2 compassPostion = udFloat2::create(windowPos.x, windowPos.y) + udFloat2::create(windowSize.x, windowSize.y)*0.91f - compassSize*0.5;
+    udFloat2 rectMax = compassPostion + compassSize;
+    ImVec2 rectMin = ImVec2(compassPostion.x, compassPostion.y);
+    ImGui::SetNextWindowPos(rectMin, ImGuiCond_Always, ImVec2(0.0f, 0.0f));
+    ImGui::SetNextWindowBgAlpha(0.0f);
+    ImGui::SetNextWindowSize(ImVec2(compassSize.x, compassSize.y));
+
+    if (ImGui::Begin("sceneCompass", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+    {
+      if (ImGui::IsMouseHoveringRect(rectMin, ImVec2(rectMax.x, rectMax.y)) && (ImGui::IsMouseClicked(0) || ImGui::IsMouseDoubleClicked(0)))
+      {
+        pProgramState->cameraInput.targetEulerRotation = UD_DEG2RAD(udDouble3::create(0, -90, 0));
+        pProgramState->cameraInput.inputState = vcCIS_Rotate;
+        pProgramState->cameraInput.progress = 0.0;
+      }
     }
 
     ImGui::End();
@@ -1943,6 +2113,22 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
       ImGui::TextUnformatted(tempData);
     }
   }
+
+  // Background work
+  {
+    if (pProgramState->backgroundWork.exportsRunning.Get() > 0)
+    {
+      udSprintf(tempData, "%s / ", vcString::Get("sceneExplorerExportRunning"));
+
+      xPosition -= ImGui::CalcTextSize(tempData).x;
+      ImGui::SameLine(xPosition);
+      ImGui::TextUnformatted(tempData);
+
+      xPosition -= 20;
+      ImGui::SameLine(xPosition);
+      vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
+    }
+  }
 }
 
 float vcMain_MenuGui(vcState *pProgramState)
@@ -2304,6 +2490,10 @@ void vcRenderWindow(vcState *pProgramState)
       {
         ImGui::PopStyleVar();
 
+        int sceneExplorerSize = pProgramState->settings.presentation.sceneExplorerSize;
+        if (pProgramState->sceneExplorerCollapsed)
+          sceneExplorerSize = 0;
+
         switch (pProgramState->settings.presentation.layout)
         {
         case vcWL_SceneLeft:
@@ -2311,11 +2501,11 @@ void vcRenderWindow(vcState *pProgramState)
 
           if (!pProgramState->settings.presentation.columnSizeCorrect)
           {
-            ImGui::SetColumnWidth(0, size.x - pProgramState->settings.presentation.sceneExplorerSize);
+            ImGui::SetColumnWidth(0, size.x - sceneExplorerSize);
             pProgramState->settings.presentation.columnSizeCorrect = true;
           }
 
-          if (ImGui::GetColumnWidth(0) != size.x - pProgramState->settings.presentation.sceneExplorerSize)
+          if (ImGui::GetColumnWidth(0) != size.x - sceneExplorerSize && !pProgramState->sceneExplorerCollapsed)
             pProgramState->settings.presentation.sceneExplorerSize = (int)(size.x - ImGui::GetColumnWidth());
 
           if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
@@ -2336,11 +2526,11 @@ void vcRenderWindow(vcState *pProgramState)
 
           if (!pProgramState->settings.presentation.columnSizeCorrect)
           {
-            ImGui::SetColumnWidth(0, (float)pProgramState->settings.presentation.sceneExplorerSize);
+            ImGui::SetColumnWidth(0, (float)sceneExplorerSize);
             pProgramState->settings.presentation.columnSizeCorrect = true;
           }
 
-          if (ImGui::GetColumnWidth(0) != pProgramState->settings.presentation.sceneExplorerSize)
+          if (ImGui::GetColumnWidth(0) != sceneExplorerSize && !pProgramState->sceneExplorerCollapsed)
             pProgramState->settings.presentation.sceneExplorerSize = (int)ImGui::GetColumnWidth();
 
           if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))

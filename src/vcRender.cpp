@@ -392,6 +392,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   vcShader_DestroyShader(&pRenderContext->udRenderContext.splatIdShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->blurShader.pProgram);
   vcShader_DestroyShader(&pRenderContext->selectionShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->watermarkShader.pProgram);
 
   vcTexture_Destroy(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture);
   UD_ERROR_CHECK(vcCompass_Destroy(&pRenderContext->pCompass));
@@ -686,13 +687,31 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
 
     int currentZoom = 21;
 
-    double farPlane = pProgramState->settings.camera.farPlane;
+    // project camera position to base altitude
+    udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
+    cameraPositionInLongLat.z = 0.0;
+    udDouble3 cameraZeroAltitude = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, cameraPositionInLongLat);
+    udDouble3 cameraToZeroAltitude = localCamPos - cameraZeroAltitude;
+    double cameraDistanceToAltitudeZero = udMag3(cameraToZeroAltitude);
+
+    // TODO: Fix this
+    // determine if camera is 'inside' the ground
+    //udDouble3 zoneRoot = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, udDouble3::zero());
+    //udDouble3 surfaceNormal = udNormalize3(cameraZeroAltitude - zoneRoot);
+    //if (udAbs(surfaceNormal.z) <= UD_EPSILON) // can this be assumed?
+    //  surfaceNormal = udDouble3::create(0.0, 0.0, 1.0);
+    bool cameraInsideGround = false;//udDot3(cameraToZeroAltitude, surfaceNormal) < 0;
+
+    // These values were trial and errored.
+    const double BaseViewDistance = 10000.0;
+    const double HeightViewDistanceScale = 30.0;
+    double visibleFarPlane = udMin((double)s_CameraFarPlane, BaseViewDistance + cameraDistanceToAltitudeZero * HeightViewDistanceScale);
 
     // Cardinal Limits
-    localCorners[0] = localCamPos + udDouble3::create(-farPlane, +farPlane, 0);
-    localCorners[1] = localCamPos + udDouble3::create(+farPlane, +farPlane, 0);
-    localCorners[2] = localCamPos + udDouble3::create(-farPlane, -farPlane, 0);
-    localCorners[3] = localCamPos + udDouble3::create(+farPlane, -farPlane, 0);
+    localCorners[0] = localCamPos + udDouble3::create(-visibleFarPlane, +visibleFarPlane, 0);
+    localCorners[1] = localCamPos + udDouble3::create(+visibleFarPlane, +visibleFarPlane, 0);
+    localCorners[2] = localCamPos + udDouble3::create(-visibleFarPlane, -visibleFarPlane, 0);
+    localCorners[3] = localCamPos + udDouble3::create(+visibleFarPlane, -visibleFarPlane, 0);
 
     for (int i = 0; i < 4; ++i)
       vcGIS_LocalToSlippy(&pProgramState->gis, &slippyCorners[i], localCorners[i], currentZoom);
@@ -708,8 +727,8 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
     for (int i = 0; i < 4; ++i)
       vcGIS_SlippyToLocal(&pProgramState->gis, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
-    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->gis, localCorners, udInt3::create(slippyCorners[0], currentZoom), localCamPos, viewProjection);
-    vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection);
+    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->gis, udInt3::create(slippyCorners[0], currentZoom), localCamPos, cameraZeroAltitude, viewProjection);
+    vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection, cameraInsideGround);
   }
 }
 
@@ -1328,47 +1347,39 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
       pVoxelShaderData[numVisibleModels].pModel = renderData.models[i];
       pVoxelShaderData[numVisibleModels].pProgramData = pProgramState;
 
-      switch (pProgramState->settings.visualization.mode)
+      // Fallback to global settings when model is default
+      const vcVisualizationSettings *pVisSettings = (renderData.models[i]->m_visualization.mode != vcVM_Default ? &renderData.models[i]->m_visualization : &pProgramState->settings.visualization);
+
+      // Fallback to the first available option when default, if all else fails, render black.
+      if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Colour) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_ARGB, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
       {
-      case vcVM_Intensity:
-        if (vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_Intensity, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
-        {
-          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Intensity;
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Colour;
+      }
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Intensity) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_Intensity, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      {
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Intensity;
 
-          pVoxelShaderData[numVisibleModels].data.intensity.maxIntensity = (uint16_t)pProgramState->settings.visualization.maxIntensity;
-          pVoxelShaderData[numVisibleModels].data.intensity.minIntensity = (uint16_t)pProgramState->settings.visualization.minIntensity;
-          pVoxelShaderData[numVisibleModels].data.intensity.intensityRange = (float)(pProgramState->settings.visualization.maxIntensity - pProgramState->settings.visualization.minIntensity);
-        }
+        pVoxelShaderData[numVisibleModels].data.intensity.maxIntensity = (uint16_t)pVisSettings->maxIntensity;
+        pVoxelShaderData[numVisibleModels].data.intensity.minIntensity = (uint16_t)pVisSettings->minIntensity;
+        pVoxelShaderData[numVisibleModels].data.intensity.intensityRange = (float)(pVisSettings->maxIntensity - pVisSettings->minIntensity);
+      }
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Classification) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_Classification, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      {
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Classification;
 
-        break;
-      case vcVM_Classification:
-        if (vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_Classification, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
-        {
-          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Classification;
-        }
+        pVoxelShaderData[numVisibleModels].data.classification.pCustomClassificationColors = pVisSettings->customClassificationColors;
+      }
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Displacement) && vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      {
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Displacement;
 
-        break;
-      case vcVM_Displacement:
-        if (vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
-        {
-          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Displacement;
-
-          pVoxelShaderData[numVisibleModels].data.displacement.minThreshold = pProgramState->settings.visualization.displacement.x;
-          pVoxelShaderData[numVisibleModels].data.displacement.maxThreshold = pProgramState->settings.visualization.displacement.y;
-        }
-
-        break;
-      default: //Includes vcVM_Colour
-        if (vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_ARGB, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
-        {
-          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Colour;
-        }
-        break;
+        pVoxelShaderData[numVisibleModels].data.displacement.minThreshold = pVisSettings->displacement.x;
+        pVoxelShaderData[numVisibleModels].data.displacement.maxThreshold = pVisSettings->displacement.y;
       }
 
       ++numVisibleModels;
 
-      if (renderData.models[i]->m_hasWatermark)
+      if (renderData.models[i]->m_hasWatermark && pProgramState->showWatermark)
       {
         udDouble3 distVector = pCamera->position - renderData.models[i]->GetWorldSpacePivot();
 

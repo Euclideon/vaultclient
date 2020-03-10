@@ -84,6 +84,11 @@ struct AsyncPolygonModelLoadMeshInfo
   vcPolygonModel *pPolygonModel;
   vcPolygonModelMesh *pMesh;
   vcP3N3UV2Vertex *pVerts;
+  const vcVertexLayoutTypes *pMeshLayout;
+  int totalTypes;
+  void *pIndices;
+  uint32_t currentIndices;
+  vcMeshFlags flags;
 };
 
 void vcPolygonModel_MainThreadCreateMesh(void *pData)
@@ -92,9 +97,10 @@ void vcPolygonModel_MainThreadCreateMesh(void *pData)
   if (!pLoadInfo->pPolygonModel->keepLoading)
     return;
 
-  vcMesh_Create(&pLoadInfo->pMesh->pMesh, pDefaultMeshLayout, DefaultTotalTypes, pLoadInfo->pVerts, pLoadInfo->pMesh->numVertices, nullptr, 0, vcMF_NoIndexBuffer);
+  vcMesh_Create(&pLoadInfo->pMesh->pMesh, pLoadInfo->pMeshLayout, pLoadInfo->totalTypes, pLoadInfo->pVerts, pLoadInfo->pMesh->numVertices, pLoadInfo->pIndices, pLoadInfo->currentIndices, pLoadInfo->flags);
 
   udFree(pLoadInfo->pVerts);
+  udFree(pLoadInfo->pIndices);
 }
 
 vcPolygonModelShaderType vcPolygonModel_GetShaderType(const vcVertexLayoutTypes *pMeshLayout, int totalTypes)
@@ -156,7 +162,7 @@ epilogue:
   return result;
 }
 
-udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *pData, int dataLength)
+udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *pData, int dataLength, udWorkerPool *pWorkerPool)
 {
   if (pData == nullptr || (size_t)dataLength < sizeof(VSMFHeader))
     return udR_InvalidParameter_;
@@ -222,9 +228,10 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
 
     // override material id for now
     pNewModel->pMeshes[i].materialID = vcPMST_P3N3UV2_Opaque;
-
-    vcP3N3UV2Vertex *pVerts = (vcP3N3UV2Vertex *)pFilePos;
-    pFilePos += sizeof(*pVerts) * pNewModel->pMeshes[i].numVertices;
+    
+    size_t vertArraySize = sizeof(vcP3N3UV2Vertex) * pNewModel->pMeshes[i].numVertices;
+    vcP3N3UV2Vertex *pVerts = (vcP3N3UV2Vertex*)pFilePos;
+    pFilePos += vertArraySize;
 
     // TODO: Assume these all need flipping
     for (uint32_t v = 0; v < pNewModel->pMeshes[i].numVertices; ++v)
@@ -233,8 +240,9 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
       pVert->uv.y = 1.0f - pVert->uv.y;
     }
 
-    uint16_t *pIndices = (uint16_t *)pFilePos;
-    pFilePos += sizeof(*pIndices) * pNewModel->pMeshes[i].numElements;
+    size_t indexArraySize = sizeof(uint16_t) * pNewModel->pMeshes[i].numElements;
+    uint16_t *pIndices = (uint16_t*)pFilePos;
+    pFilePos += indexArraySize;
 
     for (int t = 0; t < header.numTextures; ++t)
     {
@@ -245,7 +253,7 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
       if (t == 0)
       {
         void *pTextureData = pFilePos;
-        if (!vcTexture_CreateFromMemory(&pNewModel->pMeshes[i].material.pTexture, pTextureData, textureFileSize))
+        if (!vcTexture_AsyncCreateFromMemory(&pNewModel->pMeshes[i].material.pTexture, pWorkerPool, pTextureData, textureFileSize))
         {
           // TODO: (EVC-570)
         }
@@ -253,7 +261,24 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
       pFilePos += textureFileSize;
     }
 
-    UD_ERROR_CHECK(vcMesh_Create(&pNewModel->pMeshes[i].pMesh, vcP3N3UV2VertexLayout, (uint32_t)udLengthOf(vcP3N3UV2VertexLayout), pVerts, pNewModel->pMeshes[i].numVertices, pIndices, pNewModel->pMeshes[i].numElements, vcMF_IndexShort));
+    AsyncPolygonModelLoadMeshInfo *pLoadInfo = udAllocType(AsyncPolygonModelLoadMeshInfo, 1, udAF_Zero);
+    UD_ERROR_NULL(pLoadInfo, udR_MemoryAllocationFailure);
+
+    pLoadInfo->pPolygonModel = pNewModel;
+    pLoadInfo->pMesh = &pNewModel->pMeshes[i];
+    pLoadInfo->pVerts = (vcP3N3UV2Vertex*)udMemDup(pVerts, vertArraySize, 0, udAF_None);
+    pLoadInfo->pMeshLayout = vcP3N3UV2VertexLayout;
+    pLoadInfo->totalTypes = (uint32_t)udLengthOf(vcP3N3UV2VertexLayout);
+    pLoadInfo->pIndices = (uint16_t*)udMemDup(pIndices, indexArraySize, 0, udAF_None);
+    pLoadInfo->currentIndices = pNewModel->pMeshes[i].numElements;
+    pLoadInfo->flags = vcMF_IndexShort;
+
+    if (udWorkerPool_AddTask(pWorkerPool, nullptr, pLoadInfo, true, vcPolygonModel_MainThreadCreateMesh) != udR_Success)
+    {
+      udFree(pLoadInfo->pVerts);
+      udFree(pLoadInfo->pIndices);
+      udFree(pLoadInfo);
+    }
   }
 
   *ppModel = pNewModel;
@@ -390,6 +415,11 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
     pLoadInfo->pPolygonModel = pPolygonModel;
     pLoadInfo->pMesh = pMesh;
     pLoadInfo->pVerts = pVerts;
+    pLoadInfo->pMeshLayout = pDefaultMeshLayout;
+    pLoadInfo->totalTypes = DefaultTotalTypes;
+    pLoadInfo->pIndices = nullptr;
+    pLoadInfo->currentIndices = 0;
+    pLoadInfo->flags = vcMF_NoIndexBuffer;
 
     if (udWorkerPool_AddTask(pWorkerPool, nullptr, pLoadInfo, true, vcPolygonModel_MainThreadCreateMesh) != udR_Success)
     {
@@ -439,7 +469,7 @@ udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL
     int64_t fileLength = 0;
 
     UD_ERROR_CHECK(udFile_Load(pURL, &pMemory, &fileLength));
-    UD_ERROR_CHECK(vcPolygonModel_CreateFromVSMFInMemory(ppModel, (char *)pMemory, (int)fileLength));
+    UD_ERROR_CHECK(vcPolygonModel_CreateFromVSMFInMemory(ppModel, (char*)pMemory, (int)fileLength, pWorkerPool));
 
     udFree(pMemory);
   }

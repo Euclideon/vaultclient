@@ -51,6 +51,7 @@ enum vcInputState
   vcCIS_PinchZooming,
   vcCIS_Panning,
   vcCIS_MovingForward,
+  vcCIS_Rotate,
 
   vcCIS_Count
 };
@@ -61,6 +62,7 @@ struct vcCameraInput
 
   udDouble3 startPosition; // for zoom to
   udDoubleQuat startAngle;
+  udDouble3 targetEulerRotation;
   double progress;
 
   vcCameraPivotMode currentPivotMode;

@@ -213,13 +213,24 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->objectHighlighting.colour = data.Get("objectHighlighting.colour").AsFloat4(udFloat4::create(0.925f, 0.553f, 0.263f, 1.0f));
     pSettings->objectHighlighting.thickness = data.Get("objectHighlighting.thickness").AsFloat(2.0f);
 
-    pSettings->visualization.mode = (vcVisualizatationMode)data.Get("visualization.mode").AsInt(0);
+    pSettings->visualization.mode = (vcVisualizatationMode)(data.Get("visualization.mode").AsInt(-1) + 1);
     pSettings->postVisualization.edgeOutlines.enable = data.Get("postVisualization.edgeOutlines.enabled").AsBool(false);
     pSettings->postVisualization.colourByHeight.enable = data.Get("postVisualization.colourByHeight.enabled").AsBool(false);
     pSettings->postVisualization.colourByDepth.enable = data.Get("postVisualization.colourByDepth.enabled").AsBool(false);
     pSettings->postVisualization.contours.enable = data.Get("postVisualization.contours.enabled").AsBool(false);
     pSettings->visualization.minIntensity = data.Get("visualization.minIntensity").AsInt(0);
     pSettings->visualization.maxIntensity = data.Get("visualization.maxIntensity").AsInt(65535);
+
+    for (size_t i = 0; i < udLengthOf(pSettings->visualization.customClassificationToggles); i++)
+      pSettings->visualization.customClassificationToggles[i] = true;
+
+    if (data.Get("visualization.classificationToggles").IsArray())
+    {
+      const udJSONArray* pToggles = data.Get("visualization.classificationToggles").AsArray();
+
+      for (size_t i = 0; i < pToggles->length; ++i)
+        pSettings->visualization.customClassificationToggles[i] = (pToggles->GetElement(i)->AsInt(1) != 0) ? true : false;
+    }
 
     memcpy(pSettings->visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pSettings->visualization.customClassificationColors));
     if (data.Get("visualization.classificationColours").IsArray())
@@ -304,6 +315,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     vcHotkey::Set(vcB_BindingsInterface, data.Get("keys.%s", vcHotkey::GetBindName(vcB_BindingsInterface)).AsInt(1029));
     vcHotkey::Set(vcB_Undo, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Undo)).AsInt(1053));
     vcHotkey::Set(vcB_TakeScreenshot, data.Get("keys.%s", vcHotkey::GetBindName(vcB_TakeScreenshot)).AsInt(70));
+    vcHotkey::Set(vcB_ToggleSceneExplorer, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleSceneExplorer)).AsInt(61));
   }
 
   if (group == vcSC_All || group == vcSC_Connection)
@@ -404,7 +416,7 @@ void vcSettings_SyncFS()
 {
   EM_ASM({
     // Sync from memory into persisted state
-    FS.syncfs(false, function(err) { assert(!err); });
+    FS.syncfs(false, function(err) { });
   });
 }
 #endif
@@ -508,9 +520,18 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.scrollwheelBinding = %d", pSettings->camera.scrollWheelMode);
 
   // Visualization
-  data.Set("visualization.mode = %d", pSettings->visualization.mode);
+  data.Set("visualization.mode = %d", pSettings->visualization.mode - 1);
   data.Set("visualization.minIntensity = %d", pSettings->visualization.minIntensity);
   data.Set("visualization.maxIntensity = %d", pSettings->visualization.maxIntensity);
+
+  int lastFalseIndex = (int)udLengthOf(pSettings->visualization.customClassificationToggles) - 1;
+  for (; lastFalseIndex >= 0; --lastFalseIndex)
+  {
+    if (!pSettings->visualization.customClassificationToggles[lastFalseIndex])
+      break;
+  }
+  for (int i = 0; i <= lastFalseIndex; ++i)
+    data.Set("visualization.classificationToggles[] = %u", pSettings->visualization.customClassificationToggles[i] ? 1 : 0);
 
   int uniqueColoursEnd = 255;
   for (; uniqueColoursEnd >= 0; --uniqueColoursEnd) // Loop from the end so we only write
@@ -811,6 +832,8 @@ udResult vcSettings_UpdateLanguageOptions(vcSettings *pSetting)
   }
 
 epilogue:
+#else
+  udUnused(pSetting);
 #endif
   return result;
 }

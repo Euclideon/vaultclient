@@ -90,10 +90,17 @@ struct vcState
   const char *pLoadImage;
   udWorkerPool *pWorkerPool;
 
+  struct 
+  {
+    udInterlockedInt32 exportsRunning;
+  } backgroundWork;
+
   double deltaTime;
   udUInt2 sceneResolution;
 
   vcGISSpace gis;
+
+  bool showWatermark;
 
   vcTexture *pCompanyLogo;
   vcTexture *pCompanyWatermark;
@@ -178,6 +185,7 @@ struct vcState
   int64_t lastEventTime;
   vcTranslationInfo languageInfo;
   bool showUI;
+  bool sceneExplorerCollapsed; // True if scene explorer is collapsed.
 
   int currentKey;
 };

@@ -2,6 +2,7 @@
 #include "vcD3D11.h"
 #include "udPlatformUtil.h"
 #include "udStringUtil.h"
+#include "udFile.h"
 
 #include <d3dcompiler.h>
 #include <D3D11Shader.h>
@@ -60,7 +61,7 @@ bool vsShader_InternalReflectShaderConstantBuffers(ID3D10Blob *pBlob, int type, 
   return true;
 }
 
-bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs, const char *pGeometryShader /*= nullptr*/)
+bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs)
 {
   if (ppShader == nullptr || pVertexShader == nullptr || pFragmentShader == nullptr || pInputTypes == nullptr)
     return false;
@@ -68,7 +69,6 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   vcShader *pShader = udAllocType(vcShader, 1, udAF_Zero);
   ID3D10Blob *pVSBlob = nullptr;
   ID3D10Blob *pPSBlob = nullptr;
-  ID3D10Blob *pGSBlob = nullptr;
   ID3D10Blob *pErrorBlob = nullptr;
 
   // Vertex Shader
@@ -98,23 +98,6 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
 
   if (g_pd3dDevice->CreatePixelShader((DWORD*)pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &pShader->pPixelShader) != S_OK)
     return false;
-
-  // Create the geometry shader
-  if (pGeometryShader != nullptr)
-  {
-    D3DCompile(pGeometryShader, udStrlen(pGeometryShader), NULL, NULL, NULL, "main", "gs_4_0", 0, 0, &pGSBlob, &pErrorBlob);
-
-    if (pGSBlob == nullptr)
-    {
-      udDebugPrintf("%s", pErrorBlob->GetBufferPointer());
-      pErrorBlob->Release();
-
-      return false;
-    }
-
-    if (g_pd3dDevice->CreateGeometryShader((DWORD*)pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), NULL, &pShader->pGeometryShader) != S_OK)
-      return false;
-  }
 
   // Create the input layout
   D3D11_INPUT_ELEMENT_DESC *pVertexLayout = udAllocStack(D3D11_INPUT_ELEMENT_DESC, totalInputs, udAF_Zero);
@@ -164,17 +147,29 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
 
   vsShader_InternalReflectShaderConstantBuffers(pVSBlob, 0, pShader->bufferObjects, &pShader->numBufferObjects);
   vsShader_InternalReflectShaderConstantBuffers(pPSBlob, 1, pShader->bufferObjects, &pShader->numBufferObjects);
-  if (pGSBlob != nullptr)
-    vsShader_InternalReflectShaderConstantBuffers(pGSBlob, 2, pShader->bufferObjects, &pShader->numBufferObjects);
 
   pVSBlob->Release();
   pPSBlob->Release();
-  if (pGSBlob != nullptr)
-    pGSBlob->Release();
 
   *ppShader = pShader;
 
   return (pShader != nullptr);
+}
+
+bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs)
+{
+  const char *pVertexShaderText = nullptr;
+  const char *pFragmentShaderText = nullptr;
+
+  udFile_Load(pVertexShader, &pVertexShaderText);
+  udFile_Load(pFragmentShader, &pFragmentShaderText);
+
+  bool success = vcShader_CreateFromText(ppShader, pVertexShaderText, pFragmentShaderText, pInputTypes, totalInputs);
+
+  udFree(pFragmentShaderText);
+  udFree(pVertexShaderText);
+
+  return success;
 }
 
 void vcShader_DestroyShader(vcShader **ppShader)
@@ -188,8 +183,6 @@ void vcShader_DestroyShader(vcShader **ppShader)
   (*ppShader)->pLayout->Release();
   (*ppShader)->pPixelShader->Release();
   (*ppShader)->pVertexShader->Release();
-  if ((*ppShader)->pGeometryShader != nullptr)
-    (*ppShader)->pGeometryShader->Release();
 
   udFree(*ppShader);
 }
@@ -202,7 +195,6 @@ bool vcShader_Bind(vcShader *pShader)
 
     g_pd3dDeviceContext->VSSetShader(pShader->pVertexShader, NULL, 0);
     g_pd3dDeviceContext->PSSetShader(pShader->pPixelShader, NULL, 0);
-    g_pd3dDeviceContext->GSSetShader(pShader->pGeometryShader, NULL, 0);
   }
 
   return true;

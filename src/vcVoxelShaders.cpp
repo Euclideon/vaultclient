@@ -63,7 +63,19 @@ uint32_t vcVoxelShader_Classification(vdkPointCloud *pPointCloud, uint64_t voxel
 
   vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pClassification);
   if (pClassification)
-    result = pData->pProgramData->settings.visualization.customClassificationColors[*pClassification];
+    result = pData->data.classification.pCustomClassificationColors[*pClassification];
+
+  //Apply the alpha to each component
+  uint32_t a = (result >> 24) & 0xFF;
+  uint32_t r = (result >> 16) & 0xFF;
+  uint32_t g = (result >> 8) & 0xFF;
+  uint32_t b = (result) & 0xFF;
+
+  r = (r * a) >> 8;
+  g = (g * a) >> 8;
+  b = (b * a) >> 8;
+
+  result = (a << 24) | (r << 16) | (g << 8) | b;
 
   return vcPCShaders_BuildAlpha(pData->pModel) | result;
 }

@@ -168,6 +168,7 @@ bool vcPOI::GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int 
     }
     else
     {
+      *pPoint = m_line.pPoints[seg1];
       totalDist += segmentLength;
       segmentProgress = 0.0;
     }
@@ -288,9 +289,14 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       udDouble3 updatedPosition = {};
 
       if (!GetPointAtDistanceAlongLine(remainingMovementThisFrame, &updatedPosition, &m_flyThrough.segmentIndex, &m_flyThrough.segmentProgress))
+      {
         pProgramState->camera.eulerRotation = udDirectionToYPR(m_line.pPoints[1] - m_line.pPoints[0]);
+        pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
+      }
       else
+      {
         pProgramState->camera.eulerRotation = udSlerp(udDoubleQuat::create(startYPR), udDoubleQuat::create(udDirectionToYPR(updatedPosition - pProgramState->camera.position)), 0.2).eulerAngles();
+      }
 
       pProgramState->camera.position = updatedPosition;
     }
@@ -511,7 +517,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   if (m_attachment.pModel != nullptr)
   {
     const double minSpeed = 0.0;
-    const double maxSpeed = 1000.0;
+    const double maxSpeed = vcSL_CameraMaxMoveSpeed;
 
     if (ImGui::SliderScalar(vcString::Get("scenePOIAttachmentSpeed"), ImGuiDataType_Double, &m_attachment.moveSpeed, &minSpeed, &maxSpeed))
     {
@@ -588,7 +594,7 @@ void vcPOI::HandleAttachmentUI(vcState * /*pProgramState*/)
   if (m_cameraFollowingAttachment)
   {
     const double minSpeed = 0.0;
-    const double maxSpeed = 1000.0;
+    const double maxSpeed = vcSL_CameraMaxMoveSpeed;
 
     if (ImGui::SliderScalar(vcString::Get("scenePOIAttachmentSpeed"), ImGuiDataType_Double, &m_attachment.moveSpeed, &minSpeed, &maxSpeed))
     {

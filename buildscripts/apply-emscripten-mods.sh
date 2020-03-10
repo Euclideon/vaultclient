@@ -1,5 +1,5 @@
 # To execute this in WSL from a Windows checkout, run the following to convert to Unix line endings:
-#    cat buildscripts/apply-emscripten-mods.sh | sed 's/\r\n/\n/' | bash
+#    cat buildscripts/apply-emscripten-mods.sh | sed 's/\r//' | bash
 
 echo "Apply modifications to Emscripten"
 
@@ -24,6 +24,19 @@ if [[ ! -f "${EMSCRIPTEN_SOURCE}/src/library_egl_bak.js" ]]; then
 	
 	sed -i "s/  eglCreateContext__proxy: 'sync',/#if \!OFFSCREENCANVAS_SUPPORT\n  eglCreateContext__proxy: 'sync',\n#endif/" ${EMSCRIPTEN_SOURCE}/src/library_egl.js
 	sed -i "s/  eglMakeCurrent__proxy: 'sync',/#if \!OFFSCREENCANVAS_SUPPORT\n  eglMakeCurrent__proxy: 'sync',\n#endif/" ${EMSCRIPTEN_SOURCE}/src/library_egl.js
+fi
+
+if [[ ! -f "${EMSCRIPTEN_SOURCE}/src/library_html5_bak.js" ]]; then
+	echo "Apply a patch from a newer version of Emscripten, also don't run canvasResizedCallback on target thread"
+	
+	# Backup original file first
+	cp ${EMSCRIPTEN_SOURCE}/src/library_html5.js ${EMSCRIPTEN_SOURCE}/src/library_html5_bak.js
+	
+	# Apply a patch from a newer version of Emscripten
+	sed -i "s/^    if (__currentFullscreenStrategy.canvasResizedCallback)/    if (false)/" ${EMSCRIPTEN_SOURCE}/src/library_html5.js
+	
+	# Don't run canvasResizedCallback on target thread
+	sed -i "s/^          if (__currentFullscreenStrategy.canvasResizedCallbackTargetThread)/          if (false)/"  ${EMSCRIPTEN_SOURCE}/src/library_html5.js
 fi
 
 if [[ ! -f "${EMSCRIPTEN_SOURCE}/tools/ports/sdl2_bak.py" ]]; then

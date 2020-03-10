@@ -4,17 +4,16 @@
 
 #import "udPlatformUtil.h"
 #import "udStringUtil.h"
+#import "udFile.h"
 
 uint32_t g_pipeCount = 0;
 uint16_t g_geomPipeCount = 0;
 
 // Takes shader function names instead of shader description string
-bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes, const char *pGeometryShader /*= nullptr*/)
+bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes)
 {
   if (ppShader == nullptr || pVertexShader == nullptr || pFragmentShader == nullptr)
     return false;
-
-  udUnused(pGeometryShader);
 
   vcShader *pShader = udAllocType(vcShader, 1, udAF_Zero);
 
@@ -116,6 +115,22 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   pShader = nullptr;
 
   return (*ppShader != nullptr);
+}
+
+bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs)
+{
+  const char *pVertexShaderText = nullptr;
+  const char *pFragmentShaderText = nullptr;
+
+  udFile_Load(pVertexShader, &pVertexShaderText);
+  udFile_Load(pFragmentShader, &pFragmentShaderText);
+
+  bool success = vcShader_CreateFromText(ppShader, pVertexShaderText, pFragmentShaderText, pInputTypes, totalInputs);
+
+  udFree(pFragmentShaderText);
+  udFree(pVertexShaderText);
+
+  return success;
 }
 
 void vcShader_DestroyShader(vcShader **ppShader)

@@ -5,6 +5,9 @@
 #include "vcBPA.h"
 #include "vcStringFormat.h"
 #include "vcModals.h"
+#include "vcQueryNode.h"
+#include "vcSettingsUI.h"
+#include "vcClassificationColours.h"
 
 #include "gl/vcTexture.h"
 
@@ -58,16 +61,16 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel)
         udFree(pModel->m_pPreferredProjection);
     }
 
-    // TODO: Handle this better (EVC-535)
     const char *pMinMaxIntensity = pModel->m_metadata.Get("AttrMinMax_udIntensity").AsString();
     if (pMinMaxIntensity != nullptr)
     {
       int charCount = 0;
-      int minIntensity = (uint16_t)udStrAtoi(pMinMaxIntensity, &charCount);
-      int maxIntensity = (uint16_t)(udStrAtoi(pMinMaxIntensity + charCount + 1));
+      pModel->m_visualization.minIntensity = (uint16_t)udStrAtoi(pMinMaxIntensity, &charCount);
+      pModel->m_visualization.maxIntensity = (uint16_t)(udStrAtoi(pMinMaxIntensity + charCount + 1));
 
-      pProgramState->settings.visualization.minIntensity = udMax(pProgramState->settings.visualization.minIntensity, minIntensity);
-      pProgramState->settings.visualization.maxIntensity = udMin(pProgramState->settings.visualization.maxIntensity, maxIntensity);
+      // TODO: Handle this better (EVC-535)
+      pProgramState->settings.visualization.minIntensity = udMax(pProgramState->settings.visualization.minIntensity, pModel->m_visualization.minIntensity);
+      pProgramState->settings.visualization.maxIntensity = udMin(pProgramState->settings.visualization.maxIntensity, pModel->m_visualization.maxIntensity);
     }
   }
 
@@ -123,7 +126,8 @@ vcModel::vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramS
   m_changeZones(false),
   m_meterScale(0.0),
   m_hasWatermark(false),
-  m_pWatermark(nullptr)
+  m_pWatermark(nullptr),
+  m_visualization()
 {
   vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
   if (pLoadInfo != nullptr)
@@ -139,6 +143,8 @@ vcModel::vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramS
   {
     m_loadStatus = vcSLS_Failed;
   }
+
+  memcpy(m_visualization.customClassificationColors, GeoverseClassificationColours, sizeof(m_visualization.customClassificationColors));
 }
 
 vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud) :
@@ -152,7 +158,8 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
   m_changeZones(false),
   m_meterScale(0.0),
   m_hasWatermark(false),
-  m_pWatermark(nullptr)
+  m_pWatermark(nullptr),
+  m_visualization()
 {
   m_pPointCloud = pCloud;
   m_loadStatus = vcSLS_Loaded;
@@ -160,6 +167,8 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
   vcModel_LoadMetadata(pProgramState, this);
 
   m_pNode->pUserData = this;
+
+  memcpy(m_visualization.customClassificationColors, GeoverseClassificationColours, sizeof(m_visualization.customClassificationColors));
 }
 
 void vcModel::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -292,6 +301,9 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", scale.x);
   }
 
+  // Show visualization info
+  vcSettingsUI_VisualizationSettings(pProgramState, &this->m_visualization);
+
   // Show MetaData Info
   {
     char buffer[128];
@@ -381,18 +393,19 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
   vcImGuiValueTreeObject(&m_metadata);
 }
 
-void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode, vcModel **ppCurrentSelectedModel)
+void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode, vcSceneItem **ppCurrentSelectedModel, const char *pProjectNodeType, bool allowEmpty)
 {
   vdkProjectNode *pChildNode = pParentNode->pFirstChild;
+
   while (pChildNode != nullptr)
   {
     if (pChildNode->itemtype == vdkPNT_Folder)
     {
-      ContextMenuListModels(pProgramState, pChildNode, ppCurrentSelectedModel);
+      ContextMenuListModels(pProgramState, pChildNode, ppCurrentSelectedModel, pProjectNodeType, allowEmpty);
     }
-    else if (pChildNode->itemtype == vdkPNT_PointCloud && pChildNode->pUserData != this)
+    else if (udStrEqual(pChildNode->itemtypeStr, pProjectNodeType) && pChildNode->pUserData != this)
     {
-      if (*ppCurrentSelectedModel == nullptr) // If nothing is selected, it will pick the first thing it can
+      if (!allowEmpty && *ppCurrentSelectedModel == nullptr) // If nothing is selected, it will pick the first thing it can
         *ppCurrentSelectedModel = (vcModel *)pChildNode->pUserData;
 
       if (ImGui::MenuItem(pChildNode->pName, nullptr, (pChildNode->pUserData == *ppCurrentSelectedModel)))
@@ -474,16 +487,53 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 
   ImGui::Separator();
 
+#if VC_HASCONVERT
   if (((m_pPreferredProjection == nullptr && pProgramState->gis.SRID == 0) || (m_pPreferredProjection != nullptr && m_pPreferredProjection->srid == pProgramState->gis.SRID)) && (m_defaultMatrix == m_sceneMatrix))
   {
-    // Reenable in future
-    //if (ImGui::Selectable(vcString::Get("sceneExplorerExportLAS"), false))
-    //{
-    //  vdkPointCloud_Export(m_pPointCloud, "Testing.las", nullptr);
-    //}
+    if (ImGui::BeginMenu(vcString::Get("sceneExplorerExportPointCloud")))
+    {
+      static vcQueryNode *s_pQuery = nullptr;
+
+      if (ImGui::IsWindowAppearing())
+        s_pQuery = nullptr;
+
+      if (ImGui::BeginCombo(vcString::Get("sceneExplorerExportQueryFilter"), (s_pQuery == nullptr ? vcString::Get("sceneExplorerExportEntireModel") : s_pQuery->m_pNode->pName)))
+      {
+        if (ImGui::MenuItem(vcString::Get("sceneExplorerExportEntireModel"), nullptr, (s_pQuery == nullptr)))
+          s_pQuery = nullptr;
+
+        ContextMenuListModels(pProgramState, pProgramState->activeProject.pFolder->m_pNode, (vcSceneItem**)&s_pQuery, "QFilter", true);
+        ImGui::EndCombo();
+      }
+
+      vcIGSW_FilePicker(pProgramState, vcString::Get("sceneExplorerExportFilename"), pProgramState->modelPath, SupportedTileTypes_QueryExport, vcFDT_SaveFile, nullptr);
+
+      if (ImGui::Button(vcString::Get("sceneExplorerExportBegin")))
+      {
+        if (udFileExists(pProgramState->modelPath) != udR_Success || vcModals_OverwriteExistingFile(pProgramState->modelPath))
+        {
+          vdkQueryFilter *pFilter = ((s_pQuery == nullptr) ? nullptr : s_pQuery->m_pFilter);
+          vdkPointCloud *pCloud = m_pPointCloud;
+
+          ++pProgramState->backgroundWork.exportsRunning;
+
+          udWorkerPoolCallback callback = [pProgramState, pCloud, pFilter](void*)
+          {
+            vdkPointCloud_Export(pCloud, pProgramState->modelPath, pFilter);
+            --pProgramState->backgroundWork.exportsRunning;
+          };
+
+          // Add post callback
+
+          udWorkerPool_AddTask(pProgramState->pWorkerPool, callback, nullptr, false);
+          ImGui::CloseCurrentPopup();
+        }
+      }
+
+      ImGui::EndMenu();
+    }
   }
 
-#if VC_HASCONVERT
   // Compare models
   if (ImGui::BeginMenu(vcString::Get("sceneExplorerCompareModels")))
   {
@@ -496,7 +546,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 
     if (ImGui::BeginCombo(vcString::Get("sceneExplorerDisplacementModel"), (s_pOldModel == nullptr ? "..." : s_pOldModel->m_pNode->pName)))
     {
-      ContextMenuListModels(pProgramState, pProgramState->activeProject.pFolder->m_pNode, &s_pOldModel);
+      ContextMenuListModels(pProgramState, pProgramState->activeProject.pFolder->m_pNode, (vcSceneItem**)&s_pOldModel, "UDS", false);
       ImGui::EndCombo();
     }
 

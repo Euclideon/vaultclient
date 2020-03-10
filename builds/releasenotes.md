@@ -2,13 +2,45 @@ Euclideon Vault Client Version History
 
 Known Issues In Current Release
   - Please see https://dev.azure.com/euclideon/vaultclient/_workitems/recentlyupdated for up to date information
-  - Corrupted UDS files silently fail without notifying the user
-  - An issue is preventing macOS users from running the build directly because of signing issues
-  - Intermittent crash when moving between SLPK/OBJ models
+  - Pointcloud Export
+    - Round trip for exporting pointclouds doesn't always give the same model
+    - Export to UDS doesn't copy all metadata
+  - Map mode is unavailable
+  - Offline mode
+    - The user profile modal is still available
+    - Frequent stalls occur (~15s)
+  - Lots of minor UI sizing/positioning issues
+  - Displacement compare
+    - Calculation doesn't always work correctly
+    - Sits at 0% for a long time while during initial processing
+  - Maps are sometimes flickering when close to the pointcloud
+  - Lack of prompts for destructive actions
+  - Some LAZ files fail to convert
+  - Some SLPK files fail to render correctly and SLPK pointcloud is unsupported
 
-Version 0.4.1
-  - Reenabled FBX on Windows and macOS
-  - Viewsheds work on polygon models
+Version 0.5.0
+  - Reenabled FBX conversion on Windows and macOS
+  - Viewsheds now work on polygon models
+  - Added (basic) point displacement calculations
+  - Removed view distance slider (now using different technique that doesn't require the setting)
+  - Lots of improvements to models attached to lines (face culling, improved material support)
+  - Polygon textures are now loaded asynchronously (doesn't stall the application while they load)
+  - Added (basic) session resume support so that licenses can continue to be used
+  - Added settings to rebind hotkeys
+  - Consolidated all settings to a single modal
+  - Optimized SLPK loading
+  - Added anti-aliasing
+  - Added saturation controls
+  - Fixed several issues in relation to resetting failed conversions
+  - Added (basic) High-DPI monitor support
+  - Added Copy/Paste context menu to most text input fields
+  - Fixed "Projects" menu not being available when client hadn't finished requesting the server list
+  - Added support for native file dialogs (Windows only currently)
+  - Added user profile modal
+  - Removed docking of scene, scene explorer and convert to simplify the UI
+  - Fixed issues with folders in folders in scene explorer
+  - Added high-resolution screenshot export support
+  - Added ability to export a model (optionally with a filter) to UDS or LAS
 
 Version 0.4.0
   - Conversion Improvements
@@ -52,7 +84,7 @@ Version 0.4.0
     - Going into and out of presentation mode many times quickly no longer stops the mouse working in the scene tab
     - Media node images load correctly more often
     - Sped up excessive login and license checkout times that were occurring when in very slow network environments with machines that have very fast per core CPUs
-  
+
 Version 0.3.1
   - Improvements
     - Added support for FBX (macOS and Windows)
