@@ -189,6 +189,13 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::Checkbox(vcString::Get("settingsControlsControllerInvertX"), &pProgramState->settings.camera.invertControllerX);
           ImGui::Checkbox(vcString::Get("settingsControlsControllerInvertY"), &pProgramState->settings.camera.invertControllerY);
 
+          ImGui::Checkbox(vcString::Get("settingsControlsMouseSnapToPoints"), &pProgramState->settings.mouseSnap.enable);
+          if (pProgramState->settings.mouseSnap.enable)
+          {
+            if (ImGui::SliderInt(vcString::Get("settingsControlsMouseSnapToPointsRange"), &pProgramState->settings.mouseSnap.range, 1, vcSL_MouseSnapRangeMax))
+              pProgramState->settings.mouseSnap.range = udClamp(pProgramState->settings.mouseSnap.range, 1, vcSL_MouseSnapRangeMax);
+          }
+
           ImGui::TextUnformatted(vcString::Get("settingsControlsMousePivot"));
           const char *mouseModes[] = { vcString::Get("settingsControlsTumble"), vcString::Get("settingsControlsOrbit"), vcString::Get("settingsControlsPan"), vcString::Get("settingsControlsForward") };
           const char *scrollwheelModes[] = { vcString::Get("settingsControlsDolly"), vcString::Get("settingsControlsChangeMoveSpeed") };

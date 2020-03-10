@@ -96,6 +96,8 @@
   "settingsControlsMouseInvertY": "Invert Mouse Y-axis",
   "settingsControlsControllerInvertX": "Invert Controller X-axis",
   "settingsControlsControllerInvertY": "Invert Controller Y-axis",
+  "settingsControlsMouseSnapToPoints": "Mouse Snap to Points",
+  "settingsControlsMouseSnapToPointsRange": "Snap Range",
   "settingsControlsMousePivot": "Mouse Pivot Bindings",
   "settingsControlsForward": "Move Forward",
   "settingsControlsTumble": "Tumble",

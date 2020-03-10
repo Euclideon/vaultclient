@@ -99,6 +99,8 @@
   "settingsControlsMouseInvertY": "鼠标Y轴翻转",
   "settingsControlsControllerInvertX": "控制器X轴翻转",
   "settingsControlsControllerInvertY": "控制器Y轴翻转",
+  "settingsControlsMouseSnapToPoints": "鼠标自动拾取",
+  "settingsControlsMouseSnapToPointsRange": "拾取范围",
   "settingsControlsMousePivot": "鼠标透视绑定",
   "settingsControlsForward": "前进",
   "settingsControlsTumble": "自由旋转",

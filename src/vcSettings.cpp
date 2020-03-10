@@ -179,6 +179,9 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->camera.cameraMouseBindings[1] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[1]").AsInt(vcCPM_Pan);
     pSettings->camera.cameraMouseBindings[2] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[2]").AsInt(vcCPM_Orbit);
     pSettings->camera.scrollWheelMode = (vcCameraScrollWheelMode)data.Get("camera.scrollwheelBinding").AsInt(vcCSWM_Dolly);
+
+    pSettings->mouseSnap.enable = data.Get("mouseSnap.enable").AsBool(false);
+    pSettings->mouseSnap.range = data.Get("mouseSnap.range").AsInt(vcSL_MouseSnapRangeMax);
   }
 
   if (group == vcSC_All || group == vcSC_Viewport)
@@ -619,6 +622,10 @@ bool vcSettings_Save(vcSettings *pSettings)
 
   for (size_t i = 0; i < vcB_Count; ++i)
     data.Set("keys.%s = %d", vcHotkey::GetBindName((vcBind)i), vcHotkey::Get((vcBind)i));
+
+  // mouse snap setting
+  data.Set("mouseSnap.enable = %s", pSettings->mouseSnap.enable ? "true" : "false");
+  data.Set("mouseSnap.range = %d", int(pSettings->mouseSnap.range));
 
   // Save
   const char *pSettingsStr;

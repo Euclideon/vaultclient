@@ -318,6 +318,12 @@ struct vcSettings
 
   vcPresentationMode responsiveUI;
   int hideIntervalSeconds;
+
+  struct
+  {
+    bool enable;
+    int range;
+  } mouseSnap;
 };
 
 // Settings Limits (vcSL prefix)
@@ -361,6 +367,8 @@ const float vcSL_ContourDistanceMin = 0.f;
 const float vcSL_ContourDistanceMax = 100.f;
 const float vcSL_ContourBandHeightMin = 0.f;
 const float vcSL_ContourBandHeightMax = 10.f;
+
+const int vcSL_MouseSnapRangeMax = 50;
 
 // Settings Functions
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset = false, vcSettingCategory group = vcSC_All);
