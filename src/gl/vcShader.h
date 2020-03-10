@@ -9,8 +9,8 @@ struct vcShaderSampler;
 struct vcShaderConstantBuffer;
 struct vcTexture;
 
-bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs, const char *pGeometryShader = nullptr);
-template <size_t N> inline bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes (&inputTypes)[N], const char *pGeometryShader = nullptr) { return vcShader_CreateFromText(ppShader, pVertexShader, pFragmentShader, inputTypes, (uint32_t)N, pGeometryShader); }
+bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs);
+template <size_t N> inline bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes (&inputTypes)[N]) { return vcShader_CreateFromText(ppShader, pVertexShader, pFragmentShader, inputTypes, (uint32_t)N); }
 void vcShader_DestroyShader(vcShader **ppShader);
 
 bool vcShader_Bind(vcShader *pShader); // nullptr to unbind shader

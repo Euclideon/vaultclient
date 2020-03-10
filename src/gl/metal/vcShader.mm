@@ -9,12 +9,10 @@ uint32_t g_pipeCount = 0;
 uint16_t g_geomPipeCount = 0;
 
 // Takes shader function names instead of shader description string
-bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes, const char *pGeometryShader /*= nullptr*/)
+bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes)
 {
   if (ppShader == nullptr || pVertexShader == nullptr || pFragmentShader == nullptr)
     return false;
-
-  udUnused(pGeometryShader);
 
   vcShader *pShader = udAllocType(vcShader, 1, udAF_Zero);
 

@@ -50,6 +50,3 @@ const char *const g_HighlightFragmentShader = "highlightFragmentShader";
 
 const char *const g_udGPURenderQuadVertexShader = "gpuRenderQuadVertexShader";
 const char *const g_udGPURenderQuadFragmentShader = "gpuRenderQuadFragmentShader";
-const char *const g_udGPURenderGeomVertexShader = "secondPass";
-const char *const g_udGPURenderGeomFragmentShader = "secondPassFrag";
-const char *const g_udGPURenderGeomGeometryShader = "firstPass";
