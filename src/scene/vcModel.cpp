@@ -6,6 +6,8 @@
 #include "vcStringFormat.h"
 #include "vcModals.h"
 #include "vcQueryNode.h"
+#include "vcSettingsUI.h"
+#include "vcClassificationColours.h"
 
 #include "gl/vcTexture.h"
 
@@ -59,16 +61,16 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel)
         udFree(pModel->m_pPreferredProjection);
     }
 
-    // TODO: Handle this better (EVC-535)
     const char *pMinMaxIntensity = pModel->m_metadata.Get("AttrMinMax_udIntensity").AsString();
     if (pMinMaxIntensity != nullptr)
     {
       int charCount = 0;
-      int minIntensity = (uint16_t)udStrAtoi(pMinMaxIntensity, &charCount);
-      int maxIntensity = (uint16_t)(udStrAtoi(pMinMaxIntensity + charCount + 1));
+      pModel->m_visualization.minIntensity = (uint16_t)udStrAtoi(pMinMaxIntensity, &charCount);
+      pModel->m_visualization.maxIntensity = (uint16_t)(udStrAtoi(pMinMaxIntensity + charCount + 1));
 
-      pProgramState->settings.visualization.minIntensity = udMax(pProgramState->settings.visualization.minIntensity, minIntensity);
-      pProgramState->settings.visualization.maxIntensity = udMin(pProgramState->settings.visualization.maxIntensity, maxIntensity);
+      // TODO: Handle this better (EVC-535)
+      pProgramState->settings.visualization.minIntensity = udMax(pProgramState->settings.visualization.minIntensity, pModel->m_visualization.minIntensity);
+      pProgramState->settings.visualization.maxIntensity = udMin(pProgramState->settings.visualization.maxIntensity, pModel->m_visualization.maxIntensity);
     }
   }
 
@@ -124,7 +126,8 @@ vcModel::vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramS
   m_changeZones(false),
   m_meterScale(0.0),
   m_hasWatermark(false),
-  m_pWatermark(nullptr)
+  m_pWatermark(nullptr),
+  m_visualization()
 {
   vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
   if (pLoadInfo != nullptr)
@@ -140,6 +143,8 @@ vcModel::vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramS
   {
     m_loadStatus = vcSLS_Failed;
   }
+
+  memcpy(m_visualization.customClassificationColors, GeoverseClassificationColours, sizeof(m_visualization.customClassificationColors));
 }
 
 vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud) :
@@ -153,7 +158,8 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
   m_changeZones(false),
   m_meterScale(0.0),
   m_hasWatermark(false),
-  m_pWatermark(nullptr)
+  m_pWatermark(nullptr),
+  m_visualization()
 {
   m_pPointCloud = pCloud;
   m_loadStatus = vcSLS_Loaded;
@@ -161,6 +167,8 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
   vcModel_LoadMetadata(pProgramState, this);
 
   m_pNode->pUserData = this;
+
+  memcpy(m_visualization.customClassificationColors, GeoverseClassificationColours, sizeof(m_visualization.customClassificationColors));
 }
 
 void vcModel::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -292,6 +300,9 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", scale.x);
   }
+
+  // Show visualization info
+  vcSettingsUI_VisualizationSettings(pProgramState, &this->m_visualization);
 
   // Show MetaData Info
   {
