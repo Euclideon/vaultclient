@@ -4,6 +4,7 @@
 
 #import "udPlatformUtil.h"
 #import "udStringUtil.h"
+#import "udFile.h"
 
 uint32_t g_pipeCount = 0;
 uint16_t g_geomPipeCount = 0;
@@ -114,6 +115,22 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   pShader = nullptr;
 
   return (*ppShader != nullptr);
+}
+
+bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs)
+{
+  const char *pVertexShaderText = nullptr;
+  const char *pFragmentShaderText = nullptr;
+
+  udFile_Load(pVertexShader, &pVertexShaderText);
+  udFile_Load(pFragmentShader, &pFragmentShaderText);
+
+  bool success = vcShader_CreateFromText(ppShader, pVertexShaderText, pFragmentShaderText, pInputTypes, totalInputs);
+
+  udFree(pFragmentShaderText);
+  udFree(pVertexShaderText);
+
+  return success;
 }
 
 void vcShader_DestroyShader(vcShader **ppShader)
