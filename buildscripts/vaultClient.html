@@ -32,7 +32,10 @@
 				e.preventDefault();
 			}
 		}
+		var searchParams = new URLSearchParams(window.location.search);
+		var arg = searchParams.get("f");
 		var Module = {
+			arguments: (arg !== null ? [ arg ] : null),
 			canvas: document.getElementById('canvas'),
 			mainScriptUrlOrBlob:"vaultClient.js",
 			preRun: [
