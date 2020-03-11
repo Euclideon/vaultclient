@@ -9,8 +9,11 @@ trigger:
     - '*'  # must quote since "*" is a YAML reserved character; we want a string
 
 variables:
-  linkedVDK: Pipeline_202003112
-  VAULTSDK_HOME: $(Build.SourcesDirectory)/linkedVDK/$(linkedVDK)
+- group: SignToolKey
+- name: linkedVDK
+  value: Pipeline_202003112
+- name: VAULTSDK_HOME
+  value: $(Build.SourcesDirectory)/linkedVDK/$(linkedVDK)
 
 stages:
 - stage: build
