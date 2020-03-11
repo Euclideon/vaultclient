@@ -19,19 +19,85 @@
 		width: 100%;
 		height: 100%;
 	}
+
+	.statusBox {
+		padding-top: 50px;
+		margin: auto;
+		width: 500px;
+		font-size: x-large;
+		text-align: center;
+	}
+
+	/* From: https://www.w3schools.com/howto/howto_css_loader.asp */
+	.loader {
+		margin: auto;
+		border: 16px solid #f3f3f3; /* Light grey */
+		border-top: 16px solid #3498db; /* Blue */
+		border-radius: 50%;
+		width: 120px;
+		height: 120px;
+		animation: spin 2s linear infinite;
+	}
+
+	@keyframes spin {
+		0% { transform: rotate(0deg); }
+		100% { transform: rotate(360deg); }
+	}
+
+	/* From: http://jsfiddle.net/danield770/bkmpkLvr/2/ */
+	.failure {
+		margin: auto;
+		width: 70px;
+		height: 70px;
+		line-height: 70px;
+		background: #990000;
+		border-radius: 50%;
+		border: 4px solid white;
+		color: white;
+		font-size: 45px;
+		font-family: verdana;
+		text-align: center;
+	}
 </style>
 </head>
 <body>
+	<div id="statusLoading" class="statusBox">
+		<div class="loader"></div><br />
+		<span>Loading Euclideon Vault Client...</span>
+	</div>
+	<div id="statusFailure" class="statusBox" hidden>
+		<div class="failure">X</div><br />
+		<span>Sorry, it look like your browser isn't supported in this version of Euclideon Vault Client!<br /><br />Please use the latest version of Google Chrome on a Desktop device or contact <a href="mailto:support@euclideon.com">Euclideon Support</a> for further assistance.</span>
+	</div>
 	<canvas id="canvas"></canvas>
 	<script>
-		window.oncontextmenu = (e) => {
+		window.onerror = function(event) {
+			document.getElementById("statusLoading").hidden = true;
+			document.getElementById("statusFailure").hidden = false;
+
+			if (Module)
+			{
+				Module.setStatus('Exception thrown, see JavaScript console');
+				Module.setStatus = function(text) {
+					if (text) Module.printErr('[post-exception status] ' + text);
+				};
+			}
+			else
+			{
+				console.log("Failure! " + text);
+			}
+		};
+
+		window.oncontextmenu = function(e) {
 			e.preventDefault();
 		}
-		window.onkeydown = (e) => {
+
+		window.onkeydown = function(e) {
 			if (e.keyCode === 9) { // tab
 				e.preventDefault();
 			}
 		}
+
 		var searchParams = new URLSearchParams(window.location.search);
 		var arg = searchParams.get("f");
 		var Module = {
@@ -44,7 +110,28 @@
 					FS.mount(IDBFS, {}, "/libsdl");
 				},
 			],
+			setStatus: function(text) {
+				if (!Module.setStatus.last)
+					Module.setStatus.last = { text: '' };
+
+				if (text === Module.setStatus.last.text)
+					return;
+
+				var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+
+				Module.setStatus.last.text = text;
+				if (m) {
+					text = m[1];
+				}
+
+				if (text == "Running...")
+					document.getElementById("statusLoading").hidden = true;
+
+				console.log(text);
+			}
 		};
+
+		Module.setStatus('Downloading...');
 	</script>
 	<script src="vaultClient.js"></script>
 </body>
