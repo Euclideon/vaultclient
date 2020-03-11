@@ -105,10 +105,17 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
     else
       glEnable(GL_CULL_FACE);
 
-    if (cullMode == vcGLSCM_Front)
+    switch (cullMode)
+    {
+    case vcGLSCM_None:
+      break;
+    case vcGLSCM_Front:
       glCullFace(GL_FRONT);
-    else if (cullMode == vcGLSCM_Back)
+      break;
+    case vcGLSCM_Back:
       glCullFace(GL_BACK);
+      break;
+    }
 
     s_internalState.cullMode = cullMode;
   }
@@ -142,19 +149,26 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
   if (s_internalState.blendMode != blendMode || force)
   {
     if (blendMode == vcGLSBM_None)
-    {
       glDisable(GL_BLEND);
-    }
     else
-    {
       glEnable(GL_BLEND);
 
-      if (blendMode == vcGLSBM_Interpolative)
-        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
-      else if (blendMode == vcGLSBM_Additive)
-        glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
-      else if (blendMode == vcGLSBM_Multiplicative)
-        glBlendFuncSeparate(GL_DST_COLOR, GL_ZERO, GL_ONE, GL_ZERO);
+    switch (blendMode)
+    {
+    case vcGLSBM_None:
+      break;
+    case vcGLSBM_Interpolative:
+      glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
+      break;
+    case vcGLSBM_Additive:
+      glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
+      break;
+    case vcGLSBM_Multiplicative:
+      glBlendFuncSeparate(GL_DST_COLOR, GL_ZERO, GL_ONE, GL_ZERO);
+      break;
+
+    case vcGLSBM_Count:
+      break;
     }
 
     s_internalState.blendMode = blendMode;
@@ -168,27 +182,35 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
   if (s_internalState.depthReadMode != depthReadMode || force)
   {
     if (depthReadMode == vcGLSDM_None)
-    {
       glDisable(GL_DEPTH_TEST);
-    }
     else
-    {
       glEnable(GL_DEPTH_TEST);
 
-      if (depthReadMode == vcGLSDM_Less)
-        glDepthFunc(GL_LESS);
-      else if (depthReadMode == vcGLSDM_LessOrEqual)
-        glDepthFunc(GL_LEQUAL);
-      else if (depthReadMode == vcGLSDM_Equal)
-        glDepthFunc(GL_EQUAL);
-      else if (depthReadMode == vcGLSDM_GreaterOrEqual)
-        glDepthFunc(GL_GEQUAL);
-      else if (depthReadMode == vcGLSDM_Greater)
-        glDepthFunc(GL_GREATER);
-      else if (depthReadMode == vcGLSDM_NotEqual)
-        glDepthFunc(GL_NOTEQUAL);
-      else if (depthReadMode == vcGLSDM_Always)
-        glDepthFunc(GL_ALWAYS);
+    switch (depthReadMode)
+    {
+    case vcGLSDM_None:
+      break;
+    case vcGLSDM_Less:
+      glDepthFunc(GL_LESS);
+      break;
+    case vcGLSDM_LessOrEqual:
+      glDepthFunc(GL_LEQUAL);
+      break;
+    case vcGLSDM_Equal:
+      glDepthFunc(GL_EQUAL);
+      break;
+    case vcGLSDM_GreaterOrEqual:
+      glDepthFunc(GL_GEQUAL);
+      break;
+    case vcGLSDM_Greater:
+      glDepthFunc(GL_GREATER);
+      break;
+    case vcGLSDM_NotEqual:
+      glDepthFunc(GL_NOTEQUAL);
+      break;
+    case vcGLSDM_Always:
+      glDepthFunc(GL_ALWAYS);
+      break;
     }
 
     s_internalState.depthReadMode = depthReadMode;

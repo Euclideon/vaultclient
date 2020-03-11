@@ -139,6 +139,11 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
       pVertexLayout[i] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 8;
       break;
+
+    case vcVLT_Unsupported: // TODO: (EVC-641) Handle unsupported attributes interleaved with supported attributes
+      continue; // NOTE continue
+    case vcVLT_TotalTypes:
+      return false;
     }
   }
 

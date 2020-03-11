@@ -171,9 +171,6 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
       case vcGLSFM_Wireframe:
         [_renderer setFillMode:MTLTriangleFillModeLines];
         break;
-      case vcGLSFM_TotalModes:
-        return false;
-        break;
     }
 
     switch(cullMode)
@@ -187,8 +184,6 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
       case vcGLSCM_Back:
         [_renderer setCullMode:MTLCullModeBack];
         break;
-      case vcGLSCM_TotalModes:
-        return false;
     }
 
     if (isFrontCCW)

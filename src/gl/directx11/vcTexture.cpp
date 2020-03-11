@@ -142,41 +142,49 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   }
 
   // Upload texture to graphics system
-  if (type == vcTextureType_Texture2D || type == vcTextureType_TextureArray)
+  switch (type)
   {
-    D3D11_TEXTURE2D_DESC desc;
-    ZeroMemory(&desc, sizeof(desc));
-    desc.Width = width;
-    desc.Height = height;
-    desc.MipLevels = mipLevels;
-    desc.ArraySize = depth;
-    desc.Format = texFormat;
-    desc.SampleDesc.Count = 1;
-    desc.Usage = (isDynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT);
-    desc.BindFlags = bindFlags;
-    desc.CPUAccessFlags = (isDynamic ? D3D11_CPU_ACCESS_WRITE : 0);
-
-    ID3D11Texture2D *pTexture2D = nullptr;
-    UD_ERROR_IF(g_pd3dDevice->CreateTexture2D(&desc, pSubData, &pTexture2D) != S_OK, udR_InternalError);
-    pTexture->pTextureD3D = pTexture2D;
-  }
-  else if (type == vcTextureType_Texture3D)
-  {
-    D3D11_TEXTURE3D_DESC desc;
-    ZeroMemory(&desc, sizeof(desc));
-
-    desc.Width = width;
-    desc.Height = height;
-    desc.Depth = depth;
-    desc.MipLevels = mipLevels;
-    desc.Format = texFormat;
-    desc.Usage = (isDynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT);
-    desc.BindFlags = bindFlags;
-    desc.CPUAccessFlags = (isDynamic ? D3D11_CPU_ACCESS_WRITE : 0);
-
-    ID3D11Texture3D *pTexture3D = nullptr;
-    UD_ERROR_IF(g_pd3dDevice->CreateTexture3D(&desc, pSubData, &pTexture3D) != S_OK, udR_InternalError);
-    pTexture->pTextureD3D = pTexture3D;
+  case vcTextureType_Texture2D: // fall through
+  case vcTextureType_TextureArray:
+    {
+      D3D11_TEXTURE2D_DESC desc;
+      ZeroMemory(&desc, sizeof(desc));
+      desc.Width = width;
+      desc.Height = height;
+      desc.MipLevels = mipLevels;
+      desc.ArraySize = depth;
+      desc.Format = texFormat;
+      desc.SampleDesc.Count = 1;
+      desc.Usage = (isDynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT);
+      desc.BindFlags = bindFlags;
+      desc.CPUAccessFlags = (isDynamic ? D3D11_CPU_ACCESS_WRITE : 0);
+    
+      ID3D11Texture2D *pTexture2D = nullptr;
+      UD_ERROR_IF(g_pd3dDevice->CreateTexture2D(&desc, pSubData, &pTexture2D) != S_OK, udR_InternalError);
+      pTexture->pTextureD3D = pTexture2D;
+    }
+    break;
+  case vcTextureType_Texture3D:
+    {
+      D3D11_TEXTURE3D_DESC desc;
+      ZeroMemory(&desc, sizeof(desc));
+    
+      desc.Width = width;
+      desc.Height = height;
+      desc.Depth = depth;
+      desc.MipLevels = mipLevels;
+      desc.Format = texFormat;
+      desc.Usage = (isDynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT);
+      desc.BindFlags = bindFlags;
+      desc.CPUAccessFlags = (isDynamic ? D3D11_CPU_ACCESS_WRITE : 0);
+    
+      ID3D11Texture3D *pTexture3D = nullptr;
+      UD_ERROR_IF(g_pd3dDevice->CreateTexture3D(&desc, pSubData, &pTexture3D) != S_OK, udR_InternalError);
+      pTexture->pTextureD3D = pTexture3D;
+    }
+    break;
+  case vcTextureType_Count:
+    break;
   }
 
   // Free mip map memory
