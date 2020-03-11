@@ -1311,6 +1311,34 @@ epilogue:
   return result;
 }
 
+bool vcRender_FindSnapPoint(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, udInt2 &snapPoint)
+{
+  if (!pProgramState->settings.mouseSnap.enable)
+    return false;
+
+  bool bFind = false;
+  int lastOffset = 2 * pProgramState->settings.mouseSnap.range * pProgramState->settings.mouseSnap.range;
+  for (int offsety = udMax(0, renderData.mouse.position.y-pProgramState->settings.mouseSnap.range); offsety < udMin(renderData.mouse.position.y + pProgramState->settings.mouseSnap.range, (int)pRenderContext->originalSceneResolution.y-1); offsety++)
+    for (int offsetx = udMax(0, renderData.mouse.position.x - pProgramState->settings.mouseSnap.range); offsetx < udMin(renderData.mouse.position.x + pProgramState->settings.mouseSnap.range, (int)pRenderContext->originalSceneResolution.x - 1); offsetx++)
+    {
+      uint32_t pickingX = (uint32_t)((float)offsetx / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
+      uint32_t pickingY = (uint32_t)((float)offsety / (float)pRenderContext->originalSceneResolution.y * (float)pRenderContext->sceneResolution.y);
+      float depth = pRenderContext->udRenderContext.pDepthBuffer[pickingY * pRenderContext->sceneResolution.x + pickingX];
+      if (depth == 1.0f) continue;
+
+      int offset = (offsetx - renderData.mouse.position.x) * (offsetx - renderData.mouse.position.x) + (offsety - renderData.mouse.position.y) * (offsety - renderData.mouse.position.y);
+      if (offset < lastOffset)
+      {
+        lastOffset = offset;
+        bFind = true;
+        snapPoint.x = offsetx;
+        snapPoint.y = offsety;
+      }
+    }
+
+  return bFind;
+}
+
 udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, vdkRenderView *pRenderView, vcCamera *pCamera, vcRenderData &renderData, bool doPick)
 {
   if (pRenderContext == nullptr)
@@ -1480,6 +1508,18 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
   renderOptions.flags = vdkRF_LogarithmicDepth;
 
   vdkError result = vdkRenderContext_Render(pRenderContext->udRenderContext.pRenderer, pRenderView, pModels, numVisibleModels, &renderOptions);
+
+  if (result == vE_Success && doPick && !picking.hit && pProgramState->settings.mouseSnap.enable)
+  {
+    udInt2 snapPoint = udInt2::zero();
+    if (vcRender_FindSnapPoint(pProgramState, pRenderContext, renderData, snapPoint))
+    {
+      renderData.mouse.position = snapPoint;
+      picking.x = (uint32_t)((float)renderData.mouse.position.x / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
+      picking.y = (uint32_t)((float)renderData.mouse.position.y / (float)pRenderContext->originalSceneResolution.y * (float)pRenderContext->sceneResolution.y);
+      vdkRenderContext_Render(pRenderContext->udRenderContext.pRenderer, pRenderView, pModels, numVisibleModels, &renderOptions);
+    }
+  }
 
   if (result == vE_Success)
   {
