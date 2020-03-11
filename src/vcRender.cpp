@@ -982,6 +982,8 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
 
 void vcRender_RenderUI(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
+  udUnused(pRenderContext);
+
   // Labels
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
@@ -1218,7 +1220,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   vcRenderSkybox(pProgramState, pRenderContext); // Drawing skybox after opaque geometry saves a bit on fill rate.
   vcRenderTerrain(pProgramState, pRenderContext);
- 
+
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
   vcRender_RenderUI(pProgramState, pRenderContext, renderData);
 

@@ -21,6 +21,7 @@ const char *const g_vcSkyboxVertexShaderImageColour = "skyboxVertexShaderPanoram
 const char* const g_vcSkyboxFragmentShaderImageColour = "skyboxFragmentShaderImageColor";
 
 const char* const g_ImGuiVertexShader = "imguiVertexShader";
+const char* const g_ImGuiVertexShader3D = "imguiVertexShader";
 const char* const g_ImGuiFragmentShader = "imguiFragmentShader";
 
 const char* const g_FenceVertexShader = "fenceVertexShader";

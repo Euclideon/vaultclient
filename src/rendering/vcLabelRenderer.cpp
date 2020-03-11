@@ -5,7 +5,6 @@
 #include "vcInternalModels.h"
 
 #include "imgui.h"
-#include <gl\vcGLState.h>
 
 static struct vcLabelShader
 {
@@ -27,7 +26,7 @@ static int gRefCount = 0;
 udResult vcLabelRenderer_Init()
 {
   udResult result;
-  gRefCount++;
+  ++gRefCount;
 
   UD_ERROR_IF(gRefCount != 1, udR_Success);
 
