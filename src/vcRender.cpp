@@ -1174,6 +1174,7 @@ void vcRenderWatermark(vcState *pProgramState, vcRenderContext *pRenderContext)
   if (!pProgramState->pSceneWatermark)
     return;
 
+  vcGLState_SetBlendMode(vcGLSBM_Interpolative);
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
