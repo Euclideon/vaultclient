@@ -26,9 +26,7 @@ enum
 enum vcGLStateFillMode
 {
   vcGLSFM_Solid,
-  vcGLSFM_Wireframe,
-
-  vcGLSFM_TotalModes
+  vcGLSFM_Wireframe
 };
 
 enum vcGLStateCullMode
@@ -36,9 +34,7 @@ enum vcGLStateCullMode
   vcGLSCM_Back,
   vcGLSCM_Front,
 
-  vcGLSCM_None,
-
-  vcGLSCM_TotalModes
+  vcGLSCM_None
 };
 
 enum vcGLStateBlendMode

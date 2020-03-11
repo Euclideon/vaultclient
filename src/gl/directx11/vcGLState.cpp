@@ -167,8 +167,6 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
     case vcGLSCM_Back:
       desc.CullMode = D3D11_CULL_BACK;
       break;
-    case vcGLSCM_TotalModes:
-      return false;
     }
 
     if (g_pRasterizerState != nullptr)
@@ -220,6 +218,8 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
     case vcGLSBM_Multiplicative:
       desc.RenderTarget[0].SrcBlend = D3D11_BLEND_DEST_COLOR;
       desc.RenderTarget[0].DestBlend = D3D11_BLEND_ZERO;
+      break;
+    case vcGLSBM_Count:
       break;
     }
     g_pd3dDevice->CreateBlendState(&desc, &g_pBlendState);
