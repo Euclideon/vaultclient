@@ -339,6 +339,7 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
 
   UD_ERROR_CHECK(vcPolygonModel_CreateShaders());
   UD_ERROR_CHECK(vcImageRenderer_Init());
+  UD_ERROR_CHECK(vcLabelRenderer_Init());
 
   UD_ERROR_IF(!vcShader_Bind(nullptr), udR_InternalError);
 
@@ -399,6 +400,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
 
   UD_ERROR_CHECK(vcPolygonModel_DestroyShaders());
   UD_ERROR_CHECK(vcImageRenderer_Destroy());
+  UD_ERROR_CHECK(vcLabelRenderer_Destroy());
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
   udFree(pRenderContext->udRenderContext.pDepthBuffer);
@@ -996,6 +998,21 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
   vcRender_AsyncReadFrameDepth(pRenderContext); // note: one frame behind
 }
 
+void vcRender_RenderUI(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
+{
+  udUnused(pRenderContext);
+
+  // Labels
+  vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+
+  ImDrawList *drawList = ImGui::GetWindowDrawList();
+  for (size_t i = 0; i < renderData.labels.length; ++i)
+    vcLabelRenderer_Render(drawList, renderData.labels[i], pProgramState->camera.matrices.viewProjection, pProgramState->sceneResolution);
+
+  vcGLState_ResetState();
+}
+
 void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
@@ -1224,6 +1241,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcRenderTerrain(pProgramState, pRenderContext);
 
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
+  vcRender_RenderUI(pProgramState, pRenderContext, renderData);
 
   if (selectionBufferActive)
     vcRender_ApplySelectionBuffer(pProgramState, pRenderContext);
@@ -1280,13 +1298,6 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcGLState_ResetState();
   vcShader_Bind(nullptr);
   vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
-}
-
-void vcRender_SceneImGui(vcState *pProgramState, vcRenderContext *pRenderContext, const vcRenderData &renderData)
-{
-  // Labels
-  for (size_t i = 0; i < renderData.labels.length; ++i)
-    vcLabelRenderer_Render(renderData.labels[i], pProgramState->camera.matrices.viewProjection, pRenderContext->sceneResolution);
 }
 
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext)

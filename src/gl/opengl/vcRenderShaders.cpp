@@ -334,6 +334,31 @@ void main()
 }
 )shader";
 
+
+const char *const g_ImGuiVertexShader3D = VERT_HEADER R"shader(
+layout(location = 0) in vec2 Position;
+layout(location = 1) in vec2 UV;
+layout(location = 2) in vec4 Color;
+
+out vec2 Frag_UV;
+out vec4 Frag_Color;
+
+layout (std140) uniform u_EveryObject
+{
+  mat4 u_worldViewProjectionMatrix;
+  vec4 u_screenSize;
+};
+
+void main()
+{
+  gl_Position = u_worldViewProjectionMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+  gl_Position.xy += u_screenSize.xy * vec2(Position.x, -Position.y) * gl_Position.w;
+
+  Frag_UV = UV;
+  Frag_Color = Color;
+}
+)shader";
+
 const char *const g_FenceVertexShader = VERT_HEADER R"shader(
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec2 a_uv;
