@@ -1,5 +1,6 @@
 #include "gl/vcShader.h"
 #include "vcD3D11.h"
+#include "vcConstants.h"
 #include "udPlatformUtil.h"
 #include "udStringUtil.h"
 #include "udFile.h"
@@ -7,9 +8,10 @@
 #include <d3dcompiler.h>
 #include <D3D11Shader.h>
 
-bool vsShader_InternalReflectShaderConstantBuffers(ID3D10Blob *pBlob, int type, vcShaderConstantBuffer *pBuffers, int *pNextBuffer)
+template <size_t N>
+bool vsShader_InternalReflectShaderConstantBuffers(ID3D10Blob *pBlob, int type, vcShaderConstantBuffer (&buffers)[N], int *pNextBuffer)
 {
-  if (pBuffers == nullptr || pNextBuffer == nullptr)
+  if (pNextBuffer == nullptr)
     return false;
 
   ID3D11ShaderReflection *pReflection = NULL;
@@ -37,15 +39,30 @@ bool vsShader_InternalReflectShaderConstantBuffers(ID3D10Blob *pBlob, int type, 
         register_index = ibdesc.BindPoint;
     }
 
-    int index = (*pNextBuffer)++;
+    int index = 0;
+    for (; index < N; ++index)
+    {
+      if (udStrEqual(buffers[index].bufferName, bdesc.Name))
+        break;
+    }
 
-    //register_index, bdesc.Name, pBuffer, &bdesc;
-    //mShaderBuffers.push_back(shaderbuffer);
+    if (index == N)
+    {
+      index = (*pNextBuffer);
+      (*pNextBuffer)++;
+    }
 
-    udStrcpy(pBuffers[index].bufferName, bdesc.Name);
-    pBuffers[index].expectedSize = bdesc.Size;
-    pBuffers[index].type = type;
-    pBuffers[index].registerSlot = register_index;
+    int bufferIndex = 0;
+    for (; bufferIndex < udLengthOf(buffers[index].buffers); ++bufferIndex)
+    {
+      if (buffers[index].buffers[bufferIndex].pBuffer == nullptr)
+        break;
+    }
+
+    udStrcpy(buffers[index].bufferName, bdesc.Name);
+    buffers[index].buffers[bufferIndex].expectedSize = bdesc.Size;
+    buffers[index].buffers[bufferIndex].type = type;
+    buffers[index].buffers[bufferIndex].registerSlot = register_index;
 
     D3D11_BUFFER_DESC bufferdesc;
     bufferdesc.ByteWidth = bdesc.Size;
@@ -53,7 +70,7 @@ bool vsShader_InternalReflectShaderConstantBuffers(ID3D10Blob *pBlob, int type, 
     bufferdesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bufferdesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     bufferdesc.MiscFlags = 0;
-    g_pd3dDevice->CreateBuffer(&bufferdesc, NULL, &pBuffers[index].pBuffer);
+    g_pd3dDevice->CreateBuffer(&bufferdesc, NULL, &buffers[index].buffers[bufferIndex].pBuffer);
   }
 
   pReflection->Release();
@@ -156,6 +173,8 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   pVSBlob->Release();
   pPSBlob->Release();
 
+  vcShader_GetConstantBuffer(&pShader->pCameraPlaneParams, pShader, "u_cameraPlaneParams", sizeof(float) * 4);
+
   *ppShader = pShader;
 
   return (pShader != nullptr);
@@ -183,7 +202,13 @@ void vcShader_DestroyShader(vcShader **ppShader)
     return;
 
   for (int i = 0; i < (*ppShader)->numBufferObjects; ++i)
-    (*ppShader)->bufferObjects[i].pBuffer->Release();
+  {
+    for (size_t j = 0; j < udLengthOf((*ppShader)->bufferObjects[i].buffers); ++j)
+    {
+      if ((*ppShader)->bufferObjects[i].buffers[j].pBuffer != nullptr)
+        (*ppShader)->bufferObjects[i].buffers[j].pBuffer->Release();
+    }
+  }
 
   (*ppShader)->pLayout->Release();
   (*ppShader)->pPixelShader->Release();
@@ -200,6 +225,15 @@ bool vcShader_Bind(vcShader *pShader)
 
     g_pd3dDeviceContext->VSSetShader(pShader->pVertexShader, NULL, 0);
     g_pd3dDeviceContext->PSSetShader(pShader->pPixelShader, NULL, 0);
+
+    struct
+    {
+      float cameraNearPlane;
+      float cameraFarPlane;
+      float unused1;
+      float unused2;
+    } cameraPlane = { s_CameraNearPlane, s_CameraFarPlane, 0.f, 0.f };
+    vcShader_BindConstantBuffer(pShader, pShader->pCameraPlaneParams, &cameraPlane, sizeof(cameraPlane));
   }
 
   return true;
@@ -233,11 +267,17 @@ bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pSh
 
   for (int i = 0; i < pShader->numBufferObjects; ++i)
   {
-    if (udStrEqual(pShader->bufferObjects[i].bufferName, pBufferName) && bufferSize == pShader->bufferObjects[i].expectedSize)
+    for (size_t j = 0; j < udLengthOf(pShader->bufferObjects[i].buffers); ++j)
     {
-      *ppBuffer = &pShader->bufferObjects[i];
-      break;
+      if (udStrEqual(pShader->bufferObjects[i].bufferName, pBufferName) && bufferSize == pShader->bufferObjects[i].buffers[j].expectedSize)
+      {
+        *ppBuffer = &pShader->bufferObjects[i];
+        break;
+      }
     }
+
+    if ((*ppBuffer) != nullptr)
+      break;
   }
 
   return (*ppBuffer != nullptr);
@@ -248,23 +288,29 @@ bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuf
   if (pShader == nullptr || pBuffer == nullptr || pData == nullptr || bufferSize == 0)
     return false;
 
-  D3D11_MAPPED_SUBRESOURCE mapped_resource;
-  if (g_pd3dDeviceContext->Map(pBuffer->pBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resource) != S_OK)
-    return false;
+  for (size_t i = 0; i < udLengthOf(pBuffer->buffers); ++i)
+  {
+    if (pBuffer->buffers[i].pBuffer == nullptr)
+      break;
 
-  if (mapped_resource.RowPitch == bufferSize)
-    memcpy(mapped_resource.pData, pData, bufferSize);
+    D3D11_MAPPED_SUBRESOURCE mapped_resource;
+    if (g_pd3dDeviceContext->Map(pBuffer->buffers[i].pBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resource) != S_OK)
+      return false;
+
+    if (mapped_resource.RowPitch == bufferSize)
+      memcpy(mapped_resource.pData, pData, bufferSize);
 #if UD_DEBUG
-  else
-    __debugbreak(); // If this is hit please confirm your upload sizes
+    else
+      __debugbreak(); // If this is hit please confirm your upload sizes
 #endif
 
-  g_pd3dDeviceContext->Unmap(pBuffer->pBuffer, 0);
+    g_pd3dDeviceContext->Unmap(pBuffer->buffers[i].pBuffer, 0);
 
-  if (pBuffer->type == 0)
-    g_pd3dDeviceContext->VSSetConstantBuffers(pBuffer->registerSlot, 1, &pBuffer->pBuffer);
-  else
-    g_pd3dDeviceContext->PSSetConstantBuffers(pBuffer->registerSlot, 1, &pBuffer->pBuffer);
+    if (pBuffer->buffers[i].type == 0)
+      g_pd3dDeviceContext->VSSetConstantBuffers(pBuffer->buffers[i].registerSlot, 1, &pBuffer->buffers[i].pBuffer);
+    else
+      g_pd3dDeviceContext->PSSetConstantBuffers(pBuffer->buffers[i].registerSlot, 1, &pBuffer->buffers[i].pBuffer);
+  }
 
   return true;
 }

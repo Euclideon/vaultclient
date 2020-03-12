@@ -76,6 +76,8 @@ struct vcShader
   int numBufferObjects;
   vcShaderSampler samplerIndexes[16];
   int numSamplerIndexes;
+
+  vcShaderConstantBuffer *pCameraPlaneParams;
 };
 
 struct vcMesh
