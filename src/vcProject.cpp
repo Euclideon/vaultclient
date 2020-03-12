@@ -28,6 +28,57 @@ void vcProject_InitBlankScene(vcState *pProgramState)
   pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
 }
 
+bool vcProject_ExtractCameraRecursive(vcState *pProgramState, vdkProjectNode *pParentNode)
+{
+  vdkProjectNode *pNode = pParentNode->pFirstChild;
+  while (pNode != nullptr)
+  {
+    if (pNode->itemtype == vdkPNT_Viewpoint)
+    {
+      udDouble3 position = udDouble3::zero();
+      udDouble3 eulerRotation = udDouble3::zero();
+
+      udDouble3 *pPoint = nullptr;
+      int numPoints = 0;
+
+      vcProject_FetchNodeGeometryAsCartesian(pProgramState->activeProject.pProject, pNode, pProgramState->gis.zone, &pPoint, &numPoints);
+      if (numPoints == 1)
+        position = pPoint[0];
+
+      vdkProjectNode_GetMetadataDouble(pNode, "transform.rotation.x", &eulerRotation.x, 0.0);
+      vdkProjectNode_GetMetadataDouble(pNode, "transform.rotation.y", &eulerRotation.y, 0.0);
+      vdkProjectNode_GetMetadataDouble(pNode, "transform.rotation.z", &eulerRotation.z, 0.0);
+
+      pProgramState->camera.position = position;
+      pProgramState->camera.eulerRotation = eulerRotation;
+
+      // unset
+      memset(pProgramState->sceneExplorer.movetoUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWhenPossible));
+      return true;
+    }
+    else if (pNode->itemtype == vdkPNT_PointCloud)
+    {
+      udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+    }
+
+    if (vcProject_ExtractCameraRecursive(pProgramState, pNode))
+      return true;
+
+    pNode = pNode->pNextSibling;
+  }
+
+  return false;
+}
+
+// Try extract a valid viewpoint from the project, based on available nodes
+void vcProject_ExtractCamera(vcState *pProgramState)
+{
+  pProgramState->camera.position = udDouble3::zero();
+  pProgramState->camera.eulerRotation = udDouble3::zero();
+
+  vcProject_ExtractCameraRecursive(pProgramState, pProgramState->activeProject.pRoot);
+}
+
 bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
 {
   char *pMemory = nullptr;
@@ -44,8 +95,6 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
       vcRender_ClearTiles(pProgramState->pRenderContext);
       vcGIS_ChangeSpace(&pProgramState->gis, zone);
 
-      pProgramState->camera.position = udDouble3::zero();
-
       pProgramState->sceneExplorer.selectedItems.clear();
       pProgramState->sceneExplorer.clickedItem = {};
 
@@ -61,6 +110,8 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
       int32_t recommendedSRID = -1;
       if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, -1) == vE_Success && recommendedSRID >= 0 && udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success)
         vcGIS_ChangeSpace(&pProgramState->gis, zone);
+
+      vcProject_ExtractCamera(pProgramState);
     }
     else
     {
