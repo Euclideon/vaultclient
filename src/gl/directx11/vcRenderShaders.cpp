@@ -4,55 +4,6 @@
 #define FRAG_HEADER "cbuffer u_cameraPlaneParams { float s_CameraNearPlane; float s_CameraFarPlane; float u_unused1; float u_unused2; };"
 #define VERT_HEADER "cbuffer u_cameraPlaneParams { float s_CameraNearPlane; float s_CameraFarPlane; float u_unused1; float u_unused2; };"
 
-const char *const g_vcSkyboxVertexShaderImageColour = VERT_HEADER R"shader(
-  struct VS_INPUT
-  {
-    float3 pos : POSITION;
-    float2 uv  : TEXCOORD0;
-  };
-
-  struct PS_INPUT
-  {
-    float4 pos : SV_POSITION;
-    float2 uv : TEXCOORD0;
-    float4 tintColour : COLOR0;
-  };
-
-  cbuffer u_EveryFrame : register(b0)
-  {
-    float4 u_tintColour; //0 is full colour, 1 is full image
-    float4 u_imageSize; //For purposes of tiling/stretching
-  };
-
-  PS_INPUT main(VS_INPUT input)
-  {
-    PS_INPUT output;
-    output.pos = float4(input.pos.xy, 0.f, 1.f);
-    output.uv  = float2(input.uv.x, 1.0 - input.uv.y) / u_imageSize.xy;
-    output.tintColour = u_tintColour;
-    return output;
-  }
-)shader";
-
-const char *const g_vcSkyboxFragmentShaderImageColour = FRAG_HEADER R"shader(
-  struct PS_INPUT
-  {
-    float4 pos : SV_POSITION;
-    float2 uv : TEXCOORD0;
-    float4 tintColour : COLOR0;
-  };
-
-  sampler sampler0;
-  Texture2D u_texture;
-
-  float4 main(PS_INPUT input) : SV_Target
-  {
-    float4 colour = u_texture.Sample(sampler0, input.uv).rgba;
-    float effectiveAlpha = min(colour.a, input.tintColour.a);
-    return float4((colour.rgb * effectiveAlpha) + (input.tintColour.rgb * (1 - effectiveAlpha)), 1);
-  }
-)shader";
-
 const char *const g_ImGuiVertexShader = VERT_HEADER R"vert(
   cbuffer u_EveryFrame : register(b0)
   {

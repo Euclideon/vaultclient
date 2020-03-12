@@ -6,8 +6,6 @@
 extern const char *const g_PostEffectsVertexShader;
 extern const char *const g_PostEffectsFragmentShader;
 
-extern const char* const g_vcSkyboxFragmentShaderImageColour;
-extern const char *const g_vcSkyboxVertexShaderImageColour;
 extern const char* const g_FenceVertexShader;
 extern const char* const g_FenceFragmentShader;
 extern const char* const g_WaterVertexShader;
