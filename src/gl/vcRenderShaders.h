@@ -6,9 +6,6 @@
 extern const char *const g_PostEffectsVertexShader;
 extern const char *const g_PostEffectsFragmentShader;
 
-extern const char* const g_udFragmentShader;
-extern const char* const g_udSplatIdFragmentShader;
-extern const char* const g_udVertexShader;
 extern const char* const g_tileFragmentShader;
 extern const char* const g_tileVertexShader;
 extern const char* const g_vcSkyboxFragmentShaderPanorama;
