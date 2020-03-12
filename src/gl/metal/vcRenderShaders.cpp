@@ -3,8 +3,6 @@
 const char *const g_PostEffectsFragmentShader = "postEffectsFragmentShader";
 const char *const g_PostEffectsVertexShader = "postEffectsVertexShader";
 
-const char* const g_vcSkyboxVertexShaderPanorama = "skyboxVertexShaderPanorama";
-const char* const g_vcSkyboxFragmentShaderPanorama = "skyboxFragmentShaderPanorama";
 const char *const g_vcSkyboxVertexShaderImageColour = "skyboxVertexShaderPanorama"; // not implemented
 const char* const g_vcSkyboxFragmentShaderImageColour = "skyboxFragmentShaderImageColor";
 
