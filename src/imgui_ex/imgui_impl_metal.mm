@@ -202,7 +202,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     vcShader_GetSamplerIndex(&pMetalSampler, pMetalShader, "Texture");
 
     if (drawData->CmdListsCount != 0 && pMetalMesh == nullptr)
-        vcMesh_Create(&pMetalMesh, vcImGuiVertexLayout, 3, drawData->CmdLists[0]->VtxBuffer.Data, drawData->CmdLists[0]->VtxBuffer.Size, drawData->CmdLists[0]->IdxBuffer.Data, drawData->CmdLists[0]->IdxBuffer.Size, vcMF_Dynamic);
+        vcMesh_Create(&pMetalMesh, vcImGuiVertexLayout, 3, drawData->CmdLists[0]->VtxBuffer.Data, (uint32_t)drawData->CmdLists[0]->VtxBuffer.Size, drawData->CmdLists[0]->IdxBuffer.Data, (uint32_t)drawData->CmdLists[0]->IdxBuffer.Size, vcMF_Dynamic);
 
     // Draw
     ImVec2 pos = drawData->DisplayPos;

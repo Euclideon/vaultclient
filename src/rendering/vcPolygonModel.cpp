@@ -117,7 +117,7 @@ vcPolygonModelShaderType vcPolygonModel_GetShaderType(const vcVertexLayoutTypes 
   return vcPMST_Count;
 }
 
-udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel, const void *pVerts, const uint16_t vertCount, const vcVertexLayoutTypes *pMeshLayout, const int totalTypes, const uint16_t *pIndices /*= nullptr*/, const uint16_t indexCount /*= 0*/)
+udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel, const void *pVerts, const uint32_t vertCount, const vcVertexLayoutTypes *pMeshLayout, const int totalTypes, const uint32_t *pIndices /*= nullptr*/, const uint32_t indexCount /*= 0*/)
 {
   if (ppPolygonModel == nullptr || pVerts == nullptr || pMeshLayout == nullptr || vertCount == 0 || totalTypes <= 0)
     return udR_InvalidParameter_;
@@ -150,7 +150,7 @@ udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel,
   if (pPolygonModel->pMeshes[0].materialID == vcPMST_Count)
     UD_ERROR_SET(udR_Unsupported);
 
-  UD_ERROR_CHECK(vcMesh_Create(&pPolygonModel->pMeshes[0].pMesh, pMeshLayout, totalTypes, pVerts, pPolygonModel->pMeshes[0].numVertices, pIndices, indexCount, (pIndices == nullptr) ? vcMF_NoIndexBuffer : vcMF_IndexShort));
+  UD_ERROR_CHECK(vcMesh_Create(&pPolygonModel->pMeshes[0].pMesh, pMeshLayout, totalTypes, pVerts, pPolygonModel->pMeshes[0].numVertices, pIndices, indexCount, (pIndices == nullptr) ? vcMF_NoIndexBuffer : vcMF_None));
 
   *ppPolygonModel = pPolygonModel;
   pPolygonModel = nullptr;
@@ -268,7 +268,7 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
     pLoadInfo->pMesh = &pNewModel->pMeshes[i];
     pLoadInfo->pVerts = (vcP3N3UV2Vertex*)udMemDup(pVerts, vertArraySize, 0, udAF_None);
     pLoadInfo->pMeshLayout = vcP3N3UV2VertexLayout;
-    pLoadInfo->totalTypes = (int)udLengthOf(vcP3N3UV2VertexLayout);
+    pLoadInfo->totalTypes = (uint32_t)udLengthOf(vcP3N3UV2VertexLayout);
     pLoadInfo->pIndices = (uint16_t*)udMemDup(pIndices, indexArraySize, 0, udAF_None);
     pLoadInfo->currentIndices = pNewModel->pMeshes[i].numElements;
     pLoadInfo->flags = vcMF_IndexShort;

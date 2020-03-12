@@ -81,7 +81,7 @@ void ImGuiGL_RenderDrawData(ImDrawData* draw_data)
   vcShader_GetSamplerIndex(&pImGuiSampler, pImGuiShader, "Texture");
 
   if (draw_data->CmdListsCount != 0 && pImGuiMesh == nullptr)
-    vcMesh_Create(&pImGuiMesh, vcImGuiVertexLayout, 3, draw_data->CmdLists[0]->VtxBuffer.Data, draw_data->CmdLists[0]->VtxBuffer.Size, draw_data->CmdLists[0]->IdxBuffer.Data, draw_data->CmdLists[0]->IdxBuffer.Size, vcMF_Dynamic);
+    vcMesh_Create(&pImGuiMesh, vcImGuiVertexLayout, 3, draw_data->CmdLists[0]->VtxBuffer.Data, (uint32_t)draw_data->CmdLists[0]->VtxBuffer.Size, draw_data->CmdLists[0]->IdxBuffer.Data, (uint32_t)draw_data->CmdLists[0]->IdxBuffer.Size, vcMF_Dynamic);
 
   // Draw
   ImVec2 pos = draw_data->DisplayPos;

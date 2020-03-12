@@ -355,7 +355,7 @@ udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer
   if (pSegment->pMesh)
     vcMesh_Destroy(&pSegment->pMesh);
 
-  UD_ERROR_IF(vcMesh_Create(&pSegment->pMesh, vcP3UV2RI4VertexLayout, layoutCount, pVerts, pSegment->vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
+  UD_ERROR_IF(vcMesh_Create(&pSegment->pMesh, vcP3UV2RI4VertexLayout, layoutCount, pVerts, (uint32_t)pSegment->vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
 
 epilogue:
   udFree(pVerts);
