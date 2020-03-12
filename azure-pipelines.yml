@@ -9,7 +9,7 @@ trigger:
     - '*'  # must quote since "*" is a YAML reserved character; we want a string
 
 variables:
-  linkedVDK: Euclideon_vdk0.5.1
+  linkedVDK: Pipeline_202003112
   VAULTSDK_HOME: $(Build.SourcesDirectory)/linkedVDK/$(linkedVDK)
 
 stages:
