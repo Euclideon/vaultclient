@@ -15,9 +15,6 @@ const char* const g_ImGuiFragmentShader = "imguiFragmentShader";
 const char* const g_FenceVertexShader = "fenceVertexShader";
 const char* const g_FenceFragmentShader = "fenceFragmentShader";
 
-const char* const g_CompassFragmentShader = "compassFragmentShader";
-const char* const g_CompassVertexShader = "compassVertexShader";
-
 const char* const g_WaterFragmentShader = "waterFragmentShader";
 const char* const g_WaterVertexShader = "waterVertexShader";
 
