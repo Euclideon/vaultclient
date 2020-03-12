@@ -7,7 +7,8 @@ project "vaultClient"
 	flags { "FatalWarnings", "MultiProcessorCompile" }
 
 	--Files to include
-	files { "src/**.cpp", "src/**.h", "src/**.c", "src/**.mm", "src/**.metal" }
+	files { "src/**.cpp", "src/**.h", "src/**.c", "src/**.mm" }
+	files { "src/**.hlsl", "src/**.vert", "src/**.frag", "src/**.metal" }
 	files { "3rdParty/Imgui/**.cpp", "3rdParty/Imgui/**.h" }
 	files { "3rdParty/stb/**.h" }
 	files { "3rdParty/easyexif/**.h", "3rdParty/easyexif/**.cpp" }
@@ -32,16 +33,22 @@ project "vaultClient"
 
 	local excludedSourceFileNames = {}
 	if _OPTIONS["gfxapi"] ~= "opengl" then
-  		table.insert(excludedSourceFileNames, "src/gl/opengl/*");
+		table.insert(excludedSourceFileNames, "src/gl/opengl/*");
 	end
 	if _OPTIONS["gfxapi"] ~= "d3d11" then
-  		table.insert(excludedSourceFileNames, "src/gl/directx11/*");
+		table.insert(excludedSourceFileNames, "src/gl/directx11/*");
 	end
 	if _OPTIONS["gfxapi"] ~= "metal" then
 		table.insert(excludedSourceFileNames, "src/gl/metal/*");
 		table.insert(excludedSourceFileNames, "src/imgui_ex/*.mm");
 	end
+	if os.target() == premake.IOS then
+		table.insert(excludedSourceFileNames, "src/gl/opengl/shaders/desktop/*");
+		table.insert(excludedSourceFileNames, "src/gl/metal/shaders/desktop/*");
+	end
 	if os.target() ~= premake.IOS then
+		table.insert(excludedSourceFileNames, "src/gl/opengl/shaders/mobile/*");
+		table.insert(excludedSourceFileNames, "src/gl/metal/shaders/mobile/*");
 		table.insert(excludedSourceFileNames, "src/vcWebFile.mm");
 	end
 
@@ -155,20 +162,52 @@ project "vaultClient"
 	filter { "options:gfxapi=opengl" }
 		defines { "GRAPHICS_API_OPENGL=1" }
 
+	filter { "options:gfxapi=opengl", "system:emscripten" }
+		prebuildcommands {
+			"rm -rf builds/assets/shaders",
+			"mkdir builds/assets/shaders",
+			"cp src/gl/opengl/shaders/mobile/* builds/assets/shaders",
+		}
+
+	filter { "options:gfxapi=opengl", "system:linux" }
+		prebuildcommands {
+			"rm -rf builds/assets/shaders",
+			"mkdir builds/assets/shaders",
+			"cp src/gl/opengl/shaders/desktop/* builds/assets/shaders",
+		}
+
+	filter { "options:gfxapi=opengl", "system:macosx or ios" }
+		xcodebuildresources { "%.vert$", "%.frag$" }
+
+	filter { "options:gfxapi=opengl", "system:android" }
+		prebuildcommands {
+			"rmdir builds\\assets\\shaders /S /Q",
+			"xcopy src\\gl\\opengl\\shaders\\mobile builds\\assets\\shaders /I",
+		}
+
 	filter { "options:gfxapi=opengl", "system:windows" }
 		defines { "GLEW_STATIC" }
 		sysincludedirs { "3rdParty/glew/include" }
 		files { "3rdParty/glew/glew.c" }
 		links { "opengl32.lib" }
+		prebuildcommands {
+			"rmdir builds\\assets\\shaders /S /Q",
+			"xcopy src\\gl\\opengl\\shaders\\desktop builds\\assets\\shaders /I",
+		}
 
 	filter { "options:gfxapi=d3d11" }
 		libdirs { "$(DXSDK_DIR)/Lib/x64;" }
 		links { "d3d11.lib", "d3dcompiler.lib", "dxgi.lib", "dxguid.lib" }
 		defines { "GRAPHICS_API_D3D11=1" }
+		prebuildcommands {
+			"rmdir builds\\assets\\shaders /S /Q",
+			"xcopy src\\gl\\directx11\\shaders builds\\assets\\shaders /I",
+		}
 
 	filter { "options:gfxapi=metal" }
 		defines { "GRAPHICS_API_METAL=1" }
 		files { "src/gl/metal/shaders.metallib" }
+		xcodebuildresources { "%.metal$" }
 		xcodebuildsettings {
 			["CLANG_ENABLE_OBJC_ARC"] = "YES",
 			["GCC_ENABLE_OBJC_EXCEPTIONS"] = "YES",
@@ -188,6 +227,8 @@ project "vaultClient"
 	filter { "options:not gfxapi=d3d11", "files:src/gl/directx11/*", "system:not macosx" }
 		flags { "ExcludeFromBuild" }
 	filter { "options:not gfxapi=metal", "files:src/gl/metal/*", "system:not macosx" }
+		flags { "ExcludeFromBuild" }
+	filter { "files:**.hlsl" }
 		flags { "ExcludeFromBuild" }
 
 	filter { "system:not ios", "system:not macosx", "files:src/**.mm" }

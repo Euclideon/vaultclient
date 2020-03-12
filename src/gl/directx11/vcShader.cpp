@@ -185,8 +185,8 @@ bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, con
   const char *pVertexShaderText = nullptr;
   const char *pFragmentShaderText = nullptr;
 
-  udFile_Load(pVertexShader, &pVertexShaderText);
-  udFile_Load(pFragmentShader, &pFragmentShaderText);
+  udFile_Load(udTempStr("%s.hlsl", pVertexShader), &pVertexShaderText);
+  udFile_Load(udTempStr("%s.hlsl", pFragmentShader), &pFragmentShaderText);
 
   bool success = vcShader_CreateFromText(ppShader, pVertexShaderText, pFragmentShaderText, pInputTypes, totalInputs);
 

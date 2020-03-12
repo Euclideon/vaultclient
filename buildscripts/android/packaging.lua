@@ -10,6 +10,11 @@ project "EuclideonVaultClient"
 	files { "res/**.xml", "res/**.png" }
 	files { "src/**.java"}
 
+	for _, file in ipairs(os.matchfiles("../../src/gl/opengl/shaders/mobile/*")) do
+		local newfile = file:gsub("../../src/gl/opengl/shaders/mobile", "../../builds/assets/shaders")
+		files(newfile)
+	end
+
 	vpaths {
 		["libs/arm64-v8a/*"] = { "../../3rdParty/SDL2-2.0.8/lib/android/arm64/**" },
 		["libs/x86_64/*"] = { "../../3rdParty/SDL2-2.0.8/lib/android/x64/**" },
