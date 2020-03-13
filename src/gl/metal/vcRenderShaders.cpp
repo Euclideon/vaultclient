@@ -3,9 +3,6 @@
 const char *const g_PostEffectsFragmentShader = "postEffectsFragmentShader";
 const char *const g_PostEffectsVertexShader = "postEffectsVertexShader";
 
-const char* const g_FenceVertexShader = "fenceVertexShader";
-const char* const g_FenceFragmentShader = "fenceFragmentShader";
-
 const char* const g_WaterFragmentShader = "waterFragmentShader";
 const char* const g_WaterVertexShader = "waterVertexShader";
 
