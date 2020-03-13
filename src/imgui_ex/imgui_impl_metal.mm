@@ -109,7 +109,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
 
 - (void)makeDeviceObjects
 {
-    vcShader_CreateFromText(&pMetalShader, g_ImGuiVertexShader, g_ImGuiFragmentShader, vcImGuiVertexLayout);
+    vcShader_CreateFromFile(&pMetalShader, "asset://assets/shaders/imguiVertexShader", "asset://assets/shaders/imguiFragmentShader", vcImGuiVertexLayout);
     vcShader_GetConstantBuffer(&metalMatrix, pMetalShader, "u_EveryFrame", sizeof(udFloat4x4));
     _pipeline = [self getPipeline:_device];
 }
