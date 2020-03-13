@@ -6,12 +6,6 @@
 extern const char *const g_PostEffectsVertexShader;
 extern const char *const g_PostEffectsFragmentShader;
 
-// Polygon shaders
-extern const char *const g_PolygonP3N3UV2FragmentShader;
-extern const char *const g_PolygonP3N3UV2VertexShader;
-extern const char *const g_FlatColour_FragmentShader;
-extern const char *const g_DepthOnly_FragmentShader;
-
 // Image Renderer shaders
 extern const char *const g_ImageRendererFragmentShader;
 extern const char *const g_ImageRendererMeshVertexShader;

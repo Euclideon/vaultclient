@@ -9,69 +9,6 @@
 # define VERT_HEADER "#version 330 core\n#extension GL_ARB_explicit_attrib_location : enable\nlayout (std140) uniform u_cameraPlaneParams { float s_CameraNearPlane; float s_CameraFarPlane; float u_unused1; float u_unused2; };\n"
 #endif
 
-const char *const g_PolygonP3N3UV2FragmentShader = FRAG_HEADER R"shader(
-  //Input Format
-  in vec2 v_uv;
-  in vec4 v_colour;
-  in vec3 v_normal;
-  in float v_fLogDepth;
-
-  //Output Format
-  out vec4 out_Colour;
-
-  uniform sampler2D u_texture;
-
-  void main()
-  {
-    vec4 col = texture(u_texture, v_uv);
-    vec4 diffuseColour = col * v_colour;
-
-    // some fixed lighting
-    vec3 lightDirection = normalize(vec3(0.85, 0.15, 0.5));
-    float ndotl = dot(v_normal, lightDirection) * 0.5 + 0.5;
-    vec3 diffuse = diffuseColour.xyz * ndotl;
-
-    out_Colour = vec4(diffuse, diffuseColour.a);
-
-    float halfFcoef  = 1.0 / log2(s_CameraFarPlane + 1.0);
-    gl_FragDepth = log2(v_fLogDepth) * halfFcoef;
-  }
-)shader";
-
-const char *const g_PolygonP3N3UV2VertexShader = VERT_HEADER R"shader(
-  //Input Format
-  layout(location = 0) in vec3 a_pos;
-  layout(location = 1) in vec3 a_normal;
-  layout(location = 2) in vec2 a_uv;
-  //layout(location = 3) in vec4 a_colour;
-
-  //Output Format
-  out vec2 v_uv;
-  out vec4 v_colour;
-  out vec3 v_normal;
-  out float v_fLogDepth;
-
-  layout (std140) uniform u_EveryObject
-  {
-    mat4 u_worldViewProjectionMatrix;
-    mat4 u_worldMatrix;
-    vec4 u_colour;
-  };
-
-  void main()
-  {
-    // making the assumption that the model matrix won't contain non-uniform scale
-    vec3 worldNormal = normalize((u_worldMatrix * vec4(a_normal, 0.0)).xyz);
-
-    gl_Position = u_worldViewProjectionMatrix * vec4(a_pos, 1.0);
-    v_fLogDepth = 1.0 + gl_Position.w;
-
-    v_uv = a_uv;
-    v_normal = worldNormal;
-    v_colour = u_colour;// * a_colour;
-  }
-)shader";
-
 const char *const g_ImageRendererFragmentShader = FRAG_HEADER R"shader(
   //Input Format
   in vec2 v_uv;
@@ -146,39 +83,6 @@ const char *const g_ImageRendererBillboardVertexShader = VERT_HEADER R"shader(
     v_uv = vec2(a_uv.x, 1.0 - a_uv.y);
     v_colour = u_colour;
     v_fLogDepth = 1.0 + gl_Position.w;
-  }
-)shader";
-
-const char *const g_FlatColour_FragmentShader = FRAG_HEADER R"shader(
-  //Input Format
-  in vec4 v_colour;
-  in float v_fLogDepth;
-
-  //Output Format
-  out vec4 out_Colour;
-
-  void main()
-  {
-    out_Colour = v_colour;
-
-    float halfFcoef  = 1.0 / log2(s_CameraFarPlane + 1.0);
-    gl_FragDepth = log2(v_fLogDepth) * halfFcoef;
-  }
-)shader";
-
-const char *const g_DepthOnly_FragmentShader = FRAG_HEADER R"shader(
-  // Input format
-  in float v_fLogDepth;
-
-  //Output Format
-  out vec4 out_Colour;
-
-  void main()
-  {
-    out_Colour = vec4(0.0);
-
-    float halfFcoef  = 1.0 / log2(s_CameraFarPlane + 1.0);
-    gl_FragDepth = log2(v_fLogDepth) * halfFcoef;
   }
 )shader";
 
