@@ -136,7 +136,7 @@ struct vcState
   vdkError logoutReason;
 
   const char *pReleaseNotes; //Only loaded when requested
-  bool passFocus;
+  bool passwordFieldHasFocus;
 
   char modelPath[vcMaxPathLength];
 
