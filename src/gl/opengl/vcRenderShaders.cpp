@@ -9,62 +9,6 @@
 # define VERT_HEADER "#version 330 core\n#extension GL_ARB_explicit_attrib_location : enable\nlayout (std140) uniform u_cameraPlaneParams { float s_CameraNearPlane; float s_CameraFarPlane; float u_unused1; float u_unused2; };\n"
 #endif
 
-const char *const g_BlurVertexShader = VERT_HEADER R"shader(
-  //Input format
-  layout(location = 0) in vec3 a_position;
-  layout(location = 1) in vec2 a_texCoord;
-
-  //Output Format
-  out vec2 v_uv0;
-  out vec2 v_uv1;
-  out vec2 v_uv2;
-
-  layout (std140) uniform u_EveryFrame
-  {
-    vec4 u_stepSize; // remember: requires 16 byte alignment
-  };
-
-  void main()
-  {
-    gl_Position = vec4(a_position.x, a_position.y, 0.0, 1.0);
-
-    // sample on edges, taking advantage of bilinear sampling
-    vec2 sampleOffset = 1.42 * u_stepSize.xy;
-    vec2 uv = vec2(a_texCoord.x, 1.0 - a_texCoord.y);
-    v_uv0 = uv - sampleOffset;
-    v_uv1 = uv;
-    v_uv2 = uv + sampleOffset;
-  }
-)shader";
-
-const char *const g_BlurFragmentShader = FRAG_HEADER R"shader(
-  //Input Format
-  in vec2 v_uv0;
-  in vec2 v_uv1;
-  in vec2 v_uv2;
-
-  //Output Format
-  out vec4 out_Colour;
-
-  uniform sampler2D u_texture;
-
-  vec4 kernel[3] = vec4[](vec4(0.0, 0.0, 0.0, 0.27901),
-                          vec4(1.0, 1.0, 1.0, 0.44198),
-                          vec4(0.0, 0.0, 0.0, 0.27901));
-
-  void main()
-  {
-    vec4 colour = vec4(0);
-
-    colour += kernel[0] * texture(u_texture, v_uv0);
-    colour += kernel[1] * texture(u_texture, v_uv1);
-    colour += kernel[2] * texture(u_texture, v_uv2);
-
-    out_Colour = colour;
-  }
-
-)shader";
-
 const char *const g_HighlightVertexShader = VERT_HEADER R"shader(
   //Input format
   layout(location = 0) in vec3 a_position;
