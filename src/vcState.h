@@ -52,7 +52,9 @@ enum vcLoginStatus
   vcLS_ProxyError,
   vcLS_ProxyAuthRequired,
   vcLS_ProxyAuthFailed,
-  vcLS_OtherError
+  vcLS_OtherError,
+
+  vcLS_Count
 };
 
 enum vcErrorSource
