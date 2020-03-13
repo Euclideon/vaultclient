@@ -130,6 +130,8 @@ void vcPolyModelNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delt
 
 void vcPolyModelNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
+  ImGui::TextWrapped("Path: %s", m_pNode->pURI);
+
   if (m_pModel == nullptr)
     return;
 
