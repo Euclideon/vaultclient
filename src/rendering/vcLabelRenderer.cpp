@@ -1,7 +1,6 @@
 #include "vcLabelRenderer.h"
 #include "udPlatformUtil.h"
 #include "gl/vcMesh.h"
-#include "gl/vcRenderShaders.h"
 #include "vcInternalModels.h"
 
 #include "imgui.h"

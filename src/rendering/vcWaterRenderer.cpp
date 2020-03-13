@@ -4,7 +4,6 @@
 #include "udChunkedArray.h"
 
 #include "gl/vcShader.h"
-#include "gl/vcRenderShaders.h"
 #include "gl/vcMesh.h"
 #include "gl/vcTexture.h"
 

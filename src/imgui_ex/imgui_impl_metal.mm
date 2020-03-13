@@ -23,7 +23,6 @@
 //#import <QuartzCore/CAMetalLayer.h> // Not suported in XCode 9.2. Maybe a macro to detect the SDK version can be used (something like #if MACOS_SDK >= 10.13 ...)
 
 #include "gl/vcFramebuffer.h"
-#include "gl/vcRenderShaders.h"
 #include "gl/metal/vcMetal.h"
 #include "gl/metal/vcRenderer.h"
 #include "udPlatform.h"

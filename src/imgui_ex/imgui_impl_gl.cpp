@@ -4,7 +4,6 @@
 
 #include "gl/vcGLState.h"
 #include "gl/vcShader.h"
-#include "gl/vcRenderShaders.h"
 #include "gl/vcFramebuffer.h"
 #include "gl/vcMesh.h"
 #include "gl/vcLayout.h"
