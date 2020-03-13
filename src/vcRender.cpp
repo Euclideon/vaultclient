@@ -327,7 +327,7 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->blurShader.uniform_texture, pRenderContext->blurShader.pProgram, "u_texture"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->blurShader.uniform_params, pRenderContext->blurShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->blurShader.params)), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->selectionShader.pProgram, g_HighlightVertexShader, g_HighlightFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->selectionShader.pProgram, "asset://assets/shaders/highlightVertexShader", "asset://assets/shaders/highlightFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_Bind(pRenderContext->selectionShader.pProgram), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->selectionShader.uniform_texture, pRenderContext->selectionShader.pProgram, "u_texture"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->selectionShader.uniform_params, pRenderContext->selectionShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->selectionShader.params)), udR_InternalError);
