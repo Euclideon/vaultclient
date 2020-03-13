@@ -79,10 +79,11 @@ void vcSettingsUI_Show(vcState *pProgramState)
         bool change = false;
         change |= ImGui::RadioButton(udTempStr("%s##AppearanceSettings", vcString::Get("settingsAppearance")), &pProgramState->activeSetting, vcSR_Appearance);
         change |= ImGui::RadioButton(udTempStr("%s##InputSettings", vcString::Get("settingsControls")), &pProgramState->activeSetting, vcSR_Inputs);
-        change |= ImGui::RadioButton(udTempStr("%s##ViewportSettings", vcString::Get("settingsViewport")), &pProgramState->activeSetting, vcSR_Viewports);
+        ImGui::Indent();
+        change |= ImGui::RadioButton(udTempStr("%s##KeyBindings", vcString::Get("bindingsTitle")), &pProgramState->activeSetting, vcSR_KeyBindings);
+        ImGui::Unindent();
         change |= ImGui::RadioButton(udTempStr("%s##MapSettings", vcString::Get("settingsMaps")), &pProgramState->activeSetting, vcSR_Maps);
         change |= ImGui::RadioButton(udTempStr("%s##VisualisationSettings", vcString::Get("settingsVis")), &pProgramState->activeSetting, vcSR_Visualisations);
-        change |= ImGui::RadioButton(udTempStr("%s##KeyBindings", vcString::Get("bindingsTitle")), &pProgramState->activeSetting, vcSR_KeyBindings);
         change |= ImGui::RadioButton(udTempStr("%s##ConvertSettings", vcString::Get("settingsConvert")), &pProgramState->activeSetting, vcSR_ConvertDefaults);
         change |= ImGui::RadioButton(udTempStr("%s##ScreenshotSettings", vcString::Get("settingsScreenshot")), &pProgramState->activeSetting, vcSR_Screenshot);
         change |= ImGui::RadioButton(udTempStr("%s##ConnectionSettings", vcString::Get("settingsConnection")), &pProgramState->activeSetting, vcSR_Connection);
@@ -210,57 +211,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::Combo(vcString::Get("settingsControlsScrollWheel"), (int*)&pProgramState->settings.camera.scrollWheelMode, scrollwheelModes, (int)udLengthOf(scrollwheelModes));
         }
 
-        if (pProgramState->activeSetting == vcSR_Viewports)
-        {
-          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsViewport"), vcSC_Viewport);
-
-          const char *lensNameArray[] = {
-            vcString::Get("settingsViewportCameraLensCustom"),
-            vcString::Get("settingsViewportCameraLens15mm"),
-            vcString::Get("settingsViewportCameraLens24mm"),
-            vcString::Get("settingsViewportCameraLens30mm"),
-            vcString::Get("settingsViewportCameraLens50mm"),
-            vcString::Get("settingsViewportCameraLens70mm"),
-            vcString::Get("settingsViewportCameraLens100mm"),
-          };
-          UDCOMPILEASSERT(udLengthOf(lensNameArray) == vcLS_TotalLenses, "Lens name array length mismatch");
-
-          if (ImGui::Combo(vcString::Get("settingsViewportCameraLens"), &pProgramState->settings.camera.lensIndex, lensNameArray, (int)udLengthOf(lensNameArray)))
-          {
-            switch (pProgramState->settings.camera.lensIndex)
-            {
-            case vcLS_Custom:
-              /*Custom FoV*/
-              break;
-            case vcLS_15mm:
-              pProgramState->settings.camera.fieldOfView = vcLens15mm;
-              break;
-            case vcLS_24mm:
-              pProgramState->settings.camera.fieldOfView = vcLens24mm;
-              break;
-            case vcLS_30mm:
-              pProgramState->settings.camera.fieldOfView = vcLens30mm;
-              break;
-            case vcLS_50mm:
-              pProgramState->settings.camera.fieldOfView = vcLens50mm;
-              break;
-            case vcLS_70mm:
-              pProgramState->settings.camera.fieldOfView = vcLens70mm;
-              break;
-            case vcLS_100mm:
-              pProgramState->settings.camera.fieldOfView = vcLens100mm;
-              break;
-            }
-          }
-
-          if (pProgramState->settings.camera.lensIndex == vcLS_Custom)
-          {
-            float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
-            if (ImGui::SliderFloat(vcString::Get("settingsViewportFOV"), &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f°"))
-              pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
-          }
-        }
-
         if (pProgramState->activeSetting == vcSR_Maps)
         {
           vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsMaps"), vcSC_MapsElevation);
@@ -307,6 +257,52 @@ void vcSettingsUI_Show(vcState *pProgramState)
           vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsVis"), vcSC_Visualization);
 
           vcSettingsUI_VisualizationSettings(pProgramState, &pProgramState->settings.visualization);
+
+          const char *lensNameArray[] = {
+            vcString::Get("settingsViewportCameraLensCustom"),
+            vcString::Get("settingsViewportCameraLens15mm"),
+            vcString::Get("settingsViewportCameraLens24mm"),
+            vcString::Get("settingsViewportCameraLens30mm"),
+            vcString::Get("settingsViewportCameraLens50mm"),
+            vcString::Get("settingsViewportCameraLens70mm"),
+            vcString::Get("settingsViewportCameraLens100mm"),
+          };
+          UDCOMPILEASSERT(udLengthOf(lensNameArray) == vcLS_TotalLenses, "Lens name array length mismatch");
+
+          if (ImGui::Combo(vcString::Get("settingsViewportCameraLens"), &pProgramState->settings.camera.lensIndex, lensNameArray, (int)udLengthOf(lensNameArray)))
+          {
+            switch (pProgramState->settings.camera.lensIndex)
+            {
+            case vcLS_Custom:
+              /*Custom FoV*/
+              break;
+            case vcLS_15mm:
+              pProgramState->settings.camera.fieldOfView = vcLens15mm;
+              break;
+            case vcLS_24mm:
+              pProgramState->settings.camera.fieldOfView = vcLens24mm;
+              break;
+            case vcLS_30mm:
+              pProgramState->settings.camera.fieldOfView = vcLens30mm;
+              break;
+            case vcLS_50mm:
+              pProgramState->settings.camera.fieldOfView = vcLens50mm;
+              break;
+            case vcLS_70mm:
+              pProgramState->settings.camera.fieldOfView = vcLens70mm;
+              break;
+            case vcLS_100mm:
+              pProgramState->settings.camera.fieldOfView = vcLens100mm;
+              break;
+            }
+          }
+
+          if (pProgramState->settings.camera.lensIndex == vcLS_Custom)
+          {
+            float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
+            if (ImGui::SliderFloat(vcString::Get("settingsViewportFOV"), &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f°"))
+              pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
+          }
 
           // Selected Object Highlighting
           ImGui::Checkbox(vcString::Get("settingsVisObjectHighlight"), &pProgramState->settings.objectHighlighting.enable);
