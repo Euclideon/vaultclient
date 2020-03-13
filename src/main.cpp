@@ -843,7 +843,7 @@ int main(int argc, char **args)
 
   programState.settings.hideIntervalSeconds = 3;
   programState.showUI = true;
-  programState.passFocus = true;
+  programState.passwordFieldHasFocus = true;
   programState.renaming = -1;
   programState.settings.screenshot.taking = false;
 
@@ -2376,27 +2376,27 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
 
       // Password
       ImVec2 buttonSize;
-      if (pProgramState->passFocus)
+      if (pProgramState->passwordFieldHasFocus)
       {
         ImGui::Button(vcString::Get("loginShowPassword"));
         ImGui::SameLine(0, 0);
         buttonSize = ImGui::GetItemRectSize();
       }
-      if (ImGui::IsItemActive() && pProgramState->passFocus)
+      if (ImGui::IsItemActive() && pProgramState->passwordFieldHasFocus)
         tryLogin |= vcIGSW_InputText(vcString::Get("loginPassword"), pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
       else
         tryLogin |= vcIGSW_InputText(vcString::Get("loginPassword"), pProgramState->password, vcMaxPathLength, ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
 
-      if (pProgramState->passFocus && ImGui::IsMouseClicked(0))
+      if (pProgramState->passwordFieldHasFocus && ImGui::IsMouseClicked(0))
       {
         ImVec2 minPos = ImGui::GetItemRectMin();
         ImVec2 maxPos = ImGui::GetItemRectMax();
         if (io.MouseClickedPos->x < minPos.x - buttonSize.x || io.MouseClickedPos->x > maxPos.x || io.MouseClickedPos->y < minPos.y || io.MouseClickedPos->y > maxPos.y)
-          pProgramState->passFocus = false;
+          pProgramState->passwordFieldHasFocus = false;
       }
 
-      if (!pProgramState->passFocus && udStrlen(pProgramState->password) == 0)
-        pProgramState->passFocus = true;
+      if (!pProgramState->passwordFieldHasFocus && udStrlen(pProgramState->password) == 0)
+        pProgramState->passwordFieldHasFocus = true;
 
       if (pProgramState->loginStatus == vcLS_NoStatus && pProgramState->settings.loginInfo.rememberServer && pProgramState->settings.loginInfo.rememberUsername)
         ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
@@ -2421,7 +2421,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
         }
         else
         {
-          pProgramState->passFocus = false;
+          pProgramState->passwordFieldHasFocus = false;
           pProgramState->loginStatus = vcLS_Pending;
           udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_Login, pProgramState, false);
         }
