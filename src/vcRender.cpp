@@ -332,7 +332,7 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->selectionShader.uniform_texture, pRenderContext->selectionShader.pProgram, "u_texture"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->selectionShader.uniform_params, pRenderContext->selectionShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->selectionShader.params)), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->watermarkShader.pProgram, g_ImageRendererBillboardVertexShader, g_ImageRendererFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->watermarkShader.pProgram, "asset://assets/shaders/imageRendererBillboardVertexShader", "asset://assets/shaders/imageRendererFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_Bind(pRenderContext->watermarkShader.pProgram), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->watermarkShader.uniform_params, pRenderContext->watermarkShader.pProgram, "u_EveryObject", sizeof(pRenderContext->watermarkShader.params)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->watermarkShader.uniform_texture, pRenderContext->watermarkShader.pProgram, "u_texture"), udR_InternalError);
