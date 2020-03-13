@@ -70,7 +70,7 @@ void vcI3S::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 &delta)
 
 void vcI3S::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
 {
-  ImGui::TextUnformatted(vcString::Get("sceneExplorerI3S"));
+  ImGui::TextWrapped("Path: %s", m_pNode->pURI);
 }
 
 void vcI3S::HandleContextMenu(vcState * /*pProgramState*/)
