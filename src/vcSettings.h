@@ -66,7 +66,6 @@ enum vcSettingsUIRegions
 {
   vcSR_Appearance,
   vcSR_Inputs,
-  vcSR_Viewports,
   vcSR_Maps,
   vcSR_Visualisations,
   vcSR_KeyBindings,
@@ -84,7 +83,6 @@ enum vcSettingCategory
 {
   vcSC_Appearance,
   vcSC_InputControls,
-  vcSC_Viewport,
   vcSC_MapsElevation,
   vcSC_Visualization,
   vcSC_Convert,

@@ -184,12 +184,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->mouseSnap.range = data.Get("mouseSnap.range").AsInt(vcSL_MouseSnapRangeMax);
   }
 
-  if (group == vcSC_All || group == vcSC_Viewport)
-  {
-    pSettings->camera.lensIndex = data.Get("camera.lensId").AsInt(vcLS_30mm);
-    pSettings->camera.fieldOfView = data.Get("camera.fieldOfView").AsFloat(vcLens30mm);
-  }
-
   if (group == vcSC_All || group == vcSC_MapsElevation)
   {
     // Map Tiles
@@ -212,6 +206,9 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_All || group == vcSC_Visualization)
   {
+    pSettings->camera.lensIndex = data.Get("camera.lensId").AsInt(vcLS_30mm);
+    pSettings->camera.fieldOfView = data.Get("camera.fieldOfView").AsFloat(vcLens30mm);
+
     pSettings->objectHighlighting.enable = data.Get("objectHighlighting.enable").AsBool(true);
     pSettings->objectHighlighting.colour = data.Get("objectHighlighting.colour").AsFloat4(udFloat4::create(0.925f, 0.553f, 0.263f, 1.0f));
     pSettings->objectHighlighting.thickness = data.Get("objectHighlighting.thickness").AsFloat(2.0f);
