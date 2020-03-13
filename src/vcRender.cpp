@@ -284,7 +284,7 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->skyboxShaderPanorama.pProgram, "asset://assets/shaders/panoramaSkyboxVertexShader", "asset://assets/shaders/panoramaSkyboxFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->skyboxShaderTintImage.pProgram, "asset://assets/shaders/imageColourSkyboxVertexShader", "asset://assets/shaders/imageColourSkyboxFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->udRenderContext.splatIdShader.pProgram, "asset://assets/shaders/udVertexShader", "asset://assets/shaders/udSplatIdFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromText(&pRenderContext->postEffectsShader.pProgram, g_PostEffectsVertexShader, g_PostEffectsFragmentShader, vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->postEffectsShader.pProgram, "asset://assets/shaders/postEffectsVertexShader", "asset://assets/shaders/postEffectsFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
 
   UD_ERROR_CHECK(vcTexture_AsyncCreateFromFilename(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pWorkerPool, "asset://assets/skyboxes/WaterClouds.jpg", vcTFM_Linear));
   UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
