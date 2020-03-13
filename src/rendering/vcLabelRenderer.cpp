@@ -30,7 +30,7 @@ udResult vcLabelRenderer_Init()
 
   UD_ERROR_IF(gRefCount != 1, udR_Success);
 
-  UD_ERROR_IF(!vcShader_CreateFromText(&gShader.pShader, g_ImGuiVertexShader3D, g_ImGuiFragmentShader, vcImGuiVertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFile(&gShader.pShader, "asset://assets/shaders/imgui3DVertexShader", "asset://assets/shaders/imguiFragmentShader", vcImGuiVertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_Bind(gShader.pShader), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&gShader.pEveryObjectConstantBuffer, gShader.pShader, "u_EveryObject", sizeof(gShader.everyObject)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&gShader.pDiffuseSampler, gShader.pShader, "Texture"), udR_InternalError);

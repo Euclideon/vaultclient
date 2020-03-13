@@ -142,7 +142,7 @@ bool ImGuiGL_CreateDeviceObjects()
   // This function is pretty messy now to support loading fonts on the fly but also to remain _close_ to how the ImGui sample works to make it easy to merge future changes
 
   if (pImGuiShader == nullptr)
-    vcShader_CreateFromText(&pImGuiShader, g_ImGuiVertexShader, g_ImGuiFragmentShader, vcImGuiVertexLayout);
+    vcShader_CreateFromFile(&pImGuiShader, "asset://assets/shaders/imguiVertexShader", "asset://assets/shaders/imguiFragmentShader", vcImGuiVertexLayout);
 
   if (g_pAttribLocationProjMtx == nullptr)
     vcShader_GetConstantBuffer(&g_pAttribLocationProjMtx, pImGuiShader, "u_EveryFrame", sizeof(udFloat4x4));

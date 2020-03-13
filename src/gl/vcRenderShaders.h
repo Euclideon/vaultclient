@@ -11,10 +11,6 @@ extern const char* const g_FenceFragmentShader;
 extern const char* const g_WaterVertexShader;
 extern const char* const g_WaterFragmentShader;
 
-extern const char *const g_ImGuiVertexShader;
-extern const char *const g_ImGuiVertexShader3D;
-extern const char *const g_ImGuiFragmentShader;
-
 // Polygon shaders
 extern const char *const g_PolygonP3N3UV2FragmentShader;
 extern const char *const g_PolygonP3N3UV2VertexShader;
