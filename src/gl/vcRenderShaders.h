@@ -6,22 +6,10 @@
 extern const char *const g_PostEffectsVertexShader;
 extern const char *const g_PostEffectsFragmentShader;
 
-extern const char* const g_udFragmentShader;
-extern const char* const g_udSplatIdFragmentShader;
-extern const char* const g_udVertexShader;
-extern const char* const g_tileFragmentShader;
-extern const char* const g_tileVertexShader;
-extern const char* const g_vcSkyboxFragmentShaderPanorama;
-extern const char* const g_vcSkyboxFragmentShaderImageColour;
-extern const char* const g_vcSkyboxVertexShaderPanorama;
-extern const char *const g_vcSkyboxVertexShaderImageColour;
 extern const char* const g_FenceVertexShader;
 extern const char* const g_FenceFragmentShader;
 extern const char* const g_WaterVertexShader;
 extern const char* const g_WaterFragmentShader;
-
-extern const char *const g_CompassFragmentShader;
-extern const char *const g_CompassVertexShader;
 
 extern const char *const g_ImGuiVertexShader;
 extern const char *const g_ImGuiVertexShader3D;

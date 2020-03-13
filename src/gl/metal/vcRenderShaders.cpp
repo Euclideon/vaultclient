@@ -3,27 +3,12 @@
 const char *const g_PostEffectsFragmentShader = "postEffectsFragmentShader";
 const char *const g_PostEffectsVertexShader = "postEffectsVertexShader";
 
-const char* const g_udFragmentShader = "udFragmentShader";
-const char *const g_udSplatIdFragmentShader = "udSplatIdFragmentShader";
-const char* const g_udVertexShader = "udVertexShader";
-
-const char* const g_tileFragmentShader = "tileFragmentShader";
-const char* const g_tileVertexShader = "tileVertexShader";
-
-const char* const g_vcSkyboxVertexShaderPanorama = "skyboxVertexShaderPanorama";
-const char* const g_vcSkyboxFragmentShaderPanorama = "skyboxFragmentShaderPanorama";
-const char *const g_vcSkyboxVertexShaderImageColour = "skyboxVertexShaderPanorama"; // not implemented
-const char* const g_vcSkyboxFragmentShaderImageColour = "skyboxFragmentShaderImageColor";
-
 const char* const g_ImGuiVertexShader = "imguiVertexShader";
 const char* const g_ImGuiVertexShader3D = "imguiVertexShader";
 const char* const g_ImGuiFragmentShader = "imguiFragmentShader";
 
 const char* const g_FenceVertexShader = "fenceVertexShader";
 const char* const g_FenceFragmentShader = "fenceFragmentShader";
-
-const char* const g_CompassFragmentShader = "compassFragmentShader";
-const char* const g_CompassVertexShader = "compassVertexShader";
 
 const char* const g_WaterFragmentShader = "waterFragmentShader";
 const char* const g_WaterVertexShader = "waterVertexShader";
