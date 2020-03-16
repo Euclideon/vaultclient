@@ -209,6 +209,12 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->camera.lensIndex = data.Get("camera.lensId").AsInt(vcLS_30mm);
     pSettings->camera.fieldOfView = data.Get("camera.fieldOfView").AsFloat(vcLens30mm);
 
+    pSettings->displacementShaderType = (vcDisplacementShaderType)data.Get("displacementShaderType").AsInt(0);
+    pSettings->visualization.displacement.bounds.x = data.Get("visualization.displacement.minBound").AsFloat(0.f);
+    pSettings->visualization.displacement.bounds.y = data.Get("visualization.displacement.maxBound").AsFloat(1.f);
+    pSettings->visualization.displacement.errorColour = data.Get("visualization.displacement.errorColour").AsInt(0);
+    pSettings->visualization.displacement.outOfBoundsColour = data.Get("visualization.displacement.outOfBoundsColour").AsInt(16777215);
+
     pSettings->objectHighlighting.enable = data.Get("objectHighlighting.enable").AsBool(true);
     pSettings->objectHighlighting.colour = data.Get("objectHighlighting.colour").AsFloat4(udFloat4::create(0.925f, 0.553f, 0.263f, 1.0f));
     pSettings->objectHighlighting.thickness = data.Get("objectHighlighting.thickness").AsFloat(2.0f);
@@ -520,6 +526,12 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.scrollwheelBinding = %d", pSettings->camera.scrollWheelMode);
 
   // Visualization
+  data.Set("displacementShaderType = %i", pSettings->displacementShaderType);
+  data.Set("visualization.displacement.minBound = %f", pSettings->visualization.displacement.bounds.x);
+  data.Set("visualization.displacement.maxBound = %f", pSettings->visualization.displacement.bounds.y);
+  data.Set("visualization.displacement.errorColour = %i", pSettings->visualization.displacement.errorColour);
+  data.Set("visualization.displacement.outOfBoundsColour = %i", pSettings->visualization.displacement.outOfBoundsColour);
+
   data.Set("visualization.mode = %d", pSettings->visualization.mode - 1);
   data.Set("visualization.minIntensity = %d", pSettings->visualization.minIntensity);
   data.Set("visualization.maxIntensity = %d", pSettings->visualization.maxIntensity);

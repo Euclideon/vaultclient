@@ -34,6 +34,12 @@ enum vcVisualizatationMode
   vcVM_Displacement
 };
 
+enum vcDisplacementShaderType
+{
+  vcDST_Absolute,
+  vcDST_Signed
+};
+
 enum vcAnchorStyle
 {
   vcAS_None,
@@ -123,7 +129,13 @@ struct vcVisualizationSettings
   int minIntensity;
   int maxIntensity;
 
-  udFloat2 displacement;
+  struct
+  {
+    udFloat2 bounds;
+    uint32_t errorColour;
+    uint32_t outOfBoundsColour;
+  } displacement;
+
 
   bool useCustomClassificationColours;
   bool customClassificationToggles[256];
@@ -209,6 +221,7 @@ struct vcSettings
   } loginInfo;
 
   vcVisualizationSettings visualization;
+  vcDisplacementShaderType displacementShaderType;
 
   struct
   {

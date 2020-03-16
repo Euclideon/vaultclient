@@ -51,8 +51,15 @@
   "visualization": {
     "mode": 0,
     "minIntensity": 0,
-    "maxIntensity": 65535
+    "maxIntensity": 65535,
+    "displacement": {
+      "minBound": 0.0,
+      "maxBound": 1.0,
+      "errorColour": 16777215,
+      "outOfBoundsColour": 0
+    }
   },
+  "displacementShaderType": 0,
   "postVisualization": {
     "edgeOutlines": {
       "enabled": false,

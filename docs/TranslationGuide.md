@@ -336,7 +336,11 @@ Modules are currently:
 - `settingsVisContoursBandHeight`: Label next to slider for setting the vertical size of each contour
 - `settingsVisContoursRainbowRepeatRate`: Label next to the slider for how quickly the rainbow mode for contours repeats
 - `settingsVisContoursRainbowIntensity`: Label next to the slider that sets how strongly the rainbow appears
+- `settingsVisDisplacementAbs`: Label next to the button to view absolute displacements
+- `settingsVisDisplacementSigned`: Label next to the button to view positive and negative displacements
 - `settingsVisDisplacementRange`: Label next to the input fields to specify displacement range values
+- `settingsVisDisplacementErrorClr`: Label next to the input fields to specify an error colour
+- `settingsVisDisplacementOutOfBoundsClr`: Label next to the input fields to specify an out of bounds colour
 - `settingsVisRestoreDefaults`: Used to restore default values for all visualisation settings
 
 - `settingsVisClassRestoreDefaults`: Label on a button that restores default values for all classifications and colours

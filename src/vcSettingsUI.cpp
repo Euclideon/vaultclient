@@ -876,10 +876,38 @@ void vcSettingsUI_VisualizationSettings(vcState *pProgramState, vcVisualizationS
 
   if (pVisualizationSettings->mode == vcVM_Displacement)
   {
-    if (ImGui::InputFloat2(vcString::Get("settingsVisDisplacementRange"), &pVisualizationSettings->displacement.x))
+    int displacementType = pProgramState->settings.displacementShaderType;
+    ImGui::RadioButton(vcString::Get("settingsVisDisplacementAbs"), &displacementType, vcDST_Absolute); ImGui::SameLine();
+    ImGui::RadioButton(vcString::Get("settingsVisDisplacementSigned"), &displacementType, vcDST_Signed);
+    pProgramState->settings.displacementShaderType = (vcDisplacementShaderType)displacementType;
+
+    if (displacementType == vcDST_Absolute)
     {
-      pVisualizationSettings->displacement.x = udClamp(pVisualizationSettings->displacement.x, 0.f, MAX_DISPLACEMENT);
-      pVisualizationSettings->displacement.y = udClamp(pVisualizationSettings->displacement.y, pVisualizationSettings->displacement.x, MAX_DISPLACEMENT);
+      pProgramState->settings.displacementShaderType = vcDST_Absolute;
+      ImGui::DragFloat2(vcString::Get("settingsVisDisplacementRange"), &pVisualizationSettings->displacement.bounds.x, 0.02f, 0.f, MAX_DISPLACEMENT);
+      pVisualizationSettings->displacement.bounds.x = udClamp(pVisualizationSettings->displacement.bounds.x, 0.f, MAX_DISPLACEMENT);
+      pVisualizationSettings->displacement.bounds.y = udClamp(pVisualizationSettings->displacement.bounds.y, pVisualizationSettings->displacement.bounds.x, MAX_DISPLACEMENT);
     }
+    else
+    {
+      ImGui::DragFloat(vcString::Get("settingsVisDisplacementRange"), &pVisualizationSettings->displacement.bounds.y, 0.02f, 0.f, MAX_DISPLACEMENT, "+-%.3f");
+      pVisualizationSettings->displacement.bounds.x = -pVisualizationSettings->displacement.bounds.y;
+    }
+
+    float s_errorColour[3] = {};
+    s_errorColour[0] = float((pProgramState->settings.visualization.displacement.errorColour >> 16) & 0xFF) / 255.f;
+    s_errorColour[1] = float((pProgramState->settings.visualization.displacement.errorColour >> 8) & 0xFF) / 255.f;
+    s_errorColour[2] = float(pProgramState->settings.visualization.displacement.errorColour & 0xFF) / 255.f;
+
+    float s_outOfBoundsColour[3] = {};
+    s_outOfBoundsColour[0] = float((pProgramState->settings.visualization.displacement.outOfBoundsColour >> 16) & 0xFF) / 255.f;
+    s_outOfBoundsColour[1] = float((pProgramState->settings.visualization.displacement.outOfBoundsColour >> 8) & 0xFF) / 255.f;
+    s_outOfBoundsColour[2] = float( pProgramState->settings.visualization.displacement.outOfBoundsColour & 0xFF) / 255.f;
+
+    if (ImGui::ColorEdit3(vcString::Get("settingsVisDisplacementErrorClr"), s_errorColour))
+      pProgramState->settings.visualization.displacement.errorColour = (uint32_t(s_errorColour[0] * 255) << 16) | (uint32_t(s_errorColour[1] * 255) << 8) | uint32_t(s_errorColour[2] * 255);
+
+    if (ImGui::ColorEdit3(vcString::Get("settingsVisDisplacementOutOfBoundsClr"), s_outOfBoundsColour))
+      pProgramState->settings.visualization.displacement.outOfBoundsColour = (uint32_t(s_outOfBoundsColour[0] * 255) << 16) | (uint32_t(s_outOfBoundsColour[1] * 255) << 8) | uint32_t(s_outOfBoundsColour[2] * 255);
   }
 }

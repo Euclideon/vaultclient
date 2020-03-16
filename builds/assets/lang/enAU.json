@@ -172,7 +172,11 @@
   "settingsVisContoursBandHeight": "Contours Band Height",
   "settingsVisContoursRainbowRepeatRate": "Rainbow Repeat Distance",
   "settingsVisContoursRainbowIntensity": "Rainbow Intensity",
+  "settingsVisDisplacementAbs": "Absolute Displacement",
+  "settingsVisDisplacementSigned": "Signed Displacement",
   "settingsVisDisplacementRange": "Displacement Range",
+  "settingsVisDisplacementErrorClr": "Error Colour",
+  "settingsVisDisplacementOutOfBoundsClr": "Out Of Bounds Colour",
 
   "settingsVisClassShowColourTable": "Show Custom Classification Colour Table",
   "settingsVisClassShowAll": "Show All Classifications",

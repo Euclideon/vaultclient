@@ -1403,10 +1403,15 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
       }
       else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Displacement) && vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
       {
-        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Displacement;
+        if (pProgramState->settings.displacementShaderType == vcDST_Absolute)
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_DisplacementAbs;
+        else
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_DisplacementSigned;
 
-        pVoxelShaderData[numVisibleModels].data.displacement.minThreshold = pVisSettings->displacement.x;
-        pVoxelShaderData[numVisibleModels].data.displacement.maxThreshold = pVisSettings->displacement.y;
+        pVoxelShaderData[numVisibleModels].data.displacement.minBound = pVisSettings->displacement.bounds.x;
+        pVoxelShaderData[numVisibleModels].data.displacement.maxBound = pVisSettings->displacement.bounds.y;
+        pVoxelShaderData[numVisibleModels].data.displacement.errorColour = pVisSettings->displacement.errorColour;
+        pVoxelShaderData[numVisibleModels].data.displacement.outOfBoundsColour = pVisSettings->displacement.outOfBoundsColour;
       }
 
       ++numVisibleModels;
