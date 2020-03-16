@@ -33,7 +33,7 @@ void HandleNodeSelection(vcState* pProgramState, vdkProjectNode *pParent, vdkPro
   vcSceneItem *pSceneItem = (vcSceneItem*)pNode->pUserData;
 
   if (!ImGui::GetIO().KeyCtrl)
-    vcProject_ClearSelection(pProgramState);
+    vcProject_ClearSelection(pProgramState, false);
 
   if (pSceneItem->m_selected)
   {

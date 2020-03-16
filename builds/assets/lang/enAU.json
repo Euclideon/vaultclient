@@ -580,6 +580,13 @@
   "attributeBlendingSingle": "Single Value",
   "attributeBlendingUnknown": "Unknown",
 
+  "toolSelect": "Selection Tool",
+  "toolMeasureLine": "Line Measurement Tool",
+  "toolMeasureArea": "Area Measurement Tool",
+
+  "toolMeasureStart": "Click a point to begin the measurement...",
+  "toolMeasureNext": "Click the next point to continue measuring (or press {0} to end measurement)...",
+
   "bindingsTitle": "Key Bindings",
   "bindingsSettingsSave": "Save",
   "bindingsColumnName": "Name",

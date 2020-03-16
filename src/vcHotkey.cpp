@@ -42,7 +42,11 @@ namespace vcHotkey
     "BindingsInterface",
     "Undo",
     "TakeScreenshot",
-    "ToggleSceneExplorer"
+    "ToggleSceneExplorer",
+
+    "ToggleSelectTool",
+    "ToggleMeasureLineTool",
+    "ToggleMeasureAreaTool",
   };
   UDCOMPILEASSERT(udLengthOf(vcHotkey::bindNames) == vcB_Count, "Hotkey count discrepancy.");
 

@@ -40,6 +40,10 @@ enum vcBind
   vcB_TakeScreenshot,
   vcB_ToggleSceneExplorer,
 
+  vcB_ToggleSelectTool,
+  vcB_ToggleMeasureLineTool,
+  vcB_ToggleMeasureAreaTool,
+
   vcB_Count
 };
 
