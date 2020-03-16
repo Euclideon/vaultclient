@@ -1185,7 +1185,7 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
   return true;
 }
 
-void vcRenderWatermark(vcState *pProgramState, vcRenderContext *pRenderContext, vcTexture *pWatermark)
+void vcRenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWatermark)
 {
   if (nullptr == pWatermark)
     return;
@@ -1294,9 +1294,9 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcRender_PostProcessPass(pProgramState, pRenderContext);
 
   if (pProgramState->settings.presentation.showEuclideonLogo)
-    vcRenderWatermark(pProgramState, pRenderContext, pProgramState->pCompanyWatermark);
+    vcRenderWatermark(pRenderContext, pProgramState->pCompanyWatermark);
   else if (pProgramState->pSceneWatermark != nullptr)
-    vcRenderWatermark(pProgramState, pRenderContext, pProgramState->pSceneWatermark);
+    vcRenderWatermark(pRenderContext, pProgramState->pSceneWatermark);
     
 
   vcGLState_ResetState();
