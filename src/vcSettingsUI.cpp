@@ -892,6 +892,12 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
     if (ImGui::InputFloat2(vcString::Get("settingsVisDisplacementRange"), &pVisualizationSettings->displacement.bounds.x))
     {
       retVal = true;
+
+      int displacementType = pProgramState->settings.displacementShaderType;
+      ImGui::RadioButton(vcString::Get("settingsVisDisplacementAbs"), &displacementType, vcDST_Absolute); ImGui::SameLine();
+      ImGui::RadioButton(vcString::Get("settingsVisDisplacementSigned"), &displacementType, vcDST_Signed);
+      pProgramState->settings.displacementShaderType = (vcDisplacementShaderType)displacementType;
+
       pVisualizationSettings->displacement.bounds.x = udClamp(pVisualizationSettings->displacement.bounds.x, 0.f, MAX_DISPLACEMENT);
       pVisualizationSettings->displacement.bounds.y = udClamp(pVisualizationSettings->displacement.bounds.y, pVisualizationSettings->displacement.x, MAX_DISPLACEMENT);
     }

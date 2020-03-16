@@ -46,7 +46,7 @@ inline uint32_t vcVoxelShader_FadeAlpha(uint32_t firstColour, uint32_t secondCol
   return result;
 }
 
-uint32_t vcVoxelShader_Displacement(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+uint32_t vcVoxelShader_DisplacementAbs(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
@@ -59,7 +59,6 @@ uint32_t vcVoxelShader_Displacement(vdkPointCloud *pPointCloud, uint64_t voxelID
 
   if (pDisplacement != nullptr)
   {
-    
     if (*pDisplacement == FLT_MAX)
       displacementColour = pData->data.displacement.errorColour;
     else if (*pDisplacement <= pData->data.displacement.minThreshold)
@@ -72,6 +71,66 @@ uint32_t vcVoxelShader_Displacement(vdkPointCloud *pPointCloud, uint64_t voxelID
 
   displacementColour = vcVoxelShader_FadeAlpha(displacementColour, baseColour);
   return vcPCShaders_BuildAlpha(pData->pModel) | (displacementColour & 0xFFFFFF);
+}
+
+uint32_t vcVoxelShader_DisplacementSigned(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+{
+  vcUDRSData *pData = (vcUDRSData *)pUserData;
+
+  uint32_t result = 0;
+  vdkPointCloud_GetNodeColour(pPointCloud, voxelID, &result);
+
+  float *pDisplacement = nullptr;
+  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pDisplacement);
+
+  if (pDisplacement != nullptr)
+  {
+    if (*pDisplacement == FLT_MAX)
+      result = pData->data.displacement.errorColour;
+    else
+    {
+      uint32_t red = 0;
+      uint32_t green = 0;
+      uint32_t blue = 0;
+
+      const uint32_t nBits = 2;
+      const uint32_t clrMask = 0xC0;
+
+      if ((*pDisplacement < pData->data.displacement.minBound) || (*pDisplacement > pData->data.displacement.maxBound ))
+      {
+        result = pData->data.displacement.outOfBoundsColour;
+      }
+      else
+      {
+        uint32_t nBounds = 5;
+        uint32_t redMix[] = {0, 0, 0, 255, 255};
+        uint32_t greenMix[] = {255, 255, 0, 0, 0};
+        uint32_t blueMix[] = {0, 255, 255, 255, 0};
+
+        float range = pData->data.displacement.maxBound - pData->data.displacement.minBound;
+        for (uint32_t i = 0; i < nBounds - 1; ++i)
+        {
+          float frac = (*pDisplacement - pData->data.displacement.minBound) / range;
+          float upperBound = float(i + 1) / (nBounds - 1);
+          if (frac <= upperBound)
+          {
+            float mix = (frac * (nBounds - 1) - i);
+            red = uint32_t((float)redMix[i] + (redMix[i + 1] - redMix[i]) * mix);
+            green = uint32_t((float)greenMix[i] + (greenMix[i + 1] - greenMix[i]) * mix);
+            blue = uint32_t((float)blueMix[i] + (blueMix[i + 1] - blueMix[i]) * mix);
+            break;
+          }
+        }
+
+        result = (result >> nBits) & 0x3F3F3F;
+        result = result | ((red & clrMask) << 16);
+        result = result | ((green & clrMask) << 8);
+        result = result | (blue & clrMask);
+      }
+    }
+  }
+
+  return vcPCShaders_BuildAlpha(pData->pModel) | (result & 0xFFFFFF);
 }
 
 uint32_t vcVoxelShader_Classification(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)

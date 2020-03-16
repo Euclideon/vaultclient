@@ -231,6 +231,9 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->visualization.minIntensity = data.Get("visualization.minIntensity").AsInt(0);
     pSettings->visualization.maxIntensity = data.Get("visualization.maxIntensity").AsInt(65535);
 
+    pSettings->displacementShaderType = (vcDisplacementShaderType)data.Get("displacementShaderType").AsInt(0);
+    pSettings->visualization.displacement.bounds.x = data.Get("visualization.displacement.minBound").AsFloat(0.f);
+    pSettings->visualization.displacement.bounds.y = data.Get("visualization.displacement.maxBound").AsFloat(1.f);
     pSettings->visualization.displacement.error = data.Get("visualization.displacement.errColour").AsInt(0x80FF00FF);
     pSettings->visualization.displacement.max = data.Get("visualization.displacement.maxColour").AsInt(0x80FF0000);
     pSettings->visualization.displacement.min = data.Get("visualization.displacement.minColour").AsInt(0x4000FF00);
@@ -551,6 +554,9 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("visualization.maxIntensity = %d", pSettings->visualization.maxIntensity);
 
   // Displacement Colouring
+  data.Set("displacementShaderType = %i", pSettings->displacementShaderType);
+  data.Set("visualization.displacement.minBound = %f", pSettings->visualization.displacement.bounds.x);
+  data.Set("visualization.displacement.maxBound = %f", pSettings->visualization.displacement.bounds.y);
   data.Set("visualization.displacement.errColour = %d", pSettings->visualization.displacement.error);
   data.Set("visualization.displacement.maxColour = %d", pSettings->visualization.displacement.max);
   data.Set("visualization.displacement.minColour = %d", pSettings->visualization.displacement.min);

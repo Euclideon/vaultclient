@@ -1465,7 +1465,10 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
       }
       else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Displacement) && vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
       {
-        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Displacement;
+        if (pProgramState->settings.displacementShaderType == vcDST_Absolute)
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_DisplacementAbs;
+        else
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_DisplacementSigned;
 
         pVoxelShaderData[numVisibleModels].data.displacement.minThreshold = pVisSettings->displacement.bounds.x;
         pVoxelShaderData[numVisibleModels].data.displacement.maxThreshold = pVisSettings->displacement.bounds.y;

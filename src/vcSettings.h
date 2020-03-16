@@ -33,6 +33,12 @@ enum vcVisualizatationMode
   vcVM_Displacement
 };
 
+enum vcDisplacementShaderType
+{
+  vcDST_Absolute,
+  vcDST_Signed
+};
+
 enum vcAnchorStyle
 {
   vcAS_None,
@@ -223,6 +229,7 @@ struct vcSettings
   } loginInfo;
 
   vcVisualizationSettings visualization;
+  vcDisplacementShaderType displacementShaderType;
 
   struct
   {
