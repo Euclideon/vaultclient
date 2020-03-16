@@ -154,3 +154,4 @@ Android
 /bin/
 /x64/
 /*.androidproj
+/builds/assets/shaders
