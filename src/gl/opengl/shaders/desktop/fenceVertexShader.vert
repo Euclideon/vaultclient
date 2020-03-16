@@ -27,7 +27,8 @@ layout (std140) uniform u_EveryFrame
   float u_textureScrollSpeed;
   float u_time;
 
-  vec3 _padding;
+  float _padding1;
+  vec2 _padding2;
 };
 
 layout (std140) uniform u_EveryObject

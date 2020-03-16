@@ -32,7 +32,8 @@ cbuffer u_EveryFrame : register(b0)
   float u_textureScrollSpeed;
   float u_time;
 
-  float3 _padding;
+  float _padding1;
+  float2 _padding2;
 };
 
 cbuffer u_EveryObject : register(b1)
