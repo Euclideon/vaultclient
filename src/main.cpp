@@ -1370,26 +1370,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::End();
   }
 
-  udInt2 logoSize = udInt2::zero();
-  if (pProgramState->settings.presentation.showEuclideonLogo)
-  {
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    vcTexture_GetSize(pProgramState->pCompanyWatermark, &logoSize.x, &logoSize.y);
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
-    ImGui::SetNextWindowSize(ImVec2((float)logoSize.x, (float)logoSize.y));
-    ImGui::SetNextWindowBgAlpha(1.0f);
-
-    if (ImGui::Begin("LogoBox", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
-    {
-      ImGui::Image(pProgramState->pCompanyWatermark, ImVec2((float)logoSize.x, (float)logoSize.y));
-      if (ImGui::IsWindowAppearing())
-        ImGui::SetWindowFocus("###settingsDock");
-    }
-
-    ImGui::End();
-    ImGui::PopStyleVar();
-  }
-
   if (pProgramState->settings.presentation.showCompass)
   {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));

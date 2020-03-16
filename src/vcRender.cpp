@@ -331,7 +331,7 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->selectionShader.uniform_texture, pRenderContext->selectionShader.pProgram, "u_texture"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->selectionShader.uniform_params, pRenderContext->selectionShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->selectionShader.params)), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->watermarkShader.pProgram, "asset://assets/shaders/imageRendererBillboardVertexShader", "asset://assets/shaders/imageRendererFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->watermarkShader.pProgram, "asset://assets/shaders/imageRendererBillboardVertexShader", "asset://assets/shaders/imageUIRendererFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_Bind(pRenderContext->watermarkShader.pProgram), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->watermarkShader.uniform_params, pRenderContext->watermarkShader.pProgram, "u_EveryObject", sizeof(pRenderContext->watermarkShader.params)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->watermarkShader.uniform_texture, pRenderContext->watermarkShader.pProgram, "u_texture"), udR_InternalError);
@@ -1185,9 +1185,9 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
   return true;
 }
 
-void vcRenderWatermark(vcState *pProgramState, vcRenderContext *pRenderContext)
+void vcRenderWatermark(vcState *pProgramState, vcRenderContext *pRenderContext, vcTexture *pWatermark)
 {
-  if (!pProgramState->pSceneWatermark)
+  if (nullptr == pWatermark)
     return;
 
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
@@ -1195,7 +1195,7 @@ void vcRenderWatermark(vcState *pProgramState, vcRenderContext *pRenderContext)
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   udInt2 imageSize = udInt2::zero();
-  vcTexture_GetSize(pProgramState->pSceneWatermark, &imageSize.x, &imageSize.y);
+  vcTexture_GetSize(pWatermark, &imageSize.x, &imageSize.y);
 
   udDouble3 position = udDouble3::create((double)imageSize.x / pRenderContext->sceneResolution.x - 1,(double)imageSize.y / pRenderContext->sceneResolution.y - 1, 0);
   pRenderContext->watermarkShader.params.u_worldViewProjectionMatrix = udFloat4x4::create(udDouble4x4::translation(position) * udDouble4x4::scaleUniform(1.0f));
@@ -1204,7 +1204,7 @@ void vcRenderWatermark(vcState *pProgramState, vcRenderContext *pRenderContext)
 
   vcShader_Bind(pRenderContext->watermarkShader.pProgram);
   vcShader_BindConstantBuffer(pRenderContext->watermarkShader.pProgram, pRenderContext->watermarkShader.uniform_params, &pRenderContext->watermarkShader.params, sizeof(pRenderContext->watermarkShader.params));
-  vcShader_BindTexture(pRenderContext->watermarkShader.pProgram, pProgramState->pSceneWatermark, 0, pRenderContext->watermarkShader.uniform_texture);
+  vcShader_BindTexture(pRenderContext->watermarkShader.pProgram, pWatermark, 0, pRenderContext->watermarkShader.uniform_texture);
   vcMesh_Render(gInternalMeshes[vcInternalMeshType_Billboard]);
 
   vcGLState_ResetState();
@@ -1292,7 +1292,12 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   }
 
   vcRender_PostProcessPass(pProgramState, pRenderContext);
-  vcRenderWatermark(pProgramState, pRenderContext);
+
+  if (pProgramState->settings.presentation.showEuclideonLogo)
+    vcRenderWatermark(pProgramState, pRenderContext, pProgramState->pCompanyWatermark);
+  else if (pProgramState->pSceneWatermark != nullptr)
+    vcRenderWatermark(pProgramState, pRenderContext, pProgramState->pSceneWatermark);
+    
 
   vcGLState_ResetState();
   vcShader_Bind(nullptr);
