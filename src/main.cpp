@@ -1687,7 +1687,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
 #endif
 
     // Actual rendering to this texture is deferred
-    ImGui::ImageButton(renderData.pSceneTexture, windowSize, uv0, uv1, 0);
+    ImGui::Image(renderData.pSceneTexture, windowSize, uv0, uv1);
 
     if (pProgramState->settings.screenshot.taking)
       pProgramState->screenshot.pImage = renderData.pSceneTexture;
