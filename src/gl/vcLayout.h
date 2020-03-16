@@ -58,19 +58,6 @@ struct vcP3UV2RI4Vertex
   udFloat4 ribbonInfo; // xyz: expand vector; w: pair id (0 or 1)
 };
 
-struct vcP4C1Vertex
-{
-  udFloat4 pos;
-  uint32_t color;
-};
-
-struct vcP4C1QC2Vertex
-{
-  udFloat4 pos;
-  uint32_t color;
-  float corner[2];
-};
-
 struct vcP2UV2C1Vertex
 {
   udFloat2 position;  
@@ -84,8 +71,6 @@ const vcVertexLayoutTypes vcP3N3VertexLayout[] = { vcVLT_Position3, vcVLT_Normal
 const vcVertexLayoutTypes vcP3UV2VertexLayout[] = { vcVLT_Position3, vcVLT_TextureCoords2 }; // screen quad
 const vcVertexLayoutTypes vcP3N3UV2VertexLayout[] = { vcVLT_Position3, vcVLT_Normal3, vcVLT_TextureCoords2 }; // polygon model
 const vcVertexLayoutTypes vcP3UV2RI4VertexLayout[] = { vcVLT_Position3, vcVLT_TextureCoords2, vcVLT_RibbonInfo4 }; // ribbon
-const vcVertexLayoutTypes vcP4C1VertexLayout[] = { vcVLT_Position4, vcVLT_ColourBGRA }; // gpu renderer (point)
-const vcVertexLayoutTypes vcP4C1QC2VertexLayout[] = { vcVLT_Position4, vcVLT_ColourBGRA, vcVLT_QuadCorner }; // gpu renderer (quad)
 
 // ImGui
 const vcVertexLayoutTypes vcImGuiVertexLayout[] = { vcVLT_Position2, vcVLT_TextureCoords2, vcVLT_ColourBGRA };

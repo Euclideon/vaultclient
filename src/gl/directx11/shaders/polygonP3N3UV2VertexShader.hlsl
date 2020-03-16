@@ -9,8 +9,8 @@ cbuffer u_cameraPlaneParams
 struct VS_INPUT
 {
   float3 pos : POSITION;
-  float2 uv  : TEXCOORD0;
   float3 normal : NORMAL;
+  float2 uv  : TEXCOORD0;
   //float4 colour : COLOR0;
 };
 
