@@ -156,8 +156,15 @@ bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t sampl
   glBindTexture(vcTTToGL[pTexture->type], pTexture->id);
   VERIFY_GL();
 
-  if (pSampler != nullptr)
+  if (pSampler == nullptr)
+  {
+    GLuint samplerId = glGetUniformLocation(pShader->programID, udTempStr("SPIRV_Cross_Combinedtexture%dsampler%d", samplerIndex, samplerIndex));
+    glUniform1i(samplerId, samplerIndex);
+  }
+  else
+  {
     glUniform1i(pSampler->id, samplerIndex);
+  }
 
   VERIFY_GL();
 
@@ -201,6 +208,9 @@ bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pSh
     }
   }
 
+  if ((*ppBuffer) == nullptr && !udStrBeginsWith(pBufferName, "type_"))
+    return vcShader_GetConstantBuffer(ppBuffer, pShader, udTempStr("type_%s", pBufferName), bufferSize);
+
   return ((*ppBuffer) != nullptr);
 }
 
@@ -235,7 +245,7 @@ bool vcShader_GetSamplerIndex(vcShaderSampler **ppSampler, vcShader *pShader, co
   GLuint uID = glGetUniformLocation(pShader->programID, pSamplerName);
 
   if (uID == GL_INVALID_INDEX)
-    return false;
+    return true;
 
   vcShaderSampler *pSampler = &pShader->samplerIndexes[pShader->numSamplerIndexes];
   pShader->numSamplerIndexes++;
