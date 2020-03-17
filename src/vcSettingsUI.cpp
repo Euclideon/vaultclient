@@ -888,12 +888,18 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
     break;
   case vcVM_Displacement:
   {
-    if (ImGui::InputFloat2(vcString::Get("settingsVisDisplacementRange"), &pVisualizationSettings->displacement.x))
+    ImGui::Indent();
+    if (ImGui::InputFloat2(vcString::Get("settingsVisDisplacementRange"), &pVisualizationSettings->displacement.bounds.x))
     {
       retVal = true;
-      pVisualizationSettings->displacement.x = udClamp(pVisualizationSettings->displacement.x, 0.f, MAX_DISPLACEMENT);
-      pVisualizationSettings->displacement.y = udClamp(pVisualizationSettings->displacement.y, pVisualizationSettings->displacement.x, MAX_DISPLACEMENT);
+      pVisualizationSettings->displacement.bounds.x = udClamp(pVisualizationSettings->displacement.bounds.x, 0.f, MAX_DISPLACEMENT);
+      pVisualizationSettings->displacement.bounds.y = udClamp(pVisualizationSettings->displacement.bounds.y, pVisualizationSettings->displacement.x, MAX_DISPLACEMENT);
     }
+    vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourMax"), &pVisualizationSettings->displacement.max, ImGuiColorEditFlags_None);
+    vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourMin"), &pVisualizationSettings->displacement.min, ImGuiColorEditFlags_None);
+    vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourMid"), &pVisualizationSettings->displacement.mid, ImGuiColorEditFlags_None);
+    vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourNoMatch"), &pVisualizationSettings->displacement.error, ImGuiColorEditFlags_None);
+    ImGui::Unindent();
   }
   break;
   default:

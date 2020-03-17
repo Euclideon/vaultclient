@@ -231,6 +231,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->visualization.minIntensity = data.Get("visualization.minIntensity").AsInt(0);
     pSettings->visualization.maxIntensity = data.Get("visualization.maxIntensity").AsInt(65535);
 
+    pSettings->visualization.displacement.error = data.Get("visualization.displacement.errColour").AsInt(0x80FF00FF);
+    pSettings->visualization.displacement.max = data.Get("visualization.displacement.maxColour").AsInt(0x80FF0000);
+    pSettings->visualization.displacement.min = data.Get("visualization.displacement.minColour").AsInt(0x4000FF00);
+    pSettings->visualization.displacement.mid = data.Get("visualization.displacement.midColour").AsInt(0x4000FFFF);
+
     for (size_t i = 0; i < udLengthOf(pSettings->visualization.customClassificationToggles); i++)
       pSettings->visualization.customClassificationToggles[i] = true;
 
@@ -544,6 +549,12 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("visualization.mode = %d", pSettings->visualization.mode - 1);
   data.Set("visualization.minIntensity = %d", pSettings->visualization.minIntensity);
   data.Set("visualization.maxIntensity = %d", pSettings->visualization.maxIntensity);
+
+  // Displacement Colouring
+  data.Set("visualization.displacement.errColour = %d", pSettings->visualization.displacement.error);
+  data.Set("visualization.displacement.maxColour = %d", pSettings->visualization.displacement.max);
+  data.Set("visualization.displacement.minColour = %d", pSettings->visualization.displacement.min);
+  data.Set("visualization.displacement.midColour = %d", pSettings->visualization.displacement.mid);
 
   int lastFalseIndex = (int)udLengthOf(pSettings->visualization.customClassificationToggles) - 1;
   for (; lastFalseIndex >= 0; --lastFalseIndex)

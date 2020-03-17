@@ -24,6 +24,10 @@ struct vcUDRSData
     {
       float minThreshold;
       float maxThreshold;
+      uint32_t minColour;
+      uint32_t maxColour;
+      uint32_t midColour;
+      uint32_t errorColour;
     } displacement;
   } data;
 };

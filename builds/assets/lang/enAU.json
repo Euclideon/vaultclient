@@ -175,6 +175,10 @@
   "settingsVisContoursRainbowRepeatRate": "Rainbow Repeat Distance",
   "settingsVisContoursRainbowIntensity": "Rainbow Intensity",
   "settingsVisDisplacementRange": "Displacement Range",
+  "settingsVisDisplacementColourMax": "Maximum Displacement",
+  "settingsVisDisplacementColourMin": "Minimum Displacement",
+  "settingsVisDisplacementColourMid": "Mid Displacement",
+  "settingsVisDisplacementColourNoMatch": "No Match",
 
   "settingsVisClassShowColourTable": "Show Custom Classification Colour Table",
   "settingsVisClassShowAll": "Show All Classifications",
