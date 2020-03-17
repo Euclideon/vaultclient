@@ -29,28 +29,53 @@ uint32_t vcVoxelShader_Intensity(vdkPointCloud *pPointCloud, uint64_t voxelID, c
   return vcPCShaders_BuildAlpha(pData->pModel) | result;
 }
 
+inline uint32_t fadeAlpha(uint32_t firstColour, uint32_t secondColour)
+{
+  
+  uint32_t alphaMask = 0xFF << 24;
+
+  float  alpha = (float)((alphaMask & firstColour) >> 24);
+  alpha/=255.f;
+  uint32_t result = 0;
+  //extract the each colour and scale it by the alpha in the first channel
+  for (int shift = 0; shift < 24; shift += 8)
+  {
+    float scaledChannel = alpha * (float)((firstColour >> shift) & 0xFF);
+    scaledChannel += (1 - alpha) * (float)((secondColour >> shift) & 0xFF);
+    result |= ((uint32_t) scaledChannel) << shift;
+  }
+
+  return result;
+}
+
 uint32_t vcVoxelShader_Displacement(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
   uint32_t result = 0;
-  vdkPointCloud_GetNodeColour(pPointCloud, voxelID, &result);
+  uint32_t baseColour = 0;
+  vdkPointCloud_GetNodeColour(pPointCloud, voxelID, &baseColour);
 
   float *pDisplacement = nullptr;
   vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pDisplacement);
+  pData->data.displacement.errorColour = 0xFF | 128<<24;
+  pData->data.displacement.minColour = 0xFF<<8 ;
+  pData->data.displacement.maxColour = 0xFF<<16 | 128 <<24;
 
   if (pDisplacement != nullptr)
   {
+    
     if (*pDisplacement == FLT_MAX)
-      result = 0x7F007F + ((result >> 1) & 0x7F7F7F);
+      result = pData->data.displacement.errorColour;
     else if (*pDisplacement <= pData->data.displacement.minThreshold)
-      result = 0x007F00 + ((result >> 1) & 0x7F7F7F);
+      result = pData->data.displacement.minColour;
     else if (*pDisplacement >= pData->data.displacement.maxThreshold)
-      result = 0x7F0000 + ((result >> 1) & 0x7F7F7F);
+      result = pData->data.displacement.maxColour;
     else
-      result = 0x7F7F00 + ((result >> 1) & 0x7F7F7F);
+      result = pData->data.displacement.midColour;
   }
 
+  result = fadeAlpha(result, baseColour);
   return vcPCShaders_BuildAlpha(pData->pModel) | (result & 0xFFFFFF);
 }
 
