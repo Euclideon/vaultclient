@@ -11,6 +11,10 @@ const uint32_t screenQuadIndices[6] = { 0, 1, 2, 0, 2, 3 };
 const vcP3UV2Vertex flippedScreenQuadVertices[4]{ { { -1.f, -1.f, 0.f },{ 0, 0 } },{ { -1.f, 1.f, 0.f },{ 0, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 0 } } };
 const uint32_t flippedScreenQuadIndices[6] = { 2, 1, 0, 3, 2, 0 };
 
+// imgui quad
+const vcImGuiVertex imGuiQuadVertices[4]{ { { -0.5f, -0.5f }, { 0.f, 0.0f }, 0xffffffff },{ { -0.5f, 0.5f }, { 0.0f, 1.0f }, 0xffffffff },{ { 0.5f, 0.5f }, { 1.0f, 1.0f }, 0xffffffff },{ { 0.5f, -0.5f }, { 1.0f, 0.0f }, 0xffffffff } };
+const uint32_t imGuiQuadIndices[6] = { 0, 1, 2, 0, 2, 3 };
+
 // world quad
 const vcP3N3UV2Vertex worldQuadVertices[4]{ { { -1.f, 0.f, -1.f }, { 0.f, 1.f, 0.f }, { 0, 1 } },{ { -1.f, 0.f, 1.f }, { 0.f, 1.f, 0.f }, { 0, 0 } },{ { 1.f, 0.f, 1.f }, { 0.f, 1.f, 0.f }, { 1, 0 } },{ { 1.f, 0.f, -1.f }, { 0.f, 1.f, 0.f }, { 1, 1 } } };
 const uint32_t worldQuadIndices[6] = { 0, 1, 2, 0, 2, 3 };
