@@ -27,4 +27,7 @@ void vcModals_DrawModals(vcState *pProgramState);
 // Returns true if its safe to write- if exists the user is asked if it can be overriden
 bool vcModals_OverwriteExistingFile(const char *pFilename);
 
+// Returns true if user accepts action
+bool vcModals_AllowDestructiveAction(const char *pTitle, const char *pMessage);
+
 #endif //vcModals_h__

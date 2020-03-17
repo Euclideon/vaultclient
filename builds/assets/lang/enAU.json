@@ -10,6 +10,8 @@
   },
 
   "popupClose": "Close",
+  "popupConfirmYes": "Yes",
+  "popupConfirmNo": "No",
 
   "loginButton": "Login",
   "loginAbout": "About",
@@ -144,7 +146,7 @@
   "settingsVisHighlightColour": "Highlight Colour",
   "settingsVisHighlightThickness": "Highlight Thickness",
   "settingsVisDisplayMode": "Display Mode",
-  "settingsVisModeDefault":  "Default",
+  "settingsVisModeDefault": "Default",
   "settingsVisModeClassification": "Classification",
   "settingsVisModeColour": "Colour",
   "settingsVisModeIntensity": "Intensity",
@@ -295,6 +297,7 @@
   "menuLogout": "Logout",
   "menuLogoutTitle": "Logged Out",
   "menuLogoutMessage": "You were logged out.",
+  "menuLogoutConfirm": "Are you sure you want to logout?",
 
   "menuProfileTitle": "Profile",
   "menuUserNameLabel": "User Name",
