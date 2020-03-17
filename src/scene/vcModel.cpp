@@ -490,15 +490,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 #if VC_HASCONVERT
   if ((m_pPreferredProjection == nullptr && pProgramState->gis.SRID == 0) || (m_pPreferredProjection != nullptr && m_pPreferredProjection->srid == pProgramState->gis.SRID))
   {
-    bool matrixEqual = true;
-    for (int i = 0; i < m_defaultMatrix.ElementCount; i++)
-    {
-      if (abs(m_defaultMatrix.a[i] - m_sceneMatrix.a[i]) > UD_EPSILON)
-      {
-        matrixEqual = false;
-        break;
-      }
-    }
+    bool matrixEqual = udMatrixEqualApprox(m_defaultMatrix, m_sceneMatrix);
     if (matrixEqual && ImGui::BeginMenu(vcString::Get("sceneExplorerExportPointCloud")))
     {
       static vcQueryNode *s_pQuery = nullptr;
