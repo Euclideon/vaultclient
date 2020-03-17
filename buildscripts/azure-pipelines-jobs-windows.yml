@@ -39,6 +39,23 @@ jobs:
       configuration: $(configuration)
       maximumCpuCount: true
       msbuildArguments: '/v:m'
+  - task: DownloadSecureFile@1
+    name: codeSignCert
+    displayName: 'Download Euclideon Code Signing Certificate'
+    inputs:
+      secureFile: EPLWindowsSignCert.pfx
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+  - ${{ if eq(parameters.gfxapi, 'opengl') }}:
+    - template: azure-pipelines-steps-codesign.yml
+      parameters:
+        file: builds\vaultClient.exe
+  - ${{ if eq(parameters.gfxapi, 'd3d11') }}:
+    - template: azure-pipelines-steps-codesign.yml
+      parameters:
+        file: builds\vaultClient_d3d11.exe
+  - template: azure-pipelines-steps-codesign.yml
+    parameters:
+      file: builds\vaultConvertCMD.exe
   - script: builds\tests\vcTesting.exe --gtest_shuffle --gtest_output=xml
     displayName: 'Run Tests'
   - task: PublishTestResults@2
