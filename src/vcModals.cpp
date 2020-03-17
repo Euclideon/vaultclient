@@ -186,8 +186,8 @@ bool vcModals_OverwriteExistingFile(const char *pFilename)
   if (udFileExists(pFilename) == udR_Success)
   {
     const SDL_MessageBoxButtonData buttons[] = {
-      { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "No" },
-      { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Yes" },
+      { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, vcString::Get("popupConfirmNo") },
+      { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, vcString::Get("popupConfirmYes") },
     };
     SDL_MessageBoxColorScheme colorScheme = {
       {
@@ -213,6 +213,45 @@ bool vcModals_OverwriteExistingFile(const char *pFilename)
       result = false;
     udFree(pFileExistsMsg);
   }
+  return result;
+}
+
+// Presents user with a message if the specified file exists, then returns false if user declines to overwrite the file
+bool vcModals_AllowDestructiveAction(const char *pTitle, const char *pMessage)
+{
+  bool result = false;
+
+  const SDL_MessageBoxButtonData buttons[] = {
+    { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, vcString::Get("popupConfirmNo") },
+    { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, vcString::Get("popupConfirmYes") },
+  };
+
+  SDL_MessageBoxColorScheme colorScheme = {
+    {
+      { 255, 0, 0 },
+      { 0, 255, 0 },
+      { 255, 255, 0 },
+      { 0, 0, 255 },
+      { 255, 0, 255 }
+    }
+  };
+
+  SDL_MessageBoxData messageboxdata = {
+    SDL_MESSAGEBOX_WARNING,
+    NULL,
+    pTitle,
+    pMessage,
+    SDL_arraysize(buttons),
+    buttons,
+    &colorScheme
+  };
+
+  int buttonid = 0;
+  if (SDL_ShowMessageBox(&messageboxdata, &buttonid) != 0 || buttonid == 0)
+    result = false;
+  else
+    result = true;
+
   return result;
 }
 
@@ -605,7 +644,7 @@ void vcModals_DrawProfile(vcState* pProgramState)
     const char *email = pProgramState->profileInfo.Get("user.email").AsString("");
     ImGui::TextUnformatted(udTempStr("%s: %s", vcString::Get("menuEmailLabel"), email));
 
-    if (ImGui::Button(vcString::Get("menuLogout"), ImVec2(buttonWidth, 0)))
+    if (ImGui::Button(vcString::Get("menuLogout"), ImVec2(buttonWidth, 0)) && vcModals_AllowDestructiveAction(vcString::Get("menuLogout"), vcString::Get("menuLogoutConfirm")))
       pProgramState->forceLogout = true;
 
     if (ImGui::Button(vcString::Get("popupClose"), ImVec2(buttonWidth, 0)) || vcHotkey::IsPressed(vcB_Cancel))

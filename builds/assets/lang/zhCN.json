@@ -10,6 +10,8 @@
   },
 
   "popupClose": "关闭",
+  "popupConfirmYes": "是",
+  "popupConfirmNo": "没有",
 
   "loginButton": "登录",
   "loginAbout": "关于",
@@ -303,7 +305,7 @@
   "menuLogout": "退出登录",
   "menuLogoutTitle": "已退出登录",
   "menuLogoutMessage": "您已退出登录。",
-  "menuLogoutCloseButton": "关闭",
+  "menuLogoutConfirm": "您确定要注销吗？",
 
   "menuProfileTitle": "资料",
   "menuUserNameLabel": "用户名",
