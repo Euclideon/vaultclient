@@ -29,7 +29,7 @@ cbuffer u_EveryObject : register(b0)
 PS_INPUT main(VS_INPUT input)
 {
   PS_INPUT output;
-  output.pos = mul(u_worldViewProjectionMatrix, float4(0.0f, 0.0f, 0.0f, 1.f));
+  output.pos = mul(u_worldViewProjectionMatrix, float4(0.0, 0.0, 0.0, 1.0));
   output.pos.xy += u_screenSize.xy * float2(input.pos.x, -input.pos.y) * output.pos.w; // expand
 
   output.col = input.col;

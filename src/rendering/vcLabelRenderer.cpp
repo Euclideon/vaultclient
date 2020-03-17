@@ -36,7 +36,7 @@ udResult vcLabelRenderer_Init()
 
   if (g_LabelMesh == nullptr)
   {
-    const vcP2UV2C1Vertex labelQuadVertices[4]{ { { 0.f, 0.f }, { 0, 0 }, 0 },{ { 0.f, 0.f }, { 0, 1 }, 0 },{ { 0.f, 0.f }, { 1, 1 }, 0 },{ { 0.f, 0.f }, { 1, 0 }, 0 } };
+    const vcImGuiVertex labelQuadVertices[4]{ { { 0.f, 0.f }, { 0, 0 }, 0 },{ { 0.f, 0.f }, { 0, 1 }, 0 },{ { 0.f, 0.f }, { 1, 1 }, 0 },{ { 0.f, 0.f }, { 1, 0 }, 0 } };
     const uint16_t labelQuadIndices[6] = { 0, 1, 2, 0, 2, 3 };
     UD_ERROR_CHECK(vcMesh_Create(&g_LabelMesh, vcImGuiVertexLayout, (int)udLengthOf(vcImGuiVertexLayout), labelQuadVertices, 4, labelQuadIndices, 6, vcMF_Dynamic));
   }

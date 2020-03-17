@@ -24,7 +24,7 @@ layout (std140) uniform u_EveryObject
 void main()
 {
   gl_Position = u_worldViewProjectionMatrix * vec4(0.0, 0.0, 0.0, 1.0);
-  gl_Position.xy += u_screenSize.xy * vec2(Position.x, -Position.y) * gl_Position.w;
+  gl_Position.xy += u_screenSize.xy * vec2(Position.x, -Position.y) * gl_Position.w; // expand
 
   Frag_UV = UV;
   Frag_Color = Color;

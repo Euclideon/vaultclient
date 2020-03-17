@@ -58,13 +58,6 @@ struct vcP3UV2RI4Vertex
   udFloat4 ribbonInfo; // xyz: expand vector; w: pair id (0 or 1)
 };
 
-struct vcP2UV2C1Vertex
-{
-  udFloat2 position;  
-  udFloat2 uv;
-  uint32_t color;
-};
-
 const vcVertexLayoutTypes vcP3VertexLayout[] = { vcVLT_Position3 }; // tiles
 const vcVertexLayoutTypes vcUV2VertexLayout[] = { vcVLT_TextureCoords2 }; // water
 const vcVertexLayoutTypes vcP3N3VertexLayout[] = { vcVLT_Position3, vcVLT_Normal3 }; // compass / anchor
@@ -73,6 +66,12 @@ const vcVertexLayoutTypes vcP3N3UV2VertexLayout[] = { vcVLT_Position3, vcVLT_Nor
 const vcVertexLayoutTypes vcP3UV2RI4VertexLayout[] = { vcVLT_Position3, vcVLT_TextureCoords2, vcVLT_RibbonInfo4 }; // ribbon
 
 // ImGui
+struct vcImGuiVertex
+{
+  udFloat2 position;
+  udFloat2 uv;
+  uint32_t color;
+};
 const vcVertexLayoutTypes vcImGuiVertexLayout[] = { vcVLT_Position2, vcVLT_TextureCoords2, vcVLT_ColourBGRA };
 
 uint32_t vcLayout_GetSize(const vcVertexLayoutTypes layoutType);
