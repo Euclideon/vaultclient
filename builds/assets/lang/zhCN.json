@@ -307,10 +307,12 @@
   "menuLogoutMessage": "您已退出登录。",
   "menuLogoutConfirm": "您确定要注销吗？",
 
-  "menuProfileTitle": "资料",
-  "menuUserNameLabel": "用户名",
-  "menuRealNameLabel": "全名",
-  "menuEmailLabel": "邮箱",
+  "modalProfileTitle": "资料",
+  "modalProfileUsername": "用户名",
+  "modalProfileRealName": "全名",
+  "modalProfileEmail": "邮箱",
+  "modalProfileOffline": "使用离线加密狗",
+  "modalProfileDongle": "加密狗ID",
 
   "menuReleaseNotes": "版本说明",
   "menuReleaseNotesTitle": "版本说明",

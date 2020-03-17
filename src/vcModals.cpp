@@ -621,7 +621,7 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
 
 void vcModals_DrawProfile(vcState* pProgramState)
 { 
-  const char *profile = vcString::Get("menuProfileTitle");
+  const char *profile = vcString::Get("modalProfileTitle");
 
   if (pProgramState->openModals & (1 << vcMT_Profile))
     ImGui::OpenPopup(profile);
@@ -635,17 +635,27 @@ void vcModals_DrawProfile(vcState* pProgramState)
   {
     pProgramState->modalOpen = true;
 
-    const char *userName = pProgramState->profileInfo.Get("user.username").AsString("");
-    ImGui::TextUnformatted(udTempStr("%s: %s", vcString::Get("menuUserNameLabel"), userName));
+    if (pProgramState->sessionInfo.isOffline)
+    {
+      ImGui::TextUnformatted(vcString::Get("modalProfileOffline"));
 
-    const char *realName = pProgramState->profileInfo.Get("user.realname").AsString("");
-    ImGui::TextUnformatted(udTempStr("%s: %s", vcString::Get("menuRealNameLabel"), realName));
+      ImGui::InputText(vcString::Get("modalProfileDongle"), pProgramState->sessionInfo.displayName, udLengthOf(pProgramState->sessionInfo.displayName), ImGuiInputTextFlags_ReadOnly);
+    }
+    else
+    {
+      const char *pUsername = pProgramState->profileInfo.Get("user.username").AsString("");
+      ImGui::InputText(vcString::Get("modalProfileUsername"), (char*)pUsername, udStrlen(pUsername), ImGuiInputTextFlags_ReadOnly);
 
-    const char *email = pProgramState->profileInfo.Get("user.email").AsString("");
-    ImGui::TextUnformatted(udTempStr("%s: %s", vcString::Get("menuEmailLabel"), email));
+      ImGui::InputText(vcString::Get("modalProfileRealName"), pProgramState->sessionInfo.displayName, udLengthOf(pProgramState->sessionInfo.displayName), ImGuiInputTextFlags_ReadOnly);
+
+      const char *pEmail = pProgramState->profileInfo.Get("user.email").AsString("");
+      ImGui::InputText(vcString::Get("modalProfileEmail"), (char*)pEmail, udStrlen(pEmail), ImGuiInputTextFlags_ReadOnly);
+    }
 
     if (ImGui::Button(vcString::Get("menuLogout"), ImVec2(buttonWidth, 0)) && vcModals_AllowDestructiveAction(vcString::Get("menuLogout"), vcString::Get("menuLogoutConfirm")))
       pProgramState->forceLogout = true;
+
+    ImGui::SameLine();
 
     if (ImGui::Button(vcString::Get("popupClose"), ImVec2(buttonWidth, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       ImGui::CloseCurrentPopup();
