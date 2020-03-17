@@ -1414,6 +1414,12 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
 
         pVoxelShaderData[numVisibleModels].data.displacement.minThreshold = pVisSettings->displacement.x;
         pVoxelShaderData[numVisibleModels].data.displacement.maxThreshold = pVisSettings->displacement.y;
+
+        pVoxelShaderData[numVisibleModels].data.displacement.errorColour = pVisSettings->displacement.error;// | 128 << 24;
+
+        pVoxelShaderData[numVisibleModels].data.displacement.maxColour = pVisSettings->displacement.max;// 0xFF << 16 | 128 << 24;
+        pVoxelShaderData[numVisibleModels].data.displacement.minColour = pVisSettings->displacement.min;// 0xFF | 50 << 24;
+        pVoxelShaderData[numVisibleModels].data.displacement.midColour = pVisSettings->displacement.mid;// | 128 << 24;
       }
 
       ++numVisibleModels;

@@ -881,5 +881,9 @@ void vcSettingsUI_VisualizationSettings(vcState *pProgramState, vcVisualizationS
       pVisualizationSettings->displacement.x = udClamp(pVisualizationSettings->displacement.x, 0.f, MAX_DISPLACEMENT);
       pVisualizationSettings->displacement.y = udClamp(pVisualizationSettings->displacement.y, pVisualizationSettings->displacement.x, MAX_DISPLACEMENT);
     }
+    vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourMax"), &pVisualizationSettings->displacement.max, ImGuiColorEditFlags_None);
+    vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourMin"), &pVisualizationSettings->displacement.min, ImGuiColorEditFlags_None);
+    vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourMid"), &pVisualizationSettings->displacement.mid, ImGuiColorEditFlags_None);
+    vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourNoMatch"), &pVisualizationSettings->displacement.error, ImGuiColorEditFlags_None);
   }
 }

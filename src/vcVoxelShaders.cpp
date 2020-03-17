@@ -58,9 +58,6 @@ uint32_t vcVoxelShader_Displacement(vdkPointCloud *pPointCloud, uint64_t voxelID
 
   float *pDisplacement = nullptr;
   vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pDisplacement);
-  pData->data.displacement.errorColour = 0xFF | 128<<24;
-  pData->data.displacement.minColour = 0xFF<<8 ;
-  pData->data.displacement.maxColour = 0xFF<<16 | 128 <<24;
 
   if (pDisplacement != nullptr)
   {

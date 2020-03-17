@@ -123,7 +123,16 @@ struct vcVisualizationSettings
   int minIntensity;
   int maxIntensity;
 
-  udFloat2 displacement;
+  struct
+  {
+    float x;
+    float y;
+    
+    uint32_t min;
+    uint32_t max;
+    uint32_t error;
+    uint32_t mid;
+  } displacement;
 
   bool useCustomClassificationColours;
   bool customClassificationToggles[256];
