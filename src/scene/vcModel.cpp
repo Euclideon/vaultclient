@@ -519,7 +519,40 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 
           udWorkerPoolCallback callback = [pProgramState, pCloud, pFilter](void*)
           {
-            vdkPointCloud_Export(pCloud, pProgramState->modelPath, pFilter);
+            vdkError result = vdkPointCloud_Export(pCloud, pProgramState->modelPath, pFilter);
+            if (result != vE_Success)
+            {
+              vcState::ErrorItem status;
+              status.source = vcES_File;
+              status.pData = udStrdup(pProgramState->modelPath);
+              switch (result)
+              {
+              case vE_OpenFailure:
+                status.resultCode = udR_OpenFailure;
+                break;
+              case vE_ReadFailure:
+                status.resultCode = udR_ReadFailure;
+                break;
+              case vE_WriteFailure:
+                status.resultCode = udR_WriteFailure;
+                break;
+              case vE_OutOfSync:
+                status.resultCode = udR_OutOfSync;
+                break;
+              case vE_ParseError:
+                status.resultCode = udR_ParseError;
+                break;
+              case vE_ImageParseError:
+                status.resultCode = udR_ImageLoadFailure;
+                break;
+              default:
+                status.resultCode = udR_Failure_;
+                break;
+              }
+
+              pProgramState->errorItems.PushBack(status);
+              udFileDelete(pProgramState->modelPath);
+            }
             --pProgramState->backgroundWork.exportsRunning;
           };
 
