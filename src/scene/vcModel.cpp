@@ -488,7 +488,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
   ImGui::Separator();
 
 #if VC_HASCONVERT
-  if (((m_pPreferredProjection == nullptr && pProgramState->gis.SRID == 0) || (m_pPreferredProjection != nullptr && m_pPreferredProjection->srid == pProgramState->gis.SRID)) && (m_defaultMatrix == m_sceneMatrix))
+  if ((m_pPreferredProjection == nullptr && pProgramState->gis.SRID == 0) || (m_pPreferredProjection != nullptr && m_pPreferredProjection->srid == pProgramState->gis.SRID))
   {
     if (ImGui::BeginMenu(vcString::Get("sceneExplorerExportPointCloud")))
     {
