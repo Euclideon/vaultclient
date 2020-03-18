@@ -244,6 +244,9 @@ project "vaultClient"
 	filter { "system:ios" }
 		removeflags { "FatalWarnings" }
 
+	filter { "files:3rdParty/**" }
+		warnings "Off"
+
 	filter { "not options:gfxapi=opengl" }
 		objdir ("Output/intermediate/%{prj.name}/%{cfg.buildcfg}_%{cfg.platform}" .. _OPTIONS["gfxapi"])
 		targetname ("%{prj.name}_" .. _OPTIONS["gfxapi"])
