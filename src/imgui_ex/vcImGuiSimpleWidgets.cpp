@@ -49,10 +49,10 @@ bool vcIGSW_InputText(const char *pLabel, char *pBuffer, size_t bufferSize, ImGu
 
   if (ImGui::BeginPopupContextItem())
   {
-    if (ImGui::MenuItem("Copy", nullptr, nullptr, (flags & ImGuiInputTextFlags_Password) == 0))
+    if (ImGui::MenuItem(vcString::Get("popupMenuCopy"), nullptr, nullptr, (flags & ImGuiInputTextFlags_Password) == 0))
       ImGui::SetClipboardText(pBuffer);
 
-    if (ImGui::MenuItem("Paste"))
+    if (ImGui::MenuItem(vcString::Get("popupMenuPaste")))
       udStrcpy(pBuffer, bufferSize, ImGui::GetClipboardText());
 
     ImGui::EndPopup();
@@ -74,10 +74,10 @@ bool vcIGSW_InputTextWithResize(const char *pLabel, char **ppBuffer, size_t *pBu
 
   if (ImGui::BeginPopupContextItem())
   {
-    if (ImGui::MenuItem("Copy", nullptr, nullptr, (flags & ImGuiInputTextFlags_Password) == 0))
+    if (ImGui::MenuItem(vcString::Get("popupMenuCopy"), nullptr, nullptr, (flags & ImGuiInputTextFlags_Password) == 0))
       ImGui::SetClipboardText(*ppBuffer);
 
-    if (ImGui::MenuItem("Paste"))
+    if (ImGui::MenuItem(vcString::Get("popupMenuPaste")))
       udStrcpy(*ppBuffer, *pBufferSize, ImGui::GetClipboardText());
 
     ImGui::EndPopup();

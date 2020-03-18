@@ -344,6 +344,8 @@
   "menuBarLicenseQueued": "申请中",
   "menuBarWaitingForRenderLicense": "等待渲染许可",
   "menuBarInactive": "空闲中",
+  "popupMenuCopy": "复制",
+  "popupMenuPaste": "粘贴",
 
   "settingsConnection": "连接",
   "modalProxyInfo": "代理需要身份验证：",

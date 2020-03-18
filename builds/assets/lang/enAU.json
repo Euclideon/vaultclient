@@ -332,6 +332,8 @@
   "menuBarLicenseQueued": "in Queue",
   "menuBarWaitingForRenderLicense": "Waiting for Render license...",
   "menuBarInactive": "Inactive",
+  "popupMenuCopy": "Copy",
+  "popupMenuPaste": "Paste",
 
   "settingsConnection": "Connection",
   "modalProxyUsername": "Proxy Username",
