@@ -440,8 +440,9 @@
   "sceneExplorerUnsupportedFilesMessage": "The files you tried to add are currently unsupported by Euclideon Vault Client.",
   "sceneExplorerClearAllButton": "Clear All",
 
-  "sceneExplorerErrorOpen": "Could not open the model, perhaps it is missing or you don't have permission to access it.",
-  "sceneExplorerErrorLoad": "Failed to load model",
+  "sceneExplorerErrorOpen": "Could not open the resource, perhaps it is missing or you don't have permission to access it",
+  "sceneExplorerErrorCorrupt": "This resource is corrupt",
+  "sceneExplorerErrorLoad": "Failed to load resource",
   "sceneExplorerPending": "Pending",
   "sceneExplorerLoading": "Loading",
   "sceneExplorerPOIDefaultName": "Point of interest",

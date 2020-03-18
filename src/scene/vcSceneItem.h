@@ -16,6 +16,7 @@ enum vcSceneLoadStatus
   vcSLS_Loading,
   vcSLS_Loaded,
   vcSLS_Failed,
+  vcSLS_Corrupt,
   vcSLS_OpenFailure,
   vcSLS_Unloaded,
   vcSLS_Success, // Rarely used to show something specifically succeeded
