@@ -1045,7 +1045,7 @@ bool vcSceneLayer_ExpandNodeForRendering(vcSceneLayer *pSceneLayer, vcSceneLayer
         {
           gSceneLayer.gpuMemoryUsageBytes += (pNode->pTextureData[i].width * pNode->pTextureData[i].height * 4);
 
-          vcTexture_Create(&pTextureData->pTexture, pTextureData->width, pTextureData->height, pTextureData->pData, vcTextureFormat_RGBA8, vcTFM_Linear, false);
+          vcTexture_Create(&pTextureData->pTexture, pTextureData->width, pTextureData->height, pTextureData->pData, vcTextureFormat_RGBA8, vcTFM_Linear);
           udFree(pTextureData->pData);
           pTextureData->loaded = true;
         }

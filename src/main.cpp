@@ -947,12 +947,12 @@ int main(int argc, char **args)
   vcMain_AsyncLoad(&programState, "asset://assets/icons/EuclideonClientIcon.png", vcMain_LoadIconMT);
   vcMain_AsyncLoad(&programState, "asset://assets/fonts/NotoSansCJKjp-Regular.otf", vcMain_LoadFontMT);
 
-  vcTexture_AsyncCreateFromFilename(&programState.pCompanyLogo, programState.pWorkerPool, "asset://assets/textures/logo.png");
-  vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png");
+  vcTexture_AsyncCreateFromFilename(&programState.pCompanyLogo, programState.pWorkerPool, "asset://assets/textures/logo.png", vcTFM_Linear);
+  vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png", vcTFM_Linear);
 
   vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
 
-  vcTexture_CreateFromMemory(&programState.pCompanyWatermark, (void *)logoData, logoDataSize);
+  vcTexture_CreateFromMemory(&programState.pCompanyWatermark, (void *)logoData, logoDataSize, nullptr, nullptr, vcTFM_Linear);
 
   udWorkerPool_AddTask(programState.pWorkerPool, vcMain_AsyncResumeSession, &programState, false);
 

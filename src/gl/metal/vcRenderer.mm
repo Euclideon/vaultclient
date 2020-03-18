@@ -100,7 +100,7 @@
     if (pFramebuffers[0]->pDepth)
     {
       vcTexture *pIntermediate;
-      vcTexture_Create(&pIntermediate, newSize.width, newSize.height, nullptr, pFramebuffers[0]->pDepth->format, vcTFM_Nearest, false, vcTWM_Repeat, vcTCF_RenderTarget, 0);
+      vcTexture_Create(&pIntermediate, newSize.width, newSize.height, nullptr, pFramebuffers[0]->pDepth->format, vcTFM_Nearest, vcTCF_RenderTarget);
 
       vcTexture_Destroy(&pFramebuffers[0]->pDepth);
 

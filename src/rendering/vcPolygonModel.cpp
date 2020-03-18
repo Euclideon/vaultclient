@@ -252,7 +252,7 @@ udResult vcPolygonModel_CreateFromVSMFInMemory(vcPolygonModel **ppModel, char *p
       if (t == 0)
       {
         void *pTextureData = pFilePos;
-        if (!vcTexture_AsyncCreateFromMemory(&pNewModel->pMeshes[i].material.pTexture, pWorkerPool, pTextureData, textureFileSize))
+        if (!vcTexture_AsyncCreateFromMemory(&pNewModel->pMeshes[i].material.pTexture, pWorkerPool, pTextureData, textureFileSize, vcTFM_Linear, true))
         {
           // TODO: (EVC-570)
         }
