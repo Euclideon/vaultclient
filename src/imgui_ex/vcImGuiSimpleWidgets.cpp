@@ -98,10 +98,10 @@ void vcIGSW_FilePicker(vcState *pProgramState, const char *pLabel, char *pBuffer
 
   if (ImGui::BeginPopupContextItem())
   {
-    if (ImGui::MenuItem("Copy"))
+    if (ImGui::MenuItem(vcString::Get("popupMenuCopy")))
       ImGui::SetClipboardText(pBuffer);
 
-    if (ImGui::MenuItem("Paste"))
+    if (ImGui::MenuItem(vcString::Get("popupMenuPaste")))
     {
       udStrcpy(pBuffer, bufferSize, ImGui::GetClipboardText());
 
