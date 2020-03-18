@@ -164,6 +164,7 @@ struct vcSettings
 
     vcWindowLayout layout;
     int sceneExplorerSize;
+    float convertLeftPanelPercentage;
     bool columnSizeCorrect; // Not saved, this is updated when the columns have been set to the correct size
   } presentation;
 
