@@ -326,7 +326,12 @@ void vcConvert_ShowUI(vcState *pProgramState)
   if (ImGui::IsWindowAppearing())
     ImGui::SetColumnWidth(0, size.x * pProgramState->settings.presentation.convertLeftPanelPercentage);
   else
+  {
     pProgramState->settings.presentation.convertLeftPanelPercentage = ImGui::GetColumnWidth(0) / size.x;
+    pProgramState->settings.presentation.convertLeftPanelPercentage = udMin(pProgramState->settings.presentation.convertLeftPanelPercentage, 0.9f);
+    pProgramState->settings.presentation.convertLeftPanelPercentage = udMax(pProgramState->settings.presentation.convertLeftPanelPercentage, 0.1f);
+    ImGui::SetColumnWidth(0, size.x * pProgramState->settings.presentation.convertLeftPanelPercentage);
+  }
 
   ImGui::TextUnformatted(vcString::Get("convertJobs"));
   ImGui::NextColumn();
