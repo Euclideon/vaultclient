@@ -6,7 +6,6 @@
 #include "udStringUtil.h"
 
 #include "imgui.h"
-#include "imgui_internal.h"
 
 #include "vcClassificationColours.h"
 #include "vcStringFormat.h"

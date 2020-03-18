@@ -9,7 +9,7 @@ project "vaultClient"
 	--Files to include
 	files { "src/**.cpp", "src/**.h", "src/**.c", "src/**.mm" }
 	files { "src/**.hlsl", "src/**.vert", "src/**.frag", "src/**.metal" }
-	files { "3rdParty/Imgui/**.cpp", "3rdParty/Imgui/**.h" }
+	files { "3rdParty/imgui/*.cpp", "3rdParty/imgui/*.h" }
 	files { "3rdParty/stb/**.h" }
 	files { "3rdParty/easyexif/**.h", "3rdParty/easyexif/**.cpp" }
 	files { "project.lua" }
@@ -21,13 +21,13 @@ project "vaultClient"
 	--This project includes
 	includedirs { "src", "src/scene", "src/rendering" }
 	includedirs { "3rdParty/udcore/Include" }
-	includedirs { "3rdParty/Imgui" }
+	includedirs { "3rdParty/imgui" }
 	includedirs { "3rdParty/stb" }
 	includedirs { "3rdParty/easyexif" }
 
 	links { "udCore" .. (projectSuffix or "") }
 
-	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS" }
+	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS", "ImDrawIdx=int" }
 
 	injectvaultsdkbin()
 

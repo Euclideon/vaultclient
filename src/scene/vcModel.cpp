@@ -12,6 +12,8 @@
 #include "gl/vcTexture.h"
 
 #include "imgui.h"
+#include "imgui_internal.h" // Required for ButtonEx
+
 #include "imgui_ex/imgui_udValue.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 

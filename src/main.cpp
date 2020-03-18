@@ -1564,7 +1564,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
 
   if (ImGui::BeginChild("SceneExplorerList", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
   {
-    if (!ImGui::IsMouseDragging() && pProgramState->sceneExplorer.insertItem.pParent != nullptr)
+    if (!ImGui::IsMouseDragging(0) && pProgramState->sceneExplorer.insertItem.pParent != nullptr)
     {
       // Ensure a circular reference is not created
       bool itemFound = false;
@@ -1645,7 +1645,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
 
-  if (!pProgramState->modalOpen && (vcHotkey::IsPressed(vcB_Fullscreen) || ImGui::IsNavInputPressed(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released)))
+  if (!pProgramState->modalOpen && (vcHotkey::IsPressed(vcB_Fullscreen) || ImGui::IsNavInputTest(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released)))
     vcMain_PresentationMode(pProgramState);
 
   bool showUI = true;

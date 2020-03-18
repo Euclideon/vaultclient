@@ -171,7 +171,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       vcIGSW_ShowLoadStatusIndicator((vcSceneLoadStatus)pSceneItem->m_loadStatus);
 
       // The actual model
-      ImGui::SetNextTreeNodeOpen(pSceneItem->m_expanded, ImGuiCond_Always);
+      ImGui::SetNextItemOpen(pSceneItem->m_expanded, ImGuiCond_Always);
       ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
       if (pSceneItem->m_selected)
         flags |= ImGuiTreeNodeFlags_Selected;
@@ -247,7 +247,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         memset(pProgramState->sceneExplorer.movetoUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWhenPossible));
       }
 
-      if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) && ImGui::IsMouseDragging())
+      if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) && ImGui::IsMouseDragging(0))
       {
         ImVec2 minPos = ImGui::GetItemRectMin();
         ImVec2 maxPos = ImGui::GetItemRectMax();

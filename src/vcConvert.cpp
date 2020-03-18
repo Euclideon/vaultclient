@@ -1,6 +1,8 @@
 #include "vcConvert.h"
 
 #include "imgui.h"
+#include "imgui_internal.h"
+
 #include "stb_image.h"
 #include "vcStrings.h"
 #include "vcModals.h"
@@ -670,7 +672,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       if (totalItems > 0)
       {
-        ImGui::SetNextTreeNodeOpen(true, ImGuiCond_FirstUseEver);
+        ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
 
         vcStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertInputFiles"), udCommaInt(totalItems));
 

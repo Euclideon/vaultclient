@@ -5,7 +5,7 @@
 #include "udStringUtil.h"
 
 #include "imgui.h"
-#include "imgui_internal.h"
+#include "imgui_internal.h" // Required for button hover state
 
 #include "vcState.h"
 #include "vcStrings.h"
@@ -90,7 +90,7 @@ void vcIGSW_FilePicker(vcState *pProgramState, const char *pLabel, char *pBuffer
 {
   const float ButtonWidth = 20.f;
 
-  float itemSize = ImGui::GetNextItemWidth();
+  float itemSize = ImGui::CalcItemWidth();
   ImGui::SetNextItemWidth(itemSize - ButtonWidth + 3.f);
 
   if (ImGui::InputText(udTempStr("##%s_fpicker", pLabel), pBuffer, bufferSize) && onChange != nullptr)
