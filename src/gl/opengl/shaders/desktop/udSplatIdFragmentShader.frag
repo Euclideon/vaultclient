@@ -1,40 +1,32 @@
-#version 330 core
-#extension GL_ARB_explicit_attrib_location : enable
-layout (std140) uniform u_cameraPlaneParams
+#version 330
+#extension GL_ARB_separate_shader_objects : require
+
+layout(std140) uniform type_u_params
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+    vec4 u_idOverride;
+} u_params;
 
-//Input Format
-in vec2 v_uv;
+uniform sampler2D SPIRV_Cross_Combinedtexture0sampler0;
+uniform sampler2D SPIRV_Cross_Combinedtexture1sampler1;
 
-//Output Format
-out vec4 out_Colour;
-
-layout (std140) uniform u_params
-{
-  vec4 u_idOverride;
-};
-
-uniform sampler2D u_texture;
-uniform sampler2D u_depth;
-
-bool floatEquals(float a, float b)
-{
-  return abs(a - b) <= 0.0015f;
-}
+layout(location = 0) in vec2 in_var_TEXCOORD0;
+layout(location = 0) out vec4 out_var_SV_Target;
 
 void main()
 {
-  gl_FragDepth = texture(u_depth, v_uv).x;
-  out_Colour = vec4(0.0);
-
-  vec4 col = texture(u_texture, v_uv);
-  if (u_idOverride.w == 0.0 || floatEquals(u_idOverride.w, col.w))
-  {
-    out_Colour = vec4(col.w, 0, 0, 1.0);
-  }
+    vec4 _42 = texture(SPIRV_Cross_Combinedtexture0sampler0, in_var_TEXCOORD0);
+    vec4 _46 = texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD0);
+    float _51 = _42.w;
+    vec4 _59;
+    if ((u_params.u_idOverride.w == 0.0) || (abs(u_params.u_idOverride.w - _51) <= 0.00150000001303851604461669921875))
+    {
+        _59 = vec4(_51, 0.0, 0.0, 1.0);
+    }
+    else
+    {
+        _59 = vec4(0.0);
+    }
+    out_var_SV_Target = _59;
+    gl_FragDepth = _46.x;
 }
+

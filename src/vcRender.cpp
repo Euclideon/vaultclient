@@ -145,13 +145,14 @@ struct vcRenderContext
 
     struct
     {
+      udFloat4x4 screenProjection;
       udFloat4 screenParams;  // sampleStepX, sampleStepSizeY, near plane, far plane
       udFloat4 saturation;
     } params;
 
   } postEffectsShader;
 
-  struct
+  struct 
   {
     vcShader *pProgram;
     vcShaderSampler *uniform_depth;
@@ -247,7 +248,7 @@ struct vcRenderContext
       udFloat4 u_colour;
       udFloat4 u_screenSize;
     } params;
-    
+
   } watermarkShader;
 };
 
@@ -544,9 +545,6 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
 
   uint8_t depthBytes[4] = {};
   udUInt2 pickLocation = { (uint32_t)(pRenderContext->currentMouseUV.x * pRenderContext->sceneResolution.x), (uint32_t)(pRenderContext->currentMouseUV.y * pRenderContext->sceneResolution.y) };
-#if GRAPHICS_API_OPENGL
-  pickLocation.y = pRenderContext->sceneResolution.y - pickLocation.y - 1; // upside-down
-#endif
 
   static const int readBufferIndex = 0;
   UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->pDepthTexture[readBufferIndex], pickLocation.x, pickLocation.y, 1, 1, depthBytes), udR_InternalError); // read previous copy
@@ -581,6 +579,7 @@ udDouble3 vcRender_DepthToWorldPosition(vcState *pProgramState, vcRenderContext 
   udDouble4 clipPos = udDouble4::create(pRenderContext->currentMouseUV.x * 2.0 - 1.0, (1.0 - pRenderContext->currentMouseUV.y) * 2.0 - 1.0, depth, 1.0);
 #if GRAPHICS_API_OPENGL
   clipPos.z = clipPos.z * 2.0 - 1.0;
+  clipPos.y = -clipPos.y;
 #endif
 
   udDouble4 pickPosition4 = pProgramState->camera.matrices.inverseViewProjection * clipPos;
@@ -591,6 +590,7 @@ void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
   // Draw the skybox only at the far plane, where there is no geometry.
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   if (pProgramState->settings.presentation.showSkybox)
   {
@@ -652,9 +652,13 @@ void vcRender_SplatUDWithId(vcState *pProgramState, vcRenderContext *pRenderCont
   vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
 
-void vcRender_SplatUD(vcState *pProgramState, vcRenderContext *pRenderContext, vcTexture *pColour, vcTexture *pDepth)
+void vcRender_ConditionalSplatUD(vcState *pProgramState, vcRenderContext *pRenderContext, vcTexture *pColour, vcTexture *pDepth, const vcRenderData &renderData)
 {
+  if (renderData.models.length == 0)
+    return;
+
   udUnused(pProgramState);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   vcShader_Bind(pRenderContext->udRenderContext.presentShader.pProgram);
 
@@ -738,7 +742,7 @@ void vcRender_PostProcessPass(vcState *pProgramState, vcRenderContext *pRenderCo
   udUnused(pProgramState);
 
   vcGLState_SetBlendMode(vcGLSBM_None);
-  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
 
   pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
@@ -751,6 +755,7 @@ void vcRender_PostProcessPass(vcState *pProgramState, vcRenderContext *pRenderCo
   pRenderContext->postEffectsShader.params.screenParams.x = (1.0f / pRenderContext->sceneResolution.x);
   pRenderContext->postEffectsShader.params.screenParams.y = (1.0f / pRenderContext->sceneResolution.y);
   pRenderContext->postEffectsShader.params.saturation.x = pProgramState->settings.presentation.saturation;
+  pRenderContext->postEffectsShader.params.screenProjection = udFloat4x4::create(pProgramState->camera.matrices.screenProjection);
 
   vcShader_BindConstantBuffer(pRenderContext->postEffectsShader.pProgram, pRenderContext->postEffectsShader.uniform_params, &pRenderContext->postEffectsShader.params, sizeof(pRenderContext->postEffectsShader.params));
 
@@ -760,6 +765,7 @@ void vcRender_PostProcessPass(vcState *pProgramState, vcRenderContext *pRenderCo
 void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, true);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
   vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0x00FF8080);
@@ -911,7 +917,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
     vcFramebuffer_Bind(pRenderContext->viewShedRenderingContext.pFramebuffer, vcFramebufferClearOperation_All);
 
     if (doUDRender)
-      vcRender_SplatUD(pProgramState, pRenderContext, pRenderContext->viewShedRenderingContext.pDummyColour, pRenderContext->viewShedRenderingContext.pUDDepthTexture);
+      vcRender_ConditionalSplatUD(pProgramState, pRenderContext, pRenderContext->viewShedRenderingContext.pDummyColour, pRenderContext->viewShedRenderingContext.pUDDepthTexture, renderData);
 
     if (doPolygonRender)
     {
@@ -956,9 +962,10 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
   vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0xFFFF8080);
 
   vcGLState_ResetState();
+  vcGLState_SetDepthStencilMode(vcGLSDM_Always, true);
 
   // UD
-  vcRender_SplatUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pDepthTex);
+  vcRender_ConditionalSplatUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pDepthTex, renderData);
 
   // Polygon Models
   {
@@ -1080,6 +1087,7 @@ void vcRender_ApplySelectionBuffer(vcState *pProgramState, vcRenderContext *pRen
 
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   pRenderContext->selectionShader.params.stepSizeThickness.x = sampleStepSize.x;
   pRenderContext->selectionShader.params.stepSizeThickness.y = sampleStepSize.y;
@@ -1103,6 +1111,8 @@ udFloat4 vcRender_EncodeIdAsColour(uint32_t id)
 bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   bool active = false;
+
+  vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
 
   // check UD first
   uint32_t modelIndex = 0; // index is based on certain models
@@ -1149,7 +1159,6 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
   if (pProgramState->settings.objectHighlighting.colour.w == 0.0f || !pProgramState->settings.objectHighlighting.enable) // disabled
     return false;
 
-  vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
   vcGLState_SetBlendMode(vcGLSBM_None);
   vcGLState_SetViewport(0, 0, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y);
@@ -1165,6 +1174,9 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
     udFloat2 sampleStepSize = udFloat2::create(1.0f / pRenderContext->effectResolution.x, 1.0f / pRenderContext->effectResolution.y);
 
     vcGLState_SetBlendMode(vcGLSBM_None);
+    vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+
     for (int i = 0; i < 2; ++i)
     {
       vcFramebuffer_Bind(pRenderContext->pAuxiliaryFramebuffers[1 - i], vcFramebufferClearOperation_All);
@@ -1197,7 +1209,10 @@ void vcRenderWatermark(vcState *pProgramState, vcRenderContext *pRenderContext)
   udInt2 imageSize = udInt2::zero();
   vcTexture_GetSize(pProgramState->pSceneWatermark, &imageSize.x, &imageSize.y);
 
-  udDouble3 position = udDouble3::create((double)imageSize.x / pRenderContext->sceneResolution.x - 1,(double)imageSize.y / pRenderContext->sceneResolution.y - 1, 0);
+  udDouble3 position = udDouble3::create((double)imageSize.x / pRenderContext->sceneResolution.x - 1, (double)imageSize.y / pRenderContext->sceneResolution.y - 1, 0);
+#if GRAPHICS_API_OPENGL
+  position.y = -position.y;
+#endif
   pRenderContext->watermarkShader.params.u_worldViewProjectionMatrix = udFloat4x4::create(udDouble4x4::translation(position) * udDouble4x4::scaleUniform(1.0f));
   pRenderContext->watermarkShader.params.u_screenSize = udFloat4::create((float)imageSize.x / pRenderContext->sceneResolution.x, (float)imageSize.y / pRenderContext->sceneResolution.y, 1.0f, 0.0f);
   pRenderContext->watermarkShader.params.u_colour = udFloat4::create(1, 1, 1, 1);
@@ -1236,8 +1251,8 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
 
-  vcRenderSkybox(pProgramState, pRenderContext); // Drawing skybox after opaque geometry saves a bit on fill rate.
   vcRenderTerrain(pProgramState, pRenderContext);
+  vcRenderSkybox(pProgramState, pRenderContext); // Drawing skybox after opaque geometry saves a bit on fill rate.
 
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
   vcRender_RenderUI(pProgramState, pRenderContext, renderData);
@@ -1275,9 +1290,10 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
 
+    udDouble4x4 compassViewProjection = vcGLState_ProjectionMatrix<double>(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0);
     if (!pProgramState->gis.isProjected)
     {
-      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspectiveZO(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udInverse(cameraRotation));
+      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, compassViewProjection * udInverse(cameraRotation));
     }
     else
     {
@@ -1285,7 +1301,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
       currentLatLong.x = udClamp(currentLatLong.x, -90.0, 89.0);
       udDouble3 norther = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, udDouble3::create(currentLatLong.x + 1.0, currentLatLong.y, currentLatLong.z));
       udDouble4x4 north = udDouble4x4::lookAt(pProgramState->camera.position, norther);
-      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspectiveZO(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udDouble4x4::rotationYPR(north.extractYPR()) * udInverse(cameraRotation));
+      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, compassViewProjection * udDouble4x4::rotationYPR(north.extractYPR()) * udInverse(cameraRotation));
     }
 
     vcGLState_ResetState();
@@ -1328,7 +1344,7 @@ bool vcRender_FindSnapPoint(vcState *pProgramState, vcRenderContext *pRenderCont
 
   bool bFind = false;
   int lastOffset = 2 * pProgramState->settings.mouseSnap.range * pProgramState->settings.mouseSnap.range;
-  for (int offsety = udMax(0, renderData.mouse.position.y-pProgramState->settings.mouseSnap.range); offsety < udMin(renderData.mouse.position.y + pProgramState->settings.mouseSnap.range, (int)pRenderContext->originalSceneResolution.y-1); offsety++)
+  for (int offsety = udMax(0, renderData.mouse.position.y - pProgramState->settings.mouseSnap.range); offsety < udMin(renderData.mouse.position.y + pProgramState->settings.mouseSnap.range, (int)pRenderContext->originalSceneResolution.y - 1); offsety++)
     for (int offsetx = udMax(0, renderData.mouse.position.x - pProgramState->settings.mouseSnap.range); offsetx < udMin(renderData.mouse.position.x + pProgramState->settings.mouseSnap.range, (int)pRenderContext->originalSceneResolution.x - 1); offsetx++)
     {
       uint32_t pickingX = (uint32_t)((float)offsetx / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
@@ -1591,6 +1607,11 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   pRenderContext->picking.location.x = (uint32_t)(pRenderContext->currentMouseUV.x * pRenderContext->effectResolution.x);
   pRenderContext->picking.location.y = (uint32_t)(pRenderContext->currentMouseUV.y * pRenderContext->effectResolution.y);
 
+#if GRAPHICS_API_OPENGL
+  // note: we render upside-down
+  pRenderContext->picking.location.y = (pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1);
+#endif
+
   double currentDist = pProgramState->settings.camera.farPlane;
   float pickDepth = 1.0f;
 
@@ -1633,7 +1654,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 
 #if GRAPHICS_API_OPENGL
     // read upside down
-    readLocation.y = pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1;
+    readLocation.y = (pRenderContext->effectResolution.y - readLocation.y - 1);
 #endif
 
     // Synchronously read back data

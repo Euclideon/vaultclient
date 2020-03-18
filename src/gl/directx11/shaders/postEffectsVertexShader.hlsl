@@ -2,8 +2,8 @@ cbuffer u_cameraPlaneParams
 {
   float s_CameraNearPlane;
   float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
+  float u_clipZNear;
+  float u_clipZFar;
 };
 
 struct VS_INPUT
@@ -26,6 +26,7 @@ struct PS_INPUT
 
 cbuffer u_params : register(b0)
 {
+  float4x4 u_screenProjection;
   float4 u_screenParams;  // sampleStepSizex, sampleStepSizeY, (unused), (unused)
   float4 u_saturation; // saturation, (unused), (unused), (unused)
 }

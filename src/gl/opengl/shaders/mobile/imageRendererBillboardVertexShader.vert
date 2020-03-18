@@ -1,34 +1,30 @@
 #version 300 es
-layout (std140) uniform u_cameraPlaneParams
+
+layout(std140) uniform type_u_EveryObject
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+    layout(row_major) mat4 u_worldViewProjectionMatrix;
+    vec4 u_colour;
+    vec4 u_screenSize;
+} u_EveryObject;
 
-//Input Format
-layout(location = 0) in vec3 a_pos;
-layout(location = 1) in vec2 a_uv;
+layout(location = 0) in vec3 in_var_POSITION;
+layout(location = 1) in vec2 in_var_TEXCOORD0;
+out vec2 out_var_TEXCOORD0;
+out vec4 out_var_COLOR0;
+out vec2 out_var_TEXCOORD1;
 
-//Output Format
-out vec2 v_uv;
-out vec4 v_colour;
-out float v_fLogDepth;
-
-layout (std140) uniform u_EveryObject
-{
-  mat4 u_worldViewProjectionMatrix;
-  vec4 u_colour;
-  vec4 u_screenSize;
-};
+vec2 _32;
 
 void main()
 {
-  gl_Position = u_worldViewProjectionMatrix * vec4(a_pos, 1.0);
-  gl_Position.xy += u_screenSize.z * gl_Position.w * u_screenSize.xy * vec2(a_uv.x * 2.0 - 1.0, a_uv.y * 2.0 - 1.0); // expand billboard
-
-  v_uv = vec2(a_uv.x, 1.0 - a_uv.y);
-  v_colour = u_colour;
-  v_fLogDepth = 1.0 + gl_Position.w;
+    vec4 _38 = vec4(0.0, 0.0, 0.0, 1.0) * u_EveryObject.u_worldViewProjectionMatrix;
+    float _44 = _38.w;
+    vec2 _50 = _38.xy + ((u_EveryObject.u_screenSize.xy * (u_EveryObject.u_screenSize.z * _44)) * in_var_POSITION.xy);
+    vec2 _55 = _32;
+    _55.x = 1.0 + _44;
+    gl_Position = vec4(_50.x, _50.y, _38.z, _38.w);
+    out_var_TEXCOORD0 = in_var_TEXCOORD0;
+    out_var_COLOR0 = u_EveryObject.u_colour;
+    out_var_TEXCOORD1 = _55;
 }
+

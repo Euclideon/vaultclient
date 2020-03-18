@@ -1,90 +1,64 @@
-#version 330 core
-#extension GL_ARB_explicit_attrib_location : enable
-layout (std140) uniform u_cameraPlaneParams
+#version 330
+#extension GL_ARB_separate_shader_objects : require
+
+layout(std140) uniform type_u_cameraPlaneParams
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+    float s_CameraNearPlane;
+    float s_CameraFarPlane;
+    float u_unused1;
+    float u_unused2;
+} u_cameraPlaneParams;
 
-in vec2 v_uv;
-
-out vec4 out_Colour;
-
-uniform sampler2D u_depth;
-uniform sampler2D u_shadowMapAtlas;
-
-// Should match CPU
-#define MAP_COUNT 3
-
-layout (std140) uniform u_params
+layout(std140) uniform type_u_params
 {
-  mat4 u_shadowMapVP[MAP_COUNT];
-  mat4 u_inverseProjection;
-  vec4 u_visibleColour;
-  vec4 u_notVisibleColour;
-  vec4 u_viewDistance; // .yzw unused
-};
+    layout(row_major) mat4 u_shadowMapVP[3];
+    layout(row_major) mat4 u_inverseProjection;
+    vec4 u_visibleColour;
+    vec4 u_notVisibleColour;
+    vec4 u_viewDistance;
+} u_params;
 
-float linearizeDepth(float depth)
-{
-  return (2.0 * s_CameraNearPlane) / (s_CameraFarPlane + s_CameraNearPlane - depth * (s_CameraFarPlane - s_CameraNearPlane));
-}
+uniform sampler2D SPIRV_Cross_Combinedtexture0sampler0;
+uniform sampler2D SPIRV_Cross_Combinedtexture1sampler1;
 
-float logToLinearDepth(float logDepth)
-{
-  float a = s_CameraFarPlane / (s_CameraFarPlane - s_CameraNearPlane);
-  float b = s_CameraFarPlane * s_CameraNearPlane / (s_CameraNearPlane - s_CameraFarPlane);
-  float worldDepth = pow(2.0, logDepth * log2(s_CameraFarPlane + 1.0)) - 1.0;
-  return a + b / worldDepth;
-}
+layout(location = 0) in vec2 in_var_TEXCOORD0;
+layout(location = 0) out vec4 out_var_SV_Target;
 
 void main()
 {
-  vec4 col = vec4(0.0, 0.0, 0.0, 0.0);
-  float logDepth = texture(u_depth, v_uv).x;
-  float depth = logToLinearDepth(logDepth);
-
-  vec4 fragEyePosition = u_inverseProjection * vec4(v_uv * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
-  fragEyePosition /= fragEyePosition.w;
-
-  vec4 shadowUV = vec4(0.0);
-
-  // unrolled loop
-  vec4 shadowMapCoord0 = u_shadowMapVP[0] * vec4(fragEyePosition.xyz, 1.0);
-  vec4 shadowMapCoord1 = u_shadowMapVP[1] * vec4(fragEyePosition.xyz, 1.0);
-  vec4 shadowMapCoord2 = u_shadowMapVP[2] * vec4(fragEyePosition.xyz, 1.0);
-
-  // note: z has no scale & biased because we are using a [0,1] depth projection matrix here
-  vec3 shadowMapClip0 = (shadowMapCoord0.xyz / shadowMapCoord0.w) * vec3(0.5, 0.5, 1.0) + vec3(0.5, 0.5, 0.0);
-  vec3 shadowMapClip1 = (shadowMapCoord1.xyz / shadowMapCoord1.w) * vec3(0.5, 0.5, 1.0) + vec3(0.5, 0.5, 0.0);
-  vec3 shadowMapClip2 = (shadowMapCoord2.xyz / shadowMapCoord2.w) * vec3(0.5, 0.5, 1.0) + vec3(0.5, 0.5, 0.0);
-
-  float isInMap0 = float(shadowMapClip0.x >= 0.0 && shadowMapClip0.x <= 1.0 && shadowMapClip0.y >= 0.0 && shadowMapClip0.y <= 1.0 && shadowMapClip0.z >= 0.0 && shadowMapClip0.z <= 1.0);
-  float isInMap1 = float(shadowMapClip1.x >= 0.0 && shadowMapClip1.x <= 1.0 && shadowMapClip1.y >= 0.0 && shadowMapClip1.y <= 1.0 && shadowMapClip1.z >= 0.0 && shadowMapClip1.z <= 1.0);
-  float isInMap2 = float(shadowMapClip2.x >= 0.0 && shadowMapClip2.x <= 1.0 && shadowMapClip2.y >= 0.0 && shadowMapClip2.y <= 1.0 && shadowMapClip2.z >= 0.0 && shadowMapClip2.z <= 1.0);
-
-  // atlas UVs
-  vec4 shadowMapUV0 = vec4((0.0 / float(MAP_COUNT)) + shadowMapClip0.x / float(MAP_COUNT), shadowMapClip0.y, shadowMapClip0.z, shadowMapCoord0.w);
-  vec4 shadowMapUV1 = vec4((1.0 / float(MAP_COUNT)) + shadowMapClip1.x / float(MAP_COUNT), shadowMapClip1.y, shadowMapClip1.z, shadowMapCoord1.w);
-  vec4 shadowMapUV2 = vec4((2.0 / float(MAP_COUNT)) + shadowMapClip2.x / float(MAP_COUNT), shadowMapClip2.y, shadowMapClip2.z, shadowMapCoord2.w);
-
-  shadowUV = mix(shadowUV, shadowMapUV0, isInMap0);
-  shadowUV = mix(shadowUV, shadowMapUV1, isInMap1);
-  shadowUV = mix(shadowUV, shadowMapUV2, isInMap2);
-
-  if (length(shadowUV.xyz) > 0.0 && (linearizeDepth(shadowUV.z) * s_CameraFarPlane) <= u_viewDistance.x)
-  {
-    // fragment is inside the view shed bounds
-    float shadowMapLogDepth = texture(u_shadowMapAtlas, shadowUV.xy).x; // log z
-  
-    float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
-    float logDepthSample = log2(1.0 + shadowUV.w) * halfFcoef;
-
-    float diff = (0.00004 * s_CameraFarPlane) * (logDepthSample - shadowMapLogDepth);
-    col = mix(u_visibleColour, u_notVisibleColour, clamp(diff, 0.0, 1.0));
-  }
-
-  out_Colour = vec4(col.xyz * col.w, 1.0); //additive
+    vec4 _59 = texture(SPIRV_Cross_Combinedtexture0sampler0, in_var_TEXCOORD0);
+    float _65 = u_cameraPlaneParams.s_CameraFarPlane - u_cameraPlaneParams.s_CameraNearPlane;
+    float _71 = log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0);
+    vec4 _87 = vec4((in_var_TEXCOORD0.x * 2.0) - 1.0, ((1.0 - in_var_TEXCOORD0.y) * 2.0) - 1.0, (u_cameraPlaneParams.s_CameraFarPlane / _65) + (((u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane)) / (pow(2.0, _59.x * _71) - 1.0)), 1.0) * u_params.u_inverseProjection;
+    vec4 _96 = vec4((_87 / vec4(_87.w)).xyz, 1.0);
+    vec4 _97 = _96 * u_params.u_shadowMapVP[0];
+    vec4 _100 = _96 * u_params.u_shadowMapVP[1];
+    vec4 _103 = _96 * u_params.u_shadowMapVP[2];
+    float _105 = _97.w;
+    vec3 _109 = ((_97.xyz / vec3(_105)) * vec3(0.5, 0.5, 1.0)) + vec3(0.5, 0.5, 0.0);
+    float _111 = _100.w;
+    vec3 _115 = ((_100.xyz / vec3(_111)) * vec3(0.5, 0.5, 1.0)) + vec3(0.5, 0.5, 0.0);
+    float _117 = _103.w;
+    vec3 _121 = ((_103.xyz / vec3(_117)) * vec3(0.5, 0.5, 1.0)) + vec3(0.5, 0.5, 0.0);
+    float _122 = _109.x;
+    float _126 = _109.y;
+    float _131 = _109.z;
+    float _137 = _115.x;
+    float _141 = _115.y;
+    float _146 = _115.z;
+    float _152 = _121.x;
+    float _156 = _121.y;
+    float _161 = _121.z;
+    vec4 _183 = mix(mix(mix(vec4(0.0), vec4(_122 * 0.3333333432674407958984375, 1.0 - _126, _131, _105), vec4(float((((((_122 >= 0.0) && (_122 <= 1.0)) && (_126 >= 0.0)) && (_126 <= 1.0)) && (_131 >= 0.0)) && (_131 <= 1.0)))), vec4(0.3333333432674407958984375 + (_137 * 0.3333333432674407958984375), 1.0 - _141, _146, _111), vec4(float((((((_137 >= 0.0) && (_137 <= 1.0)) && (_141 >= 0.0)) && (_141 <= 1.0)) && (_146 >= 0.0)) && (_146 <= 1.0)))), vec4(0.666666686534881591796875 + (_152 * 0.3333333432674407958984375), 1.0 - _156, _161, _117), vec4(float((((((_152 >= 0.0) && (_152 <= 1.0)) && (_156 >= 0.0)) && (_156 <= 1.0)) && (_161 >= 0.0)) && (_161 <= 1.0))));
+    vec4 _221;
+    if ((length(_183.xyz) > 0.0) && ((((2.0 * u_cameraPlaneParams.s_CameraNearPlane) / ((u_cameraPlaneParams.s_CameraFarPlane + u_cameraPlaneParams.s_CameraNearPlane) - (_183.z * _65))) * u_cameraPlaneParams.s_CameraFarPlane) <= u_params.u_viewDistance.x))
+    {
+        _221 = mix(u_params.u_visibleColour, u_params.u_notVisibleColour, vec4(clamp((3.9999998989515006542205810546875e-05 * u_cameraPlaneParams.s_CameraFarPlane) * ((log2(1.0 + _183.w) * (1.0 / _71)) - texture(SPIRV_Cross_Combinedtexture1sampler1, _183.xy).x), 0.0, 1.0)));
+    }
+    else
+    {
+        _221 = vec4(0.0);
+    }
+    out_var_SV_Target = vec4(_221.xyz * _221.w, 1.0);
 }
+

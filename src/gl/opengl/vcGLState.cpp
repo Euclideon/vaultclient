@@ -93,6 +93,9 @@ bool vcGLState_ResetState(bool force /*= false*/)
 
 bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMode, bool isFrontCCW /*= true*/, bool force /*= false*/)
 {
+  // reverse convention for what is front-facing
+  isFrontCCW = !isFrontCCW;
+
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   if (fillMode != vcGLSFM_Solid)
     return false;
@@ -105,6 +108,7 @@ bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMod
     else
       glEnable(GL_CULL_FACE);
 
+    // NOTE: we flip these because of inverted-y projection
     switch (cullMode)
     {
     case vcGLSCM_None:

@@ -2,18 +2,19 @@ cbuffer u_cameraPlaneParams
 {
   float s_CameraNearPlane;
   float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
+  float u_clipZNear;
+  float u_clipZFar;
 };
 
 struct PS_INPUT
 {
   float4 pos : SV_POSITION;
-  float2 uv : TEXCOORD0;
-  float2 edgeSampleUV0 : TEXCOORD1;
-  float2 edgeSampleUV1 : TEXCOORD2;
-  float2 edgeSampleUV2 : TEXCOORD3;
-  float2 edgeSampleUV3 : TEXCOORD4;
+  float4 clip : TEXCOORD0;
+  float2 uv : TEXCOORD1;
+  float2 edgeSampleUV0 : TEXCOORD2;
+  float2 edgeSampleUV1 : TEXCOORD3;
+  float2 edgeSampleUV2 : TEXCOORD4;
+  float2 edgeSampleUV3 : TEXCOORD5;
 };
 
 struct PS_OUTPUT
@@ -57,7 +58,12 @@ float logToLinearDepth(float logDepth)
   float a = s_CameraFarPlane / (s_CameraFarPlane - s_CameraNearPlane);
   float b = s_CameraFarPlane * s_CameraNearPlane / (s_CameraNearPlane - s_CameraFarPlane);
   float worldDepth = pow(2.0, logDepth * log2(s_CameraFarPlane + 1.0)) - 1.0;
-  return a + b / worldDepth;
+  return (a + b / worldDepth);
+}
+
+float linearDepthToClipZ(float depth)
+{
+  return depth * (u_clipZFar - u_clipZNear) + u_clipZNear;
 }
 
 float getNormalizedPosition(float v, float min, float max)
@@ -69,7 +75,7 @@ float getNormalizedPosition(float v, float min, float max)
 // this is to show the edge highlights against the skybox
 float4 edgeHighlight(PS_INPUT input, float3 col, float depth, float logDepth, float4 outlineColour, float edgeOutlineThreshold)
 {
-  float4 eyePosition = mul(u_inverseProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, depth, 1.0));
+  float4 eyePosition = mul(u_inverseProjection, float4(input.uv.x * 2.0 - 1.0, input.uv.y * 2.0 - 1.0, linearDepthToClipZ(depth), 1.0));
   eyePosition /= eyePosition.w;
 
   float sampleDepth0 = texture1.Sample(sampler1, input.edgeSampleUV0).x;
@@ -77,10 +83,10 @@ float4 edgeHighlight(PS_INPUT input, float3 col, float depth, float logDepth, fl
   float sampleDepth2 = texture1.Sample(sampler1, input.edgeSampleUV2).x;
   float sampleDepth3 = texture1.Sample(sampler1, input.edgeSampleUV3).x;
 
-  float4 eyePosition0 = mul(u_inverseProjection, float4(input.edgeSampleUV0.x * 2.0 - 1.0, (1.0 - input.edgeSampleUV0.y) * 2.0 - 1.0, logToLinearDepth(sampleDepth0), 1.0));
-  float4 eyePosition1 = mul(u_inverseProjection, float4(input.edgeSampleUV1.x * 2.0 - 1.0, (1.0 - input.edgeSampleUV1.y) * 2.0 - 1.0, logToLinearDepth(sampleDepth1), 1.0));
-  float4 eyePosition2 = mul(u_inverseProjection, float4(input.edgeSampleUV2.x * 2.0 - 1.0, (1.0 - input.edgeSampleUV2.y) * 2.0 - 1.0, logToLinearDepth(sampleDepth2), 1.0));
-  float4 eyePosition3 = mul(u_inverseProjection, float4(input.edgeSampleUV3.x * 2.0 - 1.0, (1.0 - input.edgeSampleUV3.y) * 2.0 - 1.0, logToLinearDepth(sampleDepth3), 1.0));
+  float4 eyePosition0 = mul(u_inverseProjection, float4(input.edgeSampleUV0.x * 2.0 - 1.0, input.edgeSampleUV0.y * 2.0 - 1.0, linearDepthToClipZ(logToLinearDepth(sampleDepth0)), 1.0));
+  float4 eyePosition1 = mul(u_inverseProjection, float4(input.edgeSampleUV1.x * 2.0 - 1.0, input.edgeSampleUV1.y * 2.0 - 1.0, linearDepthToClipZ(logToLinearDepth(sampleDepth1)), 1.0));
+  float4 eyePosition2 = mul(u_inverseProjection, float4(input.edgeSampleUV2.x * 2.0 - 1.0, input.edgeSampleUV2.y * 2.0 - 1.0, linearDepthToClipZ(logToLinearDepth(sampleDepth2)), 1.0));
+  float4 eyePosition3 = mul(u_inverseProjection, float4(input.edgeSampleUV3.x * 2.0 - 1.0, input.edgeSampleUV3.y * 2.0 - 1.0, linearDepthToClipZ(logToLinearDepth(sampleDepth3)), 1.0));
 
   eyePosition0 /= eyePosition0.w;
   eyePosition1 /= eyePosition1.w;
@@ -146,12 +152,13 @@ PS_OUTPUT main(PS_INPUT input)
   float4 col = texture0.Sample(sampler0, input.uv);
   float logDepth = texture1.Sample(sampler1, input.uv).x;
   float depth = logToLinearDepth(logDepth);
+  float clipZ = linearDepthToClipZ(depth);
 
   // TODO: I'm fairly certain this is actually wrong (world space calculations), and will have precision issues
-  float4 fragWorldPosition = mul(u_inverseViewProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, depth, 1.0));
+  float4 fragWorldPosition = mul(u_inverseViewProjection, float4(input.clip.xy, clipZ, 1.0));
   fragWorldPosition /= fragWorldPosition.w;
 
-  float4 fragEyePosition = mul(u_inverseProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, depth, 1.0));
+  float4 fragEyePosition = mul(u_inverseProjection, float4(input.clip.xy, clipZ, 1.0));
   fragEyePosition /= fragEyePosition.w;
 
   col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);

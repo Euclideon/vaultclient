@@ -1,21 +1,15 @@
 #version 300 es
-precision highp float;
-layout (std140) uniform u_cameraPlaneParams
-{
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+precision mediump float;
+precision highp int;
 
-uniform sampler2D Texture;
+uniform highp sampler2D SPIRV_Cross_Combinedtexture0sampler0;
 
-in vec2 Frag_UV;
-in vec4 Frag_Color;
-
-out vec4 Out_Color;
+in highp vec4 in_var_COLOR0;
+in highp vec2 in_var_TEXCOORD0;
+layout(location = 0) out highp vec4 out_var_SV_Target;
 
 void main()
 {
-  Out_Color = Frag_Color * texture(Texture, Frag_UV.st);
+    out_var_SV_Target = in_var_COLOR0 * texture(SPIRV_Cross_Combinedtexture0sampler0, in_var_TEXCOORD0);
 }
+

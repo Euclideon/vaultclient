@@ -1,43 +1,37 @@
-#version 330 core
-#extension GL_ARB_explicit_attrib_location : enable
-layout (std140) uniform u_cameraPlaneParams
+#version 330
+#extension GL_ARB_separate_shader_objects : require
+
+out gl_PerVertex
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
+    vec4 gl_Position;
 };
 
-//Input format
-layout(location = 0) in vec3 a_position;
-layout(location = 1) in vec2 a_texCoord;
-
-//Output Format
-out vec2 v_uv;
-out vec2 v_edgeSampleUV0;
-out vec2 v_edgeSampleUV1;
-out vec2 v_edgeSampleUV2;
-out vec2 v_edgeSampleUV3;
-out vec2 v_sampleStepSize;
-out float v_saturation;
-
-layout (std140) uniform u_params
+layout(std140) uniform type_u_params
 {
-  vec4 u_screenParams;  // sampleStepSizex, sampleStepSizeY, (unused), (unused)
-  vec4 u_saturation; // saturation, (unused), (unused), (unused)
-};
+    layout(row_major) mat4 u_screenProjection;
+    vec4 u_screenParams;
+    vec4 u_saturation;
+} u_params;
+
+layout(location = 0) in vec3 in_var_POSITION;
+layout(location = 1) in vec2 in_var_TEXCOORD0;
+layout(location = 0) out vec2 out_var_TEXCOORD0;
+layout(location = 1) out vec2 out_var_TEXCOORD1;
+layout(location = 2) out vec2 out_var_TEXCOORD2;
+layout(location = 3) out vec2 out_var_TEXCOORD3;
+layout(location = 4) out vec2 out_var_TEXCOORD4;
+layout(location = 5) out vec2 out_var_TEXCOORD5;
+layout(location = 6) out float out_var_TEXCOORD6;
 
 void main()
 {
-  gl_Position = vec4(a_position.xy, 0.0, 1.0);
-  v_uv = vec2(a_texCoord.x, 1.0 - a_texCoord.y);
-  v_sampleStepSize = u_screenParams.xy;
-
-  // sample corners
-  v_edgeSampleUV0 = v_uv + u_screenParams.xy;
-  v_edgeSampleUV1 = v_uv - u_screenParams.xy;
-  v_edgeSampleUV2 = v_uv + vec2(u_screenParams.x, -u_screenParams.y);
-  v_edgeSampleUV3 = v_uv + vec2(-u_screenParams.x, u_screenParams.y);
-
-  v_saturation = u_saturation.x;
+    gl_Position = vec4(in_var_POSITION.xy, 0.0, 1.0);
+    out_var_TEXCOORD0 = in_var_TEXCOORD0;
+    out_var_TEXCOORD1 = in_var_TEXCOORD0 + u_params.u_screenParams.xy;
+    out_var_TEXCOORD2 = in_var_TEXCOORD0 - u_params.u_screenParams.xy;
+    out_var_TEXCOORD3 = in_var_TEXCOORD0 + vec2(u_params.u_screenParams.x, -u_params.u_screenParams.y);
+    out_var_TEXCOORD4 = in_var_TEXCOORD0 + vec2(-u_params.u_screenParams.x, u_params.u_screenParams.y);
+    out_var_TEXCOORD5 = u_params.u_screenParams.xy;
+    out_var_TEXCOORD6 = u_params.u_saturation.x;
 }
+

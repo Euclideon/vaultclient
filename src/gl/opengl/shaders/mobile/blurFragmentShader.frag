@@ -1,34 +1,16 @@
 #version 300 es
-precision highp float;
-layout (std140) uniform u_cameraPlaneParams
-{
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+precision mediump float;
+precision highp int;
 
-//Input Format
-in vec2 v_uv0;
-in vec2 v_uv1;
-in vec2 v_uv2;
+uniform highp sampler2D SPIRV_Cross_Combinedtexture0sampler0;
 
-//Output Format
-out vec4 out_Colour;
-
-uniform sampler2D u_texture;
-
-vec4 kernel[3] = vec4[](vec4(0.0, 0.0, 0.0, 0.27901),
-                        vec4(1.0, 1.0, 1.0, 0.44198),
-                        vec4(0.0, 0.0, 0.0, 0.27901));
+in highp vec2 in_var_TEXCOORD0;
+in highp vec2 in_var_TEXCOORD1;
+in highp vec2 in_var_TEXCOORD2;
+layout(location = 0) out highp vec4 out_var_SV_Target;
 
 void main()
 {
-  vec4 colour = vec4(0);
-
-  colour += kernel[0] * texture(u_texture, v_uv0);
-  colour += kernel[1] * texture(u_texture, v_uv1);
-  colour += kernel[2] * texture(u_texture, v_uv2);
-
-  out_Colour = colour;
+    out_var_SV_Target = ((vec4(0.0, 0.0, 0.0, 0.279009997844696044921875) * texture(SPIRV_Cross_Combinedtexture0sampler0, in_var_TEXCOORD0)) + (vec4(1.0, 1.0, 1.0, 0.44198000431060791015625) * texture(SPIRV_Cross_Combinedtexture0sampler0, in_var_TEXCOORD1))) + (vec4(0.0, 0.0, 0.0, 0.279009997844696044921875) * texture(SPIRV_Cross_Combinedtexture0sampler0, in_var_TEXCOORD2));
 }
+

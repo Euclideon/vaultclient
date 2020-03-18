@@ -1,163 +1,87 @@
 #version 300 es
-precision highp float;
-layout (std140) uniform u_cameraPlaneParams
+precision mediump float;
+precision highp int;
+
+layout(std140) uniform type_u_cameraPlaneParams
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+    highp float s_CameraNearPlane;
+    highp float s_CameraFarPlane;
+    highp float u_clipZNear;
+    highp float u_clipZFar;
+} u_cameraPlaneParams;
 
-in vec2 v_uv;
-in vec2 v_edgeSampleUV0;
-in vec2 v_edgeSampleUV1;
-in vec2 v_edgeSampleUV2;
-in vec2 v_edgeSampleUV3;
-
-out vec4 out_Colour;
-
-uniform sampler2D u_texture;
-uniform sampler2D u_depth;
-
-layout (std140) uniform u_fragParams
+layout(std140) uniform type_u_fragParams
 {
-  vec4 u_screenParams;  // sampleStepSizex, sampleStepSizeY, (unused), (unused)
-  mat4 u_inverseViewProjection;
-  mat4 u_inverseProjection;
+    highp vec4 u_screenParams;
+    layout(row_major) highp mat4 u_inverseViewProjection;
+    layout(row_major) highp mat4 u_inverseProjection;
+    highp vec4 u_outlineColour;
+    highp vec4 u_outlineParams;
+    highp vec4 u_colourizeHeightColourMin;
+    highp vec4 u_colourizeHeightColourMax;
+    highp vec4 u_colourizeHeightParams;
+    highp vec4 u_colourizeDepthColour;
+    highp vec4 u_colourizeDepthParams;
+    highp vec4 u_contourColour;
+    highp vec4 u_contourParams;
+} u_fragParams;
 
-  // outlining
-  vec4 u_outlineColour;
-  vec4 u_outlineParams;   // outlineWidth, edge threshold, (unused), (unused)
+uniform highp sampler2D SPIRV_Cross_Combinedtexture0sampler0;
+uniform highp sampler2D SPIRV_Cross_Combinedtexture1sampler1;
 
-  // colour by height
-  vec4 u_colourizeHeightColourMin;
-  vec4 u_colourizeHeightColourMax;
-  vec4 u_colourizeHeightParams; // min world height, max world height, (unused), (unused)
-
-  // colour by depth
-  vec4 u_colourizeDepthColour;
-  vec4 u_colourizeDepthParams; // min distance, max distance, (unused), (unused)
-
-  // contours
-  vec4 u_contourColour;
-  vec4 u_contourParams; // contour distance, contour band height, contour rainbow repeat rate, contour rainbow factoring
-};
-
-float logToLinearDepth(float logDepth)
-{
-  float a = s_CameraFarPlane / (s_CameraFarPlane - s_CameraNearPlane);
-  float b = s_CameraFarPlane * s_CameraNearPlane / (s_CameraNearPlane - s_CameraFarPlane);
-  float worldDepth = pow(2.0, logDepth * log2(s_CameraFarPlane + 1.0)) - 1.0;
-  return a + b / worldDepth;
-}
-
-float getNormalizedPosition(float v, float min, float max)
-{
-  return clamp((v - min) / (max - min), 0.0, 1.0);
-}
-
-// note: an adjusted depth is packed into the returned .w component
-// this is to show the edge highlights against the skybox
-vec4 edgeHighlight(vec3 col, vec2 uv, float depth, float logDepth, vec4 outlineColour, float edgeOutlineThreshold)
-{
-  vec4 eyePosition = u_inverseProjection * vec4(uv * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
-  eyePosition /= eyePosition.w;
-
-  float sampleDepth0 = texture(u_depth, v_edgeSampleUV0).x;
-  float sampleDepth1 = texture(u_depth, v_edgeSampleUV1).x;
-  float sampleDepth2 = texture(u_depth, v_edgeSampleUV2).x;
-  float sampleDepth3 = texture(u_depth, v_edgeSampleUV3).x;
-
-  vec4 eyePosition0 = u_inverseProjection * vec4(v_edgeSampleUV0 * vec2(2.0) - vec2(1.0), logToLinearDepth(sampleDepth0) * 2.0 - 1.0, 1.0);
-  vec4 eyePosition1 = u_inverseProjection * vec4(v_edgeSampleUV1 * vec2(2.0) - vec2(1.0), logToLinearDepth(sampleDepth1) * 2.0 - 1.0, 1.0);
-  vec4 eyePosition2 = u_inverseProjection * vec4(v_edgeSampleUV2 * vec2(2.0) - vec2(1.0), logToLinearDepth(sampleDepth2) * 2.0 - 1.0, 1.0);
-  vec4 eyePosition3 = u_inverseProjection * vec4(v_edgeSampleUV3 * vec2(2.0) - vec2(1.0), logToLinearDepth(sampleDepth3) * 2.0 - 1.0, 1.0);
-
-  eyePosition0 /= eyePosition0.w;
-  eyePosition1 /= eyePosition1.w;
-  eyePosition2 /= eyePosition2.w;
-  eyePosition3 /= eyePosition3.w;
-
-  vec3 diff0 = eyePosition.xyz - eyePosition0.xyz;
-  vec3 diff1 = eyePosition.xyz - eyePosition1.xyz;
-  vec3 diff2 = eyePosition.xyz - eyePosition2.xyz;
-  vec3 diff3 = eyePosition.xyz - eyePosition3.xyz;
-
-  float isEdge = 1.0 - step(length(diff0), edgeOutlineThreshold) * step(length(diff1), edgeOutlineThreshold) * step(length(diff2), edgeOutlineThreshold) * step(length(diff3), edgeOutlineThreshold);
-
-  vec3 edgeColour = mix(col.xyz, outlineColour.xyz, outlineColour.w);
-  float edgeLogDepth = min(min(min(sampleDepth0, sampleDepth1), sampleDepth2), sampleDepth3);
-  return mix(vec4(col.xyz, logDepth), vec4(edgeColour, edgeLogDepth), isEdge);
-}
-
-vec3 hsv2rgb(vec3 c)
-{
-  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
-
-vec3 contourColour(vec3 col, vec3 fragWorldPosition)
-{
-  float contourDistance = u_contourParams.x;
-  float contourBandHeight = u_contourParams.y;
-  float contourRainboxRepeat = u_contourParams.z;
-  float contourRainboxIntensity = u_contourParams.w;
-
-  vec3 rainbowColour = hsv2rgb(vec3(fragWorldPosition.z * (1.0 / contourRainboxRepeat), 1.0, 1.0));
-  vec3 baseColour = mix(col.xyz, rainbowColour, contourRainboxIntensity);
-
-  float isContour = 1.0 - step(contourBandHeight, mod(abs(fragWorldPosition.z), contourDistance));
-  return mix(baseColour, u_contourColour.xyz, isContour * u_contourColour.w);
-}
-
-vec3 colourizeByHeight(vec3 col, vec3 fragWorldPosition)
-{
-  vec2 worldColourMinMax = u_colourizeHeightParams.xy;
-
-  float minMaxColourStrength = getNormalizedPosition(fragWorldPosition.z, worldColourMinMax.x, worldColourMinMax.y);
-
-  vec3 minColour = mix(col.xyz, u_colourizeHeightColourMin.xyz, u_colourizeHeightColourMin.w);
-  vec3 maxColour = mix( col.xyz, u_colourizeHeightColourMax.xyz,u_colourizeHeightColourMax.w);
-  return mix(minColour, maxColour, minMaxColourStrength);
-}
-
-vec3 colourizeByEyeDistance(vec3 col, vec3 fragEyePos)
-{
-  vec2 depthColourMinMax = u_colourizeDepthParams.xy;
-
-  float depthColourStrength = getNormalizedPosition(length(fragEyePos), depthColourMinMax.x, depthColourMinMax.y);
-  return mix(col.xyz, u_colourizeDepthColour.xyz, depthColourStrength * u_colourizeDepthColour.w);
-}
+in highp vec4 in_var_TEXCOORD0;
+in highp vec2 in_var_TEXCOORD1;
+in highp vec2 in_var_TEXCOORD2;
+in highp vec2 in_var_TEXCOORD3;
+in highp vec2 in_var_TEXCOORD4;
+in highp vec2 in_var_TEXCOORD5;
+layout(location = 0) out highp vec4 out_var_SV_Target;
 
 void main()
 {
-  vec4 col = texture(u_texture, v_uv);
-  float logDepth = texture(u_depth, v_uv).x; 
-  float depth = logToLinearDepth(logDepth);
-
-  // TODO: I'm fairly certain this is actually wrong (world space calculations), and will have precision issues
-  vec4 fragWorldPosition = u_inverseViewProjection * vec4(v_uv * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
-  fragWorldPosition /= fragWorldPosition.w;
-
-  vec4 fragEyePosition = u_inverseProjection * vec4(v_uv * vec2(2.0) - vec2(1.0), depth * 2.0 - 1.0, 1.0);
-  fragEyePosition /= fragEyePosition.w;
-  
-  col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
-  col.xyz = colourizeByEyeDistance(col.xyz, fragEyePosition.xyz);
-  
-  col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
-
-  float edgeOutlineWidth = u_outlineParams.x;
-  float edgeOutlineThreshold = u_outlineParams.y;
-  vec4 outlineColour = u_outlineColour;
-  if (outlineColour.w > 0.0 && edgeOutlineWidth > 0.0 && u_outlineColour.w > 0.0)
-  {
-    vec4 edgeResult = edgeHighlight(col.xyz, v_uv, depth, logDepth, outlineColour, edgeOutlineThreshold);
-    col.xyz = edgeResult.xyz;
-    logDepth = edgeResult.w; // to preserve outlines, depth written may be adjusted
-  }
-
-  out_Colour = vec4(col.xyz, 1.0);
-  gl_FragDepth = logDepth;
+    highp vec4 _77 = texture(SPIRV_Cross_Combinedtexture0sampler0, in_var_TEXCOORD1);
+    highp vec4 _81 = texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD1);
+    highp float _82 = _81.x;
+    highp float _88 = u_cameraPlaneParams.s_CameraFarPlane / (u_cameraPlaneParams.s_CameraFarPlane - u_cameraPlaneParams.s_CameraNearPlane);
+    highp float _91 = (u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane);
+    highp float _93 = log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0);
+    highp float _103 = u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear;
+    highp float _105 = ((_88 + (_91 / (pow(2.0, _82 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear;
+    highp vec4 _110 = vec4(in_var_TEXCOORD0.xy, _105, 1.0);
+    highp vec4 _111 = _110 * u_fragParams.u_inverseViewProjection;
+    highp vec4 _114 = _111 / vec4(_111.w);
+    highp vec4 _117 = _110 * u_fragParams.u_inverseProjection;
+    highp vec3 _121 = _77.xyz;
+    highp float _124 = _114.z;
+    highp vec3 _200 = mix(mix(mix(mix(mix(_121, u_fragParams.u_colourizeHeightColourMin.xyz, vec3(u_fragParams.u_colourizeHeightColourMin.w)), mix(_121, u_fragParams.u_colourizeHeightColourMax.xyz, vec3(u_fragParams.u_colourizeHeightColourMax.w)), vec3(clamp((_124 - u_fragParams.u_colourizeHeightParams.x) / (u_fragParams.u_colourizeHeightParams.y - u_fragParams.u_colourizeHeightParams.x), 0.0, 1.0))).xyz, u_fragParams.u_colourizeDepthColour.xyz, vec3(clamp((length((_117 / vec4(_117.w)).xyz) - u_fragParams.u_colourizeDepthParams.x) / (u_fragParams.u_colourizeDepthParams.y - u_fragParams.u_colourizeDepthParams.x), 0.0, 1.0) * u_fragParams.u_colourizeDepthColour.w)).xyz, clamp(abs((fract(vec3(_124 * (1.0 / u_fragParams.u_contourParams.z), 1.0, 1.0).xxx + vec3(1.0, 0.666666686534881591796875, 0.3333333432674407958984375)) * 6.0) - vec3(3.0)) - vec3(1.0), vec3(0.0), vec3(1.0)) * 1.0, vec3(u_fragParams.u_contourParams.w)), u_fragParams.u_contourColour.xyz, vec3((1.0 - step(u_fragParams.u_contourParams.y, mod(abs(_124), u_fragParams.u_contourParams.x))) * u_fragParams.u_contourColour.w));
+    highp float _350;
+    highp vec4 _351;
+    if ((u_fragParams.u_outlineParams.x > 0.0) && (u_fragParams.u_outlineColour.w > 0.0))
+    {
+        highp vec4 _222 = vec4((in_var_TEXCOORD1.x * 2.0) - 1.0, (in_var_TEXCOORD1.y * 2.0) - 1.0, _105, 1.0) * u_fragParams.u_inverseProjection;
+        highp vec4 _227 = texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD2);
+        highp float _228 = _227.x;
+        highp vec4 _230 = texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD3);
+        highp float _231 = _230.x;
+        highp vec4 _233 = texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD4);
+        highp float _234 = _233.x;
+        highp vec4 _236 = texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD5);
+        highp float _237 = _236.x;
+        highp vec4 _252 = vec4((in_var_TEXCOORD2.x * 2.0) - 1.0, (in_var_TEXCOORD2.y * 2.0) - 1.0, ((_88 + (_91 / (pow(2.0, _228 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear, 1.0) * u_fragParams.u_inverseProjection;
+        highp vec4 _267 = vec4((in_var_TEXCOORD3.x * 2.0) - 1.0, (in_var_TEXCOORD3.y * 2.0) - 1.0, ((_88 + (_91 / (pow(2.0, _231 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear, 1.0) * u_fragParams.u_inverseProjection;
+        highp vec4 _282 = vec4((in_var_TEXCOORD4.x * 2.0) - 1.0, (in_var_TEXCOORD4.y * 2.0) - 1.0, ((_88 + (_91 / (pow(2.0, _234 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear, 1.0) * u_fragParams.u_inverseProjection;
+        highp vec4 _297 = vec4((in_var_TEXCOORD5.x * 2.0) - 1.0, (in_var_TEXCOORD5.y * 2.0) - 1.0, ((_88 + (_91 / (pow(2.0, _237 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear, 1.0) * u_fragParams.u_inverseProjection;
+        highp vec3 _310 = (_222 / vec4(_222.w)).xyz;
+        highp vec4 _347 = mix(vec4(_200, _82), vec4(mix(_200.xyz, u_fragParams.u_outlineColour.xyz, vec3(u_fragParams.u_outlineColour.w)), min(min(min(_228, _231), _234), _237)), vec4(1.0 - (((step(length(_310 - (_252 / vec4(_252.w)).xyz), u_fragParams.u_outlineParams.y) * step(length(_310 - (_267 / vec4(_267.w)).xyz), u_fragParams.u_outlineParams.y)) * step(length(_310 - (_282 / vec4(_282.w)).xyz), u_fragParams.u_outlineParams.y)) * step(length(_310 - (_297 / vec4(_297.w)).xyz), u_fragParams.u_outlineParams.y))));
+        _350 = _347.w;
+        _351 = vec4(_347.x, _347.y, _347.z, _77.w);
+    }
+    else
+    {
+        _350 = _82;
+        _351 = vec4(_200.x, _200.y, _200.z, _77.w);
+    }
+    out_var_SV_Target = vec4(_351.xyz, 1.0);
+    gl_FragDepth = _350;
 }
+
