@@ -77,7 +77,7 @@ void vcSession_GetPackagesMT(void *pProgramStatePtr)
   }
 }
 
-void vcSession_GetProfileInfo(void *pProgramStatePtr)
+void vcSession_GetProfileInfoWT(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
 
@@ -101,34 +101,35 @@ void vcSession_GetProfileInfo(void *pProgramStatePtr)
   v.Destroy();
 
   sessionInfo.Destroy();
-
 }
 
 void vcSession_ChangeSession(vcState *pProgramState)
 {
   vcRender_SetVaultContext(pProgramState, pProgramState->pRenderContext);
 
-  udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetProjectsWT, pProgramState, false);
-  udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetPackagesWT, pProgramState, false, vcSession_GetPackagesMT);
-
-  if (pProgramState->settings.presentation.loginRenderLicense)
-    vdkContext_RequestLicense(pProgramState->pVDKContext, vdkLT_Render);
-
-  //Context Login successful
-  memset(pProgramState->password, 0, sizeof(pProgramState->password));
-  if (!pProgramState->settings.loginInfo.rememberServer)
-    memset(pProgramState->settings.loginInfo.serverURL, 0, sizeof(pProgramState->settings.loginInfo.serverURL));
-
-  if (!pProgramState->settings.loginInfo.rememberUsername)
-    memset(pProgramState->settings.loginInfo.username, 0, sizeof(pProgramState->settings.loginInfo.username));
-
   vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->sessionInfo);
+
+  if (!pProgramState->sessionInfo.isOffline)
+  {
+    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetProjectsWT, pProgramState, false);
+    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetPackagesWT, pProgramState, false, vcSession_GetPackagesMT);
+    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetProfileInfoWT, pProgramState, false);
+
+    if (pProgramState->settings.presentation.loginRenderLicense)
+      vdkContext_RequestLicense(pProgramState->pVDKContext, vdkLT_Render);
+
+    //Context Login successful
+    memset(pProgramState->password, 0, sizeof(pProgramState->password));
+    if (!pProgramState->settings.loginInfo.rememberServer)
+      memset(pProgramState->settings.loginInfo.serverURL, 0, sizeof(pProgramState->settings.loginInfo.serverURL));
+
+    if (!pProgramState->settings.loginInfo.rememberUsername)
+      memset(pProgramState->settings.loginInfo.username, 0, sizeof(pProgramState->settings.loginInfo.username));
+  }
 
   pProgramState->logoutReason = vE_Success;
   pProgramState->loginStatus = vcLS_NoStatus;
   pProgramState->hasContext = true;
-
-  udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetProfileInfo, pProgramState, false);
 }
 
 void vcSession_Login(void *pProgramStatePtr)

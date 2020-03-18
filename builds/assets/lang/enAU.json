@@ -299,10 +299,12 @@
   "menuLogoutMessage": "You were logged out.",
   "menuLogoutConfirm": "Are you sure you want to logout?",
 
-  "menuProfileTitle": "Profile",
-  "menuUserNameLabel": "User Name",
-  "menuRealNameLabel": "Real Name",
-  "menuEmailLabel": "Email",
+  "modalProfileTitle": "Profile",
+  "modalProfileUsername": "User Name",
+  "modalProfileRealName": "Real Name",
+  "modalProfileEmail": "Email",
+  "modalProfileOffline": "Using an offline dongle",
+  "modalProfileDongle": "Dongle ID",
 
   "menuReleaseNotes": "Release Notes",
   "menuReleaseNotesTitle": "Release Notes",
