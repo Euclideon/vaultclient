@@ -241,7 +241,7 @@ project "vaultClient"
 
 	floatingpoint "default"
 
-	filter { "system:ios" }
+	filter { "system:ios or system:macosx" }
 		removeflags { "FatalWarnings" }
 
 	filter { "files:3rdParty/**" }
