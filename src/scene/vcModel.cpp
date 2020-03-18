@@ -173,6 +173,17 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
 
 void vcModel::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
+  vdkError status = vdkPointCloud_GetStreamingStatus(m_pPointCloud);
+  if (status != vE_Success)
+  {
+    if (status == vE_ParseError)
+      m_loadStatus = vcSLS_Corrupt;
+    else if (status == vE_OpenFailure)
+      m_loadStatus = vcSLS_OpenFailure;
+    else
+      m_loadStatus = vcSLS_Failed;
+  }
+
   if (m_changeZones)
     ChangeProjection(pProgramState->gis.zone);
 

@@ -168,9 +168,9 @@ uint32_t vcIGSW_BGRAToRGBAUInt32(uint32_t lineColour)
   return ((lineColour & 0xff) << 16) | (lineColour & 0x0000ff00) | (((lineColour >> 16) & 0xff) << 0) | (lineColour & 0xff000000);
 }
 
-bool vcIGSW_IsItemHovered(ImGuiHoveredFlags /*flags = 0*/, float timer /*= 0.5f*/)
+bool vcIGSW_IsItemHovered(ImGuiHoveredFlags flags, float /*timer*/ /*= 0.5f*/)
 {
-  return ImGui::IsItemHovered() && GImGui->HoveredIdTimer > timer;
+  return ImGui::IsItemHovered(flags);
 }
 
 void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine /*= true*/)
@@ -191,13 +191,15 @@ void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine 
     if (vcIGSW_IsItemHovered())
       ImGui::SetTooltip("%s", vcString::Get("sceneExplorerLoading"));
   }
-  else if (loadStatus == vcSLS_Failed || loadStatus == vcSLS_OpenFailure)
+  else if (loadStatus == vcSLS_Failed || loadStatus == vcSLS_OpenFailure || loadStatus == vcSLS_Corrupt)
   {
     ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Red Exclamation in Triangle
     if (vcIGSW_IsItemHovered())
     {
       if (loadStatus == vcSLS_OpenFailure)
         ImGui::SetTooltip("%s", vcString::Get("sceneExplorerErrorOpen"));
+      else if (loadStatus == vcSLS_Corrupt)
+        ImGui::SetTooltip("%s", vcString::Get("sceneExplorerErrorCorrupt"));
       else
         ImGui::SetTooltip("%s", vcString::Get("sceneExplorerErrorLoad"));
     }
