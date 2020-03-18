@@ -324,14 +324,9 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
   const ImVec2 &size = ImGui::GetWindowSize();
   if (ImGui::IsWindowAppearing())
-  {
-    int width = size.x * pProgramState->settings.presentation.convertLeftPanelPercentage;
-    ImGui::SetColumnWidth(0, width);
-  }
+    ImGui::SetColumnWidth(0, size.x * pProgramState->settings.presentation.convertLeftPanelPercentage);
   else
-  {
     pProgramState->settings.presentation.convertLeftPanelPercentage = ImGui::GetColumnWidth(0) / size.x;
-  }
 
   ImGui::TextUnformatted(vcString::Get("convertJobs"));
   ImGui::NextColumn();
