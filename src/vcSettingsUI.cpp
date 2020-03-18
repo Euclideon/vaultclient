@@ -876,6 +876,7 @@ void vcSettingsUI_VisualizationSettings(vcState *pProgramState, vcVisualizationS
 
   if (pVisualizationSettings->mode == vcVM_Displacement)
   {
+    ImGui::Indent();
     if (ImGui::InputFloat2(vcString::Get("settingsVisDisplacementRange"), &pVisualizationSettings->displacement.x))
     {
       pVisualizationSettings->displacement.x = udClamp(pVisualizationSettings->displacement.x, 0.f, MAX_DISPLACEMENT);
@@ -885,5 +886,6 @@ void vcSettingsUI_VisualizationSettings(vcState *pProgramState, vcVisualizationS
     vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourMin"), &pVisualizationSettings->displacement.min, ImGuiColorEditFlags_None);
     vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourMid"), &pVisualizationSettings->displacement.mid, ImGuiColorEditFlags_None);
     vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourNoMatch"), &pVisualizationSettings->displacement.error, ImGuiColorEditFlags_None);
+    ImGui::Unindent();
   }
 }

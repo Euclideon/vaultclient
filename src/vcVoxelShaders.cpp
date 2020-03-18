@@ -29,22 +29,20 @@ uint32_t vcVoxelShader_Intensity(vdkPointCloud *pPointCloud, uint64_t voxelID, c
   return vcPCShaders_BuildAlpha(pData->pModel) | result;
 }
 
-inline uint32_t fadeAlpha(uint32_t firstColour, uint32_t secondColour)
+/*
+Blends two colours based on the contents of the first colours alpha channel
+*/
+inline uint32_t vcVoxelShader_FadeAlpha(uint32_t firstColour, uint32_t secondColour)
 {
-  
-  uint32_t alphaMask = 0xFF << 24;
-
-  float  alpha = (float)((alphaMask & firstColour) >> 24);
-  alpha/=255.f;
+  float  alpha = (float)(firstColour>>24 & 0xFF)/255.0f;
   uint32_t result = 0;
   //extract the each colour and scale it by the alpha in the first channel
   for (int shift = 0; shift < 24; shift += 8)
   {
-    float scaledChannel = alpha * (float)((firstColour >> shift) & 0xFF);
-    scaledChannel += (1 - alpha) * (float)((secondColour >> shift) & 0xFF);
+    float scaledChannel = alpha * (float)((firstColour >> shift) & 0xFF);//scale the first colour by alpha
+    scaledChannel += (1 - alpha) * (float)((secondColour >> shift) & 0xFF);//scale the second by 1-alpha
     result |= ((uint32_t) scaledChannel) << shift;
   }
-
   return result;
 }
 
@@ -52,7 +50,7 @@ uint32_t vcVoxelShader_Displacement(vdkPointCloud *pPointCloud, uint64_t voxelID
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
-  uint32_t result = 0;
+  uint32_t displacementColour = 0;
   uint32_t baseColour = 0;
   vdkPointCloud_GetNodeColour(pPointCloud, voxelID, &baseColour);
 
@@ -63,17 +61,17 @@ uint32_t vcVoxelShader_Displacement(vdkPointCloud *pPointCloud, uint64_t voxelID
   {
     
     if (*pDisplacement == FLT_MAX)
-      result = pData->data.displacement.errorColour;
+      displacementColour = pData->data.displacement.errorColour;
     else if (*pDisplacement <= pData->data.displacement.minThreshold)
-      result = pData->data.displacement.minColour;
+      displacementColour = pData->data.displacement.minColour;
     else if (*pDisplacement >= pData->data.displacement.maxThreshold)
-      result = pData->data.displacement.maxColour;
+      displacementColour = pData->data.displacement.maxColour;
     else
-      result = pData->data.displacement.midColour;
+      displacementColour = pData->data.displacement.midColour;
   }
 
-  result = fadeAlpha(result, baseColour);
-  return vcPCShaders_BuildAlpha(pData->pModel) | (result & 0xFFFFFF);
+  displacementColour = vcVoxelShader_FadeAlpha(displacementColour, baseColour);
+  return vcPCShaders_BuildAlpha(pData->pModel) | (displacementColour & 0xFFFFFF);
 }
 
 uint32_t vcVoxelShader_Classification(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
