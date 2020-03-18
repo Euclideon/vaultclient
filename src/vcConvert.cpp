@@ -605,16 +605,16 @@ void vcConvert_ShowUI(vcState *pProgramState)
         ImGui::TextUnformatted(vcString::Get("convertMetadata"));
 
         // Other Metadata
-        if (ImGui::InputText(vcString::Get("convertAuthor"), pSelectedJob->author, udLengthOf(pSelectedJob->author)))
+        if (vcIGSW_InputText(vcString::Get("convertAuthor"), pSelectedJob->author, udLengthOf(pSelectedJob->author)))
           vdkConvert_SetMetadata(pSelectedJob->pConvertContext, "Author", pSelectedJob->author);
 
-        if (ImGui::InputText(vcString::Get("convertComment"), pSelectedJob->comment, udLengthOf(pSelectedJob->comment)))
+        if (vcIGSW_InputText(vcString::Get("convertComment"), pSelectedJob->comment, udLengthOf(pSelectedJob->comment)))
           vdkConvert_SetMetadata(pSelectedJob->pConvertContext, "Comment", pSelectedJob->comment);
 
-        if (ImGui::InputText(vcString::Get("convertCopyright"), pSelectedJob->copyright, udLengthOf(pSelectedJob->copyright)))
+        if (vcIGSW_InputText(vcString::Get("convertCopyright"), pSelectedJob->copyright, udLengthOf(pSelectedJob->copyright)))
           vdkConvert_SetMetadata(pSelectedJob->pConvertContext, "Copyright", pSelectedJob->copyright);
 
-        if (ImGui::InputText(vcString::Get("convertLicense"), pSelectedJob->license, udLengthOf(pSelectedJob->license)))
+        if (vcIGSW_InputText(vcString::Get("convertLicense"), pSelectedJob->license, udLengthOf(pSelectedJob->license)))
           vdkConvert_SetMetadata(pSelectedJob->pConvertContext, "License", pSelectedJob->license);
 
         // Watermark
