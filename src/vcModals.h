@@ -30,4 +30,7 @@ bool vcModals_OverwriteExistingFile(const char *pFilename);
 // Returns true if user accepts action
 bool vcModals_AllowDestructiveAction(const char *pTitle, const char *pMessage);
 
+// Returns true if user accepts ending the session, `isQuit` is false when logging out
+bool vcModals_ConfirmEndSession(vcState *pProgramState, bool isQuit);
+
 #endif //vcModals_h__

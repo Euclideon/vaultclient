@@ -306,7 +306,14 @@
   "menuLogout": "退出登录",
   "menuLogoutTitle": "已退出登录",
   "menuLogoutMessage": "您已退出登录。",
-  "menuLogoutConfirm": "您确定要注销吗？",
+
+  "endSessionExitTitle": "放弃？",
+  "endSessionExitMessage": "你确定你要退出吗？",
+  "endSessionLogoutTitle": "登出？",
+  "endSessionLogoutMessage": "您确定要注销吗？",
+  "endSessionConfirmEndConvert": "正在运行转换作业，有待处理",
+  "endSessionConfirmProjectUnsaved": "当前项目有未保存的更改",
+  "endSessionConfirmExportsRunning": "正在进行点云导出",
 
   "modalProfileTitle": "资料",
   "modalProfileUsername": "用户名",
