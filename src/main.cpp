@@ -2162,7 +2162,7 @@ float vcMain_MenuGui(vcState *pProgramState)
     udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
     if (ImGui::BeginMenu(vcString::Get("menuProjects")))
     {
-      if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr))
+      if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
         vcProject_InitBlankScene(pProgramState);
 
       if (ImGui::MenuItem(vcString::Get("menuProjectExport"), nullptr, nullptr))
@@ -2177,7 +2177,7 @@ float vcMain_MenuGui(vcState *pProgramState)
       {
         for (size_t i = 0; i < pProjectList->length; ++i)
         {
-          if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr))
+          if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
           {
             vcProject_InitBlankScene(pProgramState);
             bool moveTo = true;
@@ -2224,6 +2224,10 @@ float vcMain_MenuGui(vcState *pProgramState)
               if (udUUID_IsValid(pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString()))
                 vdkProjectNode_SetMetadataString(pNode, "groupid", pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString());
             }
+
+            // This is a hack to clear the 'unsaved changes' flag to get around the fact the server projects aren't actually loading as projects
+            const char *pTempMemory = nullptr;
+            vdkProject_WriteToMemory(pProgramState->activeProject.pProject, &pTempMemory);
           }
         }
       }

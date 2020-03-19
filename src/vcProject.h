@@ -26,6 +26,8 @@ void vcProject_Deinit(vcState *pProgramData, vcProject *pProject);
 
 void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverride);
 
+bool vcProject_AbleToChange(vcState *pProgramState);
+
 void vcProject_RemoveItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode);
 void vcProject_RemoveSelected(vcState *pProgramState);
 
