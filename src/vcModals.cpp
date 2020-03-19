@@ -257,6 +257,30 @@ bool vcModals_AllowDestructiveAction(const char *pTitle, const char *pMessage)
   return result;
 }
 
+// Returns true if user accepts ending the session
+bool vcModals_ConfirmEndSession(vcState *pProgramState, bool isQuit)
+{
+  const char *pMessage = udStrdup(isQuit ? vcString::Get("endSessionExitMessage") : vcString::Get("endSessionLogoutMessage"));
+
+  if (pProgramState->hasContext)
+  {
+    if (vcConvert_CurrentProgressPercent(pProgramState) > -2)
+      udSprintf(&pMessage, "%s\n- %s", pMessage, vcString::Get("endSessionConfirmEndConvert"));
+
+    if (vdkProject_HasUnsavedChanges(pProgramState->activeProject.pProject) == vE_Success)
+      udSprintf(&pMessage, "%s\n- %s", pMessage, vcString::Get("endSessionConfirmProjectUnsaved"));
+
+    if (pProgramState->backgroundWork.exportsRunning.Get() > 0)
+      udSprintf(&pMessage, "%s\n- %s", pMessage, vcString::Get("endSessionConfirmExportsRunning"));
+  }
+
+  bool retVal = vcModals_AllowDestructiveAction(isQuit ? vcString::Get("endSessionExitTitle") : vcString::Get("endSessionLogoutTitle"), pMessage);
+
+  udFree(pMessage);
+
+  return retVal;
+}
+
 void vcModals_DrawAddSceneItem(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_AddSceneItem))
@@ -654,7 +678,7 @@ void vcModals_DrawProfile(vcState* pProgramState)
       ImGui::InputText(vcString::Get("modalProfileEmail"), (char*)pEmail, udStrlen(pEmail), ImGuiInputTextFlags_ReadOnly);
     }
 
-    if (ImGui::Button(vcString::Get("menuLogout"), ImVec2(buttonWidth, 0)) && vcModals_AllowDestructiveAction(vcString::Get("menuLogout"), vcString::Get("menuLogoutConfirm")))
+    if (ImGui::Button(vcString::Get("menuLogout"), ImVec2(buttonWidth, 0)) && vcModals_ConfirmEndSession(pProgramState, false))
       pProgramState->forceLogout = true;
 
     ImGui::SameLine();

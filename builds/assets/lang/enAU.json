@@ -298,7 +298,14 @@
   "menuLogout": "Logout",
   "menuLogoutTitle": "Logged Out",
   "menuLogoutMessage": "You were logged out.",
-  "menuLogoutConfirm": "Are you sure you want to logout?",
+
+  "endSessionExitTitle": "Quit?",
+  "endSessionExitMessage": "Are you sure you want to quit?",
+  "endSessionLogoutTitle": "Logout?",
+  "endSessionLogoutMessage": "Are you sure you want to logout?",
+  "endSessionConfirmEndConvert": "There are pending on running conversion jobs",
+  "endSessionConfirmProjectUnsaved": "The current project has unsaved changes",
+  "endSessionConfirmExportsRunning": "There are pointcloud exports in progress",
 
   "modalProfileTitle": "Profile",
   "modalProfileUsername": "User Name",

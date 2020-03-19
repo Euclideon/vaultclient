@@ -311,7 +311,8 @@ void vcMain_MainLoop(vcState *pProgramState)
       }
       else if (event.type == SDL_QUIT)
       {
-        pProgramState->programComplete = true;
+        if (vcModals_ConfirmEndSession(pProgramState, true))
+          pProgramState->programComplete = true;
       }
     }
   }
