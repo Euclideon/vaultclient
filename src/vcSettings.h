@@ -30,7 +30,10 @@ enum vcVisualizatationMode
   vcVM_Colour,
   vcVM_Intensity,
   vcVM_Classification,
-  vcVM_Displacement
+  vcVM_DisplacementDistance,
+  vcVM_DisplacementDirection,
+
+  vcVM_Count
 };
 
 enum vcDisplacementShaderType
@@ -229,7 +232,6 @@ struct vcSettings
   } loginInfo;
 
   vcVisualizationSettings visualization;
-  vcDisplacementShaderType displacementShaderType;
 
   struct
   {

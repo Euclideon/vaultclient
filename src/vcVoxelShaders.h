@@ -22,6 +22,9 @@ struct vcUDRSData
     } classification;
     struct
     {
+      uint32_t attributeOffsets[3];
+      udFloat3 cameraDirection;
+
       float minThreshold;
       float maxThreshold;
       uint32_t minColour;
@@ -36,5 +39,5 @@ uint32_t vcVoxelShader_Black(vdkPointCloud *pPointCloud, uint64_t voxelID, const
 uint32_t vcVoxelShader_Colour(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData);
 uint32_t vcVoxelShader_Intensity(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData);
 uint32_t vcVoxelShader_Classification(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData);
-uint32_t vcVoxelShader_DisplacementAbs(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData);
-uint32_t vcVoxelShader_DisplacementSigned(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData);
+uint32_t vcVoxelShader_DisplacementDistance(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData);
+uint32_t vcVoxelShader_DisplacementDirection(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData);

@@ -205,6 +205,8 @@ void vcBPA_PopulateGrid(vdkContext *pContext, vdkPointCloud *pModel, vdkAttribut
 
 bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vdkAttributeSet *pAttributes, vcBPAGrid **ppGrid)
 {
+  double startTime = udGetEpochMilliSecsUTCf();
+
   // Iterate octree to find grids
   for (size_t i = 0; i < pManifold->nodes.length; ++i)
   {
@@ -247,6 +249,9 @@ bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vdkAttribute
     }
   }
 
+  printf("Processing Grids (now at %.3f)\n", udGetEpochMilliSecsUTCf() - startTime);
+  startTime = udGetEpochMilliSecsUTCf();
+
   // Iterate generated grids and return valid grids
   for (size_t i = 0; i < pManifold->grids.length; ++i)
   {
@@ -271,9 +276,12 @@ bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vdkAttribute
       continue;
 
     *ppGrid = pManifold->grids.GetElement(i);
+
+    printf("Processing Grids SUCCESS (now at %.3f)\n", udGetEpochMilliSecsUTCf() - startTime);
     return true;
   }
 
+  printf("Processing Grids FAILED (now at %.3f)\n", udGetEpochMilliSecsUTCf() - startTime);
   return false;
 }
 

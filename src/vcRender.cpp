@@ -1463,12 +1463,19 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
 
         pVoxelShaderData[numVisibleModels].data.classification.pCustomClassificationColors = pVisSettings->customClassificationColors;
       }
-      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Displacement) && vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_DisplacementDistance || pVisSettings->mode == vcVM_DisplacementDirection) && vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
       {
-        if (pProgramState->settings.displacementShaderType == vcDST_Absolute)
-          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_DisplacementAbs;
+        if (pVisSettings->mode == vcVM_DisplacementDistance)
+        {
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_DisplacementDistance;
+        }
         else
-          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_DisplacementSigned;
+        {
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_DisplacementDirection;
+          vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionX", &pVoxelShaderData[numVisibleModels].data.displacement.attributeOffsets[0]);
+          vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionY", &pVoxelShaderData[numVisibleModels].data.displacement.attributeOffsets[1]);
+          vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionZ", &pVoxelShaderData[numVisibleModels].data.displacement.attributeOffsets[2]);
+        }
 
         pVoxelShaderData[numVisibleModels].data.displacement.minThreshold = pVisSettings->displacement.bounds.x;
         pVoxelShaderData[numVisibleModels].data.displacement.maxThreshold = pVisSettings->displacement.bounds.y;

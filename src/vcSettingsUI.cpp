@@ -872,8 +872,9 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
 {
   bool retVal = false;
 
-  const char *visualizationModes[] = { vcString::Get("settingsVisModeDefault"), vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacement") };
+  const char *visualizationModes[] = { vcString::Get("settingsVisModeDefault"), vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacementDistance"), vcString::Get("settingsVisModeDisplacementDirection") };
   retVal |= ImGui::Combo(vcString::Get("settingsVisDisplayMode"), (int *)&pVisualizationSettings->mode, visualizationModes, (int)udLengthOf(visualizationModes));
+  UDCOMPILEASSERT(udLengthOf(visualizationModes) == vcVM_Count, "Update combo box!");
 
   switch (pVisualizationSettings->mode)
   {
@@ -886,25 +887,24 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
   case vcVM_Classification:
     retVal |= ImGui::Checkbox(vcString::Get("settingsVisClassShowColourTable"), &pVisualizationSettings->useCustomClassificationColours);
     break;
-  case vcVM_Displacement:
+  case vcVM_DisplacementDistance: // Fall Through
+  case vcVM_DisplacementDirection:
   {
     ImGui::Indent();
+
     if (ImGui::InputFloat2(vcString::Get("settingsVisDisplacementRange"), &pVisualizationSettings->displacement.bounds.x))
     {
       retVal = true;
 
-      int displacementType = pProgramState->settings.displacementShaderType;
-      ImGui::RadioButton(vcString::Get("settingsVisDisplacementAbs"), &displacementType, vcDST_Absolute); ImGui::SameLine();
-      ImGui::RadioButton(vcString::Get("settingsVisDisplacementSigned"), &displacementType, vcDST_Signed);
-      pProgramState->settings.displacementShaderType = (vcDisplacementShaderType)displacementType;
-
       pVisualizationSettings->displacement.bounds.x = udClamp(pVisualizationSettings->displacement.bounds.x, 0.f, MAX_DISPLACEMENT);
-      pVisualizationSettings->displacement.bounds.y = udClamp(pVisualizationSettings->displacement.bounds.y, pVisualizationSettings->displacement.x, MAX_DISPLACEMENT);
+      pVisualizationSettings->displacement.bounds.y = udClamp(pVisualizationSettings->displacement.bounds.y, pVisualizationSettings->displacement.bounds.x, MAX_DISPLACEMENT);
     }
+
     vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourMax"), &pVisualizationSettings->displacement.max, ImGuiColorEditFlags_None);
     vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourMin"), &pVisualizationSettings->displacement.min, ImGuiColorEditFlags_None);
     vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourMid"), &pVisualizationSettings->displacement.mid, ImGuiColorEditFlags_None);
     vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourNoMatch"), &pVisualizationSettings->displacement.error, ImGuiColorEditFlags_None);
+
     ImGui::Unindent();
   }
   break;
