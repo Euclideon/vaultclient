@@ -314,6 +314,46 @@ void vcConvert_AddEmptyJob(vcState *pProgramState, vcConvertItem **ppNextItem)
   *ppNextItem = pNextItem;
 }
 
+template <size_t N>
+float vcConvert_GetProgress(vcConvertItem *pItem, char (&buffer)[N])
+{
+  const float progressRatio = 0.7f; // How much reading is compared to writing (0.8 would be 80% of the progress is writing)
+  float retVal = 0.f;
+
+  uint64_t currentItem = pItem->pConvertInfo->currentInputItem;
+
+  if (currentItem != pItem->pConvertInfo->totalItems)
+  {
+    float perItemRatio = progressRatio / pItem->pConvertInfo->totalItems;
+    retVal = perItemRatio * currentItem;
+
+    vdkConvertItemInfo itemInfo = {};
+    if (vdkConvert_GetItemInfo(pItem->pConvertContext, currentItem, &itemInfo) == vE_Success)
+    {
+      float itemProgress = 0.0;
+      if (itemInfo.pointsCount > 0)
+        itemProgress = (float)itemInfo.pointsRead / itemInfo.pointsCount;
+
+      retVal += (udMin(itemProgress, 1.f) * perItemRatio);
+    }
+
+    const char *fileIndexStrings[] = { udCommaInt(currentItem + 1), udCommaInt(pItem->pConvertInfo->totalItems) };
+    vcStringFormat(buffer, N, vcString::Get("convertReadingFile"), fileIndexStrings, udLengthOf(fileIndexStrings));
+  }
+  else
+  {
+    uint64_t pointsWritten = (pItem->pConvertInfo->outputPointCount + pItem->pConvertInfo->discardedPointCount);
+    uint64_t pointsTotal = pItem->pConvertInfo->totalPointsRead;
+
+    retVal = progressRatio + (1.f - progressRatio) * pointsWritten / pointsTotal;
+
+    const char *strings[] = { udCommaInt(pointsWritten), udCommaInt(pointsTotal) };
+    vcStringFormat(buffer, N, vcString::Get("convertWritingPoints"), strings, udLengthOf(strings));
+  }
+
+  return retVal;
+}
+
 void vcConvert_ShowUI(vcState *pProgramState)
 {
   vcConvertItem *pSelectedJob = nullptr;
@@ -469,26 +509,9 @@ void vcConvert_ShowUI(vcState *pProgramState)
     {
       if (pSelectedJob->status == vcCQS_Running)
       {
-        const float progressRatio = 0.7f; // How much reading is compared to writing (0.8 would be 80% of the progress is writing)
+        float percent = vcConvert_GetProgress(pSelectedJob, localizationBuffer);
 
-        if (pSelectedJob->pConvertInfo->currentInputItem != pSelectedJob->pConvertInfo->totalItems)
-        {
-          float perItemAmount = progressRatio / pSelectedJob->pConvertInfo->totalItems;
-          float completedFileProgress = perItemAmount * pSelectedJob->pConvertInfo->currentInputItem;
-
-          const char *fileIndexStrings[] = { udCommaInt(pSelectedJob->pConvertInfo->currentInputItem + 1), udCommaInt(pSelectedJob->pConvertInfo->totalItems) };
-
-          ImGui::ProgressBar(completedFileProgress, ImVec2(-1, 40), vcStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertReadingFile"), fileIndexStrings, udLengthOf(fileIndexStrings)));
-        }
-        else
-        {
-          uint64_t pointsWritten = (pSelectedJob->pConvertInfo->outputPointCount + pSelectedJob->pConvertInfo->discardedPointCount);
-          uint64_t pointsTotal = pSelectedJob->pConvertInfo->totalPointsRead;
-
-          const char *strings[] = { udCommaInt(pointsWritten), udCommaInt(pointsTotal) };
-
-          ImGui::ProgressBar(progressRatio + (1.f - progressRatio) * pointsWritten / pointsTotal, ImVec2(-1, 0), vcStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertWritingPoints"), strings, udLengthOf(strings)));
-        }
+        ImGui::ProgressBar(percent, ImVec2(-1, 40), localizationBuffer);
       }
 
       // Preview is temporarily disabled as it doesn't work in shipped VDK0.4.1
@@ -947,4 +970,46 @@ void vcConvert_ResetConvert(vcConvertItem *pConvertItem)
 {
   vdkConvert_Reset(pConvertItem->pConvertContext);
   pConvertItem->status = vcCQS_Preparing;
+}
+
+//-3 if no jobs, -2 if all jobs complete/failed, -1 for pending jobs and 0-100 for progress on active job
+int vcConvert_CurrentProgressPercent(vcState *pProgramState, const char **ppBuffer /*= nullptr*/)
+{
+  int currentProgress = -3; //No jobs by default
+
+  char buffer[512];
+
+  udReadLockRWLock(pProgramState->pConvertContext->pRWLock);
+  for (size_t i = 0; i < pProgramState->pConvertContext->jobs.length; ++i)
+  {
+    vcConvertQueueStatus status = pProgramState->pConvertContext->jobs[i]->status;
+
+    if (status == vcCQS_Running)
+    {
+      currentProgress = (int)(vcConvert_GetProgress(pProgramState->pConvertContext->jobs[i], buffer) * 100);
+      if (ppBuffer != nullptr)
+        *ppBuffer = udStrdup(buffer);
+      break;
+    }
+    else if (status == vcCQS_Preparing || status == vcCQS_Queued || status == vcCQS_QueuedPendingLicense)
+    {
+      currentProgress = udMax(currentProgress, -1);
+    }
+    else
+    {
+      currentProgress = udMax(currentProgress, -2);
+    }
+  }
+  udReadUnlockRWLock(pProgramState->pConvertContext->pRWLock);
+
+  if (ppBuffer != nullptr)
+  {
+    if (currentProgress == -2)
+      *ppBuffer = udStrdup(vcString::Get("convertCompleted"));
+    else if (currentProgress == -1)
+      *ppBuffer = udStrdup(vcString::Get("sceneExplorerPending"));
+  }
+
+
+  return currentProgress;
 }

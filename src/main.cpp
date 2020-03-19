@@ -2096,6 +2096,48 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
 
   // Background work
   {
+#if VC_HASCONVERT
+    const char *pBuffer = nullptr;
+    int convertProgress = vcConvert_CurrentProgressPercent(pProgramState, &pBuffer);
+    if (convertProgress >= 0)
+    {
+      bool clicked = false;
+
+      udStrcpy(tempData, " / ");
+      xPosition -= ImGui::CalcTextSize(tempData).x;
+      ImGui::SameLine(xPosition);
+      ImGui::TextUnformatted(tempData);
+      clicked |= ImGui::IsItemClicked();
+
+      xPosition -= 200;
+      ImGui::SameLine(xPosition);
+      ImGui::ProgressBar(convertProgress / 100.f, ImVec2(200, 0), pBuffer);
+      clicked |= ImGui::IsItemClicked();
+
+      udSprintf(tempData, "%s: ", vcString::Get("convertTitle"));
+
+      xPosition -= ImGui::CalcTextSize(tempData).x;
+      ImGui::SameLine(xPosition);
+      ImGui::TextUnformatted(tempData);
+      clicked |= ImGui::IsItemClicked();
+
+      if (clicked)
+        vcModals_OpenModal(pProgramState, vcMT_Convert);
+    }
+    else if (pBuffer != nullptr)
+    {
+      udSprintf(tempData, "%s: %s / ", vcString::Get("convertTitle"), pBuffer);
+
+      xPosition -= ImGui::CalcTextSize(tempData).x;
+      ImGui::SameLine(xPosition);
+      ImGui::TextUnformatted(tempData);
+
+      if (ImGui::IsItemClicked())
+        vcModals_OpenModal(pProgramState, vcMT_Convert);
+    }
+    udFree(pBuffer);
+#endif //VC_HASCONVERT
+
     if (pProgramState->backgroundWork.exportsRunning.Get() > 0)
     {
       udSprintf(tempData, "%s / ", vcString::Get("sceneExplorerExportRunning"));

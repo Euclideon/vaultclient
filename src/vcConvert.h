@@ -82,6 +82,8 @@ void vcConvert_ShowUI(vcState *pProgramState);
 void vcConvert_AddEmptyJob(vcState *pProgramState, vcConvertItem **ppNextItem);
 void vcConvert_QueueFile(vcState *pProgramState, const char *pFilename);
 void vcConvert_RemoveJob(vcState *pProgramState, size_t index);
+
+int vcConvert_CurrentProgressPercent(vcState *pProgramState, const char **ppBuffer = nullptr); //-3 if no jobs, -2 if all jobs complete/failed, -1 for pending jobs and 0-100 for progress on active job
 #endif // VC_HASCONVERT
 
 #endif // !vcConvert_h__
