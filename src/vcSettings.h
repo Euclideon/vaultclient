@@ -125,8 +125,7 @@ struct vcVisualizationSettings
 
   struct
   {
-    float x;
-    float y;
+    udFloat2 bounds;
     
     uint32_t min;
     uint32_t max;
