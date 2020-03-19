@@ -345,7 +345,7 @@ void vcModals_DrawImportProject(vcState *pProgramState)
 
     ImGui::SameLine();
 
-    if (ImGui::Button(vcString::Get("sceneExplorerImportButton"), ImVec2(100.f, 0)))
+    if (ImGui::Button(vcString::Get("sceneExplorerImportButton"), ImVec2(100.f, 0)) && vcProject_AbleToChange(pProgramState))
     {
       pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
       pProgramState->modelPath[0] = '\0';

@@ -223,6 +223,17 @@ void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverrid
   }
 }
 
+bool vcProject_AbleToChange(vcState *pProgramState)
+{
+  if (pProgramState == nullptr || !pProgramState->hasContext)
+    return false;
+
+  if (vdkProject_HasUnsavedChanges(pProgramState->activeProject.pProject) == vE_NotFound)
+    return true;
+
+  return vcModals_AllowDestructiveAction(vcString::Get("menuChangeScene"), vcString::Get("menuChangeSceneConfirm"));
+}
+
 void vcProject_RemoveItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode)
 {
   for (int32_t i = 0; i < (int32_t)pProgramState->sceneExplorer.selectedItems.size(); ++i)
