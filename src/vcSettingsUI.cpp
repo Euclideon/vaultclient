@@ -65,14 +65,15 @@ void vcSettingsUI_Show(vcState *pProgramState)
       vcHotkey::ClearState();
     }
 
-    ImGui::EndColumns();
+    ImGui::Columns(1);
     ImGui::Separator();
 
     if (ImGui::BeginChild("__settingsPane"))
     {
-      ImGui::BeginColumns("###settingsColumns", 2, ImGuiColumnsFlags_NoResize);
+      ImGui::Columns(2);
 
-      ImGui::SetColumnWidth(0, 200.f);
+      if (ImGui::IsWindowAppearing())
+        ImGui::SetColumnWidth(0, 200.f);
 
       if (ImGui::BeginChild("__settingsPaneCategories"))
       {

@@ -14,7 +14,6 @@
 #include "gl/vcTexture.h"
 
 #include "imgui.h"
-#include "imgui_internal.h"
 
 enum vcMapTileBlendMode
 {

@@ -7,7 +7,7 @@
 #include "udStringUtil.h"
 
 #include "imgui.h"
-#include "imgui_internal.h"
+#include "imgui_internal.h" // Required for internal Begin/End columns API
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
 #include <SDL2/SDL.h>
