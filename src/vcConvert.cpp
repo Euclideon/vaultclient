@@ -1,6 +1,8 @@
 #include "vcConvert.h"
 
 #include "imgui.h"
+#include "imgui_internal.h"
+
 #include "stb_image.h"
 #include "vcStrings.h"
 #include "vcModals.h"
@@ -322,8 +324,16 @@ void vcConvert_ShowUI(vcState *pProgramState)
   // Convert Jobs --------------------------------
   ImGui::Columns(2);
 
+  const ImVec2 &size = ImGui::GetWindowSize();
   if (ImGui::IsWindowAppearing())
-    ImGui::SetColumnWidth(0, 300);
+    ImGui::SetColumnWidth(0, size.x * pProgramState->settings.presentation.convertLeftPanelPercentage);
+  else
+  {
+    pProgramState->settings.presentation.convertLeftPanelPercentage = ImGui::GetColumnWidth(0) / size.x;
+    pProgramState->settings.presentation.convertLeftPanelPercentage = udMin(pProgramState->settings.presentation.convertLeftPanelPercentage, 0.9f);
+    pProgramState->settings.presentation.convertLeftPanelPercentage = udMax(pProgramState->settings.presentation.convertLeftPanelPercentage, 0.1f);
+    ImGui::SetColumnWidth(0, size.x * pProgramState->settings.presentation.convertLeftPanelPercentage);
+  }
 
   ImGui::TextUnformatted(vcString::Get("convertJobs"));
   ImGui::NextColumn();
@@ -597,16 +607,16 @@ void vcConvert_ShowUI(vcState *pProgramState)
         ImGui::TextUnformatted(vcString::Get("convertMetadata"));
 
         // Other Metadata
-        if (ImGui::InputText(vcString::Get("convertAuthor"), pSelectedJob->author, udLengthOf(pSelectedJob->author)))
+        if (vcIGSW_InputText(vcString::Get("convertAuthor"), pSelectedJob->author, udLengthOf(pSelectedJob->author)))
           vdkConvert_SetMetadata(pSelectedJob->pConvertContext, "Author", pSelectedJob->author);
 
-        if (ImGui::InputText(vcString::Get("convertComment"), pSelectedJob->comment, udLengthOf(pSelectedJob->comment)))
+        if (vcIGSW_InputText(vcString::Get("convertComment"), pSelectedJob->comment, udLengthOf(pSelectedJob->comment)))
           vdkConvert_SetMetadata(pSelectedJob->pConvertContext, "Comment", pSelectedJob->comment);
 
-        if (ImGui::InputText(vcString::Get("convertCopyright"), pSelectedJob->copyright, udLengthOf(pSelectedJob->copyright)))
+        if (vcIGSW_InputText(vcString::Get("convertCopyright"), pSelectedJob->copyright, udLengthOf(pSelectedJob->copyright)))
           vdkConvert_SetMetadata(pSelectedJob->pConvertContext, "Copyright", pSelectedJob->copyright);
 
-        if (ImGui::InputText(vcString::Get("convertLicense"), pSelectedJob->license, udLengthOf(pSelectedJob->license)))
+        if (vcIGSW_InputText(vcString::Get("convertLicense"), pSelectedJob->license, udLengthOf(pSelectedJob->license)))
           vdkConvert_SetMetadata(pSelectedJob->pConvertContext, "License", pSelectedJob->license);
 
         // Watermark
@@ -670,7 +680,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
       if (totalItems > 0)
       {
-        ImGui::SetNextTreeNodeOpen(true, ImGuiCond_FirstUseEver);
+        ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
 
         vcStringFormat(localizationBuffer, udLengthOf(localizationBuffer), vcString::Get("convertInputFiles"), udCommaInt(totalItems));
 

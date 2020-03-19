@@ -533,7 +533,7 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
 
     char groupStr[udUUID::udUUID_Length+1];
     udStrcpy(groupStr, udUUID_GetAsString(&m_groupID));
-    if (ImGui::InputText(vcString::Get("liveFeedGroupID"), groupStr, udLengthOf(groupStr)))
+    if (vcIGSW_InputText(vcString::Get("liveFeedGroupID"), groupStr, udLengthOf(groupStr)))
     {
       if (udUUID_IsValid(groupStr))
       {

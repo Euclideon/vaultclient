@@ -1,3 +1,6 @@
 [submodule "3rdParty/udcore"]
 	path = 3rdParty/udcore
 	url = ../../euclideon/udcore.git
+[submodule "3rdParty/imgui"]
+	path = 3rdParty/imgui
+	url = ../../ocornut/imgui.git

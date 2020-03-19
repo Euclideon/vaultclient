@@ -4,6 +4,7 @@
 #include "vcState.h"
 #include "vcHotkey.h"
 #include "imgui.h"
+#include "vcImGuiSimpleWidgets.h"
 
 #if UDPLATFORM_WINDOWS
 # include <shobjidl.h> 
@@ -122,7 +123,7 @@ void vcFileDialog_ShowModal(vcState *pProgramState)
       pProgramState->modalOpen = true;
 
       ImGui::SetNextItemWidth(-270.f);
-      bool loadFile = ImGui::InputText(vcString::Get("convertPathURL"), pProgramState->modelPath, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+      bool loadFile = vcIGSW_InputText(vcString::Get("convertPathURL"), pProgramState->modelPath, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
 
       ImGui::SameLine();
 

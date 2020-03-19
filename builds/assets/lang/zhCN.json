@@ -348,6 +348,8 @@
   "menuBarWaitingForRenderLicense": "等待渲染许可",
   "menuBarNoRenderLicense": "该用户没有渲染许可证",
   "menuBarInactive": "空闲中",
+  "popupMenuCopy": "复制",
+  "popupMenuPaste": "粘贴",
 
   "settingsConnection": "连接",
   "modalProxyInfo": "代理需要身份验证：",

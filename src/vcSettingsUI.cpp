@@ -65,14 +65,15 @@ void vcSettingsUI_Show(vcState *pProgramState)
       vcHotkey::ClearState();
     }
 
-    ImGui::EndColumns();
+    ImGui::Columns(1);
     ImGui::Separator();
 
     if (ImGui::BeginChild("__settingsPane"))
     {
-      ImGui::BeginColumns("###settingsColumns", 2, ImGuiColumnsFlags_NoResize);
+      ImGui::Columns(2);
 
-      ImGui::SetColumnWidth(0, 200.f);
+      if (ImGui::IsWindowAppearing())
+        ImGui::SetColumnWidth(0, 200.f);
 
       if (ImGui::BeginChild("__settingsPaneCategories"))
       {
@@ -466,10 +467,10 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::Unindent();
 
           // Metadata
-          ImGui::InputText(vcString::Get("convertAuthor"), pProgramState->settings.convertdefaults.author, udLengthOf(pProgramState->settings.convertdefaults.author));
-          ImGui::InputText(vcString::Get("convertComment"), pProgramState->settings.convertdefaults.comment, udLengthOf(pProgramState->settings.convertdefaults.comment));
-          ImGui::InputText(vcString::Get("convertCopyright"), pProgramState->settings.convertdefaults.copyright, udLengthOf(pProgramState->settings.convertdefaults.copyright));
-          ImGui::InputText(vcString::Get("convertLicense"), pProgramState->settings.convertdefaults.license, udLengthOf(pProgramState->settings.convertdefaults.license));
+          vcIGSW_InputText(vcString::Get("convertAuthor"), pProgramState->settings.convertdefaults.author, udLengthOf(pProgramState->settings.convertdefaults.author));
+          vcIGSW_InputText(vcString::Get("convertComment"), pProgramState->settings.convertdefaults.comment, udLengthOf(pProgramState->settings.convertdefaults.comment));
+          vcIGSW_InputText(vcString::Get("convertCopyright"), pProgramState->settings.convertdefaults.copyright, udLengthOf(pProgramState->settings.convertdefaults.copyright));
+          vcIGSW_InputText(vcString::Get("convertLicense"), pProgramState->settings.convertdefaults.license, udLengthOf(pProgramState->settings.convertdefaults.license));
         }
 
         if (pProgramState->activeSetting == vcSR_Screenshot)
@@ -647,7 +648,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
               ImGui::SameLine();
               ImGui::Checkbox(udTempStr("%s##rememberProxyUser", vcString::Get("loginRememberUser")), &pProgramState->settings.loginInfo.rememberProxyUsername);
 
-              updateInfo |= ImGui::InputText(vcString::Get("modalProxyPassword"), pProgramState->settings.loginInfo.proxyPassword, udLengthOf(pProgramState->settings.loginInfo.proxyPassword), ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
+              updateInfo |= vcIGSW_InputText(vcString::Get("modalProxyPassword"), pProgramState->settings.loginInfo.proxyPassword, udLengthOf(pProgramState->settings.loginInfo.proxyPassword), ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
               if (ImGui::IsItemDeactivatedAfterEdit())
                 updateInfo = true;
 
@@ -850,7 +851,7 @@ void vcSettingsUI_VisualizationSettings(vcState *pProgramState, vcVisualizationS
           }
           if (pProgramState->renaming == i)
           {
-            ImGui::InputText(inputID, pProgramState->renameText, 30, ImGuiInputTextFlags_AutoSelectAll);
+            vcIGSW_InputText(inputID, pProgramState->renameText, 30, ImGuiInputTextFlags_AutoSelectAll);
             ImGui::SameLine();
             if (ImGui::Button(vcString::Get("settingsVisClassSet")))
             {

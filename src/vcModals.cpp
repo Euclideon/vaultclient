@@ -16,6 +16,8 @@
 #include "udStringUtil.h"
 
 #include "imgui.h"
+#include "imgui_internal.h"
+
 #include "imgui_ex/vcFileDialog.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 #include "imgui_ex/imgui_udValue.h"
@@ -77,7 +79,7 @@ void vcModals_SetTileTexture(void *pProgramStatePtr)
     udFree(pProgramState->tileModal.pImageData);
 
     if (pData)
-      vcTexture_Create(&pProgramState->tileModal.pServerIcon, width, height, pData, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Repeat, vcTCF_None, 0);
+      vcTexture_Create(&pProgramState->tileModal.pServerIcon, width, height, pData, vcTextureFormat_RGBA8, vcTFM_Linear, vcTCF_None);
 
     stbi_image_free(pData);
     pProgramState->tileModal.loadStatus = 0;
@@ -142,7 +144,7 @@ void vcModals_DrawTileServer(vcState *pProgramState)
       }
     }
 
-    if (ImGui::InputText(vcString::Get("settingsMapsTileServer"), pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength))
+    if (vcIGSW_InputText(vcString::Get("settingsMapsTileServer"), pProgramState->settings.maptiles.tileServerAddress, vcMaxPathLength))
       s_isDirty = true;
 
     if (ImGui::Combo(vcString::Get("settingsMapsTileServerImageFormat"), &s_currentItem, pItems, (int)udLengthOf(pItems)))
@@ -487,14 +489,14 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
       bool removeItem = ImGui::Button(udTempStr("X##errorFileRemove%zu", i));
       ImGui::SameLine();
       // Get the offset so the next column is offset by the same value to keep alignment
-      float offset = ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset;
+      float offset = ImGui::GetCurrentWindow()->DC.CurrLineTextBaseOffset;
       const char *pFileName = pProgramState->errorItems[i].pData;
       ImGui::TextUnformatted(pFileName);
       if (ImGui::IsItemHovered())
         ImGui::SetTooltip("%s", pFileName);
       ImGui::NextColumn();
 
-      ImGui::GetCurrentWindow()->DC.CurrentLineTextBaseOffset = offset;
+      ImGui::GetCurrentWindow()->DC.CurrLineTextBaseOffset = offset;
 
       int errorCode = pProgramState->errorItems[i].resultCode;
       const char *pErrorString = nullptr;
@@ -533,7 +535,7 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
       }
     }
 
-    ImGui::EndColumns();
+    ImGui::Columns(1);
     ImGui::EndChild();
 
     ImGui::EndPopup();
@@ -688,7 +690,7 @@ void vcModals_DrawConvert(vcState* pProgramState)
     if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       ImGui::CloseCurrentPopup();
 
-    ImGui::EndColumns();
+    ImGui::Columns(1);
     ImGui::Separator();
 
     if (ImGui::BeginChild("__convertPane"))
