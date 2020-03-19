@@ -264,8 +264,10 @@ bool vcModals_ConfirmEndSession(vcState *pProgramState, bool isQuit)
 
   if (pProgramState->hasContext)
   {
+#if VC_HASCONVERT
     if (vcConvert_CurrentProgressPercent(pProgramState) > -2)
       udSprintf(&pMessage, "%s\n- %s", pMessage, vcString::Get("endSessionConfirmEndConvert"));
+#endif
 
     if (vdkProject_HasUnsavedChanges(pProgramState->activeProject.pProject) == vE_Success)
       udSprintf(&pMessage, "%s\n- %s", pMessage, vcString::Get("endSessionConfirmProjectUnsaved"));
