@@ -251,6 +251,7 @@
   "convertAwaiting": "Awaiting User Input",
   "convertQueued": "Queued",
   "convertAwaitingLicense": "Waiting For Convert License",
+  "convertNoLicense": "No convert license is available for this user",
   "convertRunning": "Running",
   "convertCompleted": "Completed",
   "convertCancelled": "Cancelled",
@@ -333,6 +334,7 @@
   "menuBarLicenseExpired": "License (expired)",
   "menuBarLicenseQueued": "in Queue",
   "menuBarWaitingForRenderLicense": "Waiting for Render license...",
+  "menuBarNoRenderLicense": "No Render licenses are available for this user",
   "menuBarInactive": "Inactive",
 
   "settingsConnection": "Connection",

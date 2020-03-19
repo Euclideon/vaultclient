@@ -1314,11 +1314,11 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
   // Alert for no render license
   vdkLicenseInfo info = {};
-  if (vdkContext_GetLicenseInfo(pProgramState->pVDKContext, vdkLT_Render, &info) == vE_Success && info.queuePosition >= 0)
+  if (vdkContext_GetLicenseInfo(pProgramState->pVDKContext, vdkLT_Render, &info) == vE_Success && (info.queuePosition >= 0 || info.queuePosition == -2))
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x / 2, windowPos.y + windowSize.y / 2), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
     if (ImGui::Begin("waitingForRenderLicensePanel", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
-      ImGui::TextUnformatted(vcString::Get("menuBarWaitingForRenderLicense"));
+      ImGui::TextUnformatted((info.queuePosition == -2) ? vcString::Get("menuBarNoRenderLicense") : vcString::Get("menuBarWaitingForRenderLicense"));
     ImGui::End();
   }
 
@@ -2079,8 +2079,10 @@ void vcMain_UpdateStatusBar(vcState *pProgramState)
     {
       if (info.queuePosition < 0 && (uint64_t)currentTime < info.expiresTimestamp)
         udStrcpy(tempData, udTempStr("%s %s (%" PRIu64 "%s) / ", i == vdkLT_Render ? vcString::Get("menuBarRender") : vcString::Get("menuBarConvert"), vcString::Get("menuBarLicense"), (info.expiresTimestamp - currentTime), vcString::Get("menuBarSecondsAbbreviation")));
-      else if (info.queuePosition < 0)
+      else if (info.queuePosition == -1)
         udStrcpy(tempData, udTempStr("%s %s / ", i == vdkLT_Render ? vcString::Get("menuBarRender") : vcString::Get("menuBarConvert"), vcString::Get("menuBarLicenseExpired")));
+      else if (info.queuePosition == -2)
+        udStrcpy(tempData, udTempStr("%s / ", i == vdkLT_Render ? vcString::Get("menuBarNoRenderLicense") : vcString::Get("convertNoLicense")));
       else if (info.queuePosition == 0)
         udStrcpy(tempData, udTempStr("%s / ", i == vdkLT_Render ? vcString::Get("menuBarWaitingForRenderLicense") : vcString::Get("convertAwaitingLicense")));
       else

@@ -256,6 +256,7 @@
   "convertAwaiting": "等待用户输入",
   "convertQueued": "已加入队列",
   "convertAwaitingLicense": "等待转换证书",
+  "convertNoLicense": "该用户没有转换许可证",
   "convertRunning": "转换中",
   "convertCompleted": "完成",
   "convertCancelled": "取消",
@@ -345,6 +346,7 @@
   "menuBarLicenseExpired": "许可证（已过期）",
   "menuBarLicenseQueued": "申请中",
   "menuBarWaitingForRenderLicense": "等待渲染许可",
+  "menuBarNoRenderLicense": "该用户没有渲染许可证",
   "menuBarInactive": "空闲中",
 
   "settingsConnection": "连接",
