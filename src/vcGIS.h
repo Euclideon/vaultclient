@@ -24,4 +24,7 @@ bool vcGIS_SlippyToLatLong(udDouble3 *pLatLong, udInt2 slippyCoords, int zoomLev
 bool vcGIS_LocalToSlippy(const vcGISSpace *pSpace, udInt2 *pSlippyCoords, const udDouble3 &localCoords, const int zoomLevel);
 bool vcGIS_SlippyToLocal(const vcGISSpace *pSpace, udDouble3 *pLocalCoords, const udInt2 &slippyCoords, const int zoomLevel);
 
+// Helpers
+udDouble3 vcGIS_GetWorldLocalUp(const vcGISSpace &space, udDouble3 localCoords); // Returns which direction is "up" at a given coordinate
+
 #endif // !vcGIS_h__

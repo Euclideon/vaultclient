@@ -13,7 +13,6 @@
 #include "vcLabelRenderer.h"
 #include "vcWaterRenderer.h"
 #include "vcImageRenderer.h"
-#include "vcCompass.h"
 #include "vcPolygonModel.h"
 
 struct vcRenderContext;

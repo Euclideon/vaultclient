@@ -1209,8 +1209,6 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 {
   udUnused(pDefaultFramebuffer);
 
-  float aspect = pRenderContext->sceneResolution.x / (float)pRenderContext->sceneResolution.y;
-
   // Render and upload UD buffers
   {
     vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pRenderView, &pProgramState->camera, renderData, true);
@@ -1258,28 +1256,6 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
     vcGLState_SetBlendMode(vcGLSBM_Interpolative);
     vcGLState_SetDepthStencilMode(vcGLSDM_Less, true);
     vcCompass_Render(pRenderContext->pCompass, pProgramState->settings.presentation.mouseAnchor, mvp);
-
-    vcGLState_ResetState();
-  }
-
-  if (pProgramState->settings.presentation.showCompass)
-  {
-    udDouble4x4 cameraRotation = udDouble4x4::rotationYPR(pProgramState->camera.matrices.camera.extractYPR());
-    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
-    vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
-
-    if (!pProgramState->gis.isProjected)
-    {
-      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspectiveZO(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udInverse(cameraRotation));
-    }
-    else
-    {
-      udDouble3 currentLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
-      currentLatLong.x = udClamp(currentLatLong.x, -90.0, 89.0);
-      udDouble3 norther = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, udDouble3::create(currentLatLong.x + 1.0, currentLatLong.y, currentLatLong.z));
-      udDouble4x4 north = udDouble4x4::lookAt(pProgramState->camera.position, norther);
-      vcCompass_Render(pRenderContext->pCompass, vcAS_Compass, udDouble4x4::perspectiveZO(vcLens30mm, aspect, 0.01, 2.0) * udDouble4x4::translation(vcLens30mm * 0.45 * aspect, 1.0, -vcLens30mm * 0.45) * udDouble4x4::scaleUniform(vcLens30mm / 20.0) * udDouble4x4::rotationYPR(north.extractYPR()) * udInverse(cameraRotation));
-    }
 
     vcGLState_ResetState();
   }
