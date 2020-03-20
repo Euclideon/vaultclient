@@ -152,7 +152,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.sceneExplorerSize = data.Get("layoutSceneExplorerSize").AsInt(350);
     pSettings->presentation.convertLeftPanelPercentage = data.Get("convertLeftPanelPercentage").AsFloat(0.33f);
     pSettings->presentation.columnSizeCorrect = false;
-    pSettings->responsiveUI = (vcPresentationMode)data.Get("responsiveUI").AsInt(vcPM_Hide);
 
     switch (pSettings->presentation.styleIndex)
     {
@@ -455,7 +454,6 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("layout = %d", pSettings->presentation.layout);
   data.Set("layoutSceneExplorerSize = %d", pSettings->presentation.sceneExplorerSize);
   data.Set("convertLeftPanelPercentage = %f", pSettings->presentation.convertLeftPanelPercentage);
-  data.Set("responsiveUI = %d", pSettings->responsiveUI);
 
   data.Set("objectHighlighting.enable = %s", pSettings->objectHighlighting.enable ? "true" : "false");
   for (int i = 0; i < 4; i++)
