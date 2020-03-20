@@ -1167,17 +1167,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoLocalSpace)), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, pProgramState->gizmo.coordinateSystem == vcGCS_Local))
         pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
-      // Fullscreens - needs to trigger on mouse down, not mouse up in Emscripten to avoid problems
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_Fullscreen)), vcMBBI_FullScreen, vcMBBG_NewGroup, pProgramState->settings.window.isFullscreen) || ImGui::IsItemClicked(0))
-        vcMain_PresentationMode(pProgramState);
-
-      // Hide/show screen explorer
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toggleSceneExplorer"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_ToggleScreenExplorer, vcMBBG_SameGroup) || (vcHotkey::IsPressed(vcB_ToggleSceneExplorer) && !ImGui::IsAnyItemActive()))
-      {
-        pProgramState->sceneExplorerCollapsed = !pProgramState->sceneExplorerCollapsed;
-        pProgramState->settings.presentation.columnSizeCorrect = false;
-      }
-
       if (pProgramState->settings.presentation.showCameraInfo)
       {
         ImGui::Separator();
@@ -1371,30 +1360,75 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::End();
   }
 
-  if (pProgramState->settings.presentation.showCompass)
+  // Bottom-Right Tools
   {
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    float min = udMin(windowSize.x, windowSize.y);
-    udFloat2 compassSize = udFloat2::create(min, min) * vcLens30mm * 0.13;
-    udFloat2 compassPostion = udFloat2::create(windowPos.x, windowPos.y) + udFloat2::create(windowSize.x, windowSize.y)*0.91f - compassSize*0.5;
-    udFloat2 rectMax = compassPostion + compassSize;
-    ImVec2 rectMin = ImVec2(compassPostion.x, compassPostion.y);
-    ImGui::SetNextWindowPos(rectMin, ImGuiCond_Always, ImVec2(0.0f, 0.0f));
-    ImGui::SetNextWindowBgAlpha(0.0f);
-    ImGui::SetNextWindowSize(ImVec2(compassSize.x, compassSize.y));
+    ImVec2 buttonPanelPos = ImVec2(windowPos.x + windowSize.x, windowPos.y + windowSize.y - 32);
 
-    if (ImGui::Begin("sceneCompass", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+    ImGui::SetNextWindowPos(buttonPanelPos, ImGuiCond_Always, ImVec2(1.0f, 1.0f));
+    ImGui::SetNextWindowBgAlpha(0.2f);
+
+    bool panelOpen = ImGui::Begin("toolPanel", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize);
+
+    ImGui::PopStyleVar(2);
+
+    if (panelOpen)
     {
-      if (ImGui::IsMouseHoveringRect(rectMin, ImVec2(rectMax.x, rectMax.y)) && (ImGui::IsMouseClicked(0) || ImGui::IsMouseDoubleClicked(0)))
+      // Compass
       {
-        pProgramState->cameraInput.targetEulerRotation = UD_DEG2RAD(udDouble3::create(0, -90, 0));
-        pProgramState->cameraInput.inputState = vcCIS_Rotate;
-        pProgramState->cameraInput.progress = 0.0;
+        udDouble3 cameraDirection = udDirectionFromYPR(pProgramState->camera.eulerRotation);
+        udDouble3 northDirection = udDouble3::create(0, 1, 0);
+
+        udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->gis, pProgramState->camera.position);
+
+        if (pProgramState->gis.isProjected)
+        {
+          udDouble3 currentLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
+          currentLatLong.x = udClamp(currentLatLong.x, -90.0, 89.9);
+          northDirection = udNormalize(udGeoZone_LatLongToCartesian(pProgramState->gis.zone, udDouble3::create(currentLatLong.x + 0.1, currentLatLong.y, currentLatLong.z)) - pProgramState->camera.position);
+        }
+
+        udDouble3 east = udCross(northDirection, up);
+        udDouble3 northFlat = udCross(up, east);
+
+        udDouble3 camRight = udCross(cameraDirection, up);
+        udDouble3 camFlat = udCross(up, camRight);
+
+        double angle = udATan2(camFlat.x * northFlat.y - camFlat.y * northFlat.x, camFlat.x * northFlat.x + camFlat.y * northFlat.y);
+        float northX = -(float)udSin(angle);
+        float northY = -(float)udCos(angle);
+
+        if (ImGui::ButtonEx("", ImVec2(28, 28)))
+        {
+          pProgramState->cameraInput.targetEulerRotation = UD_DEG2RAD(udDouble3::create(0, -90, 0));
+          pProgramState->cameraInput.inputState = vcCIS_Rotate;
+          pProgramState->cameraInput.progress = 0.0;
+        }
+
+        ImVec2 sizeMin = ImGui::GetItemRectMin();
+        ImVec2 sizeMax = ImGui::GetItemRectMax();
+        float distance = (sizeMax.x - sizeMin.x) / 2.f;
+        ImVec2 middle = ImVec2((sizeMin.x + sizeMax.x) / 2, (sizeMin.y + sizeMax.y) / 2);
+        ImVec2 north = ImVec2(middle.x + northX * distance, middle.y + northY * distance);
+        ImVec2 south = ImVec2(middle.x - northX * distance, middle.y - northY * distance);
+        ImGui::GetForegroundDrawList()->AddLine(middle, north, 0xFF0000FF, 2);
+        ImGui::GetForegroundDrawList()->AddLine(middle, south, 0xFFFFFFFF, 2);
       }
+
+      // Hide/show screen explorer
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toggleSceneExplorer"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_ToggleScreenExplorer, vcMBBG_FirstItem, !pProgramState->sceneExplorerCollapsed) || (vcHotkey::IsPressed(vcB_ToggleSceneExplorer) && !ImGui::IsAnyItemActive()))
+      {
+        pProgramState->sceneExplorerCollapsed = !pProgramState->sceneExplorerCollapsed;
+        pProgramState->settings.presentation.columnSizeCorrect = false;
+      }
+
+      // Fullscreens - needs to trigger on mouse down, not mouse up in Emscripten to avoid problems
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_Fullscreen)), vcMBBI_FullScreen, vcMBBG_FirstItem, pProgramState->settings.window.isFullscreen) || ImGui::IsItemClicked(0))
+        vcMain_PresentationMode(pProgramState);
     }
 
     ImGui::End();
-    ImGui::PopStyleVar();
   }
 
   if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected)

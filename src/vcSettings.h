@@ -154,7 +154,6 @@ struct vcSettings
     float saturation;
 
     vcAnchorStyle mouseAnchor;
-    bool showCompass;
     float POIFadeDistance;
     float imageRescaleDistance;
     bool limitFPSInBackground;

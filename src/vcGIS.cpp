@@ -81,3 +81,16 @@ bool vcGIS_SlippyToLocal(const vcGISSpace *pSpace, udDouble3 *pLocalCoords, cons
   *pLocalCoords = udGeoZone_LatLongToCartesian(pSpace->zone, latLong);
   return success;
 }
+
+udDouble3 vcGIS_GetWorldLocalUp(const vcGISSpace &space, udDouble3 localCoords)
+{
+  if (!space.isProjected || space.zone.projection >= udGZPT_TransverseMercator)
+    return udDouble3::create(0, 0, 1);
+
+  udDouble3 latLong = udGeoZone_CartesianToLatLong(space.zone, localCoords);
+  latLong.z += 1.f;
+
+  udDouble3 upVector = udGeoZone_LatLongToCartesian(space.zone, latLong);
+
+  return udNormalize(upVector - localCoords);
+}
