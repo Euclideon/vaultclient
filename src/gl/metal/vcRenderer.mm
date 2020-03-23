@@ -316,7 +316,7 @@
 
 - (void)destroyFramebuffer:(vcFramebuffer*)pFramebuffer
 {
-  if (pCurrFramebuffer->ID == pFramebuffer->ID)
+  if (pCurrFramebuffer != nullptr && pCurrFramebuffer->ID == pFramebuffer->ID)
     pCurrFramebuffer = nullptr;
 
   [_encoders[pFramebuffer->ID] endEncoding];
