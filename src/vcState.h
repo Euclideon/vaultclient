@@ -184,9 +184,7 @@ struct vcState
 
   vcFileDialog fileDialog;
 
-  int64_t lastEventTime;
   vcTranslationInfo languageInfo;
-  bool showUI;
   bool sceneExplorerCollapsed; // True if scene explorer is collapsed.
 
   int currentKey;

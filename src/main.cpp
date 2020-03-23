@@ -164,9 +164,6 @@ void vcMain_PresentationMode(vcState *pProgramState)
   }
 
   pProgramState->settings.window.isFullscreen = !pProgramState->settings.window.isFullscreen;
-
-  if (pProgramState->settings.responsiveUI == vcPM_Responsive)
-    pProgramState->lastEventTime = udGetEpochSecsUTCd();
 }
 
 bool vcMain_TakeScreenshot(vcState *pProgramState)
@@ -842,8 +839,6 @@ int main(int argc, char **args)
 
   programState.settings.languageOptions.Init(4);
 
-  programState.settings.hideIntervalSeconds = 3;
-  programState.showUI = true;
   programState.passwordFieldHasFocus = true;
   programState.renaming = -1;
   programState.settings.screenshot.taking = false;
@@ -1638,7 +1633,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
   ImGui::EndChild();
 }
 
-void vcRenderSceneWindow(vcState *pProgramState)
+void vcMain_RenderSceneWindow(vcState *pProgramState)
 {
   //Rendering
   ImGuiIO &io = ImGui::GetIO();
@@ -1683,12 +1678,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
   if (!pProgramState->modalOpen && (vcHotkey::IsPressed(vcB_Fullscreen) || ImGui::IsNavInputTest(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released)))
     vcMain_PresentationMode(pProgramState);
 
-  bool showUI = true;
-  if (pProgramState->settings.window.isFullscreen)
-    showUI = (pProgramState->settings.responsiveUI != vcPM_Hide);
-
-  if (showUI)
-    vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
+  vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
 
   {
     vcRender_BeginFrame(pProgramState, pProgramState->pRenderContext, renderData);
@@ -1710,7 +1700,7 @@ void vcRenderSceneWindow(vcState *pProgramState)
     static bool wasContextMenuOpenLastFrame = false;
     bool selectItem = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold*io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
  
-    if (io.MouseDownDurationPrev[1] < 0.1 && (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
+    if ((io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
     {
       static bool hadMouse = false;
       static udDouble3 mousePosCartesian;
@@ -2505,19 +2495,6 @@ void vcRenderWindow(vcState *pProgramState)
   ImGuiIO &io = ImGui::GetIO(); // for future key commands as well
   ImVec2 size = io.DisplaySize;
 
-  if (pProgramState->settings.responsiveUI == vcPM_Responsive)
-  {
-    if (io.MouseDelta.x != 0.0 || io.MouseDelta.y != 0.0)
-    {
-      pProgramState->lastEventTime = udGetEpochSecsUTCd();
-      pProgramState->showUI = true;
-    }
-    else if ((udGetEpochSecsUTCd() - pProgramState->lastEventTime) > pProgramState->settings.hideIntervalSeconds)
-    {
-      pProgramState->showUI = false;
-    }
-  }
-
 #if UDPLATFORM_WINDOWS
   if (io.KeyAlt && ImGui::IsKeyPressed(SDL_SCANCODE_F4))
     pProgramState->programComplete = true;
@@ -2540,93 +2517,77 @@ void vcRenderWindow(vcState *pProgramState)
   }
   else
   {
+    float menuBarSize = 0.f;
     if (!pProgramState->settings.window.isFullscreen)
+      menuBarSize = vcMain_MenuGui(pProgramState);
+
+    ImGui::SetNextWindowSize(ImVec2(size.x, size.y - menuBarSize));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::SetNextWindowPos(ImVec2(0, menuBarSize));
+
+    if (ImGui::Begin("rootdockTesting", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
     {
-      float menuBarSize = vcMain_MenuGui(pProgramState);
-
-      ImGui::SetNextWindowSize(ImVec2(size.x, size.y - menuBarSize));
-      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-      ImGui::SetNextWindowPos(ImVec2(0, menuBarSize));
-
-      if (ImGui::Begin("rootdockTesting", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
-      {
-        ImGui::PopStyleVar();
-
-        int sceneExplorerSize = pProgramState->settings.presentation.sceneExplorerSize;
-        if (pProgramState->sceneExplorerCollapsed)
-          sceneExplorerSize = 0;
-
-        switch (pProgramState->settings.presentation.layout)
-        {
-        case vcWL_SceneLeft:
-          ImGui::Columns(2);
-
-          if (!pProgramState->settings.presentation.columnSizeCorrect)
-          {
-            ImGui::SetColumnWidth(0, size.x - sceneExplorerSize);
-            pProgramState->settings.presentation.columnSizeCorrect = true;
-          }
-
-          if (ImGui::GetColumnWidth(0) != size.x - sceneExplorerSize && !pProgramState->sceneExplorerCollapsed)
-            pProgramState->settings.presentation.sceneExplorerSize = (int)(size.x - ImGui::GetColumnWidth());
-
-          if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
-            vcRenderSceneWindow(pProgramState);
-          ImGui::EndChild();
-
-          ImGui::NextColumn();
-
-          if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
-            vcMain_ShowSceneExplorerWindow(pProgramState);
-          ImGui::EndChild();
-
-          ImGui::Columns(1);
-          break;
-
-        case vcWL_SceneRight:
-          ImGui::Columns(2);
-
-          if (!pProgramState->settings.presentation.columnSizeCorrect)
-          {
-            ImGui::SetColumnWidth(0, (float)sceneExplorerSize);
-            pProgramState->settings.presentation.columnSizeCorrect = true;
-          }
-
-          if (ImGui::GetColumnWidth(0) != sceneExplorerSize && !pProgramState->sceneExplorerCollapsed)
-            pProgramState->settings.presentation.sceneExplorerSize = (int)ImGui::GetColumnWidth();
-
-          if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
-            vcMain_ShowSceneExplorerWindow(pProgramState);
-          ImGui::EndChild();
-
-          ImGui::NextColumn();
-
-          if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
-            vcRenderSceneWindow(pProgramState);
-          ImGui::EndChild();
-
-          ImGui::Columns(1);
-          break;
-        }
-      }
-
-      ImGui::End();
-
-    }
-    else
-    {
-      ImGui::SetNextWindowSize(size);
-      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
-      ImGui::SetNextWindowPos(ImVec2(0, 0));
-
-      bool sceneWindow = ImGui::Begin(udTempStr("%s###scenePresentation", vcString::Get("sceneTitle")), nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus);
       ImGui::PopStyleVar();
 
-      if (sceneWindow)
-        vcRenderSceneWindow(pProgramState);
+      int sceneExplorerSize = pProgramState->settings.presentation.sceneExplorerSize;
+      if (pProgramState->sceneExplorerCollapsed)
+        sceneExplorerSize = 0;
 
-      ImGui::End();
+      switch (pProgramState->settings.presentation.layout)
+      {
+      case vcWL_SceneLeft:
+        ImGui::Columns(2);
+
+        if (!pProgramState->settings.presentation.columnSizeCorrect)
+        {
+          ImGui::SetColumnWidth(0, size.x - sceneExplorerSize);
+          pProgramState->settings.presentation.columnSizeCorrect = true;
+        }
+
+        if (ImGui::GetColumnWidth(0) != size.x - sceneExplorerSize && !pProgramState->sceneExplorerCollapsed)
+          pProgramState->settings.presentation.sceneExplorerSize = (int)(size.x - ImGui::GetColumnWidth());
+
+        if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
+          vcMain_RenderSceneWindow(pProgramState);
+        ImGui::EndChild();
+
+        ImGui::NextColumn();
+
+        if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
+          vcMain_ShowSceneExplorerWindow(pProgramState);
+        ImGui::EndChild();
+
+        ImGui::Columns(1);
+        break;
+
+      case vcWL_SceneRight:
+        ImGui::Columns(2);
+
+        if (!pProgramState->settings.presentation.columnSizeCorrect)
+        {
+          ImGui::SetColumnWidth(0, (float)sceneExplorerSize);
+          pProgramState->settings.presentation.columnSizeCorrect = true;
+        }
+
+        if (ImGui::GetColumnWidth(0) != sceneExplorerSize && !pProgramState->sceneExplorerCollapsed)
+          pProgramState->settings.presentation.sceneExplorerSize = (int)ImGui::GetColumnWidth();
+
+        if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
+          vcMain_ShowSceneExplorerWindow(pProgramState);
+        ImGui::EndChild();
+
+        ImGui::NextColumn();
+
+        if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
+          vcMain_RenderSceneWindow(pProgramState);
+        ImGui::EndChild();
+
+        ImGui::Columns(1);
+        break;
+      }
     }
+
+    ImGui::End();
   }
 
   vcSettingsUI_Show(pProgramState);

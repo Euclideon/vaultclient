@@ -87,10 +87,6 @@
   "settingsAppearanceWindowLayout": "布局",
   "settingsAppearanceWindowLayoutScSx": "左侧场景, 右侧场景管理器",
   "settingsAppearanceWindowLayoutSxSc": "左侧场景管理器, 右侧场景",
-  "settingsAppearancePresentationUI": "用户演示界面",
-  "settingsAppearanceHide": "隐藏",
-  "settingsAppearanceShow": "显示",
-  "settingsAppearanceResponsive": "响应式显示",
   "settingsAppearanceTranslationDifferentVersion": "这个语言包不适用于这个版本的软件，可能出现翻译错误",
 
   "settingsControls": "输入和控制",

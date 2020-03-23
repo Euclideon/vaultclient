@@ -85,10 +85,6 @@
   "settingsAppearanceWindowLayout": "Layout",
   "settingsAppearanceWindowLayoutScSx": "Scene on left and scene explorer on right",
   "settingsAppearanceWindowLayoutSxSc": "Scene explorer on left and scene on right",
-  "settingsAppearancePresentationUI": "Presentation UI",
-  "settingsAppearanceHide": "Hide",
-  "settingsAppearanceShow": "Show",
-  "settingsAppearanceResponsive": "Responsive",
   "settingsAppearanceTranslationDifferentVersion": "This language package is not intended to be used with this version of the software.\nSome text may be displayed incorrectly.",
 
   "settingsControls": "Input & Controls",

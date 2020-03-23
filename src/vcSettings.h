@@ -48,13 +48,6 @@ enum
   vcMetadataMaxLength = 256,
 };
 
-enum vcPresentationMode
-{
-  vcPM_Hide,
-  vcPM_Show,
-  vcPM_Responsive
-};
-
 enum vcWindowLayout
 {
   vcWL_SceneLeft,
@@ -313,9 +306,6 @@ struct vcSettings
   } experimental;
 
   udChunkedArray<vcLanguageOption> languageOptions;
-
-  vcPresentationMode responsiveUI;
-  int hideIntervalSeconds;
 
   struct
   {
