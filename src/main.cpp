@@ -2523,27 +2523,42 @@ void vcRenderWindow(vcState *pProgramState)
 
     ImGui::SetNextWindowSize(ImVec2(size.x, size.y - menuBarSize));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
     ImGui::SetNextWindowPos(ImVec2(0, menuBarSize));
 
-    if (ImGui::Begin("rootdockTesting", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus))
+    bool rootDockOpen = ImGui::Begin("rootdockTesting", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus);
+
+    ImGui::PopStyleVar(2); //Window Padding & Border
+
+    if (rootDockOpen)
     {
-      ImGui::PopStyleVar();
-
       int sceneExplorerSize = pProgramState->settings.presentation.sceneExplorerSize;
-      if (pProgramState->sceneExplorerCollapsed)
-        sceneExplorerSize = 0;
+      vcWindowLayout layout = pProgramState->settings.presentation.layout;
 
-      switch (pProgramState->settings.presentation.layout)
+      if (pProgramState->sceneExplorerCollapsed)
+      {
+        sceneExplorerSize = 0;
+        layout = vcWL_SceneRight; // This fixes a min-columnsize issue in ImGui
+        pProgramState->settings.presentation.columnSizeCorrect = false;
+      }
+
+      ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+      ImGui::Columns(2, nullptr, !pProgramState->sceneExplorerCollapsed);
+      ImGui::PopStyleVar(); // Item Spacing
+
+      if (!pProgramState->settings.presentation.columnSizeCorrect)
+      {
+        if (layout == vcWL_SceneLeft)
+          ImGui::SetColumnWidth(0, size.x - sceneExplorerSize);
+        else if (layout == vcWL_SceneRight)
+          ImGui::SetColumnWidth(0, (float)sceneExplorerSize);
+
+        pProgramState->settings.presentation.columnSizeCorrect = true;
+      }
+
+      switch (layout)
       {
       case vcWL_SceneLeft:
-        ImGui::Columns(2);
-
-        if (!pProgramState->settings.presentation.columnSizeCorrect)
-        {
-          ImGui::SetColumnWidth(0, size.x - sceneExplorerSize);
-          pProgramState->settings.presentation.columnSizeCorrect = true;
-        }
-
         if (ImGui::GetColumnWidth(0) != size.x - sceneExplorerSize && !pProgramState->sceneExplorerCollapsed)
           pProgramState->settings.presentation.sceneExplorerSize = (int)(size.x - ImGui::GetColumnWidth());
 
@@ -2551,24 +2566,17 @@ void vcRenderWindow(vcState *pProgramState)
           vcMain_RenderSceneWindow(pProgramState);
         ImGui::EndChild();
 
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
         ImGui::NextColumn();
+        ImGui::PopStyleVar(); // Item Spacing
 
         if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
           vcMain_ShowSceneExplorerWindow(pProgramState);
         ImGui::EndChild();
 
-        ImGui::Columns(1);
         break;
 
       case vcWL_SceneRight:
-        ImGui::Columns(2);
-
-        if (!pProgramState->settings.presentation.columnSizeCorrect)
-        {
-          ImGui::SetColumnWidth(0, (float)sceneExplorerSize);
-          pProgramState->settings.presentation.columnSizeCorrect = true;
-        }
-
         if (ImGui::GetColumnWidth(0) != sceneExplorerSize && !pProgramState->sceneExplorerCollapsed)
           pProgramState->settings.presentation.sceneExplorerSize = (int)ImGui::GetColumnWidth();
 
@@ -2576,15 +2584,18 @@ void vcRenderWindow(vcState *pProgramState)
           vcMain_ShowSceneExplorerWindow(pProgramState);
         ImGui::EndChild();
 
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
         ImGui::NextColumn();
+        ImGui::PopStyleVar(); // Item Spacing
 
         if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
           vcMain_RenderSceneWindow(pProgramState);
         ImGui::EndChild();
 
-        ImGui::Columns(1);
         break;
       }
+
+      ImGui::Columns(1);
     }
 
     ImGui::End();
