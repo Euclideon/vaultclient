@@ -135,7 +135,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     vertexDescriptor.attributes[1].format = MTLVertexFormatFloat2; // texCoords
     vertexDescriptor.attributes[1].bufferIndex = 0;
     vertexDescriptor.attributes[2].offset = 16;
-    vertexDescriptor.attributes[2].format = MTLVertexFormatUChar4; // color
+    vertexDescriptor.attributes[2].format = MTLVertexFormatUChar4Normalized; // color
     vertexDescriptor.attributes[2].bufferIndex = 0;
     vertexDescriptor.layouts[0].stepRate = 1;
     vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;

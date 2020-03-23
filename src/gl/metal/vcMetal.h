@@ -71,6 +71,8 @@ struct vcShader
   uint32_t ID;
 
   bool inititalised;
+  id<MTLLibrary> vertexLibrary;
+  id<MTLLibrary> fragmentLibrary;
 
   vcShaderConstantBuffer bufferObjects[16];
   int numBufferObjects;

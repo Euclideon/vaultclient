@@ -287,7 +287,7 @@ visualizationFragmentShader(VVSOutput in [[stage_in]],
   struct VertexIn {
       float2 position  [[attribute(0)]];
       float2 texCoords [[attribute(1)]];
-      uchar4 color     [[attribute(2)]];
+      float4 color     [[attribute(2)]];
   };
 
   struct VertexOut {
@@ -301,7 +301,7 @@ visualizationFragmentShader(VVSOutput in [[stage_in]],
       VertexOut out;
       out.position = uIMGUI.projectionMatrix * float4(in.position, 0, 1);
       out.texCoords = in.texCoords;
-      out.color = float4(in.color) / float4(255.0);
+      out.color = in.color;
       return out;
   }
 
