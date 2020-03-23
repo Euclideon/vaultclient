@@ -22,7 +22,7 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
   ptrdiff_t accumulatedOffset = 0;
   for (uint32_t i = 0; i < totalTypes; ++i)
   {
-    vertexDesc.attributes[i].bufferIndex = 0;
+    vertexDesc.attributes[i].bufferIndex = 30;
     vertexDesc.attributes[i].offset = accumulatedOffset;
 
     switch (pVertLayout[i])
@@ -65,9 +65,9 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
         break;
     }
   }
-  vertexDesc.layouts[0].stride = accumulatedOffset;
-  vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
-  vertexDesc.layouts[0].stepRate = 1;
+  vertexDesc.layouts[30].stride = accumulatedOffset;
+  vertexDesc.layouts[30].stepFunction = MTLVertexStepFunctionPerVertex;
+  vertexDesc.layouts[30].stepRate = 1;
 
   id<MTLFunction> vFunc = nil;
   id<MTLFunction> fFunc = nil;
@@ -115,7 +115,95 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
 
   pShader->inititalised = false;
   
-  [_renderer buildBlendPipelines:pDesc];
+  NSError *err = nil;
+  MTLRenderPipelineReflection *reflectionObj;
+  MTLPipelineOption option = MTLPipelineOptionBufferTypeInfo | MTLPipelineOptionArgumentInfo;
+  [_renderer.pipelines addObject:[_device newRenderPipelineStateWithDescriptor:pDesc options:option reflection:&reflectionObj error:&err]];
+#ifdef METAL_DEBUG
+  if (err != nil)
+    NSLog(@"Error: failed to create Metal pipeline state: %@", err);
+#endif
+  pDesc.colorAttachments[0].blendingEnabled = YES;
+  pDesc.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
+  pDesc.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
+
+  for (int i = vcGLSBM_Interpolative; i < vcGLSBM_Count; ++i)
+  {
+    switch ((vcGLStateBlendMode)i)
+    {
+      case vcGLSBM_None:
+        break;
+      case vcGLSBM_Interpolative:
+        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
+        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOne;
+        break;
+      case vcGLSBM_Additive:
+        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
+        break;
+      case vcGLSBM_Multiplicative:
+        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorDestinationColor;
+        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorZero;
+        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
+        break;
+      case vcGLSBM_Count:
+        break;
+    }
+
+    [_renderer.pipelines addObject:[_device newRenderPipelineStateWithDescriptor:pDesc error:&err]];
+#ifdef METAL_DEBUG
+    if (err != nil)
+      NSLog(@"Error: failed to create Metal pipeline state: %@", err);
+#endif
+  }
+
+  for (MTLArgument *arg in reflectionObj.vertexArguments)
+  {
+    if (arg.type != MTLArgumentTypeBuffer)
+      continue;
+
+    vcShaderConstantBuffer *pBuffer = &pShader->bufferObjects[pShader->numBufferObjects];
+    pBuffer->buffers[1].index = -1;
+    ++pShader->numBufferObjects;
+    
+    udStrcpy(pBuffer->name, arg.name.UTF8String);
+    pBuffer->expectedSize = arg.bufferDataSize;
+    pBuffer->buffers[0].index = arg.index;
+  }
+
+  for (MTLArgument *arg in reflectionObj.fragmentArguments)
+  {
+    if (arg.type != MTLArgumentTypeBuffer)
+      continue;
+
+    vcShaderConstantBuffer *pBuffer = nullptr;
+
+    for (size_t i = 0; i < udLengthOf(pShader->bufferObjects); ++i)
+    {
+      if (udStrEqual(pShader->bufferObjects[i].name, arg.name.UTF8String))
+      {
+        pBuffer = &pShader->bufferObjects[i];
+        break;
+      }
+    }
+
+    if (pBuffer == nullptr)
+    {
+      pBuffer = &pShader->bufferObjects[pShader->numBufferObjects];
+      pBuffer->buffers[0].index = -1;
+      ++pShader->numBufferObjects;
+    }
+
+    udStrcpy(pBuffer->name, arg.name.UTF8String);
+    pBuffer->expectedSize = arg.bufferDataSize;
+    pBuffer->buffers[1].index = arg.index;
+  }
+
   pShader->ID = g_pipeCount;
   ++g_pipeCount;
 
@@ -203,18 +291,8 @@ bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pSh
       return true;
     }
   }
-  
-  vcShaderConstantBuffer *pTemp = udAllocType(vcShaderConstantBuffer, 1, udAF_Zero);
-  pTemp->expectedSize = bufferSize;
-  udStrcpy(pTemp->name, pBufferName);
 
-  pShader->bufferObjects[pShader->numBufferObjects] = *pTemp;
-  ++pShader->numBufferObjects;
-  
-  *ppBuffer = pTemp;
-  pTemp = nullptr;
-
-  return true;
+  return false;
 }
 
 bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuffer, const void *pData, const size_t bufferSize)
@@ -222,17 +300,9 @@ bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuf
   if (pShader == nullptr || pBuffer == nullptr || pData == nullptr || bufferSize == 0)
     return false;
 
-  int found = -1;
-  for (int i = 0; i < pShader->numBufferObjects; ++i)
-    if (udStrEquali(pShader->bufferObjects[i].name, pBuffer->name))
-      found = i;
+  pBuffer->buffers[0].pCB = pData;
+  pBuffer->buffers[1].pCB = pData;
 
-  if (found < 0)
-    found = pShader->numBufferObjects++;
-  
-  pBuffer->pCB = pData;
-  
-  pShader->bufferObjects[found] = *pBuffer;
   return true;
 }
 
@@ -242,8 +312,6 @@ bool vcShader_ReleaseConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *p
     return false;
 
   pBuffer->expectedSize = 0;
-
-  udFree(pBuffer);
 
   return true;
 }

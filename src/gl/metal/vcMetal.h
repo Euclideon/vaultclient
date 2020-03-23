@@ -55,9 +55,13 @@ struct vcFramebuffer
 
 struct vcShaderConstantBuffer
 {
-  const void *pCB;
   char name[32];
   size_t expectedSize;
+  struct
+  {
+    int index;
+    const void *pCB;
+  } buffers[2]; // 0 for Vertex shader, 1 for Fragment shader
 };
 
 struct vcShaderSampler

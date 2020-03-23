@@ -204,7 +204,7 @@
   for (int i = 0; i < pCurrShader->numBufferObjects; ++i)
     [self bindVB:&pCurrShader->bufferObjects[i] index:i+1];
   
-  [_encoders[pCurrFramebuffer->ID] setVertexBuffer:vertBuffer offset:0 atIndex:0];
+  [_encoders[pCurrFramebuffer->ID] setVertexBuffer:vertBuffer offset:0 atIndex:30];
   [_encoders[pCurrFramebuffer->ID] drawIndexedPrimitives:type indexCount:indexCount indexType:indexType indexBuffer:indexBuffer indexBufferOffset:offset];
 
   pCurrFramebuffer->actions |= vcRFA_Draw | vcRFA_Renew;
@@ -333,56 +333,12 @@
   [_encoders[pCurrFramebuffer->ID] setViewport:vp];
 }
 
-- (void)buildBlendPipelines:(nonnull MTLRenderPipelineDescriptor*)pDesc
-{
-  NSError *err = nil;
-  [_pipelines addObject:[_device newRenderPipelineStateWithDescriptor:pDesc error:&err]];
-#ifdef METAL_DEBUG
-  if (err != nil)
-    NSLog(@"Error: failed to create Metal pipeline state: %@", err);
-#endif
-  pDesc.colorAttachments[0].blendingEnabled = YES;
-  pDesc.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
-  pDesc.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
-
-  for (int i = vcGLSBM_Interpolative; i < vcGLSBM_Count; ++i)
-  {
-    switch ((vcGLStateBlendMode)i)
-    {
-      case vcGLSBM_None:
-        break;
-      case vcGLSBM_Interpolative:
-        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
-        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
-        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOne;
-        break;
-      case vcGLSBM_Additive:
-        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorOne;
-        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
-        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOne;
-        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
-        break;
-      case vcGLSBM_Multiplicative:
-        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorDestinationColor;
-        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
-        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorZero;
-        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
-        break;
-      case vcGLSBM_Count:
-        break;
-    }
-
-    [_pipelines addObject:[_device newRenderPipelineStateWithDescriptor:pDesc error:&err]];
-#ifdef METAL_DEBUG
-    if (err != nil)
-      NSLog(@"Error: failed to create Metal pipeline state: %@", err);
-#endif
-  }
-}
 - (void)bindVB:(nonnull vcShaderConstantBuffer*)pBuffer index:(uint8_t)index
 {
-  [_encoders[pCurrFramebuffer->ID] setVertexBytes:pBuffer->pCB length:pBuffer->expectedSize atIndex:index];
-  [_encoders[pCurrFramebuffer->ID] setFragmentBytes:pBuffer->pCB length:pBuffer->expectedSize atIndex:index];
+  if (pBuffer->buffers[0].index != -1)
+    [_encoders[pCurrFramebuffer->ID] setVertexBytes:pBuffer->buffers[0].pCB length:pBuffer->expectedSize atIndex:pBuffer->buffers[0].index];
+
+  if (pBuffer->buffers[1].index != -1)
+    [_encoders[pCurrFramebuffer->ID] setFragmentBytes:pBuffer->buffers[1].pCB length:pBuffer->expectedSize atIndex:pBuffer->buffers[1].index];
 }
 @end
