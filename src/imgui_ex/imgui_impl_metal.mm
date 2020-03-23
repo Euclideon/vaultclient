@@ -109,6 +109,7 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
 - (void)makeDeviceObjects
 {
     vcShader_CreateFromFile(&pMetalShader, "asset://assets/shaders/imguiVertexShader", "asset://assets/shaders/imguiFragmentShader", vcImGuiVertexLayout);
+    vcShader_Bind(pMetalShader);
     vcShader_GetConstantBuffer(&metalMatrix, pMetalShader, "u_EveryFrame", sizeof(udFloat4x4));
     _pipeline = [self getPipeline:_device];
 }
@@ -157,8 +158,8 @@ void ImGui_ImplMetal_DestroyDeviceObjects()
     pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
     pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float;
 #elif UDPLATFORM_OSX
-    pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
-    pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
+    pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+    pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
 #else
 # error "Unsupported platform!"
 #endif

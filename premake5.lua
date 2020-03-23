@@ -265,7 +265,7 @@ solution "vaultClient"
 	if _OPTIONS["force-vaultsdk"] then
 		projectSuffix = "VDK"
 
-		if os.target() ~= premake.MACOSX and os.target() ~= "emscripten" then
+		if os.target() ~= "emscripten" then
 			dofile "../vault/3rdParty/curl/project.lua"
 		end
 

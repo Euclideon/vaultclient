@@ -81,7 +81,7 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
     pixelFormat = MTLPixelFormatDepth32Float;
 #elif UDPLATFORM_OSX
-    pixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
+    pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
 #endif
     break;
 

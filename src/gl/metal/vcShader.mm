@@ -90,8 +90,8 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
     pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
     pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float;
 #elif UDPLATFORM_OSX
-    pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
-    pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth24Unorm_Stencil8;
+    pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+    pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
 #else
 # error "Unknown platform!"
 #endif
@@ -104,7 +104,7 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   else
     pShader->flush = vcRFO_None;
 
-  pShader->inititalised = udStrBeginsWithi(pFragmentShader, "imgui") ? true : false;
+  pShader->inititalised = false;
   
   [_renderer buildBlendPipelines:pDesc];
   pShader->ID = g_pipeCount;
@@ -119,11 +119,19 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
 
 bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs)
 {
-  const char *pVertexShaderText = nullptr;
-  const char *pFragmentShaderText = nullptr;
+  char *pVertexShaderText = nullptr;
+  char *pFragmentShaderText = nullptr;
 
-  udFile_Load(pVertexShader, &pVertexShaderText);
-  udFile_Load(pFragmentShader, &pFragmentShaderText);
+  udFile_Load(udTempStr("%s.metal", pVertexShader), &pVertexShaderText);
+  udFile_Load(udTempStr("%s.metal", pFragmentShader), &pFragmentShaderText);
+
+  char *pTemp = (char*)udStrchr(pVertexShaderText, "\n");
+  if (pTemp && pTemp[1] == '\0') // This file contains the name of a shader
+    *pTemp = '\0'; // Zero the new line so the shader can be found
+
+  pTemp = (char *)udStrchr(pFragmentShaderText, "\n");
+  if (pTemp && pTemp[1] == '\0') // This file contains the name of a shader
+    *pTemp = '\0'; // Zero the new line so the shader can be found
 
   bool success = vcShader_CreateFromText(ppShader, pVertexShaderText, pFragmentShaderText, pInputTypes, totalInputs);
 
