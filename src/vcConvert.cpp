@@ -420,7 +420,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
       if (ImGui::Selectable(tempBuffer, selected, ImGuiSelectableFlags_None, selectablePos))
         pProgramState->pConvertContext->selectedItem = i;
 
-      if (vcIGSW_IsItemHovered())
+      if (vcIGSW_IsItemHovered() && pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName != nullptr && pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName[0] != '\0' )
         ImGui::SetTooltip("%s", pProgramState->pConvertContext->jobs[i]->pConvertInfo->pOutputName);
     }
     udReadUnlockRWLock(pProgramState->pConvertContext->pRWLock);
