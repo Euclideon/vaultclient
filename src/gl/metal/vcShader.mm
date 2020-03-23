@@ -10,7 +10,7 @@ uint32_t g_pipeCount = 0;
 uint16_t g_geomPipeCount = 0;
 
 // Takes shader function names instead of shader description string
-bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes)
+bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexShaderFilename, const char *pVertexShader, const char *pFragmentShaderFilename, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes)
 {
   if (ppShader == nullptr || pVertexShader == nullptr || pFragmentShader == nullptr)
     return false;
@@ -48,7 +48,7 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
         accumulatedOffset += 4 * sizeof(float);
         break;
       case vcVLT_ColourBGRA:
-        vertexDesc.attributes[i].format = MTLVertexFormatUInt;
+        vertexDesc.attributes[i].format = MTLVertexFormatUChar4Normalized;
         accumulatedOffset += 1 * sizeof(uint32_t);
         break;
       case vcVLT_Normal3:
@@ -69,8 +69,22 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
   vertexDesc.layouts[0].stepRate = 1;
 
-  id<MTLFunction> vFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pVertexShader]];
-  id<MTLFunction> fFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pFragmentShader]];
+  id<MTLFunction> vFunc = nil;
+  id<MTLFunction> fFunc = nil;
+
+  if (pVertexShaderFilename != nullptr && udStrchr(pVertexShader, "\n") != nullptr)
+  {
+    pShader->vertexLibrary = [_device newLibraryWithSource:[NSString stringWithUTF8String:pVertexShader] options: {} error:nil];
+    pShader->fragmentLibrary = [_device newLibraryWithSource:[NSString stringWithUTF8String:pFragmentShader] options: {} error:nil];
+    
+    vFunc = [pShader->vertexLibrary newFunctionWithName:@"main0"];
+    fFunc = [pShader->fragmentLibrary newFunctionWithName:@"main0"];
+  }
+  else
+  {
+    vFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pVertexShader]];
+    fFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pFragmentShader]];
+  }
 
   MTLRenderPipelineDescriptor *pDesc = [[MTLRenderPipelineDescriptor alloc] init];
   pDesc.vertexDescriptor = vertexDesc;
@@ -79,7 +93,7 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
 
   pDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
 
-  if (udStrBeginsWithi(pFragmentShader, "blur") || udStrBeginsWithi(pFragmentShader, "flatCol"))
+  if (udStrBeginsWithi(pFragmentShaderFilename, "blur") || udStrBeginsWithi(pFragmentShaderFilename, "flatCol"))
   {
     pDesc.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
     pDesc.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
@@ -97,9 +111,9 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
 #endif
   }
     
-  if (udStrBeginsWithi(pFragmentShader, "udSplat") || udStrBeginsWithi(pFragmentShader, "blur") || udStrBeginsWithi(pFragmentShader, "flat"))
+  if (udStrBeginsWithi(pFragmentShaderFilename, "udSplat") || udStrBeginsWithi(pFragmentShaderFilename, "blur") || udStrBeginsWithi(pFragmentShaderFilename, "flat"))
     pShader->flush = vcRFO_Flush;
-  else if (udStrBeginsWithi(pFragmentShader, "udFrag"))
+  else if (udStrBeginsWithi(pFragmentShaderFilename, "udFrag"))
     pShader->flush = vcRFO_Blit;
   else
     pShader->flush = vcRFO_None;
@@ -115,6 +129,11 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   pShader = nullptr;
 
   return (*ppShader != nullptr);
+}
+
+bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes)
+{
+  return vcShader_CreateFromTextInternal(ppShader, nullptr, pVertexShader, nullptr, pFragmentShader, pVertLayout, totalTypes);
 }
 
 bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs)
@@ -133,7 +152,7 @@ bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, con
   if (pTemp && pTemp[1] == '\0') // This file contains the name of a shader
     *pTemp = '\0'; // Zero the new line so the shader can be found
 
-  bool success = vcShader_CreateFromText(ppShader, pVertexShaderText, pFragmentShaderText, pInputTypes, totalInputs);
+  bool success = vcShader_CreateFromTextInternal(ppShader, pVertexShader, pVertexShaderText, pFragmentShader, pFragmentShaderText, pInputTypes, totalInputs);
 
   udFree(pFragmentShaderText);
   udFree(pVertexShaderText);
