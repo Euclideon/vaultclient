@@ -87,6 +87,12 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, 0xFFFFFFFF);
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
 
+  if (vdkProjectNode_GetMetadataBool(m_pNode, "lineDualColour", &m_line.isDualColour, false) != vE_Success)
+  {
+    m_line.isDualColour = (m_line.colourPrimary != m_line.colourSecondary);
+    vdkProjectNode_SetMetadataBool(m_pNode, "lineDualColour", m_line.isDualColour);
+  }
+
   vdkProjectNode_GetMetadataBool(m_pNode, "showLength", &m_showLength, false);
   vdkProjectNode_GetMetadataBool(m_pNode, "showAllLengths", &m_showAllLengths, false);
   vdkProjectNode_GetMetadataBool(m_pNode, "showArea", &m_showArea, false);
@@ -185,8 +191,8 @@ bool vcPOI::GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int 
 
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
-  // if POI is invisible or if it exceeds maximum visible POI distance
-  if (!m_visible || (udMag3(m_pLabelInfo->worldPosition - pProgramState->camera.position) > pProgramState->settings.presentation.POIFadeDistance))
+  // if POI is invisible or if it exceeds maximum visible POI distance (unless selected)
+  if (!m_visible || ((udMag3(m_pLabelInfo->worldPosition - pProgramState->camera.position) > pProgramState->settings.presentation.POIFadeDistance) && !m_selected))
     return;
 
   if (m_selected)
@@ -383,8 +389,9 @@ void vcPOI::UpdatePoints()
     vcFenceRendererConfig config;
     config.visualMode = m_line.fenceMode;
     config.imageMode = m_line.lineStyle;
-    config.bottomColour = vcIGSW_BGRAToImGui(m_line.colourSecondary);
-    config.topColour = vcIGSW_BGRAToImGui(m_line.colourPrimary);
+    config.isDualColour = m_line.isDualColour;
+    config.primaryColour = vcIGSW_BGRAToImGui(m_line.colourPrimary);
+    config.secondaryColour = vcIGSW_BGRAToImGui(m_line.colourSecondary);
     config.ribbonWidth = m_line.lineWidth;
     config.textureScrollSpeed = 1.f;
     config.textureRepeatScale = 1.f;
@@ -404,7 +411,7 @@ void vcPOI::UpdatePoints()
   }
 
   // Update the label as well
-  m_pLabelInfo->pText = m_pNode->pName;
+  m_pLabelInfo->pText = m_pLabelText;
   m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
   m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
   m_pLabelInfo->textSize = m_namePt;
@@ -452,8 +459,11 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourPrimary%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_line.colourPrimary, ImGuiColorEditFlags_None))
       vdkProjectNode_SetMetadataUint(m_pNode, "lineColourPrimary", m_line.colourPrimary);
 
-    if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineColour2"), *pItemID), &m_line.colourSecondary, ImGuiColorEditFlags_None))
+    if (m_line.isDualColour && vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineColour2"), *pItemID), &m_line.colourSecondary, ImGuiColorEditFlags_None))
       vdkProjectNode_SetMetadataUint(m_pNode, "lineColourSecondary", m_line.colourSecondary);
+
+    if (ImGui::Checkbox(udTempStr("%s##POILineIsDualColourColour%zu", vcString::Get("scenePOILineDualColours"), *pItemID), &m_line.isDualColour))
+      vdkProjectNode_SetMetadataBool(m_pNode, "lineDualColour", m_line.isDualColour);
 
     if (ImGui::SliderFloat(udTempStr("%s##POILineWidth%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_line.lineWidth, 0.01f, 1000.f, "%.2f", 3.f))
       vdkProjectNode_SetMetadataDouble(m_pNode, "lineWidth", (double)m_line.lineWidth);

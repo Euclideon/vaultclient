@@ -33,8 +33,8 @@ struct vcFenceRenderer
 
     struct
     {
-      udFloat4 bottomColour;
-      udFloat4 topColour;
+      udFloat4 primaryColour;
+      udFloat4 secondaryColour;
       float orientation; // 0 == fence, 1 == flat
       float width;
       float textureRepeatScale;
@@ -118,8 +118,9 @@ udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer)
   pFenceRenderer->config.ribbonWidth = 2.5f;
   pFenceRenderer->config.textureRepeatScale = 1.0f;
   pFenceRenderer->config.textureScrollSpeed = 1.0f;
-  pFenceRenderer->config.bottomColour = udFloat4::create(1.0f);
-  pFenceRenderer->config.topColour = udFloat4::create(1.0f);
+  pFenceRenderer->config.isDualColour = false;
+  pFenceRenderer->config.primaryColour = udFloat4::create(1.0f);
+  pFenceRenderer->config.secondaryColour = udFloat4::create(1.0f);
   pFenceRenderer->config.imageMode = vcRRIM_Solid;
   pFenceRenderer->config.visualMode = vcRRVM_Fence;
 
@@ -416,8 +417,12 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
   pFenceRenderer->renderShader.everyFrameParams.width = pFenceRenderer->config.ribbonWidth;
   pFenceRenderer->renderShader.everyFrameParams.textureRepeatScale = pFenceRenderer->config.textureRepeatScale;
   pFenceRenderer->renderShader.everyFrameParams.textureScrollSpeed = pFenceRenderer->config.textureScrollSpeed;
-  pFenceRenderer->renderShader.everyFrameParams.bottomColour = pFenceRenderer->config.bottomColour;
-  pFenceRenderer->renderShader.everyFrameParams.topColour = pFenceRenderer->config.topColour;
+  pFenceRenderer->renderShader.everyFrameParams.primaryColour = pFenceRenderer->config.primaryColour;
+
+  if (pFenceRenderer->config.isDualColour)
+    pFenceRenderer->renderShader.everyFrameParams.secondaryColour = pFenceRenderer->config.secondaryColour;
+  else
+    pFenceRenderer->renderShader.everyFrameParams.secondaryColour = pFenceRenderer->config.primaryColour;
 
   switch (pFenceRenderer->config.visualMode)
   {
