@@ -4,50 +4,6 @@
 #include <metal_texture>
 using namespace metal;
 
-// This should match CPU struct size
-#define VERTEX_COUNT 2
-
-// Tile Vertex Shader - g_tileVertexShader
-  struct TVSInput
-  {
-    float3 a_uv [[attribute(0)]];
-  };
-
-  struct PCU
-  {
-    float4 v_position [[position]];
-    float4 v_color;
-    float2 v_uv;
-  };
-
-  struct TVSUniforms
-  {
-    float4x4 u_projection;
-    float4 u_eyePositions[VERTEX_COUNT * VERTEX_COUNT];
-    float4 u_color;
-  };
-
-  vertex PCU
-  tileVertexShader(TVSInput in [[stage_in]], constant TVSUniforms& uTVS [[buffer(1)]])
-  {
-    PCU out;
-    
-    // TODO: could have precision issues on some devices
-    out.v_position = uTVS.u_projection * uTVS.u_eyePositions[int(in.a_uv.z)];
-    
-    out.v_uv = in.a_uv.xy;
-    out.v_color = uTVS.u_color;
-    return out;
-  }
-
-// Tile Fragment Shader - g_tileFragmentShader
-  fragment float4
-  tileFragmentShader(PCU in [[stage_in]], texture2d<float, access::sample> TFSimg [[texture(0)]], sampler TFSsampler [[sampler(0)]])
-  {
-    float4 col = TFSimg.sample(TFSsampler, in.v_uv);
-    return float4(col.xyz * in.v_color.xyz, in.v_color.w);
-  };
-
 // Skybox Vertex Shader Panorama - g_vcSkyboxVertexShaderPanorama
   struct SVSInput
   {
@@ -161,6 +117,13 @@ using namespace metal;
     float3 a_position [[attribute(0)]];
     float2 a_uv [[attribute(1)]];
     float4 a_ribbonInfo [[attribute(2)]]; // xyz: expand floattor; z: pair id (0 or 1)
+  };
+
+  struct PCU
+  {
+    float4 v_position [[position]];
+    float4 v_color;
+    float2 v_uv;
   };
 
   vertex PCU
