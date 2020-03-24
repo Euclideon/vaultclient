@@ -4,61 +4,6 @@
 #include <metal_texture>
 using namespace metal;
 
-// Skybox Vertex Shader Panorama - g_vcSkyboxVertexShaderPanorama
-  struct SVSInput
-  {
-    float3 a_position [[attribute(0)]];
-    float2 a_texCoord [[attribute(1)]];
-  };
-
-  struct SVSOutput
-  {
-    float4 position [[position]];
-    float2 v_texCoord;
-  };
-
-  vertex SVSOutput
-  skyboxVertexShaderPanorama(SVSInput in [[stage_in]])
-  {
-    SVSOutput out;
-    out.position = float4(in.a_position.xy, 0.0, 1.0);
-    out.v_texCoord = float2(in.a_texCoord.x, 1.0 - in.a_texCoord.y);
-    return out;
-  }
-
-
-// Skybox Fragment Shader Panorama - skyboxFragmentShaderPanorama
-  struct SFSPUniforms
-  {
-    float4x4 u_inverseViewProjection;
-  };
-
-  fragment float4
-  skyboxFragmentShaderPanorama(SVSOutput in [[stage_in]], constant SFSPUniforms& uSFS [[buffer(1)]], texture2d<float, access::sample> SFSimg [[texture(0)]], sampler SFSsampler [[sampler(0)]])
-  {
-    // work out 3D point
-    float4 point3D = uSFS.u_inverseViewProjection * float4(in.v_texCoord * float2(2.0) - float2(1.0), 1.0, 1.0);
-    point3D.xyz = normalize(point3D.xyz / point3D.w);
-    float2 longlat = float2(atan2(point3D.x, point3D.y) + M_PI_F, acos(point3D.z));
-    return SFSimg.sample(SFSsampler, longlat / float2(2.0 * M_PI_F, M_PI_F));
-  }
-
-// Skybox Fragment Shader TintColor - skyboxFragmentShaderImageColor
-  struct SFSTCUniforms
-  {
-    float4 u_tintColor; //0 is full color, 1 is full image
-    float4 u_imageSize; //For purposes of tiling/stretching
-  };
-
-  fragment float4
-  skyboxFragmentShaderImageColor(SVSOutput in [[stage_in]], constant SFSTCUniforms& uSFS [[buffer(1)]], texture2d<float, access::sample> SFSimg [[texture(0)]], sampler SFSsampler [[sampler(0)]])
-  {
-    float4 color = SFSimg.sample(SFSsampler, in.v_texCoord / uSFS.u_imageSize.xy);
-    float effectiveAlpha = min(color.a, uSFS.u_tintColor.a);
-    return float4((color.rgb * effectiveAlpha) + (uSFS.u_tintColor.rgb * (1 - effectiveAlpha)), 1);
-  }
-
-
 // ImGui Vertex Shader - g_ImGuiVertexShader
   struct Uniforms {
       float4x4 projectionMatrix;
