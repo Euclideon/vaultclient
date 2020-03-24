@@ -196,7 +196,8 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (!m_visible || ((udMag3(m_pLabelInfo->worldPosition - pProgramState->camera.position) > pProgramState->settings.presentation.POIFadeDistance) && !m_selected))
     return;
 
-  if (m_hasPreviewPoint && (!m_selected || pProgramState->activeTool != vcActiveTool_MeasureLine || pProgramState->activeTool != vcActiveTool_MeasureArea))
+  bool isMeasuring = (pProgramState->activeTool == vcActiveTool_MeasureLine || pProgramState->activeTool == vcActiveTool_MeasureArea);
+  if (m_hasPreviewPoint && (!m_selected || !isMeasuring))
     ChangeProjection(pProgramState->gis.zone);
 
   if (m_selected)
