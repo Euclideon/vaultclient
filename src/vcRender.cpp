@@ -650,8 +650,11 @@ void vcRender_SplatUDWithId(vcState *pProgramState, vcRenderContext *pRenderCont
   vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
 
-void vcRender_SplatUD(vcState *pProgramState, vcRenderContext *pRenderContext, vcTexture *pColour, vcTexture *pDepth)
+void vcRender_ConditionalSplatUD(vcState *pProgramState, vcRenderContext *pRenderContext, vcTexture *pColour, vcTexture *pDepth, const vcRenderData &renderData)
 {
+  if (renderData.models.length == 0)
+    return;
+
   udUnused(pProgramState);
 
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
@@ -912,7 +915,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
     vcFramebuffer_Bind(pRenderContext->viewShedRenderingContext.pFramebuffer, vcFramebufferClearOperation_All);
 
     if (doUDRender)
-      vcRender_SplatUD(pProgramState, pRenderContext, pRenderContext->viewShedRenderingContext.pDummyColour, pRenderContext->viewShedRenderingContext.pUDDepthTexture);
+      vcRender_ConditionalSplatUD(pProgramState, pRenderContext, pRenderContext->viewShedRenderingContext.pDummyColour, pRenderContext->viewShedRenderingContext.pUDDepthTexture, renderData);
 
     if (doPolygonRender)
     {
@@ -960,7 +963,7 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, true);
 
   // UD
-  vcRender_SplatUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pDepthTex);
+  vcRender_ConditionalSplatUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pDepthTex, renderData);
 
   // Polygon Models
   {
@@ -1239,8 +1242,8 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
 
-  vcRenderSkybox(pProgramState, pRenderContext); // Drawing skybox after opaque geometry saves a bit on fill rate.
   vcRenderTerrain(pProgramState, pRenderContext);
+  vcRenderSkybox(pProgramState, pRenderContext); // Drawing skybox after opaque geometry saves a bit on fill rate.
 
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
 
