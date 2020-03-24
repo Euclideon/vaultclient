@@ -439,3 +439,36 @@ bool vcProject_FetchNodeGeometryAsCartesian(vdkProject *pProject, vdkProjectNode
 
   return true;
 }
+
+void vcProject_ExtractAttributionText(vdkProjectNode *pFolderNode, const char **ppCurrentText)
+{
+  vdkProjectNode *pNode = pFolderNode->pFirstChild;
+
+  while (pNode != nullptr)
+  {
+    if (pNode->pUserData != nullptr && pNode->itemtype == vdkProjectNodeType::vdkPNT_PointCloud)
+    {
+      vcModel *pModel = nullptr;
+      const char *pAttributionText = nullptr;
+
+      pModel = (vcModel *)pNode->pUserData;
+
+      //Priority: Author -> License -> Copyright
+      pAttributionText = pModel->m_metadata.Get("Author").AsString(pModel->m_metadata.Get("License").AsString(pModel->m_metadata.Get("Copyright").AsString()));
+      if (pAttributionText)
+      {
+        if (*ppCurrentText != nullptr)
+          udSprintf(ppCurrentText, "%s       %s      ", *ppCurrentText, pAttributionText);
+        else
+          udSprintf(ppCurrentText, "%s      ", pAttributionText);
+      }
+    }
+
+    if (pNode->itemtype == vdkPNT_Folder)
+      vcProject_ExtractAttributionText(pNode, ppCurrentText);
+
+    pNode = pNode->pNextSibling;
+  }
+
+  
+}
