@@ -63,6 +63,16 @@ enum vcErrorSource
   vcES_ProjectChange
 };
 
+enum vcActiveTool
+{
+  vcActiveTool_Select, // Can select items and camera input works as expected
+
+  vcActiveTool_MeasureLine, // Clicking places nodes in the current selected POI (or creates one if the current selected item isn't a POI)
+  vcActiveTool_MeasureArea, // Clicking places nodes in the current selected POI (or creates one if the current selected item isn't a POI)
+
+  vcActiveTool_Count
+};
+
 struct vcState
 {
   bool programComplete;
@@ -153,6 +163,8 @@ struct vcState
     vcGizmoOperation operation;
     vcGizmoCoordinateSystem coordinateSystem;
   } gizmo;
+
+  vcActiveTool activeTool;
 
   struct
   {

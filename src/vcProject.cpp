@@ -361,11 +361,14 @@ void vcProject_ClearSelection(vdkProjectNode *pParentNode)
     ((vcSceneItem*)pParentNode->pUserData)->m_selected = false;
 }
 
-void vcProject_ClearSelection(vcState *pProgramState)
+void vcProject_ClearSelection(vcState *pProgramState, bool clearToolState /*= true*/)
 {
   vcProject_ClearSelection(pProgramState->activeProject.pRoot);
   pProgramState->sceneExplorer.selectedItems.clear();
   pProgramState->sceneExplorer.clickedItem = {};
+
+  if (clearToolState)
+    pProgramState->activeTool = vcActiveTool_Select;
 }
 
 bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pItem)

@@ -52,6 +52,8 @@ private:
   vcLabelInfo *m_pLabelInfo;
   const char *m_pLabelText;
 
+  bool m_hasPreviewPoint;
+
   bool m_cameraFollowingAttachment; //True if following attachment, false if flying through points
 
   udWorkerPool *m_pWorkerPool;
@@ -77,6 +79,8 @@ private:
     double segmentProgress;
   } m_flyThrough;
 
+  void HandleBasicUI(vcState *pProgramState, size_t itemID);
+
 public:
   vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcPOI() {};
@@ -89,11 +93,12 @@ public:
   void HandleImGui(vcState *pProgramState, size_t *pItemID);
   void HandleContextMenu(vcState *pProgramState);
   void HandleAttachmentUI(vcState *pProgramState);
+  void HandleToolUI(vcState *pProgramState);
 
   void Cleanup(vcState *pProgramState);
   void ChangeProjection(const udGeoZone &newZone);
 
-  void AddPoint(vcState *pProgramState, const udDouble3 &position);
+  void AddPoint(vcState *pProgramState, const udDouble3 &position, bool isPreview = false);
   void RemovePoint(vcState *pProgramState, int index);
   void UpdatePoints();
 

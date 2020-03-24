@@ -69,6 +69,7 @@ public:
   virtual void HandleImGui(vcState *pProgramState, size_t *pItemID) = 0; // Shows expanded settings in scene explorer
   virtual void HandleContextMenu(vcState *pProgramState); // Show expanded context menu settings in scene explorer
   virtual void HandleAttachmentUI(vcState *pProgramState); // Show additional settings in the scene when attached to this item
+  virtual void HandleToolUI(vcState *pProgramState); // Show additional settings in the scene when this item is being used as a tool
 
   // Only calls this if its 'completed' loading and is 'vcSLS_Loaded'; note: this is called before other cleanup operations
   virtual void Cleanup(vcState *pProgramState) = 0;

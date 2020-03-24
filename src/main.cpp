@@ -1027,6 +1027,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::End();
   }
 
+  float toolPanelStartY = windowPos.y;
+
   if (pProgramState->settings.presentation.showProjectionInfo || pProgramState->settings.presentation.showAdvancedGIS)
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
@@ -1069,6 +1071,44 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
             pProgramState->activeProject.pFolder->ChangeProjection(zone);
             vcRender_ClearTiles(pProgramState->pRenderContext);
           }
+        }
+      }
+    }
+
+    toolPanelStartY = ImGui::GetWindowPos().y + ImGui::GetWindowSize().y + 8.f; // 8px Padding
+
+    ImGui::End();
+  }
+
+  if (pProgramState->activeTool != vcActiveTool_Select)
+  {
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, toolPanelStartY), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+    ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
+    ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
+
+    if (ImGui::Begin("###toolInfoPanel", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
+    {
+      if (!pProgramState->modalOpen && vcHotkey::IsPressed(vcB_Cancel))
+        pProgramState->activeTool = vcActiveTool_Select;
+
+      if (pProgramState->activeTool == vcActiveTool_MeasureLine || pProgramState->activeTool == vcActiveTool_MeasureArea)
+      {
+        if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == vdkPNT_PointOfInterest && pProgramState->sceneExplorer.clickedItem.pItem->pUserData != nullptr)
+        {
+          vcSceneItem *pSceneItem = (vcSceneItem*)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+
+          char bufferA[128];
+          char bufferB[128];
+          vcHotkey::GetKeyName(vcB_Cancel, bufferB);
+          ImGui::TextUnformatted(vcStringFormat(bufferA, udLengthOf(bufferA), vcString::Get("toolMeasureNext"), bufferB));
+
+          ImGui::Separator();
+
+          pSceneItem->HandleToolUI(pProgramState);
+        }
+        else
+        {
+          ImGui::TextUnformatted(vcString::Get("toolMeasureStart"));
         }
       }
     }
@@ -1369,6 +1409,24 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->settings.presentation.columnSizeCorrect = false;
       }
 
+      // Activate Select Tool
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolSelect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_Crosshair, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Select)) || (vcHotkey::IsPressed(vcB_ToggleSelectTool) && !ImGui::IsAnyItemActive()))
+        pProgramState->activeTool = vcActiveTool_Select;
+
+      // Activate Measure
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureLine"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_MeasureLine, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureLine)) || (vcHotkey::IsPressed(vcB_ToggleMeasureLineTool) && !ImGui::IsAnyItemActive()))
+      {
+        vcProject_ClearSelection(pProgramState);
+        pProgramState->activeTool = vcActiveTool_MeasureLine;
+      }
+
+      // Activate Measure
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureArea"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_MeasureArea, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureArea)) || (vcHotkey::IsPressed(vcB_ToggleMeasureAreaTool) && !ImGui::IsAnyItemActive()))
+      {
+        vcProject_ClearSelection(pProgramState);
+        pProgramState->activeTool = vcActiveTool_MeasureArea;
+      }
+
       // Fullscreens - needs to trigger on mouse down, not mouse up in Emscripten to avoid problems
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_Fullscreen)), vcMBBI_FullScreen, vcMBBG_FirstItem, pProgramState->settings.window.isFullscreen) || ImGui::IsItemClicked(0))
         vcMain_PresentationMode(pProgramState);
@@ -1388,7 +1446,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   }
 }
 
-void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderData, bool doSelect)
+void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderData, bool useTool)
 {
   const double farPlaneDist = pProgramState->settings.camera.farPlane * pProgramState->settings.camera.farPlane;
 
@@ -1396,7 +1454,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
   bool selectUD = pProgramState->pickingSuccess && (pProgramState->udModelPickedIndex != -1); // UD was successfully picked (last frame)
   double udDist = (selectUD ? udMagSq3(pProgramState->worldMousePosCartesian - pProgramState->camera.position) : farPlaneDist);
 
-  bool getResultsImmediately = doSelect || ImGui::IsMouseClicked(0, false) || ImGui::IsMouseClicked(1, false) || ImGui::IsMouseClicked(2, false);
+  bool getResultsImmediately = useTool || ImGui::IsMouseClicked(0, false) || ImGui::IsMouseClicked(1, false) || ImGui::IsMouseClicked(2, false);
   vcRenderPickResult pickResult = vcRender_PolygonPick(pProgramState, pProgramState->pRenderContext, renderData, getResultsImmediately);
 
   bool selectPolygons = pickResult.success;
@@ -1419,34 +1477,106 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
     }
   }
 
-  if (doSelect)
+  if (useTool)
   {
-    if (selectUD)
+    switch (pProgramState->activeTool)
     {
-      if (pProgramState->udModelPickedIndex < (int)renderData.models.length)
-        udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, renderData.models[pProgramState->udModelPickedIndex]->m_pNode->UUID);
-    }
-    else if (selectPolygons)
-    {
-      if (pickResult.pPolygon != nullptr)
+    case vcActiveTool_Select:
+      if (selectUD)
       {
-        udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pPolygon->pSceneItem->m_pNode->UUID);
-
-        if (pickResult.pPolygon->sceneItemInternalId != 0)
-          pickResult.pPolygon->pSceneItem->SelectSubitem(pickResult.pPolygon->sceneItemInternalId);
+        if (pProgramState->udModelPickedIndex < (int)renderData.models.length)
+          udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, renderData.models[pProgramState->udModelPickedIndex]->m_pNode->UUID);
       }
-      else if (pickResult.pModel != nullptr)
+      else if (selectPolygons)
       {
-        udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pModel->m_pNode->UUID);
+        if (pickResult.pPolygon != nullptr)
+        {
+          udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pPolygon->pSceneItem->m_pNode->UUID);
+
+          if (pickResult.pPolygon->sceneItemInternalId != 0)
+            pickResult.pPolygon->pSceneItem->SelectSubitem(pickResult.pPolygon->sceneItemInternalId);
+        }
+        else if (pickResult.pModel != nullptr)
+        {
+          udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pModel->m_pNode->UUID);
+        }
+        else
+        {
+          vcProject_ClearSelection(pProgramState);
+        }
       }
       else
       {
         vcProject_ClearSelection(pProgramState);
       }
+      break;
+
+    case vcActiveTool_MeasureLine:
+    case vcActiveTool_MeasureArea:
+      if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == vdkPNT_PointOfInterest)
+      {
+        vcPOI *pPOI = (vcPOI*)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+
+        if (selectPolygons && pickResult.pPolygon != nullptr && pickResult.pPolygon->pSceneItem == pPOI && pickResult.pPolygon->sceneItemInternalId != 0)
+        {
+          pickResult.pPolygon->pSceneItem->SelectSubitem(pickResult.pPolygon->sceneItemInternalId);
+          pProgramState->activeTool = vcActiveTool_Select;
+          pProgramState->gizmo.operation = vcGO_Translate;
+        }
+        else
+        {
+          pPOI->AddPoint(pProgramState, pProgramState->worldMousePosCartesian);
+        }
+      }
+      else
+      {
+        vcProject_ClearSelection(pProgramState, false);
+        vdkProjectNode *pNode = nullptr;
+
+        if (pProgramState->activeTool == vcActiveTool_MeasureLine)
+        {
+          if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == vE_Success)
+          {
+            vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_LineString, 1, &pProgramState->worldMousePosLongLat.x);
+            udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+            vdkProjectNode_SetMetadataBool(pNode, "showLength", true);
+          }
+        }
+        else
+        {
+          if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
+          {
+            vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, 1, &pProgramState->worldMousePosLongLat.x);
+            udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+            vdkProjectNode_SetMetadataBool(pNode, "showArea", true);
+          }
+        }
+      }
+      break;
+
+    case vcActiveTool_Count:
+      // Does nothing
+      break;
     }
-    else
+  }
+  else //Not 'using' tool but might need to 'preview' the tool
+  {
+    // This switch only switches on the tools that need previews
+    switch (pProgramState->activeTool)
     {
-      vcProject_ClearSelection(pProgramState);
+    case vcActiveTool_MeasureLine:
+    case vcActiveTool_MeasureArea:
+      if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == vdkPNT_PointOfInterest)
+      {
+        // Preview Point
+        vcPOI *pPOI = (vcPOI*)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+        pPOI->AddPoint(pProgramState, pProgramState->worldMousePosCartesian, true);
+      }
+      break;
+
+    default:
+      // Does nothing
+      break;
     }
   }
 }
@@ -1641,7 +1771,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       pProgramState->screenshot.pImage = renderData.pSceneTexture;
 
     static bool wasContextMenuOpenLastFrame = false;
-    bool selectItem = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold*io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
+    bool useTool = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold*io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
  
     if ((io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
     {
@@ -1867,7 +1997,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
     pProgramState->activeProject.pFolder->AddToScene(pProgramState, &renderData);
 
-    vcRenderScene_HandlePicking(pProgramState, renderData, selectItem);
+    vcRenderScene_HandlePicking(pProgramState, renderData, useTool);
 
     // Camera update has to be here because it depends on previous ImGui state
     vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create((float)pProgramState->sceneResolution.x, (float)pProgramState->sceneResolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));

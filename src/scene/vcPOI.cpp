@@ -43,6 +43,7 @@ vcPOI::vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState
 
   memset(&m_line, 0, sizeof(m_line));
 
+  m_hasPreviewPoint = false;
   m_cameraFollowingAttachment = false;
 
   m_line.selectedPoint = -1; // Sentinel for no point selected
@@ -195,6 +196,10 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (!m_visible || ((udMag3(m_pLabelInfo->worldPosition - pProgramState->camera.position) > pProgramState->settings.presentation.POIFadeDistance) && !m_selected))
     return;
 
+  bool isMeasuring = (pProgramState->activeTool == vcActiveTool_MeasureLine || pProgramState->activeTool == vcActiveTool_MeasureArea);
+  if (m_hasPreviewPoint && (!m_selected || !isMeasuring))
+    ChangeProjection(pProgramState->gis.zone);
+
   if (m_selected)
   {
     for (int i = 0; i < m_line.numPoints; ++i)
@@ -208,6 +213,9 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       pInstance->pSceneItem = this;
       pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
       pInstance->sceneItemInternalId = (uint64_t)(i+1);
+
+      if (m_hasPreviewPoint && i + 1 == m_line.numPoints)
+        pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
     }
   }
 
@@ -405,9 +413,6 @@ void vcPOI::UpdatePoints()
   {
     udFree(m_pLabelText);
     m_pLabelText = udStrdup(m_pNode->pName);
-
-    if (m_pFence != nullptr)
-      vcFenceRenderer_Destroy(&m_pFence);
   }
 
   // Update the label as well
@@ -428,8 +433,45 @@ void vcPOI::UpdatePoints()
   }
 }
 
+void vcPOI::HandleBasicUI(vcState *pProgramState, size_t itemID)
+{
+  if (m_line.numPoints > 1)
+  {
+    if (ImGui::Checkbox(udTempStr("%s##POIShowLength%zu", vcString::Get("scenePOILineShowLength"), itemID), &m_showLength))
+      vdkProjectNode_SetMetadataBool(m_pNode, "showLength", m_showLength);
+
+    if (ImGui::Checkbox(udTempStr("%s##POIShowAllLengths%zu", vcString::Get("scenePOILineShowAllLengths"), itemID), &m_showAllLengths))
+      vdkProjectNode_SetMetadataBool(m_pNode, "showAllLengths", m_showAllLengths);
+
+    if (ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), itemID), &m_showArea))
+      vdkProjectNode_SetMetadataBool(m_pNode, "showArea", m_showArea);
+
+    if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOILineClosed"), itemID), &m_line.closed))
+      vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
+
+    if (ImGui::SliderFloat(udTempStr("%s##POILineWidth%zu", vcString::Get("scenePOILineWidth"), itemID), &m_line.lineWidth, 0.01f, 1000.f, "%.2f", 3.f))
+      vdkProjectNode_SetMetadataDouble(m_pNode, "lineWidth", (double)m_line.lineWidth);
+
+    const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
+    if (ImGui::Combo(udTempStr("%s##POIFenceStyle%zu", vcString::Get("scenePOILineOrientation"), itemID), (int *)&m_line.fenceMode, fenceOptions, (int)udLengthOf(fenceOptions)))
+      vdkProjectNode_SetMetadataString(m_pNode, "lineMode", vcFRVMStrings[m_line.fenceMode]);
+
+    const char *lineOptions[] = { vcString::Get("scenePOILineStyleArrow"), vcString::Get("scenePOILineStyleGlow"), vcString::Get("scenePOILineStyleSolid"), vcString::Get("scenePOILineStyleDiagonal") };
+    if (ImGui::Combo(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineStyle"), itemID), (int *)&m_line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
+      vdkProjectNode_SetMetadataString(m_pNode, "lineStyle", vcFRIMStrings[m_line.lineStyle]);
+
+    if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourPrimary%zu", vcString::Get("scenePOILineColour1"), itemID), &m_line.colourPrimary, ImGuiColorEditFlags_None))
+      vdkProjectNode_SetMetadataUint(m_pNode, "lineColourPrimary", m_line.colourPrimary);
+
+    if (m_line.isDualColour && vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineColour2"), itemID), &m_line.colourSecondary, ImGuiColorEditFlags_None))
+      vdkProjectNode_SetMetadataUint(m_pNode, "lineColourSecondary", m_line.colourSecondary);
+  }
+}
+
 void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
+  HandleBasicUI(pProgramState, *pItemID);
+
   if (m_line.numPoints > 1)
   {
     if (ImGui::SliderInt(vcString::Get("scenePOISelectedPoint"), &m_line.selectedPoint, -1, m_line.numPoints - 1))
@@ -443,38 +485,6 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       if (ImGui::Button(vcString::Get("scenePOIRemovePoint")))
         RemovePoint(pProgramState, m_line.selectedPoint);
     }
-
-    if (ImGui::Checkbox(udTempStr("%s##POIShowLength%zu", vcString::Get("scenePOILineShowLength"), *pItemID), &m_showLength))
-      vdkProjectNode_SetMetadataBool(m_pNode, "showLength", m_showLength);
-
-    if (ImGui::Checkbox(udTempStr("%s##POIShowAllLengths%zu", vcString::Get("scenePOILineShowAllLengths"), *pItemID), &m_showAllLengths))
-      vdkProjectNode_SetMetadataBool(m_pNode, "showAllLengths", m_showAllLengths);
-
-    if (ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), *pItemID), &m_showArea))
-      vdkProjectNode_SetMetadataBool(m_pNode, "showArea", m_showArea);
-
-    if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOILineClosed"), *pItemID), &m_line.closed))
-      vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
-
-    if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourPrimary%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_line.colourPrimary, ImGuiColorEditFlags_None))
-      vdkProjectNode_SetMetadataUint(m_pNode, "lineColourPrimary", m_line.colourPrimary);
-
-    if (m_line.isDualColour && vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineColour2"), *pItemID), &m_line.colourSecondary, ImGuiColorEditFlags_None))
-      vdkProjectNode_SetMetadataUint(m_pNode, "lineColourSecondary", m_line.colourSecondary);
-
-    if (ImGui::Checkbox(udTempStr("%s##POILineIsDualColourColour%zu", vcString::Get("scenePOILineDualColours"), *pItemID), &m_line.isDualColour))
-      vdkProjectNode_SetMetadataBool(m_pNode, "lineDualColour", m_line.isDualColour);
-
-    if (ImGui::SliderFloat(udTempStr("%s##POILineWidth%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_line.lineWidth, 0.01f, 1000.f, "%.2f", 3.f))
-      vdkProjectNode_SetMetadataDouble(m_pNode, "lineWidth", (double)m_line.lineWidth);
-
-    const char *lineOptions[] = { vcString::Get("scenePOILineStyleArrow"), vcString::Get("scenePOILineStyleGlow"), vcString::Get("scenePOILineStyleSolid"), vcString::Get("scenePOILineStyleDiagonal") };
-    if (ImGui::Combo(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineStyle"), *pItemID), (int *)&m_line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
-      vdkProjectNode_SetMetadataString(m_pNode, "lineStyle", vcFRIMStrings[m_line.lineStyle]);
-
-    const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
-    if (ImGui::Combo(udTempStr("%s##POIFenceStyle%zu", vcString::Get("scenePOILineOrientation"), *pItemID), (int *)&m_line.fenceMode, fenceOptions, (int)udLengthOf(fenceOptions)))
-      vdkProjectNode_SetMetadataString(m_pNode, "lineMode", vcFRVMStrings[m_line.fenceMode]);
   }
 
   if (vcIGSW_ColorPickerU32(udTempStr("%s##POIColour%zu", vcString::Get("scenePOILabelColour"), *pItemID), &m_nameColour, ImGuiColorEditFlags_None))
@@ -618,22 +628,36 @@ void vcPOI::HandleAttachmentUI(vcState * /*pProgramState*/)
   }
 }
 
-void vcPOI::AddPoint(vcState *pProgramState, const udDouble3 &position)
+void vcPOI::HandleToolUI(vcState *pProgramState)
 {
-  udDouble3 *pNewPoints = udAllocType(udDouble3, m_line.numPoints + 1, udAF_Zero);
+  HandleBasicUI(pProgramState, size_t(-1));
+}
+
+void vcPOI::AddPoint(vcState *pProgramState, const udDouble3 &position, bool isPreview)
+{
+  bool addingPoint = !m_hasPreviewPoint;
+  m_hasPreviewPoint = isPreview;
+
+  int totalPoints = m_line.numPoints + (addingPoint ? 1 : 0);
+
+  udDouble3 *pNewPoints = udAllocType(udDouble3, totalPoints, udAF_Zero);
 
   memcpy(pNewPoints, m_line.pPoints, sizeof(udDouble3) * m_line.numPoints);
-  pNewPoints[m_line.numPoints] = position;
+  pNewPoints[addingPoint ? m_line.numPoints : m_line.numPoints - 1] = position;
 
   udFree(m_line.pPoints);
   m_line.pPoints = pNewPoints;
 
-  ++m_line.numPoints;
+  if (addingPoint)
+    ++m_line.numPoints;
 
   UpdatePoints();
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
 
-  m_line.selectedPoint = m_line.numPoints - 1;
+  if (!isPreview)
+  {
+    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
+    m_line.selectedPoint = m_line.numPoints - 1;
+  }
 }
 
 void vcPOI::RemovePoint(vcState *pProgramState, int index)
@@ -649,6 +673,7 @@ void vcPOI::RemovePoint(vcState *pProgramState, int index)
 
 void vcPOI::ChangeProjection(const udGeoZone &newZone)
 {
+  m_hasPreviewPoint = false;
   udFree(m_line.pPoints);
   vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, newZone, &m_line.pPoints, &m_line.numPoints);
   UpdatePoints();
