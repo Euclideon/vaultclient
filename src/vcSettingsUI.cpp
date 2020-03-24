@@ -772,7 +772,7 @@ const char *vcSettingsUI_GetClassificationName(vcState *pProgramState, uint8_t c
 
     return udTempStr("%d. %s", classification, vcString::Get(localizations[classification]));
   }
-  else if (classification <= 64)
+  else if (classification < 64)
   {
     return udTempStr("%d. %s", classification, vcString::Get("settingsVisClassReservedLabels"));
   }

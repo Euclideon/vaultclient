@@ -1607,8 +1607,8 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
           {
             if (pHeader->attributes.pDescriptors[i].typeInfo == vdkAttributeTypeInfo_uint8 && udStrEqual(pHeader->attributes.pDescriptors[i].name, "udClassification"))
             {
-              uint8_t classificationID = *(uint8_t *)pAttributePtr;
-              pAttributePtr += 1;
+              uint8_t classificationID;
+              udReadFromPointer(&classificationID, pAttributePtr);
 
               const char *pClassificationName = vcSettingsUI_GetClassificationName(pProgramState, classificationID);
 
@@ -1620,59 +1620,89 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
             switch (pHeader->attributes.pDescriptors[i].typeInfo)
             {
             case vdkAttributeTypeInfo_uint8:
-              pProgramState->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, *(uint8_t *)pAttributePtr);
-              pAttributePtr += 1;
+            {
+              uint8_t val;
+              udReadFromPointer(&val, pAttributePtr);
+              pProgramState->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, val);
               break;
+            }
             case vdkAttributeTypeInfo_uint16:
-              pProgramState->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, *(uint16_t*)pAttributePtr);
-              pAttributePtr += 2;
+            {
+              uint16_t val;
+              udReadFromPointer(&val, pAttributePtr);
+              pProgramState->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, val);
               break;
+            }
             case vdkAttributeTypeInfo_uint32:
-              pProgramState->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, *(uint32_t *)pAttributePtr);
-              pAttributePtr += 4;
+            {
+              uint32_t val;
+              udReadFromPointer(&val, pAttributePtr);
+              pProgramState->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, val);
               break;
+            }
             case vdkAttributeTypeInfo_uint64:
-              pProgramState->udModelNodeAttributes.Set("%s = %" PRIu64, pHeader->attributes.pDescriptors[i].name, *(uint64_t *)pAttributePtr);
-              pAttributePtr += 8;
+            {
+              uint64_t val;
+              udReadFromPointer(&val, pAttributePtr);
+              pProgramState->udModelNodeAttributes.Set("%s = %" PRIu64, pHeader->attributes.pDescriptors[i].name, val);
               break;
+            }
             case vdkAttributeTypeInfo_int8:
-              pProgramState->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, *(int8_t *)pAttributePtr);
-              pAttributePtr += 1;
+            {
+              int8_t val;
+              udReadFromPointer(&val, pAttributePtr);
+              pProgramState->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, val);
               break;
+            }
             case vdkAttributeTypeInfo_int16:
-              pProgramState->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, *(int16_t *)pAttributePtr);
-              pAttributePtr += 2;
+            {
+              int16_t val;
+              udReadFromPointer(&val, pAttributePtr);
+              pProgramState->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, val);
               break;
+            }
             case vdkAttributeTypeInfo_int32:
-              pProgramState->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, *(int32_t *)pAttributePtr);
-              pAttributePtr += 4;
+            {
+              int16_t val;
+              udReadFromPointer(&val, pAttributePtr);
+              pProgramState->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, val);
               break;
+            }
             case vdkAttributeTypeInfo_int64:
-              pProgramState->udModelNodeAttributes.Set("%s = %" PRId64, pHeader->attributes.pDescriptors[i].name, *(int64_t *)pAttributePtr);
-              pAttributePtr += 8;
+            {
+              int64_t val;
+              udReadFromPointer(&val, pAttributePtr);
+              pProgramState->udModelNodeAttributes.Set("%s = %" PRId64, pHeader->attributes.pDescriptors[i].name, val);
               break;
+            }
             case vdkAttributeTypeInfo_float32:
-              pProgramState->udModelNodeAttributes.Set("%s = %f", pHeader->attributes.pDescriptors[i].name, *(float *)pAttributePtr);
-              pAttributePtr += 4;
+            {
+              float val;
+              udReadFromPointer(&val, pAttributePtr);
+              pProgramState->udModelNodeAttributes.Set("%s = %f", pHeader->attributes.pDescriptors[i].name, val);
               break;
+            }
             case vdkAttributeTypeInfo_float64:
-              pProgramState->udModelNodeAttributes.Set("%s = %f", pHeader->attributes.pDescriptors[i].name, *(double *)pAttributePtr);
-              pAttributePtr += 8;
+            {
+              double val;
+              udReadFromPointer(&val, pAttributePtr);
+              pProgramState->udModelNodeAttributes.Set("%s = %f", pHeader->attributes.pDescriptors[i].name, val);
               break;
+            }
             case vdkAttributeTypeInfo_color32:
+            {
               pProgramState->udModelNodeAttributes.Set("%s = \"RGB(%u, %u, %u)\"", pHeader->attributes.pDescriptors[i].name, pAttributePtr[3], pAttributePtr[2], pAttributePtr[1]); //BGRA internally
               pAttributePtr += 4;
               break;
-            case vdkAttributeTypeInfo_normal32:
-              pProgramState->udModelNodeAttributes.Set("%s = 'NORMAL'", pHeader->attributes.pDescriptors[i].name);
-              break;
-            case vdkAttributeTypeInfo_vec3f32:
-              pProgramState->udModelNodeAttributes.Set("%s = '[ %f, %f, %f ]'", pHeader->attributes.pDescriptors[i].name, *(float *)&pAttributePtr[0], *(float *)&pAttributePtr[4], *(float *)&pAttributePtr[8]); //BGRA internally
-              pAttributePtr += 12;
-              break;
+            }
+            case vdkAttributeTypeInfo_normal32: // Not currently supported
+            case vdkAttributeTypeInfo_vec3f32: // Not currently supported
             default:
+            {
               pProgramState->udModelNodeAttributes.Set("%s = 'UNKNOWN'", pHeader->attributes.pDescriptors[i].name);
+              pAttributePtr += ((pHeader->attributes.pDescriptors[i].typeInfo & vdkAttributeTypeInfo_SizeMask) >> vdkAttributeTypeInfo_SizeShift);
               break;
+            }
             }
           }
         }
