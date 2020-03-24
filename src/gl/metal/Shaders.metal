@@ -4,40 +4,6 @@
 #include <metal_texture>
 using namespace metal;
 
-// ImGui Vertex Shader - g_ImGuiVertexShader
-  struct Uniforms {
-      float4x4 projectionMatrix;
-  };
-
-  struct VertexIn {
-      float2 position  [[attribute(0)]];
-      float2 texCoords [[attribute(1)]];
-      float4 color     [[attribute(2)]];
-  };
-
-  struct VertexOut {
-    float4 position [[position]];
-    float2 texCoords;
-    float4 color;
-  };
-
-  vertex VertexOut imguiVertexShader(VertexIn in [[stage_in]], constant Uniforms& uIMGUI [[buffer(1)]])
-  {
-      VertexOut out;
-      out.position = uIMGUI.projectionMatrix * float4(in.position, 0, 1);
-      out.texCoords = in.texCoords;
-      out.color = in.color;
-      return out;
-  }
-
-
-// ImGui Fragment Shader - g_ImGuiFragmentShader
-  fragment half4 imguiFragmentShader(VertexOut in [[stage_in]], texture2d<half, access::sample> IMtexture [[texture(0)]], sampler imguiSampler [[sampler(0)]])
-  {
-    half4 texColor = IMtexture.sample(imguiSampler, in.texCoords);
-    return half4(in.color) * texColor;
-  }
-
 // Fence Vertex Shader - g_FenceVertexShader
 
   struct FVSUniforms
