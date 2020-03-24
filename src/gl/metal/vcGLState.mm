@@ -14,9 +14,6 @@
 #import <Metal/Metal.h>
 
 #include "vcStrings.h"
-#include "imgui.h"
-#include "imgui_impl_sdl.h"
-#include "imgui_ex/imgui_impl_metal.h"
 
 int32_t g_maxAnisotropy = 0;
 vcRenderer *_renderer;
@@ -122,8 +119,6 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   vcFramebuffer_Bind(pFramebuffer);
 
   vcGLState_BuildDepthStates();
-
-  ImGui_ImplSDL2_InitForOpenGL(pWindow);
 
   *ppDefaultFramebuffer = pFramebuffer;
 

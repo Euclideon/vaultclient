@@ -12,10 +12,6 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
-#if GRAPHICS_API_METAL
-#include "imgui_ex/imgui_impl_metal.h"
-#endif
-
 #include "imgui_ex/imgui_impl_sdl.h"
 #include "imgui_ex/imgui_impl_gl.h"
 #include "imgui_ex/imgui_udValue.h"
@@ -326,11 +322,7 @@ void vcMain_MainLoop(vcState *pProgramState)
   udSleep(sleepMS);
   pProgramState->deltaTime += sleepMS * 0.001; // adjust delta
 
-#if GRAPHICS_API_METAL
-  ImGui_ImplMetal_NewFrame(pProgramState->pWindow);
-#else
   ImGuiGL_NewFrame(pProgramState->pWindow);
-#endif
 
   vcGizmo_BeginFrame();
   vcGLState_ResetState(true);
@@ -345,11 +337,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
   ImGui::Render();
 
-#if GRAPHICS_API_METAL
-  ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData());
-#else
   ImGuiGL_RenderDrawData(ImGui::GetDrawData());
-#endif
 
   ImGui::UpdatePlatformWindows();
   ImGui::RenderPlatformWindowsDefault();
@@ -921,13 +909,8 @@ int main(int argc, char **args)
 
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-#if GRAPHICS_API_METAL
-  if (!ImGui_ImplMetal_Init())
-    goto epilogue;
-#else
   if (!ImGuiGL_Init(programState.pWindow))
     goto epilogue;
-#endif
 
   if (vcRender_Init(&programState, &(programState.pRenderContext), programState.pWorkerPool, programState.sceneResolution) != udR_Success)
     goto epilogue;
@@ -979,11 +962,7 @@ epilogue:
 
   vcSettings_Cleanup(&programState.settings);
 
-#if GRAPHICS_API_METAL
-  ImGui_ImplMetal_Shutdown();
-#else
   ImGuiGL_DestroyDeviceObjects();
-#endif
   ImGui::DestroyContext();
 
   vcConvert_Deinit(&programState);
