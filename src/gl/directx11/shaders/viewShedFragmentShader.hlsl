@@ -61,7 +61,7 @@ PS_OUTPUT main(PS_INPUT input)
   float4 col = float4(0.0, 0.0, 0.0, 0.0);
   float logDepth = texture0.Sample(sampler0, input.uv).x;
   float clipZ = linearDepthToClipZ(logToLinearDepth(logDepth));
-	
+
   float4 fragEyePosition = mul(u_inverseProjection, float4(input.clip.xy, clipZ, 1.0));
   fragEyePosition /= fragEyePosition.w;
 
