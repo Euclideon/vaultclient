@@ -1373,12 +1373,20 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         float northX = -(float)udSin(angle);
         float northY = -(float)udCos(angle);
 
+        ImGui::PushID("compassButton");
         if (ImGui::ButtonEx("", ImVec2(28, 28)))
         {
           pProgramState->cameraInput.targetEulerRotation = UD_DEG2RAD(udDouble3::create(0, -90, 0));
           pProgramState->cameraInput.inputState = vcCIS_Rotate;
           pProgramState->cameraInput.progress = 0.0;
         }
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::TextUnformatted(vcString::Get("sceneTrueNorthTooltip"));
+          ImGui::EndTooltip();
+        }
+        ImGui::PopID();
 
         ImVec2 sizeMin = ImGui::GetItemRectMin();
         ImVec2 sizeMax = ImGui::GetItemRectMax();
@@ -1386,8 +1394,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         ImVec2 middle = ImVec2((sizeMin.x + sizeMax.x) / 2, (sizeMin.y + sizeMax.y) / 2);
         ImVec2 north = ImVec2(middle.x + northX * distance, middle.y + northY * distance);
         ImVec2 south = ImVec2(middle.x - northX * distance, middle.y - northY * distance);
-        ImGui::GetForegroundDrawList()->AddLine(middle, north, 0xFF0000FF, 2);
-        ImGui::GetForegroundDrawList()->AddLine(middle, south, 0xFFFFFFFF, 2);
+        ImGui::GetWindowDrawList()->AddLine(middle, north, 0xFF0000FF, 2);
+        ImGui::GetWindowDrawList()->AddLine(middle, south, 0xFFFFFFFF, 2);
       }
 
       // Hide/show screen explorer
