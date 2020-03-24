@@ -999,42 +999,6 @@ epilogue:
   return 0;
 }
 
-void vcExtractAttributionText(vdkProjectNode *pNode, const char **ppCurrentText)
-{
-  if (pNode == nullptr)
-    return;
-
-  vcModel *pModel = nullptr;
-  const char *pBuffer = nullptr;
-  const char *pAttributionText = nullptr;
-
-  if (pNode->itemtype == vdkProjectNodeType::vdkPNT_PointCloud)
-  {
-    pModel = (vcModel *)pNode->pUserData;
-
-    if (pModel == nullptr)
-      goto epilogue;
-
-    //Priority: Author -> License -> Copyright
-    pAttributionText = pModel->m_metadata.Get("Author").AsString(pModel->m_metadata.Get("License").AsString(pModel->m_metadata.Get("Copyright").AsString()));
-    if (pAttributionText)
-    {
-      if (*ppCurrentText != nullptr)
-        udSprintf(&pBuffer, "%s       %s      ", *ppCurrentText, pAttributionText);
-      else
-        udSprintf(&pBuffer, "%s      ", pAttributionText);
-
-      udFree(*ppCurrentText);
-      *ppCurrentText = pBuffer;
-    }
-  }
-
-  epilogue:
-
-  vcExtractAttributionText(pNode->pFirstChild, ppCurrentText);
-  vcExtractAttributionText(pNode->pNextSibling, ppCurrentText);
-}
-
 void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
 {
   ImGuiIO &io = ImGui::GetIO();
@@ -1189,7 +1153,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   {
     vdkProjectNode *pNode = pProgramState->activeProject.pRoot;
     const char *pBuffer = nullptr;
-    vcExtractAttributionText(pNode, &pBuffer);
+    vcProject_ExtractAttributionText(pNode, &pBuffer);
 
     if (pBuffer == nullptr)
     {
