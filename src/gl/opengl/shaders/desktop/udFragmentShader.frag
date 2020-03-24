@@ -1,27 +1,15 @@
-#version 330 core
-#extension GL_ARB_explicit_attrib_location : enable
-layout (std140) uniform u_cameraPlaneParams
-{
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+#version 330
+#extension GL_ARB_separate_shader_objects : require
 
-//Input Format
-in vec2 v_uv;
+uniform sampler2D SPIRV_Cross_Combinedtexture0sampler0;
+uniform sampler2D SPIRV_Cross_Combinedtexture1sampler1;
 
-//Output Format
-out vec4 out_Colour;
-
-uniform sampler2D u_texture;
-uniform sampler2D u_depth;
+layout(location = 0) in vec2 in_var_TEXCOORD0;
+layout(location = 0) out vec4 out_var_SV_Target;
 
 void main()
 {
-  vec4 col = texture(u_texture, v_uv);
-  float depth = texture(u_depth, v_uv).x;
-
-  out_Colour = vec4(col.xyz, 1.0); // UD always opaque
-  gl_FragDepth = depth;
+    out_var_SV_Target = vec4(texture(SPIRV_Cross_Combinedtexture0sampler0, in_var_TEXCOORD0).xyz, 1.0);
+    gl_FragDepth = texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD0).x;
 }
+

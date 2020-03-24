@@ -2,8 +2,8 @@ cbuffer u_cameraPlaneParams
 {
   float s_CameraNearPlane;
   float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
+  float u_clipZNear;
+  float u_clipZFar;
 };
 
 cbuffer u_EveryFrame : register(b0)

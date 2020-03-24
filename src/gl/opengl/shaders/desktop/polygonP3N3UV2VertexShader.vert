@@ -1,41 +1,37 @@
-#version 330 core
-#extension GL_ARB_explicit_attrib_location : enable
-layout (std140) uniform u_cameraPlaneParams
+#version 330
+#extension GL_ARB_separate_shader_objects : require
+
+out gl_PerVertex
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
+    vec4 gl_Position;
 };
 
-//Input Format
-layout(location = 0) in vec3 a_pos;
-layout(location = 1) in vec3 a_normal;
-layout(location = 2) in vec2 a_uv;
-//layout(location = 3) in vec4 a_colour;
-
-//Output Format
-out vec2 v_uv;
-out vec4 v_colour;
-out vec3 v_normal;
-out float v_fLogDepth;
-
-layout (std140) uniform u_EveryObject
+layout(std140) uniform type_u_EveryObject
 {
-  mat4 u_worldViewProjectionMatrix;
-  mat4 u_worldMatrix;
-  vec4 u_colour;
-};
+    layout(row_major) mat4 u_worldViewProjectionMatrix;
+    layout(row_major) mat4 u_worldMatrix;
+    vec4 u_colour;
+} u_EveryObject;
+
+layout(location = 0) in vec3 in_var_POSITION;
+layout(location = 1) in vec3 in_var_NORMAL;
+layout(location = 2) in vec2 in_var_TEXCOORD0;
+layout(location = 0) out vec2 out_var_TEXCOORD0;
+layout(location = 1) out vec3 out_var_NORMAL;
+layout(location = 2) out vec4 out_var_COLOR0;
+layout(location = 3) out vec2 out_var_TEXCOORD1;
+
+vec2 _34;
 
 void main()
 {
-  // making the assumption that the model matrix won't contain non-uniform scale
-  vec3 worldNormal = normalize((u_worldMatrix * vec4(a_normal, 0.0)).xyz);
-
-  gl_Position = u_worldViewProjectionMatrix * vec4(a_pos, 1.0);
-  v_fLogDepth = 1.0 + gl_Position.w;
-
-  v_uv = a_uv;
-  v_normal = worldNormal;
-  v_colour = u_colour;// * a_colour;
+    vec4 _54 = vec4(in_var_POSITION, 1.0) * u_EveryObject.u_worldViewProjectionMatrix;
+    vec2 _59 = _34;
+    _59.x = 1.0 + _54.w;
+    gl_Position = _54;
+    out_var_TEXCOORD0 = in_var_TEXCOORD0;
+    out_var_NORMAL = normalize((vec4(in_var_NORMAL, 0.0) * u_EveryObject.u_worldMatrix).xyz);
+    out_var_COLOR0 = u_EveryObject.u_colour;
+    out_var_TEXCOORD1 = _59;
 }
+

@@ -1,34 +1,25 @@
-#version 330 core
-#extension GL_ARB_explicit_attrib_location : enable
-layout (std140) uniform u_cameraPlaneParams
+#version 330
+#extension GL_ARB_separate_shader_objects : require
+
+layout(std140) uniform type_u_cameraPlaneParams
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+    float s_CameraNearPlane;
+    float s_CameraFarPlane;
+    float u_clipZNear;
+    float u_clipZFar;
+} u_cameraPlaneParams;
 
-//Input Format
-in vec4 v_colour;
-in vec3 v_normal;
-in vec4 v_fragClipPosition;
-in vec3 v_sunDirection;
-in float v_fLogDepth;
-
-//Output Format
-out vec4 out_Colour;
+layout(location = 0) in vec3 in_var_COLOR0;
+layout(location = 1) in vec4 in_var_COLOR1;
+layout(location = 2) in vec3 in_var_COLOR2;
+layout(location = 3) in vec4 in_var_COLOR3;
+layout(location = 4) in vec2 in_var_TEXCOORD0;
+layout(location = 0) out vec4 out_var_SV_Target;
 
 void main()
 {
-  // fake a reflection vector
-  vec3 fakeEyeVector = normalize(v_fragClipPosition.xyz / v_fragClipPosition.w);
-  vec3 worldNormal = normalize(v_normal * vec3(2.0) - vec3(1.0));
-  float ndotl = 0.5 + 0.5 * -dot(v_sunDirection, worldNormal);
-  float edotr = max(0.0, -dot(-fakeEyeVector, worldNormal));
-  edotr = pow(edotr, 60.0);
-  vec3 sheenColour = vec3(1.0, 1.0, 0.9);
-  out_Colour = vec4(v_colour.a * (ndotl * v_colour.xyz + edotr * sheenColour), 1.0);
-
-  float halfFcoef  = 1.0 / log2(s_CameraFarPlane + 1.0);
-  gl_FragDepth = log2(v_fLogDepth) * halfFcoef;
+    vec3 _50 = (in_var_COLOR0 * vec3(2.0)) - vec3(1.0);
+    out_var_SV_Target = vec4(((in_var_COLOR1.xyz * (0.5 + (dot(in_var_COLOR2, _50) * (-0.5)))) + (vec3(1.0, 1.0, 0.89999997615814208984375) * pow(max(0.0, -dot(-normalize(in_var_COLOR3.xyz / vec3(in_var_COLOR3.w)), _50)), 60.0))) * in_var_COLOR1.w, 1.0);
+    gl_FragDepth = log2(in_var_TEXCOORD0.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
 }
+

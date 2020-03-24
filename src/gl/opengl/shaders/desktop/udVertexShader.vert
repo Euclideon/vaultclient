@@ -1,22 +1,18 @@
-#version 330 core
-#extension GL_ARB_explicit_attrib_location : enable
-layout (std140) uniform u_cameraPlaneParams
+#version 330
+#extension GL_ARB_separate_shader_objects : require
+
+out gl_PerVertex
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
+    vec4 gl_Position;
 };
 
-//Input format
-layout(location = 0) in vec3 a_position;
-layout(location = 1) in vec2 a_texCoord;
-
-//Output Format
-out vec2 v_uv;
+layout(location = 0) in vec3 in_var_POSITION;
+layout(location = 1) in vec2 in_var_TEXCOORD0;
+layout(location = 0) out vec2 out_var_TEXCOORD0;
 
 void main()
 {
-  gl_Position = vec4(a_position.xy, 0.0, 1.0);
-  v_uv = a_texCoord;
+    gl_Position = vec4(in_var_POSITION.xy, 0.0, 1.0);
+    out_var_TEXCOORD0 = in_var_TEXCOORD0;
 }
+
