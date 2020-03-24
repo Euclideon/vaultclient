@@ -1,17 +1,23 @@
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-struct VertexOut {
-  float4 position [[position]];
-  float2 texCoords;
-  float4 color;
+struct main0_out
+{
+    float4 out_var_SV_Target [[color(0)]];
 };
 
-fragment half4 main0(VertexOut in [[stage_in]], texture2d<half, access::sample> IMtexture [[texture(0)]], sampler imguiSampler [[sampler(0)]])
+struct main0_in
 {
-  half4 texColor = IMtexture.sample(imguiSampler, in.texCoords);
-  return half4(in.color) * texColor;
+    float4 in_var_COLOR0 [[user(locn0)]];
+    float2 in_var_TEXCOORD0 [[user(locn1)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> texture0 [[texture(0)]], sampler sampler0 [[sampler(0)]])
+{
+    main0_out out = {};
+    out.out_var_SV_Target = in.in_var_COLOR0 * texture0.sample(sampler0, in.in_var_TEXCOORD0);
+    return out;
 }
+

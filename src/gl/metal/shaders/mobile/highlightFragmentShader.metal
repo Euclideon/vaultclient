@@ -1,44 +1,46 @@
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-struct HFSInput
+struct main0_out
 {
-  float4 pos [[position]];
-  float2 uv0;
-  float2 uv1;
-  float2 uv2;
-  float2 uv3;
-  float2 uv4;
+    float4 out_var_SV_Target [[color(0)]];
 };
 
-struct HVSUniforms
+struct main0_in
 {
-  float4 u_stepSizeThickness; // (stepSize.xy, outline thickness, inner overlay strength)
-  float4 u_color;
+    float2 in_var_TEXCOORD0 [[user(locn0)]];
+    float2 in_var_TEXCOORD1 [[user(locn1)]];
+    float2 in_var_TEXCOORD2 [[user(locn2)]];
+    float2 in_var_TEXCOORD3 [[user(locn3)]];
+    float2 in_var_TEXCOORD4 [[user(locn4)]];
+    float4 in_var_COLOR0 [[user(locn5)]];
+    float4 in_var_COLOR1 [[user(locn6)]];
 };
 
-fragment float4
-main0(HFSInput in [[stage_in]], constant HVSUniforms& uniforms [[buffer(1)]], texture2d<float, access::sample> HFSimg [[texture(0)]], sampler HFSSampler [[sampler(0)]])
+fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> u_texture [[texture(0)]], sampler sampler0 [[sampler(0)]])
 {
-  float4 middle = HFSimg.sample(HFSSampler, in.uv0);
-  float result = middle.w;
-  
-  // 'outside' the geometry, just use the blurred 'distance'
-  if (middle.x == 0.0)
-      return float4(uniforms.u_color.xyz, result * uniforms.u_stepSizeThickness.z * uniforms.u_color.a);
-  
-  result = 1.0 - result;
-  
-  // look for an edge, setting to full color if found
-  float softenEdge = 0.15 * uniforms.u_color.a;
-  result += softenEdge * step(HFSimg.sample(HFSSampler, in.uv1).x - middle.x, -0.00001);
-  result += softenEdge * step(HFSimg.sample(HFSSampler, in.uv2).x - middle.x, -0.00001);
-  result += softenEdge * step(HFSimg.sample(HFSSampler, in.uv3).x - middle.x, -0.00001);
-  result += softenEdge * step(HFSimg.sample(HFSSampler, in.uv4).x - middle.x, -0.00001);
-  
-  result = max(uniforms.u_stepSizeThickness.w, result) * uniforms.u_color.w; // overlay color
-  return float4(uniforms.u_color.xyz, result);
+    main0_out out = {};
+    float4 _99;
+    switch (0u)
+    {
+        default:
+        {
+            float4 _47 = u_texture.sample(sampler0, in.in_var_TEXCOORD0);
+            float _48 = _47.w;
+            float _49 = _47.x;
+            if (_49 == 0.0)
+            {
+                _99 = float4(in.in_var_COLOR0.xyz, (_48 * in.in_var_COLOR1.z) * in.in_var_COLOR0.w);
+                break;
+            }
+            float _63 = 0.1500000059604644775390625 * in.in_var_COLOR0.w;
+            _99 = float4(in.in_var_COLOR0.xyz, fast::max(in.in_var_COLOR1.w, ((((1.0 - _48) + (_63 * step(u_texture.sample(sampler0, in.in_var_TEXCOORD1).x - _49, -9.9999997473787516355514526367188e-06))) + (_63 * step(u_texture.sample(sampler0, in.in_var_TEXCOORD2).x - _49, -9.9999997473787516355514526367188e-06))) + (_63 * step(u_texture.sample(sampler0, in.in_var_TEXCOORD3).x - _49, -9.9999997473787516355514526367188e-06))) + (_63 * step(u_texture.sample(sampler0, in.in_var_TEXCOORD4).x - _49, -9.9999997473787516355514526367188e-06))) * in.in_var_COLOR0.w);
+            break;
+        }
+    }
+    out.out_var_SV_Target = _99;
+    return out;
 }
+

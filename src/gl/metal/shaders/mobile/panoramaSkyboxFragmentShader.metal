@@ -1,26 +1,29 @@
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-struct SVSOutput
+struct type_u_EveryFrame
 {
-  float4 position [[position]];
-  float2 v_texCoord;
+    float4x4 u_inverseViewProjection;
 };
 
-struct SFSPUniforms
+struct main0_out
 {
-  float4x4 u_inverseViewProjection;
+    float4 out_var_SV_Target [[color(0)]];
 };
 
-fragment float4
-main0(SVSOutput in [[stage_in]], constant SFSPUniforms& uSFS [[buffer(1)]], texture2d<float, access::sample> SFSimg [[texture(0)]], sampler SFSsampler [[sampler(0)]])
+struct main0_in
 {
-  // work out 3D point
-  float4 point3D = uSFS.u_inverseViewProjection * float4(in.v_texCoord * float2(2.0) - float2(1.0), 1.0, 1.0);
-  point3D.xyz = normalize(point3D.xyz / point3D.w);
-  float2 longlat = float2(atan2(point3D.x, point3D.y) + M_PI_F, acos(point3D.z));
-  return SFSimg.sample(SFSsampler, longlat / float2(2.0 * M_PI_F, M_PI_F));
+    float4 in_var_TEXCOORD0 [[user(locn0)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]], constant type_u_EveryFrame& u_EveryFrame [[buffer(0)]], texture2d<float> u_texture [[texture(0)]], sampler sampler0 [[sampler(0)]])
+{
+    main0_out out = {};
+    float4 _40 = u_EveryFrame.u_inverseViewProjection * float4(in.in_var_TEXCOORD0.xy, 1.0, 1.0);
+    float3 _45 = normalize(_40.xyz / float3(_40.w));
+    out.out_var_SV_Target = u_texture.sample(sampler0, (float2(atan2(_45.x, _45.y) + 3.1415927410125732421875, acos(_45.z)) * float2(0.15915493667125701904296875, 0.3183098733425140380859375)));
+    return out;
 }
+

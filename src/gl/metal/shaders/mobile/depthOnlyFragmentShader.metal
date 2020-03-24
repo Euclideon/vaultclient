@@ -1,18 +1,32 @@
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-struct DOFSInput
+struct type_u_cameraPlaneParams
 {
-  float4 pos [[attribute(0)]];
-  float2 uv [[attribute(1)]];
-  float3 normal [[attribute(2)]];
-  float4 color [[attribute(3)]];
+    float s_CameraNearPlane;
+    float s_CameraFarPlane;
+    float u_clipZNear;
+    float u_clipZFar;
 };
 
-float4 main0(DOFSInput in [[stage_in]])
+struct main0_out
 {
-  return float4(0.0, 0.0, 0.0, 0.0);
+    float4 out_var_SV_Target [[color(0)]];
+    float gl_FragDepth [[depth(any)]];
+};
+
+struct main0_in
+{
+    float2 in_var_TEXCOORD1 [[user(locn3)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlaneParams& u_cameraPlaneParams [[buffer(0)]])
+{
+    main0_out out = {};
+    out.out_var_SV_Target = float4(0.0);
+    out.gl_FragDepth = log2(in.in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    return out;
 }
+

@@ -1,115 +1,104 @@
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-struct VVSOutput
+struct type_u_cameraPlaneParams
 {
-  float4 v_position [[position]];
-  float2 uv;
+    float s_CameraNearPlane;
+    float s_CameraFarPlane;
+    float u_clipZNear;
+    float u_clipZFar;
 };
 
-struct VFSUniforms
+struct type_u_fragParams
 {
-  float4 u_screenParams;
-  float4x4 u_inverseViewProjection;
-  float4 u_outlineColor;
-  float4 u_outlineParams;
-  float4 u_colorizeHeightColorMin;
-  float4 u_colorizeHeightColorMax;
-  float4 u_colorizeHeightParams;
-  float4 u_colorizeDepthColor;
-  float4 u_colorizeDepthParams;
-  float4 u_contourColor;
-  float4 u_contourParams;
+    float4 u_screenParams;
+    float4x4 u_inverseViewProjection;
+    float4x4 u_inverseProjection;
+    float4 u_outlineColour;
+    float4 u_outlineParams;
+    float4 u_colourizeHeightColourMin;
+    float4 u_colourizeHeightColourMax;
+    float4 u_colourizeHeightParams;
+    float4 u_colourizeDepthColour;
+    float4 u_colourizeDepthParams;
+    float4 u_contourColour;
+    float4 u_contourParams;
 };
 
-struct VFSOutput
+struct main0_out
 {
-  float4 out_Color [[color(0)]];
-  float depth [[depth(any)]];
+    float4 out_var_SV_Target [[color(0)]];
+    float gl_FragDepth [[depth(any)]];
 };
 
-float3 hsv2rgb(float3 c)
+struct main0_in
 {
-  float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-  float3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    float4 in_var_TEXCOORD0 [[user(locn0)]];
+    float2 in_var_TEXCOORD1 [[user(locn1)]];
+    float2 in_var_TEXCOORD2 [[user(locn2)]];
+    float2 in_var_TEXCOORD3 [[user(locn3)]];
+    float2 in_var_TEXCOORD4 [[user(locn4)]];
+    float2 in_var_TEXCOORD5 [[user(locn5)]];
+};
+
+// Implementation of the GLSL mod() function, which is slightly different than Metal fmod()
+template<typename Tx, typename Ty>
+inline Tx mod(Tx x, Ty y)
+{
+    return x - y * floor(x / y);
 }
 
-fragment VFSOutput
-main0(VVSOutput in [[stage_in]],
-                 constant VFSUniforms& uVFS [[buffer(1)]],
-                 texture2d<float, access::sample> VFStexture [[texture(0)]],
-                 sampler VFSsampler [[sampler(0)]],
-                 depth2d<float, access::sample> VFSdepthTexture [[texture(1)]],
-                 sampler VFSdepthSampler [[sampler(1)]])
+fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlaneParams& u_cameraPlaneParams [[buffer(0)]], constant type_u_fragParams& u_fragParams [[buffer(1)]], texture2d<float> texture0 [[texture(0)]], texture2d<float> texture1 [[texture(1)]], sampler sampler0 [[sampler(0)]], sampler sampler1 [[sampler(1)]])
 {
-  VFSOutput out;
-  
-  float4 col = VFStexture.sample(VFSsampler, in.uv);
-  float depth = VFSdepthTexture.sample(VFSdepthSampler, in.uv);
-  
-  float farPlane = uVFS.u_screenParams.w;
-  float nearPlane = uVFS.u_screenParams.z;
-  
-  float4 fragWorldPosition = uVFS.u_inverseViewProjection * float4(in.uv.x * 2.0 - 1.0, (1.0 - in.uv.y) * 2.0 - 1.0, depth, 1.0);
-  fragWorldPosition = fragWorldPosition / fragWorldPosition.w;
-  
-  float2 worldColorMinMax = uVFS.u_colorizeHeightParams.xy;
-  float minMaxColorStrength = clamp((fragWorldPosition.z - worldColorMinMax.x) / (worldColorMinMax.y - worldColorMinMax.x), 0.0, 1.0);
-  float3 minColor = mix(col.xyz, uVFS.u_colorizeHeightColorMin.xyz, uVFS.u_colorizeHeightColorMin.w);
-  float3 maxColor = mix(col.xyz, uVFS.u_colorizeHeightColorMax.xyz, uVFS.u_colorizeHeightColorMax.w);
-  col.xyz = mix(minColor, maxColor, minMaxColorStrength);
-  
-  float linearDepth = ((2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane))) * farPlane;
-  float2 depthColorMinMax = uVFS.u_colorizeDepthParams.xy;
-
-  float depthColorStrength = clamp((linearDepth - depthColorMinMax.x) / (depthColorMinMax.y - depthColorMinMax.x), 0.0, 1.0);
-  
-  col.xyz = mix(col.xyz, uVFS.u_colorizeDepthColor.xyz, depthColorStrength * uVFS.u_colorizeDepthColor.w);
-
-  float contourBandHeight = uVFS.u_contourParams.y;
-  float contourRainboxRepeat = uVFS.u_contourParams.z;
-  float contourRainboxIntensity = uVFS.u_contourParams.w;
-
-  float3 rainbowColor = hsv2rgb(float3(fragWorldPosition.z * (1.0 / contourRainboxRepeat), 1.0, 1.0));
-  float3 baseColor = mix(col.xyz, rainbowColor, contourRainboxIntensity);
-
-  float isContour = 1.0 - step(contourBandHeight, fmod(abs(fragWorldPosition.z), uVFS.u_contourParams.x));
-
-  col.xyz = mix(baseColor, uVFS.u_contourColor.xyz, isContour * uVFS.u_contourColor.w);
-
-  float edgeOutlineWidth = uVFS.u_outlineParams.x;
-  if (edgeOutlineWidth > 0.0 && uVFS.u_outlineColor.w > 0.0)
-  {
-    float3 sampleOffsets = float3(uVFS.u_screenParams.xy, 0.0);
-    float edgeOutlineThreshold = uVFS.u_outlineParams.y;
-    
-    float d1 = VFSdepthTexture.sample(VFSdepthSampler, in.uv + sampleOffsets.xz);
-    float d2 = VFSdepthTexture.sample(VFSdepthSampler, in.uv - sampleOffsets.xz);
-    float d3 = VFSdepthTexture.sample(VFSdepthSampler, in.uv + sampleOffsets.zy);
-    float d4 = VFSdepthTexture.sample(VFSdepthSampler, in.uv - sampleOffsets.zy);
-    
-    float wd0 = ((2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane))) * farPlane;
-    float wd1 = ((2.0 * nearPlane) / (farPlane + nearPlane - d1 * (farPlane - nearPlane))) * farPlane;
-    float wd2 = ((2.0 * nearPlane) / (farPlane + nearPlane - d2 * (farPlane - nearPlane))) * farPlane;
-    float wd3 = ((2.0 * nearPlane) / (farPlane + nearPlane - d3 * (farPlane - nearPlane))) * farPlane;
-    float wd4 = ((2.0 * nearPlane) / (farPlane + nearPlane - d4 * (farPlane - nearPlane))) * farPlane;
-    
-    float isEdge = 1.0 - step(wd0 - wd1, edgeOutlineThreshold) * step(wd0 - wd2, edgeOutlineThreshold) * step(wd0 - wd3, edgeOutlineThreshold) * step(wd0 - wd4, edgeOutlineThreshold);
-    
-    float3 edgeColor = mix(col.xyz, uVFS.u_outlineColor.xyz, uVFS.u_outlineColor.w);
-    float minDepth = min(min(min(d1, d2), d3), d4);
-    float4 edgeResult = float4(mix(col.xyz, edgeColor, isEdge), (depth + isEdge * (minDepth - depth)));
-    
-    col.xyz = edgeResult.xyz;
-    depth = edgeResult.w; // to preserve outsides edges, depth written may be adjusted
-  }
-
-  out.out_Color = float4(col.rgb, 1.0);
-  out.depth = depth;
-  
-  return out;
+    main0_out out = {};
+    float4 _77 = texture0.sample(sampler0, in.in_var_TEXCOORD1);
+    float4 _81 = texture1.sample(sampler1, in.in_var_TEXCOORD1);
+    float _82 = _81.x;
+    float _88 = u_cameraPlaneParams.s_CameraFarPlane / (u_cameraPlaneParams.s_CameraFarPlane - u_cameraPlaneParams.s_CameraNearPlane);
+    float _91 = (u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane);
+    float _93 = log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0);
+    float _103 = u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear;
+    float _105 = ((_88 + (_91 / (pow(2.0, _82 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear;
+    float4 _110 = float4(in.in_var_TEXCOORD0.xy, _105, 1.0);
+    float4 _111 = u_fragParams.u_inverseViewProjection * _110;
+    float4 _114 = _111 / float4(_111.w);
+    float4 _117 = u_fragParams.u_inverseProjection * _110;
+    float3 _121 = _77.xyz;
+    float _124 = _114.z;
+    float3 _200 = mix(mix(mix(mix(mix(_121, u_fragParams.u_colourizeHeightColourMin.xyz, float3(u_fragParams.u_colourizeHeightColourMin.w)), mix(_121, u_fragParams.u_colourizeHeightColourMax.xyz, float3(u_fragParams.u_colourizeHeightColourMax.w)), float3(fast::clamp((_124 - u_fragParams.u_colourizeHeightParams.x) / (u_fragParams.u_colourizeHeightParams.y - u_fragParams.u_colourizeHeightParams.x), 0.0, 1.0))).xyz, u_fragParams.u_colourizeDepthColour.xyz, float3(fast::clamp((length((_117 / float4(_117.w)).xyz) - u_fragParams.u_colourizeDepthParams.x) / (u_fragParams.u_colourizeDepthParams.y - u_fragParams.u_colourizeDepthParams.x), 0.0, 1.0) * u_fragParams.u_colourizeDepthColour.w)).xyz, fast::clamp(abs((fract(float3(_124 * (1.0 / u_fragParams.u_contourParams.z), 1.0, 1.0).xxx + float3(1.0, 0.666666686534881591796875, 0.3333333432674407958984375)) * 6.0) - float3(3.0)) - float3(1.0), float3(0.0), float3(1.0)) * 1.0, float3(u_fragParams.u_contourParams.w)), u_fragParams.u_contourColour.xyz, float3((1.0 - step(u_fragParams.u_contourParams.y, mod(abs(_124), u_fragParams.u_contourParams.x))) * u_fragParams.u_contourColour.w));
+    float _350;
+    float4 _351;
+    if ((u_fragParams.u_outlineParams.x > 0.0) && (u_fragParams.u_outlineColour.w > 0.0))
+    {
+        float4 _222 = u_fragParams.u_inverseProjection * float4((in.in_var_TEXCOORD1.x * 2.0) - 1.0, (in.in_var_TEXCOORD1.y * 2.0) - 1.0, _105, 1.0);
+        float4 _227 = texture1.sample(sampler1, in.in_var_TEXCOORD2);
+        float _228 = _227.x;
+        float4 _230 = texture1.sample(sampler1, in.in_var_TEXCOORD3);
+        float _231 = _230.x;
+        float4 _233 = texture1.sample(sampler1, in.in_var_TEXCOORD4);
+        float _234 = _233.x;
+        float4 _236 = texture1.sample(sampler1, in.in_var_TEXCOORD5);
+        float _237 = _236.x;
+        float4 _252 = u_fragParams.u_inverseProjection * float4((in.in_var_TEXCOORD2.x * 2.0) - 1.0, (in.in_var_TEXCOORD2.y * 2.0) - 1.0, ((_88 + (_91 / (pow(2.0, _228 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear, 1.0);
+        float4 _267 = u_fragParams.u_inverseProjection * float4((in.in_var_TEXCOORD3.x * 2.0) - 1.0, (in.in_var_TEXCOORD3.y * 2.0) - 1.0, ((_88 + (_91 / (pow(2.0, _231 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear, 1.0);
+        float4 _282 = u_fragParams.u_inverseProjection * float4((in.in_var_TEXCOORD4.x * 2.0) - 1.0, (in.in_var_TEXCOORD4.y * 2.0) - 1.0, ((_88 + (_91 / (pow(2.0, _234 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear, 1.0);
+        float4 _297 = u_fragParams.u_inverseProjection * float4((in.in_var_TEXCOORD5.x * 2.0) - 1.0, (in.in_var_TEXCOORD5.y * 2.0) - 1.0, ((_88 + (_91 / (pow(2.0, _237 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear, 1.0);
+        float3 _310 = (_222 / float4(_222.w)).xyz;
+        float4 _347 = mix(float4(_200, _82), float4(mix(_200.xyz, u_fragParams.u_outlineColour.xyz, float3(u_fragParams.u_outlineColour.w)), fast::min(fast::min(fast::min(_228, _231), _234), _237)), float4(1.0 - (((step(length(_310 - (_252 / float4(_252.w)).xyz), u_fragParams.u_outlineParams.y) * step(length(_310 - (_267 / float4(_267.w)).xyz), u_fragParams.u_outlineParams.y)) * step(length(_310 - (_282 / float4(_282.w)).xyz), u_fragParams.u_outlineParams.y)) * step(length(_310 - (_297 / float4(_297.w)).xyz), u_fragParams.u_outlineParams.y))));
+        _350 = _347.w;
+        _351 = float4(_347.x, _347.y, _347.z, _77.w);
+    }
+    else
+    {
+        _350 = _82;
+        _351 = float4(_200.x, _200.y, _200.z, _77.w);
+    }
+    out.out_var_SV_Target = float4(_351.xyz, 1.0);
+    out.gl_FragDepth = _350;
+    return out;
 }
+

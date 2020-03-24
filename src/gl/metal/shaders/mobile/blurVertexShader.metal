@@ -1,41 +1,35 @@
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-struct BlVSInput
+struct type_u_EveryFrame
 {
-  float3 pos [[attribute(0)]];
-  float2 uv [[attribute(1)]];
+    float4 u_stepSize;
 };
 
-struct BlVSOutput
+struct main0_out
 {
-  float4 pos [[position]];
-  float2 uv0;
-  float2 uv1;
-  float2 uv2;
+    float2 out_var_TEXCOORD0 [[user(locn0)]];
+    float2 out_var_TEXCOORD1 [[user(locn1)]];
+    float2 out_var_TEXCOORD2 [[user(locn2)]];
+    float4 gl_Position [[position]];
 };
 
-struct BlVSUniforms
+struct main0_in
 {
-  float4 u_stepSize; // remember: requires 16 byte alignment
+    float3 in_var_POSITION [[attribute(0)]];
+    float2 in_var_TEXCOORD0 [[attribute(1)]];
 };
 
-vertex BlVSOutput
-main0(BlVSInput in [[stage_in]], constant BlVSUniforms& uniforms [[buffer(1)]])
+vertex main0_out main0(main0_in in [[stage_in]], constant type_u_EveryFrame& u_EveryFrame [[buffer(0)]])
 {
-  BlVSOutput out;
-  
-  out.pos = float4(in.pos.x, in.pos.y, 0.0, 1.0);
-  
-  // sample on edges, taking advantage of bilinear sampling
-  float2 sampleOffset = 1.42 * uniforms.u_stepSize.xy;
-  float2 uv = float2(in.uv.x, 1.0 - in.uv.y);
-  out.uv0 = uv - sampleOffset;
-  out.uv1 = uv;
-  out.uv2 = uv + sampleOffset;
-  
-  return out;
+    main0_out out = {};
+    float2 _36 = u_EveryFrame.u_stepSize.xy * 1.41999995708465576171875;
+    out.gl_Position = float4(in.in_var_POSITION.xy, 0.0, 1.0);
+    out.out_var_TEXCOORD0 = in.in_var_TEXCOORD0 - _36;
+    out.out_var_TEXCOORD1 = in.in_var_TEXCOORD0;
+    out.out_var_TEXCOORD2 = in.in_var_TEXCOORD0 + _36;
+    return out;
 }
+

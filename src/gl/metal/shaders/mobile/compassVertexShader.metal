@@ -1,39 +1,46 @@
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-struct CVSInput
+struct type_u_EveryObject
 {
-  float3 a_pos [[attribute(0)]];
-  float3 a_normal [[attribute(1)]];
+    float4x4 u_worldViewProjectionMatrix;
+    float4 u_colour;
+    packed_float3 u_sunDirection;
+    float _padding;
 };
 
-struct CVSOutput
+constant float2 _34 = {};
+
+struct main0_out
 {
-  float4 pos [[position]];
-  float4 v_color;
-  float3 v_normal;
-  float4 v_fragClipPosition;
-  float3 v_sunDirection;
+    float3 out_var_COLOR0 [[user(locn0)]];
+    float4 out_var_COLOR1 [[user(locn1)]];
+    float3 out_var_COLOR2 [[user(locn2)]];
+    float4 out_var_COLOR3 [[user(locn3)]];
+    float2 out_var_TEXCOORD0 [[user(locn4)]];
+    float4 gl_Position [[position]];
 };
 
-struct CVSUniforms
+struct main0_in
 {
-  float4x4 u_worldViewProjectionMatrix;
-  float4 u_color;
-  float3 u_sunDirection;
+    float3 in_var_POSITION [[attribute(0)]];
+    float3 in_var_NORMAL [[attribute(1)]];
 };
 
-vertex CVSOutput
-main0(CVSInput in [[stage_in]], constant CVSUniforms& uCVS [[buffer(1)]])
+vertex main0_out main0(main0_in in [[stage_in]], constant type_u_EveryObject& u_EveryObject [[buffer(0)]])
 {
-  CVSOutput out;
-  out.v_fragClipPosition = uCVS.u_worldViewProjectionMatrix * float4(in.a_pos, 1.0);
-  out.pos = out.v_fragClipPosition;
-  out.v_normal = (in.a_normal * 0.5) + 0.5;
-  out.v_color = uCVS.u_color;
-  out.v_sunDirection = uCVS.u_sunDirection;
-  return out;
+    main0_out out = {};
+    float4 _44 = u_EveryObject.u_worldViewProjectionMatrix * float4(in.in_var_POSITION, 1.0);
+    float2 _53 = _34;
+    _53.x = 1.0 + _44.w;
+    out.gl_Position = _44;
+    out.out_var_COLOR0 = (in.in_var_NORMAL * 0.5) + float3(0.5);
+    out.out_var_COLOR1 = u_EveryObject.u_colour;
+    out.out_var_COLOR2 = float3(u_EveryObject.u_sunDirection);
+    out.out_var_COLOR3 = _44;
+    out.out_var_TEXCOORD0 = _53;
+    return out;
 }
+
