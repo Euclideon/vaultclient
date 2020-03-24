@@ -1375,7 +1375,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
         if (ImGui::ButtonEx("", ImVec2(28, 28)))
         {
-          pProgramState->cameraInput.targetEulerRotation = UD_DEG2RAD(udDouble3::create(0, -90, 0));
+          pProgramState->cameraInput.targetEulerRotation = udDouble3::create(0, pProgramState->camera.eulerRotation.y, 0);
           pProgramState->cameraInput.inputState = vcCIS_Rotate;
           pProgramState->cameraInput.progress = 0.0;
         }
