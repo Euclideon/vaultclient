@@ -401,6 +401,7 @@
   "sceneFullscreen": "全屏",
   "sceneMapMode": "地图模式",
   "toggleSceneExplorer": "显示/隐藏场景资源管理器",
+  "sceneTrueNorthTooltip": "旋转视图",
 
   "sceneCameraSettings": "摄像机设置",
   "sceneCameraLatLongAlt": "纬度: {0}°, 经度: {1}°, 海拔 {2}",
