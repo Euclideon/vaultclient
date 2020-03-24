@@ -1,40 +1,41 @@
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-// This should match CPU struct size
-#define VERTEX_COUNT 2
-
-struct TVSInput
+struct type_u_EveryObject
 {
-  float3 a_uv [[attribute(0)]];
+    float4x4 u_projection;
+    float4 u_eyePositions[9];
+    float4 u_colour;
+    float4 u_uvOffsetScale;
 };
 
-struct PCU
+constant float2 _31 = {};
+
+struct main0_out
 {
-  float4 v_position [[position]];
-  float4 v_color;
-  float2 v_uv;
+    float4 out_var_COLOR0 [[user(locn0)]];
+    float2 out_var_TEXCOORD0 [[user(locn1)]];
+    float2 out_var_TEXCOORD1 [[user(locn2)]];
+    float4 gl_Position [[position]];
 };
 
-struct TVSUniforms
+struct main0_in
 {
-  float4x4 u_projection;
-  float4 u_eyePositions[VERTEX_COUNT * VERTEX_COUNT];
-  float4 u_color;
+    float3 in_var_POSITION [[attribute(0)]];
 };
 
-vertex PCU
-main0(TVSInput in [[stage_in]], constant TVSUniforms& uTVS [[buffer(1)]])
+vertex main0_out main0(main0_in in [[stage_in]], constant type_u_EveryObject& u_EveryObject [[buffer(0)]])
 {
-  PCU out;
-  
-  // TODO: could have precision issues on some devices
-  out.v_position = uTVS.u_projection * uTVS.u_eyePositions[int(in.a_uv.z)];
-  
-  out.v_uv = in.a_uv.xy;
-  out.v_color = uTVS.u_color;
-  return out;
+    main0_out out = {};
+    float4 _40 = u_EveryObject.u_projection * u_EveryObject.u_eyePositions[int(in.in_var_POSITION.z)];
+    float2 _52 = _31;
+    _52.x = 1.0 + _40.w;
+    out.gl_Position = _40;
+    out.out_var_COLOR0 = u_EveryObject.u_colour;
+    out.out_var_TEXCOORD0 = u_EveryObject.u_uvOffsetScale.xy + (u_EveryObject.u_uvOffsetScale.zw * in.in_var_POSITION.xy);
+    out.out_var_TEXCOORD1 = _52;
+    return out;
 }
+

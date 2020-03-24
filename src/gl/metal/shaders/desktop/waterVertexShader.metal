@@ -1,50 +1,44 @@
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-struct WVSInput
+struct type_u_EveryFrameVert
 {
-  float2 pos [[attribute(0)]];
+    float4 u_time;
 };
 
-struct WVSOutput
+struct type_u_EveryObject
 {
-  float4 pos [[position]];
-  float2 uv0;
-  float2 uv1;
-  float4 fragEyePos;
-  float3 color;
+    float4 u_colourAndSize;
+    float4x4 u_worldViewMatrix;
+    float4x4 u_worldViewProjectionMatrix;
 };
 
-struct WVSUniforms1
+struct main0_out
 {
-  float4 u_time;
+    float2 out_var_TEXCOORD0 [[user(locn0)]];
+    float2 out_var_TEXCOORD1 [[user(locn1)]];
+    float4 out_var_COLOR0 [[user(locn2)]];
+    float3 out_var_COLOR1 [[user(locn3)]];
+    float4 gl_Position [[position]];
 };
 
-struct WVSUniforms2
+struct main0_in
 {
-  float4 u_colorAndSize;
-  float4x4 u_worldViewMatrix;
-  float4x4 u_worldViewProjectionMatrix;
+    float2 in_var_POSITION [[attribute(0)]];
 };
 
-vertex WVSOutput
-main0(WVSInput in [[stage_in]], constant WVSUniforms1& uWVS1 [[buffer(1)]], constant WVSUniforms2& uWVS2 [[buffer(3)]])
+vertex main0_out main0(main0_in in [[stage_in]], constant type_u_EveryFrameVert& u_EveryFrameVert [[buffer(0)]], constant type_u_EveryObject& u_EveryObject [[buffer(1)]])
 {
-  WVSOutput out;
-
-  float uvScaleBodySize = uWVS2.u_colorAndSize.w; // packed here
-
-  // scale the uvs with time
-  float uvOffset = uWVS1.u_time.x * 0.0625;
-  out.uv0 = uvScaleBodySize * in.pos.xy * float2(0.25, 0.25) - float2(uvOffset);
-  out.uv1 = uvScaleBodySize * in.pos.yx * float2(0.50, 0.50) - float2(uvOffset, uvOffset * 0.75);
-
-  out.fragEyePos = uWVS2.u_worldViewMatrix * float4(in.pos, 0.0, 1.0);
-  out.color = uWVS2.u_colorAndSize.xyz;
-  out.pos = uWVS2.u_worldViewProjectionMatrix * float4(in.pos, 0.0, 1.0);
-
-  return out;
+    main0_out out = {};
+    float _48 = u_EveryFrameVert.u_time.x * 0.0625;
+    float4 _63 = float4(in.in_var_POSITION, 0.0, 1.0);
+    out.gl_Position = u_EveryObject.u_worldViewProjectionMatrix * _63;
+    out.out_var_TEXCOORD0 = ((in.in_var_POSITION * u_EveryObject.u_colourAndSize.w) * float2(0.25)) - float2(_48);
+    out.out_var_TEXCOORD1 = ((in.in_var_POSITION.yx * u_EveryObject.u_colourAndSize.w) * float2(0.5)) - float2(_48, u_EveryFrameVert.u_time.x * 0.046875);
+    out.out_var_COLOR0 = u_EveryObject.u_worldViewMatrix * _63;
+    out.out_var_COLOR1 = u_EveryObject.u_colourAndSize.xyz;
+    return out;
 }
+

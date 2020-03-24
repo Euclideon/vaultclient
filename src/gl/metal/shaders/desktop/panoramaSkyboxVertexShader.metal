@@ -1,26 +1,25 @@
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-struct SVSInput
+struct main0_out
 {
-  float3 a_position [[attribute(0)]];
-  float2 a_texCoord [[attribute(1)]];
+    float4 out_var_TEXCOORD0 [[user(locn0)]];
+    float4 gl_Position [[position]];
 };
 
-struct SVSOutput
+struct main0_in
 {
-  float4 position [[position]];
-  float2 v_texCoord;
+    float3 in_var_POSITION [[attribute(0)]];
 };
 
-vertex SVSOutput
-main0(SVSInput in [[stage_in]])
+vertex main0_out main0(main0_in in [[stage_in]])
 {
-  SVSOutput out;
-  out.position = float4(in.a_position.xy, 0.0, 1.0);
-  out.v_texCoord = float2(in.a_texCoord.x, 1.0 - in.a_texCoord.y);
-  return out;
+    main0_out out = {};
+    float4 _21 = float4(in.in_var_POSITION.xy, 0.0, 1.0);
+    out.gl_Position = _21;
+    out.out_var_TEXCOORD0 = _21;
+    return out;
 }
+

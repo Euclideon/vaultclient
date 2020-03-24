@@ -1,38 +1,41 @@
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-struct PUC
+struct type_u_EveryObject
 {
-  float4 pos [[position]];
-  float2 uv;
-  float4 color;
+    float4x4 u_worldViewProjectionMatrix;
+    float4 u_colour;
+    float4 u_screenSize;
 };
 
-struct PNUVVSInput
+constant float2 _29 = {};
+
+struct main0_out
 {
-  float3 pos [[attribute(0)]];
-  float3 normal [[attribute(1)]]; // unused
-  float2 uv [[attribute(2)]];
+    float2 out_var_TEXCOORD0 [[user(locn0)]];
+    float4 out_var_COLOR0 [[user(locn1)]];
+    float2 out_var_TEXCOORD1 [[user(locn2)]];
+    float4 gl_Position [[position]];
 };
 
-struct IRMVSUniforms
+struct main0_in
 {
-  float4x4 u_worldViewProjectionMatrix;
-  float4 u_color;
-  float4 u_screenSize; // unused
+    float3 in_var_POSITION [[attribute(0)]];
+    float2 in_var_TEXCOORD0 [[attribute(2)]];
 };
 
-vertex PUC
-main0(PNUVVSInput in [[stage_in]], constant IRMVSUniforms& uniforms [[buffer(1)]])
+vertex main0_out main0(main0_in in [[stage_in]], constant type_u_EveryObject& u_EveryObject [[buffer(0)]])
 {
-  PUC out;
-  
-  out.pos = uniforms.u_worldViewProjectionMatrix * float4(in.pos, 1.0);
-  out.uv = float2(in.uv[0], 1.0 - in.uv[1]);
-  out.color = uniforms.u_color;
-  
-  return out;
+    main0_out out = {};
+    float4 _39 = u_EveryObject.u_worldViewProjectionMatrix * float4(in.in_var_POSITION, 1.0);
+    float2 _44 = _29;
+    _44.x = 1.0 + _39.w;
+    out.gl_Position = _39;
+    out.out_var_TEXCOORD0 = in.in_var_TEXCOORD0;
+    out.out_var_COLOR0 = u_EveryObject.u_colour;
+    out.out_var_TEXCOORD1 = _44;
+    return out;
 }
+

@@ -1,27 +1,33 @@
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-struct SVSInput
+struct type_u_EveryFrame
 {
-  float3 a_position [[attribute(0)]];
-  float2 a_texCoord [[attribute(1)]];
+    float4 u_tintColour;
+    float4 u_imageSize;
 };
 
-struct SVSOutput
+struct main0_out
 {
-  float4 position [[position]];
-  float2 v_texCoord;
+    float2 out_var_TEXCOORD0 [[user(locn0)]];
+    float4 out_var_COLOR0 [[user(locn1)]];
+    float4 gl_Position [[position]];
 };
 
-vertex SVSOutput
-main0(SVSInput in [[stage_in]])
+struct main0_in
 {
-  SVSOutput out;
-  out.position = float4(in.a_position.xy, 0.0, 1.0);
-  out.v_texCoord = float2(in.a_texCoord.x, 1.0 - in.a_texCoord.y);
-  return out;
+    float3 in_var_POSITION [[attribute(0)]];
+    float2 in_var_TEXCOORD0 [[attribute(1)]];
+};
+
+vertex main0_out main0(main0_in in [[stage_in]], constant type_u_EveryFrame& u_EveryFrame [[buffer(0)]])
+{
+    main0_out out = {};
+    out.gl_Position = float4(in.in_var_POSITION.xy, 0.0, 1.0);
+    out.out_var_TEXCOORD0 = in.in_var_TEXCOORD0 / u_EveryFrame.u_imageSize.xy;
+    out.out_var_COLOR0 = u_EveryFrame.u_tintColour;
+    return out;
 }
 

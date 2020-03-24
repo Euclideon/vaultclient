@@ -1,43 +1,44 @@
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-struct PNUVSInput
+struct type_u_EveryObject
 {
-  float3 pos [[attribute(0)]];
-  float3 normal [[attribute(1)]];
-  float2 uv [[attribute(2)]];
+    float4x4 u_worldViewProjectionMatrix;
+    float4x4 u_worldMatrix;
+    float4 u_colour;
 };
 
-struct PNUVSOutput
+constant float2 _34 = {};
+
+struct main0_out
 {
-  float4 pos [[position]];
-  float2 uv;
-  float3 normal;
-  float4 color;
+    float2 out_var_TEXCOORD0 [[user(locn0)]];
+    float3 out_var_NORMAL [[user(locn1)]];
+    float4 out_var_COLOR0 [[user(locn2)]];
+    float2 out_var_TEXCOORD1 [[user(locn3)]];
+    float4 gl_Position [[position]];
 };
 
-struct PNUVSUniforms1
+struct main0_in
 {
-  float4x4 u_worldViewProjectionMatrix;
-  float4x4 u_worldMatrix;
-  float4 u_color;
+    float3 in_var_POSITION [[attribute(0)]];
+    float3 in_var_NORMAL [[attribute(1)]];
+    float2 in_var_TEXCOORD0 [[attribute(2)]];
 };
 
-vertex PNUVSOutput
-main0(PNUVSInput in [[stage_in]], constant PNUVSUniforms1& PNUVS1 [[buffer(1)]])
+vertex main0_out main0(main0_in in [[stage_in]], constant type_u_EveryObject& u_EveryObject [[buffer(0)]])
 {
-  PNUVSOutput out;
-
-  // making the assumption that the model matrix won't contain non-uniform scale
-  float3 worldNormal = normalize((PNUVS1.u_worldMatrix * float4(in.normal, 0.0)).xyz);
-
-  out.pos = PNUVS1.u_worldViewProjectionMatrix * float4(in.pos, 1.0);
-  out.uv = in.uv;
-  out.normal = worldNormal;
-  out.color = PNUVS1.u_color;
-  
-  return out;
+    main0_out out = {};
+    float4 _54 = u_EveryObject.u_worldViewProjectionMatrix * float4(in.in_var_POSITION, 1.0);
+    float2 _59 = _34;
+    _59.x = 1.0 + _54.w;
+    out.gl_Position = _54;
+    out.out_var_TEXCOORD0 = in.in_var_TEXCOORD0;
+    out.out_var_NORMAL = normalize((u_EveryObject.u_worldMatrix * float4(in.in_var_NORMAL, 0.0)).xyz);
+    out.out_var_COLOR0 = u_EveryObject.u_colour;
+    out.out_var_TEXCOORD1 = _59;
+    return out;
 }
+

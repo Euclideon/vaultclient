@@ -1,45 +1,43 @@
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-struct HVSInput
+struct type_u_EveryFrame
 {
-  float3 pos [[attribute(0)]];
-  float2 uv [[attribute(1)]];
+    float4 u_stepSizeThickness;
+    float4 u_colour;
 };
 
-struct HFSInput
+struct main0_out
 {
-  float4 pos [[position]];
-  float2 uv0;
-  float2 uv1;
-  float2 uv2;
-  float2 uv3;
-  float2 uv4;
+    float2 out_var_TEXCOORD0 [[user(locn0)]];
+    float2 out_var_TEXCOORD1 [[user(locn1)]];
+    float2 out_var_TEXCOORD2 [[user(locn2)]];
+    float2 out_var_TEXCOORD3 [[user(locn3)]];
+    float2 out_var_TEXCOORD4 [[user(locn4)]];
+    float4 out_var_COLOR0 [[user(locn5)]];
+    float4 out_var_COLOR1 [[user(locn6)]];
+    float4 gl_Position [[position]];
 };
 
-constant static float2 searchKernel[4] = {float2(-1, -1), float2(1, -1), float2(-1,  1), float2(1, 1)};
-
-struct HVSUniforms
+struct main0_in
 {
-  float4 u_stepSizeThickness; // (stepSize.xy, outline thickness, inner overlay strength)
-  float4 u_color;
+    float3 in_var_POSITION [[attribute(0)]];
+    float2 in_var_TEXCOORD0 [[attribute(1)]];
 };
 
-vertex HFSInput
-main0(HVSInput in [[stage_in]], constant HVSUniforms& uniforms [[buffer(1)]])
+vertex main0_out main0(main0_in in [[stage_in]], constant type_u_EveryFrame& u_EveryFrame [[buffer(0)]])
 {
-  HFSInput out;
-  
-  out.pos = float4(in.pos.x, in.pos.y, 0.0, 1.0);
-  
-  out.uv0 = in.uv;
-  out.uv1 = in.uv + uniforms.u_stepSizeThickness.xy * searchKernel[0];
-  out.uv2 = in.uv + uniforms.u_stepSizeThickness.xy * searchKernel[1];
-  out.uv3 = in.uv + uniforms.u_stepSizeThickness.xy * searchKernel[2];
-  out.uv4 = in.uv + uniforms.u_stepSizeThickness.xy * searchKernel[3];
-  
-  return out;
+    main0_out out = {};
+    out.gl_Position = float4(in.in_var_POSITION.xy, 0.0, 1.0);
+    out.out_var_TEXCOORD0 = in.in_var_TEXCOORD0;
+    out.out_var_TEXCOORD1 = in.in_var_TEXCOORD0 + (u_EveryFrame.u_stepSizeThickness.xy * float2(-1.0));
+    out.out_var_TEXCOORD2 = in.in_var_TEXCOORD0 + (u_EveryFrame.u_stepSizeThickness.xy * float2(1.0, -1.0));
+    out.out_var_TEXCOORD3 = in.in_var_TEXCOORD0 + (u_EveryFrame.u_stepSizeThickness.xy * float2(-1.0, 1.0));
+    out.out_var_TEXCOORD4 = in.in_var_TEXCOORD0 + u_EveryFrame.u_stepSizeThickness.xy;
+    out.out_var_COLOR0 = u_EveryFrame.u_colour;
+    out.out_var_COLOR1 = u_EveryFrame.u_stepSizeThickness;
+    return out;
 }
+

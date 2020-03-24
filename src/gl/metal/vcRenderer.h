@@ -67,7 +67,6 @@
 - (void)setFramebuffer:(nullable struct vcFramebuffer*)pFramebuffer;
 - (void)destroyFramebuffer:(nonnull struct vcFramebuffer*)pFramebuffer;
 - (void)bindViewport:(MTLViewport)vp;
-- (void)buildBlendPipelines:(nonnull MTLRenderPipelineDescriptor*)pDesc;
 - (void)bindVB:(nonnull vcShaderConstantBuffer*)pBuffer index:(uint8_t)index;
 @end
 

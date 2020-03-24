@@ -1,25 +1,25 @@
 #include <metal_stdlib>
-#include <metal_matrix>
-#include <metal_uniform>
-#include <metal_texture>
+#include <simd/simd.h>
+
 using namespace metal;
 
-struct SVSOutput
+struct main0_out
 {
-  float4 position [[position]];
-  float2 v_texCoord;
+    float4 out_var_SV_Target [[color(0)]];
 };
 
-struct SFSTCUniforms
+struct main0_in
 {
-  float4 u_tintColor; //0 is full color, 1 is full image
-  float4 u_imageSize; //For purposes of tiling/stretching
+    float2 in_var_TEXCOORD0 [[user(locn0)]];
+    float4 in_var_COLOR0 [[user(locn1)]];
 };
 
-fragment float4
-main0(SVSOutput in [[stage_in]], constant SFSTCUniforms& uSFS [[buffer(1)]], texture2d<float, access::sample> SFSimg [[texture(0)]], sampler SFSsampler [[sampler(0)]])
+fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> u_texture [[texture(0)]], sampler sampler0 [[sampler(0)]])
 {
-  float4 color = SFSimg.sample(SFSsampler, in.v_texCoord / uSFS.u_imageSize.xy);
-  float effectiveAlpha = min(color.a, uSFS.u_tintColor.a);
-  return float4((color.rgb * effectiveAlpha) + (uSFS.u_tintColor.rgb * (1 - effectiveAlpha)), 1);
+    main0_out out = {};
+    float4 _30 = u_texture.sample(sampler0, in.in_var_TEXCOORD0);
+    float _33 = fast::min(_30.w, in.in_var_COLOR0.w);
+    out.out_var_SV_Target = float4((_30.xyz * _33) + (in.in_var_COLOR0.xyz * (1.0 - _33)), 1.0);
+    return out;
 }
+
