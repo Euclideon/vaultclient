@@ -80,11 +80,6 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
     vFunc = [pShader->vertexLibrary newFunctionWithName:@"main0"];
     fFunc = [pShader->fragmentLibrary newFunctionWithName:@"main0"];
   }
-  else
-  {
-    vFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pVertexShader]];
-    fFunc = [_library newFunctionWithName:[NSString stringWithUTF8String:pFragmentShader]];
-  }
 
   MTLRenderPipelineDescriptor *pDesc = [[MTLRenderPipelineDescriptor alloc] init];
   pDesc.vertexDescriptor = vertexDesc;

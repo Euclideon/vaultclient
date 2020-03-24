@@ -24,3 +24,4 @@ main0(SVSInput in [[stage_in]])
   out.v_texCoord = float2(in.a_texCoord.x, 1.0 - in.a_texCoord.y);
   return out;
 }
+

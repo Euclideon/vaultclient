@@ -138,7 +138,7 @@ project "vaultClient"
 
 	filter { "system:macosx or ios" }
 		files { "builds/assets/**", "builds/releasenotes.md", "builds/defaultsettings.json" }
-		xcodebuildresources { ".otf", ".png", ".jpg", ".json", ".metallib", "releasenotes", "defaultsettings" }
+		xcodebuildresources { ".otf", ".png", ".jpg", ".json", "releasenotes", "defaultsettings" }
 		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = excludedSourceFileNames }
 
 	filter { "system:emscripten" }
@@ -206,18 +206,12 @@ project "vaultClient"
 
 	filter { "options:gfxapi=metal" }
 		defines { "GRAPHICS_API_METAL=1" }
-		files { "src/gl/metal/shaders.metallib" }
 		xcodebuildresources { "%.metal$" }
 		xcodebuildsettings {
 			["CLANG_ENABLE_OBJC_ARC"] = "YES",
 			["GCC_ENABLE_OBJC_EXCEPTIONS"] = "YES",
 		}
 		links { "MetalKit.framework", "Metal.framework" }
-		prebuildcommands {
-			"xcrun -sdk macosx metal -c src/gl/metal/Shaders.metal -o lib.air",
-			"xcrun -sdk macosx metallib lib.air -o src/gl/metal/shaders.metallib",
-			"rm lib.air",
-		}
 
 	filter { "options:gfxapi=metal", "system:macosx" }
 		links { "AppKit.framework", "QuartzCore.framework" }

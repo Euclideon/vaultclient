@@ -17,7 +17,6 @@
 #define DRAWABLES 1
 
 extern id<MTLDevice> _device;
-extern id<MTLLibrary> _library;
 
 enum vcRendererFramebufferActions
 {

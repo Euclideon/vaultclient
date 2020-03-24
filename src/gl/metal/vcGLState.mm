@@ -19,7 +19,6 @@ int32_t g_maxAnisotropy = 0;
 vcRenderer *_renderer;
 
 id<MTLDevice> _device;
-id<MTLLibrary> _library;
 id<MTLCommandQueue> _queue;
 
 static vcGLState s_internalState;
@@ -80,16 +79,10 @@ void vcGLState_BuildDepthStates()
 bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 {
   _device = MTLCreateSystemDefaultDevice();
-  _library = [_device newLibraryWithFile:[[NSBundle mainBundle] pathForResource:@"shaders" ofType:@"metallib" ] error:nil];
 
   if (_device == nullptr)
   {
     NSLog(@"Metal is not supported on this device");
-    return false;
-  }
-  else if (_library == nullptr)
-  {
-    NSLog(@"Shader library couldn't be created");
     return false;
   }
 
