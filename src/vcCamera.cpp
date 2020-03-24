@@ -566,8 +566,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   // Apply movement and rotation
   pProgramState->cameraInput.keyboardInput = keyboardInput;
   pProgramState->cameraInput.mouseInput = mouseInput;
-  if(keyboardInput.y != 0.0f || mouseInput.y != 0.0f)
-    printf("%f, %f, %f; %f, %f, %f\n", keyboardInput.x, keyboardInput.y, keyboardInput.z, mouseInput.x, mouseInput.y, mouseInput.z);
 
   vcCamera_Apply(pProgramState, &pProgramState->camera, &pProgramState->settings.camera, &pProgramState->cameraInput, pProgramState->deltaTime, speedModifier);
 
