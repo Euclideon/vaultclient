@@ -21,6 +21,7 @@ struct vcLineInfo
 {
   udDouble3 *pPoints;
   int numPoints;
+  bool isDualColour;
   uint32_t colourPrimary;
   uint32_t colourSecondary;
   float lineWidth;

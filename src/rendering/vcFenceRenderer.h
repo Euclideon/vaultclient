@@ -32,8 +32,9 @@ struct vcFenceRendererConfig
 {
   vcFenceRendererVisualMode visualMode;
   vcFenceRendererImageMode imageMode;
-  udFloat4 bottomColour;
-  udFloat4 topColour;
+  bool isDualColour;
+  udFloat4 primaryColour;
+  udFloat4 secondaryColour;
   float ribbonWidth;
   float textureRepeatScale;
   float textureScrollSpeed;
