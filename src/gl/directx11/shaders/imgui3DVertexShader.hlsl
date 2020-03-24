@@ -2,8 +2,8 @@ cbuffer u_cameraPlaneParams
 {
   float s_CameraNearPlane;
   float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
+  float u_clipZNear;
+  float u_clipZFar;
 };
 
 struct VS_INPUT
@@ -30,7 +30,7 @@ PS_INPUT main(VS_INPUT input)
 {
   PS_INPUT output;
   output.pos = mul(u_worldViewProjectionMatrix, float4(0.0, 0.0, 0.0, 1.0));
-  output.pos.xy += u_screenSize.xy * float2(input.pos.x, -input.pos.y) * output.pos.w; // expand
+  output.pos.xy += u_screenSize.xy * input.pos.xy * output.pos.w; // expand
 
   output.col = input.col;
   output.uv = input.uv;

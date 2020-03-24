@@ -4,12 +4,13 @@
 #include "gl/vcLayout.h"
 
 // screen quad
-const vcP3UV2Vertex screenQuadVertices[4]{ { { -1.f, 1.f, 0.f },{ 0, 0 } },{ { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } } };
+#if GRAPHICS_API_D3D11
+const vcP3UV2Vertex screenQuadVertices[4]{ { { -1.f, -1.f, 0.f },{ 0, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } },{ { -1.f, 1.f, 0.f },{ 0, 0 } } };
 const uint32_t screenQuadIndices[6] = { 0, 1, 2, 0, 2, 3 };
-
-// inverted screen quad
-const vcP3UV2Vertex flippedScreenQuadVertices[4]{ { { -1.f, -1.f, 0.f },{ 0, 0 } },{ { -1.f, 1.f, 0.f },{ 0, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 0 } } };
-const uint32_t flippedScreenQuadIndices[6] = { 2, 1, 0, 3, 2, 0 };
+#else
+const vcP3UV2Vertex screenQuadVertices[4]{ { { -1.f, -1.f, 0.f },{ 0, 0 } },{ { 1.f, -1.f, 0.f },{ 1, 0 } },{ { 1.f, 1.f, 0.f },{ 1, 1 } },{ { -1.f, 1.f, 0.f },{ 0, 1 } } };
+const uint32_t screenQuadIndices[6] = { 2, 1, 0, 3, 2, 0 };
+#endif
 
 // imgui quad
 const vcImGuiVertex imGuiQuadVertices[4]{ { { -0.5f, -0.5f }, { 0.f, 0.0f }, 0xffffffff },{ { -0.5f, 0.5f }, { 0.0f, 1.0f }, 0xffffffff },{ { 0.5f, 0.5f }, { 1.0f, 1.0f }, 0xffffffff },{ { 0.5f, -0.5f }, { 1.0f, 0.0f }, 0xffffffff } };
@@ -20,8 +21,13 @@ const vcP3N3UV2Vertex worldQuadVertices[4]{ { { -1.f, 0.f, -1.f }, { 0.f, 1.f, 0
 const uint32_t worldQuadIndices[6] = { 0, 1, 2, 0, 2, 3 };
 
 // billboard
-const vcP3UV2Vertex billboardVertices[4]{ { { 0.f, 0.f, 0.f },{ 0, 0 } },{ { 0.f, 0.f, 0.f },{ 0, 1 } },{ { 0.f, 0.f, 0.f },{ 1, 1 } },{ { 0.f, 0.f, 0.f },{ 1, 0 } } };
+#if GRAPHICS_API_D3D11
+const vcP3UV2Vertex billboardVertices[4]{ { { -1.f, -1.f, 0.f },{ 0, 1 } },{ { -1.f, 1.f, 0.f },{ 0, 0 } },{ { 1.f, 1.f, 0.f },{ 1, 0 } },{ { 1.f, -1.f, 0.f },{ 1, 1 } } };
 const uint32_t billboardIndices[6] = { 0, 1, 2, 0, 2, 3 };
+#else
+const vcP3UV2Vertex billboardVertices[4]{ { { -1.f, -1.f, 0.f },{ 0, 0 } },{ { -1.f, 1.f, 0.f },{ 0, 1 } },{ { 1.f, 1.f, 0.f },{ 1, 1 } },{ { 1.f, -1.f, 0.f },{ 1, 0 } } };
+const uint32_t billboardIndices[6] = { 2, 1, 0, 3, 2, 0 };
+#endif
 
 const float cylinderVerticesFltArray[][8] = {
 { 0.000000f, 1.000000f, -1.000000f, 0.0000f, 1.0000f, 0.0000f, 1.000000f, 0.500000f },

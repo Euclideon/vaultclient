@@ -2,8 +2,8 @@ cbuffer u_cameraPlaneParams
 {
   float s_CameraNearPlane;
   float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
+  float u_clipZNear;
+  float u_clipZFar;
 };
 
 struct VS_INPUT
@@ -31,10 +31,10 @@ PS_INPUT main(VS_INPUT input)
 {
   PS_INPUT output;
 
-  output.pos = mul(u_worldViewProjectionMatrix, float4(input.pos, 1.0));
-  output.pos.xy += u_screenSize.z * output.pos.w * u_screenSize.xy * float2(input.uv.x * 2.0 - 1.0, input.uv.y * 2.0 - 1.0); // expand billboard
+  output.pos = mul(u_worldViewProjectionMatrix, float4(0, 0, 0, 1.0));
+  output.pos.xy += u_screenSize.z * output.pos.w * u_screenSize.xy * input.pos.xy; // expand billboard
 
-  output.uv = float2(input.uv.x, 1.0 - input.uv.y);
+  output.uv = input.uv;
   output.colour = u_colour;
   output.fLogDepth.x = 1.0 + output.pos.w;
 

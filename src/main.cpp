@@ -1683,16 +1683,8 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   {
     vcRender_BeginFrame(pProgramState, pProgramState->pRenderContext, renderData);
 
-    ImVec2 uv0 = ImVec2(0, 0);
-    ImVec2 uv1 = ImVec2(renderData.sceneScaling.x, renderData.sceneScaling.y);
-#if GRAPHICS_API_OPENGL
-    // flip vertically
-    uv1.y = 0;
-    uv0.y = renderData.sceneScaling.y;
-#endif
-
     // Actual rendering to this texture is deferred
-    ImGui::Image(renderData.pSceneTexture, windowSize, uv0, uv1);
+    ImGui::Image(renderData.pSceneTexture, windowSize, ImVec2(0, 0), ImVec2(renderData.sceneScaling.x, renderData.sceneScaling.y));
 
     if (pProgramState->settings.screenshot.taking)
       pProgramState->screenshot.pImage = renderData.pSceneTexture;

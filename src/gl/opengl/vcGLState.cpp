@@ -93,6 +93,9 @@ bool vcGLState_ResetState(bool force /*= false*/)
 
 bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMode, bool isFrontCCW /*= true*/, bool force /*= false*/)
 {
+  // reverse convention for what is front-facing, due to flipped projection
+  isFrontCCW = !isFrontCCW;
+
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   if (fillMode != vcGLSFM_Solid)
     return false;

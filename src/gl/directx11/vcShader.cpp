@@ -230,9 +230,9 @@ bool vcShader_Bind(vcShader *pShader)
     {
       float cameraNearPlane;
       float cameraFarPlane;
-      float unused1;
-      float unused2;
-    } cameraPlane = { s_CameraNearPlane, s_CameraFarPlane, 0.f, 0.f };
+      float clipZNear;
+      float clipZFar;
+    } cameraPlane = { s_CameraNearPlane, s_CameraFarPlane, 0.f, 1.f };
     vcShader_BindConstantBuffer(pShader, pShader->pCameraPlaneParams, &cameraPlane, sizeof(cameraPlane));
   }
 

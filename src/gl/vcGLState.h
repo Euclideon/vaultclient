@@ -155,4 +155,15 @@ int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel);
 void vcGLState_ReportGPUWork(size_t drawCount, size_t triCount, size_t uploadBytesCount);
 bool vcGLState_IsGPUDataUploadAllowed();
 
+template <typename T>
+udMatrix4x4<T> vcGLState_ProjectionMatrix(T fovY, T aspectRatio, T znear, T zfar)
+{
+#if GRAPHICS_API_OPENGL
+  static const udMatrix4x4<T> FlipVertically = udMatrix4x4<T>::scaleNonUniform(T(1), T(-1), T(1));
+  return FlipVertically * udMatrix4x4<T>::perspectiveNO(fovY, aspectRatio, znear, zfar);
+#else
+  return udMatrix4x4<T>::perspectiveZO(fovY, aspectRatio, znear, zfar);
+#endif
+}
+
 #endif // vcGLState_h__
