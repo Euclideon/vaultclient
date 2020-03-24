@@ -7,54 +7,6 @@ using namespace metal;
 // This should match CPU struct size
 #define VERTEX_COUNT 2
 
-// Compass Vertex Shader - g_CompassVertexShader
-  struct CVSInput
-  {
-    float3 a_pos [[attribute(0)]];
-    float3 a_normal [[attribute(1)]];
-  };
-
-  struct CVSOutput
-  {
-    float4 pos [[position]];
-    float4 v_color;
-    float3 v_normal;
-    float4 v_fragClipPosition;
-    float3 v_sunDirection;
-  };
-
-  struct CVSUniforms
-  {
-    float4x4 u_worldViewProjectionMatrix;
-    float4 u_color;
-    float3 u_sunDirection;
-  };
-
-  vertex CVSOutput
-  compassVertexShader(CVSInput in [[stage_in]], constant CVSUniforms& uCVS [[buffer(1)]])
-  {
-    CVSOutput out;
-    out.v_fragClipPosition = uCVS.u_worldViewProjectionMatrix * float4(in.a_pos, 1.0);
-    out.pos = out.v_fragClipPosition;
-    out.v_normal = (in.a_normal * 0.5) + 0.5;
-    out.v_color = uCVS.u_color;
-    out.v_sunDirection = uCVS.u_sunDirection;
-    return out;
-  }
-
-// Compass Fragment Shader - g_CompassFragmentShader
-  fragment float4
-  compassFragmentShader(CVSOutput in [[stage_in]])
-  {
-    float3 fakeEyeVector = normalize(in.v_fragClipPosition.xyz / in.v_fragClipPosition.w);
-    float3 worldNormal = in.v_normal * float3(2.0) - float3(1.0);
-    float ndotl = 0.5 + 0.5 * (-dot(in.v_sunDirection, worldNormal));
-    float edotr = max(0.0, -dot(-fakeEyeVector, worldNormal));
-    edotr = pow(edotr, 60.0);
-    float3 sheenColor = float3(1.0, 1.0, 0.9);
-    return float4(in.v_color.a * (ndotl * in.v_color.rgb + edotr * sheenColor), 1.0);
-  }
-
 // Tile Vertex Shader - g_tileVertexShader
   struct TVSInput
   {
