@@ -26,7 +26,7 @@ GenerateShader () {
 
 	DstName=$(echo ${SrcName} | sed "s%${SrcFolder}%${2}%" | sed "s%hlsl%${ShaderExt}%")
 
-	${SC} -E main -I ${SrcName} -O ${DstName} -S ${ShaderStage} -T ${Target} -V "${Version}"
+	"${SC}" -E main -I ${SrcName} -O ${DstName} -S ${ShaderStage} -T ${Target} -V "${Version}"
 }
 
 for SrcName in ${SrcFolder}/*.hlsl; do

@@ -148,7 +148,9 @@ static ImVec2 vcGizmo_WorldToScreen(const udDouble3& worldPos, const udDouble4x4
   if (trans.w != 0)
     trans *= 0.5f / trans.w;
   trans += udDouble4::create(0.5, 0.5, 0.0, 0.0);
+#if !GRAPHICS_API_OPENGL
   trans.y = 1.0 - trans.y;
+#endif
   trans.x *= sGizmoContext.mWidth;
   trans.y *= sGizmoContext.mHeight;
   trans.x += sGizmoContext.mX;

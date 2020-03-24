@@ -2,8 +2,8 @@ cbuffer u_cameraPlaneParams
 {
   float s_CameraNearPlane;
   float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
+  float u_clipZNear;
+  float u_clipZFar;
 };
 
 struct VS_INPUT
@@ -29,7 +29,7 @@ PS_INPUT main(VS_INPUT input)
 {
   PS_INPUT output;
   output.pos = float4(input.pos.xy, 0.f, 1.f);
-  output.uv = float2(input.uv.x, 1.0 - input.uv.y) / u_imageSize.xy;
+  output.uv = input.uv / u_imageSize.xy;
   output.tintColour = u_tintColour;
   return output;
 }

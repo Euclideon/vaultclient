@@ -9,7 +9,8 @@ cbuffer u_cameraPlaneParams
 struct PS_INPUT
 {
   float4 pos : SV_POSITION;
-  float2 uv : TEXCOORD0;
+  float4 clip : TEXCOORD0;
+  float2 uv : TEXCOORD1;
 };
 
 struct PS_OUTPUT
@@ -48,15 +49,20 @@ float logToLinearDepth(float logDepth)
   return a + b / worldDepth;
 }
 
+float linearDepthToClipZ(float depth)
+{
+  return depth * (u_clipZFar - u_clipZNear) + u_clipZNear;
+}
+
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
 
   float4 col = float4(0.0, 0.0, 0.0, 0.0);
   float logDepth = texture0.Sample(sampler0, input.uv).x;
-  float depth = logToLinearDepth(logDepth);
+  float clipZ = linearDepthToClipZ(logToLinearDepth(logDepth));
 
-  float4 fragEyePosition = mul(u_inverseProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, depth, 1.0));
+  float4 fragEyePosition = mul(u_inverseProjection, float4(input.clip.xy, clipZ, 1.0));
   fragEyePosition /= fragEyePosition.w;
 
   float4 shadowUV = float4(0, 0, 0, 0);

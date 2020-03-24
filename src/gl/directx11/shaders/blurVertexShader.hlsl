@@ -2,8 +2,8 @@ cbuffer u_cameraPlaneParams
 {
   float s_CameraNearPlane;
   float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
+  float u_clipZNear;
+  float u_clipZFar;
 };
 
 struct VS_INPUT
@@ -29,11 +29,11 @@ PS_INPUT main(VS_INPUT input)
 {
   PS_INPUT output;
 
-  output.pos = float4(input.pos.x, input.pos.y, 0.0, 1.0);
+  output.pos = float4(input.pos.xy, 0.0, 1.0);
 
   // sample on edges, taking advantage of bilinear sampling
   float2 sampleOffset = 1.42 * u_stepSize.xy;
-  float2 uv = float2(input.uv.x, 1.0 - input.uv.y);
+  float2 uv = input.uv;
   output.uv0 = uv - sampleOffset;
   output.uv1 = uv;
   output.uv2 = uv + sampleOffset;

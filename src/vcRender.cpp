@@ -543,9 +543,6 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
 
   uint8_t depthBytes[4] = {};
   udUInt2 pickLocation = { (uint32_t)(pRenderContext->currentMouseUV.x * pRenderContext->sceneResolution.x), (uint32_t)(pRenderContext->currentMouseUV.y * pRenderContext->sceneResolution.y) };
-#if GRAPHICS_API_OPENGL
-  pickLocation.y = pRenderContext->sceneResolution.y - pickLocation.y - 1; // upside-down
-#endif
 
   static const int readBufferIndex = 0;
   UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->pDepthTexture[readBufferIndex], pickLocation.x, pickLocation.y, 1, 1, depthBytes), udR_InternalError); // read previous copy
@@ -580,6 +577,7 @@ udDouble3 vcRender_DepthToWorldPosition(vcState *pProgramState, vcRenderContext 
   udDouble4 clipPos = udDouble4::create(pRenderContext->currentMouseUV.x * 2.0 - 1.0, (1.0 - pRenderContext->currentMouseUV.y) * 2.0 - 1.0, depth, 1.0);
 #if GRAPHICS_API_OPENGL
   clipPos.z = clipPos.z * 2.0 - 1.0;
+  clipPos.y = -clipPos.y;
 #endif
 
   udDouble4 pickPosition4 = pProgramState->camera.matrices.inverseViewProjection * clipPos;
@@ -590,6 +588,7 @@ void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
   // Draw the skybox only at the far plane, where there is no geometry.
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   if (pProgramState->settings.presentation.showSkybox)
   {
@@ -654,6 +653,8 @@ void vcRender_SplatUDWithId(vcState *pProgramState, vcRenderContext *pRenderCont
 void vcRender_SplatUD(vcState *pProgramState, vcRenderContext *pRenderContext, vcTexture *pColour, vcTexture *pDepth)
 {
   udUnused(pProgramState);
+
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   vcShader_Bind(pRenderContext->udRenderContext.presentShader.pProgram);
 
@@ -737,7 +738,7 @@ void vcRender_PostProcessPass(vcState *pProgramState, vcRenderContext *pRenderCo
   udUnused(pProgramState);
 
   vcGLState_SetBlendMode(vcGLSBM_None);
-  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
 
   pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
@@ -759,6 +760,7 @@ void vcRender_PostProcessPass(vcState *pProgramState, vcRenderContext *pRenderCo
 void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, true);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
   vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0x00FF8080);
@@ -955,6 +957,7 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
   vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0xFFFF8080);
 
   vcGLState_ResetState();
+  vcGLState_SetDepthStencilMode(vcGLSDM_Always, true);
 
   // UD
   vcRender_SplatUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pDepthTex);
@@ -1082,6 +1085,7 @@ void vcRender_ApplySelectionBuffer(vcState *pProgramState, vcRenderContext *pRen
 
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   pRenderContext->selectionShader.params.stepSizeThickness.x = sampleStepSize.x;
   pRenderContext->selectionShader.params.stepSizeThickness.y = sampleStepSize.y;
@@ -1104,6 +1108,8 @@ udFloat4 vcRender_EncodeIdAsColour(uint32_t id)
 
 bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
+  vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+
   bool active = false;
 
   // check UD first
@@ -1151,7 +1157,6 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
   if (pProgramState->settings.objectHighlighting.colour.w == 0.0f || !pProgramState->settings.objectHighlighting.enable) // disabled
     return false;
 
-  vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
   vcGLState_SetBlendMode(vcGLSBM_None);
   vcGLState_SetViewport(0, 0, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y);
@@ -1167,6 +1172,9 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
     udFloat2 sampleStepSize = udFloat2::create(1.0f / pRenderContext->effectResolution.x, 1.0f / pRenderContext->effectResolution.y);
 
     vcGLState_SetBlendMode(vcGLSBM_None);
+    vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+
     for (int i = 0; i < 2; ++i)
     {
       vcFramebuffer_Bind(pRenderContext->pAuxiliaryFramebuffers[1 - i], vcFramebufferClearOperation_All);
@@ -1196,6 +1204,9 @@ void vcRender_RenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWater
   vcTexture_GetSize(pWatermark, &imageSize.x, &imageSize.y);
 
   udFloat3 position = udFloat3::create(float(imageSize.x) / pRenderContext->sceneResolution.x - 1, float(imageSize.y) / pRenderContext->sceneResolution.y - 1, 0);
+#if GRAPHICS_API_OPENGL
+  position.y = -position.y;
+#endif
   udFloat3 scale = udFloat3::create(2.0f * float(imageSize.x) / pRenderContext->sceneResolution.x, -2.0f * float(imageSize.y) / pRenderContext->sceneResolution.y, 1.0);
   pRenderContext->watermarkShader.params.u_worldViewProjectionMatrix = udFloat4x4::scaleNonUniform(scale, position);
 
@@ -1560,6 +1571,11 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   pRenderContext->picking.location.x = (uint32_t)(pRenderContext->currentMouseUV.x * pRenderContext->effectResolution.x);
   pRenderContext->picking.location.y = (uint32_t)(pRenderContext->currentMouseUV.y * pRenderContext->effectResolution.y);
 
+#if GRAPHICS_API_OPENGL
+  // note: we render upside-down
+  pRenderContext->picking.location.y = (pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1);
+#endif
+
   double currentDist = pProgramState->settings.camera.farPlane;
   float pickDepth = 1.0f;
 
@@ -1602,7 +1618,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 
 #if GRAPHICS_API_OPENGL
     // read upside down
-    readLocation.y = pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1;
+    readLocation.y = (pRenderContext->effectResolution.y - readLocation.y - 1);
 #endif
 
     // Synchronously read back data

@@ -15,13 +15,15 @@ struct VS_INPUT
 struct PS_INPUT
 {
   float4 pos : SV_POSITION;
-  float2 uv : TEXCOORD0;
+  float4 clip : TEXCOORD0;
+  float2 uv : TEXCOORD1;
 };
 
 PS_INPUT main(VS_INPUT input)
 {
   PS_INPUT output;
   output.pos = float4(input.pos.xy, 0.f, 1.f);
+  output.clip = output.pos;
   output.uv = input.uv;
   return output;
 }

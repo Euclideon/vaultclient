@@ -110,19 +110,9 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
 
   pCamera->matrices.camera = vcCamera_GetMatrix(pCamera);
 
-#if GRAPHICS_API_OPENGL
-  pCamera->matrices.projectionNear = udDouble4x4::perspectiveNO(fov, aspect, 0.5f, 10000.f);
-#else
-  pCamera->matrices.projectionNear = udDouble4x4::perspectiveZO(fov, aspect, 0.5f, 10000.f);
-#endif
-
+  pCamera->matrices.projectionNear = vcGLState_ProjectionMatrix<double>(fov, aspect, 0.5f, 10000.f);
+  pCamera->matrices.projection = vcGLState_ProjectionMatrix<double>(fov, aspect, zNear, zFar);
   pCamera->matrices.projectionUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
-
-#if GRAPHICS_API_OPENGL
-  pCamera->matrices.projection = udDouble4x4::perspectiveNO(fov, aspect, zNear, zFar);
-#else
-  pCamera->matrices.projection = pCamera->matrices.projectionUD;
-#endif
 
   pCamera->matrices.view = pCamera->matrices.camera;
   pCamera->matrices.view.inverse();
@@ -138,6 +128,7 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
     double nearClipZ = 0.0;
 #if GRAPHICS_API_OPENGL
     nearClipZ = -1.0;
+    mousePosClip.y = -mousePosClip.y;
 #endif
     udDouble4 mouseNear = (pCamera->matrices.inverseViewProjection * udDouble4::create(mousePosClip, nearClipZ, 1.0));
     udDouble4 mouseFar = (pCamera->matrices.inverseViewProjection * udDouble4::create(mousePosClip, 1.0, 1.0));

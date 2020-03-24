@@ -94,6 +94,11 @@ bool vcLabelRenderer_Render(ImDrawList *drawList, vcLabelInfo *pLabelRenderer, c
   gShader.everyObject.u_worldViewProjectionMatrix = udFloat4x4::create(mvp);
   gShader.everyObject.u_screenSize = udFloat4::create(2.0f / screenSize.x, 2.0f / screenSize.y, 0.0f, 0.0f);
 
+#if !GRAPHICS_API_OPENGL
+  // ImGui vertices are built with origin in bottom left corner
+  gShader.everyObject.u_screenSize.y *= -1;
+#endif
+
   ImDrawCmd *pcmd = &drawList->CmdBuffer.back();
   int vtx = drawList->VtxBuffer.Size;
   int idx = drawList->IdxBuffer.Size;
