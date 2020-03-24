@@ -1,25 +1,16 @@
-#version 330 core
-#extension GL_ARB_explicit_attrib_location : enable
-layout (std140) uniform u_cameraPlaneParams
-{
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+#version 330
+#extension GL_ARB_separate_shader_objects : require
 
-uniform sampler2D u_texture;
+uniform sampler2D SPIRV_Cross_Combinedu_texturesampler0;
 
-//Input Format
-in vec2 v_uv;
-in vec4 v_tintColour;
-
-//Output Format
-out vec4 out_Colour;
+layout(location = 0) in vec2 in_var_TEXCOORD0;
+layout(location = 1) in vec4 in_var_COLOR0;
+layout(location = 0) out vec4 out_var_SV_Target;
 
 void main()
 {
-  vec4 colour = texture(u_texture, v_uv).rgba;
-  float effectiveAlpha = min(colour.a, v_tintColour.a);
-  out_Colour = vec4((colour.rgb * effectiveAlpha) + (v_tintColour.rgb * (1.0 - effectiveAlpha)), 1);
+    vec4 _30 = texture(SPIRV_Cross_Combinedu_texturesampler0, in_var_TEXCOORD0);
+    float _33 = min(_30.w, in_var_COLOR0.w);
+    out_var_SV_Target = vec4((_30.xyz * _33) + (in_var_COLOR0.xyz * (1.0 - _33)), 1.0);
 }
+

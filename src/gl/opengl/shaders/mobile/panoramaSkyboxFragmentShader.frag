@@ -1,39 +1,21 @@
 #version 300 es
-precision highp float;
-layout (std140) uniform u_cameraPlaneParams
+precision mediump float;
+precision highp int;
+
+layout(std140) uniform type_u_EveryFrame
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+    layout(row_major) highp mat4 u_inverseViewProjection;
+} u_EveryFrame;
 
-uniform sampler2D u_texture;
-layout (std140) uniform u_EveryFrame
-{
-  mat4 u_inverseViewProjection;
-};
+uniform highp sampler2D SPIRV_Cross_Combinedu_texturesampler0;
 
-//Input Format
-in vec2 v_uv;
-
-//Output Format
-out vec4 out_Colour;
-
-#define PI 3.14159265359
-
-vec2 directionToLatLong(vec3 dir)
-{
-  vec2 longlat = vec2(atan(dir.x, dir.y) + PI, acos(dir.z));
-  return longlat / vec2(2.0 * PI, PI);
-}
+in highp vec4 in_var_TEXCOORD0;
+layout(location = 0) out highp vec4 out_var_SV_Target;
 
 void main()
 {
-  // work out 3D point
-  vec4 point3D = u_inverseViewProjection * vec4(v_uv * vec2(2.0) - vec2(1.0), 1.0, 1.0);
-  point3D.xyz = normalize(point3D.xyz / point3D.w);
-  vec4 c1 = texture(u_texture, directionToLatLong(point3D.xyz));
-
-  out_Colour = c1;
+    highp vec4 _40 = vec4(in_var_TEXCOORD0.xy, 1.0, 1.0) * u_EveryFrame.u_inverseViewProjection;
+    highp vec3 _45 = normalize(_40.xyz / vec3(_40.w));
+    out_var_SV_Target = texture(SPIRV_Cross_Combinedu_texturesampler0, vec2(atan(_45.x, _45.y) + 3.1415927410125732421875, acos(_45.z)) * vec2(0.15915493667125701904296875, 0.3183098733425140380859375));
 }
+

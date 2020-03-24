@@ -1,43 +1,37 @@
-#version 330 core
-#extension GL_ARB_explicit_attrib_location : enable
-layout (std140) uniform u_cameraPlaneParams
+#version 330
+#extension GL_ARB_separate_shader_objects : require
+
+out gl_PerVertex
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
+    vec4 gl_Position;
 };
 
-layout(location = 0) in vec2 a_position;
-
-out vec2 v_uv0;
-out vec2 v_uv1;
-out vec4 v_fragEyePos;
-out vec3 v_colour;
-
-layout (std140) uniform u_EveryFrameVert
+layout(std140) uniform type_u_EveryFrameVert
 {
-  vec4 u_time;
-};
+    vec4 u_time;
+} u_EveryFrameVert;
 
-layout (std140) uniform u_EveryObject
+layout(std140) uniform type_u_EveryObject
 {
-  vec4 u_colourAndSize;
-  mat4 u_worldViewMatrix;
-  mat4 u_worldViewProjectionMatrix;
-};
+    vec4 u_colourAndSize;
+    layout(row_major) mat4 u_worldViewMatrix;
+    layout(row_major) mat4 u_worldViewProjectionMatrix;
+} u_EveryObject;
+
+layout(location = 0) in vec2 in_var_POSITION;
+layout(location = 0) out vec2 out_var_TEXCOORD0;
+layout(location = 1) out vec2 out_var_TEXCOORD1;
+layout(location = 2) out vec4 out_var_COLOR0;
+layout(location = 3) out vec3 out_var_COLOR1;
 
 void main()
 {
-  float uvScaleBodySize = u_colourAndSize.w; // packed here
-
-  // scale the uvs with time
-  float uvOffset = u_time.x * 0.0625;
-  v_uv0 = uvScaleBodySize * a_position.xy * vec2(0.25) - vec2(uvOffset, uvOffset);
-  v_uv1 = uvScaleBodySize * a_position.yx * vec2(0.50) - vec2(uvOffset, uvOffset * 0.75);
-
-  v_fragEyePos = u_worldViewMatrix * vec4(a_position, 0.0, 1.0);
-  v_colour = u_colourAndSize.xyz;
-
-  gl_Position = u_worldViewProjectionMatrix * vec4(a_position, 0.0, 1.0);
+    float _48 = u_EveryFrameVert.u_time.x * 0.0625;
+    vec4 _63 = vec4(in_var_POSITION, 0.0, 1.0);
+    gl_Position = _63 * u_EveryObject.u_worldViewProjectionMatrix;
+    out_var_TEXCOORD0 = ((in_var_POSITION * u_EveryObject.u_colourAndSize.w) * vec2(0.25)) - vec2(_48);
+    out_var_TEXCOORD1 = ((in_var_POSITION.yx * u_EveryObject.u_colourAndSize.w) * vec2(0.5)) - vec2(_48, u_EveryFrameVert.u_time.x * 0.046875);
+    out_var_COLOR0 = _63 * u_EveryObject.u_worldViewMatrix;
+    out_var_COLOR1 = u_EveryObject.u_colourAndSize.xyz;
 }
+

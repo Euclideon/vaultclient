@@ -1,34 +1,29 @@
 #version 300 es
-layout (std140) uniform u_cameraPlaneParams
+
+layout(std140) uniform type_u_EveryObject
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+    layout(row_major) mat4 u_worldViewProjectionMatrix;
+    vec4 u_colour;
+    vec4 u_screenSize;
+} u_EveryObject;
 
-//Input Format
-layout(location = 0) in vec3 a_pos;
-layout(location = 1) in vec3 a_normal; //unused
-layout(location = 2) in vec2 a_uv;
+layout(location = 0) in vec3 in_var_POSITION;
+layout(location = 1) in vec3 in_var_NORMAL;
+layout(location = 2) in vec2 in_var_TEXCOORD0;
+out vec2 out_var_TEXCOORD0;
+out vec4 out_var_COLOR0;
+out vec2 out_var_TEXCOORD1;
 
-//Output Format
-out vec2 v_uv;
-out vec4 v_colour;
-out float v_fLogDepth;
-
-layout (std140) uniform u_EveryObject
-{
-  mat4 u_worldViewProjectionMatrix;
-  vec4 u_colour;
-  vec4 u_screenSize; // unused
-};
+vec2 _29;
 
 void main()
 {
-  gl_Position = u_worldViewProjectionMatrix * vec4(a_pos, 1.0);
-
-  v_uv = a_uv;
-  v_colour = u_colour;
-  v_fLogDepth = 1.0 + gl_Position.w;
+    vec4 _39 = vec4(in_var_POSITION, 1.0) * u_EveryObject.u_worldViewProjectionMatrix;
+    vec2 _44 = _29;
+    _44.x = 1.0 + _39.w;
+    gl_Position = _39;
+    out_var_TEXCOORD0 = in_var_TEXCOORD0;
+    out_var_COLOR0 = u_EveryObject.u_colour;
+    out_var_TEXCOORD1 = _44;
 }
+

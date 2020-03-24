@@ -1,38 +1,30 @@
 #version 300 es
-layout (std140) uniform u_cameraPlaneParams
+
+layout(std140) uniform type_u_EveryFrame
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+    vec4 u_stepSizeThickness;
+    vec4 u_colour;
+} u_EveryFrame;
 
-//Input format
-layout(location = 0) in vec3 a_position;
-layout(location = 1) in vec2 a_texCoord;
-
-//Output Format
-out vec2 v_uv0;
-out vec2 v_uv1;
-out vec2 v_uv2;
-out vec2 v_uv3;
-out vec2 v_uv4;
-
-vec2 searchKernel[4] = vec2[](vec2(-1, -1), vec2(1, -1), vec2(-1,  1), vec2(1,  1));
-
-layout (std140) uniform u_EveryFrame
-{
-  vec4 u_stepSizeThickness; // (stepSize.xy, outline thickness, inner overlay strength)
-  vec4 u_colour;
-};
+layout(location = 0) in vec3 in_var_POSITION;
+layout(location = 1) in vec2 in_var_TEXCOORD0;
+out vec2 out_var_TEXCOORD0;
+out vec2 out_var_TEXCOORD1;
+out vec2 out_var_TEXCOORD2;
+out vec2 out_var_TEXCOORD3;
+out vec2 out_var_TEXCOORD4;
+out vec4 out_var_COLOR0;
+out vec4 out_var_COLOR1;
 
 void main()
 {
-  gl_Position = vec4(a_position.x, a_position.y, 0.0, 1.0);
-
-  v_uv0 = vec2(a_texCoord.x, 1.0 - a_texCoord.y);
-  v_uv1 = v_uv0 + u_stepSizeThickness.xy * searchKernel[0];
-  v_uv2 = v_uv0 + u_stepSizeThickness.xy * searchKernel[1];
-  v_uv3 = v_uv0 + u_stepSizeThickness.xy * searchKernel[2];
-  v_uv4 = v_uv0 + u_stepSizeThickness.xy * searchKernel[3];
+    gl_Position = vec4(in_var_POSITION.xy, 0.0, 1.0);
+    out_var_TEXCOORD0 = in_var_TEXCOORD0;
+    out_var_TEXCOORD1 = in_var_TEXCOORD0 + (u_EveryFrame.u_stepSizeThickness.xy * vec2(-1.0));
+    out_var_TEXCOORD2 = in_var_TEXCOORD0 + (u_EveryFrame.u_stepSizeThickness.xy * vec2(1.0, -1.0));
+    out_var_TEXCOORD3 = in_var_TEXCOORD0 + (u_EveryFrame.u_stepSizeThickness.xy * vec2(-1.0, 1.0));
+    out_var_TEXCOORD4 = in_var_TEXCOORD0 + u_EveryFrame.u_stepSizeThickness.xy;
+    out_var_COLOR0 = u_EveryFrame.u_colour;
+    out_var_COLOR1 = u_EveryFrame.u_stepSizeThickness;
 }
+

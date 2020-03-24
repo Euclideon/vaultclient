@@ -1,30 +1,26 @@
-#version 330 core
-#extension GL_ARB_explicit_attrib_location : enable
-layout (std140) uniform u_cameraPlaneParams
+#version 330
+#extension GL_ARB_separate_shader_objects : require
+
+out gl_PerVertex
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
+    vec4 gl_Position;
 };
 
-//Input format
-layout(location = 0) in vec3 a_position;
-layout(location = 1) in vec2 a_texCoord;
-
-//Output Format
-out vec2 v_uv;
-out vec4 v_tintColour;
-
-layout (std140) uniform u_EveryFrame
+layout(std140) uniform type_u_EveryFrame
 {
-  vec4 u_tintColour; //0 is full colour, 1 is full image
-  vec4 u_imageSize; //For purposes of tiling/stretching
-};
+    vec4 u_tintColour;
+    vec4 u_imageSize;
+} u_EveryFrame;
+
+layout(location = 0) in vec3 in_var_POSITION;
+layout(location = 1) in vec2 in_var_TEXCOORD0;
+layout(location = 0) out vec2 out_var_TEXCOORD0;
+layout(location = 1) out vec4 out_var_COLOR0;
 
 void main()
 {
-  gl_Position = vec4(a_position.x, a_position.y, 0.0, 1.0);
-  v_uv = vec2(a_texCoord.x, 1.0 - a_texCoord.y) / u_imageSize.xy;
-  v_tintColour = u_tintColour;
+    gl_Position = vec4(in_var_POSITION.xy, 0.0, 1.0);
+    out_var_TEXCOORD0 = in_var_TEXCOORD0 / u_EveryFrame.u_imageSize.xy;
+    out_var_COLOR0 = u_EveryFrame.u_tintColour;
 }
+

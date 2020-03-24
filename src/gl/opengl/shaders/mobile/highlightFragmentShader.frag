@@ -1,51 +1,38 @@
 #version 300 es
-precision highp float;
-layout (std140) uniform u_cameraPlaneParams
-{
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+precision mediump float;
+precision highp int;
 
-//Input Format
-in vec2 v_uv0;
-in vec2 v_uv1;
-in vec2 v_uv2;
-in vec2 v_uv3;
-in vec2 v_uv4;
+uniform highp sampler2D SPIRV_Cross_Combinedu_texturesampler0;
 
-//Output Format
-out vec4 out_Colour;
-
-uniform sampler2D u_texture;
-layout (std140) uniform u_EveryFrame
-{
-  vec4 u_stepSizeThickness; // (stepSize.xy, outline thickness, inner overlay strength)
-  vec4 u_colour;
-};
+in highp vec2 in_var_TEXCOORD0;
+in highp vec2 in_var_TEXCOORD1;
+in highp vec2 in_var_TEXCOORD2;
+in highp vec2 in_var_TEXCOORD3;
+in highp vec2 in_var_TEXCOORD4;
+in highp vec4 in_var_COLOR0;
+in highp vec4 in_var_COLOR1;
+layout(location = 0) out highp vec4 out_var_SV_Target;
 
 void main()
 {
-  vec4 middle = texture(u_texture, v_uv0);
-  float result = middle.w;
-
-  // 'outside' the geometry, just use the blurred 'distance'
-  if (middle.x == 0.0)
-  {
-    out_Colour = vec4(u_colour.xyz, result * u_stepSizeThickness.z * u_colour.a);
-    return;
-  }
-
-  result = 1.0 - result;
-
-  // look for an edge, setting to full colour if found
-  float softenEdge = 0.15 * u_colour.a;
-  result += softenEdge * step(texture(u_texture, v_uv1).x - middle.x, -0.00001);
-  result += softenEdge * step(texture(u_texture, v_uv2).x - middle.x, -0.00001);
-  result += softenEdge * step(texture(u_texture, v_uv3).x - middle.x, -0.00001);
-  result += softenEdge * step(texture(u_texture, v_uv4).x - middle.x, -0.00001);
-
-  result = max(u_stepSizeThickness.w, result) * u_colour.w; // overlay colour
-  out_Colour = vec4(u_colour.xyz, result);
+    highp vec4 _99;
+    switch (0u)
+    {
+        default:
+        {
+            highp vec4 _47 = texture(SPIRV_Cross_Combinedu_texturesampler0, in_var_TEXCOORD0);
+            highp float _48 = _47.w;
+            highp float _49 = _47.x;
+            if (_49 == 0.0)
+            {
+                _99 = vec4(in_var_COLOR0.xyz, (_48 * in_var_COLOR1.z) * in_var_COLOR0.w);
+                break;
+            }
+            highp float _63 = 0.1500000059604644775390625 * in_var_COLOR0.w;
+            _99 = vec4(in_var_COLOR0.xyz, max(in_var_COLOR1.w, ((((1.0 - _48) + (_63 * step(texture(SPIRV_Cross_Combinedu_texturesampler0, in_var_TEXCOORD1).x - _49, -9.9999997473787516355514526367188e-06))) + (_63 * step(texture(SPIRV_Cross_Combinedu_texturesampler0, in_var_TEXCOORD2).x - _49, -9.9999997473787516355514526367188e-06))) + (_63 * step(texture(SPIRV_Cross_Combinedu_texturesampler0, in_var_TEXCOORD3).x - _49, -9.9999997473787516355514526367188e-06))) + (_63 * step(texture(SPIRV_Cross_Combinedu_texturesampler0, in_var_TEXCOORD4).x - _49, -9.9999997473787516355514526367188e-06))) * in_var_COLOR0.w);
+            break;
+        }
+    }
+    out_var_SV_Target = _99;
 }
+

@@ -1,34 +1,22 @@
 #version 300 es
-layout (std140) uniform u_cameraPlaneParams
+
+layout(std140) uniform type_u_EveryFrame
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+    vec4 u_stepSize;
+} u_EveryFrame;
 
-//Input format
-layout(location = 0) in vec3 a_position;
-layout(location = 1) in vec2 a_texCoord;
-
-//Output Format
-out vec2 v_uv0;
-out vec2 v_uv1;
-out vec2 v_uv2;
-
-layout (std140) uniform u_EveryFrame
-{
-  vec4 u_stepSize; // remember: requires 16 byte alignment
-};
+layout(location = 0) in vec3 in_var_POSITION;
+layout(location = 1) in vec2 in_var_TEXCOORD0;
+out vec2 out_var_TEXCOORD0;
+out vec2 out_var_TEXCOORD1;
+out vec2 out_var_TEXCOORD2;
 
 void main()
 {
-  gl_Position = vec4(a_position.x, a_position.y, 0.0, 1.0);
-
-  // sample on edges, taking advantage of bilinear sampling
-  vec2 sampleOffset = 1.42 * u_stepSize.xy;
-  vec2 uv = vec2(a_texCoord.x, 1.0 - a_texCoord.y);
-  v_uv0 = uv - sampleOffset;
-  v_uv1 = uv;
-  v_uv2 = uv + sampleOffset;
+    vec2 _36 = u_EveryFrame.u_stepSize.xy * 1.41999995708465576171875;
+    gl_Position = vec4(in_var_POSITION.xy, 0.0, 1.0);
+    out_var_TEXCOORD0 = in_var_TEXCOORD0 - _36;
+    out_var_TEXCOORD1 = in_var_TEXCOORD0;
+    out_var_TEXCOORD2 = in_var_TEXCOORD0 + _36;
 }
+

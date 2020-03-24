@@ -1,39 +1,33 @@
 #version 300 es
-layout (std140) uniform u_cameraPlaneParams
+
+layout(std140) uniform type_u_EveryObject
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+    layout(row_major) mat4 u_worldViewProjectionMatrix;
+    vec4 u_colour;
+    vec3 u_sunDirection;
+    float _padding;
+} u_EveryObject;
 
-//Input Format
-layout(location = 0) in vec3 a_pos;
-layout(location = 1) in vec3 a_normal;
+layout(location = 0) in vec3 in_var_POSITION;
+layout(location = 1) in vec3 in_var_NORMAL;
+out vec3 out_var_COLOR0;
+out vec4 out_var_COLOR1;
+out vec3 out_var_COLOR2;
+out vec4 out_var_COLOR3;
+out vec2 out_var_TEXCOORD0;
 
-//Output Format
-out vec4 v_colour;
-out vec3 v_normal;
-out vec4 v_fragClipPosition;
-out vec3 v_sunDirection;
-out float v_fLogDepth;
-
-layout (std140) uniform u_EveryObject
-{
-  mat4 u_worldViewProjectionMatrix;
-  vec4 u_colour;
-  vec3 u_sunDirection;
-  float _padding;
-};
+vec2 _34;
 
 void main()
 {
-  gl_Position = u_worldViewProjectionMatrix * vec4(a_pos, 1.0);
-
-  v_normal = ((a_normal * 0.5) + 0.5);
-  v_colour = u_colour;
-  v_sunDirection = u_sunDirection;
-  v_fragClipPosition = gl_Position;
-
-  v_fLogDepth = 1.0 + gl_Position.w;
+    vec4 _44 = vec4(in_var_POSITION, 1.0) * u_EveryObject.u_worldViewProjectionMatrix;
+    vec2 _53 = _34;
+    _53.x = 1.0 + _44.w;
+    gl_Position = _44;
+    out_var_COLOR0 = (in_var_NORMAL * 0.5) + vec3(0.5);
+    out_var_COLOR1 = u_EveryObject.u_colour;
+    out_var_COLOR2 = u_EveryObject.u_sunDirection;
+    out_var_COLOR3 = _44;
+    out_var_TEXCOORD0 = _53;
 }
+

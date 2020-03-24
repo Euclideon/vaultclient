@@ -1,28 +1,26 @@
 #version 300 es
-precision highp float;
-layout (std140) uniform u_cameraPlaneParams
+precision mediump float;
+precision highp int;
+
+layout(std140) uniform type_u_cameraPlaneParams
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+    highp float s_CameraNearPlane;
+    highp float s_CameraFarPlane;
+    highp float u_clipZNear;
+    highp float u_clipZFar;
+} u_cameraPlaneParams;
 
-//Input Format
-in vec2 v_uv;
-in vec4 v_colour;
-in float v_fLogDepth;
+uniform highp sampler2D SPIRV_Cross_Combinedtexture0sampler0;
 
-//Output Format
-out vec4 out_Colour;
-
-uniform sampler2D u_texture;
+in highp vec4 in_var_COLOR0;
+in highp vec2 in_var_TEXCOORD0;
+in highp vec2 in_var_TEXCOORD1;
+layout(location = 0) out highp vec4 out_var_SV_Target;
 
 void main()
 {
-  vec4 texCol = texture(u_texture, v_uv);
-  out_Colour = vec4(texCol.xyz * v_colour.xyz, texCol.w * v_colour.w);
-
-  float halfFcoef  = 1.0 / log2(s_CameraFarPlane + 1.0);
-  gl_FragDepth = log2(v_fLogDepth) * halfFcoef;
+    highp vec4 _40 = texture(SPIRV_Cross_Combinedtexture0sampler0, in_var_TEXCOORD0);
+    out_var_SV_Target = vec4(_40.xyz * in_var_COLOR0.xyz, _40.w * in_var_COLOR0.w);
+    gl_FragDepth = log2(in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
 }
+

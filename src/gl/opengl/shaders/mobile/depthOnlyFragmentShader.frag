@@ -1,23 +1,24 @@
 #version 300 es
-precision highp float;
-layout (std140) uniform u_cameraPlaneParams
+precision mediump float;
+precision highp int;
+
+layout(std140) uniform type_u_cameraPlaneParams
 {
-  float s_CameraNearPlane;
-  float s_CameraFarPlane;
-  float u_unused1;
-  float u_unused2;
-};
+    highp float s_CameraNearPlane;
+    highp float s_CameraFarPlane;
+    highp float u_clipZNear;
+    highp float u_clipZFar;
+} u_cameraPlaneParams;
 
-// Input format
-in float v_fLogDepth;
-
-//Output Format
-out vec4 out_Colour;
+in highp vec2 in_var_TEXCOORD0;
+in highp vec3 in_var_NORMAL;
+in highp vec4 in_var_COLOR0;
+in highp vec2 in_var_TEXCOORD1;
+layout(location = 0) out highp vec4 out_var_SV_Target;
 
 void main()
 {
-  out_Colour = vec4(0.0);
-
-  float halfFcoef  = 1.0 / log2(s_CameraFarPlane + 1.0);
-  gl_FragDepth = log2(v_fLogDepth) * halfFcoef;
+    out_var_SV_Target = vec4(0.0);
+    gl_FragDepth = log2(in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
 }
+
