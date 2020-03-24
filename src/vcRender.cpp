@@ -1242,8 +1242,17 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
 
-  vcRenderTerrain(pProgramState, pRenderContext);
-  vcRenderSkybox(pProgramState, pRenderContext); // Drawing skybox after opaque geometry saves a bit on fill rate.
+  // Drawing skybox after opaque geometry saves a bit on fill rate.
+  if (pProgramState->settings.maptiles.transparency >= 1.0f)
+  {
+    vcRenderTerrain(pProgramState, pRenderContext);
+    vcRenderSkybox(pProgramState, pRenderContext);
+  }
+  else
+  {
+    vcRenderSkybox(pProgramState, pRenderContext);
+    vcRenderTerrain(pProgramState, pRenderContext);
+  }
 
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
 
