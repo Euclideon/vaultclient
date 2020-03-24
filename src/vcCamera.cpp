@@ -264,11 +264,10 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
   {
     udDouble3 addPos = udDouble3::zero();
     udDouble3 towards = pProgramState->worldAnchorPoint - pCamera->position;
-    if (udMagSq3(towards) > 0)
+    double distanceToPoint = udMagSq3(towards);
+    if (distanceToPoint > 0)
     {
-      double maxDistance = 0.9 * pCamSettings->farPlane; // limit to 90% of visible distance
-      double distanceToPoint = udMin(udMag3(towards), maxDistance);
-        
+      distanceToPoint = udMin(distanceToPoint, (double)pCamSettings->moveSpeed * speedModifier);
       addPos = distanceToPoint * pCamInput->mouseInput.y * udNormalize3(towards);
     }
 
@@ -567,6 +566,8 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   // Apply movement and rotation
   pProgramState->cameraInput.keyboardInput = keyboardInput;
   pProgramState->cameraInput.mouseInput = mouseInput;
+  if(keyboardInput.y != 0.0f || mouseInput.y != 0.0f)
+    printf("%f, %f, %f; %f, %f, %f\n", keyboardInput.x, keyboardInput.y, keyboardInput.z, mouseInput.x, mouseInput.y, mouseInput.z);
 
   vcCamera_Apply(pProgramState, &pProgramState->camera, &pProgramState->settings.camera, &pProgramState->cameraInput, pProgramState->deltaTime, speedModifier);
 
