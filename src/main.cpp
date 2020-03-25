@@ -2345,6 +2345,9 @@ float vcMain_MenuGui(vcState *pProgramState)
       vcModals_OpenModal(pProgramState, vcMT_Convert);
 #endif //VC_HASCONVERT
 
+    if (ImGui::MenuItem(vcString::Get("menuHelp")))
+      vcWebFile_OpenBrowser("https://www.euclideon.com/customerresourcepage/");
+
     vcMain_UpdateStatusBar(pProgramState);
 
     menuHeight = ImGui::GetWindowSize().y;
