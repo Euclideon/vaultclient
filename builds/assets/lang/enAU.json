@@ -292,6 +292,7 @@
   "menuProjectImportTitle": "Import Project to Scene",
   "menuProjectNone": "No server projects",
   "menuFileName": "File Name",
+  "menuHelp": "Help",
 
   "menuLogout": "Logout",
   "menuLogoutTitle": "Logged Out",
