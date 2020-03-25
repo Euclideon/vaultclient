@@ -744,9 +744,16 @@ bool vcSettingsUI_LangCombo(vcState *pProgramState)
   return true;
 }
 
+enum vcLASClassifications
+{
+  vcLASClassifications_FirstReserved = 19,
+  vcLASClassifications_FirstUserDefined = 64,
+  vcLASClassifications_LastClassification = 255 // Because they are always stored in a uint8
+};
+
 const char *vcSettingsUI_GetClassificationName(vcState *pProgramState, uint8_t classification)
 {
-  if (classification < 19)
+  if (classification < vcLASClassifications_FirstReserved)
   {
     const char *localizations[] = {
       "settingsVisClassNeverClassified",
@@ -772,7 +779,7 @@ const char *vcSettingsUI_GetClassificationName(vcState *pProgramState, uint8_t c
 
     return udTempStr("%d. %s", classification, vcString::Get(localizations[classification]));
   }
-  else if (classification < 64)
+  else if (classification < vcLASClassifications_FirstUserDefined)
   {
     return udTempStr("%d. %s", classification, vcString::Get("settingsVisClassReservedLabels"));
   }
@@ -807,19 +814,19 @@ void vcSettingsUI_VisualizationSettings(vcState *pProgramState, vcVisualizationS
       if (ImGui::Button(udTempStr("%s##RestoreClassificationColors", vcString::Get("settingsRestoreDefaults"))))
         memcpy(pProgramState->settings.visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pProgramState->settings.visualization.customClassificationColors));
 
-      for (uint8_t i = 0; i < 19; ++i)
+      for (uint8_t i = 0; i < vcLASClassifications_FirstReserved; ++i)
         vcIGSW_ColorPickerU32(vcSettingsUI_GetClassificationName(pProgramState, i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
 
       if (ImGui::TreeNode(vcString::Get("settingsVisClassReservedColours")))
       {
-        for (uint8_t i = 19; i < 64; ++i)
+        for (uint8_t i = vcLASClassifications_FirstReserved; i < vcLASClassifications_FirstUserDefined; ++i)
           vcIGSW_ColorPickerU32(vcSettingsUI_GetClassificationName(pProgramState, i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
         ImGui::TreePop();
       }
 
       if (ImGui::TreeNode(vcString::Get("settingsVisClassUserDefinable")))
       {
-        for (int xi = 64; xi <= 255; ++xi)
+        for (int xi = vcLASClassifications_FirstUserDefined; xi <= vcLASClassifications_LastClassification; ++xi)
         {
           uint8_t i = (uint8_t)xi;
 
