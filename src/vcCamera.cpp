@@ -433,10 +433,10 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   }
 
   if (io.KeyCtrl)
-    speedModifier *= 0.1f;
+    speedModifier *= SlowDownRate;
 
   if (io.KeyShift || io.NavInputs[ImGuiNavInput_FocusPrev] > 0.15f) // Left Trigger
-    speedModifier *= 10.f;
+    speedModifier *= SpeedUpRate;
 
   if ((!ImGui::GetIO().WantCaptureKeyboard || isFocused) && !pProgramState->modalOpen)
   {

@@ -11,7 +11,7 @@
 
   "popupClose": "关闭",
   "popupConfirmYes": "是",
-  "popupConfirmNo": "没有",
+  "popupConfirmNo": "否",
 
   "loginButton": "登录",
   "loginAbout": "关于",
@@ -596,6 +596,10 @@
   "bindingsErrorUnbound": "重复的键已取消绑定!",
   "bindingsClear": "清除",
   "bindingsSelectKey": "按组合键进行绑定。",
+  "bindingsSpeedup": "相机加速",
+  "bindingsSpeedupDescription": "10倍速度。",
+  "bindingsSlowdown": "相机减速",
+  "bindingsSlowdownDescription": "0.1倍速度。",
 
   "bindingsLockAltitude": "切换高度锁定，防止上下移动",
   "bindingsGizmoTranslate": "设置为转换模式，允许移动对象。",

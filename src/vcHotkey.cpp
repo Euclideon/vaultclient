@@ -167,9 +167,6 @@ namespace vcHotkey
   {
     int mappedKey = (key == vcB_Count ? 0 : keyBinds[key]);
     NameFromKey(mappedKey, pBuffer, bufferLen);
-
-    if (key >= vcB_Forward && key <= vcB_Down)
-      udStrcat(pBuffer, bufferLen, "* [Shift] Speed + | [Ctrl] Speed -");
   }
 
   vcBind BindFromName(const char* pName)
@@ -255,10 +252,22 @@ namespace vcHotkey
     // Header Row
     ImGui::SetWindowFontScale(1.05f);
     ImGui::TextUnformatted(vcString::Get("bindingsColumnName"));
+    ImGui::TextUnformatted("-----------------");
+    ImGui::TextUnformatted(vcString::Get("bindingsSpeedup"));
+    ImGui::TextUnformatted(vcString::Get("bindingsSlowdown"));
+    ImGui::TextUnformatted("-----------------");
     ImGui::NextColumn();
     ImGui::TextUnformatted(vcString::Get("bindingsColumnKeyCombination"));
+    ImGui::TextUnformatted("-----------------");
+    ImGui::TextUnformatted("Shift +");
+    ImGui::TextUnformatted("Ctrl +");
+    ImGui::TextUnformatted("-----------------");
     ImGui::NextColumn();
     ImGui::TextUnformatted(vcString::Get("bindingsColumnDescription"));
+    ImGui::TextUnformatted("-----------------");
+    ImGui::TextUnformatted(vcString::Get("bindingsSpeedupDescription"));
+    ImGui::TextUnformatted(vcString::Get("bindingsSlowdownDescription"));
+    ImGui::TextUnformatted("-----------------");
     ImGui::NextColumn();
     ImGui::SetWindowFontScale(1.f);
 

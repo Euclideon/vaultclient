@@ -104,6 +104,9 @@ const float vcLens50mm = 0.67335f;
 const float vcLens70mm = 0.48996f;
 const float vcLens100mm = 0.34649f;
 
+const float SpeedUpRate = 10.0f;
+const float SlowDownRate = 0.1f;
+
 enum vcLensSizes
 {
   vcLS_Custom = 0,

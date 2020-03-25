@@ -596,6 +596,10 @@
   "bindingsErrorBound": "Already bound to \"{0}\"",
   "bindingsClear": "Clear",
   "bindingsSelectKey": "Press a key combination to bind.",
+  "bindingsSpeedup": "Speed Up",
+  "bindingsSpeedupDescription": "10x Camera Speed",
+  "bindingsSlowdown": "Slow Down",
+  "bindingsSlowdownDescription": "0.1x Camera Speed",
 
   "bindingsLockAltitude": "Toggles altitude lock, preventing up/down movement",
   "bindingsGizmoTranslate": "Sets the gizmo to translation mode, allowing you to move objects.",
