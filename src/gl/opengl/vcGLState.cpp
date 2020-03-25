@@ -214,6 +214,8 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
     case vcGLSDM_Always:
       glDepthFunc(GL_ALWAYS);
       break;
+    case vcGLSDM_Total:
+      break;
     }
 
     s_internalState.depthReadMode = depthReadMode;

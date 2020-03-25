@@ -60,8 +60,8 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOpe
   {
     udFloat4 col = udFloat4::create(((clearColour >> 16) & 0xFF) / 255.f, ((clearColour >> 8) & 0xFF) / 255.f, (clearColour & 0xFF) / 255.f, ((clearColour >> 24) & 0xFF) / 255.f);
 
-    _renderer.renderPasses[pFramebuffer->ID].colorAttachments[0].clearColor = MTLClearColorMake(col.x,col.y,col.z,col.w);
-    _renderer.renderPasses[pFramebuffer->ID].depthAttachment.clearDepth = 1.0;
+    pFramebuffer->pRenderPass.colorAttachments[0].clearColor = MTLClearColorMake(col.x,col.y,col.z,col.w);
+    pFramebuffer->pRenderPass.depthAttachment.clearDepth = 1.0;
   }
 
   return true;

@@ -1,4 +1,5 @@
 #import "vcMetal.h"
+#import "vcConstants.h"
 #import "gl/vcShader.h"
 #import <Metal/Metal.h>
 
@@ -118,7 +119,7 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
   NSError *err = nil;
   MTLRenderPipelineReflection *reflectionObj;
   MTLPipelineOption option = MTLPipelineOptionBufferTypeInfo | MTLPipelineOptionArgumentInfo;
-  [_renderer.pipelines addObject:[_device newRenderPipelineStateWithDescriptor:pDesc options:option reflection:&reflectionObj error:&err]];
+  pShader->pipelines[vcGLSBM_None] = [_device newRenderPipelineStateWithDescriptor:pDesc options:option reflection:&reflectionObj error:&err];
 #ifdef METAL_DEBUG
   if (err != nil)
     NSLog(@"Error: failed to create Metal pipeline state: %@", err);
@@ -155,7 +156,7 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
         break;
     }
 
-    [_renderer.pipelines addObject:[_device newRenderPipelineStateWithDescriptor:pDesc error:&err]];
+    pShader->pipelines[i] = [_device newRenderPipelineStateWithDescriptor:pDesc error:&err];
 #ifdef METAL_DEBUG
     if (err != nil)
       NSLog(@"Error: failed to create Metal pipeline state: %@", err);
@@ -203,6 +204,8 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
     pBuffer->expectedSize = arg.bufferDataSize;
     pBuffer->buffers[1].index = arg.index;
   }
+
+  vcShader_GetConstantBuffer(&pShader->pCameraPlaneParams, pShader, "u_cameraPlaneParams", sizeof(float) * 4);
 
   pShader->ID = g_pipeCount;
   ++g_pipeCount;
@@ -256,9 +259,22 @@ bool vcShader_Bind(vcShader *pShader)
   if (pShader != nullptr)
   {
     if (pShader->inititalised)
+    {
       [_renderer bindPipeline:pShader];
+
+      struct
+      {
+        float cameraNearPlane;
+        float cameraFarPlane;
+        float clipZNear;
+        float clipZFar;
+      } cameraPlane = { s_CameraNearPlane, s_CameraFarPlane, 0.f, 1.f };
+      vcShader_BindConstantBuffer(pShader, pShader->pCameraPlaneParams, &cameraPlane, sizeof(cameraPlane));
+    }
     else
+    {
       pShader->inititalised = true;
+    }
   }
   return true;
 }

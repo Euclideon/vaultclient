@@ -288,6 +288,9 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
     case vcGLSDM_Always:
       desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
       break;
+    case vcGLSDM_Total:
+      desc.DepthFunc = D3D11_COMPARISON_NEVER;
+      break;
     }
 
     if (doDepthWrite)

@@ -20,32 +20,9 @@
 
 @interface vcRenderer : NSObject
 
-@property(nonatomic,strong,nonnull) id<MTLCommandQueue> queue;
-
 // Blitting
 @property(nonatomic,strong,nonnull) id<MTLCommandBuffer> blitBuffer;
 @property(nonatomic,strong,nonnull) id<MTLBlitCommandEncoder> blitEncoder;
-
-// Compute
-@property(nonatomic,strong,nonnull) id<MTLCommandBuffer> computeBuffer;
-@property(nonatomic,strong,nonnull) id<MTLComputeCommandEncoder> computeEncoder;
-
-@property(nonatomic,strong,nonnull) NSMutableArray<id<MTLRenderPipelineState>> *pipelines;
-
-@property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLBuffer>> *vertBuffers;
-@property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLBuffer>> *indexBuffers;
-@property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLTexture>> *textures;
-
-@property(nonatomic,strong,nonnull) NSMutableArray<id<MTLBuffer>> *blitBuffers;
-
-// Permutables
-@property(nonatomic,strong,nonnull) NSMutableArray<id<MTLDepthStencilState>> *depthStates;
-@property(nonatomic,strong,nonnull) NSMutableDictionary<NSString*, id<MTLSamplerState>> *samplers;
-
-// Per buffer objects
-@property(nonatomic,strong,nonnull) NSMutableArray<MTLRenderPassDescriptor*> *renderPasses;
-@property(nonatomic,strong,nonnull) NSMutableArray<id<MTLCommandBuffer>> *commandBuffers;
-@property(nonatomic,strong,nonnull) NSMutableArray<id<MTLRenderCommandEncoder>> *encoders;
 
 - (void)initWithView:(nonnull PlatformView*)view;
 - (nullable CAMetalLayer*)makeBackingLayer;
