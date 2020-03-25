@@ -104,6 +104,12 @@ struct vcGLStencilSettings
   vcGLStateStencilOp onStencilAndDepthPass;
 };
 
+enum vcGLSamplerShaderStage
+{
+  vcGLSamplerShaderStage_Vertex   = 0x1,
+  vcGLSamplerShaderStage_Fragment = 0x2
+};
+
 struct vcGLState
 {
   vcGLStateFillMode fillMode;
