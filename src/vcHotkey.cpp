@@ -27,6 +27,8 @@ namespace vcHotkey
     "CameraRight",
     "CameraUp",
     "CameraDown",
+    "DecreaseCameraSpeed",
+    "IncreaseCameraSpeed",
     "Remove",
     "Cancel",
     "LockAltitude",
@@ -167,9 +169,6 @@ namespace vcHotkey
   {
     int mappedKey = (key == vcB_Count ? 0 : keyBinds[key]);
     NameFromKey(mappedKey, pBuffer, bufferLen);
-
-    if (key >= vcB_Forward && key <= vcB_Down)
-      udStrcat(pBuffer, bufferLen, "* [Shift] Speed + | [Ctrl] Speed -");
   }
 
   vcBind BindFromName(const char* pName)
@@ -248,8 +247,8 @@ namespace vcHotkey
 
     ImGui::BeginColumns(nullptr, 3, ImGuiColumnsFlags_NoResize);
 
-    ImGui::SetColumnWidth(0, 125);
-    ImGui::SetColumnWidth(1, 175);
+    ImGui::SetColumnWidth(0, 175);
+    ImGui::SetColumnWidth(1, 125);
     ImGui::SetColumnWidth(2, 600);
 
     // Header Row

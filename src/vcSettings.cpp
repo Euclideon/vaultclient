@@ -298,6 +298,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     vcHotkey::Set(vcB_Right, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Right)).AsInt(7));
     vcHotkey::Set(vcB_Up, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Up)).AsInt(21));
     vcHotkey::Set(vcB_Down, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Down)).AsInt(9));
+    vcHotkey::Set(vcB_DecreaseCameraSpeed, data.Get("keys.%s", vcHotkey::GetBindName(vcB_DecreaseCameraSpeed)).AsInt(91)); // [
+    vcHotkey::Set(vcB_IncreaseCameraSpeed, data.Get("keys.%s", vcHotkey::GetBindName(vcB_IncreaseCameraSpeed)).AsInt(93)); // ]
     vcHotkey::Set(vcB_Remove, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Remove)).AsInt(76));
     vcHotkey::Set(vcB_Cancel, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Cancel)).AsInt(41));
     vcHotkey::Set(vcB_LockAltitude, data.Get("keys.%s", vcHotkey::GetBindName(vcB_LockAltitude)).AsInt(44));

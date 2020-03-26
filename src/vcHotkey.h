@@ -21,6 +21,8 @@ enum vcBind
   vcB_Right,
   vcB_Up,
   vcB_Down,
+  vcB_DecreaseCameraSpeed,
+  vcB_IncreaseCameraSpeed,
 
   // Other Bindings
   vcB_Remove,
