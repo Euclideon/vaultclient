@@ -145,12 +145,19 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowNativeDialogs"), &pProgramState->settings.window.useNativeUI);
 #endif
 
-          ImGui::Checkbox(vcString::Get("settingsAppearanceShowSkybox"), &pProgramState->settings.presentation.showSkybox);
-
-          if (!pProgramState->settings.presentation.showSkybox)
+          const char *skyboxOptions[] = { vcString::Get("settingsAppearanceSkyboxTypeNone"), vcString::Get("settingsAppearanceSkyboxTypeColour"), vcString::Get("settingsAppearanceSkyboxTypeSimple"), vcString::Get("settingsAppearanceSkyboxTypeAtmosphere") };
+          ImGui::Combo(vcString::Get("settingsAppearanceSkyboxType"), (int*)&pProgramState->settings.presentation.skybox.type, skyboxOptions, (int)udLengthOf(skyboxOptions));
+          if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Colour)
           {
             ImGui::Indent();
-            ImGui::ColorEdit3(vcString::Get("settingsAppearanceSkyboxColour"), &pProgramState->settings.presentation.skyboxColour.x);
+            ImGui::ColorEdit3(vcString::Get("settingsAppearanceSkyboxColour"), &pProgramState->settings.presentation.skybox.colour.x);
+            ImGui::Unindent();
+          }
+          else if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Atmosphere)
+          {
+            ImGui::Indent();
+            ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfDay"), &pProgramState->settings.presentation.skybox.timeOfDay, 0.0f, 24.0f);
+            ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxExposure"), &pProgramState->settings.presentation.skybox.exposure, 0.0f, 100.0f);
             ImGui::Unindent();
           }
 

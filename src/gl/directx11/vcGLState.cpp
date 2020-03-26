@@ -49,6 +49,7 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
   // Create Device
+  // set 'createDeviceFlags = D3D11_CREATE_DEVICE_DEBUG' for debugging
   UINT createDeviceFlags = 0;
   D3D_FEATURE_LEVEL featureLevel;
   const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };

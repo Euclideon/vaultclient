@@ -233,7 +233,7 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
   GLenum pixelType = GL_INVALID_ENUM;
   GLint pixelFormat = GL_INVALID_ENUM;
   int pixelBytes = 0;
-  vcTexture_GetFormatAndPixelSize(pTexture->format, nullptr, &textureFormat, &pixelType, &pixelFormat);
+  vcTexture_GetFormatAndPixelSize(pTexture->format, &pixelBytes, &textureFormat, &pixelType, &pixelFormat);
 
   glBindTexture(target, pTexture->id);
 
