@@ -279,10 +279,11 @@ bool vcShader_Bind(vcShader *pShader)
   return true;
 }
 
-bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderSampler *pSampler/* = nullptr*/)
+bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderSampler *pSampler/* = nullptr*/, vcGLSamplerShaderStage samplerStage /*= vcGLSamplerShaderStage_Fragment*/)
 {
   udUnused(pShader);
   udUnused(pSampler);
+  udUnused(samplerStage);
 
   if (pTexture == nullptr)
     return false;

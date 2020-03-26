@@ -143,12 +143,13 @@ bool vcShader_Bind(vcShader *pShader)
   return true;
 }
 
-bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderSampler *pSampler/* = nullptr*/)
+bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderSampler *pSampler/* = nullptr*/, vcGLSamplerShaderStage samplerStage /*= vcGLSamplerShaderStage_Fragment*/)
 {
   if (pTexture == nullptr || pTexture->id == GL_INVALID_INDEX)
     return false;
 
   udUnused(pShader);
+  udUnused(samplerStage);
 
   glActiveTexture(GL_TEXTURE0 + samplerIndex);
   VERIFY_GL();

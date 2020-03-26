@@ -239,7 +239,7 @@ bool vcShader_Bind(vcShader *pShader)
   return true;
 }
 
-bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderSampler *pSamplerUniform /*= nullptr*/)
+bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderSampler *pSamplerUniform /*= nullptr*/, vcGLSamplerShaderStage samplerStage /*= vcGLSamplerShaderStage_Fragment*/)
 {
   udUnused(pShader);
   udUnused(pSamplerUniform);
@@ -247,12 +247,23 @@ bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t sampl
   if (pTexture == nullptr)
   {
     ID3D11ShaderResourceView *nullView[] = { nullptr };
-    g_pd3dDeviceContext->PSSetShaderResources(samplerIndex, 1, nullView);
+    if ((samplerStage & vcGLSamplerShaderStage_Fragment) == vcGLSamplerShaderStage_Fragment)
+      g_pd3dDeviceContext->PSSetShaderResources(samplerIndex, 1, nullView);
+    if ((samplerStage & vcGLSamplerShaderStage_Vertex) == vcGLSamplerShaderStage_Vertex)
+      g_pd3dDeviceContext->VSSetShaderResources(samplerIndex, 1, nullView);
   }
   else
   {
-    g_pd3dDeviceContext->PSSetShaderResources(samplerIndex, 1, &pTexture->pTextureView);
-    g_pd3dDeviceContext->PSSetSamplers(samplerIndex, 1, &pTexture->pSampler);
+    if ((samplerStage & vcGLSamplerShaderStage_Fragment) == vcGLSamplerShaderStage_Fragment)
+    {
+      g_pd3dDeviceContext->PSSetShaderResources(samplerIndex, 1, &pTexture->pTextureView);
+      g_pd3dDeviceContext->PSSetSamplers(samplerIndex, 1, &pTexture->pSampler);
+    }
+    if ((samplerStage & vcGLSamplerShaderStage_Vertex) == vcGLSamplerShaderStage_Vertex)
+    {
+      g_pd3dDeviceContext->VSSetShaderResources(samplerIndex, 1, &pTexture->pTextureView);
+      g_pd3dDeviceContext->VSSetSamplers(samplerIndex, 1, &pTexture->pSampler);
+    }
   }
 
   return true;

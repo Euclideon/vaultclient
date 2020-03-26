@@ -4,6 +4,8 @@
 #include "udMath.h"
 #include "gl/vcLayout.h"
 
+#include "vcGLState.h"
+
 struct vcShader;
 struct vcShaderSampler;
 struct vcShaderConstantBuffer;
@@ -17,7 +19,7 @@ void vcShader_DestroyShader(vcShader **ppShader);
 
 bool vcShader_Bind(vcShader *pShader); // nullptr to unbind shader
 
-bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderSampler *pSampler = nullptr);
+bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderSampler *pSampler = nullptr, vcGLSamplerShaderStage samplerStage = vcGLSamplerShaderStage_Fragment);
 
 bool vcShader_GetConstantBuffer(vcShaderConstantBuffer **ppBuffer, vcShader *pShader, const char *pBufferName, const size_t bufferSize);
 bool vcShader_BindConstantBuffer(vcShader *pShader, vcShaderConstantBuffer *pBuffer, const void *pData, const size_t bufferSize);
