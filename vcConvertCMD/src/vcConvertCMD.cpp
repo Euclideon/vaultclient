@@ -249,6 +249,7 @@ int main(int argc, const char **ppArgv)
       cmdlineError = true;
   }
 
+  printf("Performing Initial Preprocess...\n");
   for (int i = 0; i < settings.files.length; ++i)
   {
     udFindDir *pFindDir = nullptr;
@@ -262,17 +263,19 @@ int main(int argc, const char **ppArgv)
 
         udFilename foundFile(pFindDir->pFilename);
         foundFile.SetFolder(settings.files[i]);
+        printf("\tPreprocessing '%s'...\n", foundFile.GetPath());
         result = vdkConvert_AddItem(pModel, foundFile.GetPath());
         if (result != vE_Success)
-          printf("Unable to convert %s [Error:%d]:\n", foundFile.GetPath(), result);
+          printf("\t\tUnable to convert %s [Error:%d]:\n", foundFile.GetPath(), result);
       } while (udReadDir(pFindDir) == udR_Success);
       res = udCloseDir(&pFindDir);
     }
     else
     {
+      printf("\tPreprocessing '%s'...\n", settings.files[i]);
       result = vdkConvert_AddItem(pModel, settings.files[i]);
       if (result != vE_Success)
-        printf("Unable to convert %s [Error:%d]:\n", settings.files[i], result);
+        printf("\t\tUnable to convert %s [Error:%d]:\n", settings.files[i], result);
     }
 
     udFree(settings.files[i]);
