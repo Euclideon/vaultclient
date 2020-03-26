@@ -221,6 +221,8 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       }
 
       udResult result = udR_Failure_;
+      udMutex *pMutexCopy = pCache->pMutex;
+
       void *pFileData = nullptr;
       int64_t fileLen = -1;
       int width = 0;
@@ -230,7 +232,7 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
 
       char localFileName[vcMaxPathLength] = {};
       char serverAddress[vcMaxPathLength] = {};
-      bool downloadingFromServer = true;
+      bool downloadingFromServer = false;
 
       vcQuadTreeNode *pBestNode = pCache->tileLoadList[best];
       pCache->tileLoadList.RemoveSwapLast(best);
@@ -246,14 +248,14 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
 
         udSprintf(localFileName, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
         udSprintf(serverAddress, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
-        udReleaseMutex(pCache->pMutex);
+        udReleaseMutex(pMutexCopy);
+        pMutexCopy = nullptr;
 
-        char *pTileURL = serverAddress;
-
-        if (udFileExists(localFileName) == udR_Success)
+        char *pTileURL = localFileName;
+        if (udFileExists(pTileURL) != udR_Success)
         {
-          pTileURL = localFileName;
-          downloadingFromServer = false;
+          pTileURL = serverAddress;
+          downloadingFromServer = true;
         }
 
         UD_ERROR_CHECK(udFile_Load(pTileURL, &pFileData, &fileLen));
@@ -265,7 +267,8 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
           // TODO: Put into LRU texture cache (but for now just throw it out)
           pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
 
-          // Even though the node is now invalid - since we the data, it may be put into local disk cache
+          // Even though the node is now invalid - since we've done the expensive part and downloaded data,
+          // it may be put into local disk cache.
           UD_ERROR_SET(udR_Success);
         }
 
@@ -286,8 +289,9 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         pBestNode->renderInfo.demLoadStatus = vcNodeRenderInfo::vcTLS_Failed;
 
         char demFileName[vcMaxPathLength] = {};
-        udSprintf(demFileName, "%s/%d/%d/%d.png", "D:/Vault/Maps/DEM/stitched", pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
-        udReleaseMutex(pCache->pMutex);
+        udSprintf(demFileName, "%s/%d/%d/%d.png", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
+        udReleaseMutex(pMutexCopy);
+        pMutexCopy = nullptr;
 
         if (udFile_Load(demFileName, &pFileData, &fileLen) == udR_Success)
         {
@@ -309,14 +313,10 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         // force the 'epilogue' code to not fire
         result = udR_Success;
       }
-      else
-      {
-        // TODO: I don't think this can ever happen - but just for absolute safety I have
-        //       left it in here. The whole above process needs to be reworked anyway.
-        udReleaseMutex(pCache->pMutex);
-      }
 
 epilogue:
+      if (pMutexCopy != nullptr)
+        udReleaseMutex(pMutexCopy);
 
       if (result != udR_Success)
       {
