@@ -509,7 +509,21 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
       static vcQueryNode *s_pQuery = nullptr;
 
       if (ImGui::IsWindowAppearing())
+      {
         s_pQuery = nullptr;
+
+        // Set a default file name to be exported if there isn't.
+        if (udStrlen(pProgramState->modelPath) == 0)
+        {
+          size_t fileNameLength = 0;
+          if (udStrchr(pProgramState->sceneExplorer.clickedItem.pItem->pName, ".", &fileNameLength))
+          {
+            memset(pProgramState->modelPath, 0, sizeof(pProgramState->modelPath));
+            udStrncpy(pProgramState->modelPath, pProgramState->sceneExplorer.clickedItem.pItem->pName, fileNameLength);
+            udStrcat(pProgramState->modelPath, SupportedTileTypes_QueryExport[0]);
+          }
+        }
+      }
 
       if (ImGui::BeginCombo(vcString::Get("sceneExplorerExportQueryFilter"), (s_pQuery == nullptr ? vcString::Get("sceneExplorerExportEntireModel") : s_pQuery->m_pNode->pName)))
       {
@@ -526,6 +540,9 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
       {
         if (udFileExists(pProgramState->modelPath) != udR_Success || vcModals_OverwriteExistingFile(pProgramState->modelPath))
         {
+          if (!udStrchr(pProgramState->modelPath, "."))
+            udStrcat(pProgramState->modelPath, SupportedTileTypes_QueryExport[0]);
+
           vdkQueryFilter *pFilter = ((s_pQuery == nullptr) ? nullptr : s_pQuery->m_pFilter);
           vdkPointCloud *pCloud = m_pPointCloud;
 
@@ -571,7 +588,6 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
           };
 
           // Add post callback
-
           udWorkerPool_AddTask(pProgramState->pWorkerPool, callback, nullptr, false);
           ImGui::CloseCurrentPopup();
         }
