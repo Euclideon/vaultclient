@@ -18,12 +18,51 @@
 // Debug tiles with colour information
 #define VISUALIZE_DEBUG_TILES 0
 
+// TODO: This is a temporary solution, where we know the dem data stops at level 13.
+#define HACK_DEM_LEVEL 13
+
 enum
 {
-  TileVertexResolution = 3, // This should match GPU struct size
+  TileVertexControlPointRes = 3, // Change with caution : 'vcQuadTreeNode::worldBounds[]' and GPU structs need to match
+  TileVertexResolution = 31,
   TileIndexResolution = (TileVertexResolution - 1),
 
   MaxTextureUploadsPerFrame = 3,
+};
+
+
+// Mesh stitching configurations
+int MeshUp = 1 << 0;
+int MeshRight = 1 << 1;
+int MeshDown = 1 << 2;
+int MeshLeft = 1 << 3;
+
+// build meshes
+int MeshConfigurations[] =
+{
+  0,
+
+  MeshUp,                              //  ^
+  MeshRight,                           //   >
+  MeshDown,                            //  .
+  MeshLeft,                            // <
+
+  MeshUp | MeshRight,                  //  ^>
+  MeshUp | MeshDown,                   //  ^.
+  MeshUp | MeshLeft,                   // <^
+
+  MeshRight | MeshDown,                //  .>
+  MeshRight | MeshLeft,                // < >
+
+  MeshDown | MeshLeft,                 // <.
+
+  MeshUp | MeshRight | MeshDown,       //  ^.>
+  MeshUp | MeshLeft | MeshRight,       // <^>
+  MeshUp | MeshLeft | MeshDown,        // <^.
+
+  MeshDown | MeshLeft | MeshRight,     // <.>
+
+  MeshUp | MeshLeft | MeshRight | MeshDown // <^.>
 };
 
 struct vcTileRenderer
@@ -34,8 +73,9 @@ struct vcTileRenderer
   vcSettings *pSettings;
   vcQuadTree quadTree;
 
-  vcMesh *pFullTileMesh;
+  vcMesh *pTileMeshes[udLengthOf(MeshConfigurations)];
   vcTexture *pEmptyTileTexture;
+  vcTexture *pEmptyDemTileTexture;
 
   udDouble3 cameraPosition;
 
@@ -55,13 +95,17 @@ struct vcTileRenderer
     vcShader *pProgram;
     vcShaderConstantBuffer *pConstantBuffer;
     vcShaderSampler *uniform_texture;
+    vcShaderSampler *uniform_dem;
 
     struct
     {
       udFloat4x4 projectionMatrix;
-      udFloat4 eyePositions[TileVertexResolution * TileVertexResolution];
+      udFloat4x4 viewMatrix;
+      udFloat4 eyePositions[TileVertexControlPointRes * TileVertexControlPointRes];
       udFloat4 colour;
       udFloat4 uvOffsetScale;
+      udFloat4 demUVOffsetScale;
+      udFloat4 tileNormal;
     } everyObject;
   } presentShader;
 };
@@ -116,11 +160,6 @@ epilogue:
   return result;
 }
 
-bool vcTileRenderer_ShouldLoadNode(vcQuadTreeNode *pNode)
-{
-  return pNode->renderInfo.tryLoad && pNode->touched && (pNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_InQueue);
-}
-
 uint32_t vcTileRenderer_LoadThread(void *pThreadData)
 {
   vcTileRenderer *pRenderer = (vcTileRenderer*)pThreadData;
@@ -146,13 +185,8 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       {
         pNode = pCache->tileLoadList[i];
 
-        if (!vcTileRenderer_ShouldLoadNode(pNode))
-        {
-          pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
-          pCache->tileLoadList.RemoveSwapLast(i);
-          --i;
+        if (!pNode->renderInfo.tryLoad)
           continue;
-        }
 
         double distanceToCameraSqr = udMagSq3(pNode->tileCenter - pRenderer->cameraPosition);
 
@@ -186,27 +220,9 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         break;
       }
 
-      vcQuadTreeNode *pBestNode = pCache->tileLoadList[best];
-      pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Downloading;
-      pCache->tileLoadList.RemoveSwapLast(best);
-
-      char localFileName[vcMaxPathLength];
-      char serverAddress[vcMaxPathLength];
-
-      udSprintf(localFileName, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
-      udSprintf(serverAddress, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
-      udReleaseMutex(pCache->pMutex);
-
-      bool downloadingFromServer = true;
-      char *pTileURL = serverAddress;
-
-      if (udFileExists(localFileName) == udR_Success)
-      {
-        pTileURL = localFileName;
-        downloadingFromServer = false;
-      }
-
       udResult result = udR_Failure_;
+      udMutex *pMutexCopy = pCache->pMutex;
+
       void *pFileData = nullptr;
       int64_t fileLen = -1;
       int width = 0;
@@ -214,29 +230,93 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       int channelCount = 0;
       uint8_t *pData = nullptr;
 
-      UD_ERROR_CHECK(udFile_Load(pTileURL, &pFileData, &fileLen));
-      UD_ERROR_IF(fileLen == 0, udR_InternalError);
+      char localFileName[vcMaxPathLength] = {};
+      char serverAddress[vcMaxPathLength] = {};
+      bool downloadingFromServer = false;
 
-      // Node has been invalidated since download started
-      if (!pBestNode->touched)
+      vcQuadTreeNode *pBestNode = pCache->tileLoadList[best];
+      pCache->tileLoadList.RemoveSwapLast(best);
+
+      // TODO: Processing a dem request has been stuck into this block. This has been rushed
+      // and will be looked at later.
+
+      // process either a colour request, or a DEM request
+      if (pBestNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_InQueue)
       {
-        // TODO: Put into LRU texture cache (but for now just throw it out)
-        pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
+        // do colour request
+        pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Downloading;
 
-        // Even though the node is now invalid - since we the data, it may be put into local disk cache
-        UD_ERROR_SET(udR_Success);
+        udSprintf(localFileName, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+        udSprintf(serverAddress, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+        udReleaseMutex(pMutexCopy);
+        pMutexCopy = nullptr;
+
+        char *pTileURL = localFileName;
+        if (udFileExists(pTileURL) != udR_Success)
+        {
+          pTileURL = serverAddress;
+          downloadingFromServer = true;
+        }
+
+        UD_ERROR_CHECK(udFile_Load(pTileURL, &pFileData, &fileLen));
+        UD_ERROR_IF(fileLen == 0, udR_InternalError);
+
+        // Node has been invalidated since download started
+        if (!pBestNode->touched)
+        {
+          // TODO: Put into LRU texture cache (but for now just throw it out)
+          pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
+
+          // Even though the node is now invalid - since we've done the expensive part and downloaded data,
+          // it may be put into local disk cache.
+          UD_ERROR_SET(udR_Success);
+        }
+
+        pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
+        UD_ERROR_NULL(pData, udR_InternalError);
+
+        pBestNode->renderInfo.colourData.width = width;
+        pBestNode->renderInfo.colourData.height = height;
+        pBestNode->renderInfo.colourData.pData = udMemDup(pData, sizeof(uint32_t) * width * height, 0, udAF_None);
+
+        pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Downloaded;
+
+        stbi_image_free(pData);
+      }
+      else if (pBestNode->renderInfo.demLoadStatus == vcNodeRenderInfo::vcTLS_InQueue)
+      {
+        // do DEM request
+        pBestNode->renderInfo.demLoadStatus = vcNodeRenderInfo::vcTLS_Failed;
+
+        char demFileName[vcMaxPathLength] = {};
+        udSprintf(demFileName, "%s/%d/%d/%d.png", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
+        udReleaseMutex(pMutexCopy);
+        pMutexCopy = nullptr;
+
+        if (udFile_Load(demFileName, &pFileData, &fileLen) == udR_Success)
+        {
+          pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
+          if (pData != nullptr)
+          {
+            pBestNode->renderInfo.demData.width = width;
+            pBestNode->renderInfo.demData.height = height;
+            pBestNode->renderInfo.demData.pData = udMemDup(pData, sizeof(uint32_t) * width * height, 0, udAF_None);
+            stbi_image_free(pData);
+
+            pBestNode->renderInfo.demLoadStatus = vcNodeRenderInfo::vcTLS_Downloaded;
+          }
+
+          udFree(pFileData);
+          pData = nullptr;
+        }
+
+        // force the 'epilogue' code to not fire
+        result = udR_Success;
       }
 
-      pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
-      UD_ERROR_NULL(pData, udR_InternalError);
-
-      pBestNode->renderInfo.width = width;
-      pBestNode->renderInfo.height = height;
-      pBestNode->renderInfo.pData = udMemDup(pData, sizeof(uint32_t)*width*height, 0, udAF_None);
-
-      pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Downloaded;
-
 epilogue:
+      if (pMutexCopy != nullptr)
+        udReleaseMutex(pMutexCopy);
 
       if (result != udR_Success)
       {
@@ -277,14 +357,13 @@ epilogue:
       }
 
       udFree(pFileData);
-      stbi_image_free(pData);
     }
   }
 
   return 0;
 }
 
-void vcTileRenderer_BuildMeshVertices(vcP3Vertex *pVerts, int *pIndicies, udFloat2 minUV, udFloat2 maxUV)
+void vcTileRenderer_BuildMeshVertices(vcP3Vertex *pVerts, int *pIndicies, udFloat2 minUV, udFloat2 maxUV, int collapseEdgeMask)
 {
   for (int y = 0; y < TileIndexResolution; ++y)
   {
@@ -292,6 +371,7 @@ void vcTileRenderer_BuildMeshVertices(vcP3Vertex *pVerts, int *pIndicies, udFloa
     {
       int index = y * TileIndexResolution + x;
       int vertIndex = y * TileVertexResolution + x;
+
       pIndicies[index * 6 + 0] = vertIndex + TileVertexResolution;
       pIndicies[index * 6 + 1] = vertIndex + 1;
       pIndicies[index * 6 + 2] = vertIndex;
@@ -299,6 +379,207 @@ void vcTileRenderer_BuildMeshVertices(vcP3Vertex *pVerts, int *pIndicies, udFloa
       pIndicies[index * 6 + 3] = vertIndex + TileVertexResolution;
       pIndicies[index * 6 + 4] = vertIndex + TileVertexResolution + 1;
       pIndicies[index * 6 + 5] = vertIndex + 1;
+
+      // corner cases
+      if ((collapseEdgeMask & MeshDown) && (collapseEdgeMask & MeshRight) && x >= (TileIndexResolution - 2) && y >= (TileIndexResolution - 2))
+      {
+        if (x == TileIndexResolution - 2 && y == TileIndexResolution - 2)
+        {
+          // do nothing
+        }
+        else if (x == TileIndexResolution - 1 && y == TileIndexResolution - 2)
+        {
+          // collapse
+          pIndicies[index * 6 + 3] = vertIndex;
+          pIndicies[index * 6 + 4] = vertIndex;
+          pIndicies[index * 6 + 5] = vertIndex;
+        }
+        else if (x == TileIndexResolution - 2 && y == TileIndexResolution - 1)
+        {
+          // collapse
+          pIndicies[index * 6 + 3] = vertIndex;
+          pIndicies[index * 6 + 4] = vertIndex;
+          pIndicies[index * 6 + 5] = vertIndex;
+        }
+        else // x == 1 && y == 1
+        {
+          // collapse both
+          pIndicies[index * 6 + 0] = vertIndex + TileVertexResolution - 1;
+          pIndicies[index * 6 + 1] = vertIndex + TileVertexResolution + 1;
+          pIndicies[index * 6 + 2] = vertIndex;
+
+          pIndicies[index * 6 + 3] = vertIndex + TileVertexResolution + 1;
+          pIndicies[index * 6 + 4] = vertIndex - TileVertexResolution + 1;
+          pIndicies[index * 6 + 5] = vertIndex;
+        }
+      }
+      else if ((collapseEdgeMask & MeshDown) && (collapseEdgeMask & MeshLeft) && x <= 1 && y >= (TileIndexResolution - 2))
+      {
+        if (x == 0 && y == TileIndexResolution - 2)
+        {
+          // collapse
+          pIndicies[index * 6 + 0] = vertIndex + 1;
+          pIndicies[index * 6 + 2] = vertIndex + 1;
+
+          // re-orient
+          pIndicies[index * 6 + 3] = vertIndex + TileVertexResolution + 1;
+          pIndicies[index * 6 + 4] = vertIndex + 1;
+          pIndicies[index * 6 + 5] = vertIndex;
+        }
+        else if (x == 1 && y == TileIndexResolution - 2)
+        {
+          // do nothing
+        }
+        else if (x == 0 && y == TileIndexResolution - 1)
+        {
+          // re-orient
+          pIndicies[index * 6 + 0] = vertIndex + TileVertexResolution;
+          pIndicies[index * 6 + 1] = vertIndex + 1;
+          pIndicies[index * 6 + 2] = vertIndex - TileVertexResolution;
+
+          // collapse
+          pIndicies[index * 6 + 3] = vertIndex + TileVertexResolution;
+          pIndicies[index * 6 + 4] = vertIndex + TileVertexResolution + 2;
+          pIndicies[index * 6 + 5] = vertIndex + 1;
+        }
+        else // x == 1 && y == 1
+        {
+          // collapse
+          pIndicies[index * 6 + 1] = vertIndex + TileVertexResolution;
+          pIndicies[index * 6 + 2] = vertIndex + TileVertexResolution;
+
+          // re-orient
+          pIndicies[index * 6 + 3] = vertIndex + TileVertexResolution + 1;
+          pIndicies[index * 6 + 4] = vertIndex + 1;
+          pIndicies[index * 6 + 5] = vertIndex;
+        }
+      }
+      else if ((collapseEdgeMask & MeshUp) && (collapseEdgeMask & MeshRight) && x >= (TileIndexResolution - 2) && y <= 1)
+      {
+        if (x == TileIndexResolution - 2 && y == 0)
+        {
+          // collapse
+          pIndicies[index * 6 + 0] = vertIndex;
+          pIndicies[index * 6 + 1] = vertIndex;
+          pIndicies[index * 6 + 2] = vertIndex;
+
+          // re-orient triangle
+          pIndicies[index * 6 + 5] = vertIndex;
+        }
+        else if (x == TileIndexResolution - 1 && y == 0)
+        {
+          pIndicies[index * 6 + 0] = vertIndex + TileVertexResolution;
+          pIndicies[index * 6 + 1] = vertIndex + 1;
+          pIndicies[index * 6 + 2] = vertIndex - 1;
+
+          pIndicies[index * 6 + 3] = vertIndex + TileVertexResolution;
+          pIndicies[index * 6 + 4] = vertIndex + TileVertexResolution + TileVertexResolution + 1;
+          pIndicies[index * 6 + 5] = vertIndex + 1;
+        }
+        else if (x == TileIndexResolution - 2 && y == 1)
+        {
+          // do nothing
+        }
+        else // x == TileIndexResolution -1 && y == 1
+        {
+          // collapse
+          pIndicies[index * 6 + 0] = vertIndex;
+          pIndicies[index * 6 + 1] = vertIndex;
+          //pIndicies[index * 6 + 2] = vertIndex;
+
+          // re-orient triangle
+          pIndicies[index * 6 + 5] = vertIndex;
+        }
+      }
+      else if ((collapseEdgeMask & MeshUp) && (collapseEdgeMask & MeshLeft) && x <= 1 && y <= 1)
+      {
+        if (x == 0 && y == 0)
+        {
+          pIndicies[index * 6 + 0] = vertIndex + TileVertexResolution + 1;
+          pIndicies[index * 6 + 1] = vertIndex + 2;
+          pIndicies[index * 6 + 2] = vertIndex;
+
+          pIndicies[index * 6 + 3] = vertIndex + TileVertexResolution + TileVertexResolution;
+          pIndicies[index * 6 + 4] = vertIndex + TileVertexResolution + 1;
+          pIndicies[index * 6 + 5] = vertIndex;
+        }
+        else if (x == 1 && y == 0)
+        {
+          // collapse
+          pIndicies[index * 6 + 0] = vertIndex + 1;
+          pIndicies[index * 6 + 2] = vertIndex + 1;
+        }
+        else if (x == 0 && y == 1)
+        {
+          // collapse
+          pIndicies[index * 6 + 0] = vertIndex + 1;
+          pIndicies[index * 6 + 2] = vertIndex + 1;
+        }
+        else // x==1, y == 1
+        {
+          // do nothing
+        }
+      }
+      else if (y == 0 && (collapseEdgeMask & MeshUp))
+      {
+        if ((x & 1) == 0)
+        {
+          pIndicies[index * 6 + 1] = vertIndex + 2;
+
+          pIndicies[index * 6 + 5] = vertIndex + 2;
+        }
+        else
+        {
+          // collapse
+          pIndicies[index * 6 + 0] = vertIndex + 1;
+          pIndicies[index * 6 + 2] = vertIndex + 1;
+        }
+      }
+      else if (y == TileIndexResolution - 1 && (collapseEdgeMask & MeshDown))
+      {
+        if ((x & 1) == 0)
+        {
+          // collapse
+          pIndicies[index * 6 + 4] = vertIndex + TileVertexResolution;
+          pIndicies[index * 6 + 5] = vertIndex + TileVertexResolution;
+        }
+        else
+        {
+          pIndicies[index * 6 + 0] = vertIndex + TileVertexResolution - 1;
+
+          pIndicies[index * 6 + 3] = vertIndex + TileVertexResolution - 1;
+        }
+      }
+      else if (x == TileIndexResolution - 1 && (collapseEdgeMask & MeshRight))
+      {
+        if ((y & 1) == 0)
+        {
+           // collapse
+          pIndicies[index * 6 + 3] = vertIndex + 1;
+          pIndicies[index * 6 + 4] = vertIndex + 1;
+        }
+        else
+        {
+          pIndicies[index * 6 + 1] = vertIndex - TileVertexResolution + 1;
+
+          pIndicies[index * 6 + 5] = vertIndex - TileVertexResolution + 1;
+        }
+      }
+      else if (x == 0 && (collapseEdgeMask & MeshLeft))
+      {
+        if ((y & 1) == 0)
+        {
+          pIndicies[index * 6 + 0] = vertIndex + TileVertexResolution + TileVertexResolution;
+
+          pIndicies[index * 6 + 3] = vertIndex + TileVertexResolution + TileVertexResolution;
+        }
+        else
+        {
+          // collapse
+          pIndicies[index * 6 + 1] = vertIndex + TileVertexResolution;
+          pIndicies[index * 6 + 2] = vertIndex + TileVertexResolution;
+        }
+      }
     }
   }
 
@@ -308,13 +589,12 @@ void vcTileRenderer_BuildMeshVertices(vcP3Vertex *pVerts, int *pIndicies, udFloa
     for (int x = 0; x < TileVertexResolution; ++x)
     {
       uint32_t index = y * TileVertexResolution + x;
-      pVerts[index].position.z = (float)index;
-
       float normX = ((float)(x) / TileVertexResolution) * normalizeVertexPositionScale;
       float normY = ((float)(y) / TileVertexResolution) * normalizeVertexPositionScale;
       pVerts[index].position.x = minUV.x + normX * (maxUV.x - minUV.x);
       pVerts[index].position.y = minUV.y + normY * (maxUV.y - minUV.y);
-
+      pVerts[index].position.z = (float)index;
+      
     }
   }
 }
@@ -326,6 +606,7 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   vcP3Vertex verts[TileVertexResolution * TileVertexResolution] = {};
   int indicies[TileIndexResolution * TileIndexResolution * 6] = {};
   uint32_t greyPixel = 0xf3f3f3ff;
+  uint16_t blackPixel = 0x0;
   UD_ERROR_NULL(ppTileRenderer, udR_InvalidParameter_);
 
   pTileRenderer = udAllocType(vcTileRenderer, 1, udAF_Zero);
@@ -347,11 +628,17 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   UD_ERROR_IF(!vcShader_CreateFromFile(&pTileRenderer->presentShader.pProgram, "asset://assets/shaders/tileVertexShader", "asset://assets/shaders/tileFragmentShader", vcP3VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pTileRenderer->presentShader.pConstantBuffer, pTileRenderer->presentShader.pProgram, "u_EveryObject", sizeof(pTileRenderer->presentShader.everyObject)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_texture, pTileRenderer->presentShader.pProgram, "u_texture"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_dem, pTileRenderer->presentShader.pProgram, "u_dem"), udR_InternalError);
 
-  // build meshes
-  vcTileRenderer_BuildMeshVertices(verts, indicies, udFloat2::create(0.0f, 0.0f), udFloat2::create(1.0f, 1.0f));
-  UD_ERROR_CHECK(vcMesh_Create(&pTileRenderer->pFullTileMesh, vcP3VertexLayout, (int)udLengthOf(vcP3VertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6));
+  // build mesh variants
+  for (size_t i = 0; i < udLengthOf(MeshConfigurations); ++i)
+  {
+    vcTileRenderer_BuildMeshVertices(verts, indicies, udFloat2::create(0.0f, 0.0f), udFloat2::create(1.0f, 1.0f), MeshConfigurations[i]);
+    vcMesh_Create(&pTileRenderer->pTileMeshes[i], vcP3VertexLayout, (int)udLengthOf(vcP3VertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6);
+  }
+
   UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyTileTexture, 1, 1, &greyPixel));
+  UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyDemTileTexture, 1, 1, &blackPixel, vcTextureFormat_R16));
 
   *ppTileRenderer = pTileRenderer;
   pTileRenderer = nullptr;
@@ -390,14 +677,83 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
 
   vcShader_ReleaseConstantBuffer(pTileRenderer->presentShader.pProgram, pTileRenderer->presentShader.pConstantBuffer);
   vcShader_DestroyShader(&(pTileRenderer->presentShader.pProgram));
-  vcMesh_Destroy(&pTileRenderer->pFullTileMesh);
+  for (size_t i = 0; i < udLengthOf(MeshConfigurations); ++i)
+    vcMesh_Destroy(&pTileRenderer->pTileMeshes[i]);
   vcTexture_Destroy(&pTileRenderer->pEmptyTileTexture);
+  vcTexture_Destroy(&pTileRenderer->pEmptyDemTileTexture);
 
   vcQuadTree_Destroy(&(*ppTileRenderer)->quadTree);
   udFree(*ppTileRenderer);
   *ppTileRenderer = nullptr;
 
   return udR_Success;
+}
+
+void vcTileRenderer_RecursiveUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pParentNode, vcQuadTreeNode *pNode)
+{
+  if (pParentNode != nullptr && !vcQuadTree_HasDemData(pNode))
+    pNode->demMinMax = pParentNode->demMinMax; // inherit
+
+  vcQuadTree_CalculateNodeAABB(pNode);
+
+  if (!vcQuadTree_IsLeafNode(pNode))
+  {
+    for (int c = 0; c < 4; ++c)
+      vcTileRenderer_RecursiveUpdateNodeAABB(pQuadTree, pNode , &pQuadTree->nodes.pPool[pNode->childBlockIndex + c]);
+  }
+}
+
+void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
+{
+  vcTileRenderer::vcTileCache *pTileCache = &pTileRenderer->cache;
+  if (pNode->renderInfo.demLoadStatus == vcNodeRenderInfo::vcTLS_None)
+  {
+    pNode->renderInfo.demLoadStatus = vcNodeRenderInfo::vcTLS_InQueue;
+
+    pNode->renderInfo.demData.pData = nullptr;
+    pNode->renderInfo.demData.pTexture = nullptr;
+
+    pTileCache->tileLoadList.PushBack(pNode);
+    udIncrementSemaphore(pTileCache->pSemaphore);
+  }
+
+  pNode->renderInfo.tryLoad = true;
+
+  if (pNode->renderInfo.demLoadStatus == vcNodeRenderInfo::vcTLS_Downloaded)
+  {
+    pNode->renderInfo.demLoadStatus = vcNodeRenderInfo::vcTLS_Loaded;
+    pNode->renderInfo.tryLoad = false;
+
+    pNode->demMinMax[0] = 32767;
+    pNode->demMinMax[1] = -32768;
+
+    int16_t *pShortPixels = udAllocType(int16_t, pNode->renderInfo.demData.width * pNode->renderInfo.demData.height, udAF_Zero);
+    for (int h = 0; h < pNode->renderInfo.demData.height; ++h)
+    {
+      for (int w = 0; w < pNode->renderInfo.demData.width; ++w)
+      {
+        int index = h * pNode->renderInfo.demData.width + w;
+        uint32_t p = ((uint32_t*)pNode->renderInfo.demData.pData)[index];
+        uint8_t r = uint8_t((p & 0xff000000) >> 24);
+        uint8_t g = uint8_t((p & 0x00ff0000) >> 16);
+
+        int16_t height = r | (g << 8);
+
+        if (height == -32768) // TODO: invalid sentinel value
+          height = 0;
+
+        pNode->demMinMax[0] = udMin(pNode->demMinMax.x, (int32_t)height);
+        pNode->demMinMax[1] = udMax(pNode->demMinMax.y, (int32_t)height);
+        pShortPixels[index] = height;
+      }
+    }
+    vcTexture_CreateAdv(&pNode->renderInfo.demData.pTexture, vcTextureType_Texture2D, pNode->renderInfo.demData.width, pNode->renderInfo.demData.height, 1, pShortPixels, vcTextureFormat_R16, vcTFM_Linear, false, vcTWM_Clamp);
+    udFree(pShortPixels);
+    udFree(pNode->renderInfo.demData.pData);
+
+    // update descendent AABB
+    vcTileRenderer_RecursiveUpdateNodeAABB(&pTileRenderer->quadTree, nullptr, pNode);
+  }
 }
 
 bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
@@ -407,8 +763,8 @@ bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeN
   {
     pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_InQueue;
 
-    pNode->renderInfo.pData = nullptr;
-    pNode->renderInfo.pTexture = nullptr;
+    pNode->renderInfo.colourData.pData = nullptr;
+    pNode->renderInfo.colourData.pTexture = nullptr;
     pNode->renderInfo.timeoutTime = pTileRenderer->totalTime;
 
     pTileCache->tileLoadList.PushBack(pNode);
@@ -422,9 +778,8 @@ bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeN
     pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Loaded;
     pNode->renderInfo.tryLoad = false;
 
-    vcTexture_CreateAdv(&pNode->renderInfo.pTexture, vcTextureType_Texture2D, pNode->renderInfo.width, pNode->renderInfo.height, 1, pNode->renderInfo.pData, vcTextureFormat_RGBA8, vcTFM_Linear, true, vcTWM_Clamp, vcTCF_None, 16);
-    udFree(pNode->renderInfo.pData);
-
+    vcTexture_CreateAdv(&pNode->renderInfo.colourData.pTexture, vcTextureType_Texture2D, pNode->renderInfo.colourData.width, pNode->renderInfo.colourData.height, 1, pNode->renderInfo.colourData.pData, vcTextureFormat_RGBA8, vcTFM_Linear, true, vcTWM_Clamp, vcTCF_None, 16);
+    udFree(pNode->renderInfo.colourData.pData);
     return true;
   }
 
@@ -447,6 +802,16 @@ void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, 
     if (vcTileRenderer_UpdateTileTexture(pTileRenderer, pNode))
       ++tileUploadCount;
   }
+
+  // hacky - looking for specific DEM levels
+  if (pNode->slippyPosition.z <= HACK_DEM_LEVEL)
+  {
+    bool demLeaf = vcQuadTree_IsLeafNode(pNode) || (!vcQuadTree_IsLeafNode(pNode) && pNode->slippyPosition.z == HACK_DEM_LEVEL);
+    if (demLeaf && pNode->renderInfo.demLoadStatus != vcNodeRenderInfo::vcTLS_Loaded)
+    {
+      vcTileRenderer_UpdateTileDEMTexture(pTileRenderer, pNode);
+    }
+  }
 }
 
 void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
@@ -467,7 +832,22 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
   {
     if (!pTileRenderer->cache.tileLoadList[i]->renderInfo.tryLoad)
     {
+      // TODO: Bug causing this data to be allocated, free just in case
+      if (pTileRenderer->cache.tileLoadList[i]->renderInfo.loadStatus != vcNodeRenderInfo::vcTLS_None)
+      {
+        udFree(pTileRenderer->cache.tileLoadList[i]->renderInfo.colourData.pData);
+        vcTexture_Destroy(&pTileRenderer->cache.tileLoadList[i]->renderInfo.colourData.pTexture);
+      }
+
+      // TODO: Bug causing this data to rarely leak, free just in case
+      if (pTileRenderer->cache.tileLoadList[i]->renderInfo.demLoadStatus != vcNodeRenderInfo::vcTLS_None)
+      {
+        udFree(pTileRenderer->cache.tileLoadList[i]->renderInfo.demData.pData);
+        vcTexture_Destroy(&pTileRenderer->cache.tileLoadList[i]->renderInfo.demData.pTexture);
+      }
+
       pTileRenderer->cache.tileLoadList[i]->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
+      pTileRenderer->cache.tileLoadList[i]->renderInfo.demLoadStatus = vcNodeRenderInfo::vcTLS_None;
       pTileRenderer->cache.tileLoadList.RemoveSwapLast(i);
       --i;
     }
@@ -477,7 +857,7 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
   while (pTileRenderer->cache.tileTimeoutList.length > 0)
   {
     vcQuadTreeNode *pNode = pTileRenderer->cache.tileTimeoutList[0];
-    if (vcTileRenderer_ShouldLoadNode(pNode) && (pNode->renderInfo.timeoutTime - pTileRenderer->totalTime) > 0.0f)
+    if (pNode->renderInfo.tryLoad && (pNode->renderInfo.timeoutTime - pTileRenderer->totalTime) > 0.0f)
       break;
 
     pTileRenderer->cache.tileLoadList.PushBack(pNode);
@@ -507,7 +887,6 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
   uint64_t startTime = udPerfCounterStart();
 
   vcQuadTree_Update(&pTileRenderer->quadTree, viewInfo);
-  vcQuadTree_Prune(&pTileRenderer->quadTree);
 
   udLockMutex(pTileRenderer->cache.pMutex);
   vcTileRenderer_UpdateTextureQueues(pTileRenderer);
@@ -516,37 +895,39 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
   pTileRenderer->quadTree.metaData.generateTimeMs = udPerfCounterMilliseconds(startTime);
 }
 
-bool vcTileRenderer_CanNodeDraw(vcQuadTreeNode *pNode)
-{
-  return pNode->renderInfo.pTexture != nullptr;
-}
-
 bool vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, vcMesh *pMesh, const udDouble4x4 &view)
 {
-  vcTexture *pTexture = pNode->renderInfo.pDrawTexture;
+  vcTexture *pTexture = pNode->renderInfo.colourDrawInfo.pTexture;
   if (pTexture == nullptr)
     pTexture = pTileRenderer->pEmptyTileTexture;
 
-  for (int t = 0; t < TileVertexResolution * TileVertexResolution; ++t)
+  vcTexture *pDemTexture = pNode->renderInfo.demDrawInfo.pTexture;
+  if (pDemTexture == nullptr)
+    pDemTexture = pTileRenderer->pEmptyDemTileTexture;
+
+  for (int t = 0; t < TileVertexControlPointRes * TileVertexControlPointRes; ++t)
   {
     udFloat4 eyeSpaceVertexPosition = udFloat4::create(view * udDouble4::create(pNode->worldBounds[t], 1.0));
     pTileRenderer->presentShader.everyObject.eyePositions[t] = eyeSpaceVertexPosition;
   }
 
-#if VISUALIZE_DEBUG_TILES
-  pTileRenderer->presentShader.everyObject.colour.w = 1.0f;
-  if (!pNode->renderInfo.pTexture)
-  {
-    pTileRenderer->presentShader.everyObject.colour.x = pNode->level / 21.0f;
-    if (!pNode->visible)
-      pTileRenderer->presentShader.everyObject.colour.z = pNode->level / 21.0f;
-  }
+  udFloat2 size = pNode->renderInfo.colourDrawInfo.uvEnd - pNode->renderInfo.colourDrawInfo.uvStart;
+  pTileRenderer->presentShader.everyObject.uvOffsetScale = udFloat4::create(pNode->renderInfo.colourDrawInfo.uvStart, size.x, size.y);
+
+  udFloat2 demSize = pNode->renderInfo.demDrawInfo.uvEnd - pNode->renderInfo.demDrawInfo.uvStart;
+  pTileRenderer->presentShader.everyObject.demUVOffsetScale = udFloat4::create(pNode->renderInfo.demDrawInfo.uvStart, demSize.x, demSize.y);
+
+  pTileRenderer->presentShader.everyObject.tileNormal = udFloat4::create(udFloat3::create(pNode->worldNormal), 0.0f);
+
+  vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pTexture, 0, pTileRenderer->presentShader.uniform_texture);
+
+  // TODO: This is a hack, needs to be fixed for both graphics APIs
+  uint16_t samplerIndex = 0;
+#if GRAPHICS_API_OPENGL
+  samplerIndex = 1;
 #endif
+  vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pDemTexture, samplerIndex, pTileRenderer->presentShader.uniform_dem, vcGLSamplerShaderStage_Vertex);
 
-  udFloat2 size = pNode->renderInfo.uvEnd - pNode->renderInfo.uvStart;
-  pTileRenderer->presentShader.everyObject.uvOffsetScale = udFloat4::create(pNode->renderInfo.uvStart, size.x, size.y);
-
-  vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pTexture, 0);
   vcShader_BindConstantBuffer(pTileRenderer->presentShader.pProgram, pTileRenderer->presentShader.pConstantBuffer, &pTileRenderer->presentShader.everyObject, sizeof(pTileRenderer->presentShader.everyObject));
   vcMesh_Render(pMesh, TileIndexResolution * TileIndexResolution * 2); // 2 tris per quad
 
@@ -566,9 +947,57 @@ void vcTileRenderer_RecursiveSetRendered(vcTileRenderer *pTileRenderer, vcQuadTr
   }
 }
 
+void vcTileRenderer_DrapeColour(vcQuadTreeNode *pChild, vcQuadTreeNode *pAncestor)
+{
+  pChild->renderInfo.colourDrawInfo.uvStart = udFloat2::zero();
+  pChild->renderInfo.colourDrawInfo.uvEnd = udFloat2::one();
+  if (pAncestor != nullptr && pAncestor != pChild)
+  {
+    // calculate what portion of ancestors colour to display at this tile
+    pChild->renderInfo.colourDrawInfo.pTexture = pAncestor->renderInfo.colourDrawInfo.pTexture;
+    int depthDiff = pChild->slippyPosition.z - pAncestor->slippyPosition.z;
+    int slippyRange = (int)udPow(2.0f, (float)depthDiff);
+    udFloat2 boundsRange = udFloat2::create((float)slippyRange);
+
+    // top-left, and bottom-right corners
+    udInt2 slippy0 = pChild->slippyPosition.toVector2();
+    udInt2 slippy1 = slippy0 + udInt2::one();
+
+    udInt2 ancestorSlippyLocal0 = udInt2::create(pAncestor->slippyPosition.x * slippyRange, pAncestor->slippyPosition.y * slippyRange);
+    udInt2 ancestorSlippyLocal1 = ancestorSlippyLocal0 + udInt2::create(slippyRange);
+
+    pChild->renderInfo.colourDrawInfo.uvStart = udFloat2::create(slippy0 - ancestorSlippyLocal0) / boundsRange;
+    pChild->renderInfo.colourDrawInfo.uvEnd = udFloat2::one() - (udFloat2::create(ancestorSlippyLocal1 - slippy1) / boundsRange);
+  }
+}
+
+void vcTileRenderer_DrapeDEM(vcQuadTreeNode *pChild, vcQuadTreeNode *pAncestor)
+{
+  pChild->renderInfo.demDrawInfo.uvStart = udFloat2::zero();
+  pChild->renderInfo.demDrawInfo.uvEnd = udFloat2::one();
+  if (pAncestor != nullptr && pAncestor != pChild)
+  {
+    // calculate what portion of ancestors DEM to display at this tile
+    pChild->renderInfo.demDrawInfo.pTexture = pAncestor->renderInfo.demDrawInfo.pTexture;
+    int depthDiff = pChild->slippyPosition.z - pAncestor->slippyPosition.z;
+    int slippyRange = (int)udPow(2.0f, (float)depthDiff);
+    udFloat2 boundsRange = udFloat2::create((float)slippyRange);
+
+    // top-left, and bottom-right corners
+    udInt2 slippy0 = pChild->slippyPosition.toVector2();
+    udInt2 slippy1 = slippy0 + udInt2::one();
+
+    udInt2 ancestorSlippyLocal0 = udInt2::create(pAncestor->slippyPosition.x * slippyRange, pAncestor->slippyPosition.y * slippyRange);
+    udInt2 ancestorSlippyLocal1 = ancestorSlippyLocal0 + udInt2::create(slippyRange);
+
+    pChild->renderInfo.demDrawInfo.uvStart = udFloat2::create(slippy0 - ancestorSlippyLocal0) / boundsRange;
+    pChild->renderInfo.demDrawInfo.uvEnd = udFloat2::one() - (udFloat2::create(ancestorSlippyLocal1 - slippy1) / boundsRange);
+  }
+}
+
 // 'true' indicates the node was able to render itself (or it didn't want to render itself).
 // 'false' indicates that the nodes ancestor needs to be rendered.
-bool vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, vcQuadTreeNode *pNode, vcQuadTreeNode *pBestTexturedAncestor)
+bool vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, vcQuadTreeNode *pNode, vcQuadTreeNode *pBestTexturedAncestor, vcQuadTreeNode *pBestDemAncestor)
 {
   if (!pNode->touched)
   {
@@ -579,11 +1008,19 @@ bool vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const ud
   if (!pNode->visible)
     return false;
 
-  pNode->renderInfo.pDrawTexture = nullptr;
-  if (vcTileRenderer_CanNodeDraw(pNode))
+  // Progressively get the closest ancestors available data for draping (if own data doesn't exist)
+  pNode->renderInfo.colourDrawInfo.pTexture = nullptr;
+  pNode->renderInfo.demDrawInfo.pTexture = nullptr;
+  if (pNode->renderInfo.colourData.pTexture != nullptr)
   {
-    pNode->renderInfo.pDrawTexture = pNode->renderInfo.pTexture;
+    pNode->renderInfo.colourDrawInfo.pTexture = pNode->renderInfo.colourData.pTexture;
     pBestTexturedAncestor = pNode;
+  }
+
+  if (pNode->renderInfo.demData.pTexture != nullptr)
+  {
+    pNode->renderInfo.demDrawInfo.pTexture = pNode->renderInfo.demData.pTexture;
+    pBestDemAncestor = pNode;
   }
 
   if (!vcQuadTree_IsLeafNode(pNode))
@@ -591,35 +1028,28 @@ bool vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const ud
     for (int c = 0; c < 4; ++c)
     {
       vcQuadTreeNode *pChildNode = &pTileRenderer->quadTree.nodes.pPool[pNode->childBlockIndex + c];
-      vcTileRenderer_RecursiveRenderNodes(pTileRenderer, view, pChildNode, pBestTexturedAncestor);
+      vcTileRenderer_RecursiveRenderNodes(pTileRenderer, view, pChildNode, pBestTexturedAncestor, pBestDemAncestor);
     }
 
     // only draw leaves
     return true;
   }
 
-  pNode->renderInfo.uvStart = udFloat2::zero();
-  pNode->renderInfo.uvEnd = udFloat2::one();
-  if (pBestTexturedAncestor != nullptr && pBestTexturedAncestor != pNode)
+  vcTileRenderer_DrapeColour(pNode, pBestTexturedAncestor);
+  vcTileRenderer_DrapeDEM(pNode, pBestDemAncestor);
+
+  // Lookup mesh variant for rendering
+  size_t meshIndex = 0;
+  for (size_t mc = 0; mc < udLengthOf(MeshConfigurations); ++mc)
   {
-    // calculate what portion of ancestors colour to display at this tile
-    pNode->renderInfo.pDrawTexture = pBestTexturedAncestor->renderInfo.pDrawTexture;
-    int depthDiff = pNode->slippyPosition.z - pBestTexturedAncestor->slippyPosition.z;
-    int slippyRange = (int)udPow(2.0f, (float)depthDiff);
-    udFloat2 boundsRange = udFloat2::create((float)slippyRange);
-
-    // top-left, and bottom-right corners
-    udInt2 slippy0 = pNode->slippyPosition.toVector2();
-    udInt2 slippy1 = slippy0 + udInt2::one();
-
-    udInt2 ancestorSlippyLocal0 = udInt2::create(pBestTexturedAncestor->slippyPosition.x * slippyRange, pBestTexturedAncestor->slippyPosition.y * slippyRange);
-    udInt2 ancestorSlippyLocal1 = ancestorSlippyLocal0 + udInt2::create(slippyRange);
-
-    pNode->renderInfo.uvStart = udFloat2::create(slippy0 - ancestorSlippyLocal0) / boundsRange;
-    pNode->renderInfo.uvEnd = udFloat2::one() - (udFloat2::create(ancestorSlippyLocal1 - slippy1) / boundsRange);
+    if (MeshConfigurations[mc] == pNode->neighbours)
+    {
+      meshIndex = mc;
+      break;
+    }
   }
 
-  vcTileRenderer_DrawNode(pTileRenderer, pNode, pTileRenderer->pFullTileMesh, view);
+  vcTileRenderer_DrawNode(pTileRenderer, pNode, pTileRenderer->pTileMeshes[meshIndex], view);
 
   // This child doesn't need parent to draw itself
   return true;
@@ -658,10 +1088,10 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
 
   vcShader_Bind(pTileRenderer->presentShader.pProgram);
   pTileRenderer->presentShader.everyObject.projectionMatrix = udFloat4x4::create(proj);
+  pTileRenderer->presentShader.everyObject.viewMatrix = udFloat4x4::create(view);
   pTileRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.transparency);
 
-  vcTileRenderer_RecursiveRenderNodes(pTileRenderer, viewWithMapTranslation, pRootNode, nullptr);
-  vcTileRenderer_RecursiveSetRendered(pTileRenderer, pRootNode, pRootNode->rendered);
+  vcTileRenderer_RecursiveRenderNodes(pTileRenderer, viewWithMapTranslation, pRootNode, nullptr, nullptr);
 
   vcGLState_SetViewportDepthRange(0.0f, 1.0f);
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true, nullptr);
@@ -670,7 +1100,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcShader_Bind(nullptr);
 
 #if 0
-  printf("touched=%d, visible=%d, rendered=%d, leaves=%d, build=%f\n", pTileRenderer->quadTree.metaData.nodeTouchedCount, pTileRenderer->quadTree.metaData.visibleNodeCount, pTileRenderer->quadTree.metaData.nodeRenderCount, pTileRenderer->quadTree.metaData.leafNodeCount, pTileRenderer->quadTree.metaData.generateTimeMs);
+  printf("touched=%d, visible=%d, rendered=%d, leaves=%d, build=%f, loadList=%zu\n", pTileRenderer->quadTree.metaData.nodeTouchedCount, pTileRenderer->quadTree.metaData.visibleNodeCount, pTileRenderer->quadTree.metaData.nodeRenderCount, pTileRenderer->quadTree.metaData.leafNodeCount, pTileRenderer->quadTree.metaData.generateTimeMs, pTileRenderer->cache.tileLoadList.length);
 #endif
 }
 

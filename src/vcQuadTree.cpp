@@ -112,32 +112,49 @@ double vcQuadTree_PointToRectDistance(udDouble3 edges[9], const udDouble3 &point
 
 void vcQuadTree_CleanupNode(vcQuadTreeNode *pNode)
 {
-  vcTexture_Destroy(&pNode->renderInfo.pTexture);
-  udFree(pNode->renderInfo.pData);
+  vcTexture_Destroy(&pNode->renderInfo.colourData.pTexture);
+  udFree(pNode->renderInfo.colourData.pData);
+
+  vcTexture_Destroy(&pNode->renderInfo.demData.pTexture);
+  udFree(pNode->renderInfo.demData.pData);
 
   memset(pNode, 0, sizeof(vcQuadTreeNode));
 }
 
-void vcQuadTree_CalculateNodeBounds(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
+void vcQuadTree_CalculateNodeAABB(vcQuadTreeNode *pNode)
 {
   udDouble3 boundsMin = udDouble3::create(FLT_MAX, FLT_MAX, FLT_MAX);
   udDouble3 boundsMax = udDouble3::create(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
   for (int edge = 0; edge < 9; ++edge)
   {
-    udInt2 slippySampleCoord = udInt2::create((pNode->slippyPosition.x * 2) + (edge % 3),
-      (pNode->slippyPosition.y * 2) + (edge / 3));
-
-    vcGIS_SlippyToLocal(&pQuadTree->gisSpace, &pNode->worldBounds[edge], slippySampleCoord, pNode->slippyPosition.z + 1);
-
-    boundsMin = udMin(pNode->worldBounds[edge], boundsMin);
-    boundsMax = udMax(pNode->worldBounds[edge], boundsMax);
+    boundsMin = udMin(pNode->worldBounds[edge] + pNode->worldNormal * pNode->demMinMax[0], boundsMin);
+    boundsMax = udMax(pNode->worldBounds[edge] + pNode->worldNormal * pNode->demMinMax[1], boundsMax);
   }
 
   pNode->tileCenter = (boundsMax + boundsMin) * 0.5;
   pNode->tileExtents = (boundsMax - boundsMin) * 0.5;
 }
 
-void vcQuadTree_InitNode(vcQuadTree *pQuadTree, uint32_t slotIndex, const udInt3 &childSlippy)
+void vcQuadTree_CalculateNodeBounds(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
+{
+  for (int edge = 0; edge < 9; ++edge)
+  {
+    udInt2 slippySampleCoord = udInt2::create((pNode->slippyPosition.x * 2) + (edge % 3),
+      (pNode->slippyPosition.y * 2) + (edge / 3));
+
+    vcGIS_SlippyToLocal(&pQuadTree->gisSpace, &pNode->worldBounds[edge], slippySampleCoord, pNode->slippyPosition.z + 1);
+  }
+
+  // one normal
+  udDouble3 n0 = udCross3(udNormalize3(pNode->worldBounds[0] - pNode->worldBounds[6]), udNormalize3(pNode->worldBounds[0] - pNode->worldBounds[2]));
+  udDouble3 n1 = udCross3(udNormalize3(pNode->worldBounds[8] - pNode->worldBounds[2]), udNormalize3(pNode->worldBounds[8] - pNode->worldBounds[6]));
+  pNode->worldNormal = udNormalize3(n0 + n1);
+
+  vcQuadTree_CalculateNodeAABB(pNode);
+}
+
+void vcQuadTree_InitNode(vcQuadTree *pQuadTree, uint32_t slotIndex, const udInt3 &childSlippy, const udInt2 &parentDemMinMax)
 {
   vcQuadTreeNode *pNode = &pQuadTree->nodes.pPool[slotIndex];
 
@@ -145,6 +162,7 @@ void vcQuadTree_InitNode(vcQuadTree *pQuadTree, uint32_t slotIndex, const udInt3
   pNode->childBlockIndex = INVALID_NODE_INDEX;
   pNode->parentIndex = INVALID_NODE_INDEX;
   pNode->slippyPosition = childSlippy;
+  pNode->demMinMax = parentDemMinMax;
 
   vcQuadTree_CalculateNodeBounds(pQuadTree, pNode);
 }
@@ -180,13 +198,15 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
 
     udInt3 childSlippy = udInt3::create(pCurrentNode->slippyPosition.x << 1, pCurrentNode->slippyPosition.y << 1, pCurrentNode->slippyPosition.z + 1);
     for (uint32_t i = 0; i < NodeChildCount; ++i)
-      vcQuadTree_InitNode(pQuadTree, freeBlockIndex + i, childSlippy + udInt3::create(i & 1, i >> 1, 0));
+      vcQuadTree_InitNode(pQuadTree, freeBlockIndex + i, childSlippy + udInt3::create(i & 1, i >> 1, 0), pCurrentNode->demMinMax);
 
     pCurrentNode->childBlockIndex = freeBlockIndex;
   }
 
   udInt2 pViewSlippyCoords;
   vcGIS_LocalToSlippy(&pQuadTree->gisSpace, &pViewSlippyCoords, pQuadTree->cameraWorldPosition, pQuadTree->slippyCoords.z + currentDepth + 1);
+
+  udInt2 mortenIndices[] = { {0, 0}, {1, 0}, {0, 1}, {1, 1} };
 
   //subdivide
   // 0 == bottom left
@@ -203,7 +223,9 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
 
     // leave this here as we could be fixing up a re-root
     pChildNode->parentIndex = currentNodeIndex;
-    pChildNode->visible = pCurrentNode->visible && vcQuadTree_IsNodeVisible(pQuadTree, pChildNode);
+    pChildNode->visible = vcQuadTree_IsNodeVisible(pQuadTree, pChildNode);
+    pChildNode->morten.x = pCurrentNode->morten.x | (mortenIndices[childQuadrant].x << (31 - pChildNode->slippyPosition.z));
+    pChildNode->morten.y = pCurrentNode->morten.y | (mortenIndices[childQuadrant].y << (31 - pChildNode->slippyPosition.z));
 
     // TODO: tile heights (DEM)
     double distanceToQuadrant = pQuadTree->cameraDistanceZeroAltitude;
@@ -224,6 +246,56 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
       vcQuadTree_RecurseGenerateTree(pQuadTree, childIndex, currentDepth + 1);
     else
       ++pQuadTree->metaData.leafNodeCount;
+  }
+}
+
+udInt2 vcQuadTree_DecodeMorten(udInt2 &m, int d)
+{
+  int mask = ~(0xffffffff - ((2 << d) - 1));
+  int shift = 31 - d;
+  return { (m.x >> shift) &mask, (m.y >> shift) &mask };
+}
+
+vcQuadTreeNode *vcQuadTree_FindNodeFromMorten(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode, const udInt2 &targetMorten, int targetDepth)
+{
+  if (vcQuadTree_IsLeafNode(pNode) || pNode->slippyPosition.z >= targetDepth)
+    return pNode;
+
+  // TODO: handle outside bounds (e.g. morten.x < 0 || morten.y < 0 || morten.x >= ?? || morten.y >= ??)
+
+  int shift = targetDepth - (pNode->slippyPosition.z + 1);
+  udInt2 thisLevel = { (targetMorten.x >> shift) & 1, (targetMorten.y >> shift) & 1 };
+  int childIndex = thisLevel.x + thisLevel.y * 2;
+
+  vcQuadTreeNode *pChildNode = &pQuadTree->nodes.pPool[pNode->childBlockIndex + childIndex];
+  return vcQuadTree_FindNodeFromMorten(pQuadTree, pChildNode, targetMorten, targetDepth);
+}
+
+void vcQuadTree_CalculateNeighbours(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
+{
+  if (vcQuadTree_IsLeafNode(pNode))
+  {
+    udInt2 morten = vcQuadTree_DecodeMorten(pNode->morten, pNode->slippyPosition.z);
+    vcQuadTreeNode *pRootNode = &pQuadTree->nodes.pPool[pQuadTree->rootIndex];
+
+    vcQuadTreeNode *pNeighbourUp = vcQuadTree_FindNodeFromMorten(pQuadTree, pRootNode, morten + udInt2::create(0, -1), pNode->slippyPosition.z);
+    vcQuadTreeNode *pNeighbourRight = vcQuadTree_FindNodeFromMorten(pQuadTree, pRootNode, morten + udInt2::create(1, 0), pNode->slippyPosition.z);
+    vcQuadTreeNode *pNeighbourDown = vcQuadTree_FindNodeFromMorten(pQuadTree, pRootNode, morten + udInt2::create(0, 1), pNode->slippyPosition.z);
+    vcQuadTreeNode *pNeighbourLeft = vcQuadTree_FindNodeFromMorten(pQuadTree, pRootNode, morten + udInt2::create(-1, 0), pNode->slippyPosition.z);
+
+    pNode->neighbours = 0;
+    pNode->neighbours |= 0x1 * int(pNeighbourUp->slippyPosition.z < pNode->slippyPosition.z);
+    pNode->neighbours |= 0x2 * int(pNeighbourRight->slippyPosition.z < pNode->slippyPosition.z);
+    pNode->neighbours |= 0x4 * int(pNeighbourDown->slippyPosition.z < pNode->slippyPosition.z);
+    pNode->neighbours |= 0x8 * int(pNeighbourLeft->slippyPosition.z < pNode->slippyPosition.z);
+  }
+  else
+  {
+    for (int c = 0; c < NodeChildCount; ++c)
+    {
+      vcQuadTreeNode *pChildNode = &pQuadTree->nodes.pPool[pNode->childBlockIndex + c];
+      vcQuadTree_CalculateNeighbours(pQuadTree, pChildNode);
+    }
   }
 }
 
@@ -265,6 +337,17 @@ uint32_t vcQuadTree_NodeIndexToBlockIndex(uint32_t nodeIndex)
   return nodeIndex & ~3;
 }
 
+void vcQuadTree_InitRootBlock(vcQuadTree *pQuadTree)
+{
+  uint32_t rootBlockIndex = vcQuadTree_NodeIndexToBlockIndex(pQuadTree->rootIndex);
+  for (uint32_t c = 0; c < NodeChildCount; ++c)
+  {
+    pQuadTree->nodes.pPool[rootBlockIndex + c].parentIndex = INVALID_NODE_INDEX;
+  }
+
+  pQuadTree->nodes.pPool[rootBlockIndex].morten = udInt2::zero();
+}
+
 void vcQuadTree_Reroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoords)
 {
   // First determine if that node already exists
@@ -285,7 +368,7 @@ void vcQuadTree_Reroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoords)
     udInt3 newRootBlockSlippy = udInt3::create((newRootSlippy.x >> 1) << 1, (newRootSlippy.y >> 1) << 1, newRootSlippy.z);
     for (uint32_t c = 0; c < NodeChildCount; ++c)
     {
-      vcQuadTree_InitNode(pQuadTree, newRootBlockIndex + c, newRootBlockSlippy + udInt3::create(c & 1, c >> 1, 0));
+      vcQuadTree_InitNode(pQuadTree, newRootBlockIndex + c, newRootBlockSlippy + udInt3::create(c & 1, c >> 1, 0), udInt2::zero());
 
       // preserve spatial position of root in its root block
       if (pQuadTree->nodes.pPool[newRootBlockIndex + c].slippyPosition == newRootSlippy)
@@ -311,6 +394,8 @@ void vcQuadTree_Reroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoords)
 
   pQuadTree->rootIndex = newRootIndex;
   pQuadTree->completeRerootRequired = false;
+
+  vcQuadTree_InitRootBlock(pQuadTree);
 }
 
 void vcQuadTree_CompleteReroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoords)
@@ -325,13 +410,14 @@ void vcQuadTree_CompleteReroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoords
   udInt3 rootBlockCoords = udInt3::create((slippyCoords.x >> 1) << 1, (slippyCoords.y >> 1) << 1, slippyCoords.z);
   for (uint32_t c = 0; c < NodeChildCount; ++c)
   {
-    vcQuadTree_InitNode(pQuadTree, freeBlockIndex + c, rootBlockCoords + udInt3::create(c & 1, c >> 1, 0));
+    vcQuadTree_InitNode(pQuadTree, freeBlockIndex + c, rootBlockCoords + udInt3::create(c & 1, c >> 1, 0), udInt2::zero());
 
     // preserve spatial position of root in its block
     pQuadTree->rootIndex = (pQuadTree->nodes.pPool[freeBlockIndex + c].slippyPosition == slippyCoords) ? (freeBlockIndex + c) : pQuadTree->rootIndex;
   }
 
   pQuadTree->completeRerootRequired = false;
+  vcQuadTree_InitRootBlock(pQuadTree);
 }
 
 void vcQuadTree_ConditionalReroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoords)
@@ -395,6 +481,9 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
 
     vcQuadTree_RecurseGenerateTree(pQuadTree, pQuadTree->rootIndex, 0);
   }
+
+  vcQuadTree_Prune(pQuadTree);
+  vcQuadTree_CalculateNeighbours(pQuadTree, &pQuadTree->nodes.pPool[pQuadTree->rootIndex]);
 }
 
 bool vcQuadTree_IsBlockUsed(vcQuadTree *pQuadTree, uint32_t blockIndex)
@@ -410,7 +499,7 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
   for (uint32_t c = 0; c < NodeChildCount; ++c)
   {
     vcQuadTreeNode *pChildNode = &pQuadTree->nodes.pPool[blockIndex + c];
-    if (pChildNode->touched || pChildNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_Downloading)
+    if (pChildNode->touched || pChildNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_Downloading || pChildNode->renderInfo.demLoadStatus == vcNodeRenderInfo::vcTLS_Downloading)
       return false;
   }
 
@@ -420,7 +509,7 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
     vcQuadTreeNode *pNode = &pQuadTree->nodes.pPool[blockIndex + c];
 
     // case #1: its a leaf node that could be being used for rendering by an ancestor
-    if (pNode->renderInfo.pTexture)
+    if (pNode->renderInfo.colourData.pTexture)
     {
       uint32_t parentIndex = pNode->parentIndex;
       while (parentIndex != INVALID_NODE_INDEX)
@@ -429,12 +518,12 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
         if (pParentNode->touched)
         {
           // We have an ancestor that has no texture
-          if (!pParentNode->renderInfo.pTexture)
+          if (!pParentNode->renderInfo.colourData.pTexture)
             return false;
 
           break;
         }
-        else if (pParentNode->renderInfo.pTexture)
+        else if (pParentNode->renderInfo.colourData.pTexture)
           return true;
 
         parentIndex = pParentNode->parentIndex;

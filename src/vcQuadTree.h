@@ -24,13 +24,22 @@ struct vcNodeRenderInfo
   bool tryLoad;
   float timeoutTime; // after a failed load, tiles have a time before they will request again
 
-  vcTexture *pTexture;
-  int32_t width, height;
-  void *pData;
+  // node owns this memory
+  struct
+  {
+    vcTexture *pTexture;
+    int32_t width, height;
+    void *pData;
+  } colourData, demData;
 
-  vcTexture *pDrawTexture; // which texture to draw this node with for this frame. Note: may belong to an ancestor node.
-  udFloat2 uvStart;
-  udFloat2 uvEnd;
+  struct
+  {
+    vcTexture *pTexture; // which texture to draw this node with for this frame. Note: may belong to an ancestor node.
+    udFloat2 uvStart;
+    udFloat2 uvEnd;
+  } colourDrawInfo, demDrawInfo;
+
+  vcTileLoadStatus demLoadStatus;
 };
 
 struct vcQuadTreeNode
@@ -42,6 +51,8 @@ struct vcQuadTreeNode
   uint32_t parentIndex;
   uint32_t childBlockIndex;
   uint32_t childMask; // [1, 2, 4, 8] for each corner [bottom left, bottom right, top left, top right]
+  udInt2 morten;
+  int neighbours;
 
   bool visible;
   volatile bool touched;
@@ -53,6 +64,9 @@ struct vcQuadTreeNode
                             // [0, 1, 2,
                             //  3, 4, 5,
                             //  6, 7, 8]
+
+  udInt2 demMinMax;  // in DEM units. For calculating AABB of node
+  udDouble3 worldNormal;
 
   vcNodeRenderInfo renderInfo;
 };
@@ -128,5 +142,13 @@ inline bool vcQuadTree_IsVisibleLeafNode(const vcQuadTree *pQuadTree, const vcQu
 
   return true;
 }
+
+inline bool vcQuadTree_HasDemData(vcQuadTreeNode *pNode)
+{
+  // Note: Not good enough, 0,0 is a valid dem min/max
+  return pNode->demMinMax[0] != 0 || pNode->demMinMax[1] != 0;
+}
+
+void vcQuadTree_CalculateNodeAABB(vcQuadTreeNode *pNode);
 
 #endif//vcQuadTree_h__
