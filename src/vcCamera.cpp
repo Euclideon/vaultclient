@@ -432,15 +432,14 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
       pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
   }
 
-  if (io.KeyCtrl)
+  if ((io.KeyCtrl && io.KeyShift) || vcHotkey::IsDown(vcB_ForwardSlowly) || vcHotkey::IsDown(vcB_BackwardSlowly))
     speedModifier *= SlowDownRate;
-
-  if (io.KeyShift || io.NavInputs[ImGuiNavInput_FocusPrev] > 0.15f) // Left Trigger
+  else if (io.KeyShift || io.NavInputs[ImGuiNavInput_FocusPrev] > 0.15f || vcHotkey::IsDown(vcB_ForwardQuickly) || vcHotkey::IsDown(vcB_BackwardQuickly)) // Left Trigger
     speedModifier *= SpeedUpRate;
 
   if ((!ImGui::GetIO().WantCaptureKeyboard || isFocused) && !pProgramState->modalOpen)
   {
-    keyboardInput.y += vcHotkey::IsDown(vcB_Forward) - vcHotkey::IsDown(vcB_Backward);
+    keyboardInput.y += (vcHotkey::IsDown(vcB_Forward) || vcHotkey::IsDown(vcB_ForwardQuickly) || vcHotkey::IsDown(vcB_ForwardSlowly)) - (vcHotkey::IsDown(vcB_Backward) || vcHotkey::IsDown(vcB_BackwardSlowly) || vcHotkey::IsDown(vcB_BackwardQuickly));
     keyboardInput.x += vcHotkey::IsDown(vcB_Right) - vcHotkey::IsDown(vcB_Left);
     keyboardInput.z += vcHotkey::IsDown(vcB_Up) - vcHotkey::IsDown(vcB_Down);
 

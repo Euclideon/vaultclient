@@ -292,8 +292,12 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_Bindings || group == vcSC_All)
   {
-    vcHotkey::Set(vcB_Forward, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Forward)).AsInt(26));
-    vcHotkey::Set(vcB_Backward, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Backward)).AsInt(22));
+    vcHotkey::Set(vcB_Forward, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Forward)).AsInt(26)); // w
+    vcHotkey::Set(vcB_ForwardQuickly, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ForwardQuickly)).AsInt(538)); // shift + w
+    vcHotkey::Set(vcB_ForwardSlowly, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ForwardSlowly)).AsInt(1562)); // ctrl + shift + w
+    vcHotkey::Set(vcB_Backward, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Backward)).AsInt(22));// s
+    vcHotkey::Set(vcB_BackwardQuickly, data.Get("keys.%s", vcHotkey::GetBindName(vcB_BackwardQuickly)).AsInt(534)); // shift + s
+    vcHotkey::Set(vcB_BackwardSlowly, data.Get("keys.%s", vcHotkey::GetBindName(vcB_BackwardSlowly)).AsInt(1558)); // ctrl + shift + s
     vcHotkey::Set(vcB_Left, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Left)).AsInt(4));
     vcHotkey::Set(vcB_Right, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Right)).AsInt(7));
     vcHotkey::Set(vcB_Up, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Up)).AsInt(21));

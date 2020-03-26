@@ -16,7 +16,11 @@ enum modifierFlags
 enum vcBind
 {
   vcB_Forward,
+  vcB_ForwardQuickly,
+  vcB_ForwardSlowly,
   vcB_Backward,
+  vcB_BackwardQuickly,
+  vcB_BackwardSlowly,
   vcB_Left,
   vcB_Right,
   vcB_Up,

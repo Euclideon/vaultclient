@@ -22,7 +22,11 @@ namespace vcHotkey
   const char* bindNames[] =
   {
     "CameraForward",
+    "CameraForwardQuickly",
+    "CameraForwardSlowly",
     "CameraBackward",
+    "CameraBackwardQuickly",
+    "CameraBackwardSlowly",
     "CameraLeft",
     "CameraRight",
     "CameraUp",
@@ -245,8 +249,8 @@ namespace vcHotkey
 
     ImGui::BeginColumns(nullptr, 3, ImGuiColumnsFlags_NoResize);
 
-    ImGui::SetColumnWidth(0, 125);
-    ImGui::SetColumnWidth(1, 175);
+    ImGui::SetColumnWidth(0, 175);
+    ImGui::SetColumnWidth(1, 125);
     ImGui::SetColumnWidth(2, 600);
 
     // Header Row
@@ -260,7 +264,7 @@ namespace vcHotkey
     ImGui::TextUnformatted(vcString::Get("bindingsColumnKeyCombination"));
     ImGui::TextUnformatted("-----------------");
     ImGui::TextUnformatted("Shift +");
-    ImGui::TextUnformatted("Ctrl +");
+    ImGui::TextUnformatted("Shift + Ctrl + ");
     ImGui::TextUnformatted("-----------------");
     ImGui::NextColumn();
     ImGui::TextUnformatted(vcString::Get("bindingsColumnDescription"));
