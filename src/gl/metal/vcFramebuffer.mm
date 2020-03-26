@@ -16,10 +16,37 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
   pFramebuffer->pColor = pTexture;
   pFramebuffer->pDepth = pDepth;
   pFramebuffer->clear = 0;
+  pFramebuffer->actions = 0;
   
   @autoreleasepool
   {
-    [_renderer addFramebuffer:pFramebuffer];
+    MTLRenderPassDescriptor *pass = [MTLRenderPassDescriptor renderPassDescriptor];
+
+    pass.colorAttachments[0].loadAction = MTLLoadActionClear;
+    pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+    pass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0);
+    pass.colorAttachments[0].texture = pFramebuffer->pColor->texture;
+    
+    pass.depthAttachment.texture = nil;
+    pass.stencilAttachment.texture = nil;
+    if (pFramebuffer->pDepth != nullptr)
+    {
+      pass.depthAttachment.texture = pFramebuffer->pDepth->texture;
+      pass.depthAttachment.loadAction = MTLLoadActionClear;
+      pass.depthAttachment.storeAction = MTLStoreActionStore;
+      pass.depthAttachment.clearDepth = 1.0;
+      if (pFramebuffer->pDepth->format == vcTextureFormat_D24S8)
+      {
+        pass.stencilAttachment.texture = pFramebuffer->pDepth->texture;
+        pass.stencilAttachment.loadAction = MTLLoadActionClear;
+        pass.stencilAttachment.storeAction = MTLStoreActionStore;
+        pass.stencilAttachment.clearStencil = 0;
+      }
+    }
+
+    pFramebuffer->pRenderPass = pass;
+    pFramebuffer->commandBuffer = [g_queue commandBuffer];
+    pFramebuffer->encoder = [pFramebuffer->commandBuffer renderCommandEncoderWithDescriptor:pass];
   }
   
   *ppFramebuffer = pFramebuffer;
@@ -39,7 +66,10 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
 
   @autoreleasepool
   {
-    [_renderer destroyFramebuffer:*ppFramebuffer];
+    if (g_pCurrFramebuffer == (*ppFramebuffer))
+      g_pCurrFramebuffer = nullptr;
+    
+    [(*ppFramebuffer)->encoder endEncoding];
   }
   
   udFree(*ppFramebuffer);
@@ -54,7 +84,28 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOpe
   if (pFramebuffer == nullptr)
     return false;
 
-  [_renderer setFramebuffer:pFramebuffer];
+  // Finalise current framebuffer being binding this framebuffer
+  if (g_pCurrFramebuffer != nullptr && g_pCurrFramebuffer != g_pDefaultFramebuffer)
+  {
+    [g_pCurrFramebuffer->encoder endEncoding];
+    [g_pCurrFramebuffer->commandBuffer commit];
+    [g_pCurrFramebuffer->commandBuffer waitUntilCompleted];
+    
+    g_pCurrFramebuffer->commandBuffer = [g_queue commandBuffer];
+    g_pCurrFramebuffer->encoder = [g_pCurrFramebuffer->commandBuffer renderCommandEncoderWithDescriptor:g_pCurrFramebuffer->pRenderPass];
+    g_pCurrFramebuffer->actions = 0;
+  }
+
+  g_pCurrFramebuffer = pFramebuffer;
+
+  [pFramebuffer->encoder setViewport:{
+    .originX = double(g_internalState.viewportZone.x),
+    .originY = double(g_internalState.viewportZone.y),
+    .width = double(g_internalState.viewportZone.z),
+    .height = double(g_internalState.viewportZone.w),
+    .znear = g_internalState.depthRange.x,
+    .zfar = g_internalState.depthRange.y
+  }];
 
   if (pFramebuffer->clear != clearColour)
   {
@@ -63,6 +114,10 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOpe
     pFramebuffer->pRenderPass.colorAttachments[0].clearColor = MTLClearColorMake(col.x,col.y,col.z,col.w);
     pFramebuffer->pRenderPass.depthAttachment.clearDepth = 1.0;
   }
+
+  // Set variables from global state
+  vcGLState_SetFaceMode(g_internalState.fillMode, g_internalState.cullMode, g_internalState.isFrontCCW, true);
+  vcGLState_SetDepthStencilMode(g_internalState.depthReadMode, g_internalState.doDepthWrite, (g_internalState.stencil.enabled ? &g_internalState.stencil : nullptr), true);
 
   return true;
 }
