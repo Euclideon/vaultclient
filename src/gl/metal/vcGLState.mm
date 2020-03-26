@@ -57,28 +57,31 @@ MTLCompareFunction mapDepthMode[] =
   MTLCompareFunctionAlways
 };
 
+static id<MTLDepthStencilState> s_depthStates[vcGLSDM_Total * 2];
+
 void vcGLState_BuildDepthStates()
 {
   MTLDepthStencilDescriptor *depthStencilDesc = [[MTLDepthStencilDescriptor alloc]init];
   id<MTLDepthStencilState> dsState;
 
-  for (int i = 0 ; i <= vcGLSDM_Always; ++i)
+  for (int i = 0 ; i < vcGLSDM_Total; ++i)
   {
     int j = i * 2;
     depthStencilDesc.depthWriteEnabled = false;
     depthStencilDesc.depthCompareFunction = mapDepthMode[i];
     dsState = [_device newDepthStencilStateWithDescriptor:depthStencilDesc];
-    _renderer.depthStates[j] = dsState;
+    s_depthStates[j] = dsState;
 
     depthStencilDesc.depthWriteEnabled = true;
     dsState = [_device newDepthStencilStateWithDescriptor:depthStencilDesc];
-    _renderer.depthStates[j+1] = dsState;
+    s_depthStates[j+1] = dsState;
   }
 }
 
 bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 {
   _device = MTLCreateSystemDefaultDevice();
+  _queue = [_device newCommandQueue];
 
   if (_device == nullptr)
   {
@@ -212,7 +215,7 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
     {
       if (!enableStencil)
       {
-        [_renderer bindDepthStencil:_renderer.depthStates[((int)depthReadMode) * 2 + doDepthWrite] settings:nullptr];
+        [_renderer bindDepthStencil:s_depthStates[((int)depthReadMode) * 2 + doDepthWrite] settings:nullptr];
         return true;
       }
 

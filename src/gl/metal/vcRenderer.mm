@@ -18,27 +18,8 @@
 
 - (void)initWithView:(nonnull PlatformView*)view
 {
-  _queue = [_device newCommandQueue];
-  
   _blitBuffer = [_queue commandBuffer];
   _blitEncoder = [_blitBuffer blitCommandEncoder];
-  
-  _computeBuffer = [_queue commandBuffer];
-  _computeEncoder = [_computeBuffer computeCommandEncoder];
-
-  // Per framebuffer objects
-  _commandBuffers = [NSMutableArray arrayWithCapacity:BUFFER_COUNT];
-  _encoders = [NSMutableArray arrayWithCapacity:BUFFER_COUNT];
-  _renderPasses = [NSMutableArray arrayWithCapacity:BUFFER_COUNT];
-
-  _pipelines = [NSMutableArray arrayWithCapacity:100];
-  _depthStates = [NSMutableArray arrayWithCapacity:50];
-  _blitBuffers = [NSMutableArray arrayWithCapacity:3];
-
-  _vertBuffers = [NSMutableDictionary dictionaryWithCapacity:200];
-  _indexBuffers = [NSMutableDictionary dictionaryWithCapacity:80];
-  _textures = [NSMutableDictionary dictionaryWithCapacity:250];
-  _samplers = [NSMutableDictionary dictionaryWithCapacity:20];
 
   pMetalLayer = [self makeBackingLayer];
   pMetalLayer.drawableSize = CGSizeMake(view.frame.size.width, view.frame.size.height);
@@ -58,21 +39,21 @@
       [self flush:i];
   }
 
-  [_encoders[0] endEncoding];
+  [pFramebuffers[0]->encoder endEncoding];
 
   if (currDrawable)
-    [_commandBuffers[0] presentDrawable:currDrawable];
+    [pFramebuffers[0]->commandBuffer presentDrawable:currDrawable];
 
-  [_commandBuffers[0] commit];
+  [pFramebuffers[0]->commandBuffer commit];
 
   currDrawable = [pMetalLayer nextDrawable];
   if (!currDrawable)
     NSLog(@"Drawable unavailable");
 
-  _renderPasses[0].colorAttachments[0].texture = currDrawable.texture;
+  pFramebuffers[0]->pRenderPass.colorAttachments[0].texture = currDrawable.texture;
 
-  _commandBuffers[0] = [_queue commandBuffer];
-  [_encoders replaceObjectAtIndex:0 withObject:[_commandBuffers[0] renderCommandEncoderWithDescriptor:_renderPasses[0]]];
+  pFramebuffers[0]->commandBuffer = [_queue commandBuffer];
+  pFramebuffers[0]->encoder = [pFramebuffers[0]->commandBuffer renderCommandEncoderWithDescriptor:pFramebuffers[0]->pRenderPass];
 }
 
 - (nullable CAMetalLayer*)makeBackingLayer
@@ -90,7 +71,7 @@
 
 - (void)setFrameSize:(NSSize)newSize
 {
-  if (pCurrFramebuffer->ID == 0 && ((int)newSize.width != (int)_renderPasses[0].colorAttachments[0].texture.width || (int)newSize.height != (int)_renderPasses[0].colorAttachments[0].texture.height))
+  if (pCurrFramebuffer->ID == 0 && ((int)newSize.width != (int)pFramebuffers[0]->pRenderPass.colorAttachments[0].texture.width || (int)newSize.height != (int)pFramebuffers[0]->pRenderPass.colorAttachments[0].texture.height))
   {
     pMetalLayer.drawableSize = CGSizeMake(newSize.width, newSize.height);
     pCurrFramebuffer->pColor->width = newSize.width;
@@ -105,9 +86,9 @@
       vcTexture_Destroy(&pFramebuffers[0]->pDepth);
 
       pFramebuffers[0]->pDepth = pIntermediate;
-      _renderPasses[0].depthAttachment.texture = _textures[[NSString stringWithFormat:@"%u",pIntermediate->ID]];
+      pFramebuffers[0]->pRenderPass.depthAttachment.texture = pIntermediate->texture;
       if (pIntermediate->format == vcTextureFormat_D24S8)
-        _renderPasses[0].stencilAttachment.texture = _renderPasses[0].depthAttachment.texture;
+        pFramebuffers[0]->pRenderPass.stencilAttachment.texture = pFramebuffers[0]->pRenderPass.depthAttachment.texture;
     }
   }
 }
@@ -121,11 +102,8 @@
 
 - (void)bindTexture:(nonnull struct vcTexture *)pTexture index:(NSInteger)tIndex
 {
-  NSString *currID = [NSString stringWithFormat:@"%u",pTexture->ID];
-  [_encoders[pCurrFramebuffer->ID] setFragmentTexture:_textures[currID] atIndex:tIndex];
-
-  currID = [NSString stringWithUTF8String:pTexture->samplerID];
-  [_encoders[pCurrFramebuffer->ID] setFragmentSamplerState:_samplers[currID] atIndex:tIndex];
+  [pCurrFramebuffer->encoder setFragmentTexture:pTexture->texture atIndex:tIndex];
+  [pCurrFramebuffer->encoder setFragmentSamplerState:pTexture->sampler atIndex:tIndex];
 }
 
 - (void)bindDepthStencil:(nonnull id<MTLDepthStencilState>)dsState settings:(nullable vcGLStencilSettings *)pStencil
@@ -134,10 +112,10 @@
   {
     if (pFramebuffers[i] != nullptr)
     {
-      [_encoders[i] setDepthStencilState:dsState];
+      [pFramebuffers[i]->encoder setDepthStencilState:dsState];
 
       if (pStencil != nullptr)
-        [_encoders[i] setStencilReferenceValue:(uint32_t)pStencil->compareValue];
+        [pFramebuffers[i]->encoder setStencilReferenceValue:(uint32_t)pStencil->compareValue];
     }
   }
 }
@@ -146,22 +124,22 @@
 {
   blendMode = newMode;
   if (pCurrShader != nullptr && pCurrFramebuffer != nullptr)
-    [_encoders[pCurrFramebuffer->ID] setRenderPipelineState:_pipelines[(pCurrShader->ID * vcGLSBM_Count) + newMode]];
+    [pCurrFramebuffer->encoder setRenderPipelineState:pCurrShader->pipelines[newMode]];
 }
 
 - (void)flush:(uint32_t)i
 {
   if ((pFramebuffers[i]->actions & vcRFA_Draw) == vcRFA_Draw)
   {
-    [_encoders[i] endEncoding];
-    [_commandBuffers[i] commit];
-    [_commandBuffers[i] waitUntilCompleted];
+    [pFramebuffers[i]->encoder endEncoding];
+    [pFramebuffers[i]->commandBuffer commit];
+    [pFramebuffers[i]->commandBuffer waitUntilCompleted];
   }
   
   if ((pFramebuffers[i]->actions & vcRFA_Renew) == vcRFA_Renew)
   {
-    _commandBuffers[i] = [_queue commandBuffer];
-    _encoders[i] = [_commandBuffers[i] renderCommandEncoderWithDescriptor:_renderPasses[i]];
+    pFramebuffers[i]->commandBuffer = [_queue commandBuffer];
+    pFramebuffers[i]->encoder = [pFramebuffers[i]->commandBuffer renderCommandEncoderWithDescriptor:pFramebuffers[i]->pRenderPass];
   }
   
   pFramebuffers[i]->actions = pFramebuffers[i]->actions & vcRFA_Blit;
@@ -181,8 +159,8 @@
   for (int i = 0; i < pCurrShader->numBufferObjects; ++i)
     [self bindVB:&pCurrShader->bufferObjects[i] index:i+1];
   
-  [_encoders[pCurrFramebuffer->ID] setVertexBuffer:vertBuffer offset:vStart atIndex:0];
-  [_encoders[pCurrFramebuffer->ID] drawPrimitives:type vertexStart:vStart vertexCount:vCount];
+  [pCurrFramebuffer->encoder setVertexBuffer:vertBuffer offset:vStart atIndex:0];
+  [pCurrFramebuffer->encoder drawPrimitives:type vertexStart:vStart vertexCount:vCount];
 
   pCurrFramebuffer->actions |= vcRFA_Draw | vcRFA_Renew;
 
@@ -204,8 +182,8 @@
   for (int i = 0; i < pCurrShader->numBufferObjects; ++i)
     [self bindVB:&pCurrShader->bufferObjects[i] index:i+1];
   
-  [_encoders[pCurrFramebuffer->ID] setVertexBuffer:vertBuffer offset:0 atIndex:30];
-  [_encoders[pCurrFramebuffer->ID] drawIndexedPrimitives:type indexCount:indexCount indexType:indexType indexBuffer:indexBuffer indexBufferOffset:offset];
+  [pCurrFramebuffer->encoder setVertexBuffer:vertBuffer offset:0 atIndex:30];
+  [pCurrFramebuffer->encoder drawIndexedPrimitives:type indexCount:indexCount indexType:indexType indexBuffer:indexBuffer indexBufferOffset:offset];
 
   pCurrFramebuffer->actions |= vcRFA_Draw | vcRFA_Renew;
 
@@ -227,7 +205,7 @@
   for (int i = 0; i < BUFFER_COUNT; ++i)
   {
     if (pFramebuffers[i] != nullptr)
-      [_encoders[i] setCullMode:mode];
+      [pFramebuffers[i]->encoder setCullMode:mode];
   }
 }
 
@@ -236,7 +214,7 @@
   for (int i = 0; i < BUFFER_COUNT; ++i)
   {
     if (pFramebuffers[i] != nullptr)
-      [_encoders[i] setTriangleFillMode:mode];
+      [pFramebuffers[i]->encoder setTriangleFillMode:mode];
   }
 }
 
@@ -245,14 +223,14 @@
   for (int i = 0; i < BUFFER_COUNT; ++i)
   {
     if (pFramebuffers[i] != nullptr)
-      [_encoders[i] setFrontFacingWinding:mode];
+      [pFramebuffers[i]->encoder setFrontFacingWinding:mode];
   }
 }
 
 - (void)setScissor:(MTLScissorRect)rect
 {
   if (pCurrFramebuffer->ID == 0 && (pCurrFramebuffer->actions & vcRFA_Resize) != vcRFA_Resize)
-    [_encoders[pCurrFramebuffer->ID] setScissorRect:rect];
+    [pCurrFramebuffer->encoder setScissorRect:rect];
 }
 
 - (void)addFramebuffer:(nullable vcFramebuffer*)pFramebuffer
@@ -267,17 +245,17 @@
       pass.colorAttachments[0].storeAction = MTLStoreActionStore;
       pass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0);
       if (pFramebuffer->pColor != nullptr)
-        pass.colorAttachments[0].texture = _textures[[NSString stringWithFormat:@"%u",pFramebuffer->pColor->ID]];
+        pass.colorAttachments[0].texture = pFramebuffer->pColor->texture;
 
       if (pFramebuffer->pDepth != nullptr)
       {
-        pass.depthAttachment.texture = _textures[[NSString stringWithFormat:@"%u",pFramebuffer->pDepth->ID]];
+        pass.depthAttachment.texture = pFramebuffer->pDepth->texture;
         pass.depthAttachment.loadAction = MTLLoadActionClear;
         pass.depthAttachment.storeAction = MTLStoreActionStore;
         pass.depthAttachment.clearDepth = 1.0;
         if (pFramebuffer->pDepth->format == vcTextureFormat_D24S8)
         {
-          pass.stencilAttachment.texture = _textures[[NSString stringWithFormat:@"%u",pFramebuffer->pDepth->ID]];
+          pass.stencilAttachment.texture = pFramebuffer->pDepth->texture;
           pass.stencilAttachment.loadAction = MTLLoadActionClear;
           pass.stencilAttachment.storeAction = MTLStoreActionStore;
           pass.stencilAttachment.clearStencil = 0;
@@ -297,9 +275,9 @@
       pFramebuffer->ID = i;
       pFramebuffer->actions = 0;
 
-      [_renderPasses setObject:pass atIndexedSubscript:i];
-      [_commandBuffers setObject:[_queue commandBuffer] atIndexedSubscript:i];
-      [_encoders setObject:[_commandBuffers[i] renderCommandEncoderWithDescriptor:pass] atIndexedSubscript:i];
+      pFramebuffer->pRenderPass = pass;
+      pFramebuffer->commandBuffer = [_queue commandBuffer];
+      pFramebuffer->encoder = [pFramebuffer->commandBuffer renderCommandEncoderWithDescriptor:pass];
     
       return;
     }
@@ -319,7 +297,7 @@
   if (pCurrFramebuffer != nullptr && pCurrFramebuffer->ID == pFramebuffer->ID)
     pCurrFramebuffer = nullptr;
 
-  [_encoders[pFramebuffer->ID] endEncoding];
+  [pFramebuffer->encoder endEncoding];
   pFramebuffers[pFramebuffer->ID] = nullptr;
 }
 
@@ -330,15 +308,15 @@
     NSLog(@"invalid viewport");
 #endif
   viewport = vp;
-  [_encoders[pCurrFramebuffer->ID] setViewport:vp];
+  [pCurrFramebuffer->encoder setViewport:vp];
 }
 
 - (void)bindVB:(nonnull vcShaderConstantBuffer*)pBuffer index:(uint8_t)index
 {
   if (pBuffer->buffers[0].index != -1)
-    [_encoders[pCurrFramebuffer->ID] setVertexBytes:pBuffer->buffers[0].pCB length:pBuffer->expectedSize atIndex:pBuffer->buffers[0].index];
+    [pCurrFramebuffer->encoder setVertexBytes:pBuffer->buffers[0].pCB length:pBuffer->expectedSize atIndex:pBuffer->buffers[0].index];
 
   if (pBuffer->buffers[1].index != -1)
-    [_encoders[pCurrFramebuffer->ID] setFragmentBytes:pBuffer->buffers[1].pCB length:pBuffer->expectedSize atIndex:pBuffer->buffers[1].index];
+    [pCurrFramebuffer->encoder setFragmentBytes:pBuffer->buffers[1].pCB length:pBuffer->expectedSize atIndex:pBuffer->buffers[1].index];
 }
 @end

@@ -17,6 +17,7 @@
 #define DRAWABLES 1
 
 extern id<MTLDevice> _device;
+extern id<MTLCommandQueue> _queue;
 
 enum vcRendererFramebufferActions
 {
@@ -35,13 +36,13 @@ enum vcRendererFlushOption
 
 struct vcTexture
 {
-  uint32_t ID;
-  char samplerID[32];
+  id<MTLTexture> texture;
+  id<MTLSamplerState> sampler;
   uint32_t width;
   uint32_t height;
   vcTextureFormat format;
   vcTextureCreationFlags flags;
-  uint32_t blitTarget;
+  id<MTLBuffer> blitBuffer;
 };
 
 struct vcFramebuffer
@@ -51,6 +52,9 @@ struct vcFramebuffer
   vcTexture *pDepth;
   uint32_t clear;
   int actions;
+  MTLRenderPassDescriptor *pRenderPass;
+  id<MTLCommandBuffer> commandBuffer;
+  id<MTLRenderCommandEncoder> encoder;
 };
 
 struct vcShaderConstantBuffer
@@ -76,20 +80,23 @@ struct vcShader
   bool inititalised;
   id<MTLLibrary> vertexLibrary;
   id<MTLLibrary> fragmentLibrary;
+  id<MTLRenderPipelineState> pipelines[vcGLSBM_Count];
 
   vcShaderConstantBuffer bufferObjects[16];
   int numBufferObjects;
+
+  vcShaderConstantBuffer *pCameraPlaneParams;
 
   vcRendererFlushOption flush;
 };
 
 struct vcMesh
 {
-  char vBufferIndex[32];
+  id<MTLBuffer> vBuffer;
   uint32_t vertexCount;
   uint32_t vertexBytes;
 
-  char iBufferIndex[32];
+  id<MTLBuffer> iBuffer;
   MTLIndexType indexType;
   uint32_t indexCount;
   uint32_t indexBytes;

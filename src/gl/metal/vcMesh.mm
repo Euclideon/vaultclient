@@ -4,9 +4,6 @@
 #import "udPlatformUtil.h"
 #import "udStringUtil.h"
 
-uint32_t g_currIndex = 0;
-uint32_t g_currVertex = 0;
-
 udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, int totalTypes, const void *pVerts, uint32_t currentVerts, const void *pIndices, uint32_t currentIndices, vcMeshFlags flags/* = vcMF_None*/)
 {
   bool invalidIndexSetup = (flags & vcMF_NoIndexBuffer) || ((pIndices == nullptr && currentIndices > 0) || currentIndices == 0);
@@ -72,24 +69,19 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
       pMesh->indexType = MTLIndexTypeUInt32;
       pMesh->indexBytes = sizeof(uint32);
     }
-    udStrcpy(pMesh->iBufferIndex, [NSString stringWithFormat:@"%d", g_currIndex].UTF8String);
-    [_renderer.indexBuffers setObject:[_device newBufferWithBytes:pIndices length:currentIndices * pMesh->indexBytes options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pMesh->iBufferIndex]];
-    ++g_currIndex;
+    pMesh->iBuffer = [_device newBufferWithBytes:pIndices length:currentIndices * pMesh->indexBytes options:MTLStorageModeShared];
   }
-
-  udStrcpy(pMesh->vBufferIndex, [NSString stringWithFormat:@"%d", g_currVertex].UTF8String);
-  ++g_currVertex;
   
   if (pVerts != nullptr)
   {
-    [_renderer.vertBuffers setObject:[_device newBufferWithBytes:pVerts length:accumulatedOffset * currentVerts options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pMesh->vBufferIndex]];
+    pMesh->vBuffer = [_device newBufferWithBytes:pVerts length:accumulatedOffset * currentVerts options:MTLStorageModeShared];
   }
   else
   {
     if (currentVerts < 1)
       currentVerts = 20;
     
-    [_renderer.vertBuffers setObject:[_device newBufferWithLength:accumulatedOffset * currentVerts options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pMesh->vBufferIndex]];
+    pMesh->vBuffer = [_device newBufferWithLength:accumulatedOffset * currentVerts options:MTLStorageModeShared];
   }
 
   *ppMesh = pMesh;
@@ -105,9 +97,9 @@ void vcMesh_Destroy(struct vcMesh **ppMesh)
   
   @autoreleasepool
   {
-    [_renderer.vertBuffers removeObjectForKey:[NSString stringWithUTF8String:(*ppMesh)->vBufferIndex]];
+    (*ppMesh)->vBuffer = nil;
     if ((*ppMesh)->indexCount)
-      [_renderer.indexBuffers removeObjectForKey:[NSString stringWithUTF8String:(*ppMesh)->iBufferIndex]];
+      (*ppMesh)->iBuffer = nil;
   }
   
   udFree(*ppMesh);
@@ -162,10 +154,10 @@ udResult vcMesh_UploadData(struct vcMesh *pMesh, const vcVertexLayoutTypes *pLay
   @autoreleasepool
   {
     // if (pMesh->vertexCount * pMesh->vertexBytes < size)
-    [_renderer.vertBuffers removeObjectForKey:[NSString stringWithUTF8String:pMesh->vBufferIndex]];
-    [_renderer.vertBuffers setObject:[_device newBufferWithBytes:pVerts length:size options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pMesh->vBufferIndex]];
+    pMesh->vBuffer = nil;
+    pMesh->vBuffer = [_device newBufferWithBytes:pVerts length:size options:MTLStorageModeShared];
     // else
-    //memcpy([_renderer.vertBuffers[[NSString stringWithUTF8String:pMesh->vBufferIndex]] contents], pVerts, size);
+    //memcpy([pMesh->vBuffer contents], pVerts, size);
     
     pMesh->vertexCount = totalVerts;
     pMesh->vertexBytes = accumulatedOffset;
@@ -175,10 +167,10 @@ udResult vcMesh_UploadData(struct vcMesh *pMesh, const vcVertexLayoutTypes *pLay
       uint32_t isize = totalIndices * pMesh->indexBytes;
       
       //if (pMesh->indexCount < (uint32_t)totalIndices)
-      [_renderer.indexBuffers removeObjectForKey:[NSString stringWithUTF8String:pMesh->iBufferIndex]];
-      [_renderer.indexBuffers setObject:[_device newBufferWithBytes:pIndices length:isize options:MTLStorageModeShared] forKey:[NSString stringWithUTF8String:pMesh->iBufferIndex]];
+      pMesh->iBuffer = nil;
+      pMesh->iBuffer = [_device newBufferWithBytes:pIndices length:isize options:MTLStorageModeShared];
       //else
-      //memcpy([_renderer.indexBuffers[[NSString stringWithUTF8String:pMesh->iBufferIndex]] contents], pIndices, isize);
+      //memcpy([pMesh->iBuffer contents], pIndices, isize);
     }
   }
   
@@ -194,29 +186,25 @@ udResult vcMesh_UploadSubData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout,
   if (pMesh == nullptr || pLayout == nullptr || totalTypes == 0 || pVerts == nullptr || totalVerts == 0)
     return udR_InvalidParameter_;
 
-  id<MTLBuffer> vBuffer = _renderer.vertBuffers[[NSString stringWithUTF8String:pMesh->vBufferIndex]];
-  
   uint32_t totalSize = (startVertex + totalVerts) * pMesh->vertexBytes;
   
-  if (vBuffer.length < totalSize)
+  if (pMesh->vBuffer.length < totalSize)
   {
     @autoreleasepool
     {
-      vBuffer = [_device newBufferWithLength:totalSize options:MTLStorageModeShared];
-      [_renderer.vertBuffers removeObjectForKey:[NSString stringWithUTF8String:pMesh->vBufferIndex]];
-      [_renderer.vertBuffers setObject:vBuffer forKey:[NSString stringWithUTF8String:pMesh->vBufferIndex]];
+      pMesh->vBuffer = nil;
+      pMesh->vBuffer = [_device newBufferWithLength:totalSize options:MTLStorageModeShared];
     }
   }
   
-  memcpy((int8_t*)[vBuffer contents] + (startVertex * pMesh->vertexBytes), pVerts, totalVerts * pMesh->vertexBytes);
+  memcpy((int8_t*)[pMesh->vBuffer contents] + (startVertex * pMesh->vertexBytes), pVerts, totalVerts * pMesh->vertexBytes);
   
   udUnused(pIndices);
   udUnused(totalIndices);
   /* No indices in use presently
    if (totalIndices > 0)
    {
-   id<MTLBuffer> iBuffer = _renderer.indexBuffers[[NSString stringWithUTF8String:pMesh->iBufferIndex]];
-   memcpy([iBuffer contents], pIndices, totalIndices * pMesh->indexBytes);
+   memcpy([pMesh->iBuffer contents], pIndices, totalIndices * pMesh->indexBytes);
    pMesh->indexCount = totalIndices;
    }*/
 
@@ -259,14 +247,14 @@ bool vcMesh_Render(struct vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_
       else
         elementCount *= elementsPerPrimitive;
 
-      [_renderer drawIndexed:_renderer.vertBuffers[[NSString stringWithUTF8String:pMesh->vBufferIndex]] indexedBuffer:_renderer.indexBuffers[[NSString stringWithUTF8String:pMesh->iBufferIndex]] indexCount:elementCount offset:startElement * elementsPerPrimitive * pMesh->indexBytes indexSize:pMesh->indexType primitiveType:primitiveType];
+      [_renderer drawIndexed:pMesh->vBuffer indexedBuffer:pMesh->iBuffer indexCount:elementCount offset:startElement * elementsPerPrimitive * pMesh->indexBytes indexSize:pMesh->indexType primitiveType:primitiveType];
     }
     else
     {
       if (elementCount == 0)
         elementCount = pMesh->vertexCount;
 
-      [_renderer drawUnindexed:_renderer.vertBuffers[[NSString stringWithUTF8String:pMesh->vBufferIndex]] vertexStart:startElement * pMesh->vertexBytes vertexCount:elementCount primitiveType:primitiveType];
+      [_renderer drawUnindexed:pMesh->vBuffer vertexStart:startElement * pMesh->vertexBytes vertexCount:elementCount primitiveType:primitiveType];
     }
   }
   vcGLState_ReportGPUWork(1, elementCount * elementsPerPrimitive, 0);

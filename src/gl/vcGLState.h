@@ -59,7 +59,9 @@ enum vcGLStateDepthMode
   vcGLSDM_Greater,
 
   vcGLSDM_NotEqual,
-  vcGLSDM_Always
+  vcGLSDM_Always,
+
+  vcGLSDM_Total
 };
 
 enum vcGLStateStencilFunc
