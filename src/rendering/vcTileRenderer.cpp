@@ -631,7 +631,7 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_dem, pTileRenderer->presentShader.pProgram, "u_dem"), udR_InternalError);
 
   // build mesh variants
-  for (int i = 0; i < udLengthOf(MeshConfigurations); ++i)
+  for (size_t i = 0; i < udLengthOf(MeshConfigurations); ++i)
   {
     vcTileRenderer_BuildMeshVertices(verts, indicies, udFloat2::create(0.0f, 0.0f), udFloat2::create(1.0f, 1.0f), MeshConfigurations[i]);
     vcMesh_Create(&pTileRenderer->pTileMeshes[i], vcP3VertexLayout, (int)udLengthOf(vcP3VertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6);
@@ -677,7 +677,7 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
 
   vcShader_ReleaseConstantBuffer(pTileRenderer->presentShader.pProgram, pTileRenderer->presentShader.pConstantBuffer);
   vcShader_DestroyShader(&(pTileRenderer->presentShader.pProgram));
-  for (int i = 0; i < udLengthOf(MeshConfigurations); ++i)
+  for (size_t i = 0; i < udLengthOf(MeshConfigurations); ++i)
     vcMesh_Destroy(&pTileRenderer->pTileMeshes[i]);
   vcTexture_Destroy(&pTileRenderer->pEmptyTileTexture);
   vcTexture_Destroy(&pTileRenderer->pEmptyDemTileTexture);
@@ -1039,8 +1039,8 @@ bool vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const ud
   vcTileRenderer_DrapeDEM(pNode, pBestDemAncestor);
 
   // Lookup mesh variant for rendering
-  int meshIndex = 0;
-  for (int mc = 0; mc < udLengthOf(MeshConfigurations); ++mc)
+  size_t meshIndex = 0;
+  for (size_t mc = 0; mc < udLengthOf(MeshConfigurations); ++mc)
   {
     if (MeshConfigurations[mc] == pNode->neighbours)
     {
