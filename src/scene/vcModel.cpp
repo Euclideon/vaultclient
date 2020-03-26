@@ -520,7 +520,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
           {
             memset(pProgramState->modelPath, 0, sizeof(pProgramState->modelPath));
             udStrncpy(pProgramState->modelPath, pProgramState->sceneExplorer.clickedItem.pItem->pName, fileNameLength);
-            udStrncpy(pProgramState->modelPath + fileNameLength, sizeof(pProgramState->modelPath), SupportedTileTypes_ExportDefault, udStrlen(SupportedTileTypes_ExportDefault));
+            udStrcat(pProgramState->modelPath, SupportedTileTypes_QueryExport[0]);
           }
         }
       }
@@ -541,11 +541,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
         if (udFileExists(pProgramState->modelPath) != udR_Success || vcModals_OverwriteExistingFile(pProgramState->modelPath))
         {
           if (!udStrchr(pProgramState->modelPath, "."))
-          {
-            // Adding a default externsion
-            size_t modelPathLength = udStrlen(pProgramState->modelPath);
-            udStrncpy(pProgramState->modelPath + modelPathLength, sizeof(pProgramState->modelPath), SupportedTileTypes_ExportDefault, udStrlen(SupportedTileTypes_ExportDefault));
-          }
+            udStrcat(pProgramState->modelPath, SupportedTileTypes_QueryExport[0]);
 
           vdkQueryFilter *pFilter = ((s_pQuery == nullptr) ? nullptr : s_pQuery->m_pFilter);
           vdkPointCloud *pCloud = m_pPointCloud;

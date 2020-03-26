@@ -18,7 +18,6 @@ static const char *SupportedFileTypes_ProjectsImport[] = { ".json", ".udp" };
 
 static const char *SupportedTileTypes_ConvertExport[] = { ".uds" };
 static const char *SupportedTileTypes_QueryExport[] = { ".uds", ".las" };
-static const char *SupportedTileTypes_ExportDefault = ".las";
 static const char *SupportedFileTypes_ConvertImport[] = { ".uds", ".ssf", ".udg", ".las", ".laz", ".e57", ".txt", ".csv", ".asc", ".pts", ".ptx", ".xyz", ".obj"
 #ifdef FBXSDK_ON
   , ".fbx"
@@ -62,7 +61,6 @@ template <size_t N, size_t M> inline void vcFileDialog_Open(vcState *pProgramSta
   udUnused(SupportedTileTypes_ConvertExport);
   udUnused(SupportedTileTypes_QueryExport);
   udUnused(SupportedFileTypes_ConvertImport);
-  udUnused(SupportedTileTypes_ExportDefault);
 }
 
 void vcFileDialog_ShowModal(vcState *pProgramState);
