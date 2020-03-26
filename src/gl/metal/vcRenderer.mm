@@ -124,7 +124,7 @@
 {
   blendMode = newMode;
   if (pCurrShader != nullptr && pCurrFramebuffer != nullptr)
-    [pCurrFramebuffer->encoder setRenderPipelineState:pCurrShader->pipelines[newMode]];
+    [pCurrFramebuffer->encoder setRenderPipelineState:pCurrShader->pipelines[newMode + (pCurrFramebuffer->pDepth != nullptr ? 0 : vcGLSBM_Count)]];
 }
 
 - (void)flush:(uint32_t)i
