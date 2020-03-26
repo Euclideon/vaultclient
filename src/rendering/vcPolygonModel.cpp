@@ -575,15 +575,18 @@ udResult vcPolygonModel_CreateShaders()
 
   pPolygonShader = &gShaders[vcPMST_P3N3UV2_Opaque];
   UD_ERROR_IF(!vcShader_CreateFromFile(&pPolygonShader->pShader, "asset://assets/shaders/polygonP3N3UV2VertexShader", "asset://assets/shaders/polygonP3N3UV2FragmentShader", vcP3N3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_Bind(pPolygonShader->pShader), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pPolygonShader->pDiffuseSampler, pPolygonShader->pShader, "u_texture"), udR_InternalError);
 
   pPolygonShader = &gShaders[vcPMST_P3N3UV2_FlatColour];
   UD_ERROR_IF(!vcShader_CreateFromFile(&pPolygonShader->pShader, "asset://assets/shaders/polygonP3N3UV2VertexShader", "asset://assets/shaders/flatColourFragmentShader", vcP3N3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_Bind(pPolygonShader->pShader), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject)), udR_InternalError);
 
   pPolygonShader = &gShaders[vcPMST_P3N3UV2_DepthOnly];
   UD_ERROR_IF(!vcShader_CreateFromFile(&pPolygonShader->pShader, "asset://assets/shaders/polygonP3N3UV2VertexShader", "asset://assets/shaders/depthOnlyFragmentShader", vcP3N3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_Bind(pPolygonShader->pShader), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject)), udR_InternalError);
 
   UD_ERROR_CHECK(vcTexture_Create(&pWhiteTexture, 1, 1, &WhitePixel));

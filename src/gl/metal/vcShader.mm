@@ -10,7 +10,82 @@
 uint32_t g_pipeCount = 0;
 uint16_t g_geomPipeCount = 0;
 
-// Takes shader function names instead of shader description string
+void vcShader_CreatePipeline(vcShader *pShader, int pipelineIndex, id<MTLFunction> vFunc, id<MTLFunction> fFunc, MTLVertexDescriptor *vertexDesc, vcGLStateBlendMode blendMode, bool useDepth, MTLRenderPipelineReflection **ppReflectionObj = nullptr)
+{
+  MTLRenderPipelineDescriptor *pDesc = [[MTLRenderPipelineDescriptor alloc] init];
+  pDesc.vertexFunction = vFunc;
+  pDesc.fragmentFunction = fFunc;
+  pDesc.vertexDescriptor = vertexDesc;
+
+  pDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+  if (useDepth)
+  {
+#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+    pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+    pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+#elif UDPLATFORM_OSX
+    pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+    pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+#else
+# error "Unknown platform!"
+#endif
+  }
+  else
+  {
+    pDesc.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
+    pDesc.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
+  }
+
+  if (blendMode != vcGLSBM_None)
+  {
+    pDesc.colorAttachments[0].blendingEnabled = YES;
+    pDesc.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
+    pDesc.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
+
+    switch (blendMode)
+    {
+      case vcGLSBM_None:
+        break;
+      case vcGLSBM_Interpolative:
+        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
+        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOne;
+        break;
+      case vcGLSBM_Additive:
+        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
+        break;
+      case vcGLSBM_Multiplicative:
+        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorDestinationColor;
+        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
+        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorZero;
+        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
+        break;
+      case vcGLSBM_Count:
+        break;
+    }
+  }
+  
+  NSError *err = nil;
+  if (ppReflectionObj)
+  {
+    MTLPipelineOption option = MTLPipelineOptionBufferTypeInfo | MTLPipelineOptionArgumentInfo;
+    pShader->pipelines[pipelineIndex] = [_device newRenderPipelineStateWithDescriptor:pDesc options:option reflection:ppReflectionObj error:&err];
+  }
+  else
+  {
+    pShader->pipelines[pipelineIndex] = [_device newRenderPipelineStateWithDescriptor:pDesc error:&err];
+  }
+
+#ifdef METAL_DEBUG
+  if (err != nil)
+    NSLog(@"Error: failed to create Metal pipeline state: %@", err);
+#endif
+}
+
 bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexShaderFilename, const char *pVertexShader, const char *pFragmentShaderFilename, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes)
 {
   if (ppShader == nullptr || pVertexShader == nullptr || pFragmentShader == nullptr)
@@ -81,31 +156,6 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
     vFunc = [pShader->vertexLibrary newFunctionWithName:@"main0"];
     fFunc = [pShader->fragmentLibrary newFunctionWithName:@"main0"];
   }
-
-  MTLRenderPipelineDescriptor *pDesc = [[MTLRenderPipelineDescriptor alloc] init];
-  pDesc.vertexDescriptor = vertexDesc;
-  pDesc.vertexFunction = vFunc;
-  pDesc.fragmentFunction = fFunc;
-
-  pDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-
-  if (udStrBeginsWithi(pFragmentShaderFilename, "blur") || udStrBeginsWithi(pFragmentShaderFilename, "flatCol"))
-  {
-    pDesc.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
-    pDesc.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
-  }
-  else
-  {
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-    pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
-    pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float;
-#elif UDPLATFORM_OSX
-    pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
-    pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
-#else
-# error "Unknown platform!"
-#endif
-  }
     
   if (udStrBeginsWithi(pFragmentShaderFilename, "udSplat") || udStrBeginsWithi(pFragmentShaderFilename, "blur") || udStrBeginsWithi(pFragmentShaderFilename, "flat"))
     pShader->flush = vcRFO_Flush;
@@ -116,54 +166,17 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
 
   pShader->inititalised = false;
   
-  NSError *err = nil;
-  MTLRenderPipelineReflection *reflectionObj;
-  MTLPipelineOption option = MTLPipelineOptionBufferTypeInfo | MTLPipelineOptionArgumentInfo;
-  pShader->pipelines[vcGLSBM_None] = [_device newRenderPipelineStateWithDescriptor:pDesc options:option reflection:&reflectionObj error:&err];
-#ifdef METAL_DEBUG
-  if (err != nil)
-    NSLog(@"Error: failed to create Metal pipeline state: %@", err);
-#endif
-  pDesc.colorAttachments[0].blendingEnabled = YES;
-  pDesc.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
-  pDesc.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
+  MTLRenderPipelineReflection *pReflectionObj;
+  vcShader_CreatePipeline(pShader, 0, vFunc, fFunc, vertexDesc, vcGLSBM_None, true, &pReflectionObj);
+  vcShader_CreatePipeline(pShader, 1, vFunc, fFunc, vertexDesc, vcGLSBM_Interpolative, true);
+  vcShader_CreatePipeline(pShader, 2, vFunc, fFunc, vertexDesc, vcGLSBM_Additive, true);
+  vcShader_CreatePipeline(pShader, 3, vFunc, fFunc, vertexDesc, vcGLSBM_Multiplicative, true);
+  vcShader_CreatePipeline(pShader, 4, vFunc, fFunc, vertexDesc, vcGLSBM_None, false);
+  vcShader_CreatePipeline(pShader, 5, vFunc, fFunc, vertexDesc, vcGLSBM_Interpolative, false);
+  vcShader_CreatePipeline(pShader, 6, vFunc, fFunc, vertexDesc, vcGLSBM_Additive, false);
+  vcShader_CreatePipeline(pShader, 7, vFunc, fFunc, vertexDesc, vcGLSBM_Multiplicative, false);
 
-  for (int i = vcGLSBM_Interpolative; i < vcGLSBM_Count; ++i)
-  {
-    switch ((vcGLStateBlendMode)i)
-    {
-      case vcGLSBM_None:
-        break;
-      case vcGLSBM_Interpolative:
-        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
-        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
-        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOne;
-        break;
-      case vcGLSBM_Additive:
-        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorOne;
-        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
-        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOne;
-        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
-        break;
-      case vcGLSBM_Multiplicative:
-        pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorDestinationColor;
-        pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
-        pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorZero;
-        pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
-        break;
-      case vcGLSBM_Count:
-        break;
-    }
-
-    pShader->pipelines[i] = [_device newRenderPipelineStateWithDescriptor:pDesc error:&err];
-#ifdef METAL_DEBUG
-    if (err != nil)
-      NSLog(@"Error: failed to create Metal pipeline state: %@", err);
-#endif
-  }
-
-  for (MTLArgument *arg in reflectionObj.vertexArguments)
+  for (MTLArgument *arg in pReflectionObj.vertexArguments)
   {
     if (arg.type != MTLArgumentTypeBuffer)
       continue;
@@ -177,7 +190,7 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
     pBuffer->buffers[0].index = arg.index;
   }
 
-  for (MTLArgument *arg in reflectionObj.fragmentArguments)
+  for (MTLArgument *arg in pReflectionObj.fragmentArguments)
   {
     if (arg.type != MTLArgumentTypeBuffer)
       continue;
@@ -210,7 +223,6 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
   pShader->ID = g_pipeCount;
   ++g_pipeCount;
 
-
   *ppShader = pShader;
   pShader = nullptr;
 
@@ -238,7 +250,7 @@ bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, con
   if (pTemp && pTemp[1] == '\0') // This file contains the name of a shader
     *pTemp = '\0'; // Zero the new line so the shader can be found
 
-  bool success = vcShader_CreateFromTextInternal(ppShader, pVertexShader, pVertexShaderText, pFragmentShader, pFragmentShaderText, pInputTypes, totalInputs);
+  bool success = vcShader_CreateFromTextInternal(ppShader, udStrrchr(pVertexShader, "/") + 1, pVertexShaderText, udStrrchr(pFragmentShader, "/") + 1, pFragmentShaderText, pInputTypes, totalInputs);
 
   udFree(pFragmentShaderText);
   udFree(pVertexShaderText);

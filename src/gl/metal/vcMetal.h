@@ -13,7 +13,7 @@
 #import <Cocoa/Cocoa.h>
 #import "vcRenderer.h"
 
-#define BUFFER_COUNT 6
+#define BUFFER_COUNT 10
 #define DRAWABLES 1
 
 extern id<MTLDevice> _device;
@@ -80,7 +80,7 @@ struct vcShader
   bool inititalised;
   id<MTLLibrary> vertexLibrary;
   id<MTLLibrary> fragmentLibrary;
-  id<MTLRenderPipelineState> pipelines[vcGLSBM_Count];
+  id<MTLRenderPipelineState> pipelines[vcGLSBM_Count * 2];
 
   vcShaderConstantBuffer bufferObjects[16];
   int numBufferObjects;
