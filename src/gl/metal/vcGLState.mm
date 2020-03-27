@@ -16,12 +16,18 @@
 #include "vcStrings.h"
 
 int32_t g_maxAnisotropy = 0;
-vcRenderer *_renderer;
 
-id<MTLDevice> _device;
-id<MTLCommandQueue> _queue;
+id<MTLDevice> g_device;
+id<MTLCommandQueue> g_queue;
+vcFramebuffer *g_pDefaultFramebuffer = nullptr;
+vcFramebuffer *g_pCurrFramebuffer = nullptr;
+vcShader *g_pCurrShader = nullptr;
+CAMetalLayer *g_pMetalLayer = nullptr;
+id<CAMetalDrawable> g_currDrawable;
+id<MTLCommandBuffer> g_blitBuffer;
+id<MTLBlitCommandEncoder> g_blitEncoder;
 
-static vcGLState s_internalState;
+vcGLState g_internalState = {};
 
 MTLStencilOperation mapStencilOperation[] =
 {
@@ -69,25 +75,27 @@ void vcGLState_BuildDepthStates()
     int j = i * 2;
     depthStencilDesc.depthWriteEnabled = false;
     depthStencilDesc.depthCompareFunction = mapDepthMode[i];
-    dsState = [_device newDepthStencilStateWithDescriptor:depthStencilDesc];
+    dsState = [g_device newDepthStencilStateWithDescriptor:depthStencilDesc];
     s_depthStates[j] = dsState;
 
     depthStencilDesc.depthWriteEnabled = true;
-    dsState = [_device newDepthStencilStateWithDescriptor:depthStencilDesc];
+    dsState = [g_device newDepthStencilStateWithDescriptor:depthStencilDesc];
     s_depthStates[j+1] = dsState;
   }
 }
 
 bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 {
-  _device = MTLCreateSystemDefaultDevice();
-  _queue = [_device newCommandQueue];
+  g_device = MTLCreateSystemDefaultDevice();
 
-  if (_device == nullptr)
+  if (g_device == nullptr)
   {
     NSLog(@"Metal is not supported on this device");
     return false;
   }
+
+  g_queue = [g_device newCommandQueue];
+  vcGLState_BuildDepthStates();
 
   SDL_SysWMinfo wminfo;
   SDL_VERSION(&wminfo.version);
@@ -103,20 +111,26 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
   sdlview.autoresizesSubviews = true;
   
-  _renderer = [vcRenderer alloc];
-  [_renderer initWithView:sdlview];
+  g_pMetalLayer = [CAMetalLayer layer];
+  g_pMetalLayer.device = g_device;
+
+  g_pMetalLayer.autoresizingMask = kCALayerHeightSizable | kCALayerWidthSizable;
+  g_pMetalLayer.needsDisplayOnBoundsChange = YES;
+  g_pMetalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+  g_pMetalLayer.allowsNextDrawableTimeout = NO;
+  g_pMetalLayer.drawableSize = CGSizeMake(sdlview.frame.size.width, sdlview.frame.size.height);
+  sdlview.layer = g_pMetalLayer;
+  g_blitBuffer = [g_queue commandBuffer];
+  g_blitEncoder = [g_blitBuffer blitCommandEncoder];
 
   vcTexture *defaultTexture, *defaultDepth;
   vcTexture_Create(&defaultTexture, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, vcTCF_RenderTarget);
   vcTexture_Create(&defaultDepth, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, vcTCF_RenderTarget);
   
-  vcFramebuffer *pFramebuffer;
-  vcFramebuffer_Create(&pFramebuffer, defaultTexture, defaultDepth);
-  vcFramebuffer_Bind(pFramebuffer);
+  vcFramebuffer_Create(&g_pDefaultFramebuffer, defaultTexture, defaultDepth);
+  vcFramebuffer_Bind(g_pDefaultFramebuffer);
 
-  vcGLState_BuildDepthStates();
-
-  *ppDefaultFramebuffer = pFramebuffer;
+  *ppDefaultFramebuffer = g_pDefaultFramebuffer;
 
   vcGLState_ResetState(true);
 
@@ -125,6 +139,7 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
 void vcGLState_Deinit()
 {
+  g_pDefaultFramebuffer = nullptr;
   return;
 }
 
@@ -152,49 +167,50 @@ bool vcGLState_ResetState(bool force /*= false*/)
 
 bool vcGLState_SetFaceMode(vcGLStateFillMode fillMode, vcGLStateCullMode cullMode, bool isFrontCCW /*= true*/, bool force /*= false*/)
 {
-  if (force || fillMode != s_internalState.fillMode || cullMode != s_internalState.cullMode || isFrontCCW != s_internalState.isFrontCCW)
+  if (force || fillMode != g_internalState.fillMode || cullMode != g_internalState.cullMode || isFrontCCW != g_internalState.isFrontCCW)
   {
     switch(fillMode)
     {
       case vcGLSFM_Solid:
-        [_renderer setFillMode:MTLTriangleFillModeFill];
+        [g_pCurrFramebuffer->encoder setTriangleFillMode:MTLTriangleFillModeFill];
         break;
       case vcGLSFM_Wireframe:
-        [_renderer setFillMode:MTLTriangleFillModeLines];
+        [g_pCurrFramebuffer->encoder setTriangleFillMode:MTLTriangleFillModeFill];
         break;
     }
 
     switch(cullMode)
     {
       case vcGLSCM_None:
-        [_renderer setCullMode:MTLCullModeNone];
+        [g_pCurrFramebuffer->encoder setCullMode:MTLCullModeNone];
         break;
       case vcGLSCM_Front:
-        [_renderer setCullMode:MTLCullModeFront];
+        [g_pCurrFramebuffer->encoder setCullMode:MTLCullModeFront];
         break;
       case vcGLSCM_Back:
-        [_renderer setCullMode:MTLCullModeBack];
+        [g_pCurrFramebuffer->encoder setCullMode:MTLCullModeBack];
         break;
     }
 
     if (isFrontCCW)
-      [_renderer setWindingMode:MTLWindingCounterClockwise];
+      [g_pCurrFramebuffer->encoder setFrontFacingWinding:MTLWindingCounterClockwise];
     else
-      [_renderer setWindingMode:MTLWindingClockwise];
+      [g_pCurrFramebuffer->encoder setFrontFacingWinding:MTLWindingClockwise];
 
-    s_internalState.fillMode = fillMode;
-    s_internalState.cullMode = cullMode;
-    s_internalState.isFrontCCW = isFrontCCW;
+    g_internalState.fillMode = fillMode;
+    g_internalState.cullMode = cullMode;
+    g_internalState.isFrontCCW = isFrontCCW;
   }
   return true;
 }
 
 bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/)
 {
-  if (force || blendMode != s_internalState.blendMode)
+  if (force || blendMode != g_internalState.blendMode)
   {
-    s_internalState.blendMode = blendMode;
-    [_renderer bindBlendState:blendMode];
+    g_internalState.blendMode = blendMode;
+    if (g_pCurrShader != nullptr && g_pCurrFramebuffer != nullptr)
+      [g_pCurrFramebuffer->encoder setRenderPipelineState:g_pCurrShader->pipelines[blendMode + (g_pCurrFramebuffer->pDepth != nullptr ? 0 : vcGLSBM_Count)]];
   }
   return true;
 }
@@ -203,19 +219,21 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
 {
   bool enableStencil = pStencil != nullptr;
 
-  if ((s_internalState.depthReadMode != depthReadMode) || (s_internalState.doDepthWrite != doDepthWrite) || force || (s_internalState.stencil.enabled != enableStencil) ||
-      (enableStencil && ((s_internalState.stencil.onStencilFail != pStencil->onStencilFail) || (s_internalState.stencil.onDepthFail != pStencil->onDepthFail) || (s_internalState.stencil.onStencilAndDepthPass != pStencil->onStencilAndDepthPass) || (s_internalState.stencil.compareFunc != pStencil->compareFunc) || (s_internalState.stencil.compareMask != pStencil->compareMask) || (s_internalState.stencil.writeMask != pStencil->writeMask))))
+  if ((g_internalState.depthReadMode != depthReadMode) || (g_internalState.doDepthWrite != doDepthWrite) || force || (g_internalState.stencil.enabled != enableStencil) ||
+      (enableStencil && ((g_internalState.stencil.onStencilFail != pStencil->onStencilFail) || (g_internalState.stencil.onDepthFail != pStencil->onDepthFail) || (g_internalState.stencil.onStencilAndDepthPass != pStencil->onStencilAndDepthPass) || (g_internalState.stencil.compareFunc != pStencil->compareFunc) || (g_internalState.stencil.compareMask != pStencil->compareMask) || (g_internalState.stencil.writeMask != pStencil->writeMask))))
   {
-    s_internalState.depthReadMode = depthReadMode;
-    s_internalState.doDepthWrite = doDepthWrite;
+    g_internalState.depthReadMode = depthReadMode;
+    g_internalState.doDepthWrite = doDepthWrite;
 
-    s_internalState.stencil.enabled = enableStencil;
+    g_internalState.stencil.enabled = enableStencil;
 
     @autoreleasepool
     {
       if (!enableStencil)
       {
-        [_renderer bindDepthStencil:s_depthStates[((int)depthReadMode) * 2 + doDepthWrite] settings:nullptr];
+        if (g_pCurrFramebuffer != nullptr)
+          [g_pCurrFramebuffer->encoder setDepthStencilState:s_depthStates[((int)depthReadMode) * 2 + doDepthWrite]];
+
         return true;
       }
 
@@ -241,16 +259,19 @@ bool vcGLState_SetDepthStencilMode(vcGLStateDepthMode depthReadMode, bool doDept
 #else
 # error "Unknown platform!"
 #endif
-      s_internalState.stencil.writeMask = pStencil->writeMask;
-      s_internalState.stencil.compareFunc = pStencil->compareFunc;
-      s_internalState.stencil.compareValue = pStencil->compareValue;
-      s_internalState.stencil.compareMask = pStencil->compareMask;
-      s_internalState.stencil.onStencilFail = pStencil->onStencilFail;
-      s_internalState.stencil.onDepthFail = pStencil->onDepthFail;
-      s_internalState.stencil.onStencilAndDepthPass = pStencil->onStencilAndDepthPass;
+      g_internalState.stencil.writeMask = pStencil->writeMask;
+      g_internalState.stencil.compareFunc = pStencil->compareFunc;
+      g_internalState.stencil.compareValue = pStencil->compareValue;
+      g_internalState.stencil.compareMask = pStencil->compareMask;
+      g_internalState.stencil.onStencilFail = pStencil->onStencilFail;
+      g_internalState.stencil.onDepthFail = pStencil->onDepthFail;
+      g_internalState.stencil.onStencilAndDepthPass = pStencil->onStencilAndDepthPass;
 
-      id<MTLDepthStencilState> dsState = [_device newDepthStencilStateWithDescriptor:depthStencilDesc];
-      [_renderer bindDepthStencil:dsState settings:pStencil];
+      if (g_pCurrFramebuffer != nullptr)
+      {
+        [g_pCurrFramebuffer->encoder setDepthStencilState:[g_device newDepthStencilStateWithDescriptor:depthStencilDesc]];
+        [g_pCurrFramebuffer->encoder setStencilReferenceValue:(uint32_t)pStencil->compareValue];
+      }
     }
   }
 
@@ -262,18 +283,17 @@ bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, 
   if (x < 0 || y < 0 || width < 1 || height < 1)
     return false;
 
-  MTLViewport vp =
-  {
-    .originX = double(x),
-    .originY = double(y),
-    .width = double(width),
-    .height = double(height),
-    .znear = minDepth,
-    .zfar = maxDepth
-  };
-  
-  [_renderer bindViewport:vp];
-  s_internalState.viewportZone = udInt4::create(x, y, width, height);
+  g_internalState.viewportZone = udInt4::create(x, y, width, height);
+  g_internalState.depthRange = udFloat2::create(minDepth, maxDepth);
+
+  [g_pCurrFramebuffer->encoder setViewport:{
+    .originX = double(g_internalState.viewportZone.x),
+    .originY = double(g_internalState.viewportZone.y),
+    .width = double(g_internalState.viewportZone.z),
+    .height = double(g_internalState.viewportZone.w),
+    .znear = g_internalState.depthRange.x,
+    .zfar = g_internalState.depthRange.y
+  }];
   
   vcGLState_Scissor(x, y, x + width, y + height);
 
@@ -282,7 +302,7 @@ bool vcGLState_SetViewport(int32_t x, int32_t y, int32_t width, int32_t height, 
 
 bool vcGLState_SetViewportDepthRange(float minDepth, float maxDepth)
 {
-  return vcGLState_SetViewport(s_internalState.viewportZone.x, s_internalState.viewportZone.y, s_internalState.viewportZone.z, s_internalState.viewportZone.w, minDepth, maxDepth);
+  return vcGLState_SetViewport(g_internalState.viewportZone.x, g_internalState.viewportZone.y, g_internalState.viewportZone.z, g_internalState.viewportZone.w, minDepth, maxDepth);
 }
 
 bool vcGLState_Present(SDL_Window *pWindow)
@@ -291,16 +311,52 @@ bool vcGLState_Present(SDL_Window *pWindow)
     return false;
 
   @autoreleasepool {
-    [_renderer draw];
+    vcGLState_FlushBlit();
+    
+    [g_pDefaultFramebuffer->encoder endEncoding];
+    
+    if (g_currDrawable)
+      [g_pDefaultFramebuffer->commandBuffer presentDrawable:g_currDrawable];
+    
+    [g_pDefaultFramebuffer->commandBuffer commit];
+    
+    g_currDrawable = [g_pMetalLayer nextDrawable];
+    if (!g_currDrawable)
+      NSLog(@"Drawable unavailable");
+    
+    g_pDefaultFramebuffer->pRenderPass.colorAttachments[0].texture = g_currDrawable.texture;
+    
+    g_pDefaultFramebuffer->commandBuffer = [g_queue commandBuffer];
+    g_pDefaultFramebuffer->encoder = [g_pDefaultFramebuffer->commandBuffer renderCommandEncoderWithDescriptor:g_pDefaultFramebuffer->pRenderPass];
   }
 
-  memset(&s_internalState.frameInfo, 0, sizeof(s_internalState.frameInfo));
+  memset(&g_internalState.frameInfo, 0, sizeof(g_internalState.frameInfo));
   return true;
 }
 
 bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
 {
-  [_renderer setFrameSize:NSMakeSize(width, height)];
+  if (((int)width != (int)g_pDefaultFramebuffer->pRenderPass.colorAttachments[0].texture.width || (int)height != (int)g_pDefaultFramebuffer->pRenderPass.colorAttachments[0].texture.height))
+  {
+    g_pMetalLayer.drawableSize = CGSizeMake(width, height);
+    g_pDefaultFramebuffer->pColor->width = width;
+    g_pDefaultFramebuffer->pColor->height = height;
+    g_pDefaultFramebuffer->actions |= vcRFA_Resize;
+
+    if (g_pDefaultFramebuffer->pDepth)
+    {
+      vcTexture *pIntermediate;
+      vcTexture_Create(&pIntermediate, width, height, nullptr, g_pDefaultFramebuffer->pDepth->format, vcTFM_Nearest, vcTCF_RenderTarget);
+
+      vcTexture_Destroy(&g_pDefaultFramebuffer->pDepth);
+
+      g_pDefaultFramebuffer->pDepth = pIntermediate;
+      g_pDefaultFramebuffer->pRenderPass.depthAttachment.texture = pIntermediate->texture;
+      if (pIntermediate->format == vcTextureFormat_D24S8)
+        g_pDefaultFramebuffer->pRenderPass.stencilAttachment.texture = g_pDefaultFramebuffer->pRenderPass.depthAttachment.texture;
+    }
+  }
+
   return true;
 }
 
@@ -314,7 +370,9 @@ void vcGLState_Scissor(int left, int top, int right, int bottom, bool force /*= 
       .width = (NSUInteger)right - left,
       .height = (NSUInteger)bottom - top
   };
-  [_renderer setScissor:rect];
+
+  if (g_pCurrFramebuffer == g_pDefaultFramebuffer && (g_pCurrFramebuffer->actions & vcRFA_Resize) != vcRFA_Resize)
+    [g_pCurrFramebuffer->encoder setScissorRect:rect];
 }
 
 int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel)
@@ -324,12 +382,23 @@ int32_t vcGLState_GetMaxAnisotropy(int32_t desiredAniLevel)
 
 void vcGLState_ReportGPUWork(size_t drawCount, size_t triCount, size_t uploadBytesCount)
 {
-  s_internalState.frameInfo.drawCount += drawCount;
-  s_internalState.frameInfo.triCount += triCount;
-  s_internalState.frameInfo.uploadBytesCount += uploadBytesCount;
+  g_internalState.frameInfo.drawCount += drawCount;
+  g_internalState.frameInfo.triCount += triCount;
+  g_internalState.frameInfo.uploadBytesCount += uploadBytesCount;
 }
 
 bool vcGLState_IsGPUDataUploadAllowed()
 {
-  return (s_internalState.frameInfo.uploadBytesCount < vcGLState_MaxUploadBytesPerFrame);
+  return (g_internalState.frameInfo.uploadBytesCount < vcGLState_MaxUploadBytesPerFrame);
+}
+
+void vcGLState_FlushBlit()
+{
+  @autoreleasepool {
+    [g_blitEncoder endEncoding];
+    [g_blitBuffer commit];
+    [g_blitBuffer waitUntilCompleted];
+    g_blitBuffer = [g_queue commandBuffer];
+    g_blitEncoder = [g_blitBuffer blitCommandEncoder];
+  }
 }

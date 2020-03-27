@@ -1,6 +1,5 @@
 #import "gl/vcMesh.h"
 #import "vcMetal.h"
-#import "vcRenderer.h"
 #import "udPlatformUtil.h"
 #import "udStringUtil.h"
 
@@ -69,19 +68,19 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
       pMesh->indexType = MTLIndexTypeUInt32;
       pMesh->indexBytes = sizeof(uint32);
     }
-    pMesh->iBuffer = [_device newBufferWithBytes:pIndices length:currentIndices * pMesh->indexBytes options:MTLStorageModeShared];
+    pMesh->iBuffer = [g_device newBufferWithBytes:pIndices length:currentIndices * pMesh->indexBytes options:MTLStorageModeShared];
   }
   
   if (pVerts != nullptr)
   {
-    pMesh->vBuffer = [_device newBufferWithBytes:pVerts length:accumulatedOffset * currentVerts options:MTLStorageModeShared];
+    pMesh->vBuffer = [g_device newBufferWithBytes:pVerts length:accumulatedOffset * currentVerts options:MTLStorageModeShared];
   }
   else
   {
     if (currentVerts < 1)
       currentVerts = 20;
     
-    pMesh->vBuffer = [_device newBufferWithLength:accumulatedOffset * currentVerts options:MTLStorageModeShared];
+    pMesh->vBuffer = [g_device newBufferWithLength:accumulatedOffset * currentVerts options:MTLStorageModeShared];
   }
 
   *ppMesh = pMesh;
@@ -155,7 +154,7 @@ udResult vcMesh_UploadData(struct vcMesh *pMesh, const vcVertexLayoutTypes *pLay
   {
     // if (pMesh->vertexCount * pMesh->vertexBytes < size)
     pMesh->vBuffer = nil;
-    pMesh->vBuffer = [_device newBufferWithBytes:pVerts length:size options:MTLStorageModeShared];
+    pMesh->vBuffer = [g_device newBufferWithBytes:pVerts length:size options:MTLStorageModeShared];
     // else
     //memcpy([pMesh->vBuffer contents], pVerts, size);
     
@@ -168,7 +167,7 @@ udResult vcMesh_UploadData(struct vcMesh *pMesh, const vcVertexLayoutTypes *pLay
       
       //if (pMesh->indexCount < (uint32_t)totalIndices)
       pMesh->iBuffer = nil;
-      pMesh->iBuffer = [_device newBufferWithBytes:pIndices length:isize options:MTLStorageModeShared];
+      pMesh->iBuffer = [g_device newBufferWithBytes:pIndices length:isize options:MTLStorageModeShared];
       //else
       //memcpy([pMesh->iBuffer contents], pIndices, isize);
     }
@@ -193,7 +192,7 @@ udResult vcMesh_UploadSubData(vcMesh *pMesh, const vcVertexLayoutTypes *pLayout,
     @autoreleasepool
     {
       pMesh->vBuffer = nil;
-      pMesh->vBuffer = [_device newBufferWithLength:totalSize options:MTLStorageModeShared];
+      pMesh->vBuffer = [g_device newBufferWithLength:totalSize options:MTLStorageModeShared];
     }
   }
   
@@ -247,16 +246,37 @@ bool vcMesh_Render(struct vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_
       else
         elementCount *= elementsPerPrimitive;
 
-      [_renderer drawIndexed:pMesh->vBuffer indexedBuffer:pMesh->iBuffer indexCount:elementCount offset:startElement * elementsPerPrimitive * pMesh->indexBytes indexSize:pMesh->indexType primitiveType:primitiveType];
+      for (int i = 0; i < g_pCurrShader->numBufferObjects; ++i)
+      {
+        if (g_pCurrShader->bufferObjects[i].buffers[0].index != -1)
+          [g_pCurrFramebuffer->encoder setVertexBytes:g_pCurrShader->bufferObjects[i].buffers[0].pCB length:g_pCurrShader->bufferObjects[i].expectedSize atIndex:g_pCurrShader->bufferObjects[i].buffers[0].index];
+        
+        if (g_pCurrShader->bufferObjects[i].buffers[1].index != -1)
+          [g_pCurrFramebuffer->encoder setFragmentBytes:g_pCurrShader->bufferObjects[i].buffers[1].pCB length:g_pCurrShader->bufferObjects[i].expectedSize atIndex:g_pCurrShader->bufferObjects[i].buffers[1].index];
+      }
+      
+      [g_pCurrFramebuffer->encoder setVertexBuffer:pMesh->vBuffer offset:0 atIndex:30];
+      [g_pCurrFramebuffer->encoder drawIndexedPrimitives:primitiveType indexCount:elementCount indexType:pMesh->indexType indexBuffer:pMesh->iBuffer indexBufferOffset:startElement * elementsPerPrimitive * pMesh->indexBytes];
     }
     else
     {
       if (elementCount == 0)
         elementCount = pMesh->vertexCount;
 
-      [_renderer drawUnindexed:pMesh->vBuffer vertexStart:startElement * pMesh->vertexBytes vertexCount:elementCount primitiveType:primitiveType];
+      for (int i = 0; i < g_pCurrShader->numBufferObjects; ++i)
+      {
+        if (g_pCurrShader->bufferObjects[i].buffers[0].index != -1)
+          [g_pCurrFramebuffer->encoder setVertexBytes:g_pCurrShader->bufferObjects[i].buffers[0].pCB length:g_pCurrShader->bufferObjects[i].expectedSize atIndex:g_pCurrShader->bufferObjects[i].buffers[0].index];
+        
+        if (g_pCurrShader->bufferObjects[i].buffers[1].index != -1)
+          [g_pCurrFramebuffer->encoder setFragmentBytes:g_pCurrShader->bufferObjects[i].buffers[1].pCB length:g_pCurrShader->bufferObjects[i].expectedSize atIndex:g_pCurrShader->bufferObjects[i].buffers[1].index];
+      }
+
+      [g_pCurrFramebuffer->encoder setVertexBuffer:pMesh->vBuffer offset:startElement * pMesh->vertexBytes atIndex:0];
+      [g_pCurrFramebuffer->encoder drawPrimitives:primitiveType vertexStart:startElement * pMesh->vertexBytes vertexCount:elementCount];
     }
   }
+
   vcGLState_ReportGPUWork(1, elementCount * elementsPerPrimitive, 0);
   return true;
 }

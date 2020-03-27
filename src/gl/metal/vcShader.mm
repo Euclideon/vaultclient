@@ -7,9 +7,6 @@
 #import "udStringUtil.h"
 #import "udFile.h"
 
-uint32_t g_pipeCount = 0;
-uint16_t g_geomPipeCount = 0;
-
 void vcShader_CreatePipeline(vcShader *pShader, int pipelineIndex, id<MTLFunction> vFunc, id<MTLFunction> fFunc, MTLVertexDescriptor *vertexDesc, vcGLStateBlendMode blendMode, bool useDepth, MTLRenderPipelineReflection **ppReflectionObj = nullptr)
 {
   MTLRenderPipelineDescriptor *pDesc = [[MTLRenderPipelineDescriptor alloc] init];
@@ -73,11 +70,11 @@ void vcShader_CreatePipeline(vcShader *pShader, int pipelineIndex, id<MTLFunctio
   if (ppReflectionObj)
   {
     MTLPipelineOption option = MTLPipelineOptionBufferTypeInfo | MTLPipelineOptionArgumentInfo;
-    pShader->pipelines[pipelineIndex] = [_device newRenderPipelineStateWithDescriptor:pDesc options:option reflection:ppReflectionObj error:&err];
+    pShader->pipelines[pipelineIndex] = [g_device newRenderPipelineStateWithDescriptor:pDesc options:option reflection:ppReflectionObj error:&err];
   }
   else
   {
-    pShader->pipelines[pipelineIndex] = [_device newRenderPipelineStateWithDescriptor:pDesc error:&err];
+    pShader->pipelines[pipelineIndex] = [g_device newRenderPipelineStateWithDescriptor:pDesc error:&err];
   }
 
 #ifdef METAL_DEBUG
@@ -150,19 +147,12 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
 
   if (pVertexShaderFilename != nullptr && udStrchr(pVertexShader, "\n") != nullptr)
   {
-    pShader->vertexLibrary = [_device newLibraryWithSource:[NSString stringWithUTF8String:pVertexShader] options: {} error:nil];
-    pShader->fragmentLibrary = [_device newLibraryWithSource:[NSString stringWithUTF8String:pFragmentShader] options: {} error:nil];
+    pShader->vertexLibrary = [g_device newLibraryWithSource:[NSString stringWithUTF8String:pVertexShader] options: {} error:nil];
+    pShader->fragmentLibrary = [g_device newLibraryWithSource:[NSString stringWithUTF8String:pFragmentShader] options: {} error:nil];
     
     vFunc = [pShader->vertexLibrary newFunctionWithName:@"main0"];
     fFunc = [pShader->fragmentLibrary newFunctionWithName:@"main0"];
   }
-    
-  if (udStrBeginsWithi(pFragmentShaderFilename, "udSplat") || udStrBeginsWithi(pFragmentShaderFilename, "blur") || udStrBeginsWithi(pFragmentShaderFilename, "flat"))
-    pShader->flush = vcRFO_Flush;
-  else if (udStrBeginsWithi(pFragmentShaderFilename, "udFrag"))
-    pShader->flush = vcRFO_Blit;
-  else
-    pShader->flush = vcRFO_None;
 
   pShader->inititalised = false;
   
@@ -220,9 +210,6 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
 
   vcShader_GetConstantBuffer(&pShader->pCameraPlaneParams, pShader, "u_cameraPlaneParams", sizeof(float) * 4);
 
-  pShader->ID = g_pipeCount;
-  ++g_pipeCount;
-
   *ppShader = pShader;
   pShader = nullptr;
 
@@ -272,7 +259,10 @@ bool vcShader_Bind(vcShader *pShader)
   {
     if (pShader->inititalised)
     {
-      [_renderer bindPipeline:pShader];
+      g_pCurrShader = pShader;
+
+      if (g_pCurrShader != nullptr && g_pCurrFramebuffer != nullptr)
+        [g_pCurrFramebuffer->encoder setRenderPipelineState:g_pCurrShader->pipelines[g_internalState.blendMode + (g_pCurrFramebuffer->pDepth != nullptr ? 0 : vcGLSBM_Count)]];
 
       struct
       {
@@ -295,12 +285,20 @@ bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t sampl
 {
   udUnused(pShader);
   udUnused(pSampler);
-  udUnused(samplerStage);
 
   if (pTexture == nullptr)
     return false;
-  
-  [_renderer bindTexture:pTexture index:samplerIndex];
+
+  if (samplerStage == vcGLSamplerShaderStage_Fragment)
+  {
+    [g_pCurrFramebuffer->encoder setFragmentTexture:pTexture->texture atIndex:samplerIndex];
+    [g_pCurrFramebuffer->encoder setFragmentSamplerState:pTexture->sampler atIndex:samplerIndex];
+  }
+  else
+  {
+    [g_pCurrFramebuffer->encoder setVertexTexture:pTexture->texture atIndex:samplerIndex];
+    [g_pCurrFramebuffer->encoder setVertexSamplerState:pTexture->sampler atIndex:samplerIndex];
+  }
 
   return true;
 }

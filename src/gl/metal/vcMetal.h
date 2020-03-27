@@ -11,27 +11,20 @@
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 #import <Cocoa/Cocoa.h>
-#import "vcRenderer.h"
 
-#define BUFFER_COUNT 10
-#define DRAWABLES 1
+extern vcGLState g_internalState;
+extern id<MTLDevice> g_device;
+extern id<MTLCommandQueue> g_queue;
+extern vcFramebuffer *g_pDefaultFramebuffer;
+extern vcFramebuffer *g_pCurrFramebuffer;
+extern vcShader *g_pCurrShader;
+extern id<MTLBlitCommandEncoder> g_blitEncoder;
 
-extern id<MTLDevice> _device;
-extern id<MTLCommandQueue> _queue;
+void vcGLState_FlushBlit();
 
 enum vcRendererFramebufferActions
 {
-  vcRFA_Draw = 1,
-  vcRFA_Renew = 2,
-  vcRFA_Blit = 4,
-  vcRFA_Resize = 8
-};
-
-enum vcRendererFlushOption
-{
-  vcRFO_None,
-  vcRFO_Flush,
-  vcRFO_Blit
+  vcRFA_Resize = 1
 };
 
 struct vcTexture
@@ -47,7 +40,6 @@ struct vcTexture
 
 struct vcFramebuffer
 {
-  uint32_t ID;
   vcTexture *pColor;
   vcTexture *pDepth;
   uint32_t clear;
@@ -75,8 +67,6 @@ struct vcShaderSampler
 
 struct vcShader
 {
-  uint32_t ID;
-
   bool inititalised;
   id<MTLLibrary> vertexLibrary;
   id<MTLLibrary> fragmentLibrary;
@@ -86,8 +76,6 @@ struct vcShader
   int numBufferObjects;
 
   vcShaderConstantBuffer *pCameraPlaneParams;
-
-  vcRendererFlushOption flush;
 };
 
 struct vcMesh
