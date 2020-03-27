@@ -1539,6 +1539,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
           if (j == picking.modelIndex)
           {
             pProgramState->udModelPickedIndex = (int)i;
+            pProgramState->udModelPickedNode = picking.voxelID;
             break;
           }
           ++j;
