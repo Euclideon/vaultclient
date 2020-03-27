@@ -92,6 +92,14 @@ bool SDL_filewrite(const char* filename, const char *pStr, size_t bytes)
   return success;
 }
 
+void vcSettings_Cleanup_CustomClassificationColorLabels(vcSettings *pSettings)
+{
+  size_t lenth = udLengthOf(pSettings->visualization.customClassificationColorLabels);
+  for (size_t i = 0; i < lenth; ++i)
+    if (pSettings->visualization.customClassificationColorLabels[i] != nullptr)
+      udFree(pSettings->visualization.customClassificationColorLabels[i]);
+}
+
 bool vcSettings_ApplyConnectionSettings(vcSettings *pSettings)
 {
   vdkConfig_ForceProxy(pSettings->loginInfo.proxy);
@@ -238,15 +246,21 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       for (size_t i = 0; i < pColors->length; ++i)
         pSettings->visualization.customClassificationColors[i] = pColors->GetElement(i)->AsInt(GeoverseClassificationColours[i]);
     }
+    vcSettings_Cleanup_CustomClassificationColorLabels(pSettings);
     if (data.Get("visualization.classificationColourLabels").IsArray())
     {
       const udJSONArray *pColorLabels = data.Get("visualization.classificationColourLabels").AsArray();
 
+      static const int Digits = 3;
       for (size_t i = 0; i < pColorLabels->length; ++i)
       {
-        int digits = 3;
         const char *buf = pColorLabels->GetElement(i)->AsString();
-        pSettings->visualization.customClassificationColorLabels[udStrAtoi(buf, &digits)] = udStrdup(buf + digits);
+        if (udStrlen(buf) > Digits)
+        {
+          char indexBuffer[Digits + 1] = "";
+          udStrncpy(indexBuffer, buf, Digits);
+          pSettings->visualization.customClassificationColorLabels[udStrAtoi(indexBuffer)] = udStrdup(buf + Digits);
+        }
       }
     }
 
@@ -643,9 +657,7 @@ bool vcSettings_Save(vcSettings *pSettings)
 
 void vcSettings_Cleanup(vcSettings *pSettings)
 {
-  for (size_t i = 0; i < 256; ++i)
-    if (pSettings->visualization.customClassificationColorLabels[i] != nullptr)
-      udFree(pSettings->visualization.customClassificationColorLabels[i]);
+  vcSettings_Cleanup_CustomClassificationColorLabels(pSettings);
 
   pSettings->languageOptions.Deinit();
 
