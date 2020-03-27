@@ -1584,6 +1584,11 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
     case vcActiveTool_MeasureArea:
       if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == vdkPNT_PointOfInterest)
       {
+        vcSceneItem *pSceneItem = (vcSceneItem*)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+
+        if (!pSceneItem->m_visible)
+          pProgramState->activeTool = vcActiveTool_Select;
+
         // Preview Point
         vcPOI *pPOI = (vcPOI*)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
         pPOI->AddPoint(pProgramState, pProgramState->worldMousePosCartesian, true);
