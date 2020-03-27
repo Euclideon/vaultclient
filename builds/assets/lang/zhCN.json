@@ -612,6 +612,8 @@
   "bindingsCameraRight": "向右移动相机。",
   "bindingsCameraUp": "向上移动相机。",
   "bindingsCameraDown": "向下移动相机。",
+  "bindingsDecreaseCameraSpeed": "设置相机速度到0.1倍。",
+  "bindingsIncreaseCameraSpeed": "设置相机速度到10倍。",
   "bindingsBindingsInterface": "打开快捷键设置对话框",
   "bindingsCancel": "关闭当前弹出窗口。",
   "bindingsTakeScreenshot": "截图",

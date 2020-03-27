@@ -432,11 +432,16 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
       pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
   }
 
-  if (io.KeyCtrl)
-    speedModifier *= 0.1f;
-
-  if (io.KeyShift || io.NavInputs[ImGuiNavInput_FocusPrev] > 0.15f) // Left Trigger
-    speedModifier *= 10.f;
+  if (vcHotkey::IsPressed(vcB_DecreaseCameraSpeed))
+  {
+    pProgramState->settings.camera.moveSpeed *= 0.1f;
+    pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed);
+  }
+  else if (vcHotkey::IsPressed(vcB_IncreaseCameraSpeed))
+  {
+    pProgramState->settings.camera.moveSpeed *= 10.f;
+    pProgramState->settings.camera.moveSpeed = udMin(pProgramState->settings.camera.moveSpeed, vcSL_CameraMaxMoveSpeed);
+  }
 
   if ((!ImGui::GetIO().WantCaptureKeyboard || isFocused) && !pProgramState->modalOpen)
   {

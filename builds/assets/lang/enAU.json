@@ -615,6 +615,8 @@
   "bindingsCameraRight": "Key to move camera to the right.",
   "bindingsCameraUp": "Key to move camera upwards.",
   "bindingsCameraDown": "Key to move camera downwards.",
+  "bindingsDecreaseCameraSpeed": "Key to set cameras speed to 0.1x",
+  "bindingsIncreaseCameraSpeed": "Key to set cameras speed to 10x",
   "bindingsBindingsInterface": "Opens the bindings interface.",
   "bindingsCancel": "Key to trigger cancel or close action.",
   "bindingsTakeScreenshot": "Take a screen capture",
