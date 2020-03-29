@@ -1238,8 +1238,6 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcRender_OpaquePass(pProgramState, pRenderContext, renderData); // first pass
   vcRender_VisualizationPass(pProgramState, pRenderContext);
 
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget]);
-
   vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
 
   // Drawing skybox after opaque geometry saves a bit on fill rate.
