@@ -14,9 +14,9 @@ layout(std140) uniform type_u_EveryObject
 uniform highp sampler2D SPIRV_Cross_Combinedtexture1sampler1;
 
 layout(location = 0) in vec3 in_var_POSITION;
-out vec4 out_var_COLOR0;
-out vec2 out_var_TEXCOORD0;
-out vec2 out_var_TEXCOORD1;
+out vec4 varying_COLOR0;
+out vec2 varying_TEXCOORD0;
+out vec2 varying_TEXCOORD1;
 
 vec2 _47;
 
@@ -38,8 +38,8 @@ void main()
     vec2 _128 = _47;
     _128.x = 1.0 + _117.w;
     gl_Position = _117;
-    out_var_COLOR0 = u_EveryObject.u_colour;
-    out_var_TEXCOORD0 = u_EveryObject.u_uvOffsetScale.xy + (u_EveryObject.u_uvOffsetScale.zw * in_var_POSITION.xy);
-    out_var_TEXCOORD1 = _128;
+    varying_COLOR0 = u_EveryObject.u_colour;
+    varying_TEXCOORD0 = u_EveryObject.u_uvOffsetScale.xy + (u_EveryObject.u_uvOffsetScale.zw * in_var_POSITION.xy);
+    varying_TEXCOORD1 = _128;
 }
 

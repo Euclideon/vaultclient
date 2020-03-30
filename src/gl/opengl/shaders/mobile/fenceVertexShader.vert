@@ -21,9 +21,9 @@ layout(std140) uniform type_u_EveryObject
 layout(location = 0) in vec3 in_var_POSITION;
 layout(location = 1) in vec2 in_var_TEXCOORD0;
 layout(location = 2) in vec4 in_var_COLOR0;
-out vec4 out_var_COLOR0;
-out vec2 out_var_TEXCOORD0;
-out vec2 out_var_TEXCOORD1;
+out vec4 varying_COLOR0;
+out vec2 varying_TEXCOORD0;
+out vec2 varying_TEXCOORD1;
 
 vec2 _41;
 
@@ -33,8 +33,8 @@ void main()
     vec2 _85 = _41;
     _85.x = 1.0 + _82.w;
     gl_Position = _82;
-    out_var_COLOR0 = mix(u_EveryFrame.u_bottomColour, u_EveryFrame.u_topColour, vec4(in_var_COLOR0.w));
-    out_var_TEXCOORD0 = vec2((mix(in_var_TEXCOORD0.y, in_var_TEXCOORD0.x, u_EveryFrame.u_orientation) * u_EveryFrame.u_textureRepeatScale) - (u_EveryFrame.u_time * u_EveryFrame.u_textureScrollSpeed), in_var_COLOR0.w);
-    out_var_TEXCOORD1 = _85;
+    varying_COLOR0 = mix(u_EveryFrame.u_bottomColour, u_EveryFrame.u_topColour, vec4(in_var_COLOR0.w));
+    varying_TEXCOORD0 = vec2((mix(in_var_TEXCOORD0.y, in_var_TEXCOORD0.x, u_EveryFrame.u_orientation) * u_EveryFrame.u_textureRepeatScale) - (u_EveryFrame.u_time * u_EveryFrame.u_textureScrollSpeed), in_var_COLOR0.w);
+    varying_TEXCOORD1 = _85;
 }
 

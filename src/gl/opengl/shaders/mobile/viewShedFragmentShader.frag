@@ -22,16 +22,16 @@ layout(std140) uniform type_u_params
 uniform highp sampler2D SPIRV_Cross_Combinedtexture0sampler0;
 uniform highp sampler2D SPIRV_Cross_Combinedtexture1sampler1;
 
-in highp vec4 in_var_TEXCOORD0;
-in highp vec2 in_var_TEXCOORD1;
+in highp vec4 varying_TEXCOORD0;
+in highp vec2 varying_TEXCOORD1;
 layout(location = 0) out highp vec4 out_var_SV_Target;
 
 void main()
 {
-    highp vec4 _61 = texture(SPIRV_Cross_Combinedtexture0sampler0, in_var_TEXCOORD1);
+    highp vec4 _61 = texture(SPIRV_Cross_Combinedtexture0sampler0, varying_TEXCOORD1);
     highp float _67 = u_cameraPlaneParams.s_CameraFarPlane - u_cameraPlaneParams.s_CameraNearPlane;
     highp float _73 = log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0);
-    highp vec4 _91 = vec4(in_var_TEXCOORD0.xy, (((u_cameraPlaneParams.s_CameraFarPlane / _67) + (((u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane)) / (pow(2.0, _61.x * _73) - 1.0))) * (u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear)) + u_cameraPlaneParams.u_clipZNear, 1.0) * u_params.u_inverseProjection;
+    highp vec4 _91 = vec4(varying_TEXCOORD0.xy, (((u_cameraPlaneParams.s_CameraFarPlane / _67) + (((u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane)) / (pow(2.0, _61.x * _73) - 1.0))) * (u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear)) + u_cameraPlaneParams.u_clipZNear, 1.0) * u_params.u_inverseProjection;
     highp vec4 _100 = vec4((_91 / vec4(_91.w)).xyz, 1.0);
     highp vec4 _101 = _100 * u_params.u_shadowMapVP[0];
     highp vec4 _104 = _100 * u_params.u_shadowMapVP[1];

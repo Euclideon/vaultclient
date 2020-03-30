@@ -5,13 +5,13 @@ precision highp int;
 uniform highp sampler2D SPIRV_Cross_Combinedtexture1sampler1;
 uniform highp sampler2D SPIRV_Cross_Combinedtexture0sampler0;
 
-in highp vec2 in_var_TEXCOORD0;
-in highp vec2 in_var_TEXCOORD1;
-in highp vec2 in_var_TEXCOORD2;
-in highp vec2 in_var_TEXCOORD3;
-in highp vec2 in_var_TEXCOORD4;
-in highp vec2 in_var_TEXCOORD5;
-in highp float in_var_TEXCOORD6;
+in highp vec2 varying_TEXCOORD0;
+in highp vec2 varying_TEXCOORD1;
+in highp vec2 varying_TEXCOORD2;
+in highp vec2 varying_TEXCOORD3;
+in highp vec2 varying_TEXCOORD4;
+in highp vec2 varying_TEXCOORD5;
+in highp float varying_TEXCOORD6;
 layout(location = 0) out highp vec4 out_var_SV_Target;
 
 float _66;
@@ -20,12 +20,12 @@ vec2 _68;
 
 void main()
 {
-    highp vec4 _80 = texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD0);
+    highp vec4 _80 = texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD0);
     highp float _81 = _80.x;
     highp vec4 _535;
-    if ((1.0 - (((step(abs(texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD1).x - _81), 0.0030000000260770320892333984375) * step(abs(texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD2).x - _81), 0.0030000000260770320892333984375)) * step(abs(texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD3).x - _81), 0.0030000000260770320892333984375)) * step(abs(texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD4).x - _81), 0.0030000000260770320892333984375))) == 0.0)
+    if ((1.0 - (((step(abs(texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD1).x - _81), 0.0030000000260770320892333984375) * step(abs(texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD2).x - _81), 0.0030000000260770320892333984375)) * step(abs(texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD3).x - _81), 0.0030000000260770320892333984375)) * step(abs(texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD4).x - _81), 0.0030000000260770320892333984375))) == 0.0)
     {
-        _535 = texture(SPIRV_Cross_Combinedtexture0sampler0, in_var_TEXCOORD0);
+        _535 = texture(SPIRV_Cross_Combinedtexture0sampler0, varying_TEXCOORD0);
     }
     else
     {
@@ -35,9 +35,9 @@ void main()
             default:
             {
                 highp vec2 _123 = _67;
-                _123.x = in_var_TEXCOORD0.x;
+                _123.x = varying_TEXCOORD0.x;
                 highp vec2 _125 = _123;
-                _125.y = in_var_TEXCOORD0.y;
+                _125.y = varying_TEXCOORD0.y;
                 highp vec4 _127 = textureLod(SPIRV_Cross_Combinedtexture0sampler0, _125, 0.0);
                 highp vec4 _129 = textureLodOffset(SPIRV_Cross_Combinedtexture0sampler0, _125, 0.0, ivec2(0, 1));
                 highp float _130 = _129.y;
@@ -75,11 +75,11 @@ void main()
                 highp float _209;
                 if (_200)
                 {
-                    _209 = in_var_TEXCOORD5.y;
+                    _209 = varying_TEXCOORD5.y;
                 }
                 else
                 {
-                    _209 = in_var_TEXCOORD5.x;
+                    _209 = varying_TEXCOORD5.x;
                 }
                 highp float _216 = abs(_204 - _140);
                 highp float _217 = abs(_205 - _140);
@@ -94,13 +94,13 @@ void main()
                     _223 = _209;
                 }
                 highp float _226 = clamp(abs(((((_167 + _168) * 2.0) + (_180 + _174)) * 0.083333335816860198974609375) - _140) * (1.0 / _150), 0.0, 1.0);
-                highp float _227 = _203 ? 0.0 : in_var_TEXCOORD5.x;
-                highp float _229 = _200 ? 0.0 : in_var_TEXCOORD5.y;
+                highp float _227 = _203 ? 0.0 : varying_TEXCOORD5.x;
+                highp float _229 = _200 ? 0.0 : varying_TEXCOORD5.y;
                 highp vec2 _235;
                 if (_203)
                 {
                     highp vec2 _234 = _125;
-                    _234.x = in_var_TEXCOORD0.x + (_223 * 0.5);
+                    _234.x = varying_TEXCOORD0.x + (_223 * 0.5);
                     _235 = _234;
                 }
                 else
@@ -483,27 +483,27 @@ void main()
                 highp float _494;
                 if (_203)
                 {
-                    _494 = in_var_TEXCOORD0.y - _483.y;
+                    _494 = varying_TEXCOORD0.y - _483.y;
                 }
                 else
                 {
-                    _494 = in_var_TEXCOORD0.x - _483.x;
+                    _494 = varying_TEXCOORD0.x - _483.x;
                 }
                 highp float _499;
                 if (_203)
                 {
-                    _499 = _482.y - in_var_TEXCOORD0.y;
+                    _499 = _482.y - varying_TEXCOORD0.y;
                 }
                 else
                 {
-                    _499 = _482.x - in_var_TEXCOORD0.x;
+                    _499 = _482.x - varying_TEXCOORD0.x;
                 }
                 highp float _514 = max(((_494 < _499) ? ((_485 < 0.0) != _268) : ((_484 < 0.0) != _268)) ? ((min(_494, _499) * ((-1.0) / (_499 + _494))) + 0.5) : 0.0, (_267 * _267) * 0.75);
                 highp vec2 _520;
                 if (_203)
                 {
                     highp vec2 _519 = _125;
-                    _519.x = in_var_TEXCOORD0.x + (_514 * _223);
+                    _519.x = varying_TEXCOORD0.x + (_514 * _223);
                     _520 = _519;
                 }
                 else
@@ -527,6 +527,6 @@ void main()
         }
         _535 = _534;
     }
-    out_var_SV_Target = vec4(mix(vec3(dot(_535.xyz, vec3(0.2125000059604644775390625, 0.7153999805450439453125, 0.07209999859333038330078125))), _535.xyz, vec3(in_var_TEXCOORD6)), 1.0);
+    out_var_SV_Target = vec4(mix(vec3(dot(_535.xyz, vec3(0.2125000059604644775390625, 0.7153999805450439453125, 0.07209999859333038330078125))), _535.xyz, vec3(varying_TEXCOORD6)), 1.0);
 }
 

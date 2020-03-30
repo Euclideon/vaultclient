@@ -221,6 +221,11 @@ bool vcModals_OverwriteExistingFile(const char *pFilename)
 // Presents user with a message if the specified file exists, then returns false if user declines to overwrite the file
 bool vcModals_AllowDestructiveAction(const char *pTitle, const char *pMessage)
 {
+#if UDPLATFORM_EMSCRIPTEN
+  udUnused(pTitle);
+  udUnused(pMessage);
+  return true;
+#else
   bool result = false;
 
   const SDL_MessageBoxButtonData buttons[] = {
@@ -255,6 +260,7 @@ bool vcModals_AllowDestructiveAction(const char *pTitle, const char *pMessage)
     result = true;
 
   return result;
+#endif
 }
 
 // Returns true if user accepts ending the session
