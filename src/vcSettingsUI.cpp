@@ -814,9 +814,11 @@ void vcSettingsUI_VisualizationSettings(vcState *pProgramState, vcVisualizationS
       if (ImGui::Button(udTempStr("%s##RestoreClassificationColors", vcString::Get("settingsRestoreDefaults"))))
       {
         memcpy(pProgramState->settings.visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pProgramState->settings.visualization.customClassificationColors));
-        for(int i = vcLASClassifications_FirstUserDefined; i <= vcLASClassifications_LastClassification; i ++)
+        for (int i = vcLASClassifications_FirstUserDefined; i <= vcLASClassifications_LastClassification; i++)
+        {
           if (pVisualizationSettings->customClassificationColorLabels[i] != nullptr)
             udFree(pVisualizationSettings->customClassificationColorLabels[i]);
+        }
       }
 
       for (uint8_t i = 0; i < vcLASClassifications_FirstReserved; ++i)

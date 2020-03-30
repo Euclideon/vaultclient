@@ -96,8 +96,10 @@ void vcSettings_Cleanup_CustomClassificationColorLabels(vcSettings *pSettings)
 {
   size_t lenth = udLengthOf(pSettings->visualization.customClassificationColorLabels);
   for (size_t i = 0; i < lenth; ++i)
+  {
     if (pSettings->visualization.customClassificationColorLabels[i] != nullptr)
       udFree(pSettings->visualization.customClassificationColorLabels[i]);
+  }
 }
 
 bool vcSettings_ApplyConnectionSettings(vcSettings *pSettings)
