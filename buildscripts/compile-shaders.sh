@@ -42,3 +42,7 @@ for SrcName in ${SrcFolder}/*.hlsl; do
 	# Generate Metal iOS shader
 	GenerateShader ${SrcName} "../src/gl/metal/shaders/mobile" msl_ios "" metal metal
 done
+
+# Modify ESSL shaders
+sed -i 's/out_var_/varying_/g' ../src/gl/opengl/shaders/mobile/*.vert
+sed -i 's/in_var_/varying_/g' ../src/gl/opengl/shaders/mobile/*.frag

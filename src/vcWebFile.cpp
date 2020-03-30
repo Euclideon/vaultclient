@@ -20,8 +20,9 @@ static udResult vcWebFile_Load(udFile *pFile, void **ppBuffer, int64_t *pBufferL
 
   UD_ERROR_IF(vdkWeb_RequestAdv(pFile->pFilenameCopy, options, &pData, &dataLength, &responseCode) != vE_Success, udR_ReadFailure);
 
-  *ppBuffer = udMemDup(pData, dataLength, 0, udAF_None);
+  *ppBuffer = udMemDup(pData, dataLength, 1, udAF_None);
   UD_ERROR_NULL(*ppBuffer, udR_MemoryAllocationFailure);
+  ((char *)*ppBuffer)[dataLength] = 0;
 
   if (pBufferLength != nullptr)
     *pBufferLength = (int64_t)dataLength;
