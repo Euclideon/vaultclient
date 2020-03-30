@@ -350,6 +350,8 @@ int main(int argc, const char **ppArgv)
 #endif
   }
 
+  printf("\nStatus: %d\n", (int)result);
+
   if (settings.pause || (settings.pauseOnError && result != vE_Success))
   {
     printf("Press enter...");
@@ -360,5 +362,5 @@ int main(int argc, const char **ppArgv)
   vdkContext_Disconnect(&pContext);
   settings.files.Deinit();
 
-  return 0;
+  return -result;
 }
