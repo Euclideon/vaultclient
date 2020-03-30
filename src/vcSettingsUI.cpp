@@ -812,7 +812,14 @@ void vcSettingsUI_VisualizationSettings(vcState *pProgramState, vcVisualizationS
       ImGui::SameLine();
       ImGui::SameLine();
       if (ImGui::Button(udTempStr("%s##RestoreClassificationColors", vcString::Get("settingsRestoreDefaults"))))
+      {
         memcpy(pProgramState->settings.visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pProgramState->settings.visualization.customClassificationColors));
+        for (int i = vcLASClassifications_FirstUserDefined; i <= vcLASClassifications_LastClassification; i++)
+        {
+          if (pVisualizationSettings->customClassificationColorLabels[i] != nullptr)
+            udFree(pVisualizationSettings->customClassificationColorLabels[i]);
+        }
+      }
 
       for (uint8_t i = 0; i < vcLASClassifications_FirstReserved; ++i)
         vcIGSW_ColorPickerU32(vcSettingsUI_GetClassificationName(pProgramState, i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
