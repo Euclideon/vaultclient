@@ -175,6 +175,9 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
 
 void vcModel::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
+  if (m_pPointCloud == nullptr)
+    return; // Nothing else we can do yet
+
   vdkError status = vdkPointCloud_GetStreamingStatus(m_pPointCloud);
   if (status != vE_Success)
   {
