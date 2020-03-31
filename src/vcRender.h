@@ -52,6 +52,8 @@ struct vcRenderPolyInstance
 
   // Helper to determine if flag is set
   bool HasFlag(const enum RenderFlags flag) { return (renderFlags & flag) == flag; }
+
+  const char *pPinIconURL; // null means not pinnable
 };
 
 inline enum vcRenderPolyInstance::RenderFlags operator|(const enum vcRenderPolyInstance::RenderFlags a, const enum vcRenderPolyInstance::RenderFlags b) { return (enum vcRenderPolyInstance::RenderFlags)(int(a) | int(b)); }

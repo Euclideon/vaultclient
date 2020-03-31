@@ -82,7 +82,18 @@ bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &vi
   vcTexture_GetSize(pImageInfo->pTexture, &imageSize.x, &imageSize.y);
   aspect = float(imageSize.y) / imageSize.x;
 
-  udDouble4x4 mvp = viewProjectionMatrix * udDouble4x4::translation(pImageInfo->position) * udDouble4x4::rotationYPR(pImageInfo->ypr) * udDouble4x4::scaleUniform(pImageInfo->scale);
+  udDouble4x4 mvp = viewProjectionMatrix * udDouble4x4::translation(pImageInfo->position) * udDouble4x4::rotationYPR(pImageInfo->ypr);
+  if (pImageInfo->type == vcIT_StandardPhoto)
+  {
+    // scale acts as screen scale
+    imageSize.x = (int)(imageSize.x * pImageInfo->scale);
+    imageSize.y = (int)(imageSize.y * pImageInfo->scale);
+  }
+  else
+  {
+    // scale is world scale
+    mvp = mvp * udDouble4x4::scaleUniform(pImageInfo->scale); 
+  }
 
   vcImageShader *pShader = &gShaders[pImageInfo->type == vcIT_StandardPhoto ? 0 : 1];
   vcShader_Bind(pShader->pShader);

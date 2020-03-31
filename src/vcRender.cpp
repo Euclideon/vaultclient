@@ -15,6 +15,7 @@
 #include "vcSceneLayerRenderer.h"
 #include "vcCamera.h"
 #include "vcAtmosphereRenderer.h"
+#include "vcPinRenderer.h"
 
 #include "stb_image.h"
 #include <vector>
@@ -98,6 +99,7 @@ struct vcRenderContext
   udUInt2 effectResolution;
 
   vcAtmosphereRenderer *pAtmosphereRenderer;
+  vcPinRenderer *pPinRenderer;
 
   struct
   {
@@ -361,6 +363,7 @@ udResult vcRender_LoadShaders(vcRenderContext *pRenderContext)
   UD_ERROR_CHECK(vcPolygonModel_CreateShaders());
   UD_ERROR_CHECK(vcImageRenderer_Init());
   UD_ERROR_CHECK(vcLabelRenderer_Init());
+  UD_ERROR_CHECK(vcPinRenderer_Create(&pRenderContext->pPinRenderer));
 
   UD_ERROR_IF(!vcShader_Bind(nullptr), udR_InternalError);
 
@@ -437,6 +440,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   vcRender_DestroyShaders(pRenderContext);
   vcTexture_Destroy(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture);
 
+  UD_ERROR_CHECK(vcPinRenderer_Destroy(&pRenderContext->pPinRenderer));
   UD_ERROR_CHECK(vcAtmosphereRenderer_Destroy(&pRenderContext->pAtmosphereRenderer));
 
   udFree(pRenderContext->udRenderContext.pColorBuffer);
@@ -1060,11 +1064,14 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
 
 void vcRender_RenderUI(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-  // Labels
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
+  // Pins
+  vcPinRenderer_Render(pRenderContext->pPinRenderer, pProgramState->camera.matrices.viewProjection, pProgramState->sceneResolution);
+
+  // Labels
   ImDrawList *drawList = ImGui::GetWindowDrawList();
   for (size_t i = 0; i < renderData.labels.length; ++i)
     vcLabelRenderer_Render(drawList, renderData.labels[i], pProgramState->camera.matrices.viewProjection, pProgramState->sceneResolution);
@@ -1087,13 +1094,14 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
 
     for (size_t i = 0; i < renderData.images.length; ++i)
     {
-      double zScale = 1.0;
-      zScale -= udMag3(pProgramState->camera.position - renderData.images[i]->position) / pProgramState->settings.presentation.imageRescaleDistance;
+      vcImageRenderInfo *pImage = renderData.images[i];
+      double distToCamera = udMag3(pProgramState->camera.position - renderData.images[i]->position);
+      double zScale = 1.0 - distToCamera / pProgramState->settings.presentation.imageRescaleDistance;
 
       if (zScale < 0) // too far
         continue;
 
-      vcImageRenderer_Render(renderData.images[i], pProgramState->camera.matrices.viewProjection, pRenderContext->sceneResolution, zScale);
+      vcImageRenderer_Render(pImage, pProgramState->camera.matrices.viewProjection, pRenderContext->sceneResolution, zScale);
     }
   }
 
@@ -1129,9 +1137,7 @@ void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext
 {
   udUnused(pProgramState);
 
-  // Would be nice to use 'pRenderContext->activeRenderTarget' here, but this causes
-  // a single frame 'flicker' if options are changed at run time...just manually set
-  renderData.pSceneTexture = pRenderContext->pTexture[1];
+  renderData.pSceneTexture = pRenderContext->pTexture[pRenderContext->activeRenderTarget];
   renderData.sceneScaling = udFloat2::one();
 
   pRenderContext->activeRenderTarget = 0;
@@ -1280,6 +1286,8 @@ void vcRender_RenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWater
 void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
 {
   udUnused(pDefaultFramebuffer);
+
+  vcPinRenderer_Reset(pRenderContext->pPinRenderer);
 
   // Render and upload UD buffers
   if (renderData.models.length > 0)
