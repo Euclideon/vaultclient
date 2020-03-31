@@ -11,7 +11,7 @@ trigger:
 variables:
 - group: SignToolKey
 - name: linkedVDK
-  value: Pipeline_2020031814
+  value: Pipeline_202003316
 - name: VAULTSDK_HOME
   value: $(Build.SourcesDirectory)/linkedVDK/$(linkedVDK)
 
