@@ -150,8 +150,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.showProjectionInfo = data.Get("showGISInfo").AsBool(true);
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvancedGISOptions").AsBool(false);
     pSettings->presentation.loginRenderLicense = data.Get("loginRenderLicense").AsBool(false);
-    pSettings->presentation.showSkybox = data.Get("showSkybox").AsBool(true);
-    pSettings->presentation.skyboxColour = data.Get("skyboxColour").AsFloat4(udFloat4::create(0.39f, 0.58f, 0.93f, 1.f));
     pSettings->presentation.saturation = data.Get("saturation").AsFloat(1.0f);
     pSettings->presentation.mouseAnchor = (vcAnchorStyle)data.Get("mouseAnchor").AsInt(vcAS_Orbit);
     pSettings->presentation.POIFadeDistance = data.Get("POIfadeDistance").AsFloat(10000.f);
@@ -162,6 +160,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.sceneExplorerSize = data.Get("layoutSceneExplorerSize").AsInt(350);
     pSettings->presentation.convertLeftPanelPercentage = data.Get("convertLeftPanelPercentage").AsFloat(0.33f);
     pSettings->presentation.columnSizeCorrect = false;
+
+    pSettings->presentation.skybox.type = (vcSkyboxType)data.Get("skybox.type").AsInt(vcSkyboxType_Simple);
+    pSettings->presentation.skybox.colour = data.Get("skybox.colour").AsFloat4(udFloat4::create(0.39f, 0.58f, 0.93f, 1.f));
+    pSettings->presentation.skybox.exposure = data.Get("skybox.exposure").AsFloat(7.5f);
+    pSettings->presentation.skybox.timeOfDay = data.Get("skybox.timeOfDay").AsFloat(4.5f);
 
     switch (pSettings->presentation.styleIndex)
     {
@@ -460,8 +463,6 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("showCameraInfo = %s", pSettings->presentation.showCameraInfo ? "true" : "false");
   data.Set("showGISInfo = %s", pSettings->presentation.showProjectionInfo ? "true" : "false");
   data.Set("loginRenderLicense = %s", pSettings->presentation.loginRenderLicense ? "true" : "false");
-  data.Set("showSkybox = %s", pSettings->presentation.showSkybox ? "true" : "false");
-  data.Set("skyboxColour = [%f, %f, %f, %f]", pSettings->presentation.skyboxColour.x, pSettings->presentation.skyboxColour.y, pSettings->presentation.skyboxColour.z, pSettings->presentation.skyboxColour.w);
   data.Set("saturation = %f", pSettings->presentation.saturation);
   data.Set("showAdvancedGISOptions = %s", pSettings->presentation.showAdvancedGIS ? "true" : "false");
   data.Set("mouseAnchor = %d", pSettings->presentation.mouseAnchor);
@@ -472,6 +473,11 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("layout = %d", pSettings->presentation.layout);
   data.Set("layoutSceneExplorerSize = %d", pSettings->presentation.sceneExplorerSize);
   data.Set("convertLeftPanelPercentage = %f", pSettings->presentation.convertLeftPanelPercentage);
+
+  data.Set("skybox.type = %d", pSettings->presentation.skybox.type);
+  data.Set("skybox.colour = [%f, %f, %f, %f]", pSettings->presentation.skybox.colour.x, pSettings->presentation.skybox.colour.y, pSettings->presentation.skybox.colour.z, pSettings->presentation.skybox.colour.w);
+  data.Set("skybox.exposure = %f", pSettings->presentation.skybox.exposure);
+  data.Set("skybox.timeOfDay = %f", pSettings->presentation.skybox.timeOfDay);
 
   data.Set("objectHighlighting.enable = %s", pSettings->objectHighlighting.enable ? "true" : "false");
   for (int i = 0; i < 4; i++)

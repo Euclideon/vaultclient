@@ -14,6 +14,7 @@
 #include "vcInternalModels.h"
 #include "vcSceneLayerRenderer.h"
 #include "vcCamera.h"
+#include "vcAtmosphereRenderer.h"
 
 #include "stb_image.h"
 #include <vector>
@@ -96,6 +97,8 @@ struct vcRenderContext
   vcFramebuffer *pAuxiliaryFramebuffers[2];
   vcTexture *pAuxiliaryTextures[2];
   udUInt2 effectResolution;
+
+  vcAtmosphereRenderer *pAtmosphereRenderer;
 
   struct
   {
@@ -335,6 +338,8 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->watermarkShader.uniform_params, pRenderContext->watermarkShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->watermarkShader.params)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->watermarkShader.uniform_texture, pRenderContext->watermarkShader.pProgram, "Texture"), udR_InternalError);
 
+  UD_ERROR_CHECK(vcAtmosphereRenderer_Create(&pRenderContext->pAtmosphereRenderer));
+
   UD_ERROR_CHECK(vcPolygonModel_CreateShaders());
   UD_ERROR_CHECK(vcImageRenderer_Init());
   UD_ERROR_CHECK(vcLabelRenderer_Init());
@@ -395,6 +400,8 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
 
   vcTexture_Destroy(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture);
   UD_ERROR_CHECK(vcCompass_Destroy(&pRenderContext->pCompass));
+
+  UD_ERROR_CHECK(vcAtmosphereRenderer_Destroy(&pRenderContext->pAtmosphereRenderer));
 
   UD_ERROR_CHECK(vcPolygonModel_DestroyShaders());
   UD_ERROR_CHECK(vcImageRenderer_Destroy());
@@ -586,11 +593,14 @@ udDouble3 vcRender_DepthToWorldPosition(vcState *pProgramState, vcRenderContext 
 
 void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
+  if (pProgramState->settings.presentation.skybox.type != vcSkyboxType_Simple && pProgramState->settings.presentation.skybox.type != vcSkyboxType_Colour)
+    return;
+
   // Draw the skybox only at the far plane, where there is no geometry.
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
-  if (pProgramState->settings.presentation.showSkybox)
+  if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Simple)
   {
     udFloat4x4 viewMatrixF = udFloat4x4::create(pProgramState->camera.matrices.view);
     udFloat4x4 projectionMatrixF = udFloat4x4::create(pProgramState->camera.matrices.projectionNear);
@@ -602,9 +612,9 @@ void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
     vcShader_BindTexture(pRenderContext->skyboxShaderPanorama.pProgram, pRenderContext->skyboxShaderPanorama.pSkyboxTexture, 0, pRenderContext->skyboxShaderPanorama.uniform_texture);
     vcShader_BindConstantBuffer(pRenderContext->skyboxShaderPanorama.pProgram, pRenderContext->skyboxShaderPanorama.uniform_MatrixBlock, &inverseViewProjMatrixF, sizeof(inverseViewProjMatrixF));
   }
-  else
+  else // colour
   {
-    pRenderContext->skyboxShaderTintImage.params.colour = pProgramState->settings.presentation.skyboxColour;
+    pRenderContext->skyboxShaderTintImage.params.colour = pProgramState->settings.presentation.skybox.colour;
 
     int x = 0;
     int y = 0;
@@ -633,6 +643,19 @@ void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
   vcGLState_SetViewportDepthRange(0.0f, 1.0f);
 
   vcShader_Bind(nullptr);
+}
+
+void vcRender_RenderAtmosphere(vcState *pProgramState, vcRenderContext *pRenderContext)
+{
+  if (pProgramState->settings.presentation.skybox.type != vcSkyboxType_Atmosphere)
+    return;
+
+  vcAtmosphereRenderer_SetVisualParams(pRenderContext->pAtmosphereRenderer, pProgramState->settings.presentation.skybox.exposure, pProgramState->settings.presentation.skybox.timeOfDay);
+
+  pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0x000000ff);
+
+  vcAtmosphereRenderer_Render(pRenderContext->pAtmosphereRenderer, pProgramState, pRenderContext->pTexture[1 - pRenderContext->activeRenderTarget], pRenderContext->pDepthTexture[1 - pRenderContext->activeRenderTarget]);
 }
 
 void vcRender_SplatUDWithId(vcState *pProgramState, vcRenderContext *pRenderContext, float id)
@@ -1073,7 +1096,9 @@ void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext
 {
   udUnused(pProgramState);
 
-  renderData.pSceneTexture = pRenderContext->pTexture[pRenderContext->activeRenderTarget];
+  // Would be nice to use 'pRenderContext->activeRenderTarget' here, but this causes
+  // a single frame 'flicker' if options are changed at run time...just manually set
+  renderData.pSceneTexture = pRenderContext->pTexture[1];
   renderData.sceneScaling = udFloat2::one();
 
   pRenderContext->activeRenderTarget = 0;
@@ -1251,6 +1276,8 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
     vcRenderSkybox(pProgramState, pRenderContext);
     vcRenderTerrain(pProgramState, pRenderContext);
   }
+
+  vcRender_RenderAtmosphere(pProgramState, pRenderContext);
 
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
 

@@ -101,6 +101,14 @@ enum vcTileRendererFlags
   vcTRF_OnlyRequestVisibleTiles = 0x1,
 };
 
+enum vcSkyboxType
+{
+  vcSkyboxType_None,
+  vcSkyboxType_Colour,
+  vcSkyboxType_Simple,
+  vcSkyboxType_Atmosphere,
+};
+
 struct vcLanguageOption
 {
   // Arbitrary limits
@@ -141,8 +149,14 @@ struct vcSettings
     bool showAdvancedGIS;
     bool loginRenderLicense;
 
-    bool showSkybox;
-    udFloat4 skyboxColour;
+    struct
+    {
+      vcSkyboxType type;
+      udFloat4 colour;
+
+      float timeOfDay;
+      float exposure;
+    } skybox;
 
     float saturation;
 

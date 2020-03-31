@@ -1,6 +1,11 @@
 # **Euclideon Vault Client Translation Guide**
 
 ## Changelist
+- Version 0.5.1
+  - Added:
+    - Settings
+      - `settingsAppearanceSkyboxType`, `settingsAppearanceSkyboxTypeNone`, `settingsAppearanceSkyboxTypeColour`, `settingsAppearanceSkyboxTypeSimple`, `settingsAppearanceSkyboxTypeAtmosphere`, `settingsAppearanceSkyboxTimeOfDay`, `settingsAppearanceSkyboxExposure`
+
 - Version 0.5.0
   - Added:
     - Bindings Interface
