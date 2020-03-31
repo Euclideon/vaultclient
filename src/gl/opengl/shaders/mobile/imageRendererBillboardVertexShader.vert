@@ -9,9 +9,9 @@ layout(std140) uniform type_u_EveryObject
 
 layout(location = 0) in vec3 in_var_POSITION;
 layout(location = 1) in vec2 in_var_TEXCOORD0;
-out vec2 out_var_TEXCOORD0;
-out vec4 out_var_COLOR0;
-out vec2 out_var_TEXCOORD1;
+out vec2 varying_TEXCOORD0;
+out vec4 varying_COLOR0;
+out vec2 varying_TEXCOORD1;
 
 vec2 _32;
 
@@ -23,8 +23,8 @@ void main()
     vec2 _55 = _32;
     _55.x = 1.0 + _44;
     gl_Position = vec4(_50.x, _50.y, _38.z, _38.w);
-    out_var_TEXCOORD0 = in_var_TEXCOORD0;
-    out_var_COLOR0 = u_EveryObject.u_colour;
-    out_var_TEXCOORD1 = _55;
+    varying_TEXCOORD0 = in_var_TEXCOORD0;
+    varying_COLOR0 = u_EveryObject.u_colour;
+    varying_TEXCOORD1 = _55;
 }
 
