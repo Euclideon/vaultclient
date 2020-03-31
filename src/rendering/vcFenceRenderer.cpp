@@ -415,7 +415,6 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
 
   pFenceRenderer->renderShader.everyFrameParams.time = (float)pFenceRenderer->totalTimePassed;
   pFenceRenderer->renderShader.everyFrameParams.width = pFenceRenderer->config.ribbonWidth;
-  pFenceRenderer->renderShader.everyFrameParams.textureRepeatScale = pFenceRenderer->config.textureRepeatScale;
   pFenceRenderer->renderShader.everyFrameParams.textureScrollSpeed = pFenceRenderer->config.textureScrollSpeed;
   pFenceRenderer->renderShader.everyFrameParams.primaryColour = pFenceRenderer->config.primaryColour;
 
@@ -428,10 +427,12 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
   {
   case vcRRVM_Fence:
     pFenceRenderer->renderShader.everyFrameParams.orientation = 0.0f;
+    pFenceRenderer->renderShader.everyFrameParams.textureRepeatScale = pFenceRenderer->config.textureRepeatScale;
     break;
   case vcRRVM_Flat: // fall through
   default:
     pFenceRenderer->renderShader.everyFrameParams.orientation = 1.0f;
+    pFenceRenderer->renderShader.everyFrameParams.textureRepeatScale = pFenceRenderer->config.textureRepeatScale / pFenceRenderer->config.ribbonWidth;
     break;
   }
 
