@@ -359,7 +359,7 @@ int main(int argc, const char **ppArgv)
   }
 
   vdkConvert_DestroyContext(&pModel);
-  vdkContext_Disconnect(&pContext);
+  vdkContext_Disconnect(&pContext, false);
   settings.files.Deinit();
 
   return -result;

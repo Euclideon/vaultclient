@@ -210,7 +210,7 @@ void vcSession_Logout(vcState *pProgramState)
     vcRender_ClearPoints(pProgramState->pRenderContext);
 
     memset(&pProgramState->gis, 0, sizeof(pProgramState->gis));
-    vdkContext_Disconnect(&pProgramState->pVDKContext);
+    vdkContext_Disconnect(&pProgramState->pVDKContext, false);
 
     vcModals_OpenModal(pProgramState, vcMT_LoggedOut);
   }
@@ -231,12 +231,11 @@ void vcSession_Resume(vcState *pProgramState)
 void vcSession_UpdateInfo(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
-  vdkError response = vdkContext_KeepAlive(pProgramState->pVDKContext);
-
-  pProgramState->logoutReason = response;
+  vdkError response = vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->sessionInfo);
 
   if (response == vE_SessionExpired)
+  {
+    pProgramState->logoutReason = response;
     pProgramState->forceLogout = true;
-  else
-    vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->sessionInfo);
+  }
 }
