@@ -31,11 +31,6 @@ stages:
       container: euclideon/vault:dev-bionic-v1
   - template: buildscripts/azure-pipelines-jobs-macos.yml
     parameters:
-      name: macosOpenGL
-      displayName: 'macOS OpenGL'
-      gfxapi: 'opengl'
-  - template: buildscripts/azure-pipelines-jobs-macos.yml
-    parameters:
       name: macosMetal
       displayName: 'macOS Metal'
       gfxapi: 'metal'
