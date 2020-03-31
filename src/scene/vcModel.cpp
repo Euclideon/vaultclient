@@ -63,17 +63,6 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel)
         udFree(pModel->m_pPreferredProjection);
     }
 
-    const char *pMinMaxIntensity = pModel->m_metadata.Get("AttrMinMax_udIntensity").AsString();
-    if (pMinMaxIntensity != nullptr)
-    {
-      int charCount = 0;
-      pModel->m_visualization.minIntensity = (uint16_t)udStrAtoi(pMinMaxIntensity, &charCount);
-      pModel->m_visualization.maxIntensity = (uint16_t)(udStrAtoi(pMinMaxIntensity + charCount + 1));
-
-      // TODO: Handle this better (EVC-535)
-      pProgramState->settings.visualization.minIntensity = udMax(pProgramState->settings.visualization.minIntensity, pModel->m_visualization.minIntensity);
-      pProgramState->settings.visualization.maxIntensity = udMin(pProgramState->settings.visualization.maxIntensity, pModel->m_visualization.maxIntensity);
-    }
   }
 
   pModel->m_sceneMatrix = udDouble4x4::create(pModel->m_pointCloudHeader.storedMatrix);
@@ -230,6 +219,21 @@ void vcModel::OnNodeUpdate(vcState *pProgramState)
 
   udFree(pPosition);
 
+  int mode = 0;
+  vdkProjectNode_GetMetadataInt(m_pNode, "visualization.mode", &mode, 0);
+  m_visualization.mode = (vcVisualizatationMode)mode;
+  vdkProjectNode_GetMetadataInt(m_pNode, "visualization.minIntensity", &m_visualization.minIntensity, 0);
+  vdkProjectNode_GetMetadataInt(m_pNode, "visualization.maxIntensity", &m_visualization.maxIntensity, 0);
+  vdkProjectNode_GetMetadataBool(m_pNode, "visualization.showColourTable", &m_visualization.useCustomClassificationColours, false);
+  udDouble2 displacement;
+  vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.displacement.x", &displacement.x, 0.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.displacement.y", &displacement.y, 0.0);
+  m_visualization.displacement = udFloat2::create((float)displacement.x, (float)displacement.y);
+
+  // TODO: Handle this better (EVC-535)
+  pProgramState->settings.visualization.minIntensity = udMax(pProgramState->settings.visualization.minIntensity, m_visualization.minIntensity);
+  pProgramState->settings.visualization.maxIntensity = udMin(pProgramState->settings.visualization.maxIntensity, m_visualization.maxIntensity);
+
   m_changeZones = true;
 }
 
@@ -318,7 +322,16 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
   }
 
   // Show visualization info
-  vcSettingsUI_VisualizationSettings(pProgramState, &this->m_visualization);
+  if (vcSettingsUI_VisualizationSettings(&m_visualization))
+  {
+    vdkProjectNode_SetMetadataInt(m_pNode, "visualization.mode", m_visualization.mode);
+    //Set all here
+    vdkProjectNode_SetMetadataInt(m_pNode, "visualization.minIntensity", m_visualization.minIntensity);
+    vdkProjectNode_SetMetadataInt(m_pNode, "visualization.maxIntensity", m_visualization.maxIntensity);
+    vdkProjectNode_SetMetadataBool(m_pNode, "visualization.showColourTable", m_visualization.useCustomClassificationColours);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.displacement.x", m_visualization.displacement.x);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.displacement.y", m_visualization.displacement.y);
+  }
 
   // Show MetaData Info
   {

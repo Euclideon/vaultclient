@@ -23,6 +23,13 @@
 
 #define MAX_DISPLACEMENT 10000.f
 
+enum vcLASClassifications
+{
+  vcLASClassifications_FirstReserved = 19,
+  vcLASClassifications_FirstUserDefined = 64,
+  vcLASClassifications_LastClassification = 255 // Because they are always stored in a uint8
+};
+
 void vcSettingsUI_ShowHeader(vcState *pProgramState, const char *pSettingTitle, vcSettingCategory category = vcSC_All)
 {
   ImGui::Columns(2, nullptr, false);
@@ -36,6 +43,74 @@ void vcSettingsUI_ShowHeader(vcState *pProgramState, const char *pSettingTitle, 
   }
   ImGui::Columns(1);
   ImGui::Separator();
+}
+
+void vcSettingsUI_CustomClassificationColours(vcState *pProgramState, vcVisualizationSettings *pVisualizationSettings)
+{
+  if (pVisualizationSettings->useCustomClassificationColours)
+  {
+    ImGui::SameLine();
+    ImGui::SameLine();
+    if (ImGui::Button(udTempStr("%s##RestoreClassificationColors", vcString::Get("settingsRestoreDefaults"))))
+    {
+      memcpy(pProgramState->settings.visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pProgramState->settings.visualization.customClassificationColors));
+      for (int i = vcLASClassifications_FirstUserDefined; i <= vcLASClassifications_LastClassification; i++)
+      {
+        if (pVisualizationSettings->customClassificationColorLabels[i] != nullptr)
+          udFree(pVisualizationSettings->customClassificationColorLabels[i]);
+      }
+    }
+
+    for (uint8_t i = 0; i < vcLASClassifications_FirstReserved; ++i)
+      vcIGSW_ColorPickerU32(vcSettingsUI_GetClassificationName(pProgramState, i), &pVisualizationSettings->customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+
+    if (ImGui::TreeNode(vcString::Get("settingsVisClassReservedColours")))
+    {
+      for (uint8_t i = vcLASClassifications_FirstReserved; i < vcLASClassifications_FirstUserDefined; ++i)
+        vcIGSW_ColorPickerU32(vcSettingsUI_GetClassificationName(pProgramState, i), &pVisualizationSettings->customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+      ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNode(vcString::Get("settingsVisClassUserDefinable")))
+    {
+      for (int xi = vcLASClassifications_FirstUserDefined; xi <= vcLASClassifications_LastClassification; ++xi)
+      {
+        uint8_t i = (uint8_t)xi;
+
+        char buttonID[12], inputID[3];
+        vcIGSW_ColorPickerU32(vcSettingsUI_GetClassificationName(pProgramState, i), &pVisualizationSettings->customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
+        udSprintf(buttonID, "%s##%d", vcString::Get("settingsVisClassRename"), i);
+        udSprintf(inputID, "##I%d", i);
+        ImGui::SameLine();
+        if (ImGui::Button(buttonID))
+        {
+          pProgramState->renaming = i;
+          pProgramState->renameText[0] = '\0';
+        }
+        if (pProgramState->renaming == i)
+        {
+          ImGui::InputText(inputID, pProgramState->renameText, 30, ImGuiInputTextFlags_AutoSelectAll);
+          ImGui::SameLine();
+          if (ImGui::Button(vcString::Get("settingsVisClassSet")))
+          {
+            if (pVisualizationSettings->customClassificationColorLabels[i] != nullptr)
+              udFree(pVisualizationSettings->customClassificationColorLabels[i]);
+            pVisualizationSettings->customClassificationColorLabels[i] = udStrdup(pProgramState->renameText);
+            pProgramState->renaming = -1;
+          }
+        }
+      }
+      ImGui::TreePop();
+    }
+
+    for (size_t i = 0; i < udLengthOf(pVisualizationSettings->customClassificationToggles); i++)
+    {
+      if (pVisualizationSettings->customClassificationToggles[i])
+        pVisualizationSettings->customClassificationColors[i] = pVisualizationSettings->customClassificationColors[i] | 0xFF000000;
+      else
+        pVisualizationSettings->customClassificationColors[i] = pVisualizationSettings->customClassificationColors[i] & 0x00FFFFFF;
+    }
+  }
 }
 
 void vcSettingsUI_Show(vcState *pProgramState)
@@ -252,7 +327,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
         {
           vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsVis"), vcSC_Visualization);
 
-          vcSettingsUI_VisualizationSettings(pProgramState, &pProgramState->settings.visualization);
+          vcSettingsUI_VisualizationSettings(&pProgramState->settings.visualization);
+          vcSettingsUI_CustomClassificationColours(pProgramState, &pProgramState->settings.visualization);
 
           const char *lensNameArray[] = {
             vcString::Get("settingsViewportCameraLensCustom"),
@@ -744,13 +820,6 @@ bool vcSettingsUI_LangCombo(vcState *pProgramState)
   return true;
 }
 
-enum vcLASClassifications
-{
-  vcLASClassifications_FirstReserved = 19,
-  vcLASClassifications_FirstUserDefined = 64,
-  vcLASClassifications_LastClassification = 255 // Because they are always stored in a uint8
-};
-
 const char *vcSettingsUI_GetClassificationName(vcState *pProgramState, uint8_t classification)
 {
   if (classification < vcLASClassifications_FirstReserved)
@@ -792,93 +861,37 @@ const char *vcSettingsUI_GetClassificationName(vcState *pProgramState, uint8_t c
   }
 }
 
-void vcSettingsUI_VisualizationSettings(vcState *pProgramState, vcVisualizationSettings *pVisualizationSettings)
+bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationSettings)
 {
+  bool retVal = false;
+
   const char *visualizationModes[] = { vcString::Get("settingsVisModeDefault"), vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacement") };
-  ImGui::Combo(vcString::Get("settingsVisDisplayMode"), (int *)&pVisualizationSettings->mode, visualizationModes, (int)udLengthOf(visualizationModes));
+  retVal |= ImGui::Combo(vcString::Get("settingsVisDisplayMode"), (int *)&pVisualizationSettings->mode, visualizationModes, (int)udLengthOf(visualizationModes));
 
-  if (pVisualizationSettings->mode == vcVM_Intensity)
+  switch (pVisualizationSettings->mode)
   {
-    ImGui::SliderInt(vcString::Get("settingsVisMinIntensity"), &pVisualizationSettings->minIntensity, (int)vcSL_IntensityMin, pVisualizationSettings->maxIntensity);
-    ImGui::SliderInt(vcString::Get("settingsVisMaxIntensity"), &pVisualizationSettings->maxIntensity, pVisualizationSettings->minIntensity, (int)vcSL_IntensityMax);
-  }
-
-  if (pVisualizationSettings->mode == vcVM_Classification)
+  case vcVM_Intensity:
   {
-    ImGui::Checkbox(vcString::Get("settingsVisClassShowColourTable"), &pVisualizationSettings->useCustomClassificationColours);
-
-    if (pVisualizationSettings->useCustomClassificationColours)
-    {
-      ImGui::SameLine();
-      ImGui::SameLine();
-      if (ImGui::Button(udTempStr("%s##RestoreClassificationColors", vcString::Get("settingsRestoreDefaults"))))
-      {
-        memcpy(pProgramState->settings.visualization.customClassificationColors, GeoverseClassificationColours, sizeof(pProgramState->settings.visualization.customClassificationColors));
-        for (int i = vcLASClassifications_FirstUserDefined; i <= vcLASClassifications_LastClassification; i++)
-        {
-          if (pVisualizationSettings->customClassificationColorLabels[i] != nullptr)
-            udFree(pVisualizationSettings->customClassificationColorLabels[i]);
-        }
-      }
-
-      for (uint8_t i = 0; i < vcLASClassifications_FirstReserved; ++i)
-        vcIGSW_ColorPickerU32(vcSettingsUI_GetClassificationName(pProgramState, i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
-
-      if (ImGui::TreeNode(vcString::Get("settingsVisClassReservedColours")))
-      {
-        for (uint8_t i = vcLASClassifications_FirstReserved; i < vcLASClassifications_FirstUserDefined; ++i)
-          vcIGSW_ColorPickerU32(vcSettingsUI_GetClassificationName(pProgramState, i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
-        ImGui::TreePop();
-      }
-
-      if (ImGui::TreeNode(vcString::Get("settingsVisClassUserDefinable")))
-      {
-        for (int xi = vcLASClassifications_FirstUserDefined; xi <= vcLASClassifications_LastClassification; ++xi)
-        {
-          uint8_t i = (uint8_t)xi;
-
-          char buttonID[12], inputID[3];
-          vcIGSW_ColorPickerU32(vcSettingsUI_GetClassificationName(pProgramState, i), &pProgramState->settings.visualization.customClassificationColors[i], ImGuiColorEditFlags_NoAlpha);
-          udSprintf(buttonID, "%s##%d", vcString::Get("settingsVisClassRename"), i);
-          udSprintf(inputID, "##I%d", i);
-          ImGui::SameLine();
-          if (ImGui::Button(buttonID))
-          {
-            pProgramState->renaming = i;
-            pProgramState->renameText[0] = '\0';
-          }
-          if (pProgramState->renaming == i)
-          {
-            ImGui::InputText(inputID, pProgramState->renameText, 30, ImGuiInputTextFlags_AutoSelectAll);
-            ImGui::SameLine();
-            if (ImGui::Button(vcString::Get("settingsVisClassSet")))
-            {
-              if (pProgramState->settings.visualization.customClassificationColorLabels[i] != nullptr)
-                udFree(pProgramState->settings.visualization.customClassificationColorLabels[i]);
-              pProgramState->settings.visualization.customClassificationColorLabels[i] = udStrdup(pProgramState->renameText);
-              pProgramState->renaming = -1;
-            }
-          }
-        }
-        ImGui::TreePop();
-      }
-
-      for (size_t i = 0; i < udLengthOf(pVisualizationSettings->customClassificationToggles); i++)
-      {
-        if (pVisualizationSettings->customClassificationToggles[i])
-          pVisualizationSettings->customClassificationColors[i] = pVisualizationSettings->customClassificationColors[i] | 0xFF000000;
-        else
-          pVisualizationSettings->customClassificationColors[i] = pVisualizationSettings->customClassificationColors[i] & 0x00FFFFFF;
-      }
-    }
+    retVal |= ImGui::SliderInt(vcString::Get("settingsVisMinIntensity"), &pVisualizationSettings->minIntensity, (int)vcSL_IntensityMin, pVisualizationSettings->maxIntensity);
+    retVal |= ImGui::SliderInt(vcString::Get("settingsVisMaxIntensity"), &pVisualizationSettings->maxIntensity, pVisualizationSettings->minIntensity, (int)vcSL_IntensityMax);
   }
-
-  if (pVisualizationSettings->mode == vcVM_Displacement)
+  break;
+  case vcVM_Classification:
+    retVal |= ImGui::Checkbox(vcString::Get("settingsVisClassShowColourTable"), &pVisualizationSettings->useCustomClassificationColours);
+    break;
+  case vcVM_Displacement:
   {
     if (ImGui::InputFloat2(vcString::Get("settingsVisDisplacementRange"), &pVisualizationSettings->displacement.x))
     {
+      retVal = true;
       pVisualizationSettings->displacement.x = udClamp(pVisualizationSettings->displacement.x, 0.f, MAX_DISPLACEMENT);
       pVisualizationSettings->displacement.y = udClamp(pVisualizationSettings->displacement.y, pVisualizationSettings->displacement.x, MAX_DISPLACEMENT);
     }
   }
+  break;
+  default:
+    break;
+  }
+
+  return retVal;
 }
