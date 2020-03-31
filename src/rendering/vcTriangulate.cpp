@@ -38,7 +38,7 @@ bool vcTriangulate_Snip(const udDouble2 *pCountours, int u, int v, int w, int n,
   Cx = pCountours[V[w]].x;
   Cy = pCountours[V[w]].y;
 
-  if (UD_EPSILON > (((Bx - Ax)*(Cy - Ay)) - ((By - Ay)*(Cx - Ax))))
+  if (UD_EPSILON * 0.0000001 > (((Bx - Ax)*(Cy - Ay)) - ((By - Ay)*(Cx - Ax))))
     return false;
 
   for (p = 0;p<n;p++)

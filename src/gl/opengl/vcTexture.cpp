@@ -108,7 +108,7 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
   glBindTexture(target, pTexture->id);
 
   glTexParameteri(target, GL_TEXTURE_MAG_FILTER, vcTFMToGL[filterMode]);
-  glTexParameteri(target, GL_TEXTURE_MIN_FILTER, hasMipmaps ? GL_LINEAR_MIPMAP_NEAREST : vcTFMToGL[filterMode]);
+  glTexParameteri(target, GL_TEXTURE_MIN_FILTER, hasMipmaps ? GL_LINEAR_MIPMAP_LINEAR : vcTFMToGL[filterMode]);
   glTexParameteri(target, GL_TEXTURE_WRAP_S, vcTWMToGL[wrapMode]);
   glTexParameteri(target, GL_TEXTURE_WRAP_T, vcTWMToGL[wrapMode]);
 

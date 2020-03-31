@@ -13,6 +13,7 @@ struct PS_INPUT
   float2 uv1 : TEXCOORD1;
   float4 fragEyePos : COLOR0;
   float4 colour : COLOR1;
+  float2 fLogDepth : TEXCOORD2;
 };
 
 cbuffer u_EveryFrameFrag : register(b0)
@@ -31,12 +32,20 @@ float2 directionToLatLong(float3 dir)
 }
 
 sampler sampler0;
-sampler sampler1;
 Texture2D u_normalMap;
+sampler sampler1;
 Texture2D u_skybox;
 
-float4 main(PS_INPUT input) : SV_Target
+struct PS_OUTPUT
 {
+  float4 Color0 : SV_Target;
+  float Depth0 : SV_Depth;
+};
+
+PS_OUTPUT main(PS_INPUT input)
+{
+  PS_OUTPUT output;
+  
   float3 specularDir = normalize(u_specularDir.xyz);
 
   float3 normal0 = u_normalMap.Sample(sampler0, input.uv0).xyz * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
@@ -66,5 +75,10 @@ float4 main(PS_INPUT input) : SV_Target
   float3 reflectionColour = skybox.xyz;
 
   float3 finalColour = lerp(reflectionColour, refractionColour, fresnel * 0.75) + float3(specular, specular, specular);
-  return float4(finalColour, 1.0);
+  output.Color0 = float4(finalColour, 1.0);
+  
+  float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
+  output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;
+  
+  return output;
 }

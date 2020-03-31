@@ -66,7 +66,7 @@ udResult vcWaterRenderer_Init()
 
   UD_ERROR_IF(gRefCount != 1, udR_Success);
 
-  UD_ERROR_IF(vcTexture_CreateFromFilename(&pNormalMapTexture, "asset://assets/textures/waterNormalMap.jpg", nullptr, nullptr, vcTFM_Linear, true, vcTWM_Repeat), udR_InternalError);
+  UD_ERROR_IF(!vcTexture_CreateFromFilename(&pNormalMapTexture, "asset://assets/textures/waterNormalMap.jpg", nullptr, nullptr, vcTFM_Linear, true, vcTWM_Repeat), udR_InternalError);
 
   result = udR_Success;
 
@@ -100,10 +100,10 @@ udResult vcWaterRenderer_Create(vcWaterRenderer **ppWaterRenderer)
 
   UD_ERROR_CHECK(pWaterRenderer->volumes.Init(32));
 
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pWaterRenderer->renderShader.pProgram, "asset://assets/shaders/waterVertexShader", "asset://assets/shaders/waterFragmentShader", vcUV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFile(&pWaterRenderer->renderShader.pProgram, "asset://assets/shaders/waterVertexShader", "asset://assets/shaders/waterFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_Bind(pWaterRenderer->renderShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_normalMap, pWaterRenderer->renderShader.pProgram, "u_normalMap"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_skybox, pWaterRenderer->renderShader.pProgram, "u_skybox"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_normalMap, pWaterRenderer->renderShader.pProgram, "SPIRV_Cross_Combinedu_normalMapsampler0"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_skybox, pWaterRenderer->renderShader.pProgram, "SPIRV_Cross_Combinedu_skyboxsampler1"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyFrameVert, pWaterRenderer->renderShader.pProgram, "u_EveryFrameVert", sizeof(pWaterRenderer->renderShader.everyFrameVertParams)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyFrameFrag, pWaterRenderer->renderShader.pProgram, "u_EveryFrameFrag", sizeof(pWaterRenderer->renderShader.everyFrameFragParams)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyObject, pWaterRenderer->renderShader.pProgram, "u_EveryObject", sizeof(pWaterRenderer->renderShader.everyObjectParams)), udR_InternalError);
@@ -139,24 +139,24 @@ udResult vcWaterRenderer_Destroy(vcWaterRenderer **ppWaterRenderer)
   return udR_Success;
 }
 
-udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, udDouble2 *pPoints, size_t pointCount)
+udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, const udGeoZone &geoZone, double altitude, udDouble3 *pPoints, size_t pointCount)
 {
   udResult result;
 
   vcWaterVolume pVolume = {};
   std::vector<udDouble2> triangleList;
   udDouble2 *pLocalPoints = nullptr;
-  vcUV2Vertex *pVerts = nullptr;
+  vcP3UV2Vertex *pVerts = nullptr;
+  udDouble3 p0 = udDouble3::zero();
 
   pLocalPoints = udAllocType(udDouble2, pointCount, udAF_Zero);
   UD_ERROR_NULL(pLocalPoints, udR_MemoryAllocationFailure);
 
   pVolume.min = udDouble2::zero();
   pVolume.max = udDouble2::zero();
-  pVolume.origin = udDouble4x4::translation(pPoints[0].x, pPoints[0].y, 0.0f);
   for (size_t i = 0; i < pointCount; ++i)
   {
-    udDouble2 p = pPoints[i] - pPoints[0];
+    udDouble2 p = pPoints[i].toVector2() - pPoints[0].toVector2();
 
     pVolume.min.x = udMin(pVolume.min.x, p.x);
     pVolume.min.y = udMin(pVolume.min.y, p.y);
@@ -174,13 +174,19 @@ udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, udDouble2 *p
   }
 
   pVolume.vertCount = int(triangleList.size());
-  pVerts = udAllocType(vcUV2Vertex, pVolume.vertCount, udAF_Zero);
+  pVerts = udAllocType(vcP3UV2Vertex, pVolume.vertCount, udAF_Zero);
   UD_ERROR_NULL(pVerts, udR_MemoryAllocationFailure);
 
+  pVolume.origin = udDouble4x4::translation(udGeoZone_LatLongToCartesian(geoZone, pPoints[0], true));
+  p0 = pVolume.origin.axis.t.toVector3();
   for (size_t i = 0; i < triangleList.size(); ++i)
+  {
+    udDouble3 p = udGeoZone_LatLongToCartesian(geoZone, pPoints[0] + udDouble3::create(triangleList[i].x, triangleList[i].y, altitude), true);
+    pVerts[i].position = udFloat3::create(p - p0);
     pVerts[i].uv = udFloat2::create(triangleList[i]);
+  }
 
-  UD_ERROR_IF(vcMesh_Create(&pVolume.pMesh, vcUV2VertexLayout, (int)udLengthOf(vcUV2VertexLayout), pVerts, (uint32_t)pVolume.vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
+  UD_ERROR_IF(vcMesh_Create(&pVolume.pMesh, vcP3UV2VertexLayout, (int)udLengthOf(vcP3UV2VertexLayout), pVerts, (uint32_t)pVolume.vertCount, nullptr, 0, vcMF_Dynamic | vcMF_NoIndexBuffer), udR_InternalError);
 
   UD_ERROR_CHECK(pWaterRenderer->volumes.PushBack(pVolume));
 
@@ -237,7 +243,7 @@ bool vcWaterRenderer_Render(vcWaterRenderer *pWaterRenderer, const udDouble4x4 &
     vcWaterVolume *pVolume = &pWaterRenderer->volumes[i];
 
     pWaterRenderer->renderShader.everyObjectParams.u_colourAndSize = udFloat4::create(0.0f, 102.0f / 255.0f, 204.0f / 255.0f, 0.0f);
-    pWaterRenderer->renderShader.everyObjectParams.u_colourAndSize.w = float(1.0 / (1.0 + (0.0025 * udMag2(pVolume->max - pVolume->min))));
+    pWaterRenderer->renderShader.everyObjectParams.u_colourAndSize.w = float(30000.0 * udMag2(pVolume->max - pVolume->min));
     pWaterRenderer->renderShader.everyObjectParams.u_modelViewMatrix = udFloat4x4::create(view * pVolume->origin);
     pWaterRenderer->renderShader.everyObjectParams.u_worldViewProjectionMatrix = udFloat4x4::create(viewProjection * pVolume->origin);
     vcShader_BindConstantBuffer(pWaterRenderer->renderShader.pProgram, pWaterRenderer->renderShader.uniform_everyObject, &pWaterRenderer->renderShader.everyObjectParams, sizeof(pWaterRenderer->renderShader.everyObjectParams));
