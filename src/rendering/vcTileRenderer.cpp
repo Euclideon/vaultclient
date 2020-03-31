@@ -19,7 +19,7 @@
 #define VISUALIZE_DEBUG_TILES 0
 
 // TODO: This is a temporary solution, where we know the dem data stops at level 13.
-#define HACK_DEM_LEVEL 13
+#define HACK_DEM_LEVEL 11
 
 enum
 {
@@ -289,7 +289,7 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         pBestNode->renderInfo.demLoadStatus = vcNodeRenderInfo::vcTLS_Failed;
 
         char demFileName[vcMaxPathLength] = {};
-        udSprintf(demFileName, "%s/%d/%d/%d.png", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
+        udSprintf(demFileName, "https://az.vault.euclideon.com/dem/%d/%d/%d.png", pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
         udReleaseMutex(pMutexCopy);
         pMutexCopy = nullptr;
 
