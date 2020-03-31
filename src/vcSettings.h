@@ -270,8 +270,6 @@ struct vcSettings
 
     vcMapTileBlendMode blendMode;
     float transparency;
-
-    bool mouseInteracts;
   } maptiles;
 
   struct

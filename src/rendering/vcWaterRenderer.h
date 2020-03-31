@@ -5,7 +5,6 @@
 #include "udGeoZone.h"
 
 struct vcWaterRenderer;
-struct vcCamera;
 struct vcTexture;
 
 udResult vcWaterRenderer_Create(vcWaterRenderer **ppWaterRenderer);

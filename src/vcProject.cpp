@@ -36,7 +36,7 @@ bool vcProject_ExtractCameraRecursive(vcState *pProgramState, vdkProjectNode *pP
     if (pNode->itemtype == vdkPNT_Viewpoint)
     {
       udDouble3 position = udDouble3::zero();
-      udDouble3 eulerRotation = udDouble3::zero();
+      udDouble2 headingPitch = udDouble2::zero();
 
       udDouble3 *pPoint = nullptr;
       int numPoints = 0;
@@ -45,12 +45,11 @@ bool vcProject_ExtractCameraRecursive(vcState *pProgramState, vdkProjectNode *pP
       if (numPoints == 1)
         position = pPoint[0];
 
-      vdkProjectNode_GetMetadataDouble(pNode, "transform.rotation.x", &eulerRotation.x, 0.0);
-      vdkProjectNode_GetMetadataDouble(pNode, "transform.rotation.y", &eulerRotation.y, 0.0);
-      vdkProjectNode_GetMetadataDouble(pNode, "transform.rotation.z", &eulerRotation.z, 0.0);
+      vdkProjectNode_GetMetadataDouble(pNode, "transform.heading", &headingPitch.x, 0.0);
+      vdkProjectNode_GetMetadataDouble(pNode, "transform.pitch", &headingPitch.y, 0.0);
 
       pProgramState->camera.position = position;
-      pProgramState->camera.eulerRotation = eulerRotation;
+      pProgramState->camera.headingPitch = headingPitch;
 
       // unset
       memset(pProgramState->sceneExplorer.movetoUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWhenPossible));
@@ -74,7 +73,7 @@ bool vcProject_ExtractCameraRecursive(vcState *pProgramState, vdkProjectNode *pP
 void vcProject_ExtractCamera(vcState *pProgramState)
 {
   pProgramState->camera.position = udDouble3::zero();
-  pProgramState->camera.eulerRotation = udDouble3::zero();
+  pProgramState->camera.headingPitch = udDouble2::zero();
 
   vcProject_ExtractCameraRecursive(pProgramState, pProgramState->activeProject.pRoot);
 }
