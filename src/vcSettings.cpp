@@ -328,11 +328,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     vcHotkey::Set(vcB_GizmoLocalSpace, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoLocalSpace)).AsInt(6));
     vcHotkey::Set(vcB_Fullscreen, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Fullscreen)).AsInt(62));
     vcHotkey::Set(vcB_RenameSceneItem, data.Get("keys.%s", vcHotkey::GetBindName(vcB_RenameSceneItem)).AsInt(60));
-    vcHotkey::Set(vcB_Save, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Save)).AsInt(1046));
-    vcHotkey::Set(vcB_Load, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Load)).AsInt(1039));
     vcHotkey::Set(vcB_AddUDS, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddUDS)).AsInt(1048));
     vcHotkey::Set(vcB_BindingsInterface, data.Get("keys.%s", vcHotkey::GetBindName(vcB_BindingsInterface)).AsInt(1029));
-    vcHotkey::Set(vcB_Undo, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Undo)).AsInt(1053));
     vcHotkey::Set(vcB_TakeScreenshot, data.Get("keys.%s", vcHotkey::GetBindName(vcB_TakeScreenshot)).AsInt(70));
     vcHotkey::Set(vcB_ToggleSceneExplorer, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleSceneExplorer)).AsInt(61));
   }
