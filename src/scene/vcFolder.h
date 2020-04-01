@@ -8,7 +8,7 @@ struct vcState;
 class vcFolder : public vcSceneItem
 {
 public:
-  vcFolder(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcFolder(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcFolder() {};
 
   void OnNodeUpdate(vcState *pProgramState) override;

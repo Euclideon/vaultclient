@@ -93,7 +93,7 @@ private:
   void HandleBasicUI(vcState *pProgramState, size_t itemID);
 
 public:
-  vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcPOI();
 
   void OnNodeUpdate(vcState *pProgramState);

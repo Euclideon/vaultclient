@@ -10,7 +10,7 @@ struct vcRenderData;
 class vcI3S : public vcSceneItem
 {
 public:
-  vcI3S(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcI3S(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcI3S();
 
   void OnNodeUpdate(vcState *pProgramState);

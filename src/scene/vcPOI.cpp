@@ -376,7 +376,7 @@ vcPOIState_General *vcPOIState_MeasureArea::ChangeState(vcState *pProgramState)
 // vcPOI
 //----------------------------------------------------------------------------------------------------
 
-vcPOI::vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcPOI::vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
   , m_pState(nullptr)
 {

@@ -32,7 +32,7 @@ public:
 
   vcVisualizationSettings m_visualization; // Overrides global visualization settings
 
-  vcModel(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcModel(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud);
   ~vcModel() {};
 

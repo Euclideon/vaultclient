@@ -31,7 +31,7 @@ UDCOMPILEASSERT(udLengthOf(s_imageTypes) == vcIT_Count, "Update Image Types");
 const char *s_imageThumbnailSizes[] = { "native", "small", "large" };
 UDCOMPILEASSERT(udLengthOf(s_imageThumbnailSizes) == vcIS_Count, "Update Image Sizes");
 
-vcMedia::vcMedia(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcMedia::vcMedia(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_pLoadedURI(nullptr),
   m_loadLoadTimeSec(0.0),

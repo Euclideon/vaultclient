@@ -27,7 +27,7 @@ private:
   udDouble3 m_ypr;
 
 public:
-  vcQueryNode(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcQueryNode(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcQueryNode();
 
   void OnNodeUpdate(vcState *pProgramState);

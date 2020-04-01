@@ -14,7 +14,7 @@ private:
   uint32_t m_hiddenColour;
 
 public:
-  vcViewShed(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcViewShed(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcViewShed() {};
 
   void OnNodeUpdate(vcState *pProgramState);
