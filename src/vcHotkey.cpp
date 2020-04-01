@@ -38,11 +38,8 @@ namespace vcHotkey
     "GizmoLocalSpace",
     "Fullscreen",
     "RenameSceneItem",
-    "Save",
-    "Load",
     "AddUDS",
     "BindingsInterface",
-    "Undo",
     "TakeScreenshot",
     "ToggleSceneExplorer",
 

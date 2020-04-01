@@ -34,11 +34,8 @@ enum vcBind
   vcB_GizmoLocalSpace,
   vcB_Fullscreen,
   vcB_RenameSceneItem,
-  vcB_Save,
-  vcB_Load,
   vcB_AddUDS,
   vcB_BindingsInterface,
-  vcB_Undo,
   vcB_TakeScreenshot,
   vcB_ToggleSceneExplorer,
 
