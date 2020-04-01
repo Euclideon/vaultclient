@@ -124,7 +124,7 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   g_blitEncoder = [g_blitBuffer blitCommandEncoder];
 
   vcTexture *defaultTexture, *defaultDepth;
-  vcTexture_Create(&defaultTexture, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, vcTCF_RenderTarget);
+  vcTexture_Create(&defaultTexture, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, vcTCF_RenderTarget);
   vcTexture_Create(&defaultDepth, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, vcTCF_RenderTarget);
   
   vcFramebuffer_Create(&g_pDefaultFramebuffer, defaultTexture, defaultDepth);
