@@ -653,7 +653,7 @@ void vcRender_RenderAtmosphere(vcState *pProgramState, vcRenderContext *pRenderC
   vcAtmosphereRenderer_SetVisualParams(pRenderContext->pAtmosphereRenderer, pProgramState->settings.presentation.skybox.exposure, pProgramState->settings.presentation.skybox.timeOfDay);
 
   pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0x000000ff);
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0xff000000);
 
   vcAtmosphereRenderer_Render(pRenderContext->pAtmosphereRenderer, pProgramState, pRenderContext->pTexture[1 - pRenderContext->activeRenderTarget], pRenderContext->pDepthTexture[1 - pRenderContext->activeRenderTarget]);
 }
@@ -768,7 +768,7 @@ void vcRender_PostProcessPass(vcState *pProgramState, vcRenderContext *pRenderCo
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
 
   pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0x00FF8080);
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0xff000000);
 
   vcShader_Bind(pRenderContext->postEffectsShader.pProgram);
   vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->pTexture[1 - pRenderContext->activeRenderTarget], 0, pRenderContext->postEffectsShader.uniform_texture);
@@ -789,7 +789,7 @@ void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRender
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0x00FF8080);
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0xff000000);
 
   vcShader_Bind(pRenderContext->visualizationShader.pProgram);
   vcShader_BindTexture(pRenderContext->visualizationShader.pProgram, pRenderContext->pTexture[1 - pRenderContext->activeRenderTarget], 0, pRenderContext->visualizationShader.uniform_texture);
@@ -980,7 +980,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
 
 void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0xFFFF8080);
+  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0xff000000);
 
   vcGLState_ResetState();
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, true);
@@ -1251,6 +1251,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   udUnused(pDefaultFramebuffer);
 
   // Render and upload UD buffers
+  if (renderData.models.length > 0)
   {
     vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pRenderView, &pProgramState->camera, renderData, true);
     vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
