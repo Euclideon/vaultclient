@@ -2732,7 +2732,7 @@ void vcRenderWindow(vcState *pProgramState)
   else
   {
     float menuBarSize = 0.f;
-    if (!pProgramState->settings.window.isFullscreen)
+    if (!pProgramState->settings.window.isFullscreen && !pProgramState->sceneExplorerCollapsed)
       menuBarSize = vcMain_MenuGui(pProgramState);
 
     ImGui::SetNextWindowSize(ImVec2(size.x, size.y - menuBarSize));
