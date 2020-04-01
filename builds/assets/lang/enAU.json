@@ -394,7 +394,7 @@
   "sceneFullscreen": "Fullscreen",
   "sceneMapMode": "Map Mode",
   "toggleSceneExplorer": "Show/Hide Scene Explorer",
-  "sceneTrueNorthTooltip": "Rotate The View",
+  "sceneTrueNorthTooltip": "Face North",
 
   "sceneCameraSettings": "Camera Settings",
   "sceneCameraLatLongAlt": "Lat: {0}°, Lon: {1}°, Alt {2}",
