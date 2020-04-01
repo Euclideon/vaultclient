@@ -241,8 +241,8 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     double travelProgress = udEase(pCamInput->progress, udET_CubicInOut);
     pCamera->position = pCamInput->startPosition + moveVector * travelProgress;
 
-    udDouble3 targetEuler = udDirectionToYPR(pProgramState->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest));
-    //pCamera->eulerRotation = udSlerp(pCamInput->startAngle, udDoubleQuat::create(targetEuler), travelProgress).eulerAngles();
+    udDoubleQuat targetAngle = udDoubleQuat::create(pProgramState->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest), 0);
+    pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pCamera->position, udSlerp(pCamInput->startAngle, targetAngle, travelProgress));
 
     if (pCamera->headingPitch.y > UD_PI)
       pCamera->headingPitch.y -= UD_2PI;

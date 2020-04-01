@@ -280,11 +280,11 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     // Update the camera if the camera is coming along
     if (pProgramState->cameraInput.pAttachedToSceneItem == this && m_cameraFollowingAttachment)
     {
-      //udRay<double> rotRay = udRay<double>::create(startPosDiff, udDirectionFromYPR(pProgramState->camera.eulerRotation));
-      //rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.z.toVector3(), m_attachment.eulerAngles.x - startYPR.x);
-      //rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.x.toVector3(), m_attachment.eulerAngles.y - startYPR.y);
-      //pProgramState->camera.position = m_attachment.currentPos + rotRay.position;
-      //pProgramState->camera.eulerRotation = udDirectionToYPR(rotRay.direction);
+      udOrientedPoint<double> rotRay = udOrientedPoint<double>::create(startPosDiff, vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch));
+      rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.z.toVector3(), m_attachment.eulerAngles.x - startYPR.x);
+      rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.x.toVector3(), m_attachment.eulerAngles.y - startYPR.y);
+      pProgramState->camera.position = m_attachment.currentPos + rotRay.position;
+      pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, rotRay.orientation);
     }
   }
 
@@ -298,18 +298,18 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     else
     {
       double remainingMovementThisFrame = pProgramState->settings.camera.moveSpeed * pProgramState->deltaTime;
-      //udDouble3 startYPR = pProgramState->camera.eulerRotation;
+      udDoubleQuat startQuat = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch);
 
       udDouble3 updatedPosition = {};
 
       if (!GetPointAtDistanceAlongLine(remainingMovementThisFrame, &updatedPosition, &m_flyThrough.segmentIndex, &m_flyThrough.segmentProgress))
       {
-        //pProgramState->camera.eulerRotation = udDirectionToYPR(m_line.pPoints[1] - m_line.pPoints[0]);
+        pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, udDoubleQuat::create(m_line.pPoints[1] - m_line.pPoints[0], 0.0));
         pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
       }
       else
       {
-        //pProgramState->camera.eulerRotation = udSlerp(udDoubleQuat::create(startYPR), udDoubleQuat::create(udDirectionToYPR(updatedPosition - pProgramState->camera.position)), 0.2).eulerAngles();
+        pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, udSlerp(startQuat, udDoubleQuat::create(udDirectionToYPR(updatedPosition - pProgramState->camera.position)), 0.2));
       }
 
       pProgramState->camera.position = updatedPosition;

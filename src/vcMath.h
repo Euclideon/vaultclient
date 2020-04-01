@@ -228,4 +228,30 @@ static T udDistanceToTriangle(udVector3<T> p0, udVector3<T> p1, udVector3<T> p2,
   return udMag3(closestPoint - point);
 }
 
+template <typename T>
+struct udOrientedPoint
+{
+  udVector3<T> position;
+  udQuaternion<T> orientation;
+
+  // static members
+  static udOrientedPoint<T> create(const udVector3<T> &position, const udQuaternion<T> &orientation) { udOrientedPoint<T> r = { position, orientation }; return r; }
+
+  template <typename U>
+  static udOrientedPoint<T> create(const udOrientedPoint<U> &_v) { udOrientedPoint<T> r = { udVector3<T>::create(_v.position), udQuaternion<T>::create(_v.orientation) }; return r; }
+
+  static udOrientedPoint<T> rotationAround(const udOrientedPoint<T> &ray, const udVector3<T> &center, const udVector3<T> &axis, const T &angle)
+  {
+    udOrientedPoint<T> r;
+
+    udQuaternion<T> rotation = udQuaternion<T>::create(axis, angle);
+
+    udVector3<T> direction = ray.position - center; // find current direction relative to center
+    r.position = center + rotation.apply(direction); // define new position
+    r.orientation = (rotation * ray.orientation); // rotate object to keep looking at the center
+
+    return r;
+  }
+};
+
 #endif //vcMath_h__

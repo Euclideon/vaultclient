@@ -122,8 +122,6 @@ udDouble2 vcGIS_QuaternionToHeadingPitch(const vcGISSpace &space, udDouble3 loca
     return headingPitch;
   }
 
-  udDouble3 hpr = {};
-
   udDouble3 up = vcGIS_GetWorldLocalUp(space, localPosition);
   udDouble3 north = vcGIS_GetWorldLocalNorth(space, localPosition);
   udDouble3 east = udCross(north, up);
