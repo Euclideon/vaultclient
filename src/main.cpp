@@ -1696,7 +1696,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
             }
             case vdkAttributeTypeInfo_color32:
             {
-              pProgramState->udModelNodeAttributes.Set("%s = \"RGB(%u, %u, %u)\"", pHeader->attributes.pDescriptors[i].name, pAttributePtr[3], pAttributePtr[2], pAttributePtr[1]); //BGRA internally
+              pProgramState->udModelNodeAttributes.Set("%s = \"RGB(%u, %u, %u)\"", pHeader->attributes.pDescriptors[i].name, pAttributePtr[2], pAttributePtr[1], pAttributePtr[0]); //BGRA internally
               pAttributePtr += 4;
               break;
             }
