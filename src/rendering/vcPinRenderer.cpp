@@ -8,7 +8,6 @@
 
 // higher == more aggressively group
 #define COLLAPSE_DISTANCE_RATIO 0.25
-#define BECOME_PIN_DISTANCE 500.0
 
 struct vcPinIcon
 {
@@ -29,8 +28,12 @@ struct vcPinIcon
 struct vcPinBin
 {
   int count;
+  int realPins;
   udDouble3 position; // average of group
   vcPinIcon *pIcon;
+
+  char numbers[8];
+  vcLabelInfo label;
 };
 
 struct vcPinRenderer
@@ -52,6 +55,7 @@ void vcPinRenderer_LoadIcon(void *pUserData)
     if (pPinRenderer->pinIcons[i].loadState == vcPinIcon::vcLoadState_InQueue)
     {
       pPinIcon = &pPinRenderer->pinIcons[i];
+      pPinIcon->loadState = vcPinIcon::vcLoadState_Failed; // needs to happen in the loop
       break;
     }
   }
@@ -60,8 +64,6 @@ void vcPinRenderer_LoadIcon(void *pUserData)
 
   if (pPinIcon == nullptr) // can't happen
     return;
-
-  pPinIcon->loadState = vcPinIcon::vcLoadState_Failed;
 
   void *pFileData = nullptr;
   int64_t fileLen = -1;
@@ -104,7 +106,6 @@ udResult vcPinRenderer_Destroy(vcPinRenderer **ppPinRenderer)
   vcPinRenderer *pPinRenderer = (*ppPinRenderer);
   *ppPinRenderer = nullptr;
 
-
   for (size_t i = 0; i < pPinRenderer->pinIcons.length; ++i)
   {
     while (pPinRenderer->pinIcons[i].loadState == vcPinIcon::vcLoadState_InQueue)
@@ -122,14 +123,12 @@ udResult vcPinRenderer_Destroy(vcPinRenderer **ppPinRenderer)
   return udR_Success;
 }
 
-bool vcPinRenderer_ConditionalTurnIntoPin(vcPinRenderer *pPinRenderer, vcState *pProgramState, const char *pPinIconURL, udDouble3 position)
+bool vcPinRenderer_AddPin(vcPinRenderer *pPinRenderer, vcState *pProgramState, const char *pPinIconURL, udDouble3 position, int count)
 {
   if (pPinIconURL == nullptr)
     return false;
 
-  double distToCameraSqr = udMagSq3(pProgramState->camera.position - position);
-  if (distToCameraSqr <= BECOME_PIN_DISTANCE * BECOME_PIN_DISTANCE)
-    return false;
+  count = udMax(count, 1);
 
   vcPinIcon *pIcon = nullptr;
   for (size_t i = 0; i < pPinRenderer->pinIcons.length; ++i)
@@ -143,8 +142,12 @@ bool vcPinRenderer_ConditionalTurnIntoPin(vcPinRenderer *pPinRenderer, vcState *
 
   if (pIcon == nullptr)
   {
+    vcPinIcon pinIcon = {};
+    pinIcon.loadState = vcPinIcon::vcLoadState_InQueue;
+    pinIcon.pIconURL = udStrdup(pPinIconURL);
+
     udLockMutex(pPinRenderer->pMutex);
-    pPinRenderer->pinIcons.PushBack({ vcPinIcon::vcLoadState_InQueue, udStrdup(pPinIconURL), nullptr, nullptr });
+    pPinRenderer->pinIcons.PushBack(pinIcon);
     udWorkerPool_AddTask(pProgramState->pWorkerPool, vcPinRenderer_LoadIcon, pPinRenderer, false);
     udReleaseMutex(pPinRenderer->pMutex);
 
@@ -162,8 +165,9 @@ bool vcPinRenderer_ConditionalTurnIntoPin(vcPinRenderer *pPinRenderer, vcState *
     if (pBin->pIcon == pIcon && distToBin <= (cameraDistToBin * COLLAPSE_DISTANCE_RATIO))
     {
       // 'put' in this bin
-      pBin->position = (pBin->position * pBin->count + position) / (pBin->count + 1);
-      pBin->count++;
+      pBin->position = (pBin->position * pBin->realPins + position) / (pBin->realPins + 1);
+      pBin->count += count;
+      ++pBin->realPins;
       break;
     }
   }
@@ -174,7 +178,11 @@ bool vcPinRenderer_ConditionalTurnIntoPin(vcPinRenderer *pPinRenderer, vcState *
     vcPinBin *pBin = pPinRenderer->pinBins.PushBack();
     pBin->pIcon = pIcon;
     pBin->position = position;
-    pBin->count++;
+    pBin->count = count;
+
+    pBin->label.pText = pBin->numbers;
+    pBin->label.textColourRGBA = 0xFF000000;
+    pBin->label.backColourRGBA = 0xC0FFFFFF;
   }
 
   return true;
@@ -199,7 +207,7 @@ void vcPinRenderer_UpdateTextures(vcPinRenderer *pPinRenderer)
   }
 }
 
-void vcPinRenderer_Render(vcPinRenderer *pPinRenderer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize)
+void vcPinRenderer_Render(vcPinRenderer *pPinRenderer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, udChunkedArray<vcLabelInfo*> &labels)
 {
   vcPinRenderer_UpdateTextures(pPinRenderer);
 
@@ -217,5 +225,9 @@ void vcPinRenderer_Render(vcPinRenderer *pPinRenderer, const udDouble4x4 &viewPr
     info.position = pBin->position;
     info.scale = 1.0;
     vcImageRenderer_Render(&info, viewProjectionMatrix, screenSize, 1.0f);
+
+    pBin->label.worldPosition = pBin->position;
+    udSprintf(pBin->numbers, "%d", pBin->count);
+    labels.PushBack(&pBin->label);
   }
 }

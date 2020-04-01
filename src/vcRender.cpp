@@ -1069,7 +1069,7 @@ void vcRender_RenderUI(vcState *pProgramState, vcRenderContext *pRenderContext, 
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   // Pins
-  vcPinRenderer_Render(pRenderContext->pPinRenderer, pProgramState->camera.matrices.viewProjection, pProgramState->sceneResolution);
+  vcPinRenderer_Render(pRenderContext->pPinRenderer, pProgramState->camera.matrices.viewProjection, pProgramState->sceneResolution, renderData.labels);
 
   // Labels
   ImDrawList *drawList = ImGui::GetWindowDrawList();
@@ -1288,6 +1288,8 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   udUnused(pDefaultFramebuffer);
 
   vcPinRenderer_Reset(pRenderContext->pPinRenderer);
+  for (size_t i = 0; i < renderData.pins.length; ++i)
+    vcPinRenderer_AddPin(pRenderContext->pPinRenderer, pProgramState, renderData.pins[i].pPinAddress, renderData.pins[i].position, renderData.pins[i].count);
 
   // Render and upload UD buffers
   if (renderData.models.length > 0)

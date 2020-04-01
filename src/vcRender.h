@@ -52,8 +52,6 @@ struct vcRenderPolyInstance
 
   // Helper to determine if flag is set
   bool HasFlag(const enum RenderFlags flag) { return (renderFlags & flag) == flag; }
-
-  const char *pPinIconURL; // null means not pinnable
 };
 
 inline enum vcRenderPolyInstance::RenderFlags operator|(const enum vcRenderPolyInstance::RenderFlags a, const enum vcRenderPolyInstance::RenderFlags b) { return (enum vcRenderPolyInstance::RenderFlags)(int(a) | int(b)); }
@@ -74,6 +72,13 @@ struct vcViewShedData
   udFloat4 notVisibleColour;
 };
 
+struct vcPins
+{
+  udDouble3 position;
+  const char *pPinAddress;
+  int count;
+};
+
 struct vcRenderData
 {
   vcMouseData mouse;
@@ -87,6 +92,7 @@ struct vcRenderData
   udChunkedArray<vcImageRenderInfo*> images;
 
   udChunkedArray<vcViewShedData> viewSheds;
+  udChunkedArray<vcPins> pins;
 
   vcTexture *pSceneTexture;
   udFloat2 sceneScaling;
