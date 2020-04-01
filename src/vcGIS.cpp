@@ -94,3 +94,67 @@ udDouble3 vcGIS_GetWorldLocalUp(const vcGISSpace &space, udDouble3 localCoords)
 
   return udNormalize(upVector - localCoords);
 }
+
+udDouble3 vcGIS_GetWorldLocalNorth(const vcGISSpace &space, udDouble3 localCoords)
+{
+  if (!space.isProjected || space.zone.projection >= udGZPT_TransverseMercator)
+    return udDouble3::create(0, 1, 0);
+
+  udDouble3 northDirection = udDouble3::create(0, 1, 0); //TODO: Fix this
+  udDouble3 up = vcGIS_GetWorldLocalUp(space, localCoords);
+
+  udDouble3 currentLatLong = udGeoZone_CartesianToLatLong(space.zone, localCoords);
+  currentLatLong.x = udClamp(currentLatLong.x, -90.0, 89.9);
+  northDirection = udNormalize(udGeoZone_LatLongToCartesian(space.zone, udDouble3::create(currentLatLong.x + 0.1, currentLatLong.y, currentLatLong.z)) - localCoords);
+
+  udDouble3 east = udCross(northDirection, up);
+  udDouble3 northFlat = udCross(up, east);
+
+  return northFlat;
+}
+
+udDouble2 vcGIS_QuaternionToHeadingPitch(const vcGISSpace &space, udDouble3 localPosition, udDoubleQuat orientation)
+{
+  if (!space.isProjected || space.zone.projection >= udGZPT_TransverseMercator)
+  {
+    udDouble2 headingPitch = orientation.eulerAngles().toVector2();
+    headingPitch.x *= -1;
+    return headingPitch;
+  }
+
+  udDouble3 up = vcGIS_GetWorldLocalUp(space, localPosition);
+  udDouble3 north = vcGIS_GetWorldLocalNorth(space, localPosition);
+  udDouble3 east = udCross(north, up);
+
+  udDouble4x4 rotation = udDouble4x4::rotationQuat(orientation);
+  udDouble4x4 referenceFrame = udDouble4x4::create(udDouble4::create(east, 0), udDouble4::create(north, 0), udDouble4::create(up, 0), udDouble4::identity());
+
+  udDouble3 headingData = (referenceFrame.inverse() * rotation).extractYPR();
+
+  if (headingData.x > UD_PI)
+    headingData.x -= UD_2PI;
+
+  if (headingData.y > UD_PI)
+    headingData.y -= UD_2PI;
+
+  headingData.x *= -1;
+
+  return headingData.toVector2();
+}
+
+udDoubleQuat vcGIS_HeadingPitchToQuaternion(const vcGISSpace &space, udDouble3 localPosition, udDouble2 headingPitch)
+{
+  if (!space.isProjected || space.zone.projection >= udGZPT_TransverseMercator)
+    return udDoubleQuat::create(-headingPitch.x, headingPitch.y, 0.0);
+
+  udDouble3 up = vcGIS_GetWorldLocalUp(space, localPosition);
+  udDouble3 north = vcGIS_GetWorldLocalNorth(space, localPosition);
+  udDouble3 east = udCross(north, up);
+
+  udDoubleQuat rotationHeading = udDoubleQuat::create(up, -headingPitch.x);
+  udDoubleQuat rotationPitch = udDoubleQuat::create(east, headingPitch.y);
+  
+  udDouble4x4 mat = udDouble4x4::lookAt(localPosition, localPosition + north, up);
+
+  return rotationHeading * rotationPitch * mat.extractQuaternion();
+}

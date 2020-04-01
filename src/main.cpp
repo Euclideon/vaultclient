@@ -1165,9 +1165,9 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           pProgramState->camera.position.z = udClamp(pProgramState->camera.position.z, -vcSL_GlobalLimit, vcSL_GlobalLimit);
         }
 
-        pProgramState->camera.eulerRotation = UD_RAD2DEG(pProgramState->camera.eulerRotation);
-        ImGui::InputScalarN(vcString::Get("sceneCameraRotation"), ImGuiDataType_Double, &pProgramState->camera.eulerRotation.x, 3);
-        pProgramState->camera.eulerRotation = UD_DEG2RAD(pProgramState->camera.eulerRotation);
+        udDouble2 headingPitch = UD_RAD2DEG(pProgramState->camera.headingPitch);
+        if (ImGui::InputScalarN(vcString::Get("sceneCameraRotation"), ImGuiDataType_Double, &headingPitch.x, 2))
+          pProgramState->camera.headingPitch = UD_DEG2RAD(headingPitch);
 
         if (ImGui::SliderFloat(vcString::Get("sceneCameraMoveSpeed"), &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
           pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
@@ -1363,32 +1363,23 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     {
       // Compass
       {
-        udDouble3 cameraDirection = udDirectionFromYPR(pProgramState->camera.eulerRotation);
-        udDouble3 northDirection = udDouble3::create(0, 1, 0);
+        udDouble3 cameraDirection = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch).apply({ 0, 1, 0 });
 
         udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->gis, pProgramState->camera.position);
-
-        if (pProgramState->gis.isProjected)
-        {
-          udDouble3 currentLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
-          currentLatLong.x = udClamp(currentLatLong.x, -90.0, 89.9);
-          northDirection = udNormalize(udGeoZone_LatLongToCartesian(pProgramState->gis.zone, udDouble3::create(currentLatLong.x + 0.1, currentLatLong.y, currentLatLong.z)) - pProgramState->camera.position);
-        }
-
-        udDouble3 east = udCross(northDirection, up);
-        udDouble3 northFlat = udCross(up, east);
+        udDouble3 northDir = vcGIS_GetWorldLocalNorth(pProgramState->gis, pProgramState->camera.position);
 
         udDouble3 camRight = udCross(cameraDirection, up);
         udDouble3 camFlat = udCross(up, camRight);
 
-        double angle = udATan2(camFlat.x * northFlat.y - camFlat.y * northFlat.x, camFlat.x * northFlat.x + camFlat.y * northFlat.y);
+        double angle = udATan2(camFlat.x * northDir.y - camFlat.y * northDir.x, camFlat.x * northDir.x + camFlat.y * northDir.y);
         float northX = -(float)udSin(angle);
         float northY = -(float)udCos(angle);
 
         ImGui::PushID("compassButton");
         if (ImGui::ButtonEx("", ImVec2(28, 28)))
         {
-          pProgramState->cameraInput.targetEulerRotation = udDouble3::create(0, pProgramState->camera.eulerRotation.y, 0);
+          pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch);
+          pProgramState->cameraInput.targetAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, udDouble2::create(0, pProgramState->camera.headingPitch.y));
           pProgramState->cameraInput.inputState = vcCIS_Rotate;
           pProgramState->cameraInput.progress = 0.0;
         }
@@ -1758,9 +1749,8 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
       if (pProgramState->gis.isProjected)
         vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &cameraPositionInLongLat.x);
 
-      vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.x", pProgramState->camera.eulerRotation.x);
-      vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", pProgramState->camera.eulerRotation.y);
-      vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.z", pProgramState->camera.eulerRotation.z);
+      vdkProjectNode_SetMetadataDouble(pNode, "transform.heading", pProgramState->camera.headingPitch.x);
+      vdkProjectNode_SetMetadataDouble(pNode, "transform.pitch", pProgramState->camera.headingPitch.y);
     }
     else
     {
@@ -2096,7 +2086,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         {
           pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
           pProgramState->cameraInput.startPosition = pProgramState->camera.position;
-          pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->camera.eulerRotation);
+          pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch);
           pProgramState->cameraInput.progress = 0.0;
 
           pProgramState->isUsingAnchorPoint = true;
@@ -2106,7 +2096,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         if (ImGui::MenuItem(vcString::Get("sceneResetRotation")))
         {
           //TODO: Smooth this over time after fixing inputs
-          pProgramState->camera.eulerRotation = udDouble3::zero();
+          pProgramState->camera.headingPitch = udDouble2::zero();
         }
       }
       else

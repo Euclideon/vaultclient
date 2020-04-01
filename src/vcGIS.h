@@ -26,5 +26,8 @@ bool vcGIS_SlippyToLocal(const vcGISSpace *pSpace, udDouble3 *pLocalCoords, cons
 
 // Helpers
 udDouble3 vcGIS_GetWorldLocalUp(const vcGISSpace &space, udDouble3 localCoords); // Returns which direction is "up" at a given coordinate
+udDouble3 vcGIS_GetWorldLocalNorth(const vcGISSpace &space, udDouble3 localCoords); // Returns which direction is "north"
+udDouble2 vcGIS_QuaternionToHeadingPitch(const vcGISSpace &space, udDouble3 localPosition, udDoubleQuat orientation); // Returns HPR from a Quaternion at a specific location
+udDoubleQuat vcGIS_HeadingPitchToQuaternion(const vcGISSpace &space, udDouble3 localPosition, udDouble2 headingPitch); // Returns a Quaternion from a HPR at a specific location
 
 #endif // !vcGIS_h__

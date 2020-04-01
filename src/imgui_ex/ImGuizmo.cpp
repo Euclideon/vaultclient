@@ -284,7 +284,7 @@ static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &m
   sGizmoContext.mModelInverse = udInverse(sGizmoContext.mModel);
   sGizmoContext.mMVP = sGizmoContext.camera.matrices.viewProjection * sGizmoContext.mModel;
 
-  sGizmoContext.mCameraDir = udDirectionFromYPR(sGizmoContext.camera.eulerRotation);
+  sGizmoContext.mCameraDir = udDirectionFromYPR(udDouble3::create(sGizmoContext.camera.headingPitch, 0.0)); //TODO: Fix me in ECEF
 
   udDouble3 rightViewInverse = (sGizmoContext.mModelInverse * udDouble4::create(sGizmoContext.camera.matrices.camera.axis.x.toVector3(), 0)).toVector3();
   double rightLength = vcGizmo_GetSegmentLengthClipSpace(udDouble3::zero(), rightViewInverse);

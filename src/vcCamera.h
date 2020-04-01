@@ -3,6 +3,7 @@
 
 #include "udMath.h"
 #include "vcMath.h"
+#include "vcGIS.h"
 
 enum vcCameraPivotMode
 {
@@ -21,7 +22,8 @@ enum vcCameraScrollWheelMode
 struct vcCamera
 {
   udDouble3 position;
-  udDouble3 eulerRotation;
+  //udDouble3 eulerRotation;
+  udDouble2 headingPitch;
 
   udRay<double> worldMouseRay;
 
@@ -62,7 +64,7 @@ struct vcCameraInput
 
   udDouble3 startPosition; // for zoom to
   udDoubleQuat startAngle;
-  udDouble3 targetEulerRotation;
+  udDoubleQuat targetAngle;
   double progress;
 
   vcCameraPivotMode currentPivotMode;
@@ -74,7 +76,7 @@ struct vcCameraInput
   bool stabilize;
 
   udDouble3 smoothTranslation;
-  udDouble3 smoothRotation;
+  udDouble2 smoothRotation;
   
   vcSceneItem *pAttachedToSceneItem; // This does nothing in the camera module but the scene item is allowed to override the camera if this variable is set
 };
@@ -120,6 +122,6 @@ enum vcLensSizes
 // Applies movement to camera
 void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos);
 
-void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr);
+void vcCamera_UpdateMatrices(const vcGISSpace &zone, vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr);
 
 #endif//vcCamera_h__

@@ -908,8 +908,8 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
       shadowRenderCameras[r].position = pViewShedData->position;
 
       double rot = (UD_DEG2RAD(360.0) / ViewShedMapCount) * r;
-      shadowRenderCameras[r].eulerRotation = udDouble3::create(-rot, 0, 0);
-      vcCamera_UpdateMatrices(&shadowRenderCameras[r], cameraSettings, atlasSize, nullptr);
+      shadowRenderCameras[r].headingPitch = udDouble2::create(-rot, 0);
+      vcCamera_UpdateMatrices(pProgramState->gis, &shadowRenderCameras[r], cameraSettings, atlasSize, nullptr);
 
       pRenderContext->shadowShader.params.shadowMapVP[r] = udFloat4x4::create(shadowRenderCameras[r].matrices.projectionUD * (shadowRenderCameras[r].matrices.view * udInverse(pProgramState->camera.matrices.view)));
     }
@@ -1021,6 +1021,8 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
     for (size_t i = 0; i < renderData.waterVolumes.length; ++i)
       vcWaterRenderer_Render(renderData.waterVolumes[i], pProgramState->camera.matrices.view, pProgramState->camera.matrices.viewProjection, pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pProgramState->deltaTime);
   }
+
+  vcRenderTerrain(pProgramState, pRenderContext);
 
   vcRender_AsyncReadFrameDepth(pRenderContext); // note: one frame behind
 }
@@ -1266,16 +1268,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
 
   // Drawing skybox after opaque geometry saves a bit on fill rate.
-  if (pProgramState->settings.maptiles.transparency >= 1.0f)
-  {
-    vcRenderTerrain(pProgramState, pRenderContext);
-    vcRenderSkybox(pProgramState, pRenderContext);
-  }
-  else
-  {
-    vcRenderSkybox(pProgramState, pRenderContext);
-    vcRenderTerrain(pProgramState, pRenderContext);
-  }
+  vcRenderSkybox(pProgramState, pRenderContext);
 
   vcRender_RenderAtmosphere(pProgramState, pRenderContext);
 
@@ -1614,7 +1607,6 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   pRenderContext->picking.location.y = (pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1);
 #endif
 
-  double currentDist = pProgramState->settings.camera.farPlane;
   float pickDepth = 1.0f;
 
   if (doSelectRender && (renderData.models.length > 0 || renderData.polyModels.length > 0))
@@ -1689,29 +1681,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   }
 
   if (result.success)
-  {
     result.position = vcRender_DepthToWorldPosition(pProgramState, pRenderContext, pickDepth);
-    currentDist = udMag3(result.position - pProgramState->camera.position);
-  }
-
-  if (pProgramState->settings.maptiles.mapEnabled && pProgramState->settings.maptiles.mouseInteracts)// check map tiles
-  {
-    udPlane<double> mapPlane = udPlane<double>::create({ 0, 0, pProgramState->settings.maptiles.mapHeight }, { 0, 0, 1 });
-
-    double hitDistance = 0.0;
-    udDouble3 hitPoint = {};
-
-    if (mapPlane.intersects(pProgramState->camera.worldMouseRay, &hitPoint, &hitDistance))
-    {
-      if (hitDistance < (currentDist - pProgramState->settings.camera.nearPlane))
-      {
-        result.success = true;
-        result.position = hitPoint;
-        result.pPolygon = nullptr;
-        result.pModel = nullptr;
-      }
-    }
-  }
 
   return result;
 }

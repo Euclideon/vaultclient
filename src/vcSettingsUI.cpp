@@ -297,8 +297,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
           if (pProgramState->settings.maptiles.mapEnabled)
           {
-            ImGui::Checkbox(vcString::Get("settingsMapsMouseLock"), &pProgramState->settings.maptiles.mouseInteracts);
-
             if (ImGui::Button(vcString::Get("settingsMapsTileServerButton"), ImVec2(-1, 0)))
               vcModals_OpenModal(pProgramState, vcMT_TileServer);
 

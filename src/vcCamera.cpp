@@ -12,9 +12,9 @@
 static const double sCameraTranslationSmoothingSpeed = 22.0;
 static const double sCameraRotationSmoothingSpeed = 40.0;
 
-udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera)
+udDouble4x4 vcCamera_GetMatrix(const vcGISSpace &zone, vcCamera *pCamera)
 {
-  udQuaternion<double> orientation = udQuaternion<double>::create(pCamera->eulerRotation);
+  udDoubleQuat orientation = vcGIS_HeadingPitchToQuaternion(zone, pCamera->position, pCamera->headingPitch);
   udDouble3 lookPos = pCamera->position + orientation.apply(udDouble3::create(0.0, 1.0, 0.0));
   return udDouble4x4::lookAt(pCamera->position, lookPos, orientation.apply(udDouble3::create(0.0, 0.0, 1.0)));
 }
@@ -22,7 +22,7 @@ udDouble4x4 vcCamera_GetMatrix(vcCamera *pCamera)
 void vcCamera_StopSmoothing(vcCameraInput *pCamInput)
 {
   pCamInput->smoothTranslation = udDouble3::zero();
-  pCamInput->smoothRotation = udDouble3::zero();
+  pCamInput->smoothRotation = udDouble2::zero();
 }
 
 void vcCamera_UpdateSmoothing(vcCamera *pCamera, vcCameraInput *pCamInput, double deltaTime)
@@ -49,19 +49,18 @@ void vcCamera_UpdateSmoothing(vcCamera *pCamera, vcCameraInput *pCamInput, doubl
     }
 
     // rotation
-    if (udMagSq3(pCamInput->smoothRotation) > minSmoothingThreshold)
+    if (udMagSq2(pCamInput->smoothRotation) > minSmoothingThreshold)
     {
-      udDouble3 step = pCamInput->smoothRotation * udMin(1.0, stepAmount * sCameraRotationSmoothingSpeed);
-      pCamera->eulerRotation += step;
+      udDouble2 step = pCamInput->smoothRotation * udMin(1.0, stepAmount * sCameraRotationSmoothingSpeed);
+      pCamera->headingPitch += step;
       pCamInput->smoothRotation -= step;
 
-      pCamera->eulerRotation.y = udClamp(pCamera->eulerRotation.y, -UD_HALF_PI, UD_HALF_PI);
-      pCamera->eulerRotation.x = udMod(pCamera->eulerRotation.x, UD_2PI);
-      pCamera->eulerRotation.z = udMod(pCamera->eulerRotation.z, UD_2PI);
+      pCamera->headingPitch.x = udMod(pCamera->headingPitch.x, UD_2PI);
+      pCamera->headingPitch.y = udClamp(pCamera->headingPitch.y, -UD_HALF_PI, UD_HALF_PI);
     }
     else
     {
-      pCamInput->smoothRotation = udDouble3::zero();
+      pCamInput->smoothRotation = udDouble2::zero();
     }
   }
 }
@@ -100,7 +99,7 @@ void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindi
   };
 }
 
-void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos /*= nullptr*/)
+void vcCamera_UpdateMatrices(const vcGISSpace &zone, vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos /*= nullptr*/)
 {
   // Update matrices
   double fov = settings.fieldOfView;
@@ -108,7 +107,7 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
   double zNear = settings.nearPlane;
   double zFar = settings.farPlane;
 
-  pCamera->matrices.camera = vcCamera_GetMatrix(pCamera);
+  pCamera->matrices.camera = vcCamera_GetMatrix(zone, pCamera);
 
   pCamera->matrices.projectionNear = vcGLState_ProjectionMatrix<double>(fov, aspect, 0.5f, 10000.f);
   pCamera->matrices.projection = vcGLState_ProjectionMatrix<double>(fov, aspect, zNear, zFar);
@@ -143,6 +142,9 @@ void vcCamera_UpdateMatrices(vcCamera *pCamera, const vcCameraSettings &settings
 
 void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraInput *pCamInput, double deltaTime, float speedModifier /* = 1.f*/)
 {
+  udDouble3 worldAnchorNormal = vcGIS_GetWorldLocalUp(pProgramState->gis, pProgramState->worldAnchorPoint);
+  udDoubleQuat orientation = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pCamera->position, pCamera->headingPitch);
+
   switch (pCamInput->inputState)
   {
   case vcCIS_MovingForward:
@@ -155,20 +157,20 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     addPos.z = 0.0;
 
     // Translation
-    if (pCamSettings->lockAltitude)
+    //if (pCamSettings->lockAltitude)
+    //{
+    //  addPos = (udDouble4x4::rotationYPR(udDouble3::create(pCamera->eulerRotation.x, 0.0, 0.0)) * udDouble4::create(addPos, 1)).toVector3();
+    //  addPos.z = 0.0; // might be unnecessary now
+    //  if (addPos.x != 0.0 || addPos.y != 0.0)
+    //    addPos = udNormalize3(addPos);
+    //}
+    //else // Lock Altitude
     {
-      addPos = (udDouble4x4::rotationYPR(udDouble3::create(pCamera->eulerRotation.x, 0.0, 0.0)) * udDouble4::create(addPos, 1)).toVector3();
-      addPos.z = 0.0; // might be unnecessary now
-      if (addPos.x != 0.0 || addPos.y != 0.0)
-        addPos = udNormalize3(addPos);
-    }
-    else // Lock Altitude
-    {
-      addPos = (udDouble4x4::rotationYPR(pCamera->eulerRotation) * udDouble4::create(addPos, 1)).toVector3();
+      addPos = (udDouble4x4::rotationQuat(orientation) * udDouble4::create(addPos, 1)).toVector3();
     }
 
     // Panning - DPAD
-    pCamInput->controllerDPADInput = (udDouble4x4::rotationYPR(pCamera->eulerRotation) * udDouble4::create(pCamInput->controllerDPADInput, 1)).toVector3();
+    pCamInput->controllerDPADInput = (udDouble4x4::rotationQuat(orientation) * udDouble4::create(pCamInput->controllerDPADInput, 1)).toVector3();
 
     if (pCamSettings->lockAltitude)
       pCamInput->controllerDPADInput.z = 0.0;
@@ -183,7 +185,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     if (isnan(pCamera->position.x) || isnan(pCamera->position.y) || isnan(pCamera->position.z))
       pCamera->position = udDouble3::zero();
 
-    pCamInput->smoothRotation += pCamInput->mouseInput * 0.5;
+    pCamInput->smoothRotation += udDouble2::create(-pCamInput->mouseInput.x, pCamInput->mouseInput.y) * 0.5; // Because this messes with HEADING, has to be reversed
   }
   break;
 
@@ -192,28 +194,24 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     double distanceToPointSqr = udMagSq3(pProgramState->worldAnchorPoint - pCamera->position);
     if (distanceToPointSqr != 0.0 && (pCamInput->mouseInput.x != 0 || pCamInput->mouseInput.y != 0))
     {
-      udRay<double> transform, tempTransform;
-      transform.position = pCamera->position;
-      transform.direction = udDirectionFromYPR(pCamera->eulerRotation);
+      // Orbit Left/Right
+      udDoubleQuat rotation = udDoubleQuat::create(worldAnchorNormal, pCamInput->mouseInput.x);
+      udDouble3 direction = pCamera->position - pProgramState->worldAnchorPoint; // find current direction relative to center
 
-      // Apply input
-      tempTransform = udRay<double>::rotationAround(transform, pProgramState->worldAnchorPoint, { 0, 0, 1 }, pCamInput->mouseInput.x);
-      transform = udRay<double>::rotationAround(tempTransform, pProgramState->worldAnchorPoint, udDoubleQuat::create(udDirectionToYPR(tempTransform.direction)).apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
+      orientation = (rotation * orientation);
 
-      // Prevent flipping
-      if ((transform.direction.x > 0 && tempTransform.direction.x < 0) || (transform.direction.x < 0 && tempTransform.direction.x > 0))
-        transform = tempTransform;
+      pCamera->position = pProgramState->worldAnchorPoint + rotation.apply(direction); // define new position
+      pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, orientation);
 
-      udDouble3 euler = udDirectionToYPR(transform.direction);
+      // Orbit Up/Down
+      rotation = udDoubleQuat::create(orientation.apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
+      direction = pCamera->position - pProgramState->worldAnchorPoint; // find current direction relative to center
 
-      // Handle special case where ATan2 is ambiguous
-      if (pCamera->eulerRotation.y == -UD_HALF_PI)
-        euler.x += UD_PI;
+      orientation = (rotation * orientation);
 
-      // Apply transform
-      pCamera->position = transform.position;
-      pCamera->eulerRotation = euler;
-      pCamera->eulerRotation.z = 0;
+      // Save it back to the camera
+      pCamera->position = pProgramState->worldAnchorPoint + rotation.apply(direction); // define new position
+      pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, orientation);
     }
   }
   break;
@@ -243,11 +241,11 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     double travelProgress = udEase(pCamInput->progress, udET_CubicInOut);
     pCamera->position = pCamInput->startPosition + moveVector * travelProgress;
 
-    udDouble3 targetEuler = udDirectionToYPR(pProgramState->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest));
-    pCamera->eulerRotation = udSlerp(pCamInput->startAngle, udDoubleQuat::create(targetEuler), travelProgress).eulerAngles();
+    udDoubleQuat targetAngle = udDoubleQuat::create(pProgramState->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest), 0);
+    pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pCamera->position, udSlerp(pCamInput->startAngle, targetAngle, travelProgress));
 
-    if (pCamera->eulerRotation.y > UD_PI)
-      pCamera->eulerRotation.y -= UD_2PI;
+    if (pCamera->headingPitch.y > UD_PI)
+      pCamera->headingPitch.y -= UD_2PI;
   }
   break;
 
@@ -255,10 +253,11 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
   {
     udDouble3 addPos = udDouble3::zero();
     udDouble3 towards = pProgramState->worldAnchorPoint - pCamera->position;
-    double distanceToPoint = udMagSq3(towards);
-    if (distanceToPoint > 0)
+    if (udMagSq3(towards) > 0)
     {
-      distanceToPoint = udMin(distanceToPoint, (double)pCamSettings->moveSpeed * speedModifier);
+      double maxDistance = 0.9 * pCamSettings->farPlane; // limit to 90% of visible distance
+      double distanceToPoint = udMin(udMag3(towards), maxDistance);
+
       addPos = distanceToPoint * pCamInput->mouseInput.y * udNormalize3(towards);
     }
 
@@ -269,14 +268,17 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
   case vcCIS_Rotate:
   {
     // Not good to use udSlerp because the camera may keep unexpected rolling angle if smooth interrupted by mouse button clicked.
-    udDouble3 diff = pCamInput->targetEulerRotation - pCamera->eulerRotation;
-    pCamera->eulerRotation += diff * 0.05f;
-    if (udEqualApprox(pCamera->eulerRotation, pCamInput->targetEulerRotation, 0.05f))
+    pCamInput->progress += deltaTime;
+    if (pCamInput->progress > 1.0)
     {
-      pProgramState->camera.eulerRotation = pCamInput->targetEulerRotation;
-      pCamInput->targetEulerRotation = udDouble3::zero();
+      pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pCamera->position, pCamInput->targetAngle);
+      pCamInput->targetAngle = udDoubleQuat::identity();
       pCamInput->inputState = vcCIS_None;
       pCamInput->progress = 1.0;
+    }
+    else
+    {
+      pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pCamera->position, udSlerp(pCamInput->startAngle, pCamInput->targetAngle, pCamInput->progress));
     }
   }
   break;
@@ -289,10 +291,10 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
   case vcCIS_Panning:
   {
-    udPlane<double> plane = udPlane<double>::create(pProgramState->worldAnchorPoint, { 0, 0, 1 });
+    udPlane<double> plane = udPlane<double>::create(pProgramState->worldAnchorPoint, worldAnchorNormal);
 
     if (!pCamSettings->lockAltitude) // generate a plane facing the camera
-      plane.normal = udDoubleQuat::create(pCamera->eulerRotation).apply({ 0, 1, 0 });
+      plane.normal = orientation.apply({ 0, 1, 0 });
 
     udDouble3 offset = udDouble3::create(0, 0, 0);
     udDouble3 anchorOffset = udDouble3::create(0, 0, 0);
@@ -307,9 +309,6 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
   if (pCamInput->stabilize)
   {
-    if (pCamera->eulerRotation.z > UD_PI)
-      pCamera->eulerRotation.z -= UD_2PI;
-
     pCamInput->progress += deltaTime * 2; // .5 second stabilize time
     if (pCamInput->progress >= 1.0)
     {
@@ -317,12 +316,8 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
       pCamInput->stabilize = false;
     }
 
-    double travelProgress = udEase(pCamInput->progress, udET_CubicOut);
-
-    pCamera->eulerRotation.z = udLerp(pCamera->eulerRotation.z, 0.0, travelProgress);
-
-    if (pCamera->eulerRotation.y > UD_PI)
-      pCamera->eulerRotation.y -= UD_2PI;
+    if (pCamera->headingPitch.y > UD_PI)
+      pCamera->headingPitch.y -= UD_2PI;
   }
 
   vcCamera_UpdateSmoothing(pCamera, pCamInput, deltaTime);
@@ -507,7 +502,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   {
     pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
     pProgramState->cameraInput.startPosition = pProgramState->camera.position;
-    pProgramState->cameraInput.startAngle = udDoubleQuat::create(pProgramState->camera.eulerRotation);
+    pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch);
     pProgramState->cameraInput.progress = 0.0;
 
     pProgramState->isUsingAnchorPoint = true;
@@ -568,5 +563,5 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   if (pProgramState->cameraInput.inputState == vcCIS_None)
     pProgramState->isUsingAnchorPoint = false;
 
-  vcCamera_UpdateMatrices(&pProgramState->camera, pProgramState->settings.camera, windowSize, &mousePos);
+  vcCamera_UpdateMatrices(pProgramState->gis, &pProgramState->camera, pProgramState->settings.camera, windowSize, &mousePos);
 }
