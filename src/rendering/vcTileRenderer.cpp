@@ -19,7 +19,7 @@
 #define VISUALIZE_DEBUG_TILES 0
 
 // TODO: This is a temporary solution, where we know the dem data stops at level 13.
-#define HACK_DEM_LEVEL 11
+#define HACK_DEM_LEVEL 13
 
 enum
 {
