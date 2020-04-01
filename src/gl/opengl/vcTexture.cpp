@@ -25,16 +25,6 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
     pixelFormat = GL_RGBA;
     pixelSize = 4;
     break;
-  case vcTextureFormat_BGRA8:
-    textureFormat = GL_RGBA8;
-    pixelType = GL_UNSIGNED_BYTE;
-#if UDPLATFORM_EMSCRIPTEN || UDPLATFORM_ANDROID
-    pixelFormat = GL_RGBA; // TODO: Fix this
-#else
-    pixelFormat = GL_BGRA;
-#endif
-    pixelSize = 4;
-    break;
   case vcTextureFormat_RGBA16F:
     textureFormat = GL_RGBA16F;
     pixelType = GL_HALF_FLOAT;

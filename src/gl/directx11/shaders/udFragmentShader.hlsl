@@ -31,7 +31,7 @@ PS_OUTPUT main(PS_INPUT input)
   float4 col = texture0.Sample(sampler0, input.uv);
   float depth = texture1.Sample(sampler1, input.uv).x;
 
-  output.Color0 = float4(col.xyz, 1.0);// UD always opaque
+  output.Color0 = float4(col.zyx, 1.0);// UD always opaque, UD is BGRA but uploaded as RGBA
   output.Depth0 = depth;
 
   return output;

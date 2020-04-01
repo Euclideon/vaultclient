@@ -9,7 +9,7 @@ layout(location = 0) out vec4 out_var_SV_Target;
 
 void main()
 {
-    out_var_SV_Target = vec4(texture(SPIRV_Cross_Combinedtexture0sampler0, in_var_TEXCOORD0).xyz, 1.0);
+    out_var_SV_Target = vec4(texture(SPIRV_Cross_Combinedtexture0sampler0, in_var_TEXCOORD0).zyx, 1.0);
     gl_FragDepth = texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD0).x;
 }
 

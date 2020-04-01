@@ -276,7 +276,7 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   pRenderContext->viewShedRenderingContext.pDepthBuffer = udAllocType(float, ViewShedMapRes.x * ViewShedMapRes.y, udAF_Zero);
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->viewShedRenderingContext.pUDDepthTexture, ViewShedMapRes.x, ViewShedMapRes.y, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_Dynamic));
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->viewShedRenderingContext.pDepthTex, ViewShedMapRes.x, ViewShedMapRes.y, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, vcTCF_RenderTarget));
-  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->viewShedRenderingContext.pDummyColour, ViewShedMapRes.x, ViewShedMapRes.y, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, vcTCF_RenderTarget));
+  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->viewShedRenderingContext.pDummyColour, ViewShedMapRes.x, ViewShedMapRes.y, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, vcTCF_RenderTarget));
   UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->viewShedRenderingContext.pFramebuffer, pRenderContext->viewShedRenderingContext.pDummyColour, pRenderContext->viewShedRenderingContext.pDepthTex), udR_InternalError);
 
   UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->udRenderContext.presentShader.pProgram, "asset://assets/shaders/udVertexShader", "asset://assets/shaders/udFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
@@ -491,7 +491,7 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   vcTexture_Destroy(&pRenderContext->udRenderContext.pDepthTex);
   vcFramebuffer_Destroy(&pRenderContext->udRenderContext.pFramebuffer);
 
-  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pColorBuffer, vcTextureFormat_BGRA8, vcTFM_Nearest, vcTCF_Dynamic));
+  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->udRenderContext.pColourTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pColorBuffer, vcTextureFormat_RGBA8, vcTFM_Nearest, vcTCF_Dynamic));
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->udRenderContext.pDepthTex, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y, pRenderContext->udRenderContext.pDepthBuffer, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_Dynamic));
 
   for (int i = 0; i < vcRender_RenderBufferCount; ++i)
@@ -529,7 +529,7 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
     UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pAuxiliaryFramebuffers[i], pRenderContext->pAuxiliaryTextures[i]), udR_InternalError);
   }
 
-  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pTexture, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_BGRA8, vcTFM_Nearest, vcTCF_RenderTarget));
+  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pTexture, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, vcTCF_RenderTarget));
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pDepth, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, vcTCF_RenderTarget));
   UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pRenderContext->picking.pDepth), udR_InternalError);
 

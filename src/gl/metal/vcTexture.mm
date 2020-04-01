@@ -33,16 +33,6 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
     storageMode = MTLStorageModeManaged;
 #endif
     break;
-  case vcTextureFormat_BGRA8:
-    pixelFormat = MTLPixelFormatBGRA8Unorm;
-    usage = MTLTextureUsageShaderRead;
-    pixelSize = 4;
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-    storageMode = MTLStorageModeShared;
-#elif UDPLATFORM_OSX
-    storageMode = MTLStorageModeManaged;
-#endif
-    break;
   case vcTextureFormat_RGBA16F:
     pixelFormat = MTLPixelFormatRGBA16Float;
     usage = MTLTextureUsageShaderRead;
@@ -142,7 +132,7 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
     pTextureDesc.height = height;
     pTextureDesc.mipmapLevelCount = 1;
 
-    if (flags & vcTCF_RenderTarget || flags & vcTCF_Dynamic)
+    if (flags & vcTCF_RenderTarget)
     {
       pTextureDesc.usage |= MTLTextureUsageRenderTarget;
     }
@@ -158,7 +148,6 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
     {
       pText->texture = [pText->texture newTextureViewWithPixelFormat:MTLPixelFormatBGRA8Unorm];
       pTextureDesc.pixelFormat = MTLPixelFormatBGRA8Unorm;
-      pText->format = vcTextureFormat_BGRA8;
     }
     MTLRegion region = MTLRegionMake2D(0, 0, width, height);
     NSUInteger row = pixelBytes * width;
@@ -279,7 +268,7 @@ udResult vcTexture_UploadPixels(struct vcTexture *pTexture, const void *pPixels,
   {
     id<MTLBuffer> pData = [g_device newBufferWithBytes:pPixels length:width * height * pixelBytes options:MTLStorageModeShared];
 
-    [g_blitEncoder copyFromBuffer:pData sourceOffset:0 sourceBytesPerRow:width * pixelBytes sourceBytesPerImage:width * height * 4 sourceSize:MTLSizeMake(width, height, 1) toTexture:pTexture->texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
+    [g_blitEncoder copyFromBuffer:pData sourceOffset:0 sourceBytesPerRow:width * pixelBytes sourceBytesPerImage:width * height * pixelBytes sourceSize:MTLSizeMake(width, height, 1) toTexture:pTexture->texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
 #if UDPLATFORM_OSX
     if (pTexture->texture.storageMode != MTLStorageModePrivate)
       [g_blitEncoder synchronizeTexture:pTexture->texture slice:0 level:0];
@@ -339,13 +328,13 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
   {
     if (pTexture->blitBuffer == nil)
       pTexture->blitBuffer = [g_device newBufferWithLength:pixelBytes * pTexture->width * pTexture->height options:MTLResourceStorageModeShared];
-    else if (pTexture->blitBuffer.length < 4 * pTexture->width * pTexture->height)
-      pTexture->blitBuffer = [g_device newBufferWithLength:4 * pTexture->width * pTexture->height options:MTLResourceStorageModeShared];
+    else if (pTexture->blitBuffer.length < pixelBytes * pTexture->width * pTexture->height)
+      pTexture->blitBuffer = [g_device newBufferWithLength:pixelBytes * pTexture->width * pTexture->height options:MTLResourceStorageModeShared];
 
     if (pTexture->format == vcTextureFormat_D24S8)
-      [g_blitEncoder copyFromTexture:pTexture->texture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(pTexture->width, pTexture->height, 1) toBuffer:pTexture->blitBuffer destinationOffset:0 destinationBytesPerRow:4 * pTexture->width destinationBytesPerImage:4 * pTexture->width * pTexture->height options:MTLBlitOptionDepthFromDepthStencil];
+      [g_blitEncoder copyFromTexture:pTexture->texture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(pTexture->width, pTexture->height, 1) toBuffer:pTexture->blitBuffer destinationOffset:0 destinationBytesPerRow:pixelBytes * pTexture->width destinationBytesPerImage:pixelBytes * pTexture->width * pTexture->height options:MTLBlitOptionDepthFromDepthStencil];
     else
-      [g_blitEncoder copyFromTexture:pTexture->texture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(pTexture->width, pTexture->height, 1) toBuffer:pTexture->blitBuffer destinationOffset:0 destinationBytesPerRow:4 * pTexture->width destinationBytesPerImage:4 * pTexture->width * pTexture->height];
+      [g_blitEncoder copyFromTexture:pTexture->texture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(pTexture->width, pTexture->height, 1) toBuffer:pTexture->blitBuffer destinationOffset:0 destinationBytesPerRow:pixelBytes * pTexture->width destinationBytesPerImage:pixelBytes * pTexture->width * pTexture->height];
 
     vcGLState_FlushBlit();
   }
