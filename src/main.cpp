@@ -1531,13 +1531,6 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
           // ...and indeed we have a valid polygon as a pick result
           // ...and the polygon we have picked is a POI
           // ...and the internal ID of the picked polygon is valid (at least, 0 ==  not the entire model)
-
-          pickResult.pPolygon->pSceneItem->SelectSubitem(pickResult.pPolygon->sceneItemInternalId);
-          pProgramState->activeTool = vcActiveTool_Select;
-          pProgramState->gizmo.operation = vcGO_Translate;
-        }
-        else
-        {
           pPOI->AddPoint(pProgramState, pProgramState->worldMousePosCartesian);
         }
       }
