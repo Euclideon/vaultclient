@@ -716,6 +716,8 @@ void vcConvert_ShowUI(vcState *pProgramState)
             while (pSelectedJob->pConvertInfo->totalItems > 0)
               vdkConvert_RemoveItem(pSelectedJob->pConvertContext, 0);
 
+            vdkConvert_SetOutputFilename(pSelectedJob->pConvertContext, "");
+
             udLockMutex(pSelectedJob->pMutex);
             while (pSelectedJob->itemsToProcess.length > 0)
             {
