@@ -1607,7 +1607,6 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   pRenderContext->picking.location.y = (pRenderContext->effectResolution.y - pRenderContext->picking.location.y - 1);
 #endif
 
-  double currentDist = pProgramState->settings.camera.farPlane;
   float pickDepth = 1.0f;
 
   if (doSelectRender && (renderData.models.length > 0 || renderData.polyModels.length > 0))
@@ -1682,10 +1681,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   }
 
   if (result.success)
-  {
     result.position = vcRender_DepthToWorldPosition(pProgramState, pRenderContext, pickDepth);
-    currentDist = udMag3(result.position - pProgramState->camera.position);
-  }
 
   return result;
 }
