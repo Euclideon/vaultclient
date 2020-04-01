@@ -197,8 +197,19 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     return;
 
   bool isMeasuring = (pProgramState->activeTool == vcActiveTool_MeasureLine || pProgramState->activeTool == vcActiveTool_MeasureArea);
+  bool wasPreviouslyPreviewing = m_hasPreviewPoint;
   if (m_hasPreviewPoint && (!m_selected || !isMeasuring))
     ChangeProjection(pProgramState->gis.zone);
+
+  //Preview has ended
+  if (wasPreviouslyPreviewing && !m_hasPreviewPoint)
+  {
+    if (m_pFence != nullptr)
+    {
+      vcFenceRenderer_ClearPoints(m_pFence);
+      vcFenceRenderer_AddPoints(m_pFence, m_line.pPoints, m_line.numPoints, m_line.closed);
+    }
+  }
 
   if (m_selected)
   {
