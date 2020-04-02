@@ -33,6 +33,7 @@ struct vcTexture
   id<MTLSamplerState> sampler;
   uint32_t width;
   uint32_t height;
+  uint32_t depth;
   vcTextureFormat format;
   vcTextureCreationFlags flags;
   id<MTLBuffer> blitBuffer;
